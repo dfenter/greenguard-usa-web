@@ -37,7 +37,8 @@ var KBUI = (function () {
       fontFamily: U.FONT,
       fontSize: Math.round(size) + 'px',
       fontStyle: (weight || 700) + '',
-      color: color || '#F7FBFF'
+      color: color || '#F7FBFF',
+      resolution: GGKit.hiDpi.dpr()
     };
   };
 
@@ -142,7 +143,7 @@ var KBUI = (function () {
     ico.setTint(opts.tint == null ? 0xF7FBFF : opts.tint);
     root.add(ico);
     var val = scene.add.text(-w * 0.5 + h * 0.92, 0, String(opts.value == null ? '0' : opts.value),
-      { fontFamily: U.FONT, fontSize: Math.round(opts.size || 15) + 'px', fontStyle: '750', color: '#F7FBFF' });
+      { fontFamily: U.FONT, fontSize: Math.round(opts.size || 15) + 'px', fontStyle: '750', color: '#F7FBFF', resolution: GGKit.hiDpi.dpr() });
     val.setOrigin(0, 0.5);
     val.__t = String(opts.value == null ? '0' : opts.value);
     val.__c = '#F7FBFF';

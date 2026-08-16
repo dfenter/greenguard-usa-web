@@ -169,3 +169,10 @@ errors, frame median 16.7 ms.
   https only and is expected to pass on the deployed URL.
 - No harvested asset pack was available in this workspace, so all art and
   audio are generated rather than cut from the CC0 packs in the ledger.
+
+## Retina pass 2026-08-16
+
+- Audit profile: CSS viewport 390x844 at DPR 3. Measured pre-pass backing-store ratio: 1.00x. FIT scale math after the pass measures 1170x2532 against the 390x844 CSS canvas, a 3.00x ratio.
+- Recipe: `GGKit.hiDpi.factor(390, 844)`, dense FIT scale dimensions, `GGKit.renderDefaults`, and `this.cameras.main.setZoom(f)` in PlayScene. Existing canvas baking now uses dense GGKit canvases, text resolution uses the same factor, and pointer mapping stays in design coordinates.
+- Factor cap: none. The factor is the GGKit native value, capped only by GGKit's normal maximum of 3.
+- Could not complete live headless canvas readback or a gameplay screenshot because no browser backend was available in this environment. `node --check` passed.

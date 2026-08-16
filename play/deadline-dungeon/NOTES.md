@@ -83,3 +83,10 @@ Fixed the black first-frame regression by pinning Phaser to its Canvas renderer.
 - Collapsed the live HUD to a compact mode/phase line, remaining timer, floor/room meter, key meter, par, and heart/dash icons. Moved status copy into one thin top-edge chip above the playfield.
 - Replaced overwriting event text with one queued transient at a time. Room, deadline, shortcut, gate, puzzle, key, pickup, hit, and reset feedback is shortened to a one-line chip capped at 1.0s with a reduced-motion-safe fade.
 - Kept tutorial and puzzle information in the same strip: tutorial is one line and fades after about 3s; puzzle progress, controls, and the unlock pattern remain visible when needed.
+
+## Retina pass 2026-08-16
+
+- Ratio record: before 1.00x from the pre-pass design-size backing configuration; after 3.00x is the configured DPR3 result from `round(design * GGKit.hiDpi.factor(...))`. A live canvas ratio read was unavailable.
+- Recipe: Phaser `Scale.FIT`, design world coordinates retained, `RETINA_FACTOR` applied to scale dimensions and the single scene camera zoom. Hero, enemy, effect, room, and chrome CanvasTextures use the dense GGKit canvas helper, with logical display scales and text resolution preserved.
+- Factor cap: none. The GGKit factor is used without a cap because this title has no measured need for one.
+- Could not do: the browser connector reported no available target, so the required DPR3 canvas ratio read and real gameplay screenshot could not be captured. `node --check` and `git diff --check` pass.

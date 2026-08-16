@@ -8,6 +8,7 @@
 
   var W = 390;
   var H = 844;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(W, H);
   var STEP = 1 / 60;
   var MAX_PARTICLES = 96;
   var MAX_FLOATERS = 8;
@@ -427,7 +428,7 @@
   function makeText(scene, x, y, value, size, color, originX, originY, weight) {
     var text = scene.add.text(x, y, value, {
       fontFamily: 'system-ui, -apple-system, sans-serif', fontSize: size + 'px',
-      fontStyle: weight >= 800 ? 'bold' : 'normal', color: color, resolution: 2,
+      fontStyle: weight >= 800 ? 'bold' : 'normal', color: color, resolution: RETINA_FACTOR,
       stroke: '#061013', strokeThickness: size >= 17 ? 2 : 1
     });
     text.setOrigin(originX == null ? 0 : originX, originY == null ? 0.5 : originY);
@@ -452,6 +453,7 @@
     constructor() { super({ key: 'boot' }); }
     preload() { kit.loader.show('SPORELING SAGA'); kit.loader.progress(0.55); }
     create() {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       ensureProfile();
       kit.audio.register({
         strikeHit: 'assets/strike-hit.mp3', forageChime: 'assets/forage-chime.mp3',
@@ -474,6 +476,7 @@
       this.layout = { sx: 1, sy: 1 }; this.lifecyclePaused = false; this.lastProbeRank = null; this.lastProbeBranch = '';
     }
     create() {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       Game.play = this; liveScene = this;
       this.installGamepadHooks();
       var self = this;
@@ -978,10 +981,14 @@
     }
   }
 
-  Game.phaser = new Phaser.Game({
+  var config = {
     type: Phaser.CANVAS, parent: 'game', backgroundColor: '#061013',
     render: { antialias: true, roundPixels: true, clearBeforeRender: true },
     scale: { mode: Phaser.Scale.FIT, width: W, height: H, autoCenter: Phaser.Scale.CENTER_BOTH },
     input: { activePointers: 8 }, scene: [BootScene, PlayScene]
-  });
+  };
+  config.scale.width = Math.round(W * RETINA_FACTOR);
+  config.scale.height = Math.round(H * RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
+  Game.phaser = new Phaser.Game(config);
 }());

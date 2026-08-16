@@ -996,7 +996,8 @@
       fontFamily: 'Verdana, Geneva, system-ui, sans-serif',
       fontSize: size + 'px',
       fontStyle: weight || 'normal',
-      color: color || '#dff6ff'
+      color: color || '#dff6ff',
+      resolution: window.GGKit.hiDpi.dpr()
     });
   }
 
@@ -4990,13 +4991,19 @@
     // it needs it); antialiasGL:false drops multisampling on the default
     // framebuffer, which is pure cost on a software rasteriser and buys
     // nothing when every edge already comes from a filtered texture.
-    render: {
-      antialias: true, antialiasGL: false, powerPreference: 'high-performance',
-      roundPixels: false, batchSize: 4096
-    },
+    render: Object.assign({}, window.GGKit.renderDefaults, { batchSize: 4096 }),
     fps: { target: 60, min: 30 },
     scene: [toScene(BootScene), toScene(TitleScene), toScene(CommandScene), toScene(PlayScene)]
   });
+
+  function resizeGame() {
+    if (!Game.phaser) return;
+    window.GGKit.hiDpi.resize(Game.phaser, Math.max(1, window.innerWidth || 320), Math.max(1, window.innerHeight || 640));
+  }
+  window.addEventListener('resize', resizeGame);
+  window.addEventListener('orientationchange', resizeGame);
+  document.addEventListener('visibilitychange', resizeGame);
+  resizeGame();
 
   kit.registerPWA();
   window.__SKYFALL_READY = true;

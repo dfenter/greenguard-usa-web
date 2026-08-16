@@ -46,3 +46,10 @@
 
 - In-app browser WebGL smoke test, local HTTP smoke test, and 4x-throttle median capture could not run because no browser backend was available and sandbox socket binding was denied in this environment.
 - Split-route geometry is deferred because the current GGRacer track schema exposes authored spline circuits but no route-branch primitive.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.50x for the main GGRacer canvas from the shared engine cap.
+- After ratio: 3.00x configured at DPR 3 with `GGKit.hiDpi.three(racer.world.renderer)` followed by `racer.world.resize()`. Live `canvas.width / getBoundingClientRect().width` measurement was unavailable because Chrome aborted in this sandbox and the private HTTP bind was denied.
+- Recipe: native Three renderer density. This title was audited as Three.js, not Phaser, and no Phaser scale or resolution setting was introduced. No factor cap beyond GGKit's required maximum of 3.
+- Audit: no render target, composer, or post-processing pass exists in the racer path. Shared racer texture bakes were identified but could not be changed because this lane was constrained from writing `play/_shared/`.

@@ -5,6 +5,7 @@
   'use strict';
 
   var W = 430, H = 900, STEP = 1 / 120, MAX_STEPS = 8, TAU = Math.PI * 2;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(W, H);
   var MAX_BALLS = 3, MAX_PARTICLES = 150, MAX_RINGS = 8;
   var SIDE_KEYS = ['left', 'right'];
   var GRAVITY = 1160, MAX_SPEED = 1760;
@@ -326,7 +327,7 @@
 
   function text(scene, x, y, value, size, color, origin) {
     var readable = Math.max(10, size || 10);
-    return scene.add.text(x, y, value, { fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: readable + 'px', fontStyle: readable >= 18 ? 'bold' : 'normal', color: color || '#e9fbff', resolution: 2 }).setOrigin(origin == null ? 0.5 : origin);
+    return scene.add.text(x, y, value, { fontFamily: 'ui-monospace, Menlo, Consolas, monospace', fontSize: readable + 'px', fontStyle: readable >= 18 ? 'bold' : 'normal', color: color || '#e9fbff', resolution: RETINA_FACTOR }).setOrigin(origin == null ? 0.5 : origin);
   }
   function makeButton(scene, x, y, w, h, label, callback, primary, hitW, hitH, labelSize) {
     var c = scene.add.container(x, y), bg = scene.add.rectangle(0, 0, w, h, primary ? 0x164d62 : 0x10263d, 0.96);
@@ -351,6 +352,7 @@
   var BootScene = {
     key: 'boot',
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       var scene = this;
       kit.loader.show('SHELLSHOCK PINBALL'); kit.loader.progress(0.18);
       bakeTextures(scene); kit.loader.progress(0.72);
@@ -369,6 +371,7 @@
   var TitleScene = {
     key: 'title',
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       var scene = this, skin = skinById(profile.skin), table = SS.generateTable(currentSeed);
       Game.title = this; Game.play = null; syncDebug(null);
       this.cameras.main.setBackgroundColor('#050b15');
@@ -423,6 +426,7 @@
   var PlayScene = {
     key: 'play',
     create: function (data) {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       var seed = data && data.seed != null ? ((Number(data.seed) >>> 0) || DEFAULT_SEED) : currentSeed;
       currentSeed = seed; profile.lastSeed = seed; persist();
       Game.play = this; Game.title = null; this.lifecyclePaused = false; this.acc = 0; this.fxSeed = seed ^ 0x9e3779b9;
@@ -865,10 +869,14 @@
     }
   };
   kit.registerPWA();
-  Game.phaser = new Phaser.Game({
+  var config = {
     type: Phaser.AUTO, parent: document.body, backgroundColor: '#050b15',
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H },
     render: { antialias: true, antialiasGL: false, powerPreference: 'high-performance', roundPixels: false, batchSize: 4096 },
     fps: { target: 60, min: 30 }, scene: [toScene(BootScene), toScene(TitleScene), toScene(PlayScene)]
-  });
+  };
+  config.scale.width = Math.round(W * RETINA_FACTOR);
+  config.scale.height = Math.round(H * RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
+  Game.phaser = new Phaser.Game(config);
 }());

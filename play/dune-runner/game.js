@@ -459,6 +459,7 @@ import { createRacerWorld } from '../_shared/racer/engine.js';
       accent: data.accent || 0xf2c34e,
       seed: (activeRegionIndex + 1) * 977 + currentEvent.id.length,
     });
+    GGKit.hiDpi.three(racer.world.renderer);
     racer.world.mainCar.setLivery({ paint: liveryPaint(), accent: data.accent || 0xf2c34e });
     racer.world.fx.setReducedMotion(reducedMotion);
     racer.world.setPaused(Boolean(kit.paused));

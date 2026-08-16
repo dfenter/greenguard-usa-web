@@ -26,8 +26,14 @@
   var P = K.PITCH;
 
   var GW = 960, GH = 480;
+  var RETINA_FACTOR = root.GGKit.hiDpi.factor(GW, GH);
   var TAU = Math.PI * 2;
   var SAVE_VERSION = 3;
+
+  var textFactory = Phaser.GameObjects.GameObjectFactory.prototype.text;
+  Phaser.GameObjects.GameObjectFactory.prototype.text = function (x, y, text, style) {
+    return textFactory.call(this, x, y, text, Object.assign({ resolution: RETINA_FACTOR }, style || {}));
+  };
 
   /* ------------------------------------------------------- debug/verify */
   // ONE preallocated record. The orchestrator probes window.__te.state and
@@ -318,6 +324,7 @@
     constructor() { super('boot'); }
 
     create() {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       STATE.mode = 'boot'; STATE.screen = 'boot';
       kit.loader.show('TOUCHLINE ELEVEN');
       kit.loader.progress(0.06);
@@ -400,6 +407,7 @@
     init(data) { this.boot = data || {}; }
 
     create() {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       scenes.menu = this;
       STATE.mode = 'menu';
       releaseAllClaims();
@@ -894,6 +902,7 @@
     init(data) { this.cfg = data || {}; }
 
     create() {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       scenes.match = this;
       releaseAllClaims();
       refreshRect();
@@ -2944,19 +2953,23 @@
   /* ---------------------------------------------------------------- boot */
   syncSaveState();
 
-  var game = new Phaser.Game({
+  var config = {
     type: Phaser.AUTO,
     parent: document.getElementById('game') || document.body,
     width: GW,
     height: GH,
     backgroundColor: '#06150f',
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-    render: { antialias: true, powerPreference: 'high-performance' },
+    render: {},
     fps: { target: 60, min: 30 },
     audio: { noAudio: true },
     banner: false,
     scene: [BootScene, MenuScene, MatchScene]
-  });
+  };
+  config.scale.width = Math.round(GW * RETINA_FACTOR);
+  config.scale.height = Math.round(GH * RETINA_FACTOR);
+  config.render = Object.assign({}, root.GGKit.renderDefaults, config.render || {});
+  var game = new Phaser.Game(config);
   root.__te.game = game;
   game.scale.on('resize', refreshRect);
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -7,6 +7,7 @@
 
   var W = 390;
   var H = 844;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(W, H);
   var STEP = 1 / 60;
   var SAVE_VERSION = 7;
   var MAX_BUILDINGS = 40;
@@ -290,6 +291,7 @@
   class BastionworksScene extends Phaser.Scene {
     constructor() { super({ key: 'Bastionworks' }); }
     create() {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       var self = this;
       Game.scene = this;
       this.pausedByKit = false;
@@ -375,7 +377,7 @@
       this.ui.hideAll = function () { Object.keys(this).forEach(function (key) { var obj = this[key]; if (Array.isArray(obj)) obj.forEach(function (a) { if (a && a.setVisible) a.setVisible(false); }); else if (obj && obj.setVisible) obj.setVisible(false); }, this); };
     }
     makeText(x, y, size, color, ox, oy, weight) {
-      var obj = this.add.text(x, y, '', { fontFamily: 'Arial, Helvetica, sans-serif', fontSize: size + 'px', fontStyle: weight === '700' ? 'bold' : 'normal', color: color, resolution: 2 });
+      var obj = this.add.text(x, y, '', { fontFamily: 'Arial, Helvetica, sans-serif', fontSize: size + 'px', fontStyle: weight === '700' ? 'bold' : 'normal', color: color, resolution: RETINA_FACTOR });
       obj.setOrigin(ox == null ? 0 : ox, oy == null ? 0 : oy); obj.__bwColor = color; return obj;
     }
     setupInput() {
@@ -820,6 +822,9 @@
       var result = this.state.result; if (!result) return; setTextIfChanged(this.ui.resultTitle, result.win ? result.crown ? 'CROWN EARNED' : result.kind === 'endless' ? 'WAVE CLEARED' : result.kind === 'scenario' ? 'SCENARIO CLEARED' : 'RIVAL CLEARED' : 'CORE LOST'); setTextIfChanged(this.ui.resultSub, '+' + result.rewardGold + 'G  +' + result.rewardMist + 'M  ·  LOSS ' + result.losses); this.ui.resultTitle.setScale(kit.juice.enabled && result.age < .35 ? 1.08 - result.age * .23 : 1); this.ui.resultTitle.setVisible(true); this.ui.resultSub.setVisible(true); setTextIfChanged(this.ui.resultMedals[0], 'CLEAR       ' + starText(result.medal.clear)); setTextIfChanged(this.ui.resultMedals[1], 'NO-LOSS     ' + starText(result.medal.noLoss)); setTextIfChanged(this.ui.resultMedals[2], 'EFFICIENCY  ' + starText(result.medal.efficiency)); this.ui.resultMedals.forEach(function (text) { text.setVisible(true); }); this.drawButton(81, 484, 228, 54, true, result.win ? C.playerDeep : C.enemyDeep); this.drawButton(81, 552, 228, 54, false, C.panel2); setTextIfChanged(this.ui.resultAction, result.kind === 'scenario' ? 'BACK TO SCENARIO' : result.kind === 'endless' ? 'BACK TO ENDLESS' : 'BACK TO LADDER'); this.ui.resultAction.setVisible(true); setTextIfChanged(this.ui.resultRetry, 'RETRY RAID'); this.ui.resultRetry.setVisible(true); }
   }
 
-  var config = { type: Phaser.AUTO, parent: document.getElementById('gameShell') || document.body, width: W, height: H, backgroundColor: '#07111c', render: { antialias: true, roundPixels: true }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H }, scene: BastionworksScene };
+  var config = { type: Phaser.AUTO, parent: document.getElementById('gameShell') || document.body, backgroundColor: '#07111c', scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H }, scene: BastionworksScene };
+  config.scale.width = Math.round(W * RETINA_FACTOR);
+  config.scale.height = Math.round(H * RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
   kit.loader.show('BASTIONWORKS'); kit.loader.progress(.2); Game.phaser = new Phaser.Game(config);
 })()

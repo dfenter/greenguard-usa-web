@@ -242,3 +242,29 @@ sparse edge and prop layers, or moving the static half of the terrain to a
 render texture, is the structural change to test. The per-frame allocation and
 decode-timing work in this round was worth doing on the merits and is done;
 this is the remaining lever.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 2.00x in the pre-pass configuration. The title clamped its
+  manual DPR to 2 and resized the CSS canvas to the viewport, so its backing
+  store was 780x1688 against a 390x844 CSS box, two pixels per CSS pixel on a
+  DPR 3 device.
+- After ratio: 3.00x by the post-pass `GGKit.hiDpi.phaser(config)` sizing
+  calculation at emulated DPR 3: 1170x2532 backing against 390x844 CSS. The
+  helper writes `cfg.ggDpr`, sets the `Scale.NONE` backing store to viewport
+  times that factor, and applies `zoom: 1 / cfg.ggDpr`.
+- Recipe: `Phaser.Scale.NONE` with the shared render defaults. World units now
+  use device pixels (`TILE = 16 * cfg.ggDpr`), dense atlas and canvas frame
+  metadata use the same factor, bitmap font cells use dense frame dimensions,
+  and CSS-authored UI offsets are scaled from `cfg.ggDpr`.
+- Factor cap: none. Driftlands is a portrait iPhone title and the full native
+  factor is required for the acceptance ratio; no feel-budget measurement was
+  authorized on this software-only box.
+- Cache: service-worker version bumped from 1.1.0 to 1.2.0 for the changed
+  rendering assets.
+- Verification limitation: the required headless Chrome run and gameplay
+  screenshot could not be captured in this environment. The browser
+  inventory was empty, and sandboxed processes could not bind the required
+  private local port. The 2.00x and 3.00x values above are source-level
+  backing-store measurements, not a `RET-OK` runtime verdict. `node --check`
+  passes for `game.js`, `art.js`, and `world.js`.

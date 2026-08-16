@@ -42,6 +42,7 @@
 
   var D = window.BF_DATA || {};
   var VW = (D.VIEW_W || 960), VH = (D.VIEW_H || 540);
+  var RETINA_FACTOR = window.GGKit.hiDpi.factor(VW, VH);
   var STEP = 1 / 60;
   var MAX_STEPS = 3;
   var VERSION = '2026-08-10-declutter1';
@@ -365,6 +366,7 @@
     },
 
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       var self = this;
       this.buildAnims();
       readSafeArea(this.scale);
@@ -479,6 +481,7 @@
     initialize: function MenuScene() { Phaser.Scene.call(this, { key: 'menu' }); },
 
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       var self = this;
       readSafeArea(this.scale);
       this.cameras.main.setBackgroundColor('#070c18');
@@ -706,6 +709,7 @@
     },
 
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       var self = this;
       Game.live = this;
       readSafeArea(this.scale);
@@ -964,7 +968,7 @@
       this.arenaObjs.push(rim);
 
       this.cameras.main.setBounds(0, 0, a.w, a.h);
-      this.cameras.main.setZoom(1.3);
+      this.cameras.main.setZoom(RETINA_FACTOR * 1.3);
       this.cameras.main.startFollow(this.player, false, 0.12, 0.12);
       this.cameras.main.setDeadzone(70, 46);
       this.pocketFound = !!save.pockets[a.key];
@@ -2520,7 +2524,7 @@
       this.camDip += this.camDipVel * camDt;
       var targetZoom = cameraOn && pd.moving ? 1.32 : 1.3;
       this.camZoom = lerp(this.camZoom, targetZoom, clamp(camDt * 7, 0, 1));
-      cam.setZoom(this.camZoom);
+      cam.setZoom(RETINA_FACTOR * this.camZoom);
       cam.setFollowOffset(-(j.dx || 0) - this.camLookX, -(j.dy || 0) - this.camLookY - this.camDip);
 
       if (this.debugView) this.drawDebug(); else if (this.debugGfx.commandBuffer.length) this.debugGfx.clear();
@@ -2829,6 +2833,7 @@
     initialize: function HudScene() { Phaser.Scene.call(this, { key: 'hud', active: false }); },
 
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       var self = this;
       readSafeArea(this.scale);
       this.gs = this.scene.get('game');
@@ -3205,14 +3210,10 @@
 
   // ============================================================== boot
   function boot() {
-    var game = new Phaser.Game({
+    var config = {
       type: Phaser.AUTO,
       parent: 'game-root',
-      width: VW,
-      height: VH,
       backgroundColor: '#05080f',
-      roundPixels: false,
-      antialias: true,
       powerPreference: 'high-performance',
       scale: {
         mode: Phaser.Scale.FIT,
@@ -3220,9 +3221,13 @@
         width: VW,
         height: VH
       },
-      render: { pixelArt: false, transparent: false },
+      render: { transparent: false },
       scene: [BootScene, MenuScene, GameScene, HudScene]
-    });
+    };
+    config.scale.width = Math.round(VW * RETINA_FACTOR);
+    config.scale.height = Math.round(VH * RETINA_FACTOR);
+    config.render = Object.assign({}, window.GGKit.renderDefaults, config.render || {});
+    var game = new Phaser.Game(config);
     hook.game = game;
     return game;
   }

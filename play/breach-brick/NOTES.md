@@ -244,3 +244,10 @@ Validation: `node --check` passed for `game.js`, `bb_data.js`, `bb_audio.js`, an
 - Collapsed tutorial copy into one queued top strip that fades after about three seconds; chips, coach text, and banners now share one transient queue with reduced-motion gating intact.
 - Moved effect meters into the top HUD and removed the bottom-center informational chip from the thumb zone.
 - Validation: `node --check` passed for all title JavaScript files; visual browser capture was unavailable in this session because no browser target or local preview port was available.
+
+## Retina pass 2026-08-16
+
+- Ratio record at portrait CSS 390x844 and DPR 3: before 1.38x from the 540px design FIT backing store; after 3.00x expected from a 1170x2080 backing store. Live canvas measurement was unavailable.
+- Recipe: `GGKit.hiDpi.factor(540, 960)`, dense FIT scale dimensions, `GGKit.renderDefaults`, and `setZoom(RETINA_FACTOR)` in Boot, Title, and Game.
+- Factor cap: none. The factor is GGKit-clamped to the device maximum of 3.
+- Could not capture the required DPR 3 gameplay screenshot or `canvas.width / getBoundingClientRect().width` measurement because no browser instance was available and the private port could not be opened in this environment.

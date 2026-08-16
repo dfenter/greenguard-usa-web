@@ -53,6 +53,16 @@
   // player must never mistake a background beam for a ledge.
   var BG_FAR_A = 0.40, BG_NEAR_A = 0.30;
 
+  function setTextDensity(scene) {
+    var density = window.GGKit.hiDpi.dpr();
+    function visit(node) {
+      if (!node) return;
+      if (node.setResolution) node.setResolution(density);
+      if (node.list) node.list.forEach(visit);
+    }
+    if (scene && scene.children && scene.children.list) scene.children.list.forEach(visit);
+  }
+
   // -------------------------------------------------------------- bands
   // Four authored tower bands.  Past the summit the tower cycles bands 1-3
   // as BEYOND THE CROWN with an escalation multiplier, so an endless run
@@ -1364,6 +1374,7 @@
     },
 
     layout: function () {
+      setTextDensity(this);
       var W = this.scale.width, H = this.scale.height;
       var cx = W / 2;
       var s = Math.max(W / 240, H / 480);
@@ -3278,6 +3289,7 @@
 
     // ----------------------------------------------------------- layout
     layout: function () {
+      setTextDensity(this);
       var W = this.scale.width, H = this.scale.height;
       var colW = Math.min(W, H * 0.62);
       var zoom = colW / VW;
@@ -3503,13 +3515,19 @@
       width: window.innerWidth,
       height: window.innerHeight
     },
-    render: {
-      antialias: false, antialiasGL: false, pixelArt: true,
-      powerPreference: 'high-performance', roundPixels: true, batchSize: 4096
-    },
+    render: Object.assign({}, window.GGKit.renderDefaults, { batchSize: 4096 }),
     fps: { target: 60, min: 30 },
     scene: [toScene(BootScene), toScene(TitleScene), toScene(PlayScene)]
   });
+
+  function resizeGame() {
+    if (!Game.phaser) return;
+    window.GGKit.hiDpi.resize(Game.phaser, Math.max(1, window.innerWidth || 320), Math.max(1, window.innerHeight || 640));
+  }
+  window.addEventListener('resize', resizeGame);
+  window.addEventListener('orientationchange', resizeGame);
+  document.addEventListener('visibilitychange', resizeGame);
+  resizeGame();
 
   window.__SPIRE_READY = true;
   window.__SPIRE_SCENE = function () { return Game.play; };

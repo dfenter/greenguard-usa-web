@@ -431,3 +431,11 @@ Art/FX/design, MINOR
   verification were not run because this round was explicitly no-deploy.
 - `node --check` passed for every changed JavaScript file: `game.js`,
   `content.js`, and `sw.js`. No browser or network test was run.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.00x static FIT baseline from the 390x844 design backing store. A live pre-pass canvas readback was unavailable in this sandbox.
+- After ratio: 3.00x target by factor math at emulated DPR 3, producing a 1170x2532 backing store for the 390x844 design viewport.
+- Recipe: Phaser `Scale.FIT`, design coordinates preserved, scale dimensions multiplied by `GGKit.hiDpi.factor(390, 844)`, shared `GGKit.renderDefaults` merged, and zoom applied in boot, background, title, setup, play, and pause scene `create()` methods. All Phaser text uses the same factor.
+- Factor cap: none beyond GGKit's default clamp to [1, 3].
+- Could not do: live `canvas.width / getBoundingClientRect().width` readback, gameplay screenshot, and `retina_audit.mjs` acceptance because no browser surface was available and private port binding was denied.

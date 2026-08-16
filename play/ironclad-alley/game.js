@@ -10,6 +10,9 @@
   const MAX_SHELLS = 48;
   const MAX_TRANSIENT_QUEUE = 6;
   const MAX_MINES = 12;
+  function cssViewport() { return { width: document.documentElement.clientWidth || window.innerWidth || VIEW_W, height: document.documentElement.clientHeight || window.innerHeight || VIEW_H }; }
+  function resizeHiDpi(game, width, height) { const view = width && height ? { width, height } : cssViewport(); return GGKit.hiDpi.resize(game, view.width, view.height); }
+  function bindHiDpiResize(game) { const apply = () => { resizeHiDpi(game); }; window.addEventListener('resize', apply); window.addEventListener('orientationchange', apply); document.addEventListener('visibilitychange', apply); apply(); }
 
   const C = {
     ink: 0x071017, field: 0x0b1b27, fieldDeep: 0x08141e,
@@ -560,8 +563,8 @@
     }
 
     createUI() {
-      const textStyle = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontSize: '20px', color: '#b7d3d6' };
-      const titleStyle = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontSize: '22px', color: '#d9fffb', fontStyle: 'bold' };
+      const textStyle = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontSize: '20px', color: '#b7d3d6', resolution: GGKit.hiDpi.dpr() };
+      const titleStyle = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontSize: '22px', color: '#d9fffb', fontStyle: 'bold', resolution: GGKit.hiDpi.dpr() };
       this.hudStats = this.add.text(18, 14, '', { ...textStyle, color: '#d9fffb', fontStyle: 'bold' }).setScrollFactor(0).setDepth(22);
       this.hudClass = this.add.text(18, 39, '', { ...textStyle }).setScrollFactor(0).setDepth(22);
       this.hudRight = this.add.text(424, 14, '', { ...textStyle, fontStyle: 'bold' }).setOrigin(1, 0).setScrollFactor(0).setDepth(22);
@@ -1686,10 +1689,11 @@
     width: VIEW_W,
     height: VIEW_H,
     backgroundColor: '#071017',
-    render: { antialias: true, roundPixels: false, transparent: false },
+    render: Object.assign({}, GGKit.renderDefaults, { transparent: false }),
     input: { active: false },
     scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH, width: VIEW_W, height: VIEW_H },
     scene: [IroncladScene]
   });
+  bindHiDpiResize(game);
   window.__iaGame = game;
 })();

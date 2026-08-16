@@ -138,9 +138,9 @@ function migrateSave(value) {
 }
 
 function makeGlowTexture() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 64; canvas.height = 64;
-  const ctx = canvas.getContext('2d');
+  const baked = GGKit.hiDpi.canvas(64, 64);
+  const canvas = baked.canvas;
+  const ctx = baked.ctx;
   const gradient = ctx.createRadialGradient(32, 32, 2, 32, 32, 31);
   gradient.addColorStop(0, 'rgba(255,255,255,.95)');
   gradient.addColorStop(.3, 'rgba(73,244,255,.7)');
@@ -478,7 +478,7 @@ class IonwakeApp {
   }
 
   resize() {
-    const rect = hudCanvas.getBoundingClientRect(); const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = hudCanvas.getBoundingClientRect(); const dpr = GGKit.hiDpi.dpr();
     hudCanvas.width = Math.max(1, Math.floor(rect.width * dpr)); hudCanvas.height = Math.max(1, Math.floor(rect.height * dpr));
     this.hudDpr = dpr; this.hudWidth = rect.width || window.innerWidth || 844; this.hudHeight = rect.height || window.innerHeight || 390;
     const ctx = hudCanvas.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -508,6 +508,8 @@ class IonwakeApp {
     this.raceMode = mode; this.trackIndex = clamp(trackIndex, 0, this.tracks.length - 1); this.cup = Math.floor(this.trackIndex / 3); this.disposeRace();
     const data = this.tracks[this.trackIndex] || fallbackTrack(this.trackIndex); const livery = this.selectedLivery(); const machine = this.selectedMachine();
     this.racer = createRacerWorld({ canvas: sceneCanvas, trackJSON: data, theme: data.theme || 'night-city', timeOfDay: data.timeOfDay || 'night', ggkit: kit, rivalCount: 7, carName: 'Ionwake shared camera proxy', paint: livery.paint, accent: livery.accent });
+    GGKit.hiDpi.three(this.racer.world.renderer);
+    this.racer.world.resize();
     const concealGT = (car) => { car.root.visible = true; car.root.traverse((object) => { if (object.isMesh) object.visible = false; }); };
     concealGT(this.racer.world.mainCar);
     for (const rival of this.racer.world.rivals) concealGT(rival);

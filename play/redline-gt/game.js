@@ -399,7 +399,7 @@ function resize() {
   const rect = sceneCanvas.getBoundingClientRect();
   W = Math.max(320, rect.width);
   H = Math.max(220, rect.height);
-  const hudDpr = Math.min(Math.min(1.6, window.devicePixelRatio || 1), 1000 / Math.max(W, 1));
+  const hudDpr = GGKit.hiDpi.dpr();
   hud.resize(W, H, hudDpr);
   if (racer) racer.world.resize();
 }
@@ -504,6 +504,8 @@ async function buildWorld(ev) {
     accent: carSpec.accent,
     seed: cfg.seed + (ev.reverse ? 977 : 0),
   });
+  GGKit.hiDpi.three(racer.world.renderer);
+  racer.world.resize();
   tintGhostActor(racer.world.rivals[3]);
   track = { cfg, ev, layout, center, features, items, rivals,
     maxSpeed: 650 + cfg.difficulty * 34, ghostActor: racer.world.rivals[3] };

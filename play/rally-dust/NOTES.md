@@ -396,3 +396,10 @@ non-simulated engine actor for the saved ghost. Rally Dust advances no rival
 simulation or AI and has no rival entries in its stage state. Ghost delta and
 split timing UI remain title-owned, and the ghost actor is hidden when no valid
 saved run is present.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.50x for the main GGRacer canvas from the shared engine cap. The HUD was explicitly reduced to 1.00x.
+- After ratio: 3.00x configured at DPR 3 with `GGKit.hiDpi.three(racer.world.renderer)` followed by `racer.world.resize()`. Live `canvas.width / getBoundingClientRect().width` measurement was unavailable because Chrome aborted in this sandbox and the private HTTP bind was denied.
+- Recipe: native Three renderer density, a 3x HUD, and a 3x loading-overlay canvas through `GGKit.hiDpi.dpr()`. No factor cap beyond GGKit's required maximum of 3.
+- Audit: no render target, composer, or post-processing pass exists in the racer path. Shared racer texture bakes were identified but could not be changed because this lane was constrained from writing `play/_shared/`.

@@ -201,3 +201,9 @@ GGKit buses with persistent mute and volume.
 - Endless Night keeps the board between nights on purpose, so a good board is
   a reward for surviving; the campaign always starts a fresh board.
 - No landscape layout, no cloud save, no leaderboard.
+
+## Retina pass 2026-08-16
+
+- Target 390x844 CSS at DPR 3. Before ratio: 1.00x CSS-sized RESIZE baseline. After target: 3.00x, 1170/390, via `GGKit.hiDpi.resize`. Live canvas read was unavailable because no browser surface or private local listener was available.
+- Recipe: `Phaser.Scale.RESIZE`, `GGKit.renderDefaults`, `GGKit.hiDpi.canvas` texture baking, and DPR-matched Phaser text. No factor cap.
+- Gameplay screenshot and runtime backing-store measurement remain deferred. No palette change was made because the retina law identifies density, not colour depth, as the defect.

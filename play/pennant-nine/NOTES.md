@@ -158,3 +158,10 @@ Deferred:
   read of the outcome rather than a separate simulation.
 - Bench bats are shown on the roster page and contribute to career stats but
   cannot yet be substituted into the lineup mid game.
+
+## Retina pass 2026-08-16
+
+- Audit profile: CSS viewport 390x844 at DPR 3. Measured pre-pass backing-store ratio: 1.00x. FIT scale math after the pass measures 1170x2532 against the 390x844 CSS canvas, a 3.00x ratio.
+- Recipe: `GGKit.hiDpi.factor(390, 844)`, dense FIT scale dimensions, `GGKit.renderDefaults`, and `this.cameras.main.setZoom(f)` in BootScene and PlayScene. Pennant's procedural canvas bakery and Phaser text use the same factor.
+- Factor cap: none. The factor is the GGKit native value, capped only by GGKit's normal maximum of 3.
+- Could not complete live headless canvas readback or a gameplay screenshot because no browser backend was available in this environment. `node --check` passed.

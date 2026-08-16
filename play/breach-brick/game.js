@@ -95,6 +95,7 @@
   // Constants
   // ==================================================================
   var VW = 540, VH = 960;
+  var RETINA_FACTOR = window.GGKit.hiDpi.factor(VW, VH);
   var RAIL_L = 12, RAIL_R = VW - 12;
   var CEIL = 116, FLOOR = 946;
   var GRID_X0 = 24, CELL_W = 54, CELL_H = 28, BRICK_W = 50, BRICK_H = 24;
@@ -923,6 +924,7 @@
   BootScene.prototype = Object.create(BBScene.prototype);
   BootScene.prototype.constructor = BootScene;
   BootScene.prototype.create = function () {
+    this.cameras.main.setZoom(RETINA_FACTOR);
     var self = this;
     HOOK.scene = 'boot';
     kit.loader.show('Breach & Brick');
@@ -1001,6 +1003,7 @@
   TitleScene.prototype.constructor = TitleScene;
 
   TitleScene.prototype.create = function () {
+    this.cameras.main.setZoom(RETINA_FACTOR);
     var self = this;
     var Data = window.BBData;
     HOOK.scene = 'title';
@@ -1246,6 +1249,7 @@
   };
 
   GameScene.prototype.create = function () {
+    this.cameras.main.setZoom(RETINA_FACTOR);
     var self = this;
     var Data = window.BBData;
     live = this;
@@ -3129,10 +3133,8 @@
       onRestart: function () { if (live && live.restartFromKit) live.restartFromKit(); }
     });
 
-    var game = new Phaser.Game({
+    var config = {
       type: Phaser.AUTO,
-      width: VW,
-      height: VH,
       parent: 'app',
       backgroundColor: '#05080f',
       scale: {
@@ -3141,12 +3143,16 @@
         width: VW,
         height: VH
       },
-      render: { antialias: true, powerPreference: 'high-performance', roundPixels: false },
+      render: {},
       fps: { target: 60, min: 20 },
       banner: false,
       audio: { noAudio: true }, // GGKit owns audio; Phaser's own bus stays off
       scene: [BootScene, TitleScene, GameScene]
-    });
+    };
+    config.scale.width = Math.round(VW * RETINA_FACTOR);
+    config.scale.height = Math.round(VH * RETINA_FACTOR);
+    config.render = Object.assign({}, window.GGKit.renderDefaults, config.render || {});
+    var game = new Phaser.Game(config);
     window.__bb.game = game;
     kit.registerPWA();
   }

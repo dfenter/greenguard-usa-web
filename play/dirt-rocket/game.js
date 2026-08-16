@@ -115,6 +115,7 @@ function buildRacerWorld() {
     accent: themeAccent(worldTheme),
     carName: 'Dirt Rocket compact chase car',
   });
+  GGKit.hiDpi.three(racer.world.renderer);
   racer.world.resize();
 }
 
@@ -193,7 +194,8 @@ function layout() {
   const readInset = name => Math.max(0, parseFloat(styles.getPropertyValue(name)) || 0);
   safeInsets = { top: readInset('--safe-top'), right: readInset('--safe-right'), bottom: readInset('--safe-bottom'), left: readInset('--safe-left') };
   if (racer) racer.world.resize();
-  hudCanvas.width = Math.round(W * Math.min(devicePixelRatio || 1, 1.5)); hudCanvas.height = Math.round(H * Math.min(devicePixelRatio || 1, 1.5));
+  const dpr = GGKit.hiDpi.dpr();
+  hudCanvas.width = Math.round(W * dpr); hudCanvas.height = Math.round(H * dpr);
   hud.setTransform(hudCanvas.width / W, 0, 0, hudCanvas.height / H, 0, 0);
 }
 function controls() {

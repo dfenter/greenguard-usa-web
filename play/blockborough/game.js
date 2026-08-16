@@ -660,6 +660,19 @@
       if (sharedLoader.firstElementChild.nextElementSibling.firstElementChild) sharedLoader.firstElementChild.nextElementSibling.firstElementChild.style.background = 'linear-gradient(90deg,#8ce6b3,#65d5df)';
     }
   }
+  function syncHiDpi(game) {
+    var stage = byId('stage');
+    var cssW = Math.max(1, Math.floor((stage && stage.clientWidth) || document.documentElement.clientWidth || window.innerWidth || 1));
+    var cssH = Math.max(1, Math.floor((stage && stage.clientHeight) || document.documentElement.clientHeight || window.innerHeight || 1));
+    GGKit.hiDpi.resize(game, cssW, cssH);
+  }
+
   kit.loader.progress(.08);
-  new Phaser.Game({ type: Phaser.AUTO, parent: 'stage', width: 390, height: 390, backgroundColor: '#0a1a21', render: { pixelArt: true, antialias: false, roundPixels: true, powerPreference: 'high-performance' }, scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: CityScene });
+  var game = new Phaser.Game({ type: Phaser.AUTO, parent: 'stage', width: 390, height: 390, backgroundColor: '#0a1a21', render: Object.assign({}, GGKit.renderDefaults, { pixelArt: true, roundPixels: true }), scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: CityScene });
+  syncHiDpi(game);
+  window.addEventListener('resize', function () { syncHiDpi(game); });
+  window.addEventListener('orientationchange', function () { syncHiDpi(game); });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) syncHiDpi(game);
+  });
 }());

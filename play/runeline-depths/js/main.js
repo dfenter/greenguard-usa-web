@@ -9,6 +9,9 @@
   'use strict';
 
   var RD = root.RD || {}; root.RD = RD;
+  function cssViewport() { return { width: document.documentElement.clientWidth || root.innerWidth || 390, height: document.documentElement.clientHeight || root.innerHeight || 844 }; }
+  function resizeHiDpi(game, width, height) { var view = width && height ? { width: width, height: height } : cssViewport(); return GGKit.hiDpi.resize(game, view.width, view.height); }
+  function bindHiDpiResize(game) { var apply = function () { resizeHiDpi(game); }; root.addEventListener('resize', apply); root.addEventListener('orientationchange', apply); document.addEventListener('visibilitychange', apply); apply(); }
 
   /* verification hook the orchestrator can probe headlessly */
   RD.hook = {
@@ -134,12 +137,13 @@
       width: window.innerWidth,
       height: window.innerHeight
     },
-    render: { antialias: true, roundPixels: false, powerPreference: 'high-performance' },
+    render: Object.assign({}, GGKit.renderDefaults),
     input: { activePointers: 3, touch: { capture: true } },
     banner: false,
     audio: { noAudio: true },   /* GGKit owns every sound in this title */
     scene: [RD.BootScene, RD.MenuScene, RD.PlayScene]
   });
+  bindHiDpiResize(RD.game);
 
   /* GGKit pause must freeze the sim: Phaser scenes stop stepping. */
   var origPause = kit.pause, origResume = kit.resume;

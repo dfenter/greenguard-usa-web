@@ -23,6 +23,10 @@
     theme_shelter: 'assets/theme_shelter.mp3'
   };
 
+  function cssViewport() { return { width: document.documentElement.clientWidth || root.innerWidth || 390, height: document.documentElement.clientHeight || root.innerHeight || 844 }; }
+  function resizeHiDpi(game, width, height) { var view = width && height ? { width: width, height: height } : cssViewport(); return GGKit.hiDpi.resize(game, view.width, view.height); }
+  function bindHiDpiResize(game) { var apply = function () { resizeHiDpi(game); }; root.addEventListener('resize', apply); root.addEventListener('orientationchange', apply); document.addEventListener('visibilitychange', apply); apply(); }
+
   /* ------------------------------------------------------------- kit --- */
   var kit = GGKit.create({
     slug: 'hivefall',
@@ -263,7 +267,7 @@
       var vw = document.documentElement.clientWidth || window.innerWidth;
       var vh = document.documentElement.clientHeight || window.innerHeight;
       if (vw > 0 && vh > 0 && (Math.abs(this.scale.width - vw) > 1 || Math.abs(this.scale.height - vh) > 1)) {
-        this.scale.resize(vw, vh);
+        resizeHiDpi(this.game, vw, vh);
       }
       kit.loader.show('Hivefall');
       kit.loader.progress(0.12);
@@ -684,10 +688,11 @@
         width: document.documentElement.clientWidth || window.innerWidth,
         height: document.documentElement.clientHeight || window.innerHeight
       },
-      render: { antialias: true, powerPreference: 'high-performance' },
+      render: Object.assign({}, GGKit.renderDefaults),
       audio: { noAudio: true },      /* all audio runs through the GGKit bus */
       scene: [BootScene, MenuScene, ShelterScene, SquadScene, ResultScene, HFPlayScene]
     });
+    bindHiDpiResize(G.phaser);
   }
 
   if (document.readyState === 'complete' || document.readyState === 'interactive') start();

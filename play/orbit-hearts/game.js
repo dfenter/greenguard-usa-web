@@ -8,6 +8,7 @@
   var D = root.OH_STORY;
   var W = 390;
   var H = 844;
+  var HIDPI_FACTOR = root.GGKit && root.GGKit.hiDpi ? root.GGKit.hiDpi.factor(W, H) : 1;
   var STEP = 1 / 60;
   var MAX_STEPS = 4;
   var FONT = 'ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif';
@@ -821,6 +822,7 @@
 
   /* ------------------------------------------------------------ scene setup */
   PlayScene.prototype.create = function () {
+    this.cameras.main.setZoom(HIDPI_FACTOR);
     Game.play = this;
     this.installInputBridges();
     if (kit) kit.loader.show('Orbit Hearts');
@@ -883,7 +885,7 @@
     };
     if (wrap) style.wordWrap = { width: wrap };
     var t = this.add.text(x, y, '', style);
-    t.setResolution(Math.min(2, root.devicePixelRatio || 1));
+    t.setResolution(HIDPI_FACTOR);
     return t;
   };
 
@@ -2880,8 +2882,8 @@
     type: Phaser.AUTO,
     parent: 'game',
     backgroundColor: C.deep,
-    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H },
-    render: { antialias: true, roundPixels: false, powerPreference: 'high-performance', batchSize: 2048 },
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: Math.round(W * HIDPI_FACTOR), height: Math.round(H * HIDPI_FACTOR) },
+    render: Object.assign({}, root.GGKit.renderDefaults, { batchSize: 2048 }),
     fps: { target: 60, min: 30 },
     scene: [PlayScene]
   });

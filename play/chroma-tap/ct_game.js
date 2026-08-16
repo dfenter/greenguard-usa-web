@@ -18,6 +18,7 @@
   var T = D.TOKENS;
 
   var W = 390, H = 800;
+  var RETINA_FACTOR = (Art && Art.density) || GGKit.hiDpi.factor(W, H);
   var CELL = 50, PAD = 10;
   var COLS = D.COLS, ROWS = D.ROWS;
   var BOARD_W = COLS * CELL + PAD * 2;
@@ -25,7 +26,7 @@
   var BOARD_X = Math.round((W - BOARD_W) / 2);
   var BOARD_Y = 164;
   var CHIP_Y = 656;
-  var TILE_SCALE = CELL / Art.S;
+  var TILE_SCALE = CELL / (Art.S * RETINA_FACTOR);
   var FONT = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
 
   var kit = null;
@@ -78,7 +79,7 @@
   function label(scene, x, y, str, size, color, weight, origin) {
     var t = scene.add.text(x, y, str, {
       fontFamily: FONT, fontSize: size + 'px', color: color || T.highlight,
-      fontStyle: weight || '700'
+      fontStyle: weight || '700', resolution: RETINA_FACTOR
     });
     t.setOrigin(origin == null ? 0.5 : origin, 0.5);
     t.__c = color || T.highlight;
@@ -154,6 +155,7 @@
   BootScene.prototype.constructor = BootScene;
 
   BootScene.prototype.create = function () {
+    this.cameras.main.setZoom(RETINA_FACTOR);
     kit.loader.show('Chroma Tap');
     kit.loader.progress(0.15);
     Art.bakeAll(this);
@@ -187,6 +189,7 @@
 
   MenuScene.prototype.create = function () {
     var self = this;
+    this.cameras.main.setZoom(RETINA_FACTOR);
     this.cameras.main.setBackgroundColor(hex('#131c33'));
     kit.audio.music('m_menu', 600);
 
@@ -268,6 +271,7 @@
 
   LevelsScene.prototype.create = function () {
     var self = this;
+    this.cameras.main.setZoom(RETINA_FACTOR);
     this.cameras.main.setBackgroundColor(hex('#131c33'));
     this.packIdx = 0;
     for (var i = D.PACKS.length - 1; i >= 0; i--) {
@@ -363,6 +367,7 @@
 
   RestoreScene.prototype.create = function () {
     var self = this;
+    this.cameras.main.setZoom(RETINA_FACTOR);
     this.cameras.main.setBackgroundColor(hex('#131c33'));
     kit.audio.music('m_menu', 500);
     if (!save.meta) save.meta = D.emptySave().meta;
@@ -450,6 +455,7 @@
 
   PlayScene.prototype.create = function () {
     var self = this;
+    this.cameras.main.setZoom(RETINA_FACTOR);
     this.cameras.main.setBackgroundColor(hex('#101728'));
     this.busy = false;
     this.timers = [];
@@ -1272,7 +1278,7 @@
       p.s.setAlpha(1);
       p.s.setVisible(true);
       p.s.setDepth(40);
-      var sc = 0.5 + this.fxRandom() * 0.7;
+      var sc = (0.5 + this.fxRandom() * 0.7) / RETINA_FACTOR;
       p.s.setScale(sc);
       p.sc = sc;
       p.vx = Math.cos(a) * sp;
@@ -1692,7 +1698,7 @@
     save = D.normalizeSave(kit.save.get(null));
     kit.save.set(save);
 
-    var game = new Phaser.Game({
+    var config = {
       type: Phaser.AUTO,
       width: W, height: H,
       parent: document.body,
@@ -1705,7 +1711,11 @@
       render: { antialias: true, roundPixels: false, powerPreference: 'high-performance' },
       fps: { target: 60, min: 20 },
       scene: [BootScene, MenuScene, LevelsScene, RestoreScene, PlayScene]
-    });
+    };
+    config.scale.width = Math.round(W * RETINA_FACTOR);
+    config.scale.height = Math.round(H * RETINA_FACTOR);
+    config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
+    var game = new Phaser.Game(config);
     g.__ctGame = game;
     hook.kit = kit;
     hook.save = function () { return save; };

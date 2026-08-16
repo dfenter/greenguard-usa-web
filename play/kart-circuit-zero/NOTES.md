@@ -83,3 +83,10 @@ not added to the title precache list.
 Static checks cover all changed JavaScript, JSON parsing, the service-worker
 precache entries, and the absence of the deleted title-local renderer paths.
 Live browser capture depends on an available browser session.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.50x for the main GGRacer canvas from the shared engine cap.
+- After ratio: 3.00x configured at DPR 3 with `GGKit.hiDpi.three(racer.world.renderer)` followed by `racer.world.resize()`. Live `canvas.width / getBoundingClientRect().width` measurement was unavailable because Chrome aborted in this sandbox and the private HTTP bind was denied.
+- Recipe: native Three renderer density. No title-owned canvas texture, factor cap, render target, composer, or post-processing pass was found.
+- Audit limitation: shared racer texture bakes were identified but could not be changed because this lane was constrained from writing `play/_shared/`.

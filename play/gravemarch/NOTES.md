@@ -69,3 +69,10 @@ Fixed MINOR findings:
 - Best gauntlet and Boss Rush times are surfaced on the clear panel and field manual.
 
 Verification: `node --check game.js`, `node --check sw.js`, `git diff --check`, MP3 codec checks, asset path checks, and service-worker cache coverage pass. The shipped title payload, excluding the notes and license ledger, is 175,633 bytes, the largest shipped file is 92,832 bytes, and the service worker cache version is `aaa-2026-08-10-v2`. A live browser or 4x-throttle median capture was unavailable in this environment.
+
+## Retina pass 2026-08-16
+
+- Measured before/after canvas-to-CSS ratio: no per-title live measurement was available. The fleet baseline measured 1.00x for 62 titles and 1.10x to 2.46x for the remainder. The after audit was blocked when the prescribed runner could not bind its private port (`listen EPERM`), and no browser backend was available. Static target at DPR3 is 3.00x.
+- Recipe: `GGKit.hiDpi.factor(390, 844)`, dense FIT scale dimensions, `GGKit.renderDefaults`, camera zoom in the scene create method, matching Text resolution, and dense `GGKit.hiDpi.canvas()` bakes with design-size display sizing.
+- Factor cap: none beyond GGKit's default [1, 3] clamp.
+- Could not capture the required gameplay screenshot, backing-store ratio, or gameplay color metrics in this sandbox. `node --check game.js` passes.

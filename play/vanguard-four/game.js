@@ -6,6 +6,12 @@
   'use strict';
 
   var W = 390, H = 844, STEP = 1 / 60, MAX_STEPS = 4, TAU = Math.PI * 2;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(W, H);
+
+  var textFactory = Phaser.GameObjects.GameObjectFactory.prototype.text;
+  Phaser.GameObjects.GameObjectFactory.prototype.text = function (x, y, text, style) {
+    return textFactory.call(this, x, y, text, Object.assign({ resolution: RETINA_FACTOR }, style || {}));
+  };
   var ARENA = { x: 16, y: 138, w: 358, h: 510 };
   var MAX_ENEMIES = 34, MAX_PICKUPS = 60, MAX_BOLTS = 42, MAX_PARTICLES = 220;
   var P = {
@@ -213,6 +219,7 @@
   };
 
   MainScene.prototype.create = function () {
+    this.cameras.main.setZoom(RETINA_FACTOR);
     Game.scene = this;
     this.simPaused = false; this.playerPaused = false; this.acc = 0; this.lastStep = 0; this.lastTap = 0;
     this.mode = 'menu'; this.run = null; this.heroes = []; this.activeHero = 0;
@@ -918,7 +925,10 @@
     if (tap.y >= 498 && tap.y < 574) { if (profile.finale) this.startSelected('finale', this.menuHero); return; }
   };
 
-  var config = { type: Phaser.AUTO, parent: 'game', width: W, height: H, backgroundColor: '#070b16', render: { antialias: true, roundPixels: true, powerPreference: 'high-performance' }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }, input: { activePointers: 4 }, scene: MainScene };
+  var config = { type: Phaser.AUTO, parent: 'game', width: W, height: H, backgroundColor: '#070b16', render: {}, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }, input: { activePointers: 4 }, scene: MainScene };
+  config.scale.width = Math.round(W * RETINA_FACTOR);
+  config.scale.height = Math.round(H * RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
   kit.loader.show('VANGUARD FOUR / FLEET F2');
   Game.phaser = new Phaser.Game(config);
   var oldUpdate = MainScene.prototype.update;

@@ -84,3 +84,10 @@ Player controls: hold and flick upward to cast. Drag while the lure is in the wa
 ### deferred
 
 - Deployed HTTPS visual capture, device-gate verification, and performance capture remain deferred to the orchestrator. Browser smoke testing was unavailable in this environment because no connected browser was present and sandboxed local-server binding was denied.
+
+## Retina pass 2026-08-16
+
+- Measured before/after canvas-to-CSS ratio: no per-title live measurement was available. The fleet baseline measured 1.00x for 62 titles and 1.10x to 2.46x for the remainder. The after audit was blocked when the prescribed runner could not bind its private port (`listen EPERM`), and no browser backend was available. Static target at DPR3 is 3.00x.
+- Recipe: `GGKit.hiDpi.factor(390, 844)`, dense FIT scale dimensions, `GGKit.renderDefaults`, zoom on both the gameplay and existing UI cameras, and matching Text resolution.
+- Factor cap: none beyond GGKit's default [1, 3] clamp.
+- Could not capture the required gameplay screenshot, backing-store ratio, or gameplay color metrics in this sandbox. `node --check game.js` passes.

@@ -241,7 +241,7 @@
 
     text(value, x, y, size, color, originX) {
       var t = this.textPool[this.textCursor];
-      if (!t) { t = this.add.text(0, 0, '', { fontFamily: 'Inter,ui-sans-serif,system-ui,sans-serif', fontSize: size + 'px', fontStyle: '600', color: color || P.paper, stroke: '#071018', strokeThickness: 3 }); t.setDepth(90); this.textPool.push(t); }
+      if (!t) { t = this.add.text(0, 0, '', { fontFamily: 'Inter,ui-sans-serif,system-ui,sans-serif', resolution: GGKit.hiDpi.dpr(), fontSize: size + 'px', fontStyle: '600', color: color || P.paper, stroke: '#071018', strokeThickness: 3 }); t.setDepth(90); this.textPool.push(t); }
       setText(t, String(value)); t.setFontSize(size); t.setColor(color || P.paper); t.setOrigin(originX == null ? 0 : originX, 0.5); t.setPosition(x, y); t.setVisible(true); this.textCursor++;
       return t;
     }
@@ -619,6 +619,18 @@
 
   EmberlineScene.prototype.renderCampaign = EmberlineScene.prototype.renderCampaign;
 
+  function syncHiDpi(game) {
+    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || window.innerWidth || 1));
+    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || window.innerHeight || 1));
+    GGKit.hiDpi.resize(game, cssW, cssH);
+  }
+
   kit.loader.show('EMBERLINE OUTPOST'); kit.loader.progress(0.22);
-  new Phaser.Game({ type: Phaser.AUTO, parent: 'game', backgroundColor: '#0b1118', scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH, width: 960, height: 540 }, render: { antialias: true, antialiasGL: false, powerPreference: 'high-performance' }, fps: { target: 60, forceSetTimeOut: false }, input: { activePointers: 4 }, scene: [EmberlineScene] });
+  var game = new Phaser.Game({ type: Phaser.AUTO, parent: 'game', backgroundColor: '#0b1118', scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH, width: 960, height: 540 }, render: Object.assign({}, GGKit.renderDefaults), fps: { target: 60, forceSetTimeOut: false }, input: { activePointers: 4 }, scene: [EmberlineScene] });
+  syncHiDpi(game);
+  window.addEventListener('resize', function () { syncHiDpi(game); });
+  window.addEventListener('orientationchange', function () { syncHiDpi(game); });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) syncHiDpi(game);
+  });
 })(typeof window !== 'undefined' ? window : globalThis);

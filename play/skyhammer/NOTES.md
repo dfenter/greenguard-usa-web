@@ -166,3 +166,11 @@ renderer. Zero console errors and zero exceptions across every run.
 - Removed live-play center banners for boss warnings, phases, graze events, and routine score/pickup popups; meaningful events now use one queued corner chip capped at about 1 second, while center beats remain only for stage and clear boundaries.
 - Collapsed the persistent HUD to top-edge score, multiplier meter, stage fraction, and color-coded life/bomb/power icons; removed BEST, GRAZE, PWR, boss-name, and stage-name labels from active play while retaining results/menu information.
 - Kept one queued single-line tutorial strip, removed repeating stage flavor and continue prose, moved status icons out of bottom thumb zones, and preserved reduced-motion gating for notice transitions.
+
+## Retina pass 2026-08-16
+
+- Before ratio: approximately 1.00x static FIT baseline for the 360x779 portrait design. A live pre-pass canvas readback was unavailable in this sandbox.
+- After ratio: 3.00x target by factor math at emulated DPR 3, producing a 1080x2337 backing store for the computed 360x779 design viewport.
+- Recipe: Phaser `Scale.FIT`, design coordinates preserved, scale dimensions multiplied by `GGKit.hiDpi.factor(360, 779)`, shared `GGKit.renderDefaults` merged, and zoom applied in boot, menu, and play scene `create()` methods. HUD and boot-error text use the same factor.
+- Factor cap: none beyond GGKit's default clamp to [1, 3].
+- Could not do: live `canvas.width / getBoundingClientRect().width` readback, gameplay screenshot, and `retina_audit.mjs` acceptance because no browser surface was available and private port binding was denied.

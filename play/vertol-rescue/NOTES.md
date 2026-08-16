@@ -78,3 +78,10 @@ Loop: hook all 8 stranded survivors, lift them aboard, and land at the hospital 
 - Shrunk persistent HUD readouts into icon/value/meter chips; kept fuel, hull, survivors, wind, time, and cable tension visible, with triage retained on the results screen.
 - Moved the objective to a single thin top-edge line and reduced tutorial guidance to a small edge direction marker.
 - Replaced in-play banners with one queued corner event chip, concise event text, fast fade, and a maximum one-second hold; run boundaries now use the existing title/results screens.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.50x at DPR 3, from the renderer's hard cap. After ratio: 3.00x is configured by `GGKit.hiDpi.three(renderer)`; a live canvas measurement was unavailable because this sandbox refused private HTTP listeners and had no browser target.
+- Recipe: called `GGKit.hiDpi.three(renderer)` immediately after `new THREE.WebGLRenderer`. No render targets, post-processing passes, or composers were present. The custom FX particle shader now takes `renderer.getPixelRatio()` instead of the old 1.5x cap.
+- Factor cap: none beyond GGKit's standard maximum of 3. No title-specific cap was needed.
+- Static verification: `node --check game.js` and `git diff --check` passed. Gameplay screenshot, `canvas.width / getBoundingClientRect().width >= 2.85`, and live layout confirmation remain unmeasured in this environment.

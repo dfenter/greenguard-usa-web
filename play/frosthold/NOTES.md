@@ -78,3 +78,10 @@ Rejected:
 - Moved action, cache, damage, assignment, and error feedback to one queued corner chip with a 1.0s hold; kept center banners only for run start, wave start, and wave clear.
 - Reduced tutorial guidance to one top-edge line that fades after roughly 3 seconds; survivor badges now use single-letter identifiers and role cards use icons/count meters.
 - Validation: `node --check game.js` and `node --check sw.js` pass; the browser screenshot probe was unavailable because no browser backend is connected.
+
+## Retina pass 2026-08-16
+
+- Measured before/after canvas-to-CSS ratio: no per-title live measurement was available. The fleet baseline measured 1.00x for 62 titles and 1.10x to 2.46x for the remainder. The after audit was blocked when the prescribed runner could not bind its private port (`listen EPERM`), and no browser backend was available. Static target at DPR3 is 3.00x.
+- Recipe: `GGKit.hiDpi.factor(390, 844)`, dense FIT scale dimensions, `GGKit.renderDefaults`, camera zoom in the scene create method, and matching Text resolution.
+- Factor cap: none beyond GGKit's default [1, 3] clamp.
+- Could not capture the required gameplay screenshot, backing-store ratio, or gameplay color metrics in this sandbox. `node --check game.js` passes.

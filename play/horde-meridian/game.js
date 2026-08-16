@@ -8671,7 +8671,28 @@
       if (k === 'key') continue;
       Klass.prototype[k] = cfg[k];
     }
+    if (typeof Klass.prototype.create === 'function') {
+      var originalCreate = Klass.prototype.create;
+      Klass.prototype.create = function () {
+        originalCreate.apply(this, arguments);
+        setTextDensity(this);
+      };
+    }
     return Klass;
+  }
+
+  function cssViewport() { return { width: document.documentElement.clientWidth || window.innerWidth || 390, height: document.documentElement.clientHeight || window.innerHeight || 844 }; }
+  function resizeHiDpi(game, width, height) { var view = width && height ? { width: width, height: height } : cssViewport(); return GGKit.hiDpi.resize(game, view.width, view.height); }
+  function bindHiDpiResize(game) { var apply = function () { resizeHiDpi(game); }; window.addEventListener('resize', apply); window.addEventListener('orientationchange', apply); document.addEventListener('visibilitychange', apply); apply(); }
+  function setTextDensity(scene) {
+    var d = GGKit.hiDpi.dpr();
+    function visit(list) {
+      (list || []).forEach(function (child) {
+        if (child && child.setResolution) child.setResolution(d);
+        if (child && child.list) visit(child.list);
+      });
+    }
+    visit(scene.children && scene.children.list);
   }
 
   readSafeArea();
@@ -8680,13 +8701,12 @@
     type: Phaser.AUTO,
     parent: document.body,
     backgroundColor: '#04080e',
-    resolution: Math.min(window.devicePixelRatio || 1, 2),
     scale: {
       mode: Phaser.Scale.RESIZE,
       width: window.innerWidth,
       height: window.innerHeight
     },
-    render: { antialias: true, powerPreference: 'high-performance', roundPixels: false },
+    render: Object.assign({}, GGKit.renderDefaults),
     fps: { target: 60, min: 30 },
     scene: (function () {
       var list = [toScene(BootScene), toScene(TitleScene), toScene(ShopScene), toScene(PlayScene)];
@@ -8698,6 +8718,7 @@
       return list;
     }())
   });
+  bindHiDpiResize(Game.phaser);
 
   kit.registerPWA();
   window.__HORDE_READY = true;

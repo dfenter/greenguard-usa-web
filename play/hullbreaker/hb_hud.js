@@ -1203,6 +1203,10 @@
     return Klass;
   }
 
+  function cssViewport() { return { width: document.documentElement.clientWidth || window.innerWidth || 390, height: document.documentElement.clientHeight || window.innerHeight || 844 }; }
+  function resizeHiDpi(game, width, height) { var view = width && height ? { width: width, height: height } : cssViewport(); return GGKit.hiDpi.resize(game, view.width, view.height); }
+  function bindHiDpiResize(game) { var apply = function () { resizeHiDpi(game); }; window.addEventListener('resize', apply); window.addEventListener('orientationchange', apply); document.addEventListener('visibilitychange', apply); apply(); }
+
   Game.phaser = new Phaser.Game({
     type: Phaser.AUTO,
     parent: document.body,
@@ -1212,13 +1216,11 @@
       width: window.innerWidth,
       height: window.innerHeight
     },
-    render: {
-      antialias: true, antialiasGL: false, powerPreference: 'high-performance',
-      roundPixels: false, batchSize: 4096
-    },
+    render: Object.assign({}, GGKit.renderDefaults, { batchSize: 4096 }),
     fps: { target: 60, min: 30 },
     scene: [toScene(I.BootScene), toScene(M.TitleScene), toScene(M.SelectScene), toScene(PLAY)]
   });
+  bindHiDpiResize(Game.phaser);
 
   kit.registerPWA();
   window.__HB_READY = true;

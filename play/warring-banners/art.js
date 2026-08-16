@@ -62,10 +62,12 @@
 
   function tex(scene, key, w, h, draw) {
     if (scene.textures.exists(key)) scene.textures.remove(key);
-    var cv = scene.textures.createCanvas(key, Math.max(1, Math.ceil(w)), Math.max(1, Math.ceil(h)));
-    draw(cv.getContext(), cv.canvas);
-    cv.refresh();
-    return cv;
+    var baked = root.GGKit.hiDpi.canvas(Math.max(1, Math.ceil(w)), Math.max(1, Math.ceil(h)));
+    var texture = scene.textures.addCanvas(key, baked.canvas);
+    if (texture && texture.get()) texture.get().source.resolution = baked.dpr;
+    draw(baked.ctx, baked.canvas);
+    texture.refresh();
+    return texture;
   }
   A.tex = tex;
 

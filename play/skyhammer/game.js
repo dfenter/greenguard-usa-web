@@ -50,6 +50,7 @@
     var v = Math.round(360 * (h / Math.max(1, w)));
     return Math.max(560, Math.min(800, v));
   })();
+  var RETINA_FACTOR = GGKit.hiDpi.factor(GW, GH);
 
   /* Pool ceilings. Pools grow one object at a time on demand so the first
    * frame never builds hundreds of game objects at once. */
@@ -286,14 +287,11 @@
   function mkText(scene, x, y, str, size, color, align, weight) {
     var t = scene.add.text(x, y, str, {
       fontFamily: FONT, fontSize: size + 'px',
-      fontStyle: weight || '700', color: color || CSS.text
+      fontStyle: weight || '700', color: color || CSS.text, resolution: RETINA_FACTOR
     });
     t.setOrigin(align === 'center' ? 0.5 : (align === 'right' ? 1 : 0), 0.5);
-    // No setResolution here. Phaser renders the text texture at `resolution`
-    // but lays the quad out at the texture's pixel size, so a resolution of 2
-    // draws every HUD string at DOUBLE its measured width and the top band
-    // collides with itself. Text stays at 1:1 game pixels and is upscaled by
-    // the canvas like every other sprite.
+    // Keep text at the title's measured retina factor so HUD glyphs are baked
+    // at device density while their design-space positions remain unchanged.
     return t;
   }
   function setTextIfChanged(obj, value) {
@@ -364,6 +362,7 @@
     initialize: function BootScene() { Phaser.Scene.call(this, { key: 'Boot' }); },
 
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       SH_STATE.scene = 'boot';
       kit.loader.show('SKYHAMMER');
       kit.loader.progress(0.1);
@@ -404,16 +403,16 @@
         var detail = error && error.message ? error.message : 'Unknown startup error';
         var title = self.add.text(GW / 2, GH * 0.34, 'SKYHAMMER COULD NOT START', {
           fontFamily: FONT, fontSize: '18px', fontStyle: '700', color: CSS.rose,
-          align: 'center'
+          align: 'center', resolution: RETINA_FACTOR
         }).setOrigin(0.5);
         var body = self.add.text(GW / 2, GH * 0.47,
           'Startup stopped safely.\nTap or press ENTER to retry.', {
             fontFamily: FONT, fontSize: '12px', fontStyle: '400', color: CSS.text,
-            align: 'center', wordWrap: { width: GW - 44 }
+            align: 'center', wordWrap: { width: GW - 44 }, resolution: RETINA_FACTOR
           }).setOrigin(0.5);
         var cause = self.add.text(GW / 2, GH * 0.62, detail.slice(0, 100), {
           fontFamily: FONT, fontSize: '9px', fontStyle: '400', color: CSS.dim,
-          align: 'center', wordWrap: { width: GW - 52 }
+          align: 'center', wordWrap: { width: GW - 52 }, resolution: RETINA_FACTOR
         }).setOrigin(0.5);
         self.bootErrorText = [title, body, cause];
       }
@@ -455,6 +454,7 @@
     initialize: function MenuScene() { Phaser.Scene.call(this, { key: 'Menu' }); },
 
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       SH_STATE.scene = 'menu';
       SH_STATE.mode = 'menu';
       SH_STATE.phase = 'menu';
@@ -615,6 +615,7 @@
     },
 
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       activePlay = this;
       var self = this;
       SH_STATE.scene = 'play';
@@ -2418,6 +2419,9 @@
     fps: { target: 60, min: 20 },
     scene: [BootScene, MenuScene, PlayScene]
   };
+  config.scale.width = Math.round(GW * RETINA_FACTOR);
+  config.scale.height = Math.round(GH * RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
 
   gameRef = new Phaser.Game(config);
   window.__sh.game = gameRef;

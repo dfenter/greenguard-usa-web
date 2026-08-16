@@ -18,7 +18,7 @@
 
   var COLS = FZ.COLS, ROWS = FZ.ROWS, K = FZ.K;
   var FONT = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-  var DPR = Math.min(2, (root.devicePixelRatio || 1));
+  var DPR = GGKit.hiDpi.dpr();
 
   /* ------------------------------------------------- verification hook */
   /* Preallocated. The boot fallback and the live scene write the SAME object,
@@ -79,6 +79,23 @@
   FZ_STATE.reducedMotion = !kit.juice.enabled;
 
   var GAME = null;
+  function cssViewport() {
+    return {
+      width: document.documentElement.clientWidth || root.innerWidth || 390,
+      height: document.documentElement.clientHeight || root.innerHeight || 844
+    };
+  }
+  function resizeHiDpi(game, width, height) {
+    var view = width && height ? { width: width, height: height } : cssViewport();
+    return GGKit.hiDpi.resize(game, view.width, view.height);
+  }
+  function bindHiDpiResize(game) {
+    var apply = function () { resizeHiDpi(game); };
+    root.addEventListener('resize', apply);
+    root.addEventListener('orientationchange', apply);
+    document.addEventListener('visibilitychange', apply);
+    apply();
+  }
   function activePlay() {
     if (!GAME || !GAME.scene) return null;
     var s = GAME.scene.getScene('play');
@@ -2307,14 +2324,12 @@
       },
       /* antialias keeps LINEAR filtering: every texture here is baked at 2x
          the display size, so it is supersampled art and needs it. */
-      render: {
-        antialias: true, antialiasGL: false, roundPixels: false,
-        powerPreference: 'high-performance', batchSize: 4096
-      },
+      render: Object.assign({}, GGKit.renderDefaults, { batchSize: 4096 }),
       fps: { target: 60, min: 30 },
       banner: false,
       scene: [toScene(BootScene), toScene(MenuScene), toScene(TankScene), toScene(PlayScene)]
     });
+    bindHiDpiResize(GAME);
     root.__fz.game = GAME;
     root.__fz.kit = kit;
     root.__fz.save = function () { return SAVE; };

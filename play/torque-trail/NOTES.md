@@ -98,3 +98,10 @@ Complete delivery work across the mud bog, rock crawl, and ridge trail. Earn pay
 - `tracks/frontier-main.json` and the twelve `tracks/job-*.json` files were authored from the existing `ROAD_PATHS` vertices. Their elevation values are the existing `heightAt(x, z)` terrain samples, banking stays gentle, every stage is point-to-point with `closed: false`, and all twelve shipped jobs remain selectable and drivable.
 - Theme progression is deliberate: early pump-seal and radio work uses desert, Silt and Lantern House work uses coastal, survey, fuel, and core work uses alpine, and the tier 5 and tier 6 quarry runs use night-city with `timeOfDay: night` so GGRacer headlights read clearly. Quality tier 2 is forced for the title showcase path and the engine's dense parallax dressing remains active.
 - The adapter gap is that the shared carkit exposes a GT-bar truck-like silhouette rather than a title-specific cargo-bed mesh. Torque Trail feeds its livery, speed, steering, braking, pitch, roll, and terrain-derived `suspension` state into that supported vehicle; changing the shared carkit was outside this retrofit contract.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.50x for the main GGRacer canvas from the shared engine cap. The title-owned canvas was capped at 1.25x.
+- After ratio: 3.00x configured at DPR 3 with `GGKit.hiDpi.three(racer.world.renderer)` followed by `racer.world.resize()`. Live `canvas.width / getBoundingClientRect().width` measurement was unavailable because Chrome aborted in this sandbox and the private HTTP bind was denied.
+- Recipe: native Three renderer density and device-scale depot labels through `GGKit.hiDpi.canvas(384, 96)`. No factor cap beyond GGKit's required maximum of 3.
+- Audit: no render target, composer, or post-processing pass exists in the racer path. Shared racer texture bakes were identified but could not be changed because this lane was constrained from writing `play/_shared/`.

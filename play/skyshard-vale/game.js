@@ -339,11 +339,11 @@
 
     createViews() {
       this.playerView = { shadow: this.add.image(0, 0, 'shadow').setDepth(8).setScale(.7, .45), sprite: this.add.sprite(0, 0, 'hero-0-up-idle-0').setDepth(12).setScale(.78), bracket: this.add.image(0, 0, 'bracket').setDepth(13).setScale(.76) };
-      this.enemyViews = this.enemies.map((enemy) => ({ shadow: this.add.image(0, 0, 'shadow').setDepth(8), sprite: this.add.sprite(0, 0, this.enemyTexture(enemy.family)).setDepth(11), hpBack: this.add.rectangle(0, 0, enemy.boss ? 128 : 72, 8, COLORS.ink, .88).setDepth(14), hpFill: this.add.rectangle(0, 0, enemy.boss ? 124 : 68, 5, COLORS.coral, 1).setOrigin(0, .5).setDepth(15), status: this.add.text(0, 0, '', { fontFamily: 'system-ui', fontSize: enemy.boss ? '19px' : '16px', fontStyle: '900', color: hex(COLORS.paper), stroke: hex(COLORS.ink), strokeThickness: 4 }).setOrigin(.5).setDepth(16), telegraph: this.add.image(0, 0, 'telegraph').setDepth(7).setVisible(false), target: this.add.image(0, 0, 'target').setDepth(13).setVisible(false) }));
+      this.enemyViews = this.enemies.map((enemy) => ({ shadow: this.add.image(0, 0, 'shadow').setDepth(8), sprite: this.add.sprite(0, 0, this.enemyTexture(enemy.family)).setDepth(11), hpBack: this.add.rectangle(0, 0, enemy.boss ? 128 : 72, 8, COLORS.ink, .88).setDepth(14), hpFill: this.add.rectangle(0, 0, enemy.boss ? 124 : 68, 5, COLORS.coral, 1).setOrigin(0, .5).setDepth(15), status: this.add.text(0, 0, '', { fontFamily: 'system-ui', fontSize: enemy.boss ? '19px' : '16px', fontStyle: '900', color: hex(COLORS.paper), stroke: hex(COLORS.ink), strokeThickness: 4, resolution: GGKit.hiDpi.dpr() }).setOrigin(.5).setDepth(16), telegraph: this.add.image(0, 0, 'telegraph').setDepth(7).setVisible(false), target: this.add.image(0, 0, 'target').setDepth(13).setVisible(false) }));
     }
     createPools() {
       this.fxPool = Array.from({ length: 120 }, () => this.add.image(0, 0, 'fx-spark').setDepth(20).setVisible(false));
-      this.textPool = Array.from({ length: 20 }, () => this.add.text(0, 0, '', { fontFamily: 'system-ui', fontSize: '16px', fontStyle: '900', color: hex(COLORS.paper), stroke: hex(COLORS.ink), strokeThickness: 5 }).setOrigin(.5).setDepth(30).setVisible(false));
+      this.textPool = Array.from({ length: 20 }, () => this.add.text(0, 0, '', { fontFamily: 'system-ui', fontSize: '16px', fontStyle: '900', color: hex(COLORS.paper), stroke: hex(COLORS.ink), strokeThickness: 5, resolution: GGKit.hiDpi.dpr() }).setOrigin(.5).setDepth(30).setVisible(false));
       this.projectilePool = this.renderState.projectiles.map(() => this.add.image(0, 0, 'fx-spark').setDepth(19).setVisible(false));
       this.projectiles = Array.from({ length: this.projectilePool.length }, () => ({ active: false, x: 0, y: 0, vx: 0, vy: 0, life: 0, damage: 0, element: 'frost' }));
       this.fxActive = []; this.textActive = [];
@@ -562,6 +562,18 @@
     formatTime(seconds) { const safe = Math.max(0, Math.floor(seconds)); return `${String(Math.floor(safe / 60)).padStart(2, '0')}:${String(safe % 60).padStart(2, '0')}`; }
   }
 
-  const config = { type: Phaser.CANVAS, width: 1020, height: 570, parent: document.body, backgroundColor: '#081726', pixelArt: true, antialias: false, scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: [ValeScene], render: { roundPixels: true, antialias: false, powerPreference: 'high-performance' } };
-  try { new Phaser.Game(config); } catch (error) { const fallback = document.getElementById('coach-strip'); if (fallback) { fallback.textContent = 'Skyshard Vale could not start this renderer.'; fallback.classList.add('visible'); } window.__sv.state.mode = 'error'; window.__sv.error = String(error && error.message || error); }
+  const config = { type: Phaser.CANVAS, width: 1020, height: 570, parent: document.body, backgroundColor: '#081726', scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: [ValeScene], render: Object.assign({}, GGKit.renderDefaults) };
+  let game = null;
+  function resizeGame() {
+    if (!game) return;
+    GGKit.hiDpi.resize(game, Math.max(1, window.innerWidth || 1020), Math.max(1, window.innerHeight || 570));
+  }
+  try {
+    game = new Phaser.Game(config);
+    window.__sv.game = game;
+    window.addEventListener('resize', resizeGame);
+    window.addEventListener('orientationchange', resizeGame);
+    document.addEventListener('visibilitychange', resizeGame);
+    resizeGame();
+  } catch (error) { const fallback = document.getElementById('coach-strip'); if (fallback) { fallback.textContent = 'Skyshard Vale could not start this renderer.'; fallback.classList.add('visible'); } window.__sv.state.mode = 'error'; window.__sv.error = String(error && error.message || error); }
 })();

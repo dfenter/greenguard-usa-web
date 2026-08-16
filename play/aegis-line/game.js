@@ -710,6 +710,12 @@
     return Klass;
   }
 
+  function syncHiDpi(game) {
+    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || root.innerWidth || 1));
+    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || root.innerHeight || 1));
+    GGKit.hiDpi.resize(game, cssW, cssH);
+  }
+
   Game.phaser = new Phaser.Game({
     type: Phaser.AUTO,
     parent: document.body,
@@ -722,12 +728,15 @@
     // Phaser must not install canvas-level pointer or key listeners: GGKit
     // owns both, and a canvas listener firing first is what kills touch.
     input: { keyboard: false, mouse: false, touch: false, gamepad: false },
-    render: {
-      antialias: true, antialiasGL: false, powerPreference: 'high-performance',
-      roundPixels: false, batchSize: 4096
-    },
+    render: Object.assign({}, GGKit.renderDefaults, { batchSize: 4096 }),
     fps: { target: 60, min: 30 },
     scene: [toScene(BootScene), toScene(TitleScene), toScene(CommandScene), toScene(PlayScene)]
+  });
+  syncHiDpi(Game.phaser);
+  root.addEventListener('resize', function () { syncHiDpi(Game.phaser); });
+  root.addEventListener('orientationchange', function () { syncHiDpi(Game.phaser); });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) syncHiDpi(Game.phaser);
   });
 
   kit.registerPWA();

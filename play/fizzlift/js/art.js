@@ -19,13 +19,12 @@
   var PS = 96;      /* piece textures are baked at 96px and scaled down */
 
   function cv(w, h) {
-    var c = document.createElement('canvas');
-    c.width = Math.max(1, Math.round(w));
-    c.height = Math.max(1, Math.round(h));
+    var baked = GGKit.hiDpi.canvas(w, h), c = baked.canvas;
+    c.__ggCtx = baked.ctx;
     return c;
   }
   function ctxOf(c) {
-    var x = c.getContext('2d');
+    var x = c.__ggCtx || c.getContext('2d');
     x.imageSmoothingEnabled = true;
     return x;
   }

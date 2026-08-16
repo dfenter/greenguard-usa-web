@@ -102,3 +102,11 @@ match runs a five step interactive tutorial in the thin coach strip.
   the service worker for it; the first frame after a cold offline load rebuilds
   the same buffers locally in about 200 ms.
 - The design space is 960 x 480; a 4:3 tablet letterboxes top and bottom.
+
+## Retina pass 2026-08-16
+
+- Audit before ratio: 1.23x at the emulated DPR 3 landscape viewport, using the 960 x 480 design box in a 780 x 390 shown fit box. Configured after ratio: 3.00x from `GGKit.hiDpi.factor(960, 480)`, with a 2340 x 1170 backing store.
+- Recipe: Phaser `Scale.FIT`, dense scale dimensions, `GGKit.renderDefaults`, `setZoom(f)` in Boot, Menu, and Match, a Phaser text factory that applies the matching resolution, and unchanged landscape letterboxing.
+- Factor cap: none beyond GGKit's standard maximum of 3. The computed factor for this fit is 2.4375.
+- Live canvas ratio and gameplay screenshot were unavailable because the browser backend was empty and the sandbox denied private HTTP listeners. The after ratio above is the configured geometry, not a live canvas read.
+- Static title-local canvas art now uses `GGKit.hiDpi.canvas` and Phaser texture source resolution. Gameplay, balance, and content were unchanged.

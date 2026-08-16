@@ -50,11 +50,33 @@
     aspect = Math.max(1.35, Math.min(2.4, aspect));
     return Math.round(GH * aspect);
   })();
+  var RETINA_FACTOR = GGKit.hiDpi.factor(GW, GH);
 
   var FONT = 'Verdana, Geneva, system-ui, sans-serif';
   var CSS = A.CSS;
 
   function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function configureRetinaScene(scene) {
+    scene.cameras.main.setZoom(RETINA_FACTOR);
+    var addText = scene.add.text;
+    scene.add.text = function (x, y, value, style) {
+      return addText.call(this, x, y, value, Object.assign({}, style || {}, { resolution: RETINA_FACTOR }));
+    };
+    function normalizeImage(image) {
+      if (!image || RETINA_FACTOR === 1) return image;
+      var nativeSetScale = image.setScale;
+      nativeSetScale.call(image, 1 / RETINA_FACTOR, 1 / RETINA_FACTOR);
+      image.setScale = function (x, y) {
+        var sy = y == null ? x : y;
+        return nativeSetScale.call(this, x / RETINA_FACTOR, sy / RETINA_FACTOR);
+      };
+      return image;
+    }
+    var addImage = scene.add.image;
+    scene.add.image = function () { return normalizeImage(addImage.apply(this, arguments)); };
+    var addSprite = scene.add.sprite;
+    scene.add.sprite = function () { return normalizeImage(addSprite.apply(this, arguments)); };
+  }
   function setTextIfChanged(o, v) { var s = String(v); if (o && o.text !== s) o.setText(s); }
   function setFrameIfChanged(o, f) { if (o && o.frame && o.frame.name !== f) o.setFrame(f); }
   function setTintIfChanged(o, t) { if (o && o._ioTint !== t) { o.setTint(t); o._ioTint = t; } }
@@ -169,6 +191,7 @@
     },
 
     create: function () {
+      configureRetinaScene(this);
       liveScene = this;
       var self = this;
       this.screen = 'boot';
@@ -311,32 +334,32 @@
       this.fx = {};
       this.fx.spark = this.add.particles(0, 0, 'io_spark', {
         lifespan: { min: 90, max: 240 }, speed: { min: 90, max: 320 }, quantity: 1,
-        scale: { start: 0.9, end: 0.05 }, alpha: { start: 1, end: 0 }, rotate: { min: 0, max: 360 },
+        scale: { start: 0.9 / RETINA_FACTOR, end: 0.05 / RETINA_FACTOR }, alpha: { start: 1, end: 0 }, rotate: { min: 0, max: 360 },
         emitting: false, maxAliveParticles: 90, tint: 0xdfe9f2, blendMode: 'ADD'
       }).setDepth(31);
       this.fx.blood = this.add.particles(0, 0, 'io_dot', {
         lifespan: { min: 180, max: 420 }, speed: { min: 40, max: 190 }, quantity: 1,
-        scale: { start: 0.28, end: 0.02 }, alpha: { start: 0.95, end: 0 },
+        scale: { start: 0.28 / RETINA_FACTOR, end: 0.02 / RETINA_FACTOR }, alpha: { start: 0.95, end: 0 },
         emitting: false, maxAliveParticles: 90, tint: 0xc8353f
       }).setDepth(29);
       this.fx.splinter = this.add.particles(0, 0, 'io_chip', {
         lifespan: { min: 220, max: 520 }, speed: { min: 40, max: 210 }, quantity: 1,
-        scale: { start: 0.8, end: 0.15 }, alpha: { start: 1, end: 0 }, rotate: { min: 0, max: 360 },
+        scale: { start: 0.8 / RETINA_FACTOR, end: 0.15 / RETINA_FACTOR }, alpha: { start: 1, end: 0 }, rotate: { min: 0, max: 360 },
         gravityY: 120, emitting: false, maxAliveParticles: 80, tint: 0xc79a5c
       }).setDepth(29);
       this.fx.fire = this.add.particles(0, 0, 'io_dot', {
         lifespan: { min: 240, max: 620 }, speed: { min: 80, max: 340 }, quantity: 1,
-        scale: { start: 0.75, end: 0.05 }, alpha: { start: 1, end: 0 },
+        scale: { start: 0.75 / RETINA_FACTOR, end: 0.05 / RETINA_FACTOR }, alpha: { start: 1, end: 0 },
         emitting: false, maxAliveParticles: 140, tint: [0xfff0c0, 0xffb457, 0xff6a3c], blendMode: 'ADD'
       }).setDepth(32);
       this.fx.smoke = this.add.particles(0, 0, 'io_smoke', {
         lifespan: { min: 700, max: 1500 }, speed: { min: 8, max: 70 }, quantity: 1,
-        scale: { start: 0.5, end: 1.5 }, alpha: { start: 0.42, end: 0 },
+        scale: { start: 0.5 / RETINA_FACTOR, end: 1.5 / RETINA_FACTOR }, alpha: { start: 0.42, end: 0 },
         emitting: false, maxAliveParticles: 80, tint: 0x9fb2ba
       }).setDepth(43);
       this.fx.dust = this.add.particles(0, 0, 'io_dot', {
         lifespan: { min: 90, max: 220 }, speed: { min: 20, max: 120 }, quantity: 1,
-        scale: { start: 0.30, end: 0.02 }, alpha: { start: 0.7, end: 0 },
+        scale: { start: 0.30 / RETINA_FACTOR, end: 0.02 / RETINA_FACTOR }, alpha: { start: 0.7, end: 0 },
         emitting: false, maxAliveParticles: 70, tint: 0xffe0a8, blendMode: 'ADD'
       }).setDepth(31);
 
@@ -514,17 +537,18 @@
       this.clearWorld();
       var th = S.theatre, m = th.mood;
       var W = K.WORLD_W, H = K.WORLD_H, CELL = K.CELL;
-      var rt = this.add.renderTexture(0, 0, W, H).setOrigin(0, 0).setDepth(0);
+      var denseW = Math.round(W * RETINA_FACTOR), denseH = Math.round(H * RETINA_FACTOR);
+      var rt = this.add.renderTexture(0, 0, denseW, denseH).setDisplaySize(W, H).setOrigin(0, 0).setDepth(0);
       this.levelRt = rt;
-      rt.fill(m.floor, 1, 0, 0, W, H);
+      rt.fill(m.floor, 1, 0, 0, denseW, denseH);
       var x, y;
       /* The whole static level is ONE batched draw list. Unbatched, the
        * eight hundred odd calls below cost a 280 ms frame at 4x throttle. */
       var batched = typeof rt.beginDraw === 'function';
       if (batched) rt.beginDraw();
       function put(key, px, py, alpha) {
-        if (batched) rt.batchDraw(key, px, py, alpha);
-        else rt.draw(key, px, py, alpha);
+        if (batched) rt.batchDraw(key, Math.round(px * RETINA_FACTOR), Math.round(py * RETINA_FACTOR), alpha);
+        else rt.draw(key, Math.round(px * RETINA_FACTOR), Math.round(py * RETINA_FACTOR), alpha);
       }
       for (y = 0; y < H; y += 80) for (x = 0; x < W; x += 80) put('io_floor_' + th.id, x, y, 1);
       /* authored floor markings, deterministic by cell so a rebuild matches */
@@ -552,7 +576,7 @@
       /* Theatre mood is baked into the level rather than composited as a
        * full screen quad every frame, which also lets bodies and VFX sit
        * brighter than the floor they stand on. */
-      rt.fill(m.ambient, m.ambientAlpha, 0, 0, W, H);
+      rt.fill(m.ambient, m.ambientAlpha, 0, 0, denseW, denseH);
 
       /* destructible cells and barrels as sprites */
       var i;
@@ -1602,10 +1626,8 @@
     this.updateHudLabels();
   };
 
-  new Phaser.Game({
+  var config = {
     type: Phaser.AUTO,
-    width: GW,
-    height: GH,
     parent: document.body,          // never null: null SKIPS mounting the canvas
     backgroundColor: '#0a1219',
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
@@ -1613,5 +1635,9 @@
     audio: { noAudio: true },       // GGKit owns every sound in this title
     banner: false,
     scene: [Scene]
-  });
+  };
+  config.scale.width = Math.round(GW * RETINA_FACTOR);
+  config.scale.height = Math.round(GH * RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
+  new Phaser.Game(config);
 })();

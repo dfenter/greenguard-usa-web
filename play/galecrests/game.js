@@ -7,6 +7,7 @@
   var Phaser = root.Phaser;
   var W = 390;
   var H = 844;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(W, H);
   var STEP = 1 / 60;
   var MAX_STEPS = 5;
   var FONT = 'ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif';
@@ -192,6 +193,13 @@
   /* -------------------------------------------------------------- utils */
 
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function configureRetinaScene(scene) {
+    scene.cameras.main.setZoom(RETINA_FACTOR);
+    var addText = scene.add.text;
+    scene.add.text = function (x, y, value, style) {
+      return addText.call(this, x, y, value, Object.assign({}, style || {}, { resolution: RETINA_FACTOR }));
+    };
+  }
   function lerp(a, b, t) { return a + (b - a) * t; }
   function num(v, d) { return Number.isFinite(v) ? v : d; }
   function whole(v, d) { return Number.isInteger(v) ? v : d; }
@@ -1536,6 +1544,7 @@
   /* ------------------------------------------------------------ create */
 
   PlayScene.prototype.create = function () {
+    configureRetinaScene(this);
     Game.play = this;
     this.rrPool = [];
     this.rrsPool = [];
@@ -2882,7 +2891,7 @@
     root.__gc.state = bootState;
     return;
   }
-  Game.phaser = new Phaser.Game({
+  var config = {
     type: Phaser.AUTO,
     parent: 'game',
     backgroundColor: C.deep,
@@ -2890,5 +2899,9 @@
     render: {antialias: true, roundPixels: false, powerPreference: 'high-performance', batchSize: 2048},
     fps: {target: 60, min: 30},
     scene: [PlayScene]
-  });
+  };
+  config.scale.width = Math.round(W * RETINA_FACTOR);
+  config.scale.height = Math.round(H * RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
+  Game.phaser = new Phaser.Game(config);
 })(typeof window !== 'undefined' ? window : globalThis);

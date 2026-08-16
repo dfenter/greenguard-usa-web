@@ -12,6 +12,7 @@
   var GGKit = window.GGKit;
   var VW = 1280;
   var VH = 720;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(VW, VH);
   var STEP = 1 / 60;
   var MAX_STEPS = 4;
   var BLOCK_W = 1800;
@@ -325,6 +326,7 @@
     key: 'main',
 
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       sceneRef = this;
       this.cameras.main.setBounds(0, 0, WORLD_W, VH);
       this.cameras.main.setScroll(0, 0);
@@ -1192,14 +1194,17 @@
     }
   });
 
-  var game = new Phaser.Game({
+  var config = {
     type: Phaser.AUTO,
     parent: 'game',
     backgroundColor: '#070a12',
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: VW, height: VH },
-    render: { antialias: false, antialiasGL: false, roundPixels: true, powerPreference: 'high-performance' },
     scene: [MainScene]
-  });
+  };
+  config.scale.width = Math.round(VW * RETINA_FACTOR);
+  config.scale.height = Math.round(VH * RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
+  var game = new Phaser.Game(config);
   window.__br.game = game;
   game.events.once(Phaser.Core.Events.READY, function () { if (kit.paused && sceneRef) sceneRef.paintPause(true); });
 })();

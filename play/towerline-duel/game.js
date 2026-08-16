@@ -8,6 +8,7 @@
 
   var W = 390;
   var H = 844;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(W, H);
   var STEP = 1 / 60;
   var MAX_SIM_STEPS_PER_FRAME = 6;
   var MAX_UNITS = 64;
@@ -274,7 +275,7 @@
   function addLabel(scene, x, y, value, size, color, originX, weight) {
     return scene.add.text(x, y, value, {
       fontFamily: 'Trebuchet MS, system-ui, sans-serif', fontSize: Math.max(14, size) + 'px',
-      color: color || '#e9fbff', fontStyle: weight || 'normal', resolution: 2,
+      color: color || '#e9fbff', fontStyle: weight || 'normal', resolution: RETINA_FACTOR,
       lineSpacing: 2,
     }).setOrigin(originX == null ? 0.5 : originX, 0.5);
   }
@@ -401,6 +402,7 @@
   class BootScene extends BaseScene {
     constructor() { super('boot'); }
     create() {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       kit.loader.show('Towerline Duel');
       kit.loader.progress(0.25);
       bakeTextures(this);
@@ -418,6 +420,7 @@
   class MenuScene extends BaseScene {
     constructor() { super('menu'); }
     create() {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       this.createBase(); this.setStateMenu('menu');
       addLabel(this, W / 2, 49, 'TOWERLINE', 31, '#e9fbff', 0.5, 'bold');
       addLabel(this, W / 2, 84, 'DUEL', 44, '#43c7f4', 0.5, 'bold');
@@ -445,6 +448,7 @@
   class LadderScene extends BaseScene {
     constructor() { super('ladder'); }
     create() {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       this.createBase(); this.setStateMenu('ladder'); this.topBar('LADDER ROAD', progress.rung + ' / 8'); this.backButton(function () { this.scene.start('menu'); }.bind(this));
       addLabel(this, 18, 118, 'WIN A RUNG TO OPEN ITS CARD TRIO', 14, '#91aeba', 0, 'bold');
       for (var i = 0; i < RUNG_TABLE.length; i += 1) {
@@ -474,6 +478,7 @@
   class ForgeScene extends BaseScene {
     constructor() { super('forge'); }
     create() {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       this.createBase(); this.setStateMenu('forge'); this.topBar('DECK FORGE', unlockedCount() + ' / 24'); this.backButton(function () { this.scene.start('menu'); }.bind(this));
       addLabel(this, 132, 75, 'EIGHT-SLOT DECK', 14, '#e9fbff', 0, 'bold');
       addLabel(this, 132, 97, 'Tap a slot, then a ready card', 14, '#91aeba', 0, 'normal');
@@ -521,6 +526,7 @@
     constructor() { super('mode'); }
     init(data) { this.mode = modeSafe(data && data.mode) || 'draft'; }
     create() {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       this.createBase(); this.setStateMenu(this.mode); this.topBar(modeLabel(this.mode), this.mode === 'gauntlet' ? progress.gauntletBest + ' BEST' : progress.draftWins + ' WINS'); this.backButton(function () { this.scene.start('menu'); }.bind(this));
       if (this.mode === 'draft') this.createDraft(); else this.createGauntlet();
     }
@@ -575,6 +581,7 @@
       this.tutorialStep = 0; this.resultFocus = 0; this.lastGamepad = {};
     }
     create() {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       activeDuel = this; this.events.once('shutdown', this.shutdown, this); kit.audio.music('music', 700); this.createBase(); this.createViews(); this.resetMatch();
       this.input.on('pointerdown', this.onPointerDown, this); this.input.on('pointermove', this.onPointerMove, this);
       this.input.on('pointerup', this.onPointerUp, this); this.input.on('pointerupoutside', this.onPointerCancel, this); this.input.on('pointercancel', this.onPointerCancel, this);
@@ -670,7 +677,7 @@
         var name = addLabel(this, x - 35, 799, '', 14, '#e9fbff', 0, 'bold').setDepth(42);
         var cost = addLabel(this, x - 35, 822, '', 14, '#e0a34a', 0, 'bold').setDepth(42);
         var role = addLabel(this, x + 38, 822, '', 14, '#91aeba', 1, 'bold').setDepth(42);
-        var effect = this.add.text(x - 35, 836, '', { fontFamily: 'Trebuchet MS, system-ui, sans-serif', fontSize: '10px', color: '#91aeba', resolution: 2 }).setOrigin(0, 0.5).setDepth(42);
+        var effect = this.add.text(x - 35, 836, '', { fontFamily: 'Trebuchet MS, system-ui, sans-serif', fontSize: '10px', color: '#91aeba', resolution: RETINA_FACTOR }).setOrigin(0, 0.5).setDepth(42);
         this.cardViews.push({ bg: bg, accent: accent, icon: icon, number: number, name: name, cost: cost, role: role, effect: effect });
       }
       this.unitPool = [];
@@ -1128,9 +1135,8 @@
     type: Phaser.AUTO,
     parent: 'game-mount',
     backgroundColor: '#07111d',
-    resolution: Math.min(window.devicePixelRatio || 1, 2),
-    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H },
-    render: { antialias: true, roundPixels: false, powerPreference: 'high-performance' },
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: Math.round(W * RETINA_FACTOR), height: Math.round(H * RETINA_FACTOR) },
+    render: Object.assign({}, GGKit.renderDefaults, { }),
     fps: { target: 60, min: 30 },
     scene: [BootScene, MenuScene, LadderScene, ForgeScene, ModeScene, DuelScene],
   });

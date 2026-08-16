@@ -85,3 +85,10 @@ Rejected:
 - Shrunk active feedback into one queued edge chip/coach strip: live event holds are 1.0s, tutorial copy is one line with a short fade, and boundary banners remain only for floor clear/results.
 - Folded repeated HUD words into compact mode/area headers, icon-led gil/time/glyph readouts, HP/ATB meters, ready markers, and a single nearby enemy telegraph chip.
 - `node --check` passed for `game.js` and `sw.js`; the live 390x844 screenshot check was unavailable because no browser was available and local server binds are blocked here.
+
+## Retina pass 2026-08-16
+
+- Ratio record at portrait CSS 390x844 and DPR 3: before 1.00x from the design-size FIT backing store; after 3.00x expected from a 1170x2532 backing store. Live canvas measurement was unavailable.
+- Recipe: `GGKit.hiDpi.factor(390, 844)`, dense FIT scale dimensions, `GGKit.renderDefaults`, and `setZoom(RETINA_FACTOR)` in Boot and Play.
+- Factor cap: none. The factor is GGKit-clamped to the device maximum of 3.
+- Could not capture the required DPR 3 gameplay screenshot or `canvas.width / getBoundingClientRect().width` measurement because no browser instance was available and the private port could not be opened in this environment.

@@ -202,3 +202,10 @@ only files that exist.
   whose whole content is the order.
 - The keep buildings are cosmetic plus gating only. They award no gameplay
   modifiers, because a modifier would invalidate the solved par tables.
+
+## Retina pass 2026-08-16
+
+- Ratio record: before 1.00x from the pre-pass design-size backing configuration; after 3.00x is the configured DPR3 result from `round(design * GGKit.hiDpi.factor(...))`. A live canvas ratio read was unavailable.
+- Recipe: Phaser `Scale.FIT`, design world coordinates retained, `RETINA_FACTOR` applied to scale dimensions and the Dominion scene camera zoom. Canvas atlases and chrome use the dense GGKit canvas helper, all dense image views compensate back to logical sizes, and there is no Phaser `resolution` config key.
+- Factor cap: none. The GGKit factor is used without a cap because this title has no measured need for one.
+- Could not do: the browser connector reported no available target, so the required DPR3 canvas ratio read and real gameplay screenshot could not be captured. `node --check` and `git diff --check` pass.

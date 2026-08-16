@@ -7,6 +7,7 @@
 
   var W = 390;
   var H = 844;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(W, H);
   var BOARD_TOP = 88;
   var BOARD_BOTTOM = 600;
   var STEP = 1 / 60;
@@ -919,11 +920,12 @@
 
   var BootScene = {
     key: 'Boot',
-    create: function () { this.scene.start('Play'); }
+    create: function () { this.cameras.main.setZoom(RETINA_FACTOR); this.scene.start('Play'); }
   };
   var PlayScene = {
     key: 'Play',
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       app.scene = this;
       this.acc = 0; this.lastMode = ''; this.pauseHint = false; this.bgKey = ''; this.audioReady = false;
       this.makeTextures(); this.makeObjects();
@@ -1217,6 +1219,10 @@
     g.lineStyle(2, 0x2b6473, 1); g.lineBetween(0, BOARD_TOP, W, BOARD_TOP); g.lineBetween(0, BOARD_BOTTOM, W, BOARD_BOTTOM); g.generateTexture('bg-' + key, W, H); g.destroy(); }
 
   function toScene(cfg) { var Klass = function () { Phaser.Scene.call(this, { key: cfg.key }); }; Klass.prototype = Object.create(Phaser.Scene.prototype); Klass.prototype.constructor = Klass; Object.keys(cfg).forEach(function (key) { if (key !== 'key') Klass.prototype[key] = cfg[key]; }); return Klass; }
-  new Phaser.Game({ type: Phaser.AUTO, parent: document.body, backgroundColor: CSS.ink, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H }, render: { antialias: false, pixelArt: true, roundPixels: true, powerPreference: 'high-performance' }, fps: { target: 60, min: 30 }, scene: [toScene(BootScene), toScene(PlayScene)] });
+  var config = { type: Phaser.AUTO, parent: document.body, backgroundColor: CSS.ink, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H }, fps: { target: 60, min: 30 }, scene: [toScene(BootScene), toScene(PlayScene)] };
+  config.scale.width = Math.round(W * RETINA_FACTOR);
+  config.scale.height = Math.round(H * RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
+  new Phaser.Game(config);
   window.__AF_READY = true;
 })();

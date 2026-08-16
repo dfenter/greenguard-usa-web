@@ -67,6 +67,12 @@
     return { c: c, g: g };
   }
 
+  function denseCv(w, h) {
+    var baked = GGKit.hiDpi.canvas(w, h);
+    baked.ctx.imageSmoothingEnabled = false;
+    return { c: baked.canvas, g: baked.ctx, dpr: baked.dpr };
+  }
+
   /* ====================================================== TERRAIN ATLAS === */
   function buildTerrain(scene) {
     var town = scene.textures.get('town').getSourceImage();
@@ -75,18 +81,20 @@
     // water frame, so every unused row is dead upload bandwidth: 256x192
     // instead of 256x256 is a quarter off the per-cycle texture cost.
     var COLS = 16, ROWS = 12;
-    var at = cv(COLS * T, ROWS * T);
+    var at = denseCv(COLS * T, ROWS * T);
     var sc = cv(T, T);
     var mk = cv(T, T);
     var next = 0;
     var IDX = {};
     var animSlots = [], animFrames = [];
 
-    function blit(i) { at.g.drawImage(sc.c, (i % COLS) * T, Math.floor(i / COLS) * T); }
+    function blit(i) {
+      at.g.drawImage(sc.c, (i % COLS) * T, Math.floor(i / COLS) * T, T, T);
+    }
     function put(i, canvas) {
       var dx = (i % COLS) * T, dy = Math.floor(i / COLS) * T;
       at.g.clearRect(dx, dy, T, T);
-      at.g.drawImage(canvas, dx, dy);
+      at.g.drawImage(canvas, dx, dy, T, T);
     }
     function clear() { sc.g.clearRect(0, 0, T, T); }
     function srcTile(img, frame) {
@@ -330,7 +338,7 @@
           var dx = (set[i] % COLS) * T, dy = Math.floor(set[i] / COLS) * T;
           at.g.save();
           at.g.globalAlpha = 0.22;
-          at.g.drawImage(sc.c, dx, dy);
+          at.g.drawImage(sc.c, dx, dy, T, T);
           at.g.restore();
         }
       }
@@ -401,7 +409,8 @@
       for (var m = 0; m < 16; m++) {
         if (m === 0) { arr.push(-1); continue; }
         clear();
-        sc.g.drawImage(at.c, (src % COLS) * T, Math.floor(src / COLS) * T, T, T, 0, 0, T, T);
+        sc.g.drawImage(at.c, (src % COLS) * T * at.dpr, Math.floor(src / COLS) * T * at.dpr,
+          T * at.dpr, T * at.dpr, 0, 0, T, T);
         var mask = scallop(m, sd);
         sc.g.globalCompositeOperation = 'destination-in';
         sc.g.drawImage(mask, 0, 0);
@@ -571,7 +580,7 @@
         var idx = animSlots[i];
         var dx = (idx % COLS) * T, dy = Math.floor(idx / COLS) * T;
         at.g.clearRect(dx, dy, T, T);
-        at.g.drawImage(animFrames[i][f], dx, dy);
+        at.g.drawImage(animFrames[i][f], dx, dy, T, T);
       }
     };
     IDX.tileCount = next;
@@ -792,13 +801,13 @@
 
   function buildAtlas(scene) {
     var CW = 512, CH = 512;
-    var a = cv(CW, CH);
+    var a = denseCv(CW, CH);
     var frames = {};
     var cx = 0, cy = 0, rowH = 0;
     function slot(name, w, h, draw) {
       if (cx + w > CW) { cx = 0; cy += rowH + 1; rowH = 0; }
       draw(a.g, cx, cy);
-      frames[name] = { frame: { x: cx, y: cy, w: w, h: h } };
+      frames[name] = { frame: { x: cx * a.dpr, y: cy * a.dpr, w: w * a.dpr, h: h * a.dpr } };
       cx += w + 1;
       if (h > rowH) rowH = h;
     }
@@ -1112,7 +1121,7 @@
     scene.textures.addAtlas('dl', a.c, { frames: frames });
 
     /* -- glow and torch stay separate: additive blend, linear filtered ---- */
-    var v = cv(64, 64);
+    var v = denseCv(64, 64);
     var gr = v.g.createRadialGradient(32, 32, 6, 32, 32, 32);
     gr.addColorStop(0, 'rgba(255,244,205,0.55)');
     gr.addColorStop(1, 'rgba(255,244,205,0)');
@@ -1120,7 +1129,7 @@
     var glowTex = scene.textures.addCanvas('glow', v.c);
     if (glowTex && glowTex.setFilter) glowTex.setFilter(1);
 
-    var t2 = cv(256, 256);
+    var t2 = denseCv(256, 256);
     var tg = t2.g.createRadialGradient(128, 128, 26, 128, 128, 128);
     tg.addColorStop(0, 'rgba(0,0,0,0)');
     tg.addColorStop(0.42, 'rgba(0,0,0,0.18)');
@@ -1130,7 +1139,7 @@
     var torchTex = scene.textures.addCanvas('torch', t2.c);
     if (torchTex && torchTex.setFilter) torchTex.setFilter(1);
 
-    var px = cv(2, 2); px.g.fillStyle = '#ffffff'; px.g.fillRect(0, 0, 2, 2);
+    var px = denseCv(2, 2); px.g.fillStyle = '#ffffff'; px.g.fillRect(0, 0, 2, 2);
     scene.textures.addCanvas('px', px.c);
   }
 
@@ -1146,7 +1155,7 @@
 
   function buildFont(scene) {
     var CW = 8, CH = 10, PER = 16, ROWS = 6;
-    var f = cv(CW * PER, CH * ROWS);
+    var f = denseCv(CW * PER, CH * ROWS);
     var g = f.g;
     g.textAlign = 'center';
     g.textBaseline = 'alphabetic';
@@ -1171,8 +1180,8 @@
     g.putImageData(d, 0, 0);
     scene.textures.addCanvas('pixfont', f.c);
     var data = Phaser.GameObjects.RetroFont.Parse(scene, {
-      image: 'pixfont', width: CW, height: CH, chars: CHARSET,
-      charsPerRow: PER, offset: { x: 0, y: 0 }, spacing: { x: 0, y: 0 }, lineSpacing: 2
+      image: 'pixfont', width: CW * f.dpr, height: CH * f.dpr, chars: CHARSET,
+      charsPerRow: PER, offset: { x: 0, y: 0 }, spacing: { x: 0, y: 0 }, lineSpacing: 2 * f.dpr
     });
     scene.cache.bitmapFont.add('pix', data);
   }

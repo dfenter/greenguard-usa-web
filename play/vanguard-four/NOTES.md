@@ -55,3 +55,11 @@ Deferred: an authored CC0 Warden roar cut from the harvested audio packs is defe
 - Shrunk in-play events to one queued top-edge chip at a time, held under 1 second with reduced-motion gating; tutorial copy is one thin fading strip.
 - Collapsed active HUD to room/score icons, a super meter, hero portraits with health bars, formation state, and icon controls; moved roster interaction into the compact top portrait row.
 - Verification: `node --check game.js` and `node --check sw.js` pass; browser screenshot smoke capture was unavailable in this shell.
+
+## Retina pass 2026-08-16
+
+- Audit before ratio: 1.00x at the emulated DPR 3 portrait viewport. Configured after ratio: 3.00x from `GGKit.hiDpi.factor(390, 844)`, with a 1170 x 2532 backing store for the 390 x 844 design box.
+- Recipe: Phaser `Scale.FIT`, dense scale dimensions, `GGKit.renderDefaults`, `setZoom(f)` in MainScene, and a Phaser text factory that applies the matching resolution.
+- Factor cap: none beyond GGKit's standard maximum of 3. No title-specific cap.
+- Live canvas ratio and gameplay screenshot were unavailable because the browser backend was empty and the sandbox denied private HTTP listeners. The after ratio above is the configured geometry, not a live canvas read.
+- No title-local canvas bake helper was found. Gameplay, balance, and content were unchanged.

@@ -188,7 +188,15 @@
 
   function makeTexture(scene, key, w, h, painter) {
     if (scene.textures.exists(key)) return key;
-    var tex = scene.textures.createCanvas(key, w, h), ctx = tex.getContext(); painter(ctx, w, h); tex.refresh(); return key;
+    var baked = GGKit.hiDpi.canvas(w, h), tex = scene.textures.addCanvas(key, baked.canvas), ctx = baked.ctx; painter(ctx, w, h); tex.refresh(); return key;
+  }
+  function cssViewport() { return { width: document.documentElement.clientWidth || window.innerWidth || 390, height: document.documentElement.clientHeight || window.innerHeight || 844 }; }
+  function resizeHiDpi(game, width, height) { var view = width && height ? { width: width, height: height } : cssViewport(); return GGKit.hiDpi.resize(game, view.width, view.height); }
+  function bindHiDpiResize(game) { var apply = function () { resizeHiDpi(game); }; window.addEventListener('resize', apply); window.addEventListener('orientationchange', apply); document.addEventListener('visibilitychange', apply); apply(); }
+  function setTextDensity(scene) {
+    var d = GGKit.hiDpi.dpr();
+    function visit(list) { (list || []).forEach(function (child) { if (child && child.setResolution) child.setResolution(d); if (child && child.list) visit(child.list); }); }
+    visit(scene.children && scene.children.list);
   }
   function drawStar(ctx, x, y, r, color) {
     ctx.fillStyle = color; ctx.beginPath(); for (var i = 0; i < 10; i++) { var a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } ctx.closePath(); ctx.fill();
@@ -215,8 +223,8 @@
     this.mapFocus = 0; this.shopFocus = 0; this.keyboardOrigin = -1; this.pressedCell = -1; this.invalidCandidate = -1; this.invalidT = 0; this.selectorState = 'ready'; this.selectorT = 0; this.hintPair = null; this.idleFor = 0; this.feedSaveT = 0; this.juiceFrame = null; this.gamepadLatch = {}; this.duckT = 0; this.duckVolume = null;
     this.profile = profile; this.cells = []; this.goals = []; this.blocked = new Set(); this.rng = null; this.score = 0; this.moves = 0; this.chain = 0; this.runPearls = 0; this.matched = null; this.matchedTypes = {}; this.swapPair = null;
     this.food = []; this.fishModel = []; this.decorModel = []; this.tankRect = { x: 0, y: 0, w: 1, h: 1 };
-    this.buildTextures(); this.buildView(); this.bindInput(); this.scale.on('resize', this.layout, this); this.layout(); this.loadTankModels(); this.applyProbeForces();
-    kit.loader.progress(1); kit.loader.hide(); kit.audio.music('ambience', 300); if (this.forcedLevel >= 0) this.showLevelStart(); else this.showStart(); this.events.once('shutdown', this.shutdownScene, this); this.renderAll();
+    this.buildTextures(); this.buildView(); setTextDensity(this); this.bindInput(); this.scale.on('resize', this.layout, this); this.layout(); this.loadTankModels(); this.applyProbeForces();
+    kit.loader.progress(1); kit.loader.hide(); kit.audio.music('ambience', 300); if (this.forcedLevel >= 0) this.showLevelStart(); else this.showStart(); this.events.once('shutdown', this.shutdownScene, this); this.renderAll(); setTextDensity(this);
   };
 
   Scene.prototype.buildTextures = function () {
@@ -593,5 +601,6 @@
 
   window.__rt = window.__rt || { state: { mode: 'boot', level: 1, pearls: 0, comfort: 0, tank: {} }, forceLevel: 0, forceComfort: 0 };
   window.__rt.state = window.__rt.state || { mode: 'boot', level: 1, pearls: 0, comfort: 0, tank: {} };
-  Game.phaser = new Phaser.Game({ type: Phaser.AUTO, parent: 'game', backgroundColor: '#071827', scale: { mode: Phaser.Scale.RESIZE, width: 390, height: 844 }, render: { antialias: true, roundPixels: false, powerPreference: 'high-performance', batchSize: 2048 }, fps: { target: 60, min: 30 }, scene: [Scene] });
+  Game.phaser = new Phaser.Game({ type: Phaser.AUTO, parent: 'game', backgroundColor: '#071827', scale: { mode: Phaser.Scale.RESIZE, width: 390, height: 844 }, render: Object.assign({}, GGKit.renderDefaults, { batchSize: 2048 }), fps: { target: 60, min: 30 }, scene: [Scene] });
+  bindHiDpiResize(Game.phaser);
 })();

@@ -67,3 +67,10 @@ Rejected or deferred:
 - Cut the live center alert, landmark/rescue banners, launch instruction toast, and end-of-dive banner; important states now live in meters, the contact icon, the objective chip, and the results screen.
 - Shrunk the active HUD to icon/meter clusters and removed always-on zone/landmark and verbose objective text.
 - Moved in-play events to one queued edge chip capped at 1 second; tutorial help is one thin 24px top strip that fades after about 3 seconds and yields to the chip.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.45x at DPR 3, from the renderer's hard cap. After ratio: 3.00x is configured by `GGKit.hiDpi.three(renderer)`; a live canvas measurement was unavailable because this sandbox refused private HTTP listeners and had no browser target.
+- Recipe: called `GGKit.hiDpi.three(renderer)` immediately after `new THREE.WebGLRenderer`. No render targets, post-processing passes, or composers were present. The custom particle shader now takes `renderer.getPixelRatio()` instead of the old 1.45x cap.
+- Factor cap: none beyond GGKit's standard maximum of 3. No title-specific cap was needed.
+- Static verification: `node --check game.js` and `git diff --check` passed. Gameplay screenshot, `canvas.width / getBoundingClientRect().width >= 2.85`, and live layout confirmation remain unmeasured in this environment.

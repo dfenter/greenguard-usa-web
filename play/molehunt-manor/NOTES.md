@@ -28,3 +28,10 @@ Keyboard: arrows move focus, Enter selects, Esc closes. Portrait only; best roun
 
 - Live in-app browser verification and the pinned private-port boot check could not run in this environment: no browser connector was available and the sandbox denied binding port 47863. Node syntax checks, asset/precache checks, and a Phaser/GGKit VM smoke harness did run, including the `window.__mm` mechanic path through observation, meeting, claim selection, and vote.
 - No frame-rate or feel numbers were recorded because the wave box is contended and has no valid GPU timing authority.
+
+## Retina pass 2026-08-16
+
+- Audit profile: CSS viewport 390x844 at DPR 3. Measured pre-pass backing-store ratio: 1.00x. FIT scale math after the pass measures 1170x2532 against the 390x844 CSS canvas, a 3.00x ratio.
+- Recipe: `GGKit.hiDpi.factor(390, 844)`, dense FIT scale dimensions, `GGKit.renderDefaults`, and `this.cameras.main.setZoom(f)` in ManorScene. The old `scale.resize(W, H)` call was removed because it would undo the dense backing store. Text resolution uses the same factor.
+- Factor cap: none. The factor is the GGKit native value, capped only by GGKit's normal maximum of 3.
+- Could not complete live headless canvas readback or a gameplay screenshot because no browser backend was available in this environment. `node --check` passed.

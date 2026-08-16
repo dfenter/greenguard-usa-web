@@ -6,6 +6,7 @@
 'use strict';
 var AG = window.AG || {};
 window.AG = AG;
+AG.RETINA_FACTOR = GGKit.hiDpi.factor(AG.DW, AG.DH);
 
 /* ==================================================================== */
 /* SESSION                                                              */
@@ -238,6 +239,7 @@ function BootScene() { Phaser.Scene.call(this, { key: 'Boot' }); }
 BootScene.prototype = Object.create(Phaser.Scene.prototype);
 BootScene.prototype.constructor = BootScene;
 BootScene.prototype.create = function () {
+  this.cameras.main.setZoom(AG.RETINA_FACTOR);
   AG.ui.init();
   AG.kit.loader.progress(0.35);
   AG.art.buildAll(this);
@@ -263,6 +265,7 @@ MenuScene.prototype = Object.create(Phaser.Scene.prototype);
 MenuScene.prototype.constructor = MenuScene;
 
 MenuScene.prototype.create = function () {
+  this.cameras.main.setZoom(AG.RETINA_FACTOR);
   var self = this, i;
   AG.input.clear();
   AG.ui.measureSafe();
@@ -419,6 +422,7 @@ ResultScene.prototype = Object.create(Phaser.Scene.prototype);
 ResultScene.prototype.constructor = ResultScene;
 
 ResultScene.prototype.create = function () {
+  this.cameras.main.setZoom(AG.RETINA_FACTOR);
   var self = this, s = AG.session;
   AG.input.clear();
   AG.ui.measureSafe();
@@ -586,22 +590,24 @@ function DHsafe() { return AG.DH - AG.ui.safe.bottom; }
 
   AG.ui.init();
 
-  var game = new Phaser.Game({
+  var config = {
     type: Phaser.AUTO,
     parent: document.body,       // never null: null skips DOM mounting
-    width: AG.DW, height: AG.DH,
     backgroundColor: '#0b0d12',
     banner: false,
     audio: { noAudio: true },    // GGKit owns audio
     input: { keyboard: false, mouse: false, touch: false, gamepad: false },
-    render: { antialias: true, powerPreference: 'high-performance' },
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
       width: AG.DW, height: AG.DH
     },
     scene: [BootScene, MenuScene, AG.RunScene, AG.BaseScene, ResultScene]
-  });
+  };
+  config.scale.width = Math.round(AG.DW * AG.RETINA_FACTOR);
+  config.scale.height = Math.round(AG.DH * AG.RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
+  var game = new Phaser.Game(config);
   AG.game = game;
   AG.input.attach(kit, game);
 

@@ -659,6 +659,8 @@ async function rebuildWorld(id) {
     paint: selectedCar.paint,
     accent: selectedCar.accent,
   });
+  GGKit.hiDpi.three(racer.world.renderer);
+  racer.world.resize();
   pendingTrackLoad = false;
   syncAd();
 }

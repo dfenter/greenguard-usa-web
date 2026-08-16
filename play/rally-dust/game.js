@@ -255,8 +255,8 @@ function resize() {
   const rect = sceneCanvas.getBoundingClientRect();
   W = Math.max(320, rect.width);
   H = Math.max(220, rect.height);
-  dpr = Math.min(1.5, 1024 / Math.max(W, 1), window.devicePixelRatio || 1);
-  hud.resize(W, H, Math.min(dpr, 1.0));
+  dpr = GGKit.hiDpi.dpr();
+  hud.resize(W, H, dpr);
   if (racer) racer.world.resize();
 }
 window.addEventListener('resize', resize, { passive: true });
@@ -308,6 +308,8 @@ async function buildWorld(def) {
     accent: spec.accentTrim,
     seed: def.seed,
   });
+  GGKit.hiDpi.three(racer.world.renderer);
+  racer.world.resize();
 
   const ghostActor = racer.world.rivals[0];
   if (ghostActor) {
@@ -1429,7 +1431,7 @@ const loader = (function makeLoader() {
       box.style.cssText = 'position:fixed;inset:0;z-index:9100;background:#120d09;';
       canvas = document.createElement('canvas');
       canvas.style.cssText = 'width:100%;height:100%;display:block;';
-      const r = Math.min(2, window.devicePixelRatio || 1);
+      const r = GGKit.hiDpi.dpr();
       canvas.width = Math.round(window.innerWidth * r);
       canvas.height = Math.round(window.innerHeight * r);
       box.appendChild(canvas);

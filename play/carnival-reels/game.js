@@ -304,7 +304,7 @@
     // hold and spin coin value labels
     this.coinTx = [];
     for (var k = 0; k < 5; k++) {
-      var tx = this.add.text(0, 0, '', { fontFamily: FONT, fontSize: '32px', color: PAL.ink, fontStyle: '800', resolution: 2 }).setOrigin(0.5);
+      var tx = this.add.text(0, 0, '', { fontFamily: FONT, fontSize: '32px', color: PAL.ink, fontStyle: '800', resolution: GGKit.hiDpi.dpr() }).setOrigin(0.5);
       tx.setStroke('#2a1145', 7);
       tx.setVisible(false);
       this.layerMachine.add(tx);
@@ -349,7 +349,7 @@
       this.pickBtns.push(b);
     }
     for (p = 0; p < 9; p++) {
-      var t2 = this.add.text(0, 0, '?', { fontFamily: FONT, fontSize: '40px', color: PAL.ink, fontStyle: '800', resolution: 2 }).setOrigin(0.5);
+      var t2 = this.add.text(0, 0, '?', { fontFamily: FONT, fontSize: '40px', color: PAL.ink, fontStyle: '800', resolution: GGKit.hiDpi.dpr() }).setOrigin(0.5);
       t2.setStroke('#1a0a2c', 6);
       this.pickCon.add(t2);
       this.pickTx.push(t2);
@@ -430,7 +430,7 @@
   function mkText(scene, parent, size, col, weight, origin) {
     var t = scene.add.text(0, 0, '', {
       fontFamily: FONT, fontSize: String(size) + 'px', color: col || PAL.ink,
-      fontStyle: weight || '700', resolution: 2
+      fontStyle: weight || '700', resolution: GGKit.hiDpi.dpr()
     });
     t.setOrigin(origin == null ? 0.5 : origin, 0.5);
     parent.add(t);
@@ -2551,9 +2551,20 @@
     parent: 'game',
     backgroundColor: PAL.deep,
     scale: { mode: Phaser.Scale.RESIZE, width: VW, height: 1280 },
-    render: { antialias: true, powerPreference: 'high-performance', roundPixels: false, batchSize: 2048 },
+    render: Object.assign({}, GGKit.renderDefaults, { batchSize: 2048 }),
     fps: { target: 60, min: 30 },
     scene: [toScene(BootScene), toScene(PlayScene)]
+  });
+  function syncHiDpi(game) {
+    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || root.innerWidth || 1));
+    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || root.innerHeight || 1));
+    GGKit.hiDpi.resize(game, cssW, cssH);
+  }
+  syncHiDpi(Game.phaser);
+  root.addEventListener('resize', function () { syncHiDpi(Game.phaser); });
+  root.addEventListener('orientationchange', function () { syncHiDpi(Game.phaser); });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) syncHiDpi(Game.phaser);
   });
   kit.registerPWA();
   root.__CARNIVAL_REELS_READY = true;

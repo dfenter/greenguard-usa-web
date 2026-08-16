@@ -234,3 +234,9 @@ Not changed:
 
 - Gamepad input was not added because GGKit exposes keyboard and touch input only; the supported control set is now documented.
 - Colour-vision simulation and the GPU-backed frame-spike capture remain verification-only gates. The available environment had no browser surface for those runs, so no speculative code change was made.
+
+## Retina pass 2026-08-16
+
+- Target 390x844 CSS at DPR 3. Before ratio: 1.00x CSS-sized RESIZE baseline. After target: 3.00x, 1170/390, via `GGKit.hiDpi.resize`. Live canvas read was unavailable because no browser surface or private local listener was available.
+- Recipe: `Phaser.Scale.RESIZE`, `GGKit.renderDefaults`, `GGKit.hiDpi.canvas` texture baking, and DPR-matched Phaser text. No factor cap.
+- Gameplay screenshot and runtime backing-store measurement remain deferred. No palette change was made because the retina law identifies density, not colour depth, as the defect.

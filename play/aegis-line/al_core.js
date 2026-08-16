@@ -271,7 +271,7 @@
   };
   AL.txt = function (scene, x, y, s, size, color, weight) {
     var t = scene.add.text(x, y, s, {
-      fontFamily: AL.FONT,
+      fontFamily: AL.FONT, resolution: GGKit.hiDpi.dpr(),
       fontSize: size + 'px',
       color: color || AL.CSS.text,
       fontStyle: weight || 'normal'

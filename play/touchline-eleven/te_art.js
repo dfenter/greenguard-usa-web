@@ -25,11 +25,12 @@
 
   function makeTex(scene, key, w, h) {
     if (scene.textures.exists(key)) scene.textures.remove(key);
-    var t = scene.textures.createCanvas(key, w, h);
+    var baked = root.GGKit.hiDpi.canvas(w, h);
+    var t = scene.textures.addCanvas(key, baked.canvas);
+    if (t && t.get()) t.get().source.resolution = baked.dpr;
     // createCanvas returns null if a key survived a soft reload.
     if (!t) { t = scene.textures.get(key); if (!t || !t.getSourceImage) return null; }
-    var img = t.getSourceImage();
-    var c = img.getContext('2d');
+    var c = baked.ctx;
     c.clearRect(0, 0, w, h);
     return { t: t, c: c, w: w, h: h };
   }

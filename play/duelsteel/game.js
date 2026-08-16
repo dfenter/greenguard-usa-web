@@ -268,8 +268,8 @@ pauseButton.addEventListener('click', () => openGameSettings());
 const textureCache = new Map();
 function patternTexture(key, color, accent) {
   if (textureCache.has(key)) return textureCache.get(key);
-  const canvas = document.createElement('canvas'); canvas.width=128; canvas.height=128;
-  const ctx = canvas.getContext('2d'); ctx.fillStyle=color; ctx.fillRect(0,0,128,128); ctx.strokeStyle=accent; ctx.globalAlpha=.24; ctx.lineWidth=2;
+  const baked = GGKit.hiDpi.canvas(128, 128); const canvas = baked.canvas; const ctx = baked.ctx;
+  ctx.fillStyle=color; ctx.fillRect(0,0,128,128); ctx.strokeStyle=accent; ctx.globalAlpha=.24; ctx.lineWidth=2;
   for(let i=-128;i<256;i+=16){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i+128,128);ctx.stroke();ctx.beginPath();ctx.moveTo(i,128);ctx.lineTo(i+128,0);ctx.stroke();}
   ctx.globalAlpha=.16; for(let i=0;i<128;i+=32){ctx.fillRect(i,0,1,128);ctx.fillRect(0,i,128,1);}
   const texture = new THREE.CanvasTexture(canvas); texture.wrapS=THREE.RepeatWrapping; texture.wrapT=THREE.RepeatWrapping; texture.repeat.set(3,3); texture.colorSpace=THREE.SRGBColorSpace; textureCache.set(key,texture); return texture;
@@ -435,7 +435,7 @@ class SparkPool {
 }
 function particleTexture() {
   if (textureCache.has('ember-sprite')) return textureCache.get('ember-sprite');
-  const canvas=document.createElement('canvas'); canvas.width=32; canvas.height=32; const ctx=canvas.getContext('2d'); const gradient=ctx.createRadialGradient(16,16,1,16,16,16); gradient.addColorStop(0,'#fff8d3'); gradient.addColorStop(.35,'#e2b86b'); gradient.addColorStop(1,'#e2675800'); ctx.fillStyle=gradient; ctx.fillRect(0,0,32,32); const texture=new THREE.CanvasTexture(canvas); texture.colorSpace=THREE.SRGBColorSpace; textureCache.set('ember-sprite',texture); return texture;
+  const baked=GGKit.hiDpi.canvas(32,32); const canvas=baked.canvas; const ctx=baked.ctx; const gradient=ctx.createRadialGradient(16,16,1,16,16,16); gradient.addColorStop(0,'#fff8d3'); gradient.addColorStop(.35,'#e2b86b'); gradient.addColorStop(1,'#e2675800'); ctx.fillStyle=gradient; ctx.fillRect(0,0,32,32); const texture=new THREE.CanvasTexture(canvas); texture.colorSpace=THREE.SRGBColorSpace; textureCache.set('ember-sprite',texture); return texture;
 }
 class EmberPool {
   constructor() {
@@ -456,7 +456,7 @@ function setupWorld() {
   const key = new THREE.DirectionalLight('#ffe2b0',3.4); key.position.set(-7,12,8); key.castShadow=true; key.shadow.mapSize.set(1024,1024); key.shadow.camera.left=-18; key.shadow.camera.right=18; key.shadow.camera.top=14; key.shadow.camera.bottom=-10; scene.add(key);
   stageViews.length=0; for(const spec of STAGES){const view=makeStage(spec);arenaRoot.add(view.group);stageViews.push(view);}
   sparks = new SparkPool(); embers = new EmberPool();
-  renderer = new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'}); renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.5)); renderer.setSize(window.innerWidth,window.innerHeight,false); renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; renderer.setClearColor('#0b0f1a',1); app.insertBefore(renderer.domElement,boot);
+  renderer = new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'}); GGKit.hiDpi.three(renderer); renderer.setSize(window.innerWidth,window.innerHeight,false); renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; renderer.setClearColor('#0b0f1a',1); app.insertBefore(renderer.domElement,boot);
   resize(); window.addEventListener('resize',resize,{passive:true});
 }
 let sparks, embers;

@@ -8,6 +8,7 @@
 
   var W = 390;
   var H = 844;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(W, H);
   var STEP = 1 / 60;
   var MAX_STEPS = 4;
   var MAX_PARTICLES = 84;
@@ -333,6 +334,7 @@
   }
 
   SafariScene.prototype.create = function () {
+    this.cameras.main.setZoom(RETINA_FACTOR);
     sceneRef = this;
     this.save = normalizeSave(kit.save.get(defaultSave()));
     this.mode = 'menu'; this.stage = 'select'; this.habitatId = 'delta'; this.routeIndex = 0; this.route = ROUTES[0];
@@ -343,8 +345,8 @@
     this.world = this.add.graphics().setDepth(0); this.fx = this.add.graphics().setDepth(40); this.ui = this.add.graphics().setDepth(20);
     this.bakeTextures();
     this.images = {
-      header: this.add.image(195, 48, 'fs-header').setDepth(10), bottom: this.add.image(195, 786, 'fs-bottom').setDepth(10),
-      plate: this.add.image(195, 430, 'fs-plate').setDepth(10), menu: this.add.image(195, 423, 'fs-menu').setDepth(10), journal: this.add.image(195, 438, 'fs-journal').setDepth(10)
+      header: this.add.image(195, 48, 'fs-header').setDepth(10).setDisplaySize(378, 92), bottom: this.add.image(195, 786, 'fs-bottom').setDepth(10).setDisplaySize(378, 98),
+      plate: this.add.image(195, 430, 'fs-plate').setDepth(10).setDisplaySize(354, 560), menu: this.add.image(195, 423, 'fs-menu').setDepth(10).setDisplaySize(370, 792), journal: this.add.image(195, 438, 'fs-journal').setDepth(10).setDisplaySize(370, 792)
     };
     this.texts = {};
     this.makeText('title', 20, '#fff9e5', 800); this.makeText('subtitle', 14, '#b9d8c1', 600); this.makeText('hudLeft', 16, '#fff9e5', 800); this.makeText('hudRight', 14, '#b9d8c1', 800);
@@ -368,7 +370,7 @@
   };
 
   SafariScene.prototype.makeText = function (name, size, color, weight) {
-    var text = this.add.text(0, 0, '', { fontFamily: 'ui-rounded, Trebuchet MS, system-ui, sans-serif', fontSize: size + 'px', color: color, fontStyle: weight >= 800 ? 'bold' : 'normal', resolution: 2 }).setDepth(30).setOrigin(0.5).setVisible(false);
+    var text = this.add.text(0, 0, '', { fontFamily: 'ui-rounded, Trebuchet MS, system-ui, sans-serif', fontSize: size + 'px', color: color, fontStyle: weight >= 800 ? 'bold' : 'normal', resolution: RETINA_FACTOR }).setDepth(30).setOrigin(0.5).setVisible(false);
     this.texts[name] = text; return text;
   };
   SafariScene.prototype.text = function (obj, value, x, y, align, size, color, visible) {
@@ -381,7 +383,9 @@
   SafariScene.prototype.hideAllText = function () { Object.keys(this.texts).forEach(function (key) { this.texts[key].setVisible(false); }, this); };
   SafariScene.prototype.bakeTextures = function () {
     function make(scene, key, width, height, color, stroke, radius) {
-      var g = scene.make.graphics({ x: 0, y: 0, add: false }); g.fillStyle(color, 1); g.fillRoundedRect(0, 0, width, height, radius); if (stroke) { g.lineStyle(2, stroke, 0.42); g.strokeRoundedRect(1, 1, width - 2, height - 2, radius); } g.generateTexture(key, width, height); g.destroy();
+      var g = scene.make.graphics({ x: 0, y: 0, add: false });
+      g.scaleCanvas(RETINA_FACTOR, RETINA_FACTOR);
+      g.fillStyle(color, 1); g.fillRoundedRect(0, 0, width, height, radius); if (stroke) { g.lineStyle(2, stroke, 0.42); g.strokeRoundedRect(1, 1, width - 2, height - 2, radius); } g.generateTexture(key, Math.round(width * RETINA_FACTOR), Math.round(height * RETINA_FACTOR)); g.destroy();
     }
     make(this, 'fs-header', 378, 92, PAL.deep, PAL.mist, 18); make(this, 'fs-bottom', 378, 98, PAL.deep, PAL.mist, 20); make(this, 'fs-plate', 354, 560, PAL.charcoal, PAL.mist, 24); make(this, 'fs-menu', 370, 792, PAL.deep, PAL.sun, 28); make(this, 'fs-journal', 370, 792, PAL.paper, PAL.sun, 28);
   };
@@ -623,6 +627,9 @@
     if (this.pausedByKit) return; var juice = kit.juice.frame(); if (juice.frozen) { this.render(); return; } this.accumulator += clamp(delta / 1000, 0, 0.1); var count = 0; while (this.accumulator >= STEP && count < MAX_STEPS) { this.accumulator -= STEP; this.step(); count += 1; } if (count >= MAX_STEPS && this.accumulator >= STEP) this.accumulator = 0; this.cameras.main.setScroll(juice.dx, juice.dy); this.render();
   };
 
-  var config = { type: Phaser.AUTO, parent: 'game-shell', backgroundColor: '#0b1d1a', width: W, height: H, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H }, render: { antialias: true, antialiasGL: false, powerPreference: 'high-performance', roundPixels: true, batchSize: 2048 }, fps: { target: 60, min: 30 }, scene: [SafariScene] };
+  var config = { type: Phaser.AUTO, parent: 'game-shell', backgroundColor: '#0b1d1a', width: W, height: H, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H }, render: { antialias: true, antialiasGL: false, powerPreference: 'high-performance', roundPixels: false, batchSize: 2048 }, fps: { target: 60, min: 30 }, scene: [SafariScene] };
+  config.scale.width = Math.round(W * RETINA_FACTOR);
+  config.scale.height = Math.round(H * RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
   try { kit.loader.progress(0.3); new Phaser.Game(config); } catch (error) { publicState.mode = 'error'; publicState.stage = 'boot-error'; publicState.error = String(error && (error.stack || error.message) || error); window.__fs.state = publicState; var fallback = document.getElementById('boot-fallback'); if (fallback) fallback.textContent = 'Fieldnotes Safari could not start this renderer.'; }
 })();

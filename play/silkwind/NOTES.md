@@ -192,3 +192,11 @@ before and after boot.
   depend on being readable.
 - Survival stages stop advancing after the fourth stage and keep escalating
   the modifiers instead.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.85x static FIT baseline from the 1280x720 design backing store against the 693 CSS pixel landscape width on an iPhone-class viewport. A live pre-pass canvas readback was unavailable in this sandbox.
+- After ratio: 3.00x target by factor math at emulated DPR 3. `GGKit.hiDpi.factor(1280, 720)` is 1.625 for the 693x390 CSS landscape fit, producing a 2080x1170 backing store.
+- Recipe: Phaser `Scale.FIT`, design coordinates preserved, scale dimensions multiplied by the factor, shared `GGKit.renderDefaults` merged, and zoom applied in the main scene `create()`. HUD text uses the same factor.
+- Factor cap: none beyond GGKit's default clamp to [1, 3]. No title-specific cap was needed.
+- Could not do: live `canvas.width / getBoundingClientRect().width` readback, gameplay screenshot, and `retina_audit.mjs` acceptance because no browser surface was available and private port binding was denied.

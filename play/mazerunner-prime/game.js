@@ -31,6 +31,14 @@
   const STEP = 1 / 60;
   const TURN_WINDOW = .34;
   const TAU = Math.PI * 2;
+  function cssViewport() { return { width: root.clientWidth || window.innerWidth || 390, height: root.clientHeight || window.innerHeight || 844 }; }
+  function resizeHiDpi(game, width, height) { const view = width && height ? { width, height } : cssViewport(); return GGKitRef.hiDpi.resize(game, view.width, view.height); }
+  function bindHiDpiResize(game) { const apply = () => { resizeHiDpi(game); }; window.addEventListener('resize', apply); window.addEventListener('orientationchange', apply); document.addEventListener('visibilitychange', apply); apply(); }
+  function setTextDensity(scene) {
+    const d = GGKitRef.hiDpi.dpr();
+    const visit = (list) => (list || []).forEach((child) => { if (child && child.setResolution) child.setResolution(d); if (child && child.list) visit(child.list); });
+    visit(scene.children && scene.children.list);
+  }
 
   const DIRS = Object.freeze({
     up: Object.freeze({ x: 0, y: -1, angle: -Math.PI / 2, id: 'up' }),
@@ -433,6 +441,7 @@
       this.profile = kit.save.get({ best: 0, unlockedCircuit: 1, tutorialSeen: false });
       if (!Number.isInteger(this.profile.version)) this.profile.version = 1;
       this.run = { mode: 'boot', score: 0, lives: 3, circuitIndex: 0, mazeIndex: 0, mazeNumber: 1, seed: hashSeed(Date.now() ^ 0x514d5052), time: 0, mazeTime: 0, mazeStartLives: 3, pelletsStart: 0, pelletsCollected: 0, frightTimer: 0, invuln: 0, shieldTimer: 0, speedTimer: 0, multiplierTimer: 0, multiplier: 1, shardTimer: 5, rushTimer: 0, rushCollected: 0, nextAction: '', banner: null, caughtTimer: 0, tutorialFrightTimer: 0, coachTimer: 0, livesAwarded: false };
+      setTextDensity(this);
       this.startSession(true);
       window.__mp.start = (mode) => this.startProbeMode(mode);
       kit.registerPWA();
@@ -1129,12 +1138,13 @@
       'turn-click': 'assets/turn-click.mp3', 'multiplier-rise': 'assets/multiplier-rise.mp3', 'shield-pop': 'assets/shield-pop.mp3', 'life-chime': 'assets/life-chime.mp3',
       'gate-whoosh': 'assets/gate-whoosh.mp3', 'danger-warning': 'assets/danger-warning.mp3', 'completion-fanfare': 'assets/completion-fanfare.mp3'
     });
-    new PhaserRef.Game({
+    const game = new PhaserRef.Game({
       type: PhaserRef.AUTO, parent: 'game', width: 390, height: 844, backgroundColor: '#060a18',
       scene: [MainScene], scale: { mode: PhaserRef.Scale.RESIZE, autoCenter: PhaserRef.Scale.CENTER_BOTH },
-      render: { antialias: true, roundPixels: false, powerPreference: 'high-performance' },
+      render: Object.assign({}, GGKitRef.renderDefaults),
       fps: { target: 60, forceSetTimeOut: false }
     });
+    bindHiDpiResize(game);
     wireControls();
   }
 })();

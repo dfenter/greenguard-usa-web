@@ -616,3 +616,10 @@ proof PASS, median 16.7ms at 4x throttle once box load allows.
 
 - Visuals: authored multi-part lower shells and tapered greenhouses now sit over the source cars, with Phong specular paint, per-car livery blades, wheel arches, mirrors, bumpers, emissive head/taillight geometry, four independent spinning/steering rimmed wheels, and the existing pooled contact shadows. Road and terrain now use cached code-generated canvas grain with wheel-path wear; merged distance-marker boards, curbs, gantry, fog, sun/hemisphere fill, horizon layers, pooled clouds, and merged trackside dressing complete the PS2-era chase read. The chase camera is lower; speed FOV and corner roll remain, with roll reduced-motion gated. No HUD or gameplay logic changed.
 - Performance tradeoffs: no external visual assets were added and no per-frame allocations were introduced. Road/terrain textures are 96px cached canvases; dressing remains merged/chunked or instanced; imported base car meshes stay Lambert while Phong is limited to the authored shell pieces. Payload is 1,960,362 bytes and the largest file is 385,612 bytes. A live browser/throttle capture was unavailable in this workspace, so the <=17.5ms 4x median is not claimed as measured here.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.50x for the main GGRacer canvas from the shared engine cap. The title HUD was capped at 1.60x.
+- After ratio: 3.00x configured at DPR 3 with `GGKit.hiDpi.three(racer.world.renderer)` followed by `racer.world.resize()`. Live `canvas.width / getBoundingClientRect().width` measurement was unavailable because Chrome aborted in this sandbox and the private HTTP bind was denied.
+- Recipe: native Three renderer density, a 3x HUD, and a device-scale vignette bake through `GGKit.hiDpi.canvas(128, 128)`. No factor cap beyond GGKit's required maximum of 3.
+- Audit: no render target, composer, or post-processing pass exists in the racer path. Shared racer texture bakes were identified but could not be changed because this lane was constrained from writing `play/_shared/`.

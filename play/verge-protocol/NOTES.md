@@ -168,3 +168,11 @@ index for endless). Both are read every frame and applied once per change.
 - Gamepad input is not wired. Keyboard and touch are both complete.
 - The endless siege picks the deepest map the player has unlocked rather than
   offering a map chooser.
+
+## Retina pass 2026-08-16
+
+- Audit before ratio: 1.85x at the emulated DPR 3 landscape viewport, using the 1280 x 720 design box in a 693.33 x 390 shown fit box. Configured after ratio: 3.00x from `GGKit.hiDpi.factor(1280, 720)`, with a 2080 x 1170 backing store.
+- Recipe: Phaser `Scale.FIT`, dense scale dimensions, `GGKit.renderDefaults`, `setZoom(f)` in VergeScene, and matching resolution on the title text helper. The factor is 1.625 for this fit.
+- Factor cap: none beyond GGKit's standard maximum of 3. No title-specific cap.
+- Live canvas ratio and gameplay screenshot were unavailable because the browser backend was empty and the sandbox denied private HTTP listeners. The after ratio above is the configured geometry, not a live canvas read.
+- Static title-local chrome and terrain bakes now use `GGKit.hiDpi.canvas` and Phaser texture source resolution. Gameplay, balance, and content were unchanged.

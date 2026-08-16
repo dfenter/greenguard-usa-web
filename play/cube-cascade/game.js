@@ -165,13 +165,13 @@
     }
     createSurfaces() { this.background = this.add.image(0, 0, 'cc_bg').setOrigin(0, 0).setDepth(-40); this.floor = this.add.image(this.scale.width * 0.5, this.scale.height * 0.59, 'cc_floor').setOrigin(0.5).setDepth(-2).setAlpha(0.82); this.vignette = this.add.rectangle(0, 0, this.scale.width, this.scale.height, 0xff3e57, 0).setOrigin(0).setDepth(180); this.hazardMark = this.add.image(0, 0, 'cc_warning').setOrigin(0.5).setVisible(false).setDepth(44); }
     createPools() {
-      for (var i = 0; i < MAX_CELLS; i++) { this.gridViews.push(this.add.image(0, 0, 'cc_tile').setOrigin(0.5).setVisible(false).setDepth(3)); this.cellViews.push({ image: this.add.image(0, 0, 'cc_cube_dawn_0').setOrigin(0.5, 1).setVisible(false).setDepth(20), pip: this.add.text(0, 0, '', { fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#e8ffff', align: 'center' }).setOrigin(0.5).setVisible(false).setDepth(22), piece: null }); }
+      for (var i = 0; i < MAX_CELLS; i++) { this.gridViews.push(this.add.image(0, 0, 'cc_tile').setOrigin(0.5).setVisible(false).setDepth(3)); this.cellViews.push({ image: this.add.image(0, 0, 'cc_cube_dawn_0').setOrigin(0.5, 1).setVisible(false).setDepth(20), pip: this.add.text(0, 0, '', { fontFamily: 'Verdana, Geneva, sans-serif', resolution: GGKit.hiDpi.dpr(), fontSize: '14px', fontStyle: 'bold', color: '#e8ffff', align: 'center' }).setOrigin(0.5).setVisible(false).setDepth(22), piece: null }); }
       this.activeView = this.add.image(0, 0, 'cc_cube_dawn_1').setOrigin(0.5, 1).setVisible(false).setDepth(70); this.cursorView = this.add.image(0, 0, 'cc_cursor').setOrigin(0.5, 0.85).setVisible(false).setDepth(75);
       for (var n = 0; n < 3; n++) this.nextViews.push(this.add.image(0, 0, 'cc_cube_dawn_0').setOrigin(0.5).setVisible(false).setDepth(112));
       for (var family in this.fxPools) for (var f = 0; f < 32; f++) this.fxPools[family].push({ image: this.add.image(0, 0, 'cc_fx_' + family).setOrigin(0.5).setVisible(false).setBlendMode(Phaser.BlendModes.ADD).setDepth(120), life: 0, max: 0, x: 0, y: 0, vx: 0, vy: 0, spin: 0, scale: 1 });
     }
     createHud() {
-      var textStyle = { fontFamily: 'Verdana, Geneva, sans-serif', fontStyle: 'bold' }, w = this.scale.width, h = this.scale.height; this.hud = {};
+      var textStyle = { fontFamily: 'Verdana, Geneva, sans-serif', resolution: GGKit.hiDpi.dpr(), fontStyle: 'bold' }, w = this.scale.width, h = this.scale.height; this.hud = {};
       this.hud.topChrome = this.add.image(0, 0, 'cc_topChrome').setOrigin(0).setDepth(100); this.hud.bottomChrome = this.add.image(0, h, 'cc_bottomChrome').setOrigin(0, 1).setDepth(100);
       this.hud.level = this.add.text(16, 14, 'R01', Object.assign({}, textStyle, { fontSize: '15px', color: '#f1fbff' })).setDepth(102);
       this.hud.score = this.add.text(w - 62, 14, '00000', Object.assign({}, textStyle, { fontSize: '16px', color: '#f1fbff' })).setOrigin(1, 0).setDepth(102);
@@ -190,7 +190,7 @@
       this.createControls(); this.positionHud();
     }
     createControls() {
-      var self = this; this.controls = []; for (var i = 0; i < ACTIONS.length; i++) (function (action) { var bg = self.add.image(0, 0, 'cc_button').setDisplaySize(76, 50).setDepth(105).setInteractive(); var text = self.add.text(0, 0, DIRS[action].label, { fontFamily: 'Verdana, Geneva, sans-serif', fontSize: '24px', fontStyle: 'bold', color: '#d5fbff' }).setOrigin(0.5).setDepth(106); bg.on('pointerdown', function () { self.act(action); }); self.controls.push({ action: action, bg: bg, text: text, cache: '' }); }(ACTIONS[i]));
+      var self = this; this.controls = []; for (var i = 0; i < ACTIONS.length; i++) (function (action) { var bg = self.add.image(0, 0, 'cc_button').setDisplaySize(76, 50).setDepth(105).setInteractive(); var text = self.add.text(0, 0, DIRS[action].label, { fontFamily: 'Verdana, Geneva, sans-serif', resolution: GGKit.hiDpi.dpr(), fontSize: '24px', fontStyle: 'bold', color: '#d5fbff' }).setOrigin(0.5).setDepth(106); bg.on('pointerdown', function () { self.act(action); }); self.controls.push({ action: action, bg: bg, text: text, cache: '' }); }(ACTIONS[i]));
     }
     bindAccessibleControls() {
       var self = this, buttons = document.querySelectorAll('#accessible-controls [data-cc-action]'); for (var i = 0; i < buttons.length; i++) buttons[i].addEventListener('click', function () { self.act(this.getAttribute('data-cc-action')); });
@@ -340,6 +340,17 @@
   profile = kit.save.get(defaultSave()); if (!validateSave(profile)) profile = defaultSave();
   // The authored view is made from generated textures. Force Phaser's 2D
   // renderer so headless/software-GL does not silently present a black frame.
-  Game.phaser = new Phaser.Game({ type: Phaser.CANVAS, parent: 'game', backgroundColor: '#07111f', render: { antialias: true, roundPixels: true, clearBeforeRender: true }, scale: { mode: Phaser.Scale.RESIZE, width: 390, height: 844, autoCenter: Phaser.Scale.CENTER_BOTH }, input: { activePointers: 4 }, scene: [BootScene, PlayScene] });
+  Game.phaser = new Phaser.Game({ type: Phaser.CANVAS, parent: 'game', backgroundColor: '#07111f', render: Object.assign({}, GGKit.renderDefaults, { clearBeforeRender: true }), scale: { mode: Phaser.Scale.RESIZE, width: 390, height: 844, autoCenter: Phaser.Scale.CENTER_BOTH }, input: { activePointers: 4 }, scene: [BootScene, PlayScene] });
+  function syncHiDpi(game) {
+    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || window.innerWidth || 1));
+    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || window.innerHeight || 1));
+    GGKit.hiDpi.resize(game, cssW, cssH);
+  }
+  syncHiDpi(Game.phaser);
+  window.addEventListener('resize', function () { syncHiDpi(Game.phaser); });
+  window.addEventListener('orientationchange', function () { syncHiDpi(Game.phaser); });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) syncHiDpi(Game.phaser);
+  });
   kit.registerPWA();
 }());

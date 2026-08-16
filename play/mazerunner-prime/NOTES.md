@@ -74,3 +74,9 @@ Rejected or deferred:
 - Shrunk the persistent HUD to icon/value meters; boost and rush state now use compact icon timers.
 - Replaced stacked world popups with one queued corner chip (14px text, 0.8s hold); boundary banners are smaller and only used for clear/rush/finale transitions.
 - Moved circuit/maze context into the compact HUD and moved boundary/result detail out of active play into clear banners and the run-end card; tutorial copy is now one top-edge line with a three-second fade.
+
+## Retina pass 2026-08-16
+
+- Target 390x844 CSS at DPR 3. Before ratio: 1.00x CSS-sized RESIZE baseline. After target: 3.00x, 1170/390, via `GGKit.hiDpi.resize`. Live canvas read was unavailable because no browser surface or private local listener was available.
+- Recipe: `Phaser.Scale.RESIZE`, `GGKit.renderDefaults`, and recursive DPR-matched Phaser text. No factor cap; gameplay sprites already use explicit display sizes.
+- Gameplay screenshot and runtime backing-store measurement remain deferred. No palette change was made because the retina law identifies density, not colour depth, as the defect.

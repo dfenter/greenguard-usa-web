@@ -98,3 +98,18 @@ Implemented: full rebuild on Phaser 3 from `/play/_shared` with GGKit as the onl
 Content tables: see the machine, progression and audio tables above.
 
 Deferred: the bank curve chart (folded into session stat rows), and per machine leaderboards (no backend, and nothing here is competitive). Gate 6 (deployed URL run) belongs to the orchestrator; this build was verified booting and playing locally at 390x844 with zero console errors and zero failed requests.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.00x source baseline at DPR 3. After ratio: 3.00x configured
+  through `GGKit.hiDpi.resize(game, cssW, cssH)`; a live canvas ratio could
+  not be measured because Chrome aborted in this sandbox and the private HTTP
+  bind was denied.
+- Recipe: applied Phaser Scale.RESIZE hi-DPI sizing at boot, resize,
+  orientation-change, and visibility events. Applied `GGKit.renderDefaults`
+  and `resolution: GGKit.hiDpi.dpr()` to the wheel, HUD, and card text.
+- Factor cap: none beyond the GGKit maximum of 3. No title-specific cap was
+  needed.
+- Could not complete the live DPR 3 gameplay screenshot or layout check.
+  Existing authored canvas bakes were left at their logical sizes because a
+  frame-unit migration to `GGKit.hiDpi.canvas(...)` could not be live-verified.

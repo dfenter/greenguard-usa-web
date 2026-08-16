@@ -8,6 +8,7 @@
 
   var Phaser = window.Phaser;
   var W = 390, H = 844;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(W, H);
   var STEP = 1 / 60, MAX_STEPS = 4, TAU = Math.PI * 2;
   var MAX_ENEMIES = 18, MAX_PROPS = 96, MAX_FX = 120, MAX_NUMBERS = 20;
   var MAX_HAZARDS = 12, MAX_SHOTS = 24, MAX_PATCHES = 12;
@@ -827,10 +828,11 @@
 
   function makeCanvasTexture(scene, key, w, h, paint) {
     if (scene.textures.exists(key)) scene.textures.remove(key);
-    var cv = document.createElement('canvas');
-    cv.width = Math.max(1, Math.round(w)); cv.height = Math.max(1, Math.round(h));
-    paint(cv.getContext('2d'), cv.width, cv.height);
-    scene.textures.addCanvas(key, cv);
+    var baked = GGKit.hiDpi.canvas(w, h);
+    var texture = scene.textures.addCanvas(key, baked.canvas);
+    if (texture && texture.get()) texture.get().source.resolution = baked.dpr;
+    paint(baked.ctx, w, h);
+    texture.refresh();
   }
 
   // --------------------------------------------------------------- quests
@@ -874,6 +876,7 @@
   Scene.prototype.constructor = Scene;
 
   Scene.prototype.create = function () {
+    this.cameras.main.setZoom(RETINA_FACTOR);
     App.scene = this;
     this.kitPaused = kit.paused; this.accumulator = 0; this.simTime = 0;
     this.keyPrev = {}; this.pointerStates = {}; this.gamepadPrev = {}; this.pointerStamp = 0;
@@ -1122,7 +1125,7 @@
     for (i = 0; i < MAX_SHOTS; i++) this.shotViews.push(this.add.image(0, 0, 'tm-shard').setVisible(false).setDepth(8400));
     for (i = 0; i < MAX_FX; i++) this.fxViews.push(this.add.image(0, 0, 'tm-spark').setVisible(false).setDepth(8500));
     for (i = 0; i < MAX_NUMBERS; i++) this.numberViews.push(this.add.text(0, 0, '', {
-      fontFamily: 'monospace', fontSize: '15px', color: '#f1ece0', fontStyle: 'bold'
+      fontFamily: 'monospace', fontSize: '15px', color: '#f1ece0', fontStyle: 'bold', resolution: RETINA_FACTOR
     }).setOrigin(0.5, 0.5).setVisible(false).setDepth(9200));
     this.tintLayer = this.add.rectangle(W / 2, H / 2, W, H, 0x16483c, 0.14).setScrollFactor(0).setDepth(9400);
     this.vignette = this.add.image(0, 0, 'tm-vignette').setOrigin(0, 0).setScrollFactor(0).setDepth(9410);
@@ -1134,7 +1137,7 @@
   Scene.prototype.t = function (x, y, value, size, color, ox, oy) {
     return this.add.text(x, y, value || '', {
       fontFamily: 'monospace', fontSize: (size || 14) + 'px', color: colorCss(color == null ? PAL.paper : color),
-      fontStyle: 'bold', lineSpacing: 3
+      fontStyle: 'bold', lineSpacing: 3, resolution: RETINA_FACTOR
     }).setOrigin(ox == null ? 0 : ox, oy == null ? 0 : oy).setScrollFactor(0);
   };
   Scene.prototype.rect = function (x, y, w, h, color, alpha) {
@@ -3154,10 +3157,13 @@
     parent: 'game',
     width: W, height: H,
     backgroundColor: '#0a1012',
-    render: { pixelArt: true, antialias: false, roundPixels: true, clearBeforeRender: true },
+    render: { clearBeforeRender: true },
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H },
     fps: { target: 60, min: 30 },
     scene: Scene
   };
+  config.scale.width = Math.round(W * RETINA_FACTOR);
+  config.scale.height = Math.round(H * RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
   App.game = new Phaser.Game(config);
 })();

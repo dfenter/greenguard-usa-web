@@ -380,7 +380,7 @@
   };
 
   PlayScene.prototype.makeHudText = function () {
-    var style = { fontFamily: 'system-ui, sans-serif', fontSize: '12px', color: CSS.white, fontStyle: '700' };
+    var style = { fontFamily: 'system-ui, sans-serif', resolution: GGKit.hiDpi.dpr(), fontSize: '12px', color: CSS.white, fontStyle: '700' };
     var names = ['title', 'floor', 'score', 'time', 'room', 'cards', 'weapon', 'ammo', 'hp', 'mode', 'auto', 'alarm', 'tip', 'prompt', 'bannerHead', 'bannerSub', 'bannerTiny'];
     for (var i = 0; i < names.length; i++) {
       this.hud[names[i]] = this.add.text(0, 0, '', style).setScrollFactor(0).setDepth(100).setOrigin(0.5);
@@ -402,7 +402,7 @@
     this.hud.bannerHead.setFontSize('22px').setFontStyle('900').setAlpha(0);
     this.hud.bannerSub.setFontSize('14px').setFontStyle('800').setAlpha(0);
     this.hud.bannerTiny.setFontSize('14px').setAlpha(0);
-    for (var choiceIndex = 0; choiceIndex < 9; choiceIndex++) this.hud['floorChoice' + choiceIndex] = this.add.text(0, 0, '', { fontFamily: 'system-ui, sans-serif', fontSize: '9px', color: CSS.white, fontStyle: '800', align: 'center' }).setOrigin(0.5).setDepth(101).setVisible(false);
+    for (var choiceIndex = 0; choiceIndex < 9; choiceIndex++) this.hud['floorChoice' + choiceIndex] = this.add.text(0, 0, '', { fontFamily: 'system-ui, sans-serif', resolution: GGKit.hiDpi.dpr(), fontSize: '9px', color: CSS.white, fontStyle: '800', align: 'center' }).setOrigin(0.5).setDepth(101).setVisible(false);
   };
 
   PlayScene.prototype.relayout = function (width, height) {
@@ -1429,11 +1429,23 @@
     DP_DEBUG_STATE.forceRoom = debugApi.forceRoom || DP_DEBUG_STATE.forceRoom || '';
   }
 
+  function syncHiDpi(game) {
+    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || window.innerWidth || 1));
+    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || window.innerHeight || 1));
+    GGKit.hiDpi.resize(game, cssW, cssH);
+  }
+
   var config = {
     type: Phaser.AUTO, parent: 'game', width: 390, height: 700, backgroundColor: '#071116',
-    render: { antialias: true, roundPixels: true }, scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH },
+    render: Object.assign({}, GGKit.renderDefaults, { roundPixels: true }), scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH },
     input: { activePointers: 4, gamepad: true }, scene: PlayScene
   };
   Game.phaser = new Phaser.Game(config);
+  syncHiDpi(Game.phaser);
+  window.addEventListener('resize', function () { syncHiDpi(Game.phaser); });
+  window.addEventListener('orientationchange', function () { syncHiDpi(Game.phaser); });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) syncHiDpi(Game.phaser);
+  });
   if (typeof window !== 'undefined') window.__DP_SCENE = function () { return Game.scene; };
 }());

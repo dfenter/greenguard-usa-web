@@ -81,3 +81,19 @@ Desktop: use A/D or arrow keys to aim, Space or Enter to drop, and H to hold.
 - Shrunk play HUD to round, score, timer meter, lives icons, preview cubes, combo state, and a skin swatch; danger now uses the meter color and hazard marker.
 - Moved event text from the center to one queued corner chip with short copy, 14px text, and a maximum 1.0s hold; removed repetitive move and drop-charge callouts.
 - Converted tutorial copy to one thin top-edge line with a three-second fade and kept center banners only at round boundaries; reduced boundary panel size.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.00x source baseline at DPR 3. After ratio: 3.00x configured
+  through `GGKit.hiDpi.resize(game, cssW, cssH)`; a live canvas ratio could
+  not be measured because Chrome aborted in this sandbox and the private HTTP
+  bind was denied.
+- Recipe: applied Phaser Scale.RESIZE hi-DPI sizing at boot, resize,
+  orientation-change, and visibility events. Applied `GGKit.renderDefaults`
+  and `resolution: GGKit.hiDpi.dpr()` to Phaser text. The Canvas renderer and
+  generated-texture path were retained.
+- Factor cap: none beyond the GGKit maximum of 3. No title-specific cap was
+  needed.
+- Could not complete the live DPR 3 gameplay screenshot or layout check.
+  Existing generated textures were left at their authored sizes because a
+  frame-unit migration to `GGKit.hiDpi.canvas(...)` could not be live-verified.

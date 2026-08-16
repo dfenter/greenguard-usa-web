@@ -50,3 +50,11 @@ Fixed:
 Rejected:
 
 - None. Browser visual smoke and 4x-throttle measurement remain unverified because no browser binding was available in this environment. `node --check` passed for every changed JavaScript file.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.00x static FIT baseline from the 390x844 design backing store. A live pre-pass canvas readback was unavailable in this sandbox.
+- After ratio: 3.00x target by factor math at emulated DPR 3, producing a 1170x2532 backing store for the 390x844 design viewport.
+- Recipe: Phaser `Scale.FIT`, design coordinates preserved, scale dimensions multiplied by `GGKit.hiDpi.factor(390, 844)`, shared `GGKit.renderDefaults` merged, and zoom applied in boot and play scene `create()` methods. Phaser text uses the same factor.
+- Factor cap: none beyond GGKit's default clamp to [1, 3].
+- Could not do: live `canvas.width / getBoundingClientRect().width` readback, gameplay screenshot, and `retina_audit.mjs` acceptance because no browser surface was available and private port binding was denied.

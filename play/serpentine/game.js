@@ -941,7 +941,8 @@
       this.world.add(gate); this.gatePool.push(gate);
       var gateLabel = this.add.text(0, 0, '', {
         fontFamily: 'system-ui, sans-serif', fontSize: '11px', fontStyle: 'bold',
-        color: '#07121d', stroke: '#e8fbff', strokeThickness: 2
+        color: '#07121d', stroke: '#e8fbff', strokeThickness: 2,
+        resolution: window.GGKit.hiDpi.dpr()
       }).setOrigin(0.5).setVisible(false);
       this.world.add(gateLabel); this.gateLabels.push(gateLabel);
     }
@@ -965,7 +966,8 @@
     this.world.add(this.impactRing);
     this.impactText = this.add.text(0, 0, '', {
       fontFamily: 'system-ui, sans-serif', fontSize: '16px', fontStyle: 'bold',
-      color: '#eafaff', stroke: '#06101c', strokeThickness: 4
+      color: '#eafaff', stroke: '#06101c', strokeThickness: 4,
+      resolution: window.GGKit.hiDpi.dpr()
     }).setOrigin(0.5).setVisible(false);
     this.world.add(this.impactText);
 
@@ -1151,7 +1153,7 @@
         fontSize: size + 'px', color: color, fontStyle: weight || 'normal',
         align: align || 'left'
       });
-      t.setResolution(Math.min(2, window.devicePixelRatio || 1));
+      t.setResolution(window.GGKit.hiDpi.dpr());
       self.hud.add(t);
       return t;
     }
@@ -1283,7 +1285,7 @@
         fontSize: size + 'px', color: color, fontStyle: weight || 'normal',
         align: align || 'center', wordWrap: { width: 520 }
       });
-      t.setResolution(Math.min(2, window.devicePixelRatio || 1));
+      t.setResolution(window.GGKit.hiDpi.dpr());
       t.setOrigin(0.5, 0.5);
       self.overlay.add(t);
       return t;
@@ -1352,10 +1354,11 @@
     this.overlay.add(swatch);
     var label = this.add.text(0, 0, '', {
       fontFamily: '"Trebuchet MS", Verdana, system-ui, sans-serif',
-      fontSize: '10px', color: '#cfeeff', align: 'center'
+      fontSize: '10px', color: '#cfeeff', align: 'center',
+      resolution: window.GGKit.hiDpi.dpr()
     });
     label.setOrigin(0.5, 0.5);
-    label.setResolution(Math.min(2, window.devicePixelRatio || 1));
+    label.setResolution(window.GGKit.hiDpi.dpr());
     this.overlay.add(label);
     return { id: id, kind: kind, back: back, swatch: swatch, label: label, rect: { x: 0, y: 0, w: 1, h: 1 } };
   };
@@ -3217,13 +3220,20 @@
         width: window.innerWidth,
         height: window.innerHeight
       },
-      render: { antialias: true, powerPreference: 'high-performance' },
+      render: Object.assign({}, window.GGKit.renderDefaults, { batchSize: 4096 }),
       fps: { target: 60, min: 20 },
       scene: [BootScene, PlayScene],
       banner: false,
       audio: { noAudio: true }   // GGKit owns audio; Phaser must not open a 2nd context
     });
     window.__sp.game = game;
+    function resizeGame() {
+      window.GGKit.hiDpi.resize(game, Math.max(1, window.innerWidth || 320), Math.max(1, window.innerHeight || 640));
+    }
+    window.addEventListener('resize', resizeGame);
+    window.addEventListener('orientationchange', resizeGame);
+    document.addEventListener('visibilitychange', resizeGame);
+    resizeGame();
   }
   boot();
 }());

@@ -43,11 +43,11 @@
   Art.rng = rng;
 
   function cvs(w, h) {
-    var c = document.createElement('canvas');
-    c.width = Math.max(1, Math.round(w));
-    c.height = Math.max(1, Math.round(h));
+    var baked = GGKit.hiDpi.canvas(w, h), c = baked.canvas;
+    c.__ggCtx = baked.ctx;
     return c;
   }
+  function contextOf(c) { return c.__ggCtx || c.getContext('2d'); }
   Art.cvs = cvs;
 
   function put(scene, key, canvas) {
@@ -209,7 +209,7 @@
     var d = RD.depth(depthId);
     var rim = RIM[d.rim] || RIM.stone;
     var S = Math.max(18, Math.round(size));
-    var c = cvs(S, S), ctx = c.getContext('2d');
+    var c = cvs(S, S), ctx = contextOf(c);
     var cx = S / 2, cy = S / 2, r = S * 0.415;
     var rnd = rng((family.charCodeAt(0) * 131 + depthId.charCodeAt(0) * 7717 + S) >>> 0);
 
@@ -286,7 +286,7 @@
   /* Bind chains: drawn once, tinted per family at draw time. */
   Art.bakeBind = function (size) {
     var S = Math.max(18, Math.round(size));
-    var c = cvs(S, S), ctx = c.getContext('2d');
+    var c = cvs(S, S), ctx = contextOf(c);
     ctx.strokeStyle = 'rgba(255,255,255,0.92)';
     ctx.lineWidth = Math.max(2, S * 0.075);
     ctx.lineCap = 'round';
@@ -309,7 +309,7 @@
   Art.bakeBoard = function (depthId, cell, cols, rows, pad) {
     var d = RD.depth(depthId);
     var W = cols * cell + pad * 2, H = rows * cell + pad * 2;
-    var c = cvs(W, H), ctx = c.getContext('2d');
+    var c = cvs(W, H), ctx = contextOf(c);
     var rnd = rng(depthId.charCodeAt(0) * 977 + cell);
 
     /* plate */
@@ -374,7 +374,7 @@
   /* Vertical backdrop strip, stretched to the view. Resize proof. */
   Art.bakeSky = function (depthId) {
     var d = RD.depth(depthId);
-    var c = cvs(8, 256), ctx = c.getContext('2d');
+    var c = cvs(8, 256), ctx = contextOf(c);
     var g = ctx.createLinearGradient(0, 0, 0, 256);
     g.addColorStop(0, hx(d.sky[0]));
     g.addColorStop(0.55, hx(d.sky[1]));
@@ -385,7 +385,7 @@
 
   /* A soft corner vignette, stretched over the backdrop. */
   Art.bakeVignette = function () {
-    var S = 128, c = cvs(S, S), ctx = c.getContext('2d');
+    var S = 128, c = cvs(S, S), ctx = contextOf(c);
     var g = ctx.createRadialGradient(S / 2, S / 2, S * 0.22, S / 2, S / 2, S * 0.72);
     g.addColorStop(0, 'rgba(0,0,0,0)');
     g.addColorStop(1, 'rgba(0,0,0,0.55)');
@@ -397,7 +397,7 @@
   /* One ambient prop class per depth motif, drawn once and pooled. */
   Art.bakeMote = function (depthId) {
     var d = RD.depth(depthId), S = 28;
-    var c = cvs(S, S), ctx = c.getContext('2d');
+    var c = cvs(S, S), ctx = contextOf(c);
     var cx = S / 2, cy = S / 2;
     ctx.save();
     var g = ctx.createRadialGradient(cx, cy, 0, cx, cy, S / 2);
@@ -432,7 +432,7 @@
 
   /* ----------------------------------------------------- particles */
   Art.bakeSpark = function () {
-    var S = 24, c = cvs(S, S), ctx = c.getContext('2d');
+    var S = 24, c = cvs(S, S), ctx = contextOf(c);
     var g = ctx.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
     g.addColorStop(0, 'rgba(255,255,255,1)');
     g.addColorStop(0.35, 'rgba(255,255,255,0.7)');
@@ -441,7 +441,7 @@
     return c;
   };
   Art.bakeShard = function () {
-    var S = 18, c = cvs(S, S), ctx = c.getContext('2d');
+    var S = 18, c = cvs(S, S), ctx = contextOf(c);
     ctx.fillStyle = '#ffffff';
     poly(ctx, [S * 0.5, 0, S, S * 0.42, S * 0.66, S, S * 0.18, S * 0.82, 0, S * 0.3]);
     ctx.fill();
@@ -449,7 +449,7 @@
     return c;
   };
   Art.bakeStreak = function () {
-    var W = 48, H = 10, c = cvs(W, H), ctx = c.getContext('2d');
+    var W = 48, H = 10, c = cvs(W, H), ctx = contextOf(c);
     var g = ctx.createLinearGradient(0, 0, W, 0);
     g.addColorStop(0, 'rgba(255,255,255,0)');
     g.addColorStop(0.5, 'rgba(255,255,255,1)');
@@ -459,7 +459,7 @@
     return c;
   };
   Art.bakeRing = function () {
-    var S = 96, c = cvs(S, S), ctx = c.getContext('2d');
+    var S = 96, c = cvs(S, S), ctx = contextOf(c);
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 5;
     ctx.beginPath(); ctx.arc(S / 2, S / 2, S / 2 - 4, 0, Math.PI * 2); ctx.stroke();
@@ -468,21 +468,21 @@
     return c;
   };
   Art.bakeDot = function () {
-    var S = 12, c = cvs(S, S), ctx = c.getContext('2d');
+    var S = 12, c = cvs(S, S), ctx = contextOf(c);
     ctx.fillStyle = '#ffffff';
     ctx.beginPath(); ctx.arc(S / 2, S / 2, S / 2 - 1, 0, Math.PI * 2); ctx.fill();
     return c;
   };
   /* 1x1 white pixel: every bar, plate and scrim scales this one image */
   Art.bakePixel = function () {
-    var c = cvs(2, 2), ctx = c.getContext('2d');
+    var c = cvs(2, 2), ctx = contextOf(c);
     ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 2, 2);
     return c;
   };
 
   /* --------------------------------------------------------- UI cards */
   Art.bakeCard = function (w, h, r, fill, edge, alpha) {
-    var c = cvs(w, h), ctx = c.getContext('2d');
+    var c = cvs(w, h), ctx = contextOf(c);
     roundRect(ctx, 0.5, 0.5, w - 1, h - 1, r);
     ctx.fillStyle = rgba(fill, alpha == null ? 0.92 : alpha);
     ctx.fill();
@@ -496,7 +496,7 @@
   };
 
   Art.bakeButton = function (w, h, tint, bright) {
-    var c = cvs(w, h), ctx = c.getContext('2d');
+    var c = cvs(w, h), ctx = contextOf(c);
     roundRect(ctx, 1, 1, w - 2, h - 2, Math.min(14, h / 2));
     var g = ctx.createLinearGradient(0, 0, 0, h);
     g.addColorStop(0, hx(lighten(tint, bright ? 0.34 : 0.16)));
@@ -514,7 +514,7 @@
     var g = RD.guard(guardId);
     var o = RD.orb(g.el);
     var S = Math.max(28, Math.round(size));
-    var c = cvs(S, S), ctx = c.getContext('2d');
+    var c = cvs(S, S), ctx = contextOf(c);
     var cx = S / 2, cy = S / 2;
     var rnd = rng(guardId.length * 3313 + guardId.charCodeAt(0) * 71 + (evolved ? 5 : 0));
 
@@ -830,7 +830,7 @@
     var e = RD.enemy(enemyId);
     var o = RD.orb(e.el);
     var S = Math.max(48, Math.round(size));
-    var c = cvs(S, S), ctx = c.getContext('2d');
+    var c = cvs(S, S), ctx = contextOf(c);
     var rnd = rng(enemyId.length * 7717 + enemyId.charCodeAt(0) * 313);
     /* mid-tone body so a creature never reads as a flat dark blob */
     var body = mix(o.color, o.deep, 0.52);
@@ -940,7 +940,7 @@
   /* Small monochrome pictograms. Icons over labels, per the UI law. */
   Art.bakeIcon = function (kind, size) {
     var S = Math.max(16, Math.round(size));
-    var c = cvs(S, S), ctx = c.getContext('2d');
+    var c = cvs(S, S), ctx = contextOf(c);
     var cx = S / 2, cy = S / 2, r = S * 0.36;
     ctx.strokeStyle = '#ffffff';
     ctx.fillStyle = '#ffffff';
@@ -1042,7 +1042,7 @@
   /* Depth badge used on the map cards. */
   Art.bakeDepthBadge = function (depthId, size) {
     var d = RD.depth(depthId), S = Math.max(24, Math.round(size));
-    var c = cvs(S, S), ctx = c.getContext('2d');
+    var c = cvs(S, S), ctx = contextOf(c);
     roundRect(ctx, 1, 1, S - 2, S - 2, S * 0.26);
     var g = ctx.createLinearGradient(0, 0, 0, S);
     g.addColorStop(0, hx(lighten(d.frame.plate, 0.22)));

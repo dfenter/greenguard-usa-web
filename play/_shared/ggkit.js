@@ -660,12 +660,27 @@
 
     // For Scale.RESIZE titles, which take their size from the window rather
     // than from config: call this instead of game.scale.resize(cssW, cssH).
+    //
+    // Safe to call BEFORE the game has booted. `game.scale` exists from
+    // construction but its internals do not, so calling straight through
+    // throws "Cannot set properties of undefined (setting 'width')" from
+    // inside Phaser's own resize. Eight titles hit that identically the first
+    // time this helper shipped, which means the old guard (`game && game.scale`)
+    // was too weak and invited the mistake: titles naturally call this at
+    // module top level, right after constructing the game. So defer to the
+    // ready event instead of failing.
     resize(game, cssW, cssH, max) {
       const d = GGKit.hiDpi.dpr(max);
       if (!game || !game.scale) return d;
-      game.scale.resize(Math.round(cssW * d), Math.round(cssH * d));
-      const c = game.canvas;
-      if (c) { c.style.width = cssW + 'px'; c.style.height = cssH + 'px'; }
+      const apply = function () {
+        try {
+          game.scale.resize(Math.round(cssW * d), Math.round(cssH * d));
+          const c = game.canvas;
+          if (c) { c.style.width = cssW + 'px'; c.style.height = cssH + 'px'; }
+        } catch (e) { /* a resize must never take the title down */ }
+      };
+      if (game.isBooted) apply();
+      else if (game.events && game.events.once) game.events.once('ready', apply);
       return d;
     },
 

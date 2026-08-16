@@ -48,3 +48,9 @@ Rejected:
 - Replaced the live center group/cascade/pattern banners with one queued corner chip at 14px, held for 0.85s; retained only a smaller center notice at run boundaries.
 - Moved the opening tutorial and locked-mode feedback to one thin top strip with a short fade, kept reduced-motion gating, and preserved 44px hint touch height.
 - Bumped the service-worker cache version to `2026-08-10-aaa3`; `node --check` passed for all JavaScript files. A live 10-second browser capture was unavailable because no browser endpoint or local listener was available in this environment.
+
+## Retina pass 2026-08-16
+
+- Target 390x844 CSS at DPR 3. Before ratio: 1.00x CSS-sized RESIZE baseline. After target: 3.00x, 1170/390, via `GGKit.hiDpi.resize`. Live canvas read was unavailable because no browser surface or private local listener was available.
+- Recipe: `Phaser.Scale.RESIZE`, `GGKit.renderDefaults`, `GGKit.hiDpi.canvas` texture baking, and DPR-matched Phaser text. No factor cap.
+- Gameplay screenshot and runtime backing-store measurement remain deferred. No palette change was made because the retina law identifies density, not colour depth, as the defect.

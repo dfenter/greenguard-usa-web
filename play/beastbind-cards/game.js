@@ -11,6 +11,7 @@
 
   // ------------------------------------------------------------- constants
   var W = 390, H = 844;
+  var RETINA_FACTOR = root.GGKit.hiDpi.factor(W, H);
   var SAVE_VERSION = 3;
   var DECK_SIZE = 20;
   var DECK_SLOTS = 3;
@@ -1255,6 +1256,7 @@
   BootScene.prototype = Object.create(Phaser.Scene.prototype);
   BootScene.prototype.constructor = BootScene;
   BootScene.prototype.create = function () {
+    this.cameras.main.setZoom(RETINA_FACTOR);
     var scene = this;
     var steps = [];
     steps.push(function () { bakePixel(scene); bakePanels(scene); });
@@ -1333,6 +1335,7 @@
   PlayScene.prototype.constructor = PlayScene;
 
   PlayScene.prototype.create = function () {
+    this.cameras.main.setZoom(RETINA_FACTOR);
     var scene = this;
     Game.play = this;
 
@@ -2965,15 +2968,19 @@
     return;
   }
 
-  Game.phaser = new Phaser.Game({
+  var config = {
     type: Phaser.AUTO,
     parent: 'game',
     backgroundColor: PAL.deepCss,
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H },
-    render: { antialias: true, roundPixels: false, powerPreference: 'high-performance', batchSize: 2048 },
+    render: { batchSize: 2048 },
     fps: { target: 60, min: 30 },
     scene: [BootScene, PlayScene]
-  });
+  };
+  config.scale.width = Math.round(W * RETINA_FACTOR);
+  config.scale.height = Math.round(H * RETINA_FACTOR);
+  config.render = Object.assign({}, root.GGKit.renderDefaults, config.render || {});
+  Game.phaser = new Phaser.Game(config);
 
   void Bake;
 })(window);

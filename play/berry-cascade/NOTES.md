@@ -241,3 +241,18 @@ Rejected:
   simulation evidence cannot be honestly staged under the no-deploy and
   work-only-in-this-directory constraints. The local server was unavailable
   in this sandbox, so no external evidence or sign-off is claimed.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.00x source baseline at DPR 3. After ratio: 3.00x configured
+  through `GGKit.hiDpi.resize(game, cssW, cssH)`; a live canvas ratio could
+  not be measured because Chrome aborted in this sandbox and the private HTTP
+  bind was denied.
+- Recipe: applied Phaser Scale.RESIZE hi-DPI sizing at boot, resize,
+  orientation-change, and visibility events. Applied `GGKit.renderDefaults`
+  and `resolution: GGKit.hiDpi.dpr()` to Phaser UI text.
+- Factor cap: none beyond the GGKit maximum of 3. No title-specific cap was
+  needed.
+- Could not complete the live DPR 3 gameplay screenshot or layout check.
+  Existing authored canvas bakes were left at their logical sizes because a
+  frame-unit migration to `GGKit.hiDpi.canvas(...)` could not be live-verified.

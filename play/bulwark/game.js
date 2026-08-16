@@ -4,6 +4,7 @@
 (function () {
   var E = window.BulwarkEngine;
   var GAME_W = 1280, GAME_H = 720;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(GAME_W, GAME_H);
   var STEP = 1 / 60, MAX_STEPS = 5;
   var CELL = 56, BOARD_X = 56, BOARD_Y = 116;
   var BOARD_W = CELL * 14, BOARD_H = CELL * 9;
@@ -128,6 +129,7 @@
   BulwarkScene.prototype.constructor = BulwarkScene;
 
   BulwarkScene.prototype.create = function () {
+    this.cameras.main.setZoom(RETINA_FACTOR);
     Game.scene = this;
     this.accumulator = 0;
     this.mapIndex = E.mapIndex(hook.forceMap == null ? profile.map : hook.forceMap);
@@ -1178,11 +1180,13 @@
   };
 
   var config = {
-    type: Phaser.AUTO, parent: 'game', width: GAME_W, height: GAME_H, backgroundColor: '#06111e',
-    render: { antialias: true, roundPixels: true, powerPreference: 'high-performance' },
-    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+    type: Phaser.AUTO, parent: 'game', backgroundColor: '#06111e',
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: GAME_W, height: GAME_H },
     scene: [BulwarkScene]
   };
+  config.scale.width = Math.round(GAME_W * RETINA_FACTOR);
+  config.scale.height = Math.round(GAME_H * RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
   kit.loader.show('BULWARK // FLEET F5'); kit.loader.progress(0.2);
   Game.phaser = new Phaser.Game(config);
   kit.loader.progress(0.7);

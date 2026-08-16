@@ -57,3 +57,19 @@ Goal: connect homes to roads, power, and a shop within five tiles. Parks raise d
 - HTTPS deployment, offline reload proof, six-gate evidence capture, and a scripted 20-minute progression trace -> prohibited by the no-deploy instruction and the evidence files are outside the allowed work area; the local browser backend was unavailable for a live capture.
 - Central asset-ledger `Used by` ownership edits -> `play/_assets/LEDGER.md` is outside the allowed work area; the new original atlas is documented in this title's `LICENSES.md`.
 - Independent water, traffic, power, park, and population ambience buses -> GGKit is the sole audio implementation and changing `/play/_shared/ggkit.js` is outside scope.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.00x source baseline at DPR 3. After ratio: 3.00x configured
+  through `GGKit.hiDpi.resize(game, cssW, cssH)`; a live canvas ratio could
+  not be measured because Chrome aborted in this sandbox and the private HTTP
+  bind was denied.
+- Recipe: applied Phaser Scale.RESIZE hi-DPI sizing at boot, resize,
+  orientation-change, and visibility events, while preserving the title's
+  pixel-art and rounded-pixel settings. The HUD is DOM-based, so no Phaser
+  text resolution override was needed.
+- Factor cap: none beyond the GGKit maximum of 3. No title-specific cap was
+  needed.
+- Could not complete the live DPR 3 gameplay screenshot or layout check.
+  Existing generated textures were left at their authored sizes because a
+  frame-unit migration to `GGKit.hiDpi.canvas(...)` could not be live-verified.

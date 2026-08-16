@@ -33,9 +33,10 @@ var KBArt = (function () {
   function tex(scene, key, w, h, draw) {
     w = Math.max(1, Math.ceil(w)); h = Math.max(1, Math.ceil(h));
     if (scene.textures.exists(key)) return scene.textures.get(key);
-    var ct = scene.textures.createCanvas(key, w, h);
+    var baked = GGKit.hiDpi.canvas(w, h);
+    var ct = scene.textures.addCanvas(key, baked.canvas);
     if (!ct) return null;
-    var ctx = ct.getContext();
+    var ctx = baked.ctx;
     ctx.clearRect(0, 0, w, h);
     draw(ctx, w, h);
     ct.refresh();

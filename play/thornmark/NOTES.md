@@ -155,3 +155,11 @@ hazards, classes, skills, talents, quests, levels and gear.
 Deferred: no cloud save or second profile slot; auto hunt does not pathfind
 around props; no floor picker for the undercroft; class is locked after the
 first kill. All four are design calls, not missing work.
+
+## Retina pass 2026-08-16
+
+- Audit before ratio: 1.00x at the emulated DPR 3 portrait viewport. Configured after ratio: 3.00x from `GGKit.hiDpi.factor(390, 844)`, with a 1170 x 2532 backing store for the 390 x 844 design box.
+- Recipe: Phaser `Scale.FIT`, dense scale dimensions, `GGKit.renderDefaults`, `setZoom(f)` in the scene create method, and matching resolution on Phaser text styles.
+- Factor cap: none beyond GGKit's standard maximum of 3. No title-specific cap.
+- Live canvas ratio and gameplay screenshot were unavailable because the browser backend was empty and the sandbox denied private HTTP listeners. The after ratio above is the configured geometry, not a live canvas read.
+- Static title-local canvas atlases now use `GGKit.hiDpi.canvas` and Phaser texture source resolution. Gameplay, balance, and content were unchanged.

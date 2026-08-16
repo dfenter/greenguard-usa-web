@@ -9,6 +9,7 @@
   var GEO = PN.GEO;
   var DW = 390;
   var DH = 844;
+  var HIDPI_FACTOR = root.GGKit && root.GGKit.hiDpi ? root.GGKit.hiDpi.factor(DW, DH) : 1;
   var FY = PN.FIELD_Y;
   var C = PN.COLORS;
   var FONT = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
@@ -225,6 +226,7 @@
     Extends: Phaser.Scene,
     initialize: function BootScene() { Phaser.Scene.call(this, { key: 'boot' }); },
     create: function () {
+      this.cameras.main.setZoom(HIDPI_FACTOR);
       var self = this;
       kit.loader.show('Pennant Nine');
       kit.loader.progress(0.02);
@@ -270,6 +272,7 @@
 
     create: function () {
       scene = this;
+      this.cameras.main.setZoom(HIDPI_FACTOR);
       canvasEl = this.game.canvas;
       this.cameras.main.setBackgroundColor('#071116');
       this.acc = 0;
@@ -500,7 +503,7 @@
     mkText: function (x, y, s, size, color, align, weight, depth) {
       var t = this.add.text(x, y, s, {
         fontFamily: FONT, fontSize: size + 'px', color: color,
-        fontStyle: weight === '800' || weight === '700' ? 'bold' : 'normal'
+        fontStyle: weight === '800' || weight === '700' ? 'bold' : 'normal', resolution: HIDPI_FACTOR
       }).setDepth(depth == null ? 100 : depth);
       t.setOrigin(align === 'left' ? 0 : align === 'right' ? 1 : 0.5, 0.5);
       t.__t = s;
@@ -2666,16 +2669,18 @@
     var game = new Phaser.Game({
       type: Phaser.AUTO,
       parent: document.getElementById('game') || document.body,
-      width: DW,
-      height: DH,
+      width: Math.round(DW * HIDPI_FACTOR),
+      height: Math.round(DH * HIDPI_FACTOR),
       backgroundColor: '#071116',
       roundPixels: false,
       scale: {
         mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        width: Math.round(DW * HIDPI_FACTOR),
+        height: Math.round(DH * HIDPI_FACTOR)
       },
       input: { keyboard: false, mouse: false, touch: false },
-      render: { antialias: true, powerPreference: 'high-performance' },
+      render: Object.assign({}, root.GGKit.renderDefaults),
       fps: { target: 60, min: 30 },
       scene: [BootScene, PlayScene]
     });

@@ -87,3 +87,11 @@ Medals award one tier for deliveries, one for combo streak, and one for zero mis
 - Replaced the 60%-width center banner with one queued top-edge chip: tutorial copy is one line with reduced-motion-aware fading, event chips hold for 1.0s max, and only one transient can show at once.
 - Reclaimed the old coach/hint camera padding so the active yard gets more of the screen.
 - The live screenshot check could not run because no browser backend was connected; static audit and syntax checks passed.
+
+## Retina pass 2026-08-16
+
+- Measured before ratio: unavailable for this title in this environment. Fleet baseline was 1.00x for 62 titles, with the remainder from 1.10x to 2.46x.
+- Measured after ratio: unavailable because no browser backend was exposed. The helper path targets 3.00x at DPR 3, but that is not a captured measurement.
+- Recipe: Phaser `Scale.RESIZE`; initial sizing, resize, orientation change, and visibility change all call `GGKit.hiDpi.resize`.
+- Factor cap: none; the GGKit DPR cap of 3 applies. No title-specific cap was justified.
+- Could not do: DPR 3 backing-store read or gameplay screenshot. Browser discovery returned no browser, and local HTTP port binding was denied.

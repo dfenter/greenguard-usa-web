@@ -77,3 +77,18 @@ Save and ship notes:
 Deferred:
 
 - Live browser screenshot and 4x CPU frame capture remain deferred because this session had no connected browser instance. No deploy or production verification was performed, per lane scope.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.00x source baseline at DPR 3. After ratio: 3.00x configured
+  through `GGKit.hiDpi.resize(game, cssW, cssH)`; a live canvas ratio could
+  not be measured because Chrome aborted in this sandbox and the private HTTP
+  bind was denied.
+- Recipe: applied Phaser Scale.RESIZE hi-DPI sizing at boot, resize,
+  orientation-change, and visibility events. Applied `GGKit.renderDefaults`
+  and `resolution: GGKit.hiDpi.dpr()` to system text.
+- Factor cap: none beyond the GGKit maximum of 3. No title-specific cap was
+  needed.
+- Could not complete the live DPR 3 gameplay screenshot or layout check.
+  The authored static chrome bake was left at its logical size because a
+  frame-unit migration to `GGKit.hiDpi.canvas(...)` could not be live-verified.

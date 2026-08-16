@@ -208,7 +208,7 @@
   function textStyle(size, color, weight) {
     return {
       fontFamily: 'ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace',
-      fontSize: size + 'px', fontStyle: weight || 'bold', color: color || '#e9fbff',
+      fontSize: size + 'px', fontStyle: weight || 'bold', color: color || '#e9fbff', resolution: root.GGKit.hiDpi.dpr(),
       stroke: '#02040a', strokeThickness: 4, shadow: { offsetX: 0, offsetY: 2, color: '#000000', blur: 5, fill: true }
     };
   }
@@ -269,7 +269,9 @@
 
     makeParticleTexture() {
       if (this.textures.exists('vs-dot')) return;
-      var t = this.textures.createCanvas('vs-dot', 32, 32), c = t.getContext();
+      var baked = root.GGKit.hiDpi.canvas(32, 32);
+      var t = this.textures.addCanvas('vs-dot', baked.canvas), c = baked.ctx;
+      if (!t || !c) return;
       var g = c.createRadialGradient(16, 16, 0, 16, 16, 16);
       g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.24, 'rgba(255,255,255,.85)');
       g.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = g; c.fillRect(0, 0, 32, 32); t.refresh();
@@ -345,8 +347,8 @@
     }
 
     rebuildLayout(force) {
-      var W = Math.max(1, Number(this.scale.width) || Number(root.innerWidth) || 900);
-      var H = Math.max(1, Number(this.scale.height) || Number(root.innerHeight) || 480);
+      var W = Math.max(1, Number(this.scale.width) || 900);
+      var H = Math.max(1, Number(this.scale.height) || 480);
       var compact = W < 520 || H < 380;
       var margin = compact ? 10 : 18;
       var top = compact ? 88 : 82;
@@ -1226,14 +1228,22 @@
 
   kit.loader.show('VECTOR STORM');
   kit.loader.progress(.34);
-  new Phaser.Game({
+  var game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: 'game',
     backgroundColor: '#050913',
     scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH, width: 960, height: 540 },
-    render: { antialias: true, roundPixels: false, powerPreference: 'high-performance' },
+    render: Object.assign({}, root.GGKit.renderDefaults),
     fps: { target: 60, forceSetTimeOut: false },
     input: { activePointers: 4 },
     scene: [VectorStormScene]
   });
+  function resizeGame() {
+    root.GGKit.hiDpi.resize(game, Math.max(1, root.innerWidth || 960), Math.max(1, root.innerHeight || 540));
+  }
+  root.addEventListener('resize', resizeGame);
+  root.addEventListener('orientationchange', resizeGame);
+  document.addEventListener('visibilitychange', resizeGame);
+  resizeGame();
+  root.__vs.game = game;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -11,6 +11,7 @@
 
   // --------------------------------------------------------------- constants
   var WIDTH = 390, HEIGHT = 844, STEP = 1 / 60, MAX_STEPS = 5;
+  var HIDPI_FACTOR = window.GGKit && window.GGKit.hiDpi ? window.GGKit.hiDpi.factor(WIDTH, HEIGHT) : 1;
   var MAX_WILDS = 3, MAX_UNDOS = 5, TOTAL_DEALS = 90;
   var STREAK_BASE = 10, PEAK_REWARD = 100, MAX_PARTICLES = 120;
   var RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
@@ -322,6 +323,7 @@
   BootScene.prototype.constructor = BootScene;
   BootScene.prototype.preload = function () { kit.loader.show('MEADOW SOLITAIRE'); kit.loader.progress(0.2); };
   BootScene.prototype.create = function () {
+    this.cameras.main.setZoom(HIDPI_FACTOR);
     bakeAll(this); kit.loader.progress(0.78);
     kit.loader.progress(1); kit.loader.hide();
     if (loadingNote) loadingNote.remove();
@@ -334,7 +336,7 @@
   MeadowScene.prototype.constructor = MeadowScene;
 
   MeadowScene.prototype.createText = function (x, y, text, size, colorValue, align, bold) {
-    return this.add.text(x, y, text, { fontFamily: 'Verdana, Geneva, sans-serif', fontSize: size + 'px', fontStyle: bold ? 'bold' : 'normal', color: colorValue, align: align || 'left', resolution: 1 }).setOrigin(align === 'center' ? 0.5 : align === 'right' ? 1 : 0, 0.5);
+    return this.add.text(x, y, text, { fontFamily: 'Verdana, Geneva, sans-serif', fontSize: size + 'px', fontStyle: bold ? 'bold' : 'normal', color: colorValue, align: align || 'left', resolution: HIDPI_FACTOR }).setOrigin(align === 'center' ? 0.5 : align === 'right' ? 1 : 0, 0.5);
   };
   MeadowScene.prototype.createButton = function (x, y, w, h, text, tint, depth) {
     var rect = this.add.rectangle(x, y, w, h, tint || 0x214b36, 0.98).setOrigin(0.5).setDepth(depth || 100);
@@ -358,6 +360,7 @@
     return view;
   };
   MeadowScene.prototype.create = function () {
+    this.cameras.main.setZoom(HIDPI_FACTOR);
     sceneRef = this;
     this.mode = 'meadow'; this.viewSeason = Math.floor(profile.current / 15); this.run = null; this.layout = null;
     this.history = []; this.accumulator = 0; this.simClock = 0; this.renderClock = 0; this.gestureMap = Object.create(null);
@@ -807,8 +810,8 @@
   // --------------------------------------------------------------- game boot
   var Game = new Phaser.Game({
     type: Phaser.CANVAS, parent: 'game', backgroundColor: '#102a22',
-    render: { antialias: true, antialiasGL: false, roundPixels: true, clearBeforeRender: true },
-    scale: { mode: Phaser.Scale.FIT, width: WIDTH, height: HEIGHT, autoCenter: Phaser.Scale.CENTER_BOTH },
+    render: Object.assign({}, window.GGKit.renderDefaults, { clearBeforeRender: true }),
+    scale: { mode: Phaser.Scale.FIT, width: Math.round(WIDTH * HIDPI_FACTOR), height: Math.round(HEIGHT * HIDPI_FACTOR), autoCenter: Phaser.Scale.CENTER_BOTH },
     input: { activePointers: 4 }, scene: [BootScene, MeadowScene]
   });
   // Phaser's canvas is created after the game constructor. Keep the reference

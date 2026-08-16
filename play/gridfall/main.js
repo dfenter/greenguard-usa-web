@@ -84,7 +84,15 @@
     saveProfile();
     return official;
   }
-  function makeTexture(scene, key, w, h, draw) { if (scene.textures.exists(key)) return key; var tex = scene.textures.createCanvas(key, w, h), ctx = tex.getContext(); draw(ctx, w, h); tex.refresh(); return key; }
+  function makeTexture(scene, key, w, h, draw) { if (scene.textures.exists(key)) return key; var baked = GGKit.hiDpi.canvas(w, h), tex = scene.textures.addCanvas(key, baked.canvas), ctx = baked.ctx; draw(ctx, w, h); tex.refresh(); return key; }
+  function cssViewport() { return { width: document.documentElement.clientWidth || window.innerWidth || 390, height: document.documentElement.clientHeight || window.innerHeight || 844 }; }
+  function resizeHiDpi(game, width, height) { var view = width && height ? { width: width, height: height } : cssViewport(); return GGKit.hiDpi.resize(game, view.width, view.height); }
+  function bindHiDpiResize(game) { var apply = function () { resizeHiDpi(game); }; window.addEventListener('resize', apply); window.addEventListener('orientationchange', apply); document.addEventListener('visibilitychange', apply); apply(); }
+  function setTextDensity(scene) {
+    var d = GGKit.hiDpi.dpr();
+    function visit(list) { (list || []).forEach(function (child) { if (child && child.setResolution) child.setResolution(d); if (child && child.list) visit(child.list); }); }
+    visit(scene.children && scene.children.list);
+  }
 
   class GridfallScene extends Phaser.Scene {
     constructor() { super({ key: 'gridfall' }); }
@@ -95,7 +103,7 @@
       Game.scene = this; DEBUG.ready = true; DEBUG.scene = 'gridfall';
       this.phase = 'title'; this.sim = null; this.accumulator = 0; this.viewTime = 0; this.viewState = 'ready'; this.viewTimer = 0; this.resultWait = 0; this.notice = null; this.noticeQueue = []; this.clearFlash = []; this.hintCells = null; this.hintTimer = 0; this.hoverCell = null; this.downCell = null; this.activePointerId = null; this.cursorX = 3; this.cursorY = 3; this.padCooldown = 0; this.padState = { a: false, b: false, x: false, y: false, direction: '' };
       this.keyLatch = {}; this.layoutData = { w: 390, h: 844, boardX: 20, boardY: 150, boardSize: 350, cell: 43.75, hintY: 520 };
-      this.cellViews = []; this.buildTextures(); this.buildView(); this.bindInput(); this.layout(); this.scale.on('resize', this.layout, this); kit.loader.hide(); kit.registerPWA(); this.showTitle(); this.events.once('shutdown', this.shutdownScene, this);
+      this.cellViews = []; this.buildTextures(); this.buildView(); setTextDensity(this); this.bindInput(); this.layout(); this.scale.on('resize', this.layout, this); kit.loader.hide(); kit.registerPWA(); this.showTitle(); setTextDensity(this); this.events.once('shutdown', this.shutdownScene, this);
     }
     buildTextures() {
       this.pixelTexture = makeTexture(this, 'gf-pixel', 4, 4, function (ctx) { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 4, 4); });
@@ -247,6 +255,7 @@
 
   var probe = {}; Object.defineProperty(probe, 'state', { enumerable: true, get: function () { return DEBUG_VIEW; } }); window.__gf = Object.freeze(probe);
   kit.loader.show('GRIDFALL'); kit.loader.progress(.12);
-  Game.phaser = new Phaser.Game({ type: Phaser.AUTO, parent: document.body, backgroundColor: '#182238', scale: { mode: Phaser.Scale.RESIZE, width: 390, height: 844 }, render: { antialias: true, antialiasGL: false, roundPixels: false, powerPreference: 'high-performance', batchSize: 2048 }, fps: { target: 60, min: 30 }, scene: [GridfallScene] });
+  Game.phaser = new Phaser.Game({ type: Phaser.AUTO, parent: document.body, backgroundColor: '#182238', scale: { mode: Phaser.Scale.RESIZE, width: 390, height: 844 }, render: Object.assign({}, GGKit.renderDefaults, { batchSize: 2048 }), fps: { target: 60, min: 30 }, scene: [GridfallScene] });
+  bindHiDpiResize(Game.phaser);
   kit.loader.progress(1);
 })();

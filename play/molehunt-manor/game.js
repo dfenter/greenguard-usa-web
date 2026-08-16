@@ -8,6 +8,7 @@
   'use strict';
 
   var W = 390, H = 844, STEP = 1 / 30, TAU = Math.PI * 2;
+  var HIDPI_FACTOR = window.GGKit && window.GGKit.hiDpi ? window.GGKit.hiDpi.factor(W, H) : 1;
   var PAL = {
     ink: 0x0b1018, panel: 0x151d2a, panel2: 0x1d2a3b, line: 0x34465b,
     text: 0xe7f1ef, dim: 0x9bb0b5, brass: 0xf4c56d, mint: 0x79e0bb,
@@ -426,7 +427,7 @@
   ManorScene.prototype = Object.create(Phaser.Scene.prototype);
   ManorScene.prototype.constructor = ManorScene;
   ManorScene.prototype.create = function () {
-    scene = this; this.scale.resize(W, H); this.cameras.main.setBackgroundColor(PAL.ink);
+    scene = this; this.cameras.main.setZoom(HIDPI_FACTOR); this.cameras.main.setBackgroundColor(PAL.ink);
     var sg = this.make.graphics({ x: 0, y: 0, add: false });
     sg.fillStyle(PAL.ink, 1); sg.fillRect(0, 0, W, H); sg.fillStyle(PAL.panel, 1); sg.fillRect(0, 96, W, 520); sg.fillRect(0, 716, W, 128);
     for (var i = 0; i < 16; i++) { var wing = WINGS[roomWing(i)]; sg.fillStyle(wing.color, 0.20); sg.fillRoundedRect(20 + (i % 4) * 92, 142 + ((i / 4) | 0) * 88, 84, 66, 10); }
@@ -436,9 +437,9 @@
     this.add.image(W / 2, H / 2, 'mm-static').setDepth(0);
     this.g = this.add.graphics().setDepth(3); this.fx = this.add.graphics().setDepth(8);
     this.labels = [];
-    for (i = 0; i < 110; i++) this.labels.push(this.add.text(0, 0, '', { fontFamily: 'system-ui,sans-serif', fontSize: '14px', color: CSS.text }).setDepth(10).setVisible(false));
+    for (i = 0; i < 110; i++) this.labels.push(this.add.text(0, 0, '', { fontFamily: 'system-ui,sans-serif', fontSize: '14px', color: CSS.text, resolution: HIDPI_FACTOR }).setDepth(10).setVisible(false));
     this.boundary = this.add.rectangle(W / 2, 420, 310, 160, PAL.panel2, 0.98).setDepth(20).setVisible(false).setStrokeStyle(2, PAL.brass);
-    this.boundaryText = this.add.text(W / 2, 420, '', { fontFamily: 'system-ui,sans-serif', fontSize: '28px', fontStyle: 'bold', color: CSS.brass, align: 'center', wordWrap: { width: 270 } }).setOrigin(0.5).setDepth(21).setVisible(false);
+    this.boundaryText = this.add.text(W / 2, 420, '', { fontFamily: 'system-ui,sans-serif', fontSize: '28px', fontStyle: 'bold', color: CSS.brass, align: 'center', wordWrap: { width: 270 }, resolution: HIDPI_FACTOR }).setOrigin(0.5).setDepth(21).setVisible(false);
     installInput(); kit.loader.hide();
     window.__mm.actions = { start: function (n) { startCase(n == null ? 0 : n, null, false); }, startFree: function (o) { startCase(0, o || { title: 'Free Play', guests: 8, moles: 2, roles: ROLE_NAMES, limit: 60 }, false); }, startMole: function () { startCase(11, { title: 'Mole Side', guests: 8, moles: 2, roles: ROLE_NAMES, limit: 60 }, true); }, observe: function (room) { if (current) return recordSightings(current, room == null ? current.playerRoom : room, 'direct', 'hook'); }, openMeeting: function () { if (current) enterMeeting(current, 'hook'); }, selectClaim: function (n) { if (current) current.selectedClaim = clamp(n | 0, 0, Math.max(0, current.claims.length - 1)); }, vote: function (id) { if (current) resolveMeeting(current, id == null ? -1 : id); }, restart: function () { current = null; state.mode = 'menu'; state.stage = 'menu'; } };
     kit.audio.music('manor', 0); paint();
@@ -480,7 +481,7 @@
   var freeConfig = { guests: 8, moles: 2, roles: ['detective', 'saboteur', 'mimic'] };
 
   function text(t, x, y, size, color, align, bold) {
-    var o = scene.labels[labelCursor++]; if (!o) return; o.setVisible(true); if (o.text !== String(t)) o.setText(String(t)); o.setPosition(x, y); o.setOrigin(align === 'left' ? 0 : align === 'right' ? 1 : 0.5, 0.5); o.setStyle({ fontFamily: 'system-ui,sans-serif', fontSize: size + 'px', fontStyle: bold ? 'bold' : 'normal', color: typeof color === 'number' ? hex(color) : (color || CSS.text), align: align || 'center' }); }
+    var o = scene.labels[labelCursor++]; if (!o) return; o.setVisible(true); if (o.text !== String(t)) o.setText(String(t)); o.setPosition(x, y); o.setOrigin(align === 'left' ? 0 : align === 'right' ? 1 : 0.5, 0.5); o.setStyle({ fontFamily: 'system-ui,sans-serif', fontSize: size + 'px', fontStyle: bold ? 'bold' : 'normal', color: typeof color === 'number' ? hex(color) : (color || CSS.text), align: align || 'center', resolution: HIDPI_FACTOR }); }
   function box(x, y, w, h, fill, stroke, radius) { scene.g.fillStyle(fill, 1); scene.g.fillRoundedRect(x, y, w, h, radius || 10); if (stroke) { scene.g.lineStyle(2, stroke, 1); scene.g.strokeRoundedRect(x, y, w, h, radius || 10); } }
   function button(x, y, w, h, label, action, data, color, disabled) { box(x, y, w, h, disabled ? PAL.panel : PAL.panel2, disabled ? PAL.line : (color || PAL.line), 12); text(label, x + w / 2, y + h / 2 + 1, 15, disabled ? PAL.dim : (color || PAL.text), 'center', true); if (!disabled) addZone(x, y, w, h, action, data); }
   function chip(x, y, label, color, width) { box(x, y, width || 104, 28, color || PAL.panel2, color || PAL.line, 14); text(label, x + (width || 104) / 2, y + 14, 13, PAL.ink, 'center', true); }
@@ -584,7 +585,7 @@
     paint();
   };
 
-  var game = new Phaser.Game({ type: Phaser.CANVAS, parent: document.body, width: W, height: H, transparent: false,
-    render: { antialias: true, antialiasGL: false, roundPixels: true }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H }, scene: [ManorScene] });
+  var game = new Phaser.Game({ type: Phaser.CANVAS, parent: document.body, width: Math.round(W * HIDPI_FACTOR), height: Math.round(H * HIDPI_FACTOR), transparent: false,
+    render: Object.assign({}, window.GGKit.renderDefaults), scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: Math.round(W * HIDPI_FACTOR), height: Math.round(H * HIDPI_FACTOR) }, scene: [ManorScene] });
   window.__mm.game = game; window.__mm.state = state;
 }());

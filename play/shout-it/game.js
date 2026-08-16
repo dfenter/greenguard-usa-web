@@ -20,6 +20,7 @@
   'use strict';
 
   var DW = 390, DH = 844;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(DW, DH);
   /* internal safe content bounds in design units. The canvas parent already
    * carries env(safe-area-inset-*), these keep controls off the very edge. */
   var BOUND_TOP = 10, BOUND_BOT = 806;
@@ -368,7 +369,8 @@
       fontSize: (o.size || TY.body.size) + 'px',
       fontStyle: o.weight || TY.body.weight,
       color: o.color || HEX.white,
-      align: o.align || 'center'
+      align: o.align || 'center',
+      resolution: RETINA_FACTOR
     };
     if (o.wrap) { st.wordWrap = { width: o.wrap, useAdvancedWrap: true }; }
     var t = sc.add.text(x, y, s, st);
@@ -1210,6 +1212,7 @@
       brandLoader();
     },
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       var self = this;
       kit.audio.register(AUDIO);
       /* Every bake is a discrete step on its own frame. One monolithic boot
@@ -1253,7 +1256,7 @@
         var fi = stage - bakes.length;
         if (fi < fonts.length) {
           fonts[fi].forEach(function (s) {
-            warm.add(self.add.text(0, 0, 'Shout It 0123', { fontFamily: FONT, fontSize: s + 'px', fontStyle: '900' }));
+            warm.add(self.add.text(0, 0, 'Shout It 0123', { fontFamily: FONT, fontSize: s + 'px', fontStyle: '900', resolution: RETINA_FACTOR }));
           });
           stage++;
           progress(stage);
@@ -1289,6 +1292,7 @@
   var BgScene = {
     key: 'bg',
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       this.add.image(0, 0, 'bgGrad').setOrigin(0, 0);
       var self = this;
       var accents = [
@@ -1321,6 +1325,7 @@
   var TitleScene = {
     key: 'title',
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       var self = this;
       sceneEnter(this);
       wantMusic('music_lobby');
@@ -1371,6 +1376,7 @@
   var SetupScene = {
     key: 'setup',
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       var self = this;
       sceneEnter(this);
       wantMusic('music_lobby');
@@ -1444,6 +1450,7 @@
     key: 'play',
 
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       var self = this;
       sceneEnter(this);
       playScene = this;
@@ -1881,6 +1888,7 @@
   var PauseScene = {
     key: 'pause',
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       var self = this;
       var scrim = this.add.image(DW / 2, DH / 2, texPx(this)).setDisplaySize(DW, DH)
         .setTint(0x0a0520).setAlpha(0).setInteractive();
@@ -1939,7 +1947,7 @@
     return S;
   }
 
-  game = new Phaser.Game({
+  var config = {
     type: Phaser.AUTO,
     parent: 'game',
     backgroundColor: '#120a2c',
@@ -1952,7 +1960,11 @@
     // Texture filtering stays linear, which is what the baked art needs.
     render: { antialias: true, antialiasGL: false, powerPreference: 'high-performance', roundPixels: true },
     scene: [BootScene, BgScene, TitleScene, SetupScene, SimplePlayScene, PauseScene].map(mkScene)
-  });
+  };
+  config.scale.width = Math.round(DW * RETINA_FACTOR);
+  config.scale.height = Math.round(DH * RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
+  game = new Phaser.Game(config);
   // Defect class: a pause raised before Phaser existed must still apply.
   game.events.once(Phaser.Core.Events.READY, syncPause);
 })();

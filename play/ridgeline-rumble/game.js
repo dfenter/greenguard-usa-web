@@ -5,6 +5,7 @@
   var FIXED_STEP = 1 / 60;
   var VIRTUAL_W = 960;
   var VIRTUAL_H = 540;
+  var HIDPI_FACTOR = window.GGKit && window.GGKit.hiDpi ? window.GGKit.hiDpi.factor(VIRTUAL_W, VIRTUAL_H) : 1;
   var PLAY_TOP = 86;
   var PLAY_BOTTOM = 408;
   var LANE_Y = 270;
@@ -228,6 +229,7 @@
     constructor() { super({ key: 'RumbleScene' }); }
 
     create() {
+      this.cameras.main.setZoom(HIDPI_FACTOR);
       this.mode = 'menu';
       this.selected = profile.lastHero;
       this.lane = laneFor('main');
@@ -365,7 +367,7 @@
     uiText(key, value, x, y, size, color, originX, weight) {
       var node = this.texts[key];
       if (!node) {
-        node = this.add.text(0, 0, '', { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: size + 'px', fontStyle: weight === 'normal' ? 'normal' : 'bold', color: color, resolution: 1 });
+        node = this.add.text(0, 0, '', { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: size + 'px', fontStyle: weight === 'normal' ? 'normal' : 'bold', color: color, resolution: HIDPI_FACTOR });
         node.setDepth(50); this.texts[key] = node;
       }
       node.setVisible(true); node.setPosition(x, y); node.setOrigin(originX == null ? 0 : originX, 0.5);
@@ -1037,9 +1039,9 @@
   }
 
   var config = {
-    type: Phaser.AUTO, parent: 'game-shell', backgroundColor: COLORS.ink, width: VIRTUAL_W, height: VIRTUAL_H,
-    render: { antialias: true, roundPixels: true, pixelArt: false },
-    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: VIRTUAL_W, height: VIRTUAL_H },
+    type: Phaser.AUTO, parent: 'game-shell', backgroundColor: COLORS.ink, width: Math.round(VIRTUAL_W * HIDPI_FACTOR), height: Math.round(VIRTUAL_H * HIDPI_FACTOR),
+    render: Object.assign({}, window.GGKit.renderDefaults),
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: Math.round(VIRTUAL_W * HIDPI_FACTOR), height: Math.round(VIRTUAL_H * HIDPI_FACTOR) },
     input: { activePointers: 8 }, scene: [RumbleScene]
   };
   var game = new Phaser.Game(config);

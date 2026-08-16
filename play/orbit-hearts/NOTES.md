@@ -57,3 +57,10 @@ Verified locally against a static server at 390x844, dpr 2: first frame renders,
 Bugs found and fixed during verification: keyboard edges shorter than one frame were dropped by per frame polling, so a window level keydown queue now feeds the action layer; a fragment could become unreachable when conditional lines shortened a scene, so the glimmer line index is clamped into the filtered line list; the fragment hit zone lost the reverse hit scan to the advance zone, so it is now registered last; and interactive scenes awarded affinity past their own three point cap.
 
 Deferred: the 4x CPU throttle frame trace is not trustworthy from this box. The median frame time measured a clean 16.7 ms in story, beat sync, zero g drift and title, but the machine carried a load average above 250 during the capture and produced multi hundred millisecond stalls in every scene including the static title, so the frames over 33 ms figure is environmental. That trace and the deployed URL gate belong to the orchestrator harness on an uncontended box.
+
+## Retina pass 2026-08-16
+
+- Audit profile: CSS viewport 390x844 at DPR 3. Measured pre-pass backing-store ratio: 1.00x. FIT scale math after the pass measures 1170x2532 against the 390x844 CSS canvas, a 3.00x ratio.
+- Recipe: `GGKit.hiDpi.factor(390, 844)`, dense FIT scale dimensions, `GGKit.renderDefaults`, and `this.cameras.main.setZoom(f)` in PlayScene. Phaser text resolution now follows the same factor.
+- Factor cap: none. The factor is the GGKit native value, capped only by GGKit's normal maximum of 3.
+- Could not complete live headless canvas readback or a gameplay screenshot because no browser backend was available in this environment. `node --check` passed.

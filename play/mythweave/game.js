@@ -9,6 +9,7 @@
   var D = window.MWDATA;
   var W = 390;
   var H = 844;
+  var HIDPI_FACTOR = window.GGKit && window.GGKit.hiDpi ? window.GGKit.hiDpi.factor(W, H) : 1;
   var STEP = 1 / 60;
   var MAX_STEPS = 4;
   var SAVE_VERSION = 1;
@@ -1121,9 +1122,11 @@
    * frame.
    */
   function mkCanvas(w, h) {
-    var cv = document.createElement('canvas');
-    cv.width = w; cv.height = h;
-    return cv;
+    return window.GGKit && window.GGKit.hiDpi ? window.GGKit.hiDpi.canvas(w, h, HIDPI_FACTOR).canvas : (function () {
+      var cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      return cv;
+    }());
   }
   function addTex(scene, key, canvas) {
     if (scene.textures.exists(key)) scene.textures.remove(key);
@@ -2233,7 +2236,7 @@
       fontStyle: bold === false ? '' : 'bold', align: align || 'left'
     });
     o.setOrigin(align === 'center' ? 0.5 : (align === 'right' ? 1 : 0), 0.5);
-    o.setResolution(2);
+    o.setResolution(HIDPI_FACTOR);
     return o;
   }
   function wrapText(scene, x, y, s, size, color, width, align) {
@@ -2242,7 +2245,7 @@
       wordWrap: { width: width, useAdvancedWrap: true }, lineSpacing: 6
     });
     o.setOrigin(align === 'center' ? 0.5 : 0, 0);
-    o.setResolution(2);
+    o.setResolution(HIDPI_FACTOR);
     return o;
   }
   function setTx(o, v) {
@@ -2381,6 +2384,7 @@
     key: 'Play',
 
     create: function () {
+      this.cameras.main.setZoom(HIDPI_FACTOR);
       app.scene = this;
       this.acc = 0;
       this.time0 = 0;
@@ -3981,11 +3985,12 @@
 
     handlePointers: function () {
       var self = this;
+      var rect = this.game.canvas.getBoundingClientRect();
       kit.input.pointers.forEach(function (p, id) {
         if (self.pointerClaims[id] === p.downAt) return;
         self.pointerClaims[id] = p.downAt;
-        var gx = self.scale.transformX(p.x);
-        var gy = self.scale.transformY(p.y);
+        var gx = (p.x - rect.left) / Math.max(1, rect.width) * W;
+        var gy = (p.y - rect.top) / Math.max(1, rect.height) * H;
         self.tap(gx, gy, id);
       });
       var keys = Object.keys(this.pointerClaims);
@@ -4033,13 +4038,13 @@
     type: Phaser.AUTO,
     parent: document.body,
     backgroundColor: C.ink2,
+    render: Object.assign({}, window.GGKit.renderDefaults),
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
-      width: W,
-      height: H
+      width: Math.round(W * HIDPI_FACTOR),
+      height: Math.round(H * HIDPI_FACTOR)
     },
-    render: { antialias: true, roundPixels: true, powerPreference: 'high-performance' },
     fps: { target: 60, min: 30 },
     scene: [toScene(PlayScene)]
   });

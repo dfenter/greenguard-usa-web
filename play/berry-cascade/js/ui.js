@@ -33,6 +33,7 @@ var BCUI = (function () {
       fontFamily: U.FONT,
       fontSize: Math.round(size) + 'px',
       fontStyle: (weight || 700) + '',
+      resolution: GGKit.hiDpi.dpr(),
       color: color || '#F7FBFF'
     };
   };
@@ -157,7 +158,7 @@ var BCUI = (function () {
     ico.setTint(opts.tint == null ? 0xF7FBFF : opts.tint);
     root.add(ico);
     var val = scene.add.text(-w * 0.5 + h * 0.86, opts.meter ? -h * 0.10 : 0, opts.value || '0',
-      { fontFamily: U.FONT, fontSize: Math.round(opts.size || 16) + 'px', fontStyle: '750', color: '#F7FBFF' });
+      { fontFamily: U.FONT, fontSize: Math.round(opts.size || 16) + 'px', fontStyle: '750', resolution: GGKit.hiDpi.dpr(), color: '#F7FBFF' });
     val.setOrigin(0, 0.5);
     val.__t = String(opts.value || '0'); val.__c = '#F7FBFF';
     root.add(val);

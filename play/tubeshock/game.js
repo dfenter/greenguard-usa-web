@@ -106,7 +106,8 @@
       fontFamily: FONT,
       fontSize: Math.round(size) + 'px',
       color: color || PAL.text,
-      fontStyle: weight || 'normal'
+      fontStyle: weight || 'normal',
+      resolution: window.GGKit.hiDpi.dpr()
     });
   }
 
@@ -464,13 +465,13 @@
 
   // ====================================================== texture forge
   // Every sprite in the game is drawn here with the 2D context into a Phaser
-  // canvas texture. Supersampled 2x then relied on LINEAR filtering, so the
-  // neon edges stay soft at any device pixel ratio.
+  // canvas texture baked at the current GGKit device density.
   function forge(scene, key, w, h, draw) {
     if (scene.textures.exists(key)) return;
-    var tex = scene.textures.createCanvas(key, w, h);
-    if (!tex) return;
-    var ctx = tex.getContext();
+    var baked = window.GGKit.hiDpi.canvas(w, h);
+    var tex = scene.textures.addCanvas(key, baked.canvas);
+    if (!tex || !baked.ctx) return;
+    var ctx = baked.ctx;
     ctx.clearRect(0, 0, w, h);
     draw(ctx, w, h);
     tex.refresh();
@@ -3456,13 +3457,19 @@
       width: window.innerWidth,
       height: window.innerHeight
     },
-    render: {
-      antialias: true, antialiasGL: false, powerPreference: 'high-performance',
-      roundPixels: false, batchSize: 4096
-    },
+    render: Object.assign({}, window.GGKit.renderDefaults, { batchSize: 4096 }),
     fps: { target: 60, min: 30 },
     scene: [toScene(BootScene), toScene(TitleScene), toScene(PlayScene)]
   });
+
+  function resizeGame() {
+    if (!Game.phaser) return;
+    window.GGKit.hiDpi.resize(Game.phaser, Math.max(1, window.innerWidth || 320), Math.max(1, window.innerHeight || 640));
+  }
+  window.addEventListener('resize', resizeGame);
+  window.addEventListener('orientationchange', resizeGame);
+  document.addEventListener('visibilitychange', resizeGame);
+  resizeGame();
 
   // Harness hooks. The live scene accessor lets a frame trace drive the game
   // from inside the page instead of paying a round trip per input.

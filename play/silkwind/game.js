@@ -14,6 +14,7 @@
   var GGKit = window.GGKit;
 
   var VW = 1280, VH = 720;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(VW, VH);
   var STEP_MS = 1000 / 60;
   var MAX_STEPS = 4;
   var GROUND_Y = 512;
@@ -1227,6 +1228,7 @@
     key: 'main',
 
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       sceneRef = this;
       var self = this;
       this.accum = 0;
@@ -2484,7 +2486,7 @@
     function txt(x, y, size, color, origin, family) {
       var t = self.add.text(x, y, '', {
         fontFamily: family || FONT, fontSize: size + 'px', color: color,
-        stroke: '#05070c', strokeThickness: size > 40 ? 6 : 4
+        stroke: '#05070c', strokeThickness: size > 40 ? 6 : 4, resolution: RETINA_FACTOR
       }).setOrigin(origin == null ? 0 : origin, 0.5);
       h.add(t);
       return t;
@@ -2873,7 +2875,7 @@
     function txt(x, y, size, color, origin, family) {
       var t = self.add.text(x, y, '', {
         fontFamily: family || FONT, fontSize: size + 'px', color: color,
-        stroke: '#05070c', strokeThickness: size > 40 ? 6 : 3
+        stroke: '#05070c', strokeThickness: size > 40 ? 6 : 3, resolution: RETINA_FACTOR
       }).setOrigin(origin == null ? 0 : origin, 0.5);
       m.add(t);
       return t;
@@ -3347,7 +3349,7 @@
   };
 
   /* ------------------------------------------------------------- launch */
-  var game = new Phaser.Game({
+  var config = {
     type: Phaser.AUTO,
     parent: 'game',
     backgroundColor: '#070910',
@@ -3357,6 +3359,10 @@
        ruinous on software rasterisers. */
     render: { antialias: true, antialiasGL: false, powerPreference: 'high-performance' },
     scene: [MainScene]
-  });
+  };
+  config.scale.width = Math.round(VW * RETINA_FACTOR);
+  config.scale.height = Math.round(VH * RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
+  var game = new Phaser.Game(config);
   bridge.game = game;
 })();

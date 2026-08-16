@@ -256,3 +256,19 @@ growth. That took the same trace to 3-7 frames over 33 ms.
 - The ascent deliberately has no second boss fight. It raises spawn weights,
   torch burn and hunger instead, so the climb stays a chase rather than becoming
   a repeat of the fight you just won.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.00x source baseline at DPR 3. After ratio: 3.00x configured
+  through `GGKit.hiDpi.resize(game, cssW, cssH)`; a live canvas ratio could
+  not be measured because Chrome aborted in this sandbox and the private HTTP
+  bind was denied.
+- Recipe: applied Phaser Scale.RESIZE hi-DPI sizing at boot, resize,
+  orientation-change, and visibility events. Applied `GGKit.renderDefaults`
+  while retaining the title's pixel-art and rounded-pixel settings, and set
+  Phaser text resolution from `GGKit.hiDpi.dpr()`.
+- Factor cap: none beyond the GGKit maximum of 3. No title-specific cap was
+  needed.
+- Could not complete the live DPR 3 gameplay screenshot or layout check.
+  Existing authored canvas bakes were left at their logical sizes because a
+  frame-unit migration to `GGKit.hiDpi.canvas(...)` could not be live-verified.

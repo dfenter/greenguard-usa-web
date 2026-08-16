@@ -38,6 +38,15 @@
     value = String(value);
     if (obj && obj.text !== value) obj.setText(value);
   }
+  function setTextDensity(scene) {
+    var density = window.GGKit.hiDpi.dpr();
+    function visit(node) {
+      if (!node) return;
+      if (node.setResolution) node.setResolution(density);
+      if (node.list) node.list.forEach(visit);
+    }
+    if (scene && scene.children && scene.children.list) scene.children.list.forEach(visit);
+  }
   function shiftFor(key) { return SHIFT_BY_KEY[key] || SHIFT_BY_KEY['morning-rush']; }
   function layoutFor(key) { return R.buildLayout(key || 'city-loop'); }
   function validShift(key) { return !!SHIFT_BY_KEY[key]; }
@@ -305,8 +314,9 @@
       this.selectScroll = clamp(this.selectScroll, -Math.max(0, contentBottom - viewportBottom), 0);
     }
     relayout(size) {
-      var w = Math.max(320, (size && size.width) || this.scale.width || window.innerWidth);
-      var h = Math.max(240, (size && size.height) || this.scale.height || window.innerHeight);
+      var w = Math.max(320, (size && size.width) || this.scale.width || 320);
+      var h = Math.max(240, (size && size.height) || this.scale.height || 240);
+      setTextDensity(this);
       this.screenW = w; this.screenH = h; this.insets = readInsets();
       this.uiBg.clear(); this.uiBg.fillStyle(0x07131c, 1); this.uiBg.fillRect(0, 0, w, h);
       this.uiBg.lineStyle(1, 0x25424b, 0.7); for (var gy = 0; gy < h; gy += 28) this.uiBg.lineBetween(0, gy, w, gy);
@@ -733,9 +743,16 @@
 
   var config = {
     type: Phaser.AUTO, parent: document.body, backgroundColor: '#07131c',
-    scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight, autoCenter: Phaser.Scale.CENTER_BOTH }, render: { pixelArt: true, antialias: false, antialiasGL: false, powerPreference: 'high-performance', roundPixels: true },
+    scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight, autoCenter: Phaser.Scale.CENTER_BOTH }, render: Object.assign({}, GGKit.renderDefaults),
     input: { activePointers: 4 }, scene: [BootScene, MainScene]
   };
   var game = new Phaser.Game(config);
+  function resizeGame() {
+    GGKit.hiDpi.resize(game, Math.max(1, window.innerWidth || 320), Math.max(1, window.innerHeight || 240));
+  }
+  window.addEventListener('resize', resizeGame);
+  window.addEventListener('orientationchange', resizeGame);
+  document.addEventListener('visibilitychange', resizeGame);
+  resizeGame();
   window.__SL_GAME = game;
 })();

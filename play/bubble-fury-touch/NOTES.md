@@ -245,3 +245,10 @@ Rejected: none.
 - Shrunk wave, score, multiplier, timer, and health HUD into compact values, bars, weapon icon state, and phase pips; moved pause to the safe top edge with a 44px touch target.
 - Converted wave, boss, pickup, pocket, overtime, clear, phase, and weak events into one queued upper-edge chip (16px, max 1.0s); tutorial copy uses the same single 30px top strip and fades within 3s.
 - Kept gameplay information in the health/weapon/boss meters, world pickup state, pause overlay, and results card; reduced-motion gating remains on transient fading and camera/juice motion.
+
+## Retina pass 2026-08-16
+
+- Ratio record at landscape CSS 844x390 and DPR 3: before 1.38x from the 960px design FIT backing store; after 3.00x expected from a 2080x1170 backing store. Live canvas measurement was unavailable.
+- Recipe: `GGKit.hiDpi.factor(960, 540)`, dense FIT scale dimensions, `GGKit.renderDefaults`, and `setZoom(RETINA_FACTOR)` in Boot, Menu, Game, and Hud. The existing 1.30 gameplay camera zoom remains composed with the retina factor.
+- Factor cap: none. The factor is GGKit-clamped to the device maximum of 3.
+- Could not capture the required DPR 3 gameplay screenshot or `canvas.width / getBoundingClientRect().width` measurement because no browser instance was available and the private port could not be opened in this environment.

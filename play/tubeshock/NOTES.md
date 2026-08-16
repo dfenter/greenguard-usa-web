@@ -258,3 +258,11 @@ Checks: `node --check` passed for `game.js`, `sw.js`, and `ts_data.js`; payload 
 - Cut floating score popups, repeated HUD captions, and banner subtitles; score, lives, depth, surge, buffs, pickups, and boss state remain in compact meters/icons.
 - Shrunk live feedback into one queued top-edge chip (14px, 1.0s max): hazards, pickups, SURGE, shields, life loss, and family changes no longer use center banners.
 - Kept center banners only for run/segment/boss boundaries, shortened tutorial copy into one 14px strip, and faded it near-transparent after 3s.
+
+## Retina pass 2026-08-16
+
+- Measured before ratio: unavailable for this title in this environment. Fleet baseline was 1.00x for 62 titles, with the remainder from 1.10x to 2.46x.
+- Measured after ratio: unavailable because no browser backend was exposed. The helper path targets 3.00x at DPR 3, but that is not a captured measurement.
+- Recipe: Phaser `Scale.RESIZE`; initial sizing, resize, orientation change, and visibility change all call `GGKit.hiDpi.resize`.
+- Factor cap: none; the GGKit DPR cap of 3 applies. No title-specific cap was justified.
+- Could not do: DPR 3 backing-store read or gameplay screenshot. Browser discovery returned no browser, and local HTTP port binding was denied.

@@ -194,3 +194,10 @@ Verification: `node --check game.js`, `node --check ch_data.js`, and `node --che
 - Shortened the tutorial to a single 14px top strip that fades to near-transparent after three seconds; kept reduced-motion gating and enlarged top action hit targets to 44px.
 - Bumped `sw.js` cache version to `2026-08-10-aaa-r3`.
 - Verification: `node --check game.js`, `ch_data.js`, and `sw.js` pass; no browser preview was available for a screenshot capture.
+
+## Retina pass 2026-08-16
+
+- Ratio record: before 1.00x from the pre-pass design-size backing configuration; after 3.00x is the configured DPR3 result from `round(design * GGKit.hiDpi.factor(...))`. A live canvas ratio read was unavailable.
+- Recipe: Phaser `Scale.FIT`, dynamic design dimensions retained, `RETINA_FACTOR` applied after viewport sizing, and `setZoom` in Boot and Play. Baked CanvasTextures use the dense GGKit canvas helper and Phaser text uses the same resolution.
+- Factor cap: none. The GGKit factor is used without a cap because this title has no measured need for one.
+- Could not do: the browser connector reported no available target, so the required DPR3 canvas ratio read and real gameplay screenshot could not be captured. `node --check` and `git diff --check` pass.

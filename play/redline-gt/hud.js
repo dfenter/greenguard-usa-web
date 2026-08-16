@@ -351,9 +351,9 @@ export class Hud {
     const c = this.ctx;
     const key = (color || 'rgba(4,8,16,') + '|vig';
     if (key !== this._vigKey) {
-      const cv = document.createElement('canvas');
-      cv.width = 128; cv.height = 128;
-      const g2 = cv.getContext('2d');
+      const baked = GGKit.hiDpi.canvas(128, 128);
+      const cv = baked.canvas;
+      const g2 = baked.ctx;
       const g = g2.createRadialGradient(64, 64, 24, 64, 64, 90);
       g.addColorStop(0, 'rgba(0,0,0,0)');
       g.addColorStop(1, (color || 'rgba(4,8,16,') + '1)');

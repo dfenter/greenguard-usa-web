@@ -61,6 +61,7 @@ window.AG = AG;
 
   /* --------------------------------------------------------- create */
   BaseScene.prototype.create = function () {
+    this.cameras.main.setZoom(AG.RETINA_FACTOR);
     var self = this, i, site = this.siteDef;
     this.cam = this.cameras.main;
     this.cam.setBackgroundColor(site.sky);

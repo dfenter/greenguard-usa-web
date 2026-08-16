@@ -259,3 +259,10 @@ rAF, the game was stepped deterministically with `AG.game.step(t, 16.7)`.
 ### Rejected
 
 - MAJOR AAA evidence: not captured in this fix round because the requested current six-gate harness requires a deployed build and a connected browser, while this round explicitly forbids deployment and the available environment has no browser connection. Static syntax, manifest, icon, precache, asset-key, save-normalization, punctuation, and payload checks were run instead.
+
+## Retina pass 2026-08-16
+
+- Ratio record at portrait CSS 390x844 and DPR 3: before 1.38x from the 540px design FIT backing store; after 3.00x expected from a 1170x2080 backing store. Live canvas measurement was unavailable.
+- Recipe: `GGKit.hiDpi.factor(AG.DW, AG.DH)`, dense FIT scale dimensions, `GGKit.renderDefaults`, and `setZoom(AG.RETINA_FACTOR)` in Boot, Menu, Run, Base, and Result.
+- Factor cap: none. The factor is GGKit-clamped to the device maximum of 3.
+- Could not capture the required DPR 3 gameplay screenshot or `canvas.width / getBoundingClientRect().width` measurement because no browser instance was available and the private port could not be opened in this environment.

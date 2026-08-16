@@ -299,7 +299,7 @@
 
   function label(scene, x, y, text, size, color, weight) {
     return scene.add.text(x, y, text, {
-      fontFamily: FONT,
+      fontFamily: FONT, resolution: GGKit.hiDpi.dpr(),
       fontSize: size + 'px',
       fontStyle: weight || 'normal',
       color: color || '#f2ecff'
@@ -2215,6 +2215,12 @@
   };
 
   // ============================================================== boot up
+  function syncHiDpi(game) {
+    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || window.innerWidth || 1));
+    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || window.innerHeight || 1));
+    GGKit.hiDpi.resize(game, cssW, cssH);
+  }
+
   function boot() {
     Game.insets = readInsets();
     var W = Math.max(320, Math.floor(window.innerWidth));
@@ -2229,12 +2235,15 @@
       // pure cost on a software rasteriser and worth nothing when every edge
       // already comes out of a filtered texture. batchSize keeps the street
       // graphics and the sprite fleet inside one draw batch.
-      render: {
-        antialias: true, antialiasGL: false, powerPreference: 'high-performance',
-        roundPixels: false, batchSize: 4096
-      },
+      render: Object.assign({}, GGKit.renderDefaults, { batchSize: 4096 }),
       fps: { target: 60, min: 30 },
       scene: [BootScene, MenuScene, PlayScene]
+    });
+    syncHiDpi(Game.phaser);
+    window.addEventListener('resize', function () { syncHiDpi(Game.phaser); });
+    window.addEventListener('orientationchange', function () { syncHiDpi(Game.phaser); });
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) syncHiDpi(Game.phaser);
     });
   }
 

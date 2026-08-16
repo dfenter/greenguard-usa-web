@@ -8,6 +8,7 @@
   var E = window.WBEngine;
   var A = window.WBArt;
   var GAME_W = 1280, GAME_H = 720;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(GAME_W, GAME_H);
   var STEP = 1 / 60, MAX_STEPS = 5;
   var HEXR = A.HEXR;
   var FONT = '"Trebuchet MS", "Avenir Next", Arial, sans-serif';
@@ -58,6 +59,11 @@
   window.__wb = hook;
 
   var Game = { phaser: null, scene: null };
+
+  var textFactory = Phaser.GameObjects.GameObjectFactory.prototype.text;
+  Phaser.GameObjects.GameObjectFactory.prototype.text = function (x, y, text, style) {
+    return textFactory.call(this, x, y, text, Object.assign({ resolution: RETINA_FACTOR }, style || {}));
+  };
   var kit = GGKit.create({
     slug: 'warring-banners',
     orientation: 'landscape',
@@ -116,6 +122,7 @@
   WBScene.prototype.constructor = WBScene;
 
   WBScene.prototype.create = function () {
+    this.cameras.main.setZoom(RETINA_FACTOR);
     Game.scene = this;
     hook._scene = this;
     var self = this;
@@ -2178,10 +2185,11 @@
     width: GAME_W,
     height: GAME_H,
     backgroundColor: '#0a151f',
-    render: { antialias: true, roundPixels: false, powerPreference: 'high-performance' },
-    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+    render: {},
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: Math.round(GAME_W * RETINA_FACTOR), height: Math.round(GAME_H * RETINA_FACTOR) },
     scene: [WBScene]
   };
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
   kit.loader.show('WARRING BANNERS');
   kit.loader.progress(0.1);
   Game.phaser = new Phaser.Game(config);

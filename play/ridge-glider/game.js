@@ -94,6 +94,7 @@ let corridorMesh;
 let approachCone;
 let shadow;
 let skyCanvas;
+let skyContext;
 let skyTexture;
 let simClock = 0;
 let accumulator = 0;
@@ -227,22 +228,21 @@ function updateParticles(dt) {
 }
 
 function updateSkyGradient(colors) {
-  if (!skyCanvas) return;
-  const context = skyCanvas.getContext('2d');
-  const gradient = context.createLinearGradient(0, 0, 0, skyCanvas.height);
+  if (!skyContext) return;
+  const gradient = skyContext.createLinearGradient(0, 0, 0, 256);
   gradient.addColorStop(0, colors[0]); gradient.addColorStop(.55, colors[1]); gradient.addColorStop(1, colors[2]);
-  context.fillStyle = gradient; context.fillRect(0, 0, skyCanvas.width, skyCanvas.height);
+  skyContext.fillStyle = gradient; skyContext.fillRect(0, 0, 4, 256);
   if (skyTexture) skyTexture.needsUpdate = true;
 }
 
 function initScene() {
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1));
+  GGKit.hiDpi.three(renderer);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   scene = new THREE.Scene();
   scene.fog = new THREE.Fog(0x6eacc0, 760, 4300);
   camera = new THREE.PerspectiveCamera(54, 1, 12, 7200);
-  skyCanvas = document.createElement('canvas'); skyCanvas.width = 4; skyCanvas.height = 256;
+  const skyBake = GGKit.hiDpi.canvas(4, 256); skyCanvas = skyBake.canvas; skyContext = skyBake.ctx;
   skyTexture = new THREE.CanvasTexture(skyCanvas); skyTexture.colorSpace = THREE.SRGBColorSpace; scene.background = skyTexture;
   updateSkyGradient(RIDGES[0].sky);
   scene.add(new THREE.HemisphereLight(0xe6f4ef, 0x132a35, 1.55));

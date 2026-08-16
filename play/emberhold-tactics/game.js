@@ -8,6 +8,7 @@
   var Phaser = window.Phaser;
   var STEP = 1000 / 60;
   var W = 1200, H = 760, N = Sim.N, TILE_W = 78, TILE_H = 39, EXTRUDE = 15;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(W, H);
   var TAU = Math.PI * 2;
   var seedFromUrl = Number(new URLSearchParams(location.search).get('seed'));
   if (!Number.isFinite(seedFromUrl)) seedFromUrl = 2417;
@@ -105,6 +106,7 @@
     this.load.image('fx_ember', 'assets/fx_ember.svg');
   };
   EmberholdScene.prototype.create = function () {
+    this.cameras.main.setZoom(RETINA_FACTOR);
     liveScene = this;
     this.boardG = this.add.graphics(); this.fxG = this.add.graphics(); this.fogG = this.add.graphics(); this.uiG = this.add.graphics();
     this.tileSprites = new Map(); this.pickupViews = new Map();
@@ -139,7 +141,7 @@
   EmberholdScene.prototype.ensureView = function (u) {
     var view = this.views.get(u.id);
     if (view) return view;
-    view = {bob:0, lastHp:u.hp, lastC:u.c, lastR:u.r, state:'idle', stateUntil:0, sprite:this.add.image(0,0,'unit_player').setDepth(20), label:this.add.text(0,0,'',{fontFamily:'Arial',fontSize:'18px',fontStyle:'bold',color:'#eff8f5',stroke:'#06101a',strokeThickness:4}).setOrigin(.5).setDepth(21), name:this.add.text(0,0,'',{fontFamily:'Arial',fontSize:'10px',color:'#cce2e5',stroke:'#06101a',strokeThickness:3}).setOrigin(.5).setDepth(21)};
+    view = {bob:0, lastHp:u.hp, lastC:u.c, lastR:u.r, state:'idle', stateUntil:0, sprite:this.add.image(0,0,'unit_player').setDepth(20), label:this.add.text(0,0,'',{fontFamily:'Arial',fontSize:'18px',fontStyle:'bold',color:'#eff8f5',stroke:'#06101a',strokeThickness:4,resolution:RETINA_FACTOR}).setOrigin(.5).setDepth(21), name:this.add.text(0,0,'',{fontFamily:'Arial',fontSize:'10px',color:'#cce2e5',stroke:'#06101a',strokeThickness:3,resolution:RETINA_FACTOR}).setOrigin(.5).setDepth(21)};
     this.views.set(u.id, view); return view;
   };
   EmberholdScene.prototype.clearDeadViews = function () {
@@ -469,7 +471,11 @@
   };
 
   kit.loader.show('EMBERHOLD TACTICS'); kit.loader.progress(.25);
-  var game = new Phaser.Game({type:Phaser.CANVAS, width:W, height:H, parent:'game', backgroundColor:'#070d18', scene:[EmberholdScene], render:{antialias:true, roundPixels:false}, scale:{mode:Phaser.Scale.FIT, autoCenter:Phaser.Scale.CENTER_BOTH}, audio:{disableWebAudio:true}});
+  var config = {type:Phaser.CANVAS, width:W, height:H, parent:'game', backgroundColor:'#070d18', scene:[EmberholdScene], render:{antialias:true, roundPixels:false}, scale:{mode:Phaser.Scale.FIT, autoCenter:Phaser.Scale.CENTER_BOTH}, audio:{disableWebAudio:true}};
+  config.scale.width = Math.round(W * RETINA_FACTOR);
+  config.scale.height = Math.round(H * RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
+  var game = new Phaser.Game(config);
   kit.loader.progress(1);
   window.__et.game = game;
 }());

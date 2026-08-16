@@ -6,6 +6,7 @@
   var PP = root.PP || {};
   var E = PP.engine, LEVELS = PP.levels || [], ROOMS = PP.rooms || [], DAILY = PP.daily, META = PP.meta, AUDIO = PP.audio;
   var W = 390, H = 844, CELL = 43.5, HIT_CELL = 44, BOARD_X = 21, BOARD_Y = 232;
+  var HIDPI_FACTOR = KitRef && KitRef.hiDpi ? KitRef.hiDpi.factor(W, H) : 1;
   var HIT_BOARD_X = (W - HIT_CELL * 8) / 2, HIT_BOARD_Y = BOARD_Y - (HIT_CELL * 8 - CELL * 8) / 2;
   var FONT = 'system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
   var PALETTE = [0xF25C68, 0xF7C948, 0x5BCB77, 0x38A8DE, 0x9A7CF3, 0xF29A4A, 0xD86BAA];
@@ -131,7 +132,7 @@
     kit.input.pointers.set(id, { x: x, y: y, startX: x, startY: y, downAt: Date.now(), zone: zone || null });
   }
   function makeText(scene, x, y, text, size, color, origin) {
-    return scene.add.text(x, y, text, { fontFamily: FONT, fontSize: size + 'px', fontStyle: '600', color: color || '#F7FBFF', align: 'center', lineSpacing: 3 }).setOrigin(origin == null ? 0.5 : origin);
+    return scene.add.text(x, y, text, { fontFamily: FONT, fontSize: size + 'px', fontStyle: '600', color: color || '#F7FBFF', align: 'center', lineSpacing: 3, resolution: HIDPI_FACTOR }).setOrigin(origin == null ? 0.5 : origin);
   }
   function makeButton(scene, x, y, w, h, label, callback, opts) {
     opts = opts || {};
@@ -169,13 +170,16 @@
   function bake(scene, key, width, height, draw) {
     var existing = scene.textures.exists(key) ? scene.textures.get(key) : null;
     var source = existing && existing.getSourceImage ? existing.getSourceImage() : null;
-    if (source && source.width === width && source.height === height) return key;
+    var denseWidth = Math.round(width * HIDPI_FACTOR), denseHeight = Math.round(height * HIDPI_FACTOR);
+    if (source && source.width === denseWidth && source.height === denseHeight) return key;
     if (existing && existing.destroy) existing.destroy();
-    var tex = scene.textures.createCanvas(key, width, height);
-    if (!tex || !tex.getContext) return null;
-    var ctx = tex.getContext();
+    var baked = KitRef && KitRef.hiDpi ? KitRef.hiDpi.canvas(width, height, HIDPI_FACTOR) : null;
+    var canvas = baked ? baked.canvas : document.createElement('canvas');
+    if (!baked) { canvas.width = width; canvas.height = height; }
+    var ctx = baked ? baked.ctx : canvas.getContext('2d');
     if (!ctx) return null;
-    ctx.clearRect(0, 0, width, height); draw(ctx, width, height); tex.refresh(); return key;
+    ctx.clearRect(0, 0, width, height); draw(ctx, width, height);
+    scene.textures.addCanvas(key, canvas); return key;
   }
   function drawSymbol(ctx, symbol, cx, cy, r, fill) {
     ctx.fillStyle = fill; ctx.strokeStyle = fill; ctx.lineWidth = 2;
@@ -310,6 +314,7 @@
   class BootScene extends PhaserRef.Scene {
     constructor() { super({ key: 'boot' }); }
     create() {
+      this.cameras.main.setZoom(HIDPI_FACTOR);
       bakeTextures(this);
       this.add.image(W / 2, H / 2, 'pp_bg').setDepth(0).setVisible(true);
       this.add.rectangle(W / 2, 392, 300, 180, 0x182238, .9).setStrokeStyle(2, 0xF7C948, .9).setDepth(1);
@@ -328,6 +333,7 @@
   class TitleScene extends PhaserRef.Scene {
     constructor() { super({ key: 'title' }); }
     create() {
+      this.cameras.main.setZoom(HIDPI_FACTOR);
       Game.title = this; this.view = 'home'; this.roomPage = 0; this.panel = [];
       this.add.image(W / 2, H / 2, 'pp_bg').setDepth(0).setVisible(true);
       this.header = makeText(this, W / 2, 48, 'PARLOR POP', 31, '#F7FBFF');
@@ -423,6 +429,7 @@
   class PlayScene extends PhaserRef.Scene {
     constructor() { super({ key: 'play' }); }
     create(args) {
+      this.cameras.main.setZoom(HIDPI_FACTOR);
       Game.play = this; this.args = args || { mode: 'campaign' };
       this.mode = ['campaign', 'daily', 'mastery'].indexOf(this.args.mode) >= 0 ? this.args.mode : 'campaign';
       var forced = parseLevelSwitch(debugValue('forceLevel'));
@@ -750,9 +757,9 @@
   }
 
   var config = {
-    type: PhaserRef.AUTO, width: W, height: H, parent: document.body, backgroundColor: '#10182B',
-    render: { antialias: true, roundPixels: true },
-    scale: { mode: PhaserRef.Scale.FIT, autoCenter: PhaserRef.Scale.CENTER_BOTH },
+    type: PhaserRef.AUTO, width: Math.round(W * HIDPI_FACTOR), height: Math.round(H * HIDPI_FACTOR), parent: document.body, backgroundColor: '#10182B',
+    render: Object.assign({}, KitRef.renderDefaults),
+    scale: { mode: PhaserRef.Scale.FIT, autoCenter: PhaserRef.Scale.CENTER_BOTH, width: Math.round(W * HIDPI_FACTOR), height: Math.round(H * HIDPI_FACTOR) },
     scene: [BootScene, TitleScene, PlayScene]
   };
   Game.phaser = new PhaserRef.Game(config);

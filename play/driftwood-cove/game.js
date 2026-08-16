@@ -18,7 +18,8 @@
   var PRODUCER_MAX = 5;         /* prototype constant: five draws per producer */
   var PRODUCER_REGEN = 4.5;     /* seconds per charge: generous, never a paywall */
   var STORM_SECONDS = 75;
-  var TEXT_RES = Math.min(2, root.devicePixelRatio || 1);
+  var RETINA_FACTOR = root.GGKit && root.GGKit.hiDpi ? root.GGKit.hiDpi.factor(W, H) : 1;
+  var TEXT_RES = RETINA_FACTOR;
 
   var C = {
     ink: '#071923', ink2: '#0C2530', sea: '#123844', seaLit: '#1B5660',
@@ -186,8 +187,9 @@
    * Graphics command list during gameplay. */
   function texture(scene, key, w, h, paint) {
     if (scene.textures.exists(key)) return key;
-    var tex = scene.textures.createCanvas(key, w, h);
-    var ctx = tex.getContext();
+    var dense = root.GGKit.hiDpi.canvas(w, h, RETINA_FACTOR);
+    var tex = scene.textures.addCanvas(key, dense.canvas);
+    var ctx = dense.ctx;
     ctx.clearRect(0, 0, w, h);
     paint(ctx, w, h);
     tex.refresh();
@@ -1218,7 +1220,7 @@
   function makePool(scene, key, size, depth, blend) {
     var pool = { items: [], next: 0 };
     for (var i = 0; i < size; i++) {
-      var sp = scene.add.image(-80, -80, key).setDepth(depth).setVisible(false);
+      var sp = scene.add.image(-80, -80, key).setDepth(depth).setScale(1 / RETINA_FACTOR).setVisible(false);
       if (blend) sp.setBlendMode(PhaserRef.BlendModes.ADD);
       pool.items.push({ sp: sp, life: 0, max: 1, x: 0, y: 0, vx: 0, vy: 0, g: 0, s0: 1, s1: 0, rot: 0, spin: 0 });
     }
@@ -1255,7 +1257,7 @@
       p.x += p.vx * dt; p.y += p.vy * dt;
       p.rot += p.spin * dt;
       var f = p.life / p.max;
-      p.sp.setPosition(p.x, p.y).setScale(lerp(p.s1, p.s0, f)).setAlpha(clamp(f * 1.4, 0, 1)).setRotation(p.rot);
+      p.sp.setPosition(p.x, p.y).setScale(lerp(p.s1, p.s0, f) / RETINA_FACTOR).setAlpha(clamp(f * 1.4, 0, 1)).setRotation(p.rot);
     }
   }
   function clearPool(pool) {
@@ -1287,7 +1289,7 @@
 
   /* One transient at a time: chips queue, they never stack (UI law rule 1). */
   function makeChips(scene, x, y, depth) {
-    var bg = scene.add.image(x, y, 'dc_chip').setDepth(depth).setVisible(false);
+    var bg = scene.add.image(x, y, 'dc_chip').setDepth(depth).setScale(1 / RETINA_FACTOR).setVisible(false);
     var label = makeText(scene, x, y - 1, '', 14, C.paper, 0.5, '700').setDepth(depth + 1).setVisible(false);
     return { bg: bg, label: label, queue: [], hold: 0, current: null };
   }
@@ -1343,6 +1345,7 @@
 
   PlayScene.prototype.create = function () {
     var self = this, i;
+    this.cameras.main.setZoom(RETINA_FACTOR);
     Game.active = this;
     this.mode = 'play';
     this.acc = 0;
@@ -1372,7 +1375,7 @@
     this.add.rectangle(W / 2, H / 2, W, H, 0x071923).setDepth(0);
 
     /* diorama */
-    this.scenery = this.add.image(W / 2, 125, 'dc_scene_' + save.area).setDepth(2);
+    this.scenery = this.add.image(W / 2, 125, 'dc_scene_' + save.area).setDepth(2).setScale(1 / RETINA_FACTOR);
     this.sceneryProps = save.cleared[save.area];
     this.refreshScenery(true);
 
@@ -1380,7 +1383,7 @@
     this.add.rectangle(W / 2, 25, W, 50, 0x071923, 0.92).setDepth(20);
     this.areaText = makeText(this, 14, 18, AREAS[save.area].name, 17, C.paper, 0, '800').setDepth(21);
     this.subText = makeText(this, 14, 37, '', 13, C.muted, 0, '600').setDepth(21);
-    this.fragIcon = this.add.image(276, 25, 'dc_frag').setDepth(21).setScale(1.5);
+    this.fragIcon = this.add.image(276, 25, 'dc_frag').setDepth(21).setScale(1.5 / RETINA_FACTOR);
     this.fragText = makeText(this, 288, 25, '0', 15, C.gold, 0, '750').setDepth(21);
     this.pauseBtn = this.add.image(366, 25, 'dc_icon_btn').setDepth(21).setDisplaySize(46, 46);
     this.pauseGlyph = makeText(this, 366, 24, 'II', 16, C.paper, 0.5, '800').setDepth(22);
@@ -1391,11 +1394,11 @@
     for (i = 0; i < 3; i++) {
       var cx = 66 + i * 129;
       var card = {
-        bg: this.add.image(cx, TRAY_Y, 'dc_card').setDepth(12),
+        bg: this.add.image(cx, TRAY_Y, 'dc_card').setDepth(12).setScale(1 / RETINA_FACTOR),
         who: makeText(this, cx - 50, TRAY_Y - 24, '', 12, C.muted, 0, '700').setDepth(13),
-        icon: this.add.image(cx - 34, TRAY_Y + 2, itemKey(0, 0)).setDepth(13).setScale(0.60),
+        icon: this.add.image(cx - 34, TRAY_Y + 2, itemKey(0, 0)).setDepth(13).setScale(0.60 / RETINA_FACTOR),
         count: makeText(this, cx - 34, TRAY_Y + 24, '', 12, C.paper, 0.5, '750').setDepth(13),
-        stepFrom: this.add.image(cx + 24, TRAY_Y + 2, itemKey(0, 0)).setDepth(13).setScale(0.42),
+        stepFrom: this.add.image(cx + 24, TRAY_Y + 2, itemKey(0, 0)).setDepth(13).setScale(0.42 / RETINA_FACTOR),
         arrow: makeText(this, cx + 2, TRAY_Y + 2, '', 16, C.gold, 0.5, '800').setDepth(13),
         need: makeText(this, cx + 24, TRAY_Y + 24, '', 12, C.gold, 0.5, '750').setDepth(13),
         ready: makeText(this, cx + 34, TRAY_Y - 24, '', 11, C.ok, 0.5, '800').setDepth(13),
@@ -1409,18 +1412,18 @@
     }
 
     /* board */
-    this.board = this.add.image(BOARD_X + BOARD_W / 2, BOARD_Y + BOARD_H / 2 - 8, 'dc_board').setDepth(4);
+    this.board = this.add.image(BOARD_X + BOARD_W / 2, BOARD_Y + BOARD_H / 2 - 8, 'dc_board').setDepth(4).setScale(1 / RETINA_FACTOR);
     this.items = [];
     this.fogs = [];
     this.view = [];
     for (i = 0; i < CELLS; i++) {
-      this.items.push(this.add.image(cellX(i), cellY(i), itemKey(0, 0)).setDepth(8).setVisible(false));
-      this.fogs.push(this.add.image(cellX(i), cellY(i), 'dc_fog').setDepth(9).setVisible(false));
+      this.items.push(this.add.image(cellX(i), cellY(i), itemKey(0, 0)).setDepth(8).setScale(1 / RETINA_FACTOR).setVisible(false));
+      this.fogs.push(this.add.image(cellX(i), cellY(i), 'dc_fog').setDepth(9).setScale(1 / RETINA_FACTOR).setVisible(false));
       this.view.push({ x: cellX(i), y: cellY(i), scale: 1, pop: 0, alpha: 1, key: '' });
     }
-    this.selector = this.add.image(-99, -99, 'dc_ring_ready').setDepth(10).setVisible(false);
-    this.ghost = this.add.image(-99, -99, 'dc_ghost').setDepth(10).setVisible(false);
-    this.dragSprite = this.add.image(-99, -99, itemKey(0, 0)).setDepth(16).setVisible(false);
+    this.selector = this.add.image(-99, -99, 'dc_ring_ready').setDepth(10).setScale(1 / RETINA_FACTOR).setVisible(false);
+    this.ghost = this.add.image(-99, -99, 'dc_ghost').setDepth(10).setScale(1 / RETINA_FACTOR).setVisible(false);
+    this.dragSprite = this.add.image(-99, -99, itemKey(0, 0)).setDepth(16).setScale(1 / RETINA_FACTOR).setVisible(false);
 
     /* producers and tidy */
     this.prodTide = this.makeProducer('tide', 98, 'Tide pool');
@@ -1438,11 +1441,11 @@
 
     /* transients: one chip at a time, one thin coach strip */
     this.chips = makeChips(this, W / 2, 66, 26);
-    this.coachBg = this.add.image(W / 2, COACH_Y, 'dc_strip').setDepth(26).setVisible(false);
+    this.coachBg = this.add.image(W / 2, COACH_Y, 'dc_strip').setDepth(26).setScale(1 / RETINA_FACTOR).setVisible(false);
     this.coachText = makeText(this, W / 2, COACH_Y - 1, '', 14, '#243A44', 0.5, '700').setDepth(27).setVisible(false);
 
     /* run boundary banner (60 percent width, overshoot) */
-    this.bannerBg = this.add.image(W / 2, 420, 'dc_banner').setDepth(40).setVisible(false);
+    this.bannerBg = this.add.image(W / 2, 420, 'dc_banner').setDepth(40).setScale(1 / RETINA_FACTOR).setVisible(false);
     this.bannerText = makeText(this, W / 2, 400, '', 22, '#2B2D42', 0.5, '800').setDepth(41).setVisible(false);
     this.bannerSubText = makeText(this, W / 2, 430, '', 14, '#5A5B6B', 0.5, '600').setDepth(41).setVisible(false);
 
@@ -1472,13 +1475,13 @@
     var self = this, i, pips = [];
     var p = {
       id: id,
-      bg: this.add.image(x, PROD_Y, 'dc_prod').setDepth(20),
+      bg: this.add.image(x, PROD_Y, 'dc_prod').setDepth(20).setScale(1 / RETINA_FACTOR),
       label: makeText(this, x, PROD_Y - 16, label, 14, C.paper, 0.5, '750').setDepth(21),
       state: makeText(this, x, PROD_Y + 18, '', 12, C.aqua, 0.5, '650').setDepth(21),
       pips: pips, pop: 0
     };
     for (i = 0; i < PRODUCER_MAX; i++) {
-      pips.push(this.add.image(x - 34 + i * 17, PROD_Y + 2, 'dc_spark').setDepth(21).setScale(0.9));
+      pips.push(this.add.image(x - 34 + i * 17, PROD_Y + 2, 'dc_spark').setDepth(21).setScale(0.9 / RETINA_FACTOR));
     }
     this.buttons.push({ x: x - 84, y: PROD_Y - 37, w: 168, h: 74,
       fn: function () { self.draw(id); } });
@@ -1500,7 +1503,7 @@
     this.pauseButtons = [];
     for (i = 0; i < rows.length; i++) {
       var y = 300 + i * 68;
-      var bg = this.add.image(W / 2, y, 'dc_btn').setDepth(51).setVisible(false);
+      var bg = this.add.image(W / 2, y, 'dc_btn').setDepth(51).setScale(1 / RETINA_FACTOR).setVisible(false);
       var tx = makeText(this, W / 2, y - 2, rows[i][0], 17, C.paper, 0.5, '750').setDepth(52).setVisible(false);
       this.pauseLayer.push(bg); this.pauseLayer.push(tx);
       this.pauseButtons.push({ x: W / 2 - 140, y: y - 28, w: 280, h: 56, fn: rows[i][1] });
@@ -2007,7 +2010,7 @@
         var pop = 1 + v.pop * 0.28;
         var dragging = this.drag && this.drag.from === i;
         setVisibleIfChanged(sprite, !dragging);
-        sprite.setPosition(v.x + sx, v.y + sy).setScale(pop).setAlpha(1);
+        sprite.setPosition(v.x + sx, v.y + sy).setScale(pop / RETINA_FACTOR).setAlpha(1);
       } else if (sprite.visible) sprite.setVisible(false);
       var fog = this.fogs[i];
       var wantFog = !!save.fog[i];
@@ -2039,7 +2042,7 @@
     setVisibleIfChanged(this.selector, show);
     if (show) {
       setTextureIfChanged(this.selector, selKey);
-      this.selector.setPosition(cellX(selCell) + sx, cellY(selCell) + sy).setScale(scale);
+      this.selector.setPosition(cellX(selCell) + sx, cellY(selCell) + sy).setScale(scale / RETINA_FACTOR);
     }
     setVisibleIfChanged(this.ghost, !!this.drag && this.dragTarget >= 0 && this.dragTarget !== this.drag.from);
     if (this.ghost.visible) this.ghost.setPosition(cellX(this.dragTarget) + sx, cellY(this.dragTarget) + sy);
@@ -2048,7 +2051,7 @@
     if (dragging2) {
       var d = save.board[this.drag.from];
       setTextureIfChanged(this.dragSprite, itemKey(d.k, d.t));
-      this.dragSprite.setPosition(this.drag.x, this.drag.y - 22).setScale(1.12).setAlpha(0.96);
+      this.dragSprite.setPosition(this.drag.x, this.drag.y - 22).setScale(1.12 / RETINA_FACTOR).setAlpha(0.96);
     }
 
     /* HUD */
@@ -2118,7 +2121,7 @@
       var age = (this.bannerMax - this.bannerT);
       var pop = motionOn() ? 1 + Math.max(0, 0.22 - age) * 1.1 : 1;
       var fade = clamp(this.bannerT / 0.4, 0, 1);
-      this.bannerBg.setScale(pop).setAlpha(fade);
+      this.bannerBg.setScale(pop / RETINA_FACTOR).setAlpha(fade);
       this.bannerText.setAlpha(fade);
       this.bannerSubText.setAlpha(fade);
       setTextIfChanged(this.bannerText, this.bannerTitle);
@@ -2162,9 +2165,9 @@
   PlayScene.prototype.paintProducer = function (p, id, sx, sy) {
     var i, charges = save.energy[id];
     setTextureIfChanged(p.bg, charges > 0 ? 'dc_prod' : 'dc_prod_rest');
-    p.bg.setScale(1 + p.pop * 0.05);
+    p.bg.setScale((1 + p.pop * 0.05) / RETINA_FACTOR);
     for (i = 0; i < p.pips.length; i++) {
-      p.pips[i].setAlpha(i < charges ? 1 : 0.22).setScale(i < charges ? 1.1 : 0.8);
+      p.pips[i].setAlpha(i < charges ? 1 : 0.22).setScale((i < charges ? 1.1 : 0.8) / RETINA_FACTOR);
     }
     if (charges > 0) {
       setTextIfChanged(p.state, 'DRAW  ' + charges + '/' + PRODUCER_MAX);
@@ -2181,6 +2184,7 @@
   BootScene.prototype.constructor = BootScene;
   BootScene.prototype.create = function () {
     var self = this;
+    this.cameras.main.setZoom(RETINA_FACTOR);
     Game.active = this;
     publish({ mode: 'boot', scene: 'boot', ready: false });
     if (kit) kit.loader.show('Driftwood Cove');
@@ -2227,10 +2231,11 @@
   TitleScene.prototype.constructor = TitleScene;
   TitleScene.prototype.create = function () {
     var self = this, i;
+    this.cameras.main.setZoom(RETINA_FACTOR);
     Game.active = this;
     this.buttons = [];
     this.add.rectangle(W / 2, H / 2, W, H, 0x071923).setDepth(0);
-    this.add.image(W / 2, 160, 'dc_title_art').setDepth(1);
+    this.add.image(W / 2, 160, 'dc_title_art').setDepth(1).setScale(1 / RETINA_FACTOR);
     this.add.rectangle(W / 2, 300, W, 92, 0x071923, 0.75).setDepth(2);
     makeText(this, W / 2, 262, 'Driftwood Cove', 30, C.paper, 0.5, '800').setDepth(3);
     makeText(this, W / 2, 296, 'A merge board mystery', 15, C.aqua, 0.5, '600').setDepth(3);
@@ -2243,7 +2248,7 @@
     ];
     for (i = 0; i < rows.length; i++) {
       var y = 400 + i * 74;
-      this.add.image(W / 2, y, rows[i][1]).setDepth(4);
+      this.add.image(W / 2, y, rows[i][1]).setDepth(4).setScale(1 / RETINA_FACTOR);
       makeText(this, W / 2, y - 2, rows[i][0], 18, rows[i][2], 0.5, '750').setDepth(5);
       this.buttons.push({ x: W / 2 - 140, y: y - 28, w: 280, h: 56, fn: rows[i][3] });
     }
@@ -2252,7 +2257,7 @@
     makeText(this, W / 2, 712, 'Orders ' + save.done + '/' + ORDERS.length +
       '   Notes ' + found + '/' + NOTES.length + '   Storm best ' + save.stormBest, 13, C.muted, 0.5, '600').setDepth(5);
     var resetY = 762;
-    this.add.image(W / 2, resetY, 'dc_btn_small').setDepth(4);
+    this.add.image(W / 2, resetY, 'dc_btn_small').setDepth(4).setScale(1 / RETINA_FACTOR);
     makeText(this, W / 2, resetY - 2, 'New cove', 14, C.bad, 0.5, '700').setDepth(5);
     this.buttons.push({ x: W / 2 - 48, y: resetY - 23, w: 96, h: 46, fn: function () { self.confirmReset(); } });
     this.confirmT = 0;
@@ -2308,6 +2313,7 @@
   LogScene.prototype.constructor = LogScene;
   LogScene.prototype.create = function (data) {
     var self = this, i;
+    this.cameras.main.setZoom(RETINA_FACTOR);
     Game.active = this;
     this.from = (data && data.from) || 'title';
     this.page = 0;
@@ -2329,14 +2335,14 @@
       this.rows[i].title.setOrigin(0, 0.5);
     }
     var backY = 782;
-    this.add.image(88, backY, 'dc_btn_small').setDepth(4);
+    this.add.image(88, backY, 'dc_btn_small').setDepth(4).setScale(1 / RETINA_FACTOR);
     makeText(this, 88, backY - 2, 'Back', 15, C.paper, 0.5, '700').setDepth(5);
     this.buttons.push({ x: 40, y: backY - 23, w: 96, h: 46,
       fn: function () { self.scene.start(self.from === 'play' ? 'play' : 'title'); } });
-    this.add.image(200, backY, 'dc_btn_small').setDepth(4);
+    this.add.image(200, backY, 'dc_btn_small').setDepth(4).setScale(1 / RETINA_FACTOR);
     makeText(this, 200, backY - 2, 'Prev', 15, C.paper, 0.5, '700').setDepth(5);
     this.buttons.push({ x: 152, y: backY - 23, w: 96, h: 46, fn: function () { self.turn(-1); } });
-    this.add.image(312, backY, 'dc_btn_small').setDepth(4);
+    this.add.image(312, backY, 'dc_btn_small').setDepth(4).setScale(1 / RETINA_FACTOR);
     makeText(this, 312, backY - 2, 'Next', 15, C.paper, 0.5, '700').setDepth(5);
     this.buttons.push({ x: 264, y: backY - 23, w: 96, h: 46, fn: function () { self.turn(1); } });
 
@@ -2399,6 +2405,7 @@
 
   StormScene.prototype.create = function () {
     var self = this, i;
+    this.cameras.main.setZoom(RETINA_FACTOR);
     Game.active = this;
     this.acc = 0;
     this.clock = 0;
@@ -2417,8 +2424,8 @@
     if (!this.pool.length) this.pool = [0, 1, 2];
 
     this.add.rectangle(W / 2, H / 2, W, H, 0x0A2029).setDepth(0);
-    this.add.image(W / 2, 125, 'dc_scene_' + clamp(save.area, 0, AREAS.length - 1)).setDepth(1).setAlpha(0.65);
-    this.add.image(W / 2, (STORM_TOP + STORM_BOTTOM) / 2, 'dc_storm_bg').setDepth(2);
+    this.add.image(W / 2, 125, 'dc_scene_' + clamp(save.area, 0, AREAS.length - 1)).setDepth(1).setScale(1 / RETINA_FACTOR).setAlpha(0.65);
+    this.add.image(W / 2, (STORM_TOP + STORM_BOTTOM) / 2, 'dc_storm_bg').setDepth(2).setScale(1 / RETINA_FACTOR);
 
     this.add.rectangle(W / 2, 25, W, 50, 0x071923, 0.92).setDepth(20);
     makeText(this, 14, 18, 'Bubble Storm', 17, C.paper, 0, '800').setDepth(21);
@@ -2433,12 +2440,12 @@
     for (i = 0; i < 18; i++) {
       this.bubbles.push({
         live: false, x: 0, y: 0, vy: 0, wob: 0, k: 0, t: 0, pop: 0,
-        shell: this.add.image(-99, -99, 'dc_bubble').setDepth(10).setVisible(false),
-        item: this.add.image(-99, -99, itemKey(0, 0)).setDepth(11).setVisible(false)
+        shell: this.add.image(-99, -99, 'dc_bubble').setDepth(10).setScale(1 / RETINA_FACTOR).setVisible(false),
+        item: this.add.image(-99, -99, itemKey(0, 0)).setDepth(11).setScale(1 / RETINA_FACTOR).setVisible(false)
       });
     }
-    this.ring = this.add.image(-99, -99, 'dc_ring_ok').setDepth(12).setVisible(false);
-    this.cursor = this.add.image(this.cursorX, this.cursorY, 'dc_ring_ready').setDepth(12).setVisible(false).setAlpha(0.5);
+    this.ring = this.add.image(-99, -99, 'dc_ring_ok').setDepth(12).setScale(1 / RETINA_FACTOR).setVisible(false);
+    this.cursor = this.add.image(this.cursorX, this.cursorY, 'dc_ring_ready').setDepth(12).setScale(1 / RETINA_FACTOR).setVisible(false).setAlpha(0.5);
 
     this.fxFrag = makePool(this, 'dc_frag', 16, 14);
     this.fxStreak = makePool(this, 'dc_spark', 14, 14, true);
@@ -2447,18 +2454,18 @@
     this.moteT = 0;
     this.chips = makeChips(this, W / 2, 74, 26);
 
-    this.coachBg = this.add.image(W / 2, STORM_TOP + 26, 'dc_strip').setDepth(26).setVisible(false);
+    this.coachBg = this.add.image(W / 2, STORM_TOP + 26, 'dc_strip').setDepth(26).setScale(1 / RETINA_FACTOR).setVisible(false);
     this.coachText = makeText(this, W / 2, STORM_TOP + 25, '', 14, '#243A44', 0.5, '700').setDepth(27).setVisible(false);
     this.coachT = 3.6;
     this.coach = 'Tap two matching bubbles to merge them.';
 
-    this.bannerBg = this.add.image(W / 2, 420, 'dc_banner').setDepth(40).setVisible(false);
+    this.bannerBg = this.add.image(W / 2, 420, 'dc_banner').setDepth(40).setScale(1 / RETINA_FACTOR).setVisible(false);
     this.bannerText = makeText(this, W / 2, 398, '', 22, '#2B2D42', 0.5, '800').setDepth(41).setVisible(false);
     this.bannerSub = makeText(this, W / 2, 430, '', 14, '#5A5B6B', 0.5, '600').setDepth(41).setVisible(false);
 
-    this.againBtn = this.add.image(W / 2, 560, 'dc_btn_hero').setDepth(41).setVisible(false);
+    this.againBtn = this.add.image(W / 2, 560, 'dc_btn_hero').setDepth(41).setScale(1 / RETINA_FACTOR).setVisible(false);
     this.againText = makeText(this, W / 2, 558, 'Storm again', 18, '#0C2530', 0.5, '750').setDepth(42).setVisible(false);
-    this.leaveBtn = this.add.image(W / 2, 634, 'dc_btn').setDepth(41).setVisible(false);
+    this.leaveBtn = this.add.image(W / 2, 634, 'dc_btn').setDepth(41).setScale(1 / RETINA_FACTOR).setVisible(false);
     this.leaveText = makeText(this, W / 2, 632, 'Back to the cove', 18, C.paper, 0.5, '750').setDepth(42).setVisible(false);
 
     this.input.on('pointerdown', function (p) { self.onDown(p); });
@@ -2659,15 +2666,15 @@
       if (!b.live) continue;
       var wobX = Math.sin(b.wob) * 8;
       var scale = (b.t >= 1 ? 0.92 : 0.78) * (1 + b.pop * 0.25);
-      b.shell.setPosition(b.x + wobX + sx, b.y + sy).setScale(scale);
+      b.shell.setPosition(b.x + wobX + sx, b.y + sy).setScale(scale / RETINA_FACTOR);
       setTextureIfChanged(b.item, itemKey(b.k, b.t));
-      b.item.setPosition(b.x + wobX + sx, b.y + sy).setScale(scale * 0.72);
+      b.item.setPosition(b.x + wobX + sx, b.y + sy).setScale(scale * 0.72 / RETINA_FACTOR);
     }
     var selLive = this.sel >= 0 && this.bubbles[this.sel] && this.bubbles[this.sel].live;
     setVisibleIfChanged(this.ring, selLive);
     if (selLive) {
       var s = this.bubbles[this.sel];
-      this.ring.setPosition(s.x + Math.sin(s.wob) * 8 + sx, s.y + sy).setScale(0.95);
+      this.ring.setPosition(s.x + Math.sin(s.wob) * 8 + sx, s.y + sy).setScale(0.95 / RETINA_FACTOR);
     }
     this.cursor.setPosition(this.cursorX, this.cursorY);
     setTextIfChanged(this.timeText, Math.ceil(this.left) + 's');
@@ -2692,11 +2699,11 @@
       if (this.phase === 'count') {
         setTextIfChanged(this.bannerText, 'Bubble Storm');
         setTextIfChanged(this.bannerSub, Math.ceil(this.countT) + '   merge as fast as you can');
-        this.bannerBg.setScale(motionOn() ? 1 + Math.max(0, 0.2 - (2.2 - this.countT)) : 1);
+        this.bannerBg.setScale((motionOn() ? 1 + Math.max(0, 0.2 - (2.2 - this.countT)) : 1) / RETINA_FACTOR);
       } else {
         setTextIfChanged(this.bannerText, this.bannerTitle || 'Storm complete');
         setTextIfChanged(this.bannerSub, this.bannerSubLine || '');
-        this.bannerBg.setScale(1);
+        this.bannerBg.setScale(1 / RETINA_FACTOR);
       }
     }
     var done = this.phase === 'done';
@@ -2746,7 +2753,7 @@
 
   function start() {
     if (!PhaserRef) return;
-    Game.phaser = new PhaserRef.Game({
+    var config = {
       type: PhaserRef.AUTO,
       parent: document.body,
       width: W, height: H,
@@ -2756,7 +2763,11 @@
       render: { antialias: true, roundPixels: false, powerPreference: 'high-performance', batchSize: 2048 },
       fps: { target: 60, min: 30 },
       audio: { noAudio: true }
-    });
+    };
+    config.scale.width = Math.round(W * RETINA_FACTOR);
+    config.scale.height = Math.round(H * RETINA_FACTOR);
+    config.render = Object.assign({}, root.GGKit && root.GGKit.renderDefaults ? root.GGKit.renderDefaults : {}, config.render || {});
+    Game.phaser = new PhaserRef.Game(config);
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', start, { once: true });

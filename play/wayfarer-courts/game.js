@@ -8,6 +8,7 @@
 
   var W = 390;
   var H = 844;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(W, H);
   var STEP = 1 / 60;
   var MAX_STEPS = 4;
   var SAVE_VERSION = 1;
@@ -2418,7 +2419,7 @@
 
   /* ---------------------------------------------------------- text style */
 
-  var TEXT_RES = Math.min(2, window.devicePixelRatio || 1);
+  var TEXT_RES = RETINA_FACTOR;
   function st(size, color, bold, wrap) {
     var s = { fontFamily: FONT, fontSize: size + 'px', color: color || CSS.text, resolution: TEXT_RES };
     if (bold) s.fontStyle = '700';
@@ -2451,9 +2452,12 @@
     c.closePath();
   }
   function makeCanvas(w, h) {
-    var cv = document.createElement('canvas');
-    cv.width = w; cv.height = h;
-    return cv;
+    return GGKit.hiDpi.canvas(w, h).canvas;
+  }
+  function addDenseCanvas(scene, key, canvas) {
+    var texture = scene.textures.addCanvas(key, canvas);
+    if (texture && texture.get()) texture.get().source.resolution = RETINA_FACTOR;
+    return texture;
   }
 
   function bakeHeroSheet(scene, key, color, accent, arch) {
@@ -2535,7 +2539,7 @@
     c.font = '700 16px ' + FONT;
     c.textAlign = 'center'; c.textBaseline = 'middle';
     c.fillText(glyph, 60, 60);
-    scene.textures.addCanvas(key, cv);
+    addDenseCanvas(scene, key, cv);
   }
 
   function bakeFoe(scene, key, family, color, big) {
@@ -2586,7 +2590,7 @@
       c.globalAlpha = 1;
     }
     c.restore();
-    scene.textures.addCanvas(key, cv);
+    addDenseCanvas(scene, key, cv);
   }
 
   function bakeMap(scene, regionId) {
@@ -2682,7 +2686,7 @@
     c.fillStyle = 'rgba(255,255,255,0.14)';
     c.fillRect(-20, -18, 40, 36);
     c.restore();
-    scene.textures.addCanvas('map-' + regionId, cv);
+    addDenseCanvas(scene, 'map-' + regionId, cv);
   }
 
   function bakeBattleBack(scene, regionId) {
@@ -2728,7 +2732,7 @@
     c.fillStyle = 'rgba(0,0,0,0.28)';
     c.beginPath(); c.ellipse(W / 2, 400, 210, 40, 0, 0, TAU); c.fill();
     c.beginPath(); c.ellipse(W / 2, 344, 180, 30, 0, 0, TAU); c.fill();
-    scene.textures.addCanvas('bback-' + regionId, cv);
+    addDenseCanvas(scene, 'bback-' + regionId, cv);
   }
 
   function bakeHub(scene, tier) {
@@ -2837,7 +2841,7 @@
     c.fillStyle = fade;
     c.fillRect(0, 0, W, 76);
     c.globalCompositeOperation = 'source-over';
-    scene.textures.addCanvas('hub-' + tier, cv);
+    addDenseCanvas(scene, 'hub-' + tier, cv);
   }
 
   function bakeTitleSky(scene) {
@@ -2873,7 +2877,7 @@
       c.beginPath(); c.arc(lx, ly + 10, 22, 0, TAU); c.fill();
       c.globalAlpha = 1;
     }
-    scene.textures.addCanvas('title-sky', cv);
+    addDenseCanvas(scene, 'title-sky', cv);
   }
 
   function bakeFx(scene) {
@@ -2887,7 +2891,7 @@
     for (var i = 0; i < keys.length; i++) {
       var cv = makeCanvas(20, 20);
       keys[i].draw(cv.getContext('2d'));
-      scene.textures.addCanvas(keys[i].key, cv);
+      addDenseCanvas(scene, keys[i].key, cv);
     }
   }
 
@@ -2902,7 +2906,7 @@
     c.moveTo(106, 106 - s); c.lineTo(106, 106); c.lineTo(106 - s, 106);
     c.moveTo(6 + s, 106); c.lineTo(6, 106); c.lineTo(6, 106 - s);
     c.stroke();
-    scene.textures.addCanvas('ui-bracket', cv);
+    addDenseCanvas(scene, 'ui-bracket', cv);
 
     var cv2 = makeCanvas(96, 96);
     var c2 = cv2.getContext('2d');
@@ -2912,7 +2916,7 @@
     c2.beginPath(); c2.moveTo(48, 2); c2.lineTo(48, 18); c2.moveTo(48, 78); c2.lineTo(48, 94);
     c2.moveTo(2, 48); c2.lineTo(18, 48); c2.moveTo(78, 48); c2.lineTo(94, 48);
     c2.stroke();
-    scene.textures.addCanvas('ui-target', cv2);
+    addDenseCanvas(scene, 'ui-target', cv2);
 
     var cv3 = makeCanvas(150, 150);
     var c3 = cv3.getContext('2d');
@@ -2922,7 +2926,7 @@
     c3.beginPath(); c3.arc(75, 75, 66, 0, TAU); c3.stroke();
     c3.strokeStyle = 'rgba(245,240,223,0.22)'; c3.lineWidth = 2;
     c3.beginPath(); c3.moveTo(75, 40); c3.lineTo(75, 110); c3.moveTo(40, 75); c3.lineTo(110, 75); c3.stroke();
-    scene.textures.addCanvas('ui-stickbase', cv3);
+    addDenseCanvas(scene, 'ui-stickbase', cv3);
 
     var cv4 = makeCanvas(72, 72);
     var c4 = cv4.getContext('2d');
@@ -2930,7 +2934,7 @@
     c4.beginPath(); c4.arc(36, 36, 28, 0, TAU); c4.fill();
     c4.strokeStyle = '#fff6d8'; c4.lineWidth = 3;
     c4.beginPath(); c4.arc(36, 36, 28, 0, TAU); c4.stroke();
-    scene.textures.addCanvas('ui-stickknob', cv4);
+    addDenseCanvas(scene, 'ui-stickknob', cv4);
 
     var cv5 = makeCanvas(96, 96);
     var c5 = cv5.getContext('2d');
@@ -2941,7 +2945,7 @@
     c5.fillStyle = '#79e0c0';
     c5.font = '700 34px ' + FONT; c5.textAlign = 'center'; c5.textBaseline = 'middle';
     c5.fillText('✦', 48, 50);
-    scene.textures.addCanvas('ui-actbtn', cv5);
+    addDenseCanvas(scene, 'ui-actbtn', cv5);
 
     var cv6 = makeCanvas(40, 56);
     var c6 = cv6.getContext('2d');
@@ -2949,7 +2953,7 @@
     c6.beginPath(); c6.moveTo(20, 54); c6.lineTo(4, 26); c6.arc(20, 20, 16, Math.PI, 0); c6.closePath(); c6.fill();
     c6.fillStyle = '#141b31';
     c6.beginPath(); c6.arc(20, 20, 7, 0, TAU); c6.fill();
-    scene.textures.addCanvas('ui-pin', cv6);
+    addDenseCanvas(scene, 'ui-pin', cv6);
 
     var cv7 = makeCanvas(48, 48);
     var c7 = cv7.getContext('2d');
@@ -2958,7 +2962,7 @@
     c7.fillStyle = '#141b31';
     c7.font = '700 20px ' + FONT; c7.textAlign = 'center'; c7.textBaseline = 'middle';
     c7.fillText('!', 24, 25);
-    scene.textures.addCanvas('ui-npc', cv7);
+    addDenseCanvas(scene, 'ui-npc', cv7);
 
     var cv8 = makeCanvas(W, 300);
     var c8 = cv8.getContext('2d');
@@ -2966,7 +2970,7 @@
     lg.addColorStop(0, 'rgba(13,18,34,0)');
     lg.addColorStop(1, 'rgba(13,18,34,0.92)');
     c8.fillStyle = lg; c8.fillRect(0, 0, W, 300);
-    scene.textures.addCanvas('ui-vignette', cv8);
+    addDenseCanvas(scene, 'ui-vignette', cv8);
 
     var cv9 = makeCanvas(330, 120);
     var c9 = cv9.getContext('2d');
@@ -2979,7 +2983,7 @@
     c9.fillText('COURTS', 165, 82);
     c9.strokeStyle = 'rgba(242,193,90,0.6)'; c9.lineWidth = 2;
     c9.beginPath(); c9.moveTo(40, 108); c9.lineTo(290, 108); c9.stroke();
-    scene.textures.addCanvas('ui-logo', cv9);
+    addDenseCanvas(scene, 'ui-logo', cv9);
   }
 
   /* ---------------------------------------------------------- boot scene */
@@ -2987,6 +2991,7 @@
   var BootScene = {
     key: 'boot',
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       kit.loader.show('Wayfarer Courts');
       this.tasks = [];
       var scene = this;
@@ -3097,6 +3102,7 @@
     },
 
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       var s = this;
       var i;
       app.scene = this;
@@ -4061,15 +4067,17 @@
     return Klass;
   }
 
-  var game = new Phaser.Game({
+  var config = {
     type: Phaser.AUTO,
     parent: document.body,
     backgroundColor: CSS.ink,
-    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H },
-    render: { antialias: true, powerPreference: 'high-performance' },
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: Math.round(W * RETINA_FACTOR), height: Math.round(H * RETINA_FACTOR) },
+    render: {},
     fps: { target: 60, min: 30 },
     scene: [toScene(BootScene), toScene(PlayScene)]
-  });
+  };
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
+  var game = new Phaser.Game(config);
   game.events.once('ready', function () { app.canvas = game.canvas; });
   app.canvas = game.canvas;
   window.__WC_READY = true;

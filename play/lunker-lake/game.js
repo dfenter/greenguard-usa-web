@@ -5,6 +5,7 @@
 
   const W = 390;
   const H = 844;
+  const RETINA_FACTOR = GGKit.hiDpi.factor(W, H);
   const WORLD_W = 780;
   const SHOWCASE_TRAVEL = WORLD_W - W;
   const ASSET = 'assets/';
@@ -32,8 +33,15 @@
   const css = (n) => '#' + n.toString(16).padStart(6, '0');
   const style = (size, color, weight) => ({
     fontFamily: 'Avenir Next, Trebuchet MS, system-ui, sans-serif', fontSize: size + 'px',
-    color: color || '#e8f5f4', fontStyle: 'normal', fontWeight: weight || '600', resolution: 2
+    color: color || '#e8f5f4', fontStyle: 'normal', fontWeight: weight || '600', resolution: RETINA_FACTOR
   });
+  function configureRetinaScene(scene) {
+    scene.cameras.main.setZoom(RETINA_FACTOR);
+    const addText = scene.add.text;
+    scene.add.text = function (x, y, value, textStyle) {
+      return addText.call(this, x, y, value, Object.assign({}, textStyle || {}, { resolution: RETINA_FACTOR }));
+    };
+  }
   function motionEnabled() {
     const systemReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     return kit && kit.juice.enabled !== false && !systemReduced;
@@ -144,6 +152,7 @@
       kit.loader.progress(.18);
     },
     create: function () {
+      configureRetinaScene(this);
       scene = this;
       this.simPaused = false;
       this.screen = 'title';
@@ -236,7 +245,8 @@
       // never move the interface - which requires a second, static camera
       // that actually renders it. Without this the whole UI (including the
       // entire title screen) rendered nowhere.
-      this.uiCam = this.cameras.add(0, 0, W, H);
+      this.uiCam = this.cameras.add(0, 0, Math.round(W * RETINA_FACTOR), Math.round(H * RETINA_FACTOR));
+      this.uiCam.setZoom(RETINA_FACTOR);
       this.uiCam.ignore([this.layers.bg, this.layers.water, this.layers.fish,
         this.layers.fx, this.layers.actor]);
       this.renderTitle();
@@ -926,12 +936,16 @@
     }
   };
 
-  game = new Phaser.Game({
+  var config = {
     type: Phaser.AUTO, parent: 'game-root', backgroundColor: '#061823',
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width:W, height:H },
     render: { antialias:false, roundPixels:true, pixelArt:true, powerPreference:'high-performance' },
     // Phaser only lifts preload/create/update from a plain scene config;
     // custom methods must ride in via `extend` or `this.createActor` etc. are undefined.
     scene: { key: MainScene.key, preload: MainScene.preload, create: MainScene.create, update: MainScene.update, extend: MainScene }
-  });
+  };
+  config.scale.width = Math.round(W * RETINA_FACTOR);
+  config.scale.height = Math.round(H * RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
+  game = new Phaser.Game(config);
 })();

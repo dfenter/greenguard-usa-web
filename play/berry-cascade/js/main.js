@@ -54,6 +54,21 @@
 
   var save = BC.normalizeSave(kit.save.get(null));
 
+  function syncHiDpi(game) {
+    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || window.innerWidth || 1));
+    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || window.innerHeight || 1));
+    GGKit.hiDpi.resize(game, cssW, cssH);
+  }
+
+  function bindHiDpi(game) {
+    syncHiDpi(game);
+    window.addEventListener('resize', function () { syncHiDpi(game); });
+    window.addEventListener('orientationchange', function () { syncHiDpi(game); });
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) syncHiDpi(game);
+    });
+  }
+
   var G = {
     kit: kit,
     save: save,
@@ -177,9 +192,7 @@
        * the game at the construction-time size. Pin it to the real viewport. */
       var vw = document.documentElement.clientWidth || window.innerWidth;
       var vh = document.documentElement.clientHeight || window.innerHeight;
-      if (vw > 0 && vh > 0 && (Math.abs(this.scale.width - vw) > 1 || Math.abs(this.scale.height - vh) > 1)) {
-        this.scale.resize(vw, vh);
-      }
+      if (vw > 0 && vh > 0) syncHiDpi(this.game);
       kit.loader.show('Berry Cascade');
       kit.loader.progress(0.15);
       BCArt.bakeStatic(this);
@@ -721,10 +734,11 @@
         width: window.innerWidth,
         height: window.innerHeight
       },
-      render: { antialias: true, roundPixels: false, powerPreference: 'high-performance', batchSize: 2048 },
+      render: Object.assign({}, GGKit.renderDefaults, { batchSize: 2048 }),
       fps: { target: 60, min: 30 },
       scene: [BootScene, MenuScene, TrailScene, GauntletScene, PlayScene, GardenScene, CrownScene]
     });
+    bindHiDpi(G.phaser);
   }
 
   if (document.readyState === 'loading') {

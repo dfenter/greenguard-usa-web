@@ -5,6 +5,7 @@
   var Phaser = root.Phaser;
   var W = 390;
   var H = 844;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(W, H);
   var STEP = 1 / 60;
   var MAX_STEPS = 4;
   var FONT = 'ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif';
@@ -139,6 +140,13 @@
   var GRID = { ox: 17.5 / 260, oy: 30 / 260, cell: 45 / 260, face: 260 };
 
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function configureRetinaScene(scene) {
+    scene.cameras.main.setZoom(RETINA_FACTOR);
+    var addText = scene.add.text;
+    scene.add.text = function (x, y, value, style) {
+      return addText.call(this, x, y, value, Object.assign({}, style || {}, { resolution: RETINA_FACTOR }));
+    };
+  }
   function whole(v, d) { return Number.isInteger(v) ? v : d; }
   function tint(hex) { return parseInt(String(hex).replace('#', ''), 16) || 0xffffff; }
   function lerp(a, b, t) { return a + (b - a) * t; }
@@ -971,9 +979,18 @@
   }
 
   PlayScene.prototype.canvasTex = function (key, w, h, draw) {
-    var tex = this.textures.exists(key) ? this.textures.get(key) : this.textures.createCanvas(key, w, h);
+    var tex = this.textures.exists(key) ? this.textures.get(key) : null;
+    var c;
+    if (tex && !tex.getContext) return null;
+    if (tex) {
+      c = tex.getContext();
+      c.setTransform(RETINA_FACTOR, 0, 0, RETINA_FACTOR, 0, 0);
+    } else {
+      var baked = GGKit.hiDpi.canvas(w, h);
+      tex = this.textures.addCanvas(key, baked.canvas);
+      c = baked.ctx;
+    }
     if (!tex || !tex.getContext) return null;
-    var c = tex.getContext();
     c.clearRect(0, 0, w, h);
     draw(c, w, h);
     tex.refresh();
@@ -1553,6 +1570,7 @@
 
   // ------------------------------------------------------------------ create
   PlayScene.prototype.create = function () {
+    configureRetinaScene(this);
     var self = this, i, j;
     Game.play = this;
     if (kit) kit.loader.show('Lantern Bingo');
@@ -1590,7 +1608,7 @@
       this.embers.push({ img: em, x: Math.random() * W, y: Math.random() * H, vy: -6 - Math.random() * 14, vx: (Math.random() - 0.5) * 6, s: 3 + Math.random() * 7, a: 0.10 + Math.random() * 0.35, ph: Math.random() * 6.28 });
     }
 
-    this.chrome = add.image(W / 2, H / 2, 'lb-chrome').setDepth(4);
+    this.chrome = add.image(W / 2, H / 2, 'lb-chrome').setDisplaySize(W, H).setDepth(4);
     this.chrome.setVisible(false);
 
     // ---- play HUD
@@ -1993,7 +2011,7 @@
     for (i = 0; i < run.cards.length; i++) this.bakeCardFace(i, run.cards[i], city);
     for (i = 0; i < this.ui.cards.length; i++) {
       var group = this.ui.cards[i];
-      for (var j = 0; j < 25; j++) { group.daubs[j].setScale(1); group.daubs[j]._lbPop = 0; }
+      for (var j = 0; j < 25; j++) { group.daubs[j]._lbPop = 0; }
     }
     this.keeperState = 'idle';
     this.keeperT = 0;
@@ -2810,7 +2828,7 @@
     root.__lb.state = bootState;
     return;
   }
-  Game.phaser = new Phaser.Game({
+  var config = {
     type: Phaser.AUTO,
     parent: 'game',
     backgroundColor: C.deep,
@@ -2818,7 +2836,11 @@
     render: { antialias: true, roundPixels: false, powerPreference: 'high-performance', batchSize: 2048 },
     fps: { target: 60, min: 30 },
     scene: [PlayScene]
-  });
+  };
+  config.scale.width = Math.round(W * RETINA_FACTOR);
+  config.scale.height = Math.round(H * RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
+  Game.phaser = new Phaser.Game(config);
   Game.phaser.events.once('ready', function () {
     Game.play = Game.phaser.scene.getScene('lantern-bingo');
     syncProbe();

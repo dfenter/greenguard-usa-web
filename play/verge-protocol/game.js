@@ -6,6 +6,7 @@
 (function () {
   var C = window.VergeContent;
   var GAME_W = 1280, GAME_H = 720;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(GAME_W, GAME_H);
   var STEP = 1 / 60, MAX_STEPS = 6;
   var TAU = Math.PI * 2;
   var FONT = 'Verdana, "DejaVu Sans", system-ui, sans-serif';
@@ -136,6 +137,7 @@
 
   /* =================================================== scene lifecycle */
   VergeScene.prototype.create = function () {
+    this.cameras.main.setZoom(RETINA_FACTOR);
     Game.scene = this;
     this.accumulator = 0;
     this.simTime = 0;      /* stepped sim clock, never advanced elsewhere */
@@ -274,11 +276,18 @@
    * texture once instead of being re-issued as draw commands. */
   VergeScene.prototype.buildTextures = function () {
     if (!this.textures.exists('vp-chrome')) {
-      var tex = this.textures.createCanvas('vp-chrome', GAME_W, GAME_H);
-      this.paintChrome(tex.getContext());
+      var baked = GGKit.hiDpi.canvas(GAME_W, GAME_H);
+      var tex = this.textures.addCanvas('vp-chrome', baked.canvas);
+      if (tex && tex.get()) tex.get().source.resolution = baked.dpr;
+      this.paintChrome(baked.ctx);
       tex.refresh();
     }
-    if (!this.textures.exists('vp-terrain')) this.textures.createCanvas('vp-terrain', GAME_W, GAME_H);
+    if (!this.textures.exists('vp-terrain')) {
+      var terrain = GGKit.hiDpi.canvas(GAME_W, GAME_H);
+      var terrainTex = this.textures.addCanvas('vp-terrain', terrain.canvas);
+      if (terrainTex && terrainTex.get()) terrainTex.get().source.resolution = terrain.dpr;
+      terrainTex.refresh();
+    }
   };
 
   VergeScene.prototype.paintChrome = function (c) {
@@ -605,7 +614,7 @@
   /* ======================================================== HUD text UI */
   VergeScene.prototype.txt = function (x, y, size, color, align, bold, depth) {
     var t = this.add.text(x, y, '', {
-      fontFamily: FONT, fontSize: size + 'px', color: color,
+      fontFamily: FONT, fontSize: size + 'px', color: color, resolution: RETINA_FACTOR,
       fontStyle: bold ? '700' : '400', align: align || 'left'
     });
     t.setOrigin(align === 'center' ? 0.5 : (align === 'right' ? 1 : 0), 0.5);
@@ -2815,10 +2824,11 @@
   var config = {
     type: Phaser.AUTO, parent: 'game', width: GAME_W, height: GAME_H,
     backgroundColor: '#090f18',
-    render: { antialias: true, roundPixels: true, powerPreference: 'high-performance' },
-    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+    render: {},
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: Math.round(GAME_W * RETINA_FACTOR), height: Math.round(GAME_H * RETINA_FACTOR) },
     scene: [VergeScene]
   };
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
   kit.loader.show('VERGE PROTOCOL');
   kit.loader.progress(0.15);
   Game.phaser = new Phaser.Game(config);

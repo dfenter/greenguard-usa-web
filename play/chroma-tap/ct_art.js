@@ -15,12 +15,12 @@
   var D = g.CTData;
   var T = D.TOKENS;
   var S = 96;              // baked tile texture size (2x of the 48px design cell)
+  var DENSITY = g.GGKit && g.GGKit.hiDpi ? g.GGKit.hiDpi.factor(390, 800) : 1;
 
   /* ------------------------------------------------------------------ canvas utils */
   function mk(w, h) {
-    var c = document.createElement('canvas');
-    c.width = w; c.height = h;
-    return c;
+    if (g.GGKit && g.GGKit.hiDpi) return g.GGKit.hiDpi.canvas(w, h, DENSITY).canvas;
+    var c = document.createElement('canvas'); c.width = w; c.height = h; return c;
   }
   function put(scene, key, canvas) {
     if (scene.textures.exists(key)) scene.textures.remove(key);
@@ -704,6 +704,7 @@
 
   g.CTArt = {
     S: S,
+    density: DENSITY,
     bakeAll: function (scene) {
       bakeTiles(scene);
       bakeObjects(scene);

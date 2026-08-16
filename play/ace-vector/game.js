@@ -678,9 +678,9 @@
       // scene pays for the font rasteriser. Pay for it here, at both sizes
       // the HUD uses, instead of on the frame the first banner appears.
       warm.add(this.add.text(0, 0, 'ACE VECTOR 0123456789',
-        { fontFamily: FONT_DISPLAY, fontSize: '30px', color: '#ffffff' }));
+        { fontFamily: FONT_DISPLAY, resolution: GGKit.hiDpi.dpr(), fontSize: '30px', color: '#ffffff' }));
       warm.add(this.add.text(0, 0, 'ace vector 0123456789',
-        { fontFamily: FONT_BODY, fontSize: '13px', color: '#ffffff' }));
+        { fontFamily: FONT_BODY, resolution: GGKit.hiDpi.dpr(), fontSize: '13px', color: '#ffffff' }));
 
       Boot.progress(0.86, 'ARMING CANNON');
       var firstPlay = ['gun', 'gunWing', 'foeGun', 'hit', 'kill', 'hurt', 'click',
@@ -1754,13 +1754,13 @@ function settingsRows(scene) {
       this.hud.glass = this.add.rectangle(w / 2, SAFE.t + 38, w, 76, 0x061223, 0.36)
         .setDepth(99);
       this.hud.sortie = this.add.text(0, 0, '', {
-        fontFamily: FONT_DISPLAY, fontSize: TYPE.body + 'px', color: '#fff6dd', fontStyle: 'bold'
+        fontFamily: FONT_DISPLAY, resolution: GGKit.hiDpi.dpr(), fontSize: TYPE.body + 'px', color: '#fff6dd', fontStyle: 'bold'
       }).setDepth(100);
       this.hud.score = this.add.text(0, 0, '', {
-        fontFamily: FONT_BODY, fontSize: TYPE.micro + 'px', color: '#c4e4f4', fontStyle: 'bold'
+        fontFamily: FONT_BODY, resolution: GGKit.hiDpi.dpr(), fontSize: TYPE.micro + 'px', color: '#c4e4f4', fontStyle: 'bold'
       }).setDepth(100);
       this.hud.bandits = this.add.text(0, 0, '', {
-        fontFamily: FONT_BODY, fontSize: TYPE.micro + 'px', color: '#ffd0a8', fontStyle: 'bold'
+        fontFamily: FONT_BODY, resolution: GGKit.hiDpi.dpr(), fontSize: TYPE.micro + 'px', color: '#ffd0a8', fontStyle: 'bold'
       }).setDepth(100);
 
       // Hull pips, right aligned.
@@ -1769,13 +1769,13 @@ function settingsRows(scene) {
         this.hud.pips.push(this.add.image(0, 0, 'ui', 'pip_on').setDepth(100).setVisible(false));
       }
       this.hud.flareLabel = this.add.text(0, 0, '', {
-        fontFamily: FONT_BODY, fontSize: TYPE.micro + 'px', color: '#ffe3a1', fontStyle: 'bold'
+        fontFamily: FONT_BODY, resolution: GGKit.hiDpi.dpr(), fontSize: TYPE.micro + 'px', color: '#ffe3a1', fontStyle: 'bold'
       }).setOrigin(1, 0).setDepth(100);
       this.hud.style = this.add.text(0, 0, '', {
-        fontFamily: FONT_BODY, fontSize: TYPE.micro + 'px', color: '#8fc4dd', fontStyle: 'bold'
+        fontFamily: FONT_BODY, resolution: GGKit.hiDpi.dpr(), fontSize: TYPE.micro + 'px', color: '#8fc4dd', fontStyle: 'bold'
       }).setOrigin(1, 0).setDepth(100);
       this.hud.weapon = this.add.text(0, 0, '', {
-        fontFamily: FONT_BODY, fontSize: TYPE.micro + 'px', color: '#b9ffcf', fontStyle: 'bold'
+        fontFamily: FONT_BODY, resolution: GGKit.hiDpi.dpr(), fontSize: TYPE.micro + 'px', color: '#b9ffcf', fontStyle: 'bold'
       }).setOrigin(1, 0).setDepth(100);
 
       // COMBO CHIP: the multiplier existed in state and was never drawn.
@@ -1810,7 +1810,7 @@ function settingsRows(scene) {
       this.vignette = this.add.image(w / 2, h / 2, 'disc').setDepth(104)
         .setDisplaySize(w * 2.4, h * 2.6).setTint(0xff3a2a).setAlpha(0).setVisible(false);
       this.lockWarn = this.add.text(0, 0, 'MISSILE LOCK', {
-        fontFamily: FONT_DISPLAY, fontSize: TYPE.sub + 'px', color: '#ffb0a0', fontStyle: 'bold'
+        fontFamily: FONT_DISPLAY, resolution: GGKit.hiDpi.dpr(), fontSize: TYPE.sub + 'px', color: '#ffb0a0', fontStyle: 'bold'
       }).setOrigin(0.5).setDepth(104).setAlpha(0);
 
       // Tutorial prompt strip.
@@ -4042,15 +4042,26 @@ function settingsRows(scene) {
     return Klass;
   }
 
+  function syncHiDpi(game) {
+    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || window.innerWidth || 1));
+    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || window.innerHeight || 1));
+    GGKit.hiDpi.resize(game, cssW, cssH);
+  }
+
   Game.phaser = new Phaser.Game({
     type: Phaser.AUTO,
     parent: document.body,
     backgroundColor: '#071126',
     scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight },
-    render: { antialias: true, antialiasGL: false, powerPreference: 'high-performance',
-              roundPixels: true, mipmapFilter: 'LINEAR' },
+    render: Object.assign({}, GGKit.renderDefaults, { roundPixels: true, mipmapFilter: 'LINEAR' }),
     fps: { target: 60, min: 30 },
     scene: [toScene(BootScene), toScene(TitleScene), toScene(HangarScene), toScene(PlayScene)]
+  });
+  syncHiDpi(Game.phaser);
+  window.addEventListener('resize', function () { syncHiDpi(Game.phaser); });
+  window.addEventListener('orientationchange', function () { syncHiDpi(Game.phaser); });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) syncHiDpi(Game.phaser);
   });
 
   kit.registerPWA();

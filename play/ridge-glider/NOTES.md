@@ -52,3 +52,10 @@ Rejected findings:
 - Cut the live mode rail, ridge/mode watermark labels, bottom input pill, and text stall warning; stall state now reads through the glider ribbon and coral speed arc.
 - Replaced the center banner with one small queued corner toast (1.0s hold) for thermal, shortcut, and collision events; score-flag and distance-milestone notices remain in the flight report.
 - Compacted the HUD to icon/value distance and altitude, the speed meter, and an LZ chip; moved coaching to one-line top strip that fades after roughly 3 seconds. The centered countdown remains only at the launch boundary.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.50x at DPR 3, from the renderer's hard cap. After ratio: 3.00x is configured by `GGKit.hiDpi.three(renderer)`; a live canvas measurement was unavailable because this sandbox refused private HTTP listeners and had no browser target.
+- Recipe: called `GGKit.hiDpi.three(renderer)` immediately after `new THREE.WebGLRenderer`. No render targets, post-processing passes, or composers were present. The 4x256 sky canvas now uses `GGKit.hiDpi.canvas()` and draws in CSS units, keeping the gradient texture dense without changing its visual size.
+- Factor cap: none beyond GGKit's standard maximum of 3. No title-specific cap was needed.
+- Static verification: `node --check game.js` and `git diff --check` passed. Gameplay screenshot, `canvas.width / getBoundingClientRect().width >= 2.85`, and live layout confirmation remain unmeasured in this environment.

@@ -21,3 +21,11 @@ Implemented: fixed-step pooled 3v3 arena loop with eight free brawler kits, dist
 | CHAMPIONSHIP | Finale arena with central choke | Crusher core |
 
 Deferred: live browser screenshot and interaction smoke test could not run because this environment exposed no browser and denied local HTTP port binding. Static boot fallback, JavaScript syntax, manifest, asset, service-worker, and payload checks passed.
+
+## Retina pass 2026-08-16
+
+- Measured before ratio: unavailable for this title in this environment. Fleet baseline was 1.00x for 62 titles, with the remainder from 1.10x to 2.46x.
+- Measured after ratio: unavailable because no browser backend was exposed. The helper path targets 3.00x at DPR 3, but that is not a captured measurement.
+- Recipe: Phaser `Scale.RESIZE`; initial sizing, resize, orientation change, and visibility change all call `GGKit.hiDpi.resize`.
+- Factor cap: none; the GGKit DPR cap of 3 applies. No title-specific cap was justified.
+- Could not do: DPR 3 backing-store read or gameplay screenshot. Browser discovery returned no browser, and local HTTP port binding was denied.

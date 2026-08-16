@@ -47,3 +47,9 @@ Fixed:
 Rejected/deferred:
 
 - Required visual and 4x-throttle evidence was not fabricated. The browser runtime had no available browser in this session, so 390px screenshots and a live median measurement remain deferred. Static validation passed: 16/16 obstacle boards start without matches and retain a legal swap, all precache paths exist, audio is MP3-only, the title plus shared runtime is about 1.4MB, and the largest shipped file is about 100KB.
+
+## Retina pass 2026-08-16
+
+- Target 390x844 CSS at DPR 3. Before ratio: 1.00x CSS-sized RESIZE baseline. After target: 3.00x, 1170/390, via `GGKit.hiDpi.resize`. Live canvas read was unavailable because no browser surface or private local listener was available.
+- Recipe: `Phaser.Scale.RESIZE`, `GGKit.renderDefaults`, `GGKit.hiDpi.canvas` texture baking, and recursive DPR-matched Phaser text. No factor cap.
+- Gameplay screenshot and runtime backing-store measurement remain deferred. No palette change was made because the retina law identifies density, not colour depth, as the defect.

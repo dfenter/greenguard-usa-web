@@ -101,3 +101,10 @@ Verification: `node verify.js` passes all 24 levels at or above 90%; 100 fresh s
 - Collapsed the live HUD into icon-led score, moves, goal-progress, and ivy meters; booster controls now show only their action icon and count, with touch targets preserved.
 - Moved in-play events to one right-edge chip with a 1.0s hold; tutorial and input guidance use one 30px top strip with a 2.8s hold/fade. Notices queue one at a time, and reduced-motion gating remains intact.
 - Kept the larger center banner only for run-boundary results and room restoration.
+
+## Retina pass 2026-08-16
+
+- Audit profile: CSS viewport 390x844 at DPR 3. Measured pre-pass backing-store ratio: 1.00x. FIT scale math after the pass measures 1170x2532 against the 390x844 CSS canvas, a 3.00x ratio.
+- Recipe: `GGKit.hiDpi.factor(390, 844)`, dense FIT scale dimensions, `GGKit.renderDefaults`, and `this.cameras.main.setZoom(f)` in BootScene, TitleScene, and PlayScene. Canvas-baked chrome and text use the same factor.
+- Factor cap: none. The factor is the GGKit native value, capped only by GGKit's normal maximum of 3.
+- Could not complete live headless canvas readback or a gameplay screenshot because no browser backend was available in this environment. `node --check` passed.

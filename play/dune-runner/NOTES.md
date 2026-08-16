@@ -112,3 +112,10 @@ provides populated parallax scenery on each authored course.
 - The shared engine adapter gap is that `createRacerWorld` has no title-side
   objective marker API. Dune Runner keeps those markers in its own runtime and
   uses the engine query surface for track anchoring and off-road tests.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.50x for the main GGRacer canvas from the shared engine cap.
+- After ratio: 3.00x configured at DPR 3 with `GGKit.hiDpi.three(racer.world.renderer)` and the existing world resize path. Live `canvas.width / getBoundingClientRect().width` measurement was unavailable because Chrome aborted in this sandbox and the private HTTP bind was denied.
+- Recipe: native Three renderer density. No title-owned canvas texture, factor cap, render target, composer, or post-processing pass was found.
+- Audit limitation: shared racer texture bakes were identified but could not be changed because this lane was constrained from writing `play/_shared/`.

@@ -7,6 +7,7 @@
   'use strict';
 
   var W = 390, H = 844, STEP = 1 / 60, MAX_STEPS = 5, TAU = Math.PI * 2;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(W, H);
   var ROOM = { left: 24, top: 158, right: 366, bottom: 700, gateX: 350, gateY: 430 };
   var MAX_ENEMIES = 24, MAX_BOLTS = 32, MAX_FX = 120, MAX_PICKUPS = 12;
   var PAL = {
@@ -153,6 +154,9 @@
     c.lineTo(x + w, y + h - r); c.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
     c.lineTo(x + r, y + h); c.quadraticCurveTo(x, y + h, x, y + h - r); c.lineTo(x, y + r); c.quadraticCurveTo(x, y, x + r, y); c.closePath();
   }
+  function denseCanvas(w, h) {
+    return GGKit.hiDpi.canvas(w, h, RETINA_FACTOR);
+  }
   function drawPixelHero(c, ox, state, frame) {
     var bob = state === 'idle' ? frame * 1 : state === 'run' ? (frame ? -1 : 1) : 0;
     var cloak = state === 'dash' ? '#65e4bf' : '#d7f4e8';
@@ -185,6 +189,7 @@
   Scene.prototype.constructor = Scene;
 
   Scene.prototype.create = function () {
+    this.cameras.main.setZoom(RETINA_FACTOR);
     App.scene = this; this.pausedByKit = false; this.restartRequested = false; this.accumulator = 0; this.simTime = 0; this.uiTime = 0;
     this.selectedFloor = clamp(Number(DD_STATE.floor) || 1, 1, FLOORS.length); this.pointerClaims = {}; this.keyPrev = {}; this.gamepadPrev = {}; this.control = {};
     this.run = null; this.room = null; this.player = null; this.enemies = []; this.bolts = []; this.pickups = []; this.hazards = [];
@@ -196,27 +201,27 @@
 
   Scene.prototype.buildTextures = function () {
     var t = this.textures, c, x, i, states = ['idle', 'run', 'attack', 'dash', 'hurt'];
-    c = document.createElement('canvas'); c.width = 32 * 10; c.height = 32; x = c.getContext('2d');
+    var heroSheet = denseCanvas(32 * 10, 32); c = heroSheet.canvas; x = heroSheet.ctx;
     for (i = 0; i < states.length; i++) for (var f = 0; f < 2; f++) { drawPixelHero(x, i * 64 + f * 32 + 16, states[i], f); }
     this.heroTexture = t.addCanvas('dd-hero-sheet', c);
-    for (i = 0; i < states.length; i++) for (var hf = 0; hf < 2; hf++) this.heroTexture.add('hero' + states[i] + hf, 0, i * 64 + hf * 32, 0, 32, 32);
-    c = document.createElement('canvas'); c.width = 32 * 50; c.height = 32; x = c.getContext('2d');
+    for (i = 0; i < states.length; i++) for (var hf = 0; hf < 2; hf++) this.heroTexture.add('hero' + states[i] + hf, 0, Math.round((i * 64 + hf * 32) * RETINA_FACTOR), 0, Math.round(32 * RETINA_FACTOR), Math.round(32 * RETINA_FACTOR));
+    var enemySheet = denseCanvas(32 * 50, 32); c = enemySheet.canvas; x = enemySheet.ctx;
     var allTypes = ['wisp', 'archer', 'brute', 'skitter', 'warden'];
     for (var ti = 0; ti < allTypes.length; ti++) for (var si = 0; si < states.length; si++) for (var ef = 0; ef < 2; ef++) {
       drawPixelEnemy(x, (ti * 10 + si * 2 + ef) * 32 + 16, allTypes[ti], states[si], ef);
     }
     this.enemyTexture = t.addCanvas('dd-enemy-sheet', c);
-    for (var et = 0; et < allTypes.length; et++) for (var es = 0; es < states.length; es++) for (var efr = 0; efr < 2; efr++) this.enemyTexture.add('enemy' + allTypes[et] + states[es] + efr, 0, (et * 10 + es * 2 + efr) * 32, 0, 32, 32);
+    for (var et = 0; et < allTypes.length; et++) for (var es = 0; es < states.length; es++) for (var efr = 0; efr < 2; efr++) this.enemyTexture.add('enemy' + allTypes[et] + states[es] + efr, 0, Math.round((et * 10 + es * 2 + efr) * 32 * RETINA_FACTOR), 0, Math.round(32 * RETINA_FACTOR), Math.round(32 * RETINA_FACTOR));
     function smallTexture(scene, key, color) {
-      var q = document.createElement('canvas'); q.width = 16; q.height = 16; var z = q.getContext('2d'); z.fillStyle = colorCss(color); z.fillRect(2, 2, 12, 12); z.fillStyle = '#ffffff'; z.fillRect(6, 0, 4, 4); z.fillRect(6, 12, 4, 4); z.fillRect(0, 6, 4, 4); z.fillRect(12, 6, 4, 4); return scene.textures.addCanvas(key, q);
+      var q = denseCanvas(16, 16), z = q.ctx; z.fillStyle = colorCss(color); z.fillRect(2, 2, 12, 12); z.fillStyle = '#ffffff'; z.fillRect(6, 0, 4, 4); z.fillRect(6, 12, 4, 4); z.fillRect(0, 6, 4, 4); z.fillRect(12, 6, 4, 4); return scene.textures.addCanvas(key, q.canvas);
     }
     smallTexture(this, 'dd-spark', PAL.white); smallTexture(this, 'dd-dust', 0xb8c4d8); smallTexture(this, 'dd-puzzle', PAL.violet); smallTexture(this, 'dd-escape', PAL.gold); smallTexture(this, 'dd-key', PAL.gold); smallTexture(this, 'dd-potion', 0xff7187); smallTexture(this, 'dd-charge', PAL.mint); smallTexture(this, 'dd-hazard', 0xff6f83);
-    var ring = document.createElement('canvas'); ring.width = 96; ring.height = 96; var rc = ring.getContext('2d'); rc.strokeStyle = '#65e4bf'; rc.lineWidth = 4; rc.beginPath(); rc.arc(48, 48, 38, 0, TAU); rc.stroke(); t.addCanvas('dd-ring', ring);
-    this.bakeChrome(); this.roomCanvas = document.createElement('canvas'); this.roomCanvas.width = W; this.roomCanvas.height = H; this.roomTexture = t.addCanvas('dd-room-board', this.roomCanvas);
+    var ring = denseCanvas(96, 96), rc = ring.ctx; rc.strokeStyle = '#65e4bf'; rc.lineWidth = 4; rc.beginPath(); rc.arc(48, 48, 38, 0, TAU); rc.stroke(); t.addCanvas('dd-ring', ring.canvas);
+    this.bakeChrome(); var room = denseCanvas(W, H); this.roomCanvas = room.canvas; this.roomTexture = t.addCanvas('dd-room-board', this.roomCanvas);
   };
 
   Scene.prototype.bakeChrome = function () {
-    var c = document.createElement('canvas'); c.width = W; c.height = H; var x = c.getContext('2d');
+    var baked = denseCanvas(W, H), c = baked.canvas, x = baked.ctx;
     x.fillStyle = '#090c17'; x.fillRect(0, 0, W, H); x.fillStyle = '#0f1525'; x.fillRect(0, 0, W, 138); x.fillStyle = '#10192a'; x.fillRect(0, 716, W, 128);
     x.strokeStyle = '#273553'; x.lineWidth = 2; x.beginPath(); x.moveTo(0, 136); x.lineTo(W, 136); x.moveTo(0, 714); x.lineTo(W, 714); x.stroke();
     x.strokeStyle = '#1c2944'; x.lineWidth = 1; x.beginPath(); x.moveTo(20, 59); x.lineTo(370, 59); x.moveTo(20, 113); x.lineTo(370, 113); x.stroke();
@@ -224,23 +229,23 @@
     x.fillStyle = '#263655'; canvasRoundRect(x, 205, 751, 90, 70, 16); x.fill(); x.strokeStyle = '#49637e'; x.stroke();
     x.fillStyle = '#263655'; canvasRoundRect(x, 306, 652, 64, 62, 16); x.fill(); x.strokeStyle = '#49637e'; x.stroke();
     x.fillStyle = '#1c2b49'; canvasRoundRect(x, 144, 751, 50, 60, 12); x.fill(); x.strokeStyle = '#365170'; x.stroke();
-    this.chromeTexture = this.textures.addCanvas('dd-chrome', c); this.chromeImage = this.add.image(0, 0, 'dd-chrome').setOrigin(0).setDepth(50);
+    this.chromeTexture = this.textures.addCanvas('dd-chrome', c); this.chromeImage = this.add.image(0, 0, 'dd-chrome').setOrigin(0).setDisplaySize(W, H).setDepth(50);
   };
 
   Scene.prototype.buildWorld = function () {
     this.worldRoot = this.add.container(0, 0).setDepth(2);
-    this.roomImage = this.add.image(0, 0, 'dd-room-board').setOrigin(0); this.worldRoot.add(this.roomImage);
-    this.keyView = this.add.image(0, 0, 'dd-key').setVisible(false).setScale(1.5); this.worldRoot.add(this.keyView);
-    this.shortcutView = this.add.image(0, 0, 'dd-ring').setVisible(false).setScale(0.45); this.worldRoot.add(this.shortcutView);
-    this.puzzleView = this.add.image(0, 0, 'dd-ring').setVisible(false).setScale(0.45); this.worldRoot.add(this.puzzleView);
-    this.gateGlow = this.add.image(ROOM.gateX, ROOM.gateY, 'dd-ring').setVisible(false).setScale(0.72); this.worldRoot.add(this.gateGlow);
-    this.torchViews = [this.add.image(54, 194, 'dd-ring').setScale(.34).setTint(PAL.gold), this.add.image(336, 194, 'dd-ring').setScale(.34).setTint(PAL.gold)]; this.worldRoot.add(this.torchViews);
+    this.roomImage = this.add.image(0, 0, 'dd-room-board').setOrigin(0).setDisplaySize(W, H); this.worldRoot.add(this.roomImage);
+    this.keyView = this.add.image(0, 0, 'dd-key').setVisible(false).setScale(1.5 / RETINA_FACTOR); this.worldRoot.add(this.keyView);
+    this.shortcutView = this.add.image(0, 0, 'dd-ring').setVisible(false).setScale(0.45 / RETINA_FACTOR); this.worldRoot.add(this.shortcutView);
+    this.puzzleView = this.add.image(0, 0, 'dd-ring').setVisible(false).setScale(0.45 / RETINA_FACTOR); this.worldRoot.add(this.puzzleView);
+    this.gateGlow = this.add.image(ROOM.gateX, ROOM.gateY, 'dd-ring').setVisible(false).setScale(0.72 / RETINA_FACTOR); this.worldRoot.add(this.gateGlow);
+    this.torchViews = [this.add.image(54, 194, 'dd-ring').setScale(.34 / RETINA_FACTOR).setTint(PAL.gold), this.add.image(336, 194, 'dd-ring').setScale(.34 / RETINA_FACTOR).setTint(PAL.gold)]; this.worldRoot.add(this.torchViews);
     this.gateLeft = this.add.rectangle(ROOM.gateX - 10, ROOM.gateY, 8, 106, PAL.dim, 1).setVisible(false); this.gateRight = this.add.rectangle(ROOM.gateX + 10, ROOM.gateY, 8, 106, PAL.dim, 1).setVisible(false); this.worldRoot.add([this.gateLeft, this.gateRight]);
-    this.playerView = this.add.image(0, 0, 'dd-hero-sheet', 'heroidle0').setOrigin(0.5).setScale(1.45).setVisible(false); this.worldRoot.add(this.playerView);
+    this.playerView = this.add.image(0, 0, 'dd-hero-sheet', 'heroidle0').setOrigin(0.5).setScale(1.45 / RETINA_FACTOR).setVisible(false); this.worldRoot.add(this.playerView);
   };
 
   Scene.prototype.buildUi = function () {
-    var text = function (scene, x, y, value, style) { return scene.add.text(x, y, value, style).setDepth(60); };
+    var text = function (scene, x, y, value, style) { return scene.add.text(x, y, value, Object.assign({}, style, { resolution: RETINA_FACTOR })).setDepth(60); };
     var base = { fontFamily: 'ui-sans-serif, system-ui, sans-serif', color: '#f5f1e3' };
     this.hudMode = text(this, 20, 12, 'D · EXPLORE', Object.assign({}, base, { fontSize: '14px', color: '#67d9b5', fontStyle: 'bold' }));
     this.hudTime = text(this, 370, 10, '00:00.00', Object.assign({}, base, { fontFamily: 'ui-monospace, monospace', fontSize: '20px', fontStyle: 'bold', align: 'right' })).setOrigin(1, 0);
@@ -282,8 +287,8 @@
   };
 
   Scene.prototype.buildPools = function () {
-    for (var i = 0; i < MAX_ENEMIES; i++) { var es = this.add.image(0, 0, 'dd-enemy-sheet').setOrigin(0.5).setScale(1.45).setVisible(false).setDepth(15); var eb = this.add.rectangle(0, 0, 30, 3, PAL.danger, 1).setVisible(false).setDepth(16); this.worldRoot.add([es, eb]); this.enemyViews.push({ sprite: es, bar: eb, state: '', frame: 0 }); }
-    for (i = 0; i < MAX_PICKUPS; i++) { var ps = this.add.image(0, 0, 'dd-charge').setOrigin(0.5).setScale(1.2).setVisible(false).setDepth(13); this.worldRoot.add(ps); this.pickupViews.push(ps); }
+    for (var i = 0; i < MAX_ENEMIES; i++) { var es = this.add.image(0, 0, 'dd-enemy-sheet').setOrigin(0.5).setScale(1.45 / RETINA_FACTOR).setVisible(false).setDepth(15); var eb = this.add.rectangle(0, 0, 30, 3, PAL.danger, 1).setVisible(false).setDepth(16); this.worldRoot.add([es, eb]); this.enemyViews.push({ sprite: es, bar: eb, state: '', frame: 0 }); }
+    for (i = 0; i < MAX_PICKUPS; i++) { var ps = this.add.image(0, 0, 'dd-charge').setOrigin(0.5).setScale(1.2 / RETINA_FACTOR).setVisible(false).setDepth(13); this.worldRoot.add(ps); this.pickupViews.push(ps); }
     for (i = 0; i < 8; i++) { var hz = this.add.image(0, 0, 'dd-hazard').setOrigin(0.5).setVisible(false).setDepth(8); this.worldRoot.add(hz); this.hazardViews.push(hz); }
     for (i = 0; i < MAX_BOLTS; i++) this.bolts.push({ active: false, x: 0, y: 0, vx: 0, vy: 0, life: 0, heavy: false });
     for (i = 0; i < MAX_BOLTS + MAX_FX; i++) { var fx = i < MAX_BOLTS ? null : { active: false, x: 0, y: 0, vx: 0, vy: 0, life: 0, max: 1, size: 1, color: PAL.white, type: 'spark' }; if (fx) this.fx.push(fx); var fv = this.add.image(0, 0, 'dd-spark').setOrigin(0.5).setVisible(false).setDepth(25); this.worldRoot.add(fv); this.fxViews.push(fv); }
@@ -619,18 +624,18 @@
   Scene.prototype.renderWorld = function () {
     var r = this.run, p = this.player, floor = floorFor(r.floorNo), i;
     var motion = kit.juice.enabled ? 1 : 0; this.playerView.setVisible(true).setPosition(p.x, p.y); var pstate = p.dash > 0 ? 'dash' : p.hurt > 0 ? 'hurt' : p.attack > 0 ? 'attack' : this.control.moveMag > .12 ? 'run' : 'idle'; this.playerView.setFrame('hero' + pstate + (Math.floor(p.anim * 9) % 2)); this.playerView.setAlpha(p.invuln > 0 && Math.floor(p.invuln * 18) % 2 === 0 ? .42 : 1); this.playerView.setTint(p.dash > 0 ? floor.accent : 0xffffff); this.playerView.setRotation(p.attack > 0 ? Math.atan2(p.faceY, p.faceX) : 0); this.playerView.setFlipX(p.attack <= 0 && p.faceX < -.25);
-    for (i = 0; i < this.enemyViews.length; i++) { var ev = this.enemyViews[i]; if (i >= this.enemies.length) { ev.sprite.setVisible(false); ev.bar.setVisible(false); continue; } var e = this.enemies[i], telegraph = e.shotTimer < .32 && (e.type === 'archer' || e.type === 'warden'), et = e.hurt > 0 ? 'hurt' : telegraph ? 'attack' : 'run'; ev.sprite.setVisible(true).setPosition(e.x, e.y).setFrame('enemy' + (e.type || 'wisp') + et + (Math.floor(e.anim * 7) % 2)).setTint(e.hurt > 0 ? 0xffffff : telegraph ? PAL.gold : 0xffffff).setAlpha(telegraph ? .78 + (motion ? Math.sin(this.uiTime * 18) * .18 : 0) : 1); ev.sprite.setScale((e.type === 'warden' ? 2.15 : e.type === 'brute' ? 1.75 : 1.45) * (telegraph ? 1.08 : 1)); ev.bar.setVisible(e.hp < e.maxHp).setPosition(e.x, e.y - (e.type === 'warden' ? 32 : 22)).setSize(42, 3).setFillStyle(0x2b2039, 1); ev.bar.setScale(1, 1); ev.bar.setDisplaySize(42 * Math.max(0, e.hp / e.maxHp), 3); }
+    for (i = 0; i < this.enemyViews.length; i++) { var ev = this.enemyViews[i]; if (i >= this.enemies.length) { ev.sprite.setVisible(false); ev.bar.setVisible(false); continue; } var e = this.enemies[i], telegraph = e.shotTimer < .32 && (e.type === 'archer' || e.type === 'warden'), et = e.hurt > 0 ? 'hurt' : telegraph ? 'attack' : 'run'; ev.sprite.setVisible(true).setPosition(e.x, e.y).setFrame('enemy' + (e.type || 'wisp') + et + (Math.floor(e.anim * 7) % 2)).setTint(e.hurt > 0 ? 0xffffff : telegraph ? PAL.gold : 0xffffff).setAlpha(telegraph ? .78 + (motion ? Math.sin(this.uiTime * 18) * .18 : 0) : 1); ev.sprite.setScale((e.type === 'warden' ? 2.15 : e.type === 'brute' ? 1.75 : 1.45) * (telegraph ? 1.08 : 1) / RETINA_FACTOR); ev.bar.setVisible(e.hp < e.maxHp).setPosition(e.x, e.y - (e.type === 'warden' ? 32 : 22)).setSize(42, 3).setFillStyle(0x2b2039, 1); ev.bar.setScale(1, 1); ev.bar.setDisplaySize(42 * Math.max(0, e.hp / e.maxHp), 3); }
     for (i = 0; i < this.hazardViews.length; i++) { var hv = this.hazardViews[i]; if (i >= this.hazards.length) { hv.setVisible(false); continue; } var h = this.hazards[i]; hv.setVisible(true).setPosition(h.x + h.w / 2, h.y + h.h / 2).setDisplaySize(h.w, h.h).setAlpha(h.active ? .9 : h.warning ? .62 : .18).setTint(h.warning ? PAL.gold : floor.hazard); }
-    for (i = 0; i < this.pickupViews.length; i++) { var pv = this.pickupViews[i], q = this.pickups[i]; if (!q || (!q.active && !q.pop)) { pv.setVisible(false); continue; } var qt = q.active ? 0 : 1 - q.pop / .34, qscale = q.active ? 1 + (motion ? Math.sin(this.uiTime * 3 + q.pulse) * .08 : 0) : motion ? 1 + easeOutBack(clamp(qt, 0, 1)) * 1.25 : 1; pv.setVisible(motion || q.active).setTexture(q.type === 'potion' ? 'dd-potion' : 'dd-charge').setPosition(q.x, q.y + (q.active && motion ? Math.sin(this.uiTime * 3 + q.pulse) * 3 : 0)).setScale(qscale).setAlpha(q.active ? 1 : motion ? clamp(q.pop / .34, 0, 1) : 0).setTint(q.type === 'potion' ? 0xff7187 : PAL.mint); }
-    if (this.key && (!this.key.collected || this.key.pop > 0)) { var kt = this.key.collected ? 1 - this.key.pop / .34 : 0; this.keyView.setVisible(!this.key.collected || motion).setPosition(this.key.x, this.key.y + (!this.key.collected && motion ? Math.sin(this.uiTime * 3 + this.key.pulse) * 4 : 0)).setScale(this.key.collected && motion ? 1.5 + easeOutBack(clamp(kt, 0, 1)) * 1.4 : 1.5).setAlpha(this.key.collected ? motion ? clamp(this.key.pop / .34, 0, 1) : 0 : 1); } else this.keyView.setVisible(false);
-    this.puzzleView.setVisible(!!this.puzzle && !this.puzzle.solved).setPosition(this.puzzle ? this.puzzle.x : 0, this.puzzle ? this.puzzle.y : 0).setTint(this.puzzle && this.puzzle.active ? PAL.gold : PAL.violet).setAlpha(this.puzzle && this.puzzle.active ? .95 : .48 + (motion ? Math.sin(this.uiTime * 4) * .1 : 0)).setScale(.45 + (motion && this.puzzle && this.puzzle.pop ? easeOutBack(1 - this.puzzle.pop / .28) * .2 : 0));
-    this.gateLeft.setVisible(true).setPosition(ROOM.gateX - 10 - this.gate.amount * 22, ROOM.gateY).setFillStyle(this.gate.target ? PAL.mint : PAL.dim, 1); this.gateRight.setVisible(true).setPosition(ROOM.gateX + 10 + this.gate.amount * 22, ROOM.gateY).setFillStyle(this.gate.target ? PAL.mint : PAL.dim, 1); this.gateGlow.setVisible(this.gate.target).setAlpha(.28 + (motion ? Math.sin(this.uiTime * 6) * .08 : 0)).setScale(.72 + this.gate.amount * .12).setTint(PAL.mint);
-    this.shortcutView.setAlpha(this.room.shortcut && this.room.shortcut.discovered ? .95 : .38 + (motion ? Math.sin(this.uiTime * 4) * .1 : 0)); for (i = 0; i < this.torchViews.length; i++) this.torchViews[i].setVisible(true).setAlpha(.42 + (motion ? Math.sin(this.uiTime * 5 + i * 2) * .12 : 0)).setScale(.3 + (motion ? Math.sin(this.uiTime * 5 + i * 2) * .025 : 0));
-    for (i = 0; i < this.bolts.length; i++) { var b = this.bolts[i]; if (!b.active) continue; var bv = this.fxViews[i]; bv.setVisible(true).setPosition(b.x, b.y).setScale(b.heavy ? 1.15 : .75).setTint(b.heavy ? PAL.danger : PAL.violet); }
+    for (i = 0; i < this.pickupViews.length; i++) { var pv = this.pickupViews[i], q = this.pickups[i]; if (!q || (!q.active && !q.pop)) { pv.setVisible(false); continue; } var qt = q.active ? 0 : 1 - q.pop / .34, qscale = q.active ? 1 + (motion ? Math.sin(this.uiTime * 3 + q.pulse) * .08 : 0) : motion ? 1 + easeOutBack(clamp(qt, 0, 1)) * 1.25 : 1; pv.setVisible(motion || q.active).setTexture(q.type === 'potion' ? 'dd-potion' : 'dd-charge').setPosition(q.x, q.y + (q.active && motion ? Math.sin(this.uiTime * 3 + q.pulse) * 3 : 0)).setScale(qscale / RETINA_FACTOR).setAlpha(q.active ? 1 : motion ? clamp(q.pop / .34, 0, 1) : 0).setTint(q.type === 'potion' ? 0xff7187 : PAL.mint); }
+    if (this.key && (!this.key.collected || this.key.pop > 0)) { var kt = this.key.collected ? 1 - this.key.pop / .34 : 0; this.keyView.setVisible(!this.key.collected || motion).setPosition(this.key.x, this.key.y + (!this.key.collected && motion ? Math.sin(this.uiTime * 3 + this.key.pulse) * 4 : 0)).setScale((this.key.collected && motion ? 1.5 + easeOutBack(clamp(kt, 0, 1)) * 1.4 : 1.5) / RETINA_FACTOR).setAlpha(this.key.collected ? motion ? clamp(this.key.pop / .34, 0, 1) : 0 : 1); } else this.keyView.setVisible(false);
+    this.puzzleView.setVisible(!!this.puzzle && !this.puzzle.solved).setPosition(this.puzzle ? this.puzzle.x : 0, this.puzzle ? this.puzzle.y : 0).setTint(this.puzzle && this.puzzle.active ? PAL.gold : PAL.violet).setAlpha(this.puzzle && this.puzzle.active ? .95 : .48 + (motion ? Math.sin(this.uiTime * 4) * .1 : 0)).setScale((.45 + (motion && this.puzzle && this.puzzle.pop ? easeOutBack(1 - this.puzzle.pop / .28) * .2 : 0)) / RETINA_FACTOR);
+    this.gateLeft.setVisible(true).setPosition(ROOM.gateX - 10 - this.gate.amount * 22, ROOM.gateY).setFillStyle(this.gate.target ? PAL.mint : PAL.dim, 1); this.gateRight.setVisible(true).setPosition(ROOM.gateX + 10 + this.gate.amount * 22, ROOM.gateY).setFillStyle(this.gate.target ? PAL.mint : PAL.dim, 1); this.gateGlow.setVisible(this.gate.target).setAlpha(.28 + (motion ? Math.sin(this.uiTime * 6) * .08 : 0)).setScale((.72 + this.gate.amount * .12) / RETINA_FACTOR).setTint(PAL.mint);
+    this.shortcutView.setAlpha(this.room.shortcut && this.room.shortcut.discovered ? .95 : .38 + (motion ? Math.sin(this.uiTime * 4) * .1 : 0)); for (i = 0; i < this.torchViews.length; i++) this.torchViews[i].setVisible(true).setAlpha(.42 + (motion ? Math.sin(this.uiTime * 5 + i * 2) * .12 : 0)).setScale((.3 + (motion ? Math.sin(this.uiTime * 5 + i * 2) * .025 : 0)) / RETINA_FACTOR);
+    for (i = 0; i < this.bolts.length; i++) { var b = this.bolts[i]; if (!b.active) continue; var bv = this.fxViews[i]; bv.setVisible(true).setPosition(b.x, b.y).setScale((b.heavy ? 1.15 : .75) / RETINA_FACTOR).setTint(b.heavy ? PAL.danger : PAL.violet); }
     for (i = 0; i < this.bolts.length; i++) if (!this.bolts[i].active && this.fxViews[i].visible) this.fxViews[i].setVisible(false);
-    for (i = 0; i < this.fx.length; i++) { var fp = this.fx[i], fv = this.fxViews[i + this.bolts.length], fxTexture = fp.type === 'dust' ? 'dd-dust' : fp.type === 'puzzle' ? 'dd-puzzle' : fp.type === 'escape' ? 'dd-escape' : 'dd-spark'; if (!fv) continue; fv.setVisible(fp.active).setTexture(fxTexture).setPosition(fp.x, fp.y).setScale(fp.size).setAlpha(fp.active ? clamp(fp.life / fp.max, 0, 1) : 0).setTint(fp.color); }
+    for (i = 0; i < this.fx.length; i++) { var fp = this.fx[i], fv = this.fxViews[i + this.bolts.length], fxTexture = fp.type === 'dust' ? 'dd-dust' : fp.type === 'puzzle' ? 'dd-puzzle' : fp.type === 'escape' ? 'dd-escape' : 'dd-spark'; if (!fv) continue; fv.setVisible(fp.active).setTexture(fxTexture).setPosition(fp.x, fp.y).setScale(fp.size / RETINA_FACTOR).setAlpha(fp.active ? clamp(fp.life / fp.max, 0, 1) : 0).setTint(fp.color); }
     var flash = r.damageFlash > 0 ? clamp(r.damageFlash / .22, 0, 1) * .22 : 0; this.damageFlashView.setVisible(activePhase(r.phase)).setAlpha(flash);
-    var knob = this.moveKnob || { x: 74, y: 779 }; if (!this.moveKnobView) { this.moveKnobView = this.add.image(0, 0, 'dd-charge').setOrigin(.5).setScale(.8).setDepth(61); } this.moveKnobView.setVisible(true).setPosition(knob.x, knob.y).setTint(PAL.mint);
+    var knob = this.moveKnob || { x: 74, y: 779 }; if (!this.moveKnobView) { this.moveKnobView = this.add.image(0, 0, 'dd-charge').setOrigin(.5).setScale(.8 / RETINA_FACTOR).setDepth(61); } this.moveKnobView.setVisible(true).setPosition(knob.x, knob.y).setTint(PAL.mint);
   };
   Scene.prototype.renderResult = function (show) {
     if (!show) return; var r = this.run, f = floorFor(r.floorNo), final = r.phase === 'gauntletComplete', failed = r.phase === 'failed'; this.resultShade.setFillStyle(failed ? 0x190d19 : 0x090c17, .92); setTextIfChanged(this.resultKicker, final ? 'FOUR FLOORS / DEADLINE ROUTE' : failed ? (r.timeout ? 'TIMEOUT / DEADLINE ROUTE' : 'ROOM ' + String(r.roomIndex + 1).padStart(2, '0')) : 'FLOOR ' + String(r.floorNo).padStart(2, '0') + ' / ' + f.short); setTextIfChanged(this.resultTitle, final ? 'GAUNTLET COMPLETE' : failed ? (r.timeout ? 'DEADLINE PASSED' : 'RUN ENDED') : 'FLOOR CLEAR'); setTextIfChanged(this.resultScore, final ? fmtTime(r.totalTime) : fmtTime(r.floorTime)); setTextIfChanged(this.resultMedal, final ? 'DEADLINE VAULT OPENED' : failed ? 'RESTART AND TAKE THE SHORTCUT' : medalText(r.medal)); this.resultMedal.setColor(final ? '#ffd16a' : failed ? '#ff6f83' : colorCss(medalColor(r.medal))); var best = final ? profile.gauntletBest : profile.bestTimes[f.id]; setTextIfChanged(this.resultCopy, final ? (best ? 'BEST GAUNTLET  ' + fmtTime(best) : 'FIRST CLEAR RECORDED') : failed ? (r.timeout ? 'The floor clock reached zero.' : 'Potion and dash charges remain scattered through the halls.') : 'PAR ' + fmtTime(f.par) + '  /  BEST ' + (best ? fmtTime(best) : '--:--.--') + '\n' + (r.mode === 'daily' ? 'DAILY SEED  ' + seedText(r.seed) : 'PRACTICE SEED  ' + seedText(r.seed)));
@@ -644,6 +649,9 @@
   // select the headless/WebGL path, which accepts the scene but leaves the
   // dynamic canvas/text batches black with no JavaScript error. Keep the
   // first frame on the renderer that owns these sources directly.
-  var config = { type: Phaser.CANVAS, parent: 'game', width: W, height: H, backgroundColor: '#090c17', render: { pixelArt: true, antialias: false, roundPixels: true, clearBeforeRender: true }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H }, scene: Scene };
+  var config = { type: Phaser.CANVAS, parent: 'game', width: W, height: H, backgroundColor: '#090c17', render: { clearBeforeRender: true }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H }, scene: Scene };
+  config.scale.width = Math.round(W * RETINA_FACTOR);
+  config.scale.height = Math.round(H * RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
   App.phaser = new Phaser.Game(config); kit.loader.progress(1);
 })();

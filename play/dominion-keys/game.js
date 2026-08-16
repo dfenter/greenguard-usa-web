@@ -16,6 +16,7 @@
   var BLUEPRINT = window.DKBlueprint;
 
   var DW = 390, DH = 844;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(DW, DH);
   var CELL = 23, BX = 45, BY = 138;
   var BW = S.W * CELL, BH = S.H * CELL;   // 299 x 506
   var PAD = 8;                            // board frame padding baked into dk-board
@@ -220,7 +221,8 @@
 
   // canvas-texture helper: create or fetch, hand back a 2D context
   function canvasTex(sc, key, w, h) {
-    var t = sc.textures.exists(key) ? sc.textures.get(key) : sc.textures.createCanvas(key, w, h);
+    var existing = sc.textures.exists(key);
+    var t = existing ? sc.textures.get(key) : sc.textures.addCanvas(key, GGKit.hiDpi.canvas(w, h, RETINA_FACTOR).canvas);
     return t;
   }
   function ctxOf(t) { return t.getSourceImage().getContext('2d'); }
@@ -356,7 +358,7 @@
     var key = 'dk-cells-' + ch;
     if (sc.textures.exists(key)) return key;
     var rows = Math.ceil(FRAMES.length / A_COLS);
-    var t = sc.textures.createCanvas(key, A_COLS * A_CELL, rows * A_CELL);
+    var t = canvasTex(sc, key, A_COLS * A_CELL, rows * A_CELL);
     var c = ctxOf(t);
     c.clearRect(0, 0, A_COLS * A_CELL, rows * A_CELL);
     for (var i = 0; i < FRAMES.length; i++) {
@@ -365,7 +367,7 @@
       paintCell(c, FRAMES[i], CH[ch]);
       c.restore();
       // second arg is the SOURCE INDEX, not an x offset
-      t.add(FRAMES[i], 0, cx, cy, CELL, CELL);
+      t.add(FRAMES[i], 0, Math.round(cx * RETINA_FACTOR), Math.round(cy * RETINA_FACTOR), Math.round(CELL * RETINA_FACTOR), Math.round(CELL * RETINA_FACTOR));
     }
     t.refresh();
     return key;
@@ -376,7 +378,7 @@
   function bakeFx(sc) {
     var key = 'dk-fx';
     if (sc.textures.exists(key)) return key;
-    var t = sc.textures.createCanvas(key, 7 * 16, 16);
+    var t = canvasTex(sc, key, 7 * 16, 16);
     var c = ctxOf(t);
     c.clearRect(0, 0, 112, 16);
     // spark: soft round core
@@ -411,7 +413,7 @@
     c.moveTo(98, 9); c.quadraticCurveTo(101, 5.4, 104, 9);
     c.moveTo(104, 9); c.quadraticCurveTo(107, 5.4, 110, 9);
     c.stroke();
-    for (var i = 0; i < PFRAMES.length; i++) t.add(PFRAMES[i], 0, i * 16, 0, 16, 16);
+    for (var i = 0; i < PFRAMES.length; i++) t.add(PFRAMES[i], 0, Math.round(i * 16 * RETINA_FACTOR), 0, Math.round(16 * RETINA_FACTOR), Math.round(16 * RETINA_FACTOR));
     t.refresh();
     return key;
   }
@@ -429,7 +431,7 @@
   function bakeUI(sc) {
     var key = 'dk-ui';
     if (sc.textures.exists(key)) return key;
-    var t = sc.textures.createCanvas(key, 256, 104);
+    var t = canvasTex(sc, key, 256, 104);
     var c = ctxOf(t);
     c.clearRect(0, 0, 256, 104);
 
@@ -585,7 +587,7 @@
     for (var k in UI) {
       if (!Object.prototype.hasOwnProperty.call(UI, k)) continue;
       var b = UI[k];
-      t.add(k, 0, b[0], b[1], b[2], b[3]);
+      t.add(k, 0, Math.round(b[0] * RETINA_FACTOR), Math.round(b[1] * RETINA_FACTOR), Math.round(b[2] * RETINA_FACTOR), Math.round(b[3] * RETINA_FACTOR));
     }
     t.refresh();
     return key;
@@ -601,7 +603,7 @@
     Object.keys(POOLS).forEach(function (kind) {
       var arr = [];
       for (var i = 0; i < POOLS[kind]; i++) {
-        var img = sc.add.image(0, 0, 'dk-fx', kind);
+        var img = sc.add.image(0, 0, 'dk-fx', kind).setScale(1 / RETINA_FACTOR);
         img.setVisible(false).setActive(false);
         parent.add(img);
         var p = { img: img, kind: kind, live: false, x: 0, y: 0, vx: 0, vy: 0, l: 0, m: 1, s0: 1, s1: 0, rot: 0, spin: 0, g: 0 };
@@ -648,7 +650,7 @@
       img.setTint(o.tint != null ? o.tint : 0xffffff);
       img.setBlendMode(o.additive ? Phaser.BlendModes.ADD : Phaser.BlendModes.NORMAL);
       img.setPosition(p.x, p.y);
-      img.setScale(p.s0);
+      img.setScale(p.s0 / RETINA_FACTOR);
       img.setAlpha(o.alpha != null ? o.alpha : 1);
       img.setRotation(p.rot);
     }
@@ -672,7 +674,7 @@
       var img = p.img;
       img.x = p.x; img.y = p.y;
       img.rotation = p.rot;
-      img.setScale(p.s1 + (p.s0 - p.s1) * u);
+      img.setScale((p.s1 + (p.s0 - p.s1) * u) / RETINA_FACTOR);
       img.setAlpha(u > 0.75 ? 1 : u / 0.75);
     }
   };
@@ -716,6 +718,7 @@
 
     create() {
       var self = this;
+      this.cameras.main.setZoom(RETINA_FACTOR);
       this.mode = 'title';
       this.st = null;
       this.level = 0;
@@ -789,20 +792,20 @@
       kit.loader.progress(0.66);
 
       // --- display list ---
-      this.bg = this.add.image(0, 0, 'dk-bg-0').setOrigin(0, 0);
-      this.page = this.add.image(0, 0, 'dk-page').setOrigin(0, 0).setVisible(false);
-      this.keepImg = this.add.image(0, 78, 'dk-keep').setOrigin(0, 0).setVisible(false);
+      this.bg = this.add.image(0, 0, 'dk-bg-0').setOrigin(0, 0).setScale(1 / RETINA_FACTOR);
+      this.page = this.add.image(0, 0, 'dk-page').setOrigin(0, 0).setScale(1 / RETINA_FACTOR).setVisible(false);
+      this.keepImg = this.add.image(0, 78, 'dk-keep').setOrigin(0, 0).setScale(1 / RETINA_FACTOR).setVisible(false);
       this.keepLive = this.add.container(0, 78).setVisible(false);
 
       this.boardRoot = this.add.container(BX - PAD, BY - PAD);
-      this.boardImg = this.add.image(0, 0, 'dk-board').setOrigin(0, 0);
+      this.boardImg = this.add.image(0, 0, 'dk-board').setOrigin(0, 0).setScale(1 / RETINA_FACTOR);
       this.boardRoot.add(this.boardImg);
 
       this.cellLayer = this.add.container(PAD, PAD);
       this.boardRoot.add(this.cellLayer);
       this.cells = [];
       for (var i = 0; i < 190; i++) {
-        var img = this.add.image(0, 0, 'dk-cells-0', 'gold');
+        var img = this.add.image(0, 0, 'dk-cells-0', 'gold').setScale(1 / RETINA_FACTOR);
         img.setVisible(false);
         this.cellLayer.add(img);
         this.cells.push(img);
@@ -813,16 +816,16 @@
       this.pinViews = [];
       for (i = 0; i < 6; i++) {
         var v = {
-          bar: this.add.tileSprite(0, 0, CELL * 3, CELL, 'dk-cells-0', 'pin').setOrigin(0, 0.5),
-          handle: this.add.image(0, 0, 'dk-ui', 'handle').setOrigin(0.5),
-          chev: this.add.image(0, 0, 'dk-ui', 'chev').setOrigin(0.5)
+          bar: this.add.tileSprite(0, 0, CELL * 3, CELL, 'dk-cells-0', 'pin').setOrigin(0, 0.5).setTileScale(1 / RETINA_FACTOR, 1 / RETINA_FACTOR),
+          handle: this.add.image(0, 0, 'dk-ui', 'handle').setOrigin(0.5).setScale(1 / RETINA_FACTOR),
+          chev: this.add.image(0, 0, 'dk-ui', 'chev').setOrigin(0.5).setScale(1 / RETINA_FACTOR)
         };
         v.bar.setVisible(false); v.handle.setVisible(false); v.chev.setVisible(false);
         this.pinLayer.add(v.bar); this.pinLayer.add(v.handle); this.pinLayer.add(v.chev);
         this.pinViews.push(v);
       }
-      this.selRing = this.add.image(0, 0, 'dk-ui', 'handleSel').setOrigin(0.5).setVisible(false);
-      this.selMark = this.add.image(0, 0, 'dk-ui', 'chev').setOrigin(0.5).setVisible(false);
+      this.selRing = this.add.image(0, 0, 'dk-ui', 'handleSel').setOrigin(0.5).setScale(1 / RETINA_FACTOR).setVisible(false);
+      this.selMark = this.add.image(0, 0, 'dk-ui', 'chev').setOrigin(0.5).setScale(1 / RETINA_FACTOR).setVisible(false);
       this.pinLayer.add(this.selRing);
       this.pinLayer.add(this.selMark);
 
@@ -833,17 +836,17 @@
 
       this.buildKeepLive();
 
-      this.causeRing = this.add.image(0, 0, 'dk-ui', 'warn').setOrigin(0.5).setVisible(false);
+      this.causeRing = this.add.image(0, 0, 'dk-ui', 'warn').setOrigin(0.5).setScale(1 / RETINA_FACTOR).setVisible(false);
       this.fxLayer.add(this.causeRing);
 
       this.dim = this.add.rectangle(BX - PAD, BY - PAD, BW + PAD * 2, BH + PAD * 2, 0x080c14, 0.55)
         .setOrigin(0, 0).setVisible(false);
 
-      this.hud = this.add.image(0, 0, 'dk-hud').setOrigin(0, 0);
-      this.coach = this.add.image(DW / 2, 116, 'dk-coach').setOrigin(0.5).setVisible(false);
-      this.chip = this.add.image(DW / 2, 660, 'dk-chip').setOrigin(0.5).setVisible(false);
-      this.bar = this.add.image(0, 688, 'dk-bar').setOrigin(0, 0);
-      this.bannerImg = this.add.image(DW / 2, 420, 'dk-banner').setOrigin(0.5).setVisible(false);
+      this.hud = this.add.image(0, 0, 'dk-hud').setOrigin(0, 0).setScale(1 / RETINA_FACTOR);
+      this.coach = this.add.image(DW / 2, 116, 'dk-coach').setOrigin(0.5).setScale(1 / RETINA_FACTOR).setVisible(false);
+      this.chip = this.add.image(DW / 2, 660, 'dk-chip').setOrigin(0.5).setScale(1 / RETINA_FACTOR).setVisible(false);
+      this.bar = this.add.image(0, 688, 'dk-bar').setOrigin(0, 0).setScale(1 / RETINA_FACTOR);
+      this.bannerImg = this.add.image(DW / 2, 420, 'dk-banner').setOrigin(0.5).setScale(1 / RETINA_FACTOR).setVisible(false);
       this.flash = this.add.rectangle(0, 0, DW, DH, 0xfff0c8, 0).setOrigin(0, 0).setVisible(false);
 
       // --- input ---
@@ -877,14 +880,14 @@
       ];
       for (i = 0; i < vents.length; i++) {
         var sp = this.add.image(vents[i].x, vents[i].y, 'dk-fx', 'steam');
-        sp.setTint(0xdfe6f2).setAlpha(0).setVisible(false);
+        sp.setTint(0xdfe6f2).setScale(1 / RETINA_FACTOR).setAlpha(0).setVisible(false);
         this.keepLive.add(sp);
         this.smoke.push({ img: sp, b: vents[i].b, x: vents[i].x, y: vents[i].y, ph: i * 0.37 });
       }
       this.birds = [];
       for (i = 0; i < 3; i++) {
         var bd = this.add.image(0, 0, 'dk-fx', 'bird');
-        bd.setTint(0x27385c).setScale(0.9).setVisible(false);
+        bd.setTint(0x27385c).setScale(0.9 / RETINA_FACTOR).setVisible(false);
         this.keepLive.add(bd);
         this.birds.push({ img: bd, ph: i * 2.1, y: 70 + i * 26, sp: 22 + i * 7 });
       }
@@ -892,7 +895,7 @@
       for (i = 0; i < 8; i++) {
         var vg = this.add.image(0, 0, 'dk-fx', 'villager');
         vg.setTint(i % 3 === 0 ? 0xf3bc50 : i % 3 === 1 ? 0xec6b62 : 0xdbe6ff);
-        vg.setScale(0.8).setVisible(false);
+        vg.setScale(0.8 / RETINA_FACTOR).setVisible(false);
         this.keepLive.add(vg);
         this.villagers.push({ img: vg, ph: i * 0.83, sp: 15 + (i % 4) * 5, lane: i % 2 });
       }
@@ -909,7 +912,7 @@
         var u = ((t * 0.42 + sm.ph) % 1);
         sm.img.x = sm.x + Math.sin((t + sm.ph) * 1.4) * 5 * u;
         sm.img.y = sm.y - u * 46;
-        sm.img.setScale(0.45 + u * 0.95);
+        sm.img.setScale((0.45 + u * 0.95) / RETINA_FACTOR);
         sm.img.setAlpha((1 - u) * 0.42);
       }
       for (i = 0; i < this.birds.length; i++) {
@@ -918,7 +921,7 @@
         var bx = ((t * bd.sp + bd.ph * 130) % 430) - 20;
         bd.img.x = bx;
         bd.img.y = bd.y + Math.sin(t * 0.9 + bd.ph) * 9;
-        bd.img.setScale(0.85, live ? 0.7 + Math.abs(Math.sin(t * 5 + bd.ph)) * 0.45 : 0.9);
+        bd.img.setScale(0.85 / RETINA_FACTOR, (live ? 0.7 + Math.abs(Math.sin(t * 5 + bd.ph)) * 0.45 : 0.9) / RETINA_FACTOR);
         bd.img.setAlpha(0.55);
       }
       var count = tier === 0 ? 0 : Math.min(this.villagers.length, 1 + Math.floor(tier / 4));
@@ -929,7 +932,7 @@
         var vu = ((t * vg.sp + vg.ph * 90) % 300) / 300;
         vg.img.x = 148 + vg.lane * 26 + vu * (vg.lane ? -8 : 8) + Math.sin(vg.ph) * 6;
         vg.img.y = 258 + vu * 108;
-        vg.img.setScale(0.6 + vu * 0.45);
+        vg.img.setScale((0.6 + vu * 0.45) / RETINA_FACTOR);
         vg.img.setAlpha(0.95);
         if (live) vg.img.y -= Math.abs(Math.sin(t * 6 + vg.ph)) * 1.6;
       }
@@ -1408,7 +1411,7 @@
         txt(c, 'Tap to continue', W2 / 2, 274, 13, DIM, 'center', 550);
         t.refresh();
       }
-      this.bannerImg.setVisible(true).setAlpha(0).setScale(0.86);
+      this.bannerImg.setVisible(true).setAlpha(0).setScale(0.86 / RETINA_FACTOR);
     }
 
     // ==================================================== board painting
@@ -1416,7 +1419,7 @@
       var key = 'dk-bg-' + ch;
       if (this.textures.exists(key)) return key;
       var th = CH[ch];
-      var t = this.textures.createCanvas(key, DW, DH), c = ctxOf(t);
+      var t = canvasTex(this, key, DW, DH), c = ctxOf(t);
       c.clearRect(0, 0, DW, DH);
       vgrad(c, 0, 0, DW, DH, th.sky[1], th.sky[0]);
       var rg = c.createRadialGradient(DW / 2, 380, 60, DW / 2, 420, 520);
@@ -2693,7 +2696,7 @@
         v.handle.x = hp[0] + off;
         v.handle.y = hp[1];
         v.handle.setAlpha(p.out ? fade * 0.9 : 1);
-        v.handle.setScale(p.out ? 1 : (i === this.sel ? breathe : 1));
+        v.handle.setScale((p.out ? 1 : (i === this.sel ? breathe : 1)) / RETINA_FACTOR);
         v.chev.setVisible(false);
       }
     }
@@ -2748,7 +2751,7 @@
 
       this.selRing.setVisible(true);
       this.selRing.setPosition(hp[0] + lean, hp[1]);
-      this.selRing.setScale(scale);
+      this.selRing.setScale(scale / RETINA_FACTOR);
       this.selRing.setAlpha(alpha);
       this.selRing.setTint(tint);
       this.selMark.setVisible(true);
@@ -2757,7 +2760,7 @@
       this.selMark.setFlipX(p.anchor < 0);
       this.selMark.setTint(tint);
       this.selMark.setAlpha(alpha);
-      this.selMark.setScale(state === 'preview' ? 1.15 : 1);
+      this.selMark.setScale((state === 'preview' ? 1.15 : 1) / RETINA_FACTOR);
     }
 
     update(_time, delta) {
@@ -2799,10 +2802,10 @@
         this.keepFlash -= dt;
         if (this.mode === 'keep') {
           this.keepImg.setAlpha(1);
-          if (motionOn()) this.keepImg.setScale(1 + Math.max(0, this.keepFlash) * 0.012);
-          else this.keepImg.setScale(1);
+          if (motionOn()) this.keepImg.setScale((1 + Math.max(0, this.keepFlash) * 0.012) / RETINA_FACTOR);
+          else this.keepImg.setScale(1 / RETINA_FACTOR);
         }
-      } else if (this.mode === 'keep') this.keepImg.setScale(1);
+      } else if (this.mode === 'keep') this.keepImg.setScale(1 / RETINA_FACTOR);
       if (this.mode === 'keep') this.updateKeepLive();
 
       if (this.mode !== 'play') {
@@ -2829,7 +2832,7 @@
           if (this.causeRing.visible) {
             this.causeRing.setAlpha(Math.min(1, this.overT * 3));
             var pulse = 1 + Math.sin(this.time0 * 6) * (motionOn() ? 0.22 : 0.06);
-            this.causeRing.setScale(pulse);
+            this.causeRing.setScale(pulse / RETINA_FACTOR);
           }
         } else if (this.banner === 'win') {
           this.bannerT += dt;
@@ -2837,7 +2840,7 @@
           var e = 1 + 2.2 * Math.pow(1 - u, 3) - 2.2 * Math.pow(1 - u, 3) * (1 - u);
           var sc = motionOn() ? 0.86 + (1 - 0.86) * (1 - Math.pow(1 - u, 3)) + Math.sin(u * Math.PI) * 0.05 : 1;
           this.bannerImg.setAlpha(Math.min(1, u * 1.4));
-          this.bannerImg.setScale(sc);
+          this.bannerImg.setScale(sc / RETINA_FACTOR);
           void e;
         }
       }
@@ -2860,7 +2863,7 @@
     }
   };
 
-  var game = new Phaser.Game({
+  var config = {
     type: Phaser.AUTO,
     parent: document.body,
     width: DW,
@@ -2870,6 +2873,10 @@
     render: { antialias: true, roundPixels: false, powerPreference: 'high-performance', batchSize: 4096 },
     fps: { target: 60, min: 30 },
     scene: [DominionScene]
-  });
+  };
+  config.scale.width = Math.round(DW * RETINA_FACTOR);
+  config.scale.height = Math.round(DH * RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
+  var game = new Phaser.Game(config);
   game.events.once('ready', function () { scene = game.scene.getScene('dominion'); });
 })();

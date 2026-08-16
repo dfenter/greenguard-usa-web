@@ -132,3 +132,10 @@ reads false on localhost. Both need re-checking on the deployed URL.
 - Breach charges are a hold on the marker rather than a placed physical
   charge, which keeps the interaction to one thumb.
 - Gamepad input is not wired; touch and keyboard are.
+
+## Retina pass 2026-08-16
+
+- Measured before/after canvas-to-CSS ratio: no per-title live measurement was available. The fleet baseline measured 1.00x for 62 titles and 1.10x to 2.46x for the remainder. The after audit was blocked when the prescribed runner could not bind its private port (`listen EPERM`), and no browser backend was available. Static target at DPR3 is 3.00x.
+- Recipe: `GGKit.hiDpi.factor(GW, 390)`, dense FIT scale dimensions, `GGKit.renderDefaults`, camera zoom in the scene create method, matching Text resolution, and all `io_art.js` procedural canvas textures baked with `GGKit.hiDpi.canvas()` plus source resolution.
+- Factor cap: none beyond GGKit's default [1, 3] clamp.
+- Could not capture the required gameplay screenshot, backing-store ratio, or gameplay color metrics in this sandbox. `node --check game.js` and `node --check io_art.js` pass.

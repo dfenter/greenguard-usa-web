@@ -153,3 +153,10 @@ packs, collection, deck) plus `forceStage`.
   orchestrator's harness run; they were not executed from this lane.
 - Draft runs use the ladder decks as opponents rather than drafted opponent
   decks, which keeps the run difficulty legible against the posted tells.
+
+## Retina pass 2026-08-16
+
+- Ratio record at portrait CSS 390x844 and DPR 3: before 1.00x from the design-size FIT backing store; after 3.00x expected from a 1170x2532 backing store. Live canvas measurement was unavailable.
+- Recipe: `GGKit.hiDpi.factor(390, 844)`, dense FIT scale dimensions, `GGKit.renderDefaults`, and `setZoom(RETINA_FACTOR)` in Boot and Play.
+- Factor cap: none. The factor is GGKit-clamped to the device maximum of 3.
+- Could not capture the required DPR 3 gameplay screenshot or `canvas.width / getBoundingClientRect().width` measurement because no browser instance was available and the private port could not be opened in this environment.

@@ -409,7 +409,7 @@
   function txt(scene, x, y, s, size, color, weight) {
     var t = scene.add.text(x, y, s, {
       fontFamily: FONT, fontSize: Math.round(size) + 'px', color: color || '#dff4ff',
-      fontStyle: weight || '700'
+      fontStyle: weight || '700', resolution: GGKit.hiDpi.dpr()
     });
     t.__hbText = s;
     return t;

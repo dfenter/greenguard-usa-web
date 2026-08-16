@@ -100,3 +100,10 @@ Keep the airspeed above the stall line. If the stall warning appears, lower the 
 
 - Local browser screenshot and interactive smoke verification could not run because the sandbox refused the local HTTP listener. No deploy was performed.
 - The 600-frame uncontended feel capture and external gate harness evidence remain deferred. `node --check game.js` and `node --check sw.js` both pass.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.50x at DPR 3, from the renderer's hard cap. After ratio: 3.00x is configured by `GGKit.hiDpi.three(renderer)`; a live canvas measurement was unavailable because this sandbox refused private HTTP listeners and had no browser target.
+- Recipe: called `GGKit.hiDpi.three(renderer)` immediately after `new THREE.WebGLRenderer`; removed the resize-time 1.5x reset. No render targets, post-processing passes, or composers were present. Custom particle shaders now use the renderer pixel ratio so their CSS size remains stable at native density.
+- Factor cap: none beyond GGKit's standard maximum of 3. No title-specific cap was needed.
+- Static verification: `node --check game.js` and `git diff --check` passed. Gameplay screenshot, `canvas.width / getBoundingClientRect().width >= 2.85`, and live layout confirmation remain unmeasured in this environment.

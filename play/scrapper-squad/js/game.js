@@ -73,7 +73,7 @@
   function normalized(x, y) { var m = magnitude(x, y); return m > .001 ? { x: x / m, y: y / m } : { x: 1, y: 0 }; }
   function angleOf(x, y) { return Math.atan2(y, x); }
   function hex(color) { return Phaser.Display.Color.HexStringToColor(color || C.cyan).color; }
-  function textStyle(size, color, weight) { return { fontFamily: FONT, fontSize: size + 'px', color: color || C.paper, fontStyle: weight || 'bold' }; }
+  function textStyle(size, color, weight) { return { fontFamily: FONT, fontSize: size + 'px', color: color || C.paper, fontStyle: weight || 'bold', resolution: window.GGKit.hiDpi.dpr() }; }
   function setTextIfChanged(obj, value) { if (obj && obj.text !== String(value)) obj.setText(String(value)); }
   function setColorIfChanged(obj, value) { if (obj && obj.style && obj.style.color !== value) obj.setColor(value); }
   function timeText(seconds) { var s = Math.max(0, Math.ceil(seconds)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
@@ -520,7 +520,15 @@
     openMenu: function () { Runtime.next = null; kit.input.clearAll(); this.scene.start('menu'); }
   });
 
+  function resizeGame() {
+    if (!Runtime.game) return;
+    window.GGKit.hiDpi.resize(Runtime.game, Math.max(1, window.innerWidth || WORLD_W), Math.max(1, window.innerHeight || WORLD_H));
+  }
   try {
-    new Phaser.Game({ type: Phaser.AUTO, parent: 'stage', backgroundColor: C.ink, scale: { mode: Phaser.Scale.RESIZE, width: WORLD_W, height: WORLD_H, autoCenter: Phaser.Scale.CENTER_BOTH }, render: { antialias: false, pixelArt: true, roundPixels: true, powerPreference: 'high-performance' }, fps: { target: 60, min: 30 }, scene: [BootScene, MenuScene, PlayScene] });
+    Runtime.game = new Phaser.Game({ type: Phaser.AUTO, parent: 'stage', backgroundColor: C.ink, scale: { mode: Phaser.Scale.RESIZE, width: WORLD_W, height: WORLD_H, autoCenter: Phaser.Scale.CENTER_BOTH }, render: Object.assign({}, window.GGKit.renderDefaults, { batchSize: 4096 }), fps: { target: 60, min: 30 }, scene: [BootScene, MenuScene, PlayScene] });
+    window.addEventListener('resize', resizeGame);
+    window.addEventListener('orientationchange', resizeGame);
+    document.addEventListener('visibilitychange', resizeGame);
+    resizeGame();
   } catch (err2) { hook.error = String(err2 && err2.message || err2); state.phase = 'error'; }
 })();

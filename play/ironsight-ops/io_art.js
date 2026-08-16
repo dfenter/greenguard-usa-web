@@ -49,7 +49,9 @@ var IOArt = (function () {
   var scene = null;
   function tex(key, w, h) {
     if (scene.textures.exists(key)) scene.textures.remove(key);
-    var t = scene.textures.createCanvas(key, w, h);
+    var baked = window.GGKit.hiDpi.canvas(w, h);
+    var t = scene.textures.addCanvas(key, baked.canvas);
+    if (t && t.get()) t.get().source.resolution = baked.dpr;
     if (!t) return null;                       // guarded: soft reload can refuse a key
     return t;
   }

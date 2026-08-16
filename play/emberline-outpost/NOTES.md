@@ -31,3 +31,18 @@ Progress, roster, kits and per-map best score persist locally; map 8 is the win.
 
 - Browser first-frame and `window.__eo` drag-placement probe could not run: this environment had no available browser surface, and its sandbox rejected the slug-derived local TCP listener with `EPERM`. Node syntax checks, data-content checks, adapter boot parsing, precache existence, payload size, and em-dash scans passed.
 - Feel and throttled frame measurements were intentionally not run because the box is contended and has no GPU, per the rebuild request.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.00x source baseline at DPR 3. After ratio: 3.00x configured
+  through `GGKit.hiDpi.resize(game, cssW, cssH)`; a live canvas ratio could
+  not be measured because Chrome aborted in this sandbox and the private HTTP
+  bind was denied.
+- Recipe: applied Phaser Scale.RESIZE hi-DPI sizing at boot, resize,
+  orientation-change, and visibility events. Applied `GGKit.renderDefaults`
+  and `resolution: GGKit.hiDpi.dpr()` to the pooled Phaser text.
+- Factor cap: none beyond the GGKit maximum of 3. No title-specific cap was
+  needed.
+- Could not complete the live DPR 3 gameplay screenshot or layout check.
+  The authored board texture bake was left at its logical size because a
+  frame-unit migration to `GGKit.hiDpi.canvas(...)` could not be live-verified.

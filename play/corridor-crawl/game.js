@@ -1269,8 +1269,8 @@
       this.monPool.push(this.add.image(0, 0, 'cc_rat_idle').setVisible(false).setDepth(12));
       this.monHpBg.push(this.add.rectangle(0, 0, 24, 3, 0x161923).setOrigin(0.5).setVisible(false).setDepth(13));
       this.monHp.push(this.add.rectangle(0, 0, 22, 2, 0x71e099).setOrigin(0.5).setVisible(false).setDepth(14));
-      this.monIntent.push(this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '13px', fontStyle: 'bold', color: '#ffcf80' }).setOrigin(0.5).setVisible(false).setDepth(16));
-      this.monMark.push(this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '10px', fontStyle: 'bold', color: '#ffd76d' }).setOrigin(0.5).setVisible(false).setDepth(16));
+      this.monIntent.push(this.add.text(0, 0, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '13px', fontStyle: 'bold', color: '#ffcf80' }).setOrigin(0.5).setVisible(false).setDepth(16));
+      this.monMark.push(this.add.text(0, 0, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '10px', fontStyle: 'bold', color: '#ffd76d' }).setOrigin(0.5).setVisible(false).setDepth(16));
     }
     this.highlightPool = [];
     for (i = 0; i < 8; i++) this.highlightPool.push(this.add.rectangle(0, 0, 10, 10, 0x000000, 0).setOrigin(0).setStrokeStyle(2, 0x9ee6e9, 0.8).setVisible(false).setDepth(6));
@@ -1279,7 +1279,7 @@
     this.playerImage = this.add.image(0, 0, 'cc_player_idle').setDepth(15);
     this.shrineImage = this.add.image(0, 0, 'cc_shrine').setDepth(7).setVisible(false);
     this.shrineIcon = this.add.image(0, 0, 'cc_icon_unknown_potion').setDepth(9).setVisible(false);
-    this.shrinePrice = this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '14px', fontStyle: 'bold', color: '#ffd76d' }).setOrigin(0.5, 1).setDepth(17).setVisible(false);
+    this.shrinePrice = this.add.text(0, 0, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '14px', fontStyle: 'bold', color: '#ffd76d' }).setOrigin(0.5, 1).setDepth(17).setVisible(false);
     this.wipeBars = [];
     for (i = 0; i < 9; i++) this.wipeBars.push(this.add.rectangle(0, 0, 10, 10, 0x05070d, 1).setOrigin(0).setVisible(false).setDepth(78));
   };
@@ -1289,10 +1289,10 @@
     this.chromeImage = this.add.image(0, 0, 'cc_chrome').setOrigin(0).setDepth(-30);
     this.boardImage = this.add.image(0, 0, 'cc_board').setOrigin(0).setDepth(0);
     this.boardVignette = this.add.image(0, 0, 'cc_vignette').setOrigin(0).setDepth(5).setAlpha(0.85);
-    this.depthText = this.add.text(14, 12, '', { fontFamily: 'monospace', fontSize: '14px', color: '#98b7c7' }).setDepth(40);
-    this.scoreText = this.add.text(0, 10, '', { fontFamily: 'monospace', fontSize: '14px', color: '#ffd76d' }).setOrigin(1, 0).setDepth(40);
-    this.goldText = this.add.text(0, 30, '', { fontFamily: 'monospace', fontSize: '14px', color: '#ffd76d' }).setOrigin(1, 0).setDepth(40);
-    this.hpText = this.add.text(0, 50, '', { fontFamily: 'monospace', fontSize: '14px', color: '#ffb2a8' }).setOrigin(1, 0).setDepth(40);
+    this.depthText = this.add.text(14, 12, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '14px', color: '#98b7c7' }).setDepth(40);
+    this.scoreText = this.add.text(0, 10, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '14px', color: '#ffd76d' }).setOrigin(1, 0).setDepth(40);
+    this.goldText = this.add.text(0, 30, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '14px', color: '#ffd76d' }).setOrigin(1, 0).setDepth(40);
+    this.hpText = this.add.text(0, 50, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '14px', color: '#ffb2a8' }).setOrigin(1, 0).setDepth(40);
     this.hpBg = this.add.rectangle(0, 0, 100, 7, 0x20242e).setOrigin(0, 0).setDepth(38);
     this.hpFill = this.add.rectangle(0, 0, 100, 7, 0xef746d).setOrigin(0, 0).setDepth(39);
     this.hungerBg = this.add.rectangle(0, 0, 100, 7, 0x20242e).setOrigin(0, 0).setDepth(38);
@@ -1300,22 +1300,22 @@
     this.hungerFill = this.add.rectangle(0, 0, 100, 7, 0xe7b45f).setOrigin(0, 0).setDepth(39);
     this.torchBg = this.add.rectangle(0, 0, 100, 7, 0x20242e).setOrigin(0, 0).setDepth(38);
     this.torchFill = this.add.rectangle(0, 0, 100, 7, 0xffb35d).setOrigin(0, 0).setDepth(39);
-    this.hungerText = this.add.text(0, 0, '◒', { fontFamily: 'monospace', fontSize: '13px', color: '#d8e7ef' }).setOrigin(1, 0.5).setDepth(40);
-    this.torchText = this.add.text(0, 0, '☼', { fontFamily: 'monospace', fontSize: '13px', color: '#ffb35d' }).setOrigin(1, 0.5).setDepth(40);
-    this.hpIcon = this.add.text(0, 0, '♥', { fontFamily: 'monospace', fontSize: '13px', color: '#ef746d' }).setOrigin(1, 0.5).setDepth(40);
-    this.buffText = this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '14px', color: '#d8e7ef' }).setDepth(40);
+    this.hungerText = this.add.text(0, 0, '◒', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '13px', color: '#d8e7ef' }).setOrigin(1, 0.5).setDepth(40);
+    this.torchText = this.add.text(0, 0, '☼', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '13px', color: '#ffb35d' }).setOrigin(1, 0.5).setDepth(40);
+    this.hpIcon = this.add.text(0, 0, '♥', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '13px', color: '#ef746d' }).setOrigin(1, 0.5).setDepth(40);
+    this.buffText = this.add.text(0, 0, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '14px', color: '#d8e7ef' }).setDepth(40);
     this.bossBg = this.add.rectangle(0, 0, 100, 6, 0x2a1520).setOrigin(0, 0).setDepth(43).setVisible(false);
     this.bossFill = this.add.rectangle(0, 0, 100, 6, 0xff6a3d).setOrigin(0, 0).setDepth(44).setVisible(false);
-    this.bossName = this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '12px', fontStyle: 'bold', color: '#ffb9a0' }).setOrigin(0.5, 0.5).setDepth(44).setVisible(false);
+    this.bossName = this.add.text(0, 0, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '12px', fontStyle: 'bold', color: '#ffb9a0' }).setOrigin(0.5, 0.5).setDepth(44).setVisible(false);
     this.guideBg = this.add.rectangle(0, 0, 10, 22, 0x0b141d, 0.92).setOrigin(0, 0).setDepth(45);
-    this.guideText = this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '14px', color: '#d9eff2' }).setOrigin(0.5).setDepth(46);
+    this.guideText = this.add.text(0, 0, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '14px', color: '#d9eff2' }).setOrigin(0.5).setDepth(46);
     this.inspectBg = this.add.rectangle(0, 0, 10, 22, 0x0b141d, 0.96).setOrigin(0, 0).setDepth(50).setVisible(false);
-    this.inspectText = this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '14px', color: '#e7f3f5', align: 'center' }).setOrigin(0.5).setDepth(51).setVisible(false);
+    this.inspectText = this.add.text(0, 0, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '14px', color: '#e7f3f5', align: 'center' }).setOrigin(0.5).setDepth(51).setVisible(false);
     this.slotBg = []; this.slotIcon = []; this.slotCount = [];
     for (i = 0; i < SLOTS_MAX; i++) {
       var bg = this.add.rectangle(0, 0, 46, 60, 0x172330).setOrigin(0.5).setStrokeStyle(1, 0x3a5363, 1).setDepth(40);
       var icon = this.add.image(0, 0, 'cc_icon_unknown_potion').setDepth(41);
-      var count = this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '14px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(1, 1).setDepth(42);
+      var count = this.add.text(0, 0, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '14px', color: '#ffffff', fontStyle: 'bold' }).setOrigin(1, 1).setDepth(42);
       bg.setInteractive({ useHandCursor: true });
       (function (scene, index) {
         bg.on('pointerdown', function (pointer) {
@@ -1326,11 +1326,11 @@
       })(this, i);
       this.slotBg.push(bg); this.slotIcon.push(icon); this.slotCount.push(count);
     }
-    this.settingsText = this.add.text(0, 0, '⚙', { fontFamily: 'monospace', fontSize: '18px', color: '#9ee6e9', backgroundColor: '#172330', padding: { left: 13, right: 13, top: 11, bottom: 11 } }).setDepth(45).setInteractive({ useHandCursor: true });
+    this.settingsText = this.add.text(0, 0, '⚙', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '18px', color: '#9ee6e9', backgroundColor: '#172330', padding: { left: 13, right: 13, top: 11, bottom: 11 } }).setDepth(45).setInteractive({ useHandCursor: true });
     this.settingsText.on('pointerdown', function () { if (kit.openSettings) kit.openSettings(); });
     this.boardHit = this.add.rectangle(0, 0, 10, 10, 0x000000, 0).setOrigin(0).setInteractive().setDepth(20);
     this.bannerBg = this.add.rectangle(0, 0, 10, 22, 0x0b141d, 0.96).setOrigin(0, 0).setDepth(70).setVisible(false);
-    this.bannerTitle = this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '14px', fontStyle: 'bold', color: '#ffd76d', align: 'center' }).setOrigin(0.5).setDepth(71).setVisible(false);
+    this.bannerTitle = this.add.text(0, 0, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '14px', fontStyle: 'bold', color: '#ffd76d', align: 'center' }).setOrigin(0.5).setDepth(71).setVisible(false);
     this.transitionShade = this.add.rectangle(0, 0, 10, 10, 0x03050a, 0.92).setOrigin(0).setDepth(75).setVisible(false);
     this.buildTitleUi();
     this.buildEndUi();
@@ -1340,15 +1340,15 @@
     var self = this, i;
     this.titleShade = this.add.rectangle(0, 0, 10, 10, 0x070b12, 1).setOrigin(0).setDepth(100).setVisible(false);
     this.titleArt = this.add.image(0, 0, 'cc_titleart').setOrigin(0.5).setDepth(102).setVisible(false);
-    this.titleSub = this.add.text(0, 0, 'choose a delver', { fontFamily: 'monospace', fontSize: '14px', color: '#8fb0c2' }).setOrigin(0.5).setDepth(102).setVisible(false);
+    this.titleSub = this.add.text(0, 0, 'choose a delver', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '14px', color: '#8fb0c2' }).setOrigin(0.5).setDepth(102).setVisible(false);
     this.titleCards = [];
     for (i = 0; i < CLASS_KEYS.length; i++) {
       var card = {
         bg: this.add.rectangle(0, 0, 300, 46, 0x132030, 1).setOrigin(0, 0.5).setStrokeStyle(2, 0x2a4356, 1).setDepth(102).setVisible(false),
-        mark: this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '16px', fontStyle: 'bold', color: '#ffd76d' }).setOrigin(0.5).setDepth(103).setVisible(false),
-        name: this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '15px', fontStyle: 'bold', color: '#e6f2f6' }).setOrigin(0, 0.5).setDepth(103).setVisible(false),
-        line: this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '12px', color: '#8fb0c2' }).setOrigin(0, 0.5).setDepth(103).setVisible(false),
-        perk: this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '11px', color: '#6f8a9c' }).setOrigin(0, 0.5).setDepth(103).setVisible(false)
+        mark: this.add.text(0, 0, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '16px', fontStyle: 'bold', color: '#ffd76d' }).setOrigin(0.5).setDepth(103).setVisible(false),
+        name: this.add.text(0, 0, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '15px', fontStyle: 'bold', color: '#e6f2f6' }).setOrigin(0, 0.5).setDepth(103).setVisible(false),
+        line: this.add.text(0, 0, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '12px', color: '#8fb0c2' }).setOrigin(0, 0.5).setDepth(103).setVisible(false),
+        perk: this.add.text(0, 0, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '11px', color: '#6f8a9c' }).setOrigin(0, 0.5).setDepth(103).setVisible(false)
       };
       card.bg.setInteractive({ useHandCursor: true });
       (function (index) {
@@ -1358,11 +1358,11 @@
     }
     this.trackBarBg = this.add.rectangle(0, 0, 200, 8, 0x1a2530).setOrigin(0, 0.5).setDepth(102).setVisible(false);
     this.trackBarFill = this.add.rectangle(0, 0, 200, 8, 0xc9a6ff).setOrigin(0, 0.5).setDepth(103).setVisible(false);
-    this.trackText = this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '12px', color: '#c9b8e6', align: 'center' }).setOrigin(0.5).setDepth(103).setVisible(false);
+    this.trackText = this.add.text(0, 0, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '12px', color: '#c9b8e6', align: 'center' }).setOrigin(0.5).setDepth(103).setVisible(false);
     this.startBtn = this.add.rectangle(0, 0, 240, 52, 0x1c6f4a, 1).setOrigin(0.5).setStrokeStyle(2, 0x39d353, 1).setDepth(102).setVisible(false).setInteractive({ useHandCursor: true });
-    this.startText = this.add.text(0, 0, 'DESCEND', { fontFamily: 'monospace', fontSize: '18px', fontStyle: 'bold', color: '#eafff2' }).setOrigin(0.5).setDepth(103).setVisible(false);
+    this.startText = this.add.text(0, 0, 'DESCEND', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '18px', fontStyle: 'bold', color: '#eafff2' }).setOrigin(0.5).setDepth(103).setVisible(false);
     this.startBtn.on('pointerdown', function () { self.startRun(); });
-    this.titleBest = this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '12px', color: '#7f97a6' }).setOrigin(0.5).setDepth(102).setVisible(false);
+    this.titleBest = this.add.text(0, 0, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '12px', color: '#7f97a6' }).setOrigin(0.5).setDepth(102).setVisible(false);
   };
 
   CrawlScene.prototype.buildEndUi = function () {
@@ -1370,14 +1370,14 @@
     this.endShade = this.add.rectangle(0, 0, 10, 10, 0x04070b, 0.9).setOrigin(0).setDepth(80).setVisible(false);
     this.endPanel = this.add.rectangle(0, 0, 300, 300, 0x0d1721, 0.96).setOrigin(0.5).setStrokeStyle(2, 0x27404f, 1).setDepth(81).setVisible(false);
     this.endMedal = this.add.image(0, 0, 'cc_medal').setDepth(83).setVisible(false);
-    this.endTitle = this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '24px', fontStyle: 'bold', color: '#ffd76d', align: 'center' }).setOrigin(0.5).setDepth(83).setVisible(false);
-    this.endText = this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '13px', color: '#d7e5eb', align: 'center', lineSpacing: 5, wordWrap: { width: 280 } }).setOrigin(0.5).setDepth(83).setVisible(false);
-    this.endShardText = this.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '14px', fontStyle: 'bold', color: '#c9a6ff', align: 'center' }).setOrigin(0.5).setDepth(83).setVisible(false);
-    this.endHint = this.add.text(0, 0, 'TAP ANYWHERE TO RUN AGAIN', { fontFamily: 'monospace', fontSize: '12px', color: '#8fb0c2', align: 'center' }).setOrigin(0.5).setDepth(83).setVisible(false);
+    this.endTitle = this.add.text(0, 0, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '24px', fontStyle: 'bold', color: '#ffd76d', align: 'center' }).setOrigin(0.5).setDepth(83).setVisible(false);
+    this.endText = this.add.text(0, 0, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '13px', color: '#d7e5eb', align: 'center', lineSpacing: 5, wordWrap: { width: 280 } }).setOrigin(0.5).setDepth(83).setVisible(false);
+    this.endShardText = this.add.text(0, 0, '', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '14px', fontStyle: 'bold', color: '#c9a6ff', align: 'center' }).setOrigin(0.5).setDepth(83).setVisible(false);
+    this.endHint = this.add.text(0, 0, 'TAP ANYWHERE TO RUN AGAIN', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '12px', color: '#8fb0c2', align: 'center' }).setOrigin(0.5).setDepth(83).setVisible(false);
     this.endHit = this.add.rectangle(0, 0, 10, 10, 0x000000, 0).setOrigin(0).setInteractive().setDepth(85).setVisible(false);
     this.endHit.on('pointerdown', function () { if (self.endT > 0.55) kit.restart(); });
     this.classBtn = this.add.rectangle(0, 0, 170, 44, 0x172330, 1).setOrigin(0.5).setStrokeStyle(2, 0x3a5363, 1).setDepth(90).setVisible(false).setInteractive({ useHandCursor: true });
-    this.classBtnText = this.add.text(0, 0, 'CHANGE CLASS', { fontFamily: 'monospace', fontSize: '14px', fontStyle: 'bold', color: '#9ee6e9' }).setOrigin(0.5).setDepth(91).setVisible(false);
+    this.classBtnText = this.add.text(0, 0, 'CHANGE CLASS', { fontFamily: 'monospace', resolution: GGKit.hiDpi.dpr(), fontSize: '14px', fontStyle: 'bold', color: '#9ee6e9' }).setOrigin(0.5).setDepth(91).setVisible(false);
     this.classBtn.on('pointerdown', function () { if (self.endT > 0.55) self.openTitle(); });
   };
 
@@ -2485,7 +2485,18 @@
   Game.phaser = new Phaser.Game({
     type: Phaser.AUTO, parent: document.body, backgroundColor: '#070b12', pixelArt: true,
     scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%', autoCenter: Phaser.Scale.CENTER_BOTH },
-    render: { antialias: false, roundPixels: true, powerPreference: 'high-performance' },
+    render: Object.assign({}, GGKit.renderDefaults, { pixelArt: true, roundPixels: true }),
     scene: [CrawlScene], fps: { min: 30, target: 60, forceSetTimeOut: false }
+  });
+  function syncHiDpi(game) {
+    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || window.innerWidth || 1));
+    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || window.innerHeight || 1));
+    GGKit.hiDpi.resize(game, cssW, cssH);
+  }
+  syncHiDpi(Game.phaser);
+  window.addEventListener('resize', function () { syncHiDpi(Game.phaser); });
+  window.addEventListener('orientationchange', function () { syncHiDpi(Game.phaser); });
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) syncHiDpi(Game.phaser);
   });
 })(window);

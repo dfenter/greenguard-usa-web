@@ -52,3 +52,10 @@ Fixed:
 Rejected: none.
 
 Verification: `node --check game.js`, `node --check sw.js`, 21 precache entries present, title-owned payload 120283 bytes, largest title-owned file 97328 bytes, and audio files are MP3 only. No browser runtime was available for a live 4x-throttle median capture.
+
+## Retina pass 2026-08-16
+
+- Audit profile: CSS viewport 390x844 at DPR 3. Measured pre-pass backing-store ratio: 1.00x. FIT scale math after the pass measures 1170x2532 against the 390x844 CSS canvas, a 3.00x ratio.
+- Recipe: `GGKit.hiDpi.factor(390, 844)`, dense FIT scale dimensions, `GGKit.renderDefaults`, and `this.cameras.main.setZoom(f)` in PlayScene. All Phaser text created by the scene is assigned the same resolution factor.
+- Factor cap: none. The factor is the GGKit native value, capped only by GGKit's normal maximum of 3.
+- Could not complete live headless canvas readback or a gameplay screenshot because no browser backend was available in this environment. `node --check` passed.

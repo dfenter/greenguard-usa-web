@@ -3,6 +3,7 @@
 
   const W = 390;
   const H = 844;
+  const RETINA_FACTOR = GGKit.hiDpi.factor(W, H);
   const VERSION = 8;
   const WORLD_W = 1800;
   const WORLD_H = 1100;
@@ -296,6 +297,7 @@
     preload() {}
 
     create() {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       Game.scene = this;
       this.input.enabled = false;
       this.simPaused = false;
@@ -314,7 +316,7 @@
       this.playerSprite = this.add.image(state.player.x, state.player.y, 'sw-player-down-0').setDepth(12);
       this.enemyActors = ENEMY_DATA.map((item) => ({ ...item, maxHp: item.hp, cooldown: 0, kx: 0, ky: 0, phase: 0 }));
       this.enemySprites = this.enemyActors.map((item) => this.add.image(item.x, item.y, `sw-enemy-${item.type}-${item.id}`).setDepth(10));
-      this.floaters = Array.from({ length: 24 }, () => ({ sprite: this.add.text(0, 0, '', { fontFamily: 'Arial, sans-serif', fontSize: '16px', fontStyle: 'bold', color: '#ffffff', stroke: '#071421', strokeThickness: 4 }).setOrigin(0.5).setDepth(25), life: 0, x: 0, y: 0, dy: 0 }));
+      this.floaters = Array.from({ length: 24 }, () => ({ sprite: this.add.text(0, 0, '', { fontFamily: 'Arial, sans-serif', fontSize: '16px', fontStyle: 'bold', color: '#ffffff', stroke: '#071421', strokeThickness: 4, resolution: RETINA_FACTOR }).setOrigin(0.5).setDepth(25), life: 0, x: 0, y: 0, dy: 0 }));
       this.collectionFx = this.makeFxPool(18);
       this.constellationFx = this.makeFxPool(24);
       this.unlockFx = this.makeFxPool(40);
@@ -338,7 +340,7 @@
     makeFxPool(size) { return Array.from({ length: size }, () => ({ active: false, life: 0, max: 1, x: 0, y: 0, color: COLORS.cyan, seed: 0 })); }
 
     createTextLayers() {
-      const add = (x, y, value, size = 14, color = COLORS.text, originX = 0, originY = 0.5) => this.add.text(x, y, value, { fontFamily: 'Arial, sans-serif', fontSize: `${size}px`, fontStyle: size >= 18 ? 'bold' : 'normal', color, resolution: 2 }).setOrigin(originX, originY).setScrollFactor(0).setDepth(32);
+      const add = (x, y, value, size = 14, color = COLORS.text, originX = 0, originY = 0.5) => this.add.text(x, y, value, { fontFamily: 'Arial, sans-serif', fontSize: `${size}px`, fontStyle: size >= 18 ? 'bold' : 'normal', color, resolution: RETINA_FACTOR }).setOrigin(originX, originY).setScrollFactor(0).setDepth(32);
       this.texts = {
         brand: add(20, 24, 'STARWEFT', 18, '#effaf7'),
         region: add(20, 55, '', 14, '#9bbcc0'),
@@ -719,5 +721,11 @@
   function updateFirstWorldSave() { state.moveTarget = null; state.scene = 'world'; saveState(); }
 
   kit.loader.show('STARWEFT'); kit.loader.progress(0.2);
-  Game.instance = new Phaser.Game({ type: Phaser.CANVAS, width: W, height: H, parent: 'game-shell', backgroundColor: '#071421', render: { pixelArt: true, antialias: false, roundPixels: true, transparent: false }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H }, fps: { target: 60, min: 5, forceSetTimeOut: false }, scene: [StarweftScene] });
+  const config = { type: Phaser.CANVAS, width: W, height: H, parent: 'game-shell', backgroundColor: '#071421', render: { pixelArt: true, antialias: false, roundPixels: true, transparent: false }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H }, fps: { target: 60, min: 5, forceSetTimeOut: false }, scene: [StarweftScene] };
+  config.scale.width = Math.round(W * RETINA_FACTOR);
+  config.scale.height = Math.round(H * RETINA_FACTOR);
+  config.width = config.scale.width;
+  config.height = config.scale.height;
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
+  Game.instance = new Phaser.Game(config);
 })();

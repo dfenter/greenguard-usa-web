@@ -172,3 +172,10 @@ Unverified:
 - GPU-backed browser screenshots and the 4x-throttle frame median remain
   environment-dependent. The directory-local harness and static checks pass,
   but no browser evidence was fabricated.
+
+## Retina pass 2026-08-16
+
+- Ratio record: before 1.00x from the pre-pass design-size backing configuration; after 3.00x is the configured DPR3 result from `round(design * GGKit.hiDpi.factor(...))`. A live canvas ratio read was unavailable.
+- Recipe: Phaser `Scale.FIT`, design world coordinates retained, `RETINA_FACTOR` applied to scale dimensions and `setZoom` in Boot, Menu, Levels, Restore, and Play. Procedural textures use the dense GGKit canvas helper, tile scales compensate for the dense source, and text uses the same resolution.
+- Factor cap: none. The GGKit factor is used without a cap because this title has no measured need for one.
+- Could not do: the browser connector reported no available target, so the required DPR3 canvas ratio read and real gameplay screenshot could not be captured. `node --check` and `git diff --check` pass.

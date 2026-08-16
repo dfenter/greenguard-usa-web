@@ -64,3 +64,11 @@ Validation:
 
 - `node --check game.js` and `node --check sw.js` pass.
 - Payload is 152347 bytes and the largest file is below 400 KB. All registered audio paths are local MP3 files. Engine loads remain absolute from `/play/_shared/`.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.00x static FIT baseline from the 390x844 design backing store. A live pre-pass canvas readback was unavailable in this sandbox.
+- After ratio: 3.00x target by factor math at emulated DPR 3, producing a 1170x2532 backing store for the 390x844 design viewport.
+- Recipe: Phaser `Scale.FIT`, design coordinates preserved, scale dimensions multiplied by `GGKit.hiDpi.factor(390, 844)`, shared `GGKit.renderDefaults` merged, and zoom applied in the scene `create()`. World bounds and the fixed UI camera coordinates remain in design units. Phaser text uses the same factor.
+- Factor cap: none beyond GGKit's default clamp to [1, 3].
+- Could not do: live `canvas.width / getBoundingClientRect().width` readback, gameplay screenshot, and `retina_audit.mjs` acceptance because no browser surface was available and private port binding was denied.

@@ -53,7 +53,7 @@ var HFUI = (function () {
       color: color || '#DCE7F4'
     });
     t.__t = str;
-    t.setResolution(Math.min(2, window.devicePixelRatio || 1));
+    t.setResolution(GGKit.hiDpi.dpr());
     return t;
   };
 

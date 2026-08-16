@@ -95,6 +95,13 @@ Combo paths are 3 to 4 hits per fighter, including `H-H-V`, `V-H-V`, `H-V-K`, an
 - MINOR audio settings: added persistent GGKit music and effects volume sliders to the settings shell.
 - MINOR reduced motion: gated procedural pose, trail, particle, fall, and camera animation through the GGKit motion state.
 
+## Retina pass 2026-08-16
+
+- Before ratio: 1.50x at DPR 3, from the renderer's hard cap. After ratio: 3.00x is configured by `GGKit.hiDpi.three(renderer)`; a live canvas measurement was unavailable because this sandbox refused private HTTP listeners and had no browser target.
+- Recipe: called `GGKit.hiDpi.three(renderer)` immediately after `new THREE.WebGLRenderer`. No render targets, post-processing passes, or composers were present. The 128px stage-pattern and 32px ember canvas textures now use `GGKit.hiDpi.canvas()` so they are baked at device density.
+- Factor cap: none beyond GGKit's standard maximum of 3. No title-specific cap was needed.
+- Static verification: `node --check game.js` and `git diff --check` passed. Gameplay screenshot, `canvas.width / getBoundingClientRect().width >= 2.85`, and live layout confirmation remain unmeasured in this environment.
+
 ### Rejected or unavailable
 
 - MAJOR browser and performance verification: the deployment, browser capture, console/request audit, and 4x-throttle median could not be run because this fix round explicitly forbids deployment and no browser session is available. The static evidence and local syntax, asset, manifest, service-worker, payload, file-size, and MP3-only checks were completed instead.

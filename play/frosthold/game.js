@@ -8,6 +8,7 @@
 
   var W = 390;
   var H = 844;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(W, H);
   var STEP = 1 / 60;
   var MAX_STEPS = 5;
   var MAX_ENEMIES = 24;
@@ -109,6 +110,13 @@
     var next = String(value);
     if (obj.text !== next) { obj.setText(next); return true; }
     return false;
+  }
+  function configureRetinaScene(scene) {
+    scene.cameras.main.setZoom(RETINA_FACTOR);
+    var addText = scene.add.text;
+    scene.add.text = function (x, y, value, style) {
+      return addText.call(this, x, y, value, Object.assign({}, style || {}, { resolution: RETINA_FACTOR }));
+    };
   }
   function setColorIfChanged(obj, color) {
     if (!obj) return;
@@ -220,6 +228,7 @@
     constructor() { super({ key: 'Frosthold' }); }
 
     create() {
+      configureRetinaScene(this);
       sceneRef = this;
       this.accumulator = 0;
       this.pausedByKit = false;
@@ -1283,7 +1292,11 @@
   function boot() {
     kit.loader.show('FROSTHOLD'); kit.loader.progress(0.3);
     window.__fh = { state: PROBE, forceCycle: function (value) { if (sceneRef) sceneRef.forceCycle(value); else pendingCycle = value; }, forceScenario: function (value) { if (sceneRef) sceneRef.forceScenario(value); else pendingScenario = value; } };
-    var game = new Phaser.Game({ type: Phaser.AUTO, width: W, height: H, parent: 'game', backgroundColor: '#07131f', render: { antialias: true, roundPixels: false, powerPreference: 'high-performance' }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: [FrostholdScene], banner: false });
+    var config = { type: Phaser.AUTO, parent: 'game', backgroundColor: '#07131f', render: { antialias: true, roundPixels: false, powerPreference: 'high-performance' }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: [FrostholdScene], banner: false };
+    config.scale.width = Math.round(W * RETINA_FACTOR);
+    config.scale.height = Math.round(H * RETINA_FACTOR);
+    config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
+    var game = new Phaser.Game(config);
     kit.loader.progress(0.82); kit.registerPWA(); window.__fh.game = game;
   }
 

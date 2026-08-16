@@ -1289,3 +1289,9 @@ and unlock persistence; L9 Core lands at 1.35x hull with sequential escorts
 and the win correctly held until the full triad is dead. Zero console errors
 across all runs. sw.js VERSION 2026-08-09t-campaign-9-levels; levels/ and
 hm_campaign_ui.js precached.
+
+## Retina pass 2026-08-16
+
+- Target 390x844 CSS at DPR 3. Before ratio: 1.00x CSS-sized RESIZE baseline. After target: 3.00x, 1170/390, via `GGKit.hiDpi.resize`. Live canvas read was unavailable because no browser surface or private local listener was available.
+- Recipe: `Phaser.Scale.RESIZE`, removed the ignored Phaser `resolution` config, applied `GGKit.renderDefaults`, local hi-DPI canvas baking, and recursive DPR-matched Phaser text. No factor cap.
+- Gameplay screenshot and runtime backing-store measurement remain deferred. No palette change was made because the retina law identifies density, not colour depth, as the defect.

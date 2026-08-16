@@ -258,3 +258,18 @@ Verification: `node --check` passes for `cb_data.js`, `cb_world.js`, `game.js`, 
 - Removed floating score/trick callouts and Line Run beat-name text; kept the information in the chip, icon-only beat markers, HUD meters, and results.
 - Moved coaching into one thin, one-line top strip with a 3.6s hold/fade; shared notice queue and reduced-motion gating prevent overlap.
 - Static checks pass; live screenshot verification was unavailable because no browser backend or local preview port was available.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.00x source baseline at DPR 3. After ratio: 3.00x configured
+  through `GGKit.hiDpi.resize(game, cssW, cssH)`; a live canvas ratio could
+  not be measured because Chrome aborted in this sandbox and the private HTTP
+  bind was denied.
+- Recipe: applied Phaser Scale.RESIZE hi-DPI sizing at boot, resize,
+  orientation-change, and visibility events. Applied `GGKit.renderDefaults`
+  and `resolution: GGKit.hiDpi.dpr()` to the Phaser label text.
+- Factor cap: none beyond the GGKit maximum of 3. No title-specific cap was
+  needed.
+- Could not complete the live DPR 3 gameplay screenshot or layout check.
+  Existing generated textures were left at their authored sizes because a
+  frame-unit migration to `GGKit.hiDpi.canvas(...)` could not be live-verified.

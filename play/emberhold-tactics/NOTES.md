@@ -93,3 +93,10 @@ Save and ship notes:
 Deferred:
 
 - A live browser screenshot and 4x frame capture could not run because no in-app browser instance was available and the sandbox rejected opening a local HTTP server port. Static checks, all-twenty battle instantiation, deterministic regression probes, randomized interaction fuzzing, manifest parsing, and precache validation passed.
+
+## Retina pass 2026-08-16
+
+- Ratio record: before 1.00x from the pre-pass design-size backing configuration; after 3.00x is the configured DPR3 result from `round(design * GGKit.hiDpi.factor(...))`. A live canvas ratio read was unavailable.
+- Recipe: Phaser `Scale.FIT`, 1200 by 760 world coordinates retained, `RETINA_FACTOR` applied to scale dimensions and the Emberhold scene camera zoom. Phaser text objects use the same resolution and the existing SVG assets remain vector-backed.
+- Factor cap: none. The GGKit factor is used without a cap because this title has no measured need for one.
+- Could not do: the browser connector reported no available target, so the required DPR3 canvas ratio read and real gameplay screenshot could not be captured. `node --check` and `git diff --check` pass.

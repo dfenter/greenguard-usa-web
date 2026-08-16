@@ -1313,7 +1313,8 @@
     label: function (x, y, text, size, color, weight, origin) {
       var t = this.add.text(x, y, text, {
         fontFamily: FONT, fontSize: scaledPx(size) + 'px',
-        fontStyle: weight || '600', color: color || CSS.text
+        fontStyle: weight || '600', color: color || CSS.text,
+        resolution: window.GGKit.hiDpi.dpr()
       }).setDepth(3).setOrigin(origin == null ? 0 : origin, 0.5);
       this.nodes.push(t);
       return t;
@@ -2980,7 +2981,7 @@
     text: function (x, y, str, size, color, weight) {
       return this.add.text(x, y, str, {
         fontFamily: FONT, fontSize: scaledPx(size) + 'px', fontStyle: weight || '600',
-        color: color || CSS.text
+        color: color || CSS.text, resolution: window.GGKit.hiDpi.dpr()
       }).setDepth(21);
     },
 
@@ -4660,15 +4661,21 @@
       width: window.innerWidth,
       height: window.innerHeight
     },
-    render: {
-      antialias: true, antialiasGL: false, powerPreference: 'high-performance',
-      roundPixels: false, batchSize: 4096
-    },
+    render: Object.assign({}, window.GGKit.renderDefaults, { batchSize: 4096 }),
     fps: { target: 60, min: 30 },
     // Defect class 4: one camera, one world container. No camera split is
     // used anywhere, so there is no second camera to forget to create.
     scene: [toScene(BootScene), toScene(TitleScene), toScene(PlayScene)]
   });
+
+  function resizeGame() {
+    if (!Game.phaser) return;
+    window.GGKit.hiDpi.resize(Game.phaser, Math.max(1, window.innerWidth || 320), Math.max(1, window.innerHeight || 640));
+  }
+  window.addEventListener('resize', resizeGame);
+  window.addEventListener('orientationchange', resizeGame);
+  document.addEventListener('visibilitychange', resizeGame);
+  resizeGame();
 
   kit.registerPWA();
   window.__STACKLOCK_READY = true;

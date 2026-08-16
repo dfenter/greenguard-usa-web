@@ -125,3 +125,11 @@ is a campaign standard with idle, command and victory states.
 - Fog of war is not modelled. Every banner is visible from turn one, which is
   what the forecast first design wants.
 - Skirmish scores are kept as a single best value rather than a table.
+
+## Retina pass 2026-08-16
+
+- Audit before ratio: 1.85x at the emulated DPR 3 landscape viewport, using the 1280 x 720 design box in a 693.33 x 390 shown fit box. Configured after ratio: 3.00x from `GGKit.hiDpi.factor(1280, 720)`, with a 2080 x 1170 backing store.
+- Recipe: Phaser `Scale.FIT`, dense scale dimensions, `GGKit.renderDefaults`, `setZoom(f)` in WBScene, and a Phaser text factory that applies the matching resolution. The factor is 1.625 for this fit.
+- Factor cap: none beyond GGKit's standard maximum of 3. No title-specific cap.
+- Live canvas ratio and gameplay screenshot were unavailable because the browser backend was empty and the sandbox denied private HTTP listeners. The after ratio above is the configured geometry, not a live canvas read.
+- Static title-local canvas art now uses `GGKit.hiDpi.canvas` and Phaser texture source resolution. Gameplay, balance, and content were unchanged.

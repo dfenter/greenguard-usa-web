@@ -5,6 +5,7 @@
   var Phaser = root.Phaser;
   var W = 390;
   var H = 844;
+  var HIDPI_FACTOR = root.GGKit && root.GGKit.hiDpi ? root.GGKit.hiDpi.factor(W, H) : 1;
   var STEP = 1 / 60;
   var MAX_STEPS = 4;
   var INITIAL_TILES = 48;
@@ -321,7 +322,12 @@
     return key;
   };
   PlayScene.prototype.create = function () {
+    this.cameras.main.setZoom(HIDPI_FACTOR);
     Game.play = this;
+    var textFactory = this.add.text;
+    this.add.text = function (x, y, text, style) {
+      return textFactory.call(this, x, y, text, Object.assign({}, style || {}, {resolution: HIDPI_FACTOR}));
+    };
     this.installInputBridges();
     this.makeTextures();
     this.background = this.add.rectangle(0, 0, W, H, tint(C.deep), 1).setOrigin(0).setDepth(0);
@@ -743,6 +749,6 @@
     var p = state.player || {stickers: profile.stickers, albums: [false, false, false, false]}; var tab = clamp(whole(this.albumTab, 0), 0, 3); var board = state.boardData || getBoard('meridian-row'); visible(this.background, true); visible(this.ui.albumShade, true); visible(this.ui.albumTitle, true); visible(this.ui.albumOdds, true); visible(this.ui.albumClose, true); visible(this.ui.albumCloseText, true); setTextIfChanged(this.ui.albumOdds, 'Every draw is 1 of 24, equal 4.2% each.', C.violet); for (var d = 0; d < 4; d++) { visible(this.ui.albumTabs[d], true); visible(this.ui.albumTabText[d], true); var district = colorDistrict(board, d); setFillIfChanged(this.ui.albumTabs[d], d === tab ? district.color : '#162a40', d === tab ? 0.28 : 1); setStrokeIfChanged(this.ui.albumTabs[d], district.color, d === tab ? 2 : 1); setTextIfChanged(this.ui.albumTabText[d], district.short + ' ' + (p.albums[d] ? '◈' : ''), d === tab ? district.color : C.muted); this.zone(10 + d * 94, 96, 86, 42, (function (n) { return function () { this.albumTab = n; }; })(d).bind(this)); } for (var i = 0; i < 6; i++) { var cell = this.ui.albumCells[i], art = this.ui.albumCellArt[i], label = this.ui.albumCellText[i], id = tab * 6 + i, owned = !!p.stickers[id], dis = colorDistrict(board, tab); visible(cell, true); visible(art, true); visible(label, true); setFillIfChanged(cell, owned ? '#142b3e' : '#101f32'); setStrokeIfChanged(cell, owned ? dis.color : '#274158', owned ? 2 : 1); setTextIfChanged(art, owned ? dis.icon : '?', owned ? dis.color : '#49627a'); setTextIfChanged(label, owned ? STICKERS[id] : 'LOCKED', owned ? C.ink : C.slate); } setTextIfChanged(this.ui.albumCollected, 'COLLECTED  ' + stickerCount(p) + '/24   |   ALBUMS  ' + profile.albumsCompleted + '/4', C.ink); this.zone(45, 730, 300, 58, this.closeAlbum.bind(this)); }
 
   if (!Phaser || !kit) { root.__mr.state = bootState; return; }
-  Game.phaser = new Phaser.Game({type: Phaser.AUTO, parent: 'game', backgroundColor: C.deep, scale: {mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H}, render: {antialias: true, roundPixels: false, powerPreference: 'high-performance', batchSize: 2048}, fps: {target: 60, min: 30}, scene: [PlayScene]});
+  Game.phaser = new Phaser.Game({type: Phaser.AUTO, parent: 'game', backgroundColor: C.deep, scale: {mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: Math.round(W * HIDPI_FACTOR), height: Math.round(H * HIDPI_FACTOR)}, render: Object.assign({}, root.GGKit.renderDefaults, {batchSize: 2048}), fps: {target: 60, min: 30}, scene: [PlayScene]});
   root.__MR_READY = true;
 })(typeof window !== 'undefined' ? window : globalThis);

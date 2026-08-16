@@ -7,6 +7,7 @@
 
   var W = 390;
   var H = 844;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(W, H);
   var STEP = 1 / 60;
   var MAX_STEPS = 4;
   var MAX_PARTICLES = 64;
@@ -116,6 +117,13 @@
   var CROP_IDS = CROP_DATA.map(function (c) { return c.id; });
 
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function configureRetinaScene(scene) {
+    scene.cameras.main.setZoom(RETINA_FACTOR);
+    var addText = scene.add.text;
+    scene.add.text = function (x, y, value, style) {
+      return addText.call(this, x, y, value, Object.assign({}, style || {}, { resolution: RETINA_FACTOR }));
+    };
+  }
   function safeNumber(v, fallback, max) { return typeof v === 'number' && isFinite(v) ? clamp(Math.floor(v), 0, max) : fallback; }
   function cropById(id) { return CROP_BY_ID[id] || CROP_DATA[0]; }
   function goodById(id) { return GOOD_BY_ID[id] || GOOD_DATA[0]; }
@@ -327,6 +335,7 @@
   };
 
   PlayScene.prototype.create = function () {
+    configureRetinaScene(this);
     kit.loader.hide(); document.getElementById('boot-fallback').hidden = true; this.simSteps = 0; this.acc = 0; this.simPaused = kit.paused; this.mode = 'play';
     this.focus = { zone: 'seed', index: 0 }; this.focusActive = false; this.townFocus = 0; this.townDraft = -1; this.pointerSessions = new Map(); this.gamepad = null; this.gamepadEdges = {}; this.motionReduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
     this.makeTextures();
@@ -600,6 +609,10 @@
   PlayScene.prototype.updateTownViews = function () { var scene = this; var visible = this.mode === 'town'; this.townViews.forEach(function (v, i) { var b = BUILDINGS[i]; var r = scene.townRect(i); v.bg.setVisible(visible); v.icon.setVisible(visible); v.name.setVisible(visible); v.effect.setVisible(visible); v.status.setVisible(visible); v.ghost.setVisible(visible && scene.townDraft === i); if (!visible) return; var built = profile.buildings[i]; var unlocked = scene.isBuildingUnlocked(i); v.bg.setPosition(r.x + r.w / 2, r.y + r.h / 2).setFillStyle(built ? PAL.mint : PAL.cream, 1).setStrokeStyle(scene.townDraft === i ? 3 : 2, built ? PAL.leaf : unlocked ? PAL.signal : PAL.sand, 1); v.icon.setPosition(r.x + 25, r.y + 27).setTexture('hj-building-' + b.id).setTint(built ? PAL.leaf : unlocked ? PAL.signal : PAL.sand); v.name.setPosition(r.x + 48, r.y + 22); v.effect.setPosition(r.x + 48, r.y + 43); setTextIfChanged(v.status, built ? 'BUILT' : unlocked ? 'PLACE  ' + b.cost : 'LOCKED'); v.status.setPosition(r.x + 14, r.y + 88); setColorIfChanged(v.status, built ? '#5ca36b' : unlocked ? '#c95355' : '#8c583c'); v.ghost.setPosition(r.x + r.w / 2, r.y + r.h / 2); }); };
   PlayScene.prototype.updateFocus = function () { if (!this.focusActive) { this.focusRing.setVisible(false); return; } var r = null; if (this.mode === 'town') r = this.townRect(this.townFocus); else if (this.focus.zone === 'seed') r = this.seedRect(this.focus.index); else if (this.focus.zone === 'plot') r = this.plotRect(this.focus.index); else if (this.focus.zone === 'factory') r = this.factoryRect(this.focus.index); else if (this.focus.zone === 'pantry') r = this.pantryRect(this.focus.index); else if (this.focus.zone === 'car') r = this.carRect(); if (!r) { this.focusRing.setVisible(false); return; } this.focusRing.setPosition(r.x + r.w / 2, r.y + r.h / 2).setSize(r.w + 8, r.h + 8).setVisible(true); };
 
-  Game.phaser = new Phaser.Game({ type: Phaser.AUTO, parent: 'game-shell', backgroundColor: '#f7f0df', scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H }, render: { antialias: false, antialiasGL: false, powerPreference: 'high-performance', roundPixels: true, batchSize: 2048 }, fps: { target: 60, min: 30 }, scene: [PlayScene] });
+  var config = { type: Phaser.AUTO, parent: 'game-shell', backgroundColor: '#f7f0df', scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H }, render: { antialias: false, antialiasGL: false, powerPreference: 'high-performance', roundPixels: true, batchSize: 2048 }, fps: { target: 60, min: 30 }, scene: [PlayScene] };
+  config.scale.width = Math.round(W * RETINA_FACTOR);
+  config.scale.height = Math.round(H * RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
+  Game.phaser = new Phaser.Game(config);
   kit.registerPWA();
 })();

@@ -57,3 +57,10 @@ Win streaks raise bot heat; hero mastery and wins/losses persist on this device.
 ### Rejected
 
 - None. The review findings were treated as actionable; no finding was rejected.
+
+## Retina pass 2026-08-16
+
+- Audit profile: CSS viewport 390x844 at DPR 3. Measured pre-pass backing-store ratio: 2.46x from the 960x540 design canvas letterboxed into the portrait viewport. FIT scale math after the pass measures 1170x658 against the 390x219.375 CSS canvas, a 3.00x ratio.
+- Recipe: `GGKit.hiDpi.factor(960, 540)`, dense FIT scale dimensions, `GGKit.renderDefaults`, and `this.cameras.main.setZoom(f)` in RumbleScene. Text resolution uses the same factor.
+- Factor cap: none. The native factor is 1.21875 for this letterboxed viewport, below GGKit's normal maximum of 3, so no additional cap was applied.
+- Could not complete live headless canvas readback or a gameplay screenshot because no browser backend was available in this environment. `node --check` passed.

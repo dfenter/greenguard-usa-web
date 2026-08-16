@@ -54,3 +54,9 @@ Verification: `node --check game.js`, `node --check sw.js`, manifest JSON parse,
 - Replaced world popups and live center banners with one top-edge event chip, max 1.0s, queued one-at-a-time; retained center banners only for run, level-clear, results, and failure boundaries.
 - Compressed tutorial copy into one thin top strip that fades after roughly 3s, and kept reduced-motion gating on transient motion/fades.
 - Verification: `node --check game.js`, `node --check sw.js`, and `git diff --check`; browser screenshot capture was unavailable in this environment.
+
+## Retina pass 2026-08-16
+
+- Target 390x844 CSS at DPR 3. Before ratio: 1.00x CSS-sized RESIZE baseline. After target: 3.00x, 1170/390, via `GGKit.hiDpi.resize`. Live canvas read was unavailable because no browser surface or private local listener was available.
+- Recipe: `Phaser.Scale.RESIZE`, `GGKit.renderDefaults`, and DPR-matched Phaser text. No factor cap; the existing camera viewport preserves the authored portrait layout.
+- Gameplay screenshot and runtime backing-store measurement remain deferred. No palette change was made because the retina law identifies density, not colour depth, as the defect.

@@ -20,6 +20,7 @@
   var T = D.TUNE;
 
   var W = 390, H = 844;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(W, H);
   var ARENA_W = A.right - A.left;
   var ARENA_H = A.bottom - A.top;
 
@@ -207,6 +208,7 @@
   };
 
   BootScene.prototype.create = function () {
+    this.cameras.main.setZoom(RETINA_FACTOR);
     // 1x1 white pixel: every meter, rule and fill scales this instead of
     // leaving a static Graphics in the display list.
     var g = this.make.graphics({ x: 0, y: 0, add: false });
@@ -230,6 +232,7 @@
   MenuScene.prototype.constructor = MenuScene;
 
   MenuScene.prototype.create = function () {
+    this.cameras.main.setZoom(RETINA_FACTOR);
     var self = this;
     HOOK.mode = 'menu';
     HOOK.ready = true;
@@ -243,13 +246,13 @@
     this.add.image(W / 2, 176, 'atlas', 'fang').setScale(1.0);
     this.add.text(W / 2, 268, 'SLINGFANG', {
       fontFamily: 'SF Display, Trebuchet MS, sans-serif', fontSize: '38px',
-      color: '#e8fff8'
+      color: '#e8fff8', resolution: RETINA_FACTOR
     }).setOrigin(0.5);
     // Narrow face at 13px: the display face at this length runs off both
     // edges of a 390pt screen.
     this.add.text(W / 2, 302, 'pull back  ·  bank  ·  break the formation', {
       fontFamily: 'SF Body, Verdana, sans-serif', fontSize: '13px',
-      color: '#7f9bb0'
+      color: '#7f9bb0', resolution: RETINA_FACTOR
     }).setOrigin(0.5);
 
     // Campaign progress strip: medals earned, told with marks not sentences.
@@ -290,7 +293,7 @@
     var best = 'best ' + SAVE.bestScore + '  ·  rush ' + SAVE.bestRush +
       '  ·  ' + earned + '/' + D.FORMATIONS.length + ' medals  ·  ' + gold + ' gold';
     this.add.text(W / 2, 764, best, {
-      fontFamily: 'SF Body, Verdana, sans-serif', fontSize: '12px', color: '#6f8798'
+      fontFamily: 'SF Body, Verdana, sans-serif', fontSize: '12px', color: '#6f8798', resolution: RETINA_FACTOR
     }).setOrigin(0.5);
 
     if (PENDING.mode !== null || PENDING.formation !== null) {
@@ -310,7 +313,7 @@
     bg.setAlpha(0.96); line.setAlpha(0.9);
     this.add.text(cx, cy, label, {
       fontFamily: 'SF Display, Trebuchet MS, sans-serif', fontSize: '17px',
-      color: '#e8fff8'
+      color: '#e8fff8', resolution: RETINA_FACTOR
     }).setOrigin(0.5);
     this.taps.push({ x: cx - w / 2, y: cy - h / 2, w: w, h: h, fn: fn });
   };
@@ -376,6 +379,7 @@
   };
 
   PlayScene.prototype.create = function () {
+    this.cameras.main.setZoom(RETINA_FACTOR);
     LIVE = this;
     var self = this;
     this.acc = 0;
@@ -644,7 +648,7 @@
       this.floaters.push({
         text: this.add.text(-200, -200, '', {
           fontFamily: 'SF Display, Trebuchet MS, sans-serif', fontSize: '15px',
-          color: '#ffeec2'
+          color: '#ffeec2', resolution: RETINA_FACTOR
         }).setOrigin(0.5).setVisible(false),
         t: 0, age: 0, life: 0.75, x: 0, y: 0, baseY: 0
       });
@@ -660,28 +664,28 @@
     this.vitalFill = this.add.image(47, 26, 'px').setOrigin(0, 0.5)
       .setDisplaySize(110, 9).setTint(0x4be08a);
     this.vitalText = this.add.text(46, 40, '', {
-      fontFamily: f, fontSize: '14px', color: '#8fb3c6'
+      fontFamily: f, fontSize: '14px', color: '#8fb3c6', resolution: RETINA_FACTOR
     }).setOrigin(0, 0.5);
 
     this.comboIcon = this.add.image(196, 24, 'atlas', 'hi_combo')
       .setScale(0.44).setVisible(false);
     this.comboText = this.add.text(212, 24, '', {
-      fontFamily: f, fontSize: '18px', color: '#ffd678'
+      fontFamily: f, fontSize: '18px', color: '#ffd678', resolution: RETINA_FACTOR
     }).setOrigin(0, 0.5).setVisible(false);
 
     this.add.image(272, 26, 'atlas', 'hi_shot').setScale(0.42);
     this.shotText = this.add.text(286, 26, '', {
-      fontFamily: f, fontSize: '16px', color: '#bfe4ff'
+      fontFamily: f, fontSize: '16px', color: '#bfe4ff', resolution: RETINA_FACTOR
     }).setOrigin(0, 0.5);
     this.freeIcon = this.add.image(342, 26, 'atlas', 'hi_bank')
       .setScale(0.38).setVisible(false);
     this.freeText = this.add.text(356, 26, '', {
-      fontFamily: f, fontSize: '15px', color: '#ffe27b'
+      fontFamily: f, fontSize: '15px', color: '#ffe27b', resolution: RETINA_FACTOR
     }).setOrigin(0, 0.5).setVisible(false);
 
     this.formText = this.add.text(W / 2, 45, '', {
       fontFamily: 'SF Body, Verdana, sans-serif', fontSize: '13px',
-      color: '#6f8798'
+      color: '#6f8798', resolution: RETINA_FACTOR
     }).setOrigin(0.5);
 
     // Thin fading tutorial strip: top edge, one line, never centre-stage.
@@ -693,7 +697,7 @@
       .setDisplaySize(288, 28).setTint(0x0d1826).setAlpha(0).setVisible(false);
     this.tutorial = this.add.text(168, 86, '', {
       fontFamily: 'SF Body, Verdana, sans-serif', fontSize: '13px',
-      color: '#a9c8d8', wordWrap: { width: 274 }, align: 'center'
+      color: '#a9c8d8', wordWrap: { width: 274 }, align: 'center', resolution: RETINA_FACTOR
     }).setOrigin(0.5).setAlpha(0).setVisible(false);
 
     // ONE transient chip. New events queue behind it; they never stack.
@@ -702,7 +706,7 @@
     this.chipIcon = this.add.image(W - 166, 78, 'atlas', 'hi_aura')
       .setScale(0.40).setAlpha(0).setVisible(false);
     this.chipText = this.add.text(W - 150, 78, '', {
-      fontFamily: f, fontSize: '14px', color: '#e6f4ff'
+      fontFamily: f, fontSize: '14px', color: '#e6f4ff', resolution: RETINA_FACTOR
     }).setOrigin(0, 0.5).setAlpha(0).setVisible(false);
 
     // Centre banner: run boundaries ONLY (formation clear, medal, unlock,
@@ -713,19 +717,19 @@
     this.bannerMedal = this.add.image(W / 2, BANNER_Y - 62, 'atlas', 'medal_gold')
       .setScale(0.9).setAlpha(0).setVisible(false);
     this.bannerTitle = this.add.text(W / 2, BANNER_Y - 4, '', {
-      fontFamily: f, fontSize: '22px', color: '#e8fff8'
+      fontFamily: f, fontSize: '22px', color: '#e8fff8', resolution: RETINA_FACTOR
     }).setOrigin(0.5).setAlpha(0).setVisible(false);
     this.bannerSub = this.add.text(W / 2, BANNER_Y + 38, '', {
       fontFamily: 'SF Body, Verdana, sans-serif', fontSize: '13px',
       color: '#96b6c8', align: 'center', lineSpacing: 4,
-      wordWrap: { width: BANNER_W - 32 }
+      wordWrap: { width: BANNER_W - 32 }, resolution: RETINA_FACTOR
     }).setOrigin(0.5).setAlpha(0).setVisible(false);
 
     // Pause: 44px target in the top-right, clear of the vitality meter.
     this.pauseBtn = this.add.image(W - 26, 78, 'px')
       .setDisplaySize(44, 44).setTint(0x14212f).setAlpha(0.0);
     this.pauseMark = this.add.text(W - 26, 78, '=', {
-      fontFamily: f, fontSize: '20px', color: '#7f9bb0'
+      fontFamily: f, fontSize: '20px', color: '#7f9bb0', resolution: RETINA_FACTOR
     }).setOrigin(0.5).setAlpha(0.7);
 
     this.damageVignette = this.add.image(W / 2, H / 2, 'disc')
@@ -2159,7 +2163,7 @@
   };
 
   // ------------------------------------------------------------------ boot
-  var game = new Phaser.Game({
+  var config = {
     type: Phaser.AUTO,
     // parent:null SKIPS mounting the canvas and the game runs invisibly.
     parent: document.body,
@@ -2175,6 +2179,12 @@
     render: { antialias: true, roundPixels: false, powerPreference: 'high-performance' },
     banner: false,
     scene: [BootScene, MenuScene, PlayScene]
-  });
+  };
+  config.scale.width = Math.round(W * RETINA_FACTOR);
+  config.scale.height = Math.round(H * RETINA_FACTOR);
+  config.width = config.scale.width;
+  config.height = config.scale.height;
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
+  var game = new Phaser.Game(config);
   window.__sfGame = game;
 })();

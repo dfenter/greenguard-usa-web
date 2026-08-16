@@ -138,6 +138,7 @@ window.AG = AG;
 
   /* -------------------------------------------------------- create */
   RunScene.prototype.create = function () {
+    this.cameras.main.setZoom(AG.RETINA_FACTOR);
     var self = this, i, site = this.siteDef;
     var kit = AG.kit;
     this.cam = this.cameras.main;

@@ -342,6 +342,7 @@ async function buildWorld(index) {
     reducedMotion,
     carName: 'Kart Circuit Zero player',
   });
+  GGKit.hiDpi.three(racer.world.renderer);
   tintGhostActor(racer.world.rivals[0]);
   racer.world.resize();
   updateRacerWorld(1 / 60);

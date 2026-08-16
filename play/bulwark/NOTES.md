@@ -74,3 +74,10 @@ Rejected or deferred:
 - Shrunk the HUD to icon-led lives/gold/wave/score, compact route and bank meters, a map icon control, and one-line chip controls.
 - Moved in-play events to one queued corner chip with a 1.0s hold; the boss warning is now a chip instead of a live center banner.
 - Retimed the coach to one top-edge line that fades after about 3s, and kept center banners only for wave-clear, medal, win, and loss boundaries.
+
+## Retina pass 2026-08-16
+
+- Ratio record at landscape CSS 844x390 and DPR 3: before 1.85x from the 1280px design FIT backing store; after 3.00x expected from a 2080x1170 backing store. Live canvas measurement was unavailable.
+- Recipe: `GGKit.hiDpi.factor(1280, 720)`, dense FIT scale dimensions, `GGKit.renderDefaults`, and `setZoom(RETINA_FACTOR)` in the Bulwark scene.
+- Factor cap: none. The factor is GGKit-clamped to the device maximum of 3.
+- Could not capture the required DPR 3 gameplay screenshot or `canvas.width / getBoundingClientRect().width` measurement because no browser instance was available and the private port could not be opened in this environment.

@@ -92,3 +92,10 @@ Deferred:
 - Cut always-on landmark/flavor copy and block descriptions from active play; compacted the HUD to stage/block, score, combo, health bar/number, weapon count, lives, and pause glyphs.
 - Replaced in-play center banners and floating text with one queued edge chip, capped to a one-second hold; kept the single-line coach strip for essential onboarding only.
 - Removed duplicate upgrade/result banners, moved block exit guidance into `B#/4 → EXIT`, and reserved the reduced center banner for run boundaries.
+
+## Retina pass 2026-08-16
+
+- Ratio record at landscape CSS 844x390 and DPR 3: before 1.85x from the 1280px design FIT backing store; after 3.00x expected from a 2080x1170 backing store. Live canvas measurement was unavailable.
+- Recipe: `GGKit.hiDpi.factor(1280, 720)`, dense FIT scale dimensions, `GGKit.renderDefaults`, and `setZoom(RETINA_FACTOR)` in the main scene. The existing centered bounded camera was retained.
+- Factor cap: none. The factor is GGKit-clamped to the device maximum of 3.
+- Could not capture the required DPR 3 gameplay screenshot or `canvas.width / getBoundingClientRect().width` measurement because no browser instance was available and the private port could not be opened in this environment.

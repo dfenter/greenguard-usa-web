@@ -33,3 +33,11 @@ Deferred:
 - Shrunk active HUD to score, ball/multiplier icons, a nudge meter, and a mission progress bar; moved messaging that matters to run-boundary banners and the results panel.
 - Replaced in-play event banners with one queued top-edge chip (14px, max 1.0s) and reduced the coach to one thin single-line strip that fades after about 3s, keeping reduced-motion gating intact.
 - The in-app browser had no available surface for the requested 390×844 active-play screenshot check; JavaScript syntax checks passed.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.10x static FIT baseline at the 390 CSS pixel portrait width, from the 430x900 design backing store. A live pre-pass canvas readback was unavailable in this sandbox.
+- After ratio: 3.00x target by factor math at emulated DPR 3. The 430x900 design uses `GGKit.hiDpi.factor(430, 900)` and produces a 1170x2449 backing store for the 390 CSS pixel viewport.
+- Recipe: Phaser `Scale.FIT`, design coordinates preserved, scale dimensions multiplied by the factor, shared `GGKit.renderDefaults` merged, and zoom applied in boot, title, and play scene `create()` methods. Text uses the same factor.
+- Factor cap: none beyond GGKit's default clamp to [1, 3].
+- Could not do: live `canvas.width / getBoundingClientRect().width` readback, gameplay screenshot, and `retina_audit.mjs` acceptance because no browser surface was available and private port binding was denied.

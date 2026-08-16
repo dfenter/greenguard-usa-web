@@ -65,3 +65,10 @@ Checks:
 - `node --check game.js`
 - `node --check sw.js`
 - JSON manifest parse, mocked bootstrap and raid simulation checks, payload size, file-size, asset-path, and em-dash scans passed.
+
+## Retina pass 2026-08-16
+
+- Ratio record at portrait CSS 390x844 and DPR 3: before 1.00x from the design-size FIT backing store; after 3.00x expected from a 1170x2532 backing store. Live canvas measurement was unavailable.
+- Recipe: `GGKit.hiDpi.factor(390, 844)`, dense FIT scale dimensions, `GGKit.renderDefaults`, `setZoom(RETINA_FACTOR)`, and dynamic text resolution set to the same factor.
+- Factor cap: none. The factor is GGKit-clamped to the device maximum of 3.
+- Could not capture the required DPR 3 gameplay screenshot or `canvas.width / getBoundingClientRect().width` measurement because no browser instance was available and the private port could not be opened in this environment.

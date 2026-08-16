@@ -10,6 +10,7 @@
 
   var W = 390;
   var H = 700;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(W, H);
   var STEP = 1 / 60;
   var TAU = Math.PI * 2;
   var SAVE_VERSION = 4;
@@ -78,6 +79,13 @@
   }
 
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function configureRetinaScene(scene) {
+    scene.cameras.main.setZoom(RETINA_FACTOR);
+    var addText = scene.add.text;
+    scene.add.text = function (x, y, value, style) {
+      return addText.call(this, x, y, value, Object.assign({}, style || {}, { resolution: RETINA_FACTOR }));
+    };
+  }
   function lerp(a, b, t) { return a + (b - a) * t; }
   function dist(ax, ay, bx, by) { return Math.sqrt((ax - bx) * (ax - bx) + (ay - by) * (ay - by)); }
   function pad(n, width) { return String(Math.max(0, Math.floor(n))).padStart(width, '0'); }
@@ -440,7 +448,7 @@
   LanderScene.prototype.preload = function () {
     kit.loader.show('GRAVITY WELL');
     this.load.on('progress', function (value) { kit.loader.progress(value); });
-    var svg = function (key, file) { this.load.svg(key, file, { width: 96, height: 96 }); };
+    var svg = function (key, file) { this.load.svg(key, file, { width: Math.round(96 * RETINA_FACTOR), height: Math.round(96 * RETINA_FACTOR) }); };
     svg.call(this, 'lander-idle', 'assets/lander-idle.svg');
     svg.call(this, 'lander-thrust', 'assets/lander-thrust.svg');
     svg.call(this, 'lander-damaged', 'assets/lander-damaged.svg');
@@ -460,6 +468,7 @@
   };
 
   LanderScene.prototype.create = function () {
+    configureRetinaScene(this);
     this.bg = this.add.graphics().setDepth(-10);
     this.world = this.add.graphics().setDepth(1);
     this.fx = this.add.graphics().setDepth(4).setBlendMode(Phaser.BlendModes.ADD);
@@ -1054,7 +1063,10 @@
   window.addEventListener('blur', function () { kit.input.clearAll(); document.querySelectorAll('.control').forEach(function (button) { button.classList.remove('active'); }); });
   document.addEventListener('pointerdown', function () { if (scene && scene.mode === 'menu') return; }, { passive: true });
 
-  var config = { type: Phaser.AUTO, parent: 'game', width: W, height: H, backgroundColor: '#050b16', render: { antialias: true, roundPixels: false, powerPreference: 'high-performance' }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: [LanderScene] };
+  var config = { type: Phaser.AUTO, parent: 'game', backgroundColor: '#050b16', render: { antialias: true, roundPixels: false, powerPreference: 'high-performance' }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: [LanderScene] };
+  config.scale.width = Math.round(W * RETINA_FACTOR);
+  config.scale.height = Math.round(H * RETINA_FACTOR);
+  config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
   var game = new Phaser.Game(config);
   game.events.once('ready', function () { scene = game.scene.getScene('GravityWellScene'); });
   setTimeout(function () { if (!scene && game.scene && game.scene.getScene) scene = game.scene.getScene('GravityWellScene'); }, 0);

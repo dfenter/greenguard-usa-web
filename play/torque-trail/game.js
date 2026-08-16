@@ -262,8 +262,9 @@ function updateTitleMeta() {
 function routeIdForJob(jobId) { return jobId ? 'job-' + jobId : 'frontier-main'; }
 
 function makeLabel(text, color) {
-  const canvas = document.createElement('canvas'); canvas.width = 384; canvas.height = 96;
-  const ctx = canvas.getContext('2d'); ctx.fillStyle = 'rgba(10,25,30,.9)'; ctx.fillRect(4, 8, 376, 80);
+  const baked = GGKit.hiDpi.canvas(384, 96);
+  const canvas = baked.canvas; const ctx = baked.ctx;
+  ctx.fillStyle = 'rgba(10,25,30,.9)'; ctx.fillRect(4, 8, 376, 80);
   ctx.strokeStyle = '#' + new THREE.Color(color).getHexString(); ctx.lineWidth = 4; ctx.strokeRect(4, 8, 376, 80);
   ctx.fillStyle = '#f7edc8'; ctx.font = '900 25px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(text.toUpperCase(), 192, 49);
   const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace;
@@ -350,6 +351,8 @@ function setRacerRoute(routeId) {
     rivalCount: 0, ggkit: kit, paint: LIVERIES[save.livery].color, accent: LIVERIES[save.livery].accent,
     carName: 'Torque Trail field truck',
   });
+  GGKit.hiDpi.three(racer.world.renderer);
+  racer.world.resize();
   racer.quality.set(2);
   racer.world.setPaused(!!kit.paused);
   buildMarkerGroup();
@@ -619,8 +622,8 @@ function handleCanvasClick(event) {
 
 function resize() {
   if (racer) racer.world.resize();
-  const width = Math.max(320, window.innerWidth); const height = Math.max(240, window.innerHeight); const pixelRatio = Math.min(1.5, window.devicePixelRatio || 1, 1280 / width);
-  hudCanvas.width = Math.max(1, Math.floor(width * Math.min(pixelRatio, 1.25))); hudCanvas.height = Math.max(1, Math.floor(height * Math.min(pixelRatio, 1.25))); measureControls();
+  const width = Math.max(320, window.innerWidth); const height = Math.max(240, window.innerHeight); const pixelRatio = GGKit.hiDpi.dpr();
+  hudCanvas.width = Math.max(1, Math.floor(width * pixelRatio)); hudCanvas.height = Math.max(1, Math.floor(height * pixelRatio)); measureControls();
 }
 function measureControls() {
   const throttleRect = ui.throttleTrack.getBoundingClientRect(); const steerRect = ui.steerTrack.getBoundingClientRect();

@@ -71,3 +71,10 @@ Construction: all 30 boards use deterministic six-color grids with an authored o
 - Cut the always-on title/kicker, module, chain, gate, par, medal, help, and status copy from active play; kept goals as symbol counters and moves as a compact meter.
 - Shrunk coaching to one thin, one-line top strip that fades after a few seconds; converted important events to one queued corner chip with a one-second hold.
 - Moved board navigation into the top icon cluster, reduced RESET/PAUSE and UNDO/HINT to touch-safe icon controls, and moved moves/par/stars into run-boundary results.
+
+## Retina pass 2026-08-16
+
+- Ratio record: before 1.00x from the pre-pass design-size backing configuration; after 3.00x is the configured DPR3 result from `round(design * GGKit.hiDpi.factor(...))`. A live canvas ratio read was unavailable.
+- Recipe: Phaser `Scale.FIT`, design world coordinates retained, `RETINA_FACTOR` applied to scale dimensions and the Forgelock scene camera zoom. Procedural chrome, board, tile, mechanic, and effect textures use dense Graphics backing with logical image scales, and text uses the same resolution.
+- Factor cap: none. The GGKit factor is used without a cap because this title has no measured need for one.
+- Could not do: the browser connector reported no available target, so the required DPR3 canvas ratio read and real gameplay screenshot could not be captured. `node --check` and `git diff --check` pass.

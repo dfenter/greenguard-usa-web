@@ -3,6 +3,7 @@
 
   var W = 390;
   var H = 844;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(W, H);
   var STEP = 1 / 60;
   var MAX_STEPS = 4;
   var SAVE_VERSION = 4;
@@ -203,7 +204,7 @@
   function sfx(name) { if (audioStarted) kit.audio.sfx(name); }
 
   function createText(scene, x, y, value, size, color, originX, originY) {
-    var object = scene.add.text(x, y, value, { fontFamily: 'Arial, sans-serif', fontSize: size + 'px', fontStyle: 'bold', color: hex(color), resolution: 2 });
+    var object = scene.add.text(x, y, value, { fontFamily: 'Arial, sans-serif', fontSize: size + 'px', fontStyle: 'bold', color: hex(color), resolution: RETINA_FACTOR });
     object.setOrigin(originX == null ? 0 : originX, originY == null ? .5 : originY);
     object.setDepth(80);
     object._srColor = color;
@@ -215,6 +216,7 @@
   SliceRushScene.prototype.constructor = SliceRushScene;
 
   SliceRushScene.prototype.create = function () {
+    this.cameras.main.setZoom(RETINA_FACTOR);
     sceneRef = this;
     this.simPaused = false;
     this.running = true;
@@ -903,7 +905,13 @@
 
   kit.loader.show('SLICE RUSH'); kit.loader.progress(.25);
   try {
-    phaserGame = new Phaser.Game({ type: Phaser.AUTO, parent: shell, width: W, height: H, backgroundColor: '#10242a', render: { antialias: true, antialiasGL: false, powerPreference: 'high-performance', roundPixels: false, batchSize: 2048 }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H }, fps: { target: 60, min: 30 }, scene: [SliceRushScene], banner: false });
+    var config = { type: Phaser.AUTO, parent: shell, width: W, height: H, backgroundColor: '#10242a', render: { antialias: true, antialiasGL: false, powerPreference: 'high-performance', roundPixels: false, batchSize: 2048 }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: W, height: H }, fps: { target: 60, min: 30 }, scene: [SliceRushScene], banner: false };
+    config.scale.width = Math.round(W * RETINA_FACTOR);
+    config.scale.height = Math.round(H * RETINA_FACTOR);
+    config.width = config.scale.width;
+    config.height = config.scale.height;
+    config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
+    phaserGame = new Phaser.Game(config);
   } catch (error) {
     fallback.textContent = 'The kitchen could not start.'; debugState.mode = 'error'; debugState.error = String(error && error.message || error);
   }

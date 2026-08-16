@@ -107,7 +107,7 @@ import * as THREE from 'three';
 
   const canvas = document.getElementById('stage');
   const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(1.45, window.devicePixelRatio || 1));
+  GGKit.hiDpi.three(renderer);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.08;
@@ -346,7 +346,7 @@ import * as THREE from 'three';
     geo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
     geo.setAttribute('aAlpha', new THREE.BufferAttribute(alphas, 1));
     const points = new THREE.Points(geo, new THREE.ShaderMaterial({
-      uniforms: { uColor: { value: new THREE.Color(color) }, uPixelRatio: { value: Math.min(1.45, window.devicePixelRatio || 1) }, uSize: { value: size } },
+      uniforms: { uColor: { value: new THREE.Color(color) }, uPixelRatio: { value: renderer.getPixelRatio() }, uSize: { value: size } },
       vertexShader: 'attribute float aSize; attribute float aAlpha; varying float vAlpha; uniform float uPixelRatio; uniform float uSize; void main(){vAlpha=aAlpha; vec4 mvPosition=modelViewMatrix*vec4(position,1.0); gl_PointSize=max(1.0,uSize*aSize*uPixelRatio*(92.0/-mvPosition.z)); gl_Position=projectionMatrix*mvPosition;}',
       fragmentShader: 'uniform vec3 uColor; varying float vAlpha; void main(){float d=distance(gl_PointCoord,vec2(.5)); float edge=smoothstep(.5,.12,d); gl_FragColor=vec4(uColor,edge*vAlpha);}',
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending

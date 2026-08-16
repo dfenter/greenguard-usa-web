@@ -71,6 +71,9 @@
 
   function ctxOf(scene, key, w, h) {
     if (scene.textures.exists(key)) scene.textures.remove(key);
+    var density = root.GGKit && root.GGKit.hiDpi ? root.GGKit.hiDpi.factor(W, 844) : 1;
+    var baked = root.GGKit && root.GGKit.hiDpi ? root.GGKit.hiDpi.canvas(w, h, density) : null;
+    if (baked) return { tex: { refresh: function () { scene.textures.addCanvas(key, baked.canvas); } }, c: baked.ctx };
     var tex = scene.textures.createCanvas(key, w, h);
     return { tex: tex, c: tex.getContext() };
   }

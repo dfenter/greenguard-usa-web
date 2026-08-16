@@ -26,3 +26,10 @@ Winning a deal pays coins (gamble deals pay triple); coins grow 12 plantings thr
 ### Deferred
 
 - First-frame browser boot and hook-driven mechanic probe could not run in this sandbox: the slug-derived private port `43117` was denied for local binding, and the in-app browser reported no browser available. Node syntax checks, manifest/precache checks, and 90 generated-deal verification passed.
+
+## Retina pass 2026-08-16
+
+- Audit profile: CSS viewport 390x844 at DPR 3. Measured pre-pass backing-store ratio: 1.00x. FIT scale math after the pass measures 1170x2532 against the 390x844 CSS canvas, a 3.00x ratio.
+- Recipe: `GGKit.hiDpi.factor(390, 844)`, dense FIT scale dimensions, `GGKit.renderDefaults`, and `this.cameras.main.setZoom(f)` in both BootScene and MeadowScene. Text resolution uses the same factor.
+- Factor cap: none. The factor is the GGKit native value, capped only by GGKit's normal maximum of 3.
+- Could not complete live headless canvas readback or a gameplay screenshot because no browser backend was available in this environment. `node --check` passed.

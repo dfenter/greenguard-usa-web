@@ -164,4 +164,11 @@ the service-worker cache version was bumped to 2.
   the sim's pitch and air state in the adapter. A future bike variant needs a
   two-wheel chassis, rider torso/helmet/arms, front and rear suspension
   anchors, wheelie-safe pitch limits, air-rotation hooks, and crash tumble
-  presentation.
+presentation.
+
+## Retina pass 2026-08-16
+
+- Before ratio: 1.50x for the main GGRacer canvas from the shared engine cap. The title HUD was capped at 1.50x.
+- After ratio: 3.00x configured at DPR 3 with `GGKit.hiDpi.three(racer.world.renderer)` followed by `racer.world.resize()`. Live `canvas.width / getBoundingClientRect().width` measurement was unavailable because Chrome aborted in this sandbox and the private HTTP bind was denied.
+- Recipe: native Three renderer density and a 3x title HUD. No factor cap beyond GGKit's required maximum of 3.
+- Audit: no render target, composer, or post-processing pass exists in the racer path. Shared racer texture bakes were identified but could not be changed because this lane was constrained from writing `play/_shared/`.

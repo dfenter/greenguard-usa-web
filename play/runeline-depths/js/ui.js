@@ -42,7 +42,7 @@
     });
     t.__lastText = str;
     t.__lastColor = color;
-    t.setResolution(Math.min(2, window.devicePixelRatio || 1));
+    t.setResolution(GGKit.hiDpi.dpr());
     return t;
   };
 

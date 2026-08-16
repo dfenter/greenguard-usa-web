@@ -7,11 +7,13 @@
   var W = DL.world;
   var MAP = W.MAP, ROOM_W = W.ROOM_W, ROOM_H = W.ROOM_H;
   var TILE = 16;
-  var DPR = Math.min(2, Math.max(1, Math.round(window.devicePixelRatio || 1)));
-  var ZOOM = 2 * DPR;
+  var DPR = 1;
+  var ZOOM = 2;
   var TAU = Math.PI * 2;
   var clamp = W.clamp, dist = W.dist;
   var FS = 10; // bitmap font cell height; multiply for on screen size
+
+  function px(value) { return value * DPR; }
 
   var SFX = ['s_swing', 's_hit', 's_kill', 's_hurt', 's_step_grass', 's_step_sand',
     's_step_stone', 's_pickup', 's_heart', 's_sigil', 's_relic', 's_door',
@@ -132,19 +134,16 @@
   // Island silhouette used by the loading screen and the title tableau.
   function islandTexture(scene, key, tiles, scale) {
     if (scene.textures.exists(key)) scene.textures.remove(key);
-    var tex = scene.textures.createCanvas(key, MAP, MAP);
-    var ctx = tex.getContext();
+    var baked = GGKit.hiDpi.canvas(MAP, MAP);
+    var ctx = baked.ctx;
     var cols = ['#0b2f44', '#e2c48b', '#5cae52', '#2a6a3c', '#8894a0', '#7a6b85', '#1d6b7d'];
-    var img = ctx.createImageData(MAP, MAP);
     for (var i = 0; i < MAP * MAP; i++) {
-      var t = tiles[i];
+      var t = tiles[i], x = i % MAP, y = Math.floor(i / MAP);
+      if (t === 0) continue;
       var c = cols[t] || cols[2];
-      img.data[i * 4] = parseInt(c.substr(1, 2), 16);
-      img.data[i * 4 + 1] = parseInt(c.substr(3, 2), 16);
-      img.data[i * 4 + 2] = parseInt(c.substr(5, 2), 16);
-      img.data[i * 4 + 3] = t === 0 ? 0 : 255;
+      ctx.fillStyle = c;
+      ctx.fillRect(x, y, 1, 1);
     }
-    ctx.putImageData(img, 0, 0);
     // one pixel foam rim so the silhouette has a finished edge
     ctx.globalCompositeOperation = 'destination-over';
     ctx.fillStyle = 'rgba(143,215,210,0.9)';
@@ -153,17 +152,15 @@
       ctx.fillRect(x - 1, y - 1, 3, 3);
     }
     ctx.globalCompositeOperation = 'source-over';
-    tex.refresh();
-    return tex;
+    return scene.textures.addCanvas(key, baked.canvas);
   }
 
   // A small tiling swell pattern so the menu sea has surface detail, not a
   // flat colour block across the bottom third of the screen.
   function swellTexture(scene) {
     if (scene.textures.exists('swell')) return;
-    var c = document.createElement('canvas');
-    c.width = 64; c.height = 32;
-    var g = c.getContext('2d');
+    var baked = GGKit.hiDpi.canvas(64, 32);
+    var c = baked.canvas, g = baked.ctx;
     g.fillStyle = 'rgba(168,228,226,0.62)';
     var marks = [[3, 5, 15], [31, 11, 11], [47, 19, 17], [11, 25, 13], [38, 2, 9], [20, 16, 8]];
     for (var i = 0; i < marks.length; i++) {
@@ -188,7 +185,7 @@
       g.push(r);
     }
     var ts = scene.add.tileSprite(0, y, scene.scale.width, h, 'swell').setOrigin(0, 0).setAlpha(0.34);
-    ts.tileScaleX = DPR; ts.tileScaleY = DPR;
+    ts.tileScaleX = 1; ts.tileScaleY = 1;
     ts.scrollSpeed = speed * 0.9;
     g.push(ts);
     return g;
@@ -233,7 +230,7 @@
 
       this.bands = waterBand(this, h * 0.52, h * 0.28, 0.85, 26 * U);
       var isle = this.add.image(w / 2, h * 0.42, 'isleart');
-      isle.setScale(Math.min(w, h) / MAP * 0.62);
+      isle.setScale(Math.min(w, h) / (MAP * DPR) * 0.62);
       this.tweens.add({ targets: isle, y: isle.y - 5 * U, duration: 2600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
       var title = this.add.bitmapText(w / 2, h * 0.16, 'pix', 'DRIFTLANDS', FS * 3.4 * U).setOrigin(0.5);
@@ -348,15 +345,15 @@
       }
       this.bands = waterBand(this, h * 0.44, h * 0.56, 1, 22 * U);
 
-      var isleScale = Math.min(w, h) / MAP * 0.66;
+      var isleScale = Math.min(w, h) / (MAP * DPR) * 0.66;
       var isle = this.add.image(w / 2, h * 0.46, 'isleart').setScale(isleScale);
       this.tweens.add({ targets: isle, y: isle.y - 4 * U, duration: 3200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
       // landmark silhouettes sitting on the isle
       function place(tx, ty, frame, sc) {
-        var px = isle.x + (tx - MAP / 2) * isleScale;
-        var py = isle.y + (ty - MAP / 2) * isleScale;
-        return self.add.image(px, py, 'dl', frame).setScale(sc * U).setOrigin(0.5, 0.9);
+        var px = isle.x + (tx - MAP / 2) * DPR * isleScale;
+        var py = isle.y + (ty - MAP / 2) * DPR * isleScale;
+        return self.add.image(px, py, 'dl', frame).setScale(sc).setOrigin(0.5, 0.9);
       }
       place(W.RUIN_GATE[0], W.RUIN_GATE[1], 'p_ruindoor', 0.42);
       W.GATES.forEach(function (g) { place(g[0], g[1], 'p_gate', 0.34); });
@@ -372,7 +369,7 @@
         pm.phase = p * 1.3;
         (this.palms || (this.palms = [])).push(pm);
       }
-      var glow = this.add.image(isle.x, isle.y, 'glow').setScale(7 * U).setAlpha(0.2).setBlendMode(Phaser.BlendModes.ADD);
+      var glow = this.add.image(isle.x, isle.y, 'glow').setScale(7).setAlpha(0.2).setBlendMode(Phaser.BlendModes.ADD);
       this.tweens.add({ targets: glow, alpha: 0.32, duration: 2600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
       // authored title type: pixel font, layered shadow, drift underline
@@ -394,7 +391,7 @@
 
       function button(label, yy, primary, fn) {
         var bw = Math.min(w - 60 * U, 300 * U), bh = 48 * U;
-        var box = self.add.nineslice(w / 2, yy, 'dl', primary ? 'ui_btn_hi' : 'ui_btn', bw, bh, 8, 8, 8, 8)
+        var box = self.add.nineslice(w / 2, yy, 'dl', primary ? 'ui_btn_hi' : 'ui_btn', bw, bh, 8 * U, 8 * U, 8 * U, 8 * U)
           .setInteractive({ useHandCursor: true });
         var tx = self.add.bitmapText(w / 2, yy - 2 * U, 'pix', label, FS * 1.6 * U).setOrigin(0.5)
           .setTint(primary ? 0x102029 : 0xdff2ea);
@@ -608,11 +605,15 @@
       /* Fog is a single soft texture, not a 16384 tile layer. It removes a
        * full screen of opaque quads every frame and lets the reveal unfurl
        * with a soft animated edge instead of popping tile by tile. */
-      if (!this.textures.exists('fogtex')) this.textures.createCanvas('fogtex', 64, 64);
+      if (!this.textures.exists('fogtex')) {
+        var fogBaked = GGKit.hiDpi.canvas(64, 64);
+        fogBaked.ctx.imageSmoothingEnabled = true;
+        this.textures.addCanvas('fogtex', fogBaked.canvas);
+      }
       this.fogTex = this.textures.get('fogtex');
       this.fogCtx = this.fogTex.getContext();
       if (this.fogTex.setFilter) this.fogTex.setFilter(1);
-      this.fogImage = this.fogCtx.createImageData(64, 64);
+      this.fogImage = this.fogCtx.createImageData(Math.round(64 * DPR), Math.round(64 * DPR));
       this.repaintFog(true);
       this.fogSprite = this.add.image(MAP * TILE / 2, MAP * TILE / 2, 'fogtex')
         .setDisplaySize(MAP * TILE + TILE * 2, MAP * TILE + TILE * 2).setDepth(40);
@@ -653,28 +654,28 @@
       // particle systems ---------------------------------------------------
       this.fxSpark = this.add.particles(0, 0, 'dl', {
         frame: 'fx_spark',
-        speed: { min: 40, max: 130 }, lifespan: 420, quantity: 6, scale: { start: 1.1, end: 0 },
+        speed: { min: px(40), max: px(130) }, lifespan: 420, quantity: 6, scale: { start: 1.1, end: 0 },
         alpha: { start: 1, end: 0 }, tint: [0xfff0b8, 0xffc46b], emitting: false, maxAliveParticles: 48
       }).setDepth(20);
       this.fxDust = this.add.particles(0, 0, 'dl', {
         frame: 'fx_puff',
-        speed: { min: 6, max: 26 }, lifespan: 520, quantity: 2, scale: { start: 0.7, end: 0 },
+        speed: { min: px(6), max: px(26) }, lifespan: 520, quantity: 2, scale: { start: 0.7, end: 0 },
         alpha: { start: 0.5, end: 0 }, tint: 0xe4c98b, emitting: false, maxAliveParticles: 28
       }).setDepth(8);
       this.fxLeaf = this.add.particles(0, 0, 'dl', {
         frame: 'fx_leaf',
-        speed: { min: 20, max: 70 }, lifespan: 720, gravityY: 40, quantity: 5,
+        speed: { min: px(20), max: px(70) }, lifespan: 720, gravityY: px(40), quantity: 5,
         scale: { start: 1, end: 0.2 }, rotate: { start: 0, end: 220 },
         alpha: { start: 1, end: 0 }, tint: [0x5cae52, 0x8bd074], emitting: false, maxAliveParticles: 32
       }).setDepth(20);
       this.fxMote = this.add.particles(0, 0, 'dl', {
         frame: 'fx_spark',
-        speed: { min: 8, max: 34 }, lifespan: 900, quantity: 1, scale: { start: 0.9, end: 0 },
+        speed: { min: px(8), max: px(34) }, lifespan: 900, quantity: 1, scale: { start: 0.9, end: 0 },
         alpha: { start: 0.8, end: 0 }, tint: [0x8ee6d8, 0xd9f6ee], emitting: false, maxAliveParticles: 36
       }).setDepth(30);
       this.fxShard = this.add.particles(0, 0, 'dl', {
         frame: 'fx_shard',
-        speed: { min: 60, max: 150 }, lifespan: 340, quantity: 5, scale: { start: 1.1, end: 0.2 },
+        speed: { min: px(60), max: px(150) }, lifespan: 340, quantity: 5, scale: { start: 1.1, end: 0.2 },
         rotate: { start: 0, end: 260 },
         alpha: { start: 1, end: 0 }, tint: [0xffd6d6, 0xff8a7a], emitting: false, maxAliveParticles: 32
       }).setDepth(21);
@@ -770,32 +771,32 @@
       }
 
       // The opening cove: shelter, crates, a live fire and staged ground.
-      this.add.image(cx - 30, cy - 6, 'dl', 'p_shelter').setDepth(6).setOrigin(0.5, 0.9);
-      this.add.image(cx + 26, cy - 2, 'dl', 'p_crate').setDepth(6).setOrigin(0.5, 0.9);
-      this.add.image(cx + 38, cy + 4, 'dl', 'p_barrel').setDepth(6).setOrigin(0.5, 0.9);
+      this.add.image(cx - px(30), cy - px(6), 'dl', 'p_shelter').setDepth(6).setOrigin(0.5, 0.9);
+      this.add.image(cx + px(26), cy - px(2), 'dl', 'p_crate').setDepth(6).setOrigin(0.5, 0.9);
+      this.add.image(cx + px(38), cy + px(4), 'dl', 'p_barrel').setDepth(6).setOrigin(0.5, 0.9);
       // the fire sits south of the spawn tile so the drifter never stands in it
-      this.campFire = this.add.image(cx + 6, cy + 22, 'dl', 'p_fire0').setDepth(7).setOrigin(0.5, 0.95);
-      glowAt(cx + 6, cy + 18, 1.1, 0xffb45c, 0.42, 900);
+      this.campFire = this.add.image(cx + px(6), cy + px(22), 'dl', 'p_fire0').setDepth(7).setOrigin(0.5, 0.95);
+      glowAt(cx + px(6), cy + px(18), 1.1, 0xffb45c, 0.42, 900);
 
       this.gateSprites = W.GATES.map(function (p, i) {
         var gx = p[0] * TILE, gy = p[1] * TILE;
-        var arch = self.add.image(gx, gy - 2, 'dl', 'p_gate').setDepth(6).setOrigin(0.5, 0.86);
-        var lamp = glowAt(gx, gy - 10, 1.2, 0xffe08a, 0.45, 1400 + i * 210);
+        var arch = self.add.image(gx, gy - px(2), 'dl', 'p_gate').setDepth(6).setOrigin(0.5, 0.86);
+        var lamp = glowAt(gx, gy - px(10), 1.2, 0xffe08a, 0.45, 1400 + i * 210);
         return { arch: arch, lamp: lamp };
       });
 
       var rx = W.RUIN_GATE[0] * TILE, ry = W.RUIN_GATE[1] * TILE;
-      this.ruinDoor = this.add.image(rx, ry - 4, 'dl', 'p_ruindoor').setDepth(6).setOrigin(0.5, 0.86);
-      this.ruinGlow = glowAt(rx, ry - 14, 2, 0x8f6fb5, 0.32, 2000);
+      this.ruinDoor = this.add.image(rx, ry - px(4), 'dl', 'p_ruindoor').setDepth(6).setOrigin(0.5, 0.86);
+      this.ruinGlow = glowAt(rx, ry - px(14), 2, 0x8f6fb5, 0.32, 2000);
 
       // palms along the shore, pooled and culled
       this.palms = [];
       var r = W.rng(this.seed ^ 0x7f1e);
       for (var i = 0; i < 30; i++) {
         for (var t = 0; t < 40; t++) {
-          var px = 10 + r() * 108, py = 10 + r() * 108;
-          if (this.tiles[(py | 0) * MAP + (px | 0)] === W.BEACH) {
-            var s = this.add.image(px * TILE, py * TILE, 'dl', 'p_palm').setDepth(7).setOrigin(0.5, 0.92);
+          var palmX = 10 + r() * 108, palmY = 10 + r() * 108;
+          if (this.tiles[(palmY | 0) * MAP + (palmX | 0)] === W.BEACH) {
+            var s = this.add.image(palmX * TILE, palmY * TILE, 'dl', 'p_palm').setDepth(7).setOrigin(0.5, 0.92);
             s.phase = r() * TAU;
             this.palms.push(s);
             break;
@@ -940,7 +941,7 @@
       kit.audio.sfx(name, { volume: 0.32, rate: 0.94 + Math.random() * 0.14 });
       if (kit.juice.enabled) {
         this.fxDust.setParticleTint(t === W.BEACH ? 0xe2c48b : t === W.ROCK ? 0x8894a0 : 0x6fae5c);
-        this.fxDust.emitParticleAt(this.player.x * TILE, this.player.y * TILE + 5, 2);
+        this.fxDust.emitParticleAt(this.player.x * TILE, this.player.y * TILE + px(5), 2);
       }
     },
 
@@ -1058,9 +1059,9 @@
           var push = this.mode === 'boss' ? 5 : 9;
           e.kx = Math.cos(bearing) * push; e.ky = Math.sin(bearing) * push;
           if (kit.juice.enabled) {
-            this.fxSpark.emitParticleAt(e.x * TILE, e.y * TILE - 4, 6);
+            this.fxSpark.emitParticleAt(e.x * TILE, e.y * TILE - px(4), 6);
             this.fxShard.setParticleTint(0xffe8c0);
-            this.fxShard.emitParticleAt(e.x * TILE - Math.cos(bearing) * 4, e.y * TILE - Math.sin(bearing) * 4 - 4, 4);
+            this.fxShard.emitParticleAt(e.x * TILE - Math.cos(bearing) * px(4), e.y * TILE - Math.sin(bearing) * px(4) - px(4), 4);
           }
           hitOne = true;
           if (e.hp <= 0) this.killEnemy(e);
@@ -1075,7 +1076,7 @@
         var tx = Math.floor(p.x + Math.cos(p.facing)), ty = Math.floor(p.y + Math.sin(p.facing));
         if (tx >= 0 && ty >= 0 && tx < MAP && ty < MAP && this.layerProps.getTileAt(tx, ty)) {
           this.layerProps.removeTileAt(tx, ty);
-          if (kit.juice.enabled) this.fxLeaf.emitParticleAt(tx * TILE + 8, ty * TILE + 8, 6);
+          if (kit.juice.enabled) this.fxLeaf.emitParticleAt(tx * TILE + px(8), ty * TILE + px(8), 6);
           kit.audio.sfx('s_chop', { volume: 0.45 });
           this.score += 5;
         }
@@ -1087,8 +1088,8 @@
     impulse: function (mag, angle) {
       if (!kit.juice.enabled) return;
       var a = angle === undefined ? Math.random() * TAU : angle;
-      this.shake.vx += Math.cos(a) * mag * 26;
-      this.shake.vy += Math.sin(a) * mag * 26;
+      this.shake.vx += Math.cos(a) * mag * px(26);
+      this.shake.vy += Math.sin(a) * mag * px(26);
     },
 
     flash: function (dur, r, g, b) {
@@ -1103,8 +1104,8 @@
       this.score += e.boss ? 400 : this.mode === 'boss' ? 500 : 100;
       if (kit.juice.enabled) {
         this.fxShard.setParticleTint(0xff9a8a);
-        this.fxShard.emitParticleAt(e.x * TILE, e.y * TILE - 4, 9);
-        this.fxSpark.emitParticleAt(e.x * TILE, e.y * TILE - 4, 8);
+        this.fxShard.emitParticleAt(e.x * TILE, e.y * TILE - px(4), 9);
+        this.fxSpark.emitParticleAt(e.x * TILE, e.y * TILE - px(4), 8);
       }
       this.impulse(3.4);
       kit.audio.sfx('s_kill', { volume: 0.7 });
@@ -1139,7 +1140,7 @@
       this.flash(140, 120, 30, 24);
       var a = Math.atan2(p.y - fy, p.x - fx);
       this.moveEntity(p, Math.cos(a) * 1.1, Math.sin(a) * 1.1, 1, this.mode === 'world');
-      if (kit.juice.enabled) this.fxShard.emitParticleAt(p.x * TILE, p.y * TILE - 4, 6);
+      if (kit.juice.enabled) this.fxShard.emitParticleAt(p.x * TILE, p.y * TILE - px(4), 6);
       if (p.hp <= 0) this.die();
     },
 
@@ -1250,7 +1251,7 @@
           newOnes++;
           if (this.mmQueue.length < 4096) this.mmQueue.push(idx);
           if (!instant && newOnes < 3 && kit.juice.enabled && this.hashv(cx, cy, this.seed + 17) < 0.5) {
-            this.fxMote.emitParticleAt(cx * 2 * TILE + 8, cy * 2 * TILE + 8, 1);
+            this.fxMote.emitParticleAt(cx * 2 * TILE + px(8), cy * 2 * TILE + px(8), 1);
           }
         }
       }
@@ -1280,9 +1281,15 @@
     repaintFog: function () {
       var d = this.fogImage.data;
       var a = this.fogA;
-      for (var i = 0; i < 64 * 64; i++) {
-        d[i * 4] = 5; d[i * 4 + 1] = 17; d[i * 4 + 2] = 26;
-        d[i * 4 + 3] = (a[i] * 246) | 0;
+      var width = this.fogImage.width, height = this.fogImage.height;
+      for (var cy = 0; cy < 64; cy++) for (var cx = 0; cx < 64; cx++) {
+        var alpha = (a[cy * 64 + cx] * 246) | 0;
+        var y0 = Math.round(cy * height / 64), y1 = Math.round((cy + 1) * height / 64);
+        var x0 = Math.round(cx * width / 64), x1 = Math.round((cx + 1) * width / 64);
+        for (var yy = y0; yy < y1; yy++) for (var xx = x0; xx < x1; xx++) {
+          var i = (yy * width + xx) * 4;
+          d[i] = 5; d[i + 1] = 17; d[i + 2] = 26; d[i + 3] = alpha;
+        }
       }
       this.fogCtx.putImageData(this.fogImage, 0, 0);
       this.fogTex.refresh();
@@ -1488,7 +1495,7 @@
               idx = mood.props[(x + y) % mood.props.length];
               if (propI < this.dunProps.length) {
                 var pr = this.dunProps[propI++];
-                pr.setPosition(x * TILE + 8, y * TILE + 14).setVisible(true)
+                pr.setPosition(x * TILE + px(8), y * TILE + px(14)).setVisible(true)
                   .setFrame((x + y) % 2 ? 'p_barrel' : 'p_crate').setTint(mood.accent);
               }
             }
@@ -1641,7 +1648,7 @@
       }
       var mx = st.at[0] * TILE, my = st.at[1] * TILE;
       this.marker.setVisible(true);
-      this.marker.setPosition(mx, my - 18 + Math.sin(this.time.now / 240) * 3);
+      this.marker.setPosition(mx, my - px(18) + Math.sin(this.time.now / 240) * px(3));
       if (st.done(this)) {
         this.tut++;
         kit.audio.sfx('s_pickup', { volume: 0.5 });
@@ -1676,8 +1683,8 @@
       // dip on contact. Frozen frames hold the view without stopping the sim.
       var k = 1 - Math.pow(0.0009, dt);
       if (!frozen) {
-        var tx = p.x * TILE + p.vx * 3.2;
-        var ty = p.y * TILE + p.vy * 3.2;
+        var tx = p.x * TILE + p.vx * px(3.2);
+        var ty = p.y * TILE + p.vy * px(3.2);
         this.camTarget.x += (tx - this.camTarget.x) * k;
         this.camTarget.y += (ty - this.camTarget.y) * k;
       }
@@ -1687,7 +1694,7 @@
       sh.vx *= damp; sh.vy *= damp;
       sh.x += sh.vx * dt; sh.y += sh.vy * dt;
       this.dip = Math.max(0, this.dip - dt * 6);
-      cam.centerOn(this.camTarget.x + sh.x, this.camTarget.y + sh.y + this.dip * 1.5);
+      cam.centerOn(this.camTarget.x + sh.x, this.camTarget.y + sh.y + this.dip * px(1.5));
 
       var view = cam.worldView;
       if (this.mode === 'world') {
@@ -1705,7 +1712,7 @@
         this.campFire.setFrame('p_fire' + (((t * 9) | 0) % 3));
       } else {
         // dungeon light rides the player, tinted by the gauntlet
-        this.torch.setPosition(p.x * TILE, p.y * TILE - 4);
+        this.torch.setPosition(p.x * TILE, p.y * TILE - px(4));
         this.torch.setDisplaySize(view.width * 2.1, view.height * 2.1);
         this.torch.setAlpha(0.94);
       }
@@ -1718,7 +1725,7 @@
       this.syncPickups(t);
 
       if (this.mode === 'world') {
-        var vx0 = view.x - 40, vx1 = view.right + 40, vy0 = view.y - 40, vy1 = view.bottom + 40;
+      var vx0 = view.x - px(40), vx1 = view.right + px(40), vy0 = view.y - px(40), vy1 = view.bottom + px(40);
         for (var q = 0; q < this.palms.length; q++) {
           var pl = this.palms[q];
           var on = pl.x > vx0 && pl.x < vx1 && pl.y > vy0 && pl.y < vy1;
@@ -1751,12 +1758,12 @@
         else if (wantTint === 2) { ps.clearTint(); ps.setAlpha(0.45); }
         else { ps.clearTint(); ps.setAlpha(1); }
       }
-      this.shadow.setPosition(ps.x, ps.y + 3).setVisible(true);
+      this.shadow.setPosition(ps.x, ps.y + px(3)).setVisible(true);
 
       if (p.attackTime > 0) {
         var prog = 1 - p.attackTime / 0.22;
         this.slash.setVisible(true);
-        this.slash.setPosition(ps.x + Math.cos(p.facing) * 8, ps.y + Math.sin(p.facing) * 8 - 3);
+        this.slash.setPosition(ps.x + Math.cos(p.facing) * px(8), ps.y + Math.sin(p.facing) * px(8) - px(3));
         this.slash.setRotation(p.facing);
         this.slash.setAlpha(1 - prog * prog);
         this.slash.setScale(0.6 + prog * 0.5);
@@ -1769,7 +1776,7 @@
       else if (this.mode === 'dungeon') list = this.dungeon.enemies;
       else { list = this.bossList || (this.bossList = [null]); list[0] = this.boss; }
       var pi = 0, pipI = 0;
-      var vx0 = view.x - 32, vx1 = view.right + 32, vy0 = view.y - 32, vy1 = view.bottom + 32;
+      var vx0 = view.x - px(32), vx1 = view.right + px(32), vy0 = view.y - px(32), vy1 = view.bottom + px(32);
       for (var i = 0; i < list.length && pi < this.pool.length; i++) {
         var e = list[i];
         if (!e) continue;
@@ -1789,7 +1796,7 @@
         var frame = names[state];
         if (s.frameName !== frame) { s.setFrame(frame); s.frameName = frame; }
         if (!s.visible) s.setVisible(true);
-        var bob = e.dead ? 0 : Math.sin(t * 3 + e.phase) * 1.2;
+        var bob = e.dead ? 0 : Math.sin(t * 3 + e.phase) * px(1.2);
         if (!frozen) s.setPosition(Math.round(ex), Math.round(ey + bob));
         s.setDepth(11 + e.y * 0.001);
         var big = e.type === 'tide' ? 3 : e.boss ? 1.7 : 1;
@@ -1802,7 +1809,7 @@
           for (var k = 0; k < e.maxHp; k++) {
             var pip = this.hpPips[pipI++];
             pip.setVisible(true);
-            pip.setPosition(Math.round(ex - (e.maxHp - 1) * 2 + k * 4), Math.round(ey - 14 * big));
+            pip.setPosition(Math.round(ex - px((e.maxHp - 1) * 2 - k * 4)), Math.round(ey - px(14 * big)));
             pip.setTint(k < e.hp ? 0xffe08a : 0x4a3b3b);
             pip.setDepth(13);
           }
@@ -1822,7 +1829,7 @@
         if (i < need && this.mode === 'world') {
           var h = this.hearts[i];
           sp.setVisible(true);
-          sp.setPosition(h.x * TILE, h.y * TILE + Math.sin(t * 3 + i) * 2);
+          sp.setPosition(h.x * TILE, h.y * TILE + Math.sin(t * 3 + i) * px(2));
           // ease out back pop on spawn
           var q = h.pop || 0;
           var e2 = q >= 1 ? 1 : 1 + 2.2 * Math.pow(q - 1, 3) + 1.2 * Math.pow(q - 1, 2);
@@ -1842,7 +1849,7 @@
         if (ss) {
           if (ss.visible !== !!vis) { ss.setVisible(!!vis); ss.glow.setVisible(!!vis); }
           if (vis) {
-            ss.y = n.y * TILE + Math.sin(t * 2.2 + s2) * 2.2;
+            ss.y = n.y * TILE + Math.sin(t * 2.2 + s2) * px(2.2);
             ss.setRotation(Math.sin(t * 1.4 + s2) * 0.18);
             ss.glow.setAlpha(0.4 + Math.sin(t * 2.6 + s2) * 0.16);
           }
@@ -1879,7 +1886,7 @@
       var U = this.U, self = this;
       var TXT = 0xdff2ea;
 
-      this.barBg = this.add.nineslice(0, 0, 'dl', 'ui_bar', 10, 10, 6, 6, 6, 6).setOrigin(0.5);
+      this.barBg = this.add.nineslice(0, 0, 'dl', 'ui_bar', 10, 10, 6 * U, 6 * U, 6 * U, 6 * U).setOrigin(0.5);
       this.hearts = [];
       for (var i = 0; i < 12; i++) this.hearts.push(this.add.image(0, 0, 'dl', 'ui_heart_full').setVisible(false));
       this.relicIcons = [];
@@ -1896,7 +1903,7 @@
         self.gearChips.push({ icon: ic, text: tx });
       });
 
-      this.mmFrame = this.add.nineslice(0, 0, 'dl', 'ui_bar', 10, 10, 6, 6, 6, 6).setOrigin(0.5);
+      this.mmFrame = this.add.nineslice(0, 0, 'dl', 'ui_bar', 10, 10, 6 * U, 6 * U, 6 * U, 6 * U).setOrigin(0.5);
       this.mm = this.add.image(0, 0, 'minimap');
       this.mmMarks = [];
       for (var m = 0; m < 17; m++) this.mmMarks.push(this.add.image(0, 0, 'dl', 'mm_sigil').setVisible(false));
@@ -1904,7 +1911,7 @@
       this.mmLegend = this.add.bitmapText(0, 0, 'pix', 'CAMP GATE RUIN', FS * 0.75 * U).setOrigin(0.5, 0).setTint(0x8fb8ab);
 
       // message rail sits below the play area, clear of the minimap lane
-      this.toastBg = this.add.nineslice(0, 0, 'dl', 'ui_bar', 10, 10, 6, 6, 6, 6).setOrigin(0.5).setVisible(false);
+      this.toastBg = this.add.nineslice(0, 0, 'dl', 'ui_bar', 10, 10, 6 * U, 6 * U, 6 * U, 6 * U).setOrigin(0.5).setVisible(false);
       this.toast = this.add.bitmapText(0, 0, 'pix', '', FS * 1.35 * U).setOrigin(0.5).setTint(0xf2fbe9).setVisible(false);
 
       this.bossBar = this.add.rectangle(0, 0, 10, 10, 0x25151f).setVisible(false);
@@ -1931,15 +1938,15 @@
       var barH = 44 * U;
       ns(this.barBg, w - 20 * U - (INSET.left + INSET.right) * U, barH).setPosition(w / 2, top + barH / 2);
       for (var i = 0; i < this.hearts.length; i++) {
-        this.hearts[i].setScale(U).setPosition(left + 8 * U + i * 12 * U, top + 12 * U);
+        this.hearts[i].setScale(1).setPosition(left + 8 * U + i * 12 * U, top + 12 * U);
       }
-      for (var r = 0; r < 3; r++) this.relicIcons[r].setScale(0.9 * U).setPosition(left + 10 * U + r * 14 * U, top + 31 * U);
-      this.sigilIcon.setScale(0.8 * U).setPosition(left + 58 * U, top + 31 * U);
+      for (var r = 0; r < 3; r++) this.relicIcons[r].setScale(0.9).setPosition(left + 10 * U + r * 14 * U, top + 31 * U);
+      this.sigilIcon.setScale(0.8).setPosition(left + 58 * U, top + 31 * U);
       this.sigilText.setPosition(left + 66 * U, top + 31 * U).setFontSize(FS * 1.3 * U);
       this.timeText.setPosition(right - 6 * U, top + 31 * U).setFontSize(FS * 1.3 * U);
       for (var g = 0; g < 3; g++) {
         var cx = right - (76 - g * 26) * U;
-        this.gearChips[g].icon.setScale(U).setPosition(cx, top + 12 * U);
+        this.gearChips[g].icon.setScale(1).setPosition(cx, top + 12 * U);
         this.gearChips[g].text.setPosition(cx + 7 * U, top + 12 * U).setFontSize(FS * 1.4 * U);
       }
 
@@ -1949,20 +1956,20 @@
       ns(this.mmFrame, mmSize + 8 * U, mmSize + 20 * U).setPosition(mmx, mmy);
       this.mm.setPosition(mmx, mmy - 5 * U).setDisplaySize(mmSize, mmSize);
       this.mmLegend.setPosition(mmx, mmy + mmSize / 2 - 2 * U).setFontSize(FS * 0.75 * U);
-      for (var m = 0; m < this.mmMarks.length; m++) this.mmMarks[m].setScale(U * 0.8);
-      this.mmDot.setScale(U * 0.85);
+      for (var m = 0; m < this.mmMarks.length; m++) this.mmMarks[m].setScale(0.8);
+      this.mmDot.setScale(0.85);
 
       var stickR = 52, actR = 44;
       var stickCX = (24 + stickR + INSET.left), stickCY = (h / U) - (26 + stickR + INSET.bottom);
       var actCX = (w / U) - (24 + actR + INSET.right), actCY = (h / U) - (30 + actR + INSET.bottom);
-      this.stickBase.setScale(U * (stickR * 2 / 56)).setPosition(stickCX * U, stickCY * U);
-      this.knob.setScale(U).setPosition(stickCX * U, stickCY * U);
+      this.stickBase.setScale(stickR * 2 / 56).setPosition(stickCX * U, stickCY * U);
+      this.knob.setScale(1).setPosition(stickCX * U, stickCY * U);
       this.stickCX = stickCX * U; this.stickCY = stickCY * U;
-      this.actionBtn.setScale(U * (actR * 2 / 66)).setPosition(actCX * U, actCY * U);
+      this.actionBtn.setScale(actR * 2 / 66).setPosition(actCX * U, actCY * U);
       this.actionLabel.setPosition(actCX * U, actCY * U).setFontSize(FS * 1.3 * U);
       var pbx = (w / U) - (24 + INSET.right), pby = (h / U) - (30 + actR * 2 + 16 + INSET.bottom);
-      this.pauseBtn.setScale(0.8 * U).setPosition(pbx * U, pby * U);
-      this.pauseIcon.setScale(0.9 * U).setPosition(pbx * U, pby * U);
+      this.pauseBtn.setScale(0.8).setPosition(pbx * U, pby * U);
+      this.pauseIcon.setScale(0.9).setPosition(pbx * U, pby * U);
 
       // the message rail clears both the control row and the pause button,
       // so a two line prompt never sits under a tappable control
@@ -2113,11 +2120,11 @@
       var group = this.add.container(0, 0).setDepth(100);
       group.add(this.add.rectangle(w / 2, h / 2, w, h, 0x06141b, 0.88));
       var pw = Math.min(w - 40 * U, 320 * U), ph = 300 * U;
-      group.add(this.add.nineslice(w / 2, h / 2, 'dl', 'ui_panel', pw, ph, 8, 8, 8, 8));
+      group.add(this.add.nineslice(w / 2, h / 2, 'dl', 'ui_panel', pw, ph, 8 * U, 8 * U, 8 * U, 8 * U));
       group.add(this.add.bitmapText(w / 2, h / 2 - ph / 2 + 22 * U, 'pix', 'GEAR AND RELICS', FS * 1.9 * U).setOrigin(0.5, 0).setTint(0xefffe2));
       for (var i = 0; i < rows.length; i++) {
         var yy = h / 2 - ph / 2 + (62 + i * 40) * U;
-        group.add(this.add.image(w / 2 - pw / 2 + 26 * U, yy, 'dl', rows[i][0]).setScale(1.4 * U).setTint(p.relics[i] ? 0xffffff : 0x6d7a72));
+        group.add(this.add.image(w / 2 - pw / 2 + 26 * U, yy, 'dl', rows[i][0]).setScale(1.4).setTint(p.relics[i] ? 0xffffff : 0x6d7a72));
         group.add(this.add.bitmapText(w / 2 - pw / 2 + 44 * U, yy, 'pix', rows[i][1], FS * 1.3 * U).setOrigin(0, 0.5).setTint(0xd9ece2));
         group.add(this.add.bitmapText(w / 2 + pw / 2 - 26 * U, yy, 'pix', 'LV ' + rows[i][2] + '  ' + rows[i][3], FS * 1.2 * U).setOrigin(1, 0.5).setTint(p.relics[i] ? 0x9ede7a : 0xe9c88a));
       }
@@ -2125,7 +2132,7 @@
       group.add(this.add.bitmapText(w / 2, h / 2 + 20 * U, 'pix', 'SIGILS ' + sig + ' OF 12', FS * 1.4 * U).setOrigin(0.5).setTint(0x8ee6d8));
       group.add(this.add.bitmapText(w / 2, h / 2 + 40 * U, 'pix', 'ATTUNEMENT TIER ' + p.bonus, FS * 1.1 * U).setOrigin(0.5).setTint(0x9fc4b8));
       var by = h / 2 + ph / 2 - 34 * U;
-      var box = this.add.nineslice(w / 2, by, 'dl', 'ui_btn_hi', pw - 44 * U, 42 * U, 8, 8, 8, 8).setInteractive({ useHandCursor: true });
+      var box = this.add.nineslice(w / 2, by, 'dl', 'ui_btn_hi', pw - 44 * U, 42 * U, 8 * U, 8 * U, 8 * U, 8 * U).setInteractive({ useHandCursor: true });
       var tx = this.add.bitmapText(w / 2, by - 2 * U, 'pix', 'BACK', FS * 1.5 * U).setOrigin(0.5).setTint(0x102029);
       box.on('pointerdown', function () {
         kit.audio.sfx('s_ui');
@@ -2143,8 +2150,8 @@
       var U = this.U, w = this.scale.width, h = this.scale.height;
       if (this.reward) this.hideReward();
       var g = this.add.container(0, 0).setDepth(96);
-      g.add(this.add.nineslice(w / 2, h * 0.42, 'dl', 'ui_panel', Math.min(w - 60 * U, 280 * U), 96 * U, 8, 8, 8, 8));
-      g.add(this.add.image(w / 2, h * 0.42 - 22 * U, 'dl', 'ui_relic_on').setScale(2.2 * U));
+      g.add(this.add.nineslice(w / 2, h * 0.42, 'dl', 'ui_panel', Math.min(w - 60 * U, 280 * U), 96 * U, 8 * U, 8 * U, 8 * U, 8 * U));
+      g.add(this.add.image(w / 2, h * 0.42 - 22 * U, 'dl', 'ui_relic_on').setScale(2.2));
       g.add(this.add.bitmapText(w / 2, h * 0.42 + 6 * U, 'pix', title, FS * 1.7 * U).setOrigin(0.5).setTint(0xffe28b));
       g.add(this.add.bitmapText(w / 2, h * 0.42 + 26 * U, 'pix', body, FS * 1.1 * U).setOrigin(0.5).setTint(0xd9ece2).setMaxWidth(240 * U));
       g.setScale(0.8).setAlpha(0);
@@ -2182,13 +2189,13 @@
       group.add(this.add.rectangle(w / 2, h / 2, w, h, 0x06141b, 0.88));
       var pw = Math.min(w - 40 * U, 320 * U);
       var ph = (130 + buttons.length * 54) * U;
-      group.add(this.add.nineslice(w / 2, h / 2, 'dl', 'ui_panel', pw, ph, 8, 8, 8, 8));
+      group.add(this.add.nineslice(w / 2, h / 2, 'dl', 'ui_panel', pw, ph, 8 * U, 8 * U, 8 * U, 8 * U));
       group.add(this.add.bitmapText(w / 2, h / 2 - ph / 2 + 24 * U, 'pix', title, FS * 2.2 * U).setOrigin(0.5, 0).setTint(0xefffe2));
       group.add(this.add.bitmapText(w / 2, h / 2 - ph / 2 + 62 * U, 'pix', body.toUpperCase(), FS * 1.15 * U)
         .setOrigin(0.5, 0).setTint(0xc3d9d2).setMaxWidth(pw - 40 * U).setCenterAlign());
       buttons.forEach(function (b, i) {
         var yy = h / 2 - ph / 2 + (118 + i * 54) * U;
-        var box = self.add.nineslice(w / 2, yy, 'dl', b.primary ? 'ui_btn_hi' : 'ui_btn', pw - 44 * U, 44 * U, 8, 8, 8, 8)
+        var box = self.add.nineslice(w / 2, yy, 'dl', b.primary ? 'ui_btn_hi' : 'ui_btn', pw - 44 * U, 44 * U, 8 * U, 8 * U, 8 * U, 8 * U)
           .setInteractive({ useHandCursor: true });
         var tx = self.add.bitmapText(w / 2, yy - 2 * U, 'pix', b.label, FS * 1.4 * U).setOrigin(0.5)
           .setTint(b.primary ? 0x102029 : 0xdff2ea);
@@ -2223,31 +2230,38 @@
   var config = {
     type: Phaser.AUTO,
     parent: 'game-root',
-    pixelArt: true,
-    roundPixels: true,
     backgroundColor: '#06202c',
     scale: {
       mode: Phaser.Scale.NONE,
-      width: Math.floor(window.innerWidth * DPR),
-      height: Math.floor(window.innerHeight * DPR)
+      width: Math.floor(window.innerWidth),
+      height: Math.floor(window.innerHeight)
     },
     fps: { target: 60, forceSetTimeOut: false },
     scene: [makeScene(LoadScene), makeScene(TitleScene), makeScene(PlayScene), makeScene(HudScene)]
   };
-  game = new Phaser.Game(config);
+  var cfg = GGKit.hiDpi.phaser(config);
+  DPR = cfg.ggDpr;
+  TILE = 16 * DPR;
+  DL.dpr = DPR;
+  game = new Phaser.Game(cfg);
 
   // the minimap canvas is created once, on the game texture manager
   game.events.once('ready', function () {
-    if (!game.textures.exists('minimap')) game.textures.createCanvas('minimap', MAP, MAP);
+    if (!game.textures.exists('minimap')) {
+      var minimapBaked = GGKit.hiDpi.canvas(MAP, MAP);
+      minimapBaked.ctx.imageSmoothingEnabled = false;
+      game.textures.addCanvas('minimap', minimapBaked.canvas);
+    }
   });
 
   function applySize() {
     if (!game.canvas || !game.scale) return;
     var w = Math.max(1, window.innerWidth), h = Math.max(1, window.innerHeight);
     readInsets();
-    game.scale.resize(Math.floor(w * DPR), Math.floor(h * DPR));
-    game.canvas.style.width = w + 'px';
-    game.canvas.style.height = h + 'px';
+    DPR = GGKit.hiDpi.factor(w, h);
+    TILE = 16 * DPR;
+    DL.dpr = DPR;
+    GGKit.hiDpi.resize(game, w, h);
   }
   game.events.once('ready', applySize);
   window.addEventListener('resize', function () { applySize(); });

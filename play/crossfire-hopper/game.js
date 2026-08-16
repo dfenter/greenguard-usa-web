@@ -6,6 +6,7 @@
   var Phaser = window.Phaser;
   var BASE_W = 540;
   var BASE_H = 960;
+  var RETINA_FACTOR = 1;
   var HUD_H = 88;
   var STEP = 1 / 60;
   var MAX_STEPS = 4;
@@ -99,8 +100,9 @@
     c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath();
   }
   function bake(sceneRef, key, w, h, fn) {
-    var t = sceneRef.textures.createCanvas(key, w, h);
-    var c = t.getContext(); c.clearRect(0, 0, w, h); fn(c, w, h); t.refresh(); return t;
+    var dense = GGKit.hiDpi.canvas(w, h, RETINA_FACTOR);
+    var t = sceneRef.textures.addCanvas(key, dense.canvas);
+    dense.ctx.clearRect(0, 0, w, h); fn(dense.ctx, w, h); t.refresh(); return t;
   }
   function drawHopper(c, w, h, skin, pose) {
     var cx = w / 2, cy = h * 0.54, b = 17;
@@ -698,6 +700,7 @@
     Extends: Phaser.Scene,
     initialize: function BootScene() { Phaser.Scene.call(this, { key: 'Boot' }); },
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       kit.loader.show('Crossfire Hopper'); kit.loader.progress(0.15); bakeTextures(this); kit.loader.progress(0.56);
       var names = ['sfx_hop', 'sfx_land', 'sfx_coin', 'sfx_crash', 'sfx_fail', 'sfx_near', 'sfx_warn', 'sfx_medal', 'sfx_unlock', 'sfx_ui', 'sfx_banner', 'music_calm', 'music_storm'], reg = {};
       for (var i = 0; i < names.length; i++) reg[names[i]] = 'assets/' + names[i] + '.mp3'; kit.audio.register(reg); kit.audio.preload(names); kit.loader.progress(1); this.scene.start('Play');
@@ -707,10 +710,11 @@
     Extends: Phaser.Scene,
     initialize: function PlayScene() { Phaser.Scene.call(this, { key: 'Play' }); },
     create: function () {
+      this.cameras.main.setZoom(RETINA_FACTOR);
       scene = this; L.sky = this.add.image(BASE_W / 2, BASE_H / 2, 'sky_meadow').setDisplaySize(BASE_W, BASE_H); L.g = this.add.graphics(); L.glow = this.add.graphics().setBlendMode(Phaser.BlendModes.ADD); L.fx = this.add.graphics();
       L.player = this.add.image(270, 400, 'hopper_sprout_idle').setDisplaySize(58, 68); L.vignette = this.add.image(BASE_W / 2, BASE_H / 2, 'red_vignette').setDisplaySize(BASE_W * 1.3, BASE_H * 1.3).setAlpha(0); L.flash = this.add.image(BASE_W / 2, BASE_H / 2, 'white_px').setDisplaySize(BASE_W, BASE_H).setTint(0xff3048).setAlpha(0);
       var fam = 'Avenir Next, Avenir, Segoe UI, system-ui, sans-serif';
-      function text(x, y, size, color, origin) { return this.add.text(x, y, '', { fontFamily: fam, fontSize: size + 'px', color: color, fontStyle: '800', resolution: Math.min(2, window.devicePixelRatio || 1) }).setOrigin(origin == null ? 0 : origin, 0.5); }
+      function text(x, y, size, color, origin) { return this.add.text(x, y, '', { fontFamily: fam, fontSize: size + 'px', color: color, fontStyle: '800', resolution: RETINA_FACTOR }).setOrigin(origin == null ? 0 : origin, 0.5); }
       L.wave = text.call(this, 18, 22, 24, '#c9ffe6'); L.score = text.call(this, BASE_W / 2, 22, 20, '#ffd35e', 0.5); L.power = text.call(this, 18, 60, 18, '#7892a7'); L.danger = text.call(this, BASE_W - 18, 60, 22, '#7892a7', 1);
       L.life = []; for (var i = 0; i < 3; i++) { var life = text.call(this, BASE_W - 116 + i * 28, 22, 18, '#ff8b72'); life.setText('♥'); L.life.push(life); }
       L.banner = this.add.container(BASE_W - 14 - 110, HUD_H + 25); L.bannerBg = this.add.rectangle(0, 0, 220, 40, 0x0b2031, 0.94).setStrokeStyle(1.5, 0x74f3b0, 0.6); L.bannerTitle = text.call(this, 0, 0, 20, '#c9ffe6', 0.5); L.banner.add([L.bannerBg, L.bannerTitle]); L.banner.setVisible(false);
@@ -727,7 +731,12 @@
     dom.coach = document.getElementById('coach'); dom.pad = document.getElementById('pad'); dom.chips = document.getElementById('chips'); dom.ui = document.getElementById('ui'); dom.card = document.getElementById('uicard'); dom.btnDodge = document.getElementById('btnDodge'); dom.btnFire = document.getElementById('btnFire'); dom.btnPower = document.getElementById('btnPower');
     bindPad(); installInputQueue(); dom.card.addEventListener('click', onUIClick); document.getElementById('btnPause').addEventListener('click', function () { if (S && S.phase === 'play') { kit.pause('menu'); showPause(); } }); document.getElementById('btnSet').addEventListener('click', function () { kit.openSettings([function (box, row) { row('Arrow pad', function () { return !padHidden; }, function (v) { padHidden = !v; setPadVisible(S && S.phase === 'play'); }); }]); });
     var vw = Math.max(1, window.innerWidth), vh = Math.max(1, window.innerHeight); BASE_H = Math.max(860, Math.min(1320, Math.round(BASE_W * vh / vw))); var canvasCss = Math.min(vw, vh * BASE_W / BASE_H); document.documentElement.style.setProperty('--coachtop', Math.round(HUD_H * canvasCss / BASE_W) + 10 + 'px');
-    new Phaser.Game({ type: Phaser.AUTO, parent: document.body, backgroundColor: '#08111f', width: BASE_W, height: BASE_H, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }, render: { antialias: true, antialiasGL: false, powerPreference: 'high-performance', roundPixels: false, batchSize: 2048 }, fps: { target: 60, min: 30 }, scene: [BootScene, PlayScene] }); kit.registerPWA();
+    RETINA_FACTOR = GGKit.hiDpi.factor(BASE_W, BASE_H);
+    var config = { type: Phaser.AUTO, parent: document.body, backgroundColor: '#08111f', width: BASE_W, height: BASE_H, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: BASE_W, height: BASE_H }, render: { antialias: true, antialiasGL: false, powerPreference: 'high-performance', roundPixels: false, batchSize: 2048 }, fps: { target: 60, min: 30 }, scene: [BootScene, PlayScene] };
+    config.scale.width = Math.round(BASE_W * RETINA_FACTOR);
+    config.scale.height = Math.round(BASE_H * RETINA_FACTOR);
+    config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
+    new Phaser.Game(config); kit.registerPWA();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
