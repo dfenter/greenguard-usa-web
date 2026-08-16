@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The lineup | SparkBridge</title>
+<meta name="description" content="Seven products on one signal path: drivers that read legacy plant, a Sparkplug spine, a historian, a cloud injector, an OPC-UA bridge and an estate auditor. Each one drawn with its real commissioning state.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/lineup">
+<meta property="og:title" content="The lineup: plant to cloud, on one run">
+<meta property="og:description" content="Seven products on one signal path, each drawn with its real commissioning state.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+SemiCondensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/lineup" aria-current="page">Lineup</a>
+        <a href="/sparkbridge/modules">Modules</a>
+        <a href="/sparkbridge/technology">Technology</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="runwrap" id="top">
+  <div class="wrap">
+    <div class="runhead">
+      <div class="eyebrow">The lineup</div>
+      <h1>Plant to cloud, on one&nbsp;run.</h1>
+      <p class="lede">Seven products, one signal path. Each does a single job, and the drawing shows where it sits and how far along it is. Devices are linked: open one to read its proof.</p>
+    </div>
+
+    <div class="run" role="group" aria-label="Signal path from plant to delivery">
+      <div class="dev source">
+        <span class="tagno">Field</span>
+        <span class="devname">Plant</span>
+        <span class="job">PLCs, RTUs, legacy racks</span>
+      </div>
+
+      <div class="seg s1" aria-hidden="true"></div>
+
+      <a class="dev st-comm" href="/sparkbridge/drivers">
+        <span class="tagno">DRV · Drivers</span>
+        <span class="devname">IEC-104 · TI 505 · Logix</span>
+        <span class="job">Native protocol, no gateway in between</span>
+      </a>
+
+      <div class="seg s2" aria-hidden="true"></div>
+
+      <a class="dev spine st-svc" href="/sparkbridge/">
+        <span class="tagno">BUS · In service</span>
+        <span class="devname">SparkBridge</span>
+        <span class="job">Sparkplug B edge, host and broker. The spine everything else taps.</span>
+      </a>
+
+      <div class="seg s3" aria-hidden="true"></div>
+
+      <div class="taps">
+        <a class="dev st-comm" href="/sparkbridge/vault">
+          <span class="tagno">HIST · Commissioning</span>
+          <span class="devname">SparkVault</span>
+          <span class="job">Estate history on original timestamps</span>
+        </a>
+        <a class="dev st-comm" href="/sparkbridge/inject">
+          <span class="tagno">CLOUD · Commissioning</span>
+          <span class="devname">SparkInject</span>
+          <span class="job">Sparkplug landed in Snowflake, exactly once</span>
+        </a>
+        <a class="dev st-bench" href="/sparkbridge/passage">
+          <span class="tagno">OPC · On the bench</span>
+          <span class="devname">Passage</span>
+          <span class="job">The namespace, readable as OPC-UA</span>
+        </a>
+      </div>
+    </div>
+
+    <a class="clamp" href="/sparkbridge/sentinel">
+      <span class="tagno">Audit · On the bench</span>
+      <span class="devname">Sentinel</span>
+      <span class="job">Clamped across the whole run: grades the estate's posture and shows the evidence.</span>
+    </a>
+
+    <div class="runkey" aria-label="Key to commissioning states">
+      <b><i></i>In service</b>
+      <b><i class="comm"></i>Commissioning</b>
+      <b><i class="bench"></i>On the bench</b>
+      <b><i class="hold"></i>Held</b>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">The schedule</span>
+      <h2>Every device, and how far along it is</h2>
+      <p>Software gets sold as finished or not at all. This is the middle, written down: what runs in production today, what is proven on a bench and waiting on a soak, and what is stopped.</p>
+    </div>
+
+    <div class="scroller">
+      <table class="tbl">
+        <thead>
+          <tr><th>Tag</th><th>Product</th><th>What it does</th><th>State</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>BUS</td>
+            <td><a href="/sparkbridge/">SparkBridge</a></td>
+            <td>Publishes plant tags as Sparkplug, rebuilds the estate centrally, runs the broker.<span class="sub"><br>2.4.0. Certified against the Eclipse TCK, zero failures.</span></td>
+            <td><span class="stat">In service</span></td>
+          </tr>
+          <tr>
+            <td>HIST</td>
+            <td><a href="/sparkbridge/vault">SparkVault</a></td>
+            <td>Estate-wide history in TimescaleDB, plus plant replay.<span class="sub"><br>Backfill lands on the original timestamps, not on arrival.</span></td>
+            <td><span class="stat comm">Commissioning</span></td>
+          </tr>
+          <tr>
+            <td>CLOUD</td>
+            <td><a href="/sparkbridge/inject">SparkInject</a></td>
+            <td>Lands Sparkplug in Snowflake through Snowpipe Streaming.<span class="sub"><br>Perpetual licence against a subscription-priced incumbent.</span></td>
+            <td><span class="stat comm">Commissioning</span></td>
+          </tr>
+          <tr>
+            <td>OPC</td>
+            <td><a href="/sparkbridge/passage">Passage</a></td>
+            <td>Serves the Sparkplug namespace as an OPC-UA address space.<span class="sub"><br>For every consumer that will never speak MQTT.</span></td>
+            <td><span class="stat bench">On the bench</span></td>
+          </tr>
+          <tr>
+            <td>AUDIT</td>
+            <td><a href="/sparkbridge/sentinel">Sentinel</a></td>
+            <td>Grades an estate's security and protocol posture, with the frames that prove each finding.<span class="sub"><br>Works against any Sparkplug estate, not only ours.</span></td>
+            <td><span class="stat bench">On the bench</span></td>
+          </tr>
+          <tr>
+            <td>DRV</td>
+            <td><a href="/sparkbridge/iec104">IEC 60870-5-104</a></td>
+            <td>Client driver for utility RTUs: interrogation, spontaneous data, clock sync.<span class="sub"><br>Proven against the lib60870 reference server. Needs a real RTU.</span></td>
+            <td><span class="stat bench">On the bench</span></td>
+          </tr>
+          <tr>
+            <td>DRV</td>
+            <td><a href="/sparkbridge/drivers">TI 505 · CTI 2500</a></td>
+            <td>Native CAMP over TCP for SIMATIC 505 and CTI 2500 racks.<span class="sub"><br>Running on a gateway today; owes its hardening pass.</span></td>
+            <td><span class="stat comm">Commissioning</span></td>
+          </tr>
+          <tr>
+            <td>DRV</td>
+            <td><a href="/sparkbridge/drivers">Allen-Bradley Logix</a></td>
+            <td>Upgraded Logix driver with request packing and connected messaging.<span class="sub"><br>Stopped: a vendor build is under review and did not pass.</span></td>
+            <td><span class="stat hold">Held</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">Why one lineup</span>
+      <h2>They share a spine, and they share a discipline</h2>
+      <p>These are separate products with separate licences. What makes them a lineup is that each one reuses the parts of SparkBridge that were expensive to get right, and each one is held to the same three rules.</p>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <span class="tag">Rule one</span>
+        <h3>A value keeps its own time</h3>
+        <p>Every product carries the timestamp the plant put on the reading. Nothing is restamped on arrival, so a backfill draws the real curve instead of a wall of values that all landed at once.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Rule two</span>
+        <h3>An outage is not data loss</h3>
+        <p>The store-and-forward buffer that SparkBridge uses to survive a broken link is the same one the historian and the injector spill to. When the far end comes back, the backlog replays in order.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Rule three</span>
+        <h3>Deny by default</h3>
+        <p>The broker authorizer judges every identity, including ours. Sentinel found a wildcard in our own estate that quietly contained the command topics. We fixed it and published the finding.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">What shipping means here</span>
+      <h2>The states on the drawing are the real ones</h2>
+    </div>
+    <div class="ledger">
+      <div class="col">
+        <h3>In service</h3>
+        <ul>
+          <li>Installed on production gateways.</li>
+          <li>Full suite green on every release, with the numbers published.</li>
+          <li>Signed release, checksums, upgrade notes.</li>
+          <li>Certified where a certification exists.</li>
+        </ul>
+      </div>
+      <div class="col">
+        <h3>Commissioning</h3>
+        <ul>
+          <li>Feature complete and proven on live plant data.</li>
+          <li>Every claim on its page was measured, not estimated.</li>
+          <li class="owes">Owes a soak, a licence gate and a signed release.</li>
+        </ul>
+      </div>
+      <div class="col owed">
+        <h3>On the bench</h3>
+        <ul>
+          <li>The hard part is built and proven against a reference implementation.</li>
+          <li>Not yet run against a customer's estate or hardware.</li>
+          <li>Talk to us if you have the hardware. Early sites shape what ships.</li>
+        </ul>
+      </div>
+      <div class="col owed">
+        <h3>Held</h3>
+        <ul>
+          <li>Work is stopped on purpose, and the reason is written down.</li>
+          <li>Held beats shipping something we would not run ourselves.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge/contact">Talk to us about a pilot</a>
+      <a class="btn ghost dark" href="/sparkbridge/">Start with SparkBridge</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

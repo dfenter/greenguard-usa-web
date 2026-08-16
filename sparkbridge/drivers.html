@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Native protocol drivers | SparkBridge</title>
+<meta name="description" content="Native Ignition device drivers for TI 505 and CTI 2500 racks, IEC 60870-5-104 outstations, and Allen-Bradley Logix. Each with its real status.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/drivers.html">
+<meta property="og:title" content="Drivers: legacy plant, read natively">
+<meta property="og:description" content="Native Ignition device drivers for TI 505 and CTI 2500 racks, IEC 60870-5-104 outstations, and Allen-Bradley Logix. Each with its real status.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+SemiCondensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/lineup">Lineup</a>
+        <a href="/sparkbridge/modules">Modules</a>
+        <a href="/sparkbridge/technology">Technology</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top">
+  <div class="wrap">
+    <div class="phead-grid">
+      <div>
+        <div class="eyebrow">DRV &middot; Drivers</div>
+        <h1>Read the old racks without a box in between</h1>
+        <p>Every translator between a PLC and the gateway is a place a timestamp gets rewritten and a fault gets hidden. These drivers speak the plant&rsquo;s own protocol from inside Ignition.</p>
+        <div class="pmeta"><span class="stat comm">Mixed state</span><span>Ignition OPC-UA device drivers</span><span>Java 17</span></div>
+      </div>
+      <div class="artifact">
+        <div class="artifact-head"><span>The driver line &middot; honest status</span><span class="live"><i class="dot"></i>Captured live</span></div>
+        <div class="artifact-body">
+<pre style="margin:0;white-space:pre-wrap"><span class="hi">TI 505 / CTI 2500</span>   CAMP over TCP :1505
+                    browse V WX WY X Y C K STW TCP TCC
+                    28 tests  <span class="acc">running on a gateway</span>
+
+<span class="hi">IEC 60870-5-104</span>    APCI / ASDU, full session
+                    120 tests  <span class="acc">proven vs lib60870</span>
+
+<span class="hi">Allen-Bradley Logix</span> CIP, request packing
+                    vendor build 0.1.33  <span style="color:var(--steel)">REVIEW: REJECT</span>
+                    10 findings. work stopped.</pre>
+        </div>
+        <div class="artifact-foot">Three drivers, three different states. The third is stopped because a vendor build did not pass review, and shipping it anyway was the worse option.</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">The line</span>
+      <h2>Three protocols, three states</h2>
+      <p>They share a build, a test discipline and a diagnostics surface. They do not share a stage of readiness, and the drawing on the lineup page says so.</p>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <span class="tag">TI 505 &middot; CTI 2500</span>
+        <h3>CAMP over TCP, with a real browse</h3>
+        <p>The Ethernet encapsulation of the 505 task codes, spoken natively on port 1505. Browse returns the memory areas a 505 engineer expects, paged into sub-ranges when an area is large, and any address can be added on demand rather than declared in advance. Installed and running on a gateway today.</p>
+      </div>
+      <div class="card">
+        <span class="tag">IEC 60870-5-104</span>
+        <h3>The utility client, session and all</h3>
+        <p>Interrogation, spontaneous reporting, clock synchronisation and the full APCI session lifecycle, proven across a 70-second capture against the lib60870 reference server with zero sequence faults. It has a page of its own.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Allen-Bradley Logix</span>
+        <h3>Stopped, and here is why</h3>
+        <p>An upgraded Logix driver with request packing and connected messaging. A vendor build was submitted, reviewed, and rejected with ten findings. Work is stopped until that is resolved. A driver we would not run on our own plant is not one we will sell.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">Why native</span>
+      <h2>What a translator costs you</h2>
+      <p>The case for a driver rather than a bridge is not performance. It is fidelity.</p>
+    </div>
+    <div class="ledger">
+      <div class="col">
+        <h3>What you keep</h3>
+        <ul>
+          <li>The device&rsquo;s own timestamp, rather than the moment a middle box happened to poll.</li>
+          <li>The device&rsquo;s own fault state, rather than a stale value a translator kept serving.</li>
+          <li>One less machine to license, patch, monitor and restart at two in the morning.</li>
+        </ul>
+      </div>
+      <div class="col">
+        <h3>How they are built</h3>
+        <ul>
+          <li>The protocol core of each driver is plain Java with no gateway dependencies, so it can be tested against a simulator rather than a plant.</li>
+          <li>Addresses are parsed on demand, so a tag can be added without redeclaring the device.</li>
+          <li>Every driver is expected to arrive with its capture, not just its claim.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">Where they stand</span>
+      <h2>One running, one on the bench, one held</h2>
+      <p>Stated per driver rather than averaged into a single reassuring word.</p>
+    </div>
+    <div class="ledger">
+      <div class="col">
+        <h3>TI 505 &middot; CTI 2500</h3>
+        <ul>
+          <li>Installed and running on a live gateway; the device type appears in Device Connections.</li>
+          <li>Browse and dynamic addressing both complete, 28 protocol tests.</li>
+          <li>Owes a hardening pass, a product page of its own and a signed release.</li>
+        </ul>
+      </div>
+      <div class="col">
+        <h3>IEC 60870-5-104</h3>
+        <ul>
+          <li>120 tests green; proven against the lib60870 reference server.</li>
+          <li>Loads clean on 8.1.54.</li>
+          <li>Owes a real outstation before it can be called accepted.</li>
+          <li><a href="/sparkbridge/iec104">Read the capture</a>.</li>
+        </ul>
+      </div>
+      <div class="col owed">
+        <h3>Allen-Bradley Logix</h3>
+        <ul>
+          <li>Vendor build 0.1.33 reviewed and rejected, ten findings returned.</li>
+          <li>Work is stopped on purpose and the reason is written down.</li>
+          <li>It resumes when the findings are answered, not before.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge/contact">Ask about a driver</a>
+      <a class="btn ghost dark" href="/sparkbridge/lineup">See the whole lineup</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

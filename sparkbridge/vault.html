@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkVault: the estate historian | SparkBridge</title>
+<meta name="description" content="SparkVault stores the whole Sparkplug estate in TimescaleDB on the plant's own timestamps, and replays it back onto the bus like a DVR.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/vault.html">
+<meta property="og:title" content="SparkVault: history on the plant's timestamps">
+<meta property="og:description" content="SparkVault stores the whole Sparkplug estate in TimescaleDB on the plant's own timestamps, and replays it back onto the bus like a DVR.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+SemiCondensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/lineup">Lineup</a>
+        <a href="/sparkbridge/modules">Modules</a>
+        <a href="/sparkbridge/technology">Technology</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top">
+  <div class="wrap">
+    <div class="phead-grid">
+      <div>
+        <div class="eyebrow">HIST &middot; SparkVault</div>
+        <h1>History that keeps the plant&rsquo;s own time</h1>
+        <p>Every value the estate publishes lands in TimescaleDB carrying the timestamp the device wrote, and comes back out through the ordinary Ignition tag history path. Then it can be played back onto the bus.</p>
+        <div class="pmeta"><span class="stat comm">Commissioning</span><span>TimescaleDB</span><span>Ignition 8.1.54</span><span>Reads via tag history</span></div>
+      </div>
+      <div class="artifact">
+        <div class="artifact-head"><span>Spike/Sine &middot; 1 s raw</span><span class="live"><i class="dot"></i>Captured live</span></div>
+        <div class="artifact-body">
+          <div class="strip"><span class="on" style="height:50%"></span><span class="on" style="height:57%"></span><span class="on" style="height:63%"></span><span class="on" style="height:70%"></span><span class="on" style="height:76%"></span><span class="on" style="height:81%"></span><span class="on" style="height:86%"></span><span class="on" style="height:89%"></span><span class="on" style="height:92%"></span><span class="on" style="height:95%"></span><span class="on" style="height:96%"></span><span class="on" style="height:96%"></span><span class="on" style="height:95%"></span><span class="on" style="height:93%"></span><span class="on" style="height:91%"></span><span class="on" style="height:87%"></span><span class="on" style="height:83%"></span><span class="on" style="height:77%"></span><span class="on" style="height:72%"></span><span class="on" style="height:65%"></span><span class="on" style="height:59%"></span><span class="on" style="height:52%"></span><span class="on" style="height:45%"></span><span class="on" style="height:39%"></span><span class="on" style="height:32%"></span><span class="on" style="height:26%"></span><span class="on" style="height:21%"></span><span class="on" style="height:16%"></span><span class="on" style="height:12%"></span><span class="on" style="height:8%"></span><span class="on" style="height:6%"></span><span class="on" style="height:4%"></span><span class="on" style="height:4%"></span><span class="on" style="height:4%"></span><span class="on" style="height:6%"></span><span class="on" style="height:8%"></span><span class="on" style="height:12%"></span><span class="on" style="height:16%"></span><span class="on" style="height:21%"></span><span class="on" style="height:26%"></span><span class="on" style="height:32%"></span><span class="on" style="height:39%"></span><span class="on" style="height:45%"></span><span class="on" style="height:52%"></span><span class="on" style="height:59%"></span><span class="on" style="height:65%"></span><span class="on" style="height:72%"></span><span class="on" style="height:77%"></span><span class="on" style="height:83%"></span><span class="on" style="height:87%"></span><span class="on" style="height:91%"></span><span class="on" style="height:93%"></span><span class="on" style="height:95%"></span><span class="on" style="height:96%"></span><span class="on" style="height:96%"></span><span class="on" style="height:95%"></span><span class="on" style="height:92%"></span><span class="on" style="height:89%"></span><span class="on" style="height:86%"></span><span class="on" style="height:81%"></span><span class="on" style="height:76%"></span><span class="on" style="height:70%"></span><span class="on" style="height:63%"></span><span class="on" style="height:57%"></span></div>
+          <div class="striplab"><span>t &minus; 600 s</span><span>natural resolution, no interpolation</span><span>now</span></div>
+          <p style="margin:14px 0 0"><span class="hi">600 rows</span> returned for a 600-second window. The engine was asked for
+          natural resolution, so every stored sample came back on the timestamp the plant wrote,
+          and the curve is the curve.</p>
+        </div>
+        <div class="artifact-foot">Queried through GatewayTagHistoryManager, the same entry point a Perspective trend binding uses. Provider name: SparkVault.</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">What it does</span>
+      <h2>A historian, and then a DVR</h2>
+      <p>Two jobs from one store. Recording the estate is the ordinary half. Playing it back is the half nobody else offers.</p>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <span class="tag">Record</span>
+        <h3>Passive, so nothing changes upstream</h3>
+        <p>SparkVault subscribes to the Sparkplug stream the same way a second host would. It reads alias tables out of every BIRTH, honours is_historical on backfilled values, and writes deaths as Bad_Stale markers. No edge node is reconfigured, and no publisher learns it is being recorded.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Read</span>
+        <h3>It answers where Ignition already asks</h3>
+        <p>The store registers as a tag history provider called SparkVault, so trends, reports and scripts reach it through the same call they already make. Browse comes from a 30-day distinct-tag query behind a one-minute cache; queries stream on a JDBC cursor rather than loading a window into memory.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Replay</span>
+        <h3>Plant replay, in two modes</h3>
+        <p>Historical re-publish puts stored values back on the bus flagged historical, on their original timestamps, for a consumer that missed them. Simulation replay re-stamps them and paces at 1&times;, N&times; or as fast as the link allows, for testing a dashboard against a real day.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">How replay stays safe</span>
+      <h2>Replay can never be mistaken for the plant</h2>
+      <p>A DVR that can impersonate a live edge node is a hazard, not a feature. The identity rewrite is enforced in the rail, not left to configuration.</p>
+    </div>
+    <div class="ledger">
+      <div class="col">
+        <h3>Enforced in code</h3>
+        <ul>
+          <li>Replay publishes under its own Replay/ namespace, never the original group or edge node id.</li>
+          <li>It carries its own bdSeq lifecycle, so a host counts it as a separate edge node and no live session is disturbed.</li>
+          <li>The rewrite happens in the rail every message passes through. A misconfiguration cannot route around it.</li>
+        </ul>
+      </div>
+      <div class="col">
+        <h3>Proven on a real outage</h3>
+        <ul>
+          <li>A gateway sat paused for four hours and eleven minutes with store-and-forward capturing.</li>
+          <li>On resume the backlog replayed and landed on its original timestamps, flagged historical, while the live tail kept growing.</li>
+          <li>Nothing was lost and nothing was restamped. The recorded curve has a real gap-then-fill, not a wall of values at one instant.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">Where it stands</span>
+      <h2>Feature complete, and not yet signed</h2>
+      <p>SparkVault runs on a production gateway today against a real Timescale instance. Here is exactly what is done and what it still owes before it earns a release.</p>
+    </div>
+    <div class="ledger">
+      <div class="col">
+        <h3>Done and measured</h3>
+        <ul>
+          <li>Ingest, read path and replay all shipped and running on a live 8.1.54 gateway.</li>
+          <li>Versioned schema with a migrator that takes an advisory lock, so two gateways cannot race a migration.</li>
+          <li>A database outage spills decoded rows to disk and replays them before new data, preserving source timestamps.</li>
+          <li>53 unit tests plus 12 tests that run against a real TimescaleDB.</li>
+          <li>Passed an adversarial external code review; all ten findings fixed the same night.</li>
+        </ul>
+      </div>
+      <div class="col owed">
+        <h3>Owed before release</h3>
+        <ul>
+          <li>A multi-day soak at estate scale.</li>
+          <li>A licence gate.</li>
+          <li>A signed release with checksums and upgrade notes.</li>
+          <li>Continuous aggregates and retention policy defaults.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge/contact">Talk to us about a pilot</a>
+      <a class="btn ghost dark" href="/sparkbridge/lineup">See the whole lineup</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

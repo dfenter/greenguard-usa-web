@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Passage: the namespace as OPC-UA | SparkBridge</title>
+<meta name="description" content="Passage serves the live Sparkplug namespace as an OPC-UA address space, with the plant's own source timestamps intact and no write path at all.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/passage.html">
+<meta property="og:title" content="Passage: read the Sparkplug namespace as OPC-UA">
+<meta property="og:description" content="Passage serves the live Sparkplug namespace as an OPC-UA address space, with the plant's own source timestamps intact and no write path at all.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+SemiCondensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/lineup">Lineup</a>
+        <a href="/sparkbridge/modules">Modules</a>
+        <a href="/sparkbridge/technology">Technology</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top">
+  <div class="wrap">
+    <div class="phead-grid">
+      <div>
+        <div class="eyebrow">OPC &middot; Passage</div>
+        <h1>The namespace, for everything that will never speak MQTT</h1>
+        <p>Passage stands an OPC-UA server inside the gateway and serves the live Sparkplug namespace as an address space. Historians, SCADA packages and test rigs read it with the client they already own.</p>
+        <div class="pmeta"><span class="stat bench">On the bench</span><span>Eclipse Milo</span><span>Port 62544</span><span>Read only</span></div>
+      </div>
+      <div class="artifact">
+        <div class="artifact-head"><span>opc.tcp://&hellip;:62544 &middot; browse</span><span class="live"><i class="dot"></i>Captured live</span></div>
+        <div class="artifact-body">
+          <ul class="tree">
+            <li>Objects</li>
+            <li class="lvl1">UNS</li>
+            <li class="lvl2"><span class="hi">Ignition</span></li>
+            <li class="lvl3">Gateway</li>
+            <li class="lvl3">&nbsp;&nbsp;Ramp/Value<span style="float:right" class="acc">41.0</span></li>
+            <li class="lvl3">&nbsp;&nbsp;Sine/Value<span style="float:right" class="acc">-0.309</span></li>
+            <li class="lvl3">&nbsp;&nbsp;Realtime/Sec<span style="float:right" class="acc">44</span></li>
+            <li class="lvl3" style="color:var(--steel)">&nbsp;&nbsp;&hellip; 10 more</li>
+          </ul>
+          <p style="margin:14px 0 0">Read of <span class="hi">Sine/Value</span> by a stock OPC-UA client:</p>
+<pre style="margin:6px 0 0;white-space:pre-wrap">SourceTimestamp <span class="acc">09:14:02.117</span>
+ServerTimestamp <span class="acc">09:14:04.802</span>
+delta           <span class="hi">2685 ms</span>   (age, not latency)</pre>
+        </div>
+        <div class="artifact-foot">Browsed and read by python-asyncua. Values and millisecond timestamps cross-checked against an independent MQTT probe decoding the protobuf: identical.</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">What it does</span>
+      <h2>A translation, not a copy</h2>
+      <p>Passage holds no store. It follows the live Sparkplug stream and shapes it into nodes as the estate births them.</p>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <span class="tag">Ages, not arrivals</span>
+        <h3>A value arrives carrying its real age</h3>
+        <p>OPC-UA has two timestamps and most bridges set them both to now. Passage sets SourceTimestamp to the instant the plant stamped the reading and ServerTimestamp to the instant it was handed over. In the capture above the gap is 2,685 milliseconds, because the value was genuinely that old. A client that trusts SourceTimestamp gets the truth.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Pushed</span>
+        <h3>Subscriptions carry values, they do not poll</h3>
+        <p>The stock Milo subscription model polls its data source on a timer. Passage implements the data-item hooks directly, so a value moves out to a subscribed client because it arrived on the bus, not because a timer came round. A tag that changes between polls is not lost.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Deaths</span>
+        <h3>A dead node stays browsable and turns bad</h3>
+        <p>When an edge node dies its nodes do not vanish. They stay in the address space and their value goes Bad_NotConnected, stamped at the instant of death. A client sees a fault it can alarm on rather than a hole in the tree.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">The deliberate absence</span>
+      <h2>There is no write path, on purpose</h2>
+      <p>The fastest way to turn a read-only bridge into an incident is to add a convenience write.</p>
+    </div>
+    <div class="ledger">
+      <div class="col">
+        <h3>How that is guaranteed</h3>
+        <ul>
+          <li>Every variable node is created READ_ONLY, so a write path cannot appear by oversight in a later change.</li>
+          <li>No NCMD is ever published. Passage subscribes and serves; it does not command.</li>
+          <li>The server ships as a scoped dependency on Ignition&rsquo;s own OPC-UA module rather than bundling a second stack, which would double-initialise a shared event loop.</li>
+        </ul>
+      </div>
+      <div class="col owed">
+        <h3>A gap we are not papering over</h3>
+        <ul>
+          <li>A passive consumer that starts after an edge node has published its BIRTH cannot see that node&rsquo;s metrics until the next BIRTH.</li>
+          <li>Every fix for that costs a command path this product deliberately does not have.</li>
+          <li>The decision is open and written down in the repository ledger rather than quietly resolved. If it affects you, that shapes which way it goes.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">Where it stands</span>
+      <h2>Proven on a real estate, not yet on yours</h2>
+      <p>Passage serves thirteen real metrics from a live gateway today. It has not run against a customer&rsquo;s estate.</p>
+    </div>
+    <div class="ledger">
+      <div class="col">
+        <h3>Done and measured</h3>
+        <ul>
+          <li>Thirteen live metrics browsed and read by an independent OPC-UA client.</li>
+          <li>Values and millisecond timestamps cross-checked against a separate MQTT probe: identical.</li>
+          <li>Source-versus-server delta of 2,685 ms observed on a handover, proving real age is preserved.</li>
+          <li>Death probe: node stays browsable, value goes Bad_NotConnected stamped at the death instant.</li>
+          <li>22 offline tests, running live on an 8.1.54 gateway.</li>
+        </ul>
+      </div>
+      <div class="col owed">
+        <h3>Owed before release</h3>
+        <ul>
+          <li>Security policies beyond anonymous.</li>
+          <li>The UNS JSON subtree and structured types.</li>
+          <li>A status and metrics surface.</li>
+          <li>A ten-thousand-item soak.</li>
+          <li>The BIRTH-gap decision, then licensing and a signed release.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge/contact">Tell us what would read it</a>
+      <a class="btn ghost dark" href="/sparkbridge/lineup">See the whole lineup</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sentinel: grade your Sparkplug estate | SparkBridge</title>
+<meta name="description" content="Sentinel audits any Sparkplug estate for security and protocol posture and shows the frames that prove each finding. It found four real defects in ours.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/sentinel.html">
+<meta property="og:title" content="Sentinel: an audit that shows its evidence">
+<meta property="og:description" content="Sentinel audits any Sparkplug estate for security and protocol posture and shows the frames that prove each finding. It found four real defects in ours.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+SemiCondensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/lineup">Lineup</a>
+        <a href="/sparkbridge/modules">Modules</a>
+        <a href="/sparkbridge/technology">Technology</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top">
+  <div class="wrap">
+    <div class="phead-grid">
+      <div>
+        <div class="eyebrow">AUDIT &middot; Sentinel</div>
+        <h1>An estate audit that shows the frame</h1>
+        <p>Sentinel connects to a Sparkplug estate, watches, and returns a scored report of what is wrong with its security and protocol posture. Every finding carries the evidence that produced it.</p>
+        <div class="pmeta"><span class="stat bench">On the bench</span><span>23 rules &middot; 4 axes</span><span>Vendor neutral</span><span>Passive by default</span></div>
+      </div>
+      <div class="artifact">
+        <div class="artifact-head"><span>Our own estate &middot; first clean run</span><span class="live"><i class="dot"></i>Captured live</span></div>
+        <div class="artifact-body">
+          <div class="score">
+            <span class="n was">11</span>
+            <span class="n">70</span>
+            <span class="grade">F &rarr; C &middot; same estate, one evening</span>
+          </div>
+<pre style="margin:10px 0 0;white-space:pre-wrap"><span class="acc">IDENT-04</span> CRITICAL  role vault-replay: PUBLISH on
+                    spBv1.0/Replay-Ignition/<span class="hi">#</span>
+                    message type is the THIRD token, so this
+                    data grant contained NCMD and DCMD.   <span class="acc">FIXED</span>
+<span class="acc">IDENT-05</span> HIGH      role scoped to group, not edge node.   <span class="acc">FIXED</span>
+<span class="acc">IDENT-02</span> HIGH      sbedge and sbreplay share one hash.   partly
+<span class="acc">IDENT-09</span> MEDIUM    sbedge holds PUBLISH on sparkbridge/#.   open
+<span class="acc">CONN-07</span> &mdash;         could not borrow a credential.
+                    Reported as <span class="hi">no verdict</span>, not as a pass.</pre>
+        </div>
+        <div class="artifact-foot">Four real defects, none of them planted. The two that mattered were fixed the same evening and the re-audit is the 70.</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">What it does</span>
+      <h2>Four axes, twenty-three rules</h2>
+      <p>It works against any Sparkplug estate, not only one built on SparkBridge. The findings above came from auditing our own.</p>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <span class="tag">Connection posture</span>
+        <h3>How the broker greets a stranger</h3>
+        <p>Anonymous access, TLS configuration, certificate validation, retained-message accumulation. Where it cannot get a verdict it says so: when our own broker refused to let the auditor borrow an edge credential, that was reported as no verdict, not quietly recorded as a pass.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Identity hygiene</span>
+        <h3>Who can publish what, exactly</h3>
+        <p>Every role is expanded against the Sparkplug topic grammar rather than read as a string. That is how the wildcard above was caught: in spBv1.0/Group/#, the message type is the third token, so a grant that reads like data access silently contains command access.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Protocol and namespace</span>
+        <h3>Whether the estate follows its own rules</h3>
+        <p>bdSeq lifecycle, sequence continuity, BIRTH completeness, alias discipline, namespace shape. A report that only checks TLS misses the estate that is quietly losing values.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">How it is kept safe</span>
+      <h2>An auditor with no publish path</h2>
+      <p>A tool that inspects a live plant must not be able to touch it. That is enforced mechanically.</p>
+    </div>
+    <div class="ledger">
+      <div class="col">
+        <h3>Enforced, not promised</h3>
+        <ul>
+          <li>The passive analyzer is checked by walking its compiled bytecode for any reachable publish call. Not a text search: the word &ldquo;publish&rdquo; appears throughout the remediation advice.</li>
+          <li>Active probes exist, are off by default, and require an explicit flag.</li>
+          <li>The traffic generator used to test the rules lives in a separate source set, so that invariant can stay strict.</li>
+          <li>The safety document was written and committed before the tool was.</li>
+        </ul>
+      </div>
+      <div class="col">
+        <h3>Calibrated against a rigged estate</h3>
+        <ul>
+          <li>A deliberately misconfigured broker was stood up with eight planted defects.</li>
+          <li>All eight surfaced. None were missed. It scored that estate zero.</li>
+          <li>Two rules were changed because of live evidence, including one that had been flagging every correctly working broker for its own $SYS retained topics.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">Where it stands</span>
+      <h2>It has audited two estates</h2>
+      <p>Ours and a rigged one. A third, built by someone else, is what it needs next.</p>
+    </div>
+    <div class="ledger">
+      <div class="col">
+        <h3>Done and measured</h3>
+        <ul>
+          <li>23 rules across four axes; JSON and HTML reports; free and full profiles.</li>
+          <li>43 tests, none of which need a broker.</li>
+          <li>Found four genuine defects in our own estate on its first clean run, including one critical.</li>
+          <li>Caught eight of eight planted defects on a rigged estate.</li>
+          <li>The critical finding is published rather than buried, and the fix shipped.</li>
+        </ul>
+      </div>
+      <div class="col owed">
+        <h3>Owed before release</h3>
+        <ul>
+          <li>A third acceptance case: a third-party estate we did not build.</li>
+          <li>A continuous-monitoring gateway module, so an estate is graded on a schedule and not once.</li>
+          <li>Release discipline: signing, checksums, versioned rule set.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge/contact">Ask us to audit your estate</a>
+      <a class="btn ghost dark" href="/sparkbridge/lineup">See the whole lineup</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

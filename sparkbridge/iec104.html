@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IEC 60870-5-104 driver | SparkBridge</title>
+<meta name="description" content="A native IEC 60870-5-104 client driver for Ignition: interrogation, spontaneous data, clock sync and TESTFR keepalive, proven against the lib60870 reference server.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/iec104.html">
+<meta property="og:title" content="IEC 60870-5-104: a native client driver for Ignition">
+<meta property="og:description" content="A native IEC 60870-5-104 client driver for Ignition: interrogation, spontaneous data, clock sync and TESTFR keepalive, proven against the lib60870 reference server.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+SemiCondensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/lineup">Lineup</a>
+        <a href="/sparkbridge/modules">Modules</a>
+        <a href="/sparkbridge/technology">Technology</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top">
+  <div class="wrap">
+    <div class="phead-grid">
+      <div>
+        <div class="eyebrow">DRV &middot; IEC 60870-5-104</div>
+        <h1>The utility protocol, spoken natively</h1>
+        <p>A client driver that talks IEC 104 to an RTU directly from the gateway. No translator, no intermediate gateway, no OPC server in the middle to lose a timestamp.</p>
+        <div class="pmeta"><span class="stat bench">On the bench</span><span>Ignition 8.1.54</span><span>120 tests</span><span>Needs a real RTU</span></div>
+      </div>
+      <div class="artifact">
+        <div class="artifact-head"><span>70 s session vs lib60870</span><span class="live"><i class="dot"></i>Captured live</span></div>
+        <div class="artifact-body">
+<pre style="margin:0;white-space:pre-wrap">  &rarr; 68 04 07 00 00 00          <span class="hi">STARTDT act</span>
+  &larr; 68 04 0B 00 00 00          <span class="hi">STARTDT con</span>
+  &rarr; 68 0E 00 00 00 00 67 01 06 00 01 00 &hellip;   clock sync act
+  &larr; 68 0E 02 00 02 00 67 01 07 00 01 00 &hellip;   clock sync con
+  &rarr; 68 0E 04 00 02 00 64 01 06 00 01 00 &hellip;   <span class="acc">interrogation act</span>
+  &larr; 68 1A 04 00 06 00 09 <span class="hi">81</span> 14 00 01 00 &hellip;   VSQ SQ=1, 1 addr
+  &larr; &hellip; 162 APDUs, 43 TESTFR, <span class="acc">0 sequence faults</span>
+  &rarr; 68 04 13 00 00 00          STOPDT act
+  &larr; 68 04 23 00 00 00          <span class="hi">STOPDT con</span></pre>
+        </div>
+        <div class="artifact-foot">Captured against the lib60870 cs104_server reference implementation. Full transcript in the repository as LIVEPROOF.md.</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">What it does</span>
+      <h2>The whole session, not just the reads</h2>
+      <p>IEC 104 is a stateful protocol. Most of the work is in the parts that are not data transfer.</p>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <span class="tag">Session</span>
+        <h3>STARTDT, TESTFR, STOPDT, and the counters</h3>
+        <p>The driver runs the full APCI lifecycle with the k and w windows and the t1, t2 and t3 timers. Across a 70-second capture it exchanged 162 APDUs with zero sequence faults and answered 43 TESTFR keepalives, then shut the session down cleanly.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Data</span>
+        <h3>Interrogation and spontaneous, both</h3>
+        <p>General interrogation walks the outstation on connect, including the compressed SQ=1 form where one address expands into a run of information objects. After that, spontaneous reports arrive as the RTU sends them. Clock synchronisation is supported.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Structure</span>
+        <h3>A protocol core with no Ignition in it</h3>
+        <p>The APCI framing, ASDU codec and client state machine are plain Java with zero gateway dependencies. That is what makes the driver testable against a simulator on a laptop, and it is why 99 of its 120 tests run without a gateway at all.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">Why it is on the bench</span>
+      <h2>It has met a reference server, not an RTU</h2>
+      <p>The distinction matters, and stating it plainly is cheaper than discovering it at a customer site.</p>
+    </div>
+    <div class="ledger">
+      <div class="col">
+        <h3>What the capture proves</h3>
+        <ul>
+          <li>The framing, sequencing and session lifecycle are correct against the most widely used open reference implementation.</li>
+          <li>Real quirks were found and handled: the reference server withholds its STOPDT confirmation while it still holds unacknowledged I-frames, so pending acknowledgements are flushed first.</li>
+          <li>The module loads on a live 8.1.54 gateway with no faults and registers its device settings.</li>
+        </ul>
+      </div>
+      <div class="col owed">
+        <h3>What it does not prove</h3>
+        <ul>
+          <li>No real outstation has been driven from a configured device yet. Acceptance requires one.</li>
+          <li>Time-tagged, counter and double-point types have unit tests only, because the reference server never sends them.</li>
+          <li>Redundancy is ordered-endpoint failover. True multi-connection redundancy groups come later; the configuration shape already allows for them.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">Where it stands</span>
+      <h2>Waiting on hardware</h2>
+      <p>If you have an IEC 104 outstation and an hour, you are the acceptance case, and an early site shapes what ships.</p>
+    </div>
+    <div class="ledger">
+      <div class="col">
+        <h3>Done and measured</h3>
+        <ul>
+          <li>120 tests green, including 21 loopback-socket client tests against a fake server.</li>
+          <li>70-second live session against lib60870: 162 APDUs, 0 sequence faults, clean shutdown.</li>
+          <li>Interrogation, spontaneous reporting, clock sync and TESTFR all exercised.</li>
+          <li>Loads and registers on a live 8.1.54 gateway.</li>
+        </ul>
+      </div>
+      <div class="col owed">
+        <h3>Owed before release</h3>
+        <ul>
+          <li>A configured device driven against a live outstation.</li>
+          <li>Coverage for time-tagged, counter and double-point types against real hardware.</li>
+          <li>Diagnostics parity with the rest of the driver line.</li>
+          <li>Configuration generation, a quickstart, and a signed release.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge/contact">Offer us an outstation</a>
+      <a class="btn ghost dark" href="/sparkbridge/lineup">See the whole lineup</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>
