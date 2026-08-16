@@ -245,3 +245,36 @@ a.clamp:hover,a.clamp:focus-visible{background:rgba(255,255,255,.05);border-colo
 .figure span{font-family:"Spline Sans Mono",monospace;font-size:12px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-soft);max-width:30ch;line-height:1.5}
 .band .figure b{color:var(--marker)}
 .band .figure span{color:var(--paper-dim)}
+
+/* ---- one reading, end to end: the seam test ----------------------------------- */
+/* The point of the whole lineup is that a value crosses six products without being
+   rewritten. So the drawing pins ONE timestamp down the right and never changes it. */
+.journey{margin-top:34px;border-top:2px solid var(--marker)}
+.jstep{
+  display:grid;grid-template-columns:132px 1fr 168px;gap:26px;align-items:baseline;
+  padding:19px 0;border-bottom:1px solid var(--steel);position:relative;
+}
+.band .jstep{border-bottom-color:var(--steel-dark)}
+.jstep .who{
+  font-family:"Spline Sans Mono",monospace;font-size:11px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-soft);
+}
+.band .jstep .who{color:var(--paper-dim)}
+.jstep .who b{display:block;font-weight:400;color:var(--marker);margin-bottom:3px}
+.jstep .what{font-size:15.6px;line-height:1.5}
+.band .jstep .what{color:#fff}
+.jstep .when{
+  font-family:"Spline Sans Mono",monospace;font-size:12.5px;color:var(--marker);
+  text-align:right;white-space:nowrap;
+}
+.jstep .when small{display:block;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-top:4px}
+.band .jstep .when small{color:var(--paper-dim)}
+.jnote{
+  margin:22px 0 0;font-size:15.5px;line-height:1.55;max-width:70ch;
+}
+.jnote b{color:var(--marker)}
+@media (max-width:800px){
+  .jstep{grid-template-columns:1fr;gap:7px;padding:16px 0}
+  .jstep .when{text-align:left}
+  .jstep .when small{display:inline;margin-left:8px}
+}
