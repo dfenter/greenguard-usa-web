@@ -115,3 +115,71 @@ Everything is play-earned: no currencies, energy, timers, or gates of any kind.
 - `node --check sw.js` passed.
 - Seeded model probe passed 25 random legal runs per level, with all levels retaining wins; forged `completed: 15` with empty choices sanitizes to `completed: 0`.
 - Terrace Tales payload is approximately 388 KB; largest changed file is `game.js` at approximately 100 KB; shipped audio is MP3 only.
+
+## Retina pass 2026-08-16
+
+- Audit before ratio: 1.00x at the emulated DPR 3 portrait viewport. Configured after ratio: 3.00x from `GGKit.hiDpi.factor(390, 844)`, with a 1170 x 2532 backing store for the 390 x 844 design box.
+- Recipe: Phaser `Scale.FIT`, dense scale dimensions, `GGKit.renderDefaults`, `setZoom(f)` in Boot, Story, Hub, Play, Choice, Build, and Finale, plus matching Phaser text resolution.
+- Factor cap: none beyond GGKit's standard maximum of 3. No title-specific cap.
+- Live canvas ratio and gameplay screenshot were unavailable because the browser backend was empty and the sandbox denied private HTTP listeners. The after ratio above is the configured geometry, not a live canvas read.
+- Static title-local canvas bakes now use `GGKit.hiDpi.canvas` and Phaser texture source resolution. Gameplay, balance, and content were unchanged.
+
+## Retina repair 2026-08-16
+
+The title booted with no uncaught error and no failed request but rendered a
+single flat colour, and a canvas probe found no usable main canvas at all
+(ratio `null`). Four defects, all introduced or exposed by the hi-DPI pass.
+
+**Defect 1 — no canvas in the DOM (the `null` ratio).** `game.js` is loaded
+from `<head>`, so `document.body` was still `null` when the Phaser config was
+built and `parent: document.body` became `parent: null`. Phaser's
+`ScaleManager.getParent()` returns early on a null parent, so the game booted,
+ran its scenes and updated `window.__tt.state` while its canvas was never
+appended to the document. Body stayed empty; nothing was ever visible.
+Fix: construct the game once a real parent exists (`if (document.body) init();
+else document.addEventListener('DOMContentLoaded', init, { once: true })`).
+
+**Defect 2 — camera looking outside the design box.** Each scene called
+`this.cameras.main.setZoom(RETINA_FACTOR)`. That is only half of the
+`Scale.FIT` + camera-zoom recipe: the game is sized at DESIGN * f device
+pixels, so the camera's own midpoint is at `(W*f/2, H*f/2)` and a zoomed
+camera keeps that midpoint under the viewport centre. The visible world window
+therefore landed entirely outside the `0..390 / 0..844` design box and every
+scene drew as flat background. Fix: a single `retinaCamera(scene)` helper that
+does `setZoom(RETINA_FACTOR)` **and** `centerOn(W / 2, H / 2)`, used at all
+seven scene sites.
+
+**Defect 3 — baked textures drawn RETINA_FACTOR times too big.** `bake()` now
+draws onto a dense `GGKit.hiDpi.canvas` (CSS size * dpr). Phaser's WebGL
+batcher builds its quad from `frame.cutWidth` (the dense pixel count) times
+the object's scale, so any baked sprite created without an explicit size came
+out 3x. Setting `source.resolution` does not fix this: only the canvas
+renderer divides by it, so it makes the two renderers disagree, and it is no
+longer set. Fix: `TEX = 1 / RETINA_FACTOR`, applied to the objects that had no
+explicit size (garden background, `tt_bg`, `tt_board_chrome`, the 64 tiles,
+story marks, selector, ghost, arrow) and to the six particle emitters' scale
+ranges. Sites that already used `setDisplaySize(cssW, cssH)` were correct as
+written and were left alone.
+
+**Defect 4 — blank button labels.** `makeButton` called
+`makeText(scene, label, 0, yOffset, ...)` against a
+`makeText(scene, x, y, text, ...)` signature, so every button drew its y offset
+as its caption. Fixed the argument order for the label and the sub-label.
+
+**Also fixed (required by the live gate).** `PlayScene.render()` computed
+`showPreview = !!preview && ready` and then read `sel.x`, throwing
+`TypeError: Cannot read properties of null (reading 'x')` from inside the
+render callback whenever a preview existed without a selection. Now guarded
+with `!!sel`.
+
+**Measured density ratio: 3.00** (`canvas.width` 1170 /
+`getBoundingClientRect().width` 390) at deviceScaleFactor 3. No factor cap was
+needed.
+
+Gates, all run by this lane: `boot_sweep` PASS (err=0, 404=0, colors=413,
+exact8=3425), `retina_audit` RET-OK (dpr=3, colours=4353, flattest 18.7%),
+`live_probe` PASS (rAF alive, 5/5 distinct frames, err=0). Gameplay confirmed
+by hand: hub -> level 01, a swap resolves and decrements the move counter, and
+the board renders crisply at native density.
+
+`node --check` clean on `game.js`. No design, balance or content changes.

@@ -8,6 +8,12 @@
   var PhaserRef = root.Phaser;
   var KitRef = root.GGKit;
   var W = 390, H = 844, COLS = 8, ROWS = 8;
+  var RETINA_FACTOR = GGKit.hiDpi.factor(W, H);
+  // Baked textures are drawn on a DENSE canvas (CSS size * dpr). Any object
+  // built from one must be shown at TEX scale, or setDisplaySize(cssW, cssH),
+  // otherwise Phaser sizes its quad from the dense pixel count and the sprite
+  // renders RETINA_FACTOR times too big.
+  var TEX = 1 / RETINA_FACTOR;
   var CELL = 44, BOARD_X = 19, BOARD_Y = 232;
   var FONT = 'system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
   var STEP = 1 / 60;
@@ -199,8 +205,21 @@
   }
   var visualRand = seeded(0x7E5541);
 
+  // Retina camera. The game is sized at DESIGN * RETINA_FACTOR device pixels
+  // and each scene zooms its camera by the same factor so world coordinates
+  // stay in design units. setZoom alone is NOT enough: a zoomed camera keeps
+  // its own midpoint (gameSize/2 = DESIGN * f / 2) under the viewport centre,
+  // so the visible world window lands entirely outside the 0..W / 0..H design
+  // box and the frame renders as flat background. centerOn puts the design
+  // centre back under the viewport centre.
+  function retinaCamera(scene) {
+    var cam = scene.cameras.main;
+    cam.setZoom(RETINA_FACTOR);
+    cam.centerOn(W / 2, H / 2);
+    return cam;
+  }
   function makeText(scene, x, y, text, size, color, origin) {
-    return scene.add.text(x, y, text, { fontFamily: FONT, fontSize: size + 'px', fontStyle: '600', color: color || '#F7FBFF', align: 'center', lineSpacing: 2 }).setOrigin(origin == null ? 0.5 : origin);
+    return scene.add.text(x, y, text, { fontFamily: FONT, fontSize: size + 'px', fontStyle: '600', color: color || '#F7FBFF', align: 'center', lineSpacing: 2, resolution: RETINA_FACTOR }).setOrigin(origin == null ? 0.5 : origin);
   }
   function rr(ctx, x, y, w, h, r) {
     r = Math.min(r, w / 2, h / 2); ctx.beginPath(); ctx.moveTo(x + r, y);
@@ -259,8 +278,16 @@
   }
   function bake(scene, key, width, height, draw) {
     if (scene.textures.exists(key)) return key;
-    var texture = scene.textures.createCanvas(key, width, height);
-    var ctx = texture.getContext(); draw(ctx, width, height); texture.refresh(); return key;
+    var baked = GGKit.hiDpi.canvas(width, height);
+    var texture = scene.textures.addCanvas(key, baked.canvas);
+    // NOTE: the baked canvas is DENSE — width*dpr by height*dpr — so every
+    // object built from it must be shown at TEX (= 1 / RETINA_FACTOR) scale,
+    // either via setDisplaySize(cssW, cssH) or setScale(TEX). Phaser's WebGL
+    // batcher builds its quad from frame.cutWidth (the dense count) times the
+    // object's scale, so an unscaled baked sprite renders dpr times too big.
+    // source.resolution is deliberately NOT set: it only affects the canvas
+    // renderer and would then disagree with the WebGL path.
+    draw(baked.ctx, width, height); texture.refresh(); return key;
   }
   function bakeSharedTextures(scene) {
     bake(scene, 'tt_bg', W, H, function (ctx, w, h) {
@@ -310,9 +337,12 @@
     var bg = scene.add.rectangle(0, 0, w, h, opts.fill == null ? BOARD : opts.fill, opts.alpha == null ? 1 : opts.alpha);
     bg.setStrokeStyle(opts.strokeWidth || 2, opts.stroke == null ? 0x5D7294 : opts.stroke, .95);
     bg.setInteractive(new PhaserRef.Geom.Rectangle(-w / 2, -h / 2, w, h), PhaserRef.Geom.Rectangle.Contains);
-    var t = makeText(scene, opts.icon || label, 0, opts.sub ? -6 : 0, opts.size || 14, opts.color || '#F7FBFF');
+    // makeText is (scene, x, y, text, ...). The label and the coordinates were
+    // transposed here, so every button drew its y-offset as its caption and
+    // shipped with blank labels.
+    var t = makeText(scene, 0, opts.sub ? -6 : 0, opts.icon || label, opts.size || 14, opts.color || '#F7FBFF');
     c.add([bg, t]); c.bg = bg; c.label = t; c.enabled = opts.enabled !== false; c.w = w; c.h = h;
-    if (opts.sub) { c.sub = makeText(scene, opts.sub, 0, 13, opts.subSize || 10, opts.subColor || '#D7E0F0'); c.add(c.sub); }
+    if (opts.sub) { c.sub = makeText(scene, 0, 13, opts.sub, opts.subSize || 10, opts.subColor || '#D7E0F0'); c.add(c.sub); }
     var pressId = null, pressed = false;
     function clearPress() { pressId = null; pressed = false; c.setScale(1); }
     bg.on('pointerdown', function (pointer) {
@@ -544,15 +574,16 @@
     if (!scene.textures.exists('tt_garden')) bake(scene, 'tt_garden', W, H, function (ctx, w, h) { buildGarden(ctx, w, h, saveData, scene.gardenTime || .16, buildSlot, buildVariant, buildProgress); });
     else { var texture = scene.textures.get('tt_garden'); buildGarden(texture.getContext(), W, H, saveData, scene.gardenTime || .16, buildSlot, buildVariant, buildProgress); texture.refresh(); }
     scene.gardenRenderT = 0;
-    return scene.add.image(W / 2, H / 2, 'tt_garden').setDepth(0);
+    return scene.add.image(W / 2, H / 2, 'tt_garden').setScale(TEX).setDepth(0);
   }
   function header(scene, title, sub) { var h = scene.add.rectangle(W / 2, 42, W, 84, 0x10182B, .9).setDepth(20); h.setStrokeStyle(1, 0x5D7294, .3); makeText(scene, 18, 22, title, 25, '#F7FBFF', 0).setDepth(21); makeText(scene, 18, 55, sub, 14, '#D7E0F0', 0).setDepth(21); return h; }
 
   function BootScene() { PhaserRef.Scene.call(this, { key: 'boot' }); }
   BootScene.prototype = Object.create(PhaserRef.Scene.prototype); BootScene.prototype.constructor = BootScene;
   BootScene.prototype.create = function () {
+    retinaCamera(this);
     bakeSharedTextures(this); kit.loader.show('TERRACE TALES'); kit.loader.progress(.35);
-    this.add.image(W / 2, H / 2, 'tt_bg'); makeText(this, W / 2, 336, 'TERRACE\nTALES', 34, '#F7FBFF').setLineSpacing(-5); makeText(this, W / 2, 432, 'HOLLOWBROOK RISE', 13, '#F7C948');
+    this.add.image(W / 2, H / 2, 'tt_bg').setScale(TEX); makeText(this, W / 2, 336, 'TERRACE\nTALES', 34, '#F7FBFF').setLineSpacing(-5); makeText(this, W / 2, 432, 'HOLLOWBROOK RISE', 13, '#F7C948');
     kit.loader.progress(1); kit.loader.hide();
     var forced = levelIndex(currentProbeValue('forceLevel'));
     if (forced != null) this.scene.start('play', { index: forced, mode: 'forced' }); else this.scene.start('hub', { focusSlot: slotIndex(currentProbeValue('forceSlot')) });
@@ -561,6 +592,7 @@
   function StoryScene() { PhaserRef.Scene.call(this, { key: 'story' }); }
   StoryScene.prototype = Object.create(PhaserRef.Scene.prototype); StoryScene.prototype.constructor = StoryScene;
   StoryScene.prototype.create = function (data) {
+    retinaCamera(this);
     Game.active = this; data = data || {}; this.index = clamp(data.index | 0, 0, 14); this.mode = data.mode || 'campaign'; this.beat = STORY_BEATS[this.index]; baseScene(this, 'story', .16);
     kit.audio.music('meta', 300); this.bg = gardenImage(this); this.add.rectangle(W / 2, H / 2, W, H, 0x10182B, .28).setDepth(10);
     this.card = this.add.rectangle(W / 2, 408, 344, 420, 0xFFF8EE, .97).setStrokeStyle(3, ZONES[LEVELS[this.index].zone].accent, .9).setDepth(20);
@@ -588,6 +620,7 @@
   function HubScene() { PhaserRef.Scene.call(this, { key: 'hub' }); }
   HubScene.prototype = Object.create(PhaserRef.Scene.prototype); HubScene.prototype.constructor = HubScene;
   HubScene.prototype.create = function (data) {
+    retinaCamera(this);
     Game.active = this; this.focusSlot = data && data.focusSlot != null ? data.focusSlot : slotIndex(currentProbeValue('forceSlot')); this.replay = false; baseScene(this, saveData.completed >= 15 ? 'finale-garden' : 'garden', .16);
     if (saveData.pendingChoice >= 0 && saveData.pendingChoice === saveData.completed && saveData.completed < 15) { this.scene.start('choice', { index: saveData.pendingChoice }); return; }
     kit.audio.music('meta', 500);
@@ -633,16 +666,17 @@
   function PlayScene() { PhaserRef.Scene.call(this, { key: 'play' }); }
   PlayScene.prototype = Object.create(PhaserRef.Scene.prototype); PlayScene.prototype.constructor = PlayScene;
   PlayScene.prototype.create = function (args) {
+    retinaCamera(this);
     Game.active = this; args = args || {}; this.index = clamp(args.index | 0, 0, 14); this.spec = LEVELS[this.index] || LEVELS[0]; this.mode = args.mode === 'replay' ? 'replay' : (args.mode === 'forced' ? 'forced' : 'campaign'); baseScene(this, this.mode, .16);
     this.moves = this.spec.moves + this.spec.bonusMoves; this.score = 0; this.streak = 0; this.bestStreak = 0; this.hintUsed = false; this.hintActive = false; this.phase = 'idle'; this.phaseT = 0; this.result = null; this.selection = null; this.preview = null; this.touch = null; this.keyboardCursor = { x: 0, y: 0 }; this.keyboardAnchor = null; this.toast = ''; this.toastT = 0; this.goalPingT = 0; this.goalPingGoal = -1; this.hintT = 0; this.lastGoalTotal = 0; this.cascade = 0; this.shakeX = 0; this.shakeY = 0; this.board = new MatchBoard(this.spec); this.goals = this.spec.goals.map(function (g) { return { color: g.color, need: g.need, got: 0 }; });
     this.view = []; this.fallFrom = []; this.cleared = Object.create(null); this.clearTypes = Object.create(null); this.swapIndices = null; this.pendingInfo = null;
-    this.add.image(W / 2, H / 2, 'tt_bg').setDepth(0); this.boardChrome = this.add.image(W / 2, H / 2, 'tt_board_chrome').setDepth(1); this.buildFx();
+    this.add.image(W / 2, H / 2, 'tt_bg').setScale(TEX).setDepth(0); this.boardChrome = this.add.image(W / 2, H / 2, 'tt_board_chrome').setScale(TEX).setDepth(1); this.buildFx();
     this.buildHud(); this.buildTiles(); this.bindInput(); this.draw = this.render.bind(this); wireDraw(this); this.render(); publish(this, { mode: this.mode === 'replay' ? 'replay' : 'play', level: this.index + 1, moves: this.moves, garden: ZONES[this.spec.zone].name, phase: 'level-start', storyBeat: this.index }); kit.audio.music('board', 500); this.startBanner = .9;
   };
   PlayScene.prototype.buildFx = function () {
-    this.clearFx = this.add.particles ? this.add.particles('tt_dust', { x: 0, y: 0, quantity: 3, lifespan: 340, speed: { min: 28, max: 72 }, gravityY: 160, scale: { start: .9, end: .1 }, emitting: false }).setDepth(22) : null;
-    this.cascadeFx = this.add.particles ? this.add.particles('tt_spark', { x: 0, y: 0, quantity: 4, lifespan: 460, speed: { min: 55, max: 130 }, gravityY: 220, scale: { start: .8, end: .05 }, emitting: false }).setDepth(22) : null;
-    this.rewardFx = this.add.particles ? this.add.particles('tt_spark', { x: 0, y: 0, quantity: 24, lifespan: 900, speed: { min: 100, max: 240 }, gravityY: 180, scale: { start: 1.1, end: .05 }, emitting: false }).setDepth(53) : null;
+    this.clearFx = this.add.particles ? this.add.particles('tt_dust', { x: 0, y: 0, quantity: 3, lifespan: 340, speed: { min: 28, max: 72 }, gravityY: 160, scale: { start: .9 * TEX, end: .1 * TEX }, emitting: false }).setDepth(22) : null;
+    this.cascadeFx = this.add.particles ? this.add.particles('tt_spark', { x: 0, y: 0, quantity: 4, lifespan: 460, speed: { min: 55, max: 130 }, gravityY: 220, scale: { start: .8 * TEX, end: .05 * TEX }, emitting: false }).setDepth(22) : null;
+    this.rewardFx = this.add.particles ? this.add.particles('tt_spark', { x: 0, y: 0, quantity: 24, lifespan: 900, speed: { min: 100, max: 240 }, gravityY: 180, scale: { start: 1.1 * TEX, end: .05 * TEX }, emitting: false }).setDepth(53) : null;
   };
   PlayScene.prototype.buildHud = function () {
     this.levelText = makeText(this, 20, 22, 'LEVEL ' + String(this.index + 1).padStart(2, '0'), 17, '#F7FBFF', 0).setDepth(24); this.zoneText = makeText(this, 20, 49, ZONES[this.spec.zone].name, 14, '#D7E0F0', 0).setDepth(24); this.titleText = makeText(this, 20, 75, this.spec.title, 12, '#F7C948', 0).setDepth(24); this.movesText = makeText(this, 366, 22, '', 25, '#F7C948', 1).setDepth(24); this.scoreText = makeText(this, 366, 53, '', 14, '#D7E0F0', 1).setDepth(24);
@@ -652,7 +686,7 @@
     this.stateText = makeText(this, 20, 218, '', 10, '#F7C948', 0).setDepth(25);
     this.resultBg = this.add.rectangle(W / 2, 430, 328, 226, 0x10182B, .97).setStrokeStyle(2, 0xF7C948, .95).setDepth(50).setVisible(false); this.resultTitle = makeText(this, W / 2, 346, '', 25, '#F7FBFF').setDepth(51).setVisible(false); this.resultDetail = makeText(this, W / 2, 390, '', 15, '#D7E0F0').setDepth(51).setVisible(false); this.resultMedal = makeText(this, W / 2, 445, '', 38, '#F7C948').setDepth(51).setVisible(false); this.resultButton = makeButton(this, W / 2, 540, 236, 50, '', this.continueFromResult.bind(this), { fill: 0x4F9D69, stroke: 0xF7FBFF, size: 16, depth: 52 });
   };
-  PlayScene.prototype.buildTiles = function () { this.tiles = []; for (var i = 0; i < 64; i++) { var tile = this.add.image(0, 0, 'tt_gem_0_0').setDepth(8).setVisible(true); this.tiles.push(tile); this.view.push({ x: 0, y: 0, scale: 1, alpha: 1, type: 0, special: 0 }); this.fallFrom.push(0); } this.storyMarks = this.board.storyCells.map(function (cell) { return this.add.image(0, 0, 'tt_story_mark').setDepth(7).setVisible(true); }, this); this.selector = this.add.image(0, 0, 'tt_selector').setDepth(12).setVisible(false); this.ghost = this.add.image(0, 0, 'tt_ghost').setDepth(11).setVisible(false); this.arrow = this.add.image(0, 0, 'tt_arrow').setDepth(11).setVisible(false); };
+  PlayScene.prototype.buildTiles = function () { this.tiles = []; for (var i = 0; i < 64; i++) { var tile = this.add.image(0, 0, 'tt_gem_0_0').setScale(TEX).setDepth(8).setVisible(true); this.tiles.push(tile); this.view.push({ x: 0, y: 0, scale: 1, alpha: 1, type: 0, special: 0 }); this.fallFrom.push(0); } this.storyMarks = this.board.storyCells.map(function (cell) { return this.add.image(0, 0, 'tt_story_mark').setScale(TEX).setDepth(7).setVisible(true); }, this); this.selector = this.add.image(0, 0, 'tt_selector').setScale(TEX).setDepth(12).setVisible(false); this.ghost = this.add.image(0, 0, 'tt_ghost').setScale(TEX).setDepth(11).setVisible(false); this.arrow = this.add.image(0, 0, 'tt_arrow').setScale(TEX).setDepth(11).setVisible(false); };
   PlayScene.prototype.bindInput = function () {
     var self = this;
     this.input.on('pointerdown', function (pointer) {
@@ -739,10 +773,10 @@
     for (i = 0; i < 64; i++) { cell = this.board.cells[i]; x = i % 8; y = i / 8 | 0; view = this.view[i]; var renderType = cell ? cell.type : (this.clearTypes[i] == null ? 0 : this.clearTypes[i]), renderSpecial = cell ? cell.special : 0, springFall = springProgress(clamp(this.phaseT / .22, 0, 1)), idleY = ready && motionOn() && cell ? Math.sin(this.clock * 2.4 + i * .7) * .65 : 0; var offX = 0, offY = this.fallFrom[i] ? this.fallFrom[i] * CELL * (1 - springFall) : 0;
       if (this.phase === 'swap' && this.swapIndices) { if (i === this.swapIndices[0]) offX = CELL * (1 - springProgress(clamp(this.phaseT / .14, 0, 1))); if (i === this.swapIndices[1]) offX = -CELL * (1 - springProgress(clamp(this.phaseT / .14, 0, 1))); }
       var scale = 1; if (this.cleared[i]) scale = Math.max(.04, 1 - easeOut(clamp(this.phaseT / .14, 0, 1))); if (this.phase === 'swap') scale = 1; if (!cell && !this.cleared[i]) { this.tiles[i].setVisible(false); continue; }
-      this.tiles[i].setTexture('tt_gem_' + renderType + '_' + renderSpecial).setPosition(BOARD_X + x * CELL + CELL / 2 + offX + this.shakeX, BOARD_Y + y * CELL + CELL / 2 + offY + idleY + this.shakeY).setScale(scale).setAlpha(cell ? 1 : 1 - easeOut(clamp(this.phaseT / .14, 0, 1))).setVisible(true); view.type = renderType; view.special = renderSpecial;
+      this.tiles[i].setTexture('tt_gem_' + renderType + '_' + renderSpecial).setPosition(BOARD_X + x * CELL + CELL / 2 + offX + this.shakeX, BOARD_Y + y * CELL + CELL / 2 + offY + idleY + this.shakeY).setScale(scale * TEX).setAlpha(cell ? 1 : 1 - easeOut(clamp(this.phaseT / .14, 0, 1))).setVisible(true); view.type = renderType; view.special = renderSpecial;
     }
     for (i = 0; i < this.storyMarks.length; i++) { var mark = this.storyMarks[i], storyCell = this.board.storyCells[i]; mark.setPosition(BOARD_X + storyCell[0] * CELL + CELL / 2 + this.shakeX, BOARD_Y + storyCell[1] * CELL + CELL / 2 + this.shakeY).setAlpha(ready || resolving ? 1 : .45); }
-    var sel = this.selection, preview = this.preview, markerVisible = !!sel && (ready || resolving); this.selector.setVisible(markerVisible).setPosition(sel ? BOARD_X + sel.x * CELL + CELL / 2 + this.shakeX : 0, sel ? BOARD_Y + sel.y * CELL + CELL / 2 + this.shakeY : 0).setScale(resolving ? .92 : (motionOn() ? 1 + Math.sin(this.clock * 5) * .025 : 1)).setAlpha(resolving ? .72 : 1); var showPreview = !!preview && ready; this.ghost.setVisible(showPreview).setPosition(showPreview ? BOARD_X + preview.x * CELL + CELL / 2 + this.shakeX : 0, showPreview ? BOARD_Y + preview.y * CELL + CELL / 2 + this.shakeY : 0); this.arrow.setVisible(showPreview).setPosition(showPreview ? BOARD_X + (sel.x + preview.x) * CELL / 2 + CELL / 2 + this.shakeX : 0, showPreview ? BOARD_Y + (sel.y + preview.y) * CELL / 2 + CELL / 2 + this.shakeY : 0).setAngle(preview && sel && preview.x !== sel.x ? (preview.x > sel.x ? 0 : 180) : (preview && sel && preview.y > sel.y ? 90 : -90));
+    var sel = this.selection, preview = this.preview, markerVisible = !!sel && (ready || resolving); this.selector.setVisible(markerVisible).setPosition(sel ? BOARD_X + sel.x * CELL + CELL / 2 + this.shakeX : 0, sel ? BOARD_Y + sel.y * CELL + CELL / 2 + this.shakeY : 0).setScale((resolving ? .92 : (motionOn() ? 1 + Math.sin(this.clock * 5) * .025 : 1)) * TEX).setAlpha(resolving ? .72 : 1); var showPreview = !!preview && !!sel && ready; this.ghost.setVisible(showPreview).setPosition(showPreview ? BOARD_X + preview.x * CELL + CELL / 2 + this.shakeX : 0, showPreview ? BOARD_Y + preview.y * CELL + CELL / 2 + this.shakeY : 0); this.arrow.setVisible(showPreview).setPosition(showPreview ? BOARD_X + (sel.x + preview.x) * CELL / 2 + CELL / 2 + this.shakeX : 0, showPreview ? BOARD_Y + (sel.y + preview.y) * CELL / 2 + CELL / 2 + this.shakeY : 0).setAngle(preview && sel && preview.x !== sel.x ? (preview.x > sel.x ? 0 : 180) : (preview && sel && preview.y > sel.y ? 90 : -90));
     if (this.result) { this.resultBg.setVisible(true); this.resultTitle.setVisible(true); this.resultDetail.setVisible(true); this.resultMedal.setVisible(true); this.resultButton.setVisible(true); } else { this.resultBg.setVisible(false); this.resultTitle.setVisible(false); this.resultDetail.setVisible(false); this.resultMedal.setVisible(false); this.resultButton.setVisible(false); }
     if (!this.retryButton) { this.retryButton = makeButton(this, 55, 786, 88, 46, '↺', function () { kit.restart(); }, { fill: BOARD, stroke: 0x5D7294, size: 22, icon: '↺', depth: 40 }); this.gardenButton = makeButton(this, 153, 786, 88, 46, '⌂', this.toGarden.bind(this), { fill: BOARD, stroke: 0x5D7294, size: 22, icon: '⌂', depth: 40 }); this.hintButton = makeButton(this, 251, 786, 58, 46, '?', this.showHint.bind(this), { fill: BOARD, stroke: 0xF7C948, size: 20, icon: '?', depth: 40 }); this.soundButton = makeButton(this, 317, 786, 58, 46, '♪', toggleMute, { fill: BOARD, stroke: 0x5D7294, size: 20, icon: '♪', depth: 40 }); }
     this.retryButton.setVisible(!this.result); this.gardenButton.setVisible(!this.result); this.hintButton.setVisible(!this.result); this.soundButton.setVisible(!this.result);
@@ -752,7 +786,7 @@
 
   function ChoiceScene() { PhaserRef.Scene.call(this, { key: 'choice' }); }
   ChoiceScene.prototype = Object.create(PhaserRef.Scene.prototype); ChoiceScene.prototype.constructor = ChoiceScene;
-  ChoiceScene.prototype.create = function (data) { Game.active = this; this.index = clamp(data && data.index != null ? data.index : saveData.completed, 0, 14); if (saveData.pendingChoice !== this.index) { this.scene.start('hub'); return; } this.slot = SLOTS[this.index]; baseScene(this, 'choice', .2); kit.audio.music('meta', 300); this.bg = gardenImage(this); header(this, 'Choose the work', ZONES[this.slot.zone].name + '  ·  ' + this.slot.name); this.title = makeText(this, W / 2, 128, 'Choose one variant. It stays forever.', 17, '#2B2D42').setDepth(25); this.ribbon = makeText(this, W / 2, 152, 'GOAL REWARD  ·  RENOVATION UNLOCKED', 11, '#4F9D69').setDepth(25); this.rewardFx = this.add.particles ? this.add.particles('tt_spark', { x: W / 2, y: 170, quantity: 16, lifespan: 720, speed: { min: 40, max: 110 }, gravityY: 120, scale: { start: .8, end: .05 }, emitting: false }).setDepth(28) : null; if (motionOn() && this.rewardFx && this.rewardFx.explode) this.rewardFx.explode(16, W / 2, 170); this.cards = []; this.buttons = []; this.buildPreviews(); publish(this, { mode: 'choice', level: this.index + 1, slots: saveData.completed, phase: 'reveal' }); kit.audio.sfx('reveal', { volume: .75 }); };
+  ChoiceScene.prototype.create = function (data) { retinaCamera(this); Game.active = this; this.index = clamp(data && data.index != null ? data.index : saveData.completed, 0, 14); if (saveData.pendingChoice !== this.index) { this.scene.start('hub'); return; } this.slot = SLOTS[this.index]; baseScene(this, 'choice', .2); kit.audio.music('meta', 300); this.bg = gardenImage(this); header(this, 'Choose the work', ZONES[this.slot.zone].name + '  ·  ' + this.slot.name); this.title = makeText(this, W / 2, 128, 'Choose one variant. It stays forever.', 17, '#2B2D42').setDepth(25); this.ribbon = makeText(this, W / 2, 152, 'GOAL REWARD  ·  RENOVATION UNLOCKED', 11, '#4F9D69').setDepth(25); this.rewardFx = this.add.particles ? this.add.particles('tt_spark', { x: W / 2, y: 170, quantity: 16, lifespan: 720, speed: { min: 40, max: 110 }, gravityY: 120, scale: { start: .8 * TEX, end: .05 * TEX }, emitting: false }).setDepth(28) : null; if (motionOn() && this.rewardFx && this.rewardFx.explode) this.rewardFx.explode(16, W / 2, 170); this.cards = []; this.buttons = []; this.buildPreviews(); publish(this, { mode: 'choice', level: this.index + 1, slots: saveData.completed, phase: 'reveal' }); kit.audio.sfx('reveal', { volume: .75 }); };
   ChoiceScene.prototype.buildPreviews = function () { for (var v = 0; v < 2; v++) { var key = 'tt_choice_' + this.index + '_' + v; bake(this, key, 340, 180, (function (scene, variant) { return function (ctx, w, h) { drawVariantPreview(ctx, w, h, scene.slot, variant, scene.index); }; })(this, v)); var card = this.add.rectangle(W / 2, 254 + v * 242, 350, 218, 0xFFF8EE, .98).setDepth(21).setStrokeStyle(2, ZONES[this.slot.zone].accent, .8); this.add.image(W / 2, 245 + v * 242, key).setDisplaySize(340, 180).setDepth(22); makeText(this, 34, 352 + v * 242, this.slot.options[v], 17, '#2B2D42', 0).setDepth(25); var b = makeButton(this, 300, 370 + v * 242, 112, 46, 'BUILD', (function (variant) { return function () { this.choose(variant); }; })(v).bind(this), { fill: 0x4F9D69, stroke: 0x2B2D42, size: 14, depth: 30 }); this.buttons.push(b); this.cards.push(card); } };
   ChoiceScene.prototype.choose = function (variant) { if (saveData.pendingChoice !== this.index) { this.scene.start('hub'); return; } saveData.choices[this.index] = variant ? 1 : 0; kit.save.set(saveData); this.scene.start('build', { index: this.index, variant: variant }); };
   ChoiceScene.prototype.update = function (time, delta) { if (pollGlobalKeys(this, true)) return; var self = this; var steps = fixedSteps(this, delta, function () { self.stepFixed(); self.gardenTime = (self.gardenTime + STEP / 42) % 1; }); if (steps) updateGardenTexture(this, null, null, steps * STEP); };
@@ -761,7 +795,7 @@
 
   function BuildScene() { PhaserRef.Scene.call(this, { key: 'build' }); }
   BuildScene.prototype = Object.create(PhaserRef.Scene.prototype); BuildScene.prototype.constructor = BuildScene;
-  BuildScene.prototype.create = function (data) { Game.active = this; this.index = clamp(data && data.index != null ? data.index : saveData.completed, 0, 14); this.variant = data && data.variant ? 1 : 0; baseScene(this, 'build', .2); this.buildT = 0; this.bg = gardenImage(this, this.index, this.variant, 0); header(this, SLOTS[this.index].options[this.variant], 'Built into ' + ZONES[SLOTS[this.index].zone].name); this.reveal = makeText(this, W / 2, 690, 'A permanent choice for Hollowbrook Rise.', 15, '#2B2D42').setDepth(30); this.buildFx = this.add.particles ? this.add.particles('tt_dust', { x: 0, y: 0, quantity: 1, lifespan: 800, speed: { min: 28, max: 72 }, gravityY: 180, scale: { start: .9, end: .05 }, emitting: false }).setDepth(24) : null; this.rewardFx = this.add.particles ? this.add.particles('tt_spark', { x: 0, y: 0, quantity: 18, lifespan: 760, speed: { min: 50, max: 140 }, gravityY: 170, scale: { start: .9, end: .05 }, emitting: false }).setDepth(25) : null; if (motionOn() && this.rewardFx && this.rewardFx.explode) { var rewardPos = gardenSlotPosition(this.index); this.rewardFx.explode(18, rewardPos.x, rewardPos.y - 10); } this.draw = this.render.bind(this); wireDraw(this); kit.audio.music('meta', 300); kit.audio.sfx('build', { volume: .85 }); publish(this, { mode: 'build', slots: saveData.completed, phase: 'build-in' }); this.render(); };
+  BuildScene.prototype.create = function (data) { retinaCamera(this); Game.active = this; this.index = clamp(data && data.index != null ? data.index : saveData.completed, 0, 14); this.variant = data && data.variant ? 1 : 0; baseScene(this, 'build', .2); this.buildT = 0; this.bg = gardenImage(this, this.index, this.variant, 0); header(this, SLOTS[this.index].options[this.variant], 'Built into ' + ZONES[SLOTS[this.index].zone].name); this.reveal = makeText(this, W / 2, 690, 'A permanent choice for Hollowbrook Rise.', 15, '#2B2D42').setDepth(30); this.buildFx = this.add.particles ? this.add.particles('tt_dust', { x: 0, y: 0, quantity: 1, lifespan: 800, speed: { min: 28, max: 72 }, gravityY: 180, scale: { start: .9 * TEX, end: .05 * TEX }, emitting: false }).setDepth(24) : null; this.rewardFx = this.add.particles ? this.add.particles('tt_spark', { x: 0, y: 0, quantity: 18, lifespan: 760, speed: { min: 50, max: 140 }, gravityY: 170, scale: { start: .9 * TEX, end: .05 * TEX }, emitting: false }).setDepth(25) : null; if (motionOn() && this.rewardFx && this.rewardFx.explode) { var rewardPos = gardenSlotPosition(this.index); this.rewardFx.explode(18, rewardPos.x, rewardPos.y - 10); } this.draw = this.render.bind(this); wireDraw(this); kit.audio.music('meta', 300); kit.audio.sfx('build', { volume: .85 }); publish(this, { mode: 'build', slots: saveData.completed, phase: 'build-in' }); this.render(); };
   BuildScene.prototype.update = function (time, delta) { if (pollGlobalKeys(this, true)) return; var self = this; var steps = fixedSteps(this, delta, function (i) { self.stepFixed(); self.buildT += STEP; self.gardenTime = (self.gardenTime + STEP / 42) % 1; if (motionOn() && i % 2 === 0) self.spawnBuildParticle(); self.updateBuildParticles(); }); if (steps) updateGardenTexture(this, this.index, this.variant, steps * STEP, false, clamp(this.buildT / 1.25, 0, 1)); if (this.buildT >= 1.25) { if (saveData.pendingChoice === this.index && saveData.completed === this.index) { saveData.completed = Math.min(15, this.index + 1); saveData.pendingChoice = -1; kit.save.set(saveData); } this.scene.start(saveData.completed >= 15 ? 'finale' : 'hub', { focusSlot: this.index }); } };
   BuildScene.prototype.spawnBuildParticle = function () { if (!this.buildFx || !this.buildFx.emitParticleAt) return; var pos = gardenSlotPosition(this.index); this.buildFx.emitParticleAt(pos.x, pos.y - 8, 1); };
   BuildScene.prototype.updateBuildParticles = function () {};
@@ -770,7 +804,7 @@
 
   function FinaleScene() { PhaserRef.Scene.call(this, { key: 'finale' }); }
   FinaleScene.prototype = Object.create(PhaserRef.Scene.prototype); FinaleScene.prototype.constructor = FinaleScene;
-  FinaleScene.prototype.create = function () { Game.active = this; baseScene(this, 'finale', .2); kit.audio.music('meta', 300); this.bg = gardenImage(this); header(this, 'Hollowbrook Rise', 'Restored garden · day and night continue'); this.cycle = makeText(this, W / 2, 660, '', 16, '#2B2D42').setDepth(30); this.buttons = []; this.buttons.push(makeButton(this, 122, 786, 112, 46, 'REPLAY', function () { this.scene.start('hub'); }.bind(this), { fill: 0x4F9D69, stroke: 0xF7FBFF, size: 14 })); this.buttons.push(makeButton(this, 268, 786, 112, 46, 'SETTINGS', function () { kit.openSettings(); }, { fill: BOARD, stroke: 0x5D7294, size: 14 })); this.draw = this.render.bind(this); wireDraw(this); publish(this, { mode: 'finale', slots: 15, garden: ZONES[3].name, phase: 'cycle' }); this.render(); };
+  FinaleScene.prototype.create = function () { retinaCamera(this); Game.active = this; baseScene(this, 'finale', .2); kit.audio.music('meta', 300); this.bg = gardenImage(this); header(this, 'Hollowbrook Rise', 'Restored garden · day and night continue'); this.cycle = makeText(this, W / 2, 660, '', 16, '#2B2D42').setDepth(30); this.buttons = []; this.buttons.push(makeButton(this, 122, 786, 112, 46, 'REPLAY', function () { this.scene.start('hub'); }.bind(this), { fill: 0x4F9D69, stroke: 0xF7FBFF, size: 14 })); this.buttons.push(makeButton(this, 268, 786, 112, 46, 'SETTINGS', function () { kit.openSettings(); }, { fill: BOARD, stroke: 0x5D7294, size: 14 })); this.draw = this.render.bind(this); wireDraw(this); publish(this, { mode: 'finale', slots: 15, garden: ZONES[3].name, phase: 'cycle' }); this.render(); };
   FinaleScene.prototype.update = function (time, delta) { if (pollGlobalKeys(this, true)) return; var self = this; var steps = fixedSteps(this, delta, function () { self.stepFixed(); self.gardenTime = (self.gardenTime + STEP / 42) % 1; }); if (steps) updateGardenTexture(this, null, null, steps * STEP); };
   FinaleScene.prototype.render = function () { var night = (1 - Math.cos(this.gardenTime * TAU)) / 2; setTextIfChanged(this.cycle, night > .52 ? 'Lantern hour · the rise is alive.' : 'Morning on the restored rise.'); };
   FinaleScene.prototype.shutdown = function () { unwireDraw(this); };
@@ -788,8 +822,16 @@
     if (root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches) kit.juice.enabled = false; kit.registerPWA();
     root.__tt.forceLevel = function (value) { DEBUG.forceLevel = value; root.__tt.state.forceLevel = value; var idx = levelIndex(value); if (idx != null && Game.active) Game.active.scene.start('play', { index: idx, mode: 'forced' }); return idx != null; };
     root.__tt.forceSlot = function (value) { DEBUG.forceSlot = value; root.__tt.state.forceSlot = value; var idx = slotIndex(value); if (Game.active) Game.active.scene.start('hub', { focusSlot: idx }); return idx != null; };
-    var config = { type: PhaserRef.AUTO, parent: document.body, width: W, height: H, backgroundColor: '#10182B', scene: [BootScene, StoryScene, HubScene, PlayScene, ChoiceScene, BuildScene, FinaleScene], scale: { mode: PhaserRef.Scale.FIT, autoCenter: PhaserRef.Scale.CENTER_BOTH }, render: { antialias: true, roundPixels: false, powerPreference: 'high-performance', batchSize: 2048 }, fps: { target: 60, min: 30 } };
+    var config = { type: PhaserRef.AUTO, parent: document.body, width: W, height: H, backgroundColor: '#10182B', scene: [BootScene, StoryScene, HubScene, PlayScene, ChoiceScene, BuildScene, FinaleScene], scale: { mode: PhaserRef.Scale.FIT, autoCenter: PhaserRef.Scale.CENTER_BOTH }, render: { batchSize: 2048 }, fps: { target: 60, min: 30 } };
+    config.scale.width = Math.round(W * RETINA_FACTOR);
+    config.scale.height = Math.round(H * RETINA_FACTOR);
+    config.render = Object.assign({}, GGKit.renderDefaults, config.render || {});
     publish(null, { mode: 'boot', phase: 'boot' }); Game.phaser = new PhaserRef.Game(config);
   }
-  init();
+  // game.js is loaded from <head>, so document.body is still null while this
+  // module runs. Phaser's ScaleManager.getParent() bails out on a null parent
+  // and NEVER adds its canvas to the DOM, so the game runs headless behind an
+  // empty body. Construct only once a real parent element exists.
+  if (document.body) init();
+  else document.addEventListener('DOMContentLoaded', init, { once: true });
 })(typeof window !== 'undefined' ? window : globalThis);

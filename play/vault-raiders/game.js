@@ -159,7 +159,7 @@
   vr.forcePhase = function (phase) { if (!Game.play) return; if (phase === 'guardian') Game.play.beginGuardian(); else if (phase === 'vault') Game.play.finishGuardian(); };
 
   function addText(scene, parent, x, y, value, size, tint, align, style) {
-    var node = scene.add.text(x, y, value, { fontFamily: FONT, fontSize: String(size) + 'px', fontStyle: style || 'normal', color: tint || C.ink, resolution: 2 });
+    var node = scene.add.text(x, y, value, { fontFamily: FONT, fontSize: String(size) + 'px', fontStyle: style || 'normal', color: tint || C.ink, resolution: root.GGKit.hiDpi.dpr() });
     node.setOrigin(align === 'left' ? 0 : align === 'right' ? 1 : 0.5, 0.5);
     parent.add(node);
     return node;
@@ -268,7 +268,7 @@
       }
     },
     layoutScene: function () {
-      var width = this.scale.width || root.innerWidth || W, height = this.scale.height || root.innerHeight || H;
+      var width = this.scale.width || W, height = this.scale.height || H;
       this.layout.k = Math.min(width / W, height / H); this.layout.x = (width - W * this.layout.k) * 0.5; this.layout.y = (height - H * this.layout.k) * 0.5;
       this.root.setPosition(this.layout.x, this.layout.y).setScale(this.layout.k);
     },
@@ -412,6 +412,7 @@
     },
     pollGamepads: function () {
       if (!root.navigator || !root.navigator.getGamepads) { this.padAxes = [{ x: 0, y: 0 }, { x: 0, y: 0 }]; return; }
+      var pads = root.navigator.getGamepads() || [];
       for (var i = 0; i < 2; i++) { var pad = pads[i] && pads[i].connected ? pads[i] : null; if (pad && !gamepads[i]) padNotice = 'P' + (i + 1) + ' controller ready.'; if (!pad && gamepads[i]) padNotice = 'P' + (i + 1) + ' controller disconnected. Keyboard fallback active.'; gamepads[i] = pad; if (!pad) { padEdges[i] = {}; continue; } var ax = Math.abs(pad.axes[0] || 0) < 0.22 ? 0 : pad.axes[0]; var ay = Math.abs(pad.axes[1] || 0) < 0.22 ? 0 : pad.axes[1]; this.padAxes[i] = { x: ax, y: ay }; if (this.padPressed(i, 9)) { kit.openSettings(); continue; } var primary = this.padPressed(i, 0); if (state.mode === 'vault' && primary) this.claimTreasure(i); else if (primary) this.playerAction(i, state.mode === 'guardian' ? 'attack' : 'interact'); if (this.padPressed(i, 1)) this.playerAction(i, 'dash'); if (this.padPressed(i, 2)) this.playerAction(i, 'interact'); if (state.mode === 'vault') { if (this.padPressed(i, 14)) this.chooseTreasure(i, state.players[i].choice - 1); if (this.padPressed(i, 15)) this.chooseTreasure(i, state.players[i].choice + 1); } }
     },
     padPressed: function (player, button) { var pad = gamepads[player]; if (!pad) return false; var down = !!(pad.buttons[button] && pad.buttons[button].pressed); var edge = down && !padEdges[player][button]; padEdges[player][button] = down; return edge; },
@@ -428,7 +429,19 @@
       else if (state.mode === 'guardian') { if (keyPressed('KeyF')) this.playerAction(0, 'interact'); if (keyPressed('KeyG')) this.playerAction(0, 'attack'); if (keyPressed('KeyH')) this.playerAction(0, 'dash'); if (keyPressed('Enter')) this.playerAction(1, 'interact'); if (keyPressed('Slash')) this.playerAction(1, 'attack'); if (keyPressed('Period')) this.playerAction(1, 'dash'); }
       else if (state.mode === 'vault') { if (keyPressed('KeyA')) this.chooseTreasure(0, state.players[0].choice - 1); if (keyPressed('KeyD')) this.chooseTreasure(0, state.players[0].choice + 1); if (keyPressed('KeyF')) this.claimTreasure(0); if (keyPressed('ArrowLeft')) this.chooseTreasure(1, state.players[1].choice - 1); if (keyPressed('ArrowRight')) this.chooseTreasure(1, state.players[1].choice + 1); if (keyPressed('Enter')) this.claimTreasure(1); }
     },
-    pointerLocal: function (pointer) { var canvas = this.game.canvas, rect = canvas.getBoundingClientRect(); return { x: clamp((pointer.x - rect.left) / Math.max(1, rect.width) * W, 0, W), y: clamp((pointer.y - rect.top) / Math.max(1, rect.height) * H, 0, H) }; },
+    // Client pixels -> design units. Must invert the SAME letterbox layoutScene
+    // applies (root container offset by layout.x/y and scaled by layout.k),
+    // not stretch the whole canvas box onto 0..W / 0..H: the canvas is not the
+    // design aspect, so the stretched mapping put every tap in the wrong place
+    // and no button could be hit.
+    pointerLocal: function (pointer) {
+      var canvas = this.game.canvas, rect = canvas.getBoundingClientRect();
+      var sx = canvas.width / Math.max(1, rect.width), sy = canvas.height / Math.max(1, rect.height);
+      var k = this.layout.k || 1;
+      var wx = ((pointer.x - rect.left) * sx - this.layout.x) / k;
+      var wy = ((pointer.y - rect.top) * sy - this.layout.y) / k;
+      return { x: clamp(wx, 0, W), y: clamp(wy, 0, H) };
+    },
     readPointers: function () {
       var live = {}; kit.input.pointers.forEach(function (p, id) { live[id] = true; if (pointerEdges[id] !== p.downAt) { pointerEdges[id] = p.downAt; var local = this.pointerLocal(p); p.zone = state.mode + '-p' + (local.x < W / 2 ? '1' : '2'); this.handlePointer(local.x, local.y); } }, this); for (var id in pointerEdges) if (!live[id]) delete pointerEdges[id];
     },
@@ -508,7 +521,33 @@
     Object.keys(config).forEach(function (key) { Klass.prototype[key] = config[key]; }); return Klass;
   }
 
-  Game.phaser = new Phaser.Game({ type: Phaser.AUTO, parent: 'game', backgroundColor: C.deep, scale: { mode: Phaser.Scale.RESIZE, width: W, height: H }, render: { antialias: true, powerPreference: 'high-performance', roundPixels: false, batchSize: 2048 }, fps: { target: 60, min: 30 }, scene: [toScene(BootScene), toScene(PlayScene)] });
+  // Scale.NONE + zoom 1/dpr, NOT Scale.RESIZE: with a real parent element,
+  // RESIZE re-derives gameSize and canvas.width from the parent's CSS box on
+  // its 500ms parent poll (ScaleManager.updateScale), which silently undoes
+  // every dense resize and pins the title at ratio 1.0. NONE leaves the
+  // backing store where GGKit.hiDpi.resize put it and compensates in CSS via
+  // zoom. World coordinates stay in device pixels either way, and
+  // layoutScene() already derives its letterbox from this.scale.width/height.
+  var DPR = root.GGKit.hiDpi.dpr();
+  Game.phaser = new Phaser.Game({ type: Phaser.AUTO, parent: 'game', backgroundColor: C.deep, scale: { mode: Phaser.Scale.NONE, width: W, height: H, zoom: 1 / DPR }, render: Object.assign({}, root.GGKit.renderDefaults, { batchSize: 2048 }), fps: { target: 60, min: 30 }, scene: [toScene(BootScene), toScene(PlayScene)] });
+  // Size from the game host element, never from window.innerHeight: the
+  // control legend owns the rest of the viewport, and a canvas sized to the
+  // window overflows behind it.
+  function hostSize() {
+    var host = document.getElementById('game');
+    var rect = host && host.getBoundingClientRect ? host.getBoundingClientRect() : null;
+    var w = rect && rect.width ? rect.width : (root.innerWidth || W);
+    var h = rect && rect.height ? rect.height : (root.innerHeight || H);
+    return { w: Math.max(1, Math.round(w)), h: Math.max(1, Math.round(h)) };
+  }
+  function resizeGame() {
+    var size = hostSize();
+    root.GGKit.hiDpi.resize(Game.phaser, size.w, size.h);
+  }
+  root.addEventListener('resize', resizeGame);
+  root.addEventListener('orientationchange', resizeGame);
+  document.addEventListener('visibilitychange', resizeGame);
+  resizeGame();
   kit.registerPWA();
   root.__VAULT_RAIDERS_READY = true;
   root.__vr.state = state;

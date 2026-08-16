@@ -42,3 +42,63 @@ Assets: procedural original art is drawn in Phaser. Shipped audio and icons rema
 - MP3-only audio inventory and shipped-file size audit
 - Mock boot and gameplay smoke passed menu, synchronized puzzle, guardian damage, and treasure claims.
 - Payload audit: 80,562 bytes total, with every shipped file below 400 KB.
+
+## Retina pass 2026-08-16
+
+- Measured before ratio: unavailable for this title in this environment. Fleet baseline was 1.00x for 62 titles, with the remainder from 1.10x to 2.46x.
+- Measured after ratio: unavailable because no browser backend was exposed. The helper path targets 3.00x at DPR 3, but that is not a captured measurement.
+- Recipe: Phaser `Scale.RESIZE`; initial sizing, resize, orientation change, and visibility change all call `GGKit.hiDpi.resize`.
+- Factor cap: none; the GGKit DPR cap of 3 applies. No title-specific cap was justified.
+- Could not do: DPR 3 backing-store read or gameplay screenshot. Browser discovery returned no browser, and local HTTP port binding was denied.
+
+## Retina repair 2026-08-16
+
+Two defects, both from the hi-DPI pass, verified in headless Chrome at
+deviceScaleFactor 3 on a 390 x 844 portrait viewport.
+
+**Defect 1 — boot throw.** `ReferenceError: pads is not defined`, thrown from
+`PlayScene.pollGamepads` on the first frame and every frame after. It unwound
+through `update()`, so `paint()` never ran and the page rendered as one flat
+colour (boot sweep: `colors=1`, `lit=100%`).
+Root cause: the gamepad snapshot line was lost, leaving the loop body reading
+an identifier that was never declared. Fix: restore
+`var pads = root.navigator.getGamepads() || [];` at the top of the loop, after
+the existing capability guard.
+
+**Defect 2 — density never took effect.** Measured 1.00x at DPR 3 even though
+`GGKit.hiDpi.resize` was being called correctly.
+Root cause: the title is `Scale.RESIZE` with a real parent element (`#game`).
+Phaser's ScaleManager polls the parent every 500 ms (`resizeInterval`), and in
+RESIZE mode `updateScale()` re-derives `gameSize` and `canvas.width` from the
+parent's CSS box. Every dense resize was silently reverted within half a
+second, pinning the backing store at the CSS size. RESIZE cannot hold a dense
+backing store while a parent element is set; the eight titles the recipe did
+work for have no parent element, so their poll never runs.
+Fix: `Scale.NONE` with `zoom: 1 / GGKit.hiDpi.dpr()`. `NONE` leaves the
+backing store where `GGKit.hiDpi.resize` put it and compensates in CSS via
+zoom, which is the shape `GGKit.hiDpi.phaser()` documents. World coordinates
+stay in device pixels either way, and `layoutScene()` already derives its
+letterbox from `this.scale.width/height`, so no art moved.
+`resizeGame()` now sizes from the `#game` host element instead of
+`window.innerWidth/innerHeight`: the control legend owns the rest of the
+viewport, so a window-sized canvas overflowed behind it.
+
+**Also fixed (input, required by the live gate).** `pointerLocal()` stretched
+the whole canvas box onto `0..W / 0..H`, ignoring the letterbox that
+`layoutScene()` applies (`layout.x/y`, `layout.k`). The canvas is not the
+720 x 960 design aspect, so every tap landed in the wrong place and no button
+or zone could be hit. It now inverts the same transform. Verified: a tap on
+START RAID moves `state.mode` menu -> chamber, WASD moves P1, and interact
+returns a live puzzle notice.
+
+**Measured density ratio: 3.00** (`canvas.width` 1170 / `getBoundingClientRect().width`
+390) at deviceScaleFactor 3. No factor cap was needed.
+
+Gates, all run by this lane: `boot_sweep` PASS (err=0, 404=0, colors=437,
+exact8=4028), `retina_audit` RET-OK (dpr=3, colours=5541, flattest 52.1%),
+`live_probe` PASS (rAF alive, err=0). `live_probe` reports its "frame never
+changed" warning for this title because its blind taps are zero-duration mouse
+clicks: the kit deletes a pointer on release, so a down and up inside one frame
+is never seen. A held 250 ms tap starts a raid correctly, checked by hand.
+
+`node --check` clean on `game.js`. No design, balance or content changes.
