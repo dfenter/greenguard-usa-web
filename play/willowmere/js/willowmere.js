@@ -188,7 +188,15 @@
     for (var i = 0; i < DISTRICTS.length; i++) {
       var d = DISTRICTS[i]; if (x >= d.x && x < d.x + d.w && y >= d.y && y < d.y + d.h) return d;
     }
-    return DISTRICTS[0];
+    /* Willow Grove only spans the west half of its band, so the cottage side
+       (and the default spawn) falls between rectangles. Fall back to the
+       nearest district instead of always naming the Lake Shore. */
+    var best = DISTRICTS[0], bd = Infinity;
+    for (var j = 0; j < DISTRICTS.length; j++) {
+      var e = DISTRICTS[j], dx = Math.max(e.x - x, 0, x - (e.x + e.w)), dy = Math.max(e.y - y, 0, y - (e.y + e.h));
+      var dd = dx * dx + dy * dy; if (dd < bd) { bd = dd; best = e; }
+    }
+    return best;
   }
   function hex(c) { return Phaser.Display.Color.HexStringToColor(c).color; }
   function text(scene, x, y, value, size, color, weight, originX, originY) {
@@ -304,8 +312,12 @@
       this.worldImage=this.add.image(0,0,'world-'+SEASONS[seasonIndex(this.s.day)].id).setOrigin(0).setDepth(0);
       this.cottageImage=this.add.image(0,0,'cottage').setOrigin(0).setDepth(0).setVisible(false);
       this.dyn=this.add.graphics().setDepth(20); this.weather=this.add.graphics().setDepth(24);
-      this.uiG=this.add.graphics().setDepth(180); this.uiTexts=[]; for(i=0;i<72;i++){var ut=text(this,0,0,'',14,'#f5f3df','600',0,0);ut.setDepth(220);ut.setVisible(false);this.uiTexts.push(ut);}
+      /* The UI layer is authored in screen space (0..VW, 0..VH), so it must be
+         pinned to the camera. Without scrollFactor 0 the HUD, the stick, the
+         action button and every panel slide away with the world scroll. */
+      this.uiG=this.add.graphics().setDepth(180).setScrollFactor(0); this.uiTexts=[]; for(i=0;i<72;i++){var ut=text(this,0,0,'',14,'#f5f3df','600',0,0);ut.setDepth(220);ut.setScrollFactor(0);ut.setVisible(false);this.uiTexts.push(ut);}
       this.icons={bag:this.add.image(290,34,'wm_bag').setDisplaySize(28,28).setDepth(221),gear:this.add.image(352,34,'wm_gear').setDisplaySize(28,28).setDepth(221),action:this.add.image(330,758,'wm_hand').setDisplaySize(30,30).setDepth(221),rotate:this.add.image(63,94,'wm_rotate').setDisplaySize(26,26).setDepth(221),undo:this.add.image(115,94,'wm_undo').setDisplaySize(26,26).setDepth(221)};
+      for(var ik in this.icons)this.icons[ik].setScrollFactor(0);
       this.sparkEmitter=this.add.particles(0,0,'wm_dot',{speed:{min:45,max:145},angle:{min:0,max:360},lifespan:{min:320,max:720},scale:{start:.8,end:0},alpha:{start:.9,end:0},emitting:false,blendMode:Phaser.BlendModes.ADD,maxAliveParticles:42}).setDepth(80);
       this.leafEmitter=this.add.particles(0,0,'wm_dot',{speed:{min:20,max:80},angle:{min:230,max:310},lifespan:{min:500,max:1000},scale:{start:1.1,end:0},alpha:{start:.7,end:0},emitting:false,tint:hex('#d88988'),maxAliveParticles:24}).setDepth(79);
       this.camera=this.cameras.main; this.camera.setBounds(0,0,WORLD_W,WORLD_H); this.camera.setScroll(0,0);
@@ -437,7 +449,7 @@
     startFestival: function (season) { if(season===3&&!this.allStories()&&this.s.stats.craft<8)return;var f=FESTIVALS[season]||FESTIVALS[3];if(this.s.festivalFlags.indexOf(season)<0)this.s.festivalFlags.push(season);this.mode='festival';this.festival=f;kit.audio.sfx('sfx_festival',{volume:.8});this.juiceBeat(195,380,'big');saveState(this.s); },
     hitButton: function (x,y) {
       if(this.mode==='play'||this.mode==='cottage'){if(this.inRect(x,y,264,8,52,52))return 'bag';if(this.inRect(x,y,326,8,52,52))return 'settings';if(this.inRect(x,y,286,720,100,86))return 'action';if(this.mode==='cottage'&&this.inRect(x,y,174,720,98,56))return 'decorate';}
-      if(this.mode==='menu'){if(this.inRect(x,y,70,280,250,56))return 'sound';if(this.inRect(x,y,70,350,250,56))return 'settings';if(this.inRect(x,y,70,420,250,56))return 'close';}
+      if(this.mode==='menu'){if(this.inRect(x,y,70,316,250,56))return 'sound';if(this.inRect(x,y,70,386,250,56))return 'settings';if(this.inRect(x,y,70,456,250,56))return 'close';}
       if(this.mode==='craft'||this.mode==='bag'||this.mode==='gift'){if(this.inRect(x,y,324,76,52,52))return 'close';}
       if(this.mode==='dialog'){if(this.inRect(x,y,25,726,160,58))return 'gift';if(this.inRect(x,y,205,726,160,58))return 'continue';}
       return null;
@@ -448,13 +460,21 @@
       if(this.mode==='craft'){if(this.inRect(x,y,324,76,52,52)){this.mode='cottage';return;}var page=FURNITURE.slice(this.craftPage*8,this.craftPage*8+8);for(var i=0;i<page.length;i++){var col=i%2,row=Math.floor(i/2),rx=24+col*176,ry=146+row*126;if(this.inRect(x,y,rx,ry,164,112)){this.craft(this.craftPage*8+i);return;}}if(this.inRect(x,y,24,716,80,54))this.craftPage=Math.max(0,this.craftPage-1);if(this.inRect(x,y,286,716,80,54))this.craftPage=Math.min(4,this.craftPage+1);return;}
       if(this.mode==='gift'){if(this.inRect(x,y,324,76,52,52)){this.mode='dialog';return;}var items=this.giftItems(),page=items.slice(this.giftPage*8,this.giftPage*8+8);for(i=0;i<page.length;i++){col=i%4;row=Math.floor(i/4);rx=20+col*90;ry=166+row*112;if(this.inRect(x,y,rx,ry,82,96)){this.giftItem(page[i]);return;}}return;}
       if(this.mode==='dialog'){if(this.inRect(x,y,324,76,52,52)){this.mode='play';this.dialog=null;return;}if(this.inRect(x,y,25,726,160,58)){this.mode='gift';return;}if(this.inRect(x,y,205,726,160,58)){this.advanceDialog();return;}if(y>470)this.advanceDialog();return;}
-      if(this.mode==='menu'){if(this.inRect(x,y,70,420,250,56))this.mode='play';}
+      if(this.mode==='menu'){if(this.inRect(x,y,70,456,250,56))this.mode='play';}
     },
 
     renderWorld: function () {
       var si=this.currentSeason(),j=this.dynShake;this.worldImage.setPosition(j.x,j.y);this.cottageImage.setPosition(0,0);this.dyn.setPosition(j.x,j.y);this.weather.setPosition(j.x,j.y);
       if(this.mode==='title'||this.s.scene==='world'){this.worldImage.setVisible(true);this.cottageImage.setVisible(false);if(si!==this.lastSeason){this.worldImage.setTexture('world-'+SEASONS[si].id);this.lastSeason=si;}this.renderField();}
-      else {this.worldImage.setVisible(false);this.cottageImage.setVisible(true);this.dyn.setPosition(0,0);this.weather.setPosition(0,0);this.renderCottage();}
+      else {this.worldImage.setVisible(false);this.cottageImage.setVisible(true);this.dyn.setPosition(0,0);this.weather.setPosition(0,0);
+        /* The interior is authored at the camera origin. Any path into the
+           cottage that skips performAction (the __wm forceMode hook) would
+           otherwise leave the world scroll in place and clip the room. */
+        if(this.camera.scrollX!==0||this.camera.scrollY!==0)this.camera.setScroll(0,0);
+        /* renderWeather never runs indoors, so the last outdoor frame of rain
+           or snow would otherwise stay frozen on top of the room. */
+        this.weather.clear();
+        this.renderCottage();}
     },
     renderField: function () {
       var g=this.dyn,si=this.currentSeason(),C=SEASONS[si],i,p,n,near;g.clear();this.npcPositions=[];this.nodePositions=[];

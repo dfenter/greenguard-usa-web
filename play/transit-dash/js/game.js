@@ -247,7 +247,7 @@
         continue;
       }
       if (e.type === 'rail') {
-        if (rz < 0.9 && rz > -0.8 && laneGap < 0.5 && !p.air) { p.grindT += 0.12; p.grindLane = e.lane; this.grindDistance += this.speed * 0.12; }
+        if (rz < 0.9 && rz > -0.8 && laneGap < 0.5 && !p.air) { p.grindT += 0.12; p.grindLane = e.lane; this.grindDistance += this.speed * 0.12; this.bumpMission('grind', Math.floor(this.grindDistance)); }
         continue;
       }
       if (e.type === 'ramp') {
@@ -262,7 +262,14 @@
         if (e.type === 'train') safe = p.y > 1.22;
         else if (e.type === 'barrier') safe = p.rollT > 0;
         else if (e.type === 'gap') safe = p.y > 0.48 || p.jetT > 0;
-        if (safe) this.nearMiss(e); else this.takeHit(e);
+        if (safe) {
+          // A clean vault over a rail car and a clean roll under a barrier are
+          // the two counters the score formula and the vault/roll missions
+          // read; nothing ever recorded them.
+          if (e.type === 'train') { this.vaults++; this.bumpMission('vault', this.vaults); }
+          else if (e.type === 'barrier') { this.rolls++; this.bumpMission('roll', this.rolls); }
+          this.nearMiss(e);
+        } else this.takeHit(e);
       }
     }
   };
