@@ -1,0 +1,16 @@
+{
+  "name": "Touchline Eleven",
+  "short_name": "Touchline 11",
+  "description": "Five a side arcade football with drag passing, swipe shooting, a twelve fixture season and a skill drill gauntlet.",
+  "start_url": "/play/touchline-eleven/",
+  "scope": "/play/touchline-eleven/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#06150f",
+  "theme_color": "#06150f",
+  "categories": ["games", "sports"],
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

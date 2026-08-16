@@ -1,0 +1,15 @@
+{
+  "name": "Verge Protocol // Fleet F15",
+  "short_name": "Verge Protocol",
+  "start_url": "/play/verge-protocol/",
+  "scope": "/play/verge-protocol/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#090f18",
+  "theme_color": "#090f18",
+  "description": "Zombie tower defense with a steerable field operator and a base you rebuild with mission salvage.",
+  "icons": [
+    { "src": "icon.png", "sizes": "64x64", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

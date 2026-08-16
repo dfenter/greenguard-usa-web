@@ -1,4 +1,157 @@
-WASD or left stick moves; J/K or the two right buttons cast skills; basic attacks auto-target nearest.
-Tap any creature for its posted drop table; tap FORGE to pick a slot and enhance +1 to +9.
-Clear both open fields' visible three-minute bosses with a full +9 set to reach mastery.
-Deaths respawn for 10g; gold, kills, drops, boss clears, and gear tiers persist locally.
+# Thornmark
+
+A top down action MMORPG. Five hunting regions, a four floor undercroft, nine
+named bosses, a thirty task chain and an honest grind with no purchase surface
+anywhere in the game.
+
+## Controls
+
+- Drag the left pad to move. Keyboard: WASD or the arrow keys.
+- Your blade swings on its own at whatever it is locked onto. Tap an enemy to
+  lock it, tap open ground to release the lock and go back to auto target.
+- Six skill buttons, bottom right. Keyboard: J, K, U, I, O, L.
+- ROLL passes you through a wind up with invulnerability frames. Keyboard: space.
+- The book icon, top right, opens gear, forge, talents, quests and travel.
+  Keyboard: C or Tab, escape closes.
+- The target icon toggles auto hunt. It is a convenience, never a requirement:
+  it moves you to the nearest enemy and spends skills off cooldown, and any
+  touch or key input takes control back instantly.
+- Gamepads work: left stick moves, face and shoulder buttons cast, start opens
+  the book.
+
+## Goal
+
+Take the crown from the Thorn King in Thornmark Keep at level 25, and finish
+all thirty tasks in the chain on the way. Enemies telegraph in red before they
+strike. Death costs ten gold and a slice of the current level, never gear.
+
+## Dev notes
+
+### Preserved prototype behaviour
+
+The archived prototype in this directory was the design document. These tuned
+constants and behaviours survive the rebuild by name:
+
+- Player move speed 128, basic attack cooldown 0.72 s, auto target range 128.
+- Skill one THORN ARC: cooldown 4.8 s, radius 124, needs a target inside 142,
+  damage term `20 + weapon plus * 4`.
+- Skill two EMBER BURST: cooldown 8.5 s, blast radius 74, needs a target inside
+  168, damage term `40 + ring plus * 5`.
+- Attack power base `8 + weapon plus * 3 + ring plus * 2`.
+- Drop chance `0.38 + min(0.18, weapon plus * 0.02)`, now also raised by the
+  FORTUNE affix and the GOOD FORTUNE talent.
+- Enchant table `ENHANCE_RATES = [1, .90, .82, .74, .66, .58, .50, .42, .34]`
+  and cost `18 + level * 14`, odds posted before you spend.
+- Gear slots and base names: VINE EDGE (weapon), BARK COAT (armour),
+  EMBER LOOP (ring), plus nine enchant levels.
+- Death costs 10 gold and respawns you at a bind point.
+- Field bosses on a three minute timer, ROOTCROWN with 520 base life and
+  CINDERMAW with 620 base life, both still in the roster.
+- Enemy families thornling, mireling, cinderkin and ashwing keep their
+  prototype life, speed, radius, damage and gold ranges.
+- Gold, kills, drops, boss clears and gear tiers persist locally.
+
+Deliberate tuning extension: prototype enemy speeds (18 to 35) never let a pack
+catch a player moving at 128. The base speed values are unchanged and a per
+family `chase` multiplier of 2.0 to 3.0 applies once a unit is aggroed, so packs
+close but a player who commits to running still escapes.
+
+### Content
+
+| Thing | Count | Detail |
+|---|---|---|
+| Hunting regions | 5 | Mosswold Verge (lv 1), Thornwood Deep (5), Ruined Bailey (10), Ember Mire (15), Thornmark Keep (20) |
+| Undercroft floors | 4 | Flooded Stair, Bone Gallery, Ember Vault, Throneless Hall, three to four waves then a boss each |
+| Named bosses | 9 | Rootcrown, Briarjaw, The Pale Sergeant, Cindermaw, The Thorn King, Graveweft, Ossiar the Counted, Slaghound, The Underprior |
+| Enemy families | 8 | thornling, mireling, briarhound, bailey shade, stonepike, cinderkin, ashwing, keep warden |
+| Ambient hazards | 5 | pollen drift, briar snare, falling masonry, ember vent, thorn spike |
+| Class paths | 3 | Warden bulwark, Emberblade striker, Thornseer warder |
+| Skills | 12 distinct | six on the wheel per path, unlocking at levels 1, 3, 6, 10, 15, 20 |
+| Talents | 12 nodes, 2 ranks | three branches, 24 points across 25 levels, unlearn for 120 gold |
+| Quest chain | 30 tasks | kill, boss, level, travel, enchant, craft, shard, dungeon, dodge and rarity goals |
+| Levels | 25 | curve `55 + level^2 * 13` |
+| Gear | 3 slots, 5 rarities, 6 affixes | Worn, Keen, Runed, Thornbound, Kingsmark; enchant +0 to +9; craft from 3 shards and 60 gold with posted odds |
+
+Time to exhaust: roughly 45 to 70 minutes to reach level 25 with the chain
+finished and all four undercroft floors cleared, which is well past the twenty
+minute content bar.
+
+### Audio inventory
+
+Three looping music beds through the GGKit music bus, seventeen distinct one
+shots through the sfx bus, all original and all mp3:
+
+- music: `music-wilds` (Mosswold and Thornwood), `music-keep` (Bailey, Mire,
+  Keep), `music-undercroft` (dungeon). Crossfades on area change.
+- sfx: swing, hit, crit, arc, burst, cast, dodge, hurt, telegraph, loot,
+  levelup, enhance-ok, enhance-fail, boss, quest, bind, ui.
+
+Generated by `aaa/harness/tm_tools/build_audio.py` (numpy synthesis, mono
+libmp3lame). Icons by `aaa/harness/tm_tools/build_icons.py`.
+
+### Presentation
+
+- Every sprite, tile, prop, particle and HUD plate is baked into a canvas
+  texture during the loading screen. Nothing is drawn with a live Phaser
+  Graphics command list, so no per frame arc walking or command replay.
+- Player animation states: idle, walk, attack, cast, hurt, dodge, two frames
+  each, three class silhouettes.
+- Particle systems: hit sparks, footstep dust, drifting region motes, expanding
+  skill rings, loot and level shards, ember and hazard flecks.
+- Camera follows with a lerp and clamps to region bounds; screen shake and hit
+  stop run through the GGKit juice budget and respect the accessibility toggle.
+- Region lighting is a tinted overlay plus a baked vignette, one per region.
+
+### UI law compliance
+
+- One transient at a time. Corner chips queue, hold one second and fade.
+- Centre banners only at run boundaries: region arrival, boss appearance, boss
+  defeat, floor clear, chain complete. Sixty percent width with an overshoot.
+- Coach line is a single thin strip under the HUD that fades after about three
+  seconds and only ever shows one instruction.
+- Persistent HUD is the top strip: level and experience, life, region, one
+  quest line, gold, and three 46 px icon buttons. Skill wheel and stick sit in
+  the thumb zones with 56 to 64 px targets.
+- Interactive first run tutorial in eight steps, each advanced by doing the
+  thing rather than by tapping through text.
+
+### Verification hook
+
+`window.__tm = { state, forceMode, forceStage }`.
+
+- `state.mode` is `title`, `field`, `dungeon`, `menu` or `dead`.
+- `state.stage` is a region key or `undercroft-<n>`; also `level`, `progress`
+  (fraction of the chain), `score` (total kills), `health`, `maxHealth`, `gold`,
+  `quest`, `region`, `floors`, `cls`, `bossAlive`, `enemies`, `autoHunt`,
+  `tutorial`.
+- `forceMode`: `play`, `field` or `dungeon`, read at boot and live.
+- `forceStage`: a region key (`embermire`), a region index, or `undercroft-3`.
+  Read at boot and live; it raises the level so the stage is legal.
+
+### Known limitations
+
+- Save is a single local profile; there is no cloud sync and no second slot.
+- Auto hunt does not path around solid props, it steers straight at the target.
+- The undercroft always resumes at the deepest unfinished floor rather than
+  offering a floor picker.
+- Class choice is locked once the first kill lands, to keep the talent tree and
+  quest chain honest.
+
+## AAA rebuild
+
+Implemented: full engine rebuild on Phaser 3 from `/play/_shared/`, GGKit as the
+only lifecycle, pointer, save, audio, loading, settings and juice layer, five
+authored regions plus a four floor undercroft, nine bosses, three class paths,
+twelve skills, a twelve node talent tree, a thirty task quest chain, gear with
+rarities and affixes, posted odds enchanting and crafting, bind point death
+penalty, aggro reads and red wind up telegraphs, dodge roll with invulnerability
+frames, auto hunt as a convenience toggle, an eight step interactive tutorial,
+three music beds and seventeen sound effects, PWA shell with manifest, icons and
+a precaching service worker.
+
+Content tables: see the tables above for regions, floors, bosses, families,
+hazards, classes, skills, talents, quests, levels and gear.
+
+Deferred: no cloud save or second profile slot; auto hunt does not pathfind
+around props; no floor picker for the undercroft; class is locked after the
+first kill. All four are design calls, not missing work.

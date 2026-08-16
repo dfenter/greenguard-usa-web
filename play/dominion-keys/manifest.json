@@ -1,0 +1,17 @@
+{
+  "name": "Dominion Keys",
+  "short_name": "Dominion Keys",
+  "description": "A pin-pull chamber puzzle with a keep to rebuild.",
+  "start_url": "/play/dominion-keys/",
+  "scope": "/play/dominion-keys/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0b0f1a",
+  "theme_color": "#0b0f1a",
+  "categories": ["games", "puzzle"],
+  "icons": [
+    { "src": "favicon.png", "sizes": "64x64", "type": "image/png", "purpose": "any" },
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

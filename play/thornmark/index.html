@@ -1,33 +1,22 @@
 <!doctype html>
 <html lang="en">
-<head><base href="/play/thornmark/">
+<head>
+  <base href="/play/thornmark/">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#0b0d14">
-  <title>Thornmark — Honest Field ARPG</title>
-  <link rel="stylesheet" href="./styles.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0a1012">
+  <meta name="description" content="Thornmark, a top down action MMORPG across five hunting regions, a four floor undercroft and a thirty task chain.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon512.png">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="styles.css">
+  <title>Thornmark</title>
 </head>
 <body>
-  <main id="app">
-    <canvas id="game" aria-label="Thornmark game"></canvas>
-    <div id="audioGate" class="screen-layer">
-      <div class="gate-card">
-        <div class="eyebrow">A FREE FIELD ARPG</div>
-        <h1>THORNMARK</h1>
-        <p>Two wild fields. Honest drops. No paid shortcuts.</p>
-        <button id="enterButton" type="button">ENTER THE FIELD</button>
-        <small>Tap once to unlock optional field audio.</small>
-      </div>
-    </div>
-    <div id="rotateOverlay" class="screen-layer rotate-layer" aria-live="polite">
-      <div class="rotate-card">
-        <div class="rotate-glyph">↻</div>
-        <h2>TURN YOUR DEVICE</h2>
-        <p>THORNMARK is a portrait field.</p>
-        <small>FIELD PAUSED</small>
-      </div>
-    </div>
-  </main>
-  <script src="./game.js"></script>
+  <div id="game" aria-label="Thornmark top down action role playing game"></div>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>

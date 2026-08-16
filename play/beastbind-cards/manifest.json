@@ -1,0 +1,16 @@
+{
+  "name": "Beastbind Cards",
+  "short_name": "Beastbind",
+  "description": "An original creature card duel: fifteen deck gauntlet, draft runs, and packs earned only by winning.",
+  "start_url": "/play/beastbind-cards/",
+  "scope": "/play/beastbind-cards/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0b111c",
+  "theme_color": "#0b111c",
+  "categories": ["games"],
+  "icons": [
+    {"src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}

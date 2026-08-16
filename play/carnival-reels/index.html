@@ -1,35 +1,30 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head><base href="/play/carnival-reels/">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<meta name="color-scheme" content="dark">
-<title>Carnival Reels</title>
-<style>
-  html, body {
-    margin: 0; padding: 0; height: 100%; width: 100%;
-    background: #05080c; overflow: hidden;
-    -webkit-text-size-adjust: 100%;
-    -webkit-tap-highlight-color: transparent;
-    overscroll-behavior: none;
-  }
-  body {
-    display: flex; align-items: center; justify-content: center;
-    touch-action: none; user-select: none; -webkit-user-select: none;
-  }
-  #c {
-    display: block;
-    touch-action: none;
-    background: #0b1017;
-    box-shadow: 0 0 40px rgba(0,0,0,0.8);
-  }
-</style>
+<head>
+  <base href="/play/carnival-reels/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+  <meta name="theme-color" content="#12061f">
+  <meta name="description" content="Carnival Reels: a five machine carnival slots parlour with posted odds on every machine, free coin top ups, and no purchases anywhere.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Carnival Reels</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<canvas id="c" width="390" height="700" aria-label="Carnival Reels"></canvas>
-<script src="js/machines.js"></script>
-<script src="js/core.js"></script>
-<script src="js/views.js"></script>
-<script src="js/game.js"></script>
+  <main id="game-shell" aria-label="Carnival Reels game">
+    <div id="game" aria-label="Carnival Reels canvas"></div>
+    <p id="sr-status" class="sr-only" aria-live="polite">Carnival Reels. Tap SPIN or press space to play.</p>
+  </main>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script src="machines.js"></script>
+  <script src="meta.js"></script>
+  <script src="art.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>

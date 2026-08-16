@@ -1,0 +1,16 @@
+{
+  "name": "Silkwind",
+  "short_name": "Silkwind",
+  "start_url": "/play/silkwind/",
+  "scope": "/play/silkwind/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#070910",
+  "theme_color": "#070910",
+  "description": "An original wuxia duelling game of stances, parries and qi.",
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "favicon.png", "sizes": "64x64", "type": "image/png", "purpose": "any" }
+  ]
+}

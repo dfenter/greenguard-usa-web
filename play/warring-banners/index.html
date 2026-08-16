@@ -1,131 +1,30 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head><base href="/play/warring-banners/">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>Warring Banners</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{width:100%;height:100%;overflow:hidden;background:#14171d;color:#e8e4d8;
- font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
- -webkit-user-select:none;user-select:none;overscroll-behavior:none}
-#app{position:fixed;inset:0;display:flex;flex-direction:column}
-
-/* ---- top bar ---- */
-#hud{flex:0 0 auto;padding:5px 8px 4px;background:#1b1f27;border-bottom:1px solid #2c323e}
-#hrow{display:flex;align-items:center;gap:8px;font-size:12px;line-height:1}
-#season{font-weight:700;font-size:13px;letter-spacing:.5px}
-#turnbar{flex:1;height:7px;background:#2c323e;border-radius:4px;overflow:hidden}
-#turnfill{height:100%;width:0%;background:#6fa8dc;transition:width .18s}
-#gold{font-weight:700;color:#e8c66a}
-#terr{display:flex;gap:6px;margin-top:5px;font-size:11px}
-.tchip{display:flex;align-items:center;gap:3px;padding:2px 5px;border-radius:9px;background:#232833}
-.tdot{width:9px;height:9px;border-radius:50%}
-.tchip.dead{opacity:.32;text-decoration:line-through}
-#hint{margin-top:4px;font-size:11px;color:#9aa3b2;height:14px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-
-/* ---- map ---- */
-#wrap{flex:1 1 auto;position:relative;min-height:0}
-#cv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
-
-/* ---- bottom controls ---- */
-#ctl{flex:0 0 auto;background:#1b1f27;border-top:1px solid #2c323e;padding:6px 8px 8px}
-#selinfo{font-size:11px;color:#b9c0cc;height:15px;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#chips{display:flex;gap:6px}
-.chip{flex:1;min-height:52px;border:1px solid #39414f;background:#242a35;border-radius:9px;
- display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
- font-size:11px;color:#dfe4ec;cursor:pointer}
-.chip b{font-size:12px}
-.chip .cost{font-size:10px;color:#e8c66a}
-.chip:active{background:#2f3745}
-.chip[disabled]{opacity:.4}
-.chip.k{flex:0 0 92px;background:#33465c;border-color:#4a6084}
-#endturn{flex:0 0 96px;background:#2f5137;border-color:#41724c;font-weight:700}
-#endturn:active{background:#3b6646}
-
-/* ---- overlays ---- */
-.ov{position:fixed;inset:0;background:rgba(10,12,16,.88);display:none;
- align-items:center;justify-content:center;flex-direction:column;padding:22px;text-align:center;z-index:20}
-.ov.on{display:flex}
-.ov h1{font-size:22px;margin-bottom:8px;letter-spacing:1px}
-.ov h2{font-size:15px;margin-bottom:6px;color:#cdd4df}
-.ov p{font-size:13px;color:#a7afbd;margin-bottom:14px;line-height:1.5;max-width:330px}
-.btn{min-height:50px;min-width:190px;padding:0 20px;border:1px solid #4a5a70;border-radius:10px;
- background:#33465c;color:#eef2f8;font-size:15px;font-weight:700;cursor:pointer;
- display:flex;align-items:center;justify-content:center}
-.btn:active{background:#3e5673}
-.btn.alt{background:#2a303c;border-color:#3d4553;margin-top:8px;font-weight:500}
-#mathbox{background:#1c2129;border:1px solid #333b48;border-radius:10px;padding:12px 14px;
- font-size:12px;line-height:1.7;margin-bottom:14px;min-width:280px;max-width:330px;text-align:left}
-#mathbox .r{display:flex;justify-content:space-between;gap:12px}
-#mathbox .r span:last-child{font-variant-numeric:tabular-nums;font-weight:600}
-#mathbox hr{border:0;border-top:1px solid #333b48;margin:6px 0}
-.win{color:#8fd6a0}.lose{color:#e88b8b}
-#btnrow{display:flex;gap:8px;flex-direction:column;align-items:center}
-#scorelist{font-size:13px;line-height:1.9;margin-bottom:14px;min-width:250px}
-#scorelist .r{display:flex;justify-content:space-between;gap:14px;align-items:center}
-#scorelist .nm{display:flex;align-items:center;gap:6px}
-</style>
+<head>
+  <base href="/play/warring-banners/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0a151f">
+  <meta name="description" content="Warring Banners, a hex campaign tactics game from GreenGuard USA.">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="64x64" href="icon.png">
+  <link rel="apple-touch-icon" href="icon512.png">
+  <title>Warring Banners // Fleet F15</title>
+  <style>
+    :root { color-scheme: dark; background: #0a151f; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #0a151f; }
+    body { -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; touch-action: none; }
+    #game { position: fixed; inset: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); width: auto; height: auto; touch-action: none; }
+    canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  </style>
 </head>
 <body>
-<div id="app">
-  <div id="hud">
-    <div id="hrow">
-      <span id="season">Season 1</span>
-      <span id="turntx">Turn 1/12</span>
-      <div id="turnbar"><div id="turnfill"></div></div>
-      <span id="gold">0g</span>
-    </div>
-    <div id="terr"></div>
-    <div id="hint">Tap your army, then tap a highlighted hex to move.</div>
-  </div>
-  <div id="wrap"><canvas id="cv"></canvas></div>
-  <div id="ctl">
-    <div id="selinfo">No army selected.</div>
-    <div id="chips">
-      <button class="chip" id="cSpear"><b>Spear</b><span>beats Cav</span><span class="cost">5g</span></button>
-      <button class="chip" id="cCav"><b>Cavalry</b><span>beats Bow</span><span class="cost">7g</span></button>
-      <button class="chip" id="cBow"><b>Bow</b><span>beats Spear</span><span class="cost">6g</span></button>
-      <button class="chip k" id="endturn">End Turn</button>
-    </div>
-  </div>
-</div>
-
-<div class="ov on" id="ovStart">
-  <h1>WARRING BANNERS</h1>
-  <p>Four warlords, one valley, twelve turns a season. Hold ground, guard your supply lines, and out-hold three rival banners.</p>
-  <button class="btn" id="btnStart">Take the Field</button>
-</div>
-
-<div class="ov" id="ovAttack">
-  <h2 id="atkTitle">Attack</h2>
-  <div id="mathbox"></div>
-  <div id="btnrow">
-    <button class="btn" id="btnAtk">Commit Attack</button>
-    <button class="btn alt" id="btnAtkNo">Withdraw</button>
-  </div>
-</div>
-
-<div class="ov" id="ovEnd">
-  <h1 id="endTitle">Season End</h1>
-  <div id="scorelist"></div>
-  <p id="endSub"></p>
-  <div id="btnrow">
-    <button class="btn" id="btnNext">Next Season</button>
-    <button class="btn alt" id="btnReset">Reset All Legacy</button>
-  </div>
-</div>
-
-<div class="ov" id="ovRot">
-  <h1>Rotate Device</h1>
-  <p>Warring Banners is played in portrait.</p>
-</div>
-
-<script src="./audio.js"></script>
-<script src="./hex.js"></script>
-<script src="./game.js"></script>
-<script src="./ai.js"></script>
-<script src="./render.js"></script>
-<script src="./main.js"></script>
+  <main id="game" aria-label="Warring Banners hex tactics game"></main>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script src="/play/warring-banners/engine.js"></script>
+  <script src="/play/warring-banners/art.js"></script>
+  <script src="/play/warring-banners/game.js"></script>
 </body>
 </html>

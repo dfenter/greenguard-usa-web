@@ -1,0 +1,16 @@
+{
+  "name": "Ironsight Ops",
+  "short_name": "Ironsight",
+  "description": "A top down tactical shooter: breach, rescue, defuse and extract across four theatres.",
+  "start_url": "/play/ironsight-ops/",
+  "scope": "/play/ironsight-ops/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0a1219",
+  "theme_color": "#0a1219",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

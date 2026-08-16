@@ -99,3 +99,47 @@ Mandatory:
 Test: a 3-second chase-cam screenshot of any race should read as "a
 2000s console racer" - car with readable bodywork and spinning wheels,
 textured road, populated horizon - never "colored boxes on a plane."
+
+## CRUIS'N FLOOR AND CAR LAW (owner, 2026-08-13)
+
+Two owner rulings, binding on every vehicle title from this date. They sit
+BELOW the Gran Turismo bar above: the GT bar is the target, this is the floor,
+and anything under the floor is an automatic reject regardless of the rest of
+the build.
+
+**Cruis'n floor.** Cruis'n USA (1994 arcade) is the MINIMUM acceptable level
+for cars, backgrounds and animations. In practice that means: vehicles with
+real body shapes, arches, glass and lights rather than blocks; roadsides packed
+continuously with recognisable landmarks, buildings, signage, trees, water,
+traffic and terrain that establish where you are; a horizon that always has
+something in it; animated life in the world (crowds, traffic, birds, flags,
+water, blowing dust); vehicle animation with visible suspension, weight
+transfer, wheel spin and crash reactions; and a distinct visual identity per
+course that you could name from a single frame.
+
+**Car law.** Owner verdict, verbatim: "the cars look terrible unrealistic
+boxes, they need to look badass." A body built from box primitives is a defect.
+Every vehicle is a sculpted multi-part model: tapered nose with a real
+front-end face (grille, intakes, lights), raked greenhouse with separate glass,
+wheel arches that arch over the wheels, sills, rear haunches wider than the
+cabin, spoiler or ducktail, diffuser, exhausts, mirrors. Stance is half the
+job: wide track, large-diameter wheels with visible dish, low ride height for
+the class, nose-down under braking. Materials separate: metallic paint with
+clearcoat highlight and an environment reflection, dark semi-transparent glass
+with a fresnel rim, matte rubber with sidewall detail, chrome or dark trim,
+emissive lamps; brake discs and calipers visible through the spokes. Animation
+on every vehicle: wheels spin and steer, steering wheel turns, brake lights
+under braking, headlights at night, squat under power, dive under braking, roll
+in corners, contact shadow always.
+
+Legal geometry sources: kitbash and re-material the CC0 Quaternius car meshes
+at worker-archive/studio-assets/quaternius-cars (SportsCar, SportsCar2,
+NormalCar1, NormalCar2, SUV, Taxi, Cop; OBJ+MTL ~130KB each, OBJ/MTL loaders
+already in /play/_shared, trace through play/_assets/LEDGER.md), or build the
+body procedurally from lathed and lofted profiles. Either way, re-material and
+detail to the bar above.
+
+ACCEPTANCE: a close chase-cam screenshot reads as a real vehicle of its class.
+Silhouette test: fill the render black and it still reads as a car, with a
+recognisable roofline, arches and stance. Applies in adapted form to hover
+machines, bikes and karts.

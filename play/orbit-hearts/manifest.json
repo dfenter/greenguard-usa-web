@@ -1,0 +1,15 @@
+{
+  "name": "Orbit Hearts",
+  "short_name": "Orbit Hearts",
+  "description": "A station romance in three routes aboard Vireo Station.",
+  "start_url": "/play/orbit-hearts/",
+  "scope": "/play/orbit-hearts/",
+  "display": "standalone",
+  "background_color": "#05070f",
+  "theme_color": "#080b18",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/play/orbit-hearts/icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/play/orbit-hearts/icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

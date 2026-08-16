@@ -1,14 +1,45 @@
 <!doctype html>
 <html lang="en">
-<head><base href="/play/pennant-nine/">
+<head>
+  <base href="/play/pennant-nine/">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#081218">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+  <meta name="theme-color" content="#071116">
+  <meta name="description" content="Pennant Nine. Tap timing baseball with a 24 game pennant chase, playoffs, home run derby and clutch challenges.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icon512.png">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="apple-touch-icon" href="icon.png">
   <title>Pennant Nine</title>
-  <link rel="stylesheet" href="styles.css">
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { width:100%; height:100%; margin:0; overflow:hidden; background:#071116; }
+    body {
+      display:grid; place-items:center; overscroll-behavior:none; touch-action:none;
+      user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    #game {
+      position:fixed;
+      top:env(safe-area-inset-top); right:env(safe-area-inset-right);
+      bottom:env(safe-area-inset-bottom); left:env(safe-area-inset-left);
+      touch-action:none;
+    }
+    #game canvas { display:block; width:100%; height:100%; touch-action:none; }
+  </style>
 </head>
 <body>
-  <canvas id="game" aria-label="Pennant Nine baseball game"></canvas>
+  <div id="game" aria-label="Pennant Nine baseball game"></div>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script src="pn_data.js"></script>
+  <script src="pn_sim.js"></script>
+  <script src="pn_art.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

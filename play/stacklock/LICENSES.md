@@ -1,7 +1,14 @@
 # Stacklock - asset licenses
 
-Rev 1, 2026-08-10. Traces every file shipped under `/play/stacklock/` to its
-source, as required by `/play/_assets/LEDGER.md`.
+Rev 2, 2026-08-13 (round 2 polish). Traces every file shipped under
+`/play/stacklock/` to its source, as required by `/play/_assets/LEDGER.md`.
+
+Round 2 added NO asset file. The two new modes, the rival AI, the evolving
+sky, the combo rim, the danger grade and every new effect are drawn from the
+existing atlas, the five existing particle sprites and procedural canvas
+bakes, and the nine new audio beats are the existing cues re-voiced by
+playback rate (see `VOICE` in `game.js`). The shipped payload therefore still
+consumes no ledger pack row and still contains no third-party file.
 
 **Summary: no third-party asset ships in this game.** Every image and every
 audio file is original work authored for Stacklock by GreenGuard USA and
@@ -108,7 +115,7 @@ floor of eight cues and two states.
 
 | File | Source | License |
 |---|---|---|
-| `index.html`, `game.js`, `sl_data.js`, `sw.js`, `manifest.json` | Original, written for this title | proprietary, GreenGuard USA |
+| `index.html`, `game.js`, `sl_data.js`, `sl_ai.js`, `sw.js`, `manifest.json` | Original, written for this title | proprietary, GreenGuard USA |
 | `/play/_shared/phaser.min.js` | Phaser 3.87, vendored | MIT, covered by `/play/_shared/LICENSES.md` |
 | `/play/_shared/ggkit.js` | GreenGuard studio kit | proprietary, covered by `/play/_shared/LICENSES.md` |
 | `/play/_shared/sw-template.js` | GreenGuard service-worker template, `sw.js` is authored from it | proprietary |
@@ -127,3 +134,13 @@ called a QUAD; no branded block-game term, colour set, logotype, mascot,
 jingle or board frame is referenced or approximated. The board frame, medals,
 pickups (wildcard and bomb), the Puzzle board set, the Master Clear finale and
 every string in the game were authored for this title.
+
+Round 2 additions are original on the same terms. `sl_ai.js` is an original
+implementation of a published, non-proprietary board-evaluation heuristic (the
+Dellacherie feature set: landing height, rows eliminated, row transitions,
+column transitions, holes, well sums). The features and their weights are
+openly documented academic material, not code or content taken from any
+product, and the search, the tier model and every line of the file were
+written for this title. The three rival tiers (APPRENTICE, CONTENDER,
+ARCHITECT), the ULTRA 2:00 and RIVAL board identities, the six spin-school
+Puzzle boards (25-30) and the buried-row exchange are original.

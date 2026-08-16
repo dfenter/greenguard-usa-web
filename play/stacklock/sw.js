@@ -4,7 +4,7 @@
  * Bump VERSION on every deploy of the game to invalidate stale caches.
  */
 const SLUG = 'stacklock';
-const VERSION = '2026-08-10-ui-declutter-1';
+const VERSION = '2026-08-13-round2-polish-1';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/stacklock/',
@@ -15,6 +15,7 @@ const ASSETS = [
   '/play/stacklock/icon512.png',
   '/play/stacklock/manifest.json',
   '/play/stacklock/sl_data.js',
+  '/play/stacklock/sl_ai.js',
   '/play/_shared/phaser.min.js',
   '/play/_shared/ggkit.js',
   '/play/stacklock/assets/atlas.json',

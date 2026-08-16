@@ -1,92 +1,49 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head><base href="/play/silkwind/">
-<meta charset="utf-8">
-<title>Silkwind</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<meta name="theme-color" content="#0a0c12">
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden;background:#07080d;color:#e8e6df;
-  font-family:ui-monospace,Menlo,Consolas,monospace;-webkit-text-size-adjust:100%;
-  -webkit-tap-highlight-color:transparent;overscroll-behavior:none}
-#app{position:fixed;inset:0;display:flex;flex-direction:column}
-#stage{flex:1 1 auto;position:relative;min-height:0;touch-action:none;user-select:none;-webkit-user-select:none}
-#cv{display:block;width:100%;height:100%}
-#bar{flex:0 0 auto;padding:4px 6px 8px;background:#0b0d15;border-top:1px solid #1e2434;
-  user-select:none;-webkit-user-select:none;touch-action:none}
-#hint{height:20px;line-height:20px;text-align:center;font-size:11px;letter-spacing:.06em;
-  color:#8fa2c4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.row{display:flex;gap:6px;margin-top:5px}
-.btn{flex:1 1 0;min-height:52px;border:1px solid #2a3145;border-radius:9px;background:#141926;
-  color:#cfd6e6;font:inherit;font-size:12px;letter-spacing:.08em;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:2px;touch-action:none;cursor:pointer}
-.btn small{font-size:9px;opacity:.55;letter-spacing:.04em}
-.btn.dn{transform:translateY(1px);filter:brightness(1.5)}
-.chip.on{border-color:currentColor;box-shadow:inset 0 0 0 1px currentColor,0 0 10px -2px currentColor}
-.c0{color:#7fd4ff}.c1{color:#ff8a6a}.c2{color:#9fe08a}
-.btn.act{color:#e8e6df}
-#bBurst{color:#ffd76a}
-#bBurst.off{opacity:.4}
-.ov{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
-  gap:12px;padding:22px;text-align:center;background:rgba(6,8,14,.93);z-index:5}
-.ov.show{display:flex}
-.ov h1{font-size:26px;letter-spacing:.22em;font-weight:600}
-.ov h2{font-size:16px;letter-spacing:.14em;color:#ffd76a;font-weight:600}
-.ov p{font-size:12px;line-height:1.6;color:#93a0bb;max-width:300px}
-.ov .btn{flex:0 0 auto;min-width:190px;padding:0 18px}
-#rot{z-index:9}
-#ladder{justify-content:flex-start;overflow-y:auto;gap:6px;padding-top:18px}
-.lrow{width:100%;max-width:330px;min-height:50px;display:flex;align-items:center;gap:10px;padding:6px 10px;
-  border:1px solid #232a3c;border-radius:8px;background:#111726;text-align:left;color:#cfd6e6;font:inherit;
-  font-size:12px;touch-action:none}
-.lrow.lock{opacity:.38}
-.lrow b{display:block;font-size:13px;letter-spacing:.1em}
-.lrow span{font-size:10px;color:#8794ad;letter-spacing:.05em}
-.lrow i{margin-left:auto;font-style:normal;font-size:10px;letter-spacing:.08em;color:#ffd76a}
-</style>
+<head>
+  <base href="/play/silkwind/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+  <meta name="theme-color" content="#070910">
+  <meta name="description" content="Silkwind, an original wuxia duelling game of stances, parries and qi.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Silkwind</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="64x64" href="favicon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      width: 100%; height: 100%; margin: 0; overflow: hidden; background: #070910;
+      touch-action: none; user-select: none; -webkit-user-select: none; overscroll-behavior: none;
+    }
+    #game {
+      position: fixed; inset: 0; overflow: hidden; background: #070910;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    canvas { display: block; touch-action: none; }
+  </style>
 </head>
 <body>
-<div id="app">
-  <div id="stage">
-    <canvas id="cv"></canvas>
-    <div class="ov show" id="boot">
-      <h1>SILKWIND</h1>
-      <p>Eight masters. Three stances. One breath.<br>Read the tell, break the guard.</p>
-      <button class="btn act" id="bStart">TAP TO BEGIN</button>
-      <p style="font-size:10px;opacity:.6">swipe strike &middot; tap parry &middot; hold grab<br>keys: arrows &middot; J parry &middot; K grab &middot; 1-3 stance &middot; space burst</p>
-    </div>
-    <div class="ov" id="end">
-      <h2 id="endT">—</h2>
-      <p id="endP">—</p>
-      <button class="btn act" id="bNext">CONTINUE</button>
-      <button class="btn act" id="bAgain">REMATCH</button>
-      <button class="btn act" id="bLad">LADDER</button>
-    </div>
-    <div class="ov" id="ladder">
-      <h2>MASTER LADDER</h2>
-      <div id="ladList" style="width:100%;display:flex;flex-direction:column;gap:6px;align-items:center"></div>
-      <button class="btn act" id="bClose" style="margin-top:6px">CLOSE</button>
-      <button class="btn act" id="bWipe" style="min-height:42px;opacity:.6">RESET PROGRESS</button>
-    </div>
-    <div class="ov" id="rot"><h2>ROTATE TO PORTRAIT</h2><p>Silkwind is played upright.</p></div>
-  </div>
-  <div id="bar">
-    <div id="hint">swipe strike &middot; tap parry &middot; hold grab</div>
-    <div class="row">
-      <button class="btn chip c0 on" id="s0" data-st="0">CRANE<small>beats tiger</small></button>
-      <button class="btn chip c1" id="s1" data-st="1">TIGER<small>beats serpent</small></button>
-      <button class="btn chip c2" id="s2" data-st="2">SERPENT<small>beats crane</small></button>
-    </div>
-    <div class="row">
-      <button class="btn act" id="bParry" style="flex:1.5">PARRY<small>tap arena</small></button>
-      <button class="btn act" id="bGrab">GRAB<small>hold arena</small></button>
-      <button class="btn act off" id="bBurst">BURST<small>50 breath</small></button>
-    </div>
-  </div>
-</div>
-<script src="./js/audio.js"></script>
-<script src="./js/masters.js"></script>
-<script src="./js/game.js"></script>
+  <main id="game" aria-label="Silkwind wuxia duelling game"></main>
+  <script>
+    /* Boot fallback state. The scene keeps this exact object live, so headless
+       probes read the same bridge before and after Phaser comes up. */
+    window.__sw = window.__sw || {
+      state: {
+        ready: false, mode: 'menu', screen: 'boot', stage: 'bamboo-grove', stageIndex: 0,
+        rung: 0, rungsCleared: 0, duellist: '', round: 1, roundsWon: 0, roundsLost: 0,
+        hp: 100, hpMax: 100, enemyHp: 100, enemyHpMax: 100, breath: 40, stance: 'crane',
+        score: 0, insight: 0, timer: 60, techniques: 0
+      },
+      forceMode: null, forceStage: null, forceWin: false
+    };
+  </script>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>

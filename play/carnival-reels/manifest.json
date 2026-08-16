@@ -1,0 +1,16 @@
+{
+  "name": "Carnival Reels",
+  "short_name": "Carnival Reels",
+  "description": "A five machine carnival slots parlour with posted odds, free coin top ups and no purchases anywhere.",
+  "start_url": "/play/carnival-reels/",
+  "scope": "/play/carnival-reels/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#12061f",
+  "theme_color": "#12061f",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

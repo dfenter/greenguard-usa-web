@@ -1,42 +1,35 @@
 <!doctype html>
 <html lang="en">
-<head><base href="/play/wayfarer-courts/">
+<head>
+  <base href="/play/wayfarer-courts/">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#101526">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+  <meta name="theme-color" content="#0d1222">
+  <meta name="description" content="Wayfarer Courts is an original portrait turn based journey for a company of four.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="icon.png">
   <title>Wayfarer Courts</title>
   <style>
     :root { color-scheme: dark; }
     * { box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #0b1020; }
-    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    #game { display: block; width: 100vw; height: 100vh; touch-action: none; user-select: none; -webkit-user-select: none; }
-    .screen-cover {
-      position: fixed; inset: 0; z-index: 5; display: grid; place-items: center;
-      padding: 24px; text-align: center; background: rgba(8, 11, 24, .95); color: #f7f3e9;
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #0d1222; }
+    body {
+      display: grid; place-items: center;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      overscroll-behavior: none; touch-action: none; user-select: none;
+      -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
     }
-    .screen-cover[hidden] { display: none; }
-    .cover-card { max-width: 340px; border: 1px solid #586483; border-radius: 22px; padding: 26px 22px; background: #151d34; box-shadow: 0 18px 50px #0008; }
-    .cover-card h1 { margin: 0 0 10px; font-size: 28px; letter-spacing: .08em; }
-    .cover-card p { margin: 8px 0 0; color: #b6c0d9; line-height: 1.45; }
-    .cover-card button { min-height: 52px; margin-top: 20px; border: 0; border-radius: 14px; padding: 0 25px; background: #f5bd53; color: #1b1720; font: 800 16px system-ui; }
+    canvas { display: block; touch-action: none; }
   </style>
 </head>
 <body>
-  <canvas id="game" aria-label="Wayfarer Courts game"></canvas>
-  <div id="audioGate" class="screen-cover">
-    <div class="cover-card">
-      <h1>WAYFARER COURTS</h1>
-      <p>Tap once to wake the little court-song, then choose your road.</p>
-      <button id="begin" type="button">Begin the road</button>
-    </div>
-  </div>
-  <div id="rotate" class="screen-cover" hidden>
-    <div class="cover-card">
-      <h1>TURN THE TRAIL</h1>
-      <p>Wayfarer Courts is a portrait journey. Rotate your device back to portrait to continue.</p>
-    </div>
-  </div>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="/play/_shared/ggkit.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

@@ -253,3 +253,194 @@ Rejected or deferred:
 - Cut the live 60%-width center banner, persistent combo/goal/line text, puzzle-name flavor, and control hint sublabels.
 - Shrunk the active HUD to short metric labels plus score/time, progress, level, and piece/hazard counts; replaced HOLD/NEXT words with compact slot icons.
 - Moved clear/combo/level events into one queued edge chip (under 1 second), shortened the coach to one timed line, and kept run-boundary information on the results screen.
+
+## Round 2 polish
+
+Rev 2026-08-13. Shipped-to-modern-commercial pass. Nothing was rebuilt: the
+accepted controls, the DAS/lock feel, the four original board identities, the
+24 original Puzzle boards, the pickups, the coach and every behaviour
+documented above still work exactly as written. Everything below is added on
+top. No asset file was added; no ledger row was consumed; no deploy, no
+commit, no subagent.
+
+### What changed visually
+
+- **Screen transitions are animated.** A DOM shutter (its own layer, so it
+  survives the scene swap it is hiding) closes over a fade, runs the swap, then
+  lifts. Title, puzzle grid, records, every play start, every restart and every
+  return to menu go through it. Reduced motion shortens the beat to a cover.
+  `applyForce()` skips it so a harness never waits out a cosmetic beat.
+- **The background evolves by level.** `bakeSky()` now takes a TIER and walks
+  each identity's cool stops toward its authored `skyHot` stops, and the baked
+  motif changes with it. Marathon steps every 5 levels, Ultra every 4, Rival
+  every 3; Sprint and Puzzle deliberately stay on one grade so a board never
+  changes colour mid-solve. Tier changes CROSSFADE across two quads over 900 ms
+  instead of popping. Each identity now owns a distinct baked motif (grid,
+  rule, overclock rings, cog, ember) instead of the one shared diagonal.
+- **The board frame reacts to the combo tier.** A single stroked rounded rect
+  (`rimG`) thickens and shifts hue at combo 2, 3 and 6 and on back to back, and
+  breathes outward on the pulse. Amplitude stays inside the bible's cap and the
+  grid geometry never deforms.
+- **Danger state near the top out.** Two grades, driven by stack height
+  (13 rows warn, 16 critical). Warn recolours the rim; critical adds a pulsing
+  double rim, an additive red wash behind the board, and a slow low tick. It is
+  a colour and audio STATE, never a banner, so it adds no UI coverage.
+- **Piece lock reads as an impact.** Locked cells now squash and recover
+  individually (`cellView.pop`), hard drops throw contact dust scaled by drop
+  distance, and the lock cue is pitch-shifted between a soft lock and a slam.
+- **Line-clear cascade escalates properly.** One `celebrate(tier)` ladder:
+  tier 1 dry accent, tier 2 sparks plus a rim pulse, tier 3 ring plus shards
+  plus shake and a 55 ms hit-stop, tier 4 (perfect clear, or back to back
+  quad/spin) adds the reward burst, a white ring and a board-wide light sweep
+  travelling bottom to top, at a 70 ms hold.
+- **Ghost and queue polish.** The ghost breathes and carries the piece's own
+  hue; two faint column guides and a bright landing pad now run from the piece
+  to its seat in every state, so the landing is legible without hunting for the
+  ghost. The next queue slides one slot on consumption instead of teleporting,
+  the head preview is larger and brighter, and the hold slot pops on a swap and
+  dims while spent.
+- **Result ceremony is animated.** Veil, then the card springs in on ease-out
+  back, then the copy fades up, then the buttons, then the score ticks to its
+  total on an eased count-up and the medal pops.
+- **Title screen moves.** Piece silhouettes drift behind the menu, the logo
+  bobs, cards stagger in on ease-out cubic, and every mode card carries an
+  identity colour bar so the menu uses the same per-area palette the boards do.
+- **Fourth pooled particle system** (`fx.dust`) for buried-row and hard-drop
+  contact, alongside the existing shard, spark and reward systems.
+
+### What changed in gameplay
+
+- **T-spins.** Full three corner rule with the front-corner mini distinction
+  and the last-kick exception. Spins score off their own table, count toward
+  back to back alongside quads, pay even with zero lines cleared, and send the
+  heaviest garbage in Rival.
+- **Perfect clear.** Emptying the board on a clear pays a level-scaled bonus,
+  fires the hero celebration and sends 10 rows in Rival.
+- **ULTRA 2:00 (Overclock).** New mode. Two minutes on a countdown; gravity
+  ramps every 18 s from level 4 to a cap of 16 regardless of your clear rate,
+  so the pressure is the clock. Own medals at 6k/12k/20k/32k.
+- **RIVAL (Duel Works).** New mode, and the round's largest system. A complete
+  second simulation on the same rules, on its own board in the rail, played by
+  `sl_ai.js`: for every rotation and every column it builds the resulting board
+  in a preallocated scratch buffer and scores it with the Dellacherie feature
+  set, with an optional full second ply over the next piece. Three earned
+  tiers - APPRENTICE (open), CONTENDER (2 wins), ARCHITECT (5 wins) - differ
+  only in hand speed, error rate and lookahead; the rival never cheats. Clears
+  on either board send buried rows to the other, outgoing rows cancel your own
+  incoming queue first, and a board pushed above its ceiling tops out. Win by
+  KO, lose by being buried. The tier cycles from the rival card on the title.
+- **Personal best table per mode.** Top five per mode, kept sorted (high for
+  Marathon and Ultra, low for the Sprint clock and the Rival KO time), on a new
+  RECORDS page with a career panel: T-spins, quads, perfect clears, best combo,
+  lifetime lines, boards cleared.
+- **Six new Puzzle boards (25-30), the spin school.** Every one is a real T
+  slot: a roof block makes the seat unreachable by a straight drop, so the only
+  way in is a rotation kick. 25 Turn One, 26 Mirror Turn, 27 Double Turn (the
+  last column only opens after the spin drops the rows), 28 Wall Turn, 29 Twin
+  Slots, 30 Lockspin (hazards leave on the spin). The set is now 30 boards and
+  the unlock chain is unchanged.
+- Rival gravity ramps on YOUR clear rate (level 4 to 12 over 96 lines), so
+  outpacing the AI also raises the speed you must absorb its rows at.
+
+### Save migration
+
+`SAVE_VERSION` 1 -> 2. GGKit is handed `validateAnySave`, which accepts BOTH
+shapes, so a version 1 blob survives the read instead of being dropped as
+corrupt; `migrateSave()` then does the upgrade and the result is re-validated
+before it is accepted. New fields: `bestUltra`, `ultraMedal`, `rivalMedal`,
+`rivalWins`, `rivalTier`, `rivalStreak`, `records` (four capped top-five
+lists), `career` (six counters). The migration copies every version 1 field
+verbatim, seeds `records.marathon` / `records.sprint` from the old single
+bests so a returning player's history is on the records page at first boot,
+and seeds `career.lines` from `bestLines`. Anything that satisfies NEITHER
+validator returns null and the caller falls back to a fresh profile: no throw,
+no partial profile. The v2 validator additionally range-checks every record
+list, rejects an unknown record mode or career key, and refuses a `rivalTier`
+the banked `rivalWins` has not earned.
+
+Verified in the browser: a hand-written v1 blob (12,345 score / 92 lines /
+2:13 sprint / silver+silver / p01-p03 done) came back as v2 with the bests,
+the medals, the unlock chain (4 boards open) and both seeded record tables
+intact, and `{"v":1,"bestScore":"nope"}` degraded silently to a fresh profile
+with zero errors.
+
+`sw.js` VERSION is `2026-08-13-round2-polish-1` and the precache list gained
+`sl_ai.js`; all 43 entries were asserted to exist on disk.
+
+### Budgets
+
+- Payload 996,093 bytes (0.95 MB) against the 2.5 MB cap. Largest file is
+  still a 200,665 byte music stem; `game.js` is 193,853 bytes, both under the
+  400 KB per-file cap. Round 2 added 72 KB of code and zero asset bytes.
+- Nothing new allocates during play. The rival board is a canvas texture
+  repainted only on the frames its grid changed (about once a second) and drawn
+  as ONE quad, not 200 sprites; its live piece rides four pooled sprites. All
+  new effects reuse the existing pools plus one 16-particle dust emitter, and
+  everything is pre-warmed by the loading screen's existing texture warm pass.
+- The Sprint/Ultra/Rival progress ring was re-tessellated by hand to 48
+  segments and its redraw gated on a fraction quantised to 1/48. `Graphics.arc`
+  walks its sweep in 0.01 rad steps and replays that command list EVERY frame,
+  so the Ultra clock (a value that changes every frame) would otherwise have
+  minted 1,250 vertices per frame forever. This was found and fixed before it
+  shipped, not after.
+- Sky bakes are capped at 5 keys per scene because a tier crossfade holds two
+  live quads at once; a cap of 4 could have evicted a texture still in use.
+- Feel, 4x CPU throttle, 390x844 dpr2, ~810 frame windows with a realistic
+  input cadence: Rival median 16.70 ms, p95 16.80 ms, 9 frames over 33 ms
+  (1.1%), max 66.7 ms. Marathon median 16.70 ms, p95 16.80 ms, 6 over 33 ms
+  (0.7%), max 50 ms. Both against the 17.5 ms median budget. Caveat, same as
+  round 1: the box carried a 1-minute load average of 6 and a 15-minute average
+  of 175 from other lanes during the capture. A capture that hammered a hard
+  drop every 500 ms (not a human cadence) pushed the tail to 8%, so the tail
+  number still wants an uncontended box to be called final.
+
+### UI Law
+
+No new persistent element except the Rival incoming-garbage column, a 5 px bar
+hugging the board's inner left edge that replaces nothing. The reward chip is
+still ONE queued transient with a precedence order (perfect clear, then spin,
+then quad, then combo) so the rarest read wins instead of the noisiest. The
+danger grade and the combo tier are carried by the board frame and the sky, not
+by text. Records is a menu page and never appears during play. The bottom
+title row is three 46 px buttons at 14 px text, all above the 44 px target
+floor.
+
+### Verified
+
+`node --check` passes on `game.js`, `sl_data.js`, `sl_ai.js` and `sw.js`.
+Driven in headless Chrome at 390x844 dpr2 with ZERO page errors, ZERO console
+errors and ZERO failed requests across: boot to title, all six mode cards, the
+30-board puzzle grid, the records page, the settings shell, Marathon, Sprint,
+Ultra (clock counting down, level ramping to 6), Master Clear, Rival, the
+`forceMode` and `forceBoard` hooks, touch hard drops through the DOM control
+bar, and a `prefers-reduced-motion: reduce` boot in every mode.
+
+Systems proved by driving the real game, not by inspection:
+
+- T-spin double on board 25 (rotate into the shaft, soft drop, rotate again):
+  `spins` 1, 2 lines, 3,615 points, board won.
+- Quad plus perfect clear on board 20: `quads` 1, `perfects` 1, 4 lines,
+  12,926 points, board won.
+- Rival duel, player idle, APPRENTICE tier: the AI stacked, cleared 14 lines in
+  50 seconds, sent buried rows (observed arriving and being applied), drove the
+  player's board into danger grade 1 and then to a top out. Danger grade 2 was
+  captured on Master Clear with the red rim, red wash and amber focus ring.
+
+### Deferred
+
+- The 600-frame over-33 ms tail still wants an uncontended box, exactly as in
+  round 1. The numbers above are inside budget but were taken under load.
+- A Rival KO was not driven end to end by a scripted player (it needs a human
+  or a second AI on the player board); the win path is the same `win()` the
+  Puzzle and Sprint clears exercise, and `rivalKO()` was reached in code by the
+  spawn-collision and garbage-push checks.
+- Solvability of the six new spin boards was reasoned from the kick tables
+  rather than proved by search; board 25 was solved end to end in the browser.
+  The generous-hand rule still applies (every board ships spare pieces).
+- The colour-blindness simulation the bible asks for is still outstanding, as
+  in round 1. The new garbage cell uses the shell frame and a desaturated grey,
+  which is a silhouette and value difference, not a hue difference.
+- Nine new audio beats are the existing cues re-voiced by playback rate rather
+  than new files. This keeps the payload flat and the format law satisfied, but
+  a bespoke spin chime and a bespoke perfect-clear fanfare would read better.
+- No deploy and no commit were performed, per the brief.

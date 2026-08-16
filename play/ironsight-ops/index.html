@@ -1,73 +1,46 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head><base href="/play/ironsight-ops/">
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#081018">
-  <title>Ironsight Ops</title>
-  <link rel="stylesheet" href="styles.css">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+<meta name="theme-color" content="#0a1219">
+<meta name="description" content="Ironsight Ops. A top down tactical shooter: breach, rescue, defuse and extract across four theatres, with real ammo and reload discipline.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<base href="/play/ironsight-ops/">
+<title>Ironsight Ops</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: #0a1219; color: #e6f0f6;
+    font-family: Verdana, Geneva, system-ui, sans-serif;
+    overscroll-behavior: none; touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Safe area insets keep the canvas clear of a notch or a home bar; the
+     game also holds its HUD inside a top band and its controls inside the
+     lower corners. */
+  body {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+    box-sizing: border-box;
+  }
+  canvas { display: block; touch-action: none; }
+</style>
 </head>
 <body>
-  <main id="app" aria-label="Ironsight Ops tactical bot shooter">
-    <canvas id="gameCanvas" aria-label="Tactical arena"></canvas>
-
-    <section id="topHud" aria-live="polite">
-      <div class="brand"><span>IRONSIGHT OPS</span><small>FIELD DRILL 02</small></div>
-      <div id="scoreboard"><span id="blueScore">00</span><i>:</i><span id="redScore">00</span></div>
-      <div id="roundReadout"><span id="modeReadout">TDM</span><b id="timerReadout">2:00</b><span id="mapReadout">WAREHOUSE</span></div>
-    </section>
-
-    <section id="loadoutTray" aria-label="Loadout and arena selectors">
-      <div class="selectGroup">
-        <span>PRIMARY</span>
-        <button class="selectButton active" data-weapon="ar" type="button">AR</button>
-        <button class="selectButton" data-weapon="smg" type="button">SMG</button>
-        <button class="selectButton" data-weapon="dmr" type="button">DMR</button>
-      </div>
-      <div class="selectGroup">
-        <span>GADGET</span>
-        <button class="selectButton active" data-gadget="frag" type="button">FRAG</button>
-        <button class="selectButton" data-gadget="smoke" type="button">SMOKE</button>
-        <button class="selectButton" data-gadget="sensor" type="button">PING</button>
-      </div>
-      <div class="arenaButtons">
-        <button id="mapCycle" class="tinyButton" type="button">MAP · WAREHOUSE</button>
-        <button id="modeCycle" class="tinyButton" type="button">MODE · TDM</button>
-      </div>
-    </section>
-
-    <div id="objectiveReadout">ELIMINATE HOSTILES · FIRST TO 20</div>
-    <div id="rankPill">RANK 01 · 0 / 100 XP</div>
-    <div id="hint">WASD move · arrows aim/fire · G gadget · hold the right pad to fire</div>
-
-    <div id="leftStick" class="stick" aria-label="Move stick">
-      <div class="stickLabel">MOVE</div>
-      <div class="stickRing"><div class="stickKnob"></div></div>
-    </div>
-    <div id="rightStick" class="stick" aria-label="Aim and fire stick">
-      <div class="stickLabel">AIM / FIRE</div>
-      <div class="stickRing"><div class="stickKnob"></div></div>
-    </div>
-    <button id="gadgetButton" type="button" aria-label="Use selected gadget">
-      <span>GADGET</span><small id="gadgetLabel">FRAG · 2</small>
-    </button>
-    <div id="audioToast">TAP TO ARM COMMS</div>
-
-    <section id="roundResult" hidden aria-live="assertive">
-      <div class="resultEyebrow">DRILL COMPLETE</div>
-      <h1 id="resultTitle">VICTORY</h1>
-      <p id="resultBody"></p>
-      <div class="resultStats"><span id="resultKills"></span><span id="resultRank"></span></div>
-      <button id="restartButton" type="button">RUN IT BACK <b>↵</b></button>
-      <div class="resultHint">Tap run it back, or press R / Enter</div>
-    </section>
-
-    <section id="rotateOverlay" hidden aria-live="assertive">
-      <div class="rotateGlyph">↻</div>
-      <h2>PORTRAIT ONLY</h2>
-      <p>Rotate back to keep the drill paused.</p>
-    </section>
-  </main>
-  <script src="game.js"></script>
+<script src="/play/_shared/phaser.min.js"></script>
+<script src="/play/_shared/ggkit.js"></script>
+<script src="io_content.js"></script>
+<script src="io_art.js"></script>
+<script src="io_sim.js"></script>
+<script src="io_rules.js"></script>
+<script src="game.js"></script>
 </body>
 </html>

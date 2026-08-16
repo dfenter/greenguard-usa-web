@@ -1,22 +1,51 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head><base href="/play/orbit-hearts/">
-<meta charset="utf-8">
-<title>Orbit Hearts</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<meta name="theme-color" content="#05060f">
-<style>
-  html,body{margin:0;padding:0;height:100%;width:100%;overflow:hidden;background:#05060f;
-    -webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
-    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}
-  #wrap{position:fixed;inset:0;display:block;}
-  canvas{display:block;width:100%;height:100%;touch-action:none;}
-</style>
+<head>
+  <base href="/play/orbit-hearts/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#080b18">
+  <meta name="description" content="Orbit Hearts, a station romance in three routes aboard Vireo Station.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="/play/orbit-hearts/manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="/play/orbit-hearts/favicon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="/play/orbit-hearts/icon.png">
+  <title>Orbit Hearts</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #05070f; }
+    body {
+      display: grid;
+      place-items: center;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    #game-shell {
+      position: relative;
+      width: min(100vw, calc(100dvh * 0.4620853081));
+      height: min(100dvh, calc(100vw * 2.1641025641));
+      aspect-ratio: 390 / 844;
+      overflow: hidden;
+      background: #080b18;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #game { width: 100%; height: 100%; }
+    canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  </style>
 </head>
 <body>
-<div id="wrap"><canvas id="c"></canvas></div>
-<script src="audio.js"></script>
-<script src="story.js"></script>
-<script src="game.js"></script>
+  <main id="game-shell" aria-label="Orbit Hearts game">
+    <div id="game"></div>
+  </main>
+  <script src="/play/_shared/phaser.min.js" defer></script>
+  <script src="/play/_shared/ggkit.js" defer></script>
+  <script src="/play/orbit-hearts/story.js" defer></script>
+  <script src="/play/orbit-hearts/game.js" defer></script>
 </body>
 </html>

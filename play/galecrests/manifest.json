@@ -1,0 +1,16 @@
+{
+  "name": "Galecrests",
+  "short_name": "Galecrests",
+  "description": "Raise a racing crest-bird through a twelve turn season and time the calls that win races.",
+  "start_url": "/play/galecrests/",
+  "scope": "/play/galecrests/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#090f22",
+  "theme_color": "#090f22",
+  "categories": ["games"],
+  "icons": [
+    {"src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}

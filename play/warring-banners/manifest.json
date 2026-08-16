@@ -1,0 +1,14 @@
+{
+  "name": "Warring Banners // Fleet F15",
+  "short_name": "Warring Banners",
+  "start_url": "/play/warring-banners/",
+  "scope": "/play/warring-banners/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0a151f",
+  "theme_color": "#0a151f",
+  "icons": [
+    { "src": "icon.png", "sizes": "64x64", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

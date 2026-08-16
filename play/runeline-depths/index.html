@@ -1,40 +1,50 @@
 <!doctype html>
 <html lang="en">
-<head><base href="/play/runeline-depths/">
+<head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#090d18">
+  <base href="/play/runeline-depths/">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, maximum-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0B1224">
+  <meta name="description" content="Runeline Depths is an orb path dungeon RPG. Drag one orb across the board, resolve every line at once, and take a party of five runeguards down twenty four authored depths.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Runeline Depths</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="64x64" href="favicon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon.png">
+  <link rel="apple-touch-icon" sizes="512x512" href="icon512.png">
+  <style>
+    :root {
+      color-scheme: dark;
+      background: #0B1224;
+      /* read back by RD.insets() so every layout is safe-area aware */
+      --sat: env(safe-area-inset-top, 0px);
+      --sar: env(safe-area-inset-right, 0px);
+      --sab: env(safe-area-inset-bottom, 0px);
+      --sal: env(safe-area-inset-left, 0px);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;
+      background: #0B1224; touch-action: none; overscroll-behavior: none;
+      user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  </style>
 </head>
 <body>
-  <main id="gameShell" aria-label="Runeline Depths game">
-    <canvas id="game" aria-label="Orb path game board"></canvas>
-    <div class="topControls" aria-label="Game controls">
-      <button id="muteBtn" class="control" type="button" aria-label="Toggle sound">SOUND</button>
-      <button id="restartBtn" class="control" type="button">RETRY</button>
-    </div>
-    <button id="rosterBtn" class="control rosterControl" type="button">ROSTER</button>
-    <section id="rosterPanel" class="panel hidden" aria-label="Roster and team building">
-      <div class="panelCard">
-        <div class="panelHead">
-          <div>
-            <p class="eyebrow">FIELD DOSSIER</p>
-            <h2>Build your four</h2>
-          </div>
-          <button id="closeRosterBtn" class="closeBtn" type="button" aria-label="Close roster">×</button>
-        </div>
-        <p class="panelCopy">Pick a team slot, then choose a recruited creature. The leader is the leftmost slot.</p>
-        <div id="teamPicker" class="teamPicker"></div>
-        <div class="sectionLabel">RECRUITED FROM THE DEPTHS</div>
-        <div id="rosterList" class="rosterList"></div>
-        <button id="newRunBtn" class="wideBtn" type="button">NEW RUN</button>
-      </div>
-    </section>
-    <div id="rotateOverlay" class="overlay hidden" role="status">
-      <div class="rotateCard"><div class="rotateGlyph">↻</div><h2>Turn the phone upright</h2><p>Runeline Depths is a portrait descent.</p></div>
-    </div>
-  </main>
-  <script src="game.js"></script>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script src="js/content.js"></script>
+  <script src="js/sim.js"></script>
+  <script src="js/art.js"></script>
+  <script src="js/fx.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/boot.js"></script>
+  <script src="js/menu.js"></script>
+  <script src="js/play.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>

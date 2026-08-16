@@ -1,0 +1,15 @@
+{
+  "name": "Hivefall",
+  "short_name": "Hivefall",
+  "description": "Match-3 survival: matches fire your squad up the lane, the horde walks down it, salvage rebuilds the shelter.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0E131E",
+  "theme_color": "#0E131E",
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

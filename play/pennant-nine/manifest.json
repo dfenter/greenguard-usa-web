@@ -1,0 +1,16 @@
+{
+  "name": "Pennant Nine",
+  "short_name": "Pennant Nine",
+  "description": "Tap timing baseball with a 24 game pennant chase, playoffs, home run derby and clutch challenges.",
+  "start_url": "/play/pennant-nine/",
+  "scope": "/play/pennant-nine/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#071116",
+  "theme_color": "#071116",
+  "categories": ["games", "sports"],
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

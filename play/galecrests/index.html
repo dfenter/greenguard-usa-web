@@ -1,20 +1,30 @@
 <!doctype html>
 <html lang="en">
-<head><base href="/play/galecrests/">
+<head>
+  <base href="/play/galecrests/">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#0b1024">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+  <meta name="theme-color" content="#090f22">
+  <meta name="description" content="Galecrests, an original crest-bird raising sim with tactical racing across six authored courses.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Galecrests</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="icon.png">
   <style>
-    :root { background:#0b1024; color:#f2f6ff; }
-    * { box-sizing:border-box; }
-    html, body { margin:0; width:100%; height:100%; overflow:hidden; background:#0b1024; }
-    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    #game { display:block; width:100vw; height:100vh; touch-action:none; user-select:none; -webkit-user-select:none; }
+    :root{background:#090f22;color:#f2f6ff;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#090f22;touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:none}
+    #game{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+    #game canvas{display:block;touch-action:none}
   </style>
 </head>
 <body>
-  <canvas id="game" aria-label="Galecrests game"></canvas>
-  <script src="./game.js"></script>
+  <main id="game" aria-label="Galecrests game"></main>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>

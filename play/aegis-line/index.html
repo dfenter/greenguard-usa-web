@@ -1,18 +1,42 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head><base href="/play/aegis-line/">
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#08111d">
-  <title>Aegis Line</title>
-  <link rel="stylesheet" href="styles.css">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+<meta name="theme-color" content="#07060a">
+<meta name="description" content="Aegis Line - a cover-line squad shooter. Hold to rise and fire, release to duck, thirty campaign stages across five chapters, a twenty floor tower and a daily seeded run.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<base href="/play/aegis-line/">
+<title>Aegis Line</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<style>
+  html, body {
+    margin: 0; padding: 0; height: 100%; overflow: hidden;
+    background: #07060a; color: #dfeaf4;
+    font-family: Verdana, Geneva, system-ui, sans-serif;
+    overscroll-behavior: none; touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  canvas { display: block; touch-action: none; }
+  /* The canvas deliberately covers the whole viewport including the notch and
+     the home bar. Safe-area insets are read at runtime and applied by the HUD
+     itself, so the playfield keeps every pixel and nothing readable ever sits
+     under the system chrome. */
+</style>
 </head>
 <body>
-  <main id="game-shell">
-    <canvas id="game" aria-label="Aegis Line auto-cover squad shooter"></canvas>
-    <p class="sr-only">Tap a mech to assign your selected operative. Tap glowing weak points for critical hits. Tap squad portraits in breaker, sustain, burst order to chain a squad buff.</p>
-  </main>
-  <noscript>Aegis Line needs JavaScript enabled.</noscript>
-  <script src="game.js"></script>
+<script src="/play/_shared/phaser.min.js"></script>
+<script src="/play/_shared/ggkit.js"></script>
+<script src="al_data.js"></script>
+<script src="al_art.js"></script>
+<script src="al_core.js"></script>
+<script src="al_play.js"></script>
+<script src="al_paint.js"></script>
+<script src="game.js"></script>
 </body>
 </html>

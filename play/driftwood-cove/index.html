@@ -1,32 +1,35 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head><base href="/play/driftwood-cove/">
+<head>
+  <base href="/play/driftwood-cove/">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
   <meta name="theme-color" content="#071923">
+  <meta name="description" content="Driftwood Cove is a merge board mystery: merge what the tide leaves, fill the islanders orders, and restore five cove areas.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="favicon.png" sizes="64x64">
+  <link rel="icon" href="icon.png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icon512.png">
   <title>Driftwood Cove</title>
-  <link rel="stylesheet" href="styles.css">
+  <style>
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #071923; touch-action: none; overscroll-behavior: none; }
+    body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); box-sizing: border-box; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; font-family: system-ui, sans-serif; }
+    canvas { display: block; touch-action: none; }
+  </style>
+  <script>
+    window.__dc = window.__dc || {
+      state: { mode: 'boot', scene: 'boot', stage: 0, stageName: 'boot', area: 0, chapter: 1,
+        orders: 0, progress: 0, score: 0, health: 1, energy: 10, merges: 0, items: 0,
+        notes: 0, stormBest: 0, ready: false },
+      forceMode: null, forceStage: null
+    };
+  </script>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script src="game.js"></script>
 </head>
-<body>
-  <main id="gameShell" aria-label="Driftwood Cove game">
-    <canvas id="gameCanvas" aria-label="Driftwood Cove merge board"></canvas>
-    <div id="audioOverlay" class="screen-overlay" role="dialog" aria-modal="true">
-      <div class="overlay-card intro-card">
-        <div class="eyebrow">A FOUND-NOTE MYSTERY</div>
-        <h1>Driftwood Cove</h1>
-        <p>The fog has covered the keeper's trail. Match what the tide leaves behind and follow the notes home.</p>
-        <button id="startButton" type="button">Enter the cove</button>
-        <small>Sound is optional and begins with your first tap.</small>
-      </div>
-    </div>
-    <div id="rotateOverlay" class="screen-overlay" hidden role="alertdialog" aria-modal="true">
-      <div class="overlay-card rotate-card">
-        <div class="rotate-mark">↻</div>
-        <h2>Turn the cove upright</h2>
-        <p>Driftwood Cove is a portrait game. The fog will wait right here.</p>
-      </div>
-    </div>
-  </main>
-  <script src="game.js" defer></script>
-</body>
+<body></body>
 </html>

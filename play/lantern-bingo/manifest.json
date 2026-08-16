@@ -1,0 +1,16 @@
+{
+  "name": "Lantern Bingo",
+  "short_name": "Lantern Bingo",
+  "description": "Daub your own cards across a 20 room lantern tour, charge chips on streaks, and race the room to the pattern.",
+  "start_url": "/play/lantern-bingo/",
+  "scope": "/play/lantern-bingo/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0b1018",
+  "theme_color": "#0b1018",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
