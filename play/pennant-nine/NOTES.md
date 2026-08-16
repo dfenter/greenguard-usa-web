@@ -165,3 +165,46 @@ Deferred:
 - Recipe: `GGKit.hiDpi.factor(390, 844)`, dense FIT scale dimensions, `GGKit.renderDefaults`, and `this.cameras.main.setZoom(f)` in BootScene and PlayScene. Pennant's procedural canvas bakery and Phaser text use the same factor.
 - Factor cap: none. The factor is the GGKit native value, capped only by GGKit's normal maximum of 3.
 - Could not complete live headless canvas readback or a gameplay screenshot because no browser backend was available in this environment. `node --check` passed.
+
+
+## Blank frame repair
+
+Symptom: at CSS 390x844 / deviceScaleFactor 3 the title booted clean, the render loop
+advanced, the backing store measured 3x, and the frame was blank.
+
+### Root cause
+
+The retina conversion raised the backing store to design x factor and applied
+`cameras.main.setZoom(factor)`, but a zoomed Phaser camera transforms about its
+ORIGIN, which defaults to the centre of the viewport. With scroll 0 a design-space
+point x therefore lands at `zoom*x - (width/2)*(zoom-1)`, i.e. the whole design box
+sits one and a bit screens to the left of and above the viewport. The loop runs, the
+scene draws, nothing is on screen, and there is no error anywhere.
+
+This title is repaired with `cameras.main.setOrigin(0, 0)` alongside the zoom rather
+than the fleet's `centerOn(DESIGN_W/2, DESIGN_H/2)`. Both put the design box back on
+screen, but origin (0,0) additionally leaves scroll 0 meaning "design origin", so any
+absolute `setScroll()` the title already performs (screen shake, world scrolling) and
+any `setScrollFactor(0)` HUD stay correct in design pixels with no compensation. See
+the per-title cause below for why that mattered here.
+
+- The factor is named `HIDPI_FACTOR`, so the scripted pairing did not match. Two
+  scenes (boot, play) call `setZoom`.
+- Second defect on top of the centring: `PlayScene.update` runs an ABSOLUTE
+  `this.cameras.main.setScroll(jf.dx, jf.dy)` every frame for the shake, which resets
+  scroll to ~0 and would have discarded a `centerOn`. With origin (0,0) it is correct.
+- Repair: `setOrigin(0, 0)` at both sites.
+
+### Measured, by me, on a real gameplay frame
+
+Release gate run serially (concurrency 1) against a local static server:
+`node release_gate.mjs http://localhost:<port> 1 pennant-nine`, headless Chrome,
+390x844 at deviceScaleFactor 3, best of four post-interaction frames.
+
+| | distinct colours (8-bit) | flattest colour share | backing/CSS ratio | gate |
+|---|---|---|---|---|
+| before | 100 | 62% | 3x | HOLD (art) |
+| after | 6420 | 30.6% | 3x | READY (all checks pass) |
+
+`node --check` clean on every file touched. No gameplay, balance, content or art
+direction was changed.

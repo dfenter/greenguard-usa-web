@@ -1,6 +1,6 @@
 /* sw.js - Fallline offline shell, authored from /play/_shared/sw-template.js. */
 const SLUG = 'fallline';
-const VERSION = '2026-08-10-fix1-2026-08-16-offline-fix';
+const VERSION = '2026-08-10-fix1-2026-08-16-offline-fix-2026-08-16-gate-repair';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/fallline/',

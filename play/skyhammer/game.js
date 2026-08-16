@@ -632,6 +632,13 @@
 
     create: function () {
       this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(GW / 2, GH / 2);
+      // centerOn() is what keeps the zoomed camera pointed at the middle of the
+      // 360 x GH design box. Remember the scroll it produced: the shake below
+      // must be an OFFSET from it, not an absolute setScroll(dx, dy), which
+      // would snap the camera back to 0,0 and push the whole playfield into a
+      // corner of the canvas the moment the retina zoom is anything but 1.
+      this.camBaseX = this.cameras.main.scrollX;
+      this.camBaseY = this.cameras.main.scrollY;
       activePlay = this;
       var self = this;
       SH_STATE.scene = 'play';
@@ -2229,7 +2236,7 @@
 
       // Camera shake, read from the kit so the accessibility switch owns it.
       var jf = kit.juice.frame();
-      this.cameras.main.setScroll(jf.dx * 0.6, jf.dy * 0.6);
+      this.cameras.main.setScroll(this.camBaseX + jf.dx * 0.6, this.camBaseY + jf.dy * 0.6);
 
       // Enemy bullets.
       var n = this.ebN;

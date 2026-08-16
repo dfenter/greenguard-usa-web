@@ -402,7 +402,7 @@
   class BootScene extends BaseScene {
     constructor() { super('boot'); }
     create() {
-      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.setOrigin(0, 0);
       kit.loader.show('Towerline Duel');
       kit.loader.progress(0.25);
       bakeTextures(this);
@@ -420,7 +420,7 @@
   class MenuScene extends BaseScene {
     constructor() { super('menu'); }
     create() {
-      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.setOrigin(0, 0);
       this.createBase(); this.setStateMenu('menu');
       addLabel(this, W / 2, 49, 'TOWERLINE', 31, '#e9fbff', 0.5, 'bold');
       addLabel(this, W / 2, 84, 'DUEL', 44, '#43c7f4', 0.5, 'bold');
@@ -448,7 +448,7 @@
   class LadderScene extends BaseScene {
     constructor() { super('ladder'); }
     create() {
-      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.setOrigin(0, 0);
       this.createBase(); this.setStateMenu('ladder'); this.topBar('LADDER ROAD', progress.rung + ' / 8'); this.backButton(function () { this.scene.start('menu'); }.bind(this));
       addLabel(this, 18, 118, 'WIN A RUNG TO OPEN ITS CARD TRIO', 14, '#91aeba', 0, 'bold');
       for (var i = 0; i < RUNG_TABLE.length; i += 1) {
@@ -478,7 +478,7 @@
   class ForgeScene extends BaseScene {
     constructor() { super('forge'); }
     create() {
-      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.setOrigin(0, 0);
       this.createBase(); this.setStateMenu('forge'); this.topBar('DECK FORGE', unlockedCount() + ' / 24'); this.backButton(function () { this.scene.start('menu'); }.bind(this));
       addLabel(this, 132, 75, 'EIGHT-SLOT DECK', 14, '#e9fbff', 0, 'bold');
       addLabel(this, 132, 97, 'Tap a slot, then a ready card', 14, '#91aeba', 0, 'normal');
@@ -526,7 +526,7 @@
     constructor() { super('mode'); }
     init(data) { this.mode = modeSafe(data && data.mode) || 'draft'; }
     create() {
-      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.setOrigin(0, 0);
       this.createBase(); this.setStateMenu(this.mode); this.topBar(modeLabel(this.mode), this.mode === 'gauntlet' ? progress.gauntletBest + ' BEST' : progress.draftWins + ' WINS'); this.backButton(function () { this.scene.start('menu'); }.bind(this));
       if (this.mode === 'draft') this.createDraft(); else this.createGauntlet();
     }
@@ -581,7 +581,7 @@
       this.tutorialStep = 0; this.resultFocus = 0; this.lastGamepad = {};
     }
     create() {
-      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.setOrigin(0, 0);
       activeDuel = this; this.events.once('shutdown', this.shutdown, this); kit.audio.music('music', 700); this.createBase(); this.createViews(); this.resetMatch();
       this.input.on('pointerdown', this.onPointerDown, this); this.input.on('pointermove', this.onPointerMove, this);
       this.input.on('pointerup', this.onPointerUp, this); this.input.on('pointerupoutside', this.onPointerCancel, this); this.input.on('pointercancel', this.onPointerCancel, this);

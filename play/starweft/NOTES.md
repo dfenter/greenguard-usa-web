@@ -72,3 +72,55 @@ Validation:
 - Recipe: Phaser `Scale.FIT`, design coordinates preserved, scale dimensions multiplied by `GGKit.hiDpi.factor(390, 844)`, shared `GGKit.renderDefaults` merged, and zoom applied in the scene `create()`. World bounds and the fixed UI camera coordinates remain in design units. Phaser text uses the same factor.
 - Factor cap: none beyond GGKit's default clamp to [1, 3].
 - Could not do: live `canvas.width / getBoundingClientRect().width` readback, gameplay screenshot, and `retina_audit.mjs` acceptance because no browser surface was available and private port binding was denied.
+
+
+## Blank frame repair
+
+Symptom: at CSS 390x844 / deviceScaleFactor 3 the title booted clean, the render loop
+advanced, the backing store measured 3x, and the frame was blank.
+
+### Root cause
+
+The retina conversion raised the backing store to design x factor and applied
+`cameras.main.setZoom(factor)`, but a zoomed Phaser camera transforms about its
+ORIGIN, which defaults to the centre of the viewport. With scroll 0 a design-space
+point x therefore lands at `zoom*x - (width/2)*(zoom-1)`, i.e. the whole design box
+sits one and a bit screens to the left of and above the viewport. The loop runs, the
+scene draws, nothing is on screen, and there is no error anywhere.
+
+This title is repaired with `cameras.main.setOrigin(0, 0)` alongside the zoom rather
+than the fleet's `centerOn(DESIGN_W/2, DESIGN_H/2)`. Both put the design box back on
+screen, but origin (0,0) additionally leaves scroll 0 meaning "design origin", so any
+absolute `setScroll()` the title already performs (screen shake, world scrolling) and
+any `setScrollFactor(0)` HUD stay correct in design pixels with no compensation. See
+the per-title cause below for why that mattered here.
+
+This title uses its camera as a real world camera, so three things were wrong at once:
+- `setBounds(0, 0, WORLD_W, WORLD_H)` and `startFollow(playerSprite, true, 0.12, 0.12)`.
+  Phaser computes BOTH from a centred origin (follow scroll is `target.x - width/2`,
+  the clamp range is `(displayWidth - width) / 2`), so under zoom f they place the view
+  roughly f-1 screens away from the player.
+- The whole HUD is `setScrollFactor(0)` (`uiG` plus every layer built in
+  `createTextLayers`). A scroll-factor-0 object under a centred zoom renders at
+  `zoom*x - (width/2)*(zoom-1)`, i.e. completely off screen, which a `centerOn` cannot
+  fix because centring is exactly what breaks it.
+- `hitTest()` reads `cameras.main.scrollX + x` to turn a tap into a world point, which
+  is only true if scroll is expressed in design pixels from the design origin.
+- Repair: `setOrigin(0, 0)`, and `setBounds` + `startFollow` replaced by a
+  `followCamera()` method carrying the same 0.12 lerp and the same world clamp in
+  design pixels, called every frame and immediately on scene change. Movement, world
+  size, tap-to-move targeting and the HUD are all unchanged in behaviour.
+
+### Measured, by me, on a real gameplay frame
+
+Release gate run serially (concurrency 1) against a local static server:
+`node release_gate.mjs http://localhost:<port> 1 starweft`, headless Chrome,
+390x844 at deviceScaleFactor 3, best of four post-interaction frames.
+
+| | distinct colours (8-bit) | flattest colour share | backing/CSS ratio | gate |
+|---|---|---|---|---|
+| before | 648 | 95.9% | 3x | HOLD (art) |
+| after | 2121 | 43.1% | 3x | READY (all checks pass) |
+
+`node --check` clean on every file touched. No gameplay, balance, content or art
+direction was changed.

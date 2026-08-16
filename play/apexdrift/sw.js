@@ -1,6 +1,6 @@
 /* apexdrift service worker. Cache only files that ship with this title. */
 const SLUG = 'apexdrift';
-const VERSION = '2026-08-11-a-2026-08-16-offline-fix';
+const VERSION = '2026-08-11-a-2026-08-16-offline-fix-2026-08-16-gate-repair';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/apexdrift/',

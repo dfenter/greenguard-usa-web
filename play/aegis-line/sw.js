@@ -4,7 +4,7 @@
  * Bump VERSION on every deploy of the game to invalidate stale caches.
  */
 const SLUG = 'aegis-line';
-const VERSION = '2026-08-13-aaa-1-2026-08-16-offline-fix';
+const VERSION = '2026-08-13-aaa-1-2026-08-16-offline-fix-2026-08-16-gate-repair';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/aegis-line/',

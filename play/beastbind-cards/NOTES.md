@@ -160,3 +160,48 @@ packs, collection, deck) plus `forceStage`.
 - Recipe: `GGKit.hiDpi.factor(390, 844)`, dense FIT scale dimensions, `GGKit.renderDefaults`, and `setZoom(RETINA_FACTOR)` in Boot and Play.
 - Factor cap: none. The factor is GGKit-clamped to the device maximum of 3.
 - Could not capture the required DPR 3 gameplay screenshot or `canvas.width / getBoundingClientRect().width` measurement because no browser instance was available and the private port could not be opened in this environment.
+
+
+## Blank frame repair
+
+Symptom: at CSS 390x844 / deviceScaleFactor 3 the title booted clean, the render loop
+advanced, the backing store measured 3x, and the frame was blank.
+
+### Root cause
+
+The retina conversion raised the backing store to design x factor and applied
+`cameras.main.setZoom(factor)`, but a zoomed Phaser camera transforms about its
+ORIGIN, which defaults to the centre of the viewport. With scroll 0 a design-space
+point x therefore lands at `zoom*x - (width/2)*(zoom-1)`, i.e. the whole design box
+sits one and a bit screens to the left of and above the viewport. The loop runs, the
+scene draws, nothing is on screen, and there is no error anywhere.
+
+This title is repaired with `cameras.main.setOrigin(0, 0)` alongside the zoom rather
+than the fleet's `centerOn(DESIGN_W/2, DESIGN_H/2)`. Both put the design box back on
+screen, but origin (0,0) additionally leaves scroll 0 meaning "design origin", so any
+absolute `setScroll()` the title already performs (screen shake, world scrolling) and
+any `setScrollFactor(0)` HUD stay correct in design pixels with no compensation. See
+the per-title cause below for why that mattered here.
+
+- Factor: `RETINA_FACTOR = GGKit.hiDpi.factor(390, 844)`. Scenes are prototype-style
+  (`BootScene`/`PlayScene` off `Phaser.Scene.prototype`), and both `create()` bodies
+  called `setZoom` with nothing to re-place the view.
+- Second defect on top of the centring: `PlayScene.prototype.update` runs an ABSOLUTE
+  `this.cameras.main.setScroll(-j.dx, -j.dy)` every frame for the GGKit shake. That is
+  the corridor-crawl defect: it resets scroll to ~0 each frame and would have discarded
+  a `centerOn` immediately. With origin (0,0) the same call is already correct.
+- Repair: `setOrigin(0, 0)` next to the zoom in both scenes. Shake untouched.
+
+### Measured, by me, on a real gameplay frame
+
+Release gate run serially (concurrency 1) against a local static server:
+`node release_gate.mjs http://localhost:<port> 1 beastbind-cards`, headless Chrome,
+390x844 at deviceScaleFactor 3, best of four post-interaction frames.
+
+| | distinct colours (8-bit) | flattest colour share | backing/CSS ratio | gate |
+|---|---|---|---|---|
+| before | 1 | 100% | 3x | HOLD (art) |
+| after | 4206 | 42.4% | 3x | READY (all checks pass) |
+
+`node --check` clean on every file touched. No gameplay, balance, content or art
+direction was changed.

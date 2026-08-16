@@ -2,6 +2,17 @@
   'use strict';
 
   const SYSTEM_FONT = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+
+  // ------------------------------------------------------------- retina
+  // See the scale block at the bottom of this file. RETINA is the multiplier
+  // from CSS pixels to device pixels; the world stays in CSS pixels and the
+  // main camera is zoomed by RETINA, so every layout constant in this file is
+  // untouched and only the canvas gets denser.
+  const hhCssW = function () { return Math.max(1, window.innerWidth || 390); };
+  const hhCssH = function () { return Math.max(1, window.innerHeight || 844); };
+  const RETINA = (window.GGKit && window.GGKit.hiDpi)
+    ? window.GGKit.hiDpi.factor(hhCssW(), hhCssH())
+    : 1;
   const COLS = 7;
   const ROWS = 8;
   const CELLS = COLS * ROWS;
@@ -317,7 +328,12 @@
 
     update(time, delta) {
       const juice = kit.juice.frame();
-      if (this.cameras && this.cameras.main) this.cameras.main.setScroll(juice.dx, juice.dy);
+      // Shake is an OFFSET from the scroll centerOn() produced in layout().
+      // An absolute setScroll(dx, dy) snaps a zoomed camera back to 0,0 and
+      // pushes the whole room off the canvas, with nothing logged.
+      if (this.cameras && this.cameras.main) {
+        this.cameras.main.setScroll((this.camBaseX || 0) + juice.dx, (this.camBaseY || 0) + juice.dy);
+      }
       if (kit.paused) return;
       const dt = Math.min(1 / 30, Math.max(0, delta / 1000));
       if (this.layoutDirty) this.layout();
@@ -394,7 +410,7 @@
 
     createUi() {
       const makeText = function (x, y, text, size, color, weight, originX) {
-        const item = this.add.text(x, y, text, { fontFamily: SYSTEM_FONT, fontSize: size + 'px', fontStyle: weight >= 800 ? 'bold' : 'normal', color: '#' + color.toString(16).padStart(6, '0'), resolution: 2, align: 'left' }).setOrigin(originX == null ? 0 : originX, 0.5).setDepth(100);
+        const item = this.add.text(x, y, text, { fontFamily: SYSTEM_FONT, fontSize: size + 'px', fontStyle: weight >= 800 ? 'bold' : 'normal', color: '#' + color.toString(16).padStart(6, '0'), resolution: RETINA, align: 'left' }).setOrigin(originX == null ? 0 : originX, 0.5).setDepth(100);
         item._hhColor = color; return item;
       }.bind(this);
       const makeButton = function () {
@@ -444,35 +460,43 @@
       this.roomGlowG = this.add.graphics().setDepth(52);
       for (let i = 0; i < CELLS; i += 1) {
         this.tileViews.push(this.add.image(0, 0, 'hh-tile-0').setDepth(20).setVisible(false));
-        this.markerViews.push(this.add.text(0, 0, '✦', { fontFamily: SYSTEM_FONT, fontSize: '20px', color: '#fff8ee', resolution: 2 }).setOrigin(0.5).setDepth(25).setVisible(false));
+        this.markerViews.push(this.add.text(0, 0, '✦', { fontFamily: SYSTEM_FONT, fontSize: '20px', color: '#fff8ee', resolution: RETINA }).setOrigin(0.5).setDepth(25).setVisible(false));
       }
       this.roomViews = [];
       this.srStatus = document.getElementById('sr-status');
     }
 
     bindInput() {
+      // Phaser reports pointer coordinates in GAME space, which after the
+      // retina conversion is device pixels. Every hit test, board rect and
+      // drag threshold below is in the CSS-pixel world the camera zoom maps
+      // from, so bring the pointer back into that space first. Skipping this
+      // puts every tap RETINA times too far right and down.
+      const toWorld = (pointer) => ({ x: pointer.x / RETINA, y: pointer.y / RETINA });
       this.input.on('pointerdown', function (pointer) {
         if (kit.paused || this.drag) return;
+        const p = toWorld(pointer);
         const record = kit.input.pointers.get(pointer.id);
         if (record) record.zone = 'hearth-halls';
-        else kit.input.pointers.set(pointer.id, { x: pointer.x, y: pointer.y, startX: pointer.x, startY: pointer.y, downAt: 0, zone: 'hearth-halls' });
-        const hit = this.hitTest(pointer.x, pointer.y);
+        else kit.input.pointers.set(pointer.id, { x: p.x, y: p.y, startX: p.x, startY: p.y, downAt: 0, zone: 'hearth-halls' });
+        const hit = this.hitTest(p.x, p.y);
         if (!hit) return;
         if (this.mode === 'choice' && hit.id && hit.id.indexOf('choice-') === 0) { this.choiceFocus = hit.style; this.layoutDirty = true; }
         if (hit.kind === 'board') {
-          this.drag = { id: pointer.id, start: hit.cell, startX: pointer.x, startY: pointer.y };
+          this.drag = { id: pointer.id, start: hit.cell, startX: p.x, startY: p.y };
           this.preview = null;
         } else {
-          this.drag = { id: pointer.id, button: hit.id, style: hit.style, startX: pointer.x, startY: pointer.y };
+          this.drag = { id: pointer.id, button: hit.id, style: hit.style, startX: p.x, startY: p.y };
         }
         kit.audio.sfx('tap');
       }, this);
       this.input.on('pointermove', function (pointer) {
         if (!this.drag || pointer.id !== this.drag.id || this.mode !== 'level' && this.mode !== 'replay') return;
-        const cell = this.cellFromPoint(pointer.x, pointer.y);
+        const p = toWorld(pointer);
+        const cell = this.cellFromPoint(p.x, p.y);
         if (!this.drag.start || !cell) return;
-        const dx = pointer.x - this.drag.startX;
-        const dy = pointer.y - this.drag.startY;
+        const dx = p.x - this.drag.startX;
+        const dy = p.y - this.drag.startY;
         if (Math.max(Math.abs(dx), Math.abs(dy)) > 10) {
           const to = Math.abs(dx) > Math.abs(dy) ? { col: this.drag.start.col + (dx > 0 ? 1 : -1), row: this.drag.start.row } : { col: this.drag.start.col, row: this.drag.start.row + (dy > 0 ? 1 : -1) };
           if (to.col >= 0 && to.col < COLS && to.row >= 0 && to.row < ROWS) this.setPreview(this.drag.start, to);
@@ -480,17 +504,18 @@
       }, this);
       this.input.on('pointerup', function (pointer) {
         if (!this.drag || pointer.id !== this.drag.id) return;
+        const p = toWorld(pointer);
         const drag = this.drag; this.drag = null;
         if (drag.start) {
-          const dx = pointer.x - drag.startX;
-          const dy = pointer.y - drag.startY;
+          const dx = p.x - drag.startX;
+          const dy = p.y - drag.startY;
           if (Math.max(Math.abs(dx), Math.abs(dy)) > 16) {
             const to = Math.abs(dx) > Math.abs(dy) ? { col: drag.start.col + (dx > 0 ? 1 : -1), row: drag.start.row } : { col: drag.start.col, row: drag.start.row + (dy > 0 ? 1 : -1) };
             if (to.col >= 0 && to.col < COLS && to.row >= 0 && to.row < ROWS) this.trySwap(drag.start, to);
           } else {
-            this.tapCell(this.cellFromPoint(pointer.x, pointer.y) || drag.start);
+            this.tapCell(this.cellFromPoint(p.x, p.y) || drag.start);
           }
-        } else if (this.hitTest(pointer.x, pointer.y) && this.hitTest(pointer.x, pointer.y).id === drag.button) {
+        } else if (this.hitTest(p.x, p.y) && this.hitTest(p.x, p.y).id === drag.button) {
           this.activateButton(drag.button, drag.style);
         }
         this.preview = null;
@@ -618,8 +643,17 @@
 
     layout() {
       this.layoutDirty = false;
-      const w = this.scale.width;
-      const h = this.scale.height;
+      // scale.width/height are DEVICE pixels after the retina conversion; the
+      // world stays in CSS pixels (see RETINA at the top of this file), so the
+      // camera zoom absorbs the density and the layout below is unchanged.
+      // The centerOn is not optional: a zoomed camera holds its own midpoint
+      // under the viewport centre, so without it the whole room slides off.
+      const w = this.scale.width / RETINA;
+      const h = this.scale.height / RETINA;
+      this.cameras.main.setZoom(RETINA);
+      this.cameras.main.centerOn(w / 2, h / 2);
+      this.camBaseX = this.cameras.main.scrollX;
+      this.camBaseY = this.cameras.main.scrollY;
       this.w = w; this.h = h;
       this.ui.context.setX(w - 20);
       const cell = Math.floor(Math.min((w - 34) / COLS, (h - 310) / ROWS));
@@ -1369,17 +1403,35 @@
   }
 
   const config = {
-    type: Phaser.CANVAS,
+    // Was Phaser.CANVAS. At native density this title fills up to nine times
+    // the pixels it used to, and Canvas2D fill is CPU work: the identical
+    // change on skyshard-vale took its load from 7.1s to never finishing
+    // inside 45s. AUTO picks WebGL and hands the fill to the compositor.
+    type: Phaser.AUTO,
     parent: document.getElementById('game'),
-    width: 390,
-    height: 844,
     backgroundColor: '#172541',
     render: { antialias: true, roundPixels: true, transparent: false },
-    scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH },
+    // Was Scale.RESIZE with a parent, which cannot hold a dense backing store:
+    // Phaser re-derives canvas.width from the parent's CSS box every 500ms and
+    // silently reverts the density. Scale.NONE sizes in device pixels and the
+    // config zoom scales the canvas back down in CSS.
+    scale: {
+      mode: Phaser.Scale.NONE,
+      autoCenter: Phaser.Scale.CENTER_BOTH,
+      width: Math.round(hhCssW() * RETINA),
+      height: Math.round(hhCssH() * RETINA),
+      zoom: 1 / RETINA
+    },
     input: { activePointers: 2 },
     scene: HearthScene
   };
   kit.loader.progress(0.62);
   const game = new Phaser.Game(config);
+  // Scale.NONE does not track the window; game.scale.resize() raises the same
+  // 'resize' event the scene already listens to.
+  window.addEventListener('resize', function () {
+    try { game.scale.resize(Math.round(hhCssW() * RETINA), Math.round(hhCssH() * RETINA)); }
+    catch (e) { /* a resize must never take the title down */ }
+  });
   window.__hhGame = game;
 })();

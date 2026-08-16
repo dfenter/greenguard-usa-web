@@ -588,4 +588,7 @@
   var game = new Phaser.Game({ type: Phaser.CANVAS, parent: document.body, width: Math.round(W * HIDPI_FACTOR), height: Math.round(H * HIDPI_FACTOR), transparent: false,
     render: Object.assign({}, window.GGKit.renderDefaults), scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: Math.round(W * HIDPI_FACTOR), height: Math.round(H * HIDPI_FACTOR) }, scene: [ManorScene] });
   window.__mm.game = game; window.__mm.state = state;
+  // Nothing here ever registered the service worker, so the title had a
+  // manifest and an sw.js but no offline capability at all.
+  kit.registerPWA();
 }());

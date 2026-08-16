@@ -1,6 +1,23 @@
 (() => {
   'use strict';
 
+  // ------------------------------------------------------------ retina
+  // Fallline used Scale.RESIZE with parent 'game-root'. That combination can
+  // NEVER hold a dense backing store: Phaser polls the parent every 500ms and
+  // re-derives canvas.width from its CSS box, so any density set here is
+  // silently reverted about half a second after load. Converted to Scale.NONE:
+  // the canvas is sized in DEVICE pixels and scaled back down with the config
+  // zoom, and the main camera is zoomed by the same factor so that world
+  // coordinates stay in CSS pixels. That last part matters here because the
+  // whole layout is magic numbers (cell clamp 14..34, board insets, gesture
+  // thresholds in pointer space); moving the world into device pixels would
+  // have required rewriting every one of them.
+  const RETINA = (window.GGKit && window.GGKit.hiDpi)
+    ? window.GGKit.hiDpi.factor(window.innerWidth, window.innerHeight)
+    : 1;
+  const viewCssW = () => Math.max(1, window.innerWidth || 1);
+  const viewCssH = () => Math.max(1, window.innerHeight || 1);
+
   const COLS = 10;
   const ROWS = 20;
   const STEP = 1 / 60;
@@ -263,8 +280,15 @@
     resizeScene() {
       const landscape = window.innerWidth >= window.innerHeight;
       this.simPaused = !landscape || kit.paused;
-      const width = Math.max(320, this.scale.width || window.innerWidth);
-      const height = Math.max(220, this.scale.height || window.innerHeight);
+      // scale.width/height are DEVICE pixels; the world is CSS pixels, so the
+      // layout must be driven by the zoomed-down size. The camera is re-zoomed
+      // and re-centred here too: a zoomed camera keeps its own midpoint under
+      // the viewport centre, so without the centerOn the playfield walks off
+      // screen entirely.
+      const width = Math.max(320, (this.scale.width / RETINA) || window.innerWidth);
+      const height = Math.max(220, (this.scale.height / RETINA) || window.innerHeight);
+      this.cameras.main.setZoom(RETINA);
+      this.cameras.main.centerOn((this.scale.width / RETINA) / 2, (this.scale.height / RETINA) / 2);
       this.cell = Math.max(14, Math.min(34, (height - 112) / ROWS, (width - 280) / COLS));
       this.boardWidth = COLS * this.cell;
       this.boardHeight = ROWS * this.cell;
@@ -703,8 +727,12 @@
     boardPoint(pointer) {
       const canvas = this.game.canvas;
       const rect = canvas.getBoundingClientRect();
-      const sx = this.scale.width / Math.max(1, rect.width);
-      const sy = this.scale.height / Math.max(1, rect.height);
+      // World coordinates are CSS pixels (camera zoom absorbs the density), so
+      // divide the device-pixel game size back down before comparing to the
+      // canvas CSS box. Without this every board hit-test lands RETINA times
+      // too far right and down.
+      const sx = (this.scale.width / RETINA) / Math.max(1, rect.width);
+      const sy = (this.scale.height / RETINA) / Math.max(1, rect.height);
       return { x: (pointer.x - rect.left) * sx, y: (pointer.y - rect.top) * sy };
     }
 
@@ -885,7 +913,7 @@
 
     drawPreviews() {
       this.previewG.clear();
-      const width = this.scale.width || window.innerWidth;
+      const width = (this.scale.width / RETINA) || window.innerWidth;
       const mini = clamp(this.cell * .58, 8, 18);
       const cardW = mini * 5.2;
       let x = this.boardX + this.boardWidth + 24;
@@ -1006,12 +1034,22 @@
   const game = new Phaser.Game({
     type: Phaser.AUTO,
     parent: 'game-root',
-    width: 1280,
-    height: 720,
     backgroundColor: '#071016',
     render: { antialias: false, pixelArt: true, roundPixels: true },
-    scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH },
+    scale: {
+      mode: Phaser.Scale.NONE,
+      autoCenter: Phaser.Scale.CENTER_BOTH,
+      width: Math.round(viewCssW() * RETINA),
+      height: Math.round(viewCssH() * RETINA),
+      zoom: 1 / RETINA
+    },
     scene: [FalllineScene]
+  });
+  // Scale.NONE does not follow the window, so drive it by hand. game.scale
+  // .resize() emits the same 'resize' event the scene already listens for.
+  window.addEventListener('resize', () => {
+    try { game.scale.resize(Math.round(viewCssW() * RETINA), Math.round(viewCssH() * RETINA)); }
+    catch (e) { /* a resize must never take the title down */ }
   });
   kit.loader.progress(1);
   window.__fl.game = game;

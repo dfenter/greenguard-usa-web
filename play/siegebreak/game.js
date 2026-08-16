@@ -4,6 +4,15 @@
 
   const W = 390;
   const H = 700;
+  // ------------------------------------------------------------- retina
+  // Scale.FIT with a fixed design size, so the world coordinate space must
+  // NOT move (every constant in this file is in 390x700 design units).
+  // Instead the backing store is raised by RETINA and the main camera is
+  // zoomed by the same amount. The canvases this title bakes by hand are
+  // baked at RETINA scale too and given an explicit display size, because a
+  // 1x bake magnified 3x by the camera would pass the density check while
+  // still looking exactly as soft as before.
+  const RETINA = (window.GGKit && window.GGKit.hiDpi) ? window.GGKit.hiDpi.factor(W, H) : 1;
   const HEADER = 74;
   const RAIL = 574;
   const WALL_Y = 320;
@@ -172,6 +181,12 @@
 
     create() {
       liveScene = this;
+      // The zoom is what turns the dense backing store into real detail; the
+      // centerOn is what keeps it on screen. A zoomed camera holds its own
+      // midpoint under the viewport centre, so setZoom without centerOn puts
+      // the whole playfield off the canvas with nothing logged.
+      this.cameras.main.setZoom(RETINA);
+      this.cameras.main.centerOn(W / 2, H / 2);
       this.pausedByKit = false;
       this.saveData = kit.save.get(defaultSave());
       if (!validSave(this.saveData)) this.saveData = defaultSave();
@@ -202,8 +217,13 @@
 
     makeTextures() {
       const shell = document.createElement('canvas');
-      shell.width = W; shell.height = H;
+      // Baked at device density, drawn in design units (the context carries
+      // the scale). Never set source.resolution to compensate: that only has
+      // an effect on the CANVAS renderer, and under WebGL it makes the quad
+      // RETINA times too large. The display size is set explicitly instead.
+      shell.width = Math.round(W * RETINA); shell.height = Math.round(H * RETINA);
       const s = shell.getContext('2d');
+      s.scale(RETINA, RETINA);
       s.fillStyle = '#07111b'; s.fillRect(0, 0, W, H);
       s.fillStyle = '#091622'; s.fillRect(0, 0, W, HEADER);
       s.fillStyle = '#0a1522'; s.fillRect(0, RAIL, W, H - RAIL);
@@ -212,7 +232,8 @@
       s.fillStyle = 'rgba(255,255,255,.05)'; s.fillRect(12, RAIL + 9, W - 24, 1);
       this.textures.addCanvas('sb-shell', shell);
       this.battleCanvas = document.createElement('canvas');
-      this.battleCanvas.width = W; this.battleCanvas.height = H - HEADER;
+      this.battleCanvas.width = Math.round(W * RETINA);
+      this.battleCanvas.height = Math.round((H - HEADER) * RETINA);
       this.textures.addCanvas('sb-battle', this.battleCanvas);
       this.refreshBattleTexture(0);
     }
@@ -221,7 +242,11 @@
       const c = this.battleCanvas.getContext('2d');
       const oy = HEADER;
       const r = seeded(8191 + rampartIndex * 31);
-      c.clearRect(0, 0, W, H - HEADER);
+      // Redraw from a clean transform each refresh, then re-apply the device
+      // scale, so repeated refreshes cannot compound it.
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.clearRect(0, 0, this.battleCanvas.width, this.battleCanvas.height);
+      c.scale(RETINA, RETINA);
       const sky = c.createLinearGradient(0, 0, 0, GROUND_Y - oy);
       sky.addColorStop(0, '#081321'); sky.addColorStop(0.56, '#162b3a'); sky.addColorStop(1, '#302332');
       c.fillStyle = sky; c.fillRect(0, 0, W, H - HEADER);
@@ -277,9 +302,14 @@
 
     makeSpriteSheets() {
       const make = (key, draw) => {
-        const can = document.createElement('canvas'); can.width = 48 * 8; can.height = 64;
-        const c = can.getContext('2d'); for (let i = 0; i < 8; i++) draw(c, i * 48, i);
-        this.textures.addSpriteSheet(key, can, { frameWidth: 48, frameHeight: 64 });
+        const can = document.createElement('canvas');
+        can.width = Math.round(48 * 8 * RETINA); can.height = Math.round(64 * RETINA);
+        const c = can.getContext('2d');
+        c.scale(RETINA, RETINA);
+        for (let i = 0; i < 8; i++) draw(c, i * 48, i);
+        // Frames are in device pixels, so every sprite using this sheet is
+        // drawn at 1/RETINA scale to keep its design-space size.
+        this.textures.addSpriteSheet(key, can, { frameWidth: Math.round(48 * RETINA), frameHeight: Math.round(64 * RETINA) });
       };
       make('sb-defender', drawDefenderFrame);
       make('sb-attacker', drawAttackerFrame);
@@ -305,9 +335,9 @@
     }
 
     makeDisplayList() {
-      this.add.image(0, 0, 'sb-shell').setOrigin(0).setDepth(1);
+      this.add.image(0, 0, 'sb-shell').setOrigin(0).setDisplaySize(W, H).setDepth(1);
       this.battleLayer = this.add.container(0, 0).setDepth(3);
-      this.battleLayer.add(this.add.image(0, HEADER, 'sb-battle').setOrigin(0));
+      this.battleLayer.add(this.add.image(0, HEADER, 'sb-battle').setOrigin(0).setDisplaySize(W, H - HEADER));
       this.worldG = this.add.graphics(); this.battleLayer.add(this.worldG);
       this.enemySprites = [];
       for (let i = 0; i < MAX_ENEMIES; i++) {
@@ -319,9 +349,9 @@
       this.fxG = this.add.graphics(); this.battleLayer.add(this.fxG);
       this.uiG = this.add.graphics().setDepth(10);
       this.texts = {};
-      const normal = { fontFamily: 'Arial, sans-serif', fontSize: '14px', color: CSS.white, stroke: '#07111b', strokeThickness: 3 };
-      const small = { fontFamily: 'Arial, sans-serif', fontSize: '10px', color: CSS.muted, stroke: '#07111b', strokeThickness: 2 };
-      const title = { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: CSS.white, stroke: '#07111b', strokeThickness: 3 };
+      const normal = { fontFamily: 'Arial, sans-serif', fontSize: '14px', color: CSS.white, stroke: '#07111b', strokeThickness: 3 , resolution: RETINA };
+      const small = { fontFamily: 'Arial, sans-serif', fontSize: '10px', color: CSS.muted, stroke: '#07111b', strokeThickness: 2 , resolution: RETINA };
+      const title = { fontFamily: 'Arial, sans-serif', fontSize: '14px', fontStyle: 'bold', color: CSS.white, stroke: '#07111b', strokeThickness: 3 , resolution: RETINA };
       this.texts.logo = this.add.text(15, 13, 'SIEGEBREAK', title).setDepth(11);
       this.texts.night = this.add.text(15, 39, '', normal).setDepth(11);
       this.texts.rampart = this.add.text(98, 39, '', small).setDepth(11);
@@ -330,9 +360,9 @@
       this.texts.gear = this.add.text(371, 61, '⚙', small).setOrigin(0.5).setDepth(11);
       this.texts.hint = this.add.text(195, 548, '', small).setOrigin(0.5).setDepth(11);
       this.texts.objective = this.add.text(195, 104, '', small).setOrigin(0.5).setDepth(11);
-      this.texts.tutorial = this.add.text(195, 88, '', { fontFamily: 'Arial, sans-serif', fontSize: '14px', color: CSS.white, align: 'center', stroke: '#07111b', strokeThickness: 3, wordWrap: { width: 342 } }).setOrigin(0.5).setDepth(13);
-      this.texts.banner = this.add.text(195, 230, '', { fontFamily: 'Arial, sans-serif', fontSize: '22px', fontStyle: 'bold', color: CSS.gold, align: 'center', stroke: '#07111b', strokeThickness: 5 }).setOrigin(0.5).setDepth(13);
-      this.texts.bannerSub = this.add.text(195, 260, '', { fontFamily: 'Arial, sans-serif', fontSize: '14px', color: CSS.white, align: 'center', stroke: '#07111b', strokeThickness: 3 }).setOrigin(0.5).setDepth(13);
+      this.texts.tutorial = this.add.text(195, 88, '', { fontFamily: 'Arial, sans-serif', fontSize: '14px', color: CSS.white, align: 'center', stroke: '#07111b', strokeThickness: 3, wordWrap: { width: 342 }, resolution: RETINA }).setOrigin(0.5).setDepth(13);
+      this.texts.banner = this.add.text(195, 230, '', { fontFamily: 'Arial, sans-serif', fontSize: '22px', fontStyle: 'bold', color: CSS.gold, align: 'center', stroke: '#07111b', strokeThickness: 5, resolution: RETINA }).setOrigin(0.5).setDepth(13);
+      this.texts.bannerSub = this.add.text(195, 260, '', { fontFamily: 'Arial, sans-serif', fontSize: '14px', color: CSS.white, align: 'center', stroke: '#07111b', strokeThickness: 3, resolution: RETINA }).setOrigin(0.5).setDepth(13);
       this.texts.banner.setVisible(false); this.texts.bannerSub.setVisible(false);
       this.buttonTextPool = [];
       for (let i = 0; i < 40; i++) this.buttonTextPool.push(this.add.text(0, 0, '', small).setOrigin(0.5).setDepth(12).setVisible(false));
@@ -365,7 +395,7 @@
     }
 
     makeOverlayText(key, x, y, text, size, color) {
-      this.texts[key] = this.add.text(x, y, text, { fontFamily: 'Arial, sans-serif', fontSize: size + 'px', fontStyle: size >= 22 ? 'bold' : 'normal', color: color, align: 'center', stroke: '#07111b', strokeThickness: 4 }).setOrigin(0.5).setDepth(12);
+      this.texts[key] = this.add.text(x, y, text, { fontFamily: 'Arial, sans-serif', fontSize: size + 'px', fontStyle: size >= 22 ? 'bold' : 'normal', color: color, align: 'center', stroke: '#07111b', strokeThickness: 4, resolution: RETINA }).setOrigin(0.5).setDepth(12);
     }
 
     bindInput() {
@@ -375,14 +405,18 @@
         const clientX = pointer.event && pointer.event.clientX != null ? pointer.event.clientX : pointer.x;
         const clientY = pointer.event && pointer.event.clientY != null ? pointer.event.clientY : pointer.y;
         if (!kit.input.pointers.has(id)) kit.input.pointers.set(id, { x: clientX, y: clientY, startX: clientX, startY: clientY, downAt: performance.now(), zone: 'claimed' });
-        this.pointerStarts[id] = { x: pointer.x, y: pointer.y };
-        if (this.handlePress(pointer.x, pointer.y)) this.pointerStarts[id].claimed = true;
+        // Phaser reports pointer coordinates in GAME space, which is device
+        // pixels after the retina conversion. Every hit rect below is in the
+        // 390x700 design space the camera zoom maps from, so divide first.
+        const wx = pointer.x / RETINA, wy = pointer.y / RETINA;
+        this.pointerStarts[id] = { x: wx, y: wy };
+        if (this.handlePress(wx, wy)) this.pointerStarts[id].claimed = true;
       });
       this.input.on('pointerup', (pointer) => {
         const id = pointer.event && pointer.event.pointerId != null ? pointer.event.pointerId : pointer.id;
         const start = this.pointerStarts[id]; delete this.pointerStarts[id];
         if (!start || start.claimed || kit.paused) return;
-        const dx = pointer.x - start.x, dy = pointer.y - start.y;
+        const dx = pointer.x / RETINA - start.x, dy = pointer.y / RETINA - start.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         const dir = distance > 24 ? (Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up')) : 'tap';
         this.handleRelease(start.x, start.y, dir);
@@ -1000,14 +1034,14 @@
       let spriteIndex = 0;
       for (const e of this.enemies) {
         if (!e.active || e.kind === 'ram' || e.kind === 'tower') continue;
-        const s = this.enemySprites[spriteIndex++]; s.setVisible(true); s.setPosition(e.x, e.y + (e.state === 'ground' || e.state === 'top' ? Math.sin(e.wob) * 1.4 : 0)); s.setScale(ENEMY[e.kind].scale); s.setFrame(e.renderState); s.setFlipX(e.x > 195); if (e.hurt > 0) s.setTint(0xffffff); else s.clearTint(); e.renderSlot = spriteIndex - 1;
+        const s = this.enemySprites[spriteIndex++]; s.setVisible(true); s.setPosition(e.x, e.y + (e.state === 'ground' || e.state === 'top' ? Math.sin(e.wob) * 1.4 : 0)); s.setScale(ENEMY[e.kind].scale / RETINA); s.setFrame(e.renderState); s.setFlipX(e.x > 195); if (e.hurt > 0) s.setTint(0xffffff); else s.clearTint(); e.renderSlot = spriteIndex - 1;
         if (e.shield && e.kind === 'elite' && e.state !== 'ground') { this.fxG.lineStyle(2, COLORS.violet, 0.9); this.fxG.strokeCircle(e.x, e.y - 28, 19 + Math.sin(this.state.clock * 7) * 2); this.fxG.fillStyle(COLORS.violet, 1); this.fxG.fillTriangle(e.x, e.y - 57, e.x - 5, e.y - 48, e.x + 5, e.y - 48); }
         if (e.tele > 0) { this.fxG.lineStyle(2, COLORS.amber, 0.85); this.fxG.strokeCircle(e.x, WALL_Y + 3, 18 + e.tele * 18); this.fxG.lineStyle(1, COLORS.danger, 0.75); this.fxG.strokeCircle(e.x, WALL_Y + 3, 9 + (0.42 - e.tele) * 30); }
         if (e.hp < e.max) { this.fxG.fillStyle(0x07111b, 0.75); this.fxG.fillRect(e.x - 15, e.y - 69, 30, 4); this.fxG.fillStyle(e.shield ? COLORS.violet : COLORS.enemy, 1); this.fxG.fillRect(e.x - 15, e.y - 69, 30 * clamp(e.hp / e.max, 0, 1), 4); }
       }
       while (spriteIndex < this.enemySprites.length) this.enemySprites[spriteIndex++].setVisible(false);
       for (const e of this.enemies) if (e.active && (e.kind === 'ram' || e.kind === 'tower')) this.drawSiegeEngine(e);
-      const h = this.hero; this.heroSprite.setVisible(this.state.mode === 'play' || this.state.mode === 'vault'); this.heroSprite.setPosition(h.x, h.y + (h.action === 'idle' ? Math.sin(this.state.clock * 2.4) * 1.3 : 0)); this.heroSprite.setFlipX(h.face < 0); this.heroSprite.setFrame(h.action === 'leap' ? SPRITE_STATES.defender.leap : h.action === 'windup' || h.action === 'strike' ? (h.attack === 'over' ? SPRITE_STATES.defender.strike : h.attack === 'kick' ? SPRITE_STATES.defender.kick : SPRITE_STATES.defender.sweep) : h.action === 'recover' ? SPRITE_STATES.defender.hurt : SPRITE_STATES.defender.idle); this.heroSprite.setScale(h.action === 'leap' ? 1.04 : 1);
+      const h = this.hero; this.heroSprite.setVisible(this.state.mode === 'play' || this.state.mode === 'vault'); this.heroSprite.setPosition(h.x, h.y + (h.action === 'idle' ? Math.sin(this.state.clock * 2.4) * 1.3 : 0)); this.heroSprite.setFlipX(h.face < 0); this.heroSprite.setFrame(h.action === 'leap' ? SPRITE_STATES.defender.leap : h.action === 'windup' || h.action === 'strike' ? (h.attack === 'over' ? SPRITE_STATES.defender.strike : h.attack === 'kick' ? SPRITE_STATES.defender.kick : SPRITE_STATES.defender.sweep) : h.action === 'recover' ? SPRITE_STATES.defender.hurt : SPRITE_STATES.defender.idle); this.heroSprite.setScale((h.action === 'leap' ? 1.04 : 1) / RETINA);
       if ((h.action === 'leap' || h.action === 'windup') && (this.state.mode === 'play' || this.state.mode === 'vault')) { this.fxG.lineStyle(2, COLORS.player, 0.9); this.fxG.strokeCircle(h.targetX, WALL_Y - 2, 16 + Math.sin(this.state.clock * 9) * 2); this.fxG.lineStyle(1, COLORS.player, 0.5); this.fxG.lineBetween(h.x, h.y - 44, h.targetX, WALL_Y - 20); this.fxG.fillStyle(COLORS.player, 1); this.fxG.fillTriangle(h.targetX - 5, WALL_Y - 32, h.targetX + 5, WALL_Y - 32, h.targetX, WALL_Y - 21); }
       if (h.action === 'windup') { this.fxG.lineStyle(3, h.attack === 'kick' ? COLORS.amber : h.attack === 'sweep' ? COLORS.playerLight : COLORS.gold, 0.95); this.fxG.strokeCircle(h.x, WALL_Y - 28, h.attack === 'sweep' ? 46 : 34); }
       for (const p of this.projectiles) if (p.active) { const t = clamp(p.t, 0, 1), x = lerp(p.x0, p.x1, t), y = lerp(p.y0, p.y1, t) - Math.sin(t * Math.PI) * 22; this.fxG.lineStyle(2, p.color, 0.85); this.fxG.lineBetween(lerp(p.x0, p.x1, Math.max(0, t - 0.15)), lerp(p.y0, p.y1, Math.max(0, t - 0.15)), x, y); }
@@ -1155,6 +1189,9 @@
   }
 
   kit.loader.show('SIEGEBREAK'); kit.loader.progress(0.18);
-  const config = { type: Phaser.CANVAS, width: W, height: H, parent: 'game', backgroundColor: '#07111b', render: { antialias: true, roundPixels: true, clearBeforeRender: true }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: SiegebreakScene };
+  // type was Phaser.CANVAS. At native density this title fills up to nine
+  // times the pixels, and Canvas2D fill is CPU work: the identical change on
+  // skyshard-vale took it from a 7.1s load to never finishing inside 45s.
+  const config = { type: Phaser.AUTO, parent: 'game', backgroundColor: '#07111b', render: { antialias: true, roundPixels: true, clearBeforeRender: true }, scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH, width: Math.round(W * RETINA), height: Math.round(H * RETINA) }, scene: SiegebreakScene };
   new Phaser.Game(config);
 })();

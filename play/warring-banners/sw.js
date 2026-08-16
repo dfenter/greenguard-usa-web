@@ -1,6 +1,6 @@
 /* Warring Banners service worker. Derived from /play/_shared/sw-template.js. */
 const SLUG = 'warring-banners';
-const VERSION = 'aaa-20260813-1-2026-08-16-offline-fix';
+const VERSION = 'aaa-20260813-1-2026-08-16-offline-fix-2026-08-16-gate-repair';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/warring-banners/',

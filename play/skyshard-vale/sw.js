@@ -1,6 +1,6 @@
 /* Generated from /play/_shared/sw-template.js. */
 const SLUG = 'skyshard-vale';
-const VERSION = 'aaa-f12-20260811-02-2026-08-16-offline-fix';
+const VERSION = 'aaa-f12-20260811-02-2026-08-16-offline-fix-2026-08-16-gate-repair';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/skyshard-vale/',

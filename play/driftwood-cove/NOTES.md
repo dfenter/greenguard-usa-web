@@ -94,3 +94,44 @@ switches are read by the boot fallback and by the live scenes.
 - Recipe: Phaser `Scale.FIT`, design world coordinates retained, `RETINA_FACTOR` applied to scale dimensions and camera zoom in Boot, Title, Play, Storm, and Log. All baked CanvasTextures use the dense GGKit canvas helper, logical image scales compensate for the dense sources, and text uses the same resolution.
 - Factor cap: none. The GGKit factor is used without a cap because this title has no measured need for one.
 - Could not do: the browser connector reported no available target, so the required DPR3 canvas ratio read and real gameplay screenshot could not be captured. `node --check` and `git diff --check` pass.
+
+
+## Blank frame repair
+
+Symptom: at CSS 390x844 / deviceScaleFactor 3 the title booted clean, the render loop
+advanced, the backing store measured 3x, and the frame was blank.
+
+### Root cause
+
+The retina conversion raised the backing store to design x factor and applied
+`cameras.main.setZoom(factor)`, but a zoomed Phaser camera transforms about its
+ORIGIN, which defaults to the centre of the viewport. With scroll 0 a design-space
+point x therefore lands at `zoom*x - (width/2)*(zoom-1)`, i.e. the whole design box
+sits one and a bit screens to the left of and above the viewport. The loop runs, the
+scene draws, nothing is on screen, and there is no error anywhere.
+
+This title is repaired with `cameras.main.setOrigin(0, 0)` alongside the zoom rather
+than the fleet's `centerOn(DESIGN_W/2, DESIGN_H/2)`. Both put the design box back on
+screen, but origin (0,0) additionally leaves scroll 0 meaning "design origin", so any
+absolute `setScroll()` the title already performs (screen shake, world scrolling) and
+any `setScrollFactor(0)` HUD stay correct in design pixels with no compensation. See
+the per-title cause below for why that mattered here.
+
+- Five scenes each call `setZoom(RETINA_FACTOR)`; every sprite in the title is
+  authored at `setScale(1 / RETINA_FACTOR)` because the art is baked dense, so the
+  scale math was already right and only the camera placement was wrong.
+- Repair: `setOrigin(0, 0)` at all five sites. No art scale was touched.
+
+### Measured, by me, on a real gameplay frame
+
+Release gate run serially (concurrency 1) against a local static server:
+`node release_gate.mjs http://localhost:<port> 1 driftwood-cove`, headless Chrome,
+390x844 at deviceScaleFactor 3, best of four post-interaction frames.
+
+| | distinct colours (8-bit) | flattest colour share | backing/CSS ratio | gate |
+|---|---|---|---|---|
+| before | 1 | 100% | 3x | HOLD (art) |
+| after | 22146 | 14.1% | 3x | READY (all checks pass) |
+
+`node --check` clean on every file touched. No gameplay, balance, content or art
+direction was changed.

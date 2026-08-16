@@ -186,7 +186,13 @@ const kit = GGKit.create({
   onResume() { pausedReason = null; if (racer) racer.world.setPaused(false); },
   onRestart() { resetTrip(); },
 });
-if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('/play/torque-trail/sw.js', { scope: '/play/torque-trail/' }).catch(() => {});
+// localhost is a secure context too, and is where the offline gate runs. The
+// old https-only test meant this title never registered a worker off
+// production, so it read as "no service worker" and failed offline.
+if ('serviceWorker' in navigator && (location.protocol === 'https:'
+    || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+  navigator.serviceWorker.register('/play/torque-trail/sw.js', { scope: '/play/torque-trail/' }).catch(() => {});
+}
 kit.audio.register({ menu: 'assets/music/quiet-range.mp3', trail: 'assets/music/open-trail.mp3', ...SFX });
 
 let save = kit.save.get(null);

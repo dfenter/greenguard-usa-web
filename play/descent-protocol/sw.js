@@ -1,6 +1,6 @@
 /* Descent Protocol service worker. Generated from /play/_shared/sw-template.js. */
 const SLUG = 'descent-protocol';
-const VERSION = '2026.08.16.1-2026-08-16-offline-fix';
+const VERSION = '2026.08.16.1-2026-08-16-offline-fix-2026-08-16-gate-repair';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/descent-protocol/',

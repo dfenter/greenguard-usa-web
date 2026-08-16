@@ -1,6 +1,6 @@
 /* Orbit Hearts service worker. Cache only files shipped by this title. */
 const SLUG = 'orbit-hearts';
-const VERSION = '2026-08-13-aaa-f14-2026-08-16-offline-fix';
+const VERSION = '2026-08-13-aaa-f14-2026-08-16-offline-fix-2026-08-16-gate-repair';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/orbit-hearts/',

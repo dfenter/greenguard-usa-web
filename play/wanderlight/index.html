@@ -63,14 +63,33 @@
   <script src="js/view.js"></script>
   <script>
     'use strict';
+    // Scale.RESIZE with a parent cannot hold a dense backing store: Phaser
+    // re-derives canvas.width from the parent's CSS box every 500ms and
+    // silently reverts it. Scale.NONE sizes the game in DEVICE pixels and the
+    // config zoom scales the canvas back down in CSS; the scene zooms its
+    // camera by the same factor so world coordinates stay in CSS pixels.
+    const RETINA = WanderlightApp.RETINA;
+    const cssW = () => Math.max(1, window.innerWidth || 1);
+    const cssH = () => Math.max(1, window.innerHeight || 1);
     const game = new Phaser.Game({
       type: Phaser.AUTO,
       parent: 'game',
       backgroundColor: '#071522',
       render: { pixelArt: true, antialias: false, roundPixels: true, clearBeforeRender: true },
-      scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight },
+      scale: {
+        mode: Phaser.Scale.NONE,
+        width: Math.round(cssW() * RETINA),
+        height: Math.round(cssH() * RETINA),
+        zoom: 1 / RETINA,
+      },
       fps: { target: 60, forceSetTimeOut: false },
       scene: [WanderlightApp.Scene],
+    });
+    // Scale.NONE does not follow the window; the scene relayouts from
+    // scale.width on its next frame.
+    window.addEventListener('resize', () => {
+      try { game.scale.resize(Math.round(cssW() * RETINA), Math.round(cssH() * RETINA)); }
+      catch (e) { /* a resize must never take the title down */ }
     });
   </script>
 </body>

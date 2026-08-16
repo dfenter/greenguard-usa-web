@@ -91,3 +91,56 @@ Player controls: hold and flick upward to cast. Drag while the lure is in the wa
 - Recipe: `GGKit.hiDpi.factor(390, 844)`, dense FIT scale dimensions, `GGKit.renderDefaults`, zoom on both the gameplay and existing UI cameras, and matching Text resolution.
 - Factor cap: none beyond GGKit's default [1, 3] clamp.
 - Could not capture the required gameplay screenshot, backing-store ratio, or gameplay color metrics in this sandbox. `node --check game.js` passes.
+
+
+## Blank frame repair
+
+Symptom: at CSS 390x844 / deviceScaleFactor 3 the title booted clean, the render loop
+advanced, the backing store measured 3x, and the frame was blank.
+
+### Root cause
+
+The retina conversion raised the backing store to design x factor and applied
+`cameras.main.setZoom(factor)`, but a zoomed Phaser camera transforms about its
+ORIGIN, which defaults to the centre of the viewport. With scroll 0 a design-space
+point x therefore lands at `zoom*x - (width/2)*(zoom-1)`, i.e. the whole design box
+sits one and a bit screens to the left of and above the viewport. The loop runs, the
+scene draws, nothing is on screen, and there is no error anywhere.
+
+This title is repaired with `cameras.main.setOrigin(0, 0)` alongside the zoom rather
+than the fleet's `centerOn(DESIGN_W/2, DESIGN_H/2)`. Both put the design box back on
+screen, but origin (0,0) additionally leaves scroll 0 meaning "design origin", so any
+absolute `setScroll()` the title already performs (screen shake, world scrolling) and
+any `setScrollFactor(0)` HUD stay correct in design pixels with no compensation. See
+the per-title cause below for why that mattered here.
+
+Three separate faults, all on the camera:
+- The zoom is applied inside a helper, `configureRetinaScene(scene)`, as
+  `scene.cameras.main.setZoom(...)`, not as an inline `this.cameras.main` call, which
+  is why the scripted pairing never matched this title.
+- There is a SECOND camera: `uiCam = this.cameras.add(0, 0, W*f, H*f)` with its own
+  `setZoom`, added so showcase pans and shake never drag the interface. It was zoomed
+  and never re-placed either, so the entire UI including the title screen was off screen.
+- `setBounds(0, 0, WORLD_W, H)` on the zoomed camera. `Camera.clampX/clampY` derive
+  their range from `(displayWidth - width) / 2`, which only lines up on a centred zoom;
+  here it pinned scrollY to a constant `-H*(f-1)` and pushed the lake off screen.
+  `updateShowcaseCamera` then wrote an ABSOLUTE
+  `setScroll(showcaseOffset + juice.dx, juice.dy)` every frame on top.
+- Repair: `setOrigin(0, 0)` on the main camera and on `uiCam`; `setBounds` removed and
+  the identical limits (horizontal travel clamped to `[0, WORLD_W - W]`, no vertical
+  travel, which is exactly what those bounds produced) applied inline in
+  `updateShowcaseCamera`. Showcase pan, parallax and shake behave as authored.
+
+### Measured, by me, on a real gameplay frame
+
+Release gate run serially (concurrency 1) against a local static server:
+`node release_gate.mjs http://localhost:<port> 1 lunker-lake`, headless Chrome,
+390x844 at deviceScaleFactor 3, best of four post-interaction frames.
+
+| | distinct colours (8-bit) | flattest colour share | backing/CSS ratio | gate |
+|---|---|---|---|---|
+| before | 1 | 100% | 3x | HOLD (art) |
+| after | 3080 | 44.6% | 3x | READY (all checks pass) |
+
+`node --check` clean on every file touched. No gameplay, balance, content or art
+direction was changed.

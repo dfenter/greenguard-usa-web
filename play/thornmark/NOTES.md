@@ -163,3 +163,51 @@ first kill. All four are design calls, not missing work.
 - Factor cap: none beyond GGKit's standard maximum of 3. No title-specific cap.
 - Live canvas ratio and gameplay screenshot were unavailable because the browser backend was empty and the sandbox denied private HTTP listeners. The after ratio above is the configured geometry, not a live canvas read.
 - Static title-local canvas atlases now use `GGKit.hiDpi.canvas` and Phaser texture source resolution. Gameplay, balance, and content were unchanged.
+
+
+## Blank frame repair
+
+Symptom: at CSS 390x844 / deviceScaleFactor 3 the title booted clean, the render loop
+advanced, the backing store measured 3x, and the frame was blank.
+
+### Root cause
+
+The retina conversion raised the backing store to design x factor and applied
+`cameras.main.setZoom(factor)`, but a zoomed Phaser camera transforms about its
+ORIGIN, which defaults to the centre of the viewport. With scroll 0 a design-space
+point x therefore lands at `zoom*x - (width/2)*(zoom-1)`, i.e. the whole design box
+sits one and a bit screens to the left of and above the viewport. The loop runs, the
+scene draws, nothing is on screen, and there is no error anywhere.
+
+This title is repaired with `cameras.main.setOrigin(0, 0)` alongside the zoom rather
+than the fleet's `centerOn(DESIGN_W/2, DESIGN_H/2)`. Both put the design box back on
+screen, but origin (0,0) additionally leaves scroll 0 meaning "design origin", so any
+absolute `setScroll()` the title already performs (screen shake, world scrolling) and
+any `setScrollFactor(0)` HUD stay correct in design pixels with no compensation. See
+the per-title cause below for why that mattered here.
+
+This title DID match the scripted pairing and was patched with
+`centerOn(W/2, H/2)`, and stayed blank, because it has two further independent causes:
+- `Scene.prototype.renderViews` runs an ABSOLUTE
+  `this.cameras.main.setScroll(cx, cy)` every frame, where cx/cy are the world scroll in
+  DESIGN pixels. That discards the centring on the first rendered frame.
+- 17 HUD objects use `setScrollFactor(0)`. Under a centred zoom those render at
+  `zoom*x - (width/2)*(zoom-1)` and are off screen no matter what the scroll is, so
+  centring could never have fixed the title screen.
+- Repair: the `centerOn` was replaced with `setOrigin(0, 0)`, which makes both the
+  per-frame world scroll and every scroll-factor-0 HUD object correct as already written.
+  The ground tile-sprite offset and camera lerp are untouched.
+
+### Measured, by me, on a real gameplay frame
+
+Release gate run serially (concurrency 1) against a local static server:
+`node release_gate.mjs http://localhost:<port> 1 thornmark`, headless Chrome,
+390x844 at deviceScaleFactor 3, best of four post-interaction frames.
+
+| | distinct colours (8-bit) | flattest colour share | backing/CSS ratio | gate |
+|---|---|---|---|---|
+| before | 1 | 100% | 3x | HOLD (art) |
+| after | 11706 | 21% | 3x | READY (all checks pass) |
+
+`node --check` clean on every file touched. No gameplay, balance, content or art
+direction was changed.

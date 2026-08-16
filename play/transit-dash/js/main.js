@@ -128,7 +128,7 @@
     type: root.Phaser.AUTO,
     parent: 'game-root',
     backgroundColor: CACHED_COLOR(),
-    scale: {mode: root.Phaser.Scale.FIT, autoCenter: root.Phaser.Scale.CENTER_BOTH, width: TD.VW, height: TD.VH},
+    scale: {mode: root.Phaser.Scale.FIT, autoCenter: root.Phaser.Scale.CENTER_BOTH, width: Math.round(TD.VW * TD.RETINA), height: Math.round(TD.VH * TD.RETINA)},
     render: {antialias: true, antialiasGL: false, roundPixels: false, powerPreference: 'high-performance', batchSize: 2048},
     input: {activePointers: 1},
     audio: {noAudio: true},

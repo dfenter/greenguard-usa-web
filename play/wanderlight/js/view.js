@@ -5,6 +5,17 @@
 const WanderlightApp = (() => {
   const kit = window.__wanderKit;
   const state = Game.state;
+  // --------------------------------------------------------- retina
+  // Wanderlight ran Scale.RESIZE with parent 'game'. That pairing can never
+  // hold a dense backing store: Phaser polls the parent every 500ms and
+  // re-derives canvas.width from its CSS box, silently reverting the density
+  // about half a second after load, with nothing logged. It is now Scale.NONE
+  // sized in device pixels with a config zoom of 1/RETINA, and the main camera
+  // is zoomed by RETINA so the world stays in CSS pixels: every layout number
+  // in this file (HUD bar 72 tall, 50px stick, worldScale 3) is unchanged.
+  const RETINA = (window.GGKit && window.GGKit.hiDpi)
+    ? window.GGKit.hiDpi.factor(window.innerWidth || 390, window.innerHeight || 844)
+    : 1;
   const WORLD_W = 256;
   const WORLD_H = 176;
   const TILE = 16;
@@ -124,8 +135,16 @@ const WanderlightApp = (() => {
     }
 
     textStyle(size, fill, extra = {}) {
-      return Object.assign({ fontFamily: 'monospace', fontSize: size + 'px', color: fill, fontStyle: 'bold' }, extra);
+      // resolution bakes the glyph canvas at device density. It is applied to
+      // the Text object, never to the texture SOURCE: source.resolution only
+      // affects the CANVAS renderer and would draw the quad RETINA times too
+      // large here.
+      return Object.assign({ fontFamily: 'monospace', fontSize: size + 'px', color: fill, fontStyle: 'bold', resolution: RETINA }, extra);
     }
+
+    // scale.width/height are DEVICE pixels; the world is CSS pixels.
+    viewW() { return (this.scale.width || window.innerWidth) / RETINA; }
+    viewH() { return (this.scale.height || window.innerHeight) / RETINA; }
 
     buildSceneObjects() {
       this.background = this.add.graphics().setDepth(-10);
@@ -272,10 +291,16 @@ const WanderlightApp = (() => {
     buildControls() {}
 
     layout(force) {
-      const w = this.scale.width || window.innerWidth;
-      const h = this.scale.height || window.innerHeight;
+      const w = this.viewW();
+      const h = this.viewH();
       if (!force && w === this.lastW && h === this.lastH) return;
       this.lastW = w; this.lastH = h;
+      // The zoom is what turns the dense backing store into detail; the
+      // centerOn is what keeps it on screen. A zoomed camera keeps its own
+      // midpoint under the viewport centre, so setZoom without centerOn
+      // renders a blank canvas with no error at all.
+      this.cameras.main.setZoom(RETINA);
+      this.cameras.main.centerOn(w / 2, h / 2);
       this.worldScale = w < 700 ? 3 : clamp((w - 60) / WORLD_W, 2.25, 3.15);
       this.worldY = Math.max(94, Math.min(124, h * 0.14));
       this.background.clear();
@@ -306,8 +331,8 @@ const WanderlightApp = (() => {
     }
 
     positionWorld() {
-      const w = this.scale.width || window.innerWidth;
-      const h = this.scale.height || window.innerHeight;
+      const w = this.viewW();
+      const h = this.viewH();
       const viewW = w / this.worldScale;
       const viewH = Math.max(WORLD_H, (h - 256) / this.worldScale);
       const px = state.wren ? state.wren.x + 8 : WORLD_W / 2;
@@ -541,8 +566,8 @@ const WanderlightApp = (() => {
       if (s.mode === 'win') hint = 'The Lumen Crown shines again. Tap A to wander anew.';
       this.hintText.setText(hint);
       const msg = s.msg && s.msgT > 0 ? String(s.msg) : ''; this.messageText.setText(msg); this.messagePanel.clear();
-      if (msg) { const width = Math.min(this.scale.width - 34, 360); const y = this.worldY + WORLD_H * this.worldScale + 2; this.messagePanel.fillStyle(0x091724, 0.94); this.messagePanel.fillRect((this.scale.width - width) / 2, y, width, 44); this.messagePanel.lineStyle(1, 0xf2cf75, 0.68); this.messagePanel.strokeRect((this.scale.width - width) / 2 + 0.5, y + 0.5, width - 1, 43); this.messageText.setPosition(this.scale.width / 2, y + 22); }
-      else this.messageText.setPosition(this.scale.width / 2, this.worldY + WORLD_H * this.worldScale + 19);
+      if (msg) { const width = Math.min(this.viewW() - 34, 360); const y = this.worldY + WORLD_H * this.worldScale + 2; this.messagePanel.fillStyle(0x091724, 0.94); this.messagePanel.fillRect((this.viewW() - width) / 2, y, width, 44); this.messagePanel.lineStyle(1, 0xf2cf75, 0.68); this.messagePanel.strokeRect((this.viewW() - width) / 2 + 0.5, y + 0.5, width - 1, 43); this.messageText.setPosition(this.viewW() / 2, y + 22); }
+      else this.messageText.setPosition(this.viewW() / 2, this.worldY + WORLD_H * this.worldScale + 19);
       this.updatePackMenu();
     }
 
@@ -582,5 +607,5 @@ const WanderlightApp = (() => {
     }
   }
 
-  return { Scene };
+  return { Scene, RETINA };
 })();

@@ -1,6 +1,6 @@
 /* Hearth & Halls service worker. Derived from /play/_shared/sw-template.js. */
 const SLUG = 'hearth-halls';
-const VERSION = 'aaa-2026-08-10-fix1-2026-08-16-offline-fix';
+const VERSION = 'aaa-2026-08-10-fix1-2026-08-16-offline-fix-2026-08-16-gate-repair';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/hearth-halls/',

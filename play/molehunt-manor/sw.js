@@ -1,5 +1,5 @@
 const SLUG = 'molehunt-manor';
-const VERSION = 'aaa-20260816-01-2026-08-16-offline-fix';
+const VERSION = 'aaa-20260816-01-2026-08-16-offline-fix-2026-08-16-gate-repair';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/molehunt-manor/',

@@ -4,6 +4,25 @@
   'use strict';
 
   var VW = 390, VH = 844, WORLD_W = 780, WORLD_H = 1380;
+  /* ------------------------------------------------------------ retina
+     Scale.FIT with a fixed 390x844 design box, so the world coordinate space
+     must not move: every position in this file is a literal in that box. The
+     backing store is raised by RETINA and the main camera is zoomed to match.
+
+     Two details this title needs that a plain FIT title does not:
+       * the camera origin is moved to (0,0). Willowmere scrolls, and it has a
+         screen-space UI layer pinned with setScrollFactor(0). With Phaser's
+         default centred camera origin a zoomed camera puts every
+         scrollFactor-0 object at (pos - width/2) * zoom, i.e. far off screen.
+         With origin 0 the transform is a plain pos * zoom and BOTH the world
+         scroll and the pinned UI land exactly where they did at 1x.
+       * setBounds is dropped. Camera.clampX/clampY compute their range as
+         bounds.x + (displayWidth - width) / 2, which assumes the centred
+         origin; on an origin-(0,0) zoomed camera that clamp is off by half a
+         viewport and shoves the playfield off screen with no console error.
+         Nothing is lost: every setScroll in this file already clamps itself
+         to [0, WORLD_W - VW] / [0, WORLD_H - VH]. */
+  var RETINA = (root.GGKit && root.GGKit.hiDpi) ? root.GGKit.hiDpi.factor(VW, VH) : 1;
   var FONT = 'system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif';
   var SAVE_VERSION = 3, DAY_SECONDS = 240, PLAYER_SPEED = 122, GRID = 16;
   var sceneLive = null;
@@ -200,12 +219,22 @@
   }
   function hex(c) { return Phaser.Display.Color.HexStringToColor(c).color; }
   function text(scene, x, y, value, size, color, weight, originX, originY) {
-    var t = scene.add.text(x, y, value, {fontFamily:FONT,fontSize:size+'px',fontStyle:weight||'600',color:color||'#f5f3df',resolution:2});
+    var t = scene.add.text(x, y, value, {fontFamily:FONT,fontSize:size+'px',fontStyle:weight||'600',color:color||'#f5f3df',resolution:RETINA});
     t.setOrigin(originX === undefined ? 0.5 : originX, originY === undefined ? 0.5 : originY); return t;
   }
   function setTextIfChanged(t, value) { if (t && t.text !== value) t.setText(value); }
-  function makeTexture(scene, key, w, h, draw) {
-    var g = scene.add.graphics(); draw(g); g.generateTexture(key, w, h); g.destroy(); return key;
+  /* density defaults to 1. Where it is raised the caller must give the
+     consuming image an explicit display size, because the texture is then
+     density times larger in pixels. Never compensate with source.resolution:
+     that only affects the CANVAS renderer and under WebGL it draws the quad
+     density times too large. */
+  function makeTexture(scene, key, w, h, draw, density) {
+    var d = density || 1;
+    var g = scene.add.graphics();
+    if (d !== 1) g.setScale(d);
+    draw(g);
+    g.generateTexture(key, Math.round(w * d), Math.round(h * d));
+    g.destroy(); return key;
   }
   function fill(g, c, a) { g.fillStyle(hex(c), a === undefined ? 1 : a); }
   function stroke(g, c, width, a) { g.lineStyle(width || 1, hex(c), a === undefined ? 1 : a); }
@@ -221,7 +250,7 @@
       else if(type==='rotate'){stroke(g,'#163b3c',4);g.strokeCircle(24,24,13);g.fillTriangle(32,10,39,19,28,18);}
       else if(type==='undo'){stroke(g,'#163b3c',4);g.beginPath();g.moveTo(35,18);g.lineTo(20,18);g.lineTo(20,11);g.lineTo(10,23);g.lineTo(20,35);g.lineTo(20,28);g.lineTo(31,28);g.strokePath();}
       else {g.fillCircle(24,24,10);}
-    });
+    }, RETINA);
   }
 
   function bakeWorld(scene, key, season) {
@@ -262,7 +291,7 @@
   function bakeCottage(scene,key) {
     makeTexture(scene,key,390,700,function(g){
       fill(g,'#273d3d');g.fillRect(0,0,390,700);fill(g,'#dac9a9');g.fillRect(20,104,350,560);fill(g,'#9b7958');for(var i=0;i<14;i++)g.fillRect(20,104+i*40,350,3);fill(g,'#d7bd91');g.fillRect(20,104,350,62);fill(g,'#7ca8ae');g.fillRoundedRect(145,119,100,40,6);fill(g,'#e9edcf');g.fillCircle(218,139,7);fill(g,'#895e43');g.fillRect(40,184,92,56);fill(g,'#6e4d39');g.fillRect(52,226,68,8);fill(g,'#d8ba84');g.fillRect(55,196,24,16);fill(g,'#9a9fa1');g.fillRect(91,196,28,10);fill(g,'#7c5d45');g.fillRect(260,184,86,62);fill(g,'#d6e2ea');g.fillRect(268,204,70,36);fill(g,'#f2f5f4');g.fillRect(274,190,34,19);fill(g,'#7a5540');g.fillRect(170,650,50,16);stroke(g,'#5d493b',3);g.strokeRect(20,104,350,560);fill(g,'#f3e6bc',0.3);g.fillRect(330,178,40,480);
-    });
+    }, RETINA);
   }
 
   function blockedWorld(x, y, radius) {
@@ -310,7 +339,7 @@
       makeTexture(this,'wm_dot',8,8,function(g){fill(g,'#ffffff');g.fillRect(0,0,8,8);});
       iconTexture(this,'wm_bag','bag','#f5dda0');iconTexture(this,'wm_gear','gear','#d9e9dc');iconTexture(this,'wm_hand','hand','#f5dda0');iconTexture(this,'wm_leaf','leaf','#8dd7aa');iconTexture(this,'wm_heart','heart','#f19a9d');iconTexture(this,'wm_rotate','rotate','#f5dda0');iconTexture(this,'wm_undo','undo','#f5dda0');
       this.worldImage=this.add.image(0,0,'world-'+SEASONS[seasonIndex(this.s.day)].id).setOrigin(0).setDepth(0);
-      this.cottageImage=this.add.image(0,0,'cottage').setOrigin(0).setDepth(0).setVisible(false);
+      this.cottageImage=this.add.image(0,0,'cottage').setOrigin(0).setDisplaySize(390,700).setDepth(0).setVisible(false);
       this.dyn=this.add.graphics().setDepth(20); this.weather=this.add.graphics().setDepth(24);
       /* The UI layer is authored in screen space (0..VW, 0..VH), so it must be
          pinned to the camera. Without scrollFactor 0 the HUD, the stick, the
@@ -320,7 +349,7 @@
       for(var ik in this.icons)this.icons[ik].setScrollFactor(0);
       this.sparkEmitter=this.add.particles(0,0,'wm_dot',{speed:{min:45,max:145},angle:{min:0,max:360},lifespan:{min:320,max:720},scale:{start:.8,end:0},alpha:{start:.9,end:0},emitting:false,blendMode:Phaser.BlendModes.ADD,maxAliveParticles:42}).setDepth(80);
       this.leafEmitter=this.add.particles(0,0,'wm_dot',{speed:{min:20,max:80},angle:{min:230,max:310},lifespan:{min:500,max:1000},scale:{start:1.1,end:0},alpha:{start:.7,end:0},emitting:false,tint:hex('#d88988'),maxAliveParticles:24}).setDepth(79);
-      this.camera=this.cameras.main; this.camera.setBounds(0,0,WORLD_W,WORLD_H); this.camera.setScroll(0,0);
+      this.camera=this.cameras.main; this.camera.setZoom(RETINA); this.camera.setOrigin(0,0); this.camera.setScroll(0,0); /* setBounds intentionally omitted: see the RETINA note at the top. Every setScroll below clamps itself. */
       this.installPointerBridge(); this.refreshStage(true); this.syncState();
       sceneLive=this; BRIDGE.state.ready=true; BRIDGE.game=this; BRIDGE.kit=kit;
       kit.loader.progress(1); kit.loader.hide();
@@ -536,7 +565,7 @@
   var game = new Phaser.Game({
     type:Phaser.AUTO,parent:document.getElementById('game')||document.body,backgroundColor:'#102c30',
     render:{antialias:true,antialiasGL:false,roundPixels:false,powerPreference:'high-performance',batchSize:2048},
-    audio:{noAudio:true},scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH,width:VW,height:VH},
+    audio:{noAudio:true},scale:{mode:Phaser.Scale.FIT,autoCenter:Phaser.Scale.CENTER_BOTH,width:Math.round(VW*RETINA),height:Math.round(VH*RETINA)},
     fps:{target:60,min:30},banner:false,scene:[GameScene]
   });
   BRIDGE.game=game;BRIDGE.kit=kit;

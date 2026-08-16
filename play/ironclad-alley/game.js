@@ -96,7 +96,12 @@
   });
 
   function registerPWA() {
-    if (!('serviceWorker' in navigator) || location.protocol !== 'https:') return;
+    // localhost is a secure context too, and is where the offline gate runs.
+    // The old https-only test meant this title never registered a worker off
+    // production, so it read as "no service worker" and failed offline.
+    const secure = location.protocol === 'https:'
+      || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    if (!('serviceWorker' in navigator) || !secure) return;
     const worker = new URL('sw.js', document.baseURI);
     navigator.serviceWorker.register(worker, { scope: '/play/ironclad-alley/' }).catch(() => kit.registerPWA());
   }

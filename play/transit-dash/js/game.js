@@ -396,6 +396,11 @@
 
   PlayScene.prototype.create = function () {
     this.runtime = TD.runtime;
+    // The zoom turns the dense backing store into real detail; the centerOn
+    // is what keeps it on screen. A zoomed camera holds its own midpoint
+    // under the viewport centre, so setZoom alone renders a blank canvas.
+    this.cameras.main.setZoom(TD.RETINA);
+    this.cameras.main.centerOn(TD.VW / 2, TD.VH / 2);
     var self = this, r = this.runtime;
     this.runtime.scene = this;
     this.accumulator = 0; this.visualT = 0; this.nearT = 0; this.damageT = 0; this.stageFade = 0;
@@ -419,11 +424,11 @@
     this.bg = this.add.image(195, 422, 'td-bg-yard').setDisplaySize(390, 844).setDepth(0);
     this.tintWash = this.add.rectangle(195, 422, 390, 844, 0x000000, 0).setDepth(2);
     for (var i = 0; i < 20; i++) this.markViews.push(this.add.rectangle(195, 0, 4, 18, 0xffffff, 0.14).setDepth(18));
-    for (var j = 0; j < 16; j++) this.decorViews.push(this.add.image(0, 0, 'td-sign').setDepth(12).setVisible(false));
-    for (var e = 0; e < MAX_ENTITIES; e++) this.entityViews.push(this.add.image(0, 0, 'td-token').setDepth(40).setVisible(false));
+    for (var j = 0; j < 16; j++) this.decorViews.push(this.add.image(0, 0, 'td-sign').setScale(1 / TD.RETINA).setDepth(12).setVisible(false));
+    for (var e = 0; e < MAX_ENTITIES; e++) this.entityViews.push(this.add.image(0, 0, 'td-token').setScale(1 / TD.RETINA).setDepth(40).setVisible(false));
     this.shadow = this.add.image(195, 690, 'td-shadow').setDisplaySize(112, 30).setDepth(45);
     this.playerView = this.add.image(195, 620, 'td-char-mara').setDisplaySize(72, 108).setDepth(50);
-    for (var p = 0; p < MAX_FX; p++) this.fxViews.push(this.add.image(0, 0, 'td-spark').setDepth(70).setVisible(false));
+    for (var p = 0; p < MAX_FX; p++) this.fxViews.push(this.add.image(0, 0, 'td-spark').setScale(1 / TD.RETINA).setDepth(70).setVisible(false));
     this.damageOverlay = this.add.rectangle(195, 430, 374, 772, tint(C.red), 0).setDepth(73);
     this.nearBorder = this.add.rectangle(195, 430, 374, 772, 0x63e4ff, 0).setDepth(72);
     this.nearBorder.setStrokeStyle(4, tint(C.cyan), 1);
@@ -432,23 +437,23 @@
   PlayScene.prototype.buildHud = function () {
     this.hudPlate = this.add.rectangle(195, 52, 374, 76, tint(C.deep), 0.82).setDepth(100);
     this.hudLine = this.add.rectangle(195, 91, 350, 1, tint(C.line), 0.85).setDepth(101);
-    this.scoreText = this.add.text(18, 22, '◆ 00000', {fontFamily: TD.FONT, fontSize: '22px', fontStyle: '700', color: C.ink}).setDepth(102);
-    this.distText = this.add.text(18, 56, '↕ 000 m', {fontFamily: TD.FONT, fontSize: '16px', fontStyle: '700', color: C.muted}).setDepth(102);
-    this.multText = this.add.text(190, 28, 'x1', {fontFamily: TD.FONT, fontSize: '20px', fontStyle: '700', color: C.gold}).setOrigin(0.5, 0).setDepth(102);
-    this.healthText = this.add.text(260, 28, '♥♥', {fontFamily: TD.FONT, fontSize: '20px', fontStyle: '700', color: C.red}).setOrigin(0, 0).setDepth(102);
-    this.stageText = this.add.text(190, 59, 'YARD', {fontFamily: TD.FONT, fontSize: '14px', fontStyle: '700', color: C.cyan}).setOrigin(0.5, 0).setDepth(102);
+    this.scoreText = this.add.text(18, 22, '◆ 00000', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '22px', fontStyle: '700', color: C.ink}).setDepth(102);
+    this.distText = this.add.text(18, 56, '↕ 000 m', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '16px', fontStyle: '700', color: C.muted}).setDepth(102);
+    this.multText = this.add.text(190, 28, 'x1', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '20px', fontStyle: '700', color: C.gold}).setOrigin(0.5, 0).setDepth(102);
+    this.healthText = this.add.text(260, 28, '♥♥', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '20px', fontStyle: '700', color: C.red}).setOrigin(0, 0).setDepth(102);
+    this.stageText = this.add.text(190, 59, 'YARD', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '14px', fontStyle: '700', color: C.cyan}).setOrigin(0.5, 0).setDepth(102);
     this.pausePlate = this.add.rectangle(350, 52, 48, 48, tint(C.panel2), 1).setDepth(103);
-    this.pauseText = this.add.text(350, 52, 'Ⅱ', {fontFamily: TD.FONT, fontSize: '21px', fontStyle: '700', color: C.ink}).setOrigin(0.5).setDepth(104);
+    this.pauseText = this.add.text(350, 52, 'Ⅱ', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '21px', fontStyle: '700', color: C.ink}).setOrigin(0.5).setDepth(104);
     this.toastPlate = this.add.rectangle(308, 142, 146, 36, tint(C.panel), 0.94).setDepth(105).setVisible(false);
-    this.toastText = this.add.text(308, 142, '', {fontFamily: TD.FONT, fontSize: '14px', fontStyle: '700', color: C.cyan, align: 'center', wordWrap: {width: 132}}).setOrigin(0.5).setDepth(106).setVisible(false);
+    this.toastText = this.add.text(308, 142, '', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '14px', fontStyle: '700', color: C.cyan, align: 'center', wordWrap: {width: 132}}).setOrigin(0.5).setDepth(106).setVisible(false);
     this.coachPlate = this.add.rectangle(195, 112, 350, 28, tint(C.deep), 0.48).setDepth(104);
-    this.coachText = this.add.text(195, 112, 'SWIPE LANE  /  UP VAULT  /  DOWN ROLL', {fontFamily: TD.FONT, fontSize: '14px', fontStyle: '700', color: C.muted, align: 'center'}).setOrigin(0.5).setDepth(105);
+    this.coachText = this.add.text(195, 112, 'SWIPE LANE  /  UP VAULT  /  DOWN ROLL', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '14px', fontStyle: '700', color: C.muted, align: 'center'}).setOrigin(0.5).setDepth(105);
   };
 
   PlayScene.prototype.makeButton = function (x, y, w, h, label, color) {
     var plate = this.add.rectangle(x, y, w, h, tint(C.panel2), 0.98).setDepth(210);
     plate.setStrokeStyle(2, tint(color || C.line), 0.9);
-    var t = this.add.text(x, y, label, {fontFamily: TD.FONT, fontSize: '16px', fontStyle: '700', color: color || C.ink, align: 'center', wordWrap: {width: w - 18}}).setOrigin(0.5).setDepth(211);
+    var t = this.add.text(x, y, label, {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '16px', fontStyle: '700', color: color || C.ink, align: 'center', wordWrap: {width: w - 18}}).setOrigin(0.5).setDepth(211);
     return {plate: plate, text: t, x: x, y: y, w: w, h: h};
   };
 
@@ -456,27 +461,27 @@
     this.menuShade = this.add.rectangle(195, 422, 390, 844, tint(C.deep), 0.26).setDepth(180);
     this.menuPanel = this.add.rectangle(195, 464, 344, 674, tint(C.panel), 0.96).setDepth(181);
     this.menuPanel.setStrokeStyle(2, tint(C.line), 0.9);
-    this.menuTransit = this.add.text(195, 92, 'TRANSIT', {fontFamily: TD.FONT, fontSize: '43px', fontStyle: '800', color: C.gold}).setOrigin(0.5).setDepth(182);
-    this.menuDash = this.add.text(195, 138, 'DASH', {fontFamily: TD.FONT, fontSize: '43px', fontStyle: '800', color: C.cyan}).setOrigin(0.5).setDepth(182);
-    this.menuTag = this.add.text(195, 184, 'FLEET F17  /  THREE LANES', {fontFamily: TD.FONT, fontSize: '14px', fontStyle: '700', color: C.muted}).setOrigin(0.5).setDepth(182);
-    this.menuBest = this.add.text(195, 233, '', {fontFamily: TD.FONT, fontSize: '15px', fontStyle: '700', color: C.ink, align: 'center'}).setOrigin(0.5).setDepth(182);
+    this.menuTransit = this.add.text(195, 92, 'TRANSIT', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '43px', fontStyle: '800', color: C.gold}).setOrigin(0.5).setDepth(182);
+    this.menuDash = this.add.text(195, 138, 'DASH', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '43px', fontStyle: '800', color: C.cyan}).setOrigin(0.5).setDepth(182);
+    this.menuTag = this.add.text(195, 184, 'FLEET F17  /  THREE LANES', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '14px', fontStyle: '700', color: C.muted}).setOrigin(0.5).setDepth(182);
+    this.menuBest = this.add.text(195, 233, '', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '15px', fontStyle: '700', color: C.ink, align: 'center'}).setOrigin(0.5).setDepth(182);
     this.menuButtons = [
       this.makeButton(195, 300, 282, 54, 'DAILY LINE', C.gold),
       this.makeButton(195, 365, 282, 54, 'TIME ATTACK', C.cyan),
       this.makeButton(195, 430, 282, 54, 'GARAGE', C.violet),
       this.makeButton(195, 495, 282, 54, 'MISSIONS', C.mint)
     ];
-    this.dailyTitle = this.add.text(195, 552, 'DAILY PERSONAL BEST', {fontFamily: TD.FONT, fontSize: '14px', fontStyle: '700', color: C.muted}).setOrigin(0.5).setDepth(182);
-    this.dailyText = this.add.text(195, 580, '', {fontFamily: TD.FONT, fontSize: '15px', fontStyle: '700', color: C.ink, align: 'center', lineSpacing: 7}).setOrigin(0.5, 0).setDepth(182);
-    this.menuHint = this.add.text(195, 740, 'TOKENS EARN EVERYTHING', {fontFamily: TD.FONT, fontSize: '14px', fontStyle: '700', color: C.gold}).setOrigin(0.5).setDepth(182);
+    this.dailyTitle = this.add.text(195, 552, 'DAILY PERSONAL BEST', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '14px', fontStyle: '700', color: C.muted}).setOrigin(0.5).setDepth(182);
+    this.dailyText = this.add.text(195, 580, '', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '15px', fontStyle: '700', color: C.ink, align: 'center', lineSpacing: 7}).setOrigin(0.5, 0).setDepth(182);
+    this.menuHint = this.add.text(195, 740, 'TOKENS EARN EVERYTHING', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '14px', fontStyle: '700', color: C.gold}).setOrigin(0.5).setDepth(182);
   };
 
   PlayScene.prototype.buildResults = function () {
     this.resultShade = this.add.rectangle(195, 422, 390, 844, tint(C.deep), 0.82).setDepth(260).setVisible(false);
     this.resultPanel = this.add.rectangle(195, 400, 330, 510, tint(C.panel), 0.98).setDepth(261).setVisible(false); this.resultPanel.setStrokeStyle(2, tint(C.gold), 0.95);
-    this.resultTitle = this.add.text(195, 214, 'RUN OVER', {fontFamily: TD.FONT, fontSize: '31px', fontStyle: '800', color: C.gold}).setOrigin(0.5).setDepth(262).setVisible(false);
-    this.resultStats = this.add.text(195, 277, '', {fontFamily: TD.FONT, fontSize: '18px', fontStyle: '700', color: C.ink, align: 'center', lineSpacing: 10}).setOrigin(0.5, 0).setDepth(262).setVisible(false);
-    this.resultDaily = this.add.text(195, 435, '', {fontFamily: TD.FONT, fontSize: '15px', fontStyle: '700', color: C.muted, align: 'center', lineSpacing: 7}).setOrigin(0.5, 0).setDepth(262).setVisible(false);
+    this.resultTitle = this.add.text(195, 214, 'RUN OVER', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '31px', fontStyle: '800', color: C.gold}).setOrigin(0.5).setDepth(262).setVisible(false);
+    this.resultStats = this.add.text(195, 277, '', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '18px', fontStyle: '700', color: C.ink, align: 'center', lineSpacing: 10}).setOrigin(0.5, 0).setDepth(262).setVisible(false);
+    this.resultDaily = this.add.text(195, 435, '', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '15px', fontStyle: '700', color: C.muted, align: 'center', lineSpacing: 7}).setOrigin(0.5, 0).setDepth(262).setVisible(false);
     this.resultAgain = this.makeButton(195, 575, 270, 54, 'RUN AGAIN', C.cyan);
     this.resultHome = this.makeButton(195, 640, 270, 54, 'DEPOT', C.muted);
     this.resultAgain.plate.setDepth(263); this.resultAgain.text.setDepth(264); this.resultHome.plate.setDepth(263); this.resultHome.text.setDepth(264);
@@ -486,7 +491,7 @@
   PlayScene.prototype.buildPause = function () {
     this.pauseShade = this.add.rectangle(195, 422, 390, 844, tint(C.deep), 0.78).setDepth(220).setVisible(false);
     this.pausePanel = this.add.rectangle(195, 414, 316, 350, tint(C.panel), 0.98).setDepth(221).setVisible(false); this.pausePanel.setStrokeStyle(2, tint(C.cyan), 0.9);
-    this.pauseTitle = this.add.text(195, 278, 'PAUSED', {fontFamily: TD.FONT, fontSize: '30px', fontStyle: '800', color: C.cyan}).setOrigin(0.5).setDepth(222).setVisible(false);
+    this.pauseTitle = this.add.text(195, 278, 'PAUSED', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '30px', fontStyle: '800', color: C.cyan}).setOrigin(0.5).setDepth(222).setVisible(false);
     this.pauseResume = this.makeButton(195, 375, 260, 54, 'RESUME', C.mint);
     this.pauseRestart = this.makeButton(195, 440, 260, 54, 'RESTART', C.gold);
     this.pauseHome = this.makeButton(195, 505, 260, 54, 'END RUN', C.muted);
@@ -496,11 +501,11 @@
   PlayScene.prototype.buildGarage = function () {
     this.garageShade = this.add.rectangle(195, 422, 390, 844, tint(C.deep), 0.75).setDepth(230).setVisible(false);
     this.garagePanel = this.add.rectangle(195, 422, 340, 650, tint(C.panel), 0.98).setDepth(231).setVisible(false); this.garagePanel.setStrokeStyle(2, tint(C.violet), 0.9);
-    this.garageTitle = this.add.text(195, 123, 'GARAGE', {fontFamily: TD.FONT, fontSize: '30px', fontStyle: '800', color: C.violet}).setOrigin(0.5).setDepth(232).setVisible(false);
-    this.garageTokens = this.add.text(195, 170, '', {fontFamily: TD.FONT, fontSize: '16px', fontStyle: '700', color: C.gold}).setOrigin(0.5).setDepth(232).setVisible(false);
-    this.garageChar = this.add.text(195, 282, '', {fontFamily: TD.FONT, fontSize: '20px', fontStyle: '800', color: C.ink, align: 'center'}).setOrigin(0.5).setDepth(232).setVisible(false);
-    this.garageBoard = this.add.text(195, 428, '', {fontFamily: TD.FONT, fontSize: '20px', fontStyle: '800', color: C.ink, align: 'center'}).setOrigin(0.5).setDepth(232).setVisible(false);
-    this.garageInfo = this.add.text(195, 480, '', {fontFamily: TD.FONT, fontSize: '14px', fontStyle: '700', color: C.muted, align: 'center', lineSpacing: 7}).setOrigin(0.5).setDepth(232).setVisible(false);
+    this.garageTitle = this.add.text(195, 123, 'GARAGE', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '30px', fontStyle: '800', color: C.violet}).setOrigin(0.5).setDepth(232).setVisible(false);
+    this.garageTokens = this.add.text(195, 170, '', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '16px', fontStyle: '700', color: C.gold}).setOrigin(0.5).setDepth(232).setVisible(false);
+    this.garageChar = this.add.text(195, 282, '', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '20px', fontStyle: '800', color: C.ink, align: 'center'}).setOrigin(0.5).setDepth(232).setVisible(false);
+    this.garageBoard = this.add.text(195, 428, '', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '20px', fontStyle: '800', color: C.ink, align: 'center'}).setOrigin(0.5).setDepth(232).setVisible(false);
+    this.garageInfo = this.add.text(195, 480, '', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '14px', fontStyle: '700', color: C.muted, align: 'center', lineSpacing: 7}).setOrigin(0.5).setDepth(232).setVisible(false);
     this.garagePrev = this.makeButton(105, 220, 56, 48, '‹', C.cyan); this.garageNext = this.makeButton(285, 220, 56, 48, '›', C.cyan);
     this.garageBoardPrev = this.makeButton(105, 365, 56, 48, '‹', C.cyan); this.garageBoardNext = this.makeButton(285, 365, 56, 48, '›', C.cyan);
     this.garageUnlock = this.makeButton(195, 560, 250, 54, 'SELECT', C.mint); this.garageBack = this.makeButton(195, 630, 250, 54, 'BACK', C.muted);
@@ -510,11 +515,11 @@
   PlayScene.prototype.buildMissions = function () {
     this.missionShade = this.add.rectangle(195, 422, 390, 844, tint(C.deep), 0.76).setDepth(235).setVisible(false);
     this.missionPanel = this.add.rectangle(195, 422, 342, 630, tint(C.panel), 0.98).setDepth(236).setVisible(false); this.missionPanel.setStrokeStyle(2, tint(C.mint), 0.9);
-    this.missionTitle = this.add.text(195, 130, 'MISSION BOARD', {fontFamily: TD.FONT, fontSize: '27px', fontStyle: '800', color: C.mint}).setOrigin(0.5).setDepth(237).setVisible(false);
+    this.missionTitle = this.add.text(195, 130, 'MISSION BOARD', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '27px', fontStyle: '800', color: C.mint}).setOrigin(0.5).setDepth(237).setVisible(false);
     this.missionRows = [];
     for (var i = 0; i < 3; i++) {
       var plate = this.add.rectangle(195, 255 + i * 112, 292, 90, tint(C.panel2), 1).setDepth(237).setVisible(false);
-      var t = this.add.text(55, 228 + i * 112, '', {fontFamily: TD.FONT, fontSize: '14px', fontStyle: '700', color: C.ink, wordWrap: {width: 270}}).setDepth(238).setVisible(false);
+      var t = this.add.text(55, 228 + i * 112, '', {fontFamily: TD.FONT, resolution: TD.RETINA, fontSize: '14px', fontStyle: '700', color: C.ink, wordWrap: {width: 270}}).setDepth(238).setVisible(false);
       var bar = this.add.rectangle(195, 305 + i * 112, 260, 6, tint(C.line), 1).setOrigin(0.5).setDepth(238).setVisible(false);
       var fill = this.add.rectangle(65, 305 + i * 112, 1, 6, tint(C.mint), 1).setOrigin(0, 0.5).setDepth(239).setVisible(false);
       this.missionRows.push({plate: plate, text: t, bar: bar, fill: fill});
@@ -613,7 +618,7 @@
       var e = active[j], view = this.entityViews[j], rz = e.z - dist, t = clamp(1 - rz / 116, 0.12, 1.15), x = 195 + e.lane * 62 * t, y = 305 + 355 * t;
       var key = e.type === 'token' ? (e.value > 1 ? 'td-token-blue' : 'td-token') : e.type === 'power' ? 'td-power-' + (e.power || 'boost') : 'td-' + e.type;
       if (!this.textures.exists(key)) key = 'td-token';
-      view.setTexture(key).setVisible(true).setPosition(x, y - e.y * 34 * t).setScale((0.32 + t * 0.74) * (e.type === 'token' ? 0.8 : 1));
+      view.setTexture(key).setVisible(true).setPosition(x, y - e.y * 34 * t).setScale((0.32 + t * 0.74) * (e.type === 'token' ? 0.8 : 1) / TD.RETINA);
       view.setAlpha(rz < 1 ? 1 : clamp(0.35 + t, 0, 1));
       if (e.type === 'token' || e.type === 'power') view.setRotation(runner.simT * (e.type === 'power' ? 1.7 : 3.4)); else view.setRotation(0);
     }
@@ -621,14 +626,14 @@
     for (var d = 0; d < this.decorViews.length; d++) {
       var wz = worldZ + d * 76, dr = wz - dist, dt = clamp(1 - dr / 190, 0.12, 0.95), side = d % 2 ? -1 : 1, dx = 195 + side * (120 + (d % 3) * 30) * dt, dy = 282 + dt * 215;
       var tex = st.life === 'birds' && d < 4 ? 'td-bird' : st.life === 'crowd' && d % 3 === 0 ? 'td-crowd' : d % 5 === 0 ? 'td-ferry' : (d % 2 ? 'td-sign' : 'td-train');
-      this.decorViews[d].setTexture(tex).setVisible(true).setPosition(dx, dy + Math.sin(runner.simT * 1.4 + d) * (tex === 'td-bird' ? 8 : 0)).setScale(dt * (tex === 'td-train' ? 0.38 : tex === 'td-ferry' ? 0.54 : tex === 'td-crowd' ? 0.46 : 0.42)).setAlpha(0.35 + dt * 0.55);
+      this.decorViews[d].setTexture(tex).setVisible(true).setPosition(dx, dy + Math.sin(runner.simT * 1.4 + d) * (tex === 'td-bird' ? 8 : 0)).setScale(dt * (tex === 'td-train' ? 0.38 : tex === 'td-ferry' ? 0.54 : tex === 'td-crowd' ? 0.46 : 0.42) / TD.RETINA).setAlpha(0.35 + dt * 0.55);
     }
     for (var m = 0; m < this.markViews.length; m++) {
       var mr = ((m + Math.floor(dist / 8)) % this.markViews.length) * 8 - (dist % 8), mt = clamp(1 - mr / 116, 0.12, 1), my = 342 + mt * 420;
       this.markViews[m].setPosition(195, my).setScale(0.6 + mt * 2.1, 0.7 + mt * 1.6).setFillStyle(tint(st.accent), 0.12 + mt * 0.16).setVisible(true);
     }
     for (var f = 0; f < this.fxViews.length; f++) this.fxViews[f].setVisible(false);
-    for (var q = 0; q < runner.particles.length && q < this.fxViews.length; q++) { var fx = runner.particles[q], iv = this.fxViews[q]; iv.setVisible(true).setPosition(fx.x, fx.y).setTint(tint(fx.color)).setAlpha(clamp(fx.life * 2, 0, 1)).setScale(0.4 + fx.life * 0.9); }
+    for (var q = 0; q < runner.particles.length && q < this.fxViews.length; q++) { var fx = runner.particles[q], iv = this.fxViews[q]; iv.setVisible(true).setPosition(fx.x, fx.y).setTint(tint(fx.color)).setAlpha(clamp(fx.life * 2, 0, 1)).setScale((0.4 + fx.life * 0.9) / TD.RETINA); }
     var ju = this.juiceFrame || {dx: 0, dy: 0}; this.tintWash.setPosition(195 + ju.dx, 422 + ju.dy); this.damageOverlay.setPosition(195 + ju.dx, 422 + ju.dy).setAlpha(this.damageT > 0 ? this.damageT * 0.42 : 0); this.nearBorder.setAlpha(this.nearT > 0 ? this.nearT * 1.6 : 0);
   };
 

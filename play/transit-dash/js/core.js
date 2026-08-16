@@ -60,6 +60,15 @@
   TD.FONT = FONT;
   TD.VW = 390;
   TD.VH = 844;
+  // ----------------------------------------------------------- retina
+  // Scale.FIT with a fixed 390x844 design box, so the world coordinate space
+  // must NOT move: every position in this title is a literal in that box.
+  // The backing store is raised by TD.RETINA and the main camera is zoomed by
+  // the same factor. Every canvas this title bakes is baked at that density
+  // too (see makeTexture below) and every sprite is scaled back down by it,
+  // because a 1x bake magnified 3x would clear the density check and still
+  // look exactly as soft as before.
+  TD.RETINA = (root.GGKit && root.GGKit.hiDpi) ? root.GGKit.hiDpi.factor(390, 844) : 1;
   TD.STEP = 1 / 60;
   TD.REDUCED = !!(root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
@@ -271,7 +280,13 @@
     ctx.arcTo(x + w, y + h, x, y + h, q); ctx.arcTo(x, y + h, x, y, q); ctx.arcTo(x, y, x + w, y, q); ctx.closePath();
   }
   function makeTexture(scene, key, w, h, draw) {
-    var c = canvas(w, h), ctx = c.getContext('2d');
+    // Baked at device density; the draw callback still works in design units
+    // because the context carries the scale. Do NOT set source.resolution to
+    // compensate: that only affects the CANVAS renderer, and under WebGL it
+    // makes the quad TD.RETINA times too large. Consumers scale down instead.
+    var d = TD.RETINA;
+    var c = canvas(Math.round(w * d), Math.round(h * d)), ctx = c.getContext('2d');
+    ctx.scale(d, d);
     draw(ctx, w, h);
     scene.textures.addCanvas(key, c);
   }

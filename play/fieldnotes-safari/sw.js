@@ -1,6 +1,6 @@
 /* Fieldnotes Safari service worker. Authored from /play/_shared/sw-template.js. */
 const SLUG = 'fieldnotes-safari';
-const VERSION = 'aaa-f18-20260816-01-2026-08-16-offline-fix';
+const VERSION = 'aaa-f18-20260816-01-2026-08-16-offline-fix-2026-08-16-gate-repair';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/fieldnotes-safari/',

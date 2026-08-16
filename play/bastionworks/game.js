@@ -291,7 +291,13 @@
   class BastionworksScene extends Phaser.Scene {
     constructor() { super({ key: 'Bastionworks' }); }
     create() {
-      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
+      // The scripted centerOn cannot survive this title: update() calls an
+      // ABSOLUTE cameras.main.setScroll(juice.dx, juice.dy) every frame for the
+      // shake, which resets the centred scroll to ~0 and puts the design box back
+      // off screen. setOrigin(0, 0) is the shape that fits: a zoomed camera with a
+      // (0,0) origin renders design coordinates 1:1 from scroll 0, so the existing
+      // shake offsets, and any scrollFactor-0 UI, are already correct as written.
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.setOrigin(0, 0);
       var self = this;
       Game.scene = this;
       this.pausedByKit = false;
