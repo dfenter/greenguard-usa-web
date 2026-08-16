@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sentinel: grade your Sparkplug estate | SparkBridge</title>
-<meta name="description" content="Sentinel audits any Sparkplug estate for security and protocol posture and shows the frames that prove each finding. It found four real defects in ours.">
-<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/sentinel.html">
-<meta property="og:title" content="Sentinel: an audit that shows its evidence">
-<meta property="og:description" content="Sentinel audits any Sparkplug estate for security and protocol posture and shows the frames that prove each finding. It found four real defects in ours.">
+<title>Sentinel: know if your plant network is secure | SparkBridge</title>
+<meta name="description" content="Sentinel inspects your plant data network and returns a plain scored report of what is exposed, with the evidence behind every finding.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/sentinel">
+<meta property="og:title" content="Sentinel: know if your plant network is secure">
+<meta property="og:description" content="Sentinel inspects your plant data network and returns a plain scored report of what is exposed, with the evidence behind every finding.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,10 +41,10 @@
   <div class="wrap">
     <div class="phead-grid">
       <div>
-        <div class="eyebrow">AUDIT &middot; Sentinel</div>
-        <h1>An estate audit that shows the frame</h1>
-        <p>Sentinel connects to a Sparkplug estate, watches, and returns a scored report of what is wrong with its security and protocol posture. Every finding carries the evidence that produced it.</p>
-        <div class="pmeta"><span class="stat bench">On the bench</span><span>23 rules &middot; 4 axes</span><span>Vendor neutral</span><span>Passive by default</span></div>
+        <div class="eyebrow">Sentinel</div>
+        <h1>Find out what your plant network is exposing</h1>
+        <p>Most plants cannot answer a simple question: who can read our production data, and who can send commands to our equipment? The answer usually surfaces during an audit, or after an incident.</p>
+        <div class="pmeta"><span class="stat">Early access</span><span>Works on any estate</span><span>Read only</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>Our own estate &middot; first clean run</span><span class="live"><i class="dot"></i>Captured live</span></div>
@@ -74,92 +74,46 @@
 
 <section>
   <div class="wrap">
-    <div class="sec-head">
-      <span class="path">What it does</span>
-      <h2>Four axes, twenty-three rules</h2>
-      <p>It works against any Sparkplug estate, not only one built on SparkBridge. The findings above came from auditing our own.</p>
-    </div>
-    <div class="cards">
-      <div class="card">
-        <span class="tag">Connection posture</span>
-        <h3>How the broker greets a stranger</h3>
-        <p>Anonymous access, TLS configuration, certificate validation, retained-message accumulation. Where it cannot get a verdict it says so: when our own broker refused to let the auditor borrow an edge credential, that was reported as no verdict, not quietly recorded as a pass.</p>
+    <p class="claim">A clear score, and the <em>evidence</em> behind it.</p>
+    <div class="twocol">
+      <div class="measure">
+        <p>Sentinel connects to your plant data network, observes it, and returns a scored report of what is wrong and how serious it is. Each finding comes with the proof behind it and a specific fix, so it is an action list rather than a lecture.</p>
+        <p>It works on any plant network of this type, not only ones we built, and it reads without changing anything. Running it does not require a maintenance window.</p>
+        <p>The findings are the ones that matter commercially: whether an outsider could read your production data, whether an account that should only read can actually send commands, and whether credentials are shared in ways that cannot be revoked.</p>
       </div>
-      <div class="card">
-        <span class="tag">Identity hygiene</span>
-        <h3>Who can publish what, exactly</h3>
-        <p>Every role is expanded against the Sparkplug topic grammar rather than read as a string. That is how the wildcard above was caught: in spBv1.0/Group/#, the message type is the third token, so a grant that reads like data access silently contains command access.</p>
-      </div>
-      <div class="card">
-        <span class="tag">Protocol and namespace</span>
-        <h3>Whether the estate follows its own rules</h3>
-        <p>bdSeq lifecycle, sequence continuity, BIRTH completeness, alias discipline, namespace shape. A report that only checks TLS misses the estate that is quietly losing values.</p>
-      </div>
-    </div>
+      <div>
+        <span class="spectitle">At a glance</span>
+        <table class="spec">
+          <tr><th>What it is</th><td>A security and health assessment of your plant network</td></tr>
+          <tr><th>What you get</th><td>A score, ranked findings, the evidence, and the fix</td></tr>
+          <tr><th>Disruption</th><td>None. It observes and changes nothing</td></tr>
+          <tr><th>Who it is for</th><td>Anyone facing an audit, an insurer, or a customer questionnaire</td></tr>
+          <tr><th>Scope</th><td>Works on any plant network of this type, not just ours</td></tr>
+        </table>
 
+      </div>
+    </div>
   </div>
 </section>
 
 <section class="band">
   <div class="wrap">
-    <div class="sec-head">
-      <span class="path">How it is kept safe</span>
-      <h2>An auditor with no publish path</h2>
-      <p>A tool that inspects a live plant must not be able to touch it. That is enforced mechanically.</p>
-    </div>
-    <div class="ledger">
-      <div class="col">
-        <h3>Enforced, not promised</h3>
-        <ul>
-          <li>The passive analyzer is checked by walking its compiled bytecode for any reachable publish call. Not a text search: the word &ldquo;publish&rdquo; appears throughout the remediation advice.</li>
-          <li>Active probes exist, are off by default, and require an explicit flag.</li>
-          <li>The traffic generator used to test the rules lives in a separate source set, so that invariant can stay strict.</li>
-          <li>The safety document was written and committed before the tool was.</li>
-        </ul>
-      </div>
-      <div class="col">
-        <h3>Calibrated against a rigged estate</h3>
-        <ul>
-          <li>A deliberately misconfigured broker was stood up with eight planted defects.</li>
-          <li>All eight surfaced. None were missed. It scored that estate zero.</li>
-          <li>Two rules were changed because of live evidence, including one that had been flagging every correctly working broker for its own $SYS retained topics.</li>
-        </ul>
-      </div>
+    <div class="figure"><b>4</b><span>real security gaps found in our own network</span></div>
+    <div class="measure">
+      <p>The first time we ran Sentinel against our own systems it found four genuine problems, including one serious one: an account meant only to read data could in fact have sent commands to equipment. We fixed it and published the finding.</p>
+      <p>If a tool built by the people who designed the network still finds four issues in it, the honest expectation is that it will find things in yours too. That is the point of running it.</p>
     </div>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <div class="sec-head">
-      <span class="path">Where it stands</span>
-      <h2>It has audited two estates</h2>
-      <p>Ours and a rigged one. A third, built by someone else, is what it needs next.</p>
+    <div class="measure">
+      <p>Sentinel is the fastest way to turn an uncomfortable unknown into a short, prioritised list. It is also the cheapest possible time to discover the answer, which is before someone else does.</p>
     </div>
-    <div class="ledger">
-      <div class="col">
-        <h3>Done and measured</h3>
-        <ul>
-          <li>23 rules across four axes; JSON and HTML reports; free and full profiles.</li>
-          <li>43 tests, none of which need a broker.</li>
-          <li>Found four genuine defects in our own estate on its first clean run, including one critical.</li>
-          <li>Caught eight of eight planted defects on a rigged estate.</li>
-          <li>The critical finding is published rather than buried, and the fix shipped.</li>
-        </ul>
-      </div>
-      <div class="col owed">
-        <h3>Owed before release</h3>
-        <ul>
-          <li>A third acceptance case: a third-party estate we did not build.</li>
-          <li>A continuous-monitoring gateway module, so an estate is graded on a schedule and not once.</li>
-          <li>Release discipline: signing, checksums, versioned rule set.</li>
-        </ul>
-      </div>
-    </div>
-
     <div class="cta-row">
-      <a class="btn" href="/sparkbridge/contact">Ask us to audit your estate</a>
-      <a class="btn ghost dark" href="/sparkbridge/lineup">See the whole lineup</a>
+      <a class="btn" href="/sparkbridge/contact">Request an assessment</a>
+      <a class="btn ghost dark" href="/sparkbridge/lineup">See the full lineup</a>
     </div>
   </div>
 </section>

@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Native protocol drivers | SparkBridge</title>
-<meta name="description" content="Native Ignition device drivers for TI 505 and CTI 2500 racks and IEC 60870-5-104 outstations. Each with its real status.">
-<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/drivers.html">
-<meta property="og:title" content="Drivers: legacy plant, read natively">
-<meta property="og:description" content="Native Ignition device drivers for TI 505 and CTI 2500 racks and IEC 60870-5-104 outstations. Each with its real status.">
+<title>Native drivers for legacy plant | SparkBridge</title>
+<meta name="description" content="Connect older PLC racks straight to Ignition, removing the translator hardware that sits between your equipment and your data.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/drivers">
+<meta property="og:title" content="Read legacy plant equipment directly">
+<meta property="og:description" content="Connect older PLC racks straight to Ignition, removing the translator hardware that sits between your equipment and your data.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,10 +41,10 @@
   <div class="wrap">
     <div class="phead-grid">
       <div>
-        <div class="eyebrow">DRV &middot; Drivers</div>
-        <h1>Read the old racks without a box in between</h1>
-        <p>Every translator between a PLC and the gateway is a place a timestamp gets rewritten and a fault gets hidden. These drivers speak the plant&rsquo;s own protocol from inside Ignition.</p>
-        <div class="pmeta"><span class="stat comm">Mixed state</span><span>Ignition OPC-UA device drivers</span><span>Java 17</span></div>
+        <div class="eyebrow">Drivers</div>
+        <h1>Read your older equipment directly</h1>
+        <p>Plenty of working plant equipment predates modern networking. The usual answer is a translator box per site, which is another license, another thing to maintain, and another way to lose a reading.</p>
+        <div class="pmeta"><span class="stat">Early access</span><span>Runs on your gateway</span><span>Reads only</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>The driver line &middot; honest status</span><span class="live"><i class="dot"></i>Captured live</span></div>
@@ -66,85 +66,46 @@
 
 <section>
   <div class="wrap">
-    <div class="sec-head">
-      <span class="path">The line</span>
-      <h2>Two protocols, two states</h2>
-      <p>They share a build, a test discipline and a diagnostics surface. They do not share a stage of readiness, and the drawing on the lineup page says so.</p>
-    </div>
-    <div class="cards">
-      <div class="card">
-        <span class="tag">TI 505 &middot; CTI 2500</span>
-        <h3>CAMP over TCP, with a real browse</h3>
-        <p>The Ethernet encapsulation of the 505 task codes, spoken natively on port 1505. Browse returns the memory areas a 505 engineer expects, paged into sub-ranges when an area is large, and any address can be added on demand rather than declared in advance. Installed and running on a gateway today.</p>
+    <p class="claim">Keep the equipment. <em>Lose the middleman.</em></p>
+    <div class="twocol">
+      <div class="measure">
+        <p>These drivers connect your Ignition gateway straight to older PLC racks, speaking their own protocols natively. The translator hardware in between comes out, along with its license, its patching and its failure modes.</p>
+        <p>That matters for accuracy as much as cost. Readings arrive with the equipment's own timing and its own fault state, instead of whatever a middle box was still serving from its last successful poll.</p>
+        <p>The line covers Siemens and CTI 505 series racks and IEC 104 utility equipment today, with the same approach and the same discipline behind each one.</p>
       </div>
-      <div class="card">
-        <span class="tag">IEC 60870-5-104</span>
-        <h3>The utility client, session and all</h3>
-        <p>Interrogation, spontaneous reporting, clock synchronisation and the full APCI session lifecycle, proven across a 70-second capture against the lib60870 reference server with zero sequence faults. It has a page of its own.</p>
-      </div>
-    </div>
+      <div>
+        <span class="spectitle">At a glance</span>
+        <table class="spec">
+          <tr><th>What it is</th><td>Direct connections to older plant equipment</td></tr>
+          <tr><th>Covered today</th><td>Siemens and CTI 505 series racks, IEC 104 utility equipment</td></tr>
+          <tr><th>What it removes</th><td>Translator hardware, its license and its maintenance</td></tr>
+          <tr><th>Safety</th><td>Reads only. No control commands, by design</td></tr>
+          <tr><th>Licensing</th><td>Bought once per gateway, not a subscription</td></tr>
+        </table>
 
+      </div>
+    </div>
   </div>
 </section>
 
 <section class="band">
   <div class="wrap">
-    <div class="sec-head">
-      <span class="path">Why native</span>
-      <h2>What a translator costs you</h2>
-      <p>The case for a driver rather than a bridge is not performance. It is fidelity.</p>
-    </div>
-    <div class="ledger">
-      <div class="col">
-        <h3>What you keep</h3>
-        <ul>
-          <li>The device&rsquo;s own timestamp, rather than the moment a middle box happened to poll.</li>
-          <li>The device&rsquo;s own fault state, rather than a stale value a translator kept serving.</li>
-          <li>One less machine to license, patch, monitor and restart at two in the morning.</li>
-        </ul>
-      </div>
-      <div class="col">
-        <h3>How they are built</h3>
-        <ul>
-          <li>The protocol core of each driver is plain Java with no gateway dependencies, so it can be tested against a simulator rather than a plant.</li>
-          <li>Addresses are parsed on demand, so a tag can be added without redeclaring the device.</li>
-          <li>Every driver is expected to arrive with its capture, not just its claim.</li>
-        </ul>
-      </div>
+    <div class="figure"><b>0</b><span>translator boxes between the rack and your data</span></div>
+    <div class="measure">
+      <p>Every driver in the line is proven against real equipment or the industry's own reference implementation before it goes near a customer site, and each one arrives with the evidence rather than the claim.</p>
+      <p>The result is fewer moving parts in the path from your plant to your data, and one fewer vendor to call when something in that path stops working.</p>
     </div>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <div class="sec-head">
-      <span class="path">Where they stand</span>
-      <h2>One running, one on the bench</h2>
-      <p>Stated per driver rather than averaged into a single reassuring word.</p>
+    <div class="measure">
+      <p>If you have older racks still doing useful work and a growing need to get data off them, keeping the equipment and removing the middleman is usually the cheaper end of that decision.</p>
     </div>
-    <div class="ledger">
-      <div class="col">
-        <h3>TI 505 &middot; CTI 2500</h3>
-        <ul>
-          <li>Installed and running on a live gateway; the device type appears in Device Connections.</li>
-          <li>Browse and dynamic addressing both complete, 28 protocol tests.</li>
-          <li>Owes a hardening pass, a product page of its own and a signed release.</li>
-        </ul>
-      </div>
-      <div class="col">
-        <h3>IEC 60870-5-104</h3>
-        <ul>
-          <li>120 tests green; proven against the lib60870 reference server.</li>
-          <li>Loads clean on 8.1.54.</li>
-          <li>Owes a real outstation before it can be called accepted.</li>
-          <li><a href="/sparkbridge/iec104">Read the capture</a>.</li>
-        </ul>
-      </div>
-    </div>
-
     <div class="cta-row">
-      <a class="btn" href="/sparkbridge/contact">Ask about a driver</a>
-      <a class="btn ghost dark" href="/sparkbridge/lineup">See the whole lineup</a>
+      <a class="btn" href="/sparkbridge/contact">Talk to us</a>
+      <a class="btn ghost dark" href="/sparkbridge/lineup">See the full lineup</a>
     </div>
   </div>
 </section>

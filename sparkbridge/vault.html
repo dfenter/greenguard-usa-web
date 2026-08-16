@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SparkVault: the estate historian | SparkBridge</title>
-<meta name="description" content="SparkVault stores the whole Sparkplug estate in TimescaleDB on the plant's own timestamps, and replays it back onto the bus like a DVR.">
-<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/vault.html">
-<meta property="og:title" content="SparkVault: history on the plant's timestamps">
-<meta property="og:description" content="SparkVault stores the whole Sparkplug estate in TimescaleDB on the plant's own timestamps, and replays it back onto the bus like a DVR.">
+<title>SparkVault: plant history you can trust | SparkBridge</title>
+<meta name="description" content="SparkVault keeps your plant's history on the plant's own clock, so trends stay true after an outage, and lets you replay any past day on demand.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/vault">
+<meta property="og:title" content="SparkVault: plant history you can trust">
+<meta property="og:description" content="SparkVault keeps your plant's history on the plant's own clock, so trends stay true after an outage, and lets you replay any past day on demand.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,10 +41,10 @@
   <div class="wrap">
     <div class="phead-grid">
       <div>
-        <div class="eyebrow">HIST &middot; SparkVault</div>
-        <h1>History that keeps the plant&rsquo;s own time</h1>
-        <p>Every value the estate publishes lands in TimescaleDB carrying the timestamp the device wrote, and comes back out through the ordinary Ignition tag history path. Then it can be played back onto the bus.</p>
-        <div class="pmeta"><span class="stat comm">Commissioning</span><span>TimescaleDB</span><span>Ignition 8.1.54</span><span>Reads via tag history</span></div>
+        <div class="eyebrow">SparkVault</div>
+        <h1>Plant history you can actually trust</h1>
+        <p>Most systems record when data <em>arrived</em>. After an outage that turns a real production curve into a flat wall of values, and every trend and report built on it is wrong.</p>
+        <div class="pmeta"><span class="stat">Early access</span><span>Runs on your gateway</span><span>Open storage</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>Spike/Sine &middot; 1 s raw</span><span class="live"><i class="dot"></i>Captured live</span></div>
@@ -55,7 +55,7 @@
           natural resolution, so every stored sample came back on the timestamp the plant wrote,
           and the curve is the curve.</p>
         </div>
-        <div class="artifact-foot">Queried through GatewayTagHistoryManager, the same entry point a Perspective trend binding uses. Provider name: SparkVault.</div>
+        <div class="artifact-foot">Read back through the same trend tools your team already uses.</div>
       </div>
     </div>
   </div>
@@ -65,92 +65,46 @@
 
 <section>
   <div class="wrap">
-    <div class="sec-head">
-      <span class="path">What it does</span>
-      <h2>A historian, and then a DVR</h2>
-      <p>Two jobs from one store. Recording the estate is the ordinary half. Playing it back is the half nobody else offers.</p>
-    </div>
-    <div class="cards">
-      <div class="card">
-        <span class="tag">Record</span>
-        <h3>Passive, so nothing changes upstream</h3>
-        <p>SparkVault subscribes to the Sparkplug stream the same way a second host would. It reads alias tables out of every BIRTH, honours is_historical on backfilled values, and writes deaths as Bad_Stale markers. No edge node is reconfigured, and no publisher learns it is being recorded.</p>
+    <p class="claim">Your history stays true, <em>even after an outage</em>.</p>
+    <div class="twocol">
+      <div class="measure">
+        <p>SparkVault records every value with the timestamp the equipment gave it, not the moment it reached the server. When a link goes down and comes back, the backlog fills in where it actually belongs, so the curve your team looks at is the curve the plant ran.</p>
+        <p>It stores that history in an open database rather than a proprietary file, so your existing reporting and dashboard tools can read it directly, and you are never negotiating to get at your own data.</p>
+        <p>It also plays history back on demand. Any past day can be re-run through your systems, which means you can test a new dashboard, tune an alarm, or walk through an incident using real production data instead of a simulation.</p>
       </div>
-      <div class="card">
-        <span class="tag">Read</span>
-        <h3>It answers where Ignition already asks</h3>
-        <p>The store registers as a tag history provider called SparkVault, so trends, reports and scripts reach it through the same call they already make. Browse comes from a 30-day distinct-tag query behind a one-minute cache; queries stream on a JDBC cursor rather than loading a window into memory.</p>
-      </div>
-      <div class="card">
-        <span class="tag">Replay</span>
-        <h3>Plant replay, in two modes</h3>
-        <p>Historical re-publish puts stored values back on the bus flagged historical, on their original timestamps, for a consumer that missed them. Simulation replay re-stamps them and paces at 1&times;, N&times; or as fast as the link allows, for testing a dashboard against a real day.</p>
-      </div>
-    </div>
+      <div>
+        <span class="spectitle">At a glance</span>
+        <table class="spec">
+          <tr><th>What it is</th><td>History for your whole plant network, in one place</td></tr>
+          <tr><th>Where it runs</th><td>On your own gateway and your own database</td></tr>
+          <tr><th>How you read it</th><td>Through the trends and reports your team already uses</td></tr>
+          <tr><th>What it replaces</th><td>Per-site historians and manual data exports</td></tr>
+          <tr><th>Licensing</th><td>Bought once per gateway, not a subscription</td></tr>
+        </table>
 
+      </div>
+    </div>
   </div>
 </section>
 
 <section class="band">
   <div class="wrap">
-    <div class="sec-head">
-      <span class="path">How replay stays safe</span>
-      <h2>Replay can never be mistaken for the plant</h2>
-      <p>A DVR that can impersonate a live edge node is a hazard, not a feature. The identity rewrite is enforced in the rail, not left to configuration.</p>
-    </div>
-    <div class="ledger">
-      <div class="col">
-        <h3>Enforced in code</h3>
-        <ul>
-          <li>Replay publishes under its own Replay/ namespace, never the original group or edge node id.</li>
-          <li>It carries its own bdSeq lifecycle, so a host counts it as a separate edge node and no live session is disturbed.</li>
-          <li>The rewrite happens in the rail every message passes through. A misconfiguration cannot route around it.</li>
-        </ul>
-      </div>
-      <div class="col">
-        <h3>Proven on a real outage</h3>
-        <ul>
-          <li>A gateway sat paused for four hours and eleven minutes with store-and-forward capturing.</li>
-          <li>On resume the backlog replayed and landed on its original timestamps, flagged historical, while the live tail kept growing.</li>
-          <li>Nothing was lost and nothing was restamped. The recorded curve has a real gap-then-fill, not a wall of values at one instant.</li>
-        </ul>
-      </div>
+    <div class="figure"><b>0</b><span>values lost in a four hour outage</span></div>
+    <div class="measure">
+      <p>A gateway sat disconnected for four hours and eleven minutes while production continued. When the link came back, every reading arrived and landed on the time it actually happened. Nothing was lost, and nothing was quietly stamped with the wrong time.</p>
+      <p>That is the difference between a record you can hand to a customer or a regulator, and one you have to apologise for.</p>
     </div>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <div class="sec-head">
-      <span class="path">Where it stands</span>
-      <h2>Feature complete, and not yet signed</h2>
-      <p>SparkVault runs on a production gateway today against a real Timescale instance. Here is exactly what is done and what it still owes before it earns a release.</p>
+    <div class="measure">
+      <p>SparkVault suits plants that already have data flowing and now need it kept properly: multiple sites, intermittent links, and reporting that has to hold up under scrutiny. It installs alongside what you have and changes nothing upstream.</p>
     </div>
-    <div class="ledger">
-      <div class="col">
-        <h3>Done and measured</h3>
-        <ul>
-          <li>Ingest, read path and replay all shipped and running on a live 8.1.54 gateway.</li>
-          <li>Versioned schema with a migrator that takes an advisory lock, so two gateways cannot race a migration.</li>
-          <li>A database outage spills decoded rows to disk and replays them before new data, preserving source timestamps.</li>
-          <li>53 unit tests plus 12 tests that run against a real TimescaleDB.</li>
-          <li>Passed an adversarial external code review; all ten findings fixed the same night.</li>
-        </ul>
-      </div>
-      <div class="col owed">
-        <h3>Owed before release</h3>
-        <ul>
-          <li>A multi-day soak at estate scale.</li>
-          <li>A licence gate.</li>
-          <li>A signed release with checksums and upgrade notes.</li>
-          <li>Continuous aggregates and retention policy defaults.</li>
-        </ul>
-      </div>
-    </div>
-
     <div class="cta-row">
-      <a class="btn" href="/sparkbridge/contact">Talk to us about a pilot</a>
-      <a class="btn ghost dark" href="/sparkbridge/lineup">See the whole lineup</a>
+      <a class="btn" href="/sparkbridge/contact">Book a demo</a>
+      <a class="btn ghost dark" href="/sparkbridge/lineup">See the full lineup</a>
     </div>
   </div>
 </section>

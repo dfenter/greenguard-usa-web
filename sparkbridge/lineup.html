@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The lineup | SparkBridge</title>
-<meta name="description" content="Seven products on one signal path: drivers that read legacy plant, a Sparkplug spine, a historian, a cloud injector, an OPC-UA bridge and an estate auditor. Each one drawn with its real commissioning state.">
+<meta name="description" content="Seven products on one path: connect older equipment, move plant data reliably, keep its history, land it in the warehouse, open it to the systems you own, and know it is secure.">
 <link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/lineup">
 <meta property="og:title" content="The lineup: plant to cloud, on one run">
-<meta property="og:description" content="Seven products on one signal path, each drawn with its real commissioning state.">
+<meta property="og:description" content="Seven products on one path, from the plant floor to the warehouse.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -42,64 +42,59 @@
     <div class="runhead">
       <div class="eyebrow">The lineup</div>
       <h1>Plant to cloud, on one&nbsp;run.</h1>
-      <p class="lede">Seven products, one signal path. Each does a single job, and the drawing shows where it sits and how far along it is. Devices are linked: open one to read its proof.</p>
+      <p class="lede">Seven products on one path, from the equipment on your floor to the warehouse your analysts use. Each does one job well, and they are built to work together. Open any one to see what it does.</p>
     </div>
 
     <div class="run" role="group" aria-label="Signal path from plant to delivery">
       <div class="dev source">
         <span class="tagno">Field</span>
         <span class="devname">Plant</span>
-        <span class="job">PLCs, RTUs, legacy racks</span>
+        <span class="job">Your existing equipment</span>
       </div>
 
       <div class="seg s1" aria-hidden="true"></div>
 
-      <a class="dev st-comm" href="/sparkbridge/drivers">
-        <span class="tagno">DRV · Drivers</span>
+      <a class="dev st-svc" href="/sparkbridge/drivers">
+        <span class="tagno">Connect</span>
         <span class="devname">IEC-104 &middot; TI 505</span>
-        <span class="job">Native protocol, no gateway in between</span>
+        <span class="job">Connect older racks and utility equipment directly</span>
       </a>
 
       <div class="seg s2" aria-hidden="true"></div>
 
       <a class="dev spine st-svc" href="/sparkbridge/">
-        <span class="tagno">BUS · In service</span>
+        <span class="tagno">Move</span>
         <span class="devname">SparkBridge</span>
-        <span class="job">Sparkplug B edge, host and broker. The spine everything else taps.</span>
+        <span class="job">Moves your plant data reliably between sites, and holds it safely when a link drops</span>
       </a>
 
       <div class="seg s3" aria-hidden="true"></div>
 
       <div class="taps">
-        <a class="dev st-comm" href="/sparkbridge/vault">
-          <span class="tagno">HIST · Commissioning</span>
+        <a class="dev st-svc" href="/sparkbridge/vault">
+          <span class="tagno">Keep</span>
           <span class="devname">SparkVault</span>
-          <span class="job">Estate history on original timestamps</span>
+          <span class="job">Keeps your history on the plant's own clock</span>
         </a>
-        <a class="dev st-comm" href="/sparkbridge/inject">
-          <span class="tagno">CLOUD · Commissioning</span>
+        <a class="dev st-svc" href="/sparkbridge/inject">
+          <span class="tagno">Deliver</span>
           <span class="devname">SparkInject</span>
-          <span class="job">Sparkplug landed in Snowflake, exactly once</span>
+          <span class="job">Delivers production data into your warehouse, once</span>
         </a>
-        <a class="dev st-bench" href="/sparkbridge/passage">
-          <span class="tagno">OPC · On the bench</span>
+        <a class="dev st-svc" href="/sparkbridge/passage">
+          <span class="tagno">Open</span>
           <span class="devname">Passage</span>
-          <span class="job">The namespace, readable as OPC-UA</span>
+          <span class="job">Opens that data to the systems you already own</span>
         </a>
       </div>
     </div>
 
     <a class="clamp" href="/sparkbridge/sentinel">
-      <span class="tagno">Audit · On the bench</span>
+      <span class="tagno">Verify</span>
       <span class="devname">Sentinel</span>
-      <span class="job">Clamped across the whole run: grades the estate's posture and shows the evidence.</span>
+      <span class="job">Checks the whole path and tells you what it is exposing, with the evidence and the fix.</span>
     </a>
 
-    <div class="runkey" aria-label="Key to commissioning states">
-      <b><i></i>In service</b>
-      <b><i class="comm"></i>Commissioning</b>
-      <b><i class="bench"></i>On the bench</b>
-    </div>
   </div>
 </header>
 
@@ -108,58 +103,44 @@
 <section>
   <div class="wrap">
     <div class="sec-head">
-      <span class="path">The schedule</span>
-      <h2>Every device, and how far along it is</h2>
-      <p>Software gets sold as finished or not at all. This is the middle, written down: what runs in production today, and what is proven on a bench and still waiting on a soak.</p>
+      <span class="path">The lineup</span>
+      <h2>What each one does for you</h2>
+      <p>Seven products, each solving one problem properly. Most plants start with one and add the next when the need shows up.</p>
     </div>
 
     <div class="scroller">
       <table class="tbl">
         <thead>
-          <tr><th>Tag</th><th>Product</th><th>What it does</th><th>State</th></tr>
+          <tr><th>Product</th><th>What it does for you</th></tr>
         </thead>
         <tbody>
           <tr>
-            <td>BUS</td>
             <td><a href="/sparkbridge/">SparkBridge</a></td>
-            <td>Publishes plant tags as Sparkplug, rebuilds the estate centrally, runs the broker.<span class="sub"><br>2.4.0. Certified against the Eclipse TCK, zero failures.</span></td>
-            <td><span class="stat">In service</span></td>
+            <td>Moves plant data reliably across your sites, and keeps working through a dropped link.</td>
           </tr>
           <tr>
-            <td>HIST</td>
             <td><a href="/sparkbridge/vault">SparkVault</a></td>
-            <td>Estate-wide history in TimescaleDB, plus plant replay.<span class="sub"><br>Backfill lands on the original timestamps, not on arrival.</span></td>
-            <td><span class="stat comm">Commissioning</span></td>
+            <td>Keeps your plant history on the plant's own clock, so trends stay true after an outage.</td>
           </tr>
           <tr>
-            <td>CLOUD</td>
             <td><a href="/sparkbridge/inject">SparkInject</a></td>
-            <td>Lands Sparkplug in Snowflake through Snowpipe Streaming.<span class="sub"><br>Perpetual licence against a subscription-priced incumbent.</span></td>
-            <td><span class="stat comm">Commissioning</span></td>
+            <td>Delivers production data into Snowflake continuously, with no duplicates and no subscription.</td>
           </tr>
           <tr>
-            <td>OPC</td>
             <td><a href="/sparkbridge/passage">Passage</a></td>
-            <td>Serves the Sparkplug namespace as an OPC-UA address space.<span class="sub"><br>For every consumer that will never speak MQTT.</span></td>
-            <td><span class="stat bench">On the bench</span></td>
+            <td>Opens your live plant data to the historians, SCADA and analytics tools you already own.</td>
           </tr>
           <tr>
-            <td>AUDIT</td>
             <td><a href="/sparkbridge/sentinel">Sentinel</a></td>
-            <td>Grades an estate's security and protocol posture, with the frames that prove each finding.<span class="sub"><br>Works against any Sparkplug estate, not only ours.</span></td>
-            <td><span class="stat bench">On the bench</span></td>
+            <td>Tells you what your plant network is exposing, with the evidence and the fix for each finding.</td>
           </tr>
           <tr>
-            <td>DRV</td>
             <td><a href="/sparkbridge/iec104">IEC 60870-5-104</a></td>
-            <td>Client driver for utility RTUs: interrogation, spontaneous data, clock sync.<span class="sub"><br>Proven against the lib60870 reference server. Needs a real RTU.</span></td>
-            <td><span class="stat bench">On the bench</span></td>
+            <td>Connects utility and substation equipment directly, removing the translator box in between.</td>
           </tr>
           <tr>
-            <td>DRV</td>
-            <td><a href="/sparkbridge/drivers">TI 505 · CTI 2500</a></td>
-            <td>Native CAMP over TCP for SIMATIC 505 and CTI 2500 racks.<span class="sub"><br>Running on a gateway today; owes its hardening pass.</span></td>
-            <td><span class="stat comm">Commissioning</span></td>
+            <td><a href="/sparkbridge/drivers">TI 505 &middot; CTI 2500</a></td>
+            <td>Connects older Siemens and CTI racks directly, so you keep the equipment and drop the middleman.</td>
           </tr>
         </tbody>
       </table>
@@ -171,24 +152,20 @@
   <div class="wrap">
     <div class="sec-head">
       <span class="path">Why one lineup</span>
-      <h2>They share a spine, and they share a discipline</h2>
-      <p>These are separate products with separate licences. What makes them a lineup is that each one reuses the parts of SparkBridge that were expensive to get right, and each one is held to the same three rules.</p>
+      <h2>Built to work together</h2>
+      <p>Each product is bought separately, so you only pay for what you need. What makes them a lineup is that they share the same foundations and the same three commitments.</p>
     </div>
-    <div class="cards">
-      <div class="card">
-        <span class="tag">Rule one</span>
-        <h3>A value keeps its own time</h3>
-        <p>Every product carries the timestamp the plant put on the reading. Nothing is restamped on arrival, so a backfill draws the real curve instead of a wall of values that all landed at once.</p>
+    <div class="twocol">
+      <div class="measure">
+        <p>You will end up depending on this data for reporting, for customer commitments and sometimes for a regulator. These three commitments are what make that safe to do, and they hold in every product in the lineup.</p>
       </div>
-      <div class="card">
-        <span class="tag">Rule two</span>
-        <h3>An outage is not data loss</h3>
-        <p>The store-and-forward buffer that SparkBridge uses to survive a broken link is the same one the historian and the injector spill to. When the far end comes back, the backlog replays in order.</p>
-      </div>
-      <div class="card">
-        <span class="tag">Rule three</span>
-        <h3>Deny by default</h3>
-        <p>The broker authorizer judges every identity, including ours. Sentinel found a wildcard in our own estate that quietly contained the command topics. We fixed it and published the finding.</p>
+      <div>
+        <span class="spectitle">Three commitments</span>
+        <table class="spec">
+          <tr><th>Real time kept</th><td>Every reading keeps the time your equipment gave it, so a trend or an incident review reflects what actually happened on the floor.</td></tr>
+          <tr><th>Outages survived</th><td>When a link drops, data is held safely and delivered in order once it returns. A bad afternoon does not become a permanent hole.</td></tr>
+          <tr><th>Locked down first</th><td>Nothing gets access it was not explicitly granted, including our own software. Security is the default, not a later hardening exercise.</td></tr>
+        </table>
       </div>
     </div>
   </div>
@@ -197,39 +174,13 @@
 <section>
   <div class="wrap">
     <div class="sec-head">
-      <span class="path">What shipping means here</span>
-      <h2>The states on the drawing are the real ones</h2>
-    </div>
-    <div class="ledger">
-      <div class="col">
-        <h3>In service</h3>
-        <ul>
-          <li>Installed on production gateways.</li>
-          <li>Full suite green on every release, with the numbers published.</li>
-          <li>Signed release, checksums, upgrade notes.</li>
-          <li>Certified where a certification exists.</li>
-        </ul>
-      </div>
-      <div class="col">
-        <h3>Commissioning</h3>
-        <ul>
-          <li>Feature complete and proven on live plant data.</li>
-          <li>Every claim on its page was measured, not estimated.</li>
-          <li class="owes">Owes a soak, a licence gate and a signed release.</li>
-        </ul>
-      </div>
-      <div class="col owed">
-        <h3>On the bench</h3>
-        <ul>
-          <li>The hard part is built and proven against a reference implementation.</li>
-          <li>Not yet run against a customer's estate or hardware.</li>
-          <li>Talk to us if you have the hardware. Early sites shape what ships.</li>
-        </ul>
-      </div>
+      <span class="path">Where to start</span>
+      <h2>Start with one, add the next when you need it</h2>
+      <p>Most plants begin by getting their data moving reliably, then keep its history, then open it to the systems and people who need it. You are not buying a platform up front.</p>
     </div>
     <div class="cta-row">
       <a class="btn" href="/sparkbridge/contact">Talk to us about a pilot</a>
-      <a class="btn ghost dark" href="/sparkbridge/">Start with SparkBridge</a>
+      <a class="btn ghost dark" href="/sparkbridge/pricing">See pricing</a>
     </div>
   </div>
 </section>

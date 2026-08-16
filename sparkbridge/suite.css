@@ -194,3 +194,54 @@ a.clamp:hover,a.clamp:focus-visible{background:rgba(255,255,255,.05);border-colo
 .ledger .owed li::before,.ledger li.owes::before{border-top-style:dotted;border-top-color:var(--ink-soft)}
 .band .ledger li{color:var(--paper-dim)}
 .band .ledger .owed li::before{border-top-color:var(--paper-dim)}
+
+/* ---- product page: datasheet idiom, no cards ---------------------------------- */
+/* A claim set at display size, then a narrow measure of prose, then a real spec
+   table. Panel shops read datasheets; a three-up card grid is not their vernacular. */
+.claim{
+  font-family:"Saira SemiCondensed",sans-serif;font-weight:700;text-transform:uppercase;
+  font-size:clamp(26px,3.4vw,42px);line-height:1.04;letter-spacing:.01em;
+  max-width:22ch;margin:0 0 26px;
+}
+.claim em{font-style:normal;color:var(--marker)}
+.band .claim{color:#fff}
+.measure{max-width:66ch}
+.measure p{font-size:16.5px;line-height:1.62;margin:0 0 15px}
+.measure p:last-child{margin-bottom:0}
+.band .measure p{color:var(--paper-dim)}
+.twocol{display:grid;grid-template-columns:1fr 1fr;gap:44px}
+.twocol>*{min-width:0}
+@media (max-width:860px){.twocol{grid-template-columns:1fr;gap:26px}}
+
+/* the spec sheet: a closed block, not a floating list */
+.spectitle{
+  font-family:"Spline Sans Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-soft);margin:0;padding-bottom:9px;border-bottom:2px solid var(--marker);
+  display:block;
+}
+.band .spectitle{color:var(--paper-dim)}
+.spec{width:100%;border-collapse:collapse;margin:0}
+.spec th,.spec td{text-align:left;vertical-align:baseline;padding:11px 0;border-bottom:1px solid var(--steel)}
+.spec th{
+  font-family:"Spline Sans Mono",monospace;font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-soft);font-weight:400;width:27%;padding-right:16px;
+}
+.spec td{font-size:15.5px;line-height:1.45;color:var(--ink)}
+.band .spec th,.band .spec td{border-bottom-color:var(--steel-dark)}
+.band .spec th{color:var(--paper-dim)}
+.band .spec td{color:#fff}
+@media (max-width:640px){
+  .spec th,.spec td{display:block;width:auto;padding:0;border:0}
+  .spec th{padding-top:14px}
+  .spec td{padding:4px 0 13px;border-bottom:1px solid var(--steel)}
+}
+
+/* one number, said once */
+.figure{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;margin:0 0 10px}
+.figure b{
+  font-family:"Saira SemiCondensed",sans-serif;font-weight:700;font-size:clamp(46px,6vw,74px);
+  line-height:.92;letter-spacing:-.01em;
+}
+.figure span{font-family:"Spline Sans Mono",monospace;font-size:12px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-soft);max-width:30ch;line-height:1.5}
+.band .figure b{color:var(--marker)}
+.band .figure span{color:var(--paper-dim)}

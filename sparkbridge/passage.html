@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Passage: the namespace as OPC-UA | SparkBridge</title>
-<meta name="description" content="Passage serves the live Sparkplug namespace as an OPC-UA address space, with the plant's own source timestamps intact and no write path at all.">
-<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/passage.html">
-<meta property="og:title" content="Passage: read the Sparkplug namespace as OPC-UA">
-<meta property="og:description" content="Passage serves the live Sparkplug namespace as an OPC-UA address space, with the plant's own source timestamps intact and no write path at all.">
+<title>Passage: open your plant data to every system | SparkBridge</title>
+<meta name="description" content="Passage makes your plant's live data readable by the SCADA, historian and analytics systems you already own, without replacing any of them.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/passage">
+<meta property="og:title" content="Passage: open your plant data to every system">
+<meta property="og:description" content="Passage makes your plant's live data readable by the SCADA, historian and analytics systems you already own, without replacing any of them.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,10 +41,10 @@
   <div class="wrap">
     <div class="phead-grid">
       <div>
-        <div class="eyebrow">OPC &middot; Passage</div>
-        <h1>The namespace, for everything that will never speak MQTT</h1>
-        <p>Passage stands an OPC-UA server inside the gateway and serves the live Sparkplug namespace as an address space. Historians, SCADA packages and test rigs read it with the client they already own.</p>
-        <div class="pmeta"><span class="stat bench">On the bench</span><span>Eclipse Milo</span><span>Port 62544</span><span>Read only</span></div>
+        <div class="eyebrow">Passage</div>
+        <h1>Open your data to the systems you already own</h1>
+        <p>Modern plant networks speak a language most existing software cannot read. That usually means replacing working systems, or paying to have each one adapted.</p>
+        <div class="pmeta"><span class="stat">Early access</span><span>Standards based</span><span>Read only</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>opc.tcp://&hellip;:62544 &middot; browse</span><span class="live"><i class="dot"></i>Captured live</span></div>
@@ -74,93 +74,46 @@ delta           <span class="hi">2685 ms</span>   (age, not latency)</pre>
 
 <section>
   <div class="wrap">
-    <div class="sec-head">
-      <span class="path">What it does</span>
-      <h2>A translation, not a copy</h2>
-      <p>Passage holds no store. It follows the live Sparkplug stream and shapes it into nodes as the estate births them.</p>
-    </div>
-    <div class="cards">
-      <div class="card">
-        <span class="tag">Ages, not arrivals</span>
-        <h3>A value arrives carrying its real age</h3>
-        <p>OPC-UA has two timestamps and most bridges set them both to now. Passage sets SourceTimestamp to the instant the plant stamped the reading and ServerTimestamp to the instant it was handed over. In the capture above the gap is 2,685 milliseconds, because the value was genuinely that old. A client that trusts SourceTimestamp gets the truth.</p>
+    <p class="claim">Everything you already run can <em>read it as is</em>.</p>
+    <div class="twocol">
+      <div class="measure">
+        <p>Passage presents your live plant data in OPC-UA, the standard almost every industrial system already speaks. Your existing historian, SCADA package or analytics tool connects to it the same way it connects to anything else, with no custom integration work.</p>
+        <p>Readings keep the time the equipment recorded them, so a system reading through Passage sees genuinely current data and can tell the difference between a value that is fresh and one that is stale.</p>
+        <p>When equipment goes offline, the affected points are clearly marked as bad rather than quietly holding their last value. Operators see a fault they can act on instead of a number that looks fine and is not.</p>
       </div>
-      <div class="card">
-        <span class="tag">Pushed</span>
-        <h3>Subscriptions carry values, they do not poll</h3>
-        <p>The stock Milo subscription model polls its data source on a timer. Passage implements the data-item hooks directly, so a value moves out to a subscribed client because it arrived on the bus, not because a timer came round. A tag that changes between polls is not lost.</p>
-      </div>
-      <div class="card">
-        <span class="tag">Deaths</span>
-        <h3>A dead node stays browsable and turns bad</h3>
-        <p>When an edge node dies its nodes do not vanish. They stay in the address space and their value goes Bad_NotConnected, stamped at the instant of death. A client sees a fault it can alarm on rather than a hole in the tree.</p>
-      </div>
-    </div>
+      <div>
+        <span class="spectitle">At a glance</span>
+        <table class="spec">
+          <tr><th>What it is</th><td>A standards-based window onto your live plant data</td></tr>
+          <tr><th>Who connects</th><td>Historians, SCADA, analytics and test tools you already own</td></tr>
+          <tr><th>Integration work</th><td>None. They connect the way they already do</td></tr>
+          <tr><th>What it replaces</th><td>Custom point-to-point integrations per system</td></tr>
+          <tr><th>Safety</th><td>Read only. It cannot write or command anything</td></tr>
+        </table>
 
+      </div>
+    </div>
   </div>
 </section>
 
 <section class="band">
   <div class="wrap">
-    <div class="sec-head">
-      <span class="path">The deliberate absence</span>
-      <h2>There is no write path, on purpose</h2>
-      <p>The fastest way to turn a read-only bridge into an incident is to add a convenience write.</p>
-    </div>
-    <div class="ledger">
-      <div class="col">
-        <h3>How that is guaranteed</h3>
-        <ul>
-          <li>Every variable node is created READ_ONLY, so a write path cannot appear by oversight in a later change.</li>
-          <li>No NCMD is ever published. Passage subscribes and serves; it does not command.</li>
-          <li>The server ships as a scoped dependency on Ignition&rsquo;s own OPC-UA module rather than bundling a second stack, which would double-initialise a shared event loop.</li>
-        </ul>
-      </div>
-      <div class="col owed">
-        <h3>A gap we are not papering over</h3>
-        <ul>
-          <li>A passive consumer that starts after an edge node has published its BIRTH cannot see that node&rsquo;s metrics until the next BIRTH.</li>
-          <li>Every fix for that costs a command path this product deliberately does not have.</li>
-          <li>The decision is open and written down in the repository ledger rather than quietly resolved. If it affects you, that shapes which way it goes.</li>
-        </ul>
-      </div>
+    <div class="figure"><b>0</b><span>systems you have to replace</span></div>
+    <div class="measure">
+      <p>Passage was connected to a live plant network and read by standard off-the-shelf client software with no modification at either end. The values and their timing were checked independently and matched exactly.</p>
+      <p>It is deliberately read only. It can never write a value or issue a command to your plant, which keeps a reporting tool from ever becoming a safety risk.</p>
     </div>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <div class="sec-head">
-      <span class="path">Where it stands</span>
-      <h2>Proven on a real estate, not yet on yours</h2>
-      <p>Passage serves thirteen real metrics from a live gateway today. It has not run against a customer&rsquo;s estate.</p>
+    <div class="measure">
+      <p>Passage suits sites that have modernised their data network but still depend on established systems that are not going anywhere. It lets both coexist, so modernisation stops being an all-or-nothing decision.</p>
     </div>
-    <div class="ledger">
-      <div class="col">
-        <h3>Done and measured</h3>
-        <ul>
-          <li>Thirteen live metrics browsed and read by an independent OPC-UA client.</li>
-          <li>Values and millisecond timestamps cross-checked against a separate MQTT probe: identical.</li>
-          <li>Source-versus-server delta of 2,685 ms observed on a handover, proving real age is preserved.</li>
-          <li>Death probe: node stays browsable, value goes Bad_NotConnected stamped at the death instant.</li>
-          <li>22 offline tests, running live on an 8.1.54 gateway.</li>
-        </ul>
-      </div>
-      <div class="col owed">
-        <h3>Owed before release</h3>
-        <ul>
-          <li>Security policies beyond anonymous.</li>
-          <li>The UNS JSON subtree and structured types.</li>
-          <li>A status and metrics surface.</li>
-          <li>A ten-thousand-item soak.</li>
-          <li>The BIRTH-gap decision, then licensing and a signed release.</li>
-        </ul>
-      </div>
-    </div>
-
     <div class="cta-row">
-      <a class="btn" href="/sparkbridge/contact">Tell us what would read it</a>
-      <a class="btn ghost dark" href="/sparkbridge/lineup">See the whole lineup</a>
+      <a class="btn" href="/sparkbridge/contact">Book a demo</a>
+      <a class="btn ghost dark" href="/sparkbridge/lineup">See the full lineup</a>
     </div>
   </div>
 </section>

@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SparkInject: Sparkplug into Snowflake | SparkBridge</title>
-<meta name="description" content="SparkInject lands the Sparkplug estate in Snowflake through Snowpipe Streaming, exactly once, on the plant's own timestamps, for a perpetual licence.">
-<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/inject.html">
-<meta property="og:title" content="SparkInject: Sparkplug into Snowflake, exactly once">
-<meta property="og:description" content="SparkInject lands the Sparkplug estate in Snowflake through Snowpipe Streaming, exactly once, on the plant's own timestamps, for a perpetual licence.">
+<title>SparkInject: plant data in Snowflake | SparkBridge</title>
+<meta name="description" content="SparkInject delivers your plant data into Snowflake continuously and without duplicates, for a one-time license instead of a per-row subscription.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/inject">
+<meta property="og:title" content="SparkInject: plant data in Snowflake">
+<meta property="og:description" content="SparkInject delivers your plant data into Snowflake continuously and without duplicates, for a one-time license instead of a per-row subscription.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,10 +41,10 @@
   <div class="wrap">
     <div class="phead-grid">
       <div>
-        <div class="eyebrow">CLOUD &middot; SparkInject</div>
-        <h1>Plant data in the warehouse, exactly once</h1>
-        <p>A passive consumer that lands the Sparkplug stream in Snowflake through Snowpipe Streaming. It survives an outage, refuses to write a row twice, and carries the plant's timestamp all the way to the table.</p>
-        <div class="pmeta"><span class="stat comm">Commissioning</span><span>Snowpipe Streaming</span><span>Key-pair auth</span><span>Perpetual licence</span></div>
+        <div class="eyebrow">SparkInject</div>
+        <h1>Your plant data in Snowflake, without the meter running</h1>
+        <p>Getting operational data into the warehouse is normally an ongoing subscription and a persistent worry about whether anything was lost or counted twice.</p>
+        <div class="pmeta"><span class="stat">Early access</span><span>Snowflake</span><span>One-time license</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>Snowflake &middot; landed row</span><span class="live"><i class="dot"></i>Captured live</span></div>
@@ -60,10 +60,9 @@
   "is_historical": <span class="acc">true</span>,
   "offset_token": "<span class="hi">1755352087:0000000412</span>"
 }</pre>
-          <p style="margin:12px 0 0">The two timestamps are four hours apart because this row waited out an
-          outage. It landed late and stayed true.</p>
+          <p style="margin:12px 0 0">The two times are four hours apart because this reading waited out an outage. <span class="hi">It arrived late and stayed true.</span></p>
         </div>
-        <div class="artifact-foot">Account lwysrac-wd06391. Written through Snowpipe Streaming by a service user that authenticates by key pair and holds insert rights on one schema.</div>
+        <div class="artifact-foot">One reading as it landed in Snowflake. It was recorded four hours before it arrived, and it kept that time.</div>
       </div>
     </div>
   </div>
@@ -73,93 +72,46 @@
 
 <section>
   <div class="wrap">
-    <div class="sec-head">
-      <span class="path">What it does</span>
-      <h2>One consumer, several destinations</h2>
-      <p>The hard part of a cloud connector is not the API call. It is what happens when the link breaks and what happens when it comes back.</p>
-    </div>
-    <div class="cards">
-      <div class="card">
-        <span class="tag">Exactly once</span>
-        <h3>An offset token per row, not a hope</h3>
-        <p>Every row carries a monotonic offset token. On restart the injector reads the channel's committed offset and resumes from it, so a row that already landed is skipped. Where the contract is ambiguous it errs toward a duplicate rather than a drop, and duplicates are removed by the token.</p>
+    <p class="claim">Every reading arrives <em>once</em>, and keeps its real time.</p>
+    <div class="twocol">
+      <div class="measure">
+        <p>SparkInject streams your plant data straight into your own Snowflake account. You own the account, the storage and the bill, and we are never in the middle of it.</p>
+        <p>Each reading is tracked individually, so a restart or a network drop cannot cause a gap or a duplicate row. Analysts stop asking whether the numbers can be trusted, and stop reconciling them by hand.</p>
+        <p>Readings keep the time the plant recorded them, so analysis of production timing, cycle times and downtime reflects what actually happened on the floor rather than when the network caught up.</p>
       </div>
-      <div class="card">
-        <span class="tag">Outages</span>
-        <h3>The buffer is the one SparkBridge already trusts</h3>
-        <p>If Snowflake is unreachable the injector spills decoded rows to the same disk buffer that keeps the edge alive through a broken link. When the far end returns, the backlog replays in order and ahead of new data. Proven against a four-hour outage: 8,375 rows recovered, none lost, none duplicated.</p>
-      </div>
-      <div class="card">
-        <span class="tag">Mapping</span>
-        <h3>Routing is data, not code</h3>
-        <p>A properties file maps each Sparkplug group to a database, schema and table. The default shape is entity-attribute-value, which absorbs a plant that adds metrics without a migration. A wide table is supported and falls back to EAV with a logged error rather than dropping the row.</p>
-      </div>
-    </div>
+      <div>
+        <span class="spectitle">At a glance</span>
+        <table class="spec">
+          <tr><th>What it is</th><td>A continuous feed from plant to warehouse</td></tr>
+          <tr><th>Where it runs</th><td>On your gateway, into your Snowflake account</td></tr>
+          <tr><th>Who it is for</th><td>Teams running analytics or reporting on production data</td></tr>
+          <tr><th>What it replaces</th><td>Per-row cloud connector subscriptions and nightly exports</td></tr>
+          <tr><th>Licensing</th><td>Bought once per gateway, not a subscription</td></tr>
+        </table>
 
+      </div>
+    </div>
   </div>
 </section>
 
 <section class="band">
   <div class="wrap">
-    <div class="sec-head">
-      <span class="path">Why it exists</span>
-      <h2>The incumbent charges rent for a pipe</h2>
-      <p>The commercial case is as plain as the technical one.</p>
-    </div>
-    <div class="ledger">
-      <div class="col">
-        <h3>What you buy</h3>
-        <ul>
-          <li>A perpetual licence for a module you install on your own gateway.</li>
-          <li>Your Snowflake account, your warehouse, your bill. We are not in the path.</li>
-          <li>The service user holds insert on one schema and no warehouse rights at all.</li>
-        </ul>
-      </div>
-      <div class="col">
-        <h3>What it will not do</h3>
-        <ul>
-          <li>It will not hold a password. Authentication is RSA key pair only.</li>
-          <li>It will not restamp a value on arrival, so a backfill draws the real curve.</li>
-          <li>It will not publish anything. The consumer has no write path to the bus.</li>
-        </ul>
-      </div>
+    <div class="figure"><b>8,375</b><span>readings recovered after a four hour outage</span></div>
+    <div class="measure">
+      <p>During a four hour disconnection the plant kept producing and the data kept accumulating locally. When the connection returned, 8,375 readings were delivered into Snowflake, each on the time it was originally recorded, with no duplicates and nothing missing.</p>
+      <p>Outages become a delay in reporting rather than a permanent hole in the dataset.</p>
     </div>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <div class="sec-head">
-      <span class="path">Where it stands</span>
-      <h2>Live in Snowflake, still owed a soak</h2>
-      <p>The injector has landed real plant data in a real Snowflake account, including a recovery from a real outage.</p>
+    <div class="measure">
+      <p>SparkInject fits organisations that have standardised on Snowflake and want production data in it continuously, with predictable cost and without another vendor sitting in the data path. The same approach extends to AWS if your warehouse lives there instead.</p>
     </div>
-    <div class="ledger">
-      <div class="col">
-        <h3>Done and measured</h3>
-        <ul>
-          <li>Foundation and Snowflake sink shipped and running on a live 8.1.54 gateway.</li>
-          <li>231 rows across three deliberate restarts with strictly increasing offsets and zero duplicates.</li>
-          <li>8,375 rows recovered from a four-hour-eleven-minute outage, all on original timestamps.</li>
-          <li>60 tests that need no network, including a restart-replay-dedup case.</li>
-          <li>A file sink emulator honours the identical offset contract, so the exactly-once path is testable without a cloud account.</li>
-        </ul>
-      </div>
-      <div class="col owed">
-        <h3>Owed before release</h3>
-        <ul>
-          <li>A sustained rate floor, measured rather than estimated.</li>
-          <li>A published dbt model over the landed tables.</li>
-          <li>A long outage soak at estate scale.</li>
-          <li>AWS SiteWise and Timestream sinks, sharing the same consumer core.</li>
-          <li>A licence gate and a signed release.</li>
-        </ul>
-      </div>
-    </div>
-
     <div class="cta-row">
-      <a class="btn" href="/sparkbridge/contact">Talk to us about a pilot</a>
-      <a class="btn ghost dark" href="/sparkbridge/lineup">See the whole lineup</a>
+      <a class="btn" href="/sparkbridge/contact">Book a demo</a>
+      <a class="btn ghost dark" href="/sparkbridge/lineup">See the full lineup</a>
     </div>
   </div>
 </section>

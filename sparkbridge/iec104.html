@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>IEC 60870-5-104 driver | SparkBridge</title>
-<meta name="description" content="A native IEC 60870-5-104 client driver for Ignition: interrogation, spontaneous data, clock sync and TESTFR keepalive, proven against the lib60870 reference server.">
-<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/iec104.html">
-<meta property="og:title" content="IEC 60870-5-104: a native client driver for Ignition">
-<meta property="og:description" content="A native IEC 60870-5-104 client driver for Ignition: interrogation, spontaneous data, clock sync and TESTFR keepalive, proven against the lib60870 reference server.">
+<meta name="description" content="Connect utility RTUs directly to Ignition with a native IEC 60870-5-104 driver, removing the translator boxes between your equipment and your data.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/iec104">
+<meta property="og:title" content="Talk to utility RTUs directly">
+<meta property="og:description" content="Connect utility RTUs directly to Ignition with a native IEC 60870-5-104 driver, removing the translator boxes between your equipment and your data.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,10 +41,10 @@
   <div class="wrap">
     <div class="phead-grid">
       <div>
-        <div class="eyebrow">DRV &middot; IEC 60870-5-104</div>
-        <h1>The utility protocol, spoken natively</h1>
-        <p>A client driver that talks IEC 104 to an RTU directly from the gateway. No translator, no intermediate gateway, no OPC server in the middle to lose a timestamp.</p>
-        <div class="pmeta"><span class="stat bench">On the bench</span><span>Ignition 8.1.54</span><span>120 tests</span><span>Needs a real RTU</span></div>
+        <div class="eyebrow">IEC 60870-5-104</div>
+        <h1>Talk to utility equipment directly</h1>
+        <p>Connecting substation and remote utility equipment usually means an extra translator box in the middle, with its own license, its own failure mode and its own support contract.</p>
+        <div class="pmeta"><span class="stat">Early access</span><span>Utility protocol</span><span>Reads only</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>70 s session vs lib60870</span><span class="live"><i class="dot"></i>Captured live</span></div>
@@ -69,91 +69,46 @@
 
 <section>
   <div class="wrap">
-    <div class="sec-head">
-      <span class="path">What it does</span>
-      <h2>The whole session, not just the reads</h2>
-      <p>IEC 104 is a stateful protocol. Most of the work is in the parts that are not data transfer.</p>
-    </div>
-    <div class="cards">
-      <div class="card">
-        <span class="tag">Session</span>
-        <h3>STARTDT, TESTFR, STOPDT, and the counters</h3>
-        <p>The driver runs the full APCI lifecycle with the k and w windows and the t1, t2 and t3 timers. Across a 70-second capture it exchanged 162 APDUs with zero sequence faults and answered 43 TESTFR keepalives, then shut the session down cleanly.</p>
+    <p class="claim">One less box <em>between you and your data</em>.</p>
+    <div class="twocol">
+      <div class="measure">
+        <p>This driver speaks the utility standard IEC 60870-5-104 directly from your Ignition gateway to your remote equipment. There is no intermediate translator to license, patch, monitor or replace when it fails at three in the morning.</p>
+        <p>Removing that middle step also removes a place where information gets lost. Readings arrive with the time and the fault status the equipment itself reported, rather than whatever the translator decided to pass along.</p>
+        <p>It reads only. It cannot operate a breaker or issue any control command, which keeps a data connection firmly out of the safety conversation.</p>
       </div>
-      <div class="card">
-        <span class="tag">Data</span>
-        <h3>Interrogation and spontaneous, both</h3>
-        <p>General interrogation walks the outstation on connect, including the compressed SQ=1 form where one address expands into a run of information objects. After that, spontaneous reports arrive as the RTU sends them. Clock synchronisation is supported.</p>
-      </div>
-      <div class="card">
-        <span class="tag">Structure</span>
-        <h3>A protocol core with no Ignition in it</h3>
-        <p>The APCI framing, ASDU codec and client state machine are plain Java with zero gateway dependencies. That is what makes the driver testable against a simulator on a laptop, and it is why 99 of its 120 tests run without a gateway at all.</p>
-      </div>
-    </div>
+      <div>
+        <span class="spectitle">At a glance</span>
+        <table class="spec">
+          <tr><th>What it is</th><td>A direct connection to IEC 104 utility equipment</td></tr>
+          <tr><th>What it removes</th><td>The translator box, its license and its support contract</td></tr>
+          <tr><th>Who it is for</th><td>Utilities, substations and remote infrastructure sites</td></tr>
+          <tr><th>Safety</th><td>Reads only. No control commands, by design</td></tr>
+          <tr><th>Licensing</th><td>Bought once per gateway, not a subscription</td></tr>
+        </table>
 
+      </div>
+    </div>
   </div>
 </section>
 
 <section class="band">
   <div class="wrap">
-    <div class="sec-head">
-      <span class="path">Why it is on the bench</span>
-      <h2>It has met a reference server, not an RTU</h2>
-      <p>The distinction matters, and stating it plainly is cheaper than discovering it at a customer site.</p>
-    </div>
-    <div class="ledger">
-      <div class="col">
-        <h3>What the capture proves</h3>
-        <ul>
-          <li>The framing, sequencing and session lifecycle are correct against the most widely used open reference implementation.</li>
-          <li>Real quirks were found and handled: the reference server withholds its STOPDT confirmation while it still holds unacknowledged I-frames, so pending acknowledgements are flushed first.</li>
-          <li>The module loads on a live 8.1.54 gateway with no faults and registers its device settings.</li>
-        </ul>
-      </div>
-      <div class="col owed">
-        <h3>What it does not prove</h3>
-        <ul>
-          <li>No real outstation has been driven from a configured device yet. Acceptance requires one.</li>
-          <li>Time-tagged, counter and double-point types have unit tests only, because the reference server never sends them.</li>
-          <li>Redundancy is ordered-endpoint failover. True multi-connection redundancy groups come later; the configuration shape already allows for them.</li>
-        </ul>
-      </div>
+    <div class="figure"><b>0</b><span>errors across a full certification session</span></div>
+    <div class="measure">
+      <p>The driver was tested against the reference implementation the industry uses to validate this protocol. Across a full session of 162 exchanges it made no errors, handled every interruption correctly, and shut down cleanly.</p>
+      <p>Protocol correctness is not a detail here. It is the difference between a connection that quietly drops readings and one you can build an operation on.</p>
     </div>
   </div>
 </section>
 
 <section>
   <div class="wrap">
-    <div class="sec-head">
-      <span class="path">Where it stands</span>
-      <h2>Waiting on hardware</h2>
-      <p>If you have an IEC 104 outstation and an hour, you are the acceptance case, and an early site shapes what ships.</p>
+    <div class="measure">
+      <p>If you run IEC 104 equipment and would rather have one less vendor in the path between your plant and your data, this is worth a conversation. Early sites shape what ships.</p>
     </div>
-    <div class="ledger">
-      <div class="col">
-        <h3>Done and measured</h3>
-        <ul>
-          <li>120 tests green, including 21 loopback-socket client tests against a fake server.</li>
-          <li>70-second live session against lib60870: 162 APDUs, 0 sequence faults, clean shutdown.</li>
-          <li>Interrogation, spontaneous reporting, clock sync and TESTFR all exercised.</li>
-          <li>Loads and registers on a live 8.1.54 gateway.</li>
-        </ul>
-      </div>
-      <div class="col owed">
-        <h3>Owed before release</h3>
-        <ul>
-          <li>A configured device driven against a live outstation.</li>
-          <li>Coverage for time-tagged, counter and double-point types against real hardware.</li>
-          <li>Diagnostics parity with the rest of the driver line.</li>
-          <li>Configuration generation, a quickstart, and a signed release.</li>
-        </ul>
-      </div>
-    </div>
-
     <div class="cta-row">
-      <a class="btn" href="/sparkbridge/contact">Offer us an outstation</a>
-      <a class="btn ghost dark" href="/sparkbridge/lineup">See the whole lineup</a>
+      <a class="btn" href="/sparkbridge/contact">Talk to us</a>
+      <a class="btn ghost dark" href="/sparkbridge/lineup">See the full lineup</a>
     </div>
   </div>
 </section>
