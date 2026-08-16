@@ -1,829 +1,817 @@
-// Meadow Solitaire - tri-peaks that grows a meadow. Vanilla JS, canvas, no deps.
+/* Meadow Solitaire
+ * Phaser 3 presentation with GGKit lifecycle, input identity, save, audio,
+ * pause, settings, PWA registration and juice. All art is procedural.
+ *
+ * The original prototype's tuned rules remain intact: rank adjacency wraps
+ * around aces, a clear chain raises the multiplier, peak tops pay a wildcard,
+ * and a deal is checked for a complete clear before it can be played.
+ */
 (function () {
   'use strict';
 
-  // ---------------------------------------------------------------- constants
-  var VW = 390, VH = 700;                    // virtual design space
-  var MAXPX = 960, MAXDPR = 2;
-  var COVER = [[3, 4], [5, 6], [7, 8], [9, 10], [10, 11], [12, 13], [13, 14], [15, 16], [16, 17],
-  [18, 19], [19, 20], [20, 21], [21, 22], [22, 23], [23, 24], [24, 25], [25, 26], [26, 27]];
-  var BLOCKMASK = new Array(28);
-  (function () {
-    for (var i = 0; i < 28; i++) BLOCKMASK[i] = 0;
-    for (var p = 0; p < COVER.length; p++)
-      for (var k = 0; k < COVER[p].length; k++) BLOCKMASK[COVER[p][k]] |= (1 << p);
-  })();
-  var UX = [2, 5, 8, 1.5, 2.5, 4.5, 5.5, 7.5, 8.5, 1, 2, 3, 4, 5, 6, 7, 8, 9,
-    0.5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5];
-  var ROW = [0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-    3, 3, 3, 3, 3, 3, 3, 3, 3, 3];
-  var UNIT = 37, X0 = 10, CW = 35, CH = 48, RSTEP = 25, BY0 = 74;
+  // --------------------------------------------------------------- constants
+  var WIDTH = 390, HEIGHT = 844, STEP = 1 / 60, MAX_STEPS = 5;
+  var MAX_WILDS = 3, MAX_UNDOS = 5, TOTAL_DEALS = 90;
+  var STREAK_BASE = 10, PEAK_REWARD = 100, MAX_PARTICLES = 120;
   var RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-  var SUITS = ['♠', '♥', '♦', '♣'];
-  var MAX_WILDS = 3, MAX_PARTS = 200, MAX_FLOATS = 24, MAX_ANIM = 14;
-  var KEY = 'meadowsol.v1';
+  var SUITS = ['leaf', 'petal', 'berry', 'seed'];
+  var SUIT_MARKS = ['✦', '✿', '●', '◆'];
+  var DAILY_SEED = 0x4d534441;
 
-  // ---------------------------------------------------------------- storage
-  function blankSave() {
-    return {
-      v: 1, coins: 0, wilds: 0, current: 0, celebrated: 0,
-      meadow: new Array(Meadow.count()).fill(0),
-      won: new Array(40).fill(0),
-      best: new Array(40).fill(0)
-    };
-  }
-  function intArr(src, len, lo, hi) {
-    var out = new Array(len).fill(0);
-    if (!Array.isArray(src)) return out;
-    for (var i = 0; i < len; i++) {
-      var v = src[i];
-      if (typeof v !== 'number' || !isFinite(v)) v = 0;
-      v = Math.floor(v);
-      out[i] = Math.max(lo, Math.min(hi, v));
-    }
-    return out;
-  }
-  function num(v, lo, hi, dflt) {
-    if (typeof v !== 'number' || !isFinite(v)) return dflt;
-    return Math.max(lo, Math.min(hi, Math.floor(v)));
-  }
-  function load() {
-    var s = blankSave();
-    try {
-      var raw = window.localStorage.getItem(KEY);
-      if (!raw || typeof raw !== 'string') return s;
-      var d = JSON.parse(raw);
-      if (!d || typeof d !== 'object' || Array.isArray(d)) return s;
-      s.coins = num(d.coins, 0, 9999999, 0);
-      s.wilds = num(d.wilds, 0, MAX_WILDS, 0);
-      s.current = num(d.current, 0, 39, 0);
-      s.celebrated = num(d.celebrated, 0, 1, 0);
-      s.meadow = intArr(d.meadow, Meadow.count(), 0, 3);
-      s.won = intArr(d.won, 40, 0, 1);
-      s.best = intArr(d.best, 40, 0, 999999);
-    } catch (e) { return blankSave(); }
-    return s;
-  }
-  function save() {
-    try { window.localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { }
-  }
+  var SEASONS = [
+    { id: 'spring-orchard', name: 'SPRING ORCHARD', note: 'apple blossom', sky: 0x9bc6a7, sky2: 0xdde8b6, felt: 0x285344, felt2: 0x3d7954, accent: 0xffe39a, card: 0x3b7650, wild: 0x88d86e, music: 'musicSpring' },
+    { id: 'high-summer', name: 'HIGH SUMMER', note: 'clover field', sky: 0x63a8a1, sky2: 0xf2d88e, felt: 0x245242, felt2: 0x568353, accent: 0xffc96e, card: 0x2f704d, wild: 0xffd46d, music: 'musicSummer' },
+    { id: 'harvest-gold', name: 'HARVEST GOLD', note: 'sunflower ridge', sky: 0x7c8b69, sky2: 0xe6b46e, felt: 0x493f2b, felt2: 0x86633b, accent: 0xffd56a, card: 0x775230, wild: 0xffb755, music: 'musicHarvest' },
+    { id: 'first-frost', name: 'FIRST FROST', note: 'silver grass', sky: 0x536a78, sky2: 0xd8d7bc, felt: 0x324e54, felt2: 0x557c78, accent: 0xb9e8dc, card: 0x426f76, wild: 0xb9e8dc, music: 'musicFrost' },
+    { id: 'moon-meadow', name: 'MOON MEADOW', note: 'mothlight', sky: 0x202d55, sky2: 0x8291b8, felt: 0x252c4b, felt2: 0x3e4f73, accent: 0xcbb7ff, card: 0x4a437a, wild: 0xd9c7ff, music: 'musicMoon' },
+    { id: 'renewal-rain', name: 'RENEWAL RAIN', note: 'new green', sky: 0x416d72, sky2: 0x9ed3b6, felt: 0x245248, felt2: 0x438866, accent: 0xa7f1c2, card: 0x36775d, wild: 0xa7f1c2, music: 'musicRain' }
+  ];
 
-  var S = load();
+  var LAYOUT_DEFS = [
+    { id: 'tri-peaks', name: 'TRI-PEAKS', rows: [3, 5, 7, 13], stock: 24, peaks: 3 },
+    { id: 'four-peaks', name: 'FOUR PEAKS', rows: [4, 6, 8, 10, 12], stock: 28, peaks: 4 },
+    { id: 'braided', name: 'BRAIDED', rows: [4, 6, 8, 10, 12, 14], stock: 32, peaks: 4 },
+    { id: 'walled', name: 'WALLED', rows: [5, 7, 9, 11, 13], stock: 32, peaks: 5 },
+    { id: 'double-deck', name: 'DOUBLE DECK', rows: [4, 6, 8, 10, 10, 10], stock: 48, peaks: 4 }
+  ];
+  var LAYOUT_BY_ID = Object.create(null);
+  for (var li = 0; li < LAYOUT_DEFS.length; li++) LAYOUT_BY_ID[LAYOUT_DEFS[li].id] = LAYOUT_DEFS[li];
+  var LAYOUT_SCHEDULE = ['tri-peaks', 'tri-peaks', 'four-peaks', 'four-peaks', 'braided', 'braided', 'walled', 'walled', 'double-deck', 'double-deck'];
 
-  // ---------------------------------------------------------------- canvas
-  var cv = document.getElementById('c');
-  var ctx = cv.getContext('2d', { alpha: false });
-  var scale = 1, cssW = VW, cssH = VH;
-  var bootEl = document.getElementById('boot');
-  var rotEl = document.getElementById('rotate');
-
-  function resize() {
-    var w = window.innerWidth, h = window.innerHeight;
-    var landscape = w > h * 1.05;
-    rotEl.style.display = (landscape && G.started) ? 'flex' : 'none';
-    var nextPaused = (landscape && G.started) || document.hidden;
-    if (nextPaused && !G.paused) { clearInput(); clearTimers(); }
-    G.paused = nextPaused;
-    var fit = Math.min(w / VW, h / VH);
-    cssW = Math.round(VW * fit); cssH = Math.round(VH * fit);
-    var dpr = Math.min(MAXDPR, window.devicePixelRatio || 1);
-    var bw = Math.round(cssW * dpr), bh = Math.round(cssH * dpr);
-    var long = Math.max(bw, bh);
-    if (long > MAXPX) { var k = MAXPX / long; bw = Math.round(bw * k); bh = Math.round(bh * k); }
-    cv.style.width = cssW + 'px'; cv.style.height = cssH + 'px';
-    if (cv.width !== bw || cv.height !== bh) { cv.width = bw; cv.height = bh; }
-    scale = bw / VW;
-  }
-
-  // ---------------------------------------------------------------- state
-  var G = {
-    started: false, paused: false, screen: 'meadow',
-    deal: S.current, mask: 0, stock: [], si: 1, waste: 0, wasteCard: 0,
-    tab: [], score: 0, streak: 0, best: 0, moves: 0, peaks: 0,
-    result: null, wildArmed: false, sel: -1, hint: '',
-    parts: [], floats: [], anims: [], shake: 0, flash: 0,
-    t: 0, coinFx: 0, mSel: -1, celebrate: 0, hintHold: 0, reward: 0
+  var AUDIO = {
+    musicSpring: 'assets/music-spring.mp3', musicSummer: 'assets/music-summer.mp3',
+    musicHarvest: 'assets/music-harvest.mp3', musicFrost: 'assets/music-frost.mp3',
+    musicMoon: 'assets/music-moon.mp3', musicRain: 'assets/music-rain.mp3',
+    tap: 'assets/sfx-tap.mp3', flip: 'assets/sfx-flip.mp3', draw: 'assets/sfx-draw.mp3',
+    streak: 'assets/sfx-streak.mp3', peak: 'assets/sfx-peak.mp3', undo: 'assets/sfx-undo.mp3',
+    hint: 'assets/sfx-hint.mp3', clear: 'assets/sfx-clear.mp3', fail: 'assets/sfx-fail.mp3',
+    grow: 'assets/sfx-grow.mp3', boundary: 'assets/sfx-boundary.mp3'
   };
-  var timers = [];
-  function later(fn, ms) { var id = setTimeout(function () { fn(); }, ms); timers.push(id); if (timers.length > 40) timers.splice(0, timers.length - 40); return id; }
-  function clearTimers() { for (var i = 0; i < timers.length; i++) clearTimeout(timers[i]); timers.length = 0; }
 
-  // ---------------------------------------------------------------- input
-  var pointers = {};              // pointerId -> {x,y,sx,sy,target}
-  var keys = {};
-  function clearInput() {
-    pointers = {}; keys = {};
-    G.wildArmed = false; G.sel = -1; G.mSel = -1;
-  }
-  function toVirtual(ev) {
-    var r = cv.getBoundingClientRect();
-    return {
-      x: (ev.clientX - r.left) / (r.width || 1) * VW,
-      y: (ev.clientY - r.top) / (r.height || 1) * VH
-    };
-  }
+  var PAL = {
+    ink: '#eef5dd', dim: '#b7c8ad', deep: '#102a22', panel: '#17382b',
+    gold: '#ffd56a', mint: '#a7e58d', rose: '#f2a4a0', violet: '#d8b8ff',
+    card: '#fbf7e9', cardInk: '#243a2e', blocked: '#aeb9a5'
+  };
 
-  // ---------------------------------------------------------------- deal setup
-  function decodeDeck(str) {
-    var out = [];
-    for (var i = 0; i < str.length; i++) {
-      var v = CARD_ALPHABET.indexOf(str.charAt(i));
-      out.push(v < 0 ? 0 : v);
-    }
-    return out;
+  function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+  function color(hex) { return Phaser.Display.Color.HexStringToColor(hex).color; }
+  function intColor(hex) { return parseInt(hex.replace('#', ''), 16); }
+  function rng(seed) {
+    var n = seed >>> 0;
+    return function () { n = (n * 1664525 + 1013904223) >>> 0; return n / 4294967296; };
   }
-  function startDeal(idx) {
-    clearTimers();
-    clearInput();
-    G.deal = Math.max(0, Math.min(DEALS.length - 1, idx | 0));
-    var deck = decodeDeck(DEALS[G.deal][0]);
-    G.tab = deck.slice(0, 28);
-    G.stock = deck.slice(28);
-    G.mask = (1 << 28) - 1;
-    G.si = 1;
-    G.wasteCard = G.stock[0];
-    G.score = 0; G.streak = 0; G.moves = 0; G.peaks = 0;
-    G.result = null; G.parts.length = 0; G.floats.length = 0; G.anims.length = 0;
-    G.shake = 0; G.flash = 0; G.coinFx = 0;
-    G.screen = 'play';
-    G.hint = 'Tap a card one rank above or below the big card.'; G.hintHold = 0;
-    S.current = G.deal; save();
+  function rankOf(card) { return card.rank; }
+  function adjacent(a, b) { var d = Math.abs(rankOf(a) - rankOf(b)); return d === 1 || d === 12; }
+  function card(rank, suit) { return { rank: rank | 0, suit: suit | 0 }; }
+  function safeInset(name) {
+    var value = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
+    return Number.isFinite(value) ? value : 0;
   }
+  function setTextIfChanged(obj, value) { var next = String(value); if (obj && obj.text !== next) obj.setText(next); }
+  function setColorIfChanged(obj, value) { if (obj && obj.__msColor !== value) { obj.setColor(value); obj.__msColor = value; } }
+  function setFillIfChanged(obj, fill, alpha) {
+    var stamp = String(fill) + '/' + String(alpha);
+    if (obj && obj.__msFill !== stamp) { obj.setFillStyle(fill, alpha); obj.__msFill = stamp; }
+  }
+  function plainObject(v) { return !!v && typeof v === 'object' && !Array.isArray(v); }
 
-  var rank = function (c) { return c % 13; };
-  var suit = function (c) { return (c / 13) | 0; };
-  function adjacent(a, b) { var d = Math.abs(rank(a) - rank(b)); return d === 1 || d === 12; }
-  function alive(i) { return (G.mask & (1 << i)) !== 0; }
-  function free(i) { return alive(i) && (G.mask & BLOCKMASK[i]) === 0; }
-  function freeList() { var o = []; for (var i = 0; i < 28; i++) if (free(i)) o.push(i); return o; }
-  function playable(i) { return free(i) && adjacent(G.tab[i], G.wasteCard); }
-  function playableList() { var o = []; for (var i = 0; i < 28; i++) if (playable(i)) o.push(i); return o; }
-  function cardsLeft() { var n = 0, m = G.mask; while (m) { n += m & 1; m >>>= 1; } return n; }
-  function stuck() { return playableList().length === 0 && G.si >= G.stock.length && !(S.wilds > 0 && freeList().length > 0); }
-
-  // ---------------------------------------------------------------- geometry
-  function cardPos(i) {
-    return { x: X0 + UX[i] * UNIT - CW / 2, y: BY0 + ROW[i] * RSTEP };
-  }
-  var WASTE = { x: 165, y: 216, w: 60, h: 84 };
-  var STOCK = { x: 40, y: 216, w: 60, h: 84 };
-  var WILDB = { x: 290, y: 216, w: 64, h: 84 };
-  var MENUB = { x: 8, y: 8, w: 56, h: 44 };
-
-  // ---------------------------------------------------------------- effects
-  function burst(x, y, n, col, spd) {
-    for (var i = 0; i < n; i++) {
-      if (G.parts.length >= MAX_PARTS) break;
-      var a = Math.random() * Math.PI * 2, s = (spd || 90) * (0.35 + Math.random());
-      G.parts.push({
-        x: x, y: y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 30,
-        life: 0.5 + Math.random() * 0.5, max: 1, c: col || '#cfe6b0', r: 1.6 + Math.random() * 2.4
-      });
-    }
-    if (G.parts.length > MAX_PARTS) G.parts.splice(0, G.parts.length - MAX_PARTS);
-  }
-  function float(x, y, text, col) {
-    G.floats.push({ x: x, y: y, t: text, c: col || '#f2e7b0', life: 0.9 });
-    if (G.floats.length > MAX_FLOATS) G.floats.splice(0, G.floats.length - MAX_FLOATS);
-  }
-  function shake(v) { G.shake = Math.min(14, G.shake + v); }
-  function say(text, secs) { G.hint = text; G.hintHold = secs || 2.2; }
-
-  // ---------------------------------------------------------------- actions
-  function doPlay(i, viaWild) {
-    if (G.result || G.screen !== 'play') return;
-    if (!free(i)) { Sound.deny(); return; }
-    if (!viaWild && !adjacent(G.tab[i], G.wasteCard)) { Sound.deny(); shake(3); return; }
-    if (viaWild) { S.wilds = Math.max(0, S.wilds - 1); Sound.wild(); save(); }
-
-    var p = cardPos(i);
-    if (G.anims.length < MAX_ANIM) {
-      G.anims.push({ c: G.tab[i], x: p.x, y: p.y, tx: WASTE.x, ty: WASTE.y, t: 0, d: 0.19, sw: CW, sh: CH });
-    }
-    G.mask &= ~(1 << i);
-    G.wasteCard = G.tab[i];
-    G.moves++;
-    if (!viaWild) {
-      G.streak++;
-      var mult = Math.min(6, 1 + (G.streak - 1) * 0.5);
-      var gain = Math.round(10 * mult);
-      G.score += gain;
-      float(p.x + CW / 2, p.y, '+' + gain + (mult > 1 ? '  x' + mult.toFixed(1) : ''), G.streak > 3 ? '#ffd76a' : '#dff0c0');
-      Sound.play(Math.min(11, G.streak - 1));
-    } else {
-      G.streak = 0;
-      float(p.x + CW / 2, p.y, 'WILD', '#c9a6ff');
-    }
-    burst(p.x + CW / 2, p.y + CH / 2, 8, '#9dd06a', 110);
-    G.wildArmed = false;
-    G.sel = -1;
-
-    if (i < 3) {                                   // a peak top fell
-      G.peaks++;
-      G.score += 100;
-      S.wilds = Math.min(MAX_WILDS, S.wilds + 1);
-      save();
-      float(p.x + CW / 2, p.y - 14, 'PEAK  +100  +WILD', '#ffd76a');
-      burst(p.x + CW / 2, p.y + CH / 2, 26, '#ffd76a', 190);
-      shake(7); G.flash = 0.5; Sound.peak();
-    }
-    checkEnd();
-  }
-  function doDraw() {
-    if (G.result || G.screen !== 'play') return;
-    if (G.si >= G.stock.length) { Sound.deny(); shake(2); return; }
-    G.wasteCard = G.stock[G.si++];
-    G.streak = 0;
-    G.wildArmed = false; G.sel = -1;
-    Sound.draw();
-    if (G.anims.length < MAX_ANIM) {
-      G.anims.push({ c: G.wasteCard, x: STOCK.x, y: STOCK.y, tx: WASTE.x, ty: WASTE.y, t: 0, d: 0.16, sw: WASTE.w, sh: WASTE.h });
-    }
-    checkEnd();
-  }
-  function checkEnd() {
-    if (G.mask === 0) {
-      var left = G.stock.length - G.si;
-      G.score += 250 + left * 10;
-      var gamble = DEALS[G.deal][1] === 0;
-      var coins = Math.floor(G.score / 22) + 15;
-      if (gamble) coins *= 3;
-      G.reward = coins;
-      G.result = 'win';
-      S.coins += coins;
-      S.won[G.deal] = 1;
-      if (G.score > S.best[G.deal]) S.best[G.deal] = G.score;
-      if (G.deal + 1 < DEALS.length) S.current = G.deal + 1;
-      save();
-      G.flash = 1; shake(10); Sound.win();
-      for (var k = 0; k < 5; k++) later(function () { burst(VW * (0.2 + Math.random() * 0.6), 120 + Math.random() * 120, 20, ['#ffd76a', '#9dd06a', '#f0a6c8'][Math.floor(Math.random() * 3)], 220); }, k * 160);
-      return;
-    }
-    if (stuck()) {
-      G.result = 'lose';
-      if (G.score > S.best[G.deal]) { S.best[G.deal] = G.score; save(); }
-      shake(6); Sound.fail();
-    }
-  }
-  function useWild(i) {
-    if (S.wilds <= 0) { Sound.deny(); return; }
-    doPlay(i, true);
-  }
-
-  // ---------------------------------------------------------------- meadow ops
-  function meadowDone() {
-    for (var i = 0; i < S.meadow.length; i++) if (S.meadow[i] < 3) return false;
-    return true;
-  }
-  function grow(i) {
-    if (i < 0 || i >= S.meadow.length) return;
-    var st = S.meadow[i];
-    if (st >= 3) { Sound.deny(); return; }
-    var c = Meadow.cost(st);
-    if (S.coins < c) { Sound.deny(); say('Need ' + (c - S.coins) + ' more coins - win a deal.', 3); return; }
-    S.coins -= c;
-    S.meadow[i] = st + 1;
-    Sound.plant(st);
-    save();
-    if (meadowDone() && !S.celebrated) {
-      S.celebrated = 1; save();
-      G.celebrate = 6;
-      Sound.bloom();
-    }
-  }
-
-  // ---------------------------------------------------------------- drawing
-  function rr(x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  }
-  function txt(s, x, y, size, col, align, bold) {
-    ctx.fillStyle = col;
-    ctx.font = (bold ? '700 ' : '') + size + 'px ui-sans-serif, system-ui, sans-serif';
-    ctx.textAlign = align || 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(s, x, y);
-  }
-  function drawCard(c, x, y, w, h, state) {
-    // state: 'free' | 'blocked' | 'hot' | 'plain'
-    var red = suit(c) === 1 || suit(c) === 2;
-    ctx.save();
-    if (state === 'hot') { ctx.shadowColor = 'rgba(255,225,120,0.9)'; ctx.shadowBlur = 12; }
-    ctx.fillStyle = state === 'blocked' ? '#8f9a8c' : '#f4f1e2';
-    rr(x, y, w, h, 5); ctx.fill();
-    ctx.shadowBlur = 0;
-    ctx.lineWidth = state === 'hot' ? 2.6 : 1.4;
-    ctx.strokeStyle = state === 'hot' ? '#ffdf7a' : (state === 'blocked' ? '#5d6a5a' : '#3d4a3c');
-    rr(x, y, w, h, 5); ctx.stroke();
-    var col = state === 'blocked' ? (red ? '#7e3b3b' : '#333c33') : (red ? '#c03a3a' : '#232b23');
-    var fs = Math.max(13, Math.round(h * 0.34));
-    txt(RANKS[rank(c)], x + w * 0.5, y + h * 0.36, fs, col, 'center', true);
-    txt(SUITS[suit(c)], x + w * 0.5, y + h * 0.72, Math.round(fs * 0.86), col, 'center', false);
-    ctx.restore();
-  }
-  function drawCardBack(x, y, w, h) {
-    ctx.fillStyle = '#2f5a3a'; rr(x, y, w, h, 5); ctx.fill();
-    ctx.strokeStyle = '#7fae63'; ctx.lineWidth = 1.6; rr(x + 3, y + 3, w - 6, h - 6, 4); ctx.stroke();
-    ctx.strokeStyle = 'rgba(160,205,130,0.55)'; ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(x + w / 2, y + h - 12);
-    ctx.quadraticCurveTo(x + w / 2, y + h * 0.42, x + w / 2, y + 12);
-    ctx.stroke();
-    for (var k = -1; k <= 1; k += 2) {
-      ctx.beginPath();
-      ctx.moveTo(x + w / 2, y + h * 0.55);
-      ctx.quadraticCurveTo(x + w / 2 + k * 11, y + h * 0.42, x + w / 2, y + h * 0.3);
-      ctx.stroke();
-    }
-  }
-  function button(x, y, w, h, label, on, sub) {
-    ctx.fillStyle = on ? '#5c8f43' : '#33422f';
-    rr(x, y, w, h, 10); ctx.fill();
-    ctx.strokeStyle = on ? '#a9d585' : '#4a5b45'; ctx.lineWidth = 2;
-    rr(x, y, w, h, 10); ctx.stroke();
-    txt(label, x + w / 2, y + h / 2 - (sub ? 8 : 0), 16, on ? '#f2f8e8' : '#8b9a86', 'center', true);
-    if (sub) txt(sub, x + w / 2, y + h / 2 + 12, 12, on ? '#dbeec4' : '#75836f', 'center', false);
-    return { x: x, y: y, w: w, h: h };
-  }
-
-  // ------------------------------------------------------- play screen render
-  function drawPlay(dt) {
-    var sx = 0, sy = 0;
-    if (G.shake > 0.2) { sx = (Math.random() - 0.5) * G.shake; sy = (Math.random() - 0.5) * G.shake; }
-    ctx.save(); ctx.translate(sx, sy);
-
-    // background
-    var g = ctx.createLinearGradient(0, 0, 0, 330);
-    g.addColorStop(0, '#22331f'); g.addColorStop(1, '#1a2a1c');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, VW, 332);
-
-    // HUD
-    var d = DEALS[G.deal], fair = d[1] === 1;
-    ctx.fillStyle = '#2b3a29'; rr(MENUB.x, MENUB.y, MENUB.w, MENUB.h, 9); ctx.fill();
-    ctx.strokeStyle = '#5d7554'; ctx.lineWidth = 1.6; rr(MENUB.x, MENUB.y, MENUB.w, MENUB.h, 9); ctx.stroke();
-    txt('‹', MENUB.x + MENUB.w / 2, MENUB.y + 15, 18, '#cfe0bd', 'center', true);
-    txt('meadow', MENUB.x + MENUB.w / 2, MENUB.y + 32, 9, '#93a68b', 'center', false);
-
-    txt('DEAL ' + (G.deal + 1) + '/' + DEALS.length, 72, 17, 14, '#cfe0bd', 'left', true);
-    ctx.fillStyle = fair ? 'rgba(120,190,90,0.22)' : 'rgba(215,150,60,0.22)';
-    var bw = fair ? 92 : 108;
-    rr(72, 27, bw, 20, 6); ctx.fill();
-    ctx.strokeStyle = fair ? '#78be5a' : '#e2a24a'; ctx.lineWidth = 1.2; rr(72, 27, bw, 20, 6); ctx.stroke();
-    txt(fair ? 'FAIR · solvable' : 'GAMBLE deal', 78, 37, 11, fair ? '#b7e295' : '#f0c07a', 'left', true);
-    txt(d[2] + '% clear odds', 72, 57, 10, '#93a68b', 'left', false);
-
-    txt('SCORE', VW - 10, 15, 10, '#8fa287', 'right', false);
-    txt('' + G.score, VW - 10, 32, 20, '#f2f8e8', 'right', true);
-    txt('best ' + S.best[G.deal], VW - 10, 48, 10, '#8fa287', 'right', false);
-    if (G.streak > 1) {
-      var mult = Math.min(6, 1 + (G.streak - 1) * 0.5);
-      txt('CHAIN x' + mult.toFixed(1) + '  ·  ' + G.streak + ' in a row', 195, 208, 13, '#ffd76a', 'center', true);
-    }
-
-    // tableau
-    for (var i = 27; i >= 0; i--) {
-      if (!alive(i)) continue;
-      var p = cardPos(i);
-      var st = free(i) ? (playable(i) || (G.wildArmed) ? 'hot' : 'free') : 'blocked';
-      if (G.wildArmed && !free(i)) st = 'blocked';
-      drawCard(G.tab[i], p.x, p.y, CW, CH, st);
-      if (G.sel === i) {
-        ctx.strokeStyle = '#8fd0e8'; ctx.lineWidth = 3;
-        rr(p.x - 2, p.y - 2, CW + 4, CH + 4, 6); ctx.stroke();
+  // ---------------------------------------------------------- authored graph
+  function makeLayout(id) {
+    if (LAYOUT_BY_ID[id]._made) return LAYOUT_BY_ID[id]._made;
+    var def = LAYOUT_BY_ID[id] || LAYOUT_DEFS[0];
+    var layout = { id: def.id, name: def.name, stock: def.stock, peaks: def.peaks, rows: [], positions: [], children: [], order: [], count: 0 };
+    var nextIndex = 0;
+    for (var r = 0; r < def.rows.length; r++) {
+      var count = def.rows[r], step = count > 1 ? Math.min(39, 350 / (count - 1)) : 0;
+      var start = WIDTH * 0.5 - step * (count - 1) * 0.5;
+      layout.rows.push({ start: nextIndex, count: count, step: step });
+      for (var j = 0; j < count; j++) {
+        layout.positions.push({ x: start + j * step, y: 154 + r * 45, row: r, column: j });
+        layout.children.push([]);
+        nextIndex++;
       }
     }
-
-    // stock
-    var remain = G.stock.length - G.si;
-    if (remain > 0) {
-      for (var s = Math.min(3, remain) - 1; s >= 0; s--) drawCardBack(STOCK.x - s * 2, STOCK.y - s * 2, STOCK.w, STOCK.h);
-    } else {
-      ctx.strokeStyle = '#4a5b45'; ctx.lineWidth = 2; ctx.setLineDash([5, 5]);
-      rr(STOCK.x, STOCK.y, STOCK.w, STOCK.h, 5); ctx.stroke(); ctx.setLineDash([]);
-    }
-    txt(remain + ' left', STOCK.x + STOCK.w / 2, STOCK.y + STOCK.h + 14, 12, '#a4b79b', 'center', false);
-    txt('DRAW', STOCK.x + STOCK.w / 2, STOCK.y - 12, 11, '#8fa287', 'center', true);
-
-    // waste
-    drawCard(G.wasteCard, WASTE.x, WASTE.y, WASTE.w, WASTE.h, 'plain');
-    txt('MATCH ±1', WASTE.x + WASTE.w / 2, WASTE.y - 12, 11, '#cfe0bd', 'center', true);
-    txt(cardsLeft() + ' cards on the peaks', WASTE.x + WASTE.w / 2, WASTE.y + WASTE.h + 14, 12, '#a4b79b', 'center', false);
-
-    // wild button
-    var canWild = S.wilds > 0;
-    ctx.fillStyle = G.wildArmed ? '#6b4f9c' : (canWild ? '#3e3357' : '#2a3128');
-    rr(WILDB.x, WILDB.y, WILDB.w, WILDB.h, 9); ctx.fill();
-    ctx.strokeStyle = canWild ? '#c9a6ff' : '#414d3d'; ctx.lineWidth = 2;
-    rr(WILDB.x, WILDB.y, WILDB.w, WILDB.h, 9); ctx.stroke();
-    txt('WILD', WILDB.x + WILDB.w / 2, WILDB.y + 22, 14, canWild ? '#e2d2ff' : '#6d7a69', 'center', true);
-    txt('x' + S.wilds, WILDB.x + WILDB.w / 2, WILDB.y + 46, 20, canWild ? '#fff' : '#6d7a69', 'center', true);
-    txt(G.wildArmed ? 'pick card' : 'any card', WILDB.x + WILDB.w / 2, WILDB.y + 68, 10, canWild ? '#bda9e0' : '#6d7a69', 'center', false);
-
-    // hint line
-    txt(G.hint, VW / 2, 318, 12, '#9fb394', 'center', false);
-
-    // meadow strip
-    var mb = Meadow.draw(ctx, 0, 332, VW, VH - 332, S.meadow, G.t, { scale: 0.9 });
-    ctx.fillStyle = 'rgba(10,18,10,0.55)'; ctx.fillRect(0, 332, VW, 26);
-    txt('YOUR MEADOW  ·  ' + grown() + '/' + (S.meadow.length * 3) + ' growth', 10, 345, 12, '#cfe0bd', 'left', true);
-    txt(S.coins + ' coins', VW - 10, 345, 12, '#ffd76a', 'right', true);
-
-    // animating cards
-    for (var a = 0; a < G.anims.length; a++) {
-      var an = G.anims[a], k = Math.min(1, an.t / an.d), e = k * k * (3 - 2 * k);
-      var ax = an.x + (an.tx - an.x) * e, ay = an.y + (an.ty - an.y) * e;
-      var aw = an.sw + (WASTE.w - an.sw) * e, ah = an.sh + (WASTE.h - an.sh) * e;
-      drawCard(an.c, ax, ay, aw, ah, 'plain');
-    }
-    drawFx();
-    ctx.restore();
-
-    if (G.flash > 0) {
-      ctx.fillStyle = 'rgba(255,247,210,' + (G.flash * 0.45).toFixed(3) + ')';
-      ctx.fillRect(0, 0, VW, VH);
-    }
-    if (G.result) drawResult();
-  }
-  function grown() { var n = 0; for (var i = 0; i < S.meadow.length; i++) n += S.meadow[i]; return n; }
-
-  function drawFx() {
-    for (var i = 0; i < G.parts.length; i++) {
-      var p = G.parts[i];
-      ctx.globalAlpha = Math.max(0, Math.min(1, p.life));
-      ctx.fillStyle = p.c;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-    for (var f = 0; f < G.floats.length; f++) {
-      var fl = G.floats[f];
-      ctx.globalAlpha = Math.max(0, Math.min(1, fl.life));
-      txt(fl.t, fl.x, fl.y, 14, fl.c, 'center', true);
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  var resultBtns = {};
-  function drawResult() {
-    ctx.fillStyle = 'rgba(8,14,8,0.82)'; ctx.fillRect(0, 0, VW, VH);
-    var win = G.result === 'win';
-    var y = 170;
-    txt(win ? 'MEADOW BLOOMS' : 'DEAL FAILED', VW / 2, y, 26, win ? '#b9dc8a' : '#e2a24a', 'center', true);
-    txt(win ? 'Peaks cleared - deal ' + (G.deal + 1) + ' complete' : 'No moves left. Retry costs nothing, ever.',
-      VW / 2, y + 30, 13, '#a4b79b', 'center', false);
-    txt('SCORE ' + G.score, VW / 2, y + 68, 22, '#f2f8e8', 'center', true);
-    txt('best ' + S.best[G.deal], VW / 2, y + 92, 12, '#8fa287', 'center', false);
-    if (win) {
-      txt('+' + G.reward + ' coins' + (DEALS[G.deal][1] === 0 ? '  (gamble x3)' : ''), VW / 2, y + 120, 17, '#ffd76a', 'center', true);
-    } else {
-      txt('cards left: ' + cardsLeft() + '  ·  wilds banked: ' + S.wilds, VW / 2, y + 120, 13, '#a4b79b', 'center', false);
-    }
-    resultBtns.a = button(60, y + 150, 270, 56, win ? 'PLANT THE COINS' : 'RETRY FREE', true,
-      win ? 'grow your meadow' : 'same deal, no cost');
-    var hasNext = G.deal + 1 < DEALS.length;
-    resultBtns.b = button(60, y + 216, 270, 52, win ? (hasNext ? 'NEXT DEAL' : 'BACK TO MEADOW') : 'BACK TO MEADOW', true, null);
-    resultBtns.c = button(60, y + 276, 270, 48, win ? 'REPLAY THIS DEAL' : 'PICK ANOTHER DEAL', true, null);
-  }
-
-  // ------------------------------------------------------- meadow screen
-  var meadowBoxes = [], meadowBtns = {};
-  function drawMeadow() {
-    ctx.fillStyle = '#16221a'; ctx.fillRect(0, 0, VW, VH);
-    meadowBoxes = Meadow.draw(ctx, 0, 56, VW, 400, S.meadow, G.t, {
-      selected: G.mSel,
-      affordable: function (i) { return S.coins >= Meadow.cost(S.meadow[i]); }
-    });
-    // header
-    ctx.fillStyle = '#101a12'; ctx.fillRect(0, 0, VW, 56);
-    txt('MEADOW SOLITAIRE', 12, 20, 15, '#b9dc8a', 'left', true);
-    txt(S.coins + ' coins', 12, 40, 13, '#ffd76a', 'left', true);
-    txt('wilds ' + S.wilds + '/' + MAX_WILDS, 110, 40, 13, '#c9a6ff', 'left', true);
-    var done = grown(), tot = S.meadow.length * 3;
-    txt('growth ' + done + '/' + tot, VW - 12, 20, 13, '#cfe0bd', 'right', true);
-    ctx.fillStyle = '#2c3a2c'; rr(VW - 122, 30, 110, 10, 5); ctx.fill();
-    ctx.fillStyle = '#7fbe55'; rr(VW - 122, 30, 110 * (done / tot), 10, 5); ctx.fill();
-
-    // panel
-    ctx.fillStyle = '#111c13'; ctx.fillRect(0, 456, VW, VH - 456);
-    var i = G.mSel;
-    if (i >= 0) {
-      var st = S.meadow[i], c = Meadow.cost(st);
-      txt(Meadow.names[Meadow.slots[i].t] + '  #' + (i + 1), 16, 480, 16, '#dfe9d6', 'left', true);
-      txt(st >= 3 ? 'Fully grown.' : 'Stage ' + st + '/3  ·  next stage costs ' + c + ' coins',
-        16, 502, 12, '#93a68b', 'left', false);
-      meadowBtns.grow = button(16, 518, 170, 56, st >= 3 ? 'GROWN' : 'GROW  ' + c,
-        st < 3 && S.coins >= c, st < 3 && S.coins < c ? 'need ' + (c - S.coins) + ' more' : null);
-    } else {
-      txt('Tap a planting to grow it.', 16, 486, 14, '#93a68b', 'left', false);
-      txt('Coins come from winning deals. Nothing costs money.', 16, 506, 11, '#6f7f6b', 'left', false);
-      meadowBtns.grow = null;
-    }
-    meadowBtns.play = button(202, 518, 172, 56, 'PLAY DEAL ' + (S.current + 1), true,
-      DEALS[S.current][1] ? 'fair · ' + DEALS[S.current][2] + '%' : 'gamble · ' + DEALS[S.current][2] + '%');
-    meadowBtns.deals = button(16, 586, 358, 50, 'ALL 40 DEALS', true, null);
-    txt(G.hint || 'Every deal is solver-checked. Gambles are labelled.',
-      VW / 2, 660, 11, '#6f7f6b', 'center', false);
-
-    if (G.celebrate > 0) {
-      ctx.fillStyle = 'rgba(8,14,8,' + Math.min(0.7, G.celebrate * 0.16).toFixed(2) + ')';
-      ctx.fillRect(0, 0, VW, VH);
-      txt('THE MEADOW IS COMPLETE', VW / 2, 300, 24, '#ffd76a', 'center', true);
-      txt('All 12 plantings in full bloom.', VW / 2, 332, 14, '#dfe9d6', 'center', false);
-      txt('Keep playing - deals stay free.', VW / 2, 356, 12, '#93a68b', 'center', false);
-    }
-    drawFx();
-  }
-
-  // ------------------------------------------------------- deals screen
-  var dealBoxes = [], dealsBack = null;
-  function drawDeals() {
-    ctx.fillStyle = '#16221a'; ctx.fillRect(0, 0, VW, VH);
-    ctx.fillStyle = '#101a12'; ctx.fillRect(0, 0, VW, 78);
-    txt('ALL DEALS', 12, 22, 17, '#b9dc8a', 'left', true);
-    txt('FAIR = solver proved a full clear exists.', 12, 44, 11, '#93a68b', 'left', false);
-    txt('GAMBLE = no clean solve; wilds are your only shot.', 12, 60, 11, '#e2a24a', 'left', false);
-
-    dealBoxes.length = 0;
-    var cols = 5, cw = 70, ch = 62, ox = 14, oy = 92;
-    for (var i = 0; i < DEALS.length; i++) {
-      var cx = ox + (i % cols) * cw, cy = oy + Math.floor(i / cols) * ch;
-      var fair = DEALS[i][1] === 1, won = S.won[i] === 1;
-      ctx.fillStyle = won ? '#3f6b34' : (fair ? '#26331f' : '#33291c');
-      rr(cx, cy, cw - 6, ch - 8, 8); ctx.fill();
-      ctx.strokeStyle = i === S.current ? '#8fd0e8' : (fair ? '#4e6b3f' : '#7a5a2c');
-      ctx.lineWidth = i === S.current ? 2.4 : 1.3;
-      rr(cx, cy, cw - 6, ch - 8, 8); ctx.stroke();
-      txt('' + (i + 1), cx + (cw - 6) / 2, cy + 16, 15, '#e6efdc', 'center', true);
-      txt(fair ? 'FAIR' : 'GAMBLE', cx + (cw - 6) / 2, cy + 32, 9, fair ? '#9dd06a' : '#e2a24a', 'center', true);
-      txt(DEALS[i][2] + '%', cx + (cw - 6) / 2, cy + 45, 10, '#a4b79b', 'center', false);
-      if (won) txt('★', cx + cw - 16, cy + 12, 11, '#ffd76a', 'center', false);
-      dealBoxes.push({ i: i, x: cx, y: cy, w: cw - 6, h: ch - 8 });
-    }
-    var by = oy + Math.ceil(DEALS.length / cols) * ch + 8;
-    dealsBack = button(14, by, 170, 52, 'BACK', true, null);
-    txt('Odds = clear rate of an average player.', VW - 14, by + 18, 10, '#6f7f6b', 'right', false);
-    txt('Failing costs nothing.', VW - 14, by + 34, 10, '#6f7f6b', 'right', false);
-    drawFx();
-  }
-
-  // ---------------------------------------------------------------- update
-  function update(dt) {
-    G.t += dt;
-    if (G.shake > 0) G.shake = Math.max(0, G.shake - dt * 26);
-    if (G.flash > 0) G.flash = Math.max(0, G.flash - dt * 1.8);
-    if (G.celebrate > 0) G.celebrate = Math.max(0, G.celebrate - dt);
-    for (var i = G.parts.length - 1; i >= 0; i--) {
-      var p = G.parts[i];
-      p.vy += 260 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt * 1.15;
-      if (p.life <= 0 || p.y > VH + 30) G.parts.splice(i, 1);
-    }
-    for (var f = G.floats.length - 1; f >= 0; f--) {
-      var fl = G.floats[f]; fl.y -= 26 * dt; fl.life -= dt * 1.1;
-      if (fl.life <= 0) G.floats.splice(f, 1);
-    }
-    for (var a = G.anims.length - 1; a >= 0; a--) {
-      G.anims[a].t += dt;
-      if (G.anims[a].t >= G.anims[a].d) G.anims.splice(a, 1);
-    }
-    if (G.hintHold > 0) G.hintHold -= dt;
-    if (G.screen === 'play' && !G.result && G.hintHold <= 0) {
-      var none = playableList().length === 0, empty = G.si >= G.stock.length;
-      if (G.wildArmed) G.hint = 'Wild armed - tap any uncovered card, any rank.';
-      else if (none && empty && S.wilds > 0) G.hint = 'No matches left - spend a WILD, or leave the deal.';
-      else if (none) G.hint = 'No match - tap DRAW for a new card.';
-      else if (G.moves === 0) G.hint = 'Tap a card one rank above or below the big card.';
-      else if (G.streak >= 3) G.hint = 'Chain running - keep matching for a bigger multiplier.';
-      else G.hint = 'Clear a peak top to earn a WILD.';
-    }
-  }
-
-  var last = 0;
-  function frame(ts) {
-    requestAnimationFrame(frame);
-    var dt = (ts - last) / 1000; last = ts;
-    if (!isFinite(dt) || dt < 0) dt = 0;
-    dt = Math.min(0.05, dt);
-    if (!G.started) return;
-    if (G.paused) { return; }               // rotate overlay: simulation frozen
-    update(dt);
-    ctx.setTransform(scale, 0, 0, scale, 0, 0);
-    ctx.fillStyle = '#1d2b1f'; ctx.fillRect(0, 0, VW, VH);
-    if (G.screen === 'play') drawPlay(dt);
-    else if (G.screen === 'meadow') drawMeadow();
-    else drawDeals();
-  }
-
-  // ---------------------------------------------------------------- hit tests
-  function inBox(b, x, y) { return b && x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h; }
-
-  function tapPlay(x, y) {
-    if (G.result) {
-      if (inBox(resultBtns.a, x, y)) {
-        Sound.tap();
-        if (G.result === 'win') { G.screen = 'meadow'; G.hint = 'Tap a planting to grow it.'; clearInput(); }
-        else startDeal(G.deal);
-        return;
-      }
-      if (inBox(resultBtns.b, x, y)) {
-        Sound.tap();
-        if (G.result === 'win' && G.deal + 1 < DEALS.length) startDeal(G.deal + 1);
-        else { G.screen = 'meadow'; clearInput(); }
-        return;
-      }
-      if (inBox(resultBtns.c, x, y)) {
-        Sound.tap();
-        if (G.result === 'win') startDeal(G.deal);
-        else { G.screen = 'deals'; clearInput(); }
-        return;
-      }
-      return;
-    }
-    if (inBox(MENUB, x, y)) { Sound.tap(); G.screen = 'meadow'; clearInput(); return; }
-    if (inBox(STOCK, x, y)) { doDraw(); return; }
-    if (inBox(WILDB, x, y)) {
-      if (S.wilds > 0) { G.wildArmed = !G.wildArmed; Sound.tap(); if (!G.wildArmed) say('Wild cancelled.', 1.4); }
-      else { Sound.deny(); say('No wilds banked. Clear a peak top to earn one.', 2.4); }
-      return;
-    }
-    // cards: peaks overlap, so score every card the touch covers and take the
-    // best one - playable beats free beats covered, nearest centre breaks ties.
-    var bestI = -1, bestScore = -1e9, pad = 7;
-    for (var i = 0; i < 28; i++) {
-      if (!alive(i)) continue;
-      var p = cardPos(i);
-      if (x < p.x - pad || x > p.x + CW + pad || y < p.y - pad || y > p.y + CH + pad) continue;
-      var dx = x - (p.x + CW / 2), dy = y - (p.y + CH / 2);
-      var sc = -Math.sqrt(dx * dx + dy * dy) + ROW[i] * 2;
-      if (free(i)) sc += 1000;
-      if (!G.wildArmed && playable(i)) sc += 4000;
-      if (sc > bestScore) { bestScore = sc; bestI = i; }
-    }
-    if (bestI >= 0) {
-      if (G.wildArmed) { if (free(bestI)) useWild(bestI); else Sound.deny(); }
-      else doPlay(bestI, false);
-      return;
-    }
-    if (G.wildArmed) { G.wildArmed = false; }
-  }
-
-  function tapMeadow(x, y) {
-    if (G.celebrate > 0) { G.celebrate = 0; return; }
-    if (inBox(meadowBtns.play, x, y)) { Sound.tap(); startDeal(S.current); return; }
-    if (inBox(meadowBtns.deals, x, y)) { Sound.tap(); G.screen = 'deals'; clearInput(); return; }
-    if (meadowBtns.grow && inBox(meadowBtns.grow, x, y)) {
-      if (G.mSel >= 0) {
-        var before = S.meadow[G.mSel];
-        grow(G.mSel);
-        if (S.meadow[G.mSel] > before) {
-          var b = null;
-          for (var q = 0; q < meadowBoxes.length; q++) if (meadowBoxes[q].i === G.mSel) b = meadowBoxes[q];
-          if (b) { burst(b.cx, b.cy - 10, 18, '#9dd06a', 130); float(b.cx, b.cy - 40, 'GROW', '#b9dc8a'); }
+    layout.count = nextIndex;
+    for (var pr = 0; pr < layout.rows.length - 1; pr++) {
+      var parentRow = layout.rows[pr], childRow = layout.rows[pr + 1];
+      for (var pj = 0; pj < parentRow.count; pj++) {
+        var pIndex = parentRow.start + pj;
+        var begin = Math.floor(pj * childRow.count / parentRow.count);
+        var end = Math.ceil((pj + 1) * childRow.count / parentRow.count);
+        if (end <= begin) end = begin + 1;
+        begin = clamp(begin, 0, childRow.count - 1); end = clamp(end, begin + 1, childRow.count);
+        for (var cj = begin; cj < end; cj++) layout.children[pIndex].push(childRow.start + cj);
+        if (layout.children[pIndex].length < 2 && childRow.count > 1) {
+          var extra = begin > 0 ? begin - 1 : end;
+          if (extra >= 0 && extra < childRow.count) layout.children[pIndex].push(childRow.start + extra);
         }
       }
-      return;
     }
-    for (var k = meadowBoxes.length - 1; k >= 0; k--) {
-      if (inBox(meadowBoxes[k], x, y)) { G.mSel = meadowBoxes[k].i; Sound.tap(); G.hint = ''; return; }
+    for (var rr = layout.rows.length - 1; rr >= 0; rr--) {
+      for (var cc = 0; cc < layout.rows[rr].count; cc++) layout.order.push(layout.rows[rr].start + cc);
     }
-    G.mSel = -1;
+    layout._made = layout;
+    return layout;
   }
 
-  function tapDeals(x, y) {
-    if (inBox(dealsBack, x, y)) { Sound.tap(); G.screen = 'meadow'; clearInput(); return; }
-    for (var i = 0; i < dealBoxes.length; i++) {
-      if (inBox(dealBoxes[i], x, y)) { Sound.tap(); startDeal(dealBoxes[i].i); return; }
+  function verifyDeal(layout, tableau, stock) {
+    var alive = new Array(layout.count).fill(true), waste = stock[0];
+    function free(index) {
+      var children = layout.children[index];
+      for (var i = 0; i < children.length; i++) if (alive[children[i]]) return false;
+      return true;
     }
+    for (var o = 0; o < layout.order.length; o++) {
+      var index = layout.order[o];
+      if (!free(index) || !adjacent(tableau[index], waste)) return false;
+      alive[index] = false; waste = tableau[index];
+    }
+    return true;
   }
 
-  function onTap(x, y) {
-    if (G.paused || !G.started) return;
-    if (G.screen === 'play') tapPlay(x, y);
-    else if (G.screen === 'meadow') tapMeadow(x, y);
-    else tapDeals(x, y);
+  function makeDeal(seed, layoutId) {
+    var layout = makeLayout(layoutId), attempt = 0, result = null;
+    while (!result && attempt < 4) {
+      var random = rng((seed + attempt * 0x9e3779b9) >>> 0);
+      var startRank = Math.floor(random() * 13), current = startRank;
+      var tableau = new Array(layout.count);
+      for (var o = 0; o < layout.order.length; o++) {
+        current = (current + (random() < 0.5 ? 1 : -1) + 13) % 13;
+        tableau[layout.order[o]] = card(current, Math.floor(random() * 4));
+      }
+      var stock = [card(startRank, Math.floor(random() * 4))];
+      for (var s = 1; s < layout.stock; s++) stock.push(card(Math.floor(random() * 13), Math.floor(random() * 4)));
+      if (verifyDeal(layout, tableau, stock)) result = { tableau: tableau, stock: stock, verified: true, seed: (seed + attempt * 0x9e3779b9) >>> 0 };
+      attempt++;
+    }
+    if (!result) throw new Error('Meadow deal generation failed');
+    return result;
   }
 
-  // ---------------------------------------------------------------- events
-  function down(ev) {
-    ev.preventDefault();
-    if (G.paused || document.hidden) return;
-    var id = (ev.pointerId === undefined) ? 'm' : ev.pointerId;
-    var v = toVirtual(ev);
-    pointers[id] = { x: v.x, y: v.y, sx: v.x, sy: v.y, t: G.t };
-    Sound.unlock();
-  }
-  function move(ev) {
-    var id = (ev.pointerId === undefined) ? 'm' : ev.pointerId;
-    if (G.paused || document.hidden) return;
-    var p = pointers[id];
-    if (!p) return;
-    ev.preventDefault();
-    var v = toVirtual(ev);
-    p.x = v.x; p.y = v.y;
-  }
-  function up(ev) {
-    var id = (ev.pointerId === undefined) ? 'm' : ev.pointerId;
-    if (G.paused || document.hidden) { clearInput(); return; }
-    var p = pointers[id];
-    delete pointers[id];
-    if (!p) return;
-    ev.preventDefault();
-    var v = toVirtual(ev);
-    var dx = v.x - p.sx, dy = v.y - p.sy;
-    if (dx * dx + dy * dy < 26 * 26) onTap(v.x, v.y);   // tap, not a drag
-  }
-  function cancel(ev) {
-    var id = (ev.pointerId === undefined) ? 'm' : ev.pointerId;
-    delete pointers[id];
+  function campaignSpec(index) {
+    var safe = clamp(index | 0, 0, TOTAL_DEALS - 1), season = Math.floor(safe / 15), slot = safe % 15;
+    var scheduleIndex = clamp(Math.floor(slot / 1.5), 0, LAYOUT_SCHEDULE.length - 1);
+    return {
+      kind: 'campaign', dealIndex: safe, season: season, stage: LAYOUT_SCHEDULE[scheduleIndex],
+      seed: (0x6d530000 + safe * 0x45d9f3b) >>> 0, name: 'DEAL ' + String(safe + 1).padStart(2, '0')
+    };
   }
 
-  if (window.PointerEvent) {
-    cv.addEventListener('pointerdown', down, { passive: false });
-    cv.addEventListener('pointermove', move, { passive: false });
-    window.addEventListener('pointerup', up, { passive: false });
-    window.addEventListener('pointercancel', cancel, { passive: false });
-  } else {
-    cv.addEventListener('touchstart', function (e) { for (var i = 0; i < e.changedTouches.length; i++) { var t = e.changedTouches[i]; t.pointerId = t.identifier; down(t); } e.preventDefault(); }, { passive: false });
-    cv.addEventListener('touchmove', function (e) { for (var i = 0; i < e.changedTouches.length; i++) { var t = e.changedTouches[i]; t.pointerId = t.identifier; move(t); } e.preventDefault(); }, { passive: false });
-    window.addEventListener('touchend', function (e) { for (var i = 0; i < e.changedTouches.length; i++) { var t = e.changedTouches[i]; t.pointerId = t.identifier; up(t); } }, { passive: false });
-    window.addEventListener('touchcancel', function (e) { for (var i = 0; i < e.changedTouches.length; i++) { var t = e.changedTouches[i]; t.pointerId = t.identifier; cancel(t); } }, { passive: false });
-    cv.addEventListener('mousedown', function (e) { down(e); });
-    window.addEventListener('mousemove', function (e) { move(e); });
-    window.addEventListener('mouseup', function (e) { up(e); });
+  function dailySpec() {
+    return { kind: 'daily', dealIndex: -1, season: 1, stage: 'braided', seed: DAILY_SEED, name: 'DAILY DEAL' };
   }
-  cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
-  window.addEventListener('blur', function () { clearInput(); });
-  document.addEventListener('visibilitychange', function () {
-    if (document.hidden) { G.paused = true; clearInput(); clearTimers(); }
-    else { G.paused = window.innerWidth > window.innerHeight * 1.05 && G.started; last = performance.now(); }
+
+  // --------------------------------------------------------------- persistence
+  function blankMeadow() {
+    var out = [];
+    for (var i = 0; i < SEASONS.length; i++) out.push([0, 0, 0, 0, 0, 0]);
+    return out;
+  }
+  function defaultProfile() {
+    return {
+      v: 4, current: 0, wilds: 0, undoCharges: 0, totalWins: 0,
+      cleared: new Array(TOTAL_DEALS).fill(0), stars: new Array(TOTAL_DEALS).fill(0),
+      bestStreak: new Array(TOTAL_DEALS).fill(0), meadow: blankMeadow(),
+      dailyBest: 0, dailyStars: 0, dailyBestStreak: 0, endlessBest: 0, endlessBestStreak: 0
+    };
+  }
+  function validArray(arr, length, lo, hi) {
+    if (!Array.isArray(arr) || arr.length !== length) return false;
+    for (var i = 0; i < arr.length; i++) if (!Number.isInteger(arr[i]) || arr[i] < lo || arr[i] > hi) return false;
+    return true;
+  }
+  function validateProfile(v) {
+    if (!plainObject(v) || v.v !== 4 || !Number.isInteger(v.current) || v.current < 0 || v.current >= TOTAL_DEALS ||
+        !Number.isInteger(v.wilds) || v.wilds < 0 || v.wilds > MAX_WILDS || !Number.isInteger(v.undoCharges) || v.undoCharges < 0 || v.undoCharges > MAX_UNDOS ||
+        !Number.isInteger(v.totalWins) || v.totalWins < 0 || v.totalWins > 100000 || !validArray(v.cleared, TOTAL_DEALS, 0, 1) ||
+        !validArray(v.stars, TOTAL_DEALS, 0, 3) || !validArray(v.bestStreak, TOTAL_DEALS, 0, 999) || !Array.isArray(v.meadow) || v.meadow.length !== SEASONS.length ||
+        !Number.isInteger(v.dailyBest) || v.dailyBest < 0 || v.dailyBest > 99999999 || !Number.isInteger(v.dailyStars) || v.dailyStars < 0 || v.dailyStars > 3 ||
+        !Number.isInteger(v.dailyBestStreak) || v.dailyBestStreak < 0 || v.dailyBestStreak > 999 || !Number.isInteger(v.endlessBest) || v.endlessBest < 0 || v.endlessBest > 99999999 ||
+        !Number.isInteger(v.endlessBestStreak) || v.endlessBestStreak < 0 || v.endlessBestStreak > 999) return false;
+    for (var s = 0; s < SEASONS.length; s++) if (!validArray(v.meadow[s], 6, 0, 3)) return false;
+    return true;
+  }
+
+  var DEBUG_STATE = { mode: 'boot', progress: 0, score: 0, health: 0, currentStage: 0, stageId: 'tri-peaks', cardsLeft: 0, verified: false };
+  var sceneRef = null, pendingForceMode = null, pendingForceStage = null, audioStarted = false;
+  var pauseOverlay = document.getElementById('pause-overlay');
+  var loadingNote = document.getElementById('loading-note');
+
+  var kit = GGKit.create({
+    slug: 'meadow-solitaire', orientation: 'portrait', validateSave: validateProfile,
+    onPause: function (reason) {
+      if (sceneRef) sceneRef.gestureMap = Object.create(null);
+      if (sceneRef && sceneRef.scene.isActive()) sceneRef.scene.pause();
+      if (reason === 'manual') pauseOverlay.hidden = false;
+    },
+    onResume: function () {
+      if (sceneRef && sceneRef.scene.isPaused()) sceneRef.scene.resume();
+      pauseOverlay.hidden = true;
+    },
+    onRestart: function () { if (sceneRef) sceneRef.restartCurrent(); }
   });
+  kit.audio.register(AUDIO);
+  kit.registerPWA();
+  var profile = kit.save.get(defaultProfile());
 
-  // keyboard
-  function cycleSel(dir) {
-    var list = freeList();
-    if (!list.length) { G.sel = -1; return; }
-    var pos = list.indexOf(G.sel);
-    pos = (pos < 0) ? (dir > 0 ? 0 : list.length - 1) : (pos + dir + list.length) % list.length;
-    G.sel = list[pos];
-    Sound.tap();
+  function persist() { kit.save.set(profile); }
+  function campaignProgress() {
+    var n = 0;
+    for (var i = 0; i < profile.cleared.length; i++) n += profile.cleared[i];
+    return n;
   }
-  window.addEventListener('keydown', function (e) {
-    var k = e.key;
-    if ([' ', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Enter'].indexOf(k) >= 0) e.preventDefault();
-    if (G.paused || document.hidden) { clearInput(); return; }
-    if (keys[k]) return;
-    keys[k] = 1;
-    if (!G.started) { boot(); return; }
-    if (G.paused) return;
-    if (G.screen !== 'play') {
-      if (k === 'Enter' || k === ' ') { Sound.tap(); if (G.screen === 'meadow') startDeal(S.current); else G.screen = 'meadow'; }
-      else if (k === 'Escape') { G.screen = 'meadow'; clearInput(); }
-      else if (G.screen === 'meadow' && (k === 'ArrowLeft' || k === 'ArrowRight')) {
-        G.mSel = (G.mSel + (k === 'ArrowRight' ? 1 : -1) + S.meadow.length) % S.meadow.length;
-        Sound.tap();
-      } else if (G.screen === 'meadow' && (k === 'ArrowUp' || k === 'g' || k === 'G')) { grow(G.mSel); }
+  function syncDebug() {
+    var r = sceneRef && sceneRef.run;
+    DEBUG_STATE.mode = sceneRef ? sceneRef.mode : 'boot';
+    DEBUG_STATE.progress = campaignProgress() / TOTAL_DEALS;
+    DEBUG_STATE.score = r ? r.score : 0;
+    DEBUG_STATE.health = r ? r.cardsLeft : 0;
+    DEBUG_STATE.currentStage = r ? r.spec.season : Math.floor(profile.current / 15);
+    DEBUG_STATE.stageId = r ? r.layout.id : campaignSpec(profile.current).stage;
+    DEBUG_STATE.cardsLeft = r ? r.cardsLeft : 0;
+    DEBUG_STATE.verified = !!(r && r.verified);
+  }
+  function forceMode(value) {
+    var v = String(value || '').toLowerCase();
+    if (v !== 'meadow' && v !== 'campaign' && v !== 'play' && v !== 'daily' && v !== 'endless') return false;
+    pendingForceMode = v;
+    if (sceneRef) {
+      if (v === 'meadow') sceneRef.showMeadow();
+      else if (v === 'campaign') sceneRef.startRun(campaignSpec(profile.current));
+      else if (v === 'daily') sceneRef.startRun(dailySpec());
+      else if (v === 'endless') sceneRef.startEndless();
+      else sceneRef.startRun(campaignSpec(profile.current));
+    }
+    return true;
+  }
+  function forceStage(value) {
+    var v = String(value == null ? '' : value).toLowerCase();
+    var idx = Number(value);
+    if (Number.isFinite(idx)) idx = clamp(Math.floor(idx), 0, SEASONS.length - 1) * 15;
+    else {
+      var stageSlots = { 'tri-peaks': 0, 'four-peaks': 2, braided: 4, walled: 6, 'double-deck': 8 };
+      idx = stageSlots[v] == null ? 0 : stageSlots[v];
+    }
+    pendingForceStage = idx;
+    if (sceneRef) sceneRef.startRun(campaignSpec(idx));
+    return idx;
+  }
+  window.__ms = { state: DEBUG_STATE, forceMode: forceMode, forceStage: forceStage };
+
+  // -------------------------------------------------------------- baked art
+  function bakeTexture(scene, name, width, height, draw) {
+    if (scene.textures.exists(name)) return;
+    var g = scene.make.graphics({ x: 0, y: 0, add: false });
+    draw(g, width, height); g.generateTexture(name, width, height); g.destroy();
+  }
+  function hill(g, x, y, w, h, tint, alpha) {
+    g.fillStyle(tint, alpha);
+    g.beginPath(); g.moveTo(x, y + h); g.lineTo(x, y + h * 0.54);
+    g.lineTo(x + w * 0.18, y + h * 0.42); g.lineTo(x + w * 0.36, y + h * 0.58);
+    g.lineTo(x + w * 0.54, y + h * 0.35); g.lineTo(x + w * 0.72, y + h * 0.55);
+    g.lineTo(x + w, y + h * 0.32); g.lineTo(x + w, y + h); g.closePath(); g.fillPath();
+  }
+  function bakeAll(scene) {
+    for (var i = 0; i < SEASONS.length; i++) (function (season, index) {
+      bakeTexture(scene, 'ms_bg_' + index, WIDTH, HEIGHT, function (g, w, h) {
+        g.fillStyle(season.sky, 1).fillRect(0, 0, w, h);
+        g.fillStyle(season.sky2, 0.28).fillCircle(w * 0.78, h * 0.16, 82);
+        hill(g, 0, 116, w, 410, season.felt, 0.76);
+        hill(g, 0, 214, w, 350, season.felt2, 0.78);
+        g.fillStyle(0x102a22, 0.72).fillRect(0, 505, w, h - 505);
+        for (var mote = 0; mote < 34; mote++) {
+          var mx = (mote * 73 + index * 17) % w, my = 126 + ((mote * 47 + index * 31) % 420);
+          g.fillStyle(season.accent, mote % 3 === 0 ? 0.32 : 0.14).fillCircle(mx, my, mote % 2 ? 1 : 2);
+        }
+      });
+      bakeTexture(scene, 'ms_felt_' + index, WIDTH, 430, function (g, w, h) {
+        g.fillStyle(season.felt, 0.98).fillRoundedRect(8, 0, w - 16, h, 24);
+        g.fillStyle(season.felt2, 0.12).fillRoundedRect(18, 12, w - 36, h - 24, 18);
+        g.lineStyle(2, season.accent, 0.24).strokeRoundedRect(10, 2, w - 20, h - 4, 22);
+        g.fillStyle(0xffffff, 0.035).fillCircle(w * 0.18, h * 0.26, 110);
+        g.fillStyle(0x071a12, 0.12).fillCircle(w * 0.82, h * 0.72, 148);
+      });
+    }(SEASONS[i], i));
+    bakeTexture(scene, 'ms_hud', WIDTH, 112, function (g, w, h) {
+      g.fillStyle(0x0d2119, 0.96).fillRect(0, 0, w, h);
+      g.fillStyle(0x28513b, 0.74).fillRect(0, h - 2, w, 2);
+      g.fillStyle(0xffffff, 0.05).fillRect(0, 60, w, 1);
+    });
+    bakeTexture(scene, 'ms_bottom', WIDTH, 118, function (g, w, h) {
+      g.fillStyle(0x0b1b15, 0.97).fillRect(0, 0, w, h);
+      g.fillStyle(0x28513b, 0.7).fillRect(0, 0, w, 2);
+      g.fillStyle(0xffffff, 0.035).fillRect(0, 58, w, 1);
+    });
+    bakeTexture(scene, 'ms_back', 66, 86, function (g, w, h) {
+      g.fillStyle(0x376d4b, 1).fillRoundedRect(2, 2, w - 4, h - 4, 8);
+      g.lineStyle(3, 0xa8d889, 0.86).strokeRoundedRect(7, 7, w - 14, h - 14, 5);
+      g.lineStyle(2, 0xe2efb2, 0.42).strokeLineShape(new Phaser.Geom.Line(w * 0.5, 17, w * 0.5, h - 17));
+      g.fillStyle(0xe2efb2, 0.55).fillTriangle(w * 0.5, 25, w * 0.5 - 12, 42, w * 0.5, 35);
+      g.fillStyle(0xe2efb2, 0.55).fillTriangle(w * 0.5, h - 25, w * 0.5 + 12, h - 42, w * 0.5, h - 35);
+    });
+    bakeTexture(scene, 'ms_spark', 18, 18, function (g) {
+      g.fillStyle(0xffffff, 0.18).fillCircle(9, 9, 8);
+      g.fillStyle(0xffffff, 1).fillCircle(9, 9, 3);
+    });
+  }
+
+  // --------------------------------------------------------------- boot scene
+  function BootScene() { Phaser.Scene.call(this, { key: 'boot' }); }
+  BootScene.prototype = Object.create(Phaser.Scene.prototype);
+  BootScene.prototype.constructor = BootScene;
+  BootScene.prototype.preload = function () { kit.loader.show('MEADOW SOLITAIRE'); kit.loader.progress(0.2); };
+  BootScene.prototype.create = function () {
+    bakeAll(this); kit.loader.progress(0.78);
+    kit.loader.progress(1); kit.loader.hide();
+    if (loadingNote) loadingNote.remove();
+    this.scene.start('meadow');
+  };
+
+  // ------------------------------------------------------------- main scene
+  function MeadowScene() { Phaser.Scene.call(this, { key: 'meadow' }); }
+  MeadowScene.prototype = Object.create(Phaser.Scene.prototype);
+  MeadowScene.prototype.constructor = MeadowScene;
+
+  MeadowScene.prototype.createText = function (x, y, text, size, colorValue, align, bold) {
+    return this.add.text(x, y, text, { fontFamily: 'Verdana, Geneva, sans-serif', fontSize: size + 'px', fontStyle: bold ? 'bold' : 'normal', color: colorValue, align: align || 'left', resolution: 1 }).setOrigin(align === 'center' ? 0.5 : align === 'right' ? 1 : 0, 0.5);
+  };
+  MeadowScene.prototype.createButton = function (x, y, w, h, text, tint, depth) {
+    var rect = this.add.rectangle(x, y, w, h, tint || 0x214b36, 0.98).setOrigin(0.5).setDepth(depth || 100);
+    rect.setStrokeStyle(2, 0xa8d889, 0.68);
+    var label = this.createText(x, y, text, 14, PAL.ink, 'center', true).setDepth((depth || 100) + 1);
+    return { x: x - w / 2, y: y - h / 2, w: w, h: h, rect: rect, label: label, base: tint || 0x214b36, id: text };
+  };
+  MeadowScene.prototype.createCardView = function () {
+    var bg = this.add.rectangle(0, 0, 34, 44, intColor(PAL.card), 1).setOrigin(0.5).setVisible(false);
+    var rank = this.createText(0, 0, '', 16, PAL.cardInk, 'center', true).setVisible(false);
+    var mark = this.createText(0, 0, '', 16, PAL.cardInk, 'center', false).setVisible(false);
+    var badge = this.createText(0, 0, '', 12, PAL.cardInk, 'center', true).setVisible(false);
+    var glow = this.add.rectangle(0, 0, 40, 50, 0xffffff, 0).setOrigin(0.5).setVisible(false);
+    glow.setStrokeStyle(3, 0xffe39a, 0.98);
+    this.fieldRoot.add([bg, glow, rank, mark, badge]);
+    return { bg: bg, glow: glow, rank: rank, mark: mark, badge: badge, card: null, pos: null };
+  };
+  MeadowScene.prototype.createMovingView = function () {
+    var view = this.createCardView();
+    view.bg.setDepth(74); view.glow.setDepth(75); view.rank.setDepth(76); view.mark.setDepth(76); view.badge.setDepth(76);
+    return view;
+  };
+  MeadowScene.prototype.create = function () {
+    sceneRef = this;
+    this.mode = 'meadow'; this.viewSeason = Math.floor(profile.current / 15); this.run = null; this.layout = null;
+    this.history = []; this.accumulator = 0; this.simClock = 0; this.renderClock = 0; this.gestureMap = Object.create(null);
+    this.pressed = null; this.selectedCard = -1; this.toast = { text: '', color: PAL.ink, time: 0 }; this.anim = null;
+    this.keyPrev = Object.create(null); this.musicName = '';
+    this.fieldRoot = this.add.container(0, 0).setDepth(0);
+    this.bg = this.add.image(0, 0, 'ms_bg_0').setOrigin(0).setDepth(-30); this.fieldRoot.add(this.bg);
+    this.felt = this.add.image(0, 112, 'ms_felt_0').setOrigin(0).setDepth(-10).setVisible(false); this.fieldRoot.add(this.felt);
+    this.meadowArt = this.add.graphics().setDepth(2); this.fieldRoot.add(this.meadowArt);
+    this.stockBack = this.add.image(64, 536, 'ms_back').setOrigin(0.5).setDepth(30).setVisible(false); this.fieldRoot.add(this.stockBack);
+    this.wasteBg = this.add.rectangle(195, 536, 54, 70, intColor(PAL.card), 1).setOrigin(0.5).setDepth(30).setVisible(false); this.fieldRoot.add(this.wasteBg);
+    this.wasteRank = this.createText(195, 524, '', 20, PAL.cardInk, 'center', true).setDepth(31).setVisible(false); this.fieldRoot.add(this.wasteRank);
+    this.wasteMark = this.createText(195, 551, '', 18, PAL.cardInk, 'center', false).setDepth(31).setVisible(false); this.fieldRoot.add(this.wasteMark);
+    this.wildWell = this.add.circle(326, 536, 33, 0x553f76, 0.96).setDepth(30).setVisible(false); this.fieldRoot.add(this.wildWell);
+    this.wildMark = this.createText(326, 526, '✦', 22, PAL.violet, 'center', true).setDepth(31).setVisible(false); this.fieldRoot.add(this.wildMark);
+    this.wildCount = this.createText(326, 554, '0', 16, PAL.ink, 'center', true).setDepth(31).setVisible(false); this.fieldRoot.add(this.wildCount);
+    this.cardViews = [];
+    for (var ci = 0; ci < 70; ci++) { var cv = this.createCardView(); cv.bg.setDepth(40); cv.glow.setDepth(41); cv.rank.setDepth(42); cv.mark.setDepth(42); cv.badge.setDepth(43); this.cardViews.push(cv); }
+    this.animView = this.createMovingView(); this.animView.bg.setVisible(false); this.animView.glow.setVisible(false); this.animView.rank.setVisible(false); this.animView.mark.setVisible(false); this.animView.badge.setVisible(false);
+    this.cardParticles = this.add.particles(0, 0, 'ms_spark', { lifespan: 420, speed: { min: 22, max: 78 }, scale: { start: 1.3, end: 0 }, alpha: { start: 0.92, end: 0 }, gravityY: 42, emitting: false, quantity: 0, blendMode: Phaser.BlendModes.ADD }).setDepth(78);
+    this.rewardParticles = this.add.particles(0, 0, 'ms_spark', { lifespan: 820, speed: { min: 46, max: 138 }, scale: { start: 1.9, end: 0 }, alpha: { start: 1, end: 0 }, gravityY: 70, emitting: false, quantity: 0, blendMode: Phaser.BlendModes.ADD }).setDepth(79);
+    this.growParticles = this.add.particles(0, 0, 'ms_spark', { lifespan: 1000, speed: { min: 18, max: 66 }, scale: { start: 1.5, end: 0 }, alpha: { start: 0.85, end: 0 }, gravityY: -14, emitting: false, quantity: 0, blendMode: Phaser.BlendModes.ADD }).setDepth(79);
+
+    this.hudPlate = this.add.image(0, 0, 'ms_hud').setOrigin(0).setDepth(80);
+    this.hudDeal = this.createText(16, 20, '', 15, PAL.ink, 'left', true).setDepth(82);
+    this.hudStage = this.createText(16, 47, '', 14, PAL.dim, 'left', false).setDepth(82);
+    this.hudScore = this.createText(374, 20, '', 16, PAL.ink, 'right', true).setDepth(82);
+    this.hudChain = this.createText(374, 47, '', 14, PAL.gold, 'right', true).setDepth(82);
+    this.hudMeterBack = this.add.rectangle(16, 78, 214, 7, 0x315843, 1).setOrigin(0, 0.5).setDepth(82);
+    this.hudMeter = this.add.rectangle(16, 78, 0, 7, 0xa8d889, 1).setOrigin(0, 0.5).setDepth(83);
+    this.hudProgress = this.createText(374, 78, '', 14, PAL.dim, 'right', true).setDepth(82);
+    this.pauseButton = this.createButton(350, 106, 46, 46, 'Ⅱ', 0x214b36, 84); this.pauseButton.label.setFontSize('18px');
+    this.bottomPlate = this.add.image(0, 726, 'ms_bottom').setOrigin(0).setDepth(80).setVisible(false);
+    this.controls = [
+      this.createButton(54, 782, 76, 54, '▣ DRAW', 0x214b36, 84),
+      this.createButton(144, 782, 76, 54, '✦ WILD', 0x443565, 84),
+      this.createButton(234, 782, 76, 54, '↶ UNDO', 0x214b36, 84),
+      this.createButton(326, 782, 76, 54, '? HINT', 0x214b36, 84)
+    ];
+    this.toastBg = this.add.rectangle(195, 126, 300, 28, 0x102a22, 0.9).setOrigin(0.5).setDepth(90).setVisible(false);
+    this.toastText = this.createText(195, 126, '', 14, PAL.ink, 'center', true).setDepth(91).setVisible(false);
+
+    this.menuTitle = this.createText(195, 32, 'MEADOW SOLITAIRE', 20, PAL.ink, 'center', true).setDepth(90);
+    this.menuProgress = this.createText(195, 72, '', 15, PAL.dim, 'center', true).setDepth(90);
+    this.menuSeason = this.createText(195, 101, '', 16, PAL.gold, 'center', true).setDepth(90);
+    this.menuHint = this.createText(195, 536, 'Play clears. The meadow keeps the proof.', 14, PAL.dim, 'center', false).setDepth(90);
+    this.menuDots = [];
+    for (var di = 0; di < SEASONS.length; di++) this.menuDots.push(this.add.circle(145 + di * 20, 572, 6, 0x315843, 1).setDepth(90));
+    this.menuButtons = [
+      this.createButton(195, 626, 250, 58, 'PLAY NEXT DEAL', 0x3e7046, 90),
+      this.createButton(195, 696, 250, 58, 'DAILY DEAL', 0x514578, 90),
+      this.createButton(195, 766, 250, 58, 'HARVEST RUN', 0x805535, 90)
+    ];
+    this.settingsButton = this.createButton(350, 32, 46, 46, '⚙', 0x214b36, 90); this.settingsButton.label.setFontSize('18px');
+
+    this.resultShade = this.add.rectangle(195, 422, WIDTH, HEIGHT, 0x07150f, 0.86).setDepth(120).setVisible(false);
+    this.resultPanel = this.add.rectangle(195, 430, 334, 386, 0x17382b, 0.98).setDepth(121).setVisible(false); this.resultPanel.setStrokeStyle(2, 0xa8d889, 0.72);
+    this.resultTitle = this.createText(195, 286, '', 25, PAL.gold, 'center', true).setDepth(122).setVisible(false);
+    this.resultSub = this.createText(195, 324, '', 14, PAL.dim, 'center', false).setDepth(122).setVisible(false);
+    this.resultScore = this.createText(195, 380, '', 22, PAL.ink, 'center', true).setDepth(122).setVisible(false);
+    this.resultStats = this.createText(195, 425, '', 14, PAL.dim, 'center', false).setDepth(122).setVisible(false);
+    this.resultGrowth = this.createText(195, 468, '', 16, PAL.mint, 'center', true).setDepth(122).setVisible(false);
+    this.resultButtons = [
+      this.createButton(195, 548, 250, 54, 'NEXT DEAL', 0x3e7046, 123),
+      this.createButton(195, 614, 250, 54, 'REPLAY', 0x214b36, 123),
+      this.createButton(195, 680, 250, 54, 'MEADOW', 0x214b36, 123)
+    ];
+    for (var ri = 0; ri < this.resultButtons.length; ri++) { this.resultButtons[ri].rect.setVisible(false); this.resultButtons[ri].label.setVisible(false); }
+
+    this.scale.on('resize', this.layoutAll, this);
+    this.layoutAll();
+    this.showMeadow();
+    if (pendingForceStage != null) this.startRun(campaignSpec(pendingForceStage));
+    if (pendingForceMode === 'daily') this.startRun(dailySpec());
+    else if (pendingForceMode === 'endless') this.startEndless();
+    else if (pendingForceMode === 'play') this.startRun(campaignSpec(profile.current));
+    this.updateDebug();
+  };
+
+  MeadowScene.prototype.layoutAll = function () {
+    var top = safeInset('--safe-top'), bottom = safeInset('--safe-bottom');
+    this.bg.setDisplaySize(WIDTH, HEIGHT); this.felt.setDisplaySize(WIDTH, 430);
+    this.hudPlate.setPosition(0, top); this.bottomPlate.setPosition(0, HEIGHT - 118 - bottom);
+    this.controls[0].rect.setPosition(54, HEIGHT - 62 - bottom); this.controls[0].label.setPosition(54, HEIGHT - 62 - bottom);
+    this.controls[1].rect.setPosition(144, HEIGHT - 62 - bottom); this.controls[1].label.setPosition(144, HEIGHT - 62 - bottom);
+    this.controls[2].rect.setPosition(234, HEIGHT - 62 - bottom); this.controls[2].label.setPosition(234, HEIGHT - 62 - bottom);
+    this.controls[3].rect.setPosition(326, HEIGHT - 62 - bottom); this.controls[3].label.setPosition(326, HEIGHT - 62 - bottom);
+    this.pauseButton.rect.setPosition(350, 32 + top); this.pauseButton.label.setPosition(350, 32 + top);
+    this.toastBg.setPosition(195, 126 + top); this.toastText.setPosition(195, 126 + top);
+    this.hudDeal.setPosition(16, 20 + top); this.hudStage.setPosition(16, 47 + top); this.hudScore.setPosition(374, 20 + top); this.hudChain.setPosition(374, 47 + top);
+    this.hudMeterBack.setPosition(16, 78 + top); this.hudMeter.setPosition(16, 78 + top); this.hudProgress.setPosition(374, 78 + top);
+    this.menuTitle.setPosition(195, 32 + top); this.menuProgress.setPosition(195, 72 + top); this.menuSeason.setPosition(195, 101 + top); this.settingsButton.rect.setPosition(350, 32 + top); this.settingsButton.label.setPosition(350, 32 + top);
+    this.menuButtons[0].rect.setPosition(195, 626 - bottom * 0.2); this.menuButtons[0].label.setPosition(195, 626 - bottom * 0.2);
+    this.menuButtons[1].rect.setPosition(195, 696 - bottom * 0.2); this.menuButtons[1].label.setPosition(195, 696 - bottom * 0.2);
+    this.menuButtons[2].rect.setPosition(195, 766 - bottom * 0.2); this.menuButtons[2].label.setPosition(195, 766 - bottom * 0.2);
+  };
+
+  MeadowScene.prototype.setSeason = function (index) {
+    var season = SEASONS[clamp(index | 0, 0, SEASONS.length - 1)];
+    this.viewSeason = SEASONS.indexOf(season);
+    this.bg.setTexture('ms_bg_' + this.viewSeason); this.felt.setTexture('ms_felt_' + this.viewSeason);
+    this.stockBack.setTint(season.card);
+    if (audioStarted && this.musicName !== season.music) { this.musicName = season.music; kit.audio.music(season.music, 650); }
+  };
+  MeadowScene.prototype.startAudio = function () {
+    if (audioStarted) return;
+    audioStarted = true;
+    kit.audio.preload(Object.keys(AUDIO));
+    this.musicName = SEASONS[this.viewSeason].music; kit.audio.music(this.musicName, 650);
+  };
+  MeadowScene.prototype.showToast = function (text, tint, seconds) {
+    this.toast.text = text; this.toast.color = tint || PAL.ink; this.toast.time = seconds == null ? 1 : seconds;
+  };
+  MeadowScene.prototype.setButtonState = function (button, active, disabled) {
+    var fill = disabled ? 0x243128 : active ? 0x5f944e : button.base;
+    setFillIfChanged(button.rect, fill, disabled ? 0.74 : 0.98);
+    button.rect.setStrokeStyle(2, active ? 0xffe39a : 0xa8d889, active ? 0.96 : 0.62);
+    setColorIfChanged(button.label, disabled ? '#879786' : PAL.ink);
+  };
+  MeadowScene.prototype.showPlayObjects = function (visible) {
+    this.felt.setVisible(visible); this.stockBack.setVisible(visible); this.wasteBg.setVisible(visible); this.wasteRank.setVisible(visible); this.wasteMark.setVisible(visible); this.wildWell.setVisible(visible); this.wildMark.setVisible(visible); this.wildCount.setVisible(visible);
+    this.hudPlate.setVisible(visible); this.hudDeal.setVisible(visible); this.hudStage.setVisible(visible); this.hudScore.setVisible(visible); this.hudChain.setVisible(visible); this.hudMeterBack.setVisible(visible); this.hudMeter.setVisible(visible); this.hudProgress.setVisible(visible); this.bottomPlate.setVisible(visible); this.pauseButton.rect.setVisible(visible); this.pauseButton.label.setVisible(visible);
+    for (var i = 0; i < this.controls.length; i++) { this.controls[i].rect.setVisible(visible); this.controls[i].label.setVisible(visible); }
+  };
+  MeadowScene.prototype.showMeadow = function () {
+    this.mode = 'meadow'; this.run = null; this.layout = null; this.selectedCard = -1; this.anim = null; this.hideResult();
+    this.showPlayObjects(false); this.menuTitle.setVisible(true); this.menuProgress.setVisible(true); this.menuSeason.setVisible(true); this.menuHint.setVisible(true); this.settingsButton.rect.setVisible(true); this.settingsButton.label.setVisible(true);
+    for (var i = 0; i < this.menuButtons.length; i++) { this.menuButtons[i].rect.setVisible(true); this.menuButtons[i].label.setVisible(true); }
+    this.setSeason(this.viewSeason); this.updateDebug();
+  };
+  MeadowScene.prototype.hideMenu = function () {
+    this.menuTitle.setVisible(false); this.menuProgress.setVisible(false); this.menuSeason.setVisible(false); this.menuHint.setVisible(false); this.settingsButton.rect.setVisible(false); this.settingsButton.label.setVisible(false);
+    for (var i = 0; i < this.menuButtons.length; i++) { this.menuButtons[i].rect.setVisible(false); this.menuButtons[i].label.setVisible(false); }
+  };
+  MeadowScene.prototype.hideResultButtons = function () { for (var i = 0; i < this.resultButtons.length; i++) { this.resultButtons[i].rect.setVisible(false); this.resultButtons[i].label.setVisible(false); } };
+  MeadowScene.prototype.hideResult = function () {
+    this.resultShade.setVisible(false); this.resultPanel.setVisible(false); this.resultTitle.setVisible(false); this.resultSub.setVisible(false); this.resultScore.setVisible(false); this.resultStats.setVisible(false); this.resultGrowth.setVisible(false); this.hideResultButtons();
+  };
+
+  MeadowScene.prototype.startRun = function (spec) {
+    this.startAudio();
+    var layout = makeLayout(spec.stage), deal = makeDeal(spec.seed, spec.stage);
+    this.mode = 'play'; this.spec = spec; this.layout = layout; this.run = {
+      spec: spec, layout: layout, tableau: deal.tableau, stock: deal.stock, drawIndex: 1, waste: deal.stock[0], alive: new Array(layout.count).fill(true),
+      score: 0, streak: 0, bestStreak: 0, moves: 0, peaks: 0, cardsLeft: layout.count, selected: -1, hintIndex: -1, verified: deal.verified,
+      result: '', reward: 0, stars: 0, growth: false, endlessRound: spec.kind === 'endless' ? (this.endlessRound || 1) : 0
+    };
+    this.history.length = 0; this.anim = null; this.selectedCard = -1; this.hideMenu(); this.showPlayObjects(true); this.hideResult(); this.setSeason(spec.season);
+    this.showToast('SOLVABLE PATH VERIFIED', PAL.mint, 2.2); this.updateDebug();
+  };
+  MeadowScene.prototype.startEndless = function () {
+    this.endlessRound = 1; this.startRun({ kind: 'endless', dealIndex: -1, season: 1, stage: 'tri-peaks', seed: (0xE11D5EED + this.endlessRound * 9176) >>> 0, name: 'HARVEST RUN' });
+  };
+  MeadowScene.prototype.restartCurrent = function () {
+    if (this.run && this.mode === 'play') {
+      if (this.run.spec.kind === 'daily') this.startRun(dailySpec());
+      else if (this.run.spec.kind === 'endless') this.startEndless();
+      else this.startRun(campaignSpec(this.run.spec.dealIndex));
+    } else this.showMeadow();
+  };
+  MeadowScene.prototype.snapshot = function () {
+    var r = this.run;
+    return { alive: r.alive.slice(), drawIndex: r.drawIndex, waste: { rank: r.waste.rank, suit: r.waste.suit }, score: r.score, streak: r.streak, bestStreak: r.bestStreak, moves: r.moves, peaks: r.peaks, cardsLeft: r.cardsLeft, selected: r.selected, wilds: profile.wilds, undoCharges: profile.undoCharges };
+  };
+  MeadowScene.prototype.pushHistory = function () { this.history.push(this.snapshot()); if (this.history.length > 32) this.history.shift(); };
+  MeadowScene.prototype.restoreSnapshot = function (snap) {
+    var r = this.run; r.alive = snap.alive.slice(); r.drawIndex = snap.drawIndex; r.waste = card(snap.waste.rank, snap.waste.suit); r.score = snap.score; r.streak = snap.streak; r.bestStreak = snap.bestStreak; r.moves = snap.moves; r.peaks = snap.peaks; r.cardsLeft = snap.cardsLeft; r.selected = snap.selected; profile.wilds = snap.wilds; profile.undoCharges = snap.undoCharges; r.hintIndex = -1; this.anim = null; this.showToast('UNDO USED', PAL.violet, 0.9); this.updateDebug();
+  };
+  MeadowScene.prototype.isFree = function (index) {
+    var children = this.layout.children[index];
+    for (var i = 0; i < children.length; i++) if (this.run.alive[children[i]]) return false;
+    return true;
+  };
+  MeadowScene.prototype.isPlayable = function (index) { return this.run.alive[index] && this.isFree(index) && adjacent(this.run.tableau[index], this.run.waste); };
+  MeadowScene.prototype.playableList = function () { var list = []; for (var i = 0; i < this.layout.count; i++) if (this.isPlayable(i)) list.push(i); return list; };
+  MeadowScene.prototype.freeList = function () { var list = []; for (var i = 0; i < this.layout.count; i++) if (this.run.alive[i] && this.isFree(i)) list.push(i); return list; };
+  MeadowScene.prototype.doPlay = function (index, viaWild) {
+    var r = this.run;
+    if (!r || r.result || !r.alive[index] || !this.isFree(index)) return false;
+    if (!viaWild && !adjacent(r.tableau[index], r.waste)) { this.showToast('MATCH ±1', PAL.rose, 0.8); kit.audio.sfx('tap'); kit.juice.shake(1.5, 70); return false; }
+    if (viaWild && profile.wilds <= 0) { this.showToast('NO WILDS BANKED', PAL.rose, 0.9); return false; }
+    this.pushHistory();
+    var from = this.layout.positions[index], oldWaste = r.waste;
+    r.alive[index] = false; r.cardsLeft--; r.waste = r.tableau[index]; r.moves++; r.hintIndex = -1;
+    if (viaWild) {
+      profile.wilds = clamp(profile.wilds - 1, 0, MAX_WILDS); r.streak = 0; this.showToast('WILD · ANY CARD', PAL.violet, 0.9); kit.audio.sfx('streak');
+    } else {
+      r.streak++; r.bestStreak = Math.max(r.bestStreak, r.streak);
+      var mult = Math.min(6, 1 + (r.streak - 1) * 0.5), gain = Math.round(STREAK_BASE * mult); r.score += gain;
+      this.showToast('+' + gain + (mult > 1 ? '  x' + mult.toFixed(1) : ''), r.streak > 3 ? PAL.gold : PAL.mint, 0.9); kit.audio.sfx(r.streak > 2 ? 'streak' : 'flip');
+    }
+    this.anim = { card: r.waste, x: from.x, y: from.y, tx: 195, ty: 536, age: 0, dur: kit.juice.enabled ? 0.16 : 0.01 };
+    this.burst(from.x, from.y, 8, viaWild ? 0xd8b8ff : 0xa8d889);
+    kit.juice.hitStop(kit.juice.enabled ? 34 : 0);
+    if (index < this.layout.rows[0].start + this.layout.rows[0].count) {
+      r.peaks++; r.score += PEAK_REWARD; profile.wilds = clamp(profile.wilds + 1, 0, MAX_WILDS); profile.undoCharges = clamp(profile.undoCharges + 1, 0, MAX_UNDOS);
+      this.showToast('PEAK +' + PEAK_REWARD + '  ✦ +1  ↶ +1', PAL.gold, 1.0); this.burst(from.x, from.y, 22, 0xffd56a); kit.audio.sfx('peak'); kit.juice.shake(4, 100);
+    }
+    persist(); this.checkEnd(); this.updateDebug(); return true;
+  };
+  MeadowScene.prototype.doDraw = function () {
+    var r = this.run;
+    if (!r || r.result) return false;
+    if (r.drawIndex >= r.stock.length) { this.showToast('STOCK EMPTY', PAL.rose, 0.8); kit.audio.sfx('tap'); return false; }
+    this.pushHistory();
+    r.waste = r.stock[r.drawIndex++]; r.streak = 0; r.hintIndex = -1;
+    this.anim = { card: r.waste, x: 64, y: 536, tx: 195, ty: 536, age: 0, dur: kit.juice.enabled ? 0.12 : 0.01 };
+    this.showToast('DRAW  ·  ' + (r.stock.length - r.drawIndex) + ' LEFT', PAL.dim, 0.8); kit.audio.sfx('draw'); this.checkEnd(); this.updateDebug(); return true;
+  };
+  MeadowScene.prototype.doUndo = function () {
+    if (!this.run || this.run.result) return;
+    if (profile.undoCharges <= 0) { this.showToast('NO UNDO CHARGES', PAL.rose, 0.9); kit.audio.sfx('tap'); return; }
+    if (!this.history.length) { this.showToast('NOTHING TO UNDO', PAL.dim, 0.9); return; }
+    var snap = this.history.pop(); this.restoreSnapshot(snap); profile.undoCharges = clamp(profile.undoCharges - 1, 0, MAX_UNDOS); persist(); kit.audio.sfx('undo'); kit.juice.hitStop(kit.juice.enabled ? 28 : 0); this.updateDebug();
+  };
+  MeadowScene.prototype.doHint = function () {
+    if (!this.run || this.run.result) return;
+    var list = this.playableList(); this.run.hintIndex = list.length ? list[0] : -1;
+    this.showToast(list.length ? 'LEGAL CARD HIGHLIGHTED' : (this.run.drawIndex < this.run.stock.length ? 'DRAW TO CHANGE THE WASTE' : 'NO MATCHES'), list.length ? PAL.gold : PAL.dim, 1.0); kit.audio.sfx('hint');
+  };
+  MeadowScene.prototype.checkEnd = function () {
+    var r = this.run;
+    if (!r || r.result) return;
+    if (r.cardsLeft === 0) { this.finishRun(true); return; }
+    if (!this.playableList().length && r.drawIndex >= r.stock.length && (!profile.wilds || !this.freeList().length)) this.finishRun(false);
+  };
+  MeadowScene.prototype.finishRun = function (won) {
+    var r = this.run;
+    r.result = won ? 'win' : 'fail'; r.stars = 0; r.reward = 0; r.growth = false;
+    if (won) {
+      var remaining = r.stock.length - r.drawIndex;
+      r.stars = 1 + (r.bestStreak >= 4 ? 1 : 0) + (remaining >= Math.floor(r.stock.length * 0.3) ? 1 : 0);
+      if (r.spec.kind === 'campaign') {
+        var index = r.spec.dealIndex;
+        if (!profile.cleared[index]) { profile.cleared[index] = 1; profile.totalWins++; profile.meadow[r.spec.season][index % 6] = clamp(profile.meadow[r.spec.season][index % 6] + 1, 0, 3); r.growth = true; }
+        profile.stars[index] = Math.max(profile.stars[index], r.stars); profile.bestStreak[index] = Math.max(profile.bestStreak[index], r.bestStreak);
+        while (profile.current < TOTAL_DEALS && profile.cleared[profile.current]) profile.current++;
+        if (profile.current >= TOTAL_DEALS) profile.current = TOTAL_DEALS - 1;
+      } else if (r.spec.kind === 'daily') { profile.dailyBest = Math.max(profile.dailyBest, r.score); profile.dailyStars = Math.max(profile.dailyStars, r.stars); profile.dailyBestStreak = Math.max(profile.dailyBestStreak, r.bestStreak); }
+      else { profile.endlessBest = Math.max(profile.endlessBest, r.score); profile.endlessBestStreak = Math.max(profile.endlessBestStreak, r.bestStreak); }
+      persist(); this.burst(WIDTH * 0.5, 360, 28, 0xffd56a, true); this.burst(WIDTH * 0.5, 360, 24, 0xa8d889, true); if (r.growth) { this.growBurst(195, 658); kit.audio.sfx('grow'); } kit.audio.sfx('clear'); kit.audio.sfx('boundary'); kit.juice.shake(5, 180);
+    } else { kit.audio.sfx('fail'); kit.juice.shake(3, 110); }
+    this.mode = 'result'; this.showPlayObjects(true); this.updateDebug();
+  };
+  MeadowScene.prototype.nextEndless = function () {
+    this.endlessRound = (this.endlessRound || 1) + 1;
+    var season = this.endlessRound % SEASONS.length, stage = LAYOUT_SCHEDULE[Math.min(LAYOUT_SCHEDULE.length - 1, Math.floor(this.endlessRound / 2))];
+    this.startRun({ kind: 'endless', dealIndex: -1, season: season, stage: stage, seed: (0xE11D5EED + this.endlessRound * 9176) >>> 0, name: 'HARVEST RUN ' + this.endlessRound });
+  };
+
+  MeadowScene.prototype.burst = function (x, y, quantity, tint, reward) {
+    var emitter = reward ? this.rewardParticles : this.cardParticles;
+    if (!kit.juice.enabled) quantity = Math.min(quantity, 6);
+    if (emitter.setParticleTint) emitter.setParticleTint(tint);
+    emitter.explode(Math.min(quantity, MAX_PARTICLES), x, y);
+  };
+  MeadowScene.prototype.growBurst = function (x, y) { if (this.growParticles.setParticleTint) this.growParticles.setParticleTint(SEASONS[this.viewSeason].accent); this.growParticles.explode(18, x, y); };
+
+  MeadowScene.prototype.renderCardParts = function (view, c, x, y, muted, hot, selected) {
+    var w = 34, h = 44, red = c.suit === 1 || c.suit === 2, ink = muted ? '#607160' : red ? '#a8444a' : PAL.cardInk;
+    view.bg.setPosition(x, y).setSize(w, h); setFillIfChanged(view.bg, muted ? 0xaeb9a5 : intColor(PAL.card), 1); view.bg.setStrokeStyle(hot || selected ? 3 : 1.5, hot ? 0xffe39a : selected ? 0xb9e8dc : 0x385044, 1);
+    view.rank.setPosition(x, y - 9); view.mark.setPosition(x, y + 11); view.badge.setPosition(x, y + 20);
+    setTextIfChanged(view.rank, RANKS[c.rank]); setTextIfChanged(view.mark, SUIT_MARKS[c.suit]); setTextIfChanged(view.badge, muted ? '•' : '');
+    setColorIfChanged(view.rank, ink); setColorIfChanged(view.mark, ink); setColorIfChanged(view.badge, ink);
+    view.bg.setVisible(true); view.rank.setVisible(true); view.mark.setVisible(true); view.badge.setVisible(true); view.glow.setVisible(hot || selected); view.glow.setPosition(x, y); view.glow.setSize(40, 50);
+  };
+  MeadowScene.prototype.hideCardView = function (view) { view.bg.setVisible(false); view.rank.setVisible(false); view.mark.setVisible(false); view.badge.setVisible(false); view.glow.setVisible(false); };
+  MeadowScene.prototype.renderPlayCards = function () {
+    var r = this.run, i, v, p, hot, selected;
+    for (i = 0; i < this.cardViews.length; i++) this.hideCardView(this.cardViews[i]);
+    if (!r) return;
+    for (i = 0; i < this.layout.count; i++) {
+      v = this.cardViews[i]; p = this.layout.positions[i];
+      v.bg.setDepth(40 + p.row); v.glow.setDepth(41 + p.row); v.rank.setDepth(42 + p.row); v.mark.setDepth(42 + p.row); v.badge.setDepth(43 + p.row);
+      if (!r.alive[i]) continue;
+      hot = this.isPlayable(i); selected = r.hintIndex === i || r.selected === i;
+      this.renderCardParts(v, r.tableau[i], p.x, p.y, !this.isFree(i), hot, selected);
+    }
+    if (r) {
+      this.renderCardParts(this.animView, r.waste, 195, 536, false, false, false);
+      var a = this.anim;
+      if (!a) this.hideCardView(this.animView); else {
+        var k = clamp(a.age / a.dur, 0, 1), e = k * k * (3 - 2 * k);
+        this.renderCardParts(this.animView, a.card, a.x + (a.tx - a.x) * e, a.y + (a.ty - a.y) * e, false, false, false);
+        this.animView.bg.setDepth(76); this.animView.rank.setDepth(77); this.animView.mark.setDepth(77); this.animView.badge.setDepth(77);
+      }
+    }
+  };
+  MeadowScene.prototype.drawMeadow = function (seasonIndex, x, y, w, h, compact) {
+    var g = this.meadowArt, season = SEASONS[seasonIndex];
+    g.clear(); g.setDepth(2);
+    g.fillStyle(season.felt2, 0.48).fillRoundedRect(x, y, w, h, compact ? 14 : 26);
+    g.fillStyle(0xf5e8a7, 0.14).fillCircle(x + w * 0.78, y + h * 0.2, compact ? 24 : 56);
+    var slots = compact ? 8 : 12, values = profile.meadow[seasonIndex], baseY = y + h * 0.82;
+    for (var i = 0; i < slots; i++) {
+      var growth = values[i % 6], px = x + (i + 0.5) * w / slots, py = baseY - (i % 2) * (compact ? 8 : 22), scale = compact ? 0.48 : 1;
+      g.fillStyle(0x493528, 0.82).fillEllipse(px, py, 28 * scale, 8 * scale);
+      if (growth <= 0) { g.lineStyle(1.5, 0xb7c8ad, 0.34).strokeCircle(px, py - 8 * scale, 7 * scale); continue; }
+      g.lineStyle(2.2 * scale, 0x568b48, 0.95).strokeLineShape(new Phaser.Geom.Line(px, py, px + Math.sin(this.simClock * 1.3 + i) * 4 * scale, py - (16 + growth * 9) * scale));
+      for (var leaf = 0; leaf < growth + 1; leaf++) {
+        g.fillStyle(0x6fb557, 0.95).fillEllipse(px + (leaf % 2 ? 6 : -6) * scale, py - (8 + leaf * 8) * scale, 12 * scale, 6 * scale);
+      }
+      if (growth >= 2) g.fillStyle(season.accent, 0.94).fillCircle(px + Math.sin(i) * 3 * scale, py - (22 + growth * 8) * scale, (3 + growth) * scale);
+    }
+    var animals = compact ? 3 : 6;
+    for (var a = 0; a < animals; a++) {
+      var ax = x + ((a * 71 + 35 + (this.simClock * (8 + a))) % Math.max(1, w)), ay = y + 30 + (a % 3) * (compact ? 15 : 42);
+      g.fillStyle(season.accent, 0.7).fillCircle(ax, ay, compact ? 2 : 3);
+      if (a % 2 === 0) g.fillStyle(season.accent, 0.28).fillCircle(ax - 5, ay - 2, compact ? 2 : 4);
+    }
+  };
+  MeadowScene.prototype.renderMeadow = function () {
+    var wins = campaignProgress(), season = SEASONS[this.viewSeason];
+    this.showPlayObjects(false); this.drawMeadow(this.viewSeason, 16, 136, 358, 354, false);
+    setTextIfChanged(this.menuProgress, 'CAMPAIGN  ' + wins + ' / ' + TOTAL_DEALS + '  ·  ★ ' + profile.stars.reduce(function (a, b) { return a + b; }, 0));
+    setTextIfChanged(this.menuSeason, season.name + '  ·  ' + season.note);
+    setTextIfChanged(this.menuHint, 'Growth is earned by cleared deals, never bought.');
+    for (var i = 0; i < this.menuDots.length; i++) { setFillIfChanged(this.menuDots[i], i <= this.viewSeason ? season.accent : 0x315843, 1); }
+    setTextIfChanged(this.menuButtons[0].label, profile.current >= TOTAL_DEALS - 1 && profile.cleared[profile.current] ? 'REPLAY FINAL DEAL' : 'PLAY DEAL ' + String(profile.current + 1).padStart(2, '0'));
+    setTextIfChanged(this.menuButtons[1].label, 'DAILY DEAL  ★ ' + profile.dailyStars);
+    setTextIfChanged(this.menuButtons[2].label, 'HARVEST RUN  ' + profile.endlessBest);
+    this.setButtonState(this.menuButtons[0], false, false); this.setButtonState(this.menuButtons[1], false, false); this.setButtonState(this.menuButtons[2], false, false);
+  };
+  MeadowScene.prototype.renderPlay = function () {
+    var r = this.run, season = SEASONS[r.spec.season];
+    this.showPlayObjects(true); this.drawMeadow(r.spec.season, 18, 610, 354, 98, true); this.renderPlayCards();
+    setTextIfChanged(this.hudDeal, r.spec.name); setTextIfChanged(this.hudStage, r.layout.name + '  ·  ' + (r.spec.kind === 'daily' ? 'FIXED SEED' : r.spec.kind === 'endless' ? 'NO TIMER' : 'SOLVABLE'));
+    setTextIfChanged(this.hudScore, 'SCORE  ' + r.score); var mult = Math.min(6, 1 + Math.max(0, r.streak - 1) * 0.5); setTextIfChanged(this.hudChain, r.streak ? 'CHAIN  x' + mult.toFixed(1) : 'CHAIN  -');
+    this.hudMeter.setSize(214 * clamp(r.streak / 10, 0, 1), 7); setFillIfChanged(this.hudMeter, r.streak >= 4 ? intColor(PAL.gold) : intColor(PAL.mint), 1);
+    setTextIfChanged(this.hudProgress, 'MEADOW  ' + campaignProgress() + '/' + TOTAL_DEALS); setTextIfChanged(this.wasteRank, RANKS[r.waste.rank]); setTextIfChanged(this.wasteMark, SUIT_MARKS[r.waste.suit]); setColorIfChanged(this.wasteRank, r.waste.suit === 1 || r.waste.suit === 2 ? '#a8444a' : PAL.cardInk); setColorIfChanged(this.wasteMark, r.waste.suit === 1 || r.waste.suit === 2 ? '#a8444a' : PAL.cardInk);
+    setTextIfChanged(this.wildCount, String(profile.wilds)); setColorIfChanged(this.wildCount, profile.wilds ? PAL.violet : PAL.dim);
+    this.stockBack.setAlpha(r.drawIndex < r.stock.length ? 1 : 0.34); this.wasteBg.setStrokeStyle(2, season.accent, 0.72);
+    setTextIfChanged(this.controls[0].label, '▣ DRAW ' + Math.max(0, r.stock.length - r.drawIndex)); setTextIfChanged(this.controls[1].label, '✦ WILD ' + profile.wilds); setTextIfChanged(this.controls[2].label, '↶ UNDO ' + profile.undoCharges); setTextIfChanged(this.controls[3].label, '? HINT');
+    this.setButtonState(this.controls[0], false, r.drawIndex >= r.stock.length); this.setButtonState(this.controls[1], false, profile.wilds <= 0); this.setButtonState(this.controls[2], false, profile.undoCharges <= 0 || !this.history.length); this.setButtonState(this.controls[3], r.hintIndex >= 0, false);
+    if (this.toast.time > 0) { this.toastBg.setVisible(true); this.toastText.setVisible(true); setTextIfChanged(this.toastText, this.toast.text); setColorIfChanged(this.toastText, this.toast.color); } else { this.toastBg.setVisible(false); this.toastText.setVisible(false); }
+    if (r.result) this.renderResult(); else { this.resultShade.setVisible(false); this.resultPanel.setVisible(false); this.hideResultButtons(); }
+  };
+  MeadowScene.prototype.renderResult = function () {
+    var r = this.run, win = r.result === 'win';
+    this.resultShade.setVisible(true); this.resultPanel.setVisible(true); this.resultTitle.setVisible(true); this.resultSub.setVisible(true); this.resultScore.setVisible(true); this.resultStats.setVisible(true); this.resultGrowth.setVisible(true);
+    setTextIfChanged(this.resultTitle, win ? 'MEADOW RESTORED' : 'NO MATCHES'); setColorIfChanged(this.resultTitle, win ? PAL.gold : PAL.rose); setTextIfChanged(this.resultSub, win ? (r.spec.kind === 'daily' ? 'Fixed seed cleared.' : r.spec.name + ' complete.') : 'Retry is free. No energy.'); setTextIfChanged(this.resultScore, 'SCORE  ' + r.score); setTextIfChanged(this.resultStats, win ? ('★'.repeat(r.stars) + '  ·  best chain ' + r.bestStreak + '  ·  wilds ' + profile.wilds + '  ·  undo ' + profile.undoCharges) : (r.cardsLeft + ' cards remain  ·  wilds ' + profile.wilds)); setTextIfChanged(this.resultGrowth, win ? (r.growth ? 'MEADOW  +1 GROWTH' : 'MEADOW  HELD THE GAIN') : 'Nothing lost. Keep the meadow growing.');
+    this.resultButtons[0].rect.setVisible(true); this.resultButtons[0].label.setVisible(true); this.resultButtons[1].rect.setVisible(true); this.resultButtons[1].label.setVisible(true); this.resultButtons[2].rect.setVisible(true); this.resultButtons[2].label.setVisible(true);
+    setTextIfChanged(this.resultButtons[0].label, r.spec.kind === 'endless' && win ? 'NEXT HARVEST' : win ? 'NEXT DEAL' : 'RETRY FREE'); setTextIfChanged(this.resultButtons[1].label, 'REPLAY'); setTextIfChanged(this.resultButtons[2].label, 'MEADOW');
+    this.setButtonState(this.resultButtons[0], false, false); this.setButtonState(this.resultButtons[1], false, false); this.setButtonState(this.resultButtons[2], false, false);
+  };
+  MeadowScene.prototype.render = function () {
+    if (this.mode === 'meadow') this.renderMeadow(); else this.renderPlay();
+    var juice = kit.juice.frame(); this.fieldRoot.setPosition(juice.dx, juice.dy);
+  };
+  MeadowScene.prototype.updateDebug = function () { syncDebug(); };
+
+  MeadowScene.prototype.fixedStep = function (dt) {
+    this.simClock += dt;
+    if (this.toast.time > 0) this.toast.time = Math.max(0, this.toast.time - dt);
+    if (this.anim) { this.anim.age += dt; if (this.anim.age >= this.anim.dur) this.anim = null; }
+    if (this.mode === 'play' || this.mode === 'result') this.handleKeys();
+  };
+  MeadowScene.prototype.keyPressed = function (code) { var down = kit.input.keyDown(code), was = !!this.keyPrev[code]; this.keyPrev[code] = down; return down && !was; };
+  MeadowScene.prototype.handleKeys = function () {
+    if (this.keyPressed('Escape')) { this.showMeadow(); return; }
+    if (this.mode === 'result') { if (this.keyPressed('Space') || this.keyPressed('Enter')) this.handleResultTap(0); return; }
+    if (!this.run) return;
+    var left = this.keyPressed('ArrowLeft'), right = this.keyPressed('ArrowRight');
+    if (left || right) { var list = this.freeList(); if (list.length) { var at = list.indexOf(this.run.selected), dir = right ? 1 : -1; this.run.selected = list[(at < 0 ? 0 : (at + dir + list.length) % list.length)]; } }
+    if (this.keyPressed('ArrowDown')) this.doDraw();
+    if (this.keyPressed('ArrowUp') && this.run.selected >= 0) this.doPlay(this.run.selected, true);
+    if (this.keyPressed('Space') || this.keyPressed('Enter')) { var i = this.run.selected >= 0 ? this.run.selected : this.playableList()[0]; if (i != null && i >= 0) this.doPlay(i, false); }
+    if (this.keyPressed('KeyH')) this.doHint(); if (this.keyPressed('KeyU')) this.doUndo();
+  };
+  MeadowScene.prototype.update = function (time, delta) {
+    var frameDt = Math.min(0.05, Math.max(0, delta / 1000)), juice = kit.juice.frame(), steps = 0;
+    var emitters = [this.cardParticles, this.rewardParticles, this.growParticles];
+    for (var ei = 0; ei < emitters.length; ei++) { if (juice.frozen && emitters[ei].pause) emitters[ei].pause(); else if (!juice.frozen && emitters[ei].resume) emitters[ei].resume(); }
+    if (!juice.frozen) { this.accumulator = Math.min(0.25, this.accumulator + frameDt); while (this.accumulator >= STEP && steps < MAX_STEPS) { this.fixedStep(STEP); this.accumulator -= STEP; steps++; } }
+    this.renderClock += steps * STEP; this.render(); this.updateDebug();
+  };
+
+  // ------------------------------------------------------------- hit testing
+  function inside(box, x, y) { return x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h; }
+  MeadowScene.prototype.buttonHit = function (button, x, y) { return inside({ x: button.rect.x - button.rect.displayWidth * 0.5, y: button.rect.y - button.rect.displayHeight * 0.5, w: button.rect.displayWidth, h: button.rect.displayHeight }, x, y); };
+  MeadowScene.prototype.cardHit = function (x, y) {
+    if (!this.run) return -1;
+    var best = -1, bestScore = -Infinity;
+    for (var i = 0; i < this.layout.count; i++) {
+      if (!this.run.alive[i]) continue;
+      var p = this.layout.positions[i], w = 22, h = 27;
+      if (x < p.x - w || x > p.x + w || y < p.y - h || y > p.y + h) continue;
+      var score = (this.isPlayable(i) ? 100000 : 0) + (this.isFree(i) ? 10000 : 0) + p.row * 100 + i;
+      if (score > bestScore) { best = i; bestScore = score; }
+    }
+    return best;
+  };
+  MeadowScene.prototype.handleResultTap = function (index) {
+    if (!this.run) return;
+    this.startAudio(); kit.audio.sfx('tap');
+    if (index === 0) { if (this.run.spec.kind === 'endless' && this.run.result === 'win') this.nextEndless(); else if (this.run.result === 'win') this.startRun(campaignSpec(Math.min(TOTAL_DEALS - 1, this.run.spec.dealIndex + 1))); else this.restartCurrent(); }
+    else if (index === 1) { if (this.run.spec.kind === 'daily') this.startRun(dailySpec()); else if (this.run.spec.kind === 'endless') this.startEndless(); else this.startRun(campaignSpec(this.run.spec.dealIndex)); }
+    else this.showMeadow();
+  };
+  MeadowScene.prototype.handleTap = function (x, y) {
+    this.startAudio();
+    if (this.mode === 'meadow') {
+      if (this.buttonHit(this.settingsButton, x, y)) { kit.openSettings(); return; }
+      if (this.buttonHit(this.menuButtons[0], x, y)) { this.startRun(campaignSpec(profile.current)); return; }
+      if (this.buttonHit(this.menuButtons[1], x, y)) { this.startRun(dailySpec()); return; }
+      if (this.buttonHit(this.menuButtons[2], x, y)) { this.startEndless(); return; }
+      if (y >= 548 && y <= 594 && x >= 125 && x <= 270) { this.viewSeason = clamp(Math.round((x - 145) / 20), 0, SEASONS.length - 1); this.setSeason(this.viewSeason); return; }
       return;
     }
-    if (G.result) {
-      if (k === ' ' || k === 'Enter') { if (G.result === 'win') { G.screen = 'meadow'; clearInput(); } else startDeal(G.deal); }
-      else if (k === 'n' || k === 'N') startDeal(Math.min(DEALS.length - 1, G.deal + 1));
-      else if (k === 'r' || k === 'R') startDeal(G.deal);
-      else if (k === 'Escape') { G.screen = 'meadow'; clearInput(); }
+    if (this.mode === 'result') {
+      for (var rb = 0; rb < this.resultButtons.length; rb++) if (this.buttonHit(this.resultButtons[rb], x, y)) { this.handleResultTap(rb); return; }
       return;
     }
-    if (k === 'ArrowLeft') cycleSel(-1);
-    else if (k === 'ArrowRight') cycleSel(1);
-    else if (k === 'ArrowDown') doDraw();
-    else if (k === 'ArrowUp') { if (G.sel >= 0) useWild(G.sel); else Sound.deny(); }
-    else if (k === ' ' || k === 'Enter') {
-      if (G.sel >= 0) doPlay(G.sel, false);
-      else { var pl = playableList(); if (pl.length) doPlay(pl[0], false); else doDraw(); }
-    }
-    else if (k === 'r' || k === 'R') startDeal(G.deal);
-    else if (k === 'Escape') { G.screen = 'meadow'; clearInput(); }
+    if (this.buttonHit(this.pauseButton, x, y)) { kit.pause('manual'); return; }
+    if (this.buttonHit(this.controls[0], x, y)) { this.doDraw(); return; }
+    if (this.buttonHit(this.controls[1], x, y)) { var legal = this.cardHit(x, y); if (profile.wilds && legal >= 0 && this.run.selected === legal) this.doPlay(legal, true); else this.run.selected = this.run.selected === -2 ? -1 : -2; this.showToast(profile.wilds ? 'WILD ARMED · TAP ANY FREE CARD' : 'CLEAR A PEAK TO EARN A WILD', PAL.violet, 1.0); return; }
+    if (this.buttonHit(this.controls[2], x, y)) { this.doUndo(); return; }
+    if (this.buttonHit(this.controls[3], x, y)) { this.doHint(); return; }
+    var hit = this.cardHit(x, y); if (hit >= 0) { if (this.run.selected === -2) this.doPlay(hit, true); else this.doPlay(hit, false); }
+  };
+
+  // Window gesture layer is deliberately registered after GGKit.create().
+  // Its own map owns releases because GGKit removes a pointer first.
+  function screenToWorld(event) {
+    var game = (typeof Game !== 'undefined' && Game) ? Game : sceneRef && sceneRef.game;
+    if (!sceneRef || !game || !game.canvas) return { x: 0, y: 0 };
+    var rect = game.canvas.getBoundingClientRect();
+    return { x: (event.clientX - rect.left) * WIDTH / Math.max(1, rect.width), y: (event.clientY - rect.top) * HEIGHT / Math.max(1, rect.height) };
+  }
+  function claimPointer(event) {
+    if (!sceneRef || !sceneRef.game || event.target !== sceneRef.game.canvas || kit.paused) return;
+    var p = screenToWorld(event); sceneRef.gestureMap[event.pointerId] = { sx: p.x, sy: p.y, x: p.x, y: p.y };
+    var kitPointer = kit.input.pointers.get(event.pointerId); if (kitPointer) kitPointer.zone = 'meadow-solitaire';
+    event.preventDefault();
+  }
+  function movePointer(event) { var g = sceneRef && sceneRef.gestureMap[event.pointerId]; if (!g || kit.paused) return; var p = screenToWorld(event); g.x = p.x; g.y = p.y; }
+  function releasePointer(event) { var g = sceneRef && sceneRef.gestureMap[event.pointerId]; if (!g) return; delete sceneRef.gestureMap[event.pointerId]; if (kit.paused) return; var p = screenToWorld(event), dx = p.x - g.sx, dy = p.y - g.sy; if (dx * dx + dy * dy <= 22 * 22) sceneRef.handleTap(p.x, p.y); }
+  window.addEventListener('pointerdown', claimPointer, { passive: false });
+  window.addEventListener('pointermove', movePointer, { passive: true });
+  window.addEventListener('pointerup', releasePointer, { passive: false });
+  window.addEventListener('pointercancel', function (event) { if (sceneRef) delete sceneRef.gestureMap[event.pointerId]; }, { passive: true });
+  window.addEventListener('blur', function () { if (sceneRef) sceneRef.gestureMap = Object.create(null); });
+
+  document.getElementById('resume-button').addEventListener('click', function () { kit.resume('manual'); });
+  document.getElementById('pause-menu-button').addEventListener('click', function () { if (sceneRef) sceneRef.showMeadow(); kit.resume('manual'); });
+
+  // --------------------------------------------------------------- game boot
+  var Game = new Phaser.Game({
+    type: Phaser.CANVAS, parent: 'game', backgroundColor: '#102a22',
+    render: { antialias: true, antialiasGL: false, roundPixels: true, clearBeforeRender: true },
+    scale: { mode: Phaser.Scale.FIT, width: WIDTH, height: HEIGHT, autoCenter: Phaser.Scale.CENTER_BOTH },
+    input: { activePointers: 4 }, scene: [BootScene, MeadowScene]
   });
-  window.addEventListener('keyup', function (e) { delete keys[e.key]; });
-
-  window.addEventListener('resize', resize);
-  window.addEventListener('orientationchange', function () { later(resize, 60); });
-
-  // ---------------------------------------------------------------- boot
-  function boot() {
-    if (G.started || document.hidden) return;
-    Sound.unlock();
-    G.started = true;
-    bootEl.style.display = 'none';
-    clearInput();
-    resize();
-    if (meadowDone()) G.screen = 'meadow';
-  }
-  bootEl.addEventListener('pointerdown', function (e) { e.preventDefault(); boot(); }, { passive: false });
-  bootEl.addEventListener('click', function (e) { e.preventDefault(); boot(); });
-  bootEl.addEventListener('touchstart', function (e) { e.preventDefault(); boot(); }, { passive: false });
-
-  resize();
-  requestAnimationFrame(frame);
-})();
+  // Phaser's canvas is created after the game constructor. Keep the reference
+  // for the window gesture layer without using Phaser's pointer map as truth.
+  setTimeout(function () { if (sceneRef) sceneRef.game = Game; }, 0);
+}());

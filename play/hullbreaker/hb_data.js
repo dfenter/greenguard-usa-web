@@ -156,7 +156,8 @@
       sub: 'Dense ore belt, rock on rock',
       bg: 0x0a1622, neb: 0x2f6fa8, star: 0xbfe4ff,
       density: 5, densityStep: 1.15, speed: 44, speedStep: 6.5,
-      hazards: { mine: { from: 3, count: 1, step: 0.5 }, hulk: { from: 5, count: 1, step: 0.34 } },
+      hazards: { mine: { from: 3, count: 1, step: 0.5 }, hulk: { from: 5, count: 1, step: 0.34 },
+        pirate: { from: 6, count: 1, step: 0.24 } },
       setpiece: { id: 'cascade', name: 'KESSLER CASCADE',
         brief: 'A collision cascade is crossing the belt. Break the wall.' },
       boss: { name: 'BROODROCK ALPHA', hp: 340, arms: 3, pods: 3, ramSpeed: 250 },
@@ -169,7 +170,9 @@
       bg: 0x081a26, neb: 0x2aa1b4, star: 0xd8f6ff,
       density: 5, densityStep: 1.3, speed: 52, speedStep: 7.5,
       // Vacuum frost: the hull slides further before it answers the stick.
-      drag: 0.55, hazards: { well: { from: 2, count: 1, step: 0.3 }, mine: { from: 4, count: 1, step: 0.4 } },
+      drag: 0.55, hazards: { well: { from: 2, count: 1, step: 0.3 },
+        icefield: { from: 2, count: 1, step: 0.22 }, mine: { from: 4, count: 1, step: 0.4 },
+        storm: { from: 6, count: 1, step: 0.2 } },
       setpiece: { id: 'comets', name: 'COMET RUN',
         brief: 'Three comets on a crossing line. Shatter them before they pass.' },
       boss: { name: 'GLACIER HIVE', hp: 430, arms: 3, pods: 4, ramSpeed: 275 },
@@ -182,7 +185,7 @@
       bg: 0x0c1a18, neb: 0x2f8a6e, star: 0xc8f0dc,
       density: 4, densityStep: 1.1, speed: 40, speedStep: 5.5,
       hazards: { mine: { from: 1, count: 2, step: 0.6 }, hulk: { from: 2, count: 1, step: 0.5 },
-                 drone: { from: 3, count: 1, step: 0.42 } },
+                 drone: { from: 3, count: 1, step: 0.42 }, pirate: { from: 5, count: 1, step: 0.35 } },
       setpiece: { id: 'convoy', name: 'HULK CONVOY',
         brief: 'A dead convoy is drifting through. Mines ride the hulls.' },
       boss: { name: 'OSSUARY QUEEN', hp: 520, arms: 4, pods: 4, ramSpeed: 240 },
@@ -194,7 +197,8 @@
       sub: 'Crystal cavefield, rich ore, singularity nodes',
       bg: 0x140b26, neb: 0x7a45c8, star: 0xefd8ff,
       density: 6, densityStep: 1.35, speed: 48, speedStep: 7,
-      hazards: { well: { from: 1, count: 2, step: 0.4 }, mine: { from: 5, count: 1, step: 0.4 } },
+      hazards: { well: { from: 1, count: 2, step: 0.4 }, storm: { from: 2, count: 1, step: 0.28 },
+        mine: { from: 5, count: 1, step: 0.4 }, pirate: { from: 6, count: 1, step: 0.25 } },
       setpiece: { id: 'bloom', name: 'PRISM BLOOM',
         brief: 'The geode is blooming. Cut the four nodes before it seals.' },
       boss: { name: 'PRISM MATRIARCH', hp: 600, arms: 4, pods: 5, ramSpeed: 290 },
@@ -207,7 +211,9 @@
       bg: 0x1a0c10, neb: 0xb8482c, star: 0xffd8bf,
       density: 6, densityStep: 1.5, speed: 56, speedStep: 8,
       hazards: { mine: { from: 1, count: 1, step: 0.5 }, well: { from: 2, count: 1, step: 0.4 },
-                 hulk: { from: 3, count: 1, step: 0.4 }, drone: { from: 4, count: 1, step: 0.5 } },
+                 icefield: { from: 2, count: 1, step: 0.28 }, storm: { from: 3, count: 1, step: 0.25 },
+                 hulk: { from: 3, count: 1, step: 0.4 }, drone: { from: 4, count: 1, step: 0.5 },
+                 pirate: { from: 5, count: 1, step: 0.35 } },
       setpiece: { id: 'grinder', name: 'THE GRINDER',
         brief: 'Twin singularities are feeding the maw. Survive the funnel.' },
       boss: { name: 'THE BREAKER', hp: 760, arms: 4, pods: 6, ramSpeed: 330 },
@@ -219,6 +225,58 @@
   var SETPIECE_WAVE = 4;
   var BOSS_WAVE = 8;
   var WAVES_PER_SECTOR = 8;
+
+  // Persistent refits are purchased with salvage earned from completed
+  // runs. They change the starting build, while wave upgrades remain the
+  // free tactical draft players already know.
+  var REFIT_ORDER = ['hull', 'coil', 'drive', 'magnet'];
+  var REFITS = {
+    hull: { id: 'hull', name: 'HULL', short: 'H', tint: 0x7fd8ff, max: 3, baseCost: 45,
+      detail: '+1 shield cell', apply: function (s, level) { s.shieldMax += level; s.shield += level; } },
+    coil: { id: 'coil', name: 'COIL', short: 'C', tint: 0xffc46a, max: 3, baseCost: 55,
+      detail: '+8% fire rate', apply: function (s, level) { s.rateMul *= 1 + level * 0.08; } },
+    drive: { id: 'drive', name: 'DRIVE', short: 'D', tint: 0xffd6a0, max: 3, baseCost: 50,
+      detail: '+7% thrust and turn', apply: function (s, level) {
+        s.thrustMul *= 1 + level * 0.07; s.turnMul *= 1 + level * 0.07;
+      } },
+    magnet: { id: 'magnet', name: 'MAGNET', short: 'M', tint: 0x7ef0b4, max: 3, baseCost: 40,
+      detail: '+18% salvage pull', apply: function (s, level) { s.magnetMul *= 1 + level * 0.18; } }
+  };
+
+  function refit(id) { return REFITS[id] || REFITS.hull; }
+  function refitCost(id, level) {
+    var r = refit(id);
+    return Math.round(r.baseCost * (1 + level * 0.72));
+  }
+
+  // UTC date keeps the daily field identical for every player and avoids a
+  // local-time rollover producing two seeds on the same calendar day.
+  function dailySeed(date) {
+    var d = date instanceof Date ? date : new Date();
+    var key = d.getUTCFullYear() + '-' + (d.getUTCMonth() + 1) + '-' + d.getUTCDate();
+    var h = 2166136261;
+    for (var i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return h >>> 0;
+  }
+
+  // Endless ladder stages reuse the authored families, but not the authored
+  // wave pacing: each daily stage adds mass, speed and hazard pressure. Boss
+  // and set-piece beats recur on the same readable eight-beat cadence.
+  function ladderSpec(sector, stage, seed) {
+    var n = Math.max(1, stage | 0);
+    var base = waveSpec(sector, ((n - 1) % WAVES_PER_SECTOR) + 1);
+    var tier = Math.floor((n - 1) / WAVES_PER_SECTOR);
+    var pressure = 1 + tier * 0.28 + ((n - 1) % WAVES_PER_SECTOR) * 0.035;
+    var spec = {
+      wave: n, index: base.wave, kind: base.kind, rocks: Math.max(3, Math.round(base.rocks * pressure)),
+      speed: base.speed * (1 + tier * 0.12), hazards: {}, name: 'LADDER ' + n,
+      sub: 'DAILY FIELD  ' + ((seed >>> 0).toString(16).toUpperCase()), ladder: true
+    };
+    for (var k in base.hazards) spec.hazards[k] = Math.max(0, Math.ceil(base.hazards[k] * pressure));
+    if (base.kind === 'boss') { spec.name = 'LADDER HULK  ' + n; spec.sub = 'WEAK POINTS EXPOSED'; }
+    else if (base.kind === 'setpiece') { spec.name = base.name + '  // LADDER'; spec.setpiece = base.setpiece; }
+    return spec;
+  }
 
   // Wave descriptor built from the sector curve. Pure: same input, same
   // output, so the orchestrator can force a wave and get the shipped one.
@@ -291,13 +349,14 @@
   root.HB_DATA = {
     FAMILIES: FAMILIES, ROCK_SIZES: ROCK_SIZES, WEAPONS: WEAPONS,
     WEAPON_ORDER: WEAPON_ORDER, PICKUPS: PICKUPS, DROP_TABLE: DROP_TABLE,
-    UPGRADES: UPGRADES, SECTORS: SECTORS,
+    UPGRADES: UPGRADES, REFIT_ORDER: REFIT_ORDER, REFITS: REFITS, SECTORS: SECTORS,
     SETPIECE_WAVE: SETPIECE_WAVE, BOSS_WAVE: BOSS_WAVE,
     WAVES_PER_SECTOR: WAVES_PER_SECTOR,
     MEDAL_RANK: MEDAL_RANK, MEDAL_TINT: MEDAL_TINT,
-    waveSpec: waveSpec, medalFor: medalFor,
+    waveSpec: waveSpec, ladderSpec: ladderSpec, dailySeed: dailySeed, medalFor: medalFor,
     family: family, rockSize: rockSize, weapon: weapon, pickup: pickup,
     sectorAt: sectorAt, sectorById: sectorById, upgradeById: upgradeById,
+    refit: refit, refitCost: refitCost,
     dropsFor: dropsFor
   };
 })(typeof window !== 'undefined' ? window : globalThis);

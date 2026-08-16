@@ -31,7 +31,7 @@
     return {
       alive: false, x: 0, y: 0, vx: 0, vy: 0, life: 0, dmg: 1, r: 5,
       homing: 0, pierce: 0, hitList: null, spr: null, tint: 0xffffff, ang: 0,
-      priority: 1, bornSeq: 0
+      hostile: false, priority: 1, bornSeq: 0
     };
   }
   function newPickup() {
@@ -83,6 +83,8 @@
       this.sectorIndex = clamp((data && data.sector) != null ? data.sector : 0,
         0, D.SECTORS.length - 1);
       this.startWave = clamp((data && data.wave) || 1, 1, D.WAVES_PER_SECTOR);
+      this.startLadder = !!(data && data.ladder);
+      if (this.startLadder && data && data.stage) this.startWave = Math.max(1, data.stage | 0);
       // Both switches are one-shot. Consuming them here is what lets the run
       // advance normally afterwards instead of being yanked back to the
       // forced wave on the next poll.
@@ -218,9 +220,14 @@
     startRun: function (wave) {
       var s = this.sector;
       this.runSeed = s.seed >>> 0;
+      this.ladder = !!this.startLadder;
+      this.ladderSeed = this.ladder ? D.dailySeed() : 0;
+      this.runSeed = this.ladder ? this.ladderSeed : (s.seed >>> 0);
       this.rng = mulberry32(this.runSeed);
       this.score = 0;
       this.ore = 0;
+      this.salvageEarned = 0;
+      this.salvageBanked = false;
       this.runTime = 0;
       this.musicTrack = '';
       this.poolDrops = { rocks: 0, hazards: 0, shotsPlayer: 0, shotsFx: 0,
@@ -243,6 +250,12 @@
         magnetMul: 1, oreMul: 1, oreAdd: 0, overMul: 1,
         dropLifeMul: 1, shrapnel: 0, kinetic: false
       };
+      var refits = I.PROFILE.refits || {};
+      for (var ri = 0; ri < D.REFIT_ORDER.length; ri++) {
+        var rid = D.REFIT_ORDER[ri];
+        var level = clamp(refits[rid] || 0, 0, D.refit(rid).max);
+        if (level) D.refit(rid).apply(this.st, level);
+      }
       this.heat = 0;
       this.vent = 0;
       this.overcharge = 0;
@@ -339,10 +352,24 @@
     // ============================================================== waves
     beginWave: function (w) {
       var s = this.sector;
-      this.wave = clamp(w, 1, D.WAVES_PER_SECTOR);
-      this.spec = D.waveSpec(s, this.wave);
-      // seeded per (sector, wave): a forced wave reproduces the shipped field
-      this.waveRng = mulberry32((s.seed + Math.imul(this.wave, 0x45d9f3b)) >>> 0);
+      if (this.ladder) {
+        this.ladderStage = Math.max(1, w | 0);
+        this.sectorIndex = Math.floor((this.ladderStage - 1) / D.WAVES_PER_SECTOR) % D.SECTORS.length;
+        this.sector = s = D.sectorAt(this.sectorIndex);
+        this.family = D.family(s.family);
+        this.spec = D.ladderSpec(s, this.ladderStage, this.ladderSeed);
+        this.wave = this.ladderStage;
+        this.waveIndex = this.spec.index;
+        this.sky.setSector(s);
+        // Daily fields are deterministic for the same UTC day and stage.
+        this.waveRng = mulberry32((this.ladderSeed + Math.imul(this.ladderStage, 0x45d9f3b)) >>> 0);
+      } else {
+        this.wave = clamp(w, 1, D.WAVES_PER_SECTOR);
+        this.waveIndex = this.wave;
+        this.spec = D.waveSpec(s, this.wave);
+        // seeded per (sector, wave): a forced wave reproduces the shipped field
+        this.waveRng = mulberry32((s.seed + Math.imul(this.wave, 0x45d9f3b)) >>> 0);
+      }
       this.waveTime = 0;
       this.waveClear = false;
       this.clearDelay = 0;
@@ -405,6 +432,11 @@
           for (var n = 0; n < h.nodes.length; n++) {
             h.nodes[n].x = h.x + Math.cos(h.nodes[n].ang) * (h.r + 26);
             h.nodes[n].y = h.y + Math.sin(h.nodes[n].ang) * (h.r + 26);
+          }
+        } else if (h.type === 'hulk' && h.nodes) {
+          for (var hn = 0; hn < h.nodes.length; hn++) {
+            h.nodes[hn].x = h.x + Math.cos(h.nodes[hn].ang) * h.nodes[hn].radius;
+            h.nodes[hn].y = h.y + Math.sin(h.nodes[hn].ang) * h.nodes[hn].radius;
           }
         }
       }
@@ -488,14 +520,28 @@
       var n = r.size === 'large' ? fam.splitLarge : fam.splitMed;
       var base = Math.atan2(r.vy, r.vx);
       var speed = Math.hypot(r.vx, r.vy);
+      var parentVx = r.vx, parentVy = r.vy;
+      // Keep the inherited momentum on every child, then distribute a
+      // symmetric kick. The result reads as a massive chunk breaking apart,
+      // instead of independent pebbles appearing with unrelated velocities.
+      var childMass = Math.max(1, D.rockSize(sz.next).r * D.rockSize(sz.next).r);
+      var totalMass = childMass * n;
       for (var i = 0; i < n; i++) {
         var spread = (i - (n - 1) / 2) * (0.9 + this.waveRng() * 0.5);
         var a = base + spread;
-        var sp = Math.max(48, speed * 0.9 + rngRange(this.waveRng, 30, 90));
+        var kick = Math.max(48, speed * 0.42 + rngRange(this.waveRng, 30, 90));
         var child = this.spawnRock(sz.next,
           { x: r.x + Math.cos(a) * r.r * 0.5, y: r.y + Math.sin(a) * r.r * 0.5 },
-          { x: Math.cos(a) * sp, y: Math.sin(a) * sp }, false, { priority: 2 });
-        if (child) child.born = this.waveTime;
+          { x: parentVx + Math.cos(a) * kick, y: parentVy + Math.sin(a) * kick },
+          false, { priority: 2 });
+        if (child) {
+          child.born = this.waveTime;
+          child.mass = childMass * (fam.id === 'wreck' ? 1.15 : 1);
+          // A tiny correction keeps the inherited component balanced across
+          // uneven pool pressure without introducing a visible hitch.
+          child.vx -= (parentVx * childMass / totalMass) * 0.08;
+          child.vy -= (parentVy * childMass / totalMass) * 0.08;
+        }
       }
     },
 
@@ -535,14 +581,34 @@
         e.pull = 190 + rng() * 90;
         setFrame(e.spr, this, 'well').setScale(1.5);
       } else if (type === 'hulk') {
-        e.r = 62; e.hp = e.hpMax = 46;
+        e.r = 62; e.hp = e.hpMax = 54;
         a = rngRange(rng, 0, TAU); sp = rngRange(rng, 8, 22);
         e.vx = Math.cos(a) * sp; e.vy = Math.sin(a) * sp;
         e.spin = rngRange(rng, -0.16, 0.16);
+        e.weakOpen = false;
+        e.nodes = [];
+        for (var hn = 0; hn < 3; hn++) {
+          e.nodes.push({ alive: true, ang: (hn / 3) * TAU, radius: 58,
+            hp: 8, hpMax: 8, hit: 0,
+            x: e.x, y: e.y,
+            spr: img(this, -999, -999, 'geode_node').setDepth(37) });
+        }
         setFrame(e.spr, this, 'hulk').setScale(0.9);
       } else if (type === 'drone') {
         e.r = 20; e.hp = e.hpMax = 7;
         setFrame(e.spr, this, 'drone').setScale(0.62);
+      } else if (type === 'pirate') {
+        e.r = 24; e.hp = e.hpMax = 12;
+        a = rngRange(rng, 0, TAU); sp = rngRange(rng, 28, 48);
+        e.vx = Math.cos(a) * sp; e.vy = Math.sin(a) * sp;
+        e.spin = rngRange(rng, -0.8, 0.8); e.fire = rngRange(rng, 0.6, 1.4);
+        setFrame(e.spr, this, 'drone').setScale(0.72);
+      } else if (type === 'icefield') {
+        e.r = 108; e.hp = e.hpMax = 1e9; e.pull = 0;
+        setFrame(e.spr, this, 'well').setScale(2.25);
+      } else if (type === 'storm') {
+        e.r = 96; e.hp = e.hpMax = 1e9; e.pull = 150 + rng() * 80;
+        setFrame(e.spr, this, 'well').setScale(2.05);
       } else if (type === 'geode') {
         e.r = 66; e.hp = e.hpMax = 1e9;
         setFrame(e.spr, this, 'geode').setScale(0.85);
@@ -680,6 +746,7 @@
         s.dmg = dmg;
         s.r = w.r;
         s.homing = w.homing || 0;
+        s.hostile = false;
         s.pierce = 0;
         s.ang = a;
         s.tint = w.tint;
@@ -690,6 +757,20 @@
       }
       this.muzzle(ship.x + Math.cos(ship.ang) * 24, ship.y + Math.sin(ship.ang) * 24, w.tint);
       kit.audio.sfx(w.sfx, { volume: 0.5, rate: 0.94 + Math.random() * 0.12 });
+    },
+
+    spawnEnemyShot: function (x, y, angle, speed, dmg, tint) {
+      var s = poolTake(this.shots, 1, function (q) { return q.hostile; });
+      if (!s) { this.poolDrops.shotsFx++; return null; }
+      s.alive = true; s.hostile = true;
+      s.x = x; s.y = y; s.vx = Math.cos(angle) * speed; s.vy = Math.sin(angle) * speed;
+      s.life = 2.7; s.dmg = dmg || 1; s.r = 7; s.homing = 0; s.ang = angle;
+      s.tint = tint || 0xff7188; s.priority = 1;
+      s.bornSeq = (this.shotSeq = (this.shotSeq || 0) + 1);
+      setFrame(s.spr, this, 'shot_homing').setVisible(true).setTint(s.tint)
+        .setRotation(angle).setScale(0.76).setAlpha(0.95);
+      kit.audio.sfx('homing', { volume: 0.28, rate: 1.25 });
+      return s;
     },
 
     // ============================================================== input
@@ -868,6 +949,8 @@
 
       var thrust = 0, retro = 0;
       var turn = SHIP.turn * st.turnMul;
+      var fieldIce = this.fieldInfluence(ship, dt);
+      if (fieldIce) turn *= 0.58;
       if (inp.stick && inp.smag > 0.06) {
         var target = Math.atan2(inp.sy, inp.sx);
         var delta = angDiff(ship.ang, target);
@@ -909,7 +992,10 @@
       // gravity wells act on the ship
       this.applyWells(ship, dt, 1);
 
-      var drag = Math.pow(1 - clamp(this.sector.drag != null ? this.sector.drag : SHIP.drag, 0, 0.99), dt);
+      var baseDrag = this.sector.drag != null ? this.sector.drag : SHIP.drag;
+      // Ice fields make the ship skate: drift persists, but steering loses
+      // authority. Magnetic storms add a readable lateral pull and heat.
+      var drag = Math.pow(1 - clamp(fieldIce ? baseDrag * 0.28 : baseDrag, 0, 0.99), dt);
       ship.vx *= drag; ship.vy *= drag;
       var maxSp = ship.dash > 0 ? SHIP.dashSpeed * st.dashPowerMul : SHIP.maxSpeed * (0.85 + 0.35 * st.thrustMul);
       var spd = Math.hypot(ship.vx, ship.vy);
@@ -988,6 +1074,12 @@
       for (i = 0; i < this.shots.length; i++) {
         s = this.shots[i];
         if (!s.alive) continue;
+        if (s.hostile) {
+          s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
+          this.wrap(s, 8);
+          if (s.life <= 0) { s.alive = false; s.spr.setVisible(false); }
+          continue;
+        }
         if (s.homing) {
           var best = null, bd = 1e9;
           var sw = this.W || 800, sh = this.H || 480;
@@ -1095,6 +1187,33 @@
         e.vx += (dx / d) * f * dt;
         e.vy += (dy / d) * f * dt;
       }
+    },
+
+    fieldInfluence: function (e, dt) {
+      var ice = false;
+      var W = this.W || 800, H = this.H || 480;
+      for (var i = 0; i < this.hazards.length; i++) {
+        var h = this.hazards[i];
+        if (!h.alive || (h.type !== 'icefield' && h.type !== 'storm')) continue;
+        var dx = wrapDelta(h.x, e.x, W), dy = wrapDelta(h.y, e.y, H);
+        var d = Math.hypot(dx, dy);
+        if (d > h.r) continue;
+        var falloff = 1 - d / h.r;
+        if (h.type === 'icefield') {
+          ice = true;
+          e.vx += (dx / Math.max(1, d)) * 12 * falloff * dt;
+          e.vy += (dy / Math.max(1, d)) * 12 * falloff * dt;
+          if (this.runTime % 0.24 < dt) this.iceSparkle(e.x, e.y);
+        } else {
+          // Rotate the velocity around the storm core. This is deliberately
+          // force-based, so the player can brake out instead of being snapped.
+          e.vx += (-dy / Math.max(1, d)) * h.pull * falloff * dt;
+          e.vy += (dx / Math.max(1, d)) * h.pull * falloff * dt;
+          this.heat = Math.min(this.heatCap(), this.heat + 5 * falloff * dt);
+          if (this.runTime % 0.18 < dt) this.stormArc(h);
+        }
+      }
+      return ice;
     },
 
     wrap: function (e, margin) {
@@ -1349,6 +1468,13 @@
         } else if (h.type === 'hulk') {
           h.x += h.vx * dt; h.y += h.vy * dt; h.rot += h.spin * dt;
           this.wrap(h, h.r);
+          for (var hn = 0; hn < (h.nodes ? h.nodes.length : 0); hn++) {
+            var hnode = h.nodes[hn];
+            hnode.hit = Math.max(0, hnode.hit - dt * 4);
+            hnode.ang += (h.weakOpen ? 0.7 : 0.35) * dt;
+            hnode.x = h.x + Math.cos(hnode.ang) * hnode.radius;
+            hnode.y = h.y + Math.sin(hnode.ang) * hnode.radius;
+          }
         } else if (h.type === 'drone') {
           dx = wrapDelta(ship.x, h.x, fieldW); dy = wrapDelta(ship.y, h.y, fieldH); d = Math.hypot(dx, dy) || 1;
           h.vx += (dx / d) * 120 * dt; h.vy += (dy / d) * 120 * dt;
@@ -1358,8 +1484,33 @@
           h.x += h.vx * dt; h.y += h.vy * dt;
           h.rot = Math.atan2(h.vy, h.vx);
           this.wrap(h, h.r);
+        } else if (h.type === 'pirate') {
+          dx = wrapDelta(ship.x, h.x, fieldW); dy = wrapDelta(ship.y, h.y, fieldH); d = Math.hypot(dx, dy) || 1;
+          // Pirate wings strafe, then fire a lead shot. The lateral term
+          // keeps them from becoming stationary target dummies.
+          var side = Math.sin(this.runTime * 1.8 + h.rot) > 0 ? 1 : -1;
+          h.vx += ((dx / d) * 70 + (-dy / d) * 115 * side) * dt;
+          h.vy += ((dy / d) * 70 + (dx / d) * 115 * side) * dt;
+          var ps = Math.hypot(h.vx, h.vy);
+          if (ps > 150) { h.vx = h.vx / ps * 150; h.vy = h.vy / ps * 150; }
+          h.vx *= Math.pow(0.68, dt); h.vy *= Math.pow(0.68, dt);
+          h.x += h.vx * dt; h.y += h.vy * dt; h.rot += h.spin * dt;
+          this.wrap(h, h.r);
+          h.fire -= dt;
+          if (h.fire <= 0) {
+            h.fire = 1.45;
+            var leadX = ship.x + ship.vx * 0.36, leadY = ship.y + ship.vy * 0.36;
+            var pa = Math.atan2(wrapDelta(leadY, h.y, fieldH), wrapDelta(leadX, h.x, fieldW));
+            this.spawnEnemyShot(h.x, h.y, pa, 190 + (this.ladderStage || 0) * 2, 1, 0xff7188);
+          }
         } else if (h.type === 'well') {
           h.rot += 0.6 * dt;
+        } else if (h.type === 'icefield') {
+          h.rot += 0.25 * dt;
+        } else if (h.type === 'storm') {
+          h.rot += 1.2 * dt;
+          h.timer -= dt;
+          if (h.timer <= 0) { h.timer = 0.75; this.stormArc(h); }
         } else if (h.type === 'geode') {
           h.rot += 0.3 * dt;
           h.timer -= dt;
@@ -1409,10 +1560,31 @@
       this.spawnPickup('burst', h.x, h.y, 2);
     },
 
+    damageHulkNode: function (h, node, dmg, x, y) {
+      node.hp -= dmg;
+      node.hit = 0.22;
+      this.chipSpark(x, y, 0xffd8a0);
+      if (node.hp > 0) return;
+      node.alive = false;
+      node.spr.setVisible(false);
+      this.score += 90;
+      this.popText(node.x, node.y, '+90', 0xffd8a0);
+      this.bigBoom(node.x, node.y, 0xffd8a0);
+      kit.audio.sfx('fracMed', { volume: 0.55, rate: 1.2 });
+      var open = true;
+      for (var i = 0; i < h.nodes.length; i++) if (h.nodes[i].alive) open = false;
+      if (open) {
+        h.weakOpen = true;
+        this.queueToast('HULK CORE EXPOSED', 0xffd8a0, 1.0);
+        kit.audio.sfx('boss', { volume: 0.48, rate: 1.3 });
+        this.spawnPickup('burst', h.x, h.y, 3);
+      }
+    },
+
     killHazard: function (h) {
       if (!h.alive) return;
-      var score = h.type === 'hulk' ? 480 : 260;
-      var tint = h.type === 'hulk' ? this.family.tint : 0xd2a0ff;
+      var score = h.type === 'hulk' ? 480 : (h.type === 'pirate' ? 380 : 260);
+      var tint = h.type === 'hulk' ? this.family.tint : (h.type === 'pirate' ? 0xff7188 : 0xd2a0ff);
       var x = h.x, y = h.y;
       this.clearHazard(h);
       this.score += score;
@@ -1426,7 +1598,7 @@
             { x: Math.cos(a) * 150, y: Math.sin(a) * 150 }, false, { priority: 2, hpMul: 0.7 });
         }
       }
-      for (i = 0; i < (h.type === 'hulk' ? 8 : 3); i++) {
+      for (i = 0; i < (h.type === 'hulk' ? 8 : (h.type === 'pirate' ? 5 : 3)); i++) {
         this.spawnPickup('burst', x + rngRange(this.waveRng, -50, 50),
           y + rngRange(this.waveRng, -40, 40), 3);
       }
@@ -1626,6 +1798,15 @@
       for (i = 0; i < this.shots.length; i++) {
         s = this.shots[i];
         if (!s.alive) continue;
+        if (s.hostile) {
+          var esx = wrapDelta(s.x, ship.x, fieldW), esy = wrapDelta(s.y, ship.y, fieldH);
+          if (ship.alive && ship.invuln <= 0 && esx * esx + esy * esy <= (ship.r + s.r) * (ship.r + s.r)) {
+            this.hurt(s.dmg, s.x, s.y, 190);
+            this.chipSpark(s.x, s.y, 0xff7188);
+            s.alive = false; s.spr.setVisible(false);
+          }
+          continue;
+        }
         var consumed = false;
         for (j = 0; j < this.rocks.length && !consumed; j++) {
           r = this.rocks[j];
@@ -1637,7 +1818,7 @@
         }
         for (j = 0; j < this.hazards.length && !consumed; j++) {
           h = this.hazards[j];
-          if (!h.alive || h.type === 'well') continue;
+          if (!h.alive || h.type === 'well' || h.type === 'icefield' || h.type === 'storm') continue;
           if (h.type === 'geode') {
             for (var n = 0; n < h.nodes.length; n++) {
               var nd = h.nodes[n];
@@ -1656,11 +1837,24 @@
             }
             continue;
           }
+          if (h.type === 'hulk' && h.nodes) {
+            for (var hn = 0; hn < h.nodes.length; hn++) {
+              var hnd = h.nodes[hn];
+              if (!hnd.alive) continue;
+              var hnx = wrapDelta(hnd.x, s.x, fieldW), hny = wrapDelta(hnd.y, s.y, fieldH);
+              if (hnx * hnx + hny * hny <= 24 * 24) {
+                this.damageHulkNode(h, hnd, s.dmg, s.x, s.y);
+                consumed = true;
+                break;
+              }
+            }
+            if (consumed) continue;
+          }
           var hdx = wrapDelta(h.x, s.x, fieldW), hdy = wrapDelta(h.y, s.y, fieldH), hrr = h.r + s.r;
           if (hdx * hdx + hdy * hdy > hrr * hrr) continue;
           if (h.type === 'mine') { this.detonateMine(h); }
           else {
-            h.hp -= s.dmg; h.hit = 0.2;
+            h.hp -= h.type === 'hulk' && !h.weakOpen ? s.dmg * 0.35 : s.dmg; h.hit = 0.2;
             this.chipSpark(s.x, s.y, 0xbfe6ff);
             if (h.hp <= 0) this.killHazard(h);
           }
@@ -1704,12 +1898,13 @@
       if (ship.alive && ship.invuln <= 0) {
         for (i = 0; i < this.hazards.length; i++) {
           h = this.hazards[i];
-          if (!h.alive || h.type === 'well') continue;
+          if (!h.alive || h.type === 'well' || h.type === 'icefield' || h.type === 'storm') continue;
           var ex = wrapDelta(h.x, ship.x, fieldW), ey = wrapDelta(h.y, ship.y, fieldH), er = h.r + ship.r;
           if (h.type === 'geode') er = h.r + ship.r;
           if (ex * ex + ey * ey > er * er) continue;
           if (h.type === 'mine') { this.detonateMine(h); }
           else if (h.type === 'hulk') this.hurt(2, h.x, h.y, 340);
+          else if (h.type === 'pirate') this.hurt(1, h.x, h.y, 260);
           else if (h.type === 'drone') {
             this.hurt(1, h.x, h.y, 220); h.hp -= 3;
             if (h.hp <= 0) this.killHazard(h);
@@ -1767,7 +1962,19 @@
       }
       for (i = 0; i < this.hazards.length; i++) {
         var h = this.hazards[i];
-        if (!h.alive || h.type === 'well' || h.type === 'geode') continue;
+        if (!h.alive || h.type === 'well' || h.type === 'icefield' || h.type === 'storm' || h.type === 'geode') continue;
+        if (h.type === 'hulk' && h.nodes) {
+          for (var hn = 0; hn < h.nodes.length; hn++) {
+            var hnd = h.nodes[hn];
+            if (!hnd.alive) continue;
+            var hnx = wrapDelta(hnd.x, ship.x, this.W || 800);
+            var hny = wrapDelta(hnd.y, ship.y, this.H || 480);
+            var hnp = hnx * cos + hny * sin;
+            if (hnp >= 0 && hnp <= range && Math.abs(-hnx * sin + hny * cos) <= 24) {
+              this.damageHulkNode(h, hnd, dmg, hnd.x, hnd.y); hitAny++;
+            }
+          }
+        }
         var hx = wrapDelta(h.x, ship.x, this.W || 800);
         var hy = wrapDelta(h.y, ship.y, this.H || 480);
         var hp = hx * cos + hy * sin;
@@ -1775,7 +1982,7 @@
         if (Math.abs(-hx * sin + hy * cos) > h.r + w.r) continue;
         if (h.type === 'mine') this.detonateMine(h);
         else {
-          h.hp -= dmg; h.hit = 0.2;
+          h.hp -= h.type === 'hulk' && !h.weakOpen ? dmg * 0.35 : dmg; h.hit = 0.2;
           if (h.hp <= 0) {
             this.killHazard(h);
           }
@@ -1881,6 +2088,13 @@
     onWaveCleared: function () {
       this.waveClear = false;
       this.score += this.wave * 140;
+      this.salvageEarned += Math.max(3, Math.floor(this.ore / 18) + Math.ceil(this.wave / 2));
+      if (this.ladder) {
+        this.mode = 'upgrade';
+        this.clearToast();
+        this.pendingUpgrade = 0.7;
+        return;
+      }
       if (this.wave >= D.WAVES_PER_SECTOR) { this.sectorCleared(); return; }
       this.mode = 'upgrade';
       this.clearToast();
@@ -1905,6 +2119,8 @@
         I.PROFILE.unlocked = clamp(this.sectorIndex + 2, 1, D.SECTORS.length);
       }
       if (this.tut) { I.PROFILE.tutorial = true; }
+      this.bankSalvage();
+      this.result.salvage = this.salvageEarned;
       I.saveProfile();
       kit.audio.stopMusic(600);
       kit.audio.sfx('medal', { volume: 0.95 });
@@ -1922,6 +2138,10 @@
       this.pendingResults = 0;
       var s = this.sector;
       if (this.score > (I.PROFILE.best[s.id] || 0)) { I.PROFILE.best[s.id] = this.score; I.saveProfile(); }
+      this.bankSalvage();
+      this.result.salvage = this.salvageEarned;
+      if (this.ladder && this.ladderStage > (I.PROFILE.ladderBest || 0)) I.PROFILE.ladderBest = this.ladderStage;
+      I.saveProfile();
       this.bigBoom(this.ship.x, this.ship.y, 0xff7a86);
       kit.audio.stopMusic(500);
       kit.audio.sfx('lose', { volume: 0.9 });
@@ -1929,6 +2149,14 @@
       I.hitStop(220);
       this.openResults();
       this.updateDebugState();
+    },
+
+    bankSalvage: function () {
+      if (this.salvageBanked) return;
+      this.salvageBanked = true;
+      var gain = Math.max(0, Math.floor(this.salvageEarned + this.ore / 24));
+      I.PROFILE.salvage = clamp((I.PROFILE.salvage || 0) + gain, 0, 1000000);
+      this.salvageEarned = gain;
     },
 
     // =========================================================== tutorial
@@ -1994,6 +2222,13 @@
       s.bossHpMax = this.boss.alive ? this.boss.hpMax : 0;
       s.runTime = Math.round(this.runTime * 100) / 100;
       s.medal = this.result ? this.result.medal : 'none';
+      s.salvage = I.PROFILE.salvage || 0;
+      s.refits = {
+        hull: I.PROFILE.refits.hull, coil: I.PROFILE.refits.coil,
+        drive: I.PROFILE.refits.drive, magnet: I.PROFILE.refits.magnet
+      };
+      s.ladderStage = this.ladder ? this.ladderStage : 0;
+      s.ladderSeed = this.ladder ? this.ladderSeed : 0;
       s.unlocked = I.unlockedCount();
       s.medals = I.PROFILE.medals;
       s.reducedMotion = I.isReduced();

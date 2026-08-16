@@ -2,7 +2,7 @@
  * title and its same-origin CC0 audio dependencies. Bump VERSION per release.
  */
 const SLUG = 'stomp-circuit';
-const VERSION = '2026-08-10-ui-declutter-a1';
+const VERSION = '2026-08-16-round2-polish-a1';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/stomp-circuit/',
@@ -38,12 +38,10 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  // Own directory + the shared runtime only. The sibling-title paths this
+  // list used to carry are gone: every asset now lives under this title.
   if (!url.pathname.startsWith('/play/stomp-circuit/') &&
-      !url.pathname.startsWith('/play/_shared/') &&
-      !url.pathname.startsWith('/play/cloudhopper/') &&
-      !url.pathname.startsWith('/play/rally-dust/') &&
-      !url.pathname.startsWith('/play/redline-gt/') &&
-      !url.pathname.startsWith('/play/shout-it/')) return;
+      !url.pathname.startsWith('/play/_shared/')) return;
   e.respondWith(
     caches.match(e.request, { ignoreSearch: true }).then((hit) => hit || fetch(e.request).then((res) => {
       if (res.ok) caches.open(CACHE).then((c) => c.put(e.request, res.clone()));

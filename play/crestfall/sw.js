@@ -1,6 +1,6 @@
 /* Crestfall offline shell. Generated from /play/_shared/sw-template.js. */
 const SLUG = 'crestfall';
-const VERSION = '2026-08-10-aaa4';
+const VERSION = '2026-08-16-aaa2';
 const CACHE = `gg-${SLUG}-${VERSION}`;
 const ASSETS = [
   '/play/crestfall/',
@@ -17,6 +17,7 @@ const ASSETS = [
   '/play/crestfall/src/map-data.js',
   '/play/crestfall/src/overworld.js',
   '/play/crestfall/src/player.js',
+  '/play/crestfall/src/progression.js',
   '/play/crestfall/src/rng.js',
   '/play/crestfall/src/save.js',
   '/play/crestfall/src/sideview.js',

@@ -1,7 +1,9 @@
 # Gravity Well asset and code licenses
 
-Rev 1, 2026-08-10. This title ships only original procedural art, original
-procedural audio, and the shared vendored runtime.
+Rev 2, 2026-08-16. This title ships only original procedural art, original
+procedural audio, and the shared vendored runtime. Round 2 adds no external
+asset files: the cavern strata, thruster heat, debris, dust, beacon rays,
+objective markers, and navigation overlays are generated in `game.js`.
 
 ## Asset provenance
 
@@ -32,4 +34,5 @@ file ships.
 | `/play/_assets/LEDGER.md` | Shared asset provenance ledger consulted by this title | GreenGuard USA |
 
 No external URLs, CDN scripts, remote fonts, or hotlinked title assets are
-used at runtime.
+used at runtime. The shared asset provenance rules in
+`/play/_assets/LEDGER.md` were consulted for the Round 2 art and audio gate.

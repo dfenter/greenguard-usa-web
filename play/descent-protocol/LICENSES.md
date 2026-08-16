@@ -14,3 +14,5 @@ This title uses original procedural canvas art and original procedural audio cue
 | `/play/_assets/LEDGER.md` | Asset provenance policy consulted | In-repo asset ledger; no harvested pack files shipped |
 
 No files from another `/play/<title>/` directory are referenced.
+
+Asset provenance was checked against [`play/_assets/LEDGER.md`](../_assets/LEDGER.md); this round adds no harvested files. The new corridor chrome, lighting, animation accents, security-camera treatment, particles, and alarm FX are generated procedurally in `game.js`.

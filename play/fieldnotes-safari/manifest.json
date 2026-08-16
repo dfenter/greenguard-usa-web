@@ -1,0 +1,16 @@
+{
+  "name": "Fieldnotes Safari",
+  "short_name": "Fieldnotes Safari",
+  "start_url": "/play/fieldnotes-safari/",
+  "scope": "/play/fieldnotes-safari/",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0b1d1a",
+  "theme_color": "#0b1d1a",
+  "description": "A simulated walk-and-catch field journal with six authored habitats.",
+  "categories": ["games"],
+  "icons": [
+    { "src": "/play/fieldnotes-safari/icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/play/fieldnotes-safari/icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

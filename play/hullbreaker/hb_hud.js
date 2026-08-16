@@ -50,6 +50,14 @@
       alpha: { start: 0.8, end: 0 }, blendMode: 'ADD', emitting: false,
       quantity: 1, maxAliveParticles: 60, tint: 0x8fe8ff
     }).setDepth(37);
+    // Inertial drift ribbon: separate from the nozzle plume so momentum is
+    // readable even when the pilot is no longer pressing thrust.
+    this.fx.drift = this.add.particles(0, 0, I.frameOwner('p_streak') || '__missing', {
+      frame: 'p_streak', lifespan: 460, speed: { min: 4, max: 24 },
+      scale: { start: 0.2, end: 0 }, alpha: { start: 0.38, end: 0 },
+      blendMode: 'ADD', emitting: false, quantity: 1, maxAliveParticles: 48,
+      tint: 0x6db4dc
+    }).setDepth(36);
     // 2. muzzle and impact sparks
     this.fx.spark = this.add.particles(0, 0, I.frameOwner('p_spark') || '__missing', {
       frame: 'p_spark',
@@ -101,6 +109,14 @@
   };
   PLAY.cometTrail = function (r) {
     emit(this.fx.exhaust, r.x, r.y, 2, D.family(r.fam).shard);
+  };
+  PLAY.iceSparkle = function (x, y) {
+    emit(this.fx.sparkle, x, y, 1, 0xbfeeff);
+  };
+  PLAY.stormArc = function (h) {
+    emit(this.fx.ring, h.x, h.y, 1, 0xc890ff);
+    emit(this.fx.spark, h.x, h.y, 2, 0xdcb8ff);
+    kit.audio.sfx('pulse', { volume: 0.12, rate: 0.72 });
   };
   // Ore is collected constantly, so its pop is deliberately cheap; only the
   // rarer pickups pay for a shock ring.
@@ -155,6 +171,7 @@
     this.ctlPlateG = this.add.graphics().setDepth(d - 5);
     this.ctlSig = '';
     this.vignette = this.add.graphics().setDepth(d + 6);
+    this.damageG = this.add.graphics().setDepth(41);
     this.beamG = this.add.graphics().setDepth(41);
     this.driftG = this.add.graphics().setDepth(33);
 
@@ -510,12 +527,15 @@
       .setOrigin(0.5).setDepth(93));
     this.overlayText.push(txt(this, 0, 0,
       'SCORE ' + I.pad(r.score, 6) + '    ORE ' + r.ore + '    TIME ' + I.mmss(r.time) +
-      '    WAVE ' + this.wave + ' / ' + D.WAVES_PER_SECTOR,
+      '    ' + (this.ladder ? 'STAGE ' + this.ladderStage : 'WAVE ' + this.wave + ' / ' + D.WAVES_PER_SECTOR),
       14, '#dff4ff', '700').setOrigin(0.5).setDepth(93));
     this.overlayText.push(txt(this, 0, 0,
       r.win ? ('MEDAL: ' + r.medal.toUpperCase()) :
         ('BEST THIS SECTOR: ' + I.pad(I.PROFILE.best[s.id] || 0, 6)),
       16, hex(D.MEDAL_TINT[r.medal] || 0xd8e6ef), '800').setOrigin(0.5).setDepth(93));
+    this.overlayText.push(txt(this, 0, 0,
+      'SALVAGE BANKED  +' + (r.salvage || 0) + '    TOTAL  ' + (I.PROFILE.salvage || 0),
+      14, '#7ef0b4', '800').setOrigin(0.5).setDepth(93));
     var nextName = this.sectorIndex + 1 < D.SECTORS.length ?
       D.sectorAt(this.sectorIndex + 1).name : null;
     this.overlayText.push(txt(this, 0, 0,
@@ -594,7 +614,8 @@
       this.overlayText[1].setPosition(W / 2, H * 0.35).setFontSize(Math.round(15 * s));
       this.overlayText[2].setPosition(W / 2, H * 0.45).setFontSize(Math.round(14 * s));
       this.overlayText[3].setPosition(W / 2, H * 0.53).setFontSize(Math.round(16 * s));
-      this.overlayText[4].setPosition(W / 2, H * 0.60).setFontSize(Math.round(13 * s));
+      this.overlayText[4].setPosition(W / 2, H * 0.60).setFontSize(Math.round(14 * s));
+      this.overlayText[5].setPosition(W / 2, H * 0.65).setFontSize(Math.round(13 * s));
     }
   };
 
@@ -675,6 +696,29 @@
         var arm = e.state !== 'idle';
         e.spr.setTint(e.hit > 0 ? 0xffffff : (arm ? 0xffd0a0 : 0xffffff));
         e.spr.setScale(0.66 * (arm ? 1 + Math.sin(this.waveTime * 22) * 0.08 : 1));
+      } else if (e.type === 'icefield') {
+        e.spr.rotation = e.rot;
+        e.spr.setTint(0xbfeeff).setAlpha(0.28 + Math.abs(Math.sin(this.runTime * 1.7)) * 0.08)
+          .setScale(2.25 + Math.sin(this.runTime * 2.4) * 0.04);
+      } else if (e.type === 'storm') {
+        e.spr.rotation = e.rot;
+        e.spr.setTint(0xc890ff).setAlpha(0.28 + Math.abs(Math.sin(this.runTime * 5)) * 0.16)
+          .setScale(2.05 + Math.sin(this.runTime * 8) * 0.08);
+      } else if (e.type === 'pirate') {
+        e.spr.rotation = Math.atan2(e.vy, e.vx);
+        e.spr.setTint(e.hit > 0 ? 0xffffff : (e.fire < 0.18 ? 0xffc0d0 : 0xff7188))
+          .setScale(0.72 + Math.sin(this.runTime * 9) * 0.035);
+      } else if (e.type === 'hulk') {
+        e.spr.rotation = e.rot;
+        e.spr.setTint(e.hit > 0 ? 0xffffff : (e.weakOpen ? 0xffd8a0 : this.family.tint));
+        e.spr.setScale(0.9 + (e.weakOpen ? Math.sin(this.runTime * 7) * 0.035 : 0));
+        for (var hn = 0; hn < (e.nodes ? e.nodes.length : 0); hn++) {
+          var hnode = e.nodes[hn];
+          if (!hnode.alive) { hnode.spr.setVisible(false); continue; }
+          hnode.spr.setVisible(true).setPosition(hnode.x, hnode.y)
+            .setTint(hnode.hit > 0 ? 0xffffff : (e.weakOpen ? 0xffd8a0 : 0xff9b7d))
+            .setScale(0.52 + Math.sin(this.runTime * 5 + hn) * 0.04);
+        }
       } else if (e.type === 'geode') {
         e.spr.rotation = e.rot;
         e.spr.setTint(0xffffff);
@@ -719,7 +763,9 @@
 
   PLAY.paintShip = function (dt) {
     var ship = this.ship, s = ship.spr;
-    if (!ship.alive) { s.setVisible(false); this.shipGlow.setAlpha(0); this.driftG.clear(); return; }
+    if (!ship.alive) {
+      s.setVisible(false); this.shipGlow.setAlpha(0); this.driftG.clear(); this.damageG.clear(); return;
+    }
     var blink = ship.invuln > 0 && Math.floor(this.runTime * 16) % 2 === 0;
     s.setVisible(!blink).setPosition(ship.x, ship.y);
     s.rotation = ship.ang;
@@ -748,6 +794,38 @@
         var nx = ship.x + Math.cos(ship.ang) * 16;
         var ny = ship.y + Math.sin(ship.ang) * 16;
         emit(this.fx.exhaust, nx, ny, 1, 0xffb27a);
+      }
+    }
+
+    // A short inertial ribbon follows the velocity vector, not the nose.
+    // It makes braking and drift legible in peripheral vision.
+    var driftSpeed = Math.hypot(ship.vx, ship.vy);
+    if (driftSpeed > 72 && this.runTime % 0.045 < dt) {
+      var da = Math.atan2(ship.vy, ship.vx);
+      var trailX = ship.x - Math.cos(da) * 18, trailY = ship.y - Math.sin(da) * 18;
+      emit(this.fx.drift, trailX, trailY, driftSpeed > 240 ? 2 : 1,
+        ship.retro > 0.25 ? 0xffb27a : 0x6db4dc);
+    }
+
+    // Hull damage is a stateful silhouette change: panel cracks and a hot
+    // core appear at two and one cells, then pulse with the critical rim.
+    var dg = this.damageG;
+    dg.clear();
+    if (this.st.shield <= 2) {
+      var damageAlpha = this.st.shield <= 1 ? 0.88 : 0.55;
+      var cx = ship.x, cy = ship.y, ca = ship.ang;
+      dg.lineStyle(2.2, this.st.shield <= 1 ? 0xff6a72 : 0xffb27a, damageAlpha);
+      for (var crack = 0; crack < (this.st.shield <= 1 ? 3 : 2); crack++) {
+        var aa = ca + 1.1 + crack * 2.1 + Math.sin(this.runTime * 2 + crack) * 0.05;
+        var sx = cx + Math.cos(aa) * 8, sy = cy + Math.sin(aa) * 8;
+        dg.beginPath(); dg.moveTo(sx, sy);
+        dg.lineTo(cx + Math.cos(aa + 0.16) * 17, cy + Math.sin(aa + 0.16) * 17);
+        dg.lineTo(cx + Math.cos(aa - 0.08) * 22, cy + Math.sin(aa - 0.08) * 22);
+        dg.strokePath();
+      }
+      if (this.st.shield <= 1) {
+        dg.fillStyle(0xff6a72, 0.18 + Math.abs(Math.sin(this.runTime * 8)) * 0.16);
+        dg.fillCircle(cx + Math.cos(ca) * 4, cy + Math.sin(ca) * 4, 5);
       }
     }
 
@@ -853,8 +931,8 @@
     var g = this.hudG, t = this.hudT;
     var W = this.W, H = this.H, s = this.uiScale, ins = this.ins;
 
-    setTextIfChanged(t.sector, 'S' + (this.sectorIndex + 1));
-    setTextIfChanged(t.wave, this.wave + ' / ' + D.WAVES_PER_SECTOR);
+    setTextIfChanged(t.sector, this.ladder ? 'DAILY  ' + (this.sectorIndex + 1) : 'S' + (this.sectorIndex + 1));
+    setTextIfChanged(t.wave, this.ladder ? 'STAGE ' + this.ladderStage : this.wave + ' / ' + D.WAVES_PER_SECTOR);
     setTextIfChanged(t.timer, '◷ ' + I.mmss(this.runTime));
     setTextIfChanged(t.score, '✦ ' + I.pad(this.score, 6));
     setTextIfChanged(t.ore, '◆ ' + this.ore);
@@ -880,13 +958,14 @@
     var i;
     var edge = Math.max(16, Math.round(18 * s));
     var px = ins.l + edge, py = this.hudY.pips;
+    var shownWave = this.ladder ? this.waveIndex : this.wave;
     for (i = 1; i <= D.WAVES_PER_SECTOR; i++) {
       var boss = i === D.WAVES_PER_SECTOR;
       var setp = i === D.SETPIECE_WAVE;
       var rr = (boss ? 6 : setp ? 5 : 3.6) * s;
       var cx = px + (i - 1) * 15 * s;
-      if (i < this.wave) { g.fillStyle(0x5fd0f0, 0.85); g.fillCircle(cx, py, rr); }
-      else if (i === this.wave) {
+      if (i < shownWave) { g.fillStyle(0x5fd0f0, 0.85); g.fillCircle(cx, py, rr); }
+      else if (i === shownWave) {
         g.fillStyle(boss ? 0xff9060 : (setp ? 0xffd76a : 0xffffff), 1);
         g.fillCircle(cx, py, rr + 1.5 * s);
       } else {
@@ -938,6 +1017,7 @@
     var obj = '';
     if (this.spec && this.spec.kind === 'boss' && this.boss.alive) {
       obj = 'P' + this.boss.phase + (this.boss.podsLeft > 0 ? '  ·  ' + this.boss.podsLeft : '');
+      if (this.ladder) obj = 'LADDER ' + this.ladderStage + '  ·  ' + obj;
     } else if (this.spec && this.spec.kind === 'setpiece' && this.setpiece) {
       if (this.setpiece.id === 'grinder') obj = '◷ ' + Math.ceil(this.survive) + 's';
       else if (this.setpiece.id === 'convoy') obj = '⬢ ' + this.aliveHazards('hulk');

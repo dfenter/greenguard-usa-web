@@ -3,7 +3,7 @@
  * VERSION whenever the title payload changes.
  */
 const SLUG = 'blast-radius';
-const VERSION = '2026-08-10t-ui-declutter-1';
+const VERSION = '2026-08-16-round2-polish-1';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/blast-radius/',
@@ -24,20 +24,6 @@ const ASSETS = [
   '/play/blast-radius/assets/score_ping.mp3',
   '/play/blast-radius/assets/music_base.mp3',
   '/play/blast-radius/assets/music_heat.mp3',
-  '/play/blast-radius/assets/player_idle.svg',
-  '/play/blast-radius/assets/player_move.svg',
-  '/play/blast-radius/assets/player_hit.svg',
-  '/play/blast-radius/assets/chaser_idle.svg',
-  '/play/blast-radius/assets/chaser_hunt.svg',
-  '/play/blast-radius/assets/chaser_hit.svg',
-  '/play/blast-radius/assets/chaser_boss.svg',
-  '/play/blast-radius/assets/bomb.svg',
-  '/play/blast-radius/assets/blast.svg',
-  '/play/blast-radius/assets/block_intact.svg',
-  '/play/blast-radius/assets/block_crumble_a.svg',
-  '/play/blast-radius/assets/block_crumble_b.svg',
-  '/play/blast-radius/assets/crate.svg',
-  '/play/blast-radius/assets/drop.svg',
   '/play/_shared/phaser.min.js',
   '/play/_shared/ggkit.js'
 ];

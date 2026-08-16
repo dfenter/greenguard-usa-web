@@ -20,15 +20,17 @@
   var MAX_RINGS = 24;
   var MAX_POPUPS = 20;
   var MAX_DEATH_ACTORS = 32;
-  var PARTICLE_CAPS = { muzzle: 72, impact: 84, smoke: 48, death: 84, telegraph: 40, pickup: 72 };
-  var PARTICLE_SYSTEMS = ['muzzle', 'impact', 'smoke', 'death', 'telegraph', 'pickup'];
+  var SAVE_VERSION = 4;
+  var PARTICLE_CAPS = { muzzle: 72, impact: 84, smoke: 48, death: 84, telegraph: 40, pickup: 72, coolant: 64 };
+  var PARTICLE_SYSTEMS = ['muzzle', 'impact', 'smoke', 'death', 'telegraph', 'pickup', 'coolant'];
 
   var PAL = {
     ink: 0x071116, deep: 0x0b1c23, floor: 0x142a31, floor2: 0x19343b,
     wall: 0x3e6470, wallHi: 0x77aab1, white: 0xe8ffff, mist: 0x91bfc0,
     cyan: 0x55e8dc, amber: 0xffc85d, violet: 0xb58cff, rose: 0xff6d85,
     green: 0x77ec9b, orange: 0xff8d56, blue: 0x62b8ff, red: 0xff536d,
-    slate: 0x24434c, shadow: 0x061014, gold: 0xffe28a
+    slate: 0x24434c, shadow: 0x061014, gold: 0xffe28a, coolant: 0x8ff7ff,
+    alarm: 0xff3f64
   };
   var CSS = {
     white: '#e8ffff', mist: '#91bfc0', cyan: '#55e8dc', amber: '#ffc85d',
@@ -66,17 +68,20 @@
     flanker: { hp: 42, speed: 74, radius: 14, damage: 18, color: PAL.violet, range: 36 },
     bruiser: { hp: 118, speed: 34, radius: 22, damage: 22, color: PAL.amber, range: 42 },
     turret: { hp: 86, speed: 0, radius: 20, damage: 13, color: PAL.blue, range: 520 },
+    patrol: { hp: 48, speed: 62, radius: 15, damage: 15, color: PAL.cyan, range: 42 },
+    hunter: { hp: 72, speed: 92, radius: 17, damage: 19, color: PAL.rose, range: 52 },
+    swarm: { hp: 22, speed: 116, radius: 10, damage: 8, color: PAL.violet, range: 28 },
     sentinel: { hp: 760, speed: 32, radius: 46, damage: 22, color: PAL.rose, range: 520 }
   };
 
   var WEAPONS = [
-    { key: 'sidearm', name: 'SIDEARM', short: 'S-9', color: PAL.cyan, mag: 12, reserve: 96,
+    { key: 'sidearm', name: 'SIDEARM', short: 'S-9', color: PAL.cyan, mag: 12, reserve: 54,
       cooldown: 0.18, reload: 0.72, damage: 18, speed: 760, pellets: 1, spread: 0.035,
       kick: 0.06, recoil: 0.14, sound: 'weapon_fire_1' },
-    { key: 'scatter', name: 'SCATTER', short: 'SG-4', color: PAL.amber, mag: 6, reserve: 42,
+    { key: 'scatter', name: 'SCATTER', short: 'SG-4', color: PAL.amber, mag: 6, reserve: 24,
       cooldown: 0.68, reload: 1.08, damage: 12, speed: 560, pellets: 7, spread: 0.28,
       kick: 0.17, recoil: 0.26, sound: 'weapon_fire_2' },
-    { key: 'rifle', name: 'RIFLE', short: 'AR-7', color: PAL.rose, mag: 24, reserve: 144,
+    { key: 'rifle', name: 'RIFLE', short: 'AR-7', color: PAL.rose, mag: 24, reserve: 72,
       cooldown: 0.095, reload: 1.52, damage: 10, speed: 900, pellets: 1, spread: 0.018,
       kick: 0.035, recoil: 0.08, sound: 'weapon_fire_3' }
   ];
@@ -112,13 +117,41 @@
       roomShapes: [[280, 188], [280, 188], [360, 170], [280, 188], [320, 214]], hazardType: 'crossfire',
       pacing: [[['scout', 3], ['flanker', 1]], [['gunner', 2], ['flanker', 2]], [['turret', 2], ['gunner', 2]], [['bruiser', 2], ['flanker', 2]], [['turret', 2], ['bruiser', 2], ['gunner', 1]]],
       positions: [[410, 1160], [410, 920], [410, 680], [410, 440], [410, 220]] },
-    { key: 'vault', label: 'THE VAULT', subtitle: 'Sentinel core / final descent', accent: PAL.gold,
+    { key: 'vault', label: 'THE VAULT', subtitle: 'Seals / dormant systems', accent: PAL.gold,
       ambient: 0x332719, par: 118, seed: 0xF0A7, rooms: ['SEAL GATE', 'RELIC STACK', 'BLACK CHAPEL', 'SENTINEL LOCK', 'VAULT HEART'],
-      kinds: ['scout', 'flanker', 'gunner', 'bruiser', 'sentinel'], signature: 'SIGNATURE: SENTINEL ASCENSION', boss: true,
+      kinds: ['patrol', 'hunter', 'gunner', 'bruiser', 'turret'], signature: 'SIGNATURE: DORMANT VAULT', boss: false,
       mechanic: 'SENTINEL CORE', mechanicText: 'PHASE TELEGRAPHS EXPOSE THE CORE', corridorWidth: 70,
       roomShapes: [[300, 190], [240, 230], [300, 210], [260, 220], [360, 250]], hazardType: 'vault',
-      pacing: [[['scout', 4]], [['flanker', 2], ['gunner', 2]], [['bruiser', 1], ['flanker', 3]], [['turret', 2], ['gunner', 2], ['bruiser', 1]], [['sentinel', 1]]],
-      positions: [[200, 1160], [650, 950], [200, 710], [650, 470], [410, 210]] }
+      pacing: [[['patrol', 2], ['swarm', 2]], [['hunter', 2], ['gunner', 2]], [['bruiser', 1], ['hunter', 3]], [['turret', 2], ['gunner', 2], ['bruiser', 1]], [['patrol', 2], ['hunter', 2]]],
+      positions: [[200, 1160], [650, 950], [200, 710], [650, 470], [410, 210]] },
+    { key: 'cryo', label: 'CRYO ARRAY', subtitle: 'Whiteout / frozen alarms', accent: PAL.blue,
+      ambient: 0x12283b, par: 128, seed: 0x1B6D, rooms: ['FROST INTAKE', 'COIL VAULT', 'ICE LOCK', 'THAW CHAMBER', 'CRYO LIFT'],
+      kinds: ['patrol', 'hunter', 'turret', 'swarm', 'bruiser'], signature: 'SIGNATURE: WHITEOUT LOCK',
+      mechanic: 'CRYO VENTS', mechanicText: 'VENTS HIDE OPERATORS FROM CAMERA SWEEPS', corridorWidth: 58,
+      roomShapes: [[250, 200], [320, 172], [250, 230], [320, 172], [300, 220]], hazardType: 'cryo',
+      pacing: [[['patrol', 3]], [['hunter', 2], ['swarm', 3]], [['turret', 1], ['patrol', 2]], [['bruiser', 1], ['hunter', 2], ['swarm', 3]], [['turret', 2], ['hunter', 2]]],
+      positions: [[410, 1160], [180, 930], [650, 710], [190, 465], [650, 235]] },
+    { key: 'biolab', label: 'BIOLAB RING', subtitle: 'Glass growth / live circuits', accent: PAL.green,
+      ambient: 0x123329, par: 137, seed: 0x2C91, rooms: ['DECON', 'CULTURE', 'OBSERVATORY', 'GENE BANK', 'AIRLOCK'],
+      kinds: ['swarm', 'hunter', 'patrol', 'turret', 'bruiser'], signature: 'SIGNATURE: CULTURE MAZE',
+      mechanic: 'BIOFLOOD', mechanicText: 'COOLANT POOLS BREAK LINE OF SIGHT', corridorWidth: 66,
+      roomShapes: [[280, 180], [300, 210], [340, 180], [280, 220], [320, 210]], hazardType: 'bio',
+      pacing: [[['swarm', 5]], [['patrol', 2], ['hunter', 2]], [['turret', 2], ['swarm', 4]], [['bruiser', 1], ['hunter', 3]], [['patrol', 2], ['turret', 2], ['swarm', 3]]],
+      positions: [[190, 1160], [660, 950], [180, 700], [650, 460], [410, 220]] },
+    { key: 'blacksite', label: 'BLACKSITE', subtitle: 'Redacted / counter-surveillance', accent: PAL.violet,
+      ambient: 0x261d3c, par: 148, seed: 0x3DA2, rooms: ['CHECKPOINT', 'SIGNAL BLACK', 'EVIDENCE', 'GHOST FLOOR', 'EXTRACTION'],
+      kinds: ['patrol', 'turret', 'hunter', 'swarm', 'bruiser'], signature: 'SIGNATURE: GHOST FLOOR',
+      mechanic: 'COUNTER-SURVEILLANCE', mechanicText: 'DISABLE CAMERAS OR CROSS THEIR BLIND SIDES', corridorWidth: 54,
+      roomShapes: [[310, 170], [260, 230], [330, 180], [260, 230], [340, 190]], hazardType: 'blacksite',
+      pacing: [[['patrol', 3], ['turret', 1]], [['hunter', 2], ['swarm', 4]], [['turret', 2], ['patrol', 2]], [['bruiser', 1], ['hunter', 3], ['patrol', 2]], [['turret', 2], ['hunter', 3], ['swarm', 4]]],
+      positions: [[410, 1160], [180, 930], [650, 700], [180, 465], [650, 235]] },
+    { key: 'core', label: 'REACTOR CORE', subtitle: 'Overload / final descent', accent: PAL.orange,
+      ambient: 0x3a211d, par: 162, seed: 0x4EF4, rooms: ['OUTER RING', 'FUEL BRIDGE', 'CONTROL WELL', 'MELTDOWN', 'SENTINEL CORE'],
+      kinds: ['patrol', 'hunter', 'turret', 'swarm', 'sentinel'], signature: 'SIGNATURE: SENTINEL ASCENSION', boss: true,
+      mechanic: 'CORE OVERLOAD', mechanicText: 'BREAK LOCKDOWN WINDOWS TO EXPOSE THE SENTINEL', corridorWidth: 72,
+      roomShapes: [[290, 190], [330, 180], [280, 240], [330, 190], [380, 260]], hazardType: 'core',
+      pacing: [[['patrol', 3], ['swarm', 3]], [['hunter', 3], ['turret', 1]], [['bruiser', 1], ['hunter', 3], ['swarm', 3]], [['turret', 2], ['patrol', 2], ['hunter', 3]], [['sentinel', 1]]],
+      positions: [[200, 1160], [660, 950], [200, 700], [650, 460], [410, 220]] }
   ];
   var FAMILY_BY_KEY = {};
   for (var fi = 0; fi < FLOOR_FAMILIES.length; fi++) FAMILY_BY_KEY[FLOOR_FAMILIES[fi].key] = FLOOR_FAMILIES[fi];
@@ -132,26 +165,49 @@
   if (typeof window !== 'undefined') window.__dp = debugApi;
 
   function defaultProfile() {
-    return { version: 3, bestScore: 0, unlockedFloor: 1, tutorialDone: false,
-      medals: {}, bestTimes: {}, bestAccuracy: {} };
+    return { version: SAVE_VERSION, bestScore: 0, unlockedFloor: 1, tutorialDone: false,
+      medals: {}, bestTimes: {}, bestAccuracy: {}, cards: {}, cameraDisables: {}, stealthClears: {},
+      weaponUnlocks: { sidearm: true, scatter: true, rifle: true }, alarmBest: 0, completedRuns: 0 };
   }
-  function validProfile(o) {
-    if (!o || typeof o !== 'object' || Array.isArray(o) || o.version !== 3) return false;
+  function isRecord(o) { return !!o && typeof o === 'object' && !Array.isArray(o); }
+  function validStoredProfile(o) {
+    if (!isRecord(o) || (o.version !== 3 && o.version !== SAVE_VERSION)) return false;
     if (!Number.isFinite(o.bestScore) || o.bestScore < 0 || o.bestScore > 99999999) return false;
     if (!Number.isInteger(o.unlockedFloor) || o.unlockedFloor < 1 || o.unlockedFloor > FLOOR_FAMILIES.length) return false;
     if (typeof o.tutorialDone !== 'boolean') return false;
-    if (!o.medals || typeof o.medals !== 'object' || Array.isArray(o.medals)) return false;
-    if (!o.bestTimes || typeof o.bestTimes !== 'object' || Array.isArray(o.bestTimes)) return false;
-    if (!o.bestAccuracy || typeof o.bestAccuracy !== 'object' || Array.isArray(o.bestAccuracy)) return false;
-    for (var key in o.medals) if (own(o.medals, key) && (!/^[1-5]$/.test(key) || !Number.isInteger(o.medals[key]) || o.medals[key] < 0 || o.medals[key] > 3)) return false;
-    for (var timeKey in o.bestTimes) if (own(o.bestTimes, timeKey) && (!/^[1-5]$/.test(timeKey) || !Number.isFinite(o.bestTimes[timeKey]) || o.bestTimes[timeKey] < 0 || o.bestTimes[timeKey] > 9999)) return false;
-    for (var accKey in o.bestAccuracy) if (own(o.bestAccuracy, accKey) && (!/^[1-5]$/.test(accKey) || !Number.isFinite(o.bestAccuracy[accKey]) || o.bestAccuracy[accKey] < 0 || o.bestAccuracy[accKey] > 1)) return false;
+    if (!isRecord(o.medals) || !isRecord(o.bestTimes) || !isRecord(o.bestAccuracy)) return false;
+    for (var key in o.medals) if (own(o.medals, key) && (!/^[1-9]$/.test(key) || !Number.isInteger(o.medals[key]) || o.medals[key] < 0 || o.medals[key] > 3)) return false;
+    for (var timeKey in o.bestTimes) if (own(o.bestTimes, timeKey) && (!/^[1-9]$/.test(timeKey) || !Number.isFinite(o.bestTimes[timeKey]) || o.bestTimes[timeKey] < 0 || o.bestTimes[timeKey] > 9999)) return false;
+    for (var accKey in o.bestAccuracy) if (own(o.bestAccuracy, accKey) && (!/^[1-9]$/.test(accKey) || !Number.isFinite(o.bestAccuracy[accKey]) || o.bestAccuracy[accKey] < 0 || o.bestAccuracy[accKey] > 1)) return false;
+    if (o.version === SAVE_VERSION) {
+      if (!isRecord(o.cards) || !isRecord(o.cameraDisables) || !isRecord(o.stealthClears) || !isRecord(o.weaponUnlocks)) return false;
+      if (typeof o.weaponUnlocks.sidearm !== 'boolean' || typeof o.weaponUnlocks.scatter !== 'boolean' || typeof o.weaponUnlocks.rifle !== 'boolean') return false;
+      if (!Number.isFinite(o.alarmBest) || o.alarmBest < 0 || o.alarmBest > 1 || !Number.isInteger(o.completedRuns) || o.completedRuns < 0) return false;
+    }
     return true;
+  }
+  function migrateProfile(raw) {
+    var fresh = defaultProfile();
+    if (!validStoredProfile(raw)) return fresh;
+    fresh.bestScore = raw.bestScore;
+    fresh.unlockedFloor = Math.min(FLOOR_FAMILIES.length, raw.unlockedFloor);
+    fresh.tutorialDone = raw.tutorialDone;
+    for (var key in raw.medals) if (own(raw.medals, key) && Number(key) <= FLOOR_FAMILIES.length) fresh.medals[key] = raw.medals[key];
+    for (var timeKey in raw.bestTimes) if (own(raw.bestTimes, timeKey) && Number(timeKey) <= FLOOR_FAMILIES.length) fresh.bestTimes[timeKey] = raw.bestTimes[timeKey];
+    for (var accKey in raw.bestAccuracy) if (own(raw.bestAccuracy, accKey) && Number(accKey) <= FLOOR_FAMILIES.length) fresh.bestAccuracy[accKey] = raw.bestAccuracy[accKey];
+    if (raw.version === SAVE_VERSION) {
+      for (var cardKey in raw.cards) if (own(raw.cards, cardKey)) fresh.cards[cardKey] = raw.cards[cardKey];
+      for (var cameraKey in raw.cameraDisables) if (own(raw.cameraDisables, cameraKey)) fresh.cameraDisables[cameraKey] = raw.cameraDisables[cameraKey];
+      for (var stealthKey in raw.stealthClears) if (own(raw.stealthClears, stealthKey)) fresh.stealthClears[stealthKey] = raw.stealthClears[stealthKey];
+      fresh.weaponUnlocks = { sidearm: raw.weaponUnlocks.sidearm, scatter: raw.weaponUnlocks.scatter, rifle: raw.weaponUnlocks.rifle };
+      fresh.alarmBest = raw.alarmBest; fresh.completedRuns = raw.completedRuns;
+    }
+    return fresh;
   }
 
   var Game = { phaser: null, scene: null };
   var kit = GGKit.create({
-    slug: 'descent-protocol', orientation: 'portrait', validateSave: validProfile,
+    slug: 'descent-protocol', orientation: 'portrait', validateSave: validStoredProfile,
     onPause: function () { if (Game.scene) Game.scene.setPaused(true); },
     onResume: function () { if (Game.scene) Game.scene.setPaused(false); },
     onRestart: function () { if (Game.scene) Game.scene.hardRestart(); }
@@ -165,10 +221,18 @@
     room_clear: 'assets/room_clear.mp3', victory_fanfare: 'assets/victory_fanfare.mp3'
   });
   kit.registerPWA();
+  /* Pointer claims live on window and are registered after GGKit's listener.
+   * Phaser still renders the canvas, but never owns the identity map. */
+  if (typeof window !== 'undefined') {
+    window.addEventListener('pointerdown', function (event) { if (Game.scene) Game.scene.handleWindowPointer('down', event); }, { passive: true });
+    window.addEventListener('pointermove', function (event) { if (Game.scene) Game.scene.handleWindowPointer('move', event); }, { passive: true });
+    window.addEventListener('pointerup', function (event) { if (Game.scene) Game.scene.handleWindowPointer('up', event); }, { passive: true });
+    window.addEventListener('pointercancel', function (event) { if (Game.scene) Game.scene.handleWindowPointer('up', event); }, { passive: true });
+  }
   kit.loader.show('DESCENT PROTOCOL');
   kit.loader.progress(0.35);
 
-  var profile = kit.save.get(null) || defaultProfile();
+  var profile = migrateProfile(kit.save.get(null));
   var params = new URLSearchParams(location.search);
   if (params.get('mode') === 'speed') DP_DEBUG_STATE.mode = 'speedrun';
 
@@ -179,8 +243,8 @@
   function blankEnemy() {
     return { active: false, kind: 'scout', roomIndex: 0, x: 0, y: 0, hp: 0, maxHp: 0, radius: 12,
       speed: 0, damage: 0, color: PAL.orange, facing: 0, cooldown: 0, alert: 0, state: 'patrol',
-      coverX: 0, coverY: 0, flankSide: 1, seed: 0, phase: 1, phaseSeen: 1, boss: false, flash: 0, stun: 0,
-      animState: 'idle', animTime: 0, telegraph: 0, tutorial: false };
+      coverX: 0, coverY: 0, patrolX: 0, patrolY: 0, flankSide: 1, seed: 0, phase: 1, phaseSeen: 1, boss: false, flash: 0, stun: 0,
+      animState: 'idle', animTime: 0, telegraph: 0, anticipation: 0, recovery: 0, tutorial: false };
   }
   function blankBullet() { return { active: false, friendly: false, x: 0, y: 0, vx: 0, vy: 0, life: 0, damage: 0, radius: 3, color: PAL.white, enemyIndex: -1 }; }
   function blankPickup() { return { active: false, type: 'ammo', x: 0, y: 0, amount: 0, roomIndex: 0, bob: 0 }; }
@@ -199,18 +263,20 @@
     this.simTime = 0;
     this.floor = null;
     this.player = { x: 0, y: 0, vx: 0, vy: 0, health: 100, maxHealth: 100, armor: 0,
-      face: 0, weapon: 0, recoil: 0, invuln: 0, fireFlash: 0, movePhase: 0, animState: 'idle' };
+      face: 0, weapon: 0, recoil: 0, invuln: 0, fireFlash: 0, fireRecover: 0, movePhase: 0, animState: 'idle', stealth: false };
     this.run = { mode: DP_DEBUG_STATE.mode, floorNo: 1, score: 0, floorTime: 0, totalTime: 0,
       roomsCleared: 0, cardsFound: 0, shots: 0, hits: 0, floorShots: 0, floorHits: 0, state: 'play', roomIndex: 0,
       banner: { active: false, age: 0, head: '', sub: '', color: PAL.cyan },
       tutorialStep: profile.tutorialDone ? 4 : 0, tutorialFade: 0, tutorialShownStep: -1, light: { active: false, x: 0, y: 0, color: PAL.cyan, age: 0 },
-      floorWon: false, bossDefeated: false, hitStop: 0, weaponMods: [0, 0, 0], damagePulse: 0,
+      muzzleLight: { active: false, x: 0, y: 0, angle: 0, color: PAL.cyan, age: 0 },
+      alarm: 0, alarmPeak: 0, alarmLatched: false, securityCompromised: false, rewardTier: 0, rewardPulse: 0,
+      floorWon: false, bossDefeated: false, hitStop: 0, weaponMods: [0, 0, 0], damagePulse: 0, endReveal: 0,
       tutorialActive: !profile.tutorialDone, tutorialSpawned: false, tutorialEnemyDefeated: false,
       weapons: WEAPONS.map(function (w) { return { mag: w.mag, reserve: w.reserve, reload: 0, cooldown: 0 }; }) };
     this.inputState = { moveId: null, aimId: null, fireId: null, moveX: 0, moveY: 0,
       aimX: 0, aimY: 0, mouseX: 0, mouseY: 0, directAim: false, autoAim: true, aimDX: 0, aimDY: -1, aimRelative: false,
       prevQ: false, prevE: false, prevR: false, prevT: false, prevM: false,
-      prevEnter: false, prevFloorKeys: [false, false, false, false, false], lastPointerType: 'mouse' };
+      prevEnter: false, prevFloorKeys: [false, false, false, false, false, false, false, false, false], lastPointerType: 'mouse' };
     this.gamepadState = { moveX: 0, moveY: 0, aimX: 0, aimY: 0, fire: false, swapLeft: false, swapRight: false, reload: false, restart: false,
       prevSwapLeft: false, prevSwapRight: false, prevReload: false, prevRestart: false };
     this.enemies = [];
@@ -241,6 +307,7 @@
     for (var d = 0; d < MAX_DEATH_ACTORS; d++) this.deathActors.push(blankDeathActor());
     this.audioDanger = false;
     this.audioDangerTimer = 0;
+    this.prewarmed = false;
   };
 
   PlayScene.prototype.preload = function () {
@@ -253,19 +320,35 @@
       'pickup-health': 'assets/pickup-health.svg', 'pickup-armor': 'assets/pickup-armor.svg', 'pickup-ammo': 'assets/pickup-ammo.svg', 'pickup-mod': 'assets/pickup-mod.svg'
     };
     for (var key in images) this.load.image(key, images[key]);
-    kit.loader.progress(0.68);
+    this.prewarmEffects();
+    kit.loader.progress(0.84);
+  };
+
+  PlayScene.prototype.prewarmEffects = function () {
+    /* Pools are allocated and touched while GGKit's loading shell is visible. */
+    for (var systemIndex = 0; systemIndex < PARTICLE_SYSTEMS.length; systemIndex++) {
+      var pool = this.particleSystems[PARTICLE_SYSTEMS[systemIndex]];
+      for (var particleIndex = 0; particleIndex < pool.length; particleIndex++) {
+        pool[particleIndex].active = false; pool[particleIndex].life = 0; pool[particleIndex].max = 1;
+      }
+    }
+    for (var ringIndex = 0; ringIndex < this.rings.length; ringIndex++) { this.rings[ringIndex].active = false; this.rings[ringIndex].life = 0; }
+    this.prewarmed = true;
   };
 
   PlayScene.prototype.create = function () {
     Game.scene = this;
     this.world = this.add.graphics();
+    this.shadows = this.add.graphics().setBlendMode(Phaser.BlendModes.MULTIPLY);
+    this.lightGlow = this.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
     this.entities = this.add.graphics();
     this.fx = this.add.graphics().setBlendMode(Phaser.BlendModes.ADD);
     this.ui = this.add.graphics().setScrollFactor(0);
     this.uiFx = this.add.graphics().setScrollFactor(0).setBlendMode(Phaser.BlendModes.ADD);
-    this.world.setDepth(0); this.entities.setDepth(1); this.fx.setDepth(3); this.ui.setDepth(90); this.uiFx.setDepth(91);
-    this.visual = { roomPanels: [], covers: [], doors: [], cards: [], enemies: [], pickups: [], player: null, floor: null, lift: null, vent: null };
-    this.visual.floor = this.add.tileSprite(WORLD_W / 2, WORLD_H / 2, WORLD_W, WORLD_H, 'floor-panel').setDepth(-2);
+    this.world.setDepth(0.5); this.shadows.setDepth(0.6); this.lightGlow.setDepth(0.7); this.entities.setDepth(1); this.fx.setDepth(3); this.ui.setDepth(90); this.uiFx.setDepth(91);
+    this.visual = { roomPanels: [], covers: [], doors: [], cards: [], enemies: [], pickups: [], player: null, floor: null, chrome: null, lift: null, vent: null };
+    this.visual.floor = this.add.image(WORLD_W / 2, WORLD_H / 2, 'floor-panel').setDepth(-2).setVisible(false);
+    this.visual.chrome = this.add.image(WORLD_W / 2, WORLD_H / 2, 'floor-panel').setDisplaySize(WORLD_W, WORLD_H).setDepth(-1);
     for (var roomVisualIndex = 0; roomVisualIndex < 5; roomVisualIndex++) this.visual.roomPanels.push(this.add.image(0, 0, 'room-panel').setDepth(-1));
     for (var coverVisualIndex = 0; coverVisualIndex < 20; coverVisualIndex++) this.visual.covers.push(this.add.image(0, 0, 'cover-crate').setDepth(0));
     for (var doorVisualIndex = 0; doorVisualIndex < 4; doorVisualIndex++) this.visual.doors.push(this.add.image(0, 0, 'door-panel').setDepth(0));
@@ -280,10 +363,6 @@
     this.makeHudText();
     this.scale.on('resize', this.relayout, this);
     this.relayout(this.scale.width, this.scale.height);
-    this.input.on('pointerdown', this.onPointerDown, this);
-    this.input.on('pointermove', this.onPointerMove, this);
-    this.input.on('pointerup', this.onPointerUp, this);
-    this.input.on('pointercancel', this.onPointerUp, this);
     this.cameras.main.setBackgroundColor(PAL.ink);
     this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
     this.loadFloor(1, true);
@@ -302,7 +381,7 @@
 
   PlayScene.prototype.makeHudText = function () {
     var style = { fontFamily: 'system-ui, sans-serif', fontSize: '12px', color: CSS.white, fontStyle: '700' };
-    var names = ['title', 'floor', 'score', 'time', 'room', 'cards', 'weapon', 'ammo', 'hp', 'mode', 'auto', 'tip', 'prompt', 'bannerHead', 'bannerSub', 'bannerTiny'];
+    var names = ['title', 'floor', 'score', 'time', 'room', 'cards', 'weapon', 'ammo', 'hp', 'mode', 'auto', 'alarm', 'tip', 'prompt', 'bannerHead', 'bannerSub', 'bannerTiny'];
     for (var i = 0; i < names.length; i++) {
       this.hud[names[i]] = this.add.text(0, 0, '', style).setScrollFactor(0).setDepth(100).setOrigin(0.5);
     }
@@ -317,12 +396,13 @@
     this.hud.hp.setFontSize('14px').setOrigin(1, 0.5);
     this.hud.mode.setFontSize('14px').setOrigin(0.5, 0.5);
     this.hud.auto.setFontSize('14px').setOrigin(0.5, 0.5);
+    this.hud.alarm.setFontSize('14px').setOrigin(0.5, 0.5);
     this.hud.tip.setFontSize('14px').setOrigin(0.5, 0.5).setColor(CSS.amber).setVisible(false);
     this.hud.prompt.setFontSize('14px').setOrigin(1, 0.5).setColor(CSS.white).setVisible(false);
     this.hud.bannerHead.setFontSize('22px').setFontStyle('900').setAlpha(0);
     this.hud.bannerSub.setFontSize('14px').setFontStyle('800').setAlpha(0);
     this.hud.bannerTiny.setFontSize('14px').setAlpha(0);
-    for (var choiceIndex = 0; choiceIndex < 5; choiceIndex++) this.hud['floorChoice' + choiceIndex] = this.add.text(0, 0, '', { fontFamily: 'system-ui, sans-serif', fontSize: '9px', color: CSS.white, fontStyle: '800', align: 'center' }).setOrigin(0.5).setDepth(101).setVisible(false);
+    for (var choiceIndex = 0; choiceIndex < 9; choiceIndex++) this.hud['floorChoice' + choiceIndex] = this.add.text(0, 0, '', { fontFamily: 'system-ui, sans-serif', fontSize: '9px', color: CSS.white, fontStyle: '800', align: 'center' }).setOrigin(0.5).setDepth(101).setVisible(false);
   };
 
   PlayScene.prototype.relayout = function (width, height) {
@@ -339,7 +419,7 @@
     h.title.setPosition(24, 28); h.floor.setPosition(24, 32);
     h.room.setPosition(82, 32); h.time.setPosition(W * 0.58, 32); h.score.setPosition(W - 24, 32);
     h.weapon.setPosition(24, 61); h.ammo.setPosition(84, 61);
-    h.mode.setPosition(W * 0.5 - 35, 61); h.auto.setPosition(W * 0.5 + 35, 61);
+    h.mode.setPosition(W * 0.5 - 52, 61); h.auto.setPosition(W * 0.5 + 18, 61); h.alarm.setPosition(W * 0.5 + 62, 61);
     h.hp.setPosition(W - 24, 61);
     h.tip.setPosition(W * 0.5, 104); h.prompt.setPosition(W - 16, 128);
     h.bannerHead.setPosition(W * 0.5, H * 0.29); h.bannerSub.setPosition(W * 0.5, H * 0.29 + 26);
@@ -358,7 +438,7 @@
   PlayScene.prototype.hardRestart = function (floorNo) {
     this.clearControlState();
     this.inputState.prevQ = this.inputState.prevE = this.inputState.prevR = this.inputState.prevT = this.inputState.prevM = false;
-    this.inputState.prevEnter = false; this.inputState.prevFloorKeys = [false, false, false, false, false];
+    this.inputState.prevEnter = false; this.inputState.prevFloorKeys = [false, false, false, false, false, false, false, false, false];
     this.run.mode = DP_DEBUG_STATE.mode === 'speedrun' ? 'speedrun' : 'normal';
     this.run.score = 0; this.run.roomsCleared = 0; this.run.totalTime = 0; this.run.floorTime = 0; this.simTime = 0;
     this.run.cardsFound = 0; this.run.shots = 0; this.run.hits = 0; this.run.floorShots = 0; this.run.floorHits = 0; this.run.state = 'play';
@@ -374,25 +454,33 @@
     var event = pointer.event || {};
     var id = pointer.id != null ? pointer.id : event.pointerId;
     if (id == null) id = 0;
-    /* Explicit seed at claim time. GGKit's root listener may not have run yet. */
-    if (!kit.input.pointers.has(id)) {
-      kit.input.pointers.set(id, { x: event.clientX || pointer.x, y: event.clientY || pointer.y,
-        startX: event.clientX || pointer.x, startY: event.clientY || pointer.y,
-        downAt: performance.now(), zone: zone });
-    } else kit.input.pointers.get(id).zone = zone;
+    var record = kit.input.pointers.get(id);
+    if (record) { record.x = event.clientX || pointer.x; record.y = event.clientY || pointer.y; record.zone = zone; }
     return id;
+  };
+  PlayScene.prototype.setPointerZone = function (id, zone) {
+    var record = kit.input.pointers.get(id); if (record) record.zone = zone;
   };
   PlayScene.prototype.pointerId = function (pointer) {
     var id = pointer && pointer.id != null ? pointer.id : ((pointer && pointer.event) || {}).pointerId;
     return id == null ? 0 : id;
   };
+  PlayScene.prototype.handleWindowPointer = function (type, event) {
+    if (!event || this.pausedByKit || !this.game || !this.game.canvas) return;
+    if (event.pointerType === 'mouse' && event.button != null && event.button !== 0) return;
+    var rect = this.game.canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    var pointer = { id: event.pointerId, x: (event.clientX - rect.left) * this.scale.width / rect.width,
+      y: (event.clientY - rect.top) * this.scale.height / rect.height, event: event };
+    if (type === 'down') this.onPointerDown(pointer);
+    else if (type === 'move') this.onPointerMove(pointer);
+    else this.onPointerUp(pointer);
+  };
   PlayScene.prototype.inRect = function (x, y, rect) { return x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h; };
   PlayScene.prototype.floorChoiceAt = function (x, y) {
     if (this.run.state !== 'dead' && this.run.state !== 'victory') return 0;
-    var W = this.layout.W, top = this.layout.H * 0.65, step = (W - 72) / 5;
-    if (y < top || y > top + 54) return 0;
-    var index = Math.floor((x - 36) / step) + 1;
-    return index >= 1 && index <= 5 && index <= profile.unlockedFloor ? index : 0;
+    var W = this.layout.W, top = this.layout.H * 0.63, step = (W - 72) / 3, row = Math.floor((y - top) / 48), col = Math.floor((x - 36) / step), index = row * 3 + col + 1;
+    return row >= 0 && row < 3 && col >= 0 && col < 3 && index <= profile.unlockedFloor ? index : 0;
   };
   PlayScene.prototype.onPointerDown = function (pointer) {
     if (this.pausedByKit) return;
@@ -408,10 +496,10 @@
     if (y < 68 && x > W - 112) { this.inputState.autoAim = !this.inputState.autoAim; this.toast(this.inputState.autoAim ? 'AUTO AIM' : 'MANUAL AIM', this.inputState.autoAim ? PAL.cyan : PAL.mist); return; }
     if (y >= 68 && y < 112 && x > W - 122) { this.toggleSpeedMode(); return; }
     if (y < 68 && x < 135) { kit.openSettings(); return; }
-    if (this.inRect(x, y, this.layout.fireRect)) { this.inputState.fireId = id; kit.input.pointers.get(id).zone = 'fire'; return; }
-    if (this.inRect(x, y, this.layout.weaponRect)) { kit.input.pointers.get(id).zone = 'weapon'; this.swapWeapon(x < W * 0.5 ? -1 : 1); return; }
-    if (this.inRect(x, y, this.layout.moveRect)) { this.inputState.moveId = id; kit.input.pointers.get(id).zone = 'move'; this.updateMove(pointer); return; }
-    if (this.inRect(x, y, this.layout.aimRect)) { this.inputState.aimId = id; kit.input.pointers.get(id).zone = 'aim'; this.inputState.directAim = true; this.inputState.aimRelative = pointerType !== 'mouse'; this.updateAim(pointer); return; }
+    if (this.inRect(x, y, this.layout.fireRect)) { this.inputState.fireId = id; this.setPointerZone(id, 'fire'); return; }
+    if (this.inRect(x, y, this.layout.weaponRect)) { this.setPointerZone(id, 'weapon'); this.swapWeapon(x < W * 0.5 ? -1 : 1); return; }
+    if (this.inRect(x, y, this.layout.moveRect)) { this.inputState.moveId = id; this.setPointerZone(id, 'move'); this.updateMove(pointer); return; }
+    if (this.inRect(x, y, this.layout.aimRect)) { this.inputState.aimId = id; this.setPointerZone(id, 'aim'); this.inputState.directAim = true; this.inputState.aimRelative = pointerType !== 'mouse'; this.updateAim(pointer); return; }
     if (pointerType === 'mouse') { this.inputState.mouseX = x; this.inputState.mouseY = y; this.inputState.directAim = true; this.inputState.aimRelative = false; this.updateAim(pointer); }
   };
   PlayScene.prototype.onPointerMove = function (pointer) {
@@ -446,7 +534,7 @@
   PlayScene.prototype.buildFloor = function (floorNo) {
     var family = familyForFloor(floorNo);
     var rng = makeRng((family.seed ^ (floorNo * 2654435761)) >>> 0);
-    var floor = { no: floorNo, family: family, rooms: [], corridors: [], doors: [], cards: [], covers: [], hazards: [],
+    var floor = { no: floorNo, family: family, rooms: [], corridors: [], doors: [], cards: [], covers: [], cameras: [], hazards: [],
       vent: null, lift: { x: 0, y: 0, active: false }, seed: family.seed, clearedCount: 0, bossDefeated: false,
       corridorWidth: family.corridorWidth || 72, mechanic: family.mechanic, mechanicText: family.mechanicText };
     var positions = family.positions || FLOOR_FAMILIES[0].positions;
@@ -458,6 +546,8 @@
         x: pos[0] - shape[0] / 2, y: pos[1] - shape[1] / 2, w: shape[0], h: shape[1], cx: pos[0], cy: pos[1], entered: false, cleared: false,
         drops: false, tint: (rng() * 3) | 0, enemiesLeft: 0 };
       floor.rooms.push(room);
+      floor.cameras.push({ roomIndex: i, x: room.x + 30, y: room.y + 28, angle: i % 2 ? Math.PI * 0.25 : Math.PI * 0.75,
+        sweep: i % 2 ? -1 : 1, scan: rng() * TAU, range: 248 + floorNo * 5, spread: 0.44, disabled: !!profile.cameraDisables[floorNo + '-' + i], alert: 0, hp: 34 });
       for (var ci = 0; ci < 4; ci++) {
         var coverX = room.x + 34 + rng() * (room.w - 68), coverY = room.y + 38 + rng() * (room.h - 76), coverAttempts = 0;
         while (coverAttempts < 12 && distance(coverX + 24, coverY + 16, room.cx, room.cy) < 62) { coverX = room.x + 34 + rng() * (room.w - 68); coverY = room.y + 38 + rng() * (room.h - 76); coverAttempts++; }
@@ -468,8 +558,10 @@
       this.connectRooms(floor, floor.rooms[ri], floor.rooms[ri + 1]);
       var a = floor.rooms[ri], b = floor.rooms[ri + 1];
       var cardKey = ['amber', 'cyan', 'violet', 'rose'][ri] || 'amber';
+      var cardX = Math.abs(a.cx - b.cx) > 2 ? a.cx + (b.cx - a.cx) * 0.22 : b.cx;
+      var cardY = Math.abs(a.cx - b.cx) > 2 ? a.cy : a.cy + (b.cy - a.cy) * 0.22;
       floor.cards.push({ key: cardKey, color: KEY_COLORS[cardKey] || PAL.cyan, got: false,
-        roomIndex: ri, x: a.cx + (b.cx - a.cx) * 0.22, y: a.cy + (b.cy - a.cy) * 0.22, bob: rng() * TAU });
+        roomIndex: ri, x: cardX, y: cardY, bob: rng() * TAU });
       var gate = this.makeGate(a, b, ri, cardKey, floor.corridorWidth);
       floor.doors.push(gate);
     }
@@ -494,6 +586,18 @@
       specs.push({ type: 'crossfire', roomIndex: 3, x: floor.rooms[3].cx, y: floor.rooms[3].cy, w: 12, h: floor.rooms[3].h - 36, pulse: 1.2, cooldown: 0 });
     } else if (family.hazardType === 'vault') {
       specs.push({ type: 'core', roomIndex: 4, x: floor.rooms[4].cx, y: floor.rooms[4].cy, radius: 74, pulse: 0 });
+    } else if (family.hazardType === 'cryo') {
+      specs.push({ type: 'cryo', roomIndex: 1, x: floor.rooms[1].cx, y: floor.rooms[1].cy, radius: 48, pulse: rng() * TAU });
+      specs.push({ type: 'cryo', roomIndex: 3, x: floor.rooms[3].cx, y: floor.rooms[3].cy, radius: 38, pulse: rng() * TAU });
+    } else if (family.hazardType === 'bio') {
+      specs.push({ type: 'bio', roomIndex: 2, x: floor.rooms[2].cx - 42, y: floor.rooms[2].cy, radius: 38, pulse: rng() * TAU });
+      specs.push({ type: 'bio', roomIndex: 3, x: floor.rooms[3].cx + 40, y: floor.rooms[3].cy + 10, radius: 30, pulse: rng() * TAU });
+    } else if (family.hazardType === 'blacksite') {
+      specs.push({ type: 'blacksite', roomIndex: 1, x: floor.rooms[1].cx, y: floor.rooms[1].cy, w: floor.rooms[1].w - 38, h: 10, pulse: 0, cooldown: 0 });
+      specs.push({ type: 'blacksite', roomIndex: 3, x: floor.rooms[3].cx, y: floor.rooms[3].cy, w: 10, h: floor.rooms[3].h - 36, pulse: 1.4, cooldown: 0 });
+    } else if (family.hazardType === 'core') {
+      specs.push({ type: 'core', roomIndex: 2, x: floor.rooms[2].cx, y: floor.rooms[2].cy, radius: 52, pulse: 0 });
+      specs.push({ type: 'core', roomIndex: 3, x: floor.rooms[3].cx, y: floor.rooms[3].cy, radius: 44, pulse: 1.2 });
     }
     floor.hazards = specs;
   };
@@ -508,12 +612,42 @@
   };
   PlayScene.prototype.makeGate = function (a, b, index, key, corridorWidth) {
     var width = corridorWidth || 72;
-    if (Math.abs(a.cx - b.cx) > 2) return { index: index, key: key, open: false, x: (a.cx + b.cx) / 2 - 7, y: a.cy - width / 2, w: 14, h: width, color: KEY_COLORS[key] || PAL.cyan };
-    return { index: index, key: key, open: false, x: b.cx - width / 2, y: (a.cy + b.cy) / 2 - 7, w: width, h: 14, color: KEY_COLORS[key] || PAL.cyan };
+    if (Math.abs(a.cx - b.cx) > 2) return { index: index, key: key, open: false, targetOpen: false, openProgress: 0, lockdown: false, x: (a.cx + b.cx) / 2 - 7, y: a.cy - width / 2, w: 14, h: width, color: KEY_COLORS[key] || PAL.cyan };
+    return { index: index, key: key, open: false, targetOpen: false, openProgress: 0, lockdown: false, x: b.cx - width / 2, y: (a.cy + b.cy) / 2 - 7, w: width, h: 14, color: KEY_COLORS[key] || PAL.cyan };
+  };
+  PlayScene.prototype.bakeStaticChrome = function () {
+    if (!this.floor || !this.visual || !this.visual.chrome || typeof document === 'undefined') return;
+    var canvas = document.createElement('canvas'), ctx = canvas.getContext('2d'), family = this.floor.family;
+    canvas.width = WORLD_W; canvas.height = WORLD_H;
+    var base = ctx.createLinearGradient(0, 0, WORLD_W, WORLD_H);
+    base.addColorStop(0, colorCss(family.ambient)); base.addColorStop(0.48, '#0b1b22'); base.addColorStop(1, '#071116');
+    ctx.fillStyle = base; ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+    var glow = ctx.createRadialGradient(WORLD_W * 0.5, WORLD_H * 0.28, 60, WORLD_W * 0.5, WORLD_H * 0.28, 720);
+    glow.addColorStop(0, colorCss(family.accent) + '22'); glow.addColorStop(1, '#00000000'); ctx.fillStyle = glow; ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+    ctx.lineWidth = 1; ctx.strokeStyle = colorCss(family.ambient) + '55';
+    for (var gx = 0; gx < WORLD_W; gx += 36) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, WORLD_H); ctx.stroke(); }
+    for (var gy = 0; gy < WORLD_H; gy += 36) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(WORLD_W, gy); ctx.stroke(); }
+    for (var corridorIndex = 0; corridorIndex < this.floor.corridors.length; corridorIndex++) {
+      var cor = this.floor.corridors[corridorIndex], corridorFill = ctx.createLinearGradient(cor.x, cor.y, cor.x + cor.w, cor.y + cor.h);
+      corridorFill.addColorStop(0, '#122a31'); corridorFill.addColorStop(0.5, '#1b3a40'); corridorFill.addColorStop(1, '#102329');
+      ctx.fillStyle = corridorFill; ctx.fillRect(cor.x, cor.y, cor.w, cor.h); ctx.strokeStyle = '#6d9ca455'; ctx.lineWidth = 3; ctx.strokeRect(cor.x, cor.y, cor.w, cor.h);
+      ctx.strokeStyle = colorCss(family.accent) + '33'; ctx.lineWidth = 1; ctx.strokeRect(cor.x + 8, cor.y + 8, Math.max(1, cor.w - 16), Math.max(1, cor.h - 16));
+    }
+    for (var roomIndex = 0; roomIndex < this.floor.rooms.length; roomIndex++) {
+      var room = this.floor.rooms[roomIndex], roomFill = ctx.createLinearGradient(room.x, room.y, room.x, room.y + room.h);
+      roomFill.addColorStop(0, '#1a363d'); roomFill.addColorStop(0.5, '#10272e'); roomFill.addColorStop(1, '#0d2027');
+      ctx.fillStyle = roomFill; ctx.fillRect(room.x, room.y, room.w, room.h); ctx.strokeStyle = '#7aa7aa'; ctx.lineWidth = 7; ctx.strokeRect(room.x, room.y, room.w, room.h);
+      ctx.strokeStyle = colorCss(family.accent) + '88'; ctx.lineWidth = 2; ctx.strokeRect(room.x + 12, room.y + 12, room.w - 24, room.h - 24);
+      ctx.fillStyle = colorCss(family.accent) + '18'; ctx.fillRect(room.x + 18, room.y + 18, room.w - 36, 3);
+    }
+    if (this.textures.exists('dp-chrome')) this.textures.remove('dp-chrome');
+    this.textures.addCanvas('dp-chrome', canvas);
+    this.visual.chrome.setTexture('dp-chrome').setDisplaySize(WORLD_W, WORLD_H);
   };
   PlayScene.prototype.loadFloor = function (floorNo, freshRun) {
     var safeNo = Number.isInteger(floorNo) ? clamp(floorNo, 1, FLOOR_FAMILIES.length) : 1;
     this.floor = this.buildFloor(safeNo);
+    this.bakeStaticChrome();
     this.run.floorNo = safeNo; this.run.floorTime = 0; this.run.roomIndex = 0; this.run.cardsFound = 0;
     this.run.floorShots = 0; this.run.floorHits = 0; this.run.tutorialActive = safeNo === 1 && !profile.tutorialDone;
     this.run.tutorialSpawned = false; this.run.tutorialEnemyDefeated = false;
@@ -521,6 +655,7 @@
     this.run.banner.active = false; this.run.light.active = false; this.run.tutorialFade = 0; this.run.tutorialShownStep = -1;
     this.toastText = ''; this.toastAge = 0; this.toastQueue.length = 0;
     this.clearPools();
+    this.run.alarm = 0; this.run.alarmPeak = 0; this.run.alarmLatched = false; this.run.securityCompromised = false; this.run.rewardTier = 0; this.run.rewardPulse = 0; this.run.endReveal = 0;
     var start = this.floor.rooms[0];
     this.player.x = start.cx; this.player.y = start.cy; this.player.vx = this.player.vy = 0;
     this.player.health = 100; this.player.maxHealth = 100; this.player.armor = 0; this.player.invuln = 0.7;
@@ -570,8 +705,9 @@
     slot.maxHp = s.hp * (boss ? 1 : scale); slot.hp = slot.maxHp; slot.radius = s.radius; slot.speed = s.speed * (boss ? 1 : 1 + Math.min(4, this.run.floorNo - 1) * 0.035);
     slot.damage = s.damage * (1 + (this.run.floorNo - 1) * 0.08); slot.color = s.color; slot.facing = 0;
     slot.cooldown = 0.45 + (seed || 0) * 1.1; slot.alert = 0; slot.state = 'patrol'; slot.coverX = x; slot.coverY = y;
+    slot.patrolX = x; slot.patrolY = y;
     slot.flankSide = ((seed || 0) > 0.5 ? 1 : -1); slot.seed = seed || 0; slot.phase = 1; slot.phaseSeen = 1; slot.boss = boss; slot.flash = 0; slot.stun = 0;
-    slot.animState = 'idle'; slot.animTime = 0; slot.telegraph = 0; slot.tutorial = false;
+    slot.animState = 'idle'; slot.animTime = 0; slot.telegraph = 0; slot.anticipation = 0; slot.recovery = 0; slot.tutorial = false;
     return slot;
   };
 
@@ -591,12 +727,63 @@
   PlayScene.prototype.updateHazards = function () {
     for (var i = 0; i < this.floor.hazards.length; i++) {
       var hazard = this.floor.hazards[i]; hazard.pulse += STEP;
-      if (hazard.type === 'heat' && this.hazardAt(this.player.x, this.player.y, hazard)) this.damagePlayer(7 * STEP);
-      if (hazard.type === 'crossfire' && this.hazardAt(this.player.x, this.player.y, hazard)) {
+      if ((hazard.type === 'heat' || hazard.type === 'bio') && this.hazardAt(this.player.x, this.player.y, hazard)) this.damagePlayer(7 * STEP);
+      if ((hazard.type === 'crossfire' || hazard.type === 'blacksite') && this.hazardAt(this.player.x, this.player.y, hazard)) {
         hazard.cooldown -= STEP;
         if (hazard.cooldown <= 0) { this.damagePlayer(12); hazard.cooldown = 0.72; this.spawnBurst(this.player.x, this.player.y, PAL.rose, 5, 'telegraph'); kit.audio.sfx('warning_beep', { volume: 0.34, rate: 1.1 }); }
       }
     }
+  };
+  PlayScene.prototype.playerInShadow = function () {
+    var hidden = !!this.coverAt(this.player.x, this.player.y, 5);
+    var vent = this.floor && this.floor.vent && this.floor.vent.discovered && distance(this.player.x, this.player.y, this.floor.vent.x, this.floor.vent.y) < 28;
+    return (hidden || vent) && this.inputState.fireId === null;
+  };
+  PlayScene.prototype.inCameraCone = function (camera) {
+    var dx = this.player.x - camera.x, dy = this.player.y - camera.y, d = Math.hypot(dx, dy);
+    if (d > camera.range || d < 1) return false;
+    return Math.abs(angleDiff(Math.atan2(dy, dx), camera.angle)) < camera.spread;
+  };
+  PlayScene.prototype.lockdownDoors = function () {
+    for (var i = 0; i < this.floor.doors.length; i++) this.floor.doors[i].lockdown = true;
+  };
+  PlayScene.prototype.updateDoorFlow = function () {
+    for (var i = 0; i < this.floor.doors.length; i++) {
+      var door = this.floor.doors[i], card = this.floor.cards[i], room = this.floor.rooms[i];
+      door.targetOpen = !!(card && card.got && room && room.cleared && this.run.alarm < 0.42 && !door.lockdown);
+      door.openProgress = lerp(door.openProgress, door.targetOpen ? 1 : 0, kit.juice.enabled ? 0.24 : 0.5);
+      door.open = door.openProgress > 0.72;
+      if (door.open && door.targetOpen) door.lockdown = false;
+    }
+  };
+  PlayScene.prototype.updateSecurity = function () {
+    var hidden = this.playerInShadow(), seen = false;
+    this.player.stealth = hidden;
+    for (var i = 0; i < this.floor.cameras.length; i++) {
+      var camera = this.floor.cameras[i];
+      camera.scan += STEP * (0.9 + this.run.floorNo * 0.035) * camera.sweep;
+      camera.angle += Math.sin(camera.scan) * STEP * 0.45;
+      var canSee = !camera.disabled && camera.roomIndex === this.run.roomIndex && !hidden && this.inCameraCone(camera) && this.hasLOS(camera, this.player);
+      camera.alert = Math.max(0, camera.alert - STEP * (canSee ? 0.05 : 0.45));
+      if (canSee) { camera.alert = Math.min(1, camera.alert + STEP * 1.55); seen = true; }
+      if (canSee && camera.alert > 0.55) this.run.alarm = Math.min(1, this.run.alarm + STEP * 0.32);
+    }
+    if (seen && !hidden) this.run.alarm = Math.min(1, this.run.alarm + STEP * 0.12);
+    else this.run.alarm = Math.max(0, this.run.alarm - STEP * (hidden ? 0.32 : 0.08));
+    this.run.alarmPeak = Math.max(this.run.alarmPeak, this.run.alarm);
+    if (this.run.alarm > 0.54 && !this.run.alarmLatched) {
+      this.run.alarmLatched = true; this.run.securityCompromised = true; this.lockdownDoors(); this.toast('LOCKDOWN', PAL.alarm); kit.audio.sfx('warning_beep', { volume: 0.62, rate: 1.35 });
+      this.spawnBurst(this.player.x, this.player.y, PAL.alarm, 16, 'telegraph');
+    }
+    if (this.run.alarm < 0.18) this.run.alarmLatched = false;
+    if (this.run.alarm < 0.22 && !seen) for (var doorIndex = 0; doorIndex < this.floor.doors.length; doorIndex++) this.floor.doors[doorIndex].lockdown = false;
+    this.updateDoorFlow();
+  };
+  PlayScene.prototype.cameraAt = function (x, y, pad) {
+    for (var i = 0; i < this.floor.cameras.length; i++) {
+      var camera = this.floor.cameras[i]; if (!camera.disabled && distance(x, y, camera.x, camera.y) < 22 + (pad || 0)) return camera;
+    }
+    return null;
   };
   PlayScene.prototype.doorAt = function (x, y, pad) {
     for (var i = 0; i < this.floor.doors.length; i++) { var d = this.floor.doors[i]; if (!d.open && x > d.x - pad && x < d.x + d.w + pad && y > d.y - pad && y < d.y + d.h + pad) return d; }
@@ -713,7 +900,9 @@
     if (state.mag <= 0) { this.beginReload(); return; }
     var base = this.aimAngle(), pattern = weapon.pellets;
     if (this.freeBulletCount() < pattern) { this.toast('BULLET POOL FULL', PAL.amber); return; }
-    state.mag--; state.cooldown = weapon.cooldown; this.player.recoil = weapon.recoil; this.player.fireFlash = 0.09;
+    state.mag--; state.cooldown = weapon.cooldown; this.player.recoil = weapon.recoil; this.player.fireFlash = 0.09; this.player.fireRecover = 0.18;
+    this.run.muzzleLight = { active: true, x: this.player.x + Math.cos(base) * 24, y: this.player.y + Math.sin(base) * 24, angle: base, color: weapon.color, age: 0 };
+    this.run.alarm = Math.min(1, this.run.alarm + 0.035);
     for (var i = 0; i < pattern; i++) {
       var centered = i - (pattern - 1) / 2, randomSpread = (Math.random() - 0.5) * weapon.spread * (this.run.floorNo > 3 ? 1.08 : 1);
       var a = base + centered * weapon.spread / Math.max(1, pattern - 1) + randomSpread;
@@ -747,7 +936,7 @@
     if (Math.hypot(pad.aimX, pad.aimY) > 0.12) { this.inputState.aimDX = pad.aimX; this.inputState.aimDY = pad.aimY; this.inputState.aimRelative = true; this.inputState.directAim = true; }
     if (len > 0.04) { this.moveBody(this.player, this.player.vx * STEP, this.player.vy * STEP, 16); this.player.movePhase += STEP * (8 + len * 5); this.run.tutorialStep = Math.max(this.run.tutorialStep, 1); }
     this.ensureTutorialEnemy();
-    this.player.face = this.aimAngle(); this.player.recoil = Math.max(0, this.player.recoil - STEP * 1.8); this.player.fireFlash = Math.max(0, this.player.fireFlash - STEP); this.player.invuln = Math.max(0, this.player.invuln - STEP);
+    this.player.face = this.aimAngle(); this.player.recoil = Math.max(0, this.player.recoil - STEP * 1.8); this.player.fireFlash = Math.max(0, this.player.fireFlash - STEP); this.player.fireRecover = Math.max(0, this.player.fireRecover - STEP); this.player.invuln = Math.max(0, this.player.invuln - STEP);
     this.player.animState = this.player.fireFlash > 0 ? 'fire' : len > 0.04 ? 'move' : 'idle';
     for (var wi = 0; wi < this.run.weapons.length; wi++) {
       this.run.weapons[wi].cooldown = Math.max(0, this.run.weapons[wi].cooldown - STEP);
@@ -768,8 +957,8 @@
   };
   PlayScene.prototype.collectCards = function () {
     for (var i = 0; i < this.floor.cards.length; i++) { var card = this.floor.cards[i]; if (this.run.tutorialActive && i === 0 && this.run.tutorialStep < 2) continue; if (!card.got && distance(this.player.x, this.player.y, card.x, card.y) < 30) {
-      card.got = true; this.run.cardsFound++; var door = this.floor.doors[i]; if (door) { door.open = true; this.run.light = { active: true, x: door.x + door.w / 2, y: door.y + door.h / 2, color: door.color, age: 0 }; }
-      this.addPopup(card.x, card.y - 24, card.key.toUpperCase() + ' CARD', card.color); this.toast('ACCESS · ' + card.key.toUpperCase(), card.color); this.spawnBurst(card.x, card.y, card.color, 22, 'unlock'); kit.audio.sfx('keycard_chime', { volume: 0.72 }); this.run.tutorialStep = Math.max(this.run.tutorialStep, 3);
+      card.got = true; this.run.cardsFound++; var door = this.floor.doors[i]; if (door) { door.targetOpen = false; this.run.light = { active: true, x: door.x + door.w / 2, y: door.y + door.h / 2, color: door.color, age: 0 }; }
+      profile.cards[this.floor.no + '-' + i] = true; saveProfile(); this.addPopup(card.x, card.y - 24, card.key.toUpperCase() + ' CARD', card.color); this.toast('ACCESS · ' + card.key.toUpperCase(), card.color); this.spawnBurst(card.x, card.y, card.color, 22, 'unlock'); this.celebrateReward(card.color, 1); kit.audio.sfx('keycard_chime', { volume: 0.72 }); this.run.tutorialStep = Math.max(this.run.tutorialStep, 3);
     } }
   };
   PlayScene.prototype.collectPickups = function () {
@@ -777,11 +966,12 @@
       p.active = false;
       if (p.type === 'health') { this.player.health = Math.min(this.player.maxHealth, this.player.health + p.amount); this.toast('♥ +' + p.amount, PAL.green); }
       else if (p.type === 'armor') { this.player.armor = Math.min(60, this.player.armor + p.amount); this.toast('ARM +' + p.amount, PAL.blue); }
-      else if (p.type === 'ammo') { for (var wi = 0; wi < this.run.weapons.length; wi++) this.run.weapons[wi].reserve += p.amount; this.toast('AMMO +' + p.amount, PAL.amber); }
+      else if (p.type === 'ammo') { this.run.weapons[this.player.weapon].reserve += p.amount; this.toast(WEAPONS[this.player.weapon].short + ' AMMO +' + p.amount, PAL.amber); }
       else { this.run.weaponMods[this.player.weapon] = Math.min(8, this.run.weaponMods[this.player.weapon] + 1); this.toast('MOD +' + this.run.weaponMods[this.player.weapon], PAL.violet); }
       kit.audio.sfx('pickup_ping', { volume: 0.42, rate: p.type === 'mod' ? 1.35 : 1.05 });
       this.addPopup(p.x, p.y - 22, p.type === 'mod' ? 'MOD +' : '+' + p.amount, p.type === 'health' ? PAL.green : p.type === 'armor' ? PAL.blue : p.type === 'ammo' ? PAL.amber : PAL.violet);
       this.spawnBurst(p.x, p.y, p.type === 'health' ? PAL.green : p.type === 'armor' ? PAL.blue : p.type === 'mod' ? PAL.violet : PAL.amber, 15, 'pickup');
+      this.celebrateReward(p.type === 'health' ? PAL.green : p.type === 'armor' ? PAL.blue : p.type === 'mod' ? PAL.violet : PAL.amber, p.type === 'mod' ? 2 : 1);
     }
   };
   PlayScene.prototype.checkVent = function () {
@@ -803,26 +993,42 @@
     for (var i = 0; i < this.enemies.length; i++) {
       var e = this.enemies[i]; if (!e.active) continue;
       e.flash = Math.max(0, e.flash - STEP); e.stun = Math.max(0, e.stun - STEP); e.cooldown -= STEP; e.animTime += STEP;
+      e.recovery = Math.max(0, e.recovery - STEP); e.anticipation = Math.max(0, e.anticipation - STEP);
       var d = distance(e.x, e.y, this.player.x, this.player.y), sameRoom = e.roomIndex === this.run.roomIndex;
       if (sameRoom && (d < 620 || this.floor.rooms[e.roomIndex].entered) && this.hasLOS(e, this.player)) e.alert = Math.max(e.alert, 3.4);
       e.alert = Math.max(0, e.alert - STEP);
       if (e.boss) { this.updateBoss(e, d); continue; }
       if (e.stun > 0) continue;
       var s = enemyStats(e.kind);
-      if (e.alert <= 0) { e.state = 'patrol'; e.animState = 'idle'; e.facing += Math.sin(this.simTime * 1.7 + e.seed * 4) * STEP * 0.7; continue; }
+      if (e.alert <= 0) {
+        e.state = 'patrol'; e.animState = e.kind === 'patrol' ? 'move' : 'idle';
+        if (e.kind === 'patrol') {
+          var patrolAngle = this.simTime * (0.55 + e.seed * 0.18) + e.seed * TAU, patrolX = e.patrolX + Math.cos(patrolAngle) * 24, patrolY = e.patrolY + Math.sin(patrolAngle) * 18;
+          e.facing = Math.atan2(patrolY - e.y, patrolX - e.x); this.moveEnemy(e, patrolX, patrolY, s.speed * STEP * 0.32);
+        } else e.facing += Math.sin(this.simTime * 1.7 + e.seed * 4) * STEP * 0.7;
+        continue;
+      }
       e.facing = Math.atan2(this.player.y - e.y, this.player.x - e.x);
       if (e.kind === 'gunner' || e.kind === 'turret') {
         if (e.kind === 'gunner' && (this.hasLOS(e, this.player) || d < 230)) this.seekCover(e);
         if (e.state === 'cover' && distance(e.x, e.y, e.coverX, e.coverY) > 16) { e.animState = 'move'; this.moveEnemy(e, e.coverX, e.coverY, s.speed * STEP); }
-        if (this.hasLOS(e, this.player) && d < s.range) { if (e.cooldown <= 0) { this.enemyShoot(e, e.kind === 'turret' ? 1 : 1, s.damage, e.kind === 'turret' ? 290 : 250); e.cooldown = e.kind === 'turret' ? 1.05 : 1.28 - Math.min(0.32, this.run.floorNo * 0.035); } }
+        if (this.hasLOS(e, this.player) && d < s.range) { if (e.cooldown <= 0) { e.animState = 'anticipation'; e.animTime = 0; this.enemyShoot(e, 1, s.damage, e.kind === 'turret' ? 290 : 250); e.cooldown = e.kind === 'turret' ? 1.05 : 1.28 - Math.min(0.32, this.run.floorNo * 0.035); } }
       } else if (e.kind === 'flanker') {
         e.state = 'flank'; e.animState = 'move'; var flankAngle = Math.atan2(this.player.y - e.y, this.player.x - e.x) + e.flankSide * (this.run.floorNo >= 3 ? 1.15 : 0.8);
         var tx = this.player.x - Math.cos(flankAngle) * 105, ty = this.player.y - Math.sin(flankAngle) * 105;
         this.moveEnemy(e, tx, ty, s.speed * STEP); if (d < s.range) this.damagePlayer(s.damage * STEP * 0.9);
+      } else if (e.kind === 'patrol') {
+        e.state = 'intercept'; e.animState = 'move'; this.moveEnemy(e, this.player.x, this.player.y, s.speed * STEP * 0.8); if (d < s.range) this.damagePlayer(s.damage * STEP * 0.85);
+      } else if (e.kind === 'hunter') {
+        e.state = 'hunt'; e.animState = e.recovery > 0 ? 'recovery' : 'move'; this.moveEnemy(e, this.player.x, this.player.y, s.speed * STEP); if (d < s.range) this.damagePlayer(s.damage * STEP * 0.86);
+        if (d < 180 && e.cooldown <= 0) { e.animState = 'anticipation'; e.cooldown = 1.2; this.spawnBurst(e.x, e.y, e.color, 5, 'muzzle'); }
+      } else if (e.kind === 'swarm') {
+        e.state = 'swarm'; e.animState = 'move'; var swarmAngle = Math.atan2(this.player.y - e.y, this.player.x - e.x) + Math.sin(this.simTime * 5 + e.seed * 9) * 0.75;
+        this.moveEnemy(e, this.player.x + Math.cos(swarmAngle) * 14, this.player.y + Math.sin(swarmAngle) * 14, s.speed * STEP); if (d < s.range) this.damagePlayer(s.damage * STEP * 0.8);
       } else {
         e.state = 'hunt'; e.animState = 'move'; this.moveEnemy(e, this.player.x, this.player.y, s.speed * STEP); if (d < s.range) this.damagePlayer(s.damage * STEP * 0.9);
       }
-      if (d < e.radius + 17 && e.kind !== 'flanker') this.damagePlayer(s.damage * STEP * 0.75);
+      if (d < e.radius + 17 && e.kind !== 'flanker' && e.kind !== 'hunter' && e.kind !== 'swarm') this.damagePlayer(s.damage * STEP * 0.75);
     }
     for (var ri = 0; ri < this.floor.rooms.length; ri++) {
       var room = this.floor.rooms[ri]; if (!room.entered || room.cleared) continue;
@@ -847,7 +1053,7 @@
     if (this.walkable(e.x, e.y + dy * distanceStep, e.radius)) e.y += dy * distanceStep;
   };
   PlayScene.prototype.enemyShoot = function (e, count, damage, speed) {
-    e.animState = 'attack'; e.animTime = 0;
+    e.animState = 'attack'; e.animTime = 0; e.recovery = 0.18;
     var base = Math.atan2(this.player.y - e.y, this.player.x - e.x);
     for (var i = 0; i < count; i++) { var a = base + (Math.random() - 0.5) * (e.boss ? 0.12 : 0.08); this.spawnBullet(false, e.x + Math.cos(a) * (e.radius + 5), e.y + Math.sin(a) * (e.radius + 5), Math.cos(a) * speed, Math.sin(a) * speed, damage, e.color, 3.2, e.boss ? 6 : 4); }
     this.spawnBurst(e.x + Math.cos(base) * (e.radius + 8), e.y + Math.sin(base) * (e.radius + 8), e.color, 4, 'muzzle'); kit.audio.sfx('weapon_fire_3', { volume: 0.22, rate: 0.55 });
@@ -869,12 +1075,13 @@
   PlayScene.prototype.roomEnemyCount = function (roomIndex) { var count = 0; for (var i = 0; i < this.enemies.length; i++) if (this.enemies[i].active && this.enemies[i].roomIndex === roomIndex) count++; return count; };
   PlayScene.prototype.clearRoom = function (room) {
     if (room.cleared) return; room.cleared = true; this.floor.clearedCount++; this.run.roomsCleared++; this.run.score += 150 + this.run.floorNo * 55;
-    this.spawnRoomDrops(room); this.toast('CLEAR · R' + (room.index + 1), PAL.green); this.spawnBurst(room.cx, room.cy, PAL.green, 18, 'clear'); kit.audio.sfx('room_clear', { volume: 0.56, rate: 0.96 + room.index * 0.05 });
-    if (room.index === 4) { this.floor.lift.active = this.allRoomsCleared() && (this.run.floorNo !== 5 || this.run.bossDefeated); this.toast(this.floor.lift.active ? 'LIFT READY' : 'MORE ROOMS', this.floor.lift.active ? PAL.green : PAL.amber); }
+    if (this.player.stealth) { profile.stealthClears[this.floor.no + '-' + room.index] = true; saveProfile(); }
+    this.spawnRoomDrops(room); this.toast('CLEAR · R' + (room.index + 1), PAL.green); this.spawnBurst(room.cx, room.cy, PAL.green, 18, 'clear'); this.celebrateReward(PAL.green, 2); kit.audio.sfx('room_clear', { volume: 0.56, rate: 0.96 + room.index * 0.05 });
+    if (room.index === 4) { this.floor.lift.active = this.allRoomsCleared() && (this.run.floorNo !== 9 || this.run.bossDefeated); this.toast(this.floor.lift.active ? 'LIFT READY' : 'MORE ROOMS', this.floor.lift.active ? PAL.green : PAL.amber); }
     else kit.audio.sfx('door_chime', { volume: 0.35, rate: 1 + room.index * 0.06 });
   };
   PlayScene.prototype.spawnRoomDrops = function (room) {
-    var specs = [{ type: 'ammo', amount: 18 }, { type: 'armor', amount: 18 }, { type: 'health', amount: 28 }, { type: 'mod', amount: 1 }];
+    var specs = [{ type: 'ammo', amount: 9 }, { type: 'armor', amount: 14 }, { type: 'health', amount: 22 }, { type: 'mod', amount: 1 }];
     for (var i = 0; i < specs.length; i++) {
       for (var p = 0; p < this.pickups.length; p++) if (!this.pickups[p].active) { var item = this.pickups[p]; item.active = true; item.type = specs[i].type; item.amount = specs[i].amount; item.roomIndex = room.index; item.x = room.x + 46 + ((i * 49) % (room.w - 80)); item.y = room.y + room.h - 46; item.bob = i * 1.7; break; }
     }
@@ -886,6 +1093,14 @@
       if (b.life <= 0 || !this.floorPoint(b.x, b.y) || this.doorAt(b.x, b.y, b.radius) || this.coverAt(b.x, b.y, b.radius)) { b.active = false; continue; }
       if (b.friendly) {
         var hit = false;
+        for (var cameraIndex = 0; cameraIndex < this.floor.cameras.length; cameraIndex++) {
+          var camera = this.floor.cameras[cameraIndex];
+          if (camera.disabled || distance(b.x, b.y, camera.x, camera.y) > 18 + b.radius) continue;
+          camera.hp -= b.damage; hit = true; this.spawnImpact(b.x, b.y, PAL.coolant);
+          if (camera.hp <= 0) { camera.disabled = true; profile.cameraDisables[this.floor.no + '-' + cameraIndex] = true; saveProfile(); this.run.securityCompromised = false; this.toast('CAMERA OFFLINE', PAL.green); this.spawnBurst(camera.x, camera.y, PAL.coolant, 18, 'coolant'); kit.audio.sfx('door_chime', { volume: 0.34, rate: 1.55 }); }
+          break;
+        }
+        if (hit) { b.active = false; continue; }
         for (var ei = 0; ei < this.enemies.length; ei++) { var e = this.enemies[ei]; if (!e.active || distance(b.x, b.y, e.x, e.y) > e.radius + b.radius) continue;
           hit = true; this.run.hits++; this.run.floorHits++; e.hp -= b.damage; e.flash = 0.08; e.animState = 'hit'; e.animTime = 0; this.spawnImpact(b.x, b.y, b.color); if (e.boss) e.stun = 0.035; if (e.hp <= 0) this.killEnemy(e); break;
         }
@@ -896,7 +1111,7 @@
   PlayScene.prototype.killEnemy = function (e) {
     if (!e.active) return; var wasBoss = e.boss; this.spawnDeathActor(e); if (e.tutorial) { this.run.tutorialEnemyDefeated = true; this.run.tutorialStep = Math.max(this.run.tutorialStep, 2); } e.animState = 'death'; e.active = false; this.run.score += wasBoss ? 2200 : 90 + this.run.floorNo * 18; this.run.hitStop = kit.juice.enabled ? (wasBoss ? 0.11 : 0.045) : 0;
     kit.juice.shake(wasBoss ? 12 : 4, wasBoss ? 260 : 100); if (wasBoss) this.toast('SENTINEL DOWN', PAL.gold); this.spawnBurst(e.x, e.y, wasBoss ? PAL.gold : e.color, wasBoss ? 42 : 18, wasBoss ? 'boss' : 'death'); this.spawnRing(e.x, e.y, wasBoss ? PAL.gold : e.color, wasBoss ? 70 : 32);
-    if (wasBoss) { this.run.bossDefeated = true; this.floor.bossDefeated = true; this.floor.lift.active = true; kit.audio.sfx('boss_phase', { volume: 0.9, rate: 0.55 }); }
+    if (wasBoss) { this.run.bossDefeated = true; this.floor.bossDefeated = true; this.floor.lift.active = true; this.celebrateReward(PAL.gold, 4); kit.audio.sfx('boss_phase', { volume: 0.9, rate: 0.55 }); }
   };
   PlayScene.prototype.updateEffects = function () {
     var i;
@@ -908,6 +1123,12 @@
     for (i = 0; i < this.popups.length; i++) { var pop = this.popups[i]; if (!pop.active) continue; pop.y -= 23 * STEP; pop.life -= STEP; if (pop.life <= 0) pop.active = false; }
     for (i = 0; i < this.deathActors.length; i++) { var actor = this.deathActors[i]; if (!actor.active) continue; actor.life -= STEP; actor.phase += STEP * 8; if (actor.life <= 0) actor.active = false; }
     if (this.run.light.active) { this.run.light.age += STEP; if (this.run.light.age > 1.15) this.run.light.active = false; }
+    if (this.run.muzzleLight.active) { this.run.muzzleLight.age += STEP; if (this.run.muzzleLight.age > 0.16) this.run.muzzleLight.active = false; }
+    this.run.rewardPulse = Math.max(0, this.run.rewardPulse - STEP * 1.8);
+    if (this.run.state === 'dead' || this.run.state === 'victory') this.run.endReveal = Math.min(1, this.run.endReveal + STEP * 2.6);
+    for (var doorIndex = 0; doorIndex < this.floor.doors.length; doorIndex++) {
+      var door = this.floor.doors[doorIndex]; door.openProgress = clamp(door.openProgress, 0, 1);
+    }
     if (this.run.banner.active) {
       this.run.banner.age += STEP;
       if (this.run.banner.age > 1.25) this.run.banner.active = false;
@@ -932,6 +1153,7 @@
     if (type === 'smoke') return 'smoke';
     if (type === 'death' || type === 'boss') return 'death';
     if (type === 'phase' || type === 'telegraph') return 'telegraph';
+    if (type === 'coolant') return 'coolant';
     return 'pickup';
   };
   PlayScene.prototype.spawnBurst = function (x, y, color, count, type) {
@@ -942,12 +1164,18 @@
       for (var p = 0; p < system.length; p++) if (!system[p].active) { particle = system[p]; break; }
       if (!particle) for (var q = 0; q < system.length; q++) if (system[q].life < oldest) { oldest = system[q].life; particle = system[q]; }
       if (!particle) continue;
-      var a = Math.random() * TAU, speed = typeName === 'smoke' ? 22 + Math.random() * 30 : 40 + Math.random() * 150;
-      particle.active = true; particle.type = typeName; particle.x = x; particle.y = y; particle.vx = Math.cos(a) * speed; particle.vy = Math.sin(a) * speed; particle.max = 0.24 + Math.random() * 0.38; particle.life = particle.max; particle.size = typeName === 'smoke' ? 5 + Math.random() * 8 : 2 + Math.random() * 3; particle.color = color;
+      var a = Math.random() * TAU, speed = typeName === 'smoke' ? 22 + Math.random() * 30 : typeName === 'coolant' ? 18 + Math.random() * 70 : 40 + Math.random() * 150;
+      particle.active = true; particle.type = typeName; particle.x = x; particle.y = y; particle.vx = Math.cos(a) * speed; particle.vy = Math.sin(a) * speed; particle.max = typeName === 'coolant' ? 0.36 + Math.random() * 0.3 : 0.24 + Math.random() * 0.38; particle.life = particle.max; particle.size = typeName === 'smoke' ? 5 + Math.random() * 8 : typeName === 'coolant' ? 2 + Math.random() * 4 : 2 + Math.random() * 3; particle.color = color;
     }
   };
-  PlayScene.prototype.spawnImpact = function (x, y, color) { this.spawnBurst(x, y, color, 6, 'impact'); this.spawnRing(x, y, color, 18); kit.audio.sfx('hit_impact', { volume: 0.18, rate: 1.2 }); };
+  PlayScene.prototype.spawnImpact = function (x, y, color) { this.spawnBurst(x, y, color, 6, 'impact'); this.spawnBurst(x, y, PAL.coolant, 4, 'coolant'); this.spawnRing(x, y, color, 18); kit.audio.sfx('hit_impact', { volume: 0.18, rate: 1.2 }); };
   PlayScene.prototype.spawnRing = function (x, y, color, radius) { var r = null, oldest = Infinity; for (var i = 0; i < this.rings.length; i++) { if (!this.rings[i].active) { r = this.rings[i]; break; } if (this.rings[i].life < oldest) { oldest = this.rings[i].life; r = this.rings[i]; } } if (r) { r.active = true; r.x = x; r.y = y; r.radius = 5; r.max = radius; r.life = 0.34; r.color = color; r.width = radius > 40 ? 5 : 2; } };
+  PlayScene.prototype.celebrateReward = function (color, tier) {
+    this.run.rewardTier = Math.min(6, this.run.rewardTier + (tier || 1)); this.run.rewardPulse = 1.05;
+    var burst = kit.juice.enabled ? 8 + this.run.rewardTier * 3 : 3;
+    this.spawnBurst(this.player.x, this.player.y, color || PAL.gold, burst, 'pickup');
+    this.spawnRing(this.player.x, this.player.y, color || PAL.gold, 22 + this.run.rewardTier * 8);
+  };
   /* World popups were redundant with the score, meter, and single corner notice. */
   PlayScene.prototype.addPopup = function () {};
   PlayScene.prototype.spawnDeathActor = function (e) { for (var i = 0; i < this.deathActors.length; i++) if (!this.deathActors[i].active) { var actor = this.deathActors[i]; actor.active = true; actor.kind = e.kind; actor.x = e.x; actor.y = e.y; actor.radius = e.radius; actor.color = e.color; actor.facing = e.facing; actor.life = actor.max; actor.phase = 0; return; } };
@@ -971,11 +1199,11 @@
   PlayScene.prototype.arriveAtLift = function () {
     if (this.run.floorWon || this.run.state !== 'play') return;
     if (!this.allRoomsCleared()) { this.toast('CLEAR ROOMS FIRST', PAL.amber); return; }
-    if (this.run.floorNo === 5 && !this.run.bossDefeated) { this.toast('BOSS ACTIVE', PAL.red); return; }
-    this.run.floorWon = true; this.run.score += 500 + this.run.floorNo * 100; this.recordFloor();
-    this.announce(this.run.floorNo === 5 ? 'PROTOCOL COMPLETE' : 'LIFT ARRIVAL', this.run.floorNo === 5 ? 'VAULT CLEARED // EXFIL READY' : 'NEXT FLOOR UNLOCKED', this.floor.family.accent); kit.audio.sfx('door_chime', { volume: 0.8, rate: 1.5 });
+    if (this.run.floorNo === 9 && !this.run.bossDefeated) { this.toast('BOSS ACTIVE', PAL.red); return; }
+    this.run.floorWon = true; this.run.score += 500 + this.run.floorNo * 100; this.recordFloor(); this.celebrateReward(this.floor.family.accent, 3);
+    this.announce(this.run.floorNo === 9 ? 'PROTOCOL COMPLETE' : 'LIFT ARRIVAL', this.run.floorNo === 9 ? 'CORE CLEARED // EXFIL READY' : 'NEXT FLOOR UNLOCKED', this.floor.family.accent); kit.audio.sfx('door_chime', { volume: 0.8, rate: 1.5 });
     if (this.run.floorNo < FLOOR_FAMILIES.length) { this.run.state = 'between'; }
-    else { this.run.state = 'victory'; this.saveRunScore(); kit.audio.sfx('victory_fanfare', { volume: 0.78, rate: 1 }); }
+    else { this.run.state = 'victory'; profile.completedRuns++; profile.alarmBest = Math.max(profile.alarmBest, this.run.alarmPeak); this.saveRunScore(); saveProfile(); kit.audio.sfx('victory_fanfare', { volume: 0.78, rate: 1 }); }
   };
   PlayScene.prototype.allRoomsCleared = function () { for (var i = 0; i < this.floor.rooms.length; i++) if (!this.floor.rooms[i].cleared) return false; return true; };
   PlayScene.prototype.recordFloor = function () {
@@ -1013,14 +1241,14 @@
     this.simTime += STEP;
     if (this.run.state === 'dead' || this.run.state === 'victory') {
       var enter = kit.input.keyDown('Enter') || kit.input.keyDown('NumpadEnter'), floorKeys = [];
-      for (var floorKeyIndex = 0; floorKeyIndex < 5; floorKeyIndex++) floorKeys[floorKeyIndex] = kit.input.keyDown('Digit' + (floorKeyIndex + 1));
+      for (var floorKeyIndex = 0; floorKeyIndex < 9; floorKeyIndex++) floorKeys[floorKeyIndex] = kit.input.keyDown('Digit' + (floorKeyIndex + 1));
       if ((enter && !this.inputState.prevEnter) || this.gamepadState.restart) { this.hardRestart(1); this.inputState.prevEnter = enter; this.updateEffects(); return; }
       for (var selectableIndex = 0; selectableIndex < floorKeys.length; selectableIndex++) if (floorKeys[selectableIndex] && !this.inputState.prevFloorKeys[selectableIndex] && selectableIndex + 1 <= profile.unlockedFloor) { this.hardRestart(selectableIndex + 1); this.inputState.prevFloorKeys[selectableIndex] = true; this.updateEffects(); return; }
       this.inputState.prevEnter = enter; this.inputState.prevFloorKeys = floorKeys; this.updateEffects(); return;
     }
     if (this.run.state === 'between') { if (this.run.banner.age > 0.95) this.nextFloor(); this.updateEffects(); return; }
     if (this.run.state === 'play') {
-      this.run.floorTime += STEP; this.run.totalTime += STEP; this.updatePlayer(); this.updateEnemies(); this.updateBullets();
+      this.run.floorTime += STEP; this.run.totalTime += STEP; this.updatePlayer(); this.updateSecurity(); this.updateEnemies(); this.updateBullets();
       this.updateAudioIntensity();
     }
     this.updateEffects();
@@ -1037,26 +1265,62 @@
   PlayScene.prototype.renderFrame = function () {
     var joy = kit.juice.frame(), camera = this.cameras.main;
     camera.centerOn(this.player.x + joy.dx * 0.45, this.player.y + joy.dy * 0.45);
-    this.world.clear(); this.entities.clear(); this.fx.clear(); this.ui.clear(); this.uiFx.clear();
-    this.drawWorld(); this.drawEntities(); this.drawEffects(); this.drawHud();
+    this.world.clear(); this.shadows.clear(); this.lightGlow.clear(); this.entities.clear(); this.fx.clear(); this.ui.clear(); this.uiFx.clear();
+    this.drawWorld(); this.drawLighting(); this.drawEntities(); this.drawEffects(); this.drawHud();
   };
   PlayScene.prototype.drawWorld = function () {
     var g = this.world, family = this.floor.family;
     for (var existingLabelIndex = 0; existingLabelIndex < this.worldLabels.length; existingLabelIndex++) this.worldLabels[existingLabelIndex].setVisible(false);
     this.worldLabelCursor = 0;
-    for (var gx = 0; gx < WORLD_W; gx += 36) g.lineStyle(1, family.ambient, 0.24).lineBetween(gx, 0, gx, WORLD_H);
-    for (var gy = 0; gy < WORLD_H; gy += 36) g.lineStyle(1, family.ambient, 0.22).lineBetween(0, gy, WORLD_W, gy);
-    for (var c = 0; c < this.floor.corridors.length; c++) { var cor = this.floor.corridors[c]; g.lineStyle(3, PAL.wall, 0.8).strokeRect(cor.x, cor.y, cor.w, cor.h); }
-    for (var i = 0; i < this.floor.rooms.length; i++) { var r = this.floor.rooms[i], panel = this.visual.roomPanels[i]; panel.setVisible(true).setPosition(r.cx, r.cy).setDisplaySize(r.w, r.h); g.lineStyle(7, PAL.wall, 1).strokeRect(r.x, r.y, r.w, r.h); g.lineStyle(2, r.cleared ? PAL.green : family.accent, r.cleared ? 0.8 : 0.35).strokeRect(r.x + 12, r.y + 12, r.w - 24, r.h - 24); }
+    for (var roomPanelIndex = 0; roomPanelIndex < this.visual.roomPanels.length; roomPanelIndex++) this.visual.roomPanels[roomPanelIndex].setVisible(false);
     for (var ci = 0; ci < this.floor.covers.length; ci++) { var cover = this.floor.covers[ci], coverSprite = this.visual.covers[ci]; if (!coverSprite) continue; coverSprite.setVisible(true).setPosition(cover.x + cover.w / 2, cover.y + cover.h / 2).setDisplaySize(cover.w, cover.h); }
-    for (var di = 0; di < this.floor.doors.length; di++) { var d = this.floor.doors[di], doorSprite = this.visual.doors[di], verticalDoor = d.h > d.w; doorSprite.setVisible(true).setPosition(d.x + d.w / 2, d.y + d.h / 2).setDisplaySize(verticalDoor ? d.w : d.h, verticalDoor ? d.h : d.w).setRotation(verticalDoor ? 0 : Math.PI / 2).setAlpha(d.open ? 0.32 : 0.96).setTint(d.color); }
+    for (var di = 0; di < this.floor.doors.length; di++) {
+      var d = this.floor.doors[di], doorSprite = this.visual.doors[di], verticalDoor = d.h > d.w, doorScale = Math.max(0.18, 1 - d.openProgress * 0.72);
+      doorSprite.setVisible(true).setPosition(d.x + d.w / 2, d.y + d.h / 2).setDisplaySize(verticalDoor ? d.w * doorScale : d.h * doorScale, verticalDoor ? d.h * doorScale : d.w * doorScale).setRotation(verticalDoor ? 0 : Math.PI / 2).setAlpha(d.open ? 0.28 : 0.94).setTint(d.lockdown ? PAL.alarm : d.color);
+      g.lineStyle(2, d.lockdown ? PAL.alarm : d.color, d.lockdown ? 0.9 : 0.72).strokeRect(d.x, d.y, d.w, d.h);
+      if (d.lockdown) { g.lineStyle(2, PAL.alarm, 0.7); g.lineBetween(d.x, d.y, d.x + d.w, d.y + d.h); g.lineBetween(d.x + d.w, d.y, d.x, d.y + d.h); }
+    }
     var liftPulse = kit.juice.enabled ? 1 + Math.sin(this.simTime * 4) * 0.08 : 1; this.visual.lift.setVisible(true).setPosition(this.floor.lift.x, this.floor.lift.y).setScale(liftPulse).setTint(this.floor.lift.active ? PAL.green : PAL.wallHi);
     for (var cardIndex = 0; cardIndex < this.floor.cards.length; cardIndex++) { var card = this.floor.cards[cardIndex], cardSprite = this.visual.cards[cardIndex], bob = kit.juice.enabled ? Math.sin(this.simTime * 4 + card.bob) * 5 : 0; cardSprite.setVisible(!card.got).setPosition(card.x, card.y + bob).setScale(0.78).setTint(card.color); }
     var vent = this.floor.vent; if (vent) this.visual.vent.setVisible(true).setPosition(vent.x, vent.y).setTint(vent.discovered ? PAL.cyan : PAL.wallHi);
-    for (var hazardIndex = 0; hazardIndex < this.floor.hazards.length; hazardIndex++) { var hazard = this.floor.hazards[hazardIndex], pulse = 0.5 + Math.sin(this.simTime * 4 + hazard.pulse) * 0.18; if (hazard.type === 'heat') { g.fillStyle(PAL.orange, pulse * 0.18).fillCircle(hazard.x, hazard.y, hazard.radius); g.lineStyle(2, PAL.amber, pulse).strokeCircle(hazard.x, hazard.y, hazard.radius); } else if (hazard.type === 'crossfire') { g.fillStyle(PAL.rose, pulse * 0.22).fillRect(hazard.x - hazard.w / 2, hazard.y - hazard.h / 2, hazard.w, hazard.h); g.lineStyle(2, PAL.rose, pulse).strokeRect(hazard.x - hazard.w / 2, hazard.y - hazard.h / 2, hazard.w, hazard.h); } else if (hazard.type === 'relay') { g.lineStyle(2, PAL.cyan, pulse).strokeCircle(hazard.x, hazard.y, hazard.radius); g.fillStyle(PAL.cyan, pulse).fillCircle(hazard.x, hazard.y, 5); } else if (hazard.type === 'core') { g.lineStyle(3, PAL.gold, pulse).strokeCircle(hazard.x, hazard.y, hazard.radius); } }
-    if (this.run.light.active) { var light = this.run.light, fade = clamp(1 - light.age / 1.15, 0, 1); for (var li = 3; li >= 1; li--) g.fillStyle(light.color, fade * 0.06 * li).fillCircle(light.x, light.y, 44 * li); }
+    for (var cameraIndex = 0; cameraIndex < this.floor.cameras.length; cameraIndex++) { var camera = this.floor.cameras[cameraIndex], cameraPulse = 0.6 + Math.sin(this.simTime * 5 + camera.scan) * 0.22; g.fillStyle(camera.disabled ? PAL.slate : camera.alert > 0.55 ? PAL.alarm : PAL.blue, camera.disabled ? 0.5 : 0.22).fillCircle(camera.x, camera.y, 16); g.fillStyle(camera.disabled ? PAL.slate : camera.alert > 0.55 ? PAL.alarm : PAL.blue, 1).fillCircle(camera.x, camera.y, 5 + cameraPulse * 2); g.lineStyle(2, camera.disabled ? PAL.wall : camera.alert > 0.55 ? PAL.alarm : PAL.blue, 0.8).strokeRect(camera.x - 9, camera.y - 7, 18, 14); }
+    for (var hazardIndex = 0; hazardIndex < this.floor.hazards.length; hazardIndex++) { var hazard = this.floor.hazards[hazardIndex], pulse = 0.5 + Math.sin(this.simTime * 4 + hazard.pulse) * 0.18; if (hazard.type === 'heat' || hazard.type === 'bio') { g.fillStyle(hazard.type === 'bio' ? PAL.green : PAL.orange, pulse * 0.18).fillCircle(hazard.x, hazard.y, hazard.radius); g.lineStyle(2, hazard.type === 'bio' ? PAL.green : PAL.amber, pulse).strokeCircle(hazard.x, hazard.y, hazard.radius); } else if (hazard.type === 'crossfire' || hazard.type === 'blacksite') { g.fillStyle(PAL.rose, pulse * 0.22).fillRect(hazard.x - hazard.w / 2, hazard.y - hazard.h / 2, hazard.w, hazard.h); g.lineStyle(2, PAL.rose, pulse).strokeRect(hazard.x - hazard.w / 2, hazard.y - hazard.h / 2, hazard.w, hazard.h); } else if (hazard.type === 'relay') { g.lineStyle(2, PAL.cyan, pulse).strokeCircle(hazard.x, hazard.y, hazard.radius); g.fillStyle(PAL.cyan, pulse).fillCircle(hazard.x, hazard.y, 5); } else if (hazard.type === 'core') { g.lineStyle(3, PAL.gold, pulse).strokeCircle(hazard.x, hazard.y, hazard.radius); } }
     if (this.run.tutorialActive && this.run.tutorialStep === 0 && this.floor.tutorialTarget) { var targetPulse = 1 + Math.sin(this.simTime * 5) * 0.12; g.lineStyle(3, PAL.cyan, 0.9).strokeCircle(this.floor.tutorialTarget.x, this.floor.tutorialTarget.y, 18 * targetPulse); g.lineStyle(2, PAL.white, 0.7).lineBetween(this.floor.tutorialTarget.x - 26, this.floor.tutorialTarget.y, this.floor.tutorialTarget.x - 8, this.floor.tutorialTarget.y); }
     /* Room names stay out of live play; the compact R# meter and room borders carry route state. */
+  };
+  PlayScene.prototype.drawCone = function (g, x, y, angle, length, spread, color, alpha) {
+    var segments = kit.juice.enabled ? 8 : 4;
+    for (var i = 0; i < segments; i++) {
+      var a0 = angle - spread + spread * 2 * i / segments, a1 = angle - spread + spread * 2 * (i + 1) / segments;
+      g.fillStyle(color, alpha * (1 - i * 0.035)); g.fillTriangle(x, y, x + Math.cos(a0) * length, y + Math.sin(a0) * length, x + Math.cos(a1) * length, y + Math.sin(a1) * length);
+    }
+  };
+  PlayScene.prototype.drawShadowOcclusion = function (g, cover, lightX, lightY) {
+    var corners = [{ x: cover.x, y: cover.y }, { x: cover.x + cover.w, y: cover.y }, { x: cover.x + cover.w, y: cover.y + cover.h }, { x: cover.x, y: cover.y + cover.h }], farA = corners[0], farB = corners[0];
+    var farScoreA = -Infinity, farScoreB = -Infinity;
+    for (var i = 0; i < corners.length; i++) { var score = distance(corners[i].x, corners[i].y, lightX, lightY); if (score > farScoreA) { farScoreB = farScoreA; farB = farA; farScoreA = score; farA = corners[i]; } else if (score > farScoreB) { farScoreB = score; farB = corners[i]; } }
+    var dxA = farA.x - lightX, dyA = farA.y - lightY, dxB = farB.x - lightX, dyB = farB.y - lightY;
+    g.fillStyle(PAL.shadow, 0.34).fillTriangle(farA.x, farA.y, farA.x + dxA * 0.8, farA.y + dyA * 0.8, farB.x + dxB * 0.8, farB.y + dyB * 0.8);
+    g.fillTriangle(farA.x, farA.y, farB.x, farB.y, farB.x + dxB * 0.8, farB.y + dyB * 0.8);
+  };
+  PlayScene.prototype.drawLighting = function () {
+    var shadows = this.shadows, glow = this.lightGlow, alarm = this.run.alarm;
+    shadows.fillStyle(PAL.shadow, 0.2 + alarm * 0.08).fillRect(0, 0, WORLD_W, WORLD_H);
+    for (var coverIndex = 0; coverIndex < this.floor.covers.length; coverIndex++) {
+      var cover = this.floor.covers[coverIndex]; if (cover.roomIndex !== this.run.roomIndex) continue;
+      this.drawShadowOcclusion(shadows, cover, this.player.x, this.player.y);
+    }
+    this.drawCone(glow, this.player.x, this.player.y, this.player.face, 230, 0.5, this.floor.family.accent, 0.13);
+    for (var cameraIndex = 0; cameraIndex < this.floor.cameras.length; cameraIndex++) {
+      var camera = this.floor.cameras[cameraIndex]; if (camera.disabled) continue;
+      this.drawCone(glow, camera.x, camera.y, camera.angle, camera.range, camera.spread, camera.alert > 0.55 ? PAL.alarm : PAL.blue, camera.alert > 0.55 ? 0.14 : 0.08);
+    }
+    if (this.run.muzzleLight.active) {
+      var flash = this.run.muzzleLight, flashAlpha = clamp(1 - flash.age / 0.16, 0, 1);
+      this.drawCone(glow, flash.x, flash.y, flash.angle, 170, 0.3, flash.color, 0.28 * flashAlpha); glow.fillStyle(flash.color, 0.18 * flashAlpha).fillCircle(flash.x, flash.y, 48 * flashAlpha);
+    }
+    if (this.run.light.active) { var light = this.run.light, fade = clamp(1 - light.age / 1.15, 0, 1); glow.fillStyle(light.color, fade * 0.18).fillCircle(light.x, light.y, 66); }
+    if (alarm > 0.18) { glow.fillStyle(PAL.alarm, alarm * 0.045).fillRect(0, 0, WORLD_W, WORLD_H); glow.lineStyle(2, PAL.alarm, alarm * 0.24).strokeRect(20, 20, WORLD_W - 40, WORLD_H - 40); }
   };
   PlayScene.prototype.addWorldLabel = function () {};
   PlayScene.prototype.drawEntities = function () {
@@ -1068,19 +1332,22 @@
   };
   PlayScene.prototype.drawPlayer = function (g) {
     var p = this.player, alpha = p.invuln > 0 && Math.floor(this.simTime * 18) % 2 ? 0.45 : 1;
-    this.visual.player.setTexture('operator-' + p.animState).setVisible(true).setPosition(p.x, p.y).setRotation(p.face).setAlpha(alpha).setScale(0.72 + p.recoil * 0.08);
+    var playerPulse = p.animState === 'move' ? 1 + Math.sin(p.movePhase) * 0.035 : p.animState === 'fire' ? 1.08 : p.fireRecover > 0 ? 0.96 : 1;
+    this.visual.player.setTexture('operator-' + p.animState).setVisible(true).setPosition(p.x, p.y).setRotation(p.face).setAlpha(alpha).setScale((0.72 + p.recoil * 0.08) * playerPulse);
+    if (p.stealth) { g.lineStyle(2, PAL.cyan, 0.55).strokeCircle(p.x, p.y, 24 + Math.sin(this.simTime * 4) * 2); g.fillStyle(PAL.cyan, 0.08).fillCircle(p.x, p.y, 30); }
   };
   PlayScene.prototype.drawEnemy = function (g, e, index) {
-    var sprite = this.visual.enemies[index], pulse = e.animState === 'move' ? 1 + Math.sin(e.animTime * 12) * 0.045 : e.boss && kit.juice.enabled ? 1 + Math.sin(this.simTime * 5) * 0.05 : 1;
-    sprite.setTexture('enemy-' + e.kind).setVisible(true).setPosition(e.x, e.y).setRotation(e.facing).setScale((e.radius / 24) * pulse).setAlpha(e.flash > 0 ? 0.55 : 1).setTint(e.color);
+    var sprite = this.visual.enemies[index], textureKey = this.textures.exists('enemy-' + e.kind) ? 'enemy-' + e.kind : e.kind === 'hunter' ? 'enemy-flanker' : e.kind === 'swarm' ? 'enemy-scout' : 'enemy-scout';
+    var pulse = e.animState === 'move' ? 1 + Math.sin(e.animTime * 12) * 0.045 : e.animState === 'anticipation' ? 0.88 + Math.sin(e.animTime * 24) * 0.04 : e.animState === 'attack' ? 1.13 : e.animState === 'recovery' ? 1.02 : e.boss && kit.juice.enabled ? 1 + Math.sin(this.simTime * 5) * 0.05 : 1;
+    sprite.setTexture(textureKey).setVisible(true).setPosition(e.x, e.y).setRotation(e.facing).setScale((e.radius / 24) * pulse).setAlpha(e.flash > 0 ? 0.55 : 1).setTint(e.color);
     if (e.animState === 'telegraph' && e.telegraph > 0) { var telegraphAlpha = clamp(e.telegraph / 0.68, 0.18, 0.86); g.lineStyle(3, e.phase === 2 ? PAL.amber : PAL.rose, telegraphAlpha).strokeCircle(e.x, e.y, e.radius + 18 + Math.sin(this.simTime * 14) * 4); if (e.phase === 2) for (var ray = 0; ray < 10; ray++) g.lineBetween(e.x, e.y, e.x + Math.cos(ray * TAU / 10 + this.simTime * 0.4) * 120, e.y + Math.sin(ray * TAU / 10 + this.simTime * 0.4) * 120); else g.lineBetween(e.x, e.y, e.x + Math.cos(e.facing) * 180, e.y + Math.sin(e.facing) * 180); }
+    if (e.alert > 0 && !e.boss) { var alertPulse = 1 + Math.sin(this.simTime * 12 + e.seed * 7) * 0.16; g.lineStyle(2, PAL.alarm, 0.62).strokeCircle(e.x, e.y, (e.radius + 13) * alertPulse); g.fillStyle(PAL.alarm, 0.9).fillCircle(e.x, e.y - e.radius - 21, 3 + (e.alert > 2 ? 2 : 0)); }
     if (e.hp < e.maxHp) { g.fillStyle(PAL.shadow, 1).fillRect(e.x - e.radius, e.y - e.radius - 12, e.radius * 2, 4); g.fillStyle(e.boss ? PAL.gold : PAL.red, 1).fillRect(e.x - e.radius, e.y - e.radius - 12, e.radius * 2 * clamp(e.hp / e.maxHp, 0, 1), 4); }
-    if (e.alert > 0 && !e.boss) g.fillStyle(PAL.red, 1).fillCircle(e.x, e.y - e.radius - 21, 3);
   };
   PlayScene.prototype.drawEffects = function () {
     var g = this.fx;
     for (var existingPopupIndex = 0; existingPopupIndex < this.worldPopupTexts.length; existingPopupIndex++) this.worldPopupTexts[existingPopupIndex].setVisible(false);
-    for (var particleSystemIndex = 0; particleSystemIndex < PARTICLE_SYSTEMS.length; particleSystemIndex++) { var particlePool = this.particleSystems[PARTICLE_SYSTEMS[particleSystemIndex]]; for (var particleIndex = 0; particleIndex < particlePool.length; particleIndex++) { var p = particlePool[particleIndex]; if (!p.active) continue; var particleAlpha = clamp(p.life / p.max, 0, 1) * 0.9; g.fillStyle(p.color, particleAlpha); if (p.type === 'muzzle') g.fillTriangle(p.x + p.size * 4, p.y, p.x - p.size, p.y - p.size, p.x - p.size, p.y + p.size); else if (p.type === 'smoke') g.fillCircle(p.x, p.y, p.size * 1.35); else if (p.type === 'death' || p.type === 'boss') g.fillRect(p.x - p.size, p.y - p.size, p.size * 2, p.size * 2); else if (p.type === 'telegraph' || p.type === 'phase') g.lineStyle(2, p.color, particleAlpha).strokeCircle(p.x, p.y, p.size * 3); else g.fillCircle(p.x, p.y, p.size); } }
+    for (var particleSystemIndex = 0; particleSystemIndex < PARTICLE_SYSTEMS.length; particleSystemIndex++) { var particlePool = this.particleSystems[PARTICLE_SYSTEMS[particleSystemIndex]]; for (var particleIndex = 0; particleIndex < particlePool.length; particleIndex++) { var p = particlePool[particleIndex]; if (!p.active) continue; var particleAlpha = clamp(p.life / p.max, 0, 1) * 0.9; g.fillStyle(p.color, particleAlpha); if (p.type === 'muzzle') g.fillTriangle(p.x + p.size * 4, p.y, p.x - p.size, p.y - p.size, p.x - p.size, p.y + p.size); else if (p.type === 'smoke') g.fillCircle(p.x, p.y, p.size * 1.35); else if (p.type === 'coolant') { g.fillCircle(p.x, p.y, p.size); g.lineStyle(1, PAL.white, particleAlpha * 0.72).lineBetween(p.x, p.y, p.x - p.vx * 0.06, p.y - p.vy * 0.06); } else if (p.type === 'death' || p.type === 'boss') g.fillRect(p.x - p.size, p.y - p.size, p.size * 2, p.size * 2); else if (p.type === 'telegraph' || p.type === 'phase') g.lineStyle(2, p.color, particleAlpha).strokeCircle(p.x, p.y, p.size * 3); else g.fillCircle(p.x, p.y, p.size); } }
     for (var r = 0; r < this.rings.length; r++) { var ring = this.rings[r]; if (!ring.active) continue; g.lineStyle(ring.width, ring.color, clamp(ring.life / 0.34, 0, 1)).strokeCircle(ring.x, ring.y, ring.radius); }
     for (var deathIndex = 0; deathIndex < this.deathActors.length; deathIndex++) { var death = this.deathActors[deathIndex]; if (!death.active) continue; var deathAlpha = clamp(death.life / death.max, 0, 1); g.lineStyle(3, death.color, deathAlpha); g.strokeCircle(death.x, death.y, death.radius * (1.2 + death.phase * 0.06)); g.lineBetween(death.x - death.radius, death.y - death.radius, death.x + death.radius, death.y + death.radius); g.lineBetween(death.x + death.radius, death.y - death.radius, death.x - death.radius, death.y + death.radius); }
     this.worldPopupCursor = 0; for (var pidx = 0; pidx < this.popups.length; pidx++) { var pop = this.popups[pidx]; if (!pop.active) continue; this.drawWorldPopup(pop); }
@@ -1096,11 +1363,12 @@
     setTextIfChanged(this.hud.score, fmtInt(this.run.score)); setTextIfChanged(this.hud.time, fmtTime(this.run.floorTime));
     setTextIfChanged(this.hud.weapon, w.short); setTextIfChanged(this.hud.ammo, ws.reload > 0 ? 'RLD ' + ws.reload.toFixed(1) : ws.mag + '/' + ws.reserve);
     setTextIfChanged(this.hud.hp, '♥' + Math.ceil(this.player.health) + '  +' + this.player.armor);
-    setTextIfChanged(this.hud.mode, this.run.mode === 'speedrun' ? 'SPD' : 'STD'); setTextIfChanged(this.hud.auto, this.inputState.autoAim ? 'AUTO' : 'MAN');
+    setTextIfChanged(this.hud.mode, this.run.mode === 'speedrun' ? 'SPD' : 'STD'); setTextIfChanged(this.hud.auto, this.inputState.autoAim ? 'AUTO' : 'MAN'); setTextIfChanged(this.hud.alarm, this.run.alarm > 0.35 ? '!' : this.player.stealth ? '◈' : '');
     this.hud.title.setVisible(false); this.hud.cards.setVisible(false);
     this.hud.floor.setColor(colorCss(f.family.accent)); this.hud.score.setColor(CSS.white); this.hud.time.setColor(this.run.floorTime <= par ? CSS.green : CSS.amber);
     this.hud.room.setColor(this.run.cardsFound >= 3 ? CSS.green : CSS.mist); this.hud.weapon.setColor(colorCss(w.color)); this.hud.ammo.setColor(ws.reload > 0 ? CSS.amber : CSS.white);
-    this.hud.hp.setColor(this.player.health > 35 ? CSS.green : CSS.red); this.hud.mode.setColor(this.run.mode === 'speedrun' ? CSS.amber : CSS.mist); this.hud.auto.setColor(this.inputState.autoAim ? CSS.cyan : CSS.mist);
+    this.hud.hp.setColor(this.player.health > 35 ? CSS.green : CSS.red); this.hud.mode.setColor(this.run.mode === 'speedrun' ? CSS.amber : CSS.mist); this.hud.auto.setColor(this.inputState.autoAim ? CSS.cyan : CSS.mist); this.hud.alarm.setColor(this.run.alarm > 0.35 ? CSS.red : CSS.cyan);
+    g.fillStyle(PAL.wall, 0.7).fillRect(W - 96, 78, 72, 3); g.fillStyle(this.run.alarm > 0.35 ? PAL.alarm : PAL.cyan, 0.92).fillRect(W - 96, 78, 72 * this.run.alarm, 3);
 
     var coachStep = Math.min(3, this.run.tutorialStep), tutorial = ['MOVE TO THE CYAN MARKER', 'AIM AND FIRE AT THE SCOUT', 'SWAP WEAPONS', 'TAKE THE CARD TO OPEN ROUTE'][coachStep];
     if (this.run.tutorialShownStep !== coachStep) { this.run.tutorialShownStep = coachStep; this.run.tutorialFade = 0; }
@@ -1122,7 +1390,7 @@
       this.hud.prompt.setAlpha(noticeAlpha);
     } else this.hud.prompt.setAlpha(0).setVisible(false);
     this.drawControls(g); this.drawBanner(g); this.drawDamageVignette();
-    for (var choiceIndex = 0; choiceIndex < 5; choiceIndex++) this.hud['floorChoice' + choiceIndex].setVisible(false);
+    for (var choiceIndex = 0; choiceIndex < 9; choiceIndex++) this.hud['floorChoice' + choiceIndex].setVisible(false);
     if (this.run.state === 'dead' || this.run.state === 'victory') this.drawEndCard(g);
   };
   PlayScene.prototype.drawDamageVignette = function () {
@@ -1146,10 +1414,11 @@
     h.bannerHead.setPosition(W * 0.5 + slide, H * 0.28 - 4).setText(b.head).setColor(colorCss(b.color)).setScale(scale).setAlpha(clamp(1 - Math.max(0, b.age - 0.86) / 0.32, 0, 1)); h.bannerSub.setPosition(W * 0.5 + slide, H * 0.28 + 20).setText(b.sub).setScale(scale).setAlpha(h.bannerHead.alpha); h.bannerTiny.setAlpha(0);
   };
   PlayScene.prototype.drawEndCard = function (g) {
-    var W = this.layout.W, H = this.layout.H, dead = this.run.state === 'dead'; g.fillStyle(PAL.ink, 0.86).fillRect(0, 0, W, H); g.fillStyle(PAL.deep, 0.98).fillRoundedRect(26, H * 0.32, W - 52, 194, 18); g.lineStyle(2, dead ? PAL.red : PAL.gold, 0.9).strokeRoundedRect(26, H * 0.32, W - 52, 194, 18);
-    this.hud.bannerHead.setPosition(W * 0.5, H * 0.39).setText(dead ? 'OPERATOR DOWN' : 'VAULT CLEARED').setColor(dead ? CSS.red : CSS.amber).setScale(1).setAlpha(1); this.hud.bannerSub.setPosition(W * 0.5, H * 0.47).setText('SCORE ' + fmtInt(this.run.score) + '  //  BEST ' + fmtInt(profile.bestScore)).setAlpha(1); this.hud.bannerTiny.setPosition(W * 0.5, H * 0.56).setText('TAP OR ENTER TO RESTART').setAlpha(1);
-    var step = (W - 72) / 5, choiceY = H * 0.68;
-    for (var choiceIndex = 0; choiceIndex < 5; choiceIndex++) { var floorKey = String(choiceIndex + 1), choiceX = 36 + step * (choiceIndex + 0.5), unlocked = choiceIndex + 1 <= profile.unlockedFloor, medal = profile.medals[floorKey] || 0, time = profile.bestTimes[floorKey]; g.fillStyle(unlocked ? PAL.floor2 : PAL.shadow, 0.94).fillRoundedRect(choiceX - step / 2 + 3, choiceY, step - 6, 42, 8); g.lineStyle(1, unlocked ? (medal > 0 ? PAL.gold : PAL.wallHi) : PAL.wall, 0.8).strokeRoundedRect(choiceX - step / 2 + 3, choiceY, step - 6, 42, 8); var label = unlocked ? 'F' + (choiceIndex + 1) + '  ' + (medal ? 'M' + medal : 'OPEN') : 'LOCKED'; var timeLabel = time == null ? '' : fmtTime(time); this.hud['floorChoice' + choiceIndex].setPosition(choiceX, choiceY + 21).setText(label + (timeLabel ? '\n' + timeLabel : '')).setColor(unlocked ? CSS.white : CSS.mist).setVisible(true); }
+    var W = this.layout.W, H = this.layout.H, dead = this.run.state === 'dead', reveal = kit.juice.enabled ? clamp(this.run.endReveal, 0, 1) : 1;
+    g.fillStyle(PAL.ink, 0.86 * reveal).fillRect(0, 0, W, H); g.fillStyle(PAL.deep, 0.98 * reveal).fillRoundedRect(26, H * 0.18 + (1 - reveal) * 30, W - 52, H * 0.65, 18); g.lineStyle(2, dead ? PAL.red : PAL.gold, 0.9 * reveal).strokeRoundedRect(26, H * 0.18 + (1 - reveal) * 30, W - 52, H * 0.65, 18);
+    this.hud.bannerHead.setPosition(W * 0.5, H * 0.27).setText(dead ? 'OPERATOR DOWN' : 'VAULT CLEARED').setColor(dead ? CSS.red : CSS.amber).setScale(1).setAlpha(reveal); this.hud.bannerSub.setPosition(W * 0.5, H * 0.34).setText('SCORE ' + fmtInt(this.run.score) + '  //  BEST ' + fmtInt(profile.bestScore)).setAlpha(reveal); this.hud.bannerTiny.setPosition(W * 0.52, H * 0.41).setText('TAP OR ENTER TO RESTART').setAlpha(reveal);
+    var step = (W - 72) / 3, choiceY = H * 0.49;
+    for (var choiceIndex = 0; choiceIndex < 9; choiceIndex++) { var floorKey = String(choiceIndex + 1), col = choiceIndex % 3, row = Math.floor(choiceIndex / 3), choiceX = 36 + step * (col + 0.5), choiceRowY = choiceY + row * 48, unlocked = choiceIndex + 1 <= profile.unlockedFloor, medal = profile.medals[floorKey] || 0, time = profile.bestTimes[floorKey]; g.fillStyle(unlocked ? PAL.floor2 : PAL.shadow, 0.94 * reveal).fillRoundedRect(choiceX - step / 2 + 3, choiceRowY, step - 6, 42, 8); g.lineStyle(1, unlocked ? (medal > 0 ? PAL.gold : PAL.wallHi) : PAL.wall, 0.8 * reveal).strokeRoundedRect(choiceX - step / 2 + 3, choiceRowY, step - 6, 42, 8); var label = unlocked ? 'F' + (choiceIndex + 1) + '  ' + (medal ? 'M' + medal : 'OPEN') : 'LOCKED'; var timeLabel = time == null ? '' : fmtTime(time); this.hud['floorChoice' + choiceIndex].setPosition(choiceX, choiceRowY + 21).setText(label + (timeLabel ? '\n' + timeLabel : '')).setColor(unlocked ? CSS.white : CSS.mist).setAlpha(reveal).setVisible(true); }
   };
 
   function syncDebug(scene) {

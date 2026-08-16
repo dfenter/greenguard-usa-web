@@ -35,3 +35,36 @@ COPIED into this title's `assets/` directory; provenance is unchanged (same
 CC0 pack rows in the studio ledger; `sfx_crowd.mp3` is original GreenGuard
 USA synthesis first shipped with Shout It). Icons (`icon.png`, `icon512.png`)
 are original GreenGuard USA vector work generated for this title.
+
+## Rev 3 (Round 2 polish, 2026-08-16) — ledger citations
+
+Every audio file above is traceable to a row of the studio asset ledger at
+`play/_assets/LEDGER.md`; the rows are named here so the citation is explicit
+rather than implied:
+
+| Runtime file | LEDGER.md row | Ledger path | License |
+|---|---|---|---|
+| `assets/engine.mp3` | Kenney sci-fi-sounds | `web2d/sci-fi-sounds` | CC0 1.0 |
+| `assets/boost.mp3` | Kenney sci-fi-sounds | `web2d/sci-fi-sounds` | CC0 1.0 |
+| `assets/impact.mp3` | Kenney impact-sounds | `web2d/impact-sounds` | CC0 1.0 |
+| `assets/land.mp3` | Kenney impact-sounds | `web2d/impact-sounds` | CC0 1.0 |
+| `assets/launch.mp3` | Kenney digital-audio | `web2d/digital-audio` | CC0 1.0 |
+| `assets/cargo_pickup.mp3` | Kenney digital-audio | `web2d/digital-audio` | CC0 1.0 |
+| `assets/fanfare.mp3` | Kenney music-jingles | `web2d/music-jingles` | CC0 1.0 |
+| `assets/uiselect.mp3` | Kenney interface-sounds | `web2d/interface-sounds` | CC0 1.0 |
+| `assets/uitick.mp3` | Kenney interface-sounds | `web2d/interface-sounds` | CC0 1.0 |
+| `assets/sfx_crowd.mp3` | not a ledger pack | original GreenGuard USA synthesis (first shipped with Shout It) | GreenGuard USA |
+
+`stomp-circuit` is listed as a consumer on the impact-sounds,
+interface-sounds, digital-audio, music-jingles and sci-fi-sounds rows of
+`play/_assets/LEDGER.md`. No new binary asset was added in this round.
+
+### Original work generated in code
+
+Everything drawn on screen is generated procedurally at runtime and is
+original GreenGuard USA work: the sky gradients, skyline and stand
+silhouettes, and the crowd, grain and vignette tiles are baked into canvas
+textures at load time by `game.js`; the truck chassis, wheels, suspension,
+props, wrecks, debris, decals, ramps, rails, signature structures, particles,
+HUD and menu art are drawn as vectors. No third-party image, font, or shader
+ships in this directory.

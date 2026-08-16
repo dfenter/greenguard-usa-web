@@ -47,7 +47,7 @@
   var MAX_HAZARDS = 24;
   var MAX_GHOSTS = 40;
 
-  var SAVE_VERSION = 4;
+  var SAVE_VERSION = 5;
 
   // -------------------------------------------------------- pure helpers
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
@@ -137,6 +137,10 @@
     bossHpMax: 0,
     runTime: 0,
     medal: 'none',
+    salvage: 0,
+    refits: { hull: 0, coil: 0, drive: 0, magnet: 0 },
+    ladderStage: 0,
+    ladderSeed: 0,
     unlocked: 1,
     medals: {},
     tutorialStep: -1,
@@ -180,7 +184,10 @@
     validateSave: function (o) {
       var ids = Object.create(null), medals = D.MEDAL_RANK;
       var i, k, v;
-      if (!o || o.v !== SAVE_VERSION || !Number.isInteger(o.unlocked) ||
+      // v4 is the shipped shape. Accept it long enough for loadSave() to
+      // migrate it; malformed records still fall back to a fresh profile via
+      // GGKit's guarded save reader.
+      if (!o || (o.v !== 4 && o.v !== SAVE_VERSION) || !Number.isInteger(o.unlocked) ||
           o.unlocked < 1 || o.unlocked > D.SECTORS.length ||
           !o.best || Object.prototype.toString.call(o.best) !== '[object Object]' ||
           !o.medals || Object.prototype.toString.call(o.medals) !== '[object Object]') return false;
@@ -196,6 +203,16 @@
       if (o.tutorial != null && typeof o.tutorial !== 'boolean') return false;
       if (o.reducedMotion != null && typeof o.reducedMotion !== 'boolean') return false;
       if (o.seen != null && Object.prototype.toString.call(o.seen) !== '[object Object]') return false;
+      if (o.v === SAVE_VERSION) {
+        if (!Number.isSafeInteger(o.salvage) || o.salvage < 0 || o.salvage > 1000000) return false;
+        if (!o.refits || Object.prototype.toString.call(o.refits) !== '[object Object]') return false;
+        var refitIds = D.REFIT_ORDER || ['hull', 'coil', 'drive', 'magnet'];
+        for (i = 0; i < refitIds.length; i++) {
+          v = o.refits[refitIds[i]];
+          if (!Number.isSafeInteger(v) || v < 0 || v > 3) return false;
+        }
+        if (!Number.isSafeInteger(o.ladderBest) || o.ladderBest < 0 || o.ladderBest > 1000000000) return false;
+      }
       return true;
     },
     onPause: function () { if (Game.play) Game.play.onKitPause(); },
@@ -205,18 +222,41 @@
 
   function loadSave() {
     var s = kit.save.get(null);
+    var migrated = false;
     if (!s) s = {
       v: SAVE_VERSION, unlocked: 1, best: {}, medals: {}, tutorial: false,
-      reducedMotion: false, seen: {}
+      reducedMotion: false, seen: {}, salvage: 80,
+      refits: { hull: 0, coil: 0, drive: 0, magnet: 0 }, ladderBest: 0
     };
+    else if (s.v === 4) {
+      // Preserve every v4 progression field, then add only the new economy
+      // fields. Existing players get a small starter salvage reserve so the
+      // refit loop is immediately playable without changing run controls.
+      s = {
+        v: SAVE_VERSION, unlocked: s.unlocked, best: s.best, medals: s.medals,
+        tutorial: s.tutorial, reducedMotion: s.reducedMotion, seen: s.seen,
+        salvage: 80, refits: { hull: 0, coil: 0, drive: 0, magnet: 0 }, ladderBest: 0
+      };
+      migrated = true;
+    }
     if (!s.best) s.best = {};
     if (!s.medals) s.medals = {};
     if (!s.seen) s.seen = {};
+    if (!Number.isSafeInteger(s.salvage) || s.salvage < 0) s.salvage = 0;
+    if (!s.refits || Object.prototype.toString.call(s.refits) !== '[object Object]') {
+      s.refits = { hull: 0, coil: 0, drive: 0, magnet: 0 };
+    }
+    (D.REFIT_ORDER || ['hull', 'coil', 'drive', 'magnet']).forEach(function (id) {
+      if (!Number.isSafeInteger(s.refits[id])) s.refits[id] = 0;
+      s.refits[id] = clamp(s.refits[id], 0, 3);
+    });
+    if (!Number.isSafeInteger(s.ladderBest) || s.ladderBest < 0) s.ladderBest = 0;
     if (!Number.isInteger(s.unlocked) || s.unlocked < 1) s.unlocked = 1;
     s.unlocked = clamp(Math.floor(s.unlocked), 1, D.SECTORS.length);
     if (typeof s.tutorial !== 'boolean') s.tutorial = false;
     if (typeof s.reducedMotion !== 'boolean') s.reducedMotion = false;
     s.v = SAVE_VERSION;
+    if (migrated) { try { kit.save.set(s); } catch (e) {} }
     return s;
   }
   var PROFILE = loadSave();

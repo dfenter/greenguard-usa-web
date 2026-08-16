@@ -7,7 +7,7 @@
 
 ## Original procedural content
 
-- `src/sprites.js`, `src/hud.js`, `src/overworld.js`, `src/sideview.js`, and `src/town.js` contain original procedural art, UI, particles, and scene presentation authored for Crestfall.
+- `src/sprites.js`, `src/hud.js`, `src/overworld.js`, `src/sideview.js`, `src/town.js`, and `src/progression.js` contain original procedural art, UI, particles, scene presentation, and RPG progression authored for Crestfall.
 - `assets/*.m4a` are short procedural audio cues generated for Crestfall and encoded as AAC in the M4A container. They are registered and played only through GGKit audio buses.
 - `assets/crestfall-mark.svg` and the root PNG icons are original procedural Crestfall marks generated for this title.
 - `icon.png`, `icon512.png`, and `favicon.png` are procedural Crestfall marks generated for this title.

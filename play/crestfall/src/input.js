@@ -10,6 +10,18 @@ export class Input {
     this._buttonOwners = [];
     this._stickPointer = null;
     this._previousDirection = { up: false, down: false, left: false, right: false };
+    // GGKit installs its pointer registry first. This window-level listener
+    // is deliberately added afterward so every pointer gets an identity
+    // before a control claims its zone, including canvas HUD taps.
+    this._windowPointerListener = (event) => {
+      if (!this.kit.input.pointers.has(event.pointerId)) {
+        this.kit.input.pointers.set(event.pointerId, {
+          x: event.clientX, y: event.clientY, startX: event.clientX,
+          startY: event.clientY, downAt: performance.now(), zone: null,
+        });
+      }
+    };
+    if (typeof window !== 'undefined') window.addEventListener('pointerdown', this._windowPointerListener, { passive: true });
   }
 
   _touchHeld(code) {
@@ -217,6 +229,7 @@ export class Input {
   }
 
   destroy() {
+    if (typeof window !== 'undefined' && this._windowPointerListener) window.removeEventListener('pointerdown', this._windowPointerListener);
     for (const cleanup of this._cleanups) cleanup();
     this._cleanups = [];
     this.clear();

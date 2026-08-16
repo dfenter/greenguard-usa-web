@@ -27,9 +27,10 @@
 import { worldRng, combatRng, townRng, fxRng } from './rng.js';
 import { STATE, SPELLS } from './constants.js';
 import { WESTERN_MAP, EASTERN_MAP } from './map-data.js';
+import { EQUIPMENT, SKILL_BY_ID, TECHNIQUES } from './progression.js';
 
-export const SAVE_VERSION = 1;
-const STORAGE_KEY = 'crestfall.save.v1';
+export const SAVE_VERSION = 2;
+const STORAGE_KEY = 'crestfall.save.v2';
 
 const PLAYER_FIELDS = [
   'x', 'y', 'w', 'h', 'vx', 'vy', 'facing', 'onGround', 'state',
@@ -39,7 +40,8 @@ const PLAYER_FIELDS = [
   'maxHp', 'hp', 'maxMp', 'mp',
   'lifeContainers', 'magicContainers',
   'selectedSpell', 'keys', 'crystals', 'sigilFragments', 'owX', 'owY',
-  'claimedRewards', 'defeatedEnemies',
+  'claimedRewards', 'defeatedEnemies', 'skillPoints', 'skills', 'techniques',
+  'equipment', 'questStage', 'questFlags',
 ];
 
 const PLAYER_STATES = new Set(['stand', 'walk', 'jump', 'fall', 'crouch', 'attack', 'attackup', 'attackdown', 'damage', 'dead']);
@@ -62,6 +64,26 @@ function validateFlagMap(value, message) {
   for (const [key, flag] of Object.entries(value)) {
     assert(typeof key === 'string' && /^[a-z0-9:_-]+$/i.test(key) && typeof flag === 'boolean', `${message} entry`);
   }
+}
+
+export function migrateSave(data) {
+  assert(data && typeof data === 'object' && !Array.isArray(data), 'not an object');
+  if (data.version === SAVE_VERSION) return data;
+  assert(data.version === 1, `unsupported version ${data.version}`);
+  const oldPlayer = data.player && typeof data.player === 'object' ? data.player : {};
+  return {
+    ...data,
+    version: SAVE_VERSION,
+    player: {
+      ...oldPlayer,
+      skillPoints: 1,
+      skills: {},
+      techniques: {},
+      equipment: 'EMBERCLOAK',
+      questStage: 0,
+      questFlags: {},
+    },
+  };
 }
 
 function assertValidSave(data) {
@@ -102,8 +124,16 @@ function assertValidSave(data) {
   integer(p.hp, 0, p.maxHp, 'invalid player.hp');
   integer(p.maxMp, 1, 256, 'invalid player.maxMp');
   integer(p.mp, 0, p.maxMp, 'invalid player.mp');
-  assert(p.maxHp === p.lifeContainers * (p.lifLvl * 2 + 8), 'inconsistent player.maxHp');
-  assert(p.maxMp === p.magicContainers * (p.magLvl + 4), 'inconsistent player.maxMp');
+  assert(p.skills && typeof p.skills === 'object' && !Array.isArray(p.skills), 'invalid player.skills');
+  for (const [id, known] of Object.entries(p.skills)) assert(Object.prototype.hasOwnProperty.call(SKILL_BY_ID, id) && known === true, 'invalid player.skills entry');
+  integer(p.skillPoints, 0, 99, 'invalid player.skillPoints');
+  assert(p.techniques && typeof p.techniques === 'object' && !Array.isArray(p.techniques), 'invalid player.techniques');
+  for (const [name, known] of Object.entries(p.techniques)) assert(Object.prototype.hasOwnProperty.call(TECHNIQUES, name) && known === true, 'invalid player.techniques entry');
+  assert(Object.prototype.hasOwnProperty.call(EQUIPMENT, p.equipment), 'invalid player.equipment');
+  integer(p.questStage, 0, 4, 'invalid player.questStage');
+  validateFlagMap(p.questFlags, 'invalid player.questFlags');
+  assert(p.maxHp === p.lifeContainers * (p.lifLvl * 2 + 8) + (p.skills.ward_heart ? 12 : 0), 'inconsistent player.maxHp');
+  assert(p.maxMp === p.magicContainers * (p.magLvl + 4) + (p.skills.arc_overcharge ? 2 : 0), 'inconsistent player.maxMp');
   assert(p.selectedSpell === null || Object.prototype.hasOwnProperty.call(SPELLS, p.selectedSpell), 'invalid player.selectedSpell');
   integer(p.keys, 0, 99, 'invalid player.keys');
   integer(p.crystals, 0, 7, 'invalid player.crystals');
@@ -127,7 +157,7 @@ function assertValidSave(data) {
 
 export function isValidSave(data) {
   try {
-    return assertValidSave(data);
+    return assertValidSave(migrateSave(data));
   } catch (_error) {
     return false;
   }
@@ -159,6 +189,7 @@ export function serializeGame(game) {
 }
 
 export function deserializeGame(game, data) {
+  data = migrateSave(data);
   assertValidSave(data);
 
   const p = game.player;

@@ -4,6 +4,7 @@ import { SCALE, TILE, TILE_PROPS, NES_W, NES_H } from './constants.js';
 import { WESTERN_MAP, EASTERN_MAP, TOWNS, PALACES } from './map-data.js';
 import { drawTileSigil, drawWorldAvatar } from './sprites.js';
 import { worldRng } from './rng.js';
+import { hasTechnique } from './progression.js';
 
 const S = SCALE;
 const TILE_PX = 8;
@@ -46,7 +47,7 @@ export class Overworld {
         const ny = this.player.owY + dy;
         if (ny >= 0 && ny < this.map.length && nx >= 0 && nx < this.map[0].length) {
           const tile = this.map[ny][nx];
-          if (TILE_PROPS[tile]?.passable) {
+          if (TILE_PROPS[tile]?.passable || this._canTraverse(tile)) {
             this.player.owX = nx;
             this.player.owY = ny;
             this.moveTimer = this.moveCooldown;
@@ -104,6 +105,13 @@ export class Overworld {
       this.transitionTimer = 0;
       this.pendingEncounter = { tileType: tile };
     }
+  }
+
+  _canTraverse(tile) {
+    if (tile === TILE.MOUNTAIN) return hasTechnique(this.player, 'VINECUTTER');
+    if (tile === TILE.WATER) return hasTechnique(this.player, 'TIDEWALK');
+    if (tile === TILE.LAVA) return hasTechnique(this.player, 'PHASESHIFT');
+    return false;
   }
 
   _findTown(x, y) {
@@ -176,7 +184,7 @@ export class Overworld {
     this._drawWorldDressing(ctx, tileSize, startTX, startTY, endTX, endTY);
     const px = (this.player.owX * TILE_PX - this.camX);
     const py = (this.player.owY * TILE_PX - this.camY);
-    if (!this.entering || Math.floor(this.transitionTimer / 3) % 2 === 0) drawWorldAvatar(ctx, px, py, this.notifTimer > 0 ? 1 : 0);
+    if (!this.entering || Math.floor(this.transitionTimer / 3) % 2 === 0) drawWorldAvatar(ctx, px, py, this.notifTimer > 0 ? 1 : 0, this.player.equipment);
     if (this.entering) {
       ctx.fillStyle = `rgba(66,245,230,${Math.min(0.5, this.transitionTimer / 30)})`;
       ctx.fillRect(0, 0, NES_W * S, NES_H * S);

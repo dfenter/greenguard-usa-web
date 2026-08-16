@@ -195,3 +195,61 @@ be signed off either way.
 - Replaced pickup, critical, wave, boss-phase, and upgrade callouts with one
   queued corner toast capped at 1.0s; condensed the tutorial to one fading
   top strip line.
+
+## Round 2 polish
+
+### Visual, animation and FX
+
+- Added a pooled inertial drift ribbon that follows the ship's actual velocity,
+  separate from the nozzle plume, plus a readable damage silhouette: animated
+  hull cracks and a pulsing hot core at one shield cell.
+- Fracture impulses now inherit parent momentum and distribute a symmetric
+  mass-aware kick, so large rocks break into chunks that feel physically
+  connected instead of spawning as unrelated pebbles.
+- Added authored ice-field and magnetic-storm visuals with pooled sparkle,
+  ring and arc FX; storms rotate the field and ice fields visibly change the
+  ship's drift. Pirate wings have idle, strafe and firing states with lead-shot
+  muzzle feedback. Hulks now animate three orbiting armor weak points that
+  flash, break and expose the core.
+- Heavy additions remain pooled and count-gated through the existing FX layer;
+  reduced motion cuts particle counts, disables parallax and keeps the simpler
+  motion language. Existing ship plume, dash flare, retro jets, shield ripple,
+  fracture burst, boss telegraph, boundary banner and layered field/boss audio
+  remain in the GGKit path.
+
+### Gameplay depth
+
+- Added three real hazard families to the authored sector graph: ice fields
+  that reduce steering authority and preserve drift, magnetic storms that
+  apply lateral force and heat pressure, and pirate wings that strafe, pursue
+  lead targets and fire hostile projectiles. Their interactions are seeded
+  with each field and use the existing pooled shot budget.
+- Hulks are now armored encounters with three destructible weak points. Shots
+  against the plates are rewarded; the hulk takes reduced core damage until
+  all plates are gone, then enters an exposed animated state with a reward
+  beat. Boss hive pods remain the multi-phase weak-point gate.
+- Added a persistent salvage/refit economy. Completed runs bank salvage, the
+  sector screen exposes four touch-safe refit purchases (HULL, COIL, DRIVE,
+  MAGNET), and purchased levels modify the starting ship build. Existing
+  between-wave tactical upgrade cards stay free and unchanged.
+- Added the Daily Survival Ladder. It uses a deterministic UTC daily seed,
+  cycles through the five sector identities, repeats set-piece and boss beats
+  on an eight-stage cadence, escalates rock mass/speed/hazard pressure, and
+  opens the existing tactical draft after every cleared stage. Best ladder
+  stage is persisted.
+
+### Save and ship notes
+
+- Save version bumped from v4 to v5. Valid v4 profiles migrate in place with
+  their existing unlocks, scores, medals, tutorial and settings preserved;
+  new profiles and migrated profiles receive `salvage: 80`, zeroed `refits`,
+  and `ladderBest: 0`. v5 validates all new fields, and any malformed or
+  failed validation still degrades to a fresh profile through GGKit.
+- `sw.js` version is `2026-08-16-round2-polish1`; its 41 title-specific
+  precache paths were checked against the files on disk. Payload is 1.38 MB
+  including assets, with no file over 400 KB and no new external asset.
+- `node --check` passes for `game.js`, `hb_data.js`, `hb_menu.js`,
+  `hb_play.js`, `hb_hud.js`, and `sw.js`; data and method-load smoke checks
+  pass. Rendering boot proof was deferred because the connected in-app
+  browser was unavailable and the sandbox's local Chromium failed before
+  creating a page; no deploy or commit was performed.

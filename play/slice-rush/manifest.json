@@ -1,0 +1,14 @@
+{
+  "name": "Slice Rush",
+  "short_name": "Slice Rush",
+  "start_url": "/play/slice-rush/",
+  "scope": "/play/slice-rush/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#10242a",
+  "theme_color": "#10242a",
+  "icons": [
+    { "src": "icon.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

@@ -1,19 +1,27 @@
 <!doctype html>
 <html lang="en">
-<head><base href="/play/fieldnotes-safari/">
+<head>
+  <base href="/play/fieldnotes-safari/">
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-  <meta name="theme-color" content="#10251f">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, maximum-scale=1">
+  <meta name="theme-color" content="#0b1d1a">
+  <meta name="description" content="Fieldnotes Safari is a simulated walk-and-catch creature field journal.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Fieldnotes Safari</title>
+  <link rel="manifest" href="/play/fieldnotes-safari/manifest.json">
+  <link rel="icon" type="image/png" sizes="64x64" href="/play/fieldnotes-safari/favicon.png">
+  <link rel="apple-touch-icon" href="/play/fieldnotes-safari/icon512.png">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main class="app-shell">
-    <section class="game-stage" aria-label="Fieldnotes Safari game">
-      <canvas id="gameCanvas" aria-label="Fieldnotes Safari play area"></canvas>
-      <p id="screenReaderStatus" class="sr-only" aria-live="polite"></p>
-    </section>
+  <main id="game-shell" aria-label="Fieldnotes Safari game">
+    <div id="boot-fallback" role="status">Loading Fieldnotes Safari</div>
   </main>
+  <p id="accessible-state" class="sr-only" aria-live="polite">Loading the field.</p>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="/play/_shared/ggkit.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

@@ -1,44 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><base href="/play/molehunt-manor/">
+<head>
+<base href="/play/molehunt-manor/">
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#101219">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0b1018">
+<meta name="description" content="Molehunt Manor is a single-player social deduction casebook.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="icon.png">
 <title>Molehunt Manor</title>
 <style>
-  html, body {
-    margin: 0; padding: 0; width: 100%; height: 100%;
-    background: #08090d; overflow: hidden;
-    overscroll-behavior: none; touch-action: none;
-    -webkit-user-select: none; user-select: none;
-    -webkit-tap-highlight-color: transparent;
-    font-family: ui-sans-serif, -apple-system, system-ui, Segoe UI, Helvetica, Arial, sans-serif;
-  }
-  #wrap {
-    position: fixed; inset: 0; display: flex;
-    align-items: center; justify-content: center;
-  }
-  #cv { display: block; touch-action: none; background: #101219; }
-  #rot {
-    position: fixed; inset: 0; display: none;
-    align-items: center; justify-content: center; flex-direction: column;
-    background: #08090d; color: #f0c064; text-align: center; z-index: 10;
-  }
-  #rot b { font-size: 20px; letter-spacing: 1px; }
-  #rot span { color: #8b93ad; font-size: 14px; margin-top: 10px; }
-  #rot .ph {
-    width: 54px; height: 90px; border: 3px solid #f0c064; border-radius: 10px;
-    margin-bottom: 18px; animation: tip 1.6s ease-in-out infinite;
-  }
-  @keyframes tip { 0%,100% { transform: rotate(90deg); } 50% { transform: rotate(0deg); } }
+  html, body { margin:0; width:100%; height:100%; overflow:hidden; background:#0b1018; color:#e7f1ef;
+    overscroll-behavior:none; touch-action:none; -webkit-user-select:none; user-select:none;
+    -webkit-tap-highlight-color:transparent; }
+  body { padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); box-sizing:border-box; }
+  canvas { display:block; touch-action:none; }
 </style>
 </head>
 <body>
-<div id="wrap"><canvas id="cv" width="390" height="700"></canvas></div>
-<div id="rot"><div class="ph"></div><b>TURN THE HOUSE UPRIGHT</b><span>Molehunt Manor is played in portrait.</span></div>
-<script src="audio.js"></script>
-<script src="sim.js"></script>
-<script src="ui.js"></script>
-<script src="main.js"></script>
+<script src="/play/_shared/phaser.min.js"></script>
+<script src="/play/_shared/ggkit.js"></script>
+<script src="game.js"></script>
 </body>
 </html>

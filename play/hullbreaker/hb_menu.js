@@ -274,6 +274,22 @@
         w: 220, h: 58, text: 'DEPLOY', tint: 0x5fe0ff,
         onTap: function () { scene.deploy(); }
       }));
+      this.ladderBtn = this.buttons.add(slab(this, {
+        w: 220, h: 58, text: 'DAILY LADDER', sub: 'seeded survival', tint: 0xffc46a,
+        onTap: function () { scene.deployLadder(); }
+      }));
+      this.salvageText = txt(this, 0, 0, '', 14, '#7ef0b4', '800').setOrigin(0.5).setDepth(20);
+      this.refitBtns = [];
+      for (var ri = 0; ri < D.REFIT_ORDER.length; ri++) {
+        (function (id) {
+          var ref = D.refit(id);
+          var b = scene.buttons.add(slab(scene, {
+            w: 78, h: 42, text: ref.short, sub: 'LV 0', tint: ref.tint, size: 15,
+            onTap: function () { scene.buyRefit(id); }
+          }));
+          scene.refitBtns.push(b);
+        }(D.REFIT_ORDER[ri]));
+      }
       this.backBtn = this.buttons.add(pip(this, {
         text: '←', r: 22, onTap: function () { scene.scene.start('Title'); }
       }));
@@ -294,6 +310,21 @@
       if (this.pick + 1 > I.unlockedCount()) return;
       this.scene.start('Play', { sector: this.pick, wave: HB.forceWave || 1 });
     },
+    deployLadder: function () {
+      this.scene.start('Play', { ladder: true, stage: 1, sector: 0, wave: 1 });
+    },
+    buyRefit: function (id) {
+      var level = I.PROFILE.refits[id] || 0;
+      var ref = D.refit(id);
+      if (level >= ref.max) return;
+      var cost = D.refitCost(id, level);
+      if ((I.PROFILE.salvage || 0) < cost) return;
+      I.PROFILE.salvage -= cost;
+      I.PROFILE.refits[id] = level + 1;
+      I.saveProfile();
+      kit.audio.sfx('upgrade', { volume: 0.8 });
+      this.refresh();
+    },
     refresh: function () {
       var s = D.sectorAt(this.pick);
       var unlocked = this.pick + 1 <= I.unlockedCount();
@@ -306,6 +337,15 @@
       setTextIfChanged(this.detail,
         'MEDAL ' + medal.toUpperCase() + '   BEST ' + I.pad(best, 6) +
         '   GOLD: under ' + I.mmss(m.gold.time) + ' and ' + m.gold.ore + ' ore');
+      setTextIfChanged(this.salvageText,
+        'SALVAGE  ' + (I.PROFILE.salvage || 0) + '   ·   REFIT BEFORE DEPLOY');
+      for (var ri = 0; ri < this.refitBtns.length; ri++) {
+        var id = D.REFIT_ORDER[ri], ref = D.refit(id), level = I.PROFILE.refits[id] || 0;
+        var cost = level >= ref.max ? 'MAX' : D.refitCost(id, level) + ' S';
+        this.refitBtns[ri].setText(ref.short + '  LV' + level);
+        this.refitBtns[ri].setSub(level >= ref.max ? 'MAX' : cost);
+        this.refitBtns[ri].setEnabled(level < ref.max && (I.PROFILE.salvage || 0) >= D.refitCost(id, level));
+      }
       setTextIfChanged(this.lockNote, unlocked ? '' :
         'LOCKED. Clear ' + D.sectorAt(this.pick - 1).name + ' to open this sector.');
       this.startBtn.setEnabled(unlocked);
@@ -314,6 +354,11 @@
       HB.sectorId = s.id;
       HB.sectorName = s.name;
       HB.family = s.family;
+      HB.salvage = I.PROFILE.salvage || 0;
+      HB.refits = {
+        hull: I.PROFILE.refits.hull, coil: I.PROFILE.refits.coil,
+        drive: I.PROFILE.refits.drive, magnet: I.PROFILE.refits.magnet
+      };
     },
     layout: function () {
       var W = this.scale.width, H = this.scale.height;
@@ -325,18 +370,31 @@
       this.sub.setPosition(W / 2, H * 0.30 + 30 * sc).setFontSize(Math.round(14 * sc));
       this.detail.setPosition(W / 2, H * 0.30 + 52 * sc).setFontSize(Math.round(13 * sc));
       this.lockNote.setPosition(W / 2, H * 0.30 + 74 * sc).setFontSize(Math.round(13 * sc));
+      this.salvageText.setPosition(W / 2, H * 0.39).setFontSize(Math.max(14, Math.round(13 * sc)));
+      var refitSpan = Math.min(W * 0.78, 88 * sc * this.refitBtns.length);
+      for (var ri = 0; ri < this.refitBtns.length; ri++) {
+        var rb = this.refitBtns[ri];
+        rb.w = Math.round(78 * sc); rb.h = Math.round(42 * sc);
+        rb.setPos(W / 2 - refitSpan / 2 + ri * (refitSpan / Math.max(1, this.refitBtns.length - 1)) - rb.w / 2,
+          H * 0.43 - rb.h / 2);
+      }
 
       var n = D.SECTORS.length;
       var span = Math.min(W * 0.82, 96 * sc * n);
-      var y = H * 0.56;
+      var y = H * 0.59;
       for (var i = 0; i < n; i++) {
         var x = W / 2 - span / 2 + span * (n === 1 ? 0.5 : i / (n - 1));
         this.nodeBtns[i].r = Math.round(26 * sc);
         this.nodeBtns[i].setPos(x, y);
         this.nodeLabels[i].setPosition(x, y + 40 * sc).setFontSize(Math.round(10 * sc));
       }
-      this.startBtn.w = Math.round(220 * sc); this.startBtn.h = Math.round(58 * sc);
-      this.startBtn.setPos(W / 2 - this.startBtn.w / 2, H - ins.b - this.startBtn.h - 22 * sc);
+      this.startBtn.w = Math.round(Math.min(220, W * 0.34) * sc); this.startBtn.h = Math.round(58 * sc);
+      this.ladderBtn.w = this.startBtn.w; this.ladderBtn.h = this.startBtn.h;
+      var btnGap = Math.round(12 * sc);
+      var btnTotal = this.startBtn.w + this.ladderBtn.w + btnGap;
+      var btnY = H - ins.b - this.startBtn.h - 18 * sc;
+      this.startBtn.setPos(W / 2 - btnTotal / 2, btnY);
+      this.ladderBtn.setPos(W / 2 + btnTotal / 2 - this.ladderBtn.w, btnY);
       this.backBtn.r = Math.round(22 * sc);
       this.backBtn.setPos(ins.l + 34 * sc, ins.t + 34 * sc);
       this.setBtn.r = Math.round(22 * sc);

@@ -33,14 +33,31 @@ class Enemy {
     this.hitHigh = false; // this attack hits high
     this.hitLow = false;  // this attack hits low
     this.damageAmount = 1;
+    this.knockbackTimer = 0;
+    this.walkFrame = 0;
   }
 
   update(player, platforms, scene) {
     if (!this.alive) return;
     if (this.iframes > 0) this.iframes--;
     this.timer++;
-    this._aiUpdate(player, platforms, scene);
+    if (this.knockbackTimer > 0) {
+      this.knockbackTimer--;
+      this.x += this.vx;
+      this.vy *= 0.88;
+    } else {
+      this._aiUpdate(player, platforms, scene);
+    }
     this._physics(platforms);
+    if (this.iframes > 0) this.state = 'damage';
+    else if (this.blocking) this.state = 'guard';
+    else if (this.attackTimer > 0 || this.mace || this.attacking) {
+      const timer = Number(this.attackTimer || this.mace?.timer || 0);
+      this.state = timer > 12 ? 'windup' : timer < 6 ? 'recovery' : 'attack';
+    }
+    else if (!this.onGround) this.state = this.vy < 0 ? 'jump' : 'fall';
+    else if (Math.abs(this.vx) > 0.05) this.state = 'walk';
+    else this.state = 'idle';
     // Face the player
     this.facing = player.x < this.x ? -1 : 1;
   }
@@ -543,20 +560,20 @@ export class Ravenhorse extends Enemy {
 
     this.attackTimer = Math.max(0, this.attackTimer - 1);
 
-    // Phase 2 at half HP
-    if (this.hp < this.maxHp / 2) this.phase = 1;
+    if (this.hp < this.maxHp * 0.66) this.phase = 1;
+    if (this.hp < this.maxHp * 0.33) this.phase = 2;
 
     const speed = this.walkSpeed * (1 + this.phase * 0.5);
     this.vx = (dx > 0 ? 1 : -1) * speed;
 
     // Swing mace
-    if (dist < 40 && this.attackTimer <= 0) {
-      this.attackTimer = 40;
+    if (dist < (this.phase > 1 ? 76 : 40) && this.attackTimer <= 0) {
+      this.attackTimer = this.phase > 1 ? 30 : 40;
       this.maceActive = true;
       this.mace = {
         x: this.x + (this.facing === 1 ? this.w : -16),
         y: this.y - 8,
-        w: 12, h: 12,
+        w: this.phase > 1 ? 18 : 12, h: 12,
         damage: 4, timer: 20,
       };
     }
@@ -567,7 +584,7 @@ export class Ravenhorse extends Enemy {
     }
 
     // Jump in phase 2
-    if (this.phase === 1 && this.onGround && combatRng.next(`ravenhorse#${this.id}.jumpDecision`) < 0.008) {
+    if (this.phase > 0 && this.onGround && combatRng.next(`ravenhorse#${this.id}.jumpDecision`) < 0.008 * this.phase) {
       this.vy = -5;
     }
   }
@@ -596,6 +613,8 @@ export class Crownback extends Enemy {
   _aiUpdate(player, platforms, scene) {
     const dx = player.x - this.x;
 
+    if (this.hp < this.maxHp * 0.66) this.phase = 1;
+    if (this.hp < this.maxHp * 0.33) this.phase = 2;
     this.vx = (dx > 0 ? 1 : -1) * this.walkSpeed * (1 + this.phase * 0.3);
 
     this.fireTimer = Math.max(0, this.fireTimer - 1);
@@ -608,6 +627,10 @@ export class Crownback extends Enemy {
         vy: combatRng.next(`crownback#${this.id}.fireballVy`) * 2 - 1,
         w: 8, h: 8, damage: 3,
       });
+      if (this.phase > 1) {
+        this.fireballs.push({ x: this.x + (this.facing === 1 ? this.w : -8), y: this.y + 4,
+          vx: this.facing * 2, vy: -1.2, w: 8, h: 8, damage: 3 });
+      }
       this.fireTimer = 60 - this.phase * 15;
     }
 
@@ -616,7 +639,6 @@ export class Crownback extends Enemy {
       return f.x > -16 && f.x < scene.w + 16;
     });
 
-    if (this.hp < this.maxHp * 0.5) this.phase = 1;
   }
 
   takeDamage(amount, attackType = 'mid') {
@@ -652,14 +674,19 @@ export class Stonevex extends Enemy {
     const dist = Math.abs(dx);
     this.attackCooldown = Math.max(0, this.attackCooldown - 1);
     this.attackTimer = Math.max(0, this.attackTimer - 1);
-    if (this.hp < this.maxHp * 0.5) this.phase = 1;
+    if (this.hp < this.maxHp * 0.66) this.phase = 1;
+    if (this.hp < this.maxHp * 0.33) this.phase = 2;
     this.vx = dist > 30 ? (dx > 0 ? 1 : -1) * this.walkSpeed * (1 + this.phase * 0.4) : 0;
     if (dist < 58 && this.attackCooldown <= 0) {
-      this.attackCooldown = this.phase ? 42 : 58;
+      this.attackCooldown = this.phase > 1 ? 28 : this.phase ? 42 : 58;
       this.attackTimer = 18;
       this.mace = { x: this.x + (this.facing === 1 ? this.w : -18), y: this.y + 4, w: 18, h: 14, damage: 6, timer: 18 };
       if (this.phase) {
         this.projectiles.push({ x: this.x + this.w / 2, y: this.y + 10, vx: this.facing * 2.2, vy: -1.2, w: 8, h: 8, damage: 4, type: 'rock' });
+        if (this.phase > 1) {
+          this.projectiles.push({ x: this.x + this.w / 2, y: this.y + 10, vx: this.facing * 1.6, vy: -2.2, w: 8, h: 8, damage: 4, type: 'rock' });
+          this.projectiles.push({ x: this.x + this.w / 2, y: this.y + 10, vx: this.facing * 1.6, vy: 0.2, w: 8, h: 8, damage: 4, type: 'rock' });
+        }
       }
     }
     if (this.mace) {
@@ -693,8 +720,9 @@ export class Ironroot extends Enemy {
     const dx = player.x - this.x;
     const dist = Math.abs(dx);
     this.shootCooldown = Math.max(0, this.shootCooldown - 1);
-    if (this.hp < this.maxHp * 0.5) this.phase = 1;
-    this.blocking = this.timer % (this.phase ? 88 : 112) < 24;
+    if (this.hp < this.maxHp * 0.66) this.phase = 1;
+    if (this.hp < this.maxHp * 0.33) this.phase = 2;
+    this.blocking = this.timer % (this.phase > 1 ? 64 : this.phase ? 88 : 112) < 24;
     this.vx = this.blocking || dist < 24 ? 0 : (dx > 0 ? 1 : -1) * this.walkSpeed;
     if (this.shootCooldown <= 0) {
       const dy = player.y - this.y;
@@ -704,7 +732,12 @@ export class Ironroot extends Enemy {
         vx: dx / length * (this.phase ? 2.6 : 2), vy: dy / length * (this.phase ? 2.6 : 2),
         w: 8, h: 8, damage: 5, type: 'magic',
       });
-      this.shootCooldown = this.phase ? 50 : 78;
+      if (this.phase > 1) {
+        this.projectiles.push({ x: this.x + this.w / 2, y: this.y + 8,
+          vx: (dx / length) * 1.6 - 0.7, vy: (dy / length) * 1.6 - 0.6,
+          w: 8, h: 8, damage: 5, type: 'magic' });
+      }
+      this.shootCooldown = this.phase > 1 ? 34 : this.phase ? 50 : 78;
     }
     this.projectiles = this.projectiles.filter((p) => {
       p.x += p.vx;
@@ -737,13 +770,15 @@ export class Tidebane extends Enemy {
     const dx = player.x - this.x;
     const dist = Math.abs(dx);
     this.attackCooldown = Math.max(0, this.attackCooldown - 1);
-    if (this.hp < this.maxHp * 0.5) this.phase = 1;
+    if (this.hp < this.maxHp * 0.66) this.phase = 1;
+    if (this.hp < this.maxHp * 0.33) this.phase = 2;
     this.vx = dist > 32 ? (dx > 0 ? 1 : -1) * this.walkSpeed * (1 + this.phase * 0.35) : 0;
     if (this.attackCooldown <= 0) {
-      this.attackCooldown = this.phase ? 32 : 52;
+      this.attackCooldown = this.phase > 1 ? 24 : this.phase ? 32 : 52;
       this.attackTimer = 20;
       this.mace = { x: this.x + (this.facing === 1 ? this.w : -16), y: this.y - 2, w: 16, h: 18, damage: 7, timer: 20 };
       this.fireballs.push({ x: this.x + this.w / 2, y: this.y + 6, vx: this.facing * 2.4, vy: -0.6, w: 8, h: 8, damage: 4, type: 'water' });
+      if (this.phase > 1) this.fireballs.push({ x: this.x + this.w / 2, y: this.y + 6, vx: this.facing * 1.5, vy: -2.1, w: 8, h: 8, damage: 4, type: 'water' });
     }
     if (this.mace) {
       this.mace.timer--;
@@ -771,6 +806,7 @@ export class Umbrakin extends Enemy {
     this.jumpCooldown = 0;
     this.phase = 0;
     this.mirrorTimer = 0;
+    this.projectiles = [];
   }
 
   _aiUpdate(player, platforms, scene) {
@@ -779,6 +815,7 @@ export class Umbrakin extends Enemy {
 
     this.attackCooldown = Math.max(0, this.attackCooldown - 1);
     this.jumpCooldown   = Math.max(0, this.jumpCooldown - 1);
+    this.mirrorTimer = Math.max(0, this.mirrorTimer - 1);
     if (this.attackTimer > 0) this.attackTimer--;
 
     if (this.hp < this.maxHp * 0.5) this.phase = 1;
@@ -795,6 +832,12 @@ export class Umbrakin extends Enemy {
       if (this.attackCooldown <= 0) {
         this.attackTimer = 15;
         this.attackCooldown = 30 - this.phase * 5;
+        if (this.phase > 0) {
+          this.projectiles.push({ x: this.x + (this.facing === 1 ? this.w : -10), y: this.y + 5,
+            vx: this.facing * (2.2 + this.phase * 0.4), vy: this.phase > 1 ? -0.8 : 0,
+            w: 10, h: 6, damage: 4 + this.phase, type: 'magic' });
+        }
+        if (this.phase > 1) this.mirrorTimer = 24;
       }
     }
 
@@ -803,6 +846,11 @@ export class Umbrakin extends Enemy {
       this.vy = -5;
       this.jumpCooldown = 60;
     }
+    this.projectiles = this.projectiles.filter((projectile) => {
+      projectile.x += projectile.vx;
+      projectile.y += projectile.vy;
+      return projectile.x > -16 && projectile.x < scene.w + 16 && projectile.y > -16 && projectile.y < scene.h + 16;
+    });
   }
 
   get swordBox() {
@@ -812,6 +860,11 @@ export class Umbrakin extends Enemy {
       y: this.y + 4,
       w: 16, h: 8,
     };
+  }
+
+  takeDamage(amount, attackType = 'mid') {
+    if (this.mirrorTimer > 0 && attackType === 'mid') return false;
+    return super.takeDamage(amount, attackType);
   }
 }
 

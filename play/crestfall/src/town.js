@@ -1,6 +1,7 @@
 // Town scene - top-down walking, NPCs, wise man, hospital
 import { SCALE, NES_W, NES_H, SPELLS } from './constants.js';
 import { drawTextPx, drawTownNPC, drawPlayer, drawPixelPanel } from './sprites.js';
+import { EQUIPMENT, TECHNIQUES } from './progression.js';
 // Decision 3 (Rev 2): town NPC movement is a gameplay-affecting stream
 // (NPC position gates dialogue interaction — town.js _checkInteract below),
 // so it draws from townRng, not the cosmetic-only fxRng.
@@ -70,6 +71,7 @@ export class TownScene {
 
     this.done = false;
     this.healAnim = 0;
+    this.transitionTimer = 0;
   }
 
   load(townData) {
@@ -81,9 +83,14 @@ export class TownScene {
     this.done = false;
     this.dialogTimer = 0;
     this.talkTarget = null;
+    this.transitionTimer = 28;
   }
 
   update(input) {
+    if (this.transitionTimer > 0) {
+      this.transitionTimer--;
+      return;
+    }
     if (this.dialogTimer > 0) {
       if (input.pressA || input.pressB) {
         this.dialogPage++;
@@ -180,7 +187,24 @@ export class TownScene {
     // Check NPC proximity
     for (const npc of layout.npcs) {
       if (Math.abs(this.px - npc.x) < 20 && Math.abs(this.py - npc.y) < 16) {
-        this._showDialog(npc.text, null);
+        const quest = this.townData.quest;
+        if (quest && npc.idx === quest.giver) {
+          if (this.player.questStage === quest.step && !this.player.questFlags[quest.id]) {
+            this.player.questStage++;
+            this.player.questFlags[quest.id] = true;
+            this.player.unlockTechnique(quest.rewardTechnique);
+            this.player.equip(quest.rewardEquipment);
+            const technique = TECHNIQUES[quest.rewardTechnique];
+            const gear = EQUIPMENT[quest.rewardEquipment];
+            this._showDialog(`${quest.text}\n\n${technique?.name || 'TECHNIQUE'} ONLINE.\n${gear?.name || 'GEAR'} EQUIPPED.`, null);
+          } else if (this.player.questStage < quest.step) {
+            this._showDialog('THE SIGNAL HAS MORE WORK\nBEFORE THIS ROAD OPENS.', null);
+          } else {
+            this._showDialog(`${npc.text}\n\nTHE ROAD REMEMBERS YOUR DEED.`, null);
+          }
+        } else {
+          this._showDialog(npc.text, null);
+        }
         return;
       }
     }
@@ -273,7 +297,7 @@ export class TownScene {
     }
 
     // Player
-    drawPlayer(ctx, Math.round(this.px), VIEW_Y + Math.round(this.py), 0, this.pfacing, 'stand');
+    drawPlayer(ctx, Math.round(this.px), VIEW_Y + Math.round(this.py), 0, this.pfacing, 'stand', 'ready', this.player.equipment);
 
     // Dialog box
     if (this.dialogTimer > 0 && this.dialogLines.length > 0) {
@@ -286,6 +310,10 @@ export class TownScene {
       if (this.dialogPage < this.dialogLines.length - 1) {
         drawTextPx(ctx, '>', (dlgX + lineW - 8) * S, (dlgY + 16) * S, '#F8D878', S);
       }
+    }
+    if (this.transitionTimer > 0) {
+      ctx.fillStyle = `rgba(3,6,17,${Math.min(0.9, this.transitionTimer / 28)})`;
+      ctx.fillRect(0, VIEW_Y * S, NES_W * S, NES_H * S);
     }
   }
 

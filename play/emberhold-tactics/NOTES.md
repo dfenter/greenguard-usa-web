@@ -68,3 +68,28 @@ Rejected: none. All listed findings were actionable in this title.
 - Shrunk the HUD to icon-led meters and compact action buttons; reduced the queue to an unlabeled icon cluster and kept touch targets at 44px or larger.
 - Moved the active-unit meters to the top edge, moved event feedback to a single upper-corner chip with a capped 1.0s queue, and made the coach strip one thin line that fades after about 3s.
 - Kept the center banner for battle boundaries only and preserved reduced-motion gating.
+
+## Round 2 polish
+
+Visual and FX polish:
+
+- Added authored per-area palettes for twenty battles, stronger elevation side shading, terrain highlights, hold/capture/escort objective markers, and a live movement path preview.
+- Added pooled weapon-class attack arcs for slash, bash, arrow, fire, frost, arcane, shock, dash, and support actions. Impacts retain pooled particles, shake, hit-stop, damage flash, KO drift, and audio through GGKit; the heavy layer is gated by the reduced-motion setting.
+- Expanded actor motion into idle breathing, anticipatory attack wind-up, active strike, recovery, hurt blink, move bob, and death drift. Victory and defeat now use a reduced-motion-aware camera sweep before the boundary banner, and the menu sheet slides instead of cutting.
+- Added a compact roster / armory panel with safe-area touch targets, active-slot selection, equipment cycling, promotion branch selection, permadeath toggle, and heavy-FX toggle. Music remains lazy through GGKit until the first gesture.
+
+Gameplay depth:
+
+- Replaced the five-skirmish chain with a deterministic twenty-battle campaign spanning rout, hold, capture, and escort objectives, with authored battle names, palettes, hazards, layouts, reinforcement waves, objective timers, control points, and the Emberhold finale.
+- Added a persistent six-member roster carried between battles, active four-unit selection, XP and levels, two-branch class promotions with new abilities, equipment modifiers, courier escort units, objective-aware capture/hold resolution, and a permadeath toggle.
+- Added terrain and cover modifiers plus explicit high-ground, low-ground, cover, side, and back-flank deltas to the damage forecast. Enemy AI now prioritizes the courier and contested objectives, focuses vulnerable targets, uses taunt/decoy state, and scores routes for flank access instead of only closing distance.
+- Preserved tap-to-move, tap-to-target, second-tap confirmation, keyboard, gamepad, pan, pinch, rotate, zoom, end-turn, and deterministic simulation behavior.
+
+Save and ship notes:
+
+- Bumped the save profile from version 1 to version 2. Version 1 profiles migrate into the new roster, equipment, active-slot, permadeath, and reduced-motion fields; invalid or malformed profiles fall back to a fresh validated profile without throwing. Victory writes carried roster XP and permadeath state through GGKit.
+- Bumped the service-worker cache to `2026-08-16-aaa-round2-tactics2`; its precache list was checked against the files that exist. The title payload is 331,776 bytes and every file is below 400 KB.
+
+Deferred:
+
+- A live browser screenshot and 4x frame capture could not run because no in-app browser instance was available and the sandbox rejected opening a local HTTP server port. Static checks, all-twenty battle instantiation, deterministic regression probes, randomized interaction fuzzing, manifest parsing, and precache validation passed.

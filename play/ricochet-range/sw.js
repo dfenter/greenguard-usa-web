@@ -1,6 +1,6 @@
 /* Ricochet Range service worker. Generated from /play/_shared/sw-template.js. */
 const SLUG = 'ricochet-range';
-const VERSION = '2026-08-10-aa-03';
+const VERSION = '2026-08-16-r2-01';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/ricochet-range/',
@@ -12,7 +12,6 @@ const ASSETS = [
   '/play/ricochet-range/favicon.svg',
   '/play/ricochet-range/assets/ball.svg',
   '/play/ricochet-range/assets/particle.svg',
-  '/play/ricochet-range/assets/range-seal.svg',
   '/play/ricochet-range/sw.js',
   '/play/_shared/phaser.min.js',
   '/play/_shared/ggkit.js'

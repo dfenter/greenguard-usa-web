@@ -75,3 +75,175 @@ Verification: `node --check game.js` and `node --check sw.js` pass. A VM content
 - Moved in-play events to one queued top-edge chip capped at 1.0s; kept hole-in-one and run completion information on result screens.
 - Kept one short tutorial line at the top edge, fading it after about 3 seconds with reduced-motion gating intact.
 - Bumped the service-worker cache version to `2026-08-10-aa-03`.
+
+## Round 2 polish
+
+### Presentation
+
+- Resolution. The world stays 1280x720 logical, but the Phaser canvas is now
+  sized in DEVICE pixels and the main camera is zoomed to match, so the
+  backing store is dense on a phone. The factor is
+  `clamp(round(fittedCssWidth * devicePixelRatio / 1280 * 4) / 4, 1, 3)`,
+  which is 1:1 with the physical display instead of a blind 3x of a canvas
+  that is already letterboxed. Verified in headless Chrome: at
+  `deviceScaleFactor` 3 the canvas is 2240x1260 backing 693 CSS px; at 1 it
+  is 1280x720. The removed-after-3.16 `resolution` config key is not used.
+- Texture bakery. Every repeated shape (glow, ring, flare, puff, spark,
+  shadow, bumper, mover, portal, cup ring, three pickups, HUD plate, HUD bar,
+  card panel) is rasterised once into a canvas AT THE DEVICE SCALE and
+  registered with `textures.addCanvas`. Nothing is baked at 1x and scaled up.
+  All bakes complete before any game object that references them is
+  constructed.
+- Static course chrome is baked per hole into one full-screen canvas texture
+  (board, playfield, mown stripes, grid, ground flecks, hazards, suggested
+  route, walls, boost pads, cup and flag) and refreshed on hole change, so
+  Phaser Graphics no longer replays several hundred commands per frame. The
+  remaining per-frame Graphics work is the sky gradient (one call), the
+  moving gates, the aim preview and the particle quads.
+- Colour depth. Every large surface is a multi-stop gradient with a key light,
+  a rim and an `overlay` noise pass from a baked tileable noise patch, plus an
+  inner vignette. Walls get a cast shadow, a lit body gradient and a specular
+  top edge; the cup is a radial well with a rim light and a gradient flag
+  cloth. Measured distinct colours in real gameplay frames at dpr 3:
+  65,886 (tee), 68,146 (mid shot), 82,687 (Crown hole 18), 65,925 (trick).
+- Parallax scenery. Three tiling ground layers per authored area (far
+  mottling, mid motif, near flecks) drawn as tile sprites under a translucent
+  playfield, scrolling at 0.18 / 0.4 / 0.72 of the pan offset plus a
+  ball-follow term and a slow drift. Motifs are authored per area: garden
+  canopies, ice peaks, dune crests, gear rims, crown pennants.
+- Ball animation. Roll angle now integrates real travel over the ball radius
+  rather than a wall clock, so the ball reads as rolling and stops rolling
+  when it stops. Idle, aim, shot, airborne and sink states each change scale,
+  glow, tint and shadow. Airborne chips lift the sprite, shrink and offset the
+  shadow, and land with a dust burst.
+- Surface-correct roll feedback. Dust particles are tinted per surface (area
+  dust colour on grass, sand, ice, water) and emitted at a surface-dependent
+  rate; the rolling sound is retriggered at a surface-dependent interval with
+  a surface-dependent playback rate and speed-scaled volume.
+- Hazards. Water entry spawns a two-ring splash plus upward droplets; sand
+  entry and chip landings spawn a plume. Water hazards are baked with animated
+  specular ribbons, sand with wind ripples, ice with fracture lines.
+- Celebrations escalate by result: bogey gets a ring, par a double ring,
+  eagle adds a flare and a wide ring, an ace adds a six-point flare crown,
+  with shake and hit-stop scaled to the tier.
+- Screens are no longer cut. Hole change, course change and mode change run a
+  five-band interlocking wipe with the state swap fired at the midpoint.
+  Reduced motion skips the wipe and applies the swap immediately.
+- All new effects are pooled (240 particles, 48 trail slots, 18 rings, 10
+  flares, 5 emitters) and pre-warmed once offscreen during the loading screen
+  before the first frame of play.
+- `Graphics.arc` is not used for the power gauge any more; the sweep is
+  hand-tessellated to the segments it actually needs.
+- Render config is now `{ antialias: true, antialiasGL: false }`.
+
+### Gameplay
+
+- Hand-authored courses. Twelve authored layout templates (longrail, dogleg,
+  hourglass, pinfield, spiral, island, switchback, crossyard, gauntlet,
+  twinrooms, bankwall, chipover), each with a fixed tee, cup, wall skeleton,
+  bumper set, hazard slots, boost pad, portal anchors and mover rails. Every
+  one of the 90 holes (18 per theme) hand-picks a template, a mirror, a hazard
+  fill per slot and a feature flag set, so no two holes in a course share a
+  composition. The documented gimmick, par and hole-name tables from the AAA
+  rebuild are unchanged and still drive each hole.
+- The seeded generator is preserved and is now its own mode (SEED button,
+  key 2), so both content pipelines ship side by side.
+- Shot types. PUTT rolls, CHIP flies over walls, water and sand for a short
+  hop and lands with dust, SPIN curves in flight and loses half its bite on
+  every bank. The preview renders each honestly: a straight multi-bounce
+  tracer for putt, a chord-marched curve for spin, an arc with a landing
+  marker for chip. Tapping SPIN again flips the curve direction. Bound to the
+  footer chips, keys Z/X/V, and gamepad B plus both shoulders.
+- Moving hazards and portals. Movers are patrolling spiked hazards that
+  transfer their own velocity into the bounce; portals teleport the ball
+  between paired anchors preserving heading. Both are authored per hole and
+  concentrate in the back nine and in Championship Crown.
+- Trick Shot is now an authored twelve-challenge set with explicit objectives
+  (double bank, four walls, over the wall, curve it in, through the gate, one
+  and done, thread the gauntlet, ride the pad, dry line, into the spiral, chip
+  and curve, the crown trick). Each objective is validated against per-hole
+  shot telemetry at sink time and completion is persisted per challenge id.
+  The objective is stated in a single thin top strip that fades after ~4s.
+- Rival Pro. A real opponent: a rollout planner that samples aim angles and
+  powers, runs every candidate through a reduced copy of the live physics
+  (walls, gates, bumpers, surface drag, water, cup capture) and keeps the best
+  line. Skill scales with course index and mode by widening the sample set,
+  cutting the noise term and letting it stop early on a found sink. It is
+  budgeted to three rollouts per frame so it never spikes a frame, plays the
+  hole beside you, shows its stroke count in a corner chip, replays its shot
+  as a translucent ghost ball, and its head-to-head record is banked.
+- Career card. New CARD screen (key C, gamepad select) with per-course medals
+  and bests, seeded best, trick-set progress, holes played, aces, eagles,
+  birdies, pars, rival record, best bank run and portals used.
+- Par and medal scoring is unchanged in its rules; hole results now name the
+  result (HOLE IN ONE / EAGLE / BIRDIE / PAR) and carry a second line with the
+  rival comparison or the challenge verdict.
+
+### Bug fixes found while doing this
+
+- SOFT LOCK: a ball nudged forever by a moving gate, or trapped where the
+  above-1 restitution kept topping it back up, could hold a shot open
+  indefinitely and the hole could never end. There is now a settle guard
+  (0.8s under speed 34), a 15s per-shot cap and a 1400 speed clamp.
+- Gates plus their travel could poke out through a rail; `clampGate` now
+  keeps every gate and its full sweep inside the playfield, for authored and
+  seeded holes alike.
+- Keys are edge triggered through `kit.input.onKeyDown` instead of polled per
+  frame. A tap shorter than one frame used to be dropped entirely.
+
+### UI
+
+- Text sizes raised across the HUD (buttons 26, par/pickups 26, strokes 34,
+  hole 30, toast/tutorial 25, result copy 25, action 26) so the smallest
+  readable string is about 14 CSS px on a 844x390 landscape phone. Touch
+  targets are 96-110 logical px wide with hit bands of 80 (top) and 74
+  (bottom) logical px, and an aim press within 78px of the ball always wins
+  over a footer button so the bottom band can stay generous.
+- Still one transient at a time: the corner chip, the tutorial strip and the
+  challenge brief share one slot and never stack. Centre panels appear only at
+  run boundaries, on pause, or on the career card.
+
+### Save
+
+- Version 1 -> 2 with a real migration. `tutorialSeen`, `unlocked`, `medals`
+  and the tour/trick/championship bests are carried across and clamped; the
+  new `seeded` best table, `career` counters and `challenges` map default. The
+  kit's save gate had to be widened to admit the legacy v1 shape, otherwise
+  the kit would hand back the fallback before migration could ever see it.
+  A save that still fails validation after migration degrades to a fresh
+  profile rather than throwing. Verified in browser: a planted v1 save
+  survives a reload as v2 with medals and bests intact, and a truncated JSON
+  blob comes back as a fresh valid profile with the game still running.
+- `sw.js` VERSION is `2026-08-16-r2-01`; the precache list was checked
+  file-by-file against disk (no missing entries) and the retired
+  `range-seal.svg` was dropped from it.
+
+### Verification
+
+- `node --check game.js` and `node --check sw.js` pass.
+- Headless Chrome (dpr 3 and dpr 1, 844x390 landscape) on a private port
+  8347/8348, never a shared default port: zero console errors, zero failed
+  requests, first frame renders, and the headline mechanic runs. A stroke is
+  taken and counted, the ball rolls and banks, putt/chip/spin all take effect,
+  the Crown hole 18 builds with a mover and a portal, the trick set builds
+  with its challenge bound to the hole, the seeded generator still builds, the
+  career card opens, hole complete advances through the wipe, and the final
+  hole advances to the medal card with the best score banked.
+- Payload 240KB total (limit 2.5MB), largest file `game.js` at 182KB (limit
+  400KB).
+- No frame-rate or feel numbers are reported: the box is contended, so every
+  local timing figure this wave is void.
+
+### Deferred
+
+- Only PUTT power is affected by the power-ball pickup; chip and spin scale
+  from the same pickup but their own multipliers are fixed. A per-shot-type
+  pickup economy is a bigger design change than this lane should make.
+- The Rival Pro's rollout ignores movers, portals and the gimmick field, so on
+  those holes it plays a slightly conservative line. Adding them costs a
+  meaningful rollout budget and wants a quiet box to tune.
+- Scenery parallax is a ground-layer treatment, not a horizon: the board fills
+  the frame at 1280x720, so there is no off-board space for a skyline without
+  moving the play bounds, which would change the accepted feel.
+- The resolution factor is computed once at boot. Rotating a desktop window to
+  a much larger size does not re-bake at a higher density until reload.

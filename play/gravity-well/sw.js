@@ -1,6 +1,6 @@
 /* sw-template.js - Gravity Well cache manifest, derived from /play/_shared/sw-template.js. */
 const SLUG = 'gravity-well';
-const VERSION = '2026-08-10-aaa-fix-2-ui-declutter';
+const VERSION = '2026-08-16-aaa-round-2-gravity-depth';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/gravity-well/',

@@ -88,6 +88,11 @@ export const TOWNS = {
       'LEARN THE WARD RUNE.',
     ],
     wiseManText: 'WARD TURNS BLADES ASIDE\nWHEN YOUR STANCE IS TRUE.',
+    quest: {
+      id: 'bracken_roots', step: 0, giver: 0,
+      text: 'THE ROOTWAYS ARE CHOKED WITH THORNS.\nCUT A PATH FOR THE SIGNAL.',
+      rewardTechnique: 'VINECUTTER', rewardEquipment: 'THORNBINDER',
+    },
     hasHospital: true,
     npcCount: 3,
   },
@@ -102,6 +107,11 @@ export const TOWNS = {
       'IT WAITS BELOW THE RIDGE.',
     ],
     wiseManText: 'FLUX LIFTS YOU HIGH\nTO CROSS BROKEN GROUND.',
+    quest: {
+      id: 'cinder_sky', step: 1, giver: 1,
+      text: 'THE OLD AERIE LOST ITS WINDSTONE.\nRETURN THE SKY TO THE ROAD.',
+      rewardTechnique: 'AIRSTEP', rewardEquipment: 'SKYTHREAD',
+    },
     hasHospital: true,
     npcCount: 4,
   },
@@ -130,6 +140,11 @@ export const TOWNS = {
       'IT LETS YOU PASS STONE.',
     ],
     wiseManText: 'WISP UNMAKES YOUR WEIGHT\nSO YOU CAN CROSS CHASMS.',
+    quest: {
+      id: 'mossgate_tide', step: 2, giver: 2,
+      text: 'THE FERRY BELL SLEEPS BELOW THE FEN.\nWAKE THE DROWNED ROAD.',
+      rewardTechnique: 'TIDEWALK', rewardEquipment: 'TIDEGLASS',
+    },
     hasHospital: true,
     npcCount: 5,
   },
@@ -170,6 +185,11 @@ export const TOWNS = {
       'FIND THE LOST RUNE.',
     ],
     wiseManText: 'HEX BENDS A FOE\nTO YOUR WILL.',
+    quest: {
+      id: 'gloamrest_veil', step: 3, giver: 0,
+      text: 'THE CITADEL HAS SEALED ITS LAST DOOR.\nSTEP THROUGH THE HOLLOW VEIL.',
+      rewardTechnique: 'PHASESHIFT', rewardEquipment: 'VEILPLATE',
+    },
     hasHospital: false,
     npcCount: 2,
   },
@@ -320,7 +340,8 @@ export function buildPalaceRooms(palaceId) {
       { x: 192, y: GY-36, w: 48,  h: 8 },
     ],
     doors: [
-      { x: 240, y: GY-36, w: 16, h: 32, locked: true, leadsTo: 2 },
+      { x: 240, y: GY-36, w: 16, h: 32, locked: true, leadsTo: 2,
+        requiresTechnique: palaceId >= 5 ? 'PHASESHIFT' : null },
     ],
     enemies: [
       { type: 'boneward',  x: 80,  y: GY-16 },
@@ -347,7 +368,8 @@ export function buildPalaceRooms(palaceId) {
       { x: 64,  y: GY-96, w: 128, h: 8 },
     ],
     doors: [
-      { x: 240, y: GY-96, w: 16, h: 32, locked: false, leadsTo: 3 },
+      { x: 240, y: GY-96, w: 16, h: 32, locked: false, leadsTo: 3,
+        requiresTechnique: palaceId >= 2 ? 'AIRSTEP' : null },
     ],
     enemies: [
       { type: 'ironwraith', x: 160, y: GY-16 },

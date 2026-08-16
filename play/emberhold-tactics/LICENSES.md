@@ -9,7 +9,7 @@ The procedural audio cues are MP3 files generated for Emberhold Tactics with
 deterministic oscillator and envelope recipes. They contain no samples.
 
 The asset policy and provenance ledger are documented in
-`/play/_assets/LEDGER.md`. No third-party pack row is used by this title.
+`play/_assets/LEDGER.md`. No third-party pack row is used by this title.
 
 | Shipped file | Source | License |
 |---|---|---|

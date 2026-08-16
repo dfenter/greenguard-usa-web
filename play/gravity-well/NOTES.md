@@ -120,3 +120,59 @@ Deferred, not rejected:
 - Shortened tutorial copy to one readable line, capped it at a thin top strip,
   and faded stale guidance after 3s. Preserved safe-area, touch-target, and
   reduced-motion gating.
+
+## Round 2 polish
+
+Visual and FX:
+
+- Added authored per-area strata bands, parallax wall layers, wind streaks,
+  low-gravity fields, thruster heat shimmer, engine light cast onto both
+  cavern walls, near-floor dust kicks, animated pad beacons, beacon ray and
+  ring pulses, objective marker animation, and anticipation/active/recovery
+  motion ramps for hazards, pickups, pads, and the lander.
+- Expanded impact feedback with pooled debris, dust, smoke, impact shards,
+  staged rings, reward-chain escalation, and crash flash timing. Heavy FX are
+  reduced under the accessibility reduced-motion preference. FX pools are
+  allocated and touched during the GGKit loading screen.
+- Added animated menu and results transitions, hand-authored color treatment
+  for each cavern family, and a compact objective HUD readout. Static rings
+  use hand-tessellated paths instead of Graphics.arc.
+
+Gameplay:
+
+- Expanded the campaign to 24 caverns: six expeditions with four descents
+  each. Fuel budgets now vary per cavern, with four upgradeable ship systems:
+  tank capacity, thrust, stabilizer control, and an AI navigator that makes
+  bounded safe-corridor corrections without overriding player input.
+- Added required rescue and cargo objectives, objective scoring, persistent
+  rescue and delivery totals, wind fields, low-gravity fields, and authored
+  hardest caverns for the final descent of every expedition beside the seeded
+  generator.
+- Added a real 78-second time-attack descent on the authored Beacon Heart
+  cavern, with a saved best time, run count, remaining-time HUD, separate
+  clear/fail flow, and score calculation.
+- Mission scores award upgrade tokens. The menu now exposes the four upgrade
+  tracks and their costs, with level effects applied to the flight model.
+
+Save and PWA:
+
+- Bumped the save version from 3 to 4. Version 3 profiles migrate forward
+  with defaults for upgrade tokens, upgrades, time-attack stats, and objective
+  totals. Current profiles validate their new fields, and malformed or
+  invalid profiles fall back to a fresh profile through GGKit's guarded save
+  path without throwing.
+- Bumped the service-worker cache version to
+  `2026-08-16-aaa-round-2-gravity-depth`; the precache list remains matched to
+  the files that exist.
+- Updated LICENSES.md to record that Round 2 adds only procedural code art
+  and cites `/play/_assets/LEDGER.md`.
+
+Deferred and why:
+
+- A real browser first-frame screenshot, interactive campaign run, and the
+  4x CPU-throttle 600-frame capture remain deferred because the supported
+  browser surface was unavailable and the sandbox rejected local HTTP server
+  binding. The local VM smoke harness did boot the scene, start a descent,
+  run a rendered update, and verify `playing` state with a cavern, objective,
+  and fuel budget. Syntax, manifest, precache existence, audio-format, file
+  size, and payload checks passed.

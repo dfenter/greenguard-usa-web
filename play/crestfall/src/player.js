@@ -1,5 +1,6 @@
 // Player state machine, physics, and stats
 import { PLAYER, GRAVITY, MAX_FALL, XP_TABLE, ATK_POWER, SPELLS } from './constants.js';
+import { EQUIPMENT, SKILL_BY_ID, TECHNIQUES, hasSkill, hasTechnique } from './progression.js';
 
 export class Player {
   constructor() {
@@ -28,6 +29,7 @@ export class Player {
     this.damageTimer = 0;
     this.coyoteTimer = 0;
     this.jumpBufferTimer = 0;
+    this.airJumps = 0;
     this.parryTimer = 0;
     this.guardFlash = 0;
     this.lastHitResult = null;
@@ -79,6 +81,14 @@ export class Player {
     this.spells = {};       // spell name → true
     this.activeSpells = {}; // spell name → remaining duration in frames
     this.selectedSpell = null;
+
+    // Persistent RPG progression added in the second uplift pass.
+    this.skillPoints = 1;
+    this.skills = {};
+    this.techniques = {};
+    this.equipment = 'EMBERCLOAK';
+    this.questStage = 0;
+    this.questFlags = {};
 
     // Inventory
     this.keys = 0;
@@ -149,11 +159,14 @@ export class Player {
 
     // Jump
     if (!attacking && input.pressA) this.jumpBufferTimer = PLAYER.JUMP_BUFFER_FRAMES;
-    if (!attacking && this.jumpBufferTimer > 0 && (this.onGround || this.coyoteTimer > 0)) {
+    if (!attacking && this.jumpBufferTimer > 0 && (this.onGround || this.coyoteTimer > 0 || (this.airJumps > 0 && hasTechnique(this, 'AIRSTEP')))) {
       this.vy = PLAYER.JUMP_VEL;
       if (this.spells.JUMP && this.activeSpells.JUMP) {
         this.vy = PLAYER.JUMP_VEL * 1.6; // super jump
       }
+      const groundedJump = this.onGround || this.coyoteTimer > 0;
+      if (groundedJump && hasTechnique(this, 'AIRSTEP')) this.airJumps = 1;
+      else if (!groundedJump) this.airJumps = Math.max(0, this.airJumps - 1);
       this.onGround = false;
       this.coyoteTimer = 0;
       this.jumpBufferTimer = 0;
@@ -250,6 +263,7 @@ export class Player {
   }
 
   _startAttack(input) {
+    this.attackDuration = this.getAttackDuration();
     this.attackTimer = this.attackDuration;
     this.attackElapsed = 0;
     this.attackPhase = 'windup';
@@ -284,7 +298,7 @@ export class Player {
 
   _updateSwordBox() {
     if (!this.swordActive) { this.swordBox = null; return; }
-    const bw = 16, bh = 8;
+    const bw = this.getAttackReach(), bh = 8;
     const by = 6; // offset from top of player
     if (this.state === 'attack') {
       this.swordBox = this.facing === 1
@@ -314,6 +328,7 @@ export class Player {
           this.y = p.y - this.h;
           this.vy = 0;
           this.onGround = true;
+          this.airJumps = hasTechnique(this, 'AIRSTEP') ? 1 : 0;
           if (this.state === 'jump' || this.state === 'fall') {
             this.state = this._isHoldingDirection() ? 'walk' : 'stand';
           }
@@ -384,6 +399,7 @@ export class Player {
       vx: this.facing * 3,
       vy: 0,
       w: 8, h: 6,
+      damage: this.atkPower + 2 + this.getSpellDamageBonus(),
     });
     return true;
   }
@@ -414,8 +430,9 @@ export class Player {
     } else {
       this.lastHitResult = 'hit';
     }
+    if (hasSkill(this, 'ward_shell') || this.equipment === 'THORNBINDER') amount = Math.max(1, amount - 1);
     this.hp -= amount;
-    this.iframes = PLAYER.IFRAME_DURATION;
+    this.iframes = PLAYER.IFRAME_DURATION + (hasSkill(this, 'ward_parry') || this.equipment === 'VEILPLATE' ? 12 : 0);
     this.damageTimer = 20;
     this.state = 'damage';
     // Knockback
@@ -463,6 +480,7 @@ export class Player {
     const lvlKey = attr + 'Lvl';
     if (this[lvlKey] >= 8) return;
     this[lvlKey]++;
+    this.skillPoints = Math.min(99, (this.skillPoints || 0) + 1);
     // Refund XP to 0 for that track
     if (this[lvlKey] < 8) {
       // Set xp to the minimum for the new level (actual NES resets to 0)
@@ -483,10 +501,10 @@ export class Player {
   }
 
   _calcMaxHp() {
-    return this.lifeContainers * (this.lifLvl * 2 + 8);
+    return this.lifeContainers * (this.lifLvl * 2 + 8) + (hasSkill(this, 'ward_heart') ? 12 : 0);
   }
   _calcMaxMp() {
-    return this.magicContainers * (this.magLvl + 4);
+    return this.magicContainers * (this.magLvl + 4) + (hasSkill(this, 'arc_overcharge') ? 2 : 0);
   }
 
   learnSpell(name) {
@@ -503,20 +521,21 @@ export class Player {
       this.lastRuneEvent = { name, result: 'cooldown', remaining: this.runeCooldowns[name] };
       return false;
     }
-    if (this.mp < spell.cost) {
+    const cost = this.getSpellCost(name);
+    if (this.mp < cost) {
       this.lastRuneEvent = { name, result: 'empty' };
       return false;
     }
-    this.mp -= spell.cost;
+    this.mp -= cost;
     this.runeCooldowns[name] = 45;
     if (name === 'LIFE') {
       this.hp = Math.min(this.maxHp, this.hp + Math.floor(this.maxHp / 2));
-      this.lastRuneEvent = { name, result: 'cast', cost: spell.cost };
+      this.lastRuneEvent = { name, result: 'cast', cost };
       return true;
     }
     if (name === 'FIRE') {
       this.fireSpell(false);
-      this.lastRuneEvent = { name, result: 'cast', cost: spell.cost };
+      this.lastRuneEvent = { name, result: 'cast', cost };
       return true;
     }
     if (name === 'SPELL') {
@@ -527,25 +546,25 @@ export class Player {
         vy: 0,
         w: 10,
         h: 6,
-        damage: this.atkPower + 4,
+        damage: this.atkPower + 4 + this.getSpellDamageBonus(),
         type: 'arc',
       });
-      this.lastRuneEvent = { name, result: 'cast', cost: spell.cost };
+      this.lastRuneEvent = { name, result: 'cast', cost };
       return true;
     }
     if (name === 'THUNDER') {
       this.thunderPulse = true;
-      this.lastRuneEvent = { name, result: 'cast', cost: spell.cost };
+      this.lastRuneEvent = { name, result: 'cast', cost };
       return true;
     }
     // Duration spells (300 frames = 5 seconds)
     const durSpells = ['SHIELD', 'JUMP', 'FAIRY', 'REFLECT'];
     if (durSpells.includes(name)) {
       this.activeSpells[name] = 300;
-      this.lastRuneEvent = { name, result: 'cast', cost: spell.cost };
+      this.lastRuneEvent = { name, result: 'cast', cost };
       return true;
     }
-    this.lastRuneEvent = { name, result: 'cast', cost: spell.cost };
+    this.lastRuneEvent = { name, result: 'cast', cost };
     return true;
   }
 
@@ -556,5 +575,54 @@ export class Player {
     return this.state === 'fall' ? 'jump' : this.state;
   }
 
-  get atkPower() { return ATK_POWER[this.atkLvl] || 1; }
+  get atkPower() { return (ATK_POWER[this.atkLvl] || 1) + (hasSkill(this, 'blade_edge') ? 1 : 0); }
+
+  getAttackDuration() {
+    return Math.max(9, PLAYER.ATTACK_WINDUP + PLAYER.ATTACK_ACTIVE + PLAYER.ATTACK_RECOVERY - (hasSkill(this, 'blade_reprise') || this.equipment === 'SKYTHREAD' ? 2 : 0));
+  }
+
+  getAttackReach() {
+    return PLAYER.SWORD_REACH + (hasSkill(this, 'blade_reach') ? 4 : 0);
+  }
+
+  getSpellCost(name) {
+    const base = SPELLS[name]?.cost || 0;
+    return Math.max(1, base - (hasSkill(this, 'arc_efficiency') || this.equipment === 'TIDEGLASS' ? 1 : 0));
+  }
+
+  getSpellDamageBonus() {
+    return hasSkill(this, 'arc_burst') ? 2 : 0;
+  }
+
+  hasSkill(id) { return hasSkill(this, id); }
+  hasTechnique(name) { return hasTechnique(this, name); }
+
+  unlockSkill(id) {
+    const node = SKILL_BY_ID[id];
+    if (!node || this.skills[id] || this.skillPoints < node.cost) return false;
+    if (node.requires && !this.skills[node.requires]) return false;
+    this.skills[id] = true;
+    this.skillPoints -= node.cost;
+    if (id === 'arc_overcharge') {
+      this.maxMp = this._calcMaxMp();
+      this.mp = Math.min(this.maxMp, this.mp + 2);
+    }
+    if (id === 'ward_heart') {
+      this.maxHp = this._calcMaxHp();
+      this.hp = Math.min(this.maxHp, this.hp + 12);
+    }
+    return true;
+  }
+
+  unlockTechnique(name) {
+    if (!TECHNIQUES[name] || this.techniques[name]) return false;
+    this.techniques[name] = true;
+    return true;
+  }
+
+  equip(name) {
+    if (!EQUIPMENT[name]) return false;
+    this.equipment = name;
+    return true;
+  }
 }

@@ -2,6 +2,7 @@
 
 import { SCALE, NES_W, SPELLS, XP_TABLE } from './constants.js';
 import { drawPixelPanel, drawSigil, drawTextPx } from './sprites.js';
+import { SKILL_NODES, TECHNIQUES } from './progression.js';
 
 const S = SCALE;
 const COLORS = { ink: '#070A18', white: '#F3FBFF', cyan: '#42F5E6', blue: '#4D8DFF', violet: '#9B6CFF', gold: '#FFE18A', red: '#FF557A', green: '#5CFF9B', dim: '#68779D' };
@@ -141,7 +142,40 @@ export function drawSpellSelect(ctx, player) {
     drawTextPx(ctx, known ? spell.name : 'LOCKED', (x + 12) * S, y * S, known ? spell.color : COLORS.dim, S);
     drawTextPx(ctx, known ? `${spell.cost}` : '-', (x + 73) * S, y * S, COLORS.white, S);
   });
-  drawTextPx(ctx, 'JUMP USE  MENU CLOSE', 62 * S, 178 * S, COLORS.dim, S);
+  drawTextPx(ctx, 'JUMP USE  ATTACK TREE  MENU CLOSE', 38 * S, 178 * S, COLORS.dim, S);
+}
+
+export function drawSkillTree(ctx, player, selected = 0) {
+  ctx.fillStyle = 'rgba(3,6,17,.97)';
+  ctx.fillRect(0, 0, NES_W * S, 224 * S);
+  drawPixelPanel(ctx, 14, 12, 228, 200, '#0D1730', COLORS.gold, 1);
+  drawTextPx(ctx, 'SKILL CONSTELLATION', 54 * S, 20 * S, COLORS.gold, S);
+  drawTextPx(ctx, `POINTS ${player.skillPoints || 0}`, 88 * S, 34 * S, COLORS.white, S);
+  const branchX = [24, 92, 160];
+  const branchNames = ['BLADE', 'ARC', 'WARD'];
+  branchNames.forEach((name, branch) => {
+    drawTextPx(ctx, name, (branchX[branch] + 8) * S, 47 * S, SKILL_NODES[branch * 3].color, S);
+    for (let row = 0; row < 3; row++) {
+      const index = branch * 3 + row;
+      const node = SKILL_NODES[index];
+      const y = 61 + row * 24;
+      const owned = !!player.skills[node.id];
+      const canBuy = !owned && (!node.requires || player.skills[node.requires]) && (player.skillPoints || 0) >= node.cost;
+      if (index === selected) drawPixelPanel(ctx, branchX[branch], y - 4, 62, 18, owned ? '#1E3B45' : '#18244A', node.color, 0.98);
+      drawTextPx(ctx, owned ? 'X' : canBuy ? '+' : '-', (branchX[branch] + 3) * S, y * S, owned ? node.color : COLORS.dim, S);
+      drawTextPx(ctx, node.label.slice(0, 8), (branchX[branch] + 12) * S, y * S, owned ? COLORS.white : canBuy ? node.color : COLORS.dim, S);
+      drawTextPx(ctx, `${node.cost}`, (branchX[branch] + 54) * S, y * S, COLORS.gold, S);
+    }
+  });
+  drawTextPx(ctx, 'TRAVERSAL', 94 * S, 137 * S, COLORS.cyan, S);
+  const techNames = Object.keys(TECHNIQUES);
+  techNames.forEach((name, index) => {
+    const col = index % 2;
+    const row = Math.floor(index / 2);
+    const known = !!player.techniques?.[name];
+    drawTextPx(ctx, `${known ? 'X' : '-'} ${name.slice(0, 6)}`, (30 + col * 104) * S, (149 + row * 12) * S, known ? TECHNIQUES[name].color : COLORS.dim, S);
+  });
+  drawTextPx(ctx, 'ARROWS MOVE  JUMP BUY  ATTACK LOADOUT', 38 * S, 198 * S, COLORS.dim, S);
 }
 
 export function drawLevelUp(ctx, player, selectedAttr) {

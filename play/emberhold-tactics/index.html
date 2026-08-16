@@ -62,8 +62,9 @@
     .action-btn.support{border-color:rgba(117,240,176,.56)}
     .action-btn.terrain{border-color:rgba(201,165,255,.62)}
     .action-btn.tempo{border-color:rgba(255,211,108,.52)}
-    #menu-sheet{position:absolute;inset:0;z-index:20;display:flex;align-items:flex-end;background:rgba(2,6,12,.7);pointer-events:auto}
-    #menu-card{width:100%;max-height:88%;overflow:auto;padding:15px 15px calc(17px + env(safe-area-inset-bottom));border-top:1px solid var(--gold);border-radius:17px 17px 0 0;background:#0a1624;box-shadow:0 -10px 38px rgba(0,0,0,.35)}
+    #menu-sheet{position:absolute;inset:0;z-index:20;display:flex;align-items:flex-end;background:rgba(2,6,12,.7);pointer-events:auto;opacity:1;transition:opacity .22s ease}
+    #menu-card{width:100%;max-height:88%;overflow:auto;padding:15px 15px calc(17px + env(safe-area-inset-bottom));border-top:1px solid var(--gold);border-radius:17px 17px 0 0;background:#0a1624;box-shadow:0 -10px 38px rgba(0,0,0,.35);transform:translateY(0);transition:transform .28s cubic-bezier(.2,.9,.2,1)}
+    #menu-sheet[hidden]{display:flex!important;opacity:0;pointer-events:none}#menu-sheet[hidden] #menu-card{transform:translateY(100%)}
     #menu-card h2{margin:0 0 5px;color:var(--cyan);font-size:16px;letter-spacing:.1em}
     #menu-card p{margin:6px 0 12px;color:#b7cbcf;font-size:13px;line-height:1.45}
     .menu-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin:7px 0 13px}
@@ -72,6 +73,7 @@
     .menu-grid button.selected{border-color:var(--gold);color:#ffe9ad;box-shadow:0 0 12px rgba(255,211,108,.15)}
     .menu-tools{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:7px 0 14px}
     .menu-tools button{font-size:12px}
+    #roster-grid{display:grid;gap:6px;margin:7px 0 13px}.roster-row{display:grid;grid-template-columns:minmax(0,1fr) 88px 82px;gap:5px}.roster-row button,.roster-row select{min-height:46px;padding:5px 6px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.roster-row select{font:inherit;color:#e0d0ff;background:rgba(17,31,47,.94);border:1px solid rgba(201,165,255,.56);border-radius:10px}.roster-toggle{text-align:left}.roster-toggle.active{border-color:var(--cyan);color:#d7fbff;box-shadow:0 0 11px rgba(121,232,239,.12)}.roster-gear{border-color:rgba(255,211,108,.45);color:#ffe9ad}.roster-promote{border-color:rgba(201,165,255,.56);color:#e0d0ff}
     #menu-seed{color:var(--gold);font-weight:800}
     #menu-status{color:var(--green);font-weight:700}
     #close-menu{width:100%;border-color:var(--cyan)}
@@ -112,8 +114,11 @@
         <h2>CAMPAIGN CHAIN</h2>
         <div class="menu-grid" id="scenario-grid"></div>
         <div class="menu-tools"><button id="restart-map">RESTART MAP</button><button id="random-map">RANDOM MAP</button><button id="rotate-map">ROTATE 0°</button><button id="speed-map">SPEED 1x</button></div>
+        <h2>ROSTER / ARMORY</h2>
+        <div id="roster-grid" aria-label="Roster and equipment"></div>
+        <div class="menu-tools"><button id="permadeath-map">PERMADEATH OFF</button><button id="motion-map">HEAVY FX ON</button></div>
         <h2>HOW TO PLAY</h2>
-        <p>Tap a glowing blue unit to reveal move range. Tap a blue tile to move, then choose an action. Irreversible actions arm a gold CONFIRM chip and require a second target tap or the chip. Red tiles show threat range. END TURN is always available. Drag the board to pan, pinch or double-tap empty space to zoom. WASD or arrows move the cursor, Space or Enter selects, Esc cancels, E ends the turn.</p>
+        <p>Tap a glowing blue unit to reveal move range. Tap a blue tile to move, then choose an action. Irreversible actions arm a gold CONFIRM chip and require a second target tap or the chip. Red tiles show threat range. Terrain height, cover, and flanking are in the forecast. Complete the objective shown beside the battle name. END TURN is always available. Drag the board to pan, pinch or double-tap empty space to zoom. WASD or arrows move the cursor, Space or Enter selects, Esc cancels, E ends the turn.</p>
         <button id="close-menu">CLOSE</button>
       </div>
     </section>

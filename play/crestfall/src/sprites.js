@@ -52,14 +52,17 @@ function pixelRows(ctx, x, y, rows, color, alt) {
   });
 }
 
-export function drawPlayer(ctx, sx, sy, frame = 0, facing = 1, state = 'stand', attackPhase = 'ready') {
+export function drawPlayer(ctx, sx, sy, frame = 0, facing = 1, state = 'stand', attackPhase = 'ready', equipment = 'EMBERCLOAK') {
   ctx.save();
   if (facing < 0) {
     ctx.translate((sx + 7) * S, 0);
     ctx.scale(-1, 1);
     ctx.translate(-(sx + 7) * S, 0);
   }
-  const cloak = state === 'damage' ? PAL.white : PAL.violet;
+  const equipmentColor = {
+    THORNBINDER: PAL.green, SKYTHREAD: PAL.cyan, TIDEGLASS: PAL.blue, VEILPLATE: PAL.pink,
+  }[equipment] || PAL.violet;
+  const cloak = state === 'damage' ? PAL.white : equipmentColor;
   const trim = state === 'damage' ? PAL.white : PAL.cyan;
   pixelRows(ctx, sx + 1, sy, [
     '0011100', '0111110', '1111111', '1101011',
@@ -69,6 +72,18 @@ export function drawPlayer(ctx, sx, sy, frame = 0, facing = 1, state = 'stand', 
   rect(ctx, sx + 2, sy + 1, 3, 2, PAL.orange);
   rect(ctx, sx + 3, sy + 3, 1, 1, PAL.gold);
   if (state === 'crouch') rect(ctx, sx + 1, sy + 7, 7, 3, PAL.ink);
+  if (equipment === 'THORNBINDER') {
+    rect(ctx, sx, sy + 4, 1, 5, PAL.green);
+    rect(ctx, sx + 7, sy + 4, 1, 5, PAL.green);
+  } else if (equipment === 'SKYTHREAD') {
+    rect(ctx, sx + 1, sy + 9, 2, 2, PAL.cyan);
+    rect(ctx, sx + 6, sy + 9, 2, 2, PAL.cyan);
+  } else if (equipment === 'TIDEGLASS') {
+    rect(ctx, sx + 2, sy + 6, 4, 1, PAL.blue);
+  } else if (equipment === 'VEILPLATE') {
+    rect(ctx, sx + 2, sy + 5, 1, 4, PAL.pink);
+    rect(ctx, sx + 6, sy + 5, 1, 4, PAL.pink);
+  }
 
   if (attackPhase === 'windup') {
     glow(ctx, sx + 8, sy + 6, 8, PAL.gold, 0.2);
@@ -85,6 +100,7 @@ export function drawPlayer(ctx, sx, sy, frame = 0, facing = 1, state = 'stand', 
     ctx.restore();
   } else if (attackPhase === 'recovery') {
     rect(ctx, sx + 7, sy + 7, 5, 1, PAL.slate);
+    rect(ctx, sx + 8, sy + 8, 2, 1, PAL.slate);
   }
   if (state === 'jump') {
     rect(ctx, sx + 1, sy + 10, 3, 1, PAL.cyan);
@@ -93,7 +109,7 @@ export function drawPlayer(ctx, sx, sy, frame = 0, facing = 1, state = 'stand', 
   ctx.restore();
 }
 
-export function drawGuardian(ctx, type, sx, sy, frame = 0, phase = 0, telegraph = 0, blocking = false) {
+export function drawGuardian(ctx, type, sx, sy, frame = 0, phase = 0, telegraph = 0, blocking = false, state = 'idle') {
   const palette = {
     duskwing: [PAL.violet, PAL.pink, PAL.cyan],
     boneward: [PAL.white, PAL.slate, PAL.red],
@@ -113,6 +129,8 @@ export function drawGuardian(ctx, type, sx, sy, frame = 0, phase = 0, telegraph 
   const scale = boss ? 1.35 : 1;
   const w = boss ? 18 : 12;
   const h = boss ? 20 : 15;
+  const bob = state === 'jump' ? -2 : state === 'windup' ? 2 : state === 'attack' ? (frame % 2 ? -1 : 1) : state === 'recovery' ? 1 : state === 'damage' ? 1 : (frame % 2 ? 0 : 1);
+  sy += bob;
   glow(ctx, sx + w / 2, sy + h / 2, boss ? 18 : 10, trim, boss ? 0.18 : 0.1);
   rect(ctx, sx + 2, sy + 2, w - 4, h - 4, PAL.ink);
   if (type === 'duskwing') {
@@ -138,6 +156,18 @@ export function drawGuardian(ctx, type, sx, sy, frame = 0, phase = 0, telegraph 
     if (blocking) rect(ctx, sx - 2, sy + 5, 2, 7, trim);
   }
   if (phase > 0) rect(ctx, sx + 1, sy - 2, Math.max(4, Math.floor(w * 0.45)), 1, PAL.red);
+  if (state === 'windup') {
+    glow(ctx, sx + w / 2, sy + h / 2, 12, PAL.gold, 0.14);
+    rect(ctx, sx + w / 2 - 4, sy - 3, 8, 1, PAL.gold);
+  } else if (state === 'attack') {
+    glow(ctx, sx + (w / 2), sy + h / 2, 14, PAL.gold, 0.22);
+    rect(ctx, sx - 4, sy + h / 2, 3, 1, PAL.gold);
+    rect(ctx, sx + w + 1, sy + h / 2, 3, 1, PAL.gold);
+  } else if (state === 'recovery') {
+    rect(ctx, sx - 1, sy + h + 1, w + 2, 1, PAL.slate);
+  } else if (state === 'damage') {
+    rect(ctx, sx - 2, sy + 2, w + 4, 1, PAL.white, 0.8);
+  }
   if (telegraph > 0) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
@@ -162,9 +192,10 @@ export function drawTownNPC(ctx, sx, sy, color = PAL.blue, frame = 0) {
   rect(ctx, sx + 4, sy + 1, 1, 1, PAL.ink);
 }
 
-export function drawWorldAvatar(ctx, sx, sy, pulse = 0) {
-  glow(ctx, sx + 4, sy + 4, 12, PAL.cyan, 0.28);
-  rect(ctx, sx + 1, sy + 1, 6, 6, PAL.violet);
+export function drawWorldAvatar(ctx, sx, sy, pulse = 0, equipment = 'EMBERCLOAK') {
+  const color = { THORNBINDER: PAL.green, SKYTHREAD: PAL.cyan, TIDEGLASS: PAL.blue, VEILPLATE: PAL.pink }[equipment] || PAL.violet;
+  glow(ctx, sx + 4, sy + 4, 12, color, 0.28);
+  rect(ctx, sx + 1, sy + 1, 6, 6, color);
   rect(ctx, sx + 2, sy + 2, 4, 3, PAL.orange);
   rect(ctx, sx + 3, sy + 6, 2, 2, PAL.cyan);
   if (pulse > 0) rect(ctx, sx, sy, 8, 1, PAL.gold, pulse);

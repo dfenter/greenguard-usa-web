@@ -1,59 +1,26 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head><base href="/play/transit-dash/">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<meta name="theme-color" content="#10141c">
-<title>Transit Dash</title>
-<link rel="stylesheet" href="style.css">
+<head>
+  <base href="/play/transit-dash/">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1">
+  <meta name="theme-color" content="#080D18">
+  <meta name="description" content="Transit Dash, a three-lane endless runner through Austin's original transit lines.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Transit Dash</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="app">
-  <canvas id="cv"></canvas>
-
-  <div id="topbar">
-    <button id="btnPause" class="iconbtn" aria-label="Pause">II</button>
-  </div>
-
-  <div id="ovStart" class="overlay">
-    <div class="panel">
-      <h1>TRANSIT<span>DASH</span></h1>
-      <p class="hint" id="hintLine">Swipe left/right to change track &middot; up to vault &middot; down to slide</p>
-      <button id="btnStart" class="bigbtn">TAP TO RUN</button>
-      <p class="sub" id="startStats"></p>
-    </div>
-  </div>
-
-  <div id="ovOver" class="overlay hidden">
-    <div class="panel">
-      <h2 id="overTitle">CAUGHT</h2>
-      <p class="stats" id="overStats"></p>
-      <div id="overMissions" class="mlist"></div>
-      <button id="btnAgain" class="bigbtn">RUN AGAIN</button>
-      <button id="btnHome" class="smallbtn">DEPOT</button>
-    </div>
-  </div>
-
-  <div id="ovPause" class="overlay hidden">
-    <div class="panel">
-      <h2>PAUSED</h2>
-      <div id="pauseMissions" class="mlist"></div>
-      <button id="btnResume" class="bigbtn">RESUME</button>
-      <button id="btnQuit" class="smallbtn">END RUN</button>
-    </div>
-  </div>
-
-  <div id="ovRotate" class="overlay hidden">
-    <div class="panel">
-      <h2>ROTATE</h2>
-      <p class="hint">Transit Dash runs in portrait. Turn your device upright.</p>
-    </div>
-  </div>
-</div>
-
-<script src="js/core.js"></script>
-<script src="js/input.js"></script>
-<script src="js/game.js"></script>
-<script src="js/main.js"></script>
+  <main id="game-root" aria-label="Transit Dash game"></main>
+  <script src="/play/_shared/phaser.min.js"></script>
+  <script src="/play/_shared/ggkit.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/main.js"></script>
 </body>
 </html>

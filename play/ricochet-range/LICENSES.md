@@ -13,3 +13,8 @@ reviewed for this title are [play/_assets/LEDGER.md](../_assets/LEDGER.md) and
   buses for this title.
 - The bundled SVGs and inline tone are original GreenGuard studio assets. No
   third-party image, font, or audio asset is bundled in this directory.
+- Round 2 adds a runtime texture bakery: every ring, glow, flare, puff,
+  bumper, mover, portal, pickup, plate, card and parallax ground tile is
+  drawn procedurally into a canvas at device pixel ratio by `game.js`. These
+  are original generated assets with no third-party source. `range-seal.svg`
+  is retained in the directory but is no longer loaded at runtime.

@@ -9,7 +9,7 @@ import { SideView } from './sideview.js';
 import { TownScene } from './town.js';
 import {
   drawHUD, drawTutorialStrip, drawBanner,
-  drawSpellSelect, drawLevelUp, drawGameOver, drawWin, drawTitle,
+  drawSpellSelect, drawSkillTree, drawLevelUp, drawGameOver, drawWin, drawTitle,
 } from './hud.js';
 import { seedAll, resolveSeedFromURL, resolveTraceFromURL, trace } from './rng.js';
 import { serializeGame, deserializeGame, resolveSaveFromURL, isValidSave } from './save.js';
@@ -49,6 +49,8 @@ export class Game {
     this.paused = false;
     this.levelUpScreen = false;
     this.levelUpSelection = 0;
+    this.menuPage = 'runes';
+    this.skillSelection = 0;
     this.state = STATE.OVERWORLD;
     this.seed = resolveSeedFromURL();
     seedAll(this.seed);
@@ -120,6 +122,7 @@ export class Game {
       menu: 'assets/menu.m4a',
     });
     this.kit.loader.progress(1);
+    this.sideview.prewarmFx();
     this.kit.loader.hide();
     this._playMusic('fieldLoop', 250);
     const requestedKeep = this._readForceKeep();
@@ -303,6 +306,15 @@ export class Game {
   }
 
   _updateSpellMenu() {
+    if (this.input.pressB || this.input.select) {
+      this.menuPage = this.menuPage === 'runes' ? 'skills' : 'runes';
+      this._event('menu');
+      return;
+    }
+    if (this.menuPage === 'skills') {
+      this._updateSkillTree();
+      return;
+    }
     const list = Object.keys(SPELLS_FALLBACK);
     if (!this.player.selectedSpell) this.player.selectedSpell = list[0];
     const index = list.indexOf(this.player.selectedSpell);
@@ -321,6 +333,23 @@ export class Game {
       }
     }
     if (this.input.start || this.input.pressed('Escape') || this.input.pressed('KeyP')) this.paused = false;
+  }
+
+  _updateSkillTree() {
+    const columns = 3;
+    const rows = 3;
+    if (this.input.directionPressed('left')) this.skillSelection = Math.max(0, this.skillSelection - 1);
+    if (this.input.directionPressed('right')) this.skillSelection = Math.min(columns * rows - 1, this.skillSelection + 1);
+    if (this.input.directionPressed('up')) this.skillSelection = Math.max(0, this.skillSelection - columns);
+    if (this.input.directionPressed('down')) this.skillSelection = Math.min(columns * rows - 1, this.skillSelection + columns);
+    if (this.input.pressA) {
+      const attrs = ['blade_edge', 'blade_reprise', 'blade_reach', 'arc_efficiency', 'arc_burst', 'arc_overcharge', 'ward_shell', 'ward_parry', 'ward_heart'];
+      if (this.player.unlockSkill(attrs[this.skillSelection])) this._event('reward', { tier: 2 });
+    }
+    if (this.input.start || this.input.pressed('Escape') || this.input.pressed('KeyP')) {
+      this.paused = false;
+      this.menuPage = 'runes';
+    }
   }
 
   _updateLevelUp() {
@@ -368,6 +397,8 @@ export class Game {
     this.paused = false;
     this.levelUpScreen = false;
     this.levelUpSelection = 0;
+    this.menuPage = 'runes';
+    this.skillSelection = 0;
     this.gameOverTimer = 0;
     this.winTimer = 0;
     this.palaceClearTimer = null;
@@ -415,6 +446,10 @@ export class Game {
     if (type === 'jump') this.kit.audio.sfx('jump', { volume: 0.42 });
     if (type === 'menu') this.kit.audio.sfx('menu', { volume: 0.38 });
     if (type === 'pickup') this.kit.audio.sfx('pickup', { volume: 0.55, rate: data.type === 'xp' ? 1.2 : 1 });
+    if (type === 'reward') {
+      this.kit.audio.sfx('runeChime', { volume: 0.55, rate: 1 + (data.tier || 1) * 0.12 });
+      this.kit.juice.shake(data.tier > 1 ? 2 : 1, data.tier > 1 ? 100 : 50);
+    }
     if (type === 'damage') this.kit.audio.sfx('damage', { volume: 0.65 });
     if (type === 'thunder') this.kit.audio.sfx('thunder', { volume: 0.8 });
     if (type === 'rune') {
@@ -422,6 +457,7 @@ export class Game {
       else this._showBanner(data.result === 'empty' ? 'ARC EMPTY' : 'RUNE COOLING', null, '#FF557A');
     }
     if (type === 'hit') {
+      this.kit.audio.sfx('swordClash', { volume: data.boss ? 0.9 : 0.35, rate: data.spell ? 1.2 : 1 });
       this.kit.juice.hitStop(data.boss ? 90 : 38);
       this.kit.juice.shake(data.boss ? 4 : 1.5, data.boss ? 160 : 70);
     }
@@ -433,6 +469,10 @@ export class Game {
         this._showBanner('GUARDIAN BROKEN', null, '#FFE18A');
       }
     }
+    if (type === 'phase') {
+      this.kit.audio.sfx('guardianRoar', { volume: 0.65, rate: 1.08 });
+      this.kit.juice.shake(3, 120);
+    }
     if (type === 'parry') {
       this.kit.audio.sfx('swordClash', { volume: 0.9, rate: 1.3 });
       this.kit.juice.shake(2, 90);
@@ -441,6 +481,7 @@ export class Game {
     if (type === 'damage') this.kit.juice.shake(2, 90);
     if (type === 'sigil') this._showBanner(`SIGIL ${data.count}/7`, null, '#FFE18A');
     if (type === 'fragment') this.kit.audio.sfx('runeChime', { volume: 0.5, rate: 1.4 });
+    if (type === 'fragment') this._event('reward', { tier: 3 });
   }
 
   _wireSaveAPI() {
@@ -449,10 +490,22 @@ export class Game {
       load: () => {
         const data = this.kit.save.get(null);
         if (!data) return false;
-        try { deserializeGame(this, data); this._syncCF(); return true; } catch (_error) { return false; }
+        try { deserializeGame(this, data); this._syncCF(); return true; } catch (_error) {
+          this._resetRun();
+          return false;
+        }
       },
       export: () => JSON.stringify(serializeGame(this)),
-      import: (json) => { deserializeGame(this, typeof json === 'string' ? JSON.parse(json) : json); this._syncCF(); },
+      import: (json) => {
+        try {
+          deserializeGame(this, typeof json === 'string' ? JSON.parse(json) : json);
+          this._syncCF();
+          return true;
+        } catch (_error) {
+          this._resetRun();
+          return false;
+        }
+      },
     };
     if (typeof window !== 'undefined') window.emberwildSave = api;
     this.saveAPI = api;
@@ -532,16 +585,23 @@ export class Game {
       if (!coachVisible && !this.paused) drawBanner(this.ctx, this.banner, !this.kit.juice.enabled);
     } else if (this.state === STATE.SIDEVIEW) {
       drawHUD(this.ctx, this.player, this.bestScore, { keep: this.sideview.keepTheme.short, room: `${this.sideview.roomIndex + 1}` });
+      this.sideview.setReducedMotion(!this.kit.juice.enabled);
       this.sideview.draw(this.ctx);
       const coachVisible = this.sideview.isTraining && this.tutorialStep < 4
         && drawTutorialStrip(this.ctx, this.tutorialStep, !this.kit.juice.enabled, this.tutorialTimer);
-      if (this.paused) drawSpellSelect(this.ctx, this.player);
+      if (this.paused) {
+        if (this.menuPage === 'skills') drawSkillTree(this.ctx, this.player, this.skillSelection);
+        else drawSpellSelect(this.ctx, this.player);
+      }
       else if (this.levelUpScreen) drawLevelUp(this.ctx, this.player, ['atk', 'mag', 'lif'][this.levelUpSelection]);
       else if (!coachVisible) drawBanner(this.ctx, this.banner, !this.kit.juice.enabled);
     } else if (this.state === STATE.TOWN) {
       drawHUD(this.ctx, this.player, this.bestScore, { keep: 'TOWN' });
       this.town.draw(this.ctx);
-      if (this.paused) drawSpellSelect(this.ctx, this.player);
+      if (this.paused) {
+        if (this.menuPage === 'skills') drawSkillTree(this.ctx, this.player, this.skillSelection);
+        else drawSpellSelect(this.ctx, this.player);
+      }
       else drawBanner(this.ctx, this.banner, !this.kit.juice.enabled);
     } else if (this.state === STATE.GAMEOVER) {
       drawHUD(this.ctx, this.player, this.bestScore, { keep: 'FIELD' });

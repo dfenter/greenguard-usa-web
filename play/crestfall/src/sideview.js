@@ -4,12 +4,13 @@
 import { SCALE, NES_W, NES_H } from './constants.js';
 import {
   drawPlayer, drawGuardian, drawProjectile, drawPickup, drawSigil,
-  drawDoorGlyph, drawPixelPanel,
+  drawDoorGlyph, drawPixelPanel, drawTextPx,
 } from './sprites.js';
 import { spawnEnemy } from './enemies.js';
 import { buildFieldEncounter, buildPalaceRooms } from './map-data.js';
 import { PALACES } from './map-data.js';
 import { fxRng, worldRng } from './rng.js';
+import { hasTechnique } from './progression.js';
 
 const S = SCALE;
 
@@ -72,8 +73,23 @@ export class SideView {
     this.roomTheme = this.keepTheme;
     this.frame = 0;
     this.particleLimit = 128;
+    this.particlePool = [];
     this.damageFlash = 0;
     this.reflectedProjectiles = [];
+    this.rewardTier = 0;
+    this.bossIntroTimer = 0;
+    this.reducedMotion = false;
+    this._prewarmReady = false;
+  }
+
+  prewarmFx() {
+    if (this._prewarmReady) return;
+    this.particlePool = Array.from({ length: this.particleLimit }, () => ({ active: false }));
+    this._prewarmReady = true;
+  }
+
+  setReducedMotion(value) {
+    this.reducedMotion = !!value;
   }
 
   loadFieldEncounter(tileType, difficulty = 1) {
@@ -220,6 +236,9 @@ export class SideView {
     this.particles = [];
     this.deathEffects = [];
     this.reflectedProjectiles = [];
+    this.rewardTier = 0;
+    this.bossIntroTimer = this.room.type === 'palace_boss' ? 78 : 0;
+    this.prewarmFx();
     this.camX = 0;
   }
 
@@ -234,6 +253,12 @@ export class SideView {
         this.transitionTimer = 0;
       }
       return;
+    }
+
+    if (this.bossIntroTimer > 0) {
+      this.bossIntroTimer--;
+      this._updateParticles();
+      return null;
     }
 
     if (this.messageTimer > 0) {
@@ -260,6 +285,14 @@ export class SideView {
       if (!e.alive) continue;
       e.update(this.player, this.room.platforms, scene);
       this._updateTelegraph(e);
+      if (e.isBoss && e._lastPhase !== e.phase) {
+        if (e._lastPhase != null) this._spawnPhaseFx(e.x + e.w / 2, e.y + e.h / 2);
+        e._lastPhase = e.phase;
+        if (e.phase > 0) {
+          this.showMessage(`PHASE ${e.phase + 1}`, this.roomTheme.glow);
+          this.onEvent('phase', { boss: true, phase: e.phase });
+        }
+      }
 
       // Enemy attacks player
       this._checkEnemyAttack(e);
@@ -389,6 +422,7 @@ export class SideView {
       this._spawnParryFx(this.player.x + this.player.w / 2, this.player.y + 6);
       this.onEvent('parry', { x, y });
     } else if (damaged) {
+      this.player.vx = this.player.x < x ? -2.4 : 2.4;
       this.damageFlash = 12;
       this._spawnDamageFx(this.player.x + this.player.w / 2, this.player.y + 6);
       this.onEvent('damage', { x, y });
@@ -427,10 +461,11 @@ export class SideView {
       for (const e of this.enemies) {
         if (!e.alive) continue;
         if (this._rectOverlaps(fb, e)) {
-          const hit = e.takeDamage(p.atkPower + 2, 'mid');
+          const hit = e.takeDamage(fb.damage || p.atkPower + 2, 'mid');
           if (hit) this._applyKnockback(e, 'mid');
           fb.x = -999;
           this._spawnHitSpark(e.x, e.y);
+          this.onEvent('hit', { boss: !!e.isBoss, spell: true });
         }
       }
     }
@@ -461,6 +496,7 @@ export class SideView {
           if (hit) this._applyKnockback(e, 'mid');
           p.swordBeam = null;
           this._spawnHitSpark(e.x, e.y);
+          this.onEvent('hit', { boss: !!e.isBoss, spell: true });
           break;
         }
       }
@@ -492,7 +528,7 @@ export class SideView {
       const dx = enemy.x + enemy.w / 2 - (p.x + p.w / 2);
       const dy = enemy.y + enemy.h / 2 - (p.y + p.h / 2);
       if (Math.hypot(dx, dy) > 76) continue;
-      const hit = enemy.takeDamage(p.atkPower + 5, 'high');
+      const hit = enemy.takeDamage(p.atkPower + 5 + p.getSpellDamageBonus(), 'high');
       if (hit) {
         this._applyKnockback(enemy, 'up');
         this._spawnHitSpark(enemy.x + enemy.w / 2, enemy.y + enemy.h / 2);
@@ -513,6 +549,8 @@ export class SideView {
     const direction = this.player.x < enemy.x ? 1 : -1;
     const weight = enemy.isBoss ? 0.45 : Math.max(0.55, Math.min(1.4, 12 / Math.max(8, enemy.w + enemy.hp)));
     enemy.x += direction * 4 * weight;
+    enemy.vx = direction * (enemy.isBoss ? 1.1 : 1.8) * weight;
+    enemy.knockbackTimer = enemy.isBoss ? 3 : 7;
     if (attackType === 'up' || attackType === 'down') enemy.vy = -1.2 * weight;
     enemy.x = Math.max(0, Math.min(this.room.w - enemy.w, enemy.x));
   }
@@ -524,10 +562,13 @@ export class SideView {
       if (this._rectOverlaps(ir, this.player)) {
         item.collected = true;
         if (item.rewardKey) this.player.claimedRewards[item.rewardKey] = true;
+        this.rewardTier = Math.min(3, this.rewardTier + 1);
+        this._spawnRewardBurst(item.x + 4, item.y + 4, this.rewardTier);
+        this.onEvent('reward', { tier: this.rewardTier });
         if (item.type === 'key') {
           this.player.keys++;
           this.showMessage('KEY +1');
-          this.onEvent('pickup', { type: 'key' });
+          this.onEvent('pickup', { type: 'key', tier: this.rewardTier });
         } else if (item.type === 'crystal') {
           this.player.crystals++;
           this.showMessage(`SIGIL ${this.player.crystals}/7`);
@@ -535,13 +576,13 @@ export class SideView {
         } else if (item.type === 'pbag') {
           const xp = item.large ? 100 : 50;
           this.player.gainXP(xp);
-          this.onEvent('pickup', { type: 'xp' });
+          this.onEvent('pickup', { type: 'xp', tier: this.rewardTier });
         } else if (item.type === 'heart') {
           this.player.hp = Math.min(this.player.maxHp, this.player.hp + 16);
-          this.onEvent('pickup', { type: 'heart' });
+          this.onEvent('pickup', { type: 'heart', tier: this.rewardTier });
         } else if (item.type === 'magic') {
           this.player.mp = Math.min(this.player.maxMp, this.player.mp + 8);
-          this.onEvent('pickup', { type: 'magic' });
+          this.onEvent('pickup', { type: 'magic', tier: this.rewardTier });
         } else if (item.type === 'fragment') {
           this.player.sigilFragments = (this.player.sigilFragments || 0) + 1;
           this.player.score += 25;
@@ -555,6 +596,11 @@ export class SideView {
     for (const door of (this.room.doors || [])) {
       const dr = { x: door.x, y: door.y, w: door.w, h: door.h };
       if (this._rectOverlaps(dr, this.player)) {
+        if (door.requiresTechnique && !hasTechnique(this.player, door.requiresTechnique)) {
+          this.player.x = door.x - this.player.w - 2;
+          this.showMessage(`${door.requiresTechnique} REQUIRED`, this.roomTheme.glow);
+          continue;
+        }
         if (door.locked) {
           if (this.player.keys > 0) {
             this.player.keys--;
@@ -639,6 +685,30 @@ export class SideView {
     }
   }
 
+  _spawnRewardBurst(x, y, tier = 1) {
+    const count = 4 + tier * 3;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+      this._pushParticle({
+        x: x - this.camX, y,
+        vx: Math.cos(angle) * (0.7 + tier * 0.3),
+        vy: Math.sin(angle) * (0.7 + tier * 0.3) - 0.4,
+        life: 24 + tier * 8, maxLife: 24 + tier * 8,
+        type: tier > 1 ? 'reward' : 'rune', color: tier > 2 ? '#FF5CCB' : '#FFE18A',
+      });
+    }
+  }
+
+  _spawnPhaseFx(x, y) {
+    for (let i = 0; i < 12; i++) {
+      const angle = (i / 12) * Math.PI * 2;
+      this._pushParticle({
+        x: x - this.camX, y, vx: Math.cos(angle) * 1.8, vy: Math.sin(angle) * 1.8,
+        life: 30, maxLife: 30, type: 'reward', color: this.roomTheme.glow,
+      });
+    }
+  }
+
   _spawnDeathEffect(x, y) {
     this.deathEffects.push({ x: x - this.camX, y, timer: 0, maxTimer: 42 });
     for (let i = 0; i < 8; i++) {
@@ -659,6 +729,14 @@ export class SideView {
         vx: (fxRng.next('sideview.death.smokeVx') - 0.5) * 0.6,
         vy: -0.5 - fxRng.next('sideview.death.smokeVy') * 0.8,
         life: 42, maxLife: 42, type: 'smoke', color: '#9AA7C6',
+      });
+    }
+    for (let i = 0; i < 6; i++) {
+      this._pushParticle({
+        x: x - this.camX + (i - 3) * 2, y,
+        vx: (fxRng.next('sideview.death.dissolveVx') - 0.5) * 1.2,
+        vy: -0.5 - fxRng.next('sideview.death.dissolveVy') * 0.9,
+        life: 36, maxLife: 36, type: 'dissolve', color: i % 2 ? '#FF5CCB' : '#42F5E6',
       });
     }
   }
@@ -686,8 +764,14 @@ export class SideView {
   }
 
   _pushParticle(particle) {
-    if (this.particles.length >= this.particleLimit) this.particles.shift();
-    this.particles.push(particle);
+    this.prewarmFx();
+    if (this.particles.length >= this.particleLimit) {
+      const retired = this.particles.shift();
+      if (retired) retired.active = false;
+    }
+    const slot = this.particlePool.find((candidate) => !candidate.active) || this.particlePool[0];
+    Object.assign(slot, particle, { active: true });
+    this.particles.push(slot);
   }
 
   _updateParticles() {
@@ -697,18 +781,19 @@ export class SideView {
         p.x += p.vx;
         p.y += p.vy;
         p.vy += 0.1;
-      } else if (p.type === 'rune') {
+      } else if (p.type === 'rune' || p.type === 'reward') {
         p.x += p.vx;
         p.y += p.vy;
         p.vx *= 0.92;
         p.vy *= 0.92;
       } else if (p.type === 'text') {
         p.y += p.vy;
-      } else if (p.type === 'fire' || p.type === 'smoke') {
+      } else if (p.type === 'fire' || p.type === 'smoke' || p.type === 'dissolve') {
         p.x += p.vx || 0;
         p.y += p.vy || 0;
-        p.vy = (p.vy || 0) + (p.type === 'smoke' ? -0.01 : 0.05);
+        p.vy = (p.vy || 0) + (p.type === 'smoke' ? -0.01 : p.type === 'dissolve' ? -0.015 : 0.05);
       }
+      if (p.life <= 0) p.active = false;
       return p.life > 0;
     });
     for (const effect of this.deathEffects) effect.timer++;
@@ -738,7 +823,7 @@ export class SideView {
     for (const enemy of this.enemies) {
       if (enemy.alive && enemy.x + ox > -32 && enemy.x + ox < NES_W + 32) this._drawEnemy(ctx, enemy, enemy.x + ox, VIEW_Y + enemy.y);
     }
-    drawPlayer(ctx, Math.round(this.player.x + ox), VIEW_Y + Math.round(this.player.y), this.player.walkFrame, this.player.facing, this.player.getSpriteState(), this.player.attackPhase);
+    drawPlayer(ctx, Math.round(this.player.x + ox), VIEW_Y + Math.round(this.player.y), this.player.walkFrame, this.player.facing, this.player.getSpriteState(), this.player.attackPhase, this.player.equipment);
     if (this.player.swordBeam) drawProjectile(ctx, Math.round(this.player.swordBeam.x + ox), VIEW_Y + Math.round(this.player.swordBeam.y), 'beam');
     for (const fireball of this.player.fireballs) drawProjectile(ctx, Math.round(fireball.x + ox), VIEW_Y + Math.round(fireball.y), 'ember');
     for (const bolt of this.player.arcBolts) drawProjectile(ctx, Math.round(bolt.x + ox), VIEW_Y + Math.round(bolt.y), 'arc');
@@ -763,7 +848,7 @@ export class SideView {
         ctx.stroke();
       } else {
         ctx.fillStyle = particle.color;
-        const size = particle.type === 'smoke' ? 5 : particle.type === 'fire' ? 2 : particle.type === 'rune' ? 2 : 3;
+        const size = particle.type === 'smoke' ? 5 : particle.type === 'fire' ? 2 : particle.type === 'rune' ? 2 : particle.type === 'reward' ? 3 : particle.type === 'dissolve' ? 2 : 3;
         ctx.fillRect(Math.round(particle.x) * S, (VIEW_Y + Math.round(particle.y)) * S, size * S, size * S);
       }
       ctx.restore();
@@ -786,6 +871,18 @@ export class SideView {
       ctx.fillStyle = edge;
       ctx.fillRect(0, VIEW_Y * S, NES_W * S, VIEW_H * S);
     }
+    if (this.transitioning) {
+      const progress = Math.min(1, this.transitionTimer / 30);
+      ctx.fillStyle = `rgba(3,6,17,${this.transitionDir > 0 ? 1 - progress : progress})`;
+      ctx.fillRect(0, VIEW_Y * S, NES_W * S, VIEW_H * S);
+    }
+    if (this.bossIntroTimer > 0) {
+      const fade = Math.min(0.82, this.bossIntroTimer / 30);
+      drawPixelPanel(ctx, 34, VIEW_Y + 42, 188, 52, '#080B1D', this.roomTheme.glow, fade);
+      drawTextPx(ctx, 'GUARDIAN SIGNAL', 74 * S, (VIEW_Y + 52) * S, this.roomTheme.glow, S);
+      drawTextPx(ctx, this.roomTheme.guardian || 'GUARDIAN', 70 * S, (VIEW_Y + 68) * S, '#F3FBFF', 2 * S);
+      drawTextPx(ctx, 'READ THE PATTERN', 78 * S, (VIEW_Y + 86) * S, '#FFE18A', S);
+    }
   }
 
   _drawEnvironment(ctx, theme, ox) {
@@ -800,6 +897,7 @@ export class SideView {
       FIELD: ['#0A2A32', '#125242', '#2B8660'],
     }[theme.short] || ['#0B1830', '#20395B', '#476F85'];
     ctx.save();
+    this._drawParallax(ctx, theme, ox);
     ctx.globalAlpha = 0.9;
     ctx.fillStyle = palette[0];
     ctx.beginPath();
@@ -841,6 +939,65 @@ export class SideView {
         ctx.fillRect((x - 7 + ox) * S, (VIEW_Y + 88) * S, 17 * S, 2 * S);
       }
     }
+    if (theme.short === 'NIGHT' || theme.short === 'FOREST') {
+      const torchColor = theme.short === 'NIGHT' ? '#FF5CCB' : '#FFE18A';
+      for (let x = 28; x < this.room.w; x += 82) {
+        const flicker = this.reducedMotion ? 0 : Math.sin(this.frame * 0.12 + x) * 2;
+        const light = ctx.createRadialGradient((x + ox) * S, (VIEW_Y + 86 + flicker) * S, 0, (x + ox) * S, (VIEW_Y + 86 + flicker) * S, 26 * S);
+        light.addColorStop(0, `${torchColor}55`);
+        light.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = light;
+        ctx.fillRect((x + ox - 26) * S, (VIEW_Y + 60) * S, 52 * S, 52 * S);
+        ctx.fillStyle = torchColor;
+        ctx.fillRect((x + ox) * S, (VIEW_Y + 84 + flicker) * S, 2 * S, 5 * S);
+      }
+    }
+    if (this.player.activeSpells && Object.keys(this.player.activeSpells).length) {
+      const px = this.player.x + this.player.w / 2 + ox;
+      const py = VIEW_Y + this.player.y + this.player.h / 2;
+      const spellLight = ctx.createRadialGradient(px * S, py * S, 0, px * S, py * S, 30 * S);
+      spellLight.addColorStop(0, `${theme.glow}55`);
+      spellLight.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = spellLight;
+      ctx.fillRect((px - 30) * S, (py - 30) * S, 60 * S, 60 * S);
+    }
+    ctx.restore();
+  }
+
+  _drawParallax(ctx, theme, ox) {
+    const palette = {
+      FOREST: ['#092A31', '#0E4B40'], MARSH: ['#17162E', '#293454'],
+      COAST: ['#071A35', '#15506B'], MOUNTAIN: ['#211730', '#4A365B'],
+      RUINS: ['#1A1230', '#46306A'], NIGHT: ['#100B28', '#30204D'],
+      TRAIN: ['#0A2337', '#1A5264'], FIELD: ['#09252C', '#16543E'],
+    }[theme.short] || ['#0B1830', '#20395B'];
+    ctx.save();
+    ctx.globalAlpha = 0.8;
+    ctx.fillStyle = palette[0];
+    ctx.beginPath();
+    ctx.moveTo(0, (VIEW_Y + 124) * S);
+    for (let x = -32; x <= this.room.w + 32; x += 32) {
+      const y = 96 + ((x / 32 + this.palaceId) % 3) * 10;
+      ctx.lineTo((x + ox * 0.18) * S, (VIEW_Y + y) * S);
+    }
+    ctx.lineTo((this.room.w + 32) * S, (VIEW_Y + 124) * S);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = palette[1];
+    for (let x = -24; x < this.room.w + 24; x += 38) {
+      const height = 16 + ((x + this.palaceId * 9) % 18);
+      ctx.fillRect((x + ox * 0.38) * S, (VIEW_Y + 124 - height) * S, 5 * S, height * S);
+      ctx.fillRect((x - 6 + ox * 0.38) * S, (VIEW_Y + 112 - height) * S, 16 * S, 3 * S);
+    }
+    const weather = theme.short === 'COAST' || theme.short === 'MARSH' ? 'rain' : theme.short === 'MOUNTAIN' ? 'ash' : 'motes';
+    ctx.globalAlpha = this.reducedMotion ? 0.12 : 0.28;
+    ctx.fillStyle = weather === 'rain' ? '#8DE7FF' : weather === 'ash' ? '#FF9A52' : '#FFE18A';
+    for (let i = 0; i < 14; i++) {
+      const x = (i * 53 + this.frame * (weather === 'rain' ? 0.7 : 0.15)) % (NES_W + 20) - 10;
+      const y = VIEW_Y + 58 + ((i * 29 + this.frame * (weather === 'rain' ? 1.1 : 0.25)) % 76);
+      if (weather === 'rain') ctx.fillRect(x * S, y * S, S, 5 * S);
+      else ctx.fillRect(x * S, y * S, 2 * S, 2 * S);
+    }
     ctx.restore();
   }
 
@@ -872,7 +1029,7 @@ export class SideView {
   _drawEnemy(ctx, e, ex, ey) {
     const fr = e.walkFrame || 0;
     if (e.visible === false) return;
-    drawGuardian(ctx, e.requestedType || e.type, ex, ey, fr, e.phase || 0, e.telegraph || 0, !!e.blocking);
+    drawGuardian(ctx, e.requestedType || e.type, ex, ey, fr, e.phase || 0, e.telegraph || 0, !!e.blocking, e.state || 'idle');
     for (const projectile of (e.projectiles || e.fireballs || [])) {
       drawProjectile(ctx, Math.round(projectile.x - this.camX), VIEW_Y + Math.round(projectile.y), projectile.type === 'magic' ? 'arc' : 'ember');
     }
@@ -883,6 +1040,8 @@ export class SideView {
       drawPixelPanel(ctx, bx, by, 108, 12, '#0B1224', this.roomTheme.glow, 0.9);
       ctx.fillStyle = '#FF557A';
       ctx.fillRect((bx + 4) * S, (by + 5) * S, Math.max(0, Math.floor(100 * e.hp / e.maxHp)) * S, 3 * S);
+      ctx.fillStyle = '#FFE18A';
+      for (let mark = 1; mark < 3; mark++) ctx.fillRect((bx + 4 + mark * 33) * S, (by + 4) * S, S, 5 * S);
     }
     if (e.iframes > 0 && Math.floor(e.iframes / 3) % 2 === 1) {
       ctx.fillStyle = 'rgba(243,251,255,.6)';
