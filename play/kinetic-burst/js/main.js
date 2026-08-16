@@ -24,10 +24,11 @@
     theme_road: 'assets/theme_road.mp3',
     theme_core: 'assets/theme_core.mp3'
   };
+  var DPR = 1;
 
-  function cssViewport() { return { width: document.documentElement.clientWidth || root.innerWidth || 390, height: document.documentElement.clientHeight || root.innerHeight || 844 }; }
-  function resizeHiDpi(game, width, height) { var view = width && height ? { width: width, height: height } : cssViewport(); return GGKit.hiDpi.resize(game, view.width, view.height); }
-  function bindHiDpiResize(game) { var apply = function () { resizeHiDpi(game); }; root.addEventListener('resize', apply); root.addEventListener('orientationchange', apply); document.addEventListener('visibilitychange', apply); apply(); }
+  function cssViewport() { return { width: document.documentElement.clientWidth || 390, height: document.documentElement.clientHeight || 844 }; }
+  function prepareCamera(scene) { var w = scene.scale.width / DPR, h = scene.scale.height / DPR; scene.cameras.main.setZoom(DPR).centerOn(w / 2, h / 2); }
+  root.__KB_DENSE_CAMERA = prepareCamera;
 
   /* ---------------------------------------------------------------- kit */
   var kit = GGKit.create({
@@ -286,12 +287,8 @@
     initialize: function BootScene() { Phaser.Scene.call(this, { key: 'boot' }); },
     create: function () {
       var self = this;
+      prepareCamera(this);
       G.verify.scene = 'boot';
-      var vw = document.documentElement.clientWidth || window.innerWidth;
-      var vh = document.documentElement.clientHeight || window.innerHeight;
-      if (vw > 0 && vh > 0 && (Math.abs(this.scale.width - vw) > 1 || Math.abs(this.scale.height - vh) > 1)) {
-        resizeHiDpi(this.game, vw, vh);
-      }
       kit.loader.show('Kinetic Burst');
       kit.loader.progress(0.12);
       KBArt.bakeStatic(this);
@@ -299,7 +296,7 @@
       /* warm the first arc board and backdrops so the opening tap is instant */
       KBArt.bakeBoard(this, 'kb_warm_board', 48, 8, KB.M.cols, KB.M.rows, KB.arc(0));
       for (var a = 0; a < KB.ARC_COUNT; a++) {
-        KBArt.bakeSky(this, 'kb_sky_' + KB.arc(a).id, this.scale.width, this.scale.height, KB.arc(a));
+        KBArt.bakeSky(this, 'kb_sky_' + KB.arc(a).id, this.scale.width / DPR, this.scale.height / DPR, KB.arc(a));
       }
       KB.allStages();
       kit.loader.progress(0.8);
@@ -331,8 +328,9 @@
     initialize: function MenuScene() { Phaser.Scene.call(this, { key: 'menu' }); },
     create: function () {
       var self = this;
+      prepareCamera(this);
       G.verify.scene = 'menu'; G.verify.mode = 'menu'; G.verify.over = false;
-      var W = this.scale.width, H = this.scale.height, ins = KBUI.insets();
+      var W = this.scale.width / DPR, H = this.scale.height / DPR, ins = KBUI.insets();
       this.bg = KBUI.backdrop(this, KB.arc(save.crown ? 4 : 0), -20);
       G.music('theme_road');
 
@@ -427,8 +425,9 @@
     },
     create: function () {
       var self = this;
+      prepareCamera(this);
       G.verify.scene = 'map'; G.verify.mode = 'map'; G.verify.over = false;
-      var W = this.scale.width, H = this.scale.height;
+      var W = this.scale.width / DPR, H = this.scale.height / DPR;
       this.ins = KBUI.insets();
       var arcOf = (this.focus / 6) | 0;
       this.bg = KBUI.backdrop(this, KB.arc(arcOf), -20);
@@ -579,7 +578,7 @@
     openNode: function (idx) {
       if (!KB.stageOpen(save, idx)) {
         this.toast.chip('Clear stage ' + idx + ' first', {
-          icon: 'lock', tint: 0xF7C948, x: this.scale.width / 2, y: this.headerH + 24, hold: 900
+          icon: 'lock', tint: 0xF7C948, x: this.scale.width / DPR / 2, y: this.headerH + 24, hold: 900
         });
         return;
       }
@@ -607,8 +606,9 @@
     initialize: function RosterScene() { Phaser.Scene.call(this, { key: 'roster' }); },
     create: function () {
       var self = this;
+      prepareCamera(this);
       G.verify.scene = 'roster'; G.verify.mode = 'roster'; G.verify.over = true;
-      var W = this.scale.width, H = this.scale.height, ins = KBUI.insets();
+      var W = this.scale.width / DPR, H = this.scale.height / DPR, ins = KBUI.insets();
       this.bg = KBUI.backdrop(this, KB.arc(1), -20);
       G.music('theme_road');
       this.slot = 0;
@@ -744,8 +744,9 @@
     initialize: function TrialScene() { Phaser.Scene.call(this, { key: 'trials' }); },
     create: function () {
       var self = this;
+      prepareCamera(this);
       G.verify.scene = 'trials'; G.verify.mode = 'trials'; G.verify.over = true;
-      var W = this.scale.width, H = this.scale.height, ins = KBUI.insets();
+      var W = this.scale.width / DPR, H = this.scale.height / DPR, ins = KBUI.insets();
       this.bg = KBUI.backdrop(this, KB.arc(3), -20);
       G.music('theme_core');
 
@@ -822,8 +823,9 @@
     init: function (data) { this.data2 = data || {}; },
     create: function () {
       var self = this, d = this.data2;
+      prepareCamera(this);
       G.verify.scene = 'result'; G.verify.mode = d.mode || 'road'; G.verify.over = true;
-      var W = this.scale.width, H = this.scale.height, ins = KBUI.insets();
+      var W = this.scale.width / DPR, H = this.scale.height / DPR, ins = KBUI.insets();
       var arcIdx = d.mode === 'road' ? ((KB.clamp(d.stage | 0, 0, 29) / 6) | 0) : 3;
       this.bg = KBUI.backdrop(this, KB.arc(arcIdx), -20);
       this.fxLayer = this.add.container(0, 0).setDepth(-5);
@@ -919,8 +921,9 @@
     initialize: function CrownScene() { Phaser.Scene.call(this, { key: 'crown' }); },
     create: function () {
       var self = this;
+      prepareCamera(this);
       G.verify.scene = 'crown'; G.verify.mode = 'crown'; G.verify.over = true;
-      var W = this.scale.width, H = this.scale.height, ins = KBUI.insets();
+      var W = this.scale.width / DPR, H = this.scale.height / DPR, ins = KBUI.insets();
       this.bg = KBUI.backdrop(this, KB.arc(4), -20);
       this.fxLayer = this.add.container(0, 0).setDepth(-5);
       this.fx = KBFx.create(this, this.fxLayer, kit);
@@ -978,16 +981,19 @@
 
   /* --------------------------------------------------------------- game */
   function start() {
-    G.phaser = new Phaser.Game({
+    var view = cssViewport();
+    var cfg = GGKit.hiDpi.phaser({
       type: Phaser.AUTO,
       parent: document.body,          /* never null: null skips DOM mounting */
       backgroundColor: '#141B2E',
-      scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight },
+      scale: { mode: Phaser.Scale.NONE, width: view.width, height: view.height },
       render: Object.assign({}, GGKit.renderDefaults, { batchSize: 2048 }),
       fps: { target: 60, min: 30 },
       scene: [BootScene, MenuScene, MapScene, RosterScene, TrialScene, PlayScene, ResultScene, CrownScene]
     });
-    bindHiDpiResize(G.phaser);
+    DPR = cfg.ggDpr;
+    root.__KB_DPR = DPR;
+    G.phaser = new Phaser.Game(cfg);
   }
 
   if (document.readyState === 'loading') {

@@ -7,6 +7,9 @@
 
   var WORLD_W = 960;
   var WORLD_H = 540;
+  var DESIGN_W = 844;
+  var DESIGN_H = 390;
+  var DPR = 1;
   var STEP = 1 / 60;
   var MAX_STEPS = 3;
   var VERSION = '2026-08-11-aaa2';
@@ -73,7 +76,7 @@
   function normalized(x, y) { var m = magnitude(x, y); return m > .001 ? { x: x / m, y: y / m } : { x: 1, y: 0 }; }
   function angleOf(x, y) { return Math.atan2(y, x); }
   function hex(color) { return Phaser.Display.Color.HexStringToColor(color || C.cyan).color; }
-  function textStyle(size, color, weight) { return { fontFamily: FONT, fontSize: size + 'px', color: color || C.paper, fontStyle: weight || 'bold', resolution: window.GGKit.hiDpi.dpr() }; }
+  function textStyle(size, color, weight) { return { fontFamily: FONT, fontSize: size + 'px', color: color || C.paper, fontStyle: weight || 'bold' }; }
   function setTextIfChanged(obj, value) { if (obj && obj.text !== String(value)) obj.setText(String(value)); }
   function setColorIfChanged(obj, value) { if (obj && obj.style && obj.style.color !== value) obj.setColor(value); }
   function timeText(seconds) { var s = Math.max(0, Math.ceil(seconds)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
@@ -271,6 +274,8 @@
     initialize: function MenuScene() { Phaser.Scene.call(this, { key: 'menu' }); },
     create: function () {
       var self = this; Runtime.menu = this; this.modeKey = has(MODES, pendingSwitch.mode) ? pendingSwitch.mode : (has(MODES, save.lastMode) ? save.lastMode : 'gem'); this.arenaKey = pendingSwitch.arena || null;
+      var menuZoom = Math.min(this.scale.width / WORLD_W, this.scale.height / WORLD_H);
+      this.cameras.main.setZoom(menuZoom).centerOn(WORLD_W / 2, WORLD_H / 2);
       this.add.image(WORLD_W / 2, WORLD_H / 2, 'menu_back').setDepth(0); this.build(); this.selectMode(this.modeKey); this.selectArena(this.arenaKey);
       state.phase = 'menu'; state.mode = this.modeKey; state.arena = this.arenaKey || safeMode(this.modeKey).arena; state.trophies = save.trophies;
       this.input.keyboard.on('keydown-ENTER', function () { self.launch(); }); this.input.keyboard.on('keydown-SPACE', function () { self.launch(); });
@@ -520,15 +525,9 @@
     openMenu: function () { Runtime.next = null; kit.input.clearAll(); this.scene.start('menu'); }
   });
 
-  function resizeGame() {
-    if (!Runtime.game) return;
-    window.GGKit.hiDpi.resize(Runtime.game, Math.max(1, window.innerWidth || WORLD_W), Math.max(1, window.innerHeight || WORLD_H));
-  }
   try {
-    Runtime.game = new Phaser.Game({ type: Phaser.AUTO, parent: 'stage', backgroundColor: C.ink, scale: { mode: Phaser.Scale.RESIZE, width: WORLD_W, height: WORLD_H, autoCenter: Phaser.Scale.CENTER_BOTH }, render: Object.assign({}, window.GGKit.renderDefaults, { batchSize: 4096 }), fps: { target: 60, min: 30 }, scene: [BootScene, MenuScene, PlayScene] });
-    window.addEventListener('resize', resizeGame);
-    window.addEventListener('orientationchange', resizeGame);
-    document.addEventListener('visibilitychange', resizeGame);
-    resizeGame();
+    var cfg = window.GGKit.hiDpi.phaser({ type: Phaser.AUTO, parent: 'stage', backgroundColor: C.ink, scale: { mode: Phaser.Scale.NONE, width: DESIGN_W, height: DESIGN_H, autoCenter: Phaser.Scale.CENTER_BOTH }, render: Object.assign({}, window.GGKit.renderDefaults, { batchSize: 4096 }), fps: { target: 60, min: 30 }, scene: [BootScene, MenuScene, PlayScene] });
+    DPR = cfg.ggDpr;
+    Runtime.game = new Phaser.Game(cfg);
   } catch (err2) { hook.error = String(err2 && err2.message || err2); state.phase = 'error'; }
 })();

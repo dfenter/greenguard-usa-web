@@ -1,6 +1,6 @@
 /* Steamline service worker, authored from /play/_shared/sw-template.js. */
 const SLUG = 'steamline';
-const VERSION = 'aaa-f2-20260810-3';
+const VERSION = 'aaa-f2-20260810-3-2026-08-16-offline-fix';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/steamline/',
@@ -36,14 +36,34 @@ self.addEventListener('activate', function (e) {
     return Promise.all(keys.filter(function (k) { return k.indexOf('gg-' + SLUG + '-') === 0 && k !== CACHE; }).map(function (k) { return caches.delete(k); }));
   }).then(function () { return self.clients.claim(); }));
 });
-self.addEventListener('fetch', function (e) {
-  var url = new URL(e.request.url);
+self.addEventListener('fetch', (e) => {
+  const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
-  if (url.pathname.indexOf('/play/' + SLUG + '/') !== 0 && url.pathname.indexOf('/play/_shared/') !== 0 && url.pathname.indexOf('/play/_assets/') !== 0) return;
-  e.respondWith(caches.match(e.request, { ignoreSearch: true }).then(function (hit) {
-    return hit || fetch(e.request).then(function (res) {
-      if (res.ok) { var copy = res.clone(); caches.open(CACHE).then(function (c) { c.put(e.request, copy); }); }
-      return res;
-    });
-  }));
+  const ROOT = '/play/' + SLUG;
+  // The deployed site serves the title at the NO-TRAILING-SLASH url and
+  // 308-redirects the slash form onto it. The old scope test required
+  // ROOT + '/', so the canonical navigation was never in scope, the worker
+  // never answered it, and offline died on EVERY title in the fleet while
+  // still reporting a registered service worker. Accept both forms.
+  const inScope = url.pathname === ROOT || url.pathname.startsWith(ROOT + '/')
+    || url.pathname.startsWith('/play/_shared/') || url.pathname.startsWith('/play/_assets/');
+  if (!inScope) return;
+  const isRoot = url.pathname === ROOT || url.pathname === ROOT + '/';
+  const INDEX = ROOT + '/index.html';
+  e.respondWith(
+    caches.match(isRoot ? INDEX : e.request, { ignoreSearch: true })
+      .then((hit) => hit || caches.match(e.request, { ignoreSearch: true }))
+      .then((hit) =>
+        hit ||
+        fetch(e.request).then((res) => {
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(e.request, copy));
+          }
+          return res;
+        }).catch(() =>
+          e.request.mode === 'navigate' ? caches.match(INDEX) : Promise.reject(new Error('offline'))
+        )
+      )
+  );
 });

@@ -1,6 +1,6 @@
 /* Versioned cache for Reef Tiles. Keep ASSETS limited to files that ship. */
 const SLUG = 'reef-tiles';
-const VERSION = 'aaa-2026-08-11-v2';
+const VERSION = 'aaa-2026-08-11-v2-2026-08-16-offline-fix';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/reef-tiles/',
@@ -30,9 +30,34 @@ self.addEventListener('install', function (event) {
 self.addEventListener('activate', function (event) {
   event.waitUntil(caches.keys().then(function (keys) { return Promise.all(keys.filter(function (key) { return key.indexOf('gg-' + SLUG + '-') === 0 && key !== CACHE; }).map(function (key) { return caches.delete(key); })); }).then(function () { return self.clients.claim(); }));
 });
-self.addEventListener('fetch', function (event) {
-  var url = new URL(event.request.url);
-  if (event.request.method !== 'GET' || url.origin !== location.origin) return;
-  if (url.pathname.indexOf('/play/reef-tiles/') !== 0 && url.pathname.indexOf('/play/_shared/') !== 0) return;
-  event.respondWith(caches.match(event.request, { ignoreSearch: true }).then(function (hit) { return hit || fetch(event.request).then(function (response) { if (response.ok) { var copy = response.clone(); caches.open(CACHE).then(function (cache) { cache.put(event.request, copy); }); } return response; }); }));
+self.addEventListener('fetch', (e) => {
+  const url = new URL(e.request.url);
+  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  const ROOT = '/play/' + SLUG;
+  // The deployed site serves the title at the NO-TRAILING-SLASH url and
+  // 308-redirects the slash form onto it. The old scope test required
+  // ROOT + '/', so the canonical navigation was never in scope, the worker
+  // never answered it, and offline died on EVERY title in the fleet while
+  // still reporting a registered service worker. Accept both forms.
+  const inScope = url.pathname === ROOT || url.pathname.startsWith(ROOT + '/')
+    || url.pathname.startsWith('/play/_shared/') || url.pathname.startsWith('/play/_assets/');
+  if (!inScope) return;
+  const isRoot = url.pathname === ROOT || url.pathname === ROOT + '/';
+  const INDEX = ROOT + '/index.html';
+  e.respondWith(
+    caches.match(isRoot ? INDEX : e.request, { ignoreSearch: true })
+      .then((hit) => hit || caches.match(e.request, { ignoreSearch: true }))
+      .then((hit) =>
+        hit ||
+        fetch(e.request).then((res) => {
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(e.request, copy));
+          }
+          return res;
+        }).catch(() =>
+          e.request.mode === 'navigate' ? caches.match(INDEX) : Promise.reject(new Error('offline'))
+        )
+      )
+  );
 });

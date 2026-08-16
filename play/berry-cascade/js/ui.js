@@ -13,6 +13,10 @@ var BCUI = (function () {
 
   U.FONT = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   U.TOUCH = 44;
+  U.density = function () {
+    return window.BCGame && window.BCGame.dpr || GGKit.hiDpi.dpr();
+  };
+  U.fontSize = function (size) { return Math.round(size * U.density()); };
 
   U.setText = function (obj, str) {
     if (!obj) return;
@@ -31,9 +35,9 @@ var BCUI = (function () {
   U.style = function (size, weight, color) {
     return {
       fontFamily: U.FONT,
-      fontSize: Math.round(size) + 'px',
+      fontSize: U.fontSize(size) + 'px',
       fontStyle: (weight || 700) + '',
-      resolution: GGKit.hiDpi.dpr(),
+      resolution: U.density(),
       color: color || '#F7FBFF'
     };
   };
@@ -158,7 +162,7 @@ var BCUI = (function () {
     ico.setTint(opts.tint == null ? 0xF7FBFF : opts.tint);
     root.add(ico);
     var val = scene.add.text(-w * 0.5 + h * 0.86, opts.meter ? -h * 0.10 : 0, opts.value || '0',
-      { fontFamily: U.FONT, fontSize: Math.round(opts.size || 16) + 'px', fontStyle: '750', resolution: GGKit.hiDpi.dpr(), color: '#F7FBFF' });
+      { fontFamily: U.FONT, fontSize: U.fontSize(opts.size || 16) + 'px', fontStyle: '750', resolution: U.density(), color: '#F7FBFF' });
     val.setOrigin(0, 0.5);
     val.__t = String(opts.value || '0'); val.__c = '#F7FBFF';
     root.add(val);
@@ -233,7 +237,7 @@ var BCUI = (function () {
 
     function layoutChip(item) {
       var pad = 10;
-      chipText.setFontSize(15);
+      chipText.setFontSize(U.fontSize(15));
       U.setText(chipText, item.text);
       U.setColor(chipText, item.color || '#F7FBFF');
       var tw = chipText.width;
@@ -260,7 +264,7 @@ var BCUI = (function () {
       if (!scene.textures.exists(key)) BCArt.bakeCard(scene, key, w, h, 18, 0x101B31, 0.96, 0xF7FBFF, 0.30);
       banBg.setTexture(key);
       banBg.setDisplaySize(w, h);
-      banTitle.setFontSize(item.sub ? 26 : 24);
+      banTitle.setFontSize(U.fontSize(item.sub ? 26 : 24));
       U.setText(banTitle, item.text);
       U.setColor(banTitle, item.color || '#FFFFFF');
       banTitle.setOrigin(0.5, 0.5);

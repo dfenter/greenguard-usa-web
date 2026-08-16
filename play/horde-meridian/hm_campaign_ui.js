@@ -13,6 +13,7 @@
     label: TYPE.label || 12.5,
     micro: TYPE.micro || 11
   };
+  function dpr() { return window.__HM_DPR || GGKit.hiDpi.dpr(); }
 
   function clamp(value, low, high) {
     return value < low ? low : (value > high ? high : value);
@@ -69,13 +70,14 @@
   }
 
   function addCenteredText(scene, x, y, value, size, color, face) {
-    return scene.add.text(x, y, clean(value), {
+    var text = scene.add.text(x, y, clean(value), {
       fontFamily: face === 'body' ? FONT_BODY : FONT_DISPLAY,
-      fontSize: Math.max(SIZE.micro, size || SIZE.body) + 'px',
+      fontSize: Math.round(Math.max(SIZE.micro, size || SIZE.body) * dpr()) + 'px',
       color: color || '#e7fff7',
       fontStyle: face === 'body' ? 'normal' : 'bold',
       align: 'center'
     }).setOrigin(0.5);
+    return text;
   }
 
   function playSelect(campaign) {
@@ -164,8 +166,8 @@
 
   function createScene() {
     var scene = this;
-    var width = this.scale.width;
-    var height = this.scale.height;
+    var width = this.scale.width / dpr();
+    var height = this.scale.height / dpr();
     var safeTop = Number(SAFE.top) || 0;
     var safeRight = Number(SAFE.right) || 0;
     var safeBottom = Number(SAFE.bottom) || 0;

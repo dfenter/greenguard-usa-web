@@ -1200,27 +1200,50 @@
       if (k === 'key') continue;
       Klass.prototype[k] = cfg[k];
     }
+    if (typeof Klass.prototype.create === 'function') {
+      var originalCreate = Klass.prototype.create;
+      Klass.prototype.create = function () {
+        prepareCamera(this);
+        originalCreate.apply(this, arguments);
+      };
+    }
     return Klass;
   }
 
-  function cssViewport() { return { width: document.documentElement.clientWidth || window.innerWidth || 390, height: document.documentElement.clientHeight || window.innerHeight || 844 }; }
-  function resizeHiDpi(game, width, height) { var view = width && height ? { width: width, height: height } : cssViewport(); return GGKit.hiDpi.resize(game, view.width, view.height); }
-  function bindHiDpiResize(game) { var apply = function () { resizeHiDpi(game); }; window.addEventListener('resize', apply); window.addEventListener('orientationchange', apply); document.addEventListener('visibilitychange', apply); apply(); }
+  function cssViewport() { return { width: document.documentElement.clientWidth || 390, height: document.documentElement.clientHeight || 844 }; }
+  function prepareCamera(scene) {
+    var d = I.dpr(), w = scene.scale.width / d, h = scene.scale.height / d;
+    scene.cameras.main.setZoom(d).centerOn(w / 2, h / 2);
+  }
+  function installDenseText() {
+    var proto = Phaser.GameObjects.Text.prototype;
+    if (proto.__hbDenseSetFontSize) return;
+    var original = proto.setFontSize;
+    proto.setFontSize = function (size) {
+      var n = parseFloat(size);
+      return isFinite(n) ? original.call(this, Math.round(n * I.dpr()) + 'px') : original.call(this, size);
+    };
+    proto.__hbDenseSetFontSize = true;
+  }
 
-  Game.phaser = new Phaser.Game({
+  var view = cssViewport();
+  var cfg = GGKit.hiDpi.phaser({
     type: Phaser.AUTO,
     parent: document.body,
     backgroundColor: '#081420',
     scale: {
-      mode: Phaser.Scale.RESIZE,
-      width: window.innerWidth,
-      height: window.innerHeight
+      mode: Phaser.Scale.NONE,
+      autoCenter: Phaser.Scale.CENTER_BOTH,
+      width: view.width,
+      height: view.height
     },
     render: Object.assign({}, GGKit.renderDefaults, { batchSize: 4096 }),
     fps: { target: 60, min: 30 },
     scene: [toScene(I.BootScene), toScene(M.TitleScene), toScene(M.SelectScene), toScene(PLAY)]
   });
-  bindHiDpiResize(Game.phaser);
+  I.setDpr(cfg.ggDpr);
+  installDenseText();
+  Game.phaser = new Phaser.Game(cfg);
 
   kit.registerPWA();
   window.__HB_READY = true;

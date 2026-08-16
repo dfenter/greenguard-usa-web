@@ -42,7 +42,6 @@
     });
     t.__lastText = str;
     t.__lastColor = color;
-    t.setResolution(GGKit.hiDpi.dpr());
     return t;
   };
 

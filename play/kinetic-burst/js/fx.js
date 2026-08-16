@@ -178,7 +178,8 @@ var KBFx = (function () {
     /* one concurrent frame nudge, amplitude capped at 2 percent of view */
     self.kick = function (mag, ms) {
       if (reduced()) return;
-      var cap = self.scene.scale.height * 0.02;
+      var dpr = window.__KB_DPR || GGKit.hiDpi.dpr();
+      var cap = self.scene.scale.height / dpr * 0.02;
       self.nudge.mag = Math.max(self.nudge.mag, Math.min(mag, cap));
       self.nudge.dur = Math.max(self.nudge.dur, (ms || 160) / 1000);
       self.nudge.t = 0;

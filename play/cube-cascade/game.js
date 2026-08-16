@@ -12,6 +12,7 @@
   var MAX_FX = 128;
   var SAVE_VERSION = 3;
   var Game = { play: null, phaser: null };
+  var DPR = 1;
   var pendingDebug = { level: null, pyramid: null };
 
   var SKINS = [
@@ -129,11 +130,11 @@
   }
 
   function layoutFor(scene) {
-    var w = scene.scale.width, h = scene.scale.height, r = scene.run || { width: 6, rows: 8 }, landscape = w > h, safeTop = safeInset('--cc-safe-top'), safeRight = safeInset('--cc-safe-right'), safeBottom = safeInset('--cc-safe-bottom'), safeLeft = safeInset('--cc-safe-left');
-    var top = (landscape ? 102 : 136) + safeTop, bottom = (landscape ? 86 : 142) + safeBottom;
-    var cellW = clamp((w - 34) / r.width, 42, 58), cellH = clamp((h - top - bottom - 18) / r.rows, landscape ? 23 : 28, landscape ? 35 : 41);
-    var row1 = safeTop + (landscape ? 5 : 10), row2 = safeTop + (landscape ? 35 : 45), row3 = safeTop + (landscape ? 66 : 78);
-    var meterX = 72 + safeLeft, meterWidth = Math.max(80, w - meterX - 118 - safeRight);
+    var u = DPR, w = scene.scale.width, h = scene.scale.height, r = scene.run || { width: 6, rows: 8 }, landscape = w > h, safeTop = safeInset('--cc-safe-top') * u, safeRight = safeInset('--cc-safe-right') * u, safeBottom = safeInset('--cc-safe-bottom') * u, safeLeft = safeInset('--cc-safe-left') * u;
+    var top = (landscape ? 102 : 136) * u + safeTop, bottom = (landscape ? 86 : 142) * u + safeBottom;
+    var cellW = clamp((w - 34 * u) / r.width, 42 * u, 58 * u), cellH = clamp((h - top - bottom - 18 * u) / r.rows, (landscape ? 23 : 28) * u, (landscape ? 35 : 41) * u);
+    var row1 = safeTop + (landscape ? 5 : 10) * u, row2 = safeTop + (landscape ? 35 : 45) * u, row3 = safeTop + (landscape ? 66 : 78) * u;
+    var meterX = 72 * u + safeLeft, meterWidth = Math.max(80 * u, w - meterX - 118 * u - safeRight);
     return { w: w, h: h, landscape: landscape, top: top, bottom: bottom, boardTop: top + 7, cellW: cellW, cellH: cellH, left: (w - cellW * r.width) * 0.5, controlsY: h - bottom * 0.46, row1: row1, row2: row2, row3: row3, transientY: landscape ? top + 2 : top - 28, meterX: meterX, meterWidth: meterWidth, leftHud: 16 + safeLeft, rightHud: w - 17 - safeRight, safeLeft: safeLeft, safeRight: safeRight };
   }
   function gridPoint(scene, x, y, out) { var l = scene.layout, result = out || { x: 0, y: 0 }; result.x = l.left + (x + 0.5) * l.cellW; result.y = l.boardTop + (scene.run.rows - y - 0.5) * l.cellH; return result; }
@@ -187,7 +188,13 @@
       this.hud.tutorialBg = this.add.rectangle(0, 0, w, 28, 0x0c2a3a, 0.9).setOrigin(0).setDepth(108).setVisible(false);
       this.hud.tutorial = this.add.text(16, 0, '', Object.assign({}, textStyle, { fontSize: '14px', color: '#f4ce81' })).setOrigin(0, 0.5).setDepth(109).setVisible(false);
       this.hud.banner = this.add.container(w * 0.5, h * 0.43).setDepth(150).setAlpha(0); this.hud.bannerBg = this.add.rectangle(0, 0, Math.min(w * 0.62, 300), 62, 0x071522, 0.97); this.hud.bannerTop = this.add.rectangle(0, -31, Math.min(w * 0.62, 300), 2, 0x70f5d8, 0.9); this.hud.bannerBottom = this.add.rectangle(0, 31, Math.min(w * 0.62, 300), 2, 0x70f5d8, 0.9); this.hud.bannerTitle = this.add.text(0, -11, '', Object.assign({}, textStyle, { fontSize: '18px', color: '#edffff', align: 'center' })).setOrigin(0.5); this.hud.bannerSub = this.add.text(0, 14, '', Object.assign({}, textStyle, { fontSize: '13px', color: '#90d6d7', align: 'center' })).setOrigin(0.5); this.hud.banner.add([this.hud.bannerBg, this.hud.bannerTop, this.hud.bannerBottom, this.hud.bannerTitle, this.hud.bannerSub]);
-      this.createControls(); this.positionHud();
+      this.createControls();
+      var u = DPR;
+      this.children.list.forEach(function (child) {
+        if (child.type === 'Text' && child.style && child.style.fontSize) child.setFontSize(parseFloat(child.style.fontSize) * u);
+      });
+      for (var ci = 0; ci < this.controls.length; ci++) this.controls[ci].bg.setDisplaySize(76 * u, 50 * u);
+      this.positionHud();
     }
     createControls() {
       var self = this; this.controls = []; for (var i = 0; i < ACTIONS.length; i++) (function (action) { var bg = self.add.image(0, 0, 'cc_button').setDisplaySize(76, 50).setDepth(105).setInteractive(); var text = self.add.text(0, 0, DIRS[action].label, { fontFamily: 'Verdana, Geneva, sans-serif', resolution: GGKit.hiDpi.dpr(), fontSize: '24px', fontStyle: 'bold', color: '#d5fbff' }).setOrigin(0.5).setDepth(106); bg.on('pointerdown', function () { self.act(action); }); self.controls.push({ action: action, bg: bg, text: text, cache: '' }); }(ACTIONS[i]));
@@ -200,16 +207,16 @@
     onKitResume() { var overlay = document.getElementById('pause-overlay'); if (overlay) overlay.hidden = true; }
     pauseGame() { if (this.run.mode !== 'play' || kit.paused) return; kit.audio.sfx('hold', { volume: 0.25 }); kit.pause('manual'); }
     positionHud() {
-      if (!this.hud) return; var w = this.scale.width, h = this.scale.height; this.layout = layoutFor(this); var l = this.layout, bannerWidth = Math.min(w * 0.62, 300);
-      this.hud.topChrome.setDisplaySize(w, l.top + 8); this.hud.bottomChrome.setPosition(0, h).setDisplaySize(w, l.bottom + 8);
-      this.hud.level.setPosition(l.leftHud, l.row1); this.hud.score.setPosition(l.rightHud - 45, l.row1); this.hud.pause.setPosition(l.rightHud - 11, l.row1 + 14); this.hud.pauseIcon.setPosition(l.rightHud - 11, l.row1 + 14);
-      this.hud.timer.setPosition(l.leftHud, l.row2); this.hud.fillTrack.setPosition(l.meterX, l.row2 + 8).setSize(l.meterWidth, 5); this.hud.fill.setPosition(l.meterX, l.row2 + 8);
-      this.hud.lives.setPosition(l.rightHud, l.row2); this.hud.nextMarker.setPosition(l.leftHud, l.row3 - 4); this.hud.skinButton.setPosition(w * 0.5, l.row3 + 8); this.hud.skin.setPosition(w * 0.5, l.row3 + 8); this.hud.combo.setPosition(l.rightHud, l.row3 - 4);
-      this.hud.calloutBg.setPosition(l.safeLeft + 16, l.transientY).setSize(Math.max(80, w - l.safeLeft - l.safeRight - 32), 26); this.hud.callout.setPosition(l.safeLeft + 26, l.transientY + 13); this.hud.tutorialBg.setPosition(0, l.transientY).setSize(w, 28); this.hud.tutorial.setPosition(l.safeLeft + 16, l.transientY + 14);
-      this.hud.banner.setPosition(w * 0.5, h * 0.43); this.hud.bannerBg.setSize(bannerWidth, 62); this.hud.bannerTop.setSize(bannerWidth, 2); this.hud.bannerBottom.setSize(bannerWidth, 2); this.positionControls();
+      if (!this.hud) return; var u = DPR, w = this.scale.width, h = this.scale.height; this.layout = layoutFor(this); var l = this.layout, bannerWidth = Math.min(w * 0.62, 300 * u);
+      this.hud.topChrome.setDisplaySize(w, l.top + 8 * u); this.hud.bottomChrome.setPosition(0, h).setDisplaySize(w, l.bottom + 8 * u);
+      this.hud.level.setPosition(l.leftHud, l.row1); this.hud.score.setPosition(l.rightHud - 45 * u, l.row1); this.hud.pause.setPosition(l.rightHud - 11 * u, l.row1 + 14 * u); this.hud.pauseIcon.setPosition(l.rightHud - 11 * u, l.row1 + 14 * u);
+      this.hud.timer.setPosition(l.leftHud, l.row2); this.hud.fillTrack.setPosition(l.meterX, l.row2 + 8 * u).setSize(l.meterWidth, 5 * u); this.hud.fill.setPosition(l.meterX, l.row2 + 8 * u);
+      this.hud.lives.setPosition(l.rightHud, l.row2); this.hud.nextMarker.setPosition(l.leftHud, l.row3 - 4 * u); this.hud.skinButton.setPosition(w * 0.5, l.row3 + 8 * u); this.hud.skin.setPosition(w * 0.5, l.row3 + 8 * u); this.hud.combo.setPosition(l.rightHud, l.row3 - 4 * u);
+      this.hud.calloutBg.setPosition(l.safeLeft + 16 * u, l.transientY).setSize(Math.max(80 * u, w - l.safeLeft - l.safeRight - 32 * u), 26 * u); this.hud.callout.setPosition(l.safeLeft + 26 * u, l.transientY + 13 * u); this.hud.tutorialBg.setPosition(0, l.transientY).setSize(w, 28 * u); this.hud.tutorial.setPosition(l.safeLeft + 16 * u, l.transientY + 14 * u);
+      this.hud.banner.setPosition(w * 0.5, h * 0.43); this.hud.bannerBg.setSize(bannerWidth, 62 * u); this.hud.bannerTop.setSize(bannerWidth, 2 * u); this.hud.bannerBottom.setSize(bannerWidth, 2 * u); this.positionControls();
     }
-    positionControls() { if (!this.controls) return; var cx = this.scale.width * 0.5, cy = this.layout.controlsY, places = [[cx - 126, cy], [cx - 42, cy], [cx + 42, cy], [cx + 126, cy]]; for (var i = 0; i < this.controls.length; i++) { this.controls[i].bg.setPosition(places[i][0], places[i][1]); this.controls[i].text.setPosition(places[i][0], places[i][1]); } }
-    onResize(size) { if (!this.hud) return; this.background.setDisplaySize(size.width, size.height); this.floor.setPosition(size.width * 0.5, size.height * 0.59).setScale(Math.min(1.15, size.width / 390)); this.vignette.setSize(size.width, size.height); this.positionHud(); this.renderAll(); }
+    positionControls() { if (!this.controls) return; var cx = this.scale.width * 0.5, cy = this.layout.controlsY, u = DPR, places = [[cx - 126 * u, cy], [cx - 42 * u, cy], [cx + 42 * u, cy], [cx + 126 * u, cy]]; for (var i = 0; i < this.controls.length; i++) { this.controls[i].bg.setPosition(places[i][0], places[i][1]); this.controls[i].text.setPosition(places[i][0], places[i][1]); } }
+    onResize(size) { if (!this.hud) return; this.background.setDisplaySize(size.width, size.height); this.floor.setPosition(size.width * 0.5, size.height * 0.59).setScale(Math.min(1.15, size.width / (390 * DPR))); this.vignette.setSize(size.width, size.height); this.positionHud(); this.renderAll(); }
     setMusic(name, fade) { if (this.musicName === name) return; this.musicName = name; kit.audio.music(name, fade); }
     startLevel(level, preserveLives, forcedPyramid) {
       level = validLevel(level); var forced = forcedPyramid || pendingDebug.pyramid, theme = forced ? pyramidById(forced) : PYRAMIDS[Math.min(PYRAMIDS.length - 1, Math.floor((level - 1) / 2))]; if (!theme) theme = PYRAMIDS[0];
@@ -340,11 +347,17 @@
   profile = kit.save.get(defaultSave()); if (!validateSave(profile)) profile = defaultSave();
   // The authored view is made from generated textures. Force Phaser's 2D
   // renderer so headless/software-GL does not silently present a black frame.
-  Game.phaser = new Phaser.Game({ type: Phaser.CANVAS, parent: 'game', backgroundColor: '#07111f', render: Object.assign({}, GGKit.renderDefaults, { clearBeforeRender: true }), scale: { mode: Phaser.Scale.RESIZE, width: 390, height: 844, autoCenter: Phaser.Scale.CENTER_BOTH }, input: { activePointers: 4 }, scene: [BootScene, PlayScene] });
+  var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || 390));
+  var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || 844));
+  var config = { type: Phaser.CANVAS, parent: 'game', backgroundColor: '#07111f', render: Object.assign({}, GGKit.renderDefaults, { clearBeforeRender: true }), scale: { mode: Phaser.Scale.NONE, width: cssW, height: cssH }, input: { activePointers: 4 }, scene: [BootScene, PlayScene] };
+  config = GGKit.hiDpi.phaser(config);
+  DPR = config.ggDpr;
+  Game.phaser = new Phaser.Game(config);
   function syncHiDpi(game) {
-    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || window.innerWidth || 1));
-    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || window.innerHeight || 1));
-    GGKit.hiDpi.resize(game, cssW, cssH);
+    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || 390));
+    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || 844));
+    game.scale.resize(Math.round(cssW * DPR), Math.round(cssH * DPR));
+    if (game.canvas) { game.canvas.style.width = cssW + 'px'; game.canvas.style.height = cssH + 'px'; }
   }
   syncHiDpi(Game.phaser);
   window.addEventListener('resize', function () { syncHiDpi(Game.phaser); });

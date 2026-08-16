@@ -46,3 +46,10 @@ Progress, roster, kits and per-map best score persist locally; map 8 is the win.
 - Could not complete the live DPR 3 gameplay screenshot or layout check.
   The authored board texture bake was left at its logical size because a
   frame-unit migration to `GGKit.hiDpi.canvas(...)` could not be live-verified.
+
+## Retina pass 2
+
+- Delayed DPR 3 canvas ratio: not measured. The slug-derived private harness port was rejected with `EPERM`, and headless Chrome aborted before creating a page. Configured `cfg.ggDpr` is 3.00 at the audit viewport.
+- Converted boot to `GGKit.hiDpi.phaser` with `Phaser.Scale.NONE`, retained render defaults, baked the board through `GGKit.hiDpi.canvas`, and kept text dense with `cfg.ggDpr` plus inverse object scale.
+- Layout now uses the scaled Phaser dimensions with the density factor, and the scene camera sets zoom and centers on the viewport midpoint.
+- Gameplay screenshot, render-loop probe, and input-resolution proof could not be completed because the local browser infrastructure was unavailable.

@@ -6,7 +6,7 @@
 const SLUG = 'redline-gt';
 // Bump on every deploy that changes a cached file. Frame-budget restoration
 // keeps the polished look while moving cars/backgrounds onto cheap paths.
-const VERSION = '14';
+const VERSION = '14-2026-08-16-offline-fix';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/redline-gt/',
@@ -87,32 +87,31 @@ function fromNetwork(request) {
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
-  // Scope note: a worker registered at /play/redline-gt/ controls the game
-  // PAGE, and a controlled page's fetches are dispatched to it whatever their
-  // path, so caching /play/_shared/ from here is correct and does not need a
-  // wider registration scope.
-  if (!url.pathname.startsWith('/play/' + SLUG + '/')
-    && !url.pathname.startsWith('/play/_shared/')
-    && !url.pathname.startsWith('/play/_assets/')) return;
-
-  if (CODE_RE.test(url.pathname)) {
-    e.respondWith(
-      fromNetwork(e.request)
-        .catch(() => caches.match(e.request, { ignoreSearch: true }))
-        .then((res) => res || fetch(e.request))
-    );
-    return;
-  }
+  const ROOT = '/play/' + SLUG;
+  // The deployed site serves the title at the NO-TRAILING-SLASH url and
+  // 308-redirects the slash form onto it. The old scope test required
+  // ROOT + '/', so the canonical navigation was never in scope, the worker
+  // never answered it, and offline died on EVERY title in the fleet while
+  // still reporting a registered service worker. Accept both forms.
+  const inScope = url.pathname === ROOT || url.pathname.startsWith(ROOT + '/')
+    || url.pathname.startsWith('/play/_shared/') || url.pathname.startsWith('/play/_assets/');
+  if (!inScope) return;
+  const isRoot = url.pathname === ROOT || url.pathname === ROOT + '/';
+  const INDEX = ROOT + '/index.html';
   e.respondWith(
-    caches.match(e.request, { ignoreSearch: true }).then((hit) =>
-      hit ||
-      fetch(e.request).then((res) => {
-        if (res.ok) {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(e.request, copy));
-        }
-        return res;
-      })
-    )
+    caches.match(isRoot ? INDEX : e.request, { ignoreSearch: true })
+      .then((hit) => hit || caches.match(e.request, { ignoreSearch: true }))
+      .then((hit) =>
+        hit ||
+        fetch(e.request).then((res) => {
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(e.request, copy));
+          }
+          return res;
+        }).catch(() =>
+          e.request.mode === 'navigate' ? caches.match(INDEX) : Promise.reject(new Error('offline'))
+        )
+      )
   );
 });

@@ -206,7 +206,8 @@ var HFPlayScene = new Phaser.Class({
 
   /* ---------------------------------------------------------- layout --- */
   relayout: function () {
-    var W = this.scale.width, H = this.scale.height;
+    var dpr = window.__HF_DPR || GGKit.hiDpi.dpr();
+    var W = this.scale.width / dpr, H = this.scale.height / dpr;
     if (!W || !H) return;
     var ins = HFUI.insets(true);
     var L = this.L;

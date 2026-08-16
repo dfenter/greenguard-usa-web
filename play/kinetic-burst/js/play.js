@@ -24,6 +24,7 @@ var PlayScene = new Phaser.Class({
   create: function () {
     var self = this;
     var G = this.G, kit = this.kit;
+    if (window.__KB_DENSE_CAMERA) window.__KB_DENSE_CAMERA(this);
 
     this.buildBattle();
     this.ins = KBUI.insets();
@@ -125,7 +126,8 @@ var PlayScene = new Phaser.Class({
 
   /* ------------------------------------------------------------ layout */
   layout: function () {
-    var W = this.scale.width, H = this.scale.height;
+    var dpr = window.__KB_DPR || GGKit.hiDpi.dpr();
+    var W = this.scale.width / dpr, H = this.scale.height / dpr;
     var ins = this.ins;
     var M = KB.M;
     var pad = 8;
@@ -495,7 +497,7 @@ var PlayScene = new Phaser.Class({
     else sub = 'Survive as long as the board allows';
     this.resultOpen = true;                    /* boundary: banner allowed */
     this.toast.banner(this.title, {
-      sub: sub, hold: 900, y: this.scale.height * 0.36,
+      sub: sub, hold: 900, y: this.scale.height / (window.__KB_DPR || GGKit.hiDpi.dpr()) * 0.36,
       onDone: function () { self.resultOpen = false; }
     });
   },

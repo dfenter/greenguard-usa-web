@@ -22,6 +22,7 @@
     create: function () {
       var scene = this;
       var kit = RD.kit;
+      scene.cameras.main.setZoom(RD.dpr).centerOn(RD.DESIGN_W / 2, RD.DESIGN_H / 2);
       var steps = [];
 
       /* ---------------------------------------------------- primitives */

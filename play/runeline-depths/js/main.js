@@ -9,9 +9,11 @@
   'use strict';
 
   var RD = root.RD || {}; root.RD = RD;
-  function cssViewport() { return { width: document.documentElement.clientWidth || root.innerWidth || 390, height: document.documentElement.clientHeight || root.innerHeight || 844 }; }
-  function resizeHiDpi(game, width, height) { var view = width && height ? { width: width, height: height } : cssViewport(); return GGKit.hiDpi.resize(game, view.width, view.height); }
-  function bindHiDpiResize(game) { var apply = function () { resizeHiDpi(game); }; root.addEventListener('resize', apply); root.addEventListener('orientationchange', apply); document.addEventListener('visibilitychange', apply); apply(); }
+  RD.DESIGN_W = 390;
+  RD.DESIGN_H = 844;
+  RD.dpr = 1;
+  RD.viewW = function (scene) { return scene.scale.width / RD.dpr; };
+  RD.viewH = function (scene) { return scene.scale.height / RD.dpr; };
 
   /* verification hook the orchestrator can probe headlessly */
   RD.hook = {
@@ -127,15 +129,15 @@
   kit.loader.progress(0.02);
 
   RD.booted = false;
-  RD.game = new Phaser.Game({
+  var cfg = GGKit.hiDpi.phaser({
     type: Phaser.AUTO,
     parent: document.body,
     backgroundColor: '#0B1224',
     scale: {
-      mode: Phaser.Scale.RESIZE,
+      mode: Phaser.Scale.NONE,
       autoCenter: Phaser.Scale.NO_CENTER,
-      width: window.innerWidth,
-      height: window.innerHeight
+      width: RD.DESIGN_W,
+      height: RD.DESIGN_H
     },
     render: Object.assign({}, GGKit.renderDefaults),
     input: { activePointers: 3, touch: { capture: true } },
@@ -143,7 +145,8 @@
     audio: { noAudio: true },   /* GGKit owns every sound in this title */
     scene: [RD.BootScene, RD.MenuScene, RD.PlayScene]
   });
-  bindHiDpiResize(RD.game);
+  RD.dpr = cfg.ggDpr;
+  RD.game = new Phaser.Game(cfg);
 
   /* GGKit pause must freeze the sim: Phaser scenes stop stepping. */
   var origPause = kit.pause, origResume = kit.resume;

@@ -22,10 +22,10 @@
     theme_siege: 'assets/theme_siege.mp3',
     theme_shelter: 'assets/theme_shelter.mp3'
   };
+  var DPR = 1;
 
-  function cssViewport() { return { width: document.documentElement.clientWidth || root.innerWidth || 390, height: document.documentElement.clientHeight || root.innerHeight || 844 }; }
-  function resizeHiDpi(game, width, height) { var view = width && height ? { width: width, height: height } : cssViewport(); return GGKit.hiDpi.resize(game, view.width, view.height); }
-  function bindHiDpiResize(game) { var apply = function () { resizeHiDpi(game); }; root.addEventListener('resize', apply); root.addEventListener('orientationchange', apply); document.addEventListener('visibilitychange', apply); apply(); }
+  function cssViewport() { return { width: document.documentElement.clientWidth || 390, height: document.documentElement.clientHeight || 844 }; }
+  function prepareCamera(scene) { var w = scene.scale.width / DPR, h = scene.scale.height / DPR; scene.cameras.main.setZoom(DPR).centerOn(w / 2, h / 2); }
 
   /* ------------------------------------------------------------- kit --- */
   var kit = GGKit.create({
@@ -199,7 +199,7 @@
 
   /* ------------------------------------------------------- scene tools - */
   function backdrop(scene, act) {
-    var W = scene.scale.width, H = scene.scale.height;
+    var W = scene.scale.width / DPR, H = scene.scale.height / DPR;
     var key = 'hf_sky_' + act.id + '_' + Math.round(W) + 'x' + Math.round(H);
     if (!scene.textures.exists(key)) HFArt.bakeSky(scene, key, W, H, act);
     var img = scene.add.image(0, 0, key).setOrigin(0, 0).setDepth(-10);
@@ -210,7 +210,7 @@
   /* A slice of the wall the player is defending, used to close out the
    * bottom of every menu screen with authored art instead of empty ground. */
   function approachBand(scene, act, topY) {
-    var W = scene.scale.width, H = scene.scale.height;
+    var W = scene.scale.width / DPR, H = scene.scale.height / DPR;
     var ins = HFUI.insets();
     var sceneH = Math.min(220, H - ins.bottom - topY - 26);
     if (sceneH < 96) return null;
@@ -250,7 +250,7 @@
   }
 
   function header(scene, title, sub) {
-    var W = scene.scale.width;
+    var W = scene.scale.width / DPR;
     var ins = HFUI.insets(true);
     var t = HFUI.text(scene, W / 2, ins.top + 26, title, 27, '#FFD98A', 800).setOrigin(0.5, 0.5);
     if (sub) HFUI.text(scene, W / 2, ins.top + 52, sub, 14, '#9FB3C8', 600).setOrigin(0.5, 0.5);
@@ -263,12 +263,8 @@
     initialize: function BootScene() { Phaser.Scene.call(this, { key: 'boot' }); },
     create: function () {
       var self = this;
+      prepareCamera(this);
       G.verify.scene = 'boot';
-      var vw = document.documentElement.clientWidth || window.innerWidth;
-      var vh = document.documentElement.clientHeight || window.innerHeight;
-      if (vw > 0 && vh > 0 && (Math.abs(this.scale.width - vw) > 1 || Math.abs(this.scale.height - vh) > 1)) {
-        resizeHiDpi(this.game, vw, vh);
-      }
       kit.loader.show('Hivefall');
       kit.loader.progress(0.12);
       HFArt.bakeStatic(this);
@@ -305,8 +301,9 @@
     initialize: function MenuScene() { Phaser.Scene.call(this, { key: 'menu' }); },
     create: function () {
       var self = this;
+      prepareCamera(this);
       G.verify.scene = 'menu'; G.verify.mode = 'menu'; G.verify.over = false;
-      var W = this.scale.width, H = this.scale.height;
+      var W = this.scale.width / DPR, H = this.scale.height / DPR;
       var ins = HFUI.insets(true);
       var act = HF.actForWave(save.wave);
       backdrop(this, act);
@@ -382,8 +379,9 @@
     initialize: function ShelterScene() { Phaser.Scene.call(this, { key: 'shelter' }); },
     create: function () {
       var self = this;
+      prepareCamera(this);
       G.verify.scene = 'shelter'; G.verify.mode = 'shelter';
-      var W = this.scale.width, H = this.scale.height;
+      var W = this.scale.width / DPR, H = this.scale.height / DPR;
       var ins = HFUI.insets(true);
       var act = HF.actForWave(save.wave);
       backdrop(this, act);
@@ -493,7 +491,7 @@
     },
 
     layoutRows: function () {
-      var W = this.scale.width;
+      var W = this.scale.width / DPR;
       var ins = HFUI.insets();
       var rowH = 58, gap = 8;
       var total = this.rows.length * (rowH + gap);
@@ -540,8 +538,9 @@
     Extends: Phaser.Scene,
     initialize: function SquadScene() { Phaser.Scene.call(this, { key: 'squad' }); },
     create: function () {
+      prepareCamera(this);
       G.verify.scene = 'squad'; G.verify.mode = 'squad';
-      var W = this.scale.width, H = this.scale.height;
+      var W = this.scale.width / DPR, H = this.scale.height / DPR;
       var ins = HFUI.insets(true);
       backdrop(this, HF.actForWave(save.wave));
       header(this, 'The Squad', 'Match a colour, fire that survivor');
@@ -582,8 +581,9 @@
     init: function (data) { this.data_ = data || {}; },
     create: function () {
       var d = this.data_;
+      prepareCamera(this);
       G.verify.scene = 'result'; G.verify.mode = d.mode || 'fall'; G.verify.over = true;
-      var W = this.scale.width, H = this.scale.height;
+      var W = this.scale.width / DPR, H = this.scale.height / DPR;
       var ins = HFUI.insets(true);
       var act = HF.actForWave(d.wave || 1);
       backdrop(this, act);
@@ -678,21 +678,24 @@
 
   /* ------------------------------------------------------------- game -- */
   function start() {
-    G.phaser = new Phaser.Game({
+    var view = cssViewport();
+    var cfg = GGKit.hiDpi.phaser({
       type: Phaser.AUTO,
       parent: document.body,
       backgroundColor: '#0E131E',
       scale: {
-        mode: Phaser.Scale.RESIZE,
+        mode: Phaser.Scale.NONE,
         autoCenter: Phaser.Scale.NO_CENTER,
-        width: document.documentElement.clientWidth || window.innerWidth,
-        height: document.documentElement.clientHeight || window.innerHeight
+        width: view.width,
+        height: view.height
       },
       render: Object.assign({}, GGKit.renderDefaults),
       audio: { noAudio: true },      /* all audio runs through the GGKit bus */
       scene: [BootScene, MenuScene, ShelterScene, SquadScene, ResultScene, HFPlayScene]
     });
-    bindHiDpiResize(G.phaser);
+    DPR = cfg.ggDpr;
+    root.__HF_DPR = DPR;
+    G.phaser = new Phaser.Game(cfg);
   }
 
   if (document.readyState === 'complete' || document.readyState === 'interactive') start();

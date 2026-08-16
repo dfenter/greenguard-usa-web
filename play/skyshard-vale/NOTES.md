@@ -74,3 +74,73 @@ Defeat returns you to your last shrine; defeat the high shard boss to clear the 
 - Recipe: Phaser `Scale.RESIZE`; initial sizing, resize, orientation change, and visibility change all call `GGKit.hiDpi.resize`.
 - Factor cap: none; the GGKit DPR cap of 3 applies. No title-specific cap was justified.
 - Could not do: DPR 3 backing-store read or gameplay screenshot. Browser discovery returned no browser, and local HTTP port binding was denied.
+
+## Retina pass 2
+
+- Measured ratio after the required delayed DPR-3 sample: unavailable. The corrected configuration targets 3.00x, or 2532/844 for this landscape title.
+- Converted the parented game to `GGKit.hiDpi.phaser`, `Phaser.Scale.NONE`, and `cfg.ggDpr`; camera zoom is calculated from the logical scale dimensions and re-centered on the player after bounds/follow setup. Removed source-resolution overrides.
+- Could not do: delayed `retina_audit.mjs`, gameplay screenshot, live input/core-mechanic check, or `live_probe.mjs`. The harness could not bind its private port (`listen EPERM`), and no browser surface was available. Node syntax and diff checks passed.
+
+## Retina repair 2
+
+Measured density at deviceScaleFactor 3, sampled ~7s and ~10s after load:
+`canvas.width / getBoundingClientRect().width` = **3.000** (2532 / 844). Held on
+a third re-sample during the interaction probe.
+
+The 45s navigation timeout and the black frame were TWO separate defects, both
+introduced by the retina conversion. Neither is the software-rasteriser
+artifact, and `play/_shared/` was not touched.
+
+1. **Black frame — the canvas was painted over, not blank.** Read back off the
+   canvas with `drawImage` + `getImageData`, the renderer was producing a full
+   frame (5,699 distinct colours, 100% non-black) that nothing could see.
+   `index.html` styles the canvas with `#game-shell > canvas { position: fixed;
+   inset: 0 }`, but the config parented it to `document.body`, so it was an
+   unpositioned in-flow child sitting behind `#game-shell`, which is
+   `position: fixed; inset: 0` with an opaque `--ink` background and therefore
+   paints over it. Parent is now `#game-shell`. This reproduced identically at
+   DPR 1, which is why the GPU box saw it too.
+
+2. **Timeout — a CANVAS-renderer title cannot pay the retina fill cost.** The
+   conversion took the game from 844x390 to 2532x1170, 7.4x the pixels, while
+   `type` stayed `Phaser.CANVAS`. Canvas2D rasterisation is CPU work whether or
+   not a GPU is present, so a GPU box does not rescue it — that is why this
+   failed on both boxes and is a real defect rather than the rasteriser
+   artifact. Measured: at DPR 1 navigation completed in 7.1s; at DPR 2 and DPR 3
+   `networkAlmostIdle` never fired inside 45s with zero requests still in
+   flight, i.e. the renderer was too jammed to reach the lifecycle event.
+   Switched to `Phaser.AUTO` (WebGL). Navigation is now 3.3s at DPR 2 and 4.0s
+   at DPR 3, and the rAF rate went from roughly 8/s to roughly 50/s. Density was
+   NOT capped; the full DPR-3 backing store is kept.
+
+3. **Design size was a hard-coded constant.** `scale: { width: 844, height: 390 }`
+   is only correct in a 844x390 CSS box, and this title supports portrait. Under
+   the Scale.NONE + `zoom = 1/factor` conversion the game is sized in device
+   pixels and world coordinates follow, so the design size must be the CSS
+   layout box: it now reads `document.documentElement.clientWidth/clientHeight`.
+   A deferred `resizeGame()` (ready event, plus resize / orientationchange /
+   visibilitychange) keeps it correct, and the scene's existing
+   `this.scale.on('resize', ...)` re-derives the camera zoom from
+   `this.scale.width / DPR`.
+
+Checked and cleared, not changed: `setBounds(0, 0, WORLD.w, WORLD.h)` (silent
+trap #3) is correct here — the camera keeps its default 0.5 origin, and the
+clamped scroll of -649.2 puts world x 0..1233 exactly across the viewport with
+the player at 33% and vertically centred, which is the world edge, not an
+off-screen playfield. No `source.resolution` is set anywhere.
+
+Verified in-harness (`/Users/lucille/ue-port-studio/aaa/harness`), private ports:
+
+- `boot_sweep.mjs`: was FAIL, navigation timeout, colours=0, lit=0%. Now
+  **PASS err=0 404=0 colours=2485 (exact8=24667) lit=100%**, in the same run as
+  healthy siblings frosthold (137 / 1975) and driftlands (940 / 10385).
+- `retina_audit.mjs`: **RET-OK dpr=3 colours=36648 flattest=49.5%**, the richest
+  frame in its run (driftlands 22459).
+- `live_probe.mjs`: **PASS raf=936 shots=5/5**, no uncaught errors.
+- Core mechanic under real input at DPR 3: keyboard traversal moved the player
+  from (410, 1470) to (791, 1583); the attack cooldown fired on 5 of 6 J
+  presses and an enemy went from 62 HP to 38 HP. Zero console errors, zero
+  page errors.
+- `node --check play/skyshard-vale/game.js` clean (only file touched).
+
+Not changed: no redesign, no rebalance, no content.

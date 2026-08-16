@@ -16,6 +16,12 @@
   var AL = root.AL, D = root.ALData, ART = root.ALArt;
   var clamp = AL.clamp;
   var kit = AL.kit;
+  var DPR = 1;
+
+  function densityCamera(scene, w, h) {
+    scene.cameras.main.setZoom(DPR);
+    scene.cameras.main.centerOn(w / 2, h / 2);
+  }
 
   var SFX = ['sfx_shot', 'sfx_shot_heavy', 'sfx_hit', 'sfx_crit', 'sfx_kill',
     'sfx_boss_kill', 'sfx_reload', 'sfx_perfect', 'sfx_burst', 'sfx_hurt',
@@ -59,6 +65,7 @@
 
     create: function () {
       var scene = this;
+      densityCamera(this, this.scale.width / DPR, this.scale.height / DPR);
       kit.loader.show('AEGIS LINE');
       themeLoader();
       AL.refreshCanvasOffset(this.game.canvas);
@@ -204,6 +211,7 @@
 
     create: function () {
       var scene = this;
+      densityCamera(this, this.scale.width / DPR, this.scale.height / DPR);
       AL.uiInit(this);
       AL.state.mode = 'title';
       AL.state.phase = 'title';
@@ -241,7 +249,8 @@
     },
 
     layout: function () {
-      var w = this.scale.width, h = this.scale.height;
+      var w = this.scale.width / DPR, h = this.scale.height / DPR;
+      densityCamera(this, w, h);
       AL.refreshCanvasOffset(this.game.canvas);
       var ins = AL.insets;
       // ground plane runs off the bottom of the screen: leaving the sky
@@ -277,6 +286,7 @@
 
     create: function () {
       var scene = this;
+      densityCamera(this, this.scale.width / DPR, this.scale.height / DPR);
       AL.uiInit(this);
       AL.state.mode = 'command';
       AL.state.phase = 'command';
@@ -331,7 +341,8 @@
     },
 
     layout: function () {
-      var w = this.scale.width, h = this.scale.height;
+      var w = this.scale.width / DPR, h = this.scale.height / DPR;
+      densityCamera(this, w, h);
       AL.refreshCanvasOffset(this.game.canvas);
       var ins = AL.insets;
       this.W = w; this.H = h; this.ins = ins;
@@ -688,6 +699,7 @@
   var PlayScene = root.ALPlay;
   var origCreate = PlayScene.create;
   PlayScene.create = function (data) {
+    densityCamera(this, this.scale.width / DPR, this.scale.height / DPR);
     if ((!data || data.mode == null) && AL.pendingPlay) {
       data = AL.pendingPlay;
       AL.pendingPlay = null;
@@ -710,20 +722,16 @@
     return Klass;
   }
 
-  function syncHiDpi(game) {
-    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || root.innerWidth || 1));
-    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || root.innerHeight || 1));
-    GGKit.hiDpi.resize(game, cssW, cssH);
-  }
-
-  Game.phaser = new Phaser.Game({
+  var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || 1280));
+  var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || 720));
+  var config = {
     type: Phaser.AUTO,
     parent: document.body,
     backgroundColor: '#07060a',
     scale: {
-      mode: Phaser.Scale.RESIZE,
-      width: root.innerWidth,
-      height: root.innerHeight
+      mode: Phaser.Scale.NONE,
+      width: cssW,
+      height: cssH
     },
     // Phaser must not install canvas-level pointer or key listeners: GGKit
     // owns both, and a canvas listener firing first is what kills touch.
@@ -731,7 +739,20 @@
     render: Object.assign({}, GGKit.renderDefaults, { batchSize: 4096 }),
     fps: { target: 60, min: 30 },
     scene: [toScene(BootScene), toScene(TitleScene), toScene(CommandScene), toScene(PlayScene)]
-  });
+  };
+  config = GGKit.hiDpi.phaser(config);
+  DPR = config.ggDpr;
+  root.__GG_AEGIS_DPR = DPR;
+  Game.phaser = new Phaser.Game(config);
+  function syncHiDpi(game) {
+    var nextW = Math.max(1, Math.floor(document.documentElement.clientWidth || 1));
+    var nextH = Math.max(1, Math.floor(document.documentElement.clientHeight || 1));
+    game.scale.resize(Math.round(nextW * DPR), Math.round(nextH * DPR));
+    if (game.canvas) {
+      game.canvas.style.width = nextW + 'px';
+      game.canvas.style.height = nextH + 'px';
+    }
+  }
   syncHiDpi(Game.phaser);
   root.addEventListener('resize', function () { syncHiDpi(Game.phaser); });
   root.addEventListener('orientationchange', function () { syncHiDpi(Game.phaser); });

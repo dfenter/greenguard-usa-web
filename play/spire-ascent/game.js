@@ -25,6 +25,9 @@
   // =========================================================== constants
   var SLUG = 'spire-ascent';
   var VW = 390;           // virtual play-column width, world units
+  var DESIGN_W = 390;
+  var DESIGN_H = 844;
+  var DPR = 1;
   var WALL = 16;          // wall thickness
   var ROW = 76;           // vertical spacing between generated rows
   var PT = 20;            // platform thickness
@@ -52,16 +55,6 @@
   // Parallax weights.  The near layer sits well under the platform read: the
   // player must never mistake a background beam for a ledge.
   var BG_FAR_A = 0.40, BG_NEAR_A = 0.30;
-
-  function setTextDensity(scene) {
-    var density = window.GGKit.hiDpi.dpr();
-    function visit(node) {
-      if (!node) return;
-      if (node.setResolution) node.setResolution(density);
-      if (node.list) node.list.forEach(visit);
-    }
-    if (scene && scene.children && scene.children.list) scene.children.list.forEach(visit);
-  }
 
   // -------------------------------------------------------------- bands
   // Four authored tower bands.  Past the summit the tower cycles bands 1-3
@@ -1167,6 +1160,7 @@
 
     create: function () {
       Game.title = this;
+      this.cameras.main.setZoom(DPR).centerOn(DESIGN_W / 2, DESIGN_H / 2);
       SA_STATE.phase = 'title';
       markDebugCollections();
       rebuildDebugCollections();
@@ -1374,8 +1368,7 @@
     },
 
     layout: function () {
-      setTextDensity(this);
-      var W = this.scale.width, H = this.scale.height;
+      var W = this.scale.width / DPR, H = this.scale.height / DPR;
       var cx = W / 2;
       var s = Math.max(W / 240, H / 480);
       this.bg.setScale(s).setPosition((W - 240 * s) / 2, (H - 480 * s) / 2);
@@ -1469,6 +1462,7 @@
       // which layer to ignore, so neither list can silently render twice.
       this.uiCam = this.cameras.add(0, 0, this.scale.width, this.scale.height);
       this.uiCam.setName('hud');
+      this.uiCam.setZoom(DPR).centerOn(DESIGN_W / 2, DESIGN_H / 2);
       this.uiCam.setScroll(0, 0);
       this.cameras.main.ignore(this.ui);
       this.uiCam.ignore(this.world);
@@ -2815,7 +2809,7 @@
     },
 
     presentBanner: function (item) {
-      var self = this, W = this.scale.width;
+      var self = this, W = this.scale.width / DPR;
       var plateW = Math.min(Math.round(W * 0.60), W - 32);
       this.bannerPlate.setDisplaySize(plateW, 76);
       this.bannerPlate.setTint(item.color || 0xffffff).setAlpha(0.9);
@@ -2852,7 +2846,7 @@
     },
 
     presentToast: function (item) {
-      var self = this, W = this.scale.width;
+      var self = this, W = this.scale.width / DPR;
       var msg = item.title + (item.detail ? '  ·  ' + item.detail : '');
       setTextIfChanged(this.toastText, msg);
       var pw = Math.min(W - 24, Math.max(112, this.toastText.width + 24));
@@ -2870,7 +2864,7 @@
     },
 
     presentCoach: function (item) {
-      var self = this, W = this.scale.width;
+      var self = this, W = this.scale.width / DPR;
       setTextIfChanged(this.coachText, item.title);
       this.coachPlate.setDisplaySize(W - 24, 26);
       this.tweens.killTweensOf(this.coach);
@@ -3176,7 +3170,7 @@
 
     paintHud: function () {
       var r = this.run;
-      var W = this.scale.width, H = this.scale.height;
+      var W = this.scale.width / DPR, H = this.scale.height / DPR;
 
       this.scoreNum.setText(String(Math.floor(r.score + r.dailyBonus)));
       this.heightNum.setText(Math.floor(heightOf(r.bestY)) + 'm');
@@ -3289,15 +3283,15 @@
 
     // ----------------------------------------------------------- layout
     layout: function () {
-      setTextDensity(this);
-      var W = this.scale.width, H = this.scale.height;
+      var W = this.scale.width / DPR, H = this.scale.height / DPR;
+      var canvasW = this.scale.width, canvasH = this.scale.height;
       var colW = Math.min(W, H * 0.62);
-      var zoom = colW / VW;
+      var zoom = (colW / VW) * DPR;
       var cam = this.cameras.main;
-      cam.setViewport(Math.round((W - colW) / 2), 0, Math.round(colW), H);
+      cam.setViewport(Math.round((canvasW - colW * DPR) / 2), 0, Math.round(colW * DPR), canvasH);
       cam.setZoom(zoom);
-      this.visH = H / zoom;
-      if (this.uiCam) this.uiCam.setViewport(0, 0, W, H);
+      this.visH = H / (colW / VW);
+      if (this.uiCam) this.uiCam.setViewport(0, 0, canvasW, canvasH).setZoom(DPR).centerOn(W / 2, H / 2).setScroll(0, 0);
 
       var inset = this.readInsets();
       var top = inset.top + 10;
@@ -3506,28 +3500,21 @@
     return Klass;
   }
 
-  Game.phaser = new Phaser.Game({
+  var cfg = window.GGKit.hiDpi.phaser({
     type: Phaser.AUTO,
     parent: document.body,
     backgroundColor: '#0a0713',
     scale: {
-      mode: Phaser.Scale.RESIZE,
-      width: window.innerWidth,
-      height: window.innerHeight
+      mode: Phaser.Scale.NONE,
+      width: DESIGN_W,
+      height: DESIGN_H
     },
     render: Object.assign({}, window.GGKit.renderDefaults, { batchSize: 4096 }),
     fps: { target: 60, min: 30 },
     scene: [toScene(BootScene), toScene(TitleScene), toScene(PlayScene)]
   });
-
-  function resizeGame() {
-    if (!Game.phaser) return;
-    window.GGKit.hiDpi.resize(Game.phaser, Math.max(1, window.innerWidth || 320), Math.max(1, window.innerHeight || 640));
-  }
-  window.addEventListener('resize', resizeGame);
-  window.addEventListener('orientationchange', resizeGame);
-  document.addEventListener('visibilitychange', resizeGame);
-  resizeGame();
+  DPR = cfg.ggDpr;
+  Game.phaser = new Phaser.Game(cfg);
 
   window.__SPIRE_READY = true;
   window.__SPIRE_SCENE = function () { return Game.play; };

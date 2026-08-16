@@ -189,6 +189,13 @@ points, back-to-back chip, ring and confetti), the wildcard row fill, the bomb
   keyed to the medal tiers rather than to level 8 alone would read better.
 - No deploy and no commit were performed, per the brief.
 
+## Retina pass 2
+
+- Measured ratio after a delayed DPR 3 sample: unavailable. The supplied retina harness was blocked before launch because its private localhost bind returned EPERM, and no in-app browser was available.
+- Converted the Phaser config to GGKit.hiDpi.phaser(...) with Scale.NONE and CSS viewport dimensions. Assigned cfg.ggDpr for dense-world text sizing and changed layout and ambient bounds from scale.gameSize to this.scale.width and this.scale.height.
+- Kept the existing render defaults, canvas bake paths, text resolution, and explicit display-size calls. No texture source resolution was added.
+- Could not do: delayed canvas ratio measurement, gameplay screenshot and layout confirmation, render-loop liveness, or input-driven line-clear proof.
+
 ## Retina pass 2026-08-16
 
 - Measured before ratio: unavailable for this title in this environment. Fleet baseline was 1.00x for 62 titles, with the remainder from 1.10x to 2.46x.

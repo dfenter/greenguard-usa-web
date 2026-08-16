@@ -20,6 +20,7 @@
       var kit = RD.kit;
       var profile = RD.profile;
       data = data || {};
+      scene.cameras.main.setZoom(RD.dpr).centerOn(RD.DESIGN_W / 2, RD.DESIGN_H / 2);
 
       var run, dungeon = null, descent = null;
       if (data.mode === 'descent') {
@@ -158,12 +159,12 @@
       }
 
       /* ---------------------------------------------------------- layout */
-      /* Phaser RESIZE mode re-fires against document.body, so without this
-         guard a one pixel wobble re-bakes the board frame every frame. */
+      /* Keep the logical layout dimensions stable so a repeated scale event
+         cannot re-bake the board frame every frame. */
       var laidOut = false;
       function layout() {
         var ins = RD.insets();
-        var vw = Math.round(scene.scale.width), vh = Math.round(scene.scale.height);
+        var vw = Math.round(RD.viewW(scene)), vh = Math.round(RD.viewH(scene));
         if (laidOut && vw === L.w && vh === L.h && ins.top === L.top && ins.bottom === L.bottom) return;
         laidOut = true;
         L.w = vw; L.h = vh;

@@ -7,6 +7,7 @@
  */
 var HFFx = (function () {
   'use strict';
+  function dpr() { return window.__HF_DPR || GGKit.hiDpi.dpr(); }
 
   function Pool(scene, layer, key, count, blend) {
     this.items = [];
@@ -92,8 +93,9 @@ var HFFx = (function () {
     for (var i = 0; i < 8; i++) {
       var tx = scene.add.text(0, 0, '', {
         fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        fontSize: '18px', fontStyle: '700', color: '#FFFFFF'
+        fontSize: Math.round(18 * dpr()) + 'px', fontStyle: '700', color: '#FFFFFF'
       }).setOrigin(0.5, 0.5).setVisible(false);
+      tx.setScale(1 / dpr());
       layer.add(tx);
       texts.push({ obj: tx, on: false, t: 0, life: 0.85, x: 0, y: 0, vy: -42, last: '' });
     }

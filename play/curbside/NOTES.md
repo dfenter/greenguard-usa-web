@@ -273,3 +273,9 @@ Verification: `node --check` passes for `cb_data.js`, `cb_world.js`, `game.js`, 
 - Could not complete the live DPR 3 gameplay screenshot or layout check.
   Existing generated textures were left at their authored sizes because a
   frame-unit migration to `GGKit.hiDpi.canvas(...)` could not be live-verified.
+
+## Retina pass 2
+
+- Measured canvas ratio at DPR 3: unavailable. `retina_audit.mjs` could not start because its private port was rejected with `listen EPERM`; the in-app browser was unavailable too. Static configuration expects 3.00x through `config.ggDpr` at DPR 3.
+- Converted the parented `Scale.RESIZE` setup to `Scale.NONE` through `GGKit.hiDpi.phaser()`. Menu and play layouts remain CSS-sized under centered factor camera zoom, with follow zoom multiplied by the same factor and no camera bounds added.
+- Gameplay screenshot, render-loop probe, and ollie/trick input resolution could not be live-verified because no browser or private local server was available.

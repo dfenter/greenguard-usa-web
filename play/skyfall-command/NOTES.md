@@ -417,3 +417,9 @@ number.
 - Recipe: Phaser `Scale.RESIZE`; initial sizing, resize, orientation change, and visibility change all call `GGKit.hiDpi.resize`.
 - Factor cap: none; the GGKit DPR cap of 3 applies. No title-specific cap was justified.
 - Could not do: DPR 3 backing-store read or gameplay screenshot. Browser discovery returned no browser, and local HTTP port binding was denied.
+
+## Retina pass 2
+
+- Measured ratio after the required delayed DPR-3 sample: unavailable. The corrected configuration targets 3.00x, or 1170/390.
+- Converted the parented title, command, and gameplay scenes to `GGKit.hiDpi.phaser`, `Phaser.Scale.NONE`, and `cfg.ggDpr`; all layout dimensions derive from the scale dimensions, and every camera zoom/punch is re-centered on the logical viewport.
+- Could not do: delayed `retina_audit.mjs`, gameplay screenshot, live input/core-mechanic check, or `live_probe.mjs`. The harness could not bind its private port (`listen EPERM`), and no browser surface was available. Node syntax and diff checks passed.

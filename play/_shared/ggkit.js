@@ -553,7 +553,14 @@
 
     // --------------------------------------------------- PWA registration
     kit.registerPWA = function () {
-      if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      // localhost is a secure context too, and service workers register there.
+      // The old https-only test meant offline behaviour could not be verified
+      // anywhere except production, so the fleet-wide offline defect (the sw
+      // scope guard missing the no-trailing-slash url) survived every local
+      // gate we ever ran. Allow localhost so it is testable before deploy.
+      const secure = location.protocol === 'https:'
+        || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      if ('serviceWorker' in navigator && secure) {
         navigator.serviceWorker.register('sw.js').catch(function () {});
       }
     };

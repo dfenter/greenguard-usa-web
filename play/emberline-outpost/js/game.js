@@ -11,6 +11,7 @@
   var MAX_PARTS = 96;
   var SAVE_VERSION = 2;
   var TAU = Math.PI * 2;
+  var DPR = 1;
 
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
   function hex(v) { return typeof v === 'number' ? v : parseInt(String(v).replace('#', ''), 16); }
@@ -177,8 +178,9 @@
       this.transient = null; this.boundary = null; this.coachLife = 0; this.coachText = '';
       this.reducedNotice = false; this.stageScore = 0; this.health = 0; this.wave = 0; this.waveCount = 0; this.playState = 'idle'; this.prep = 0; this.endTimer = 0; this.energy = 0; this.regen = 0; this.leaks = 0; this.leakCap = 0; this.kills = 0; this.activeMap = null; this.boss = false; this.siegeWave = 0;
       this.activeTheatre = EO.THEATRES[0]; this.publicState.health = 0;
-      this.layout(this.scale.width || 960, this.scale.height || 540);
-      this.scale.on('resize', function (size) { this.layout(size.width, size.height); }, this);
+      this.layout((this.scale.width || 960) / DPR, (this.scale.height || 540) / DPR);
+      this.cameras.main.setZoom(DPR).centerOn(this.W / 2, this.H / 2);
+      this.scale.on('resize', function (size) { this.layout(size.width / DPR, size.height / DPR); }, this);
       this.scene.get('EmberlineScene').events.on('shutdown', function () { scene = null; });
       this.rebuildBoardTexture();
       this.enterModeFromHook(true);
@@ -204,8 +206,8 @@
     rebuildBoardTexture() {
       if (!this.metrics || !this.activeMap || !this.textPool) return;
       if (this.textures.exists('eo-board')) this.textures.remove('eo-board');
-      var tex = this.textures.createCanvas('eo-board', Math.ceil(this.W), Math.ceil(this.H));
-      var c = tex.getContext(), m = this.metrics.board, t = this.activeTheatre, i, j;
+      var baked = GGKit.hiDpi.canvas(this.W, this.H);
+      var c = baked.ctx, m = this.metrics.board, t = this.activeTheatre, i, j;
       var grad = c.createLinearGradient(0, 0, 0, this.H); grad.addColorStop(0, t.horizon); grad.addColorStop(1, t.ground); c.fillStyle = grad; c.fillRect(0, 0, this.W, this.H);
       var rng = EO.seeded((this.activeMap.seed || 1) + 77);
       c.globalAlpha = 0.18; c.fillStyle = t.accent;
@@ -234,6 +236,7 @@
       else if (this.activeTheatre.life === 'lights') { for (i = 0; i < 3; i++) { var lx = m.x + m.w - 24 - i * 48; c.beginPath(); c.moveTo(lx, m.y + m.h + 3); c.lineTo(lx, m.y + m.h - 18); c.stroke(); c.fillStyle = t.accent; c.globalAlpha = 0.18; c.fillRect(lx - 5, m.y + m.h - 20, 10, 5); c.globalAlpha = 0.34; } }
       else { for (i = 0; i < 3; i++) { var ax = m.x + m.w - 24 - i * 45; c.beginPath(); c.moveTo(ax, m.y + m.h + 2); c.lineTo(ax - 8, m.y + m.h - 18); c.lineTo(ax + 8, m.y + m.h - 18); c.stroke(); } }
       c.globalAlpha = 1; c.strokeStyle = P.coral; c.lineWidth = 3; c.beginPath(); c.moveTo(m.x + m.w * 0.5 - m.tile * 0.42, m.y + m.h + 5); c.lineTo(m.x + m.w * 0.5 + m.tile * 0.42, m.y + m.h + 5); c.stroke();
+      var tex = this.textures.addCanvas('eo-board', baked.canvas);
       tex.refresh();
       if (!this.boardImage) { this.boardImage = this.add.image(0, 0, 'eo-board').setOrigin(0).setDepth(0); this.worldRoot.addAt(this.boardImage, 0); }
       else this.boardImage.setTexture('eo-board');
@@ -241,8 +244,8 @@
 
     text(value, x, y, size, color, originX) {
       var t = this.textPool[this.textCursor];
-      if (!t) { t = this.add.text(0, 0, '', { fontFamily: 'Inter,ui-sans-serif,system-ui,sans-serif', resolution: GGKit.hiDpi.dpr(), fontSize: size + 'px', fontStyle: '600', color: color || P.paper, stroke: '#071018', strokeThickness: 3 }); t.setDepth(90); this.textPool.push(t); }
-      setText(t, String(value)); t.setFontSize(size); t.setColor(color || P.paper); t.setOrigin(originX == null ? 0 : originX, 0.5); t.setPosition(x, y); t.setVisible(true); this.textCursor++;
+      if (!t) { t = this.add.text(0, 0, '', { fontFamily: 'Inter,ui-sans-serif,system-ui,sans-serif', fontSize: Math.round(size * DPR) + 'px', fontStyle: '600', color: color || P.paper, stroke: '#071018', strokeThickness: 3 * DPR }); t.setScale(1 / DPR); t.setDepth(90); this.textPool.push(t); }
+      setText(t, String(value)); t.setFontSize(Math.round(size * DPR)); t.setColor(color || P.paper); t.setOrigin(originX == null ? 0 : originX, 0.5); t.setPosition(x, y); t.setVisible(true); this.textCursor++;
       return t;
     }
     beginText() { this.textCursor = 0; for (var i = 0; i < this.textPool.length; i++) this.textPool[i].setVisible(false); }
@@ -619,18 +622,10 @@
 
   EmberlineScene.prototype.renderCampaign = EmberlineScene.prototype.renderCampaign;
 
-  function syncHiDpi(game) {
-    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || window.innerWidth || 1));
-    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || window.innerHeight || 1));
-    GGKit.hiDpi.resize(game, cssW, cssH);
-  }
-
   kit.loader.show('EMBERLINE OUTPOST'); kit.loader.progress(0.22);
-  var game = new Phaser.Game({ type: Phaser.AUTO, parent: 'game', backgroundColor: '#0b1118', scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH, width: 960, height: 540 }, render: Object.assign({}, GGKit.renderDefaults), fps: { target: 60, forceSetTimeOut: false }, input: { activePointers: 4 }, scene: [EmberlineScene] });
-  syncHiDpi(game);
-  window.addEventListener('resize', function () { syncHiDpi(game); });
-  window.addEventListener('orientationchange', function () { syncHiDpi(game); });
-  document.addEventListener('visibilitychange', function () {
-    if (!document.hidden) syncHiDpi(game);
-  });
+  function cssViewport() { return { width: Math.max(1, document.documentElement.clientWidth || 844), height: Math.max(1, document.documentElement.clientHeight || 390) }; }
+  var view = cssViewport();
+  var cfg = GGKit.hiDpi.phaser({ type: Phaser.AUTO, parent: 'game', backgroundColor: '#0b1118', scale: { mode: Phaser.Scale.NONE, autoCenter: Phaser.Scale.CENTER_BOTH, width: view.width, height: view.height }, render: Object.assign({}, GGKit.renderDefaults), fps: { target: 60, forceSetTimeOut: false }, input: { activePointers: 4 }, scene: [EmberlineScene] });
+  DPR = cfg.ggDpr;
+  var game = new Phaser.Game(cfg);
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -31,14 +31,11 @@
   const STEP = 1 / 60;
   const TURN_WINDOW = .34;
   const TAU = Math.PI * 2;
-  function cssViewport() { return { width: root.clientWidth || window.innerWidth || 390, height: root.clientHeight || window.innerHeight || 844 }; }
-  function resizeHiDpi(game, width, height) { const view = width && height ? { width, height } : cssViewport(); return GGKitRef.hiDpi.resize(game, view.width, view.height); }
-  function bindHiDpiResize(game) { const apply = () => { resizeHiDpi(game); }; window.addEventListener('resize', apply); window.addEventListener('orientationchange', apply); document.addEventListener('visibilitychange', apply); apply(); }
-  function setTextDensity(scene) {
-    const d = GGKitRef.hiDpi.dpr();
-    const visit = (list) => (list || []).forEach((child) => { if (child && child.setResolution) child.setResolution(d); if (child && child.list) visit(child.list); });
-    visit(scene.children && scene.children.list);
-  }
+  const DESIGN_W = 390;
+  const DESIGN_H = 844;
+  let DPR = 1;
+  const viewWidth = (scene) => scene.scale.width / DPR;
+  const viewHeight = (scene) => scene.scale.height / DPR;
 
   const DIRS = Object.freeze({
     up: Object.freeze({ x: 0, y: -1, angle: -Math.PI / 2, id: 'up' }),
@@ -438,10 +435,10 @@
       this.juiceFrame = { dx: 0, dy: 0, frozen: false };
       this.visualLayoutKey = '';
       this.keyLatch = {};
+      this.cameras.main.setZoom(DPR).centerOn(DESIGN_W / 2, DESIGN_H / 2);
       this.profile = kit.save.get({ best: 0, unlockedCircuit: 1, tutorialSeen: false });
       if (!Number.isInteger(this.profile.version)) this.profile.version = 1;
       this.run = { mode: 'boot', score: 0, lives: 3, circuitIndex: 0, mazeIndex: 0, mazeNumber: 1, seed: hashSeed(Date.now() ^ 0x514d5052), time: 0, mazeTime: 0, mazeStartLives: 3, pelletsStart: 0, pelletsCollected: 0, frightTimer: 0, invuln: 0, shieldTimer: 0, speedTimer: 0, multiplierTimer: 0, multiplier: 1, shardTimer: 5, rushTimer: 0, rushCollected: 0, nextAction: '', banner: null, caughtTimer: 0, tutorialFrightTimer: 0, coachTimer: 0, livesAwarded: false };
-      setTextDensity(this);
       this.startSession(true);
       window.__mp.start = (mode) => this.startProbeMode(mode);
       kit.registerPWA();
@@ -917,7 +914,7 @@
       if (this.run.multiplier > 1) effects.push('×' + this.run.multiplier);
       if (this.run.mode === 'shardRush') effects.push('⌁ ' + this.run.rushTimer.toFixed(1));
       setTextIfChanged(effectsEl, effects.join('  ·  '));
-      effectsEl.hidden = !active || !effects.length || this.run.mode === 'tutorial' || this.scale.height < 560;
+      effectsEl.hidden = !active || !effects.length || this.run.mode === 'tutorial' || viewHeight(this) < 560;
     }
 
     rebuildMazeVisuals() {
@@ -976,7 +973,7 @@
     }
 
     layout() {
-      const width = this.scale.width; const height = this.scale.height;
+      const width = viewWidth(this); const height = viewHeight(this);
       const top = height < 560 ? 108 : 154; const bottom = Math.max(112, height * .17);
       const tile = Math.max(10, Math.min((width - 28) / this.maze.cols, (height - top - bottom) / this.maze.rows));
       return { tile, x: (width - this.maze.cols * tile) / 2, y: top + Math.max(0, (height - top - bottom - this.maze.rows * tile) / 2) };
@@ -986,7 +983,7 @@
     draw() {
       if (!this.maze) return;
       this.updateDom();
-      const layout = this.layout(); const width = this.scale.width; const height = this.scale.height;
+      const layout = this.layout(); const width = viewWidth(this); const height = viewHeight(this);
       const palette = this.maze.spec;
       this.positionMazeVisuals(layout);
       if (this.world.setPosition) this.world.setPosition(this.juiceFrame.dx, this.juiceFrame.dy);
@@ -1057,9 +1054,9 @@
       this.fx.clear();
       for (const pool of this.fxSystems) for (const particle of pool) if (particle.active) { const point = this.px(layout, particle.x, particle.y); this.fx.fillStyle(particle.color, clamp(particle.life / particle.max, 0, 1)); this.fx.fillCircle(point.x, point.y, particle.size * layout.tile); }
       const transient = this.activeTransient;
-      const show = transient && (!this.run.banner || this.run.banner.timer <= 0) && this.run.mode !== 'tutorial' && this.scale.height >= 560;
+      const show = transient && (!this.run.banner || this.run.banner.timer <= 0) && this.run.mode !== 'tutorial' && viewHeight(this) >= 560;
       if (!show) { this.popupBack.clear(); this.popupText.setVisible(false); return; }
-      const boxW = Math.min(154, this.scale.width - 28); const boxH = 30; const x = this.scale.width - boxW - 14; const y = 116;
+      const boxW = Math.min(154, viewWidth(this) - 28); const boxH = 30; const x = viewWidth(this) - boxW - 14; const y = 116;
       const alpha = clamp(Math.min(1, transient.life * 5), 0, 1);
       this.popupBack.clear(); this.popupBack.fillStyle(0x07132c, .78 * alpha); this.popupBack.fillRoundedRect(x, y, boxW, boxH, 8); this.popupBack.lineStyle(1, 0x5effdc, .42 * alpha); this.popupBack.strokeRoundedRect(x, y, boxW, boxH, 8);
       this.popupText.setVisible(true).setPosition(x + boxW / 2, y + boxH / 2).setAlpha(alpha).setColor(transient.color); setTextIfChanged(this.popupText, transient.text);
@@ -1138,13 +1135,14 @@
       'turn-click': 'assets/turn-click.mp3', 'multiplier-rise': 'assets/multiplier-rise.mp3', 'shield-pop': 'assets/shield-pop.mp3', 'life-chime': 'assets/life-chime.mp3',
       'gate-whoosh': 'assets/gate-whoosh.mp3', 'danger-warning': 'assets/danger-warning.mp3', 'completion-fanfare': 'assets/completion-fanfare.mp3'
     });
-    const game = new PhaserRef.Game({
-      type: PhaserRef.AUTO, parent: 'game', width: 390, height: 844, backgroundColor: '#060a18',
-      scene: [MainScene], scale: { mode: PhaserRef.Scale.RESIZE, autoCenter: PhaserRef.Scale.CENTER_BOTH },
+    const cfg = GGKitRef.hiDpi.phaser({
+      type: PhaserRef.AUTO, parent: 'game', width: DESIGN_W, height: DESIGN_H, backgroundColor: '#060a18',
+      scene: [MainScene], scale: { mode: PhaserRef.Scale.NONE, width: DESIGN_W, height: DESIGN_H, autoCenter: PhaserRef.Scale.CENTER_BOTH },
       render: Object.assign({}, GGKitRef.renderDefaults),
       fps: { target: 60, forceSetTimeOut: false }
     });
-    bindHiDpiResize(game);
+    DPR = cfg.ggDpr;
+    const game = new PhaserRef.Game(cfg);
     wireControls();
   }
 })();

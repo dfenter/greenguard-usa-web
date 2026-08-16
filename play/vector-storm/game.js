@@ -18,6 +18,7 @@
   var MAX_POPUPS = 28;
   var MAX_RINGS = 18;
   var SAVE_VERSION = 1;
+  var DPR = 1;
 
   var PAL = {
     ice: 0xe9fbff, cyan: 0x61efff, teal: 0x6ce4db, mint: 0x8affe0,
@@ -208,7 +209,7 @@
   function textStyle(size, color, weight) {
     return {
       fontFamily: 'ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace',
-      fontSize: size + 'px', fontStyle: weight || 'bold', color: color || '#e9fbff', resolution: root.GGKit.hiDpi.dpr(),
+      fontSize: Math.round(size * DPR) + 'px', fontStyle: weight || 'bold', color: color || '#e9fbff', resolution: root.GGKit.hiDpi.dpr(),
       stroke: '#02040a', strokeThickness: 4, shadow: { offsetX: 0, offsetY: 2, color: '#000000', blur: 5, fill: true }
     };
   }
@@ -1228,22 +1229,19 @@
 
   kit.loader.show('VECTOR STORM');
   kit.loader.progress(.34);
-  var game = new Phaser.Game({
+  var cssW = Math.max(1, document.documentElement.clientWidth || document.body.clientWidth || 1);
+  var cssH = Math.max(1, document.documentElement.clientHeight || document.body.clientHeight || 1);
+  var cfg = root.GGKit.hiDpi.phaser({
     type: Phaser.AUTO,
     parent: 'game',
     backgroundColor: '#050913',
-    scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH, width: 960, height: 540 },
+    scale: { mode: Phaser.Scale.NONE, autoCenter: Phaser.Scale.CENTER_BOTH, width: cssW, height: cssH },
     render: Object.assign({}, root.GGKit.renderDefaults),
     fps: { target: 60, forceSetTimeOut: false },
     input: { activePointers: 4 },
     scene: [VectorStormScene]
   });
-  function resizeGame() {
-    root.GGKit.hiDpi.resize(game, Math.max(1, root.innerWidth || 960), Math.max(1, root.innerHeight || 540));
-  }
-  root.addEventListener('resize', resizeGame);
-  root.addEventListener('orientationchange', resizeGame);
-  document.addEventListener('visibilitychange', resizeGame);
-  resizeGame();
+  DPR = cfg.ggDpr;
+  var game = new Phaser.Game(cfg);
   root.__vs.game = game;
 })(typeof window !== 'undefined' ? window : globalThis);

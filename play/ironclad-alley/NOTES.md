@@ -60,3 +60,10 @@ Verification: `node --check game.js`, `node --check sw.js`, manifest JSON parse,
 - Target 390x844 CSS at DPR 3. Before ratio: 1.00x CSS-sized RESIZE baseline. After target: 3.00x, 1170/390, via `GGKit.hiDpi.resize`. Live canvas read was unavailable because no browser surface or private local listener was available.
 - Recipe: `Phaser.Scale.RESIZE`, `GGKit.renderDefaults`, and DPR-matched Phaser text. No factor cap; the existing camera viewport preserves the authored portrait layout.
 - Gameplay screenshot and runtime backing-store measurement remain deferred. No palette change was made because the retina law identifies density, not colour depth, as the defect.
+
+## Retina pass 2
+
+- Delayed DPR 3 canvas ratio: not measured. The slug-derived private harness port was rejected with `EPERM`, and headless Chrome aborted before creating a page. Configured `cfg.ggDpr` is 3.00 at the audit viewport.
+- Converted boot to `GGKit.hiDpi.phaser` with `Phaser.Scale.NONE`, retained render defaults and fixed authored world content, and installed dense Phaser text creation with inverse object scale.
+- Viewport fitting now derives from Phaser scale dimensions and the density factor; the camera uses the fitted zoom and centers on the authored midpoint without `setBounds` clamping.
+- Gameplay screenshot, render-loop probe, and drive or fire input proof could not be completed because the local browser infrastructure was unavailable.

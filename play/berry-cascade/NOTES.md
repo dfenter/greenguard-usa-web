@@ -256,3 +256,10 @@ Rejected:
 - Could not complete the live DPR 3 gameplay screenshot or layout check.
   Existing authored canvas bakes were left at their logical sizes because a
   frame-unit migration to `GGKit.hiDpi.canvas(...)` could not be live-verified.
+
+## Retina pass 2
+
+- Measured ratio after a delayed DPR 3 sample: unavailable. The supplied retina harness was blocked before launch because its private localhost bind returned EPERM, and no in-app browser was available.
+- Converted the Phaser config to GGKit.hiDpi.phaser(...) with Scale.NONE and CSS viewport dimensions. Existing scene layout already reads this.scale.width and this.scale.height; BCUI text now uses the cfg.ggDpr factor.
+- Kept the existing render defaults, canvas art paths, text resolution, and explicit display-size calls. No texture source resolution was added.
+- Could not do: delayed canvas ratio measurement, gameplay screenshot and layout confirmation, render-loop liveness, or input-driven match and resolve proof.

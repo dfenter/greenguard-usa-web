@@ -48,6 +48,9 @@
   'use strict';
 
   var VERSION = '2026-08-10-fix-round-1';
+  var DESIGN_W = 390;
+  var DESIGN_H = 844;
+  var DPR = 1;
   var D = (typeof window !== 'undefined' && window.SP_DATA) || null;
 
   // =========================================================== boot fallback
@@ -872,6 +875,7 @@
 
   BootScene.prototype.create = function () {
     var self = this;
+    this.cameras.main.setZoom(DPR).centerOn(DESIGN_W / 2, DESIGN_H / 2);
     kit.loader.show('Serpentine');
     kit.loader.progress(0.1);
     makeTextures(this);
@@ -891,6 +895,7 @@
   PlayScene.prototype.create = function () {
     var self = this;
     liveScene = this;
+    this.cameras.main.setZoom(DPR).centerOn(DESIGN_W / 2, DESIGN_H / 2);
 
     this.profile = normaliseProfile(kit.save.get(null));
     this.refreshUnlocks(true);
@@ -941,8 +946,7 @@
       this.world.add(gate); this.gatePool.push(gate);
       var gateLabel = this.add.text(0, 0, '', {
         fontFamily: 'system-ui, sans-serif', fontSize: '11px', fontStyle: 'bold',
-        color: '#07121d', stroke: '#e8fbff', strokeThickness: 2,
-        resolution: window.GGKit.hiDpi.dpr()
+        color: '#07121d', stroke: '#e8fbff', strokeThickness: 2
       }).setOrigin(0.5).setVisible(false);
       this.world.add(gateLabel); this.gateLabels.push(gateLabel);
     }
@@ -966,8 +970,7 @@
     this.world.add(this.impactRing);
     this.impactText = this.add.text(0, 0, '', {
       fontFamily: 'system-ui, sans-serif', fontSize: '16px', fontStyle: 'bold',
-      color: '#eafaff', stroke: '#06101c', strokeThickness: 4,
-      resolution: window.GGKit.hiDpi.dpr()
+      color: '#eafaff', stroke: '#06101c', strokeThickness: 4
     }).setOrigin(0.5).setVisible(false);
     this.world.add(this.impactText);
 
@@ -1110,7 +1113,7 @@
 
   // -------------------------------------------------------------- layout
   PlayScene.prototype.layout = function () {
-    var W = this.scale.width, H = this.scale.height;
+    var W = this.scale.width / DPR, H = this.scale.height / DPR;
     var inset = readSafeArea();
     this.safe = inset;
     this.viewW = W; this.viewH = H;
@@ -1153,7 +1156,6 @@
         fontSize: size + 'px', color: color, fontStyle: weight || 'normal',
         align: align || 'left'
       });
-      t.setResolution(window.GGKit.hiDpi.dpr());
       self.hud.add(t);
       return t;
     }
@@ -1285,7 +1287,6 @@
         fontSize: size + 'px', color: color, fontStyle: weight || 'normal',
         align: align || 'center', wordWrap: { width: 520 }
       });
-      t.setResolution(window.GGKit.hiDpi.dpr());
       t.setOrigin(0.5, 0.5);
       self.overlay.add(t);
       return t;
@@ -1354,11 +1355,9 @@
     this.overlay.add(swatch);
     var label = this.add.text(0, 0, '', {
       fontFamily: '"Trebuchet MS", Verdana, system-ui, sans-serif',
-      fontSize: '10px', color: '#cfeeff', align: 'center',
-      resolution: window.GGKit.hiDpi.dpr()
+      fontSize: '10px', color: '#cfeeff', align: 'center'
     });
     label.setOrigin(0.5, 0.5);
-    label.setResolution(window.GGKit.hiDpi.dpr());
     this.overlay.add(label);
     return { id: id, kind: kind, back: back, swatch: swatch, label: label, rect: { x: 0, y: 0, w: 1, h: 1 } };
   };
@@ -3210,15 +3209,15 @@
 
   // ================================================================== boot
   function boot() {
-    var game = new Phaser.Game({
+    var cfg = window.GGKit.hiDpi.phaser({
       type: Phaser.AUTO,
       parent: document.body,
       backgroundColor: '#04070f',
       scale: {
-        mode: Phaser.Scale.RESIZE,
+        mode: Phaser.Scale.NONE,
         autoCenter: Phaser.Scale.NO_CENTER,
-        width: window.innerWidth,
-        height: window.innerHeight
+        width: DESIGN_W,
+        height: DESIGN_H
       },
       render: Object.assign({}, window.GGKit.renderDefaults, { batchSize: 4096 }),
       fps: { target: 60, min: 20 },
@@ -3226,14 +3225,9 @@
       banner: false,
       audio: { noAudio: true }   // GGKit owns audio; Phaser must not open a 2nd context
     });
+    DPR = cfg.ggDpr;
+    var game = new Phaser.Game(cfg);
     window.__sp.game = game;
-    function resizeGame() {
-      window.GGKit.hiDpi.resize(game, Math.max(1, window.innerWidth || 320), Math.max(1, window.innerHeight || 640));
-    }
-    window.addEventListener('resize', resizeGame);
-    window.addEventListener('orientationchange', resizeGame);
-    document.addEventListener('visibilitychange', resizeGame);
-    resizeGame();
   }
   boot();
 }());

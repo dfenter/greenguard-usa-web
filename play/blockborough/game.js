@@ -13,6 +13,7 @@
   };
   var SFX = ['tap', 'error', 'milestone', 'place', 'menu', 'raze', 'toggle', 'scroll'];
   var profile = null;
+  var DPR = 1;
   var sceneRef = null;
   var audioStarted = false;
   var toastTimer = 0;
@@ -428,14 +429,15 @@
 
   CityScene.prototype.resizeBoard = function () {
     var w = this.scale.width || byId('stage').clientWidth || 390, h = this.scale.height || byId('stage').clientHeight || 360;
-    this.baseTileW = Math.max(17, Math.min(22, (w - 12) / ((W + H) / 2)));
+    var u = DPR;
+    this.baseTileW = Math.max(17 * u, Math.min(22 * u, (w - 12 * u) / ((W + H) / 2)));
     this.tileW = this.baseTileW * this.zoom;
     this.tileH = this.tileW * .55;
     var boardH = (W + H) * this.tileH / 2;
-    this.originX = w / 2 + this.panX; this.originY = Math.max(20, (h - boardH) / 2 + 12) + this.panY;
-    var maxPanX = Math.max(0, (boardH * .8 - w) / 2), maxPanY = Math.max(0, (boardH - h) / 2 + 24);
+    this.originX = w / 2 + this.panX; this.originY = Math.max(20 * u, (h - boardH) / 2 + 12 * u) + this.panY;
+    var maxPanX = Math.max(0, (boardH * .8 - w) / 2), maxPanY = Math.max(0, (boardH - h) / 2 + 24 * u);
     this.panX = Math.max(-maxPanX, Math.min(maxPanX, this.panX)); this.panY = Math.max(-maxPanY, Math.min(maxPanY, this.panY));
-    this.originX = w / 2 + this.panX; this.originY = Math.max(20, (h - boardH) / 2 + 12) + this.panY;
+    this.originX = w / 2 + this.panX; this.originY = Math.max(20 * u, (h - boardH) / 2 + 12 * u) + this.panY;
     this.artScale = this.tileW / 54;
     this.drawMinimap();
     if (this.state) { this.stateDirty = true; this.renderAll(); }
@@ -451,7 +453,7 @@
   CityScene.prototype.diamond = function (g, x, y, fill, alpha, stroke) {
     var hw = this.tileW / 2, hh = this.tileH / 2;
     g.fillStyle(fill, alpha == null ? 1 : alpha); g.beginPath(); g.moveTo(x, y - hh); g.lineTo(x + hw, y); g.lineTo(x, y + hh); g.lineTo(x - hw, y); g.closePath(); g.fillPath();
-    if (stroke) { g.lineStyle(0.65, stroke, .55); g.strokePath(); }
+    if (stroke) { g.lineStyle(0.65 * DPR, stroke, .55); g.strokePath(); }
   };
   CityScene.prototype.renderAll = function () {
     if (!this.state || !this.board) return;
@@ -507,13 +509,13 @@
   };
   CityScene.prototype.drawMinimap = function () {
     if (!this.minimap || !this.state) return;
-    var w = this.scale.width || 390, x0 = w - 66, y0 = 10, mw = 54, mh = 72, cw = mw / W, ch = mh / H;
-    this.minimap.clear(); this.minimap.fillStyle(0x07151a, .76); this.minimap.fillRoundedRect(x0, y0, mw, mh, 6);
+    var u = DPR, w = this.scale.width || 390 * u, x0 = w - 66 * u, y0 = 10 * u, mw = 54 * u, mh = 72 * u, cw = mw / W, ch = mh / H;
+    this.minimap.clear(); this.minimap.fillStyle(0x07151a, .76); this.minimap.fillRoundedRect(x0, y0, mw, mh, 6 * u);
     for (var i = 0; i < N; i++) {
       var type = this.state.t[i], color = type === T.WATER ? 0x1d6275 : type === T.HILL ? 0x806f56 : type === T.ROAD ? 0x536b72 : type === T.HOME ? 0x56ae84 : type === T.SHOP ? 0x4da2c4 : type === T.POWER ? 0xc96c5d : type === T.PARK ? 0x4b8b56 : 0x2a594e;
       this.minimap.fillStyle(color, 1); this.minimap.fillRect(x0 + (i % W) * cw, y0 + ((i / W) | 0) * ch, Math.ceil(cw), Math.ceil(ch));
     }
-    this.minimap.lineStyle(1, 0x8ce6b3, .7); this.minimap.strokeRect(x0, y0, mw, mh);
+    this.minimap.lineStyle(1 * u, 0x8ce6b3, .7); this.minimap.strokeRect(x0, y0, mw, mh);
   };
 
   CityScene.prototype.updateDynamic = function (time) {
@@ -521,31 +523,31 @@
     var i, key, x, y, px, py, nx, ny, p1x, p1y, p2x, p2y;
     for (i = 0; i < this.waterKeys.length; i++) {
       key = this.waterKeys[i]; x = key % W; y = (key / W) | 0; px = this.originX + (x - y) * this.tileW / 2; py = this.originY + (x + y) * this.tileH / 2;
-      var wave = Math.sin(this.waterClock * 2 + key * .8) * .45; g.lineStyle(.8, 0x8be7dc, .42); g.lineBetween(px - 4, py + wave, px + 4, py + wave);
+      var wave = Math.sin(this.waterClock * 2 + key * .8) * .45 * DPR; g.lineStyle(.8 * DPR, 0x8be7dc, .42); g.lineBetween(px - 4 * DPR, py + wave, px + 4 * DPR, py + wave);
     }
     for (i = 0; i < this.parkKeys.length; i++) {
-      key = this.parkKeys[i]; x = key % W; y = (key / W) | 0; px = this.originX + (x - y) * this.tileW / 2; py = this.originY + (x + y) * this.tileH / 2 - 3;
-      var sway = Math.sin(time * .0025 + key) * .8; g.lineStyle(1, 0xb9e28a, .55); g.lineBetween(px - 4, py + 1, px - 4 + sway, py - 3); g.lineBetween(px + 4, py, px + 4 - sway, py - 4);
+      key = this.parkKeys[i]; x = key % W; y = (key / W) | 0; px = this.originX + (x - y) * this.tileW / 2; py = this.originY + (x + y) * this.tileH / 2 - 3 * DPR;
+      var sway = Math.sin(time * .0025 + key) * .8 * DPR; g.lineStyle(1 * DPR, 0xb9e28a, .55); g.lineBetween(px - 4 * DPR, py + 1 * DPR, px - 4 * DPR + sway, py - 3 * DPR); g.lineBetween(px + 4 * DPR, py, px + 4 * DPR - sway, py - 4 * DPR);
     }
     for (i = 0; i < this.roadEdges.length; i++) {
       var edge = this.roadEdges[i], aKey = edge[0], bKey = edge[1], ax = aKey % W, ay = (aKey / W) | 0, bx = bKey % W, by = (bKey / W) | 0;
-      p1x = this.originX + (ax - ay) * this.tileW / 2; p1y = this.originY + (ax + ay) * this.tileH / 2 - 2;
-      p2x = this.originX + (bx - by) * this.tileW / 2; p2y = this.originY + (bx + by) * this.tileH / 2 - 2;
+      p1x = this.originX + (ax - ay) * this.tileW / 2; p1y = this.originY + (ax + ay) * this.tileH / 2 - 2 * DPR;
+      p2x = this.originX + (bx - by) * this.tileW / 2; p2y = this.originY + (bx + by) * this.tileH / 2 - 2 * DPR;
       var loadRatio = Math.min(1.5, (this.state.load[aKey] + this.state.load[bKey]) / 2 / 26), roadColor = loadRatio >= 1 ? 0xf17d6b : loadRatio >= .62 ? 0xffc86d : 0x75e2df;
-      if (loadRatio > .08) { g.lineStyle(loadRatio >= 1 ? 1.8 : 1.3, roadColor, .45 + Math.min(.35, loadRatio * .25)); g.lineBetween(p1x, p1y, p2x, p2y); }
-      if (this.state.pow[aKey] && this.state.pow[bKey]) { g.lineStyle(1.1, 0x83e8df, .26 + Math.sin(time * .004 + aKey) * .08); g.lineBetween(p1x, p1y - 1, p2x, p2y - 1); }
+      if (loadRatio > .08) { g.lineStyle((loadRatio >= 1 ? 1.8 : 1.3) * DPR, roadColor, .45 + Math.min(.35, loadRatio * .25)); g.lineBetween(p1x, p1y, p2x, p2y); }
+      if (this.state.pow[aKey] && this.state.pow[bKey]) { g.lineStyle(1.1 * DPR, 0x83e8df, .26 + Math.sin(time * .004 + aKey) * .08); g.lineBetween(p1x, p1y - 1 * DPR, p2x, p2y - 1 * DPR); }
     }
     for (i = 0; i < this.litKeys.length; i++) {
       key = this.litKeys[i]; x = key % W; y = (key / W) | 0; px = this.originX + (x - y) * this.tileW / 2; py = this.originY + (x + y) * this.tileH / 2 - this.tileH * .62;
-      var glow = .35 + Math.sin(time * .003 + key * .7) * .12 + Math.min(.18, this.state.pop / 30000); g.fillStyle(0xffd47b, glow); g.fillCircle(px, py, 1.6 + this.artScale * .8);
+      var glow = .35 + Math.sin(time * .003 + key * .7) * .12 + Math.min(.18, this.state.pop / 30000); g.fillStyle(0xffd47b, glow); g.fillCircle(px, py, (1.6 + this.artScale * .8) * DPR);
     }
     for (i = 0; i < this.trafficPool.length; i++) {
       var dot = this.trafficPool[i];
       if (!this.roadEdges.length) { dot.setVisible(false); continue; }
       var edgePos = (time * .00045 * this.speed + i * .77) % this.roadEdges.length, edgeIndex = Math.floor(edgePos), mix = edgePos - edgeIndex, trafficEdge = this.roadEdges[edgeIndex], fromKey = i % 2 ? trafficEdge[1] : trafficEdge[0], toKey = i % 2 ? trafficEdge[0] : trafficEdge[1];
       var fromX = fromKey % W, fromY = (fromKey / W) | 0, toX = toKey % W, toY = (toKey / W) | 0;
-      p1x = this.originX + (fromX - fromY) * this.tileW / 2; p1y = this.originY + (fromX + fromY) * this.tileH / 2 - 3;
-      p2x = this.originX + (toX - toY) * this.tileW / 2; p2y = this.originY + (toX + toY) * this.tileH / 2 - 3;
+      p1x = this.originX + (fromX - fromY) * this.tileW / 2; p1y = this.originY + (fromX + fromY) * this.tileH / 2 - 3 * DPR;
+      p2x = this.originX + (toX - toY) * this.tileW / 2; p2y = this.originY + (toX + toY) * this.tileH / 2 - 3 * DPR;
       var trafficLoad = Math.min(1.5, (this.state.load[fromKey] + this.state.load[toKey]) / 2 / 26), trafficColor = trafficLoad >= 1 ? 0xff866e : trafficLoad >= .62 ? 0xffd47b : i % 3 ? 0xffd47b : 0x75e2df;
       dot.setPosition(Phaser.Math.Linear(p1x, p2x, mix), Phaser.Math.Linear(p1y, p2y, mix)).setVisible(true).setFillStyle(trafficColor, .95);
     }
@@ -556,7 +558,7 @@
     }
     var preview = this.preview, valid = preview.valid, cpX = this.originX + (this.cursor.x - this.cursor.y) * this.tileW / 2, cpY = this.originY + (this.cursor.x + this.cursor.y) * this.tileH / 2;
     this.diamond(this.selection, cpX, cpY, this.selectedToolColor, valid ? .12 : .25, valid ? 0xb9f4d5 : preview.reason === 'insufficient-funds' ? 0xffc86d : 0xef7772);
-    this.selection.lineStyle(1.2, valid ? 0xc7f7dd : preview.reason === 'insufficient-funds' ? 0xffc86d : 0xef7772, .8); this.selection.beginPath(); this.selection.moveTo(cpX, cpY - this.tileH / 2); this.selection.lineTo(cpX + this.tileW / 2, cpY); this.selection.lineTo(cpX, cpY + this.tileH / 2); this.selection.lineTo(cpX - this.tileW / 2, cpY); this.selection.closePath(); this.selection.strokePath();
+    this.selection.lineStyle(1.2 * DPR, valid ? 0xc7f7dd : preview.reason === 'insufficient-funds' ? 0xffc86d : 0xef7772, .8); this.selection.beginPath(); this.selection.moveTo(cpX, cpY - this.tileH / 2); this.selection.lineTo(cpX + this.tileW / 2, cpY); this.selection.lineTo(cpX, cpY + this.tileH / 2); this.selection.lineTo(cpX - this.tileW / 2, cpY); this.selection.closePath(); this.selection.strokePath();
     this.ghost.setFrame(this.toolFrame(this.selectedTool)).setPosition(cpX, cpY - this.tileH * .2).setScale(this.artScale * .98).setAlpha(valid ? .28 + Math.sin(time * .006) * .05 : .12).setTint(valid ? 0xffffff : preview.reason === 'insufficient-funds' ? 0xffc86d : 0xef7777).setVisible(true);
     if (cellKey !== this.brushKey || preview.reason !== this.brushReason) {
       this.brushKey = cellKey; this.brushReason = preview.reason;
@@ -662,13 +664,21 @@
   }
   function syncHiDpi(game) {
     var stage = byId('stage');
-    var cssW = Math.max(1, Math.floor((stage && stage.clientWidth) || document.documentElement.clientWidth || window.innerWidth || 1));
-    var cssH = Math.max(1, Math.floor((stage && stage.clientHeight) || document.documentElement.clientHeight || window.innerHeight || 1));
-    GGKit.hiDpi.resize(game, cssW, cssH);
+    var cssW = Math.max(1, Math.floor((stage && stage.clientWidth) || document.documentElement.clientWidth || 1));
+    var cssH = Math.max(1, Math.floor((stage && stage.clientHeight) || document.documentElement.clientHeight || 1));
+    if (!game || !game.scale) return;
+    game.scale.resize(Math.round(cssW * DPR), Math.round(cssH * DPR));
+    if (game.canvas) { game.canvas.style.width = cssW + 'px'; game.canvas.style.height = cssH + 'px'; }
   }
 
   kit.loader.progress(.08);
-  var game = new Phaser.Game({ type: Phaser.AUTO, parent: 'stage', width: 390, height: 390, backgroundColor: '#0a1a21', render: Object.assign({}, GGKit.renderDefaults, { pixelArt: true, roundPixels: true }), scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: CityScene });
+  var stage = byId('stage');
+  var cssW = Math.max(1, Math.floor((stage && stage.clientWidth) || document.documentElement.clientWidth || 390));
+  var cssH = Math.max(1, Math.floor((stage && stage.clientHeight) || document.documentElement.clientHeight || 360));
+  var config = { type: Phaser.AUTO, parent: 'stage', width: cssW, height: cssH, backgroundColor: '#0a1a21', render: Object.assign({}, GGKit.renderDefaults, { pixelArt: true, roundPixels: true }), scale: { mode: Phaser.Scale.NONE, width: cssW, height: cssH }, scene: CityScene };
+  config = GGKit.hiDpi.phaser(config);
+  DPR = config.ggDpr;
+  var game = new Phaser.Game(config);
   syncHiDpi(game);
   window.addEventListener('resize', function () { syncHiDpi(game); });
   window.addEventListener('orientationchange', function () { syncHiDpi(game); });

@@ -113,3 +113,9 @@ Deferred: the bank curve chart (folded into session stat rows), and per machine 
 - Could not complete the live DPR 3 gameplay screenshot or layout check.
   Existing authored canvas bakes were left at their logical sizes because a
   frame-unit migration to `GGKit.hiDpi.canvas(...)` could not be live-verified.
+
+## Retina pass 2
+
+- Measured canvas ratio at DPR 3: unavailable. `retina_audit.mjs` could not start because its private port was rejected with `listen EPERM`; the in-app browser was unavailable too. Static configuration expects 3.00x through `config.ggDpr` at DPR 3.
+- Converted the parented `Scale.RESIZE` setup to `Scale.NONE` through `GGKit.hiDpi.phaser()`. The existing virtual root continues to lay out from Phaser scale dimensions, with its authored virtual coordinates and render defaults preserved.
+- Gameplay screenshot, render-loop probe, and spin input resolution could not be live-verified because no browser or private local server was available.

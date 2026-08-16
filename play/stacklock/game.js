@@ -600,11 +600,13 @@
   function persist() { kit.save.set(profile); }
   if (saveMigrated) persist();
   var TEXT_SCALES = [1, 1.15, 1.3];
+  var DPR = 1;
   function textScaleValue() {
     var i = safeInt(profile.textScale, 0, TEXT_SCALES.length - 1) ? profile.textScale : 0;
     return TEXT_SCALES[i];
   }
   function scaledPx(size) { return Math.round(size * textScaleValue()); }
+  function worldPx(size) { return Math.round(size * DPR * textScaleValue()); }
 
   // Reduced motion: the OS preference is the INITIAL value only. Once the
   // player touches the GGKit settings row, their choice wins forever.
@@ -1186,7 +1188,7 @@
       var dt = Math.min(delta || 16.7, 100);
       this.ambientT += dt;
       if (this.introT < 1400) this.introT += dt;
-      this.stepAmbient(dt, this.scale.gameSize.width, this.scale.gameSize.height);
+      this.stepAmbient(dt, this.scale.width, this.scale.height);
       this.paintIntro();
       if (this.logoImg) {
         var bob = motionOn() ? Math.sin(this.ambientT * 0.0016) * 3 : 0;
@@ -1285,8 +1287,8 @@
     },
 
     layout: function () {
-      var w = this.scale.gameSize.width;
-      var h = this.scale.gameSize.height;
+      var w = this.scale.width;
+      var h = this.scale.height;
       Game.insets = readInsets();
       this.clearNodes();
       var ins = Game.insets;
@@ -1312,7 +1314,7 @@
 
     label: function (x, y, text, size, color, weight, origin) {
       var t = this.add.text(x, y, text, {
-        fontFamily: FONT, fontSize: scaledPx(size) + 'px',
+        fontFamily: FONT, fontSize: worldPx(size) + 'px',
         fontStyle: weight || '600', color: color || CSS.text,
         resolution: window.GGKit.hiDpi.dpr()
       }).setDepth(3).setOrigin(origin == null ? 0 : origin, 0.5);
@@ -2980,7 +2982,7 @@
 
     text: function (x, y, str, size, color, weight) {
       return this.add.text(x, y, str, {
-        fontFamily: FONT, fontSize: scaledPx(size) + 'px', fontStyle: weight || '600',
+        fontFamily: FONT, fontSize: worldPx(size) + 'px', fontStyle: weight || '600',
         color: color || CSS.text, resolution: window.GGKit.hiDpi.dpr()
       }).setDepth(21);
     },
@@ -3342,8 +3344,8 @@
 
     // ---------------------------------------------------------- layout
     layout: function () {
-      var w = Math.max(240, this.scale.gameSize.width);
-      var h = Math.max(360, this.scale.gameSize.height);
+      var w = Math.max(240, this.scale.width);
+      var h = Math.max(360, this.scale.height);
       Game.insets = readInsets();
       var ins = Game.insets;
 
@@ -3588,11 +3590,11 @@
       var names = ['mode', 'metricLabel', 'metric', 'secondLabel', 'second', 'level',
         'levelLabel', 'holdLabel', 'nextLabel', 'coach', 'pause', 'rivalLabel'];
       var sizes = [14, 14, 24, 14, 16, 20, 14, 16, 18, 14, 22, 11];
-      for (var i = 0; i < names.length; i++) this.txt[names[i]].setFontSize(scaledPx(sizes[i]));
-      this.bannerT.setFontSize(scaledPx(14));
-      this.resultTitle.setFontSize(scaledPx(26));
-      this.resultSub.setFontSize(scaledPx(14));
-      for (var j = 0; j < this.resultBtns.length; j++) this.resultBtns[j].label.setFontSize(scaledPx(14));
+      for (var i = 0; i < names.length; i++) this.txt[names[i]].setFontSize(worldPx(sizes[i]));
+      this.bannerT.setFontSize(worldPx(14));
+      this.resultTitle.setFontSize(worldPx(26));
+      this.resultSub.setFontSize(worldPx(14));
+      for (var j = 0; j < this.resultBtns.length; j++) this.resultBtns[j].label.setFontSize(worldPx(14));
     },
 
     layoutResult: function () {
@@ -4652,14 +4654,16 @@
     return Klass;
   }
 
-  Game.phaser = new Phaser.Game({
+  var cssW = Math.max(1, document.documentElement.clientWidth || document.body.clientWidth || 1);
+  var cssH = Math.max(1, document.documentElement.clientHeight || document.body.clientHeight || 1);
+  var cfg = window.GGKit.hiDpi.phaser({
     type: Phaser.AUTO,
     parent: document.body,
     backgroundColor: '#0b1020',
     scale: {
-      mode: Phaser.Scale.RESIZE,
-      width: window.innerWidth,
-      height: window.innerHeight
+      mode: Phaser.Scale.NONE,
+      width: cssW,
+      height: cssH
     },
     render: Object.assign({}, window.GGKit.renderDefaults, { batchSize: 4096 }),
     fps: { target: 60, min: 30 },
@@ -4667,15 +4671,8 @@
     // used anywhere, so there is no second camera to forget to create.
     scene: [toScene(BootScene), toScene(TitleScene), toScene(PlayScene)]
   });
-
-  function resizeGame() {
-    if (!Game.phaser) return;
-    window.GGKit.hiDpi.resize(Game.phaser, Math.max(1, window.innerWidth || 320), Math.max(1, window.innerHeight || 640));
-  }
-  window.addEventListener('resize', resizeGame);
-  window.addEventListener('orientationchange', resizeGame);
-  document.addEventListener('visibilitychange', resizeGame);
-  resizeGame();
+  DPR = cfg.ggDpr;
+  Game.phaser = new Phaser.Game(cfg);
 
   kit.registerPWA();
   window.__STACKLOCK_READY = true;

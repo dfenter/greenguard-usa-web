@@ -109,6 +109,7 @@
     skill: document.getElementById('skill-button'), attack: document.getElementById('attack-button'), chips: [...document.querySelectorAll('.party-chip')],
     ability: { dash: document.getElementById('ability-dash'), lift: document.getElementById('ability-lift'), glide: document.getElementById('ability-glide') }
   };
+  let DPR = 1;
 
   const COMBO_NAMES = ['CHAIN SHOCK', 'SHATTER', 'STEAM HEAL'];
   const SAVE_KEYS = ['altitude', 'best', 'chests', 'cleared', 'discoveries', 'portal', 'shards', 'shrines', 'trials', 'version'];
@@ -339,11 +340,11 @@
 
     createViews() {
       this.playerView = { shadow: this.add.image(0, 0, 'shadow').setDepth(8).setScale(.7, .45), sprite: this.add.sprite(0, 0, 'hero-0-up-idle-0').setDepth(12).setScale(.78), bracket: this.add.image(0, 0, 'bracket').setDepth(13).setScale(.76) };
-      this.enemyViews = this.enemies.map((enemy) => ({ shadow: this.add.image(0, 0, 'shadow').setDepth(8), sprite: this.add.sprite(0, 0, this.enemyTexture(enemy.family)).setDepth(11), hpBack: this.add.rectangle(0, 0, enemy.boss ? 128 : 72, 8, COLORS.ink, .88).setDepth(14), hpFill: this.add.rectangle(0, 0, enemy.boss ? 124 : 68, 5, COLORS.coral, 1).setOrigin(0, .5).setDepth(15), status: this.add.text(0, 0, '', { fontFamily: 'system-ui', fontSize: enemy.boss ? '19px' : '16px', fontStyle: '900', color: hex(COLORS.paper), stroke: hex(COLORS.ink), strokeThickness: 4, resolution: GGKit.hiDpi.dpr() }).setOrigin(.5).setDepth(16), telegraph: this.add.image(0, 0, 'telegraph').setDepth(7).setVisible(false), target: this.add.image(0, 0, 'target').setDepth(13).setVisible(false) }));
+      this.enemyViews = this.enemies.map((enemy) => ({ shadow: this.add.image(0, 0, 'shadow').setDepth(8), sprite: this.add.sprite(0, 0, this.enemyTexture(enemy.family)).setDepth(11), hpBack: this.add.rectangle(0, 0, enemy.boss ? 128 : 72, 8, COLORS.ink, .88).setDepth(14), hpFill: this.add.rectangle(0, 0, enemy.boss ? 124 : 68, 5, COLORS.coral, 1).setOrigin(0, .5).setDepth(15), status: this.add.text(0, 0, '', { fontFamily: 'system-ui', fontSize: enemy.boss ? '19px' : '16px', fontStyle: '900', color: hex(COLORS.paper), stroke: hex(COLORS.ink), strokeThickness: 4 }).setOrigin(.5).setDepth(16), telegraph: this.add.image(0, 0, 'telegraph').setDepth(7).setVisible(false), target: this.add.image(0, 0, 'target').setDepth(13).setVisible(false) }));
     }
     createPools() {
       this.fxPool = Array.from({ length: 120 }, () => this.add.image(0, 0, 'fx-spark').setDepth(20).setVisible(false));
-      this.textPool = Array.from({ length: 20 }, () => this.add.text(0, 0, '', { fontFamily: 'system-ui', fontSize: '16px', fontStyle: '900', color: hex(COLORS.paper), stroke: hex(COLORS.ink), strokeThickness: 5, resolution: GGKit.hiDpi.dpr() }).setOrigin(.5).setDepth(30).setVisible(false));
+      this.textPool = Array.from({ length: 20 }, () => this.add.text(0, 0, '', { fontFamily: 'system-ui', fontSize: '16px', fontStyle: '900', color: hex(COLORS.paper), stroke: hex(COLORS.ink), strokeThickness: 5 }).setOrigin(.5).setDepth(30).setVisible(false));
       this.projectilePool = this.renderState.projectiles.map(() => this.add.image(0, 0, 'fx-spark').setDepth(19).setVisible(false));
       this.projectiles = Array.from({ length: this.projectilePool.length }, () => ({ active: false, x: 0, y: 0, vx: 0, vy: 0, life: 0, damage: 0, element: 'frost' }));
       this.fxActive = []; this.textActive = [];
@@ -352,7 +353,7 @@
       this.leafViews = Array.from({ length: 24 }, (_, index) => { const leaf = this.add.image(90 + (index * 149) % 800, 980 + (index * 113) % 720, 'fx-leaf').setDepth(2).setAlpha(.3); leaf.baseX = leaf.x; leaf.baseY = leaf.y; return leaf; });
     }
     enemyTexture(family) { return this.textures.exists(`enemy-${family}`) ? `enemy-${family}` : 'enemy-mote'; }
-    setCameraZoom() { const width = this.scale.width || 844; const height = this.scale.height || 390; this.cameras.main.setZoom(clamp(Math.min(width / 1020, height / 570), .62, 1.04)); }
+    setCameraZoom() { const width = (this.scale.width || 844) / DPR; const height = (this.scale.height || 390) / DPR; const zoom = clamp(Math.min(width / 1020, height / 570), .62, 1.04) * DPR; this.cameras.main.setZoom(zoom).centerOn(this.player ? this.player.x : WORLD.w / 2, this.player ? this.player.y : WORLD.h / 2); }
 
     update(_time, delta) {
       if (this.renderShakeX || this.renderShakeY) { this.cameras.main.scrollX -= this.renderShakeX; this.cameras.main.scrollY -= this.renderShakeY; this.renderShakeX = 0; this.renderShakeY = 0; }
@@ -562,18 +563,37 @@
     formatTime(seconds) { const safe = Math.max(0, Math.floor(seconds)); return `${String(Math.floor(safe / 60)).padStart(2, '0')}:${String(safe % 60).padStart(2, '0')}`; }
   }
 
-  const config = { type: Phaser.CANVAS, width: 1020, height: 570, parent: document.body, backgroundColor: '#081726', scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: [ValeScene], render: Object.assign({}, GGKit.renderDefaults) };
+  // The canvas MUST live inside #game-shell. index.html styles it with
+  // `#game-shell > canvas { position: fixed; inset: 0 }`, and #game-shell is
+  // itself position:fixed with an opaque background. Parenting the canvas to
+  // document.body left it as an unpositioned in-flow child that the shell
+  // painted straight over: the renderer was drawing a full frame (measured
+  // 5,699 distinct colours read back off the canvas) that nothing could see,
+  // which is the black frame this title reported.
+  const shell = document.getElementById('game-shell') || document.body;
+  // Design size is the CSS layout box, never a hard-coded constant: under the
+  // Scale.NONE + zoom conversion the game is sized in DEVICE pixels and world
+  // coordinates follow, so a fixed 844x390 would be wrong on any other box
+  // (portrait included, which this title supports).
+  const cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || 844));
+  const cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || 390));
+  const config = GGKit.hiDpi.phaser({ type: Phaser.AUTO, parent: shell, backgroundColor: '#081726', scale: { mode: Phaser.Scale.NONE, width: cssW, height: cssH, autoCenter: Phaser.Scale.CENTER_BOTH }, scene: [ValeScene], render: Object.assign({}, GGKit.renderDefaults) });
+  DPR = config.ggDpr;
   let game = null;
   function resizeGame() {
-    if (!game) return;
-    GGKit.hiDpi.resize(game, Math.max(1, window.innerWidth || 1020), Math.max(1, window.innerHeight || 570));
+    if (!game || !game.scale || !game.isBooted) return;
+    const w = Math.max(1, Math.floor(document.documentElement.clientWidth || 1));
+    const h = Math.max(1, Math.floor(document.documentElement.clientHeight || 1));
+    try { game.scale.resize(Math.round(w * DPR), Math.round(h * DPR)); } catch (e) { /* never take the title down */ }
   }
   try {
     game = new Phaser.Game(config);
     window.__sv.game = game;
+    // Deferred: game.scale exists from construction but its internals do not,
+    // so a resize before boot throws from inside Phaser's own resize path.
+    game.events.once('ready', resizeGame);
     window.addEventListener('resize', resizeGame);
     window.addEventListener('orientationchange', resizeGame);
-    document.addEventListener('visibilitychange', resizeGame);
-    resizeGame();
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) resizeGame(); });
   } catch (error) { const fallback = document.getElementById('coach-strip'); if (fallback) { fallback.textContent = 'Skyshard Vale could not start this renderer.'; fallback.classList.add('visible'); } window.__sv.state.mode = 'error'; window.__sv.error = String(error && error.message || error); }
 })();

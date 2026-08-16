@@ -54,3 +54,10 @@ Rejected:
 - Target 390x844 CSS at DPR 3. Before ratio: 1.00x CSS-sized RESIZE baseline. After target: 3.00x, 1170/390, via `GGKit.hiDpi.resize`. Live canvas read was unavailable because no browser surface or private local listener was available.
 - Recipe: `Phaser.Scale.RESIZE`, `GGKit.renderDefaults`, `GGKit.hiDpi.canvas` texture baking, and DPR-matched Phaser text. No factor cap.
 - Gameplay screenshot and runtime backing-store measurement remain deferred. No palette change was made because the retina law identifies density, not colour depth, as the defect.
+
+## Retina pass 2
+
+- Delayed DPR 3 canvas ratio: not measured. The slug-derived private harness port was rejected with `EPERM`, and headless Chrome aborted before creating a page. Configured `cfg.ggDpr` is 3.00 at the audit viewport.
+- Converted boot to `GGKit.hiDpi.phaser` with `Phaser.Scale.NONE`, retained render defaults and existing dense texture baking, and installed dense Phaser text creation with inverse object scale.
+- Layout and board geometry now use Phaser scale dimensions normalized by `cfg.ggDpr`; the camera zooms and centers on the board viewport midpoint.
+- Gameplay screenshot, render-loop probe, and tile-swap input proof could not be completed because the local browser infrastructure was unavailable.

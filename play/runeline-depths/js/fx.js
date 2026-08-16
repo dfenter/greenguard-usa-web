@@ -72,7 +72,7 @@
     for (var i = 0; i < 10; i++) {
       var t = scene.add.text(-500, -500, '', {
         fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        fontSize: '22px', fontStyle: '800', color: '#ffffff', resolution: GGKit.hiDpi.dpr()
+        fontSize: '22px', fontStyle: '800', color: '#ffffff'
       }).setOrigin(0.5).setVisible(false).setActive(false);
       t.__p = { life: 0, max: 1, vy: -46 };
       fx.texts.push(t);

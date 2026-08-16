@@ -29,3 +29,9 @@ Deferred: live browser screenshot and interaction smoke test could not run becau
 - Recipe: Phaser `Scale.RESIZE`; initial sizing, resize, orientation change, and visibility change all call `GGKit.hiDpi.resize`.
 - Factor cap: none; the GGKit DPR cap of 3 applies. No title-specific cap was justified.
 - Could not do: DPR 3 backing-store read or gameplay screenshot. Browser discovery returned no browser, and local HTTP port binding was denied.
+
+## Retina pass 2
+
+- Measured ratio after the required delayed DPR-3 sample: unavailable. The corrected configuration targets 3.00x, or 2532/844 for this landscape title.
+- Converted the parented arena to `GGKit.hiDpi.phaser`, `Phaser.Scale.NONE`, and `cfg.ggDpr`; the menu and gameplay cameras remain centered while the existing dense fit-camera path uses the scale dimensions. Removed the old resize and text-resolution paths.
+- Could not do: delayed `retina_audit.mjs`, gameplay screenshot, live input/core-mechanic check, or `live_probe.mjs`. The harness could not bind its private port (`listen EPERM`), and no browser surface was available. Node syntax and diff checks passed.

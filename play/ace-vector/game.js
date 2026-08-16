@@ -402,6 +402,12 @@
   }
 
   var Game = { scene: null, phaser: null };
+  var DPR = 1;
+
+  function densityCamera(scene, w, h) {
+    scene.cameras.main.setZoom(DPR);
+    scene.cameras.main.centerOn(w / 2, h / 2);
+  }
   // Verification uses the live simulation state. The forceDrop switch is
   // intentionally tiny and inert unless a verifier flips it.
   window.__av = window.__av || { state: null, forceDrop: false };
@@ -602,6 +608,7 @@
     },
     create: function () {
       var scene = this;
+      densityCamera(this, this.scale.width / DPR, this.scale.height / DPR);
       // The cloud sheet ships as one image; slice it into four billboards so
       // parallax bands can pick different silhouettes.
       var tex = this.textures.get('clouds');
@@ -792,7 +799,8 @@
   function sceneSwap(scene, key, data) {
     if (scene._swapping) return;
     scene._swapping = true;
-    var w = scene.scale.width, h = scene.scale.height;
+    var w = scene.scale.width / DPR, h = scene.scale.height / DPR;
+    densityCamera(scene, w, h);
     if (!motionEnabled()) { scene.scene.start(key, data); return; }
     var wipe = scene.add.rectangle(w / 2, h / 2, w * 1.2, h * 1.2, 0x04091a, 0)
       .setDepth(9999);
@@ -871,7 +879,8 @@
   // The vignette and haze are already inside the sky texture, so this adds a
   // three-band parallax and nothing else.
   function menuBackdrop(scene, theme) {
-    var w = scene.scale.width, h = scene.scale.height;
+    var w = scene.scale.width / DPR, h = scene.scale.height / DPR;
+    densityCamera(scene, w, h);
     var t = THEMES[theme] || THEMES.noon;
     var g = scene.add.image(0, 0, skyTexture(scene, theme)).setOrigin(0, 0)
       .setDisplaySize(w, h).setDepth(0);
@@ -1047,7 +1056,8 @@ function settingsRows(scene) {
     create: function () {
       Game.scene = this;
       var scene = this;
-      var w = this.scale.width, h = this.scale.height;
+      var w = this.scale.width / DPR, h = this.scale.height / DPR;
+      densityCamera(this, w, h);
       menuBackdrop(this, 'dawn');
       kit.audio.music('musicCruise', 900);
 
@@ -1119,7 +1129,7 @@ function settingsRows(scene) {
   // a scrim, not a flat rectangle, and an interactive backdrop that actually
   // BLOCKS the screen underneath it.
   function overlayShell(scene, theme, depth, scrim) {
-    var w = scene.scale.width, h = scene.scale.height;
+    var w = scene.scale.width / DPR, h = scene.scale.height / DPR;
     var box = scene.add.container(0, 0).setDepth(depth);
     // Modal backdrop: interactive, so nothing under it can be clicked, and
     // swallowing the event so a button that happens to sit underneath does
@@ -1145,7 +1155,7 @@ function settingsRows(scene) {
   function showCredits(scene) {
     if (scene.modal) return;
     kit.pause('credits');
-    var w = scene.scale.width, h = scene.scale.height;
+    var w = scene.scale.width / DPR, h = scene.scale.height / DPR;
     var box = overlayShell(scene, 'dusk', 900, 0.72);
     scene.modal = box;
     var lines = [
@@ -1182,7 +1192,8 @@ function settingsRows(scene) {
     create: function () {
       Game.scene = this;
       var scene = this;
-      var w = this.scale.width, h = this.scale.height;
+      var w = this.scale.width / DPR, h = this.scale.height / DPR;
+      densityCamera(this, w, h);
       menuBackdrop(this, 'noon');
       kit.audio.music('musicCruise', 700);
 
@@ -1358,7 +1369,8 @@ function settingsRows(scene) {
     create: function () {
       Game.scene = this;
       var scene = this;
-      var w = this.scale.width, h = this.scale.height;
+      var w = this.scale.width / DPR, h = this.scale.height / DPR;
+      densityCamera(this, w, h);
       this.vw = w; this.vh = h;
 
       var sortie = SORTIES[this.sortieNo - 1];
@@ -1591,8 +1603,8 @@ function settingsRows(scene) {
         if (!scene.scene || !scene.scene.isActive('play')) return;
         scene.canvasRect = scene.game.canvas.getBoundingClientRect();
         readSafeArea();
-        scene.vw = scene.scale.width;
-        scene.vh = scene.scale.height;
+        scene.vw = scene.scale.width / DPR;
+        scene.vh = scene.scale.height / DPR;
         scene.layout();
       };
       this.scale.on('resize', onResize);
@@ -1658,7 +1670,7 @@ function settingsRows(scene) {
     //  LAYOUT - the single place anything is positioned from the viewport
     // =================================================================
     layout: function () {
-      var w = this.vw = this.scale.width, h = this.vh = this.scale.height;
+      var w = this.vw = this.scale.width / DPR, h = this.vh = this.scale.height / DPR;
       var T = SAFE.t, L = SAFE.l, R = SAFE.r, B = SAFE.b;
 
       // Background.
@@ -4042,21 +4054,29 @@ function settingsRows(scene) {
     return Klass;
   }
 
-  function syncHiDpi(game) {
-    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || window.innerWidth || 1));
-    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || window.innerHeight || 1));
-    GGKit.hiDpi.resize(game, cssW, cssH);
-  }
-
-  Game.phaser = new Phaser.Game({
+  var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || 1280));
+  var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || 720));
+  var config = {
     type: Phaser.AUTO,
     parent: document.body,
     backgroundColor: '#071126',
-    scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight },
+    scale: { mode: Phaser.Scale.NONE, width: cssW, height: cssH },
     render: Object.assign({}, GGKit.renderDefaults, { roundPixels: true, mipmapFilter: 'LINEAR' }),
     fps: { target: 60, min: 30 },
     scene: [toScene(BootScene), toScene(TitleScene), toScene(HangarScene), toScene(PlayScene)]
-  });
+  };
+  config = GGKit.hiDpi.phaser(config);
+  DPR = config.ggDpr;
+  Game.phaser = new Phaser.Game(config);
+  function syncHiDpi(game) {
+    var nextW = Math.max(1, Math.floor(document.documentElement.clientWidth || 1));
+    var nextH = Math.max(1, Math.floor(document.documentElement.clientHeight || 1));
+    game.scale.resize(Math.round(nextW * DPR), Math.round(nextH * DPR));
+    if (game.canvas) {
+      game.canvas.style.width = nextW + 'px';
+      game.canvas.style.height = nextH + 'px';
+    }
+  }
   syncHiDpi(Game.phaser);
   window.addEventListener('resize', function () { syncHiDpi(Game.phaser); });
   window.addEventListener('orientationchange', function () { syncHiDpi(Game.phaser); });

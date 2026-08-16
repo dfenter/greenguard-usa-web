@@ -15,7 +15,8 @@
       var scene = this;
       var kit = RD.kit;
       var profile = RD.profile;
-      var L = { w: 390, h: 844, top: 0, bottom: 0 };
+      scene.cameras.main.setZoom(RD.dpr).centerOn(RD.DESIGN_W / 2, RD.DESIGN_H / 2);
+      var L = { w: RD.DESIGN_W, h: RD.DESIGN_H, top: 0, bottom: 0 };
       var screen = (data && data.screen) || 'title';
       var container = null;
       var list = null, listH = 0, listTop = 0, listBottom = 0;
@@ -352,12 +353,12 @@
       }
 
       /* -------------------------------------------------------- layout */
-      /* Phaser RESIZE mode re-fires against document.body, so without this
-         guard a one pixel wobble rebuilds the whole screen every frame. */
+      /* Keep the logical layout dimensions stable so a repeated scale event
+         cannot rebuild the whole screen every frame. */
       var laidOut = false;
       function layout() {
         var ins = RD.insets();
-        var w = Math.round(scene.scale.width), h = Math.round(scene.scale.height);
+        var w = Math.round(RD.viewW(scene)), h = Math.round(RD.viewH(scene));
         if (laidOut && w === L.w && h === L.h && ins.top === L.top && ins.bottom === L.bottom) return;
         laidOut = true;
         L.w = w; L.h = h;

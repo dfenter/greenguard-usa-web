@@ -54,26 +54,12 @@
 
   var save = BC.normalizeSave(kit.save.get(null));
 
-  function syncHiDpi(game) {
-    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || window.innerWidth || 1));
-    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || window.innerHeight || 1));
-    GGKit.hiDpi.resize(game, cssW, cssH);
-  }
-
-  function bindHiDpi(game) {
-    syncHiDpi(game);
-    window.addEventListener('resize', function () { syncHiDpi(game); });
-    window.addEventListener('orientationchange', function () { syncHiDpi(game); });
-    document.addEventListener('visibilitychange', function () {
-      if (!document.hidden) syncHiDpi(game);
-    });
-  }
-
   var G = {
     kit: kit,
     save: save,
     prefs: { hints: save.hints !== 0 },
     phaser: null,
+    dpr: 1,
     verify: { scene: 'boot', mode: 'none', grove: -1, moves: 0, score: 0, over: false, goals: null },
     unlocked: false,
 
@@ -187,12 +173,6 @@
     initialize: function BootScene() { Phaser.Scene.call(this, { key: 'boot' }); },
     create: function () {
       G.verify.scene = 'boot';
-      /* Phaser RESIZE tracks the parent, but a window that is sized after the
-       * document loads (headless capture, PWA launch, split screen) can leave
-       * the game at the construction-time size. Pin it to the real viewport. */
-      var vw = document.documentElement.clientWidth || window.innerWidth;
-      var vh = document.documentElement.clientHeight || window.innerHeight;
-      if (vw > 0 && vh > 0) syncHiDpi(this.game);
       kit.loader.show('Berry Cascade');
       kit.loader.progress(0.15);
       BCArt.bakeStatic(this);
@@ -725,20 +705,23 @@
 
   /* ------------------------------------------------------------- game --- */
   function start() {
-    G.phaser = new Phaser.Game({
+    var cssW = Math.max(1, document.documentElement.clientWidth || document.body.clientWidth || 1);
+    var cssH = Math.max(1, document.documentElement.clientHeight || document.body.clientHeight || 1);
+    var cfg = GGKit.hiDpi.phaser({
       type: Phaser.AUTO,
       parent: document.body,          /* never null: null skips DOM mounting */
       backgroundColor: '#182238',
       scale: {
-        mode: Phaser.Scale.RESIZE,
-        width: window.innerWidth,
-        height: window.innerHeight
+        mode: Phaser.Scale.NONE,
+        width: cssW,
+        height: cssH
       },
       render: Object.assign({}, GGKit.renderDefaults, { batchSize: 2048 }),
       fps: { target: 60, min: 30 },
       scene: [BootScene, MenuScene, TrailScene, GauntletScene, PlayScene, GardenScene, CrownScene]
     });
-    bindHiDpi(G.phaser);
+    G.dpr = cfg.ggDpr;
+    G.phaser = new Phaser.Game(cfg);
   }
 
   if (document.readyState === 'loading') {

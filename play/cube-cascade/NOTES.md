@@ -97,3 +97,9 @@ Desktop: use A/D or arrow keys to aim, Space or Enter to drop, and H to hold.
 - Could not complete the live DPR 3 gameplay screenshot or layout check.
   Existing generated textures were left at their authored sizes because a
   frame-unit migration to `GGKit.hiDpi.canvas(...)` could not be live-verified.
+
+## Retina pass 2
+
+- Measured canvas ratio at DPR 3: unavailable. `retina_audit.mjs` could not start because its private port was rejected with `listen EPERM`; the in-app browser was unavailable too. Static configuration expects 3.00x through `config.ggDpr` at DPR 3.
+- Converted the parented `Scale.RESIZE` setup to `Scale.NONE` through `GGKit.hiDpi.phaser()`. HUD text and fixed control geometry are scaled from the configured factor, while the Canvas renderer, generated textures, render defaults, and text resolution were retained.
+- Gameplay screenshot, render-loop probe, and drop/input resolution could not be live-verified because no browser or private local server was available.

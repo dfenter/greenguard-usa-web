@@ -20,6 +20,8 @@
   var STEP = AL.STEP, MAX_STEPS = AL.MAX_STEPS;
   var clamp = AL.clamp;
 
+  function densityDpr() { return root.__GG_AEGIS_DPR || 1; }
+
   // ---- pool ceilings and initial sizes -----------------------------------
   var MAX_ENEMIES = 40, INIT_ENEMIES = 10;
   var MAX_SHOTS = 40, INIT_SHOTS = 8;
@@ -303,7 +305,7 @@
         quantity: 2, emitting: false, blendMode: add
       }).setDepth(60);
 
-      var w = this.scale.width, h = this.scale.height;
+      var w = this.scale.width / densityDpr(), h = this.scale.height / densityDpr();
       var weather = this.ch.weather;
       var cfg = {
         ash: { frame: 'dot', lifespan: 5200, speedY: { min: 12, max: 34 }, speedX: { min: -16, max: 8 },
@@ -330,7 +332,7 @@
 
     // ============================================================= layout
     layout: function () {
-      var w = this.scale.width, h = this.scale.height;
+      var w = this.scale.width / densityDpr(), h = this.scale.height / densityDpr();
       var ins = AL.insets;
       AL.refreshCanvasOffset(this.game.canvas);
       this.W = w; this.H = h;

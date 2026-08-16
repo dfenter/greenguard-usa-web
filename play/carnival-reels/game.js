@@ -568,7 +568,7 @@
   };
 
   PlayScene.layout = function () {
-    var gw = this.scale.gameSize.width, gh = this.scale.gameSize.height;
+    var gw = this.scale.width, gh = this.scale.height;
     if (!gw || !gh) return;
     var k = gw / VW;
     this.k = k;
@@ -2546,19 +2546,24 @@
     return K;
   }
 
-  Game.phaser = new Phaser.Game({
+  var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || 390));
+  var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || 844));
+  var config = {
     type: Phaser.AUTO,
     parent: 'game',
     backgroundColor: PAL.deep,
-    scale: { mode: Phaser.Scale.RESIZE, width: VW, height: 1280 },
+    scale: { mode: Phaser.Scale.NONE, width: cssW, height: cssH },
     render: Object.assign({}, GGKit.renderDefaults, { batchSize: 2048 }),
     fps: { target: 60, min: 30 },
     scene: [toScene(BootScene), toScene(PlayScene)]
-  });
+  };
+  config = GGKit.hiDpi.phaser(config);
+  Game.phaser = new Phaser.Game(config);
   function syncHiDpi(game) {
-    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || root.innerWidth || 1));
-    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || root.innerHeight || 1));
-    GGKit.hiDpi.resize(game, cssW, cssH);
+    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || 390));
+    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || 844));
+    game.scale.resize(Math.round(cssW * config.ggDpr), Math.round(cssH * config.ggDpr));
+    if (game.canvas) { game.canvas.style.width = cssW + 'px'; game.canvas.style.height = cssH + 'px'; }
   }
   syncHiDpi(Game.phaser);
   root.addEventListener('resize', function () { syncHiDpi(Game.phaser); });

@@ -47,6 +47,7 @@
   var STEP = 1 / 60;
   var MAX_STEPS = 5;
   var SAVE_VERSION = 2;
+  var DPR = 1;
 
   // ---------------------------------------------------------------- debug
   // Created once, published once, mutated forever. Boot fallback and the
@@ -516,12 +517,14 @@
       Game.menu = this;
       CB_DEBUG_STATE.scene = 'menu';
       CB_DEBUG_STATE.over = false;
-      var W = this.scale.width, H = this.scale.height;
+      var W = this.scale.width / DPR, H = this.scale.height / DPR;
       this.W = W; this.H = H;
       var ins = Game.insets;
       this.selected = Math.max(0, unlockedCount() - 1);
 
       this.cameras.main.setBackgroundColor(0x120f26);
+      this.cameras.main.setZoom(DPR);
+      this.cameras.main.centerOn(W / 2, H / 2);
       this.buildBackdrop();
 
       var logo = this.add.image(W / 2, ins.top + 86, 'logo').setOrigin(0.5);
@@ -752,8 +755,8 @@
       // nothing actually changed. Restarting on those was a self-inflicted
       // stutter, so a real dimension change is required first.
       onResize: function (size) {
-        var w = Math.round(size ? size.width : this.scale.width);
-        var h = Math.round(size ? size.height : this.scale.height);
+        var w = Math.round((size ? size.width : this.scale.width) / DPR);
+        var h = Math.round((size ? size.height : this.scale.height) / DPR);
         if (Math.abs(w - this.W) < 8 && Math.abs(h - this.H) < 8) return;
         kit.input.clearAll();
         this.scene.restart();
@@ -774,7 +777,7 @@
     create: function () {
       Game.play = this;
       CB_DEBUG_STATE.scene = 'play';
-      var W = this.scale.width, H = this.scale.height;
+      var W = this.scale.width / DPR, H = this.scale.height / DPR;
       this.W = W; this.H = H;
       this.ins = Game.insets;
 
@@ -824,6 +827,8 @@
       this.buildResult();
 
       this.camX = 0; this.camY = 0;
+      this.cameras.main.setZoom(DPR);
+      this.cameras.main.centerOn(this.W / 2, this.H / 2);
       this.syncCamera(true);
 
       kit.audio.music(this.district.music, 700);
@@ -1422,7 +1427,7 @@
           this.camY += (ty - this.camY) * 0.14;
         }
         this.cameras.main.setScroll(this.camX, this.camY);
-        this.cameras.main.setZoom(this.camZoom);
+        this.cameras.main.setZoom(this.camZoom * DPR);
         this.far.tilePositionX = this.camX * 0.16;
         this.near.tilePositionX = this.camX * 0.34;
         this.far.y = clamp(this.baseY - this.camY - 300, -220, this.H * 0.5);
@@ -2204,8 +2209,8 @@
       },
 
       onResize: function (size) {
-        var w = Math.round(size ? size.width : this.scale.width);
-        var h = Math.round(size ? size.height : this.scale.height);
+        var w = Math.round((size ? size.width : this.scale.width) / DPR);
+        var h = Math.round((size ? size.height : this.scale.height) / DPR);
         if (Math.abs(w - this.W) < 8 && Math.abs(h - this.H) < 8) return;
         kit.input.clearAll();
         this.clearControl();
@@ -2215,21 +2220,15 @@
   };
 
   // ============================================================== boot up
-  function syncHiDpi(game) {
-    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || window.innerWidth || 1));
-    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || window.innerHeight || 1));
-    GGKit.hiDpi.resize(game, cssW, cssH);
-  }
-
   function boot() {
     Game.insets = readInsets();
-    var W = Math.max(320, Math.floor(window.innerWidth));
-    var H = Math.max(480, Math.floor(window.innerHeight));
-    Game.phaser = new Phaser.Game({
+    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || 390));
+    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || 844));
+    var config = {
       type: Phaser.AUTO,
       parent: document.body,
       backgroundColor: '#120f26',
-      scale: { mode: Phaser.Scale.RESIZE, width: W, height: H },
+      scale: { mode: Phaser.Scale.NONE, width: cssW, height: cssH },
       // antialias keeps LINEAR filtering, which the supersampled art needs.
       // antialiasGL:false drops multisampling on the default framebuffer:
       // pure cost on a software rasteriser and worth nothing when every edge
@@ -2238,7 +2237,19 @@
       render: Object.assign({}, GGKit.renderDefaults, { batchSize: 4096 }),
       fps: { target: 60, min: 30 },
       scene: [BootScene, MenuScene, PlayScene]
-    });
+    };
+    config = GGKit.hiDpi.phaser(config);
+    DPR = config.ggDpr;
+    Game.phaser = new Phaser.Game(config);
+    function syncHiDpi(game) {
+      var nextW = Math.max(1, Math.floor(document.documentElement.clientWidth || 1));
+      var nextH = Math.max(1, Math.floor(document.documentElement.clientHeight || 1));
+      game.scale.resize(Math.round(nextW * DPR), Math.round(nextH * DPR));
+      if (game.canvas) {
+        game.canvas.style.width = nextW + 'px';
+        game.canvas.style.height = nextH + 'px';
+      }
+    }
     syncHiDpi(Game.phaser);
     window.addEventListener('resize', function () { syncHiDpi(Game.phaser); });
     window.addEventListener('orientationchange', function () { syncHiDpi(Game.phaser); });

@@ -95,3 +95,10 @@ Medals award one tier for deliveries, one for combo streak, and one for zero mis
 - Recipe: Phaser `Scale.RESIZE`; initial sizing, resize, orientation change, and visibility change all call `GGKit.hiDpi.resize`.
 - Factor cap: none; the GGKit DPR cap of 3 applies. No title-specific cap was justified.
 - Could not do: DPR 3 backing-store read or gameplay screenshot. Browser discovery returned no browser, and local HTTP port binding was denied.
+
+## Retina pass 2
+
+- Measured ratio after a delayed DPR 3 sample: unavailable. The supplied retina harness was blocked before launch because its private localhost bind returned EPERM, and no in-app browser was available.
+- Converted the Phaser config to GGKit.hiDpi.phaser(...) with Scale.NONE and CSS viewport dimensions. Relayout now reads this.scale.width and this.scale.height directly, and all Phaser text uses the cfg.ggDpr factor. Existing zoomed camera paths retain their paired setZoom and centerOn calls.
+- Kept the existing render defaults, SVG and canvas art paths, text resolution, and explicit display-size calls. No texture source resolution was added.
+- Could not do: delayed canvas ratio measurement, gameplay screenshot and layout confirmation, render-loop liveness, or input-driven train delivery proof.

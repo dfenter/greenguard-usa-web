@@ -43,6 +43,7 @@
   var CELL = 96;                 // spatial hash cell size
   var TIDE_DROP_GAP = 90;        // one rescue pickup can land per 90 seconds
   var TIDE_CAP_FRACTION = 0.38;  // Purge-style per-target cap for tide damage
+  var DPR = 1;
 
   var WING_SLOTS = HM_DATA.WING_SLOTS;
   var BASE_TYPES = HM_DATA.BASE_TYPES;
@@ -691,7 +692,7 @@
   }
 
   function menuBackdrop(scene) {
-    var w = scene.scale.width, h = scene.scale.height;
+    var w = scene.scale.width / DPR, h = scene.scale.height / DPR;
     scene.cameras.main.setBackgroundColor('#050a10');
     var g = scene.add.graphics();
     for (var i = 0; i < 40; i++) {
@@ -725,7 +726,7 @@
     create: function () {
       var scene = this;
       Game.pendingLevel = null;   // the title is neutral ground: consume any stale mission token
-      var w = this.scale.width, h = this.scale.height;
+      var w = this.scale.width / DPR, h = this.scale.height / DPR;
       menuBackdrop(this);
       kit.audio.music('musicBase', 900);
 
@@ -806,7 +807,7 @@
     key: 'shop',
     create: function () {
       var scene = this;
-      var w = this.scale.width, h = this.scale.height;
+      var w = this.scale.width / DPR, h = this.scale.height / DPR;
       menuBackdrop(this);
       this.hangarClock = 0;
       this.thrustT = 0;
@@ -941,7 +942,7 @@
     },
 
     renderPage: function () {
-      var scene = this, w = this.scale.width, h = this.scale.height;
+      var scene = this, w = this.scale.width / DPR, h = this.scale.height / DPR;
       this.clearPage();
       var g = this.pageGroup;
       var top = 282;
@@ -1160,7 +1161,7 @@
     create: function () {
       Game.scene = this;
       var scene = this;
-      var w = this.scale.width, h = this.scale.height;
+      var w = this.scale.width / DPR, h = this.scale.height / DPR;
 
       this.cameras.main.setBackgroundColor('#04080e');
       this.frozenBySystem = false;
@@ -1354,7 +1355,7 @@
       this.bindInput();
       this.setupRenderCameras();
 
-      this.campaignObjText = this.add.text(this.scale.width / 2, SAFE.top + 74, '', {
+      this.campaignObjText = this.add.text(this.scale.width / DPR / 2, SAFE.top + 74, '', {
         fontFamily: FONT_DISPLAY, fontSize: TYPE.label + 'px', color: '#ffd67a', fontStyle: 'bold'
       }).setOrigin(0.5, 0).setScrollFactor(0).setDepth(120).setVisible(false);
       this.registerUiObject(this.campaignObjText);
@@ -1426,12 +1427,13 @@
       }
       this.cameras.main.ignore(ui);
       this.uiCam = this.cameras.add(0, 0, this.scale.width, this.scale.height);
-      this.uiCam.setScroll(0, 0).setZoom(1);
+      this.uiCam.setZoom(DPR).centerOn(this.scale.width / DPR / 2, this.scale.height / DPR / 2);
       this.uiCam.ignore(world);
       var scene = this;
       this.uiResize = function (gameSize) {
         if (!scene.uiCam) return;
-        scene.uiCam.setSize(gameSize.width, gameSize.height).setScroll(0, 0).setZoom(1);
+        scene.uiCam.setSize(gameSize.width, gameSize.height)
+          .setZoom(DPR).centerOn(gameSize.width / DPR / 2, gameSize.height / DPR / 2);
       };
       this.scale.on('resize', this.uiResize);
     },
@@ -1906,7 +1908,7 @@
 
     buildHud: function () {
       var hudScene = this;
-      var w = this.scale.width, h = this.scale.height;
+      var w = this.scale.width / DPR, h = this.scale.height / DPR;
       var L = 12 + SAFE.left;
       var R = w - 12 - SAFE.right;
       var top = 8 + SAFE.top;
@@ -2335,7 +2337,7 @@
       for (i = 0; i < this.airBombs.length; i++) this.killSprite(this.airBombs[i]);
       this.spectacle.active = false; this.spectacle.queued = false; this.spectacle.qDelay = 0; this.spectacle.qAge = 0;
       this.bannerActive = false; this.bannerT = 0; this.bannerDur = 0;
-      this.banner.setAlpha(0).setScale(1).setX(this.scale.width / 2);
+      this.banner.setAlpha(0).setScale(1).setX(this.scale.width / DPR / 2);
       this.park(this.spectacle.ring); this.park(this.spectacle.flashA);
       this.park(this.spectacle.flashB); this.park(this.spectacle.flashWhite);
       for (i = 0; i < this.spectacle.edges.length; i++) this.park(this.spectacle.edges[i]);
@@ -3396,8 +3398,8 @@
       var color = value >= 50 ? 0xefcfff : (value >= 25 ? 0xffd67a : 0xffb45a);
       this.comboHero.setColor(value >= 50 ? '#efcfff' : (value >= 25 ? '#ffd67a' : '#ffb45a'));
       setTextIfChanged(this.comboHero, 'x' + value);
-      this.comboHero.setPosition(this.scale.width / 2, this.scale.height * 0.49)
-        .setVisible(true).setAlpha(1).setScale(kit.juice.enabled ? 0.42 : 1);
+      this.comboHero.setPosition(this.scale.width / DPR / 2, this.scale.height / DPR * 0.49)
+        .setVisible(true).setAlpha(1).setScale((kit.juice.enabled ? 0.42 : 1) / DPR);
       this.unpark(this.comboHero);
       this.comboHeroT = kit.juice.enabled ? 1.08 : 0.82;
       this.queueSpectacleBeat('COMBO x' + value, color, value >= 50 ? 1.28 : 1.08, false);
@@ -3537,7 +3539,7 @@
       if (as.active) return;
       as.active = true; as.t = 0; as.dur = kit.juice.enabled ? 2.35 : 0.9;
       as.dir = Math.sin(this.run.time * 1.7) > 0 ? 1 : -1;
-      as.span = this.scale.width + 420; as.startX = p.x - as.dir * as.span * 0.5;
+      as.span = this.scale.width / DPR + 420; as.startX = p.x - as.dir * as.span * 0.5;
       as.centerY = p.y; as.nextDrop = 0.34; as.dropIndex = 0; as.dropCount = 11;
       this.run.strikeSerial++;
       for (var i = 0; i < as.arrows.length; i++) {
@@ -4228,17 +4230,17 @@
       this.purgePre = quiet ? 0.12 : 0.2;
       this.purgeT = this.purgeDur;
       this.unpark(this.purgeShock); this.unpark(this.purgeFlash);
-      this.purgeShock.setPosition(this.scale.width / 2, this.scale.height / 2)
+      this.purgeShock.setPosition(this.scale.width / DPR / 2, this.scale.height / DPR / 2)
         .setDisplaySize(34, 34).setAlpha(quiet ? 0.32 : 0.78);
-      this.purgeFlash.setPosition(this.scale.width / 2, this.scale.height / 2)
-        .setDisplaySize(this.scale.width * 0.65, this.scale.height * 0.65)
+      this.purgeFlash.setPosition(this.scale.width / DPR / 2, this.scale.height / DPR / 2)
+        .setDisplaySize(this.scale.width / DPR * 0.65, this.scale.height / DPR * 0.65)
         .setAlpha(quiet ? 0.05 : 0.18);
       for (var i = 0; i < this.purgeRings.length; i++) {
         if (quiet && i > 0) { this.killSprite(this.purgeRings[i]); continue; }
         var ring = this.purgeRings[i];
         ring.alive = true;
         this.unpark(ring.spr);
-        ring.spr.setPosition(this.scale.width / 2, this.scale.height / 2)
+        ring.spr.setPosition(this.scale.width / DPR / 2, this.scale.height / DPR / 2)
           .setDisplaySize(24, 24).setTint(0x8effd8)
           .setAlpha(quiet ? 0.28 : 0.72);
       }
@@ -6754,7 +6756,7 @@
     buildDraftUI: function () {
       if (this.draftUI) return this.draftUI;
       var scene = this;
-      var w = this.scale.width, h = this.scale.height;
+      var w = this.scale.width / DPR, h = this.scale.height / DPR;
       var TXT = FONT_BODY;
       var ov = this.add.container(0, 0).setScrollFactor(0).setDepth(400).setVisible(false);
       ov.add(this.add.rectangle(w / 2, h / 2, w, h, 0x03080e, 0.88).setInteractive());
@@ -6823,7 +6825,7 @@
       }
       this.draftCards = picks;
 
-      var w = this.scale.width, h = this.scale.height;
+      var w = this.scale.width / DPR, h = this.scale.height / DPR;
       var ov = this.buildDraftUI();
       ov.setVisible(true).setAlpha(kit.juice.enabled ? 0 : 1).setScale(kit.juice.enabled ? 0.94 : 1);
       this.children.bringToTop(ov);
@@ -6832,9 +6834,9 @@
       if (kit.juice.enabled) this.tweens.add({ targets: ov, alpha: 1, scale: 1, duration: 360, ease: 'Back.easeOut' });
 
       setTextIfChanged(ov.title, 'LEVEL ' + this.run.level);
-      ov.title.setScale(kit.juice.enabled ? 0.58 : 1);
+      ov.title.setScale((kit.juice.enabled ? 0.58 : 1) / DPR);
       this.tweens.killTweensOf(ov.title);
-      if (kit.juice.enabled) this.tweens.add({ targets: ov.title, scale: 1, duration: 400, ease: 'Back.easeOut' });
+      if (kit.juice.enabled) this.tweens.add({ targets: ov.title, scale: 1 / DPR, duration: 400, ease: 'Back.easeOut' });
 
       var cardW = Math.min(320, w - 26);
       var cardH = Math.min(104, (h * 0.52) / Math.max(1, picks.length) - 10);
@@ -6944,7 +6946,7 @@
       this.refreshWatchdogAge(performance.now());
       this.state = 'paused';
       this.holdPause('menu');
-      var w = this.scale.width, h = this.scale.height;
+      var w = this.scale.width / DPR, h = this.scale.height / DPR;
       var ov = this.add.container(0, 0).setScrollFactor(0).setDepth(400);
       this.overlay = ov;
       ov.add(this.add.rectangle(w / 2, h / 2, w, h, 0x03080e, 0.9).setInteractive());
@@ -7023,7 +7025,7 @@
       this.closeOverlay();
       this.timers.length = 0;
 
-      var w = this.scale.width, h = this.scale.height;
+      var w = this.scale.width / DPR, h = this.scale.height / DPR;
       var ov = this.add.container(0, 0).setScrollFactor(0).setDepth(400);
       this.overlay = ov;
       ov.add(this.add.rectangle(w / 2, h / 2, w, h, 0x03080e, 0.93).setInteractive());
@@ -7052,9 +7054,9 @@
 
       ov.add(neonText(this, w / 2, h * 0.2, eyebrow, TYPE.micro, '#8fb3c4'));
       var t = neonText(this, w / 2, h * 0.2 + 34, title, TYPE.title, col);
-      t.setScale(0.7);
+      t.setScale(0.7 / DPR);
       ov.add(t);
-      this.tweens.add({ targets: t, scale: 1, duration: 420, ease: 'Back.easeOut' });
+      this.tweens.add({ targets: t, scale: 1 / DPR, duration: 420, ease: 'Back.easeOut' });
       var urule = this.add.image(w / 2, h * 0.2 + 58, 'edge')
         .setDisplaySize(Math.min(220, w * 0.6), 3).setTint(won ? 0x8effd8 : 0xff9a8f)
         .setAlpha(0.55).setBlendMode(Phaser.BlendModes.ADD);
@@ -7166,7 +7168,7 @@
     },
 
     startTutorial: function () {
-      var w = this.scale.width, h = this.scale.height;
+      var w = this.scale.width / DPR, h = this.scale.height / DPR;
       this.tutorial = { step: 0, t: 0, ack: false, moved: 0, kills0: 0, gems0: 0, lvl0: 1 };
       // Owner directive 2026-08-08: the old h*0.74 panel blocked the bottom
       // half of the playfield. The coach mark is now a compact strip tucked
@@ -7288,22 +7290,23 @@
         t.alive = true; t.life = 0.85; t.vy = -46; t.pop = 0;
         this.unpark(t.obj);
         var col = color || '#ffffff';
-        var px = Math.max(TYPE.micro, size || TYPE.micro) + 'px';
+        var rawPx = Math.max(TYPE.micro, size || TYPE.micro);
+        var px = rawPx + 'px';
         if (t.col !== col) { t.obj.setColor(col); t.col = col; }
-        if (t.px !== px) { t.obj.setFontSize(px); t.px = px; }
-        t.obj.setText(String(str)).setPosition(x, y).setAlpha(1).setScale(0.6);
+        if (t.px !== px) { t.obj.setFontSize(Math.round(rawPx * DPR) + 'px'); t.px = px; }
+        t.obj.setText(String(str)).setPosition(x, y).setAlpha(1).setScale(0.6 / DPR);
         return;
       }
     },
 
     showBanner: function (title, sub, tide, huge) {
-      var h = this.scale.height, w = this.scale.width;
+      var h = this.scale.height / DPR, w = this.scale.width / DPR;
       var giant = !!huge || !!tide;
       this.watchdogPhase = 'banner';
       setTextIfChanged(this.bannerTitle, title);
       setTextIfChanged(this.bannerSub, sub || '');
       this.bannerTitle.setColor(tide ? '#fff3bf' : '#c9ffe9')
-        .setFontSize((giant ? (tide ? 32 : 30) : TYPE.sub) + 'px')
+        .setFontSize(Math.round((giant ? (tide ? 32 : 30) : TYPE.sub) * DPR) + 'px')
         .setPosition(0, giant ? -16 : -10);
       this.bannerSub.setColor(tide ? '#ffd67a' : '#8fb3c4')
         .setPosition(0, giant ? 20 : 12);
@@ -7344,7 +7347,7 @@
       var exit = clamp((this.bannerDur - this.bannerT) / 0.34, 0, 1);
       var fade = Math.min(enter, exit);
       var travel = this.bannerGiant ? 0.16 : 0.10;
-      this.banner.setX(this.scale.width / 2 - (1 - enter) * this.scale.width * travel)
+      this.banner.setX(this.scale.width / DPR / 2 - (1 - enter) * (this.scale.width / DPR) * travel)
         .setScale((this.bannerGiant ? 0.84 : 0.9) + enter * (this.bannerGiant ? 0.16 : 0.1))
         .setAlpha(fade);
     },
@@ -7387,7 +7390,7 @@
       if (this.comboHeroT > 0 && this.comboHero.visible) {
         var comboF = clamp(1 - this.comboHeroT / 1.08, 0, 1);
         var comboPop = kit.juice.enabled ? (0.42 + comboF * 0.58 + Math.sin(comboF * Math.PI) * 0.22) : 1;
-        this.comboHero.setScale(comboPop).setAlpha(clamp(this.comboHeroT / 0.34, 0, 1));
+        this.comboHero.setScale(comboPop / DPR).setAlpha(clamp(this.comboHeroT / 0.34, 0, 1));
       }
     },
 
@@ -7688,12 +7691,12 @@
     renderStep: function (dt, j) {
       var p = this.p, run = this.run;
       var cam = this.cameras.main;
-      var w = this.scale.width, h = this.scale.height;
+      var w = this.scale.width / DPR, h = this.scale.height / DPR;
 
       // Mobile plays zoomed out 25% (owner directive 2026-08-08): phones need
       // more situational awareness in the big arena; the punch-zoom beats ride
       // on top of the base zoom.
-      var baseZoom = w <= 520 ? 0.8 : 1;
+      var baseZoom = DPR * (w <= 520 ? 0.8 : 1);
       if (kit.juice.enabled && this.cameraZoomT > 0 && !this.strike.active) {
         var zoomF = clamp(1 - this.cameraZoomT / (this.cameraZoomDur || 1), 0, 1);
         cam.setZoom(baseZoom * (1 + (this.cameraZoomAmount || 0) * Math.sin(zoomF * Math.PI)));
@@ -8070,7 +8073,7 @@
         }
         if (this.telCount) {
           var beat = 1 - (this.telT % 1);
-          this.telCount.setScale(1 + beat * 0.5).setAlpha(0.35 + beat * 0.6);
+          this.telCount.setScale((1 + beat * 0.5) / DPR).setAlpha(0.35 + beat * 0.6);
         }
       }
       if (this.bossSpokeCount > 0) {
@@ -8242,7 +8245,7 @@
         if (tx.pop < 1) {
           tx.pop = Math.min(1, tx.pop + dt * 5);
           var q = 1 - tx.pop;
-          tx.obj.setScale(0.6 + 0.4 * (1 - q * q * q) + Math.sin(tx.pop * Math.PI) * 0.12);
+          tx.obj.setScale((0.6 + 0.4 * (1 - q * q * q) + Math.sin(tx.pop * Math.PI) * 0.12) / DPR);
         }
         tx.obj.setAlpha(clamp(tx.life / 0.5, 0, 1));
         if (tx.life <= 0) { tx.alive = false; this.park(tx.obj); }
@@ -8648,7 +8651,7 @@
       }
 
       if (this.bossRef && this.bossRef.alive) {
-        var bbW = Math.min(320, this.scale.width - 24);
+        var bbW = Math.min(320, this.scale.width / DPR - 24);
         this.bossFill.width = (bbW - 2) * clamp(this.bossRef.hp / this.bossRef.maxHp, 0, 1);
       } else if (this.bossBar.visible && this.run.bossDown) {
         this.bossBar.setVisible(false);
@@ -8674,6 +8677,7 @@
     if (typeof Klass.prototype.create === 'function') {
       var originalCreate = Klass.prototype.create;
       Klass.prototype.create = function () {
+        prepareCamera(this);
         originalCreate.apply(this, arguments);
         setTextDensity(this);
       };
@@ -8681,30 +8685,44 @@
     return Klass;
   }
 
-  function cssViewport() { return { width: document.documentElement.clientWidth || window.innerWidth || 390, height: document.documentElement.clientHeight || window.innerHeight || 844 }; }
-  function resizeHiDpi(game, width, height) { var view = width && height ? { width: width, height: height } : cssViewport(); return GGKit.hiDpi.resize(game, view.width, view.height); }
-  function bindHiDpiResize(game) { var apply = function () { resizeHiDpi(game); }; window.addEventListener('resize', apply); window.addEventListener('orientationchange', apply); document.addEventListener('visibilitychange', apply); apply(); }
+  function cssViewport() { return { width: document.documentElement.clientWidth || 390, height: document.documentElement.clientHeight || 844 }; }
+  function prepareCamera(scene) {
+    var w = scene.scale.width / DPR, h = scene.scale.height / DPR;
+    scene.cameras.main.setZoom(DPR).centerOn(w / 2, h / 2);
+  }
   function setTextDensity(scene) {
-    var d = GGKit.hiDpi.dpr();
-    function visit(list) {
-      (list || []).forEach(function (child) {
-        if (child && child.setResolution) child.setResolution(d);
-        if (child && child.list) visit(child.list);
-      });
+    return scene;
+  }
+  function installDenseText() {
+    var factory = Phaser.GameObjects.GameObjectFactory.prototype;
+    if (!factory.__hmDenseText) {
+      var originalText = factory.text;
+      factory.text = function (x, y, value, style) {
+        var next = Object.assign({}, style || {});
+        var size = parseFloat(next.fontSize);
+        if (isFinite(size)) next.fontSize = Math.round(size * DPR) + 'px';
+        delete next.resolution;
+        var text = originalText.call(this, x, y, value, next);
+        text.setScale(1 / DPR);
+        text.__hmDense = true;
+        return text;
+      };
+      factory.__hmDenseText = true;
     }
-    visit(scene.children && scene.children.list);
   }
 
   readSafeArea();
 
-  Game.phaser = new Phaser.Game({
+  var view = cssViewport();
+  var cfg = GGKit.hiDpi.phaser({
     type: Phaser.AUTO,
     parent: document.body,
     backgroundColor: '#04080e',
     scale: {
-      mode: Phaser.Scale.RESIZE,
-      width: window.innerWidth,
-      height: window.innerHeight
+      mode: Phaser.Scale.NONE,
+      autoCenter: Phaser.Scale.CENTER_BOTH,
+      width: view.width,
+      height: view.height
     },
     render: Object.assign({}, GGKit.renderDefaults),
     fps: { target: 60, min: 30 },
@@ -8718,7 +8736,10 @@
       return list;
     }())
   });
-  bindHiDpiResize(Game.phaser);
+  DPR = cfg.ggDpr;
+  window.__HM_DPR = DPR;
+  installDenseText();
+  Game.phaser = new Phaser.Game(cfg);
 
   kit.registerPWA();
   window.__HORDE_READY = true;

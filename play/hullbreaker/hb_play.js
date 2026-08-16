@@ -207,7 +207,7 @@
 
     // ============================================================= layout
     layout: function () {
-      var W = this.scale.width, H = this.scale.height;
+      var W = this.scale.width / I.dpr(), H = this.scale.height / I.dpr();
       this.W = W; this.H = H;
       this.ins = I.safeInsets();
       this.uiScale = clamp(Math.min(W / 900, H / 480), 0.66, 1.3);

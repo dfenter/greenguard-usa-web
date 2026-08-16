@@ -17,6 +17,7 @@
   var D = window.HB_DATA;
   var STEP = 1 / 60;
   var MAX_STEPS = 5;
+  var DPR = 1;
 
   // ------------------------------------------------------------ tuning
   var SHIP = {
@@ -408,9 +409,9 @@
 
   function txt(scene, x, y, s, size, color, weight) {
     var t = scene.add.text(x, y, s, {
-      fontFamily: FONT, fontSize: Math.round(size) + 'px', color: color || '#dff4ff',
-      fontStyle: weight || '700', resolution: GGKit.hiDpi.dpr()
-    });
+      fontFamily: FONT, fontSize: Math.round(size * DPR) + 'px', color: color || '#dff4ff',
+      fontStyle: weight || '700'
+    }).setScale(1 / DPR);
     t.__hbText = s;
     return t;
   }
@@ -512,7 +513,7 @@
   // (free) and the two parallax planes are packed into one star layer plus
   // the nebula.
   function makeBackdrop(scene, sector) {
-    var W = scene.scale.width, H = scene.scale.height;
+    var W = scene.scale.width / DPR, H = scene.scale.height / DPR;
     var base = sector ? sector.bg : 0x081420;
     scene.cameras.main.setBackgroundColor(base);
     var neb = scene.add.tileSprite(0, 0, W, H, tex(scene, 'neb'))
@@ -553,6 +554,7 @@
     unlockedCount: unlockedCount, unlockedWeapons: unlockedWeapons,
     isReduced: function () { return REDUCED; }, setReduced: setReduced,
     fxCount: fxCount, shake: shake, hitStop: hitStop, openSettings: openSettings,
+    dpr: function () { return DPR; }, setDpr: function (d) { DPR = d || 1; },
     inCircle: inCircle, inRect: inRect, safeInsets: safeInsets,
     FONT: FONT, txt: txt, tex: tex, ATLASES: ATLASES, frameOwner: frameOwner,
     frameOk: frameOk, img: img, setFrame: setFrame, makeBackdrop: makeBackdrop,

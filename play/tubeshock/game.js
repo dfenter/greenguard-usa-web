@@ -100,11 +100,12 @@
   }
 
   var FONT = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+  var DPR = 1;
 
   function label(scene, x, y, text, size, color, weight) {
     return scene.add.text(x, y, text, {
       fontFamily: FONT,
-      fontSize: Math.round(size) + 'px',
+      fontSize: Math.round(size * DPR) + 'px',
       color: color || PAL.text,
       fontStyle: weight || 'normal',
       resolution: window.GGKit.hiDpi.dpr()
@@ -1038,7 +1039,7 @@
       this.bg.setDisplaySize(W, H);
       var top = Game.insets.top;
       this.title.setPosition(W / 2, top + H * 0.10);
-      this.title.setFontSize(Math.round(clamp(W * 0.105, 26, 46)));
+      this.title.setFontSize(Math.round(clamp(W * 0.105, 26, 46) * DPR));
       this.tagline.setPosition(W / 2, top + H * 0.10 + this.title.height * 0.62);
       this.foot.setPosition(W / 2, H - Math.max(22, Game.insets.bottom + 18));
       this.paintPage();
@@ -3448,28 +3449,23 @@
     return Klass;
   }
 
-  Game.phaser = new Phaser.Game({
+  var cssW = Math.max(1, document.documentElement.clientWidth || document.body.clientWidth || 1);
+  var cssH = Math.max(1, document.documentElement.clientHeight || document.body.clientHeight || 1);
+  var cfg = window.GGKit.hiDpi.phaser({
     type: Phaser.AUTO,
     parent: document.body,
     backgroundColor: PAL.inkCss,
     scale: {
-      mode: Phaser.Scale.RESIZE,
-      width: window.innerWidth,
-      height: window.innerHeight
+      mode: Phaser.Scale.NONE,
+      width: cssW,
+      height: cssH
     },
     render: Object.assign({}, window.GGKit.renderDefaults, { batchSize: 4096 }),
     fps: { target: 60, min: 30 },
     scene: [toScene(BootScene), toScene(TitleScene), toScene(PlayScene)]
   });
-
-  function resizeGame() {
-    if (!Game.phaser) return;
-    window.GGKit.hiDpi.resize(Game.phaser, Math.max(1, window.innerWidth || 320), Math.max(1, window.innerHeight || 640));
-  }
-  window.addEventListener('resize', resizeGame);
-  window.addEventListener('orientationchange', resizeGame);
-  document.addEventListener('visibilitychange', resizeGame);
-  resizeGame();
+  DPR = cfg.ggDpr;
+  Game.phaser = new Phaser.Game(cfg);
 
   // Harness hooks. The live scene accessor lets a frame trace drive the game
   // from inside the page instead of paying a round trip per input.

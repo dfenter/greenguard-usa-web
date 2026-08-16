@@ -30,6 +30,11 @@
   var TAU = Math.PI * 2;
   var STEP = 1 / 60;
   var MAX_STEPS = 5;
+  var DESIGN_W = 390;
+  var DESIGN_H = 844;
+  var DPR = 1;
+  function viewW(scene) { return scene.scale.width / DPR; }
+  function viewH(scene) { return scene.scale.height / DPR; }
 
   // ---- TUNING: carried verbatim from the archived prototype -------------
   var SHOT_SPEED = 390;          // interceptor travel speed, px/s
@@ -774,7 +779,7 @@
   }
 
   function buildSky(scene, opts) {
-    var w = scene.scale.width, h = scene.scale.height;
+    var w = viewW(scene), h = viewH(scene);
     var o = opts || {};
     var gradeKey = o.grade || (o.dim ? 'dim' : 'clear');
     var g = GRADES[gradeKey] || GRADES.clear;
@@ -996,8 +1001,7 @@
       fontFamily: 'Verdana, Geneva, system-ui, sans-serif',
       fontSize: size + 'px',
       fontStyle: weight || 'normal',
-      color: color || '#dff6ff',
-      resolution: window.GGKit.hiDpi.dpr()
+      color: color || '#dff6ff'
     });
   }
 
@@ -1054,7 +1058,8 @@
 
     create: function () {
       var self = this;
-      var w = this.scale.width, h = this.scale.height;
+      var w = viewW(this), h = viewH(this);
+      this.cameras.main.setZoom(DPR).centerOn(w / 2, h / 2);
       var top = Game.insets.top;
       this.sky = buildSky(this);
       this.cameras.main.setBackgroundColor('#050a1a');
@@ -1169,7 +1174,7 @@
       kit.audio.sfx('sfx_ui');
       // Authored hand-off: a launch streak, a cyan wash and a fade, so the
       // storefront hands over to the night instead of cutting.
-      this.demo.emitParticleAt(this.scale.width / 2, this.scale.height * 0.62, fxCount(14));
+      this.demo.emitParticleAt(viewW(this) / 2, viewH(this) * 0.62, fxCount(14));
       if (flashOn()) this.cameras.main.flash(160, 110, 246, 255);
       this.cameras.main.fadeOut(260, 3, 8, 20);
       this.time.delayedCall(280, function () {
@@ -1188,8 +1193,8 @@
       this.demoT -= dt;
       if (this.demoT <= 0) {
         this.demoT = 2.0 + Math.random() * 1.6;
-        var x = this.scale.width * (0.15 + Math.random() * 0.7);
-        var y = this.scale.height * (0.10 + Math.random() * 0.30);
+        var x = viewW(this) * (0.15 + Math.random() * 0.7);
+        var y = viewH(this) * (0.10 + Math.random() * 0.30);
         this.demo.emitParticleAt(x, y, fxCount(12));
         this.demoRing.setPosition(x, y).setVisible(true).setAlpha(0.85).setScale(0.08);
         this.tweens.add({ targets: this.demoRing, scale: 0.7, alpha: 0, duration: 620,
@@ -1206,6 +1211,7 @@
 
     create: function () {
       var self = this;
+      this.cameras.main.setZoom(DPR).centerOn(DESIGN_W / 2, DESIGN_H / 2);
       this.sky = buildSky(this, { dim: true });
       this.cameras.main.setBackgroundColor('#050a1a');
       this.tab = 'hangar';
@@ -1219,7 +1225,7 @@
 
     buildChrome: function () {
       var self = this;
-      var w = this.scale.width;
+      var w = viewW(this);
       var top = Game.insets.top + 10;
       panel(this, 0, -20, w, top + 120, { radius: 0, alpha: 0.72, stroke: 0x2c6f88 }).setDepth(38);
       label(this, 16, top + 6, 'COMMAND CENTER', 16, '#e9feff', 'bold').setDepth(41);
@@ -1288,7 +1294,7 @@
 
     buildHangar: function () {
       var self = this;
-      var w = this.scale.width, h = this.scale.height;
+      var w = viewW(this), h = viewH(this);
       var y = Game.insets.top + 126;
       var gap = 7;
       var rowH = clamp((h - y - 24 - gap * 5) / 6, 78, 101);
@@ -1361,7 +1367,7 @@
 
     buildLoadout: function () {
       var self = this;
-      var w = this.scale.width, h = this.scale.height;
+      var w = viewW(this), h = viewH(this);
       var y = Game.insets.top + 128, gap = 8, cols = 2, pad = 10;
       var cw = (w - pad * 2 - gap) / cols;
       var ch = clamp((h - y - 30) / 4, 112, 132);
@@ -1411,7 +1417,7 @@
 
     buildStyle: function () {
       var self = this;
-      var w = this.scale.width, h = this.scale.height;
+      var w = viewW(this), h = viewH(this);
       var y = Game.insets.top + 132;
       this.layer.add(label(this, 16, y - 24, 'CITY SKYLINE PALETTE', 11, CSS.cyan, 'bold'));
       this.layer.add(label(this, 16, y - 5, 'Live preview applies to this command center and the next run.', 10, CSS.dim));
@@ -1463,7 +1469,7 @@
 
     buildNights: function () {
       var self = this;
-      var w = this.scale.width, h = this.scale.height;
+      var w = viewW(this), h = viewH(this);
       var y0 = Game.insets.top + 116;
       var cols = 3;
       var pad = 10;
@@ -1528,9 +1534,9 @@
 
     buildRefit: function () {
       var self = this;
-      var w = this.scale.width;
+      var w = viewW(this);
       var y = Game.insets.top + 118;
-      var rowH = Math.min(74, (this.scale.height - y - 40) / UPGRADES.length);
+      var rowH = Math.min(74, (viewH(this) - y - 40) / UPGRADES.length);
       this.cards = [];
       for (var i = 0; i < UPGRADES.length; i++) {
         (function (i) {
@@ -1644,8 +1650,9 @@
     // ------------------------------------------------------------- create
     create: function () {
       var self = this;
-      var w = this.scale.width, h = this.scale.height;
+      var w = viewW(this), h = viewH(this);
       this.W = w; this.H = h;
+      this.cameras.main.setZoom(DPR).centerOn(w / 2, h / 2);
       this.cameras.main.setBackgroundColor('#050a1a');
 
       this.night = NIGHTS[this.nightIndex - 1];
@@ -1668,11 +1675,11 @@
       this.tut = null;
       if (!profile.tut && this.mode === 'campaign' && this.nightIndex === 1) this.startTutorial();
 
-      // RESIZE: the scene used to capture W/H/baseY/aim limits once at create
+      // The authored logical viewport remains stable under Scale.NONE.
       // and keep them forever, so a rotate or a browser-chrome height change
       // left the whole world laid out for a viewport that no longer existed
       // (fix round 1, code + art review).
-      this.onResize = function (gameSize) { self.relayout(gameSize.width, gameSize.height); };
+      this.onResize = function (gameSize) { self.relayout(gameSize.width / DPR, gameSize.height / DPR); };
       this.scale.on('resize', this.onResize);
 
       this.events.on('shutdown', function () {
@@ -2310,7 +2317,7 @@
       this.specRing2.setPosition(s.x, s.y).setTint(s.color).setScale(0.05).setAlpha(0.62).setVisible(true);
       for (var i = 0; i < this.specWash.length; i++) this.specWash[i].setFillStyle(s.color, 0.72);
       this.specZoom = (kind === 'boss' || kind === 'heavy' || kind === 'strike') ? 0.025 : 0.018;
-      this.cameras.main.setZoom(1 + this.specZoom * 0.3);
+      this.cameras.main.setZoom(DPR * (1 + this.specZoom * 0.3)).centerOn(this.W / 2, this.H / 2);
       kit.audio.sfx(kind === 'strike' ? 'sfx_siren' : 'sfx_airburst', { volume: 0.42, rate: kind === 'boss' ? 0.76 : 1.0 });
       return true;
     },
@@ -2324,7 +2331,7 @@
         this.specRing.setVisible(false);
         this.specRing2.setVisible(false);
         for (var rm = 0; rm < this.specWash.length; rm++) this.specWash[rm].setAlpha(0);
-        this.cameras.main.setZoom(1);
+        this.cameras.main.setZoom(DPR).centerOn(this.W / 2, this.H / 2);
         return;
       }
       s.t += dt;
@@ -2336,14 +2343,14 @@
       this.specRing2.setScale(lerp(0.05, 0.84, Math.min(1, k * 1.8))).setAlpha(0.62 * (1 - k));
       for (var i = 0; i < this.specWash.length; i++) this.specWash[i].setAlpha(0.72 * (1 - k) * (1 - k));
       var punch = 1 + this.specZoom * Math.sin(Math.min(1, k * 1.5) * Math.PI);
-      this.cameras.main.setZoom(punch);
+      this.cameras.main.setZoom(DPR * punch).centerOn(this.W / 2, this.H / 2);
       if (k >= 1) {
         s.active = false;
         this.specBanner.setVisible(false);
         this.specRing.setVisible(false);
         this.specRing2.setVisible(false);
         for (var j = 0; j < this.specWash.length; j++) this.specWash[j].setAlpha(0);
-        this.cameras.main.setZoom(1);
+        this.cameras.main.setZoom(DPR).centerOn(this.W / 2, this.H / 2);
       }
     },
 
@@ -2660,7 +2667,7 @@
       this.specRing2.setVisible(false);
       for (i = 0; i < this.specWash.length; i++) this.specWash[i].setAlpha(0);
       this.spectacle.active = false;
-      this.cameras.main.setZoom(1);
+      this.cameras.main.setZoom(DPR).centerOn(this.W / 2, this.H / 2);
 
       // Squadron Bay is a run-start formation bonus. The field drop and
       // recovery rules still use the same pooled escorts as round 1.
@@ -4978,14 +4985,14 @@
     return Klass;
   }
 
-  Game.phaser = new Phaser.Game({
+  var cfg = window.GGKit.hiDpi.phaser({
     type: Phaser.AUTO,
     parent: document.body,
     backgroundColor: '#050a1a',
     scale: {
-      mode: Phaser.Scale.RESIZE,
-      width: window.innerWidth,
-      height: window.innerHeight
+      mode: Phaser.Scale.NONE,
+      width: DESIGN_W,
+      height: DESIGN_H
     },
     // antialias keeps LINEAR texture filtering (the art is supersampled, so
     // it needs it); antialiasGL:false drops multisampling on the default
@@ -4995,15 +5002,8 @@
     fps: { target: 60, min: 30 },
     scene: [toScene(BootScene), toScene(TitleScene), toScene(CommandScene), toScene(PlayScene)]
   });
-
-  function resizeGame() {
-    if (!Game.phaser) return;
-    window.GGKit.hiDpi.resize(Game.phaser, Math.max(1, window.innerWidth || 320), Math.max(1, window.innerHeight || 640));
-  }
-  window.addEventListener('resize', resizeGame);
-  window.addEventListener('orientationchange', resizeGame);
-  document.addEventListener('visibilitychange', resizeGame);
-  resizeGame();
+  DPR = cfg.ggDpr;
+  Game.phaser = new Phaser.Game(cfg);
 
   kit.registerPWA();
   window.__SKYFALL_READY = true;

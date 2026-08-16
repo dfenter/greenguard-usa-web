@@ -11,6 +11,7 @@
 
   var STEP = 1 / 60;
   var MAX_STEPS = 5;
+  var DPR = 1;
   var WORLD_W = 900;
   var WORLD_H = 1380;
   var TAU = Math.PI * 2;
@@ -364,7 +365,8 @@
     this.scale.on('resize', this.relayout, this);
     this.relayout(this.scale.width, this.scale.height);
     this.cameras.main.setBackgroundColor(PAL.ink);
-    this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
+    this.cameras.main.setZoom(DPR);
+    this.cameras.main.centerOn(WORLD_W / 2, WORLD_H / 2);
     this.loadFloor(1, true);
     kit.loader.progress(1);
     kit.loader.hide();
@@ -406,8 +408,8 @@
   };
 
   PlayScene.prototype.relayout = function (width, height) {
-    var W = width || this.scale.width || 390;
-    var H = height || this.scale.height || 700;
+    var W = (width || this.scale.width || 390) / DPR;
+    var H = (height || this.scale.height || 700) / DPR;
     this.layout = { W: W, H: H, stickX: 76, stickY: H - 78, aimX: W - 76, aimY: H - 78,
       fireX: W - 76, fireY: H - 270, weaponY: H - 180,
       fireRect: { x: Math.max(0, W - 140), y: H - 304, w: 128, h: 58 },
@@ -470,8 +472,8 @@
     if (event.pointerType === 'mouse' && event.button != null && event.button !== 0) return;
     var rect = this.game.canvas.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
-    var pointer = { id: event.pointerId, x: (event.clientX - rect.left) * this.scale.width / rect.width,
-      y: (event.clientY - rect.top) * this.scale.height / rect.height, event: event };
+    var pointer = { id: event.pointerId, x: (event.clientX - rect.left) * (this.scale.width / DPR) / rect.width,
+      y: (event.clientY - rect.top) * (this.scale.height / DPR) / rect.height, event: event };
     if (type === 'down') this.onPointerDown(pointer);
     else if (type === 'move') this.onPointerMove(pointer);
     else this.onPointerUp(pointer);
@@ -617,8 +619,7 @@
   };
   PlayScene.prototype.bakeStaticChrome = function () {
     if (!this.floor || !this.visual || !this.visual.chrome || typeof document === 'undefined') return;
-    var canvas = document.createElement('canvas'), ctx = canvas.getContext('2d'), family = this.floor.family;
-    canvas.width = WORLD_W; canvas.height = WORLD_H;
+    var baked = GGKit.hiDpi.canvas(WORLD_W, WORLD_H), canvas = baked.canvas, ctx = baked.ctx, family = this.floor.family;
     var base = ctx.createLinearGradient(0, 0, WORLD_W, WORLD_H);
     base.addColorStop(0, colorCss(family.ambient)); base.addColorStop(0.48, '#0b1b22'); base.addColorStop(1, '#071116');
     ctx.fillStyle = base; ctx.fillRect(0, 0, WORLD_W, WORLD_H);
@@ -1430,16 +1431,21 @@
   }
 
   function syncHiDpi(game) {
-    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || window.innerWidth || 1));
-    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || window.innerHeight || 1));
-    GGKit.hiDpi.resize(game, cssW, cssH);
+    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || 390));
+    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || 700));
+    game.scale.resize(Math.round(cssW * DPR), Math.round(cssH * DPR));
+    if (game.canvas) { game.canvas.style.width = cssW + 'px'; game.canvas.style.height = cssH + 'px'; }
   }
 
+  var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || 390));
+  var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || 700));
   var config = {
-    type: Phaser.AUTO, parent: 'game', width: 390, height: 700, backgroundColor: '#071116',
-    render: Object.assign({}, GGKit.renderDefaults, { roundPixels: true }), scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH },
+    type: Phaser.AUTO, parent: 'game', width: cssW, height: cssH, backgroundColor: '#071116',
+    render: Object.assign({}, GGKit.renderDefaults, { roundPixels: true }), scale: { mode: Phaser.Scale.NONE, width: cssW, height: cssH },
     input: { activePointers: 4, gamepad: true }, scene: PlayScene
   };
+  config = GGKit.hiDpi.phaser(config);
+  DPR = config.ggDpr;
   Game.phaser = new Phaser.Game(config);
   syncHiDpi(Game.phaser);
   window.addEventListener('resize', function () { syncHiDpi(Game.phaser); });

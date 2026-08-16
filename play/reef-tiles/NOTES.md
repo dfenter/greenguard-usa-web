@@ -53,3 +53,9 @@ Rejected/deferred:
 - Target 390x844 CSS at DPR 3. Before ratio: 1.00x CSS-sized RESIZE baseline. After target: 3.00x, 1170/390, via `GGKit.hiDpi.resize`. Live canvas read was unavailable because no browser surface or private local listener was available.
 - Recipe: `Phaser.Scale.RESIZE`, `GGKit.renderDefaults`, `GGKit.hiDpi.canvas` texture baking, and recursive DPR-matched Phaser text. No factor cap.
 - Gameplay screenshot and runtime backing-store measurement remain deferred. No palette change was made because the retina law identifies density, not colour depth, as the defect.
+
+## Retina pass 2
+
+- Measured ratio after the required delayed DPR-3 sample: unavailable. The corrected configuration targets 3.00x, or 1170/390.
+- Converted the parented game to `GGKit.hiDpi.phaser`, `Phaser.Scale.NONE`, and `cfg.ggDpr`; logical layout now derives from the scale dimensions, with the camera centered on the design midpoint. Existing device-scale canvas bakes and explicit display sizes were retained.
+- Could not do: delayed `retina_audit.mjs`, gameplay screenshot, live input/core-mechanic check, or `live_probe.mjs`. The harness could not bind its private port (`listen EPERM`), and no browser surface was available. Node syntax and diff checks passed.

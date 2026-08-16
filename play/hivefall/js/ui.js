@@ -7,6 +7,7 @@
 var HFUI = (function () {
   'use strict';
   var U = {};
+  function dpr() { return window.__HF_DPR || GGKit.hiDpi.dpr(); }
 
   var FONT = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   U.FONT = FONT;
@@ -48,12 +49,12 @@ var HFUI = (function () {
   U.text = function (scene, x, y, str, size, color, weight) {
     var t = scene.add.text(x, y, str, {
       fontFamily: FONT,
-      fontSize: (size || 15) + 'px',
+      fontSize: Math.round((size || 15) * dpr()) + 'px',
       fontStyle: String(weight || 650),
       color: color || '#DCE7F4'
     });
     t.__t = str;
-    t.setResolution(GGKit.hiDpi.dpr());
+    t.setScale(1 / dpr());
     return t;
   };
 

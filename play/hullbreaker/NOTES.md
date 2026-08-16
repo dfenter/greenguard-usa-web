@@ -259,3 +259,10 @@ be signed off either way.
 - Target 390x844 CSS at DPR 3. Before ratio: 1.00x CSS-sized RESIZE baseline. After target: 3.00x, 1170/390, via `GGKit.hiDpi.resize`. Live canvas read was unavailable because no browser surface or private local listener was available.
 - Recipe: `Phaser.Scale.RESIZE`, `GGKit.renderDefaults`, and DPR-matched Phaser text. No factor cap; atlas art remains source-backed and uses existing display sizes.
 - Gameplay screenshot and runtime backing-store measurement remain deferred. No palette change was made because the retina law identifies density, not colour depth, as the defect.
+
+## Retina pass 2
+
+- Delayed DPR 3 canvas ratio: not measured. The slug-derived private harness port was rejected with `EPERM`, and headless Chrome aborted before creating a page. Configured `cfg.ggDpr` is 3.00 at the audit viewport.
+- Converted boot to `GGKit.hiDpi.phaser` with `Phaser.Scale.NONE`, retained render defaults and atlas display sizes, and made shared text dense with inverse object scaling. All setFontSize calls pass through the same density adapter.
+- Title, sector select, and play layouts now use Phaser scale dimensions normalized by `cfg.ggDpr`; each scene camera zooms and centers on the viewport midpoint, and the origin-based bounds clamp was removed.
+- Gameplay screenshot, render-loop probe, and thrust or fire input proof could not be completed because the local browser infrastructure was unavailable.

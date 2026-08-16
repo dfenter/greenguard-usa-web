@@ -10,9 +10,7 @@
   const MAX_SHELLS = 48;
   const MAX_TRANSIENT_QUEUE = 6;
   const MAX_MINES = 12;
-  function cssViewport() { return { width: document.documentElement.clientWidth || window.innerWidth || VIEW_W, height: document.documentElement.clientHeight || window.innerHeight || VIEW_H }; }
-  function resizeHiDpi(game, width, height) { const view = width && height ? { width, height } : cssViewport(); return GGKit.hiDpi.resize(game, view.width, view.height); }
-  function bindHiDpiResize(game) { const apply = () => { resizeHiDpi(game); }; window.addEventListener('resize', apply); window.addEventListener('orientationchange', apply); document.addEventListener('visibilitychange', apply); apply(); }
+  let DPR = 1;
 
   const C = {
     ink: 0x071017, field: 0x0b1b27, fieldDeep: 0x08141e,
@@ -474,8 +472,7 @@
       this.lastSwitchArena = canonicalArena(bootSwitches.arena || '');
       this.lastSwitchAI = canonicalAI(bootSwitches.aiClass || '');
       this.camera = this.cameras.main;
-      this.camera.setBounds(0, 0, WORLD_W, WORLD_H);
-      this.camera.setScroll(0, 540);
+      this.camera.centerOn(VIEW_W / 2, VIEW_H / 2);
       this.scale.on('resize', () => this.applyViewport());
       this.applyViewport();
       this.floorSprite = this.add.tileSprite(WORLD_W / 2, WORLD_H / 2, WORLD_W, WORLD_H, 'arena-surface').setDepth(0);
@@ -503,12 +500,13 @@
     }
 
     applyViewport() {
-      const width = Math.max(1, this.scale.width || VIEW_W);
-      const height = Math.max(1, this.scale.height || VIEW_H);
-      const zoom = Math.min(width / VIEW_W, height / VIEW_H) || 1;
-      this.camera && this.camera.setZoom(zoom);
-      this.uiW = width / zoom;
-      this.uiH = height / zoom;
+      const width = Math.max(1, (this.scale.width || VIEW_W * DPR) / DPR);
+      const height = Math.max(1, (this.scale.height || VIEW_H * DPR) / DPR);
+      const fit = Math.min(width / VIEW_W, height / VIEW_H) || 1;
+      const zoom = DPR * fit;
+      this.camera && this.camera.setZoom(zoom).centerOn(VIEW_W / 2, VIEW_H / 2);
+      this.uiW = width / fit;
+      this.uiH = height / fit;
       if (this.camera && this.player) {
         const desiredX = clamp(this.player.x - this.uiW / 2, 0, Math.max(0, WORLD_W - this.uiW));
         const desiredY = clamp(this.player.y - this.uiH * .62, 0, Math.max(0, WORLD_H - this.uiH));
@@ -563,8 +561,8 @@
     }
 
     createUI() {
-      const textStyle = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontSize: '20px', color: '#b7d3d6', resolution: GGKit.hiDpi.dpr() };
-      const titleStyle = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontSize: '22px', color: '#d9fffb', fontStyle: 'bold', resolution: GGKit.hiDpi.dpr() };
+      const textStyle = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontSize: '20px', color: '#b7d3d6' };
+      const titleStyle = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontSize: '22px', color: '#d9fffb', fontStyle: 'bold' };
       this.hudStats = this.add.text(18, 14, '', { ...textStyle, color: '#d9fffb', fontStyle: 'bold' }).setScrollFactor(0).setDepth(22);
       this.hudClass = this.add.text(18, 39, '', { ...textStyle }).setScrollFactor(0).setDepth(22);
       this.hudRight = this.add.text(424, 14, '', { ...textStyle, fontStyle: 'bold' }).setOrigin(1, 0).setScrollFactor(0).setDepth(22);
@@ -1683,17 +1681,36 @@
 
   kit.loader.show('IRONCLAD ALLEY');
   kit.loader.progress(.2);
-  const game = new Phaser.Game({
+  const view = {
+    width: document.documentElement.clientWidth || VIEW_W,
+    height: document.documentElement.clientHeight || VIEW_H
+  };
+  function installDenseText() {
+    const proto = Phaser.GameObjects.GameObjectFactory.prototype;
+    if (proto.__iaDenseText) return;
+    const original = proto.text;
+    proto.text = function (x, y, value, style) {
+      const next = Object.assign({}, style || {});
+      const size = parseFloat(next.fontSize);
+      if (Number.isFinite(size)) next.fontSize = Math.round(size * DPR) + 'px';
+      delete next.resolution;
+      const text = original.call(this, x, y, value, next);
+      text.setScale(1 / DPR);
+      return text;
+    };
+    proto.__iaDenseText = true;
+  }
+  const cfg = GGKit.hiDpi.phaser({
     type: Phaser.CANVAS,
     parent: 'game',
-    width: VIEW_W,
-    height: VIEW_H,
     backgroundColor: '#071017',
     render: Object.assign({}, GGKit.renderDefaults, { transparent: false }),
     input: { active: false },
-    scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH, width: VIEW_W, height: VIEW_H },
+    scale: { mode: Phaser.Scale.NONE, autoCenter: Phaser.Scale.CENTER_BOTH, width: view.width, height: view.height },
     scene: [IroncladScene]
   });
-  bindHiDpiResize(game);
+  DPR = cfg.ggDpr;
+  installDenseText();
+  const game = new Phaser.Game(cfg);
   window.__iaGame = game;
 })();

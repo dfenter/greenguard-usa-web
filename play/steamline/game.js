@@ -14,6 +14,7 @@
   var MAX_IMPACT_FX = 72;
   var TRAIN_COLLISION_RADIUS = 44;
   var TRAIN_NEAR_MISS_RADIUS = 82;
+  var TEXT_DPR = 1;
   var COLORS = ['#f26767', '#55c7e8', '#f2c45e', '#56d6a6', '#b995f1'];
   var COLOR_NAMES = ['RUBY', 'AZURE', 'GOLD', 'MINT', 'VIOLET'];
   var COLOR_SHAPES = ['triangle', 'circle', 'diamond', 'square', 'star'];
@@ -39,7 +40,7 @@
     if (obj && obj.text !== value) obj.setText(value);
   }
   function setTextDensity(scene) {
-    var density = window.GGKit.hiDpi.dpr();
+    var density = TEXT_DPR;
     function visit(node) {
       if (!node) return;
       if (node.setResolution) node.setResolution(density);
@@ -47,6 +48,7 @@
     }
     if (scene && scene.children && scene.children.list) scene.children.list.forEach(visit);
   }
+  function fontPx(size) { return Math.round(size * TEXT_DPR) + 'px'; }
   function shiftFor(key) { return SHIFT_BY_KEY[key] || SHIFT_BY_KEY['morning-rush']; }
   function layoutFor(key) { return R.buildLayout(key || 'city-loop'); }
   function validShift(key) { return !!SHIFT_BY_KEY[key]; }
@@ -220,7 +222,7 @@
       this.createUI();
       this.bindInput();
       this.scale.on('resize', this.relayout, this);
-      this.relayout(this.scale.gameSize);
+      this.relayout();
       if (pendingShift) this.selectedShift = pendingShift;
       if (pendingLayout) this.selectedLayout = pendingLayout;
       if (pendingShift || pendingLayout) this.beginShift(this.selectedShift, this.selectedLayout); else this.showTitle();
@@ -233,17 +235,17 @@
       this.ui.add([this.titleLayer, this.selectLayer, this.playLayer, this.resultLayer]);
       this.uiBg = this.add.graphics().setScrollFactor(0); this.ui.addAt(this.uiBg, 0);
 
-      this.titleLogo = this.add.text(0, 0, 'STEAMLINE', { fontFamily: 'Verdana, sans-serif', fontSize: '46px', fontStyle: 'bold', color: '#e9ffff', letterSpacing: 8, stroke: '#0b1721', strokeThickness: 8 }).setOrigin(0.5);
-      this.titleSub = this.add.text(0, 0, 'THE TIMETABLE IS ALIVE', { fontFamily: 'Verdana, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#7bd8d4', letterSpacing: 3 }).setOrigin(0.5);
-      this.titleNote = this.add.text(0, 0, 'Route every livery to its platform before patience runs out.', { fontFamily: 'Verdana, sans-serif', fontSize: '15px', color: '#b4cbd2', align: 'center', wordWrap: { width: 420 } }).setOrigin(0.5);
+      this.titleLogo = this.add.text(0, 0, 'STEAMLINE', { fontFamily: 'Verdana, sans-serif', fontSize: fontPx(46), fontStyle: 'bold', color: '#e9ffff', letterSpacing: 8, stroke: '#0b1721', strokeThickness: 8 }).setOrigin(0.5);
+      this.titleSub = this.add.text(0, 0, 'THE TIMETABLE IS ALIVE', { fontFamily: 'Verdana, sans-serif', fontSize: fontPx(12), fontStyle: 'bold', color: '#7bd8d4', letterSpacing: 3 }).setOrigin(0.5);
+      this.titleNote = this.add.text(0, 0, 'Route every livery to its platform before patience runs out.', { fontFamily: 'Verdana, sans-serif', fontSize: fontPx(15), color: '#b4cbd2', align: 'center', wordWrap: { width: 420 } }).setOrigin(0.5);
       this.titleLayer.add([this.titleLogo, this.titleSub, this.titleNote]);
       this.startButton = this.makeButton('DISPATCH MORNING RUSH', 310, 56, function () { this.showSelect(); }.bind(this), 0xf2c45e);
       this.titleLayer.add(this.startButton.root);
       this.titleSettings = this.makeButton('OPTIONS', 132, 42, function () { kit.openSettings(); }, 0x55c7e8);
       this.titleLayer.add(this.titleSettings.root);
 
-      this.selectTitle = this.add.text(0, 0, 'SHIFT BOARD', { fontFamily: 'Verdana, sans-serif', fontSize: '27px', fontStyle: 'bold', color: '#e9ffff', letterSpacing: 4 }).setOrigin(0.5);
-      this.selectSub = this.add.text(0, 0, 'Unlock the route, then take the yard.', { fontFamily: 'Verdana, sans-serif', fontSize: '13px', color: '#84a8b4' }).setOrigin(0.5);
+      this.selectTitle = this.add.text(0, 0, 'SHIFT BOARD', { fontFamily: 'Verdana, sans-serif', fontSize: fontPx(27), fontStyle: 'bold', color: '#e9ffff', letterSpacing: 4 }).setOrigin(0.5);
+      this.selectSub = this.add.text(0, 0, 'Unlock the route, then take the yard.', { fontFamily: 'Verdana, sans-serif', fontSize: fontPx(13), color: '#84a8b4' }).setOrigin(0.5);
       this.selectLayer.add([this.selectTitle, this.selectSub]);
       this.shiftCards = []; this.layoutCards = [];
       for (var i = 0; i < SHIFT_LIST.length; i++) {
@@ -259,26 +261,26 @@
       this.selectLayer.add([this.beginButton.root, this.backButton.root]);
 
       this.playTop = this.add.rectangle(0, 0, 10, 10, 0x0b1721, 0.92).setOrigin(0.5, 0); this.playLayer.add(this.playTop);
-      this.scoreText = this.add.text(0, 0, '0', { fontFamily: 'Verdana, sans-serif', fontSize: '25px', fontStyle: 'bold', color: '#f4ffff' }).setOrigin(0, 0);
-      this.comboText = this.add.text(0, 0, 'x1.00', { fontFamily: 'Verdana, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#7bd8d4' }).setOrigin(0, 0);
+      this.scoreText = this.add.text(0, 0, '0', { fontFamily: 'Verdana, sans-serif', fontSize: fontPx(25), fontStyle: 'bold', color: '#f4ffff' }).setOrigin(0, 0);
+      this.comboText = this.add.text(0, 0, 'x1.00', { fontFamily: 'Verdana, sans-serif', fontSize: fontPx(14), fontStyle: 'bold', color: '#7bd8d4' }).setOrigin(0, 0);
       this.nextIcon = this.add.graphics();
-      this.nextText = this.add.text(0, 0, '', { fontFamily: 'Verdana, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#c4dadd' }).setOrigin(1, 0);
-      this.targetText = this.add.text(0, 0, '', { fontFamily: 'Verdana, sans-serif', fontSize: '14px', color: '#99b7bf' }).setOrigin(1, 0);
+      this.nextText = this.add.text(0, 0, '', { fontFamily: 'Verdana, sans-serif', fontSize: fontPx(14), fontStyle: 'bold', color: '#c4dadd' }).setOrigin(1, 0);
+      this.targetText = this.add.text(0, 0, '', { fontFamily: 'Verdana, sans-serif', fontSize: fontPx(14), color: '#99b7bf' }).setOrigin(1, 0);
       this.playLayer.add([this.scoreText, this.comboText, this.nextIcon, this.nextText, this.targetText]);
       this.holdButton = this.makeButton('HOLD SIGNAL', 162, 48, function () { this.toggleSelectedHold(); }.bind(this), 0xf26767); this.playLayer.add(this.holdButton.root);
       this.optionsButton = this.makeButton('OPTIONS', 110, 44, function () { kit.openSettings(); }, 0x55c7e8); this.playLayer.add(this.optionsButton.root);
 
       this.resultShade = this.add.rectangle(0, 0, 10, 10, 0x07121c, 0.86).setOrigin(0.5); this.resultLayer.add(this.resultShade);
-      this.resultTitle = this.add.text(0, 0, '', { fontFamily: 'Verdana, sans-serif', fontSize: '33px', fontStyle: 'bold', color: '#f4ffff', letterSpacing: 3 }).setOrigin(0.5);
-      this.resultSub = this.add.text(0, 0, '', { fontFamily: 'Verdana, sans-serif', fontSize: '14px', color: '#a8c6cc', align: 'center' }).setOrigin(0.5);
-      this.resultScore = this.add.text(0, 0, '', { fontFamily: 'Verdana, sans-serif', fontSize: '48px', fontStyle: 'bold', color: '#f2c45e' }).setOrigin(0.5);
-      this.resultMedal = this.add.text(0, 0, '', { fontFamily: 'Verdana, sans-serif', fontSize: '17px', fontStyle: 'bold', color: '#a9f5d1' }).setOrigin(0.5);
+      this.resultTitle = this.add.text(0, 0, '', { fontFamily: 'Verdana, sans-serif', fontSize: fontPx(33), fontStyle: 'bold', color: '#f4ffff', letterSpacing: 3 }).setOrigin(0.5);
+      this.resultSub = this.add.text(0, 0, '', { fontFamily: 'Verdana, sans-serif', fontSize: fontPx(14), color: '#a8c6cc', align: 'center' }).setOrigin(0.5);
+      this.resultScore = this.add.text(0, 0, '', { fontFamily: 'Verdana, sans-serif', fontSize: fontPx(48), fontStyle: 'bold', color: '#f2c45e' }).setOrigin(0.5);
+      this.resultMedal = this.add.text(0, 0, '', { fontFamily: 'Verdana, sans-serif', fontSize: fontPx(17), fontStyle: 'bold', color: '#a9f5d1' }).setOrigin(0.5);
       this.resultButton = this.makeButton('NEXT SHIFT', 220, 52, function () { this.showSelect(); }.bind(this), 0x56d6a6);
       this.resultLayer.add([this.resultShade, this.resultTitle, this.resultSub, this.resultScore, this.resultMedal, this.resultButton.root]);
       this.bannerRoot = this.add.container(0, 0).setScrollFactor(0).setDepth(250).setVisible(false);
       this.bannerBg = this.add.rectangle(0, 0, 10, 28, 0x102936, 0.94).setOrigin(1, 0);
       this.bannerRule = this.add.rectangle(0, 0, 4, 28, 0x55c7e8, 1).setOrigin(0, 0);
-      this.bannerTitle = this.add.text(0, 0, '', { fontFamily: 'Verdana, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#f2ffff' }).setOrigin(1, 0);
+      this.bannerTitle = this.add.text(0, 0, '', { fontFamily: 'Verdana, sans-serif', fontSize: fontPx(14), fontStyle: 'bold', color: '#f2ffff' }).setOrigin(1, 0);
       this.bannerRoot.add([this.bannerBg, this.bannerRule, this.bannerTitle]);
       this.ui.add(this.bannerRoot);
       this.setLayerVisible(this.titleLayer, false); this.setLayerVisible(this.selectLayer, false); this.setLayerVisible(this.playLayer, false); this.setLayerVisible(this.resultLayer, false);
@@ -287,7 +289,7 @@
       var root = this.add.container(0, 0).setScrollFactor(0);
       var bg = this.add.rectangle(0, 0, w, h, 0x102936, 0.96).setOrigin(0.5);
       var rule = this.add.rectangle(-w * 0.5 + 3, 0, 5, h - 10, accent || 0x55c7e8, 1).setOrigin(0.5);
-      var text = this.add.text(0, 0, label, { fontFamily: 'Verdana, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#e6ffff', letterSpacing: 1.2, align: 'center' }).setOrigin(0.5);
+      var text = this.add.text(0, 0, label, { fontFamily: 'Verdana, sans-serif', fontSize: fontPx(14), fontStyle: 'bold', color: '#e6ffff', letterSpacing: 1.2, align: 'center' }).setOrigin(0.5);
       root.add([bg, rule, text]); root.__slButton = { root: root, w: w, h: h, fn: fn, bg: bg, text: text, accent: accent || 0x55c7e8, label: label, hit: { active: false, x: 0, y: 0, w: w, h: h } };
       return { root: root, button: root.__slButton };
     }
@@ -295,8 +297,8 @@
       var root = this.add.container(0, 0).setScrollFactor(0);
       var bg = this.add.rectangle(0, 0, w, h, 0x102936, 0.93).setOrigin(0.5);
       var line = this.add.rectangle(-w * 0.5 + 3, 0, 5, h - 10, 0x55c7e8, 1).setOrigin(0.5);
-      var title = this.add.text(-w * 0.5 + 18, -h * 0.5 + 16, '', { fontFamily: 'Verdana, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#e9ffff', letterSpacing: 1 }).setOrigin(0, 0);
-      var body = this.add.text(-w * 0.5 + 18, -h * 0.5 + 42, '', { fontFamily: 'Verdana, sans-serif', fontSize: '10px', color: '#9bb9c0', lineSpacing: 3, wordWrap: { width: w - 32 } }).setOrigin(0, 0);
+      var title = this.add.text(-w * 0.5 + 18, -h * 0.5 + 16, '', { fontFamily: 'Verdana, sans-serif', fontSize: fontPx(13), fontStyle: 'bold', color: '#e9ffff', letterSpacing: 1 }).setOrigin(0, 0);
+      var body = this.add.text(-w * 0.5 + 18, -h * 0.5 + 42, '', { fontFamily: 'Verdana, sans-serif', fontSize: fontPx(10), color: '#9bb9c0', lineSpacing: 3, wordWrap: { width: w - 32 } }).setOrigin(0, 0);
       root.add([bg, line, title, body]); root.__slCard = { root: root, w: w, h: h, bg: bg, line: line, title: title, body: body, hit: { active: false, x: 0, y: 0, w: w, h: h }, action: null };
       return { root: root, card: root.__slCard };
     }
@@ -387,7 +389,7 @@
       p.lastX = pointer.x; p.lastY = pointer.y;
       if (p.zone === 'ui') return;
       if (Math.hypot(pointer.x - p.startX, pointer.y - p.startY) > 8) p.moved = true;
-      if (this.mode === 'select' && p.moved) { this.selectScroll -= dy; this.clampSelectScroll(); this.relayout(this.scale.gameSize); return; }
+      if (this.mode === 'select' && p.moved) { this.selectScroll -= dy; this.clampSelectScroll(); this.relayout(); return; }
       if (this.mode === 'play' && kit.input.pointers.size >= 2) { this.updatePinch(); p.moved = true; return; }
       if (this.mode === 'play' && p.moved) { this.cam.tx -= dx / Math.max(0.35, this.cam.zoom); this.cam.ty -= dy / Math.max(0.35, this.cam.zoom); this.clampCameraTargets(); this.cam.manualUntil = this.simTime + 2.2; }
     }
@@ -414,7 +416,7 @@
       this.cam.tz = clamp(this.pinch.zoom * distance / this.pinch.distance, 0.42, 1.75); this.clampCameraTargets(); this.cam.manualUntil = this.simTime + 2.2;
     }
     wheel(pointer, dy) {
-      if (this.mode === 'select') { this.selectScroll += dy * 0.7; this.clampSelectScroll(); this.relayout(this.scale.gameSize); return; }
+      if (this.mode === 'select') { this.selectScroll += dy * 0.7; this.clampSelectScroll(); this.relayout(); return; }
       if (this.mode !== 'play') return;
       this.cam.tz = clamp(this.cam.tz * (dy < 0 ? 1.12 : 0.89), 0.42, 1.75); this.clampCameraTargets(); this.cam.manualUntil = this.simTime + 2.2;
     }
@@ -637,7 +639,7 @@
     showResult(clear, title, sub, medals) {
       var resultLine = sub;
       if (clear && this.newLayoutUnlocked) { resultLine += ' New yard unlocked.'; this.newLayoutUnlocked = false; }
-      this.clearBannerQueue(); this.setLayerVisible(this.playLayer, false); this.setLayerVisible(this.resultLayer, true); this.resultButton.button.text.setText(clear ? 'NEXT SHIFT' : 'REDEPLOY'); this.resultButton.button.fn = clear ? function () { this.showSelect(); }.bind(this) : function () { this.beginShift(this.selectedShift, this.selectedLayout); }.bind(this); setTextIfChanged(this.resultTitle, title); setTextIfChanged(this.resultSub, resultLine); setTextIfChanged(this.resultScore, String(this.score)); setTextIfChanged(this.resultMedal, clear ? ('MEDALS  ' + '◆'.repeat(medals) + '◇'.repeat(3 - medals) + '  •  BEST COMBO x' + this.bestCombo) : ('BEST  ' + profile.best)); this.resultButton.button.bg.setFillStyle(clear ? 0x1d5149 : 0x512d35, 0.96); this.resultShade.setFillStyle(clear ? 0x071c20 : 0x1d0b12, 0.86); this.relayout(this.scale.gameSize); }
+      this.clearBannerQueue(); this.setLayerVisible(this.playLayer, false); this.setLayerVisible(this.resultLayer, true); this.resultButton.button.text.setText(clear ? 'NEXT SHIFT' : 'REDEPLOY'); this.resultButton.button.fn = clear ? function () { this.showSelect(); }.bind(this) : function () { this.beginShift(this.selectedShift, this.selectedLayout); }.bind(this); setTextIfChanged(this.resultTitle, title); setTextIfChanged(this.resultSub, resultLine); setTextIfChanged(this.resultScore, String(this.score)); setTextIfChanged(this.resultMedal, clear ? ('MEDALS  ' + '◆'.repeat(medals) + '◇'.repeat(3 - medals) + '  •  BEST COMBO x' + this.bestCombo) : ('BEST  ' + profile.best)); this.resultButton.button.bg.setFillStyle(clear ? 0x1d5149 : 0x512d35, 0.96); this.resultShade.setFillStyle(clear ? 0x071c20 : 0x1d0b12, 0.86); this.relayout(); }
     clearShift() {
       if (this.over) return; this.over = true; this.mode = 'result'; var shift = this.shift, medal = 0; if (this.delivered >= shift.target) medal++; if (this.bestCombo >= (shift.key === 'morning-rush' ? 3 : shift.key === 'peak-hour' ? 5 : 7)) medal++; if (this.missed === 0) medal++; var saveKey = shift.key + ':' + this.layout.key; profile.medals[saveKey] = Math.max(profile.medals[saveKey] || 0, medal); unlockAfter(shift); profile.best = Math.max(profile.best, this.score); profile.runs++; persist(); kit.audio.sfx('station_bell', { volume: 0.8, rate: 1.2 }); kit.audio.sfx('crowd_murmur', { volume: 0.28 }); this.showResult(true, 'SHIFT CLEAR', shift.name + ' complete. The next route is now on the board.', medal); }
     updateAudioState() {
@@ -741,18 +743,14 @@
     }
   }
 
-  var config = {
+  var cssW = Math.max(1, document.documentElement.clientWidth || document.body.clientWidth || 1);
+  var cssH = Math.max(1, document.documentElement.clientHeight || document.body.clientHeight || 1);
+  var config = GGKit.hiDpi.phaser({
     type: Phaser.AUTO, parent: document.body, backgroundColor: '#07131c',
-    scale: { mode: Phaser.Scale.RESIZE, width: window.innerWidth, height: window.innerHeight, autoCenter: Phaser.Scale.CENTER_BOTH }, render: Object.assign({}, GGKit.renderDefaults),
+    scale: { mode: Phaser.Scale.NONE, width: cssW, height: cssH, autoCenter: Phaser.Scale.CENTER_BOTH }, render: Object.assign({}, GGKit.renderDefaults),
     input: { activePointers: 4 }, scene: [BootScene, MainScene]
-  };
+  });
+  TEXT_DPR = config.ggDpr;
   var game = new Phaser.Game(config);
-  function resizeGame() {
-    GGKit.hiDpi.resize(game, Math.max(1, window.innerWidth || 320), Math.max(1, window.innerHeight || 240));
-  }
-  window.addEventListener('resize', resizeGame);
-  window.addEventListener('orientationchange', resizeGame);
-  document.addEventListener('visibilitychange', resizeGame);
-  resizeGame();
   window.__SL_GAME = game;
 })();

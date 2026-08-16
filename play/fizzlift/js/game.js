@@ -18,7 +18,7 @@
 
   var COLS = FZ.COLS, ROWS = FZ.ROWS, K = FZ.K;
   var FONT = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-  var DPR = GGKit.hiDpi.dpr();
+  var DPR = 1;
 
   /* ------------------------------------------------- verification hook */
   /* Preallocated. The boot fallback and the live scene write the SAME object,
@@ -81,20 +81,9 @@
   var GAME = null;
   function cssViewport() {
     return {
-      width: document.documentElement.clientWidth || root.innerWidth || 390,
-      height: document.documentElement.clientHeight || root.innerHeight || 844
+      width: document.documentElement.clientWidth || 390,
+      height: document.documentElement.clientHeight || 844
     };
-  }
-  function resizeHiDpi(game, width, height) {
-    var view = width && height ? { width: width, height: height } : cssViewport();
-    return GGKit.hiDpi.resize(game, view.width, view.height);
-  }
-  function bindHiDpiResize(game) {
-    var apply = function () { resizeHiDpi(game); };
-    root.addEventListener('resize', apply);
-    root.addEventListener('orientationchange', apply);
-    document.addEventListener('visibilitychange', apply);
-    apply();
   }
   function activePlay() {
     if (!GAME || !GAME.scene) return null;
@@ -110,11 +99,11 @@
   function txt(scene, x, y, str, size, color, weight, originX, originY) {
     var t = scene.add.text(x, y, str, {
       fontFamily: FONT,
-      fontSize: size + 'px',
+      fontSize: Math.round(size * DPR) + 'px',
       fontStyle: weight || '600',
       color: color || '#E7EEF7',
-      resolution: DPR
     });
+    t.setScale(1 / DPR);
     t.setOrigin(originX === undefined ? 0.5 : originX, originY === undefined ? 0.5 : originY);
     t.__fzText = str;
     t.__fzColor = color;
@@ -328,7 +317,7 @@
       /* bake everything that never changes, plus a default vat and board so no
          scene ever adds an Image against a texture key that does not exist yet */
       FZ.art.bakeStatic(this);
-      FZ.art.bakeVat(this, FZ.vat(0), this.scale.width, this.scale.height);
+      FZ.art.bakeVat(this, FZ.vat(0), this.scale.width / DPR, this.scale.height / DPR);
       FZ.art.bakeBoard(this, FZ.vat(0), { pad: 12, cell: 44, cols: COLS, rows: ROWS });
       kit.loader.progress(0.25);
 
@@ -422,7 +411,7 @@
 
     extend: {
       relayout: function () {
-        var W = this.scale.width, H = this.scale.height;
+        var W = this.scale.width / DPR, H = this.scale.height / DPR;
         FZ.art.bakeVat(this, this.vat, W, H);
         this.bg.setTexture('backdrop');
         this.bg.setDisplaySize(W, H);
@@ -447,7 +436,7 @@
       },
 
       titleBlock: function (title, sub) {
-        var W = this.scale.width;
+        var W = this.scale.width / DPR;
         var ins = FZ.safeInsets();
         var y = ins.top + 46;
         this.keep(txt(this, W / 2, y, title, 28, '#F7FBFF', '800'));
@@ -456,7 +445,7 @@
       },
 
       buildHome: function () {
-        var self = this, W = this.scale.width, H = this.scale.height;
+        var self = this, W = this.scale.width / DPR, H = this.scale.height / DPR;
         var ins = FZ.safeInsets();
         var y = ins.top + 64;
 
@@ -542,7 +531,7 @@
       },
 
       buildLadder: function () {
-        var self = this, W = this.scale.width, H = this.scale.height;
+        var self = this, W = this.scale.width / DPR, H = this.scale.height / DPR;
         var top = this.titleBlock('Fizzlift ladder', '20 levels across 4 vats');
         var ins = FZ.safeInsets();
 
@@ -598,7 +587,7 @@
       },
 
       buildRush: function () {
-        var self = this, W = this.scale.width, H = this.scale.height;
+        var self = this, W = this.scale.width / DPR, H = this.scale.height / DPR;
         var top = this.titleBlock('Seal Rush', 'Dense manifolds. Every seal pays moves back.');
         var ins = FZ.safeInsets();
         var bw = Math.min(320, W - 48);
@@ -670,7 +659,7 @@
 
     extend: {
       relayout: function () {
-        var W = this.scale.width, H = this.scale.height;
+        var W = this.scale.width / DPR, H = this.scale.height / DPR;
         this.bg.setTexture('backdrop').setDisplaySize(W, H);
         FZ.art.bakeVat(this, FZ.vat(0), W, H);
         this.bridge.refreshRect();
@@ -902,7 +891,7 @@
         }
         /* restore the standard corner controls: a restart straight from the
            results screen must not keep Retry/Next on a live board */
-        if (this.ins) this.layoutControls(this.scale.width, this.scale.height, this.ins);
+        if (this.ins) this.layoutControls(this.scale.width / DPR, this.scale.height / DPR, this.ins);
         this.publish();
       },
 
@@ -942,9 +931,9 @@
       },
 
       bakeVatArt: function () {
-        FZ.art.bakeVat(this, this.vat, this.scale.width, this.scale.height);
+        FZ.art.bakeVat(this, this.vat, this.scale.width / DPR, this.scale.height / DPR);
         this.bg.setTexture('backdrop');
-        this.bg.setDisplaySize(this.scale.width, this.scale.height);
+        this.bg.setDisplaySize(this.scale.width / DPR, this.scale.height / DPR);
         for (var c = 0; c < COLS; c++) {
           this.fizzBody[c].setTexture('fizzbody');
           this.fizzGlaze[c].setTexture('fizzglaze');
@@ -954,7 +943,7 @@
 
       /* ---------------------------------------------------- geometry */
       relayout: function () {
-        var W = this.scale.width, H = this.scale.height;
+        var W = this.scale.width / DPR, H = this.scale.height / DPR;
         var ins = FZ.safeInsets();
         this.ins = ins;
         this.bridge.refreshRect();
@@ -1040,7 +1029,7 @@
           o2.plate.setPosition(x, y).setDisplaySize(cw, h);
           o2.icon.setPosition(x - cw / 2 + 22, y).setDisplaySize(20, 20);
           o2.val.setPosition(x - cw / 2 + 38, y).setOrigin(0, 0.5);
-          o2.val.setFontSize(chips[i] === 'score' ? 15 : 18);
+          o2.val.setFontSize((chips[i] === 'score' ? 15 : 18) * DPR);
         }
         this.hudY = top + h;
         this.chipRow = { left: left, right: right, y: top + h / 2, cw: cw };
@@ -1134,8 +1123,8 @@
         this.pauseT.icon.setVisible(true);
         this.pauseT.title.setVisible(true);
         this.pauseT.sub.setVisible(true);
-        this.layoutPause(this.scale.width, this.scale.height);
-        this.layoutControls(this.scale.width, this.scale.height, this.ins || FZ.safeInsets());
+        this.layoutPause(this.scale.width / DPR, this.scale.height / DPR);
+        this.layoutControls(this.scale.width / DPR, this.scale.height / DPR, this.ins || FZ.safeInsets());
         /* GGKit deliberately stops pointer collection while kit.paused is true.
            Keep this in-canvas resume button reachable through GGKit input by
            using the scene freeze hook for the manual pause. Visibility and
@@ -1151,7 +1140,7 @@
         this.pauseT.title.setVisible(false);
         this.pauseT.sub.setVisible(false);
         this.thaw();
-        this.layoutControls(this.scale.width, this.scale.height, this.ins || FZ.safeInsets());
+        this.layoutControls(this.scale.width / DPR, this.scale.height / DPR, this.ins || FZ.safeInsets());
       },
 
       layoutPause: function (W, H) {
@@ -1285,7 +1274,7 @@
             live++;
             var a = k < 0.12 ? k / 0.12 : (k > 0.7 ? 1 - (k - 0.7) / 0.3 : 1);
             var wpx = 44 + c.label.width;
-            var x = this.scale.width / 2;
+            var x = this.scale.width / DPR / 2;
             c.plate.setPosition(x, c.y).setDisplaySize(wpx, 34).setAlpha(a);
             c.icon.setPosition(x - wpx / 2 + 20, c.y).setDisplaySize(18, 18).setAlpha(a);
             c.label.setPosition(x - wpx / 2 + 34, c.y).setOrigin(0, 0.5).setAlpha(a);
@@ -1336,8 +1325,8 @@
             t.bar.setVisible(false); t.label.setVisible(false);
           } else {
             var ac = kc < 0.08 ? kc / 0.08 : (kc > 0.62 ? Math.max(0.06, 1 - (kc - 0.62) / 0.38) : 1);
-            t.bar.setPosition(this.scale.width / 2, t.y).setDisplaySize(t.w, 26).setAlpha(0.14 * ac);
-            t.label.setPosition(this.scale.width / 2, t.y).setAlpha(ac);
+            t.bar.setPosition(this.scale.width / DPR / 2, t.y).setDisplaySize(t.w, 26).setAlpha(0.14 * ac);
+            t.label.setPosition(this.scale.width / DPR / 2, t.y).setAlpha(ac);
           }
         }
         FZ_STATE.transients = live;
@@ -1721,7 +1710,7 @@
         var carried = this.moves;
         this.banner('Round ' + (this.round + 1), 'Line reset  ·  +6 moves', 1200, this.vat.accent);
         kit.audio.sfx('sfx_fanfare', { volume: 0.5 });
-        this.reward(this.scale.width / 2, this.scale.height * 0.5, 10, this.vat.accent);
+        this.reward(this.scale.width / DPR / 2, this.scale.height / DPR * 0.5, 10, this.vat.accent);
         this.level = 0;
         this.cfg = FZ.configFor('endless', 0, this.round);
         this.vat = FZ.vat(this.cfg.vat);
@@ -1803,7 +1792,7 @@
       },
 
       showEndButtons: function (won) {
-        var self = this, W = this.scale.width, H = this.scale.height;
+        var self = this, W = this.scale.width / DPR, H = this.scale.height / DPR;
         var ins = this.ins || FZ.safeInsets();
         this.time.delayedCall(won ? 900 : 700, function () {
           if (!self.scene || !self.scene.isActive()) return;
@@ -1827,7 +1816,7 @@
                 self.clearTransients();
                 self.startLevel(true);
                 self.relayout();
-                self.layoutControls(self.scale.width, self.scale.height, self.ins || FZ.safeInsets());
+                self.layoutControls(self.scale.width / DPR, self.scale.height / DPR, self.ins || FZ.safeInsets());
               }
             });
           } else {
@@ -1936,7 +1925,7 @@
           x: x, y: y, ttl: 0.5, s0: this.cell * 0.5, s1: this.cell * 2.4,
           tint: this.vat.accent, alpha: 0.85
         });
-        if (kit.juice.enabled) { kit.juice.shake(this.scale.height * 0.008, 180); kit.juice.hitStop(60); }
+        if (kit.juice.enabled) { kit.juice.shake(this.scale.height / DPR * 0.008, 180); kit.juice.hitStop(60); }
         this.syncLine(false);
       },
 
@@ -1964,7 +1953,7 @@
       },
 
       celebrate: function () {
-        var W = this.scale.width, H = this.scale.height;
+        var W = this.scale.width / DPR, H = this.scale.height / DPR;
         var n = kit.juice.enabled ? 14 : 5;
         for (var i = 0; i < n; i++) {
           this.pReward.emit({
@@ -1988,7 +1977,7 @@
           this.rimT = 0.34;
           this.rim.setTint(this.vat.accent).setVisible(true);
           if (kit.juice.enabled) {
-            kit.juice.shake(this.scale.height * (chain >= 4 ? 0.012 : 0.006), 150);
+            kit.juice.shake(this.scale.height / DPR * (chain >= 4 ? 0.012 : 0.006), 150);
             kit.juice.hitStop(chain >= 4 ? 70 : 40);
           }
         }
@@ -2256,7 +2245,7 @@
         this.clearTransients();
         this.startLevel(true);
         this.relayout();
-        this.layoutControls(this.scale.width, this.scale.height, this.ins || FZ.safeInsets());
+        this.layoutControls(this.scale.width / DPR, this.scale.height / DPR, this.ins || FZ.safeInsets());
       },
 
       publish: function () {
@@ -2307,20 +2296,29 @@
     if (cfg.extend) {
       for (k in cfg.extend) Klass.prototype[k] = cfg.extend[k];
     }
+    if (typeof Klass.prototype.create === 'function') {
+      var create = Klass.prototype.create;
+      Klass.prototype.create = function () {
+        var w = this.scale.width / DPR, h = this.scale.height / DPR;
+        this.cameras.main.setZoom(DPR).centerOn(w / 2, h / 2);
+        return create.apply(this, arguments);
+      };
+    }
     return Klass;
   }
 
   function boot() {
     var parent = document.getElementById('game') || document.body;
-    GAME = new Phaser.Game({
+    var view = cssViewport();
+    var cfg = GGKit.hiDpi.phaser({
       type: Phaser.AUTO,
       parent: parent,               /* never null: null skips DOM mounting */
       backgroundColor: '#0B0F16',
       scale: {
-        mode: Phaser.Scale.RESIZE,
+        mode: Phaser.Scale.NONE,
         autoCenter: Phaser.Scale.NO_CENTER,
-        width: root.innerWidth,
-        height: root.innerHeight
+        width: view.width,
+        height: view.height
       },
       /* antialias keeps LINEAR filtering: every texture here is baked at 2x
          the display size, so it is supersampled art and needs it. */
@@ -2329,7 +2327,8 @@
       banner: false,
       scene: [toScene(BootScene), toScene(MenuScene), toScene(TankScene), toScene(PlayScene)]
     });
-    bindHiDpiResize(GAME);
+    DPR = cfg.ggDpr;
+    GAME = new Phaser.Game(cfg);
     root.__fz.game = GAME;
     root.__fz.kit = kit;
     root.__fz.save = function () { return SAVE; };

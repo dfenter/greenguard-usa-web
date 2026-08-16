@@ -10,6 +10,7 @@
 var KBUI = (function () {
   'use strict';
   var U = {};
+  function dpr() { return window.__KB_DPR || GGKit.hiDpi.dpr(); }
 
   U.FONT = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   U.TOUCH = 44;
@@ -35,15 +36,15 @@ var KBUI = (function () {
   U.style = function (size, weight, color) {
     return {
       fontFamily: U.FONT,
-      fontSize: Math.round(size) + 'px',
+      fontSize: Math.round(size * dpr()) + 'px',
       fontStyle: (weight || 700) + '',
       color: color || '#F7FBFF',
-      resolution: GGKit.hiDpi.dpr()
     };
   };
 
   U.text = function (scene, x, y, str, size, weight, color) {
     var t = scene.add.text(x, y, str, U.style(size, weight, color));
+    t.setScale(1 / dpr());
     t.__t = String(str);
     t.__c = color || '#F7FBFF';
     t.setOrigin(0.5, 0.5);
@@ -143,7 +144,8 @@ var KBUI = (function () {
     ico.setTint(opts.tint == null ? 0xF7FBFF : opts.tint);
     root.add(ico);
     var val = scene.add.text(-w * 0.5 + h * 0.92, 0, String(opts.value == null ? '0' : opts.value),
-      { fontFamily: U.FONT, fontSize: Math.round(opts.size || 15) + 'px', fontStyle: '750', color: '#F7FBFF', resolution: GGKit.hiDpi.dpr() });
+      { fontFamily: U.FONT, fontSize: Math.round((opts.size || 15) * dpr()) + 'px', fontStyle: '750', color: '#F7FBFF' });
+    val.setScale(1 / dpr());
     val.setOrigin(0, 0.5);
     val.__t = String(opts.value == null ? '0' : opts.value);
     val.__c = '#F7FBFF';
@@ -203,10 +205,10 @@ var KBUI = (function () {
     banBox.add(banBg); banBox.add(banTitle); banBox.add(banSub);
 
     function layoutChip(item) {
-      chipText.setFontSize(15);
+      chipText.setFontSize(15 * dpr());
       U.setText(chipText, item.text);
       U.setColor(chipText, item.color || '#F7FBFF');
-      var w = Math.min(scene.scale.width * 0.6, chipText.width + 54);
+      var w = Math.min(scene.scale.width / dpr() * 0.6, chipText.width + 54);
       var h = 32;
       chipIcon.setTexture('kb_ic_' + (item.icon || 'star'));
       chipIcon.setDisplaySize(18, 18);
@@ -222,13 +224,13 @@ var KBUI = (function () {
     }
 
     function layoutBanner(item) {
-      var w = Math.min(scene.scale.width * 0.6, 420);
+      var w = Math.min(scene.scale.width / dpr() * 0.6, 420);
       var h = item.sub ? 96 : 68;
       var key = 'kb_ban_' + Math.round(w) + 'x' + h;
       KBArt.bakeCard(scene, key, w, h, 18, 0x101828, 0.96, 0xF7FBFF, 0.3);
       banBg.setTexture(key);
       banBg.setDisplaySize(w, h);
-      banTitle.setFontSize(item.sub ? 26 : 24);
+      banTitle.setFontSize((item.sub ? 26 : 24) * dpr());
       U.setText(banTitle, item.text);
       U.setColor(banTitle, item.color || '#FFFFFF');
       banTitle.setPosition(0, item.sub ? -14 : 0);
@@ -273,8 +275,8 @@ var KBUI = (function () {
         o = o || {};
         queue.push({
           kind: 'chip', text: text, icon: o.icon, tint: o.tint, color: o.color,
-          x: o.x == null ? scene.scale.width * 0.5 : o.x,
-          y: o.y == null ? scene.scale.height * 0.22 : o.y,
+          x: o.x == null ? scene.scale.width / dpr() * 0.5 : o.x,
+          y: o.y == null ? scene.scale.height / dpr() * 0.22 : o.y,
           hold: Math.min(1000, o.hold == null ? 700 : o.hold)
         });
         if (queue.length > 3) queue.splice(0, queue.length - 3);
@@ -284,8 +286,8 @@ var KBUI = (function () {
         o = o || {};
         queue.push({
           kind: 'banner', text: text, sub: o.sub, color: o.color,
-          x: o.x == null ? scene.scale.width * 0.5 : o.x,
-          y: o.y == null ? scene.scale.height * 0.42 : o.y,
+          x: o.x == null ? scene.scale.width / dpr() * 0.5 : o.x,
+          y: o.y == null ? scene.scale.height / dpr() * 0.42 : o.y,
           hold: o.hold == null ? 1000 : o.hold,
           onDone: o.onDone
         });
@@ -317,7 +319,7 @@ var KBUI = (function () {
         if (msg === current && box.visible) return;
         current = msg;
         /* the strip hugs its one line: never a full width slab of chrome */
-        txt.setFontSize(13);
+        txt.setFontSize(13 * dpr());
         U.setText(txt, msg);
         bg.setDisplaySize(Math.min(w, txt.width + 26), 30);
         box.setPosition(x, y);
@@ -403,7 +405,7 @@ var KBUI = (function () {
 
   /* Scrolling parallax backdrop shared by every scene. */
   U.backdrop = function (scene, arc, depth) {
-    var W = scene.scale.width, H = scene.scale.height;
+    var d = dpr(), W = scene.scale.width / d, H = scene.scale.height / d;
     var skyKey = 'kb_sky_' + arc.id;
     KBArt.bakeSky(scene, skyKey, W, H, arc);
     var sky = scene.add.image(0, 0, skyKey).setOrigin(0, 0).setDepth(depth == null ? -20 : depth);

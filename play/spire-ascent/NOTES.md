@@ -297,6 +297,12 @@ Rejected or constrained:
 - Verification: `node --check game.js` and `node --check sw.js` pass; a live
   browser screenshot was unavailable in this environment.
 
+## Retina pass 2
+
+- Measured ratio after the required delayed DPR-3 sample: unavailable. The corrected configuration targets 3.00x, or 1170/390.
+- Converted the parented title and play scenes to `GGKit.hiDpi.phaser`, `Phaser.Scale.NONE`, and `cfg.ggDpr`; title, play, and HUD cameras are centered, the split HUD viewport uses dense scale dimensions, and logical layout is derived from the scale dimensions.
+- Could not do: delayed `retina_audit.mjs`, gameplay screenshot, live input/core-mechanic check, or `live_probe.mjs`. The harness could not bind its private port (`listen EPERM`), and no browser surface was available. Node syntax and diff checks passed.
+
 ## Retina pass 2026-08-16
 
 - Measured before ratio: unavailable for this title in this environment. Fleet baseline was 1.00x for 62 titles, with the remainder from 1.10x to 2.46x.

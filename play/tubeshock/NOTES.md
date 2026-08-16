@@ -266,3 +266,10 @@ Checks: `node --check` passed for `game.js`, `sw.js`, and `ts_data.js`; payload 
 - Recipe: Phaser `Scale.RESIZE`; initial sizing, resize, orientation change, and visibility change all call `GGKit.hiDpi.resize`.
 - Factor cap: none; the GGKit DPR cap of 3 applies. No title-specific cap was justified.
 - Could not do: DPR 3 backing-store read or gameplay screenshot. Browser discovery returned no browser, and local HTTP port binding was denied.
+
+## Retina pass 2
+
+- Measured ratio after a delayed DPR 3 sample: unavailable. The supplied retina harness was blocked before launch because its private localhost bind returned EPERM, and no in-app browser was available.
+- Converted the Phaser config to GGKit.hiDpi.phaser(...) with Scale.NONE and CSS viewport dimensions. Kept layout on this.scale.width and this.scale.height, and applied cfg.ggDpr to Phaser text sizes including the title resize path.
+- Kept the existing render defaults, device-scale canvas forge, text resolution, and explicit display-size calls. No texture source resolution was added.
+- Could not do: delayed canvas ratio measurement, gameplay screenshot and layout confirmation, render-loop liveness, or input-driven SURGE resolution proof.

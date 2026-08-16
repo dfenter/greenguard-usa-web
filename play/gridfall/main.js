@@ -6,6 +6,7 @@
   var FONT = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
   var STEP = 1000 / 60;
   var MAX_STEPS = 4;
+  var DPR = 1;
   var COLOR = {
     ink: 0x182238, board: 0x243453, cell: 0x314567, cellEdge: 0x5d7294, paper: 0xf7fbff,
     coral: 0xf25c68, sun: 0xf7c948, leaf: 0x5bcb77, tide: 0x38a8de, plum: 0x9a7cf3, ember: 0xf29a4a,
@@ -85,14 +86,22 @@
     return official;
   }
   function makeTexture(scene, key, w, h, draw) { if (scene.textures.exists(key)) return key; var baked = GGKit.hiDpi.canvas(w, h), tex = scene.textures.addCanvas(key, baked.canvas), ctx = baked.ctx; draw(ctx, w, h); tex.refresh(); return key; }
-  function cssViewport() { return { width: document.documentElement.clientWidth || window.innerWidth || 390, height: document.documentElement.clientHeight || window.innerHeight || 844 }; }
-  function resizeHiDpi(game, width, height) { var view = width && height ? { width: width, height: height } : cssViewport(); return GGKit.hiDpi.resize(game, view.width, view.height); }
-  function bindHiDpiResize(game) { var apply = function () { resizeHiDpi(game); }; window.addEventListener('resize', apply); window.addEventListener('orientationchange', apply); document.addEventListener('visibilitychange', apply); apply(); }
-  function setTextDensity(scene) {
-    var d = GGKit.hiDpi.dpr();
-    function visit(list) { (list || []).forEach(function (child) { if (child && child.setResolution) child.setResolution(d); if (child && child.list) visit(child.list); }); }
-    visit(scene.children && scene.children.list);
+  function cssViewport() { return { width: document.documentElement.clientWidth || 390, height: document.documentElement.clientHeight || 844 }; }
+  function installDenseText() {
+    var proto = Phaser.GameObjects.GameObjectFactory.prototype;
+    if (proto.text.__ggDense) return;
+    var original = proto.text;
+    proto.text = function (x, y, value, style) {
+      var next = Object.assign({}, style || {}), size = parseFloat(next.fontSize);
+      if (isFinite(size)) next.fontSize = Math.round(size * DPR) + 'px';
+      delete next.resolution;
+      var text = original.call(this, x, y, value, next);
+      text.setScale(1 / DPR);
+      return text;
+    };
+    proto.text.__ggDense = true;
   }
+  function setTextDensity() {}
 
   class GridfallScene extends Phaser.Scene {
     constructor() { super({ key: 'gridfall' }); }
@@ -129,8 +138,9 @@
       var root = this.add.container(0, 0).setVisible(false), dim = this.add.rectangle(0, 0, 10, 10, COLOR.ink, .84).setOrigin(0, 0), card = this.add.rectangle(0, 0, 330, 330, COLOR.board, 1).setOrigin(.5).setStrokeStyle(2, COLOR.cellEdge, 1), title = this.add.text(0, -122, kind === 'title' ? 'GRIDFALL' : 'RUN COMPLETE', { fontFamily: FONT, fontSize: '27px', color: '#f7fbff', fontStyle: 'bold', align: 'center' }).setOrigin(.5), sub = this.add.text(0, -78, '', { fontFamily: FONT, fontSize: '14px', color: '#b6c4e2', align: 'center', wordWrap: { width: 280 } }).setOrigin(.5), details = this.add.text(0, -10, '', { fontFamily: FONT, fontSize: '17px', color: '#f7c948', fontStyle: 'bold', align: 'center', wordWrap: { width: 286 } }).setOrigin(.5), history = this.add.text(0, 62, '', { fontFamily: FONT, fontSize: '12px', color: '#dbe4f7', align: 'center', wordWrap: { width: 286 } }).setOrigin(.5), action = this.add.text(0, 122, kind === 'title' ? 'TAP TO START' : 'TAP TO PLAY AGAIN', { fontFamily: FONT, fontSize: '15px', color: '#182238', backgroundColor: '#f7c948', padding: { left: 18, right: 18, top: 12, bottom: 12 }, fontStyle: 'bold' }).setOrigin(.5); root.add([dim, card, title, sub, details, history, action]); return { root: root, dim: dim, card: card, title: title, sub: sub, details: details, history: history, action: action, kind: kind };
     }
     layout() {
-      var w = Math.max(280, this.scale.width || window.innerWidth || 390), h = Math.max(280, this.scale.height || window.innerHeight || 844), landscape = w > h, top = landscape ? 82 : 104, boardLimit = landscape ? h - 146 : h - 270, boardSize = Math.min(w - 24, 360, Math.max(220, boardLimit)); boardSize = Math.max(220, boardSize); var cell = boardSize / 8, hintY = top + boardSize + 14, noticeY = top - 14;
+      var w = Math.max(280, this.scale.width / DPR), h = Math.max(280, this.scale.height / DPR), landscape = w > h, top = landscape ? 82 : 104, boardLimit = landscape ? h - 146 : h - 270, boardSize = Math.min(w - 24, 360, Math.max(220, boardLimit)); boardSize = Math.max(220, boardSize); var cell = boardSize / 8, hintY = top + boardSize + 14, noticeY = top - 14;
       this.layoutData = { w: w, h: h, boardX: (w - boardSize) / 2, boardY: top, boardSize: boardSize, cell: cell, hintY: hintY, noticeY: noticeY, landscape: landscape };
+      this.cameras.main.setZoom(DPR).centerOn(w / 2, h / 2);
       var bgKey = 'gf-bg-' + Math.ceil(w / 64) * 64 + 'x' + Math.ceil(h / 64) * 64, boardKey = 'gf-board-' + Math.round(boardSize);
       this.backgroundTexture = makeTexture(this, bgKey, Math.ceil(w / 64) * 64, Math.ceil(h / 64) * 64, function (ctx, bw, bh) { var g = ctx.createLinearGradient(0, 0, bw, bh); g.addColorStop(0, '#121a30'); g.addColorStop(.55, '#1d2947'); g.addColorStop(1, '#111a30'); ctx.fillStyle = g; ctx.fillRect(0, 0, bw, bh); ctx.globalAlpha = .16; ctx.strokeStyle = '#91a4d5'; ctx.lineWidth = 1; for (var x = -bh; x < bw + bh; x += 32) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + bh, bh); ctx.stroke(); } ctx.globalAlpha = .12; ctx.fillStyle = '#f7c948'; ctx.beginPath(); ctx.arc(bw * .84, bh * .12, Math.min(bw, bh) * .2, 0, Math.PI * 2); ctx.fill(); });
       this.boardTexture = makeTexture(this, boardKey, Math.ceil(boardSize + 20), Math.ceil(boardSize + 20), function (ctx, bw, bh) { ctx.fillStyle = '#10182a'; rounded(ctx, 2, 2, bw - 4, bh - 4, 18); ctx.fill(); ctx.strokeStyle = '#5d7294'; ctx.lineWidth = 2; ctx.stroke(); ctx.fillStyle = '#243453'; rounded(ctx, 10, 10, bw - 20, bh - 20, 13); ctx.fill(); var c = boardSize / 8; for (var yy = 0; yy < 8; yy++) for (var xx = 0; xx < 8; xx++) { ctx.fillStyle = (xx + yy) % 2 ? '#2d4162' : '#314567'; rounded(ctx, 10 + xx * c + c * .06, 10 + yy * c + c * .06, c * .88, c * .88, c * .13); ctx.fill(); ctx.strokeStyle = '#536a8e'; ctx.lineWidth = 1; ctx.stroke(); } });
@@ -229,7 +239,7 @@
       if (this.sim && hover && this.phase === 'play') { cells = Sim.groupAt(this.sim.board, hover[0], hover[1]); if (cells.length >= 3) cells.forEach(function (c) { highlighted[c[1] * 8 + c[0]] = true; }); }
       if (this.hintCells) this.hintCells.forEach(function (c) { highlighted[c[1] * 8 + c[0]] = true; });
       if (this.sim && this.sim.selected) this.sim.selected.forEach(function (c) { highlighted[c[1] * 8 + c[0]] = true; });
-      for (i = 0; i < 64; i++) { cv = this.cellViews[i]; v = board ? board[i] : 0; x = i % 8; y = (i / 8) | 0; if (!v) { cv.root.setVisible(false); continue; } var fill = v === Sim.KINDS.hazard ? COLOR.ink : COLORS[(v - 1) % COLORS.length], selected = !!highlighted[i], scale = cv.scale * (selected ? 1.08 : 1); cv.root.setVisible(true).setPosition(l.boardX + x * l.cell + l.cell / 2, l.boardY + y * l.cell + l.cell / 2).setScale(scale); cv.shadow.setScale(l.cell / 44); cv.orb.setVisible(pattern.id === 'classic' || pattern.id === 'leaf' || pattern.id === 'aurora').setScale(l.cell / 44).setFillStyle(fill, 1).setStrokeStyle(selected ? 2.5 : 1.4, shade(fill, .62), 1); cv.diamond.setVisible(pattern.id === 'prism' || pattern.id === 'star').setScale(l.cell / 44).setFillStyle(fill, 1).setStrokeStyle(selected ? 2.5 : 1.4, shade(fill, .62), 1); cv.hex.setVisible(pattern.id === 'gold').setScale(l.cell / 44).setFillStyle(fill, 1).setStrokeStyle(selected ? 2.5 : 1.4, shade(fill, .62), 1); cv.shine.setVisible(v !== Sim.KINDS.hazard).setScale(l.cell / 44); cv.ring.setVisible(selected || (this.viewState === 'invalid' && this.hoverCell && this.hoverCell[0] === x && this.hoverCell[1] === y)).setScale(l.cell / 44).setStrokeStyle(2.5, selected ? COLOR.warning : COLOR.bad, .95); cv.glyph.setText(v === Sim.KINDS.hazard ? '!' : pattern.mark || Sim.GLYPHS[(v - 1) % Sim.GLYPHS.length]).setFontSize(Math.max(14, l.cell * .25)).setColor(v === Sim.KINDS.hazard ? '#f7c948' : '#ffffff'); }
+      for (i = 0; i < 64; i++) { cv = this.cellViews[i]; v = board ? board[i] : 0; x = i % 8; y = (i / 8) | 0; if (!v) { cv.root.setVisible(false); continue; } var fill = v === Sim.KINDS.hazard ? COLOR.ink : COLORS[(v - 1) % COLORS.length], selected = !!highlighted[i], scale = cv.scale * (selected ? 1.08 : 1); cv.root.setVisible(true).setPosition(l.boardX + x * l.cell + l.cell / 2, l.boardY + y * l.cell + l.cell / 2).setScale(scale); cv.shadow.setScale(l.cell / 44); cv.orb.setVisible(pattern.id === 'classic' || pattern.id === 'leaf' || pattern.id === 'aurora').setScale(l.cell / 44).setFillStyle(fill, 1).setStrokeStyle(selected ? 2.5 : 1.4, shade(fill, .62), 1); cv.diamond.setVisible(pattern.id === 'prism' || pattern.id === 'star').setScale(l.cell / 44).setFillStyle(fill, 1).setStrokeStyle(selected ? 2.5 : 1.4, shade(fill, .62), 1); cv.hex.setVisible(pattern.id === 'gold').setScale(l.cell / 44).setFillStyle(fill, 1).setStrokeStyle(selected ? 2.5 : 1.4, shade(fill, .62), 1); cv.shine.setVisible(v !== Sim.KINDS.hazard).setScale(l.cell / 44); cv.ring.setVisible(selected || (this.viewState === 'invalid' && this.hoverCell && this.hoverCell[0] === x && this.hoverCell[1] === y)).setScale(l.cell / 44).setStrokeStyle(2.5, selected ? COLOR.warning : COLOR.bad, .95); cv.glyph.setText(v === Sim.KINDS.hazard ? '!' : pattern.mark || Sim.GLYPHS[(v - 1) % Sim.GLYPHS.length]).setFontSize(Math.round(Math.max(14, l.cell * .25) * DPR)).setColor(v === Sim.KINDS.hazard ? '#f7c948' : '#ffffff'); }
       for (i = 0; i < this.clearFlashViews.length; i++) this.clearFlashViews[i].setVisible(false); for (i = 0; i < this.clearFlash.length; i++) { var f = this.clearFlash[i], a = clamp(f.t / .48, 0, 1), s = l.cell * (1.05 + (1 - a) * .35); this.clearFlashViews[i].setVisible(true).setPosition(l.boardX + f.x * l.cell + l.cell / 2, l.boardY + f.y * l.cell + l.cell / 2).setSize(s, s).setFillStyle(f.color, a * .75); }
     }
     renderNotice() {
@@ -245,9 +255,9 @@
       var reduce = kit.juice.enabled === false, age = this.notice.max - this.notice.t, fade = this.notice.kind === 'coach' ? clamp(this.notice.t / .9, 0, 1) : clamp(this.notice.t / .16, 0, 1), alpha = reduce ? (this.notice.kind === 'coach' ? .14 + fade * .86 : fade) : Math.min(1, age / .12) * fade;
       if (this.notice.kind === 'boundary') {
         var width = Math.min(l.w * .64, 270), scale = reduce ? 1 : .92 + clamp(age / .16, 0, 1) * .08;
-        this.noticeRoot.setVisible(this.phase === 'play').setPosition(l.w / 2, l.boardY + l.boardSize * .43).setScale(scale).setAlpha(alpha); this.noticeBg.setSize(width, 58).setStrokeStyle(1.5, this.notice.color, .9); textIfChanged(this.noticeText, this.notice.text); textIfChanged(this.noticeSub, this.notice.sub || ''); this.noticeText.setPosition(0, -8).setFontSize(18); this.noticeSub.setPosition(0, 16).setVisible(!!this.notice.sub); this.noticeRoot.bringToTop(); return;
+        this.noticeRoot.setVisible(this.phase === 'play').setPosition(l.w / 2, l.boardY + l.boardSize * .43).setScale(scale).setAlpha(alpha); this.noticeBg.setSize(width, 58).setStrokeStyle(1.5, this.notice.color, .9); textIfChanged(this.noticeText, this.notice.text); textIfChanged(this.noticeSub, this.notice.sub || ''); this.noticeText.setPosition(0, -8).setFontSize(18 * DPR); this.noticeSub.setPosition(0, 16).setVisible(!!this.notice.sub); this.noticeRoot.bringToTop(); return;
       }
-      var chip = this.notice.kind !== 'coach', chipWidth; textIfChanged(this.noticeText, this.notice.text); this.noticeText.setFontSize(14); chipWidth = Math.min(l.w - 32, Math.max(76, this.noticeText.width + 24)); this.noticeBg.setSize(chip ? chipWidth : l.w - 24, chip ? 28 : 30).setStrokeStyle(1, this.notice.color, .7); this.noticeRoot.setVisible(true).setPosition(chip ? l.w - chipWidth / 2 - 12 : l.w / 2, l.noticeY).setScale(1).setAlpha(alpha); this.noticeText.setPosition(0, 0); this.noticeSub.setVisible(false); this.noticeRoot.bringToTop();
+      var chip = this.notice.kind !== 'coach', chipWidth; textIfChanged(this.noticeText, this.notice.text); this.noticeText.setFontSize(14 * DPR); chipWidth = Math.min(l.w - 32, Math.max(76, this.noticeText.width + 24)); this.noticeBg.setSize(chip ? chipWidth : l.w - 24, chip ? 28 : 30).setStrokeStyle(1, this.notice.color, .7); this.noticeRoot.setVisible(true).setPosition(chip ? l.w - chipWidth / 2 - 12 : l.w / 2, l.noticeY).setScale(1).setAlpha(alpha); this.noticeText.setPosition(0, 0); this.noticeSub.setVisible(false); this.noticeRoot.bringToTop();
     }
     update(time, delta) { var juice = kit.juice.frame(); this.world.setPosition(juice.dx, juice.dy); var d = Math.min(50, Math.max(0, num(delta, 0))); this.accumulator += d; var steps = 0; while (this.accumulator >= STEP && steps < MAX_STEPS) { this.accumulator -= STEP; this.stepSim(STEP / 1000); steps++; } if (steps === MAX_STEPS && this.accumulator >= STEP) this.accumulator = Math.min(this.accumulator, STEP * .9); this.pollKeyboard(); this.pollGamepad(); this.renderAll(); }
     shutdownScene() { this.unbindInput(); this.scale.off('resize', this.layout, this); if (Game.scene === this) Game.scene = null; }
@@ -255,7 +265,10 @@
 
   var probe = {}; Object.defineProperty(probe, 'state', { enumerable: true, get: function () { return DEBUG_VIEW; } }); window.__gf = Object.freeze(probe);
   kit.loader.show('GRIDFALL'); kit.loader.progress(.12);
-  Game.phaser = new Phaser.Game({ type: Phaser.AUTO, parent: document.body, backgroundColor: '#182238', scale: { mode: Phaser.Scale.RESIZE, width: 390, height: 844 }, render: Object.assign({}, GGKit.renderDefaults, { batchSize: 2048 }), fps: { target: 60, min: 30 }, scene: [GridfallScene] });
-  bindHiDpiResize(Game.phaser);
+  var view = cssViewport();
+  var cfg = GGKit.hiDpi.phaser({ type: Phaser.AUTO, parent: document.body, backgroundColor: '#182238', scale: { mode: Phaser.Scale.NONE, width: view.width, height: view.height }, render: Object.assign({}, GGKit.renderDefaults, { batchSize: 2048 }), fps: { target: 60, min: 30 }, scene: [GridfallScene] });
+  DPR = cfg.ggDpr;
+  installDenseText();
+  Game.phaser = new Phaser.Game(cfg);
   kit.loader.progress(1);
 })();

@@ -272,3 +272,62 @@ growth. That took the same trace to 3-7 frames over 33 ms.
 - Could not complete the live DPR 3 gameplay screenshot or layout check.
   Existing authored canvas bakes were left at their logical sizes because a
   frame-unit migration to `GGKit.hiDpi.canvas(...)` could not be live-verified.
+
+## Retina pass 2
+
+- Measured canvas ratio at DPR 3: unavailable. `retina_audit.mjs` could not start because its private port was rejected with `listen EPERM`; the in-app browser was unavailable too. Static configuration expects 3.00x through `config.ggDpr` at DPR 3.
+- Converted the parented `Scale.RESIZE` setup to `Scale.NONE` through `GGKit.hiDpi.phaser()`. The board layout uses CSS-sized scene coordinates under a centered factor camera zoom, with the existing pixel-art settings, text resolution, and canvas bakes retained.
+- Gameplay screenshot, render-loop probe, and move input resolution could not be live-verified because no browser or private local server was available.
+
+## Retina repair 2
+
+Measured density at deviceScaleFactor 3, sampled ~10s after load (not immediately):
+`canvas.width / getBoundingClientRect().width` = **3.000** (1170 / 390). Held on
+re-sample during the interaction probe.
+
+Three defects, all in this title. `GGKit.hiDpi.resize` was NOT at fault and
+`play/_shared/` was not touched.
+
+1. **Boot crash — stale call site, not the helper.** `TypeError: Cannot set
+   properties of undefined (setting 'width')` came from this title's own
+   `syncHiDpi()`, which called `game.scale.resize()` directly at module top
+   level, one statement after `new Phaser.Game(config)`. That path never goes
+   through the hardened helper, so the helper's ready-event deferral could not
+   protect it. `syncHiDpi` now defers to `game.events.once('ready', ...)` when
+   the game is not yet booted and swallows a resize throw, matching the helper's
+   contract. The first sync had nothing to correct anyway: `GGKit.hiDpi.phaser`
+   already sized the config.
+
+2. **Camera midpoint thrown away every frame (silent trap #1).** `relayout()`
+   correctly did `setZoom(DPR)` + `centerOn(w/2, h/2)`, but `update()` then ran
+   `cameras.main.setScroll(juiceFrame.dx, juiceFrame.dy)` — an ABSOLUTE scroll —
+   on every frame, resetting scroll to (0,0). A zoomed camera keeps its own
+   midpoint under the viewport centre, so at zoom 3 the visible world window
+   became x 390..780 while every object lives in 0..390: measured midPoint
+   (585, 1266) against a design box of 390x844. Almost nothing drew, which is
+   the 148-colour reading. Shake is now an OFFSET from a stored `camBase`
+   captured right after `centerOn`.
+
+3. **Non-converging title-art scale.** `updateTitle()` did
+   `titleArt.setScale((titleArt.displayWidth / 300) * breathe)` — it read the
+   scale back off the object it had just written, so the breathe multiplier
+   compounded every frame and random-walked. Measured scale 1.173 against a
+   laid-out base of 0.933, which overlapped the crown onto the class cards.
+   `layoutTitle` now records `titleArtBase` and the breathe multiplies that.
+
+Verified in-harness (`/Users/lucille/ue-port-studio/aaa/harness`), private ports:
+
+- `boot_sweep.mjs`: was FAIL err=1 colours=148 (exact8=579). Now
+  **PASS err=0 404=0 colours=399 (exact8=2043) lit=100%**, in the same run as
+  healthy siblings frosthold (137 / 1975) and driftlands (940 / 10385).
+- `retina_audit.mjs`: **RET-OK dpr=3 colours=3205 flattest=22.4%** (driftlands
+  22459 / 25.8% in the same run; frosthold returned a void reading).
+- `live_probe.mjs`: **PASS raf=821 shots=5/5**, no uncaught errors.
+- Core mechanic under real input: tapping DESCEND moved `state.mode`
+  title -> play, and six directional actions advanced `state.turn` 0 -> 5 with
+  the player moving on the board. Zero console errors, zero page errors.
+- `node --check play/corridor-crawl/game.js` clean (only file touched).
+
+Not changed: no redesign, no rebalance, no content. Text objects keep their
+Phaser `Text.resolution` (a text-object property); no `source.resolution` is
+set anywhere, and none was added.

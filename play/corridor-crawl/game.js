@@ -1196,6 +1196,7 @@
   // =======================================================================
   var art = CC.art, canvasTexture = art.canvasTexture;
   var SLOTS_MAX = 8;
+  var DPR = 1;
 
   function CrawlScene() { Phaser.Scene.call(this, { key: 'CrawlScene' }); }
   CrawlScene.prototype = Object.create(Phaser.Scene.prototype);
@@ -1210,6 +1211,8 @@
   };
   CrawlScene.prototype.create = function () {
     Game.scene = this;
+    this.cameras.main.setZoom(DPR);
+    this.camBase = { x: this.cameras.main.scrollX, y: this.cameras.main.scrollY };
     this.simPaused = false; this.touch = {}; this.keyLatch = {}; this.lastGamepadCode = null;
     this.metrics = {}; this.lastProbe = { floor: null, event: null };
     this.particles = []; this.particleRecords = []; this.rings = []; this.emberT = 0;
@@ -1383,7 +1386,7 @@
 
   CrawlScene.prototype.relayout = function () {
     if (!this.metrics || !this.boardImage) return;
-    var w = Math.max(280, this.scale.width), h = Math.max(480, this.scale.height);
+    var w = Math.max(280, this.scale.width / DPR), h = Math.max(480, this.scale.height / DPR);
     var top = h < 600 ? 86 : 82;
     // The pack bar is sized to its contents rather than to a share of the
     // screen: the leftover space belongs to the board, not to an empty panel.
@@ -1395,6 +1398,11 @@
     var boardX = Math.floor((w - boardW) / 2);
     var boardY = top + Math.max(0, Math.floor((available - boardH) * 0.36));
     this.metrics = { w: w, h: h, tile: tile, boardW: boardW, boardH: boardH, boardX: boardX, boardY: boardY };
+    this.cameras.main.setZoom(DPR);
+    this.cameras.main.centerOn(w / 2, h / 2);
+    // Remember the centred scroll: update() re-applies it every frame with the
+    // juice shake added on top.
+    this.camBase = { x: this.cameras.main.scrollX, y: this.cameras.main.scrollY };
     // Static chrome is baked into one texture: Phaser Graphics would replay the
     // whole panel command list every frame.
     canvasTexture(this, 'cc_chrome', w, h, function (ctx, cw, ch) {
@@ -1484,6 +1492,7 @@
     var top = Math.max(18, (h - blockH) / 2);
     var y = top + artH / 2;
     this.titleArt.setTexture('cc_titleart').setPosition(w / 2, y).setDisplaySize(artW, artH);
+    this.titleArtBase = artW / TW;
     y = top + artH + 6;
     this.titleSub.setPosition(w / 2, y);
     y += 18;
@@ -1893,7 +1902,12 @@
     if (!showing) return;
     // Staggered card entry plus a breathing crown: never a static screen.
     var t = this.titleT;
-    this.titleArt.setScale((this.titleArt.displayWidth / 300) * (kit.juice.enabled ? 1 + Math.sin(t * 1.8) * 0.012 : 1));
+    // The breathe multiplies a FIXED base scale. Reading displayWidth back out
+    // and re-deriving the scale from it compounds the multiplier every frame,
+    // so the crown random-walked away from its laid-out size (measured 1.17x
+    // against a base of 0.93x) and overlapped the class cards.
+    var artBase = this.titleArtBase || (this.titleArt.displayWidth / 300);
+    this.titleArt.setScale(artBase * (kit.juice.enabled ? 1 + Math.sin(t * 1.8) * 0.012 : 1));
     var toast = this.state.banner && this.state.banner.t > 0 ? this.state.banner : null;
     CC.setTextIfChanged(this.titleSub, toast ? toast.text : 'choose a delver');
     this.titleSub.setColor(toast ? toast.color : '#8fb0c2');
@@ -2459,7 +2473,15 @@
   CrawlScene.prototype.update = function (time, delta) {
     if (!this.state) return;
     var juiceFrame = kit.juice.frame();
-    if (this.cameras && this.cameras.main) this.cameras.main.setScroll(juiceFrame.dx, juiceFrame.dy);
+    // Shake is an OFFSET from the centred scroll, never an absolute scroll.
+    // A zoomed camera keeps its own midpoint under the viewport centre, so
+    // setScroll(0, 0) throws the whole design box off screen: at zoom 3 the
+    // visible world window became 390..780 while every object lives in
+    // 0..390, which is why this title drew almost nothing.
+    if (this.cameras && this.cameras.main) {
+      var base = this.camBase || { x: 0, y: 0 };
+      this.cameras.main.setScroll(base.x + juiceFrame.dx, base.y + juiceFrame.dy);
+    }
     var dt = Math.min(Math.max(delta || 0, 0), 50) / 1000;
     // Quality tier: heavy ambient FX drop out before the frame budget does.
     this.frameAvg = this.frameAvg * 0.92 + Math.min(delta || 16, 60) * 0.08;
@@ -2482,18 +2504,39 @@
     this.renderWorld(); this.renderHud();
   };
 
-  Game.phaser = new Phaser.Game({
+  var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || 390));
+  var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || 844));
+  var config = {
     type: Phaser.AUTO, parent: document.body, backgroundColor: '#070b12', pixelArt: true,
-    scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%', autoCenter: Phaser.Scale.CENTER_BOTH },
+    scale: { mode: Phaser.Scale.NONE, width: cssW, height: cssH },
     render: Object.assign({}, GGKit.renderDefaults, { pixelArt: true, roundPixels: true }),
     scene: [CrawlScene], fps: { min: 30, target: 60, forceSetTimeOut: false }
-  });
-  function syncHiDpi(game) {
-    var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || window.innerWidth || 1));
-    var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || window.innerHeight || 1));
-    GGKit.hiDpi.resize(game, cssW, cssH);
+  };
+  config = GGKit.hiDpi.phaser(config);
+  DPR = config.ggDpr;
+  Game.phaser = new Phaser.Game(config);
+  // game.scale EXISTS from construction but its internals do not, so calling
+  // scale.resize() straight after `new Phaser.Game()` throws
+  // "Cannot set properties of undefined (setting 'width')" from inside
+  // Phaser's own resize path. That is this title's boot crash: the config is
+  // already correct, so the very first sync has nothing to correct anyway.
+  // Defer every sync until the game is booted.
+  function applyHiDpi(game) {
+    var nextW = Math.max(1, Math.floor(document.documentElement.clientWidth || 1));
+    var nextH = Math.max(1, Math.floor(document.documentElement.clientHeight || 1));
+    try {
+      game.scale.resize(Math.round(nextW * DPR), Math.round(nextH * DPR));
+    } catch (e) { return; }
+    if (game.canvas) {
+      game.canvas.style.width = nextW + 'px';
+      game.canvas.style.height = nextH + 'px';
+    }
   }
-  syncHiDpi(Game.phaser);
+  function syncHiDpi(game) {
+    if (!game || !game.scale) return;
+    if (game.isBooted) applyHiDpi(game);
+    else if (game.events && game.events.once) game.events.once('ready', function () { applyHiDpi(game); });
+  }
   window.addEventListener('resize', function () { syncHiDpi(Game.phaser); });
   window.addEventListener('orientationchange', function () { syncHiDpi(Game.phaser); });
   document.addEventListener('visibilitychange', function () {

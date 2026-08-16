@@ -319,3 +319,9 @@ for verification.
 - Could not complete the live DPR 3 gameplay screenshot or layout check.
   Existing authored canvas bakes were left at their logical sizes because a
   frame-unit migration to `GGKit.hiDpi.canvas(...)` could not be live-verified.
+
+## Retina pass 2
+
+- Measured canvas ratio at DPR 3: unavailable. `retina_audit.mjs` could not start because its private port was rejected with `listen EPERM`; the in-app browser was unavailable too. Static configuration expects 3.00x through `config.ggDpr` at DPR 3.
+- Converted the parented `Scale.RESIZE` setup to `Scale.NONE` through `GGKit.hiDpi.phaser()`. Viewport layout now uses CSS-sized world coordinates with a centered `config.ggDpr` camera zoom in boot, menus, play, and overlays. Existing render defaults, text resolution, and authored bakes were retained.
+- Gameplay screenshot, render-loop probe, and core input resolution could not be live-verified because no browser or private local server was available.

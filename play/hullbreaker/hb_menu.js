@@ -198,7 +198,7 @@
       this.events.once('shutdown', function () { scene.scale.off('resize', scene.layout, scene); });
     },
     layout: function () {
-      var W = this.scale.width, H = this.scale.height;
+      var W = this.scale.width / I.dpr(), H = this.scale.height / I.dpr();
       var ins = I.safeInsets();
       this.sky.resize(W, H);
       var s = clamp(Math.min(W / 900, H / 480), 0.62, 1.25);
@@ -219,7 +219,7 @@
     },
     update: function (time, delta) {
       var dt = Math.min(0.05, delta / 1000);
-      var W = this.scale.width, H = this.scale.height;
+      var W = this.scale.width / I.dpr(), H = this.scale.height / I.dpr();
       this.sky.tick(dt, 14, 6);
       for (var i = 0; i < this.demo.length; i++) {
         var d = this.demo[i];
@@ -361,7 +361,7 @@
       };
     },
     layout: function () {
-      var W = this.scale.width, H = this.scale.height;
+      var W = this.scale.width / I.dpr(), H = this.scale.height / I.dpr();
       var ins = I.safeInsets();
       this.sky.resize(W, H);
       var sc = clamp(Math.min(W / 900, H / 480), 0.62, 1.25);
