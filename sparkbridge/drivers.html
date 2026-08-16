@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Native protocol drivers | SparkBridge</title>
-<meta name="description" content="Native Ignition device drivers for TI 505 and CTI 2500 racks, IEC 60870-5-104 outstations, and Allen-Bradley Logix. Each with its real status.">
+<meta name="description" content="Native Ignition device drivers for TI 505 and CTI 2500 racks and IEC 60870-5-104 outstations. Each with its real status.">
 <link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/drivers.html">
 <meta property="og:title" content="Drivers: legacy plant, read natively">
-<meta property="og:description" content="Native Ignition device drivers for TI 505 and CTI 2500 racks, IEC 60870-5-104 outstations, and Allen-Bradley Logix. Each with its real status.">
+<meta property="og:description" content="Native Ignition device drivers for TI 505 and CTI 2500 racks and IEC 60870-5-104 outstations. Each with its real status.">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -54,13 +54,9 @@
                     28 tests  <span class="acc">running on a gateway</span>
 
 <span class="hi">IEC 60870-5-104</span>    APCI / ASDU, full session
-                    120 tests  <span class="acc">proven vs lib60870</span>
-
-<span class="hi">Allen-Bradley Logix</span> CIP, request packing
-                    vendor build 0.1.33  <span style="color:var(--steel)">REVIEW: REJECT</span>
-                    10 findings. work stopped.</pre>
+                    120 tests  <span class="acc">proven vs lib60870</span></pre>
         </div>
-        <div class="artifact-foot">Three drivers, three different states. The third is stopped because a vendor build did not pass review, and shipping it anyway was the worse option.</div>
+        <div class="artifact-foot">Two drivers, two different states. Each one arrives with its capture, not just its claim.</div>
       </div>
     </div>
   </div>
@@ -72,7 +68,7 @@
   <div class="wrap">
     <div class="sec-head">
       <span class="path">The line</span>
-      <h2>Three protocols, three states</h2>
+      <h2>Two protocols, two states</h2>
       <p>They share a build, a test discipline and a diagnostics surface. They do not share a stage of readiness, and the drawing on the lineup page says so.</p>
     </div>
     <div class="cards">
@@ -85,11 +81,6 @@
         <span class="tag">IEC 60870-5-104</span>
         <h3>The utility client, session and all</h3>
         <p>Interrogation, spontaneous reporting, clock synchronisation and the full APCI session lifecycle, proven across a 70-second capture against the lib60870 reference server with zero sequence faults. It has a page of its own.</p>
-      </div>
-      <div class="card">
-        <span class="tag">Allen-Bradley Logix</span>
-        <h3>Stopped, and here is why</h3>
-        <p>An upgraded Logix driver with request packing and connected messaging. A vendor build was submitted, reviewed, and rejected with ten findings. Work is stopped until that is resolved. A driver we would not run on our own plant is not one we will sell.</p>
       </div>
     </div>
 
@@ -128,7 +119,7 @@
   <div class="wrap">
     <div class="sec-head">
       <span class="path">Where they stand</span>
-      <h2>One running, one on the bench, one held</h2>
+      <h2>One running, one on the bench</h2>
       <p>Stated per driver rather than averaged into a single reassuring word.</p>
     </div>
     <div class="ledger">
@@ -147,14 +138,6 @@
           <li>Loads clean on 8.1.54.</li>
           <li>Owes a real outstation before it can be called accepted.</li>
           <li><a href="/sparkbridge/iec104">Read the capture</a>.</li>
-        </ul>
-      </div>
-      <div class="col owed">
-        <h3>Allen-Bradley Logix</h3>
-        <ul>
-          <li>Vendor build 0.1.33 reviewed and rejected, ten findings returned.</li>
-          <li>Work is stopped on purpose and the reason is written down.</li>
-          <li>It resumes when the findings are answered, not before.</li>
         </ul>
       </div>
     </div>

@@ -56,7 +56,7 @@
 
       <a class="dev st-comm" href="/sparkbridge/drivers">
         <span class="tagno">DRV · Drivers</span>
-        <span class="devname">IEC-104 · TI 505 · Logix</span>
+        <span class="devname">IEC-104 &middot; TI 505</span>
         <span class="job">Native protocol, no gateway in between</span>
       </a>
 
@@ -99,7 +99,6 @@
       <b><i></i>In service</b>
       <b><i class="comm"></i>Commissioning</b>
       <b><i class="bench"></i>On the bench</b>
-      <b><i class="hold"></i>Held</b>
     </div>
   </div>
 </header>
@@ -111,7 +110,7 @@
     <div class="sec-head">
       <span class="path">The schedule</span>
       <h2>Every device, and how far along it is</h2>
-      <p>Software gets sold as finished or not at all. This is the middle, written down: what runs in production today, what is proven on a bench and waiting on a soak, and what is stopped.</p>
+      <p>Software gets sold as finished or not at all. This is the middle, written down: what runs in production today, and what is proven on a bench and still waiting on a soak.</p>
     </div>
 
     <div class="scroller">
@@ -161,12 +160,6 @@
             <td><a href="/sparkbridge/drivers">TI 505 · CTI 2500</a></td>
             <td>Native CAMP over TCP for SIMATIC 505 and CTI 2500 racks.<span class="sub"><br>Running on a gateway today; owes its hardening pass.</span></td>
             <td><span class="stat comm">Commissioning</span></td>
-          </tr>
-          <tr>
-            <td>DRV</td>
-            <td><a href="/sparkbridge/drivers">Allen-Bradley Logix</a></td>
-            <td>Upgraded Logix driver with request packing and connected messaging.<span class="sub"><br>Stopped: a vendor build is under review and did not pass.</span></td>
-            <td><span class="stat hold">Held</span></td>
           </tr>
         </tbody>
       </table>
@@ -231,13 +224,6 @@
           <li>The hard part is built and proven against a reference implementation.</li>
           <li>Not yet run against a customer's estate or hardware.</li>
           <li>Talk to us if you have the hardware. Early sites shape what ships.</li>
-        </ul>
-      </div>
-      <div class="col owed">
-        <h3>Held</h3>
-        <ul>
-          <li>Work is stopped on purpose, and the reason is written down.</li>
-          <li>Held beats shipping something we would not run ourselves.</li>
         </ul>
       </div>
     </div>
