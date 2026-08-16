@@ -28,6 +28,7 @@
         <a href="/sparkbridge/compare">Compare</a>
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
         <a href="/sparkbridge/spec">Spec</a>
         <a href="/sparkbridge/contact">Contact</a>
     </nav>
@@ -74,10 +75,10 @@
       <h2>Many Sites, One Server</h2>
       <p>A real example: one central server carrying 40 sites, sitting at 50–75% CPU, using 14 GB of memory, unable to ride out a network outage, and getting worse every time someone added a dashboard.</p>
     </div>
-    <div class="cards">
-      <div class="card"><span class="tag">Sizing</span><h3>280k–300k metrics</h3><p>That estate's consolidated published metrics, sized from real gateway backups.</p></div>
-      <div class="card"><span class="tag">Envelope</span><h3>500k in under 4 GiB</h3><p>The measured single-host capacity, with per-metric cost flat to a million. The fleet fits with margin on every dimension.</p></div>
-      <div class="card"><span class="tag">Consumers</span><h3>Cost does not grow</h3><p>Adding a dashboard, a historian or an ML pipeline adds a subscriber, not load at the source.</p></div>
+    <div class="leads">
+      <p><b>280k–300k metrics.</b> That estate's consolidated published metrics, sized from real gateway backups.</p>
+      <p><b>500k in under 4 GiB.</b> The measured single-host capacity, with per-metric cost flat to a million. The fleet fits with margin on every dimension.</p>
+      <p><b>Cost does not grow with consumers.</b> Adding a dashboard, a historian or an ML pipeline adds a subscriber, not load at the source.</p>
     </div>
   </div>
 </section>
@@ -89,10 +90,10 @@
       <h2>One Source of Plant Data</h2>
       <p>This just means every system reads the same up-to-date picture of the plant from one place. You get it by publishing properly, not by buying something else.</p>
     </div>
-    <div class="cards">
-      <div class="card"><span class="tag">Discovery</span><h3>The namespace populates itself</h3><p>Each site describes itself at birth, so a new consumer subscribes and discovers the estate rather than being configured for it.</p></div>
-      <div class="card"><span class="tag">Dual publish</span><h3>Sparkplug and JSON</h3><p>The same values a second time on a readable ISA-95 style path for consumers that will never speak protobuf.</p></div>
-      <div class="card"><span class="tag">Isolation</span><h3>Per-site write scope</h3><p>Application topics are authorized per identity and denied by default, so a site can write its own subtree and nobody else's.</p></div>
+    <div class="leads">
+      <p><b>The namespace populates itself.</b> Each site describes itself at birth, so a new consumer subscribes and discovers the estate rather than being configured for it.</p>
+      <p><b>Sparkplug and JSON, both.</b> The same values a second time on a readable ISA-95 style path for consumers that will never speak protobuf.</p>
+      <p><b>Per-site write scope.</b> Application topics are authorized per identity and denied by default on the SparkBridge broker, and by file RBAC on external HiveMQ, so a site can write its own subtree and nobody else's.</p>
     </div>
   </div>
 </section>
@@ -133,7 +134,7 @@
           <tr><td>Inbound firewall rules</td><td>The edge connects outbound to the broker. No inbound port into the plant network is required for data to flow.</td></tr>
           <tr><td>A compromised site publishing as another</td><td>An edge credential is bound to its own group and node; an unlisted user is denied, and the client ID is bound to the credential.</td></tr>
           <tr><td>A compromised site issuing commands</td><td>Edge identities cannot publish NCMD, DCMD or STATE at all. Command injection is structurally unavailable rather than discouraged.</td></tr>
-          <tr><td>A compromised site forging enterprise data</td><td>Application topics (the UNS tree, file-transfer manifests) are authorized per identity and denied by default.</td></tr>
+          <tr><td>A compromised site forging enterprise data</td><td>On the SparkBridge broker, application topics (the UNS tree, file-transfer manifests) are authorized per identity and denied by default. On external HiveMQ the same separation is enforced by file RBAC, whose permission blocks the migration preflight generates.</td></tr>
           <tr><td>Credentials on the box</td><td>Secrets live in a permission-restricted file, not in JVM arguments visible to any local user through <code>ps</code>.</td></tr>
         </tbody>
       </table>
@@ -155,7 +156,7 @@
 <footer>
   <div class="wrap">
     <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
-    <span class="mono"><a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
   </div>
 </footer>
 

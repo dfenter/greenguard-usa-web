@@ -28,6 +28,7 @@
         <a href="/sparkbridge/compare">Compare</a>
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
         <a href="/sparkbridge/spec">Spec</a>
         <a href="/sparkbridge/contact">Contact</a>
     </nav>
@@ -181,6 +182,7 @@
                 <li><b>Self-learning tags</b><span>The model arrives in the birth certificate. Tags appear as sites come online; there is no central tag configuration to maintain or drift.</span></li>
                 <li><b>Template expansion</b><span>Templates expand into member tags, and folded metadata projects onto standard engineering properties: units, documentation, and the low and high range.</span></li>
                 <li><b>Aware-broker priming</b><span>Against a Sparkplug Aware broker, a late-joining host learns the estate from retained certificates instead of asking every edge to rebirth at once.</span></li>
+                <li><b>Third-party edges welcome</b><span>Aliases are optional in Sparkplug, and since 2.3.0 the Host accepts births and data from edges that never assign them. UINT32 is read unsigned from either legal wire field, in metrics, DataSet cells, properties and template parameters alike. Verified live against the Eclipse Tahu reference edge.</span></li>
               </ul>
             </div>
             <div class="fgroup">
@@ -243,7 +245,7 @@
             <div class="fgroup">
               <h4>Application topics</h4>
               <ul>
-                <li><b>Denied by default</b><span>UNS, file-transfer and bridge topics are authorized per identity by prefix, so one site's credential cannot forge another site's data.</span></li>
+                <li><b>Denied by default</b><span>On the SparkBridge broker, UNS, file-transfer and bridge topics are authorized per identity by prefix, so one site's credential cannot forge another site's data. On external HiveMQ the publish and subscribe authority is file RBAC, and the preflight generates the permission blocks for it.</span></li>
                 <li><b>Level-bounded prefixes</b><span>Matching respects topic boundaries, and a filter may wildcard below a granted prefix but never across or above it.</span></li>
               </ul>
             </div>
@@ -381,10 +383,12 @@
       </div>
       <div>
         <h4>The result</h4>
-        <p>All four edge scenarios pass end to end, 110 individual checks in total. The host
-        session checks run clean as well. Every run is scripted and repeatable: the same harness
-        ships with the product, so the result can be reproduced on your own hardware rather than
-        taken on trust.</p>
+        <p>The published record is 346 assertions executed, 346 passed, zero failed, across every
+        edge profile and the host session profile. The suite was re-certified against 2.4.0 code
+        on 2026-08-15, seed 240: ten runs, 182 EDGE assertions passed and 52 HOST assertions
+        passed, every profile OVERALL PASS and zero FAIL lines in the whole session. Every run is
+        scripted and repeatable, and the nine-profile session is now a single command, so the
+        result can be reproduced on your own hardware rather than taken on trust.</p>
         <h4>What this is not</h4>
         <p>It is not yet a formal certification. The official listing with the Eclipse Foundation
         is a separate administrative step, membership, paperwork and a published report, and it is the
@@ -409,14 +413,14 @@
         <tbody>
           <tr><td>Per-site identity scoping</td><td>An edge credential is bound to its own group and node. An unlisted edge user is denied; unscoped credentials require an explicit development-only opt-out.</td></tr>
           <tr><td>Command injection</td><td>Structurally prevented. Edge identities cannot publish NCMD, DCMD or STATE. Proven live against the deployed broker ACL.</td></tr>
-          <tr><td>Application topics</td><td>The UNS tree, file-transfer manifests and bridge traffic are authorized per identity and <b>denied by default</b>, so one site's credential cannot forge another site's data.</td></tr>
+          <tr><td>Application topics</td><td>On the SparkBridge broker, the UNS tree, file-transfer manifests and bridge traffic are authorized per identity and <b>denied by default</b>, so one site's credential cannot forge another site's data. On external HiveMQ the same separation is expressed as file RBAC, generated for you by the migration preflight.</td></tr>
           <tr><td>API authentication</td><td>Separate read, write and admin bearer tokens, fail-closed. Query-string tokens are rejected on sensitive routes.</td></tr>
           <tr><td>Malformed input</td><td>Bounded decoding on every path: payload size, metric count, template nesting depth, dataset cells and property entries, plus a 50,000-case fuzz of the decoder.</td></tr>
           <tr><td>Secret handling</td><td>A permission-restricted file, not JVM arguments visible to any local user through <code>ps</code>. A configured but unreadable secrets file fails the module closed.</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="note">Assurance base: 504 automated tests including live gateway integration, property-based codec testing, corrupt-buffer and chaos suites, and negative TLS tests; load and endurance scenarios you can run yourself; and repeated independent adversarial review cycles whose findings are fixed, tested and re-verified rather than filed.</p>
+    <p class="note">Assurance base: 531 automated tests including live gateway integration, property-based codec testing, corrupt-buffer and chaos suites, and negative TLS tests; load and endurance scenarios you can run yourself; and repeated independent adversarial review cycles whose findings are fixed, tested and re-verified rather than filed.</p>
   </div>
 </section>
 
@@ -425,37 +429,41 @@
     <div class="sec-head">
       <div class="path">cost</div>
       <h2>What It Costs</h2>
-      <p>Free to use for development and testing. When you go live you buy a licence once per site and keep it. There is no charge per tag, per device or per connected client.</p>
+      <p>Free to use for development and testing. When you go live you buy a license once per gateway and keep it: $995 for an edge site, $1,995 for the central Host. There is no charge per tag, per device or per connected client.</p>
     </div>
 
     <div class="tiers">
       <div class="tier">
         <div class="top">
           <h3>Development</h3>
-          <div class="price">Free<small>Unlimited, non-production. No time limit and no feature gate.</small></div>
+          <div class="price">Free<small>Unlimited non-production use. No time limit, no feature gate.</small></div>
         </div>
-        <p class="why">Every module and every capability, on as many test gateways as you want.</p>
+        <p class="why">Every module, on as many test gateways as you want.</p>
       </div>
       <div class="tier feature">
         <div class="top">
           <h3>Single site</h3>
-          <div class="price">$1,995<small>Once, per production gateway. Support and updates $399/yr, optional.</small></div>
+          <div class="price dual">
+            <span><em>Edge</em>$995</span>
+            <span><em>Central Server</em>$1,995</span>
+            <small>Perpetual, per production gateway. Support 20%/yr, optional.</small>
+          </div>
         </div>
-        <p class="why">The licence does not expire, and the software keeps running whether or not you renew support.</p>
+        <p class="why">Each gateway pays for exactly the role it runs.</p>
       </div>
       <div class="tier">
         <div class="top">
           <h3>Enterprise</h3>
-          <div class="price">$12k–$20k<small>Unlimited sites for one organisation, support included.</small></div>
+          <div class="price">Volume<small>Discounts on Edge and Central Server licenses, for fleets.</small></div>
         </div>
-        <p class="why">Past roughly seven sites this costs less than licensing them one at a time.</p>
+        <p class="why">Fleet pricing beats one-at-a-time past about seven sites.</p>
       </div>
       <div class="tier">
         <div class="top">
           <h3>Integrator</h3>
           <div class="price">40% off<small>List price, for resale, with deal registration.</small></div>
         </div>
-        <p class="why">For systems integrators putting this in front of the plants that need it.</p>
+        <p class="why">For integrators putting this in front of the plants that need it.</p>
       </div>
     </div>
 
@@ -536,7 +544,7 @@
 <footer>
   <div class="wrap">
     <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
-    <span class="mono"><a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
   </div>
 </footer>
 

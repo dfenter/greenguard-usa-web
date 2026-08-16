@@ -147,27 +147,69 @@ main section:nth-of-type(even):not(.band):not(.tail){background:var(--bone-2)}
 }
 .band .tag{color:var(--paper-dim);border-color:var(--steel-dark)}
 
-/* ---- tables (engraved data plates) ---- */
+/* ---- tables (engraved data plates, open engraving: no box, no verticals;
+   hairline rows under a 2px graphite header rule whose lead-column segment
+   runs light green — the lit legend strip) ---- */
 .scroller{overflow-x:auto}
-.tbl{border-collapse:collapse;width:100%;font-size:14.5px;background:var(--paper);border:1px solid var(--steel)}
-.tbl th,.tbl td{padding:11px 16px;text-align:left;border-bottom:1px solid var(--steel);vertical-align:top}
-.tbl th{
-  font-family:"Spline Sans Mono",monospace;font-size:11.5px;font-weight:500;letter-spacing:.1em;
-  text-transform:uppercase;background:var(--bone-2);color:var(--ink-soft);
+.tbl{border-collapse:collapse;width:100%;font-size:15px;background:transparent;border:0}
+.tbl th,.tbl td{
+  padding:14px 32px 14px 0;text-align:left;vertical-align:top;
+  border-bottom:1px solid var(--steel);
 }
-.tbl tr:last-child td{border-bottom:0}
-.tbl .num{font-family:"Spline Sans Mono",monospace;white-space:nowrap}
-.tbl .np{color:var(--ink-soft);font-size:13px}
+.tbl th:last-child,.tbl td:last-child{padding-right:0}
+.tbl th{
+  font-family:"Spline Sans Mono",monospace;font-size:11.5px;font-weight:500;letter-spacing:.13em;
+  text-transform:uppercase;background:transparent;color:var(--ink-soft);
+  padding-top:0;padding-bottom:10px;border-bottom:2px solid var(--graphite);
+}
+.tbl thead th:first-child{box-shadow:inset 0 -2px 0 var(--marker);border-bottom-color:transparent}
+.tbl tbody tr:hover td{background:var(--bone-2)}
+.tbl td:first-child{font-weight:600;color:var(--ink)}
+.tbl .num{font-family:"Spline Sans Mono",monospace;white-space:nowrap;font-size:14px}
+.tbl .np{color:var(--ink-soft);font-size:13px;font-weight:400}
 .tbl .sub{color:var(--ink-soft);font-size:13px}
-.band .tbl{background:var(--graphite-2);border-color:var(--steel-dark)}
-.band .tbl th{background:var(--graphite);color:var(--paper-dim)}
-.band .tbl th,.band .tbl td{border-color:var(--steel-dark)}
+.band .tbl th{color:var(--paper-dim);border-bottom-color:var(--paper-dim)}
+.band .tbl thead th:first-child{border-bottom-color:transparent}
+.band .tbl td{border-color:var(--steel-dark)}
+.band .tbl td:first-child{color:#fff}
+.band .tbl tbody tr:hover td{background:var(--graphite-2)}
+/* comparison tables: the SparkBridge column is a lit channel — paper ground, a continuous
+   run-light rail down its left edge, and the header segment above it */
+.tbl.ours-last th:last-child,.tbl.ours-last td:last-child{
+  background:var(--paper);box-shadow:inset 3px 0 0 var(--marker);
+  padding-left:22px;padding-right:18px;
+}
+.tbl.ours-last thead th:last-child{box-shadow:inset 3px 0 0 var(--marker),inset 0 -2px 0 var(--marker);border-bottom-color:transparent}
+.tbl.ours-last td:last-child{font-weight:500;color:var(--ink)}
+.band .tbl.ours-last th:last-child,.band .tbl.ours-last td:last-child{background:var(--graphite-2)}
+.band .tbl.ours-last td:last-child{color:#fff}
+.tbl.ours-last tbody tr:hover td:last-child{background:var(--paper)}
+.band .tbl.ours-last tbody tr:hover td:last-child{background:var(--graphite-2)}
 .k.good{color:var(--ok);font-weight:600}
 .pass{color:var(--ok);font-family:"Spline Sans Mono",monospace;font-size:13px}
 .badge{
   display:inline-block;font-family:"Spline Sans Mono",monospace;font-size:11px;letter-spacing:.08em;
   border:1px solid var(--steel);padding:2px 8px;border-radius:2px;color:var(--ink-soft);
 }
+
+/* ---- run-in prose lists (the paragraph form of what cards used to hold) ---- */
+.leads{max-width:78ch}
+.leads p{margin:0 0 16px;font-size:15.5px;color:var(--ink-soft);break-inside:avoid}
+.leads p:last-child{margin-bottom:0}
+.leads p b{color:var(--ink);font-weight:600}
+.leads a{text-decoration-color:var(--marker);text-decoration-thickness:2px}
+.band .leads p{color:var(--paper-dim)}
+.band .leads p b{color:#fff}
+.leads.cols{max-width:none;columns:2 46ch;column-gap:64px}
+
+/* ---- plain stacked blocks with hairline seams (contact actions) ---- */
+.plain{max-width:78ch}
+.plain>div{padding:28px 0;border-top:1px solid var(--steel)}
+.plain>div:first-child{border-top:0;padding-top:0}
+.plain>div:last-child{padding-bottom:0}
+.plain h3{font-size:21px;margin:0 0 8px}
+.plain p{margin:0;font-size:15.5px;color:var(--ink-soft);max-width:66ch}
+.plain .act{margin-top:16px}
 
 /* ---- generic two-up + feature groups ---- */
 .two{display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:start}
@@ -182,6 +224,24 @@ main section:nth-of-type(even):not(.band):not(.tail){background:var(--bone-2)}
 .chips>*{min-width:0}
 
 /* ---- pricing ---- */
+/* Pro tier cards: every card a flex column so the action pins to the bottom and all four
+   read as one system - equal heights from the grid, equal button position from the flex. */
+.tiers .tier{display:flex;flex-direction:column}
+.tier .act{margin-top:auto;padding-top:20px}
+.tier .act .btn{display:block;text-align:center;white-space:nowrap}
+.tier .top{padding-bottom:14px;border-bottom:1px solid var(--steel);margin-bottom:14px}
+.tier.feature .top{border-bottom-color:var(--steel-dark)}
+/* Dual role price: two labeled rows sharing one plate */
+.price.dual{display:flex;flex-direction:column;gap:6px;font-size:26px;margin:10px 0 0}
+.price.dual span{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.price.dual span em{
+  font-style:normal;font-family:"Spline Sans Mono",monospace;font-size:11.5px;font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);
+}
+.tier.feature .price.dual span em{color:var(--paper-dim)}
+.price.dual small{display:block;font-family:"Public Sans",sans-serif;font-weight:400;font-size:13.5px;color:var(--ink-soft);margin-top:8px;text-transform:none;letter-spacing:0}
+.tier.feature .price.dual small{color:var(--paper-dim)}
+
 .tier{background:var(--paper);border:1px solid var(--steel);padding:28px 30px}
 .tier h3{font-size:17px;letter-spacing:.05em;color:var(--ink-soft)}
 .tier.feature h3{color:var(--paper-dim)}
@@ -315,14 +375,6 @@ footer a:hover{color:#fff}
 .spec-mast .mast dd.normative{color:var(--marker);font-weight:600}
 .rfc{font-family:"Spline Sans Mono",monospace;font-size:.82em;font-weight:600;letter-spacing:.04em;padding:0 4px;background:var(--bone-2);border:1px solid var(--steel)}
 .band .rfc{background:var(--graphite-2);border-color:var(--steel-dark);color:#fff}
-.classcards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:26px}
-.ccard{background:var(--paper);border:1px solid var(--steel);border-top:4px solid var(--steel);padding:20px 22px}
-.ccard.s{border-top-color:var(--marker)}
-.ccard.r{border-top-color:var(--graphite)}
-.ccard.c{border-top-color:var(--steel)}
-.ccard .ctag{font-family:"Spline Sans Mono",monospace;font-size:11.5px;letter-spacing:.08em;color:var(--ink-soft)}
-.ccard h3{font-size:20px;margin:6px 0 10px}
-.ccard p{margin:0;font-size:14.5px;color:var(--ink-soft)}
 .specgrid{display:grid;grid-template-columns:230px minmax(0,1fr);gap:44px;align-items:start}
 .spectoc{position:sticky;top:76px;display:flex;flex-direction:column;gap:2px;font-family:"Spline Sans Mono",monospace;font-size:12.5px;border-left:2px solid var(--steel);padding-left:14px}
 .spectoc .toct{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:6px}
@@ -335,12 +387,17 @@ footer a:hover{color:#fff}
 .specdoc code{font-family:"Spline Sans Mono",monospace;font-size:.86em;background:var(--bone-2);padding:1px 5px;border:1px solid var(--steel)}
 .specdoc pre{background:var(--graphite);color:#E7EAED;padding:14px 16px;overflow-x:auto;font-size:13px}
 .specdoc pre code{background:transparent;border:0;color:inherit;padding:0}
-.specdoc table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13.5px;display:block;overflow-x:auto;background:var(--paper)}
-.specdoc th,.specdoc td{border:1px solid var(--steel);padding:8px 12px;text-align:left;vertical-align:top}
-.specdoc th{background:var(--bone-2);font-family:"Spline Sans Mono",monospace;font-size:12px;letter-spacing:.04em}
+.specdoc table{border-collapse:collapse;width:100%;margin:18px 0;font-size:13.5px;display:block;overflow-x:auto;background:transparent}
+.specdoc th,.specdoc td{border:0;border-bottom:1px solid var(--steel);padding:9px 24px 9px 0;text-align:left;vertical-align:top}
+.specdoc th:last-child,.specdoc td:last-child{padding-right:0}
+.specdoc th{
+  background:transparent;font-family:"Spline Sans Mono",monospace;font-size:11px;font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);
+  border-bottom:2px solid var(--graphite);padding-bottom:7px;
+}
+.specdoc thead th:first-child{box-shadow:inset 0 -2px 0 var(--marker);border-bottom-color:transparent}
 .specdoc li{margin-bottom:.45em}
 @media (max-width:960px){
-  .classcards{grid-template-columns:1fr}
   .specgrid{grid-template-columns:1fr}
   .spectoc{position:static;flex-direction:row;flex-wrap:wrap;gap:4px 14px;border-left:0;padding-left:0}
   .spectoc .toct{width:100%}
@@ -395,18 +452,6 @@ section.tail p{color:var(--paper-dim);max-width:60ch}
 .mod-body li{margin-bottom:10px;font-size:14px;color:var(--paper-dim)}
 .mod-body li b{display:block;color:#fff;font-weight:600;font-size:13.5px;letter-spacing:.02em;margin-bottom:2px}
 
-/* spec class cards: they live inside a .band section and .ccard.c collides with
-   the TCK plate class .c — pin their own ground and ink explicitly */
-.ccard, .band .ccard, .band .ccard.c{
-  background:var(--paper);color:var(--ink);
-  border:1px solid var(--steel);box-shadow:none;padding:20px 22px;
-}
-.ccard h3, .band .ccard h3{color:var(--ink)}
-.ccard p, .band .ccard p{color:var(--ink-soft)}
-.ccard.s, .band .ccard.s{border-top:4px solid var(--marker)}
-.ccard.r, .band .ccard.r{border-top:4px solid var(--graphite)}
-.ccard.c, .band .ccard.c{border-top:4px solid var(--steel)}
-
 /* ---- spacing pass (2026-08-14 audit): sub-labels, run-in pairs, captions ---- */
 h4{
   font-family:"Saira SemiCondensed",sans-serif;font-weight:600;font-size:15px;
@@ -430,7 +475,7 @@ caption{
 .band caption{color:var(--paper-dim)}
 .bandtitle{font-size:clamp(28px,3.6vw,42px);margin:0 0 12px}
 .bandlede{color:var(--ink-soft);max-width:78ch;margin:0 0 8px}
-.tier .act{margin-top:18px}
+
 .tier .top{margin-bottom:4px}
 /* rhythm: content blocks that follow a section head or each other breathe evenly */
 .sec-head + .scroller, .sec-head + .tbl, .sec-head + .cards, .sec-head + .mods,

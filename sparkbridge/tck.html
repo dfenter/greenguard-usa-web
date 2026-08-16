@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Proof and Docs | SparkBridge</title>
-<meta name="description" content="SparkBridge results against the Eclipse Sparkplug TCK 3.0.0: final run per conformance profile, with the raw report and full session journal.">
+<meta name="description" content="SparkBridge 2.4.0 against the Eclipse Sparkplug TCK 3.0.0: every conformance profile PASS with zero FAILs, with the raw report and session history.">
 <link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/tck">
 <meta property="og:title" content="SparkBridge Sparkplug TCK results">
 <meta property="og:description" content="Final Eclipse Sparkplug TCK 3.0.0 run per profile, raw and reproducible.">
@@ -28,6 +28,7 @@
         <a href="/sparkbridge/compare">Compare</a>
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
         <a href="/sparkbridge/spec">Spec</a>
         <a href="/sparkbridge/contact">Contact</a>
     </nav>
@@ -39,10 +40,11 @@
   <div class="wrap">
     <div class="eyebrow">Certification summary</div>
     <h1>Sparkplug TCK Results</h1>
-    <p>One session, 2026-08-14, produced with the officially ratified Eclipse Sparkplug TCK 3.0.0
-    binary against a complete live system. 346 assertions executed, 346 passed, zero failed.
-    Everything on this page is the TCK's own output, unedited, and reproducible with the harness
-    that ships with the product.</p>
+    <p>One session, 2026-08-15, seed 240, produced with the officially ratified Eclipse Sparkplug
+    TCK 3.0.0 binary against a complete live system: ten runs, 182 EDGE assertions passed and 52
+    HOST assertions passed, and zero FAIL lines anywhere in the session log. Everything on this
+    page is the TCK's own output, unedited, and reproducible with the harness that ships with the
+    product, now from a single command.</p>
   </div>
 </header>
 
@@ -56,14 +58,15 @@
     </div>
     <div class="scroller"><table class="tbl">
       <tr><th>Field</th><th>Value</th></tr>
-      <tr><td>Product</td><td>SparkBridge 2.2.2 (modules io.sparkbridge.edge / .host / .provider) - <a href="/sparkbridge/">product page</a>; distribution via <a href="/sparkbridge/contact">contact</a></td></tr>
+      <tr><td>Product</td><td>SparkBridge 2.4.0 (modules io.sparkbridge.edge / .host / .provider) - <a href="/sparkbridge/">product page</a>; distribution via <a href="/sparkbridge/contact">contact</a></td></tr>
       <tr><td>Specification</td><td><a href="https://sparkplug.eclipse.org/specification/version/3.0/documents/sparkplug-specification-3.0.0.pdf">Eclipse Sparkplug 3.0.0</a></td></tr>
       <tr><td>TCK</td><td><a href="https://download.eclipse.org/sparkplug/3.0.0/">Eclipse Sparkplug TCK 3.0.0</a>, the ratified binary</td></tr>
       <tr><td>TCK SHA-256</td><td class="num">a70b2c2f00d67ac714eadd5ac50f6241e0efa26036d95ca8ec667d491021b86b</td></tr>
       <tr><td>TCK signature</td><td>GPG-verified: Eclipse Sparkplug Project, primary key A233 1E61 D598 1EFB 5025 1C90 C16B 6E70 AD5E 2AE1</td></tr>
-      <tr><td>Runtime tested</td><td>SparkBridge 2.2.2 on Ignition 8.1.38, Temurin JDK 17, HiveMQ CE 2026.5</td></tr>
+      <tr><td>Runtime tested</td><td>SparkBridge 2.4.0 on Ignition 8.1.38, Temurin JDK 17, HiveMQ CE 2026.5</td></tr>
       <tr><td>Environment</td><td>macOS 12 x86_64 bench gateway; broker bound to loopback; TCK driven headlessly over its control topics</td></tr>
-      <tr><td>Totals</td><td class="num">346 executed &middot; 346 passed &middot; 0 failed</td></tr>
+      <tr><td>Session</td><td class="num">seed 240 &middot; 2026-08-15 &middot; 10 runs</td></tr>
+      <tr><td>Totals</td><td class="num">234 passed &middot; 1 MAYBE on a SHOULD-optional assertion &middot; 0 failed</td></tr>
     </table></div>
     <p class="note">Attestation: all TCK requirements were met, including the compatibility rules
     of the Sparkplug TCK Process, and the results below are complete and unaltered.</p>
@@ -75,29 +78,33 @@
     <div class="sec-head">
       <div class="path">verdicts</div>
       <h2>Final Run Per Profile</h2>
-      <p>PASS means every listed assertion executed and passed. Two entries are complete-by-pair:
+      <p>PASS means every listed assertion executed and passed. One entry is complete-by-pair:
       the TCK's two SessionTermination Will assertions are protocol-conditional and provably
       cannot both execute in one run, so the record holds one run per MQTT protocol version and
-      their union executes both. One assertion in the whole record remains unexecuted, and the
-      reason is documented, not hidden.</p>
+      their union executes both and reads PASS. One assertion in the whole record returns MAYBE,
+      and the reason is documented, not hidden.</p>
     </div>
     <div class="scroller"><table class="tbl">
-      <tr><th>Profile</th><th>Assertions passed</th><th>Overall</th></tr>
-      <tr><td>Edge SessionEstablishment</td><td class="num">81</td><td class="num">PASS</td></tr>
-      <tr><td>Edge SendData</td><td class="num">45</td><td class="num">PASS</td></tr>
-      <tr><td>Edge SendComplexData</td><td class="num">48</td><td class="num">PASS</td></tr>
-      <tr><td>Edge ReceiveCommand</td><td class="num">14</td><td class="num">PASS</td></tr>
-      <tr><td>Edge PrimaryHost</td><td class="num">26</td><td class="num">PASS</td></tr>
-      <tr><td>Edge MultipleBroker</td><td class="num">20</td><td class="num">PASS</td></tr>
-      <tr><td>Edge SessionTermination (MQTT 3.1.1 + 5.0 pair)</td><td class="num">24 + 24</td><td class="num">PASS, complete as a pair</td></tr>
-      <tr><td>Host SessionEstablishment</td><td class="num">48</td><td class="num">PASS</td></tr>
-      <tr><td>Host MessageOrdering</td><td class="num">16</td><td class="np">PASS, one assertion unexecuted</td></tr>
+      <tr><th>Profile</th><th>Overall</th><th>FAILs</th></tr>
+      <tr><td>Edge SessionEstablishment</td><td class="num">PASS</td><td class="num">0</td></tr>
+      <tr><td>Edge SendData</td><td class="num">PASS</td><td class="num">0</td></tr>
+      <tr><td>Edge SendComplexData</td><td class="num">PASS</td><td class="num">0</td></tr>
+      <tr><td>Edge ReceiveCommand</td><td class="num">PASS</td><td class="num">0</td></tr>
+      <tr><td>Edge PrimaryHost</td><td class="num">PASS</td><td class="num">0</td></tr>
+      <tr><td>Edge MultipleBroker</td><td class="num">PASS</td><td class="num">0</td></tr>
+      <tr><td>Edge SessionTermination (MQTT 3.1.1 + 5.0 pair)</td><td class="num">PASS, complete as a pair</td><td class="num">0</td></tr>
+      <tr><td>Host SessionEstablishment</td><td class="num">PASS</td><td class="num">0</td></tr>
+      <tr><td>Host MessageOrdering</td><td class="num">PASS</td><td class="num">0</td></tr>
+      <tr><td>EDGE assertions</td><td class="num">182 PASS, 1 MAYBE</td><td class="num">0</td></tr>
+      <tr><td>HOST assertions</td><td class="num">52 PASS</td><td class="num">0</td></tr>
     </table></div>
-    <p class="note">The unexecuted assertion (host reordering under a foreign reference edge)
-    traces to a documented limitation: the host currently requires metric aliases in births,
-    which Sparkplug makes optional. The fix touches the host's hottest lookup path and is
-    scheduled with its own load testing rather than rushed into this record. Two interop defects
-    the same scenario DID surface were fixed and shipped in 2.2.2 before this record was cut.</p>
+    <p class="note">The single MAYBE is tck-id-payloads-metric-datatype-not-req, a SHOULD-optional
+    assertion about whether a datatype is included with metric definitions in NDATA, NCMD, DDATA
+    and DCMD, and it is the same class of result as the previous published record. Results are
+    rolled up worst-result-wins, so a FAIL could never be cleared by a later run, and there were
+    none: the session log contains zero FAIL lines. The Host MessageOrdering profile, which was
+    incomplete in the 2.2.2 record because that host required metric aliases in births, now runs
+    every reordering assertion and passes.</p>
   </div>
 </section>
 
@@ -106,12 +113,14 @@
     <div class="sec-head">
       <div class="path">raw data</div>
       <h2>The Unedited Records</h2>
-      <p>The complete session log, and the per-requirement summary generated by the TCK's own
-      report tool. One pass, no retries, nothing removed.</p>
+      <p>The per-requirement summary generated by the TCK's own report tool for the current
+      session, with the previous session's log and summary kept alongside it as history. Nothing
+      removed.</p>
     </div>
     <div class="cta-row">
-      <a class="btn ghost dark" href="/sparkbridge/tck-session-2026-08-14.log">Session log</a>
-      <a class="btn ghost dark" href="/sparkbridge/tck-summary-2026-08-14.txt">TCK report.py summary</a>
+      <a class="btn ghost dark" href="/sparkbridge/tck-summary-2026-08-15.txt">TCK report.py summary, 2026-08-15</a>
+      <a class="btn ghost dark" href="/sparkbridge/tck-session-2026-08-14.log">Session log, 2026-08-14</a>
+      <a class="btn ghost dark" href="/sparkbridge/tck-summary-2026-08-14.txt">TCK report.py summary, 2026-08-14</a>
     </div>
     <p class="note">Formal listing in the Eclipse Sparkplug Compatible Program is the remaining
     administrative step: a listing request to the Working Group citing this page.</p>
@@ -121,7 +130,7 @@
 <footer>
   <div class="wrap">
     <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
-    <span class="mono"><a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
   </div>
 </footer>
 

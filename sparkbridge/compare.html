@@ -28,6 +28,7 @@
         <a href="/sparkbridge/compare" aria-current="page">Compare</a>
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
         <a href="/sparkbridge/spec">Spec</a>
         <a href="/sparkbridge/contact">Contact</a>
     </nav>
@@ -49,16 +50,16 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="path">why sparkbridge</div>
-      <h2>Why Teams Switch</h2>
-      <p>Six capabilities we could not find in the commercial modules' published documentation.</p>
+      <h2>Next Generation MQTT, Built to Scale</h2>
+      <p>Six capabilities designed to take MQTT further with greater efficiency, scalability, and future-ready architecture.</p>
     </div>
-    <div class="cards">
-      <div class="card"><span class="tag">Scale</span><h3>Shared-subscription scale-out</h3><p>Four consumers share one broker stream and deliver about 20x the ingest of one. We have found no competing Ignition module that removes the single-subscriber ceiling.</p></div>
-      <div class="card"><span class="tag">Speed</span><h3>Published, measured numbers</h3><p>Load and endurance scenarios you can run yourself, with the hardware stated. No competing module publishes comparable figures.</p></div>
-      <div class="card"><span class="tag">Uptime</span><h3>Change settings without a restart</h3><p>Configuration hot-reloads in about five seconds. No scheduled outage to add a site or change a deadband.</p></div>
-      <div class="card"><span class="tag">Bandwidth</span><h3>Metadata folding</h3><p>Units, ranges and descriptions ride the birth certificate instead of the data stream, taking roughly a third of points out of steady-state traffic.</p></div>
-      <div class="card"><span class="tag">Security</span><h3>Per-site scoping as standard</h3><p>An edge credential is locked to its own site, cannot issue commands, and cannot write another site's data. Proven live against the broker.</p></div>
-      <div class="card"><span class="tag">Licensing</span><h3>No client-count tiers</h3><p>The broker is not licensed by how many clients connect, so there is no 50 or 250 ceiling to design around.</p></div>
+    <div class="leads cols">
+      <p><b>Shared-subscription scale-out.</b> Four consumers share one broker stream and deliver about 20x the ingest of one. We have found no competing Ignition module that removes the single-subscriber ceiling.</p>
+      <p><b>Published, measured numbers.</b> Load and endurance scenarios you can run yourself, with the hardware stated. No competing module publishes comparable figures.</p>
+      <p><b>Change settings without a restart.</b> Configuration hot-reloads in about five seconds. No scheduled outage to add a site or change a deadband.</p>
+      <p><b>Metadata folding.</b> Units, ranges and descriptions ride the birth certificate instead of the data stream, taking roughly a third of points out of steady-state traffic.</p>
+      <p><b>Per-site scoping as standard.</b> An edge credential is locked to its own site, cannot issue commands, and cannot write another site's data. Proven live against the broker, with the file-RBAC equivalent generated for estates on external HiveMQ.</p>
+      <p><b>No client-count tiers.</b> The broker is not licensed by how many clients connect, so there is no 50 or 250 ceiling to design around.</p>
     </div>
   </div>
 </section>
@@ -71,7 +72,7 @@
       <p>Where a row says “not published”, no public figure exists for that product. Every SparkBridge number is measured and reproducible from the test suite that ships with it.</p>
     </div>
     <div class="scroller">
-      <table class="tbl">
+      <table class="tbl ours-last">
         <thead><tr><th>Capability</th><th>Commercial modules</th><th>SparkBridge</th></tr></thead>
         <tbody>
           <tr><td>Core Sparkplug B / 3.0</td><td>Yes</td><td>Yes, TCK-verified against a live stack</td></tr>
@@ -85,8 +86,9 @@
           <tr><td>Metadata folding to birth properties</td><td class="np">not published as offered</td><td>About a third of points leave the steady-state stream</td></tr>
           <tr><td>Prometheus metrics</td><td class="np">not published</td><td>Yes, wire metrics and projected leaves counted separately</td></tr>
           <tr><td>Broker licensing model</td><td class="np">commonly licensed by connected-client count</td><td>No client-count dial: neither the embedded broker nor the HiveMQ CE companion meters connections</td></tr>
-          <tr><td>Per-identity application-topic ACL</td><td class="np">not published</td><td>Denied by default, per identity by prefix</td></tr>
-          <tr><td>Published load and capacity benchmarks</td><td class="np">not published</td><td>Nine documented scenarios, reproducible from the shipped suite</td></tr>
+          <tr><td>Per-identity application-topic ACL</td><td class="np">not published</td><td>On the SparkBridge broker, denied by default, per identity by prefix. On external HiveMQ, file RBAC, with the blocks generated by the preflight</td></tr>
+          <tr><td>Alias-optional host ingest</td><td class="np">not published</td><td>Yes since 2.3.0, verified live against the Eclipse Tahu reference edge, with UINT32 read unsigned from either legal wire field</td></tr>
+          <tr><td>Published load and capacity benchmarks</td><td class="np">not published</td><td>Eleven documented scenarios, reproducible from the shipped suite</td></tr>
         </tbody>
       </table>
     </div>
@@ -101,7 +103,7 @@
       <p>End-to-end and latency figures measured on a modest 2-physical-core machine with nothing else running, doing the full work of writing values into tags. Ingest, codec and replay figures come from an 8-core development host. Bigger hardware goes further.</p>
     </div>
     <div class="scroller">
-      <table class="tbl">
+      <table class="tbl ours-last">
         <thead><tr><th>Dimension</th><th>SparkBridge, measured</th></tr></thead>
         <tbody>
           <tr><td>Projected end to end, through to a visible tag</td><td class="num">44,769 updates/s</td></tr>
@@ -119,7 +121,7 @@
 <section class="tail">
   <div class="wrap">
     <h2>Compare It With Your Quote</h2>
-    <p>If you have per-gateway pricing in hand for your own estate, that is the number worth comparing against, not a modelled one. The development licence costs nothing, so the technical comparison can be made before any commercial one.</p>
+    <p>If you have per-gateway pricing in hand for your own estate, that is the number worth comparing against, not a modelled one. The development license costs nothing, so the technical comparison can be made before any commercial one.</p>
     <div class="cta-row">
       <a class="btn" href="/sparkbridge/pricing">See pricing</a>
       <a class="btn ghost" href="/sparkbridge/technology">Read the technology</a>
@@ -131,7 +133,7 @@
 <footer>
   <div class="wrap">
     <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
-    <span class="mono"><a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
   </div>
 </footer>
 

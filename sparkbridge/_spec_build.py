@@ -57,7 +57,7 @@ NAV_ITEMS = [
     ("index", "Overview", ""), ("modules", "Modules", "modules"),
     ("technology", "Technology", "technology"), ("use-cases", "Use cases", "use-cases"),
     ("compare", "Compare", "compare"), ("pricing", "Pricing", "pricing"),
-    ("resources", "Resources", "resources"), ("spec", "Spec", "spec"),
+    ("resources", "Resources", "resources"), ("download", "Download", "download"), ("spec", "Spec", "spec"),
     ("contact", "Contact", "contact"),
 ]
 nav = "\n".join(
@@ -87,7 +87,7 @@ page = f'''<!DOCTYPE html>
 <div class="topicbar">
   <div class="wrap">
     <a class="skip" href="#main">Skip to content</a>
-    <a class="brand" href="/sparkbridge-mqtt/">Spark<span>Bridge</span></a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
     <nav class="nav" id="nav" aria-label="Main">
 {nav}
     </nav>
@@ -119,25 +119,16 @@ page = f'''<!DOCTYPE html>
     <p class="bandlede">An implementation claims one or more classes. R and C extend S and
     <span class="rfc">MUST</span> degrade to S by configuration alone: no code change, and no
     redeploy of peers.</p>
-    <div class="classcards">
-      <article class="ccard s">
-        <div class="ctag mono">Class S</div>
-        <h3>Strict</h3>
-        <p>Sparkplug 3.0 wire semantics on protocol 3 or 5. The TCK-eligible class, and the
-        default: Clean Start 1, Session Expiry 0, Will Delay 0.</p>
-      </article>
-      <article class="ccard r">
-        <div class="ctag mono">Class R</div>
-        <h3>Resilient Edge</h3>
-        <p>Flap-immune Wills, session-resume NDEATH suppression, and data expiry for edges on
-        unreliable links. Protocol 5 only; edge transports only.</p>
-      </article>
-      <article class="ccard c">
-        <div class="ctag mono">Class C</div>
-        <h3>Coordinated Host</h3>
-        <p>Shared-subscription consumer groups feeding one host-side projection, for fan-in
-        beyond a single consumer. Protocol 5 only; disabled for TCK runs.</p>
-      </article>
+    <div class="leads" style="margin-top:22px">
+      <p><span class="rfc">CLASS S</span> <b>Strict.</b> Sparkplug 3.0 wire semantics on
+      protocol 3 or 5. The TCK-eligible class, and the default: Clean Start 1, Session
+      Expiry 0, Will Delay 0.</p>
+      <p><span class="rfc">CLASS R</span> <b>Resilient Edge.</b> Flap-immune Wills,
+      session-resume NDEATH suppression, and data expiry for edges on unreliable links.
+      Protocol 5 only; edge transports only.</p>
+      <p><span class="rfc">CLASS C</span> <b>Coordinated Host.</b> Shared-subscription
+      consumer groups feeding one host-side projection, for fan-in beyond a single consumer.
+      Protocol 5 only; disabled for TCK runs.</p>
     </div>
   </div>
 </section>
@@ -158,7 +149,7 @@ page = f'''<!DOCTYPE html>
 <footer>
   <div class="wrap">
     <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
-    <span class="mono"><a href="/sparkbridge-mqtt/pricing">Pricing</a> · <a href="/sparkbridge-mqtt/contact">Contact</a></span>
+    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
   </div>
 </footer>
 
