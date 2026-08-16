@@ -166,3 +166,19 @@ remain readable beneath the extra party, progression, and menu information.
 - Fieldnotes Safari: collection rarity and capture state use silhouette,
   pattern, and label support, with discovery markers kept separate from
   combat or traversal markers.
+
+---
+
+## RETINA LAW APPLIES (owner bar delta 2026-08-16)
+
+"everything should be high resolution and more distinct colors no atari
+looking nonsense it is for iphones make the tech shine"
+
+See play/_assets/RETINA_LAW.md, which is MANDATORY and sits at the same
+level as this bible. Headline: the fleet was measured on an emulated 3x
+iPhone display and NOT ONE title rendered at native density (ratios of 1.0
+to 2.0 against a device ratio of 3.0). Colour depth is already good fleet
+wide; the defect is pixel density, and the upscale is what makes the art
+look coarse. Render at min(devicePixelRatio, 3), bake textures at device
+scale, keep text vector or device-scale baked, and do not pay for it in
+frame time.

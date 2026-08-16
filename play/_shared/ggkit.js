@@ -16,6 +16,38 @@
  *   kit.save.set(obj); kit.save.get(fallback);
  *   kit.input — per-pointer identity map (defect class #3)
  *   kit.juice.shake(px, ms); kit.juice.hitStop(ms);
+ *
+ * Input subscriptions (added 2026-08-16, purely additive):
+ *   kit.input.onDown(fn) -> unsubscribe. fn(pointer, event) runs AFTER the
+ *     kit has created and stored its pointer object, so a title decorates
+ *     THE KIT'S object instead of racing it. Retires the claim-side defect
+ *     where a canvas-level pointerdown claimed a pointer and the kit's own
+ *     window handler then overwrote the entry.
+ *   kit.input.onMove(fn) -> unsubscribe. fn(pointer, event) runs after the
+ *     kit has written the new position.
+ *   kit.input.onUp(fn) -> unsubscribe. fn(pointer, event) runs BEFORE the
+ *     entry is deleted, so `kit.input.pointers.has(id)` is still true inside
+ *     it. Retires the release-side defect where the kit's window pointerup
+ *     deleted the id before any later-registered title listener could run,
+ *     so every release was silently swallowed.
+ *     event is the real PointerEvent for a release or a cancel (check
+ *     event.type), and null for a synthetic drop from blur/clearAll/pause.
+ *   kit.input.onKeyDown(fn) / onKeyUp(fn) -> unsubscribe. fn(code, event),
+ *     fired regardless of pause, for menus that need a rising edge a
+ *     per-frame level read cannot see.
+ *   Subscribers are exception-isolated: one that throws cannot break the kit
+ *   or the other subscribers. All five fire regardless of pause state.
+ *
+ * Pause-transparent reads (added 2026-08-16, purely additive):
+ *   kit.input.pointersRaw — identity map that keeps tracking while paused.
+ *   kit.input.firstInRaw(rect) / kit.input.keyDownRaw(code) — the same reads
+ *     without the pause suppression. Retires the paused-side defect where a
+ *     pause menu that read input through the kit was dead on arrival and
+ *     every title had to bridge input with a second set of listeners.
+ *   pointers, firstIn and keyDown keep their exact pause-suppressing
+ *   semantics: live play reads those, pause menus read the Raw variants.
+ *
+ * Render baseline (opt-in, see GGKit.renderDefaults / GGKit.hiDpi below).
  */
 (function (root) {
   'use strict';
@@ -70,12 +102,31 @@
   // ---------------------------------------------------------- audio bus
   // Touch-unlocked WebAudio manager: music bus w/ crossfade, sfx bus,
   // persistent mute + volume. Assets registered as URLs, lazy-decoded.
+  // Defect class: persisted prefs are restored without validation, so a
+  // corrupt or out-of-range stored value (NaN, a string, 12, null) is written
+  // straight into a GainNode and wedges the bus. Clamp on load, and again on
+  // every apply, because prefs is a public object titles can write to.
+  const AUDIO_DEFAULTS = { mute: false, music: 0.7, sfx: 1.0 };
+  function unit(v, dflt) {
+    const n = typeof v === 'number' ? v : parseFloat(v);
+    return (typeof n === 'number' && isFinite(n)) ? clamp(n, 0, 1) : dflt;
+  }
+  function sanitizeAudioPrefs(raw) {
+    if (!raw || typeof raw !== 'object') return { mute: false, music: AUDIO_DEFAULTS.music, sfx: AUDIO_DEFAULTS.sfx };
+    return {
+      mute: raw.mute === true || raw.mute === 'true' || raw.mute === 1,
+      music: unit(raw.music, AUDIO_DEFAULTS.music),
+      sfx: unit(raw.sfx, AUDIO_DEFAULTS.sfx),
+    };
+  }
+
   function makeAudio(slug) {
     const save = makeSave(slug + '-audio');
-    const prefs = save.get({ mute: false, music: 0.7, sfx: 1.0 });
+    const prefs = sanitizeAudioPrefs(save.get(null));
     let ctx = null;
     let musicGain = null, sfxGain = null, masterGain = null;
       let current = null; // {source, gain, name}
+      let musicToken = 0; // only the newest music/stopMusic call owns the bus
     const buffers = {}; // name -> AudioBuffer | Promise
     const urls = {};    // name -> url
 
@@ -94,7 +145,10 @@
       return ctx;
     }
     function applyPrefs() {
-      if (!ctx) return;
+      prefs.mute = !!prefs.mute;
+      prefs.music = unit(prefs.music, AUDIO_DEFAULTS.music);
+      prefs.sfx = unit(prefs.sfx, AUDIO_DEFAULTS.sfx);
+      if (!ctx) { save.set(prefs); return; }
       masterGain.gain.value = prefs.mute ? 0 : 1;
       musicGain.gain.value = prefs.music;
       sfxGain.gain.value = prefs.sfx;
@@ -144,7 +198,12 @@
         const c = ensureCtx();
         if (!c) return;
         const fade = (fadeMs == null ? 800 : fadeMs) / 1000;
+        // Defect class: overlapping music start/stop calls raced through the
+        // decode await and a stale one could end up owning the bus. The
+        // newest call takes the token; everything older bails out.
+        const token = ++musicToken;
         Promise.resolve(load(name)).then(function (buf) {
+          if (token !== musicToken) return;
           if (!buf || !(buf.duration)) return;
           if (current && current.name === name) return;
           const now = c.currentTime;
@@ -164,6 +223,7 @@
         });
       },
       stopMusic(fadeMs) {
+        musicToken++; // any in-flight music() start is now stale
         if (!ctx || !current) return;
         const fade = (fadeMs == null ? 500 : fadeMs) / 1000;
         const now = ctx.currentTime;
@@ -185,41 +245,131 @@
   // tracks every active pointer by pointerId; games query zones, never
   // raw touch arrays. clearAll() runs on every restart/pause (defect
   // class: restart not clearing input state; keyboard-respects-pause).
-  function makeInput(kit) {
-    const pointers = new Map(); // id -> {x,y,startX,startY,downAt,zone}
-    const keys = new Set();
+  function makeInput(kit, opts) {
+    const pointers = new Map();    // id -> {x,y,startX,startY,downAt,zone} (pause-suppressed)
+    const pointersRaw = new Map(); // same objects, kept while paused too
+    const keys = new Set();        // pause-suppressed
+    const keysRaw = new Set();     // kept while paused too
     const listeners = [];
-    function on(target, type, fn, opts) {
-      target.addEventListener(type, fn, opts);
-      listeners.push([target, type, fn, opts]);
+    const subsDown = [], subsMove = [], subsUp = [], subsKeyDown = [], subsKeyUp = [];
+    const captured = new Map();    // id -> element holding the pointer capture
+    const wantCapture = !(opts && opts.pointerCapture === false);
+    let clearing = false;
+
+    function on(target, type, fn, o) {
+      target.addEventListener(type, fn, o);
+      listeners.push([target, type, fn, o]);
     }
+    // Subscribers are exception-isolated: a throwing title handler must not
+    // take the kit or its sibling subscribers down with it.
+    function sub(list, fn) {
+      if (typeof fn !== 'function') return function () {};
+      list.push(fn);
+      let done = false;
+      return function () {
+        if (done) return;
+        done = true;
+        const i = list.indexOf(fn);
+        if (i >= 0) list.splice(i, 1);
+      };
+    }
+    function emit(list, a, b) {
+      if (!list.length) return;
+      const snapshot = list.slice();
+      for (let i = 0; i < snapshot.length; i++) {
+        try { snapshot[i](a, b); }
+        catch (err) { if (root.console && console.error) console.error('[GGKit] input subscriber threw', err); }
+      }
+    }
+    // Defect class: a drag that leaves the canvas or the window strands a
+    // pointer, because the matching pointerup is delivered elsewhere. Touch
+    // pointers are implicitly captured by the browser already, so this only
+    // changes anything for mouse and pen. Opt out with pointerCapture:false.
+    function grab(e) {
+      if (!wantCapture) return;
+      const t = e.target;
+      if (!t || typeof t.setPointerCapture !== 'function') return;
+      try { t.setPointerCapture(e.pointerId); captured.set(e.pointerId, t); } catch (err) {}
+    }
+    function ungrab(id) {
+      const t = captured.get(id);
+      if (!t) return;
+      captured.delete(id);
+      if (typeof t.releasePointerCapture === 'function') { try { t.releasePointerCapture(id); } catch (err) {} }
+    }
+
     on(root, 'pointerdown', function (e) {
-      if (kit.paused) return;
-      pointers.set(e.pointerId, {
+      const p = {
         x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY,
         downAt: performance.now(), zone: null,
-      });
+        pointerId: e.pointerId, pointerType: e.pointerType,
+      };
+      pointersRaw.set(e.pointerId, p);
+      if (!kit.paused) pointers.set(e.pointerId, p); // unchanged live-play semantics
+      grab(e);
+      emit(subsDown, p, e);
     }, { passive: true });
     on(root, 'pointermove', function (e) {
-      const p = pointers.get(e.pointerId);
-      if (p) { p.x = e.clientX; p.y = e.clientY; }
+      const p = pointersRaw.get(e.pointerId);
+      if (!p) return;
+      p.x = e.clientX; p.y = e.clientY;
+      emit(subsMove, p, e);
     }, { passive: true });
-    function drop(e) { pointers.delete(e.pointerId); }
+    function drop(e) {
+      const p = pointersRaw.get(e.pointerId) || pointers.get(e.pointerId);
+      if (p) emit(subsUp, p, e);           // fires BEFORE the delete
+      pointers.delete(e.pointerId);
+      pointersRaw.delete(e.pointerId);
+      ungrab(e.pointerId);
+    }
     on(root, 'pointerup', drop, { passive: true });
     on(root, 'pointercancel', drop, { passive: true });
-    on(root, 'blur', function () { pointers.clear(); keys.clear(); });
-    on(root, 'keydown', function (e) { if (!kit.paused) keys.add(e.code); });
-    on(root, 'keyup', function (e) { keys.delete(e.code); });
+    // Synthetic drop: everything the kit throws away still reports a release,
+    // so no title can leak a stuck gesture. event is null for these.
+    function clearAllInternal() {
+      if (clearing) return;
+      clearing = true;
+      try {
+        const live = [];
+        pointersRaw.forEach(function (p) { live.push(p); });
+        pointers.forEach(function (p) { if (live.indexOf(p) < 0) live.push(p); });
+        pointers.clear(); pointersRaw.clear();
+        keys.clear(); keysRaw.clear();
+        for (let i = 0; i < live.length; i++) {
+          if (live[i] && live[i].pointerId != null) ungrab(live[i].pointerId);
+          emit(subsUp, live[i], null);
+        }
+      } finally { clearing = false; }
+    }
+    on(root, 'blur', clearAllInternal);
+    on(root, 'keydown', function (e) {
+      keysRaw.add(e.code);
+      if (!kit.paused) keys.add(e.code);
+      emit(subsKeyDown, e.code, e);
+    });
+    on(root, 'keyup', function (e) {
+      keys.delete(e.code); keysRaw.delete(e.code);
+      emit(subsKeyUp, e.code, e);
+    });
+    function firstOf(map, rect) {
+      for (const p of map.values()) {
+        if (p.x >= rect.x && p.x < rect.x + rect.w && p.y >= rect.y && p.y < rect.y + rect.h) return p;
+      }
+      return null;
+    }
     return {
       pointers: pointers,
+      pointersRaw: pointersRaw,
       keyDown(code) { return !kit.paused && keys.has(code); },
-      firstIn(rect) { // first live pointer inside a rect {x,y,w,h} in CSS px
-        for (const p of pointers.values()) {
-          if (p.x >= rect.x && p.x < rect.x + rect.w && p.y >= rect.y && p.y < rect.y + rect.h) return p;
-        }
-        return null;
-      },
-      clearAll() { pointers.clear(); keys.clear(); },
+      keyDownRaw(code) { return keysRaw.has(code); },
+      firstIn(rect) { return firstOf(pointers, rect); }, // first live pointer inside a rect {x,y,w,h} in CSS px
+      firstInRaw(rect) { return firstOf(pointersRaw, rect); },
+      onDown(fn) { return sub(subsDown, fn); },
+      onMove(fn) { return sub(subsMove, fn); },
+      onUp(fn) { return sub(subsUp, fn); },
+      onKeyDown(fn) { return sub(subsKeyDown, fn); },
+      onKeyUp(fn) { return sub(subsKeyUp, fn); },
+      clearAll() { clearAllInternal(); },
     };
   }
 
@@ -254,7 +404,7 @@
       audio: makeAudio(opts.slug),
       loader: makeLoader(),
     };
-    kit.input = makeInput(kit);
+    kit.input = makeInput(kit, opts);
 
     let pauseDepth = 0;
     const pauseReasons = new Set();
@@ -409,6 +559,101 @@
     };
 
     return kit;
+  };
+
+  // ------------------------------------------------- render baseline (opt-in)
+  // Nothing below runs unless a title asks for it. The 106 live titles keep
+  // whatever they configure today; adoption is a separate pass.
+  //
+  // GGKit.renderDefaults — the shared Phaser render block.
+  //   antialias:true + antialiasGL:false is the important pair. Plain
+  //   antialias:true asks the context for MSAA, which on a software
+  //   rasteriser roughly triples frame cost; antialiasGL:false keeps LINEAR
+  //   texture filtering (so art is smooth) without paying for MSAA.
+  //   roundPixels:false keeps sub-pixel placement, which is what actually
+  //   looks sharp once the backing store is dense.
+  GGKit.renderDefaults = {
+    antialias: true,
+    antialiasGL: false,
+    roundPixels: false,
+    pixelArt: false,
+    powerPreference: 'high-performance',
+    failIfMajorPerformanceCaveat: false,
+    desynchronized: true,
+  };
+
+  // GGKit.hiDpi — device-pixel-ratio correctness.
+  //   A title that sizes its canvas in CSS pixels renders at 1x and is then
+  //   upscaled by the display, which is why the fleet looks soft on a 2x/3x
+  //   iPhone. Phaser 3 has no `resolution` config any more (removed after
+  //   3.16, and silently ignored if you set it): the working mechanism is to
+  //   size the GAME in device pixels and scale the canvas back down in CSS,
+  //   which Phaser's ScaleManager does for you via `zoom`.
+  GGKit.hiDpi = {
+    // Capped at 3: beyond that the fill cost buys nothing an eye can see.
+    dpr(max) {
+      const cap = max == null ? 3 : max;
+      const d = (root.devicePixelRatio || 1);
+      return clamp(isFinite(d) && d > 0 ? d : 1, 1, cap);
+    },
+
+    // Returns a NEW Phaser config: render defaults merged (caller wins), and
+    // the game sized in device pixels with zoom = 1/dpr so the CSS size is
+    // unchanged. Pass the CSS design size you use today.
+    //   const cfg = GGKit.hiDpi.phaser({ type: Phaser.AUTO, width: 390, height: 844, scene: [S] });
+    phaser(config, opts) {
+      const cfg = Object.assign({}, config || {});
+      const d = GGKit.hiDpi.dpr(opts && opts.maxDpr);
+      cfg.render = Object.assign({}, GGKit.renderDefaults, cfg.render || {});
+      const scale = Object.assign({}, cfg.scale || {});
+      const cssW = scale.width != null ? scale.width : cfg.width;
+      const cssH = scale.height != null ? scale.height : cfg.height;
+      if (cssW && cssH && typeof cssW === 'number' && typeof cssH === 'number') {
+        scale.width = Math.round(cssW * d);
+        scale.height = Math.round(cssH * d);
+        scale.zoom = (scale.zoom == null ? 1 : scale.zoom) / d;
+        delete cfg.width; delete cfg.height;
+        cfg.scale = scale;
+      } else if (cfg.scale) {
+        cfg.scale = scale;
+      }
+      cfg.ggDpr = d;
+      return cfg;
+    },
+
+    // For Scale.RESIZE titles, which take their size from the window rather
+    // than from config: call this instead of game.scale.resize(cssW, cssH).
+    resize(game, cssW, cssH, max) {
+      const d = GGKit.hiDpi.dpr(max);
+      if (!game || !game.scale) return d;
+      game.scale.resize(Math.round(cssW * d), Math.round(cssH * d));
+      const c = game.canvas;
+      if (c) { c.style.width = cssW + 'px'; c.style.height = cssH + 'px'; }
+      return d;
+    },
+
+    // Three: one line, and the only correct one.
+    three(renderer, max) {
+      const d = GGKit.hiDpi.dpr(max);
+      if (renderer && renderer.setPixelRatio) renderer.setPixelRatio(d);
+      return d;
+    },
+
+    // Canvas textures baked by a title must be baked AT dpr scale, never
+    // baked at 1x and scaled up. Draw in CSS units; the context is
+    // pre-scaled, and canvas.width/height are the dense device size.
+    //   const t = GGKit.hiDpi.canvas(64, 64);
+    //   t.ctx.fillRect(0, 0, 64, 64);           // CSS units
+    //   scene.textures.addCanvas(key, t.canvas); // then set display size to 64
+    canvas(cssW, cssH, max) {
+      const d = GGKit.hiDpi.dpr(max);
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(cssW * d));
+      c.height = Math.max(1, Math.round(cssH * d));
+      const ctx = c.getContext('2d');
+      if (ctx) { ctx.scale(d, d); ctx.imageSmoothingEnabled = true; if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'high'; }
+      return { canvas: c, ctx: ctx, dpr: d, width: cssW, height: cssH };
+    },
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = GGKit;

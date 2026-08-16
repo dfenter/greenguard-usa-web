@@ -110,7 +110,6 @@
     ctx.quadraticCurveTo(x, y + h, x, y + h - r); ctx.lineTo(x, y + r); ctx.quadraticCurveTo(x, y, x + r, y); ctx.closePath();
   }
   function idOf(pointer) { var e = pointer && pointer.event; return e && e.pointerId != null ? e.pointerId : (pointer && pointer.id != null ? pointer.id : 0); }
-  function cssNum(v) { return Number.isFinite(Number(v)) ? Number(v) : 0; }
   function hexCss(n) { return '#' + n.toString(16).padStart(6, '0'); }
   function finiteOr(value, fallback) { return Number.isFinite(Number(value)) ? Number(value) : fallback; }
   function rng(seed) {
@@ -181,12 +180,11 @@
   var profile = migrateProfile(kit.save.get(cloneProfile()));
   function saveProfile() { kit.save.set(profile); }
   kit.input.readGamepads = function () { return window.navigator && navigator.getGamepads ? navigator.getGamepads() : []; };
-  function seedPointer(pointer, zone) {
-    var id = idOf(pointer), e = pointer && pointer.event, x = cssNum(e && e.clientX), y = cssNum(e && e.clientY);
-    if (!kit.input.pointers.has(id)) kit.input.pointers.set(id, { x: x, y: y, startX: x, startY: y, downAt: performance.now(), zone: zone || null });
-    else kit.input.pointers.get(id).zone = zone || null;
-    return id;
-  }
+  /* The old seedPointer() workaround wrote its own entries into
+     kit.input.pointers so a canvas-level claim could not be overwritten by
+     GGKit's window handler. It is gone: the kit now stores its pointer
+     object before any subscriber runs, and this title reads its own
+     pointerClaims map for zones, never the kit's. */
 
   function makeTexture(scene, key, w, h, painter) {
     if (scene.textures.exists(key)) return key;
@@ -314,22 +312,22 @@
   Scene.prototype.makeButton = function (icon, label, action, w, h) {
     var root = this.add.container(0, 0), bg = this.add.rectangle(0, 0, w, h, COLOR.board, 1).setOrigin(0).setStrokeStyle(2, COLOR.edge, 1).setInteractive();
     var iconText = this.add.text(w / 2, h * .32, icon, { fontFamily: FONT, fontSize: '20px', color: '#f7fbff', fontStyle: 'bold' }).setOrigin(.5); var labelText = this.add.text(w / 2, h * .72, label, { fontFamily: FONT, fontSize: '14px', color: '#dbe4f7', fontStyle: 'bold' }).setOrigin(.5);
-    root.add([bg, iconText, labelText]); bg.setData('action', action); bg.setData('root', root); bg.on('pointerdown', function (pointer) { seedPointer(pointer, 'ui'); }); return { root: root, bg: bg, icon: iconText, label: labelText, w: w, h: h };
+    root.add([bg, iconText, labelText]); bg.setData('action', action); bg.setData('root', root); return { root: root, bg: bg, icon: iconText, label: labelText, w: w, h: h };
   };
 
   Scene.prototype.makeMapCard = function (index) {
     var root = this.add.container(0, 0), bg = this.add.rectangle(0, 0, 84, 62, COLOR.board, 1).setOrigin(0).setStrokeStyle(2, COLOR.edge, 1).setInteractive();
     var number = this.add.text(42, 22, String(index + 1), { fontFamily: FONT, fontSize: '20px', color: '#f7fbff', fontStyle: 'bold' }).setOrigin(.5); var medal = this.add.text(42, 48, '· · ·', { fontFamily: FONT, fontSize: '15px', color: '#657998', fontStyle: 'bold' }).setOrigin(.5); var pack = this.add.text(5, 6, '', { fontFamily: FONT, fontSize: '10px', color: '#b9e9f5', fontStyle: 'bold' }).setOrigin(0);
-    root.add([bg, number, medal, pack]); bg.setData('levelIndex', index); bg.setData('root', root); bg.on('pointerdown', function (pointer) { seedPointer(pointer, 'map'); }); return { root: root, bg: bg, number: number, medal: medal, pack: pack, w: 84, h: 62 };
+    root.add([bg, number, medal, pack]); bg.setData('levelIndex', index); bg.setData('root', root); return { root: root, bg: bg, number: number, medal: medal, pack: pack, w: 84, h: 62 };
   };
 
   Scene.prototype.makeShopCard = function () {
-    var root = this.add.container(0, 0), bg = this.add.rectangle(0, 0, 178, 76, COLOR.board, 1).setOrigin(0).setStrokeStyle(2, COLOR.edge, 1).setInteractive(); var icon = this.add.text(27, 38, '', { fontFamily: FONT, fontSize: '25px', color: '#f7c948', fontStyle: 'bold' }).setOrigin(.5); var name = this.add.text(52, 20, '', { fontFamily: FONT, fontSize: '14px', color: '#f7fbff', fontStyle: 'bold' }).setOrigin(0, .5); var meta = this.add.text(52, 48, '', { fontFamily: FONT, fontSize: '14px', color: '#b9e9f5', fontStyle: 'bold' }).setOrigin(0, .5); root.add([bg, icon, name, meta]); bg.setData('shopCard', true); bg.setData('root', root); bg.on('pointerdown', function (pointer) { seedPointer(pointer, 'shop'); }); return { root: root, bg: bg, icon: icon, name: name, meta: meta, w: 178, h: 76, item: null };
+    var root = this.add.container(0, 0), bg = this.add.rectangle(0, 0, 178, 76, COLOR.board, 1).setOrigin(0).setStrokeStyle(2, COLOR.edge, 1).setInteractive(); var icon = this.add.text(27, 38, '', { fontFamily: FONT, fontSize: '25px', color: '#f7c948', fontStyle: 'bold' }).setOrigin(.5); var name = this.add.text(52, 20, '', { fontFamily: FONT, fontSize: '14px', color: '#f7fbff', fontStyle: 'bold' }).setOrigin(0, .5); var meta = this.add.text(52, 48, '', { fontFamily: FONT, fontSize: '14px', color: '#b9e9f5', fontStyle: 'bold' }).setOrigin(0, .5); root.add([bg, icon, name, meta]); bg.setData('shopCard', true); bg.setData('root', root); return { root: root, bg: bg, icon: icon, name: name, meta: meta, w: 178, h: 76, item: null };
   };
 
   Scene.prototype.makeBoundary = function (kind) {
     var root = this.add.container(0, 0).setDepth(100).setVisible(false), dim = this.add.rectangle(0, 0, 10, 10, COLOR.ink, .86).setOrigin(0), card = this.add.rectangle(0, 0, 330, 260, COLOR.board, 1).setOrigin(.5).setStrokeStyle(2, COLOR.edge, 1), title = this.add.text(0, -82, '', { fontFamily: FONT, fontSize: '25px', color: '#f7fbff', fontStyle: 'bold', align: 'center' }).setOrigin(.5), sub = this.add.text(0, -28, '', { fontFamily: FONT, fontSize: '15px', color: '#b9e9f5', align: 'center', wordWrap: { width: 276 } }).setOrigin(.5), detail = this.add.text(0, 42, '', { fontFamily: FONT, fontSize: '17px', color: '#f7c948', fontStyle: 'bold', align: 'center', wordWrap: { width: 276 } }).setOrigin(.5), action = this.add.rectangle(0, 92, 220, 50, COLOR.sun, 1).setOrigin(.5).setStrokeStyle(2, COLOR.paper, .6).setInteractive(), actionText = this.add.text(0, 92, '', { fontFamily: FONT, fontSize: '16px', color: '#182238', fontStyle: 'bold' }).setOrigin(.5);
-    root.add([dim, card, title, sub, detail, action, actionText]); action.setData('boundary', kind); action.setData('root', root); action.on('pointerdown', function (pointer) { seedPointer(pointer, 'boundary'); }); return { root: root, dim: dim, card: card, title: title, sub: sub, detail: detail, action: action, actionText: actionText, kind: kind };
+    root.add([dim, card, title, sub, detail, action, actionText]); action.setData('boundary', kind); action.setData('root', root); return { root: root, dim: dim, card: card, title: title, sub: sub, detail: detail, action: action, actionText: actionText, kind: kind };
   };
 
   Scene.prototype.bindInput = function () {
@@ -343,7 +341,7 @@
   };
   Scene.prototype.point = function (pointer) { return { x: pointer.x, y: pointer.y }; };
   Scene.prototype.onPointerDown = function (pointer) {
-    if (kit.paused) return; var id = seedPointer(pointer, 'world'), p = this.point(pointer); this.pointerClaims[id] = { zone: 'world', startX: p.x, startY: p.y, x: p.x, y: p.y };
+    if (kit.paused) return; var id = idOf(pointer), p = this.point(pointer); this.pointerClaims[id] = { zone: 'world', startX: p.x, startY: p.y, x: p.x, y: p.y };
     if (this.screen === 'level' && !this.boundary && this.phase === 'play') { var cell = this.cellAt(p.x, p.y); if (cell >= 0 && this.boardPointer < 0) { this.boardPointer = id; this.pressedCell = cell; this.idleFor = 0; this.hintPair = null; if (this.selected >= 0 && this.adjacent(this.selected, cell)) this.attemptSwap(this.selected, cell); else { this.selected = cell; this.candidate = -1; this.keyboardOrigin = -1; this.selectorState = 'ready'; } } }
     else if (this.screen === 'tank' && !this.boundary && this.inTank(p.x, p.y)) { var d = this.hitDecor(p.x, p.y); if (d) { this.drag = { id: id, decor: d }; } else this.pointerClaims[id].zone = 'tank'; }
   };

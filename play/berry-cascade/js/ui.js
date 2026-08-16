@@ -382,62 +382,46 @@ var BCUI = (function () {
   };
 
   /* ---------------------------------------------------------- gestures
-   * GGKit stays the single source of pointer identity, but gestures are
-   * EVENT driven rather than sampled once per frame: a tap that goes down
-   * and up inside one frame would otherwise never be seen at all. Every
-   * handler seeds kit.input.pointers at claim time, so a pointer that GGKit
-   * missed (claimed mid-pause, or delivered before its own listener) still
-   * has an identity entry before the game reads it.
+   * GGKit is the single source of pointer identity and now publishes the
+   * events itself: onDown fires after the kit has stored its pointer object,
+   * onUp fires BEFORE the entry is deleted. The old hand-rolled window
+   * listeners could never see a release, because the kit's own pointerup ran
+   * first and deleted the id before this helper was reached.
    */
   U.gestures = function (scene, kit, h) {
     var live = Object.create(null);
-    function scenePos(e) {
+    function scenePos(p) {
       var b = scene.scale.canvasBounds;
-      return { x: e.clientX - b.x, y: e.clientY - b.y };
+      return { x: p.x - b.x, y: p.y - b.y };
     }
-    function down(e) {
+    var offDown = kit.input.onDown(function (kp) {
       if (kit.paused) return;
-      if (!kit.input.pointers.has(e.pointerId)) {
-        kit.input.pointers.set(e.pointerId, {
-          x: e.clientX, y: e.clientY, startX: e.clientX, startY: e.clientY,
-          downAt: performance.now(), zone: null
-        });
-      }
-      live[e.pointerId] = 1;
-      var p = scenePos(e);
-      if (h.onDown) h.onDown(e.pointerId, p.x, p.y);
-    }
-    function move(e) {
-      if (!live[e.pointerId] || kit.paused) return;
-      var kp = kit.input.pointers.get(e.pointerId);
-      if (kp) { kp.x = e.clientX; kp.y = e.clientY; }
-      var p = scenePos(e);
-      if (h.onMove) h.onMove(e.pointerId, p.x, p.y);
-    }
-    function up(e) {
-      if (!live[e.pointerId]) return;
-      delete live[e.pointerId];
-      /* GGKit clears its identity map as soon as a pause begins. A browser
-       * can deliver the matching pointerup after resume, so do not turn that
-       * stale release into a new tap. */
-      if (kit.paused || !kit.input.pointers.has(e.pointerId)) return;
-      var p = scenePos(e);
-      if (h.onUp) h.onUp(e.pointerId, p.x, p.y);
-    }
-    window.addEventListener('pointerdown', down, { passive: true });
-    window.addEventListener('pointermove', move, { passive: true });
-    window.addEventListener('pointerup', up, { passive: true });
-    window.addEventListener('pointercancel', up, { passive: true });
+      live[kp.pointerId] = 1;
+      var p = scenePos(kp);
+      if (h.onDown) h.onDown(kp.pointerId, p.x, p.y);
+    });
+    var offMove = kit.input.onMove(function (kp) {
+      if (!live[kp.pointerId] || kit.paused) return;
+      var p = scenePos(kp);
+      if (h.onMove) h.onMove(kp.pointerId, p.x, p.y);
+    });
+    var offUp = kit.input.onUp(function (kp, e) {
+      if (!live[kp.pointerId]) return;
+      delete live[kp.pointerId];
+      /* e is null for a synthetic drop (blur, pause, restart): that is a
+       * cancellation, never a tap. A real release delivered while paused is
+       * a stale one and is ignored the same way it always was. */
+      if (!e || kit.paused) return;
+      var p = scenePos(kp);
+      if (h.onUp) h.onUp(kp.pointerId, p.x, p.y);
+    });
     var api = {
       clear: function () {
         live = Object.create(null);
         kit.input.clearAll();
       },
       destroy: function () {
-        window.removeEventListener('pointerdown', down);
-        window.removeEventListener('pointermove', move);
-        window.removeEventListener('pointerup', up);
-        window.removeEventListener('pointercancel', up);
+        offDown(); offMove(); offUp();
         live = Object.create(null);
       }
     };

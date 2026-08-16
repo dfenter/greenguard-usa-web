@@ -1776,33 +1776,22 @@
   // ------------------------------------------------------------------ input
   PlayScene.prototype.installInputBridges = function () {
     var self = this;
-    /* Registered on window AFTER GGKit init so the kit's own pointer map is
-       already seeded when this handler claims the press. */
-    this.pointerEdgeHandler = function (event) {
-      /* Never bail on pause: GGKit stops feeding its own pointer map while the
-         sim is paused, and the pause menu still has to be tappable. Gameplay
-         actions guard on screen === 'play' instead. */
-      if (kit && kit.input && !kit.paused && !kit.input.pointers.has(event.pointerId)) {
-        kit.input.pointers.set(event.pointerId, {
-          x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY,
-          downAt: performance.now(), zone: null
-        });
-      }
-      self.pointerEdges.push({ id: event.pointerId, x: event.clientX, y: event.clientY });
+    /* GGKit's subscription hooks fire regardless of pause, which is exactly
+       what a pause menu needs: the kit's pause-suppressed `pointers` map and
+       keyDown() stay for live play, and everything here reads the
+       pause-transparent side. No second set of window listeners. */
+    this.offPointerDown = kit.input.onDown(function (pointer) {
+      self.pointerEdges.push({ id: pointer.pointerId, x: pointer.x, y: pointer.y });
       if (self.pointerEdges.length > 24) self.pointerEdges.shift();
       self.markInteracted();
-    };
-    root.addEventListener('pointerdown', this.pointerEdgeHandler, { passive: true });
-    /* Same reason for keys: GGKit drops keydown while paused, so the pause and
-       menu screens own their own rising-edge queue. */
+    });
     this.keyQueue = [];
-    this.keyHandler = function (event) {
-      if (event.repeat) return;
-      self.keyQueue.push(event.code);
+    this.offKeyDown = kit.input.onKeyDown(function (code, event) {
+      if (event && event.repeat) return;
+      self.keyQueue.push(code);
       if (self.keyQueue.length > 12) self.keyQueue.shift();
       self.markInteracted();
-    };
-    root.addEventListener('keydown', this.keyHandler);
+    });
     root.addEventListener('blur', function () { self.keyQueue.length = 0; });
   };
 
@@ -1840,14 +1829,16 @@
         this.tapAt(point.x, point.y);
       }
     }
-    kit.input.pointers.forEach(function (p, id) {
+    /* pointersRaw keeps tracking while paused, so a press made on the pause
+       menu is still visible here. */
+    kit.input.pointersRaw.forEach(function (p, id) {
       if (!self.pointerSeen.has(id)) {
         self.pointerSeen.set(id, true);
         var q = self.gamePoint(p);
         self.tapAt(q.x, q.y);
       }
     });
-    this.pointerSeen.forEach(function (v, id) { if (!kit.input.pointers.has(id)) self.pointerSeen.delete(id); });
+    this.pointerSeen.forEach(function (v, id) { if (!kit.input.pointersRaw.has(id)) self.pointerSeen.delete(id); });
     var codes = ['Space', 'Enter', 'Escape', 'KeyP', 'KeyM', 'KeyC', 'KeyR', 'KeyQ', 'KeyW', 'KeyE',
       'Digit1', 'Digit2', 'Digit3', 'Digit4', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
     while (this.keyQueue.length) {

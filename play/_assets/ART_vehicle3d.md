@@ -143,3 +143,19 @@ ACCEPTANCE: a close chase-cam screenshot reads as a real vehicle of its class.
 Silhouette test: fill the render black and it still reads as a car, with a
 recognisable roofline, arches and stance. Applies in adapted form to hover
 machines, bikes and karts.
+
+---
+
+## RETINA LAW APPLIES (owner bar delta 2026-08-16)
+
+"everything should be high resolution and more distinct colors no atari
+looking nonsense it is for iphones make the tech shine"
+
+See play/_assets/RETINA_LAW.md, which is MANDATORY and sits at the same
+level as this bible. Headline: the fleet was measured on an emulated 3x
+iPhone display and NOT ONE title rendered at native density (ratios of 1.0
+to 2.0 against a device ratio of 3.0). Colour depth is already good fleet
+wide; the defect is pixel density, and the upscale is what makes the art
+look coarse. Render at min(devicePixelRatio, 3), bake textures at device
+scale, keep text vector or device-scale baked, and do not pay for it in
+frame time.

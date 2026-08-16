@@ -394,3 +394,19 @@ information that the visual layer intentionally hides.
 | Do validate strategy art in the deployed 390px evidence frame and in a live wave. | Don't approve a beautiful menu screenshot as proof that the battlefield reads. |
 | Do measure pooled FX, frame time, payload, and audio format together. | Don't trade deterministic sim behavior or mobile performance for a larger effect. |
 | Do record CC0 sources, original procedural additions, and title-specific decisions. | Don't ship an untraceable asset, a CDN dependency, or a licensed-looking stand-in. |
+
+---
+
+## RETINA LAW APPLIES (owner bar delta 2026-08-16)
+
+"everything should be high resolution and more distinct colors no atari
+looking nonsense it is for iphones make the tech shine"
+
+See play/_assets/RETINA_LAW.md, which is MANDATORY and sits at the same
+level as this bible. Headline: the fleet was measured on an emulated 3x
+iPhone display and NOT ONE title rendered at native density (ratios of 1.0
+to 2.0 against a device ratio of 3.0). Colour depth is already good fleet
+wide; the defect is pixel density, and the upscale is what makes the art
+look coarse. Render at min(devicePixelRatio, 3), bake textures at device
+scale, keep text vector or device-scale baked, and do not pay for it in
+frame time.

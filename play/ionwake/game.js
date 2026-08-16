@@ -409,25 +409,20 @@ class IonwakeApp {
   }
 
   bindInput() {
-    // Window-level and registered after GGKit's own pointerdown handler, so
-    // this runs second and tags the pointer object GGKit just stored. The old
-    // canvas-level listener ran FIRST and its claimed object was immediately
-    // overwritten by GGKit's handler, which is why touch steering was dead.
-    window.addEventListener('pointerdown', (event) => {
+    // GGKit.onDown fires AFTER the kit has created and stored its pointer
+    // object, so the object tagged here is THE kit's object and nothing can
+    // overwrite it. The kit also takes the pointer capture now.
+    kit.input.onDown((pointer, event) => {
       if (event.target !== sceneCanvas) return;
       const rect = sceneCanvas.getBoundingClientRect();
       const localX = event.clientX - rect.left; const localY = event.clientY - rect.top;
-      let pointer = kit.input.pointers.get(event.pointerId);
-      if (!pointer) {
-        pointer = { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, downAt: performance.now(), zone: 'claimed' };
-        kit.input.pointers.set(event.pointerId, pointer);
-      }
       pointer.zone = 'claimed'; pointer.gameZone = this.mode === 'race' || this.mode === 'countdown' ? (localX > rect.width - 148 && localY > rect.height - 118 ? 'boost' : 'steer') : 'menu'; pointer.baseX = event.clientX;
       this.pointerClaims.set(event.pointerId, { x: localX, y: localY, zone: pointer.gameZone });
-      if (sceneCanvas.setPointerCapture) { try { sceneCanvas.setPointerCapture(event.pointerId); } catch (e) {} }
-    }, { passive: true });
-    window.addEventListener('pointerup', (event) => this.finishPointer(event), { passive: true });
-    window.addEventListener('pointercancel', (event) => this.finishPointer(event), { passive: true });
+    });
+    // onUp runs BEFORE the kit deletes the entry, and also for synthetic
+    // drops (blur, pause, restart) with a null event, so a claim can never
+    // be stranded.
+    kit.input.onUp((pointer, event) => this.finishPointer(pointer, event));
     this.bindTilt();
   }
 
@@ -472,13 +467,14 @@ class IonwakeApp {
     } else apply(true);
   }
 
-  finishPointer(event) {
-    const claim = this.pointerClaims.get(event.pointerId);
-    if (claim && claim.zone === 'menu') {
+  finishPointer(pointer, event) {
+    const id = pointer.pointerId;
+    const claim = this.pointerClaims.get(id);
+    if (claim && claim.zone === 'menu' && event) {
       const rect = sceneCanvas.getBoundingClientRect(); const x = event.clientX - rect.left; const y = event.clientY - rect.top;
       if (Math.hypot(x - claim.x, y - claim.y) < 28) this.handleTap(x, y, rect.width, rect.height);
     }
-    this.pointerClaims.delete(event.pointerId); kit.input.pointers.delete(event.pointerId);
+    this.pointerClaims.delete(id); // the kit deletes its own entry right after this returns
   }
 
   resize() {
