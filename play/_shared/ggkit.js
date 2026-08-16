@@ -597,17 +597,54 @@
       return clamp(isFinite(d) && d > 0 ? d : 1, 1, cap);
     },
 
-    // Returns a NEW Phaser config: render defaults merged (caller wins), and
-    // the game sized in device pixels with zoom = 1/dpr so the CSS size is
-    // unchanged. Pass the CSS design size you use today.
-    //   const cfg = GGKit.hiDpi.phaser({ type: Phaser.AUTO, width: 390, height: 844, scene: [S] });
+    // factor(designW, designH, max) — the multiplier to apply to a title's
+    // DESIGN size to reach native device density, and the number every
+    // adoption should be built on.
+    //
+    // Why this is not simply `dpr`: a title whose design size already differs
+    // from its CSS display box is partly dense already. Multiplying the
+    // design size by dpr overshoots badly. Bulwark designs at 1280x720 and
+    // displays in an 844 CSS box; blind x3 gave a 3840x2160 backing store,
+    // 8.3M pixels, when the panel only ever shows 2532x1170 (3M). That is
+    // 2.7x the fill cost for zero visible gain, and on a software rasteriser
+    // it hung the page outright.
+    //
+    // The correct multiplier is (displayed CSS width * dpr) / design width,
+    // clamped to at least 1 (never DOWNsample a title) and at most dpr.
+    factor(designW, designH, max) {
+      const d = GGKit.hiDpi.dpr(max);
+      if (!designW || !designH) return d;
+      const vw = root.innerWidth || designW, vh = root.innerHeight || designH;
+      // Letterboxed fit preserves aspect, so the displayed width is whichever
+      // of width- or height-limited is smaller.
+      const shownW = Math.min(vw, vh * (designW / designH));
+      return clamp((shownW * d) / designW, 1, d);
+    },
+
+    // Returns a NEW Phaser config with render defaults merged (caller wins)
+    // and the backing store raised to native device density.
+    //
+    // SAFE ONLY when the design size IS the CSS layout size (the Scale.NONE
+    // and Scale.RESIZE shapes), because it sizes the game in device pixels
+    // and compensates with zoom = 1/factor, which leaves world coordinates
+    // in device pixels.
+    //
+    // For a Scale.FIT title with a fixed design size, do NOT use this: raising
+    // scale.width moves the world coordinate space and every hard-coded
+    // position lands in the wrong place. Use factor() plus a camera zoom,
+    // which keeps world coordinates at the design size:
+    //   const f = GGKit.hiDpi.factor(DESIGN_W, DESIGN_H);
+    //   cfg.scale.width = Math.round(DESIGN_W * f);
+    //   cfg.scale.height = Math.round(DESIGN_H * f);
+    //   // then, in each scene's create():
+    //   this.cameras.main.setZoom(f);
     phaser(config, opts) {
       const cfg = Object.assign({}, config || {});
-      const d = GGKit.hiDpi.dpr(opts && opts.maxDpr);
       cfg.render = Object.assign({}, GGKit.renderDefaults, cfg.render || {});
       const scale = Object.assign({}, cfg.scale || {});
       const cssW = scale.width != null ? scale.width : cfg.width;
       const cssH = scale.height != null ? scale.height : cfg.height;
+      const d = GGKit.hiDpi.factor(cssW, cssH, opts && opts.maxDpr);
       if (cssW && cssH && typeof cssW === 'number' && typeof cssH === 'number') {
         scale.width = Math.round(cssW * d);
         scale.height = Math.round(cssH * d);
