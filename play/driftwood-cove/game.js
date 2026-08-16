@@ -1345,7 +1345,11 @@
 
   PlayScene.prototype.create = function () {
     var self = this, i;
-    this.cameras.main.setZoom(RETINA_FACTOR);
+    // setOrigin(0, 0) is the other half of the retina zoom: a zoomed camera
+    // transforms about its origin, so with the default centred origin the design
+    // box lands at -W*(f-1)/2 and nothing is on screen. Origin (0,0) keeps world
+    // coordinates, scrollFactor-0 UI and absolute setScroll() all in design space.
+    this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.setOrigin(0, 0);
     Game.active = this;
     this.mode = 'play';
     this.acc = 0;
@@ -2184,7 +2188,7 @@
   BootScene.prototype.constructor = BootScene;
   BootScene.prototype.create = function () {
     var self = this;
-    this.cameras.main.setZoom(RETINA_FACTOR);
+    this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.setOrigin(0, 0);
     Game.active = this;
     publish({ mode: 'boot', scene: 'boot', ready: false });
     if (kit) kit.loader.show('Driftwood Cove');
@@ -2231,7 +2235,7 @@
   TitleScene.prototype.constructor = TitleScene;
   TitleScene.prototype.create = function () {
     var self = this, i;
-    this.cameras.main.setZoom(RETINA_FACTOR);
+    this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.setOrigin(0, 0);
     Game.active = this;
     this.buttons = [];
     this.add.rectangle(W / 2, H / 2, W, H, 0x071923).setDepth(0);
@@ -2313,7 +2317,7 @@
   LogScene.prototype.constructor = LogScene;
   LogScene.prototype.create = function (data) {
     var self = this, i;
-    this.cameras.main.setZoom(RETINA_FACTOR);
+    this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.setOrigin(0, 0);
     Game.active = this;
     this.from = (data && data.from) || 'title';
     this.page = 0;
@@ -2405,7 +2409,7 @@
 
   StormScene.prototype.create = function () {
     var self = this, i;
-    this.cameras.main.setZoom(RETINA_FACTOR);
+    this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.setOrigin(0, 0);
     Game.active = this;
     this.acc = 0;
     this.clock = 0;

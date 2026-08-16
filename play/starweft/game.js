@@ -297,7 +297,11 @@
     preload() {}
 
     create() {
-      this.cameras.main.setZoom(RETINA_FACTOR);
+      // setOrigin(0, 0) is the other half of the retina zoom: a zoomed camera
+      // transforms about its origin, so with the default centred origin the design
+      // box lands at -W*(f-1)/2 and nothing is on screen. Origin (0,0) keeps world
+      // coordinates, scrollFactor-0 UI and absolute setScroll() all in design space.
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.setOrigin(0, 0);
       Game.scene = this;
       this.input.enabled = false;
       this.simPaused = false;
@@ -324,8 +328,14 @@
       this.hitFx = this.makeFxPool(20);
       this.renderWorldBase();
       this.createTextLayers();
-      this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
-      this.cameras.main.startFollow(this.playerSprite, true, 0.12, 0.12);
+      // Neither setBounds nor startFollow can be used on an origin-(0,0)
+      // retina camera: Phaser derives both the follow scroll (fx - width/2)
+      // and the clamp range ((displayWidth - width) / 2) from a CENTRED
+      // origin, so with zoom f they land the view f-1 screens away from the
+      // player. followCamera below is the same lerp and the same limits,
+      // expressed in design pixels, which is also what hitTest() reads back
+      // out of cameras.main.scrollX.
+      this.followCamera(true);
       this.syncScene(true);
       kit.loader.progress(1); kit.loader.hide();
       kit.audio.music('exploration-theme', 450);
@@ -407,13 +417,25 @@
 
     showHomeMessage() { if (!hasSave) setTransient('Move through the Moor and collect the sky threads.', 2.6, 'coach'); }
 
+    // Keeps the player centred inside the design window and inside the world,
+    // in design pixels. Replaces startFollow + setBounds, which both assume a
+    // centred camera origin (see create()).
+    followCamera(immediate = false) {
+      const cam = this.cameras.main;
+      if (state.scene !== 'world') { cam.setScroll(0, 0); return; }
+      const tx = clamp(state.player.x - W / 2, 0, WORLD_W - W);
+      const ty = clamp(state.player.y - H / 2, 0, WORLD_H - H);
+      if (immediate) { cam.setScroll(Math.round(tx), Math.round(ty)); return; }
+      cam.setScroll(Math.round(cam.scrollX + (tx - cam.scrollX) * 0.12), Math.round(cam.scrollY + (ty - cam.scrollY) * 0.12));
+    }
+
     syncScene(force = false) {
       if (!force && this.lastScene === state.scene) return;
       this.lastScene = state.scene;
       const world = state.scene === 'world';
       this.worldG.setVisible(world); this.detailG.setVisible(world); this.dynamicG.setVisible(world); this.playerSprite.setVisible(world); this.enemySprites.forEach((sprite) => sprite.setVisible(world));
-      if (world) { this.cameras.main.startFollow(this.playerSprite, true, 0.12, 0.12); this.updateMusic(true); }
-      else this.cameras.main.stopFollow();
+      if (world) { this.followCamera(true); this.updateMusic(true); }
+      else this.cameras.main.setScroll(0, 0);
       this.renderUi(); this.updateAccessibility();
     }
 
@@ -499,6 +521,7 @@
         if (state.scene === 'world') this.updateWorld(dt);
         this.updateFx(dt); this.updateFloaters(dt); this.updateDynamicDraw();
       }
+      this.followCamera();
       this.renderUi(); this.updateAccessibility();
     }
 

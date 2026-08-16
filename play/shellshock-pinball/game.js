@@ -352,7 +352,7 @@
   var BootScene = {
     key: 'boot',
     create: function () {
-      this.cameras.main.setZoom(RETINA_FACTOR);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
       var scene = this;
       kit.loader.show('SHELLSHOCK PINBALL'); kit.loader.progress(0.18);
       bakeTextures(scene); kit.loader.progress(0.72);
@@ -371,7 +371,7 @@
   var TitleScene = {
     key: 'title',
     create: function () {
-      this.cameras.main.setZoom(RETINA_FACTOR);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
       var scene = this, skin = skinById(profile.skin), table = SS.generateTable(currentSeed);
       Game.title = this; Game.play = null; syncDebug(null);
       this.cameras.main.setBackgroundColor('#050b15');
@@ -426,7 +426,7 @@
   var PlayScene = {
     key: 'play',
     create: function (data) {
-      this.cameras.main.setZoom(RETINA_FACTOR);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
       var seed = data && data.seed != null ? ((Number(data.seed) >>> 0) || DEFAULT_SEED) : currentSeed;
       currentSeed = seed; profile.lastSeed = seed; persist();
       Game.play = this; Game.title = null; this.lifecyclePaused = false; this.acc = 0; this.fxSeed = seed ^ 0x9e3779b9;

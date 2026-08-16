@@ -291,7 +291,7 @@
   class BastionworksScene extends Phaser.Scene {
     constructor() { super({ key: 'Bastionworks' }); }
     create() {
-      this.cameras.main.setZoom(RETINA_FACTOR);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
       var self = this;
       Game.scene = this;
       this.pausedByKit = false;

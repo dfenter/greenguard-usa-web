@@ -453,7 +453,7 @@
     constructor() { super({ key: 'boot' }); }
     preload() { kit.loader.show('SPORELING SAGA'); kit.loader.progress(0.55); }
     create() {
-      this.cameras.main.setZoom(RETINA_FACTOR);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
       ensureProfile();
       kit.audio.register({
         strikeHit: 'assets/strike-hit.mp3', forageChime: 'assets/forage-chime.mp3',
@@ -476,7 +476,7 @@
       this.layout = { sx: 1, sy: 1 }; this.lifecyclePaused = false; this.lastProbeRank = null; this.lastProbeBranch = '';
     }
     create() {
-      this.cameras.main.setZoom(RETINA_FACTOR);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
       Game.play = this; liveScene = this;
       this.installGamepadHooks();
       var self = this;

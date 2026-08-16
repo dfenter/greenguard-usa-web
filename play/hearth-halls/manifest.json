@@ -9,7 +9,7 @@
   "theme_color": "#172541",
   "description": "A match-3 room restoration story with Marn and Pip.",
   "icons": [
-    { "src": "/play/hearth-halls/icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/play/hearth-halls/icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    {"src": "icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "icon512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
   ]
 }

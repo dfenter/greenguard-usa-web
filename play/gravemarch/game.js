@@ -301,7 +301,7 @@
   function buildSmallTexture(scene, key, size, paint) { var baked = GGKit.hiDpi.canvas(size, size); paint(baked.ctx, size); scene.textures.addCanvas(key, baked.canvas); }
 
   function configureRetinaScene(scene) {
-    scene.cameras.main.setZoom(RETINA_FACTOR);
+    scene.cameras.main.setZoom(RETINA_FACTOR); scene.cameras.main.centerOn(W / 2, H / 2);
     var addText = scene.add.text;
     scene.add.text = function (x, y, value, style) {
       return addText.call(this, x, y, value, Object.assign({}, style || {}, { resolution: RETINA_FACTOR }));

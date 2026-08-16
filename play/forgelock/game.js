@@ -218,7 +218,7 @@
     constructor() { super({ key: 'Forgelock' }); this.mode = 'game'; this.boardIndex = 0; this.gestures = new Map(); this.effectPools = { match: [], cascade: [], reward: [] }; this.acc = 0; this.fixedTime = 0; this.keyHeld = {}; this.padHeld = {}; this.pausedByKit = false; this.musicStarted = false; this.coachLife = 0; this.coachMessage = ''; this.eventChipCurrent = ''; this.eventChipLife = 0; this.eventChipQueue = []; this.lastEventSeen = null; }
     preload() { kit.loader.show('FORGELOCK'); kit.loader.progress(.25); }
     create() {
-      this.cameras.main.setZoom(RETINA_FACTOR);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
       scene = this; this.profile = profile; this.world = []; this.renderRecords = { tiles: [], forges: [], mechanics: [], selection: [], preview: [], cursor: null }; this.ui = {}; this.fixedTime = 0; this.flash = 0; this.banner = null; this.bannerT = 0; this.coachAlpha = 0; this.coachLife = 0; this.coachMessage = ''; this.eventChipCurrent = ''; this.eventChipLife = 0; this.eventChipQueue = []; this.lastEventSeen = null;
       this.background = this.add.rectangle(0, 0, W, H, 0x0a1422).setOrigin(0).setDepth(-20); this.makeUi(); this.createEffects(); this.bindPointerInput();
       kit.loader.progress(.6); kit.audio.preload(['board', 'resolve', 'select', 'invalid', 'match', 'cascade', 'combo', 'reward', 'reset']).then(function () { kit.loader.progress(1); kit.loader.hide(); }); this.applyInitialBoard();

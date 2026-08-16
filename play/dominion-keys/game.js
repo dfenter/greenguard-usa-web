@@ -718,7 +718,7 @@
 
     create() {
       var self = this;
-      this.cameras.main.setZoom(RETINA_FACTOR);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(DW / 2, DH / 2);
       this.mode = 'title';
       this.st = null;
       this.level = 0;

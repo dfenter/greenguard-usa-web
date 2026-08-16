@@ -155,7 +155,11 @@
   BootScene.prototype.constructor = BootScene;
 
   BootScene.prototype.create = function () {
-    this.cameras.main.setZoom(RETINA_FACTOR);
+    // setOrigin(0, 0) is the other half of the retina zoom: a zoomed camera
+    // transforms about its origin, so with the default centred origin the design
+    // box lands at -W*(f-1)/2 and nothing is on screen. Origin (0,0) keeps world
+    // coordinates, scrollFactor-0 UI and absolute setScroll() all in design space.
+    this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.setOrigin(0, 0);
     kit.loader.show('Chroma Tap');
     kit.loader.progress(0.15);
     Art.bakeAll(this);
@@ -189,7 +193,7 @@
 
   MenuScene.prototype.create = function () {
     var self = this;
-    this.cameras.main.setZoom(RETINA_FACTOR);
+    this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.setOrigin(0, 0);
     this.cameras.main.setBackgroundColor(hex('#131c33'));
     kit.audio.music('m_menu', 600);
 
@@ -271,7 +275,7 @@
 
   LevelsScene.prototype.create = function () {
     var self = this;
-    this.cameras.main.setZoom(RETINA_FACTOR);
+    this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.setOrigin(0, 0);
     this.cameras.main.setBackgroundColor(hex('#131c33'));
     this.packIdx = 0;
     for (var i = D.PACKS.length - 1; i >= 0; i--) {
@@ -367,7 +371,7 @@
 
   RestoreScene.prototype.create = function () {
     var self = this;
-    this.cameras.main.setZoom(RETINA_FACTOR);
+    this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.setOrigin(0, 0);
     this.cameras.main.setBackgroundColor(hex('#131c33'));
     kit.audio.music('m_menu', 500);
     if (!save.meta) save.meta = D.emptySave().meta;
@@ -455,7 +459,7 @@
 
   PlayScene.prototype.create = function () {
     var self = this;
-    this.cameras.main.setZoom(RETINA_FACTOR);
+    this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.setOrigin(0, 0);
     this.cameras.main.setBackgroundColor(hex('#101728'));
     this.busy = false;
     this.timers = [];

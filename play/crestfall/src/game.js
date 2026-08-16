@@ -41,8 +41,18 @@ class CrestfallScene extends Phaser.Scene {
 export class Game {
   constructor(canvas) {
     this.canvas = canvas;
-    this.canvas.width = W;
-    this.canvas.height = H;
+    // Native device density. Crestfall is a hand-drawn Canvas2D title: Phaser
+    // only owns the loop and the canvas, everything is painted by _draw() in
+    // W x H design space. So the backing store is raised by an INTEGER factor
+    // and the draw transform scales to match; the CSS box is left to the
+    // stylesheet. Integer on purpose: this is pixel art with
+    // image-rendering:pixelated, and a fractional factor puts seams between
+    // the 3x-scaled NES pixels. hiDpi.factor() gives the true requirement
+    // (1.74 on a 844x390 dpr-3 panel); ceil takes it to a clean 2.
+    const hd = (window.GGKit && window.GGKit.hiDpi) ? window.GGKit.hiDpi : null;
+    this.dpr = hd ? Math.min(3, Math.max(1, Math.ceil(hd.factor(W, H)))) : 1;
+    this.canvas.width = W * this.dpr;
+    this.canvas.height = H * this.dpr;
     this.ctx = null;
     this.ready = false;
     this.systemPaused = false;
@@ -95,8 +105,8 @@ export class Game {
     this.phaserGame = new Phaser.Game({
       type: Phaser.CANVAS,
       canvas: this.canvas,
-      width: W,
-      height: H,
+      width: W * this.dpr,
+      height: H * this.dpr,
       backgroundColor: '#050710',
       render: { antialias: false, pixelArt: true, roundPixels: true, clearBeforeRender: true },
       banner: false,
@@ -574,6 +584,8 @@ export class Game {
   _draw() {
     if (!this.ctx) return;
     this.ctx.save();
+    // Design space is W x H; the backing store is dpr times that.
+    if (this.dpr !== 1) this.ctx.scale(this.dpr, this.dpr);
     const shake = this.kit.juice.frame();
     this.ctx.translate(shake.dx * 0.35, shake.dy * 0.35);
     if (this.state === STATE.TITLE) drawTitle(this.ctx, this.titleFrame);

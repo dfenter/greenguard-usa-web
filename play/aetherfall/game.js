@@ -920,12 +920,12 @@
 
   var BootScene = {
     key: 'Boot',
-    create: function () { this.cameras.main.setZoom(RETINA_FACTOR); this.scene.start('Play'); }
+    create: function () { this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2); this.scene.start('Play'); }
   };
   var PlayScene = {
     key: 'Play',
     create: function () {
-      this.cameras.main.setZoom(RETINA_FACTOR);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
       app.scene = this;
       this.acc = 0; this.lastMode = ''; this.pauseHint = false; this.bgKey = ''; this.audioReady = false;
       this.makeTextures(); this.makeObjects();

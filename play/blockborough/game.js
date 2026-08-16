@@ -667,8 +667,14 @@
     var cssW = Math.max(1, Math.floor((stage && stage.clientWidth) || document.documentElement.clientWidth || 1));
     var cssH = Math.max(1, Math.floor((stage && stage.clientHeight) || document.documentElement.clientHeight || 1));
     if (!game || !game.scale) return;
-    game.scale.resize(Math.round(cssW * DPR), Math.round(cssH * DPR));
-    if (game.canvas) { game.canvas.style.width = cssW + 'px'; game.canvas.style.height = cssH + 'px'; }
+    var apply = function () {
+      try {
+        game.scale.resize(Math.round(cssW * DPR), Math.round(cssH * DPR));
+        if (game.canvas) { game.canvas.style.width = cssW + 'px'; game.canvas.style.height = cssH + 'px'; }
+      } catch (e) { /* a resize must never take the title down */ }
+    };
+    if (game.isBooted) apply();
+    else if (game.events && game.events.once) game.events.once('ready', apply);
   }
 
   kit.loader.progress(.08);

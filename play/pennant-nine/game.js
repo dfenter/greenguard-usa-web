@@ -226,7 +226,11 @@
     Extends: Phaser.Scene,
     initialize: function BootScene() { Phaser.Scene.call(this, { key: 'boot' }); },
     create: function () {
-      this.cameras.main.setZoom(HIDPI_FACTOR);
+      // setOrigin(0, 0) is the other half of the retina zoom: a zoomed camera
+      // transforms about its origin, so with the default centred origin the design
+      // box lands at -W*(f-1)/2 and nothing is on screen. Origin (0,0) keeps world
+      // coordinates, scrollFactor-0 UI and absolute setScroll() all in design space.
+      this.cameras.main.setZoom(HIDPI_FACTOR); this.cameras.main.setOrigin(0, 0);
       var self = this;
       kit.loader.show('Pennant Nine');
       kit.loader.progress(0.02);
@@ -272,7 +276,7 @@
 
     create: function () {
       scene = this;
-      this.cameras.main.setZoom(HIDPI_FACTOR);
+      this.cameras.main.setZoom(HIDPI_FACTOR); this.cameras.main.setOrigin(0, 0);
       canvasEl = this.game.canvas;
       this.cameras.main.setBackgroundColor('#071116');
       this.acc = 0;

@@ -219,7 +219,7 @@
   };
 
   MainScene.prototype.create = function () {
-    this.cameras.main.setZoom(RETINA_FACTOR);
+    this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
     Game.scene = this;
     this.simPaused = false; this.playerPaused = false; this.acc = 0; this.lastStep = 0; this.lastTap = 0;
     this.mode = 'menu'; this.run = null; this.heroes = []; this.activeHero = 0;

@@ -189,7 +189,7 @@
   Scene.prototype.constructor = Scene;
 
   Scene.prototype.create = function () {
-    this.cameras.main.setZoom(RETINA_FACTOR);
+    this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
     App.scene = this; this.pausedByKit = false; this.restartRequested = false; this.accumulator = 0; this.simTime = 0; this.uiTime = 0;
     this.selectedFloor = clamp(Number(DD_STATE.floor) || 1, 1, FLOORS.length); this.pointerClaims = {}; this.keyPrev = {}; this.gamepadPrev = {}; this.control = {};
     this.run = null; this.room = null; this.player = null; this.enemies = []; this.bolts = []; this.pickups = []; this.hazards = [];

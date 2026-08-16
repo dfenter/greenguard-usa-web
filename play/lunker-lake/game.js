@@ -36,7 +36,12 @@
     color: color || '#e8f5f4', fontStyle: 'normal', fontWeight: weight || '600', resolution: RETINA_FACTOR
   });
   function configureRetinaScene(scene) {
+    // setOrigin(0, 0) is the other half of the retina zoom: a zoomed camera
+    // transforms about its origin, so with the default centred origin the design
+    // box lands at -W*(f-1)/2 and nothing is on screen. Origin (0,0) keeps world
+    // coordinates, scrollFactor-0 UI and absolute setScroll() all in design space.
     scene.cameras.main.setZoom(RETINA_FACTOR);
+    scene.cameras.main.setOrigin(0, 0);
     const addText = scene.add.text;
     scene.add.text = function (x, y, value, textStyle) {
       return addText.call(this, x, y, value, Object.assign({}, textStyle || {}, { resolution: RETINA_FACTOR }));
@@ -240,13 +245,19 @@
       this.input.keyboard.on('keydown-W', function () { if (this.state === 'water') this.lure.y = clamp(this.lure.y - 28, 320, 720); else this.castAim.angle = clamp(this.castAim.angle + .05, .2, 1.32); }, this);
       this.input.keyboard.on('keydown-S', function () { if (this.state === 'water') this.lure.y = clamp(this.lure.y + 28, 320, 720); else this.castAim.angle = clamp(this.castAim.angle - .05, .2, 1.32); }, this);
       this.cameras.main.ignore(this.layers.ui);
-      this.cameras.main.setBounds(0, 0, WORLD_W, H);
+      // No setBounds here. Camera.clampX/clampY derive their range from
+      // (displayWidth - width) / 2, which only lines up when the zoom is
+      // centred. On this origin-(0,0) retina camera the same bounds clamp
+      // scrollY to a constant -H*(f-1) and push the lake off screen. The
+      // scroll is already fully authored in updateShowcaseCamera, so the
+      // equivalent limits are applied there instead.
       // The main camera ignores the UI layer so showcase pans and shake
       // never move the interface - which requires a second, static camera
       // that actually renders it. Without this the whole UI (including the
       // entire title screen) rendered nowhere.
       this.uiCam = this.cameras.add(0, 0, Math.round(W * RETINA_FACTOR), Math.round(H * RETINA_FACTOR));
       this.uiCam.setZoom(RETINA_FACTOR);
+      this.uiCam.setOrigin(0, 0);
       this.uiCam.ignore([this.layers.bg, this.layers.water, this.layers.fish,
         this.layers.fx, this.layers.actor]);
       this.renderTitle();
@@ -454,7 +465,9 @@
         this.parallax.mid.x = this.showcaseOffset * .28;
         this.parallax.near.x = this.showcaseOffset * .48;
       }
-      this.cameras.main.setScroll(this.showcaseOffset + (juice ? juice.dx : 0), juice ? juice.dy : 0);
+      // Same limits the old setBounds(0, 0, WORLD_W, H) produced: horizontal
+      // travel inside the world, no vertical travel at all.
+      this.cameras.main.setScroll(clamp(this.showcaseOffset + (juice ? juice.dx : 0), 0, WORLD_W - W), 0);
     },
     updateWaterArt: function (dt) {
       if (!this.lake || !this.waterMotion) return;

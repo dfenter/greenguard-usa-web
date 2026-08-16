@@ -334,7 +334,7 @@
   }
 
   SafariScene.prototype.create = function () {
-    this.cameras.main.setZoom(RETINA_FACTOR);
+    this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
     sceneRef = this;
     this.save = normalizeSave(kit.save.get(defaultSave()));
     this.mode = 'menu'; this.stage = 'select'; this.habitatId = 'delta'; this.routeIndex = 0; this.route = ROUTES[0];

@@ -208,7 +208,7 @@
   };
 
   BootScene.prototype.create = function () {
-    this.cameras.main.setZoom(RETINA_FACTOR);
+    this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
     // 1x1 white pixel: every meter, rule and fill scales this instead of
     // leaving a static Graphics in the display list.
     var g = this.make.graphics({ x: 0, y: 0, add: false });
@@ -232,7 +232,7 @@
   MenuScene.prototype.constructor = MenuScene;
 
   MenuScene.prototype.create = function () {
-    this.cameras.main.setZoom(RETINA_FACTOR);
+    this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
     var self = this;
     HOOK.mode = 'menu';
     HOOK.ready = true;
@@ -379,7 +379,7 @@
   };
 
   PlayScene.prototype.create = function () {
-    this.cameras.main.setZoom(RETINA_FACTOR);
+    this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
     LIVE = this;
     var self = this;
     this.acc = 0;

@@ -356,8 +356,15 @@
   function syncHiDpi(game) {
     var cssW = Math.max(1, Math.floor(document.documentElement.clientWidth || 390));
     var cssH = Math.max(1, Math.floor(document.documentElement.clientHeight || 844));
-    game.scale.resize(Math.round(cssW * DPR), Math.round(cssH * DPR));
-    if (game.canvas) { game.canvas.style.width = cssW + 'px'; game.canvas.style.height = cssH + 'px'; }
+    if (!game || !game.scale) return;
+    var apply = function () {
+      try {
+        game.scale.resize(Math.round(cssW * DPR), Math.round(cssH * DPR));
+        if (game.canvas) { game.canvas.style.width = cssW + 'px'; game.canvas.style.height = cssH + 'px'; }
+      } catch (e) { /* a resize must never take the title down */ }
+    };
+    if (game.isBooted) apply();
+    else if (game.events && game.events.once) game.events.once('ready', apply);
   }
   syncHiDpi(Game.phaser);
   window.addEventListener('resize', function () { syncHiDpi(Game.phaser); });

@@ -50,7 +50,23 @@
     var v = Math.round(360 * (h / Math.max(1, w)));
     return Math.max(560, Math.min(800, v));
   })();
-  var RETINA_FACTOR = GGKit.hiDpi.factor(GW, GH);
+  // Skyhammer designs at a FIXED 360-wide world and fits it to the panel, so
+  // on a 390 CSS-pt phone the FIT upscale (390/360 = 1.083) happens BEFORE the
+  // display's own dpr. GGKit.hiDpi.factor() clamps its result at dpr, which is
+  // right when the design box is WIDER than the display box but leaves this
+  // title 8% short: 360 x 3 = 1080 backing pixels spread over a 390-pt box is
+  // 2.77x, not native. The correct multiplier on the DESIGN width is
+  // (displayed CSS width * dpr) / designWidth, i.e. factor() without the upper
+  // clamp, which lands the backing store exactly on the panel's pixel count
+  // (1170 x 2530 for 390 x 844 @3) and never above it.
+  var RETINA_FACTOR = (function () {
+    var d = GGKit.hiDpi.dpr();
+    var clamped = GGKit.hiDpi.factor(GW, GH);
+    var vw = window.innerWidth || GW, vh = window.innerHeight || GH;
+    var shownW = Math.min(vw, vh * (GW / GH));
+    var exact = (shownW * d) / GW;
+    return Math.max(1, clamped, isFinite(exact) ? exact : 1);
+  })();
 
   /* Pool ceilings. Pools grow one object at a time on demand so the first
    * frame never builds hundreds of game objects at once. */
@@ -362,7 +378,7 @@
     initialize: function BootScene() { Phaser.Scene.call(this, { key: 'Boot' }); },
 
     create: function () {
-      this.cameras.main.setZoom(RETINA_FACTOR);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(GW / 2, GH / 2);
       SH_STATE.scene = 'boot';
       kit.loader.show('SKYHAMMER');
       kit.loader.progress(0.1);
@@ -454,7 +470,7 @@
     initialize: function MenuScene() { Phaser.Scene.call(this, { key: 'Menu' }); },
 
     create: function () {
-      this.cameras.main.setZoom(RETINA_FACTOR);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(GW / 2, GH / 2);
       SH_STATE.scene = 'menu';
       SH_STATE.mode = 'menu';
       SH_STATE.phase = 'menu';
@@ -615,7 +631,7 @@
     },
 
     create: function () {
-      this.cameras.main.setZoom(RETINA_FACTOR);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(GW / 2, GH / 2);
       activePlay = this;
       var self = this;
       SH_STATE.scene = 'play';

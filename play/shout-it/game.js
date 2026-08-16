@@ -1212,7 +1212,7 @@
       brandLoader();
     },
     create: function () {
-      this.cameras.main.setZoom(RETINA_FACTOR);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(DW / 2, DH / 2);
       var self = this;
       kit.audio.register(AUDIO);
       /* Every bake is a discrete step on its own frame. One monolithic boot
@@ -1292,7 +1292,7 @@
   var BgScene = {
     key: 'bg',
     create: function () {
-      this.cameras.main.setZoom(RETINA_FACTOR);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(DW / 2, DH / 2);
       this.add.image(0, 0, 'bgGrad').setOrigin(0, 0);
       var self = this;
       var accents = [
@@ -1325,7 +1325,7 @@
   var TitleScene = {
     key: 'title',
     create: function () {
-      this.cameras.main.setZoom(RETINA_FACTOR);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(DW / 2, DH / 2);
       var self = this;
       sceneEnter(this);
       wantMusic('music_lobby');
@@ -1376,7 +1376,7 @@
   var SetupScene = {
     key: 'setup',
     create: function () {
-      this.cameras.main.setZoom(RETINA_FACTOR);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(DW / 2, DH / 2);
       var self = this;
       sceneEnter(this);
       wantMusic('music_lobby');
@@ -1450,7 +1450,7 @@
     key: 'play',
 
     create: function () {
-      this.cameras.main.setZoom(RETINA_FACTOR);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(DW / 2, DH / 2);
       var self = this;
       sceneEnter(this);
       playScene = this;
@@ -1888,7 +1888,7 @@
   var PauseScene = {
     key: 'pause',
     create: function () {
-      this.cameras.main.setZoom(RETINA_FACTOR);
+      this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(DW / 2, DH / 2);
       var self = this;
       var scrim = this.add.image(DW / 2, DH / 2, texPx(this)).setDisplaySize(DW, DH)
         .setTint(0x0a0520).setAlpha(0).setInteractive();

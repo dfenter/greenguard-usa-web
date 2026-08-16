@@ -216,7 +216,7 @@
   SliceRushScene.prototype.constructor = SliceRushScene;
 
   SliceRushScene.prototype.create = function () {
-    this.cameras.main.setZoom(RETINA_FACTOR);
+    this.cameras.main.setZoom(RETINA_FACTOR); this.cameras.main.centerOn(W / 2, H / 2);
     sceneRef = this;
     this.simPaused = false;
     this.running = true;

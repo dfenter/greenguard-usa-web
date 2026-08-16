@@ -747,11 +747,18 @@
   function syncHiDpi(game) {
     var nextW = Math.max(1, Math.floor(document.documentElement.clientWidth || 1));
     var nextH = Math.max(1, Math.floor(document.documentElement.clientHeight || 1));
-    game.scale.resize(Math.round(nextW * DPR), Math.round(nextH * DPR));
-    if (game.canvas) {
-      game.canvas.style.width = nextW + 'px';
-      game.canvas.style.height = nextH + 'px';
-    }
+    if (!game || !game.scale) return;
+    var apply = function () {
+      try {
+        game.scale.resize(Math.round(nextW * DPR), Math.round(nextH * DPR));
+        if (game.canvas) {
+          game.canvas.style.width = nextW + 'px';
+          game.canvas.style.height = nextH + 'px';
+        }
+      } catch (e) { /* a resize must never take the title down */ }
+    };
+    if (game.isBooted) apply();
+    else if (game.events && game.events.once) game.events.once('ready', apply);
   }
   syncHiDpi(Game.phaser);
   root.addEventListener('resize', function () { syncHiDpi(Game.phaser); });

@@ -322,7 +322,11 @@
     return key;
   };
   PlayScene.prototype.create = function () {
-    this.cameras.main.setZoom(HIDPI_FACTOR);
+    // setOrigin(0, 0) is the other half of the retina zoom: a zoomed camera
+    // transforms about its origin, so with the default centred origin the design
+    // box lands at -W*(f-1)/2 and nothing is on screen. Origin (0,0) keeps world
+    // coordinates, scrollFactor-0 UI and absolute setScroll() all in design space.
+    this.cameras.main.setZoom(HIDPI_FACTOR); this.cameras.main.setOrigin(0, 0);
     Game.play = this;
     var textFactory = this.add.text;
     this.add.text = function (x, y, text, style) {
