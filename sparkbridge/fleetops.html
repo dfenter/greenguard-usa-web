@@ -56,7 +56,7 @@
   version mismatch             <span class="hi">6</span>
 
 Certificate rotation, all 40 sites
-  authorised once, applied everywhere
+  authorized once, applied everywhere
   elapsed <span class="acc">937 ms</span></pre>
         </div>
         <div class="artifact-foot">A 40-site rig with faults deliberately planted. Every one surfaced, at the expected count.</div>
@@ -73,7 +73,7 @@ Certificate rotation, all 40 sites
     <div class="twocol">
       <div class="measure">
         <p>FleetOps collects what is actually installed and configured at every site and shows it in one list: versions, certificates, backups and anything that has drifted from what you intended.</p>
-        <p>When something needs changing, you authorise it once and it applies everywhere it should. A certificate rotation across the whole estate becomes one action rather than a week of scheduled visits.</p>
+        <p>When something needs changing, you authorize it once and it applies everywhere it should. A certificate rotation across the whole estate becomes one action rather than a week of scheduled visits.</p>
         <p>Every instruction is signed, and a site will not accept the same instruction twice, so an action cannot be replayed against your estate by anyone who captures it.</p>
       </div>
       <div>
@@ -81,7 +81,7 @@ Certificate rotation, all 40 sites
         <table class="spec">
           <tr><th>What it is</th><td>One view of every gateway you operate</td></tr>
           <tr><th>What it watches</th><td>Versions, configuration drift, certificates, backups</td></tr>
-          <tr><th>Acting</th><td>Authorise once, apply across every site</td></tr>
+          <tr><th>Acting</th><td>Authorize once, apply across every site</td></tr>
           <tr><th>Security</th><td>Instructions are signed and cannot be replayed</td></tr>
           <tr><th>Who it is for</th><td>Anyone running more than a handful of sites</td></tr>
           <tr><th>Price</th><td>$495 per gateway, bought once and kept. Included in the $3,495 <a href="/sparkbridge/pricing">central server suite</a></td></tr>
@@ -96,7 +96,7 @@ Certificate rotation, all 40 sites
   <div class="wrap">
     <div class="figure"><b>937</b><span>milliseconds to rotate certificates across 40 sites</span></div>
     <div class="measure">
-      <p>On a 40-site rig with faults deliberately planted, every fault class surfaced at exactly the expected count, and one authorised certificate rotation reached all forty sites in under a second.</p>
+      <p>On a 40-site rig with faults deliberately planted, every fault class surfaced at exactly the expected count, and one authorized certificate rotation reached all forty sites in under a second.</p>
       <p>The same instruction, captured and replayed, was refused by all forty. That is the difference between convenient and safe.</p>
     </div>
   </div>
@@ -116,7 +116,7 @@ Certificate rotation, all 40 sites
           <tr><td><b>Nobody can say what version is running at site 23</b><br><span class="sub">The operations lead of an estate that grew one site at a time.</span></td>
               <td>The inventory lives in a spreadsheet that was accurate the week it was written, so drift, version mismatches and expiring certificates are discovered by something breaking. FleetOps collects what is actually installed and configured at every site and puts it in one list, with the counts by fault class: drift, certificates expiring, certificates already expired, backups overdue, version mismatch. The answer to "what is at site 23" becomes a lookup.</td></tr>
           <tr><td><b>The same change has to be made forty times by hand</b><br><span class="sub">Whoever has to schedule forty site visits for one setting.</span></td>
-              <td>Repeating a change forty times is a week of work and forty chances to do it slightly differently, which is where drift comes from in the first place. In FleetOps you authorise the change once and it applies everywhere it should. On a 40-site rig one authorised certificate rotation reached all forty sites in 937 milliseconds, and the sites that were not in scope were left alone.</td></tr>
+              <td>Repeating a change forty times is a week of work and forty chances to do it slightly differently, which is where drift comes from in the first place. In FleetOps you authorize the change once and it applies everywhere it should. On a 40-site rig one authorized certificate rotation reached all forty sites in 937 milliseconds, and the sites that were not in scope were left alone.</td></tr>
           <tr><td><b>A site fails, and nobody is sure the backup is current</b><br><span class="sub">Anyone who has restored from a backup and found it was six months old.</span></td>
               <td>Backup age is invisible until the day it matters, and that is the worst day to find out. Backup overdue is a tracked fault class alongside certificates and drift, so an out of date backup shows up on the same screen as everything else, before the failure rather than during it. On the planted-fault rig every fault class surfaced at exactly the expected count.</td></tr>
           <tr><td><b>One console that can change forty sites is itself a risk</b><br><span class="sub">The security reviewer who has to sign off on the tool.</span></td>
