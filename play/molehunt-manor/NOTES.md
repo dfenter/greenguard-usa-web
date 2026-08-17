@@ -35,3 +35,37 @@ Keyboard: arrows move focus, Enter selects, Esc closes. Portrait only; best roun
 - Recipe: `GGKit.hiDpi.factor(390, 844)`, dense FIT scale dimensions, `GGKit.renderDefaults`, and `this.cameras.main.setZoom(f)` in ManorScene. The old `scale.resize(W, H)` call was removed because it would undo the dense backing store. Text resolution uses the same factor.
 - Factor cap: none. The factor is the GGKit native value, capped only by GGKit's normal maximum of 3.
 - Could not complete live headless canvas readback or a gameplay screenshot because no browser backend was available in this environment. `node --check` passed.
+
+## Release gate repair
+
+2026-08-16, mobile release gate lane.
+
+### Offline
+
+Nothing in this title ever registered the service worker. It shipped a valid
+`manifest.json` and a valid `sw.js` whose precache list resolves entry for entry
+against disk, but no code path called `registerPWA`, so there was never a
+registration, never a cache, and the title died the moment the network was cut.
+
+Fix (in this title's `game.js` only): `kit.registerPWA()` is now called at the end
+of the boot IIFE. `index.html` sets `<base href="/play/molehunt-manor/">` so
+GGKit's relative `sw.js` registration resolves correctly.
+
+Verified with `node release_gate.mjs http://localhost:8347 1 <slug>` from
+/Users/lucille/ue-port-studio/aaa/harness, serially at concurrency 1, against
+`python3 -m http.server 8347 --directory /Users/lucille/greenguard-usa-web`.
+
+Gate verdict: **HOLD on ART only** — offline, boot, alive, retina, pwa, payload
+and legal all pass. The art hold is a measurement artifact on this GPU-less Mac,
+not a regression and not caused by this change:
+
+- At DPR 1 the title paints its full menu within the gate's 5s settle: title
+  card, case card, four coloured buttons, stats line and footer.
+- At DPR 3 under a load average around 300 the first four gate screenshots are
+  still the flat background; by the time it paints, the gate's four blind taps
+  have walked it into the Settings screen, which is three buttons on a dark
+  field. That is what the gate scores as `edge density 0.24%`.
+- Canvas density measured 1170/390 = 3.0x, so retina is fine.
+
+This needs a re-run on a machine with a GPU (or a quiet box) to clear; do not
+restyle the menu on the strength of this reading.

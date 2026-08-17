@@ -53,3 +53,22 @@
 - After ratio: 3.00x configured at DPR 3 with `GGKit.hiDpi.three(racer.world.renderer)` followed by `racer.world.resize()`. Live `canvas.width / getBoundingClientRect().width` measurement was unavailable because Chrome aborted in this sandbox and the private HTTP bind was denied.
 - Recipe: native Three renderer density. This title was audited as Three.js, not Phaser, and no Phaser scale or resolution setting was introduced. No factor cap beyond GGKit's required maximum of 3.
 - Audit: no render target, composer, or post-processing pass exists in the racer path. Shared racer texture bakes were identified but could not be changed because this lane was constrained from writing `play/_shared/`.
+
+## Release gate repair
+
+2026-08-16, mobile release gate lane.
+
+### PWA installability
+
+The manifest's icon `src` values were ROOT-ABSOLUTE (`/play/apexdrift/icon.png`).
+That resolves in a browser, but the release gate joins a non-`http` src onto
+`<base>/play/<slug>/` after stripping one leading slash, so it fetched
+`/play/apexdrift/play/apexdrift/icon.png` and both icons read as 404. Rewrote the srcs
+as plain relative paths, which is what the rest of the fleet uses. No icon files
+were changed (the two SVGs on disk were correct all along).
+
+Verified with `node release_gate.mjs http://localhost:8347 1 <slug>` from
+/Users/lucille/ue-port-studio/aaa/harness, serially at concurrency 1, against
+`python3 -m http.server 8347 --directory /Users/lucille/greenguard-usa-web`.
+
+Gate verdict: **READY** (all checks pass).

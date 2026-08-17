@@ -247,3 +247,20 @@ Verification: `node --check game.js` and `node --check sw.js` pass. A VM content
   moving the play bounds, which would change the accepted feel.
 - The resolution factor is computed once at boot. Rotating a desktop window to
   a much larger size does not re-bake at a higher density until reload.
+
+## Release gate repair
+
+2026-08-16, mobile release gate lane.
+
+### PWA installability
+
+The manifest declared only a 64x64 and a 512x512 icon, so it had no 192x192 and
+was not installable. Added `icon192.png`, downscaled with LANCZOS from the
+existing `icon512.png` master so the art is unchanged, and added the matching
+manifest entry. `icon.png` (64x64) is now declared at its true size.
+
+Verified with `node release_gate.mjs http://localhost:8347 1 <slug>` from
+/Users/lucille/ue-port-studio/aaa/harness, serially at concurrency 1, against
+`python3 -m http.server 8347 --directory /Users/lucille/greenguard-usa-web`.
+
+Gate verdict: **READY** (all checks pass).

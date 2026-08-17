@@ -325,3 +325,36 @@ for verification.
 - Measured canvas ratio at DPR 3: unavailable. `retina_audit.mjs` could not start because its private port was rejected with `listen EPERM`; the in-app browser was unavailable too. Static configuration expects 3.00x through `config.ggDpr` at DPR 3.
 - Converted the parented `Scale.RESIZE` setup to `Scale.NONE` through `GGKit.hiDpi.phaser()`. Viewport layout now uses CSS-sized world coordinates with a centered `config.ggDpr` camera zoom in boot, menus, play, and overlays. Existing render defaults, text resolution, and authored bakes were retained.
 - Gameplay screenshot, render-loop probe, and core input resolution could not be live-verified because no browser or private local server was available.
+
+## Release gate repair
+
+2026-08-16, mobile release gate lane.
+
+### Boot: uncaught TypeError from `syncHiDpi`
+
+The title threw exactly one uncaught error on load:
+
+    TypeError: Cannot set properties of undefined (setting 'width')
+      at resize (/play/_shared/phaser.min.js)
+      at syncHiDpi (game.js)
+
+`syncHiDpi()` was called synchronously on the line after `new Phaser.Game(config)`.
+`game.scale` exists from construction but its internals do not until the game
+boots, so `game.scale.resize()` reached into an undefined canvas and threw. This
+is the same failure `GGKit.hiDpi.resize()` documents in its header comment; this
+title had its own copy of the helper and never picked up the guard.
+
+Fix (in this title's `game.js` only): the resize body now runs inside an `apply`
+closure that is invoked immediately if `game.isBooted`, and otherwise deferred to
+`game.events.once('ready')`, wrapped in try/catch so a resize can never take the
+title down. Behaviour once booted is unchanged.
+
+Because the throw happened before `kit.registerPWA()`, no service worker was
+ever registered, which is why this title also failed PWA installability and
+offline. Both cleared with the boot fix; nothing else was needed.
+
+Verified with `node release_gate.mjs http://localhost:8347 1 <slug>` from
+/Users/lucille/ue-port-studio/aaa/harness, serially at concurrency 1, against
+`python3 -m http.server 8347 --directory /Users/lucille/greenguard-usa-web`.
+
+Gate verdict: **READY** (all checks pass).

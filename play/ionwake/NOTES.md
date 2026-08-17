@@ -78,3 +78,36 @@ frame validation on all 9 tracks).
 - After ratio: 3.00x configured at DPR 3 with `GGKit.hiDpi.three(this.racer.world.renderer)` followed by `this.racer.world.resize()`. Live `canvas.width / getBoundingClientRect().width` measurement was unavailable because Chrome aborted in this sandbox and the private HTTP bind was denied.
 - Recipe: native Three renderer density, a 3x HUD, and a device-scale glow texture through `GGKit.hiDpi.canvas(64, 64)`. No factor cap beyond GGKit's required maximum of 3.
 - Audit: no render target, composer, or post-processing pass exists in the racer path. Shared racer texture bakes were identified but could not be changed because this lane was constrained from writing `play/_shared/`.
+
+## Release gate repair
+
+2026-08-16, mobile release gate lane.
+
+### PWA installability
+
+The manifest listed `icon.svg` twice at 192x192 (once `any`, once `maskable`)
+and had no 512x512, so the title was not installable. Rasterised the existing
+`icon.svg` through headless Chrome at 192 and 512 into `icon192.png` /
+`icon512.png` and declared both; `icon.svg` is retained as an `any` entry.
+
+### Licensing
+
+`LICENSES.md` did not exist and 404'd. Written from an audit of what actually
+ships: this title bundles NO third-party asset files at all. There are no model,
+texture, audio or font files in the directory. Graphics are procedural three.js,
+the only raster art is the two new icons rasterised from the hand-authored
+`icon.svg`, and audio is a single inline base64 WAV reused under twelve GGKit
+stem names. The engine (three.js r160.1, MIT) is loaded from `/play/_shared/` via
+an import map and is covered by `/play/_shared/LICENSES.md`.
+
+The new file carries an explicit **Unresolved** section rather than a confident
+attribution: the inline WAV is described as synthesized in-repo by both its own
+header comment and NOTES.md, and its size is consistent with a generated tone,
+but no generator script or commit was found, so the provenance rests on those
+two in-repo statements and is flagged as such.
+
+Verified with `node release_gate.mjs http://localhost:8347 1 <slug>` from
+/Users/lucille/ue-port-studio/aaa/harness, serially at concurrency 1, against
+`python3 -m http.server 8347 --directory /Users/lucille/greenguard-usa-web`.
+
+Gate verdict: **READY** (all checks pass).

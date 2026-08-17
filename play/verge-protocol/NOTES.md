@@ -176,3 +176,20 @@ index for endless). Both are read every frame and applied once per change.
 - Factor cap: none beyond GGKit's standard maximum of 3. No title-specific cap.
 - Live canvas ratio and gameplay screenshot were unavailable because the browser backend was empty and the sandbox denied private HTTP listeners. The after ratio above is the configured geometry, not a live canvas read.
 - Static title-local chrome and terrain bakes now use `GGKit.hiDpi.canvas` and Phaser texture source resolution. Gameplay, balance, and content were unchanged.
+
+## Release gate repair
+
+2026-08-16, mobile release gate lane.
+
+### PWA installability
+
+The manifest declared only a 64x64 and a 512x512 icon, so it had no 192x192 and
+was not installable. Added `icon192.png`, downscaled with LANCZOS from the
+existing `icon512.png` master so the art is unchanged, and added the matching
+manifest entry. `icon.png` (64x64) is now declared at its true size.
+
+Verified with `node release_gate.mjs http://localhost:8347 1 <slug>` from
+/Users/lucille/ue-port-studio/aaa/harness, serially at concurrency 1, against
+`python3 -m http.server 8347 --directory /Users/lucille/greenguard-usa-web`.
+
+Gate verdict: **READY** (all checks pass).

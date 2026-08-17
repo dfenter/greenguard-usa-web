@@ -151,3 +151,19 @@ One method, no behaviour change for the call sites that do pass a rotation
 - The main camera is zoomed by RETINA and re-centred on every layout, so **world coordinates stay in CSS pixels**. That was a deliberate choice: this title's layout is magic numbers end to end (cell clamp 14..34, `(height - 112)/ROWS`, `(width - 280)/COLS`, the +18 board offset, and gesture thresholds of 26/28/42px measured in pointer space). Moving the world into device pixels would have meant rewriting every one of them and risking the feel.
 - Consequences handled: `resizeScene()` and `drawPreviews()` divide `this.scale.width/height` by RETINA, and `boardPoint()` does the same before hit-testing, otherwise every board tap would land RETINA times too far right and down.
 - `centerOn` is applied with every `setZoom`. Without it a zoomed camera holds its own midpoint under the viewport centre and the playfield leaves the screen with zero console output.
+
+## Release gate repair
+
+2026-08-16, mobile release gate lane.
+
+### PWA installability
+
+The manifest declared 48x48, 128x128 and 512x512 icons but no 192x192, so it was
+not installable. Added `icon192.png`, downscaled with LANCZOS from the existing
+`icon512.png` master, plus the matching manifest entry.
+
+Verified with `node release_gate.mjs http://localhost:8347 1 <slug>` from
+/Users/lucille/ue-port-studio/aaa/harness, serially at concurrency 1, against
+`python3 -m http.server 8347 --directory /Users/lucille/greenguard-usa-web`.
+
+Gate verdict: **READY** (all checks pass).

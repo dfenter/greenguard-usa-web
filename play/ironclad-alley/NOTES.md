@@ -67,3 +67,26 @@ Verification: `node --check game.js`, `node --check sw.js`, manifest JSON parse,
 - Converted boot to `GGKit.hiDpi.phaser` with `Phaser.Scale.NONE`, retained render defaults and fixed authored world content, and installed dense Phaser text creation with inverse object scale.
 - Viewport fitting now derives from Phaser scale dimensions and the density factor; the camera uses the fitted zoom and centers on the authored midpoint without `setBounds` clamping.
 - Gameplay screenshot, render-loop probe, and drive or fire input proof could not be completed because the local browser infrastructure was unavailable.
+
+## Release gate repair
+
+2026-08-16, mobile release gate lane.
+
+### Offline
+
+The title registered its service worker behind `location.protocol === 'https:'`,
+so on localhost it registered nothing at all, had no cache, and died the moment
+the network was cut. GGKit's own `registerPWA` was widened to accept localhost
+for exactly this reason (see its comment in `/play/_shared/ggkit.js`); this
+title's hand-rolled registration never took that change.
+
+Fix (in this title's `game.js` only): the secure-context test now accepts
+`https:`, `localhost` and `127.0.0.1`, matching GGKit. Nothing else changed; the
+precache list was audited entry by entry against disk and every path resolves, so
+`cache.addAll` was never the problem here.
+
+Verified with `node release_gate.mjs http://localhost:8347 1 <slug>` from
+/Users/lucille/ue-port-studio/aaa/harness, serially at concurrency 1, against
+`python3 -m http.server 8347 --directory /Users/lucille/greenguard-usa-web`.
+
+Gate verdict: **READY** (all checks pass).

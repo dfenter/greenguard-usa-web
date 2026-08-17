@@ -110,3 +110,20 @@ Release gate run serially (concurrency 1) against a local static server:
 
 `node --check` clean on every file touched. No gameplay, balance, content or art
 direction was changed.
+
+## Release gate repair
+
+2026-08-16, mobile release gate lane.
+
+### PWA installability
+
+The manifest declared `icon.png` as 192x192 when the file is actually 180x180,
+and had no genuine 192. Added `icon192.png`, downscaled with LANCZOS from the
+existing `icon512.png` master, declared it at 192x192, and re-declared
+`icon.png` at its true 180x180.
+
+Verified with `node release_gate.mjs http://localhost:8347 1 <slug>` from
+/Users/lucille/ue-port-studio/aaa/harness, serially at concurrency 1, against
+`python3 -m http.server 8347 --directory /Users/lucille/greenguard-usa-web`.
+
+Gate verdict: **READY** (all checks pass).

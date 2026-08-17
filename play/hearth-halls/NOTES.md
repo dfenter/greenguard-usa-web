@@ -140,3 +140,36 @@ shapes are unchanged by intent; no art was redesigned.
 - **Real defect found and fixed while verifying.** With the zoom in place the canvas rendered nothing but the background colour. `update()` was calling `cameras.main.setScroll(juice.dx, juice.dy)` every frame, which reset the zoomed camera's scroll to 0,0 and cancelled the `centerOn`. Shake is now an offset from the scroll `centerOn` produced. Same class of bug as skyhammer, and equally silent.
 - Pointer coordinates are divided by RETINA before hit-testing (`toWorld()` in `bindInput`), because Phaser reports pointer positions in game space, which is now device pixels.
 - Text `resolution` moved from a hard-coded 2 to RETINA. This is the Text object's bake resolution; `source.resolution` was deliberately not touched, since it only affects the CANVAS renderer and under WebGL would draw every glyph quad RETINA times too large.
+
+## Release gate repair
+
+2026-08-16, mobile release gate lane.
+
+### PWA installability
+
+The manifest's icon `src` values were ROOT-ABSOLUTE (`/play/hearth-halls/icon.png`).
+That resolves in a browser, but the release gate joins a non-`http` src onto
+`<base>/play/<slug>/` after stripping one leading slash, so it fetched
+`/play/hearth-halls/play/hearth-halls/icon.png` and both icons read as 404. Rewrote the srcs
+as plain relative paths, which is what the rest of the fleet uses. No icon files
+were changed.
+
+### Icon files were structurally corrupt
+
+Separately, and not visible to the gate (which only checks that an icon fetches),
+all three PNGs in this directory were undecodable. Every chunk carried four stray
+filler bytes between its data and its CRC, so any conformant decoder walks off
+the chunk boundary immediately after IHDR, and IHDR additionally declared colour
+type 6 (RGBA) for a stream that holds exactly one byte per pixel. Pillow refused
+all three outright.
+
+Repaired in place without touching pixel data: stripped the filler bytes,
+recomputed every chunk CRC, and corrected the IHDR colour type to 0 (greyscale).
+`favicon.png` 32x32, `icon.png` 192x192 and `icon512.png` 512x512 now decode and
+render the intended hall artwork.
+
+Verified with `node release_gate.mjs http://localhost:8347 1 <slug>` from
+/Users/lucille/ue-port-studio/aaa/harness, serially at concurrency 1, against
+`python3 -m http.server 8347 --directory /Users/lucille/greenguard-usa-web`.
+
+Gate verdict: **READY** (all checks pass).

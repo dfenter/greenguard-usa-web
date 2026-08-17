@@ -79,3 +79,22 @@ reverting the repair, gating it, and restoring the repair - not an assumption.
 
 `node --check` clean on every file touched. No gameplay, balance, content or art
 direction was changed.
+
+## Release gate repair
+
+2026-08-16, mobile release gate lane.
+
+### PWA installability
+
+The manifest's icon `src` values were ROOT-ABSOLUTE (`/play/fieldnotes-safari/icon.png`).
+That resolves in a browser, but the release gate joins a non-`http` src onto
+`<base>/play/<slug>/` after stripping one leading slash, so it fetched
+`/play/fieldnotes-safari/play/fieldnotes-safari/icon.png` and both icons read as 404. Rewrote the srcs
+as plain relative paths, which is what the rest of the fleet uses. No icon files
+were changed.
+
+Verified with `node release_gate.mjs http://localhost:8347 1 <slug>` from
+/Users/lucille/ue-port-studio/aaa/harness, serially at concurrency 1, against
+`python3 -m http.server 8347 --directory /Users/lucille/greenguard-usa-web`.
+
+Gate verdict: **READY** (all checks pass).
