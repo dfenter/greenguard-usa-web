@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkLink: control what remote sites cost you | SparkBridge</title>
+<meta name="description" content="SparkLink shows exactly which tags are spending your cellular and satellite data budget, and keeps each site inside its limit without touching the readings that matter.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/sparklink">
+<meta property="og:title" content="SparkLink: control what remote sites cost you">
+<meta property="og:description" content="SparkLink shows exactly which tags are spending your cellular and satellite data budget, and keeps each site inside its limit without touching the readings that matter.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+SemiCondensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/lineup">Lineup</a>
+        <a href="/sparkbridge/modules">Modules</a>
+        <a href="/sparkbridge/technology">Technology</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top">
+  <div class="wrap">
+    <div class="phead-grid">
+      <div>
+        <div class="eyebrow">SparkLink</div>
+        <h1>Stop guessing what your remote sites cost</h1>
+        <p>Remote sites on cellular or satellite links are billed by the megabyte, and almost nobody can say which tag is spending the money. The bill arrives, someone widens a few thresholds by hand, and everyone hopes.</p>
+        <div class="pmeta"><span class="stat">Early access</span><span>Cellular and satellite</span><span>Safety tags protected</span></div>
+      </div>
+      <div class="artifact">
+        <div class="artifact-head"><span>Where the month actually went</span><span class="live"><i class="dot"></i>Captured live</span></div>
+        <div class="artifact-body">
+<pre style="margin:0;white-space:pre-wrap">Site data budget            30 MB / month
+
+  <span class="hi">VibrationX</span>          50.7%   <span class="acc">&larr; one tag</span>
+  FlowRate               4.1%
+  PumpStatus             3.8%
+  everything else       41.4%
+
+VibrationX had no change threshold set.
+It was reporting every tiny fluctuation,
+all month, over a cellular link.</pre>
+        </div>
+        <div class="artifact-foot">A real three day capture. The expensive tag was found from the report alone, at 47 times the next spender.</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <p class="claim">You cannot control a cost <em>you have never measured</em>.</p>
+    <div class="twocol">
+      <div class="measure">
+        <p>SparkLink measures what every tag and every site actually sends, so the monthly bill becomes a list you can act on instead of a surprise. In our own testing a single misconfigured tag was consuming half a site's entire budget.</p>
+        <p>Then it holds each site inside a budget you set, easing back on the readings that can tolerate it as the month runs on, and reporting exactly what that cost you in detail.</p>
+        <p>You mark the readings that must never be touched: anything feeding an alarm, an interlock or a regulatory report. Those are protected in the sending path itself, so no budget rule and no future change can quietly degrade them.</p>
+      </div>
+      <div>
+        <span class="spectitle">At a glance</span>
+        <table class="spec">
+          <tr><th>What it is</th><td>Data cost visibility and control for remote sites</td></tr>
+          <tr><th>What it measures</th><td>Bytes per tag and per site, not an estimate</td></tr>
+          <tr><th>What it protects</th><td>Tags you mark as critical are never degraded</td></tr>
+          <tr><th>Who it is for</th><td>Oil and gas, water, and remote utility sites</td></tr>
+          <tr><th>Typical use</th><td>Sites billed per megabyte on cellular or satellite</td></tr>
+        </table>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="figure"><b>50.7%</b><span>of one site's monthly budget, spent by a single tag</span></div>
+    <div class="measure">
+      <p>In a three day capture from a real edge, one vibration tag with no change threshold set was consuming over half the site's entire data allowance, at 47 times the next largest consumer. It was identified from the report alone, with no prior knowledge of which tag to suspect.</p>
+      <p>Under an aggressively tight budget, protected tags kept publishing at full fidelity through every test: 900 readings, 900 delivered, nothing degraded.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="measure">
+      <p>If you run sites on metered links and cannot name your most expensive tag, the measurement alone usually pays for this before any budget rule is switched on.</p>
+    </div>
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge/contact">Ask about a site assessment</a>
+      <a class="btn ghost dark" href="/sparkbridge/lineup">See the full lineup</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

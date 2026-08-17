@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FleetOps: run every site from one place | SparkBridge</title>
+<meta name="description" content="FleetOps shows what is installed, what has drifted, what is expiring and what needs attention across every gateway you run, and lets you act on all of them at once.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/fleetops">
+<meta property="og:title" content="FleetOps: run every site from one place">
+<meta property="og:description" content="FleetOps shows what is installed, what has drifted, what is expiring and what needs attention across every gateway you run, and lets you act on all of them at once.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+SemiCondensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/lineup">Lineup</a>
+        <a href="/sparkbridge/modules">Modules</a>
+        <a href="/sparkbridge/technology">Technology</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top">
+  <div class="wrap">
+    <div class="phead-grid">
+      <div>
+        <div class="eyebrow">FleetOps</div>
+        <h1>Every site, on one screen</h1>
+        <p>Running ten sites means ten sets of software versions, certificates and backups. Most operations find out a certificate expired when something stops working on a Sunday.</p>
+        <div class="pmeta"><span class="stat">Early access</span><span>Scales to hundreds of sites</span><span>Signed actions</span></div>
+      </div>
+      <div class="artifact">
+        <div class="artifact-head"><span>40 sites, one action</span><span class="live"><i class="dot"></i>Captured live</span></div>
+        <div class="artifact-body">
+<pre style="margin:0;white-space:pre-wrap">Fleet inventory                40 sites
+
+  configuration drift          <span class="hi">8</span>
+  certificate expiring         <span class="hi">4</span>
+  certificate already expired  <span class="hi">3</span>
+  backup overdue              <span class="hi">10</span>
+  version mismatch             <span class="hi">6</span>
+
+Certificate rotation, all 40 sites
+  authorised once, applied everywhere
+  elapsed <span class="acc">937 ms</span></pre>
+        </div>
+        <div class="artifact-foot">A 40-site rig with faults deliberately planted. Every one surfaced, at the expected count.</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <p class="claim">Find out before it stops working, <em>not after</em>.</p>
+    <div class="twocol">
+      <div class="measure">
+        <p>FleetOps collects what is actually installed and configured at every site and shows it in one list: versions, certificates, backups and anything that has drifted from what you intended.</p>
+        <p>When something needs changing, you authorise it once and it applies everywhere it should. A certificate rotation across the whole estate becomes one action rather than a week of scheduled visits.</p>
+        <p>Every instruction is signed, and a site will not accept the same instruction twice, so an action cannot be replayed against your estate by anyone who captures it.</p>
+      </div>
+      <div>
+        <span class="spectitle">At a glance</span>
+        <table class="spec">
+          <tr><th>What it is</th><td>One view of every gateway you operate</td></tr>
+          <tr><th>What it watches</th><td>Versions, configuration drift, certificates, backups</td></tr>
+          <tr><th>Acting</th><td>Authorise once, apply across every site</td></tr>
+          <tr><th>Security</th><td>Instructions are signed and cannot be replayed</td></tr>
+          <tr><th>Who it is for</th><td>Anyone running more than a handful of sites</td></tr>
+        </table>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="figure"><b>937</b><span>milliseconds to rotate certificates across 40 sites</span></div>
+    <div class="measure">
+      <p>On a 40-site rig with faults deliberately planted, every fault class surfaced at exactly the expected count, and one authorised certificate rotation reached all forty sites in under a second.</p>
+      <p>The same instruction, captured and replayed, was refused by all forty. That is the difference between convenient and safe.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="measure">
+      <p>The value of FleetOps grows with site count. At three sites a spreadsheet works. At thirty it does not, and the first expired certificate usually costs more than the software.</p>
+    </div>
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge/contact">Book a demo</a>
+      <a class="btn ghost dark" href="/sparkbridge/lineup">See the full lineup</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

@@ -13,6 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+SemiCondensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
 </head>
 <body>
 
@@ -49,128 +50,107 @@
 
 <section>
   <div class="wrap">
-    <div class="tiers">
-      <div class="tier">
-        <div class="top">
-          <h3>Development</h3>
-          <div class="price">Free<small>Non-production use on Ignition's standard two-hour trial, resettable without limit and without a gateway restart. No registration, no tag limit, no feature gate.</small></div>
-        </div>
-        <p class="why">Prove it on your bench before anyone signs anything.</p>
-        <ul>
-          <li>All three modules included</li>
-          <li>Unlimited development gateways</li>
-          <li>Trial resets in place, as often as you like, no registration</li>
-          <li>Full documentation and test suite</li>
-        </ul>
-        <div class="act"><a class="btn ghost dark" href="/sparkbridge/resources">Get the guide</a></div>
+    <p class="claim">Buy the <em>one thing</em> you need, or the whole line.</p>
+    <div class="twocol">
+      <div class="measure">
+        <p>Every licence is bought once per gateway and kept. There is no charge per tag, per device or per connected client, and nothing stops working if you stop paying for support.</p>
+        <p>The line splits into two families because they solve different problems for different people. The data products share one foundation and are priced to be added to it. The protocol drivers are bought on their own, one per protocol, because a utility connecting an RTU usually needs exactly one of them.</p>
+        <p>Prices below are list, before volume discount. Bring the quote you have from anyone else and we will put the two side by side for your real site count.</p>
       </div>
-
-      <div class="tier feature">
-        <div class="top">
-          <h3>Single site</h3>
-          <div class="price dual">
-            <span><em>Edge</em>$995</span>
-            <span><em>Central Server</em>$1,995</span>
-            <small>Perpetual, per production gateway. The license never expires.</small>
-          </div>
-        </div>
-        <p class="why">Each gateway pays for exactly the role it runs.</p>
-        <ul>
-          <li>Edge module for remote sites</li>
-          <li>Central: Host plus the broker</li>
-          <li>Provider included with both</li>
-          <li>Support and updates optional, 20%/yr</li>
-        </ul>
-        <div class="act"><a class="btn" href="/sparkbridge/contact">Buy a license</a></div>
-      </div>
-
-      <div class="tier">
-        <div class="top">
-          <h3>Enterprise</h3>
-          <div class="price">Volume<small>Discounts on Edge and Central Server licenses alike, for multi-site fleets.</small></div>
-        </div>
-        <p class="why">Fleet pricing beats one-at-a-time past about seven sites.</p>
-        <ul>
-          <li>Discounted Edge and Central licenses</li>
-          <li>Up to unlimited sites, one organisation</li>
-          <li>Support and updates included</li>
-          <li>Direct access to the engineers</li>
-        </ul>
-        <div class="act"><a class="btn ghost dark" href="/sparkbridge/contact">Talk fleet pricing</a></div>
-      </div>
-
-      <div class="tier">
-        <div class="top">
-          <h3>Integrator</h3>
-          <div class="price">40% off<small>List price, for resale, with deal registration and a named contact.</small></div>
-        </div>
-        <p class="why">The margin is the channel for integrators and OEMs.</p>
-        <ul>
-          <li>40% off list, for resale</li>
-          <li>Deal registration protection</li>
-          <li>NFR licenses for your lab</li>
-          <li>Named technical contact</li>
-        </ul>
-        <div class="act"><a class="btn ghost dark" href="/sparkbridge/contact">Become a partner</a></div>
+      <div>
+        <span class="spectitle">How licensing works</span>
+        <table class="spec">
+          <tr><th>Unit</th><td>One licence per gateway. Not per tag, device or client</td></tr>
+          <tr><th>Term</th><td>Bought once and kept. Not a subscription</td></tr>
+          <tr><th>Support</th><td>20% per year, optional. The software runs without it</td></tr>
+          <tr><th>Evaluation</th><td>Free for development and testing, no time limit</td></tr>
+          <tr><th>Volume</th><td>Discounts by site count, and unlimited-site agreements</td></tr>
+        </table>
       </div>
     </div>
-    <p class="note"><b>What a license is counted against:</b> a production Ignition gateway. Development and test gateways are never counted. Tags, edge nodes, devices, connected clients and MQTT consumers are never counted. There is no tier that unlocks a higher tag count, because the capacity limits are engineering limits, published and measured, not license dials.</p>
   </div>
 </section>
 
 <section class="band">
   <div class="wrap">
     <div class="sec-head">
-      <div class="path">comparison</div>
-      <h2>What It Costs to Grow</h2>
-      <p>Every gateway maps to exactly one license: edge sites pay the edge price, the central gateway pays the central price. Here is how that adds up as you grow.</p>
+      <span class="path">The data products</span>
+      <h2>Start with the foundation, add what you need</h2>
+      <p>SparkBridge moves your plant data. Everything else in this family builds on it, so each one is an addition to a gateway you already have rather than a new system to evaluate.</p>
     </div>
-    <div class="scroller">
-      <table class="tbl">
-        <thead><tr><th>Estate</th><th>SparkBridge</th><th>Per-gateway commercial licensing</th></tr></thead>
-        <tbody>
-          <tr><td>1 site, evaluating</td><td class="num">$0</td><td>Trial, then a per-gateway license</td></tr>
-          <tr><td>1 site, production (one central gateway)</td><td class="num">$1,995 + $399/yr</td><td>Two module licenses (edge + host) + support</td></tr>
-          <tr><td>10 edge sites + central server</td><td class="num">$11,945 list, before volume discount</td><td>10 edge licenses + central + support, per module</td></tr>
-          <tr><td>50 sites</td><td class="num">Volume pricing, up to unlimited sites</td><td>A recurring six-figure consideration over a multi-year horizon</td></tr>
-          <tr><td>Site 51, on an unlimited agreement</td><td class="num">$0</td><td>Another license, before it produces a value</td></tr>
-        </tbody>
-      </table>
+    <div class="twocol">
+      <div>
+        <span class="spectitle">Per gateway</span>
+        <table class="spec">
+          <tr><th>SparkBridge Edge</th><td>$995</td></tr>
+          <tr><th>SparkBridge Central</th><td>$1,995</td></tr>
+          <tr><th>Any one addition</th><td>$995 each &middot; SparkVault, SparkInject, Passage, SparkCalc, SparkID, FleetOps, SparkLink</td></tr>
+          <tr><th>The whole family</th><td><b>$4,995</b> &middot; every data product, one licence, one gateway</td></tr>
+        </table>
+      </div>
+      <div class="measure">
+        <p>Most plants start with SparkBridge alone, add history when reporting starts to matter, and add the warehouse feed when analysts get involved. That path costs the same as buying them together, so nothing is lost by starting small.</p>
+        <p>The family licence is worth it at three additions and is a clear saving at four. If you already know you want most of the line, it is the simpler purchase and the simpler renewal.</p>
+      </div>
     </div>
-    <p class="note">Bring your own quote and we will put the numbers side by side for your actual site count.</p>
   </div>
 </section>
 
 <section>
   <div class="wrap">
     <div class="sec-head">
-      <div class="path">questions</div>
-      <h2>Common Questions</h2>
+      <span class="path">The drivers</span>
+      <h2>One protocol, one price</h2>
+      <p>Bought individually, because a site connecting a particular kind of equipment needs that driver and usually not the others.</p>
     </div>
-    <div class="faq">
-      <details><summary>What happens if we stop paying support?</summary>
-      <p>The software keeps running. A perpetual license does not expire and does not phone home. You stop receiving updates and you lose the support channel, and you can resume later without repurchasing the license.</p></details>
-      <details><summary>Is the development tier crippled?</summary>
-      <p>No. It is the same build with the same capabilities and the same limits. The only restriction is that it is not licensed for production use. A gate that hides the thing you need to evaluate would waste your time and ours.</p></details>
-      <details><summary>Do we need a license for a redundant or backup gateway?</summary>
-      <p>No. A backup gateway that is not carrying production traffic is not a second production gateway. Redundancy is a reliability requirement, not a licensing event.</p></details>
-      <details><summary>What about the broker?</summary>
-      <p>Included. The Provider module runs an embedded broker, or manages a HiveMQ CE companion, and neither is licensed by connected-client count. There is no client-count tier to size around.</p></details>
-      <details><summary>Who supports it?</summary>
-      <p>The engineers who built it, directly. No ticket queue and no first-line script: the person answering is the person who wrote the code. Support and updates are included with volume agreements and available at 20%/yr on any gateway license.</p></details>
-      <details><summary>Can we get the source?</summary>
-      <p>Talk to us. Source or escrow arrangements are part of the enterprise conversation rather than a published SKU.</p></details>
+    <div class="twocol">
+      <div>
+        <span class="spectitle">Per gateway</span>
+        <table class="spec">
+          <tr><th>TI 505 &middot; CTI 2500</th><td>$995</td></tr>
+          <tr><th>IEC 60870-5-104</th><td>$995</td></tr>
+          <tr><th>DNP3</th><td>$995</td></tr>
+        </table>
+      </div>
+      <div class="measure">
+        <p>A driver removes the translator hardware between your equipment and your data, along with its licence, its patching and its support contract. That is usually where it pays for itself, before anything is said about fidelity.</p>
+        <p>Drivers do not require SparkBridge. If all you want is to read older equipment into Ignition, buy the driver alone.</p>
+      </div>
     </div>
   </div>
 </section>
 
-<section class="tail">
+<section class="band">
   <div class="wrap">
-    <h2>Free to Try. Buy When Ready.</h2>
-    <p>The evaluation costs nothing and takes an afternoon: install the three modules, point the Edge at a source folder, and watch the estate appear in a tag provider.</p>
+    <div class="sec-head">
+      <span class="path">Sentinel</span>
+      <h2>Find out what your network is exposing, free</h2>
+      <p>Sentinel works against any plant data network of this type, including ones running none of our other software.</p>
+    </div>
+    <div class="twocol">
+      <div>
+        <span class="spectitle">Assessment</span>
+        <table class="spec">
+          <tr><th>Scored report</th><td>Free. Findings, evidence and the fix for each</td></tr>
+          <tr><th>Compliance pack</th><td>$2,495 &middot; the evidence binder an auditor asks for, mapped to NERC CIP and IEC 62443</td></tr>
+        </table>
+      </div>
+      <div class="measure">
+        <p>The assessment is free because the answer is usually uncomfortable and worth knowing either way. The first time we ran it against our own systems it found four real problems.</p>
+        <p>The compliance pack is for organisations that must produce evidence on a schedule. It turns the same findings into the document, and states plainly what it does and does not cover.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="measure">
+      <p>Every price here is list, per gateway, before volume discount. For an estate of any size the number that matters is your site count, so tell us that and we will do the arithmetic with you rather than making you do it from a table.</p>
+    </div>
     <div class="cta-row">
-      <a class="btn" href="/sparkbridge/contact">Start an evaluation</a>
-      <a class="btn ghost" href="/sparkbridge/technology">Read the technology</a>
+      <a class="btn" href="/sparkbridge/contact">Get a quote for your estate</a>
+      <a class="btn ghost dark" href="/sparkbridge/lineup">See the full lineup</a>
     </div>
   </div>
 </section>

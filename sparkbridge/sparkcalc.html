@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkCalc: the numbers your team reports on | SparkBridge</title>
+<meta name="description" content="SparkCalc turns raw plant readings into the rates, totals and efficiencies your team actually reports on, and marks them bad the moment an input goes stale.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/sparkcalc">
+<meta property="og:title" content="SparkCalc: the numbers your team reports on">
+<meta property="og:description" content="SparkCalc turns raw plant readings into the rates, totals and efficiencies your team actually reports on, and marks them bad the moment an input goes stale.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+SemiCondensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/lineup">Lineup</a>
+        <a href="/sparkbridge/modules">Modules</a>
+        <a href="/sparkbridge/technology">Technology</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top">
+  <div class="wrap">
+    <div class="phead-grid">
+      <div>
+        <div class="eyebrow">SparkCalc</div>
+        <h1>The numbers people actually report on</h1>
+        <p>Nobody reports raw sensor readings. They report efficiency, throughput, uptime and cost per unit. Those numbers are usually calculated in a spreadsheet, a dashboard and a PLC, each giving a slightly different answer.</p>
+        <div class="pmeta"><span class="stat">Early access</span><span>Calculated once</span><span>Never sends commands</span></div>
+      </div>
+      <div class="artifact">
+        <div class="artifact-head"><span>A derived value, with its inputs</span><span class="live"><i class="dot"></i>Captured live</span></div>
+        <div class="artifact-body">
+<pre style="margin:0;white-space:pre-wrap">Pump/Efficiency  =  <span class="hi">62.4 %</span>
+  from  Pump/FlowRate    <span class="acc">09:14:02.117</span>
+        Pump/PowerDraw   <span class="acc">09:14:01.984</span>
+  stamped  <span class="hi">09:14:01.984</span>
+           <span class="acc">^ the OLDER input's time, not "now"</span>
+
+Pump/PowerDraw goes stale &rarr; equipment offline
+  Pump/Efficiency  =  <span class="hi">BAD</span>
+                     <span class="acc">not a stuck number</span></pre>
+        </div>
+        <div class="artifact-foot">Every derived value carries the time of its oldest input, and goes bad when any input does.</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <p class="claim">One number, <em>calculated once</em>, used everywhere.</p>
+    <div class="twocol">
+      <div class="measure">
+        <p>SparkCalc computes derived values centrally and publishes them back as first-class plant data. Every dashboard, report and analyst then reads the same number, because there is only one.</p>
+        <p>Each value declares what it was calculated from, so when someone asks where a figure came from the answer is in the system rather than in someone's memory.</p>
+        <p>It can also recalculate over history. Define a new metric today and get it for the last six months, computed the same way, rather than waiting half a year to start trending it.</p>
+      </div>
+      <div>
+        <span class="spectitle">At a glance</span>
+        <table class="spec">
+          <tr><th>What it is</th><td>Derived plant metrics, calculated in one place</td></tr>
+          <tr><th>What it replaces</th><td>The same formula in a PLC, a dashboard and a spreadsheet</td></tr>
+          <tr><th>Honesty</th><td>A value goes bad when an input does, never stuck</td></tr>
+          <tr><th>History</th><td>New metrics can be recalculated over past data</td></tr>
+          <tr><th>Safety</th><td>Publishes values only. It sends no commands</td></tr>
+        </table>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="figure"><b>4,201</b><span>historical values recomputed and independently checked</span></div>
+    <div class="measure">
+      <p>We recomputed nearly twelve hours of real plant history and checked every one of the 4,201 resulting values against an independent implementation. All 4,201 agreed on the value, the timestamp and the quality.</p>
+      <p>That window contained 17 real equipment dropouts. The derived series went bad across every one of them and never held a stale number, which is the behaviour that decides whether a reported figure can be trusted.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="measure">
+      <p>SparkCalc suits teams whose KPIs are recalculated in several places and do not agree, or who need a defensible answer to how a reported number was produced.</p>
+    </div>
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge/contact">Book a demo</a>
+      <a class="btn ghost dark" href="/sparkbridge/lineup">See the full lineup</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>
