@@ -1,4 +1,4 @@
-/* SparkBridge site chat: "Ask the Engineer".
+/* SparkBridge site chat: "Ask an Engineer".
    Talks directly to the GreenGuard Mac chat daemon over Tailscale Funnel
    (audience: sparkbridge — docs-grounded, read-only, rate-limited).
    Anonymous identity is a UUID kept in localStorage; the daemon resumes the
@@ -31,9 +31,9 @@
   root.id = 'sbchat'
   root.innerHTML =
     '<button id="sbchat-fab" type="button" aria-haspopup="dialog" aria-expanded="false">' +
-      '<span class="sbchat-dot" aria-hidden="true"></span>Ask the Engineer</button>' +
-    '<section id="sbchat-panel" role="dialog" aria-label="Ask the Engineer" hidden>' +
-      '<header><div><strong>Ask the Engineer</strong>' +
+      '<span class="sbchat-dot" aria-hidden="true"></span>Ask an Engineer</button>' +
+    '<section id="sbchat-panel" role="dialog" aria-label="Ask an Engineer" hidden>' +
+      '<header><div><strong>Ask an Engineer</strong>' +
       '<span class="sbchat-sub mono">answers grounded in the SparkBridge docs</span></div>' +
       '<button id="sbchat-close" type="button" aria-label="Close chat">&#215;</button></header>' +
       '<div id="sbchat-msgs" aria-live="polite"></div>' +

@@ -323,7 +323,7 @@ footer a:hover{color:#fff}
   .navtoggle{display:block}
 }
 
-/* ---- Ask the Engineer (sb-chat.js) ---- */
+/* ---- Ask an Engineer (sb-chat.js) ---- */
 #sbchat-fab{
   position:fixed;right:22px;bottom:22px;z-index:90;display:inline-flex;align-items:center;gap:9px;
   font-family:"Saira SemiCondensed",sans-serif;font-weight:600;font-size:14.5px;letter-spacing:.05em;text-transform:uppercase;
