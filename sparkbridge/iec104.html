@@ -81,7 +81,7 @@
           <tr><th>What it removes</th><td>The translator box, its license and its support contract</td></tr>
           <tr><th>Who it is for</th><td>Utilities, substations and remote infrastructure sites</td></tr>
           <tr><th>Safety</th><td>Reads only. No control commands, by design</td></tr>
-          <tr><th>Licensing</th><td>$495 per gateway, bought once and kept, not a subscription. Bought on its own, no SparkBridge licence required. See <a href="/sparkbridge/pricing">pricing</a></td></tr>
+          <tr><th>Licensing</th><td>$495 per gateway, bought once and kept, not a subscription. Bought on its own, no SparkBridge license required. See <a href="/sparkbridge/pricing">pricing</a></td></tr>
         </table>
 
       </div>
@@ -111,7 +111,7 @@
         <thead><tr><th>The situation</th><th>What changes</th></tr></thead>
         <tbody>
           <tr><td><b>A substation talks IEC 104 through a converter you also have to own</b><br><span class="sub">A utility or infrastructure operator with a translator box per site.</span></td>
-              <td>That box carries its own licence, its own patching schedule, its own support contract and its own failure mode, and it fails at three in the morning like everything else. This driver speaks IEC 60870-5-104 directly from the Ignition gateway to the equipment, so the box comes out along with everything attached to it. One fewer vendor sits in the path between the substation and your data.</td></tr>
+              <td>That box carries its own license, its own patching schedule, its own support contract and its own failure mode, and it fails at three in the morning like everything else. This driver speaks IEC 60870-5-104 directly from the Ignition gateway to the equipment, so the box comes out along with everything attached to it. One fewer vendor sits in the path between the substation and your data.</td></tr>
           <tr><td><b>The event sequence cannot be reconstructed after a trip</b><br><span class="sub">Whoever has to explain what happened first, and to whom.</span></td>
               <td>A converter in the middle re-stamps readings with its own clock, so the order you analyse is the order the middleman happened to forward, not the order the equipment reported. Reading the protocol directly means values arrive with the time and the fault status the equipment itself reported. Correctness here was measured: a full session against the lib60870 reference implementation, 162 APDUs and 43 TESTFR exchanges, zero sequence faults, clean shutdown.</td></tr>
           <tr><td><b>Adding sites means adding another box each time</b><br><span class="sub">A utility whose site count is growing faster than its budget.</span></td>
