@@ -4,7 +4,7 @@
  * Bump VERSION on every deploy of the game to invalidate stale caches.
  */
 const SLUG = 'horde-meridian';
-const VERSION = '2026-08-09t-campaign-9-levels-2026-08-16-offline-fix';
+const VERSION = '2026-08-17-diag-gated';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/horde-meridian/',

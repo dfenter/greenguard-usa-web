@@ -468,6 +468,48 @@
     sfx: function (name) { sfx(name); }
   };
 
+  // Developer diagnostics, OFF for players. The flight-recorder readout, the
+  // sim-error line and the stall line are debugging instruments built to be
+  // screenshot-diagnosable on an iPhone we cannot attach a console to. They
+  // were rendering for EVERYONE: a player who backgrounded the app mid-run
+  // came back to a red "LAST RUN DIED" strip across the menu. Keep every one
+  // of them, keep them exactly as useful, and show them only on request.
+  //   enable: ?diag=1  in the url, or localStorage hm_diag = '1'
+  var HM_DIAG = (function () {
+    try {
+      if (/[?&]diag=1/.test(window.location.search || '')) {
+        try { window.localStorage.setItem('hm_diag', '1'); } catch (e) {}
+        return true;
+      }
+      if (/[?&]diag=0/.test(window.location.search || '')) {
+        try { window.localStorage.removeItem('hm_diag'); } catch (e) {}
+        return false;
+      }
+      return window.localStorage.getItem('hm_diag') === '1';
+    } catch (e) { return false; }
+  })();
+
+  // The flight recorder marks a run "clean" only in finishRun(). Leaving the
+  // page mid-run is NORMAL on a phone - app switch, lock screen, back gesture,
+  // or iOS simply evicting a backgrounded tab - and none of those reach
+  // finishRun, so every one of them was being recorded as a crash. Close the
+  // record on the way out so only a genuine mid-run failure stays unclean.
+  function hmSealBlackBox() {
+    try {
+      var raw = window.localStorage.getItem('hm_blackbox');
+      if (!raw) return;
+      var bb = JSON.parse(raw);
+      if (bb && !bb.clean) { bb.clean = true; bb.sealedOnExit = true; window.localStorage.setItem('hm_blackbox', JSON.stringify(bb)); }
+    } catch (e) {}
+  }
+  window.addEventListener('pagehide', hmSealBlackBox);
+  // visibilitychange is dispatched AT document. Listening on window only works
+  // because it bubbles, which a synthetic Event(...) without bubbles:true does
+  // not - bind the real target instead of relying on that.
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') hmSealBlackBox();
+  });
+
   var HM_DEBUG_STATE = {
     currentWave: 0, activeBuffs: {}, wingCount: 0, equippedWeapon: 'bolt-lance',
     weaponsSeen: 1, draftOptions: [], livePickups: [], bases: [],
@@ -643,6 +685,7 @@
     return neonText(scene, x, y, str, size, color, weight || 'normal', 'body');
   }
 
+
   function setTextIfChanged(obj, str) {
     if (obj._hmLast === str) return false;
     obj._hmLast = str;
@@ -776,19 +819,29 @@
       makeButton(this, w / 2, by + 168, bw, 44, 'SETTINGS', openSettings, null, 'ic_regen');
 
       var stats = 'BEST ' + profile.best + '   ·   ' + Math.floor(hangarBalance()) + ' GEMS BANKED';
-      try {
-        var bb = JSON.parse(localStorage.getItem('hm_blackbox') || 'null');
-        if (bb && !bb.clean) {
-          this.add.text(w / 2, h - 64,
-            'LAST RUN DIED @' + bb.t + 's  phase:' + bb.phase + '  region:' + bb.region +
-            (bb.boss ? '  boss:' + bb.boss : '') + '  max:' + bb.max + 'ms',
-            { fontFamily: 'monospace', fontSize: '10px', color: '#ff8d7a',
-              backgroundColor: '#160a0aee', padding: { x: 6, y: 3 } }).setOrigin(0.5);
-        }
-      } catch (bbe) {}
+      if (HM_DIAG) {
+        try {
+          var bb = JSON.parse(localStorage.getItem('hm_blackbox') || 'null');
+          if (bb && !bb.clean) {
+            // Above the stats line and safe-area aware. It used to sit at a
+            // raw h - 64, which on a notched phone landed on top of the
+            // SETTINGS button and the stats line.
+            this.add.text(w / 2, h - 84 - SAFE.bottom,
+              'LAST RUN DIED @' + bb.t + 's  phase:' + bb.phase + '  region:' + bb.region +
+              (bb.boss ? '  boss:' + bb.boss : '') + '  max:' + bb.max + 'ms',
+              { fontFamily: 'monospace', fontSize: '10px', color: '#ff8d7a',
+                backgroundColor: '#160a0aee', padding: { x: 6, y: 3 } }).setOrigin(0.5);
+          }
+        } catch (bbe) {}
+      }
       neonText(this, w / 2, h - 56 - SAFE.bottom, stats, TYPE.label, '#7fa3b5');
-      bodyText(this, w / 2, h - 32 - SAFE.bottom,
-        'Drag to move  ·  WASD or arrows  ·  Weapons auto-fire', TYPE.micro, '#5d7f90');
+      // The full hint runs off BOTH edges of a 390pt phone, clipping "Drag to
+      // move" and "auto-fire". On a narrow screen drop the keyboard half: it
+      // is desktop-only guidance and useless to the player who cannot read it.
+      var hint = w < 460
+        ? 'Drag to move  ·  Weapons auto-fire'
+        : 'Drag to move  ·  WASD or arrows  ·  Weapons auto-fire';
+      bodyText(this, w / 2, h - 32 - SAFE.bottom, hint, TYPE.micro, '#5d7f90');
 
       this.input.keyboard.on('keydown-ENTER', function () { Game.pendingLevel = null; scene.scene.start('play'); });
       this.input.keyboard.on('keydown-SPACE', function () { Game.pendingLevel = null; scene.scene.start('play'); });
@@ -2671,11 +2724,29 @@
           // (screenshot-diagnosable), and keep the game alive.
           try {
             this.simStep(STEP);
+            // A step that succeeds clears the streak. simError used to be set
+            // once and NEVER cleared, so a single transient throw left the
+            // readout up for the rest of the run even after the sim recovered.
+            this.simErrorStreak = 0;
+            if (this.simError) this.simError = null;
           } catch (simErr) {
             this.simError = (simErr && simErr.message ? simErr.message : String(simErr)) +
               ' @' + (this.watchdogPhase || '?');
+            this.simErrorStreak = (this.simErrorStreak || 0) + 1;
             this.inSim = false;
             this.accum = 0;
+            // A DETERMINISTIC throw used to wedge the run forever: the catch
+            // broke the step loop but update() retried the same doomed step on
+            // every frame, so the game kept painting while the sim never
+            // advanced. The player could neither die nor win nor score, with a
+            // raw error string across the screen. Give it a few frames to ride
+            // out a transient, then end the run cleanly so the score is banked,
+            // the profile is saved and the flight recorder is closed.
+            if (this.simErrorStreak >= 6) {
+              try { if (window.console && window.console.error) window.console.error('[horde-meridian] sim aborted:', this.simError); } catch (e) {}
+              this.simErrorStreak = 0;
+              this.endRun(false, true);
+            }
             break;
           }
           this.accum -= STEP;
@@ -2701,7 +2772,12 @@
       // Flight recorder: checkpoint phase to localStorage twice a second so a
       // full main-thread freeze (invisible to every overlay) still leaves a
       // black box readable on the next boot.
-      if (this.state === 'playing' && (!this._bbAt || now - this._bbAt > 500)) {
+      // Never record while the page is hidden. Backgrounding seals the record
+      // as a clean exit, and without this guard a still-running frame would
+      // overwrite that seal with clean:false a moment later and report the
+      // player's app switch as a crash all over again.
+      if (this.state === 'playing' && document.visibilityState !== 'hidden' &&
+          (!this._bbAt || now - this._bbAt > 500)) {
         this._bbAt = now;
         try {
           localStorage.setItem('hm_blackbox', JSON.stringify({
@@ -2717,7 +2793,7 @@
       // On-screen stall/error readout: if the sim stops advancing while the
       // game believes it is playing, say so where a phone screenshot can
       // capture it - phase tag and max step time included.
-      if (this.stallDebugText) {
+      if (HM_DIAG && this.stallDebugText) {
         var stalled = this.state === 'playing' && !kit.paused && !j.frozen &&
           this.lastSimAdvanceAt && (performance.now() - this.lastSimAdvanceAt) > 2500;
         if (this.simError) {
@@ -2760,6 +2836,10 @@
     },
 
     simStep: function (dt) {
+      // Diag-only fault injection, so the sim-failure recovery path can be
+      // regression-tested instead of reasoned about. Set
+      // window.__hm.state.forceSimError = true with ?diag=1.
+      if (HM_DIAG && HM_DEBUG_STATE.forceSimError) throw new Error('forced sim fault');
       var run = this.run, p = this.p;
       var stepStart = performance.now();
       this.watchdogPhase = 'sim';
