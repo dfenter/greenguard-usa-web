@@ -5,6 +5,26 @@
   "trailingSlash": false,
   "redirects": [
     {
+      "source": "/sparkbridge/lineup",
+      "destination": "/sparkbridge/products",
+      "permanent": true
+    },
+    {
+      "source": "/sparkbridge/modules",
+      "destination": "/sparkbridge/products",
+      "permanent": true
+    },
+    {
+      "source": "/sparkbridge/compare",
+      "destination": "/sparkbridge/technology",
+      "permanent": true
+    },
+    {
+      "source": "/sparkbridge/spec",
+      "destination": "/sparkbridge/resources",
+      "permanent": true
+    },
+    {
       "source": "/",
       "has": [
         {

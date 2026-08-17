@@ -23,11 +23,9 @@
     <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
     <nav class="nav" id="nav" aria-label="Main">
         <a href="/sparkbridge/">Overview</a>
-        <a href="/sparkbridge/lineup">Lineup</a>
-        <a href="/sparkbridge/modules">Modules</a>
+        <a href="/sparkbridge/products">Products</a>
         <a href="/sparkbridge/technology">Technology</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
-        <a href="/sparkbridge/compare">Compare</a>
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/resources">Resources</a>
         <a href="/sparkbridge/download">Download</a>
@@ -86,7 +84,7 @@
           <tr><th>Where it runs</th><td>On your gateway, into your Snowflake account</td></tr>
           <tr><th>Who it is for</th><td>Teams running analytics or reporting on production data</td></tr>
           <tr><th>What it replaces</th><td>Per-row cloud connector subscriptions and nightly exports</td></tr>
-          <tr><th>Licensing</th><td>Bought once per gateway, not a subscription</td></tr>
+          <tr><th>Licensing</th><td>$495 per gateway, bought once and kept, not a subscription. Included in the $3,495 <a href="/sparkbridge/pricing">central server suite</a></td></tr>
         </table>
 
       </div>
@@ -106,12 +104,35 @@
 
 <section>
   <div class="wrap">
+    <div class="sec-head">
+      <span class="path">where it earns its keep</span>
+      <h2>Three Situations This Solves</h2>
+      <p>Three reasons production data reaches the warehouse late, twice, or expensively, and what changes.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>The situation</th><th>What changes</th></tr></thead>
+        <tbody>
+          <tr><td><b>An analyst reconciling duplicate rows by hand</b><br><span class="sub">Teams whose feed doubles up after every restart or replayed backlog.</span></td>
+              <td>When a connector resends a backlog it usually redelivers readings that already landed, so someone spends the morning de-duplicating before anyone can run a query on it. SparkInject tracks each reading individually, so a restart or a network drop produces neither a gap nor a duplicate row. After a four hour disconnection, 8,375 readings were delivered with nothing missing and nothing counted twice.</td></tr>
+          <tr><td><b>A nightly batch that is always a day behind the decision</b><br><span class="sub">Anyone asked about this morning's production while holding yesterday's export.</span></td>
+              <td>A batch can only answer questions about a day that has already closed, and cycle times or downtime read from it reflect when the export ran rather than when the plant ran. SparkInject streams straight into your own Snowflake account continuously, and each reading keeps the time the plant recorded it, so timing analysis matches the floor.</td></tr>
+          <tr><td><b>Paying per row to move your own data</b><br><span class="sub">Finance teams watching a connector bill grow with production volume.</span></td>
+              <td>A per-row or per-connector subscription means the more you produce, the more it costs to look at what you produced, and a vendor sits permanently in the data path. SparkInject is bought once per gateway and writes into the Snowflake account you already own and already pay for. We are never in the middle of it, and the cost does not move when the plant runs harder.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
     <div class="measure">
       <p>SparkInject fits organisations that have standardised on Snowflake and want production data in it continuously, with predictable cost and without another vendor sitting in the data path. The same approach extends to AWS if your warehouse lives there instead.</p>
     </div>
     <div class="cta-row">
       <a class="btn" href="/sparkbridge/contact">Book a demo</a>
-      <a class="btn ghost dark" href="/sparkbridge/lineup">See the full lineup</a>
+      <a class="btn ghost dark" href="/sparkbridge/products">See the products</a>
     </div>
   </div>
 </section>

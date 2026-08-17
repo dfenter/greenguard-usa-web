@@ -23,11 +23,9 @@
     <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
     <nav class="nav" id="nav" aria-label="Main">
         <a href="/sparkbridge/">Overview</a>
-        <a href="/sparkbridge/lineup">Lineup</a>
-        <a href="/sparkbridge/modules">Modules</a>
+        <a href="/sparkbridge/products">Products</a>
         <a href="/sparkbridge/technology">Technology</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
-        <a href="/sparkbridge/compare">Compare</a>
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/resources">Resources</a>
         <a href="/sparkbridge/download">Download</a>
@@ -86,6 +84,7 @@ Certificate rotation, all 40 sites
           <tr><th>Acting</th><td>Authorise once, apply across every site</td></tr>
           <tr><th>Security</th><td>Instructions are signed and cannot be replayed</td></tr>
           <tr><th>Who it is for</th><td>Anyone running more than a handful of sites</td></tr>
+          <tr><th>Price</th><td>$495 per gateway, bought once and kept. Included in the $3,495 <a href="/sparkbridge/pricing">central server suite</a></td></tr>
         </table>
 
       </div>
@@ -105,12 +104,37 @@ Certificate rotation, all 40 sites
 
 <section>
   <div class="wrap">
+    <div class="sec-head">
+      <span class="path">where it earns its keep</span>
+      <h2>Three Situations This Solves</h2>
+      <p>Each one is a job that stays manageable at three sites and stops being manageable at thirty.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>The situation</th><th>What changes</th></tr></thead>
+        <tbody>
+          <tr><td><b>Nobody can say what version is running at site 23</b><br><span class="sub">The operations lead of an estate that grew one site at a time.</span></td>
+              <td>The inventory lives in a spreadsheet that was accurate the week it was written, so drift, version mismatches and expiring certificates are discovered by something breaking. FleetOps collects what is actually installed and configured at every site and puts it in one list, with the counts by fault class: drift, certificates expiring, certificates already expired, backups overdue, version mismatch. The answer to "what is at site 23" becomes a lookup.</td></tr>
+          <tr><td><b>The same change has to be made forty times by hand</b><br><span class="sub">Whoever has to schedule forty site visits for one setting.</span></td>
+              <td>Repeating a change forty times is a week of work and forty chances to do it slightly differently, which is where drift comes from in the first place. In FleetOps you authorise the change once and it applies everywhere it should. On a 40-site rig one authorised certificate rotation reached all forty sites in 937 milliseconds, and the sites that were not in scope were left alone.</td></tr>
+          <tr><td><b>A site fails, and nobody is sure the backup is current</b><br><span class="sub">Anyone who has restored from a backup and found it was six months old.</span></td>
+              <td>Backup age is invisible until the day it matters, and that is the worst day to find out. Backup overdue is a tracked fault class alongside certificates and drift, so an out of date backup shows up on the same screen as everything else, before the failure rather than during it. On the planted-fault rig every fault class surfaced at exactly the expected count.</td></tr>
+          <tr><td><b>One console that can change forty sites is itself a risk</b><br><span class="sub">The security reviewer who has to sign off on the tool.</span></td>
+              <td>A fleet action captured off the wire and sent again would be a serious problem, so it is closed by design. Every instruction is signed, and a site refuses an instruction it has already accepted. The same rotation instruction, captured and replayed, was refused by all forty sites.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
     <div class="measure">
       <p>The value of FleetOps grows with site count. At three sites a spreadsheet works. At thirty it does not, and the first expired certificate usually costs more than the software.</p>
     </div>
     <div class="cta-row">
       <a class="btn" href="/sparkbridge/contact">Book a demo</a>
-      <a class="btn ghost dark" href="/sparkbridge/lineup">See the full lineup</a>
+      <a class="btn ghost dark" href="/sparkbridge/products">See the products</a>
     </div>
   </div>
 </section>

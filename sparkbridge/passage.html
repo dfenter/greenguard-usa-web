@@ -23,11 +23,9 @@
     <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
     <nav class="nav" id="nav" aria-label="Main">
         <a href="/sparkbridge/">Overview</a>
-        <a href="/sparkbridge/lineup">Lineup</a>
-        <a href="/sparkbridge/modules">Modules</a>
+        <a href="/sparkbridge/products">Products</a>
         <a href="/sparkbridge/technology">Technology</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
-        <a href="/sparkbridge/compare">Compare</a>
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/resources">Resources</a>
         <a href="/sparkbridge/download">Download</a>
@@ -89,6 +87,7 @@ delta           <span class="hi">2685 ms</span>   (age, not latency)</pre>
           <tr><th>Integration work</th><td>None. They connect the way they already do</td></tr>
           <tr><th>What it replaces</th><td>Custom point-to-point integrations per system</td></tr>
           <tr><th>Safety</th><td>Read only. It cannot write or command anything</td></tr>
+          <tr><th>Price</th><td>$495 per gateway, bought once and kept. Included in the $3,495 <a href="/sparkbridge/pricing">central server suite</a></td></tr>
         </table>
 
       </div>
@@ -108,12 +107,35 @@ delta           <span class="hi">2685 ms</span>   (age, not latency)</pre>
 
 <section>
   <div class="wrap">
+    <div class="sec-head">
+      <span class="path">where it earns its keep</span>
+      <h2>Three Situations This Solves</h2>
+      <p>Three points where a modernised data network stops short of the systems that still run the plant.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>The situation</th><th>What changes</th></tr></thead>
+        <tbody>
+          <tr><td><b>A historian that will never speak Sparkplug</b><br><span class="sub">Sites that modernised the network and kept the historian, the SCADA package or the analytics tool.</span></td>
+              <td>The data is on the new network in a format the tool cannot read, so the options look like replacing something that works or paying to have it adapted. Passage presents the same live data in OPC-UA, the standard almost every industrial system already speaks, and the tool connects the way it always has. Readings keep the time the equipment recorded them, so it can tell a fresh value from a stale one.</td></tr>
+          <tr><td><b>A second integration project every time another system wants the same values</b><br><span class="sub">Integration teams quoting the same work again for each new consumer.</span></td>
+              <td>Every new tool gets its own point-to-point connector, its own tag mapping and its own maintenance, and they drift apart. Passage serves one standards-based window onto the live namespace that all of them read from, so adding the next dashboard, analytics tool or test client needs no integration work at all.</td></tr>
+          <tr><td><b>A vendor system that only reads OPC-UA and cannot be replaced</b><br><span class="sub">Plants with a system that is contractually or operationally fixed in the loop.</span></td>
+              <td>You cannot change how it reads data and you cannot take it out, so it either gets the data in its own language or the project stalls. Passage gives it exactly what it expects. It was read by stock off-the-shelf client software with no modification at either end, and its values and millisecond timestamps matched an independent check exactly. It is read only, so it can never write a value or issue a command.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
     <div class="measure">
       <p>Passage suits sites that have modernised their data network but still depend on established systems that are not going anywhere. It lets both coexist, so modernisation stops being an all-or-nothing decision.</p>
     </div>
     <div class="cta-row">
       <a class="btn" href="/sparkbridge/contact">Book a demo</a>
-      <a class="btn ghost dark" href="/sparkbridge/lineup">See the full lineup</a>
+      <a class="btn ghost dark" href="/sparkbridge/products">See the products</a>
     </div>
   </div>
 </section>

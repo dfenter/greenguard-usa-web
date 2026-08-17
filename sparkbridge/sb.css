@@ -410,6 +410,10 @@ footer a:hover{color:#fff}
 .tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px}
 .tiers>*{min-width:0}
 .tier.feature{border:1px solid var(--graphite);border-top:3px solid var(--marker);background:var(--graphite);color:#fff}
+/* a plain tier keeps its light card on a graphite band; pin its ink so the
+   price never inherits white on paper */
+.band .tier:not(.feature){color:var(--ink)}
+.band .tier:not(.feature) h3,.band .tier:not(.feature) .why,.band .tier:not(.feature) .price small{color:var(--ink-soft)}
 .tier.feature h3{color:#fff}
 .tier.feature .price{color:#fff}
 .tier.feature .price small{color:var(--paper-dim)}

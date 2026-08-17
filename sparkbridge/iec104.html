@@ -23,11 +23,9 @@
     <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
     <nav class="nav" id="nav" aria-label="Main">
         <a href="/sparkbridge/">Overview</a>
-        <a href="/sparkbridge/lineup">Lineup</a>
-        <a href="/sparkbridge/modules">Modules</a>
+        <a href="/sparkbridge/products">Products</a>
         <a href="/sparkbridge/technology">Technology</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
-        <a href="/sparkbridge/compare">Compare</a>
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/resources">Resources</a>
         <a href="/sparkbridge/download">Download</a>
@@ -83,7 +81,7 @@
           <tr><th>What it removes</th><td>The translator box, its license and its support contract</td></tr>
           <tr><th>Who it is for</th><td>Utilities, substations and remote infrastructure sites</td></tr>
           <tr><th>Safety</th><td>Reads only. No control commands, by design</td></tr>
-          <tr><th>Licensing</th><td>Bought once per gateway, not a subscription</td></tr>
+          <tr><th>Licensing</th><td>$495 per gateway, bought once and kept, not a subscription. Bought on its own, no SparkBridge licence required. See <a href="/sparkbridge/pricing">pricing</a></td></tr>
         </table>
 
       </div>
@@ -103,12 +101,37 @@
 
 <section>
   <div class="wrap">
+    <div class="sec-head">
+      <span class="path">where it earns its keep</span>
+      <h2>Three Situations This Solves</h2>
+      <p>All three are the cost of the box in the middle, paid in a different currency each time.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>The situation</th><th>What changes</th></tr></thead>
+        <tbody>
+          <tr><td><b>A substation talks IEC 104 through a converter you also have to own</b><br><span class="sub">A utility or infrastructure operator with a translator box per site.</span></td>
+              <td>That box carries its own licence, its own patching schedule, its own support contract and its own failure mode, and it fails at three in the morning like everything else. This driver speaks IEC 60870-5-104 directly from the Ignition gateway to the equipment, so the box comes out along with everything attached to it. One fewer vendor sits in the path between the substation and your data.</td></tr>
+          <tr><td><b>The event sequence cannot be reconstructed after a trip</b><br><span class="sub">Whoever has to explain what happened first, and to whom.</span></td>
+              <td>A converter in the middle re-stamps readings with its own clock, so the order you analyse is the order the middleman happened to forward, not the order the equipment reported. Reading the protocol directly means values arrive with the time and the fault status the equipment itself reported. Correctness here was measured: a full session against the lib60870 reference implementation, 162 APDUs and 43 TESTFR exchanges, zero sequence faults, clean shutdown.</td></tr>
+          <tr><td><b>Adding sites means adding another box each time</b><br><span class="sub">A utility whose site count is growing faster than its budget.</span></td>
+              <td>Per site hardware makes every new connection a purchase, an install and another item on the maintenance list, which is what makes growth expensive rather than the equipment. The driver runs on the gateway you already have and is bought once per gateway, not per subscription. There is no per site box to buy, rack, patch or replace.</td></tr>
+          <tr><td><b>A data connection is being treated as a safety question</b><br><span class="sub">The engineer who has to get this past a substation safety review.</span></td>
+              <td>Anything that can operate a breaker attracts a much longer conversation, and rightly so. This driver reads only. It cannot issue a control command of any kind, by design, which keeps the review about data handling rather than about operations.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
     <div class="measure">
       <p>If you run IEC 104 equipment and would rather have one less vendor in the path between your plant and your data, this is worth a conversation. Early sites shape what ships.</p>
     </div>
     <div class="cta-row">
       <a class="btn" href="/sparkbridge/contact">Talk to us</a>
-      <a class="btn ghost dark" href="/sparkbridge/lineup">See the full lineup</a>
+      <a class="btn ghost dark" href="/sparkbridge/products">See the products</a>
     </div>
   </div>
 </section>

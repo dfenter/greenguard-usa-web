@@ -23,11 +23,9 @@
     <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
     <nav class="nav" id="nav" aria-label="Main">
         <a href="/sparkbridge/">Overview</a>
-        <a href="/sparkbridge/lineup">Lineup</a>
-        <a href="/sparkbridge/modules">Modules</a>
+        <a href="/sparkbridge/products">Products</a>
         <a href="/sparkbridge/technology">Technology</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
-        <a href="/sparkbridge/compare">Compare</a>
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/resources">Resources</a>
         <a href="/sparkbridge/download">Download</a>
@@ -80,7 +78,7 @@
           <tr><th>Covered today</th><td>Siemens and CTI 505 series racks, IEC 104 and DNP3 utility equipment</td></tr>
           <tr><th>What it removes</th><td>Translator hardware, its license and its maintenance</td></tr>
           <tr><th>Safety</th><td>Reads only. No control commands, by design</td></tr>
-          <tr><th>Licensing</th><td>Bought once per gateway, not a subscription</td></tr>
+          <tr><th>Licensing</th><td>$495 per gateway for each driver, TI 505 / CTI 2500 and DNP3 alike, bought once and kept, not a subscription. Bought on its own, no SparkBridge licence required. See <a href="/sparkbridge/pricing">pricing</a></td></tr>
         </table>
 
       </div>
@@ -100,12 +98,37 @@
 
 <section>
   <div class="wrap">
+    <div class="sec-head">
+      <span class="path">where it earns its keep</span>
+      <h2>Three Situations This Solves</h2>
+      <p>In each one the equipment is fine. The thing in front of it is the problem.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>The situation</th><th>What changes</th></tr></thead>
+        <tbody>
+          <tr><td><b>A Siemens or CTI rack that works fine is trapped behind a translator</b><br><span class="sub">A plant with 505 series racks still doing useful work.</span></td>
+              <td>The rack is reliable, but everything you want from it arrives through a box with its own licence, its own patching and its own way of failing. The TI 505 / CTI 2500 driver speaks CAMP over TCP straight from the Ignition gateway and browses the memory areas directly, V, WX, WY, X, Y, C, K, STW, TCP and TCC. The translator comes out and the rack stays where it is.</td></tr>
+          <tr><td><b>DNP3 equipment that needs a gateway box in between</b><br><span class="sub">The North American utilities that run DNP3 as a matter of course.</span></td>
+              <td>DNP3 is standard equipment across the industry, and connecting it usually still means per site hardware to buy, rack and maintain. The DNP3 driver removes that box the same way the others do, running on the gateway you already have. Each driver in the line is proven against real equipment or the industry's own reference implementation before it goes near a customer site.</td></tr>
+          <tr><td><b>Someone has quoted a rip and replace</b><br><span class="sub">The manager weighing a capital project against a data problem.</span></td>
+              <td>Replacing working racks is being proposed to solve a connectivity problem, not an equipment problem, and it is the expensive end of that decision. Keeping the equipment and removing the middleman costs $495 per gateway for the driver, bought once and kept, with no SparkBridge licence required. That is usually a smaller number than the boxes it replaces, before the capital project is even discussed.</td></tr>
+          <tr><td><b>Readings look stale and nobody can prove where they came from</b><br><span class="sub">Anyone trying to trust a trend built from legacy plant.</span></td>
+              <td>A middle box can keep serving its last successful poll, so the data looks live and the fault state looks clean when neither is true. Reading natively means values arrive with the equipment's own timing and its own fault state. The drivers read only and cannot issue a control command, so nothing in this path can operate equipment.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
     <div class="measure">
       <p>If you have older racks still doing useful work and a growing need to get data off them, keeping the equipment and removing the middleman is usually the cheaper end of that decision.</p>
     </div>
     <div class="cta-row">
       <a class="btn" href="/sparkbridge/contact">Talk to us</a>
-      <a class="btn ghost dark" href="/sparkbridge/lineup">See the full lineup</a>
+      <a class="btn ghost dark" href="/sparkbridge/products">See the products</a>
     </div>
   </div>
 </section>

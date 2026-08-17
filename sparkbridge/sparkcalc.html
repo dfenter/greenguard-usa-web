@@ -23,11 +23,9 @@
     <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
     <nav class="nav" id="nav" aria-label="Main">
         <a href="/sparkbridge/">Overview</a>
-        <a href="/sparkbridge/lineup">Lineup</a>
-        <a href="/sparkbridge/modules">Modules</a>
+        <a href="/sparkbridge/products">Products</a>
         <a href="/sparkbridge/technology">Technology</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
-        <a href="/sparkbridge/compare">Compare</a>
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/resources">Resources</a>
         <a href="/sparkbridge/download">Download</a>
@@ -84,6 +82,7 @@ Pump/PowerDraw goes stale &rarr; equipment offline
           <tr><th>Honesty</th><td>A value goes bad when an input does, never stuck</td></tr>
           <tr><th>History</th><td>New metrics can be recalculated over past data</td></tr>
           <tr><th>Safety</th><td>Publishes values only. It sends no commands</td></tr>
+          <tr><th>Price</th><td>$495 per gateway, bought once and kept. Included in the $1,895 <a href="/sparkbridge/pricing">site package</a> and the $3,495 <a href="/sparkbridge/pricing">central suite</a></td></tr>
         </table>
 
       </div>
@@ -103,12 +102,37 @@ Pump/PowerDraw goes stale &rarr; equipment offline
 
 <section>
   <div class="wrap">
+    <div class="sec-head">
+      <span class="path">where it earns its keep</span>
+      <h2>Four Situations This Solves</h2>
+      <p>Four ways a reported number goes wrong before anyone reads it, and what changes.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>The situation</th><th>What changes</th></tr></thead>
+        <tbody>
+          <tr><td><b>The same efficiency built three times, giving three answers</b><br><span class="sub">Anyone whose PLC, dashboard and spreadsheet disagree in a Monday meeting.</span></td>
+              <td>Each copy of the formula was written by a different person at a different time, and they drift. The meeting turns into an argument about which number is right rather than what to do about it. SparkCalc computes the value once, centrally, and publishes it back as first-class plant data. Every dashboard, report and analyst reads the same number, because there is only one.</td></tr>
+          <tr><td><b>A rate or a total nobody can trace back to its inputs</b><br><span class="sub">Engineers asked to defend a figure that has already left the building.</span></td>
+              <td>When the derivation lives in a spreadsheet cell or in somebody's memory, there is no way to show how the figure was produced. Every SparkCalc value declares what it was calculated from and carries the timestamp of its oldest input, so the derivation sits in the system. Nearly twelve hours of recomputed history, 4,201 values, was checked against an independent implementation and agreed on every value, timestamp and quality flag.</td></tr>
+          <tr><td><b>A derived number that stays confident while one of its inputs is dead</b><br><span class="sub">Reports built on a KPI that quietly went stale during a dropout.</span></td>
+              <td>Most calculations keep publishing on the last value they saw, so the KPI looks fine while the sensor feeding it is offline, and nobody finds out until the month closes. SparkCalc marks a derived value bad the moment any input goes bad. In a window containing 17 real equipment dropouts the derived series went bad across every one of them and never held a stale number.</td></tr>
+          <tr><td><b>A new metric you would otherwise wait six months to trend</b><br><span class="sub">Teams defining a KPI today and needing last season's version of it.</span></td>
+              <td>A metric normally starts accumulating on the day it is defined, so any comparison waits for the calendar. SparkCalc recalculates over history, so a metric defined today can be produced for the last six months, computed exactly the same way as the live one.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
     <div class="measure">
       <p>SparkCalc suits teams whose KPIs are recalculated in several places and do not agree, or who need a defensible answer to how a reported number was produced.</p>
     </div>
     <div class="cta-row">
       <a class="btn" href="/sparkbridge/contact">Book a demo</a>
-      <a class="btn ghost dark" href="/sparkbridge/lineup">See the full lineup</a>
+      <a class="btn ghost dark" href="/sparkbridge/products">See the products</a>
     </div>
   </div>
 </section>
