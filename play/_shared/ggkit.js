@@ -560,7 +560,30 @@
       // gate we ever ran. Allow localhost so it is testable before deploy.
       const secure = location.protocol === 'https:'
         || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-      if ('serviceWorker' in navigator && secure) {
+      if (!('serviceWorker' in navigator) || !secure) return;
+      // Register with an EXPLICIT slug scope that has no trailing slash.
+      //
+      // A worker's default scope is its own directory, '/play/<slug>/'. The
+      // deployed site serves the canonical page at '/play/<slug>' with NO
+      // trailing slash (vercel cleanUrls + trailingSlash:false, which
+      // 308-redirects the slash form onto it). A page at '/play/<slug>' is
+      // NOT inside the scope '/play/<slug>/', so the worker installed, filled
+      // its cache, reported perfectly healthy, and could never control the
+      // one URL that matters. Offline was dead fleet-wide because of it.
+      //
+      // '/play/<slug>' is a BROADER scope than the script's directory, so it
+      // needs the Service-Worker-Allowed: /play/ header, which vercel.json
+      // sets for /play/:slug/sw.js. Fall back to the default registration if
+      // the explicit scope is refused, so a missing header degrades to the
+      // old behaviour rather than to no worker at all.
+      try {
+        const swUrl = new URL('sw.js', document.baseURI);
+        const scope = swUrl.pathname.replace(/\/sw\.js$/, '');
+        navigator.serviceWorker.register(swUrl.pathname, { scope: scope })
+          .catch(function () {
+            navigator.serviceWorker.register(swUrl.pathname).catch(function () {});
+          });
+      } catch (e) {
         navigator.serviceWorker.register('sw.js').catch(function () {});
       }
     };
