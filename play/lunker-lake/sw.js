@@ -1,5 +1,5 @@
 const SLUG = 'lunker-lake';
-const VERSION = 'aaa-art2-20260808-2-2026-08-17-density-rollback';
+const VERSION = 'aaa-art2-20260808-2-2026-08-17-webkit-encoding-fix';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/lunker-lake/', '/play/lunker-lake/index.html', '/play/lunker-lake/data.js', '/play/lunker-lake/game.js',
@@ -27,8 +27,19 @@ self.addEventListener('install', (e) => {
       try {
         const res = await fetch(u, { redirect: 'follow' });
         if (!res || !res.ok) return;
+        // fetch() hands us the DECODED bytes, so the transport headers no
+        // longer describe this body: content-encoding (gzip/br), the
+        // compressed content-length and transfer-encoding are now lies.
+        // WebKit honours them when the cache replays the response and fails
+        // to decode the page - a controlled navigation dies with no console
+        // and the title "does not start" on iPhone - while Chrome ignores
+        // them, which is why every headless gate reported READY. Strip them.
+        const headers = new Headers(res.headers);
+        headers.delete('content-encoding');
+        headers.delete('content-length');
+        headers.delete('transfer-encoding');
         await c.put(u, new Response(await res.blob(), {
-          status: 200, statusText: 'OK', headers: res.headers,
+          status: 200, statusText: 'OK', headers: headers,
         }));
       } catch (err) { /* one asset must never sink the whole precache */ }
     }));

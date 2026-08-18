@@ -6,7 +6,7 @@
  * Bump VERSION on every deploy of the game to invalidate stale caches.
  */
 const SLUG = 'fizzlift';
-const VERSION = '2026-08-11-aaa-fix-round-1-2026-08-17-density-rollback';
+const VERSION = '2026-08-11-aaa-fix-round-1-2026-08-17-webkit-encoding-fix';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/fizzlift/',
@@ -43,8 +43,19 @@ self.addEventListener('install', (e) => {
       try {
         const res = await fetch(u, { redirect: 'follow' });
         if (!res || !res.ok) return;
+        // fetch() hands us the DECODED bytes, so the transport headers no
+        // longer describe this body: content-encoding (gzip/br), the
+        // compressed content-length and transfer-encoding are now lies.
+        // WebKit honours them when the cache replays the response and fails
+        // to decode the page - a controlled navigation dies with no console
+        // and the title "does not start" on iPhone - while Chrome ignores
+        // them, which is why every headless gate reported READY. Strip them.
+        const headers = new Headers(res.headers);
+        headers.delete('content-encoding');
+        headers.delete('content-length');
+        headers.delete('transfer-encoding');
         await c.put(u, new Response(await res.blob(), {
-          status: 200, statusText: 'OK', headers: res.headers,
+          status: 200, statusText: 'OK', headers: headers,
         }));
       } catch (err) { /* one asset must never sink the whole precache */ }
     }));
