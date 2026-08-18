@@ -22,7 +22,7 @@ function assertSendOk(result) {
   return Boolean(result && !result.error && (result.data?.id || result.id))
 }
 
-// Falls back to the Gmail REST API (users.messages.send) when Resend fails.
+// Primary sender: the Gmail REST API (users.messages.send).
 // Uses the dedicated GMAIL_* admin@ token; GOOGLE_* is calendar-only and can't
 // send, so prefer GMAIL_* and only fall back to GOOGLE_* if it's unset.
 //
@@ -46,7 +46,7 @@ function base64url(str) {
   return Buffer.from(str, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
-async function sendViaGmailApi({ to, subject, html, bcc, from }) {
+async function sendViaGmailApi({ to, subject, html, bcc, from, labelIds }) {
   const gmail = google.gmail({ version: 'v1', auth: getGmailAuth() })
   const toList = Array.isArray(to) ? to.join(', ') : to
   const bccList = bcc ? (Array.isArray(bcc) ? bcc.join(', ') : bcc) : null
@@ -60,35 +60,58 @@ async function sendViaGmailApi({ to, subject, html, bcc, from }) {
   ].filter(Boolean).join('\r\n')
   const raw = base64url(`${headers}\r\n\r\n${html}`)
   const res = await gmail.users.messages.send({ userId: 'me', requestBody: { raw } })
+  // Self-addressed ops mail never reaches Gmail's filter engine (filters run on
+  // inbound delivery only), so a settings filter on these silently no-ops. Label
+  // it ourselves instead. NOTE: messages.send accepts a labelIds field but
+  // ignores it — only messages.insert honors it — so this must be a follow-up
+  // modify call. Verified against the live API: send-with-labelIds does nothing.
+  // Best-effort: a labelling failure must never turn into a lost email, since
+  // the message itself is already delivered by this point.
+  if (labelIds && labelIds.length) {
+    try {
+      await gmail.users.messages.modify({
+        userId: 'me',
+        id: res.data.id,
+        requestBody: { addLabelIds: labelIds },
+      })
+    } catch (e) {
+      console.warn('ops label apply failed for %s (%s) — email still sent', res.data.id, e.message)
+    }
+  }
   return { messageId: res.data.id }
 }
 
-// The ORIGINAL send logic (Resend, then Gmail API on failure), unchanged.
-// This is "the current method" — used directly by the local daemon, and by
-// sendEmail() below as the backup path when local isn't available or doesn't
-// answer in time. Keeping it as its own exported function means the backup
-// path is byte-for-byte the same code that ran before local-first existed.
+// The direct send path: Gmail API first, Resend as backup only.
+// Owner policy 2026-08-18: "Everything should always default to send from the
+// Mac if possible; Resend is always backup only." Gmail-first also conserves
+// Resend quota. Consequence: Gmail can only send as admin@greenguard-usa.com
+// (the sole verified sendAs identity — Gmail rewrites any other From), so
+// customer mail now arrives from admin@ instead of noreply@, and replies land
+// in the admin inbox. Used directly by the local daemon, and by sendEmail()
+// below as the backup path when local isn't available or doesn't answer in
+// time — one source of truth for how an email actually goes out.
 async function sendEmailDirect({ to, subject, html, bcc, from }) {
   const resendFrom = from || `${biz.name} <${FROM}>`
   const gmailFrom = from || `${biz.name} <admin@greenguard-usa.com>`
-  // Try Resend first; fall back to Gmail on ANY Resend failure (quota, error,
-  // or a thrown network exception) so a Resend hiccup never drops the email.
-  if (process.env.RESEND_API_KEY) {
-    try {
-      const r = await getResend().emails.send({
-        from: resendFrom,
-        to,
-        subject,
-        html,
-        ...(bcc ? { bcc } : {}),
-      })
-      if (assertSendOk(r)) return r
-      console.warn('Resend send failed or was unconfirmed — falling back to Gmail')
-    } catch (e) {
-      console.warn('Resend threw (%s) — falling back to Gmail', e.message)
-    }
+  // Try Gmail first; fall back to Resend on ANY Gmail failure so a Gmail
+  // hiccup never drops the email. No labelIds here: customer mail must not
+  // get the Daily Ops label (that's purchase-notify.js only).
+  try {
+    return await sendViaGmailApi({ to, subject, html, bcc, from: gmailFrom })
+  } catch (e) {
+    // With no Resend key configured there is no backup — propagate.
+    if (!process.env.RESEND_API_KEY) throw e
+    console.warn('Gmail send threw (%s) — falling back to Resend', e.message)
   }
-  return sendViaGmailApi({ to, subject, html, bcc, from: gmailFrom })
+  const r = await getResend().emails.send({
+    from: resendFrom,
+    to,
+    subject,
+    html,
+    ...(bcc ? { bcc } : {}),
+  })
+  if (!assertSendOk(r)) throw new Error(`Resend send failed or was unconfirmed: ${r?.error?.message || 'no provider id'}`)
+  return r
 }
 
 /**

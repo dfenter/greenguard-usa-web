@@ -13,6 +13,9 @@ const FROM = process.env.PORTAL_FROM_EMAIL || 'noreply@greenguard-usa.com'
 const ADMIN_EMAIL = process.env.OWNER_EMAIL || process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 const ADMIN_SMS = process.env.ADMIN_SMS_NUMBER || ''
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com'
+// Gmail label applied to admin ops mail at send time. See sendViaGmailApi:
+// self-addressed mail bypasses Gmail filters, so this is applied on send.
+const OPS_LABEL_IDS = [process.env.GMAIL_OPS_LABEL_ID || 'Label_8']
 
 function fmt$(cents) {
   const n = Number(cents)
@@ -29,7 +32,7 @@ function esc(s) {
 async function sendAdminCopy({ subject, html, fromName }) {
   const from = `${fromName || 'GreenGuard USA'} <admin@greenguard-usa.com>`
   try {
-    await sendViaGmailApi({ to: ADMIN_EMAIL, subject, html, from })
+    await sendViaGmailApi({ to: ADMIN_EMAIL, subject, html, from, labelIds: OPS_LABEL_IDS })
     return { ok: true }
   } catch (e) {
     console.warn('admin copy via Gmail failed (%s) — falling back to Resend', e.message)
