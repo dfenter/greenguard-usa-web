@@ -12,7 +12,31 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  // Cache entries INDIVIDUALLY, and strip redirects.
+  //
+  // Two traps, both of which silently killed offline for the ENTIRE fleet and
+  // both invisible on a local static server:
+  //   1. cache.addAll is ATOMIC. One unreachable path and NOTHING is cached,
+  //      while the worker still installs and reports healthy.
+  //   2. The deployed site 308-redirects '/play/<slug>/' and
+  //      '/play/<slug>/index.html' onto the bare '/play/<slug>'. cache.put
+  //      THROWS on a redirected response, so those two entries alone were
+  //      enough to reject the whole addAll. python -m http.server serves the
+  //      slash form directly with a 200, which is why every local gate passed.
+  // Rebuilding the response strips the redirect flag and keeps the body.
+  e.waitUntil((async () => {
+    const c = await caches.open(CACHE);
+    await Promise.all(ASSETS.map(async (u) => {
+      try {
+        const res = await fetch(u, { redirect: 'follow' });
+        if (!res || !res.ok) return;
+        await c.put(u, new Response(await res.blob(), {
+          status: 200, statusText: 'OK', headers: res.headers,
+        }));
+      } catch (err) { /* one asset must never sink the whole precache */ }
+    }));
+    await self.skipWaiting();
+  })());
 });
 self.addEventListener('activate', (e) => {
   e.waitUntil(

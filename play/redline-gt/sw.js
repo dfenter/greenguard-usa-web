@@ -6,7 +6,7 @@
 const SLUG = 'redline-gt';
 // Bump on every deploy that changes a cached file. Frame-budget restoration
 // keeps the polished look while moving cars/backgrounds onto cheap paths.
-const VERSION = '14-2026-08-16-offline-fix-2026-08-16-gate-repair';
+const VERSION = '14-2026-08-17-offline-redirect-fix';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/redline-gt/',
@@ -45,7 +45,31 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  // Cache entries INDIVIDUALLY, and strip redirects.
+  //
+  // Two traps, both of which silently killed offline for the ENTIRE fleet and
+  // both invisible on a local static server:
+  //   1. cache.addAll is ATOMIC. One unreachable path and NOTHING is cached,
+  //      while the worker still installs and reports healthy.
+  //   2. The deployed site 308-redirects '/play/<slug>/' and
+  //      '/play/<slug>/index.html' onto the bare '/play/<slug>'. cache.put
+  //      THROWS on a redirected response, so those two entries alone were
+  //      enough to reject the whole addAll. python -m http.server serves the
+  //      slash form directly with a 200, which is why every local gate passed.
+  // Rebuilding the response strips the redirect flag and keeps the body.
+  e.waitUntil((async () => {
+    const c = await caches.open(CACHE);
+    await Promise.all(ASSETS.map(async (u) => {
+      try {
+        const res = await fetch(u, { redirect: 'follow' });
+        if (!res || !res.ok) return;
+        await c.put(u, new Response(await res.blob(), {
+          status: 200, statusText: 'OK', headers: res.headers,
+        }));
+      } catch (err) { /* one asset must never sink the whole precache */ }
+    }));
+    await self.skipWaiting();
+  })());
 });
 self.addEventListener('activate', (e) => {
   e.waitUntil(
@@ -54,48 +78,20 @@ self.addEventListener('activate', (e) => {
     ).then(() => self.clients.claim())
   );
 });
-// Code is network-first, content is cache-first.
-//
-// A purely cache-first worker keeps serving an entire stale build for as long
-// as the cache survives, so a deploy that forgets the VERSION bump is
-// invisible to every existing install. HTML and JavaScript now go to the
-// network first with a short timeout and fall back to the cache, so a shipped
-// fix reaches a returning player on the next load even when VERSION did not
-// move, while the offline guarantee is unchanged: the cached copy answers the
-// moment the network does not.
-//
-// Binary content (models, audio, icons) stays cache-first: it is immutable for
-// a given build, it is the bulk of the payload, and re-validating it on every
-// load would undo the offline win for no benefit.
-const CODE_RE = /\.(?:html|js|mjs|json)$|\/$/i;
-const NET_TIMEOUT = 2500;
-
-function fromNetwork(request) {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error('timeout')), NET_TIMEOUT);
-    fetch(request).then((res) => {
-      clearTimeout(timer);
-      if (res && res.ok) {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(request, copy));
-      }
-      resolve(res);
-    }).catch((err) => { clearTimeout(timer); reject(err); });
-  });
-}
-
 self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
   const ROOT = '/play/' + SLUG;
   // The deployed site serves the title at the NO-TRAILING-SLASH url and
   // 308-redirects the slash form onto it. The old scope test required
-  // ROOT + '/', so the canonical navigation was never in scope, the worker
-  // never answered it, and offline died on EVERY title in the fleet while
-  // still reporting a registered service worker. Accept both forms.
+  // ROOT + '/', so the canonical navigation was not in scope at all, the
+  // worker never answered it, and offline died on EVERY title in the fleet
+  // while still reporting a registered service worker. Accept both forms.
   const inScope = url.pathname === ROOT || url.pathname.startsWith(ROOT + '/')
     || url.pathname.startsWith('/play/_shared/') || url.pathname.startsWith('/play/_assets/');
   if (!inScope) return;
+  // Both spellings of the root map to the one cached index.html, since the
+  // precache lists the slash form and the browser asks for the bare one.
   const isRoot = url.pathname === ROOT || url.pathname === ROOT + '/';
   const INDEX = ROOT + '/index.html';
   e.respondWith(
@@ -110,6 +106,8 @@ self.addEventListener('fetch', (e) => {
           }
           return res;
         }).catch(() =>
+          // Offline and uncached: a navigation still has to land somewhere,
+          // so fall back to the app shell rather than a browser error page.
           e.request.mode === 'navigate' ? caches.match(INDEX) : Promise.reject(new Error('offline'))
         )
       )
