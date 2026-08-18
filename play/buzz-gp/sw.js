@@ -1,6 +1,6 @@
 /* Buzz Grand Prix service worker. Cache only real title and shared files. */
 const SLUG = 'buzz-gp';
-const VERSION = '2026-08-11-aaa-build1-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-11-aaa-build1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/buzz-gp/', '/play/buzz-gp/index.html', '/play/buzz-gp/game.js', '/play/buzz-gp/manifest.json', '/play/buzz-gp/icon.svg', '/play/buzz-gp/favicon.svg', '/play/buzz-gp/sw.js',

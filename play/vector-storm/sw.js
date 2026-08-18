@@ -1,6 +1,6 @@
 /* Derived from /play/_shared/sw-template.js. Cache-first, offline after first load. */
 const SLUG = 'vector-storm';
-const VERSION = '2026-08-10-aaa-rebuild-3-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-10-aaa-rebuild-3-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/vector-storm/',

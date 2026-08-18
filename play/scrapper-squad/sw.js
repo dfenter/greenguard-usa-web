@@ -1,6 +1,6 @@
 /* Scrapper Squad service worker. Derived from /play/_shared/sw-template.js. */
 const SLUG = 'scrapper-squad';
-const VERSION = '2026-08-11-aaa2-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-11-aaa2-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/scrapper-squad/',

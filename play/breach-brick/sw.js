@@ -9,7 +9,7 @@
  * assets/ directory: all art and all audio are generated at runtime.
  */
 const SLUG = 'breach-brick';
-const VERSION = '2026-08-10-aaa-r3-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-10-aaa-r3-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/breach-brick/',

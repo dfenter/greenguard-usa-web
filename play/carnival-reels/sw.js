@@ -1,6 +1,6 @@
 /* sw.js generated from /play/_shared/sw-template.js. */
 const SLUG = 'carnival-reels';
-const VERSION = 'aaa-f16-20260813-1-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-f16-20260813-1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/carnival-reels/',

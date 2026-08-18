@@ -1,6 +1,6 @@
 /* Vertol Rescue service worker. Cache-first after the first load. */
 const SLUG = 'vertol-rescue';
-const VERSION = 'aaa-f1-20260810-v3-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-f1-20260810-v3-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/vertol-rescue/',

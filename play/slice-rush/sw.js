@@ -1,5 +1,5 @@
 const SLUG = 'slice-rush';
-const VERSION = '2026-08-16-f17-aaa1-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-16-f17-aaa1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/slice-rush/',

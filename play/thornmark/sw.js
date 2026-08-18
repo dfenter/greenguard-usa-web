@@ -4,7 +4,7 @@
  * Bump VERSION on every deploy of the game to invalidate stale caches.
  */
 const SLUG = 'thornmark';
-const VERSION = 'aaa-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/thornmark/',

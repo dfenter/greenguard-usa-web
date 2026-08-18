@@ -1,6 +1,6 @@
 /* sw-template.js filled for Torque Trail. */
 const SLUG = 'torque-trail';
-const VERSION = '2026-08-11-gt1-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-11-gt1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/torque-trail/',

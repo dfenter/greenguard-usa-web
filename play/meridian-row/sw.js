@@ -1,6 +1,6 @@
 /* sw.js generated from /play/_shared/sw-template.js. */
 const SLUG = 'meridian-row';
-const VERSION = 'aaa-f3-20260811-2-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-f3-20260811-2-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/meridian-row/',

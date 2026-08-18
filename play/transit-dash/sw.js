@@ -1,6 +1,6 @@
 /* Transit Dash service worker authored from /play/_shared/sw-template.js. */
 const SLUG = 'transit-dash';
-const VERSION = 'aaa-rebuild-2-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-rebuild-2-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/transit-dash/',

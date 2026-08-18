@@ -4,7 +4,7 @@
  * Bump VERSION on every deploy of the game to invalidate stale caches.
  */
 const SLUG = 'curbside';
-const VERSION = '2026-08-10-ui-declutter1-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-10-ui-declutter1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 // Precache list generated from the shipped directory: every entry below is
 // a file that actually exists, so addAll() can never reject and leave the

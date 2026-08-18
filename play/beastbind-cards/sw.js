@@ -1,6 +1,6 @@
 /* sw.js generated from /play/_shared/sw-template.js. */
 const SLUG = 'beastbind-cards';
-const VERSION = 'aaa-f13-20260813-1-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-f13-20260813-1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/beastbind-cards/',

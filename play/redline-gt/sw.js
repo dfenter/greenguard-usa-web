@@ -6,7 +6,7 @@
 const SLUG = 'redline-gt';
 // Bump on every deploy that changes a cached file. Frame-budget restoration
 // keeps the polished look while moving cars/backgrounds onto cheap paths.
-const VERSION = '14-2026-08-17-offline-redirect-fix';
+const VERSION = '14-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/redline-gt/',

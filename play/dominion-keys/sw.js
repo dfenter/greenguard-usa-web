@@ -1,6 +1,6 @@
 /* Authored from /play/_shared/sw-template.js. */
 const SLUG = 'dominion-keys';
-const VERSION = '2026-08-13-aaa-r1-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-13-aaa-r1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/dominion-keys/',

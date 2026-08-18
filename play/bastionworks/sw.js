@@ -1,5 +1,5 @@
 const SLUG = 'bastionworks';
-const VERSION = 'aaa-20260811-02-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-20260811-02-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/bastionworks/',

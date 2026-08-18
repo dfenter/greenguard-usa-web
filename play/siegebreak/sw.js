@@ -1,6 +1,6 @@
 /* Siegebreak offline shell. Generated from /play/_shared/sw-template.js. */
 const SLUG = 'siegebreak';
-const VERSION = '2026-08-10-r4-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-10-r4-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/siegebreak/',

@@ -1,6 +1,6 @@
 /* Wayfarer Courts service worker. VERSION changes invalidate only this title. */
 const SLUG = 'wayfarer-courts';
-const VERSION = 'aaa-f15-1-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-f15-1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/wayfarer-courts/',

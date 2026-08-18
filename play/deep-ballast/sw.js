@@ -1,6 +1,6 @@
 /* sw-template.js - Deep Ballast offline shell. VERSION changes invalidate old caches. */
 const SLUG = 'deep-ballast';
-const VERSION = '2026-08-10-aaa-f1-fix1-ui-declutter1-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-10-aaa-f1-fix1-ui-declutter1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/deep-ballast/',

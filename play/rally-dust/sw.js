@@ -9,7 +9,7 @@
  * itself being served from the old cache.
  */
 const SLUG = 'rally-dust';
-const VERSION = '5-2026-08-17-offline-redirect-fix';
+const VERSION = '5-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/rally-dust/',

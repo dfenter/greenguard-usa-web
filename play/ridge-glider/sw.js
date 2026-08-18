@@ -1,6 +1,6 @@
 /* Ridge Glider service worker. Authored from /play/_shared/sw-template.js. */
 const SLUG = 'ridge-glider';
-const VERSION = 'aaa-20260810-03-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-20260810-03-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/ridge-glider/', '/play/ridge-glider/index.html', '/play/ridge-glider/game.js', '/play/ridge-glider/world.js',

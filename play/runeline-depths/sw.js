@@ -1,7 +1,7 @@
 /* Runeline Depths service worker, authored from /play/_shared/sw-template.js.
  * Every path below is verified to exist in the shipped directory. */
 const SLUG = 'runeline-depths';
-const VERSION = '2026-08-13-aaa1-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-13-aaa1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/runeline-depths/',

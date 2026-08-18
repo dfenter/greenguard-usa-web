@@ -3,7 +3,7 @@
  * VERSION whenever the title payload changes.
  */
 const SLUG = 'blast-radius';
-const VERSION = '2026-08-16-round2-polish-1-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-16-round2-polish-1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/blast-radius/',

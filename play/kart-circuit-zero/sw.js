@@ -1,6 +1,6 @@
 /* sw.js - Kart Circuit Zero, authored from /play/_shared/sw-template.js. */
 const SLUG = 'kart-circuit-zero';
-const VERSION = 'aaa-f2-8-ggracer-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-f2-8-ggracer-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/kart-circuit-zero/',

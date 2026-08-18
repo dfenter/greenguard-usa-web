@@ -1,5 +1,5 @@
 const SLUG = 'duelsteel';
-const VERSION = '2026-08-11-aa02-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-11-aa02-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/duelsteel/',

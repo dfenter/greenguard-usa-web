@@ -1,5 +1,5 @@
 const SLUG = 'wanderlight';
-const VERSION = 'aaa-2026-08-07-06-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-2026-08-07-06-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/wanderlight/',

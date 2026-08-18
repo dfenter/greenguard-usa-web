@@ -1,6 +1,6 @@
 /* Generated from /play/_shared/sw-template.js. */
 const SLUG = 'meadow-solitaire';
-const VERSION = '2026-08-16-aaa1-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-16-aaa1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/meadow-solitaire/',

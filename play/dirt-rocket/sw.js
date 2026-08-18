@@ -1,6 +1,6 @@
 /* sw.js - Dirt Rocket, built from /play/_shared/sw-template.js. */
 const SLUG = 'dirt-rocket';
-const VERSION = '6-2026-08-17-offline-redirect-fix';
+const VERSION = '6-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/dirt-rocket/',

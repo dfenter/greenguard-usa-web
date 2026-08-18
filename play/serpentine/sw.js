@@ -8,7 +8,7 @@
  * installed game remains playable offline after the first load.
  */
 const SLUG = 'serpentine';
-const VERSION = '2026-08-10-ui-declutter-1-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-10-ui-declutter-1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/serpentine/',

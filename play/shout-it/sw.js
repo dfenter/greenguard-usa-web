@@ -2,7 +2,7 @@
  * Offline after first load. Bump VERSION on every deploy.
  */
 const SLUG = 'shout-it';
-const VERSION = '1.2.0-2026-08-17-offline-redirect-fix';
+const VERSION = '1.2.0-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/shout-it/',

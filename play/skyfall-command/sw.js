@@ -4,7 +4,7 @@
  * Bump VERSION on every deploy of the game to invalidate stale caches.
  */
 const SLUG = 'skyfall-command';
-const VERSION = '2026-08-08-uplift-round2-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-08-uplift-round2-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/skyfall-command/',

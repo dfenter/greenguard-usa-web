@@ -1,6 +1,6 @@
 /* sw-template.js - Emberhold Tactics offline cache. */
 const SLUG = 'emberhold-tactics';
-const VERSION = '2026-08-16-aaa-round2-tactics2-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-16-aaa-round2-tactics2-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/emberhold-tactics/',

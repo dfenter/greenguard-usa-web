@@ -1,6 +1,6 @@
 /* Starweft service worker, generated from /play/_shared/sw-template.js. */
 const SLUG = 'starweft';
-const VERSION = '2026.08.11.1-2026-08-17-offline-redirect-fix';
+const VERSION = '2026.08.11.1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/starweft/',

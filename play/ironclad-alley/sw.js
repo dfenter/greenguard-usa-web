@@ -1,6 +1,6 @@
 /* Ironclad Alley service worker, authored from /play/_shared/sw-template.js. */
 const SLUG = 'ironclad-alley';
-const VERSION = 'aaa-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/ironclad-alley/',

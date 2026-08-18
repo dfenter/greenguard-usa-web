@@ -1,6 +1,6 @@
 /* Gridfall service worker authored from /play/_shared/sw-template.js. */
 const SLUG = 'gridfall';
-const VERSION = '2026-08-10-aaa4-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-10-aaa4-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/gridfall/',

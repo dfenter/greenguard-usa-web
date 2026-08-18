@@ -1,6 +1,6 @@
 /* Ricochet Range service worker. Generated from /play/_shared/sw-template.js. */
 const SLUG = 'ricochet-range';
-const VERSION = '2026-08-16-r2-01-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-16-r2-01-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/ricochet-range/',

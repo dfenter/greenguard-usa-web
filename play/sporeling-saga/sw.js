@@ -1,6 +1,6 @@
 /* Sporeling Saga service worker. Cache only files shipped by this title. */
 const SLUG = 'sporeling-saga';
-const VERSION = '2026-08-11-aaa-f14-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-11-aaa-f14-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/sporeling-saga/',

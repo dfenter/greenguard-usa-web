@@ -4,7 +4,7 @@
  * Bump VERSION on every deploy of the game to invalidate stale caches.
  */
 const SLUG = 'driftlands';
-const VERSION = '1.2.0-2026-08-17-offline-redirect-fix';
+const VERSION = '1.2.0-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/driftlands/',

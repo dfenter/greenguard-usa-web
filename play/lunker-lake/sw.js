@@ -1,5 +1,5 @@
 const SLUG = 'lunker-lake';
-const VERSION = 'aaa-art2-20260808-2-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-art2-20260808-2-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/lunker-lake/', '/play/lunker-lake/index.html', '/play/lunker-lake/data.js', '/play/lunker-lake/game.js',

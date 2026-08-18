@@ -1,7 +1,7 @@
 /* Berry Cascade service worker, authored from /play/_shared/sw-template.js.
  * Every path below is verified to exist in the shipped directory. */
 const SLUG = 'berry-cascade';
-const VERSION = '2026-08-11-aaa2-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-11-aaa2-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/berry-cascade/',

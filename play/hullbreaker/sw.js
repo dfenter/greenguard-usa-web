@@ -4,7 +4,7 @@
  * Bump VERSION on every deploy of the game to invalidate stale caches.
  */
 const SLUG = 'hullbreaker';
-const VERSION = '2026-08-16-round2-polish1-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-16-round2-polish1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/hullbreaker/',

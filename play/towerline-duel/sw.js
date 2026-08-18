@@ -1,6 +1,6 @@
 /* sw-template.js - Towerline Duel cache. Generated from /play/_shared/sw-template.js. */
 const SLUG = 'towerline-duel';
-const VERSION = '2026-08-10-aaa-fix-2-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-10-aaa-fix-2-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/towerline-duel/',

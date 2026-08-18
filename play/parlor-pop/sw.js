@@ -1,6 +1,6 @@
 /* Parlor Pop offline cache. Keep this list limited to files that exist. */
 const SLUG = 'parlor-pop';
-const VERSION = '2026.08.10.5-2026-08-17-offline-redirect-fix';
+const VERSION = '2026.08.10.5-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/parlor-pop/',

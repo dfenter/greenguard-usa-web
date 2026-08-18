@@ -619,12 +619,37 @@
   //   3.16, and silently ignored if you set it): the working mechanism is to
   //   size the GAME in device pixels and scale the canvas back down in CSS,
   //   which Phaser's ScaleManager does for you via `zoom`.
+  // FLEET DENSITY KILL SWITCH, set to 1 on 2026-08-17.
+  //
+  // The retina pass shipped broken. On a real iPhone the owner reported text
+  // at the wrong size across multiple titles and horde-meridian failing to
+  // start at all, while the headless Chrome gate reported the same titles
+  // READY. The cause is the conversion, not the helper: sizing the game in
+  // device pixels moves world coordinates into device pixels, and every
+  // hard-coded px font size then renders at about a third of its intended
+  // size unless the title scales it by the factor. Several conversion lanes
+  // never opened a browser to check, and the gate's art check measures colour
+  // and edge density, which a wrongly-sized frame still passes.
+  //
+  // Setting this to 1 makes dpr() and therefore factor() return 1 everywhere,
+  // so scale falls back to the design size, zoom is identity, camera zoom is
+  // identity and Text resolution is 1: every title that used the standard
+  // recipe renders exactly as it did before the retina pass, while keeping
+  // every genuine bug fix from today. Restore density by setting this back to
+  // 3 ONLY after the conversion is verified per title on a real device.
+  //
+  // KNOWN INCOMPLETE: titles that hand-rolled their own factor maths instead
+  // of calling the helper are NOT neutralised by this.
+  const HIDPI_MAX = 1;
+
   GGKit.hiDpi = {
-    // Capped at 3: beyond that the fill cost buys nothing an eye can see.
+    // Capped at 3 by design: beyond that the fill cost buys nothing an eye can
+    // see. HIDPI_MAX above clamps it further and is currently holding the
+    // whole fleet at 1.
     dpr(max) {
-      const cap = max == null ? 3 : max;
+      const cap = Math.min(max == null ? 3 : max, HIDPI_MAX);
       const d = (root.devicePixelRatio || 1);
-      return clamp(isFinite(d) && d > 0 ? d : 1, 1, cap);
+      return clamp(isFinite(d) && d > 0 ? d : 1, 1, Math.max(1, cap));
     },
 
     // factor(designW, designH, max) — the multiplier to apply to a title's

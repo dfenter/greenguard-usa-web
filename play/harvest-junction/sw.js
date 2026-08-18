@@ -1,6 +1,6 @@
 /* Harvest Junction service worker. Generated from /play/_shared/sw-template.js. */
 const SLUG = 'harvest-junction';
-const VERSION = '2026-08-10-fix1-f3-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-10-fix1-f3-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/harvest-junction/',

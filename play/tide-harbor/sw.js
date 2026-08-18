@@ -1,6 +1,6 @@
 /* Tide Harbor service worker. Cache-first after the first load. */
 const SLUG = 'tide-harbor';
-const VERSION = 'aaa-round2-20260816-1-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-round2-20260816-1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/tide-harbor/',

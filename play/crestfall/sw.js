@@ -1,6 +1,6 @@
 /* Crestfall offline shell. Generated from /play/_shared/sw-template.js. */
 const SLUG = 'crestfall';
-const VERSION = '2026-08-16-aaa2-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-16-aaa2-2026-08-17-density-rollback';
 const CACHE = `gg-${SLUG}-${VERSION}`;
 const ASSETS = [
   '/play/crestfall/',

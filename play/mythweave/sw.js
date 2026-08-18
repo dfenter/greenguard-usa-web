@@ -1,6 +1,6 @@
 /* Mythweave service worker. VERSION changes invalidate only this title. */
 const SLUG = 'mythweave';
-const VERSION = 'aaa-f13-1-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-f13-1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/mythweave/',

@@ -1,6 +1,6 @@
 /* Blockborough service worker, generated from /play/_shared/sw-template.js. */
 const SLUG = 'blockborough';
-const VERSION = '2026.08.06.2-2026-08-17-offline-redirect-fix';
+const VERSION = '2026.08.06.2-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/blockborough/', '/play/blockborough/index.html', '/play/blockborough/game.js', '/play/blockborough/sim.js',

@@ -1,6 +1,6 @@
 /* Derived from /play/_shared/sw-template.js. */
 const SLUG = 'emberline-outpost';
-const VERSION = 'aaa-20260816-1-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-20260816-1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/emberline-outpost/',

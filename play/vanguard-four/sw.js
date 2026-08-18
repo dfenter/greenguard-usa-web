@@ -1,6 +1,6 @@
 /* Vanguard Four service worker. Generated from /play/_shared/sw-template.js. */
 const SLUG = 'vanguard-four';
-const VERSION = '2026-08-10-aaa-f2-r3-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-10-aaa-f2-r3-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/vanguard-four/',

@@ -1,6 +1,6 @@
 /* Cube Cascade service worker. Generated from /play/_shared/sw-template.js. */
 const SLUG = 'cube-cascade';
-const VERSION = 'aaa-20260810-6-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-20260810-6-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/cube-cascade/',

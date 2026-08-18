@@ -1,6 +1,6 @@
 /* sw-template.js - Dune Runner cache manifest. VERSION changes with each ship. */
 const SLUG = 'dune-runner';
-const VERSION = '2026-08-11-ggracer-1-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-11-ggracer-1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/dune-runner/',

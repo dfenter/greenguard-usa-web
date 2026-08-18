@@ -2,7 +2,7 @@
  * title and its same-origin CC0 audio dependencies. Bump VERSION per release.
  */
 const SLUG = 'stomp-circuit';
-const VERSION = '2026-08-16-round2-polish-a1-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-16-round2-polish-a1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/stomp-circuit/',

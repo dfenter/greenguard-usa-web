@@ -1,6 +1,6 @@
 /* Driftwood Cove service worker. Cache entries are all shipped files. */
 const SLUG = 'driftwood-cove';
-const VERSION = 'aaa-20260813-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-20260813-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/driftwood-cove/',

@@ -1,6 +1,6 @@
 /* Terrace Tales service worker. Cache entries are all shipped files. */
 const SLUG = 'terrace-tales';
-const VERSION = 'aaa-20260811-fix2-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-20260811-fix2-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/terrace-tales/',

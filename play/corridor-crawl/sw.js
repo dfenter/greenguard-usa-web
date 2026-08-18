@@ -1,5 +1,5 @@
 const SLUG = 'corridor-crawl';
-const VERSION = 'aaa-r2-20260813-a-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-r2-20260813-a-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/corridor-crawl/',

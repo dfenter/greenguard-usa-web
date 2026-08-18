@@ -1,6 +1,6 @@
 /* sw-template.js - Cloudhopper offline shell. */
 const SLUG = 'cloudhopper';
-const VERSION = '1.2.1-2026-08-17-offline-redirect-fix';
+const VERSION = '1.2.1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/cloudhopper/', '/play/cloudhopper/index.html', '/play/cloudhopper/style.css', '/play/cloudhopper/game.js',

@@ -1,6 +1,6 @@
 /* Aetherfall service worker. VERSION changes invalidate only this title. */
 const SLUG = 'aetherfall';
-const VERSION = 'aaa-f8-3-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-f8-3-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/aetherfall/',

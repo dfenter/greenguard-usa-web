@@ -8,7 +8,7 @@
  * leaves the title with no offline mode at all.
  */
 const SLUG = 'skyhammer';
-const VERSION = '2026-08-10-ui-declutter-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-10-ui-declutter-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/skyhammer/',

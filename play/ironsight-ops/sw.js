@@ -1,6 +1,6 @@
 /* Derived from /play/_shared/sw-template.js. Cache first, offline after the first load. */
 const SLUG = 'ironsight-ops';
-const VERSION = '2026-08-13-aaa-1-2026-08-17-offline-redirect-fix';
+const VERSION = '2026-08-13-aaa-1-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/ironsight-ops/',

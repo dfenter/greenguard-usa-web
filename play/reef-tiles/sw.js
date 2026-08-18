@@ -1,6 +1,6 @@
 /* Versioned cache for Reef Tiles. Keep ASSETS limited to files that ship. */
 const SLUG = 'reef-tiles';
-const VERSION = 'aaa-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/reef-tiles/',

@@ -1,6 +1,6 @@
 /* Steamline service worker, authored from /play/_shared/sw-template.js. */
 const SLUG = 'steamline';
-const VERSION = 'aaa-f2-20260810-3-2026-08-17-offline-redirect-fix';
+const VERSION = 'aaa-f2-20260810-3-2026-08-17-density-rollback';
 const CACHE = 'gg-' + SLUG + '-' + VERSION;
 const ASSETS = [
   '/play/steamline/',
