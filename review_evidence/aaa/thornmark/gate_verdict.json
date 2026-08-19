@@ -1,0 +1,66 @@
+{
+  "slug": "thornmark",
+  "url": "http://127.0.0.1:8994/play/thornmark/",
+  "orientation": "portrait",
+  "checks": {
+    "http_200": {
+      "pass": true,
+      "detail": 200
+    },
+    "viewport_390": {
+      "pass": true,
+      "detail": "{\"w\":390,\"h\":844}"
+    },
+    "rendered_frame_nonblack": {
+      "pass": true,
+      "detail": "nonBlack=100.0%"
+    },
+    "color_richness_64": {
+      "pass": true,
+      "detail": "distinct(4bpc)=85"
+    },
+    "play_frame_differs": {
+      "pass": true,
+      "detail": "boot vs play byte-size differ (weak liveness signal; review screenshots)"
+    },
+    "play_color_richness_64": {
+      "pass": true,
+      "detail": "distinct(4bpc)=237"
+    },
+    "feel_median_60fps": {
+      "pass": true,
+      "detail": "median=16.7ms (4x=true)"
+    },
+    "feel_no_spikes": {
+      "pass": false,
+      "detail": "frames>33ms: 97/600 worst=499.9ms"
+    },
+    "pwa_manifest": {
+      "pass": true,
+      "detail": "{\"hasManifestLink\":true,\"manifestOk\":true,\"swRegistered\":false}"
+    },
+    "pwa_sw": {
+      "pass": false,
+      "detail": "service worker registration (https only; expected false on localhost)"
+    },
+    "zero_console_errors": {
+      "pass": true,
+      "detail": []
+    },
+    "zero_failed_requests": {
+      "pass": true,
+      "detail": []
+    },
+    "payload_2500kb": {
+      "pass": true,
+      "detail": "856KB"
+    },
+    "per_file_400kb": {
+      "pass": true,
+      "detail": "music-undercroft.mp3=179KB"
+    }
+  },
+  "console_errors": [],
+  "failed_requests": [],
+  "pass": false
+}
