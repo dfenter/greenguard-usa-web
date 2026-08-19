@@ -1,0 +1,23 @@
+import { createRequire } from 'node:module';
+const require = createRequire('/Users/lucille/ue-port-studio/aaa/harness/');
+const puppeteer = require('puppeteer-core');
+const browser = await puppeteer.launch({ executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: 'new' });
+const page = await browser.newPage();
+await page.setViewport({ width: 844, height: 390 });
+await page.evaluateOnNewDocument(() => {
+  Object.defineProperty(screen, 'orientation', { value: { type: 'landscape-primary', angle: 90, addEventListener() {}, removeEventListener() {} } });
+});
+const errors = [];
+page.on('pageerror', e => errors.push(String(e).split('\n')[0]));
+page.on('console', m => { if (m.type() === 'error') errors.push(m.text().slice(0, 160)); });
+await page.goto('https://new.greenguard-usa.com/play/ionwake/?cb=fix2', { waitUntil: 'networkidle2', timeout: 45000 });
+await new Promise(r => setTimeout(r, 4000));
+await page.mouse.click(177, 184);
+await new Promise(r => setTimeout(r, 2500));
+await page.keyboard.down('KeyW'); await page.keyboard.down('Space');
+await new Promise(r => setTimeout(r, 9000));
+await page.screenshot({ path: 'iw_live_race.png' });
+const state = await page.evaluate(() => window.__iw && JSON.stringify(window.__iw.state));
+console.log('live state:', state);
+console.log('errors:', [...new Set(errors)].slice(0, 4).length ? [...new Set(errors)].slice(0, 4) : 'none');
+await browser.close();
