@@ -6,7 +6,7 @@
  * assets, and falls back to an offline page for navigations when the network is
  * down. */
 
-const VERSION = 'v2'
+const VERSION = 'v3'
 const STATIC_CACHE = `gg-static-${VERSION}`
 const OFFLINE_URL = '/offline.html'
 
