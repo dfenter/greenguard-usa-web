@@ -60,6 +60,15 @@ deploy_site() {
     cp -Rc "$REPO_ROOT/redesign/dist" "$REPO_ROOT/redesign-dist" 2>/dev/null || cp -R "$REPO_ROOT/redesign/dist" "$REPO_ROOT/redesign-dist"
   fi
   vercel --prod --scope "$SCOPE"
+  # mqtt.greenguard-usa.com is a MANUAL ALIAS, not a project domain: without this re-alias it
+  # stays pinned to whatever deployment it was last pointed at and silently serves stale
+  # content (cost a day of "why is the site not updating" on 2026-08-15).
+  LATEST=$(vercel ls --prod --scope "$SCOPE" 2>/dev/null | grep -Eo 'https://greenguard-usa-[a-z0-9]+-green-guard-usa-s-projects.vercel.app' | head -1)
+  if [ -n "$LATEST" ]; then
+    vercel alias set "$LATEST" mqtt.greenguard-usa.com --scope "$SCOPE" >/dev/null 2>&1 \
+      && echo -e "${GREEN}✓ mqtt.greenguard-usa.com re-aliased → $LATEST${NC}" \
+      || echo -e "${RED}! mqtt re-alias failed — run: vercel alias set <deployment> mqtt.greenguard-usa.com${NC}"
+  fi
   echo -e "${GREEN}✓ Site deployed → https://greenguard-usa.com${NC}"
 }
 
