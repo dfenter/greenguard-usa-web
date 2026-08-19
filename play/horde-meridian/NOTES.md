@@ -1302,3 +1302,68 @@ hm_campaign_ui.js precached.
 - Converted boot to `GGKit.hiDpi.phaser` with `Phaser.Scale.NONE`, retained render defaults and existing dense art, and replaced the ignored resolution path with dense text creation and density-aware text scaling, including campaign UI.
 - Title, shop, mission, play, pause, draft, banner, and result layouts now use Phaser scale dimensions normalized by `cfg.ggDpr`; main and UI cameras set zoom and center on their viewport midpoint.
 - Gameplay screenshot, render-loop probe, and movement or upgrade input proof could not be completed because the local browser infrastructure was unavailable.
+
+## Weapon collection round 2026-08-18 (owner: collect everything, equip anywhere)
+
+Owner ask: "collect as many weapons as you find and then be able to equip them
+in a settings page, more options to change weapons during the battle, collect
+stuff." Chosen shape (owner picked): tap-a-slot ARSENAL panel in battle plus a
+permanent collection codex; drop rates and crate contents were deliberately
+NOT touched.
+
+### 1. Hangar LOADOUT page is now a three-slot gun deck
+
+- `profile.hangar.loadout = [k, k, k]` (new field, save version stays 3 — the
+  validator accepts a missing loadout so every existing save loads untouched,
+  and `sanitizeLoadout()` back-fills it at boot from `equippedWeapon`).
+- `equippedWeapon` is kept mirrored to `loadout[0]` so the debug state, the
+  save validator, and anything else reading the old field keep working.
+- Page: three slot chips over the weapon grid. Tap a chip to select the target
+  slot, tap a weapon to arm it there. Picking a weapon already held in another
+  slot SWAPS the two (a weapon can never occupy two slots). Tapping the weapon
+  in the selected slot clears it; slot 1 falls back to the Bolt Lance rather
+  than going empty.
+- Slots past the gunDeck hangar tier still take a pick and read OPENS IN RUN —
+  the pick rides along in the run arsenal and auto-arms the moment the slot
+  comes online (`fillOpenSlots`, called from `updateSlotUnlocks`).
+
+### 2. New CODEX tab
+
+Fifth hangar tab: all weapons, found or not, with tier + drop region, a
+found/total count and a progress bar. Unfound entries read `? ? ?` and keep
+their region hint. `__hm.state.weaponsFound` exposes the count.
+
+### 3. Run arsenal — nothing found is thrown away
+
+- `run.arsenal` holds every weapon collected this run (seeded from the hangar
+  loadout, including locked-slot picks).
+- A pickup on a FULL gun deck used to be converted to 8 gems and deleted. It is
+  now STOWED in the arsenal (banner "STOWED IN ARSENAL"). Only a genuine
+  duplicate — a weapon already in the arsenal — still converts to gems.
+- `nextWeaponDrop` now treats the whole arsenal as held, so the field keeps
+  offering weapons you do not own instead of guaranteed duplicates.
+
+### 4. In-battle ARSENAL panel
+
+- Opened by tapping any HUD gun-deck slot, by keys 1/2/3 (previously declared
+  and unused), or from the new ARSENAL button in the pause menu.
+- Freezes the field (`holdPause('arsenal')`, same close/resume contract as the
+  pause menu, so ESC also closes it), shows the three slot chips and every
+  collected weapon; tap a weapon to drop it into the selected slot. A weapon
+  already in another slot swaps places; a displaced weapon stays in the
+  arsenal. `assignRunSlot` refuses locked slots.
+- The existing rotate button (promote primary) is unchanged.
+
+### Verification
+
+aaa/harness/hm_arsenal_probe.mjs, 18/18 PASS against a private local port
+(8791), zero console errors: legacy-save back-fill, all three loadout slots
+armed + swap + clear + persistence, codex count, run seeding from loadout,
+locked-slot pick riding in the arsenal, auto-arm on slot unlock, full-deck
+STOW (not deleted), duplicate still converting to gems, key-2 panel open,
+stowed-weapon swap into a slot, slot-to-slot swap, resume, and the swapped
+primary firing live. Screenshots /tmp/hm_arsenal_shots/.
+Layout: both weapon grids are now bottom-bounded by the TITLE / FLY NOW
+buttons — the old loadout grid ran its last row under them at 390x844.
+The local "max scope allowed" service-worker console error is a plain static
+server artifact (no Service-Worker-Allowed header); GGKit falls back.

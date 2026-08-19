@@ -103,6 +103,7 @@
     for (var i = 0; i < HANGAR_TRACKS.length; i++) tiers[HANGAR_TRACKS[i].key] = 0;
     return {
       balance: 0, tiers: tiers, equippedWeapon: 'bolt-lance',
+      loadout: ['bolt-lance', '', ''],
       weaponsSeen: { 'bolt-lance': true }, paint: 'teal', trim: 'mint', frame: 'classic'
     };
   }
@@ -224,6 +225,17 @@
         if (!WEAPON_BY_KEY[seenKeys[si]] || h.weaponsSeen[seenKeys[si]] !== true) return false;
       }
       if (h.weaponsSeen[h.equippedWeapon] !== true) return false;
+      // Gun-deck loadout is optional (saves written before the loadout deck
+      // shipped simply lack it); when present it must be up to three slots of
+      // either an unlocked weapon key or an empty slot.
+      if (h.loadout != null) {
+        if (!Array.isArray(h.loadout) || h.loadout.length > 3) return false;
+        for (var li = 0; li < h.loadout.length; li++) {
+          var lk = h.loadout[li];
+          if (lk === '') continue;
+          if (typeof lk !== 'string' || !WEAPON_BY_KEY[lk] || h.weaponsSeen[lk] !== true) return false;
+        }
+      }
       if (!PAINT_BY_KEY[h.paint] || !TRIM_BY_KEY[h.trim] || !FRAME_BY_KEY[h.frame]) return false;
       if (o.campaign != null) {
         var cg = o.campaign;
@@ -276,6 +288,39 @@
   if (!profile.hangar.weaponsSeen['bolt-lance']) profile.hangar.weaponsSeen['bolt-lance'] = true;
   if (!profile.hangar.equippedWeapon || !profile.hangar.weaponsSeen[profile.hangar.equippedWeapon]) {
     profile.hangar.equippedWeapon = 'bolt-lance';
+  }
+  // Gun-deck loadout: up to three starting weapons, one per gun-deck slot.
+  // Slot 0 is always live; slots 1 and 2 come online from the gunDeck hangar
+  // tier or from in-run unlocks, and their loadout pick is auto-equipped the
+  // moment the slot opens. equippedWeapon stays mirrored to slot 0 so older
+  // readers (debug state, save validator) keep working.
+  function sanitizeLoadout() {
+    var h = profile.hangar, changed = false;
+    if (!Array.isArray(h.loadout)) { h.loadout = [h.equippedWeapon || 'bolt-lance', '', '']; changed = true; }
+    while (h.loadout.length < 3) { h.loadout.push(''); changed = true; }
+    if (h.loadout.length > 3) { h.loadout.length = 3; changed = true; }
+    var used = {};
+    for (var i = 0; i < 3; i++) {
+      var k = h.loadout[i];
+      if (k && (!WEAPON_BY_KEY[k] || !h.weaponsSeen[k] || used[k])) { h.loadout[i] = ''; changed = true; k = ''; }
+      if (k) used[k] = true;
+    }
+    if (!h.loadout[0]) {
+      h.loadout[0] = h.weaponsSeen[h.equippedWeapon] ? h.equippedWeapon : 'bolt-lance';
+      changed = true;
+    }
+    if (h.equippedWeapon !== h.loadout[0]) { h.equippedWeapon = h.loadout[0]; changed = true; }
+    return changed;
+  }
+  if (sanitizeLoadout()) didMigrate = true;
+  function loadoutSlotsAvailable() {
+    var deck = hangarLevel('gunDeck');
+    return deck > 1 ? 3 : (deck > 0 ? 2 : 1);
+  }
+  function weaponsFoundCount() {
+    var n = 0;
+    for (var i = 0; i < WEAPONS.length; i++) if (profile.hangar.weaponsSeen[WEAPONS[i].key]) n++;
+    return n;
   }
   function saveProfile() { kit.save.set(profile); }
   function metaLevel(key) { return profile.meta[key] || 0; }
@@ -515,6 +560,7 @@
     weaponsSeen: 1, draftOptions: [], livePickups: [], bases: [],
     region: 'meridian-verge', regionsSeen: 1,
     regionEnemiesSeen: {}, regionBossActive: '', weaponSlots: ['bolt-lance', '', ''], slotsUnlocked: 1,
+    arsenal: [], loadout: ['bolt-lance', '', ''], weaponsFound: 1,
     forceGenerousDrops: false, forceWingDrop: false, forceWeaponDrop: false,
     forceTideDrop: false, forceSpectacle: false, tideOdds: 0, lastTideTurner: '',
     forceDraft: false, forceGrantGems: false, forceRegionTour: false, forceRegionBoss: false,
@@ -550,6 +596,8 @@
       st.hangar.tiers[key] = h.tiers[key] || 0;
     }
     st.weaponsSeen = Object.keys(h.weaponsSeen).length;
+    st.weaponsFound = weaponsFoundCount();
+    st.loadout = (h.loadout || []).slice();
     st.equippedWeapon = h.equippedWeapon;
   }
   function consumeForceGrantGems(st) {
@@ -877,14 +925,16 @@
       this.refreshBalance();
 
       var tabs = [
-        ['MODULES', 'modules'], ['LOADOUT', 'loadout'], ['STYLE', 'style'], ['CORE', 'core']
+        ['MODULES', 'modules'], ['LOADOUT', 'loadout'], ['CODEX', 'codex'],
+        ['STYLE', 'style'], ['CORE', 'core']
       ];
-      var tabW = Math.min(83, (w - 24) / 4);
+      var tabW = Math.min(83, (w - 20) / tabs.length);
       tabs.forEach(function (tab, i) {
-        var x = 12 + tabW / 2 + i * tabW;
-        var bg = scene.add.image(x, head + 75, 'atlas', 'btn').setDisplaySize(tabW - 4, 34);
+        var x = 10 + tabW / 2 + i * tabW;
+        var bg = scene.add.image(x, head + 75, 'atlas', 'btn').setDisplaySize(tabW - 3, 34);
         var txt = neonText(scene, x, head + 75, tab[0], TYPE.micro,
           scene.page === tab[1] ? '#8effd8' : '#8fb3c4');
+        if (txt.width > tabW - 9) txt.setScale((tabW - 9) / txt.width);
         bg.setDepth(30); txt.setDepth(31);
         bg.setInteractive({ useHandCursor: true });
         bg.on('pointerdown', function () { scene.setPage(tab[1]); });
@@ -954,7 +1004,7 @@
     setPage: function (page) {
       if (this.page === page && this.pageGroup) return;
       this.page = page;
-      var names = ['modules', 'loadout', 'style', 'core'];
+      var names = ['modules', 'loadout', 'codex', 'style', 'core'];
       for (var i = 0; i < names.length; i++) {
         var tab = this['tab_' + names[i]];
         if (!tab) continue;
@@ -1029,15 +1079,48 @@
         }
         this.setNotice('Each tier is a permanent 4 to 7% class step.', '#7fa3b5');
       } else if (this.page === 'loadout') {
-        g.add(bodyText(this, w / 2, top - 20, 'STARTING PRIMARY', TYPE.label, '#8effd8'));
-        g.add(bodyText(this, w / 2, top - 2, 'Encounter a weapon in a run to unlock it here.', TYPE.micro, '#7fa3b5'));
+        // Gun-deck loadout. Three slot chips pick the target slot, the grid
+        // below assigns any unlocked weapon into it. Slots past the gun-deck
+        // tier still take a pick - it arms itself when the slot comes online
+        // mid-run.
+        var loadout = profile.hangar.loadout, liveSlots = loadoutSlotsAvailable();
+        var pickSlot = this.loadoutSlot || 0;
+        if (pickSlot > 2) pickSlot = 0;
+        this.loadoutSlot = pickSlot;
+        g.add(bodyText(this, w / 2, top - 20, 'GUN DECK LOADOUT', TYPE.label, '#8effd8'));
+        var slotW = (w - 28 - 12) / 3, slotY = top + 20;
+        for (var lsi = 0; lsi < 3; lsi++) {
+          var lsx = 14 + slotW / 2 + lsi * (slotW + 6);
+          var lsKey = loadout[lsi], lsData = lsKey ? WEAPON_BY_KEY[lsKey] : null;
+          var lsLive = lsi < liveSlots, lsActive = lsi === pickSlot;
+          var lsBg = this.cardBase(g, lsx, slotY, slotW, 40, lsActive);
+          var lsIcon = this.add.image(lsx - slotW / 2 + 17, slotY, 'atlas', lsData ? lsData.glyph : (lsLive ? 'ic_orbit' : 'ic_lock'))
+            .setScale(0.38).setTint(lsData ? lsData.color : 0x526572).setAlpha(lsData ? 1 : 0.7);
+          var lsName = neonText(this, lsx - slotW / 2 + 32, slotY - 7,
+            lsData ? lsData.shortName : 'EMPTY', TYPE.micro, lsData ? '#d8f5ff' : '#718897');
+          lsName.setOrigin(0, 0.5);
+          if (lsName.width > slotW - 38) lsName.setScale((slotW - 38) / lsName.width);
+          var lsTag = bodyText(this, lsx - slotW / 2 + 32, slotY + 9,
+            lsi === 0 ? 'PRIMARY' : (lsLive ? (lsi === 1 ? 'SECONDARY' : 'TERTIARY') : 'OPENS IN RUN'),
+            TYPE.micro, lsActive ? '#8effd8' : (lsLive ? '#7fa3b5' : '#6a8494'));
+          lsTag.setOrigin(0, 0.5).setScale(0.78);
+          g.add([lsIcon, lsName, lsTag]);
+          lsBg.setInteractive({ useHandCursor: true });
+          lsBg.on('pointerdown', function (slotIndex) { return function () { scene.selectLoadoutSlot(slotIndex); }; }(lsi));
+        }
+        // Grid is bottom-bounded by the TITLE / FLY NOW buttons, so the last
+        // row can never slide under them however many weapons ship.
         var gap2 = 7, loadoutRows = Math.ceil(WEAPONS.length / 2);
-        var cw = (w - 28 - gap2) / 2, ch = Math.min(57, (h - top - 128) / loadoutRows);
+        var gridTop = top + 46, gridBottom = h - 112;
+        var cw = (w - 28 - gap2) / 2;
+        var ch = clamp((gridBottom - gridTop - (loadoutRows - 1) * 4) / loadoutRows, 26, 52);
         for (var wi = 0; wi < WEAPONS.length; wi++) {
           var weapon = WEAPONS[wi], seen = !!profile.hangar.weaponsSeen[weapon.key];
           var wc = wi % 2, wr = Math.floor(wi / 2);
-          var wx = 14 + cw / 2 + wc * (cw + gap2), wy = top + 19 + wr * (ch + 5) + ch / 2;
-          var selected = seen && profile.hangar.equippedWeapon === weapon.key;
+          var wx = 14 + cw / 2 + wc * (cw + gap2), wy = gridTop + wr * (ch + 4) + ch / 2;
+          var inSlot = -1;
+          for (var lsl = 0; lsl < 3; lsl++) if (loadout[lsl] === weapon.key) inSlot = lsl;
+          var selected = seen && inSlot === pickSlot;
           var wbg = this.cardBase(g, wx, wy, cw, ch, selected);
           var wic = this.add.image(wx - cw / 2 + 23, wy, 'atlas', seen ? weapon.glyph : 'ic_lock')
             .setScale(0.43).setTint(seen ? weapon.color : 0x526572).setAlpha(seen ? 1 : 0.7);
@@ -1048,9 +1131,14 @@
           wn.setOrigin(0, 0.5);
           var weaponNameMax = cw - 51;
           if (wn.width > weaponNameMax) wn.setScale(weaponNameMax / wn.width);
-          var ws = bodyText(this, wx - cw / 2 + 44, wy + 10, selected ? 'EQUIPPED' : (seen ? 'TAP TO EQUIP' : 'ENCOUNTER TO UNLOCK'),
-            TYPE.micro, selected ? '#8effd8' : '#7fa3b5');
-          ws.setOrigin(0, 0.5).setScale(Math.min(0.86, Math.max(0.66, (ch - 5) / 38)));
+          var slotLabel = inSlot === 0 ? 'PRIMARY' : (inSlot === 1 ? 'SECONDARY' : 'TERTIARY');
+          var ws = bodyText(this, wx - cw / 2 + 44, wy + 10,
+            inSlot >= 0 ? slotLabel + (selected ? '  ·  TAP TO CLEAR' : '') : (seen ? 'TAP TO EQUIP' : 'ENCOUNTER TO UNLOCK'),
+            TYPE.micro, inSlot >= 0 ? '#8effd8' : '#7fa3b5');
+          ws.setOrigin(0, 0.5);
+          var wsScale = Math.min(0.86, Math.max(0.62, (ch - 5) / 38));
+          if (ws.width * wsScale > weaponNameMax) wsScale = weaponNameMax / ws.width;
+          ws.setScale(wsScale);
           if (weapon.tier === 'upgraded' && seen) wbg.setTint(0xffd67a);
           g.add([wic, wn, ws]);
           if (seen) {
@@ -1058,7 +1146,45 @@
             wbg.on('pointerdown', function (weaponKey) { return function () { scene.selectWeapon(weaponKey); }; }(weapon.key));
           }
         }
-        this.setNotice('LOADOUT  ·  COSMETIC SHIP STYLE DOES NOT CHANGE STATS.', '#7fa3b5');
+        this.setNotice('SLOT ' + (pickSlot + 1) + ' SELECTED  ·  TAP A WEAPON TO ARM IT.', '#7fa3b5');
+      } else if (this.page === 'codex') {
+        var found = weaponsFoundCount();
+        g.add(bodyText(this, w / 2, top - 20, 'ARSENAL CODEX  ' + found + ' / ' + WEAPONS.length, TYPE.label, '#8effd8'));
+        g.add(bodyText(this, w / 2, top - 2, 'EVERY WEAPON YOU FIND IS RECORDED HERE.', TYPE.micro, '#7fa3b5'));
+        var barW = Math.min(300, w - 40);
+        g.add(this.add.rectangle(w / 2, top + 12, barW, 5, 0x1f3a48));
+        g.add(this.add.rectangle(w / 2 - barW / 2, top + 12, barW * (found / WEAPONS.length), 5, 0x8effd8)
+          .setOrigin(0, 0.5));
+        var cxGap = 6, cxRows = Math.ceil(WEAPONS.length / 2);
+        var cxTop = top + 26, cxBottom = h - 112;
+        var cxW = (w - 28 - cxGap) / 2;
+        var cxH = clamp((cxBottom - cxTop - (cxRows - 1) * 4) / cxRows, 26, 50);
+        for (var ci = 0; ci < WEAPONS.length; ci++) {
+          var cwp = WEAPONS[ci], cSeen = !!profile.hangar.weaponsSeen[cwp.key];
+          var cc = ci % 2, cr = Math.floor(ci / 2);
+          var cx = 14 + cxW / 2 + cc * (cxW + cxGap), cy = cxTop + cr * (cxH + 4) + cxH / 2;
+          var cBg = this.cardBase(g, cx, cy, cxW, cxH, false);
+          cBg.setAlpha(cSeen ? 1 : 0.55);
+          var cIcon = this.add.image(cx - cxW / 2 + 20, cy, 'atlas', cSeen ? cwp.glyph : 'ic_lock')
+            .setScale(0.4).setTint(cSeen ? cwp.color : 0x44586a).setAlpha(cSeen ? 1 : 0.75);
+          var cName = neonText(this, cx - cxW / 2 + 38, cy - 8,
+            cSeen ? cwp.name.toUpperCase() : '? ? ?', TYPE.micro, cSeen ? '#d8f5ff' : '#6d8593');
+          cName.setOrigin(0, 0.5);
+          if (cName.width > cxW - 44) cName.setScale((cxW - 44) / cName.width);
+          var cRegion = cwp.regionKey && REGION_BY_KEY[cwp.regionKey]
+            ? REGION_BY_KEY[cwp.regionKey].name.toUpperCase()
+            : 'ANY SECTOR';
+          var cSub = bodyText(this, cx - cxW / 2 + 38, cy + 9,
+            (cwp.tier === 'upgraded' ? 'UPGRADED  ·  ' : 'STANDARD  ·  ') + cRegion, TYPE.micro,
+            cSeen ? '#7fa3b5' : '#5d7583');
+          cSub.setOrigin(0, 0.5);
+          var cSubMax = cxW - 44;
+          cSub.setScale(Math.min(0.76, cSub.width > cSubMax ? cSubMax / cSub.width : 0.76));
+          g.add([cIcon, cName, cSub]);
+        }
+        this.setNotice(found >= WEAPONS.length
+          ? 'CODEX COMPLETE  ·  EVERY WEAPON RECOVERED.'
+          : (WEAPONS.length - found) + ' WEAPONS STILL UNRECOVERED.', found >= WEAPONS.length ? '#8effd8' : '#7fa3b5');
       } else if (this.page === 'style') {
         g.add(bodyText(this, w / 2, top - 20, 'SHIP CUSTOMIZE', TYPE.label, '#8effd8'));
         g.add(bodyText(this, w / 2, top - 2, 'PAINT, TRIM, AND FRAME ARE COSMETIC ONLY.', TYPE.micro, '#7fa3b5'));
@@ -1166,15 +1292,38 @@
       kit.juice.shake(4, 140);
     },
 
+    selectLoadoutSlot: function (slotIndex) {
+      if (slotIndex < 0 || slotIndex > 2) return;
+      this.loadoutSlot = slotIndex;
+      this.renderPage();
+      sfx('click', { volume: 0.7 });
+    },
+
     selectWeapon: function (key) {
       if (!WEAPON_BY_KEY[key] || !profile.hangar.weaponsSeen[key]) return;
-      profile.hangar.equippedWeapon = key;
+      var loadout = profile.hangar.loadout, slot = this.loadoutSlot || 0;
+      var held = -1, notice = '', noticeColor = '#8effd8';
+      for (var i = 0; i < 3; i++) if (loadout[i] === key) held = i;
+      if (held === slot) {
+        // Tapping the weapon already in the selected slot clears it. Slot 0
+        // always carries a primary, so it falls back to the Bolt Lance.
+        loadout[slot] = slot === 0 ? 'bolt-lance' : '';
+        notice = slot === 0 ? 'PRIMARY RESET TO BOLT LANCE.' : 'SLOT ' + (slot + 1) + ' CLEARED.';
+        noticeColor = '#7fa3b5';
+      } else {
+        if (held >= 0) loadout[held] = loadout[slot];   // straight swap, never a duplicate
+        loadout[slot] = key;
+        if (!loadout[0]) loadout[0] = 'bolt-lance';
+        notice = WEAPON_BY_KEY[key].name.toUpperCase() + ' ARMED IN SLOT ' + (slot + 1) + '.';
+      }
+      profile.hangar.equippedWeapon = loadout[0];
+      sanitizeLoadout();
       saveProfile();
       updateHangarDebugState(HM_DEBUG_STATE);
       this.renderPage();
       this.renderPreview();
+      this.setNotice(notice, noticeColor);
       sfx('select');
-      this.setNotice(WEAPON_BY_KEY[key].name.toUpperCase() + ' READY AT LAUNCH.', '#8effd8');
     },
 
     selectPaint: function (key) {
@@ -2115,6 +2264,13 @@
         var wslotIcon = this.add.image(wx, 0, 'atlas', wsi === 0 ? 'ic_lance' : 'ic_lock')
           .setScale(0.22).setTint(0x7f99a7).setBlendMode(Phaser.BlendModes.ADD);
         this.clusterHud.add([wslotBg, wslotTrim, wslotIcon]);
+        // Tapping a gun-deck slot opens the ARSENAL panel targeting that slot.
+        wslotBg.setInteractive({ useHandCursor: true });
+        wslotBg.on('pointerdown', function (slotIndex) {
+          return function () {
+            if (hudScene && typeof hudScene.openArsenal === 'function') hudScene.openArsenal(slotIndex);
+          };
+        }(wsi));
         this.weaponSlotsHud.push({ bg: wslotBg, trim: wslotTrim, icon: wslotIcon, text: null, hint: null });
       }
       this.weaponIcon = this.weaponSlotsHud[0].icon;
@@ -2320,6 +2476,9 @@
       });
       this.input.keyboard.on('keydown-ESC', function () { scene.togglePause(); });
       this.input.keyboard.on('keydown-P', function () { scene.togglePause(); });
+      this.input.keyboard.on('keydown-ONE', function () { scene.openArsenal(0); });
+      this.input.keyboard.on('keydown-TWO', function () { scene.openArsenal(1); });
+      this.input.keyboard.on('keydown-THREE', function () { scene.openArsenal(2); });
     },
 
     clearStick: function () {
@@ -2455,8 +2614,20 @@
       var hThrusters = hangarLevel('thrusters'), hMagnet = hangarLevel('magnet');
       var hWingBay = hangarLevel('wingBay'), hFortune = hangarLevel('fortune');
       var hGunDeck = hangarLevel('gunDeck');
-      var startingWeapon = profile.hangar.equippedWeapon;
+      sanitizeLoadout();
+      var startingWeapon = profile.hangar.loadout[0] || profile.hangar.equippedWeapon;
       if (!WEAPON_BY_KEY[startingWeapon] || !profile.hangar.weaponsSeen[startingWeapon]) startingWeapon = 'bolt-lance';
+      // The loadout picks for slots that are not open yet ride along in the run
+      // arsenal and auto-arm the moment their slot comes online.
+      var startSlotCount = hGunDeck > 1 ? 3 : (hGunDeck > 0 ? 2 : 1);
+      var startSlots = ['', '', ''], startArsenal = [], pendingLoadout = ['', '', ''];
+      for (var lsi0 = 0; lsi0 < 3; lsi0++) {
+        var lsKey0 = lsi0 === 0 ? startingWeapon : profile.hangar.loadout[lsi0];
+        if (!lsKey0 || !WEAPON_BY_KEY[lsKey0] || !profile.hangar.weaponsSeen[lsKey0]) continue;
+        if (startArsenal.indexOf(lsKey0) < 0) startArsenal.push(lsKey0);
+        if (lsi0 < startSlotCount) startSlots[lsi0] = lsKey0;
+        else pendingLoadout[lsi0] = lsKey0;
+      }
       var seenWeapons = {};
       var seenCount = 0;
       for (var hwi = 0; hwi < WEAPONS.length; hwi++) {
@@ -2505,7 +2676,7 @@
       this.p.ranks.lance = 1;   // Bolt Lance mastery also calibrates the primary lane
       this.p.ranks.weapon_bolt = 1;
       for (i = 0; i < UPGRADES.length; i++) {
-        if (UPGRADES[i].weapon === startingWeapon) this.p.ranks[UPGRADES[i].key] = 1;
+        if (UPGRADES[i].weapon && startArsenal.indexOf(UPGRADES[i].weapon) >= 0) this.p.ranks[UPGRADES[i].key] = 1;
       }
 
       this.cool = { primary: 0.25, primarySlots: [0.25, 0.52, 0.78], orbit: 0, pulse: 1.2, wisp: 0.9, beam: 2.0, mine: 1.6 };
@@ -2522,8 +2693,9 @@
         landmarkGemsSeen: {},
         strikeSerial: 0,
         strikeCharges: 3, openingAirstrikeDone: false, openingDropDone: false, openingEnemyDone: false,
-        equippedWeapon: startingWeapon, weaponSlots: [startingWeapon, '', ''],
-        slotsUnlocked: hGunDeck > 0 ? (hGunDeck > 1 ? 3 : 2) : 1,
+        equippedWeapon: startingWeapon, weaponSlots: startSlots,
+        arsenal: startArsenal, pendingLoadout: pendingLoadout,
+        slotsUnlocked: startSlotCount,
         weaponSeen: seenWeapons, weaponsSeen: seenCount,
         weaponDrops: 0, weaponLastDrop: -99, weaponDropCursor: 1, weaponSerial: 0, weaponGuaranteeDone: false, weaponGuarantee2Done: false,
         regionEnemiesSeen: {}, regionBossActive: '', regionBossSeen: {}, regionBossDefeated: {},
@@ -3766,7 +3938,39 @@
         var label = run.slotsUnlocked === 2 ? 'SECONDARY ONLINE' : 'TERTIARY ONLINE';
         this.showBanner(label, 'GUN DECK BROADSIDE // ALL AUTO-FIRE', false, true);
         sfx('unlock', { volume: 0.55, rate: run.slotsUnlocked === 2 ? 1.1 : 1.24 });
+        this.fillOpenSlots();
       }
+    },
+
+    // A slot coming online takes the hangar loadout pick for that slot first,
+    // then anything already stowed in the run arsenal, so a fresh slot is
+    // never left firing nothing.
+    fillOpenSlots: function () {
+      var run = this.run, filled = false;
+      for (var i = 0; i < run.slotsUnlocked && i < 3; i++) {
+        if (run.weaponSlots[i]) continue;
+        var want = (run.pendingLoadout && run.pendingLoadout[i]) || '';
+        if (want && this.slotOfWeapon(want) >= 0) want = '';
+        if (!want) {
+          for (var a = 0; a < run.arsenal.length; a++) {
+            if (this.slotOfWeapon(run.arsenal[a]) < 0) { want = run.arsenal[a]; break; }
+          }
+        }
+        if (!want) continue;
+        run.weaponSlots[i] = want;
+        if (run.pendingLoadout) run.pendingLoadout[i] = '';
+        filled = true;
+      }
+      if (filled) {
+        run.equippedWeapon = run.weaponSlots[0] || run.equippedWeapon;
+        this.updateHud();
+      }
+    },
+
+    slotOfWeapon: function (key) {
+      var slots = this.run.weaponSlots;
+      for (var i = 0; i < slots.length; i++) if (slots[i] === key) return i;
+      return -1;
     },
 
     bonusWeight: function (data) {
@@ -3818,9 +4022,7 @@
       var run = this.run;
       this.updateSlotUnlocks(false);
       var held = -1;
-      for (var hi = 0; hi < run.weaponSlots.length; hi++) {
-        if (run.weaponSlots[hi] === weaponKey) { held = hi; break; }
-      }
+      if (run.arsenal.indexOf(weaponKey) >= 0) held = 0;
       if (held >= 0) {
         run.gems += 8;
         run.score += 180;
@@ -3837,21 +4039,26 @@
           if (!run.weaponSlots[si]) { slot = si; break; }
         }
       }
-      if (slot < 0) {
-        run.gems += 8;
-        this.showBanner('GUN DECK FULL', data.name.toUpperCase() + ' // CONVERTED TO GEMS');
-        sfx('gem', { volume: 0.32, rate: 1.24 });
-        return false;
-      }
-      run.weaponSlots[slot] = weaponKey;
-      run.equippedWeapon = run.weaponSlots[0] || weaponKey;
+      // Nothing found in a run is thrown away any more. A full gun deck stows
+      // the weapon in the run arsenal, where the in-battle ARSENAL panel can
+      // swap it into any slot.
       if (!run.weaponSeen[weaponKey]) {
         run.weaponSeen[weaponKey] = true;
         run.weaponsSeen++;
         markWeaponSeen(weaponKey);
       }
-      var upgradeKey = this.weaponKeyForUpgrade(weaponKey);
-      if (upgradeKey) this.p.ranks[upgradeKey] = 1;
+      if (run.arsenal.indexOf(weaponKey) < 0) run.arsenal.push(weaponKey);
+      var stowUpgradeKey = this.weaponKeyForUpgrade(weaponKey);
+      if (stowUpgradeKey) this.p.ranks[stowUpgradeKey] = 1;
+      if (slot < 0) {
+        if (source) this.floatText(this.p.x, this.p.y - 28, data.name.toUpperCase(), '#e7fff7', TYPE.body);
+        this.showBanner('STOWED IN ARSENAL', data.name.toUpperCase() + ' // TAP A GUN SLOT TO SWAP');
+        sfx('unlock', { volume: 0.4, rate: 1.16 });
+        this.updateHud();
+        return false;
+      }
+      run.weaponSlots[slot] = weaponKey;
+      run.equippedWeapon = run.weaponSlots[0] || weaponKey;
       if (source) this.floatText(this.p.x, this.p.y - 28, data.name.toUpperCase(), '#e7fff7', TYPE.body);
       this.showBanner(slot === 0 ? 'PRIMARY EQUIPPED' : (slot === 1 ? 'SECONDARY ONLINE' : 'TERTIARY ONLINE'),
         data.tier === 'upgraded' ? data.name.toUpperCase() + ' // UPGRADED' : data.name.toUpperCase());
@@ -3873,25 +4080,158 @@
       this.updateHud();
     },
 
+    // ---------------------------------------------------------------------
+    // In-battle ARSENAL panel. Every weapon collected this run lives in
+    // run.arsenal; this freezes the field and lets any of them be dropped into
+    // any unlocked gun-deck slot. Reachable from a HUD slot tap, keys 1/2/3,
+    // and the pause menu.
+    openArsenal: function (slotIndex) {
+      if (this.state !== 'playing') return;
+      if (!this.run || !this.run.arsenal) return;
+      var scene = this;
+      this.refreshWatchdogAge(performance.now());
+      this.state = 'paused';
+      this.holdPause('arsenal');
+      this.arsenalSlot = clamp(slotIndex == null ? 0 : slotIndex, 0, 2);
+      if (this.arsenalSlot >= this.run.slotsUnlocked) this.arsenalSlot = 0;
+      function close() {
+        scene.closeOverlay();
+        scene.state = 'playing';
+        scene.releasePause('arsenal');
+        scene.accum = 0;
+        scene.lastNow = performance.now();
+        scene.clearStick();
+        scene.clearKeys();
+        scene.pauseResume = null;
+      }
+      this.pauseResume = close;
+      this.renderArsenal(close);
+    },
+
+    renderArsenal: function (close) {
+      var scene = this, run = this.run;
+      var w = this.scale.width / DPR, h = this.scale.height / DPR;
+      this.closeOverlay();
+      var ov = this.add.container(0, 0).setScrollFactor(0).setDepth(400);
+      this.overlay = ov;
+      ov.add(this.add.rectangle(w / 2, h / 2, w, h, 0x03080e, 0.92).setInteractive());
+      var headY = 34 + SAFE.top;
+      ov.add(neonText(this, w / 2, headY, 'ARSENAL', TYPE.head, '#c9ffe9'));
+      ov.add(bodyText(this, w / 2, headY + 24,
+        run.arsenal.length + ' WEAPON' + (run.arsenal.length === 1 ? '' : 'S') + ' COLLECTED THIS RUN',
+        TYPE.micro, '#8fb3c4'));
+
+      // Slot chips pick the destination slot.
+      var slotW = (w - 28 - 12) / 3, slotY = headY + 60;
+      for (var si = 0; si < 3; si++) {
+        var sx = 14 + slotW / 2 + si * (slotW + 6);
+        var sKey = run.weaponSlots[si], sData = sKey ? WEAPON_BY_KEY[sKey] : null;
+        var sLive = si < (run.slotsUnlocked || 1), sActive = si === this.arsenalSlot;
+        var sBg = this.add.image(sx, slotY, 'atlas', sActive ? 'card_hot' : 'card').setDisplaySize(slotW, 46);
+        var sIcon = this.add.image(sx - slotW / 2 + 18, slotY, 'atlas', sData ? sData.glyph : (sLive ? 'ic_orbit' : 'ic_lock'))
+          .setScale(0.4).setTint(sData ? sData.color : 0x526572).setAlpha(sData ? 1 : 0.7);
+        var sTag = bodyText(this, sx - slotW / 2 + 33, slotY - 10,
+          si === 0 ? 'PRIMARY' : (si === 1 ? 'SECONDARY' : 'TERTIARY'), TYPE.micro,
+          sActive ? '#8effd8' : '#7fa3b5');
+        sTag.setOrigin(0, 0.5).setScale(0.78);
+        var sName = neonText(this, sx - slotW / 2 + 33, slotY + 8,
+          sData ? sData.shortName : (sLive ? 'EMPTY' : 'LOCKED'), TYPE.micro,
+          sData ? '#d8f5ff' : '#718897');
+        sName.setOrigin(0, 0.5);
+        if (sName.width > slotW - 40) sName.setScale((slotW - 40) / sName.width);
+        ov.add([sBg, sIcon, sTag, sName]);
+        if (sLive) {
+          sBg.setInteractive({ useHandCursor: true });
+          sBg.on('pointerdown', function (idx) {
+            return function () {
+              scene.arsenalSlot = idx;
+              sfx('click', { volume: 0.7 });
+              scene.renderArsenal(close);
+            };
+          }(si));
+        }
+      }
+
+      var listTop = slotY + 34;
+      var btnY = h - 40 - SAFE.bottom;
+      var avail = btnY - 30 - listTop;
+      if (!run.arsenal.length) {
+        ov.add(bodyText(this, w / 2, listTop + 40, 'NOTHING COLLECTED YET.', TYPE.body, '#7fa3b5'));
+      } else {
+        var rows = Math.ceil(run.arsenal.length / 2);
+        var cellH = Math.max(30, Math.min(48, avail / rows - 4));
+        var cellW = (w - 28 - 7) / 2;
+        for (var ai = 0; ai < run.arsenal.length; ai++) {
+          var key = run.arsenal[ai], data = WEAPON_BY_KEY[key];
+          if (!data) continue;
+          var col = ai % 2, row = Math.floor(ai / 2);
+          var cx = 14 + cellW / 2 + col * (cellW + 7);
+          var cy = listTop + row * (cellH + 4) + cellH / 2;
+          var inSlot = this.slotOfWeapon(key);
+          var isTarget = inSlot === this.arsenalSlot;
+          var cBg = this.add.image(cx, cy, 'atlas', isTarget ? 'card_hot' : 'card').setDisplaySize(cellW, cellH);
+          if (data.tier === 'upgraded') cBg.setTint(0xffd67a);
+          var cIcon = this.add.image(cx - cellW / 2 + 20, cy, 'atlas', data.glyph).setScale(0.42).setTint(data.color);
+          var cName = neonText(this, cx - cellW / 2 + 38, cy - 8, data.name.toUpperCase(), TYPE.micro,
+            isTarget ? '#8effd8' : '#d8f5ff');
+          cName.setOrigin(0, 0.5);
+          if (cName.width > cellW - 44) cName.setScale((cellW - 44) / cName.width);
+          var stateLabel = isTarget ? 'IN THIS SLOT'
+            : (inSlot >= 0 ? 'SLOT ' + (inSlot + 1) + '  ·  TAP TO SWAP' : 'TAP TO ARM');
+          var cSub = bodyText(this, cx - cellW / 2 + 38, cy + 9, stateLabel, TYPE.micro,
+            inSlot >= 0 ? '#8effd8' : '#7fa3b5');
+          cSub.setOrigin(0, 0.5).setScale(0.76);
+          ov.add([cBg, cIcon, cName, cSub]);
+          if (!isTarget) {
+            cBg.setInteractive({ useHandCursor: true });
+            cBg.on('pointerdown', function (weaponKey) {
+              return function () {
+                scene.assignRunSlot(scene.arsenalSlot, weaponKey);
+                scene.renderArsenal(close);
+              };
+            }(key));
+          }
+        }
+      }
+
+      ov.add(makeButton(this, w / 2, btnY, Math.min(258, w * 0.72), 46, 'BACK TO BATTLE', close, 'primary'));
+      this.lockToScreen(ov);
+      this.registerUiObject(ov);
+    },
+
+    assignRunSlot: function (slot, weaponKey) {
+      var run = this.run;
+      if (!WEAPON_BY_KEY[weaponKey] || run.arsenal.indexOf(weaponKey) < 0) return false;
+      if (slot < 0 || slot >= (run.slotsUnlocked || 1)) return false;
+      var from = this.slotOfWeapon(weaponKey);
+      if (from === slot) return false;
+      var displaced = run.weaponSlots[slot] || '';
+      if (from >= 0) run.weaponSlots[from] = displaced;   // straight swap between two slots
+      run.weaponSlots[slot] = weaponKey;
+      run.equippedWeapon = run.weaponSlots[0] || run.equippedWeapon;
+      this.fillOpenSlots();
+      this.updateHud();
+      sfx('select');
+      return true;
+    },
+
     nextWeaponDrop: function (requested, tier) {
+      // "Held" now means anywhere in the run arsenal, not just the three live
+      // slots - a stowed weapon is collected, so the field should offer
+      // something new rather than a guaranteed duplicate.
       var run = this.run, key = requested;
       if (key && WEAPON_BY_KEY[key]) {
-        var requestedHeld = false;
-        for (var rsi = 0; rsi < run.weaponSlots.length; rsi++) if (run.weaponSlots[rsi] === key) requestedHeld = true;
-        if (!requestedHeld) return key;
+        if (run.arsenal.indexOf(key) < 0) return key;
       }
       if (!requested && tier === 'upgraded') {
         var regionalKeys = REGION_WEAPON_KEYS[this.run.regionKey] || [];
         for (var rwi = 0; rwi < regionalKeys.length; rwi++) {
           var regionalKey = regionalKeys[(this.run.weaponDropCursor + rwi) % regionalKeys.length];
-          var regionalHeld = false;
-          for (var rsi = 0; rsi < this.run.weaponSlots.length; rsi++) if (this.run.weaponSlots[rsi] === regionalKey) regionalHeld = true;
-          if (!regionalHeld && !this.run.weaponSeen[regionalKey]) return regionalKey;
+          if (run.arsenal.indexOf(regionalKey) < 0 && !this.run.weaponSeen[regionalKey]) return regionalKey;
         }
         for (var rwi2 = 0; rwi2 < regionalKeys.length; rwi2++) {
-          var fallbackRegional = regionalKeys[rwi2], fallbackHeld = false;
-          for (var rsi2 = 0; rsi2 < this.run.weaponSlots.length; rsi2++) if (this.run.weaponSlots[rsi2] === fallbackRegional) fallbackHeld = true;
-          if (!fallbackHeld) return fallbackRegional;
+          var fallbackRegional = regionalKeys[rwi2];
+          if (run.arsenal.indexOf(fallbackRegional) < 0) return fallbackRegional;
         }
       }
       var start = run.weaponDropCursor || 0;
@@ -3900,9 +4240,7 @@
           var at = (start + i) % WEAPONS.length;
           var candidateData = WEAPONS[at], candidate = candidateData.key;
           if (tier && (candidateData.tier || 'base') !== tier) continue;
-          var held = false;
-          for (var si = 0; si < run.weaponSlots.length; si++) if (run.weaponSlots[si] === candidate) held = true;
-          if (held) continue;
+          if (run.arsenal.indexOf(candidate) >= 0) continue;
           if (pass === 0 && run.weaponSeen[candidate]) continue;
           run.weaponDropCursor = (at + 1) % WEAPONS.length;
           return candidate;
@@ -7055,8 +7393,12 @@
       }
       var bw = Math.min(258, w * 0.72);
       ov.add(makeButton(this, w / 2, h * 0.46, bw, 52, 'RESUME', close, 'primary'));
-      ov.add(makeButton(this, w / 2, h * 0.46 + 64, bw, 46, 'SETTINGS', openSettings, null, 'ic_regen'));
-      ov.add(makeButton(this, w / 2, h * 0.46 + 122, bw, 46, 'ABANDON RUN', function () {
+      ov.add(makeButton(this, w / 2, h * 0.46 + 62, bw, 46, 'ARSENAL', function () {
+        close();
+        scene.openArsenal(0);
+      }, null, 'ic_lance'));
+      ov.add(makeButton(this, w / 2, h * 0.46 + 116, bw, 46, 'SETTINGS', openSettings, null, 'ic_regen'));
+      ov.add(makeButton(this, w / 2, h * 0.46 + 170, bw, 46, 'ABANDON RUN', function () {
         close();
         scene.endRun(false, true);
       }));
@@ -8490,6 +8832,7 @@
       if (!st.weaponSlots) st.weaponSlots = ['', '', ''];
       for (var ws0 = 0; ws0 < 3; ws0++) st.weaponSlots[ws0] = this.run.weaponSlots[ws0] || '';
       st.slotsUnlocked = this.run.slotsUnlocked || 1;
+      st.arsenal = (this.run.arsenal || []).slice();
       st.equippedWeapon = this.run.equippedWeapon;
       st.weaponsSeen = this.run.weaponsSeen;
       st.tideOdds = this.tidePressure();
