@@ -302,3 +302,159 @@ PASS=true  checks=104  fails=0
 
 Check count 69 -> 104, zero failures; every pre-existing check still passes.
 No em dashes in the file (grep clean).
+
+---
+
+# Lane C3 (Rev-3D): ui3d.js + index3d.html
+
+Scope delivered: `ui3d.js` (classic script, `window.RF.UI`) and the 3D entry
+page. `meta.js` is UNTOUCHED and is the only backend: `load/commit/endRun/buy/
+select/ownedFor/tierUnlocked/activeShark/displayCoins/upLevel/upgradeCost/
+levelForXp/tierUnlockLevel` plus `RF.DevMode.state`. No other lane's file was
+edited.
+
+## Entry page is index3d.html, NOT index.html
+
+Per the orchestrator's sequencing correction: the 2D `index.html` stays live and
+git-clean while the 3D modules are still landing, so all 3D entry work targets
+`index3d.html`. The orchestrator owns the cutover. I overwrote `index.html`
+once before that instruction arrived and restored it with
+`git checkout -- play/razorfin/index.html`; it is confirmed clean.
+
+Page structure: `phaser.min.js` REMOVED, **ggkit.js stays** (the engine needs
+it). Load order is data.js -> meta.js -> abilities.js (classic) -> ui3d.js
+(classic) -> importmap {three} -> fx3d/shark3d/world3d/engine3d (modules).
+`base href`, viewport, theme-color, manifest and favicon are unchanged. The
+page carries the DOM containers and all CSS for the four overlays. All CSS is
+authored in plain CSS px (three owns density via `setPixelRatio`;
+`RF.Game.S` does not exist and is not referenced).
+
+The 40 element ids in `NODE_IDS` are the hard contract between the two files;
+a check that every id exists in `index3d.html` is part of the proof below.
+
+## RF.UI surface (reconciled with engine3d.js)
+
+```
+init(opts)          opts = {profile, start(id), firePower, quit, ctx?, document?}
+showMenu(state)     showShop(state)    showResults(payload)
+showHud()           hideAll()
+runStarted(ctx)     runEnded(ctx)
+hudState(obj)       tutorial(text|null)     setThumb(id, dataURL)
+onDive/onPower/onShopNav      chip(text)  toast(msg)  screen (getter)
+__selftest()
+```
+
+`init` takes the engine's HANDLE BAG. DIVE and AGAIN reach `start(id)`, the
+power button reaches `firePower()`. Callbacks work BOTH ways: registered
+(`RF.UI.onDive(fn)`) or assigned (`RF.UI.onDive = fn`, which is what the engine
+does). `cb()` distinguishes them by tagging the registrars `__rfReg`, and an
+explicit registration wins over the handle. Every callback and handle is
+invoked inside try/catch so a throwing consumer cannot escape into the frame.
+
+**The engine's `HUD_STATE` is a REUSED object.** `hudState` reads it
+synchronously and retains only primitives in the diff cache; a selftest check
+mutates the pushed object afterwards and asserts nothing changed. Fields
+consumed: `name, hp, maxHp, hpFrac, boost, power, powerId, powerReady, coins,
+dev, combo, comboMult, chips`. `hpFrac` is trusted when present. `powerId` is
+resolved to a label through `RFD.ABILITIES` (`powerName` still accepted).
+The bounded `chips` QUEUE is drained ONE entry per push, never stacked, which
+is how UI_LAW rule 1/3 is honoured against an engine that can queue four.
+
+`runStarted` deliberately KEEPS the tutorial strip: engine3d.js calls
+`tutorial(...)` on the line immediately before `runStarted(ctx)`, so clearing
+every transient there would wipe the coach line before it could be read. It
+drops the chip and toast only. `runEnded` clears everything and nulls the diff
+baseline so the next run's first push is never swallowed as unchanged.
+`tutorial()` does NOT re-check `tutorialDone`/`forceSkipTutorial`: the engine
+already gates the call and commits the flag in the same breath, so re-testing
+it would swallow the single call the engine makes.
+
+## Screens
+
+**Menu**: RAZORFIN title, level + xp meter + coins, roster ladder grouped by
+tier ascending. Locked tiers read `Reach level N` and dim. Owned cards show
+Owned/Selected, unowned show the cost and route to the Shop on tap. Selecting
+goes through `RF.Meta.select` and commits only when the pick is genuinely
+persisted, so the dev overlay never writes to the save.
+
+**Thumbnails**: 2D `sharkart.js` is NOT loaded, so nothing is baked at boot.
+`setThumb(id, dataURL)` accepts pushes from engine/shark3d and live-patches any
+card already on screen. Until one arrives each card renders a styled MONOGRAM
+tinted from `def.sil.palette`, so the menu is fully usable with zero
+thumbnails. Verified live: 61 monograms at boot, one swaps to an image on a
+single `setThumb` with no rebuild.
+
+**Shop**: three act sections (Real Sharks / Monsters / Legends), each sorted by
+tier then cost. Rows carry a palette-tinted tier badge, name, three normalized
+stat bars (denominators from the roster maxima so a data.js regeneration stays
+correct), ability and passive chips, and a BUY / SELECT / IN USE / `LVL N`
+button. Footer is the upgrade panel for the focused shark: 4 tracks x 5 pips
+with the live cost from `RF.Meta.upgradeCost`. Failures speak through a small
+self-fading toast, never a center banner.
+
+**Results**: score, NEW BEST (strict, honours the RF-BEST-01 fix), coins with a
+separate gold daily-bonus line, biggest prey tier, peak combo, xp gained, an xp
+bar, LEVEL UP with the level-up count, and up to three unlock callouts.
+The panel is a flex column: header + SCROLLING detail + PINNED action row, so
+AGAIN/SHOP/MENU stay on screen at 390px tall even with three callouts. That was
+a real defect the browser probe caught (actions sat at y=454, below the fold).
+
+**HUD**: one top-left cluster (name, hp, boost, coins compact as `1.2k`),
+measured at 3.37% of a 844x390 screen. Power button is bottom-right, 84px,
+`pointerdown` (allowed in-run, it is not a game gesture), with a `click`
+suppressor so a tap cannot fire it twice. Combo chip is exactly 24px and 0.38%
+of screen, one at a time. DEV chip and the one-line tutorial strip complete it.
+`#rfHud` is `pointer-events:none` except the power button, so every other tap
+falls through to the game surface: kit.input keeps GAME input.
+
+## Proof
+
+```
+$ node --check ui3d.js
+PARSE OK
+
+$ node -e "<data.js + meta.js + ui3d.js in a window stub>; RF.UI.__selftest()"
+PASS=true  checks=120  fails=0
+```
+
+`__selftest` runs against a minimal `document` stub (no jsdom), covers pure
+logic only, and restores every mutated global in a `finally`: formatters and
+clamps, buy-failure copy, screen transitions and the exactly-one-screen-at-a-
+time invariant, `hudState` diffing (identical push is a no-op, partial pushes
+carry fields forward, hpFrac precedence, powerId resolution), the combo chip
+token so a chip is replaced and never stacked, the chips-queue drain, the
+no-retain assertion on the reused state object, the thumb cache and the
+monogram fallback, engine handles vs registered vs assigned callbacks, throwing
+callbacks contained, and the runStarted/runEnded/tutorial lifecycle.
+
+Then verified in REAL Chrome (headless, CDP) against `index3d.html` pinned to
+**844x390 at DPR 3**, which is the gate frame (`--window-size` alone does not
+pin it; `Emulation.setDeviceMetricsOverride` does):
+
+- `__selftest` re-run under a real DOM: 120/120.
+- All 14 API methods present; engine call pattern drives start=1, firePower=1,
+  `runStarted`->hud, `runEnded` clears the chip, `showResults`->results.
+- Real `RF.Meta.endRun` payload renders; 12 consecutive reused-object pushes
+  paint hp/coins/power correctly and drain the chip queue.
+- **Console clean, zero errors or warnings.**
+- Law audit on all four screens: 0 targets under 44px, 0 text under 14px,
+  no horizontal overflow.
+- Results actions in view for both the maximal (3 unlocks) and minimal payload.
+- No em dashes in either file (grep clean).
+
+Screenshots captured at the gate frame for menu/shop/results/hud.
+
+## For the orchestrator
+
+- Entry page is `index3d.html`; `index.html` is untouched 2D and git-clean.
+- The four module files 404 until the other lanes land. That is expected and
+  does not affect this layer: `ui3d.js` is a classic script with no imports and
+  boots independently, which is how the probe drove it.
+- `RF.Meta.activeShark(profile)` (not `profile.selected`) and
+  `RF.Meta.displayCoins(profile)` (not `profile.coins`) are used throughout, so
+  the dev overlay behaves.
+- Nothing here calls `RF.Meta.load`; the engine owns the profile and passes it
+  in via `init({profile})` or `ctx.save`. `commit` is called only on a
+  successful buy/select.
+- The 61/61 `?unlockall=1` sweep, the memory gate, real-device retina signoff
+  and the owner's iPhone verdict remain open and are not this lane's to close.

@@ -829,3 +829,1062 @@ Date.now / performance.now   0
 `world.js` only. `game.js` was READ to establish the waterline contract
 (`stepMotion` minY=-46, `y<0` is airborne) and `data.js` was READ for the
 rebalanced speeds. Neither was written, nor was any other lane's file.
+
+---
+
+# Rev-3D: world3d.js (Lane B3, three.js render layer)
+
+## What was built
+
+`world3d.js` only, an ES module (`import * as THREE from 'three'`, resolved by
+the index importmap to the fleet-vendored `/play/_shared/three/three.module.min.js`,
+the deep-ballast precedent). Namespace `RF.World`, public surface IDENTICAL to
+`world.js`, so `abilities.js` and `engine3d.js` consume it unchanged.
+
+`world.js` and `sharkart.js` were READ for interface facts and never written.
+No other lane's file was touched.
+
+## API parity checklist
+
+| Member | world.js | world3d.js | Notes |
+|---|---|---|---|
+| `init(scene, ctx)` | yes | yes | arg is now a `THREE.Scene`; ctx may carry `renderer` |
+| `update(ctx)` | yes | yes | also drives zone atmosphere, see below |
+| `query(x,y,r,kind)` | yes | yes | same shared scratch buffer contract |
+| `kill(ent,cause)` | yes | yes | identical cause strings |
+| `spawnBurst(id,x,y,n)` | yes | yes | returns count spawned |
+| `zoneAt(y)` | yes | yes | unchanged |
+| `entities` | yes | yes | same live array identity |
+| `playerHits` | yes | yes | same pooled-record contract |
+| `stats()` | yes | yes | gains `decor` and `zone` fields |
+| `detonate(mine)` | yes | yes | debug helper, retained |
+| `__containY(e)` | yes | yes | surface clamp, retained |
+| `__selftest()` | yes | yes | 92 assertions, see below |
+| `applyZoneAtmo(scene, renderer, camY)` | n/a | NEW | see "Zone atmosphere" |
+| `__state` | n/a | NEW | debug handle for the engine's budget check |
+
+`abilities.js` calls `World.query(x, y, radius, null)` and `World.kill(ent, cause)`
+through its `worldFor(ctx)` indirection; both are covered by explicit
+assertions, including the `null` kind filter, which the 2D selftest never
+exercised.
+
+## Sim port coverage
+
+The sim is a VERBATIM port. Every rule, constant and comment-documented
+decision from `world.js` survives:
+
+- pools (`makeEntity`/`buildPool`/`acquire`/`release`/`resetSt`), swap-pop
+  dense active list, free stack
+- spatial hash (`CELL` 256, `cellOf`/`gridInsert`/`gridRemove`/`gridUpdate`),
+  incremental rebucketing
+- spawner: ring point, `onscreenCount`, weighted pick, pack spawns, the 0.12
+  NPC roll, `ENTITY_BUDGET` gating
+- AI: `preyAI` (flee/lured/wander, `FLEE_BURST` 1.55), `predatorAI`
+  (pursue/flee/patrol, `FLEE_BURST_NPC` 1.35, bite cooldown 0.7),
+  `hazardAI` (mine bob + chain, jelly sine + sting + slow, puffer inflate),
+  `pickupAI` (magnet, `coinMagnet`, grab, 12s life)
+- status effects: `statusTick`, `burnRate`/`poisonRate` with the RF-STATUS-01
+  payload-then-`RFD.ABILITIES`-then-hard-default chain, immunity clears,
+  `syncPlayerImmunity`
+- pooled hit records (RF-PERF-01), pooled capped pack records (RF-PACK-01,
+  `PACK_MAX` 48)
+- mine chain `detonate()` with its 64-iteration guard
+- Rev 4 living water: all constants, all five registries, `animateWater`,
+  `entPhase` golden-ratio phase spread, jelly pulse, eased puffer
+  (`PUFF_TIME`), pickup glint, ambient density table
+- Rev 5 surface containment: `SURFACE_Y` 46, `SURFACE_MARGIN`, `SURFACE_BOUNCE`,
+  the `containY` choke point, the steer-target clamp, the mine/jelly velocity
+  fold, the coin-scatter clamp, the spawner and ring-point bounds
+- Rev 5 orientation: `FACE_TURN` smoothed display heading, `FACE_SNAP` hold
+
+The rev-5 surface clamp WAS already present in `world.js` and was ported as
+found; the additional per-lane requirement ("NOTHING but the player above
+y=46 ever") is now enforced by four separate selftest proofs rather than
+assumed.
+
+### Deliberate sim-adjacent additions
+
+Two fields were added to `st` because the 3D rig needs them, and neither is
+read by the sim:
+
+- `st.bitePhase`, set to 1 when `predatorAI` lands a bite and decayed in the
+  render pass. This makes the jaw snap and the damage the SAME event by
+  construction rather than two things that have to be kept in step.
+- `st.faceA`, the smoothed display heading. Present in `world.js` too; it is
+  reset in `resetSt` so a recycled slot cannot inherit a stale heading.
+
+## Render swap
+
+| world.js (Phaser) | world3d.js (three) |
+|---|---|
+| `scene.add.image` sprite per entity | pooled billboard mesh, `RF.Art3D.billboard(key)` |
+| NPC shark sprite | `RF.Art3D.buildShark(def)` rig, `animate()` driven from velocity |
+| `setFlipY` on `cos(angle)<0` | negative X SCALE (the correct mirror), heading mirrored `PI - angle` |
+| tail wiggle via `setRotation` | small Z rotation on the billboard |
+| `setTint` | private material clone per entity, see "Tint leak" |
+| 5 painted background layers | `scene.fog` + renderer clear colour, lerped per zone |
+| god ray images | additive planes on a waterline PIVOT group |
+| caustic strips | additive planes near the surface |
+| kelp `setRotation` about origin | pivot Group at the stalk ROOT, plane offset inside |
+| surface tileSprite | plane at y=0 + scrolling foam strip |
+| silhouette images | very transparent dark planes at the furthest parallax band |
+
+Bake keys are UNCHANGED (`rf_shark_<id>_play`, `rf_<sprite>`), so this lane
+required no new art.
+
+### Space contract
+
+Sim coords untouched. Mapping is `(x, -y, z)`; `setPos` is the single writer
+and negates y, `setRot` negates the angle (sim y is DOWN, three y is UP).
+Gameplay plane z=0; decor parallax spans -400..-80 per the contract
+(silhouettes -400..-300, kelp/rock -260..-140, rays -120, caustics -90,
+surface -60); ambient motes carry a foreground z in +40..+80.
+
+## Zone atmosphere
+
+`RF.World.applyZoneAtmo(scene, renderer, camY)` is public AND is called from
+inside `update()` every step, from the camera y it already computes. So:
+
+- an engine that only calls `RF.World.update(ctx)` gets the full transition
+  for free
+- `engine3d.js` MAY call it directly on its own render cadence (while paused,
+  during a menu fly-through) without stepping the sim; it is idempotent for a
+  given `camY`
+
+Fog colour, fog density and clear colour all come from `RFD.ZONES` (`tint`,
+`fog`, `pressureTier`), so retuning a zone in data.js retunes the atmosphere
+with no code change. Density rises monotonically with `pressureTier`.
+
+The crossing is a CONTINUOUS blend over `ATMO_BLEND` (260px either side of a
+boundary), not a step. A boundary crossing sampled 4px either side moves the
+density by less than half the gap between adjacent zones, which is asserted.
+The thermocline seam planes give the crossing a visible EDGE on top of the
+gradual lerp, which is what makes it unmistakable rather than merely gradual.
+
+Renderer is optional: it may arrive via `init` (`ctx.renderer`), via
+`update` (`ctx.renderer`), or as the second argument here.
+
+## Guards and fallbacks
+
+All cross-lane calls are guarded, and all four scenarios are exercised in a
+harness:
+
+| Scenario | Result |
+|---|---|
+| no `RF.Art3D`, no `RF.Fx` (standalone) | 70 entities, 401 scene objects, runs clean |
+| `RF.Fx` present, `RF.Art3D` absent | 99 emits received, prey are vertex-coloured quads |
+| `RF.Art3D` present (real `shark3d.js`) | 5 `buildShark`, 321 `billboard`, rigs animated |
+| `RF.Art3D` THROWS on every call | falls through to quads, sim unaffected |
+
+Without `RF.Art3D`, prey render as vertex-coloured plane quads with
+countershading baked into the vertex colours (dark dorsal at the plane top,
+which is the fish's back given the y negation, pale belly at the bottom).
+Without `RF.Fx`, emits are skipped. A throwing `RF.Art3D` is caught per call.
+
+Verified against lane D3's REAL `shark3d.js` once it landed: `billboard(key)`
+returns a Mesh and `buildShark(def)` returns `{group, parts, animate}`, both
+exactly as integrated. 1500 updates, 0 surface breaches.
+
+## Three defects found and fixed during the port
+
+### 1. Scene-object growth: the view cache (found by the no-alloc gate)
+
+The first cut cached each pool slot's visual ON THE SLOT, keyed by def. That
+cache is POOL SIZE x ROSTER SIZE in the worst case (140 x ~20), and a run that
+wanders through every zone approaches the worst case. Measured 1619 scene
+objects and still climbing.
+
+Four retention policies were measured before one held. The failures are
+recorded in the source, because each is a plausible thing to try again:
+
+| Policy | Result |
+|---|---|
+| per-slot cache | 1619 objects, climbing (pool x roster) |
+| global pool, NO cap | 371 idle for a 140 slot pool, still creeping at 2400 updates |
+| flat cap, 6 idle per key | 3007 and CLIMBING: cap below the true concurrent peak, so views were disposed and instantly rebuilt. The cap turned a bounded cache into a per-frame allocator |
+| global budget (pool + margin) | 6953 and climbing: a rare def's release evicts a common def's view that the next frame needs back |
+| per-key peak + hard ceiling | SHIPPED. 731 objects, converging |
+
+Views are pooled GLOBALLY per view key. Each key retains at most the most
+views of THAT key ever alive at once (`bank.peak`), capped by a hard
+`VIEW_KEY_CEIL` of 64. The per-key peak is the only rule that never disposes a
+view its own def will need again, which is what keeps steady-state creation at
+zero; the ceiling turns the slow stochastic creep of peaks into a hard bound.
+Surplus views are DISPOSED (removed from the scene, private material disposed;
+shared geometry and the shared material cache are deliberately left alone
+because other views still reference them).
+
+Convergence measured over 100k updates, about 28 minutes of play at 60fps,
+growth per 10k block:
+
+```
+641, 32, 13, 13, 13, 2, 9, 3, 0, 4   ->  plateau near 730 objects
+```
+
+Block deltas fall toward zero while the total flattens. A leak holds its
+per-block delta CONSTANT as the run lengthens. The selftest therefore asserts
+a RATE (<= 20 new objects across 4000 steady-state updates, where one-per-frame
+would be thousands) rather than a false absolute zero, and asserts the plateau
+stays under 900 objects.
+
+### 2. Status tint leaked across a whole shoal
+
+Materials are shared per bake key so a shoal of 30 minnows is 1 material and 1
+texture. Tinting a shared material would turn the WHOLE shoal blue when one
+fish froze. Each entity billboard therefore gets a private material clone
+(`privatiseMaterial`) once at view-build time, bounded by the view pool, never
+per frame. Asserted directly: one frozen entity is tinted, its shoal-mate is
+not, and the two hold different material objects.
+
+### 3. Billboard aspect ratio was being squashed
+
+`RF.Art3D.billboard` sets `mesh.scale.x` to the bake's own aspect (canvas
+width / height) and leaves `scale.y` at 1. That ratio is the only record of the
+art's true proportions, and `applySprite` overwrites both axes with the sim's
+display size. The first cut forced every billboard to the 2:1 body ratio the
+2D fallback assumed, which squashes a tall bake (jelly, puffer, ray) and
+stretches a long one.
+
+The aspect is now captured at view-build time, before the sim scale overwrites
+it, and applied as the height factor. LENGTH remains the sim's authority (it
+derives from the collision radius, so the art can never disagree with the
+hitbox); HEIGHT follows the bake. The jelly bell pulse and the eased puffer use
+the same captured aspect rather than a hardcoded 0.52.
+
+## Self-test
+
+`RF.World.__selftest()` runs against STUBBED three objects: a stub scene whose
+only contract is an `add()` that collects, and a stub renderer that records
+clear colours. The entity sim needs no real GL. Real `THREE` builds the meshes
+when it is present; the stub scene simply collects them.
+
+**92 assertions, 92 pass, 0 fail.**
+
+Ported from `world.js`: pool preallocation, query neighbours + kind filter,
+frozen entity held, mine chain reach and non-reach, 300-update pool accounting
+(balanced on every step), burn/poison DoT rates and the payload-vs-authored
+fallback, fire immunity, player passive publication, predator bite through
+`playerHits`, dreadAura inversion, junkEater, `zoneAt`, `spawnBurst`,
+worldClock primary and fallback paths, registry build counts and no-growth,
+ray sway bounds, ray alpha band, caustic drift, shimmer band, kelp sway,
+per-ray phase uniqueness, fish wiggle span and `FISH_WIGGLE` bound, frozen
+baseline collapse, id phase spread, puffer easing frames and exact landing,
+`resetSt` puffer clear, pickup glint band, ambient density ratios, pack record
+bounding over 2000 updates, hit pool size.
+
+New for 3D:
+- API parity: every contract member present, `entities`/`playerHits` identity,
+  `null` kind filter (the form `abilities.js` actually calls)
+- **surface clamp, four independent proofs**: the spawner's own bound
+  (200 spawns aimed above the waterline, 0 violations); `spawnBurst` jitter at
+  y=0; `containY` reflecting at exactly `SURFACE_BOUNCE` rather than
+  teleporting; and the real gate, 600 steps with the player pinned AT the
+  waterline (the case that produced the owner's original bug, prey fleeing UP
+  from a shallow player) checking EVERY entity of EVERY kind on EVERY step,
+  including scattered coins
+- zone atmosphere: per-zone resolution, monotonic density with depth, shelf
+  and abyss differing in both fog and clear colour, scene fog carrying the
+  applied density, the renderer actually being driven, and the boundary blend
+  being continuous rather than stepped
+- surface plane and foam strip built, plane at the waterline
+- billboard mirror by negative x scale when facing left, positive when right
+- private materials, tint isolation across a shoal
+- bake aspect captured and length driven by the sim display size
+- ambient emission carrying a foreground z in the contract band
+- view pooling bounds: idle counter agreement, per-key peak and ceiling
+  respected, no key over its own high-water mark
+- the no-alloc rate gate described above
+
+### Harness
+
+Node cannot resolve the bare `three` specifier the browser gets from the
+importmap, so the harness registers a loader hook mapping `three` to the
+vendored module. `data.js` is a classic script and is evaluated into the global
+first, then `world3d.js` is imported.
+
+```
+node --import ./threehook-reg.mjs run.mjs
+RFD zones: 4 creatures: 19 sharks: 61
+PASS=true  ok=92  fail=0  total=92
+```
+
+### Grep gates
+
+```
+em dashes                    0
+Math.random                  1  (the header comment stating the law)
+setTimeout / setInterval     1  (the header comment stating the law)
+addEventListener             0
+Date.now / performance.now   0
+document. / window.          0
+Phaser leftovers             1  (the header comment describing the swap)
+```
+
+## Concurrency
+
+`world3d.js` and this NOTES section only. `world.js`, `sharkart.js`,
+`shark3d.js`, `abilities.js` and `data.js` were READ for interface facts and
+never written. Cross-lane facts relied on:
+
+- `RF.Art3D.billboard(key)` returns a `THREE.Mesh` carrying the bake aspect on
+  `scale.x`; `RF.Art3D.buildShark(def)` returns `{group, parts, animate}`
+  (verified against lane D3's landed `shark3d.js`)
+- `abilities.js` reaches the world through `worldFor(ctx)` and calls
+  `query(x, y, radius, null)` and `kill(ent, cause)` only
+- `ctx.time.now` is a fixed-step seconds accumulator, which is why it is safe
+  as an animation clock
+
+---
+
+# Fix pass: integration probe findings (2026-08-19)
+
+Three defects found by the orchestrator's in-browser probe. All three were
+invisible to the previous selftest, which is the interesting part: each one is
+a case where the code did exactly what it said and still produced nothing on
+screen. The assertions added below are written against the OBSERVABLE RESULT
+(what is in the material's map, how many lights are in the scene) rather than
+against the call that was supposed to produce it.
+
+## 1. Billboard textures were 1x1 placeholders (prey invisible)
+
+### Root cause
+
+This lane passed **bake key strings** to `RF.Art3D.billboard(...)`:
+
+```js
+// BEFORE
+function bakeKeyFor(def, kind) { ... return 'rf_' + sprite; }   // or 'fish_blue'
+var o = A.billboard(bakeKeyFor(def, kind));
+```
+
+That was correct for the 2D build, where Phaser's loader had already registered
+those textures. **The 3D build has no Phaser and no loader**, so:
+
+- Kenney fish PNGs (`fish_blue`, `fish_grey_long_a`, ...) were never loaded by
+  anything, and
+- procedural creature canvases came from 2D `RF.Art.bakeCreature`, which was
+  not on the page at all.
+
+`billboard()`'s string path resolves only through `RF.Art.canvasFor` or a DOM
+node id (`shark3d.js` `resolveCanvas`). Both missed, so it fell through to its
+own **1x1 transparent `DataTexture`** placeholder and returned a perfectly
+valid mesh. Nothing threw, so the `try/catch` fallback to the vertex-coloured
+quad never engaged either. Every prey in the world drew as an invisible speck.
+
+This is why the old selftest passed: it asserted a billboard was *created* and
+that its *scale* was right, and both were true. A 1x1 fully transparent
+texture is still a texture.
+
+### Fix
+
+Keys are never passed for creatures now. This lane resolves both real sources
+itself and hands `billboard()` a **texture or a canvas**, which its contract
+accepts directly:
+
+| sprite key | source | what is handed to `billboard()` |
+|---|---|---|
+| no `proc_` prefix (`fish_blue`) | `assets/<sprite>.png` via `THREE.TextureLoader`, loaded ONCE, cached by key | the `THREE.Texture` |
+| `proc_` prefix (`proc_jelly`) + every fallback | `RF.Art.bakeCreature(stub, def)` | the captured `HTMLCanvas` |
+
+Textures get `colorSpace = SRGBColorSpace` (these are authored sRGB PNGs; a
+linear read washes every fish out under the engine's tone mapping) and
+`magFilter = LinearFilter`.
+
+The canvas capture uses a **stub scene**, because `bakeCreature`'s only scene
+contract is `textures.exists(key)` and `textures.addCanvas(key, canvas)`:
+
+```js
+var bakeStub = { captured: null, textures: {
+  exists: function () { return false; },              // always re-bake
+  addCanvas: function (k, c) { bakeStub.captured = c; },
+} };
+```
+
+`exists()` always answers false so the bake always takes its `addCanvas` path.
+One stub object is reused for every bake, so this allocates nothing per call.
+Note `addTexture` in `sharkart.js` also marks `scene.__rfArtTextures[key]`,
+which would suppress a second capture on a reused stub; it does not matter here
+because `canvasCache` means each key bakes exactly once anyway.
+
+Both caches are keyed by **sprite, not by pool slot**, so a 30-fish shoal is
+one texture and (through `billboard()`'s own material cache) one material.
+`RF.Art` absent, or a bake that throws, still degrades to the vertex-coloured
+quad exactly as before.
+
+### Aspect capture: a real bug found while fixing this one
+
+`billboard()` reads an aspect off a **canvas** source only:
+
+```js
+// shark3d.js:797
+if (resolved.canvas && resolved.canvas.height) mesh.scale.x = resolved.canvas.width / resolved.canvas.height;
+```
+
+For a **texture** source it leaves `scale.x` at 1, which `viewAcquire` would
+then have captured as a *square fish*. So the Kenney path sets the aspect
+itself from `tex.image`, falling back to a nose-right fish's nominal 2:1 while
+the image is still decoding. Either way `scale.x` carries the proportions,
+which is the contract `viewAcquire` captures and `applySprite` then overwrites
+with the sim's display size. Verified with the real baker: procedural canvases
+are genuinely non-square and differ from each other (jelly 78x96 is *taller*
+than wide, mine 86x86 square, grazer 150x100 wide), so this is load-bearing.
+
+### Two more instances of the same bug, found while fixing it
+
+`billboard()` was being handed bare keys in two other places. Neither was in
+the probe report, because both fail the same silent way: an invisible 1x1
+placeholder that never throws, so the fallback under it is unreachable.
+
+- **Decor** (`decorBillboard`) asked for `'rock_a'` and `'seaweed_c'`. Those
+  are **Kenney sprite names**, and `assets/rock_a.png` / `assets/seaweed_c.png`
+  both exist on disk, so they now resolve through the same
+  `assets/<sprite>.png` loader the creatures use. Every rock and kelp stalk in
+  the world was a silent placeholder before this.
+- **Coin pickups** (`makeCoin`) asked for `'rf_coin'`. There is no coin bake in
+  either roster and no `coin.png` in `assets/`, so the request is simply
+  **deleted** and the glowing fallback quad, which was always the intended
+  visual, is now actually reached. Asking for art that does not exist is not
+  free when the miss is silent.
+
+## 2. Duplicate light rigs
+
+The scene had **2x HemisphereLight + 2x DirectionalLight**: `engine3d` owns
+lighting per SPEC3D, and this lane was building its own rig on top.
+
+`buildLights()` and its call site are **deleted**. Nothing here needed them:
+every object this module builds is a `MeshBasicMaterial` (billboards, rays,
+caustics, seams, surface, silhouettes, decor quads) and `MeshBasicMaterial` is
+unlit by definition, so the lights this lane added only ever affected *other
+lanes'* meshes, roughly double-exposing them. The fog / clear-colour / zone-lerp
+atmosphere work is untouched and still lives in `applyZoneAtmo` and
+`buildBackground`.
+
+## 3. Billboard visibility and size
+
+Asserted rather than changed; the existing behaviour was already correct.
+A mackerel at typical spawn distance measures **50.4 world units long by 25.2
+tall**, which matches the probe's observed 50.4 exactly. Length is the sim's
+authority (tier radius x 2.4, so the art can never disagree with the hitbox)
+and height follows the art's own aspect.
+
+## Selftest additions
+
+Stubs are installed before `World.init` and removed after, since the selftest
+has neither GL nor network:
+
+- **`World.__TextureLoader`** override, returning a fake texture carrying a
+  96x48 image (stands in for a decoded PNG). This is the only way to exercise
+  the Kenney branch headlessly.
+- **`RF.Art`** stub *only if the real `sharkart.js` is absent*, driving the
+  same `exists`/`addCanvas` contract the real one does.
+
+New assertions:
+
+```
+ok world3d adds ZERO lights, engine3d owns lighting (0 found)
+ok kenney creature material has a map whose image is bigger than 1x1 (96x48, the placeholder bug was 1x1)
+ok kenney sprite loaded from assets/<sprite>.png (assets/fish_grey_long_a.png)
+ok mackerel resolved its own sprite key, not a bake key
+ok procedural creature material is canvas-backed and bigger than 1x1 (78x96)
+ok procedural map image is an actual CANVAS handed to billboard(), not a key
+ok a second kenney creature reuses the cached texture (no reload)
+ok mackerel billboard length is in the readable band (50.4 world units, expected 34-60)
+ok mackerel billboard height follows the art aspect and is shorter than it is long (25.2)
+ok aspect captured from the 96x48 source is 0.5 (0.500)
+ok billboard is added visible / material transparent / depthWrite false
+ok decor resolves assets/<sprite>.png through the loader, not a bare bake key
+```
+
+The decor check deliberately requests a key `init` never used (`seaweed_f`) and
+watches for the LOAD REQUEST. Asserting against a key init already cached would
+only prove a cache hit, not that the bare-key path is gone.
+
+The art assertions are gated on `hasArt3D`. Without `RF.Art3D` every creature
+legitimately degrades to a vertex-coloured quad, which has no map at all; that
+is a **supported mode, not the bug**, so it is reported rather than failed.
+
+## Proof
+
+Module imported under Node with stubbed `three` + real `data.js` + real
+`sharkart.js` (memory surfaces, no DOM required):
+
+```
+$ node --check world3d.js                      # syntax
+$ node /tmp/rf_run_realart.mjs
+real RF.Art.bakeCreature: function
+PASS: true | notes: 110 | fails: 0
+```
+
+Run in all three configurations, all green:
+
+| configuration | result |
+|---|---|
+| real `sharkart.js` + `Art3D` stub | PASS, 110 notes, 0 fails (jelly canvas 78x96) |
+| `RF.Art` stub + `Art3D` stub | PASS, 110 notes, 0 fails |
+| **no `RF.Art3D`** (fallback quads) | PASS, 100 notes, 0 fails |
+
+The real `sharkart.js` baker was additionally exercised against the capture
+stub for all 10 procedural creatures, every one returning a real canvas:
+
+```
+proc_ray 122x78   proc_turtle 122x78   proc_sword 122x78   proc_squid 122x78
+proc_squid_big 150x100   proc_grazer 150x100   proc_calf 150x100
+proc_mine 86x86   proc_jelly 78x96   proc_puffer 86x86
+kenney passthrough: returns 'fish_grey_long_a', captures nothing  (correct)
+```
+
+Allocation law still holds after adding the two caches:
+
+```
+trace scene-object count during warm-up: 651 -> 681 -> 720 -> 725 -> 726
+ok steady-state scene creation is a convergent tail (3 objects across 4000 updates)
+ok total scene object count plateaus inside the memory budget (729)
+```
+
+### Grep gates (re-run)
+
+```
+em dashes                    0
+Math.random                  1  (the header comment stating the law)
+setTimeout / setInterval     1  (the header comment stating the law)
+addEventListener             0
+Date.now / performance.now   0
+document. / window.          0
+```
+
+`document.` stays at **0** even though this pass added canvas handling: the
+capture goes through the stub scene, never the DOM.
+
+# Fix pass: REVIEW-3D findings (2026-08-19)
+
+Scope: `world3d.js` only, plus this section. Findings owned by B3 in
+`REVIEW-3D.md`, against the binding `SPEC3D.md` Rev 2 rulings.
+
+| id | owner share | status |
+|---|---|---|
+| LIFE-01 | B3 (world's own scene objects, views, env textures, private materials) | FIXED, `World.teardown()` exported and proven over 5 cycles |
+| ATMO-01 | B3 (now the SOLE atmosphere owner per Rev 2) | FIXED, one owner, lights driven from here, foreground tune below |
+| PERF-01 | B3 (fixed-step atmosphere report allocation) | FIXED, report is module scratch |
+| PERF-03 | B3 (static environment geometry and materials) | FIXED, 30 environment draw calls, was about 260 |
+
+No MINOR findings in `REVIEW-3D.md` are owned by B3. `PERF-04` is C3/A3,
+`ART-02` is D3, `UI-01` is a recorded C3 pass.
+
+## LIFE-01: teardown
+
+`engine3d.js:1417` already called `RF.World.teardown(ctx)`; this module simply
+did not export one, so a restart truncated JavaScript arrays and left the old
+run's scene graph attached forever. `World.teardown()` now exists and is the
+counterpart to `init()`.
+
+Released, all of it this module's own:
+
+- every top-level object in `S.decor` (decor batches, ray band pivots, kelp bed
+  pivots, seam batches, silhouette batches, caustics, shimmer, all three
+  surface parts), detached from whatever parent they carry
+- every pooled VIEW, live on an entity or idle in a bank: detached, its private
+  material clone disposed, and an NPC shark rig handed back through its OWN
+  `rig.dispose()` when lane D3 offers one (this module never disposes another
+  lane's shared cache)
+- every environment material and geometry created this run, disposed in bulk
+  from the `envOwned` ownership ledger rather than found by traversal
+- `S.matCache` (the fallback materials AND the per-palette vertex-coloured
+  geometry clones, which share that map), the shared unit quad `S.geoQuad`, and
+  the fallback quad `fallbackGeoCache`
+- the `FogExp2` this module installed, and the scene's `fog` slot when it is
+  still pointing at ours
+- the engine's light references, dropped rather than disposed: we never created
+  them, and dropping them means a renderer rebuild (GL-01) cannot find us
+  writing into dead objects
+- all sim state: pool, free list, entities, grid, packs, hit records
+
+DELIBERATELY PERSISTENT, per the Rev 2 documented-lifetime carve-out:
+
+- `texCache`, the decoded `assets/*.png` `THREE.Texture`s. Asset layer, not run
+  state; bounded by files on disk; re-decoding every restart is a visible hitch
+  for nothing.
+- `canvasCache`, the 2D bakes behind procedural billboards. Bounded by roster
+  size, expensive to redo. The `CanvasTexture`s built FROM them do get disposed,
+  because those live inside the views.
+- lane D3's geometry and material caches, reachable only through its own
+  dispose path.
+
+`init()` also self-tears-down when called on an already-inited world, so a
+caller that forgets `teardown()` still cannot leak.
+
+### Proof
+
+Five full `init` / play 400 steps / `teardown` cycles against a stub scene that
+tracks its own child list on both `add` and `remove`. The stub's materials and
+geometries throw on a second `dispose()`, so reaching the end at all proves
+nothing was double-disposed.
+
+```
+ok LIFE-01: five init/teardown cycles return the scene child list to baseline 0
+   (0, 0, 0, 0, 0 after each teardown; peaks 240, 273, 245, 256, 253)
+ok LIFE-01: init() after teardown() is equivalent to a first init, every cycle
+   rebuilds a comparable world (240, 273, 245, 256, 253 objects per cycle)
+ok LIFE-01: teardown clears every environment and entity registry it owns
+ok LIFE-01: teardown releases the scene's fog slot when it still points at ours
+ok LIFE-01: teardown disposed the run materials and geometries
+   (1766 materials, 193 geometries across 5 cycles)
+ok LIFE-01: the documented persistent asset texture cache survives teardown
+   (11 textures held)
+ok LIFE-01: the per-run material and geometry caches are emptied (0 env, 0 fallback)
+```
+
+The child list returning to exactly 0 is the finding's direct refutation. The
+"comparable world every cycle" assertion is the other half of the contract:
+a cycle that rebuilt LESS than the first would mean `init()` after `teardown()`
+is not equivalent to a first `init()`.
+
+## ATMO-01: one owner, and a foreground that does not gray out
+
+Per Rev 2 this module is now the SOLE atmosphere owner. It still creates no
+lights; `engine3d.js` creates the hemisphere and sun once at boot and hands the
+references over on `ctx.lights` (or through the new `World.setLights({hemi,
+sun})`), and from then on only reads them. `applyZoneAtmo()` writes fog colour,
+fog density, renderer clear colour, scene background, hemisphere sky/ground
+colour and intensity, and sun colour and intensity, all from the SAME blended
+zone pair in the same pass, so light and water can never disagree about depth.
+The second density formula in `engine3d.js:443` is A3's to delete.
+
+### Why the old numbers grayed the player out
+
+Structural, not a near miss. `FogExp2` attenuates by `exp(-(density *
+distance)^2)` measured from the CAMERA, and the camera sits 620 world units
+back from the gameplay plane (SPEC3D camera contract). The gameplay plane is
+therefore NEVER at distance 0; it is always at 620. At the old deep density of
+0.00092 that is `exp(-(0.57)^2) = 0.72`: 28 percent of the player's own colour
+was already replaced by flat fog blue before anything else happened, and every
+creature worth looking at took the same hit.
+
+Two changes, both needed:
+
+1. **Density down.** Deep end 0.00092 -> 0.00046. At the 620-unit play plane
+   that is `exp(-(0.285)^2) = 0.92`, so the foreground keeps 92 percent of its
+   chroma at the bottom of the world instead of 72.
+2. **Near-distance guard.** `FogExp2` has no near plane, so density alone
+   cannot separate "the plane the game happens on" from "the water behind it".
+   `guardDensity()` clamps any density to `sqrt(-ln(FOREGROUND_KEEP)) /
+   FOG_NEAR`, which makes "the player never grays out" a property of the code
+   rather than of hand-picked constants. Retuning `RFD.ZONES` in `data.js`
+   cannot break it.
+
+### The three depth tunings
+
+Measured at each zone's mid depth against the real `RFD.ZONES` table (4 zones
+at pressure tiers 1 / 3 / 6 / 9). "play keeps" is the fraction of its own colour
+the gameplay plane retains at 620 units; "far keeps" is the same for the
+furthest parallax band at 1040 units.
+
+| zone | tier | density | play keeps | far keeps | hemi / sun | clear | S | V |
+|---|---|---|---|---|---|---|---|---|
+| **Sunlit Shelf** (SHALLOW) | 1 | 0.00013 | 99.4 pct | 98.2 pct | 1.15 / 1.00 | `#386a82` | 0.569 | 0.510 |
+| Kelp Midwater | 3 | 0.00021 | 98.3 pct | 95.2 pct | 1.04 / 0.91 | `#224a60` | 0.646 | 0.376 |
+| Twilight Reef (MID) | 6 | 0.00034 | 95.7 pct | 88.5 pct | 0.87 / 0.76 | `#132a3c` | 0.683 | 0.235 |
+| **The Abyss** (DEEP) | 9 | 0.00046 | 92.2 pct | 79.5 pct | 0.70 / 0.62 | `#08101b` | 0.704 | 0.106 |
+
+(Clear colours are post-retune; see the wash-out correction section at the end
+of this file. Saturation RISES with depth while value falls, which is what
+"vivid blue that gets darker" means as opposed to "pastel that gets grayer".)
+
+The three target feels:
+
+- **SHALLOW** (Sunlit Shelf): bright turquoise, high key, sun shafts clearly
+  visible, only the far parallax band softened at all. The player reads at
+  essentially full saturation, 99.4 percent of its own colour.
+- **MID** (Kelp Midwater through Twilight Reef): the water has colour of its
+  own and the far band is genuinely hazy, 95 down to 88 percent, but the
+  foreground shark and its prey still hold 98 to 96 percent and pop off it as
+  separate saturated objects. This is the frame the review called dark and
+  timid; the widening gap between play plane and far band is the fix, and it is
+  where the tune does the most work.
+- **DEEP** (The Abyss): heavy, near-black water, clear colour down to `#0c1521`,
+  that swallows the parallax bands, with the player and whatever is hunting it
+  lit and coloured against it at 92 percent. Depth comes from the BACKGROUND
+  going away, not the foreground being drained.
+
+Two supporting decisions:
+
+- The hemisphere SKY colour tracks the zone **tint**, not the fog. The light
+  the player is lit by stays a saturated water colour instead of collapsing
+  onto the same gray the fog is made of, which is most of the difference
+  between the review's washed-out frame and a readable one. Ground colour never
+  reaches black, or belly countershading stops reading.
+- Light floors are 0.70 hemi / 0.62 sun, well above the old engine-side 0.35.
+  An under-lit rig grays exactly like a fogged one, so the floor is part of the
+  same requirement.
+
+### Where the depth cue moved, and this is honest
+
+Clamping the play plane to 92 percent also caps how hard the far band can fog:
+the far parallax band is only about 1.7x further out (1040 units vs 620) and
+`FogExp2` is smooth, so at the deepest legal density the far band keeps about
+80 percent against the play plane's 92. That is a 12 point separation, a haze
+rather than a curtain, and fog alone no longer carries the depth read.
+
+That is the right trade rather than a shortfall, because the far band is drawn
+at 0.04 to 0.09 opacity in the first place. It was never going to be erased by
+fog; it is erased by having almost no alpha. The cue that actually reads at
+depth is the CLEAR COLOUR going near black while the lit foreground does not,
+plus the light dimming. Both are now asserted directly rather than assumed.
+
+```
+ok ATMO-01: gameplay plane keeps >= 92 percent of its own chroma at every depth
+   (worst 92.2 percent, deepest density 0.00046)
+ok ATMO-01: the density guard clamps any zone table, not just the shipped one
+ok ATMO-01: fog still separates the play plane from the far parallax band
+   (79.5 percent kept at z -420 vs 92.2 percent on the play plane)
+ok ATMO-01: the clear colour carries the depth read, abyss much darker than shelf
+ok ATMO-01: world3d drives the engine hemisphere and sun (1.15 / 1.00 at the shelf)
+ok ATMO-01: light dims with depth (1.15 -> 0.70 hemi, 1.00 -> 0.62 sun)
+ok ATMO-01: the deep light floor stays well above the old 0.35 wash-out
+ok ATMO-01: hemisphere sky tracks the zone TINT, not the fog gray
+ok ATMO-01: hemisphere ground never goes fully black, belly countershading survives
+```
+
+The screenshot gate at shallow, mid and deep is TEST-01's, and remains the
+binding art judgement. These numbers are the floor it sits on, not a substitute.
+
+## PERF-01: no allocation in the fixed step
+
+`applyZoneAtmo()` returned a fresh `{fog, clear, density, zone, blend}` on every
+call, and `update()` called it every fixed step and discarded it. The claim that
+it "only allocates when a caller asks for the report" was false in the only path
+that mattered.
+
+The report is now `atmoReport`, one module-scratch object rewritten in place and
+also exposed as `World.__atmoReport`. Callers read the fields immediately; that
+is the documented contract, and anything wanting to keep a value across a frame
+boundary copies the scalar. The selftest's own zone-atmo block was rewritten to
+honour it, because under the scratch contract the old code held two reports at
+once and would have compared an object to itself and passed vacuously.
+
+The report gained `hemiI`, `sunI`, `depth` and `fogNearKeep`, all scalars, so
+the light state and the foreground guard are readable without reaching into
+module state.
+
+```
+ok PERF-01: applyZoneAtmo writes module scratch, it never allocates a report
+ALLOC PROBE heap delta over 20000 fixed steps: 42.5 KB (2.176 bytes/step)
+```
+
+2.2 bytes per step is the V8 noise floor. The report object alone was roughly
+50 bytes per step before the fix.
+
+## PERF-03: 260 environment draw calls down to 30
+
+The old environment put about 260 meshes in the scene, each with its own
+material, and relied on frustum culling to keep the MEASURED number under
+budget. That is luck, not a budget, which is why the number drifted to 134.
+
+Two mechanisms, both build-time only:
+
+- **`envMaterial(color, opacity, additive, map, vcolors)`** returns a SHARED
+  material per look key. Two seams, two rocks, two silhouettes of the same look
+  now share one material object, which is the precondition for sharing a draw
+  call at all. Objects whose OPACITY animates (caustics, shimmer, ray bands)
+  ask for a private material through `planeMeshPrivate` / `batchMesh(...,
+  privateMat)`, because opacity lives on the material.
+- **`mergeQuads()`** bakes N transformed unit quads into ONE `BufferGeometry`
+  with per-vertex colour AND per-vertex alpha, so a batch whose members had
+  different tints and different opacities still draws once. The three build
+  vendored at `/play/_shared/three` has no `BufferGeometryUtils`, so the merge
+  is written here; it is arithmetic over a unit quad and needs nothing else.
+  Quad records are POOLED in `quadScratch`, so describing 90 rocks allocates
+  its records once on the first init and reuses them on every restart forever.
+
+What could not merge, and what was done instead: anything whose per-instance
+animation is a TRANSFORM. Those are batched by PHASE BUCKET, members of a
+bucket sharing one merged geometry and one pivot so they move together.
+
+| population | was | now | note |
+|---|---|---|---|
+| seafloor rocks | 90 meshes | **1** | do not move at all, so all 90 collapse outright. Per-rock opacity and mirroring survive in the vertex data. |
+| kelp and seaweed | 104 meshes | **12** | batched by X COLUMN into beds, each with its own pivot at its own root, rate and phase. The swing radius inside a narrow column is small, so a bed leans as a bed instead of stalks scissoring past each other. That is how a real kelp bed moves under a current. |
+| god rays | 26 meshes | **4** | 4 bands of 7 shafts. Each shaft keeps its own lean, baked into the merged vertices, so a band is a fan and not a comb; the band pivot at the waterline adds the sway. Real light shafts move as a sheet under one swell, not independently a metre apart. |
+| thermocline seams | 6 meshes | **2** | one normal-blend batch for the dark bands, one additive for the bright glints. A thermocline is one body of water sliding past. |
+| midwater silhouettes | 34 meshes | **4** | one batch per zone. The per-shape drift was 3 to 7 px on shapes at 0.04 to 0.09 opacity at the furthest parallax band; drifting the zone batch instead is not a visual change anyone can see. Rule 2 (ANCHORED) still holds: the drift is an OFFSET recomputed from the sine every frame, never an accumulation. |
+| caustics, shimmer, surface | 7 meshes | **7** | left alone. Already cheap, and every one has an independently animated opacity. |
+
+```
+environment draw-call inventory: 30 meshes across 15 distinct materials
+ok PERF-03: the environment contributes at most 60 draw calls (30 meshes, was about 260)
+ok PERF-03: 104 kelp stalks batched into at most 12 swaying beds (12)
+ok PERF-03: 28 god-ray shafts batched into 4 bands (4)
+ok PERF-03: every thermocline seam batched into 2 meshes (2)
+ok PERF-03: midwater silhouettes batched to one mesh per zone (4)
+ok PERF-03: environment materials are cached by look, never one per plane (15 for 30)
+ok PERF-03: the merged batches carry real geometry, not empty meshes (1076 vertices)
+```
+
+**Environment draw-call estimate: 30 worst case, all 30 on screen at once.**
+In practice fewer: the 12 kelp beds are spatially separated across 7200 px of
+world and the 4 silhouette batches are one per zone, so a single camera sees
+perhaps 2 kelp beds and 1 silhouette batch. The realistic on-screen figure is
+about **12 to 15**, and 30 is the number that holds even if culling does
+nothing at all. That leaves the whole remaining budget to D3's shark rigs and
+F3's effects.
+
+Merged geometry was verified against the REAL vendored three (not the stub):
+rocks span the full world width at the seafloor, seams span full width at their
+boundary depths, silhouette batches sit inside their own zones, ray bands hang
+from y = 0 down to about -480, and the 12 kelp beds sit at 600 px spacing with
+local coordinates centred on their pivots.
+
+## Proof
+
+Four configurations, all green. `world3d.js` imported under Node with `data.js`
+and `sharkart.js` evaluated into the global first.
+
+```
+$ node --check world3d.js                                  PARSE_OK
+
+stubbed three + real sharkart.js + Art3D stub     PASS 135 notes, 0 fails
+stubbed three, NO RF.Art3D (fallback quads)       PASS 125 notes, 0 fails
+REAL vendored /play/_shared/three/three.module.min.js
+                                                  PASS 135 notes, 0 fails
+allocation probe, 20000 fixed steps after warm-up
+                                                  2.176 bytes/step
+```
+
+The real-three run matters for this pass specifically: `BufferGeometry`,
+`setAttribute`, `setIndex` and `dispose` are all exercised against the actual
+library rather than a stub that might have been forgiving.
+
+The selftest is now IDEMPOTENT against a live page. It takes its own `texCache`
+for the duration and hands the page's back at the end, because `texCache` is
+deliberately persistent and a selftest run after a real run would otherwise find
+every sprite already cached and see no loader requests. `canvasCache` is
+deliberately NOT swapped: the real `sharkart.js` baker keeps its own record of
+what it has baked and answers a repeat request with a key instead of a canvas,
+so clearing only our side of that pair would cache a null.
+
+### Grep gates (re-run)
+
+```
+em dashes                    0
+Math.random                  1  (the header comment stating the law)
+setTimeout / setInterval     1  (the header comment stating the law)
+addEventListener             0
+Date.now / performance.now   0
+document. / window.          0
+new THREE.*Light             0  (engine3d owns creation, we only drive)
+```
+
+## Hand-off to other lanes
+
+- **A3 (`engine3d.js`)**: pass the lights on `ctx.lights` as `{hemi, sun}` at
+  `World.init(scene3, ctx)`, or call `RF.World.setLights({hemi, sun})`. Then
+  DELETE the `scene3.fog` / `scene3.background` / `hemi` writes in
+  `stepZoneLook()` (`engine3d.js:432-461`) and the second density formula at
+  `engine3d.js:443`. Rev 2 makes those ours. `engine3d.js:1417` already calls
+  `RF.World.teardown(ctx)`; teardown ignores its argument and is safe to call
+  twice or on a world that was never inited.
+- **D3 (`shark3d.js`)**: if `buildShark()` grows a `dispose()` on the returned
+  rig record, `viewTeardown()` calls it. Without one the rig group is still
+  detached from the scene, and this module never touches lane D3's shared
+  geometry or material caches either way.
+
+## LIFE-01 residual: the in-page 9 (2026-08-19, second pass)
+
+The stub-scene proof above was green while the in-browser run left exactly
+**9 children attached per cycle**. Both were true, and the gap between them is
+the interesting part.
+
+### What the 9 were
+
+Lane F3's particle pools. `World.init()` calls `RF.Fx.init(scene3)`, and F3's
+init attaches one `THREE.Points` per pool:
+
+| pool | verts | pool | verts |
+|---|---|---|---|
+| bubbles | 96 | swimtrail | 128 |
+| motes | 96 | speedlines | 72 |
+| elementSpark | 64 | breach | 96 |
+| ring | 24 | ambient | 160 |
+| beamCore | 12 | | |
+
+Nine, not ten: `POOL_NAMES` has ten entries but `goldpulse` is a DOM edge
+overlay per UI_LAW and adds no scene child.
+
+**Not** D3's ART-01 rework, which was the initial hypothesis. Verified directly:
+`buildShark()` still returns `{group, parts, animate}`, unchanged, and
+`RF.Art3D` exports exactly `buildShark, billboard, __selftest, paletteOf,
+stats` with no dispose or releaseShark anywhere in the file. Detach-only for rig
+groups is therefore correct per Rev 2, and the rig path was never implicated.
+The batched teeth/plate geometry D3 merged lives inside the rig group, so
+detaching the group takes it with it and the shared caches survive as intended.
+
+### Why the stub proof could not see it
+
+A stub scene has no `RF.Fx`, so `World.init()` skipped the FX branch entirely
+and there was nothing to leak. The assertion was sound; its configuration was
+too narrow. Proving teardown against a world whose siblings are all absent
+proves teardown of a world that never had siblings.
+
+### The actual defect: an asymmetric lifecycle
+
+`World.init()` called `RF.Fx.init(scene3)` and nothing ever called
+`RF.Fx.teardown()` - not this module, not `engine3d.endRun()`. F3's init is a
+documented no-op when re-initialised against the same live scene, so the nine
+pools did not accumulate; they simply persisted forever, which is why the count
+sat flat at 9 instead of climbing to 45 over five cycles.
+
+The rule applied, which is the general form rather than a patch for nine
+objects: **whoever calls `init()` owns calling `teardown()`.** This module calls
+`RF.Fx.init`, so when that call is what brought the pools up, this module's
+teardown takes them back down. When `engine3d` had already initialised FX, F3's
+init is a no-op, this module never claims ownership, and the pools are left
+alone as another lane's lifecycle. `fxOwned` records which case applied and is
+cleared by teardown.
+
+Ownership is detected by **counting the `add()` calls** `RF.Fx.init` makes,
+through a wrapper installed on the scene for the duration of that one call and
+removed in a `finally`. The first version read `scene.children.length` instead,
+which was wrong in a way worth recording: a caller may hand this module any
+object whose only contract is `add()`, and on such a scene the field is
+undefined, the count reads 0 both times, and the module silently concludes it
+owns nothing. That is precisely how a check meant to catch a leak becomes a
+second leak. Wrapping `add()` works for every scene shape there is.
+
+This is scoped strictly to the FX that `world3d` itself starts. `FX-01`, the
+review's finding about active particles and edge overlays crossing run
+boundaries, remains F3 and A3's.
+
+### Selftest change
+
+`LIFE-01 IN-PAGE` re-runs the five-cycle test against the REAL siblings
+whenever they are loaded, and names whatever is left over by type rather than
+only counting it. The stub-scene cycles stay, because they still isolate this
+module's own objects; they are no longer the whole proof.
+
+```
+ok LIFE-01: five init/teardown cycles return the scene child list to
+   baseline 0 (0, 0, 0, 0, 0 after each teardown; peaks 249, 282, 254, 265, 262)
+ok LIFE-01 IN-PAGE: five cycles against the REAL siblings (Fx present,
+   Art3D present) return the scene to 0 children (0, 0, 0, 0, 0)
+ok LIFE-01 IN-PAGE: the RF.Fx ownership flag is released by teardown, so a
+   teardown without a matching init cannot tear down another lane's effects
+```
+
+The ownership guard was verified in both directions against real `fx3d.js`:
+
+```
+children after engine3d-style Fx.init:  9  (A3 owns them)
+children after world3d teardown:        9  -> Fx PRESERVED, correct
+after A3 tears its own Fx down:         0
+```
+
+### Proof matrix (re-run, all five configurations)
+
+```
+node --check world3d.js                                        PARSE_OK
+stubbed three + real sharkart + Art3D stub          PASS 136 notes, 0 fails
+stubbed three, NO RF.Art3D (fallback quads)         PASS 126 notes, 0 fails
+REAL vendored three, no Fx/shark3d                  PASS 136 notes, 0 fails
+IN-PAGE: real three + real shark3d + real fx3d
+         + real sharkart                            PASS 137 notes, 0 fails
+allocation probe, 20000 fixed steps after warm-up        2.174 bytes/step
+```
+
+Grep gates unchanged: 0 em dashes, 0 listeners, 0 DOM, 0 clock reads, 0 lights
+created.
+
+## ATMO-01 correction: the retune overshot bright (2026-08-19, third pass)
+
+The first retune fixed "the player grays out" and introduced the opposite
+failure: the zone-1 gameplay frame read as **pastel baby-blue milk**, with
+god-ray bands rendering as huge pale slabs, a very pale water background and
+collapsed contrast. Bright was delivered; bright and SATURATED was the actual
+requirement.
+
+Worth stating plainly because it shaped the fix: luminance-based assertions
+cannot catch this. A washed-out frame is BRIGHTER than a correct one, so every
+gate about the foreground keeping its chroma and about the abyss being darker
+than the shelf stayed green while the frame was wrong. The failure mode needed
+its own measurement.
+
+### Cause 1: CLEAR_MIX threw away the authored palette
+
+`CLEAR_MIX` sets how far the clear colour travels from the authored zone tint
+toward that zone's near-white fog colour. It was `0.55`.
+
+```
+authored shelf tint  #1b4d66   HSV S 0.735   (rich blue)
+authored shelf fog   #9fd4e8   HSV S 0.315   (nearly white)
+clear at mix 0.55    #6497ae   HSV S 0.425   <- below the 0.45 bar, milk
+clear at mix 0.22    #386a82   HSV S 0.569   <- saturated, still airy
+```
+
+`data.js` already contains a rich, deliberately authored water palette; a
+0.55 mix was discarding most of it. **`CLEAR_MIX` is now 0.22**: the fog lift is
+an accent on the authored tint rather than a replacement for it. The shelf is
+still clearly lighter and airier than the raw tint, so it does not read heavy.
+
+### Cause 2: batching accidentally raised the god-ray alpha ceiling
+
+Before batching, each shaft carried `rr(0.06, 0.16)` on its own MATERIAL, and
+the animate cycle scaled that down toward `RAY_ALPHA_LO`. After batching, alpha
+moved to the VERTEX channel with material opacity pinned at 1, so the per-shaft
+value became the whole story. Worse, seven additive shafts merged into one band
+OVERLAP AND SUM where they cross, which a per-mesh alpha never did. High alpha
+times stacking is what produced pale slabs across the shelf.
+
+- band alpha `rr(0.07, 0.17)` -> **`rr(0.030, 0.075)`**, about half the old
+  per-shaft ceiling, which is the right correction for members that can stack
+- shaft width `rr(40, 120)` -> **`rr(28, 74)`**: a merged band already reads as
+  a fan, so each shaft can be a shaft rather than a panel
+
+### Cause 3: the additive stack over the shelf
+
+Zone 1 is the top 900 px, and several full-width ADDITIVE layers blanket
+exactly that band, so their alphas are charged against shelf saturation on
+every frame the player is on the shelf. The worst-case stack was:
+
+| layer | was | now |
+|---|---|---|
+| surface wash (top 500 px, full width) | 0.16 | **0.075** |
+| caustics x3 (`CAUSTIC_ALPHA`) | 0.05 to 0.12 | **0.028 to 0.065** |
+| surface foam (pure white) | 0.42 | **0.30** |
+| shimmer | 0.05 | 0.05 (unchanged) |
+| ray band, 2 overlapping | 0.34 | **0.15** |
+| **total additive lift** | **+0.630** | **+0.421** |
+
+The surface wash was the single largest contributor and its only job is to say
+"up is bright" when seen from far below, which 0.075 still does.
+
+### New gates
+
+Three assertions that specifically catch pastel, since the existing ones
+provably could not:
+
+```
+ok ATMO-01: the zone-1 clear colour stays SATURATED, not pastel
+   (HSV S 0.569 >= 0.45, clear #386a82)
+ok ATMO-01: the shelf clear keeps most of the authored tint saturation
+   (0.569 vs authored 0.735)
+ok ATMO-01: no zone clear colour goes pastel (worst S 0.569 at zone 1)
+ok ATMO-01: god-ray shafts are accents not slabs, peak vertex alpha 0.082
+   <= 0.11 (two overlapping shafts stay under 0.22)
+```
+
+The ray gate reads the actual merged vertex alpha out of the batch geometry, so
+it measures what will really be drawn rather than the constant it came from.
+
+### The play-plane chroma guard is untouched
+
+The whole point of the first retune survives the correction: play-plane
+retention is still 99.4 / 98.3 / 95.7 / 92.2 percent across the four zones, the
+density guard still clamps any zone table, and hemisphere sky still tracks the
+authored tint (verified `0x1b4d66` at the shelf). Deepening the clear colour and
+cutting additive alpha does not fog the player; it stops painting white over
+the water behind it.
+
+Saturation now RISES with depth (0.569 -> 0.646 -> 0.683 -> 0.704) while value
+falls (0.510 -> 0.376 -> 0.235 -> 0.106). Vivid blue that gets darker, rather
+than pastel that gets grayer.
+
+The screenshot gate at shallow, mid and deep remains TEST-01's and is still the
+binding judgement. These numbers are the floor it sits on.

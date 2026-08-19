@@ -935,3 +935,286 @@ torn down through `unbindInput()` on `endRun()`.
   `hudState`, `tutorial`, `showResults`, `showMenu`, `runStarted`, `runEnded`.
   All are guarded so a different Lane C3 shape cannot crash the engine, but
   the two lanes must reconcile the names before integration.
+
+---
+
+## Fix round: REVIEW-3D (verdict REWORK), SPEC3D Rev 2 rulings
+
+Date: 2026-08-19. Scope: `engine3d.js` only. Findings owned by A3, each
+addressed against the Rev 2 rulings rather than the Rev 1 text where the two
+differ. Selftest grew from **76 to 119 assertions**, 0 FAIL.
+
+### LIFE-01 - run teardown choreography (engine share)
+
+`endRun()` is now the documented choreography, with ownership stated in the
+code per the Rev 2 ruling:
+
+| Owner | Releases |
+| --- | --- |
+| engine3d | player rig group, pooled score popups, and CALLING the siblings |
+| world3d | entities, views, decor, env textures, private materials |
+| fx3d | particle pools, DOM edge overlays, active effect state |
+
+Order is deliberate and commented in the file: **input first** (no kit callback
+can fire into a half-torn scene), then `abilitiesReset()` (restores
+`ctx.run.timeScale` before anything reads it), then engine-owned objects, then
+`RF.World.teardown` / `RF.Fx.teardown` guarded, then `RF.UI.runEnded`.
+
+Two behaviours worth flagging:
+
+1. **A lane-D rig is detached, not disposed.** Rev 2 lists shark3d's
+   geometry/material caches as persistent shared state. Disposing the player
+   rig's geometry would destroy the cache entry every NPC shark of that species
+   also draws from. So `endRun()` disposes only rigs this module built itself
+   (`__fallback === true`) and otherwise calls the optional
+   `RF.Art3D.releaseShark(rig)` if lane D exports one. If lane D wants a
+   different contract, this is the hook to change.
+2. **`teardownPops()` disposes the sprite materials AND the CanvasTextures.**
+   The pool is rebuilt per run against the live scene, so it must not survive
+   as a stale scene child. `popPool` is nulled; `scorePopup()` and `stepPops()`
+   both already no-op on a null pool, so a popup fired in the gap is dropped
+   safely rather than crashing.
+
+`endRun()` is idempotent - the `if (!running) return;` guard plus every step
+tolerating already-torn state.
+
+**Node proof (in `__selftest`).** 5 full `startRun`/`endRun` cycles against a
+real `THREE.Scene` and counting lane stubs that record every child they add and
+must remove exactly those:
+
+```
+ok LIFE-01: scene.children stable across 5 start/end cycles [0,0,0,0,0]
+ok LIFE-01: world and fx teardown removed every child they added
+ok LIFE-01: World.teardown and Fx.teardown each called once per cycle (10/10)
+ok LIFE-01: popup pool released by teardown
+ok LIFE-01: nothing run-scoped survives endRun (residual children=0)
+ok LIFE-01: endRun is idempotent (double call is a no-op)
+ok LIFE-01: a double endRun did not change the scene
+ok LIFE-01: a throwing sibling teardown is absorbed
+ok LIFE-01: the engine still left the run after a throwing teardown
+ok LIFE-01: siblings without teardown() degrade quietly
+ok LIFE-01: engine-owned rig and popups still released without sibling teardowns
+```
+
+**BROWSER-LEVEL PROOF - for the orchestrator to run.** The node half proves
+scene-graph stability; it cannot prove GPU stability because there is no GL
+context under node. `renderer.info.memory` is the missing half. Run this at
+`844x390 DPR3` with all six modules loaded, after lanes B3/D3/F3 land their own
+teardowns:
+
+```js
+// paste in the console on index3d.html, at the menu
+const R = RF.Game.renderer, S = RF.Game.scene;
+const snap = () => ({ children: S.children.length,
+                      geometries: R.info.memory.geometries,
+                      textures: R.info.memory.textures,
+                      programs: R.info.programs.length });
+const rows = [];
+for (let i = 0; i < 6; i++) {
+  RF.Game.startRun('leviathan');           // flagship: the heaviest scene
+  await new Promise(r => setTimeout(r, 1500));   // let a real run populate
+  RF.Game.endRun();
+  await new Promise(r => setTimeout(r, 300));
+  rows.push(snap());
+}
+console.table(rows);
+```
+
+PASS CONDITION: rows 2..6 are identical to row 2 in all four columns (row 1 is
+allowed to differ - it includes first-run shared-cache warmup, which is
+persistent BY DESIGN per Rev 2: shark3d geometry/material caches and world3d
+texCache). A monotonically rising `geometries` or `textures` column is the
+leak signature and fails the gate. Also confirm visually that no stale
+particle, billboard or edge glow is on screen at the menu after the loop.
+
+### ATMO-01 - stop mutating atmosphere (engine share)
+
+Rev 2 makes **world3d.js the sole atmosphere owner** (fog, clear color,
+hemisphere lerp targets). Engine side:
+
+- **Deleted `stepZoneLook()` entirely.** It was lerping `scene3.fog.color`,
+  `scene3.fog.density`, `scene3.background` and `hemi.color`/`hemi.intensity`
+  every fixed step with its own second density formula
+  (`0.00030 + 0.00022 * pressureTier / 9`), which is exactly the duelling
+  second owner the review cited. That formula is gone; B3's `FOG_D0`/`FOG_D1`
+  is now the only one in the build.
+- **Replaced with `stepZoneName()`**, which reads `RF.World.zoneAt(y)` and
+  copies only `z.name` into the pre-allocated `zoneState` scratch. The zone
+  name is a HUD label, not atmosphere.
+- **Lights are created ONCE** in `buildRenderer()` and never touched again by
+  this module. `TMP_COL`, the scratch color the old lerp needed, is deleted.
+- **Handoff is two-channel** because the lanes are concurrent: `ctx.lights` (a
+  pre-allocated `LIGHTS` record carrying `hemi`, `sun`, `scene`, `renderer`)
+  is always present for `World.init` to read, and `handOffLights()` calls the
+  optional `RF.World.setLights(LIGHTS)` setter after every `World.init` and
+  again after a context restore. Both guarded; a lane implementing neither
+  still gets working static lights, it just will not lerp them per zone.
+
+Proved by driving 120 steps at `y = 3400` (deep water, where the old code
+lerped hardest) and asserting nothing moved:
+
+```
+ok ATMO-01: engine handed its light refs to the atmosphere owner
+ok ATMO-01: 120 steps did not touch scene.fog
+ok ATMO-01: 120 steps did not touch scene.background
+ok ATMO-01: 120 steps did not touch the hemisphere light
+ok ATMO-01: the engine still reads the zone NAME for the HUD ("The Abyss")
+```
+
+### PERF-01 - fixed-step allocation
+
+The report object the review cites is B3's `applyZoneAtmo()` return value, but
+the engine had the same class of defect in `stepZoneLook`, which is now deleted
+outright. `zoneState` is module scratch that is written, never reallocated;
+`LIGHTS` likewise.
+
+I then re-audited every function on the step and render paths -
+`step`, `stepControl`, `stepMotion`, `stepAnim`, `stepEat`, `stepHunger`,
+`stepCombo`, `stepFrenzy`, `stepMusic`, `stepZoneName`, `stepPops`,
+`stepPlayerHits`, `swallow`, `multiBite`, `renderPlayer`, `stepCamera`,
+`pushHud`, `renderFrame` - with a script matching object/array literals,
+`new THREE.*`, `new Array/Object`, `.concat`, `.slice` and `.map`.
+**Zero hits.** The pre-allocated reusables remain `EAT_BUF`, `FX_OPT`,
+`HUD_STATE`, `anim.state`, `zoneState`, `camState` and now `LIGHTS`.
+
+```
+ok PERF-01: zone state is module scratch, never reallocated
+ok PERF-01/ATMO-01: ctx.lights is the shared scratch record
+```
+
+PERF-04 (`ui3d.hudState()` allocating a `next` object per call) is lane C3's
+and untouched here; the engine's own `HUD_STATE` reuse is unchanged and still
+proven.
+
+### GL-01 - WebGL context loss and restore
+
+New `onContextLost` / `onContextRestored`, bound canvas-level in
+`bindContextLoss()` from `boot()` before any run can start.
+
+**On loss:** `preventDefault()` first and unconditionally - without it the
+browser never fires `webglcontextrestored` and the canvas is permanently dead.
+Then pause through `kit.pause(true)` (the same pause the app menu uses, so the
+accumulator freezes and the stick is dropped exactly as on any other pause),
+then a guarded `RF.UI.notice(...)`, then one `console.error`.
+
+**On restore:** `endRun()` through the standard choreography, re-apply the
+renderer state that did not survive the new context (pixel ratio, color space,
+tone mapping + exposure, `resetState()`), `resize()`, re-lend the lights,
+unpause, `RF.UI.showMenu()`.
+
+**Why menu-return is the safe restoration** (the review asked this explicitly):
+on context loss every GPU resource this process uploaded is gone - all
+geometry, textures, materials and programs, across all four lanes. The engine
+cannot re-upload another lane's private resources from outside that lane. A
+mid-run rebuild would therefore have to reconstruct world entities, FX pools
+and the player rig against a scene whose surviving children still hold dangling
+GPU handles, while the sim clock has skipped an unbounded stretch of wall time.
+That is three lanes of partially-valid state with no way to verify it.
+Menu-return discards all of it through a path that already runs on every normal
+run end and is proven idempotent above, so the restored context starts from the
+one state the boot path is known to produce. Losing a run is a much smaller
+cost than continuing a silently corrupt one, and context loss is rare enough on
+the target class that the trade is clearly the right side.
+
+```
+ok GL-01: webglcontextlost called preventDefault (restore can fire)
+ok GL-01: the run paused on context loss
+ok GL-01: a notice went out through RF.UI
+ok GL-01: restore cleared the loss state / unpaused / tore the run down
+ok GL-01: restore returned to the menu
+ok GL-01: restore left no run-scoped scene children
+ok GL-01: loss/restore are safe with no RF.UI
+```
+
+**Still open for the orchestrator:** the real-device half. Force loss with
+`renderer.getContext().getExtension('WEBGL_lose_context').loseContext()` then
+`.restoreContext()`, once mid-run and once at the menu, on the target mobile
+class. The node proof drives the handlers directly; it does not exercise a real
+driver-level loss.
+
+### LAW-01 - window listeners now PERMITTED
+
+Rev 2 ruling quoted verbatim in the code above the listeners: window-level
+`resize` / `orientationchange` / `visualViewport` are permitted **in
+engine3d.js only**, as the renderer host platform adapter.
+
+The comment states the narrow scope: both listeners call `resize()`, which only
+re-sizes the drawing buffer and re-derives the camera aspect. They observe the
+VIEWPORT, never a gesture; all game input remains on `kit.input`.
+
+Swept the file for others - there are exactly **two** `root.addEventListener`
+calls (lines 1853-1854) and **zero** `window.` / `document.addEventListener`.
+The GL-01 pair is `canvasEl.addEventListener`, i.e. element-level on the canvas
+this module created and owns, which is not a window listener at all.
+
+### ORCH-01 - boot dependency assert (engine side)
+
+New `assertDeps()`, called once from `boot()`. Required: `RF.World`, `RF.Fx`,
+`RF.Art3D`, `RF.UI`, plus `RFD` tables and `three`. Optional: `RF.Juice`,
+`RF.Sound`, `RF.Music`, `RF.Abilities`, `RF.Meta`, `RF.DevMode`. It emits a
+single `console.error` naming both lists and returns a report.
+
+**It does not throw**, by design: every cross-namespace call in this file is
+already guarded and degrades, so a missing lane is a downgraded game rather
+than a dead one. Failing hard at boot would turn a recoverable degradation
+into a black screen.
+
+```
+ok ORCH-01: assertDeps reports without throwing
+ok ORCH-01: all four required namespaces reported missing (RF.World RF.Fx RF.Art3D RF.UI)
+ok ORCH-01: optional namespaces reported separately
+ok ORCH-01: a complete graph reports ok (missing=)
+```
+
+The load-order half of ORCH-01 (`sharkart.js` as the 2D bake factory) is
+settled by the Rev 2 ruling and is `index3d.html`'s to reflect; nothing in
+engine3d.js depends on `sharkart.js`.
+
+### Regression: the review's passing contract checks still pass
+
+Re-verified explicitly, all still green after these edits:
+
+```
+ok playerHits applied once, hp fell by 12.03
+ok a consumed hit opened the invulnerability window
+ok consumed hit was not re-applied on later frames
+ok finishRun called Abilities.reset before leaving
+ok time scale restored on run exit
+ok ctx.dpr carries the pixel ratio
+ok world (x, -y) mapping applied to the rig group
+```
+
+Same-frame hit consumption is untouched: `RF.World.update()` still runs before
+`stepPlayerHits()` inside `step()`. Chrono/timeScale restore is untouched and
+now additionally runs earlier in `endRun()` than any scene disposal.
+
+### Proof commands
+
+```
+$ node --import ./register.mjs harness.mjs     # three -> vendored, no DOM
+  RFD sharks: 61
+  119 ok, 0 FAIL
+  RESULT pass=true
+
+$ node --import ./register.mjs siblings.mjs    # data + meta + abilities + engine3d
+  namespaces: Meta,DevMode,Abilities,Game
+  Meta.activeShark: function | Abilities.passives: function
+  assertions: 119 FAIL: 0 pass=true
+```
+
+Law sweep after the fix round: 0 em dashes, 0 `Math.random`, 0
+`setTimeout`/`setInterval` in code, 2 permitted window listeners, 0 engine-side
+atmosphere writes outside one-time creation, 0 allocations on the step or
+render paths.
+
+### Still not discharged by this lane
+
+Unchanged from the original notes and reinforced by the review: **nothing here
+has run in a browser.** No `WebGLRenderer` has ever been constructed by this
+lane. The draw-call (<120), triangle (<60k), memory (<=120MB) and 60fps gates,
+the console-clean 844x390 DPR3 boot, the 61/61 sweep, the `renderer.info.memory`
+teardown proof scripted above, the real-device context-loss test, and the owner
+iPhone verdict all remain open and belong to the orchestrator.
+
+`PERF-03` (draw-call batching) and `ART-01` (Leviathan silhouette) are D3/B3/F3
+findings; no engine-side change can close them.
