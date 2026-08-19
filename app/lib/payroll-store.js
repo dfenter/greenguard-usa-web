@@ -1199,6 +1199,17 @@ const ITEM_COLS = `
   employee_tax_cents, employer_tax_cents, net_cents,
   ytd_snapshot, detail`
 
+// payroll_items and payroll_runs share seven column names (id, created_at,
+// gross_cents, net_cents, reimbursement_cents, employee_tax_cents,
+// employer_tax_cents), so every bare ITEM_COLS name is ambiguous once the two
+// are joined. Qualify each select item with the items alias; the ::cast and
+// `AS alias` tails are left alone so the returned keys don't change.
+function qualifyItemCols(alias) {
+  return ITEM_COLS.split(',')
+    .map((col) => col.replace(/^(\s*)([a-z_][a-z0-9_]*)\b/i, `$1${alias}.$2`))
+    .join(',')
+}
+
 function hydrateItem(r) {
   if (!r) return null
   const out = { id: r.id, runId: r.run_id, employeeId: r.employee_id, employeeName: r.employee_name }
@@ -1227,7 +1238,7 @@ function hydrateItem(r) {
 // the input shape for lib/payroll-filings.js (941/940/W-2/deposit rollups).
 async function listFinalizedItemRows({ year }) {
   const { rows } = await q(
-    `SELECT ${ITEM_COLS.replace('id, run_id', 'pi.id, run_id')}
+    `SELECT ${qualifyItemCols('pi')}
             , to_char(r.pay_date,'YYYY-MM-DD')     AS pay_date
             , to_char(r.period_start,'YYYY-MM-DD') AS period_start
             , to_char(r.period_end,'YYYY-MM-DD')   AS period_end
