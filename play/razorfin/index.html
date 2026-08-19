@@ -10,23 +10,409 @@
 <link rel="icon" type="image/png" href="favicon.png">
 <title>Razorfin</title>
 <style>
-  :root { color-scheme: dark; }
-  html, body { margin:0; width:100%; height:100%; overflow:hidden; background:#02101c; }
-  body { position:fixed; inset:0; box-sizing:border-box; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); display:flex; align-items:center; justify-content:center; color:#e8f5f4; font-family:Avenir Next, Trebuchet MS, system-ui, sans-serif; user-select:none; -webkit-user-select:none; -webkit-tap-highlight-color:transparent; overscroll-behavior:none; }
-  #game-root { width:100%; height:100%; display:flex; align-items:center; justify-content:center; min-width:0; min-height:0; }
-  canvas { display:block; touch-action:none; }
+  :root {
+    color-scheme: dark;
+    --ink: #e8f5f4;
+    --dim: #8fb4c4;
+    --deep: #02101c;
+    --panel: rgba(10, 34, 51, .82);
+    --panel-hi: rgba(18, 52, 73, .92);
+    --line: rgba(88, 176, 214, .28);
+    --line-hi: rgba(120, 226, 255, .58);
+    --gold: #ffd67a;
+    --good: #7fe3b0;
+    --bad: #ff8b7a;
+    --font: Avenir Next, Trebuchet MS, system-ui, sans-serif;
+    --pad-t: env(safe-area-inset-top);
+    --pad-r: env(safe-area-inset-right);
+    --pad-b: env(safe-area-inset-bottom);
+    --pad-l: env(safe-area-inset-left);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--deep); }
+  body {
+    position: fixed; inset: 0; color: var(--ink); font-family: var(--font);
+    user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+  button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+
+  /* Game canvas fills the viewport; ui3d overlays sit above it. */
+  #game-root { position: absolute; inset: 0; display: block; }
+  #game-root canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
+  /* --------------------------------------------------------- overlays */
+  .rf-screen { position: absolute; inset: 0; display: none; z-index: 20; }
+  .rf-screen.rf-on { display: flex; }
+
+  /* Out-of-run screens get a readable scrim over the live water. */
+  #rfMenu, #rfShop, #rfResults {
+    flex-direction: column;
+    padding: calc(var(--pad-t) + 12px) calc(var(--pad-r) + 14px)
+             calc(var(--pad-b) + 12px) calc(var(--pad-l) + 14px);
+    background: linear-gradient(180deg, rgba(2, 14, 26, .82), rgba(1, 8, 16, .94));
+    overflow: hidden;
+  }
+
+  .rf-bar-top {
+    display: flex; align-items: center; gap: 12px; flex: 0 0 auto;
+    padding-bottom: 10px; border-bottom: 1px solid var(--line);
+  }
+  .rf-title {
+    margin: 0; font-size: clamp(22px, 4.4vw, 40px); font-weight: 900;
+    letter-spacing: .18em; color: #dffcff;
+    text-shadow: 0 0 22px rgba(87, 229, 255, .5);
+  }
+  .rf-spacer { flex: 1 1 auto; }
+  .rf-stat { display: flex; align-items: baseline; gap: 6px; font-size: 15px; }
+  .rf-stat b { color: var(--gold); font-weight: 800; font-variant-numeric: tabular-nums; }
+  .rf-stat span { color: var(--dim); font-size: 14px; letter-spacing: .08em; }
+
+  .rf-scroll {
+    flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding: 12px 2px 8px;
+  }
+  .rf-bar-bottom {
+    display: flex; align-items: center; gap: 12px; flex: 0 0 auto;
+    padding-top: 10px; border-top: 1px solid var(--line);
+  }
+
+  .rf-btn {
+    min-height: 48px; min-width: 120px; padding: 12px 22px;
+    border: 1px solid var(--line-hi); border-radius: 10px;
+    background: rgba(17, 86, 99, .7); color: var(--ink);
+    font-size: 15px; font-weight: 800; letter-spacing: .12em;
+  }
+  .rf-btn:active { background: rgba(34, 132, 152, .86); }
+  .rf-btn:disabled { opacity: .38; }
+  .rf-btn-ghost { background: rgba(10, 34, 51, .7); border-color: var(--line); }
+  .rf-btn-go { background: linear-gradient(160deg, rgba(31, 143, 160, .9), rgba(12, 76, 95, .92)); }
+
+  /* ------------------------------------------------------------ menu */
+  #rfMenuXp { display: flex; flex-direction: column; gap: 4px; min-width: 132px; }
+  .rf-meter { height: 8px; border: 1px solid var(--line); border-radius: 4px; background: rgba(207, 245, 255, .08); overflow: hidden; }
+  .rf-meter > i { display: block; width: 0; height: 100%; background: linear-gradient(90deg, #73e6ff, #3f9fc4); transition: width .18s ease; }
+  #rfMenuXpText, #rfResXpText { color: var(--dim); font-size: 14px; letter-spacing: .06em; }
+
+  .rf-tier { margin-bottom: 18px; }
+  .rf-tier-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  .rf-tier-n { font-size: 16px; font-weight: 800; letter-spacing: .12em; color: #cdeef8; }
+  .rf-tier-act { font-size: 14px; color: var(--dim); letter-spacing: .1em; }
+  .rf-tier-lock { margin-left: auto; font-size: 14px; color: var(--gold); letter-spacing: .06em; }
+  .rf-tier.rf-locked .rf-grid { opacity: .44; }
+
+  .rf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 10px; }
+  .rf-card {
+    display: flex; flex-direction: column; gap: 8px; align-items: stretch;
+    min-height: 148px; padding: 10px; text-align: left;
+    border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+  }
+  .rf-card:active { background: var(--panel-hi); }
+  .rf-card-sel { border-color: var(--line-hi); background: linear-gradient(160deg, rgba(23, 103, 119, .78), rgba(6, 40, 53, .84)); box-shadow: 0 0 22px rgba(67, 218, 225, .18) inset; }
+  .rf-card-locked { opacity: .5; }
+  .rf-card-unowned .rf-card-name { color: var(--dim); }
+
+  .rf-thumb {
+    display: flex; align-items: center; justify-content: center;
+    height: 74px; border-radius: 8px; border: 1px solid var(--line);
+    background-size: cover; background-position: center; background-color: rgba(4, 22, 36, .8);
+  }
+  .rf-mono-text { font-size: 26px; font-weight: 900; letter-spacing: .06em; text-shadow: 0 2px 8px rgba(0, 0, 0, .5); }
+  .rf-card-name { font-size: 14px; font-weight: 800; line-height: 1.2; color: var(--ink); }
+  .rf-card-foot { margin-top: auto; font-size: 14px; }
+  .rf-card-cost { color: var(--gold); }
+  .rf-card-own { color: var(--good); }
+  .rf-card-lock { color: var(--dim); }
+
+  #rfMenuSel { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
+  #rfMenuSelName { font-size: 16px; font-weight: 800; letter-spacing: .06em; }
+  #rfMenuSelBlurb { font-size: 14px; color: var(--dim); line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ------------------------------------------------------------ shop */
+  .rf-shop-act { margin-bottom: 20px; }
+  .rf-shop-act-h { margin: 0 0 10px; font-size: 16px; font-weight: 800; letter-spacing: .16em; color: #cdeef8; }
+  .rf-row {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 7px; padding: 8px 10px;
+    border: 1px solid var(--line); border-radius: 10px; background: var(--panel); min-height: 60px;
+  }
+  .rf-row-locked { opacity: .52; }
+  .rf-row-active { border-color: var(--line-hi); background: var(--panel-hi); }
+  .rf-badge {
+    flex: 0 0 auto; display: flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 8px; font-size: 14px; font-weight: 900;
+  }
+  .rf-row-mid { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .rf-row-name { font-size: 15px; font-weight: 800; letter-spacing: .04em; }
+  /* Stat bars sit in one row so a shop entry stays compact on a 390px screen. */
+  .rf-bars { display: flex; flex-direction: row; gap: 10px; flex-wrap: wrap; }
+  .rf-bar { display: flex; align-items: center; gap: 5px; flex: 1 1 96px; min-width: 88px; }
+  .rf-bar-l { flex: 0 0 auto; font-size: 14px; color: var(--dim); letter-spacing: .04em; }
+  .rf-bar-t { flex: 1 1 auto; height: 6px; border-radius: 3px; background: rgba(207, 245, 255, .1); overflow: hidden; }
+  .rf-bar-f { display: block; width: 0; height: 100%; }
+  .rf-row-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .rf-chip-active, .rf-chip-passive {
+    padding: 2px 7px; border-radius: 5px; font-size: 14px; letter-spacing: .03em;
+  }
+  .rf-chip-active { background: rgba(255, 214, 122, .16); color: var(--gold); }
+  .rf-chip-passive { background: rgba(143, 180, 196, .14); color: var(--dim); }
+
+  .rf-buy {
+    flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+    min-width: 96px; min-height: 48px; padding: 8px 12px;
+    border: 1px solid var(--line-hi); border-radius: 9px; background: rgba(17, 86, 99, .74);
+    font-size: 14px; font-weight: 800; letter-spacing: .1em;
+  }
+  .rf-buy:active { background: rgba(34, 132, 152, .88); }
+  .rf-buy:disabled { opacity: .5; }
+  .rf-buy-locked { border-color: var(--line); background: rgba(10, 34, 51, .7); color: var(--dim); }
+  .rf-buy-inuse { border-color: rgba(127, 227, 176, .6); background: rgba(20, 74, 62, .7); color: var(--good); }
+  .rf-price { font-size: 14px; font-weight: 700; color: var(--gold); letter-spacing: .02em; }
+
+  #rfShopFoot { display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; min-width: 0; }
+  #rfShopUpName { font-size: 14px; color: var(--dim); letter-spacing: .1em; }
+  #rfShopUp { display: flex; gap: 8px; align-items: stretch; }
+  .rf-up {
+    flex: 1 1 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    min-height: 56px; padding: 6px;
+    border: 1px solid var(--line); border-radius: 9px; background: var(--panel);
+  }
+  .rf-up:active { background: var(--panel-hi); }
+  .rf-up-max { opacity: .6; }
+  .rf-up-l { font-size: 14px; font-weight: 800; letter-spacing: .06em; }
+  .rf-pips { display: flex; gap: 4px; }
+  .rf-pip { width: 10px; height: 10px; border-radius: 2px; background: rgba(88, 176, 214, .28); }
+  .rf-pip-on { background: var(--gold); }
+  .rf-up-c { font-size: 14px; color: var(--gold); font-variant-numeric: tabular-nums; }
+  .rf-up-empty { flex: 1 1 auto; padding: 12px; font-size: 14px; color: var(--dim); }
+
+  #rfShopToast {
+    position: absolute; left: 50%; bottom: calc(var(--pad-b) + 132px); transform: translateX(-50%);
+    max-width: 76vw; padding: 8px 14px; border-radius: 8px;
+    border: 1px solid rgba(255, 139, 122, .5); background: rgba(38, 16, 14, .92);
+    color: #ffcfc6; font-size: 14px; letter-spacing: .04em; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+    opacity: 0; pointer-events: none; transition: opacity .16s ease; z-index: 30;
+  }
+  #rfShopToast.rf-on { opacity: 1; }
+
+  /* --------------------------------------------------------- results */
+  #rfResults { align-items: center; justify-content: center; }
+  /* Column layout: the detail block scrolls, the action row stays pinned, so
+     AGAIN is reachable without scrolling even with three unlock callouts. */
+  #rfResPanel {
+    display: flex; flex-direction: column; min-height: 0;
+    width: min(560px, 94vw); max-height: 100%; overflow: hidden; padding: 14px 20px;
+    border: 1px solid var(--line-hi); border-radius: 14px;
+    background: linear-gradient(150deg, rgba(3, 22, 37, .96), rgba(2, 10, 20, .96));
+    box-shadow: 0 0 60px rgba(24, 155, 193, .16);
+  }
+  #rfResHead { flex: 0 0 auto; }
+  #rfResScroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .rf-eyebrow { font-size: 14px; letter-spacing: .24em; color: #71e9ed; }
+  #rfResScore { margin: 2px 0 2px; font-size: clamp(26px, 4.6vw, 40px); font-weight: 900; letter-spacing: .06em; font-variant-numeric: tabular-nums; }
+  #rfResBest { font-size: 15px; color: var(--dim); letter-spacing: .1em; }
+  #rfResBest.rf-newbest { color: var(--gold); font-weight: 900; }
+  #rfResRows { margin: 10px 0; display: flex; flex-direction: column; gap: 3px; }
+  .rf-res-row { display: flex; align-items: baseline; gap: 10px; padding-bottom: 4px; border-bottom: 1px solid rgba(88, 176, 214, .16); }
+  .rf-res-l { flex: 1 1 auto; font-size: 15px; color: var(--dim); }
+  .rf-res-v { font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .rf-res-bonus .rf-res-v, .rf-res-bonus .rf-res-l { color: var(--gold); }
+  #rfResLevel { font-size: 15px; font-weight: 800; letter-spacing: .08em; margin-bottom: 4px; }
+  #rfResLevel.rf-levelup { color: var(--gold); text-shadow: 0 0 16px rgba(255, 214, 122, .5); }
+  #rfResUnlocks { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+  .rf-unlock { padding: 5px 10px; border-left: 2px solid var(--gold); background: rgba(255, 214, 122, .1); color: #ffe6b3; font-size: 14px; line-height: 1.3; }
+  #rfResActions { flex: 0 0 auto; display: flex; gap: 9px; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(88, 176, 214, .2); }
+  #rfResActions .rf-btn { flex: 1 1 0; min-width: 0; padding: 12px 8px; }
+
+  /* -------------------------------------------------------------- HUD */
+  /* One top-left cluster (UI_LAW rule 4). Non-interactive except the power
+     button, so taps fall through to the game surface everywhere else. */
+  #rfHud { pointer-events: none; }
+  #rfHudCluster {
+    position: absolute;
+    top: calc(var(--pad-t) + 10px); left: calc(var(--pad-l) + 12px);
+    display: flex; flex-direction: column; gap: 5px;
+    min-width: 168px; max-width: 46vw; padding: 8px 10px;
+    border: 1px solid var(--line); border-radius: 10px;
+    background: linear-gradient(135deg, rgba(3, 17, 29, .76), rgba(3, 10, 20, .44));
+    backdrop-filter: blur(5px);
+  }
+  #rfHudTop { display: flex; align-items: baseline; gap: 8px; }
+  #rfHudName { flex: 1 1 auto; min-width: 0; font-size: 14px; font-weight: 800; letter-spacing: .06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #rfHudCoins { font-size: 14px; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums; }
+  .rf-hud-meter { height: 7px; border-radius: 4px; background: rgba(207, 245, 255, .1); overflow: hidden; }
+  .rf-hud-meter > i { display: block; width: 0; height: 100%; transition: width .1s linear; }
+  #rfHudHp { background: linear-gradient(90deg, #7fe3b0, #46b088); }
+  #rfHudHp.rf-low { background: linear-gradient(90deg, #ff8b7a, #d8483a); }
+  #rfHudBoost { background: linear-gradient(90deg, #ffd67a, #d79b2f); }
+
+  /* Power button: bottom-right, clear of the left thumb, >= 44px. */
+  #rfPower {
+    position: absolute; pointer-events: auto;
+    right: calc(var(--pad-r) + 16px); bottom: calc(var(--pad-b) + 18px);
+    width: 84px; height: 84px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid var(--line); background: rgba(5, 28, 43, .8);
+    overflow: hidden; touch-action: none;
+  }
+  #rfPower.rf-hide { display: none; }
+  #rfPower.rf-ready { border-color: var(--gold); box-shadow: 0 0 24px rgba(255, 214, 122, .38); }
+  #rfPowerFill {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 0;
+    background: rgba(255, 214, 122, .26); transition: height .12s linear;
+  }
+  #rfPowerLabel {
+    position: relative; padding: 0 8px; text-align: center; line-height: 1.15;
+    font-size: 14px; font-weight: 800; letter-spacing: .04em;
+  }
+  #rfPower:active { background: rgba(27, 117, 141, .84); }
+
+  /* Combo chip: <= 24px tall, one at a time, beside the HUD cluster. */
+  #rfChip {
+    position: absolute; left: calc(var(--pad-l) + 12px);
+    top: calc(var(--pad-t) + 78px);
+    height: 24px; padding: 0 10px; display: flex; align-items: center;
+    border-radius: 12px; background: rgba(255, 214, 122, .18);
+    color: var(--gold); font-size: 14px; font-weight: 900; letter-spacing: .06em;
+    opacity: 0; transform: translateY(-4px);
+    transition: opacity .12s ease, transform .12s ease;
+  }
+  #rfChip.rf-on { opacity: 1; transform: translateY(0); }
+
+  #rfDevChip {
+    position: absolute; right: calc(var(--pad-r) + 12px); top: calc(var(--pad-t) + 10px);
+    display: none; padding: 3px 9px; border-radius: 6px;
+    border: 1px solid rgba(255, 139, 122, .55); background: rgba(46, 18, 16, .82);
+    color: #ffb3a6; font-size: 14px; font-weight: 800; letter-spacing: .14em;
+  }
+  #rfDevChip.rf-on { display: block; }
+
+  /* Tutorial: one thin strip at the top edge, one line, fades out. */
+  #rfTutorial {
+    position: absolute; left: 50%; top: calc(var(--pad-t) + 10px); transform: translateX(-50%);
+    max-width: min(56vw, 420px); height: 30px; padding: 6px 14px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 7px; background: rgba(2, 13, 24, .5);
+    color: #b7dbe7; font-size: 14px; letter-spacing: .04em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    opacity: 0; transition: opacity .2s ease;
+  }
+  #rfTutorial.rf-on { animation: rf-tut 3.2s ease forwards; }
+  @keyframes rf-tut { 0%, 20% { opacity: .9; } 74% { opacity: .28; } 100% { opacity: 0; } }
+
+  @media (max-width: 560px) {
+    .rf-grid { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+    .rf-card { min-height: 136px; }
+    .rf-thumb { height: 64px; }
+    #rfPower { width: 74px; height: 74px; }
+    #rfHudCluster { min-width: 150px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    #rfTutorial.rf-on { animation: none; opacity: .8; }
+  }
 </style>
 </head>
 <body>
 <div id="game-root"></div>
-<script src="/play/_shared/phaser.min.js"></script>
+
+<!-- ui3d.js owns everything below. Ids are the contract with ui3d.js. -->
+
+<!-- MENU -->
+<section id="rfMenu" class="rf-screen">
+  <div class="rf-bar-top">
+    <h1 class="rf-title">RAZORFIN</h1>
+    <div class="rf-spacer"></div>
+    <div id="rfMenuXp">
+      <div class="rf-stat"><b id="rfMenuLevel">Level 1</b></div>
+      <div class="rf-meter"><i id="rfMenuXpFill"></i></div>
+      <div id="rfMenuXpText">0 / 100 XP</div>
+    </div>
+    <div class="rf-stat"><b id="rfMenuCoins">0</b><span>COINS</span></div>
+  </div>
+  <div id="rfMenuRoster" class="rf-scroll"></div>
+  <div class="rf-bar-bottom">
+    <div id="rfMenuSel">
+      <div id="rfMenuSelName">Reef Shark</div>
+      <div id="rfMenuSelBlurb"></div>
+    </div>
+    <button id="rfMenuShop" class="rf-btn rf-btn-ghost" type="button">SHOP</button>
+    <button id="rfDive" class="rf-btn rf-btn-go" type="button">DIVE</button>
+  </div>
+</section>
+
+<!-- SHOP -->
+<section id="rfShop" class="rf-screen">
+  <div class="rf-bar-top">
+    <h1 class="rf-title">SHOP</h1>
+    <div class="rf-spacer"></div>
+    <div class="rf-stat"><b id="rfShopCoins">0</b><span>COINS</span></div>
+  </div>
+  <div id="rfShopList" class="rf-scroll"></div>
+  <div class="rf-bar-bottom">
+    <div id="rfShopFoot">
+      <div id="rfShopUpName">Upgrades</div>
+      <div id="rfShopUp"></div>
+    </div>
+    <button id="rfShopBack" class="rf-btn rf-btn-ghost" type="button">BACK</button>
+  </div>
+  <div id="rfShopToast" role="status" aria-live="polite"></div>
+</section>
+
+<!-- RESULTS -->
+<section id="rfResults" class="rf-screen">
+  <div id="rfResPanel">
+    <div id="rfResHead">
+      <div class="rf-eyebrow">RUN COMPLETE</div>
+      <div id="rfResScore">0</div>
+      <div id="rfResBest">Best 0</div>
+    </div>
+    <div id="rfResScroll">
+      <div id="rfResRows"></div>
+      <div id="rfResLevel">Level 1</div>
+      <div class="rf-meter"><i id="rfResXpFill"></i></div>
+      <div id="rfResXpText">0 / 100 XP</div>
+      <div id="rfResUnlocks"></div>
+    </div>
+    <div id="rfResActions">
+      <button id="rfResMenu" class="rf-btn rf-btn-ghost" type="button">MENU</button>
+      <button id="rfResShop" class="rf-btn rf-btn-ghost" type="button">SHOP</button>
+      <button id="rfResAgain" class="rf-btn rf-btn-go" type="button">AGAIN</button>
+    </div>
+  </div>
+</section>
+
+<!-- HUD -->
+<section id="rfHud" class="rf-screen">
+  <div id="rfHudCluster">
+    <div id="rfHudTop">
+      <span id="rfHudName">Reef Shark</span>
+      <span id="rfHudCoins">0</span>
+    </div>
+    <div class="rf-hud-meter"><i id="rfHudHp"></i></div>
+    <div class="rf-hud-meter"><i id="rfHudBoost"></i></div>
+  </div>
+  <button id="rfPower" class="rf-hide" type="button">
+    <i id="rfPowerFill"></i>
+    <span id="rfPowerLabel">POWER</span>
+  </button>
+  <div id="rfChip" role="status" aria-live="polite"></div>
+  <div id="rfDevChip">DEV</div>
+  <div id="rfTutorial"></div>
+</section>
+
 <script src="/play/_shared/ggkit.js"></script>
 <script src="data.js"></script>
-<script src="juice.js"></script>
-<script src="sharkart.js"></script>
-<script src="abilities.js"></script>
-<script src="world.js"></script>
 <script src="meta.js"></script>
-<script src="game.js"></script>
+<script src="abilities.js"></script>
+<script src="sharkart.js"></script> <!-- 2D bake factory: canvases for 3D billboards (integration) -->
+<script src="ui3d.js"></script>
+<script type="importmap">
+  { "imports": { "three": "/play/_shared/three/three.module.min.js" } }
+</script>
+<script type="module" src="fx3d.js"></script>
+<script type="module" src="shark3d.js"></script>
+<script type="module" src="world3d.js"></script>
+<script type="module" src="engine3d.js"></script>
 </body>
 </html>

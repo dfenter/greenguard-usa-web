@@ -28,8 +28,14 @@ const EYE_EMISSIVE_INTENSITY = 0.9;
 const BODY_EMISSIVE_MAX = 0.05;
 const BODY_RAMP_BANDS = [0.40, 0.65, 0.84, 1.0];
 const BODY_DORSAL_START = 0.75;
-const BODY_FLANK_START = 0.45;
-const BODY_BELLY_END = 0.25;
+const BODY_FLANK_START = 0.50;
+const BODY_BELLY_END = BODY_FLANK_START;
+const BODY_RIM_END = 0.58;
+const BODY_FLANK_SATURATION_FLOOR = 0.45;
+const BODY_FLANK_SATURATION_TARGET = 0.70;
+const BODY_FLANK_VALUE_MIN = 0.45;
+const BODY_FLANK_VALUE_MAX = 0.75;
+const BODY_BLOCK_DISTANCE_MIN = 60;
 const KAIJU_PLATE_GLOW = 0xa3fff3;
 
 function clamp(value, lo, hi) {
@@ -85,10 +91,51 @@ function liftColorToLuminance(color, target) {
   return source.lerp(colorValue(WHITE), (desired - current) / (1 - current));
 }
 
-function capColorLuminance(color, maximum) {
-  const source = colorValue(color).clone();
-  const current = colorLuminance(source);
-  return current > maximum && current > 1e-6 ? source.multiplyScalar(maximum / current) : source;
+function rgbToHsv(color) {
+  const c = color instanceof THREE.Color
+    ? color
+    : new THREE.Color(color?.r || 0, color?.g || 0, color?.b || 0);
+  const max = Math.max(c.r, c.g, c.b);
+  const min = Math.min(c.r, c.g, c.b);
+  const delta = max - min;
+  let h = 0;
+  if (delta > 1e-6) {
+    if (max === c.r) h = ((c.g - c.b) / delta) % 6;
+    else if (max === c.g) h = (c.b - c.r) / delta + 2;
+    else h = (c.r - c.g) / delta + 4;
+    h /= 6;
+    if (h < 0) h += 1;
+  }
+  return { h, s: max <= 1e-6 ? 0 : delta / max, v: max };
+}
+
+function hsvToColor(h, s, v) {
+  const hue = ((h % 1) + 1) % 1;
+  const saturation = clamp(s, 0, 1);
+  const value = clamp(v, 0, 1);
+  const sector = hue * 6;
+  const i = Math.floor(sector);
+  const f = sector - i;
+  const p = value * (1 - saturation);
+  const q = value * (1 - saturation * f);
+  const t = value * (1 - saturation * (1 - f));
+  switch (i % 6) {
+    case 0: return new THREE.Color(value, t, p);
+    case 1: return new THREE.Color(q, value, p);
+    case 2: return new THREE.Color(p, value, t);
+    case 3: return new THREE.Color(p, q, value);
+    case 4: return new THREE.Color(t, p, value);
+    default: return new THREE.Color(value, p, q);
+  }
+}
+
+function saturatedBlockColor(source, saturationBoost, saturationFloor, valueFloor, valueCeiling, valueScale = 1) {
+  const hsv = rgbToHsv(source);
+  return hsvToColor(
+    hsv.h,
+    Math.max(hsv.s * saturationBoost, saturationFloor),
+    clamp(Math.max(hsv.v * valueScale, valueFloor), valueFloor, valueCeiling)
+  );
 }
 
 function paletteOf(def) {
@@ -202,37 +249,40 @@ function addVertex(positions, colors, x, y, z, color) {
   if (colors) colors.push(color.r, color.g, color.b);
 }
 
-function bodyRampColors(palette) {
-  const baseLuminance = colorLuminance(palette.base);
-  const flankTarget = clamp(Math.max(baseLuminance * 1.38, 0.36), 0.36, 0.52);
-  const flankSeed = lerpColor(palette.base, palette.accent, 0.58);
+function bodyRampColors(palette, act = 1) {
+  // These are authored as three colour blocks, not as a lightness ramp. The
+  // source roster's Act 3 colours can be nearly black, so value is explicitly
+  // staged here while hue remains owned by base/accent/glow.
+  const dorsal = saturatedBlockColor(palette.base, 1.5, 0.55, 0.18, 0.34, 0.9);
+  const flank = saturatedBlockColor(palette.accent, 1.5, BODY_FLANK_SATURATION_TARGET, 0.56, 0.70, 2.8);
+  const accentMark = saturatedBlockColor(palette.accent, 1.5, 0.74, 0.62, 0.72, 2.8);
+  const belly = liftColorToLuminance(palette.belly, 0.82);
+  const rim = act >= 3
+    ? saturatedBlockColor(palette.glow || palette.accent, 1.35, 0.78, 0.57, 0.72, 1.4)
+    : flank.clone();
   return {
-    // Keep the authored base hue on the ridge, but prevent the few lightest
-    // source palettes from defeating the dark-back/readable-flank contract.
-    dark: capColorLuminance(palette.base, 0.22),
-    flank: liftColorToLuminance(flankSeed, flankTarget),
-    accent: liftColorToLuminance(palette.accent, clamp(flankTarget * 1.08, 0.38, 0.58)),
-    belly: liftColorToLuminance(palette.belly, 0.78)
+    dorsal,
+    dark: dorsal,
+    flank,
+    accent: accentMark,
+    rim,
+    rimGlow: act >= 3,
+    belly
   };
 }
 
 function bodyVertexColor(ramp, theta, u, station, radial, pattern) {
   const topness = (Math.cos(theta) + 1) * 0.5;
-  const dark = ramp.dark;
-  const flank = ramp.flank;
-  const belly = ramp.belly;
   let color;
   if (topness >= BODY_DORSAL_START) {
-    // The boundary is already in the dark-back block. This keeps the full
-    // upper quarter visibly dorsal instead of leaving a bright shoulder ring.
-    const dorsalMix = 0.62 + 0.38 * ((topness - BODY_DORSAL_START) / (1 - BODY_DORSAL_START));
-    color = lerpColor(flank, dark, dorsalMix);
-  } else if (topness <= BODY_BELLY_END) {
-    color = belly.clone();
-  } else if (topness < BODY_FLANK_START) {
-    color = lerpColor(belly, flank, (topness - BODY_BELLY_END) / (BODY_FLANK_START - BODY_BELLY_END));
+    color = ramp.dorsal.clone();
+  } else if (topness >= BODY_FLANK_START) {
+    // The radial mesh gives us one deliberate edge row immediately above the
+    // belly line. Act 3 legends use that row to carry their glow hue into the
+    // body rather than asking the eye to find it only in feature geometry.
+    color = topness < BODY_RIM_END ? ramp.rim.clone() : ramp.flank.clone();
   } else {
-    color = flank.clone();
+    color = ramp.belly.clone();
   }
 
   const stripe = pattern === 'stripes' || pattern === 'bands' || pattern === 'ribbons';
@@ -241,12 +291,16 @@ function bodyVertexColor(ramp, theta, u, station, radial, pattern) {
   const structured = pattern === 'plates' || pattern === 'plating' || pattern === 'panels' || pattern === 'rivets' || pattern === 'bones' || pattern === 'coral' || pattern === 'swirls' || pattern === 'rings' || pattern === 'collar';
   // Pattern marks stay on the flank transition. Keeping them off the dorsal
   // and belly plateaus preserves the large value blocks at gameplay scale.
-  const patternBand = topness > BODY_BELLY_END && topness < BODY_DORSAL_START;
-  if (patternBand && stripe && ((Math.floor(u * 11) + Math.floor(radial / 3)) % 3 === 0)) color.lerp(ramp.accent, 0.42);
-  if (patternBand && spotted && hash01(station, radial, pattern.length) > 0.73) color.lerp(ramp.accent, 0.5);
-  if (patternBand && marked && hash01(station * 2, radial * 3, pattern.length) > 0.8) color.lerp(ramp.accent, 0.32);
-  if (patternBand && structured && ((station + radial * 2 + pattern.length) % 5 === 0)) color.lerp(ramp.accent, pattern === 'collar' ? 0.56 : 0.26);
-  if (patternBand && pattern === 'collar' && u > 0.22 && u < 0.38) color.lerp(ramp.accent, 0.58);
+  const patternBand = topness >= BODY_FLANK_START && topness < BODY_DORSAL_START
+    && !(ramp.rimGlow && topness < BODY_RIM_END);
+  const markedByPattern = (patternBand && stripe && ((Math.floor(u * 11) + Math.floor(radial / 3)) % 3 === 0))
+    || (patternBand && spotted && hash01(station, radial, pattern.length) > 0.73)
+    || (patternBand && marked && hash01(station * 2, radial * 3, pattern.length) > 0.8)
+    || (patternBand && structured && ((station + radial * 2 + pattern.length) % 5 === 0))
+    || (patternBand && pattern === 'collar' && u > 0.22 && u < 0.38);
+  // Detail marks remain discrete accent-family hits inside the flank block;
+  // they never interpolate the dorsal/flank/belly boundaries.
+  if (markedByPattern) color.copy(ramp.accent);
   return color;
 }
 
@@ -277,7 +331,7 @@ function makeSpineGeometry(def, palette, dimensions) {
   const radiusZ = dimensions.radiusZ;
   const stations = head === 'eel' || head === 'kaiju' ? 20 : def.tier >= 5 ? 18 : 16;
   const radial = 12;
-  const ramp = bodyRampColors(palette);
+  const ramp = bodyRampColors(palette, finite(def.act, def.tier >= 5 ? 2 : 1));
   const positions = [];
   const colors = [];
   const indices = [];
@@ -308,9 +362,9 @@ function makeSpineGeometry(def, palette, dimensions) {
   }
 
   const root = positions.length / 3;
-  addVertex(positions, colors, -bodyLen * 0.52, 0, 0, palette.base);
+  addVertex(positions, colors, -bodyLen * 0.52, 0, 0, ramp.dorsal);
   const nose = positions.length / 3;
-  addVertex(positions, colors, bodyLen * 0.48, 0, 0, palette.belly);
+  addVertex(positions, colors, bodyLen * 0.48, 0, 0, ramp.belly);
   for (let j = 0; j < radial; j++) {
     const next = (j + 1) % radial;
     indices.push(root, next, j);
@@ -1224,6 +1278,62 @@ function bodyColorStats(geometry) {
   return { meanChannel: sum / count, meanLuminance: luminance / vertexCount, vertexCount };
 }
 
+function bodyColorBlockStats(geometry) {
+  const attribute = geometry?.getAttribute?.('color');
+  const radial = geometry?.userData?.rfRadial;
+  const stations = geometry?.userData?.rfStations;
+  if (!attribute || !Number.isInteger(radial) || !Number.isInteger(stations)) throw new Error('body is missing colour-block metadata');
+  const blocks = { dorsal: [], flank: [], belly: [], rim: [] };
+  const ringVertexCount = radial * stations;
+  for (let i = 0; i < ringVertexCount; i++) {
+    const theta = (i % radial) / radial * TAU;
+    const topness = (Math.cos(theta) + 1) * 0.5;
+    const color = { r: attribute.getX(i), g: attribute.getY(i), b: attribute.getZ(i) };
+    if (topness >= BODY_DORSAL_START) blocks.dorsal.push(color);
+    else if (topness >= BODY_FLANK_START) {
+      blocks.flank.push(color);
+      if (topness < BODY_RIM_END) blocks.rim.push(color);
+    }
+    else blocks.belly.push(color);
+  }
+  const mean = (values) => {
+    if (!values.length) return { r: 0, g: 0, b: 0, saturation: 0, value: 0, count: 0 };
+    const sum = values.reduce((total, color) => {
+      const hsv = rgbToHsv(color);
+      total.r += color.r;
+      total.g += color.g;
+      total.b += color.b;
+      total.saturation += hsv.s;
+      total.value += hsv.v;
+      return total;
+    }, { r: 0, g: 0, b: 0, saturation: 0, value: 0 });
+    const count = values.length;
+    return {
+      r: sum.r / count,
+      g: sum.g / count,
+      b: sum.b / count,
+      saturation: sum.saturation / count,
+      value: sum.value / count,
+      count
+    };
+  };
+  const dorsal = mean(blocks.dorsal);
+  const flank = mean(blocks.flank);
+  const belly = mean(blocks.belly);
+  const rim = mean(blocks.rim);
+  const distance = (a, b) => Math.sqrt(
+    ((a.r - b.r) ** 2) + ((a.g - b.g) ** 2) + ((a.b - b.b) ** 2)
+  ) * 255;
+  return {
+    dorsal,
+    flank,
+    belly,
+    rim,
+    dorsalFlankDistance: distance(dorsal, flank),
+    flankBellyDistance: distance(flank, belly)
+  };
+}
+
 function bodyBandStats(geometry) {
   const attribute = geometry?.getAttribute?.('color');
   const radial = geometry?.userData?.rfRadial;
@@ -1322,7 +1432,7 @@ function __selftest() {
   const rows = host.RFD?.SHARKS || RF.RFD?.SHARKS || RF.SHARKS;
   if (!rows || rows.length !== 61) throw new Error(`RF.Art3D expected 61 sharks, received ${rows ? rows.length : 0}`);
   const samples = representativeRows();
-  const result = { pass: false, headProfiles: {}, triangles: {}, materialAudit: {}, bodyCalibration: {}, notes: [], errors: [] };
+  const result = { pass: false, headProfiles: {}, triangles: {}, materialAudit: {}, bodyCalibration: {}, colorBlocks: {}, notes: [], errors: [] };
   try {
     const ratios = [];
     const ramp = ensureGradientMap();
@@ -1395,13 +1505,17 @@ function __selftest() {
     if (leviathan && !calibrationRows.includes(leviathan)) calibrationRows.push(leviathan);
     for (const def of calibrationRows) {
       const bands = bodyBandStats(buildShark(def).parts.body.geometry);
+      const colorBlocks = bodyColorBlockStats(buildShark(def).parts.body.geometry);
       result.bodyCalibration[def.id] = {
         ridge: Number(bands.ridge.mean.toFixed(3)),
         flank: Number(bands.flank.mean.toFixed(3)),
-        belly: Number(bands.belly.mean.toFixed(3))
+        belly: Number(bands.belly.mean.toFixed(3)),
+        flankSaturation: Number(colorBlocks.flank.saturation.toFixed(3)),
+        flankValue: Number(colorBlocks.flank.value.toFixed(3))
       };
       if (bands.ridge.mean > 0.30) throw new Error(`${def.id}: dorsal ridge luminance ${bands.ridge.mean.toFixed(3)} > 0.30`);
-      if (bands.flank.mean < 0.30 || bands.flank.mean > 0.65) throw new Error(`${def.id}: flank luminance ${bands.flank.mean.toFixed(3)} outside 0.30..0.65`);
+      if (colorBlocks.flank.saturation < BODY_FLANK_SATURATION_FLOOR) throw new Error(`${def.id}: flank saturation ${colorBlocks.flank.saturation.toFixed(3)} < ${BODY_FLANK_SATURATION_FLOOR.toFixed(2)}`);
+      if (colorBlocks.flank.value < BODY_FLANK_VALUE_MIN || colorBlocks.flank.value > BODY_FLANK_VALUE_MAX) throw new Error(`${def.id}: flank value ${colorBlocks.flank.value.toFixed(3)} outside ${BODY_FLANK_VALUE_MIN.toFixed(2)}..${BODY_FLANK_VALUE_MAX.toFixed(2)}`);
       if (bands.belly.mean < 0.70) throw new Error(`${def.id}: belly luminance ${bands.belly.mean.toFixed(3)} < 0.70`);
     }
     if (new Set(ratios).size < 4) throw new Error(`head proportions collapsed: ${ratios.join(', ')}`);
@@ -1415,6 +1529,33 @@ function __selftest() {
       result.materialAudit[def.id] = materials;
       const colorStats = bodyColorStats(rig.parts.body.geometry);
       if (colorStats.meanLuminance <= 0 || !noseIsForward(rig.parts.body.geometry)) throw new Error(`${def.id}: invalid body colors or +x nose invariant in sweep`);
+      const colorBlocks = bodyColorBlockStats(rig.parts.body.geometry);
+      result.colorBlocks[def.id] = {
+        act: def.act,
+        dorsalSaturation: Number(colorBlocks.dorsal.saturation.toFixed(3)),
+        flankSaturation: Number(colorBlocks.flank.saturation.toFixed(3)),
+        flankValue: Number(colorBlocks.flank.value.toFixed(3)),
+        bellyValue: Number(colorBlocks.belly.value.toFixed(3)),
+        rimHue: Number(rgbToHsv(colorBlocks.rim).h.toFixed(3)),
+        dorsalFlankDistance: Number(colorBlocks.dorsalFlankDistance.toFixed(1)),
+        flankBellyDistance: Number(colorBlocks.flankBellyDistance.toFixed(1))
+      };
+      if (colorBlocks.flank.saturation < BODY_FLANK_SATURATION_FLOOR) {
+        throw new Error(`${def.id}: flank saturation ${colorBlocks.flank.saturation.toFixed(3)} < ${BODY_FLANK_SATURATION_FLOOR.toFixed(2)}`);
+      }
+      if (colorBlocks.flank.value < BODY_FLANK_VALUE_MIN || colorBlocks.flank.value > BODY_FLANK_VALUE_MAX) {
+        throw new Error(`${def.id}: flank value ${colorBlocks.flank.value.toFixed(3)} outside ${BODY_FLANK_VALUE_MIN.toFixed(2)}..${BODY_FLANK_VALUE_MAX.toFixed(2)}`);
+      }
+      if (def.act >= 3) {
+        const palette = paletteOf(def);
+        const glowHsv = rgbToHsv(palette.glow || palette.accent);
+        const rimHsv = rgbToHsv(colorBlocks.rim);
+        const hueGap = Math.abs(glowHsv.h - rimHsv.h);
+        if (Math.min(hueGap, 1 - hueGap) > 0.12) throw new Error(`${def.id}: Act 3 flank rim hue ${rimHsv.h.toFixed(3)} does not carry glow hue ${glowHsv.h.toFixed(3)}`);
+      }
+      if (colorBlocks.dorsalFlankDistance < BODY_BLOCK_DISTANCE_MIN || colorBlocks.flankBellyDistance < BODY_BLOCK_DISTANCE_MIN) {
+        throw new Error(`${def.id}: adjacent body blocks are too close (dorsal/flank ${colorBlocks.dorsalFlankDistance.toFixed(1)}, flank/belly ${colorBlocks.flankBellyDistance.toFixed(1)}, minimum ${BODY_BLOCK_DISTANCE_MIN})`);
+      }
       const tris = countTriangles(rig.group);
       if (tris > 3500) throw new Error(`${def.id}: ${tris} triangles in sweep`);
       if (tris > worstCaseTriangles) {
@@ -1436,8 +1577,10 @@ function __selftest() {
     if (result.cacheBytes > 120 * 1024 * 1024) throw new Error(`geometry cache exceeds 120MB: ${result.gpuEstimateMB}MB`);
     result.notes.push('headless BufferGeometry path; no renderer or GL context required');
     result.notes.push(`shared ${rampTexels}-texel NEAREST linear luminance gradientMap; needsUpdate=true`);
-    result.notes.push(`body vertex colors finite; ridge <= 0.30, flank 0.30..0.65, belly >= 0.70 on ${calibrationRows.length} calibration rows`);
-    result.notes.push(`shared ramp bands ${BODY_RAMP_BANDS.map((value) => value.toFixed(2)).join(' / ')}; dark dorsal block starts at topness ${BODY_DORSAL_START.toFixed(2)}`);
+    result.notes.push(`body vertex colors finite; dorsal luminance <= 0.30, flank HSV floor/value gate, belly luminance >= 0.70 on ${calibrationRows.length} calibration rows`);
+    result.notes.push(`hard body blocks: dorsal topness >= ${BODY_DORSAL_START.toFixed(2)}, vivid flank >= ${BODY_FLANK_START.toFixed(2)}, pale belly < ${BODY_FLANK_START.toFixed(2)}; no cross-block lerp`);
+    result.notes.push(`flank HSV saturation >= ${BODY_FLANK_SATURATION_FLOOR.toFixed(2)}, value ${BODY_FLANK_VALUE_MIN.toFixed(2)}..${BODY_FLANK_VALUE_MAX.toFixed(2)}; adjacent RGB distance >= ${BODY_BLOCK_DISTANCE_MIN}`);
+    result.notes.push(`Act 3 glow hue is carried by the ${BODY_FLANK_START.toFixed(2)}..${BODY_RIM_END.toFixed(2)} flank-edge row above the belly line; rim hue is self-tested against palette.glow`);
     result.notes.push(`structural body/tail/pectoral/jaw emissive is black across ${sweep}/${sweep}; feature glow is 0.6..1.0`);
     result.notes.push('every non-none Act 2/3 sil.fx key has a named emissive feature mesh; pattern veins/plates and FX families are feature-owned');
     result.notes.push('14 archetype face identities checked; tier 5+ face share, jaw volume, and tier-scaled tail gates checked');

@@ -285,3 +285,13 @@ Remaining defect: increase the flagship's gameplay-scale dominance and silhouett
 ### Verdict
 
 **FIX-THEN-CUTOVER**
+
+## Re-check 3 (2026-08-19)
+
+### ART-01 — CLEARED
+
+The supplied shipped-camera frame closes the remaining art defect. Leviathan now occupies approximately 28% of the gameplay frame width, matching the live 2D flagship's visual weight rather than reading as a small fish. Its silhouette is immediately legible at a glance: oversized tail, heavy front jaw, exposed dorsal plate row, brow, and clear toothed mouth all survive gameplay scale. The D3 recut also gives it committed hard-edged color blocks—a saturated green tail, dark teal/black upper mass and jaw, and a contrasting belly/teeth treatment—with sufficient separation from the water. Against the live 2D frame and the roster reference, it now reads as a dangerous kaiju flagship without relying on inspection-level detail.
+
+### Verdict
+
+**CUTOVER**

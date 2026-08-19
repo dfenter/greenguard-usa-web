@@ -378,3 +378,53 @@ worst case: leviathanrex, 2,500 triangles                    PASS (<=3,500)
 geometry cache estimate: 1.405 MB                            PASS (<120 MB)
 tail oscillation: 120 animation steps                        PASS
 ```
+
+## Final color-commitment round (Lane D3, 2026-08-19)
+
+Recut only the vertex-color scheme in `shark3d.js`; geometry, budgets, caches,
+normalization, and feature/material ownership remain unchanged:
+
+- The body is now three hard radial blocks: saturated/deep `palette.base` on
+  the dorsal third, a bright high-chroma `palette.accent` family flank, and a
+  pale belly. Block boundaries select whole vertex rows; there is no
+  cross-block colour lerp. Pattern marks remain discrete accent hits inside a
+  block.
+- Act 3 bodies add a saturated glow-hue rim on the flank row immediately above
+  the belly line. Leviathan Rex therefore carries its teal-green identity in
+  the body vertex colors, independently of teeth, plates, eyes, or brows.
+- `RF.Art3D.__selftest()` now computes per-vertex HSV and mean-block RGB
+  distance for every roster row. It asserts flank saturation `>= 0.45`, flank
+  value `0.45..0.75`, and both adjacent block distances `>= 60` RGB units.
+
+Block scheme summary by act:
+
+- Act 1: deep saturated base dorsal / vivid accent flank / pale belly.
+- Act 2: the same three blocks, with the existing feature-owned glow accents.
+- Act 3: deep saturated base dorsal / glow-hue rim plus vivid accent flank /
+  pale belly.
+
+Spot-render sanity for the requested trio (headless vertex-color spot proof;
+the in-app browser surface was unavailable for a new screenshot in this run):
+
+```text
+Leviathan Rex: flank HSV S 0.855 / V 0.720; glow-rim H 0.473;
+                dorsal-flank RGB 186.2 / flank-belly RGB 155.8 PASS
+Great White:    flank HSV S 0.773 / V 0.560; dorsal-flank RGB 88.7;
+                flank-belly RGB 247.9                         PASS
+Vex:            flank HSV S 1.000 / V 0.560; dorsal-flank RGB 98.7;
+                flank-belly RGB 291.2                         PASS
+```
+
+Final proof:
+
+```text
+node --check shark3d.js                                      PASS
+vendored Three r160 module import                             PASS
+RF.Art3D.__selftest()                                        PASS
+61/61 shark build sweep                                      PASS
+all 61 flank HSV/chroma/value and hard-edge gates             PASS
+all Act 3 glow-rim hue gates                                  PASS
+worst adjacent block distance: 63.2 RGB units                PASS (>= 60)
+worst case: leviathanrex, 2,500 triangles                    PASS (<= 3,500)
+geometry cache estimate: 1.405 MB                           PASS (<120 MB)
+```
