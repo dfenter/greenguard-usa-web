@@ -1,0 +1,165 @@
+# Razorfin — Architecture Contract (Rev 1, 2026-08-19)
+
+Orchestrator-owned. Lanes implement EXACTLY these interfaces. If an interface
+must change, the lane STOPS and reports; the orchestrator revises this file.
+Read play/_shared/NOTES.md defect classes before writing input/render code.
+
+## Modules, ownership, load order
+
+index.html loads, in order:
+  /play/_shared/phaser.min.js
+  /play/_shared/ggkit.js
+  data.js       (orchestrator)  window.RFD   pure data, zero logic
+  juice.js      (Lane F)        RF.Fx, RF.Juice, RF.Sound, RF.Music
+  sharkart.js   (Lane D)        RF.Art
+  abilities.js  (Lane E)        RF.Abilities
+  world.js      (Lane B)        RF.World
+  meta.js       (Lane C)        RF.Meta, RF.DevMode
+  game.js       (Lane A)        RF.Game + Phaser scenes + player controller
+
+`window.RF = {}` is created by juice.js (first RF module); every later module
+attaches its namespace and MUST NOT touch another module's namespace.
+No module registers window/document listeners; ALL input via kit.input
+subscriptions (onDown/onMove/onUp/onKeyDown) — see _shared/NOTES.md
+"release-side defect". No setTimeout/setInterval for game logic (pause safety);
+schedule off the fixed-step clock RF.ctx.time.
+
+## Runtime context
+
+game.js creates ONE context object and passes it everywhere:
+
+RF.ctx = {
+  kit,            // GGKit instance ({slug:'razorfin', orientation:'landscape'})
+  scene,          // active Phaser.Scene (Ocean during play)
+  dpr,            // TITLE-SIDE density factor (Rev 3): clamp(devicePixelRatio,1,3),
+                  // computed by game.js and exported as RF.Game.dpr. GGKit.hiDpi is
+                  // clamped to 1 by the 2026-08-17 fleet kill switch, so razorfin owns
+                  // its own factor: game sized in device px (zoom=1/dpr), EVERY px
+                  // value (fonts, HUD, hit areas, bakes) multiplied by dpr. sharkart.js
+                  // and world.js bakes use RF.Game.dpr (fallback 1). Real-device retina
+                  // signoff is a SHIP GATE owned by Dan per the kill-switch policy.
+  time: { now, dt, frame },     // fixed-step clock, dt === 1/60 during step()
+  rng: mulberry32 instance,     // seeded; NO Math.random in sim code
+  player,         // player entity (below) or null outside runs
+  save,           // live profile object (RF.Meta owns shape)
+  run: { score, coins, xp, combo, comboT, frenzy, goldRushT, biggestTier, slowmoT, timeScale },
+}
+
+## Entity schema (pooled plain objects; Phaser sprites attached)
+
+ent = {
+  active, id, kind,       // kind: 'prey'|'predator'|'hazard'|'pickup'|'player'
+  defId,                  // key into RFD.CREATURES / RFD.SHARKS / RFD.HAZARDS
+  tier,                   // 1..12 size tier
+  x, y, vx, vy, angle,    // sim units = world px
+  hp, maxHp,
+  st: {},                 // per-entity scratch (AI state, frozen/stun/burn/poison timers: frozenT, stunT, burnT, poisonT, cookedBy)
+  sprite,                 // Phaser GameObject (world.js owns lifecycle)
+  r,                      // body radius px (collision)
+}
+
+Status effect timers are FIELDS ON st, decremented by world.js each step;
+abilities.js SETS them, world.js APPLIES their consequences (frozen = vel zero
++ tint, stunned = no AI, burn/poison = dot). One implementation, in world.js.
+
+## Interfaces (exact signatures)
+
+### juice.js (Lane F)
+RF.Fx.init(scene)                          // build pooled emitters (4-6 pools: bubbles, blood/score motes, element sparks, shockwave rings, ambient)
+RF.Fx.emit(name, x, y, opts)               // fire-and-forget pooled burst; name ∈ RFD.FX keys; opts {tint, scale, count, angle}
+RF.Fx.beam(x1,y1,x2,y2,opts)               // sustained beam segment (atomic breath), caller re-emits per frame
+RF.Juice.hitStop(ms)                       // freezes sim (game.js reads RF.Juice.consumeFreeze())
+RF.Juice.shake(intensity, ms)              // camera shake via scene.cameras.main
+RF.Juice.consumeFreeze()                   // -> ms of pending hit-stop, zeroes it (game.js calls once per frame)
+RF.Sound.play(name, opts)                  // kit.audio sfx by name from RFD.SFX; opts {vol, rate}
+RF.Music.setLayer(layer)                   // 'calm'|'danger'|'goldrush' crossfade via kit.audio music
+RF.Juice.kaiju(ent, scene)                 // Leviathan Rex presence: dorsal glow pulse, bass thud cadence, entry roar+shake (reads ent.defId==='leviathan_rex')
+
+### sharkart.js (Lane D)
+RF.Art.bakeShark(scene, sharkDef, variant) // -> textureKey string; bakes via GGKit.hiDpi.canvas at DPR; caches; variant ∈ 'play'|'menu' (menu = larger, posed)
+RF.Art.bakeCreature(scene, creatureDef)    // -> textureKey; procedural jelly/crab/turtle/mine/puffer; Kenney fish pass through (returns their loaded key)
+RF.Art.paletteOf(sharkDef)                 // -> {base, belly, accent, glow} for UI/particle tinting
+Silhouette params come ONLY from sharkDef.sil (see data.js schema). Head enum:
+point|blunt|hammer|saw|frill|whale|croc|angler|eel|rock|mech|skull|void|kaiju.
+Every baked texture MUST be visually distinct at 96px length; countershading
+mandatory; Act 2/3 add glow/pattern layers keyed off sharkDef.sil.fx.
+
+### abilities.js (Lane E)
+RF.Abilities.passives(sharkDef)            // -> resolved passive struct {wideBite, lunge, biteUp, filterFeed, ambush, slowMetab, junkEater, pressureImmune, armored, coinMagnet, fireWake, dreadAura, undying} + stat multipliers
+RF.Abilities.canFire(ctx)                  // power meter full & no active power running
+RF.Abilities.fire(ctx)                     // activate player.def.active; manages duration/cooldown internally
+RF.Abilities.update(ctx)                   // per fixed step: running actives, fireWake trail, dreadAura field, coinMagnet pull; sets st timers on affected ents via ctx.world queries
+RF.Abilities.chargeFromEat(ctx, ent)       // called by game.js on every swallow
+RF.Abilities.hud(ctx)                      // -> {charge:0..1, ready:bool, id, tint} for game.js HUD
+Actives (RFD.ABILITIES rows, ONE implementation each, parameterized):
+pyro, freeze, volt, toxin, sonic, vortex, phase, quake, chrono, atomic.
+Element VFX via RF.Fx.emit/beam ONLY (no ad-hoc emitters).
+
+### world.js (Lane B)
+RF.World.init(scene, ctx)                  // build zones, pools, spatial hash, tilemap-free layered background per RFD.ZONES
+RF.World.update(ctx)                       // spawner budget, AI, status-effect application, despawn ring
+RF.World.query(x, y, r, kindFilter)        // -> array of active ents (spatial hash)
+RF.World.spawnBurst(defId, x, y, n)        // ability/debug spawns
+RF.World.kill(ent, cause)                  // release to pool; emits death FX via RF.Fx; drops pickups
+RF.World.zoneAt(y)                         // -> RFD.ZONES row
+RF.World.entities                          // live array (read-only for other lanes)
+Predator AI: roster-driven NPC sharks (RFD.SHARKS rows with npc:true weights
+per zone); chase player if player.tier < npc.tier, flee if >.
+
+### meta.js (Lane C)
+RF.Meta.load(kit)                          // -> profile (validate + migrate, horde-meridian chain); SAVE_VERSION=1
+RF.Meta.commit(kit, profile)               // persist via kit.save.set
+RF.Meta.endRun(ctx)                        // apply run coins/xp/level-ups/unlock callouts -> results payload
+RF.Meta.canBuy / RF.Meta.buy(profile, sharkId | upgrade)   // economy per RFD.ECONOMY
+RF.Meta.ownedFor(profile, id)              // || RF.DevMode.state.forceUnlockAll  (dev overlay NEVER persisted)
+RF.Meta.tierUnlocked(profile, tier)
+RF.DevMode.init()                          // parse URLSearchParams ONCE: unlockall, invincible, coins, notut; expose window.__rf {version, state, switches, unlockAll(), resetSave(), giveCoins(n), forceGoldRush(), forcePower(id), forceZone(n)}
+Scenes owned: Shop (tier-grouped, 3 act sections, scrollable), Results.
+UI LAW: no center banners in play; Shop/Results are out-of-run, free-form.
+
+### game.js (Lane A)
+Phaser config: GGKit.hiDpi.phaser({...GGKit.renderDefaults smart-merge}),
+Scale parent #game-root, landscape 844x390 CSS baseline.
+Scenes: Boot (load Kenney assets + bake), Menu (title, shark select grid via
+RF.Meta), Ocean (the run), + wires Shop/Results from meta.js.
+Fixed step: STEP=1/60, MAX_STEPS=4 accumulator; ctx.run.timeScale multiplies
+accumulated time (chrono/slow-mo); RF.Juice.consumeFreeze() before stepping.
+Player controller: touch target-follow (kit.input.onDown/onMove), boost on
+second pointer, eat resolution (mouth sensor circle; wideBite arc; near-tier
+multi-bite 250ms cd; swallow -> RF.Abilities.chargeFromEat + combo + hunger),
+hunger drain (def.metab * zone pressure rule; tier>=9 immune), death -> slow-mo
+-> Results. HUD: ONE corner cluster (health, boost, power button, coins,
+combo chips <=24px, <=1s, one at a time). DEV chip when RF.DevMode active.
+
+## data.js schema (orchestrator)
+
+RFD = {
+  SHARKS: [{ id, name, tier, act, cost, stats:{speed, accel, turn, bite, hp, metab, boost}, passives:[...], active:'volt'|null, sil:{head, len, girth, finScale, tailScale, palette:{base,belly,accent,glow}, pattern, fx}, npc:{weight, zones}|null, blurb }],
+  ABILITIES: { pyro:{...}, ... },   // range/duration/dmg/charge/tint per active
+  CREATURES: [...], HAZARDS: [...],
+  ZONES: [4 rows: yMin,yMax,name,tint,fog,ambient,spawns:[{defId,w,pack}]],
+  ECONOMY: { tierUnlockLevel:[..12], xpCurve, coinValues, upgradeCosts, dailyBonus },
+  FRENZY: {...}, FX: {...}, SFX: {...},
+}
+Ability/passive IDs in SHARKS rows are the single source of truth; abilities.js
+must throw at boot (console.error, not crash) on any unknown id — that is the
+integration tripwire.
+
+## Fleet laws (binding)
+
+- RETINA: bake at DPR via GGKit.hiDpi.canvas; >64 distinct colors/frame.
+- UI: no center banners during play; one transient at a time; corner chips
+  <=24px <=1s; HUD one corner cluster; tutorial = one fading top strip.
+- No em dashes in ANY user-facing string.
+- 60fps mid-phone: pool everything, no per-frame allocation in step(), cap
+  live entities (RFD budget), spatial hash not O(n^2).
+- sw.js recovery worker byte-copy; never a caching worker.
+- Zero console errors/warnings at boot and through a full run.
+
+## Lane deliverable protocol
+
+Each lane delivers ONLY its own file(s) plus an append-only section in
+NOTES.md ("Lane X pass 1: what/why/self-test result"). Self-test: a
+`RF.<Ns>.__selftest()` function that exercises the module headlessly (no
+Phaser boot needed where possible) and returns {pass:bool, notes:[]} —
+orchestrator runs all of them in one page before integration.

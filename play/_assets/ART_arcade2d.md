@@ -1,6 +1,6 @@
 # AAA Art Bible — Arcade 2D lane (Rev 1, 2026-08-06)
 
-Titles: Horde Meridian (pilot), Skyfall Command, Ace Vector, Lunker Lake.
+Titles: Horde Meridian (pilot), Skyfall Command, Ace Vector, Lunker Lake, Razorfin.
 Engine: Phaser 3 (vendored). House motion language applies; this is the
 JUICE lane — these genres live on feedback density.
 
@@ -50,6 +50,17 @@ ambient lake loop + reel clicks + splash + catch fanfare. SFX >=8 each.
   rebuild (regression-check in review).
 - Ace Vector: health-underflow fix likewise.
 - Lunker Lake: touch ownership + save validation fixes likewise.
+- Razorfin (landscape shark action, 2026-08-19): layered-water look per
+  the Lunker Lake precedent (depth gradient, fog bands, animated surface
+  ribbon) but darker and wider, four zone palettes shelf to abyss. All 61
+  sharks are PROCEDURAL vector bakes at device scale (parametric body
+  spline, 14 head archetypes, countershading mandatory, pattern + glow fx
+  layers). Act 2/3 sharks must read their element at a glance: fire
+  oranges, frost cyans, volt whites, toxin greens, void purples, atomic
+  teal-white on the kaiju. Ability VFX own the juice budget: hit-stop and
+  shake on every kill class, element particles per active power, Gold
+  Rush gets a music intensity layer. Leviathan Rex is the presentation
+  ceiling: dorsal charge glow, roar with shake, bass swim thuds.
 
 ## sports note
 
