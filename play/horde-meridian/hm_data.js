@@ -180,7 +180,7 @@
   ];
 
   var BONUS = [
-    { key: 'purge',     frame: 'ic_pulse',  name: 'PURGE WAVE',    color: 0x8effd8, duration: 0,  cap: 0,  weight: 0.025 },
+    { key: 'purge',     frame: 'ic_pulse',  name: 'PURGE WAVE',    color: 0x8effd8, duration: 0,  cap: 0,  weight: 0.035 },
     { key: 'aegis',     frame: 'ic_armor',  name: 'AEGIS',         color: 0x6de8ff, duration: 6,  cap: 9,  weight: 0.12 },
     { key: 'overdrive', frame: 'ic_speed',  name: 'OVERDRIVE',     color: 0xffd67a, duration: 8,  cap: 12, weight: 0.10 },
     { key: 'arsenal',   frame: 'ic_damage', name: 'ARSENAL',       color: 0xffb45a, duration: 10, cap: 14, weight: 0.09 },
@@ -188,26 +188,31 @@
     { key: 'dilation',  frame: 'ic_lock',   name: 'TIME DILATION', color: 0x7ad8ff, duration: 7,  cap: 10, weight: 0.065 },
     { key: 'magnet',    frame: 'ic_magnet', name: 'MAGNET SURGE',  color: 0xa7ffe0, duration: 8,  cap: 12, weight: 0.06 },
     { key: 'decoy',     frame: 'ic_wisp',   name: 'DECOY BEACON',  color: 0xc480ff, duration: 7,  cap: 11, weight: 0.04 },
-    { key: 'lance',     frame: 'ic_lance',  name: 'ORBITAL LANCE', color: 0xffd67a, duration: 0,  cap: 0,  weight: 0.018 },
+    { key: 'lance',     frame: 'ic_lance',  name: 'ORBITAL LANCE', color: 0xffd67a, duration: 0,  cap: 0,  weight: 0.028 },
     { key: 'flare',     frame: 'ic_greed',  name: 'SCORE FLARE',   color: 0xffc361, duration: 10, cap: 16, weight: 0.055 },
     { key: 'wing',      frame: 'wingman',   name: 'WING',          color: 0x8effd8, duration: 0,  cap: 0,  weight: 0.08 },
     { key: 'drone',     frame: 'ic_wisp',   name: 'DRONE TURRET',  color: 0x6df0bf, duration: 12, cap: 18, weight: 0.08 },
     { key: 'freeze',    frame: 'ic_lock',   name: 'FREEZE PULSE',  color: 0x9fe9ff, duration: 5,  cap: 8,  weight: 0.055 },
     { key: 'doubler',   frame: 'ic_greed',  name: 'GEM DOUBLER',   color: 0xffe28a, duration: 10, cap: 16, weight: 0.065 },
     { key: 'vampire',   frame: 'heart',     name: 'VAMPIRE ROUNDS',color: 0xff7f9b, duration: 10, cap: 16, weight: 0.055 },
-    { key: 'carpet',    frame: 'ic_mine',   name: 'BOMB CARPET',   color: 0xff9a5a, duration: 0,  cap: 0,  weight: 0.045 },
+    { key: 'carpet',    frame: 'ic_mine',   name: 'BOMB CARPET',   color: 0xff9a5a, duration: 0,  cap: 0,  weight: 0.055 },
     { key: 'reflector', frame: 'ic_armor',  name: 'REFLECTOR SHELL', color: 0xffc4ff, duration: 8, cap: 12, weight: 0.05 },
     { key: 'gravity',   frame: 'ic_magnet', name: 'GRAVITY WELL',  color: 0xb18cff, duration: 8,  cap: 12, weight: 0.055 },
     { key: 'overcharge',frame: 'ic_crit',   name: 'OVERCHARGE',    color: 0xfff36a, duration: 0,  cap: 10, weight: 0.065 },
     { key: 'cloak',     frame: 'ic_wisp',   name: 'PHASE CLOAK',   color: 0xbca8ff, duration: 6,  cap: 10, weight: 0.045 },
-    { key: 'strike-wing', frame: 'ic_beam', name: 'STRIKE WING', color: 0xffc361, duration: 0, cap: 0, weight: 0.052 },
-    { key: 'cluster-barrage', frame: 'ic_mine', name: 'CLUSTER BARRAGE', color: 0xff8f6b, duration: 0, cap: 0, weight: 0.052 }
+    { key: 'strike-wing', frame: 'ic_beam', name: 'STRIKE WING', color: 0xffc361, duration: 0, cap: 0, weight: 0.07 },
+    { key: 'cluster-barrage', frame: 'ic_mine', name: 'CLUSTER BARRAGE', color: 0xff8f6b, duration: 0, cap: 0, weight: 0.062 },
+    { key: 'tempest',   frame: 'ic_crit',   name: 'ARC TEMPEST',   color: 0xa8ffff, duration: 8,  cap: 12, weight: 0.06 },
+    { key: 'prism-array', frame: 'ic_beam', name: 'PRISM ARRAY',   color: 0x9fffe2, duration: 8,  cap: 12, weight: 0.055 },
+    { key: 'meteor',    frame: 'ic_pulse',  name: 'METEOR STORM',  color: 0xffab7a, duration: 0,  cap: 0,  weight: 0.05 },
+    { key: 'strike-pack', frame: 'ic_lance', name: 'STRIKE PACK',  color: 0xffdf8a, duration: 0,  cap: 0,  weight: 0.045 }
   ];
   var BONUS_BUFFS = [BONUS[1], BONUS[2], BONUS[3], BONUS[4], BONUS[5], BONUS[6], BONUS[7], BONUS[9]];
   var BONUS_TIMED = [BONUS[1], BONUS[2], BONUS[3], BONUS[4], BONUS[5], BONUS[6], BONUS[7], BONUS[9],
-    BONUS[11], BONUS[12], BONUS[13], BONUS[14], BONUS[16], BONUS[17], BONUS[19]];
+    BONUS[11], BONUS[12], BONUS[13], BONUS[14], BONUS[16], BONUS[17], BONUS[19],
+    BONUS[22], BONUS[23]];
   var BONUS_DEBUG_KEYS = ['aegis', 'overdrive', 'arsenal', 'chain', 'dilation', 'magnet', 'decoy',
-    'flare', 'drone', 'freeze', 'doubler', 'vampire', 'reflector', 'gravity', 'cloak'];
+    'flare', 'drone', 'freeze', 'doubler', 'vampire', 'reflector', 'gravity', 'cloak', 'tempest', 'prism-array'];
   var BONUS_BY_KEY = {};
   for (var bi = 0; bi < BONUS.length; bi++) BONUS_BY_KEY[BONUS[bi].key] = BONUS[bi];
 
@@ -265,7 +270,102 @@
     { key: 'ricochet-prism', name: 'Ricochet Prism', glyph: 'ic_crit', frame: 'shard', color: 0x9fffe7, cue: 'wave', rate: 1.05, tier: 'upgraded',
       impact: 0xd0fff4, muzzle: 0x54d6c0, desc: 'Bouncing shards split at the boundary, up to three times.' },
     { key: 'coil-tempest', name: 'Coil Tempest', glyph: 'ic_crit', frame: 'shard', color: 0xfff36a, cue: 'levelup', rate: 1.02, tier: 'upgraded',
-      impact: 0xffffb0, muzzle: 0xffd67a, desc: 'Short-range chain lightning arcs continuously while firing.' }
+      impact: 0xffffb0, muzzle: 0xffd67a, desc: 'Short-range chain lightning arcs continuously while firing.' },
+
+    // Expansion arsenal (2026-08-19). These weapons are DATA-DRIVEN: each
+    // carries a `spec` interpreted by the generic branch in stepPrimaryWeapon,
+    // composing existing shot kinds (homing, orbit, bounce, fork, burst...)
+    // instead of adding bespoke firing code per key.
+    { key: 'pulse-fan', name: 'Pulse Fan', glyph: 'ic_pulse', frame: 'shard', color: 0x7dd8ff, cue: 'enemyShoot', rate: 1.26,
+      desc: 'A tight fan of rapid pulse fragments.',
+      spec: { kind: 'scatter', count: 4, spread: 0.34, speed: 520, dmg: 0.62, size: 5 } },
+    { key: 'arc-whip', name: 'Arc Whip', glyph: 'ic_crit', frame: 'shard', color: 0xa9ff8a, cue: 'levelup', rate: 1.08,
+      desc: 'A charged lash that arcs into a second target.',
+      spec: { kind: 'coil-tempest', count: 1, spread: 0, speed: 680, dmg: 1.08, size: 6, arc: { radius: 170, dmg: 0.4, hops: 1 } } },
+    { key: 'quasar-bolt', name: 'Quasar Bolt', glyph: 'ic_lance', frame: 'bolt', color: 0xfff0c8, cue: 'shoot', rate: 0.62,
+      desc: 'A slow, massive bolt that detonates on burnout.',
+      spec: { kind: 'bolt', count: 1, spread: 0, speed: 400, dmg: 2.1, size: 10, pierce: 1, burst: { radius: 90, dmg: 0.5 } } },
+    { key: 'shard-carousel', name: 'Shard Carousel', glyph: 'ic_orbit', frame: 'shard', color: 0xffc4e8, cue: 'hit', rate: 0.96,
+      desc: 'A razor shard circles outward through the horde.',
+      spec: { kind: 'cyclone-glaive', count: 1, spread: 0, speed: 0, dmg: 1.05, size: 10, pierce: 2 } },
+    { key: 'comet-driver', name: 'Comet Driver', glyph: 'ic_beam', frame: 'bolt', color: 0x9fd0ff, cue: 'pulse', rate: 0.68,
+      desc: 'A heavy comet round with a long punch-through.',
+      spec: { kind: 'rail', count: 1, spread: 0, speed: 700, dmg: 1.9, size: 8, pierce: 4 } },
+    { key: 'hornet-battery', name: 'Hornet Battery', glyph: 'ic_wisp', frame: 'wisp', color: 0xffe08a, cue: 'telegraph', rate: 1.24,
+      desc: 'Twin homing hornets on a fast cycle.',
+      spec: { kind: 'seeker', count: 2, spread: 0.5, speed: 265, dmg: 0.66, size: 8 } },
+    { key: 'flak-burst', name: 'Flak Burst', glyph: 'ic_pulse', frame: 'shard', color: 0xffb28a, cue: 'enemyShoot', rate: 1.05,
+      desc: 'Flak shells that pop into shrapnel clouds.',
+      spec: { kind: 'scatter', count: 3, spread: 0.5, speed: 430, dmg: 0.62, size: 6, burst: { radius: 78, dmg: 0.3 } } },
+    { key: 'gravity-bomb', name: 'Gravity Bomb', glyph: 'ic_magnet', frame: 'ic_pulse', color: 0xc9a8ff, cue: 'death', rate: 0.58,
+      desc: 'A lobbed implosion charge with a wide blast.',
+      spec: { kind: 'mortar', count: 1, spread: 0, speed: 340, dmg: 1.7, size: 12, drop: -240, burst: { radius: 120, dmg: 0.6 } } },
+    { key: 'boomerang-cross', name: 'Boomerang Cross', glyph: 'ic_orbit', frame: 'shard', color: 0x8ef0d0, cue: 'hit', rate: 0.9,
+      desc: 'Twin glaives thrown fore and aft, both return.',
+      spec: { kind: 'glaive', count: 1, spread: 0, speed: 500, dmg: 1.12, size: 10, pierce: 2, dual: true } },
+
+    { key: 'helix-array', name: 'Helix Array', glyph: 'ic_lance', frame: 'bolt', color: 0x8affd4, cue: 'shoot', rate: 1.16, tier: 'upgraded',
+      impact: 0xc8ffe8, muzzle: 0x6df0bf, desc: 'Three interleaved bolt streams braid the lane.',
+      spec: { kind: 'bolt', count: 3, spread: 0.22, speed: 580, dmg: 0.66, size: 5, addMulti: true } },
+    { key: 'nova-lance', name: 'Nova Lance', glyph: 'ic_lance', frame: 'bolt', color: 0xffd0a8, cue: 'shoot', rate: 0.92, tier: 'upgraded',
+      impact: 0xffe8c8, muzzle: 0xffb45a, desc: 'An elite-seeking lance that bursts on burnout.',
+      spec: { kind: 'lance-array', count: 2, spread: 0.12, speed: 640, dmg: 0.98, size: 7, pierce: 1, elite: true, burst: { radius: 92, dmg: 0.42 } } },
+    { key: 'tempest-fan', name: 'Tempest Fan', glyph: 'ic_crit', frame: 'shard', color: 0xd6ff7a, cue: 'levelup', rate: 1.12, tier: 'upgraded',
+      impact: 0xf0ffb0, muzzle: 0xd6ff7a, desc: 'A storm fan whose center round chains lightning.',
+      spec: { kind: 'scatter', count: 7, spread: 0.8, speed: 470, dmg: 0.4, size: 5, addMulti: true, arc: { radius: 180, dmg: 0.3, hops: 1 } } },
+    { key: 'rail-trident', name: 'Rail Trident', glyph: 'ic_beam', frame: 'bolt', color: 0x84e8ff, cue: 'pulse', rate: 0.94, tier: 'upgraded',
+      impact: 0xc8f4ff, muzzle: 0x54d6ff, desc: 'Three deep-piercing rails in a trident spread.',
+      spec: { kind: 'rail', count: 3, spread: 0.24, speed: 780, dmg: 0.92, size: 7, pierce: 3 } },
+    { key: 'wisp-cathedral', name: 'Wisp Cathedral', glyph: 'ic_wisp', frame: 'wisp', color: 0xd8c8ff, cue: 'telegraph', rate: 1.1, tier: 'upgraded',
+      impact: 0xecdcff, muzzle: 0xc480ff, desc: 'A choir of homing wisps that renew on a kill.',
+      spec: { kind: 'swarm-dart', count: 5, spread: 0.4, speed: 290, dmg: 0.56, size: 8, addMulti: true } },
+    { key: 'meteor-mortar', name: 'Meteor Mortar', glyph: 'ic_pulse', frame: 'ic_pulse', color: 0xff9a7a, cue: 'death', rate: 0.98, tier: 'upgraded',
+      impact: 0xffc8a0, muzzle: 0xff8f6b, desc: 'Paired meteors roll heavy blast waves downrange.',
+      spec: { kind: 'mortar-cascade', count: 2, spread: 0.3, speed: 380, dmg: 0.78, size: 12, drop: -250, burst: { radius: 108, dmg: 0.44 } } },
+    { key: 'mirror-beam', name: 'Mirror Beam', glyph: 'ic_beam', frame: 'bolt', color: 0xa0ffe8, cue: 'click', rate: 1.0, tier: 'upgraded',
+      impact: 0xd8fff4, muzzle: 0x6df0bf, desc: 'A target beam mirrored by its opposite twin.',
+      spec: { mode: 'beam', dmg: 1.05, beam: { len: 500, wid: 26, dual: true } } },
+    { key: 'saw-halo', name: 'Saw Halo', glyph: 'ic_orbit', frame: 'shard', color: 0xffd88a, cue: 'hit', rate: 1.04, tier: 'upgraded',
+      impact: 0xffecb8, muzzle: 0xffc361, desc: 'Three counter-spinning saws spiral outward.',
+      spec: { kind: 'cyclone-glaive', count: 3, spread: 0, speed: 0, dmg: 0.8, size: 10, pierce: 2 } },
+    { key: 'web-caster', name: 'Web Caster', glyph: 'ic_mine', frame: 'ic_mine', color: 0xffcf9a, cue: 'select', rate: 1.02, tier: 'upgraded',
+      impact: 0xffe4bc, muzzle: 0xff9a5a, desc: 'Casts a linked four-node detonation web.',
+      spec: { mode: 'mine', dmg: 0.42, mine: { radius: 122, count: 4, web: true } } },
+    { key: 'prism-lattice', name: 'Prism Lattice', glyph: 'ic_crit', frame: 'shard', color: 0xb0fff0, cue: 'wave', rate: 1.02, tier: 'upgraded',
+      impact: 0xdcfff8, muzzle: 0x54d6c0, desc: 'Twin bouncing prisms that split at every boundary.',
+      spec: { kind: 'prism-ricochet', count: 2, spread: 0.3, speed: 540, dmg: 0.82, size: 8, pierce: 2 } },
+
+    // LEGENDARY tier: extravagant late-run prizes. Rare drops, boss rewards.
+    { key: 'meridian-requiem', name: 'Meridian Requiem', glyph: 'ic_beam', frame: 'bolt', color: 0xffe8ff, cue: 'pulse', rate: 1.06, tier: 'legendary',
+      impact: 0xfff4ff, muzzle: 0xff9df5, desc: 'LEGENDARY. A cathedral beam sweeps the field and sings lightning.',
+      spec: { mode: 'beam', dmg: 1.5, beam: { len: 680, wid: 40, sweep: true }, arc: { radius: 240, dmg: 0.5, hops: 2 }, flare: true } },
+    { key: 'supernova-cannon', name: 'Supernova Cannon', glyph: 'ic_pulse', frame: 'ic_pulse', color: 0xfff0a0, cue: 'death', rate: 0.5, tier: 'legendary',
+      impact: 0xfffce0, muzzle: 0xffd67a, desc: 'LEGENDARY. One round. One star. Everything near it is gone.',
+      spec: { kind: 'bolt', count: 1, spread: 0, speed: 360, dmg: 4.2, size: 14, pierce: 3, burst: { radius: 190, dmg: 1.1 }, flare: true } },
+    { key: 'void-reaper', name: 'Void Reaper', glyph: 'ic_orbit', frame: 'shard', color: 0xd0a8ff, cue: 'hit', rate: 0.84, tier: 'legendary',
+      impact: 0xe8d0ff, muzzle: 0xc480ff, desc: 'LEGENDARY. Twin scythes harvest both halves of the sky.',
+      spec: { kind: 'glaive', count: 2, spread: 0.4, speed: 540, dmg: 1.55, size: 13, pierce: 6, dual: true, flare: true } },
+    { key: 'stormcaller-crown', name: 'Stormcaller Crown', glyph: 'ic_crit', frame: 'shard', color: 0xa8ffff, cue: 'levelup', rate: 1.12, tier: 'legendary',
+      impact: 0xe0ffff, muzzle: 0x7ad8ff, desc: 'LEGENDARY. Every round crowns the horde in chained lightning.',
+      spec: { kind: 'coil-tempest', count: 3, spread: 0.5, speed: 700, dmg: 0.85, size: 7, pierce: 1, arc: { radius: 210, dmg: 0.45, hops: 3 }, flare: true } },
+    { key: 'dragonfire-array', name: 'Dragonfire Array', glyph: 'ic_pulse', frame: 'shard', color: 0xffb070, cue: 'enemyShoot', rate: 1.18, tier: 'legendary',
+      impact: 0xffd8a8, muzzle: 0xff9a5a, desc: 'LEGENDARY. A full ring of dragonfire, breathing in every direction.',
+      spec: { kind: 'scatter', count: 12, spread: 0, speed: 460, dmg: 0.5, size: 6, ring: true, burst: { radius: 70, dmg: 0.24 }, flare: true } },
+    { key: 'singularity-driver', name: 'Singularity Driver', glyph: 'ic_beam', frame: 'bolt', color: 0xc8b8ff, cue: 'pulse', rate: 0.9, tier: 'legendary',
+      impact: 0xe4dcff, muzzle: 0x9b8cff, desc: 'LEGENDARY. A collapsing rail that forks on every kill it takes.',
+      spec: { kind: 'rail-storm', count: 1, spread: 0, speed: 860, dmg: 2.4, size: 9, pierce: 7, flare: true } },
+    { key: 'celestial-chorus', name: 'Celestial Chorus', glyph: 'ic_wisp', frame: 'wisp', color: 0xc0ffe0, cue: 'telegraph', rate: 1.2, tier: 'legendary',
+      impact: 0xe0fff0, muzzle: 0x8effd8, desc: 'LEGENDARY. Seven singing seekers that rise again from every kill.',
+      spec: { kind: 'swarm-dart', count: 7, spread: 0.55, speed: 300, dmg: 0.6, size: 8, addMulti: true, flare: true } },
+    { key: 'oblivion-web', name: 'Oblivion Web', glyph: 'ic_mine', frame: 'ic_mine', color: 0xff9ac0, cue: 'select', rate: 1.0, tier: 'legendary',
+      impact: 0xffc8dc, muzzle: 0xff7f9b, desc: 'LEGENDARY. Six tethered charges weave a field-ending web.',
+      spec: { mode: 'mine', dmg: 0.6, mine: { radius: 150, count: 6, web: true }, flare: true } },
+    { key: 'phoenix-lance', name: 'Phoenix Lance', glyph: 'ic_lance', frame: 'bolt', color: 0xffc890, cue: 'shoot', rate: 1.08, tier: 'legendary',
+      impact: 0xffe4c0, muzzle: 0xffb45a, desc: 'LEGENDARY. Five burning lances hunt the strongest thing alive.',
+      spec: { kind: 'lance-array', count: 5, spread: 0.2, speed: 660, dmg: 0.72, size: 7, pierce: 2, elite: true, burst: { radius: 84, dmg: 0.3 }, flare: true } },
+    { key: 'galaxy-ripper', name: 'Galaxy Ripper', glyph: 'ic_orbit', frame: 'shard', color: 0xa8d8ff, cue: 'hit', rate: 1.02, tier: 'legendary',
+      impact: 0xd4ecff, muzzle: 0x6e8bff, desc: 'LEGENDARY. Four spiral arms of a hungry galaxy, spinning outward.',
+      spec: { kind: 'cyclone-glaive', count: 4, spread: 0, speed: 0, dmg: 0.92, size: 11, pierce: 3, arc: { radius: 160, dmg: 0.3, hops: 1 }, flare: true } }
   ];
   var WEAPON_BY_KEY = {};
   for (var wi0 = 0; wi0 < WEAPONS.length; wi0++) WEAPON_BY_KEY[WEAPONS[wi0].key] = WEAPONS[wi0];
@@ -385,7 +485,8 @@
   var RARITY_STYLE = {
     common: { color: '#8fb3c4', tint: 0x54a6d6 },
     rare:   { color: '#6de8ff', tint: 0x3c9fd0 },
-    epic:   { color: '#ffd67a', tint: 0xc480ff }
+    epic:   { color: '#ffd67a', tint: 0xc480ff },
+    legendary: { color: '#ff9df5', tint: 0xff7ae0 }
   };
 
   var META = [
@@ -518,8 +619,8 @@
     { region: 'aurelion-graveyard', at: 392, x: -5260, y: 1160 }
   ];
   var DROP_TUNING = {
-    bonusBase: 0.078, bonusPressure: 0.065, bonusStreak: 0.045,
-    spacing: 4, cap: 34, floorTime: 14, floorKills: 1, fieldCap: 12,
+    bonusBase: 0.095, bonusPressure: 0.07, bonusStreak: 0.05,
+    spacing: 4, cap: 44, floorTime: 12, floorKills: 1, fieldCap: 16,
     landmarkGemCount: 7, landmarkGemValue: 2
   };
   var OPENING_BEATS = { firstEnemy: 1.8, firstDrop: 10.5, airstrike: 5.0 };

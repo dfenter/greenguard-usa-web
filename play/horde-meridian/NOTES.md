@@ -1367,3 +1367,51 @@ Layout: both weapon grids are now bottom-bounded by the TITLE / FLY NOW
 buttons — the old loadout grid ran its last row under them at 390x844.
 The local "max scope allowed" service-worker console error is a plain static
 server artifact (no Service-Worker-Allowed header); GGKit falls back.
+
+## 2026-08-19 EXPANSION ROUND (arsenal 50 / beacon / deep sky / campaign 13)
+
+Owner asks: fix mobile double-tap airstrike, more airstrikes + board bonuses,
+50 weapons w/ 10 legendary, beacon-led map flow, exciting space backgrounds,
+4 more campaign levels, wingman flies the pilot's weapon, more arc-beam-class
+spectacle bonuses.
+
+- DOUBLE-TAP FIX: old gate only ran for the joystick pointer with 260ms/18px/
+  340ms thresholds; real thumbs missed it and a second finger gets a NEW
+  pointer id (skipped entirely). Now ANY short tap counts (400ms hold, 34px
+  drift, 500ms gap, 160px radius) plus a dedicated STRIKE HUD button (below
+  pause, shows charge count). Runs open with 5 charges (was 3), bank cap 8.
+- WEAPONS 21 -> 50 (10 LEGENDARY, tier 'legendary', hot-magenta 0xff7ae0):
+  29 new weapons are DATA-DRIVEN via `spec` on the def (hm_data.js),
+  interpreted by fireSpecWeapon() in game.js - composes existing shot kinds
+  (homing/orbit/bounce/fork/burst/beam/mine web) + arc chains, ring fire,
+  elite targeting, dual fore-aft, muzzle flare. Legendary drops: wave>=5
+  ~9-10% tier roll; hangar grids rewritten as 4-col compact tiles (50 fit
+  above TITLE/FLY NOW); in-run arsenal panel goes 3-col past 16 collected.
+- WINGMAN WEAPONS: fireWingVolley now fires the pilot's slot-0 weapon per
+  wing through fireMirrorWeapon(g, key, scale, silent) (generalized mirror
+  path; scale 0.30 * wingDamage/0.56). Falls back to the classic single bolt
+  when liveShots >= PROJECTILE_SOFT_CAP.
+- NAV BEACON: scanNavTarget/renderNavBeacon - chevron orbits the ship
+  pointing at (1) nearest live base, (2) live boss, (3) next scheduled base,
+  (4) next Swarm Lord signal, with distance readout + light pillar at the
+  target. Levels 10-13 authored as beacon routes (sequential bases).
+- DEEP SKY: buildSkyTextures() generates grayscale planet (banded+ring),
+  moon, spiral galaxy, 2 nebula banks; 6 per-region sky objects tinted from
+  the region palette, parallax-anchored, re-laid-out on region entry
+  (layoutSkyObjects). Starfield 150 -> 210. Shooting-star streaks (2 pooled).
+- NEW BONUSES: ARC TEMPEST (timed chain-lightning storm), PRISM ARRAY (timed
+  rotating tri-beam), METEOR STORM (16 staggered air bombs), STRIKE PACK
+  (+2 airstrike charges). Offensive weights bumped (purge/lance/carpet/
+  strike-wing/cluster); DROP_TUNING generosity up (base .095, fieldCap 16,
+  cap 44).
+- CAMPAIGN 9 -> 13: level10 ashfall-hunt (ember, 4-base route), level11
+  graveyard-siege (5-base route), level12 rift-storm (3-lord hunt), level13
+  deep-meridian (finale, Core 1.6x + crystal/graveyard escorts, 560s).
+  CAMPAIGN_MAX_LEVELS=13, profile validator unlocked cap 13, UI header says
+  13 MISSIONS. Save version unchanged (v3) - no migration needed.
+- VERIFY: aaa/harness/hm_round3_probe.mjs 26/26 PASS local (includes
+  touchscreen double-tap, all 29 spec weapons live-fired, wing mirror,
+  bonuses, L10/L13 boots); hm_arsenal_probe ALL PASS; hm_campaign_probe
+  updated to 13 levels - same 2 known draft-freeze artifacts as ship
+  baseline, rest green (local SW-scope console error is the static-server
+  artifact, not a defect).

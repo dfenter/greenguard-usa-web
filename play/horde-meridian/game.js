@@ -240,7 +240,7 @@
       if (o.campaign != null) {
         var cg = o.campaign;
         if (typeof cg !== 'object' || Array.isArray(cg)) return false;
-        if (!counter(cg.unlocked, 9) || cg.unlocked < 1) return false;
+        if (!counter(cg.unlocked, 13) || cg.unlocked < 1) return false;
         if (!cg.stars || typeof cg.stars !== 'object' || Array.isArray(cg.stars)) return false;
         if (!cg.bestTimes || typeof cg.bestTimes !== 'object' || Array.isArray(cg.bestTimes)) return false;
         var cgKeys = Object.getOwnPropertyNames(cg.stars);
@@ -337,7 +337,7 @@
   // levels/ (see LEVELS_SPEC.md, the binding contract). Each is validated here
   // at boot; a malformed level is excluded with a console warning rather than
   // shipped broken.
-  var CAMPAIGN_MAX_LEVELS = 9;
+  var CAMPAIGN_MAX_LEVELS = 13;
   function validEnemyKey(k) {
     return (Object.prototype.hasOwnProperty.call(FAMILY, k) && k !== 'boss') ||
       Object.prototype.hasOwnProperty.call(REGION_ENEMY_BY_KEY, k);
@@ -1109,38 +1109,38 @@
           lsBg.on('pointerdown', function (slotIndex) { return function () { scene.selectLoadoutSlot(slotIndex); }; }(lsi));
         }
         // Grid is bottom-bounded by the TITLE / FLY NOW buttons, so the last
-        // row can never slide under them however many weapons ship.
-        var gap2 = 7, loadoutRows = Math.ceil(WEAPONS.length / 2);
+        // row can never slide under them however many weapons ship. At 50
+        // weapons the grid runs compact 4-across icon tiles.
+        var gap2 = 5, loadoutCols = 4, loadoutRows = Math.ceil(WEAPONS.length / loadoutCols);
         var gridTop = top + 46, gridBottom = h - 112;
-        var cw = (w - 28 - gap2) / 2;
-        var ch = clamp((gridBottom - gridTop - (loadoutRows - 1) * 4) / loadoutRows, 26, 52);
+        var cw = (w - 28 - gap2 * (loadoutCols - 1)) / loadoutCols;
+        var ch = clamp((gridBottom - gridTop - (loadoutRows - 1) * 4) / loadoutRows, 24, 52);
         for (var wi = 0; wi < WEAPONS.length; wi++) {
           var weapon = WEAPONS[wi], seen = !!profile.hangar.weaponsSeen[weapon.key];
-          var wc = wi % 2, wr = Math.floor(wi / 2);
+          var wc = wi % loadoutCols, wr = Math.floor(wi / loadoutCols);
           var wx = 14 + cw / 2 + wc * (cw + gap2), wy = gridTop + wr * (ch + 4) + ch / 2;
           var inSlot = -1;
           for (var lsl = 0; lsl < 3; lsl++) if (loadout[lsl] === weapon.key) inSlot = lsl;
           var selected = seen && inSlot === pickSlot;
           var wbg = this.cardBase(g, wx, wy, cw, ch, selected);
-          var wic = this.add.image(wx - cw / 2 + 23, wy, 'atlas', seen ? weapon.glyph : 'ic_lock')
-            .setScale(0.43).setTint(seen ? weapon.color : 0x526572).setAlpha(seen ? 1 : 0.7);
-          var regionHint = weapon.regionKey && REGION_BY_KEY[weapon.regionKey] ? 'FOUND IN THE ' + REGION_BY_KEY[weapon.regionKey].name : 'ENCOUNTER TO UNLOCK';
-          var wn = neonText(this, wx - cw / 2 + 44, wy - 9,
-            seen ? weapon.name.toUpperCase() : (weapon.tier === 'upgraded' ? regionHint : 'UNKNOWN PRIMARY'), TYPE.micro,
+          var wic = this.add.image(wx - cw / 2 + 15, wy, 'atlas', seen ? weapon.glyph : 'ic_lock')
+            .setScale(Math.min(0.4, ch / 62)).setTint(seen ? weapon.color : 0x526572).setAlpha(seen ? 1 : 0.7);
+          var wn = neonText(this, wx - cw / 2 + 27, wy - (inSlot >= 0 ? 5 : 0),
+            seen ? weapon.shortName : '???', TYPE.micro,
             seen ? '#d8f5ff' : '#718897');
           wn.setOrigin(0, 0.5);
-          var weaponNameMax = cw - 51;
-          if (wn.width > weaponNameMax) wn.setScale(weaponNameMax / wn.width);
-          var slotLabel = inSlot === 0 ? 'PRIMARY' : (inSlot === 1 ? 'SECONDARY' : 'TERTIARY');
-          var ws = bodyText(this, wx - cw / 2 + 44, wy + 10,
-            inSlot >= 0 ? slotLabel + (selected ? '  ·  TAP TO CLEAR' : '') : (seen ? 'TAP TO EQUIP' : 'ENCOUNTER TO UNLOCK'),
-            TYPE.micro, inSlot >= 0 ? '#8effd8' : '#7fa3b5');
-          ws.setOrigin(0, 0.5);
-          var wsScale = Math.min(0.86, Math.max(0.62, (ch - 5) / 38));
-          if (ws.width * wsScale > weaponNameMax) wsScale = weaponNameMax / ws.width;
-          ws.setScale(wsScale);
-          if (weapon.tier === 'upgraded' && seen) wbg.setTint(0xffd67a);
-          g.add([wic, wn, ws]);
+          var weaponNameMax = cw - 32;
+          wn.setScale(Math.min(0.86, wn.width > weaponNameMax ? weaponNameMax / wn.width : 0.86));
+          g.add([wic, wn]);
+          if (inSlot >= 0) {
+            var wsBadge = bodyText(this, wx - cw / 2 + 27, wy + 8,
+              inSlot === 0 ? 'PRIMARY' : (inSlot === 1 ? 'SECOND' : 'THIRD'),
+              TYPE.micro, '#8effd8');
+            wsBadge.setOrigin(0, 0.5).setScale(0.62);
+            g.add(wsBadge);
+          }
+          if (weapon.tier === 'legendary' && seen) wbg.setTint(0xff7ae0);
+          else if (weapon.tier === 'upgraded' && seen) wbg.setTint(0xffd67a);
           if (seen) {
             wbg.setInteractive({ useHandCursor: true });
             wbg.on('pointerdown', function (weaponKey) { return function () { scene.selectWeapon(weaponKey); }; }(weapon.key));
@@ -1155,32 +1155,26 @@
         g.add(this.add.rectangle(w / 2, top + 12, barW, 5, 0x1f3a48));
         g.add(this.add.rectangle(w / 2 - barW / 2, top + 12, barW * (found / WEAPONS.length), 5, 0x8effd8)
           .setOrigin(0, 0.5));
-        var cxGap = 6, cxRows = Math.ceil(WEAPONS.length / 2);
+        var cxGap = 5, cxCols = 4, cxRows = Math.ceil(WEAPONS.length / cxCols);
         var cxTop = top + 26, cxBottom = h - 112;
-        var cxW = (w - 28 - cxGap) / 2;
-        var cxH = clamp((cxBottom - cxTop - (cxRows - 1) * 4) / cxRows, 26, 50);
+        var cxW = (w - 28 - cxGap * (cxCols - 1)) / cxCols;
+        var cxH = clamp((cxBottom - cxTop - (cxRows - 1) * 4) / cxRows, 24, 50);
         for (var ci = 0; ci < WEAPONS.length; ci++) {
           var cwp = WEAPONS[ci], cSeen = !!profile.hangar.weaponsSeen[cwp.key];
-          var cc = ci % 2, cr = Math.floor(ci / 2);
+          var cc = ci % cxCols, cr = Math.floor(ci / cxCols);
           var cx = 14 + cxW / 2 + cc * (cxW + cxGap), cy = cxTop + cr * (cxH + 4) + cxH / 2;
           var cBg = this.cardBase(g, cx, cy, cxW, cxH, false);
           cBg.setAlpha(cSeen ? 1 : 0.55);
-          var cIcon = this.add.image(cx - cxW / 2 + 20, cy, 'atlas', cSeen ? cwp.glyph : 'ic_lock')
-            .setScale(0.4).setTint(cSeen ? cwp.color : 0x44586a).setAlpha(cSeen ? 1 : 0.75);
-          var cName = neonText(this, cx - cxW / 2 + 38, cy - 8,
-            cSeen ? cwp.name.toUpperCase() : '? ? ?', TYPE.micro, cSeen ? '#d8f5ff' : '#6d8593');
+          if (cSeen && cwp.tier === 'legendary') cBg.setTint(0xff7ae0);
+          else if (cSeen && cwp.tier === 'upgraded') cBg.setTint(0xffd67a);
+          var cIcon = this.add.image(cx - cxW / 2 + 14, cy, 'atlas', cSeen ? cwp.glyph : 'ic_lock')
+            .setScale(Math.min(0.38, cxH / 64)).setTint(cSeen ? cwp.color : 0x44586a).setAlpha(cSeen ? 1 : 0.75);
+          var cName = neonText(this, cx - cxW / 2 + 26, cy,
+            cSeen ? cwp.shortName : '???', TYPE.micro, cSeen ? '#d8f5ff' : '#6d8593');
           cName.setOrigin(0, 0.5);
-          if (cName.width > cxW - 44) cName.setScale((cxW - 44) / cName.width);
-          var cRegion = cwp.regionKey && REGION_BY_KEY[cwp.regionKey]
-            ? REGION_BY_KEY[cwp.regionKey].name.toUpperCase()
-            : 'ANY SECTOR';
-          var cSub = bodyText(this, cx - cxW / 2 + 38, cy + 9,
-            (cwp.tier === 'upgraded' ? 'UPGRADED  ·  ' : 'STANDARD  ·  ') + cRegion, TYPE.micro,
-            cSeen ? '#7fa3b5' : '#5d7583');
-          cSub.setOrigin(0, 0.5);
-          var cSubMax = cxW - 44;
-          cSub.setScale(Math.min(0.76, cSub.width > cSubMax ? cSubMax / cSub.width : 0.76));
-          g.add([cIcon, cName, cSub]);
+          var cNameMax = cxW - 31;
+          cName.setScale(Math.min(0.86, cName.width > cNameMax ? cNameMax / cName.width : 0.86));
+          g.add([cIcon, cName]);
         }
         this.setNotice(found >= WEAPONS.length
           ? 'CODEX COMPLETE  ·  EVERY WEAPON RECOVERED.'
@@ -1389,6 +1383,8 @@
       // camera. Every other scrollFactor-0 object in this scene is UI.
       this.ground._hmWorld = true;
 
+      this.buildSkyTextures();
+
       resetSeed();
 
       this.landmarkDefs = [];
@@ -1424,13 +1420,43 @@
       for (var rbp = 0; rbp < this.regionBackground.length; rbp++) this.park(this.regionBackground[rbp].spr);
       this.activeRegionKey = '';
 
+      // DEEP SKY (2026-08-19): every sector now hangs real astronomy behind
+      // the grid - a shaded planet, a moon, a spiral galaxy and layered
+      // nebula banks, all procedural textures tinted from the region
+      // palette. Anchored per region and re-laid-out on region entry.
+      this.skyObjects = [
+        { role: 'galaxy', par: 0.16, depth: -96.5, spr: this.add.image(0, 0, 'hm_galaxy')
+          .setDepth(-96).setBlendMode(Phaser.BlendModes.ADD) },
+        { role: 'nebula0', par: 0.2, depth: -96, spr: this.add.image(0, 0, 'hm_nebula0')
+          .setDepth(-96).setBlendMode(Phaser.BlendModes.ADD) },
+        { role: 'nebula1', par: 0.26, depth: -96, spr: this.add.image(0, 0, 'hm_nebula1')
+          .setDepth(-96).setBlendMode(Phaser.BlendModes.ADD) },
+        { role: 'nebula2', par: 0.34, depth: -96, spr: this.add.image(0, 0, 'hm_nebula0')
+          .setDepth(-96).setBlendMode(Phaser.BlendModes.ADD) },
+        { role: 'planet', par: 0.3, depth: -95.5, spr: this.add.image(0, 0, 'hm_planet0')
+          .setDepth(-95) },
+        { role: 'moon', par: 0.4, depth: -95, spr: this.add.image(0, 0, 'hm_planet1')
+          .setDepth(-95) }
+      ];
+      for (var sko = 0; sko < this.skyObjects.length; sko++) this.park(this.skyObjects[sko].spr);
+
+      // Shooting stars: brief streaks that cross the deep sky.
+      this.comets = [];
+      for (var cst = 0; cst < 2; cst++) {
+        var cometSpr = this.add.image(0, 0, 'edge').setDepth(-92)
+          .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
+        this.comets.push({ active: false, t: 0, x: 0, y: 0, vx: 0, vy: 0, spr: cometSpr });
+        this.park(cometSpr);
+      }
+      this.cometT = 4;
+
       this.coreMount = this.add.image(0, 0, 'atlas', 'deco_core').setDepth(-94)
         .setScale(1.6).setAlpha(0.85);
       this.coreMount.wx = 0; this.coreMount.wy = 0;
       this.park(this.coreMount);
 
       this.marks = [];
-      for (var i = 0; i < 150; i++) {
+      for (var i = 0; i < 210; i++) {
         var m = this.add.image(0, 0, 'p_flare')
           .setBlendMode(Phaser.BlendModes.ADD).setDepth(-90)
           .setTint(0x54d6ff);
@@ -1497,6 +1523,28 @@
       }
 
       this.initPools();
+
+      // NAV BEACON (2026-08-19): a directional chevron orbits the ship and
+      // points at the current objective - the enemy base, then the Swarm
+      // Lord, then the next signal on the schedule - so the map reads as a
+      // route to fly, not an empty field. A light pillar marks the target.
+      this.navBeacon = {
+        scanT: 0, tx: 0, ty: 0, has: false, color: 0x54d6ff, label: '',
+        chev: this.add.triangle(0, 0, 0, -14, 11, 10, -11, 10, 0x54d6ff, 0.94).setDepth(60),
+        glow: this.add.image(0, 0, 'disc').setDepth(59)
+          .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.3).setDisplaySize(52, 52),
+        dist: this.add.text(0, 0, '', {
+          fontFamily: FONT_DISPLAY, fontSize: TYPE.micro + 'px',
+          color: '#bcd9e6', fontStyle: 'bold'
+        }).setOrigin(0.5).setDepth(60),
+        pillar: this.add.image(0, 0, 'edge').setDepth(-70)
+          .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.6),
+        halo: this.add.image(0, 0, 'disc').setDepth(-71)
+          .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.3)
+      };
+      this.park(this.navBeacon.chev); this.park(this.navBeacon.glow);
+      this.park(this.navBeacon.dist); this.park(this.navBeacon.pillar);
+      this.park(this.navBeacon.halo);
 
       this.playerMark = this.add.image(0, 0, 'atlas', 'hero_marker').setDepth(48)
         .setAlpha(0.9).setScale(0.82);
@@ -2410,7 +2458,154 @@
       pbg.on('pointerdown', function () { scene.openPause(); });
       this.pauseBtn = pauseBtn;
 
+      // Dedicated STRIKE button (2026-08-19): double-tap proved unreliable on
+      // some phones, so airstrikes also live on a always-visible HUD control.
+      var strikeBtn = this.add.container(R - 22, bandH + 62).setScrollFactor(0).setDepth(230);
+      var sbg = this.add.image(0, 0, 'atlas', 'chip').setDisplaySize(44, 40).setAlpha(0.92);
+      var sico = this.add.image(0, -5, 'atlas', 'ic_lance').setScale(0.3)
+        .setTint(0xffc361).setBlendMode(Phaser.BlendModes.ADD);
+      var scount = this.add.text(0, 11, '3', {
+        fontFamily: FONT_DISPLAY, fontSize: TYPE.micro + 'px', color: '#ffc361', fontStyle: 'bold'
+      }).setOrigin(0.5);
+      strikeBtn.add([sbg, sico, scount]);
+      sbg.setInteractive({ useHandCursor: true });
+      sbg.on('pointerdown', function () { scene.tryCallAirstrike(); });
+      this.strikeBtn = strikeBtn;
+      this.strikeBtnIcon = sico;
+      this.strikeBtnCount = scount;
+      this.strikeBtnShown = -1;
+
       this.hud.add([bar, barEdge]);
+    },
+
+    buildSkyTextures: function () {
+      // Procedural deep-sky set, generated once, grayscale so region
+      // palettes tint them. No new asset files, a few KB of texture memory.
+      if (this.textures.exists('hm_planet0')) return;
+      var g = this.make.graphics({ add: false }), i, t, a, r;
+      // Gas giant with cloud bands, terminator shadow and a ring.
+      g.clear();
+      g.lineStyle(5, 0xffffff, 0.34);
+      g.strokeEllipse(88, 88, 150, 42);
+      g.fillStyle(0xffffff, 1); g.fillCircle(88, 88, 56);
+      g.fillStyle(0xb8b8b8, 0.55); g.fillEllipse(88, 66, 100, 13);
+      g.fillStyle(0xa8a8a8, 0.5); g.fillEllipse(88, 90, 110, 16);
+      g.fillStyle(0xcfcfcf, 0.45); g.fillEllipse(88, 112, 88, 11);
+      g.fillStyle(0x000000, 0.38);
+      g.slice(88, 88, 56, -0.95, 0.95, false); g.fillPath();
+      g.fillStyle(0xffffff, 0.4); g.fillCircle(68, 68, 15);
+      g.lineStyle(5, 0xffffff, 0.55);
+      g.beginPath(); g.arc(88, 88, 74, 2.5, 3.9); g.strokePath();
+      g.generateTexture('hm_planet0', 176, 176);
+      // Cratered moon.
+      g.clear();
+      g.fillStyle(0xffffff, 1); g.fillCircle(48, 48, 34);
+      g.fillStyle(0x9a9a9a, 0.6);
+      g.fillCircle(38, 40, 7); g.fillCircle(58, 56, 5); g.fillCircle(52, 32, 4);
+      g.fillCircle(34, 60, 4); g.fillCircle(62, 42, 3);
+      g.fillStyle(0x000000, 0.34);
+      g.slice(48, 48, 34, -1.05, 1.05, false); g.fillPath();
+      g.generateTexture('hm_planet1', 96, 96);
+      // Spiral galaxy: two dotted arms around a bright core.
+      g.clear();
+      for (i = 0; i < 9; i++) {
+        g.fillStyle(0xffffff, 0.05 + (8 - i) * 0.03);
+        g.fillCircle(112, 112, 8 + i * 3.4);
+      }
+      for (i = 0; i < 230; i++) {
+        t = i / 230;
+        a = t * 4.4 * Math.PI + (i % 2) * Math.PI;
+        r = 10 + t * 92;
+        g.fillStyle(0xffffff, (1 - t) * 0.34 + 0.05);
+        g.fillCircle(112 + Math.cos(a) * r, 112 + Math.sin(a) * r * 0.52,
+          1.2 + noise01(i * 7 + 3) * 2.2);
+      }
+      g.generateTexture('hm_galaxy', 224, 224);
+      // Two nebula banks: layered soft blobs.
+      for (var v = 0; v < 2; v++) {
+        g.clear();
+        for (i = 0; i < 13; i++) {
+          var bx = 40 + noise01(v * 997 + i * 31 + 1) * 176;
+          var by = 40 + noise01(v * 1409 + i * 47 + 2) * 176;
+          var br = 26 + noise01(v * 2003 + i * 59 + 3) * 52;
+          for (var q = 5; q >= 1; q--) {
+            g.fillStyle(0xffffff, 0.028 + (5 - q) * 0.008);
+            g.fillCircle(bx, by, br * q / 5);
+          }
+        }
+        g.generateTexture('hm_nebula' + v, 256, 256);
+      }
+      g.destroy();
+    },
+
+    layoutSkyObjects: function (region) {
+      var ri = regionIndexAtX((region.minX + region.maxX) / 2);
+      var span = region.maxX - region.minX;
+      for (var i = 0; i < this.skyObjects.length; i++) {
+        var so = this.skyObjects[i];
+        var n1 = noise01(ri * 419 + i * 73 + 11), n2 = noise01(ri * 811 + i * 97 + 17);
+        so.wx = region.minX + (0.12 + n1 * 0.76) * span;
+        so.wy = (n2 - 0.5) * EDGE * 2.1;
+        var pal = region.palette;
+        if (so.role === 'galaxy') {
+          so.spr.setTint(pal.stars[0]);
+          so.baseScale = 1.7 + n1 * 0.9; so.baseAlpha = 0.62;
+        } else if (so.role === 'planet') {
+          so.spr.setTint(pal.near);
+          so.baseScale = 1.35 + n2 * 0.75; so.baseAlpha = 0.92;
+        } else if (so.role === 'moon') {
+          so.spr.setTint(pal.stars[(ri + 1) % pal.stars.length]);
+          so.baseScale = 0.8 + n1 * 0.5; so.baseAlpha = 0.85;
+        } else {
+          so.spr.setTint(i % 2 ? pal.mid : pal.near);
+          so.baseScale = 2.6 + n1 * 1.8; so.baseAlpha = 0.4 + n2 * 0.22;
+        }
+        so.spr.setScale(so.baseScale).setAlpha(so.baseAlpha);
+      }
+    },
+
+    renderDeepSky: function (dt, cmx, cmy, cullX, cullY) {
+      var run = this.run, i;
+      for (i = 0; i < this.skyObjects.length; i++) {
+        var so = this.skyObjects[i];
+        if (so.wx == null) continue;
+        var sx = so.wx * so.par + cmx * (1 - so.par);
+        var sy = so.wy * so.par + cmy * (1 - so.par);
+        var half = 128 * so.baseScale;
+        if (Math.abs(sx - cmx) > cullX + half || Math.abs(sy - cmy) > cullY + half) {
+          this.park(so.spr); continue;
+        }
+        this.unpark(so.spr);
+        so.spr.setPosition(sx, sy);
+        if (so.role === 'galaxy') so.spr.rotation += dt * 0.012;
+      }
+      // Shooting stars.
+      this.cometT -= dt;
+      if (this.cometT <= 0) {
+        this.cometT = 7 + srand() * 9;
+        for (i = 0; i < this.comets.length; i++) {
+          var idle = this.comets[i];
+          if (idle.active) continue;
+          idle.active = true; idle.t = 0;
+          var ca = 0.5 + srand() * 0.6 + (srand() < 0.5 ? Math.PI : 0);
+          idle.x = cmx + (srand() - 0.5) * cullX * 1.6;
+          idle.y = cmy - cullY - 40;
+          idle.vx = Math.cos(ca) * 780; idle.vy = Math.abs(Math.sin(ca)) * 620 + 240;
+          this.unpark(idle.spr);
+          idle.spr.setDisplaySize(86, 3)
+            .setRotation(Math.atan2(idle.vy, idle.vx)).setTint(0xd8f4ff);
+          break;
+        }
+      }
+      for (i = 0; i < this.comets.length; i++) {
+        var c = this.comets[i];
+        if (!c.active) continue;
+        c.t += dt;
+        c.x += c.vx * dt; c.y += c.vy * dt;
+        if (c.t > 1.3) { c.active = false; this.park(c.spr); continue; }
+        c.spr.setPosition(c.x, c.y)
+          .setAlpha(Math.sin(clamp(c.t / 1.3, 0, 1) * Math.PI) * 0.75);
+      }
     },
 
     bindInput: function () {
@@ -2443,12 +2638,19 @@
         scene.stickNub.setPosition(scene.stick.bx + dx, scene.stick.by + dy);
       });
       function release(p) {
-        if (p && scene.state === 'playing' && p.id === scene.stick.id) {
+        // Double-tap airstrike. Mobile fix 2026-08-19: the old gate only ran
+        // for the joystick pointer with tight thresholds (260ms hold / 18px
+        // drift / 340ms gap), which real thumbs on real phones missed almost
+        // every time - fast taps drift and a second finger gets a NEW pointer
+        // id, skipping the check entirely. Now ANY short tap counts, the
+        // windows are humane, and there is also a dedicated STRIKE button.
+        if (p && scene.state === 'playing') {
           var held = p.upTime - p.downTime;
           var moved = Phaser.Math.Distance.Between(p.x, p.y, p.downX, p.downY);
-          if (held < 260 && moved < 18) {
-            if (scene.lastTapAt && p.upTime - scene.lastTapAt < 340 &&
-                Phaser.Math.Distance.Between(p.x, p.y, scene.lastTapX, scene.lastTapY) < 90) {
+          if (held < 400 && moved < 34) {
+            if (scene.lastTapAt && p.upTime - scene.lastTapAt < 500 &&
+                p.upTime - scene.lastTapAt > 40 &&
+                Phaser.Math.Distance.Between(p.x, p.y, scene.lastTapX, scene.lastTapY) < 160) {
               scene.lastTapAt = 0;
               scene.tryCallAirstrike();
             } else {
@@ -2692,7 +2894,7 @@
         regionKey: 'meridian-verge', regionsSeen: 1, regionSeen: { 'meridian-verge': true },
         landmarkGemsSeen: {},
         strikeSerial: 0,
-        strikeCharges: 3, openingAirstrikeDone: false, openingDropDone: false, openingEnemyDone: false,
+        strikeCharges: 5, openingAirstrikeDone: false, openingDropDone: false, openingEnemyDone: false,
         equippedWeapon: startingWeapon, weaponSlots: startSlots,
         arsenal: startArsenal, pendingLoadout: pendingLoadout,
         slotsUnlocked: startSlotCount,
@@ -2715,7 +2917,8 @@
           'chrono-rewind': 0, 'mirror-squadron': 0, 'bounty-frenzy': 0 },
         buffs: { aegis: 0, overdrive: 0, arsenal: 0, chain: 0, dilation: 0,
           magnet: 0, decoy: 0, flare: 0, drone: 0, freeze: 0, doubler: 0,
-          vampire: 0, reflector: 0, gravity: 0, cloak: 0 }
+          vampire: 0, reflector: 0, gravity: 0, cloak: 0, tempest: 0,
+          'prism-array': 0 }
       };
       this.state = 'playing';
       this.activeRegionKey = '';
@@ -3221,14 +3424,19 @@
       if (kit.juice.enabled) kit.juice.shake(7, 220);
     },
 
-    fireMirrorWeapon: function (g) {
-      var p = this.p, run = this.run, data = WEAPON_BY_KEY[run.equippedWeapon] || WEAPONS[0];
+    // Fires a reduced copy of a weapon from a remote friendly position:
+    // mirror squadron ghosts AND wingmen (wingmen fly the pilot's slot-0
+    // weapon since the 2026-08-19 round). dmgScale defaults to the mirror's
+    // 0.40; silent suppresses the per-shot cue for multi-ship volleys.
+    fireMirrorWeapon: function (g, weaponKey, dmgScale, silent) {
+      var p = this.p, run = this.run;
+      var data = WEAPON_BY_KEY[weaponKey || run.equippedWeapon] || WEAPONS[0];
       var target = this.nearestEnemy(g.x, g.y, 900);
       if (!target) return;
       var r = p.ranks, mastery = 1 + Math.min(7, Math.floor(Math.max(0, (r.lance || 1) - 1) / 2));
       var angle = Math.atan2(target.y - g.y, target.x - g.x);
       var arsenal = run.buffs.arsenal > 0;
-      var base = 9 * p.damage * p.projectileDamage * 0.40 * (arsenal ? 1.45 : 1) * (1 + mastery * 0.18);
+      var base = 9 * p.damage * p.projectileDamage * (dmgScale || 0.40) * (arsenal ? 1.45 : 1) * (1 + mastery * 0.18);
       var speed = p.projectileSpeed, i, spread, sa;
       if (data.key === 'bolt-lance') {
         this.fireShot('bolt', g.x, g.y, Math.cos(angle) * 560 * speed, Math.sin(angle) * 560 * speed,
@@ -3333,8 +3541,10 @@
         this.fireShot('coil-tempest', g.x, g.y, Math.cos(angle) * 720 * speed, Math.sin(angle) * 720 * speed,
           base * 1.34, 7 * p.projectileSize, 1 + p.pierce, data.key, true);
         this.arcLine(g.x, g.y, target.x, target.y, data.color, 0.16);
+      } else if (data.spec) {
+        this.fireSpecWeapon(data, g.x, g.y, angle, base, 0, true);
       }
-      weaponSfx(data.cue, { volume: 0.09, rate: data.rate });
+      if (!silent) weaponSfx(data.cue, { volume: 0.09, rate: data.rate });
     },
 
     stepMirrorSquadron: function (dt) {
@@ -3447,7 +3657,8 @@
         var wLive = 0;
         for (var wdi = 0; wdi < this.weaponDrops.length; wdi++) if (this.weaponDrops[wdi].alive) wLive++;
         if (wLive < 3) {
-          var wTier = wrun.wave >= 3 && srand() < 0.32 ? 'upgraded' : 'base';
+          var wTier = wrun.wave >= 5 && srand() < 0.10 ? 'legendary' :
+            (wrun.wave >= 3 && srand() < 0.32 ? 'upgraded' : 'base');
           this.spawnWeaponDrop(this.nextWeaponDrop(null, wTier),
             this.p.x + (srand() - 0.5) * 320, this.p.y + (srand() - 0.5) * 320);
         }
@@ -3464,6 +3675,8 @@
           this.expireBonus(timed.key);
         }
       }
+
+      this.stepSpectacleBuffs(dt);
 
       if (buffs.decoy > 0) {
         this.decoyX = clamp(p.x + Math.cos(run.time * 1.35) * 150, -EDGE + 28, EDGE - 28);
@@ -3820,6 +4033,155 @@
       this.queueSpectacleBeat('CLUSTER BARRAGE', 0xff8f6b, 1.08, false);
     },
 
+    startMeteorStorm: function () {
+      // Spectacle instant: a wide grid of orbital debris rains around the
+      // ship, staggered like the cluster barrage but bigger and looser.
+      var p = this.p;
+      for (var i = 0; i < 16; i++) {
+        var a = srand() * TAU, r = i === 0 ? 0 : 70 + srand() * 320;
+        var mx = clamp(p.x + Math.cos(a) * r, -EDGE + 36, EDGE - 36);
+        var my = clamp(p.y + Math.sin(a) * r, -EDGE + 36, EDGE - 36);
+        this.spawnAirBomb(mx, my, 40 * p.damage * p.projectileDamage, 118,
+          0.22 + i * 0.09);
+      }
+      this.run.strikeSerial++;
+      sfx('telegraph', { volume: 0.7, rate: 0.5 });
+      sfx('enemyShoot', { volume: 0.28, rate: 0.5 });
+      this.queueSpectacleBeat('METEOR STORM', 0xffab7a, 1.12, false);
+    },
+
+    stepSpectacleBuffs: function (dt) {
+      // ARC TEMPEST: a lightning storm crowns the ship while the buff runs.
+      var run = this.run, p = this.p, buffs = run.buffs;
+      if (buffs.tempest > 0) {
+        this.tempestT = (this.tempestT || 0) - dt;
+        if (this.tempestT <= 0) {
+          this.tempestT = 0.34;
+          var t1 = this.nearestEnemy(p.x, p.y, 340);
+          if (t1) {
+            var dmg = 16 * p.damage;
+            this.arcLine(p.x, p.y, t1.x, t1.y, 0xa8ffff, 0.18);
+            this.damage(t1, dmg, t1.x, t1.y, true);
+            var t2 = this.chainTarget(t1.x, t1.y, 210, t1, null, null);
+            if (t2) {
+              this.arcLine(t1.x, t1.y, t2.x, t2.y, 0xe0ffff, 0.16);
+              this.damage(t2, dmg * 0.6, t2.x, t2.y, true);
+              var t3 = this.chainTarget(t2.x, t2.y, 210, t2, t1, null);
+              if (t3) {
+                this.arcLine(t2.x, t2.y, t3.x, t3.y, 0xe0ffff, 0.14);
+                this.damage(t3, dmg * 0.4, t3.x, t3.y, true);
+              }
+            }
+            if (srand() < 0.3) sfx('levelup', { volume: 0.1, rate: 1.7 });
+          }
+        }
+      }
+      // PRISM ARRAY: three rotating beams sweep out from the hull.
+      if (buffs['prism-array'] > 0) {
+        this.prismArrayT = (this.prismArrayT || 0) - dt;
+        if (this.prismArrayT <= 0) {
+          this.prismArrayT = 0.42;
+          var baseAng = run.time * 1.9;
+          for (var pa = 0; pa < 3; pa++) {
+            this.fireBeam(baseAng + pa * TAU / 3, 13 * p.damage, 360, 20,
+              'prism-beam', 1, null, null, true);
+          }
+          sfx('pulse', { volume: 0.08, rate: 1.15 });
+        }
+      }
+    },
+
+    scanNavTarget: function () {
+      var run = this.run, nb = this.navBeacon;
+      nb.has = false;
+      if (!run || this.state === 'over') return;
+      var p = this.p, i, best = null, bestD = Infinity, d;
+      // 1) a live enemy base is always the route.
+      for (i = 0; i < this.bases.length; i++) {
+        var b = this.bases[i];
+        if (!b.alive) continue;
+        d = (b.x - p.x) * (b.x - p.x) + (b.y - p.y) * (b.y - p.y);
+        if (d < bestD) { bestD = d; best = b; }
+      }
+      if (best) {
+        nb.has = true; nb.tx = best.x; nb.ty = best.y;
+        nb.color = 0xffc361; nb.label = 'ENEMY BASE';
+        return;
+      }
+      // 2) a live boss.
+      var bossT = (this.regionBossRef && this.regionBossRef.alive) ? this.regionBossRef :
+        ((this.bossRef && this.bossRef.alive) ? this.bossRef : null);
+      if (bossT) {
+        nb.has = true; nb.tx = bossT.x; nb.ty = bossT.y;
+        nb.color = 0xc480ff; nb.label = bossT.regionBoss ? 'SWARM LORD' : 'THE CORE';
+        return;
+      }
+      // 3) the next scheduled base: a signal to chase before it wakes.
+      for (i = 0; i < this.activeBases.length; i++) {
+        if (!run.baseSpawned[i]) {
+          nb.has = true; nb.tx = this.activeBases[i].x; nb.ty = this.activeBases[i].y;
+          nb.color = 0x54d6ff; nb.label = 'SIGNAL';
+          return;
+        }
+      }
+      // 4) the next scheduled Swarm Lord signal. Classic Swarm Lords only
+      // wake when the pilot enters their region, so the beacon leads there.
+      var sched = this.level ? (this.activeRegionBossSchedule || []) : REGION_BOSS_SCHEDULE;
+      for (i = 0; i < sched.length; i++) {
+        var row = sched[i];
+        if (this.level) {
+          if (run.campaignRbSpawned && run.campaignRbSpawned[i]) continue;
+        } else {
+          if (run.regionBossSeen[row.region] || run.regionBossDefeated[row.region]) continue;
+          if (run.time < row.at - 25) continue;
+        }
+        nb.has = true; nb.tx = row.x; nb.ty = row.y;
+        nb.color = 0x54d6ff; nb.label = 'SIGNAL';
+        return;
+      }
+    },
+
+    renderNavBeacon: function (dt) {
+      var nb = this.navBeacon;
+      if (!nb) return;
+      nb.scanT -= dt;
+      if (nb.scanT <= 0) { nb.scanT = 0.5; this.scanNavTarget(); }
+      if (!nb.has || this.state !== 'playing') {
+        this.park(nb.chev); this.park(nb.glow); this.park(nb.dist);
+        this.park(nb.pillar); this.park(nb.halo);
+        return;
+      }
+      var p = this.p, run = this.run;
+      var dx = nb.tx - p.x, dy = nb.ty - p.y;
+      var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      var ang = Math.atan2(dy, dx);
+      var pulse = 0.78 + Math.sin(run.time * 5.2) * 0.22;
+      // Target light pillar in the world.
+      this.unpark(nb.pillar); this.unpark(nb.halo);
+      nb.pillar.setPosition(nb.tx, nb.ty - 90).setDisplaySize(10, 200)
+        .setTint(nb.color).setAlpha(0.34 + pulse * 0.3);
+      nb.halo.setPosition(nb.tx, nb.ty)
+        .setDisplaySize(120 + pulse * 40, 120 + pulse * 40)
+        .setTint(nb.color).setAlpha(0.16 + pulse * 0.12);
+      if (dist < 360) {
+        // Close enough to see the pillar itself; drop the chevron.
+        this.park(nb.chev); this.park(nb.glow); this.park(nb.dist);
+        return;
+      }
+      var orbitR = 96 + pulse * 8;
+      var cx = p.x + Math.cos(ang) * orbitR, cy = p.y + Math.sin(ang) * orbitR;
+      this.unpark(nb.chev); this.unpark(nb.glow); this.unpark(nb.dist);
+      nb.chev.setPosition(cx, cy).setRotation(ang + Math.PI / 2)
+        .setFillStyle(nb.color, 0.6 + pulse * 0.34);
+      nb.glow.setPosition(cx, cy).setTint(nb.color).setAlpha(0.14 + pulse * 0.16);
+      nb.dist.setPosition(p.x + Math.cos(ang) * (orbitR + 30),
+        p.y + Math.sin(ang) * (orbitR + 30) - 18);
+      var shown = nb.label + ' ' + (dist >= 1000 ?
+        (Math.round(dist / 100) / 10 + 'KM') : Math.round(dist / 10) * 10 + 'M');
+      if (nb.dist.text !== shown) nb.dist.setText(shown);
+      nb.dist.setTint(nb.color).setAlpha(0.6 + pulse * 0.3).setScale(0.9);
+    },
+
     expireBonus: function (kind) {
       if (this.state !== 'playing') return;
       var data = BONUS_BY_KEY[kind];
@@ -3984,7 +4346,7 @@
       var total = 0, data, fallback = null;
       for (var i = 0; i < BONUS.length; i++) {
         data = BONUS[i];
-        if (early && (data.key === 'purge' || data.key === 'lance' || data.key === 'strike-wing' || data.key === 'cluster-barrage')) continue;
+        if (early && (data.key === 'purge' || data.key === 'lance' || data.key === 'strike-wing' || data.key === 'cluster-barrage' || data.key === 'meteor')) continue;
         if (data.key === 'wing' && this.run.wings >= this.wingCapacity()) continue;
         var liveSame = false;
         for (var j = 0; j < this.bonuses.length; j++) {
@@ -3996,7 +4358,7 @@
       var pick = srand() * total;
       for (var k = 0; k < BONUS.length; k++) {
         data = BONUS[k];
-        if (early && (data.key === 'purge' || data.key === 'lance' || data.key === 'strike-wing' || data.key === 'cluster-barrage')) continue;
+        if (early && (data.key === 'purge' || data.key === 'lance' || data.key === 'strike-wing' || data.key === 'cluster-barrage' || data.key === 'meteor')) continue;
         if (data.key === 'wing' && this.run.wings >= this.wingCapacity()) continue;
         liveSame = false;
         for (var m = 0; m < this.bonuses.length; m++) {
@@ -4061,7 +4423,8 @@
       run.equippedWeapon = run.weaponSlots[0] || weaponKey;
       if (source) this.floatText(this.p.x, this.p.y - 28, data.name.toUpperCase(), '#e7fff7', TYPE.body);
       this.showBanner(slot === 0 ? 'PRIMARY EQUIPPED' : (slot === 1 ? 'SECONDARY ONLINE' : 'TERTIARY ONLINE'),
-        data.tier === 'upgraded' ? data.name.toUpperCase() + ' // UPGRADED' : data.name.toUpperCase());
+        data.tier === 'legendary' ? data.name.toUpperCase() + ' // LEGENDARY' :
+        (data.tier === 'upgraded' ? data.name.toUpperCase() + ' // UPGRADED' : data.name.toUpperCase()));
       this.updateHud();
       return true;
     },
@@ -4158,29 +4521,33 @@
       if (!run.arsenal.length) {
         ov.add(bodyText(this, w / 2, listTop + 40, 'NOTHING COLLECTED YET.', TYPE.body, '#7fa3b5'));
       } else {
-        var rows = Math.ceil(run.arsenal.length / 2);
-        var cellH = Math.max(30, Math.min(48, avail / rows - 4));
-        var cellW = (w - 28 - 7) / 2;
+        var cols = run.arsenal.length > 16 ? 3 : 2;
+        var rows = Math.ceil(run.arsenal.length / cols);
+        var cellH = Math.max(cols === 3 ? 26 : 30, Math.min(48, avail / rows - 4));
+        var cellW = (w - 28 - 7 * (cols - 1)) / cols;
         for (var ai = 0; ai < run.arsenal.length; ai++) {
           var key = run.arsenal[ai], data = WEAPON_BY_KEY[key];
           if (!data) continue;
-          var col = ai % 2, row = Math.floor(ai / 2);
+          var col = ai % cols, row = Math.floor(ai / cols);
           var cx = 14 + cellW / 2 + col * (cellW + 7);
           var cy = listTop + row * (cellH + 4) + cellH / 2;
           var inSlot = this.slotOfWeapon(key);
           var isTarget = inSlot === this.arsenalSlot;
           var cBg = this.add.image(cx, cy, 'atlas', isTarget ? 'card_hot' : 'card').setDisplaySize(cellW, cellH);
-          if (data.tier === 'upgraded') cBg.setTint(0xffd67a);
-          var cIcon = this.add.image(cx - cellW / 2 + 20, cy, 'atlas', data.glyph).setScale(0.42).setTint(data.color);
-          var cName = neonText(this, cx - cellW / 2 + 38, cy - 8, data.name.toUpperCase(), TYPE.micro,
+          if (data.tier === 'legendary') cBg.setTint(0xff7ae0);
+          else if (data.tier === 'upgraded') cBg.setTint(0xffd67a);
+          var cIcon = this.add.image(cx - cellW / 2 + (cols === 3 ? 14 : 20), cy, 'atlas', data.glyph)
+            .setScale(cols === 3 ? 0.34 : 0.42).setTint(data.color);
+          var cName = neonText(this, cx - cellW / 2 + (cols === 3 ? 26 : 38), cy - 8,
+            cols === 3 ? data.shortName : data.name.toUpperCase(), TYPE.micro,
             isTarget ? '#8effd8' : '#d8f5ff');
           cName.setOrigin(0, 0.5);
           if (cName.width > cellW - 44) cName.setScale((cellW - 44) / cName.width);
           var stateLabel = isTarget ? 'IN THIS SLOT'
             : (inSlot >= 0 ? 'SLOT ' + (inSlot + 1) + '  ·  TAP TO SWAP' : 'TAP TO ARM');
-          var cSub = bodyText(this, cx - cellW / 2 + 38, cy + 9, stateLabel, TYPE.micro,
+          var cSub = bodyText(this, cx - cellW / 2 + (cols === 3 ? 26 : 38), cy + 9, stateLabel, TYPE.micro,
             inSlot >= 0 ? '#8effd8' : '#7fa3b5');
-          cSub.setOrigin(0, 0.5).setScale(0.76);
+          cSub.setOrigin(0, 0.5).setScale(cols === 3 ? 0.6 : 0.76);
           ov.add([cBg, cIcon, cName, cSub]);
           if (!isTarget) {
             cBg.setInteractive({ useHandCursor: true });
@@ -4280,12 +4647,16 @@
       drop.born = run.time;
       this.unpark(drop.spr); this.unpark(drop.ring); this.unpark(drop.beacon);
       var upgraded = data.tier === 'upgraded';
+      var legendary = data.tier === 'legendary';
+      var dropTint = legendary ? 0xff7ae0 : (upgraded ? 0xffd67a : data.color);
       drop.spr.setTexture('atlas', data.glyph).setPosition(drop.x, drop.y)
-        .setTint(upgraded ? 0xfff0b0 : data.color).setAlpha(1).setScale(upgraded ? 1.02 : 0.9).setRotation(0);
-      drop.ring.setPosition(drop.x, drop.y).setTint(upgraded ? 0xffd67a : data.color)
-        .setAlpha(upgraded ? 0.84 : 0.55).setDisplaySize(upgraded ? 104 : 86, upgraded ? 104 : 86);
-      drop.beacon.setPosition(drop.x, drop.y - 54).setDisplaySize(9, 118)
-        .setTint(upgraded ? 0xffd67a : data.color).setAlpha(upgraded ? 0.68 : 0.48).setRotation(0);
+        .setTint(legendary ? 0xffe0ff : (upgraded ? 0xfff0b0 : data.color)).setAlpha(1)
+        .setScale(legendary ? 1.14 : (upgraded ? 1.02 : 0.9)).setRotation(0);
+      drop.ring.setPosition(drop.x, drop.y).setTint(dropTint)
+        .setAlpha(legendary ? 0.95 : (upgraded ? 0.84 : 0.55))
+        .setDisplaySize(legendary ? 122 : (upgraded ? 104 : 86), legendary ? 122 : (upgraded ? 104 : 86));
+      drop.beacon.setPosition(drop.x, drop.y - 54).setDisplaySize(legendary ? 12 : 9, legendary ? 136 : 118)
+        .setTint(dropTint).setAlpha(legendary ? 0.8 : (upgraded ? 0.68 : 0.48)).setRotation(0);
       run.weaponDrops++;
       run.weaponLastDrop = run.time;
       return drop;
@@ -4303,11 +4674,15 @@
       if (!this.equipWeapon(weaponKey, true)) return;
       weaponSfx(data.cue, { volume: 0.52, rate: data.rate });
       this.triggerBuffGlow(data.color);
-      var revealTitle = data.tier === 'upgraded' ? 'UPGRADED // ' + data.name.toUpperCase() : data.name.toUpperCase();
-      this.queueSpectacleBeat(revealTitle, data.tier === 'upgraded' ? 0xffd67a : data.color,
-        data.tier === 'upgraded' ? 1.18 : 1.0, false);
-      this.showBanner(data.tier === 'upgraded' ? 'UPGRADED PRIMARY' : data.name.toUpperCase(),
-        data.tier === 'upgraded' ? data.name.toUpperCase() + ' // LATE-RUN PRIZE' : 'ARSENAL PRIMARY EQUIPPED', false, true);
+      var revealTitle = data.tier === 'legendary' ? 'LEGENDARY // ' + data.name.toUpperCase() :
+        (data.tier === 'upgraded' ? 'UPGRADED // ' + data.name.toUpperCase() : data.name.toUpperCase());
+      this.queueSpectacleBeat(revealTitle,
+        data.tier === 'legendary' ? 0xff7ae0 : (data.tier === 'upgraded' ? 0xffd67a : data.color),
+        data.tier === 'legendary' ? 1.3 : (data.tier === 'upgraded' ? 1.18 : 1.0), false);
+      this.showBanner(data.tier === 'legendary' ? 'LEGENDARY PRIMARY' :
+        (data.tier === 'upgraded' ? 'UPGRADED PRIMARY' : data.name.toUpperCase()),
+        data.tier === 'legendary' ? data.name.toUpperCase() + ' // ONE OF TEN' :
+        (data.tier === 'upgraded' ? data.name.toUpperCase() + ' // LATE-RUN PRIZE' : 'ARSENAL PRIMARY EQUIPPED'), false, true);
     },
 
     tryDropWeapon: function (e) {
@@ -4332,7 +4707,8 @@
       if (this.p.ranks.dropLuck) chance *= 1 + this.p.ranks.dropLuck * 0.11;
       chance *= 1 + (this.p.hangarDropLuck || 0);
       if (srand() > chance) return false;
-      var normalTier = run.wave >= 3 && srand() < 0.32 ? 'upgraded' : 'base';
+      var normalTier = run.wave >= 5 && srand() < 0.09 ? 'legendary' :
+        (run.wave >= 3 && srand() < 0.32 ? 'upgraded' : 'base');
       return !!this.spawnWeaponDrop(this.nextWeaponDrop(null, normalTier), e.x, e.y);
     },
 
@@ -4539,7 +4915,7 @@
         return;
       }
       if (kind === 'strike-wing') {
-        this.run.strikeCharges = Math.min(4, (this.run.strikeCharges || 0) + 1);
+        this.run.strikeCharges = Math.min(8, (this.run.strikeCharges || 0) + 1);
         this.triggerBuffGlow(data.color);
         this.showBanner('STRIKE CHARGE BANKED', 'DOUBLE-TAP TO CALL THE WING', false, true);
         sfx('unlock', { volume: 0.5, rate: 1.05 });
@@ -4549,6 +4925,20 @@
         this.startClusterBarrage();
         this.triggerBuffGlow(data.color);
         this.showBanner('CLUSTER BARRAGE', 'STAGGERED IMPACT GRID ARMED', false, true);
+        return;
+      }
+      if (kind === 'strike-pack') {
+        this.run.strikeCharges = Math.min(8, (this.run.strikeCharges || 0) + 2);
+        this.triggerBuffGlow(data.color);
+        this.queueSpectacleBeat('STRIKE PACK', data.color, 1.0, false);
+        this.showBanner('STRIKE PACK SECURED', 'TWO CHARGES BANKED // TAP STRIKE', false, true);
+        sfx('unlock', { volume: 0.52, rate: 1.02 });
+        return;
+      }
+      if (kind === 'meteor') {
+        this.startMeteorStorm();
+        this.triggerBuffGlow(data.color);
+        this.showBanner('METEOR STORM', 'ORBITAL DEBRIS INBOUND', false, true);
         return;
       }
       if (kind === 'carpet') {
@@ -5962,17 +6352,107 @@
           3 + p.pierce, data.key);
       } else if (data.key === 'coil-tempest') {
         fired = this.fireCoilTempest(base * 1.34, data);
+      } else if (data.spec) {
+        fired = this.fireSpecWeapon(data, p.x, p.y, ang, base, multi, false);
       }
       if (fired) {
         if (slotIndex === 0) this.fireWingVolley(ang, base * p.wingDamage);
         this.fx.impact.setParticleTint(data.muzzle || data.color);
         this.fx.impact.emitParticleAt(p.x + Math.cos(ang) * 16, p.y + Math.sin(ang) * 16,
-          data.tier === 'upgraded' ? 5 : 2);
-        if (data.tier === 'upgraded') this.contactRing(p.x + Math.cos(ang) * 16, p.y + Math.sin(ang) * 16,
-          8, 28, 0.16, data.muzzle || data.color, 0.58);
+          data.tier === 'legendary' ? 7 : (data.tier === 'upgraded' ? 5 : 2));
+        if (data.tier === 'upgraded' || data.tier === 'legendary') {
+          this.contactRing(p.x + Math.cos(ang) * 16, p.y + Math.sin(ang) * 16,
+            8, data.tier === 'legendary' ? 34 : 28, 0.16, data.muzzle || data.color, 0.58);
+        }
         weaponSfx(data.cue, { volume: slotIndex === 0 ? 0.22 : (slotIndex === 1 ? 0.14 : 0.10), rate: data.rate });
       }
       c.primarySlots[slotIndex] = interval;
+    },
+
+    // Generic interpreter for data-driven weapons (the 2026-08-19 expansion
+    // arsenal). Composes the existing shot kinds and their update behaviors
+    // from a declarative spec on the weapon definition; every new weapon and
+    // all ten legendaries fire through this one path.
+    fireSpecWeapon: function (data, x, y, ang, base, multi, mirror) {
+      var spec = data.spec, p = this.p, fired = false, i, sa, shot, n;
+      var speed = p.projectileSpeed;
+      if (spec.mode === 'beam') {
+        var bm = spec.beam;
+        var bAng = bm.sweep ? this.run.time * 2.4 + Math.sin(this.run.time * 0.85) * 0.36 : ang;
+        fired = !!this.fireBeam(bAng, base * spec.dmg, bm.len, bm.wid, data.key,
+          1 + p.pierce, mirror ? x : null, mirror ? y : null, mirror);
+        if (bm.dual && fired) {
+          this.fireBeam(bAng + Math.PI, base * spec.dmg * 0.7, bm.len * 0.8, bm.wid * 0.8,
+            data.key, p.pierce, mirror ? x : null, mirror ? y : null, true);
+        }
+      } else if (spec.mode === 'mine') {
+        var mn = spec.mine;
+        var webId = mn.web ? ++this.run.weaponSerial : 0;
+        n = mirror ? Math.max(2, Math.ceil(mn.count / 2)) : mn.count;
+        for (i = 0; i < n; i++) {
+          var ma = p.face + Math.PI + (i - (n - 1) / 2) * 0.4;
+          fired = !!this.dropMine(base * spec.dmg, mn.radius,
+            x - Math.cos(ma) * (34 + i * 20), y - Math.sin(ma) * (34 + i * 20),
+            data.key, mirror, webId, i) || fired;
+        }
+      } else {
+        var eliteTarget = spec.elite ? this.nearestElite(x, y, 980) : null;
+        if (eliteTarget) ang = Math.atan2(eliteTarget.y - y, eliteTarget.x - x);
+        n = spec.count + (spec.addMulti && !mirror ? multi : 0);
+        if (mirror) n = Math.max(1, Math.ceil(n * 0.5));
+        n = Math.min(12, n);
+        var pattern = SHOT_PATTERNS[n].normalized;
+        var orbitStep = 0;
+        for (i = 0; i < n; i++) {
+          sa = spec.ring ? ang + i * TAU / n : ang + pattern[i] * spec.spread * 2;
+          var vx = Math.cos(sa) * spec.speed * speed;
+          var vy = Math.sin(sa) * spec.speed * speed + (spec.drop || 0);
+          shot = this.fireShot(spec.kind, x + Math.cos(sa) * 14, y + Math.sin(sa) * 14,
+            vx, vy, base * spec.dmg, spec.size * p.projectileSize,
+            (spec.pierce || 0) + p.pierce, data.key, mirror, i);
+          if (!shot) continue;
+          fired = true;
+          if (spec.kind === 'cyclone-glaive') {
+            shot.orbitAngle = ang + orbitStep * TAU / n;
+            shot.orbitRadius = 28;
+            shot.orbitDir = orbitStep % 2 === 0 ? 1 : -1;
+            shot.ox = x; shot.oy = y;
+            orbitStep++;
+          }
+          if (spec.kind === 'lance-array') shot.targetRef = eliteTarget;
+          if (spec.burst) {
+            shot.rangeBurst = true;
+            shot.burstRadius = spec.burst.radius;
+            shot.burstDmg = base * spec.burst.dmg;
+          }
+          if (spec.dual) {
+            var back = this.fireShot(spec.kind, x - Math.cos(sa) * 14, y - Math.sin(sa) * 14,
+              -vx, -vy + (spec.drop || 0), base * spec.dmg * 0.8, spec.size * p.projectileSize,
+              (spec.pierce || 0) + p.pierce, data.key, true, i);
+            if (back && spec.burst) {
+              back.rangeBurst = true; back.burstRadius = spec.burst.radius;
+              back.burstDmg = base * spec.burst.dmg * 0.8;
+            }
+          }
+        }
+      }
+      if (fired && spec.arc && !mirror) {
+        var arcT = this.nearestEnemy(x, y, (spec.arc.radius || 180) + 140);
+        var prevX = x, prevY = y, hops = spec.arc.hops || 1;
+        var exA = null, exB = null;
+        while (arcT && hops-- > 0) {
+          this.arcLine(prevX, prevY, arcT.x, arcT.y, data.impact || data.color, 0.18);
+          this.damage(arcT, base * spec.arc.dmg, arcT.x, arcT.y, true);
+          prevX = arcT.x; prevY = arcT.y;
+          var nextT = this.chainTarget(arcT.x, arcT.y, spec.arc.radius || 180, arcT, exA, exB);
+          exB = exA; exA = arcT; arcT = nextT;
+        }
+      }
+      if (fired && spec.flare && !mirror) {
+        this.contactRing(x + Math.cos(ang) * 18, y + Math.sin(ang) * 18, 10, 40, 0.2,
+          data.muzzle || data.color, 0.62);
+      }
+      return fired;
     },
 
     fireCoilTempest: function (damage, data) {
@@ -6077,13 +6557,31 @@
     },
 
     fireWingVolley: function (ang, dmg) {
+      // Wingmen fly the pilot's slot-0 weapon (owner directive 2026-08-19):
+      // each wing fires a reduced copy of the equipped primary through the
+      // same remote-fire path the mirror squadron uses. Scale tracks the
+      // Wing Calibration upgrade via p.wingDamage (0.56 base).
+      var run = this.run, p = this.p;
+      var weaponKey = run.weaponSlots[0] || run.equippedWeapon;
+      var scale = 0.30 * (p.wingDamage / 0.56);
+      var any = false;
       for (var i = 0; i < this.wings.length; i++) {
         var w = this.wings[i];
         if (!w.alive) continue;
-        var spread = w.slot === 0 ? -0.16 : (w.slot === 1 ? 0.16 : (w.slot === 3 ? -0.28 : 0));
-        var sa = ang + spread;
-        this.fireShot('wing', w.x + Math.cos(sa) * 13, w.y + Math.sin(sa) * 13,
-          Math.cos(sa) * 560, Math.sin(sa) * 560, dmg, 4, 0);
+        if (this.liveShots >= PROJECTILE_SOFT_CAP) {
+          // Shot pool under pressure: fall back to the classic single bolt.
+          var spread = w.slot === 0 ? -0.16 : (w.slot === 1 ? 0.16 : (w.slot === 3 ? -0.28 : 0));
+          var sa = ang + spread;
+          this.fireShot('wing', w.x + Math.cos(sa) * 13, w.y + Math.sin(sa) * 13,
+            Math.cos(sa) * 560, Math.sin(sa) * 560, dmg, 4, 0);
+        } else {
+          this.fireMirrorWeapon(w, weaponKey, scale, true);
+        }
+        any = true;
+      }
+      if (any) {
+        var data = WEAPON_BY_KEY[weaponKey];
+        if (data) weaponSfx(data.cue, { volume: 0.07, rate: data.rate * 1.08 });
       }
     },
 
@@ -6110,7 +6608,7 @@
         var frame = style ? style.frame : (kind === 'seeker' || kind === 'swarm-dart' || kind === 'wisp' ? 'wisp' :
           (kind === 'mortar' || kind === 'mortar-cascade' ? 'ic_pulse' : (kind === 'wing' ? 'bolt' : 'bolt')));
         var tint = s.boosted ? 0xffd67a : (style ? style.color : (kind === 'wing' ? 0x8effd8 : 0xffffff));
-        s.visualScale = (style ? (s.boosted ? 1.18 : (style.tier === 'upgraded' ? 1.08 : 1.0)) :
+        s.visualScale = (style ? (s.boosted ? 1.18 : (style.tier === 'legendary' ? 1.14 : (style.tier === 'upgraded' ? 1.08 : 1.0))) :
           (kind === 'wing' ? 0.94 : 1.1)) * (r / 5);
         this.unpark(s.spr);
         s.spr.setTexture('atlas', frame)
@@ -8047,6 +8545,7 @@
           this.unpark(layer.spr);
         }
         this.reseedRegionField(region);
+        this.layoutSkyObjects(region);
         if (this.frameVig) this.frameVig.setAlpha(region.key === 'void-rift' ? 0.14 : 0);
       }
       this.stepRegionFieldReseed();
@@ -8133,9 +8632,11 @@
 
       var region = REGION_BY_KEY[run.regionKey] || regionAtX(p.x);
       this.updateRegionPresentation(region, cmx, cmy);
+      this.renderNavBeacon(dt);
 
       this.ground.tilePositionX = cam.scrollX * 0.92;
       this.ground.tilePositionY = cam.scrollY * 0.92;
+      this.renderDeepSky(dt, cmx, cmy, cullX, cullY);
       for (var i = 0; i < this.marks.length; i++) {
         var m = this.marks[i];
         var mx = m.wx * m.par + cmx * (1 - m.par);
@@ -8643,7 +9144,7 @@
         }
         this.unpark(wd.spr); this.unpark(wd.ring); this.unpark(wd.beacon);
         var wdata = WEAPON_BY_KEY[wd.weapon];
-        var goldDrop = wdata.tier === 'upgraded';
+        var goldDrop = wdata.tier === 'upgraded' || wdata.tier === 'legendary';
         var wblink = wd.life < 4 && Math.floor(run.time * 12) % 2;
         var wbob = 1 + Math.sin(run.time * 5.6 + wd.born) * 0.10;
         wd.spr.setPosition(wd.x, wd.y).setScale((goldDrop ? 1.02 : 0.9) * wbob)
@@ -9000,7 +9501,9 @@
         if (wdata) {
           if (wslot.icon.frame.name !== wdata.glyph) wslot.icon.setTexture('atlas', wdata.glyph);
           wslot.icon.setTint(wdata.color).setAlpha(1);
-          wslot.trim.setVisible(wdata.tier === 'upgraded').setAlpha(wdata.tier === 'upgraded' ? 0.92 : 0);
+          var trimTier = wdata.tier === 'upgraded' || wdata.tier === 'legendary';
+          wslot.trim.setVisible(trimTier).setAlpha(trimTier ? 0.92 : 0)
+            .setTint(wdata.tier === 'legendary' ? 0xff7ae0 : 0xffd67a);
         } else {
           var emptyFrame = unlocked ? 'ic_orbit' : 'ic_lock';
           if (wslot.icon.frame.name !== emptyFrame) wslot.icon.setTexture('atlas', emptyFrame);
@@ -9060,6 +9563,13 @@
 
       var wingCount = run.wings || 0;
       var strikeCharges = this.run ? (this.run.strikeCharges || 0) : 0;
+      if (this.strikeBtnCount && this.strikeBtnShown !== strikeCharges) {
+        this.strikeBtnShown = strikeCharges;
+        this.strikeBtnCount.setText('' + strikeCharges);
+        this.strikeBtnCount.setColor(strikeCharges > 0 ? '#ffc361' : '#48606e');
+        this.strikeBtnIcon.setTint(strikeCharges > 0 ? 0xffc361 : 0x3a5260)
+          .setAlpha(strikeCharges > 0 ? 1 : 0.6);
+      }
       if (this.strikePips && this.strikePipsLit !== strikeCharges) {
         this.strikePipsLit = strikeCharges;
         for (var scp = 0; scp < this.strikePips.length; scp++) {

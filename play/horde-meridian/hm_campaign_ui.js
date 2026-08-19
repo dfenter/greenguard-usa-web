@@ -221,7 +221,7 @@
       align: 'right'
     }).setOrigin(1, 0.5).setDepth(2);
     var subtitle = addCenteredText(scene, safeLeft + 24, headerTop + 53,
-      'MERIDIAN CAMPAIGN // 9 MISSIONS', SIZE.micro, '#7fa3b5', 'body');
+      'MERIDIAN CAMPAIGN // 13 MISSIONS', SIZE.micro, '#7fa3b5', 'body');
     subtitle.setOrigin(0, 0.5);
     subtitle.setDepth(2);
 
