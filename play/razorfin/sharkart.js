@@ -1012,7 +1012,7 @@
   function bakeShark(scene, sharkDef, variant) {
     var def = sharkDef || {};
     var sil = def.sil || {};
-    var v = variant === 'menu' ? 'menu' : 'play';
+    var v = variant === 'menu' ? 'menu' : (variant === 'thumb' ? 'thumb' : 'play');
     var id = String(def.id || 'shark');
     var key = 'rf_shark_' + id + '_' + v;
     if (textureCache[key]) {
@@ -1026,6 +1026,13 @@
      * dorsal/pectoral fins and the swept caudal lobes. */
     var cssW = Math.round(260 * len * mul);
     var cssH = Math.round(210 * len * mul);
+    if (v === 'thumb') {
+      /* iOS canvas-memory hotfix (2026-08-19 live crash): 61 'menu' bakes at
+       * DPR 3 cost hundreds of MB and Safari kills the page. Thumbnails get a
+       * FIXED small box; geometry scales inside it, species identity intact.
+       * Full detail still exists in the run and the (lazily baked) shop. */
+      cssW = 112; cssH = 90;
+    }
     var surface = makeSurface(cssW, cssH);
     var p = paletteOf(def);
     var g = sharkGeom(cssW, cssH, sil, v === 'menu', def.tier);

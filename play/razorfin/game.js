@@ -383,7 +383,7 @@
       } catch (e) { warnOnce('Art.bakeShark', e); }
     }
     var pal = def.sil && def.sil.palette ? def.sil.palette : { base: 0x7d8c9e, belly: 0xdfe7ee, accent: 0x4b5c6b };
-    var len = variant === 'menu' ? 160 : 96;
+    var len = variant === 'menu' ? 160 : (variant === 'thumb' ? 84 : 96);
     return fallbackEllipse(scene, key, len, Math.max(18, len * num(def.sil && def.sil.girth, 0.34)),
       pal.base, pal.belly, pal.accent);
   }
@@ -457,7 +457,7 @@
     for (var i = 0; i < list.length; i++) {
       var d = list[i];
       if (!ownedFor(d.id) && d.tier > 2) continue; // rest bake on demand
-      try { bootedTextures[d.id] = sharkTexture(scene, d, 'menu'); } catch (e) { warnOnce('bake shark', e); }
+      try { bootedTextures[d.id] = sharkTexture(scene, d, 'thumb'); } catch (e) { warnOnce('bake shark', e); }
     }
   }
   function bakeCreatureTextures(scene) {
@@ -561,7 +561,7 @@
 
           var texKey = bootedTextures[def.id];
           if (!texKey) {
-            try { texKey = bootedTextures[def.id] = sharkTexture(self, def, 'menu'); }
+            try { texKey = bootedTextures[def.id] = sharkTexture(self, def, 'thumb'); }
             catch (e) { warnOnce('menu bake', e); texKey = null; }
           }
           if (texKey && self.textures.exists(texKey)) {
