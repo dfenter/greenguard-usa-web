@@ -44,3 +44,7 @@ GITHUB_APPEAL.md
 *.mp4
 ad_pipeline/assets/
 app/scripts/deferred-groups.json
+
+# KiCad transient lock files (created while a board is open in the editor)
+*.kicad_pro.lck
+~*.kicad_pro.lck
