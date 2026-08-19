@@ -18,26 +18,6 @@ function formatServiceDate(s) {
   })
 }
 
-// Build a Google Static Maps URL: customer pin (red) + N trap pins (green
-// numbered). Falls back to a plain address-only map if no machPins.
-function buildMapUrl({ address, machPins }) {
-  const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-  if (!key || (!address && !(machPins?.length))) return null
-  const params = [
-    'size=560x300',
-    'scale=2',
-    'maptype=roadmap',
-    `key=${encodeURIComponent(key)}`,
-  ]
-  if (address) {
-    params.push(`markers=color:red%7Clabel:H%7C${encodeURIComponent(address)}`)
-  }
-  ;(machPins || []).forEach((p, i) => {
-    params.push(`markers=color:0x7dffaa%7Clabel:${i + 1}%7C${p.lat},${p.lng}`)
-  })
-  return `https://maps.googleapis.com/maps/api/staticmap?${params.join('&')}`
-}
-
 function lineRows(lines, color) {
   return lines.filter((l) => (l.amount || 0) > 0).map((l) => `
     <tr>
@@ -100,7 +80,6 @@ export default async function handler(req, res) {
     ...productLines,
   ]
 
-  const mapUrl = buildMapUrl({ address: customerAddress, machPins })
   const dueToday = oneTimeTotal + taxAmount + parseFloat(shippingTotal || 0)
   const monthlyAfter = recurringTotal
 
@@ -167,14 +146,6 @@ export default async function handler(req, res) {
       ${spreadRow({ label: 'Total due with first visit', amount: fmt$(dueToday), color: '#1565c0', weight: 800, borderTop: true, pad: '10px 0 0' })}
     </div>` : ''
 
-  const mapHtml = mapUrl ? `
-    <div style="${sectionStyle}background:#fafafa;border-color:#e8e8e8;">
-      <div style="${sectionTitle('#666')}">Service Location${machPins.length ? ` & Trap Placement (${machPins.length})` : ''}</div>
-      <img src="${mapUrl}" alt="Service map" style="display:block;width:100%;max-width:520px;border-radius:6px;border:1px solid #ddd;" />
-      ${customerAddress ? `<p style="font-size:0.82rem;color:#555;margin:10px 0 0;"><strong>H</strong> = your address: ${escapeHtml(customerAddress)}</p>` : ''}
-      ${machPins.length ? `<p style="font-size:0.82rem;color:#0d8a3c;margin:4px 0 0;">Numbered green pins = proposed trap locations</p>` : ''}
-    </div>` : ''
-
   const serviceDateHtml = serviceDate ? `
     <div style="${sectionStyle}background:#fefaf2;border-color:#f0e3c1;">
       <div style="${sectionTitle('#c9a84c')}">First Available Service Date</div>
@@ -233,7 +204,6 @@ export default async function handler(req, res) {
         <p style="margin:0 0 20px;font-size:13px;color:#6b7f6e;font-family:Arial,sans-serif;">This quote is valid for 30 days from today.</p>
         ${serviceDateHtml}
         ${comparisonHtml || `${monthlyHtml}${oneTimeHtml}`}
-        ${mapHtml}
         <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
           <tr>
             <td bgcolor="#1a3320" style="border-radius:8px;padding:16px 20px;">
