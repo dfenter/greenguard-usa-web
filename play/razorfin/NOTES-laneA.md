@@ -723,3 +723,215 @@ call guarded and wrapped.
   at its right edge and the pectoral's root is at its upper right.
 - **NPC rigs are not wired.** Hook exported as `RF.Game.buildSharkRig` for
   Lane B; see the rig section above.
+
+---
+
+## Rev 3D pass 1 (Lane A3) - engine3d.js
+
+New file `engine3d.js` (ES module, imports `three` by the importmap name per
+SPEC3D load order). `game.js` is untouched and stays in the repo as the
+reference rev until cutover signoff. This lane did NOT touch `index.html`
+(Lane C3 owns it), any 2D file, or any other 3D lane file.
+
+### What was ported (logic identical to game.js)
+
+Every sim rule below is the same code path and the same NUMBER that shipped in
+the Phaser rev. Only the render layer changed.
+
+- **GGKit boot**: `GGKit.create({slug:'razorfin', orientation:'landscape',
+  validateSave, onRestart})`, `registerPWA()`, and the same save handling
+  (`validateSave` delegate-or-accept, `fallbackProfile`, `loadProfile`,
+  `commitProfile`, `ownedFor`, `upgradeLevel`).
+- **Fixed step**: `STEP=1/60`, `MAX_STEPS=4`, accumulator times
+  `ctx.run.timeScale`, `RF.Juice.consumeFreeze()` consumed once per frame and
+  subtracted as skipped ms, backlog dropped at MAX_STEPS. Pause zeroes the
+  accumulator AND drops the stick (a stale full deflection must not launch the
+  shark on resume).
+- **RF.ctx**: exact SPEC.md schema (kit, scene, dpr, time{now,dt,frame}, rng
+  mulberry32, player, save, run{score,coins,xp,combo,comboT,comboPeak,frenzy,
+  goldRushT,biggestTier,slowmoT,timeScale}). Additive-only: `three`,
+  `renderer`, `camera`, `scene3` for the sibling 3D lanes. `scene` is now the
+  THREE.Scene rather than a Phaser scene, which is the one schema field whose
+  TYPE the 3D rev necessarily changes.
+- **Stick controls**: all of game.js's numbers - 62 CSS px radius, 1.35x
+  re-centering base follow, 0.12 dead zone, ring alpha 0.16 / nub alpha 0.5,
+  `TURN_BOOSTA` 2.0 with the 0.45-1.0 deflection-scaled turn ease,
+  `IDLE_DRAG` 0.80 decel-to-zero on release with the <1 px/s snap to rest.
+  Keyboard fallback (WASD/arrows, Shift boost, Space power) unchanged.
+- **Player controller**: `stepControl` / `stepMotion` / `stepAnim` /
+  `stepEat` / `multiBite` / `swallow` / `stepPlayerHits` / `hurt` /
+  `stepHunger` / `stepCombo` / `stepFrenzy` / `stepMusic` / `onDeath` /
+  `finishRun`, all verbatim. The four review-tagged authorities survive
+  intact: RF-COINS-01 (swallow pays once, zeroes `e.coins` before
+  `World.kill`; pickups stay world.js's), RF-HITS-01 (world.js is the single
+  damage authority, `playerHits` consumed in the frame it was filled),
+  RF-BEST-01 (`comboPeak` high-water mark), RF-PASSIVE-01 (`liveMult` prefers
+  `st.statMults` over the boot snapshot).
+- **Eat feedback parity**: two-stage burst (`deathBurst` + `motes` sized by
+  meal tier, prey-tinted), pooled score popup at the bite point, jaw snap
+  (`st.jawSnapT = 0.18`), scale pop (`st.eatPopT = 0.16`), hit-stop 40 ms for
+  a small meal / 60 ms at `mealT >= p.tier - 1`, and multiBite's own 40 ms.
+- **Death**: undying revive at 35% hp, then slow-mo requested through
+  `RF.Juice.slowmo(0.32, 1200)` and READ BACK via `consumeSlowmo()` so
+  juice.js stays the authority (RF-CHRONO-01), results scheduled off
+  `ctx.time.now` (never setTimeout), `abilitiesReset()` before leaving.
+- **DevMode / meta**: `RF.DevMode.init()` is called BEFORE `RF.Meta.load`,
+  exactly as game.js did, so `window.__rf` compatibility comes from meta.js
+  unchanged. Per NOTES-laneC the accessors used are `RF.Meta.activeShark`
+  (run selection, dev pick layered and never persisted) and
+  `RF.Meta.displayCoins` (persisted + non-persisted overlay); this file
+  fabricates no second coin overlay.
+
+### What is new (the 3D render layer)
+
+- **Renderer**: `WebGLRenderer({antialias:true})`, own
+  `setPixelRatio(min(dpr,3))` computed locally - `GGKit.hiDpi.three()` is
+  deliberately NOT used because it derives from the kill-switched `hiDpi.dpr()`
+  and would give a 1x backing store on a retina phone. `ACESFilmicToneMapping`,
+  sRGB output.
+- **Camera**: perspective fov 50 at `(px, -py, 620)` looking at `(px, -py, 0)`
+  per the SPEC3D space contract. World `(x, y-down)` maps to three
+  `(x, -y, z)`; gameplay plane z=0. Follow is an exponential approach (rate
+  6/s) on a velocity lookahead point (0.28 s of velocity, capped at 190 px),
+  plus a mild FOV ease of +6 deg across the speed fraction (rate 2.2/s). Shake
+  is read from `kit.juice.frame()` as a positional impulse on both the camera
+  and its lookAt, so the shake does not swing the aim.
+- **Lighting / zone look**: hemisphere (sky `#9fd4e8` / deep `#06121e`) plus a
+  non-shadowing directional sun. `stepZoneLook` lerps `FogExp2` color and
+  density, the clear color, and the hemisphere color/intensity toward the
+  current `RFD.ZONES` row so a zone crossing is unmistakable. `data.js` writes
+  some of those colors as `'0x1b4d66'` STRINGS, so `hexNum()` normalises both
+  spellings.
+- **Score popups**: eight pooled `THREE.Sprite`s over canvas textures, painted
+  on demand and recycled by cursor; rise 46 px/s and fade over 0.7 s, exactly
+  the 2D timings. Zero allocation at eat time.
+- **HUD**: no drawing here at all. A single REUSED `HUD_STATE` object (hp,
+  hpFrac, boost, boosting, power/ready/id/tint, coins, score, combo, comboMult,
+  frenzy, goldRush, hurt, tier, zone, dev, chips queue) is pushed to
+  `RF.UI.hudState(obj)` once per frame, guarded. The combo chip QUEUE is
+  handed over as `chips` (bounded to 4 via `GGKit.boundedPush`); Lane C3 owns
+  the one-at-a-time <=24px <=1s presentation per UI_LAW.
+- **Stick as DOM**: a fixed-position `#rf-stick` overlay with a ring and nub
+  div, `pointer-events:none`. Because kit pointer coordinates are already
+  viewport CSS px and the DOM overlay is in the same space, the whole
+  `toDesign()` / `cssRect()` conversion layer that the Phaser rev needed is
+  GONE. This is a simplification, not a behaviour change.
+
+### Fallbacks (every concurrent lane is guarded)
+
+| Missing lane | Degraded behaviour |
+|---|---|
+| `RF.Art3D` | `fallbackShark()` builds a colored capsule mesh (base/belly/accent from `def.sil.palette`) with a cone tail that still wags. Covers absent, throwing, AND malformed-record cases. |
+| `RF.World` | No `init`/`update`/`query`/`kill`/`zoneAt` calls; water is empty and `zoneAtFallback(y)` supplies the zone row for hunger pressure and fog. |
+| `RF.Fx` / `RF.Juice` / `RF.Sound` / `RF.Music` | Guarded no-ops. `fxEmit` returns the emitted COUNT so `swimtrail`/`breach` fall back to `bubbles`/`splash` on an older fx3d, without doubling the breach sound. |
+| `RF.UI` | Console-quiet no-ops via `uiCall()`. Results payload is still parked on `RF.Game.lastResults`. |
+| `RF.Abilities` | `resolvePassives` synthesises the struct from the shark row's own `passives` array (incl. the `slowMetabMult` number). |
+| `RF.Meta` | `fallbackProfile` + local run banking so coins are never silently lost. |
+| No `CapsuleGeometry` | Falls back to `CylinderGeometry` (capsules landed in r140; the vendored build is r160, but an older vendor swap must not throw at boot). |
+
+### Selftest
+
+`RF.Game.__selftest()` is **renderer-free**: it constructs NO `WebGLRenderer`
+(there is no GL context under node), stubs the scene as a plain object and
+leaves the camera null, then drives the real `step()` / `stepControl()` /
+`stepAnim()` / `stepEat()` / `stepHunger()` / `stepMotion()` / `swallow()` /
+`renderPlayer()` directly. It restores every global it touches in a `finally`.
+Assertions are game.js's, ported, plus new ones for the 3D-specific paths
+(Art3D absence/throw/malformed, the `animate()` state bag, `RF.UI` absence and
+throw, the `(x, -y)` mapping on a real `THREE.Group`, eat-feedback parity).
+
+The vendored three.module.min.js DOES import cleanly under node (r160, no
+browser needed), so the module loads headlessly; only the renderer would need
+a GL context, which the selftest avoids. Node resolves bare specifiers
+relative to the IMPORTER, so a `node --import` resolve hook mirrors the
+browser importmap rather than putting a `node_modules` into the repo.
+
+```
+$ node --input-type=module -e "import('.../three.module.min.js')"
+  THREE OK function 160                    # vendored module loads under node
+
+$ node --import ./register.mjs harness.mjs     # three -> vendored, no DOM
+  RFD sharks: 61
+  RF.Game keys: boot,__selftest,dpr,CSS_W,CSS_H,STEP,startRun,endRun,
+                firePower,lastResults,ctx,kit,profile,renderer,scene,camera,three
+  76 ok, 0 FAIL
+  RESULT pass=true
+
+$ node --import ./register.mjs siblings.mjs    # data + meta + abilities + engine3d
+  console.error during load: 0
+  namespaces: Meta,DevMode,Abilities,Game
+  RF.Meta.activeShark: function | displayCoins: function | DevMode.init: function
+  RF.Abilities.passives: function
+  assertions: 76 LANE A3 SELFTEST pass=true   # passes against the REAL resolver
+
+$ node --import ./register.mjs devmode.mjs     # ?unlockall=1&coins=500
+  __rf after init : object
+  __rf keys: version,state,switches,unlockAll,resetSave,giveCoins,
+             forceGoldRush,forcePower,forceZone
+  forceUnlockAll: true | version: 1
+```
+
+The three `console.error` lines the harness prints are the deliberate
+throw-absorption assertions (a throwing `Art3D.animate`, a throwing
+`Art3D.buildShark`, a throwing `UI.hudState`) proving the guards catch rather
+than propagate. Each goes through `warnOnce`, so none can repeat per frame.
+
+Law sweep: 0 em dashes, 0 `Math.random` in code, 0 `setTimeout`/`setInterval`
+in code (both greps hit comments only), no allocation in `stepControl` /
+`stepAnim` / `stepMotion` / `stepEat` (`EAT_BUF`, `FX_OPT`, `HUD_STATE` and
+`anim.state` are all pre-allocated and reused), every cross-namespace call
+guarded and wrapped. The only `addEventListener` calls are `resize` and
+`orientationchange` for renderer sizing, which is the deep-ballast precedent
+and is not game input; ALL game input remains on `kit.input` subscriptions,
+torn down through `unbindInput()` on `endRun()`.
+
+### Deviations from SPEC3D / game.js (flagged, none silent)
+
+1. **`ctx.scene` is now a THREE.Scene.** SPEC.md described it as "active
+   Phaser.Scene (Ocean during play)". There is no Phaser in this rev, so the
+   field carries the THREE.Scene and `ctx.scene3` is provided as an explicit
+   alias. Any lane that only ever passed it through is unaffected.
+2. **No design-space conversion (`S()` / `toDesign()` / `cssRect()`).** The
+   Phaser rev sized the game in device px and needed a CSS->device conversion
+   for every number. Three owns density through `setPixelRatio`, and the DOM
+   UI is authored in CSS px, so the whole conversion layer is deleted rather
+   than ported. `RF.Game.S` is therefore NOT exported; no 3D lane should need
+   it. If a lane does, say so and it comes back.
+3. **The invulnerability blink toggles `group.visible`** rather than setting
+   alpha 0.35. Per-object alpha in three means touching every material on the
+   rig, which is Lane D3's to own; the 14 Hz visibility toggle reads the same.
+4. **Menu / Shop / Results are Lane C3's DOM screens.** This file exposes
+   `startRun(id)` / `endRun()` / `firePower()` and calls `RF.UI.init(...)`
+   with those handles, `showResults(payload)` and `showMenu()`. `finishRun()`
+   parks the payload on `RF.Game.lastResults` so nothing is lost if ui3d.js is
+   late. The Phaser `registerMetaScenes()` path is gone (meta.js's Phaser
+   scenes are simply never built, which SPEC3D already anticipated).
+5. **Tutorial text is handed to `RF.UI.tutorial(str)`** instead of being drawn;
+   the `profile.tutorialDone` commit still happens here so the once-only rule
+   cannot be lost with the UI lane.
+
+### Not done / for the orchestrator
+
+- **Not verified in a browser or on a device.** No renderer has ever been
+  constructed: this lane proved the SIM and the guards headlessly, and nothing
+  about the actual GL output, draw-call count, triangle budget or the 60fps
+  mid-phone gate is discharged. The console-clean 844x390 DPR3 boot, the 61/61
+  `?unlockall=1` sweep, the <=120MB memory gate and the owner's iPhone verdict
+  all remain open.
+- **The camera constants are reasoned, not tuned.** `CAM_Z` 620 with fov 50
+  frames roughly the 2D design box at the gameplay plane, but the lookahead
+  (0.28 s / 190 px cap), the follow rate (6/s) and the +6 deg FOV ease want a
+  real thumb on real water. They are single named constants at the top of the
+  file for exactly that reason.
+- **`RF.Art3D.buildShark` has never executed.** The rig path is proven only
+  against a fake rig and the capsule fallback. When Lane D3 lands, the first
+  things to check are that `group` is oriented nose along +X (the fallback
+  assumes it) and that `animate(t, state)` reads the state bag synchronously -
+  it is REUSED scratch and must not be retained.
+- **NPC shark rigs are not wired.** world3d.js owns its own pool and update
+  loop; this file animates only the player. If Lane B wants a shared helper,
+  `buildPlayerRig`'s guard pattern is the one to copy.
+- **`RF.UI` surface is proposed, not agreed.** This lane calls `init`,
+  `hudState`, `tutorial`, `showResults`, `showMenu`, `runStarted`, `runEnded`.
+  All are guarded so a different Lane C3 shape cannot crash the engine, but
+  the two lanes must reconcile the names before integration.

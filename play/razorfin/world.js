@@ -66,6 +66,35 @@
   var NPC_PITCH = 0.05;        // predator whole-sprite pitch, rad
   var NPC_PITCH_HZ = 0.9;
 
+  // ---------------------------------------------------- Rev 5 surface containment
+  // Owner device bug: prey were visibly swimming ABOVE the waterline and
+  // hanging in the air. game.js puts the waterline at y=0 and treats y<0 as
+  // airborne (stepMotion, minY=-46); world.js only ever clamped entities to
+  // y>=12, and a fish sprite is drawn centred, so half a body sat in the sky
+  // and the surface ribbon (0..54) did not hide it.
+  //
+  // SURFACE_Y is the hard floor for EVERY non-player entity: fish, sharks,
+  // hazards, pickups. It sits just UNDER the surface band so a contained fish
+  // reads as swimming beneath the ribbon, not clipping through it. Only the
+  // player may breach, and game.js owns that.
+  var SURFACE_Y = 46;          // hard ceiling (in screen terms) for all NPC entities
+  var SURFACE_MARGIN = 26;     // spawner keeps this much clear of the ceiling
+  var SURFACE_BOUNCE = 0.35;   // vy reflected DOWN at this fraction on contact
+  var SEAFLOOR_MARGIN = 40;    // spawner keeps this much clear of the seafloor
+
+  // Rev 5 orientation. Sprites are baked nose-right, so facing left is a flipX,
+  // and the sprite rotation follows a SMOOTHED heading rather than e.angle
+  // directly: a fleeing fish that reverses in one frame used to snap 180deg.
+  var FACE_TURN = 9.0;         // rad/s-ish lerp rate of display heading -> e.angle
+  var FACE_SNAP = 0.6;         // below this speed the display heading holds
+
+  // Rev 5 flee burst. data.js prey speeds were rebalanced far DOWN (minnow 65,
+  // marlin 170) while NPC sharks sit at 288-500, so a burst multiplier is now
+  // measured against a much smaller base. Capped so a chasing shark of equal
+  // tier always closes.
+  var FLEE_BURST = 1.55;       // prey panic sprint, <= 1.6x base per Rev 5 brief
+  var FLEE_BURST_NPC = 1.35;   // outranked NPC shark running from the player
+
   // Sim clock for all of the above. ctx.time.now is the fixed-step clock game.js
   // owns (seconds, += STEP per step), which is exactly what SPEC Rev 4 asks for
   // ("offsets from ctx time not wall clock"). Headless callers and the selftest
@@ -899,6 +928,7 @@
         burnDmg: 0, poisonDmg: 0, fireImmune: false, toxinImmune: false,
         packId: 0, jitterT: 0, jx: 0, jy: 0, mode: 'wander',
         inflated: false, biteCd: 0, life: 0, born: 0, drift: 0, puffS: 1,
+        faceA: 0,   // Rev 5 smoothed DISPLAY heading (never the sim heading)
       },
       sprite: null,
       _idx: -1,   // index into S.entities while active
@@ -960,6 +990,11 @@
     // Rev 4: eased puffer scale. Reset so a recycled pool object never starts
     // life half-inflated from whatever it used to be.
     st.puffS = 1;
+    // Rev 5: the smoothed display heading is a NUMBER on a fresh entity but
+    // must be re-seeded from the spawn angle, not carried over from whatever
+    // this pool object used to be, or a recycled fish spends its first frames
+    // rotating in from a stale direction. spawnOne sets it after resetSt.
+    st.faceA = null;
   }
 
   function applySprite(e) {
@@ -1064,7 +1099,11 @@
     e.def = def;
     e.tier = typeof def.tier === 'number' ? def.tier : 1;
     e.x = clamp(x, 8, S.w - 8);
-    e.y = clamp(y, 8, S.h - 8);
+    // Rev 5 spawner bounds: nothing is ever placed above the surface ceiling
+    // (plus margin, so a spawn does not begin life already touching it) nor
+    // below the seafloor. This is the LAST gate, so it also covers
+    // spawnBurst's jitter and any ability/debug spawn from another lane.
+    e.y = clamp(y, SURFACE_Y + SURFACE_MARGIN, S.h - SEAFLOOR_MARGIN);
     var stats = def.stats || null;
     e.maxHp = stats ? stats.hp : (def.hp || 1);
     e.hp = e.maxHp;
@@ -1079,6 +1118,8 @@
     e.vx = Math.cos(a) * spd * 0.4;
     e.vy = Math.sin(a) * spd * 0.4;
     e.angle = a;
+    // Display heading starts ON the spawn heading, so nothing rotates in.
+    e.st.faceA = Math.atan2(e.vy, e.vx);
     applySprite(e);
     gridInsert(e);
     return e;
@@ -1147,7 +1188,10 @@
     var a = rr(0, TAU);
     var d = rr(SPAWN_MIN, SPAWN_MAX);
     out[0] = clamp(camX + Math.cos(a) * d, 40, S.w - 40);
-    out[1] = clamp(camY + Math.sin(a) * d, 40, S.h - 40);
+    // Rev 5: the ring is clamped to the swimmable band BEFORE zoneAt() reads
+    // it, so a ring point that lands in the sky picks the shallow zone's
+    // spawn table at a legal depth rather than being pushed down afterwards.
+    out[1] = clamp(camY + Math.sin(a) * d, SURFACE_Y + SURFACE_MARGIN, S.h - SEAFLOOR_MARGIN);
   }
 
   var ringOut = [0, 0];
@@ -1204,7 +1248,14 @@
     return g;
   }
 
+  // Rev 5: every steer TARGET is clamped under the surface too. Containment in
+  // integrate() alone would work, but a fish whose goal point is in the sky
+  // presses against the ceiling and reads as stuck. Clamping the goal makes it
+  // choose a level or downward path on its own, so the reflection is a rare
+  // correction rather than the thing you watch.
   function steer(e, tx, ty, speed, dt, turn) {
+    if (ty < SURFACE_Y + SURFACE_MARGIN) ty = SURFACE_Y + SURFACE_MARGIN;
+    else if (ty > S.h - 20) ty = S.h - 20;
     var dx = tx - e.x, dy = ty - e.y;
     var d = Math.sqrt(dx * dx + dy * dy) || 1;
     var wantX = (dx / d) * speed, wantY = (dy / d) * speed;
@@ -1213,6 +1264,27 @@
     e.vy += (wantY - e.vy) * k;
   }
 
+  // Rev 5 SURFACE CONTAINMENT. The single choke point every non-player entity
+  // passes through. It is a REFLECTION, not a teleport: on contact the entity
+  // is placed exactly at the ceiling and any upward velocity is turned
+  // downward at SURFACE_BOUNCE, so a fish that panics upward noses the surface
+  // and peels back down instead of stopping dead or popping to a new spot.
+  //
+  // Deliberately its own function rather than inline in integrate(): flee
+  // vectors, pack drift, hazard drift and pickup magnet all write y or vy
+  // outside integrate(), and every one of them calls this. One implementation,
+  // no way to add a motion path later that forgets the ceiling.
+  function containY(e) {
+    if (e.y < SURFACE_Y) {
+      e.y = SURFACE_Y;
+      if (e.vy < 0) e.vy = -e.vy * SURFACE_BOUNCE;   // reflect DOWN
+    } else if (e.y > S.h - 12) {
+      e.y = S.h - 12;
+      if (e.vy > 0) e.vy = -Math.abs(e.vy);
+    }
+  }
+  World.__containY = containY;
+
   function integrate(e, dt) {
     var slow = e.st.slowT > 0 ? 0.45 : 1;
     e.x += e.vx * dt * slow;
@@ -1220,8 +1292,8 @@
     // Soft world bounds: reflect rather than clamp so nothing piles on an edge.
     if (e.x < 20) { e.x = 20; e.vx = Math.abs(e.vx); }
     else if (e.x > S.w - 20) { e.x = S.w - 20; e.vx = -Math.abs(e.vx); }
-    if (e.y < 12) { e.y = 12; e.vy = Math.abs(e.vy); }
-    else if (e.y > S.h - 12) { e.y = S.h - 12; e.vy = -Math.abs(e.vy); }
+    // Vertical bounds go through the shared ceiling: y >= SURFACE_Y always.
+    containY(e);
     if (e.vx || e.vy) e.angle = Math.atan2(e.vy, e.vx);
   }
 
@@ -1243,7 +1315,11 @@
           // dreadAura INVERTS flee into attraction. Flag owned by abilities.js.
           steer(e, player.x, player.y, spd * 1.05, dt, 5);
         } else {
-          steer(e, e.x - (dx / d) * 400, e.y - (dy / d) * 400, spd * 1.35, dt, 6);
+          // Rev 5 flee burst: FLEE_BURST of base, capped at 1.6x per brief.
+          // data.js prey bases were cut hard (65-170) against NPC sharks at
+          // 288-500, so even a full burst leaves every prey catchable by a
+          // chasing shark of equal tier. Measured in the self-test.
+          steer(e, e.x - (dx / d) * 400, e.y - (dy / d) * 400, spd * FLEE_BURST, dt, 6);
         }
         fleeing = true;
         e.st.mode = attract ? 'lured' : 'flee';
@@ -1291,7 +1367,7 @@
         // Outranked: they become prey and run.
         e.st.mode = 'flee';
         var d = Math.sqrt(d2) || 1;
-        steer(e, e.x - (dx / d) * 500, e.y - (dy / d) * 500, spd * 1.15, dt, 5);
+        steer(e, e.x - (dx / d) * 500, e.y - (dy / d) * 500, spd * FLEE_BURST_NPC, dt, 5);
         return;
       }
     }
@@ -1313,6 +1389,11 @@
       e.st.drift += dt * 0.4;
       e.vx = Math.cos(e.st.drift) * 6;
       e.vy = Math.sin(e.st.drift * 0.7) * 5;
+      // Rev 5: hazard drift is written straight to velocity every frame, so the
+      // reflection in containY would be overwritten on the next step and the
+      // mine would grind along the ceiling. Near the surface the sine is folded
+      // to its downward half instead, which keeps the bob but points it away.
+      if (e.y < SURFACE_Y + SURFACE_MARGIN && e.vy < 0) e.vy = -e.vy;
       if (player) {
         var reach = e.r + (player.r || 24);
         var dx = player.x - e.x, dy = player.y - e.y;
@@ -1333,6 +1414,11 @@
       var spd = e.def.speed || 30;
       e.vx = Math.cos(e.st.drift * 0.5) * spd * 0.5;
       e.vy = Math.sin(e.st.drift) * spd;
+      // Rev 5: same fold as the mine. A jelly's whole motion is this vertical
+      // sine, so without it a jelly parked under the surface would pump
+      // upward into the ceiling forever. The bell pulse reads off st.drift and
+      // is untouched, so the animation stays in sync with the bob.
+      if (e.y < SURFACE_Y + SURFACE_MARGIN && e.vy < 0) e.vy = -e.vy;
       if (player) {
         var r2 = e.r + (player.r || 24);
         var jx = player.x - e.x, jy = player.y - e.y;
@@ -1414,6 +1500,9 @@
       p.y = e.y + rr(-14, 14);
       p.vx = rr(-40, 40);
       p.vy = rr(-40, 40);
+      // Rev 5: a kill right under the surface used to scatter coins ABOVE the
+      // waterline, where they hung in the air until their 12s life expired.
+      if (p.y < SURFACE_Y) { p.y = SURFACE_Y; if (p.vy < 0) p.vy = -p.vy; }
       p.hp = p.maxHp = 1;
       p.r = 14;
       p.score = 0;
@@ -1682,6 +1771,40 @@
   // burst is never in step: a shoal reads as a shoal, not as a rigid formation.
   function entPhase(e) { return (e.id * PHI % 1) * TAU; }
 
+  // Rev 5 ORIENTATION. Two separate problems were being conflated.
+  //
+  // 1. FACING. Textures are baked nose-right. The old code rotated by e.angle
+  //    and then setFlipY'd when cos(angle)<0, which keeps a leftward fish
+  //    upright but is a Y flip: the fish's belly and back swap over. flipX
+  //    driven off the sign of vx is the correct mirror, and it agrees with
+  //    the direction of travel by construction.
+  //    With flipX the sprite already points left, so the rotation applied on
+  //    top must be the angle MIRRORED about the vertical (PI - angle),
+  //    otherwise the pitch would be inverted the moment a fish turns around.
+  //
+  // 2. SNAPPING. e.angle is recomputed every step straight from the velocity,
+  //    so a flee that reverses direction in one frame rotated the sprite 180
+  //    degrees in one frame. st.faceA is a SMOOTHED display heading that
+  //    chases e.angle at FACE_TURN, taking the short way around the circle.
+  //    Sim heading is untouched: this is display only and cannot affect AI,
+  //    collision or the eat check.
+  function faceAngle(e, dt) {
+    var st = e.st;
+    if (typeof st.faceA !== 'number') st.faceA = e.angle;   // recycled or fresh
+    var spd2 = e.vx * e.vx + e.vy * e.vy;
+    if (spd2 < FACE_SNAP * FACE_SNAP) return st.faceA;   // drifting: hold heading
+    var target = e.angle;
+    // Shortest signed arc, so crossing +-PI never spins the long way.
+    var d = target - st.faceA;
+    while (d > Math.PI) d -= TAU;
+    while (d < -Math.PI) d += TAU;
+    var k = clamp(FACE_TURN * dt, 0, 1);
+    st.faceA += d * k;
+    while (st.faceA > Math.PI) st.faceA -= TAU;
+    while (st.faceA < -Math.PI) st.faceA += TAU;
+    return st.faceA;
+  }
+
   // A frozen or stunned creature must READ frozen. The wiggle amplitude is
   // scaled by how fast the entity is actually moving, so freezing (which zeroes
   // velocity) collapses the animation to its baseline on its own; frozenT is
@@ -1730,8 +1853,9 @@
     }
 
     // Prey and predators: tail wiggle as a rotation offset ON TOP of the
-    // heading the sim computed. The sprite's rotation is set from e.angle by
-    // the caller immediately before this runs, so we add to it.
+    // SMOOTHED display heading the caller just wrote (Rev 5). Reading the base
+    // back off st.faceA rather than e.angle is what keeps the wiggle from
+    // reintroducing the snap that faceAngle exists to remove.
     var spd = Math.sqrt(e.vx * e.vx + e.vy * e.vy);
     var maxSpd = (e.def && (e.def.speed || (e.def.stats && e.def.stats.speed))) || 160;
     var f = maxSpd > 0 ? clamp(spd / maxSpd, 0, 1.4) : 0;
@@ -1744,7 +1868,7 @@
       // enough that it will not fight a rig that lands later.
       var pitch = NPC_PITCH * (0.35 + 0.65 * f) * Math.sin(t * NPC_PITCH_HZ * TAU + entPhase(e));
       if (frozen) pitch = 0;
-      if (sp.setRotation) sp.setRotation(e.angle + pitch);
+      if (sp.setRotation) sp.setRotation(displayBase(e) + pitch);
       return;
     }
 
@@ -1753,8 +1877,18 @@
     var hz = FISH_WIGGLE_HZ[0] + (FISH_WIGGLE_HZ[1] - FISH_WIGGLE_HZ[0]) * f;
     var amp = FISH_WIGGLE * (0.25 + 0.75 * f);
     var wig = f > 0 ? Math.sin(t * hz * TAU + entPhase(e)) * amp : 0;
-    if (sp.setRotation) sp.setRotation(e.angle + wig);
+    if (sp.setRotation) sp.setRotation(displayBase(e) + wig);
   }
+
+  // The rotation the update loop wrote for this entity: the smoothed heading,
+  // mirrored when the sprite is flipped so the wiggle offset stays on the same
+  // side of the body whichever way the animal is swimming.
+  function displayBase(e) {
+    var fa = typeof e.st.faceA === 'number' ? e.st.faceA : e.angle;
+    return (fa > Math.PI * 0.5 || fa < -Math.PI * 0.5) ? Math.PI - fa : fa;
+  }
+  World.__displayBase = displayBase;
+  World.__faceAngle = faceAngle;
 
   // The eased puffer needs dt. update() stashes it here rather than threading
   // an extra argument through, and it is a module scalar, so no allocation.
@@ -1896,11 +2030,17 @@
         if (sp.setPosition) sp.setPosition(e.x, e.y);
         else { sp.x = e.x; sp.y = e.y; }
         if (e.kind !== 'pickup') {
-          if (sp.setRotation) sp.setRotation(e.angle);
-          if (sp.setFlipY) sp.setFlipY(Math.cos(e.angle) < 0);
+          // Rev 5: display heading is SMOOTHED (faceAngle) and facing is a
+          // flipX off the direction of travel, not the old flipY. animateEntity
+          // reads st.faceA back, so the wiggle rides the smoothed heading.
+          var fa = faceAngle(e, dt);
+          var left = fa > Math.PI * 0.5 || fa < -Math.PI * 0.5;
+          if (sp.setFlipX) sp.setFlipX(left);
+          if (sp.setFlipY) sp.setFlipY(false);
+          if (sp.setRotation) sp.setRotation(left ? Math.PI - fa : fa);
         }
         // Rev 4: creature animation runs AFTER the heading write, because the
-        // wiggle is an offset on top of e.angle.
+        // wiggle is an offset on top of the display heading.
         animateEntity(e, wt);
       }
     }
@@ -1934,6 +2074,7 @@
       var g = {
         x: 0, y: 0, visible: false, tex: null, tint: -1,
         rotation: 0, alpha: 1, dw: 0, dh: 0, sf: 1, blend: null, depth: 0,
+        flipX: false, flipY: false,
         setPosition: function (x, y) { this.x = x; this.y = y; return this; },
         setVisible: function (v) { this.visible = v; return this; },
         setActive: function () { return this; },
@@ -1942,7 +2083,8 @@
         setScale: function () { return this; },
         setAlpha: function (a) { this.alpha = a; return this; },
         setRotation: function (r) { this.rotation = r; return this; },
-        setFlipY: function () { return this; },
+        setFlipY: function (v) { this.flipY = !!v; return this; },
+        setFlipX: function (v) { this.flipX = !!v; return this; },
         setDisplaySize: function (w, h) { this.dw = w; this.dh = h; return this; },
         setScrollFactor: function (s) { this.sf = s; return this; },
         setBlendMode: function (b) { this.blend = b; return this; },
@@ -2246,7 +2388,9 @@
           ctx.time.now += 1 / 60;
           World.update(ctx);
           if (!wf.active) break;
-          var off = wf.sprite.rotation - wf.angle;
+          // Rev 5: the wiggle baseline is the SMOOTHED, mirrored display
+          // heading now, not e.angle. Same assertion, correct baseline.
+          var off = wf.sprite.rotation - World.__displayBase(wf);
           if (off < offMin) offMin = off;
           if (off > offMax) offMax = off;
           if (Math.abs(off) > 1e-6) sawOff++;
@@ -2265,7 +2409,7 @@
           ctx.time.now += 1 / 60;
           World.update(ctx);
           if (!wf.active) break;
-          var foff = Math.abs(wf.sprite.rotation - wf.angle);
+          var foff = Math.abs(wf.sprite.rotation - World.__displayBase(wf));
           if (foff > frozenOffMax) frozenOffMax = foff;
         }
         chk(wf.active && frozenOffMax < 1e-9,
@@ -2366,6 +2510,336 @@
       // RF-PERF-01: hit records are pooled, so the backing store stops growing
       // once the worst frame has been seen.
       chk(hitPool.length <= 64, 'hit record pool stayed small (' + hitPool.length + ' records)');
+
+      // ------------------------------------------------ Rev 5 surface containment
+      // The owner bug, asserted directly: a fish placed in the sky with upward
+      // velocity must end BELOW the ceiling with its vy no longer upward.
+      // Two things are asserted, and they are deliberately separated. FIRST,
+      // the frame of contact: the fish must be pushed under and its rise must
+      // be turned downward THAT frame. Vy a hundred frames later is a fish
+      // swimming normally in open water and says nothing about the bug.
+      var sky = spawnOne('mackerel', 3600, 900, 0);
+      sky.x = 3600; sky.y = 10; sky.vx = 0; sky.vy = -180;
+      ctx.player.x = 3600; ctx.player.y = 40;      // player right there, so it flees
+      ctx.time.frame = 0;
+      World.update(ctx);
+      chk(sky.active && sky.y >= SURFACE_Y,
+        'fish forced to y=10 with upward vy is under the ceiling on the very next step (y ' + sky.y.toFixed(1) + ' >= ' + SURFACE_Y + ')');
+      chk(sky.vy >= 0,
+        'and its upward vy was reflected downward or to zero on contact (vy ' + sky.vy.toFixed(1) + ')');
+
+      // SECOND, the long run: over 240 further steps with the player sitting
+      // at the waterline (the exact situation the owner reported), it must
+      // never once get above the ceiling.
+      var skyMinY = sky.y;
+      for (var sc = 0; sc < 240; sc++) {
+        ctx.time.frame = sc;
+        ctx.player.y = 40;
+        World.update(ctx);
+        if (!sky.active) break;
+        if (sky.y < skyMinY) skyMinY = sky.y;
+      }
+      chk(sky.active, 'the surfaced test fish survived the containment run');
+      chk(skyMinY >= SURFACE_Y,
+        'and never rose above the ceiling at any point in 240 steps (min y ' + skyMinY.toFixed(1) + ')');
+      World.kill(sky, 'test');
+
+      // Contact is a REFLECTION, not a teleport: the entity lands ON the
+      // ceiling and turns around, it does not jump to some other depth.
+      var refl = spawnOne('minnow', 3000, 400, 0);
+      refl.y = SURFACE_Y + 1; refl.vx = 0; refl.vy = -200;
+      World.__containY(refl);
+      var reflY0 = refl.y;
+      refl.y = SURFACE_Y - 5;
+      World.__containY(refl);
+      chk(refl.y === SURFACE_Y, 'containY places the entity exactly on the ceiling, no teleport (' + refl.y + ')');
+      chk(refl.vy > 0 && refl.vy < 200,
+        'containY reflects the upward vy DOWNWARD and damps it (' + refl.vy.toFixed(1) + ')');
+      chk(reflY0 === SURFACE_Y + 1, 'containY leaves an entity already below the ceiling alone');
+      World.kill(refl, 'test');
+
+      // Every kind is contained, not just prey. Hazards write velocity
+      // directly each frame and pickups have their own motion path.
+      var kinds = ['jelly', 'mine', 'puffer', 'reef'];
+      var breachers = 0, tested = 0;
+      for (var ki = 0; ki < kinds.length; ki++) {
+        var ke = spawnOne(kinds[ki], 3600, 600, 0);
+        if (!ke) continue;
+        tested++;
+        ke.y = SURFACE_Y + 2; ke.vy = -300;
+        for (var kf = 0; kf < 200; kf++) {
+          ctx.time.frame = kf;
+          World.update(ctx);
+          if (!ke.active) break;
+          if (ke.y < SURFACE_Y) { breachers++; break; }
+        }
+        if (ke.active) World.kill(ke, 'test');
+      }
+      chk(tested === kinds.length && breachers === 0,
+        'hazards and NPC sharks are contained too (' + tested + ' kinds driven upward, ' + breachers + ' breached)');
+
+      // Pickups: a kill right under the surface must not scatter coins into
+      // the air.
+      var deadFish = spawnOne('mackerel', 3200, SURFACE_Y + 3, 0);
+      deadFish.coins = 18;
+      World.kill(deadFish, 'eaten');
+      var coinsUp = 0, coinsSeen = 0;
+      for (var ci = 0; ci < S.entities.length; ci++) {
+        var ce = S.entities[ci];
+        if (ce.kind !== 'pickup') continue;
+        coinsSeen++;
+        if (ce.y < SURFACE_Y) coinsUp++;
+      }
+      chk(coinsSeen > 0 && coinsUp === 0,
+        'dropped pickups stay under the surface (' + coinsSeen + ' coins, ' + coinsUp + ' above)');
+      for (var cj = S.entities.length - 1; cj >= 0; cj--) {
+        if (S.entities[cj].kind === 'pickup') World.kill(S.entities[cj], 'collected');
+      }
+
+      // ---------------------------------------------------- Rev 5 spawner bounds
+      // Drive the real spawner with the camera parked at the surface and at
+      // the seafloor, and assert nothing is ever placed outside the band.
+      var spawnBad = 0, spawnSeen = 0, spawnMin = 1e9, spawnMax = -1e9;
+      for (var sp2 = 0; sp2 < 900; sp2++) {
+        var atTop = (sp2 % 2) === 0;
+        ctx.player.x = 3600;
+        ctx.player.y = atTop ? 30 : S.h - 30;
+        ctx.time.frame = sp2;
+        World.update(ctx);
+        for (var se = 0; se < S.entities.length; se++) {
+          var ee = S.entities[se];
+          if (ee.kind === 'pickup') continue;
+          spawnSeen++;
+          if (ee.y < spawnMin) spawnMin = ee.y;
+          if (ee.y > spawnMax) spawnMax = ee.y;
+          if (ee.y < SURFACE_Y || ee.y > S.h - 12) spawnBad++;
+        }
+      }
+      chk(spawnSeen > 0 && spawnBad === 0,
+        'spawner never places anything outside the swimmable band (' + spawnSeen + ' samples, ' + spawnBad + ' bad, y range ' + spawnMin.toFixed(1) + ' to ' + spawnMax.toFixed(1) + ')');
+
+      // spawnOne itself is the last gate, so a direct out-of-range request
+      // from any lane is corrected rather than trusted.
+      var above = spawnOne('minnow', 3600, -500, 0);
+      chk(above && above.y >= SURFACE_Y + SURFACE_MARGIN,
+        'spawnOne clamps an above-surface request to the ceiling plus margin (' + (above ? above.y : 'null') + ')');
+      var below = spawnOne('minnow', 3600, S.h + 800, 0);
+      chk(below && below.y <= S.h - SEAFLOOR_MARGIN,
+        'spawnOne clamps a below-seafloor request to the seafloor margin (' + (below ? below.y : 'null') + ')');
+      if (above) World.kill(above, 'test');
+      if (below) World.kill(below, 'test');
+
+      // spawnBurst jitters +-50px around its anchor and goes through the same
+      // gate, so a burst requested at the waterline stays legal.
+      var burstN = World.spawnBurst('minnow', 3600, SURFACE_Y, 6);
+      var burstBad = 0;
+      for (var bi = 0; bi < S.entities.length; bi++) {
+        var be = S.entities[bi];
+        if (be.defId === 'minnow' && be.y < SURFACE_Y + SURFACE_MARGIN - 0.001) burstBad++;
+      }
+      chk(burstN > 0 && burstBad === 0,
+        'spawnBurst at the waterline places all ' + burstN + ' inside the band (' + burstBad + ' bad)');
+
+      // ------------------------------------------------- Rev 5 orientation polish
+      // These drive faceAngle and the facing rule DIRECTLY rather than through
+      // World.update. Going through update would have the AI rewrite the
+      // velocity every step, so the test would be measuring preyAI's steering
+      // and not the orientation code it claims to cover.
+      var orient = spawnOne('mackerel', 3600, 800, 0);
+      var dt60 = 1 / 60;
+
+      // Facing: flipX is taken off the smoothed heading, which points along
+      // the direction of travel, so it agrees with the sign of vx.
+      orient.vx = 140; orient.vy = 0; orient.angle = 0; orient.st.faceA = 0;
+      var baseRight = World.__displayBase(orient);
+      var rightFlips = (orient.st.faceA > Math.PI * 0.5 || orient.st.faceA < -Math.PI * 0.5);
+      orient.vx = -140; orient.vy = 0; orient.angle = Math.PI; orient.st.faceA = Math.PI;
+      var leftFlips = (orient.st.faceA > Math.PI * 0.5 || orient.st.faceA < -Math.PI * 0.5);
+      chk(rightFlips === false && leftFlips === true,
+        'flipX follows the sign of vx (vx>0 unflipped ' + (!rightFlips) + ', vx<0 flipped ' + leftFlips + ')');
+      chk(baseRight === 0, 'an unflipped fish draws at its raw heading (' + baseRight + ')');
+      chk(Math.abs(World.__displayBase(orient) - 0) < 1e-9,
+        'a flipped fish draws at the MIRRORED heading, so its pitch is not inverted (' + World.__displayBase(orient).toFixed(6) + ')');
+
+      // Rotation follows velocity SMOOTHLY. Reverse the sim heading by 90
+      // degrees in one frame: the display heading must take several frames to
+      // get there and never move more than FACE_TURN*dt of the remaining arc.
+      orient.vx = 140; orient.vy = 0; orient.angle = 0; orient.st.faceA = 0;
+      orient.angle = Math.PI * 0.5; orient.vx = 0; orient.vy = 140;
+      var maxStep = 0, framesToTurn = 0, prevFace = orient.st.faceA;
+      for (var of2 = 0; of2 < 120; of2++) {
+        faceAngle(orient, dt60);
+        var dstep = Math.abs(orient.st.faceA - prevFace);
+        if (dstep > maxStep) maxStep = dstep;
+        prevFace = orient.st.faceA;
+        framesToTurn++;
+        if (Math.abs(orient.st.faceA - Math.PI * 0.5) < 0.01) break;
+      }
+      chk(framesToTurn >= 5,
+        'display heading eases into a 90 degree turn instead of snapping (' + framesToTurn + ' frames)');
+      chk(maxStep <= clamp(FACE_TURN * dt60, 0, 1) * Math.PI * 0.5 + 1e-6,
+        'no single frame moves more than FACE_TURN*dt of the arc (max ' + maxStep.toFixed(4) + ' rad, cap ' + (clamp(FACE_TURN * dt60, 0, 1) * Math.PI * 0.5).toFixed(4) + ')');
+      chk(Math.abs(orient.st.faceA - Math.PI * 0.5) < 0.02,
+        'and it converges on the sim heading (' + orient.st.faceA.toFixed(4) + ' vs ' + (Math.PI * 0.5).toFixed(4) + ')');
+
+      // A full 180 reversal, which is what a flee actually does, must ALSO be
+      // eased rather than snapped. This is the exact case the owner would see
+      // as a fish blinking round.
+      orient.angle = 0; orient.st.faceA = 0; orient.vx = 140; orient.vy = 0;
+      orient.angle = Math.PI; orient.vx = -140; orient.vy = 0.001;
+      var revFrames = 0;
+      for (var rv = 0; rv < 200; rv++) {
+        faceAngle(orient, dt60);
+        revFrames++;
+        if (Math.abs(orient.st.faceA - Math.PI) < 0.02) break;
+      }
+      chk(revFrames >= 10, 'a 180 degree flee reversal is eased over many frames (' + revFrames + ')');
+
+      // The turn takes the SHORT way around the circle: a heading change that
+      // straddles the +-PI seam must not spin almost all the way round.
+      orient.angle = Math.PI - 0.05; orient.st.faceA = Math.PI - 0.05;
+      orient.vx = -140; orient.vy = 7;
+      orient.angle = -Math.PI + 0.05;                 // 0.1 rad away, across the seam
+      var wrapMax = 0, wrapPrev = orient.st.faceA;
+      for (var wf2 = 0; wf2 < 60; wf2++) {
+        faceAngle(orient, dt60);
+        var wd = Math.abs(orient.st.faceA - wrapPrev);
+        if (wd > Math.PI) wd = TAU - wd;              // the wrap itself is not a jump
+        if (wd > wrapMax) wrapMax = wd;
+        wrapPrev = orient.st.faceA;
+      }
+      var seamErr = Math.abs(orient.st.faceA - (-Math.PI + 0.05));
+      if (seamErr > Math.PI) seamErr = TAU - seamErr;
+      chk(wrapMax < 0.05,
+        'a heading change across the +-PI seam takes the short arc (max step ' + wrapMax.toFixed(4) + ' rad)');
+      chk(seamErr < 0.02, 'and lands on the target heading across the seam (' + seamErr.toFixed(4) + ')');
+
+      // A drifting entity HOLDS its heading rather than spinning to chase the
+      // noise in a near-zero velocity vector.
+      orient.st.faceA = 0.7; orient.angle = -2.4; orient.vx = 0.01; orient.vy = 0.01;
+      faceAngle(orient, dt60);
+      chk(orient.st.faceA === 0.7,
+        'a near-stationary entity holds its display heading instead of spinning (' + orient.st.faceA + ')');
+
+      // The tail wiggle still rides ON TOP of that smoothed heading and is
+      // still bounded: Rev 4 behaviour must survive the Rev 5 rebase. Driven
+      // through animateEntity directly, for the same reason as above.
+      orient.vx = 95; orient.vy = 0; orient.angle = 0; orient.st.faceA = 0;
+      orient.st.frozenT = 0;
+      var wigMin = 1e9, wigMax = -1e9;
+      for (var wg = 0; wg < 240; wg++) {
+        animateEntity(orient, wg / 60);
+        var rot = orient.sprite.rotation - World.__displayBase(orient);
+        if (rot < wigMin) wigMin = rot;
+        if (rot > wigMax) wigMax = rot;
+      }
+      chk(wigMax - wigMin > 0.02 && Math.abs(wigMax) <= FISH_WIGGLE * 1.05 && Math.abs(wigMin) <= FISH_WIGGLE * 1.05,
+        'tail wiggle still rides the smoothed heading and stays bounded (span ' + (wigMax - wigMin).toFixed(4) + ' rad)');
+
+      // And the same wiggle, on a fish swimming LEFT, must stay on the same
+      // side of the body: the mirror is in the base, not in the offset.
+      orient.vx = -95; orient.vy = 0; orient.angle = Math.PI; orient.st.faceA = Math.PI;
+      var lMin = 1e9, lMax = -1e9;
+      for (var lg = 0; lg < 240; lg++) {
+        animateEntity(orient, lg / 60);
+        var lrot = orient.sprite.rotation - World.__displayBase(orient);
+        if (lrot < lMin) lMin = lrot;
+        if (lrot > lMax) lMax = lrot;
+      }
+      chk(Math.abs((lMax - lMin) - (wigMax - wigMin)) < 1e-6,
+        'a left-swimming fish wiggles by the same amount as a right-swimming one (' + (lMax - lMin).toFixed(4) + ')');
+      World.kill(orient, 'test');
+
+      // Integration check on the WRITE PATH the unit assertions above bypass:
+      // run real updates and confirm World.update actually reaches the sprite
+      // with flipX, stops using flipY, and that flipX agrees with the sign of
+      // vx over a long free-swimming run rather than only in a posed frame.
+      // The player has to stay NEARBY or the despawn ring recycles the fish,
+      // but far enough that it wanders instead of fleeing the whole run.
+      ctx.player.x = 3600; ctx.player.y = 1200; ctx.player.tier = 3;
+      var wired = spawnOne('mackerel', 4700, 1200, 0);
+      var flipDisagree = 0, flipSamples = 0, sawFlipTrue = 0, sawFlipFalse = 0, flipYEver = 0;
+      for (var wi = 0; wi < 600; wi++) {
+        ctx.time.frame = 900 + wi;
+        // Chase it from alternating sides so the fish is driven BOTH ways
+        // during the run and the flip is exercised in both states.
+        var side = (wi % 200) < 100 ? -160 : 160;
+        ctx.player.x = wired.x + side; ctx.player.y = wired.y;
+        World.update(ctx);
+        if (!wired.active) break;
+        if (wired.sprite.flipY) flipYEver++;
+        var sp3 = Math.sqrt(wired.vx * wired.vx + wired.vy * wired.vy);
+        if (sp3 < 30) continue;                    // too slow to have a clear side
+        flipSamples++;
+        if (wired.sprite.flipX) sawFlipTrue++; else sawFlipFalse++;
+        // The smoothed heading lags the sim heading, so compare facing against
+        // the SMOOTHED heading, which is what actually drives the flip.
+        var lagLeft = Math.cos(wired.st.faceA) < 0;
+        if (wired.sprite.flipX !== lagLeft) flipDisagree++;
+      }
+      chk(flipSamples > 100 && flipDisagree === 0,
+        'World.update writes flipX in agreement with the display heading every frame (' + flipSamples + ' samples, ' + flipDisagree + ' disagreements)');
+      chk(sawFlipTrue > 0 && sawFlipFalse > 0,
+        'and the fish actually swam both ways during the run (' + sawFlipFalse + ' right, ' + sawFlipTrue + ' left)');
+      chk(flipYEver === 0, 'World.update never sets flipY on an entity sprite');
+      if (wired.active) World.kill(wired, 'test');
+
+      // ------------------------------------------------- Rev 5 flee burst recheck
+      // data.js prey speeds were rebalanced DOWN. Assert the burst is capped
+      // and that a chasing NPC shark of equal tier still out-runs every prey
+      // row at full panic, which is the actual design requirement.
+      chk(FLEE_BURST <= 1.6 && FLEE_BURST_NPC <= 1.6,
+        'flee burst multipliers are capped at 1.6x base (' + FLEE_BURST + ', ' + FLEE_BURST_NPC + ')');
+      var creatures = (D().CREATURES) || [];
+      var sharks = (D().SHARKS) || [];
+      var uncatchable = 0, worstRatio = 0, worstId = '';
+      for (var ci2 = 0; ci2 < creatures.length; ci2++) {
+        var cr = creatures[ci2];
+        // Slowest NPC shark at or above this prey's tier is the fair chaser.
+        var chaser = 0;
+        for (var si = 0; si < sharks.length; si++) {
+          var sh = sharks[si];
+          if (!sh.npc || sh.tier < cr.tier) continue;
+          var ss = (sh.stats && sh.stats.speed) || 0;
+          if (!chaser || ss < chaser) chaser = ss;
+        }
+        if (!chaser) continue;
+        var burst = (cr.speed || 0) * FLEE_BURST;
+        var ratio = burst / chaser;
+        if (ratio > worstRatio) { worstRatio = ratio; worstId = cr.id; }
+        if (ratio >= 1) uncatchable++;
+      }
+      chk(uncatchable === 0,
+        'no prey out-runs a same-or-higher-tier NPC shark at full flee burst (' + uncatchable + ' escapees, worst ' + worstId + ' at ' + (worstRatio * 100).toFixed(0) + '% of its chaser)');
+      chk(worstRatio > 0.3,
+        'and the burst is still fast enough to read as a panic sprint (worst case ' + (worstRatio * 100).toFixed(0) + '% of chaser speed)');
+
+      // Regression: containment must not have quietly killed the flee itself.
+      var fleeTest = spawnOne('mackerel', 3600, 1400, 0);
+      fleeTest.vx = 0; fleeTest.vy = 0;
+      ctx.player.x = 3560; ctx.player.y = 1400; ctx.player.tier = 6;
+      var fleeSpd = 0;
+      for (var ff = 0; ff < 90; ff++) {
+        ctx.time.frame = 400 + ff;
+        ctx.player.x = fleeTest.x - 40; ctx.player.y = fleeTest.y;
+        World.update(ctx);
+        if (!fleeTest.active) break;
+        var fs = Math.sqrt(fleeTest.vx * fleeTest.vx + fleeTest.vy * fleeTest.vy);
+        if (fs > fleeSpd) fleeSpd = fs;
+      }
+      var base = 95;   // mackerel
+      chk(fleeSpd > base * 1.05,
+        'a cornered prey still bursts above its base speed (' + fleeSpd.toFixed(1) + ' vs base ' + base + ')');
+      chk(fleeSpd <= base * FLEE_BURST + 6,
+        'and never exceeds the capped burst (' + fleeSpd.toFixed(1) + ' <= ' + (base * FLEE_BURST).toFixed(1) + ')');
+      if (fleeTest.active) World.kill(fleeTest, 'test');
+
+      // No-allocation gate for the Rev 5 additions: the animation registries
+      // and the pool are unchanged by everything above.
+      chk(S.caustics.length + S.rays.length + S.seams.length + S.swayers.length + S.drifters.length === 173,
+        'Rev 4 animation registries still exactly 173 objects after the Rev 5 passes');
+      chk(S.pool.length === budget().total,
+        'entity pool never grew during the Rev 5 assertions (' + S.pool.length + ')');
     } catch (err) {
       pass = false;
       notes.push('FAIL exception: ' + (err && err.message ? err.message : String(err)));

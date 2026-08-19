@@ -36,13 +36,25 @@
     return 'rgba(' + r + ',' + g + ',' + b + ',' + clamp(alpha, 0, 1) + ')';
   }
 
+  function chromaBoost(v, amount) {
+    var n = colorInt(v, 0), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    var luma = r * 0.299 + g * 0.587 + b * 0.114;
+    r = clamp(Math.round(luma + (r - luma) * amount), 0, 255);
+    g = clamp(Math.round(luma + (g - luma) * amount), 0, 255);
+    b = clamp(Math.round(luma + (b - luma) * amount), 0, 255);
+    return (r << 16) | (g << 8) | b;
+  }
+
   function paletteOf(sharkDef) {
     var p = sharkDef && sharkDef.sil && sharkDef.sil.palette || {};
     return {
-      base: colorInt(p.base, 0x2d7186),
-      belly: colorInt(p.belly, 0xc7e5df),
-      accent: colorInt(p.accent, 0x164253),
-      glow: colorInt(p.glow, 0)
+      /* Rev 5 deliberately pushes chroma before drawing. The source rows
+       * were authored as subdued UI swatches; the game water needs a darker
+       * back, a hotter flank, and accents that survive an 84px thumbnail. */
+      base: chromaBoost(p.base, 1.18),
+      belly: chromaBoost(p.belly, 1.12),
+      accent: chromaBoost(p.accent, 1.28),
+      glow: p.glow ? chromaBoost(p.glow, 1.14) : 0
     };
   }
 
@@ -235,7 +247,7 @@
     }
   }
 
-  function sharkGeom(w, h, sil, menu, tier) {
+  function sharkGeom(w, h, sil, menu, tier, act, id) {
     var head = sil.head || 'point';
     var rawGirth = clamp(finiteNumber(sil.girth, 0.36), 0.18, 0.8);
     /* Eel is the one archetype whose entire body, rather than just its nose,
@@ -245,8 +257,12 @@
     var len = clamp(finiteNumber(sil.len, 1), 0.5, 3);
     var tailScale = clamp(finiteNumber(sil.tailScale, 1), 0.55, 2.5);
     var finScale = clamp(finiteNumber(sil.finScale, 1), 0.5, 2.1);
-    var bodyRatio = clamp(3.2 - ((girth - 0.24) / 0.36) * 0.8, 2.4, 3.2);
-    if (head === 'eel') bodyRatio = 3.2;
+    var sleek = head === 'eel' || id === 'mako' || id === 'thresher';
+    /* The old 2.4:1 floor still read as polite fish. Most of the roster now
+     * carries a near-2:1 predator barrel; only eels and the named mako/
+     * thresher silhouettes retain a noticeably sleeker line. */
+    var bodyRatio = sleek ? 2.9 : clamp(2.42 - ((girth - 0.24) / 0.36) * 0.58, 2.04, 2.5);
+    if (head === 'eel') bodyRatio = 3.18;
     var peduncleX = w * (head === 'eel' ? 0.17 : 0.2);
     var noseX = w * (head === 'eel' ? 0.93 : 0.9);
     if (head === 'hammer' || head === 'saw') noseX = w * 0.84;
@@ -254,16 +270,21 @@
     var bodyLen = noseX - peduncleX;
     var bh = bodyLen / bodyRatio / 2;
     var cy = h * (menu ? 0.52 : 0.52);
+    var sharkTier = clamp(finiteNumber(tier, 1), 1, 12);
+    var sharkAct = clamp(finiteNumber(act, sharkTier >= 5 ? 2 : 1), 1, 3);
     return {
       w: w, h: h, cy: cy, bh: bh, rx: peduncleX, peduncleX: peduncleX,
       noseX: noseX, bodyNoseX: noseX, bodyLen: bodyLen,
-      maxX: noseX - bodyLen * 0.32, bodyRatio: bodyRatio,
+      /* Max girth is carried farther toward the face than Rev 4. */
+      maxX: noseX - bodyLen * 0.25, bodyRatio: bodyRatio,
       finScale: finScale, tailScale: tailScale, head: head, len: len,
       foilX: w * 0.965,
       faceX: noseX + bodyLen * 0.045,
       whaleHeadBaseX: noseX - bodyLen * 0.34,
       skullCrestBaseX: noseX - bodyLen * 0.37,
-      tier: clamp(finiteNumber(tier, 1), 1, 12), girth: girth,
+      tier: sharkTier, act: sharkAct, id: id || '', girth: girth,
+      mouthGape: clamp(0.17 + sharkTier * 0.024 + (sharkAct - 1) * 0.045, 0.18, 0.52),
+      headMass: 0.36,
       /* Menu is a supersampled copy, not a second silhouette. */
       tailCurl: 0
     };
@@ -272,19 +293,19 @@
   function tailPath(ctx, g) {
     var ped = g.peduncleX, cy = g.cy, w = g.w;
     var ts = g.tailScale, curl = g.tailCurl;
-    var upper = g.bh * 0.9 * ts;
-    var lower = g.bh * 0.58 * ts;
-    var upperTip = Math.max(w * 0.018, ped - w * (0.16 + ts * 0.012));
-    var lowerTip = Math.max(w * 0.035, ped - w * (0.14 + ts * 0.008));
+    var upper = g.bh * 1.12 * ts;
+    var lower = g.bh * 0.72 * ts;
+    var upperTip = Math.max(w * 0.018, ped - w * (0.18 + ts * 0.018));
+    var lowerTip = Math.max(w * 0.035, ped - w * (0.16 + ts * 0.012));
     ctx.beginPath();
     ctx.moveTo(ped, cy);
-    /* Upper lobe: longer, swept, and visibly dominant. */
-    ctx.bezierCurveTo(ped - w * 0.05, cy - upper * 0.18, ped - w * 0.1, cy - upper * 0.78, upperTip, cy - upper * (0.88 + curl));
-    ctx.bezierCurveTo(ped - w * 0.105, cy - upper * 0.48, ped - w * 0.065, cy - upper * 0.1, ped, cy);
-    /* Lower lobe is deliberately shorter, giving the tail a shark-like
-     * heterocercal rake instead of the old symmetric leaf. */
-    ctx.bezierCurveTo(ped - w * 0.065, cy + lower * 0.1, ped - w * 0.095, cy + lower * 0.54, lowerTip, cy + lower * (0.72 - curl));
-    ctx.bezierCurveTo(ped - w * 0.09, cy + lower * 0.42, ped - w * 0.045, cy + lower * 0.12, ped, cy);
+    /* Upper lobe: broad, raked, and visibly dominant. */
+    ctx.bezierCurveTo(ped - w * 0.06, cy - upper * 0.18, ped - w * 0.12, cy - upper * 0.8, upperTip, cy - upper * (0.9 + curl));
+    ctx.bezierCurveTo(ped - w * 0.13, cy - upper * 0.5, ped - w * 0.075, cy - upper * 0.1, ped, cy);
+    /* The lower lobe is shorter and kicks down harder, giving each shark an
+     * asymmetric, instantly readable caudal gesture at thumb size. */
+    ctx.bezierCurveTo(ped - w * 0.075, cy + lower * 0.1, ped - w * 0.11, cy + lower * 0.58, lowerTip, cy + lower * (0.78 - curl));
+    ctx.bezierCurveTo(ped - w * 0.1, cy + lower * 0.46, ped - w * 0.05, cy + lower * 0.12, ped, cy);
     ctx.closePath();
   }
 
@@ -373,10 +394,13 @@
     }
     ctx.beginPath();
     ctx.moveTo(nx, cy - bh * noseTop);
-    ctx.bezierCurveTo(nx - w * 0.025, cy - bh * (noseTop + 0.3), nx - g.bodyLen * 0.08, cy - bh * 0.78, maxX, cy - bh);
+    var headBase = nx - g.bodyLen * 0.38;
+    ctx.bezierCurveTo(nx - w * 0.028, cy - bh * (noseTop + 0.38), nx - g.bodyLen * 0.14, cy - bh * 0.84, headBase, cy - bh * 0.94);
+    ctx.bezierCurveTo(headBase - g.bodyLen * 0.08, cy - bh * 1.03, maxX + g.bodyLen * 0.04, cy - bh * 1.02, maxX, cy - bh);
     ctx.bezierCurveTo(maxX - g.bodyLen * 0.12, cy - bh * 0.98, ped + g.bodyLen * 0.1, cy - bh * 0.7, ped, cy - bh * 0.1);
     ctx.bezierCurveTo(ped + g.bodyLen * 0.1, cy + bh * 0.7, maxX - g.bodyLen * 0.1, cy + bh * 0.98, maxX, cy + bh);
-    ctx.bezierCurveTo(nx - g.bodyLen * 0.08, cy + bh * 0.78, nx - w * 0.025, cy + bh * (noseBottom + 0.26), nx, cy + bh * noseBottom);
+    ctx.bezierCurveTo(maxX + g.bodyLen * 0.04, cy + bh * 1.02, headBase - g.bodyLen * 0.08, cy + bh * 1.04, headBase, cy + bh * 0.91);
+    ctx.bezierCurveTo(nx - g.bodyLen * 0.14, cy + bh * (0.78 + g.mouthGape * 0.13), nx - w * 0.028, cy + bh * (noseBottom + 0.34), nx, cy + bh * (noseBottom + 0.12));
     ctx.closePath();
   }
 
@@ -449,13 +473,16 @@
   }
 
   function bodyFill(ctx, g, palette) {
-    var top = palette.base, mid = blend(palette.base, palette.belly, 0.32), low = palette.belly;
+    var top = blend(palette.base, palette.accent, 0.24);
+    var mid = blend(palette.base, palette.belly, 0.36);
+    var low = blend(palette.belly, 0xffffff, 0.04);
     ctx.fillStyle = linearGradient(ctx, 0, g.cy - g.bh * 1.15, 0, g.cy + g.bh * 1.15, [
-      [0, cssColor(blend(top, palette.accent, 0.18))],
+      [0, cssColor(blend(top, 0x020912, 0.16))],
+      [0.16, cssColor(top)],
       [0.28, cssColor(top)],
       [0.54, cssColor(mid)],
       [0.78, cssColor(low)],
-      [1, cssColor(blend(low, 0xffffff, 0.12))]
+      [1, cssColor(blend(low, 0xffffff, 0.2))]
     ]);
     ctx.fill();
     setStroke(ctx, palette.accent, Math.max(1.3, g.w * 0.009), 0.95);
@@ -498,12 +525,32 @@
     /* A tall, rear-swept dorsal is the first species cue at gameplay size.
      * Its root is buried under the body fill, so the visible triangle reads
      * as one continuous fin/body silhouette instead of a floating decal. */
-    var dorsalH = bh * (1.42 + 0.16 * f);
+    var dorsalH = bh * (1.62 + 0.2 * f + (g.tier >= 9 ? 0.14 : 0));
     var finLine = Math.max(1, w * 0.006);
     /* Kaiju owns the dorsal silhouette with its jagged plate row. */
     if (g.head !== 'kaiju') {
-      fin(ctx, dorsalX, cy - bh * 0.66, dorsalX - bl * 0.075, cy - bh - dorsalH,
-        dorsalX + bl * 0.17, cy - bh * 0.2, palette, finLine);
+      fin(ctx, dorsalX, cy - bh * 0.66, dorsalX - bl * 0.11, cy - bh - dorsalH,
+        dorsalX + bl * 0.2, cy - bh * 0.18, palette, finLine);
+    }
+    /* Act 3 bodies get a second outline rhythm: plates and fin-rakes are
+     * rooted under the body fill, so they remain one connected silhouette
+     * rather than looking like stickers. */
+    if (g.tier >= 9 && g.head !== 'skull' && g.head !== 'eel') {
+      var plateCount = g.tier >= 11 ? 7 : 5;
+      for (var plate = 0; plate < plateCount; plate++) {
+        var pu = 0.24 + plate * (0.48 / Math.max(1, plateCount - 1));
+        var px = g.peduncleX + bl * pu;
+        var ph = bh * (0.5 + (plate % 3) * 0.16 + (g.tier - 8) * 0.04);
+        fin(ctx, px, cy - bh * 0.5, px - bl * 0.055, cy - bh * 0.95 - ph,
+          px + bl * 0.11, cy - bh * 0.22, palette, Math.max(1, finLine * 0.86));
+      }
+      if (g.tier >= 11) {
+        for (var bellySpike = 0; bellySpike < 3; bellySpike++) {
+          var bx = g.peduncleX + bl * (0.48 + bellySpike * 0.11);
+          fin(ctx, bx, cy + bh * 0.56, bx - bl * 0.035, cy + bh * 0.98 + bh * 0.34,
+            bx + bl * 0.075, cy + bh * 0.55, palette, Math.max(1, finLine * 0.78));
+        }
+      }
     }
     /* Pectoral is split into its own rig part for play. */
     if (includePectoral !== false) drawPectoralFin(ctx, g, palette);
@@ -692,66 +739,119 @@
 
   function eyePosition(g) {
     var w = g.w, cy = g.cy;
-    var x = g.bodyNoseX - g.bodyLen * 0.12;
-    if (g.head === 'hammer') x = g.foilX - g.bodyLen * 0.06;
-    if (g.head === 'saw') x = w * 0.77;
+    var x = g.bodyNoseX - g.bodyLen * 0.16;
+    if (g.head === 'hammer') x = g.foilX - g.bodyLen * 0.075;
+    if (g.head === 'saw') x = w * 0.76;
     if (g.head === 'croc') x = w * 0.8;
-    /* About 38% down from the local dorsal edge, never on the midline. */
-    return [x, cy - g.bh * (g.head === 'hammer' ? 0.72 : 0.42)];
+    if (g.head === 'whale') x = g.bodyNoseX - g.bodyLen * 0.2;
+    /* The eye sits in the heavy front third, not halfway down a fish body. */
+    return [x, cy - g.bh * (g.head === 'hammer' ? 0.72 : 0.48)];
   }
 
   function drawEye(ctx, g, palette) {
     var pos = eyePosition(g), x = pos[0], y = pos[1];
     var tier = clamp(finiteNumber(g.tier, 1), 1, 12);
-    var r = Math.max(1.35, g.w * (0.0085 + tier * 0.00065));
-    var glow = palette.glow || palette.accent;
+    var act = clamp(finiteNumber(g.act, tier >= 5 ? 2 : 1), 1, 3);
+    var r = Math.max(2.05, g.w * (0.015 + tier * 0.00072));
+    var glow = palette.glow || blend(palette.accent, palette.belly, 0.2);
+    var iris = act >= 2 ? glow : blend(palette.accent, 0x01060d, 0.18);
+    /* A wedge-shaped brow is the expression pass. It is intentionally drawn
+     * over the eye's top edge so the face reads angry at menu and gameplay
+     * sizes instead of merely well-lit. */
+    ctx.beginPath();
+    ctx.moveTo(x - r * 1.72, y - r * 1.38);
+    ctx.quadraticCurveTo(x - r * 0.35, y - r * 2.18, x + r * 1.7, y - r * 1.72);
+    ctx.lineTo(x + r * 1.55, y - r * 1.1);
+    ctx.quadraticCurveTo(x - r * 0.2, y - r * 1.55, x - r * 1.72, y - r * 1.05);
+    ctx.closePath();
+    setFill(ctx, blend(palette.accent, 0x000309, 0.4), 0.92);
+    ctx.fill();
+    setStroke(ctx, act >= 2 ? blend(glow, 0xffffff, 0.12) : palette.accent, Math.max(0.8, r * 0.18), act >= 2 ? 0.7 : 0.5);
+    ctx.stroke();
     safeSave(ctx);
-    ctx.shadowColor = cssColor(glow, 0.9); ctx.shadowBlur = Math.max(2, g.w * 0.022);
-    dot(ctx, x, y, r * 1.55, glow, 0.3);
+    ctx.shadowColor = cssColor(glow, act >= 2 ? 0.95 : 0.45); ctx.shadowBlur = Math.max(2, g.w * (act >= 2 ? 0.04 : 0.018));
+    dot(ctx, x, y, r * 1.72, glow, act >= 2 ? 0.36 : 0.16);
     safeRestore(ctx);
-    ctx.beginPath(); ctx.arc(x, y, r * 1.18, 0, Math.PI * 2);
-    setFill(ctx, blend(palette.accent, 0x02070d, 0.3), 1); ctx.fill();
-    ctx.beginPath(); ctx.arc(x, y, r * 0.9, 0, Math.PI * 2);
-    setStroke(ctx, blend(palette.belly, palette.accent, 0.42), Math.max(0.8, r * 0.18), 0.88); ctx.stroke();
-    dot(ctx, x, y, r * 0.62, 0x02070d, 1);
-    dot(ctx, x + r * 0.34, y - r * 0.38, r * 0.3, 0xffffff, 0.96);
-    dot(ctx, x - r * 0.23, y + r * 0.2, r * 0.1, 0xffffff, 0.38);
+    ctx.beginPath(); ctx.arc(x, y, r * 1.36, 0, Math.PI * 2);
+    setFill(ctx, blend(palette.accent, 0x02070d, 0.24), 1); ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, r * 1.06, 0, Math.PI * 2);
+    ctx.fillStyle = act >= 2 ? radialGradient(ctx, x - r * 0.25, y - r * 0.28, 0, x, y, r * 1.1, [
+      [0, cssColor(blend(iris, 0xffffff, 0.55), 1)], [0.45, cssColor(iris, 1)], [1, cssColor(blend(iris, palette.accent, 0.42), 1)]
+    ]) : cssColor(iris, 1);
+    ctx.fill();
+    ctx.beginPath(); ctx.ellipse(x + r * 0.12, y, r * 0.23, r * 0.78, 0, 0, Math.PI * 2);
+    setFill(ctx, 0x02050a, 1); ctx.fill();
+    dot(ctx, x + r * 0.43, y - r * 0.47, r * 0.34, 0xffffff, 0.98);
+    dot(ctx, x - r * 0.3, y + r * 0.25, r * 0.12, 0xffffff, 0.42);
   }
 
   function drawGills(ctx, g, palette) {
-    var x = g.peduncleX + g.bodyLen * 0.62, cy = g.cy, bh = g.bh;
-    for (var i = 0; i < 5; i++) {
-      var gx = x + i * g.w * 0.022;
+    var x = g.peduncleX + g.bodyLen * 0.54, cy = g.cy, bh = g.bh;
+    for (var i = 0; i < 6; i++) {
+      var gx = x + i * g.w * 0.024;
       ctx.beginPath();
-      ctx.moveTo(gx, cy - bh * 0.38);
-      ctx.quadraticCurveTo(gx - g.w * 0.014, cy, gx - g.w * 0.028, cy + bh * 0.42);
-      setStroke(ctx, palette.accent, Math.max(1.1, g.w * 0.006), 0.9); ctx.stroke();
+      ctx.moveTo(gx, cy - bh * 0.42);
+      ctx.quadraticCurveTo(gx - g.w * 0.018, cy - bh * 0.02, gx - g.w * 0.034, cy + bh * 0.48);
+      setStroke(ctx, blend(palette.accent, 0x00050a, 0.22), Math.max(1.15, g.w * 0.0065), 0.9); ctx.stroke();
+    }
+  }
+
+  function mouthMetrics(g) {
+    var x0 = g.peduncleX + g.bodyLen * 0.56;
+    var x1 = g.bodyNoseX - g.w * 0.018;
+    if (g.head === 'eel') x0 = g.peduncleX + g.bodyLen * 0.63;
+    if (g.head === 'whale') x0 = g.whaleHeadBaseX + g.bodyLen * 0.03;
+    if (g.head === 'hammer') { x0 = g.bodyNoseX - g.bodyLen * 0.34; x1 = g.faceX; }
+    if (g.head === 'saw') { x0 = g.w * 0.62; x1 = g.w * 0.835; }
+    var gape = g.mouthGape || 0.22;
+    var top0 = g.cy + g.bh * (g.head === 'whale' ? 0.2 : 0.02);
+    var top1 = g.cy + g.bh * (g.head === 'whale' ? 0.3 : 0.14);
+    var bottom0 = g.cy + g.bh * (0.58 + gape * 0.62);
+    var bottom1 = g.cy + g.bh * (0.28 + gape * 0.22);
+    return { x0: x0, x1: x1, top0: top0, top1: top1, bottom0: bottom0, bottom1: bottom1, gape: gape };
+  }
+
+  function mouthToothRow(ctx, g, palette, m, count, lower) {
+    var toothH = g.bh * (0.13 + g.tier * 0.009 + m.gape * 0.12);
+    var toothW = Math.max(1.2, g.w * (0.007 + g.tier * 0.0007));
+    for (var i = 0; i < count; i++) {
+      var t = (i + 0.5) / count;
+      var tx = m.x0 + (m.x1 - m.x0) * (0.07 + t * 0.86);
+      var ty = lower ? m.bottom0 + (m.bottom1 - m.bottom0) * ((tx - m.x0) / (m.x1 - m.x0)) :
+        m.top0 + (m.top1 - m.top0) * ((tx - m.x0) / (m.x1 - m.x0));
+      if (lower) {
+        poly(ctx, [[tx - toothW, ty], [tx + toothW, ty + g.bh * 0.012], [tx, ty - toothH]], blend(palette.belly, 0xffffff, 0.14), 0.98);
+      } else {
+        poly(ctx, [[tx - toothW, ty], [tx + toothW, ty - g.bh * 0.012], [tx, ty + toothH]], blend(palette.belly, 0xffffff, 0.14), 0.98);
+      }
     }
   }
 
   function drawMouth(ctx, g, palette, options) {
-    if (g.head === 'whale') return;
-    var x = g.peduncleX + g.bodyLen * 0.7;
-    var end = g.bodyNoseX - g.w * 0.012;
-    if (g.head === 'saw') end = g.w * 0.83;
-    if (g.head === 'hammer') end = g.faceX;
-    var y = g.cy + g.bh * 0.54;
-    var endY = g.cy + g.bh * 0.15;
+    var m = mouthMetrics(g), teeth = g.tier >= 2 ? Math.min(12, 4 + Math.floor(g.tier * 0.72)) : 0;
+    /* A filled cavity, not a polite incision. The lower lip is deliberately
+     * heavier and deeper to give the whole roster an underbite at rest. */
+    safeSave(ctx);
+    bodyPath(ctx, g); ctx.clip();
     ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.quadraticCurveTo((x + end) * 0.5, y + g.bh * 0.16, end, endY);
-    setStroke(ctx, palette.accent, Math.max(1.3, g.w * 0.007), 1); ctx.stroke();
-    if (g.tier >= 5 && !(options && options.separateJaw)) {
-      var count = Math.min(10, 3 + Math.floor(g.tier));
-      var toothH = g.bh * (0.08 + (g.tier - 5) * 0.012);
-      for (var i = 0; i < count; i++) {
-        var t = (i + 0.5) / count;
-        var tx = x + (end - x) * (0.12 + t * 0.76);
-        var ty = y + (endY - y) * ((tx - x) / (end - x));
-        var tw = Math.max(1.2, g.w * (0.006 + g.tier * 0.0008));
-        poly(ctx, [[tx - tw, ty - g.bh * 0.015], [tx + tw, ty], [tx, ty + toothH]], palette.belly, 0.92);
-      }
+    ctx.moveTo(m.x0, m.top0);
+    ctx.quadraticCurveTo(m.x0 + (m.x1 - m.x0) * 0.45, m.top0 - g.bh * 0.07, m.x1, m.top1);
+    ctx.lineTo(m.x1, m.bottom1);
+    ctx.quadraticCurveTo(m.x0 + (m.x1 - m.x0) * 0.5, m.bottom0 + g.bh * 0.05, m.x0, m.bottom0);
+    ctx.closePath();
+    setFill(ctx, blend(palette.accent, 0x000000, 0.7), 0.98); ctx.fill();
+    setStroke(ctx, blend(palette.accent, 0x000208, 0.38), Math.max(1.3, g.w * 0.008), 1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(m.x0 + g.w * 0.01, m.top0 + g.bh * 0.05);
+    ctx.quadraticCurveTo(m.x0 + (m.x1 - m.x0) * 0.52, m.top0 + g.bh * 0.01, m.x1 - g.w * 0.008, m.top1 + g.bh * 0.025);
+    setStroke(ctx, blend(palette.accent, 0xd2475f, 0.18), Math.max(1, g.w * 0.006), 0.9); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(m.x0 + g.w * 0.01, m.bottom0 - g.bh * 0.04);
+    ctx.quadraticCurveTo(m.x0 + (m.x1 - m.x0) * 0.52, m.bottom0 + g.bh * 0.015, m.x1 - g.w * 0.008, m.bottom1 - g.bh * 0.045);
+    setStroke(ctx, palette.belly, Math.max(1, g.w * 0.0045), 0.5); ctx.stroke();
+    if (teeth) {
+      mouthToothRow(ctx, g, palette, m, teeth, false);
+      if (!(options && options.separateJaw)) mouthToothRow(ctx, g, palette, m, teeth, true);
     }
+    safeRestore(ctx);
   }
 
   function drawDorsalRim(ctx, g, palette) {
@@ -780,6 +880,27 @@
       g.peduncleX + g.bodyLen * 0.2, g.cy - g.bh * 0.72);
     setStroke(ctx, 0xdffaff, Math.max(0.7, g.w * 0.003), 0.32);
     ctx.stroke();
+  }
+
+  function drawMuscleShading(ctx, g, palette) {
+    var bl = g.bodyLen, bh = g.bh, cy = g.cy;
+    for (var i = 0; i < 3; i++) {
+      var start = g.peduncleX + bl * (0.28 + i * 0.13);
+      var end = start + bl * (0.28 - i * 0.025);
+      var y = cy - bh * (0.04 - i * 0.13);
+      ctx.beginPath();
+      ctx.moveTo(start, y);
+      ctx.bezierCurveTo(start + bl * 0.07, y - bh * 0.18,
+        start + bl * 0.18, y - bh * 0.18, end, y + bh * 0.02);
+      setStroke(ctx, blend(palette.accent, 0x00050a, 0.28), Math.max(1.2, g.w * 0.009), 0.38);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(start + bl * 0.02, y - bh * 0.07);
+      ctx.bezierCurveTo(start + bl * 0.1, y - bh * 0.2,
+        start + bl * 0.2, y - bh * 0.16, end - bl * 0.02, y - bh * 0.02);
+      setStroke(ctx, blend(palette.belly, 0xffffff, 0.25), Math.max(0.8, g.w * 0.004), 0.25);
+      ctx.stroke();
+    }
   }
 
   function drawBodyModern(ctx, g, palette) {
@@ -812,8 +933,11 @@
       g.bodyNoseX - g.w * 0.012, cy + bh * 0.2);
     setStroke(ctx, 0x02070d, Math.max(1, g.w * 0.011), 0.25); ctx.stroke();
 
+    /* Muscles are broad enough to survive the 84px thumb while the smaller
+     * speckles keep the vector finish from becoming a flat gradient. */
+    drawMuscleShading(ctx, g, palette);
     /* Deterministic fine noise, two tones, clipped to the body silhouette. */
-    for (var i = 0; i < 30; i++) {
+    for (var i = 0; i < 44; i++) {
       var x = g.peduncleX + bl * (0.08 + ((i * 37) % 87) / 100);
       var y = cy + (((i * 61) % 100) - 50) * bh / 62;
       var r = Math.max(0.45, g.w * (0.0024 + (i % 3) * 0.0012));
@@ -835,9 +959,9 @@
     else if (g.head === 'skull') drawSkull(ctx, g, palette);
     else if (g.head === 'void') drawVoid(ctx, g, palette);
     else if (g.head === 'kaiju') drawKaiju(ctx, g, palette);
-    drawMouth(ctx, g, palette, options);
     drawGills(ctx, g, palette);
-    if (g.head !== 'skull') drawEye(ctx, g, palette);
+    drawMouth(ctx, g, palette, options);
+    drawEye(ctx, g, palette);
   }
 
   function patternSpots(ctx, g, p) {
@@ -857,10 +981,12 @@
   }
 
   function patternScars(ctx, g, p) {
-    for (var i = 0; i < 4; i++) {
-      var x = g.w * (0.4 + i * 0.11);
-      ctx.beginPath(); ctx.moveTo(x, g.cy - g.bh * 0.38); ctx.lineTo(x + g.w * 0.05, g.cy - g.bh * 0.1); ctx.lineTo(x - g.w * 0.01, g.cy + g.bh * 0.25);
-      setStroke(ctx, p.belly, Math.max(1, g.w * 0.012), 0.7); ctx.stroke();
+    for (var i = 0; i < 6; i++) {
+      var x = g.w * (0.34 + i * 0.085);
+      ctx.beginPath(); ctx.moveTo(x, g.cy - g.bh * (0.48 - (i % 2) * 0.08)); ctx.lineTo(x + g.w * 0.045, g.cy - g.bh * 0.1); ctx.lineTo(x - g.w * 0.012, g.cy + g.bh * 0.3);
+      setStroke(ctx, blend(p.belly, 0xffffff, 0.12), Math.max(1, g.w * 0.012), 0.72); ctx.stroke();
+      line(ctx, x + g.w * 0.012, g.cy - g.bh * 0.27, x + g.w * 0.056, g.cy - g.bh * 0.08,
+        p.accent, Math.max(0.8, g.w * 0.005), 0.62);
     }
   }
 
@@ -873,10 +999,12 @@
   }
 
   function patternPlates(ctx, g, p) {
-    for (var i = 0; i < 8; i++) {
-      var x = g.w * (0.28 + i * 0.07), y = g.cy - g.bh * 0.52 + (i % 2) * g.bh * 0.28;
-      poly(ctx, [[x, y], [x + g.w * 0.05, y - g.h * 0.025], [x + g.w * 0.07, y + g.h * 0.05], [x + g.w * 0.015, y + g.h * 0.08]], p.accent, 0.48);
-      setStroke(ctx, p.belly, Math.max(1, g.w * 0.005), 0.32); ctx.stroke();
+    for (var i = 0; i < 10; i++) {
+      var x = g.w * (0.26 + i * 0.058), y = g.cy - g.bh * 0.58 + (i % 2) * g.bh * 0.31;
+      poly(ctx, [[x, y], [x + g.w * 0.045, y - g.h * 0.03], [x + g.w * 0.07, y + g.h * 0.05], [x + g.w * 0.012, y + g.h * 0.085]], p.accent, 0.54);
+      setStroke(ctx, blend(p.belly, 0xffffff, 0.18), Math.max(1, g.w * 0.0055), 0.45); ctx.stroke();
+      line(ctx, x + g.w * 0.012, y + g.h * 0.045, x + g.w * 0.048, y + g.h * 0.015,
+        p.belly, Math.max(0.7, g.w * 0.0035), 0.42);
     }
   }
 
@@ -889,9 +1017,12 @@
   }
 
   function patternSpikes(ctx, g, p) {
-    for (var i = 0; i < 9; i++) {
-      var x = g.w * (0.3 + i * 0.067), y = g.cy - g.bh * 0.5;
-      poly(ctx, [[x, y], [x + g.w * 0.02, y - g.h * (0.05 + (i % 2) * 0.04)], [x + g.w * 0.04, y + g.h * 0.01]], p.accent, 0.9);
+    for (var i = 0; i < 11; i++) {
+      var x = g.w * (0.27 + i * 0.057), y = g.cy - g.bh * 0.52;
+      var tipY = y - g.h * (0.055 + (i % 3) * 0.035);
+      poly(ctx, [[x, y], [x + g.w * 0.02, tipY], [x + g.w * 0.043, y + g.h * 0.012]], p.accent, 0.92);
+      line(ctx, x + g.w * 0.019, tipY + g.h * 0.008, x + g.w * 0.035, y + g.h * 0.004,
+        p.belly, Math.max(0.7, g.w * 0.0035), 0.68);
     }
   }
 
@@ -1156,11 +1287,9 @@
   }
 
   function drawJawOverlay(ctx, g, palette) {
-    var x0 = g.peduncleX + g.bodyLen * 0.69;
-    var x1 = g.bodyNoseX - g.w * 0.012;
-    var y0 = g.cy + g.bh * 0.55;
-    var y1 = g.cy + g.bh * 0.18;
-    var depth = Math.max(2, g.bh * (0.26 + g.tier * 0.012));
+    var m = mouthMetrics(g), x0 = m.x0, x1 = m.x1;
+    var y0 = m.bottom0 - g.bh * 0.02, y1 = m.bottom1 - g.bh * 0.02;
+    var depth = Math.max(2, g.bh * (0.3 + g.tier * 0.018 + m.gape * 0.18));
     jawPath(ctx, x0, y0, x1, y1, depth);
     ctx.fillStyle = linearGradient(ctx, 0, y0, 0, y1 + depth, [
       [0, cssColor(blend(palette.accent, palette.base, 0.15))],
@@ -1168,12 +1297,13 @@
       [1, cssColor(palette.belly)]
     ]); ctx.fill();
     setStroke(ctx, palette.accent, Math.max(1, g.w * 0.007), 0.9); ctx.stroke();
-    for (var i = 0; i < Math.min(10, 3 + Math.floor(g.tier)); i++) {
-      var t = (i + 0.5) / Math.min(10, 3 + Math.floor(g.tier));
+    var count = Math.min(12, 4 + Math.floor(g.tier * 0.72));
+    for (var i = 0; i < count; i++) {
+      var t = (i + 0.5) / count;
       var tx = x0 + (x1 - x0) * (0.12 + t * 0.76);
       var ty = y0 + (y1 - y0) * ((tx - x0) / (x1 - x0));
-      var tw = Math.max(1, g.w * (0.005 + g.tier * 0.0007));
-      poly(ctx, [[tx - tw, ty], [tx + tw, ty - g.bh * 0.012], [tx, ty + depth * 0.55]], palette.belly, 0.94);
+      var tw = Math.max(1, g.w * (0.006 + g.tier * 0.0008));
+      poly(ctx, [[tx - tw, ty], [tx + tw, ty - g.bh * 0.012], [tx, ty - depth * 0.62]], blend(palette.belly, 0xffffff, 0.14), 0.98);
     }
   }
 
@@ -1223,7 +1353,7 @@
     }
     var surface = makeSurface(cssW, cssH);
     var p = paletteOf(def);
-    var g = sharkGeom(cssW, cssH, sil, v === 'menu', def.tier);
+    var g = sharkGeom(cssW, cssH, sil, v === 'menu', def.tier, def.act, id);
     drawShark(surface.ctx, g, p, sil);
     var rec = { key: key, canvas: surface.canvas, ctx: surface.ctx, width: cssW, height: cssH, dpr: surface.dpr || 1, glow: p.glow, geometry: g };
     textureCache[key] = rec;
@@ -1243,25 +1373,27 @@
 
   function rigPartDimensions(sil) {
     var len = clamp(finiteNumber(sil && sil.len, 1), 0.5, 3);
+    var tailScale = clamp(finiteNumber(sil && sil.tailScale, 1), 0.55, 2.5);
+    var finScale = clamp(finiteNumber(sil && sil.finScale, 1), 0.5, 2.1);
     /* Rigs render at the gameplay width (the runtime scales legacy play
      * sprites to 96*len CSS px). DPR 3 provides the retina detail; tight part
      * boxes keep the complete 61-shark roster below the iOS budget. */
     return {
       len: len,
       bodyW: Math.round(clamp(112 * len, 88, 224)),
-      bodyH: Math.round(clamp(86 * len, 68, 172)),
-      tailW: Math.round(clamp(42 * len, 34, 84)),
-      tailH: Math.round(clamp(54 * len, 44, 108)),
-      pectW: Math.round(clamp(34 * len, 28, 68)),
-      pectH: Math.round(clamp(48 * len, 38, 96)),
-      jawW: Math.round(clamp(38 * len, 30, 76)),
-      jawH: Math.round(clamp(28 * len, 24, 56))
+      bodyH: Math.round(clamp(92 * len, 74, 184)),
+      tailW: Math.round(clamp(44 * len * Math.min(1.35, tailScale), 36, 104)),
+      tailH: Math.round(clamp(56 * len * Math.min(1.55, tailScale), 46, 132)),
+      pectW: Math.round(clamp(36 * len * Math.min(1.25, finScale), 30, 86)),
+      pectH: Math.round(clamp(52 * len * Math.min(1.4, finScale), 40, 120)),
+      jawW: Math.round(clamp(40 * len, 32, 82)),
+      jawH: Math.round(clamp(32 * len, 26, 64))
     };
   }
 
   function drawStandaloneTail(ctx, w, h, sil, palette) {
-    var cy = h * 0.5, upper = h * 0.34 * clamp(finiteNumber(sil.tailScale, 1), 0.55, 2.5);
-    var lower = h * 0.22 * clamp(finiteNumber(sil.tailScale, 1), 0.55, 2.5);
+    var cy = h * 0.5, upper = h * 0.39 * clamp(finiteNumber(sil.tailScale, 1), 0.55, 2.5);
+    var lower = h * 0.26 * clamp(finiteNumber(sil.tailScale, 1), 0.55, 2.5);
     var tip = w * 0.92, lowTip = w * 0.78;
     ctx.beginPath();
     /* Contract: the peduncle attachment is the LEFT edge centre. */
@@ -1305,7 +1437,7 @@
 
   function drawStandaloneJaw(ctx, w, h, palette, tier) {
     var teeth = Math.min(10, 3 + Math.floor(tier));
-    var x0 = 0, y0 = h * 0.28, x1 = w * 0.94, y1 = h * 0.08, depth = h * 0.54;
+    var x0 = 0, y0 = h * 0.32, x1 = w * 0.94, y1 = h * 0.07, depth = h * 0.68;
     jawPath(ctx, x0, y0, x1, y1, depth);
     ctx.fillStyle = linearGradient(ctx, 0, y0, 0, y1 + depth, [
       [0, cssColor(palette.accent)],
@@ -1315,7 +1447,7 @@
     setStroke(ctx, palette.accent, Math.max(1, w * 0.026), 0.9); ctx.stroke();
     for (var i = 0; i < teeth; i++) {
       var t = (i + 0.5) / teeth, tx = w * (0.1 + t * 0.78), ty = y0 + (y1 - y0) * ((tx - x0) / (x1 - x0));
-      poly(ctx, [[tx - w * 0.025, ty], [tx + w * 0.025, ty - h * 0.012], [tx, ty + depth * 0.52]], palette.belly, 0.94);
+      poly(ctx, [[tx - w * 0.025, ty], [tx + w * 0.025, ty - h * 0.012], [tx, ty - depth * 0.62]], blend(palette.belly, 0xffffff, 0.14), 0.98);
     }
     safeSave(ctx); ctx.globalCompositeOperation = 'multiply';
     ctx.shadowColor = '#02070d'; ctx.shadowBlur = Math.max(2, w * 0.1);
@@ -1338,7 +1470,7 @@
     var tailKey = 'rf_shark_' + id + '_rig_tail';
     var pectKey = 'rf_shark_' + id + '_rig_pect';
     var jawKey = tier >= 5 ? 'rf_shark_' + id + '_rig_jaw' : null;
-    var bodySurface = makeSurface(d.bodyW, d.bodyH), bodyG = sharkGeom(d.bodyW, d.bodyH, sil, false, tier);
+    var bodySurface = makeSurface(d.bodyW, d.bodyH), bodyG = sharkGeom(d.bodyW, d.bodyH, sil, false, tier, def.act, id);
     drawShark(bodySurface.ctx, bodyG, palette, sil, { includeTail: false, includePectoral: false, separateJaw: tier >= 5 });
     rigPart(scene, bodyKey, bodySurface, 'body');
 

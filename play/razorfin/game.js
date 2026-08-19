@@ -1081,6 +1081,16 @@
       this.stickG = hudAdd(this, this.add.graphics().setScrollFactor(0).setDepth(1000));
 
       if (RF.DevMode && RF.DevMode.state) this.hud.dev = hudAdd(this, devChip(this));
+
+      // Pooled world-space score popups (zero allocation at eat time): eight
+      // rotating text objects, world layer so they track the bite point.
+      this.pops = [];
+      this.popCursor = 0;
+      for (var pi = 0; pi < 8; pi++) {
+        var t = this.add.text(0, 0, '', txt(16, '#ffe9a8', '900'));
+        t.setOrigin(0.5, 1).setDepth(220).setVisible(false).setActive(false);
+        this.pops.push({ t: t, life: 0 });
+      }
     },
 
     showTutorialIfNeeded: function () {
@@ -1254,6 +1264,8 @@
       if (!p || !p.active) return;
 
       this.stepControl(p);
+
+      this.stepPops(p);
       this.stepMotion(p);
       this.stepAnim(p);
 
@@ -1378,6 +1390,19 @@
     // on p.anim; nothing is allocated. Safe to run whether or not a rig is
     // actually attached (render() is what consumes it).
     stepAnim: function (p) {
+      var pst = ctx && ctx.player && ctx.player.st;
+      if (pst && pst.eatPopT > 0) {
+        pst.eatPopT -= p;
+        var pop = 1 + 0.14 * clamp(pst.eatPopT / 0.16, 0, 1);
+        var node = ctx.player.rig ? ctx.player.rig.container : ctx.player.sprite;
+        if (node && node.setScale && node.__baseScale == null) node.__baseScale = node.scaleX < 0 ? -node.scaleX : node.scaleX;
+        if (node && node.__baseScale != null) {
+          var sgn = node.scaleX < 0 ? -1 : 1;
+          node.setScale(sgn * node.__baseScale * pop, node.__baseScale * pop);
+        }
+      }
+      if (pst && pst.jawSnapT > 0) pst.jawSnapT -= p;
+
       var a = p.anim;
       var ctl = p.ctl;
       var sp = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
@@ -1596,9 +1621,19 @@
         try { RF.Abilities.chargeFromEat(ctx, e); } catch (err) { warnOnce('Abilities.chargeFromEat', err); }
       }
 
-      fxEmit('deathBurst', e.x, e.y, { count: 10 });
+      // EAT FEEDBACK (owner: "cannot tell when you eat a fish"). The meal
+      // must land: two-stage burst in the prey's own colors sized by the
+      // meal, a floating score popup at the bite point, a jaw snap and a
+      // scale pop on the shark, and a hit-stop long enough to feel.
+      var mealT = num(e.tier, 0);
+      var preyTint = (e.def && e.def.tint) || 0xffe9a8;
+      fxEmit('deathBurst', e.x, e.y, { count: 14 + mealT * 3, scale: 1 + mealT * 0.12, tint: preyTint });
+      fxEmit('motes', e.x, e.y, { count: 8 + mealT * 2, tint: 0xffffff });
+      this.scorePopup(e.x, e.y, '+' + Math.round(score * mult), mult > 1);
+      if (p.rig && p.rig.jaw) p.st.jawSnapT = 0.18;
+      p.st.eatPopT = 0.16;                 // scale pop consumed by stepAnim
       sfx('chomp');
-      hitStop(28);
+      hitStop(mealT >= p.tier - 1 ? 60 : 40);
 
       e.coins = 0;                          // suppress world.js's pickup drop
       if (RF.World && RF.World.kill) {
@@ -1613,6 +1648,29 @@
       ctx.run.comboT = num(FRENZY.comboWindow, 3);
       ctx.run.frenzy = clamp(ctx.run.frenzy + num(FRENZY.meterPerEat, 0.06), 0, 1);
       this.queueComboChip();
+    },
+
+    scorePopup: function (wx, wy, str, big) {
+      if (!this.pops || !this.pops.length) return;
+      var rec = this.pops[this.popCursor];
+      this.popCursor = (this.popCursor + 1) % this.pops.length;
+      rec.life = 0.7;
+      rec.t.setText(str);
+      rec.t.setPosition(wx, wy - S(6));
+      rec.t.setScale((big ? 1.25 : 1) / DPR * 2);   // legible at camera zoom
+      rec.t.setAlpha(1).setVisible(true).setActive(true);
+    },
+
+    stepPops: function (dt) {
+      if (!this.pops) return;
+      for (var i = 0; i < this.pops.length; i++) {
+        var r = this.pops[i];
+        if (r.life <= 0) continue;
+        r.life -= dt;
+        r.t.y -= 46 * dt;
+        r.t.setAlpha(clamp(r.life / 0.7, 0, 1));
+        if (r.life <= 0) { r.t.setVisible(false); r.t.setActive(false); }
+      }
     },
 
     // RF-COINS-01, second half of the same rule: COIN PICKUPS ARE WORLD.JS'S.

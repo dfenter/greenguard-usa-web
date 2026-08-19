@@ -625,3 +625,207 @@ cross-lane facts relied on:
   `t.now += STEP`), which is why it is safe as an animation clock.
 - `RF.Art.bakeSharkRig` does not exist in `sharkart.js` yet, which is why the
   NPC shark branch uses an interim pitch oscillation.
+
+---
+
+## Lane B pass 5 (Rev 5): surface containment, orientation, spawner bounds, flee burst
+
+Owner device bug: "fish are swimming out of the water". Four items, world.js only.
+
+### 1. Surface containment (the bug)
+
+**Root cause.** game.js puts the waterline at `y=0` and treats `y<0` as
+airborne (`stepMotion`, `minY=-46`). world.js only ever clamped entities to
+`y >= 12` (`integrate`). Sprites are drawn CENTRED, so a fish sitting at y=12
+with a ~30px half-height had half its body above the waterline, and the
+surface ribbon only spans y 0..54 so it did not hide it. Everything the owner
+saw was one number in one function.
+
+**Fix.** `SURFACE_Y = 46`, a hard floor for every non-player entity, applied
+through a single choke point:
+
+```js
+function containY(e) {
+  if (e.y < SURFACE_Y) { e.y = SURFACE_Y; if (e.vy < 0) e.vy = -e.vy * SURFACE_BOUNCE; }
+  else if (e.y > S.h - 12) { e.y = S.h - 12; if (e.vy > 0) e.vy = -Math.abs(e.vy); }
+}
+```
+
+It is a REFLECTION, not a teleport, per the brief: the entity lands exactly on
+the ceiling and its rise is turned downward at `SURFACE_BOUNCE` 0.35, so a
+panicking fish noses the surface and peels back down. Asserted both ways
+(lands on the ceiling, vy comes back positive and damped).
+
+`containY` is its own function rather than inline in `integrate` deliberately.
+Five separate code paths write y or vy, and each one needed handling:
+
+| path | how it is contained |
+| --- | --- |
+| `integrate` (all prey/predator/pickup motion) | calls `containY`, replacing the old `y >= 12` clamp |
+| flee vectors + pack drift + all steering | `steer()` clamps the TARGET to `SURFACE_Y + SURFACE_MARGIN` |
+| mine and jelly drift | write `vy` straight from a sine every frame, so the reflection would be overwritten next step: near the surface the sine is FOLDED to its downward half |
+| pickups (coin scatter) | placement clamped in `dropPickup`, motion via `integrate` |
+| spawner | see item 3 |
+
+The steer-target clamp is the part that matters for how it LOOKS. Containment
+in `integrate` alone is correct but reads as a fish pressing against an
+invisible lid. Clamping the goal point makes the fish choose a level or
+downward path on its own, so the reflection becomes a rare correction rather
+than the thing you watch.
+
+The hazard fold was the subtle one. A jelly's entire motion IS a vertical
+sine, so without folding it a jelly parked under the surface pumps upward into
+the ceiling forever. The fold keeps the bob and only points it away. `st.drift`
+is untouched, so the Rev 4 bell pulse stays synced to the bob by construction.
+
+**Only the player breaches.** world.js never touches `ctx.player`; game.js
+`stepMotion` owns `minY=-46` and the breach FX, and is unmodified.
+
+### 2. Fish orientation
+
+Two problems were being conflated under "orientation".
+
+**Facing was a Y flip.** Textures bake nose-right; the old code rotated by
+`e.angle` then `setFlipY(cos(angle) < 0)`. That keeps a leftward fish upright
+but mirrors it vertically: belly and back swap over. Now `flipX` off the
+direction of travel, and `setFlipY(false)` always. With flipX the sprite
+already points left, so the rotation applied on top is MIRRORED
+(`PI - angle`), otherwise pitch inverts the moment a fish turns around.
+Asserted: a left-swimming fish wiggles by the same amount as a right-swimming
+one, to 1e-6.
+
+**Rotation snapped.** `e.angle` is recomputed every step straight from
+velocity, so a flee that reverses in one frame rotated the sprite 180 degrees
+in one frame. `st.faceA` is a smoothed DISPLAY heading chasing `e.angle` at
+`FACE_TURN` 9.0, taking the short arc so crossing +-PI never spins the long
+way. Below `FACE_SNAP` the heading holds, so a drifting fish does not spin
+chasing noise in a near-zero velocity vector.
+
+This is display only. `e.angle` is untouched, so AI, collision and game.js's
+eat check cannot be affected by it. The Rev 4 tail wiggle was rebased from
+`e.angle` onto the smoothed mirrored base (`displayBase`), which is what keeps
+the wiggle from reintroducing the exact snap `faceAngle` exists to remove; the
+two Rev 4 wiggle assertions were rebased onto the same baseline, same
+intent, and stay green.
+
+`st.faceA` is declared in `makeEntity`, nulled in `resetSt` and re-seeded from
+the spawn heading in `spawnOne`, so a recycled pool object never rotates in
+from a stale direction.
+
+### 3. Spawner bounds
+
+`spawnOne` clamped y to `[8, h-8]` and `ringPoint` to `[40, h-40]`, both above
+the surface. Now both use `[SURFACE_Y + SURFACE_MARGIN, h - SEAFLOOR_MARGIN]`
+(72 to 3560). `ringPoint` is clamped BEFORE `zoneAt()` reads it, so a ring
+point landing in the sky picks the shallow zone's spawn table at a legal depth
+rather than being pushed down afterwards. `spawnOne` is the last gate, so it
+also covers `spawnBurst`'s +-50px jitter and any ability or debug spawn from
+another lane. Asserted by driving the REAL spawner 900 updates with the camera
+parked alternately at the surface and the seafloor: 3702 samples, 0 bad, y
+range 66.0 to 3560.0.
+
+### 4. Flee burst vs the rebalanced data.js
+
+Prey speeds were cut hard (minnow 65, mackerel 95, marlin 170 at the top)
+while NPC sharks sit at 288 to 500. Old multipliers were 1.35x prey and 1.15x
+NPC. Raised to `FLEE_BURST` 1.55 and `FLEE_BURST_NPC` 1.35, both under the
+brief's 1.6x cap, and both now named constants rather than literals buried in
+the AI.
+
+The reason for raising rather than lowering: against the new much smaller
+bases, 1.35x of 95 is 128, which against a 288-speed chaser did not read as
+panic at all. The design requirement is "briefly quick but still catchable by
+a chasing shark of equal tier", so the test asserts that requirement directly
+rather than asserting the multiplier:
+
+```
+no prey out-runs a same-or-higher-tier NPC shark at full flee burst
+  (0 escapees, worst marlin at 73% of its chaser)
+```
+
+Worst case across all 16 creature rows is marlin at 73% of the slowest NPC
+shark of its tier or above. Every prey stays catchable with margin, and 73%
+is fast enough to read as a sprint. Plus a live behavioural check: a cornered
+mackerel bursts to 147.2 against its base of 95, and never exceeds the capped
+147.3.
+
+### Verification
+
+```
+node --check world.js                       -> PARSE_OK
+RF.World.__selftest()                       -> pass: true, 89/89 ok, 0 FAIL
+in-browser, all 9 lanes                     -> all pass, 0 console errors/warnings
+```
+
+54 prior assertions still green (2 rebased onto the new display baseline,
+same intent). 35 added.
+
+**The brief's mandated assertion**, split into the two things it actually
+means, because they are different claims:
+
+```
+ok fish forced to y=10 with upward vy is under the ceiling on the very next step (y 46.0 >= 46)
+ok and its upward vy was reflected downward or to zero on contact (vy 51.5)
+ok and never rose above the ceiling at any point in 240 steps (min y 46.0)
+```
+
+The split matters. Vy a hundred frames later is a fish swimming normally in
+open water and says nothing about the bug, so asserting "vy <= 0 at the end of
+the run" would have been a false constraint that fails for a correct fix. The
+frame of contact is where the claim lives.
+
+**Live in-browser proof**, which is the one that actually answers the owner.
+Real page, real Ocean scene, player driven along the waterline for 900 frames
+(the exact reported situation):
+
+```
+entity samples          62844   (53359 prey, 5510 hazard, 3975 predator)
+shallowest y             54.8   (predator/reef)
+breaches above y=46          0
+sprites with flipY set       0
+console errors/warnings      0
+```
+
+### Orientation assertions are unit-level on purpose
+
+The first attempt drove orientation through `World.update` and failed: the AI
+rewrites velocity every step, so the test was measuring `preyAI`'s steering,
+not the orientation code it claimed to cover. `faceAngle` and `animateEntity`
+are now driven directly, and a SEPARATE integration assertion covers the
+write path those bypass, with the fish chased from alternating sides so the
+flip is exercised in both states (576 samples, 0 disagreements, 293 right /
+283 left). Both halves are needed: the unit tests would pass if `World.update`
+never called `faceAngle` at all.
+
+### Perf
+
+No new per-frame allocation and no new per-entity work beyond one lerp and a
+couple of comparisons. Registries and pool unchanged.
+
+```
+objects created after init     0        (600 updates walking surface to abyss)
+heap  N=3000                1.92 bytes/update
+heap  N=12000               2.07 bytes/update
+heap  N=30000               0.50 bytes/update
+animation registries         173        (unchanged)
+entity pool              70/70/140      (unchanged)
+```
+
+Bytes-per-update is at the measurement noise floor, and below Rev 4's own
+10 to 46 range.
+
+### Grep gates
+
+```
+em dashes                    0
+Math.random                  1  (the header comment stating the law)
+setTimeout / setInterval     1  (the header comment stating the law)
+addEventListener             0
+Date.now / performance.now   0
+```
+
+### Concurrency
+
+`world.js` only. `game.js` was READ to establish the waterline contract
+(`stepMotion` minY=-46, `y<0` is airborne) and `data.js` was READ for the
+rebalanced speeds. Neither was written, nor was any other lane's file.

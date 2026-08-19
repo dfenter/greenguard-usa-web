@@ -136,3 +136,38 @@ full rig cache at DPR 3: 68.84 MB                              PASS (<80 MB)
 thumb sweep: 61 textures; 21.11 MB at DPR 3                   PASS
 procedural creature textures: 11                              PASS
 ```
+
+## Rev 5 (caricatured predator roster)
+
+Reworked only `sharkart.js` for the Lane D art review targets while keeping
+the Rev 4 rig contract unchanged:
+
+- Rebalanced ordinary bodies toward a 2.04:1 to 2.5:1 muscular barrel, moved
+  max girth forward, and kept eels plus mako/thresher rows sleek.
+- Rebuilt the shared face read around a 36% head mass: large filled mouth
+  cavities, deep underbite/overbite lips, readable upper and lower triangular
+  teeth from tier 2, denser gills, and a brow ridge over a larger iris/pupil
+  eye. Act 2 and 3 eyes use colored glow/iris treatments; Act 1 eyes stay
+  dark and determined.
+- Enlarged and raked dorsal/caudal silhouettes. Tier 9+ rows gain connected
+  dorsal plates, tier 11+ rows gain underside fin-rakes, and all remain
+  rooted under the body fill so the silhouette stays connected.
+- Raised palette chroma centrally, deepened the dark-back to bright-belly
+  contrast, added three curved muscle bands, and increased deterministic
+  speckle/scar/plate/spike seam detail while retaining clipped vector passes.
+- Preserved `bakeSharkRig` body-canvas-absolute pivots, the pectoral root,
+  the tail attachment at the LEFT edge of the tail canvas, and single-texture
+  thumb/menu variants.
+
+Rev 5 proof:
+
+```text
+node --check play/razorfin/sharkart.js                         PASS
+RF.Art.__selftest()                                           PASS
+legacy shark sweep: 61 rows x play/menu = 122 textures        PASS
+full rig sweep: 61 sharks, 233 part textures                  PASS
+full rig cache at DPR 3: 77.76 MiB                            PASS (<80 MiB)
+thumb sweep: 61 textures; 21.11 MiB at DPR 3                 PASS
+leviathanrex sampled colours: 5620                           PASS (>64)
+special silhouette gates: 5 heads, 1 component each           PASS
+```
