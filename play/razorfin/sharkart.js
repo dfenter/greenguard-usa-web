@@ -7,6 +7,7 @@
 
   var RF = root.RF = root.RF || {};
   var textureCache = {};
+  var rigCache = {};
 
   function clamp(v, lo, hi) {
     return v < lo ? lo : v > hi ? hi : v;
@@ -101,6 +102,23 @@
     ctx.closePath();
     setFill(ctx, color, alpha);
     ctx.fill();
+  }
+
+  function canvasBytes(canvas) {
+    if (!canvas) return 0;
+    return Math.max(1, finiteNumber(canvas.width, 1))
+      * Math.max(1, finiteNumber(canvas.height, 1)) * 4;
+  }
+
+  function gradientForFin(ctx, top, bottom, palette) {
+    var lit = blend(palette.belly, 0xffffff, 0.12);
+    var mid = blend(palette.accent, palette.base, 0.45);
+    return linearGradient(ctx, 0, top, 0, bottom, [
+      [0, cssColor(blend(palette.base, lit, 0.28), 0.98)],
+      [0.48, cssColor(mid, 0.96)],
+      [0.82, cssColor(palette.accent, 0.92)],
+      [1, cssColor(blend(palette.accent, palette.belly, 0.42), 0.84)]
+    ]);
   }
 
   function makeMemorySurface(cssW, cssH, dpr) {
@@ -433,7 +451,11 @@
   function bodyFill(ctx, g, palette) {
     var top = palette.base, mid = blend(palette.base, palette.belly, 0.32), low = palette.belly;
     ctx.fillStyle = linearGradient(ctx, 0, g.cy - g.bh * 1.15, 0, g.cy + g.bh * 1.15, [
-      [0, cssColor(top)], [0.42, cssColor(mid)], [0.76, cssColor(low)], [1, cssColor(blend(low, 0xffffff, 0.12))]
+      [0, cssColor(blend(top, palette.accent, 0.18))],
+      [0.28, cssColor(top)],
+      [0.54, cssColor(mid)],
+      [0.78, cssColor(low)],
+      [1, cssColor(blend(low, 0xffffff, 0.12))]
     ]);
     ctx.fill();
     setStroke(ctx, palette.accent, Math.max(1.3, g.w * 0.009), 0.95);
@@ -446,13 +468,31 @@
     ctx.bezierCurveTo((x + tipX) * 0.5, y + (tipY - y) * 0.2, tipX, tipY, baseX, baseY);
     ctx.bezierCurveTo((x + baseX) * 0.5, (y + baseY) * 0.5, x, y, x, y);
     ctx.closePath();
-    setFill(ctx, palette.accent, 0.95);
+    ctx.fillStyle = gradientForFin(ctx, Math.min(y, tipY, baseY), Math.max(y, tipY, baseY), palette);
     ctx.fill();
-    setStroke(ctx, palette.belly, width || 1.2, 0.48);
+    setStroke(ctx, blend(palette.belly, 0xffffff, 0.12), width || 1.2, 0.5);
     ctx.stroke();
+    /* A translucent trailing edge catches the light while leaving the fin
+     * readable against similarly coloured water. */
+    line(ctx, tipX, tipY, baseX, baseY, palette.belly, Math.max(1, (width || 1.2) * 0.72), 0.26);
   }
 
-  function drawFins(ctx, g, palette) {
+  function drawPectoralFin(ctx, g, palette) {
+    var f = g.finScale, cy = g.cy, bl = g.bodyLen;
+    var pecX = g.peduncleX + bl * 0.3;
+    var pecH = g.bh * 1.02 * f;
+    fin(ctx, pecX, cy + g.bh * 0.25, pecX - bl * 0.2, cy + g.bh + pecH,
+      pecX + bl * 0.13, cy + g.bh * 0.38, palette, Math.max(1, g.w * 0.006));
+    safeSave(ctx);
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.beginPath();
+    ctx.ellipse(pecX + bl * 0.055, cy + g.bh * 0.34, bl * 0.11, g.bh * 0.12, -0.18, 0, Math.PI * 2);
+    setFill(ctx, 0x07131d, 0.28);
+    ctx.fill();
+    safeRestore(ctx);
+  }
+
+  function drawFins(ctx, g, palette, includePectoral) {
     var f = g.finScale, cy = g.cy, w = g.w, bh = g.bh, bl = g.bodyLen;
     var dorsalX = g.peduncleX + bl * 0.42;
     /* A tall, rear-swept dorsal is the first species cue at gameplay size.
@@ -465,11 +505,8 @@
       fin(ctx, dorsalX, cy - bh * 0.66, dorsalX - bl * 0.075, cy - bh - dorsalH,
         dorsalX + bl * 0.17, cy - bh * 0.2, palette, finLine);
     }
-    /* Pectoral: root below the midline, tip swept back toward the tail. */
-    var pecX = g.peduncleX + bl * 0.3;
-    var pecH = bh * 1.02 * f;
-    fin(ctx, pecX, cy + bh * 0.25, pecX - bl * 0.2, cy + bh + pecH,
-      pecX + bl * 0.13, cy + bh * 0.38, palette, finLine);
+    /* Pectoral is split into its own rig part for play. */
+    if (includePectoral !== false) drawPectoralFin(ctx, g, palette);
     /* Small pelvic and anal fins keep the underside readable at menu scale. */
     var pelvicX = g.peduncleX + bl * 0.62;
     fin(ctx, pelvicX, cy + bh * 0.58, pelvicX - bl * 0.045, cy + bh + bh * 0.34 * f,
@@ -664,14 +701,21 @@
   }
 
   function drawEye(ctx, g, palette) {
-    var pos = eyePosition(g), x = pos[0], y = pos[1], r = Math.max(1.4, g.w * 0.011);
+    var pos = eyePosition(g), x = pos[0], y = pos[1];
+    var tier = clamp(finiteNumber(g.tier, 1), 1, 12);
+    var r = Math.max(1.35, g.w * (0.0085 + tier * 0.00065));
     var glow = palette.glow || palette.accent;
     safeSave(ctx);
     ctx.shadowColor = cssColor(glow, 0.9); ctx.shadowBlur = Math.max(2, g.w * 0.022);
-    dot(ctx, x, y, r * 1.35, glow, 0.38);
+    dot(ctx, x, y, r * 1.55, glow, 0.3);
     safeRestore(ctx);
-    dot(ctx, x, y, r, 0x07131d, 1);
-    dot(ctx, x + r * 0.32, y - r * 0.35, r * 0.34, 0xffffff, 1);
+    ctx.beginPath(); ctx.arc(x, y, r * 1.18, 0, Math.PI * 2);
+    setFill(ctx, blend(palette.accent, 0x02070d, 0.3), 1); ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y, r * 0.9, 0, Math.PI * 2);
+    setStroke(ctx, blend(palette.belly, palette.accent, 0.42), Math.max(0.8, r * 0.18), 0.88); ctx.stroke();
+    dot(ctx, x, y, r * 0.62, 0x02070d, 1);
+    dot(ctx, x + r * 0.34, y - r * 0.38, r * 0.3, 0xffffff, 0.96);
+    dot(ctx, x - r * 0.23, y + r * 0.2, r * 0.1, 0xffffff, 0.38);
   }
 
   function drawGills(ctx, g, palette) {
@@ -685,7 +729,7 @@
     }
   }
 
-  function drawMouth(ctx, g, palette) {
+  function drawMouth(ctx, g, palette, options) {
     if (g.head === 'whale') return;
     var x = g.peduncleX + g.bodyLen * 0.7;
     var end = g.bodyNoseX - g.w * 0.012;
@@ -697,7 +741,7 @@
     ctx.moveTo(x, y);
     ctx.quadraticCurveTo((x + end) * 0.5, y + g.bh * 0.16, end, endY);
     setStroke(ctx, palette.accent, Math.max(1.3, g.w * 0.007), 1); ctx.stroke();
-    if (g.tier >= 5) {
+    if (g.tier >= 5 && !(options && options.separateJaw)) {
       var count = Math.min(10, 3 + Math.floor(g.tier));
       var toothH = g.bh * (0.08 + (g.tier - 5) * 0.012);
       for (var i = 0; i < count; i++) {
@@ -710,7 +754,76 @@
     }
   }
 
-  function drawHeadFeatures(ctx, g, palette) {
+  function drawDorsalRim(ctx, g, palette) {
+    var lit = blend(palette.belly, 0xffffff, 0.42);
+    var start = g.bodyNoseX, end = g.peduncleX + g.bodyLen * 0.08;
+    ctx.beginPath();
+    if (g.head === 'hammer') {
+      ctx.moveTo(g.faceX, g.cy - g.bh * 0.13);
+      ctx.lineTo(g.foilX, g.cy - g.bh * 0.55);
+      ctx.bezierCurveTo(g.foilX - g.bodyLen * 0.08, g.cy - g.bh * 1.05,
+        g.bodyNoseX - g.bodyLen * 0.14, g.cy - g.bh * 1.04,
+        g.peduncleX + g.bodyLen * 0.18, g.cy - g.bh * 0.82);
+    } else {
+      ctx.moveTo(start, g.cy - g.bh * 0.1);
+      ctx.bezierCurveTo(start - g.bodyLen * 0.09, g.cy - g.bh * 0.78,
+        g.maxX, g.cy - g.bh, end, g.cy - g.bh * 0.1);
+    }
+    setStroke(ctx, lit, Math.max(1.1, g.w * 0.007), 0.7);
+    ctx.stroke();
+    /* A thinner, cooler line gives the silhouette a polished edge at phone
+     * scale without turning the whole outline into a cartoon stroke. */
+    ctx.beginPath();
+    ctx.moveTo(start - g.bodyLen * 0.025, g.cy - g.bh * 0.16);
+    ctx.bezierCurveTo(start - g.bodyLen * 0.13, g.cy - g.bh * 0.72,
+      g.maxX - g.bodyLen * 0.04, g.cy - g.bh * 0.91,
+      g.peduncleX + g.bodyLen * 0.2, g.cy - g.bh * 0.72);
+    setStroke(ctx, 0xdffaff, Math.max(0.7, g.w * 0.003), 0.32);
+    ctx.stroke();
+  }
+
+  function drawBodyModern(ctx, g, palette) {
+    var bl = g.bodyLen, bh = g.bh, cy = g.cy;
+    safeSave(ctx);
+    bodyPath(ctx, g); ctx.clip();
+
+    /* Soft white ellipse band: a specular streak follows the lit upper flank. */
+    safeSave(ctx);
+    ctx.globalCompositeOperation = 'screen';
+    ctx.fillStyle = radialGradient(ctx, g.peduncleX + bl * 0.48, cy - bh * 0.32, 0,
+      g.peduncleX + bl * 0.48, cy - bh * 0.3, bl * 0.34,
+      [[0, 'rgba(255,255,255,.28)'], [0.42, 'rgba(224,251,255,.11)'], [1, 'rgba(255,255,255,0)']]);
+    ctx.beginPath(); ctx.ellipse(g.peduncleX + bl * 0.5, cy - bh * 0.34,
+      bl * 0.28, Math.max(1.4, bh * 0.1), -0.08, 0, Math.PI * 2); ctx.fill();
+    safeRestore(ctx);
+
+    /* Fin-root and jaw-line occlusion are deliberately multiply blended so
+     * they sit in the gradient instead of reading as opaque decals. */
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.beginPath(); ctx.ellipse(g.peduncleX + bl * 0.42, cy - bh * 0.82,
+      bl * 0.095, Math.max(1.2, bh * 0.13), -0.3, 0, Math.PI * 2);
+    setFill(ctx, 0x06131b, 0.22); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(g.peduncleX + bl * 0.3, cy + bh * 0.52,
+      bl * 0.12, Math.max(1.2, bh * 0.13), 0.1, 0, Math.PI * 2);
+    setFill(ctx, 0x06131b, 0.2); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(g.peduncleX + bl * 0.68, cy + bh * 0.53);
+    ctx.quadraticCurveTo(g.peduncleX + bl * 0.82, cy + bh * 0.75,
+      g.bodyNoseX - g.w * 0.012, cy + bh * 0.2);
+    setStroke(ctx, 0x02070d, Math.max(1, g.w * 0.011), 0.25); ctx.stroke();
+
+    /* Deterministic fine noise, two tones, clipped to the body silhouette. */
+    for (var i = 0; i < 30; i++) {
+      var x = g.peduncleX + bl * (0.08 + ((i * 37) % 87) / 100);
+      var y = cy + (((i * 61) % 100) - 50) * bh / 62;
+      var r = Math.max(0.45, g.w * (0.0024 + (i % 3) * 0.0012));
+      dot(ctx, x, y, r, i % 2 ? blend(palette.accent, 0x001018, 0.35) : blend(palette.belly, 0xffffff, 0.2), i % 2 ? 0.16 : 0.12);
+    }
+    safeRestore(ctx);
+    drawDorsalRim(ctx, g, palette);
+  }
+
+  function drawHeadFeatures(ctx, g, palette, options) {
     if (g.head === 'hammer') drawHammer(ctx, g, palette);
     else if (g.head === 'saw') drawSaw(ctx, g, palette);
     else if (g.head === 'frill') drawFrill(ctx, g, palette);
@@ -722,7 +835,7 @@
     else if (g.head === 'skull') drawSkull(ctx, g, palette);
     else if (g.head === 'void') drawVoid(ctx, g, palette);
     else if (g.head === 'kaiju') drawKaiju(ctx, g, palette);
-    drawMouth(ctx, g, palette);
+    drawMouth(ctx, g, palette, options);
     drawGills(ctx, g, palette);
     if (g.head !== 'skull') drawEye(ctx, g, palette);
   }
@@ -878,6 +991,7 @@
   function paintPattern(ctx, g, p, name) {
     var painter = patterns[name] || patterns.plain;
     safeSave(ctx);
+    ctx.globalCompositeOperation = 'multiply';
     bodyPath(ctx, g); ctx.clip();
     painter(ctx, g, p);
     safeRestore(ctx);
@@ -958,6 +1072,21 @@
     safeRestore(ctx);
   }
 
+  function fxHalo(ctx, g, p) {
+    var c = p.glow || p.accent;
+    safeSave(ctx);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.shadowColor = cssColor(c, 0.78);
+    ctx.shadowBlur = Math.max(7, g.w * 0.07);
+    ctx.beginPath();
+    ctx.ellipse(g.peduncleX + g.bodyLen * 0.72, g.cy - g.bh * 0.03,
+      g.bodyLen * 0.18, g.bh * 0.52, 0, 0, Math.PI * 2);
+    setFill(ctx, c, 0.08);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    safeRestore(ctx);
+  }
+
   var fxPainters = {
     emberEyes: fxVeins, gulpGlow: fxAura, lure: fxLure, sailGlow: fxAura,
     shadow: fxVoid, crown: fxCharge, alien: fxVoid, abyssGlow: fxVoid, rift: fxVoid,
@@ -973,6 +1102,9 @@
   function paintFx(ctx, g, p, name) {
     if (!name || name === 'none') return;
     var painter = fxPainters[name] || fxAura;
+    /* Outer halo is separate from the clipped effect marks, so Act 2/3
+     * elements read luminous even when their internal line is small. */
+    fxHalo(ctx, g, p);
     safeSave(ctx);
     bodyPath(ctx, g); ctx.clip();
     painter(ctx, g, p);
@@ -987,22 +1119,78 @@
     }
   }
 
-  function drawShark(ctx, g, palette, sil) {
-    if (!ctx) return;
-    safeSave(ctx);
-    ctx.translate(0, 0);
+  function drawTailArt(ctx, g, palette) {
     tailPath(ctx, g);
-    ctx.fillStyle = linearGradient(ctx, 0, g.cy - g.h * 0.34, 0, g.cy + g.h * 0.34, [
-      [0, cssColor(palette.base)], [0.55, cssColor(blend(palette.base, palette.belly, 0.36))], [1, cssColor(palette.belly)]
+    ctx.fillStyle = linearGradient(ctx, 0, g.cy - g.bh * 1.2, 0, g.cy + g.bh * 1.2, [
+      [0, cssColor(blend(palette.base, palette.belly, 0.16))],
+      [0.32, cssColor(palette.base)],
+      [0.7, cssColor(blend(palette.accent, palette.base, 0.34))],
+      [1, cssColor(blend(palette.belly, palette.accent, 0.42))]
     ]);
     ctx.fill();
-    setStroke(ctx, palette.accent, Math.max(1, g.w * 0.009), 0.95); ctx.stroke();
-    drawFins(ctx, g, palette);
+    setStroke(ctx, palette.accent, Math.max(1, g.w * 0.009), 0.92); ctx.stroke();
+    safeSave(ctx);
+    ctx.globalCompositeOperation = 'screen';
+    ctx.fillStyle = radialGradient(ctx, g.peduncleX - g.w * 0.03, g.cy - g.bh * 0.52, 0,
+      g.peduncleX - g.w * 0.04, g.cy - g.bh * 0.45, g.w * 0.24,
+      [[0, 'rgba(255,255,255,.2)'], [1, 'rgba(255,255,255,0)']]);
+    ctx.beginPath(); ctx.ellipse(g.peduncleX - g.w * 0.075, g.cy - g.bh * 0.42,
+      g.w * 0.12, Math.max(1, g.bh * 0.1), -0.2, 0, Math.PI * 2); ctx.fill();
+    safeRestore(ctx);
+    ctx.beginPath();
+    ctx.moveTo(g.peduncleX, g.cy);
+    ctx.bezierCurveTo(g.peduncleX - g.w * 0.08, g.cy - g.bh * 0.38,
+      g.peduncleX - g.w * 0.12, g.cy - g.bh * 0.72,
+      g.peduncleX - g.w * 0.14, g.cy - g.bh * 0.84);
+    setStroke(ctx, blend(palette.belly, 0xffffff, 0.18), Math.max(0.8, g.w * 0.004), 0.48); ctx.stroke();
+  }
+
+  function jawPath(ctx, x0, y0, x1, y1, depth) {
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.bezierCurveTo(x0 + (x1 - x0) * 0.28, y0 + depth * 0.18,
+      x0 + (x1 - x0) * 0.66, y1 + depth, x1, y1);
+    ctx.bezierCurveTo(x1 - (x1 - x0) * 0.2, y1 + depth * 0.2,
+      x0 + (x1 - x0) * 0.22, y0 + depth * 0.88, x0, y0);
+    ctx.closePath();
+  }
+
+  function drawJawOverlay(ctx, g, palette) {
+    var x0 = g.peduncleX + g.bodyLen * 0.69;
+    var x1 = g.bodyNoseX - g.w * 0.012;
+    var y0 = g.cy + g.bh * 0.55;
+    var y1 = g.cy + g.bh * 0.18;
+    var depth = Math.max(2, g.bh * (0.26 + g.tier * 0.012));
+    jawPath(ctx, x0, y0, x1, y1, depth);
+    ctx.fillStyle = linearGradient(ctx, 0, y0, 0, y1 + depth, [
+      [0, cssColor(blend(palette.accent, palette.base, 0.15))],
+      [0.55, cssColor(blend(palette.base, palette.belly, 0.25))],
+      [1, cssColor(palette.belly)]
+    ]); ctx.fill();
+    setStroke(ctx, palette.accent, Math.max(1, g.w * 0.007), 0.9); ctx.stroke();
+    for (var i = 0; i < Math.min(10, 3 + Math.floor(g.tier)); i++) {
+      var t = (i + 0.5) / Math.min(10, 3 + Math.floor(g.tier));
+      var tx = x0 + (x1 - x0) * (0.12 + t * 0.76);
+      var ty = y0 + (y1 - y0) * ((tx - x0) / (x1 - x0));
+      var tw = Math.max(1, g.w * (0.005 + g.tier * 0.0007));
+      poly(ctx, [[tx - tw, ty], [tx + tw, ty - g.bh * 0.012], [tx, ty + depth * 0.55]], palette.belly, 0.94);
+    }
+  }
+
+  function drawShark(ctx, g, palette, sil, options) {
+    if (!ctx) return;
+    var opts = options || {};
+    safeSave(ctx);
+    ctx.translate(0, 0);
+    if (opts.includeTail !== false) drawTailArt(ctx, g, palette);
+    drawFins(ctx, g, palette, opts.includePectoral !== false);
     bodyPath(ctx, g);
     bodyFill(ctx, g, palette);
+    drawBodyModern(ctx, g, palette);
     paintPattern(ctx, g, palette, sil.pattern || 'plain');
-    drawHeadFeatures(ctx, g, palette);
+    drawHeadFeatures(ctx, g, palette, { separateJaw: !!opts.separateJaw });
     paintFx(ctx, g, palette, sil.fx);
+    if (opts.includeJaw) drawJawOverlay(ctx, g, palette);
     safeRestore(ctx);
     if (ctx.canvas && ctx.canvas.__rfDpr) {
       ctx.canvas.__rfSilhouette = makeSilhouetteMask(g, ctx.canvas.width, ctx.canvas.height, ctx.canvas.__rfDpr);
@@ -1041,6 +1229,147 @@
     textureCache[key] = rec;
     addTexture(scene, key, surface.canvas);
     return key;
+  }
+
+  function rigPart(scene, key, surface, role) {
+    var rec = {
+      key: key, canvas: surface.canvas, ctx: surface.ctx,
+      width: surface.width, height: surface.height, dpr: surface.dpr || 1, role: role
+    };
+    textureCache[key] = rec;
+    addTexture(scene, key, surface.canvas);
+    return key;
+  }
+
+  function rigPartDimensions(sil) {
+    var len = clamp(finiteNumber(sil && sil.len, 1), 0.5, 3);
+    /* Rigs render at the gameplay width (the runtime scales legacy play
+     * sprites to 96*len CSS px). DPR 3 provides the retina detail; tight part
+     * boxes keep the complete 61-shark roster below the iOS budget. */
+    return {
+      len: len,
+      bodyW: Math.round(clamp(112 * len, 88, 224)),
+      bodyH: Math.round(clamp(86 * len, 68, 172)),
+      tailW: Math.round(clamp(42 * len, 34, 84)),
+      tailH: Math.round(clamp(54 * len, 44, 108)),
+      pectW: Math.round(clamp(34 * len, 28, 68)),
+      pectH: Math.round(clamp(48 * len, 38, 96)),
+      jawW: Math.round(clamp(38 * len, 30, 76)),
+      jawH: Math.round(clamp(28 * len, 24, 56))
+    };
+  }
+
+  function drawStandaloneTail(ctx, w, h, sil, palette) {
+    var cy = h * 0.5, upper = h * 0.34 * clamp(finiteNumber(sil.tailScale, 1), 0.55, 2.5);
+    var lower = h * 0.22 * clamp(finiteNumber(sil.tailScale, 1), 0.55, 2.5);
+    var tip = w * 0.92, lowTip = w * 0.78;
+    ctx.beginPath();
+    /* Contract: the peduncle attachment is the LEFT edge centre. */
+    ctx.moveTo(0, cy);
+    ctx.bezierCurveTo(w * 0.24, cy - upper * 0.2, w * 0.55, cy - upper * 0.8, tip, cy - upper);
+    ctx.bezierCurveTo(w * 0.6, cy - upper * 0.42, w * 0.28, cy - upper * 0.08, 0, cy);
+    ctx.bezierCurveTo(w * 0.24, cy + lower * 0.1, w * 0.5, cy + lower * 0.62, lowTip, cy + lower);
+    ctx.bezierCurveTo(w * 0.55, cy + lower * 0.45, w * 0.24, cy + lower * 0.12, 0, cy);
+    ctx.closePath();
+    ctx.fillStyle = linearGradient(ctx, 0, 0, 0, h, [
+      [0, cssColor(blend(palette.base, palette.belly, 0.2))],
+      [0.34, cssColor(palette.base)],
+      [0.7, cssColor(blend(palette.accent, palette.base, 0.34))],
+      [1, cssColor(blend(palette.belly, palette.accent, 0.42))]
+    ]); ctx.fill();
+    setStroke(ctx, palette.accent, Math.max(1, w * 0.026), 0.92); ctx.stroke();
+    safeSave(ctx); ctx.globalCompositeOperation = 'screen';
+    ctx.shadowColor = cssColor(palette.belly, 0.42); ctx.shadowBlur = Math.max(3, w * 0.08);
+    line(ctx, w * 0.08, cy - upper * 0.16, tip - w * 0.08, cy - upper * 0.86, palette.belly, Math.max(0.8, w * 0.014), 0.38);
+    safeRestore(ctx);
+    ctx.beginPath(); ctx.ellipse(w * 0.2, cy - upper * 0.22, w * 0.17, Math.max(1, h * 0.035), -0.16, 0, Math.PI * 2);
+    setFill(ctx, 0xffffff, 0.09); ctx.fill();
+  }
+
+  function drawStandalonePectoral(ctx, w, h, palette) {
+    /* Root is exactly the top-left pivot. The fin sweeps back/down from it. */
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(w * 0.18, h * 0.16, w * 0.36, h * 0.72, w * 0.2, h * 0.96);
+    ctx.bezierCurveTo(w * 0.55, h * 0.82, w * 0.86, h * 0.34, w * 0.9, h * 0.18);
+    ctx.bezierCurveTo(w * 0.58, h * 0.3, w * 0.28, h * 0.16, 0, 0);
+    ctx.closePath();
+    ctx.fillStyle = gradientForFin(ctx, 0, h, palette); ctx.fill();
+    setStroke(ctx, blend(palette.belly, 0xffffff, 0.1), Math.max(1, w * 0.03), 0.54); ctx.stroke();
+    line(ctx, w * 0.2, h * 0.88, w * 0.83, h * 0.22, palette.belly, Math.max(0.8, w * 0.014), 0.28);
+    safeSave(ctx); ctx.globalCompositeOperation = 'multiply';
+    ctx.shadowColor = '#02070d'; ctx.shadowBlur = Math.max(2, w * 0.12);
+    dot(ctx, w * 0.08, h * 0.08, Math.max(1, w * 0.08), 0x02070d, 0.24);
+    safeRestore(ctx);
+  }
+
+  function drawStandaloneJaw(ctx, w, h, palette, tier) {
+    var teeth = Math.min(10, 3 + Math.floor(tier));
+    var x0 = 0, y0 = h * 0.28, x1 = w * 0.94, y1 = h * 0.08, depth = h * 0.54;
+    jawPath(ctx, x0, y0, x1, y1, depth);
+    ctx.fillStyle = linearGradient(ctx, 0, y0, 0, y1 + depth, [
+      [0, cssColor(palette.accent)],
+      [0.5, cssColor(blend(palette.base, palette.belly, 0.25))],
+      [1, cssColor(palette.belly)]
+    ]); ctx.fill();
+    setStroke(ctx, palette.accent, Math.max(1, w * 0.026), 0.9); ctx.stroke();
+    for (var i = 0; i < teeth; i++) {
+      var t = (i + 0.5) / teeth, tx = w * (0.1 + t * 0.78), ty = y0 + (y1 - y0) * ((tx - x0) / (x1 - x0));
+      poly(ctx, [[tx - w * 0.025, ty], [tx + w * 0.025, ty - h * 0.012], [tx, ty + depth * 0.52]], palette.belly, 0.94);
+    }
+    safeSave(ctx); ctx.globalCompositeOperation = 'multiply';
+    ctx.shadowColor = '#02070d'; ctx.shadowBlur = Math.max(2, w * 0.1);
+    line(ctx, w * 0.06, y0 + depth * 0.2, w * 0.88, y1 + depth * 0.1, 0x02070d, Math.max(1, w * 0.022), 0.2);
+    safeRestore(ctx);
+  }
+
+  function bakeSharkRig(scene, sharkDef) {
+    var def = sharkDef || {}, sil = def.sil || {}, id = String(def.id || 'shark');
+    if (rigCache[id]) {
+      var cached = rigCache[id];
+      addTexture(scene, cached.body, textureCache[cached.body] && textureCache[cached.body].canvas);
+      addTexture(scene, cached.tail, textureCache[cached.tail] && textureCache[cached.tail].canvas);
+      addTexture(scene, cached.pect, textureCache[cached.pect] && textureCache[cached.pect].canvas);
+      if (cached.jaw) addTexture(scene, cached.jaw, textureCache[cached.jaw] && textureCache[cached.jaw].canvas);
+      return cached;
+    }
+    var d = rigPartDimensions(sil), palette = paletteOf(def), tier = clamp(finiteNumber(def.tier, 1), 1, 12);
+    var bodyKey = 'rf_shark_' + id + '_rig_body';
+    var tailKey = 'rf_shark_' + id + '_rig_tail';
+    var pectKey = 'rf_shark_' + id + '_rig_pect';
+    var jawKey = tier >= 5 ? 'rf_shark_' + id + '_rig_jaw' : null;
+    var bodySurface = makeSurface(d.bodyW, d.bodyH), bodyG = sharkGeom(d.bodyW, d.bodyH, sil, false, tier);
+    drawShark(bodySurface.ctx, bodyG, palette, sil, { includeTail: false, includePectoral: false, separateJaw: tier >= 5 });
+    rigPart(scene, bodyKey, bodySurface, 'body');
+
+    var tailSurface = makeSurface(d.tailW, d.tailH);
+    drawStandaloneTail(tailSurface.ctx, d.tailW, d.tailH, sil, palette);
+    rigPart(scene, tailKey, tailSurface, 'tail');
+
+    var pectSurface = makeSurface(d.pectW, d.pectH);
+    drawStandalonePectoral(pectSurface.ctx, d.pectW, d.pectH, palette);
+    rigPart(scene, pectKey, pectSurface, 'pect');
+
+    if (jawKey) {
+      var jawSurface = makeSurface(d.jawW, d.jawH);
+      drawStandaloneJaw(jawSurface.ctx, d.jawW, d.jawH, palette, tier);
+      rigPart(scene, jawKey, jawSurface, 'jaw');
+    }
+
+    var result = {
+      body: bodyKey,
+      tail: tailKey,
+      pect: pectKey,
+      jaw: jawKey,
+      pivots: {
+        tail: { x: bodyG.peduncleX, y: bodyG.cy },
+        pect: { x: bodyG.peduncleX + bodyG.bodyLen * 0.3, y: bodyG.cy + bodyG.bh * 0.25 },
+        jaw: jawKey ? { x: bodyG.peduncleX + bodyG.bodyLen * 0.69, y: bodyG.cy + bodyG.bh * 0.55 } : null
+      },
+      size: { w: d.bodyW, h: d.bodyH }
+    };
+    rigCache[id] = result;
+    return result;
   }
 
   function creatureSurface(kind) {
@@ -1088,23 +1417,68 @@
 
   function creatureMine(ctx, w, h) {
     var cx = w * 0.5, cy = h * 0.5, r = w * 0.22;
-    for (var i = 0; i < 16; i++) { var a = i * Math.PI * 2 / 16; var x = cx + Math.cos(a) * w * 0.45, y = cy + Math.sin(a) * h * 0.45; poly(ctx, [[cx + Math.cos(a - 0.08) * r, cy + Math.sin(a - 0.08) * r], [x, y], [cx + Math.cos(a + 0.08) * r, cy + Math.sin(a + 0.08) * r]], 0xd1a74b, 0.95); }
+    for (var i = 0; i < 16; i++) {
+      var a = i * Math.PI * 2 / 16, x = cx + Math.cos(a) * w * 0.45, y = cy + Math.sin(a) * h * 0.45;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a - 0.08) * r, cy + Math.sin(a - 0.08) * r);
+      ctx.lineTo(x, y);
+      ctx.lineTo(cx + Math.cos(a + 0.08) * r, cy + Math.sin(a + 0.08) * r);
+      ctx.closePath();
+      ctx.fillStyle = linearGradient(ctx, 0, cy - h * 0.5, 0, cy + h * 0.5,
+        [[0, '#e0bd62'], [0.48, '#aa653b'], [1, '#53313a']]); ctx.fill();
+    }
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = radialGradient(ctx, cx - r * 0.35, cy - r * 0.35, 0, cx, cy, r, [[0, '#e4c56c'], [0.54, '#9a5b39'], [1, '#402839']]); ctx.fill(); setStroke(ctx, 0x241b2c, 2, 1); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(cx - r * 0.28, cy - r * 0.32, r * 0.42, r * 0.16, -0.35, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,232,153,.22)'; ctx.fill();
     for (var j = 0; j < 6; j++) dot(ctx, cx + Math.cos(j) * r * 0.48, cy + Math.sin(j) * r * 0.48, 2, 0xf9d972, 0.82);
   }
 
   function creatureJelly(ctx, w, h) {
     var c = 0x9e8de0;
     ctx.beginPath(); ctx.arc(w * 0.5, h * 0.4, w * 0.28, Math.PI, 0); ctx.quadraticCurveTo(w * 0.78, h * 0.55, w * 0.22, h * 0.55); ctx.closePath(); ctx.fillStyle = radialGradient(ctx, w * 0.45, h * 0.27, 0, w * 0.5, h * 0.48, w * 0.34, [[0, 'rgba(238,216,255,.85)'], [0.6, cssColor(c, 0.6)], [1, 'rgba(76,49,151,.7)']]); ctx.fill(); setStroke(ctx, 0xc9b7ff, 2, 0.9); ctx.stroke();
-    for (var i = 0; i < 5; i++) { ctx.beginPath(); ctx.moveTo(w * (0.25 + i * 0.125), h * 0.51); ctx.bezierCurveTo(w * (0.18 + i * 0.14), h * 0.72, w * (0.32 + i * 0.12), h * 0.77, w * (0.26 + i * 0.13), h * 0.96); glowStroke(ctx, function () { ctx.stroke(); }, 0xc09cff, 1.1); }
+    for (var i = 0; i < 5; i++) {
+      var tx = w * (0.25 + i * 0.125);
+      ctx.beginPath(); ctx.moveTo(tx, h * 0.51);
+      ctx.bezierCurveTo(w * (0.18 + i * 0.14), h * 0.72, w * (0.32 + i * 0.12), h * 0.77, w * (0.26 + i * 0.13), h * 0.96);
+      ctx.shadowColor = 'rgba(192,156,255,.75)'; ctx.shadowBlur = Math.max(3, w * 0.04);
+      ctx.strokeStyle = linearGradient(ctx, 0, h * 0.5, 0, h, [[0, 'rgba(239,224,255,.92)'], [0.55, 'rgba(192,156,255,.82)'], [1, 'rgba(107,73,193,.76)']]);
+      ctx.lineWidth = 1.1; ctx.lineCap = 'round'; ctx.stroke(); ctx.shadowBlur = 0;
+    }
+    ctx.beginPath(); ctx.ellipse(w * 0.5, h * 0.37, w * 0.13, h * 0.1, -0.12, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,.13)'; ctx.fill();
     dot(ctx, w * 0.42, h * 0.35, 2.4, 0xffffff, 0.78); dot(ctx, w * 0.58, h * 0.35, 2.4, 0xffffff, 0.78);
   }
 
   function creaturePuffer(ctx, w, h) {
     var cx = w * 0.5, cy = h * 0.51, r = w * 0.27;
-    for (var i = 0; i < 24; i++) { var a = i * Math.PI * 2 / 24, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r; poly(ctx, [[cx + Math.cos(a - 0.06) * r * 0.8, cy + Math.sin(a - 0.06) * r * 0.8], [cx + Math.cos(a) * w * 0.45, cy + Math.sin(a) * h * 0.45], [cx + Math.cos(a + 0.06) * r * 0.8, cy + Math.sin(a + 0.06) * r * 0.8]], 0xd6a44c, 0.92); }
+    for (var i = 0; i < 24; i++) {
+      var a = i * Math.PI * 2 / 24, x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+      ctx.beginPath(); ctx.moveTo(cx + Math.cos(a - 0.06) * r * 0.8, cy + Math.sin(a - 0.06) * r * 0.8);
+      ctx.lineTo(cx + Math.cos(a) * w * 0.45, cy + Math.sin(a) * h * 0.45);
+      ctx.lineTo(cx + Math.cos(a + 0.06) * r * 0.8, cy + Math.sin(a + 0.06) * r * 0.8); ctx.closePath();
+      ctx.fillStyle = linearGradient(ctx, 0, cy - h * 0.5, 0, cy + h * 0.5,
+        [[0, '#ffe58a'], [0.5, '#dc9345'], [1, '#874052']]); ctx.fill();
+    }
     ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fillStyle = radialGradient(ctx, cx - r * 0.3, cy - r * 0.35, 0, cx, cy, r, [[0, '#ffe08b'], [0.65, '#e49342'], [1, '#9b4f4c']]); ctx.fill(); setStroke(ctx, 0x4a2a3b, 2, 1); ctx.stroke();
     dot(ctx, cx - r * 0.35, cy - r * 0.08, 3, 0x182034, 1); dot(ctx, cx + r * 0.35, cy - r * 0.08, 3, 0x182034, 1); line(ctx, cx - r * 0.18, cy + r * 0.24, cx + r * 0.18, cy + r * 0.24, 0x632e3e, 1.6, 1);
+  }
+
+  function creatureFinish(ctx, w, h, kind) {
+    var rim = kind === 'jelly' ? 0xe6d8ff : kind === 'mine' ? 0xffd98a : 0xd8fbff;
+    safeSave(ctx);
+    ctx.globalCompositeOperation = 'screen';
+    ctx.shadowColor = cssColor(rim, 0.65); ctx.shadowBlur = Math.max(3, w * 0.035);
+    ctx.beginPath();
+    if (kind === 'jelly') {
+      ctx.arc(w * 0.5, h * 0.4, w * 0.27, Math.PI, Math.PI * 1.92);
+    } else if (kind === 'mine' || kind === 'puffer') {
+      ctx.arc(w * 0.5, h * 0.5, w * 0.25, Math.PI * 1.12, Math.PI * 1.86);
+    } else {
+      ctx.moveTo(w * 0.13, h * 0.42);
+      ctx.bezierCurveTo(w * 0.32, h * 0.12, w * 0.62, h * 0.12, w * 0.82, h * 0.34);
+    }
+    setStroke(ctx, rim, Math.max(1, w * 0.012), 0.64); ctx.stroke();
+    ctx.shadowBlur = 0;
+    for (var i = 0; i < 10; i++) dot(ctx, w * (0.2 + ((i * 29) % 60) / 100), h * (0.28 + ((i * 43) % 36) / 100), Math.max(0.35, w * 0.006), rim, 0.1);
+    safeRestore(ctx);
   }
 
   function bakeCreature(scene, creatureDef) {
@@ -1125,6 +1499,7 @@
     else if (kind === 'jelly') creatureJelly(ctx, w, h);
     else if (kind === 'puffer') creaturePuffer(ctx, w, h);
     else creatureGrazer(ctx, w, h, false);
+    creatureFinish(ctx, w, h, kind);
     var rec = { key: key, canvas: surface.canvas, ctx: ctx, width: w, height: h, dpr: surface.dpr || 1 };
     textureCache[key] = rec;
     addTexture(scene, key, surface.canvas);
@@ -1159,16 +1534,59 @@
     return (g.bodyNoseX - g.peduncleX) / (g.bh * 2);
   }
 
+  function cachedCanvasBytes() {
+    var total = 0, seen = [];
+    for (var key in textureCache) if (textureCache[key] && textureCache[key].canvas) {
+      var canvas = textureCache[key].canvas, already = false;
+      for (var i = 0; i < seen.length; i++) if (seen[i] === canvas) { already = true; break; }
+      if (!already) { seen.push(canvas); total += canvasBytes(canvas); }
+    }
+    return total;
+  }
+
   function __selftest() {
-    var notes = [], pass = true, oldCache = textureCache;
+    var notes = [], pass = true, oldCache = textureCache, oldRigCache = rigCache;
     textureCache = {};
+    rigCache = {};
     var scene = { textures: { map: {}, addCanvas: function (key, canvas) { this.map[key] = canvas; }, exists: function (key) { return !!this.map[key]; } } };
     var oldGame = root.RF && root.RF.Game;
     /* Exercise the title-owned density path. GGKit's canvas helper is not
      * consulted, even when a stale helper exists on the test global. */
-    root.RF.Game = { dpr: 2 };
+    root.RF.Game = { dpr: 3 };
     try {
       var reps = [testShark('reef', 'point'), testShark('hammerhead', 'hammer'), testShark('snapjaw', 'croc'), testShark('ironfin', 'mech'), testShark('leviathanrex', 'kaiju')];
+      for (var r = 0; r < reps.length; r++) {
+        var rig = bakeSharkRig(scene, reps[r]);
+        var partNames = ['body', 'tail', 'pect'];
+        if (rig.jaw) partNames.push('jaw');
+        for (var part = 0; part < partNames.length; part++) {
+          var partKey = rig[partNames[part]], partRec = textureCache[partKey];
+          if (!partKey || !partRec || !partRec.canvas || !partRec.canvas.width || !partRec.canvas.height) {
+            pass = false; notes.push('empty ' + partNames[part] + ' rig part: ' + reps[r].id);
+          }
+        }
+        if (!rig.jaw) notes.push(reps[r].id + ' jaw: null below tier 5');
+        var bodyRec = textureCache[rig.body], bodyW = rig.size.w, bodyH = rig.size.h;
+        var pivots = rig.pivots;
+        ['tail', 'pect', 'jaw'].forEach(function (name) {
+          if (!pivots[name]) return;
+          if (pivots[name].x < 0 || pivots[name].x > bodyW || pivots[name].y < 0 || pivots[name].y > bodyH) {
+            pass = false; notes.push('pivot outside body: ' + reps[r].id + '/' + name);
+          }
+        });
+        if (!bodyRec || !bodyRec.canvas) { pass = false; notes.push('missing rig body record: ' + reps[r].id); }
+        else notes.push(reps[r].id + ' rig parts/pivots: PASS');
+      }
+      var rigBytes = cachedCanvasBytes(), rigLimit = 80 * 1024 * 1024;
+      if (rigBytes >= rigLimit) { pass = false; notes.push('rig canvas bytes at DPR 3: ' + rigBytes + ' >= 80MB'); }
+      else notes.push('rig canvas bytes at DPR 3: ' + rigBytes + ' (' + (rigBytes / 1048576).toFixed(2) + 'MB) < 80MB');
+
+      /* Legacy thumb/menu gates are intentionally measured in a fresh cache:
+       * the runtime only keeps thumbnails or play rigs hot, never both full
+       * rosters at once. Keep their historical dimensions unchanged. */
+      textureCache = {};
+      rigCache = {};
+      root.RF.Game = { dpr: 2 };
       for (var i = 0; i < reps.length; i++) {
         var key = bakeShark(scene, reps[i], 'play');
         var canvas = scene.textures.map[key];
@@ -1228,12 +1646,14 @@
       notes.push('exception: ' + (err && err.message ? err.message : String(err)));
     }
     textureCache = oldCache;
+    rigCache = oldRigCache;
     if (oldGame) root.RF.Game = oldGame; else delete root.RF.Game;
     return { pass: pass, notes: notes };
   }
 
   RF.Art = {
     bakeShark: bakeShark,
+    bakeSharkRig: bakeSharkRig,
     bakeCreature: bakeCreature,
     paletteOf: paletteOf,
     __selftest: __selftest

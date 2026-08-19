@@ -6,6 +6,8 @@
   var RF = root.RF;
   var EMPTY = {};
   var TAU = Math.PI * 2;
+  var WHITE = 0xffffff;
+  var GOLD = 0xffd98a;
 
   function data() { return root.RFD || {}; }
   function finite(value, fallback) {
@@ -14,6 +16,16 @@
   function clamp(value, low, high) {
     value = finite(value, low);
     return value < low ? low : value > high ? high : value;
+  }
+  function mixColor(a, b, amount) {
+    var aa = (a == null ? WHITE : a) >>> 0;
+    var bb = (b == null ? WHITE : b) >>> 0;
+    var t = clamp(amount, 0, 1);
+    var ar = (aa >>> 16) & 255, ag = (aa >>> 8) & 255, ab = aa & 255;
+    var br = (bb >>> 16) & 255, bg = (bb >>> 8) & 255, bc = bb & 255;
+    return ((Math.round(ar + (br - ar) * t) << 16)
+      | (Math.round(ag + (bg - ag) * t) << 8)
+      | Math.round(ab + (bc - ab) * t)) >>> 0;
   }
   function eachKey(obj, fn) {
     if (!obj) return;
@@ -29,12 +41,20 @@
     var pools = Object.create(null);
     var poolConfig = {
       bubbles: { size: 96, key: 'bubble_a', life: 850, scale: 0.42, speed: 34, mode: 0 },
-      motes: { size: 72, key: 'bubble_b', life: 520, scale: 0.34, speed: 145, mode: 1 },
+      motes: { size: 96, key: 'bubble_b', life: 560, scale: 0.34, speed: 145, mode: 1 },
       elementSpark: { size: 64, key: 'bubble_c', life: 430, scale: 0.27, speed: 190, mode: 2 },
       ring: { size: 24, key: 'bubble_c', life: 560, scale: 0.5, speed: 0, mode: 3 },
       beamCore: { size: 12, key: 'bubble_b', life: 92, scale: 1, speed: 0, mode: 4 },
+      swimtrail: { size: 128, key: 'bubble_a', life: 720, scale: 0.23, speed: 26, mode: 5 },
+      speedlines: { size: 72, key: 'bubble_c', life: 170, scale: 0.42, speed: 220, mode: 6 },
+      breach: { size: 96, key: 'bubble_a', life: 720, scale: 0.34, speed: 118, mode: 7 },
+      goldpulse: { size: 16, key: null, life: 980, scale: 1, speed: 0, mode: 8, shape: 'edge' },
     };
-    var poolNames = ['bubbles', 'motes', 'elementSpark', 'ring', 'beamCore'];
+    var poolNames = ['bubbles', 'motes', 'elementSpark', 'ring', 'beamCore',
+      'swimtrail', 'speedlines', 'breach', 'goldpulse'];
+    var waterTickOpts = { vol: 0.055, rate: 1 };
+    var breachSfxOpts = { vol: 0.34, rate: 0.92 };
+    var view = { width: 844, height: 390 };
 
     function nullSprite() {
       return {
@@ -49,15 +69,27 @@
         clearTint: function () { delete this.tint; return this; },
         setBlendMode: function (v) { this.blendMode = v; return this; },
         setDisplaySize: function (x, y) { this.displayWidth = x; this.displayHeight = y; return this; },
+        setOrigin: function (x, y) { this.originX = x; this.originY = y == null ? x : y; return this; },
+        setScrollFactor: function (x, y) { this.scrollFactorX = x; this.scrollFactorY = y == null ? x : y; return this; },
+        setDepth: function (v) { this.depth = v; return this; },
+        clear: function () { return this; },
+        fillStyle: function () { return this; },
+        fillGradientStyle: function () { return this; },
+        fillRect: function () { return this; },
         destroy: function () {},
       };
     }
 
-    function makeSprite(target, key, x, y) {
+    function makeSprite(target, key, x, y, config) {
       var sprite = null;
       try {
-        if (target && target.add && typeof target.add.image === 'function') {
+        if (config && config.shape === 'edge' && target && target.add
+          && typeof target.add.graphics === 'function') {
+          sprite = target.add.graphics();
+        } else if (target && target.add && typeof target.add.image === 'function' && key) {
           sprite = target.add.image(x, y, key);
+        } else if (target && target.add && typeof target.add.rectangle === 'function') {
+          sprite = target.add.rectangle(x, y, 12, 12, WHITE, 1);
         } else if (target && target.add && typeof target.add.circle === 'function') {
           sprite = target.add.circle(x, y, 12, 0xffffff, 1);
         }
@@ -130,11 +162,11 @@
       var i;
       for (i = 0; i < config.size; i++) {
         var item = {
-          active: false, sprite: makeSprite(scene, config.key, 0, 0),
+          active: false, sprite: makeSprite(scene, config.key, 0, 0, config),
           life: 0, maxLife: config.life, age: 0,
           x: 0, y: 0, vx: 0, vy: 0, gravity: 0,
           rotation: 0, spin: 0, baseScale: config.scale,
-          length: 0, width: 0, tint: null, slot: i,
+          length: 0, width: 0, tint: null, slot: i, variant: 0, side: -1, isRing: false,
         };
         additive(item.sprite);
         hide(item);
@@ -170,7 +202,64 @@
       if (name === 'elementSpark') return pools.elementSpark;
       if (name === 'ring') return pools.ring;
       if (name === 'beamCore') return pools.beamCore;
+      if (name === 'swimtrail') return pools.swimtrail;
+      if (name === 'speedlines') return pools.speedlines;
+      if (name === 'breach') return pools.breach;
+      if (name === 'goldpulse') return pools.goldpulse;
       return null;
+    }
+
+    function angleFromOptions(opts, mode) {
+      if (opts.angle == null) return null;
+      var value = finite(opts.angle, 0);
+      /* Existing callers authored legacy FX angles as degrees. Rev 4 game
+         motion uses radians, so the new water/boost families accept either:
+         small values are radians, larger values are degrees. */
+      if (mode >= 5 && Math.abs(value) <= TAU * 2.1) return value;
+      return value * Math.PI / 180;
+    }
+
+    function tintMix(a, b, amount) {
+      return mixColor(a, b, amount);
+    }
+
+    function viewSize() {
+      var cam = scene && scene.cameras && scene.cameras.main;
+      var zoom = cam && finite(cam.zoom, 1);
+      if (zoom <= 0) zoom = 1;
+      view.width = cam && finite(cam.width, 0) ? cam.width / zoom : 844;
+      view.height = cam && finite(cam.height, 0) ? cam.height / zoom : 390;
+      if (view.width <= 0) view.width = 844;
+      if (view.height <= 0) view.height = 390;
+      return view;
+    }
+
+    function drawGoldBar(item, tintValue, alpha, scale) {
+      var sprite = item.sprite;
+      if (!sprite || typeof sprite.clear !== 'function') return;
+      var size = viewSize();
+      var depth = clamp(28 * scale, 12, 72);
+      var edgeAlpha = clamp(alpha, 0.04, 0.48);
+      var fade = edgeAlpha * 0.08;
+      var color = tintValue == null ? GOLD : tintValue;
+      try {
+        sprite.clear();
+        if (typeof sprite.fillGradientStyle === 'function') {
+          if (item.side === 0) sprite.fillGradientStyle(color, color, color, color, edgeAlpha, edgeAlpha, fade, fade);
+          else if (item.side === 1) sprite.fillGradientStyle(color, color, color, color, fade, fade, edgeAlpha, edgeAlpha);
+          else if (item.side === 2) sprite.fillGradientStyle(color, color, color, color, edgeAlpha, fade, edgeAlpha, fade);
+          else sprite.fillGradientStyle(color, color, color, color, fade, edgeAlpha, fade, edgeAlpha);
+        } else if (typeof sprite.fillStyle === 'function') sprite.fillStyle(color, edgeAlpha);
+        if (item.side === 0) sprite.fillRect(0, 0, size.width, depth);
+        else if (item.side === 1) sprite.fillRect(0, 0, size.width, depth);
+        else sprite.fillRect(0, 0, depth, size.height);
+      } catch (err) {}
+      if (typeof sprite.setScrollFactor === 'function') sprite.setScrollFactor(0);
+      if (typeof sprite.setDepth === 'function') sprite.setDepth(999);
+      setPosition(sprite, 0, item.side === 1 ? size.height - depth : 0);
+      if (item.side === 2) setPosition(sprite, 0, 0);
+      if (item.side === 3) setPosition(sprite, size.width - depth, 0);
+      setScale(sprite, 1);
     }
 
     function acquire(pool) {
@@ -187,16 +276,18 @@
 
     function activate(item, x, y, opts, pool) {
       var config = pool.config;
-      var angleProvided = opts.angle != null;
-      var angle = angleProvided ? finite(opts.angle, 0) * Math.PI / 180 : 0;
-      var spread = config.mode === 0 ? 0.18 : (config.mode === 3 ? 0 : 0.72);
+      var mode = config.mode;
+      var angleValue = angleFromOptions(opts, mode);
+      var angleProvided = angleValue != null;
+      var angle = angleProvided ? angleValue : (mode === 5 || mode === 6 ? Math.PI : mode === 7 ? -Math.PI / 2 : 0);
+      var spread = mode === 0 ? 0.18 : (mode === 3 || mode === 4 ? 0 : mode === 5 ? 0.42 : mode === 6 ? 0.07 : mode === 7 ? 1.18 : 0.72);
       var ordinal = item.slot;
       var offset = ((ordinal % 11) - 5) / 5;
       var theta = angle + offset * spread;
       var speed = finite(opts.speed, config.speed);
       var scale = clamp(opts.scale == null ? config.scale : opts.scale, 0.05, 8);
       var life = clamp(opts.life == null ? config.life : opts.life, 20, 2500);
-      var tintValue = opts.tint;
+      var tintValue = opts.tint == null ? (mode === 7 ? WHITE : null) : opts.tint;
 
       item.life = life;
       item.maxLife = life;
@@ -205,25 +296,141 @@
       item.y = finite(y, 0);
       item.baseScale = scale;
       item.tint = tintValue;
-      item.rotation = angleProvided ? angle : (ordinal % 16) * (TAU / 16);
-      item.spin = config.mode === 3 ? 0 : (0.5 + (ordinal % 5) * 0.16) * (ordinal % 2 ? -1 : 1);
-      item.vx = Math.cos(theta) * speed;
-      item.vy = Math.sin(theta) * speed;
-      item.gravity = config.mode === 1 ? 150 : config.mode === 2 ? 75 : 0;
+      item.variant = 0;
+      item.side = -1;
+      item.isRing = false;
       item.length = 0;
       item.width = 0;
-      tint(item.sprite, tintValue);
+      item.rotation = mode === 6 ? angle : (angleProvided ? angle : (ordinal % 16) * (TAU / 16));
+      item.spin = mode === 3 || mode === 4 || mode === 6 ? 0 : (0.5 + (ordinal % 5) * 0.16) * (ordinal % 2 ? -1 : 1);
+
+      /* Bite bursts get a stable, pooled mix of base motes, larger chunks,
+         and one pin-prick score sparkle. `tint2` is optional so blood bursts
+         can keep their own second tone without a second pool. */
+      if (mode === 1) {
+        item.variant = ordinal % 8;
+        if (item.variant === 0 || item.variant === 1) {
+          item.baseScale = scale * (item.variant === 0 ? 1.65 : 1.35);
+          speed *= item.variant === 0 ? 0.72 : 0.88;
+        } else if (item.variant === 2) {
+          item.baseScale = scale * 0.48;
+          speed *= 1.32;
+          tintValue = WHITE;
+        } else {
+          item.baseScale = scale;
+          if (item.variant % 2 === 0) tintValue = opts.tint2 == null ? tintMix(tintValue, WHITE, 0.34) : opts.tint2;
+        }
+        item.tint = tintValue;
+      }
+      if (mode === 5) {
+        speed = opts.speed == null ? config.speed : clamp(speed * 0.08, 8, 62);
+        item.gravity = -18;
+      } else if (mode === 6) {
+        speed = clamp(speed, 60, 540);
+        item.length = clamp(opts.length == null ? 42 : opts.length, 12, 180) * scale;
+        item.width = clamp(opts.width == null ? 3.2 : opts.width, 1.2, 12) * scale;
+      } else if (mode === 7) {
+        speed = clamp(speed, 58, 270);
+        item.gravity = 270;
+      }
+      item.vx = Math.cos(theta) * speed;
+      item.vy = Math.sin(theta) * speed;
+      if (mode !== 1 && mode !== 2 && mode !== 5 && mode !== 7) item.gravity = 0;
+      if (mode === 1) item.gravity = 150;
+      else if (mode === 2) item.gravity = 75;
+      if (mode !== 6) tint(item.sprite, tintValue);
       show(item);
       setPosition(item.sprite, item.x, item.y);
-      setAlpha(item.sprite, config.mode === 3 ? 0.75 : 0.88);
+      setAlpha(item.sprite, mode === 3 ? 0.75 : mode === 6 ? 0.86 : 0.88);
       setRotation(item.sprite, item.rotation);
-      setScale(item.sprite, scale);
+      setScale(item.sprite, item.baseScale);
+      if (mode === 6) applySpeedlineSize(item);
+    }
+
+    function activateBreachRing(item, x, y, opts, pool) {
+      activate(item, x, y, opts, pool);
+      item.isRing = true;
+      item.vx = 0;
+      item.vy = 0;
+      item.gravity = 0;
+      item.rotation = 0;
+      item.baseScale = clamp(opts.scale == null ? pool.config.scale : opts.scale, 0.05, 8) * 0.78;
+      item.tint = opts.tint == null ? WHITE : opts.tint;
+      tint(item.sprite, item.tint);
+      setRotation(item.sprite, 0);
+      setScale(item.sprite, item.baseScale);
+    }
+
+    function activateGold(item, opts, side) {
+      var config = pools.goldpulse.config;
+      var scale = clamp(opts.scale == null ? config.scale : opts.scale, 0.5, 3);
+      var life = clamp(opts.life == null ? config.life : opts.life, 120, 3000);
+      item.life = life;
+      item.maxLife = life;
+      item.age = 0;
+      item.x = 0;
+      item.y = 0;
+      item.vx = 0;
+      item.vy = 0;
+      item.gravity = 0;
+      item.rotation = 0;
+      item.spin = 0;
+      item.baseScale = scale;
+      item.tint = opts.tint == null ? GOLD : opts.tint;
+      item.side = side;
+      item.variant = 0;
+      item.isRing = false;
+      item.width = clamp(opts.alpha == null ? 0.26 : opts.alpha, 0.08, 0.42);
+      show(item);
+      drawGoldBar(item, item.tint, item.width, scale);
+      setAlpha(item.sprite, 0.01);
+    }
+
+    function emitBreach(x, y, opts, pool) {
+      var requested = opts.count == null ? 9 : Math.floor(finite(opts.count, 9));
+      var count = requested < 0 ? 0 : requested > 24 ? 24 : requested;
+      var emitted = 0;
+      var i, item;
+      for (i = 0; i < count; i++) {
+        item = acquire(pool);
+        if (!item) break;
+        activate(item, x, y, opts, pool);
+        emitted++;
+      }
+      item = acquire(pool);
+      if (item) {
+        activateBreachRing(item, x, y, opts, pool);
+        emitted++;
+      }
+      return emitted;
+    }
+
+    function emitGoldPulse(opts, pool) {
+      var requested = opts.count == null ? 1 : Math.floor(finite(opts.count, 1));
+      var pulses = requested < 0 ? 0 : requested > 3 ? 3 : requested;
+      var emitted = 0;
+      var pulse, side, item;
+      for (pulse = 0; pulse < pulses; pulse++) {
+        for (side = 0; side < 4; side++) {
+          item = acquire(pool);
+          if (!item) return emitted;
+          activateGold(item, opts, side);
+          emitted++;
+        }
+      }
+      return emitted;
     }
 
     function emit(name, x, y, opts) {
       var pool = poolFor(name);
       if (!pool) return 0;
       opts = opts || EMPTY;
+      if (name === 'goldpulse') return emitGoldPulse(opts, pool);
+      if (name === 'breach') {
+        var breachCount = emitBreach(x, y, opts, pool);
+        if (breachCount && RF.Sound && typeof RF.Sound.play === 'function') RF.Sound.play('breach', breachSfxOpts);
+        return breachCount;
+      }
       var requested = opts.count == null ? (name === 'bubbles' ? 3 : 1) : Math.floor(finite(opts.count, 1));
       var count = requested < 0 ? 0 : requested > 24 ? 24 : requested;
       var emitted = 0;
@@ -233,6 +440,9 @@
         if (!item) break;
         activate(item, x, y, opts, pool);
         emitted++;
+      }
+      if (emitted && name === 'swimtrail' && RF.Sound && typeof RF.Sound.play === 'function') {
+        RF.Sound.play('swimtrail', waterTickOpts);
       }
       return emitted;
     }
@@ -282,6 +492,13 @@
       }
     }
 
+    function applySpeedlineSize(item) {
+      var sprite = item.sprite;
+      if (!sprite) return;
+      if (typeof sprite.setDisplaySize === 'function') sprite.setDisplaySize(item.length, item.width);
+      else setScale(sprite, Math.max(0.1, item.length / 32), Math.max(0.1, item.width / 32));
+    }
+
     function update(time, delta) {
       var dt = clamp(delta == null ? 16.6667 : delta, 1, 50);
       var ni, i, pool, item, config, lifeRatio, scale;
@@ -299,18 +516,38 @@
             continue;
           }
           lifeRatio = item.life / item.maxLife;
-          if (config.mode === 0 || config.mode === 1 || config.mode === 2) {
+          if (config.mode === 0 || config.mode === 1 || config.mode === 2 || config.mode === 5 || config.mode === 7) {
+            if (config.mode === 7 && item.isRing) {
+              setPosition(item.sprite, item.x, item.y);
+              setAlpha(item.sprite, lifeRatio * 0.86);
+              setScale(item.sprite, item.baseScale * (1 + (1 - lifeRatio) * 2.8));
+              continue;
+            }
             item.vy += item.gravity * dt / 1000;
             item.x += item.vx * dt / 1000;
             item.y += item.vy * dt / 1000;
             setPosition(item.sprite, item.x, item.y);
             setRotation(item.sprite, item.rotation + item.age * item.spin * 0.002);
-            scale = item.baseScale * (config.mode === 0 ? 0.78 + 0.22 * lifeRatio : 0.72 + 0.28 * lifeRatio);
+            scale = item.baseScale * (config.mode === 0 ? 0.78 + 0.22 * lifeRatio
+              : config.mode === 5 ? 0.7 + 0.3 * lifeRatio
+                + Math.sin(item.age * 0.012 + item.slot) * 0.035
+              : config.mode === 7 ? 0.72 + 0.28 * lifeRatio
+              : 0.72 + 0.28 * lifeRatio);
             setScale(item.sprite, scale);
-            setAlpha(item.sprite, lifeRatio * (config.mode === 0 ? 0.72 : 0.92));
+            setAlpha(item.sprite, lifeRatio * (config.mode === 0 ? 0.72 : config.mode === 5 ? 0.5 : 0.92));
+          } else if (config.mode === 6) {
+            item.x += item.vx * dt / 1000;
+            item.y += item.vy * dt / 1000;
+            setPosition(item.sprite, item.x, item.y);
+            setRotation(item.sprite, item.rotation);
+            applySpeedlineSize(item);
+            setAlpha(item.sprite, lifeRatio * (0.55 + 0.25 * Math.sin(item.age * 0.03 + item.slot)));
           } else if (config.mode === 3) {
             setAlpha(item.sprite, lifeRatio * 0.78);
             setScale(item.sprite, item.baseScale * (1 + (1 - lifeRatio) * 2.6));
+          } else if (config.mode === 8) {
+            var breath = 0.5 + 0.5 * Math.sin((item.age / 1000) * TAU * 0.4);
+            setAlpha(item.sprite, lifeRatio * (0.1 + breath * 0.34));
           } else {
             setPosition(item.sprite, item.x, item.y);
             setAlpha(item.sprite, lifeRatio * 0.94);
@@ -333,7 +570,18 @@
             s.x = x; s.y = y; objects.push(s);
             return s;
           },
+          rectangle: function (x, y) {
+            var s = nullSprite();
+            s.x = x; s.y = y; objects.push(s);
+            return s;
+          },
+          graphics: function () {
+            var s = nullSprite();
+            objects.push(s);
+            return s;
+          },
         },
+        cameras: { main: { width: 844, height: 390, zoom: 1 } },
         events: { on: function () {}, off: function () {} },
       };
       var pass = true;
@@ -342,11 +590,11 @@
         var i;
         for (i = 0; i < poolNames.length; i++) {
           if (!pools[poolNames[i]] || !pools[poolNames[i]].items.length) pass = false;
-          emit(poolNames[i], 20 + i, 30 + i, { count: 1, tint: 0x74eaff, scale: 0.8 });
+          if (emit(poolNames[i], 20 + i, 30 + i, { count: 1, tint: 0x74eaff, scale: 0.8 }) <= 0) pass = false;
         }
         if (!beam(0, 0, 100, 0, { tint: 0x8dffda })) pass = false;
         update(0, 16);
-        notes.push('five pooled families constructed and emitted');
+        notes.push('nine pooled families constructed and each emitted once, including Rev 4 juice pools');
         notes.push('manual update completed without allocation paths');
       } catch (err) {
         pass = false;
@@ -446,8 +694,30 @@
     return glow;
   }
 
+  function paletteGlow(ent, palette) {
+    if (palette && palette.glow != null) return finite(palette.glow, 0x9effcb) >>> 0;
+    var def = ent && (ent.def || ent.sharkDef);
+    var sil = def && def.sil;
+    return sil && sil.palette && sil.palette.glow != null
+      ? finite(sil.palette.glow, 0x9effcb) >>> 0 : 0x9effcb;
+  }
+
+  function kaijuGlow(sprite, palette, time) {
+    if (!sprite || typeof sprite.setTint !== 'function') return false;
+    var glow = paletteGlow(null, palette);
+    var clock = finite(time, nowMs(null));
+    /* 0.4 Hz, beginning at the palette glow and breathing toward white. */
+    var breath = 0.5 + 0.5 * Math.sin((clock / 1000) * TAU * 0.4 - Math.PI / 2);
+    try { sprite.setTint(mixColor(glow, WHITE, breath)); } catch (err) { return false; }
+    return true;
+  }
+
   function kaiju(ent, sceneTarget) {
     if (!ent || (ent.defId !== 'leviathanrex' && ent.defId !== 'leviathan_rex')) return false;
+    /* The declared API remains (ent, scene). Extra arguments are an additive
+       compatibility path for a rig body and palette when a caller has them. */
+    var bodySprite = arguments.length > 2 ? arguments[2] : null;
+    var palette = arguments.length > 3 ? arguments[3] : null;
     sceneTarget = sceneTarget || (RF.ctx && RF.ctx.scene) || juiceScene;
     if (sceneTarget && sceneTarget !== juiceScene) juiceScene = sceneTarget;
     var scratch = ent.st || (ent.st = {});
@@ -456,6 +726,9 @@
       if (state && state.glow && typeof state.glow.destroy === 'function') {
         try { state.glow.destroy(); } catch (err) {}
       }
+      if (state && state.body && typeof state.body.clearTint === 'function') {
+        try { state.body.clearTint(); } catch (bodyErr) {}
+      }
       if (state) state.glow = null;
       return false;
     }
@@ -463,10 +736,19 @@
       if (state && state.glow && typeof state.glow.destroy === 'function') {
         try { state.glow.destroy(); } catch (err2) {}
       }
-      state = scratch._rfKaiju = { entityId: ent.id, entered: false, nextBeat: 0, glow: null };
+      state = scratch._rfKaiju = { entityId: ent.id, entered: false, nextBeat: 0, glow: null, body: null };
     }
     var time = nowMs(sceneTarget);
-    var glowColor = 0x9effcb;
+    var glowColor = paletteGlow(ent, palette);
+    if (!palette && ent.def && ent.def.sil && ent.def.sil.palette) palette = ent.def.sil.palette;
+    if (!bodySprite && ent.rigBody) bodySprite = ent.rigBody;
+    if (!bodySprite && ent.sprite && typeof ent.sprite.setTint === 'function') bodySprite = ent.sprite;
+    if (bodySprite && state.body !== bodySprite) {
+      if (state.body && typeof state.body.clearTint === 'function') {
+        try { state.body.clearTint(); } catch (bodyErr2) {}
+      }
+      state.body = bodySprite;
+    }
     if (!state.entered) {
       state.entered = true;
       state.nextBeat = time;
@@ -487,9 +769,8 @@
       if (typeof state.glow.setAlpha === 'function') state.glow.setAlpha(0.08 + pulse * 0.24);
       else state.glow.alpha = 0.08 + pulse * 0.24;
       if (typeof state.glow.setScale === 'function') state.glow.setScale(0.92 + pulse * 0.18);
-    } else if (ent.sprite && typeof ent.sprite.setTint === 'function') {
-      try { ent.sprite.setTint(glowColor); } catch (err3) {}
     }
+    if (bodySprite) kaijuGlow(bodySprite, palette, time);
     return true;
   }
 
@@ -500,12 +781,19 @@
     slowmo: slowmo,
     consumeSlowmo: consumeSlowmo,
     kaiju: kaiju,
+    kaijuGlow: kaijuGlow,
     __selftest: function () {
       pendingFreezeMs = 0;
       hitStop(36);
       var value = consumeFreeze();
-      var pass = value === 36 && consumeFreeze() === 0;
-      return { pass: pass, notes: [pass ? 'hit-stop accumulator consumed and reset' : 'hit-stop cycle failed', 'slowmo reads through RF.Juice.consumeSlowmo()'] };
+      var body = { tint: 0, setTint: function (v) { this.tint = v; return this; }, clearTint: function () { this.tint = 0; return this; } };
+      var glowTint = 0x2c8f78;
+      kaijuGlow(body, { glow: glowTint }, 0);
+      var atGlow = body.tint;
+      kaijuGlow(body, { glow: glowTint }, 1250);
+      var atWhite = body.tint;
+      var pass = value === 36 && consumeFreeze() === 0 && atGlow === glowTint && atWhite === WHITE;
+      return { pass: pass, notes: [pass ? 'hit-stop accumulator consumed and reset' : 'hit-stop cycle failed', 'slowmo reads through RF.Juice.consumeSlowmo()', 'kaiju body glow breathes from palette glow to white at 0.4 Hz'] };
     },
   };
   RF.Fx = Fx;
@@ -515,6 +803,7 @@
   var audioState = { kit: null, ctx: null, noiseCtx: null, noiseBuffer: null, registered: false };
   var SYNTH_SFX = {
     chomp: 'chomp', bubble: 'bubble', splash: 'splash',
+    boost: 'boost', swimtrail: 'swimtrail', breach: 'splash',
     power_fire: 'fire', power_ice: 'ice', power_volt: 'volt', power_toxin: 'toxin',
     power_sonic: 'sonic', power_vortex: 'vortex', power_phase: 'phase',
     power_quake: 'quake', power_chrono: 'chrono', power_atomic: 'atomic',
@@ -525,8 +814,10 @@
     fire: 0.55, ice: 0.42, volt: 0.44, toxin: 0.68, sonic: 0.76,
     vortex: 0.7, phase: 0.56, quake: 0.78, chrono: 0.68, atomic: 1.7,
     hurt: 0.24, death: 0.86, coin: 0.2, levelup: 0.74, goldrush: 0.62,
-    roar: 1.8, chomp: 0.2, bubble: 0.25, splash: 0.5,
+    roar: 1.8, chomp: 0.2, bubble: 0.25, splash: 0.5, boost: 0.34, swimtrail: 0.16,
   };
+  var lastSwimtrailMs = -Infinity;
+  var SWIMTRAIL_MIN_MS = 120;
 
   function kitFor() {
     var ctx = RF.ctx;
@@ -583,7 +874,7 @@
     var prefs = kit && kit.audio && kit.audio.prefs;
     if (!prefs) return 1;
     if (prefs.mute) return 0;
-    return clamp(prefs[channel], 0, 1);
+    return prefs[channel] == null ? 1 : clamp(prefs[channel], 0, 1);
   }
 
   function outputNode(ctx, kit, channel, volume) {
@@ -695,6 +986,8 @@
       case 'roar': tone(ctx, out, start, 78, 30, dur, 'sawtooth', 0.7, r); noise(ctx, out, start, dur * 0.75, 0.48, 380, 0); break;
       case 'chomp': tone(ctx, out, start, 180, 45, dur, 'square', 0.3, r); break;
       case 'bubble': tone(ctx, out, start, 250, 620, dur, 'sine', 0.2, r); break;
+      case 'boost': tone(ctx, out, start, 360, 82, dur, 'sine', 0.24, r); noise(ctx, out, start, dur * 0.72, 0.16, 1100, 260); break;
+      case 'swimtrail': tone(ctx, out, start, 330, 760, dur * 0.72, 'sine', 0.2, r); tone(ctx, out, start + 0.055, 500, 930, dur * 0.58, 'sine', 0.12, r); break;
       case 'splash': noise(ctx, out, start, dur, 0.24, 1700, 0); break;
       default: tone(ctx, out, start, 220, 80, dur, 'sine', 0.2, r); break;
     }
@@ -703,17 +996,24 @@
   function soundPlay(name, opts) {
     opts = opts || EMPTY;
     var rows = data().SFX || {};
-    if (!Object.prototype.hasOwnProperty.call(rows, name)) return false;
+    var playName = name === 'breach' ? 'splash' : name;
+    var hasRow = Object.prototype.hasOwnProperty.call(rows, playName);
+    var kind = SYNTH_SFX[name] || SYNTH_SFX[playName];
+    if (!hasRow && !kind) return false;
+    if (name === 'swimtrail') {
+      var clock = audioState.ctx ? finite(audioState.ctx.currentTime, 0) * 1000 : nowMs(null);
+      if (clock >= lastSwimtrailMs && clock - lastSwimtrailMs < SWIMTRAIL_MIN_MS) return true;
+      lastSwimtrailMs = clock;
+    }
     var kit = kitFor();
     registerAssets(kit);
     var volume = clamp(opts.vol == null ? (opts.volume == null ? 1 : opts.volume) : opts.vol, 0, 1);
     var rate = clamp(opts.rate == null ? 1 : opts.rate, 0.5, 2.5);
-    var file = rows[name];
+    var file = hasRow ? rows[playName] : null;
     if (file && kit && kit.audio && typeof kit.audio.sfx === 'function') {
-      try { kit.audio.sfx(name, { volume: volume, rate: rate }); } catch (err) {}
+      try { kit.audio.sfx(playName, { volume: volume, rate: rate }); } catch (err) {}
       return true;
     }
-    var kind = SYNTH_SFX[name];
     if (!kind || pref(kit, 'sfx') <= 0) return !!kind;
     var ctx = audioContext(kit);
     if (!ctx) return true;
@@ -734,8 +1034,14 @@
       eachKey(rows, function (name) {
         if (!Object.prototype.hasOwnProperty.call(SYNTH_SFX, name)) pass = false;
       });
-      notes.push(pass ? 'synth fallback table covers every RFD.SFX key' : 'synth fallback table is missing an RFD.SFX key');
+      var additions = ['boost', 'swimtrail', 'breach'];
+      var i;
+      for (i = 0; i < additions.length; i++) {
+        if (!Object.prototype.hasOwnProperty.call(SYNTH_SFX, additions[i])) pass = false;
+      }
+      notes.push(pass ? 'synth fallback table covers every RFD.SFX key plus boost, swimtrail, and breach' : 'synth fallback table is missing an SFX key');
       notes.push('file-backed entries use kit.audio.sfx; null entries use lazy WebAudio synthesis');
+      notes.push('swimtrail synth is quiet and hard rate-limited; breach reuses splash');
       return { pass: pass, notes: notes };
     },
   };

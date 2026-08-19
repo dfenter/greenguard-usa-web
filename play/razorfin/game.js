@@ -59,6 +59,32 @@
   var ECON = RFD.ECONOMY || {};
   var UPEFF = ECON.upgradeEffect || { bite: 0.1, speed: 0.06, boost: 0.12, power: 0.08 };
 
+  // ------------------------------------------------- SPEC Rev 4 controls
+  // Floating virtual stick, horde-meridian feel (play/horde-meridian/game.js
+  // bindInput ~2415). All radii are CSS px and pass through S() at use.
+  var STICK_R_CSS = 62;        // max deflection, CSS px (HM uses 62)
+  var STICK_RECENTER = 1.35;   // base follows the finger past this * radius
+  var STICK_RING_A = 0.16;     // HM ring alpha
+  var STICK_NUB_A = 0.5;       // HM nub alpha
+  var STICK_DEAD = 0.12;       // below this magnitude the stick reads as idle
+  // Heading alignment. SPEC Rev 4: "turn cap ~2x current rates". The angular
+  // ease is scaled by deflection so a small push steers gently and a full
+  // push whips the nose around.
+  var TURN_BOOSTA = 2.0;       // multiplier on stat.turn
+  var TURN_EASE_MIN = 0.45;    // ease factor at the dead zone edge
+  var TURN_EASE_MAX = 1.0;     // ease factor at full deflection
+  // Release deceleration: the shark coasts down to idle, it never drifts.
+  var IDLE_DRAG = 0.80;        // per-60th-second velocity retention when idle
+
+  // ------------------------------------------------- SPEC Rev 4 rig anim
+  var TAIL_HZ_IDLE = 2.5, TAIL_HZ_CRUISE = 5.0, TAIL_HZ_BOOST = 8.0;
+  var TAIL_AMP_IDLE = 0.10, TAIL_AMP_CRUISE = 0.34, TAIL_AMP_TURN = 0.22;
+  var PECT_HZ = 1.7, PECT_AMP = 0.13;
+  var BANK_MAX = 0.18;         // rad, capped body roll into a turn
+  var BANK_EASE = 6.0;         // per second approach rate
+  var JAW_OPEN = 0.42;         // rad at full bite window
+  var IDLE_BOB_HZ = 0.9, IDLE_BOB_PX = 1.6, IDLE_SPEED_F = 0.15;
+
   // ------------------------------------------------------------- helpers
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
   function lerp(a, b, t) { return a + (b - a) * t; }
@@ -100,8 +126,14 @@
   // --------------------------------------------------------- guard shims
   // Every sibling namespace is reached through these. A missing lane file
   // degrades to a no-op instead of a TypeError mid-frame.
+  // Returns the number of particles the FX lane actually emitted, so a caller
+  // can fall back to an older effect family when a newer pool is absent. A
+  // missing / throwing / older juice.js all report 0.
   function fxEmit(name, x, y, opts) {
-    if (RF.Fx && RF.Fx.emit) { try { RF.Fx.emit(name, x, y, opts); } catch (e) { warnOnce('Fx.emit', e); } }
+    if (RF.Fx && RF.Fx.emit) {
+      try { return num(RF.Fx.emit(name, x, y, opts), 0); } catch (e) { warnOnce('Fx.emit', e); }
+    }
+    return 0;
   }
   function sfx(name, opts) {
     if (RF.Sound && RF.Sound.play) { try { RF.Sound.play(name, opts); } catch (e) { warnOnce('Sound.play', e); } }
@@ -522,8 +554,43 @@
         self.subs.length = 0;
       });
 
-      if (RF.DevMode && RF.DevMode.state) devChip(this);
+      // Rev 4 minor: the DEV chip used to land on the same top-right corner as
+      // SHOP / SETTINGS and cover them. Anchor it top-LEFT under the title
+      // instead, where nothing is tappable.
+      if (RF.DevMode && RF.DevMode.state) devChip(this, S(28), S(72), 0);
+
+      // Rev 4 minor: returning from the Shop must re-read the active shark.
+      // The Shop can change the selection (and can buy a shark outright), and
+      // if it SLEEPS the Menu rather than restarting it, create() does not run
+      // again and the ON badge stays on the previous card. wake and resume
+      // both resync; both are idempotent.
+      this.events.on('wake', function () { self.resyncSelection(); });
+      this.events.on('resume', function () { self.resyncSelection(); });
+
       musicLayer('calm');
+    },
+
+    // Re-read the authority (RF.Meta.activeShark via activeSharkId) and repaint
+    // the roster. Coins are re-read at the same time because the Shop is the
+    // one screen that can spend them.
+    resyncSelection: function () {
+      profile = loadProfile();
+      selectedSharkId = activeSharkId();
+      if (this.coinsLabel && this.coinsLabel.setText) {
+        try { this.coinsLabel.setText(formatCoins()); } catch (e) { warnOnce('menu coins resync', e); }
+      }
+      // A shark bought in the Shop flips a card from locked to owned, which
+      // paintCards alone cannot express, so rebuild the grid if ownership
+      // moved. Cheap: the Menu is not a per-frame surface.
+      var changed = false;
+      var cards = this.cards || [];
+      for (var i = 0; i < cards.length; i++) {
+        if (cards[i].owned !== ownedFor(cards[i].def.id)) { changed = true; break; }
+      }
+      if (changed && this.buildGrid) {
+        try { this.buildGrid(); return; } catch (e) { warnOnce('menu grid rebuild', e); }
+      }
+      this.paintCards();
     },
 
     buildGrid: function () {
@@ -535,6 +602,12 @@
       list.forEach(function (d) { (byTier[d.tier] = byTier[d.tier] || []).push(d); });
       var tiers = Object.keys(byTier).map(Number).sort(function (a, b) { return a - b; });
 
+      // Rebuildable (resyncSelection calls this again when Shop ownership
+      // moved), so tear the previous strip down rather than stacking a second
+      // container of cards on top of it.
+      if (this.grid && this.grid.destroy) {
+        try { this.grid.destroy(true); } catch (e) { warnOnce('grid destroy', e); }
+      }
       var container = this.add.container(0, this.gridTop);
       this.grid = container;
       // Cards are sized in CSS px then converted once: 96 CSS px wide clears
@@ -845,14 +918,19 @@
   // mode descriptions during play, so the chip says only that dev mode is on
   // (the switches themselves are readable on window.__rf). It sits at the TOP
   // edge, clear of the thumb zone, and is 11 CSS px inside a 24 CSS px chip.
-  function devChip(scene) {
+  // Rev 4 minor: on the Menu the chip used to sit at the same top-right corner
+  // as the SHOP / SETTINGS buttons and covered them the moment a dev switch
+  // went active. Callers pass their own anchor; the Menu anchors it under the
+  // button row on the LEFT-hand side of the coin label, where nothing is
+  // tappable. Ocean keeps the top-right corner (its chrome is top-LEFT).
+  function devChip(scene, x, y, originX) {
     var st = RF.DevMode && RF.DevMode.state;
     if (!st) return null;
     var any = false;
     for (var k in st) { if (st[k]) { any = true; break; } }
     if (!any) return null;
-    return scene.add.text(W - S(10), S(6), 'DEV', txt(11, '#2a0f16', '800'))
-      .setOrigin(1, 0).setPadding(S(5), S(3), S(5), S(3))
+    return scene.add.text(num(x, W - S(10)), num(y, S(6)), 'DEV', txt(11, '#2a0f16', '800'))
+      .setOrigin(num(originX, 1), 0).setPadding(S(5), S(3), S(5), S(3))
       .setBackgroundColor('#ffb3c1')
       .setDepth(9999).setScrollFactor(0);
   }
@@ -998,6 +1076,10 @@
       // Gold rush edge tint uses the same edge-only treatment.
       this.hud.rushA = 0;
 
+      // SPEC Rev 4: the floating stick. Under the vignette so damage feedback
+      // still reads on top, above everything else on the HUD camera.
+      this.stickG = hudAdd(this, this.add.graphics().setScrollFactor(0).setDepth(1000));
+
       if (RF.DevMode && RF.DevMode.state) this.hud.dev = hudAdd(this, devChip(this));
     },
 
@@ -1007,7 +1089,7 @@
       if (done || suppressed) return;
       // ONE fading top strip, no center banner.
       var strip = hudAdd(this, this.add.text(W / 2, S(24),
-        'Drag to swim. Second finger to boost. Eat to grow.',
+        'Hold and drag anywhere to swim. Second finger to boost. Eat to grow.',
         txt(13, '#dff2f6', '700'))
         .setOrigin(0.5, 0.5).setScrollFactor(0).setDepth(1002)
         .setPadding(S(14), S(7), S(14), S(7)).setBackgroundColor('rgba(2,18,28,0.62)'));
@@ -1032,18 +1114,24 @@
         }
         if (p.ctl.steerId === null) {
           p.ctl.steerId = pt.pointerId;
-          self.setTargetFromPointer(pt);
+          self.plantStick(d.x, d.y);
         } else if (p.ctl.boostId === null && pt.pointerId !== p.ctl.steerId) {
           // Second simultaneous pointer boosts while held.
           p.ctl.boostId = pt.pointerId;
         }
       }));
       this.subs.push(kit.input.onMove(function (pt) {
-        if (pt.pointerId === p.ctl.steerId) self.setTargetFromPointer(pt);
+        if (pt.pointerId !== p.ctl.steerId) return;
+        var d = toDesign(pt);
+        self.dragStick(d.x, d.y);
       }));
       this.subs.push(kit.input.onUp(function (pt) {
-        if (!pt) return;
-        if (pt.pointerId === p.ctl.steerId) { p.ctl.steerId = null; p.ctl.hasTarget = false; }
+        // ggkit fires onUp with a NULL event on cancel (pointercancel, blur,
+        // visibility change). A null release clears everything, because the
+        // pointer identity is gone and holding the stick would strand the
+        // shark at full throttle.
+        if (!pt) { self.clearStick(); p.ctl.boostId = null; return; }
+        if (pt.pointerId === p.ctl.steerId) self.clearStick();
         if (pt.pointerId === p.ctl.boostId) p.ctl.boostId = null;
       }));
       // Keyboard fallback for desktop. Space fires the power on the rising
@@ -1053,18 +1141,60 @@
       }));
     },
 
-    // Pointer -> WORLD coordinates. toDesign() lands in device px (the space
-    // the canvas is sized in); the world camera is zoomed by DPR, so dividing
-    // by that zoom converts back into the design units world.js works in.
-    // Missing this step made the steering target drift further from the finger
-    // the further the shark was from the camera's top-left.
-    setTargetFromPointer: function (pt) {
-      var d = toDesign(pt);
-      var cam = this.cameras.main;
-      var z = num(cam.zoom, 1) || 1;
-      ctx.player.ctl.tx = cam.scrollX + d.x / z;
-      ctx.player.ctl.ty = cam.scrollY + d.y / z;
-      ctx.player.ctl.hasTarget = true;
+    // ------------------------------------------------ floating stick
+    // SPEC Rev 4. The stick lives entirely in DEVICE px on hudCam (which is
+    // unzoomed), so the ring and nub sit exactly under the finger regardless
+    // of DPR or where the world camera is looking. No world conversion is
+    // involved any more: the stick vector IS the desired velocity direction.
+    plantStick: function (dx, dy) {
+      var ctl = ctx.player.ctl;
+      ctl.active = true;
+      ctl.bx = dx; ctl.by = dy;
+      ctl.sx = 0; ctl.sy = 0; ctl.mag = 0;
+      this.paintStick();
+    },
+
+    dragStick: function (px, py) {
+      var ctl = ctx.player.ctl;
+      if (!ctl.active) return;
+      var max = S(STICK_R_CSS);
+      var dx = px - ctl.bx, dy = py - ctl.by;
+      var len = Math.sqrt(dx * dx + dy * dy);
+      if (len > max) { var k = max / len; dx *= k; dy *= k; }
+      // Re-centering drag: past 1.35x the radius the base follows the finger,
+      // so a long swipe never runs out of stick.
+      if (len > max * STICK_RECENTER) { ctl.bx = px - dx; ctl.by = py - dy; }
+      ctl.sx = dx / max;
+      ctl.sy = dy / max;
+      ctl.mag = Math.sqrt(ctl.sx * ctl.sx + ctl.sy * ctl.sy);
+      if (ctl.mag > 1) ctl.mag = 1;
+      this.paintStick();
+    },
+
+    clearStick: function () {
+      var ctl = ctx.player.ctl;
+      ctl.active = false;
+      ctl.steerId = null;
+      ctl.sx = 0; ctl.sy = 0; ctl.mag = 0;
+      if (this.stickG) this.stickG.clear();
+    },
+
+    // Ring + nub, drawn with a HUD graphics object (no generated textures to
+    // leak, and nothing to bake at boot). Redrawn only on plant/drag/clear,
+    // never per frame, so this costs nothing while the finger is still.
+    paintStick: function () {
+      var g = this.stickG;
+      if (!g) return;
+      var ctl = ctx.player.ctl;
+      g.clear();
+      if (!ctl.active) return;
+      var max = S(STICK_R_CSS);
+      g.fillStyle(0xdff2f6, STICK_RING_A);
+      g.fillCircle(ctl.bx, ctl.by, max);
+      g.lineStyle(S(2), 0x8fe8ff, STICK_RING_A * 2);
+      g.strokeCircle(ctl.bx, ctl.by, max);
+      g.fillStyle(0x8fe8ff, STICK_NUB_A);
+      g.fillCircle(ctl.bx + ctl.sx * max, ctl.by + ctl.sy * max, S(22));
     },
 
     firePower: function () {
@@ -1077,7 +1207,17 @@
 
     // --------------------------------------------------- frame + step
     update: function (timeMs, deltaMs) {
-      if (kit.paused) { this.acc = 0; return; }   // pause freezes the sim
+      if (kit.paused) {
+        this.acc = 0;                             // pause freezes the sim
+        // Rev 4: drop the stick too. Resuming with a stale full deflection
+        // would launch the shark before the player touched the glass, and the
+        // pointer that planted it is long gone.
+        if (ctx.player && ctx.player.ctl.active) {
+          this.clearStick();
+          ctx.player.ctl.boostId = null;
+        }
+        return;
+      }
 
       // Hit-stop: consume once per frame and skip that many ms of stepping.
       this.freezeMs += consumeFreeze();
@@ -1115,6 +1255,7 @@
 
       this.stepControl(p);
       this.stepMotion(p);
+      this.stepAnim(p);
 
       if (RF.World && RF.World.update) {
         try { RF.World.update(ctx); } catch (e) { warnOnce('World.update', e); }
@@ -1134,23 +1275,33 @@
       if (p.hp <= 0 && !this.dying) this.onDeath();
     },
 
-    // Steering: turn toward the target within the shark's turn rate, then
-    // accelerate along the heading. No allocation in here.
+    // SPEC Rev 4 control model. The stick vector IS the desired velocity:
+    // direction gives the heading to align to, magnitude scales the target
+    // speed. The old tap-a-point-and-swim-to-it logic is gone entirely (it was
+    // what made the shark overshoot the finger and then circle it, which is
+    // the "controls feel wrong" the owner hit on device).
+    //
+    // Zero allocation: everything below is scalars on p / p.ctl.
     stepControl: function (p) {
       var s = p.stat;
       var ctl = p.ctl;
 
-      // Keyboard steering synthesises a target ahead of the nose.
-      var kx = 0, ky = 0;
-      if (kit.input.keyDown('KeyA') || kit.input.keyDown('ArrowLeft')) kx -= 1;
-      if (kit.input.keyDown('KeyD') || kit.input.keyDown('ArrowRight')) kx += 1;
-      if (kit.input.keyDown('KeyW') || kit.input.keyDown('ArrowUp')) ky -= 1;
-      if (kit.input.keyDown('KeyS') || kit.input.keyDown('ArrowDown')) ky += 1;
-      if (kx !== 0 || ky !== 0) {
-        ctl.tx = p.x + kx * 300;
-        ctl.ty = p.y + ky * 300;
-        ctl.hasTarget = true;
+      // Input vector. Touch stick first; keyboard synthesises the same shape,
+      // so both paths run through identical maths downstream.
+      var ix = ctl.sx, iy = ctl.sy, mag = ctl.mag;
+      if (!ctl.active) {
+        var kx = 0, ky = 0;
+        if (kit.input.keyDown('KeyA') || kit.input.keyDown('ArrowLeft')) kx -= 1;
+        if (kit.input.keyDown('KeyD') || kit.input.keyDown('ArrowRight')) kx += 1;
+        if (kit.input.keyDown('KeyW') || kit.input.keyDown('ArrowUp')) ky -= 1;
+        if (kit.input.keyDown('KeyS') || kit.input.keyDown('ArrowDown')) ky += 1;
+        if (kx !== 0 || ky !== 0) {
+          var kl = Math.sqrt(kx * kx + ky * ky);
+          ix = kx / kl; iy = ky / kl; mag = 1;
+        } else { ix = 0; iy = 0; mag = 0; }
       }
+      if (mag < STICK_DEAD) { mag = 0; ix = 0; iy = 0; }
+      ctl.drive = mag;      // read by the rig animator and the juice hooks
 
       var boosting = (ctl.boostId !== null)
         || kit.input.keyDown('ShiftLeft') || kit.input.keyDown('ShiftRight');
@@ -1164,24 +1315,22 @@
         ctl.boosting = false;
       }
 
-      var wantAngle = p.angle;
-      var dist = 0;
-      if (ctl.hasTarget) {
-        var dx = ctl.tx - p.x, dy = ctl.ty - p.y;
-        dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist > 6) wantAngle = Math.atan2(dy, dx);
+      // Heading. SPEC Rev 4 raises the effective turn cap ~2x, and eases the
+      // approach by deflection so a light push is a gentle arc and a full push
+      // whips the nose across. turnIn is retained for the rig animator.
+      var turnIn = 0;
+      if (mag > 0) {
+        var wantAngle = Math.atan2(iy, ix);
+        var d = angDelta(p.angle, wantAngle);
+        var ease = TURN_EASE_MIN + (TURN_EASE_MAX - TURN_EASE_MIN) * mag;
+        var turn = s.turn * TURN_BOOSTA * ease * (ctl.boosting ? 0.85 : 1) * STEP;
+        if (d > turn) d = turn; else if (d < -turn) d = -turn;
+        p.angle += d;
+        if (p.angle > Math.PI) p.angle -= TAU; else if (p.angle < -Math.PI) p.angle += TAU;
+        turnIn = turn > 0 ? d / turn : 0;
       }
+      ctl.turnIn = turnIn;
 
-      // Smooth angular steering, capped by the shark's turn rate.
-      var turn = s.turn * (ctl.boosting ? 0.78 : 1) * STEP;
-      var d = angDelta(p.angle, wantAngle);
-      if (d > turn) d = turn; else if (d < -turn) d = -turn;
-      p.angle += d;
-      if (p.angle > Math.PI) p.angle -= TAU; else if (p.angle < -Math.PI) p.angle += TAU;
-
-      // Throttle: ease off within the last few px of the target so the shark
-      // settles instead of jittering across it.
-      var throttle = ctl.hasTarget ? clamp(dist / 60, 0, 1) : 0.34;
       // Live multipliers, not the boot snapshot (RF-PASSIVE-01). s.speed and
       // s.boost already carry the shark row and the purchased upgrades; the
       // ratio against the snapshot is what abilities.js is currently adding.
@@ -1189,20 +1338,115 @@
       var boostM = liveMult(p, 'boost') / num(p.pas.mult.boost, 1);
       var speedCap = s.speed * speedM * (ctl.boosting ? s.boost * boostM : 1)
         * (ctx.run.goldRushT > 0 ? num(FRENZY.goldRushSpeed, 1.4) : 1);
-      var accel = s.accel * speedM * (ctl.boosting ? 1.5 : 1) * throttle;
 
-      var ax = Math.cos(p.angle) * accel;
-      var ay = Math.sin(p.angle) * accel;
-      p.vx += ax * STEP;
-      p.vy += ay * STEP;
+      if (mag > 0) {
+        // Desired velocity along the CURRENT heading, scaled by deflection.
+        // Using the heading rather than the raw stick keeps the shark moving
+        // nose-first while it turns, which is what makes the turn read as a
+        // shark banking rather than a cursor sliding.
+        var want = speedCap * mag;
+        var wx = Math.cos(p.angle) * want;
+        var wy = Math.sin(p.angle) * want;
+        // Approach the desired velocity at the shark's acceleration. Framed as
+        // a capped step toward wx/wy rather than a raw thrust, so the stick
+        // magnitude really is a throttle and the shark settles at that speed.
+        var ex = wx - p.vx, ey = wy - p.vy;
+        var el = Math.sqrt(ex * ex + ey * ey);
+        var step = s.accel * speedM * (ctl.boosting ? 1.5 : 1) * STEP;
+        if (el > step && el > 0) { var kk = step / el; ex *= kk; ey *= kk; }
+        p.vx += ex; p.vy += ey;
+      } else {
+        // Released: decelerate smoothly to idle. The shark must NEVER keep
+        // drifting once the finger is off the glass.
+        var idleDrag = Math.pow(IDLE_DRAG, STEP * 60);
+        p.vx *= idleDrag; p.vy *= idleDrag;
+        if (p.vx * p.vx + p.vy * p.vy < 1) { p.vx = 0; p.vy = 0; }
+      }
 
-      // Drag plus hard speed cap. Cheaper than normalising every frame.
-      var drag = Math.pow(0.86, STEP * 60);
-      p.vx *= drag; p.vy *= drag;
+      // Hard speed cap. Water drag is folded into the velocity approach above,
+      // so this only catches external impulses (knockback, abilities).
       var sp2 = p.vx * p.vx + p.vy * p.vy;
       if (sp2 > speedCap * speedCap) {
         var k = speedCap / Math.sqrt(sp2);
         p.vx *= k; p.vy *= k;
+      }
+      ctl.speedCap = speedCap;
+    },
+
+    // SPEC Rev 4 rig animation. Runs in the FIXED STEP, never as a tween, so
+    // the motion stays locked to the sim and to hit-stop. All state is scalars
+    // on p.anim; nothing is allocated. Safe to run whether or not a rig is
+    // actually attached (render() is what consumes it).
+    stepAnim: function (p) {
+      var a = p.anim;
+      var ctl = p.ctl;
+      var sp = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+      var cap = num(ctl.speedCap, p.stat.speed) || 1;
+      var f = clamp(sp / cap, 0, 1);              // 0..1 speed fraction
+      var turnAbs = Math.abs(num(ctl.turnIn, 0));
+
+      // Tail beat: idle -> cruise -> boost, with amplitude rising on both
+      // speed and turn effort (a hard turn is a hard tail stroke).
+      var hz = TAIL_HZ_IDLE + (TAIL_HZ_CRUISE - TAIL_HZ_IDLE) * f;
+      if (ctl.boosting) hz += (TAIL_HZ_BOOST - TAIL_HZ_CRUISE) * clamp(f, 0.3, 1);
+      a.tailPhase += hz * TAU * STEP;
+      if (a.tailPhase > TAU) a.tailPhase -= TAU;
+      a.tailAmp = TAIL_AMP_IDLE + (TAIL_AMP_CRUISE - TAIL_AMP_IDLE) * f
+        + TAIL_AMP_TURN * turnAbs;
+
+      // Pectorals counter-flutter: slow, shallow, and out of phase with the
+      // tail so the silhouette never pulses as one block.
+      a.pectPhase += PECT_HZ * TAU * STEP;
+      if (a.pectPhase > TAU) a.pectPhase -= TAU;
+
+      // Bank into the turn. Smooth approach, hard cap, so a stick flick reads
+      // as a roll and not a snap.
+      var wantBank = clamp(num(ctl.turnIn, 0), -1, 1) * BANK_MAX * (0.4 + 0.6 * f);
+      a.bank += (wantBank - a.bank) * clamp(BANK_EASE * STEP, 0, 1);
+      if (a.bank > BANK_MAX) a.bank = BANK_MAX;
+      else if (a.bank < -BANK_MAX) a.bank = -BANK_MAX;
+
+      // Jaw opens during the bite cooldown window (that window IS the chomp).
+      var jawWant = p.st.biteCd > 0 ? JAW_OPEN * clamp(p.st.biteCd / 0.25, 0, 1) : 0;
+      a.jaw += (jawWant - a.jaw) * clamp(14 * STEP, 0, 1);
+
+      // Idle bob: only when genuinely loafing.
+      if (f < IDLE_SPEED_F) {
+        a.bobPhase += IDLE_BOB_HZ * TAU * STEP;
+        if (a.bobPhase > TAU) a.bobPhase -= TAU;
+        a.bob = Math.sin(a.bobPhase) * S(IDLE_BOB_PX) * (1 - f / IDLE_SPEED_F);
+      } else {
+        a.bob *= 0.9;
+      }
+
+      // ---- juice hooks (Lane F). All guarded; all no-ops if juice.js is out.
+      // Bubble trail is throttled by DISTANCE, not by time, so it stays
+      // consistent across speeds and does not spam at a standstill.
+      if (!a.trailInit) { a.trailX = p.x; a.trailY = p.y; a.trailInit = true; }
+      var tdx = p.x - a.trailX, tdy = p.y - a.trailY;
+      if (tdx * tdx + tdy * tdy > 3200) {
+        a.trailX = p.x; a.trailY = p.y;
+        if (f > 0.18) {
+          // FX_OPT is reused scratch: step() must not allocate, and these
+          // options bags would otherwise be garbage on every emit.
+          FX_OPT.count = ctl.boosting ? 3 : 1;
+          FX_OPT.speed = sp;
+          FX_OPT.angle = p.angle;
+          FX_OPT.up = false;
+          // 'swimtrail' is Lane F's purpose-built wake pool (mode 5, reads the
+          // angle in radians). It falls through poolFor to null if juice.js is
+          // an older build, so 'bubbles' is emitted as the fallback family.
+          var wx = p.x - Math.cos(p.angle) * p.r;
+          var wy = p.y - Math.sin(p.angle) * p.r;
+          if (fxEmit('swimtrail', wx, wy, FX_OPT) === 0) fxEmit('bubbles', wx, wy, FX_OPT);
+        }
+      }
+      if (ctl.boosting && f > 0.5 && (ctx.time.frame % 4) === 0) {
+        FX_OPT.count = 1;
+        FX_OPT.speed = sp;
+        FX_OPT.angle = p.angle;
+        FX_OPT.up = false;
+        fxEmit('speedlines', p.x, p.y, FX_OPT);
       }
     },
 
@@ -1222,14 +1466,30 @@
       if (airborne) {
         p.vy += 900 * STEP;                 // gravity on the jump arc
         if (!p.st.airborne) {
+          // Breach: leaving the water. Lane F owns 'splash'; 'bubbles' is the
+          // fallback that already exists, and both are guarded no-ops if
+          // juice.js is absent.
+          // Breach OUT. 'breach' is Lane F's dedicated surface pool; 'bubbles'
+          // is the fallback family if juice.js predates it.
+          // Breach OUT. 'breach' is Lane F's dedicated surface pool and it
+          // plays its OWN 'breach' sound, so game.js only supplies the older
+          // 'splash' when that pool declined the emit. Otherwise the surface
+          // would sound twice.
           p.st.airborne = true;
-          fxEmit('bubbles', p.x, 0, { count: 8 });
-          sfx('splash');
+          FX_OPT.count = 14; FX_OPT.up = true; FX_OPT.speed = Math.abs(p.vy); FX_OPT.angle = p.angle;
+          if (fxEmit('breach', p.x, 0, FX_OPT) === 0) {
+            fxEmit('bubbles', p.x, 0, FX_OPT);
+            sfx('splash');
+          }
         }
       } else if (p.st.airborne) {
+        // Re-entry: the bigger of the two, since it carries the whole fall.
         p.st.airborne = false;
-        fxEmit('bubbles', p.x, 0, { count: 12 });
-        sfx('splash');
+        FX_OPT.count = 20; FX_OPT.up = false; FX_OPT.speed = Math.abs(p.vy); FX_OPT.angle = p.angle;
+        if (fxEmit('breach', p.x, 0, FX_OPT) === 0) {
+          fxEmit('bubbles', p.x, 0, FX_OPT);
+          sfx('splash');
+        }
       }
     },
 
@@ -1589,15 +1849,40 @@
       if (!p) return;
 
       if (p.sprite) {
-        p.sprite.x = p.x;
-        p.sprite.y = p.y;
-        // Sprites are drawn nose-right; flipping keeps the belly downward
-        // when swimming left instead of rolling the shark upside down.
+        var a = p.anim;
         var left = Math.abs(p.angle) > Math.PI / 2;
-        p.sprite.setFlipY(left);
-        p.sprite.rotation = p.angle;
+        p.sprite.x = p.x;
+        p.sprite.y = p.y + num(a && a.bob, 0);
         var blink = p.st.invulnT > 0 && (Math.floor(ctx.time.now * 14) % 2 === 0);
         p.sprite.setAlpha(blink ? 0.35 : 1);
+
+        if (p.rig) {
+          // SPEC Rev 4 rig. The CONTAINER carries the flip (scaleX = -1), not
+          // the individual parts: flipping parts would mirror each one about
+          // its own pivot and tear the assembly apart. Rotating the container
+          // by pi when facing left keeps the sprite upright while scaleX
+          // un-mirrors it, which is the standard container-flip pairing.
+          var sc = Math.abs(p.sprite.scaleX) || 1;
+          p.sprite.scaleX = left ? -sc : sc;
+          p.sprite.rotation = left ? (p.angle + Math.PI) : p.angle;
+          // Bank is applied on top of the heading. It is a roll read as a
+          // small extra rotation, and it must not invert when facing left.
+          p.sprite.rotation += (left ? -1 : 1) * num(a.bank, 0);
+
+          var tailR = Math.sin(a.tailPhase) * a.tailAmp;
+          if (p.rig.tail) p.rig.tail.rotation = tailR;
+          // Pectorals counter-flutter, mirrored about the centreline.
+          var pf = Math.sin(a.pectPhase) * PECT_AMP;
+          if (p.rig.pectR) p.rig.pectR.rotation = pf;
+          if (p.rig.pectL) p.rig.pectL.rotation = -pf;
+          if (p.rig.jaw) p.rig.jaw.rotation = num(a.jaw, 0);
+        } else {
+          // Single-texture fallback (Rev 3 behaviour, unchanged): sprites are
+          // drawn nose-right, so flipping Y keeps the belly downward when
+          // swimming left instead of rolling the shark upside down.
+          if (p.sprite.setFlipY) p.sprite.setFlipY(left);
+          p.sprite.rotation = p.angle + (left ? -1 : 1) * num(a && a.bank, 0);
+        }
       }
 
       // Camera shake offset from the kit's juice frame state.
@@ -1784,14 +2069,137 @@
         boost: upgradeLevel(def.id, 'boost'),
         power: upgradeLevel(def.id, 'power')
       },
-      ctl: { steerId: null, boostId: null, tx: 0, ty: 0, hasTarget: false, boost: 1, boosting: false }
+      // SPEC Rev 4: the stick vector IS the desired velocity. sx/sy are the
+      // normalised deflection (-1..1 each axis, magnitude clamped to 1); bx/by
+      // are the floating base in DEVICE px on the HUD camera.
+      ctl: {
+        steerId: null, boostId: null,
+        sx: 0, sy: 0, mag: 0,
+        bx: 0, by: 0, active: false,
+        boost: 1, boosting: false
+      },
+      // Rig animation state. Lives on the player so the fixed step owns it and
+      // render() only reads it. No allocation once built.
+      anim: {
+        tailPhase: 0, tailAmp: 0, pectPhase: 0,
+        bank: 0, jaw: 0, bob: 0, bobPhase: 0,
+        trailX: 0, trailY: 0, trailInit: false
+      }
     };
     ctx.player = p;
     return p;
   }
 
+  // SPEC Rev 4: assemble a multi-part shark from RF.Art.bakeSharkRig into a
+  // Phaser container, so game.js can animate the tail, fins and jaw on their
+  // own pivots. Returns null for ANY shortfall (Lane D not landed, a throw, a
+  // malformed record, a missing texture, no container support in the scene)
+  // and the caller falls back to the single-texture sprite. The fallback is
+  // the mandatory path while Lane D is still in flight.
+  //
+  // Contract per SPEC Rev 4:
+  //   bakeSharkRig(scene, def) -> { body, tail, pect, jaw|null,
+  //                                 pivots:{tail:{x,y}, pect:{x,y}, jaw:{x,y}},
+  //                                 size:{w,h} }
+  // where body/tail/pect/jaw are TEXTURE KEYS and pivots are offsets from the
+  // body texture's centre, in the baked texture's own pixels.
+  function buildSharkRig(sc, def, depth) {
+    if (!RF.Art || !RF.Art.bakeSharkRig) return null;
+    if (!sc.add || !sc.add.container || !sc.add.image) return null;
+    var rec = null;
+    try { rec = RF.Art.bakeSharkRig(sc, def); } catch (e) { warnOnce('Art.bakeSharkRig', e); return null; }
+    if (!rec || !rec.body || !rec.tail || !rec.pect || !rec.pivots) return null;
+    var pv = rec.pivots;
+    if (!pv.tail || !pv.pect) return null;
+    if (!sc.textures || !sc.textures.exists(rec.body) ||
+        !sc.textures.exists(rec.tail) || !sc.textures.exists(rec.pect)) return null;
+
+    var rig = null;
+    try {
+      var cont = sc.add.container(0, 0);
+      cont.setDepth(num(depth, 50));
+
+      // UNIT CONTRACT (integration fix): Lane D's pivots are BODY-CANVAS
+      // ABSOLUTE CSS coordinates (top-left origin), and every part texture is
+      // baked at DPR (device px). Normalize everything into CSS units inside
+      // the container: each image gets setScale(1/partDpr), positions are
+      // pivot-minus-half-body (center-relative CSS), and the container is
+      // then scaled from CSS body width to the design length.
+      var cssW = num(rec.size && rec.size.w, 0) || 1;
+      var cssH = num(rec.size && rec.size.h, 0) || 1;
+
+      var body = sc.add.image(0, 0, rec.body);
+      body.setOrigin(0.5, 0.5);
+      var bodyDpr = body.width > 0 ? body.width / cssW : 1;
+      var inv = 1 / (bodyDpr || 1);
+      body.setScale(inv);
+      function cx(v) { return num(v, 0) - cssW / 2; }
+      function cyv(v) { return num(v, 0) - cssH / 2; }
+
+      // Tail: Lane D bakes the caudal fin with its ATTACHMENT at the LEFT
+      // edge centre of the tail canvas, fin sweeping right. The body faces
+      // right with the peduncle at the left, so the fin must sweep LEFT:
+      // flipX the texture, which moves the attachment to the right edge,
+      // and pivot there (origin 1, 0.5). setRotation then swings the fin
+      // about the peduncle.
+      var tail = sc.add.image(cx(pv.tail.x), cyv(pv.tail.y), rec.tail);
+      tail.setOrigin(1, 0.5);
+      tail.setFlipX(true);
+      tail.setScale(inv);
+
+      // Pectorals: root baked at the canvas top-left area; fin sweeps down-
+      // right from it. pv.pect is the below-centre root; mirror partner
+      // reflects the y offset about the body centreline.
+      var pectYc = cyv(pv.pect.y);
+      var pectR = sc.add.image(cx(pv.pect.x), pectYc, rec.pect);
+      pectR.setOrigin(0.15, 0.1);
+      pectR.setScale(inv);
+      var pectL = sc.add.image(cx(pv.pect.x), -pectYc, rec.pect);
+      pectL.setOrigin(0.15, 0.1);
+      pectL.setFlipY(true);
+      pectL.setScale(inv);
+
+      var jaw = null;
+      if (rec.jaw && sc.textures.exists(rec.jaw) && pv.jaw) {
+        jaw = sc.add.image(cx(pv.jaw.x), cyv(pv.jaw.y), rec.jaw);
+        jaw.setOrigin(0.1, 0.1);
+        jaw.setScale(inv);
+      }
+
+      // Draw order: tail and far pectoral behind, body, near pectoral, jaw.
+      cont.add(tail);
+      cont.add(pectL);
+      cont.add(body);
+      cont.add(pectR);
+      if (jaw) cont.add(jaw);
+
+      // Scale the whole container so the rig reads at the design length.
+      var want = 96 * num(def.sil && def.sil.len, 1);
+      cont.setScale(want / cssW);
+
+      rig = {
+        container: cont, body: body, tail: tail, jaw: jaw,
+        pectR: pectR, pectL: pectL,
+        pectY: pectYc
+      };
+    } catch (e) {
+      warnOnce('rig assemble', e);
+      return null;
+    }
+    return rig;
+  }
+
   function attachPlayerSprite(sc) {
     var p = ctx.player;
+
+    // SPEC Rev 4: prefer the animated multi-part rig. Falls back silently.
+    p.rig = buildSharkRig(sc, p.def, 50);
+    if (p.rig) {
+      p.sprite = p.rig.container;
+      p.sprite.x = p.x; p.sprite.y = p.y;
+      return;
+    }
+
     var key = sharkTexture(sc, p.def, 'play');
     if (key && sc.textures.exists(key)) {
       p.sprite = sc.add.image(p.x, p.y, key).setDepth(50);
@@ -1921,6 +2329,12 @@
   // and never holds world.js's shared query scratch across a nested query.
   var EAT_BUF = new Array(48);
 
+  // Reused options bag for Fx.emit from inside the fixed step (Rev 4 juice
+  // hooks). juice.js reads the fields synchronously and must not retain the
+  // object; nothing in the RF.Fx contract says otherwise, and holding it would
+  // be a bug on that side regardless of who allocated it.
+  var FX_OPT = { count: 0, speed: 0, angle: 0, up: false };
+
   // ======================================================== self test
   // Headless: stubs kit and the Phaser scene surface, builds a real ctx and
   // a real player, then drives 120 fixed steps of swim-toward-target with a
@@ -2019,10 +2433,10 @@
 
       var x0 = p.x, y0 = p.y, hp0 = p.hp;
 
-      // Plant the target ahead and the meal on the way to it.
-      p.ctl.hasTarget = true;
-      p.ctl.tx = p.x + 600;
-      p.ctl.ty = p.y;
+      // SPEC Rev 4: the stick is the control. Push it fully right and put the
+      // meal on that line.
+      p.ctl.active = true;
+      p.ctl.sx = 1; p.ctl.sy = 0; p.ctl.mag = 1;
       prey.x = p.x + 140; prey.y = p.y;
 
       var score0 = ctx.run.score;
@@ -2138,6 +2552,237 @@
       check(ctx.run.timeScale === 1, 'time scale restored on run exit');
       RF.Abilities = savedAb;
 
+      // ---- SPEC Rev 4: floating stick drives desired velocity, and releasing
+      // it must bring the shark to rest rather than leaving it drifting.
+      // Fresh player so the earlier assertions cannot colour the result.
+      var pc = buildPlayer(oc, sharkById('reef'));
+      oc.hud = { hpBar: stubGfx(), boostBar: stubGfx(), power: stubGfx(), vignette: stubGfx(),
+        powerLabel: stubText(), coins: stubText(), nameLabel: stubText(),
+        vignetteA: 0, powerRect: null };
+      oc.stickG = null;                 // no HUD graphics in the headless stub
+      prey.active = false;              // nothing to eat, this is a motion test
+      pc.x = 3000; pc.y = 600; pc.vx = 0; pc.vy = 0; pc.angle = 0;
+
+      // Stick full DOWN-RIGHT (45 degrees), simulated the way the pointer
+      // handlers would leave it: normalised deflection, magnitude 1.
+      var ang45 = Math.PI / 4;
+      pc.ctl.active = true;
+      pc.ctl.sx = Math.cos(ang45); pc.ctl.sy = Math.sin(ang45); pc.ctl.mag = 1;
+      var sx0 = pc.x, sy0 = pc.y;
+      for (var s4 = 0; s4 < 120; s4++) oc.step();
+      var mx = pc.x - sx0, my = pc.y - sy0;
+      var mlen = Math.sqrt(mx * mx + my * my);
+      check(mlen > 40, 'stick input accelerated the player (' + mlen.toFixed(1) + ' px)');
+      // Direction: the travel vector must point along the stick, not merely be
+      // non-zero. cos of the angle between them.
+      var dot = (mx * Math.cos(ang45) + my * Math.sin(ang45)) / (mlen || 1);
+      check(dot > 0.9, 'travel followed the stick direction (cos=' + dot.toFixed(3) + ')');
+      check(Math.abs(angDelta(pc.angle, ang45)) < 0.2,
+        'heading aligned to the stick (err=' + Math.abs(angDelta(pc.angle, ang45)).toFixed(3) + ')');
+      var movingSpeed = Math.sqrt(pc.vx * pc.vx + pc.vy * pc.vy);
+      check(movingSpeed > 10, 'player is genuinely under way (' + movingSpeed.toFixed(1) + ' px/s)');
+
+      // Magnitude is a throttle: half deflection must settle slower than full.
+      pc.ctl.sx = Math.cos(ang45) * 0.5; pc.ctl.sy = Math.sin(ang45) * 0.5; pc.ctl.mag = 0.5;
+      for (var s5 = 0; s5 < 120; s5++) oc.step();
+      var halfSpeed = Math.sqrt(pc.vx * pc.vx + pc.vy * pc.vy);
+      check(halfSpeed < movingSpeed * 0.75,
+        'half deflection settles slower (' + halfSpeed.toFixed(1) + ' vs ' + movingSpeed.toFixed(1) + ')');
+
+      // RELEASE: the shark must decelerate to near zero and stay there.
+      oc.clearStick();
+      check(!pc.ctl.active && pc.ctl.mag === 0, 'clearStick cleared the stick state');
+      for (var s6 = 0; s6 < 120; s6++) oc.step();
+      var restSpeed = Math.sqrt(pc.vx * pc.vx + pc.vy * pc.vy);
+      check(restSpeed < 1.0,
+        'player decelerated to rest on release (' + restSpeed.toFixed(4) + ' px/s)');
+      var restX = pc.x, restY = pc.y;
+      for (var s7 = 0; s7 < 60; s7++) oc.step();
+      var drift = Math.abs(pc.x - restX) + Math.abs(pc.y - restY);
+      check(drift < 0.5, 'no drift after release (' + drift.toFixed(4) + ' px over 60 steps)');
+
+      // A null release (ggkit fires onUp with a null event on cancel) must
+      // clear the stick rather than strand the shark at full throttle.
+      pc.ctl.active = true; pc.ctl.sx = 1; pc.ctl.sy = 0; pc.ctl.mag = 1;
+      pc.ctl.steerId = 7; pc.ctl.boostId = 9;
+      oc.clearStick(); pc.ctl.boostId = null;
+      check(pc.ctl.steerId === null && pc.ctl.boostId === null && !pc.ctl.active,
+        'cancel path releases both pointers');
+
+      // Stick geometry: the drag handler clamps to the radius and re-centers
+      // the base past 1.35x. Exercised through the real handlers.
+      oc.plantStick(400, 300);
+      check(pc.ctl.active && pc.ctl.bx === 400 && pc.ctl.by === 300,
+        'plantStick placed the base under the finger');
+      var maxR = S(STICK_R_CSS);
+      oc.dragStick(400 + maxR * 4, 300);
+      check(Math.abs(pc.ctl.mag - 1) < 1e-9, 'deflection clamped to the stick radius');
+      check(Math.abs(pc.ctl.bx - (400 + maxR * 3)) < 1e-6,
+        'base re-centered past 1.35x radius (bx=' + pc.ctl.bx.toFixed(1) + ')');
+      oc.dragStick(pc.ctl.bx + maxR * 0.5, pc.ctl.by);
+      check(Math.abs(pc.ctl.mag - 0.5) < 1e-9,
+        'partial deflection reads as partial magnitude (' + pc.ctl.mag.toFixed(3) + ')');
+      // Dead zone: a tiny wobble must not creep the shark.
+      oc.dragStick(pc.ctl.bx + maxR * 0.05, pc.ctl.by);
+      pc.vx = 0; pc.vy = 0;
+      for (var s8 = 0; s8 < 30; s8++) oc.step();
+      check(Math.sqrt(pc.vx * pc.vx + pc.vy * pc.vy) < 0.5,
+        'sub-dead-zone deflection does not creep');
+      oc.clearStick();
+
+      // ---- SPEC Rev 4: rig animation advances in the fixed step, and its
+      // tail beat scales with speed. A FAKE rig stands in for Lane D.
+      function fakePart() {
+        return { rotation: 0, x: 0, y: 0, width: 128, setOrigin: r(), setFlipY: r(),
+          setDepth: r(), setScale: r(), setAlpha: r() };
+      }
+      pc.rig = { container: null, body: fakePart(), tail: fakePart(),
+        pectR: fakePart(), pectL: fakePart(), jaw: fakePart(), pectY: 8 };
+      pc.sprite = { x: 0, y: 0, rotation: 0, scaleX: 1, scaleY: 1,
+        setAlpha: function () { return this; }, setFlipY: function () { return this; } };
+
+      // Idle beat over a fixed window.
+      pc.vx = 0; pc.vy = 0; pc.ctl.active = false; pc.ctl.mag = 0;
+      pc.anim.tailPhase = 0;
+      var idleTurns = 0, lastPh = 0;
+      for (var t1 = 0; t1 < 60; t1++) {
+        oc.stepAnim(pc);
+        if (pc.anim.tailPhase < lastPh) idleTurns++;
+        lastPh = pc.anim.tailPhase;
+      }
+      var idleAmp = pc.anim.tailAmp;
+      check(idleTurns >= 2 && idleTurns <= 3,
+        'idle tail beat near 2.5 Hz (' + idleTurns + ' cycles per second)');
+
+      // Cruise beat: same window, shark at full speed. Must be faster.
+      pc.ctl.speedCap = pc.stat.speed;
+      pc.vx = pc.stat.speed; pc.vy = 0;
+      pc.anim.tailPhase = 0; lastPh = 0;
+      var cruiseTurns = 0;
+      for (var t2 = 0; t2 < 60; t2++) {
+        oc.stepAnim(pc);
+        if (pc.anim.tailPhase < lastPh) cruiseTurns++;
+        lastPh = pc.anim.tailPhase;
+        pc.vx = pc.stat.speed; pc.vy = 0;    // hold speed against nothing
+      }
+      check(cruiseTurns > idleTurns,
+        'tail phase advances faster with speed (' + idleTurns + ' -> ' + cruiseTurns + ' Hz)');
+      check(pc.anim.tailAmp > idleAmp,
+        'tail amplitude rises with speed (' + idleAmp.toFixed(3) + ' -> ' + pc.anim.tailAmp.toFixed(3) + ')');
+
+      // Boost beat must beat cruise.
+      pc.ctl.boosting = true;
+      pc.anim.tailPhase = 0; lastPh = 0;
+      var boostTurns = 0;
+      for (var t3 = 0; t3 < 60; t3++) {
+        oc.stepAnim(pc);
+        if (pc.anim.tailPhase < lastPh) boostTurns++;
+        lastPh = pc.anim.tailPhase;
+        pc.vx = pc.stat.speed; pc.vy = 0;
+      }
+      check(boostTurns > cruiseTurns,
+        'boost beats faster than cruise (' + cruiseTurns + ' -> ' + boostTurns + ' Hz)');
+      pc.ctl.boosting = false;
+
+      // Bank is capped, and a hard turn actually banks.
+      pc.ctl.turnIn = 1;
+      for (var t4 = 0; t4 < 120; t4++) oc.stepAnim(pc);
+      check(Math.abs(pc.anim.bank) > 0.02, 'body banks into a sustained turn');
+      check(Math.abs(pc.anim.bank) <= BANK_MAX + 1e-9,
+        'bank is capped at ' + BANK_MAX + ' rad (' + pc.anim.bank.toFixed(4) + ')');
+      pc.ctl.turnIn = 0;
+
+      // Jaw opens inside the bite cooldown window and shuts after it.
+      pc.st.biteCd = 0.25;
+      for (var t5 = 0; t5 < 20; t5++) oc.stepAnim(pc);
+      check(pc.anim.jaw > 0.05, 'jaw opens during the bite window (' + pc.anim.jaw.toFixed(3) + ')');
+      pc.st.biteCd = 0;
+      for (var t6 = 0; t6 < 60; t6++) oc.stepAnim(pc);
+      check(pc.anim.jaw < 0.02, 'jaw closes after the bite window');
+
+      // Idle bob only when genuinely slow.
+      pc.vx = 0; pc.vy = 0;
+      for (var t7 = 0; t7 < 40; t7++) oc.stepAnim(pc);
+      check(Math.abs(pc.anim.bob) > 0, 'idle bob runs when slow');
+      pc.vx = pc.stat.speed; pc.vy = 0;
+      for (var t8 = 0; t8 < 120; t8++) { oc.stepAnim(pc); pc.vx = pc.stat.speed; pc.vy = 0; }
+      check(Math.abs(pc.anim.bob) < 0.01, 'idle bob decays at speed');
+
+      // render() must drive the rig parts and carry the flip on the CONTAINER
+      // (scaleX), never on the individual parts, or the pivots tear apart.
+      ctx.player = pc;
+      pc.angle = Math.PI;                 // facing left
+      pc.anim.tailPhase = Math.PI / 2;    // sin = 1, a definite tail deflection
+      pc.anim.tailAmp = 0.3;
+      oc.deathAt = 0; oc.pendingResults = false;
+      oc.render(STEP);
+      check(pc.sprite.scaleX < 0, 'facing left flips the container scaleX');
+      check(Math.abs(pc.rig.tail.rotation - 0.3) < 1e-6,
+        'render drove the tail rotation from the sim phase (' + pc.rig.tail.rotation.toFixed(4) + ')');
+      check(pc.rig.pectL.rotation === -pc.rig.pectR.rotation,
+        'pectorals counter-flutter as a mirrored pair');
+
+      // Rig absence is the mandatory fallback: render must still work.
+      pc.rig = null;
+      var threwFallback = null;
+      try { oc.render(STEP); } catch (e) { threwFallback = e; }
+      check(!threwFallback, 'render falls back to the single sprite when no rig');
+      // buildSharkRig must decline cleanly when Lane D has not landed.
+      var savedArt = RF.Art;
+      RF.Art = undefined;
+      check(buildSharkRig(oc, sharkById('reef'), 50) === null,
+        'buildSharkRig returns null without RF.Art.bakeSharkRig');
+      RF.Art = { bakeSharkRig: function () { throw new Error('lane D blew up'); } };
+      check(buildSharkRig(oc, sharkById('reef'), 50) === null,
+        'buildSharkRig survives a throwing bakeSharkRig');
+      RF.Art = { bakeSharkRig: function () { return { body: 'b' }; } };
+      check(buildSharkRig(oc, sharkById('reef'), 50) === null,
+        'buildSharkRig rejects a malformed rig record');
+      RF.Art = savedArt;
+
+      // ---- SPEC Rev 4 juice hooks. The newer Lane F pools are preferred and
+      // the older families are the fallback, decided on the emit COUNT so an
+      // older juice.js still gets a wake and a splash.
+      var savedFx = RF.Fx;
+      var emits = [];
+      // Modern juice.js: swimtrail and breach both accept.
+      RF.Fx = { emit: function (n) { emits.push(n); return n === 'swimtrail' || n === 'breach' ? 3 : 1; } };
+      pc.rig = null;
+      pc.anim.trailInit = true; pc.anim.trailX = 0; pc.anim.trailY = 0;
+      pc.x = 3000; pc.y = 600; pc.vx = pc.stat.speed; pc.vy = 0;
+      pc.ctl.speedCap = pc.stat.speed;
+      oc.stepAnim(pc);
+      check(emits.indexOf('swimtrail') >= 0 && emits.indexOf('bubbles') < 0,
+        'modern juice.js takes swimtrail and no bubbles fallback');
+      // Older juice.js: the new pools decline (0), the old family must fire.
+      emits.length = 0;
+      RF.Fx = { emit: function (n) { emits.push(n); return n === 'bubbles' ? 3 : 0; } };
+      pc.anim.trailX = 0; pc.anim.trailY = 0;
+      oc.stepAnim(pc);
+      check(emits.indexOf('swimtrail') >= 0 && emits.indexOf('bubbles') >= 0,
+        'older juice.js falls back from swimtrail to bubbles');
+      // Breach: crossing the surface emits, and the sound is not doubled.
+      emits.length = 0;
+      var sfxPlayed = [];
+      var savedSound = RF.Sound;
+      RF.Sound = { play: function (n) { sfxPlayed.push(n); } };
+      RF.Fx = { emit: function (n) { emits.push(n); return n === 'breach' ? 5 : 0; } };
+      pc.st.airborne = false; pc.y = -10; pc.vy = -200;
+      oc.stepMotion(pc);
+      check(emits.indexOf('breach') >= 0, 'surface exit emitted a breach');
+      check(sfxPlayed.indexOf('splash') < 0,
+        'breach pool owns its own sound, game.js does not double it');
+      // And with no breach pool the old splash sound still plays.
+      emits.length = 0; sfxPlayed.length = 0;
+      RF.Fx = { emit: function (n) { emits.push(n); return 0; } };
+      pc.st.airborne = false; pc.y = -10; pc.vy = -200;
+      oc.stepMotion(pc);
+      check(sfxPlayed.indexOf('splash') >= 0, 'splash sound falls back when no breach pool');
+      RF.Fx = savedFx; RF.Sound = savedSound;
+
+      // Put the original player back for the degraded sweep below.
+      ctx.player = p;
+
       // Degraded mode: with every sibling namespace gone, step() must not throw.
       var keep = { World: RF.World, Fx: RF.Fx, Juice: RF.Juice, Sound: RF.Sound, Music: RF.Music, Abilities: RF.Abilities, Meta: RF.Meta };
       RF.World = RF.Fx = RF.Juice = RF.Sound = RF.Music = RF.Abilities = RF.Meta = undefined;
@@ -2170,6 +2815,12 @@
     get game() { return game; },
     get profile() { return profile; },
     registerMetaScenes: registerMetaScenes,
+    // SPEC Rev 4 hook for world.js: build an animated multi-part shark for an
+    // NPC predator. Returns null whenever RF.Art.bakeSharkRig is absent or the
+    // record is unusable, so the caller must keep its single-sprite path.
+    // world.js also needs to advance the parts itself; game.js only animates
+    // the player (it does not own the NPC pool or its update loop).
+    buildSharkRig: buildSharkRig,
     STEP: STEP,
     W: W, H: H
   };

@@ -163,3 +163,56 @@ NOTES.md ("Lane X pass 1: what/why/self-test result"). Self-test: a
 `RF.<Ns>.__selftest()` function that exercises the module headlessly (no
 Phaser boot needed where possible) and returns {pass:bool, notes:[]} —
 orchestrator runs all of them in one page before integration.
+
+
+## Rev 4 (2026-08-19, owner iPhone verdict): controls + living graphics
+
+Owner verdict on device: controls wrong (must play like Horde Meridian),
+graphics static (must be animated), overall look too flat ("1980 atari",
+must read modern like Hungry Shark). This revision is binding.
+
+### Controls (Lane A)
+Floating virtual stick, exactly the horde-meridian feel (play/horde-meridian/
+game.js bindInput ~2415): first pointer plants a visible ring+nub at touch
+point (HUD camera, scrollFactor 0); drag = normalized dx/dy with max radius
+62 CSS px; base FOLLOWS the finger beyond 1.35x radius (re-centering drag);
+release clears. Stick vector drives DESIRED VELOCITY directly (direction +
+magnitude * shark speed); shark aligns heading quickly (turn cap ~2x current
+rates - responsiveness first, HSE-style). Second simultaneous pointer =
+boost (unchanged). Keyboard fallback unchanged. One pointer identity via
+kit.input.
+
+### Shark rig + animation (Lane D bakes, Lane A animates)
+RF.Art.bakeSharkRig(scene, def) -> { body, tail, pect, jaw|null, pivots:
+{ tail:{x,y}, pect:{x,y}, jaw:{x,y} }, size:{w,h} } - texture keys for PARTS
+baked separately at DPR (body includes head; tail = caudal fin pivoted at
+peduncle; pect = one pectoral fin pivoted at root, drawn twice mirrored;
+jaw = lower-jaw overlay for tier>=5). 'thumb' and 'menu' variants stay
+single-texture (iOS memory law: total texture memory <= 80MB, measured).
+Runtime (game.js): player + NPC sharks are containers assembling parts;
+tail oscillates rotation (rate 4-9 Hz scaled by speed/size, amplitude up
+with speed and turn), pectorals flutter subtly, body banks into turns
+(slight roll/rotation lag), jaw opens on bite windup, idle bob when slow.
+Fallback: single-texture sprite if rig missing.
+
+### Modern shading (Lane D)
+No flat fills. Body: 4+ stop vertical gradient, rim light along dorsal edge,
+specular gloss streak, fin-root ambient occlusion, subtle speckle texture,
+proper eye (iris + pupil + catchlight). Element glow layers keep working on
+parts. Same treatment on procedural creatures (jelly translucency, mine
+rust/highlight, puffer spikes shaded).
+
+### Living water (Lane B world.js + Lane F juice.js)
+World: animated caustic bands near surface (slow sine drift), god rays sway
+(slow rotation/alpha cycles), seaweed/kelp decor sways (skew oscillation),
+ambient particle density up per zone, subtle whole-water tint shimmer over
+time. Prey ANIMATION: fish tail-wiggle (cheap rotation/scaleX oscillation in
+update), jelly bell pulse, puffer inflate anim. Zero per-frame allocation,
+entity budget unchanged.
+Juice: player swim bubble trail (rate ~ speed), boost speed-lines, richer
+bite burst, surface breach splash, Gold Rush screen tint pulse.
+
+### Perf gate
+60fps target midphone: parts add draw calls - player rig 4-6 sprites, NPC
+rigs 3; measure texture memory (<=80MB) and frame time headless; the REAL
+gate remains the owner's iPhone.

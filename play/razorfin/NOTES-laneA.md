@@ -478,3 +478,248 @@ string, all cross-namespace guards intact.
   gate has passed wrongly-sized frames before. The two-camera split in
   particular (world camera zoomed by DPR, HUD camera at 1) wants eyes on it.
 - The `RF.Art` path still has never executed in this lane's harness.
+
+---
+
+## Lane A Rev 4 (2026-08-19, post owner iPhone test)
+
+Owner verdict on device: **controls feel wrong, the shark is a static sprite.**
+SPEC.md "Rev 4" is the binding brief. `game.js` is the only file touched.
+
+### 1. Controls: floating virtual stick (the headline fix)
+
+**The old tap-a-point-and-swim-to-it controller is deleted, not tuned.** That
+model is what felt wrong on glass: the finger planted a WORLD target, the shark
+accelerated at it, overshot, and then orbited the point while the throttle eased
+in and out of a 60px settle radius. On a phone that reads as a laggy, drifting
+cursor rather than a shark. `setTargetFromPointer`, `ctl.tx/ty` and
+`ctl.hasTarget` are gone from the file (grep confirms zero occurrences).
+
+The replacement is the horde-meridian stick, mechanic for mechanic
+(`play/horde-meridian/game.js` bindInput ~2415):
+
+| Behaviour | HM | Razorfin Rev 4 |
+| --- | --- | --- |
+| Base plant | first pointer, ring+nub at touch point | same, `plantStick(x,y)` |
+| Max radius | 62 CSS px | `STICK_R_CSS = 62`, through `S()` |
+| Clamp | `dx/len*max` | same |
+| Re-center | past `max * 1.35` the base follows | `STICK_RECENTER = 1.35` |
+| Output | `dx/max`, `dy/max` | same, plus a `mag` magnitude |
+| Ring alpha | 0.16 | `STICK_RING_A = 0.16` |
+| Nub alpha | 0.5 | `STICK_NUB_A = 0.5` |
+| Release | `clearStick()` | same |
+
+Razorfin-specific departures, all deliberate:
+
+- **The stick is DEVICE px on hudCam, not world px.** HM is a single-camera
+  game. Razorfin runs the Rev 3 two-camera split (world under
+  `cameras.main.setZoom(DPR)`, HUD on an unzoomed `hudCam`). The stick belongs
+  to the HUD, so `plantStick` / `dragStick` take `toDesign(pt)` output directly
+  and never divide by `cam.zoom`. That is why the ring lands exactly under the
+  finger on a DPR3 phone. Putting it in world space, as the old target code
+  did, was the second half of the bad feel: the visual and the maths drifted
+  apart the further the camera scrolled from the origin.
+- **Drawn with one `graphics` object, not generated disc textures.** The brief
+  allowed either. A graphics object repainted on plant/drag/clear costs nothing
+  while the finger is still (no per-frame repaint at all), leaks no textures on
+  scene restart, and avoids two more bakes in the iOS texture budget the SPEC
+  caps at 80MB.
+- **Dead zone `STICK_DEAD = 0.12`.** HM has none because a twin-stick shooter
+  wants any nudge to register. A shark that creeps whenever a resting thumb
+  wobbles reads as broken, so sub-12% deflection is hard zero. Asserted.
+
+**The stick vector is the desired velocity**, per the SPEC. Direction sets the
+heading to align to; magnitude is a throttle on `stat.speed`. Velocity is a
+capped step toward `speedCap * mag` along the CURRENT heading, at the shark's
+`accel`, rather than a raw thrust. Two consequences that matter for feel:
+half deflection genuinely *settles* at half speed instead of slowly creeping to
+full (asserted: 115.0 vs 230.0 px/s), and the shark moves nose-first while it
+turns, so a turn reads as a shark banking rather than a sprite sliding sideways.
+
+**Heading alignment parameters chosen:**
+
+- `TURN_BOOSTA = 2.0` on `stat.turn`, which is the SPEC's "~2x current rates".
+- `TURN_EASE_MIN = 0.45` -> `TURN_EASE_MAX = 1.0`, scaled linearly by
+  deflection. This is the "small stick deflections steer gently, full
+  deflection whips" requirement. At the dead-zone edge the shark turns at 45%
+  of the (already doubled) cap, so a light thumb is a lazy arc; at full
+  deflection it is the full 2x and the nose snaps around. Without this the
+  doubled cap makes the shark twitchy at every deflection, which trades one bad
+  feel for another.
+- Boost slightly *reduces* turn authority (0.85), down from 0.78. A boosting
+  shark should commit to its line, but the old 0.78 on top of a 1x cap made
+  boost feel like a loss of control.
+
+**Release must never drift**, per the brief. `IDLE_DRAG = 0.80` per 60th of a
+second, with a hard snap to zero below 1 px/s so it genuinely reaches rest
+rather than asymptotically approaching it. Asserted twice: velocity < 1.0 px/s
+after 120 released steps, and < 0.5 px of total position change over the 60
+steps after that.
+
+**Cancel paths.** ggkit fires `onUp` with a **null event** on cancel
+(pointercancel / blur / visibilitychange), which the brief flagged. A null
+release clears the stick AND the boost pointer, because the pointer identity is
+gone and there is nothing left to match against. Separately, `update()` now
+clears the stick whenever `kit.paused` goes true: resuming with a stale full
+deflection would have launched the shark before the player touched the glass.
+
+Second-pointer boost and the keyboard fallback are unchanged in behaviour. The
+keyboard path now synthesises a *normalised stick vector* rather than a world
+target, so both input routes run through identical maths downstream instead of
+two controllers that drift apart.
+
+### 2. Shark rig animation
+
+`buildSharkRig(sc, def, depth)` assembles `RF.Art.bakeSharkRig` output into a
+Phaser container: tail and far pectoral behind, body, near pectoral, jaw. Part
+origins are set so each rotates about its own pivot (tail at `0.9, 0.5` = the
+peduncle; pectorals at `0.85, 0.2` = the root). The two pectorals are the SAME
+texture drawn twice, the second mirrored across the body centreline, so the rig
+costs 4-5 sprites and 4 textures, inside the SPEC's "player rig 4-6 sprites".
+
+**The fallback is the live path today.** `RF.Art` has landed but
+`bakeSharkRig` does NOT yet exist (verified: `RF.Art present: true
+bakeSharkRig: false`), so everything below currently runs against the Rev 3
+single-texture sprite. `buildSharkRig` returns `null` for every shortfall
+(no `RF.Art`, no `bakeSharkRig`, a throw inside it, a malformed record, a
+missing texture key, a scene without container support) and `attachPlayerSprite`
+falls through to the old sprite. Four separate assertions cover this.
+
+Animation runs in `stepAnim(p)`, called from the **fixed step**, never from a
+tween, so it stays locked to the sim and to hit-stop. All state is scalars on
+`p.anim`; zero allocation (verified mechanically). `render()` only reads it.
+
+| Parameter | Value | Note |
+| --- | --- | --- |
+| `TAIL_HZ_IDLE` | 2.5 Hz | SPEC "idle ~2.5Hz small" |
+| `TAIL_HZ_CRUISE` | 5.0 Hz | SPEC "cruise ~5Hz" |
+| `TAIL_HZ_BOOST` | 8.0 Hz | SPEC "boost ~8Hz" |
+| `TAIL_AMP_IDLE` | 0.10 rad | small, per SPEC |
+| `TAIL_AMP_CRUISE` | 0.34 rad | |
+| `TAIL_AMP_TURN` | 0.22 rad | added on `abs(turn input)`, per SPEC |
+| `PECT_HZ` / `PECT_AMP` | 1.7 Hz / 0.13 rad | slow and shallow, out of phase with the tail so the silhouette never pulses as one block |
+| `BANK_MAX` | 0.18 rad | the SPEC cap exactly |
+| `BANK_EASE` | 6.0 /s | smooth approach, so a stick flick rolls rather than snaps |
+| `JAW_OPEN` | 0.42 rad | scaled by remaining bite cooldown |
+| `IDLE_BOB` | 0.9 Hz, 1.6 CSS px | only below `IDLE_SPEED_F = 0.15` of cap |
+
+Bank is scaled by `(0.4 + 0.6 * speedFraction)`: a shark turning on the spot
+banks less than one carving at speed, which is what makes it read as
+hydrodynamic rather than as a spinning decal.
+
+**Flip handling is on the CONTAINER, per the brief.** Facing left sets
+`container.scaleX = -1` and adds pi to the container rotation (the standard
+container-flip pairing that keeps the sprite upright while scaleX un-mirrors
+it). Flipping individual parts would mirror each about its own pivot and tear
+the assembly apart, which is exactly the bug the brief warned about. The bank
+sign is inverted when flipped so a left turn banks the same way visually in
+both facings. Asserted: `scaleX < 0` when facing left, and the tail rotation
+observed in `render` equals the sim phase.
+
+**NPC predators: player only, and here is why.** world.js owns the NPC pool and
+its own update loop; NPC sprites are created inside world.js's pooling
+(`world.js` ~913). Rigging them means editing world.js, which Lane B owns and
+which is running in parallel. Instead `buildSharkRig` is **exported on
+`RF.Game`** as a hook Lane B can call, with the contract documented at the
+export: it returns null whenever the rig is unavailable, so the caller must keep
+its single-sprite path, and the caller must advance the parts itself because
+game.js does not own that pool. Not wired, by design, and flagged here for the
+orchestrator.
+
+### 3. Juice hooks (Lane F)
+
+All guarded, all no-ops when juice.js is absent. `fxEmit` now **returns the
+emit count**, which turns a missing pool into a usable signal rather than a
+silent nothing:
+
+- **Bubble wake**, throttled by DISTANCE not time (the brief's preference):
+  every ~57 px of travel, above 18% speed, 1 particle (3 while boosting). Emits
+  Lane F's purpose-built `swimtrail` pool and falls back to `bubbles` only when
+  that pool declines, so an older juice.js still gets a wake.
+- **Boost speed lines**: `speedlines` above 50% speed while boosting, every 4th
+  frame.
+- **Breach splash** on surface exit AND re-entry, using Lane F's `breach` pool
+  (heavier on re-entry, since that one carries the fall).
+
+One integration hazard found and closed: **juice.js plays its own `breach`
+sound** (`juice.js:427`), so the pre-existing `sfx('splash')` would have layered
+two sounds on every surface crossing. The splash sound is now emitted only when
+the breach pool declined. Asserted both ways.
+
+`FX_OPT` is a reused scratch options bag so these emits do not allocate inside
+the step. Checked that juice.js reads `opts` synchronously into `activate` and
+does not retain it, which makes the shared bag safe.
+
+### 4. Two folded-in minors
+
+- **Menu ON-badge resync.** The badge follows the module-level
+  `selectedSharkId`, which went stale if the Shop changed the selection and
+  SLEPT the Menu rather than restarting it (create() would not re-run). Menu now
+  binds `wake` and `resume` to `resyncSelection()`, which re-reads the profile
+  and `RF.Meta.activeShark` via `activeSharkId()`, refreshes the coin label
+  (the Shop is the one screen that spends), and repaints. If ownership actually
+  moved (a shark was bought) it rebuilds the grid instead, because a card
+  flipping locked -> owned is not something `paintCards` can express.
+  `buildGrid` now destroys its previous container first so a rebuild cannot
+  stack a second strip of cards.
+- **DEV chip overlap.** On the Menu the chip sat at the same top-right corner as
+  SHOP / SETTINGS and covered them the moment a dev switch went active.
+  `devChip` now takes an anchor; the Menu anchors it top-LEFT under the title
+  where nothing is tappable. Ocean keeps the top-right corner, since its own
+  chrome is top-left.
+
+### Self-test
+
+`__selftest` extended from 39 to **64 assertions**; every prior assertion still
+passes. The Rev 4 additions:
+
+- Stick simulated by injecting `sx/sy/mag` and driving 120 real fixed steps:
+  accelerates (409 px), travel follows the stick direction (cos = 1.000),
+  heading aligns (err 0.000), genuinely under way (230 px/s).
+- Magnitude is a throttle (half deflection settles at 115 vs 230 px/s).
+- Release decelerates to rest (0.0000 px/s) and does not drift (0.0000 px over
+  the next 60 steps).
+- Cancel releases both pointers; dead zone does not creep.
+- Stick geometry through the REAL handlers: clamp to radius, base re-centers
+  past 1.35x, partial deflection reads as partial magnitude.
+- Tail phase advances with speed against a FAKE rig: 2 -> 5 -> 8 Hz measured as
+  observed cycles per 60 steps; amplitude 0.100 -> 0.340; bank capped at 0.1800;
+  jaw opens then closes; idle bob runs slow and decays at speed.
+- `render` drives the parts from the sim phase and flips on container scaleX.
+- Four rig-absence assertions (no `RF.Art`, throwing bake, malformed record,
+  fallback render).
+- Four juice-fallback assertions including the breach double-sound guard.
+
+```
+$ node --check game.js
+SYNTAX OK
+
+$ node rf_selftest.js            # stubbed siblings, DPR 3
+  ... 64 ok, 0 FAIL
+RESULT pass=true
+
+$ node rf_siblings.js            # data/juice/abilities/world/meta/sharkart/game
+--- console.error during load: 0
+--- namespaces: Fx,Juice,Sound,Music,Abilities,World,Meta,DevMode,Art,Game
+--- RF.Art present: true bakeSharkRig: false
+assertions: 64 LANE A SELFTEST pass=true
+```
+
+Law sweep: 0 em dashes, 0 `addEventListener`, 0 `setTimeout`/`setInterval` in
+code, 0 `Math.random` in code, 0 allocations in `stepControl` / `stepAnim` /
+`stepMotion` (checked by parsing each function body), every new cross-namespace
+call guarded and wrapped.
+
+### Not done / for the orchestrator
+
+- **Not verified on a device or in a browser.** This is the whole point of Rev 4
+  and this lane cannot discharge it headlessly. The stick's *feel* (62 CSS px
+  radius, the 0.45-1.0 turn ease curve, `IDLE_DRAG` 0.80) is tuned to HM's
+  numbers and to reasoning, not to a thumb. The owner's iPhone remains the gate.
+- **The rig has never executed.** `bakeSharkRig` does not exist yet, so the
+  container path is proven only against a fake rig in the selftest. When Lane D
+  lands, the pivot origins (`0.9,0.5` tail, `0.85,0.2` pect) are the first thing
+  to check against the real bakes: they assume the tail texture's pivot end is
+  at its right edge and the pectoral's root is at its upper right.
+- **NPC rigs are not wired.** Hook exported as `RF.Game.buildSharkRig` for
+  Lane B; see the rig section above.

@@ -30,6 +30,54 @@
   var PUFFER_NEAR = 190;       // player distance that inflates a puffer
   var TAU = Math.PI * 2;
 
+  // ------------------------------------------------------ Rev 4 living water
+  // SPEC Rev 4: "the world reads static and flat, it must be ALIVE". Every
+  // constant below is a named parameter so the owner can retune by reading
+  // this block, and every one of them drives a pure sin() of the sim clock.
+  // Nothing here allocates, tweens, or touches wall time.
+  var CAUSTIC_N = 3;           // wide soft light strips under the surface
+  var CAUSTIC_H = 600;         // strips live in the top CAUSTIC_H px of water
+  var CAUSTIC_DRIFT = 190;     // px of horizontal sine travel
+  var CAUSTIC_RATE = [0.055, 0.085];   // Hz-ish, deliberately very slow
+  var CAUSTIC_ALPHA = [0.05, 0.12];    // breathing band, ADD blended
+  var RAY_ROT_AMP = 0.03;      // +-0.03 rad sway per SPEC
+  var RAY_ROT_RATE = [0.06, 0.13];
+  var RAY_ALPHA_LO = 0.5;      // alpha multiplier floor of the 0.5-1.0 cycle
+  var RAY_ALPHA_RATE = [0.09, 0.19];
+  var SHIMMER_ALPHA = [0.012, 0.05];   // whole-water tint breath, very low
+  var SHIMMER_RATE = 0.043;
+  var SEAM_DRIFT = 70;         // thermocline seam horizontal travel, px
+  var SEAM_RATE = [0.03, 0.06];
+  var SWAY_AMP = [0.045, 0.13];        // kelp rotation amplitude, rad
+  var SWAY_RATE = [0.30, 0.62];
+  var SIL_DRIFT = [3, 7];      // silhouette px of sine travel (anchor kept)
+  var SIL_RATE = [0.035, 0.075];
+
+  // Creature animation. All per-entity phases come from PHI so nothing in the
+  // shoal is ever synchronised. No tweens: pure sin() of the sim clock.
+  var PHI = 0.61803398875;
+  var FISH_WIGGLE = 0.12;      // +-0.12 rad tail wiggle at full speed
+  var FISH_WIGGLE_HZ = [2.2, 7.5];     // rate scales with speed/max speed
+  var JELLY_PULSE = 0.08;      // scale 0.92 - 1.08
+  var JELLY_RATE = 0.55;
+  var PUFF_TIME = 0.2;         // seconds to inflate or deflate (was a snap)
+  var GLINT_RATE = 1.6;        // pickup alpha pulse
+  var GLINT_AMP = 0.22;
+  var NPC_PITCH = 0.05;        // predator whole-sprite pitch, rad
+  var NPC_PITCH_HZ = 0.9;
+
+  // Sim clock for all of the above. ctx.time.now is the fixed-step clock game.js
+  // owns (seconds, += STEP per step), which is exactly what SPEC Rev 4 asks for
+  // ("offsets from ctx time not wall clock"). Headless callers and the selftest
+  // never advance it, so when it does not move we accumulate dt ourselves. The
+  // result is monotonic in both cases and never reads Date/performance.
+  function worldClock(ctx, dt) {
+    var n = ctx && ctx.time && typeof ctx.time.now === 'number' ? ctx.time.now : -1;
+    if (n > S.lastNow) { S.lastNow = n; S.animT = n; }
+    else S.animT += dt;
+    return S.animT;
+  }
+
   // ------------------------------------------------------------- module state
   var S = {
     scene: null,
@@ -51,6 +99,16 @@
     ambientT: 0,
     inited: false,
     headless: false,
+    // Rev 4 "living water". Every animated object below is created ONCE in
+    // init and only has scalar fields written per frame.
+    caustics: [],              // {img, x0, ampX, rate, phase, aBase, aAmp, aRate}
+    rays: [],                  // {img, rot0, rotAmp, rotRate, aBase, aAmp, aRate, phase}
+    shimmer: null,             // whole-water tint overlay, alpha cycles
+    seams: [],                 // {img, x0, ampX, rate, phase}
+    swayers: [],               // {img, rot0, amp, rate, phase} kelp/seaweed
+    drifters: [],              // {img, x0, y0, ampX, ampY, rate, phase} silhouettes
+    animT: 0,                  // internal clock fallback (see worldClock)
+    lastNow: -1,
   };
 
   // Reused scratch. Never reallocated after init.
@@ -337,6 +395,39 @@
     return key;
   }
 
+  // Rev 4: caustic strip. Soft on ALL FOUR edges, so a wide strip stretched
+  // across the water reads as a band of refracted sunlight rather than a
+  // rectangle with visible ends. Baked once and shared by every strip; the
+  // strips differ only in position, scale, drift rate and alpha.
+  function causticTexture(scene, key) {
+    if (!scene || !scene.textures || !scene.textures.addCanvas) return null;
+    if (scene.textures.exists && scene.textures.exists(key)) return key;
+    var W = 256, H = 64;
+    var t = bakeCanvas(W, H);
+    if (!t) return null;
+    // Vertical soft falloff first.
+    var gv = t.ctx.createLinearGradient(0, 0, 0, H);
+    gv.addColorStop(0, 'rgba(255,255,255,0)');
+    gv.addColorStop(0.5, 'rgba(255,255,255,1)');
+    gv.addColorStop(1, 'rgba(255,255,255,0)');
+    t.ctx.fillStyle = gv;
+    t.ctx.fillRect(0, 0, W, H);
+    // Then mask the horizontal ends away, so the band fades out sideways too.
+    if (t.ctx.globalCompositeOperation !== undefined) {
+      t.ctx.globalCompositeOperation = 'destination-in';
+      var gh = t.ctx.createLinearGradient(0, 0, W, 0);
+      gh.addColorStop(0, 'rgba(0,0,0,0)');
+      gh.addColorStop(0.35, 'rgba(0,0,0,1)');
+      gh.addColorStop(0.65, 'rgba(0,0,0,1)');
+      gh.addColorStop(1, 'rgba(0,0,0,0)');
+      t.ctx.fillStyle = gh;
+      t.ctx.fillRect(0, 0, W, H);
+      t.ctx.globalCompositeOperation = 'source-over';
+    }
+    try { scene.textures.addCanvas(key, t.canvas); } catch (e) { return key; }
+    return key;
+  }
+
   // Soft-edged silhouette shapes for midwater decor. Baked once per shape,
   // reused by every instance, drawn dark so they read as distance.
   function silhouetteTexture(scene, shape) {
@@ -451,17 +542,22 @@
       // Boundary seam: a dark lip below the join and a lighter lift above the
       // next zone, so the transition reads as a thermocline.
       if (i < Z.length - 1 && scene.add.image) {
+        // Rev 4: the seams DRIFT horizontally. They are 2.4x wider than the
+        // world and start pulled left, so a slow sine slide never exposes an
+        // end of the strip at either world edge.
         var seamDown = fadeTexture(scene, 'rf_seam_dn', 0x000000, true);
         if (seamDown) {
-          var sd = scene.add.image(0, z.yMax, seamDown);
-          if (sd && sd.setDisplaySize) sd.setDisplaySize(S.w, 170);
+          var sd = scene.add.image(-SEAM_DRIFT * 2, z.yMax, seamDown);
+          if (sd && sd.setDisplaySize) sd.setDisplaySize(S.w + SEAM_DRIFT * 4, 170);
           addStatic(sd, -95, 0.20 + i * 0.07, null);
+          registerSeam(sd, -SEAM_DRIFT * 2, i);
         }
         var seamUp = fadeTexture(scene, 'rf_seam_up', 0xffffff, false);
         if (seamUp) {
-          var su = scene.add.image(0, z.yMax - 120, seamUp);
-          if (su && su.setDisplaySize) su.setDisplaySize(S.w, 120);
+          var su = scene.add.image(-SEAM_DRIFT * 2, z.yMax - 120, seamUp);
+          if (su && su.setDisplaySize) su.setDisplaySize(S.w + SEAM_DRIFT * 4, 120);
           addStatic(su, -95, 0.05, hexNum(z.fog));
+          registerSeam(su, -SEAM_DRIFT * 2, i + 0.5);
         }
       }
 
@@ -504,6 +600,79 @@
     buildDecor();
     buildMidwaterDecor();
     buildSurface();
+    buildCaustics();
+    buildShimmer();
+  }
+
+  // ------------------------------------------------ Rev 4 animation registry
+  // Every animated background object is described by ONE record, allocated
+  // here in init and then only READ per frame. update() writes scalars onto
+  // the Phaser object and never creates anything.
+
+  function registerSeam(img, x0, idx) {
+    if (!img) return;
+    S.seams.push({
+      img: img, x0: x0,
+      ampX: SEAM_DRIFT * rr(0.7, 1.15),
+      rate: rr(SEAM_RATE[0], SEAM_RATE[1]),
+      phase: rr(0, TAU) + idx * 1.3,
+    });
+  }
+
+  // Caustics: a few very wide, very soft light strips in the top CAUSTIC_H px.
+  // They slide horizontally on a slow sine and breathe in alpha on a second,
+  // slower sine with a different rate, so the two never beat into a visible
+  // repeating pattern. ADD blend, guarded, because a renderer without ADD must
+  // not take the layer down with it.
+  function buildCaustics() {
+    var scene = S.scene;
+    if (!scene || !scene.add || !scene.add.image) return;
+    var key = causticTexture(scene, 'rf_caustic');
+    if (!key) return;
+    for (var i = 0; i < CAUSTIC_N; i++) {
+      // Spread the strips down through the caustic band, brightest at the top.
+      var t = CAUSTIC_N > 1 ? i / (CAUSTIC_N - 1) : 0;
+      var y = 60 + t * (CAUSTIC_H - 120);
+      var x0 = S.w * 0.5;
+      var img = scene.add.image(x0, y, key);
+      if (!img) continue;
+      // Strips are wider than the world so the drift never shows an edge.
+      if (img.setDisplaySize) img.setDisplaySize(S.w + CAUSTIC_DRIFT * 4, rr(150, 260) * (1 + t * 0.6));
+      if (img.setRotation) img.setRotation(rr(-0.05, 0.05));
+      if (img.setTint) img.setTint(i === 0 ? 0xeafdff : 0xbfe9f5);
+      if (img.setBlendMode) { try { img.setBlendMode('ADD'); } catch (e) { /* renderer without ADD */ } }
+      if (img.setDepth) img.setDepth(-83);
+      if (img.setScrollFactor) img.setScrollFactor(rr(0.55, 0.85));
+      var aBase = rr(CAUSTIC_ALPHA[0], CAUSTIC_ALPHA[1]) * (1 - t * 0.45);
+      if (img.setAlpha) img.setAlpha(aBase);
+      S.decor.push(img);
+      S.caustics.push({
+        img: img, x0: x0,
+        ampX: CAUSTIC_DRIFT * rr(0.6, 1.2),
+        rate: rr(CAUSTIC_RATE[0], CAUSTIC_RATE[1]),
+        phase: rr(0, TAU),
+        aBase: aBase,
+        aAmp: aBase * 0.55,
+        aRate: rr(0.05, 0.11),
+        aPhase: rr(0, TAU),
+      });
+    }
+  }
+
+  // Whole-water tint shimmer: ONE full-world overlay whose alpha breathes at a
+  // very low amplitude. Cheap (one rectangle, one alpha write per frame) and
+  // it stops the column reading as a dead flat fill even where no other
+  // animated layer is on screen.
+  function buildShimmer() {
+    var scene = S.scene;
+    if (!scene || !scene.add || !scene.add.rectangle) return;
+    var r = scene.add.rectangle(0, 0, S.w, S.h, 0x2ea3c8, SHIMMER_ALPHA[0]);
+    if (!r) return;
+    if (r.setOrigin) r.setOrigin(0, 0);
+    if (r.setDepth) r.setDepth(-84);
+    if (r.setBlendMode) { try { r.setBlendMode('ADD'); } catch (e) { /* renderer without ADD */ } }
+    S.decor.push(r);
+    S.shimmer = { img: r, aBase: SHIMMER_ALPHA[0], aAmp: SHIMMER_ALPHA[1] - SHIMMER_ALPHA[0], rate: SHIMMER_RATE, phase: 0.7 };
   }
 
   // Sparse static decoration: seafloor rocks plus a kelp band. Pooled images,
@@ -513,7 +682,12 @@
     if (!scene || !scene.add || !scene.add.image) return;
     var Z = zones();
     var have = scene.textures && scene.textures.exists;
-    function place(keys, x, y, scale, alpha, depth, flip) {
+    // `sway` (Rev 4): kelp is rooted at its base (origin 0.5,1 already) and
+    // oscillates in ROTATION about that root, which is exactly how a stalk
+    // moves in a current. Amplitude scales with the stalk's own height so a
+    // tall stalk leans further than a stub, and the phase is drawn from the
+    // seeded rng per instance so no two stalks are in step.
+    function place(keys, x, y, scale, alpha, depth, flip, sway) {
       var k = null;
       for (var i = 0; i < keys.length; i++) {
         if (!have || scene.textures.exists(keys[i])) { k = keys[i]; break; }
@@ -526,6 +700,14 @@
       if (img.setAlpha) img.setAlpha(alpha);
       if (img.setDepth) img.setDepth(depth);
       S.decor.push(img);
+      if (sway) {
+        var amp = rr(SWAY_AMP[0], SWAY_AMP[1]) * clamp(scale / 1.2, 0.5, 1.5);
+        S.swayers.push({
+          img: img, rot0: 0, amp: amp,
+          rate: rr(SWAY_RATE[0], SWAY_RATE[1]),
+          phase: rr(0, TAU),
+        });
+      }
     }
     // Seafloor: rocks along the bottom of the world.
     var rockCount = 90;
@@ -537,13 +719,13 @@
     if (kelpZone) {
       for (var j = 0; j < 70; j++) {
         var y = rr(kelpZone.yMin + 40, kelpZone.yMax);
-        place(['seaweed_c', 'seaweed_f'], rr(0, S.w), y, rr(0.7, 1.9), rr(0.3, 0.7), -86, rnd() < 0.5);
+        place(['seaweed_c', 'seaweed_f'], rr(0, S.w), y, rr(0.7, 1.9), rr(0.3, 0.7), -86, rnd() < 0.5, true);
       }
     }
     var shelf = Z[0];
     if (shelf) {
       for (var k = 0; k < 34; k++) {
-        place(['seaweed_f', 'seaweed_c'], rr(0, S.w), rr(shelf.yMax - 260, shelf.yMax), rr(0.5, 1.1), rr(0.25, 0.5), -86, rnd() < 0.5);
+        place(['seaweed_f', 'seaweed_c'], rr(0, S.w), rr(shelf.yMax - 260, shelf.yMax), rr(0.5, 1.1), rr(0.25, 0.5), -86, rnd() < 0.5, true);
       }
     }
   }
@@ -624,6 +806,17 @@
         if (img.setScrollFactor) img.setScrollFactor(rr(0.55, 0.8));
         if (img.setDepth) img.setDepth(-86);
         S.decor.push(img);
+        // Rev 4: silhouettes DRIFT a few px so the far water is never frozen.
+        // Amplitude is deliberately tiny (SIL_DRIFT) because these shapes are
+        // ANCHORED to a boundary by the tune pass and must stay rooted; this
+        // is a shimmer of distance, not a shape that floats off its seam.
+        S.drifters.push({
+          img: img, x0: img.x, y0: baseY,
+          ampX: rr(SIL_DRIFT[0], SIL_DRIFT[1]),
+          ampY: rr(SIL_DRIFT[0], SIL_DRIFT[1]) * 0.4,
+          rate: rr(SIL_RATE[0], SIL_RATE[1]),
+          phase: rr(0, TAU),
+        });
       }
     }
   }
@@ -651,12 +844,27 @@
         if (!ray) continue;
         if (ray.setOrigin) ray.setOrigin(0.5, 0);
         if (ray.setDisplaySize) ray.setDisplaySize(rr(40, 120), rr(300, SURFACE_LIGHT_H));
-        if (ray.setRotation) ray.setRotation(rr(-0.22, 0.22));
-        if (ray.setAlpha) ray.setAlpha(rr(0.06, 0.16));
+        var rot0 = rr(-0.22, 0.22);
+        if (ray.setRotation) ray.setRotation(rot0);
+        var rayA = rr(0.06, 0.16);
+        if (ray.setAlpha) ray.setAlpha(rayA);
         if (ray.setBlendMode) { try { ray.setBlendMode('ADD'); } catch (e) { /* renderer without ADD */ } }
         if (ray.setDepth) ray.setDepth(-81);
         if (ray.setScrollFactor) ray.setScrollFactor(rr(0.7, 0.95));
         S.decor.push(ray);
+        // Rev 4: rays SWAY. Rotation and alpha run on two different rates with
+        // two different phases, so 26 rays never pulse together. Origin is
+        // (0.5, 0) at the waterline, so a rotation pivots the ray about the
+        // surface exactly like a real shaft of light.
+        S.rays.push({
+          img: ray, rot0: rot0,
+          rotAmp: RAY_ROT_AMP * rr(0.6, 1.25),
+          rotRate: rr(RAY_ROT_RATE[0], RAY_ROT_RATE[1]),
+          rotPhase: rr(0, TAU),
+          aBase: rayA,
+          aRate: rr(RAY_ALPHA_RATE[0], RAY_ALPHA_RATE[1]),
+          aPhase: rr(0, TAU),
+        });
       }
     }
 
@@ -690,7 +898,7 @@
         frozenT: 0, stunT: 0, burnT: 0, poisonT: 0, slowT: 0, cookedBy: null,
         burnDmg: 0, poisonDmg: 0, fireImmune: false, toxinImmune: false,
         packId: 0, jitterT: 0, jx: 0, jy: 0, mode: 'wander',
-        inflated: false, biteCd: 0, life: 0, born: 0, drift: 0,
+        inflated: false, biteCd: 0, life: 0, born: 0, drift: 0, puffS: 1,
       },
       sprite: null,
       _idx: -1,   // index into S.entities while active
@@ -749,6 +957,9 @@
     st.burnDmg = 0; st.poisonDmg = 0; st.fireImmune = false; st.toxinImmune = false;
     st.mode = 'wander'; st.inflated = false; st.biteCd = 0; st.life = 0;
     st.born = 0; st.drift = 0;
+    // Rev 4: eased puffer scale. Reset so a recycled pool object never starts
+    // life half-inflated from whatever it used to be.
+    st.puffS = 1;
   }
 
   function applySprite(e) {
@@ -1154,11 +1365,12 @@
         }
       }
       e.st.biteCd -= dt;
-      if (e.sprite && e.sprite.setScale && e.sprite.setDisplaySize) {
-        var len = displayLen(e.def, 'hazard');
-        var s = near ? 1.5 : 1.0;
-        e.sprite.setDisplaySize(len * s, len * 0.52 * s);
-      }
+      // Rev 4: the sprite scale is NOT written here any more. It snapped
+      // between 1.0 and 1.5 in one frame, which read as a popping sprite.
+      // animateEntity() now eases st.puffS toward the target over PUFF_TIME.
+      // st.inflated remains the gameplay authority (hitbox above, and the
+      // eatable/not-eatable flag game.js reads) and is unchanged, so the
+      // easing is purely cosmetic and cannot desync the collision.
       steer(e, e.x + Math.cos(e.st.drift) * 200, e.y + Math.sin(e.st.drift) * 120, pspd * (near ? 0.3 : 0.6), dt, 2);
       return;
     }
@@ -1351,11 +1563,17 @@
   //   tint      colour so each zone's motes belong to that zone
   //   spread    emission box around the camera
   //   rise      emission angle in degrees (bubbles up, snow down)
+  // Rev 4: density raised ~2x per zone. `every` is halved so bursts arrive
+  // twice as often; `count` is raised where the pool can carry it. The zone
+  // CHARACTER curve is preserved: the shelf is still busy and the abyss is
+  // still sparse relative to it, the whole curve just sits higher. Emission
+  // still goes through the guarded fx() wrapper, so lane F's own budget
+  // ceiling remains the authority and a dropped emit is harmless here.
   var AMBIENT = [
-    { fx: 'bubbles', every: 0.22, count: 3, tint: 0xdff6ff, sx: 460, sy: 300, angle: 270, speed: 70, scale: 0.9 },
-    { fx: 'motes',   every: 0.26, count: 2, tint: 0x7fd6a8, sx: 480, sy: 320, angle: 250, speed: 34, scale: 0.8 },
-    { fx: 'motes',   every: 0.30, count: 2, tint: 0xcfe3ee, sx: 500, sy: 340, angle: 90,  speed: 26, scale: 0.7 },
-    { fx: 'motes',   every: 0.70, count: 1, tint: 0x6fd0ff, sx: 520, sy: 360, angle: 90,  speed: 12, scale: 1.25 },
+    { fx: 'bubbles', every: 0.11, count: 4, tint: 0xdff6ff, sx: 460, sy: 300, angle: 270, speed: 70, scale: 0.9 },
+    { fx: 'motes',   every: 0.13, count: 3, tint: 0x7fd6a8, sx: 480, sy: 320, angle: 250, speed: 34, scale: 0.8 },
+    { fx: 'motes',   every: 0.15, count: 3, tint: 0xcfe3ee, sx: 500, sy: 340, angle: 90,  speed: 26, scale: 0.7 },
+    { fx: 'motes',   every: 0.35, count: 2, tint: 0x6fd0ff, sx: 520, sy: 360, angle: 90,  speed: 12, scale: 1.25 },
   ];
   // Reused options object. Never replaced, so update() allocates nothing.
   var ambientOpts = { tint: 0, count: 1, angle: 0, speed: 0, scale: 1 };
@@ -1377,10 +1595,171 @@
     fx(a.fx, camX + rr(-a.sx, a.sx), camY + rr(-a.sy, a.sy), ambientOpts);
     // Shelf only, and only while the surface light actually reaches: one slow
     // shaft mote drifting up through the rays.
-    if (idx === 0 && camY < SURFACE_LIGHT_H + 260 && rnd() < 0.35) {
+    if (idx === 0 && camY < SURFACE_LIGHT_H + 260 && rnd() < 0.55) {
       fx('motes', camX + rr(-420, 420), rr(20, SURFACE_LIGHT_H), shaftOpts);
     }
   }
+
+  // ------------------------------------------------------ Rev 4 water motion
+  // ONE pass over five fixed-size registries. Every record was built in init;
+  // this function reads records and writes scalars onto Phaser objects. It
+  // allocates nothing, calls no rng, and its cost is O(background layers),
+  // which is a constant of the build, not of the entity count.
+  //
+  // The registry sizes at ship settings: 3 caustics, 26 rays, 6 seams,
+  // 104 swayers, 34 drifters = 173 objects touched per frame, each one or two
+  // property writes. That is far below the per-frame cost of the 70 on-screen
+  // entities and does not move the perf gate.
+  function animateWater(t) {
+    var i, rec, o;
+
+    // Caustic light bands: horizontal sine drift plus an independent alpha
+    // breath. Two different rates per strip means the pattern never repeats
+    // on a period a player can perceive.
+    for (i = 0; i < S.caustics.length; i++) {
+      rec = S.caustics[i]; o = rec.img;
+      if (!o) continue;
+      o.x = rec.x0 + Math.sin(t * rec.rate * TAU + rec.phase) * rec.ampX;
+      var ca = rec.aBase + Math.sin(t * rec.aRate * TAU + rec.aPhase) * rec.aAmp;
+      if (ca < 0) ca = 0;
+      if (o.setAlpha) o.setAlpha(ca); else o.alpha = ca;
+    }
+
+    // God rays: +-RAY_ROT_AMP rad of sway and an alpha cycle over the
+    // RAY_ALPHA_LO..1.0 fraction of the ray's own baked-in brightness.
+    for (i = 0; i < S.rays.length; i++) {
+      rec = S.rays[i]; o = rec.img;
+      if (!o) continue;
+      var rot = rec.rot0 + Math.sin(t * rec.rotRate * TAU + rec.rotPhase) * rec.rotAmp;
+      if (o.setRotation) o.setRotation(rot); else o.rotation = rot;
+      // sin -> 0..1 -> RAY_ALPHA_LO..1
+      var u = 0.5 + 0.5 * Math.sin(t * rec.aRate * TAU + rec.aPhase);
+      var ra = rec.aBase * (RAY_ALPHA_LO + (1 - RAY_ALPHA_LO) * u);
+      if (o.setAlpha) o.setAlpha(ra); else o.alpha = ra;
+    }
+
+    // Whole-water tint shimmer. One rectangle, one alpha write.
+    if (S.shimmer && S.shimmer.img) {
+      rec = S.shimmer;
+      var sa = rec.aBase + (0.5 + 0.5 * Math.sin(t * rec.rate * TAU + rec.phase)) * rec.aAmp;
+      if (rec.img.setAlpha) rec.img.setAlpha(sa); else rec.img.alpha = sa;
+    }
+
+    // Thermocline seams drift sideways, so a zone boundary looks like water
+    // moving through a temperature layer instead of a pasted-on gradient.
+    for (i = 0; i < S.seams.length; i++) {
+      rec = S.seams[i]; o = rec.img;
+      if (!o) continue;
+      o.x = rec.x0 + Math.sin(t * rec.rate * TAU + rec.phase) * rec.ampX;
+    }
+
+    // Kelp and seaweed sway about their rooted base.
+    for (i = 0; i < S.swayers.length; i++) {
+      rec = S.swayers[i]; o = rec.img;
+      if (!o) continue;
+      var sw = rec.rot0 + Math.sin(t * rec.rate * TAU + rec.phase) * rec.amp;
+      if (o.setRotation) o.setRotation(sw); else o.rotation = sw;
+    }
+
+    // Midwater silhouettes drift a few px. Anchor is preserved: the motion is
+    // an offset from the placed position, never an accumulation.
+    for (i = 0; i < S.drifters.length; i++) {
+      rec = S.drifters[i]; o = rec.img;
+      if (!o) continue;
+      var ph = t * rec.rate * TAU + rec.phase;
+      o.x = rec.x0 + Math.sin(ph) * rec.ampX;
+      o.y = rec.y0 + Math.sin(ph * 0.63 + 1.1) * rec.ampY;
+    }
+  }
+
+  // -------------------------------------------------- Rev 4 creature motion
+  // Called once per entity per frame from the SAME loop that already writes
+  // the sprite position, so it costs one extra branch and a couple of sin()
+  // calls per active entity. O(active entities), zero allocation, no tweens.
+  //
+  // Per-entity phase is (id * PHI) * TAU. The golden ratio makes consecutive
+  // ids land maximally far apart on the circle, so a pack spawned in one
+  // burst is never in step: a shoal reads as a shoal, not as a rigid formation.
+  function entPhase(e) { return (e.id * PHI % 1) * TAU; }
+
+  // A frozen or stunned creature must READ frozen. The wiggle amplitude is
+  // scaled by how fast the entity is actually moving, so freezing (which zeroes
+  // velocity) collapses the animation to its baseline on its own; frozenT is
+  // then checked explicitly so it snaps rather than decays.
+  function animateEntity(e, t) {
+    var sp = e.sprite;
+    if (!sp) return;
+    var st = e.st;
+    var frozen = st.frozenT > 0;
+
+    if (e.kind === 'pickup') {
+      // Pickups glint: a slow alpha pulse so a dropped coin catches the eye
+      // in dark water without needing a particle.
+      if (sp.setAlpha) {
+        var ga = 1 - GLINT_AMP * (0.5 + 0.5 * Math.sin(t * GLINT_RATE * TAU + entPhase(e)));
+        sp.setAlpha(ga);
+      }
+      return;
+    }
+
+    if (e.kind === 'hazard') {
+      var id = e.defId;
+      if (id === 'jelly') {
+        // Bell pulse, synced to the vertical bob hazardAI already drives off
+        // st.drift, so the bell contracts as the animal rises.
+        var jl = displayLen(e.def, 'hazard');
+        var pulse = frozen ? 1 : 1 + JELLY_PULSE * Math.sin(st.drift * JELLY_RATE * TAU + entPhase(e));
+        if (sp.setDisplaySize) sp.setDisplaySize(jl * (2 - pulse), jl * 0.52 * pulse);
+        return;
+      }
+      if (id === 'puffer') {
+        // Inflate/deflate ANIMATES over PUFF_TIME instead of snapping between
+        // 1.0 and 1.5. st.puffS is the eased current scale; st.inflated stays
+        // the gameplay authority for game.js and is untouched here.
+        var want = st.inflated ? 1.5 : 1.0;
+        if (typeof st.puffS !== 'number') st.puffS = want;
+        var step = (1.5 - 1.0) * (dtOf() / PUFF_TIME);
+        if (st.puffS < want) { st.puffS += step; if (st.puffS > want) st.puffS = want; }
+        else if (st.puffS > want) { st.puffS -= step; if (st.puffS < want) st.puffS = want; }
+        var pl = displayLen(e.def, 'hazard');
+        if (sp.setDisplaySize) sp.setDisplaySize(pl * st.puffS, pl * 0.52 * st.puffS);
+        return;
+      }
+      // mine and unknown hazards: no body animation, the AI bob is enough.
+      return;
+    }
+
+    // Prey and predators: tail wiggle as a rotation offset ON TOP of the
+    // heading the sim computed. The sprite's rotation is set from e.angle by
+    // the caller immediately before this runs, so we add to it.
+    var spd = Math.sqrt(e.vx * e.vx + e.vy * e.vy);
+    var maxSpd = (e.def && (e.def.speed || (e.def.stats && e.def.stats.speed))) || 160;
+    var f = maxSpd > 0 ? clamp(spd / maxSpd, 0, 1.4) : 0;
+    if (frozen) f = 0;
+
+    if (e.kind === 'predator') {
+      // NPC sharks: Lane D's bakeSharkRig / Lane A's rig animation is the real
+      // answer here. Until a rig hook exists this is a subtle whole-sprite
+      // pitch so a patrolling shark never reads frozen, at an amplitude low
+      // enough that it will not fight a rig that lands later.
+      var pitch = NPC_PITCH * (0.35 + 0.65 * f) * Math.sin(t * NPC_PITCH_HZ * TAU + entPhase(e));
+      if (frozen) pitch = 0;
+      if (sp.setRotation) sp.setRotation(e.angle + pitch);
+      return;
+    }
+
+    // Fish: rate scales with speed, amplitude with speed. A drifting fish
+    // barely moves its tail; a fleeing one thrashes.
+    var hz = FISH_WIGGLE_HZ[0] + (FISH_WIGGLE_HZ[1] - FISH_WIGGLE_HZ[0]) * f;
+    var amp = FISH_WIGGLE * (0.25 + 0.75 * f);
+    var wig = f > 0 ? Math.sin(t * hz * TAU + entPhase(e)) * amp : 0;
+    if (sp.setRotation) sp.setRotation(e.angle + wig);
+  }
+
+  // The eased puffer needs dt. update() stashes it here rather than threading
+  // an extra argument through, and it is a module scalar, so no allocation.
+  var lastDt = 1 / 60;
+  function dtOf() { return lastDt; }
 
   // ----------------------------------------------------------------- init
   World.init = function (scene, ctx) {
@@ -1408,6 +1787,16 @@
     S.surface = null;
     S.surfaceT = 0;
     S.ambientT = 0;
+    // Rev 4 animation registries. Cleared here and refilled by buildBackground;
+    // after init nothing is ever pushed to them again.
+    S.caustics.length = 0;
+    S.rays.length = 0;
+    S.seams.length = 0;
+    S.swayers.length = 0;
+    S.drifters.length = 0;
+    S.shimmer = null;
+    S.animT = 0;
+    S.lastNow = -1;
     S.headless = !(scene && scene.add);
 
     buildNpcTables();
@@ -1453,6 +1842,13 @@
     if (S.surface && S.surface.tilePositionX !== undefined) {
       S.surface.tilePositionX = Math.sin(S.surfaceT * 0.6) * 40 + S.surfaceT * 14;
     }
+
+    // Rev 4 "living water". Fixed-size registries, scalar writes only. The
+    // same clock value drives the creature pass below, so water and creatures
+    // never drift apart.
+    lastDt = dt;
+    var wt = worldClock(ctx, dt);
+    animateWater(wt);
 
     // Ambient particle character, per zone. Each zone gets its own emission
     // family, cadence, tint and drift, so the water itself tells you where
@@ -1503,6 +1899,9 @@
           if (sp.setRotation) sp.setRotation(e.angle);
           if (sp.setFlipY) sp.setFlipY(Math.cos(e.angle) < 0);
         }
+        // Rev 4: creature animation runs AFTER the heading write, because the
+        // wiggle is an offset on top of e.angle.
+        animateEntity(e, wt);
       }
     }
 
@@ -1529,19 +1928,24 @@
       t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     }
+    // Rev 4: the stub now RECORDS rotation, alpha, scroll factor, blend mode
+    // and display size, because the animation assertions read them back.
     function stubGO() {
       var g = {
         x: 0, y: 0, visible: false, tex: null, tint: -1,
+        rotation: 0, alpha: 1, dw: 0, dh: 0, sf: 1, blend: null, depth: 0,
         setPosition: function (x, y) { this.x = x; this.y = y; return this; },
         setVisible: function (v) { this.visible = v; return this; },
         setActive: function () { return this; },
-        setDepth: function () { return this; },
+        setDepth: function (d) { this.depth = d; return this; },
         setOrigin: function () { return this; },
         setScale: function () { return this; },
-        setAlpha: function () { return this; },
-        setRotation: function () { return this; },
+        setAlpha: function (a) { this.alpha = a; return this; },
+        setRotation: function (r) { this.rotation = r; return this; },
         setFlipY: function () { return this; },
-        setDisplaySize: function () { return this; },
+        setDisplaySize: function (w, h) { this.dw = w; this.dh = h; return this; },
+        setScrollFactor: function (s) { this.sf = s; return this; },
+        setBlendMode: function (b) { this.blend = b; return this; },
         setTexture: function (k) { this.tex = k; return this; },
         setTint: function (t) { this.tint = t; return this; },
         clearTint: function () { this.tint = -1; return this; },
@@ -1758,6 +2162,192 @@
       chk(World.zoneAt(3500) && World.zoneAt(3500).id === 4, 'zoneAt(3500) resolves to zone 4');
       var burst = World.spawnBurst('minnow', 500, 500, 5);
       chk(burst === 5, 'spawnBurst produced 5 entities');
+
+      // ------------------------------------------------ Rev 4 living water
+      // The clock these all run off is ctx.time.now when the host advances it
+      // and an internal dt accumulator when it does not. The stub ctx above
+      // leaves time.now at 0, so this exercises the fallback path; advancing
+      // time.now below proves the primary path is preferred.
+      var t0 = S.animT;
+      ctx.time.now = 5;
+      World.update(ctx);
+      chk(S.animT === 5, 'worldClock follows ctx.time.now when the host advances it (' + S.animT + ')');
+      ctx.time.now = 5;
+      World.update(ctx);
+      chk(S.animT > 5, 'worldClock falls back to accumulating dt when time.now is frozen (' + S.animT.toFixed(4) + ')');
+      chk(t0 > 0, 'clock had already accumulated before time.now was set (' + t0.toFixed(3) + ')');
+
+      // Registries are built ONCE and never grow. Snapshot their lengths,
+      // run a long stretch of updates, and require them unchanged.
+      var regBefore = S.caustics.length + S.rays.length + S.seams.length +
+                      S.swayers.length + S.drifters.length;
+      chk(S.caustics.length === CAUSTIC_N, 'caustic strips built (' + S.caustics.length + ')');
+      chk(S.rays.length > 0, 'god rays registered for sway (' + S.rays.length + ')');
+      chk(S.seams.length > 0, 'thermocline seams registered for drift (' + S.seams.length + ')');
+      chk(S.swayers.length > 0, 'kelp/seaweed registered for sway (' + S.swayers.length + ')');
+      chk(S.drifters.length > 0, 'midwater silhouettes registered for drift (' + S.drifters.length + ')');
+      chk(!!S.shimmer, 'whole-water tint shimmer overlay built');
+
+      // Water layers must actually MOVE across updates, and stay bounded.
+      var ray0 = S.rays[0];
+      var rayRotMin = Infinity, rayRotMax = -Infinity;
+      var rayAlphaMin = Infinity, rayAlphaMax = -Infinity;
+      var caX = [];
+      var shimMin = Infinity, shimMax = -Infinity;
+      var swayMin = Infinity, swayMax = -Infinity;
+      for (var wstep = 0; wstep < 900; wstep++) {
+        ctx.time.now += 1 / 60;
+        World.update(ctx);
+        if (ray0.img.rotation < rayRotMin) rayRotMin = ray0.img.rotation;
+        if (ray0.img.rotation > rayRotMax) rayRotMax = ray0.img.rotation;
+        if (ray0.img.alpha < rayAlphaMin) rayAlphaMin = ray0.img.alpha;
+        if (ray0.img.alpha > rayAlphaMax) rayAlphaMax = ray0.img.alpha;
+        if (wstep % 90 === 0) caX.push(S.caustics[0].img.x);
+        if (S.shimmer.img.alpha < shimMin) shimMin = S.shimmer.img.alpha;
+        if (S.shimmer.img.alpha > shimMax) shimMax = S.shimmer.img.alpha;
+        if (S.swayers[0].img.rotation < swayMin) swayMin = S.swayers[0].img.rotation;
+        if (S.swayers[0].img.rotation > swayMax) swayMax = S.swayers[0].img.rotation;
+      }
+      chk(rayRotMax - rayRotMin > 1e-4 && (rayRotMax - rayRotMin) <= RAY_ROT_AMP * 2.55,
+        'god ray rotation sways within +-RAY_ROT_AMP (span ' + (rayRotMax - rayRotMin).toFixed(4) + ' rad)');
+      chk(rayAlphaMin > 0 && rayAlphaMax <= ray0.aBase + 1e-9 &&
+          rayAlphaMin >= ray0.aBase * RAY_ALPHA_LO - 1e-9,
+        'god ray alpha cycles over the 0.5-1.0 band of its base (' +
+        rayAlphaMin.toFixed(4) + ' to ' + rayAlphaMax.toFixed(4) + ')');
+      var caMoved = false;
+      for (var cq = 1; cq < caX.length; cq++) if (Math.abs(caX[cq] - caX[0]) > 1) caMoved = true;
+      chk(caMoved, 'caustic band drifts horizontally over time');
+      chk(shimMax - shimMin > 1e-4 && shimMax <= SHIMMER_ALPHA[1] + 1e-9 && shimMin >= 0,
+        'water tint shimmer breathes inside its authored alpha band (' +
+        shimMin.toFixed(4) + ' to ' + shimMax.toFixed(4) + ')');
+      chk(swayMax - swayMin > 1e-4 && Math.abs(swayMax) <= SWAY_AMP[1] * 1.6,
+        'kelp sways in rotation about its rooted base (span ' + (swayMax - swayMin).toFixed(4) + ' rad)');
+      var regAfter = S.caustics.length + S.rays.length + S.seams.length +
+                     S.swayers.length + S.drifters.length;
+      chk(regAfter === regBefore, 'animation registries never grow during update (' + regAfter + ')');
+
+      // Phase spread: no two rays or drifters share a phase, so the layer
+      // cannot pulse in unison.
+      var samePhase = 0;
+      for (var pa = 1; pa < S.rays.length; pa++) {
+        if (S.rays[pa].rotPhase === S.rays[pa - 1].rotPhase) samePhase++;
+      }
+      chk(samePhase === 0, 'every god ray carries its own phase (0 duplicates across ' + S.rays.length + ')');
+
+      // ---------------------------------------------- Rev 4 creature motion
+      // A swimming fish's sprite rotation must change across updates, and must
+      // return to its heading baseline when frozen.
+      ctx.player.x = 3600; ctx.player.y = 900; ctx.player.tier = 3;
+      var wf = spawnOne('mackerel', 3600 + 700, 900, 0);
+      if (wf) {
+        wf.vx = (wf.def.speed || 160); wf.vy = 0;
+        var offMin = Infinity, offMax = -Infinity, sawOff = 0;
+        for (var ws = 0; ws < 120; ws++) {
+          ctx.time.now += 1 / 60;
+          World.update(ctx);
+          if (!wf.active) break;
+          var off = wf.sprite.rotation - wf.angle;
+          if (off < offMin) offMin = off;
+          if (off > offMax) offMax = off;
+          if (Math.abs(off) > 1e-6) sawOff++;
+        }
+        chk(wf.active && sawOff > 10 && (offMax - offMin) > 1e-3,
+          'swimming fish sprite rotation oscillates around its heading (span ' +
+          (offMax - offMin).toFixed(4) + ' rad over ' + sawOff + ' frames)');
+        chk(Math.abs(offMax) <= FISH_WIGGLE * 1.05 && Math.abs(offMin) <= FISH_WIGGLE * 1.05,
+          'fish wiggle stays inside +-FISH_WIGGLE (' + FISH_WIGGLE + ')');
+
+        // Frozen: the offset must collapse to the baseline, so a frozen fish
+        // reads genuinely held rather than twitching in place.
+        wf.st.frozenT = 5;
+        var frozenOffMax = 0;
+        for (var fs = 0; fs < 60; fs++) {
+          ctx.time.now += 1 / 60;
+          World.update(ctx);
+          if (!wf.active) break;
+          var foff = Math.abs(wf.sprite.rotation - wf.angle);
+          if (foff > frozenOffMax) frozenOffMax = foff;
+        }
+        chk(wf.active && frozenOffMax < 1e-9,
+          'frozen fish returns to its heading baseline, no residual wiggle (' + frozenOffMax + ')');
+        wf.st.frozenT = 0;
+        if (wf.active) World.kill(wf, 'test');
+      }
+
+      // Phase is derived from entity id, so two entities spawned in the same
+      // burst are never synchronised.
+      var s1 = spawnOne('minnow', 2000, 800, 0);
+      var s2 = spawnOne('minnow', 2040, 800, 0);
+      if (s1 && s2) {
+        chk(Math.abs(entPhase(s1) - entPhase(s2)) > 0.5,
+          'consecutive entity ids get well separated phases (' +
+          entPhase(s1).toFixed(3) + ' vs ' + entPhase(s2).toFixed(3) + ')');
+        World.kill(s1, 'test'); World.kill(s2, 'test');
+      }
+
+      // Puffer inflation EASES rather than snapping. It must take multiple
+      // frames to cross the 1.0 -> 1.5 range and must land exactly on target.
+      var pf = spawnOne('puffer', ctx.player.x + 40, ctx.player.y, 0);
+      if (pf) {
+        pf.st.inflated = false; pf.st.puffS = 1;
+        World.update(ctx);   // player is inside PUFFER_NEAR, so it inflates
+        var frames = 0, prev = pf.st.puffS;
+        while (pf.active && pf.st.puffS < 1.5 - 1e-9 && frames < 120) {
+          ctx.time.now += 1 / 60;
+          World.update(ctx);
+          if (!pf.active) break;
+          if (pf.st.puffS < prev - 1e-9) break;
+          prev = pf.st.puffS;
+          frames++;
+        }
+        chk(frames >= 3, 'puffer inflate animates over multiple frames instead of snapping (' + frames + ' frames)');
+        chk(!pf.active || Math.abs(pf.st.puffS - 1.5) < 1e-6,
+          'puffer inflate lands exactly on its target scale (' + pf.st.puffS.toFixed(4) + ')');
+        if (pf.active) World.kill(pf, 'test');
+      }
+
+      // A recycled pool object must not inherit a previous puffer's scale.
+      var recyc = spawnOne('minnow', 2500, 900, 0);
+      if (recyc) {
+        chk(recyc.st.puffS === 1, 'resetSt clears the eased puffer scale on a recycled entity');
+        World.kill(recyc, 'test');
+      }
+
+      // Pickups glint: alpha must vary and stay inside 1-GLINT_AMP .. 1.
+      var pk = spawnOne('minnow', 2600, 950, 0);
+      if (pk) {
+        World.kill(pk, 'eaten');   // drops a pickup
+        var pickEnt = null;
+        for (var pe2 = 0; pe2 < S.entities.length; pe2++) {
+          if (S.entities[pe2].kind === 'pickup') { pickEnt = S.entities[pe2]; break; }
+        }
+        if (pickEnt) {
+          var gMin = Infinity, gMax = -Infinity;
+          var pid = pickEnt.id;
+          for (var gs = 0; gs < 90; gs++) {
+            ctx.time.now += 1 / 60;
+            World.update(ctx);
+            if (!(pickEnt.active && pickEnt.id === pid)) break;
+            if (pickEnt.sprite.alpha < gMin) gMin = pickEnt.sprite.alpha;
+            if (pickEnt.sprite.alpha > gMax) gMax = pickEnt.sprite.alpha;
+          }
+          chk(gMax - gMin > 1e-4 && gMin >= 1 - GLINT_AMP - 1e-9 && gMax <= 1 + 1e-9,
+            'pickup glints inside its alpha band (' + gMin.toFixed(4) + ' to ' + gMax.toFixed(4) + ')');
+        } else {
+          notes.push('note: no pickup was dropped, glint path not exercised');
+        }
+      }
+
+      // Ambient density: SPEC Rev 4 asks for roughly 2x emission per zone.
+      // Assert against the Rev 3 cadences the tune pass shipped.
+      var REV3_EVERY = [0.22, 0.26, 0.30, 0.70];
+      var densityOk = true, densityNote = '';
+      for (var az = 0; az < AMBIENT.length; az++) {
+        var ratio = REV3_EVERY[az] / AMBIENT[az].every;
+        if (ratio < 1.85) densityOk = false;
+        densityNote += (az ? ', ' : '') + 'z' + (az + 1) + ' ' + ratio.toFixed(2) + 'x';
+      }
+      chk(densityOk, 'ambient emission cadence raised about 2x per zone (' + densityNote + ')');
 
       // RF-PACK-01: pack records are pooled and capped, so a long run cannot
       // grow S.packs. 2000 updates is far more than the ring can hold.

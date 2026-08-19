@@ -101,3 +101,38 @@ shark sweep: 61 rows x 2 variants = 122 textures              PASS
 procedural creature textures: 11                              PASS
 DPR: 2                                                        PASS
 ```
+
+## Rev 4 (living art + shark rig)
+
+Implemented the binding Rev 4 art contract in `sharkart.js`:
+
+- Added `RF.Art.bakeSharkRig(scene, def)`, cached by `def.id`, returning
+  separate body, caudal tail, mirrored-ready pectoral, and tier-5+ lower-jaw
+  texture keys plus body-local pivots and CSS size. The body bake excludes the
+  caudal fin and pectorals; tail and pectoral roots are at the required canvas
+  edges.
+- Kept `bakeShark(..., 'thumb'|'menu')` as single-texture legacy variants with
+  their existing dimensions. Play and rig art use title-owned DPR backing
+  stores with tight part boxes for the iOS memory law.
+- Modernized shark and fin shading: five-stop countershade, dorsal rim light,
+  screen gloss band, multiply ambient occlusion, deterministic two-tone
+  speckles, tier-scaled iris/pupil/catchlight eyes, and shadow-blurred FX
+  halos. Patterns remain multiply-clipped over the base gradient.
+- Modernized procedural ray/turtle/sword/squid/grazer/calf, translucent jelly,
+  rusted mine, and shaded puffer passes. Kenney sprite keys remain untouched.
+
+Rev 4 proof:
+
+```text
+node --check play/razorfin/sharkart.js                         PASS
+RF.Art.__selftest()                                           PASS
+5 rigs: reef, hammerhead, snapjaw, ironfin, leviathanrex      PASS
+rig cache at DPR 3: 5.70 MB                                   PASS (<80 MB)
+single-silhouette gates: hammerhead/whaleshark/gravewater/
+  bonecrown/banshee                                           PASS (1 each)
+legacy shark sweep: 61 rows x play/menu = 122 textures        PASS
+full rig sweep: 61 sharks, 233 part textures                  PASS
+full rig cache at DPR 3: 68.84 MB                              PASS (<80 MB)
+thumb sweep: 61 textures; 21.11 MB at DPR 3                   PASS
+procedural creature textures: 11                              PASS
+```

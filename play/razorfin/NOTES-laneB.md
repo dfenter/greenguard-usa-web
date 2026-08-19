@@ -387,3 +387,241 @@ Smoke run (600 updates walking all four zones): 42 textures baked, 222 static
 game objects (was 253), entity pool steady at 70 active / 70 free, 46 fx emits
 sharing exactly 1 opts object, so the tune is still zero per-frame allocation.
 Zero em dashes.
+
+---
+
+## Lane B Rev 4: living water
+
+Scope: `world.js` only, plus this section. SPEC.md "Rev 4 / Living water" is
+the binding brief. Owner verdict being answered: the world reads static and
+flat, it must be ALIVE.
+
+The governing idea for the whole pass: **nothing in this file tweens, and
+nothing reads wall time.** Every animation is a pure `sin()` of the fixed-step
+sim clock, evaluated fresh each frame from state that was allocated once in
+`init()`. That is what makes the pass free of per-frame allocation, correct
+under pause (a paused clock freezes the world instead of skipping it forward),
+and deterministic for the self-test.
+
+### The clock
+
+`worldClock(ctx, dt)` returns the animation time in seconds.
+
+- Primary: `ctx.time.now`, the fixed-step clock game.js owns and advances by
+  `STEP` per step. This is what SPEC Rev 4 means by "offsets from ctx time not
+  wall clock".
+- Fallback: when `time.now` does not advance (headless callers, the self-test,
+  any host that leaves it at 0) it accumulates `dt` internally.
+
+Monotonic in both cases. `Date.now` and `performance.now` appear nowhere in
+the file, verified by grep.
+
+### 1. Animated water
+
+| layer | motion | parameters |
+| --- | --- | --- |
+| caustic bands | horizontal sine drift + independent alpha breath, ADD blend | `CAUSTIC_N` 3 strips in the top `CAUSTIC_H` 600px, `CAUSTIC_DRIFT` 190px travel, rate 0.055-0.085, alpha 0.05-0.12 breathing at 0.55 of base, drift rate and alpha rate are DIFFERENT per strip |
+| god rays | rotation sway + alpha cycle | `RAY_ROT_AMP` +-0.03 rad at 0.06-0.13, alpha over `RAY_ALPHA_LO` 0.5 to 1.0 of each ray's own baked base at 0.09-0.19, rotation phase and alpha phase drawn separately per ray |
+| water tint | whole-column alpha breath | `SHIMMER_ALPHA` 0.012-0.05 at `SHIMMER_RATE` 0.043, one full-world ADD rectangle |
+| thermocline seams | horizontal drift | `SEAM_DRIFT` 70px at 0.03-0.06 |
+
+Caustics use a new `causticTexture()` bake: soft on all four edges (vertical
+gradient, then a horizontal `destination-in` mask), so a strip stretched across
+the world reads as a band of refracted sunlight and not as a rectangle with
+visible ends.
+
+Two details that matter and are easy to get wrong:
+
+- **Drifting strips are built oversized.** Caustics are `S.w + CAUSTIC_DRIFT*4`
+  wide and seams are `S.w + SEAM_DRIFT*4` wide, each started pulled left by
+  half of that margin. A strip exactly world-width would slide its own end into
+  frame at the extremes of the sine and show a hard edge at the world boundary.
+- **Rotation and alpha run on different rates AND different phases.** With one
+  shared rate, 26 rays visibly pulse together no matter how the phases are
+  spread; the beat between two unequal rates is what keeps the layer from ever
+  reading as a loop.
+
+### 2. Decor motion
+
+- **Seaweed and kelp sway.** `place()` in `buildDecor` takes a new `sway` flag;
+  both seaweed bands (104 stalks) register. Origin was already `(0.5, 1)`, the
+  rooted base, so the sway is a ROTATION about that root, which is how a stalk
+  actually moves in a current. `SWAY_AMP` 0.045-0.13 rad scaled by the stalk's
+  own height (`clamp(scale/1.2, 0.5, 1.5)`), rate `SWAY_RATE` 0.30-0.62, phase
+  per instance from the seeded rng.
+- **Midwater silhouettes drift.** All 34 register, `SIL_DRIFT` 3-7px on X and
+  0.4 of that on Y, rate 0.035-0.075. Deliberately tiny: the previous tune pass
+  ANCHORED these to zone boundaries, and that anchor is not being given back.
+  The motion is an OFFSET from the stored placed position (`x0`, `y0`), never
+  an accumulation, so a shape cannot creep off its seam over a long run.
+
+### 3. Creature animation
+
+All of it runs in the existing entity loop, immediately after the sprite
+position and heading are written, so it costs one branch and one or two
+`sin()` calls per active entity. O(active entities), no tweens, no allocation.
+
+Per-entity phase is `(id * PHI % 1) * TAU` with `PHI` the golden ratio. Chosen
+over `id * k` for a plain constant because consecutive ids land maximally far
+apart on the circle: a pack spawned in a single burst gets consecutive ids, and
+with any rational multiplier that pack would swim in visible lockstep. Measured
+in the self-test: two entities spawned back to back get phases 0.980 and 4.863.
+
+| creature | animation | parameters |
+| --- | --- | --- |
+| prey fish | tail wiggle as a rotation offset on top of `e.angle` | `FISH_WIGGLE` +-0.12 rad, amplitude `0.25 + 0.75*f`, rate `FISH_WIGGLE_HZ` 2.2-7.5 Hz interpolated by `f` |
+| NPC predator sharks | whole-sprite pitch oscillation | `NPC_PITCH` 0.05 rad at `NPC_PITCH_HZ` 0.9, amplitude `0.35 + 0.65*f` |
+| jelly | bell pulse, X and Y counter-scaled so the bell contracts as it rises | `JELLY_PULSE` +-0.08 (scale 0.92-1.08) at `JELLY_RATE` 0.55, driven off `st.drift`, which is the SAME value `hazardAI` already uses for the vertical bob, so pulse and bob are synced by construction |
+| puffer | inflate/deflate eased over time instead of snapping | `PUFF_TIME` 0.2s across the 1.0 to 1.5 range |
+| pickups | alpha glint | `GLINT_AMP` 0.22 at `GLINT_RATE` 1.6 |
+
+`f` is `clamp(speed / def speed, 0, 1.4)`: a drifting fish barely moves its
+tail, a fleeing one thrashes.
+
+**Frozen reads frozen.** Because amplitude scales with actual speed, freezing
+(which zeroes velocity) already collapses the animation, but `frozenT` is also
+checked explicitly so it SNAPS to baseline rather than decaying over a few
+frames. Asserted: residual offset is exactly 0.
+
+**The puffer easing is cosmetic only.** `st.puffS` is a new eased display
+scale; `st.inflated` remains untouched and is still the gameplay authority for
+both the damage hitbox in `hazardAI` and the eatable/not-eatable flag game.js
+reads. The old snapping `setDisplaySize` in `hazardAI` was removed, so the two
+cannot fight over the sprite. `st.puffS` is reset in `resetSt()` and declared
+in `makeEntity()`, so a recycled pool object can never start life
+half-inflated (asserted).
+
+**NPC sharks and Lane D.** SPEC Rev 4 assigns the real shark rig to Lane D's
+`RF.Art.bakeSharkRig` with Lane A animating it. That hook does not exist in
+`sharkart.js` yet (grepped). The pitch oscillation above is the interim answer
+so a patrolling shark never reads frozen, and its amplitude is deliberately low
+enough that it will not fight a rig when one lands. When Lane A exposes a rig
+hook, this branch is the single place to replace.
+
+### 4. Ambient density
+
+Raised about 2x per zone, asserted against the Rev 3 cadences:
+
+| zone | Rev 3 `every` | Rev 4 `every` | ratio | count |
+| --- | --- | --- | --- | --- |
+| 1 Sunlit Shelf | 0.22 | 0.11 | 2.00x | 3 to 4 |
+| 2 Kelp Midwater | 0.26 | 0.13 | 2.00x | 2 to 3 |
+| 3 Twilight Reef | 0.30 | 0.15 | 2.00x | 2 to 3 |
+| 4 The Abyss | 0.70 | 0.35 | 2.00x | 1 to 2 |
+
+The shelf shaft-mote roll went 0.35 to 0.55 to match. The zone CHARACTER curve
+is preserved exactly: the shelf is still busy and the abyss still sparse
+relative to it, the whole curve just sits higher. Every emit still goes through
+the guarded `fx()` wrapper, so lane F's budget ceiling stays the authority and
+a dropped emit is harmless here.
+
+### Perf
+
+Everything added is O(active entities) for creatures and O(background layers)
+for water, and the background layer count is a constant of the build:
+
+```
+caustics 3 + rays 26 + seams 6 + swayers 104 + drifters 34 = 173 objects
+```
+
+173 objects, one or two scalar property writes each, per frame. That is well
+below the cost of the 70 on-screen entities already being stepped. The 70
+on-screen / 140 total entity budget is untouched: none of these are entities.
+
+### Verification
+
+```
+node --check world.js                       -> PARSE_OK
+RF.World.__selftest()                       -> pass: true, 54/54 ok, 0 FAIL
+```
+
+All 29 prior assertions are still present and green. 25 added.
+
+New assertions:
+
+```
+ok worldClock follows ctx.time.now when the host advances it (5)
+ok worldClock falls back to accumulating dt when time.now is frozen (5.0167)
+ok clock had already accumulated before time.now was set (7.733)
+ok caustic strips built (3)
+ok god rays registered for sway (26)
+ok thermocline seams registered for drift (6)
+ok kelp/seaweed registered for sway (104)
+ok midwater silhouettes registered for drift (34)
+ok whole-water tint shimmer overlay built
+ok god ray rotation sways within +-RAY_ROT_AMP (span 0.0407 rad)
+ok god ray alpha cycles over the 0.5-1.0 band of its base (0.0681 to 0.1362)
+ok caustic band drifts horizontally over time
+ok water tint shimmer breathes inside its authored alpha band (0.0120 to 0.0478)
+ok kelp sways in rotation about its rooted base (span 0.3588 rad)
+ok animation registries never grow during update (173)
+ok every god ray carries its own phase (0 duplicates across 26)
+ok swimming fish sprite rotation oscillates around its heading (span 0.1909 rad over 120 frames)
+ok fish wiggle stays inside +-FISH_WIGGLE (0.12)
+ok frozen fish returns to its heading baseline, no residual wiggle (0)
+ok consecutive entity ids get well separated phases (0.980 vs 4.863)
+ok puffer inflate animates over multiple frames instead of snapping (11 frames)
+ok puffer inflate lands exactly on its target scale (1.5000)
+ok resetSt clears the eased puffer scale on a recycled entity
+ok pickup glints inside its alpha band (0.7801 to 1.0000)
+ok ambient emission cadence raised about 2x per zone (z1 2.00x, z2 2.00x, z3 2.00x, z4 2.00x)
+```
+
+The self-test stub `stubGO()` now RECORDS rotation, alpha, display size,
+scroll factor and blend mode, because the animation assertions read them back.
+It previously discarded them.
+
+### No-allocation proof
+
+Two independent measurements.
+
+**1. Object creation after init.** Canvas-stub smoke run, 600 updates walking
+the camera from the surface to the abyss, counting every `scene.add.*` call:
+
+```
+textures baked           41   (rf_caustic is new)
+static objects at init  226
+objects created later     0   <- the gate
+fx emits over 600 upd    73 sharing 2 opts objects
+pool                     70 active / 70 free / 140
+```
+
+The 2 opts objects are the two module-level reused option objects
+(`ambientOpts`, `shaftOpts`), both created once at module scope, unchanged
+from Rev 3.
+
+**2. Heap under `--expose-gc`**, 600 updates of warm-up then a steady-state
+run with a moving player:
+
+```
+N =  3000 updates   ->  134.8 KB   46.01 bytes/update
+N = 12000 updates   ->  311.9 KB   26.62 bytes/update
+N = 30000 updates   ->  294.3 KB   10.05 bytes/update
+```
+
+Read the trend, not any single row. Bytes-per-update FALLS as the run lengthens
+while the absolute delta plateaus near 300 KB, which is the signature of a
+fixed warm-up cost (JIT, inline caches, the pools reaching their high-water
+mark). Per-frame garbage would hold bytes-per-update CONSTANT as N grows.
+Zero per-frame allocation confirmed.
+
+### Grep gates
+
+```
+em dashes                    0
+Math.random                  1  (the header comment stating the law)
+setTimeout / setInterval     1  (the header comment stating the law)
+addEventListener             0
+Date.now / performance.now   0
+```
+
+### Concurrency
+
+`world.js` only. `game.js` (Lane A controls/rig), `sharkart.js` (Lane D) and
+`juice.js` (Lane F) were READ for interface facts and never written. The two
+cross-lane facts relied on:
+
+- `ctx.time.now` is a fixed-step seconds accumulator (`game.js:1136`,
+  `t.now += STEP`), which is why it is safe as an animation clock.
+- `RF.Art.bakeSharkRig` does not exist in `sharkart.js` yet, which is why the
+  NPC shark branch uses an interim pitch oscillation.
