@@ -249,6 +249,10 @@ ECONOMY = {
  "coinRunMult":1.0,"xpRunMult":1.0,
 }
 FRENZY = {"comboWindow":3.0,"steps":[3,6,10],"mults":[1,2,3,5],"meterPerEat":0.06,"goldRushDur":8.0,"goldRushSpeed":1.4,"goldRushCoinMult":2}
+BAL = {"metabScale":0.5,"eatHealBonus":1.25}
+FRENZY2 = {"school":{"count":4,"swirlT":5.0,"eatRate":1.3},
+           "blood":{"dur":6.0,"bite":1.5,"speed":1.2},
+           "golden":{"chance":0.02,"coinBurst":250,"deadline":10.0}}
 FX = {"bubbles":{},"motes":{},"chomp":{},"deathBurst":{},"elementSpark":{},"ring":{},"beamCore":{}}
 SFX = {"chomp":"sfx_snap.mp3","bubble":"sfx_bubble.mp3","splash":"sfx_splash.mp3",
        "power_fire":None,"power_ice":None,"power_volt":None,"power_toxin":None,"power_sonic":None,
@@ -288,6 +292,8 @@ lines.append("var ZONES="+js(ZONES)+";")
 lines.append("var ABILITIES="+js(ABILITIES)+";")
 lines.append("var ECONOMY="+js(ECONOMY)+";")
 lines.append("var FRENZY="+js(FRENZY)+";")
+lines.append("var BAL="+js(BAL)+";")
+lines.append("var FRENZY2="+js(FRENZY2)+";")
 lines.append("var FX="+js(FX)+";")
 lines.append("var SFX="+js(SFX)+";")
 lines.append("var MUSIC="+js(MUSIC)+";")
@@ -295,7 +301,7 @@ lines.append("var SHARK_BY_ID={};SHARKS.forEach(function(s){SHARK_BY_ID[s.id]=s;
 lines.append("var CREATURE_BY_ID={};CREATURES.concat(HAZARDS).forEach(function(c){CREATURE_BY_ID[c.id]=c;});")
 lines.append("return {SHARKS:SHARKS,SHARK_BY_ID:SHARK_BY_ID,CREATURES:CREATURES,HAZARDS:HAZARDS,")
 lines.append("CREATURE_BY_ID:CREATURE_BY_ID,ZONES:ZONES,ABILITIES:ABILITIES,ECONOMY:ECONOMY,")
-lines.append("FRENZY:FRENZY,FX:FX,SFX:SFX,MUSIC:MUSIC,WORLD:{w:7200,h:3600},")
+lines.append("FRENZY:FRENZY,BAL:BAL,FRENZY2:FRENZY2,FX:FX,SFX:SFX,MUSIC:MUSIC,WORLD:{w:7200,h:3600},")
 lines.append("SAVE_VERSION:1,ENTITY_BUDGET:{onscreen:70,total:140}};")
 lines.append("})();")
 print("\n".join(lines))
