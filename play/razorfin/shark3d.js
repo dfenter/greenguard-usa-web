@@ -230,8 +230,52 @@ function toonMaterial({
   material.flatShading = !!flatShading;
   material.needsUpdate = true;
   material.name = `RF Toon ${kind}`;
+  material.userData.rfBaseVariantKey = [
+    'toon',
+    vertexColors ? 'vertex' : 'solid',
+    side === THREE.BackSide ? 'back' : side === THREE.DoubleSide ? 'double' : 'front',
+    transparent ? 'transparent' : 'opaque',
+    flatShading ? 'flat' : 'smooth'
+  ].join(':');
   materialCache.set(key, material);
   return material;
+}
+
+function bendableMaterial(baseMat, uniforms) {
+  if (!baseMat || typeof baseMat.clone !== 'function') throw new Error('RF.Art3D.bendableMaterial requires a material');
+  if (!uniforms || !uniforms.uBendPhase || !uniforms.uBendAmp || !uniforms.uBendK || !uniforms.uBendSpan) {
+    throw new Error('RF.Art3D.bendableMaterial requires the complete bend uniform bundle');
+  }
+  const material = baseMat.clone();
+  const baseVariant = baseMat.userData?.rfBaseVariantKey || baseMat.type || 'MeshToonMaterial';
+  const ampScale = finite(baseMat.userData?.rfBendAmpScale, 1);
+  const baseKey = `${baseVariant}:amp${ampScale.toFixed(6)}`;
+  material.userData.rfBend = true;
+  material.userData.rfBendUniforms = uniforms;
+  material.userData.rfBendBaseKey = baseKey;
+  material.userData.rfBendAmpScale = ampScale;
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uBendPhase = uniforms.uBendPhase;
+    shader.uniforms.uBendAmp = uniforms.uBendAmp;
+    shader.uniforms.uBendK = uniforms.uBendK;
+    shader.uniforms.uBendSpan = uniforms.uBendSpan;
+    shader.vertexShader = shader.vertexShader.replace(
+      '#include <common>',
+      '#include <common>\nuniform float uBendPhase;\nuniform float uBendAmp;\nuniform float uBendK;\nuniform vec2 uBendSpan;'
+    ).replace(
+      '#include <begin_vertex>',
+      `#include <begin_vertex>\nfloat bendT=smoothstep(uBendSpan.x,uBendSpan.y,-transformed.x);\ntransformed.z += ${ampScale === 1 ? 'uBendAmp' : `uBendAmp*${ampScale.toFixed(6)}`}*bendT*sin(uBendPhase+transformed.x*uBendK);`
+    );
+  };
+  material.customProgramCacheKey = () => `${baseKey}:rf-bend`;
+  material.needsUpdate = true;
+  return material;
+}
+
+function bendOffset(x, phase, amp, k, spanX, spanY) {
+  const t = clamp(((-finite(x, 0)) - finite(spanX, 0)) / Math.max(1e-6, finite(spanY, 1) - finite(spanX, 0)), 0, 1);
+  const bendT = t * t * (3 - 2 * t);
+  return finite(amp, 0) * bendT * Math.sin(finite(phase, 0) + finite(x, 0) * finite(k, 0));
 }
 
 function bufferGeometry(positions, indices, colors = null) {
@@ -1009,8 +1053,8 @@ function buildTemplate(def) {
   return template;
 }
 
-function instantiateFeature(parent, feature) {
-  const mesh = new THREE.Mesh(feature.geometry, feature.material);
+function instantiateFeature(parent, feature, material = feature.material) {
+  const mesh = new THREE.Mesh(feature.geometry, material);
   mesh.name = `RF ${feature.name}`;
   mesh.position.set(...(feature.position || [0, 0, 0]));
   mesh.rotation.set(...(feature.rotation || [0, 0, 0]));
@@ -1078,39 +1122,62 @@ function buildShark(def) {
     template.featureBatches.some((batch) => batch.geometry.userData.rfFeatureNames.some((name) => name.includes('plate'))) &&
     template.featureBatches.some((batch) => batch.geometry.userData.rfFeatureNames.some((name) => name.includes('eye')));
 
-  const body = new THREE.Mesh(template.bodyGeometry, template.bodyMaterial);
+  const shellScale = 1.045;
+  const bendK = 4.6 / Math.max(template.dimensions.bodyLen, 0.001);
+  const bendSpanX = template.dimensions.bodyLen * 0.05;
+  const bendSpanY = template.dimensions.bodyLen * 0.52;
+  const uniforms = {
+    uBendPhase: { value: 0 },
+    uBendAmp: { value: 0 },
+    uBendK: { value: bendK },
+    uBendSpan: { value: new THREE.Vector2(bendSpanX, bendSpanY) }
+  };
+  group.userData.rfBendUniforms = uniforms;
+  group.userData.rfBendK = bendK;
+  group.userData.rfBendSpan = [bendSpanX, bendSpanY];
+  group.userData.rfTailRootX = -template.dimensions.bodyLen * 0.44;
+
+  const pose = new THREE.Group();
+  pose.name = 'RF pose';
+  pose.rotation.y = 0.28;
+  group.userData.rfPose = pose;
+  group.add(pose);
+
+  const body = new THREE.Mesh(template.bodyGeometry, bendableMaterial(template.bodyMaterial, uniforms));
   body.name = 'RF body';
   const shellMaterial = toonMaterial({ color: 0x06111c, side: THREE.BackSide, kind: 'silhouette shell' });
-  const shell = new THREE.Mesh(template.bodyGeometry, shellMaterial);
+  shellMaterial.userData.rfBendAmpScale = 1 / shellScale;
+  const shell = new THREE.Mesh(template.bodyGeometry, bendableMaterial(shellMaterial, uniforms));
   shell.name = 'RF dark silhouette edge shell';
-  shell.scale.setScalar(1.045);
-  shell.position.z = -template.dimensions.radiusZ * 0.035;
+  shell.scale.setScalar(shellScale);
   body.add(shell);
-  for (const feature of template.featureBatches) instantiateFeature(body, feature);
-  group.add(body);
+  for (const feature of template.featureBatches) {
+    instantiateFeature(body, feature, bendableMaterial(feature.material, uniforms));
+  }
+  pose.add(body);
 
   const tail = new THREE.Mesh(template.tailGeometry, template.tailMaterial);
   tail.name = 'RF tail';
   tail.position.x = -template.dimensions.bodyLen * 0.52;
-  group.add(tail);
+  pose.add(tail);
 
   const pectL = new THREE.Mesh(template.pectGeometry, template.pectMaterial);
   pectL.name = 'RF pectoral L';
   pectL.position.set(-template.dimensions.bodyLen * 0.05, -template.dimensions.radiusY * 0.05, template.dimensions.radiusZ * 0.26);
-  group.add(pectL);
+  pose.add(pectL);
   const pectR = new THREE.Mesh(template.pectGeometry, template.pectMaterial);
   pectR.name = 'RF pectoral R';
   pectR.position.set(-template.dimensions.bodyLen * 0.05, -template.dimensions.radiusY * 0.05, -template.dimensions.radiusZ * 0.26);
   pectR.scale.z = -1;
-  group.add(pectR);
+  pose.add(pectR);
 
   let jaw = null;
   if (template.jaw) {
-    jaw = new THREE.Mesh(template.jaw.geometry, template.jaw.material);
+    jaw = new THREE.Mesh(template.jaw.geometry, bendableMaterial(template.jaw.material, uniforms));
     jaw.name = 'RF lower jaw';
     jaw.position.set(...template.jaw.position);
     if (template.jaw.teethGeometry && template.jaw.teethMaterial) {
-      const mesh = new THREE.Mesh(template.jaw.teethGeometry, template.jaw.teethMaterial);
+      const mesh = new THREE.Mesh(template.jaw.teethGeometry, bendableMaterial(template.jaw.teethMaterial, uniforms));
       mesh.name = 'RF jaw tooth';
       jaw.add(mesh);
     }
@@ -1118,27 +1185,47 @@ function buildShark(def) {
   }
 
   const parts = { body, tail, pectL, pectR, jaw };
-  const animation = { baseCaptured: false, baseY: 0 };
+  const animation = { baseCaptured: false, baseY: 0, lastT: null, phase: 0, pitch: 0, jaw: 0 };
   function animate(t = 0, state = {}) {
     const time = finite(t, 0);
     const speedFrac = clamp(finite(state.speedFrac, 0), 0, 1);
     const turn = clamp(finite(state.turn, 0), -1, 1);
-    const rate = speedFrac < 0.33 ? 2.5 : speedFrac < 0.72 ? 5 : 8;
-    const amplitude = 0.10 + speedFrac * 0.24;
-    const wave = Math.sin(time * TAU * rate);
-    tail.rotation.y = wave * amplitude + turn * 0.12;
-    tail.rotation.z = Math.sin(time * TAU * rate + Math.PI * 0.5) * amplitude * 0.12;
-    body.rotation.x = clamp(turn * 0.18, -0.18, 0.18);
-    body.rotation.y = turn * 0.045;
-    const flutter = Math.sin(time * TAU * rate * 0.5 + Math.PI * 0.25) * (0.045 + speedFrac * 0.09);
+    const dt = animation.lastT === null ? 0 : clamp(time - animation.lastT, 0, 0.25);
+    animation.lastT = time;
+    const rate = 2.2 + (8.5 - 2.2) * Math.pow(speedFrac, 0.8);
+    const amplitude = 0.06 + 0.30 * Math.pow(speedFrac, 1.2);
+    animation.phase += rate * TAU * dt;
+    if (animation.phase >= TAU || animation.phase <= -TAU) animation.phase %= TAU;
+    uniforms.uBendPhase.value = animation.phase;
+    uniforms.uBendAmp.value = amplitude;
+
+    const tailRootX = group.userData.rfTailRootX;
+    const tailSlope = amplitude * bendK * Math.cos(animation.phase + tailRootX * bendK);
+    tail.rotation.y = tailSlope * 0.32 + turn * 0.12;
+    tail.rotation.z = Math.sin(animation.phase + Math.PI * 0.5) * amplitude * 0.12;
+    const flutter = Math.sin(animation.phase * 0.5 + Math.PI * 0.25) * (0.045 + speedFrac * 0.09);
     pectL.rotation.x = 0.08 + flutter;
     pectR.rotation.x = -0.08 - flutter;
     pectL.rotation.z = -turn * 0.12;
     pectR.rotation.z = -turn * 0.12;
+
+    const bank = clamp(finite(state.bank, turn * (0.18 + 0.17 * speedFrac)), -0.35, 0.35);
+    pose.rotation.x = bank;
+    pose.rotation.y = Math.cos(group.rotation.y) < 0 ? -0.28 : 0.28;
+    const pitchTarget = clamp(finite(state.vy, 0) * 0.0008, -0.22, 0.22);
+    animation.pitch += (pitchTarget - animation.pitch) * clamp(dt * 8, 0, 1);
+    pose.rotation.z = animation.pitch;
+    pose.scale.x = 1 + 0.07 * speedFrac;
+    pose.scale.y = 1 - 0.03 * speedFrac;
+    pose.scale.z = 1 - 0.03 * speedFrac;
     if (jaw) {
-      const phase = clamp(Math.max(finite(state.bitePhase, 0), finite(state.jawSnapT, 0)), 0, 1);
-      const snap = phase * phase * (3 - 2 * phase);
-      jaw.rotation.z = -snap * (0.3 + clamp(finite(def.tier, 5), 5, 12) * 0.012);
+      const bitePhase = clamp(Math.max(finite(state.bitePhase, 0), finite(state.jawSnapT, 0)), 0, 1);
+      const snap = bitePhase * bitePhase * (3 - 2 * bitePhase);
+      const gape = 0.3 + clamp(finite(def.tier, 5), 5, 12) * 0.012;
+      const anticipation = state.preyNear ? 0.35 * gape : 0;
+      const jawTarget = Math.max(snap * gape, anticipation);
+      animation.jaw += (jawTarget - animation.jaw) * clamp(dt * 14, 0, 1);
+      jaw.rotation.z = -animation.jaw;
     }
     if (!animation.baseCaptured) {
       animation.baseY = group.position.y;
@@ -1427,14 +1514,24 @@ function auditMaterialOwnership(def, rig) {
   return { structural: structuralAudit, featureGlowCount, fxFeatureCount };
 }
 
+function bendMaterials(root) {
+  const materials = [];
+  root.traverse((object) => {
+    const material = object.material;
+    if (material?.userData?.rfBend) materials.push(material);
+  });
+  return materials;
+}
+
 function __selftest() {
   ensureSharedGeometry();
   const rows = host.RFD?.SHARKS || RF.RFD?.SHARKS || RF.SHARKS;
   if (!rows || rows.length !== 61) throw new Error(`RF.Art3D expected 61 sharks, received ${rows ? rows.length : 0}`);
   const samples = representativeRows();
-  const result = { pass: false, headProfiles: {}, triangles: {}, materialAudit: {}, bodyCalibration: {}, colorBlocks: {}, notes: [], errors: [] };
+  const result = { pass: false, headProfiles: {}, triangles: {}, materialAudit: {}, bodyCalibration: {}, colorBlocks: {}, bendProgramVariants: [], notes: [], errors: [] };
   try {
     const ratios = [];
+    const bendProgramKeys = new Set();
     const ramp = ensureGradientMap();
     const rampTexels = distinctGradientTexels(ramp);
     if (rampTexels < 3) throw new Error(`gradientMap has only ${rampTexels} distinct texels`);
@@ -1445,6 +1542,29 @@ function __selftest() {
       const rig = buildShark(def);
       const { group, parts } = rig;
       if (!(group instanceof THREE.Group) || !parts.body?.isMesh || !parts.tail?.isMesh || !parts.pectL?.isMesh || !parts.pectR?.isMesh || (def.tier >= 5 && !parts.jaw?.isMesh) || typeof rig.animate !== 'function') throw new Error(`${def.id}: incomplete rig contract`);
+      const pose = group.userData.rfPose;
+      const uniforms = group.userData.rfBendUniforms;
+      if (!(pose instanceof THREE.Group) || pose.parent !== group || group.children[0] !== pose) throw new Error(`${def.id}: pose group is not between group and parts`);
+      if (Math.abs(Math.abs(pose.rotation.y) - 0.28) > 1e-9) throw new Error(`${def.id}: pose yaw ${pose.rotation.y.toFixed(3)} is not ±0.28`);
+      if (!uniforms || !uniforms.uBendPhase || !uniforms.uBendAmp || !uniforms.uBendK || !uniforms.uBendSpan) throw new Error(`${def.id}: incomplete bend uniform bundle`);
+      const materials = bendMaterials(group);
+      if (materials.length < 3) throw new Error(`${def.id}: body/shell/features did not receive bend materials`);
+      for (const material of materials) {
+        if (typeof material.onBeforeCompile !== 'function') throw new Error(`${def.id}: bend hook missing`);
+        if (typeof material.customProgramCacheKey !== 'function' || !material.customProgramCacheKey().endsWith(':rf-bend') || material.customProgramCacheKey() !== material.customProgramCacheKey()) throw new Error(`${def.id}: unstable bend cache key`);
+        if (material.userData.rfBendUniforms !== uniforms) throw new Error(`${def.id}: bend uniforms are not shared by identity`);
+        bendProgramKeys.add(material.customProgramCacheKey());
+      }
+      const shell = parts.body.children.find((object) => object.name === 'RF dark silhouette edge shell');
+      if (!shell || Math.abs(shell.scale.x - 1.045) > 1e-9 || Math.abs(shell.material.userData.rfBendAmpScale - 1 / 1.045) > 1e-9) throw new Error(`${def.id}: shell bend amplitude is not divided by its 1.045 scale`);
+      const shaderProbe = { uniforms: {}, vertexShader: '#include <common>\n#include <begin_vertex>' };
+      parts.body.material.onBeforeCompile(shaderProbe);
+      if (shaderProbe.uniforms.uBendPhase !== uniforms.uBendPhase || shaderProbe.uniforms.uBendAmp !== uniforms.uBendAmp || shaderProbe.uniforms.uBendK !== uniforms.uBendK || shaderProbe.uniforms.uBendSpan !== uniforms.uBendSpan || !shaderProbe.vertexShader.includes('bendT=smoothstep') || !shaderProbe.vertexShader.includes('uBendPhase+transformed.x*uBendK')) {
+        throw new Error(`${def.id}: bend shader injection contract is incomplete`);
+      }
+      const noseBend = bendOffset(parts.body.geometry.boundingBox.max.x, 0.37, 0.3, uniforms.uBendK.value, uniforms.uBendSpan.value.x, uniforms.uBendSpan.value.y);
+      const tailBend = bendOffset(group.userData.rfTailRootX, 0.37, 0.3, uniforms.uBendK.value, uniforms.uBendSpan.value.x, uniforms.uBendSpan.value.y);
+      if (Math.abs(noseBend) > 1e-9 || Math.abs(tailBend) < 0.01) throw new Error(`${def.id}: CPU bend reference does not separate nose and tail`);
       group.updateMatrixWorld(true);
       result.materialAudit[def.id] = auditMaterialOwnership(def, rig);
       const colorStats = bodyColorStats(parts.body.geometry);
@@ -1495,6 +1615,27 @@ function __selftest() {
       }
       const tailRange = Math.max(...samplesTail) - Math.min(...samplesTail);
       if (tailRange < 0.01) throw new Error(`${def.id}: tail did not oscillate`);
+      rig.animate(2, { speedFrac: 1, turn: 1, bank: 0.35, vy: 180, preyNear: true });
+      if (Math.abs(pose.rotation.y) < 0.27 || Math.abs(pose.rotation.y) > 0.29 || Math.abs(pose.rotation.x) > 0.35 + 1e-9 || Math.abs(pose.rotation.z) > 0.22 + 1e-9 || pose.scale.x <= 1 || pose.scale.y >= 1) {
+        throw new Error(`${def.id}: pose yaw/bank/pitch/stretch is outside contract`);
+      }
+      if (parts.jaw && Math.abs(parts.jaw.rotation.z) < 1e-6) throw new Error(`${def.id}: preyNear jaw anticipation did not open the jaw`);
+      group.rotation.y = Math.PI;
+      rig.animate(2 + 1 / 60, { speedFrac: 0, turn: 0, bank: 0 });
+      if (Math.abs(pose.rotation.y + 0.28) > 1e-9) throw new Error(`${def.id}: left-facing pose yaw did not mirror`);
+      group.rotation.y = 0;
+      const rampRig = buildShark(def);
+      const rampUniforms = rampRig.group.userData.rfBendUniforms;
+      let expectedPhase = 0;
+      for (let i = 0; i < 96; i++) {
+        const speed = i / 95;
+        rampRig.animate(i / 60, { speedFrac: speed });
+        if (i > 0) expectedPhase += (2.2 + (8.5 - 2.2) * Math.pow(speed, 0.8)) * TAU / 60;
+        const expectedWrapped = expectedPhase % TAU;
+        const phaseError = Math.abs(rampUniforms.uBendPhase.value - expectedWrapped);
+        const amplitude = 0.06 + 0.30 * Math.pow(speed, 1.2);
+        if (phaseError > amplitude * 0.2 + 1e-9) throw new Error(`${def.id}: phase discontinuity ${phaseError} exceeds amp*0.2`);
+      }
     }
     const calibrationRows = [];
     for (const act of [1, 2, 3]) {
@@ -1525,6 +1666,7 @@ function __selftest() {
     let worstCaseId = null;
     for (const def of rows) {
       const rig = buildShark(def);
+      for (const material of bendMaterials(rig.group)) bendProgramKeys.add(material.customProgramCacheKey());
       const materials = auditMaterialOwnership(def, rig);
       result.materialAudit[def.id] = materials;
       const colorStats = bodyColorStats(rig.parts.body.geometry);
@@ -1572,6 +1714,8 @@ function __selftest() {
     };
     result.worstCaseTriangles = worstCaseTriangles;
     result.worstCaseId = worstCaseId;
+    result.bendProgramVariants = Array.from(bendProgramKeys).sort();
+    if (result.bendProgramVariants.length > 8) throw new Error(`bend program variants ${result.bendProgramVariants.length} > 8`);
     result.cacheBytes = cacheBytes();
     result.gpuEstimateMB = Number((result.cacheBytes / (1024 * 1024)).toFixed(3));
     if (result.cacheBytes > 120 * 1024 * 1024) throw new Error(`geometry cache exceeds 120MB: ${result.gpuEstimateMB}MB`);
@@ -1585,6 +1729,10 @@ function __selftest() {
     result.notes.push('every non-none Act 2/3 sil.fx key has a named emissive feature mesh; pattern veins/plates and FX families are feature-owned');
     result.notes.push('14 archetype face identities checked; tier 5+ face share, jaw volume, and tier-scaled tail gates checked');
     result.notes.push('kaiju plate row is camera-offset above body max z; mouth cavities and tooth rows are merged per shark');
+    result.notes.push(`bend hook injects phase/amp/k/span with stable :rf-bend cache keys; ${result.bendProgramVariants.length} program variants <= 8`);
+    result.notes.push('one per-rig bend uniform bundle is identity-shared by body, 1.045x shell compensation, and every feature batch; CPU bendOffset nose/tail reference checked');
+    result.notes.push('pose child owns yaw ±0.28, bank clamp ±0.35, vy pitch blend, and speed stretch; outer group scale remains the world/eat-pop authority');
+    result.notes.push('phase accumulator integrates continuous rate 2.2..8.5 Hz across a speed ramp with no amp*0.2 discontinuity; tail pivot follows body-wave slope');
     result.pass = true;
   } catch (error) {
     result.errors.push(error.message || String(error));
@@ -1594,6 +1742,8 @@ function __selftest() {
 
 const Art3D = {
   buildShark,
+  bendableMaterial,
+  bendOffset,
   billboard,
   __selftest,
   paletteOf,
@@ -1605,5 +1755,5 @@ const Art3D = {
 RF.Art3D = Art3D;
 ensureSharedGeometry();
 
-export { Art3D, buildShark, billboard, __selftest };
+export { Art3D, bendableMaterial, bendOffset, buildShark, billboard, __selftest };
 export default Art3D;

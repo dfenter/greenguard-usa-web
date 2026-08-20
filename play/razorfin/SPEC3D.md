@@ -132,3 +132,77 @@ owner iPhone verdict LAST. 60fps mid-phone: draw calls < 120, tris < 60k.
   nothing (atmosphere report becomes writes into module scratch).
 - TEST-01: the art gate is a SCREENSHOT gate at the gameplay camera, judged
   against the reference roster, not geometry assertions alone.
+
+## Rev 3 (Razorfin lane shark-bend, 2026-08-20)
+
+### Shark bend material contract
+
+`RF.Art3D.buildShark(def)` creates the bend materials at rig-build time. The
+source MeshToonMaterials remain the persistent template materials; every
+rendered body, outline shell, jaw, jaw-tooth, and merged feature batch uses a
+clone produced by `bendableMaterial(baseMat, uniforms)`. No material or
+geometry clone is permitted from `animate()` or any fixed-step path.
+
+Each rig owns exactly one `uniforms` bundle with these entries:
+
+```js
+{
+  uBendPhase: { value: 0 },
+  uBendAmp: { value: 0 },
+  uBendK: { value: 0 },
+  uBendSpan: { value: new THREE.Vector2(spanX, spanY) }
+}
+```
+
+The bundle object and all four entry objects are shared by identity by the
+rig's bendable material clones. `onBeforeCompile` adds the four uniforms after
+`<common>` and applies the lateral wave after `<begin_vertex>`:
+
+```glsl
+float bendT=smoothstep(uBendSpan.x,uBendSpan.y,-transformed.x);
+transformed.z += uBendAmp*bendT*sin(uBendPhase+transformed.x*uBendK);
+```
+
+Every clone supplies a stable `customProgramCacheKey()` ending in
+`:rf-bend`, based on its base shader variant. The shell keeps its 1.045 scale
+but multiplies the bend amplitude by `1.0 / 1.045` in its shader variant, so
+the outline does not drift away from the body wave. The enumerated bend
+program variants must remain `<= 8`.
+
+`bendOffset(x, phase, amp, k, spanX, spanY)` is the headless CPU reference
+for the exact smoothstep/sine deformation. GL context restoration must retain
+the material hooks, cache keys, and uniform identity on existing rigs (or
+rebuild those build-time clones and bundles together before the next render);
+the renderer may then recompile/prewarm the restored programs. Fixed-step
+animation writes only scalar uniform values and pre-existing object fields.
+
+### Rig pose contract
+
+The public rig shape remains `{ group, parts, animate }`, and consumers keep
+owning the outer group's world position, heading, bank, and eat-pop scale.
+Internally the hierarchy is `group -> pose -> parts`. The `pose` child is
+named `RF pose` and owns the visual read: yaw is `+0.28` for the normal
+facing and `-0.28` when the outer group has the engine's left-facing `PI`
+flip; bank is clamped to `±0.35` (starting at `±0.18`); pitch eases from
+`state.vy`; and speed stretch is `x *= 1 + 0.07*speedFrac`,
+`y/z *= 1 - 0.03*speedFrac`. The outer `group.scale` is never touched by
+`animate()`.
+
+The per-rig phase is continuous across speed changes:
+
+```js
+rate = lerp(2.2, 8.5, pow(speedFrac, 0.8));
+phase += rate * TAU * dt;
+amp = 0.06 + 0.30 * pow(speedFrac, 1.2);
+```
+
+The tail pivot follows `amp*k*cos(phase + tailRootX*k)` so the caudal fin
+continues the body wave. If `state.preyNear` is truthy, the jaw eases toward
+`0.35*gape` as anticipation; the existing bite/snap inputs remain valid.
+
+### Camera correction
+
+The live gameplay camera contract is perspective `fov 50` with the tiered
+dolly owned by `engine3d.js`: tier-1 base `z=470`, with the tiered deep-view
+value currently `z=360` where selected by the engine. The stale Rev 1 `z=620`
+value is not a shipped contract.
