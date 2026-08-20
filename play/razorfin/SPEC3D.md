@@ -132,3 +132,49 @@ owner iPhone verdict LAST. 60fps mid-phone: draw calls < 120, tris < 60k.
   nothing (atmosphere report becomes writes into module scratch).
 - TEST-01: the art gate is a SCREENSHOT gate at the gameplay camera, judged
   against the reference roster, not geometry assertions alone.
+
+## Rev 3 (Plan 3B environment contract, 2026-08-20)
+
+The environment is now owned by world3d.js as four static depth systems plus
+the existing animated water registries. These rules are binding for the
+environment builders and their selftest.
+
+- `buildGradientSheet()` creates exactly one opaque, fog-disabled RGBA mesh at
+  `z=-500`. It covers x `-400..7600` and sim y `-600..4200` with eight stacked
+  full-width quads. Zone top colours are the zone tint lerped 0.5 toward its
+  fog colour and then lightly lifted; zone bottoms are the next zone tint
+  darkened, with the final abyss corner at `#020408`. The colour transition
+  uses the same `ATMO_BLEND` band as `applyZoneAtmo`, so the world ramp and
+  camera fog agree at every zone boundary. The gradient material has
+  `transparent=false`, `depthWrite=true`, and `fog=false`, and receives no
+  per-frame writes.
+- `mergeRidge(heightline, opts)` is the sibling of `mergeQuads()` for terrain.
+  It consumes a one-dimensional sequence of `(x, topY)` points, emits a
+  triangle-strip-compatible top/bottom vertex pair per point, and stores RGBA
+  vertex colours. NaN point pairs may separate disconnected ledges inside one
+  batch; all geometry, colour arrays, and materials are created at init/build
+  time.
+- `buildTerrain()` creates four opaque, fog-disabled ridge batches: far at
+  `z=-340`, mid at `z=-200`, near at `z=-100`, and a sparse near-black
+  foreground crown strip at `z=+45`. The first three use rock-to-zone-water
+  colour mixes of `0.75`, `0.45`, and `0.20`, with alpha at least `0.9`; alpha
+  is a solid-depth choice, not a replacement for the colour distance from the
+  authored zone tint. The foreground crown occupies at most the bottom 12%
+  of the frame.
+- `buildShimmer()` and its animation/selftest contract are retired. The
+  static gradient supplies the water field, so `animateWater()` writes only
+  the existing caustic, ray, seam, kelp, silhouette, and surface registries.
+  The fixed-step path still allocates nothing and the gradient/terrain
+  registries remain unchanged after init.
+- Clear colour is a small fallback sampled from the world gradient, nudged
+  toward the authored zone tint and given only a restrained fog lift. This
+  keeps frustum-edge pixels aligned with the sheet while preserving saturated
+  zone colours when the sheet is not sampled.
+- The environment selftest must see one gradient mesh, four terrain meshes,
+  no shimmer state, a positive-z occluder, and an environment draw inventory
+  at or below 60. The lane allocates up to five new environment draw slots
+  before retirement, one sheet plus four terrain batches; retiring the old
+  shimmer removes one slot, for an effective net change of four.
+- `teardown()` detaches and disposes the gradient and all four terrain batches
+  through `envOwned`, alongside the existing environment resources. Repeated
+  init/teardown cycles must leave no gradient or terrain registry entries.

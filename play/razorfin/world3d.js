@@ -61,8 +61,6 @@ import * as THREE from 'three';
   var RAY_ROT_RATE = [0.06, 0.13];
   var RAY_ALPHA_LO = 0.5;      // alpha multiplier floor of the 0.5-1.0 cycle
   var RAY_ALPHA_RATE = [0.09, 0.19];
-  var SHIMMER_ALPHA = [0.012, 0.05];
-  var SHIMMER_RATE = 0.043;
   var SEAM_DRIFT = 70;         // thermocline seam horizontal travel, px
   var SEAM_RATE = [0.03, 0.06];
   var SWAY_AMP = [0.045, 0.13];        // kelp rotation amplitude, rad
@@ -110,7 +108,8 @@ import * as THREE from 'three';
   var Z_SEAM = -180;           // thermocline seams
   var Z_KELP = [-260, -140];   // kelp / rock billboard parallax band
   var Z_SIL = [-400, -300];    // midwater silhouettes, furthest back
-  var Z_SHIMMER = -420;        // whole-water tint, behind everything
+  var Z_GRADIENT = -500;       // opaque world-anchored water gradient sheet
+  var Z_TERRAIN = [-340, -200, -100, 45];
 
   var SURFACE_LIGHT_H = 500;   // rays reach this far down from y=0
 
@@ -140,6 +139,8 @@ import * as THREE from 'three';
     packs: null,               // Map: packId -> pooled record {dx, dy, t, owner}
     decor: [],                 // static decoration objects (never per-frame)
     surface: null,             // {mesh, foam} surface plane at y = 0
+    gradient: null,             // opaque world-anchored gradient sheet
+    terrain: [],               // far, mid, near, and foreground ridge batches
     surfaceT: 0,
     ambientT: 0,
     inited: false,
@@ -148,7 +149,6 @@ import * as THREE from 'three';
     // only has scalar fields written per frame.
     caustics: [],
     rays: [],
-    shimmer: null,
     seams: [],
     swayers: [],
     drifters: [],
@@ -672,10 +672,9 @@ import * as THREE from 'three';
   // ========================================================== ENVIRONMENT
   //
   // SPEC3D replaces world.js's five painted background layers with real 3D
-  // atmosphere. The zone gradient bands, fog rects and vignette bars are GONE:
-  // scene.fog plus the renderer clear colour now do that work, and they do it
-  // better because they respond to the camera's actual depth rather than to a
-  // painted band the camera happens to be in front of.
+  // atmosphere. The authored water ramp is now one opaque world-anchored sheet;
+  // scene.fog and the renderer clear colour carry the continuous camera cue,
+  // while terrain and the remaining decor supply depth silhouettes.
   //
   // What survives as geometry, and why:
   //   god rays      additive planes, they are LIGHT and must overlay
@@ -683,10 +682,13 @@ import * as THREE from 'three';
   //   surface       an actual plane at y = 0 plus a foam strip
   //   kelp / rocks  billboards at parallax z, they are OBJECTS with silhouette
   //   silhouettes   very transparent dark planes, the far-water landmarks
-  //   shimmer       one huge very faint additive plane, the water's own breath
+  //   gradient     one opaque RGBA sheet spanning the world plus overshoot
+  //   terrain      three parallax ridges plus one sparse foreground occluder
   //   seams         thermocline bands at zone boundaries
   //
-  // Everything is built ONCE in init and only has scalars written per frame.
+  // Everything is built ONCE in init. Only the existing animated water
+  // registries receive scalar writes per frame; the gradient and terrain are
+  // completely static.
 
   // ------------------------------------------------- PERF-03 batching
   //
@@ -729,21 +731,26 @@ import * as THREE from 'three';
     return envOwned;
   }
 
-  function envMaterial(color, opacity, additive, map, vcolors) {
+  function envMaterial(color, opacity, additive, map, vcolors, flags) {
     if (!isThree()) return null;
     ownership();
+    flags = flags || {};
+    var noFog = flags.fog === false;
+    var opaque = flags.opaque === true;
     var key = 'e' + ((color >>> 0).toString(16)) + '_' + Math.round(opacity * 1000) +
       (additive ? '_a' : '') + (vcolors ? '_v' : '') +
+      (noFog ? '_nf' : '_f') + (opaque ? '_o' : '_t') +
       (map && map.uuid ? ('_m' + map.uuid) : '');
     var cached = envMatCache[key];
     if (cached) return cached;
     var m = new THREE.MeshBasicMaterial({
       color: color,
-      transparent: true,
-      opacity: opacity,
+      transparent: !opaque,
+      opacity: opaque ? 1 : opacity,
       side: THREE.DoubleSide,
-      depthWrite: false,
+      depthWrite: opaque,
     });
+    m.fog = !noFog;
     if (map) { m.map = map; if ('toneMapped' in m) m.toneMapped = false; }
     if (vcolors) m.vertexColors = true;
     if (additive && THREE.AdditiveBlending !== undefined) m.blending = THREE.AdditiveBlending;
@@ -764,8 +771,9 @@ import * as THREE from 'three';
   }
 
   // A plane whose OPACITY is written per frame cannot share a material with
-  // anything else, because opacity lives on the material. The handful of
-  // objects that breathe (caustics, shimmer) therefore ask for a private one.
+  // anything else, because opacity lives on the material. The caustics
+  // therefore ask for private materials; static environment batches use the
+  // cache above.
   function planeMeshPrivate(w, h, color, opacity, additive) {
     var g = quadGeo();
     if (!g) return null;
@@ -803,6 +811,18 @@ import * as THREE from 'three';
     q.cx = cx; q.cy = cy; q.z = z; q.w = w; q.h = h;
     q.rot = rot || 0; q.mirror = mirror < 0 ? -1 : 1;
     q.color = color; q.alpha = alpha;
+    q.topColor = color; q.bottomColor = color;
+    q.topAlpha = alpha; q.bottomAlpha = alpha;
+    return q;
+  }
+
+  function quadPushGradient(cx, cy, z, w, h, rot, mirror,
+                            topColor, bottomColor, topAlpha, bottomAlpha) {
+    var q = quadPush(cx, cy, z, w, h, rot, mirror, topColor, topAlpha);
+    q.topColor = topColor;
+    q.bottomColor = bottomColor;
+    q.topAlpha = topAlpha;
+    q.bottomAlpha = bottomAlpha;
     return q;
   }
 
@@ -826,9 +846,6 @@ import * as THREE from 'three';
     for (var i = 0; i < n; i++) {
       var q = quadScratch[i];
       var cs = Math.cos(q.rot), sn = Math.sin(q.rot);
-      var r = ((q.color >> 16) & 255) / 255;
-      var g = ((q.color >> 8) & 255) / 255;
-      var b = (q.color & 255) / 255;
       for (var c = 0; c < 4; c++) {
         var lx = QUAD_X[c] * q.w * q.mirror;
         var ly = QUAD_Y[c] * q.h;
@@ -838,7 +855,11 @@ import * as THREE from 'three';
         pos[vi * 3 + 2] = q.z;
         uv[vi * 2] = QUAD_U[c];
         uv[vi * 2 + 1] = QUAD_V[c];
-        col[vi * 4] = r; col[vi * 4 + 1] = g; col[vi * 4 + 2] = b; col[vi * 4 + 3] = q.alpha;
+        var cc = c >= 2 ? q.topColor : q.bottomColor;
+        col[vi * 4] = ((cc >> 16) & 255) / 255;
+        col[vi * 4 + 1] = ((cc >> 8) & 255) / 255;
+        col[vi * 4 + 2] = (cc & 255) / 255;
+        col[vi * 4 + 3] = c >= 2 ? q.topAlpha : q.bottomAlpha;
       }
       for (var t = 0; t < 6; t++) idx[i * 6 + t] = i * 4 + QUAD_IDX[t];
     }
@@ -852,6 +873,71 @@ import * as THREE from 'three';
     return geo;
   }
 
+  // A ridge is a triangle strip described by consecutive (x, topY) pairs.
+  // NaN pairs break the strip, which lets one opaque batch carry the main
+  // seafloor and its disconnected zone shelf ledges. Optional per-point
+  // colours/bases are build-time arrays; the fixed step never sees them.
+  function mergeRidge(heightline, opts) {
+    if (!isThree() || !heightline || heightline.length < 4) return null;
+    opts = opts || {};
+    var pairN = heightline.length / 2;
+    var pointN = 0;
+    var p;
+    for (p = 0; p < pairN; p++) {
+      if (heightline[p * 2] === heightline[p * 2] && heightline[p * 2 + 1] === heightline[p * 2 + 1]) pointN++;
+    }
+    if (pointN < 2) return null;
+    ownership();
+    var pos = new Float32Array(pointN * 2 * 3);
+    var col = new Float32Array(pointN * 2 * 4);
+    var idx = new Uint32Array((pointN - 1) * 6);
+    var topColors = opts.topColors || null;
+    var bottomColors = opts.bottomColors || null;
+    var topAlphas = opts.topAlphas || null;
+    var bottomAlphas = opts.bottomAlphas || null;
+    var point = 0, previous = -1, indexN = 0;
+    for (p = 0; p < pairN; p++) {
+      var x = heightline[p * 2];
+      var topY = heightline[p * 2 + 1];
+      if (!(x === x && topY === topY)) { previous = -1; continue; }
+      var baseY = opts.baseYs && opts.baseYs[p] === opts.baseYs[p] ? opts.baseYs[p] : opts.baseY;
+      var topColor = topColors && topColors[p] !== undefined ? topColors[p] : (opts.topColor === undefined ? 0xffffff : opts.topColor);
+      var bottomColor = bottomColors && bottomColors[p] !== undefined ? bottomColors[p] : (opts.bottomColor === undefined ? topColor : opts.bottomColor);
+      var topAlpha = topAlphas && topAlphas[p] !== undefined ? topAlphas[p] : (opts.topAlpha === undefined ? 1 : opts.topAlpha);
+      var bottomAlpha = bottomAlphas && bottomAlphas[p] !== undefined ? bottomAlphas[p] : (opts.bottomAlpha === undefined ? 1 : opts.bottomAlpha);
+      var tv = point * 2;
+      var bv = tv + 1;
+      pos[tv * 3] = x; pos[tv * 3 + 1] = topY; pos[tv * 3 + 2] = 0;
+      pos[bv * 3] = x; pos[bv * 3 + 1] = baseY; pos[bv * 3 + 2] = 0;
+      col[tv * 4] = ((topColor >> 16) & 255) / 255;
+      col[tv * 4 + 1] = ((topColor >> 8) & 255) / 255;
+      col[tv * 4 + 2] = (topColor & 255) / 255;
+      col[tv * 4 + 3] = topAlpha;
+      col[bv * 4] = ((bottomColor >> 16) & 255) / 255;
+      col[bv * 4 + 1] = ((bottomColor >> 8) & 255) / 255;
+      col[bv * 4 + 2] = (bottomColor & 255) / 255;
+      col[bv * 4 + 3] = bottomAlpha;
+      if (previous >= 0) {
+        idx[indexN++] = previous * 2;
+        idx[indexN++] = previous * 2 + 1;
+        idx[indexN++] = tv;
+        idx[indexN++] = tv;
+        idx[indexN++] = previous * 2 + 1;
+        idx[indexN++] = bv;
+      }
+      previous = point;
+      point++;
+    }
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 4));
+    if (typeof geo.setIndex === 'function') geo.setIndex(new THREE.BufferAttribute(idx, 1));
+    geo.userData = geo.userData || {};
+    geo.userData.rfRidge = true;
+    envOwned.geos.push(geo);
+    return geo;
+  }
+
   // Build ONE mesh from whatever is currently in the quad scratch. `map` is a
   // texture shared by every quad in the batch (or null for flat colour). The
   // material is vertex-coloured so the batch's per-quad tint and alpha survive
@@ -861,8 +947,8 @@ import * as THREE from 'three';
   // lives on the material, so such a batch cannot share one. Everything static
   // takes the cached material and shares it with every other batch of the same
   // look, which is what collapses the draw calls.
-  function batchMesh(map, additive, z, privateMat) {
-    var geo = mergeQuads();
+  function batchMesh(map, additive, z, privateMat, flags, suppliedGeo) {
+    var geo = suppliedGeo || mergeQuads();
     if (!geo) return null;
     var mat;
     if (privateMat) {
@@ -874,7 +960,7 @@ import * as THREE from 'three';
       if (additive && THREE.AdditiveBlending !== undefined) mat.blending = THREE.AdditiveBlending;
       envOwned.mats.push(mat);
     } else {
-      mat = envMaterial(0xffffff, 1, additive, map, true);
+      mat = envMaterial(0xffffff, 1, additive, map, true, flags);
     }
     if (!mat) return null;
     var mesh = new THREE.Mesh(geo, mat);
@@ -964,21 +1050,11 @@ import * as THREE from 'three';
   var ATMO_BLEND = 260;        // px either side of a boundary that cross-fades
   var FOG_D0 = 0.00013;        // fog density at pressureTier 1 (shallow)
   var FOG_D1 = 0.00046;        // fog density at the deepest pressureTier
-  // CLEAR_MIX: how far the clear colour travels from the authored zone TINT
-  // toward that zone's pale FOG colour.
-  //
-  // This was 0.55 and it is the single number that made the retuned zone 1
-  // read as pastel baby-blue milk. The authored shelf tint 0x1b4d66 is a rich
-  // blue at HSV saturation 0.735; the shelf fog 0x9fd4e8 is nearly white at
-  // 0.315. Travelling 55 percent of that distance lands on 0x6497ae, S 0.425,
-  // which is below the 0.45 bar and reads as milk rather than water. Bright
-  // and SATURATED was the requirement; 0.55 delivered bright and washed.
-  //
-  // At 0.22 the shelf clear is 0x376a82 at S 0.573, comfortably saturated,
-  // still clearly lighter and airier than the raw tint so the shelf does not
-  // read as heavy. The authored palette does the work; the fog lift is now an
-  // accent on it rather than a replacement for it.
-  var CLEAR_MIX = 0.22;        // clear colour sits near the authored tint
+  // The clear colour is sampled from the sheet, nudged toward the authored
+  // tint so the darkest zone retains chroma, then given a very small fog lift.
+  // The opaque sheet still owns the actual vertical ramp.
+  var CLEAR_TINT_MIX = 0.30;
+  var CLEAR_MIX = 0.04;
   var FOG_NEAR = 620;          // camera to gameplay plane, SPEC3D camera contract
   var FOREGROUND_KEEP = 0.92;  // minimum of its own colour the play plane keeps
   // Hemisphere and sun intensity at shallow -> deep. Floors are deliberately
@@ -1084,12 +1160,12 @@ import * as THREE from 'three';
     var dens = guardDensity(
       zoneDensity(atmoZa) + (zoneDensity(atmoZb) - zoneDensity(atmoZa)) * t);
     var depth = zoneDepthFrac(atmoZa) + (zoneDepthFrac(atmoZb) - zoneDepthFrac(atmoZa)) * t;
-    // The water the camera sits in: mostly the zone tint, lifted toward its
-    // own fog so a shallow zone reads airy and the abyss reads heavy. The
-    // clear colour is NOT pushed all the way to the fog colour, because the
-    // clear colour is what the far parallax band silhouettes against and a
-    // clear identical to the fog erases that band entirely.
-    var clearCol = lerpColor(tintCol, fogCol, CLEAR_MIX * (1 - depth * 0.35));
+    // The opaque sheet is the source of truth for the vertical ramp. Clear is
+    // only a fallback for a pixel outside its world+overshoot bounds, so sample
+    // the sheet at the camera depth and apply a restrained fog lift.
+    var clearBase = lerpColor(gradientColorAt(camY), tintCol, CLEAR_TINT_MIX);
+    var clearCol = lerpColor(clearBase, fogCol,
+      CLEAR_MIX * (1 - depth * 0.35));
 
     if (sc && S.fog) {
       if (S.fog.color && S.fog.color.setHex) S.fog.color.setHex(fogCol);
@@ -1291,24 +1367,204 @@ import * as THREE from 'three';
     }
   }
 
-  // -------------------------------------------------------------- shimmer
-  // ONE huge, very faint additive plane behind everything, whose opacity
-  // breathes at a low amplitude. It stops the column reading as a dead flat
-  // fill even where no other animated layer is on screen. One mesh, one
-  // opacity write per frame.
-  function buildShimmer() {
+  // -------------------------------------------------------- gradient sheet
+  // The water colour is world-anchored geometry, not a full-screen effect.
+  // Eight RGBA quads cover the authored world plus a frustum overshoot; the
+  // corner colours are sampled from the same zone transition used by fog.
+  function gradientZoneTop(z) {
+    return lerpColor(lerpColor(hexNum(z.tint), hexNum(z.fog), 0.5), 0xffffff, 0.12);
+  }
+
+  function gradientZoneBottom(z, next) {
+    if (!next) return 0x020408;
+    return lerpColor(hexNum(next.tint), 0x000000, 0.18);
+  }
+
+  function gradientZoneColor(z, next, simY) {
+    var span = z.yMax - z.yMin;
+    var u = span > 0 ? clamp((simY - z.yMin) / span, 0, 1) : 0;
+    return lerpColor(gradientZoneTop(z), gradientZoneBottom(z, next), u);
+  }
+
+  // Same +-ATMO_BLEND transition as resolveAtmo(), so the authored sheet and
+  // the camera fog never disagree at a zone boundary.
+  function gradientColorAt(simY) {
+    var Z = zones();
+    if (!Z.length) return 0x020408;
+    var idx = 0;
+    for (var i = 0; i < Z.length; i++) {
+      if (simY >= Z[i].yMin && simY < Z[i].yMax) { idx = i; break; }
+      if (simY >= Z[Z.length - 1].yMax) idx = Z.length - 1;
+    }
+    var z = Z[idx];
+    var next = idx < Z.length - 1 ? Z[idx + 1] : null;
+    var c = gradientZoneColor(z, next, simY);
+    var dLo = z.yMax - simY;
+    if (idx < Z.length - 1 && dLo < ATMO_BLEND) {
+      var cNext = gradientZoneColor(next, idx + 1 < Z.length - 1 ? Z[idx + 2] : null, simY);
+      c = lerpColor(c, cNext, clamp((ATMO_BLEND - dLo) / (ATMO_BLEND * 2), 0, 0.5));
+    } else {
+      var dHi = simY - z.yMin;
+      if (idx > 0 && dHi < ATMO_BLEND) {
+        var prev = Z[idx - 1];
+        var cPrev = gradientZoneColor(prev, z, simY);
+        c = lerpColor(c, cPrev, clamp((ATMO_BLEND - dHi) / (ATMO_BLEND * 2), 0, 0.5));
+      }
+    }
+    return c;
+  }
+
+  function buildGradientSheet() {
     if (!isThree()) return;
-    // Private material: this plane's opacity breathes every frame.
-    var mesh = planeMeshPrivate(S.w, S.h, 0x2ea3c8, SHIMMER_ALPHA[0], true);
+    var Z = zones();
+    if (!Z.length) return;
+    var bandN = Z.length * 2;
+    quadReset();
+    for (var b = 0; b < bandN; b++) {
+      var top, bottom;
+      if (b === 0) {
+        top = -600;
+        bottom = Z[0].yMin + (Z[0].yMax - Z[0].yMin) / 6;
+      } else if (b === 1) {
+        top = Z[0].yMin + (Z[0].yMax - Z[0].yMin) / 6;
+        bottom = Z[0].yMax;
+      } else {
+        var zi = Math.floor(b / 2);
+        if (b % 2 === 0) {
+          top = Z[zi - 1].yMax;
+          bottom = Z[zi].yMin + (Z[zi].yMax - Z[zi].yMin) * 0.5;
+        } else {
+          top = Z[zi].yMin + (Z[zi].yMax - Z[zi].yMin) * 0.5;
+          bottom = zi === Z.length - 1 ? 4200 : Z[zi].yMax;
+        }
+      }
+      quadPushGradient(S.w * 0.5, -(top + bottom) * 0.5, Z_GRADIENT,
+        S.w + 800, bottom - top, 0, 1,
+        gradientColorAt(top), gradientColorAt(bottom), 1, 1);
+    }
+    var mesh = batchMesh(null, false, Z_GRADIENT, false, { fog: false, opaque: true });
     if (!mesh) return;
-    setPos(mesh, S.w * 0.5, S.h * 0.5, Z_SHIMMER);
     sceneAdd(mesh);
     S.decor.push(mesh);
-    S.shimmer = {
-      img: mesh, aBase: SHIMMER_ALPHA[0],
-      aAmp: SHIMMER_ALPHA[1] - SHIMMER_ALPHA[0],
-      rate: SHIMMER_RATE, phase: 0.7,
-    };
+    S.gradient = { mesh: mesh, geometry: mesh.geometry, material: mesh.material };
+  }
+
+  // -------------------------------------------------------------- terrain
+  // One reusable line scratch describes each ridge at build time. A NaN pair
+  // breaks the strip, allowing the same geometry batch to carry shelf ledges
+  // at their own local base depth without adding draw calls.
+  var ridgeLineScratch = [];
+  var ridgeBaseScratch = [];
+  var ridgeTopColorScratch = [];
+  var ridgeBottomColorScratch = [];
+  var ridgeTopAlphaScratch = [];
+  var ridgeBottomAlphaScratch = [];
+  var ridgePointN = 0;
+  var DARK_ROCK = 0x101820;
+
+  function ridgeReset() { ridgePointN = 0; }
+  function ridgeBreak() {
+    ridgeLineScratch[ridgePointN * 2] = NaN;
+    ridgeLineScratch[ridgePointN * 2 + 1] = NaN;
+    ridgeBaseScratch[ridgePointN] = NaN;
+    ridgeTopColorScratch[ridgePointN] = 0;
+    ridgeBottomColorScratch[ridgePointN] = 0;
+    ridgeTopAlphaScratch[ridgePointN] = 0;
+    ridgeBottomAlphaScratch[ridgePointN] = 0;
+    ridgePointN++;
+  }
+  function terrainZone(simY) {
+    var Z = zones();
+    if (!Z.length) return null;
+    for (var i = 0; i < Z.length; i++) {
+      if (simY >= Z[i].yMin && simY < Z[i].yMax) return Z[i];
+    }
+    return simY < Z[0].yMin ? Z[0] : Z[Z.length - 1];
+  }
+  function ridgePush(x, simTop, simBase, mix, occluder) {
+    var z = terrainZone(simTop);
+    var water = z ? hexNum(z.tint) : 0x071522;
+    var topColor = occluder ? 0x020408 : lerpColor(DARK_ROCK, water, mix);
+    var bottomColor = occluder ? 0x010204 : lerpColor(topColor, 0x020408, 0.38);
+    ridgeLineScratch[ridgePointN * 2] = x;
+    ridgeLineScratch[ridgePointN * 2 + 1] = -simTop;
+    ridgeBaseScratch[ridgePointN] = -simBase;
+    ridgeTopColorScratch[ridgePointN] = topColor;
+    ridgeBottomColorScratch[ridgePointN] = bottomColor;
+    ridgeTopAlphaScratch[ridgePointN] = occluder ? 0.98 : 0.94;
+    ridgeBottomAlphaScratch[ridgePointN] = 1;
+    ridgePointN++;
+  }
+
+  function buildTerrain() {
+    if (!isThree()) return;
+    var Z = zones();
+    var mixes = [0.75, 0.45, 0.20];
+    var tops = [3460, 3370, 3260];
+    var waves = [70, 115, 155];
+    var points = 25;
+    var width = S.w + 800;
+    for (var layer = 0; layer < 3; layer++) {
+      ridgeReset();
+      for (var p = 0; p < points; p++) {
+        var x = -400 + width * p / (points - 1);
+        var wave = Math.sin(p * 1.73 + layer * 1.9) * waves[layer] +
+          Math.sin(p * 0.41 + layer * 0.7) * waves[layer] * 0.35;
+        ridgePush(x, clamp(tops[layer] + wave, 3140, 3575), S.h, mixes[layer], false);
+      }
+      // Staggered, per-zone ledges make each depth shelf readable while
+      // remaining inside the same ridge draw.
+      for (var zi = 0; zi < Z.length - 1; zi++) {
+        var shelf = Z[zi];
+        var sx0 = -300 + width * zi / Z.length;
+        var sx1 = sx0 + width / Z.length - 100;
+        ridgeBreak();
+        for (var sp = 0; sp < 5; sp++) {
+          var sx = sx0 + (sx1 - sx0) * sp / 4;
+          var sy = shelf.yMax - 75 - layer * 18 + Math.sin(sp * 1.7 + zi) * 14;
+          ridgePush(sx, sy, shelf.yMax + 55 + layer * 12, mixes[layer], false);
+        }
+      }
+      var geo = mergeRidge(ridgeLineScratch, {
+        baseY: -S.h,
+        baseYs: ridgeBaseScratch,
+        topColors: ridgeTopColorScratch,
+        bottomColors: ridgeBottomColorScratch,
+        topAlphas: ridgeTopAlphaScratch,
+        bottomAlphas: ridgeBottomAlphaScratch,
+      });
+      var mesh = batchMesh(null, false, Z_TERRAIN[layer], false,
+        { fog: false, opaque: true }, geo);
+      if (!mesh) continue;
+      sceneAdd(mesh);
+      S.decor.push(mesh);
+      S.terrain.push({ mesh: mesh, layer: layer, occluder: false });
+    }
+
+    // A sparse, almost-black crown strip sits in front of the gameplay plane.
+    // Its tallest point is 432px above the world floor, the 12% frame limit.
+    ridgeReset();
+    var crownN = 18;
+    for (var cp = 0; cp < crownN; cp++) {
+      var cx = -400 + width * cp / (crownN - 1);
+      var crown = 3440 + Math.sin(cp * 2.17) * 105 + Math.sin(cp * 0.51) * 35;
+      ridgePush(cx, clamp(crown, S.h - 432, S.h - 36), S.h, 0, true);
+    }
+    var crownGeo = mergeRidge(ridgeLineScratch, {
+      baseY: -S.h,
+      baseYs: ridgeBaseScratch,
+      topColors: ridgeTopColorScratch,
+      bottomColors: ridgeBottomColorScratch,
+      topAlphas: ridgeTopAlphaScratch,
+      bottomAlphas: ridgeBottomAlphaScratch,
+    });
+    var crownMesh = batchMesh(null, false, Z_TERRAIN[3], false,
+      { fog: false, opaque: true }, crownGeo);
+    if (crownMesh) {
+      sceneAdd(crownMesh);
+      S.decor.push(crownMesh);
+      S.terrain.push({ mesh: crownMesh, layer: 3, occluder: true });
+    }
   }
 
   // ---------------------------------------------------------------- seams
@@ -1603,7 +1859,7 @@ import * as THREE from 'three';
       sceneAdd(mesh);
       S.decor.push(mesh);
       // Amplitude is deliberately tiny: these shapes are ANCHORED and must
-      // stay rooted. This is a shimmer of distance, not a floating shape.
+      // stay rooted. This is a bounded drift of distance, not a floating shape.
       S.drifters.push({
         img: mesh, x0: 0, y0: 0,
         ampX: rr(SIL_DRIFT[0], SIL_DRIFT[1]),
@@ -1615,7 +1871,8 @@ import * as THREE from 'three';
   }
 
   function buildBackground() {
-    buildShimmer();
+    buildGradientSheet();
+    buildTerrain();
     buildSeams();
     buildMidwaterDecor();
     buildDecor();
@@ -2549,13 +2806,6 @@ import * as THREE from 'three';
       if (o.material) o.material.opacity = ra;
     }
 
-    // Whole-water tint shimmer. One plane, one opacity write.
-    if (S.shimmer && S.shimmer.img) {
-      rec = S.shimmer;
-      var sa = rec.aBase + (0.5 + 0.5 * Math.sin(t * rec.rate * TAU + rec.phase)) * rec.aAmp;
-      if (rec.img.material) rec.img.material.opacity = sa;
-    }
-
     // Thermocline seams drift sideways, so a zone boundary looks like water
     // moving through a temperature layer rather than a pasted-on gradient.
     // Same story as the drifters: a seam is now one merged batch whose
@@ -2881,12 +3131,13 @@ import * as THREE from 'three';
     for (i = 0; i < S.decor.length; i++) detach(S.decor[i]);
     S.decor.length = 0;
     S.surface = null;
+    S.gradient = null;
+    S.terrain.length = 0;
     S.caustics.length = 0;
     S.rays.length = 0;
     S.seams.length = 0;
     S.swayers.length = 0;
     S.drifters.length = 0;
-    S.shimmer = null;
 
     // 4. GPU resources this run created. Materials and geometry are disposed
     //    in bulk from the ownership lists, which is why every creation site
@@ -2983,6 +3234,8 @@ import * as THREE from 'three';
     resetHits();
     S.decor.length = 0;
     S.surface = null;
+    S.gradient = null;
+    S.terrain.length = 0;
     S.surfaceT = 0;
     S.ambientT = 0;
     S.matCache = {};
@@ -3011,7 +3264,6 @@ import * as THREE from 'three';
     S.seams.length = 0;
     S.swayers.length = 0;
     S.drifters.length = 0;
-    S.shimmer = null;
     S.animT = 0;
     S.lastNow = -1;
     S.headless = !(scene3 && typeof scene3.add === 'function');
@@ -3709,7 +3961,43 @@ import * as THREE from 'three';
       chk(S.seams.length > 0, 'thermocline seams registered for drift (' + S.seams.length + ')');
       chk(S.swayers.length > 0, 'kelp registered for sway (' + S.swayers.length + ')');
       chk(S.drifters.length > 0, 'midwater silhouettes registered for drift (' + S.drifters.length + ')');
-      chk(!!S.shimmer, 'whole-water tint shimmer plane built');
+      chk(!!S.gradient && !!S.gradient.mesh, 'opaque world-anchored gradient sheet built');
+      if (S.gradient && S.gradient.mesh) {
+        var gm = S.gradient.mesh.material;
+        var gp = S.gradient.mesh.geometry && S.gradient.mesh.geometry.attributes &&
+          S.gradient.mesh.geometry.attributes.position;
+        var gc = S.gradient.mesh.geometry && S.gradient.mesh.geometry.attributes &&
+          S.gradient.mesh.geometry.attributes.color;
+        var gxMin = Infinity, gxMax = -Infinity, gyMin = Infinity, gyMax = -Infinity;
+        if (gp && gp.array) {
+          for (var gi = 0; gi < gp.array.length; gi += 3) {
+            if (gp.array[gi] < gxMin) gxMin = gp.array[gi];
+            if (gp.array[gi] > gxMax) gxMax = gp.array[gi];
+            if (gp.array[gi + 1] < gyMin) gyMin = gp.array[gi + 1];
+            if (gp.array[gi + 1] > gyMax) gyMax = gp.array[gi + 1];
+          }
+        }
+        chk(gm && gm.transparent === false && gm.fog === false && gm.depthWrite === true,
+          'gradient material is opaque and fog-disabled');
+        chk(gc && gc.itemSize === 4, 'gradient carries RGBA vertex colours');
+        chk(gxMin <= -399.9 && gxMax >= 7599.9 && gyMin <= -4199.9 && gyMax >= 599.9,
+          'gradient sheet spans world plus overshoot x -400..7600, y -600..4200');
+      }
+      chk(S.terrain.length === 4, 'terrain is exactly four ridge batches (' + S.terrain.length + ')');
+      var terrainZOk = S.terrain.length === 4, terrainRgbaOk = true, terrainOpaque = true;
+      var foregroundOk = false;
+      for (var tri = 0; tri < S.terrain.length; tri++) {
+        var to = S.terrain[tri] && S.terrain[tri].mesh;
+        if (!to || !to.geometry || !to.geometry.userData || !to.geometry.userData.rfRidge) terrainRgbaOk = false;
+        if (!to || !to.material || to.material.transparent !== false || to.material.fog !== false) terrainOpaque = false;
+        if (!to || !to.geometry.attributes.color || to.geometry.attributes.color.itemSize !== 4) terrainRgbaOk = false;
+        if (!to || Math.abs(to.position.z - Z_TERRAIN[tri]) > 1e-9) terrainZOk = false;
+        if (tri === 3 && to && to.position.z > 0) foregroundOk = true;
+      }
+      chk(terrainZOk && terrainRgbaOk && terrainOpaque,
+        'terrain ridges carry opaque fog-disabled RGBA batches at z -340/-200/-100/+45');
+      chk(foregroundOk, 'foreground terrain occluder sits in front of gameplay at z ' +
+        (S.terrain[3] && S.terrain[3].mesh ? S.terrain[3].mesh.position.z : 'missing'));
       chk(!!S.surface && !!S.surface.mesh, 'surface plane built at the waterline');
       chk(!!(S.surface && S.surface.foam), 'surface foam strip built');
       chk(!!S.surface && Math.abs(S.surface.mesh.position.y + 27) < 1e-6,
@@ -3720,8 +4008,10 @@ import * as THREE from 'three';
       var rayRotMin = Infinity, rayRotMax = -Infinity;
       var rayAlphaMin = Infinity, rayAlphaMax = -Infinity;
       var caX = [];
-      var shimMin = Infinity, shimMax = -Infinity;
       var swayMin = Infinity, swayMax = -Infinity;
+      var gradientZ0 = S.gradient.mesh.position.z;
+      var terrainZ0 = S.terrain[0].mesh.position.z;
+      var gradientOpacity0 = S.gradient.mesh.material.opacity;
       for (var wstep = 0; wstep < 900; wstep++) {
         ctx.time.now += 1 / 60;
         World.update(ctx);
@@ -3732,9 +4022,6 @@ import * as THREE from 'three';
         if (ralpha < rayAlphaMin) rayAlphaMin = ralpha;
         if (ralpha > rayAlphaMax) rayAlphaMax = ralpha;
         if (wstep % 90 === 0) caX.push(S.caustics[0].img.position.x);
-        var shA = S.shimmer.img.material.opacity;
-        if (shA < shimMin) shimMin = shA;
-        if (shA > shimMax) shimMax = shA;
         var swR = S.swayers[0].img.rotation.z;
         if (swR < swayMin) swayMin = swR;
         if (swR > swayMax) swayMax = swR;
@@ -3748,11 +4035,11 @@ import * as THREE from 'three';
       var caMoved = false;
       for (var cq = 1; cq < caX.length; cq++) if (Math.abs(caX[cq] - caX[0]) > 1) caMoved = true;
       chk(caMoved, 'caustic plane drifts horizontally over time');
-      chk(shimMax - shimMin > 1e-4 && shimMax <= SHIMMER_ALPHA[1] + 1e-9 && shimMin >= 0,
-        'water tint shimmer breathes inside its authored alpha band (' +
-        shimMin.toFixed(4) + ' to ' + shimMax.toFixed(4) + ')');
       chk(swayMax - swayMin > 1e-4 && Math.abs(swayMax) <= SWAY_AMP[1] * 1.6,
         'kelp sways in rotation about its rooted base (span ' + (swayMax - swayMin).toFixed(4) + ' rad)');
+      chk(S.gradient.mesh.position.z === gradientZ0 && S.terrain[0].mesh.position.z === terrainZ0 &&
+          S.gradient.mesh.material.opacity === gradientOpacity0,
+        'gradient and terrain remain static while animateWater updates its registries');
       var regAfter = S.caustics.length + S.rays.length + S.seams.length +
                      S.swayers.length + S.drifters.length;
       chk(regAfter === regBefore, 'animation registries never grow during update (' + regAfter + ')');
@@ -4388,7 +4675,7 @@ import * as THREE from 'three';
       chk(S.inited === false && S.decor.length === 0 && S.entities.length === 0 &&
         S.pool.length === 0 && S.rays.length === 0 && S.seams.length === 0 &&
         S.swayers.length === 0 && S.drifters.length === 0 && S.caustics.length === 0 &&
-        S.shimmer === null && S.surface === null && S.fog === null,
+        S.gradient === null && S.terrain.length === 0 && S.surface === null && S.fog === null,
         'LIFE-01: teardown clears every environment and entity registry it owns');
       chk(lifeScene.fog === null,
         "LIFE-01: teardown releases the scene's fog slot when it still points at ours");
