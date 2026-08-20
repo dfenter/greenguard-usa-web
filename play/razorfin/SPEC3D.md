@@ -53,7 +53,8 @@ buildShark(def) -> { group: THREE.Group, parts: {body, tail, pect L/R, jaw|null}
   wraps an existing baked canvas texture into a double-sided plane sprite.
 
 ## world3d.js (Lane B) - RF.World, SAME API as world.js
-init(scene3, ctx) / update(ctx) / query(x,y,r,kind) / kill(ent,cause) /
+init(scene3, ctx) / update(ctx) / query(x,y,r,kind) / eatQuery(x,y,r) /
+kill(ent,cause) /
 spawnBurst / zoneAt(y) / entities / playerHits. Port the SIM verbatim from
 world.js (AI, spatial hash, pools, spawner, status effects, surface clamp
 from rev5) - swap sprite code for: prey/hazards/pickups = billboard planes
@@ -100,7 +101,6 @@ selftests per module (__selftest), texture+geometry memory <= 120MB, Luna
 adversarial review + art critique vs the reference images, Fable signoff,
 owner iPhone verdict LAST. 60fps mid-phone: draw calls < 120, tris < 60k.
 
-
 ## Rev 2 (post REVIEW-3D, orchestrator rulings)
 
 - ATMOSPHERE OWNER: world3d.js exclusively (fog, clear color, hemisphere lerp
@@ -132,3 +132,30 @@ owner iPhone verdict LAST. 60fps mid-phone: draw calls < 120, tris < 60k.
   nothing (atmosphere report becomes writes into module scratch).
 - TEST-01: the art gate is a SCREENSHOT gate at the gameplay camera, judged
   against the reference roster, not geometry assertions alone.
+
+## Rev 3 (world query and mouth contract, 2026-08-20)
+
+- `RF.World.query(x, y, r, kindFilter)` remains a center-point query. Its
+  circle is tested against each entity center, and its kind-filter behavior is
+  unchanged because music sensing and mine chains depend on that contract.
+- `RF.World.eatQuery(x, y, r)` is the player-mouth query. It uses the same
+  spatial-hash walk and scratch result buffer as `query`, but tests
+  circle-vs-circle overlap: `dx*dx + dy*dy <= (r + entity.r)^2`. Results are
+  valid only until the next world query, and the caller must copy them before
+  another query or a mutating operation.
+- The engine publishes `RF.ctx.mouth` before the fixed world step as a reused
+  descriptor `{x, y, r, strength, eligibleTierMax}` in sim coordinates. The
+  world reads that descriptor during `World.update(ctx)`. Active `prey` whose
+  tier is at most `eligibleTierMax` and whose center is inside `r` receive a
+  velocity pull toward `(x, y)` at `strength` px/s^2. The resulting prey speed
+  is capped at approximately `1.6 * def.speed`; hazards, predators, pickups,
+  and frozen entities are never sucked. The force is applied immediately
+  before world integration, so containment and spatial-hash rebucketing remain
+  authoritative and no position is teleported by suction.
+- World entities carry a monomorphic top-level `_biteCd` seconds field. The
+  world decays it on every active entity step and advertises this capability as
+  `RF.World.__decaysBiteCd === true`, allowing the engine to keep chew cadence
+  per target while retaining its separate player feedback cadence.
+- Prey and hazard billboard display length remains derived from collision
+  radius; Rev 3 uses `displayLen = radius * 2.1` at both animated hazard call
+  sites as well as ordinary prey views.
