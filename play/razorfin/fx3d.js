@@ -43,6 +43,30 @@ function colorCss(value) {
   return '#' + ((value == null ? WHITE : value) >>> 0).toString(16).padStart(6, '0');
 }
 
+function tintFromOptions(opts, fallback) {
+  const owner = opts && (opts.entity || opts.ent || opts.source);
+  if (owner && typeof owner._tint === 'number' && isFinite(owner._tint)) return owner._tint >>> 0;
+  if (opts && typeof opts._tint === 'number' && isFinite(opts._tint)) return opts._tint >>> 0;
+  return opts && opts.tint != null ? opts.tint : fallback;
+}
+
+const BLOOD_MIST_OPTS = Object.freeze({
+  count: 1, tint: 0xb3122a, tint2: 0x5a0812, scale: 0.78, life: 760,
+  angle: 0, speed: 18, cue: 'blood', blood: true,
+});
+const BLOOD_EDGE_OPTS = Object.freeze({
+  count: 1, tint: 0xb3122a, scale: 0.72, alpha: 0.13, life: 960, cue: 'blood',
+});
+const SCHOOL_RING_OPTS = Object.freeze({
+  count: 1, tint: 0xdbe8f5, scale: 1.18, life: 420, cue: 'school',
+});
+const GOLDEN_EDGE_OPTS = Object.freeze({
+  count: 1, tint: GOLD, scale: 0.9, alpha: 0.24, life: 980, cue: 'golden',
+});
+const GOLDEN_GLINT_OPTS = Object.freeze({
+  count: 8, tint: GOLD, scale: 1.12, life: 480, cue: 'golden',
+});
+
 const PARTICLE_VERT = `
 attribute float aSize;
 attribute float aAlpha;
@@ -87,6 +111,8 @@ void main() {
     alpha = smoothstep(0.5, 0.16, abs(p.y) * vAspect);
     alpha *= smoothstep(0.58, 0.18, abs(p.x));
   } else if (vShape > 0.5) {
+    /* Shape 1 is a hollow ring: keep the centre clear while the outer edge
+       fades softly. The frenzy school cue reuses this shader path. */
     float r = length(p);
     alpha = smoothstep(0.52, 0.40, r) * smoothstep(0.22, 0.34, r);
   } else {
@@ -106,7 +132,7 @@ const POOL_CONFIG = Object.freeze({
   elementSpark: { size: 64, life: 430, scale: 0.27, speed: 190, mode: 2, z: 58, pointSize: 34, shape: 0, additive: true },
   ring: { size: 24, life: 560, scale: 0.5, speed: 0, mode: 3, z: 40, pointSize: 54, shape: 1, additive: true },
   beamCore: { size: 12, life: 92, scale: 1, speed: 0, mode: 4, z: 45, pointSize: 26, shape: 2, additive: true },
-  swimtrail: { size: 128, life: 720, scale: 0.23, speed: 26, mode: 5, z: 65, pointSize: 30, shape: 0, additive: true },
+  swimtrail: { size: 128, life: 720, scale: 0.23, speed: 26, mode: 5, z: 65, pointSize: 30, shape: 0, additive: true, boostRate: 2.5, boostScale: 1.4, boostTaperMs: 300 },
   speedlines: { size: 72, life: 170, scale: 0.42, speed: 220, mode: 6, z: 72, pointSize: 48, shape: 2, additive: true },
   breach: { size: 96, life: 720, scale: 0.34, speed: 118, mode: 7, z: 50, pointSize: 40, shape: 0, additive: true },
   ambient: { size: 160, life: 1700, scale: 0.32, speed: 5, mode: 9, z: -40, pointSize: 18, shape: 3, additive: false },
@@ -133,7 +159,73 @@ const Fx = (() => {
   let initialized = false;
   let goldEdges = [null, null, null, null];
   let goldOverlayReady = false;
+  let goldOverlayHost = null;
+  let frenzyCue = null;
+  let bloodMistCarry = 0;
+  let bloodEdgeClock = 0;
+  let trailBoostMix = 0;
+  let trailBoosting = false;
+  let trailEmitCarry = 0;
   const GOLD_SIDES = ['top', 'right', 'bottom', 'left'];
+
+  function addEdgeClass(edge, name) {
+    if (!edge) return;
+    if (edge.classList && typeof edge.classList.add === 'function') edge.classList.add(name);
+  }
+
+  function removeEdgeClass(edge, name) {
+    if (!edge) return;
+    if (edge.classList && typeof edge.classList.remove === 'function') edge.classList.remove(name);
+  }
+
+  function playerOf(ctx) { return ctx && ctx.player ? ctx.player : null; }
+
+  function playerBoosting(ctx) {
+    const player = playerOf(ctx);
+    const state = player && player.anim && player.anim.state;
+    if (state && state.boosting != null) return !!state.boosting;
+    return !!(player && player.ctl && player.ctl.boosting);
+  }
+
+  function deltaMs(dt) {
+    return clamp(dt == null ? 16.6667 : (dt <= 2 ? dt * 1000 : dt), 1, 50);
+  }
+
+  function syncTrailBoost(ctx, dt) {
+    const boosting = playerBoosting(ctx);
+    if (boosting) {
+      trailBoostMix = 1;
+      trailBoosting = true;
+      return;
+    }
+    trailBoosting = false;
+    if (trailBoostMix > 0) {
+      trailBoostMix -= deltaMs(dt) / POOL_CONFIG.swimtrail.boostTaperMs;
+      if (trailBoostMix < 0) trailBoostMix = 0;
+    }
+    if (trailBoostMix <= 0) trailEmitCarry = 0;
+  }
+
+  function cueName(value) {
+    if (value === 'blood' || value === 'school' || value === 'golden' || value === 'goldRush') return value;
+    return null;
+  }
+
+  function cueUi(value) {
+    const ui = RF.UI;
+    if (ui && typeof ui.frenzyCue === 'function') {
+      try { ui.frenzyCue(value); } catch (err) {}
+    }
+  }
+
+  function clearBloodEdges() {
+    const pool = pools.goldpulse;
+    if (!pool) return;
+    for (let i = 0; i < pool.items.length; i++) {
+      const item = pool.items[i];
+      if (item.active && item.variant === 1) hide(item, pool);
+    }
+  }
 
   function makePointMaterial(additive) {
     return new THREE.ShaderMaterial({
@@ -147,8 +239,7 @@ const Fx = (() => {
   }
 
   function createGoldOverlay() {
-    if (goldOverlayReady) return;
-    goldOverlayReady = true;
+    if (goldOverlayReady && goldEdges[0]) return;
     if (typeof document === 'undefined' || !document.createElement) return;
     const host = document.body || document.documentElement;
     if (!host) return;
@@ -177,6 +268,24 @@ const Fx = (() => {
       host.appendChild(edge);
       goldEdges[i] = edge;
     }
+    goldOverlayHost = host;
+    goldOverlayReady = true;
+  }
+
+  function removeGoldOverlay() {
+    for (let i = 0; i < goldEdges.length; i++) {
+      const edge = goldEdges[i];
+      if (!edge) continue;
+      edge.style.opacity = 0;
+      removeEdgeClass(edge, 'rf-frenzy-blood');
+      const host = edge.parentNode || goldOverlayHost;
+      if (host && typeof host.removeChild === 'function') {
+        try { host.removeChild(edge); } catch (err) {}
+      }
+      goldEdges[i] = null;
+    }
+    goldOverlayHost = null;
+    goldOverlayReady = false;
   }
 
   function removeSceneObject(object) {
@@ -269,7 +378,10 @@ const Fx = (() => {
   function hide(item, pool) {
     item.active = false;
     pool.alphas[item.slot] = 0;
-    if (item.edge) item.edge.style.opacity = 0;
+    if (item.edge) {
+      item.edge.style.opacity = 0;
+      removeEdgeClass(item.edge, 'rf-frenzy-blood');
+    }
     item.edge = null;
   }
 
@@ -323,7 +435,8 @@ const Fx = (() => {
     let speed = finite(opts.speed, config.speed);
     const scale = clamp(opts.scale == null ? config.scale : opts.scale, 0.05, 8);
     const life = clamp(opts.life == null ? config.life : opts.life, 20, 2500);
-    let tintValue = opts.tint == null ? (mode === 7 ? WHITE : null) : opts.tint;
+    let tintValue = tintFromOptions(opts, mode === 7 ? WHITE : null);
+    const blood = opts.cue === 'blood' || opts.blood === true;
 
     item.life = life;
     item.maxLife = life;
@@ -354,7 +467,7 @@ const Fx = (() => {
       } else if (item.variant === 2) {
         item.baseScale = scale * 0.48;
         speed *= 1.32;
-        tintValue = WHITE;
+        tintValue = blood ? (opts.tint2 == null ? tintValue : opts.tint2) : WHITE;
       } else {
         item.baseScale = scale;
         if (item.variant % 2 === 0) tintValue = opts.tint2 == null ? mixColor(tintValue, WHITE, 0.34) : opts.tint2;
@@ -364,6 +477,7 @@ const Fx = (() => {
     if (mode === 5) {
       speed = opts.speed == null ? config.speed : clamp(speed * 0.08, 8, 62);
       item.gravity = -18;
+      item.baseScale *= 1 + trailBoostMix * (config.boostScale - 1);
     } else if (mode === 6) {
       speed = clamp(speed, 60, 540);
       item.length = clamp(opts.length == null ? 42 : opts.length, 12, 180) * scale;
@@ -422,13 +536,19 @@ const Fx = (() => {
     item.rotation = 0;
     item.spin = 0;
     item.baseScale = scale;
-    item.tint = opts.tint == null ? GOLD : opts.tint;
+    item.tint = tintFromOptions(opts, GOLD);
     item.side = side;
     item.variant = 0;
     item.width = clamp(opts.alpha == null ? 0.26 : opts.alpha, 0.08, 0.42);
     item.edge = goldEdges[side];
     show(item, pools.goldpulse);
     if (item.edge) {
+      if (opts.cue === 'blood') {
+        item.variant = 1;
+        addEdgeClass(item.edge, 'rf-frenzy-blood');
+      } else {
+        removeEdgeClass(item.edge, 'rf-frenzy-blood');
+      }
       item.edge.style.setProperty('--rf-gold', colorCss(item.tint));
       item.edge.style.opacity = 0.01;
       if (side === 0 || side === 2) item.edge.style.height = 'max(' + (16 * scale) + 'px,3.8vmin)';
@@ -484,6 +604,13 @@ const Fx = (() => {
     const pool = poolFor(name);
     if (!pool) return 0;
     opts = opts || EMPTY;
+    if (name === 'swimtrail') {
+      const boosting = playerBoosting(RF.ctx);
+      if (boosting) {
+        trailBoostMix = 1;
+        trailBoosting = true;
+      }
+    }
     if (name === 'goldpulse') return emitGoldPulse(opts, pool);
     if (name === 'breach') {
       const breachCount = emitBreach(x, y, opts, pool);
@@ -491,7 +618,18 @@ const Fx = (() => {
       return breachCount;
     }
     const requested = opts.count == null ? (name === 'bubbles' ? 3 : 1) : Math.floor(finite(opts.count, 1));
-    const count = requested < 0 ? 0 : requested > 24 ? 24 : requested;
+    let count = requested < 0 ? 0 : requested > 24 ? 24 : requested;
+    /* engine3d already sends three trail particles during a live boost. For
+       direct callers and for the 300 ms release taper, add the remaining
+       fractional 1.5x through a scalar carry so the average is 2.5x. */
+    if (name === 'swimtrail' && trailBoostMix > 0 && !(trailBoosting && requested >= 2)) {
+      const desiredExtra = requested * (POOL_CONFIG.swimtrail.boostRate - 1) * trailBoostMix + trailEmitCarry;
+      const extra = Math.floor(desiredExtra);
+      trailEmitCarry = desiredExtra - extra;
+      count = Math.min(24, count + extra);
+    } else if (name !== 'swimtrail' || trailBoostMix <= 0) {
+      trailEmitCarry = 0;
+    }
     let emitted = 0;
     for (let i = 0; i < count; i++) {
       const item = acquire(pool);
@@ -609,9 +747,58 @@ const Fx = (() => {
     }
   }
 
+  function triggerFrenzyCue(cue, ctx) {
+    const player = playerOf(ctx);
+    const x = player ? finite(player.x, 0) : 0;
+    const y = player ? finite(player.y, 0) : 0;
+    if (cue === 'school') {
+      emit('ring', x, y, SCHOOL_RING_OPTS);
+      return;
+    }
+    if (cue === 'golden' || cue === 'goldRush') {
+      emit('goldpulse', x, y, GOLDEN_EDGE_OPTS);
+      emit('elementSpark', x, y, GOLDEN_GLINT_OPTS);
+      if (RF.Sound && typeof RF.Sound.play === 'function') RF.Sound.play('coin', { vol: 0.28, rate: 1.12 });
+    }
+  }
+
+  function updateBloodCue(ctx, delta) {
+    const player = playerOf(ctx);
+    if (player) {
+      bloodMistCarry += delta * 0.012;
+      while (bloodMistCarry >= 1) {
+        emit('deathBurst', finite(player.x, 0), finite(player.y, 0), BLOOD_MIST_OPTS);
+        bloodMistCarry -= 1;
+      }
+    }
+    bloodEdgeClock -= delta;
+    if (bloodEdgeClock <= 0) {
+      emit('goldpulse', player ? finite(player.x, 0) : 0, player ? finite(player.y, 0) : 0, BLOOD_EDGE_OPTS);
+      bloodEdgeClock = 900;
+    }
+  }
+
+  function syncFrenzy(ctx, dt) {
+    const run = ctx && ctx.run;
+    const next = cueName(run && run.frenzyCue);
+    const delta = deltaMs(dt);
+    if (next !== frenzyCue) {
+      if (frenzyCue === 'blood') clearBloodEdges();
+      frenzyCue = next;
+      bloodMistCarry = 0;
+      bloodEdgeClock = next === 'blood' ? 0 : 900;
+      cueUi(next);
+      if (next !== 'blood') triggerFrenzyCue(next, ctx);
+    }
+    if (next === 'blood') updateBloodCue(ctx, delta);
+  }
+
   /* Lane A's render loop uses the common render hook. Keep update(dt) as the
      direct three.js API while accepting the engine's `(ctx, dt)` call shape. */
   function render(ctx, dt) {
+    const delta = deltaMs(dt);
+    syncTrailBoost(ctx, delta);
+    syncFrenzy(ctx, delta);
     update(dt);
     if (ctx && ctx.camera && RF.Juice && typeof RF.Juice.applyShake === 'function') RF.Juice.applyShake(ctx.camera, dt);
   }
@@ -678,11 +865,16 @@ const Fx = (() => {
       for (let j = 0; j < pool.sizes.length; j++) pool.sizes[j] = 0;
       for (let j = 0; j < pool.alphas.length; j++) pool.alphas[j] = 0;
     }
-    for (let i = 0; i < goldEdges.length; i++) {
-      if (goldEdges[i]) goldEdges[i].style.opacity = 0;
-    }
+    removeGoldOverlay();
     initialized = false;
     scene = null;
+    frenzyCue = null;
+    bloodMistCarry = 0;
+    bloodEdgeClock = 0;
+    trailBoostMix = 0;
+    trailBoosting = false;
+    trailEmitCarry = 0;
+    cueUi(null);
     resetJuiceState();
     return Fx;
   }
@@ -699,6 +891,51 @@ const Fx = (() => {
     const oldScene = scene;
     const oldPools = pools;
     const oldInitialized = initialized;
+    const oldDocument = globalThis.document;
+    const oldGoldEdges = goldEdges;
+    const oldGoldOverlayReady = goldOverlayReady;
+    const oldGoldOverlayHost = goldOverlayHost;
+    const oldFrenzyCue = frenzyCue;
+    const oldBloodMistCarry = bloodMistCarry;
+    const oldBloodEdgeClock = bloodEdgeClock;
+    const oldTrailBoostMix = trailBoostMix;
+    const oldTrailBoosting = trailBoosting;
+    const oldTrailEmitCarry = trailEmitCarry;
+    const oldContext = RF.ctx;
+    const testDomHost = {
+      children: [],
+      appendChild(node) { node.parentNode = this; this.children.push(node); return node; },
+      removeChild(node) {
+        const index = this.children.indexOf(node);
+        if (index >= 0) this.children.splice(index, 1);
+        node.parentNode = null;
+        return node;
+      },
+    };
+    const testDocument = {
+      body: testDomHost,
+      documentElement: testDomHost,
+      createElement(tag) {
+        const classes = Object.create(null);
+        const node = {
+          tagName: String(tag).toUpperCase(),
+          style: {
+            cssText: '',
+            setProperty(name, value) { this[name] = value; },
+          },
+          className: '',
+          parentNode: null,
+          setAttribute() {},
+          classList: {
+            add(name) { classes[name] = true; },
+            remove(name) { delete classes[name]; },
+            contains(name) { return !!classes[name]; },
+          },
+        };
+        return node;
+      },
+    };
+    globalThis.document = testDocument;
     const testScene = {
       children: [],
       add(object) { this.children.push(object); },
@@ -725,6 +962,16 @@ const Fx = (() => {
       scene = null;
       pools = Object.create(null);
       initialized = false;
+      goldEdges = [null, null, null, null];
+      goldOverlayReady = false;
+      goldOverlayHost = null;
+      frenzyCue = null;
+      bloodMistCarry = 0;
+      bloodEdgeClock = 0;
+      trailBoostMix = 0;
+      trailBoosting = false;
+      trailEmitCarry = 0;
+      RF.ctx = null;
       for (let cycle = 0; cycle < 5; cycle++) {
         init(testScene);
         if (!poolIntegrity(true) || drawCallContribution() !== FX_DRAW_CALLS) pass = false;
@@ -748,10 +995,77 @@ const Fx = (() => {
         teardown();
         if (activeEffectCount() !== 0 || !cursorsReset() || testScene.children.length !== 0) pass = false;
       }
+      init(testScene);
+      const testCtx = {
+        run: { frenzyCue: 'blood' },
+        player: { x: 240, y: 360, anim: { state: { boosting: false } } },
+      };
+      RF.ctx = testCtx;
+      render(testCtx, 16.6667);
+      const redEdges = goldEdges[0] && goldEdges[0].classList && goldEdges[0].classList.contains('rf-frenzy-blood');
+      for (let frame = 0; frame < 100; frame++) render(testCtx, 16.6667);
+      let redMist = false;
+      for (let i = 0; i < pools.motes.items.length; i++) {
+        const item = pools.motes.items[i];
+        if (item.active && (item.tint === 0xb3122a || item.tint === 0x5a0812)) { redMist = true; break; }
+      }
+      if (!redEdges || !redMist) pass = false;
+      const schoolCursor = pools.ring.cursor;
+      testCtx.run.frenzyCue = 'school';
+      render(testCtx, 16.6667);
+      const schoolTriggered = pools.ring.cursor !== schoolCursor;
+      const schoolCursorAfter = pools.ring.cursor;
+      render(testCtx, 16.6667);
+      if (!schoolTriggered || pools.ring.cursor !== schoolCursorAfter) pass = false;
+      testCtx.run.frenzyCue = 'goldRush';
+      render(testCtx, 16.6667);
+      let goldGlint = false;
+      for (let i = 0; i < pools.elementSpark.items.length; i++) {
+        const item = pools.elementSpark.items[i];
+        if (item.active && item.tint === GOLD) { goldGlint = true; break; }
+      }
+      if (!goldGlint) pass = false;
+      testCtx.run.frenzyCue = undefined;
+      render(testCtx, 16.6667);
+      if (goldEdges[0] && goldEdges[0].classList.contains('rf-frenzy-blood')) pass = false;
+      teardown();
+      init(testScene);
+      testCtx.run.frenzyCue = undefined;
+      testCtx.player.anim.state.boosting = true;
+      render(testCtx, 16.6667);
+      const boostCount = emit('swimtrail', 0, 0, { count: 1, speed: 40 });
+      let boostedTrail = false;
+      for (let i = 0; i < pools.swimtrail.items.length; i++) {
+        const item = pools.swimtrail.items[i];
+        if (item.active && item.age === 0 && item.baseScale > POOL_CONFIG.swimtrail.scale * 1.3) { boostedTrail = true; break; }
+      }
+      testCtx.player.anim.state.boosting = false;
+      render(testCtx, 16.6667);
+      const taperCount = emit('swimtrail', 0, 0, { count: 1, speed: 40 });
+      let taperedTrail = false;
+      for (let i = 0; i < pools.swimtrail.items.length; i++) {
+        const item = pools.swimtrail.items[i];
+        if (item.active && item.age === 0 && item.baseScale > POOL_CONFIG.swimtrail.scale
+          && item.baseScale < POOL_CONFIG.swimtrail.scale * POOL_CONFIG.swimtrail.boostScale) {
+          taperedTrail = true; break;
+        }
+      }
+      const goldenEntity = { _tint: 0xffd98a };
+      emit('elementSpark', 0, 0, { count: 1, entity: goldenEntity });
+      let entityTinted = false;
+      for (let i = 0; i < pools.elementSpark.items.length; i++) {
+        const item = pools.elementSpark.items[i];
+        if (item.active && item.age === 0 && item.tint === goldenEntity._tint) { entityTinted = true; break; }
+      }
+      if (boostCount < 2 || taperCount < 1 || !boostedTrail || !taperedTrail || !entityTinted) pass = false;
+      teardown();
+      if (testDomHost.children.length !== 0) pass = false;
       notes.push('five init/emit/update/teardown cycles passed: pool cursors reset and zero active effects after teardown');
       notes.push('teardown is synchronous and idempotent (double-teardown leaves the scene empty)');
       notes.push('teardown reset Juice accumulators, camera shake, and tracked kaiju pulse state');
       notes.push('nine GPU pools are one reusable THREE.Points draw each; goldpulse is four DOM edge bars with zero WebGL draws');
+      notes.push('blood cue sustains red mist and four red DOM edge bars; school and golden cues are edge-triggered');
+      notes.push('boost trail averages 2.5x emission, scales 1.4x, and tapers over 300 ms; entity _tint reaches glints');
     } catch (err) {
       pass = false;
       notes.push('pool self-test threw: ' + (err && err.message ? err.message : String(err)));
@@ -759,6 +1073,18 @@ const Fx = (() => {
     scene = oldScene;
     pools = oldPools;
     initialized = oldInitialized;
+    goldEdges = oldGoldEdges;
+    goldOverlayReady = oldGoldOverlayReady;
+    goldOverlayHost = oldGoldOverlayHost;
+    frenzyCue = oldFrenzyCue;
+    bloodMistCarry = oldBloodMistCarry;
+    bloodEdgeClock = oldBloodEdgeClock;
+    trailBoostMix = oldTrailBoostMix;
+    trailBoosting = oldTrailBoosting;
+    trailEmitCarry = oldTrailEmitCarry;
+    RF.ctx = oldContext;
+    if (oldDocument === undefined) delete globalThis.document;
+    else globalThis.document = oldDocument;
     return { pass, notes, drawCalls: FX_DRAW_CALLS };
   }
 
@@ -976,6 +1302,7 @@ function consumeSlowmo() {
 }
 
 function paletteGlow(ent, palette) {
+  if (ent && typeof ent._tint === 'number' && isFinite(ent._tint)) return ent._tint >>> 0;
   if (palette && palette.glow != null) return finite(palette.glow, 0x9effcb) >>> 0;
   const def = ent && (ent.def || ent.sharkDef);
   const sil = def && def.sil;
