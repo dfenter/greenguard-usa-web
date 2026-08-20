@@ -42,10 +42,24 @@
   var UP_PIPS = 5;
   var CHIP_MS = 1000;          // UI_LAW rule 3: max 1.0s hold
   var TUTORIAL_MS = 3200;      // UI_LAW rule 5: fades after ~3s
+  var FRENZY_LABEL = { blood: 'BLOOD FRENZY', school: 'SCHOOL FRENZY', golden: 'GOLDEN SCHOOL' };
+  var FRENZY_VARIANTS = {
+    blood: { chip: 'rf-chip-blood', toast: 'rf-toast-blood' },
+    school: { chip: 'rf-chip-school', toast: 'rf-toast-school' },
+    golden: { chip: 'rf-chip-golden', toast: 'rf-toast-golden' }
+  };
+  var FRENZY_STYLE_TEXT = [
+    '.rf-chip.rf-chip-blood,#rfChip.rf-chip-blood,.rf-toast.rf-toast-blood,#rfShopToast.rf-toast-blood{background:rgba(179,18,42,.24);color:#ffb3ba;border-color:rgba(255,112,132,.62)}',
+    '.rf-chip.rf-chip-school,#rfChip.rf-chip-school,.rf-toast.rf-toast-school,#rfShopToast.rf-toast-school{background:rgba(219,232,245,.2);color:#eaf4ff;border-color:rgba(219,232,245,.7)}',
+    '.rf-chip.rf-chip-golden,#rfChip.rf-chip-golden,.rf-toast.rf-toast-golden,#rfShopToast.rf-toast-golden{background:rgba(255,214,122,.22);color:#ffe8ad;border-color:rgba(255,214,122,.72)}',
+    '.rf-frenzy-blood{filter:saturate(1.12)}'
+  ].join('');
 
   // ------------------------------------------------------------- plumbing
   // A document reference resolved lazily so __selftest can inject a stub.
   var doc = null;
+  var frenzyStyleNode = null;
+  var activeFrenzyCue = null;
   function D() { return doc || (typeof document !== 'undefined' ? document : null); }
 
   function RFD() { return window.RFD || null; }
@@ -73,6 +87,45 @@
   function addClass(node, c) { if (node && node.classList) node.classList.add(c); }
   function removeClass(node, c) { if (node && node.classList) node.classList.remove(c); }
   function toggleClass(node, c, on) { if (on) addClass(node, c); else removeClass(node, c); }
+
+  function normalizeFrenzyCue(cue) {
+    if (cue === 'goldRush' || cue === 'goldrush' || cue === 'golden') return 'golden';
+    if (cue === 'blood' || cue === 'school') return cue;
+    return null;
+  }
+
+  function ensureFrenzyCueStyles() {
+    var d = D();
+    if (!d || !d.createElement) return false;
+    if (frenzyStyleNode) return true;
+    var style = d.createElement('style');
+    style.id = 'rfFrenzyCueStyles';
+    style.textContent = FRENZY_STYLE_TEXT;
+    var host = d.head || d.body || d.documentElement;
+    if (host && host.appendChild) host.appendChild(style);
+    frenzyStyleNode = style;
+    return true;
+  }
+
+  function setFrenzyCue(cue) {
+    var key = normalizeFrenzyCue(cue);
+    ensureFrenzyCueStyles();
+    activeFrenzyCue = key;
+    var chipNode = N('rfChip');
+    var toastNode = N('rfShopToast');
+    if (chipNode) addClass(chipNode, 'rf-chip');
+    if (toastNode) addClass(toastNode, 'rf-toast');
+    for (var k in FRENZY_VARIANTS) {
+      if (!Object.prototype.hasOwnProperty.call(FRENZY_VARIANTS, k)) continue;
+      removeClass(chipNode, FRENZY_VARIANTS[k].chip);
+      removeClass(toastNode, FRENZY_VARIANTS[k].toast);
+    }
+    if (key) {
+      addClass(chipNode, FRENZY_VARIANTS[key].chip);
+      addClass(toastNode, FRENZY_VARIANTS[key].toast);
+    }
+    return key;
+  }
 
   // Width as a percentage string, clamped, for meters and stat bars.
   function pct(v, max) {
@@ -697,9 +750,10 @@
 
   // A small self-fading toast. One at a time, per UI_LAW rule 1.
   var toastTimer = null;
-  function toast(msg) {
+  function toast(msg, cue) {
     var n = N('rfShopToast');
     if (!n) return;
+    if (cue !== undefined) setFrenzyCue(cue);
     setText(n, msg);
     addClass(n, 'rf-on');
     if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
@@ -866,9 +920,10 @@
   }
 
   // One chip at a time, <= 24px tall, <= 1.0s, replaced not stacked.
-  function chip(text) {
+  function chip(text, cue) {
     var n = N('rfChip');
     if (!n) return;
+    if (cue !== undefined) setFrenzyCue(cue);
     setText(n, text);
     addClass(n, 'rf-on');
     S.chipToken++;
@@ -879,6 +934,13 @@
       removeClass(n, 'rf-on');
       S.chipTimer = null;
     }, CHIP_MS);
+  }
+
+  function frenzyCue(cue) {
+    var key = setFrenzyCue(cue);
+    if (!key) return false;
+    chip(FRENZY_LABEL[key]);
+    return true;
   }
 
   // One thin strip, one line, fades on its own. Never stacks.
@@ -989,6 +1051,7 @@
   function init(opts) {
     var o = opts || {};
     doc = o.document || (typeof document !== 'undefined' ? document : null);
+    ensureFrenzyCueStyles();
     S.ctx = o.ctx || null;
     S.profile = o.profile || (S.ctx ? S.ctx.save : null) || null;
     S.handles = {
@@ -1030,6 +1093,7 @@
     S.chipToken++;
     removeClass(N('rfChip'), 'rf-on');
     removeClass(N('rfShopToast'), 'rf-on');
+    setFrenzyCue(null);
     if (!keepTut) {
       if (S.tutTimer) { clearTimeout(S.tutTimer); S.tutTimer = null; }
       removeClass(N('rfTutorial'), 'rf-on');
@@ -1159,11 +1223,14 @@
       doc: doc, ctx: S.ctx, profile: S.profile, thumbs: S.thumbs,
       screen: S.screen, lastHud: S.lastHud, nodes: S.nodes, bound: S.bound,
       menuPick: S.menuPick, shopPick: S.shopPick, inited: S.inited, handles: S.handles,
-      dive: CB.dive, power: CB.power, shopNav: CB.shopNav
+      dive: CB.dive, power: CB.power, shopNav: CB.shopNav,
+      frenzyStyle: frenzyStyleNode, frenzyCue: activeFrenzyCue
     };
     S.thumbs = {};
     S.bound = false;
     S.lastHud = null;
+    frenzyStyleNode = null;
+    activeFrenzyCue = null;
 
     try {
       // ---- formatters (pure) ---------------------------------------
@@ -1202,6 +1269,24 @@
       ok('inited', S.inited === true);
       ok('nodes grabbed', !!N('rfHud') && !!N('rfMenu'));
       ok('bound once', S.bound === true);
+      ok('frenzy cue stylesheet created', !!frenzyStyleNode
+        && String(frenzyStyleNode.textContent).indexOf('rf-chip-blood') >= 0
+        && String(frenzyStyleNode.textContent).indexOf('rf-chip-school') >= 0
+        && String(frenzyStyleNode.textContent).indexOf('rf-chip-golden') >= 0);
+
+      frenzyCue('blood');
+      ok('blood cue chip variant', N('rfChip').classList.contains('rf-chip-blood')
+        && N('rfChip').classList.contains('rf-chip'));
+      ok('blood cue toast variant', N('rfShopToast').classList.contains('rf-toast-blood'));
+      frenzyCue('school');
+      ok('school cue chip variant', N('rfChip').classList.contains('rf-chip-school')
+        && !N('rfChip').classList.contains('rf-chip-blood'));
+      frenzyCue('goldRush');
+      ok('goldRush maps to golden variant', N('rfChip').classList.contains('rf-chip-golden')
+        && N('rfShopToast').classList.contains('rf-toast-golden'));
+      frenzyCue(null);
+      ok('cue clear removes variants', !N('rfChip').classList.contains('rf-chip-golden')
+        && !N('rfShopToast').classList.contains('rf-toast-golden'));
 
       // ---- screen transitions --------------------------------------
       hideAll();
@@ -1481,6 +1566,7 @@
       S.bound = saved.bound; S.menuPick = saved.menuPick; S.shopPick = saved.shopPick;
       S.inited = saved.inited; S.handles = saved.handles;
       CB.dive = saved.dive; CB.power = saved.power; CB.shopNav = saved.shopNav;
+      frenzyStyleNode = saved.frenzyStyle; activeFrenzyCue = saved.frenzyCue;
       RF.UI.onDive = onDive; RF.UI.onPower = onPower; RF.UI.onShopNav = onShopNav;
     }
 
@@ -1506,6 +1592,7 @@
     onPower: onPower,
     onShopNav: onShopNav,
     chip: chip,
+    frenzyCue: frenzyCue,
     tutorial: tutorial,
     toast: toast,
     get screen() { return S.screen; },

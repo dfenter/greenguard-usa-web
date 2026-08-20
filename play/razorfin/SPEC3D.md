@@ -132,3 +132,32 @@ owner iPhone verdict LAST. 60fps mid-phone: draw calls < 120, tris < 60k.
   nothing (atmosphere report becomes writes into module scratch).
 - TEST-01: the art gate is a SCREENSHOT gate at the gameplay camera, judged
   against the reference roster, not geometry assertions alone.
+
+## Rev 3 (frenzy cue and boost FX contract, 2026-08-20)
+
+- `ctx.run.frenzyCue` is the single FX cue field. The engine owns its priority
+  and writes one string, or leaves it `undefined` when no cue is active. The
+  recognized values are `blood`, `school`, `golden`, and `goldRush`. FX must
+  guard a missing `ctx`, `run`, or `frenzyCue` so the lane remains standalone.
+  The UI normalizes `golden` and `goldRush` to the golden color variant.
+- `blood` is sustained while active: `deathBurst` reuses the motes pool with
+  tint `0xb3122a`, secondary tint `0x5a0812`, and approximately 12 particles
+  per second at the player. The same four DOM `goldpulse` edge bars are reused
+  for a soft red edge pulse and carry the `rf-frenzy-blood` class; this adds no
+  WebGL draw.
+- `school` is edge-triggered and emits one silver ring from the existing ring
+  pool. `golden` and `goldRush` are edge-triggered and emit the existing gold
+  edge pulse plus a gold `elementSpark` coin-glint burst. Repeated frames with
+  the same cue do not retrigger one-shot effects.
+- `swimtrail` reads the reused player animation state `state.boosting`. While
+  boosting it targets approximately 2.5x emission and 1.4x particle size; both
+  return over a 300 ms numeric scratch taper after boost ends. The engine's
+  existing boosted count is not multiplied a second time.
+- Per-entity FX options may carry `entity`, `ent`, `source`, or `_tint`; a
+  numeric entity `_tint` has priority and is used for spawned glints. No new
+  `THREE.Points` pool is permitted. All steady-state fixed-step data remains
+  in module scratch and the existing pools; DOM bars are the existing UI
+  exception.
+- `ui3d.js` owns the cue surface classes `rf-chip-blood`, `rf-chip-school`,
+  `rf-chip-golden` and matching toast variants. They reuse `.rf-chip` and
+  `.rf-toast`, add color only, and do not change layout or touch targets.
