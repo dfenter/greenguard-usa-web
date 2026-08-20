@@ -22,7 +22,9 @@ are NOT loaded (kept in repo as reference until cutover signoff).
 ## Scene/space contract
 - World coords unchanged: x right 0..7200, y DOWN 0..3600 (sim untouched).
   Mapping to three: (x, -y, z). Gameplay plane z=0. Camera: perspective
-  fov 50, at (px, -py, 620), lookAt (px, -py, 0), slight velocity lookahead.
+  fov 50, base z=430 (tier floor z=340), at the followed point with a fixed
+  y-down pitch (Three Y camera offset -28, lookAt offset +12) and a shared
+  +-5-unit bob at 0.08Hz from ctx.time.now; slight velocity lookahead.
   Decor parallax via z in [-400..-80], foreground motes z [+40..+80].
 - Lighting: hemisphere (sky #9fd4e8 / deep #06121e) + directional sun from
   above-front (casts no shadows - perf), per-zone scene.fog (FogExp2, color
@@ -157,9 +159,9 @@ owner iPhone verdict LAST. 60fps mid-phone: draw calls < 120, tris < 60k.
 - PERF-03: the eat copy buffer has capacity 96. Mouth and chew option records
   are pre-allocated module scratch and fixed-step eat resolution must not
   allocate.
-- CAMERA-03: the runtime perspective camera contract is the shipped
-  tier-scaled dolly, `CAM_Z_BASE=470` and clamped to `360..470`; the old
-  Rev 1 `z=620` wording is obsolete.
+- CAMERA-03: the old Rev 1 `z=620` wording is obsolete; the live camera
+  contract (430 base, floor 340, pitch/bob) is defined in the
+  "Rev 3 (scale-camera)" section below.
 
 ## Rev 3 (world query and mouth contract, 2026-08-20)
 
@@ -187,3 +189,24 @@ owner iPhone verdict LAST. 60fps mid-phone: draw calls < 120, tris < 60k.
 - Prey and hazard billboard display length remains derived from collision
   radius; Rev 3 uses `displayLen = radius * 2.1` at both animated hazard call
   sites as well as ordinary prey views.
+
+## Rev 3 (scale-camera)
+
+- Shark length authority is `124 * sil.len` simulation pixels. `r` and
+  `mouthR` derive from that length with the existing `0.42` and `0.22`
+  proportions; `mouthR` remains clamped to `14..90` because the current
+  roster's maximum `len=1.9` does not reach the upper bound.
+- `RF.Game.LEN_SCALE` is the shared `124/96` render-scale contract. The
+  engine applies it once to the player group after `RF.Art3D.buildShark()` and
+  captures the scaled value as `group.__baseScale` before eat pops. NPC rig
+  consumers in `world3d.js` read the same exported factor; shark3d's authored
+  96px normalization remains unchanged.
+- Camera constants are `fov=50`, tier-1 `z=430`, and
+  `camZForTier(tier)` floored at `340`. In Three coordinates the pitch is
+  `position.y = -py - 28` relative to the followed point and
+  `lookAt.y = -py + 12`; both receive the same `+-5` bob at `0.08Hz`.
+  Lookahead remains `0.28s`, capped at `190px`.
+- Camera presentation is allocation-free: combo thresholds ease z by `-8%`
+  for `0.4s`, death eases z by `+10%` for `1.2s`, and an optional
+  `ctx.run.blood.t > 0` adds a guarded `-6%` push-in. All pulses use the
+  preallocated `camState` easing fields and return to the tier base.

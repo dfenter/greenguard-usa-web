@@ -77,16 +77,39 @@ import * as THREE from 'three';
   var JAW_OPEN = 0.42;         // rad at full bite window
   var IDLE_BOB_HZ = 0.9, IDLE_BOB_PX = 1.6, IDLE_SPEED_F = 0.15;
 
+  // The sim and the 3D shark rig share one length authority. shark3d.js
+  // authors its mesh around a 96px consumer target; this lane raises the
+  // player target to 124px and exposes the ratio for world3d NPC consumers.
+  var SHARK_LEN_PX = 124;
+  var LEN_SCALE = SHARK_LEN_PX / 96;
+
   // ------------------------------------------------- camera (SPEC3D)
   // World coords are unchanged (x right 0..7200, y DOWN 0..3600); the mapping
   // into three is (x, -y, z) with the gameplay plane at z = 0.
   var CAM_FOV = 50;                 // SPEC3D space contract
-  var CAM_Z_BASE = 470;             // dolly distance for a tier-1 shark.
+  var CAM_Z_BASE = 430;             // dolly distance for a tier-1 shark.
   // REVIEW-3D re-check 2 (ART-01): big sharks must LOOM. The camera pulls IN
   // as tier rises so the flagship dominates the frame the way the reference
-  // roster does: tier 1 -> 470, tier 12 -> 360 (clamped).
-  var CAM_Z = 470;                  // live value, set per run from the shark tier
-  function camZForTier(tier) { return Math.max(360, Math.min(470, 470 - (tier - 1) * 10)); }
+  // roster does: tier 1 -> 430, tier 10+ -> 340 (clamped).
+  var CAM_Z_FLOOR = 340;
+  var CAM_Z = CAM_Z_BASE;            // live value, set per run from shark tier
+  function camZForTier(tier) {
+    var t = num(tier, 1);
+    return Math.max(CAM_Z_FLOOR, Math.min(CAM_Z_BASE, CAM_Z_BASE - (t - 1) * 10));
+  }
+  // Three's Y axis is UP while the sim's Y axis is DOWN. A positive sim-space
+  // pitch therefore subtracts from the mapped camera Y. The target offset is
+  // deliberately separate so the effect is one edit away from a flat view.
+  var CAM_PITCH = 28;                // about 4deg at the 430-unit base
+  var CAM_LOOK_Y = 12;
+  var CAM_BOB = 5;                   // slow vertical framing drift, world units
+  var CAM_BOB_HZ = 0.08;
+  var CAM_PULSE_EASE = 12;           // per-second approach for cinematic zoom
+  var CAM_EAT_ZOOM = -0.08;          // 8% push-in at a combo threshold
+  var CAM_EAT_ZOOM_T = 0.4;
+  var CAM_DEATH_PULL = 0.10;         // 10% pull-back during the death beat
+  var CAM_DEATH_PULL_T = 1.2;
+  var CAM_BLOOD_PUSH = -0.06;        // optional blood-frenzy push-in
   var CAM_FOV_SPAN = 6;             // mild FOV ease with speed (deg)
   var CAM_FOV_EASE = 2.2;           // per second approach
   var CAM_LOOKAHEAD = 0.28;         // seconds of velocity led by the camera
@@ -98,6 +121,41 @@ import * as THREE from 'three';
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
   function num(v, dflt) { return (typeof v === 'number' && isFinite(v)) ? v : dflt; }
   function damp(rate, dt) { return clamp(rate * dt, 0, 1); }
+
+  function sharkLenPx(def) {
+    return SHARK_LEN_PX * num(def && def.sil && def.sil.len, 1);
+  }
+  function mouthRadiusForLen(lenPx) {
+    // Keep the original proportion and guard both small and future large
+    // roster rows. Current max len 1.9 remains well below the upper clamp.
+    return clamp(lenPx * 0.22, 14, 90);
+  }
+
+  function triggerCamPulse(amount, duration) {
+    camState.pulse = num(amount, 0);
+    camState.pulseT = Math.max(0, num(duration, 0));
+  }
+
+  function stepCameraZoom(dt) {
+    var d = clamp(num(dt, 0), 0, 0.1);
+    if (camState.pulseT > 0) {
+      camState.pulseT -= d;
+      if (camState.pulseT <= 0) {
+        camState.pulseT = 0;
+        camState.pulse = 0;
+      }
+    }
+    var target = camState.pulseT > 0 ? camState.pulse : 0;
+    var blood = ctx && ctx.run && ctx.run.blood;
+    if (blood && num(blood.t, 0) > 0) target += CAM_BLOOD_PUSH;
+    camState.zoom += (target - camState.zoom) * damp(CAM_PULSE_EASE, d);
+    if (target === 0 && Math.abs(camState.zoom) < 0.0001) camState.zoom = 0;
+    return Math.max(CAM_NEAR, CAM_Z * (1 + camState.zoom));
+  }
+
+  function cameraBobAt(time) {
+    return Math.sin(num(time, 0) * TAU * CAM_BOB_HZ) * CAM_BOB;
+  }
 
   // mulberry32: deterministic, no Math.random anywhere in sim code.
   function mulberry32(seed) {
@@ -278,7 +336,9 @@ import * as THREE from 'three';
   var dying = false, pendingResults = false, deathAt = 0;
   var musicState = 'calm';
   var comboQueue = [];
-  var camState = { x: 0, y: 0, fov: CAM_FOV };
+  // Camera motion scratch. Pulse fields are reused for the whole run; no
+  // transient object is created by combo/death/blood camera presentation.
+  var camState = { x: 0, y: 0, fov: CAM_FOV, zoom: 0, pulse: 0, pulseT: 0 };
   var zoneState = { fog: 0x9fd4e8, density: 0.00042, tint: 0x1b4d66 };
 
   // ATMO-01 / Rev 2: the light + renderer handles this engine creates once and
@@ -562,6 +622,17 @@ import * as THREE from 'three';
         if (rec && rec.group && rec.group.isObject3D) {
           if (typeof rec.animate !== 'function') rec.animate = function () {};
           if (!rec.parts || typeof rec.parts !== 'object') rec.parts = {};
+          // shark3d's authored world scale is still the old 96px target. The
+          // player is the engine-owned consumer, so apply the new target here
+          // and capture the scaled base before renderPlayer adds eat pops.
+          var g = rec.group;
+          var sourceScale = num(g.__baseScale,
+            num(g.userData && g.userData.baseScale, num(g.scale && g.scale.x, 1)));
+          var scaled = sourceScale * LEN_SCALE;
+          if (g.scale && g.scale.setScalar) g.scale.setScalar(scaled);
+          else if (g.scale) { g.scale.x = scaled; g.scale.y = scaled; g.scale.z = scaled; }
+          g.__baseScale = scaled;
+          g.__rfLenScale = LEN_SCALE;
           rec.__fallback = false;
           return rec;
         }
@@ -574,7 +645,7 @@ import * as THREE from 'three';
     var pal = (def && def.sil && def.sil.palette) || {};
     var base = hexNum(pal.base, 0x7d8c9e);
     var belly = hexNum(pal.belly, 0xdfe7ee);
-    var lenPx = 96 * num(def && def.sil && def.sil.len, 1);
+    var lenPx = sharkLenPx(def);
     var girth = num(def && def.sil && def.sil.girth, 0.34);
     var group = new THREE.Group();
     var radius = Math.max(4, lenPx * girth * 0.5);
@@ -846,7 +917,7 @@ import * as THREE from 'three';
       boost: num(base.boost, 2.2) * uBoost * pas.mult.boost
     };
 
-    var lenPx = 96 * num(def.sil && def.sil.len, 1);
+    var lenPx = sharkLenPx(def);
     var p = {
       active: true, id: -1, kind: 'player', defId: def.id, def: def,
       tier: num(def.tier, 1),
@@ -857,7 +928,7 @@ import * as THREE from 'three';
       sprite: null,       // three Group once the rig is attached
       rig: null,
       r: lenPx * 0.42,
-      mouthR: clamp(lenPx * 0.22, 14, 90),
+      mouthR: mouthRadiusForLen(lenPx),
       stat: stat,
       pas: pas,
       up: {
@@ -1417,6 +1488,7 @@ import * as THREE from 'three';
     var steps = FRENZY.steps || [3, 6, 10];
     if (steps.indexOf(c) < 0) return;
     boundedPush(comboQueue, 'x' + comboMult() + ' COMBO', 4);
+    triggerCamPulse(CAM_EAT_ZOOM, CAM_EAT_ZOOM_T);
   }
 
   // ----------------------------------------------------------- death
@@ -1433,6 +1505,7 @@ import * as THREE from 'three';
     }
     dying = true;
     p.active = false;
+    triggerCamPulse(CAM_DEATH_PULL, CAM_DEATH_PULL_T);
     sfx('death');
     shake(12, 500);
     fxEmit('deathBurst', p.x, p.y, { count: 24 });
@@ -1553,9 +1626,11 @@ import * as THREE from 'three';
     if (!popPool) buildPopPool(8);
 
     camState.x = ctx.player.x; camState.y = -ctx.player.y; camState.fov = CAM_FOV;
+    camState.zoom = 0; camState.pulse = 0; camState.pulseT = 0;
     if (camera) {
-      camera.position.set(camState.x, camState.y, CAM_Z);
-      camera.lookAt(camState.x, camState.y, 0);
+      var startBob = cameraBobAt(ctx.time.now);
+      camera.position.set(camState.x, camState.y - CAM_PITCH + startBob, CAM_Z);
+      camera.lookAt(camState.x, camState.y + CAM_LOOK_Y + startBob, 0);
       camera.fov = CAM_FOV; camera.updateProjectionMatrix();
     }
 
@@ -1761,7 +1836,9 @@ import * as THREE from 'three';
 
     // Eat scale pop.
     if (g.scale) {
-      if (g.__baseScale == null) g.__baseScale = g.scale.x || 1;
+      // buildPlayerRig captures the 124/96-adjusted rig base; the fallback
+      // captures its unit group here. Never recapture after an eat pop.
+      if (g.__baseScale == null) g.__baseScale = num(g.scale.x, 1) || 1;
       var pop = p.st.eatPopT > 0 ? (1 + 0.14 * clamp(p.st.eatPopT / 0.16, 0, 1)) : 1;
       var s = g.__baseScale * pop;
       g.scale.set(s, s, s);
@@ -1800,8 +1877,10 @@ import * as THREE from 'three';
         if (jf) { jx = num(jf.dx, 0); jy = num(jf.dy, 0); }
       } catch (e) { warnOnce('juice.frame', e); }
     }
-    camera.position.set(camState.x + jx, camState.y + jy, CAM_Z);
-    camera.lookAt(camState.x + jx, camState.y + jy, 0);
+    var bob = cameraBobAt(ctx && ctx.time ? ctx.time.now : 0);
+    var z = stepCameraZoom(d);
+    camera.position.set(camState.x + jx, camState.y - CAM_PITCH + bob + jy, z);
+    camera.lookAt(camState.x + jx, camState.y + CAM_LOOK_Y + bob + jy, 0);
   }
 
   // HUD is DOM: the engine feeds a plain state object every frame and Lane C3
@@ -1937,7 +2016,9 @@ import * as THREE from 'three';
       ctx: RF.ctx, kit: kit, profile: profile, scene3: scene3, camera: camera,
       renderer: renderer, popPool: popPool, running: running, stickEls: stickEls,
       World: RF.World, Fx: RF.Fx, Sound: RF.Sound, Art3D: RF.Art3D, Abilities: RF.Abilities,
-      UI: RF.UI, dying: dying, pending: pendingResults
+      UI: RF.UI, dying: dying, pending: pendingResults,
+      camZ: CAM_Z, camX: camState.x, camY: camState.y, camFov: camState.fov,
+      camZoom: camState.zoom, camPulse: camState.pulse, camPulseT: camState.pulseT
     };
     try {
       var keysDown = {};
@@ -2002,6 +2083,37 @@ import * as THREE from 'three';
       var p = buildPlayer(sharkById('reef'));
       check(!!p && p.kind === 'player', 'player entity built');
       check(isFinite(p.stat.speed) && p.stat.speed > 0, 'stats resolved finite');
+      check(isFinite(LEN_SCALE) && Math.abs(LEN_SCALE - (124 / 96)) < 1e-12,
+        'LEN_SCALE is the exported 124/96 rig-to-sim ratio');
+      var mouth085 = mouthRadiusForLen(SHARK_LEN_PX * 0.85);
+      var mouth19 = mouthRadiusForLen(SHARK_LEN_PX * 1.9);
+      check(isFinite(mouth085) && mouth085 > 14 && mouth085 < 90
+        && isFinite(mouth19) && mouth19 > mouth085 && mouth19 < 90,
+        'mouthR is sane for len 0.85 and 1.9 (' + mouth085.toFixed(2) + ', ' + mouth19.toFixed(2) + ')');
+      check(isFinite(CAM_FOV) && isFinite(CAM_Z_BASE) && isFinite(CAM_Z_FLOOR)
+        && isFinite(CAM_PITCH) && isFinite(CAM_LOOK_Y) && isFinite(CAM_BOB)
+        && isFinite(CAM_BOB_HZ) && isFinite(CAM_PULSE_EASE)
+        && isFinite(CAM_EAT_ZOOM) && isFinite(CAM_EAT_ZOOM_T)
+        && isFinite(CAM_DEATH_PULL) && isFinite(CAM_DEATH_PULL_T)
+        && isFinite(CAM_BLOOD_PUSH)
+        && camZForTier(1) === 430 && camZForTier(12) === 340,
+        'camera constants are finite (fov 50, z 430/340, pitch/bob finite)');
+      triggerCamPulse(CAM_EAT_ZOOM, CAM_EAT_ZOOM_T);
+      for (var camPulseStep = 0; camPulseStep < 60; camPulseStep++) stepCameraZoom(STEP);
+      check(camState.pulseT === 0 && Math.abs(camState.zoom) < 0.001,
+        'eat camera pulse decays to base within 1s (' + camState.zoom.toFixed(5) + ')');
+      var savedScaleArt = RF.Art3D;
+      var scaleProbeGroup = new THREE.Group();
+      scaleProbeGroup.scale.setScalar(2);
+      RF.Art3D = { buildShark: function () {
+        return { group: scaleProbeGroup, parts: {}, animate: function () {} };
+      } };
+      var scaleProbeRig = buildPlayerRig(sharkById('reef'));
+      check(Math.abs(scaleProbeGroup.scale.x - 2 * LEN_SCALE) < 1e-9
+        && Math.abs(scaleProbeGroup.__baseScale - 2 * LEN_SCALE) < 1e-9
+        && RF.Game && RF.Game.LEN_SCALE === LEN_SCALE,
+        'player rig applies LEN_SCALE once and exports it to RF.Game');
+      RF.Art3D = savedScaleArt;
       check(ctx.dpr === DPR && DPR >= 1 && DPR <= 3, 'ctx.dpr carries the pixel ratio (' + DPR + ')');
       check(!!ctx.time && ctx.time.dt === STEP && !!ctx.run && !!ctx.rng,
         'ctx schema matches SPEC (kit/scene/dpr/time/rng/player/save/run)');
@@ -2659,6 +2771,9 @@ import * as THREE from 'three';
       RF.World = saved.World; RF.Fx = saved.Fx; RF.Sound = saved.Sound;
       RF.Art3D = saved.Art3D; RF.Abilities = saved.Abilities; RF.UI = saved.UI;
       dying = saved.dying; pendingResults = saved.pending;
+      CAM_Z = saved.camZ;
+      camState.x = saved.camX; camState.y = saved.camY; camState.fov = saved.camFov;
+      camState.zoom = saved.camZoom; camState.pulse = saved.camPulse; camState.pulseT = saved.camPulseT;
     }
     return { pass: pass, notes: notes };
   }
@@ -2670,6 +2785,7 @@ import * as THREE from 'three';
     dpr: DPR,
     CSS_W: CSS_W, CSS_H: CSS_H,
     STEP: STEP,
+    LEN_SCALE: LEN_SCALE,
     startRun: startRun,
     endRun: endRun,
     firePower: firePower,
