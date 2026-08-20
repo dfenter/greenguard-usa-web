@@ -1868,6 +1868,10 @@ import * as THREE from 'three';
       quit: function () { endRun(); uiCall('showMenu'); }
     });
 
+    // First screen: the 2D build's Phaser Menu scene auto-started here; the
+    // DOM menu must be shown explicitly or the boot lands on empty water.
+    uiCall('showMenu');
+
     lastNow = 0;
     if (root.requestAnimationFrame) rafId = root.requestAnimationFrame(frame);
     return { renderer: renderer, scene: scene3, camera: camera };
