@@ -468,3 +468,82 @@ Authored data versus code defaults:
 | fallback objects in `engine3d.js` | code | degraded boot only when generated data is absent |
 
 `SAVE_VERSION` and the persisted save shape are unchanged.
+
+## Rev 3 (instanced prey and live camera contract, 2026-08-20)
+
+### Camera correction
+
+The shipped camera contract is the one implemented by `engine3d.js`, not the
+stale Rev 1 value. It is perspective FOV 50 with the gameplay plane at z = 0.
+The tier-1 dolly is z = 470; it pulls in by 10 units per shark tier and clamps
+at z = 360 for the largest roster entries. Position remains `(px, -py, z)` and
+lookAt remains the corresponding gameplay point. The 620 value in older prose
+is superseded.
+
+### Instanced prey lifecycle
+
+`world3d.js` probes `RF.Art3D.buildFish(def)` during `World.init()`. A converted
+definition is one whose guarded call returns a build with a BufferGeometry and
+a cloneable toon-ish material. The accepted build shapes are either the build
+record itself or a mesh-like `build.mesh` / `build.object` / `build.body`
+wrapper. Unsupported, absent, or throwing builders leave that definition on
+the billboard path.
+
+For every converted definition, init creates exactly one `THREE.InstancedMesh`
+with capacity `ENTITY_BUDGET.total`. Its `instanceMatrix` uses
+`THREE.DynamicDrawUsage`, `frustumCulled` is false, and the cloned material has
+vertex colors enabled. The mesh owns these per-instance attributes:
+
+| Attribute | Meaning |
+| --- | --- |
+| `aBendPhase` | `entPhase(entity) + accumulated world clock` |
+| `aBendAmp` | speed-fraction bend amplitude, exactly zero while frozen |
+| `instanceColor` | per-entity tint, including status/golden tint, default white |
+
+The entity view record is a preallocated slot record, not an Object3D. Slots
+are dense. Acquire uses `count++`; release copies the last live matrix and all
+three attributes into the released slot, updates the moved entity's slot, then
+does `count--`. The mesh `count` and the live view-bank count therefore always
+equal the number of active converted entities for that definition.
+
+The fixed-step render pass composes each matrix from module scratch only:
+`position.set(e.x, -e.y, 0)`, uniform scale from `displayLen`, z heading from
+the smoothed display angle, and `rotation.y = PI` when facing left. No negative
+scale is used for instanced fish. Matrix and attribute `needsUpdate` flags are
+set once per dirty mesh after the entity pass, never once per entity.
+
+### Instanced bend material variant
+
+The cloned material installs the instanced variant of the bend contract. Its
+`onBeforeCompile` adds uniforms `uBendK` and `uBendSpan`, attributes
+`aBendPhase` and `aBendAmp`, and injects this exact chunk immediately after
+`<begin_vertex>`:
+
+```glsl
+float bendT=smoothstep(uBendSpan.x,uBendSpan.y,-transformed.x);
+transformed.z += aBendAmp*bendT*sin(aBendPhase+transformed.x*uBendK);
+```
+
+The material's `customProgramCacheKey()` ends in `:rf-bend-inst`, distinct from
+the non-instanced bend variants. The base fish material is never mutated.
+
+### Fallback, background schools, and teardown
+
+If the fish builder is present but `InstancedMesh` or its attribute path fails
+at init, the adapter first attempts bounded per-entity fish meshes from the
+cached build and then falls back to the existing pooled billboard. If
+`buildFish` is absent, unsupported, or throws, billboards remain the complete
+render path and all simulation, eat, query, and AI behavior is unchanged.
+
+Each zone also gets one non-interactive 32-instance minnow school at z about
+-150 when the minnow build is available. Schools never enter the entity pool
+or spatial hash; their bend phase drifts in the fixed render pass. Without the
+loft/instancing path, each zone gets one merged billboard school instead.
+
+World teardown detaches interactive batches and schools, removes their custom
+attributes, and disposes their cloned geometries, attributes, and materials
+through the existing ownership ledger. The persistent asset caches remain the
+only documented cross-run render caches. The world selftest covers init-time
+conversion, dense slot swap, frozen amplitude, bend hook/cache key, tint
+attributes, one-draw-per-definition accounting, school count, no-builder
+fallback, and repeated teardown.

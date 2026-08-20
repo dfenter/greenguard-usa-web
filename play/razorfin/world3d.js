@@ -75,6 +75,14 @@ import * as THREE from 'three';
   var PHI = 0.61803398875;
   var FISH_WIGGLE = 0.12;      // +-0.12 rad tail wiggle at full speed
   var FISH_WIGGLE_HZ = [2.2, 7.5];
+  // Instanced fish use the same bend language as the fish loft lane. The
+  // amplitude is deliberately small because displayLen is the world-space
+  // scale and the loft is authored in body-local units.
+  var INST_BEND_K = 5.5;
+  var INST_BEND_SPAN = [-0.5, 0.35];
+  var INST_BEND_AMP = 0.12;
+  var SCHOOL_N = 32;
+  var SCHOOL_Z = -150;
   var JELLY_PULSE = 0.08;      // scale 0.92 - 1.08
   var JELLY_RATE = 0.55;
   var PUFF_TIME = 0.2;         // seconds to inflate or deflate
@@ -166,6 +174,10 @@ import * as THREE from 'three';
     viewsIdle: 0,              // total idle views across all keys, budget counter
     geoQuad: null,             // ONE shared unit plane geometry for all billboards
     rigs: [],                  // active NPC shark rigs awaiting animate()
+    fishSources: null,         // def id -> guarded RF.Art3D.buildFish source
+    instancedByDef: null,      // def id -> one dense interactive fish batch
+    instancedPrey: [],         // interactive instanced batches, built at init
+    backgroundSchools: [],     // one decorative minnow batch per zone
     fog: null,                 // THREE.FogExp2 owned by this module
     clearCol: null,            // THREE.Color scratch for the renderer clear
     atmoA: null, atmoB: null,  // THREE.Color scratches for the zone lerp
@@ -177,6 +189,16 @@ import * as THREE from 'three';
   var scratchChain = [];
   var playerHits = [];
   var weightScratch = [];
+
+  // Matrix path scratch. These objects are created once at module load and are
+  // rewritten by animateEntity; no matrix/quaternion/vector is created in the
+  // fixed step, including when a slot is swapped during a kill.
+  var instMatrixScratch = new THREE.Matrix4();
+  var instQuatScratch = new THREE.Quaternion();
+  var instPosScratch = new THREE.Vector3();
+  var instScaleScratch = new THREE.Vector3();
+  var instEulerScratch = new THREE.Euler(0, 0, 0, 'XYZ');
+  var instColorScratch = new THREE.Color(0xffffff);
 
   // Reused animate() state object for RF.Art3D rigs. One object, rewritten per
   // rig per frame, so a 20-shark screen still allocates nothing.
@@ -683,6 +705,244 @@ import * as THREE from 'three';
       if (rig && rig.group) return rig;
     } catch (e) { /* lane D3 not ready or this def is unsupported */ }
     return null;
+  }
+
+  // ------------------------------------------------------ instanced prey
+  // RF.Art3D.buildFish belongs to the fish-loft lane and is intentionally
+  // optional. A build may be the build record itself, or a small mesh wrapper;
+  // normalize both shapes here so this lane can ship before that lane does.
+  function fishBuildSource(build) {
+    if (!build) return null;
+    var mesh = build.geometry ? build : (build.mesh || build.object || build.body || null);
+    var geometry = mesh && mesh.geometry;
+    var material = mesh && mesh.material;
+    if (!geometry || typeof geometry.clone !== 'function' || !material) return null;
+    if (Array.isArray(material)) material = material[0];
+    if (!material || typeof material.clone !== 'function') return null;
+    return { build: build, geometry: geometry, material: material };
+  }
+
+  function ownedPush(list, value) {
+    if (!value || !list) return;
+    for (var i = 0; i < list.length; i++) if (list[i] === value) return;
+    list.push(value);
+  }
+
+  var INST_BEND_CHUNK =
+    'float bendT=smoothstep(uBendSpan.x,uBendSpan.y,-transformed.x); ' +
+    'transformed.z += aBendAmp*bendT*sin(aBendPhase+transformed.x*uBendK);';
+
+  // Install the instanced bend contract on a CLONED material only. The base
+  // fish-lane material remains untouched, and the cache key is distinct from
+  // the shark/solid bend variants so Three never aliases the programs.
+  function installInstancedBend(material) {
+    if (!material) return null;
+    if (!material.userData) material.userData = {};
+    var baseKey = typeof material.customProgramCacheKey === 'function'
+      ? material.customProgramCacheKey() : (material.type || 'rf-fish');
+    var previousCompile = material.onBeforeCompile;
+    material.onBeforeCompile = function (shader, renderer) {
+      if (previousCompile) previousCompile.call(this, shader, renderer);
+      shader.uniforms.uBendK = { value: INST_BEND_K };
+      shader.uniforms.uBendSpan = { value: material.userData.rfBendSpan };
+      var attrs = 'attribute float aBendPhase;\nattribute float aBendAmp;\n';
+      if (shader.vertexShader.indexOf('attribute float aBendPhase') < 0) {
+        shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\n' + attrs);
+      }
+      if (shader.vertexShader.indexOf(INST_BEND_CHUNK) < 0) {
+        shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>',
+          '#include <begin_vertex>\n' + INST_BEND_CHUNK);
+      }
+    };
+    material.customProgramCacheKey = function () { return String(baseKey) + ':rf-bend-inst'; };
+    material.userData.rfBendInstanced = true;
+    material.userData.rfBendSpan = new THREE.Vector2(INST_BEND_SPAN[0], INST_BEND_SPAN[1]);
+    material.userData.rfBendK = INST_BEND_K;
+    material.vertexColors = true;
+    material.needsUpdate = true;
+    return material;
+  }
+
+  function createInstancedBatch(def, source, capacity, interactive) {
+    if (!source || !isThree() || typeof THREE.InstancedMesh !== 'function' ||
+      typeof THREE.InstancedBufferAttribute !== 'function') return null;
+    if (typeof source.geometry.clone !== 'function' || typeof source.material.clone !== 'function') return null;
+    var geometry = null, material = null, mesh = null;
+    try {
+      // Attributes are per InstancedMesh, so every batch gets its own geometry
+      // clone even when interactive prey and decor schools share a fish build.
+      geometry = source.geometry.clone();
+      material = installInstancedBend(source.material.clone());
+      if (!material || typeof geometry.setAttribute !== 'function') throw new Error('fish batch attributes unavailable');
+      mesh = new THREE.InstancedMesh(geometry, material, capacity);
+      var phase = new THREE.InstancedBufferAttribute(new Float32Array(capacity), 1);
+      var amp = new THREE.InstancedBufferAttribute(new Float32Array(capacity), 1);
+      var colors = new THREE.InstancedBufferAttribute(new Float32Array(capacity * 3), 3);
+      geometry.setAttribute('aBendPhase', phase);
+      geometry.setAttribute('aBendAmp', amp);
+      if (typeof phase.setUsage === 'function' && THREE.DynamicDrawUsage !== undefined) phase.setUsage(THREE.DynamicDrawUsage);
+      if (typeof amp.setUsage === 'function' && THREE.DynamicDrawUsage !== undefined) amp.setUsage(THREE.DynamicDrawUsage);
+      if (typeof colors.setUsage === 'function' && THREE.DynamicDrawUsage !== undefined) colors.setUsage(THREE.DynamicDrawUsage);
+      mesh.instanceColor = colors;
+      mesh.frustumCulled = false;
+      mesh.count = 0;
+      if (mesh.instanceMatrix && typeof mesh.instanceMatrix.setUsage === 'function' && THREE.DynamicDrawUsage !== undefined) {
+        mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      } else if (!mesh.instanceMatrix) {
+        throw new Error('instanced matrix unavailable');
+      }
+    } catch (err) {
+      if (material) disposeOne(material);
+      if (geometry) disposeOne(geometry);
+      return null;
+    }
+    var batch = {
+      def: def,
+      mesh: mesh,
+      geometry: geometry,
+      material: material,
+      phase: phase,
+      amp: amp,
+      colors: colors,
+      capacity: capacity,
+      count: 0,
+      dirty: false,
+      interactive: !!interactive,
+      slotEntities: interactive ? new Array(capacity) : null,
+      records: interactive ? new Array(capacity) : null,
+      phaseBase: interactive ? null : new Float32Array(capacity),
+      source: source,
+    };
+    if (interactive) {
+      for (var i = 0; i < capacity; i++) {
+        batch.records[i] = {
+          obj: mesh, rig: null, aspect: 1, instanced: true,
+          batch: batch, slot: -1, entity: null,
+        };
+      }
+    }
+    ownedPush(envOwned.geos, geometry);
+    ownedPush(envOwned.mats, material);
+    ownedPush(envOwned.attributes, phase);
+    ownedPush(envOwned.attributes, amp);
+    ownedPush(envOwned.attributes, colors);
+    return batch;
+  }
+
+  function buildFishSources() {
+    S.fishSources = {};
+    var A = RF.Art3D;
+    var rows = D().CREATURES || [];
+    if (!A || typeof A.buildFish !== 'function') return;
+    for (var i = 0; i < rows.length; i++) {
+      var def = rows[i];
+      if (!def || def.kind !== 'prey') continue;
+      var build = null;
+      try { build = A.buildFish(def); } catch (err) { build = null; }
+      var source = fishBuildSource(build);
+      if (!source) continue;
+      source.def = def;
+      S.fishSources[def.id] = source;
+      ownedPush(envOwned.geos, source.geometry);
+      ownedPush(envOwned.mats, source.material);
+    }
+  }
+
+  function buildInstancedPrey() {
+    S.instancedByDef = {};
+    S.instancedPrey.length = 0;
+    var rows = D().CREATURES || [];
+    var cap = (D().ENTITY_BUDGET && D().ENTITY_BUDGET.total) || 140;
+    for (var i = 0; i < rows.length; i++) {
+      var def = rows[i];
+      var source = def && S.fishSources && S.fishSources[def.id];
+      if (!source) continue;
+      var batch = createInstancedBatch(def, source, cap, true);
+      if (!batch) continue;
+      S.instancedByDef[def.id] = batch;
+      S.instancedPrey.push(batch);
+      var key = 'prey:' + def.id;
+      S.views[key] = { free: [], live: 0, peak: 0, instanced: batch };
+      meshName(batch.mesh, 'RF instanced prey ' + def.id);
+      sceneAdd(batch.mesh);
+    }
+  }
+
+  function meshName(mesh, name) {
+    if (mesh) mesh.name = name;
+  }
+
+  function fillSchoolBatch(batch, zone, index) {
+    var low = Math.max(SURFACE_Y + 45, zone.yMin + 40);
+    var high = Math.min(S.h - SEAFLOOR_MARGIN - 20, zone.yMax - 40);
+    if (high < low) high = low;
+    var n = SCHOOL_N;
+    batch.count = n;
+    batch.mesh.count = n;
+    for (var i = 0; i < n; i++) {
+      var x = rr(0, S.w);
+      var y = rr(low, high);
+      instPosScratch.set(x, -y, SCHOOL_Z);
+      instEulerScratch.set(0, 0, 0);
+      instQuatScratch.setFromEuler(instEulerScratch);
+      instScaleScratch.set(1, 1, 1);
+      instMatrixScratch.compose(instPosScratch, instQuatScratch, instScaleScratch);
+      batch.mesh.setMatrixAt(i, instMatrixScratch);
+      batch.phaseBase[i] = rr(0, TAU) + index * 0.7;
+      batch.phase.setX(i, batch.phaseBase[i]);
+      batch.amp.setX(i, 0.08);
+      batch.colors.setXYZ(i, 1, 1, 1);
+    }
+    batch.dirty = true;
+  }
+
+  function buildBackgroundSchools() {
+    var rows = zones();
+    for (var i = 0; i < rows.length; i++) {
+      var zone = rows[i];
+      var source = S.fishSources && S.fishSources.minnow;
+      var batch = source ? createInstancedBatch(source.def || defOf('minnow'), source, SCHOOL_N, false) : null;
+      if (batch) {
+        fillSchoolBatch(batch, zone, i);
+        meshName(batch.mesh, 'RF minnow school zone ' + (i + 1));
+        sceneAdd(batch.mesh);
+        S.decor.push(batch.mesh);
+        S.backgroundSchools.push({ batch: batch, mesh: batch.mesh, rate: 0.08 + i * 0.017,
+          phase: rr(0, TAU), x0: 0, y0: 0, ampX: 0, ampY: 0, fallback: false });
+        continue;
+      }
+
+      // If the loft or instancing path is absent, keep the same one-draw school
+      // promise with a merged billboard batch. It is decorative only and never
+      // enters the entity pool or spatial hash.
+      quadReset();
+      var tex = kenneyTexture('fish_blue');
+      for (var j = 0; j < SCHOOL_N; j++) {
+        var sx = rr(0, S.w), sy = rr(Math.max(SURFACE_Y + 45, zone.yMin + 40),
+          Math.min(S.h - SEAFLOOR_MARGIN - 20, zone.yMax - 40));
+        quadPush(sx, -sy, SCHOOL_Z, rr(36, 62), rr(14, 26), 0,
+          rnd() < 0.5 ? -1 : 1, tex ? 0xffffff : paletteBase(defOf('minnow')), 0.46);
+      }
+      var fallback = batchMesh(tex, false, undefined);
+      if (!fallback) continue;
+      meshName(fallback, 'RF minnow billboard school zone ' + (i + 1));
+      sceneAdd(fallback);
+      S.decor.push(fallback);
+      S.backgroundSchools.push({ batch: null, mesh: fallback, rate: 0.08 + i * 0.017,
+        phase: rr(0, TAU), x0: 0, y0: 0, ampX: 18 + i * 5, ampY: 6 + i * 2, fallback: true });
+    }
+  }
+
+  function makeFishMesh(def) {
+    var source = S.fishSources && S.fishSources[def && def.id];
+    if (!source || !THREE.Mesh) return null;
+    var material = null;
+    try { material = source.material.clone(); } catch (err) { material = null; }
+    if (!material) return null;
+    material.__rfPrivate = true;
+    material.__rfBase = material.color && typeof material.color.getHex === 'function'
+      ? material.color.getHex() : 0xffffff;
+    return new THREE.Mesh(source.geometry, material);
   }
 
   // A coin pickup has no bake of its own in EITHER roster, and there is no
@@ -2261,6 +2521,20 @@ import * as THREE from 'three';
   // Check a view out of the global per-key pool, building one only when every
   // existing view of that key is already in use.
   function viewAcquire(viewKey, e) {
+    var instanced = e && e.kind === 'prey' && S.instancedByDef && S.instancedByDef[e.defId];
+    if (instanced && instanced.count < instanced.capacity) {
+      var ibank = S.views[viewKey];
+      if (!ibank) ibank = S.views[viewKey] = { free: [], live: 0, peak: 0, instanced: instanced };
+      var islot = instanced.count++;
+      instanced.mesh.count = instanced.count;
+      instanced.slotEntities[islot] = e;
+      ibank.live++;
+      if (ibank.live > ibank.peak) ibank.peak = ibank.live;
+      var irec = instanced.records[islot];
+      irec.slot = islot;
+      irec.entity = e;
+      return irec;
+    }
     var bank = S.views[viewKey];
     if (!bank) { bank = S.views[viewKey] = { free: [], live: 0, peak: 0 }; }
     bank.live++;
@@ -2276,7 +2550,9 @@ import * as THREE from 'three';
       rig = makeSharkRig(e.def);
       obj = rig ? rig.group : makeBillboard(e.def, e.kind);
     } else {
-      obj = makeBillboard(e.def, e.kind);
+      // When the fish loft exists but instancing is unavailable, retain the
+      // loft as a bounded per-entity mesh fallback before dropping to a card.
+      obj = makeFishMesh(e.def) || makeBillboard(e.def, e.kind);
     }
     if (!obj) return null;
     if (!rig) privatiseMaterial(obj);
@@ -2322,10 +2598,48 @@ import * as THREE from 'three';
   // never causes the thrash the global budget did.
   var VIEW_KEY_CEIL = 64;      // no single key may retain more idle than this
 
+  function copyInstancedSlot(batch, from, to) {
+    if (from === to) return;
+    var src = batch.mesh.instanceMatrix && batch.mesh.instanceMatrix.array;
+    if (src) {
+      for (var i = 0; i < 16; i++) src[to * 16 + i] = src[from * 16 + i];
+    }
+    var phase = batch.phase.array, amp = batch.amp.array, colors = batch.colors.array;
+    phase[to] = phase[from];
+    amp[to] = amp[from];
+    colors[to * 3] = colors[from * 3];
+    colors[to * 3 + 1] = colors[from * 3 + 1];
+    colors[to * 3 + 2] = colors[from * 3 + 2];
+  }
+
+  function releaseInstanced(rec) {
+    var batch = rec.batch;
+    if (!batch || batch.count <= 0) return;
+    var slot = rec.slot;
+    var last = batch.count - 1;
+    var moved = batch.slotEntities[last];
+    if (slot !== last && moved) {
+      copyInstancedSlot(batch, last, slot);
+      batch.slotEntities[slot] = moved;
+      if (moved._viewRec) moved._viewRec.slot = slot;
+    }
+    batch.slotEntities[last] = null;
+    batch.count = last;
+    batch.mesh.count = last;
+    batch.dirty = true;
+    rec.slot = -1;
+    rec.entity = null;
+  }
+
   function viewRelease(viewKey, rec) {
     if (!viewKey || !rec) return;
     var bank = S.views[viewKey];
     if (!bank) { bank = S.views[viewKey] = { free: [], live: 0, peak: 0 }; }
+    if (rec.instanced) {
+      releaseInstanced(rec);
+      if (bank.live > 0) bank.live--;
+      return;
+    }
     if (bank.live > 0) bank.live--;
     setVisible(rec.obj, false);
     var cap = bank.peak < VIEW_KEY_CEIL ? bank.peak : VIEW_KEY_CEIL;
@@ -2409,6 +2723,13 @@ import * as THREE from 'three';
     e.sprite = rec ? rec.obj : null;
     e.rig = rec ? rec.rig : null;
     if (!rec || !rec.obj) return;
+    if (rec.instanced) {
+      // The shared mesh is already attached once at init. Seed this new slot
+      // immediately so an entity spawned by the late spawner cannot display
+      // the previous occupant's matrix for one render.
+      animateInstancedEntity(e, S.animT);
+      return;
+    }
     var obj = rec.obj;
     setVisible(obj, true);
     setPos(obj, e.x, e.y, Z_PLAY);
@@ -3253,6 +3574,50 @@ import * as THREE from 'three';
     if (S.surface && S.surface.foam && S.surface.foam.position) {
       S.surface.foam.position.x = S.surface.x0 + Math.sin(t * 0.6) * 40 + (t * 14) % 240;
     }
+
+    // Background schools are decorative registries, not entities. Their phase
+    // writes stay in this fixed-size render pass and never touch the sim.
+    animateSchools(t);
+  }
+
+  function animateSchools(t) {
+    for (var i = 0; i < S.backgroundSchools.length; i++) {
+      var school = S.backgroundSchools[i];
+      if (!school || !school.mesh) continue;
+      if (school.batch) {
+        var batch = school.batch;
+        for (var j = 0; j < batch.count; j++) {
+          batch.phase.setX(j, school.phase + t * school.rate + batch.phaseBase[j]);
+        }
+        batch.dirty = true;
+      } else if (school.mesh.position) {
+        var ph = school.phase + t * school.rate;
+        school.mesh.position.x = school.x0 + Math.sin(ph) * school.ampX;
+        school.mesh.position.y = school.y0 + Math.sin(ph * 0.71 + 0.8) * school.ampY;
+      }
+    }
+  }
+
+  function flushInstancedUpdates() {
+    var i, batch;
+    for (i = 0; i < S.instancedPrey.length; i++) {
+      batch = S.instancedPrey[i];
+      if (!batch || !batch.dirty) continue;
+      if (batch.mesh.instanceMatrix) batch.mesh.instanceMatrix.needsUpdate = true;
+      batch.phase.needsUpdate = true;
+      batch.amp.needsUpdate = true;
+      batch.colors.needsUpdate = true;
+      batch.dirty = false;
+    }
+    for (i = 0; i < S.backgroundSchools.length; i++) {
+      batch = S.backgroundSchools[i] && S.backgroundSchools[i].batch;
+      if (!batch || !batch.dirty) continue;
+      if (batch.mesh.instanceMatrix) batch.mesh.instanceMatrix.needsUpdate = true;
+      batch.phase.needsUpdate = true;
+      batch.amp.needsUpdate = true;
+      batch.colors.needsUpdate = true;
+      batch.dirty = false;
+    }
   }
 
   // -------------------------------------------------- Rev 4 creature motion
@@ -3296,6 +3661,45 @@ import * as THREE from 'three';
   var lastDt = 1 / 60;
   function dtOf() { return lastDt; }
 
+  function animateInstancedEntity(e, t) {
+    var rec = e && e._viewRec;
+    var batch = rec && rec.instanced ? rec.batch : null;
+    if (!batch || !batch.mesh) return;
+    var st = e.st;
+    var fa = faceAngle(e, dtOf());
+    var left = Math.cos(fa) < 0;
+
+    // The loft's nose points +X. A Y half-turn preserves front-face winding
+    // when the fish faces left; unlike a negative scale it keeps normals and
+    // instanced culling coherent. Z carries the sim heading in Three space.
+    instPosScratch.set(e.x, -e.y, Z_PLAY);
+    instEulerScratch.set(0, left ? Math.PI : 0, -fa);
+    instQuatScratch.setFromEuler(instEulerScratch);
+    var len = displayLen(e.def, e.kind);
+    instScaleScratch.set(len, len, len);
+    instMatrixScratch.compose(instPosScratch, instQuatScratch, instScaleScratch);
+    batch.mesh.setMatrixAt(rec.slot, instMatrixScratch);
+
+    var spd = Math.sqrt(e.vx * e.vx + e.vy * e.vy);
+    var maxSpd = (e.def && (e.def.speed || (e.def.stats && e.def.stats.speed))) || 160;
+    var speedFrac = maxSpd > 0 ? clamp(spd / maxSpd, 0, 1.4) : 0;
+    if (st.frozenT > 0) speedFrac = 0;
+    batch.phase.setX(rec.slot, entPhase(e) + t);
+    batch.amp.setX(rec.slot, INST_BEND_AMP * clamp(speedFrac, 0, 1));
+
+    var tint = e._tint || 0;
+    if (!tint) {
+      if (st.frozenT > 0) tint = TINT_FROZEN;
+      else if (st.burnT > 0) tint = TINT_BURN;
+      else if (st.poisonT > 0) tint = TINT_POISON;
+      else if (st.stunT > 0) tint = TINT_STUN;
+      else tint = 0xffffff;
+    }
+    instColorScratch.setHex(tint);
+    batch.colors.setXYZ(rec.slot, instColorScratch.r, instColorScratch.g, instColorScratch.b);
+    batch.dirty = true;
+  }
+
   // A frozen or stunned creature must READ frozen. The wiggle amplitude is
   // scaled by how fast the entity is actually moving, so freezing (which zeroes
   // velocity) collapses the animation to its baseline on its own; frozenT is
@@ -3305,6 +3709,11 @@ import * as THREE from 'three';
     if (!sp) return;
     var st = e.st;
     var frozen = st.frozenT > 0;
+
+    if (e._viewRec && e._viewRec.instanced) {
+      animateInstancedEntity(e, t);
+      return;
+    }
 
     if (e.kind === 'pickup') {
       // Pickups glint: a slow alpha pulse so a dropped coin catches the eye in
@@ -3445,7 +3854,7 @@ import * as THREE from 'three';
   // Every disposable this RUN created, so teardown never has to guess. Counts
   // are kept alongside for the selftest's create-vs-dispose assertion.
   function freshOwned() {
-    return { mats: [], geos: [], textures: [], created: 0, disposed: 0 };
+    return { mats: [], geos: [], textures: [], attributes: [], created: 0, disposed: 0 };
   }
 
   function disposeOne(o) {
@@ -3472,6 +3881,11 @@ import * as THREE from 'three';
   // bulk, at the end of teardown, never here.
   function viewTeardown(rec) {
     if (!rec) return;
+    if (rec.instanced) {
+      rec.slot = -1;
+      rec.entity = null;
+      return;
+    }
     var o = rec.obj;
     if (rec.rig && typeof rec.rig.dispose === 'function') {
       // Lane D3 owns its geometry/material caches. Its dispose path is the
@@ -3485,6 +3899,39 @@ import * as THREE from 'three';
     }
     rec.obj = null;
     rec.rig = null;
+  }
+
+  function clearInstancedBatch(batch) {
+    if (!batch) return;
+    var g = batch.geometry;
+    if (g && typeof g.deleteAttribute === 'function') {
+      g.deleteAttribute('aBendPhase');
+      g.deleteAttribute('aBendAmp');
+    }
+    if (batch.mesh) batch.mesh.instanceColor = null;
+    if (batch.records) {
+      for (var i = 0; i < batch.records.length; i++) {
+        batch.records[i].slot = -1;
+        batch.records[i].entity = null;
+      }
+    }
+  }
+
+  function teardownInstancedState() {
+    var i, batch;
+    for (i = 0; i < S.instancedPrey.length; i++) {
+      batch = S.instancedPrey[i];
+      clearInstancedBatch(batch);
+      detach(batch && batch.mesh);
+    }
+    for (i = 0; i < S.backgroundSchools.length; i++) {
+      batch = S.backgroundSchools[i] && S.backgroundSchools[i].batch;
+      if (batch) clearInstancedBatch(batch);
+    }
+    S.instancedPrey.length = 0;
+    S.backgroundSchools.length = 0;
+    S.instancedByDef = {};
+    S.fishSources = null;
   }
 
   World.teardown = function () {
@@ -3541,6 +3988,7 @@ import * as THREE from 'three';
     //    walk detaches the lot.
     for (i = 0; i < S.decor.length; i++) detach(S.decor[i]);
     S.decor.length = 0;
+    teardownInstancedState();
     S.surface = null;
     S.gradient = null;
     S.terrain.length = 0;
@@ -3557,9 +4005,11 @@ import * as THREE from 'three';
     //    pushes into them.
     for (i = 0; i < envOwned.mats.length; i++) { if (disposeOne(envOwned.mats[i])) envOwned.disposed++; }
     for (i = 0; i < envOwned.geos.length; i++) { if (disposeOne(envOwned.geos[i])) envOwned.disposed++; }
+    for (i = 0; i < envOwned.attributes.length; i++) { if (disposeOne(envOwned.attributes[i])) envOwned.disposed++; }
     for (i = 0; i < envOwned.textures.length; i++) { if (disposeOne(envOwned.textures[i])) envOwned.disposed++; }
     envOwned.mats.length = 0;
     envOwned.geos.length = 0;
+    envOwned.attributes.length = 0;
     envOwned.textures.length = 0;
 
     // 5. The shared caches this module owns per run: matCache holds both the
@@ -3653,6 +4103,10 @@ import * as THREE from 'three';
     S.ambientT = 0;
     S.matCache = {};
     S.views = {};
+    S.fishSources = {};
+    S.instancedByDef = {};
+    S.instancedPrey.length = 0;
+    S.backgroundSchools.length = 0;
     // Ownership ledgers for this run. Every environment material, geometry and
     // run-created texture is pushed into these at its creation site, and
     // teardown() disposes exactly what is in them, so nothing has to be found
@@ -3688,7 +4142,12 @@ import * as THREE from 'three';
     if (ctx && ctx.lights) World.setLights(ctx.lights);
 
     buildNpcTables();
+    // Fish builds are optional. When the fish-loft lane is absent these three
+    // calls are no-ops and the existing billboard path remains authoritative.
+    buildFishSources();
+    buildInstancedPrey();
     buildBackground();
+    buildBackgroundSchools();
     buildPool((d.ENTITY_BUDGET && d.ENTITY_BUDGET.total) || 140);
 
     var F = RF.Fx;
@@ -3810,7 +4269,10 @@ import * as THREE from 'three';
 
       var sp = e.sprite;
       if (sp) {
-        setPos(sp, e.x, e.y, Z_PLAY);
+        // Instanced prey share one world-spanning mesh. Their transform lives
+        // in the per-instance matrix; billboards and rigs retain the ordinary
+        // Object3D position path.
+        if (!(e._viewRec && e._viewRec.instanced)) setPos(sp, e.x, e.y, Z_PLAY);
         // Rev 4: creature animation runs AFTER the position write. The heading
         // and the mirror are written INSIDE animateEntity (applyHeading), not
         // before it, because in 3D the mirror is a scale sign and the rotation
@@ -3820,6 +4282,10 @@ import * as THREE from 'three';
     }
 
     runSpawner(ctx, camX, camY);
+    // A spawner can acquire an instanced slot after the entity pass, so flush
+    // once more at the end of the fixed step. Each mesh receives one update
+    // flag write, never one write per entity.
+    flushInstancedUpdates();
   };
 
   // --------------------------------------------------------------- debug
@@ -3845,6 +4311,8 @@ import * as THREE from 'three';
     // reach them even if an assertion throws.
     var prevTexCacheOuter = null;
     var prevRFContext = RF.ctx;
+    var prevArt3DOuter = RF.Art3D;
+    var prevBuildFishOuter = prevArt3DOuter && prevArt3DOuter.buildFish;
     function chk(cond, msg) { if (!cond) { pass = false; notes.push('FAIL ' + msg); } else notes.push('ok ' + msg); }
 
     // Deterministic stub rng (mulberry32).
@@ -3972,6 +4440,130 @@ import * as THREE from 'three';
           },
         };
       }
+
+      // ---------------------------------------------- Rev 3 instanced fish
+      // Exercise the real adapter with a tiny fish-loft stub even when the
+      // optional fish3d.js lane is not loaded by this runner. The stub returns
+      // the same geometry/material pair the lane contract accepts; every
+      // lifecycle assertion below therefore covers the shipped guarded path,
+      // not a test-only branch inside the selftest.
+      var probeArt3D = RF.Art3D || {};
+      probeArt3D.buildFish = function () {
+        return {
+          geometry: new THREE.PlaneGeometry(1, 0.5),
+          material: new THREE.MeshToonMaterial({ color: 0xffffff, vertexColors: true }),
+        };
+      };
+      RF.Art3D = probeArt3D;
+      var probeAdded = [];
+      var probeScene = {
+        fog: null,
+        add: function (o) { probeAdded.push(o); if (o) o.parent = probeScene; return this; },
+        remove: function (o) {
+          var pi = probeAdded.indexOf(o);
+          if (pi >= 0) { probeAdded[pi] = probeAdded[probeAdded.length - 1]; probeAdded.pop(); }
+          if (o) o.parent = null;
+          return this;
+        },
+      };
+      var probeCtx = {
+        rng: rngStub,
+        renderer: renderer,
+        time: { now: 0, dt: 1 / 60, frame: 0 },
+        run: { score: 0, coins: 0 },
+        player: { x: 3600, y: 700, tier: 3, r: 30, st: {} },
+      };
+      try {
+        World.init(probeScene, probeCtx);
+        var probeBatch = S.instancedByDef && S.instancedByDef.mackerel;
+        chk(!!probeBatch && S.instancedPrey.length > 0,
+          'Rev 3 fish builder creates init-time instanced prey batches (' + S.instancedPrey.length + ')');
+        chk(!probeBatch || (probeBatch.mesh.frustumCulled === false &&
+          probeBatch.mesh.instanceMatrix.usage === THREE.DynamicDrawUsage),
+        'instanced prey disables culling and uses DynamicDrawUsage matrices');
+        chk(S.backgroundSchools.length === zones().length &&
+          S.backgroundSchools[0] && S.backgroundSchools[0].batch &&
+          S.backgroundSchools[0].batch.mesh.count === SCHOOL_N,
+        'one 32-instance minnow school is built per zone at the decor depth');
+
+        var pi1 = spawnOne('mackerel', 3200, 700, 0);
+        var pi2 = spawnOne('mackerel', 3300, 700, 0);
+        var pi3 = spawnOne('mackerel', 3400, 700, 0);
+        chk(!!(pi1 && pi2 && pi3 && pi1._viewRec && pi1._viewRec.instanced),
+          'converted prey acquires an instance slot instead of a pooled Object3D');
+        chk(!!(pi1 && pi1.sprite === pi2.sprite && probeBatch && probeBatch.mesh.count === 3),
+          'three converted entities share one def mesh and count is live-entity based');
+        if (pi1 && pi2 && pi3 && probeBatch) {
+          World.kill(pi2, 'test');
+          chk(probeBatch.mesh.count === 2 && probeBatch.count === 2 &&
+            S.views['prey:mackerel'].live === 2 && pi3.active && pi3._viewRec.slot === 1,
+            'slot release swap-with-last keeps count/live and updates the moved entity slot');
+          var pi = pi1.active ? pi1 : pi3;
+          var stableRec = pi._viewRec;
+          var stableRecordCount = probeBatch.records.length;
+          pi.vx = pi.def.speed || 95;
+          pi.vy = 0;
+          probeCtx.time.now += 1 / 60;
+          World.update(probeCtx);
+          var pslot = pi._viewRec.slot;
+          var pm = new THREE.Matrix4();
+          probeBatch.mesh.getMatrixAt(pslot, pm);
+          var matrixProbeOk = Math.abs(pm.elements[12] - pi.x) < 1e-3 &&
+            Math.abs(pm.elements[13] + pi.y) < 1e-3 &&
+            probeBatch.amp.getX(pslot) > 0;
+          chk(matrixProbeOk,
+          'matrix path writes sim position and moving bend amplitude without allocation');
+          for (var pstep = 0; pstep < 30; pstep++) {
+            probeCtx.time.now += 1 / 60;
+            World.update(probeCtx);
+          }
+          chk(pi.active && pi._viewRec === stableRec && probeBatch.records.length === stableRecordCount,
+            'instanced warmup reuses the preallocated slot record and matrix scratch');
+          pi.st.frozenT = 1;
+          World.update(probeCtx);
+          chk(probeBatch.amp.getX(pi._viewRec.slot) === 0,
+            'frozen converted prey writes zero bend amplitude');
+        }
+
+        if (probeBatch) {
+          var probeShader = { uniforms: {}, vertexShader: '#include <common>\n#include <begin_vertex>' };
+          probeBatch.material.onBeforeCompile(probeShader);
+          var bendKey = probeBatch.material.customProgramCacheKey();
+          chk(probeBatch.material.vertexColors === true &&
+            bendKey.slice(-13) === ':rf-bend-inst' &&
+            probeShader.uniforms.uBendK && probeShader.uniforms.uBendSpan &&
+            probeShader.vertexShader.indexOf('aBendPhase') >= 0 &&
+            probeShader.vertexShader.indexOf(INST_BEND_CHUNK) >= 0,
+          'instanced toon material preserves the Rev 3 bend uniforms, attributes, and cache key');
+          chk(!!(probeBatch.mesh.instanceColor && probeBatch.mesh.instanceColor.isInstancedBufferAttribute),
+            'instanced tint uses Three built-in instanceColor');
+        }
+        var convertedDraws = 0;
+        for (var pdi = 0; pdi < S.instancedPrey.length; pdi++) {
+          if (S.instancedPrey[pdi].mesh && S.instancedPrey[pdi].mesh.material) convertedDraws++;
+        }
+        chk(convertedDraws === S.instancedPrey.length,
+          'each converted definition contributes exactly one instanced draw object');
+
+        World.teardown();
+        RF.Art3D = null;
+        World.init(probeScene, probeCtx);
+        var fallbackFish = spawnOne('mackerel', 3200, 700, 0);
+        chk(!!(fallbackFish && fallbackFish._viewRec && !fallbackFish._viewRec.instanced),
+          'absent RF.Art3D.buildFish falls back to the billboard lifecycle');
+        World.teardown();
+      } catch (probeErr) {
+        chk(false, 'Rev 3 instancing probe completed without exception (' +
+          (probeErr && probeErr.message ? probeErr.message : probeErr) + ')');
+      } finally {
+        if (S.inited) World.teardown();
+        RF.Art3D = prevArt3DOuter;
+        if (prevArt3DOuter) {
+          if (prevBuildFishOuter) prevArt3DOuter.buildFish = prevBuildFishOuter;
+          else { try { delete prevArt3DOuter.buildFish; } catch (restoreErr) { prevArt3DOuter.buildFish = undefined; } }
+        }
+      }
+
       World.init(scene, ctx);
       chk(World.entities === S.entities, 'World.entities is the live active list');
       chk(World.playerHits === playerHits, 'World.playerHits is the live hit list');
