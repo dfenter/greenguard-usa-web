@@ -106,6 +106,12 @@ import * as THREE from 'three';
   var FACE_TURN = 9.0;         // rad/s-ish lerp rate of display heading -> e.angle
   var FACE_SNAP = 0.6;         // below this speed the display heading holds
 
+  // Prey are local fish lofts, not world-sized shark rigs. The final visual
+  // length is capped against the live player rig so tier-3+ prey cannot read
+  // as another player shark when their collision radius grows.
+  var PLAYER_RENDER_LEN_BASE = 124;
+  var PREY_RENDER_FRACTION = 0.72;
+
   // Rev 5 flee burst, capped so a chasing shark of equal tier always closes.
   var FLEE_BURST = 1.55;       // prey panic sprint, <= 1.6x base per Rev 5 brief
   var FLEE_BURST_NPC = 1.35;   // outranked NPC shark running from the player
@@ -312,7 +318,45 @@ import * as THREE from 'three';
     if (t >= 90) t = 3;
     return 14 + t * 7;
   }
-  function displayLen(def, kind) { return radiusFor(def, kind) * 2.1; }
+
+  function playerRenderedLength() {
+    var game = RF.Game;
+    var player = game && game.ctx && game.ctx.player;
+    var playerDef = player && player.def;
+    var authoredLen = playerDef && playerDef.sil && playerDef.sil.len;
+    if (typeof authoredLen === 'number' && isFinite(authoredLen) && authoredLen > 0) {
+      return PLAYER_RENDER_LEN_BASE * authoredLen;
+    }
+    var gameScale = game && game.LEN_SCALE;
+    if (typeof gameScale === 'number' && isFinite(gameScale) && gameScale > 0) {
+      return 96 * gameScale;
+    }
+    return PLAYER_RENDER_LEN_BASE;
+  }
+
+  function fishLocalLength(def) {
+    var source = S.fishSources && def && S.fishSources[def.id];
+    if (source && source.localLength > 0) return source.localLength;
+    return 0;
+  }
+
+  // This is the desired final world-space length. Instanced lofts divide it
+  // by their local geometry width before composing a matrix; billboards use it
+  // directly as their x scale. Keeping that distinction here prevents the
+  // old radius*2.1 scale from being multiplied by a 2 to 3 unit fish loft.
+  function displayLen(def, kind) {
+    var base = radiusFor(def, kind) * 2.1;
+    if (kind !== 'prey') return base;
+    var localLength = fishLocalLength(def);
+    var visualLength = localLength > 0 ? base * localLength : base;
+    var cap = playerRenderedLength() * PREY_RENDER_FRACTION;
+    return visualLength < cap ? visualLength : cap;
+  }
+
+  function renderScaleFor(def, kind, localLength) {
+    var length = displayLen(def, kind);
+    return kind === 'prey' && localLength > 0 ? length / localLength : length;
+  }
 
   function paletteBase(def) {
     if (def && def.sil && def.sil.palette && typeof def.sil.palette.base === 'number') return def.sil.palette.base;
@@ -795,7 +839,16 @@ import * as THREE from 'three';
       material = fishSharedMaterial;
     }
     if (!material || typeof material.clone !== 'function') return null;
-    return { build: build, geometry: geometry, material: material };
+    var bounds = geometry.boundingBox;
+    var localLength = bounds && bounds.max && bounds.min
+      ? bounds.max.x - bounds.min.x : 0;
+    return {
+      build: build,
+      geometry: geometry,
+      material: material,
+      localLength: localLength > 0 && isFinite(localLength) ? localLength : 0,
+      paletteId: geometry.userData && geometry.userData.rfFishPaletteId || null,
+    };
   }
 
   function ownedPush(list, value) {
@@ -851,6 +904,9 @@ import * as THREE from 'three';
       geometry = source.geometry.clone();
       material = installInstancedBend(source.material.clone());
       if (!material || typeof geometry.setAttribute !== 'function') throw new Error('fish batch attributes unavailable');
+      material.userData = material.userData || {};
+      material.userData.rfFishVertexColors = true;
+      material.userData.rfFishPaletteId = source.paletteId || (def && def.id) || null;
       mesh = new THREE.InstancedMesh(geometry, material, capacity);
       var phase = new THREE.InstancedBufferAttribute(new Float32Array(capacity), 1);
       var amp = new THREE.InstancedBufferAttribute(new Float32Array(capacity), 1);
@@ -889,12 +945,15 @@ import * as THREE from 'three';
       records: interactive ? new Array(capacity) : null,
       phaseBase: interactive ? null : new Float32Array(capacity),
       source: source,
+      localLength: source.localLength,
+      paletteId: source.paletteId || (def && def.id) || null,
     };
     if (interactive) {
       for (var i = 0; i < capacity; i++) {
         batch.records[i] = {
           obj: mesh, rig: null, aspect: 1, instanced: true,
           batch: batch, slot: -1, entity: null,
+          localLength: batch.localLength, paletteId: batch.paletteId,
         };
       }
     }
@@ -954,6 +1013,7 @@ import * as THREE from 'three';
     var high = Math.min(S.h - SEAFLOOR_MARGIN - 20, zone.yMax - 40);
     if (high < low) high = low;
     var n = SCHOOL_N;
+    var schoolScale = renderScaleFor(batch.def, 'prey', batch.localLength);
     batch.count = n;
     batch.mesh.count = n;
     for (var i = 0; i < n; i++) {
@@ -962,7 +1022,7 @@ import * as THREE from 'three';
       instPosScratch.set(x, -y, SCHOOL_Z);
       instEulerScratch.set(0, 0, 0);
       instQuatScratch.setFromEuler(instEulerScratch);
-      instScaleScratch.set(1, 1, 1);
+      instScaleScratch.set(schoolScale, schoolScale, schoolScale);
       instMatrixScratch.compose(instPosScratch, instQuatScratch, instScaleScratch);
       batch.mesh.setMatrixAt(i, instMatrixScratch);
       batch.phaseBase[i] = rr(0, TAU) + index * 0.7;
@@ -1019,6 +1079,9 @@ import * as THREE from 'three';
     material.__rfPrivate = true;
     material.__rfBase = material.color && typeof material.color.getHex === 'function'
       ? material.color.getHex() : 0xffffff;
+    material.userData = material.userData || {};
+    material.userData.rfFishVertexColors = true;
+    material.userData.rfFishPaletteId = source.paletteId || (def && def.id) || null;
     return new THREE.Mesh(source.geometry, material);
   }
 
@@ -1950,7 +2013,13 @@ import * as THREE from 'three';
   var ridgeMidAlphaScratch = [];
   var ridgeBottomAlphaScratch = [];
   var ridgePointN = 0;
-  var DARK_ROCK = 0x1f353e;
+  var TERRAIN_BASE_INSET = 18;
+  var TERRAIN_TOP_MIN_HEIGHT = 42;
+  var TERRAIN_TOP_MAX_HEIGHT = 180;
+  var TERRAIN_TOPS = [3506, 3492, 3478];
+  var TERRAIN_WAVES = [28, 42, 56];
+  var CROWN_MIN_HEIGHT = 24;
+  var CROWN_MAX_HEIGHT = 68;
 
   function ridgeReset() { ridgePointN = 0; }
   function ridgeBreak() {
@@ -1974,12 +2043,12 @@ import * as THREE from 'three';
     }
     return simY < Z[0].yMin ? Z[0] : Z[Z.length - 1];
   }
-  function ridgePush(x, simTop, simBase, mix, occluder) {
+  function ridgePush(x, simTop, simBase, mix, occluder, depthIndex) {
     var z = terrainZone(simTop);
     var water = z ? hexNum(z.tint) : 0x071522;
-    var rock = mix >= 0.30 ? 0x294148 : mix >= 0.16 ? 0x1f353e : 0x142730;
-    var topColor = occluder ? 0x020408 : lerpColor(rock, water, mix * 0.55);
-    var midColor = occluder ? 0x020408 : lerpColor(rock, 0x0b171f, 0.24);
+    var rock = depthIndex <= 0 ? 0x29434a : depthIndex === 1 ? 0x1c343d : 0x10242d;
+    var topColor = occluder ? 0x020408 : lerpColor(rock, water, mix * 0.35);
+    var midColor = occluder ? 0x020408 : lerpColor(rock, 0x07141d, 0.38 + Math.max(0, depthIndex || 0) * 0.06);
     var bottomColor = 0x020408;
     ridgeLineScratch[ridgePointN * 2] = x;
     ridgeLineScratch[ridgePointN * 2 + 1] = -simTop;
@@ -1998,17 +2067,18 @@ import * as THREE from 'three';
     if (!isThree()) return;
     var Z = zones();
     var mixes = [0.40, 0.22, 0.10];
-    var tops = [3460, 3370, 3260];
-    var waves = [110, 175, 245];
     var points = 40;
     var width = S.w + 800;
+    var terrainBase = S.h - TERRAIN_BASE_INSET;
     for (var layer = 0; layer < 3; layer++) {
       ridgeReset();
       for (var p = 0; p < points; p++) {
         var x = -400 + width * p / (points - 1);
-        var wave = Math.sin(p * 1.73 + layer * 1.9) * waves[layer] +
-          Math.sin(p * 0.41 + layer * 0.7) * waves[layer] * 0.35;
-        ridgePush(x, clamp(tops[layer] + wave, 2920, S.h - 25), S.h, mixes[layer], false);
+        var wave = Math.sin(p * 1.73 + layer * 1.9) * TERRAIN_WAVES[layer] +
+          Math.sin(p * 0.41 + layer * 0.7) * TERRAIN_WAVES[layer] * 0.35;
+        var top = clamp(TERRAIN_TOPS[layer] + wave,
+          terrainBase - TERRAIN_TOP_MAX_HEIGHT, terrainBase - TERRAIN_TOP_MIN_HEIGHT);
+        ridgePush(x, top, terrainBase, mixes[layer], false, layer);
       }
       // Staggered, per-zone ledges make each depth shelf readable while
       // remaining inside the same ridge draw.
@@ -2020,7 +2090,7 @@ import * as THREE from 'three';
         for (var sp = 0; sp < 5; sp++) {
           var sx = sx0 + (sx1 - sx0) * sp / 4;
           var sy = shelf.yMax - 75 - layer * 18 + Math.sin(sp * 1.7 + zi) * 14;
-          ridgePush(sx, sy, shelf.yMax + 55 + layer * 12, mixes[layer], false);
+          ridgePush(sx, sy, shelf.yMax + 55 + layer * 12, mixes[layer], false, layer);
         }
       }
       var geo = mergeRidge(ridgeLineScratch, {
@@ -2037,19 +2107,24 @@ import * as THREE from 'three';
       var mesh = batchMesh(null, false, Z_TERRAIN[layer], false,
         { fog: false, opaque: true }, geo);
       if (!mesh) continue;
+      mesh.userData = mesh.userData || {};
+      mesh.userData.rfTerrainLayer = layer;
+      mesh.userData.rfTerrainBaseSim = terrainBase;
+      mesh.userData.rfTerrainTopMinHeight = TERRAIN_TOP_MIN_HEIGHT;
+      mesh.userData.rfTerrainTopMaxHeight = TERRAIN_TOP_MAX_HEIGHT;
       sceneAdd(mesh);
       S.decor.push(mesh);
       S.terrain.push({ mesh: mesh, layer: layer, occluder: false });
     }
 
     // A sparse, almost-black crown strip sits in front of the gameplay plane.
-    // Its tallest point is 432px above the world floor, the 12% frame limit.
+    // It is deliberately only a bottom fringe, never a foreground wall.
     ridgeReset();
     var crownN = 18;
     for (var cp = 0; cp < crownN; cp++) {
       var cx = -400 + width * cp / (crownN - 1);
-      var crown = 3440 + Math.sin(cp * 2.17) * 105 + Math.sin(cp * 0.51) * 35;
-      ridgePush(cx, clamp(crown, S.h - 432, S.h - 36), S.h, 0, true);
+      var crown = terrainBase - 46 + Math.sin(cp * 2.17) * 20 + Math.sin(cp * 0.51) * 8;
+      ridgePush(cx, clamp(crown, terrainBase - CROWN_MAX_HEIGHT, terrainBase - CROWN_MIN_HEIGHT), terrainBase, 0, true, 3);
     }
     var crownGeo = mergeRidge(ridgeLineScratch, {
       baseY: -S.h,
@@ -2065,6 +2140,11 @@ import * as THREE from 'three';
     var crownMesh = batchMesh(null, false, Z_TERRAIN[3], false,
       { fog: false, opaque: true }, crownGeo);
     if (crownMesh) {
+      crownMesh.userData = crownMesh.userData || {};
+      crownMesh.userData.rfTerrainLayer = 3;
+      crownMesh.userData.rfTerrainBaseSim = terrainBase;
+      crownMesh.userData.rfTerrainCrownMinHeight = CROWN_MIN_HEIGHT;
+      crownMesh.userData.rfTerrainCrownMaxHeight = CROWN_MAX_HEIGHT;
       sceneAdd(crownMesh);
       S.decor.push(crownMesh);
       S.terrain.push({ mesh: crownMesh, layer: 3, occluder: true });
@@ -2281,8 +2361,11 @@ import * as THREE from 'three';
       var mir = rnd() < 0.5 ? -1 : 1;
       // Rooted on the floor: the quad centre is half a height above the root.
       var rz = rr(Z_KELP[0], Z_KELP[1]);
-      var rockBase = envColor(rockTex ? 0x476d70 : 0x0a1a24, rz, floorWater, ry, 0);
-      var rockTop = envColor(rockTex ? 0xa8c9bd : 0x8eaca2, rz, floorWater, ry - rh, 0.18);
+      // The source PNG is intentionally multiplied by muted green-grey
+      // vertex colours. Its old pale top tint made these small cards read as
+      // tan debris at the lower edge of shallow frames.
+      var rockBase = envColor(rockTex ? 0x29494a : 0x0b2024, rz, floorWater, ry, 0);
+      var rockTop = envColor(rockTex ? 0x416361 : 0x183437, rz, floorWater, ry - rh, 0.04);
       quadPush(rx, -(ry) + rh * 0.5, rz, rw, rh, 0, mir,
         rockBase, rr(0.45, 0.85), rockTop);
     }
@@ -2642,6 +2725,7 @@ import * as THREE from 'three';
   // existing view of that key is already in use.
   function viewAcquire(viewKey, e) {
     var instanced = e && e.kind === 'prey' && S.instancedByDef && S.instancedByDef[e.defId];
+    var fishSource = e && e.kind === 'prey' && S.fishSources && S.fishSources[e.defId];
     if (instanced && instanced.count < instanced.capacity) {
       var ibank = S.views[viewKey];
       if (!ibank) ibank = S.views[viewKey] = { free: [], live: 0, peak: 0, instanced: instanced };
@@ -2689,7 +2773,13 @@ import * as THREE from 'three';
       var a = obj.scale.y / obj.scale.x;
       if (isFinite(a) && a > 0.05 && a < 20) aspect = a;
     }
-    return { obj: obj, rig: rig, aspect: aspect };
+    return {
+      obj: obj,
+      rig: rig,
+      aspect: aspect,
+      localLength: fishSource ? fishSource.localLength : 0,
+      paletteId: fishSource ? fishSource.paletteId : null,
+    };
   }
 
   // View retention policy. Four caps were measured; the failures are the
@@ -2858,7 +2948,7 @@ import * as THREE from 'three';
     setPos(obj, e.x, e.y, Z_PLAY);
     clearTint(obj);
     setOpacity(obj, 1);
-    var len = e.kind === 'pickup' ? 20 : displayLen(e.def, e.kind);
+    var len = e.kind === 'pickup' ? 20 : renderScaleFor(e.def, e.kind, rec.localLength);
     // A rig group is already modelled at world scale by lane D3, so only
     // billboards are scaled here. Length is the sim's authority (it derives
     // from the collision radius, so the art can never disagree with the
@@ -3798,7 +3888,7 @@ import * as THREE from 'three';
     instPosScratch.set(e.x, -e.y, Z_PLAY);
     instEulerScratch.set(0, left ? Math.PI : 0, -fa);
     instQuatScratch.setFromEuler(instEulerScratch);
-    var len = displayLen(e.def, e.kind);
+    var len = renderScaleFor(e.def, e.kind, rec.localLength);
     instScaleScratch.set(len, len, len);
     instMatrixScratch.compose(instPosScratch, instQuatScratch, instScaleScratch);
     batch.mesh.setMatrixAt(rec.slot, instMatrixScratch);
@@ -4573,8 +4663,20 @@ import * as THREE from 'three';
       var probeArt3D = RF.Art3D || {};
       var probeSourceGeometry = null;
       var prevBuildSharkProbe = probeArt3D.buildShark;
-      probeArt3D.buildFish = function () {
-        probeSourceGeometry = new THREE.PlaneGeometry(1, 0.5);
+      probeArt3D.buildFish = function (def) {
+        // Two intentionally different palette-tagged lofts catch the exact
+        // regression where every instanced definition accidentally shares one
+        // baked geometry or one material tint.
+        var width = def && def.id === 'mackerel' ? 3 : 1;
+        probeSourceGeometry = new THREE.PlaneGeometry(width, 0.5);
+        probeSourceGeometry.computeBoundingBox();
+        probeSourceGeometry.userData.rfFishPaletteId = def && def.id;
+        var tint = def && def.id === 'mackerel' ? [0.12, 0.72, 0.48] : [0.84, 0.24, 0.12];
+        var colorArray = new Float32Array(probeSourceGeometry.attributes.position.count * 3);
+        for (var pci = 0; pci < colorArray.length; pci += 3) {
+          colorArray[pci] = tint[0]; colorArray[pci + 1] = tint[1]; colorArray[pci + 2] = tint[2];
+        }
+        probeSourceGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colorArray, 3));
         return {
           geometry: probeSourceGeometry,
         };
@@ -4620,6 +4722,12 @@ import * as THREE from 'three';
         var probeBatch = S.instancedByDef && S.instancedByDef.mackerel;
         chk(!!probeBatch && S.instancedPrey.length > 0,
           'Rev 3 fish builder creates init-time instanced prey batches (' + S.instancedPrey.length + ')');
+        chk(!!(probeBatch && probeBatch.paletteId === 'mackerel' &&
+          S.instancedByDef.minnow && S.instancedByDef.minnow.paletteId === 'minnow' &&
+          probeBatch.geometry.userData.rfFishPaletteId === 'mackerel' &&
+          S.instancedByDef.minnow.geometry.userData.rfFishPaletteId === 'minnow' &&
+          probeBatch.geometry !== S.instancedByDef.minnow.geometry),
+          'each instanced prey definition retains its own palette-tagged loft geometry');
         chk(envOwned.geos.indexOf(probeSourceGeometry) < 0,
           'persistent fish source geometry stays outside the per-run ownership ledger');
         chk(!probeBatch || (probeBatch.mesh.frustumCulled === false &&
@@ -4657,6 +4765,12 @@ import * as THREE from 'three';
             probeBatch.amp.getX(pslot) > 0;
           chk(matrixProbeOk,
           'matrix path writes sim position and moving bend amplitude without allocation');
+          var matrixScale = Math.sqrt(pm.elements[0] * pm.elements[0] +
+            pm.elements[1] * pm.elements[1] + pm.elements[2] * pm.elements[2]);
+          chk(probeBatch.localLength === 3 &&
+            Math.abs(matrixScale - displayLen(pi.def, pi.kind) / probeBatch.localLength) < 1e-3 &&
+            displayLen(pi.def, pi.kind) <= playerRenderedLength() * PREY_RENDER_FRACTION + 1e-6,
+            'instanced prey scale caps final loft length at 0.72x the live player length');
           for (var pstep = 0; pstep < 30; pstep++) {
             probeCtx.time.now += 1 / 60;
             World.update(probeCtx);
@@ -5269,6 +5383,51 @@ import * as THREE from 'three';
         'terrain ridges carry opaque fog-disabled RGBA batches at z -340/-200/-100/+45');
       chk(foregroundOk, 'foreground terrain occluder sits in front of gameplay at z ' +
         (S.terrain[3] && S.terrain[3].mesh ? S.terrain[3].mesh.position.z : 'missing'));
+      var terrainShapeOk = true, terrainDepthOk = true, previousTerrainLuma = Infinity;
+      for (var tsi = 0; tsi < 3; tsi++) {
+        var terrainMesh = S.terrain[tsi] && S.terrain[tsi].mesh;
+        var terrainMeta = terrainMesh && terrainMesh.userData;
+        if (!terrainMeta || terrainMeta.rfTerrainLayer !== tsi ||
+            terrainMeta.rfTerrainBaseSim !== S.h - TERRAIN_BASE_INSET ||
+            terrainMeta.rfTerrainTopMinHeight !== TERRAIN_TOP_MIN_HEIGHT ||
+            terrainMeta.rfTerrainTopMaxHeight !== TERRAIN_TOP_MAX_HEIGHT) {
+          terrainShapeOk = false;
+          continue;
+        }
+        var terrainPos = terrainMesh.geometry.attributes.position;
+        var terrainCol = terrainMesh.geometry.attributes.color;
+        var lumaSum = 0, lumaN = 0;
+        for (var tsp = 0; tsp < 40; tsp++) {
+          var topVertex = tsp * 3;
+          var topSim = -terrainPos.getY(topVertex);
+          var baseSim = -terrainPos.getY(topVertex + 2);
+          var height = baseSim - topSim;
+          if (height < TERRAIN_TOP_MIN_HEIGHT - 0.01 || height > TERRAIN_TOP_MAX_HEIGHT + 0.01) terrainShapeOk = false;
+          var topColorOffset = topVertex * 4;
+          lumaSum += terrainCol.array[topColorOffset] * 0.2126 +
+            terrainCol.array[topColorOffset + 1] * 0.7152 + terrainCol.array[topColorOffset + 2] * 0.0722;
+          lumaN++;
+        }
+        var terrainLuma = lumaN ? lumaSum / lumaN : 1;
+        if (terrainLuma >= previousTerrainLuma) terrainDepthOk = false;
+        previousTerrainLuma = terrainLuma;
+      }
+      var crownMeta = S.terrain[3] && S.terrain[3].mesh && S.terrain[3].mesh.userData;
+      if (!crownMeta || crownMeta.rfTerrainCrownMinHeight !== CROWN_MIN_HEIGHT ||
+          crownMeta.rfTerrainCrownMaxHeight !== CROWN_MAX_HEIGHT) terrainShapeOk = false;
+      var crownPos = S.terrain[3] && S.terrain[3].mesh && S.terrain[3].mesh.geometry.attributes.position;
+      if (!crownPos) terrainShapeOk = false;
+      else {
+        for (var csp = 0; csp < 18; csp++) {
+          var crownTopVertex = csp * 3;
+          var crownHeight = -crownPos.getY(crownTopVertex + 2) - (-crownPos.getY(crownTopVertex));
+          if (crownHeight < CROWN_MIN_HEIGHT - 0.01 || crownHeight > CROWN_MAX_HEIGHT + 0.01) terrainShapeOk = false;
+        }
+      }
+      chk(terrainShapeOk,
+        'abyss terrain tops stay in the 42-180 world-unit bottom band and the crown remains a fringe');
+      chk(terrainDepthOk,
+        'terrain facet luminance darkens from far ridge to near ridge');
       chk(!!S.surface && !!S.surface.mesh && S.surface.segments === SURFACE_SEGMENTS,
         'surface ribbon built with ' + SURFACE_SEGMENTS + ' segments');
       chk(!!(S.surface && S.surface.foam), 'surface foam strip built');

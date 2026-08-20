@@ -20,18 +20,18 @@ const FISH_BEND_SUFFIX = ':rf-bend';
  * deep-water silhouettes. They are deliberately authored here because prey
  * defs currently carry a sprite key rather than a 3D tint/palette. */
 const FISH_PALETTE_TABLE = Object.freeze({
-  minnow: Object.freeze({ base: 0x1768b3, belly: 0xf2e9c8, accent: 0x29c5e4 }),
-  reeffish: Object.freeze({ base: 0xe8752c, belly: 0xffe6b8, accent: 0x24c9a7 }),
-  mackerel: Object.freeze({ base: 0x4a687c, belly: 0xe7f1ea, accent: 0x9ed8e8 }),
-  parrot: Object.freeze({ base: 0x1f9a68, belly: 0xffdd8c, accent: 0xf05a65 }),
-  grouper: Object.freeze({ base: 0x786047, belly: 0xf0d8a4, accent: 0xe18738 }),
-  tuna: Object.freeze({ base: 0x183d81, belly: 0xf4e5bb, accent: 0x2e9bd2 }),
-  swordfish: Object.freeze({ base: 0x355a8e, belly: 0xf1ede0, accent: 0xa4d8e6 }),
-  dolphinfish: Object.freeze({ base: 0x146c9c, belly: 0xffdc8f, accent: 0xf3b52b }),
-  marlin: Object.freeze({ base: 0x204a78, belly: 0xf2e3c2, accent: 0xed7a58 }),
-  anglerprey: Object.freeze({ base: 0x253448, belly: 0xbfd2c7, accent: 0xb8f26b }),
-  abyssal: Object.freeze({ base: 0x352c49, belly: 0xa9c9c6, accent: 0xf09a47 }),
-  leviathanprey: Object.freeze({ base: 0x3e3b5d, belly: 0xd4d1b9, accent: 0xdf704d })
+  minnow: Object.freeze({ base: 0x118ed1, belly: 0xf8f0c2, accent: 0x48e5f0 }),
+  reeffish: Object.freeze({ base: 0xf06a24, belly: 0xffe6a0, accent: 0x2ed5ae }),
+  mackerel: Object.freeze({ base: 0x2e8fa8, belly: 0xe8f6d5, accent: 0x77e4df }),
+  parrot: Object.freeze({ base: 0x1fa56f, belly: 0xffdf76, accent: 0xf45d6d }),
+  grouper: Object.freeze({ base: 0x8b7049, belly: 0xf4d69a, accent: 0xe89a30 }),
+  tuna: Object.freeze({ base: 0x1768b3, belly: 0xf7edb5, accent: 0x35b9e8 }),
+  swordfish: Object.freeze({ base: 0x3d6fb0, belly: 0xf4f0df, accent: 0x8bd9e8 }),
+  dolphinfish: Object.freeze({ base: 0x168bb0, belly: 0xffdf83, accent: 0xf7bd28 }),
+  marlin: Object.freeze({ base: 0x295c9b, belly: 0xf5dfb0, accent: 0xf27655 }),
+  anglerprey: Object.freeze({ base: 0x2f4d58, belly: 0xcde6d4, accent: 0xc4f46c }),
+  abyssal: Object.freeze({ base: 0x413b68, belly: 0xb9d8c7, accent: 0xffa34f }),
+  leviathanprey: Object.freeze({ base: 0x4a4b78, belly: 0xe0d9ad, accent: 0xf27b4f })
 });
 
 /* The names and defaults are the cross-lane material contract. A consumer
@@ -105,11 +105,11 @@ function bodyColor(palette, dorsalness, sideBias) {
 
 function buildGeometry(def, palette) {
   const tier = clamp(finite(def.tier, 0), 0, 10);
-  const bodyLength = 1.35 + tier * 0.11;
-  const radiusY = 0.13 + tier * 0.012;
-  const radiusZ = radiusY * 0.72;
+  const bodyLength = 1.25 + tier * 0.075;
+  const radiusY = 0.17 + tier * 0.010;
+  const radiusZ = radiusY * 0.78;
   const stationX = [-0.56, -0.46, -0.30, -0.10, 0.12, 0.31, 0.46, 0.56];
-  const stationProfile = [0.12, 0.46, 0.76, 0.97, 1.0, 0.88, 0.55, 0.16];
+  const stationProfile = [0.18, 0.52, 0.80, 0.98, 1.0, 0.91, 0.68, 0.28];
   const positions = [];
   const colors = [];
   const indices = [];
@@ -163,9 +163,9 @@ function buildGeometry(def, palette) {
    * while preserving one merged geometry for the eventual InstancedMesh. */
   const tailRoot = [-bodyLength * 0.55, 0, 0];
   const tailPoints = [
-    [-bodyLength * 0.95, radiusY * 2.15, 0],
-    [-bodyLength * 0.78, 0, 0],
-    [-bodyLength * 0.95, -radiusY * 2.15, 0]
+    [-bodyLength * 0.92, radiusY * 1.85, 0],
+    [-bodyLength * 0.76, 0, 0],
+    [-bodyLength * 0.92, -radiusY * 1.85, 0]
   ];
   for (let i = 0; i < tailPoints.length - 1; i++) {
     appendDoubleSidedTriangle(
@@ -183,7 +183,7 @@ function buildGeometry(def, palette) {
   const dorsalColor = new THREE.Color().copy(palette.accent).lerp(palette.base, 0.35);
   const dorsalRoot = [-bodyLength * 0.03, radiusY * 0.82, 0];
   const dorsalRear = [-bodyLength * 0.27, radiusY * 0.73, 0];
-  const dorsalTip = [-bodyLength * 0.02, radiusY * (1.75 + tier * 0.025), 0];
+  const dorsalTip = [-bodyLength * 0.02, radiusY * (1.55 + tier * 0.018), 0];
   appendDoubleSidedTriangle(
     positions,
     colors,
@@ -230,6 +230,10 @@ function buildGeometry(def, palette) {
   geometry.computeBoundingSphere();
   geometry.name = `RF fish loft ${def.id}`;
   geometry.userData.rfFishId = def.id;
+  geometry.userData.rfFishPaletteId = def.id;
+  geometry.userData.rfFishPaletteBase = palette.base.getHex();
+  geometry.userData.rfFishPaletteBelly = palette.belly.getHex();
+  geometry.userData.rfFishPaletteAccent = palette.accent.getHex();
   geometry.userData.rfFishTriangles = Math.floor(indices.length / 3);
   geometry.userData.rfNoseDirection = '+x';
   geometry.userData.rfNoseX = geometry.boundingBox.max.x;
@@ -290,6 +294,8 @@ function __selftestFish() {
     const defs = Object.keys(FISH_PALETTE_TABLE).map((id) => rows.find((row) => row.id === id));
     check(defs.every(Boolean), 'all 12 fusiform prey palette ids must exist in RFD.CREATURES');
     check(defs.length === 12, `expected 12 palette defs, received ${defs.length}`);
+    const seenGeometry = new Map();
+    const seenColors = new Map();
 
     for (const def of defs) {
       const first = buildFish(def);
@@ -303,6 +309,22 @@ function __selftestFish() {
       const index = geometry.getIndex();
       check(geometry instanceof THREE.BufferGeometry, `${def.id}: result is not one BufferGeometry`);
       check(position && color && color.count === position.count, `${def.id}: vertex colors missing or misaligned`);
+      check(geometry.userData.rfFishPaletteId === def.id,
+        `${def.id}: geometry palette identity is not carried by the loft`);
+      check(!seenGeometry.has(def.id) || seenGeometry.get(def.id) === geometry,
+        `${def.id}: repeated palette id did not reuse its cached loft`);
+      for (const [otherId, otherGeometry] of seenGeometry) {
+        check(otherGeometry !== geometry, `${def.id}: shares one geometry bake with ${otherId}`);
+      }
+      if (seenColors.size) {
+        let colorDelta = 0;
+        const previous = seenColors.values().next().value;
+        const count = Math.min(previous.length, color.array.length);
+        for (let ci = 0; ci < count; ci++) colorDelta += Math.abs(previous[ci] - color.array[ci]);
+        check(colorDelta > 0.05, `${def.id}: vertex palette is indistinguishable from the previous prey loft`);
+      }
+      seenGeometry.set(def.id, geometry);
+      seenColors.set(def.id, color.array);
       check(index && index.count % 3 === 0, `${def.id}: indexed triangle geometry missing`);
       const triangles = geometryTriangles(geometry);
       check(triangles > 0 && triangles <= TRIANGLE_LIMIT, `${def.id}: ${triangles} triangles outside 1..${TRIANGLE_LIMIT}`);
@@ -334,6 +356,7 @@ function __selftestFish() {
     result.notes.push('12 fusiform prey defs lofted into cached one-geometry records');
     result.notes.push(`8 stations x 6 radial body, forked tail fan, dorsal sliver, 8-triangle eye accents; max ${TRIANGLE_LIMIT} triangles`);
     result.notes.push('vertex colors carry dorsal base -> flank accent -> belly countershading');
+    result.notes.push('every prey id carries a distinct palette-tagged geometry and vertex color bake');
     result.notes.push('fish bend contract exposes uBendPhase/uBendAmp/uBendK/uBendSpan with fresh uniform bundles');
     result.pass = true;
   } catch (error) {

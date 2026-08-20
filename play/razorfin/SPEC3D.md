@@ -302,7 +302,9 @@ value is not a shipped contract.
   `THREE.BufferGeometry`: an 8-station x 6-radial elliptical body, capped
   nose/tail, forked tail-fin fan, and dorsal sliver. The nose points toward
   local `+x`, the geometry has a `color` attribute aligned with `position`,
-  and the hard budget is `<=220` indexed triangles. The palette carries
+  carries `rfFishPaletteId` matching the definition, and the hard budget is
+  `<=220` indexed triangles. Each definition owns a distinct vertex-colour
+  palette bake. The palette carries
   `base`, `belly`, and `accent` colors for dorsal/flank/belly countershading.
   Each loft also carries an 8-triangle dark eye accent on both sides of the
   fish, keeping the nearest archetypes readable without a child mesh.
@@ -347,11 +349,14 @@ environment builders and their selftest.
   are created at init/build time.
 - `buildTerrain()` creates four opaque, fog-disabled ridge batches: far at
   `z=-340`, mid at `z=-200`, near at `z=-100`, and a sparse near-black
-  foreground crown strip at `z=+45`. The first three use 40 points, waves
-  `[110,175,245]`, and rock-to-water mixes `[0.40,0.22,0.10]`, with dark
-  rock facets around `#294148`, `#1f353e`, and `#142730`; `#020408` is
-  reserved for the deepest base. Alpha is at least `0.9`, and the foreground
-  crown occupies at most the bottom 12% of the frame.
+  foreground crown strip at `z=+45`. The first three use 40 points, reduced
+  waves `[28,42,56]`, and rock-to-water mixes `[0.40,0.22,0.10]`. Their
+  main seafloor bases stop at `simY=3582`, with top facets clamped to a
+  42..180 world-unit bottom band at the gameplay camera. Facet values darken
+  with parallax depth around `#29434a`, `#1c343d`, and `#10242d`; `#020408`
+  is reserved for the deepest base and foreground crown. The foreground
+  crown is clamped to a 24..68 world-unit bottom fringe and never becomes a
+  camera-filling wall. Alpha is at least `0.9`.
 - `buildShimmer()` and its animation/selftest contract are retired. The
   static gradient supplies the water field, so `animateWater()` writes only
   the existing caustic, ray, seam, kelp, silhouette, and surface registries.
@@ -534,6 +539,15 @@ The fixed-step render pass composes each matrix from module scratch only:
 the smoothed display angle, and `rotation.y = PI` when facing left. No negative
 scale is used for instanced fish. Matrix and attribute `needsUpdate` flags are
 set once per dirty mesh after the entity pass, never once per entity.
+
+Prey visual scale is a two-part contract. The requested final visual length is
+`min(radius * 2.1 * localFishLength, playerRenderedLength * 0.72)` for a loft,
+or `min(radius * 2.1, playerRenderedLength * 0.72)` for a billboard fallback.
+The matrix scale divides the loft target by its local x width, so a tier-3+
+fish cannot become player-sized merely because `displayLen` is multiplied by
+the loft's local dimensions. `playerRenderedLength` reads the live
+`RF.Game.ctx.player.def.sil.len` when available, with the 124px tier-1 target
+as fallback.
 
 ### Instanced bend material variant
 
