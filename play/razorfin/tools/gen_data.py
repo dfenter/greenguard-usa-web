@@ -218,13 +218,13 @@ HAZARDS = [
  ("puffer","Pufferfish",99,"hazard",90,3,26,4,"proc_puffer",10),
 ]
 ZONES = [
- {"id":1,"name":"Sunlit Shelf","yMin":0,"yMax":900,"tint":"0x1b4d66","fog":"0x9fd4e8","ambient":"bubbles","pressureTier":1,
+ {"id":1,"name":"Sunlit Shelf","yMin":0,"yMax":900,"tint":"0x1b4d66","fog":"0x5fa8c2","ambient":"bubbles","pressureTier":1,
   "spawns":[["minnow",5],["reeffish",5],["mackerel",4],["parrot",3],["squidling",2],["turtle",1],["jelly",2],["puffer",1]]},
- {"id":2,"name":"Kelp Midwater","yMin":900,"yMax":1800,"tint":"0x14384d","fog":"0x5c93ad","ambient":"kelp","pressureTier":3,
+ {"id":2,"name":"Kelp Midwater","yMin":900,"yMax":1800,"tint":"0x14384d","fog":"0x4e8199","ambient":"kelp","pressureTier":3,
   "spawns":[["mackerel",4],["parrot",3],["grouper",4],["ray",3],["tuna",4],["dolphinfish",2],["jelly",2],["mine",1],["puffer",1]]},
- {"id":3,"name":"Twilight Reef","yMin":1800,"yMax":2700,"tint":"0x0c2233","fog":"0x39566b","ambient":"motes","pressureTier":6,
+ {"id":3,"name":"Twilight Reef","yMin":1800,"yMax":2700,"tint":"0x0c2233","fog":"0x304e65","ambient":"motes","pressureTier":6,
   "spawns":[["grouper",2],["tuna",3],["swordfish",3],["marlin",2],["anglerprey",4],["giantsquid",1],["mine",2],["jelly",1]]},
- {"id":4,"name":"The Abyss","yMin":2700,"yMax":3600,"tint":"0x050d17","fog":"0x1a2633","ambient":"abyss","pressureTier":9,
+ {"id":4,"name":"The Abyss","yMin":2700,"yMax":3600,"tint":"0x050d17","fog":"0x162533","ambient":"abyss","pressureTier":9,
   "spawns":[["anglerprey",3],["giantsquid",2],["abyssal",3],["leviathanprey",1],["mine",2]]},
 ]
 ABILITIES = {

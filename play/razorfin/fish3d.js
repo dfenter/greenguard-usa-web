@@ -195,6 +195,32 @@ function buildGeometry(def, palette) {
     dorsalColor
   );
 
+  /* A tiny dark eye keeps the nearest fish readable once the loft is
+   * instanced. It is authored as two-sided triangles on both visible sides,
+   * rather than as a second Object3D, so the loft remains one bounded mesh. */
+  const eyeColor = new THREE.Color(0x06111c);
+  const eyeX = bodyLength * 0.39;
+  const eyeY = radiusY * 0.30;
+  const eyeZ = radiusZ * 0.88;
+  const eyeSize = Math.max(0.018, radiusY * 0.16);
+  for (const side of [-1, 1]) {
+    const eye = [
+      [eyeX - eyeSize, eyeY - eyeSize * 0.55, side * eyeZ],
+      [eyeX + eyeSize, eyeY, side * eyeZ],
+      [eyeX - eyeSize, eyeY + eyeSize * 0.75, side * eyeZ]
+    ];
+    appendDoubleSidedTriangle(
+      positions,
+      colors,
+      indices,
+      eye[0],
+      eye[1],
+      eye[2],
+      Math.max(0.003, radiusZ * 0.025),
+      eyeColor
+    );
+  }
+
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
@@ -211,7 +237,9 @@ function buildGeometry(def, palette) {
     bodyStations: BODY_STATIONS,
     radialSides: RADIAL_SIDES,
     tailFinFan: true,
-    dorsalSliver: true
+    dorsalSliver: true,
+    eyeAccent: true,
+    eyeTriangles: 8
   };
   if (geometry.userData.rfFishTriangles > TRIANGLE_LIMIT) {
     geometry.dispose();
@@ -278,6 +306,9 @@ function __selftestFish() {
       check(index && index.count % 3 === 0, `${def.id}: indexed triangle geometry missing`);
       const triangles = geometryTriangles(geometry);
       check(triangles > 0 && triangles <= TRIANGLE_LIMIT, `${def.id}: ${triangles} triangles outside 1..${TRIANGLE_LIMIT}`);
+      check(geometry.userData.rfLoft && geometry.userData.rfLoft.eyeAccent === true &&
+        geometry.userData.rfLoft.eyeTriangles === 8,
+      `${def.id}: dark eye accent is missing from the loft`);
       check(geometry.boundingBox && geometry.boundingBox.max.x > 0 && geometry.boundingBox.max.x >= Math.abs(geometry.boundingBox.min.x) * 0.4,
         `${def.id}: nose is not authored toward +x`);
       check(first.palette.base instanceof THREE.Color && first.palette.belly instanceof THREE.Color && first.palette.accent instanceof THREE.Color,
@@ -301,7 +332,7 @@ function __selftestFish() {
 
     result.cacheSize = geometryCache.size;
     result.notes.push('12 fusiform prey defs lofted into cached one-geometry records');
-    result.notes.push(`8 stations x 6 radial body, forked tail fan, dorsal sliver; max ${TRIANGLE_LIMIT} triangles`);
+    result.notes.push(`8 stations x 6 radial body, forked tail fan, dorsal sliver, 8-triangle eye accents; max ${TRIANGLE_LIMIT} triangles`);
     result.notes.push('vertex colors carry dorsal base -> flank accent -> belly countershading');
     result.notes.push('fish bend contract exposes uBendPhase/uBendAmp/uBendK/uBendSpan with fresh uniform bundles');
     result.pass = true;

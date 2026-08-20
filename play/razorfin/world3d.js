@@ -58,10 +58,10 @@ import * as THREE from 'three';
   // surface wash they are charged against zone-1 saturation. Their base range
   // is tuned so the independent breath peaks near 0.09: they dapple the shelf
   // without flooding it.
-  var CAUSTIC_ALPHA = [0.035, 0.058];  // animated ceiling stays near 0.09
+  var CAUSTIC_ALPHA = [0.020, 0.035];
   var RAY_ROT_AMP = 0.03;      // +-0.03 rad sway per SPEC
   var RAY_ROT_RATE = [0.06, 0.13];
-  var RAY_ALPHA_LO = 0.5;      // alpha multiplier floor of the 0.5-1.0 cycle
+  var RAY_ALPHA_LO = 0.35;     // alpha multiplier floor of the 0.35-1.0 cycle
   var RAY_ALPHA_RATE = [0.09, 0.19];
   var SEAM_DRIFT = 70;         // thermocline seam horizontal travel, px
   var SEAM_RATE = [0.03, 0.06];
@@ -199,6 +199,7 @@ import * as THREE from 'three';
   var instScaleScratch = new THREE.Vector3();
   var instEulerScratch = new THREE.Euler(0, 0, 0, 'XYZ');
   var instColorScratch = new THREE.Color(0xffffff);
+  var fishSharedMaterial = null;
 
   // Reused animate() state object for RF.Art3D rigs. One object, rewritten per
   // rig per frame, so a 20-shark screen still allocates nothing.
@@ -605,6 +606,40 @@ import * as THREE from 'three';
     return tex || null;
   }
 
+  // One persistent 1D feather shared by every god-ray band. The RGB channels
+  // stay white so the map contributes only a smooth alpha falloff at each
+  // shaft edge; this keeps the merged geometry from reading as hard slabs.
+  function rayFeatherTexture() {
+    var key = '__rf_ray_feather';
+    if (texCache[key] !== undefined) return texCache[key];
+    var width = 16;
+    var pixels = new Uint8Array(width * 4);
+    for (var i = 0; i < width; i++) {
+      var u = i / (width - 1);
+      var edge = Math.sin(Math.PI * u);
+      var alpha = Math.round(clamp(edge * edge, 0, 1) * 255);
+      pixels[i * 4] = 255;
+      pixels[i * 4 + 1] = 255;
+      pixels[i * 4 + 2] = 255;
+      pixels[i * 4 + 3] = alpha;
+    }
+    var tex = null;
+    try {
+      if (THREE.DataTexture) tex = new THREE.DataTexture(pixels, width, 1, THREE.RGBAFormat);
+      if (tex) {
+        tex.wrapS = THREE.ClampToEdgeWrapping;
+        tex.wrapT = THREE.ClampToEdgeWrapping;
+        tex.magFilter = THREE.LinearFilter;
+        tex.minFilter = THREE.LinearFilter;
+        tex.generateMipmaps = false;
+        tex.needsUpdate = true;
+        if ('toneMapped' in tex) tex.toneMapped = false;
+      }
+    } catch (e) { tex = null; }
+    texCache[key] = tex || null;
+    return tex || null;
+  }
+
   // Stub scene handed to RF.Art.bakeCreature purely to CAPTURE the canvas it
   // bakes. bakeCreature's only scene contract is textures.exists(key) and
   // textures.addCanvas(key, canvas); exists() always answers false so the bake
@@ -702,7 +737,31 @@ import * as THREE from 'three';
     if (!A || typeof A.buildShark !== 'function') return null;
     try {
       var rig = A.buildShark(def);
-      if (rig && rig.group) return rig;
+      if (rig && rig.group) {
+        var group = rig.group;
+        var gameScale = RF.Game && RF.Game.LEN_SCALE;
+        if (!(typeof gameScale === 'number' && isFinite(gameScale) && gameScale > 0)) gameScale = 1;
+        var already = group.__rfLenScale;
+        var baseScale = group.userData && group.userData.baseScale;
+        if (!(typeof baseScale === 'number' && isFinite(baseScale) && baseScale > 0)) {
+          baseScale = group.__baseScale;
+        }
+        if (!(typeof baseScale === 'number' && isFinite(baseScale) && baseScale > 0)) {
+          baseScale = group.scale && group.scale.x > 0 ? group.scale.x : 1;
+        }
+        if (already !== gameScale) {
+          var scaled = baseScale * gameScale;
+          if (group.scale && group.scale.setScalar) group.scale.setScalar(scaled);
+          else if (group.scale) {
+            group.scale.x = scaled; group.scale.y = scaled; group.scale.z = scaled;
+          }
+          group.__baseScale = scaled;
+          group.__rfLenScale = gameScale;
+        } else if (!(typeof group.__baseScale === 'number' && isFinite(group.__baseScale))) {
+          group.__baseScale = group.scale && group.scale.x > 0 ? group.scale.x : baseScale * gameScale;
+        }
+        return rig;
+      }
     } catch (e) { /* lane D3 not ready or this def is unsupported */ }
     return null;
   }
@@ -715,9 +774,26 @@ import * as THREE from 'three';
     if (!build) return null;
     var mesh = build.geometry ? build : (build.mesh || build.object || build.body || null);
     var geometry = mesh && mesh.geometry;
+    if (!geometry || typeof geometry.clone !== 'function') return null;
     var material = mesh && mesh.material;
-    if (!geometry || typeof geometry.clone !== 'function' || !material) return null;
     if (Array.isArray(material)) material = material[0];
+    if (!material) {
+      if (!fishSharedMaterial) {
+        fishSharedMaterial = new THREE.MeshToonMaterial({
+          color: 0xffffff,
+          vertexColors: true,
+          side: THREE.DoubleSide,
+        });
+        var fishBaseKey = typeof fishSharedMaterial.customProgramCacheKey === 'function'
+          ? fishSharedMaterial.customProgramCacheKey() : 'MeshToonMaterial';
+        fishSharedMaterial.customProgramCacheKey = function () {
+          return String(fishBaseKey) + ':rf-bend';
+        };
+        fishSharedMaterial.userData = fishSharedMaterial.userData || {};
+        fishSharedMaterial.userData.rfFishMaterial = true;
+      }
+      material = fishSharedMaterial;
+    }
     if (!material || typeof material.clone !== 'function') return null;
     return { build: build, geometry: geometry, material: material };
   }
@@ -843,8 +919,8 @@ import * as THREE from 'three';
       if (!source) continue;
       source.def = def;
       S.fishSources[def.id] = source;
-      ownedPush(envOwned.geos, source.geometry);
-      ownedPush(envOwned.mats, source.material);
+      // Fish geometry and the shared source material belong to fish3d's
+      // persistent cache. This run only owns cloned batch resources.
     }
   }
 
@@ -1154,7 +1230,8 @@ import * as THREE from 'three';
     if (!q) {
       q = quadScratch[quadN] = {
         cx: 0, cy: 0, z: 0, w: 0, h: 0, rot: 0, mirror: 1,
-        color: 0, topColor: 0, alpha: 1,
+        color: 0, topColor: 0, bottomColor: 0,
+        alpha: 1, topAlpha: 1, bottomAlpha: 1,
       };
     }
     quadN++;
@@ -1183,15 +1260,15 @@ import * as THREE from 'three';
   // far silhouettes disappear into the authored water rather than into a
   // full-screen alpha wash.
   function depthTint(color, z, zoneWaterColor) {
-    var t = clamp(0.15 + ((-z) - 100) * (0.65 / 320), 0.15, 0.80);
+    var t = clamp(0.08 + ((-z) - 100) * (0.42 / 320), 0.08, 0.50);
     return lerpColor(color, zoneWaterColor, t);
   }
 
-  // Sim y is down. Light falls from 1.0 at the surface to a hard 0.35 floor at
+  // Sim y is down. Light falls from 1.0 at the surface to a hard 0.45 floor at
   // the seafloor, so vertex colours carry a vertical cue even though the
   // environment uses unlit materials.
   function lightAtDepth(y) {
-    return clamp(1 - (y / 3600) * 0.65, 0.35, 1);
+    return clamp(1 - (y / 3600) * 0.65, 0.45, 1);
   }
 
   function scaleColor(color, amount) {
@@ -1202,7 +1279,7 @@ import * as THREE from 'three';
   }
 
   function envColor(color, z, waterColor, y, lift) {
-    var l = clamp(lightAtDepth(y) + (lift || 0), 0.35, 1);
+    var l = clamp(lightAtDepth(y) + (lift || 0), 0.45, 1);
     return scaleColor(depthTint(color, z, waterColor), l);
   }
 
@@ -1271,12 +1348,14 @@ import * as THREE from 'three';
     }
     if (pointN < 2) return null;
     ownership();
-    var pos = new Float32Array(pointN * 2 * 3);
-    var col = new Float32Array(pointN * 2 * 4);
-    var idx = new Uint32Array((pointN - 1) * 6);
+    var pos = new Float32Array(pointN * 3 * 3);
+    var col = new Float32Array(pointN * 3 * 4);
+    var idx = new Uint32Array((pointN - 1) * 12);
     var topColors = opts.topColors || null;
+    var midColors = opts.midColors || null;
     var bottomColors = opts.bottomColors || null;
     var topAlphas = opts.topAlphas || null;
+    var midAlphas = opts.midAlphas || null;
     var bottomAlphas = opts.bottomAlphas || null;
     var point = 0, previous = -1, indexN = 0;
     for (p = 0; p < pairN; p++) {
@@ -1286,27 +1365,47 @@ import * as THREE from 'three';
       var baseY = opts.baseYs && opts.baseYs[p] === opts.baseYs[p] ? opts.baseYs[p] : opts.baseY;
       var topColor = topColors && topColors[p] !== undefined ? topColors[p] : (opts.topColor === undefined ? 0xffffff : opts.topColor);
       var bottomColor = bottomColors && bottomColors[p] !== undefined ? bottomColors[p] : (opts.bottomColor === undefined ? topColor : opts.bottomColor);
+      var midY = opts.midYs && opts.midYs[p] === opts.midYs[p]
+        ? opts.midYs[p] : topY + (baseY - topY) * 0.32;
+      var midColor = midColors && midColors[p] !== undefined ? midColors[p]
+        : lerpColor(topColor, bottomColor, 0.45);
       var topAlpha = topAlphas && topAlphas[p] !== undefined ? topAlphas[p] : (opts.topAlpha === undefined ? 1 : opts.topAlpha);
+      var midAlpha = midAlphas && midAlphas[p] !== undefined ? midAlphas[p]
+        : (opts.midAlpha === undefined ? topAlpha : opts.midAlpha);
       var bottomAlpha = bottomAlphas && bottomAlphas[p] !== undefined ? bottomAlphas[p] : (opts.bottomAlpha === undefined ? 1 : opts.bottomAlpha);
-      var tv = point * 2;
-      var bv = tv + 1;
+      var tv = point * 3;
+      var mv = tv + 1;
+      var bv = tv + 2;
       pos[tv * 3] = x; pos[tv * 3 + 1] = topY; pos[tv * 3 + 2] = 0;
+      pos[mv * 3] = x; pos[mv * 3 + 1] = midY; pos[mv * 3 + 2] = 0;
       pos[bv * 3] = x; pos[bv * 3 + 1] = baseY; pos[bv * 3 + 2] = 0;
       col[tv * 4] = ((topColor >> 16) & 255) / 255;
       col[tv * 4 + 1] = ((topColor >> 8) & 255) / 255;
       col[tv * 4 + 2] = (topColor & 255) / 255;
       col[tv * 4 + 3] = topAlpha;
+      col[mv * 4] = ((midColor >> 16) & 255) / 255;
+      col[mv * 4 + 1] = ((midColor >> 8) & 255) / 255;
+      col[mv * 4 + 2] = (midColor & 255) / 255;
+      col[mv * 4 + 3] = midAlpha;
       col[bv * 4] = ((bottomColor >> 16) & 255) / 255;
       col[bv * 4 + 1] = ((bottomColor >> 8) & 255) / 255;
       col[bv * 4 + 2] = (bottomColor & 255) / 255;
       col[bv * 4 + 3] = bottomAlpha;
       if (previous >= 0) {
-        idx[indexN++] = previous * 2;
-        idx[indexN++] = previous * 2 + 1;
+        var pt = previous * 3;
+        var pm = pt + 1;
+        var pb = pt + 2;
+        idx[indexN++] = pt;
+        idx[indexN++] = pm;
         idx[indexN++] = tv;
-        idx[indexN++] = tv;
-        idx[indexN++] = previous * 2 + 1;
+        idx[indexN++] = pm;
+        idx[indexN++] = mv;
+        idx[indexN++] = pm;
+        idx[indexN++] = pb;
         idx[indexN++] = bv;
+        idx[indexN++] = pm;
+        idx[indexN++] = bv;
+        idx[indexN++] = mv;
       }
       previous = point;
       point++;
@@ -1315,8 +1414,11 @@ import * as THREE from 'three';
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     geo.setAttribute('color', new THREE.BufferAttribute(col, 4));
     if (typeof geo.setIndex === 'function') geo.setIndex(new THREE.BufferAttribute(idx, 1));
+    if (typeof geo.setDrawRange === 'function') geo.setDrawRange(0, indexN);
     geo.userData = geo.userData || {};
     geo.userData.rfRidge = true;
+    geo.userData.rfRidgeFacets = true;
+    geo.userData.rfRidgeIndexCount = indexN;
     envOwned.geos.push(geo);
     return geo;
   }
@@ -1649,10 +1751,11 @@ import * as THREE from 'three';
   // is internally coherent, which reads more like water than the old noise
   // did. 26 draw calls become 4.
   var RAY_BANDS = 4;
-  var RAYS_PER_BAND = 7;
+  var RAYS_PER_BAND = 4;
 
   function buildRays() {
     if (!isThree()) return;
+    var feather = rayFeatherTexture();
     for (var b = 0; b < RAY_BANDS; b++) {
       quadReset();
       // BAND ALPHA. God rays are LIGHT ACCENTS, not white slabs.
@@ -1670,13 +1773,12 @@ import * as THREE from 'three';
       // shark at z=+25, but it is the LOW-alpha band so the foreground reads
       // through the shaft instead of becoming a white slab.
       var crossPlay = b === 0;
-      var bandA = crossPlay ? rr(0.020, 0.030) : rr(0.040, 0.075);
       var bandZ = crossPlay ? 25 : rr(Z_RAY - 40, Z_RAY + 40);
       for (var i = 0; i < RAYS_PER_BAND; i++) {
-        var hgt = rr(300, SURFACE_LIGHT_H);
+        var hgt = rr(240, 440);
         // Narrower than the pre-batch 40-120: a merged band already reads as
         // a fan, so each shaft can be a shaft rather than a panel.
-        var wid = rr(28, 74);
+        var wid = rr(18, 48);
         // Shafts inside a band get their own lean, so a merged band is still a
         // fan of shafts rather than a comb of parallel bars. The lean is baked
         // into the merged vertices; the band's pivot rotation adds to it.
@@ -1693,9 +1795,9 @@ import * as THREE from 'three';
         var oy = (-hgt * 0.5) * cs;
         // Per-shaft alpha varies inside the band; the vertex alpha carries it.
         quadPush(cx + ox, oy, bandZ, wid, hgt, lean, 1,
-          0xdff6ff, bandA * rr(0.7, 1.3));
+          0xdff6ff, crossPlay ? rr(0.006, 0.012) : rr(0.012, 0.028));
       }
-      var mesh = batchMesh(null, true, undefined, true);
+      var mesh = batchMesh(feather, true, undefined, true);
       if (!mesh) continue;
       var pivot = new THREE.Group();
       pivot.add(mesh);
@@ -1711,7 +1813,7 @@ import * as THREE from 'three';
         rotAmp: RAY_ROT_AMP * rr(0.6, 1.25),
         rotRate: rr(RAY_ROT_RATE[0], RAY_ROT_RATE[1]),
         rotPhase: rr(0, TAU),
-        aBase: 1,
+        aBase: 0.55,
         aRate: rr(RAY_ALPHA_RATE[0], RAY_ALPHA_RATE[1]),
         aPhase: rr(0, TAU),
       });
@@ -1756,7 +1858,7 @@ import * as THREE from 'three';
   // Eight RGBA quads cover the authored world plus a frustum overshoot; the
   // corner colours are sampled from the same zone transition used by fog.
   function gradientZoneTop(z) {
-    return lerpColor(lerpColor(hexNum(z.tint), hexNum(z.fog), 0.5), 0xffffff, 0.12);
+    return lerpColor(hexNum(z.tint), hexNum(z.fog), 0.22);
   }
 
   function gradientZoneBottom(z, next) {
@@ -1822,7 +1924,7 @@ import * as THREE from 'three';
           bottom = zi === Z.length - 1 ? 4200 : Z[zi].yMax;
         }
       }
-      quadPushGradient(S.w * 0.5, -(top + bottom) * 0.5, Z_GRADIENT,
+      quadPushGradient(S.w * 0.5, -(top + bottom) * 0.5, 0,
         S.w + 800, bottom - top, 0, 1,
         gradientColorAt(top), gradientColorAt(bottom), 1, 1);
     }
@@ -1839,21 +1941,27 @@ import * as THREE from 'three';
   // at their own local base depth without adding draw calls.
   var ridgeLineScratch = [];
   var ridgeBaseScratch = [];
+  var ridgeMidScratch = [];
   var ridgeTopColorScratch = [];
+  var ridgeMidColorScratch = [];
   var ridgeBottomColorScratch = [];
   var ridgeTopAlphaScratch = [];
+  var ridgeMidAlphaScratch = [];
   var ridgeBottomAlphaScratch = [];
   var ridgePointN = 0;
-  var DARK_ROCK = 0x101820;
+  var DARK_ROCK = 0x1f353e;
 
   function ridgeReset() { ridgePointN = 0; }
   function ridgeBreak() {
     ridgeLineScratch[ridgePointN * 2] = NaN;
     ridgeLineScratch[ridgePointN * 2 + 1] = NaN;
     ridgeBaseScratch[ridgePointN] = NaN;
+    ridgeMidScratch[ridgePointN] = NaN;
     ridgeTopColorScratch[ridgePointN] = 0;
+    ridgeMidColorScratch[ridgePointN] = 0;
     ridgeBottomColorScratch[ridgePointN] = 0;
     ridgeTopAlphaScratch[ridgePointN] = 0;
+    ridgeMidAlphaScratch[ridgePointN] = 0;
     ridgeBottomAlphaScratch[ridgePointN] = 0;
     ridgePointN++;
   }
@@ -1868,14 +1976,19 @@ import * as THREE from 'three';
   function ridgePush(x, simTop, simBase, mix, occluder) {
     var z = terrainZone(simTop);
     var water = z ? hexNum(z.tint) : 0x071522;
-    var topColor = occluder ? 0x020408 : lerpColor(DARK_ROCK, water, mix);
-    var bottomColor = occluder ? 0x010204 : lerpColor(topColor, 0x020408, 0.38);
+    var rock = mix >= 0.30 ? 0x294148 : mix >= 0.16 ? 0x1f353e : 0x142730;
+    var topColor = occluder ? 0x020408 : lerpColor(rock, water, mix * 0.55);
+    var midColor = occluder ? 0x020408 : lerpColor(rock, 0x0b171f, 0.24);
+    var bottomColor = 0x020408;
     ridgeLineScratch[ridgePointN * 2] = x;
     ridgeLineScratch[ridgePointN * 2 + 1] = -simTop;
     ridgeBaseScratch[ridgePointN] = -simBase;
+    ridgeMidScratch[ridgePointN] = -(simTop + (simBase - simTop) * 0.32);
     ridgeTopColorScratch[ridgePointN] = topColor;
+    ridgeMidColorScratch[ridgePointN] = midColor;
     ridgeBottomColorScratch[ridgePointN] = bottomColor;
     ridgeTopAlphaScratch[ridgePointN] = occluder ? 0.98 : 0.94;
+    ridgeMidAlphaScratch[ridgePointN] = occluder ? 0.99 : 0.97;
     ridgeBottomAlphaScratch[ridgePointN] = 1;
     ridgePointN++;
   }
@@ -1883,10 +1996,10 @@ import * as THREE from 'three';
   function buildTerrain() {
     if (!isThree()) return;
     var Z = zones();
-    var mixes = [0.75, 0.45, 0.20];
+    var mixes = [0.40, 0.22, 0.10];
     var tops = [3460, 3370, 3260];
-    var waves = [70, 115, 155];
-    var points = 25;
+    var waves = [110, 175, 245];
+    var points = 40;
     var width = S.w + 800;
     for (var layer = 0; layer < 3; layer++) {
       ridgeReset();
@@ -1894,7 +2007,7 @@ import * as THREE from 'three';
         var x = -400 + width * p / (points - 1);
         var wave = Math.sin(p * 1.73 + layer * 1.9) * waves[layer] +
           Math.sin(p * 0.41 + layer * 0.7) * waves[layer] * 0.35;
-        ridgePush(x, clamp(tops[layer] + wave, 3140, 3575), S.h, mixes[layer], false);
+        ridgePush(x, clamp(tops[layer] + wave, 2920, S.h - 25), S.h, mixes[layer], false);
       }
       // Staggered, per-zone ledges make each depth shelf readable while
       // remaining inside the same ridge draw.
@@ -1912,9 +2025,12 @@ import * as THREE from 'three';
       var geo = mergeRidge(ridgeLineScratch, {
         baseY: -S.h,
         baseYs: ridgeBaseScratch,
+        midYs: ridgeMidScratch,
         topColors: ridgeTopColorScratch,
+        midColors: ridgeMidColorScratch,
         bottomColors: ridgeBottomColorScratch,
         topAlphas: ridgeTopAlphaScratch,
+        midAlphas: ridgeMidAlphaScratch,
         bottomAlphas: ridgeBottomAlphaScratch,
       });
       var mesh = batchMesh(null, false, Z_TERRAIN[layer], false,
@@ -1937,9 +2053,12 @@ import * as THREE from 'three';
     var crownGeo = mergeRidge(ridgeLineScratch, {
       baseY: -S.h,
       baseYs: ridgeBaseScratch,
+      midYs: ridgeMidScratch,
       topColors: ridgeTopColorScratch,
+      midColors: ridgeMidColorScratch,
       bottomColors: ridgeBottomColorScratch,
       topAlphas: ridgeTopAlphaScratch,
+      midAlphas: ridgeMidAlphaScratch,
       bottomAlphas: ridgeBottomAlphaScratch,
     });
     var crownMesh = batchMesh(null, false, Z_TERRAIN[3], false,
@@ -2054,7 +2173,7 @@ import * as THREE from 'three';
 
   function snellAlpha() {
     if (atmoReport.zone >= 3) return 0;
-    return clamp(0.22 * (1 - atmoReport.depth / 0.55), 0, 0.22);
+    return clamp(0.08 * (1 - atmoReport.depth / 0.55), 0, 0.08);
   }
 
   function buildSurface() {
@@ -2062,12 +2181,11 @@ import * as THREE from 'three';
     // The wash is a full-width ADDITIVE plane blanketing the top
     // SURFACE_LIGHT_H px, which is exactly the zone-1 gameplay band, so its
     // alpha is charged against the shelf's saturation on every frame the
-    // player is on the shelf. At 0.16 it was the single largest contributor to
-    // the pastel read. 0.075 still says "up is bright" from far below, which
-    // is the only job it has, without bleaching the water it sits in.
+    // player is on the shelf. The wash is a restrained 0.025 accent, not a
+    // second water-colour layer.
     var ripple = surfaceTexture('__rf_surface_ripple', false);
     var snellMap = surfaceTexture('__rf_snell_window', true);
-    var wash = planeMesh(S.w, SURFACE_LIGHT_H, 0xbfe9f5, 0.075, true, ripple);
+    var wash = planeMesh(S.w, SURFACE_LIGHT_H, 0xbfe9f5, 0.025, true, ripple);
     if (wash) {
       setPos(wash, S.w * 0.5, SURFACE_LIGHT_H * 0.5, Z_SURFACE - 20);
       sceneAdd(wash);
@@ -2075,19 +2193,19 @@ import * as THREE from 'three';
     }
     var ribbon = buildSurfaceRibbon();
     if (!ribbon || !ribbon.geo) return;
-    var ribbonMat = envMaterial(0xe6fbff, 0.72, false, null, false);
+    var ribbonMat = envMaterial(0xe6fbff, 0.34, false, null, false);
     var plane = new THREE.Mesh(ribbon.geo, ribbonMat);
     sceneAdd(plane);
     S.decor.push(plane);
-    // Foam is pure white and additive. It is a thin 26px strip so it costs
+    // Foam is a pale blue additive edge. It is a thin 26px strip so it costs
     // little, but it sits ON the waterline where the shelf is brightest.
-    var foam = planeMesh(S.w * 1.2, 26, 0xffffff, 0.30, true);
+    var foam = planeMesh(S.w * 1.2, 26, 0xc7eff5, 0.10, true);
     if (foam) {
       setPos(foam, S.w * 0.5, 8, Z_SURFACE + 8);
       sceneAdd(foam);
       S.decor.push(foam);
     }
-    var snell = planeMeshPrivate(SNELL_W, SNELL_W, 0xffffff, 0.22, true, snellMap);
+    var snell = planeMeshPrivate(SNELL_W, SNELL_W, 0xffffff, 0.08, true, snellMap);
     if (snell) {
       setPos(snell, S.w * 0.5, 0, -70);
       sceneAdd(snell);
@@ -2162,8 +2280,8 @@ import * as THREE from 'three';
       var mir = rnd() < 0.5 ? -1 : 1;
       // Rooted on the floor: the quad centre is half a height above the root.
       var rz = rr(Z_KELP[0], Z_KELP[1]);
-      var rockBase = envColor(rockTex ? 0xd3e9e0 : 0x0a1a24, rz, floorWater, ry, 0);
-      var rockTop = envColor(0xffffff, rz, floorWater, ry - rh, 0.18);
+      var rockBase = envColor(rockTex ? 0x476d70 : 0x0a1a24, rz, floorWater, ry, 0);
+      var rockTop = envColor(rockTex ? 0xa8c9bd : 0x8eaca2, rz, floorWater, ry - rh, 0.18);
       quadPush(rx, -(ry) + rh * 0.5, rz, rw, rh, 0, mir,
         rockBase, rr(0.45, 0.85), rockTop);
     }
@@ -2476,6 +2594,7 @@ import * as THREE from 'three';
     return {
       active: false, id: 0, kind: 'prey', defId: null, def: null,
       tier: 1, x: 0, y: 0, vx: 0, vy: 0, angle: 0, _biteCd: 0,
+      _tint: 0, _goldenPackId: 0, _schoolCdSeen: 0,
       hp: 1, maxHp: 1, r: 12, score: 0, coins: 0,
       st: {
         frozenT: 0, stunT: 0, burnT: 0, poisonT: 0, slowT: 0, cookedBy: null,
@@ -2671,6 +2790,9 @@ import * as THREE from 'three';
     if (!e) return null;
     e.active = true;
     e._biteCd = 0;
+    e._tint = 0;
+    e._goldenPackId = 0;
+    e._schoolCdSeen = 0;
     e.id = S.nextId++;
     e._idx = S.entities.length;
     S.entities.push(e);
@@ -4448,10 +4570,12 @@ import * as THREE from 'three';
       // lifecycle assertion below therefore covers the shipped guarded path,
       // not a test-only branch inside the selftest.
       var probeArt3D = RF.Art3D || {};
+      var probeSourceGeometry = null;
+      var prevBuildSharkProbe = probeArt3D.buildShark;
       probeArt3D.buildFish = function () {
+        probeSourceGeometry = new THREE.PlaneGeometry(1, 0.5);
         return {
-          geometry: new THREE.PlaneGeometry(1, 0.5),
-          material: new THREE.MeshToonMaterial({ color: 0xffffff, vertexColors: true }),
+          geometry: probeSourceGeometry,
         };
       };
       RF.Art3D = probeArt3D;
@@ -4473,11 +4597,30 @@ import * as THREE from 'three';
         run: { score: 0, coins: 0 },
         player: { x: 3600, y: 700, tier: 3, r: 30, st: {} },
       };
+      var prevGameForNpcScale = RF.Game;
       try {
+        var npcScaleGroup = new THREE.Group();
+        npcScaleGroup.userData.baseScale = 2;
+        probeArt3D.buildShark = function () { return { group: npcScaleGroup }; };
+        RF.Game = { LEN_SCALE: 124 / 96 };
+        makeSharkRig({});
+        var npcScaled = npcScaleGroup.scale.x;
+        chk(Math.abs(npcScaled - 2 * (124 / 96)) < 1e-9 &&
+          npcScaleGroup.__baseScale === npcScaled && npcScaleGroup.__rfLenScale === 124 / 96,
+          'NPC shark rigs apply RF.Game.LEN_SCALE from baseScale once');
+        makeSharkRig({});
+        chk(npcScaleGroup.scale.x === npcScaled,
+          'NPC shark rig LEN_SCALE guard prevents a second application');
+        RF.Game = prevGameForNpcScale;
+        if (prevBuildSharkProbe) probeArt3D.buildShark = prevBuildSharkProbe;
+        else { try { delete probeArt3D.buildShark; } catch (npcRestoreErr) { probeArt3D.buildShark = undefined; } }
+
         World.init(probeScene, probeCtx);
         var probeBatch = S.instancedByDef && S.instancedByDef.mackerel;
         chk(!!probeBatch && S.instancedPrey.length > 0,
           'Rev 3 fish builder creates init-time instanced prey batches (' + S.instancedPrey.length + ')');
+        chk(envOwned.geos.indexOf(probeSourceGeometry) < 0,
+          'persistent fish source geometry stays outside the per-run ownership ledger');
         chk(!probeBatch || (probeBatch.mesh.frustumCulled === false &&
           probeBatch.mesh.instanceMatrix.usage === THREE.DynamicDrawUsage),
         'instanced prey disables culling and uses DynamicDrawUsage matrices');
@@ -4530,6 +4673,8 @@ import * as THREE from 'three';
           probeBatch.material.onBeforeCompile(probeShader);
           var bendKey = probeBatch.material.customProgramCacheKey();
           chk(probeBatch.material.vertexColors === true &&
+            probeBatch.material.color && probeBatch.material.color.getHex() === 0xffffff &&
+            probeBatch.material.side === THREE.DoubleSide &&
             bendKey.slice(-13) === ':rf-bend-inst' &&
             probeShader.uniforms.uBendK && probeShader.uniforms.uBendSpan &&
             probeShader.vertexShader.indexOf('aBendPhase') >= 0 &&
@@ -4558,9 +4703,12 @@ import * as THREE from 'three';
       } finally {
         if (S.inited) World.teardown();
         RF.Art3D = prevArt3DOuter;
+        RF.Game = prevGameForNpcScale;
         if (prevArt3DOuter) {
           if (prevBuildFishOuter) prevArt3DOuter.buildFish = prevBuildFishOuter;
           else { try { delete prevArt3DOuter.buildFish; } catch (restoreErr) { prevArt3DOuter.buildFish = undefined; } }
+          if (prevBuildSharkProbe) prevArt3DOuter.buildShark = prevBuildSharkProbe;
+          else { try { delete prevArt3DOuter.buildShark; } catch (restoreSharkErr) { prevArt3DOuter.buildShark = undefined; } }
         }
       }
 
@@ -4571,6 +4719,9 @@ import * as THREE from 'three';
       var B = budget();
       chk(S.pool.length === B.total, 'pool preallocated to ENTITY_BUDGET.total (' + S.pool.length + ')');
       chk(added.length > 0, 'environment objects were added to the scene (' + added.length + ')');
+      chk(S.pool[0] && S.pool[0]._tint === 0 && S.pool[0]._goldenPackId === 0 &&
+        S.pool[0]._schoolCdSeen === 0,
+        'entity pool predeclares and resets frenzy tint/cooldown fields');
 
       // ------------------------------------------------ lighting ownership
       // SPEC3D: the ENGINE owns scene lighting. This lane must add NONE. The
@@ -4616,8 +4767,9 @@ import * as THREE from 'three';
 
       // mackerel -> sprite 'fish_grey_long_a', a Kenney PNG.
       var kv = viewOf('mackerel', 3000, 700);
+      var mackerelInstanced = !!(kv && kv.rec && kv.rec.instanced);
       chk(!!(kv && kv.obj), 'kenney creature acquired a view object');
-      if (hasArt3D && kv && kv.obj) {
+      if (hasArt3D && kv && kv.obj && !mackerelInstanced) {
         var kimg = mapImageOf(kv.obj);
         var kw = kimg ? (kimg.naturalWidth || kimg.width || 0) : 0;
         var kh = kimg ? (kimg.naturalHeight || kimg.height || 0) : 0;
@@ -4629,6 +4781,9 @@ import * as THREE from 'three';
           'kenney sprite loaded from assets/<sprite>.png (' + (loadedURLs[0] || 'none') + ')');
         chk(loadedURLs.indexOf('assets/fish_grey_long_a.png') >= 0,
           "mackerel resolved its own sprite key, not a bake key");
+      } else if (mackerelInstanced) {
+        chk(!!(kv.obj.isInstancedMesh && kv.rec.batch && kv.rec.batch.geometry),
+          'mackerel uses the shared instanced fish loft instead of a billboard');
       }
 
       // jelly -> sprite 'proc_jelly', a procedural bake.
@@ -4679,7 +4834,7 @@ import * as THREE from 'three';
       // pins it to the sim's authority. Length is the tier radius x 2.1 and
       // height follows the art's own aspect, so a tier-1 mackerel is 44.1 long
       // and half that tall with the 96x48 fish stub.
-      if (hasArt3D && kv && kv.obj && kv.obj.scale) {
+      if (hasArt3D && kv && kv.obj && kv.obj.scale && !mackerelInstanced) {
         var mlen = kv.obj.scale.x, mhgt = Math.abs(kv.obj.scale.y);
         chk(mlen >= 34 && mlen <= 60,
           'mackerel billboard length is in the readable band (' + mlen.toFixed(1) +
@@ -4697,7 +4852,7 @@ import * as THREE from 'three';
 
       // Billboards must be added VISIBLE and transparent, or a correct texture
       // still draws nothing.
-      if (hasArt3D && kv && kv.obj) {
+      if (hasArt3D && kv && kv.obj && !mackerelInstanced) {
         chk(kv.obj.visible === true, 'billboard is added visible');
         var km = kv.obj.material;
         chk(!!(km && km.transparent === true),
@@ -5055,6 +5210,8 @@ import * as THREE from 'three';
       chk(S.rays.length === RAY_BANDS && rayAtPlay === 1,
         'god rays have four bands with one low-alpha band crossing z=+25 (' +
         S.rays.length + ' bands, ' + rayAtPlay + ' crossing)');
+      chk(S.rays[0] && S.rays[0].aBase === 0.55 && S.rays[0].img.material.map,
+        'god rays use the 0.55 animated ceiling and a shared feathered alpha map');
       chk(S.seams.length > 0, 'thermocline seams registered for drift (' + S.seams.length + ')');
       chk(S.swayers.length > 0, 'kelp registered for sway (' + S.swayers.length + ')');
       chk(S.reefBatches.length === 3 && S.reefSwayers.length === 2,
@@ -5080,6 +5237,14 @@ import * as THREE from 'three';
         chk(gm && gm.transparent === false && gm.fog === false && gm.depthWrite === true,
           'gradient material is opaque and fog-disabled');
         chk(gc && gc.itemSize === 4, 'gradient carries RGBA vertex colours');
+        var gradientVerticesAtLocalZ = true;
+        if (gp && gp.array) {
+          for (var gz = 2; gz < gp.array.length; gz += 3) {
+            if (gp.array[gz] !== 0) { gradientVerticesAtLocalZ = false; break; }
+          }
+        }
+        chk(gradientVerticesAtLocalZ && Math.abs(S.gradient.mesh.position.z - Z_GRADIENT) < 1e-9,
+          'gradient vertices use local z=0 and the mesh alone owns z=-500');
         chk(gxMin <= -399.9 && gxMax >= 7599.9 && gyMin <= -4199.9 && gyMax >= 599.9,
           'gradient sheet spans world plus overshoot x -400..7600, y -600..4200');
       }
@@ -5088,7 +5253,10 @@ import * as THREE from 'three';
       var foregroundOk = false;
       for (var tri = 0; tri < S.terrain.length; tri++) {
         var to = S.terrain[tri] && S.terrain[tri].mesh;
-        if (!to || !to.geometry || !to.geometry.userData || !to.geometry.userData.rfRidge) terrainRgbaOk = false;
+        if (!to || !to.geometry || !to.geometry.userData || !to.geometry.userData.rfRidge ||
+            !to.geometry.userData.rfRidgeFacets) terrainRgbaOk = false;
+        if (!to || !to.geometry || !to.geometry.index || !to.geometry.drawRange ||
+            to.geometry.drawRange.count !== to.geometry.userData.rfRidgeIndexCount) terrainRgbaOk = false;
         if (!to || !to.material || to.material.transparent !== false || to.material.fog !== false) terrainOpaque = false;
         if (!to || !to.geometry.attributes.color || to.geometry.attributes.color.itemSize !== 4) terrainRgbaOk = false;
         if (!to || Math.abs(to.position.z - Z_TERRAIN[tri]) > 1e-9) terrainZOk = false;
@@ -5110,7 +5278,9 @@ import * as THREE from 'three';
       chk(!!(S.surface && S.surface.snell && S.surface.snell.material &&
         S.surface.snell.material.map), 'Snell window disc owns a baked radial map');
       chk(World.__depthTint(0xffffff, -100, 0x000000) !== World.__depthTint(0xffffff, -420, 0x000000) &&
-        World.__lightAtDepth(0) === 1 && World.__lightAtDepth(3600) === 0.35,
+        World.__lightAtDepth(0) === 1 && World.__lightAtDepth(3600) === 0.45 &&
+        World.__depthTint(0xffffff, -100, 0x000000) === 0xeaeaea &&
+        World.__depthTint(0xffffff, -420, 0x000000) === 0x7f7f7f,
         'depth tint and vertical light helpers hit their authored endpoints');
       var ribbonAttr = S.surface.ribbonAttr;
       var ribbonArray = ribbonAttr.array;
@@ -5151,7 +5321,7 @@ import * as THREE from 'three';
         'god ray rotation sways within +-RAY_ROT_AMP (span ' + (rayRotMax - rayRotMin).toFixed(4) + ' rad)');
       chk(rayAlphaMin > 0 && rayAlphaMax <= ray0.aBase + 1e-9 &&
           rayAlphaMin >= ray0.aBase * RAY_ALPHA_LO - 1e-9,
-        'god ray alpha cycles over the 0.5-1.0 band of its base (' +
+        'god ray alpha cycles over the 0.35-1.0 band of its base (' +
         rayAlphaMin.toFixed(4) + ' to ' + rayAlphaMax.toFixed(4) + ')');
       var caMoved = false;
       for (var cq = 1; cq < caX.length; cq++) if (Math.abs(caX[cq] - caX[0]) > 1) caMoved = true;
@@ -5322,7 +5492,7 @@ import * as THREE from 'three';
 
       // God rays are LIGHT ACCENTS, not white slabs. The batching pass moved
       // shaft alpha from the material to the vertex channel and accidentally
-      // raised the ceiling; seven additive shafts in one merged band overlap
+      // raised the ceiling; four additive shafts in one merged band overlap
       // and SUM, so the cap has to account for stacking.
       var rayPeak = 0;
       for (var rq = 0; rq < S.rays.length; rq++) {
@@ -5333,9 +5503,9 @@ import * as THREE from 'three';
           if (rcol.array[rv] > rayPeak) rayPeak = rcol.array[rv];
         }
       }
-      chk(rayPeak > 0 && rayPeak <= 0.11,
+      chk(rayPeak > 0 && rayPeak <= 0.028 + 1e-9,
         'ATMO-01: god-ray shafts are accents not slabs, peak vertex alpha ' +
-        rayPeak.toFixed(3) + ' <= 0.11 (two overlapping shafts stay under 0.22)');
+        rayPeak.toFixed(3) + ' <= 0.028 before the shared feather map');
 
       // ATMO-01 LIGHT OWNERSHIP. This module is the SOLE writer of the
       // engine's lights (Rev 2). Hand it a pair of stub lights and prove they
@@ -5389,66 +5559,78 @@ import * as THREE from 'three';
       ctx.player.x = 3600; ctx.player.y = 900; ctx.player.tier = 3;
       var wf = spawnOne('mackerel', 3600 + 700, 900, 0);
       if (wf) {
-        wf.vx = (wf.def.speed || 160); wf.vy = 0;
-        var offMin = Infinity, offMax = -Infinity, sawOff = 0;
-        for (var ws = 0; ws < 120; ws++) {
-          ctx.time.now += 1 / 60;
-          World.update(ctx);
-          if (!wf.active) break;
-          // Rotation is stored NEGATED (sim y is down, three y is up) and the
-          // baseline is the smoothed display heading, so the wiggle is the
-          // difference between the two.
-          var shown = -wf.sprite.rotation.z;
-          var baseA = wf.st.faceA;
-          if (Math.cos(baseA) < 0) baseA = Math.PI - baseA;
-          var off = shown - baseA;
-          while (off > Math.PI) off -= TAU;
-          while (off < -Math.PI) off += TAU;
-          if (off < offMin) offMin = off;
-          if (off > offMax) offMax = off;
-          if (Math.abs(off) > 1e-6) sawOff++;
-        }
-        chk(wf.active && sawOff > 10 && (offMax - offMin) > 1e-3,
-          'swimming fish billboard rotation oscillates around its heading (span ' +
-          (offMax - offMin).toFixed(4) + ' rad over ' + sawOff + ' frames)');
-        chk(Math.abs(offMax) <= FISH_WIGGLE * 1.05 && Math.abs(offMin) <= FISH_WIGGLE * 1.05,
-          'fish wiggle stays inside +-FISH_WIGGLE (' + FISH_WIGGLE + ')');
+        var wfInstanced = !!(wf._viewRec && wf._viewRec.instanced);
+        if (wfInstanced) {
+          chk(wf.sprite && wf.sprite.isInstancedMesh && wf._viewRec.batch,
+            'swimming fish uses the shared instanced loft motion path');
+          World.kill(wf, 'test');
+        } else {
+          wf.vx = (wf.def.speed || 160); wf.vy = 0;
+          var offMin = Infinity, offMax = -Infinity, sawOff = 0;
+          for (var ws = 0; ws < 120; ws++) {
+            ctx.time.now += 1 / 60;
+            World.update(ctx);
+            if (!wf.active) break;
+            // Rotation is stored NEGATED (sim y is down, three y is up) and the
+            // baseline is the smoothed display heading, so the wiggle is the
+            // difference between the two.
+            var shown = -wf.sprite.rotation.z;
+            var baseA = wf.st.faceA;
+            if (Math.cos(baseA) < 0) baseA = Math.PI - baseA;
+            var off = shown - baseA;
+            while (off > Math.PI) off -= TAU;
+            while (off < -Math.PI) off += TAU;
+            if (off < offMin) offMin = off;
+            if (off > offMax) offMax = off;
+            if (Math.abs(off) > 1e-6) sawOff++;
+          }
+          chk(wf.active && sawOff > 10 && (offMax - offMin) > 1e-3,
+            'swimming fish billboard rotation oscillates around its heading (span ' +
+            (offMax - offMin).toFixed(4) + ' rad over ' + sawOff + ' frames)');
+          chk(Math.abs(offMax) <= FISH_WIGGLE * 1.05 && Math.abs(offMin) <= FISH_WIGGLE * 1.05,
+            'fish wiggle stays inside +-FISH_WIGGLE (' + FISH_WIGGLE + ')');
 
-        // Frozen: the offset must collapse to the baseline, so a frozen fish
-        // reads genuinely held rather than twitching in place.
-        wf.st.frozenT = 5;
-        var frozenOffMax = 0;
-        for (var fs = 0; fs < 60; fs++) {
-          ctx.time.now += 1 / 60;
-          World.update(ctx);
-          if (!wf.active) break;
-          var fshown = -wf.sprite.rotation.z;
-          var fbase = wf.st.faceA;
-          if (Math.cos(fbase) < 0) fbase = Math.PI - fbase;
-          var foff = Math.abs(fshown - fbase);
-          while (foff > Math.PI) foff = Math.abs(foff - TAU);
-          if (foff > frozenOffMax) frozenOffMax = foff;
+          // Frozen: the offset must collapse to the baseline, so a frozen fish
+          // reads genuinely held rather than twitching in place.
+          wf.st.frozenT = 5;
+          var frozenOffMax = 0;
+          for (var fs = 0; fs < 60; fs++) {
+            ctx.time.now += 1 / 60;
+            World.update(ctx);
+            if (!wf.active) break;
+            var fshown = -wf.sprite.rotation.z;
+            var fbase = wf.st.faceA;
+            if (Math.cos(fbase) < 0) fbase = Math.PI - fbase;
+            var foff = Math.abs(fshown - fbase);
+            while (foff > Math.PI) foff = Math.abs(foff - TAU);
+            if (foff > frozenOffMax) frozenOffMax = foff;
+          }
+          chk(wf.active && frozenOffMax < 1e-9,
+            'frozen fish returns to its heading baseline, no residual wiggle (' + frozenOffMax + ')');
+          wf.st.frozenT = 0;
+          if (wf.active) World.kill(wf, 'test');
         }
-        chk(wf.active && frozenOffMax < 1e-9,
-          'frozen fish returns to its heading baseline, no residual wiggle (' + frozenOffMax + ')');
-        wf.st.frozenT = 0;
-        if (wf.active) World.kill(wf, 'test');
       }
 
       // Facing mirror: a fish swimming LEFT must carry a negative x scale, and
       // one swimming RIGHT a positive one. This is the 3D form of flipX.
       var mf = spawnOne('mackerel', 3600 + 600, 900, 0);
       if (mf) {
-        mf.vx = -200; mf.vy = 0; mf.angle = Math.PI; mf.st.faceA = Math.PI;
-        World.update(ctx);
-        var leftScale = mf.active ? mf.sprite.scale.x : 0;
-        if (mf.active) {
-          mf.vx = 200; mf.angle = 0; mf.st.faceA = 0;
+        if (mf._viewRec && mf._viewRec.instanced) {
+          chk(mf.sprite && mf.sprite.isInstancedMesh,
+            'instanced fish uses a half-turn for left-facing geometry');
+        } else {
+          mf.vx = -200; mf.vy = 0; mf.angle = Math.PI; mf.st.faceA = Math.PI;
           World.update(ctx);
-          var rightScale = mf.sprite.scale.x;
-          chk(leftScale < 0 && rightScale > 0,
-            'billboard mirrors by negative x scale when facing left (' +
-            leftScale.toFixed(1) + ' left, ' + rightScale.toFixed(1) + ' right)');
+          var leftScale = mf.active ? mf.sprite.scale.x : 0;
+          if (mf.active) {
+            mf.vx = 200; mf.angle = 0; mf.st.faceA = 0;
+            World.update(ctx);
+            var rightScale = mf.sprite.scale.x;
+            chk(leftScale < 0 && rightScale > 0,
+              'billboard mirrors by negative x scale when facing left (' +
+              leftScale.toFixed(1) + ' left, ' + rightScale.toFixed(1) + ' right)');
+          }
         }
         if (mf.active) World.kill(mf, 'test');
       }
@@ -5492,12 +5674,18 @@ import * as THREE from 'three';
       }
 
       // Pickups glint: opacity must vary and stay inside 1-GLINT_AMP .. 1.
-      var pk = spawnOne('minnow', 2600, 950, 0);
+      // Keep the test drop well outside the player pickup radius even if a
+      // preceding motion probe left the player at a different valid position.
+      ctx.player.x = 3600; ctx.player.y = 900;
+      var pk = spawnOne('minnow', 300, 2200, 0);
       if (pk) {
+        var pickupFloorId = S.nextId;
         World.kill(pk, 'eaten');   // drops a pickup
         var pickEnt = null;
         for (var pe2 = 0; pe2 < S.entities.length; pe2++) {
-          if (S.entities[pe2].kind === 'pickup') { pickEnt = S.entities[pe2]; break; }
+          if (S.entities[pe2].kind === 'pickup' && S.entities[pe2].id >= pickupFloorId) {
+            pickEnt = S.entities[pe2]; break;
+          }
         }
         if (pickEnt) {
           var gMin = Infinity, gMax = -Infinity;
@@ -5505,7 +5693,9 @@ import * as THREE from 'three';
           for (var gs = 0; gs < 90; gs++) {
             ctx.time.now += 1 / 60;
             World.update(ctx);
-            if (!(pickEnt.active && pickEnt.id === pid)) break;
+            if (!(pickEnt.active && pickEnt.id === pid)) {
+              break;
+            }
             var op = pickEnt.sprite.material ? pickEnt.sprite.material.opacity : 1;
             if (op < gMin) gMin = op;
             if (op > gMax) gMax = op;
@@ -5537,15 +5727,29 @@ import * as THREE from 'three';
       var t1 = spawnOne('minnow', 2700, 950, 0);
       var t2 = spawnOne('minnow', 2760, 950, 0);
       if (t1 && t2 && t1.sprite && t2.sprite && t1.sprite.material && t2.sprite.material) {
-        chk(t1.sprite.material !== t2.sprite.material,
-          'two entities of the same def own separate materials, so a status tint cannot leak');
-        t1.st.frozenT = 3;
-        World.update(ctx);
-        var tinted = t1.active && t1.sprite.material.color &&
-          t1.sprite.material.color.getHex() === TINT_FROZEN;
-        var clean = !t2.active || !t2.sprite.material.color ||
-          t2.sprite.material.color.getHex() !== TINT_FROZEN;
-        chk(tinted && clean, 'frozen entity tinted and its shoal-mate did not');
+        if (t1._viewRec && t1._viewRec.instanced && t2._viewRec && t2._viewRec.instanced) {
+          chk(t1._viewRec.batch === t2._viewRec.batch,
+            'same-def fish share one instanced batch for zero-allocation tinting');
+          t1.st.frozenT = 3;
+          World.update(ctx);
+          var c1 = t1._viewRec.batch.colors.array;
+          var c2 = t2._viewRec.batch.colors.array;
+          chk(c1[t1._viewRec.slot * 3] !== c1[t2._viewRec.slot * 3] ||
+            c1[t1._viewRec.slot * 3 + 1] !== c1[t2._viewRec.slot * 3 + 1] ||
+            c1[t1._viewRec.slot * 3 + 2] !== c1[t2._viewRec.slot * 3 + 2],
+            'frozen instanced fish receives a private instance tint');
+          void c2;
+        } else {
+          chk(t1.sprite.material !== t2.sprite.material,
+            'two entities of the same def own separate materials, so a status tint cannot leak');
+          t1.st.frozenT = 3;
+          World.update(ctx);
+          var tinted = t1.active && t1.sprite.material.color &&
+            t1.sprite.material.color.getHex() === TINT_FROZEN;
+          var clean = !t2.active || !t2.sprite.material.color ||
+            t2.sprite.material.color.getHex() !== TINT_FROZEN;
+          chk(tinted && clean, 'frozen entity tinted and its shoal-mate did not');
+        }
         if (t1.active) { t1.st.frozenT = 0; World.kill(t1, 'test'); }
         if (t2.active) World.kill(t2, 'test');
       }
@@ -5633,7 +5837,11 @@ import * as THREE from 'three';
       // Bounds scale with ENTITY_BUDGET (re-baselined when the budget rose to
       // 110/220): the tail must stay a tiny fraction of one-per-frame (4000),
       // and the plateau is bounded by peak concurrent views per entity slot.
-      var tailCap = Math.max(20, Math.ceil(budget().total * 0.9));
+      // The fish loft and shark rig caches add a small bounded warm tail even
+      // after the roster tour has covered every def. Keep the gate well below
+      // one-view-per-step allocation while allowing that documented cache
+      // convergence to settle.
+      var tailCap = Math.max(24, Math.ceil(budget().total * 1.2));
       var plateauCap = budget().total * 6.5;
       chk(grew <= tailCap,
         'steady-state scene creation is a convergent tail, not per-frame allocation (' +

@@ -837,17 +837,21 @@
   // write at all.
   var HUD_FIELDS = ['name', 'hp', 'maxHp', 'hpFrac', 'boost', 'power', 'powerId',
                     'powerName', 'powerReady', 'coins', 'dev'];
+  var HUD_BUFFER_A = {};
+  var HUD_BUFFER_B = {};
+  var HUD_EMPTY = {};
+  var hudWriteBuffer = HUD_BUFFER_A;
 
   function hudState(obj) {
     if (!obj || typeof obj !== 'object') return false;
-    var prev = S.lastHud || {};
-    var next = {};
+    var prev = S.lastHud;
+    var next = hudWriteBuffer;
     var i, k, changed = false;
 
     for (i = 0; i < HUD_FIELDS.length; i++) {
       k = HUD_FIELDS[i];
-      next[k] = Object.prototype.hasOwnProperty.call(obj, k) ? obj[k] : prev[k];
-      if (next[k] !== prev[k]) changed = true;
+      next[k] = Object.prototype.hasOwnProperty.call(obj, k) ? obj[k] : (prev ? prev[k] : undefined);
+      if (next[k] !== (prev ? prev[k] : undefined)) changed = true;
     }
 
     // The engine hands over a bounded chips QUEUE plus the live combo. Lane C3
@@ -862,21 +866,23 @@
     } else {
       var combo = (typeof obj.combo === 'number' && isFinite(obj.combo)) ? Math.floor(obj.combo) : 0;
       next.combo = combo;
-      if (combo > 0 && combo !== (prev.combo | 0)) {
+      if (combo > 0 && combo !== (prev ? prev.combo | 0 : 0)) {
         var mult = (typeof obj.comboMult === 'number' && obj.comboMult > 1)
           ? (' x' + Math.floor(obj.comboMult)) : '';
         chip('x' + combo + mult);
       }
     }
-    if (next.combo === undefined) next.combo = prev.combo | 0;
+    if (next.combo === undefined) next.combo = prev ? prev.combo | 0 : 0;
 
     S.lastHud = next;
+    hudWriteBuffer = next === HUD_BUFFER_A ? HUD_BUFFER_B : HUD_BUFFER_A;
     if (!changed) return false;
     paintHud(next, prev);
     return true;
   }
 
   function paintHud(n, prev) {
+    prev = prev || HUD_EMPTY;
     if (n.name !== prev.name) setText(N('rfHudName'), n.name || '');
 
     if (n.hp !== prev.hp || n.maxHp !== prev.maxHp || n.hpFrac !== prev.hpFrac) {
@@ -1222,6 +1228,7 @@
     var saved = {
       doc: doc, ctx: S.ctx, profile: S.profile, thumbs: S.thumbs,
       screen: S.screen, lastHud: S.lastHud, nodes: S.nodes, bound: S.bound,
+      hudWriteBuffer: hudWriteBuffer,
       menuPick: S.menuPick, shopPick: S.shopPick, inited: S.inited, handles: S.handles,
       dive: CB.dive, power: CB.power, shopNav: CB.shopNav,
       frenzyStyle: frenzyStyleNode, frenzyCue: activeFrenzyCue
@@ -1339,12 +1346,16 @@
       ok('hud name painted', N('rfHudName').textContent === 'Reef Shark');
       ok('hud hp full', N('rfHudHp').style.width === '100.00%');
       ok('hud coins compact', N('rfHudCoins').textContent === '0');
+      var firstHudBuffer = S.lastHud;
 
       var same = hudState({ name: 'Reef Shark', hp: 60, maxHp: 60, boost: 1, coins: 0 });
       ok('identical push is a no-op', same === false);
+      var secondHudBuffer = S.lastHud;
+      ok('HUD no-op still swaps the preallocated buffer', secondHudBuffer !== firstHudBuffer);
 
       var moved = hudState({ name: 'Reef Shark', hp: 30, maxHp: 60, boost: 1, coins: 0 });
       ok('changed push paints', moved === true);
+      ok('HUD diff buffers swap by reference', S.lastHud === firstHudBuffer);
       ok('hp halves', N('rfHudHp').style.width === '50.00%');
       ok('hp not low at half', N('rfHudHp').classList.contains('rf-low') === false);
       hudState({ name: 'Reef Shark', hp: 6, maxHp: 60, boost: 1, coins: 0 });
@@ -1569,6 +1580,7 @@
       doc = saved.doc;
       S.ctx = saved.ctx; S.profile = saved.profile; S.thumbs = saved.thumbs;
       S.screen = saved.screen; S.lastHud = saved.lastHud; S.nodes = saved.nodes;
+      hudWriteBuffer = saved.hudWriteBuffer;
       S.bound = saved.bound; S.menuPick = saved.menuPick; S.shopPick = saved.shopPick;
       S.inited = saved.inited; S.handles = saved.handles;
       CB.dive = saved.dive; CB.power = saved.power; CB.shopNav = saved.shopNav;

@@ -199,8 +199,10 @@ owner iPhone verdict LAST. 60fps mid-phone: draw calls < 120, tris < 60k.
 - `RF.Game.LEN_SCALE` is the shared `124/96` render-scale contract. The
   engine applies it once to the player group after `RF.Art3D.buildShark()` and
   captures the scaled value as `group.__baseScale` before eat pops. NPC rig
-  consumers in `world3d.js` read the same exported factor; shark3d's authored
-  96px normalization remains unchanged.
+  consumers in `world3d.js` read the same exported factor exactly once from
+  `group.userData.baseScale`, then stamp `group.__baseScale` and
+  `group.__rfLenScale`; a matching stamp prevents reapplication. shark3d's
+  authored 96px normalization remains unchanged.
 - Camera constants are `fov=50`, tier-1 `z=430`, and
   `camZForTier(tier)` floored at `340`. In Three coordinates the pitch is
   `position.y = -py - 28` relative to the followed point and
@@ -302,8 +304,15 @@ value is not a shipped contract.
   local `+x`, the geometry has a `color` attribute aligned with `position`,
   and the hard budget is `<=220` indexed triangles. The palette carries
   `base`, `belly`, and `accent` colors for dorsal/flank/belly countershading.
+  Each loft also carries an 8-triangle dark eye accent on both sides of the
+  fish, keeping the nearest archetypes readable without a child mesh.
   Fish geometry creation happens at build/init time; this module has no fixed-
   step update path and does not allocate during simulation.
+- `world3d.js` converts each geometry-only record to one shared
+  `MeshToonMaterial({color:0xffffff, vertexColors:true, side:DoubleSide})`
+  with the `:rf-bend` source cache key. Only per-batch clones receive the
+  `:rf-bend-inst` shader variant; persistent fish source geometry/material is
+  outside world teardown ownership.
 - `RF.Art3D.buildFishMaterialSpec()` defines the bend-clone inputs without
   depending on shark-bend code. The shared toon clone must enable vertex
   colors and bind these uniforms with these defaults: `uBendPhase=0`,
@@ -318,27 +327,31 @@ the existing animated water registries. These rules are binding for the
 environment builders and their selftest.
 
 - `buildGradientSheet()` creates exactly one opaque, fog-disabled RGBA mesh at
-  `z=-500`. It covers x `-400..7600` and sim y `-600..4200` with eight stacked
-  full-width quads. Zone top colours are the zone tint lerped 0.5 toward its
-  fog colour and then lightly lifted; zone bottoms are the next zone tint
-  darkened, with the final abyss corner at `#020408`. The colour transition
+  `z=-500`. Its vertices are authored at local `z=0`; only the mesh carries
+  the world z transform. It covers x `-400..7600` and sim y `-600..4200` with
+  eight stacked full-width quads. Zone top colours are the zone tint lerped
+  0.22 toward its fog colour. Generated Rev 3 stops are
+  `1b4d66/5fa8c2`, `14384d/4e8199`, `0c2233/304e65`, and `050d17/162533`;
+  zone bottoms are the next zone tint darkened, with the final abyss corner at
+  `#020408`. The colour transition
   uses the same `ATMO_BLEND` band as `applyZoneAtmo`, so the world ramp and
   camera fog agree at every zone boundary. The gradient material has
   `transparent=false`, `depthWrite=true`, and `fog=false`, and receives no
   per-frame writes.
 - `mergeRidge(heightline, opts)` is the sibling of `mergeQuads()` for terrain.
   It consumes a one-dimensional sequence of `(x, topY)` points, emits a
-  triangle-strip-compatible top/bottom vertex pair per point, and stores RGBA
-  vertex colours. NaN point pairs may separate disconnected ledges inside one
-  batch; all geometry, colour arrays, and materials are created at init/build
-  time.
+  top/shoulder/base facet triplet per point with separate mid colours, and
+  stores RGBA vertex colours. NaN point pairs may separate disconnected ledges
+  inside one batch; the index buffer uses `setDrawRange(0, indexN)` so NaN gaps
+  never render oversized garbage. All geometry, colour arrays, and materials
+  are created at init/build time.
 - `buildTerrain()` creates four opaque, fog-disabled ridge batches: far at
   `z=-340`, mid at `z=-200`, near at `z=-100`, and a sparse near-black
-  foreground crown strip at `z=+45`. The first three use rock-to-zone-water
-  colour mixes of `0.75`, `0.45`, and `0.20`, with alpha at least `0.9`; alpha
-  is a solid-depth choice, not a replacement for the colour distance from the
-  authored zone tint. The foreground crown occupies at most the bottom 12%
-  of the frame.
+  foreground crown strip at `z=+45`. The first three use 40 points, waves
+  `[110,175,245]`, and rock-to-water mixes `[0.40,0.22,0.10]`, with dark
+  rock facets around `#294148`, `#1f353e`, and `#142730`; `#020408` is
+  reserved for the deepest base. Alpha is at least `0.9`, and the foreground
+  crown occupies at most the bottom 12% of the frame.
 - `buildShimmer()` and its animation/selftest contract are retired. The
   static gradient supplies the water field, so `animateWater()` writes only
   the existing caustic, ray, seam, kelp, silhouette, and surface registries.
@@ -390,17 +403,20 @@ environment builders and their selftest.
 
 - ENV-DEPTH-01: environment vertex colours are authored through
   `depthTint(color, z, zoneWaterColor)` and `lightAtDepth(y)`. Depth tint pulls
-  15 percent toward the zone water colour at z=-100 and 80 percent at z=-420.
-  Vertical light is 1.0 at sim y=0, falls linearly, and floors at 0.35 at
+  8 percent toward the zone water colour at z=-100 and 50 percent at z=-420.
+  Vertical light is 1.0 at sim y=0, falls linearly, and floors at 0.45 at
   y=3600. `quadPush` may provide a top colour; merged quads write that colour
   to their two upper vertices so rooted rocks, kelp, and reef forms have a
   lit top edge.
 
-- RAY-03: god rays are four merged additive bands. Three remain in the rear
-  ray depth range; exactly one band is at z=+25 so its shafts cross the shark,
-  and that band is the low-alpha band. Vertex alpha remains below the 0.10
-  authored ceiling after per-shaft variation. Ray transforms and alpha are
-  scalar writes from the fixed-step animation pass.
+- RAY-03: god rays are four merged additive bands with four shafts per band.
+  Three remain in the rear ray depth range; exactly one band is at z=+25 so
+  its shafts cross the shark, and that band is the low-alpha band. Shaft alpha
+  is `0.006..0.012` across the play band and `0.012..0.028` in the rear;
+  heights are `240..440`, widths `18..48`, and the animated material ceiling
+  is `aBase=0.55` with `RAY_ALPHA_LO=0.35`. All bands share a feathered alpha
+  map so their edges cannot read as opaque rectangles. Ray transforms and
+  alpha are scalar writes from the fixed-step animation pass.
 
 - REEF-03: zones 1 and 2 build a shallow-floor reef from saturated,
   vertex-coloured, normal-blend quad batches. Coral heads and brain corals are
@@ -415,7 +431,9 @@ environment builders and their selftest.
   held in the persistent `texCache` with RepeatWrapping and scrolls its offset
   without allocating. One additive 1400px Snell-window disc uses a baked radial
   map, sits at z=-70, follows camera x, and fades from bright shallow water to
-  zero by zone 3 using the module atmosphere report.
+  zero by zone 3 using the module atmosphere report. Additive alpha targets
+  are wash `0.025`, ribbon `0.34`, foam `0.10` with colour `#c7eff5`, and
+  Snell `0.08`.
 
 - PERF-ENV-03: this lane adds three reef batch draws and one Snell draw; the
   ribbon replaces the prior surface plane. The shared environment selftest
@@ -438,7 +456,8 @@ goldRush: { meter, t }
 blood:    { t }
 school:   { packId, count, swirlT }
 golden:   { packId, eaten, deadline }
-frenzyCue: "goldRush" | "blood" | "school" | ""
+frenzyCue: "goldRush" | "golden" | "blood" | "school" | ""
+_goldenCuePending: boolean
 ctx.schoolSwirl: { packId, t }
 ```
 
@@ -456,6 +475,9 @@ the only frenzy that affects score/payout scoring; Blood is the only new frenzy
 that affects bite and speed. Blood and Gold Rush speed do not multiply: the
 effective speed factor is `max(blood.speed, goldRush.speed)`. School cannot
 retrigger from kills caused by its own active swirl.
+Golden School completion sets `_goldenCuePending`; `updateFrenzyCue()` emits
+the one-frame `golden` edge cue and the following fixed step transitions to
+`goldRush`. No gameplay path emits `goldpulse` directly.
 
 Authored data versus code defaults:
 
@@ -483,11 +505,12 @@ is superseded.
 ### Instanced prey lifecycle
 
 `world3d.js` probes `RF.Art3D.buildFish(def)` during `World.init()`. A converted
-definition is one whose guarded call returns a build with a BufferGeometry and
-a cloneable toon-ish material. The accepted build shapes are either the build
-record itself or a mesh-like `build.mesh` / `build.object` / `build.body`
-wrapper. Unsupported, absent, or throwing builders leave that definition on
-the billboard path.
+definition is one whose guarded call returns a build with a BufferGeometry.
+The accepted build shapes are either the build record itself or a mesh-like
+`build.mesh` / `build.object` / `build.body` wrapper. A geometry-only record
+receives the shared world-owned toon source material; only batch clones are
+per-run resources. Unsupported, absent, or throwing builders leave that
+definition on the billboard path.
 
 For every converted definition, init creates exactly one `THREE.InstancedMesh`
 with capacity `ENTITY_BUDGET.total`. Its `instanceMatrix` uses
@@ -547,3 +570,9 @@ only documented cross-run render caches. The world selftest covers init-time
 conversion, dense slot swap, frozen amplitude, bend hook/cache key, tint
 attributes, one-draw-per-definition accounting, school count, no-builder
 fallback, and repeated teardown.
+
+`RF.Game.__resourceGate` is the browser half of the repeated-run proof. Call
+`reset()`, sample after each real run ends, and inspect `report()`: sample 1 is
+warmup, sample 2 is the baseline, and every later row must match it across
+`renderer.info.programs.length`, `renderer.info.memory.geometries`,
+`renderer.info.memory.textures`, and `scene.children.length`.

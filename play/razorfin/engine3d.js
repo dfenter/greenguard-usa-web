@@ -378,6 +378,48 @@ import * as THREE from 'three';
   };
   HUD_STATE.chips = comboQueue;
 
+  // Opt-in browser gate for the resource half of LIFE-01. Node can prove
+  // scene teardown but has no GL driver, so this sampler is intentionally
+  // exposed for a real 844x390 run. The first sample warms persistent caches;
+  // samples after the second must remain identical across run boundaries.
+  function sameResourceSnapshot(a, b) {
+    return !!(a && b && a.children === b.children && a.geometries === b.geometries &&
+      a.textures === b.textures && a.programs === b.programs);
+  }
+  var RESOURCE_GATE = {
+    rows: [], baseline: null, pass: true,
+    reset: function () {
+      this.rows.length = 0;
+      this.baseline = null;
+      this.pass = true;
+      return this;
+    },
+    snapshot: function () {
+      var info = renderer && renderer.info;
+      var memory = info && info.memory;
+      var programs = info && info.programs;
+      if (!scene3 || !info || !memory || !programs) return null;
+      return {
+        children: scene3.children && typeof scene3.children.length === 'number'
+          ? scene3.children.length : 0,
+        geometries: typeof memory.geometries === 'number' ? memory.geometries : 0,
+        textures: typeof memory.textures === 'number' ? memory.textures : 0,
+        programs: typeof programs.length === 'number' ? programs.length : 0,
+      };
+    },
+    sample: function () {
+      var row = this.snapshot();
+      if (!row) return null;
+      this.rows.push(row);
+      if (this.rows.length === 2) this.baseline = row;
+      else if (this.rows.length > 2 && !sameResourceSnapshot(row, this.baseline)) this.pass = false;
+      return row;
+    },
+    report: function () {
+      return { pass: this.rows.length >= 3 && this.pass, rows: this.rows.slice(), baseline: this.baseline };
+    },
+  };
+
   // ------------------------------------------------------- save handling
   function validateSave(obj) {
     var fn = RF.Meta && (RF.Meta.validateSave || RF.Meta.validate);
@@ -910,7 +952,7 @@ import * as THREE from 'three';
         school: { packId: 0, count: 0, swirlT: 0 },
         golden: { packId: 0, eaten: 0, deadline: 0 },
         frenzyCue: '',
-        _schoolTriggeredPackId: 0, _goldenRolledPackId: 0,
+        _schoolTriggeredPackId: 0, _goldenRolledPackId: 0, _goldenCuePending: false,
         _goldRushAnnounced: false, _frenzyApplied: false,
         _frenzyBaseSpeed: 1, _frenzyBaseBite: 1,
         _frenzyAppliedSpeed: 1, _frenzyAppliedBite: 1
@@ -1505,10 +1547,10 @@ import * as THREE from 'three';
     r.golden.packId = 0;
     r.golden.eaten = 0;
     r.golden.deadline = 0;
-    FRENZY_FX_OPT.count = 1;
-    FRENZY_FX_OPT.tint = FRENZY_GOLD_TINT;
-    FRENZY_FX_OPT.scale = 1.35;
-    fxEmit('goldpulse', c.player.x, c.player.y, FRENZY_FX_OPT);
+    // The FX lane owns the visual edge pulse. Publish one edge-triggered cue
+    // through the shared bus on the next fixed step instead of emitting a
+    // second goldpulse directly from the completion path.
+    r._goldenCuePending = true;
     uiCall('chip', 'GOLDEN SCHOOL');
     uiCall('toast', 'Golden School cleared!');
   }
@@ -1679,13 +1721,15 @@ import * as THREE from 'three';
   }
 
   function updateFrenzyCue(r) {
-    var cue = r.goldRushT > 0 ? 'goldRush' : r.blood.t > 0 ? 'blood'
+    var cue = r._goldenCuePending ? 'golden'
+      : r.goldRushT > 0 ? 'goldRush' : r.blood.t > 0 ? 'blood'
       : r.school.swirlT > 0 ? 'school' : '';
+    if (r._goldenCuePending) r._goldenCuePending = false;
     if (cue === r.frenzyCue) return;
     r.frenzyCue = cue;
     if (cue === 'blood') musicLayer('danger');
     else if (cue === 'school') musicLayer('calm');
-    else if (cue === 'goldRush') musicLayer('goldrush');
+    else if (cue === 'golden' || cue === 'goldRush') musicLayer('goldrush');
     else musicLayer(musicState === 'danger' ? 'danger' : 'calm');
   }
 
@@ -2351,6 +2395,33 @@ import * as THREE from 'three';
       scene3 = { isScene: true, add: function (o) { added.push(o); }, remove: function () {}, fog: null, background: null };
       camera = null;
 
+      // The browser-only half of the repeated-run gate is still testable as a
+      // sampler contract without a GL context: the second row is the warm
+      // baseline and later rows must match it in all four counters.
+      var savedGateRows = RESOURCE_GATE.rows.slice();
+      var savedGateBaseline = RESOURCE_GATE.baseline;
+      var savedGatePass = RESOURCE_GATE.pass;
+      var gateSceneProbe = { children: [{}, {}] };
+      var gateRendererProbe = { info: { memory: { geometries: 4, textures: 3 }, programs: [{}, {}] } };
+      scene3 = gateSceneProbe;
+      renderer = gateRendererProbe;
+      RESOURCE_GATE.reset();
+      RESOURCE_GATE.sample();
+      gateRendererProbe.info.memory.geometries = 5;
+      gateRendererProbe.info.memory.textures = 4;
+      gateRendererProbe.info.programs = [{}, {}, {}];
+      RESOURCE_GATE.sample();
+      RESOURCE_GATE.sample();
+      var gateReport = RESOURCE_GATE.report();
+      check(gateReport.pass && gateReport.rows.length === 3,
+        'browser resource gate accepts stable post-warmup renderer counters');
+      scene3 = { isScene: true, add: function (o) { added.push(o); }, remove: function () {}, fog: null, background: null };
+      renderer = null;
+      RESOURCE_GATE.rows.length = 0;
+      for (var gri = 0; gri < savedGateRows.length; gri++) RESOURCE_GATE.rows.push(savedGateRows[gri]);
+      RESOURCE_GATE.baseline = savedGateBaseline;
+      RESOURCE_GATE.pass = savedGatePass;
+
       // ---- world stub with one edible prey and a hunger sink
       var prey = {
         active: true, id: 1, kind: 'prey', defId: 'minnow', tier: 0,
@@ -2602,6 +2673,11 @@ import * as THREE from 'three';
       stepFrenzy();
       check(ctx.run.golden.packId === 0 && ctx.run.goldRushT > 0,
         'Golden School fills the Gold Rush meter after the clear');
+      check(ctx.run.frenzyCue === 'golden' && ctx.run._goldenCuePending === false,
+        'Golden School publishes one golden cue frame through the frenzy bus');
+      stepFrenzy();
+      check(ctx.run.frenzyCue === 'goldRush',
+        'Golden cue transitions to Gold Rush on the following fixed step');
       check(frenzyChips.indexOf('GOLDEN SCHOOL') >= 0,
         'Golden School trigger calls the chip surface');
       var voidGold = { active: true, kind: 'prey', tier: 0, x: p.x, y: p.y,
@@ -3217,6 +3293,7 @@ import * as THREE from 'three';
     CSS_W: CSS_W, CSS_H: CSS_H,
     STEP: STEP,
     LEN_SCALE: LEN_SCALE,
+    __resourceGate: RESOURCE_GATE,
     startRun: startRun,
     endRun: endRun,
     firePower: firePower,
