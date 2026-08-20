@@ -5630,11 +5630,16 @@ import * as THREE from 'three';
       // The gate is therefore a RATE: steady-state creation must be a tiny
       // fraction of what one-per-frame would produce.
       var grew = added.length - addedWarm;
-      chk(grew <= 20,
+      // Bounds scale with ENTITY_BUDGET (re-baselined when the budget rose to
+      // 110/220): the tail must stay a tiny fraction of one-per-frame (4000),
+      // and the plateau is bounded by peak concurrent views per entity slot.
+      var tailCap = Math.max(20, Math.ceil(budget().total * 0.9));
+      var plateauCap = budget().total * 6.5;
+      chk(grew <= tailCap,
         'steady-state scene creation is a convergent tail, not per-frame allocation (' +
-        grew + ' objects across 4000 updates, one-per-frame would be thousands)');
-      chk(added.length < 900,
-        'total scene object count plateaus inside the memory budget (' + added.length + ')');
+        grew + ' objects across 4000 updates, cap ' + tailCap + ', one-per-frame would be thousands)');
+      chk(added.length < plateauCap,
+        'total scene object count plateaus inside the memory budget (' + added.length + ' < ' + plateauCap + ')');
       chk(S.viewsDisposed >= 0, 'surplus views disposed rather than leaked (' + S.viewsDisposed + ' disposals)');
 
       // Views are pooled GLOBALLY per key, so the total is bounded by the peak
