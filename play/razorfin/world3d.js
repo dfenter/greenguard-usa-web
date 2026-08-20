@@ -1,7 +1,8 @@
 /* world3d.js (Lane B3) - RF.World, three.js render layer
  *
  * SAME PUBLIC API as world.js:
- *   init(scene3, ctx) / update(ctx) / query(x,y,r,kind) / kill(ent,cause) /
+ *   init(scene3, ctx) / update(ctx) / query(x,y,r,kind) / eatQuery(x,y,r) /
+ *   kill(ent,cause) /
  *   spawnBurst(defId,x,y,n) / zoneAt(y) / entities / playerHits
  * so abilities.js and engine3d.js consume this module unchanged.
  *
@@ -34,6 +35,7 @@ import * as THREE from 'three';
 
   // ---------------------------------------------------------------- consts
   var CELL = 256;              // spatial hash cell size, px
+  var MAX_ENTITY_R = 100;      // largest authored body radius (tier 12 = 98)
   var SPAWN_MIN = 900;         // spawn ring inner radius from camera centre
   var SPAWN_MAX = 1400;        // spawn ring outer radius
   var DESPAWN = 2000;          // beyond this from camera centre, recycle
@@ -218,6 +220,10 @@ import * as THREE from 'three';
 
   World.entities = S.entities;
   World.playerHits = playerHits;
+  // Engine3d uses this capability flag before deciding whether to publish its
+  // per-target chew cooldowns. The cooldown lives on the entity rather than
+  // the player so several prey can be chewing independently.
+  World.__decaysBiteCd = true;
 
   // ------------------------------------------------------------------ utils
   function rnd() { return S.rng ? S.rng() : 0.5; }
@@ -276,7 +282,7 @@ import * as THREE from 'three';
     if (t >= 90) t = 3;
     return 14 + t * 7;
   }
-  function displayLen(def, kind) { return radiusFor(def, kind) * 2.4; }
+  function displayLen(def, kind) { return radiusFor(def, kind) * 2.1; }
 
   function paletteBase(def) {
     if (def && def.sil && def.sil.palette && typeof def.sil.palette.base === 'number') return def.sil.palette.base;
@@ -1639,7 +1645,7 @@ import * as THREE from 'three';
   function makeEntity() {
     return {
       active: false, id: 0, kind: 'prey', defId: null, def: null,
-      tier: 1, x: 0, y: 0, vx: 0, vy: 0, angle: 0,
+      tier: 1, x: 0, y: 0, vx: 0, vy: 0, angle: 0, _biteCd: 0,
       hp: 1, maxHp: 1, r: 12, score: 0, coins: 0,
       st: {
         frozenT: 0, stunT: 0, burnT: 0, poisonT: 0, slowT: 0, cookedBy: null,
@@ -1780,6 +1786,7 @@ import * as THREE from 'three';
     var e = S.free.pop();
     if (!e) return null;
     e.active = true;
+    e._biteCd = 0;
     e.id = S.nextId++;
     e._idx = S.entities.length;
     S.entities.push(e);
@@ -1878,19 +1885,29 @@ import * as THREE from 'three';
     bucket.push(e);
   }
 
-  /* query(x, y, r, kindFilter)
-   * kindFilter: undefined/null (any), a kind string, or an array of kinds.
-   * RESULTS ARE VALID UNTIL THE NEXT query() CALL. The returned array is a
-   * single reused scratch buffer; copy anything you need to keep.
-   */
-  World.query = function (x, y, r, kindFilter) {
+  function pointHit(e, x, y, r, r2) {
+    var dx = e.x - x, dy = e.y - y;
+    return dx * dx + dy * dy <= r2;
+  }
+
+  function bodyHit(e, x, y, r) {
+    var dx = e.x - x, dy = e.y - y;
+    var reach = r + e.r;
+    return dx * dx + dy * dy <= reach * reach;
+  }
+
+  // One spatial-hash walk backs both center queries and eating overlap. The
+  // predicate is a stable function reference, so this remains allocation-free
+  // in the fixed step while their semantics stay visibly separate.
+  function queryHash(x, y, r, kindFilter, predicate, cellPad) {
     scratchQuery.length = 0;
     if (!S.inited) return scratchQuery;
     var r2 = r * r;
-    var x0 = clamp(Math.floor((x - r) / CELL), 0, S.cols - 1);
-    var x1 = clamp(Math.floor((x + r) / CELL), 0, S.cols - 1);
-    var y0 = clamp(Math.floor((y - r) / CELL), 0, S.rows - 1);
-    var y1 = clamp(Math.floor((y + r) / CELL), 0, S.rows - 1);
+    var scanR = r + (cellPad || 0);
+    var x0 = clamp(Math.floor((x - scanR) / CELL), 0, S.cols - 1);
+    var x1 = clamp(Math.floor((x + scanR) / CELL), 0, S.cols - 1);
+    var y0 = clamp(Math.floor((y - scanR) / CELL), 0, S.rows - 1);
+    var y1 = clamp(Math.floor((y + scanR) / CELL), 0, S.rows - 1);
     var isArr = Array.isArray(kindFilter);
     for (var cy = y0; cy <= y1; cy++) {
       for (var cx = x0; cx <= x1; cx++) {
@@ -1903,12 +1920,29 @@ import * as THREE from 'three';
             if (isArr) { if (kindFilter.indexOf(e.kind) < 0) continue; }
             else if (e.kind !== kindFilter) continue;
           }
-          var dx = e.x - x, dy = e.y - y;
-          if (dx * dx + dy * dy <= r2) scratchQuery.push(e);
+          if (predicate(e, x, y, r, r2)) scratchQuery.push(e);
         }
       }
     }
     return scratchQuery;
+  }
+
+  /* query(x, y, r, kindFilter)
+   * kindFilter: undefined/null (any), a kind string, or an array of kinds.
+   * RESULTS ARE VALID UNTIL THE NEXT query() CALL. The returned array is a
+   * single reused scratch buffer; copy anything you need to keep.
+   */
+  World.query = function (x, y, r, kindFilter) {
+    return queryHash(x, y, r, kindFilter, pointHit);
+  };
+
+  /* eatQuery(x, y, r)
+   * Circle-vs-circle overlap for the player mouth. Unlike query(), the radius
+   * of each entity participates in the hit test, so a body may overlap the
+   * mouth while its center remains outside the sensor radius.
+   */
+  World.eatQuery = function (x, y, r) {
+    return queryHash(x, y, r, null, bodyHit, MAX_ENTITY_R);
   };
 
   // ------------------------------------------------------------- spawning
@@ -1942,6 +1976,7 @@ import * as THREE from 'three';
     e.score = typeof def.score === 'number' ? def.score : Math.round(e.tier * 40);
     e.coins = typeof def.coins === 'number' ? def.coins : Math.max(1, Math.round(e.tier * 3));
     resetSt(e.st);
+    e._biteCd = 0;
     e.st.packId = packId || 0;
     e.st.drift = rr(0, TAU);
     var spd = stats ? stats.speed : (def.speed || 0);
@@ -2122,6 +2157,35 @@ import * as THREE from 'three';
     // Vertical bounds go through the shared ceiling: y >= SURFACE_Y always.
     containY(e);
     if (e.vx || e.vy) e.angle = Math.atan2(e.vy, e.vx);
+  }
+
+  // Mouth suction is a force, not a position correction. It runs immediately
+  // before integrate() so the normal containment and spatial-hash rebucketing
+  // remain the only authority that writes the resulting position.
+  function applyMouthSuction(e, mouth, dt) {
+    if (!mouth || e.kind !== 'prey') return;
+    if (typeof mouth.eligibleTierMax !== 'number' || e.tier > mouth.eligibleTierMax) return;
+    var reach = mouth.r;
+    var strength = mouth.strength;
+    if (!(reach > 0) || !(strength > 0)) return;
+    var dx = mouth.x - e.x, dy = mouth.y - e.y;
+    var d2 = dx * dx + dy * dy;
+    if (!(d2 > 0) || d2 > reach * reach) return;
+
+    var d = Math.sqrt(d2);
+    e.vx += (dx / d) * strength * dt;
+    e.vy += (dy / d) * strength * dt;
+
+    var def = e.def;
+    var base = def && (def.speed || (def.stats && def.stats.speed));
+    if (!(base > 0)) base = 120;
+    var cap = base * 1.6;
+    var speed2 = e.vx * e.vx + e.vy * e.vy;
+    if (speed2 > cap * cap) {
+      var scale = cap / Math.sqrt(speed2);
+      e.vx *= scale;
+      e.vy *= scale;
+    }
   }
 
   function preyAI(e, ctx, dt) {
@@ -3067,6 +3131,7 @@ import * as THREE from 'three';
     syncPlayerImmunity(ctx);
 
     var player = ctx && ctx.player;
+    var mouth = RF.ctx && RF.ctx.mouth;
     var camX, camY;
     if (player) { camX = player.x; camY = player.y; }
     else if (ctx && ctx.camera && ctx.camera.position) {
@@ -3104,6 +3169,11 @@ import * as THREE from 'three';
       var e = S.entities[i];
       if (!e.active) continue;
 
+      if (e._biteCd > 0) {
+        e._biteCd -= dt;
+        if (e._biteCd < 0) e._biteCd = 0;
+      }
+
       if (statusTick(e, ctx, dt)) continue;
 
       var despawnable = e.kind !== 'pickup';
@@ -3119,6 +3189,7 @@ import * as THREE from 'three';
         e.vx = 0; e.vy = 0;
       } else if (stunned) {
         e.vx *= 0.9; e.vy *= 0.9;
+        applyMouthSuction(e, mouth, dt);
         integrate(e, dt);
       } else {
         if (e.kind === 'prey') preyAI(e, ctx, dt);
@@ -3126,6 +3197,7 @@ import * as THREE from 'three';
         else if (e.kind === 'hazard') hazardAI(e, ctx, dt);
         else if (e.kind === 'pickup') pickupAI(e, ctx, dt);
         if (!e.active) continue;
+        applyMouthSuction(e, mouth, dt);
         integrate(e, dt);
       }
 
@@ -3167,6 +3239,7 @@ import * as THREE from 'three';
     // Saved outside the try so the finally-style restore at the bottom can
     // reach them even if an assertion throws.
     var prevTexCacheOuter = null;
+    var prevRFContext = RF.ctx;
     function chk(cond, msg) { if (!cond) { pass = false; notes.push('FAIL ' + msg); } else notes.push('ok ' + msg); }
 
     // Deterministic stub rng (mulberry32).
@@ -3199,9 +3272,14 @@ import * as THREE from 'three';
     };
 
     try {
+      // World reads the engine-owned RF.ctx mouth descriptor. Keep this test
+      // isolated from a live page context, if a caller runs it in-page.
+      RF.ctx = ctx;
+      ctx.mouth = null;
+
       // ------------------------------------------------------- API parity
       // The contract abilities.js and engine3d.js compile against.
-      var API = ['init', 'update', 'query', 'kill', 'spawnBurst', 'zoneAt'];
+      var API = ['init', 'update', 'query', 'eatQuery', 'kill', 'spawnBurst', 'zoneAt'];
       var missing = '';
       for (var ai = 0; ai < API.length; ai++) {
         if (typeof World[API[ai]] !== 'function') missing += ' ' + API[ai];
@@ -3400,15 +3478,18 @@ import * as THREE from 'three';
         'a second kenney creature reuses the cached texture (no reload)');
 
       // ------------------------------------------------------ display size
-      // The probe measured a mackerel billboard at scale.y 50.4 world units and
-      // asked for it to be pinned. Length is the sim's authority (tier radius
-      // x 2.4) and height follows the art's own aspect, so with the 96x48 fish
-      // stub a tier-1 mackerel is 50.4 long and half that tall.
+      // The probe measures a mackerel billboard at the displayLen contract and
+      // pins it to the sim's authority. Length is the tier radius x 2.1 and
+      // height follows the art's own aspect, so a tier-1 mackerel is 44.1 long
+      // and half that tall with the 96x48 fish stub.
       if (hasArt3D && kv && kv.obj && kv.obj.scale) {
         var mlen = kv.obj.scale.x, mhgt = Math.abs(kv.obj.scale.y);
         chk(mlen >= 34 && mlen <= 60,
           'mackerel billboard length is in the readable band (' + mlen.toFixed(1) +
           ' world units, expected 34-60)');
+        chk(Math.abs(mlen - radiusFor(kv.e.def, kv.e.kind) * 2.1) < 1e-6,
+          'displayLen uses the Rev 3 2.1x collision-radius scale (' +
+          mlen.toFixed(1) + ')');
         chk(mhgt > 4 && mhgt < mlen,
           'mackerel billboard height follows the art aspect and is shorter than it is long (' +
           mhgt.toFixed(1) + ')');
@@ -3454,7 +3535,73 @@ import * as THREE from 'three';
       chk(resKind.length === 0, 'kindFilter excludes non-matching kinds');
       var resAny = World.query(1000, 1000, 120, null);
       chk(resAny.length >= 2, 'null kindFilter matches any kind (abilities.js calls it this way)');
+
+      // eatQuery intentionally differs from query: the mackerel's center is
+      // 30px away from the sensor while its 21px body overlaps a 20px mouth.
+      var edge = spawnOne('mackerel', 1030, 1000, 0);
+      var pointEdge = World.query(1000, 1000, 20, 'prey');
+      var pointHasEdge = pointEdge.indexOf(edge) >= 0;
+      var bodyEdge = World.eatQuery(1000, 1000, 20);
+      chk(edge && edge.x - 1000 > 20 && !pointHasEdge && bodyEdge.indexOf(edge) >= 0,
+        'eatQuery includes an overlapping body whose center is outside r, while query stays point-based');
+      chk(World.__decaysBiteCd === true, 'world advertises per-entity _biteCd decay to the engine');
       World.kill(a, 'test'); World.kill(b, 'test'); World.kill(far, 'test');
+      if (edge && edge.active) World.kill(edge, 'test');
+
+      // _biteCd is a pooled, top-level scalar. It decays on an active entity
+      // even while frozen, and a recycled slot starts at zero.
+      var chew = spawnOne('mackerel', 2600, 1400, 0);
+      if (chew) {
+        chk(chew._biteCd === 0, 'pooled entity reset initializes _biteCd to zero');
+        chew.st.frozenT = 5;
+        chew._biteCd = 0.2;
+        World.update(ctx);
+        chk(Math.abs(chew._biteCd - (0.2 - ctx.time.dt)) < 1e-9,
+          'active entity _biteCd decays toward zero (' + chew._biteCd.toFixed(6) + ')');
+        chew.st.frozenT = 0;
+        World.kill(chew, 'test');
+      }
+
+      // Suction is a velocity force owned by the world step. It only affects
+      // eligible prey inside the mouth radius; hazards at the same mouth do
+      // not receive it, and the capped speed prevents a teleport across it.
+      var sucked = spawnOne('mackerel', 2200, 1400, 0);
+      var unsucked = spawnOne('mine', 2450, 1400, 0);
+      if (sucked && unsucked) {
+        var mouth = { x: 2450, y: 1400, r: 280, strength: 2400, eligibleTierMax: sucked.tier };
+        ctx.mouth = mouth;
+        sucked.vx = 0; sucked.vy = 0;
+        var startDist = Math.sqrt((sucked.x - mouth.x) * (sucked.x - mouth.x) +
+          (sucked.y - mouth.y) * (sucked.y - mouth.y));
+        var maxStep = 0;
+        var mineX0 = unsucked.x, mineY0 = unsucked.y;
+        for (var su = 0; su < 30; su++) {
+          var sx0 = sucked.x, sy0 = sucked.y;
+          World.update(ctx);
+          if (!sucked.active) break;
+          var stepDx = sucked.x - sx0, stepDy = sucked.y - sy0;
+          var stepLen = Math.sqrt(stepDx * stepDx + stepDy * stepDy);
+          if (stepLen > maxStep) maxStep = stepLen;
+        }
+        var endDist = Math.sqrt((sucked.x - mouth.x) * (sucked.x - mouth.x) +
+          (sucked.y - mouth.y) * (sucked.y - mouth.y));
+        var baseSuction = sucked.def.speed || (sucked.def.stats && sucked.def.stats.speed) || 120;
+        var maxAllowedStep = baseSuction * 1.6 * ctx.time.dt + 1e-6;
+        var mineDrift = Math.sqrt((unsucked.x - mineX0) * (unsucked.x - mineX0) +
+          (unsucked.y - mineY0) * (unsucked.y - mineY0));
+        chk(sucked.active && endDist < startDist,
+          'eligible prey moves closer to RF.ctx.mouth over 30 world steps (' +
+          startDist.toFixed(1) + ' -> ' + endDist.toFixed(1) + ')');
+        chk(maxStep <= maxAllowedStep,
+          'mouth suction caps prey movement without teleporting (' + maxStep.toFixed(3) +
+          ' <= ' + maxAllowedStep.toFixed(3) + 'px per step)');
+        chk(sucked.x < mouth.x && mineDrift < 6,
+          'suction never carries prey past the mouth and never pulls a hazard (' +
+          sucked.x.toFixed(1) + ' / mine drift ' + mineDrift.toFixed(2) + ')');
+        if (sucked.active) World.kill(sucked, 'test');
+        if (unsucked.active) World.kill(unsucked, 'test');
+        ctx.mouth = null;
+      }
 
       // Frozen entity must not move.
       var fz = spawnOne('mackerel', 2000, 1200, 0);
@@ -4493,6 +4640,7 @@ import * as THREE from 'three';
       texCache = prevTexCacheOuter;
       texLoader = null;
     }
+    RF.ctx = prevRFContext;
     return { pass: pass, notes: notes };
   };
 
