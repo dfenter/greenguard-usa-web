@@ -287,7 +287,10 @@ import * as THREE from 'three';
   var LIGHTS = { hemi: null, sun: null, scene: null, renderer: null };
 
   // Pre-allocated scratch. step() must never allocate.
-  var EAT_BUF = new Array(48);
+  var EAT_BUF = new Array(96);
+  var MOUTH = { x: 0, y: 0, r: 0, strength: 260, eligibleTierMax: 0 };
+  var CHEW_FX_OPT = { count: 6 };
+  var CHEW_SFX_OPT = { rate: 1 };
   var FX_OPT = { count: 0, speed: 0, angle: 0, up: false };
   var HUD_STATE = {
     name: '', hp: 0, hpFrac: 0, maxHp: 0, boost: 1, boosting: false,
@@ -816,7 +819,10 @@ import * as THREE from 'three';
       // schema, never a replacement for any field in it.
       three: THREE, renderer: renderer, camera: camera, scene3: scene3,
       // ATMO-01: the atmosphere owner (world3d) mutates these; the engine only reads.
-      lights: LIGHTS
+      lights: LIGHTS,
+      // EAT-REV3: World reads this descriptor during its own update to apply
+      // suction. The object is module scratch and remains stable for the run.
+      mouth: MOUTH
     };
     return ctx;
   }
@@ -846,7 +852,7 @@ import * as THREE from 'three';
       tier: num(def.tier, 1),
       x: WORLD_W * 0.5, y: 260, vx: 0, vy: 0, angle: 0,
       hp: stat.hp, maxHp: stat.hp,
-      st: { biteCd: 0, invulnT: 0, phaseT: 0, frozenT: 0, stunT: 0, burnT: 0, poisonT: 0,
+      st: { chewFxCd: 0, invulnT: 0, phaseT: 0, frozenT: 0, stunT: 0, burnT: 0, poisonT: 0,
             airborne: false, usedUndying: false, eatPopT: 0, jawSnapT: 0 },
       sprite: null,       // three Group once the rig is attached
       rig: null,
@@ -908,6 +914,7 @@ import * as THREE from 'three';
     stepPops(STEP);
     stepMotion(p);
     stepAnim(p);
+    publishMouth(p);
 
     if (RF.World && RF.World.update) {
       try { RF.World.update(ctx); } catch (e) { warnOnce('World.update', e); }
@@ -1069,7 +1076,7 @@ import * as THREE from 'three';
     if (a.bank > BANK_MAX) a.bank = BANK_MAX;
     else if (a.bank < -BANK_MAX) a.bank = -BANK_MAX;
 
-    var jawWant = p.st.biteCd > 0 ? JAW_OPEN * clamp(p.st.biteCd / 0.25, 0, 1) : 0;
+    var jawWant = p.st.chewFxCd > 0 ? JAW_OPEN * clamp(p.st.chewFxCd / 0.12, 0, 1) : 0;
     a.jaw += (jawWant - a.jaw) * damp(14, STEP);
 
     if (f < IDLE_SPEED_F) {
@@ -1085,7 +1092,7 @@ import * as THREE from 'three';
     var st = a.state;
     st.speedFrac = f;
     st.turn = num(ctl.turnIn, 0);
-    st.bitePhase = p.st.biteCd > 0 ? clamp(p.st.biteCd / 0.25, 0, 1) : 0;
+    st.bitePhase = p.st.chewFxCd > 0 ? clamp(p.st.chewFxCd / 0.12, 0, 1) : 0;
     st.jawSnapT = p.st.jawSnapT;
     st.boosting = !!ctl.boosting;
     st.tailPhase = a.tailPhase; st.tailAmp = a.tailAmp;
@@ -1121,25 +1128,59 @@ import * as THREE from 'three';
   }
 
   // ---------------------------------------------------------- eating
-  function stepEat(p) {
-    if (p.st.biteCd > 0) p.st.biteCd -= STEP;
-
-    // Mouth sensor circle at the nose. Reused scratch, no allocation.
-    var reach = p.r * 0.86;
-    var mx = p.x + Math.cos(p.angle) * reach;
-    var my = p.y + Math.sin(p.angle) * reach;
+  function publishMouth(p) {
+    var reach = p.r;
     var mr = p.mouthR;
-    var wide = p.pas.wideBite;
-    if (wide) mr *= 1.55;
+    if (p.pas.wideBite) mr *= 1.55;
+    MOUTH.x = p.x + Math.cos(p.angle) * reach;
+    MOUTH.y = p.y + Math.sin(p.angle) * reach;
+    MOUTH.r = mr * 1.6;
+    MOUTH.strength = 260;
+    MOUTH.eligibleTierMax = p.pas.junkEater ? 99 : p.tier + num(p.pas.biteUp, 0);
+    ctx.mouth = MOUTH;
+  }
+
+  function decayTargetBiteCooldowns() {
+    var world = RF.World;
+    if (!world || world.__decaysBiteCd === true) return;
+    var entities = world.entities;
+    if (!entities || !entities.length) return;
+    for (var i = 0; i < entities.length; i++) {
+      var e = entities[i];
+      if (!e || typeof e._biteCd !== 'number' || e._biteCd <= 0) continue;
+      e._biteCd -= STEP;
+      if (e._biteCd < 0) e._biteCd = 0;
+    }
+  }
+
+  function stepEat(p) {
+    if (p.st.chewFxCd > 0) {
+      p.st.chewFxCd -= STEP;
+      if (p.st.chewFxCd < 0) p.st.chewFxCd = 0;
+    }
+    decayTargetBiteCooldowns();
+
+    // Mouth sensor circle at the snout tip. Reused scratch, no allocation.
+    publishMouth(p);
+    var mx = MOUTH.x, my = MOUTH.y;
+    var mr = MOUTH.r / 1.6;
 
     var list = null;
-    if (RF.World && RF.World.query) {
+    if (RF.World && RF.World.eatQuery) {
+      try { list = RF.World.eatQuery(mx, my, mr); }
+      catch (e) {
+        warnOnce('World.eatQuery', e);
+        if (RF.World.query) {
+          try { list = RF.World.query(mx, my, mr); } catch (err) { warnOnce('World.query', err); list = null; }
+        }
+      }
+    } else if (RF.World && RF.World.query) {
       try { list = RF.World.query(mx, my, mr); } catch (e) { warnOnce('World.query', e); list = null; }
     }
     if (!list || !list.length) return;
 
-    // world.js returns a SHARED scratch buffer only valid until the next
-    // query(), and this loop calls World.kill and Abilities.chargeFromEat,
+    // World query methods return a SHARED scratch buffer only valid until the
+    // next query, and this loop calls World.kill and Abilities.chargeFromEat,
     // either of which may query. Copy into a pre-allocated, reused array.
     var n = list.length;
     if (n > EAT_BUF.length) n = EAT_BUF.length;
@@ -1150,12 +1191,6 @@ import * as THREE from 'three';
       var e = EAT_BUF[i];
       if (!e || !e.active || e === p || e.kind === 'player') continue;
       if (e.kind === 'pickup') { collectPickup(e); continue; }
-
-      if (wide) {
-        var ax = e.x - p.x, ay = e.y - p.y;
-        var da = Math.abs(angDelta(p.angle, Math.atan2(ay, ax)));
-        if (da > 1.05) continue;
-      }
 
       var tier = num(e.tier, 0);
       var isHazard = e.kind === 'hazard';
@@ -1172,13 +1207,20 @@ import * as THREE from 'three';
 
   function multiBite(e) {
     var p = ctx.player;
-    if (p.st.biteCd > 0) return;
-    p.st.biteCd = 0.25;                    // 250ms multi-bite cooldown
+    if (typeof e._biteCd === 'number' && e._biteCd > 0) return;
+    e._biteCd = 0.25;                      // target-owned 250 ms chew cooldown
     e.hp -= p.stat.bite * (liveMult(p, 'bite') / num(p.pas.mult.bite, 1));
-    hitStop(40);
-    shake(3, 90);
-    sfx('chomp', { rate: 0.94 + ctx.rng() * 0.12 });
-    fxEmit('chomp', e.x, e.y, { count: 6 });
+    // Damage is per target. Feedback is player-side and deliberately shared by
+    // the school so three simultaneous chews cannot machine-gun hit-stop/audio.
+    if (p.st.chewFxCd <= 0) {
+      p.st.chewFxCd = 0.12;
+      p.st.jawSnapT = 0.18;
+      hitStop(40);
+      shake(3, 90);
+      CHEW_SFX_OPT.rate = 0.94 + ctx.rng() * 0.12;
+      sfx('chomp', CHEW_SFX_OPT);
+      fxEmit('chomp', e.x, e.y, CHEW_FX_OPT);
+    }
     if (e.hp <= 0) swallow(e);
   }
 
@@ -1935,6 +1977,13 @@ import * as THREE from 'three';
       var killed = [];
       var stubHits = [];
       var hitQueue = [];
+      var eatQueryCalls = 0;
+      function queryPrey(x, y, rr, filter) {
+        if (filter === 'predator') return [];
+        if (!prey.active) return [];
+        var dx = prey.x - x, dy = prey.y - y;
+        return (dx * dx + dy * dy) <= (rr + prey.r) * (rr + prey.r) ? [prey] : [];
+      }
       RF.World = {
         playerHits: stubHits,
         init: function () {},
@@ -1942,12 +1991,8 @@ import * as THREE from 'three';
           stubHits.length = 0;
           if (hitQueue.length) stubHits.push(hitQueue.shift());
         },
-        query: function (x, y, rr, filter) {
-          if (filter === 'predator') return [];
-          if (!prey.active) return [];
-          var dx = prey.x - x, dy = prey.y - y;
-          return (dx * dx + dy * dy) <= (rr + prey.r) * (rr + prey.r) ? [prey] : [];
-        },
+        query: queryPrey,
+        eatQuery: function (x, y, rr) { eatQueryCalls++; return queryPrey(x, y, rr, null); },
         kill: function (e, cause) { e.active = false; killed.push(cause); },
         zoneAt: function (y) { return zoneAtFallback(y); },
         entities: [prey]
@@ -1972,6 +2017,7 @@ import * as THREE from 'three';
 
       check(Math.abs(p.x - x0) > 20, 'player moved on the stick (dx=' + (p.x - x0).toFixed(1) + ')');
       check(!prey.active && killed.indexOf('eaten') >= 0, 'prey was eaten');
+      check(eatQueryCalls > 0, 'stepEat prefers World.eatQuery when present');
       check(ctx.run.score > score0, 'score increased on swallow');
       check(ctx.run.combo >= 1, 'combo incremented');
       check(ctx.run.frenzy > 0, 'frenzy meter charged');
@@ -2052,6 +2098,38 @@ import * as THREE from 'three';
       // ---- stick mechanics on a fresh player
       var pc = buildPlayer(sharkById('reef'));
       prey.active = false;              // motion test, nothing to eat
+
+      // ---- EAT-REV3: the wide sensor is a radius bonus, not a facing cone.
+      var savedEatQuery = RF.World.eatQuery;
+      var savedQuery = RF.World.query;
+      var wideP = buildPlayer(sharkById('hammerhead'));
+      var wideTarget = { active: true, kind: 'prey', tier: wideP.tier, x: wideP.x - 100, y: wideP.y,
+        hp: 99, r: 8, st: {}, def: { tier: wideP.tier, score: 5, coins: 1 } };
+      var sensedRadius = 0;
+      RF.World.eatQuery = function (x, y, rr) { sensedRadius = rr; return [wideTarget]; };
+      ctx.player = wideP;
+      wideP.angle = 0; wideP.st.chewFxCd = 0;
+      stepEat(wideP);
+      check(wideP.pas.wideBite === true, 'wideBite passive is active for the cone regression');
+      check(wideTarget.hp < 99, 'wideBite eats a returned target without a facing cone');
+      check(Math.abs(sensedRadius - wideP.mouthR * 1.55) < 1e-9,
+        'wideBite keeps its 1.55x sensor radius bonus');
+      check(ctx.mouth === MOUTH && Math.abs(ctx.mouth.r - sensedRadius * 1.6) < 1e-9
+        && ctx.mouth.strength === 260 && ctx.mouth.x === wideP.x + wideP.r,
+        'ctx.mouth publishes the snout descriptor and suction radius');
+
+      // Standalone merges still work when a world lane only exposes query().
+      var fallbackTarget = { active: true, kind: 'prey', tier: wideP.tier, x: wideP.x, y: wideP.y,
+        hp: 99, r: 8, st: {}, def: { tier: wideP.tier, score: 5, coins: 1 } };
+      RF.World.eatQuery = undefined;
+      RF.World.query = function () { return [fallbackTarget]; };
+      wideP.st.chewFxCd = 0;
+      stepEat(wideP);
+      check(fallbackTarget.hp < 99, 'stepEat falls back to World.query without eatQuery');
+      RF.World.eatQuery = savedEatQuery;
+      RF.World.query = savedQuery;
+      ctx.player = pc;
+
       pc.x = 3000; pc.y = 600; pc.vx = 0; pc.vy = 0; pc.angle = 0;
       var ang45 = Math.PI / 4;
       pc.ctl.active = true;
@@ -2149,10 +2227,10 @@ import * as THREE from 'three';
       check(Math.abs(pc.anim.bank) <= BANK_MAX + 1e-9, 'bank is capped at ' + BANK_MAX + ' rad');
       pc.ctl.turnIn = 0;
 
-      pc.st.biteCd = 0.25;
+      pc.st.chewFxCd = 0.12;
       for (var t5 = 0; t5 < 20; t5++) stepAnim(pc);
       check(pc.anim.jaw > 0.05, 'jaw opens during the bite window');
-      pc.st.biteCd = 0;
+      pc.st.chewFxCd = 0;
       for (var t6 = 0; t6 < 60; t6++) stepAnim(pc);
       check(pc.anim.jaw < 0.02, 'jaw closes after the bite window');
 
@@ -2166,7 +2244,7 @@ import * as THREE from 'three';
       // The Art3D state bag is filled and handed over every step.
       var seen = null, calls = 0;
       pc.rig = { group: null, parts: {}, animate: function (t, st) { calls++; seen = st; } };
-      pc.ctl.turnIn = 0.5; pc.st.jawSnapT = 0.1; pc.st.biteCd = 0.2;
+      pc.ctl.turnIn = 0.5; pc.st.jawSnapT = 0.1; pc.st.chewFxCd = 0.1;
       stepAnim(pc);
       check(calls === 1 && !!seen, 'rig.animate driven once per step');
       check(seen && typeof seen.speedFrac === 'number' && typeof seen.turn === 'number'
@@ -2178,7 +2256,7 @@ import * as THREE from 'three';
       try { stepAnim(pc); } catch (e) { threwRig = e; }
       check(!threwRig, 'a throwing Art3D.animate is absorbed');
       pc.rig = null;
-      pc.st.biteCd = 0; pc.st.jawSnapT = 0;
+      pc.st.chewFxCd = 0; pc.st.jawSnapT = 0;
 
       // ---- Art3D absence: fallbackShark must produce a real group.
       var savedArt3D = RF.Art3D;
@@ -2233,10 +2311,11 @@ import * as THREE from 'three';
       RF.Fx = savedFx; RF.Sound = savedSound;
 
       // ---- eat feedback parity: burst + popup + jaw snap + scale pop + hit-stop
-      var savedJuice = RF.Juice;
-      var fxSeen = [], stops = [];
+      var savedJuice = RF.Juice, savedSound2 = RF.Sound;
+      var fxSeen = [], stops = [], sfxSeen2 = [];
       RF.Fx = { emit: function (n) { fxSeen.push(n); return 1; } };
-      RF.Juice = { hitStop: function (ms) { stops.push(ms); } };
+      RF.Juice = { hitStop: function (ms) { stops.push(ms); }, shake: function () {} };
+      RF.Sound = { play: function (n) { sfxSeen2.push(n); } };
       ctx.player = pc;
       pc.st.jawSnapT = 0; pc.st.eatPopT = 0;
       var meal = { active: true, kind: 'prey', defId: 'minnow', tier: 0, x: pc.x, y: pc.y,
@@ -2248,15 +2327,48 @@ import * as THREE from 'three';
       check(pc.st.eatPopT > 0, 'eat set the scale pop');
       check(stops.length >= 1 && (stops[0] === 40 || stops[0] === 60),
         'eat hit-stop is 40 or 60 ms (' + stops.join(',') + ')');
-      // multiBite is the 40 ms half of the pair.
+      // EAT-REV3: each target owns its 250 ms chew cooldown. A school can
+      // therefore damage multiple same-tier fish in one player cadence.
       stops.length = 0;
+      fxSeen.length = 0; sfxSeen2.length = 0;
       var chewy = { active: true, kind: 'prey', tier: pc.tier, x: pc.x, y: pc.y, hp: 999,
         st: {}, r: 8, def: { tier: pc.tier, score: 5, coins: 1 } };
-      pc.st.biteCd = 0;
+      var chewy2 = { active: true, kind: 'prey', tier: pc.tier, x: pc.x, y: pc.y, hp: 999,
+        st: {}, r: 8, def: { tier: pc.tier, score: 5, coins: 1 } };
+      var chewy3 = { active: true, kind: 'prey', tier: pc.tier, x: pc.x, y: pc.y, hp: 999,
+        st: {}, r: 8, def: { tier: pc.tier, score: 5, coins: 1 } };
+      pc.st.chewFxCd = 0;
       multiBite(chewy);
-      check(stops.length === 1 && stops[0] === 40, 'multiBite hit-stop is 40 ms');
-      check(Math.abs(pc.st.biteCd - 0.25) < 1e-9, 'multiBite opened the 250 ms cooldown');
-      RF.Fx = savedFx; RF.Juice = savedJuice;
+      multiBite(chewy2);
+      multiBite(chewy3);
+      check(chewy.hp < 999 && chewy2.hp < 999,
+        'two same-tier targets both take damage in one 250 ms window');
+      check(chewy._biteCd === 0.25 && chewy2._biteCd === 0.25,
+        'multiBite stores the 250 ms cooldown on each target');
+      var hpBlocked = chewy.hp;
+      multiBite(chewy);
+      check(chewy.hp === hpBlocked, 'the same target is blocked until its cooldown expires');
+      check(stops.length === 1 && stops[0] === 40 && sfxSeen2.length === 1
+        && fxSeen.filter(function (n) { return n === 'chomp'; }).length === 1
+        && pc.st.jawSnapT > 0,
+        'three-fish school fires chew hit-stop/audio/fx/jaw once per 120 ms cadence');
+
+      // The engine owns a fallback decay only until World advertises that it
+      // already decays the field. This prevents double decay after lane merge.
+      RF.World.entities = [chewy];
+      chewy._biteCd = STEP * 2;
+      RF.World.__decaysBiteCd = false;
+      stepEat(pc);
+      check(Math.abs(chewy._biteCd - STEP) < 1e-9,
+        'engine locally decays target cooldown when World does not advertise decay');
+      chewy._biteCd = 0.25;
+      RF.World.__decaysBiteCd = true;
+      stepEat(pc);
+      check(Math.abs(chewy._biteCd - 0.25) < 1e-9,
+        'engine skips local target cooldown decay when World owns it');
+      delete RF.World.__decaysBiteCd;
+      RF.World.entities = [prey];
+      RF.Fx = savedFx; RF.Juice = savedJuice; RF.Sound = savedSound2;
 
       // Popups must be safe with no pool (no canvas headless).
       var threwPop = null;

@@ -132,3 +132,31 @@ owner iPhone verdict LAST. 60fps mid-phone: draw calls < 120, tris < 60k.
   nothing (atmosphere report becomes writes into module scratch).
 - TEST-01: the art gate is a SCREENSHOT gate at the gameplay camera, judged
   against the reference roster, not geometry assertions alone.
+
+## Rev 3 (Razorfin eat-engine lane, 2026-08-20)
+
+- EAT-01: the player mouth sensor is centered at the snout tip, at
+  `p.x + cos(p.angle) * p.r` and `p.y + sin(p.angle) * p.r`. The sensor uses
+  `p.mouthR`, multiplied by `1.55` for `wideBite`; wideBite is a radius bonus
+  only and has no facing-cone gate.
+- EAT-02: `stepEat` calls `RF.World.eatQuery(x, y, r)` when that method is
+  present, with `RF.World.query(x, y, r)` as the standalone fallback. The
+  music sensor remains on `World.query`.
+- EAT-03: near-tier prey owns its chew cooldown in `ent._biteCd`, set to
+  `0.25` seconds after damage. The player no longer has a shared 250 ms chew
+  gate. `p.st.chewFxCd` is a separate 0.12 second feedback cadence: hit-stop,
+  shake, chomp sound, chomp FX, and the chew jaw snap fire at most once per
+  cadence while damage remains per target.
+- EAT-04: `RF.ctx.mouth` is a stable module-scratch descriptor with
+  `{x, y, r, strength, eligibleTierMax}`. `r` is the sensor radius times
+  `1.6`, `strength` is `260`, and the tier limit is the player's tier plus
+  `biteUp`, or `99` for a junkEater hazard rule. World owns all suction
+  position writes. If `RF.World.__decaysBiteCd !== true`, engine3d locally
+  decays existing `_biteCd` fields as a standalone fallback; it never
+  double-decays a world-owned field.
+- PERF-03: the eat copy buffer has capacity 96. Mouth and chew option records
+  are pre-allocated module scratch and fixed-step eat resolution must not
+  allocate.
+- CAMERA-03: the runtime perspective camera contract is the shipped
+  tier-scaled dolly, `CAM_Z_BASE=470` and clamped to `360..470`; the old
+  Rev 1 `z=620` wording is obsolete.
