@@ -196,8 +196,8 @@ SHARKS = [
 CREATURES = [
  # id, name, tier, kind, speed, hp, score, coins, spriteKey|proc, packMin, packMax
  ("minnow","Minnow Shoal",0,"prey",65,1,5,1,"fish_blue",6,14),
- ("reeffish","Reef Fish",1,"prey",70,1,10,2,"fish_orange",3,8),
- ("mackerel","Mackerel",1,"prey",95,1,12,2,"fish_grey_long_a",4,9),
+ ("reeffish","Reef Fish",1,"prey",70,1,10,2,"fish_orange",6,12),
+ ("mackerel","Mackerel",1,"prey",95,1,12,2,"fish_grey_long_a",6,12),
  ("parrot","Parrotfish",2,"prey",75,2,18,3,"fish_green",2,5),
  ("grouper","Grouper",3,"prey",65,4,30,5,"fish_brown",1,3),
  ("ray","Coasting Ray",3,"prey",80,3,34,5,"proc_ray",1,2),
@@ -302,6 +302,6 @@ lines.append("var CREATURE_BY_ID={};CREATURES.concat(HAZARDS).forEach(function(c
 lines.append("return {SHARKS:SHARKS,SHARK_BY_ID:SHARK_BY_ID,CREATURES:CREATURES,HAZARDS:HAZARDS,")
 lines.append("CREATURE_BY_ID:CREATURE_BY_ID,ZONES:ZONES,ABILITIES:ABILITIES,ECONOMY:ECONOMY,")
 lines.append("FRENZY:FRENZY,BAL:BAL,FRENZY2:FRENZY2,FX:FX,SFX:SFX,MUSIC:MUSIC,WORLD:{w:7200,h:3600},")
-lines.append("SAVE_VERSION:1,ENTITY_BUDGET:{onscreen:70,total:140}};")
+lines.append("SAVE_VERSION:1,ENTITY_BUDGET:{onscreen:110,total:220}};")
 lines.append("})();")
 print("\n".join(lines))

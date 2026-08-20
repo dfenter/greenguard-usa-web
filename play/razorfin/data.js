@@ -67,8 +67,8 @@ var SHARKS=[
 ];
 var CREATURES=[
 {"id":"minnow","name":"Minnow Shoal","tier":0,"kind":"prey","speed":65,"hp":1,"score":5,"coins":1,"sprite":"fish_blue","packMin":6,"packMax":14},
-{"id":"reeffish","name":"Reef Fish","tier":1,"kind":"prey","speed":70,"hp":1,"score":10,"coins":2,"sprite":"fish_orange","packMin":3,"packMax":8},
-{"id":"mackerel","name":"Mackerel","tier":1,"kind":"prey","speed":95,"hp":1,"score":12,"coins":2,"sprite":"fish_grey_long_a","packMin":4,"packMax":9},
+{"id":"reeffish","name":"Reef Fish","tier":1,"kind":"prey","speed":70,"hp":1,"score":10,"coins":2,"sprite":"fish_orange","packMin":6,"packMax":12},
+{"id":"mackerel","name":"Mackerel","tier":1,"kind":"prey","speed":95,"hp":1,"score":12,"coins":2,"sprite":"fish_grey_long_a","packMin":6,"packMax":12},
 {"id":"parrot","name":"Parrotfish","tier":2,"kind":"prey","speed":75,"hp":2,"score":18,"coins":3,"sprite":"fish_green","packMin":2,"packMax":5},
 {"id":"grouper","name":"Grouper","tier":3,"kind":"prey","speed":65,"hp":4,"score":30,"coins":5,"sprite":"fish_brown","packMin":1,"packMax":3},
 {"id":"ray","name":"Coasting Ray","tier":3,"kind":"prey","speed":80,"hp":3,"score":34,"coins":5,"sprite":"proc_ray","packMin":1,"packMax":2},
@@ -102,5 +102,5 @@ var CREATURE_BY_ID={};CREATURES.concat(HAZARDS).forEach(function(c){CREATURE_BY_
 return {SHARKS:SHARKS,SHARK_BY_ID:SHARK_BY_ID,CREATURES:CREATURES,HAZARDS:HAZARDS,
 CREATURE_BY_ID:CREATURE_BY_ID,ZONES:ZONES,ABILITIES:ABILITIES,ECONOMY:ECONOMY,
 FRENZY:FRENZY,BAL:BAL,FRENZY2:FRENZY2,FX:FX,SFX:SFX,MUSIC:MUSIC,WORLD:{w:7200,h:3600},
-SAVE_VERSION:1,ENTITY_BUDGET:{onscreen:70,total:140}};
+SAVE_VERSION:1,ENTITY_BUDGET:{onscreen:110,total:220}};
 })();
