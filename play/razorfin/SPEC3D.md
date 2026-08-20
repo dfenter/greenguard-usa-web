@@ -284,3 +284,29 @@ The live gameplay camera contract is perspective `fov 50` with the tiered
 dolly owned by `engine3d.js`: tier-1 base `z=470`, with the tiered deep-view
 value currently `z=360` where selected by the engine. The stale Rev 1 `z=620`
 value is not a shipped contract.
+
+## Rev 3 (fish loft lane, 2026-08-20)
+
+- Module load order now includes `fish3d.js` after `shark3d.js` and before
+  `world3d.js`: `fx3d.js -> shark3d.js -> fish3d.js -> world3d.js ->
+  engine3d.js`. Both shipped HTML entry points use that order.
+- `RF.Art3D.buildFish(def)` is a geometry-only prey contract. It returns
+  `{ geometry, palette }` for the 12 fusiform prey IDs in `RFD.CREATURES`:
+  `minnow`, `reeffish`, `mackerel`, `parrot`, `grouper`, `tuna`, `swordfish`,
+  `dolphinfish` (Dorado), `marlin`, `anglerprey`, `abyssal`, and
+  `leviathanprey` (Deep Leviathan Calf). Unsupported IDs return `null` so
+  the caller can retain the billboard fallback.
+- Each supported ID is cached independently and owns one merged
+  `THREE.BufferGeometry`: an 8-station x 6-radial elliptical body, capped
+  nose/tail, forked tail-fin fan, and dorsal sliver. The nose points toward
+  local `+x`, the geometry has a `color` attribute aligned with `position`,
+  and the hard budget is `<=220` indexed triangles. The palette carries
+  `base`, `belly`, and `accent` colors for dorsal/flank/belly countershading.
+  Fish geometry creation happens at build/init time; this module has no fixed-
+  step update path and does not allocate during simulation.
+- `RF.Art3D.buildFishMaterialSpec()` defines the bend-clone inputs without
+  depending on shark-bend code. The shared toon clone must enable vertex
+  colors and bind these uniforms with these defaults: `uBendPhase=0`,
+  `uBendAmp=0.08`, `uBendK=2.5`, `uBendSpan=1.8`. A bend variant uses the
+  program-key suffix `:rf-bend`. Instancing, per-instance attributes,
+  material compilation, and lifecycle ownership remain `world3d.js`'s job.
