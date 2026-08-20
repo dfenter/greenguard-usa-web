@@ -821,7 +821,8 @@ import * as THREE from 'three';
       if (previousCompile) previousCompile.call(this, shader, renderer);
       shader.uniforms.uBendK = { value: INST_BEND_K };
       shader.uniforms.uBendSpan = { value: material.userData.rfBendSpan };
-      var attrs = 'attribute float aBendPhase;\nattribute float aBendAmp;\n';
+      var attrs = 'uniform float uBendK;\nuniform vec2 uBendSpan;\n' +
+        'attribute float aBendPhase;\nattribute float aBendAmp;\n';
       if (shader.vertexShader.indexOf('attribute float aBendPhase') < 0) {
         shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\n' + attrs);
       }
@@ -4677,6 +4678,8 @@ import * as THREE from 'three';
             probeBatch.material.side === THREE.DoubleSide &&
             bendKey.slice(-13) === ':rf-bend-inst' &&
             probeShader.uniforms.uBendK && probeShader.uniforms.uBendSpan &&
+            probeShader.vertexShader.indexOf('uniform float uBendK') >= 0 &&
+            probeShader.vertexShader.indexOf('uniform vec2 uBendSpan') >= 0 &&
             probeShader.vertexShader.indexOf('aBendPhase') >= 0 &&
             probeShader.vertexShader.indexOf(INST_BEND_CHUNK) >= 0,
           'instanced toon material preserves the Rev 3 bend uniforms, attributes, and cache key');
