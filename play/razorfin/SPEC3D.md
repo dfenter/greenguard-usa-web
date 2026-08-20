@@ -385,3 +385,41 @@ environment builders and their selftest.
 - `ui3d.js` owns the cue surface classes `rf-chip-blood`, `rf-chip-school`,
   `rf-chip-golden` and matching toast variants. They reuse `.rf-chip` and
   `.rf-toast`, add color only, and do not change layout or touch targets.
+
+## Rev 3 (reef-surface lane, 2026-08-20)
+
+- ENV-DEPTH-01: environment vertex colours are authored through
+  `depthTint(color, z, zoneWaterColor)` and `lightAtDepth(y)`. Depth tint pulls
+  15 percent toward the zone water colour at z=-100 and 80 percent at z=-420.
+  Vertical light is 1.0 at sim y=0, falls linearly, and floors at 0.35 at
+  y=3600. `quadPush` may provide a top colour; merged quads write that colour
+  to their two upper vertices so rooted rocks, kelp, and reef forms have a
+  lit top edge.
+
+- RAY-03: god rays are four merged additive bands. Three remain in the rear
+  ray depth range; exactly one band is at z=+25 so its shafts cross the shark,
+  and that band is the low-alpha band. Vertex alpha remains below the 0.10
+  authored ceiling after per-shaft variation. Ray transforms and alpha are
+  scalar writes from the fixed-step animation pass.
+
+- REEF-03: zones 1 and 2 build a shallow-floor reef from saturated,
+  vertex-coloured, normal-blend quad batches. Coral heads and brain corals are
+  in one static batch. Fans and anemones are in two additional batches under
+  two rooted pivot groups that use the kelp sway pattern. The complete reef is
+  three environment draws and is torn down with the world-owned decor ledger.
+
+- SURFACE-03: the waterline is a 64-segment ribbon. Its position attribute and
+  backing array are allocated at init; each fixed step writes the preallocated
+  vertices using `y = 2 - 2*sin(x*0.012 + t*0.8)` in sim coordinates and marks
+  the attribute for upload. The wash plane maps a tileable 256px ripple texture
+  held in the persistent `texCache` with RepeatWrapping and scrolls its offset
+  without allocating. One additive 1400px Snell-window disc uses a baked radial
+  map, sits at z=-70, follows camera x, and fades from bright shallow water to
+  zero by zone 3 using the module atmosphere report.
+
+- PERF-ENV-03: this lane adds three reef batch draws and one Snell draw; the
+  ribbon replaces the prior surface plane. The shared environment selftest
+  remains <=60 meshes, leaving the env-terrain lane's planned five-draw
+  contribution inside the shared gate. All fixed-step surface, reef, ray, and
+  atmosphere hooks use module scratch, pooled records, or preallocated GPU
+  attributes only.

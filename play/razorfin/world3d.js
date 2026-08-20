@@ -55,10 +55,10 @@ import * as THREE from 'three';
   var CAUSTIC_DRIFT = 190;     // px of horizontal sine travel
   var CAUSTIC_RATE = [0.055, 0.085];
   // Caustics are additive and they live in the top CAUSTIC_H px, so like the
-  // surface wash they are charged against zone-1 saturation. Trimmed from
-  // [0.05, 0.12] as part of the same anti-wash pass: they should dapple the
-  // shelf, not flood it.
-  var CAUSTIC_ALPHA = [0.028, 0.065];
+  // surface wash they are charged against zone-1 saturation. Their base range
+  // is tuned so the independent breath peaks near 0.09: they dapple the shelf
+  // without flooding it.
+  var CAUSTIC_ALPHA = [0.035, 0.058];  // animated ceiling stays near 0.09
   var RAY_ROT_AMP = 0.03;      // +-0.03 rad sway per SPEC
   var RAY_ROT_RATE = [0.06, 0.13];
   var RAY_ALPHA_LO = 0.5;      // alpha multiplier floor of the 0.5-1.0 cycle
@@ -140,8 +140,8 @@ import * as THREE from 'three';
     packSeq: 1,
     packs: null,               // Map: packId -> pooled record {dx, dy, t, owner}
     decor: [],                 // static decoration objects (never per-frame)
-    surface: null,             // {mesh, foam} surface plane at y = 0
-    gradient: null,             // opaque world-anchored gradient sheet
+    surface: null,             // {mesh, wash, ribbon, foam, snell} at y = 0
+    gradient: null,            // opaque world-anchored gradient sheet
     terrain: [],               // far, mid, near, and foreground ridge batches
     surfaceT: 0,
     ambientT: 0,
@@ -153,6 +153,8 @@ import * as THREE from 'three';
     rays: [],
     seams: [],
     swayers: [],
+    reefSwayers: [],            // fixed coral fan/anemone pivot groups
+    reefBatches: [],            // static + swaying merged reef meshes
     drifters: [],
     animT: 0,                  // internal clock fallback (see worldClock)
     lastNow: -1,
@@ -179,6 +181,11 @@ import * as THREE from 'three';
   // Reused animate() state object for RF.Art3D rigs. One object, rewritten per
   // rig per frame, so a 20-shark screen still allocates nothing.
   var rigState = { speedFrac: 0, turn: 0, bitePhase: 0, jawSnapT: 0 };
+
+  // Tropical reef palette. These are authored normal-blend colours, not
+  // additive FX colours, so the reef remains saturated without washing out
+  // the foreground creatures.
+  var REEF_PALETTE = [0xf05b74, 0xff8d4f, 0x8f6cf2, 0x24c9b0, 0xffc857];
 
   // RF-PERF-01: hit records are POOLED. playerHits holds live records only for
   // the frame they were pushed; the backing store is allocated once and reused
@@ -505,6 +512,77 @@ import * as THREE from 'three';
     return tex || null;
   }
 
+  // Build the two tiny procedural surface maps once and retain them in the
+  // documented asset cache. A real page gets CanvasTextures; the headless
+  // selftest gets equivalent DataTextures, which keeps the exact same map,
+  // wrapping and offset contract without requiring a DOM or GL context.
+  function surfaceTexture(key, radial) {
+    if (texCache[key] !== undefined) return texCache[key];
+    var size = 256;
+    var pixels = new Uint8Array(size * size * 4);
+    var x, y, i, u, v, d, n, a;
+    for (y = 0; y < size; y++) {
+      v = y / size;
+      for (x = 0; x < size; x++) {
+        u = x / size;
+        i = (y * size + x) * 4;
+        if (radial) {
+          var dx = u * 2 - 1;
+          var dy = v * 2 - 1;
+          d = Math.sqrt(dx * dx + dy * dy);
+          a = d < 1 ? Math.round((1 - d) * (1 - d) * 255) : 0;
+          pixels[i] = 255; pixels[i + 1] = 255; pixels[i + 2] = 255; pixels[i + 3] = a;
+        } else {
+          // Periodic value-noise-like ripples. The sine basis is tileable at
+          // both edges and has enough bands for the wash to read as moving
+          // surface texture rather than a flat colour.
+          n = 0.5 + 0.22 * Math.sin(u * TAU * 5) + 0.16 * Math.sin(v * TAU * 7);
+          n += 0.12 * Math.sin((u + v) * TAU * 11);
+          n = clamp(n, 0, 1);
+          n = Math.round(n * 255);
+          pixels[i] = n; pixels[i + 1] = n; pixels[i + 2] = n; pixels[i + 3] = 255;
+        }
+      }
+    }
+
+    var canvas = null, cctx = null;
+    try {
+      if (root.OffscreenCanvas) canvas = new root.OffscreenCanvas(size, size);
+      else if (root.document && typeof root.document.createElement === 'function') {
+        canvas = root.document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+      }
+      if (canvas && typeof canvas.getContext === 'function') {
+        cctx = canvas.getContext('2d');
+        if (cctx && typeof cctx.createImageData === 'function') {
+          var image = cctx.createImageData(size, size);
+          image.data.set(pixels);
+          cctx.putImageData(image, 0, 0);
+        }
+      }
+    } catch (e) { canvas = null; cctx = null; }
+
+    var tex = null;
+    try {
+      if (canvas && THREE.CanvasTexture) tex = new THREE.CanvasTexture(canvas);
+      else if (THREE.DataTexture) tex = new THREE.DataTexture(pixels, size, size, THREE.RGBAFormat);
+      if (tex) {
+        tex.needsUpdate = true;
+        if (radial) {
+          tex.wrapS = THREE.ClampToEdgeWrapping;
+          tex.wrapT = THREE.ClampToEdgeWrapping;
+        } else {
+          tex.wrapS = THREE.RepeatWrapping;
+          tex.wrapT = THREE.RepeatWrapping;
+          if (tex.repeat && typeof tex.repeat.set === 'function') tex.repeat.set(3, 1.5);
+        }
+        if ('toneMapped' in tex) tex.toneMapped = false;
+      }
+    } catch (e2) { tex = null; }
+    texCache[key] = tex || null;
+    return tex || null;
+  }
+
   // Stub scene handed to RF.Art.bakeCreature purely to CAPTURE the canvas it
   // bakes. bakeCreature's only scene contract is textures.exists(key) and
   // textures.addCanvas(key, canvas); exists() always answers false so the bake
@@ -685,7 +763,7 @@ import * as THREE from 'three';
   // What survives as geometry, and why:
   //   god rays      additive planes, they are LIGHT and must overlay
   //   caustics      additive planes near the surface, same reason
-  //   surface       an actual plane at y = 0 plus a foam strip
+  //   surface       a 64-segment ribbon at y = 0 plus a foam strip and Snell disc
   //   kelp / rocks  billboards at parallax z, they are OBJECTS with silhouette
   //   silhouettes   very transparent dark planes, the far-water landmarks
   //   gradient     one opaque RGBA sheet spanning the world plus overshoot
@@ -765,10 +843,10 @@ import * as THREE from 'three';
     return m;
   }
 
-  function planeMesh(w, h, color, opacity, additive) {
+  function planeMesh(w, h, color, opacity, additive, map) {
     var g = quadGeo();
     if (!g) return null;
-    var m = envMaterial(color, opacity, additive, null, false);
+    var m = envMaterial(color, opacity, additive, map || null, false);
     if (!m) return null;
     var mesh = new THREE.Mesh(g, m);
     mesh.scale.x = w;
@@ -777,10 +855,10 @@ import * as THREE from 'three';
   }
 
   // A plane whose OPACITY is written per frame cannot share a material with
-  // anything else, because opacity lives on the material. The caustics
-  // therefore ask for private materials; static environment batches use the
-  // cache above.
-  function planeMeshPrivate(w, h, color, opacity, additive) {
+  // anything else, because opacity lives on the material. The caustics (and
+  // the mapped wash plane) therefore ask for private materials; static
+  // environment batches use the cache above.
+  function planeMeshPrivate(w, h, color, opacity, additive, map) {
     var g = quadGeo();
     if (!g) return null;
     ownership();
@@ -788,6 +866,7 @@ import * as THREE from 'three';
       color: color, transparent: true, opacity: opacity,
       side: THREE.DoubleSide, depthWrite: false,
     });
+    if (map) { m.map = map; if ('toneMapped' in m) m.toneMapped = false; }
     if (additive && THREE.AdditiveBlending !== undefined) m.blending = THREE.AdditiveBlending;
     envOwned.mats.push(m);
     var mesh = new THREE.Mesh(g, m);
@@ -804,20 +883,26 @@ import * as THREE from 'three';
   // returns ONE geometry.
   //
   // Per quad: cx, cy (three-space, y already negated by the caller), z, w, h,
-  // rotation, mirror (+-1), colour, alpha. Colour and alpha ride the vertex
-  // colour attribute (RGBA), which is why a batch can hold 90 rocks at 90
-  // different opacities and still be one material.
+  // rotation, mirror (+-1), colour, alpha, optional top colour. Colour and
+  // alpha ride the vertex colour attribute (RGBA), which is why a batch can
+  // hold 90 rocks at 90 different opacities and still be one material.
   var quadScratch = [];
   var quadN = 0;
   function quadReset() { quadN = 0; }
-  function quadPush(cx, cy, z, w, h, rot, mirror, color, alpha) {
+  function quadPush(cx, cy, z, w, h, rot, mirror, color, alpha, topColor) {
     var q = quadScratch[quadN];
-    if (!q) { q = quadScratch[quadN] = { cx: 0, cy: 0, z: 0, w: 0, h: 0, rot: 0, mirror: 1, color: 0, alpha: 1 }; }
+    if (!q) {
+      q = quadScratch[quadN] = {
+        cx: 0, cy: 0, z: 0, w: 0, h: 0, rot: 0, mirror: 1,
+        color: 0, topColor: 0, alpha: 1,
+      };
+    }
     quadN++;
     q.cx = cx; q.cy = cy; q.z = z; q.w = w; q.h = h;
     q.rot = rot || 0; q.mirror = mirror < 0 ? -1 : 1;
     q.color = color; q.alpha = alpha;
-    q.topColor = color; q.bottomColor = color;
+    q.topColor = topColor === undefined ? color : topColor;
+    q.bottomColor = color;
     q.topAlpha = alpha; q.bottomAlpha = alpha;
     return q;
   }
@@ -831,6 +916,38 @@ import * as THREE from 'three';
     q.bottomAlpha = bottomAlpha;
     return q;
   }
+
+  // Depth tint is baked into the environment vertex colours. At z=-100 the
+  // object is only 15 percent pulled toward its zone water colour; at z=-420
+  // it is 80 percent pulled. This keeps near decor readable while letting the
+  // far silhouettes disappear into the authored water rather than into a
+  // full-screen alpha wash.
+  function depthTint(color, z, zoneWaterColor) {
+    var t = clamp(0.15 + ((-z) - 100) * (0.65 / 320), 0.15, 0.80);
+    return lerpColor(color, zoneWaterColor, t);
+  }
+
+  // Sim y is down. Light falls from 1.0 at the surface to a hard 0.35 floor at
+  // the seafloor, so vertex colours carry a vertical cue even though the
+  // environment uses unlit materials.
+  function lightAtDepth(y) {
+    return clamp(1 - (y / 3600) * 0.65, 0.35, 1);
+  }
+
+  function scaleColor(color, amount) {
+    var r = clamp(Math.round(((color >> 16) & 255) * amount), 0, 255);
+    var g = clamp(Math.round(((color >> 8) & 255) * amount), 0, 255);
+    var b = clamp(Math.round((color & 255) * amount), 0, 255);
+    return (r << 16) | (g << 8) | b;
+  }
+
+  function envColor(color, z, waterColor, y, lift) {
+    var l = clamp(lightAtDepth(y) + (lift || 0), 0.35, 1);
+    return scaleColor(depthTint(color, z, waterColor), l);
+  }
+
+  World.__depthTint = depthTint;
+  World.__lightAtDepth = lightAtDepth;
 
   // Unit quad corners, counter-clockwise from bottom-left, and the two
   // triangles that make it. Matches THREE.PlaneGeometry's UV convention so a
@@ -1289,11 +1406,12 @@ import * as THREE from 'three';
       // they cross. High alpha times overlap is what produced pale slabs
       // across the shelf instead of shafts through water.
       //
-      // 0.030 to 0.075 is roughly half the old per-shaft ceiling, which is the
-      // right correction for a batch whose members can stack. A shaft now
-      // brightens the water it crosses instead of painting over it, and the
-      // saturated clear colour behind it survives.
-      var bandA = rr(0.030, 0.075);
+      // Three bands stay behind the play plane. One deliberately crosses the
+      // shark at z=+25, but it is the LOW-alpha band so the foreground reads
+      // through the shaft instead of becoming a white slab.
+      var crossPlay = b === 0;
+      var bandA = crossPlay ? rr(0.020, 0.030) : rr(0.040, 0.075);
+      var bandZ = crossPlay ? 25 : rr(Z_RAY - 40, Z_RAY + 40);
       for (var i = 0; i < RAYS_PER_BAND; i++) {
         var hgt = rr(300, SURFACE_LIGHT_H);
         // Narrower than the pre-batch 40-120: a merged band already reads as
@@ -1314,7 +1432,7 @@ import * as THREE from 'three';
         var ox = -(-hgt * 0.5) * sn;
         var oy = (-hgt * 0.5) * cs;
         // Per-shaft alpha varies inside the band; the vertex alpha carries it.
-        quadPush(cx + ox, oy, rr(Z_RAY - 40, Z_RAY + 40), wid, hgt, lean, 1,
+        quadPush(cx + ox, oy, bandZ, wid, hgt, lean, 1,
           0xdff6ff, bandA * rr(0.7, 1.3));
       }
       var mesh = batchMesh(null, true, undefined, true);
@@ -1329,7 +1447,7 @@ import * as THREE from 'three';
       // Rotation and alpha run on two different rates with two different
       // phases, so the bands never pulse together.
       S.rays.push({
-        img: mesh, pivot: pivot, rot0: rot0,
+        img: mesh, pivot: pivot, rot0: rot0, z: bandZ,
         rotAmp: RAY_ROT_AMP * rr(0.6, 1.25),
         rotRate: rr(RAY_ROT_RATE[0], RAY_ROT_RATE[1]),
         rotPhase: rr(0, TAU),
@@ -1632,14 +1750,53 @@ import * as THREE from 'three';
   }
 
   // -------------------------------------------------------------- surface
-  // The waterline. Three parts, all at y = 0:
-  //   wash   a wide bright plane just under the surface, so "up" reads bright
-  //          from far below and the player always knows which way out is
-  //   plane  the surface itself, a long thin bright plane ON y = 0
-  //   foam   a soft strip riding the surface, scrolled by a sine so the
-  //          waterline is never a dead straight edge
-  // The foam strip is what sells the boundary in 3D: the plane alone reads as
-  // a drawn line, the moving strip reads as water meeting air.
+  // The waterline. The wash and foam remain planes, but the old dead-straight
+  // surface plane is replaced by a preallocated 64-segment ribbon. A small
+  // radial Snell window sits just behind it and fades by atmosphere depth.
+  var SURFACE_SEGMENTS = 64;
+  var SURFACE_RIBBON_H = 54;
+  var SURFACE_WAVE_RATE = 0.8;
+  var SURFACE_WAVE_K = 0.012;
+  var SNELL_W = 1400;
+
+  function surfaceWave(x, t) {
+    return 2 - Math.sin(x * SURFACE_WAVE_K + t * SURFACE_WAVE_RATE) * 2;
+  }
+
+  function buildSurfaceRibbon() {
+    var n = SURFACE_SEGMENTS + 1;
+    var pos = new Float32Array(n * 2 * 3);
+    var uv = new Float32Array(n * 2 * 2);
+    var idx = new Uint32Array(SURFACE_SEGMENTS * 6);
+    var i;
+    for (i = 0; i < n; i++) {
+      var x = S.w * i / SURFACE_SEGMENTS;
+      var y = surfaceWave(x, 0);
+      var top = i * 2;
+      var bot = top + 1;
+      pos[top * 3] = x; pos[top * 3 + 1] = -y; pos[top * 3 + 2] = Z_SURFACE;
+      pos[bot * 3] = x; pos[bot * 3 + 1] = -(y + SURFACE_RIBBON_H); pos[bot * 3 + 2] = Z_SURFACE;
+      uv[top * 2] = i / SURFACE_SEGMENTS; uv[top * 2 + 1] = 1;
+      uv[bot * 2] = i / SURFACE_SEGMENTS; uv[bot * 2 + 1] = 0;
+      if (i < SURFACE_SEGMENTS) {
+        var q = i * 6, v = i * 2;
+        idx[q] = v; idx[q + 1] = v + 1; idx[q + 2] = v + 2;
+        idx[q + 3] = v + 2; idx[q + 4] = v + 1; idx[q + 5] = v + 3;
+      }
+    }
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    if (typeof geo.setIndex === 'function') geo.setIndex(new THREE.BufferAttribute(idx, 1));
+    envOwned.geos.push(geo);
+    return { geo: geo, attr: geo.attributes.position };
+  }
+
+  function snellAlpha() {
+    if (atmoReport.zone >= 3) return 0;
+    return clamp(0.22 * (1 - atmoReport.depth / 0.55), 0, 0.22);
+  }
+
   function buildSurface() {
     if (!isThree()) return;
     // The wash is a full-width ADDITIVE plane blanketing the top
@@ -1648,15 +1805,18 @@ import * as THREE from 'three';
     // player is on the shelf. At 0.16 it was the single largest contributor to
     // the pastel read. 0.075 still says "up is bright" from far below, which
     // is the only job it has, without bleaching the water it sits in.
-    var wash = planeMesh(S.w, SURFACE_LIGHT_H, 0xbfe9f5, 0.075, true);
+    var ripple = surfaceTexture('__rf_surface_ripple', false);
+    var snellMap = surfaceTexture('__rf_snell_window', true);
+    var wash = planeMesh(S.w, SURFACE_LIGHT_H, 0xbfe9f5, 0.075, true, ripple);
     if (wash) {
       setPos(wash, S.w * 0.5, SURFACE_LIGHT_H * 0.5, Z_SURFACE - 20);
       sceneAdd(wash);
       S.decor.push(wash);
     }
-    var plane = planeMesh(S.w, 54, 0xe6fbff, 0.72, false);
-    if (!plane) return;
-    setPos(plane, S.w * 0.5, 27, Z_SURFACE);
+    var ribbon = buildSurfaceRibbon();
+    if (!ribbon || !ribbon.geo) return;
+    var ribbonMat = envMaterial(0xe6fbff, 0.72, false, null, false);
+    var plane = new THREE.Mesh(ribbon.geo, ribbonMat);
     sceneAdd(plane);
     S.decor.push(plane);
     // Foam is pure white and additive. It is a thin 26px strip so it costs
@@ -1667,7 +1827,17 @@ import * as THREE from 'three';
       sceneAdd(foam);
       S.decor.push(foam);
     }
-    S.surface = { mesh: plane, foam: foam, x0: S.w * 0.5 };
+    var snell = planeMeshPrivate(SNELL_W, SNELL_W, 0xffffff, 0.22, true, snellMap);
+    if (snell) {
+      setPos(snell, S.w * 0.5, 0, -70);
+      sceneAdd(snell);
+      S.decor.push(snell);
+    }
+    S.surface = {
+      mesh: plane, ribbon: plane, ribbonAttr: ribbon.attr,
+      segments: SURFACE_SEGMENTS, wash: wash, foam: foam, snell: snell,
+      ripple: ripple, x0: S.w * 0.5,
+    };
   }
 
   // ------------------------------------------------------------ kelp/rock
@@ -1721,6 +1891,8 @@ import * as THREE from 'three';
     var i;
     // ------------------------------------------------- seafloor rocks (1 batch)
     var rockTex = kenneyTexture('rock_a');
+    var floorZone = Z[Z.length - 1];
+    var floorWater = floorZone ? hexNum(floorZone.tint) : 0x050d17;
     quadReset();
     for (i = 0; i < 90; i++) {
       var rs = rr(0.5, 1.5);
@@ -1729,8 +1901,11 @@ import * as THREE from 'three';
       var ry = S.h - rr(0, 26);
       var mir = rnd() < 0.5 ? -1 : 1;
       // Rooted on the floor: the quad centre is half a height above the root.
-      quadPush(rx, -(ry) + rh * 0.5, rr(Z_KELP[0], Z_KELP[1]), rw, rh, 0, mir,
-        rockTex ? 0xffffff : 0x0a1a24, rr(0.45, 0.85));
+      var rz = rr(Z_KELP[0], Z_KELP[1]);
+      var rockBase = envColor(rockTex ? 0xd3e9e0 : 0x0a1a24, rz, floorWater, ry, 0);
+      var rockTop = envColor(0xffffff, rz, floorWater, ry - rh, 0.18);
+      quadPush(rx, -(ry) + rh * 0.5, rz, rw, rh, 0, mir,
+        rockBase, rr(0.45, 0.85), rockTop);
     }
     var rocks = batchMesh(rockTex, false, undefined);
     if (rocks) { sceneAdd(rocks); S.decor.push(rocks); }
@@ -1775,8 +1950,10 @@ import * as THREE from 'three';
         var kh = 200 * rec.scale, kw = 70 * rec.scale;
         // Positions are RELATIVE to the band pivot, so the pivot's rotation
         // swings the bed about its root.
+        var kelpBase = envColor(kelpTex ? 0x4c9c87 : 0x0b2a2a, rec.z, rec.water, rec.y, 0);
+        var kelpTop = envColor(0xa7e6b8, rec.z, rec.water, rec.y - kh, 0.18);
         quadPush(rec.x - px, -(rec.y) + py + kh * 0.5, rec.z, kw, kh, 0, rec.mirror,
-          kelpTex ? 0xffffff : 0x0b2a2a, rec.alpha);
+          kelpBase, rec.alpha, kelpTop);
       }
       var mesh = batchMesh(kelpTex, false, undefined);
       if (!mesh) continue;
@@ -1803,18 +1980,150 @@ import * as THREE from 'three';
   var kelpN = 0;
   function pushKelp(x, y, scale, alpha) {
     var r = kelpScratch[kelpN];
-    if (!r) { r = kelpScratch[kelpN] = { x: 0, y: 0, z: 0, scale: 1, alpha: 1, mirror: 1 }; }
+    if (!r) {
+      r = kelpScratch[kelpN] = {
+        x: 0, y: 0, z: 0, scale: 1, alpha: 1, mirror: 1, water: 0x14384d,
+      };
+    }
     kelpN++;
     r.x = x; r.y = y; r.scale = scale; r.alpha = alpha;
     r.z = rr(Z_KELP[0], Z_KELP[1]);
+    var z = World.zoneAt(y);
+    r.water = z ? hexNum(z.tint) : 0x14384d;
     r.mirror = rnd() < 0.5 ? -1 : 1;
+  }
+
+  // --------------------------------------------------------------- reef art
+  // Reef pieces are deliberately quad-built rather than sprite-built. The
+  // stacked and rotated silhouettes read as toon coral at gameplay scale,
+  // carry saturated vertex colours, and collapse into three normal-blend
+  // draws: one static head/brain batch and two swaying fan/anemone beds.
+  var reefScratch = [];
+  var reefN = 0;
+  function pushReef(x, y, z, scale, kind, color, water, group) {
+    var r = reefScratch[reefN];
+    if (!r) {
+      r = reefScratch[reefN] = {
+        x: 0, y: 0, z: 0, scale: 1, kind: 0, color: 0,
+        water: 0, group: 0, alpha: 0.9,
+      };
+    }
+    reefN++;
+    r.x = x; r.y = y; r.z = z; r.scale = scale; r.kind = kind;
+    r.color = color; r.water = water; r.group = group; r.alpha = rr(0.78, 0.96);
+  }
+
+  function buildReef() {
+    if (!isThree()) return;
+    var Z = zones();
+    var shallow = Z.length < 2 ? Z.length : 2;
+    var i, j, k;
+
+    // Static coral heads and brain corals, rooted in the floor band of zones 1
+    // and 2. Every quad gets a lit top colour so the tops do not flatten into
+    // the same dark value as the sandward base.
+    quadReset();
+    for (i = 0; i < shallow; i++) {
+      var zone = Z[i];
+      var water = hexNum(zone.tint);
+      for (j = 0; j < 6; j++) {
+        var x = rr(160, S.w - 160);
+        var baseY = zone.yMax - rr(45, 170);
+        var z = rr(-155, -95);
+        var color = REEF_PALETTE[ri(0, REEF_PALETTE.length - 1)];
+        var scale = rr(0.72, 1.35);
+        if (j % 2 === 0) {
+          for (k = 0; k < 3; k++) {
+            var hh = (34 + k * 12) * scale;
+            var yy = baseY - k * 25 * scale;
+            var ww = (86 - k * 15) * scale;
+            var bc = envColor(color, z, water, yy, 0.05);
+            var tc = envColor(color, z, water, yy - hh, 0.22);
+            quadPush(x + (k - 1) * 9 * scale, -(yy - hh * 0.5), z + k * 2,
+              ww, hh, (k - 1) * 0.08, 1, bc, 0.94, tc);
+          }
+        } else {
+          for (k = 0; k < 4; k++) {
+            var bh = (18 + k * 5) * scale;
+            var by = baseY - k * 18 * scale;
+            var bw = (88 - k * 10) * scale;
+            var brainColor = envColor(color, z, water, by, 0.04);
+            var brainTop = envColor(color, z, water, by - bh, 0.20);
+            quadPush(x + Math.sin(k * 1.7) * 8 * scale, -(by - bh * 0.5), z + k * 2,
+              bw, bh, (k & 1 ? -0.11 : 0.11), 1, brainColor, 0.92, brainTop);
+          }
+        }
+      }
+    }
+    var staticReef = batchMesh(null, false, undefined);
+    if (staticReef) {
+      sceneAdd(staticReef);
+      S.decor.push(staticReef);
+      S.reefBatches.push(staticReef);
+    }
+
+    // The two swaying beds are pivoted at their average root, just like kelp.
+    // Their geometry is relative to that root, so animateWater only writes a
+    // rotation and never allocates or rebuilds a coral column.
+    for (var group = 0; group < 2; group++) {
+      reefN = 0;
+      for (i = 0; i < shallow; i++) {
+        zone = Z[i];
+        water = hexNum(zone.tint);
+        for (j = 0; j < 6; j++) {
+          if ((j & 1) !== group) continue;
+          pushReef(rr(160, S.w - 160), zone.yMax - rr(35, 145), rr(-150, -90),
+            rr(0.75, 1.2), j % 2, REEF_PALETTE[ri(0, REEF_PALETTE.length - 1)], water, group);
+        }
+      }
+      if (!reefN) continue;
+      var px = 0, py = 0;
+      for (j = 0; j < reefN; j++) { px += reefScratch[j].x; py += reefScratch[j].y; }
+      px /= reefN; py /= reefN;
+      quadReset();
+      for (j = 0; j < reefN; j++) {
+        var rec = reefScratch[j];
+        var stemH = (rec.kind ? 58 : 48) * rec.scale;
+        var stemW = (rec.kind ? 13 : 16) * rec.scale;
+        var stemBase = envColor(rec.color, rec.z, rec.water, rec.y, 0.02);
+        var stemTop = envColor(rec.color, rec.z, rec.water, rec.y - stemH, 0.20);
+        quadPush(rec.x - px, -rec.y + py + stemH * 0.5, rec.z, stemW, stemH, 0, 1,
+          stemBase, rec.alpha, stemTop);
+        var crownY = rec.y - stemH * 0.78;
+        var arms = rec.kind ? 4 : 3;
+        for (k = 0; k < arms; k++) {
+          var armA = rec.kind ? (-0.48 + k * 0.32) : (-0.62 + k * 0.62);
+          var armL = (rec.kind ? 50 : 72) * rec.scale;
+          var armX = rec.x + Math.sin(armA) * armL * 0.34;
+          var armY = crownY - Math.cos(armA) * armL * 0.30;
+          var armBase = envColor(rec.color, rec.z, rec.water, armY, 0.06);
+          var armTop = envColor(rec.color, rec.z, rec.water, armY - 13 * rec.scale, 0.24);
+          quadPush(armX - px, -armY + py, rec.z + 1, armL, 13 * rec.scale,
+            armA, 1, armBase, rec.alpha, armTop);
+        }
+      }
+      var swayMesh = batchMesh(null, false, undefined);
+      if (!swayMesh) continue;
+      var pivot = new THREE.Group();
+      pivot.add(swayMesh);
+      pivot.position.x = px;
+      pivot.position.y = -py;
+      sceneAdd(pivot);
+      S.decor.push(pivot);
+      S.reefBatches.push(swayMesh);
+      S.reefSwayers.push({
+        img: pivot, rot0: 0, amp: rr(0.035, 0.075),
+        rate: rr(0.22, 0.48), phase: rr(0, TAU),
+      });
+    }
+    reefN = 0;
   }
 
   // ------------------------------------------------------- midwater decor
   // The VISUAL QA TUNE rules from world.js survive verbatim, because they were
   // about READING, not about the renderer:
-  //   1. ATMOSPHERE, NOT OBJECTS. Opacity 0.04-0.09. They tint the water at
-  //      the edge of vision; they are never a thing you look at.
+  //   1. ATMOSPHERE, NOT OBJECTS. Opacity 0.25-0.50. They tint the water at
+  //      the edge of vision while remaining behind the gameplay plane.
   //   2. ANCHORED. Nothing free-floats. A silhouette always touches an edge of
   //      the frame it appears in, so it has somewhere to be.
   //   3. SCALE CAPPED. No silhouette exceeds a quarter of the frame width.
@@ -1826,14 +2135,14 @@ import * as THREE from 'three';
   var SIL_MAX_SCALE = (CAM_W * SIL_MAX_FRAC) / SIL_W;   // = 1.648
 
   var ZONE_SIL = [
-    { shape: 'arch',      n: 6,  scale: [0.9, 1.4], alpha: [0.05, 0.09], tint: 0x0d3d52, anchor: 'floor', inset: 40 },
-    { shape: 'kelptower', n: 10, scale: [1.0, 1.6], alpha: [0.05, 0.09], tint: 0x08222f, anchor: 'floor', inset: 60 },
-    { shape: 'spire',     n: 10, scale: [1.0, 1.6], alpha: [0.04, 0.08], tint: 0x05131e, anchor: 'floor', inset: 70 },
-    { shape: 'chimney',   n: 8,  scale: [1.1, 1.6], alpha: [0.04, 0.07], tint: 0x02070d, anchor: 'floor', inset: 80 },
+    { shape: 'arch',      n: 6,  scale: [0.9, 1.4], alpha: [0.25, 0.50], tint: 0x0d3d52, anchor: 'floor', inset: 40 },
+    { shape: 'kelptower', n: 10, scale: [1.0, 1.6], alpha: [0.25, 0.50], tint: 0x08222f, anchor: 'floor', inset: 60 },
+    { shape: 'spire',     n: 10, scale: [1.0, 1.6], alpha: [0.25, 0.45], tint: 0x05131e, anchor: 'floor', inset: 70 },
+    { shape: 'chimney',   n: 8,  scale: [1.1, 1.6], alpha: [0.25, 0.40], tint: 0x02070d, anchor: 'floor', inset: 80 },
   ];
 
   // PERF-03. 34 silhouette planes become 4, one merged batch per zone. The
-  // per-shape drift was 3 to 7 px on shapes drawn at 0.04 to 0.09 opacity at
+  // per-shape drift was 3 to 7 px on shapes drawn at 0.25 to 0.50 opacity at
   // the furthest parallax band; drifting the whole zone batch by the same few
   // px instead of each shape independently is not a visual change anyone can
   // see, and it is 30 fewer draw calls. Rule 2 (ANCHORED) still holds because
@@ -1857,8 +2166,11 @@ import * as THREE from 'three';
         // Anchored: the shape's BASE sits on the boundary and it grows away
         // from it, so the centre is half a height clear of the anchor.
         var cy = ceil ? (baseY + h * 0.5) : (baseY - h * 0.5);
-        quadPush(x0, -cy, rr(Z_SIL[0], Z_SIL[1]), w, h, 0,
-          rnd() < 0.5 ? -1 : 1, cfg.tint, rr(cfg.alpha[0], cfg.alpha[1]));
+        var silZ = rr(Z_SIL[0], Z_SIL[1]);
+        var silBase = envColor(cfg.tint, silZ, hexNum(z.tint), baseY, 0);
+        var silTop = envColor(cfg.tint, silZ, hexNum(z.tint), baseY - h, 0.12);
+        quadPush(x0, -cy, silZ, w, h, 0,
+          rnd() < 0.5 ? -1 : 1, silBase, rr(cfg.alpha[0], cfg.alpha[1]), silTop);
       }
       var mesh = batchMesh(null, false, undefined);
       if (!mesh) continue;
@@ -1882,6 +2194,7 @@ import * as THREE from 'three';
     buildSeams();
     buildMidwaterDecor();
     buildDecor();
+    buildReef();
     buildRays();
     buildCaustics();
     buildSurface();
@@ -2841,7 +3154,7 @@ import * as THREE from 'three';
   // this function reads records and writes scalars onto three objects. It
   // allocates nothing, calls no rng, and its cost is O(background layers),
   // which is a constant of the build, not of the entity count.
-  function animateWater(t) {
+  function animateWater(t, camX) {
     var i, rec, o;
 
     // Caustic light planes: horizontal sine drift plus an independent alpha
@@ -2887,6 +3200,13 @@ import * as THREE from 'three';
       o.rotation.z = rec.rot0 + Math.sin(t * rec.rate * TAU + rec.phase) * rec.amp;
     }
 
+    // Reef fans and anemones share the same rooted-pivot motion as kelp.
+    for (i = 0; i < S.reefSwayers.length; i++) {
+      rec = S.reefSwayers[i]; o = rec.img;
+      if (!o || !o.rotation) continue;
+      o.rotation.z = rec.rot0 + Math.sin(t * rec.rate * TAU + rec.phase) * rec.amp;
+    }
+
     // Midwater silhouettes drift a few px. Anchor is preserved: the motion is
     // an offset from the placed position, never an accumulation.
     // The drifter is now one merged batch per zone whose vertices already
@@ -2901,8 +3221,35 @@ import * as THREE from 'three';
       o.position.y = -(rec.y0 + Math.sin(ph * 0.63 + 1.1) * rec.ampY);
     }
 
-    // Surface foam strip rides the waterline on a slow sine, so the boundary
-    // between water and air is never a dead straight edge.
+    // Surface ribbon. The attribute and its backing array are both allocated
+    // in buildSurface; this fixed-step loop only overwrites their scalars.
+    if (S.surface && S.surface.ribbonAttr && S.surface.ribbonAttr.array) {
+      var ra = S.surface.ribbonAttr.array;
+      var seg = S.surface.segments;
+      for (i = 0; i <= seg; i++) {
+        var sx = S.w * i / seg;
+        var sy = surfaceWave(sx, t);
+        var vi = i * 2;
+        ra[vi * 3] = sx;
+        ra[vi * 3 + 1] = -sy;
+        ra[vi * 3 + 2] = Z_SURFACE;
+        ra[(vi + 1) * 3] = sx;
+        ra[(vi + 1) * 3 + 1] = -(sy + SURFACE_RIBBON_H);
+        ra[(vi + 1) * 3 + 2] = Z_SURFACE;
+      }
+      S.surface.ribbonAttr.needsUpdate = true;
+      if (S.surface.ripple && S.surface.ripple.offset) {
+        S.surface.ripple.offset.x = (t * 0.018) % 1;
+        S.surface.ripple.offset.y = (t * 0.009) % 1;
+      }
+      if (S.surface.snell) {
+        if (S.surface.snell.position && typeof camX === 'number') S.surface.snell.position.x = camX;
+        if (S.surface.snell.material) S.surface.snell.material.opacity = snellAlpha();
+      }
+    }
+
+    // Foam strip rides the waterline on a slow sine, so the boundary between
+    // water and air is never a dead straight edge.
     if (S.surface && S.surface.foam && S.surface.foam.position) {
       S.surface.foam.position.x = S.surface.x0 + Math.sin(t * 0.6) * 40 + (t * 14) % 240;
     }
@@ -3201,6 +3548,8 @@ import * as THREE from 'three';
     S.rays.length = 0;
     S.seams.length = 0;
     S.swayers.length = 0;
+    S.reefSwayers.length = 0;
+    S.reefBatches.length = 0;
     S.drifters.length = 0;
 
     // 4. GPU resources this run created. Materials and geometry are disposed
@@ -3327,6 +3676,8 @@ import * as THREE from 'three';
     S.rays.length = 0;
     S.seams.length = 0;
     S.swayers.length = 0;
+    S.reefSwayers.length = 0;
+    S.reefBatches.length = 0;
     S.drifters.length = 0;
     S.animT = 0;
     S.lastNow = -1;
@@ -3405,7 +3756,9 @@ import * as THREE from 'three';
     // never drift apart.
     lastDt = dt;
     var wt = worldClock(ctx, dt);
-    animateWater(wt);
+    var surfaceCamX = ctx && ctx.camera && ctx.camera.position &&
+      typeof ctx.camera.position.x === 'number' ? ctx.camera.position.x : camX;
+    animateWater(wt, surfaceCamX);
 
     // Ambient particle character, per zone. Each zone gets its own emission
     // family, cadence, tint and drift, so the water itself tells you where you
@@ -4102,11 +4455,19 @@ import * as THREE from 'three';
 
       // Registries are built ONCE and never grow.
       var regBefore = S.caustics.length + S.rays.length + S.seams.length +
-                      S.swayers.length + S.drifters.length;
+                      S.swayers.length + S.reefSwayers.length + S.drifters.length;
       chk(S.caustics.length === CAUSTIC_N, 'caustic planes built (' + S.caustics.length + ')');
       chk(S.rays.length > 0, 'god rays registered for sway (' + S.rays.length + ')');
+      var rayAtPlay = 0;
+      for (var rzq = 0; rzq < S.rays.length; rzq++) if (S.rays[rzq].z === 25) rayAtPlay++;
+      chk(S.rays.length === RAY_BANDS && rayAtPlay === 1,
+        'god rays have four bands with one low-alpha band crossing z=+25 (' +
+        S.rays.length + ' bands, ' + rayAtPlay + ' crossing)');
       chk(S.seams.length > 0, 'thermocline seams registered for drift (' + S.seams.length + ')');
       chk(S.swayers.length > 0, 'kelp registered for sway (' + S.swayers.length + ')');
+      chk(S.reefBatches.length === 3 && S.reefSwayers.length === 2,
+        'reef builds three merged batches with two rooted sway pivots (' +
+        S.reefBatches.length + ' batches, ' + S.reefSwayers.length + ' pivots)');
       chk(S.drifters.length > 0, 'midwater silhouettes registered for drift (' + S.drifters.length + ')');
       chk(!!S.gradient && !!S.gradient.mesh, 'opaque world-anchored gradient sheet built');
       if (S.gradient && S.gradient.mesh) {
@@ -4145,16 +4506,32 @@ import * as THREE from 'three';
         'terrain ridges carry opaque fog-disabled RGBA batches at z -340/-200/-100/+45');
       chk(foregroundOk, 'foreground terrain occluder sits in front of gameplay at z ' +
         (S.terrain[3] && S.terrain[3].mesh ? S.terrain[3].mesh.position.z : 'missing'));
-      chk(!!S.surface && !!S.surface.mesh, 'surface plane built at the waterline');
+      chk(!!S.surface && !!S.surface.mesh && S.surface.segments === SURFACE_SEGMENTS,
+        'surface ribbon built with ' + SURFACE_SEGMENTS + ' segments');
       chk(!!(S.surface && S.surface.foam), 'surface foam strip built');
-      chk(!!S.surface && Math.abs(S.surface.mesh.position.y + 27) < 1e-6,
-        'surface plane sits at the waterline (three y ' + S.surface.mesh.position.y + ' for sim y 27)');
+      chk(!!(S.surface && S.surface.ribbonAttr && S.surface.ribbonAttr.array &&
+        S.surface.ribbonAttr.array.length === (SURFACE_SEGMENTS + 1) * 2 * 3),
+        'surface ribbon owns one preallocated position attribute');
+      chk(!!(S.surface && S.surface.wash && S.surface.wash.material &&
+        S.surface.wash.material.map && S.surface.ripple && S.surface.ripple.wrapS === THREE.RepeatWrapping),
+        'surface wash uses the cached repeat-wrapped ripple texture');
+      chk(!!(S.surface && S.surface.snell && S.surface.snell.material &&
+        S.surface.snell.material.map), 'Snell window disc owns a baked radial map');
+      chk(World.__depthTint(0xffffff, -100, 0x000000) !== World.__depthTint(0xffffff, -420, 0x000000) &&
+        World.__lightAtDepth(0) === 1 && World.__lightAtDepth(3600) === 0.35,
+        'depth tint and vertical light helpers hit their authored endpoints');
+      var ribbonAttr = S.surface.ribbonAttr;
+      var ribbonArray = ribbonAttr.array;
+      var ribbonY0 = ribbonArray[1];
+      var ribbonVersion0 = ribbonAttr.version || 0;
+      var rippleOffset0 = S.surface.ripple && S.surface.ripple.offset ? S.surface.ripple.offset.x : 0;
 
       // Water layers must actually MOVE across updates, and stay bounded.
       var ray0 = S.rays[0];
       var rayRotMin = Infinity, rayRotMax = -Infinity;
       var rayAlphaMin = Infinity, rayAlphaMax = -Infinity;
       var caX = [];
+      var causticPeak = 0;
       var swayMin = Infinity, swayMax = -Infinity;
       var gradientZ0 = S.gradient.mesh.position.z;
       var terrainZ0 = S.terrain[0].mesh.position.z;
@@ -4169,6 +4546,11 @@ import * as THREE from 'three';
         if (ralpha < rayAlphaMin) rayAlphaMin = ralpha;
         if (ralpha > rayAlphaMax) rayAlphaMax = ralpha;
         if (wstep % 90 === 0) caX.push(S.caustics[0].img.position.x);
+        for (var cap = 0; cap < S.caustics.length; cap++) {
+          if (S.caustics[cap].img.material.opacity > causticPeak) {
+            causticPeak = S.caustics[cap].img.material.opacity;
+          }
+        }
         var swR = S.swayers[0].img.rotation.z;
         if (swR < swayMin) swayMin = swR;
         if (swR > swayMax) swayMax = swR;
@@ -4182,14 +4564,38 @@ import * as THREE from 'three';
       var caMoved = false;
       for (var cq = 1; cq < caX.length; cq++) if (Math.abs(caX[cq] - caX[0]) > 1) caMoved = true;
       chk(caMoved, 'caustic plane drifts horizontally over time');
+      chk(causticPeak > 0 && causticPeak <= 0.095,
+        'caustics brighten without exceeding their ~0.09 ceiling (' + causticPeak.toFixed(4) + ')');
       chk(swayMax - swayMin > 1e-4 && Math.abs(swayMax) <= SWAY_AMP[1] * 1.6,
         'kelp sways in rotation about its rooted base (span ' + (swayMax - swayMin).toFixed(4) + ' rad)');
       chk(S.gradient.mesh.position.z === gradientZ0 && S.terrain[0].mesh.position.z === terrainZ0 &&
           S.gradient.mesh.material.opacity === gradientOpacity0,
         'gradient and terrain remain static while animateWater updates its registries');
       var regAfter = S.caustics.length + S.rays.length + S.seams.length +
-                     S.swayers.length + S.drifters.length;
+                     S.swayers.length + S.reefSwayers.length + S.drifters.length;
       chk(regAfter === regBefore, 'animation registries never grow during update (' + regAfter + ')');
+      chk(S.surface.ribbonAttr === ribbonAttr && S.surface.ribbonAttr.array === ribbonArray &&
+        ribbonArray[1] !== ribbonY0 && ((ribbonAttr.version || 0) > ribbonVersion0),
+        'surface ribbon updates its stable attribute across fixed steps with no rebuild');
+      chk(!S.surface.ripple || !S.surface.ripple.offset || S.surface.ripple.offset.x !== rippleOffset0,
+        'surface ripple scrolls its cached texture offset without allocating');
+      chk(S.surface.snell && S.surface.snell.material && S.surface.snell.material.opacity > 0,
+        'Snell window is visible in the shallow atmosphere');
+      var deepYForSurface = ZONE_SIL.length > 2 && zones()[2]
+        ? (zones()[2].yMin + zones()[2].yMax) * 0.5 : 2000;
+      ctx.player.x = 1234; ctx.player.y = deepYForSurface; ctx.time.now += 1 / 60;
+      World.update(ctx);
+      chk(S.surface.snell && S.surface.snell.material && S.surface.snell.material.opacity === 0,
+        'Snell window alpha is zero by zone 3');
+      chk(S.surface.snell && S.surface.snell.position && S.surface.snell.position.x === ctx.player.x,
+        'Snell window follows the player camera x fallback');
+      ctx.camera = { position: { x: 2222, y: -deepYForSurface } };
+      ctx.time.now += 1 / 60;
+      World.update(ctx);
+      chk(S.surface.snell && S.surface.snell.position && S.surface.snell.position.x === 2222,
+        'Snell window follows the explicit camera x when supplied');
+      delete ctx.camera;
+      ctx.player.x = 3600; ctx.player.y = 500;
 
       // Phase spread: no two rays share a phase, so the layer cannot pulse in
       // unison.
@@ -4266,7 +4672,7 @@ import * as THREE from 'three';
       // separation, which is a haze rather than a curtain.
       //
       // That is the right trade and not a shortfall, because the far band is
-      // drawn at 0.04 to 0.09 opacity in the first place: it was never going
+      // drawn at 0.25 to 0.50 opacity in the first place: it was never going
       // to be erased by fog, it is erased by having almost no alpha. The cue
       // that actually reads at depth is the CLEAR COLOUR going near black
       // while the lit foreground does not, plus the light dimming, and both of
@@ -4821,7 +5227,8 @@ import * as THREE from 'three';
         'comparable world (' + cycleCreated.join(', ') + ' objects per cycle)');
       chk(S.inited === false && S.decor.length === 0 && S.entities.length === 0 &&
         S.pool.length === 0 && S.rays.length === 0 && S.seams.length === 0 &&
-        S.swayers.length === 0 && S.drifters.length === 0 && S.caustics.length === 0 &&
+        S.swayers.length === 0 && S.reefSwayers.length === 0 && S.reefBatches.length === 0 &&
+        S.drifters.length === 0 && S.caustics.length === 0 &&
         S.gradient === null && S.terrain.length === 0 && S.surface === null && S.fog === null,
         'LIFE-01: teardown clears every environment and entity registry it owns');
       chk(lifeScene.fog === null,
@@ -4867,6 +5274,9 @@ import * as THREE from 'three';
       // Each entry below is one three Mesh with one material, so it is one
       // draw call when it is on screen. Nested meshes inside a pivot Group are
       // counted, Groups themselves are not (a Group draws nothing).
+      // Rev 3 adds three reef batches plus one Snell disc. Lane env-terrain may
+      // add five more, so this shared environment assertion intentionally stays
+      // at <=60 rather than growing a lane-local budget.
       World.init(lifeScene, lifeCtx);
       var envMeshes = 0, envMats = {}, envMatCount = 0;
       function countDrawables(o) {
@@ -4883,8 +5293,8 @@ import * as THREE from 'three';
       notes.push('environment draw-call inventory: ' + envMeshes + ' meshes across ' +
         envMatCount + ' distinct materials');
       chk(envMeshes <= 60,
-        'PERF-03: the environment contributes at most 60 draw calls (' + envMeshes +
-        ' meshes, was about 260 before batching)');
+        'PERF-03 Rev 3: environment stays within the shared <=60 draw gate (' + envMeshes +
+        ' meshes, including 3 reef batches + Snell disc; env-terrain may add 5)');
       // A merged batch is worthless if it did not actually merge, so assert
       // the biggest populations really did collapse. Rocks are the clearest
       // case: 90 of them, now exactly one mesh.
