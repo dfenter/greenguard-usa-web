@@ -92,6 +92,8 @@ var ZONES=[{"id":1,"name":"Sunlit Shelf","yMin":0,"yMax":900,"tint":"0x1b4d66","
 var ABILITIES={"pyro":{"name":"Pyro Breath","kind":"cone","range":320,"arc":0.9,"dur":2.2,"dmg":3,"charge":14,"tint":16742953,"sfx":"power_fire"},"freeze":{"name":"Frost Pulse","kind":"pulse","range":300,"dur":0.4,"effectDur":3.0,"charge":15,"tint":9431295,"sfx":"power_ice"},"volt":{"name":"Chain Volt","kind":"chain","range":260,"jumps":6,"jumpRange":180,"dmg":2,"charge":12,"tint":15923199,"sfx":"power_volt"},"toxin":{"name":"Toxin Cloud","kind":"trail","range":90,"dur":4.0,"dot":0.8,"charge":13,"tint":7331951,"sfx":"power_toxin"},"sonic":{"name":"Sonic Roar","kind":"pulse","range":380,"dur":0.5,"stun":2.2,"fear":3.5,"charge":12,"tint":14272767,"sfx":"power_sonic"},"vortex":{"name":"Maw Vortex","kind":"field","range":340,"dur":2.8,"pull":420,"charge":15,"tint":3786454,"sfx":"power_vortex"},"phase":{"name":"Phase Shift","kind":"self","dur":2.6,"charge":14,"tint":12124146,"sfx":"power_phase"},"quake":{"name":"Quake Slam","kind":"pulse","range":420,"dur":0.6,"stun":2.8,"dmg":2,"charge":16,"tint":14200938,"sfx":"power_quake"},"chrono":{"name":"Chrono Field","kind":"self","dur":3.2,"worldScale":0.35,"charge":18,"tint":16769162,"sfx":"power_chrono"},"atomic":{"name":"Atomic Breath","kind":"beam","range":900,"width":70,"dur":2.4,"dmg":99,"charge":24,"windup":0.8,"tint":10484976,"sfx":"power_atomic"}};
 var ECONOMY={"levelCap":60,"tierUnlockLevel":[0,1,3,6,10,15,21,27,33,40,47,54,60],"xpCurve":{"base":100,"growth":1.13},"upgradeCosts":{"base":400,"growth":1.7,"levels":5,"tierMult":0.6},"upgradeEffect":{"bite":0.1,"speed":0.06,"boost":0.12,"power":0.08},"dailyBonusMult":1.5,"coinRunMult":1.0,"xpRunMult":1.0};
 var FRENZY={"comboWindow":3.0,"steps":[3,6,10],"mults":[1,2,3,5],"meterPerEat":0.06,"goldRushDur":8.0,"goldRushSpeed":1.4,"goldRushCoinMult":2};
+var BAL={"metabScale":0.5,"eatHealBonus":1.25};
+var FRENZY2={"school":{"count":4,"swirlT":5.0,"eatRate":1.3},"blood":{"dur":6.0,"bite":1.5,"speed":1.2},"golden":{"chance":0.02,"coinBurst":250,"deadline":10.0}};
 var FX={"bubbles":{},"motes":{},"chomp":{},"deathBurst":{},"elementSpark":{},"ring":{},"beamCore":{}};
 var SFX={"chomp":"sfx_snap.mp3","bubble":"sfx_bubble.mp3","splash":"sfx_splash.mp3","power_fire":null,"power_ice":null,"power_volt":null,"power_toxin":null,"power_sonic":null,"power_vortex":null,"power_phase":null,"power_quake":null,"power_chrono":null,"power_atomic":null,"hurt":null,"death":null,"coin":null,"levelup":null,"goldrush":null,"roar":null};
 var MUSIC={"calm":"dawn_loop.mp3","danger":null,"goldrush":null};
@@ -99,6 +101,6 @@ var SHARK_BY_ID={};SHARKS.forEach(function(s){SHARK_BY_ID[s.id]=s;});
 var CREATURE_BY_ID={};CREATURES.concat(HAZARDS).forEach(function(c){CREATURE_BY_ID[c.id]=c;});
 return {SHARKS:SHARKS,SHARK_BY_ID:SHARK_BY_ID,CREATURES:CREATURES,HAZARDS:HAZARDS,
 CREATURE_BY_ID:CREATURE_BY_ID,ZONES:ZONES,ABILITIES:ABILITIES,ECONOMY:ECONOMY,
-FRENZY:FRENZY,FX:FX,SFX:SFX,MUSIC:MUSIC,WORLD:{w:7200,h:3600},
+FRENZY:FRENZY,BAL:BAL,FRENZY2:FRENZY2,FX:FX,SFX:SFX,MUSIC:MUSIC,WORLD:{w:7200,h:3600},
 SAVE_VERSION:1,ENTITY_BUDGET:{onscreen:70,total:140}};
 })();

@@ -423,3 +423,48 @@ environment builders and their selftest.
   contribution inside the shared gate. All fixed-step surface, reef, ray, and
   atmosphere hooks use module scratch, pooled records, or preallocated GPU
   attributes only.
+
+## Rev 3 (frenzy/data contract, 2026-08-20)
+
+The gameplay camera contract is the shipped three.js contract: perspective FOV
+50, gameplay plane z=0, camera z=470 for tier 1 and eased to z=360 by tier 12,
+with velocity lookahead. The old z=620 description above is superseded.
+
+The run state keeps the legacy `frenzy` and `goldRushT` aliases for existing
+HUD and payout consumers, and adds these in-place, run-scoped records:
+
+```text
+goldRush: { meter, t }
+blood:    { t }
+school:   { packId, count, swirlT }
+golden:   { packId, eaten, deadline }
+frenzyCue: "goldRush" | "blood" | "school" | ""
+ctx.schoolSwirl: { packId, t }
+```
+
+School starts at four eats from one pack inside the combo window, publishes
+`ctx.schoolSwirl`, and uses the authored eat-rate refill bonus while active.
+Blood starts when a near-tier multi-bite target finishes and lasts six seconds.
+Golden School is rolled once when the first member of a pack is eaten in the
+engine bridge, tints members with `e._tint = 0xffd67a`, and pays its burst only
+when every member is player-eaten before the deadline. Despawn or any other
+kill voids it without a penalty. All fixed-step state is mutated in module
+scratch, pooled entities, or the preallocated run records.
+
+Frenzy cues have one priority order: Gold Rush > Blood > School. Gold Rush is
+the only frenzy that affects score/payout scoring; Blood is the only new frenzy
+that affects bite and speed. Blood and Gold Rush speed do not multiply: the
+effective speed factor is `max(blood.speed, goldRush.speed)`. School cannot
+retrigger from kills caused by its own active swirl.
+
+Authored data versus code defaults:
+
+| Schema | Source | Runtime use |
+| --- | --- | --- |
+| `RFD.BAL.metabScale`, `eatHealBonus` | `tools/gen_data.py` | hunger drain and swallow heal tuning |
+| `RFD.FRENZY2.school` | `tools/gen_data.py` | count, swirl duration, eat-rate |
+| `RFD.FRENZY2.blood` | `tools/gen_data.py` | duration, bite, speed |
+| `RFD.FRENZY2.golden` | `tools/gen_data.py` | chance, coin burst, deadline |
+| fallback objects in `engine3d.js` | code | degraded boot only when generated data is absent |
+
+`SAVE_VERSION` and the persisted save shape are unchanged.

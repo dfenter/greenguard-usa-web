@@ -1386,6 +1386,12 @@
       ok('combo zero does not fire', S.chipToken === tok + 1);
       if (S.chipTimer) { clearTimeout(S.chipTimer); S.chipTimer = null; }
 
+      // Frenzy triggers use the existing one-at-a-time chip/toast surfaces.
+      toast('Blood Frenzy');
+      ok('toast shown for frenzy trigger', N('rfShopToast').classList.contains('rf-on') === true);
+      ok('toast text shown', N('rfShopToast').textContent === 'Blood Frenzy');
+      if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+
       // ---- thumbnail cache -----------------------------------------
       ok('thumb rejects non-data url', setThumb('reef', 'http://x/y.png') === false);
       ok('thumb rejects empty id', setThumb('', 'data:image/png;base64,AA') === false);

@@ -51,8 +51,26 @@ import * as THREE from 'three';
     comboWindow: 3, steps: [3, 6, 10], mults: [1, 2, 3, 5],
     meterPerEat: 0.06, goldRushDur: 8, goldRushSpeed: 1.4, goldRushCoinMult: 2
   };
+  var BAL = RFD.BAL || { metabScale: 0.5, eatHealBonus: 1.25 };
+  var FRENZY2 = RFD.FRENZY2 || {
+    school: { count: 4, swirlT: 5, eatRate: 1.3 },
+    blood: { dur: 6, bite: 1.5, speed: 1.2 },
+    golden: { chance: 0.02, coinBurst: 250, deadline: 10 }
+  };
   var ECON = RFD.ECONOMY || {};
   var UPEFF = ECON.upgradeEffect || { bite: 0.1, speed: 0.06, boost: 0.12, power: 0.08 };
+
+  // Frenzy event records are module scratch. World.kill is wrapped once at
+  // run-state init, so player swallows can feed this lane without touching the
+  // neighbouring stepEat/multiBite blocks. The fixed step only writes numbers.
+  var FRENZY_EAT_CAP = 48;
+  var FRENZY_EAT_N = 0;
+  var FRENZY_EAT_PACK = new Array(FRENZY_EAT_CAP);
+  var FRENZY_EAT_BLOOD = new Array(FRENZY_EAT_CAP);
+  var FRENZY_EAT_TIER = new Array(FRENZY_EAT_CAP);
+  var FRENZY_EAT_COMBO_T = new Array(FRENZY_EAT_CAP);
+  var FRENZY_FX_OPT = { count: 0, speed: 0, angle: 0, up: false, tint: 0, scale: 1 };
+  var FRENZY_GOLD_TINT = 0xffd67a;
 
   // ------------------------------------------------- controls (ported)
   // Floating virtual stick, horde-meridian feel. In the three rev the ring and
@@ -884,7 +902,18 @@ import * as THREE from 'three';
       save: profile,
       run: {
         score: 0, coins: 0, xp: 0, combo: 0, comboT: 0, comboPeak: 0, frenzy: 0,
-        goldRushT: 0, biggestTier: 0, slowmoT: 0, timeScale: 1
+        goldRushT: 0, biggestTier: 0, slowmoT: 0, timeScale: 1,
+        // Canonical Rev 3 frenzy state. frenzy/goldRushT remain compatibility
+        // aliases because HUD, payout, and damage blocks are owned elsewhere.
+        goldRush: { meter: 0, t: 0 },
+        blood: { t: 0 },
+        school: { packId: 0, count: 0, swirlT: 0 },
+        golden: { packId: 0, eaten: 0, deadline: 0 },
+        frenzyCue: '',
+        _schoolTriggeredPackId: 0, _goldenRolledPackId: 0,
+        _goldRushAnnounced: false, _frenzyApplied: false,
+        _frenzyBaseSpeed: 1, _frenzyBaseBite: 1,
+        _frenzyAppliedSpeed: 1, _frenzyAppliedBite: 1
       },
       // Render-layer handles the other 3D lanes need. Additive to the SPEC.md
       // schema, never a replacement for any field in it.
@@ -893,8 +922,13 @@ import * as THREE from 'three';
       lights: LIGHTS,
       // EAT-REV3: World reads this descriptor during its own update to apply
       // suction. The object is module scratch and remains stable for the run.
-      mouth: MOUTH
+      mouth: MOUTH,
+      // World may consume this descriptor during its own update. It is reused
+      // in place so publishing a swirl never allocates in the fixed step.
+      schoolSwirl: { packId: 0, t: 0 }
     };
+    installFrenzyHooks();
+    FRENZY_EAT_N = 0;
     return ctx;
   }
 
@@ -1406,7 +1440,7 @@ import * as THREE from 'three';
   function stepHunger(p) {
     // RF-PASSIVE-01: slowMetab is a BOOLEAN in the resolver; the NUMBER lives
     // in statMults.metab, which liveMult reads.
-    var drain = p.stat.metab * liveMult(p, 'metab');
+    var drain = p.stat.metab * liveMult(p, 'metab') * num(BAL.metabScale, 1);
 
     // Zone pressure: below your depth grade the metabolism triples. Tier 9 and
     // above, or a pressureImmune shark, ignore it entirely.
@@ -1422,6 +1456,239 @@ import * as THREE from 'three';
   }
 
   // ------------------------------------------------- combo / frenzy
+  function frenzyPackAlive(packId) {
+    if (!packId || !RF.World || !RF.World.entities) return false;
+    var list = RF.World.entities;
+    for (var i = 0; i < list.length; i++) {
+      var e = list[i];
+      if (e && e.active && e.st && num(e.st.packId, 0) === packId) return true;
+    }
+    return false;
+  }
+
+  function markGoldenPack(c, ent) {
+    var r = c && c.run;
+    var st = ent && ent.st;
+    var packId = st ? (num(st.packId, 0) | 0) : 0;
+    if (!r || !packId || r._goldenRolledPackId === packId) return;
+    r._goldenRolledPackId = packId;
+
+    var golden = !!(c.rng && c.rng() < num(FRENZY2.golden && FRENZY2.golden.chance, 0.02)
+      && (!r.golden.packId || r.golden.packId === packId));
+    if (golden) {
+      r.golden.packId = packId;
+      r.golden.eaten = 0;
+      r.golden.deadline = c.time.now + num(FRENZY2.golden.deadline, 10);
+    }
+
+    var list = RF.World && RF.World.entities;
+    if (!list) {
+      ent._tint = golden ? FRENZY_GOLD_TINT : 0;
+      ent._goldenPackId = golden ? packId : 0;
+      return;
+    }
+    for (var i = 0; i < list.length; i++) {
+      var e = list[i];
+      if (!e || !e.st || (num(e.st.packId, 0) | 0) !== packId) continue;
+      e._tint = golden ? FRENZY_GOLD_TINT : 0;
+      e._goldenPackId = golden ? packId : 0;
+    }
+    ent._tint = golden ? FRENZY_GOLD_TINT : 0;
+    ent._goldenPackId = golden ? packId : 0;
+  }
+
+  function frenzyGoldenComplete(c, packId) {
+    var r = c.run;
+    r.coins += Math.round(num(FRENZY2.golden.coinBurst, 250));
+    r.frenzy = 1;
+    r.goldRush.meter = 1;
+    r.golden.packId = 0;
+    r.golden.eaten = 0;
+    r.golden.deadline = 0;
+    FRENZY_FX_OPT.count = 1;
+    FRENZY_FX_OPT.tint = FRENZY_GOLD_TINT;
+    FRENZY_FX_OPT.scale = 1.35;
+    fxEmit('goldpulse', c.player.x, c.player.y, FRENZY_FX_OPT);
+    uiCall('chip', 'GOLDEN SCHOOL');
+    uiCall('toast', 'Golden School cleared!');
+  }
+
+  function recordFrenzyKill(c, ent, cause) {
+    var r = c && c.run;
+    var p = c && c.player;
+    if (!r || !p || !ent || !ent.active) return;
+    var st = ent.st;
+    var packId = st ? (num(st.packId, 0) | 0) : 0;
+    if (cause === 'eaten' && ent.kind !== 'pickup' && ent.kind !== 'hazard') {
+      markGoldenPack(c, ent);
+      // swallow() has already applied its authored base heal by the time its
+      // World.kill call reaches this bridge. Add only the bonus delta here so
+      // direct swallow callers see the same clamped result immediately.
+      var healBonus = num(BAL.eatHealBonus, 1);
+      if (healBonus !== 1) {
+        p.hp = clamp(p.hp + (6 + num(ent.tier, 0) * 3.2) * (healBonus - 1), 0, p.maxHp);
+      }
+      if (r.golden.packId === packId && packId) {
+        r.golden.eaten++;
+      }
+      if (FRENZY_EAT_N < FRENZY_EAT_CAP) {
+        FRENZY_EAT_PACK[FRENZY_EAT_N] = packId;
+        FRENZY_EAT_BLOOD[FRENZY_EAT_N] = num(ent.tier, 0) > (num(p.tier, 1) - 2)
+          && num(ent.hp, 1) <= 0;
+        FRENZY_EAT_TIER[FRENZY_EAT_N] = num(ent.tier, 0);
+        FRENZY_EAT_COMBO_T[FRENZY_EAT_N] = num(r.comboT, 0);
+        FRENZY_EAT_N++;
+      }
+    } else if (cause !== 'eaten' && ent._goldenPackId
+        && r.golden.packId === ent._goldenPackId) {
+      // A despawn or other non-player kill voids Golden School silently.
+      r.golden.packId = 0;
+      r.golden.eaten = 0;
+      r.golden.deadline = 0;
+    }
+  }
+
+  function installFrenzyHooks() {
+    var w = RF.World;
+    if (w && typeof w.kill === 'function' && !w.kill.__rfFrenzyHook) {
+      var oldKill = w.kill;
+      var hookedKill = function (ent, cause) {
+        var c = RF.ctx;
+        recordFrenzyKill(c, ent, cause);
+        var out = oldKill(ent, cause);
+        var r = c && c.run;
+        if (c && r && cause === 'eaten' && ent && ent._goldenPackId
+            && r.golden.packId === ent._goldenPackId
+            && !frenzyPackAlive(ent._goldenPackId)) {
+          frenzyGoldenComplete(c, ent._goldenPackId);
+        }
+        return out;
+      };
+      hookedKill.__rfFrenzyHook = true;
+      w.kill = hookedKill;
+    }
+    var a = RF.Abilities;
+    if (a && typeof a.update === 'function' && !a.update.__rfFrenzyHook) {
+      var oldUpdate = a.update;
+      var hookedUpdate = function (c) {
+        var out = oldUpdate.call(a, c);
+        applyFrenzyMults(c);
+        return out;
+      };
+      hookedUpdate.__rfFrenzyHook = true;
+      a.update = hookedUpdate;
+    }
+  }
+
+  function applyFrenzyMults(c) {
+    var p = c && c.player;
+    var r = c && c.run;
+    var mult = p && p.st && p.st.statMults;
+    if (!p || !r || !mult) return;
+
+    var baseSpeed = num(r._frenzyBaseSpeed, num(mult.speed, 1));
+    var baseBite = num(r._frenzyBaseBite, num(mult.bite, 1));
+    if (!r._frenzyApplied || Math.abs(num(mult.speed, 1) - num(r._frenzyAppliedSpeed, 1)) > 1e-9) {
+      baseSpeed = num(mult.speed, 1);
+    }
+    if (!r._frenzyApplied || Math.abs(num(mult.bite, 1) - num(r._frenzyAppliedBite, 1)) > 1e-9) {
+      baseBite = num(mult.bite, 1);
+    }
+    var bloodOn = r.blood.t > 0;
+    var bloodSpeed = bloodOn ? num(FRENZY2.blood.speed, 1.2) : 1;
+    var goldSpeed = r.goldRushT > 0 ? num(FRENZY.goldRushSpeed, 1.4) : 1;
+    var targetSpeed = Math.max(goldSpeed, bloodSpeed);
+    mult.speed = baseSpeed * (targetSpeed / goldSpeed);
+    mult.bite = baseBite * (bloodOn ? num(FRENZY2.blood.bite, 1.5) : 1);
+    r._frenzyBaseSpeed = baseSpeed;
+    r._frenzyBaseBite = baseBite;
+    r._frenzyAppliedSpeed = mult.speed;
+    r._frenzyAppliedBite = mult.bite;
+    r._frenzyApplied = true;
+  }
+
+  function announceFrenzy(label, toastText) {
+    uiCall('chip', label);
+    uiCall('toast', toastText);
+  }
+
+  function processFrenzyEvents(r) {
+    var p = ctx.player;
+    var bloodDur = num(FRENZY2.blood.dur, 6);
+    var bloodTriggered = false;
+    var schoolTriggered = false;
+    for (var i = 0; i < FRENZY_EAT_N; i++) {
+      if (FRENZY_EAT_BLOOD[i]) {
+        r.blood.t = bloodDur;
+        bloodTriggered = true;
+        FRENZY_FX_OPT.count = 12;
+        FRENZY_FX_OPT.tint = 0xff5a5a;
+        FRENZY_FX_OPT.scale = 1.1;
+        fxEmit('motes', p.x, p.y, FRENZY_FX_OPT);
+        announceFrenzy('BLOOD FRENZY', 'Blood Frenzy: bite and speed up');
+      }
+
+      var packId = FRENZY_EAT_PACK[i] | 0;
+      if (!packId) continue;
+      var s = r.school;
+      if (s.packId !== packId || !(FRENZY_EAT_COMBO_T[i] > 0)) {
+        s.packId = packId;
+        s.count = 1;
+      } else {
+        s.count++;
+      }
+      if (s.count >= num(FRENZY2.school.count, 4) && r._schoolTriggeredPackId !== packId) {
+        r._schoolTriggeredPackId = packId;
+        s.swirlT = num(FRENZY2.school.swirlT, 5);
+        ctx.schoolSwirl.packId = packId;
+        ctx.schoolSwirl.t = s.swirlT;
+        FRENZY_FX_OPT.count = 1;
+        FRENZY_FX_OPT.tint = 0x74eaff;
+        FRENZY_FX_OPT.scale = 1.2;
+        fxEmit('ring', p.x, p.y, FRENZY_FX_OPT);
+        schoolTriggered = true;
+      }
+    }
+    if (schoolTriggered) announceFrenzy('SCHOOL FRENZY', 'School Frenzy: the shoal is swirling');
+    FRENZY_EAT_N = 0;
+    return bloodTriggered || schoolTriggered;
+  }
+
+  function scaleSchoolCooldowns(r) {
+    var rate = num(FRENZY2.school.eatRate, 1.3);
+    if (!(r.school.swirlT > 0) || !(rate > 1)) return;
+    var p = ctx.player;
+    if (p && p.st) {
+      var cd = num(p.st.biteCd, 0);
+      var seen = num(r._schoolPlayerCd, 0);
+      if (cd > seen + 1e-9) cd /= rate;
+      p.st.biteCd = cd;
+      r._schoolPlayerCd = cd;
+    }
+    var list = RF.World && RF.World.entities;
+    if (!list) return;
+    for (var i = 0; i < list.length; i++) {
+      var e = list[i];
+      if (!e) continue;
+      var ecd = num(e._biteCd, 0);
+      var eseen = num(e._schoolCdSeen, 0);
+      if (ecd > eseen + 1e-9) ecd /= rate;
+      e._biteCd = ecd;
+      e._schoolCdSeen = ecd;
+    }
+  }
+
+  function updateFrenzyCue(r) {
+    var cue = r.goldRushT > 0 ? 'goldRush' : r.blood.t > 0 ? 'blood'
+      : r.school.swirlT > 0 ? 'school' : '';
+    if (cue === r.frenzyCue) return;
+    r.frenzyCue = cue;
+    if (cue === 'blood') musicLayer('danger');
+    else if (cue === 'school') musicLayer('calm');
+    else if (cue === 'goldRush') musicLayer('goldrush');
+    else musicLayer(musicState === 'danger' ? 'danger' : 'calm');
+  }
+
   function stepCombo() {
     if (ctx.run.comboT > 0) {
       ctx.run.comboT -= STEP;
@@ -1431,20 +1698,55 @@ import * as THREE from 'three';
 
   function stepFrenzy() {
     var r = ctx.run;
+    if (r.blood.t > 0) {
+      r.blood.t -= STEP;
+      if (r.blood.t < 0) r.blood.t = 0;
+    }
+    if (r.school.swirlT > 0) {
+      r.school.swirlT -= STEP;
+      if (r.school.swirlT < 0) r.school.swirlT = 0;
+    }
+    if (r.golden.packId && ctx.time.now >= r.golden.deadline) {
+      r.golden.packId = 0;
+      r.golden.eaten = 0;
+      r.golden.deadline = 0;
+    }
+    processFrenzyEvents(r);
+    if (r.school.swirlT > 0) {
+      ctx.schoolSwirl.packId = r.school.packId;
+      ctx.schoolSwirl.t = r.school.swirlT;
+    } else {
+      ctx.schoolSwirl.packId = 0;
+      ctx.schoolSwirl.t = 0;
+    }
+    scaleSchoolCooldowns(r);
     if (r.goldRushT > 0) {
       r.goldRushT -= STEP;
       if (r.goldRushT <= 0) {
         r.goldRushT = 0;
         r.frenzy = 0;
+        r.goldRush.meter = 0;
+        r.goldRush.t = 0;
+        r._goldRushAnnounced = false;
         musicLayer(musicState === 'danger' ? 'danger' : 'calm');
       }
     } else if (r.frenzy >= 1) {
       r.goldRushT = num(FRENZY.goldRushDur, 8);
       r.frenzy = 1;
+      r.goldRush.meter = 1;
+      r.goldRush.t = r.goldRushT;
+      if (!r._goldRushAnnounced) {
+        r._goldRushAnnounced = true;
+        announceFrenzy('GOLD RUSH', 'Gold Rush: score and coins doubled');
+      }
       musicLayer('goldrush');
       sfx('goldrush');
       shake(6, 240);
     }
+    r.goldRush.meter = r.frenzy;
+    r.goldRush.t = r.goldRushT;
+    applyFrenzyMults(ctx);
+    updateFrenzyCue(r);
     if (r.slowmoT > 0) {
       r.slowmoT -= STEP;
       if (r.slowmoT <= 0) { r.slowmoT = 0; r.timeScale = 1; }
@@ -2117,6 +2419,15 @@ import * as THREE from 'three';
       check(ctx.dpr === DPR && DPR >= 1 && DPR <= 3, 'ctx.dpr carries the pixel ratio (' + DPR + ')');
       check(!!ctx.time && ctx.time.dt === STEP && !!ctx.run && !!ctx.rng,
         'ctx schema matches SPEC (kit/scene/dpr/time/rng/player/save/run)');
+      check(RFD.BAL && RFD.BAL.metabScale === 0.5 && RFD.BAL.eatHealBonus === 1.25,
+        'Rev 3 balance data is present');
+      check(RFD.FRENZY2 && RFD.FRENZY2.school.count === 4
+        && RFD.FRENZY2.blood.dur === 6 && RFD.FRENZY2.golden.coinBurst === 250,
+        'Rev 3 frenzy data is present');
+      check(ctx.run.goldRush && ctx.run.goldRush.meter === 0 && ctx.run.goldRush.t === 0
+        && ctx.run.blood.t === 0 && ctx.run.school.count === 0
+        && ctx.run.golden.eaten === 0 && ctx.schoolSwirl.t === 0,
+        'separated frenzy state is initialized in place');
 
       var x0 = p.x, hp0 = p.hp;
 
@@ -2149,6 +2460,8 @@ import * as THREE from 'three';
       for (var w2 = 0; w2 < 60; w2++) stepHunger(p);
       var shallow = p.maxHp - p.hp;
       check(deep > shallow * 2.5, 'zone pressure multiplies drain');
+      check(Math.abs(shallow - p.stat.metab * num(BAL.metabScale, 1)) < p.stat.metab * 0.05,
+        'BAL.metabScale halves shallow hunger drain');
 
       // ---- RF-HITS-01: consumed exactly once, in the frame produced.
       p.hp = p.maxHp; p.st.invulnT = 0; p.st.phaseT = 0; ctx.run.goldRushT = 0;
@@ -2166,6 +2479,7 @@ import * as THREE from 'three';
       prey.active = true; prey.coins = 6; prey.hp = 1;
       var coins0 = ctx.run.coins;
       swallow(prey);
+      stepFrenzy();
       check(ctx.run.coins > coins0, 'swallow paid coins directly');
       check(prey.coins === 0, 'swallow zeroed entity coins so world drops no pickup');
 
@@ -2188,6 +2502,123 @@ import * as THREE from 'three';
       check(slowDrain > 0 && Math.abs(fullDrain - slowDrain * 2) < fullDrain * 0.05,
         'slowMetab halves hunger drain via the numeric multiplier');
       delete p.st.statMults;
+
+      // ---- Rev 3 frenzy state, triggers, and stacking ----------------
+      var savedFrenzyUI = RF.UI;
+      var frenzyChips = [], frenzyToasts = [];
+      RF.UI = {
+        chip: function (v) { frenzyChips.push(v); },
+        toast: function (v) { frenzyToasts.push(v); }
+      };
+      var healMeal = { active: true, kind: 'prey', tier: 0, x: p.x, y: p.y,
+        hp: 1, coins: 1, st: {}, def: { tier: 0, score: 1, coins: 1 } };
+      p.hp = 0;
+      swallow(healMeal);
+      stepFrenzy();
+      check(Math.abs(p.hp - 7.5) < 1e-9, 'BAL.eatHealBonus multiplies swallow healing');
+
+      var savedChance = FRENZY2.golden.chance;
+      var savedEntities = RF.World.entities;
+      var schoolPack = [];
+      for (var sp = 0; sp < 4; sp++) {
+        schoolPack.push({ active: true, kind: 'prey', tier: 0, x: p.x, y: p.y,
+          hp: 1, coins: 1, st: { packId: 77 },
+          def: { tier: 0, score: 1, coins: 1 } });
+      }
+      FRENZY2.golden.chance = 0;
+      RF.World.entities = schoolPack;
+      ctx.run.combo = 0; ctx.run.comboT = 0;
+      ctx.run.school.packId = 0; ctx.run.school.count = 0; ctx.run.school.swirlT = 0;
+      ctx.run._schoolTriggeredPackId = 0;
+      for (var se = 0; se < schoolPack.length; se++) swallow(schoolPack[se]);
+      stepFrenzy();
+      check(ctx.run.school.packId === 77 && ctx.run.school.count === 4,
+        'School counts four eats from one pack in the combo window');
+      check(ctx.run.school.swirlT > 4.9 && ctx.schoolSwirl.packId === 77,
+        'School publishes its in-place swirl descriptor');
+      check(frenzyChips.indexOf('SCHOOL FRENZY') >= 0
+        && frenzyToasts.indexOf('School Frenzy: the shoal is swirling') >= 0,
+        'School trigger calls both chip and toast');
+      p.st.biteCd = 0.25; ctx.run._schoolPlayerCd = 0;
+      stepFrenzy();
+      check(Math.abs(p.st.biteCd - 0.25 / num(FRENZY2.school.eatRate, 1)) < 1e-9,
+        'School scales the chew refill rate once');
+
+      // The same pack staying active during its own swirl cannot retrigger.
+      var schoolChipCount = frenzyChips.length;
+      FRENZY_EAT_N = 4;
+      for (var sk = 0; sk < 4; sk++) {
+        FRENZY_EAT_PACK[sk] = 77;
+        FRENZY_EAT_COMBO_T[sk] = 1;
+        FRENZY_EAT_BLOOD[sk] = false;
+        FRENZY_EAT_TIER[sk] = 0;
+      }
+      stepFrenzy();
+      check(frenzyChips.length === schoolChipCount,
+        'School cannot retrigger from its own swirl kills');
+
+      // Every pairwise cue overlap, plus the all-three case.
+      ctx.run.goldRushT = 0; ctx.run.blood.t = 2; ctx.run.school.swirlT = 2;
+      updateFrenzyCue(ctx.run);
+      check(ctx.run.frenzyCue === 'blood', 'Blood outranks School for the cue');
+      ctx.run.goldRushT = 2; ctx.run.blood.t = 0; ctx.run.school.swirlT = 2;
+      updateFrenzyCue(ctx.run);
+      check(ctx.run.frenzyCue === 'goldRush', 'Gold Rush outranks School for the cue');
+      ctx.run.goldRushT = 2; ctx.run.blood.t = 2; ctx.run.school.swirlT = 0;
+      updateFrenzyCue(ctx.run);
+      check(ctx.run.frenzyCue === 'goldRush', 'Gold Rush outranks Blood for the cue');
+      ctx.run.goldRushT = 2; ctx.run.blood.t = 2; ctx.run.school.swirlT = 2;
+      updateFrenzyCue(ctx.run);
+      check(ctx.run.frenzyCue === 'goldRush', 'all frenzy cues use Gold Rush priority');
+
+      p.st.statMults = { speed: 1, bite: 1, boost: 1, hp: 1, metab: 1 };
+      ctx.run._frenzyApplied = false; ctx.run.goldRushT = 2; ctx.run.blood.t = 2;
+      applyFrenzyMults(ctx);
+      check(Math.abs(p.st.statMults.bite - 1.5) < 1e-9,
+        'Blood bite multiplier is applied through live stat multipliers');
+      check(Math.abs(p.st.statMults.speed * num(FRENZY.goldRushSpeed, 1.4) - 1.4) < 1e-9,
+        'Blood speed does not compound with Gold Rush speed');
+      ctx.run._frenzyApplied = false; ctx.run.goldRushT = 0; ctx.run.blood.t = 2;
+      applyFrenzyMults(ctx);
+      check(Math.abs(p.st.statMults.speed - 1.2) < 1e-9,
+        'Blood speed applies alone');
+
+      // Force the authored rare roll to prove the full-clear payout and tint.
+      var goldPack = [];
+      for (var gp = 0; gp < 4; gp++) {
+        goldPack.push({ active: true, kind: 'prey', tier: 0, x: p.x, y: p.y,
+          hp: 1, coins: 1, st: { packId: 91 },
+          def: { tier: 0, score: 1, coins: 1 } });
+      }
+      FRENZY2.golden.chance = 1;
+      RF.World.entities = goldPack;
+      ctx.run.golden.packId = 0; ctx.run.golden.eaten = 0; ctx.run.golden.deadline = 0;
+      ctx.run._goldenRolledPackId = 0; ctx.run._schoolTriggeredPackId = 91;
+      ctx.run.combo = 0; ctx.run.comboT = 0; ctx.run.goldRushT = 0; ctx.run.frenzy = 0;
+      var coinsBeforeGolden = ctx.run.coins;
+      for (var ge = 0; ge < goldPack.length; ge++) swallow(goldPack[ge]);
+      check(goldPack[0]._tint === FRENZY_GOLD_TINT, 'Golden School marks pack members gold');
+      check(ctx.run.coins >= coinsBeforeGolden + 250, 'Golden School pays the coin burst on full clear');
+      stepFrenzy();
+      check(ctx.run.golden.packId === 0 && ctx.run.goldRushT > 0,
+        'Golden School fills the Gold Rush meter after the clear');
+      check(frenzyChips.indexOf('GOLDEN SCHOOL') >= 0,
+        'Golden School trigger calls the chip surface');
+      var voidGold = { active: true, kind: 'prey', tier: 0, x: p.x, y: p.y,
+        hp: 1, coins: 1, st: { packId: 123 } };
+      RF.World.entities = [voidGold];
+      ctx.run.golden.packId = 123; ctx.run.golden.eaten = 1; ctx.run.golden.deadline = 99;
+      voidGold._goldenPackId = 123;
+      var coinsBeforeVoid = ctx.run.coins;
+      RF.World.kill(voidGold, 'despawn');
+      check(ctx.run.golden.packId === 0 && ctx.run.coins === coinsBeforeVoid,
+        'Golden School despawn voids silently without a payout');
+      FRENZY2.golden.chance = savedChance;
+      RF.World.entities = savedEntities;
+      RF.UI = savedFrenzyUI;
+      delete p.st.statMults;
+      ctx.run.goldRushT = 0; ctx.run.frenzy = 0; ctx.run.blood.t = 0;
+      ctx.run.school.swirlT = 0; ctx.schoolSwirl.packId = 0; ctx.schoolSwirl.t = 0;
 
       // ---- RF-PROFILE-01
       profile.sharks.reef.up.bite = 3;
