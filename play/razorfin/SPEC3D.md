@@ -251,10 +251,10 @@ the headless CPU reference for the z term; the selftest also gates the derived
 `0.35 * bendOffset()` y travel at full amplitude to `>= 0.02 * bodyLen`.
 
 Every clone supplies a stable `customProgramCacheKey()` ending in
-`:rf-bend`, based on its base shader variant. The shell keeps its 1.045 scale
-but multiplies the bend amplitude by `1.0 / 1.045` in its shader variant, so
-the outline does not drift away from the body wave. The enumerated bend
-program variants must remain `<= 8`.
+`:rf-bend`, based on its base shader variant. The shell uses a restrained
+`1.022` scale, colored `0x0a1a24`, and multiplies the bend amplitude by
+`1.0 / 1.022` in its shader variant, so the outline does not drift away from
+the body wave. The enumerated bend program variants must remain `<= 8`.
 
 `bendOffset(x, phase, amp, k, spanX, spanY)` is the headless CPU reference
 for the exact smoothstep/sine deformation. GL context restoration must retain
@@ -268,8 +268,8 @@ animation writes only scalar uniform values and pre-existing object fields.
 The public rig shape remains `{ group, parts, animate }`, and consumers keep
 owning the outer group's world position, heading, bank, and eat-pop scale.
 Internally the hierarchy is `group -> pose -> parts`. The `pose` child is
-named `RF pose` and owns the visual read: yaw is `+0.28` for the normal
-facing and `-0.28` when the outer group has the engine's left-facing `PI`
+named `RF pose` and owns the visual read: yaw is `+0.42` for the normal
+facing and `-0.42` when the outer group has the engine's left-facing `PI`
 flip; bank is clamped to `±0.35` (starting at `±0.18`); pitch eases from
 `state.vy`; and speed stretch is `x *= 1 + 0.07*speedFrac`,
 `y/z *= 1 - 0.03*speedFrac`. The outer `group.scale` is never touched by
@@ -311,6 +311,22 @@ vertex-color gill bands spanning `+0.28..+0.38*bodyLen`, a half-size eye near
 the snout top, and a dark underslung mouth line. Gill and mouth colors stay in
 the merged feature batch so they receive the same bend uniforms as the body
 and shell.
+
+### Volumetric 3/4 read correction (2026-08-20)
+
+The live gameplay camera is intentionally not a pure profile camera. Fusiform
+spines therefore use `radiusZ / radiusY = 0.92` through the mid-body, with a
+headless gate at `>= 0.72`; the radial mesh remains `flatShading` and keeps its
+existing triangle budget. The pose yaw is `±0.42` and both pectorals splay
+`0.35` radians off the body plane, allowing the near fin and a lower far-fin
+edge to survive the 3/4 read. The shared toon ramp's darkest band is `0.30`,
+and the baked belly floor is `0.74` so the directional key supplies the
+countershade instead of a painted-on white underside.
+
+The engine-owned boot light constants are exported as `RF.Game.LIGHT_RIG`:
+hemisphere `0.55` and an upper-front-left directional key at `1.25` from
+`(-120, 260, 420)`. `world3d.js` remains the sole runtime zone-atmosphere
+writer after the lights are handed over.
 
 ### Camera correction
 

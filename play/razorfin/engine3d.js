@@ -363,6 +363,16 @@ import * as THREE from 'three';
   // lends to the atmosphere owner (world3d.js). Pre-allocated module scratch,
   // handed over by reference; never rebuilt per frame, never re-created per run.
   var LIGHTS = { hemi: null, sun: null, scene: null, renderer: null };
+  // Volumetric shark read: keep the boot rig's ambient fill restrained while
+  // the upper-front-left key carries the directional form. These are exported
+  // below so the headless gate cannot silently drift from the live rig.
+  var LIGHT_RIG = {
+    hemiIntensity: 0.55,
+    sunIntensity: 1.25,
+    sunX: -120,
+    sunY: 260,
+    sunZ: 420
+  };
 
   // Pre-allocated scratch. step() must never allocate.
   var EAT_BUF = new Array(96);
@@ -546,10 +556,10 @@ import * as THREE from 'three';
     // color/intensity inside applyZoneAtmo(); it receives the references
     // through ctx.lights (read at World.init) and through the explicit
     // RF.World.setLights() setter below, whichever that lane implements.
-    hemi = new THREE.HemisphereLight(0x9fd4e8, 0x06121e, 0.95);
+    hemi = new THREE.HemisphereLight(0x9fd4e8, 0x06121e, LIGHT_RIG.hemiIntensity);
     scene3.add(hemi);
-    sun = new THREE.DirectionalLight(0xffffff, 0.85);
-    sun.position.set(-120, 260, 420);
+    sun = new THREE.DirectionalLight(0xffffff, LIGHT_RIG.sunIntensity);
+    sun.position.set(LIGHT_RIG.sunX, LIGHT_RIG.sunY, LIGHT_RIG.sunZ);
     sun.castShadow = false;
     scene3.add(sun);
     LIGHTS.hemi = hemi;
@@ -2471,6 +2481,15 @@ import * as THREE from 'three';
         && isFinite(CAM_BLOOD_PUSH)
         && camZForTier(1) === 430 && camZForTier(12) === 340,
         'camera constants are finite (fov 50, z 430/340, pitch/bob finite)');
+      check(LIGHT_RIG.hemiIntensity === 0.55 && LIGHT_RIG.sunIntensity === 1.25
+        && LIGHT_RIG.sunX < 0 && LIGHT_RIG.sunY > 0 && LIGHT_RIG.sunZ > 0
+        && RF.Game && RF.Game.LIGHT_RIG
+        && RF.Game.LIGHT_RIG.hemiIntensity === LIGHT_RIG.hemiIntensity
+        && RF.Game.LIGHT_RIG.sunIntensity === LIGHT_RIG.sunIntensity
+        && RF.Game.LIGHT_RIG.sunPosition[0] === LIGHT_RIG.sunX
+        && RF.Game.LIGHT_RIG.sunPosition[1] === LIGHT_RIG.sunY
+        && RF.Game.LIGHT_RIG.sunPosition[2] === LIGHT_RIG.sunZ,
+        'volumetric light rig is 0.55 hemi plus 1.25 upper-front-left directional');
       triggerCamPulse(CAM_EAT_ZOOM, CAM_EAT_ZOOM_T);
       for (var camPulseStep = 0; camPulseStep < 60; camPulseStep++) stepCameraZoom(STEP);
       check(camState.pulseT === 0 && Math.abs(camState.zoom) < 0.001,
@@ -3242,7 +3261,7 @@ import * as THREE from 'three';
       var fog0 = atmoScene.fog.color.getHex(), den0 = atmoScene.fog.density;
       var bg0 = atmoScene.background.getHex();
       var hemiSaved = hemi;
-      hemi = new THREE.HemisphereLight(0x9fd4e8, 0x06121e, 0.95);
+      hemi = new THREE.HemisphereLight(0x9fd4e8, 0x06121e, LIGHT_RIG.hemiIntensity);
       var hcol0 = hemi.color.getHex(), hint0 = hemi.intensity;
       startRun('reef');
       ctx.player.y = 3400;              // deep water: the old code lerped hard here
@@ -3293,6 +3312,11 @@ import * as THREE from 'three';
     CSS_W: CSS_W, CSS_H: CSS_H,
     STEP: STEP,
     LEN_SCALE: LEN_SCALE,
+    LIGHT_RIG: {
+      hemiIntensity: LIGHT_RIG.hemiIntensity,
+      sunIntensity: LIGHT_RIG.sunIntensity,
+      sunPosition: [LIGHT_RIG.sunX, LIGHT_RIG.sunY, LIGHT_RIG.sunZ]
+    },
     __resourceGate: RESOURCE_GATE,
     startRun: startRun,
     endRun: endRun,

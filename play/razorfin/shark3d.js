@@ -26,7 +26,7 @@ const WHITE = 0xffffff;
 const FEATURE_EMISSIVE_INTENSITY = 0.82;
 const EYE_EMISSIVE_INTENSITY = 0.9;
 const BODY_EMISSIVE_MAX = 0.05;
-const BODY_RAMP_BANDS = [0.40, 0.65, 0.84, 1.0];
+const BODY_RAMP_BANDS = [0.30, 0.65, 0.84, 1.0];
 const BODY_DORSAL_START = 0.75;
 const BODY_FLANK_START = 0.50;
 const BODY_BELLY_END = BODY_FLANK_START;
@@ -49,6 +49,13 @@ const TAIL_MIN_RATIO = 0.18;
 const TAIL_MAX_RATIO = 0.34;
 const FUSIFORM_BODY_ASPECT_MIN = 3.1;
 const FUSIFORM_ASPECT_MIN = 2.8;
+const FUSIFORM_SECTION_Z_RATIO = 0.92;
+const FUSIFORM_SECTION_Z_RATIO_MIN = 0.72;
+const BODY_BELLY_BAKE_LUMINANCE = 0.74;
+const SHARK_POSE_YAW = 0.42;
+const PECTORAL_SPLAY = 0.35;
+const OUTLINE_SHELL_SCALE = 1.022;
+const OUTLINE_SHELL_COLOR = 0x0a1a24;
 const BEND_Y_SCALE = 0.35;
 const FUSIFORM_EXCEPTIONS = new Set(['eel', 'kaiju', 'whale']);
 // These heads either own an intentionally full front profile or add a large
@@ -350,7 +357,9 @@ function bodyRampColors(palette, act = 1) {
   const dorsal = committedColor(palette.base, 0.50, 0.12, 0.22);
   const flank = committedColor(palette.base, BODY_FLANK_SATURATION_TARGET, 0.50, BODY_FLANK_VALUE_MAX);
   const accentMark = committedColor(palette.accent, 0.58, 0.52, 0.72);
-  const belly = liftColorToLuminance(palette.belly, 0.82);
+  // Keep the belly from arriving pre-lit. A lower bake floor leaves the
+  // directional key responsible for the top-lit gradient and underside falloff.
+  const belly = liftColorToLuminance(palette.belly, BODY_BELLY_BAKE_LUMINANCE);
   const highlight = committedColor(palette.belly, 0.12, 0.58, 0.72);
   const glow = committedColor(palette.glow || palette.accent, 0.68, 0.52, 0.72);
   const shadow = committedColor(palette.base, 0.58, 0.08, 0.16);
@@ -632,6 +641,14 @@ function makeSpineGeometry(def, palette, dimensions) {
   geometry.userData.rfForwardAxis = '+x';
   geometry.userData.rfPattern = sil.pattern || 'plain';
   geometry.userData.rfPalette = palette.raw;
+  geometry.userData.rfSectionZRatio = radiusZ / Math.max(radiusY, 0.001);
+  const midU = 0.5;
+  const midProfile = profileAt(midU, head, girth, String(def.id || ''));
+  const midYRadius = radiusY * midProfile * spineLineScale(midU, 0, head);
+  const midZRadius = radiusZ * midProfile;
+  geometry.userData.rfMidSectionYRadius = midYRadius;
+  geometry.userData.rfMidSectionZRadius = midZRadius;
+  geometry.userData.rfMidSectionRoundness = midZRadius / Math.max(midYRadius, 0.001);
   if (head === 'whale' || head === 'kaiju') {
     geometry.userData.rfBulkRearProfile = profileAt(0.22, head, girth, String(def.id || ''));
     geometry.userData.rfBulkFrontProfile = profileAt(0.68, head, girth, String(def.id || ''));
@@ -1466,7 +1483,9 @@ function buildTemplate(def) {
   const idWidthFactor = id === 'mako' || id === 'thresher' ? 0.78 : 1;
   const radiusY = bodyLen * (isFusiformHead(head) ? 0.10 + girth * 0.085 : 0.14 + girth * 0.21)
     * headWidthFactor * idWidthFactor;
-  const radiusZ = radiusY * (head === 'eel' ? 0.9 : 0.82);
+  const radiusZ = radiusY * (isFusiformHead(head)
+    ? FUSIFORM_SECTION_Z_RATIO
+    : head === 'eel' ? 0.9 : 0.82);
   const pectoralHeadFactor = {
     hammer: 1.45,
     whale: 0.82,
@@ -1643,7 +1662,7 @@ function buildShark(def) {
     template.featureBatches.some((batch) => batch.geometry.userData.rfFeatureNames.some((name) => name.includes('plate'))) &&
     template.featureBatches.some((batch) => batch.geometry.userData.rfFeatureNames.some((name) => name.includes('eye')));
 
-  const shellScale = 1.045;
+  const shellScale = OUTLINE_SHELL_SCALE;
   const bendK = 4.6 / Math.max(template.dimensions.bodyLen, 0.001);
   const bendSpanX = template.dimensions.bodyLen * 0.05;
   const bendSpanY = template.dimensions.bodyLen * 0.52;
@@ -1662,13 +1681,13 @@ function buildShark(def) {
 
   const pose = new THREE.Group();
   pose.name = 'RF pose';
-  pose.rotation.y = 0.28;
+  pose.rotation.y = SHARK_POSE_YAW;
   group.userData.rfPose = pose;
   group.add(pose);
 
   const body = new THREE.Mesh(template.bodyGeometry, bendableMaterial(template.bodyMaterial, uniforms));
   body.name = 'RF body';
-  const shellMaterial = toonMaterial({ color: 0x06111c, side: THREE.BackSide, kind: 'silhouette shell' });
+  const shellMaterial = toonMaterial({ color: OUTLINE_SHELL_COLOR, side: THREE.BackSide, kind: 'silhouette shell' });
   shellMaterial.userData.rfBendAmpScale = 1 / shellScale;
   const shell = new THREE.Mesh(template.bodyGeometry, bendableMaterial(shellMaterial, uniforms));
   shell.name = 'RF dark silhouette edge shell';
@@ -1687,11 +1706,13 @@ function buildShark(def) {
   const pectL = new THREE.Mesh(template.pectGeometry, template.pectMaterial);
   pectL.name = 'RF pectoral L';
   pectL.position.set(-template.dimensions.bodyLen * 0.05, -template.dimensions.radiusY * 0.05, template.dimensions.radiusZ * 0.26);
+  pectL.rotation.x = PECTORAL_SPLAY;
   pose.add(pectL);
   const pectR = new THREE.Mesh(template.pectGeometry, template.pectMaterial);
   pectR.name = 'RF pectoral R';
   pectR.position.set(-template.dimensions.bodyLen * 0.05, -template.dimensions.radiusY * 0.05, -template.dimensions.radiusZ * 0.26);
   pectR.scale.z = -1;
+  pectR.rotation.x = -PECTORAL_SPLAY;
   pose.add(pectR);
 
   let jaw = null;
@@ -1730,8 +1751,8 @@ function buildShark(def) {
     tail.rotation.y = Math.sin(tailPhase) * tailSweep + turn * 0.12;
     tail.rotation.z = Math.sin(tailPhase + Math.PI * 0.5) * (0.045 + speedFrac * 0.04);
     const flutter = Math.sin(animation.phase * 0.5 + Math.PI * 0.25) * (0.045 + speedFrac * 0.09);
-    pectL.rotation.x = 0.08 + flutter;
-    pectR.rotation.x = -0.08 - flutter;
+    pectL.rotation.x = PECTORAL_SPLAY + flutter;
+    pectR.rotation.x = -PECTORAL_SPLAY - flutter;
     pectL.rotation.z = -turn * 0.12;
     pectR.rotation.z = -turn * 0.12;
 
@@ -1739,7 +1760,7 @@ function buildShark(def) {
     const roll = Math.sin(animation.phase) * 0.04;
     group.userData.rfBodyRoll = roll;
     pose.rotation.x = clamp(bank + roll, -0.35, 0.35);
-    pose.rotation.y = Math.cos(group.rotation.y) < 0 ? -0.28 : 0.28;
+    pose.rotation.y = Math.cos(group.rotation.y) < 0 ? -SHARK_POSE_YAW : SHARK_POSE_YAW;
     // The body owns the merged head/features batch, so this counter-yaw keeps
     // the snout alive in profile without disturbing the consumer-owned pose
     // yaw contract or the shared bend program.
@@ -2236,6 +2257,11 @@ function auditSharkShapeContracts(def, rig) {
   if (fusiform && group.userData.rfAspect < FUSIFORM_ASPECT_MIN - 1e-9) {
     throw new Error(`${def.id}: fusiform aspect ${group.userData.rfAspect.toFixed(3)} < ${FUSIFORM_ASPECT_MIN.toFixed(2)}`);
   }
+  const sectionRatio = finite(parts.body.geometry.userData.rfSectionZRatio, 0);
+  const midSectionRoundness = finite(parts.body.geometry.userData.rfMidSectionRoundness, 0);
+  if (fusiform && (sectionRatio < FUSIFORM_SECTION_Z_RATIO_MIN - 1e-9 || midSectionRoundness < FUSIFORM_SECTION_Z_RATIO_MIN - 1e-9)) {
+    throw new Error(`${def.id}: mid-body section roundness ${sectionRatio.toFixed(3)} / ${midSectionRoundness.toFixed(3)} < ${FUSIFORM_SECTION_Z_RATIO_MIN.toFixed(2)}`);
+  }
 
   const dorsal = group.userData.rfDorsalFin;
   if (fusiform && (!dorsal || !dorsal.swept || Math.abs(dorsal.rootX / bodyLen - 0.05) > 0.06 || dorsal.height / bodyLen < 0.18 || dorsal.height / bodyLen > 0.27)) {
@@ -2245,6 +2271,9 @@ function auditSharkShapeContracts(def, rig) {
   const pectTipX = parts.pectL.geometry.userData.rfPectoralTipX;
   if (fusiform && (pectTipX > -bodyLen * 0.55 || pectDepth > bodyLen * 0.025)) {
     throw new Error(`${def.id}: pectoral is not long/thin/swept back`);
+  }
+  if (fusiform && (Math.abs(parts.pectL.rotation.x) < PECTORAL_SPLAY - 0.06 || Math.abs(parts.pectR.rotation.x) < PECTORAL_SPLAY - 0.06)) {
+    throw new Error(`${def.id}: pectorals are edge-on; splay is ${parts.pectL.rotation.x.toFixed(3)} / ${parts.pectR.rotation.x.toFixed(3)}`);
   }
   if (fusiform && (group.userData.rfEyeRadius / group.userData.rfBodyLen > group.userData.rfEffectiveGirth * 0.085 + 1e-9 || group.userData.rfEyeY / bodyLen < 0.045)) {
     throw new Error(`${def.id}: eye was not reduced and lifted toward the snout top`);
@@ -2340,7 +2369,7 @@ function __selftest() {
       const pose = group.userData.rfPose;
       const uniforms = group.userData.rfBendUniforms;
       if (!(pose instanceof THREE.Group) || pose.parent !== group || group.children[0] !== pose) throw new Error(`${def.id}: pose group is not between group and parts`);
-      if (Math.abs(Math.abs(pose.rotation.y) - 0.28) > 1e-9) throw new Error(`${def.id}: pose yaw ${pose.rotation.y.toFixed(3)} is not ±0.28`);
+      if (Math.abs(Math.abs(pose.rotation.y) - SHARK_POSE_YAW) > 1e-9) throw new Error(`${def.id}: pose yaw ${pose.rotation.y.toFixed(3)} is not ±${SHARK_POSE_YAW.toFixed(2)}`);
       if (!uniforms || !uniforms.uBendPhase || !uniforms.uBendAmp || !uniforms.uBendK || !uniforms.uBendSpan) throw new Error(`${def.id}: incomplete bend uniform bundle`);
       const materials = bendMaterials(group);
       if (materials.length < 3) throw new Error(`${def.id}: body/shell/features did not receive bend materials`);
@@ -2351,7 +2380,9 @@ function __selftest() {
         bendProgramKeys.add(material.customProgramCacheKey());
       }
       const shell = parts.body.children.find((object) => object.name === 'RF dark silhouette edge shell');
-      if (!shell || Math.abs(shell.scale.x - 1.045) > 1e-9 || Math.abs(shell.material.userData.rfBendAmpScale - 1 / 1.045) > 1e-9) throw new Error(`${def.id}: shell bend amplitude is not divided by its 1.045 scale`);
+      if (!shell || shell.scale.x > 1.025 + 1e-9 || Math.abs(shell.scale.x - OUTLINE_SHELL_SCALE) > 1e-9 || shell.material.color.getHex() !== OUTLINE_SHELL_COLOR || Math.abs(shell.material.userData.rfBendAmpScale - 1 / OUTLINE_SHELL_SCALE) > 1e-9) {
+        throw new Error(`${def.id}: outline shell is not ${OUTLINE_SHELL_SCALE.toFixed(3)}x with lifted ink color`);
+      }
       const shaderProbe = { uniforms: {}, vertexShader: '#include <common>\n#include <begin_vertex>' };
       parts.body.material.onBeforeCompile(shaderProbe);
       if (shaderProbe.uniforms.uBendPhase !== uniforms.uBendPhase || shaderProbe.uniforms.uBendAmp !== uniforms.uBendAmp || shaderProbe.uniforms.uBendK !== uniforms.uBendK || shaderProbe.uniforms.uBendSpan !== uniforms.uBendSpan || !shaderProbe.vertexShader.includes('bendT=smoothstep') || !shaderProbe.vertexShader.includes('uBendPhase+transformed.x*uBendK')) {
@@ -2382,6 +2413,8 @@ function __selftest() {
         head: def.sil.head,
         ratio: Number(ratio.toFixed(3)),
         bodyAspect: Number(metrics.rfBodyAspect.toFixed(3)),
+        sectionZRatio: Number(finite(parts.body.geometry.userData.rfSectionZRatio, 0).toFixed(3)),
+        midSectionRoundness: Number(finite(parts.body.geometry.userData.rfMidSectionRoundness, 0).toFixed(3)),
         faceShare: Number(metrics.rfFaceShare.toFixed(3)),
         jawVolumeRatio: Number(metrics.rfJawVolumeRatio.toFixed(3)),
         tailShare: Number(metrics.rfTailShare.toFixed(3)),
@@ -2412,13 +2445,13 @@ function __selftest() {
       const tailRange = Math.max(...samplesTail) - Math.min(...samplesTail);
       if (tailRange < 0.01) throw new Error(`${def.id}: tail did not oscillate`);
       rig.animate(2, { speedFrac: 1, turn: 1, bank: 0.35, vy: 180, preyNear: true });
-      if (Math.abs(pose.rotation.y) < 0.27 || Math.abs(pose.rotation.y) > 0.29 || Math.abs(pose.rotation.x) > 0.35 + 1e-9 || Math.abs(pose.rotation.z) > 0.22 + 1e-9 || pose.scale.x <= 1 || pose.scale.y >= 1) {
+      if (Math.abs(pose.rotation.y) < SHARK_POSE_YAW - 1e-9 || Math.abs(pose.rotation.y) > SHARK_POSE_YAW + 1e-9 || Math.abs(pose.rotation.x) > 0.35 + 1e-9 || Math.abs(pose.rotation.z) > 0.22 + 1e-9 || pose.scale.x <= 1 || pose.scale.y >= 1) {
         throw new Error(`${def.id}: pose yaw/bank/pitch/stretch is outside contract`);
       }
       if (parts.jaw && Math.abs(parts.jaw.rotation.z) < 1e-6) throw new Error(`${def.id}: preyNear jaw anticipation did not open the jaw`);
       group.rotation.y = Math.PI;
       rig.animate(2 + 1 / 60, { speedFrac: 0, turn: 0, bank: 0 });
-      if (Math.abs(pose.rotation.y + 0.28) > 1e-9) throw new Error(`${def.id}: left-facing pose yaw did not mirror`);
+      if (Math.abs(pose.rotation.y + SHARK_POSE_YAW) > 1e-9) throw new Error(`${def.id}: left-facing pose yaw did not mirror`);
       group.rotation.y = 0;
       const rampRig = buildShark(def);
       const rampUniforms = rampRig.group.userData.rfBendUniforms;
@@ -2521,7 +2554,7 @@ function __selftest() {
     if (result.cacheBytes > 120 * 1024 * 1024) throw new Error(`geometry cache exceeds 120MB: ${result.gpuEstimateMB}MB`);
     result.notes.push('headless BufferGeometry path; no renderer or GL context required');
     result.notes.push(`shared ${rampTexels}-texel NEAREST linear luminance gradientMap; needsUpdate=true`);
-    result.notes.push(`body vertex colors finite; dorsal luminance <= 0.30, flank HSV floor/value gate, belly luminance >= 0.70 on ${calibrationRows.length} calibration rows`);
+    result.notes.push(`body vertex colors finite; dorsal luminance <= 0.30, flank HSV floor/value gate, belly bake floor ${BODY_BELLY_BAKE_LUMINANCE.toFixed(2)} with luminance >= 0.70 on ${calibrationRows.length} calibration rows`);
     result.notes.push(`hard body blocks: dorsal topness >= ${BODY_DORSAL_START.toFixed(2)}, vivid flank >= ${BODY_FLANK_START.toFixed(2)}, pale belly < ${BODY_FLANK_START.toFixed(2)}; no cross-block lerp`);
     result.notes.push(`flank HSV saturation >= ${BODY_FLANK_SATURATION_FLOOR.toFixed(2)}, value ${BODY_FLANK_VALUE_MIN.toFixed(2)}..${BODY_FLANK_VALUE_MAX.toFixed(2)}; adjacent RGB distance >= ${BODY_BLOCK_DISTANCE_MIN}`);
     result.notes.push(`Act 3 glow hue is carried by the ${BODY_FLANK_START.toFixed(2)}..${BODY_RIM_END.toFixed(2)} flank-edge row above the belly line; rim hue is self-tested against palette.glow`);
@@ -2534,8 +2567,8 @@ function __selftest() {
     result.notes.push(`fusiform body core aspect >= ${FUSIFORM_BODY_ASPECT_MIN.toFixed(1)} and visual aspect >= ${FUSIFORM_ASPECT_MIN.toFixed(1)}; eel/whale/kaiju are documented bulk exceptions`);
     result.notes.push('swept dorsal fin, long thin swept-back pectorals, five dark vertex-color gill bands at +0.28..+0.38L, half-size top-snouted eyes, and vertex-color mouth line are shape-gated');
     result.notes.push(`bend hook injects phase/amp/k/span with stable :rf-bend cache keys; ${result.bendProgramVariants.length} program variants <= 8`);
-    result.notes.push('one per-rig bend uniform bundle is identity-shared by body, 1.045x shell compensation, and every feature batch; CPU bendOffset nose/tail reference checked');
-    result.notes.push('pose child owns yaw ±0.28, bank clamp ±0.35, vy pitch blend, and speed stretch; outer group scale remains the world/eat-pop authority');
+    result.notes.push(`one per-rig bend uniform bundle is identity-shared by body, ${OUTLINE_SHELL_SCALE.toFixed(3)}x shell compensation, and every feature batch; CPU bendOffset nose/tail reference checked`);
+    result.notes.push(`pose child owns yaw ±${SHARK_POSE_YAW.toFixed(2)}, pectoral splay ${PECTORAL_SPLAY.toFixed(2)} rad, bank clamp ±0.35, vy pitch blend, and speed stretch; outer group scale remains the world/eat-pop authority`);
     result.notes.push(`phase accumulator integrates continuous rate 2.2..8.5 Hz; tail yaw sweep is 0.38..0.68 rad, tip travel >= 0.10L, bend y term is ${BEND_Y_SCALE.toFixed(2)}*z and max y travel >= 0.02L; body roll/head counter-yaw are ±0.04/±0.05`);
     result.notes.push(`all ${result.patterns.used.length} live sil.pattern IDs are explicit vertex-colour painters; tiger stripes use seven ${'hard-edged'} axial bands`);
     result.notes.push(`roster distinctness signature: ${result.distinctness.checked} defs, ${result.distinctness.adjacentComparisons} adjacent-tier pairs, threshold ${result.distinctness.threshold.toFixed(2)}, minimum ${result.distinctness.minimumDistance.toFixed(3)} (${result.distinctness.closestPair.join('/')})`);

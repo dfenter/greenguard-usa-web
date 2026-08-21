@@ -3,9 +3,9 @@
 - Bend materials are clones of cached template materials and are created only
   by `buildShark`; `animate()` writes scalar values into the rig's one shared
   uniform bundle.
-- The outline shell keeps its 1.045 scale for the silhouette read. Its shader
-  variant compensates the bend amplitude by `1 / 1.045`; a separate uniform
-  bundle would violate the per-rig identity contract.
+- The outline shell uses a restrained 1.022 scale and its shader variant
+  compensates the bend amplitude by `1 / 1.022`; a separate uniform bundle
+  would violate the per-rig identity contract.
 - The pose child sits between the consumer-owned outer group and all parts.
   `group.scale` remains the world-unit/eat-pop authority; speed stretch lives
   on `pose.scale`.
