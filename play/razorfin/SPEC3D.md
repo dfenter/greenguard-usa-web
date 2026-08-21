@@ -240,8 +240,15 @@ rig's bendable material clones. `onBeforeCompile` adds the four uniforms after
 
 ```glsl
 float bendT=smoothstep(uBendSpan.x,uBendSpan.y,-transformed.x);
-transformed.z += uBendAmp*bendT*sin(uBendPhase+transformed.x*uBendK);
+float bendZ=uBendAmp*bendT*sin(uBendPhase+transformed.x*uBendK);
+transformed.z += bendZ;
+transformed.y += 0.35*bendZ;
 ```
+
+The `0.35` y term is intentional: a profile camera must see the traveling
+wave in silhouette, not only along the camera-facing z axis. `bendOffset()` is
+the headless CPU reference for the z term; the selftest also gates the derived
+`0.35 * bendOffset()` y travel at full amplitude to `>= 0.02 * bodyLen`.
 
 Every clone supplies a stable `customProgramCacheKey()` ending in
 `:rf-bend`, based on its base shader variant. The shell keeps its 1.045 scale
@@ -276,9 +283,34 @@ phase += rate * TAU * dt;
 amp = 0.06 + 0.30 * pow(speedFrac, 1.2);
 ```
 
-The tail pivot follows `amp*k*cos(phase + tailRootX*k)` so the caudal fin
-continues the body wave. If `state.preyNear` is truthy, the jaw eases toward
-`0.35*gape` as anticipation; the existing bite/snap inputs remain valid.
+The tail pivot is phase-locked to the body wave at `phase + tailRootX*k`, and
+its yaw sweep is `0.38 + 0.30*speedFrac` radians, with the turn input layered
+on top. The tail tip must travel at least `0.10 * bodyLen` per beat. Body roll
+oscillates at the wave rate with `±0.04` radians and the merged body/head batch
+counter-yaws `±0.05` radians. If `state.preyNear` is truthy, the jaw eases
+toward `0.35*gape` as anticipation; the existing bite/snap inputs remain
+valid.
+
+### Shark-face proportion contract
+
+Ordinary fusiform heads use an effective-girth clamp and a front-22% rounded
+snout taper. Their spine core must satisfy `bodyLen / maxHeight >= 3.1` and
+the reported visual aspect must remain `>= 2.8`. The only documented bulk
+exceptions are `eel`, `whale`, and `kaiju`.
+
+The caudal fin uses `tailLen = bodyLen * (0.20 + tailScale * 0.07)`, with the
+effective authored `tailScale` capped at `2.0` so fusiform tails remain in the
+hard `0.18..0.34 * bodyLen` range. The upper lobe is
+`bodyLen * (0.16 + tailScale * 0.05)`; the lower heterocercal lobe is exactly
+`0.62 * upper`, the peduncle root is `0.045 * bodyLen`, and the outline has a
+concave crescent notch.
+
+Fusiform faces also require a swept dorsal fin centered near `+0.05*bodyLen`
+with height near `0.22*bodyLen`, long thin swept-back pectorals, five dark
+vertex-color gill bands spanning `+0.28..+0.38*bodyLen`, a half-size eye near
+the snout top, and a dark underslung mouth line. Gill and mouth colors stay in
+the merged feature batch so they receive the same bend uniforms as the body
+and shell.
 
 ### Camera correction
 

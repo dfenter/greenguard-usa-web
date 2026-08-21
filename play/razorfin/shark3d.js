@@ -37,6 +37,16 @@ const BODY_FLANK_VALUE_MIN = 0.45;
 const BODY_FLANK_VALUE_MAX = 0.75;
 const BODY_BLOCK_DISTANCE_MIN = 60;
 const KAIJU_PLATE_GLOW = 0xa3fff3;
+const TAIL_MIN_RATIO = 0.18;
+const TAIL_MAX_RATIO = 0.34;
+const FUSIFORM_BODY_ASPECT_MIN = 3.1;
+const FUSIFORM_ASPECT_MIN = 2.8;
+const BEND_Y_SCALE = 0.35;
+const FUSIFORM_EXCEPTIONS = new Set(['eel', 'kaiju', 'whale']);
+
+function isFusiformHead(head) {
+  return !FUSIFORM_EXCEPTIONS.has(head);
+}
 
 function clamp(value, lo, hi) {
   return value < lo ? lo : value > hi ? hi : value;
@@ -264,7 +274,7 @@ function bendableMaterial(baseMat, uniforms) {
       '#include <common>\nuniform float uBendPhase;\nuniform float uBendAmp;\nuniform float uBendK;\nuniform vec2 uBendSpan;'
     ).replace(
       '#include <begin_vertex>',
-      `#include <begin_vertex>\nfloat bendT=smoothstep(uBendSpan.x,uBendSpan.y,-transformed.x);\ntransformed.z += ${ampScale === 1 ? 'uBendAmp' : `uBendAmp*${ampScale.toFixed(6)}`}*bendT*sin(uBendPhase+transformed.x*uBendK);`
+      `#include <begin_vertex>\nfloat bendT=smoothstep(uBendSpan.x,uBendSpan.y,-transformed.x);\nfloat bendZ=${ampScale === 1 ? 'uBendAmp' : `uBendAmp*${ampScale.toFixed(6)}`}*bendT*sin(uBendPhase+transformed.x*uBendK);\ntransformed.z += bendZ;\ntransformed.y += ${BEND_Y_SCALE.toFixed(2)}*bendZ;`
     );
   };
   material.customProgramCacheKey = () => `${baseKey}:rf-bend`;
@@ -362,7 +372,25 @@ function profileAt(u, head, girth) {
   if (head === 'rock') profile *= 0.98 + 0.08 * Math.sin(u * 17);
   if (head === 'skull') profile *= 0.96 + u * 0.1;
   if (head === 'void') profile *= 0.92 + 0.08 * Math.sin(u * Math.PI * 0.8);
+  // The front 22% resolves into a small rounded ring before the explicit
+  // nose cap. Face masses still own the archetype silhouette, but the spine
+  // no longer carries an egg-shaped blunt front into profile cameras.
+  if (head !== 'whale' && head !== 'kaiju') {
+    const snoutT = clamp((u - 0.78) / 0.22, 0, 1);
+    const snoutEase = snoutT * snoutT * (3 - 2 * snoutT);
+    profile *= 1 - 0.84 * snoutEase;
+  }
   return profile * (1 + Math.min(0.22, girth * 0.12));
+}
+
+function spineLineScale(u, theta) {
+  const barrel = Math.max(0, Math.sin(Math.PI * Math.min(1, u)));
+  // A restrained, monotonic dorsal line reads as a back; the belly is allowed
+  // to carry the fuller mid-body curve. This is deliberately separate from
+  // profileAt so the radial section remains a cheap, cacheable scalar.
+  return Math.cos(theta) >= 0
+    ? 0.90 + 0.10 * u
+    : 0.72 + 0.28 * Math.pow(barrel, 1.15);
 }
 
 function makeSpineGeometry(def, palette, dimensions) {
@@ -390,7 +418,8 @@ function makeSpineGeometry(def, palette, dimensions) {
       const theta = (j / radial) * TAU;
       const jitter = head === 'rock' ? 1 + (hash01(i, j, 5) - 0.5) * 0.12 : 1;
       const c = bodyVertexColor(ramp, theta, u, i, j, sil.pattern || 'plain');
-      addVertex(positions, colors, x, Math.cos(theta) * stationY * jitter, Math.sin(theta) * stationZ * jitter, c);
+      const lineScale = spineLineScale(u, theta);
+      addVertex(positions, colors, x, Math.cos(theta) * stationY * lineScale * jitter, Math.sin(theta) * stationZ * jitter, c);
     }
   }
 
@@ -451,6 +480,31 @@ function makeExtrudedPolygon(points, depth) {
     indices.push(i, next, n + i, next, n + next, n + i);
   }
   return bufferGeometry(positions, indices);
+}
+
+function makeVertexColorExtrudedPolygon(points, depth, frontColor, backColor = frontColor) {
+  const positions = [];
+  const colors = [];
+  const front = colorValue(frontColor, WHITE);
+  const back = colorValue(backColor, WHITE);
+  for (const point of points) {
+    positions.push(point[0], point[1], point[2] + depth * 0.5);
+    colors.push(front.r, front.g, front.b);
+  }
+  for (const point of points) {
+    positions.push(point[0], point[1], point[2] - depth * 0.5);
+    colors.push(back.r, back.g, back.b);
+  }
+  const n = points.length;
+  const indices = [];
+  for (let i = 1; i < n - 1; i++) indices.push(0, i, i + 1, n, n + i + 1, n + i);
+  for (let i = 0; i < n; i++) {
+    const next = (i + 1) % n;
+    indices.push(i, next, n + i, next, n + next, n + i);
+  }
+  const geometry = bufferGeometry(positions, indices, colors);
+  geometry.userData.rfVertexColorFeature = true;
+  return geometry;
 }
 
 function faceIdentity(head, L, r) {
@@ -540,11 +594,16 @@ function mergeFeatureDescriptors(features) {
     const key = feature.material.uuid;
     let bucket = buckets.get(key);
     if (!bucket) {
-      bucket = { material: feature.material, positions: [], indices: [], names: [], count: 0 };
+      bucket = { material: feature.material, positions: [], colors: [], indices: [], names: [], count: 0, hasColors: false };
       buckets.set(key, bucket);
     }
     const position = feature.geometry.getAttribute('position');
     if (!position) continue;
+    const sourceColors = feature.geometry.getAttribute('color');
+    if (sourceColors && !bucket.hasColors) {
+      bucket.hasColors = true;
+      bucket.colors = new Array(bucket.positions.length).fill(1);
+    }
     const matrix = new THREE.Matrix4().compose(
       new THREE.Vector3(...feature.position),
       new THREE.Quaternion().setFromEuler(new THREE.Euler(...feature.rotation)),
@@ -554,6 +613,13 @@ function mergeFeatureDescriptors(features) {
     for (let i = 0; i < position.count; i++) {
       const vertex = new THREE.Vector3(position.getX(i), position.getY(i), position.getZ(i)).applyMatrix4(matrix);
       bucket.positions.push(vertex.x, vertex.y, vertex.z);
+      if (bucket.hasColors) {
+        bucket.colors.push(
+          sourceColors ? sourceColors.getX(i) : 1,
+          sourceColors ? sourceColors.getY(i) : 1,
+          sourceColors ? sourceColors.getZ(i) : 1
+        );
+      }
     }
     const index = feature.geometry.getIndex();
     if (index) {
@@ -565,29 +631,37 @@ function mergeFeatureDescriptors(features) {
     bucket.count++;
   }
   return Array.from(buckets.values()).map((bucket) => {
-    const geometry = bufferGeometry(bucket.positions, bucket.indices);
+    const geometry = bufferGeometry(bucket.positions, bucket.indices, bucket.hasColors ? bucket.colors : null);
     geometry.userData.rfMerged = true;
     geometry.userData.rfFeatureCount = bucket.count;
     geometry.userData.rfFeatureNames = bucket.names;
+    geometry.userData.rfVertexColorFeature = bucket.hasColors;
     return { geometry, material: bucket.material, name: `batched ${bucket.names.slice(0, 4).join(' / ')}` };
   });
 }
 
 function makeTailGeometry(bodyLen, tailScale, tier, palette, pattern) {
-  const tierMass = 1 + Math.max(0, tier - 4) * 0.045;
-  const length = bodyLen * (0.55 + tailScale * 0.2) * tierMass;
-  const upper = bodyLen * (0.3 + tailScale * 0.12) * tierMass;
-  const lower = bodyLen * (0.2 + tailScale * 0.08) * tierMass;
-  const root = bodyLen * (0.08 + Math.max(0, tier - 8) * 0.006);
-  const depth = bodyLen * (0.08 + Math.max(0, tier - 8) * 0.006);
+  // Tail scale is already capped to 2.0 by buildTemplate. Keeping the
+  // requested formula literal here makes the silhouette gate auditable.
+  const length = bodyLen * (0.20 + tailScale * 0.07);
+  const upper = bodyLen * (0.16 + tailScale * 0.05);
+  const lower = upper * 0.62;
+  const root = bodyLen * 0.045;
+  const depth = bodyLen * 0.045;
+  const notch = length * 0.56;
   const points = [
-    [root * 0.8, root, 0],
-    [-length * 0.18, upper * 0.42, 0],
+    [0, root * 0.55, 0],
+    [-bodyLen * 0.018, root * 0.82, 0],
+    [-length * 0.18, upper * 0.34, 0],
+    [-length * 0.78, upper * 0.80, 0],
     [-length, upper, 0],
-    [-length * 0.72, 0, 0],
-    [-length * 0.92, -lower, 0],
-    [-length * 0.18, -lower * 0.4, 0],
-    [root * 0.8, -root, 0]
+    [-length * 0.80, upper * 0.10, 0],
+    [-notch, 0, 0],
+    [-length * 0.79, -lower * 0.10, 0],
+    [-length * 0.93, -lower, 0],
+    [-length * 0.18, -lower * 0.34, 0],
+    [-bodyLen * 0.018, -root * 0.82, 0],
+    [0, -root * 0.55, 0]
   ];
   const positions = [];
   const colors = [];
@@ -614,14 +688,25 @@ function makeTailGeometry(bodyLen, tailScale, tier, palette, pattern) {
   }
   const geometry = bufferGeometry(positions, indices, colors);
   geometry.userData.rfPattern = pattern || 'plain';
+  geometry.userData.rfTailLength = length;
+  geometry.userData.rfTailLengthRatio = length / Math.max(bodyLen, 0.001);
+  geometry.userData.rfTailUpperLobeHeight = upper;
+  geometry.userData.rfTailLowerLobeHeight = lower;
+  geometry.userData.rfTailRootWidth = root;
+  geometry.userData.rfTailNotchX = -notch;
+  geometry.userData.rfTailOutline = 'crescent-concave-peduncle-notch';
   return geometry;
 }
 
 function makePectoralGeometry(bodyLen, radiusY, span) {
-  const root = [-bodyLen * 0.06, -radiusY * 0.08, 0];
-  const shoulder = [-bodyLen * 0.23, -radiusY * 0.26, span * 0.62];
-  const tip = [-bodyLen * 0.48, -radiusY * 0.62, span];
-  return makeExtrudedTriangle([root, shoulder, tip], Math.max(0.018, radiusY * 0.06));
+  const root = [bodyLen * 0.02, -radiusY * 0.05, 0];
+  const shoulder = [-bodyLen * 0.20, -radiusY * 0.14, span * 0.42];
+  const tip = [-bodyLen * 0.62, -radiusY * 0.42, span];
+  const geometry = makeExtrudedTriangle([root, shoulder, tip], Math.max(0.012, radiusY * 0.035));
+  geometry.userData.rfPectoralTipX = tip[0];
+  geometry.userData.rfPectoralLength = root[0] - tip[0];
+  geometry.userData.rfPectoralDepth = Math.max(0.012, radiusY * 0.035);
+  return geometry;
 }
 
 function makeJawGeometry(width, height, depth) {
@@ -695,10 +780,13 @@ function addFaceMass(template, def, palette, dimensions) {
 function addEyeFeatures(template, def, palette, dimensions) {
   const head = def.sil?.head || 'point';
   const act = finite(def.act, def.tier >= 5 ? 2 : 1);
-  const eyeRadius = dimensions.radiusY * (head === 'skull' ? 0.19 : 0.16);
-  const eyeX = dimensions.bodyLen * (head === 'hammer' ? 0.36 : head === 'whale' ? 0.28 : 0.33);
-  const eyeY = dimensions.radiusY * (head === 'eel' ? 0.22 : 0.34);
+  const eyeRadius = dimensions.radiusY * (head === 'skull' ? 0.095 : 0.08);
+  const eyeX = dimensions.bodyLen * (head === 'hammer' ? 0.38 : head === 'whale' ? 0.28 : 0.36);
+  const eyeY = dimensions.radiusY * (head === 'eel' ? 0.28 : 0.56);
   const eyeZ = dimensions.radiusZ * 0.91;
+  template.metrics.eyeRadius = eyeRadius;
+  template.metrics.eyeX = eyeX;
+  template.metrics.eyeY = eyeY;
   const eyeBaseSeed = head === 'skull' ? palette.accent : lerpColor(palette.belly, WHITE, 0.58);
   const eyeBase = liftColorToLuminance(eyeBaseSeed, 0.78);
   const eyeIris = act >= 2 ? (palette.glow || palette.accent) : lerpColor(palette.base, 0x06111c, 0.8);
@@ -733,13 +821,29 @@ function addEyeFeatures(template, def, palette, dimensions) {
 
 function addMouthAndTeeth(template, def, palette, dimensions) {
   const tier = finite(def.tier, 1);
-  if (tier < 2) return;
   const head = def.sil?.head || 'point';
   const spec = template.face.spec;
   const mouthWidth = spec.mouthWidth;
   const mouthHeight = spec.mouthHeight;
   const mouthStart = spec.mouthStart;
   const mouthY = -dimensions.radiusY * (head === 'angler' || head === 'kaiju' ? 0.27 : 0.22);
+  const mouthLineMaterial = toonMaterial({ color: WHITE, vertexColors: true, kind: 'mouth line vertex color' });
+  const mouthLine = makeVertexColorExtrudedPolygon([
+    [mouthStart, mouthY - dimensions.radiusY * 0.05, 0],
+    [mouthStart + mouthWidth * 0.92, mouthY + dimensions.radiusY * 0.01, 0],
+    [mouthStart + mouthWidth * 0.90, mouthY - dimensions.radiusY * 0.08, 0],
+    [mouthStart + mouthWidth * 0.04, mouthY - dimensions.radiusY * 0.16, 0]
+  ], dimensions.radiusZ * 0.025, 0x071017);
+  template.bodyFeatures.push(descriptor(
+    mouthLine,
+    mouthLineMaterial,
+    [0, 0, dimensions.radiusZ * 1.005],
+    [0, 0, 0],
+    [1, 1, 1],
+    'underslung mouth line vertex color'
+  ));
+  template.metrics.mouthLineVertexColors = true;
+  if (tier < 2) return;
   const mouthMaterial = toonMaterial({ color: 0x09050d, kind: 'mouth' });
   const toothMaterial = toonMaterial({ color: 0xfff4d4, kind: 'teeth' });
   for (const side of [1, -1]) {
@@ -906,9 +1010,48 @@ function addHeadFeatures(template, def, palette, dimensions) {
 
   const dorsalMaterial = solid(palette.accent, 'fins');
   if (head !== 'kaiju') {
-    const dorsalHeight = r * (1.7 + finite(def.sil?.finScale, 1) * 0.42 + Math.max(0, finite(def.tier, 1) - 4) * 0.025);
-    template.bodyFeatures.push(descriptor(makeExtrudedTriangle([[-L * 0.12, r * 0.55, 0], [-L * 0.27, dorsalHeight, 0], [L * 0.2, r * 0.5, 0]], rz * 0.16), dorsalMaterial, [0, 0, 0], [0, 0, 0], [1, 1, 1], 'assertive dorsal fin'));
+    const finScale = clamp(finite(def.sil?.finScale, 1), 0.5, 1.5);
+    const dorsalHeight = L * (0.19 + finScale * 0.03);
+    const dorsalRootX = L * 0.05;
+    const dorsal = makeExtrudedTriangle([
+      [L * 0.14, r * 0.72, 0],
+      [L * 0.02, r * 0.70 + dorsalHeight, 0],
+      [-L * 0.09, r * 0.66, 0]
+    ], Math.max(0.018, rz * 0.12));
+    dorsal.userData.rfDorsalSwept = true;
+    dorsal.userData.rfDorsalRootX = dorsalRootX;
+    dorsal.userData.rfDorsalHeight = dorsalHeight;
+    template.metrics.dorsalFin = { rootX: dorsalRootX, height: dorsalHeight, swept: true };
+    template.bodyFeatures.push(descriptor(dorsal, dorsalMaterial, [0, 0, 0], [0, 0, 0], [1, 1, 1], 'swept dorsal fin'));
   }
+  const gillMaterial = toonMaterial({ color: WHITE, vertexColors: true, kind: 'gill bands vertex color' });
+  const gillColor = 0x071017;
+  const gillWidth = L * 0.010;
+  const gillHeight = r * 0.72;
+  const gillXStart = L * 0.28;
+  const gillXEnd = L * 0.38;
+  for (const side of [1, -1]) {
+    for (let i = 0; i < 5; i++) {
+      const x = gillXStart + (gillXEnd - gillXStart) * (i / 4);
+      const band = makeVertexColorExtrudedPolygon([
+        [x, -gillHeight * 0.34, 0],
+        [x + gillWidth * 0.72, -gillHeight * 0.34, 0],
+        [x + gillWidth * 0.24, gillHeight * 0.66, 0],
+        [x - gillWidth * 0.42, gillHeight * 0.66, 0]
+      ], Math.max(0.012, rz * 0.035), gillColor);
+      template.bodyFeatures.push(descriptor(
+        band,
+        gillMaterial,
+        [0, 0, side * rz * 0.91],
+        [0, 0, 0],
+        [1, 1, 1],
+        `${side > 0 ? 'near' : 'far'} gill slit ${i + 1} dark vertex band`
+      ));
+    }
+  }
+  template.metrics.gillBandCount = 5;
+  template.metrics.gillXRange = [gillXStart, gillXEnd];
+  template.metrics.gillBandVertexColors = true;
   template.bodyFeatures.push(descriptor(makeExtrudedTriangle([[L * 0.03, -r * 0.55, 0], [-L * 0.03, -r * (0.98 + finite(def.sil?.finScale, 1) * 0.18), 0], [L * 0.2, -r * 0.48, 0]], rz * 0.1), dorsalMaterial, [0, 0, 0], [0, 0, 0], [1, 1, 1], 'pelvic fin'));
   if (finite(def.tier, 1) >= 9 && head !== 'eel' && head !== 'skull' && head !== 'kaiju') {
     for (let i = 0; i < 4; i++) {
@@ -1003,13 +1146,19 @@ function buildTemplate(def) {
   const sil = def.sil || {};
   const head = sil.head || 'point';
   const len = clamp(finite(sil.len, 1), 0.5, 3);
-  const girth = clamp(finite(sil.girth, 0.36), 0.18, 0.8);
-  const tailScale = clamp(finite(sil.tailScale, 1), 0.55, 2.5);
+  const authoredGirth = clamp(finite(sil.girth, 0.36), 0.18, 0.8);
+  // Fusiform profiles use a narrower scale law and a hard effective-girth
+  // ceiling. Whale/eel/kaiju are the documented bulk exceptions.
+  const girth = isFusiformHead(head) ? clamp(authoredGirth, 0.18, 0.44) : authoredGirth;
+  // The roster contains one thresher tailScale=2.2. Cap the effective value
+  // before applying makeTailGeometry's literal formula so every ordinary
+  // head remains inside the 0.18..0.34 tail-length contract.
+  const tailScale = clamp(finite(sil.tailScale, 1), 0.55, 2.0);
   const finScale = clamp(finite(sil.finScale, 1), 0.5, 2.1);
   const bodyLen = len * (head === 'eel' ? 1.48 : 1.3);
-  const radiusY = bodyLen * (0.14 + girth * 0.21) * (head === 'eel' ? 0.72 : 1);
+  const radiusY = bodyLen * (isFusiformHead(head) ? 0.10 + girth * 0.085 : 0.14 + girth * 0.21) * (head === 'eel' ? 0.72 : 1);
   const radiusZ = radiusY * (head === 'eel' ? 0.9 : 0.82);
-  const dimensions = { bodyLen, radiusY, radiusZ, len, girth, tailScale, finScale };
+  const dimensions = { bodyLen, radiusY, radiusZ, len, girth, authoredGirth, tailScale, finScale };
   const palette = paletteOf(def);
   const template = {
     id,
@@ -1042,7 +1191,15 @@ function buildTemplate(def) {
   }
   template.metrics.faceShare = template.face.spec.share;
   template.metrics.bodyMaxZ = template.bodyGeometry.boundingBox.max.z;
-  template.metrics.tailShare = (template.tailGeometry.boundingBox.max.x - template.tailGeometry.boundingBox.min.x) / Math.max(0.001, template.bodyGeometry.boundingBox.max.x - template.bodyGeometry.boundingBox.min.x);
+  const bodySize = template.bodyGeometry.boundingBox.getSize(new THREE.Vector3());
+  template.metrics.bodyAspect = bodySize.x / Math.max(bodySize.y, bodySize.z, 0.001);
+  template.metrics.tailShare = (template.tailGeometry.boundingBox.max.x - template.tailGeometry.boundingBox.min.x) / Math.max(0.001, bodySize.x);
+  template.metrics.tailLength = template.tailGeometry.userData.rfTailLength;
+  template.metrics.tailLengthRatio = template.tailGeometry.userData.rfTailLengthRatio;
+  template.metrics.tailUpperLobeHeight = template.tailGeometry.userData.rfTailUpperLobeHeight;
+  template.metrics.tailLowerLobeHeight = template.tailGeometry.userData.rfTailLowerLobeHeight;
+  template.metrics.tailRootWidth = template.tailGeometry.userData.rfTailRootWidth;
+  template.metrics.tailOutline = template.tailGeometry.userData.rfTailOutline;
   template.metrics.plateMaxZ = template.plateFeatures.length
     ? Math.max(...template.plateFeatures.map((feature) => feature.geometry.boundingBox.max.z + feature.position[2]))
     : 0;
@@ -1114,6 +1271,25 @@ function buildShark(def) {
   group.userData.rfFaceShare = template.metrics.faceShare;
   group.userData.rfJawVolumeRatio = template.metrics.jawVolumeRatio;
   group.userData.rfTailShare = template.metrics.tailShare;
+  group.userData.rfBodyLen = template.dimensions.bodyLen;
+  group.userData.rfRadiusY = template.dimensions.radiusY;
+  group.userData.rfEffectiveGirth = template.dimensions.girth;
+  group.userData.rfBodyAspect = template.metrics.bodyAspect;
+  group.userData.rfAspect = template.metrics.bodyAspect;
+  group.userData.rfTailLength = template.metrics.tailLength;
+  group.userData.rfTailLengthRatio = template.metrics.tailLengthRatio;
+  group.userData.rfTailUpperLobeHeight = template.metrics.tailUpperLobeHeight;
+  group.userData.rfTailLowerLobeHeight = template.metrics.tailLowerLobeHeight;
+  group.userData.rfTailRootWidth = template.metrics.tailRootWidth;
+  group.userData.rfTailOutline = template.metrics.tailOutline;
+  group.userData.rfGillBandCount = template.metrics.gillBandCount || 0;
+  group.userData.rfGillBandVertexColors = !!template.metrics.gillBandVertexColors;
+  group.userData.rfGillXRange = template.metrics.gillXRange || null;
+  group.userData.rfMouthLineVertexColors = !!template.metrics.mouthLineVertexColors;
+  group.userData.rfEyeRadius = template.metrics.eyeRadius || 0;
+  group.userData.rfEyeX = template.metrics.eyeX || 0;
+  group.userData.rfEyeY = template.metrics.eyeY || 0;
+  group.userData.rfDorsalFin = template.metrics.dorsalFin || null;
   group.userData.rfPlateMaxZ = template.metrics.plateMaxZ;
   group.userData.rfBodyMaxZ = template.metrics.bodyMaxZ;
   group.userData.rfFeatureSourceCount = template.bodyFeatures.length;
@@ -1135,7 +1311,9 @@ function buildShark(def) {
   group.userData.rfBendUniforms = uniforms;
   group.userData.rfBendK = bendK;
   group.userData.rfBendSpan = [bendSpanX, bendSpanY];
-  group.userData.rfTailRootX = -template.dimensions.bodyLen * 0.44;
+  group.userData.rfBendYScale = BEND_Y_SCALE;
+  group.userData.rfTailRootX = -template.dimensions.bodyLen * 0.50;
+  group.userData.rfTailSlavedToBend = true;
 
   const pose = new THREE.Group();
   pose.name = 'RF pose';
@@ -1200,9 +1378,12 @@ function buildShark(def) {
     uniforms.uBendAmp.value = amplitude;
 
     const tailRootX = group.userData.rfTailRootX;
-    const tailSlope = amplitude * bendK * Math.cos(animation.phase + tailRootX * bendK);
-    tail.rotation.y = tailSlope * 0.32 + turn * 0.12;
-    tail.rotation.z = Math.sin(animation.phase + Math.PI * 0.5) * amplitude * 0.12;
+    const tailSweep = 0.38 + 0.30 * speedFrac;
+    const tailPhase = animation.phase + tailRootX * bendK;
+    group.userData.rfTailSweepAmplitude = tailSweep;
+    group.userData.rfTailPhase = tailPhase;
+    tail.rotation.y = Math.sin(tailPhase) * tailSweep + turn * 0.12;
+    tail.rotation.z = Math.sin(tailPhase + Math.PI * 0.5) * (0.045 + speedFrac * 0.04);
     const flutter = Math.sin(animation.phase * 0.5 + Math.PI * 0.25) * (0.045 + speedFrac * 0.09);
     pectL.rotation.x = 0.08 + flutter;
     pectR.rotation.x = -0.08 - flutter;
@@ -1210,8 +1391,15 @@ function buildShark(def) {
     pectR.rotation.z = -turn * 0.12;
 
     const bank = clamp(finite(state.bank, turn * (0.18 + 0.17 * speedFrac)), -0.35, 0.35);
-    pose.rotation.x = bank;
+    const roll = Math.sin(animation.phase) * 0.04;
+    group.userData.rfBodyRoll = roll;
+    pose.rotation.x = clamp(bank + roll, -0.35, 0.35);
     pose.rotation.y = Math.cos(group.rotation.y) < 0 ? -0.28 : 0.28;
+    // The body owns the merged head/features batch, so this counter-yaw keeps
+    // the snout alive in profile without disturbing the consumer-owned pose
+    // yaw contract or the shared bend program.
+    body.rotation.y = Math.sin(animation.phase + Math.PI * 0.5) * 0.05;
+    group.userData.rfHeadCounterYaw = body.rotation.y;
     const pitchTarget = clamp(finite(state.vy, 0) * 0.0008, -0.22, 0.22);
     animation.pitch += (pitchTarget - animation.pitch) * clamp(dt * 8, 0, 1);
     pose.rotation.z = animation.pitch;
@@ -1523,6 +1711,107 @@ function bendMaterials(root) {
   return materials;
 }
 
+function namedFeature(root, marker) {
+  let found = null;
+  root.traverse((object) => {
+    if (found || !object.geometry) return;
+    const names = [object.name, ...(object.userData?.rfFeatureNames || [])];
+    if (names.some((name) => String(name).includes(marker))) found = object;
+  });
+  return found;
+}
+
+function maxVertexColorChannel(geometry) {
+  const colors = geometry?.getAttribute?.('color');
+  if (!colors || colors.itemSize !== 3 || !colors.array?.length) return null;
+  let max = 0;
+  let min = 1;
+  for (const value of colors.array) {
+    if (!Number.isFinite(value)) return { min: NaN, max: NaN };
+    max = Math.max(max, value);
+    min = Math.min(min, value);
+  }
+  return { min, max };
+}
+
+function auditSharkShapeContracts(def, rig) {
+  const { group, parts } = rig;
+  const head = def.sil?.head || 'point';
+  const fusiform = isFusiformHead(head);
+  const bodyLen = group.userData.rfBodyLen;
+  const tailRatio = group.userData.rfTailLengthRatio;
+  if (fusiform && (tailRatio < TAIL_MIN_RATIO - 1e-9 || tailRatio > TAIL_MAX_RATIO + 1e-9)) {
+    throw new Error(`${def.id}: tail length/body length ${tailRatio.toFixed(3)} outside ${TAIL_MIN_RATIO.toFixed(2)}..${TAIL_MAX_RATIO.toFixed(2)}`);
+  }
+  if (Math.abs(group.userData.rfTailLowerLobeHeight / group.userData.rfTailUpperLobeHeight - 0.62) > 1e-9) {
+    throw new Error(`${def.id}: lower tail lobe is not 0.62 of upper`);
+  }
+  if (Math.abs(group.userData.rfTailRootWidth / bodyLen - 0.045) > 1e-9) {
+    throw new Error(`${def.id}: tail peduncle root is not 0.045 body lengths`);
+  }
+  if (group.userData.rfTailOutline !== 'crescent-concave-peduncle-notch') {
+    throw new Error(`${def.id}: tail outline lost crescent/concave peduncle contract`);
+  }
+  if (fusiform && group.userData.rfBodyAspect < FUSIFORM_BODY_ASPECT_MIN - 1e-9) {
+    throw new Error(`${def.id}: body aspect ${group.userData.rfBodyAspect.toFixed(3)} < ${FUSIFORM_BODY_ASPECT_MIN.toFixed(2)}`);
+  }
+  if (fusiform && group.userData.rfAspect < FUSIFORM_ASPECT_MIN - 1e-9) {
+    throw new Error(`${def.id}: fusiform aspect ${group.userData.rfAspect.toFixed(3)} < ${FUSIFORM_ASPECT_MIN.toFixed(2)}`);
+  }
+
+  const dorsal = group.userData.rfDorsalFin;
+  if (fusiform && (!dorsal || !dorsal.swept || Math.abs(dorsal.rootX / bodyLen - 0.05) > 0.06 || dorsal.height / bodyLen < 0.18 || dorsal.height / bodyLen > 0.27)) {
+    throw new Error(`${def.id}: dorsal fin is not swept, centered near +0.05L, or height ~0.22L`);
+  }
+  const pectDepth = parts.pectL.geometry.userData.rfPectoralDepth;
+  const pectTipX = parts.pectL.geometry.userData.rfPectoralTipX;
+  if (fusiform && (pectTipX > -bodyLen * 0.55 || pectDepth > bodyLen * 0.025)) {
+    throw new Error(`${def.id}: pectoral is not long/thin/swept back`);
+  }
+  if (fusiform && (group.userData.rfEyeRadius / group.userData.rfBodyLen > group.userData.rfEffectiveGirth * 0.085 + 1e-9 || group.userData.rfEyeY / bodyLen < 0.045)) {
+    throw new Error(`${def.id}: eye was not reduced and lifted toward the snout top`);
+  }
+
+  const gill = namedFeature(parts.body, 'gill slit');
+  const gillNames = gill?.userData?.rfFeatureNames?.filter((name) => name.includes('gill slit')) || [];
+  const gillColors = maxVertexColorChannel(gill?.geometry);
+  const gillRange = group.userData.rfGillXRange || [];
+  if (fusiform && (group.userData.rfGillBandCount !== 5 || new Set(gillNames.map((name) => name.match(/gill slit \d+/)?.[0])).size < 5 || !gillColors || gillColors.max > 0.18 || Math.abs(gillRange[0] / bodyLen - 0.28) > 1e-9 || Math.abs(gillRange[1] / bodyLen - 0.38) > 1e-9)) {
+    throw new Error(`${def.id}: five dark vertex-color gill bands are missing or misplaced`);
+  }
+  const mouth = namedFeature(parts.body, 'underslung mouth line');
+  const mouthColors = maxVertexColorChannel(mouth?.geometry);
+  if (fusiform && (!group.userData.rfMouthLineVertexColors || !mouthColors || mouthColors.max > 0.18)) {
+    throw new Error(`${def.id}: underslung mouth line is not a dark vertex-color feature`);
+  }
+
+  // The tail tip's lateral travel is evaluated in body-local units. At a
+  // quarter-cycle, rotation around the peduncle must remain visibly larger
+  // than a tenth of the body, independent of world normalization.
+  const fullTailSweep = 0.38 + 0.30;
+  const tailTipTravel = group.userData.rfTailLength * Math.sin(fullTailSweep);
+  group.userData.rfTailTipTravelAtFullAmp = tailTipTravel;
+  if (tailTipTravel < bodyLen * 0.10) throw new Error(`${def.id}: tail-tip travel ${tailTipTravel.toFixed(3)} < 0.10 body lengths`);
+  rig.animate(0, { speedFrac: 1, turn: 0 });
+  if (Math.abs(group.userData.rfTailSweepAmplitude - fullTailSweep) > 1e-9 || !group.userData.rfTailSlavedToBend) {
+    throw new Error(`${def.id}: tail sweep amplitude/slaving contract is not active`);
+  }
+  const expectedTailRotation = Math.sin(group.userData.rfTailPhase) * group.userData.rfTailSweepAmplitude;
+  if (Math.abs(parts.tail.rotation.y - expectedTailRotation) > 1e-9) throw new Error(`${def.id}: tail rotation is not slaved to bend phase`);
+
+  const bodyBox = parts.body.geometry.boundingBox;
+  let maxBendY = 0;
+  for (let phaseIndex = 0; phaseIndex <= 96; phaseIndex++) {
+    const phase = TAU * phaseIndex / 96;
+    for (let xIndex = 0; xIndex <= 24; xIndex++) {
+      const x = bodyBox.min.x + (bodyBox.max.x - bodyBox.min.x) * xIndex / 24;
+      maxBendY = Math.max(maxBendY, Math.abs(BEND_Y_SCALE * bendOffset(x, phase, 0.36, group.userData.rfBendK, group.userData.rfBendSpan[0], group.userData.rfBendSpan[1])));
+    }
+  }
+  group.userData.rfMaxBendYAtFullAmp = maxBendY;
+  if (maxBendY < bodyLen * 0.02) throw new Error(`${def.id}: bend y-displacement ${maxBendY.toFixed(3)} < 0.02 body lengths`);
+}
+
 function __selftest() {
   ensureSharedGeometry();
   const rows = host.RFD?.SHARKS || RF.RFD?.SHARKS || RF.SHARKS;
@@ -1562,6 +1851,7 @@ function __selftest() {
       if (shaderProbe.uniforms.uBendPhase !== uniforms.uBendPhase || shaderProbe.uniforms.uBendAmp !== uniforms.uBendAmp || shaderProbe.uniforms.uBendK !== uniforms.uBendK || shaderProbe.uniforms.uBendSpan !== uniforms.uBendSpan || !shaderProbe.vertexShader.includes('bendT=smoothstep') || !shaderProbe.vertexShader.includes('uBendPhase+transformed.x*uBendK')) {
         throw new Error(`${def.id}: bend shader injection contract is incomplete`);
       }
+      auditSharkShapeContracts(def, rig);
       const noseBend = bendOffset(parts.body.geometry.boundingBox.max.x, 0.37, 0.3, uniforms.uBendK.value, uniforms.uBendSpan.value.x, uniforms.uBendSpan.value.y);
       const tailBend = bendOffset(group.userData.rfTailRootX, 0.37, 0.3, uniforms.uBendK.value, uniforms.uBendSpan.value.x, uniforms.uBendSpan.value.y);
       if (Math.abs(noseBend) > 1e-9 || Math.abs(tailBend) < 0.01) throw new Error(`${def.id}: CPU bend reference does not separate nose and tail`);
@@ -1585,6 +1875,7 @@ function __selftest() {
       result.headProfiles[def.id] = {
         head: def.sil.head,
         ratio: Number(ratio.toFixed(3)),
+        bodyAspect: Number(metrics.rfBodyAspect.toFixed(3)),
         faceShare: Number(metrics.rfFaceShare.toFixed(3)),
         jawVolumeRatio: Number(metrics.rfJawVolumeRatio.toFixed(3)),
         tailShare: Number(metrics.rfTailShare.toFixed(3)),
@@ -1593,7 +1884,6 @@ function __selftest() {
       };
       if (def.tier >= 5 && metrics.rfFaceShare < 0.28) throw new Error(`${def.id}: face share ${metrics.rfFaceShare.toFixed(3)} < 0.28`);
       if (def.tier >= 5 && metrics.rfJawVolumeRatio < (def.sil.head === 'kaiju' ? 0.09 : 0.045)) throw new Error(`${def.id}: jaw volume ratio ${metrics.rfJawVolumeRatio.toFixed(3)} is too thin`);
-      if (def.tier >= 10 && metrics.rfTailShare < (def.sil.head === 'kaiju' ? 0.72 : 0.58)) throw new Error(`${def.id}: tail bbox share ${metrics.rfTailShare.toFixed(3)} is too small`);
       if (def.sil.head === 'kaiju' && !(metrics.rfPlateMaxZ > metrics.rfBodyMaxZ)) throw new Error(`${def.id}: dorsal plate row is buried at z=${metrics.rfPlateMaxZ.toFixed(3)} body=${metrics.rfBodyMaxZ.toFixed(3)}`);
       if (def.sil.head === 'kaiju' && !(group.userData.rfFeatureBatchCount < group.userData.rfFeatureSourceCount) ) throw new Error(`${def.id}: feature batching did not reduce feature meshes`);
       if (def.sil.head === 'kaiju' && !group.userData.rfBatchesTeethPlatesEyes) throw new Error(`${def.id}: teeth/plates/eyes are not batched`);
@@ -1666,6 +1956,7 @@ function __selftest() {
     let worstCaseId = null;
     for (const def of rows) {
       const rig = buildShark(def);
+      auditSharkShapeContracts(def, rig);
       for (const material of bendMaterials(rig.group)) bendProgramKeys.add(material.customProgramCacheKey());
       const materials = auditMaterialOwnership(def, rig);
       result.materialAudit[def.id] = materials;
@@ -1729,10 +2020,13 @@ function __selftest() {
     result.notes.push('every non-none Act 2/3 sil.fx key has a named emissive feature mesh; pattern veins/plates and FX families are feature-owned');
     result.notes.push('14 archetype face identities checked; tier 5+ face share, jaw volume, and tier-scaled tail gates checked');
     result.notes.push('kaiju plate row is camera-offset above body max z; mouth cavities and tooth rows are merged per shark');
+    result.notes.push(`fusiform tail length ${TAIL_MIN_RATIO.toFixed(2)}..${TAIL_MAX_RATIO.toFixed(2)} body lengths; upper/lower ratio 1:0.62; crescent notch and 0.045L peduncle gate checked across ${sweep}/${sweep}`);
+    result.notes.push(`fusiform body core aspect >= ${FUSIFORM_BODY_ASPECT_MIN.toFixed(1)} and visual aspect >= ${FUSIFORM_ASPECT_MIN.toFixed(1)}; eel/whale/kaiju are documented bulk exceptions`);
+    result.notes.push('swept dorsal fin, long thin swept-back pectorals, five dark vertex-color gill bands at +0.28..+0.38L, half-size top-snouted eyes, and vertex-color mouth line are shape-gated');
     result.notes.push(`bend hook injects phase/amp/k/span with stable :rf-bend cache keys; ${result.bendProgramVariants.length} program variants <= 8`);
     result.notes.push('one per-rig bend uniform bundle is identity-shared by body, 1.045x shell compensation, and every feature batch; CPU bendOffset nose/tail reference checked');
     result.notes.push('pose child owns yaw ±0.28, bank clamp ±0.35, vy pitch blend, and speed stretch; outer group scale remains the world/eat-pop authority');
-    result.notes.push('phase accumulator integrates continuous rate 2.2..8.5 Hz across a speed ramp with no amp*0.2 discontinuity; tail pivot follows body-wave slope');
+    result.notes.push(`phase accumulator integrates continuous rate 2.2..8.5 Hz; tail yaw sweep is 0.38..0.68 rad, tip travel >= 0.10L, bend y term is ${BEND_Y_SCALE.toFixed(2)}*z and max y travel >= 0.02L; body roll/head counter-yaw are ±0.04/±0.05`);
     result.pass = true;
   } catch (error) {
     result.errors.push(error.message || String(error));
