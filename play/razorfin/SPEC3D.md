@@ -622,3 +622,74 @@ fallback, and repeated teardown.
 warmup, sample 2 is the baseline, and every later row must match it across
 `renderer.info.programs.length`, `renderer.info.memory.geometries`,
 `renderer.info.memory.textures`, and `scene.children.length`.
+
+## Rev 3 (roster distinctness lane, 2026-08-20)
+
+The accepted 2D roster remains the art baseline; `sharkart.js` is reference
+only and is not modified by the 3D lane.
+
+### Body colour and pattern contract
+
+`shark3d.js` owns an explicit vertex-colour painter for every live
+`sil.pattern` ID: `bands`, `boils`, `bones`, `collar`, `coral`, `corona`,
+`cracks`, `dots`, `facets`, `faults`, `magma`, `mirror`, `mottled`, `panels`,
+`plain`, `plates`, `plating`, `rays`, `ribbons`, `rings`, `rivets`, `rot`,
+`runes`, `scales`, `scars`, `spikes`, `spots`, `stars`, `stripes`, and
+`swirls`. `patches` is also reserved as a supported painter for future data
+rows. Marks are hard-edged station/radial blocks on the body loft; they do not
+interpolate between neutral colours. Tiger uses seven broad axial stripe
+bands, sized to survive the 844x390 gameplay frame.
+
+The authored `base`, `belly`, `accent`, and `glow` numbers remain available as
+raw palette colours for feature materials. Body blocks use a hue-preserving
+commit step only when a source swatch would disappear at gameplay scale:
+dorsal/base, flank/base, pattern/accent or highlight, and belly. Glow remains
+owned by emissive archetype/FX features; accent is used on fins, tail tips, and
+the dorsal edge.
+
+### Silhouette character contract
+
+`finScale` drives a quadratic pectoral-span profile and the dorsal/pelvic
+heights. Pectorals use head-specific polygon profiles (wide hammer, short
+globular angler, broad whale, long swept fusiform, angular mech, and
+serpentine eel). `tailScale` retains the existing length, heterocercal 1:0.62
+lobe, 0.045L peduncle, and crescent-notch contracts while changing crescent
+depth, root fullness, and lobe sweep. Head-specific body widths and station
+profiles preserve mako/thresher sleekness, whale/kaiju mass, eel taper,
+angler globularity, saw/croc rostra, rock facets, mech sections, void rings,
+and the kaiju dorsal plate row.
+
+### Distinctness gate
+
+The renderer computes one signature per roster definition from the dominant
+vertex-colour histogram of body and tail, raw palette swatches, body length and
+aspect, tail ratio, pectoral/dorsal ratios, girth, pattern ID, head ID, and FX
+ID. Distance is bounded to [0,1]: 31% colour, 50% body/fin/tail/length
+proportions, and 6%/6%/7% categorical pattern/head/FX identity. A pair is
+checked when `abs(tierA-tierB) <= 1` and `abs(actA-actB) <= 1`; every checked
+pair must be at least `0.05`. The self-test reports the checked count, pair
+count, threshold, and closest pair. This gate is additive and does not alter
+the bend program, animation, +x nose, silhouette, or <=3500-triangle
+contracts.
+
+## Rev 3 (whale bulk/head repair, 2026-08-20)
+
+The whale-family repair keeps `FUSIFORM_EXCEPTIONS` as the explicit girth/body
+exception table for `eel`, `whale`, and `kaiju`. A separate `BULKY_HEADS` audit
+table covers `blunt`, `angler`, `whale`, and `kaiju`, so the large-front rows
+(`whaleshark`, `megalodon`, `gulperfiend`, `maelstrom`, `vortexa`, `omenmaw`,
+and `leviathanrex`) are checked for the same alignment failure even when their
+girth is clamped by the ordinary fusiform rule.
+
+The `whale` spine is one smooth front-heavy loft: the rear quarter forms a
+tapered peduncle, the shoulder grows toward +x, and the terminal profile eases
+down into the committed front-head join. The former independent whale bulk box
+is not part of the rig. Whale baleen is laid out from the committed mouth
+`start`/`width` in `template.dimensions`, while the front head contour is
+centered at `z=0` and overlaps the body loft before the +x nose.
+
+The bulky-head self-test requires a committed front-head batch, zero axis
+offset, positive +x extent, and at least `0.12 * bodyLen` overlap with the
+spine. Whale rows additionally require a front profile at least `1.35x` the
+rear profile and a terminal profile below `0.82x` the front profile. Distinctness,
+silhouette, and the `<=3500` triangle sweep remain unchanged gates.

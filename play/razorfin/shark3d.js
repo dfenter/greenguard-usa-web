@@ -37,15 +37,31 @@ const BODY_FLANK_VALUE_MIN = 0.45;
 const BODY_FLANK_VALUE_MAX = 0.75;
 const BODY_BLOCK_DISTANCE_MIN = 60;
 const KAIJU_PLATE_GLOW = 0xa3fff3;
+const DISTINCTNESS_DISTANCE_THRESHOLD = 0.05;
+const DISTINCTNESS_TIER_RADIUS = 1;
+const SUPPORTED_PATTERN_IDS = new Set([
+  'bands', 'boils', 'bones', 'collar', 'coral', 'corona', 'cracks', 'dots',
+  'facets', 'faults', 'magma', 'mirror', 'mottled', 'panels', 'patches',
+  'plain', 'plates', 'plating', 'rays', 'ribbons', 'rings', 'rivets', 'rot',
+  'runes', 'scales', 'scars', 'spikes', 'spots', 'stars', 'stripes', 'swirls'
+]);
 const TAIL_MIN_RATIO = 0.18;
 const TAIL_MAX_RATIO = 0.34;
 const FUSIFORM_BODY_ASPECT_MIN = 3.1;
 const FUSIFORM_ASPECT_MIN = 2.8;
 const BEND_Y_SCALE = 0.35;
 const FUSIFORM_EXCEPTIONS = new Set(['eel', 'kaiju', 'whale']);
+// These heads either own an intentionally full front profile or add a large
+// front feature batch. Keep them on the same axis/overlap audit even when
+// their data row is still subject to the ordinary fusiform girth clamp.
+const BULKY_HEADS = new Set(['blunt', 'angler', 'whale', 'kaiju']);
 
 function isFusiformHead(head) {
   return !FUSIFORM_EXCEPTIONS.has(head);
+}
+
+function isBulkyHead(head) {
+  return BULKY_HEADS.has(head);
 }
 
 function clamp(value, lo, hi) {
@@ -54,6 +70,11 @@ function clamp(value, lo, hi) {
 
 function finite(value, fallback) {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function smoothStep01(value) {
+  const t = clamp(value, 0, 1);
+  return t * t * (3 - 2 * t);
 }
 
 function hex(value, fallback = 0) {
@@ -67,6 +88,16 @@ function boostedColor(value, amount = 1.15) {
   c.getHSL(hsl);
   c.setHSL(hsl.h, clamp(hsl.s * amount, 0, 1), clamp(hsl.l * 1.035, 0.04, 0.88));
   return c;
+}
+
+function committedColor(value, saturationFloor = 0.42, valueFloor = 0.2, valueCeiling = 0.82) {
+  const source = colorValue(value).clone();
+  const hsv = rgbToHsv(source);
+  return hsvToColor(
+    hsv.h,
+    Math.max(hsv.s, saturationFloor),
+    clamp(Math.max(hsv.v, valueFloor), valueFloor, valueCeiling)
+  );
 }
 
 function colorValue(value, fallback = WHITE) {
@@ -151,10 +182,19 @@ function saturatedBlockColor(source, saturationBoost, saturationFloor, valueFloo
 function paletteOf(def) {
   const source = def?.sil?.palette || {};
   return {
-    base: boostedColor(source.base, 1.24),
-    belly: boostedColor(source.belly, 1.12),
-    accent: boostedColor(source.accent, 1.34),
-    glow: source.glow ? boostedColor(source.glow, 1.18) : null
+    // Keep the authored swatches intact for feature materials. The body uses
+    // committedColor() only where a very dark source swatch would disappear
+    // at gameplay scale; hue/value remain owned by the same data number.
+    base: colorValue(source.base, 0x204050),
+    belly: colorValue(source.belly, 0xddeee7),
+    accent: colorValue(source.accent, 0x164557),
+    glow: source.glow ? colorValue(source.glow) : null,
+    raw: {
+      base: hex(source.base, 0x204050),
+      belly: hex(source.belly, 0xddeee7),
+      accent: hex(source.accent, 0x164557),
+      glow: source.glow ? hex(source.glow) : 0
+    }
   };
 }
 
@@ -304,25 +344,156 @@ function addVertex(positions, colors, x, y, z, color) {
 }
 
 function bodyRampColors(palette, act = 1) {
-  // These are authored as three colour blocks, not as a lightness ramp. The
-  // source roster's Act 3 colours can be nearly black, so value is explicitly
-  // staged here while hue remains owned by base/accent/glow.
-  const dorsal = saturatedBlockColor(palette.base, 1.5, 0.55, 0.18, 0.34, 0.9);
-  const flank = saturatedBlockColor(palette.accent, 1.5, BODY_FLANK_SATURATION_TARGET, 0.56, 0.70, 2.8);
-  const accentMark = saturatedBlockColor(palette.accent, 1.5, 0.74, 0.62, 0.72, 2.8);
+  // These are authored as hard blocks, not a grey lightness ramp. The source
+  // rows sometimes use very dark values for base/accent, so committedColor
+  // raises visibility while preserving the authored hue and palette family.
+  const dorsal = committedColor(palette.base, 0.50, 0.12, 0.22);
+  const flank = committedColor(palette.base, BODY_FLANK_SATURATION_TARGET, 0.50, BODY_FLANK_VALUE_MAX);
+  const accentMark = committedColor(palette.accent, 0.58, 0.52, 0.72);
   const belly = liftColorToLuminance(palette.belly, 0.82);
+  const highlight = committedColor(palette.belly, 0.12, 0.58, 0.72);
+  const glow = committedColor(palette.glow || palette.accent, 0.68, 0.52, 0.72);
+  const shadow = committedColor(palette.base, 0.58, 0.08, 0.16);
   const rim = act >= 3
-    ? saturatedBlockColor(palette.glow || palette.accent, 1.35, 0.78, 0.57, 0.72, 1.4)
+    ? glow
     : flank.clone();
   return {
     dorsal,
     dark: dorsal,
     flank,
     accent: accentMark,
+    glow,
+    highlight,
+    shadow,
     rim,
     rimGlow: act >= 3,
     belly
   };
+}
+
+function unitFraction(value) {
+  return value - Math.floor(value);
+}
+
+function nearBand(value, center, width) {
+  return Math.abs(value - center) <= width;
+}
+
+/* Vertex colours are intentionally discrete. These are the loft equivalent
+ * of sharkart.js's clipped painters: each branch describes one authored mark
+ * family, and every mark resolves to a committed palette block at a station
+ * rather than interpolating toward neutral grey. */
+function patternColor(ramp, pattern, u, theta, station, radial) {
+  const topness = (Math.cos(theta) + 1) * 0.5;
+  const facing = Math.sin(theta) >= -0.2;
+  const onBody = facing && topness >= 0.12 && topness <= 0.88 && u >= 0.12 && u <= 0.92;
+  if (!onBody || pattern === 'plain') return null;
+
+  const cell = Math.floor(u * 14);
+  const row = radial;
+  const accent = ramp.accent;
+  const bright = ramp.highlight;
+
+  switch (pattern) {
+    case 'stripes': { // Tiger: seven broad, hard-edged transverse bars.
+      for (let i = 0; i < 7; i++) if (nearBand(u, 0.19 + i * 0.105, 0.034)) return accent;
+      return null;
+    }
+    case 'bands': {
+      for (let i = 0; i < 6; i++) if (nearBand(u, 0.17 + i * 0.14, 0.044)) return accent;
+      return null;
+    }
+    case 'ribbons': {
+      const ribbon = 0.5 + 0.22 * Math.sin(u * TAU * 2.15);
+      return Math.abs(topness - ribbon) < 0.17 ? accent : null;
+    }
+    case 'spots':
+    case 'dots': {
+      const hit = ((station * 7 + row * 11 + (pattern === 'dots' ? 3 : 0)) % 17) >= 11;
+      return hit && (cell % 2 || row % 3 === 0) ? bright : null;
+    }
+    case 'collar':
+      return u >= 0.27 && u <= 0.38 ? accent : null;
+    case 'plates': {
+      return ((cell + row * 2) % 5 === 0 || (cell % 5 === 2 && row % 3 === 0)) ? accent : null;
+    }
+    case 'plating': {
+      return (cell % 4 <= 1 && row % 2 === 0) ? accent : null;
+    }
+    case 'panels': {
+      return ((cell % 5 === 1 || cell % 5 === 2) && row >= 2 && row <= 5) ? accent : null;
+    }
+    case 'rivets': {
+      return (cell % 3 === 0 && row % 2 === 1) ? bright : null;
+    }
+    case 'facets': {
+      return ((cell + row) % 4 === 1 || (cell * 3 + row) % 7 === 0) ? accent : null;
+    }
+    case 'scales': {
+      return ((cell + row + (cell % 2)) % 3 === 0) ? accent : null;
+    }
+    case 'spikes': {
+      return ((cell % 2 === 0 && row <= 3) || (cell % 4 === 1 && row === 4)) ? accent : null;
+    }
+    case 'rays': {
+      return ((cell + row * 2) % 6 === 1 && topness > 0.28) ? accent : null;
+    }
+    case 'stars': {
+      return ((cell * 5 + row * 3) % 13 === 4 && row >= 2 && row <= 5) ? bright : null;
+    }
+    case 'swirls': {
+      return Math.abs(Math.sin(u * TAU * 2.1 + row * 0.72)) > 0.72 ? accent : null;
+    }
+    case 'rings': {
+      for (let i = 0; i < 4; i++) if (nearBand(u, 0.31 + i * 0.135, 0.026)) return accent;
+      return null;
+    }
+    case 'scars': {
+      return unitFraction(u * 6.2 + row * 0.19) > 0.46 && unitFraction(u * 6.2 + row * 0.19) < 0.57
+        ? bright : null;
+    }
+    case 'cracks':
+    case 'faults': {
+      const crack = unitFraction(u * 7.1 + row * 0.31) > 0.47 && unitFraction(u * 7.1 + row * 0.31) < 0.56;
+      return crack ? accent : null;
+    }
+    case 'magma': {
+      const crack = unitFraction(u * 7.1 + row * 0.31) > 0.43 && unitFraction(u * 7.1 + row * 0.31) < 0.60;
+      return crack ? accent : null;
+    }
+    case 'mottled': {
+      return ((station * 13 + row * 5) % 19) > 13 ? accent : null;
+    }
+    case 'rot': {
+      return ((station * 13 + row * 5) % 19) > 12 ? ramp.shadow : null;
+    }
+    case 'boils': {
+      return ((station * 11 + row * 7) % 17) > 10 ? accent : null;
+    }
+    case 'coral': {
+      return (row <= 3 && (cell + row) % 4 === 0) ? accent : null;
+    }
+    case 'mirror': {
+      const mirrored = row <= 3 ? cell % 3 === 0 : cell % 4 === 1;
+      return mirrored ? bright : null;
+    }
+    case 'bones': {
+      return ((cell % 3 === 1 && row >= 2 && row <= 5) || (row === 2 && cell % 4 === 0)) ? bright : null;
+    }
+    case 'runes': {
+      return ((cell + row) % 5 === 2 && row >= 2 && row <= 5) ? accent : null;
+    }
+    case 'corona': {
+      const ray = (cell + row * 2) % 6 === 1 && topness > 0.28;
+      const ring = nearBand(u, 0.47, 0.032) || nearBand(u, 0.72, 0.032);
+      return ray || ring ? accent : null;
+    }
+    case 'patches': {
+      return ((cell % 6 === 1 || cell % 6 === 2) && row >= 2 && row <= 5) ? accent : null;
+    }
+    default:
+      return null;
+  }
 }
 
 function bodyVertexColor(ramp, theta, u, station, radial, pattern) {
@@ -339,37 +510,35 @@ function bodyVertexColor(ramp, theta, u, station, radial, pattern) {
     color = ramp.belly.clone();
   }
 
-  const stripe = pattern === 'stripes' || pattern === 'bands' || pattern === 'ribbons';
-  const spotted = pattern === 'spots' || pattern === 'dots' || pattern === 'mottled' || pattern === 'boils' || pattern === 'stars' || pattern === 'mirror';
-  const marked = pattern === 'cracks' || pattern === 'runes' || pattern === 'faults' || pattern === 'rot' || pattern === 'facets' || pattern === 'scales';
-  const structured = pattern === 'plates' || pattern === 'plating' || pattern === 'panels' || pattern === 'rivets' || pattern === 'bones' || pattern === 'coral' || pattern === 'swirls' || pattern === 'rings' || pattern === 'collar';
-  // Pattern marks stay on the flank transition. Keeping them off the dorsal
-  // and belly plateaus preserves the large value blocks at gameplay scale.
-  const patternBand = topness >= BODY_FLANK_START && topness < BODY_DORSAL_START
-    && !(ramp.rimGlow && topness < BODY_RIM_END);
-  const markedByPattern = (patternBand && stripe && ((Math.floor(u * 11) + Math.floor(radial / 3)) % 3 === 0))
-    || (patternBand && spotted && hash01(station, radial, pattern.length) > 0.73)
-    || (patternBand && marked && hash01(station * 2, radial * 3, pattern.length) > 0.8)
-    || (patternBand && structured && ((station + radial * 2 + pattern.length) % 5 === 0))
-    || (patternBand && pattern === 'collar' && u > 0.22 && u < 0.38);
-  // Detail marks remain discrete accent-family hits inside the flank block;
-  // they never interpolate the dorsal/flank/belly boundaries.
-  if (markedByPattern) color.copy(ramp.accent);
+  const mark = patternColor(ramp, pattern, u, theta, station, radial);
+  if (mark) color.copy(mark);
   return color;
 }
 
-function profileAt(u, head, girth) {
+function profileAt(u, head, girth, id = '') {
   const barrel = Math.pow(Math.max(0, Math.sin(Math.PI * Math.min(1, u))), 0.47);
   let profile = 0.08 + barrel * (0.88 + u * 0.16);
   if (head === 'point') profile *= 1 - 0.75 * Math.pow(u, 3.1);
   if (head === 'blunt') profile *= 0.9 + u * 0.14;
   if (head === 'hammer') profile *= 0.94 + u * 0.12;
   if (head === 'saw') profile *= u > 0.72 ? 1 - (u - 0.72) * 1.25 : 1;
-  if (head === 'whale' || head === 'kaiju') profile *= 1.03 + u * 0.24;
+  if (head === 'whale') {
+    // Whale bulk belongs to the loft itself. A smooth shoulder grows toward
+    // the +x head while the first quarter remains a narrow peduncle; this
+    // avoids a round body plus a detached front fish silhouette.
+    const peduncle = 0.48 + 0.52 * smoothStep01((u - 0.02) / 0.24);
+    const shoulder = 0.62 + 0.86 * smoothStep01((u - 0.18) / 0.58);
+    profile = 0.08 + barrel * peduncle * shoulder;
+  }
+  if (head === 'kaiju') profile *= 1.16 + u * 0.34;
   if (head === 'croc') profile *= u > 0.58 ? 1 - ((u - 0.58) / 0.42) * 0.5 : 1;
-  if (head === 'angler') profile *= u > 0.72 ? 0.84 : 1.02;
-  if (head === 'eel') profile *= 0.64;
-  if (head === 'rock') profile *= 0.98 + 0.08 * Math.sin(u * 17);
+  if (head === 'angler') profile *= 1.02 + 0.20 * Math.exp(-Math.pow((u - 0.72) / 0.24, 2));
+  if (head === 'eel') profile *= 0.62 + 0.14 * (1 - u);
+  if (head === 'rock') profile *= 0.98 + 0.11 * Math.sin(u * 17);
+  if (head === 'mech') profile *= 0.96 + 0.08 * ((Math.floor(u * 8) % 2) ? 1 : -0.35);
+  if (head === 'void') profile *= 0.89 + 0.12 * Math.sin(u * Math.PI * 0.8);
+  if (id === 'mako') profile *= 0.82;
+  if (id === 'thresher') profile *= 0.78;
   if (head === 'skull') profile *= 0.96 + u * 0.1;
   if (head === 'void') profile *= 0.92 + 0.08 * Math.sin(u * Math.PI * 0.8);
   // The front 22% resolves into a small rounded ring before the explicit
@@ -383,14 +552,19 @@ function profileAt(u, head, girth) {
   return profile * (1 + Math.min(0.22, girth * 0.12));
 }
 
-function spineLineScale(u, theta) {
+function spineLineScale(u, theta, head) {
   const barrel = Math.max(0, Math.sin(Math.PI * Math.min(1, u)));
   // A restrained, monotonic dorsal line reads as a back; the belly is allowed
   // to carry the fuller mid-body curve. This is deliberately separate from
   // profileAt so the radial section remains a cheap, cacheable scalar.
-  return Math.cos(theta) >= 0
+  let scale = Math.cos(theta) >= 0
     ? 0.90 + 0.10 * u
     : 0.72 + 0.28 * Math.pow(barrel, 1.15);
+  if (head === 'eel') scale *= 0.92 + 0.08 * Math.sin(Math.PI * u);
+  if (head === 'whale' || head === 'kaiju') scale *= 1.05;
+  if (head === 'rock') scale *= 1 + 0.045 * Math.sin(u * 23 + theta * 3);
+  if (head === 'mech') scale *= 1 + 0.035 * (((Math.floor(u * 10) + Math.floor(theta * 2)) % 2) ? 1 : -1);
+  return scale;
 }
 
 function makeSpineGeometry(def, palette, dimensions) {
@@ -401,7 +575,7 @@ function makeSpineGeometry(def, palette, dimensions) {
   const bodyLen = dimensions.bodyLen;
   const radiusY = dimensions.radiusY;
   const radiusZ = dimensions.radiusZ;
-  const stations = head === 'eel' || head === 'kaiju' ? 20 : def.tier >= 5 ? 18 : 16;
+  const stations = head === 'eel' ? 24 : head === 'kaiju' ? 22 : def.tier >= 5 ? 18 : 16;
   const radial = 12;
   const ramp = bodyRampColors(palette, finite(def.act, def.tier >= 5 ? 2 : 1));
   const positions = [];
@@ -411,14 +585,17 @@ function makeSpineGeometry(def, palette, dimensions) {
   for (let i = 0; i <= stations; i++) {
     const u = i / stations;
     const x = -bodyLen * 0.52 + bodyLen * u;
-    const profile = profileAt(u, head, girth);
+    const profile = profileAt(u, head, girth, String(def.id || ''));
     const stationY = radiusY * profile;
     const stationZ = radiusZ * profile * (head === 'eel' ? 0.92 : 1);
     for (let j = 0; j < radial; j++) {
       const theta = (j / radial) * TAU;
-      const jitter = head === 'rock' ? 1 + (hash01(i, j, 5) - 0.5) * 0.12 : 1;
+      const jitter = head === 'rock'
+        ? 1 + (hash01(i, j, 5) - 0.5) * 0.2
+        : head === 'mech' ? 1 + (((i + j) % 3) - 1) * 0.025
+          : 1;
       const c = bodyVertexColor(ramp, theta, u, i, j, sil.pattern || 'plain');
-      const lineScale = spineLineScale(u, theta);
+      const lineScale = spineLineScale(u, theta, head);
       addVertex(positions, colors, x, Math.cos(theta) * stationY * lineScale * jitter, Math.sin(theta) * stationZ * jitter, c);
     }
   }
@@ -453,6 +630,13 @@ function makeSpineGeometry(def, palette, dimensions) {
   geometry.userData.rfNoseIndex = nose;
   geometry.userData.rfTailRootIndex = root;
   geometry.userData.rfForwardAxis = '+x';
+  geometry.userData.rfPattern = sil.pattern || 'plain';
+  geometry.userData.rfPalette = palette.raw;
+  if (head === 'whale' || head === 'kaiju') {
+    geometry.userData.rfBulkRearProfile = profileAt(0.22, head, girth, String(def.id || ''));
+    geometry.userData.rfBulkFrontProfile = profileAt(0.68, head, girth, String(def.id || ''));
+    geometry.userData.rfBulkNoseProfile = profileAt(0.94, head, girth, String(def.id || ''));
+  }
   return geometry;
 }
 
@@ -539,9 +723,12 @@ function faceIdentity(head, L, r) {
       face.contour = [[start, -r * 0.52, 0], [face.end, -r * 0.34, 0], [face.end, r * 0.16, 0], [L * 0.17, r * 0.55, 0], [start, r * 0.6, 0]];
       break;
     case 'whale':
-      face.end = L * 0.57; face.mouthStart = L * 0.0; face.mouthWidth = L * 0.58; face.mouthHeight = r * 0.72;
-      face.jawWidth = L * 0.66; face.jawHeight = r * 0.5; face.jawDepth = r * 1.42;
-      face.contour = [[start, -r * 0.76, 0], [face.end, -r * 0.62, 0], [face.end, r * 0.64, 0], [L * 0.24, r * 1.06, 0], [start, r * 0.94, 0]];
+      // The body loft owns the front barrel. This contour starts well inside
+      // that barrel and ends at the +x nose, so it reads as one wide mouth,
+      // not as a second fish-shaped head attached to the body.
+      face.start = L * 0.04; face.end = L * 0.50; face.mouthStart = L * 0.0; face.mouthWidth = L * 0.54; face.mouthHeight = r * 0.72;
+      face.jawWidth = L * 0.62; face.jawHeight = r * 0.5; face.jawDepth = r * 1.42;
+      face.contour = [[face.start, -r * 0.72, 0], [face.end, -r * 0.60, 0], [face.end, r * 0.62, 0], [L * 0.22, r * 1.02, 0], [face.start, r * 0.90, 0]];
       break;
     case 'angler':
       face.end = L * 0.58; face.mouthStart = L * 0.06; face.mouthWidth = L * 0.5; face.mouthHeight = r * 0.74;
@@ -640,7 +827,7 @@ function mergeFeatureDescriptors(features) {
   });
 }
 
-function makeTailGeometry(bodyLen, tailScale, tier, palette, pattern) {
+function makeTailGeometry(bodyLen, tailScale, tier, palette, pattern, head = 'point', id = '') {
   // Tail scale is already capped to 2.0 by buildTemplate. Keeping the
   // requested formula literal here makes the silhouette gate auditable.
   const length = bodyLen * (0.20 + tailScale * 0.07);
@@ -648,20 +835,25 @@ function makeTailGeometry(bodyLen, tailScale, tier, palette, pattern) {
   const lower = upper * 0.62;
   const root = bodyLen * 0.045;
   const depth = bodyLen * 0.045;
-  const notch = length * 0.56;
+  // The authored length/lobe formulas stay intact. The outline below uses the
+  // same scale more decisively: mako/thresher tails cut a deeper crescent,
+  // whale/kaiju tails carry a broad root, and eel tails stay needle-thin.
+  const notch = length * clamp(0.46 + tailScale * 0.06 + (id === 'mako' ? 0.08 : 0), 0.46, 0.70);
+  const rootBias = head === 'eel' ? 0.72 : head === 'whale' || head === 'kaiju' ? 1.24 : 1;
+  const lobeSweep = id === 'mako' || id === 'thresher' ? 1.16 : head === 'hammer' ? 0.9 : 1;
   const points = [
-    [0, root * 0.55, 0],
-    [-bodyLen * 0.018, root * 0.82, 0],
-    [-length * 0.18, upper * 0.34, 0],
-    [-length * 0.78, upper * 0.80, 0],
+    [0, root * 0.55 * rootBias, 0],
+    [-bodyLen * 0.018, root * 0.82 * rootBias, 0],
+    [-length * 0.18, upper * 0.34 * lobeSweep, 0],
+    [-length * 0.78, upper * 0.80 * lobeSweep, 0],
     [-length, upper, 0],
-    [-length * 0.80, upper * 0.10, 0],
+    [-length * 0.80, upper * 0.10 * lobeSweep, 0],
     [-notch, 0, 0],
-    [-length * 0.79, -lower * 0.10, 0],
+    [-length * 0.79, -lower * 0.10 * lobeSweep, 0],
     [-length * 0.93, -lower, 0],
-    [-length * 0.18, -lower * 0.34, 0],
-    [-bodyLen * 0.018, -root * 0.82, 0],
-    [0, -root * 0.55, 0]
+    [-length * 0.18, -lower * 0.34 * lobeSweep, 0],
+    [-bodyLen * 0.018, -root * 0.82 * rootBias, 0],
+    [0, -root * 0.55 * rootBias, 0]
   ];
   const positions = [];
   const colors = [];
@@ -669,7 +861,8 @@ function makeTailGeometry(bodyLen, tailScale, tier, palette, pattern) {
   for (let side = 0; side < 2; side++) {
     for (let i = 0; i < points.length; i++) {
       const p = points[i];
-      const c = side ? ramp.belly : ramp.flank;
+      const tip = i === 3 || i === 4 || i === 8 || i === 9;
+      const c = side ? ramp.belly : tip ? ramp.accent : ramp.flank;
       addVertex(positions, colors, p[0], p[1], side ? -depth * 0.5 : depth * 0.5, c);
     }
   }
@@ -695,17 +888,23 @@ function makeTailGeometry(bodyLen, tailScale, tier, palette, pattern) {
   geometry.userData.rfTailRootWidth = root;
   geometry.userData.rfTailNotchX = -notch;
   geometry.userData.rfTailOutline = 'crescent-concave-peduncle-notch';
+  geometry.userData.rfTailHead = head;
+  geometry.userData.rfTailId = id;
   return geometry;
 }
 
-function makePectoralGeometry(bodyLen, radiusY, span) {
-  const root = [bodyLen * 0.02, -radiusY * 0.05, 0];
-  const shoulder = [-bodyLen * 0.20, -radiusY * 0.14, span * 0.42];
-  const tip = [-bodyLen * 0.62, -radiusY * 0.42, span];
-  const geometry = makeExtrudedTriangle([root, shoulder, tip], Math.max(0.012, radiusY * 0.035));
+function makePectoralGeometry(bodyLen, radiusY, span, head = 'point', finScale = 1) {
+  const root = [bodyLen * (head === 'hammer' ? 0.06 : 0.02), -radiusY * 0.05, 0];
+  const shoulder = [-bodyLen * (head === 'whale' ? 0.08 : head === 'angler' ? 0.12 : 0.20), -radiusY * 0.14, span * 0.38];
+  const tipFactor = head === 'hammer' ? 0.58 : head === 'whale' ? 0.54 : head === 'angler' ? 0.58 : 0.56 + clamp(finScale, 0.5, 2.1) * 0.055;
+  const tip = [-bodyLen * tipFactor, -radiusY * (head === 'hammer' ? 0.3 : 0.42), span];
+  const rear = [-bodyLen * (tipFactor - 0.10), -radiusY * 0.2, span * 0.56];
+  const geometry = makeExtrudedPolygon([root, shoulder, tip, rear], Math.max(0.012, radiusY * 0.035));
   geometry.userData.rfPectoralTipX = tip[0];
   geometry.userData.rfPectoralLength = root[0] - tip[0];
   geometry.userData.rfPectoralDepth = Math.max(0.012, radiusY * 0.035);
+  geometry.userData.rfPectoralHead = head;
+  geometry.userData.rfPectoralSpan = span;
   return geometry;
 }
 
@@ -773,7 +972,11 @@ function addFaceMass(template, def, palette, dimensions) {
   const faceGeometry = makeExtrudedPolygon(spec.contour, depth);
   faceGeometry.userData.rfFaceShare = spec.share;
   faceGeometry.userData.rfFaceHead = head;
-  template.bodyFeatures.push(descriptor(faceGeometry, faceMaterial, [0, 0, dimensions.radiusZ * 0.18], [0, 0, 0], [1, 1, 1], `${head} committed front head`));
+  // The committed head contour is a continuation of the loft, not a
+  // camera-facing offset mesh. Surface-facing mouth/eye features still own
+  // their deliberate +/-Z offsets below.
+  template.bodyFeatures.push(descriptor(faceGeometry, faceMaterial, [0, 0, 0], [0, 0, 0], [1, 1, 1], `${head} committed front head`));
+  template.metrics.faceCenterZ = 0;
   template.face = { spec, geometry: faceGeometry };
 }
 
@@ -899,6 +1102,69 @@ function addMouthAndTeeth(template, def, palette, dimensions) {
   }
 }
 
+function makeDorsalFinGeometry(head, L, r, height, finScale) {
+  const rootX = L * 0.05;
+  const low = r * 0.68;
+  const sweep = clamp(finScale, 0.5, 2.1);
+  if (head === 'eel') {
+    return makeExtrudedPolygon([
+      [L * 0.23, low, 0], [L * 0.05, low + height, 0],
+      [-L * 0.23, low + height * 0.22, 0], [-L * 0.08, low, 0]
+    ], Math.max(0.018, r * 0.1));
+  }
+  if (head === 'whale') {
+    return makeExtrudedPolygon([
+      [L * 0.2, low, 0], [L * 0.07, low + height * 0.72, 0],
+      [-L * 0.18, low + height * 0.45, 0], [-L * 0.08, low, 0]
+    ], Math.max(0.018, r * 0.16));
+  }
+  if (head === 'angler') {
+    return makeExtrudedPolygon([
+      [L * 0.17, low, 0], [L * 0.01, low + height, 0],
+      [-L * 0.12, low + height * 0.42, 0], [-L * 0.08, low, 0]
+    ], Math.max(0.018, r * 0.12));
+  }
+  if (head === 'rock') {
+    return makeExtrudedPolygon([
+      [L * 0.17, low, 0], [L * 0.09, low + height * 0.68, 0],
+      [L * 0.01, low + height, 0], [-L * 0.08, low + height * 0.54, 0],
+      [-L * 0.15, low, 0]
+    ], Math.max(0.018, r * 0.14));
+  }
+  if (head === 'mech') {
+    return makeExtrudedPolygon([
+      [L * 0.18, low, 0], [L * 0.08, low + height * 0.42, 0],
+      [-L * 0.03, low + height, 0], [-L * 0.17, low + height * 0.2, 0],
+      [-L * 0.12, low, 0]
+    ], Math.max(0.018, r * 0.13));
+  }
+  if (head === 'void') {
+    return makeExtrudedPolygon([
+      [L * 0.19, low, 0], [L * 0.04, low + height * 0.84, 0],
+      [-L * 0.15, low + height * 0.3, 0], [-L * 0.1, low, 0]
+    ], Math.max(0.018, r * 0.12));
+  }
+  if (head === 'hammer') {
+    return makeExtrudedPolygon([
+      [L * 0.2, low, 0], [L * 0.06, low + height * 0.76, 0],
+      [-L * 0.16, low + height * 0.52, 0], [-L * 0.11, low, 0]
+    ], Math.max(0.018, r * 0.13));
+  }
+  if (head === 'saw' || head === 'croc') {
+    return makeExtrudedPolygon([
+      [L * 0.18, low, 0], [L * 0.02, low + height, 0],
+      [-L * 0.13, low + height * 0.22, 0], [-L * 0.09, low, 0]
+    ], Math.max(0.018, r * 0.1));
+  }
+  // Point/blunt/skull/frill share the swept predator fin, but the scale still
+  // changes both its height and the amount of rear rake.
+  const rake = L * (0.06 + sweep * 0.025);
+  return makeExtrudedPolygon([
+    [L * 0.16, low, 0], [rootX - rake * 0.32, low + height, 0],
+    [-L * (0.08 + sweep * 0.025), low + height * 0.24, 0], [-L * 0.1, low, 0]
+  ], Math.max(0.018, r * 0.12));
+}
+
 function addHeadFeatures(template, def, palette, dimensions) {
   const sil = def.sil || {};
   const head = sil.head || 'point';
@@ -938,10 +1204,22 @@ function addHeadFeatures(template, def, palette, dimensions) {
       template.bodyFeatures.push(descriptor(makeExtrudedTriangle([[x, r * 0.2, 0], [x - L * 0.04, r * (1.1 + i * 0.08), 0], [x + L * 0.07, r * 0.34, 0]], r * 0.08), frillMaterial, [0, 0, 0], [0, 0, 0], [1, 1, 1], 'frill ray'));
     }
   } else if (head === 'whale') {
-    template.bodyFeatures.push(descriptor(new THREE.BoxGeometry(L * 0.44, r * 1.75, rz * 1.06), solid(palette.base, 'whale bulk'), [L * 0.27, 0, 0], [0, 0, 0], [1, 1, 1], 'whale bulk'));
     const baleen = toonMaterial({ color: palette.belly, kind: 'baleen' });
-    for (let i = 0; i < 6; i++) {
-      template.bodyFeatures.push(descriptor(new THREE.BoxGeometry(L * 0.012, r * 0.3, rz * 0.08), baleen, [L * (0.12 + i * 0.07), -r * 0.05, rz * 0.94], [0, 0, 0], [1, 1, 1], 'whale baleen'));
+    const mouth = template.face.spec;
+    const baleenCount = 8;
+    const baleenHeight = r * 0.28;
+    const baleenDepth = Math.max(0.012, rz * 0.08);
+    for (let i = 0; i < baleenCount; i++) {
+      const u = (i + 0.5) / baleenCount;
+      const x = mouth.mouthStart + mouth.mouthWidth * u;
+      template.bodyFeatures.push(descriptor(
+        new THREE.BoxGeometry(Math.max(L * 0.009, r * 0.018), baleenHeight, baleenDepth),
+        baleen,
+        [x, -r * 0.18, rz * 0.78],
+        [0, 0, 0],
+        [1, 1, 1],
+        'whale baleen'
+      ));
     }
   } else if (head === 'angler') {
     const staffLength = L * 0.3;
@@ -978,7 +1256,8 @@ function addHeadFeatures(template, def, palette, dimensions) {
     template.bodyFeatures.push(descriptor(new THREE.SphereGeometry(r * 0.12, 6, 4), glow, [L * 0.43, 0, rz * 0.85], [0, 0, 0], [1, 1, 0.35], 'void eye'));
   } else if (head === 'kaiju') {
     const plateBody = toonMaterial({ color: lerpColor(palette.base, 0x04070c, 0.68), kind: 'kaiju plate body' });
-    const plateEdge = toonMaterial({ color: KAIJU_PLATE_GLOW, glow: KAIJU_PLATE_GLOW, emissiveIntensity: 1.0, side: THREE.FrontSide, kind: 'kaiju plate emissive rim' });
+    const plateGlow = palette.glow || colorValue(KAIJU_PLATE_GLOW);
+    const plateEdge = toonMaterial({ color: plateGlow, glow: plateGlow, emissiveIntensity: 1.0, side: THREE.FrontSide, kind: 'kaiju plate emissive rim' });
     template.plateFeatures = [];
     // The kaiju body profile reaches ~1.27 * radiusZ at its dorsal ridge.
     // Put the row in front of that ridge, not on its centerline, so every
@@ -1010,14 +1289,13 @@ function addHeadFeatures(template, def, palette, dimensions) {
 
   const dorsalMaterial = solid(palette.accent, 'fins');
   if (head !== 'kaiju') {
-    const finScale = clamp(finite(def.sil?.finScale, 1), 0.5, 1.5);
-    const dorsalHeight = L * (0.19 + finScale * 0.03);
+    const finScale = dimensions.finScale;
+    const dorsalHeight = head === 'eel'
+      ? L * (0.27 + finScale * 0.08)
+      : head === 'whale' ? L * (0.12 + finScale * 0.035)
+        : L * (0.17 + finScale * 0.045);
     const dorsalRootX = L * 0.05;
-    const dorsal = makeExtrudedTriangle([
-      [L * 0.14, r * 0.72, 0],
-      [L * 0.02, r * 0.70 + dorsalHeight, 0],
-      [-L * 0.09, r * 0.66, 0]
-    ], Math.max(0.018, rz * 0.12));
+    const dorsal = makeDorsalFinGeometry(head, L, r, dorsalHeight, finScale);
     dorsal.userData.rfDorsalSwept = true;
     dorsal.userData.rfDorsalRootX = dorsalRootX;
     dorsal.userData.rfDorsalHeight = dorsalHeight;
@@ -1052,7 +1330,12 @@ function addHeadFeatures(template, def, palette, dimensions) {
   template.metrics.gillBandCount = 5;
   template.metrics.gillXRange = [gillXStart, gillXEnd];
   template.metrics.gillBandVertexColors = true;
-  template.bodyFeatures.push(descriptor(makeExtrudedTriangle([[L * 0.03, -r * 0.55, 0], [-L * 0.03, -r * (0.98 + finite(def.sil?.finScale, 1) * 0.18), 0], [L * 0.2, -r * 0.48, 0]], rz * 0.1), dorsalMaterial, [0, 0, 0], [0, 0, 0], [1, 1, 1], 'pelvic fin'));
+  const pelvicScale = dimensions.finScale;
+  template.bodyFeatures.push(descriptor(makeExtrudedPolygon([
+    [L * 0.06, -r * 0.55, 0],
+    [-L * (0.04 + pelvicScale * 0.03), -r * (0.98 + pelvicScale * 0.42), 0],
+    [L * 0.23, -r * 0.48, 0], [L * 0.12, -r * 0.54, 0]
+  ], Math.max(0.018, rz * 0.1)), dorsalMaterial, [0, 0, 0], [0, 0, 0], [1, 1, 1], 'pelvic fin'));
   if (finite(def.tier, 1) >= 9 && head !== 'eel' && head !== 'skull' && head !== 'kaiju') {
     for (let i = 0; i < 4; i++) {
       const plate = new THREE.ConeGeometry(r * 0.09, r * (0.22 + (i % 2) * 0.1), 5);
@@ -1155,10 +1438,50 @@ function buildTemplate(def) {
   // head remains inside the 0.18..0.34 tail-length contract.
   const tailScale = clamp(finite(sil.tailScale, 1), 0.55, 2.0);
   const finScale = clamp(finite(sil.finScale, 1), 0.5, 2.1);
-  const bodyLen = len * (head === 'eel' ? 1.48 : 1.3);
-  const radiusY = bodyLen * (isFusiformHead(head) ? 0.10 + girth * 0.085 : 0.14 + girth * 0.21) * (head === 'eel' ? 0.72 : 1);
+  const bodyLen = len * (
+    head === 'eel' ? 1.48
+      : head === 'whale' ? 1.38
+        : head === 'kaiju' ? 1.42
+          : id === 'mako' ? 1.38
+            : id === 'thresher' ? 1.34
+              : head === 'hammer' ? 1.34
+                : 1.3
+  );
+  const headWidthFactor = {
+    point: 1,
+    blunt: 1.06,
+    hammer: 1.12,
+    saw: 0.9,
+    croc: 0.98,
+    whale: 1.22,
+    angler: 0.91,
+    eel: 0.72,
+    rock: 0.9,
+    mech: 1.04,
+    skull: 1.03,
+    void: 0.94,
+    frill: 1.02,
+    kaiju: 1.30
+  }[head] || 1;
+  const idWidthFactor = id === 'mako' || id === 'thresher' ? 0.78 : 1;
+  const radiusY = bodyLen * (isFusiformHead(head) ? 0.10 + girth * 0.085 : 0.14 + girth * 0.21)
+    * headWidthFactor * idWidthFactor;
   const radiusZ = radiusY * (head === 'eel' ? 0.9 : 0.82);
-  const dimensions = { bodyLen, radiusY, radiusZ, len, girth, authoredGirth, tailScale, finScale };
+  const pectoralHeadFactor = {
+    hammer: 1.45,
+    whale: 0.82,
+    angler: 0.72,
+    eel: 1.08,
+    saw: 0.92,
+    croc: 0.86,
+    rock: 1.04,
+    mech: 0.92,
+    void: 1.12,
+    kaiju: 1.22
+  }[head] || 1;
+  const finProfile = 0.52 + finScale * 0.82 + finScale * finScale * 0.62;
+  const pectoralSpan = radiusZ * finProfile * pectoralHeadFactor;
+  const dimensions = { bodyLen, radiusY, radiusZ, len, girth, authoredGirth, tailScale, finScale, pectoralSpan, id };
   const palette = paletteOf(def);
   const template = {
     id,
@@ -1166,10 +1489,10 @@ function buildTemplate(def) {
     palette,
     bodyGeometry: makeSpineGeometry(def, palette, dimensions),
     bodyMaterial: toonMaterial({ color: WHITE, glow: 0x000000, vertexColors: true, kind: 'body' }),
-    tailGeometry: makeTailGeometry(bodyLen, tailScale, finite(def.tier, 1), palette, sil.pattern),
+    tailGeometry: makeTailGeometry(bodyLen, tailScale, finite(def.tier, 1), palette, sil.pattern, head, id),
     tailMaterial: toonMaterial({ color: WHITE, glow: 0x000000, vertexColors: true, kind: 'tail' }),
-    pectGeometry: makePectoralGeometry(bodyLen, radiusY, radiusZ * (1.35 + finScale * 0.2)),
-    pectMaterial: toonMaterial({ color: lerpColor(palette.base, palette.belly, 0.22), glow: 0x000000, kind: 'pectoral' }),
+    pectGeometry: makePectoralGeometry(bodyLen, radiusY, pectoralSpan, head, finScale),
+    pectMaterial: toonMaterial({ color: palette.accent, glow: 0x000000, kind: 'pectoral' }),
     bodyFeatures: [],
     jaw: null,
     teeth: 0,
@@ -1190,6 +1513,7 @@ function buildTemplate(def) {
     template.jaw.teethMaterial = batches[0]?.material || null;
   }
   template.metrics.faceShare = template.face.spec.share;
+  template.metrics.faceCenterZ = finite(template.metrics.faceCenterZ, 0);
   template.metrics.bodyMaxZ = template.bodyGeometry.boundingBox.max.z;
   const bodySize = template.bodyGeometry.boundingBox.getSize(new THREE.Vector3());
   template.metrics.bodyAspect = bodySize.x / Math.max(bodySize.y, bodySize.z, 0.001);
@@ -1200,12 +1524,21 @@ function buildTemplate(def) {
   template.metrics.tailLowerLobeHeight = template.tailGeometry.userData.rfTailLowerLobeHeight;
   template.metrics.tailRootWidth = template.tailGeometry.userData.rfTailRootWidth;
   template.metrics.tailOutline = template.tailGeometry.userData.rfTailOutline;
+  template.metrics.pattern = sil.pattern || 'plain';
+  template.metrics.head = head;
+  template.metrics.finScale = finScale;
+  template.metrics.tailScale = tailScale;
+  template.metrics.pectoralSpan = template.pectGeometry.userData.rfPectoralSpan;
+  template.metrics.dorsalFinRatio = template.metrics.dorsalFin ? template.metrics.dorsalFin.height / bodyLen : 0;
   template.metrics.plateMaxZ = template.plateFeatures.length
     ? Math.max(...template.plateFeatures.map((feature) => feature.geometry.boundingBox.max.z + feature.position[2]))
     : 0;
   template.metrics.jawVolumeRatio = template.jaw
     ? (template.jaw.geometry.userData.rfJawVolume || 0) / Math.max(0.001, dimensions.bodyLen * (dimensions.radiusY * 2) * (dimensions.radiusZ * 2))
     : 0;
+  template.metrics.bulkRearProfile = finite(template.bodyGeometry.userData.rfBulkRearProfile, 0);
+  template.metrics.bulkFrontProfile = finite(template.bodyGeometry.userData.rfBulkFrontProfile, 0);
+  template.metrics.bulkNoseProfile = finite(template.bodyGeometry.userData.rfBulkNoseProfile, 0);
   geometryCache.set(id, template);
   return template;
 }
@@ -1269,6 +1602,11 @@ function buildShark(def) {
   group.userData.rfSharkId = template.id;
   group.userData.rfArchetype = def.sil?.head || 'point';
   group.userData.rfFaceShare = template.metrics.faceShare;
+  group.userData.rfFaceCenterZ = template.metrics.faceCenterZ;
+  group.userData.rfBulkHead = isBulkyHead(def.sil?.head || 'point');
+  group.userData.rfBulkRearProfile = template.metrics.bulkRearProfile;
+  group.userData.rfBulkFrontProfile = template.metrics.bulkFrontProfile;
+  group.userData.rfBulkNoseProfile = template.metrics.bulkNoseProfile;
   group.userData.rfJawVolumeRatio = template.metrics.jawVolumeRatio;
   group.userData.rfTailShare = template.metrics.tailShare;
   group.userData.rfBodyLen = template.dimensions.bodyLen;
@@ -1282,6 +1620,13 @@ function buildShark(def) {
   group.userData.rfTailLowerLobeHeight = template.metrics.tailLowerLobeHeight;
   group.userData.rfTailRootWidth = template.metrics.tailRootWidth;
   group.userData.rfTailOutline = template.metrics.tailOutline;
+  group.userData.rfPattern = template.metrics.pattern;
+  group.userData.rfFinScale = template.metrics.finScale;
+  group.userData.rfTailScale = template.metrics.tailScale;
+  group.userData.rfPectoralSpan = template.metrics.pectoralSpan;
+  group.userData.rfPectoralSpanRatio = template.metrics.pectoralSpan / Math.max(template.dimensions.bodyLen, 0.001);
+  group.userData.rfDorsalFinRatio = template.metrics.dorsalFinRatio;
+  group.userData.rfPaletteRaw = template.palette.raw;
   group.userData.rfGillBandCount = template.metrics.gillBandCount || 0;
   group.userData.rfGillBandVertexColors = !!template.metrics.gillBandVertexColors;
   group.userData.rfGillXRange = template.metrics.gillXRange || null;
@@ -1609,6 +1954,139 @@ function bodyColorBlockStats(geometry) {
   };
 }
 
+function dominantVertexColors(geometries) {
+  const histogram = new Map();
+  let total = 0;
+  for (const geometry of geometries) {
+    const attribute = geometry?.getAttribute?.('color');
+    if (!attribute || attribute.itemSize !== 3) continue;
+    for (let i = 0; i < attribute.count; i++) {
+      const r = clamp(Math.round(attribute.getX(i) * 15), 0, 15);
+      const g = clamp(Math.round(attribute.getY(i) * 15), 0, 15);
+      const b = clamp(Math.round(attribute.getZ(i) * 15), 0, 15);
+      const key = `${r}:${g}:${b}`;
+      histogram.set(key, (histogram.get(key) || 0) + 1);
+      total++;
+    }
+  }
+  return Array.from(histogram.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4)
+    .map(([key, count]) => {
+      const [r, g, b] = key.split(':').map(Number);
+      return { r: r / 15, g: g / 15, b: b / 15, share: count / Math.max(1, total) };
+    });
+}
+
+function distinctnessSignature(def, rig) {
+  const metrics = rig.group.userData;
+  const body = rig.parts.body.geometry;
+  const tail = rig.parts.tail.geometry;
+  return {
+    id: String(def.id),
+    tier: finite(def.tier, 1),
+    act: finite(def.act, 1),
+    head: String(def.sil?.head || 'point'),
+    pattern: String(def.sil?.pattern || 'plain'),
+    fx: String(def.sil?.fx || 'none'),
+    dominantColors: dominantVertexColors([body, tail]),
+    paletteColors: metrics.rfPaletteRaw,
+    bodyAspect: finite(metrics.rfBodyAspect, 0),
+    bodyLength: finite(metrics.rfBodyLen, 0),
+    tailRatio: finite(metrics.rfTailLengthRatio, 0),
+    finRatio: finite(metrics.rfPectoralSpanRatio, 0),
+    dorsalRatio: finite(metrics.rfDorsalFinRatio, 0),
+    girth: finite(metrics.rfEffectiveGirth, 0)
+  };
+}
+
+function dominantColorDistance(a, b) {
+  const colorsA = a.dominantColors || [];
+  const colorsB = b.dominantColors || [];
+  if (!colorsA.length || !colorsB.length) return 1;
+  const nearest = (source, target) => source.reduce((sum, color) => {
+    let best = Infinity;
+    for (const candidate of target) {
+      const rgb = Math.sqrt(
+        (color.r - candidate.r) ** 2 +
+        (color.g - candidate.g) ** 2 +
+        (color.b - candidate.b) ** 2
+      ) / Math.sqrt(3);
+      best = Math.min(best, rgb + Math.abs(color.share - candidate.share) * 0.5);
+    }
+    return sum + best * color.share;
+  }, 0);
+  return clamp((nearest(colorsA, colorsB) + nearest(colorsB, colorsA)) * 0.5, 0, 1);
+}
+
+function rawPaletteDistance(a, b) {
+  const keys = ['base', 'belly', 'accent', 'glow'];
+  let total = 0;
+  for (const key of keys) {
+    const av = key === 'glow' && !a.paletteColors?.[key] ? a.paletteColors?.accent : a.paletteColors?.[key];
+    const bv = key === 'glow' && !b.paletteColors?.[key] ? b.paletteColors?.accent : b.paletteColors?.[key];
+    const ac = colorValue(av, 0);
+    const bc = colorValue(bv, 0);
+    total += Math.sqrt((ac.r - bc.r) ** 2 + (ac.g - bc.g) ** 2 + (ac.b - bc.b) ** 2) / Math.sqrt(3);
+  }
+  return total / keys.length;
+}
+
+/* Distance is deliberately readable and bounded: 31% dominant colour
+ * histogram, 50% body/fin/tail proportions, and categorical identity blocks
+ * for the authored pattern/head/fx. A pair is adjacent when tier distance <= 1
+ * and act distance <= 1; unrelated late-game rows are not used to hide a
+ * collapse in the early roster. */
+function distinctnessDistance(a, b) {
+  const color = dominantColorDistance(a, b) * 0.65 + rawPaletteDistance(a, b) * 0.35;
+  const proportions =
+    Math.abs(a.bodyAspect - b.bodyAspect) / 4.5 * 0.35 +
+    Math.abs(a.tailRatio - b.tailRatio) / 0.34 * 0.18 +
+    Math.abs(a.finRatio - b.finRatio) / 1.2 * 0.18 +
+    Math.abs(a.dorsalRatio - b.dorsalRatio) / 0.45 * 0.12 +
+    Math.abs(a.girth - b.girth) / 0.8 * 0.03 +
+    Math.abs(a.bodyLength - b.bodyLength) / 3 * 0.14;
+  const pattern = a.pattern === b.pattern ? 0 : 1;
+  const head = a.head === b.head ? 0 : 1;
+  const fx = a.fx === b.fx ? 0 : 1;
+  return clamp(color * 0.31 + proportions * 0.50 + pattern * 0.06 + head * 0.06 + fx * 0.07, 0, 1);
+}
+
+function assertRosterDistinctness(signatures, result) {
+  let comparisons = 0;
+  let minimum = Infinity;
+  let closestPair = null;
+  const violations = [];
+  for (let i = 0; i < signatures.length; i++) {
+    for (let j = i + 1; j < signatures.length; j++) {
+      const a = signatures[i];
+      const b = signatures[j];
+      if (Math.abs(a.tier - b.tier) > DISTINCTNESS_TIER_RADIUS || Math.abs(a.act - b.act) > DISTINCTNESS_TIER_RADIUS) continue;
+      const distance = distinctnessDistance(a, b);
+      comparisons++;
+      if (distance < minimum) {
+        minimum = distance;
+        closestPair = [a.id, b.id];
+      }
+      if (distance < DISTINCTNESS_DISTANCE_THRESHOLD) {
+        violations.push(`${a.id}/${b.id}=${distance.toFixed(3)}`);
+      }
+    }
+  }
+  result.distinctness = {
+    checked: signatures.length,
+    adjacentComparisons: comparisons,
+    threshold: DISTINCTNESS_DISTANCE_THRESHOLD,
+    tierRadius: DISTINCTNESS_TIER_RADIUS,
+    minimumDistance: Number(minimum.toFixed(3)),
+    closestPair
+  };
+  if (violations.length) {
+    throw new Error(`adjacent-tier distinctness violations ${violations.length}: ${violations.slice(0, 8).join(', ')}`);
+  }
+  return result.distinctness;
+}
+
 function bodyBandStats(geometry) {
   const attribute = geometry?.getAttribute?.('color');
   const radial = geometry?.userData?.rfRadial;
@@ -1772,6 +2250,30 @@ function auditSharkShapeContracts(def, rig) {
     throw new Error(`${def.id}: eye was not reduced and lifted toward the snout top`);
   }
 
+  if (isBulkyHead(head)) {
+    const committedHead = namedFeature(parts.body, `${head} committed front head`);
+    const bodyBox = parts.body.geometry.boundingBox;
+    const headBox = committedHead?.geometry?.boundingBox;
+    if (!committedHead || !headBox) throw new Error(`${def.id}: bulky ${head} head batch is missing`);
+    const overlap = Math.min(bodyBox.max.x, headBox.max.x) - Math.max(bodyBox.min.x, headBox.min.x);
+    const headCenterZ = (headBox.min.z + headBox.max.z) * 0.5;
+    if (Math.abs(group.userData.rfFaceCenterZ) > 1e-9 || Math.abs(headCenterZ) > 1e-6) {
+      throw new Error(`${def.id}: bulky ${head} head is offset from the spine axis`);
+    }
+    if (headBox.max.x <= 0 || overlap < bodyLen * 0.12) {
+      throw new Error(`${def.id}: bulky ${head} head does not overlap the +x spine silhouette`);
+    }
+    if (head === 'whale') {
+      if (namedFeature(parts.body, 'whale bulk')) throw new Error(`${def.id}: whale bulk was reintroduced as a detached feature`);
+      if (!(group.userData.rfBulkFrontProfile > group.userData.rfBulkRearProfile * 1.35)) {
+        throw new Error(`${def.id}: whale body is not front-heavy over its peduncle`);
+      }
+      if (!(group.userData.rfBulkNoseProfile < group.userData.rfBulkFrontProfile * 0.82)) {
+        throw new Error(`${def.id}: whale body does not taper toward the +x head join`);
+      }
+    }
+  }
+
   const gill = namedFeature(parts.body, 'gill slit');
   const gillNames = gill?.userData?.rfFeatureNames?.filter((name) => name.includes('gill slit')) || [];
   const gillColors = maxVertexColorChannel(gill?.geometry);
@@ -1817,7 +2319,7 @@ function __selftest() {
   const rows = host.RFD?.SHARKS || RF.RFD?.SHARKS || RF.SHARKS;
   if (!rows || rows.length !== 61) throw new Error(`RF.Art3D expected 61 sharks, received ${rows ? rows.length : 0}`);
   const samples = representativeRows();
-  const result = { pass: false, headProfiles: {}, triangles: {}, materialAudit: {}, bodyCalibration: {}, colorBlocks: {}, bendProgramVariants: [], notes: [], errors: [] };
+  const result = { pass: false, headProfiles: {}, triangles: {}, materialAudit: {}, bodyCalibration: {}, colorBlocks: {}, patterns: {}, distinctness: null, bendProgramVariants: [], notes: [], errors: [] };
   try {
     const ratios = [];
     const bendProgramKeys = new Set();
@@ -1827,6 +2329,10 @@ function __selftest() {
     // Three r160 exposes needsUpdate as a write-only setter; version is the
     // renderer-visible proof that the setter was triggered in headless mode.
     if (!(ramp.version > 0)) throw new Error('gradientMap was not marked needsUpdate');
+    const usedPatterns = Array.from(new Set(rows.map((def) => String(def.sil?.pattern || 'plain')))).sort();
+    const unsupportedPatterns = usedPatterns.filter((pattern) => !SUPPORTED_PATTERN_IDS.has(pattern));
+    if (unsupportedPatterns.length) throw new Error(`unsupported sil.pattern IDs: ${unsupportedPatterns.join(', ')}`);
+    result.patterns = { used: usedPatterns, supported: Array.from(SUPPORTED_PATTERN_IDS).sort(), missing: [] };
     for (const def of samples) {
       const rig = buildShark(def);
       const { group, parts } = rig;
@@ -1954,8 +2460,10 @@ function __selftest() {
     let sweep = 0;
     let worstCaseTriangles = 0;
     let worstCaseId = null;
+    const signatures = [];
     for (const def of rows) {
       const rig = buildShark(def);
+      signatures.push(distinctnessSignature(def, rig));
       auditSharkShapeContracts(def, rig);
       for (const material of bendMaterials(rig.group)) bendProgramKeys.add(material.customProgramCacheKey());
       const materials = auditMaterialOwnership(def, rig);
@@ -1997,6 +2505,7 @@ function __selftest() {
       }
       sweep++;
     }
+    assertRosterDistinctness(signatures, result);
     result.sweep = sweep;
     result.bodyMaterialAudit = {
       checked: sweep,
@@ -2020,6 +2529,7 @@ function __selftest() {
     result.notes.push('every non-none Act 2/3 sil.fx key has a named emissive feature mesh; pattern veins/plates and FX families are feature-owned');
     result.notes.push('14 archetype face identities checked; tier 5+ face share, jaw volume, and tier-scaled tail gates checked');
     result.notes.push('kaiju plate row is camera-offset above body max z; mouth cavities and tooth rows are merged per shark');
+    result.notes.push('bulky heads blunt/angler/whale/kaiju are axis-aligned and overlap the +x loft; whale bulk is loft-owned with a tapered peduncle and mouth-span baleen');
     result.notes.push(`fusiform tail length ${TAIL_MIN_RATIO.toFixed(2)}..${TAIL_MAX_RATIO.toFixed(2)} body lengths; upper/lower ratio 1:0.62; crescent notch and 0.045L peduncle gate checked across ${sweep}/${sweep}`);
     result.notes.push(`fusiform body core aspect >= ${FUSIFORM_BODY_ASPECT_MIN.toFixed(1)} and visual aspect >= ${FUSIFORM_ASPECT_MIN.toFixed(1)}; eel/whale/kaiju are documented bulk exceptions`);
     result.notes.push('swept dorsal fin, long thin swept-back pectorals, five dark vertex-color gill bands at +0.28..+0.38L, half-size top-snouted eyes, and vertex-color mouth line are shape-gated');
@@ -2027,6 +2537,8 @@ function __selftest() {
     result.notes.push('one per-rig bend uniform bundle is identity-shared by body, 1.045x shell compensation, and every feature batch; CPU bendOffset nose/tail reference checked');
     result.notes.push('pose child owns yaw ±0.28, bank clamp ±0.35, vy pitch blend, and speed stretch; outer group scale remains the world/eat-pop authority');
     result.notes.push(`phase accumulator integrates continuous rate 2.2..8.5 Hz; tail yaw sweep is 0.38..0.68 rad, tip travel >= 0.10L, bend y term is ${BEND_Y_SCALE.toFixed(2)}*z and max y travel >= 0.02L; body roll/head counter-yaw are ±0.04/±0.05`);
+    result.notes.push(`all ${result.patterns.used.length} live sil.pattern IDs are explicit vertex-colour painters; tiger stripes use seven ${'hard-edged'} axial bands`);
+    result.notes.push(`roster distinctness signature: ${result.distinctness.checked} defs, ${result.distinctness.adjacentComparisons} adjacent-tier pairs, threshold ${result.distinctness.threshold.toFixed(2)}, minimum ${result.distinctness.minimumDistance.toFixed(3)} (${result.distinctness.closestPair.join('/')})`);
     result.pass = true;
   } catch (error) {
     result.errors.push(error.message || String(error));
