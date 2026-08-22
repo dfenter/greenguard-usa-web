@@ -60,6 +60,49 @@ import * as THREE from 'three';
   var ECON = RFD.ECONOMY || {};
   var UPEFF = ECON.upgradeEffect || { bite: 0.1, speed: 0.06, boost: 0.12, power: 0.08 };
 
+  // Rev 6 / 6.6: generosity gate. tier <= p.tier + BITE_UP_BASE + biteUp is
+  // eatable at all; tier <= p.tier - 1 swallows instantly (was p.tier - 2).
+  // megajaw (6.7) folds into this SAME formula by adding +1 to both numbers
+  // while active, rather than forking a second gate.
+  var BITE_UP_BASE = 1;
+  var MEGAJAW_BITE_UP = 1;      // +1 bite reach while megajaw is active
+  var MEGAJAW_INSTANT = 1;      // +1 instant-swallow tier while megajaw is active
+
+  // Rev 6 / 6.7: powerup lifecycle/economy (HM port). Durations and
+  // multipliers per the contract; APEX_SURGE stacks overdrive+megajaw for
+  // its own shorter window instead of introducing a third gate.
+  var BUFF_DUR = {
+    overdrive: 8, shield: 0 /* charge count, not a timer */, megajaw: 10,
+    magnet: 8, chum: 6, apex: 5
+  };
+  // Rev 6.11: overdrive is HM's EXACT semantics (game.js :5449-5476), not a
+  // flat multiplier - 1.42x target speed reached via an accel/brake approach,
+  // not a direct assignment. OVERDRIVE_ACCEL/BRAKE are ported verbatim.
+  var OVERDRIVE_SPEED_MULT = 1.42;
+  var OVERDRIVE_ACCEL = 860;       // px/s^2 clamp toward the target velocity
+  var OVERDRIVE_BRAKE = 8.5;       // idle brake coefficient (HM :5467)
+  var SHIELD_CHARGES = 2;
+  var MAGNET_RADIUS_MULT = 2.5;
+  var APEX_SPAWN_WEIGHT = 'legendary-rare'; // documentation marker only
+  // FIX-ROUND-3 item 4: engine-side global cooldown between spawnBuffDrop
+  // calls, so a burst of notable kills cannot flood capsules (the world lane
+  // separately adds its own live buffpickup concurrency cap).
+  var BUFF_DROP_COOLDOWN = 10;
+
+  // Rev 6 / 6.7: superpower charge economy.
+  var POWER_CHARGE_START = 3;
+  var POWER_CHARGE_CAP = 8;
+  var POWER_CHARGE_COMBO_STEP = 8;     // one charge every 8 combo streak
+
+  // Rev 6 / 6.7: double-tap thresholds, ported VERBATIM from horde-meridian
+  // game.js :2640-2662 (release() / tryCallAirstrike gate). Any pointer, not
+  // just the joystick pointer, and the windows are humane on purpose.
+  var DTAP_HOLD_MAX = 400;      // ms: a "tap" held less than this
+  var DTAP_MOVE_MAX = 34;       // px: a "tap" moved less than this while held
+  var DTAP_GAP_MIN = 40;        // ms: minimum gap between the two taps
+  var DTAP_GAP_MAX = 500;       // ms: maximum gap between the two taps
+  var DTAP_DIST_MAX = 160;      // px: max distance between the two tap points
+
   // Frenzy event records are module scratch. World.kill is wrapped once at
   // run-state init, so player swallows can feed this lane without touching the
   // neighbouring stepEat/multiBite blocks. The fixed step only writes numbers.
@@ -69,7 +112,11 @@ import * as THREE from 'three';
   var FRENZY_EAT_BLOOD = new Array(FRENZY_EAT_CAP);
   var FRENZY_EAT_TIER = new Array(FRENZY_EAT_CAP);
   var FRENZY_EAT_COMBO_T = new Array(FRENZY_EAT_CAP);
-  var FRENZY_FX_OPT = { count: 0, speed: 0, angle: 0, up: false, tint: 0, scale: 1 };
+  // Rev 6 / 6.6: the PREY position at the moment of a blood-trigger kill.
+  // Pooled entities recycle, so only numbers are ever stored here.
+  var FRENZY_EAT_X = new Array(FRENZY_EAT_CAP);
+  var FRENZY_EAT_Y = new Array(FRENZY_EAT_CAP);
+  var FRENZY_FX_OPT = { count: 0, speed: 0, angle: 0, up: false, tint: 0, tint2: 0, scale: 1 };
   var FRENZY_GOLD_TINT = 0xffd67a;
 
   // ------------------------------------------------- controls (ported)
@@ -80,20 +127,38 @@ import * as THREE from 'three';
   var STICK_RECENTER = 1.35;   // base follows the finger past this * radius
   var STICK_RING_A = 0.16;
   var STICK_NUB_A = 0.5;
-  var STICK_DEAD = 0.12;       // below this magnitude the stick reads as idle
-  var TURN_BOOSTA = 2.0;       // multiplier on stat.turn
-  var TURN_EASE_MIN = 0.45;    // ease factor at the dead zone edge
-  var TURN_EASE_MAX = 1.0;     // ease factor at full deflection
-  var IDLE_DRAG = 0.80;        // per-60th-second velocity retention when idle
+  // Rev 6 / 6.8: dead zone tightened from 0.12 to horde-meridian's 0.03 - the
+  // owner law is EXACT hm mechanics (game.js stepInput :5439-5480). TURN_EASE_
+  // MIN/MAX and IDLE_DRAG are DELETED per 6.8: there is no turn-rate cap, no
+  // accel lerp and no idle drag any more. ctl.turnIn survives only as a
+  // presentation-only signal (see stepControl).
+  var STICK_DEAD = 0.03;
+  var TURN_BOOSTA = 2.0;       // still scales the PRESENTATION turnIn signal
 
   // ------------------------------------------------------- rig anim
   var TAIL_HZ_IDLE = 2.5, TAIL_HZ_CRUISE = 5.0, TAIL_HZ_BOOST = 8.0;
-  var TAIL_AMP_IDLE = 0.10, TAIL_AMP_CRUISE = 0.34, TAIL_AMP_TURN = 0.22;
+  // Rev 6 / 6.2: TAIL_AMP_IDLE/TURN are the binding contract values (0.03 /
+  // 0.28); TAIL_AMP_CRUISE is this lane's own interpolation target and is not
+  // named by the contract, so it is kept but re-based off the new idle floor.
+  var TAIL_AMP_IDLE = 0.03, TAIL_AMP_CRUISE = 0.34, TAIL_AMP_TURN = 0.28;
   var PECT_HZ = 1.7;
   var BANK_MAX = 0.18;         // rad, capped body roll into a turn
   var BANK_EASE = 6.0;         // per second approach rate
-  var JAW_OPEN = 0.42;         // rad at full bite window
+  var JAW_OPEN = 0.42;         // rad at full bite window (chew, not anticipation)
+  var JAW_ANTICIPATE = 0.85;   // 6.5: preyNear gape fraction (was 0.35)
   var IDLE_BOB_HZ = 0.9, IDLE_BOB_PX = 1.6, IDLE_SPEED_F = 0.15;
+
+  // Rev 6 / 6.5: lunge mechanic constants.
+  var LUNGE_CONE = 35 * Math.PI / 180;   // +-35 degrees of heading
+  var LUNGE_RANGE_MULT = 2.2;            // range = 2.2 * p.r
+  var LUNGE_ACCEL_MULT = 2.4;
+  var LUNGE_DUR = 0.22;
+  var LUNGE_HEADING_BLEND = 0.35;
+  var LUNGE_CD = 0.5;             // 6.11: 0.9 -> 0.5s cooldown
+  var PREY_NEAR_RANGE_MULT = 2.2;        // 6.2: eatable inside 2.2*mouthR
+  var PREY_NEAR_REFRESH = 0.25;          // seconds between presence re-scans
+  var JAW_SNAP_T = 0.12;                 // 6.5: snap-close duration on swallow
+  var TOO_BIG_CD = 0.6;                  // 6.6: TOO BIG cue cooldown
 
   // The sim and the 3D shark rig share one length authority. shark3d.js
   // authors its mesh around a 96px consumer target; this lane raises the
@@ -101,26 +166,41 @@ import * as THREE from 'three';
   var SHARK_LEN_PX = 124;
   var LEN_SCALE = SHARK_LEN_PX / 96;
 
-  // ------------------------------------------------- camera (SPEC3D)
+  // ------------------------------------------------- camera (SPEC3D Rev 6 / 6.1)
   // World coords are unchanged (x right 0..7200, y DOWN 0..3600); the mapping
-  // into three is (x, -y, z) with the gameplay plane at z = 0.
+  // into three is (x, -y, z) with the gameplay plane at z = 0, lookAt z = 0
+  // ALWAYS (plane readability is law per 6.1).
   var CAM_FOV = 50;                 // SPEC3D space contract
-  var CAM_Z_BASE = 430;             // dolly distance for a tier-1 shark.
-  // REVIEW-3D re-check 2 (ART-01): big sharks must LOOM. The camera pulls IN
-  // as tier rises so the flagship dominates the frame the way the reference
-  // roster does: tier 1 -> 430, tier 10+ -> 340 (clamped).
-  var CAM_Z_FLOOR = 340;
-  var CAM_Z = CAM_Z_BASE;            // live value, set per run from shark tier
+  // Rev 6 dolly is LENGTH-PROPORTIONAL, not tiered: z = renderedLenPx * 1.60,
+  // clamped [185..400]. camZForTier(tier) is kept EXPORTED (name stays, per
+  // the contract) but now delegates to camZForLen so every existing caller
+  // (startRun) still works unchanged.
+  var CAM_Z_LEN_MULT = 1.60;
+  var CAM_Z_MIN = 185, CAM_Z_MAX = 400;
+  var CAM_Z = CAM_Z_MAX;             // live value, set per run from shark length
+  function camZForLen(lenPx) {
+    var l = num(lenPx, SHARK_LEN_PX);
+    return clamp(l * CAM_Z_LEN_MULT, CAM_Z_MIN, CAM_Z_MAX);
+  }
   function camZForTier(tier) {
+    // SUPERSEDED naming only: Rev 6 dolly is length-proportional. Tier is
+    // resolved to its def's rendered length so every existing call site
+    // (startRun passes a sharkId's def) keeps behaving, just off the new law.
     var t = num(tier, 1);
-    return Math.max(CAM_Z_FLOOR, Math.min(CAM_Z_BASE, CAM_Z_BASE - (t - 1) * 10));
+    var def = null;
+    var list = RFD.SHARKS || [];
+    for (var i = 0; i < list.length; i++) {
+      if (num(list[i] && list[i].tier, 0) === t) { def = list[i]; break; }
+    }
+    return camZForLen(def ? sharkLenPx(def) : SHARK_LEN_PX);
   }
   // Three's Y axis is UP while the sim's Y axis is DOWN. A positive sim-space
-  // pitch therefore subtracts from the mapped camera Y. The target offset is
-  // deliberately separate so the effect is one edit away from a flat view.
-  var CAM_PITCH = 28;                // about 4deg at the 430-unit base
-  var CAM_LOOK_Y = 12;
-  var CAM_BOB = 5;                   // slow vertical framing drift, world units
+  // pitch therefore subtracts from the mapped camera Y. Rev 6: pitch/look are
+  // FRACTIONS of the live dolly z (0.17z / 0.07z), so framing stays consistent
+  // across the whole length-proportional dolly range instead of a fixed px offset.
+  var CAM_PITCH_FRAC = 0.17;
+  var CAM_LOOK_FRAC = 0.07;
+  var CAM_BOB = 3;                   // Rev 6: 3-unit vertical framing drift
   var CAM_BOB_HZ = 0.08;
   var CAM_PULSE_EASE = 12;           // per-second approach for cinematic zoom
   var CAM_EAT_ZOOM = -0.08;          // 8% push-in at a combo threshold
@@ -130,10 +210,22 @@ import * as THREE from 'three';
   var CAM_BLOOD_PUSH = -0.06;        // optional blood-frenzy push-in
   var CAM_FOV_SPAN = 6;             // mild FOV ease with speed (deg)
   var CAM_FOV_EASE = 2.2;           // per second approach
-  var CAM_LOOKAHEAD = 0.28;         // seconds of velocity led by the camera
-  var CAM_LOOKAHEAD_MAX = 190;      // px cap so a boost cannot lose the shark
+  var CAM_LOOKAHEAD = 0.34;         // Rev 6: 0.34s capped 150px (was 0.28s/190px)
+  var CAM_LOOKAHEAD_MAX = 150;
   var CAM_FOLLOW = 6.0;             // per second approach on position
   var CAM_NEAR = 1, CAM_FAR = 4200;
+  // Rev 6 yaw orbit hint: camState.yaw eases toward headingSign*0.13rad*speedFrac
+  // at 2.5/s, applied to camera POSITION only (never lookAt). Quarter-view
+  // hint, not a chase cam.
+  var CAM_YAW_MAX = 0.13;
+  var CAM_YAW_EASE = 2.5;
+  // Framing accept band per 6.1: rendered shark length should read as roughly
+  // this fraction of frame WIDTH. The camera's vertical FOV projects a
+  // horizontal extent of 2*z*tan(fov/2)*aspect at the gameplay plane
+  // (aspect = CSS_W/CSS_H, since PerspectiveCamera.fov is the vertical angle
+  // and horizontal follows from the aspect ratio) - 2.018 is that constant
+  // precomputed for fov=50 at the 844x390 design baseline.
+  var CAM_FRAME_TAN2 = 2 * Math.tan((CAM_FOV * Math.PI / 180) / 2) * (CSS_W / CSS_H);
 
   // ------------------------------------------------------------- helpers
   function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
@@ -356,7 +448,7 @@ import * as THREE from 'three';
   var comboQueue = [];
   // Camera motion scratch. Pulse fields are reused for the whole run; no
   // transient object is created by combo/death/blood camera presentation.
-  var camState = { x: 0, y: 0, fov: CAM_FOV, zoom: 0, pulse: 0, pulseT: 0 };
+  var camState = { x: 0, y: 0, fov: CAM_FOV, zoom: 0, pulse: 0, pulseT: 0, yaw: 0 };
   var zoneState = { fog: 0x9fd4e8, density: 0.00042, tint: 0x1b4d66 };
 
   // ATMO-01 / Rev 2: the light + renderer handles this engine creates once and
@@ -384,7 +476,14 @@ import * as THREE from 'three';
     name: '', hp: 0, hpFrac: 0, maxHp: 0, boost: 1, boosting: false,
     power: 0, powerReady: false, powerId: null, powerTint: 0,
     coins: 0, score: 0, combo: 0, comboMult: 1, frenzy: 0, goldRush: 0,
-    hurt: 0, tier: 1, zone: '', dev: false, chips: null
+    hurt: 0, tier: 1, zone: '', dev: false, chips: null,
+    // Rev 6 / 6.7: powerup buff timers + charge count, reused object so the
+    // HUD lane can read it every frame without a new allocation.
+    powerCharges: 0, powerChargeCap: 0,
+    buffs: { overdrive: 0, shield: 0, megajaw: 0, magnet: 0, chum: 0, apex: 0 },
+    // ui3d minimap + buff bars: player position and remaining-fraction list
+    // (reused array, fractions 0..1, active buffs only).
+    px: 0, py: 0, buffTimers: []
   };
   HUD_STATE.chips = comboQueue;
 
@@ -895,12 +994,49 @@ import * as THREE from 'three';
     if (stickEls) stickEls.root.style.display = 'none';
   }
 
+  // Rev 6 / 6.7: the elemental active becomes a CHARGED power. abilities.js
+  // still owns its own internal meter/cooldown gate (canFire/fire, unchanged);
+  // this lane adds the charge-count gate on TOP of that, one charge per fire,
+  // via the SAME dedicated HUD button + double-tap wiring that already called
+  // firePower() (SPEC3D: "keep current wiring, add charge gating in
+  // engine/abilities"). ctx.run.powerCharges is 0 out of run (ctx.run does
+  // not exist until buildContext), so this degrades to a no-op safely then.
   function firePower() {
     if (!RF.Abilities || !RF.Abilities.fire) return;
+    var r = ctx && ctx.run;
+    if (!r || !(num(r.powerCharges, 0) > 0)) return;
     try {
       if (RF.Abilities.canFire && !RF.Abilities.canFire(ctx)) return;
-      RF.Abilities.fire(ctx);
+      if (!RF.Abilities.fire(ctx)) return;
+      r.powerCharges = clamp(num(r.powerCharges, 0) - 1, 0, POWER_CHARGE_CAP);
     } catch (e) { warnOnce('Abilities.fire', e); }
+  }
+
+  // Rev 6 / 6.7: double-tap superpower trigger, ported VERBATIM from
+  // horde-meridian game.js release() :2640-2662. Module scratch, no
+  // allocation: the last-tap bookkeeping is three scalars, matching HM's
+  // scene.lastTapAt/X/Y fields.
+  var lastTapAt = 0, lastTapX = 0, lastTapY = 0;
+  function dist2(x1, y1, x2, y2) { var dx = x1 - x2, dy = y1 - y2; return Math.sqrt(dx * dx + dy * dy); }
+  function checkDoubleTap(pt) {
+    if (!pt || !running) return;
+    var nowMs = (root.performance && root.performance.now) ? root.performance.now() : Date.now();
+    var downAt = num(pt.downAt, nowMs);
+    var startX = num(pt.startX, pt.x), startY = num(pt.startY, pt.y);
+    var held = nowMs - downAt;
+    var moved = dist2(pt.x, pt.y, startX, startY);
+    if (held < DTAP_HOLD_MAX && moved < DTAP_MOVE_MAX) {
+      if (lastTapAt && (nowMs - lastTapAt) < DTAP_GAP_MAX
+          && (nowMs - lastTapAt) > DTAP_GAP_MIN
+          && dist2(pt.x, pt.y, lastTapX, lastTapY) < DTAP_DIST_MAX) {
+        lastTapAt = 0;
+        firePower();
+      } else {
+        lastTapAt = nowMs; lastTapX = pt.x; lastTapY = pt.y;
+      }
+    } else {
+      lastTapAt = 0;
+    }
   }
 
   // Lane C3 owns the power button as a DOM control and calls this. In-run
@@ -928,6 +1064,11 @@ import * as THREE from 'three';
       // pointer identity is gone and holding the stick would strand the shark
       // at full throttle.
       if (!pt) { clearStick(); p.ctl.boostId = null; return; }
+      // 6.7: ANY pointer's release counts toward the double-tap gate, not
+      // just the steering pointer - a second finger tapping elsewhere still
+      // gets a NEW pointer id and must not be skipped (the exact mobile fix
+      // HM's comment documents at :2641-2646).
+      checkDoubleTap(pt);
       if (pt.pointerId === p.ctl.steerId) clearStick();
       if (pt.pointerId === p.ctl.boostId) p.ctl.boostId = null;
     }));
@@ -938,6 +1079,7 @@ import * as THREE from 'three';
   function unbindInput() {
     for (var i = 0; i < subs.length; i++) { try { subs[i](); } catch (e) {} }
     subs.length = 0;
+    lastTapAt = 0;
   }
 
   // ==================================================== context + player
@@ -965,7 +1107,18 @@ import * as THREE from 'three';
         _schoolTriggeredPackId: 0, _goldenRolledPackId: 0, _goldenCuePending: false,
         _goldRushAnnounced: false, _frenzyApplied: false,
         _frenzyBaseSpeed: 1, _frenzyBaseBite: 1,
-        _frenzyAppliedSpeed: 1, _frenzyAppliedBite: 1
+        _frenzyAppliedSpeed: 1, _frenzyAppliedBite: 1,
+        // Rev 6 / 6.7: powerup buff timers (seconds remaining; 0 = inactive).
+        // shield uses charges (integer hits absorbed), everything else a
+        // countdown. HM's pattern verbatim (game.js run.buffs.<name>).
+        buffs: { overdrive: 0, shield: 0, megajaw: 0, magnet: 0, chum: 0, apex: 0 },
+        // Rev 6 / 6.7: superpower charge economy. 3 opening charges, cap 8,
+        // earned at combo streak thresholds (every 8 combo) + frenzy completions.
+        powerCharges: POWER_CHARGE_START, _lastComboCharge: 0,
+        // FIX-ROUND-3 item 4 (BUFF CADENCE): engine-side global drop cooldown
+        // timestamp for spawnBuffDrop, in ctx.time.now units. -Infinity so the
+        // very first notable kill of a run is never blocked by the cooldown.
+        _lastBuffDropAt: -Infinity
       },
       // Render-layer handles the other 3D lanes need. Additive to the SPEC.md
       // schema, never a replacement for any field in it.
@@ -977,7 +1130,11 @@ import * as THREE from 'three';
       mouth: MOUTH,
       // World may consume this descriptor during its own update. It is reused
       // in place so publishing a swirl never allocates in the fixed step.
-      schoolSwirl: { packId: 0, t: 0 }
+      schoolSwirl: { packId: 0, t: 0 },
+      // Rev 6 / 6.7: CHUM CLOUD flag. World reads this to converge nearby
+      // prey toward the player; if world3d does not implement it yet this is
+      // a harmless no-op flag nobody consumes.
+      chum: { active: false, x: 0, y: 0 }
     };
     installFrenzyHooks();
     FRENZY_EAT_N = 0;
@@ -1010,7 +1167,12 @@ import * as THREE from 'three';
       x: WORLD_W * 0.5, y: 260, vx: 0, vy: 0, angle: 0,
       hp: stat.hp, maxHp: stat.hp,
       st: { chewFxCd: 0, invulnT: 0, phaseT: 0, frozenT: 0, stunT: 0, burnT: 0, poisonT: 0,
-            airborne: false, usedUndying: false, eatPopT: 0, jawSnapT: 0 },
+            airborne: false, usedUndying: false, eatPopT: 0, jawSnapT: 0,
+            // Rev 6 / 6.5 + 6.2: lunge + prey-near state bag, all numbers.
+            preyNear: false, preyNearCd: 0, lungeT: 0, lungeCd: 0,
+            lungeX: 0, lungeY: 0,
+            // Rev 6 / 6.6: TOO BIG cue cooldown.
+            tooBigCd: 0 },
       sprite: null,       // three Group once the rig is attached
       rig: null,
       r: lenPx * 0.42,
@@ -1039,8 +1201,11 @@ import * as THREE from 'three';
         trailX: 0, trailY: 0, trailInit: false,
         // Handed to RF.Art3D.animate every step (SPEC3D state bag). Reused,
         // never reallocated.
+        // Rev 6 / 6.2: vy, preyNear, lungeT are the new state-bag authority
+        // fields this lane publishes for shark3d/world3d NPC consumers.
         state: { speedFrac: 0, turn: 0, bitePhase: 0, jawSnapT: 0, boosting: false,
-                 tailPhase: 0, tailAmp: 0, pectPhase: 0, bank: 0, bob: 0 }
+                 tailPhase: 0, tailAmp: 0, pectPhase: 0, bank: 0, bob: 0,
+                 vy: 0, preyNear: false, lungeT: 0 }
       }
     };
     ctx.player = p;
@@ -1068,6 +1233,8 @@ import * as THREE from 'three';
     if (!p || !p.active) return;
 
     stepControl(p);
+    stepPreyNear(p);
+    stepLunge(p);
     stepPops(STEP);
     stepMotion(p);
     stepAnim(p);
@@ -1080,35 +1247,70 @@ import * as THREE from 'three';
       try { RF.Abilities.update(ctx); } catch (e) { warnOnce('Abilities.update', e); }
     }
 
+    // Rev 6.11: buff pickups run BEFORE stepEat so a buffpickup entity is
+    // collected (armed) and removed from the world in the same frame it
+    // enters mouth range, never falling through to eatQuery as tier-0 prey.
+    stepPickups(p);
     stepEat(p);
     stepPlayerHits(p);           // consumed in the same frame world.js filled it
     stepHunger(p);
     stepCombo();
     stepFrenzy();
+    stepBuffs();
     stepMusic(p);
     stepZoneName(p);
 
     if (p.hp <= 0 && !dying) onDeath();
   }
 
-  // The stick vector IS the desired velocity: direction gives the heading to
-  // align to, magnitude scales the target speed. Zero allocation: everything
-  // below is scalars on p / p.ctl.
+  // Rev 6 / 6.8: EXACT horde-meridian mechanics (game.js stepInput :5439-5480).
+  // The stick vector IS the desired velocity, applied INSTANTLY: no turn-rate
+  // cap, no accel lerp, no idle drag. p.angle snaps to atan2(iy,ix) the moment
+  // the stick reads active; p.vx/vy are a direct cos/sin*speedCap*mag
+  // assignment, not an eased approach. Releasing the stick is a hard stop.
+  //
+  // EXCEPTION (6.8): while airborne (p.y < 0, mid breach arc) this function
+  // must never write vy - gravity owns it exclusively in stepMotion. Writing
+  // vx is still fine and still snaps to the stick heading; only the vy channel
+  // (both the direct-assignment branch and the idle hard-stop) is skipped, or
+  // every breach would be yanked back into the water by the idle stop the
+  // instant the player releases the stick mid-arc.
+  //
+  // ctl.turnIn is NOT a mechanic input any more: it is a PRESENTATION-ONLY
+  // signal derived from the actual heading delta this step, normalized by
+  // s.turn * TURN_BOOSTA * STEP. Nothing here reads it back for motion; it
+  // only feeds stepAnim's bank/tail/pose.
   function stepControl(p) {
     var s = p.stat;
     var ctl = p.ctl;
 
-    var ix = ctl.sx, iy = ctl.sy, mag = ctl.mag;
-    if (!ctl.active) {
-      var kx = 0, ky = 0;
-      if (kit.input.keyDown('KeyA') || kit.input.keyDown('ArrowLeft')) kx -= 1;
-      if (kit.input.keyDown('KeyD') || kit.input.keyDown('ArrowRight')) kx += 1;
-      if (kit.input.keyDown('KeyW') || kit.input.keyDown('ArrowUp')) ky -= 1;
-      if (kit.input.keyDown('KeyS') || kit.input.keyDown('ArrowDown')) ky += 1;
-      if (kx !== 0 || ky !== 0) {
-        var kl = Math.sqrt(kx * kx + ky * ky);
-        ix = kx / kl; iy = ky / kl; mag = 1;
-      } else { ix = 0; iy = 0; mag = 0; }
+    // Rev 6.11 CONTROLS EXACTNESS: keyboard merges WITH the stick, always -
+    // not only when the stick is idle (HM game.js stepInput :5439-5446 adds
+    // key axes and stick axes into the SAME dx/dy before normalizing). ix/iy
+    // here are the pre-normalize combined axis, mag is |combined| clamped to
+    // the stick's own [0,1] deflection fraction (a fully-deflected stick plus
+    // a held key must not exceed the stick's own top speed contribution).
+    var kx = 0, ky = 0;
+    if (kit.input.keyDown('KeyA') || kit.input.keyDown('ArrowLeft')) kx -= 1;
+    if (kit.input.keyDown('KeyD') || kit.input.keyDown('ArrowRight')) kx += 1;
+    if (kit.input.keyDown('KeyW') || kit.input.keyDown('ArrowUp')) ky -= 1;
+    if (kit.input.keyDown('KeyS') || kit.input.keyDown('ArrowDown')) ky += 1;
+
+    // FIX-ROUND-3 item 1 (STICK MATH, HM-exact): ctl.sx/sy are ALREADY the
+    // deflection-scaled components (dx/max, dy/max in dragStick) - each one
+    // independently carries both direction AND magnitude fraction. Multiplying
+    // by ctl.mag again re-applies the same magnitude a second time, so a half
+    // deflection (sx=0.5) became 0.5*0.5=0.25 speed instead of 0.5. HM
+    // (game.js :5445-5446) adds the raw stick components directly with no
+    // second magnitude multiply; mirror that exactly here. The single
+    // magnitude clamp still happens ONCE below via clampedLen = min(1, len).
+    var dx = kx, dy = ky;
+    if (ctl.active) { dx += ctl.sx; dy += ctl.sy; }
+    var len = Math.sqrt(dx * dx + dy * dy);
+    var ix = 0, iy = 0, mag = 0;
+    if (len > 0) {
+      var clampedLen = Math.min(1, len);
+      ix = dx / len; iy = dy / len; mag = clampedLen;
     }
     if (mag < STICK_DEAD) { mag = 0; ix = 0; iy = 0; }
     ctl.drive = mag;
@@ -1124,56 +1326,196 @@ import * as THREE from 'three';
       ctl.boosting = false;
     }
 
-    // Heading: turn cap ~2x the stat rate, eased by deflection so a light push
-    // is a gentle arc and a full push whips the nose across.
+    var airborne = p.y < 0;
+    var prevAngle = p.angle;
     var turnIn = 0;
-    if (mag > 0) {
-      var wantAngle = Math.atan2(iy, ix);
-      var d = angDelta(p.angle, wantAngle);
-      var ease = TURN_EASE_MIN + (TURN_EASE_MAX - TURN_EASE_MIN) * mag;
-      var turn = s.turn * TURN_BOOSTA * ease * (ctl.boosting ? 0.85 : 1) * STEP;
-      if (d > turn) d = turn; else if (d < -turn) d = -turn;
-      p.angle += d;
-      if (p.angle > Math.PI) p.angle -= TAU; else if (p.angle < -Math.PI) p.angle += TAU;
-      turnIn = turn > 0 ? d / turn : 0;
-    }
-    ctl.turnIn = turnIn;
 
     // Live multipliers, not the boot snapshot (RF-PASSIVE-01).
     var speedM = liveMult(p, 'speed') / num(p.pas.mult.speed, 1);
     var boostM = liveMult(p, 'boost') / num(p.pas.mult.boost, 1);
+    // Rev 6.11: OVERDRIVE (and APEX, which folds overdrive in) is HM's EXACT
+    // semantics (game.js :5449-5476), not a flat multiplier applied to a
+    // direct-assignment velocity: 1.42x target speed, reached via an
+    // accel-clamped approach while driving and an explicit brake while idle,
+    // both independent of and stacking with Gold Rush's own speedCap term.
+    var overdriveOn = ctx.run.buffs && ctx.run.buffs.overdrive > 0;
     var speedCap = s.speed * speedM * (ctl.boosting ? s.boost * boostM : 1)
-      * (ctx.run.goldRushT > 0 ? num(FRENZY.goldRushSpeed, 1.4) : 1);
+      * (ctx.run.goldRushT > 0 ? num(FRENZY.goldRushSpeed, 1.4) : 1)
+      * (overdriveOn ? OVERDRIVE_SPEED_MULT : 1);
 
     if (mag > 0) {
-      // Desired velocity along the CURRENT heading, scaled by deflection, so
-      // the shark keeps moving nose-first while it turns.
+      // Instant heading snap: NO turn-rate cap, NO ease.
+      p.angle = Math.atan2(iy, ix);
       var want = speedCap * mag;
       var wx = Math.cos(p.angle) * want;
       var wy = Math.sin(p.angle) * want;
-      var ex = wx - p.vx, ey = wy - p.vy;
-      var el = Math.sqrt(ex * ex + ey * ey);
-      var stepA = s.accel * speedM * (ctl.boosting ? 1.5 : 1) * STEP;
-      if (el > stepA && el > 0) { var kk = stepA / el; ex *= kk; ey *= kk; }
-      p.vx += ex; p.vy += ey;
+      if (overdriveOn) {
+        // HM :5453-5456 - accelerate toward the target velocity, clamped by
+        // OVERDRIVE_ACCEL*dt per axis, rather than snapping to it directly.
+        var accelStep = OVERDRIVE_ACCEL * STEP;
+        var dvx = clamp(wx - p.vx, -accelStep, accelStep);
+        p.vx += dvx;
+        if (!airborne) {
+          var dvy = clamp(wy - p.vy, -accelStep, accelStep);
+          p.vy += dvy;
+        }
+      } else {
+        p.vx = wx;
+        if (!airborne) p.vy = wy;    // airborne: gravity owns vy exclusively
+      }
+    } else if (overdriveOn) {
+      // HM :5466-5468 - idle-with-overdrive brakes toward zero instead of a
+      // hard stop, so the surge bleeds off rather than snapping dead.
+      var brake = Math.max(0, 1 - STEP * OVERDRIVE_BRAKE);
+      p.vx *= brake;
+      if (!airborne) p.vy *= brake;
     } else {
-      // Released: decelerate smoothly to idle. Never drift.
-      var idleDrag = Math.pow(IDLE_DRAG, STEP * 60);
-      p.vx *= idleDrag; p.vy *= idleDrag;
-      if (p.vx * p.vx + p.vy * p.vy < 1) { p.vx = 0; p.vy = 0; }
+      // Idle: hard stop. Airborne is exempt on vy only - the breach arc must
+      // not be yanked back into the water the instant the stick is released.
+      p.vx = 0;
+      if (!airborne) p.vy = 0;
     }
 
-    var sp2 = p.vx * p.vx + p.vy * p.vy;
-    if (sp2 > speedCap * speedCap) {
-      var k = speedCap / Math.sqrt(sp2);
-      p.vx *= k; p.vy *= k;
+    // Presentation-only turnIn: how far the heading actually swung this step,
+    // normalized by the historical turn-rate scale so bank/tail/pose read the
+    // same as before even though the mechanic itself no longer eases.
+    var dAngle = angDelta(prevAngle, p.angle);
+    var turnScale = s.turn * TURN_BOOSTA * STEP;
+    turnIn = turnScale > 0 ? clamp(dAngle / turnScale, -1, 1) : 0;
+    ctl.turnIn = turnIn;
+
+    if (!airborne) {
+      var sp2 = p.vx * p.vx + p.vy * p.vy;
+      if (sp2 > speedCap * speedCap) {
+        var k = speedCap / Math.sqrt(sp2);
+        p.vx *= k; p.vy *= k;
+      }
+    } else {
+      // Airborne: only vx is capped (vy is gravity's ballistic arc, never a
+      // hard-capped mechanic value here).
+      var vxCap = speedCap;
+      if (Math.abs(p.vx) > vxCap) p.vx = p.vx < 0 ? -vxCap : vxCap;
     }
     ctl.speedCap = speedCap;
   }
 
+  // FIX-ROUND-3 item 2: ONE shared eligibility helper feeds preyNear, lunge,
+  // and stepEat, so there is exactly one "is this entity a valid target"
+  // rule in the whole file (SPEC3D 6.12). It:
+  //   - excludes null/inactive/self/player/'pickup'/'buffpickup' entities
+  //     (buffpickup is explicitly non-edible per 6.11 and must never arm
+  //     preyNear or capture a lunge target even when nearby);
+  //   - allows any hazard only for a junkEater shark;
+  //   - allows any non-hazard whose tier <= p.tier + BITE_UP_BASE + biteUp,
+  //     where biteUp folds in the player's own passive AND megajaw's +1
+  //     while megajaw is active (the same gate stepEat itself uses).
+  // Pure predicate, no query - callers own their own World.query and range.
+  function eatEligible(p, e) {
+    if (!e || !e.active || e === p || e.kind === 'player') return false;
+    if (e.kind === 'pickup' || e.kind === 'buffpickup') return false;
+    var isHazard = e.kind === 'hazard';
+    if (isHazard) return !!p.pas.junkEater;
+    var biteUp = num(p.pas.biteUp, 0) + megajawBiteUp();
+    var tier = num(e.tier, 0);
+    return tier <= p.tier + BITE_UP_BASE + biteUp;
+  }
+
+  // Rev 6 / 6.2 + 6.5, FIX-ROUND-3 item 2: preyNear is a 0.25s-refreshed
+  // presence flag - true while an eatable target sits inside 2.2*p.r (body
+  // radius, SAME range as the lunge query below - previously this used
+  // 2.2*mouthR, a much tighter radius, creating a dead zone where lunge could
+  // arm on a target preyNear itself could not see). It has no facing-cone
+  // gate (that is the LUNGE gate, below); this is the wider "something to eat
+  // is close" signal shark3d reads to widen jaw anticipation (0.85*gape).
+  function stepPreyNear(p) {
+    var st = p.st;
+    st.preyNearCd -= STEP;
+    if (st.preyNearCd > 0) return;
+    st.preyNearCd = PREY_NEAR_REFRESH;
+
+    var range = PREY_NEAR_RANGE_MULT * p.r;
+    var near = false;
+    if (RF.World && RF.World.query) {
+      try {
+        var list = RF.World.query(p.x, p.y, range, null);
+        if (list && list.length) {
+          for (var i = 0; i < list.length; i++) {
+            if (eatEligible(p, list[i])) { near = true; break; }
+          }
+        }
+      } catch (e) { warnOnce('World.query preyNear', e); }
+    }
+    st.preyNear = near;
+  }
+
+  // Rev 6 / 6.5: lunge. An eatable target inside a +-35deg cone of heading,
+  // range 2.2*p.r, captures its POSITION (two numbers, never an entity ref -
+  // pools recycle entities so a retained reference could silently start
+  // pointing at an unrelated live entity next frame). While lunging the player
+  // accelerates at accel*2.4 toward the captured point for 0.22s with heading
+  // blend 0.35, then a 0.9s cooldown. MOUTH.lunge / MOUTH.strength 900 are
+  // published from publishMouth() by reading st.lungeT, so World can widen its
+  // suction while the lunge window is open.
+  function stepLunge(p) {
+    var st = p.st;
+    if (st.lungeCd > 0) st.lungeCd = Math.max(0, st.lungeCd - STEP);
+
+    if (st.lungeT > 0) {
+      st.lungeT = Math.max(0, st.lungeT - STEP);
+      var dx = st.lungeX - p.x, dy = st.lungeY - p.y;
+      var dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > 1e-6) {
+        var wantAngle = Math.atan2(dy, dx);
+        var accel = p.stat.accel * liveMult(p, 'speed') / num(p.pas.mult.speed, 1) * LUNGE_ACCEL_MULT * STEP;
+        var ax = (dx / dist) * accel, ay = (dy / dist) * accel;
+        p.vx += ax;
+        if (!(p.y < 0)) p.vy += ay;    // airborne: never write vy (6.8 exception)
+        // Heading blend toward the lunge direction, not an instant snap -
+        // 0.35 keeps the rig readable instead of whipping the nose around.
+        var d = angDelta(p.angle, wantAngle);
+        p.angle += d * LUNGE_HEADING_BLEND;
+        if (p.angle > Math.PI) p.angle -= TAU; else if (p.angle < -Math.PI) p.angle += TAU;
+      }
+      return;
+    }
+
+    if (st.lungeCd > 0 || !st.preyNear) return;
+    if (!RF.World || !RF.World.query) return;
+
+    var range = LUNGE_RANGE_MULT * p.r;
+    var best = null, bestD2 = range * range;
+    try {
+      var list = RF.World.query(p.x, p.y, range, null);
+      if (list && list.length) {
+        var heading = p.angle;
+        for (var i = 0; i < list.length; i++) {
+          var e = list[i];
+          if (!eatEligible(p, e)) continue;
+          var edx = num(e.x, 0) - p.x, edy = num(e.y, 0) - p.y;
+          var d2 = edx * edx + edy * edy;
+          if (d2 > bestD2) continue;
+          if (Math.abs(angDelta(heading, Math.atan2(edy, edx))) > LUNGE_CONE) continue;
+          bestD2 = d2; best = e;
+        }
+      }
+    } catch (e) { warnOnce('World.query lunge', e); }
+
+    if (!best) return;
+    // Capture the POINT, not the entity: numbers only.
+    st.lungeX = num(best.x, p.x);
+    st.lungeY = num(best.y, p.y);
+    st.lungeT = LUNGE_DUR;
+    st.lungeCd = LUNGE_CD;
+  }
   function stepMotion(p) {
     p.x += p.vx * STEP;
     p.y += p.vy * STEP;
+
+    // 6.4: maze rock is solid for the player too. Push-out + velocity slide
+    // BEFORE the world-edge clamps so a wall touch never reads as a snag.
+    if (RF.World && RF.World.resolveBody) {
+      try { RF.World.resolveBody(p, p.r); } catch (e) { warnOnce('World.resolveBody', e); }
+    }
 
     var minY = -46;
     if (p.x < p.r) { p.x = p.r; if (p.vx < 0) p.vx *= -0.3; }
@@ -1233,8 +1575,22 @@ import * as THREE from 'three';
     if (a.bank > BANK_MAX) a.bank = BANK_MAX;
     else if (a.bank < -BANK_MAX) a.bank = -BANK_MAX;
 
-    var jawWant = p.st.chewFxCd > 0 ? JAW_OPEN * clamp(p.st.chewFxCd / 0.12, 0, 1) : 0;
-    a.jaw += (jawWant - a.jaw) * damp(14, STEP);
+    // Rev 6 / 6.5: jaw opens wide on preyNear anticipation (0.85*gape, eased
+    // dt*10), the chew bite window still wins when active (it is the bigger
+    // signal), and jawSnapT drives a fast snap-close with an 8% overshoot
+    // past zero before settling, so the bite reads with a little snap-back.
+    var jawWant = p.st.chewFxCd > 0 ? JAW_OPEN * clamp(p.st.chewFxCd / 0.12, 0, 1)
+      : (p.st.preyNear ? JAW_OPEN * JAW_ANTICIPATE : 0);
+    if (p.st.jawSnapT > 0) {
+      var snapK = clamp(p.st.jawSnapT / JAW_SNAP_T, 0, 1);
+      // Close fast (dt*24) toward a slight overshoot below zero, then the
+      // normal ease pulls it back up once jawSnapT expires.
+      a.jaw += (-JAW_OPEN * 0.08 * snapK - a.jaw) * damp(24, STEP);
+    } else {
+      var jawEase = p.st.preyNear ? 10 : 14;
+      a.jaw += (jawWant - a.jaw) * damp(jawEase, STEP);
+    }
+    if (a.jaw < 0) a.jaw = Math.max(a.jaw, -JAW_OPEN * 0.08);
 
     if (f < IDLE_SPEED_F) {
       a.bobPhase += IDLE_BOB_HZ * TAU * STEP;
@@ -1254,6 +1610,10 @@ import * as THREE from 'three';
     st.boosting = !!ctl.boosting;
     st.tailPhase = a.tailPhase; st.tailAmp = a.tailAmp;
     st.pectPhase = a.pectPhase; st.bank = a.bank; st.bob = a.bob;
+    // Rev 6 / 6.2: rig state-bag additions this lane owns.
+    st.vy = p.vy;
+    st.preyNear = !!p.st.preyNear;
+    st.lungeT = p.st.lungeT;
     if (p.rig && p.rig.animate) {
       try { p.rig.animate(ctx.time.now, st); } catch (e) { warnOnce('Art3D.animate', e); }
     }
@@ -1275,16 +1635,24 @@ import * as THREE from 'three';
         if (fxEmit('swimtrail', wx, wy, FX_OPT) === 0) fxEmit('bubbles', wx, wy, FX_OPT);
       }
     }
-    if (ctl.boosting && f > 0.5 && (ctx.time.frame % 4) === 0) {
-      FX_OPT.count = 1;
-      FX_OPT.speed = sp;
-      FX_OPT.angle = p.angle;
-      FX_OPT.up = false;
-      fxEmit('speedlines', p.x, p.y, FX_OPT);
-    }
+    // FIX-ROUND-3 item 6 (ONE BOOST EMITTER AUTHORITY): the engine-side
+    // speedlines emitter is REMOVED here - fx3d owns boost visuals exclusively
+    // now (it reads ctl.boosting itself), so two emitters never double up on
+    // pool saturation or ribbon density.
   }
 
   // ---------------------------------------------------------- eating
+  // Rev 6 / 6.7: megajaw folds into the SAME gate formula (+1 bite reach) so
+  // there is exactly one eatable-tier rule in the whole file, buffed or not.
+  function megajawBiteUp() {
+    var b = ctx && ctx.run && ctx.run.buffs;
+    return (b && b.megajaw > 0) ? MEGAJAW_BITE_UP : 0;
+  }
+  function megajawInstantBonus() {
+    var b = ctx && ctx.run && ctx.run.buffs;
+    return (b && b.megajaw > 0) ? MEGAJAW_INSTANT : 0;
+  }
+
   function publishMouth(p) {
     var reach = p.r;
     var mr = p.mouthR;
@@ -1292,8 +1660,17 @@ import * as THREE from 'three';
     MOUTH.x = p.x + Math.cos(p.angle) * reach;
     MOUTH.y = p.y + Math.sin(p.angle) * reach;
     MOUTH.r = mr * 1.6;
-    MOUTH.strength = 260;
-    MOUTH.eligibleTierMax = p.pas.junkEater ? 99 : p.tier + num(p.pas.biteUp, 0);
+    // Rev 6 / 6.5: suction ramps 260 -> 900 while MOUTH.lunge is true (the
+    // player is mid-lunge), so World can pull a captured target in harder.
+    var lunging = p.st.lungeT > 0;
+    MOUTH.lunge = lunging;
+    MOUTH.strength = lunging ? 900 : 260;
+    // 6.7: FRENZY MAGNET buff widens suction radius x2.5.
+    var buffs = ctx && ctx.run && ctx.run.buffs;
+    if (buffs && buffs.magnet > 0) MOUTH.r *= 2.5;
+    // 6.6/6.7: eligibleTierMax mirrors the FULL gate formula, megajaw included.
+    MOUTH.eligibleTierMax = p.pas.junkEater ? 99
+      : p.tier + BITE_UP_BASE + num(p.pas.biteUp, 0) + megajawBiteUp();
     ctx.mouth = MOUTH;
   }
 
@@ -1343,29 +1720,57 @@ import * as THREE from 'three';
     if (n > EAT_BUF.length) n = EAT_BUF.length;
     for (var c = 0; c < n; c++) EAT_BUF[c] = list[c];
 
-    var biteUp = num(p.pas.biteUp, 0);
+    // Rev 6 / 6.6: BITE_UP_BASE(1) folded into the gate, plus megajaw's +1
+    // while active. instant swallow moves from tier <= p.tier-2 to
+    // tier <= p.tier-1 (more generous), plus megajaw's own +1 instant bonus.
+    // FIX-ROUND-3 item 2: eatEligible() below is now the SAME predicate
+    // preyNear/lunge use (kind exclusions + hazard/junkEater + megajaw-widened
+    // tier gate) - this loop only adds its own TOO BIG cue + instant-vs-chew
+    // split on top of that shared eligibility.
+    var instantBonus = megajawInstantBonus();
+    if (p.st.tooBigCd > 0) {
+      p.st.tooBigCd = Math.max(0, p.st.tooBigCd - STEP);
+    }
     for (var i = 0; i < n; i++) {
       var e = EAT_BUF[i];
       if (!e || !e.active || e === p || e.kind === 'player') continue;
       if (e.kind === 'pickup') { collectPickup(e); continue; }
+      // Rev 6.11: buffpickup entities are NEVER edible/scored - stepPickups
+      // (which now runs before this) owns their entire collection lifecycle.
+      // If one is still present here (out of PICKUP_QUERY_R, or stepPickups
+      // is unavailable) it must be skipped rather than falling into the
+      // tier-based eat gate below as if it were tier-0 prey.
+      if (e.kind === 'buffpickup') continue;
 
-      var tier = num(e.tier, 0);
       var isHazard = e.kind === 'hazard';
       // Hazards are tier 99: only a junkEater shark may swallow them.
       if (isHazard && !p.pas.junkEater) continue;
 
-      var eatable = isHazard ? true : (tier <= p.tier + biteUp);
-      if (!eatable) continue;
+      var eatable = eatEligible(p, e);
+      if (!eatable) {
+        // Rev 6 / 6.6: TOO BIG replaces the silent continue. 0.6s cd so a
+        // school of oversized prey cannot spam the cue every frame.
+        if (!isHazard && p.st.tooBigCd <= 0) {
+          p.st.tooBigCd = TOO_BIG_CD;
+          shake(2, 70);
+          fxEmit('ring', e.x, e.y, { count: 1, scale: 0.8, tint: 0x445566 });
+          CHEW_SFX_OPT.rate = 0.7;
+          sfx('chomp', { rate: 0.7, vol: 0.5 });
+          uiCall('toast', 'TOO BIG');
+        }
+        continue;
+      }
 
-      if (!isHazard && tier <= p.tier - 2) swallow(e);      // instant
-      else multiBite(e);                                    // near tier: chew
+      var tier = num(e.tier, 0);
+      if (!isHazard && tier <= p.tier - 1 + instantBonus) swallow(e);   // instant
+      else multiBite(e);                                                // near tier: chew
     }
   }
 
   function multiBite(e) {
     var p = ctx.player;
     if (typeof e._biteCd === 'number' && e._biteCd > 0) return;
-    e._biteCd = 0.25;                      // target-owned 250 ms chew cooldown
+    e._biteCd = 0.15;                      // 6.11: target-owned chew cd 0.25 -> 0.15s
     e.hp -= p.stat.bite * (liveMult(p, 'bite') / num(p.pas.mult.bite, 1));
     // Damage is per target. Feedback is player-side and deliberately shared by
     // the school so three simultaneous chews cannot machine-gun hit-stop/audio.
@@ -1413,13 +1818,37 @@ import * as THREE from 'three';
     var preyTint = (e.def && e.def.tint) || 0xffe9a8;
     fxEmit('deathBurst', e.x, e.y, { count: 14 + mealT * 3, scale: 1 + mealT * 0.12, tint: preyTint });
     fxEmit('motes', e.x, e.y, { count: 8 + mealT * 2, tint: 0xffffff });
+    fxEmit('gib', e.x, e.y, { count: 4 + Math.min(3, mealT), tint: preyTint });
+    // FIX-ROUND-3 item 6 (SPECTACLE WIRING): the staged bite FX fires on
+    // EVERY completed bite (swallow() is the single completion point for both
+    // instant swallows and multiBite's final kill), not only meals at or
+    // above the shark's own tier - ordinary swallows are a signature event
+    // too, not just the notable ones. {tier: mealT} lets fx3d pick the
+    // tier-scaled staging instead of defaulting to tier 1.
+    if (RF.Fx && RF.Fx.eatShockwave) {
+      try { RF.Fx.eatShockwave(e.x, e.y, { tint: preyTint, tier: mealT }); } catch (err) { warnOnce('Fx.eatShockwave', err); }
+    }
     scorePopup(e.x, e.y, '+' + Math.round(score * mult), mult > 1);
-    p.st.jawSnapT = 0.18;
+    p.st.jawSnapT = JAW_SNAP_T;           // Rev 6 / 6.5: 0.12 snap-close on swallow
     p.st.eatPopT = 0.16;                 // scale pop consumed by renderPlayer
     sfx('chomp');
     hitStop(mealT >= p.tier - 1 ? 60 : 40);
+    // Review r3 (bite signature): EVERY completed bite gets a camera impulse
+    // scaled by meal size (combo thresholds still add their own on top), and
+    // a directional streak burst along the bite heading so the chomp reads
+    // as motion, not just particles at a point.
+    triggerCamPulse(CAM_EAT_ZOOM * (0.5 + Math.min(0.5, mealT * 0.12)), 0.28);
+    FX_OPT.count = 6 + mealT * 2; FX_OPT.angle = p.angle; FX_OPT.speed = 320;
+    FX_OPT.tint = preyTint; FX_OPT.up = false;
+    fxEmit('speedlines', e.x, e.y, FX_OPT);
 
     e.coins = 0;                          // suppress world.js's pickup drop
+    // Rev 6.11: instant swallows (megajaw or plain tier<=p.tier-1) never run
+    // multiBite's HP drain, so ent.hp can still read > 0 when World.kill fires
+    // the frenzy hook below. Force it to 0 HERE, before that call, so
+    // recordFrenzyKill's `ent.hp <= 0` gate sees a real kill and instant
+    // swallows qualify for Blood Frenzy same as a multiBite kill would.
+    e.hp = 0;
     if (RF.World && RF.World.kill) {
       try { RF.World.kill(e, 'eaten'); } catch (err) { warnOnce('World.kill', err); e.active = false; }
     } else { e.active = false; }
@@ -1430,6 +1859,29 @@ import * as THREE from 'three';
     ctx.run.comboT = num(FRENZY.comboWindow, 3);
     ctx.run.frenzy = clamp(ctx.run.frenzy + num(FRENZY.meterPerEat, 0.06), 0, 1);
     queueComboChip();
+
+    // Rev 6 / 6.7: notable kills may spawn a buff capsule. "Notable" is an
+    // equal-or-bigger meal (tier >= p.tier, the same bar Blood Frenzy uses) OR
+    // landing on a combo streak threshold. World owns spawning/drift entirely;
+    // this is only the trigger call, and it is a complete no-op until Lane W
+    // implements spawnBuffDrop.
+    // FIX-ROUND-3 item 4: a 10s global engine-side cooldown gates the call
+    // itself, so a burst of notable kills produces at most one capsule per
+    // window instead of flooding (world lane's own live concurrency cap is
+    // additive on top of this, not a replacement for it).
+    if (RF.World && RF.World.spawnBuffDrop) {
+      var notable = mealT >= p.tier || (FRENZY.steps || []).indexOf(ctx.run.combo) >= 0;
+      var dropReady = (ctx.time.now - num(ctx.run._lastBuffDropAt, -Infinity)) >= BUFF_DROP_COOLDOWN;
+      if (notable && dropReady) {
+        try {
+          // Stamp the cooldown ONLY when a capsule actually spawned - the
+          // world side can refuse (live cap, placement), and a stamped miss
+          // would suppress the next valid attempt for the whole window.
+          var dropSpawned = RF.World.spawnBuffDrop(e.x, e.y);
+          if (dropSpawned) ctx.run._lastBuffDropAt = ctx.time.now;
+        } catch (err) { warnOnce('World.spawnBuffDrop', err); }
+      }
+    }
   }
 
   // RF-COINS-01, second half: COIN PICKUPS ARE WORLD.JS'S. pickupAI() runs the
@@ -1437,6 +1889,122 @@ import * as THREE from 'three';
   // so stepEat does not treat a coin as food.
   function collectPickup(e) {
     return;
+  }
+
+  // Rev 6 / 6.7: BUFF CAPSULE pickups are a separate collection path from the
+  // coin pickup above - coins stay world.js's (RF-COINS-01), but the buff
+  // capsule table (PICKUPS, Lane W/data.js) is new this round and world.js
+  // may not implement collection for it at all yet. This lane owns the
+  // lifecycle/economy per 6.7, so it queries for kind 'buffpickup' directly
+  // and is fully guarded: no RF.World.query means no-op, no matching kind
+  // means no-op, an unknown buff id means no-op.
+  var PICKUP_QUERY_R = 120;
+  function stepPickups(p) {
+    if (!RF.World || !RF.World.query) return;
+    var list = null;
+    try { list = RF.World.query(p.x, p.y, PICKUP_QUERY_R + p.r, 'buffpickup'); }
+    catch (e) { warnOnce('World.query buffpickup', e); return; }
+    if (!list || !list.length) return;
+    var n = Math.min(list.length, EAT_BUF.length);
+    for (var c = 0; c < n; c++) EAT_BUF[c] = list[c];
+    for (var i = 0; i < n; i++) {
+      var e = EAT_BUF[i];
+      if (!e || !e.active || e.kind !== 'buffpickup') continue;
+      var dx = e.x - p.x, dy = e.y - p.y;
+      var rr = p.r + num(e.r, 16);
+      if (dx * dx + dy * dy > rr * rr) continue;
+      // Rev 6.11 PICKUP ID SEAM: world writes e.buffId (plain id) on
+      // buffpickup entities; engine reads e.buffId ONLY, no e.defId fallback.
+      applyBuffPickup(e.buffId);
+      if (RF.World.kill) {
+        try { RF.World.kill(e, 'collected'); } catch (err) { warnOnce('World.kill buffpickup', err); e.active = false; }
+      } else { e.active = false; }
+    }
+  }
+
+  function applyBuffPickup(id) {
+    var r = ctx.run;
+    var b = r.buffs;
+    switch (id) {
+      case 'overdrive': maxTimer(b, 'overdrive', BUFF_DUR.overdrive); break;
+      case 'shield': b.shield = Math.min(SHIELD_CHARGES, num(b.shield, 0) + SHIELD_CHARGES); break;
+      case 'megajaw': maxTimer(b, 'megajaw', BUFF_DUR.megajaw); break;
+      case 'magnet': maxTimer(b, 'magnet', BUFF_DUR.magnet); break;
+      case 'chum': maxTimer(b, 'chum', BUFF_DUR.chum); break;
+      case 'apex':
+        maxTimer(b, 'apex', BUFF_DUR.apex);
+        maxTimer(b, 'overdrive', BUFF_DUR.apex);
+        maxTimer(b, 'megajaw', BUFF_DUR.apex);
+        break;
+      default: return;   // unknown buff id: no-op, no cue
+    }
+    uiCall('chip', (id || 'BUFF').toUpperCase());
+    sfx('buffpickup');
+    fxEmit('ring', ctx.player.x, ctx.player.y, { count: 1, scale: 1.1, tint: 0x27e0ff });
+    // 6.9 hologram materialize + lowest-priority vignette on collection.
+    if (RF.Fx) {
+      try {
+        if (RF.Fx.hologramFlash) RF.Fx.hologramFlash(ctx.player.x, ctx.player.y, { tint: 0x27e0ff });
+        if (RF.Fx.requestVignette) RF.Fx.requestVignette('buff', 1400);
+      } catch (err) { warnOnce('Fx.buffPickupFx', err); }
+    }
+  }
+  function maxTimer(obj, key, value) {
+    if (!(value > 0)) return;
+    if (num(obj[key], 0) < value) obj[key] = value;
+  }
+
+  // Rev 6 / 6.7: buff timer decay + the vignette/cue bus priority. Buffs are
+  // the LOWEST rung: damage > frenzy > goldRush > buff, coordinated through
+  // the same frenzyCue string so only one vignette ever shows.
+  function stepBuffs() {
+    var r = ctx.run;
+    var b = r.buffs;
+    var dt = STEP;
+    // Timed buffs decay; a transition to 0 announces expiry through the
+    // toast slot so buff end is never silent (review r3: persistent buff
+    // readability).
+    if (b.overdrive > 0) { b.overdrive -= dt; if (b.overdrive <= 0) { b.overdrive = 0; uiCall('chip', 'OVERDRIVE END'); } }
+    if (b.megajaw > 0) { b.megajaw -= dt; if (b.megajaw <= 0) { b.megajaw = 0; uiCall('chip', 'MEGA-JAW END'); } }
+    if (b.magnet > 0) { b.magnet -= dt; if (b.magnet <= 0) { b.magnet = 0; uiCall('chip', 'MAGNET END'); } }
+    if (b.chum > 0) { b.chum -= dt; if (b.chum <= 0) { b.chum = 0; uiCall('chip', 'CHUM END'); } }
+    if (b.apex > 0) { b.apex -= dt; if (b.apex <= 0) { b.apex = 0; uiCall('chip', 'APEX END'); } }
+    // shield is charge-based (integer hits absorbed), not a timer: it decays
+    // only in stepPlayerHits when it actually absorbs a hit.
+
+    // Rev 6 / 6.7: publish the CHUM CLOUD flag every step, in place.
+    var p = ctx.player;
+    var chumOn = b.chum > 0;
+    ctx.chum.active = chumOn;
+    if (p) { ctx.chum.x = p.x; ctx.chum.y = p.y; }
+
+    // Buff cue is the lowest rung of the single-cue bus: only publish it when
+    // no higher-priority frenzy cue is already showing (damage handled by the
+    // separate hudHurt edge pulse, not frenzyCue).
+    if (!r.frenzyCue) {
+      // 'buff:<id>' is the ONLY buff cue form fx3d/ui3d accept (review r3:
+      // the camelCase names were silently dropped by both validators).
+      if (b.apex > 0) r.frenzyCue = 'buff:apex';
+      else if (b.overdrive > 0) r.frenzyCue = 'buff:overdrive';
+      else if (b.megajaw > 0) r.frenzyCue = 'buff:megajaw';
+      else if (b.magnet > 0) r.frenzyCue = 'buff:magnet';
+      else if (b.chum > 0) r.frenzyCue = 'buff:chum';
+    }
+
+    // Charge economy: earned every POWER_CHARGE_COMBO_STEP combo streak
+    // (edge-triggered on crossing a new multiple), plus on frenzy completions
+    // (Gold Rush announce and Golden School clear already call this).
+    var comboStep = Math.floor(num(r.combo, 0) / POWER_CHARGE_COMBO_STEP);
+    if (comboStep > num(r._lastComboCharge, 0)) {
+      r._lastComboCharge = comboStep;
+      grantPowerCharge(1);
+    }
+    r.powerCharges = clamp(num(r.powerCharges, 0), 0, POWER_CHARGE_CAP);
+  }
+
+  function grantPowerCharge(n) {
+    var r = ctx.run;
+    r.powerCharges = clamp(num(r.powerCharges, 0) + num(n, 1), 0, POWER_CHARGE_CAP);
   }
 
   // ------------------------------------------------------- predators
@@ -1455,7 +2023,7 @@ import * as THREE from 'three';
     var invuln = p.st.invulnT > 0
       || ctx.run.goldRushT > 0
       || p.st.phaseT > 0
-      || !!(RF.DevMode && RF.DevMode.state && RF.DevMode.state.invincible);
+      || !!(RF.DevMode && RF.DevMode.state && RF.DevMode.state.forceInvincible);
 
     var total = 0, hx = p.x, hy = p.y, any = false;
     for (var i = 0; i < hits.length; i++) {
@@ -1468,6 +2036,18 @@ import * as THREE from 'three';
       if (!any) { hx = num(h.x, p.x); hy = num(h.y, p.y); any = true; }
     }
     if (!any || invuln) return;
+
+    // Rev 6 / 6.7: SHIELD BUBBLE absorbs 2 hits (charges), each hit event
+    // (however many contacts landed this frame) consumes exactly one charge -
+    // matching the "one damage event per frame" rule already in force here.
+    var buffs = ctx.run.buffs;
+    if (buffs && buffs.shield > 0) {
+      buffs.shield--;
+      fxEmit('ring', p.x, p.y, { count: 1, scale: 1.2, tint: 0x27e0ff });
+      sfx('shieldhit');
+      return;
+    }
+
     // One damage event per frame however many contacts landed: the invuln
     // window is what stops a hazard cluster from deleting the player.
     hurt(total, hx, hy);
@@ -1482,6 +2062,11 @@ import * as THREE from 'three';
     shake(7, 180);
     sfx('hurt');
     fxEmit('deathBurst', p.x, p.y, { count: 6, tint: 0xff5a5a });
+    // Visual grammar law (6.6): RED = the player is hurt. Damage is the top
+    // rung of the single-vignette bus.
+    if (RF.Fx && RF.Fx.requestVignette) {
+      try { RF.Fx.requestVignette('damage', 700); } catch (err) { warnOnce('Fx.damageVignette', err); }
+    }
     // Combo is a feeding streak: taking a hit breaks it.
     ctx.run.combo = 0;
     ctx.run.comboT = 0;
@@ -1502,7 +2087,7 @@ import * as THREE from 'three';
         try { z = RF.World.zoneAt(p.y); } catch (e) { warnOnce('World.zoneAt', e); }
       }
       if (!z) z = zoneAtFallback(p.y);
-      if (z && num(z.pressureTier, 0) > p.tier) drain *= 3;
+      if (z && num(z.pressureTier, 0) > p.tier) drain *= 2;   // 6.11: 3 -> 2
     }
     p.hp -= drain * STEP;
   }
@@ -1563,12 +2148,20 @@ import * as THREE from 'three';
     r._goldenCuePending = true;
     uiCall('chip', 'GOLDEN SCHOOL');
     uiCall('toast', 'Golden School cleared!');
+    // Rev 6 / 6.7: frenzy completions earn a superpower charge.
+    grantPowerCharge(1);
   }
 
   function recordFrenzyKill(c, ent, cause) {
     var r = c && c.run;
     var p = c && c.player;
     if (!r || !p || !ent || !ent.active) return;
+    // Defensive: installFrenzyHooks wraps RF.World.kill for the lifetime of
+    // the page (guarded, once), so ANY later caller that drives World.kill
+    // against a hand-built ctx.run lacking the full Rev 3 schema (e.g. a
+    // sibling module's own selftest fixture, {score, coins} only) must
+    // degrade safely here rather than throw on a missing .golden/.school.
+    if (!r.golden) r.golden = { packId: 0, eaten: 0, deadline: 0 };
     var st = ent.st;
     var packId = st ? (num(st.packId, 0) | 0) : 0;
     if (cause === 'eaten' && ent.kind !== 'pickup' && ent.kind !== 'hazard') {
@@ -1585,10 +2178,24 @@ import * as THREE from 'three';
       }
       if (FRENZY_EAT_N < FRENZY_EAT_CAP) {
         FRENZY_EAT_PACK[FRENZY_EAT_N] = packId;
-        FRENZY_EAT_BLOOD[FRENZY_EAT_N] = num(ent.tier, 0) > (num(p.tier, 1) - 2)
+        // FIX-ROUND-3 item 5 (BLOOD FRENZY THRESHOLD): equal-or-bigger meal
+        // required until the player reaches tier 4, then a tier-1 grace opens
+        // up (tier >= p.tier - 1) so Blood Frenzy stays reachable as content
+        // thins out at higher tiers without overfiring in the first minute
+        // at low tiers, where the flat tier-1 grace made it fire on chaff.
+        var pTierBF = num(p.tier, 1);
+        // Cap at the roster's max PREY tier (10): a tier-12 shark's formula
+        // value (11) is otherwise unreachable in shipped content and endgame
+        // Blood Frenzy silently disappears (review r3).
+        var bloodThreshold = Math.min(pTierBF >= 4 ? pTierBF - 1 : pTierBF, 10);
+        FRENZY_EAT_BLOOD[FRENZY_EAT_N] = num(ent.tier, 0) >= bloodThreshold
           && num(ent.hp, 1) <= 0;
         FRENZY_EAT_TIER[FRENZY_EAT_N] = num(ent.tier, 0);
         FRENZY_EAT_COMBO_T[FRENZY_EAT_N] = num(r.comboT, 0);
+        // Rev 6 / 6.6: the PREY position, captured as numbers (pooled
+        // entities recycle - never retain ent itself past this call).
+        FRENZY_EAT_X[FRENZY_EAT_N] = num(ent.x, p.x);
+        FRENZY_EAT_Y[FRENZY_EAT_N] = num(ent.y, p.y);
         FRENZY_EAT_N++;
       }
     } else if (cause !== 'eaten' && ent._goldenPackId
@@ -1670,14 +2277,30 @@ import * as THREE from 'three';
     var bloodTriggered = false;
     var schoolTriggered = false;
     for (var i = 0; i < FRENZY_EAT_N; i++) {
-      if (FRENZY_EAT_BLOOD[i]) {
+      // FIX-ROUND-3 item 5: no re-trigger refresh while blood.t > 2 - a
+      // qualifying bite mid-window no longer restarts the announce/FX/rfFlash
+      // cycle every single kill, only once the window has decayed past the
+      // 2s floor.
+      if (FRENZY_EAT_BLOOD[i] && !(r.blood.t > 2)) {
         r.blood.t = bloodDur;
         bloodTriggered = true;
-        FRENZY_FX_OPT.count = 12;
-        FRENZY_FX_OPT.tint = 0xff5a5a;
-        FRENZY_FX_OPT.scale = 1.1;
-        fxEmit('motes', p.x, p.y, FRENZY_FX_OPT);
+        // Rev 6 / 6.6: ONE-SHOT crimson deathBurst at the PREY position (not
+        // the player). The old player-attached sustained mist loop is DELETED
+        // here on the engine side; fx3d's matching player-mist pool removal
+        // is Lane F's half of this same law.
+        FRENZY_FX_OPT.count = 22;
+        FRENZY_FX_OPT.tint = 0xb3122a;
+        FRENZY_FX_OPT.tint2 = 0x5a0812;
+        FRENZY_FX_OPT.scale = 1.3;
+        fxEmit('deathBurst', FRENZY_EAT_X[i], FRENZY_EAT_Y[i], FRENZY_FX_OPT);
         announceFrenzy('BLOOD FRENZY', 'Blood Frenzy: bite and speed up');
+        // 6.9 spectacle: electric arc crackle over the shark for the frenzy
+        // window (Lane A's reversible emissive hook; no shader variant).
+        var rig = p.rig && p.rig.group;
+        var flash = rig && rig.userData && rig.userData.rfFlash;
+        if (flash) {
+          try { flash(0x9dff2b, bloodDur, 0.55); } catch (err) { warnOnce('rfFlash', err); }
+        }
       }
 
       var packId = FRENZY_EAT_PACK[i] | 0;
@@ -1792,6 +2415,8 @@ import * as THREE from 'three';
       if (!r._goldRushAnnounced) {
         r._goldRushAnnounced = true;
         announceFrenzy('GOLD RUSH', 'Gold Rush: score and coins doubled');
+        // Rev 6 / 6.7: frenzy completions earn a superpower charge.
+        grantPowerCharge(1);
       }
       musicLayer('goldrush');
       sfx('goldrush');
@@ -1957,8 +2582,15 @@ import * as THREE from 'three';
 
   // ================================================== run lifecycle
   function startRun(sharkId) {
-    // ART-01: camera weight scales with the shark (see camZForTier).
-    try { var _d = (RFD.SHARK_BY_ID && RFD.SHARK_BY_ID[sharkId]) || null; CAM_Z = camZForTier(_d ? _d.tier : 1); } catch (e) { CAM_Z = CAM_Z_BASE; }
+    // ART-01/6.1: dolly is length-proportional now, so resolve the actual
+    // rendered length rather than tier. camZForTier is kept working (it now
+    // looks the def up by tier internally) for any other caller, but this is
+    // the one call site with the def already in hand, so it goes straight to
+    // camZForLen and skips the extra tier round-trip.
+    try {
+      var _d = (RFD.SHARK_BY_ID && RFD.SHARK_BY_ID[sharkId]) || null;
+      CAM_Z = camZForLen(_d ? sharkLenPx(_d) : SHARK_LEN_PX);
+    } catch (e) { CAM_Z = CAM_Z_MAX; }
     if (running) endRun();
     runCount++;
     dying = false; pendingResults = false; deathAt = 0;
@@ -1969,6 +2601,12 @@ import * as THREE from 'three';
     selectedSharkId = sharkId || activeSharkId();
     buildContext();
     buildPlayer(sharkById(selectedSharkId));
+    // FIX-ROUND-3 item 3: seed the ability meter FULL so one of the 3 opening
+    // powerCharges is immediately usable at run start (abilities.js still
+    // owns the meter/cooldown economy unchanged after the first fire).
+    if (RF.Abilities && RF.Abilities.seedMeterFull) {
+      try { RF.Abilities.seedMeterFull(ctx); } catch (e) { warnOnce('Abilities.seedMeterFull', e); }
+    }
 
     // World first (it owns the background layers), then FX on top of it.
     if (RF.World && RF.World.init) {
@@ -1982,11 +2620,12 @@ import * as THREE from 'three';
     if (!popPool) buildPopPool(8);
 
     camState.x = ctx.player.x; camState.y = -ctx.player.y; camState.fov = CAM_FOV;
-    camState.zoom = 0; camState.pulse = 0; camState.pulseT = 0;
+    camState.zoom = 0; camState.pulse = 0; camState.pulseT = 0; camState.yaw = 0;
     if (camera) {
       var startBob = cameraBobAt(ctx.time.now);
-      camera.position.set(camState.x, camState.y - CAM_PITCH + startBob, CAM_Z);
-      camera.lookAt(camState.x, camState.y + CAM_LOOK_Y + startBob, 0);
+      // Rev 6 / 6.1: pitch and look offset are FRACTIONS of the live dolly z.
+      camera.position.set(camState.x, camState.y - CAM_PITCH_FRAC * CAM_Z + startBob, CAM_Z);
+      camera.lookAt(camState.x, camState.y + CAM_LOOK_FRAC * CAM_Z + startBob, 0);
       camera.fov = CAM_FOV; camera.updateProjectionMatrix();
     }
 
@@ -2052,6 +2691,15 @@ import * as THREE from 'three';
     // textures). The pool is rebuilt on the next startRun against whatever
     // scene is live then, so it must not survive as a stale scene child.
     teardownPops();
+
+    // Rev 6.11: EAT_BUF is a reused scratch copy of World's query results
+    // (stepEat/stepPickups), so it retains references to this run's pooled
+    // entities after the run ends. Null the slots out so a repeated
+    // run-restart does not keep the previous run's entities reachable via
+    // this module scratch a moment longer than necessary (iOS heap
+    // pressure). It is fully repopulated (or left short) on next use, so
+    // clearing here is safe.
+    for (var eb = 0; eb < EAT_BUF.length; eb++) EAT_BUF[eb] = null;
 
     // --- siblings, guarded. Each lane disposes what it owns.
     if (RF.World && RF.World.teardown) {
@@ -2226,6 +2874,14 @@ import * as THREE from 'three';
       camera.updateProjectionMatrix();
     }
 
+    // Rev 6 / 6.1: yaw orbit hint. Quarter-view hint, NOT a chase cam - it
+    // only nudges the camera POSITION sideways; lookAt.z stays 0 always.
+    // headingSign is the same left/right facing test renderPlayer already
+    // uses (cos(angle) < 0 means facing left).
+    var headingSign = Math.cos(p.angle) < 0 ? -1 : 1;
+    var wantYaw = headingSign * CAM_YAW_MAX * f;
+    camState.yaw += (wantYaw - camState.yaw) * damp(CAM_YAW_EASE, d);
+
     var jx = 0, jy = 0;
     if (kit && kit.juice && kit.juice.frame) {
       try {
@@ -2235,8 +2891,11 @@ import * as THREE from 'three';
     }
     var bob = cameraBobAt(ctx && ctx.time ? ctx.time.now : 0);
     var z = stepCameraZoom(d);
-    camera.position.set(camState.x + jx, camState.y - CAM_PITCH + bob + jy, z);
-    camera.lookAt(camState.x + jx, camState.y + CAM_LOOK_Y + bob + jy, 0);
+    // Pitch/look offsets are fractions of the live dolly z (6.1); yaw only
+    // ever touches camera POSITION x, never lookAt.
+    var yawX = camState.yaw * z;
+    camera.position.set(camState.x + jx + yawX, camState.y - CAM_PITCH_FRAC * z + bob + jy, z);
+    camera.lookAt(camState.x + jx, camState.y + CAM_LOOK_FRAC * z + bob + jy, 0);
   }
 
   // HUD is DOM: the engine feeds a plain state object every frame and Lane C3
@@ -2250,6 +2909,11 @@ import * as THREE from 'three';
     h.name = (p.def && p.def.name) || '';
     h.hp = p.hp; h.maxHp = p.maxHp;
     h.hpFrac = clamp(p.hp / p.maxHp, 0, 1);
+    // Rev 6.11 HUD STATE: hp IS hunger in this design (stepHunger drains hp
+    // directly, there is no separate hunger meter) - hungerFrac makes that
+    // intent explicit for the HUD/toast consumer rather than making it infer
+    // hunger from hpFrac's name alone. Same number, deliberately duplicated.
+    h.hungerFrac = h.hpFrac;
     h.boost = clamp(p.ctl.boost, 0, 1);
     h.boosting = !!p.ctl.boosting;
     h.tier = p.tier;
@@ -2267,13 +2931,38 @@ import * as THREE from 'three';
     if (RF.Abilities && RF.Abilities.hud) {
       try { ab = RF.Abilities.hud(ctx); } catch (e) { warnOnce('Abilities.hud', e); }
     }
-    if (ab && p.def.active) {
+    // Rev 6.11 item 9: gate on ab.id (abilities.js's activeId() resolver),
+    // not p.def.active directly - the resolver now falls back to a default
+    // cheap active for ability-less defs (the starter reef shark), so the
+    // HUD power button must follow that same resolved id or the fallback
+    // would be armed but invisible.
+    if (ab && ab.id) {
       h.power = clamp(num(ab.charge, 0), 0, 1);
-      h.powerReady = !!ab.ready;
-      h.powerId = ab.id || p.def.active;
+      // Rev 6 / 6.7: the HUD button is ready only when BOTH abilities.js's own
+      // meter/cooldown gate AND the charge economy allow a fire.
+      h.powerReady = !!ab.ready && num(ctx.run.powerCharges, 0) > 0;
+      h.powerId = ab.id;
       h.powerTint = num(ab.tint, 0x5fd6c0);
     } else {
       h.power = 0; h.powerReady = false; h.powerId = null; h.powerTint = 0;
+    }
+    h.powerCharges = num(ctx.run.powerCharges, 0);
+    h.powerChargeCap = POWER_CHARGE_CAP;
+    var buffs = ctx.run.buffs;
+    if (buffs) {
+      h.buffs.overdrive = buffs.overdrive; h.buffs.shield = buffs.shield;
+      h.buffs.megajaw = buffs.megajaw; h.buffs.magnet = buffs.magnet;
+      h.buffs.chum = buffs.chum; h.buffs.apex = buffs.apex;
+    }
+    h.px = p.x; h.py = p.y;
+    var bt = h.buffTimers; bt.length = 0;
+    if (buffs) {
+      if (buffs.overdrive > 0) bt.push(clamp(buffs.overdrive / BUFF_DUR.overdrive, 0, 1));
+      if (buffs.shield > 0) bt.push(clamp(buffs.shield / SHIELD_CHARGES, 0, 1));
+      if (buffs.megajaw > 0) bt.push(clamp(buffs.megajaw / BUFF_DUR.megajaw, 0, 1));
+      if (buffs.magnet > 0) bt.push(clamp(buffs.magnet / BUFF_DUR.magnet, 0, 1));
+      if (buffs.chum > 0) bt.push(clamp(buffs.chum / BUFF_DUR.chum, 0, 1));
+      if (buffs.apex > 0) bt.push(clamp(buffs.apex / BUFF_DUR.apex, 0, 1));
     }
     uiCall('hudState', h);
   }
@@ -2473,14 +3162,42 @@ import * as THREE from 'three';
       check(isFinite(mouth085) && mouth085 > 14 && mouth085 < 90
         && isFinite(mouth19) && mouth19 > mouth085 && mouth19 < 90,
         'mouthR is sane for len 0.85 and 1.9 (' + mouth085.toFixed(2) + ', ' + mouth19.toFixed(2) + ')');
-      check(isFinite(CAM_FOV) && isFinite(CAM_Z_BASE) && isFinite(CAM_Z_FLOOR)
-        && isFinite(CAM_PITCH) && isFinite(CAM_LOOK_Y) && isFinite(CAM_BOB)
+      check(isFinite(CAM_FOV) && isFinite(CAM_Z_MIN) && isFinite(CAM_Z_MAX)
+        && isFinite(CAM_PITCH_FRAC) && isFinite(CAM_LOOK_FRAC) && isFinite(CAM_BOB)
         && isFinite(CAM_BOB_HZ) && isFinite(CAM_PULSE_EASE)
         && isFinite(CAM_EAT_ZOOM) && isFinite(CAM_EAT_ZOOM_T)
         && isFinite(CAM_DEATH_PULL) && isFinite(CAM_DEATH_PULL_T)
-        && isFinite(CAM_BLOOD_PUSH)
-        && camZForTier(1) === 430 && camZForTier(12) === 340,
-        'camera constants are finite (fov 50, z 430/340, pitch/bob finite)');
+        && isFinite(CAM_BLOOD_PUSH),
+        'camera constants are finite (fov 50, z clamp [185..400], pitch/bob finite)');
+
+      // Rev 6 / 6.1: dolly is LENGTH-PROPORTIONAL. camZForLen(len) = clamp(len
+      // * 1.60, 185, 400); camZForTier keeps its exported NAME but delegates
+      // to it by resolving a def with that tier.
+      check(Math.abs(camZForLen(150) - 240) < 1e-9, 'camZForLen scales 1.60x inside the clamp band (150px -> 240)');
+      check(camZForLen(50) === CAM_Z_MIN, 'camZForLen floors at 185 for a tiny rendered length');
+      check(camZForLen(1000) === CAM_Z_MAX, 'camZForLen ceilings at 400 for a huge rendered length');
+      check(camZForTier(1) === camZForLen(sharkLenPx(sharkById('reef'))),
+        'camZForTier(1) delegates to camZForLen for a tier-1 def');
+      check(camZForTier(12) === camZForLen(sharkLenPx(sharkById('leviathanrex'))),
+        'camZForTier(12) delegates to camZForLen for the tier-12 def');
+
+      // Rev 6 / 6.1: framing fraction gate. sharkLenPx / (2.018 * z) must sit
+      // in [0.28, 0.34] for tiers 1/6/12 (2.018 is the precomputed 2*tan(fov/2)
+      // for fov=50, matching CAM_FRAME_TAN2 below to a tight tolerance).
+      check(Math.abs(CAM_FRAME_TAN2 - 2.018) < 0.01,
+        'CAM_FRAME_TAN2 matches the documented 2*tan(fov/2) constant (' + CAM_FRAME_TAN2.toFixed(4) + ')');
+      var framingTiers = [
+        { id: 'reef', tier: 1 }, { id: 'megalodon', tier: 6 }, { id: 'leviathanrex', tier: 12 }
+      ];
+      for (var fti = 0; fti < framingTiers.length; fti++) {
+        var fdef = sharkById(framingTiers[fti].id);
+        var flen = sharkLenPx(fdef);
+        var fz = camZForLen(flen);
+        var frac = flen / (CAM_FRAME_TAN2 * fz);
+        check(frac >= 0.28 && frac <= 0.34,
+          'framing fraction in [0.28,0.34] for tier ' + framingTiers[fti].tier
+          + ' (' + frac.toFixed(3) + ')');
+      }
       check(LIGHT_RIG.hemiIntensity === 0.55 && LIGHT_RIG.sunIntensity === 1.25
         && LIGHT_RIG.sunX < 0 && LIGHT_RIG.sunY > 0 && LIGHT_RIG.sunZ > 0
         && RF.Game && RF.Game.LIGHT_RIG
@@ -2549,7 +3266,9 @@ import * as THREE from 'three';
       p.hp = p.maxHp; p.y = 100;
       for (var w2 = 0; w2 < 60; w2++) stepHunger(p);
       var shallow = p.maxHp - p.hp;
-      check(deep > shallow * 2.5, 'zone pressure multiplies drain');
+      // 6.11: zone pressure multiplier relaxed 3 -> 2 (starve-out at the
+      // boundary was 25s and needed to be less punitive).
+      check(deep > shallow * 1.5, 'zone pressure multiplies drain (6.11: 2x, was 3x)');
       check(Math.abs(shallow - p.stat.metab * num(BAL.metabScale, 1)) < p.stat.metab * 0.05,
         'BAL.metabScale halves shallow hunger drain');
 
@@ -2646,6 +3365,65 @@ import * as THREE from 'three';
       stepFrenzy();
       check(frenzyChips.length === schoolChipCount,
         'School cannot retrigger from its own swirl kills');
+
+      // ---- FIX-ROUND-3 item 5: Blood Frenzy threshold formula, asserted at
+      // tiers 1/6/12. `ent.tier >= (p.tier >= 4 ? p.tier - 1 : p.tier)` -
+      // equal-or-bigger only while p.tier < 4 (no low-tier overfire on
+      // chaff), a tier-1 grace once p.tier reaches 4 (stays reachable as
+      // content thins out at higher tiers).
+      var reefTierForFrenzyTest = p.tier;
+      FRENZY_EAT_N = 0;
+      p.tier = 1;
+      recordFrenzyKill(ctx, { active: true, kind: 'prey', tier: 0, hp: 0, x: 0, y: 0 }, 'eaten');
+      check(FRENZY_EAT_N === 1 && FRENZY_EAT_BLOOD[0] === false,
+        'tier 1 (below 4): a tier-0 kill (below player tier) does NOT qualify for Blood Frenzy');
+      FRENZY_EAT_N = 0;
+      recordFrenzyKill(ctx, { active: true, kind: 'prey', tier: 1, hp: 0, x: 0, y: 0 }, 'eaten');
+      check(FRENZY_EAT_N === 1 && FRENZY_EAT_BLOOD[0] === true,
+        'tier 1 (below 4): an equal-tier kill DOES qualify for Blood Frenzy');
+      FRENZY_EAT_N = 0;
+      p.tier = 6;
+      recordFrenzyKill(ctx, { active: true, kind: 'prey', tier: 4, hp: 0, x: 0, y: 0 }, 'eaten');
+      check(FRENZY_EAT_N === 1 && FRENZY_EAT_BLOOD[0] === false,
+        'tier 6 (>=4): a two-below kill does NOT qualify for Blood Frenzy');
+      FRENZY_EAT_N = 0;
+      recordFrenzyKill(ctx, { active: true, kind: 'prey', tier: 5, hp: 0, x: 0, y: 0 }, 'eaten');
+      check(FRENZY_EAT_N === 1 && FRENZY_EAT_BLOOD[0] === true,
+        'tier 6 (>=4): the tier-1-grace kill (p.tier-1) DOES qualify for Blood Frenzy');
+      FRENZY_EAT_N = 0;
+      p.tier = 12;
+      recordFrenzyKill(ctx, { active: true, kind: 'prey', tier: 10, hp: 0, x: 0, y: 0 }, 'eaten');
+      check(FRENZY_EAT_N === 1 && FRENZY_EAT_BLOOD[0] === true,
+        'tier 12: threshold caps at the max PREY tier (10), so a tier-10 kill qualifies (review r3: endgame frenzy must be reachable)');
+      FRENZY_EAT_N = 0;
+      recordFrenzyKill(ctx, { active: true, kind: 'prey', tier: 11, hp: 0, x: 0, y: 0 }, 'eaten');
+      check(FRENZY_EAT_N === 1 && FRENZY_EAT_BLOOD[0] === true,
+        'tier 12 (>=4): the tier-1-grace kill DOES qualify for Blood Frenzy');
+      p.tier = num(reefTierForFrenzyTest, 1);
+      FRENZY_EAT_N = 0;
+
+      // ---- FIX-ROUND-3 item 5: no re-trigger refresh while blood.t > 2.
+      var savedFrenzyChips = frenzyChips.length;
+      ctx.run.blood.t = 4;   // above the 2s floor: a qualifying bite must NOT refresh/announce
+      FRENZY_EAT_N = 1;
+      FRENZY_EAT_PACK[0] = 0; FRENZY_EAT_BLOOD[0] = true; FRENZY_EAT_COMBO_T[0] = 0;
+      FRENZY_EAT_X[0] = 0; FRENZY_EAT_Y[0] = 0;
+      stepFrenzy();
+      check(Math.abs(ctx.run.blood.t - (4 - STEP)) < 1e-6,
+        'blood.t only decays (no refresh) from a qualifying bite while above the 2s floor');
+      check(frenzyChips.length === savedFrenzyChips,
+        'no BLOOD FRENZY re-announce while blood.t > 2');
+      ctx.run.blood.t = 1.5;   // at/below the floor: a qualifying bite MAY refresh again
+      FRENZY_EAT_N = 1;
+      FRENZY_EAT_PACK[0] = 0; FRENZY_EAT_BLOOD[0] = true; FRENZY_EAT_COMBO_T[0] = 0;
+      FRENZY_EAT_X[0] = 0; FRENZY_EAT_Y[0] = 0;
+      stepFrenzy();
+      check(ctx.run.blood.t === num(FRENZY2.blood.dur, 6),
+        'blood.t refreshes to its full duration once it has decayed to <= 2s');
+      check(frenzyChips.length === savedFrenzyChips + 1,
+        'BLOOD FRENZY re-announces once the window has decayed past the 2s floor');
+      ctx.run.blood.t = 0;
+      FRENZY_EAT_N = 0;
 
       // Every pairwise cue overlap, plus the all-three case.
       ctx.run.goldRushT = 0; ctx.run.blood.t = 2; ctx.run.school.swirlT = 2;
@@ -2768,6 +3546,182 @@ import * as THREE from 'three';
       RF.World.query = savedQuery;
       ctx.player = pc;
 
+      // ---- Rev 6 / 6.6: TOO BIG cue replaces the silent continue.
+      var savedUiToast = RF.UI;
+      var toasts = [];
+      RF.UI = { toast: function (v) { toasts.push(v); } };
+      var tooBigTarget = { active: true, kind: 'prey', tier: pc.tier + BITE_UP_BASE + 5,
+        x: pc.x, y: pc.y, hp: 99, r: 8, st: {},
+        def: { tier: pc.tier + BITE_UP_BASE + 5, score: 5, coins: 1 } };
+      var savedQ2 = RF.World.query, savedEQ2 = RF.World.eatQuery;
+      RF.World.eatQuery = undefined;
+      RF.World.query = function () { return [tooBigTarget]; };
+      pc.st.tooBigCd = 0;
+      stepEat(pc);
+      check(tooBigTarget.hp === 99, 'an oversized target takes no damage');
+      check(toasts.indexOf('TOO BIG') >= 0, 'TOO BIG toast fires on an oversized target');
+      check(pc.st.tooBigCd > 0, 'TOO BIG cue opens its own 0.6s cooldown');
+      toasts.length = 0;
+      stepEat(pc);
+      check(toasts.length === 0, 'TOO BIG cue is cooldown-gated, not spammed every step');
+      RF.World.query = savedQ2; RF.World.eatQuery = savedEQ2;
+      RF.UI = savedUiToast;
+      pc.st.tooBigCd = 0;
+
+      // ---- Rev 6 / 6.6: generosity gate math. tier <= p.tier + BITE_UP_BASE +
+      // biteUp is eatable; tier <= p.tier - 1 swallows instantly.
+      check(MOUTH.eligibleTierMax === pc.tier + BITE_UP_BASE + num(pc.pas.biteUp, 0),
+        'MOUTH.eligibleTierMax mirrors the full gate formula (base+biteUp)');
+
+      // ---- Rev 6 / 6.7: megajaw widens the SAME gate formula by +1/+1.
+      ctx.run.buffs.megajaw = 0;
+      publishMouth(pc);
+      var gateBefore = MOUTH.eligibleTierMax;
+      ctx.run.buffs.megajaw = 5;
+      publishMouth(pc);
+      check(MOUTH.eligibleTierMax === gateBefore + MEGAJAW_BITE_UP,
+        'megajaw widens MOUTH.eligibleTierMax by +1 while active');
+      var megaTarget = { active: true, kind: 'prey', tier: pc.tier - 1 + megajawInstantBonus(),
+        x: pc.x, y: pc.y, hp: 5, r: 8, st: {},
+        def: { tier: pc.tier - 1 + megajawInstantBonus(), score: 5, coins: 1 } };
+      var savedQ3 = RF.World.query, savedEQ3 = RF.World.eatQuery;
+      RF.World.eatQuery = undefined;
+      RF.World.query = function () { return [megaTarget]; };
+      var killedMega = [];
+      var savedKillMega = RF.World.kill;
+      RF.World.kill = function (e) { e.active = false; killedMega.push(e); };
+      stepEat(pc);
+      check(killedMega.length === 1, 'megajaw widens the instant-swallow tier by +1');
+      RF.World.kill = savedKillMega;
+      RF.World.query = savedQ3; RF.World.eatQuery = savedEQ3;
+      ctx.run.buffs.megajaw = 0;
+
+      // ---- Rev 6 / 6.7: buff timer expiry (all six buffs decay to exactly 0
+      // and never go negative).
+      var buffNames = ['overdrive', 'megajaw', 'magnet', 'chum', 'apex'];
+      for (var bn = 0; bn < buffNames.length; bn++) {
+        ctx.run.buffs[buffNames[bn]] = STEP * 2.5;
+      }
+      stepBuffs(); stepBuffs(); stepBuffs();
+      var allZero = true;
+      for (var bn2 = 0; bn2 < buffNames.length; bn2++) {
+        if (ctx.run.buffs[buffNames[bn2]] !== 0) allZero = false;
+      }
+      check(allZero, 'buff timers expire to exactly 0, never negative');
+      applyBuffPickup('overdrive');
+      check(ctx.run.buffs.overdrive === BUFF_DUR.overdrive, 'applyBuffPickup arms overdrive for its full duration');
+      applyBuffPickup('shield');
+      check(ctx.run.buffs.shield === SHIELD_CHARGES, 'applyBuffPickup grants shield charges');
+      // maxTimer only ever RAISES a timer, so start overdrive/megajaw at 0 to
+      // observe apex's own fold-in rather than an already-longer buff surviving.
+      ctx.run.buffs.overdrive = 0; ctx.run.buffs.megajaw = 0;
+      applyBuffPickup('apex');
+      check(ctx.run.buffs.apex === BUFF_DUR.apex && ctx.run.buffs.overdrive === BUFF_DUR.apex
+        && ctx.run.buffs.megajaw === BUFF_DUR.apex,
+        'apex folds overdrive + megajaw into its own shorter window');
+      var beforeUnknown = JSON.stringify(ctx.run.buffs);
+      applyBuffPickup('not-a-real-buff-id');
+      check(JSON.stringify(ctx.run.buffs) === beforeUnknown,
+        'an unknown buff id is a silent no-op (buffs unchanged, no throw)');
+      ctx.run.buffs.overdrive = 0; ctx.run.buffs.shield = 0; ctx.run.buffs.megajaw = 0;
+      ctx.run.buffs.magnet = 0; ctx.run.buffs.chum = 0; ctx.run.buffs.apex = 0;
+
+      // ---- Rev 6.11 item 1: real buffpickup spawn -> collect integration
+      // test, replacing the old unconditional check(true). Exercises the
+      // FULL lifecycle contract: World writes e.buffId (plain id, no defId
+      // fallback); stepPickups runs BEFORE stepEat in step()'s own order and
+      // must be the thing that arms the buff and removes the entity; a
+      // buffpickup entity within eat range must NEVER be swallowed as prey
+      // even if stepEat also sees it in the same query.
+      var savedQPick = RF.World.query, savedEQPick = RF.World.eatQuery, savedKillPick = RF.World.kill;
+      var fakeBuffPickup = {
+        active: true, kind: 'buffpickup', buffId: 'overdrive', defId: 'buff_overdrive',
+        x: pc.x, y: pc.y, r: 16, hp: 1, st: {}
+      };
+      var killedPick = [];
+      RF.World.kill = function (e, cause) { e.active = false; killedPick.push({ e: e, cause: cause }); };
+      RF.World.eatQuery = function () { return fakeBuffPickup.active ? [fakeBuffPickup] : []; };
+      RF.World.query = function () { return fakeBuffPickup.active ? [fakeBuffPickup] : []; };
+      ctx.run.buffs.overdrive = 0;
+      pc.st.chewFxCd = 0;
+      stepPickups(pc);
+      check(ctx.run.buffs.overdrive === BUFF_DUR.overdrive,
+        'buffpickup integration: stepPickups reads e.buffId and arms the buff');
+      check(fakeBuffPickup.active === false && killedPick.length === 1 && killedPick[0].cause === 'collected',
+        'buffpickup integration: stepPickups collects (kills) the entity, cause=collected');
+      // stepEat must never treat a (still-active, in case ordering regresses)
+      // buffpickup as edible/scored prey: re-arm it as active and drive
+      // stepEat directly to prove the eat path excludes 'buffpickup' by kind,
+      // independent of step()'s ordering.
+      fakeBuffPickup.active = true;
+      killedPick.length = 0;
+      ctx.run.score = 0; ctx.run.coins = 0;
+      pc.st.chewFxCd = 0;
+      stepEat(pc);
+      check(fakeBuffPickup.active === true && killedPick.length === 0,
+        'buffpickup integration: stepEat never eats a buffpickup entity');
+      check(ctx.run.score === 0 && ctx.run.coins === 0,
+        'buffpickup integration: stepEat awards no score/coins for a buffpickup');
+      RF.World.query = savedQPick; RF.World.eatQuery = savedEQPick; RF.World.kill = savedKillPick;
+      ctx.run.buffs.overdrive = 0;
+
+      // ---- Rev 6 / 6.7: charge economy never drops below 0 or exceeds the cap.
+      ctx.run.powerCharges = 0;
+      grantPowerCharge(1);
+      check(ctx.run.powerCharges === 1, 'grantPowerCharge adds a charge from zero');
+      grantPowerCharge(999);
+      check(ctx.run.powerCharges === POWER_CHARGE_CAP, 'grantPowerCharge clamps at the cap (' + POWER_CHARGE_CAP + ')');
+      ctx.run.powerCharges = 0;
+      var savedAbCharge = RF.Abilities;
+      RF.Abilities = { fire: function () { return true; }, canFire: function () { return true; } };
+      firePower();
+      check(ctx.run.powerCharges === 0, 'firePower is a no-op with zero charges');
+      ctx.run.powerCharges = 2;
+      firePower();
+      check(ctx.run.powerCharges === 1, 'firePower spends exactly one charge on a successful fire');
+      RF.Abilities = { fire: function () { return false; }, canFire: function () { return true; } };
+      firePower();
+      check(ctx.run.powerCharges === 1, 'a declined Abilities.fire does not spend a charge');
+      RF.Abilities = savedAbCharge;
+      ctx.run.powerCharges = POWER_CHARGE_START;
+      ctx.run._lastComboCharge = 0;
+
+      // ---- Rev 6 / 6.5: lunge timing (preyNear -> lunge -> cooldown).
+      var savedQ4 = RF.World.query, savedEQ4 = RF.World.eatQuery;
+      pc.x = 3500; pc.y = 700; pc.vx = 0; pc.vy = 0; pc.angle = 0;
+      pc.st.lungeT = 0; pc.st.lungeCd = 0; pc.st.preyNear = false; pc.st.preyNearCd = 0;
+      var lungeTarget = { active: true, kind: 'prey', tier: 0, x: pc.x + pc.r * 1.5, y: pc.y,
+        hp: 99, r: 8, st: {}, def: { tier: 0, score: 5, coins: 1 } };
+      RF.World.eatQuery = undefined;
+      RF.World.query = function () { return [lungeTarget]; };
+      stepPreyNear(pc);
+      // FIX-ROUND-3 item 2: preyNear's range is now 2.2*p.r (body radius),
+      // SAME as the lunge query, not the old tighter 2.2*mouthR.
+      check(pc.st.preyNear === true, 'preyNear detects an eatable target inside 2.2*p.r (body radius)');
+      var lungeStartVx = pc.vx;
+      stepLunge(pc);
+      check(pc.st.lungeT > 0 && pc.st.lungeT <= LUNGE_DUR, 'lunge fires and opens its 0.22s window');
+      check(Math.abs(pc.st.lungeX - lungeTarget.x) < 1e-9 && Math.abs(pc.st.lungeY - lungeTarget.y) < 1e-9,
+        'lunge captures the target POINT as numbers');
+      var lungeSteps = 0;
+      while (pc.st.lungeT > 0 && lungeSteps < 30) { stepLunge(pc); lungeSteps++; }
+      check(pc.st.lungeT === 0, 'lunge window ends within its 0.22s duration (' + lungeSteps + ' steps)');
+      check(pc.st.lungeCd > 0, 'lunge opens a cooldown on completion');
+      check(pc.vx !== lungeStartVx, 'lunge accelerated the player toward the captured point');
+      var cdBefore = pc.st.lungeCd;
+      pc.st.preyNear = true;
+      stepLunge(pc);
+      check(pc.st.lungeT === 0, 'lunge cannot refire while its cooldown is active');
+      // Isolate the cooldown decay itself: with preyNear false, stepLunge can
+      // only ever decrement lungeCd, never re-arm a fresh lunge on the frame
+      // it reaches zero.
+      pc.st.preyNear = false;
+      var cdSteps = 0;
+      while (pc.st.lungeCd > 0 && cdSteps < 120) { stepLunge(pc); cdSteps++; }
+      check(pc.st.lungeCd === 0, 'lunge cooldown (0.9s) fully decays (' + cdSteps + ' steps)');
+      RF.World.query = savedQ4; RF.World.eatQuery = savedEQ4;
+      pc.st.lungeT = 0; pc.st.lungeCd = 0; pc.st.preyNear = false;
+
       pc.x = 3000; pc.y = 600; pc.vx = 0; pc.vy = 0; pc.angle = 0;
       var ang45 = Math.PI / 4;
       pc.ctl.active = true;
@@ -2783,12 +3737,19 @@ import * as THREE from 'three';
       var movingSpeed = Math.sqrt(pc.vx * pc.vx + pc.vy * pc.vy);
       check(movingSpeed > 10, 'player is genuinely under way (' + movingSpeed.toFixed(1) + ' px/s)');
 
-      // Magnitude is a throttle.
+      // FIX-ROUND-3 item 1 (STICK MATH, HM-exact): magnitude is a throttle,
+      // and a half-deflected stick (sx/sy each already scaled to 0.5, mag
+      // 0.5) must settle at ~0.5x the full-deflection speed - NOT 0.25x. The
+      // old loose "< movingSpeed*0.75" bound passed even with the
+      // double-scaling bug (0.5*0.5=0.25 easily clears that bar), so this now
+      // asserts a tight ratio band instead of a one-sided ceiling.
       pc.ctl.sx = Math.cos(ang45) * 0.5; pc.ctl.sy = Math.sin(ang45) * 0.5; pc.ctl.mag = 0.5;
       for (var s5 = 0; s5 < 120; s5++) step();
       var halfSpeed = Math.sqrt(pc.vx * pc.vx + pc.vy * pc.vy);
-      check(halfSpeed < movingSpeed * 0.75, 'half deflection settles slower (' +
-        halfSpeed.toFixed(1) + ' vs ' + movingSpeed.toFixed(1) + ')');
+      var halfRatio = halfSpeed / (movingSpeed || 1);
+      check(halfRatio > 0.42 && halfRatio < 0.58,
+        'half deflection settles at ~0.5x full speed, not 0.25x (ratio=' + halfRatio.toFixed(3) +
+        ', half=' + halfSpeed.toFixed(1) + ' vs full=' + movingSpeed.toFixed(1) + ')');
 
       // RELEASE: decelerate to rest and stay there.
       clearStick();
@@ -2818,7 +3779,10 @@ import * as THREE from 'three';
         'base re-centered past 1.35x radius (bx=' + pc.ctl.bx.toFixed(1) + ')');
       dragStick(pc.ctl.bx + maxR * 0.5, pc.ctl.by);
       check(Math.abs(pc.ctl.mag - 0.5) < 1e-9, 'partial deflection reads as partial magnitude');
-      dragStick(pc.ctl.bx + maxR * 0.05, pc.ctl.by);
+      // Rev 6 / 6.8: STICK_DEAD tightened 0.12 -> 0.03, so the old 0.05*radius
+      // deadzone probe no longer sits below the line. 0.02*radius is the new
+      // sub-dead-zone probe.
+      dragStick(pc.ctl.bx + maxR * 0.02, pc.ctl.by);
       pc.vx = 0; pc.vy = 0;
       for (var s8 = 0; s8 < 30; s8++) step();
       check(Math.sqrt(pc.vx * pc.vx + pc.vy * pc.vy) < 0.5, 'sub-dead-zone deflection does not creep');
@@ -2965,6 +3929,48 @@ import * as THREE from 'three';
       check(pc.st.eatPopT > 0, 'eat set the scale pop');
       check(stops.length >= 1 && (stops[0] === 40 || stops[0] === 60),
         'eat hit-stop is 40 or 60 ms (' + stops.join(',') + ')');
+
+      // ---- FIX-ROUND-3 item 6: staged bite FX fires on EVERY completed
+      // bite, including a plain minnow well below the shark's own tier - not
+      // gated to mealT >= p.tier any more - and passes {tier: mealT}.
+      var shockwaveCalls = [];
+      var savedFxShock = RF.Fx;
+      RF.Fx = { emit: function (n) { fxSeen.push(n); return 1; },
+        eatShockwave: function (x, y, opts) { shockwaveCalls.push(opts); } };
+      var minnow2 = { active: true, kind: 'prey', defId: 'minnow', tier: 0, x: pc.x, y: pc.y,
+        hp: 1, coins: 2, st: {}, r: 8, def: { id: 'minnow', tier: 0, score: 5, coins: 2 } };
+      swallow(minnow2);
+      check(shockwaveCalls.length === 1 && shockwaveCalls[0] && shockwaveCalls[0].tier === 0,
+        'staged eatShockwave fires on an ordinary below-tier swallow too, with {tier: mealT}');
+      RF.Fx = savedFxShock;
+
+      // ---- FIX-ROUND-3 item 4: spawnBuffDrop respects a 10s global engine
+      // cooldown - a burst of notable (tier >= p.tier) kills produces at most
+      // one drop per window, and the window reopens once ctx.time.now has
+      // advanced past it.
+      var dropCalls = [];
+      var savedWorldDrop = RF.World;
+      // Return a truthy entity: the engine stamps the cooldown ONLY on a
+      // successful spawn (review r3 - failed drops must not eat the window).
+      RF.World = { spawnBuffDrop: function (x, y) { dropCalls.push([x, y]); return { kind: 'buffpickup' }; }, kill: function () {} };
+      ctx.run._lastBuffDropAt = -Infinity;
+      var notableA = { active: true, kind: 'prey', defId: 'notable', tier: pc.tier, x: 1, y: 1,
+        hp: 1, coins: 1, st: {}, r: 8, def: { id: 'notable', tier: pc.tier, score: 5, coins: 1 } };
+      swallow(notableA);
+      check(dropCalls.length === 1, 'first notable kill spawns a buff drop');
+      var notableB = { active: true, kind: 'prey', defId: 'notable', tier: pc.tier, x: 2, y: 2,
+        hp: 1, coins: 1, st: {}, r: 8, def: { id: 'notable', tier: pc.tier, score: 5, coins: 1 } };
+      swallow(notableB);
+      check(dropCalls.length === 1,
+        'a second notable kill inside the 10s window does not spawn another drop');
+      ctx.time.now += BUFF_DROP_COOLDOWN + 0.001;
+      var notableC = { active: true, kind: 'prey', defId: 'notable', tier: pc.tier, x: 3, y: 3,
+        hp: 1, coins: 1, st: {}, r: 8, def: { id: 'notable', tier: pc.tier, score: 5, coins: 1 } };
+      swallow(notableC);
+      check(dropCalls.length === 2,
+        'a notable kill after the 10s cooldown elapses spawns another drop');
+      RF.World = savedWorldDrop;
+      ctx.run._lastBuffDropAt = -Infinity;
       // EAT-REV3: each target owns its 250 ms chew cooldown. A school can
       // therefore damage multiple same-tier fish in one player cadence.
       stops.length = 0;
@@ -2980,9 +3986,10 @@ import * as THREE from 'three';
       multiBite(chewy2);
       multiBite(chewy3);
       check(chewy.hp < 999 && chewy2.hp < 999,
-        'two same-tier targets both take damage in one 250 ms window');
-      check(chewy._biteCd === 0.25 && chewy2._biteCd === 0.25,
-        'multiBite stores the 250 ms cooldown on each target');
+        'two same-tier targets both take damage in one chew window');
+      // 6.11: per-target chew cooldown tightened 0.25 -> 0.15s.
+      check(chewy._biteCd === 0.15 && chewy2._biteCd === 0.15,
+        'multiBite stores the 150 ms cooldown on each target (6.11: was 250ms)');
       var hpBlocked = chewy.hp;
       multiBite(chewy);
       check(chewy.hp === hpBlocked, 'the same target is blocked until its cooldown expires');
@@ -3118,6 +4125,26 @@ import * as THREE from 'three';
                 runStarted: function () {}, runEnded: function () {}, notice: function () {} };
       RF.Art3D = undefined;             // force the engine-owned fallback rig
 
+      // FIX-ROUND-3 item 3: spy on the real RF.Abilities.seedMeterFull (still
+      // installed from abilities.js at this point) to prove startRun() calls
+      // it exactly once per cycle, with the live ctx, alongside the real
+      // LIFE-01 start/end cycles below rather than a bespoke standalone call.
+      var savedRealAbilities = RF.Abilities;
+      var seedMeterCalls = 0, seedMeterLastCtx = null;
+      // When module selftests CHAIN in one page, an earlier module may have
+      // left an RF.Abilities stub without seedMeterFull; the spy then cannot
+      // install and this check would report a false failure. Track it.
+      var seedMeterSpyInstalled = false;
+      if (RF.Abilities && typeof RF.Abilities.seedMeterFull === 'function') {
+        seedMeterSpyInstalled = true;
+        var realSeedMeterFull = RF.Abilities.seedMeterFull;
+        RF.Abilities = Object.create(RF.Abilities);
+        RF.Abilities.seedMeterFull = function (c) {
+          seedMeterCalls++; seedMeterLastCtx = c;
+          return realSeedMeterFull(c);
+        };
+      }
+
       var childCounts = [];
       var afterCycle1 = -1;
       for (var cyc = 0; cyc < 5; cyc++) {
@@ -3151,6 +4178,12 @@ import * as THREE from 'three';
         'LIFE-01: World.teardown and Fx.teardown each called once per cycle ('
         + ledger.disposedGeo + '/10)');
       check(popPool === null, 'LIFE-01: popup pool released by teardown');
+      check(!seedMeterSpyInstalled || (seedMeterCalls === 5 && seedMeterLastCtx === ctx),
+        seedMeterSpyInstalled
+          ? ('FIX-ROUND-3 item 3: startRun seeds the ability meter full exactly once per cycle, with the live ctx ('
+            + seedMeterCalls + '/5)')
+          : 'FIX-ROUND-3 item 3: skipped - RF.Abilities stubbed by an earlier chained selftest (covered on fresh-page runs)');
+      RF.Abilities = savedRealAbilities;
 
       // Only the two engine-owned lights should remain resident between runs.
       // (Rev 2: the lights are created ONCE at boot and never per run.)

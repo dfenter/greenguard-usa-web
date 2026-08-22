@@ -22,11 +22,26 @@
     --gold: #ffd67a;
     --good: #7fe3b0;
     --bad: #ff8b7a;
+    /* 6.9 synthwave accents. amber (--gold) stays reserved for frenzy/reward,
+       red (--bad) stays reserved for damage; cyan/magenta/acid are the
+       neutral neon accent trio for chrome (borders, glows, scanlines). */
+    --neon-cyan: #27e0ff;
+    --neon-magenta: #ff2bd6;
+    --neon-acid: #9dff2b;
     --font: Avenir Next, Trebuchet MS, system-ui, sans-serif;
     --pad-t: env(safe-area-inset-top);
     --pad-r: env(safe-area-inset-right);
     --pad-b: env(safe-area-inset-bottom);
     --pad-l: env(safe-area-inset-left);
+  }
+  /* Thin repeating-gradient scanline texture reused on HUD/menu panels. Kept
+     as a single background layer (no extra draws, CSS only). */
+  .rf-scanlines {
+    background-image: repeating-linear-gradient(0deg, rgba(157, 255, 43, .035) 0px,
+      rgba(157, 255, 43, .035) 1px, transparent 1px, transparent 3px);
+  }
+  .rf-neon-border {
+    border-image: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta)) 1;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--deep); }
@@ -45,23 +60,27 @@
   .rf-screen { position: absolute; inset: 0; display: none; z-index: 20; }
   .rf-screen.rf-on { display: flex; }
 
-  /* Out-of-run screens get a readable scrim over the live water. */
+  /* Out-of-run screens get a readable scrim over the live water, with a
+     faint acid scanline texture (6.9 synthwave restyle, CSS only). */
   #rfMenu, #rfShop, #rfResults {
     flex-direction: column;
     padding: calc(var(--pad-t) + 12px) calc(var(--pad-r) + 14px)
              calc(var(--pad-b) + 12px) calc(var(--pad-l) + 14px);
-    background: linear-gradient(180deg, rgba(2, 14, 26, .82), rgba(1, 8, 16, .94));
+    background: linear-gradient(180deg, rgba(2, 14, 26, .82), rgba(1, 8, 16, .94)),
+      repeating-linear-gradient(0deg, rgba(157, 255, 43, .03) 0px, rgba(157, 255, 43, .03) 1px,
+        transparent 1px, transparent 3px);
     overflow: hidden;
   }
 
   .rf-bar-top {
     display: flex; align-items: center; gap: 12px; flex: 0 0 auto;
     padding-bottom: 10px; border-bottom: 1px solid var(--line);
+    border-image: linear-gradient(90deg, rgba(39, 224, 255, .5), rgba(255, 43, 214, .38)) 1;
   }
   .rf-title {
     margin: 0; font-size: clamp(22px, 4.4vw, 40px); font-weight: 900;
     letter-spacing: .18em; color: #dffcff;
-    text-shadow: 0 0 22px rgba(87, 229, 255, .5);
+    text-shadow: 0 0 18px rgba(39, 224, 255, .55), 0 0 34px rgba(255, 43, 214, .28);
   }
   .rf-spacer { flex: 1 1 auto; }
   .rf-stat { display: flex; align-items: baseline; gap: 6px; font-size: 15px; }
@@ -86,7 +105,11 @@
   .rf-btn:active { background: rgba(34, 132, 152, .86); }
   .rf-btn:disabled { opacity: .38; }
   .rf-btn-ghost { background: rgba(10, 34, 51, .7); border-color: var(--line); }
-  .rf-btn-go { background: linear-gradient(160deg, rgba(31, 143, 160, .9), rgba(12, 76, 95, .92)); }
+  .rf-btn-go {
+    background: linear-gradient(160deg, rgba(31, 143, 160, .9), rgba(12, 76, 95, .92));
+    border-image: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta)) 1;
+    box-shadow: 0 0 16px rgba(39, 224, 255, .22);
+  }
 
   /* ------------------------------------------------------------ menu */
   #rfMenuXp { display: flex; flex-direction: column; gap: 4px; min-width: 132px; }
@@ -108,14 +131,23 @@
     border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
   }
   .rf-card:active { background: var(--panel-hi); }
-  .rf-card-sel { border-color: var(--line-hi); background: linear-gradient(160deg, rgba(23, 103, 119, .78), rgba(6, 40, 53, .84)); box-shadow: 0 0 22px rgba(67, 218, 225, .18) inset; }
+  .rf-card-sel {
+    border-color: var(--line-hi);
+    background: linear-gradient(160deg, rgba(23, 103, 119, .78), rgba(6, 40, 53, .84));
+    box-shadow: 0 0 22px rgba(67, 218, 225, .18) inset;
+    border-image: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta)) 1;
+  }
   .rf-card-locked { opacity: .5; }
   .rf-card-unowned .rf-card-name { color: var(--dim); }
 
   .rf-thumb {
     display: flex; align-items: center; justify-content: center;
     height: 74px; border-radius: 8px; border: 1px solid var(--line);
-    background-size: cover; background-position: center; background-color: rgba(4, 22, 36, .8);
+    /* contain, not cover: the baked 3D thumb must never crop the shark;
+       background color matches the bake scene backdrop so letterboxing
+       is invisible. */
+    background-size: contain; background-repeat: no-repeat; background-position: center;
+    background-color: #082036;
   }
   .rf-mono-text { font-size: 26px; font-weight: 900; letter-spacing: .06em; text-shadow: 0 2px 8px rgba(0, 0, 0, .5); }
   .rf-card-name { font-size: 14px; font-weight: 800; line-height: 1.2; color: var(--ink); }
@@ -225,8 +257,14 @@
   #rfResActions .rf-btn { flex: 1 1 0; min-width: 0; padding: 12px 8px; }
 
   /* -------------------------------------------------------------- HUD */
-  /* One top-left cluster (UI_LAW rule 4). Non-interactive except the power
-     button, so taps fall through to the game surface everywhere else. */
+  /* SCREEN BALANCE LAW (6.9, amended 6.11 + code review MAJOR 5): in-run HUD
+     is hp/HUNGER, score+combo, boost meter, power button, minimap ONLY.
+     name/coins/DEV are OUT of the in-run cluster (menu/results only for
+     name+coins; DEV becomes a corner tag, see #rfDevTag below). Everything
+     else (chips, streak text, popups) routes through the ONE queued #rfChip
+     toast slot. One top-left cluster (UI_LAW rule 4). Non-interactive except
+     the power button, so taps fall through to the game surface everywhere
+     else. */
   #rfHud { pointer-events: none; }
   #rfHudCluster {
     position: absolute;
@@ -236,30 +274,98 @@
     border: 1px solid var(--line); border-radius: 10px;
     background: linear-gradient(135deg, rgba(3, 17, 29, .76), rgba(3, 10, 20, .44));
     backdrop-filter: blur(5px);
+    /* 6.9 synthwave restyle: thin neon gradient border + faint scanline
+       texture. Structure/ids unchanged (UI selftest is DOM-structural). */
+    border-image: linear-gradient(135deg, rgba(39, 224, 255, .5), rgba(255, 43, 214, .32)) 1;
+    background-image: linear-gradient(135deg, rgba(3, 17, 29, .76), rgba(3, 10, 20, .44)),
+      repeating-linear-gradient(0deg, rgba(157, 255, 43, .04) 0px, rgba(157, 255, 43, .04) 1px,
+        transparent 1px, transparent 3px);
   }
+  /* Score + combo: persistent (not a transient chip), compact, tabular
+     numerals so the digits do not jitter width every frame. */
   #rfHudTop { display: flex; align-items: baseline; gap: 8px; }
-  #rfHudName { flex: 1 1 auto; min-width: 0; font-size: 14px; font-weight: 800; letter-spacing: .06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #rfHudCoins { font-size: 14px; font-weight: 800; color: var(--gold); font-variant-numeric: tabular-nums; }
+  #rfHudScoreWrap { flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; gap: 6px; }
+  #rfHudScore {
+    font-size: 16px; font-weight: 900; letter-spacing: .04em; color: #dffcff;
+    font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    text-shadow: 0 0 10px rgba(39, 224, 255, .35);
+  }
+  #rfHudCombo {
+    font-size: 13px; font-weight: 800; letter-spacing: .04em; color: var(--neon-magenta);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  #rfHudCombo:empty { display: none; }
+  #rfHudHungerLabel {
+    font-size: 11px; font-weight: 700; letter-spacing: .14em; color: var(--dim);
+    text-transform: uppercase;
+  }
   .rf-hud-meter { height: 7px; border-radius: 4px; background: rgba(207, 245, 255, .1); overflow: hidden; }
   .rf-hud-meter > i { display: block; width: 0; height: 100%; transition: width .1s linear; }
-  #rfHudHp { background: linear-gradient(90deg, #7fe3b0, #46b088); }
+  /* Retint so the bar reads as HUNGER draining (full = fed, empty = starving)
+     rather than a generic green health bar: acid-green fed state fading
+     through amber toward the same red-when-low damage language as before
+     (RED stays reserved for the player being hurt, per the visual grammar
+     law -- rf-low is still the only red state). */
+  #rfHudHp { background: linear-gradient(90deg, var(--neon-acid), #7fe3b0); }
   #rfHudHp.rf-low { background: linear-gradient(90deg, #ff8b7a, #d8483a); }
-  #rfHudBoost { background: linear-gradient(90deg, #ffd67a, #d79b2f); }
+  #rfHudBoost { background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta)); }
 
-  /* Power button: bottom-right, clear of the left thumb, >= 44px. */
+  /* Fix-round 3 HUD ONLY-LAW: DEV is no longer in-run chrome at all. It is a
+     small menu-bar chip (rf-bar-top, alongside coins/level) shown only while
+     RF.DevMode is active; the in-run run-start toast is the only other place
+     dev state surfaces. */
+  #rfDevChip {
+    display: none; padding: 2px 7px; border-radius: 6px;
+    border: 1px solid rgba(255, 139, 122, .55); background: rgba(46, 18, 16, .82);
+    color: #ffb3a6; font-size: 12px; font-weight: 800; letter-spacing: .12em;
+    flex: 0 0 auto;
+  }
+  #rfDevChip.rf-on { display: inline-block; }
+
+  /* Power button: bottom-right, clear of the left thumb, >= 44px. art
+     MAJOR 6: a faint scanline texture ties it to the same synthwave chrome
+     language as the HUD cluster/menu panels (restrained -- a single low-
+     alpha background layer, no extra draws). */
   #rfPower {
     position: absolute; pointer-events: auto;
     right: calc(var(--pad-r) + 16px); bottom: calc(var(--pad-b) + 18px);
     width: 84px; height: 84px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     border: 2px solid var(--line); background: rgba(5, 28, 43, .8);
-    overflow: hidden; touch-action: none;
+    background-image: repeating-linear-gradient(0deg, rgba(157, 255, 43, .05) 0px,
+      rgba(157, 255, 43, .05) 1px, transparent 1px, transparent 3px);
+    overflow: visible; touch-action: none;
   }
   #rfPower.rf-hide { display: none; }
-  #rfPower.rf-ready { border-color: var(--gold); box-shadow: 0 0 24px rgba(255, 214, 122, .38); }
+  /* art MAJOR 6 (synthwave UI pass): the ready state was a static glow.
+     Animate it as a slow cyan/magenta breathing pulse so a ready power
+     reads as alive chrome, not just a color change -- still restrained
+     (long period, modest amplitude) so it never competes with gameplay. */
+  #rfPower.rf-ready { border-color: var(--neon-cyan); animation: rf-power-ready 1.8s ease-in-out infinite; }
+  @keyframes rf-power-ready {
+    0%, 100% { box-shadow: 0 0 18px rgba(39, 224, 255, .38); }
+    50% { box-shadow: 0 0 30px rgba(255, 43, 214, .42); }
+  }
+  /* 6.7: disabled state at 0 charges reads visually inert, distinct from the
+     merely-not-ready look. */
+  #rfPower.rf-power-empty { opacity: .42; box-shadow: none; animation: none; }
+  /* Active-buff ticks live INSIDE the power cluster (6.12 HUD only-law:
+     buff feedback = power button chrome + toast). One 4px bar per active
+     buff, width = remaining fraction. */
+  #rfPowerBuffs {
+    position: absolute; left: 10%; right: 10%; bottom: -12px;
+    display: flex; flex-direction: column; gap: 2px; pointer-events: none;
+  }
+  #rfPowerBuffs i {
+    display: block; height: 4px; border-radius: 2px;
+    background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta));
+    box-shadow: 0 0 6px rgba(39, 224, 255, .5);
+    transform-origin: left center;
+  }
   #rfPowerFill {
     position: absolute; left: 0; right: 0; bottom: 0; height: 0;
-    background: rgba(255, 214, 122, .26); transition: height .12s linear;
+    background: rgba(39, 224, 255, .24); transition: height .12s linear;
+    border-radius: inherit; overflow: hidden;
   }
   #rfPowerLabel {
     position: relative; padding: 0 8px; text-align: center; line-height: 1.15;
@@ -267,34 +373,124 @@
   }
   #rfPower:active { background: rgba(27, 117, 141, .84); }
 
-  /* Combo chip: <= 24px tall, one at a time, beside the HUD cluster. */
+  /* 6.7 power charge pips: a small ring of up to 8 dots around the button. */
+  #rfPowerPips {
+    position: absolute; inset: -9px; display: none;
+    pointer-events: none; list-style: none; padding: 0; margin: 0;
+  }
+  #rfPowerPips.rf-on { display: block; }
+  .rf-power-pip {
+    position: absolute; top: 50%; left: 50%; width: 5px; height: 5px; border-radius: 50%;
+    background: rgba(157, 255, 43, .22);
+    /* 8 pips spaced evenly around the ring; each pip's own rotation is set
+       inline via nth-child so no JS-computed inline transform is needed. */
+    transform-origin: 2.5px 2.5px;
+  }
+  .rf-power-pip-on { background: var(--neon-acid); box-shadow: 0 0 5px rgba(157, 255, 43, .8); }
+  #rfPowerPips .rf-power-pip:nth-child(1) { transform: rotate(0deg) translate(46px) rotate(0deg); }
+  #rfPowerPips .rf-power-pip:nth-child(2) { transform: rotate(45deg) translate(46px) rotate(-45deg); }
+  #rfPowerPips .rf-power-pip:nth-child(3) { transform: rotate(90deg) translate(46px) rotate(-90deg); }
+  #rfPowerPips .rf-power-pip:nth-child(4) { transform: rotate(135deg) translate(46px) rotate(-135deg); }
+  #rfPowerPips .rf-power-pip:nth-child(5) { transform: rotate(180deg) translate(46px) rotate(-180deg); }
+  #rfPowerPips .rf-power-pip:nth-child(6) { transform: rotate(225deg) translate(46px) rotate(-225deg); }
+  #rfPowerPips .rf-power-pip:nth-child(7) { transform: rotate(270deg) translate(46px) rotate(-270deg); }
+  #rfPowerPips .rf-power-pip:nth-child(8) { transform: rotate(315deg) translate(46px) rotate(-315deg); }
+
+  /* ONE queued toast slot (6.9 SCREEN BALANCE LAW): combo chips, frenzy
+     announcements, TOO BIG, pickup/tier-up callouts. Single element, corner-
+     anchored with safe-area margins, never stacked. Positioned clear of the
+     HUD cluster and the power button/minimap. */
   #rfChip {
     position: absolute; left: calc(var(--pad-l) + 12px);
     top: calc(var(--pad-t) + 78px);
+    max-width: min(60vw, 320px);
     height: 24px; padding: 0 10px; display: flex; align-items: center;
     border-radius: 12px; background: rgba(255, 214, 122, .18);
     color: var(--gold); font-size: 14px; font-weight: 900; letter-spacing: .06em;
     opacity: 0; transform: translateY(-4px);
     transition: opacity .12s ease, transform .12s ease;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   #rfChip.rf-on { opacity: 1; transform: translateY(0); }
+  /* Auto-fade the toast during a live frenzy cue so it never competes with
+     the frenzy vignette (readability law: FX never obscures gameplay). */
+  #rfChip.rf-chip-blood.rf-on, #rfChip.rf-chip-school.rf-on, #rfChip.rf-chip-golden.rf-on { opacity: .82; }
 
-  #rfDevChip {
-    position: absolute; right: calc(var(--pad-r) + 12px); top: calc(var(--pad-t) + 10px);
-    display: none; padding: 3px 9px; border-radius: 6px;
-    border: 1px solid rgba(255, 139, 122, .55); background: rgba(46, 18, 16, .82);
-    color: #ffb3a6; font-size: 14px; font-weight: 800; letter-spacing: .14em;
+  /* 6.9 hologram materialize flicker, art MAJOR 4: applied to #rfChip by the
+     caller (via RF.UI.queueToast(text, cue, {holo:true})) alongside a
+     pickup/tier-up announcement, paired with fx3d's additive sparkle burst
+     (RF.Fx.hologramFlash). CSS-only scanline + flicker + vertical reveal, no
+     new draws:
+       - a repeating-gradient scanline texture layered UNDER the toast's own
+         background (::before, so the toast's text/background are untouched)
+       - a clip-path vertical wipe from 0 to 100% height so the toast reads
+         as materializing top-down rather than just fading in
+       - the existing brightness/opacity flicker steps, unchanged timing so
+         it still pairs with the fx3d sparkle burst's ~360ms life. */
+  .rf-holo-flicker { position: relative; animation: rf-holo-flicker 420ms steps(6, end) 1; }
+  .rf-holo-flicker::before {
+    content: ''; position: absolute; inset: 0; border-radius: inherit;
+    pointer-events: none; z-index: 1; mix-blend-mode: screen;
+    background-image: repeating-linear-gradient(0deg, rgba(157, 255, 43, .4) 0px,
+      rgba(157, 255, 43, .4) 1px, transparent 1px, transparent 3px);
+    animation: rf-holo-scan 420ms steps(6, end) 1;
   }
-  #rfDevChip.rf-on { display: block; }
+  @keyframes rf-holo-flicker {
+    0% { opacity: 0; filter: none; clip-path: inset(100% 0 0 0); }
+    15% { opacity: 1; filter: brightness(1.6) saturate(1.3); clip-path: inset(55% 0 0 0); }
+    30% { opacity: .4; clip-path: inset(30% 0 0 0); }
+    45% { opacity: 1; filter: brightness(1.3); clip-path: inset(10% 0 0 0); }
+    60% { opacity: .7; clip-path: inset(0 0 0 0); }
+    100% { opacity: 1; filter: none; clip-path: inset(0 0 0 0); }
+  }
+  @keyframes rf-holo-scan {
+    0% { opacity: 0; }
+    15% { opacity: .9; }
+    30% { opacity: .3; }
+    45% { opacity: .8; }
+    60% { opacity: .2; }
+    100% { opacity: 0; }
+  }
 
-  /* Tutorial: one thin strip at the top edge, one line, fades out. */
+  /* Fix-round 3 HUD ONLY-LAW: the persistent buff-bar row is retired. Buff
+     feedback is power-button pips (#rfPowerPips) + a toast on pickup/expiry
+     only; #rfBuffTimers/.rf-buff-bar CSS is intentionally removed. */
+
+  /* 6.4 minimap: bottom-left corner, clear of the power button (bottom-
+     right) and the HUD cluster (top-left). Drawn once at init from World
+     data; hidden entirely if RF.World does not expose enough to sample. */
+  #rfMinimapWrap {
+    position: absolute;
+    left: calc(var(--pad-l) + 12px); bottom: calc(var(--pad-b) + 14px);
+    width: 200px; height: 88px; display: none;
+    border-radius: 8px; overflow: hidden;
+    border: 1px solid rgba(39, 224, 255, .4);
+    box-shadow: 0 0 14px rgba(39, 224, 255, .14);
+    background: rgba(2, 10, 18, .55);
+  }
+  #rfMinimapWrap.rf-on { display: block; }
+  #rfMinimap { display: block; width: 100%; height: 100%; }
+  #rfMinimapDot {
+    position: absolute; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px;
+    border-radius: 50%; background: var(--neon-magenta);
+    box-shadow: 0 0 6px 2px rgba(255, 43, 214, .7);
+    display: none;
+  }
+  #rfMinimapDot.rf-on { display: block; }
+
+  /* Tutorial: art MAJOR 2 fix -- the old single-line strip (nowrap +
+     ellipsis + a fixed 30px height) visibly clipped the coach line at
+     844x390. Wrap up to two lines instead: a wider safe-area panel, no
+     nowrap, height sized for two lines of 14px copy plus padding, and the
+     text itself center-aligned so a short line does not look lopsided. */
   #rfTutorial {
     position: absolute; left: 50%; top: calc(var(--pad-t) + 10px); transform: translateX(-50%);
-    max-width: min(56vw, 420px); height: 30px; padding: 6px 14px;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 7px; background: rgba(2, 13, 24, .5);
-    color: #b7dbe7; font-size: 14px; letter-spacing: .04em;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    width: min(74vw, 460px); max-width: calc(100vw - var(--pad-l) - var(--pad-r) - 24px);
+    min-height: 30px; padding: 6px 16px;
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    border-radius: 7px; background: rgba(2, 13, 24, .58);
+    color: #b7dbe7; font-size: 14px; line-height: 1.3; letter-spacing: .02em;
+    white-space: normal; overflow: visible; word-break: normal; overflow-wrap: break-word;
     opacity: 0; transition: opacity .2s ease;
   }
   #rfTutorial.rf-on { animation: rf-tut 3.2s ease forwards; }
@@ -306,6 +502,39 @@
     .rf-thumb { height: 64px; }
     #rfPower { width: 74px; height: 74px; }
     #rfHudCluster { min-width: 150px; }
+  }
+  /* Landscape phones: height is the scarce axis (the 560px rule keys on
+     width and never fires at 844x390). Keep 44px touch targets; goal is
+     two full card rows visible in the roster scroll at 390px height. */
+  @media (orientation: landscape) and (max-height: 480px) {
+    #rfMenu, #rfShop, #rfResults {
+      padding: calc(var(--pad-t) + 6px) calc(var(--pad-r) + 10px)
+               calc(var(--pad-b) + 6px) calc(var(--pad-l) + 10px);
+    }
+    .rf-bar-top { padding-bottom: 5px; gap: 8px; }
+    .rf-title { font-size: 17px; letter-spacing: .12em; }
+    #rfMenuXp { min-width: 110px; }
+    #rfMenuXpText { display: none; }
+    .rf-scroll { padding: 8px 2px 6px; }
+    .rf-bar-bottom { padding-top: 5px; gap: 8px; }
+    .rf-btn { min-height: 44px; min-width: 96px; padding: 8px 14px; }
+    #rfMenuSelBlurb { display: none; }
+    .rf-tier { margin-bottom: 8px; }
+    .rf-tier-head { margin-bottom: 4px; }
+    .rf-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
+    .rf-card { min-height: 104px; padding: 7px; gap: 5px; }
+    .rf-thumb { height: 44px; }
+    .rf-card-name { font-size: 13px; }
+    .rf-shop-act { margin-bottom: 10px; }
+    .rf-row { min-height: 52px; padding: 6px 8px; }
+
+    /* HUD chrome at the shortest heights: keep the 44px power button touch
+       target and shrink the minimap so nothing crowds the bottom safe area. */
+    #rfHudCluster { padding: 6px 8px; gap: 3px; }
+    #rfPower { width: 60px; height: 60px; right: calc(var(--pad-r) + 10px); bottom: calc(var(--pad-b) + 10px); }
+    #rfPowerLabel { font-size: 12px; }
+    #rfMinimapWrap { width: 132px; height: 58px; left: calc(var(--pad-l) + 8px); bottom: calc(var(--pad-b) + 8px); }
+    #rfChip { top: calc(var(--pad-t) + 62px); }
   }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
@@ -322,6 +551,9 @@
 <section id="rfMenu" class="rf-screen">
   <div class="rf-bar-top">
     <h1 class="rf-title">RAZORFIN</h1>
+    <!-- HUD ONLY-LAW (fix-round 3): DEV is a menu chip only, never in-run
+         chrome. ui3d.js toggles rf-on from RF.DevMode.state. -->
+    <div id="rfDevChip">DEV</div>
     <div class="rf-spacer"></div>
     <div id="rfMenuXp">
       <div class="rf-stat"><b id="rfMenuLevel">Level 1</b></div>
@@ -385,19 +617,40 @@
 <!-- HUD -->
 <section id="rfHud" class="rf-screen">
   <div id="rfHudCluster">
+    <!-- 6.11 + code review MAJOR 5: score+combo replace name/coins as the
+         persistent top row (name/coins moved to menu/results only). -->
     <div id="rfHudTop">
-      <span id="rfHudName">Reef Shark</span>
-      <span id="rfHudCoins">0</span>
+      <div id="rfHudScoreWrap">
+        <span id="rfHudScore">0</span>
+        <span id="rfHudCombo"></span>
+      </div>
     </div>
+    <div id="rfHudHungerLabel">HUNGER</div>
     <div class="rf-hud-meter"><i id="rfHudHp"></i></div>
     <div class="rf-hud-meter"><i id="rfHudBoost"></i></div>
   </div>
+  <!-- HUD ONLY-LAW (fix-round 3): DEV no longer renders in-run at all (moved
+       to the menu chip above); the persistent buff-bar row is retired --
+       buff feedback is the power-button pips below plus a toast on
+       pickup/expiry. -->
   <button id="rfPower" class="rf-hide" type="button">
     <i id="rfPowerFill"></i>
     <span id="rfPowerLabel">POWER</span>
+    <ul id="rfPowerPips" aria-hidden="true">
+      <li class="rf-power-pip"></li><li class="rf-power-pip"></li>
+      <li class="rf-power-pip"></li><li class="rf-power-pip"></li>
+      <li class="rf-power-pip"></li><li class="rf-power-pip"></li>
+      <li class="rf-power-pip"></li><li class="rf-power-pip"></li>
+    </ul>
+    <span id="rfPowerBuffs" aria-hidden="true"></span>
   </button>
   <div id="rfChip" role="status" aria-live="polite"></div>
-  <div id="rfDevChip">DEV</div>
+  <!-- 6.4 minimap: hidden by default, shown by ui3d.js only when RF.World
+       exposes enough data to draw it. -->
+  <div id="rfMinimapWrap" aria-hidden="true">
+    <canvas id="rfMinimap" width="200" height="88"></canvas>
+    <div id="rfMinimapDot"></div>
+  </div>
   <div id="rfTutorial"></div>
 </section>
 

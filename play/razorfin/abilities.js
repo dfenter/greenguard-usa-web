@@ -64,9 +64,22 @@
     return def;
   }
 
+  // Rev 6.11 item 9 (SUPERPOWER ECONOMY): sharks whose data.js def has no
+  // `active` at all (the starter reef shark, data.js:6, and any other free
+  // shark authored the same way) otherwise make the whole superpower system
+  // invisible to a new player - no button, no charge meter, nothing to press.
+  // data.js/gen_data.py belong to another lane this round, so rather than
+  // authoring an active there, this resolver falls back to a cheap existing
+  // active (Sonic Roar - the lowest `charge` cost in ABILITIES, see data.js)
+  // whenever a shark def is otherwise ability-less. A player-level override
+  // (player.active) still wins if one is ever set directly on the instance.
+  var DEFAULT_ACTIVE_ID = 'sonic';
   function activeId(player) {
     var def = playerDef(player);
-    return (def && def.active) || (player && player.active) || null;
+    // player.active must be STRING-guarded: on entities `active` is the
+    // boolean liveness flag, and `true` here leaked into the HUD label.
+    var override = player && typeof player.active === 'string' ? player.active : null;
+    return (def && def.active) || override || DEFAULT_ACTIVE_ID;
   }
 
   function abilityDef(id) {
@@ -387,6 +400,24 @@
     var st = entityState(player);
     st.powerCharge = Math.max(0, num(value, 0));
     return st.powerCharge;
+  }
+
+  // FIX-ROUND-3 item 3 (SUPERPOWER OPENING): the ability meter starts FULL at
+  // run start, so one of the 3 opening powerCharges (engine3d.js
+  // POWER_CHARGE_START) is immediately usable rather than requiring a fresh
+  // feed to fill the meter from zero first. Meter/charge economy AFTER the
+  // first fire is completely unchanged - this only seeds the starting value.
+  // Engine-called once per startRun, before the first canFire() check; a
+  // player with no resolvable active (or an active with no charge cost) is a
+  // silent no-op rather than a throw.
+  function seedMeterFull(ctx) {
+    var player = ctx && ctx.player;
+    if (!player) return;
+    var id = activeId(player);
+    var def = abilityDef(id);
+    var charge = def && num(def.charge, 0);
+    if (!charge) return;
+    setMeter(player, charge);
   }
 
   function worldFor(ctx) {
@@ -940,7 +971,55 @@
     st.powerActive = true;
     sound(def.sfx);
     emit('ring', player.x, player.y, num(def.tint, 0), 0.9, 1, angleOf(player));
+    abilityFireSpectacle(player, def, id);
     return true;
+  }
+
+  // Rev 6.11 item 10 / FIX-ROUND-3 item 6: ability-fire spectacle hooks. F2
+  // owns the actual visuals (fx3d.js primitives + shark3d.js's rfFlash
+  // body-tint hook); this lane only owns FIRING them, with the right timing
+  // (once, at the moment of fire), position (the player), and now the
+  // element kind (the ability id, e.g. 'pyro'/'sonic'/'atomic') and an
+  // explicit `atomic` flag so fx3d can key its per-element signature and the
+  // Atomic/kaiju ceiling treatment off something more direct than re-deriving
+  // family from the raw tint value. Every call is individually guarded - an
+  // F2 primitive that has not landed yet, or landed under a different name,
+  // must never throw out of fire() - and calls are independent of each other
+  // so their relative order never matters.
+  function abilityFireSpectacle(player, def, id) {
+    var tint = num(def && def.tint, 0);
+    var isAtomic = id === 'atomic';
+    var fx = RF.Fx;
+    if (fx) {
+      if (typeof fx.eatShockwave === 'function') {
+        try {
+          fx.eatShockwave(player.x, player.y, {
+            tint: tint, scale: isAtomic ? 1.8 : 1.3, kind: id, atomic: isAtomic
+          });
+        } catch (err) { warnOnce('Fx.eatShockwave', err); }
+      }
+      if (typeof fx.hologramFlash === 'function') {
+        try {
+          fx.hologramFlash(player.x, player.y, {
+            tint: tint, count: isAtomic ? 24 : 16, kind: id, atomic: isAtomic
+          });
+        } catch (err) { warnOnce('Fx.hologramFlash', err); }
+      }
+      if (typeof fx.requestVignette === 'function') {
+        try { fx.requestVignette('buff', isAtomic ? 1400 : 900); } catch (err) { warnOnce('Fx.requestVignette', err); }
+      }
+    }
+    var rig = player.rig && player.rig.group;
+    var flash = rig && rig.userData && rig.userData.rfFlash;
+    if (typeof flash === 'function') {
+      try { flash(tint || 0xff2bd6, num(def && def.dur, 0.4), isAtomic ? 1.4 : 1); } catch (err) { warnOnce('rfFlash', err); }
+    }
+  }
+  function warnOnce(tag, err) {
+    if (warnOnce._seen && warnOnce._seen[tag]) return;
+    warnOnce._seen = warnOnce._seen || {};
+    warnOnce._seen[tag] = true;
+    if (typeof console !== 'undefined' && console.warn) console.warn('[RF.Abilities] ' + tag, err);
   }
 
   function update(ctx) {
@@ -1113,6 +1192,7 @@
     update: update,
     reset: reset,
     chargeFromEat: chargeFromEat,
+    seedMeterFull: seedMeterFull,
     hud: hud,
     __selftest: selftest
   };

@@ -217,15 +217,28 @@ HAZARDS = [
  ("jelly","Moon Jelly",99,"hazard",30,2,8,2,"proc_jelly",6),
  ("puffer","Pufferfish",99,"hazard",90,3,26,4,"proc_puffer",10),
 ]
+# Rev 6: world grows to 14400x4800 (6.4). Zone band count stays 4; yMax moves
+# to 1200/2400/3600/4800 so each band is 1200px tall (was 900).
 ZONES = [
- {"id":1,"name":"Sunlit Shelf","yMin":0,"yMax":900,"tint":"0x1b4d66","fog":"0x5fa8c2","ambient":"bubbles","pressureTier":1,
+ {"id":1,"name":"Sunlit Shelf","yMin":0,"yMax":1200,"tint":"0x1b4d66","fog":"0x5fa8c2","ambient":"bubbles","pressureTier":1,
   "spawns":[["minnow",5],["reeffish",5],["mackerel",4],["parrot",3],["squidling",2],["turtle",1],["jelly",2],["puffer",1]]},
- {"id":2,"name":"Kelp Midwater","yMin":900,"yMax":1800,"tint":"0x14384d","fog":"0x4e8199","ambient":"kelp","pressureTier":3,
+ {"id":2,"name":"Kelp Midwater","yMin":1200,"yMax":2400,"tint":"0x14384d","fog":"0x4e8199","ambient":"kelp","pressureTier":3,
   "spawns":[["mackerel",4],["parrot",3],["grouper",4],["ray",3],["tuna",4],["dolphinfish",2],["jelly",2],["mine",1],["puffer",1]]},
- {"id":3,"name":"Twilight Reef","yMin":1800,"yMax":2700,"tint":"0x0c2233","fog":"0x304e65","ambient":"motes","pressureTier":6,
+ {"id":3,"name":"Twilight Reef","yMin":2400,"yMax":3600,"tint":"0x0c2233","fog":"0x304e65","ambient":"motes","pressureTier":6,
   "spawns":[["grouper",2],["tuna",3],["swordfish",3],["marlin",2],["anglerprey",4],["giantsquid",1],["mine",2],["jelly",1]]},
- {"id":4,"name":"The Abyss","yMin":2700,"yMax":3600,"tint":"0x050d17","fog":"0x162533","ambient":"abyss","pressureTier":9,
+ {"id":4,"name":"The Abyss","yMin":3600,"yMax":4800,"tint":"0x050d17","fog":"0x162533","ambient":"abyss","pressureTier":9,
   "spawns":[["anglerprey",3],["giantsquid",2],["abyssal",3],["leviathanprey",1],["mine",2]]},
+]
+# Rev 6.7: pickup capsule table. Weighted draw on notable-kill drops (Lane E
+# calls World.spawnBuffDrop) and rare ambient spawns (Lane W runSpawner).
+# dur is seconds; GOLD RUSH is unchanged and stays in FRENZY2, not here.
+PICKUPS = [
+ {"id":"overdrive","name":"Overdrive","weight":26,"dur":8.0,"tint":"0xff2bd6"},
+ {"id":"shield","name":"Shield Bubble","weight":24,"dur":0,"hits":2,"tint":"0x27e0ff"},
+ {"id":"megajaw","name":"Mega-Jaw","weight":20,"dur":10.0,"tint":"0x9dff2b"},
+ {"id":"magnet","name":"Frenzy Magnet","weight":18,"dur":8.0,"tint":"0xff2bd6"},
+ {"id":"chum","name":"Chum Cloud","weight":16,"dur":6.0,"tint":"0x27e0ff"},
+ {"id":"apex","name":"Apex Surge","weight":3,"dur":5.0,"tint":"0xd98a2b"},
 ]
 ABILITIES = {
  "pyro":   {"name":"Pyro Breath","kind":"cone","range":320,"arc":0.9,"dur":2.2,"dmg":3,"charge":14,"tint":0xff7a29,"sfx":"power_fire"},
@@ -289,6 +302,7 @@ def table(name, rows, keys):
 lines+=table("CREATURES",CREATURES,["id","name","tier","kind","speed","hp","score","coins","sprite","packMin","packMax"])
 lines+=table("HAZARDS",HAZARDS,["id","name","tier","kind","speed","hp","score","coins","sprite","dmg"])
 lines.append("var ZONES="+js(ZONES)+";")
+lines.append("var PICKUPS="+js(PICKUPS)+";")
 lines.append("var ABILITIES="+js(ABILITIES)+";")
 lines.append("var ECONOMY="+js(ECONOMY)+";")
 lines.append("var FRENZY="+js(FRENZY)+";")
@@ -300,8 +314,8 @@ lines.append("var MUSIC="+js(MUSIC)+";")
 lines.append("var SHARK_BY_ID={};SHARKS.forEach(function(s){SHARK_BY_ID[s.id]=s;});")
 lines.append("var CREATURE_BY_ID={};CREATURES.concat(HAZARDS).forEach(function(c){CREATURE_BY_ID[c.id]=c;});")
 lines.append("return {SHARKS:SHARKS,SHARK_BY_ID:SHARK_BY_ID,CREATURES:CREATURES,HAZARDS:HAZARDS,")
-lines.append("CREATURE_BY_ID:CREATURE_BY_ID,ZONES:ZONES,ABILITIES:ABILITIES,ECONOMY:ECONOMY,")
-lines.append("FRENZY:FRENZY,BAL:BAL,FRENZY2:FRENZY2,FX:FX,SFX:SFX,MUSIC:MUSIC,WORLD:{w:7200,h:3600},")
+lines.append("CREATURE_BY_ID:CREATURE_BY_ID,ZONES:ZONES,PICKUPS:PICKUPS,ABILITIES:ABILITIES,ECONOMY:ECONOMY,")
+lines.append("FRENZY:FRENZY,BAL:BAL,FRENZY2:FRENZY2,FX:FX,SFX:SFX,MUSIC:MUSIC,WORLD:{w:14400,h:4800},")
 lines.append("SAVE_VERSION:1,ENTITY_BUDGET:{onscreen:110,total:220}};")
 lines.append("})();")
 print("\n".join(lines))

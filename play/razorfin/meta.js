@@ -540,6 +540,33 @@ var RF = window.RF = window.RF || {};
         }
       } catch (e) { /* a malformed query string must never block boot */ }
     }
+    // Dev switches must survive a PWA relaunch (start_url drops the query) for
+    // the TAB session only. sessionStorage, never localStorage or kit.save:
+    // dev unlocks are never persisted. ?dev=0 clears the mirror.
+    try {
+      if (q && q.has('dev') && q.get('dev') === '0') {
+        sessionStorage.removeItem('rfDevSession');
+        DevMode.switches = {};
+        DevMode.state.forceUnlockAll = false;
+        DevMode.state.forceInvincible = false;
+        DevMode.state.forceSkipTutorial = false;
+        DevMode.state.sessionCoins = 0;
+        DevMode.state.forceZone = 0;
+      } else if (Object.keys(DevMode.switches).length) {
+        sessionStorage.setItem('rfDevSession', JSON.stringify(DevMode.switches));
+      } else {
+        var saved = JSON.parse(sessionStorage.getItem('rfDevSession') || 'null');
+        if (saved && typeof saved === 'object') {
+          if (saved.unlockall === true) { DevMode.state.forceUnlockAll = true; DevMode.switches.unlockall = true; }
+          if (saved.invincible === true) { DevMode.state.forceInvincible = true; DevMode.switches.invincible = true; }
+          if (saved.notut === true) { DevMode.state.forceSkipTutorial = true; DevMode.switches.notut = true; }
+          var sc = parseInt(saved.coins, 10);
+          if (isFinite(sc) && sc > 0) { DevMode.state.sessionCoins = Math.min(sc, 1e9); DevMode.switches.coins = DevMode.state.sessionCoins; }
+          var sz = parseInt(saved.zone, 10);
+          if (isFinite(sz) && sz >= 1 && sz <= 4) { DevMode.state.forceZone = sz; DevMode.switches.zone = sz; }
+        }
+      }
+    } catch (e) { /* sessionStorage may be absent (node selftest, private Safari) */ }
     DevMode.state.active = !!(DevMode.state.forceUnlockAll || DevMode.state.forceInvincible ||
       DevMode.state.forceSkipTutorial || DevMode.state.sessionCoins > 0 || DevMode.state.forceZone);
 
@@ -548,6 +575,23 @@ var RF = window.RF = window.RF || {};
       state: DevMode.state,
       switches: DevMode.switches,
       unlockAll: function () { DevMode.state.forceUnlockAll = true; DevMode.state.active = true; return true; },
+      clearDev: function () {
+        try { sessionStorage.removeItem('rfDevSession'); } catch (e) {}
+        // Empty the switches object IN PLACE: window.__rf.switches holds a
+        // reference to it, so reassignment would leave a stale live view.
+        for (var k in DevMode.switches) {
+          if (Object.prototype.hasOwnProperty.call(DevMode.switches, k)) delete DevMode.switches[k];
+        }
+        DevMode.state.forceUnlockAll = false;
+        DevMode.state.forceInvincible = false;
+        DevMode.state.forceSkipTutorial = false;
+        DevMode.state.sessionCoins = 0;
+        DevMode.state.forceZone = 0;
+        DevMode.state.forceGoldRush = false;
+        DevMode.state.forcePower = '';
+        DevMode.state.active = false;
+        return true;
+      },
       resetSave: function () {
         var kit = RF.ctx && RF.ctx.kit;
         try { if (kit && kit.save) kit.save.clear(); } catch (e) {}

@@ -20,6 +20,8 @@ let sharedToothGeometry;
 let sharedEyeGeometry;
 let sharedIrisGeometry;
 let sharedCatchlightGeometry;
+let arcGeometrySingleton;
+let arcMaterialTemplate;
 
 const TAU = Math.PI * 2;
 const WHITE = 0xffffff;
@@ -211,6 +213,17 @@ function hash01(a, b = 0, c = 0) {
   return ((n ^ (n >>> 16)) >>> 0) / 4294967295;
 }
 
+// Rev 6 (6.3): per-def oscillator decoupling seed. def.id is a string; fold it
+// into an int32 so it can feed hash01() the same way numeric coords do.
+function hashStringToInt(str) {
+  const s = String(str || '');
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = (Math.imul(h, 31) + s.charCodeAt(i)) | 0;
+  }
+  return h;
+}
+
 function ensureGradientMap() {
   if (gradientMap) return gradientMap;
   // MeshToonMaterial samples only the red channel. Keep this a small, explicit
@@ -300,7 +313,7 @@ function toonMaterial({
 
 function bendableMaterial(baseMat, uniforms) {
   if (!baseMat || typeof baseMat.clone !== 'function') throw new Error('RF.Art3D.bendableMaterial requires a material');
-  if (!uniforms || !uniforms.uBendPhase || !uniforms.uBendAmp || !uniforms.uBendK || !uniforms.uBendSpan) {
+  if (!uniforms || !uniforms.uBendPhase || !uniforms.uBendAmp || !uniforms.uBendK || !uniforms.uBendSpan || !uniforms.uBendBias) {
     throw new Error('RF.Art3D.bendableMaterial requires the complete bend uniform bundle');
   }
   const material = baseMat.clone();
@@ -316,23 +329,29 @@ function bendableMaterial(baseMat, uniforms) {
     shader.uniforms.uBendAmp = uniforms.uBendAmp;
     shader.uniforms.uBendK = uniforms.uBendK;
     shader.uniforms.uBendSpan = uniforms.uBendSpan;
+    shader.uniforms.uBendBias = uniforms.uBendBias;
     shader.vertexShader = shader.vertexShader.replace(
       '#include <common>',
-      '#include <common>\nuniform float uBendPhase;\nuniform float uBendAmp;\nuniform float uBendK;\nuniform vec2 uBendSpan;'
+      // uBendBias is Rev 6 (6.3): a turn-driven lateral bias added to the bend
+      // envelope so the rear body reads a persistent set into a turn, not just
+      // an oscillation. MUST be declared here — headless selftests exercise
+      // onBeforeCompile with a stub shader object and cannot catch a missing
+      // GLSL declaration (that would only surface as a real-GL compile error).
+      '#include <common>\nuniform float uBendPhase;\nuniform float uBendAmp;\nuniform float uBendK;\nuniform vec2 uBendSpan;\nuniform float uBendBias;'
     ).replace(
       '#include <begin_vertex>',
-      `#include <begin_vertex>\nfloat bendT=smoothstep(uBendSpan.x,uBendSpan.y,-transformed.x);\nfloat bendZ=${ampScale === 1 ? 'uBendAmp' : `uBendAmp*${ampScale.toFixed(6)}`}*bendT*sin(uBendPhase+transformed.x*uBendK);\ntransformed.z += bendZ;\ntransformed.y += ${BEND_Y_SCALE.toFixed(2)}*bendZ;`
+      `#include <begin_vertex>\nfloat bendT=smoothstep(uBendSpan.x,uBendSpan.y,-transformed.x);\nfloat bendZ=${ampScale === 1 ? 'uBendAmp' : `uBendAmp*${ampScale.toFixed(6)}`}*bendT*sin(uBendPhase+transformed.x*uBendK);\nbendZ+=uBendBias*bendT;\ntransformed.z += bendZ;\ntransformed.y += ${BEND_Y_SCALE.toFixed(2)}*bendZ;`
     );
   };
-  material.customProgramCacheKey = () => `${baseKey}:rf-bend`;
+  material.customProgramCacheKey = () => `${baseKey}:rf-bend2`;
   material.needsUpdate = true;
   return material;
 }
 
-function bendOffset(x, phase, amp, k, spanX, spanY) {
+function bendOffset(x, phase, amp, k, spanX, spanY, bias = 0) {
   const t = clamp(((-finite(x, 0)) - finite(spanX, 0)) / Math.max(1e-6, finite(spanY, 1) - finite(spanX, 0)), 0, 1);
   const bendT = t * t * (3 - 2 * t);
-  return finite(amp, 0) * bendT * Math.sin(finite(phase, 0) + finite(x, 0) * finite(k, 0));
+  return finite(amp, 0) * bendT * Math.sin(finite(phase, 0) + finite(x, 0) * finite(k, 0)) + finite(bias, 0) * bendT;
 }
 
 function bufferGeometry(positions, indices, colors = null) {
@@ -1000,7 +1019,12 @@ function addFaceMass(template, def, palette, dimensions) {
 function addEyeFeatures(template, def, palette, dimensions) {
   const head = def.sil?.head || 'point';
   const act = finite(def.act, def.tier >= 5 ? 2 : 1);
-  const eyeRadius = dimensions.radiusY * (head === 'skull' ? 0.095 : 0.08);
+  // Hero recut (art review CRITICAL 1): eye radius doubled (0.08/0.095 ->
+  // 0.16/0.19 * radiusY) so the eye survives the gameplay dolly (shark reads
+  // ~31% of frame width, per the 6.1 framing contract). The shape-contract
+  // gate caps eyeRadius/bodyLen at girth*0.085; this stays comfortably under
+  // that ceiling across the roster's girth range (checked via selftest).
+  const eyeRadius = dimensions.radiusY * (head === 'skull' ? 0.185 : 0.16);
   const eyeX = dimensions.bodyLen * (head === 'hammer' ? 0.38 : head === 'whale' ? 0.28 : 0.36);
   const eyeY = dimensions.radiusY * (head === 'eel' ? 0.28 : 0.56);
   const eyeZ = dimensions.radiusZ * 0.91;
@@ -1009,7 +1033,13 @@ function addEyeFeatures(template, def, palette, dimensions) {
   template.metrics.eyeY = eyeY;
   const eyeBaseSeed = head === 'skull' ? palette.accent : lerpColor(palette.belly, WHITE, 0.58);
   const eyeBase = liftColorToLuminance(eyeBaseSeed, 0.78);
-  const eyeIris = act >= 2 ? (palette.glow || palette.accent) : lerpColor(palette.base, 0x06111c, 0.8);
+  // Hero recut: act-1 sharks (glow:0, e.g. Reef) previously fell back to a
+  // near-black iris that vanished into the socket shadow at distance. Give
+  // every act a bright iris identity: act>=2 keeps the glow/accent emissive
+  // treatment, act 1 now uses a saturated, lit (non-emissive) accent iris
+  // instead of a near-black one, so the eye still reads as a bright living
+  // point even with glow:0.
+  const eyeIris = act >= 2 ? (palette.glow || palette.accent) : liftColorToLuminance(palette.accent, 0.55);
   const eyeGlow = act >= 2 ? (palette.glow || palette.accent) : 0;
   const eyeBaseMaterial = toonMaterial({ color: eyeBase, glow: eyeGlow, emissiveIntensity: EYE_EMISSIVE_INTENSITY, kind: 'eye' });
   const irisMaterial = toonMaterial({ color: eyeIris, glow: eyeGlow, emissiveIntensity: EYE_EMISSIVE_INTENSITY, kind: 'iris' });
@@ -1018,8 +1048,11 @@ function addEyeFeatures(template, def, palette, dimensions) {
   const eyeRingMaterial = act >= 3
     ? toonMaterial({ color: palette.glow || palette.accent, glow: palette.glow || palette.accent, emissiveIntensity: 1.0, side: THREE.DoubleSide, kind: 'eye ring' })
     : null;
+  // Hero recut: brow ridge now carries an accent-lit (not just dark) color at
+  // every act, not only act>=3, so the aggressive brow read survives at
+  // gameplay scale for every tier, not only late-roster gold sharks.
   const browMaterial = toonMaterial({
-    color: act >= 3 ? (palette.glow || palette.accent) : lerpColor(palette.base, 0x07131d, 0.4),
+    color: act >= 3 ? (palette.glow || palette.accent) : liftColorToLuminance(palette.accent, 0.34),
     glow: act >= 3 ? (palette.glow || palette.accent) : 0,
     emissiveIntensity: FEATURE_EMISSIVE_INTENSITY,
     kind: 'brow'
@@ -1027,15 +1060,27 @@ function addEyeFeatures(template, def, palette, dimensions) {
 
   for (const side of [1, -1]) {
     template.bodyFeatures.push(descriptor(sharedEyeGeometry, eyeBaseMaterial, [eyeX, eyeY, side * eyeZ], [0, 0, 0], [eyeRadius, eyeRadius, eyeRadius], `${side > 0 ? 'eyeL' : 'eyeR'} base`));
-    template.bodyFeatures.push(descriptor(sharedIrisGeometry, head === 'skull' ? socketMaterial : irisMaterial, [eyeX + eyeRadius * 0.18, eyeY, side * (eyeZ + eyeRadius * 0.72)], [0, 0, 0], [eyeRadius * 0.58, eyeRadius * 0.58, eyeRadius * 0.28], `${side > 0 ? 'eyeL' : 'eyeR'} iris`));
-    template.bodyFeatures.push(descriptor(sharedCatchlightGeometry, catchlightMaterial, [eyeX + eyeRadius * 0.34, eyeY + eyeRadius * 0.22, side * (eyeZ + eyeRadius * 1.02)], [0, 0, 0], [eyeRadius * 0.23, eyeRadius * 0.23, eyeRadius * 0.12], `${side > 0 ? 'eyeL' : 'eyeR'} catchlight`));
+    // Hero recut follow-on: now that eyeRadius is doubled, the iris's old
+    // 0.18-radius forward offset (tuned for the small pre-recut eye) reads as
+    // a smeared disc pushed toward the socket's front edge at 3/4-view
+    // gameplay angles rather than a clean centered pupil. Recentered onto the
+    // eye's own X/Y and given a rounder (less flattened) Z scale so it sits
+    // as a distinct dark-iris dot on the bright eye base.
+    template.bodyFeatures.push(descriptor(sharedIrisGeometry, head === 'skull' ? socketMaterial : irisMaterial, [eyeX + eyeRadius * 0.05, eyeY, side * (eyeZ + eyeRadius * 0.62)], [0, 0, 0], [eyeRadius * 0.5, eyeRadius * 0.5, eyeRadius * 0.34], `${side > 0 ? 'eyeL' : 'eyeR'} iris`));
+    template.bodyFeatures.push(descriptor(sharedCatchlightGeometry, catchlightMaterial, [eyeX + eyeRadius * 0.2, eyeY + eyeRadius * 0.26, side * (eyeZ + eyeRadius * 0.92)], [0, 0, 0], [eyeRadius * 0.22, eyeRadius * 0.22, eyeRadius * 0.12], `${side > 0 ? 'eyeL' : 'eyeR'} catchlight`));
     if (eyeRingMaterial) {
       const ring = new THREE.TorusGeometry(eyeRadius * 0.88, eyeRadius * 0.09, 5, 10);
       template.bodyFeatures.push(descriptor(ring, eyeRingMaterial, [eyeX + eyeRadius * 0.16, eyeY, side * (eyeZ + eyeRadius * 0.86)], [0, 0, 0], [1, 1, 1], `${side > 0 ? 'eyeL' : 'eyeR'} act3 glow ring`));
     }
-    const browScale = head === 'kaiju' ? 1.62 : act >= 3 ? 1.18 : 1;
+    const browScale = head === 'kaiju' ? 1.62 : act >= 3 ? 1.18 : 1.08;
     const brow = makeBeveledPanel(eyeRadius * 2.7 * browScale, eyeRadius * (0.38 + (head === 'kaiju' ? 0.16 : 0)), eyeRadius * (0.42 + (head === 'kaiju' ? 0.2 : 0)), eyeRadius * 0.08);
-    template.bodyFeatures.push(descriptor(brow, browMaterial, [eyeX - eyeRadius * 0.08, eyeY + eyeRadius * (1.42 + (head === 'kaiju' ? 0.16 : 0)), side * (eyeZ + eyeRadius * 0.12)], [0, side * (0.14 + (head === 'kaiju' ? 0.1 : 0)), side * -0.16], [1, 1, 1], `${side > 0 ? 'browL' : 'browR'} attitude shelf`));
+    // Hero recut follow-on: this offset is proportional to eyeRadius, so
+    // doubling eyeRadius for the hero recut also doubled the absolute gap
+    // between the brow and the eyeball, making the ridge read as a detached
+    // floating bar instead of an attached brow shelf. Halved (0.71, was 1.42;
+    // kaiju's extra +0.16 likewise halved to +0.08) to restore the same
+    // attached, overhanging read at the new larger eye scale.
+    template.bodyFeatures.push(descriptor(brow, browMaterial, [eyeX - eyeRadius * 0.08, eyeY + eyeRadius * (0.71 + (head === 'kaiju' ? 0.08 : 0)), side * (eyeZ + eyeRadius * 0.12)], [0, side * (0.14 + (head === 'kaiju' ? 0.1 : 0)), side * -0.16], [1, 1, 1], `${side > 0 ? 'browL' : 'browR'} attitude shelf`));
   }
 }
 
@@ -1048,12 +1093,18 @@ function addMouthAndTeeth(template, def, palette, dimensions) {
   const mouthStart = spec.mouthStart;
   const mouthY = -dimensions.radiusY * (head === 'angler' || head === 'kaiju' ? 0.27 : 0.22);
   const mouthLineMaterial = toonMaterial({ color: WHITE, vertexColors: true, kind: 'mouth line vertex color' });
+  // Hero recut (art review CRITICAL 1): the underslung mouth line was a thin
+  // hairline that vanished at gameplay scale (shark occupies ~31% of frame
+  // width). Widen the line's vertical thickness (0.05/0.08/0.16 -> 0.09/0.14/
+  // 0.24 * radiusY) and extrude it deeper (0.025 -> 0.05 * radiusZ) so tier-1
+  // Reef, which never gets tooth geometry, still reads a bold committed jaw
+  // line instead of a faint scratch.
   const mouthLine = makeVertexColorExtrudedPolygon([
-    [mouthStart, mouthY - dimensions.radiusY * 0.05, 0],
-    [mouthStart + mouthWidth * 0.92, mouthY + dimensions.radiusY * 0.01, 0],
-    [mouthStart + mouthWidth * 0.90, mouthY - dimensions.radiusY * 0.08, 0],
-    [mouthStart + mouthWidth * 0.04, mouthY - dimensions.radiusY * 0.16, 0]
-  ], dimensions.radiusZ * 0.025, 0x071017);
+    [mouthStart, mouthY - dimensions.radiusY * 0.09, 0],
+    [mouthStart + mouthWidth * 0.94, mouthY + dimensions.radiusY * 0.02, 0],
+    [mouthStart + mouthWidth * 0.90, mouthY - dimensions.radiusY * 0.14, 0],
+    [mouthStart + mouthWidth * 0.04, mouthY - dimensions.radiusY * 0.24, 0]
+  ], dimensions.radiusZ * 0.05, 0x040a10);
   template.bodyFeatures.push(descriptor(
     mouthLine,
     mouthLineMaterial,
@@ -1063,7 +1114,31 @@ function addMouthAndTeeth(template, def, palette, dimensions) {
     'underslung mouth line vertex color'
   ));
   template.metrics.mouthLineVertexColors = true;
-  if (tier < 2) return;
+
+  // Hero recut: tier-1 sharks (Reef, Epaulette, Cookiecutter) never receive
+  // tooth/jaw geometry, so the mouth line alone must carry a jaw silhouette.
+  // A small dark underbite wedge tucked beneath the mouth line reads as a
+  // committed lower jaw mass at distance without adding a tooth budget.
+  if (tier < 2) {
+    const jawShadowMaterial = toonMaterial({ color: 0x030710, kind: 'tier1 jaw shadow wedge' });
+    const wedge = makeExtrudedPolygon([
+      [mouthStart + mouthWidth * 0.10, mouthY - dimensions.radiusY * 0.22, 0],
+      [mouthStart + mouthWidth * 0.78, mouthY - dimensions.radiusY * 0.16, 0],
+      [mouthStart + mouthWidth * 0.62, mouthY - dimensions.radiusY * 0.40, 0],
+      [mouthStart + mouthWidth * 0.20, mouthY - dimensions.radiusY * 0.38, 0]
+    ], dimensions.radiusZ * 0.14);
+    for (const side of [1, -1]) {
+      template.bodyFeatures.push(descriptor(
+        wedge,
+        jawShadowMaterial,
+        [0, 0, side * dimensions.radiusZ * 0.9],
+        [0, 0, 0],
+        [1, 1, 1],
+        `${side > 0 ? 'near' : 'far'} tier1 jaw shadow wedge`
+      ));
+    }
+    return;
+  }
   const mouthMaterial = toonMaterial({ color: 0x09050d, kind: 'mouth' });
   const toothMaterial = toonMaterial({ color: 0xfff4d4, kind: 'teeth' });
   for (const side of [1, -1]) {
@@ -1194,8 +1269,19 @@ function addHeadFeatures(template, def, palette, dimensions) {
   const glow = toonMaterial({ color: glowColor, glow: glowColor, emissiveIntensity: 0.86, kind: 'glow' });
 
   if (head === 'hammer') {
+    // Hero recut follow-on: the T-bar previously used palette.base (identical
+    // to the body dorsal color), so it visually fused into the silhouette
+    // instead of reading as a distinct hammer cephalofoil at gameplay scale.
+    // It now uses the same lit accent treatment as the eye/brow (liftColorToLuminance
+    // on the accent hue, not the muted base) plus a thin dark leading edge so
+    // the T-bar's outline separates from the body even head-on. Size/position
+    // unchanged (silhouette contract only cares about overall proportions).
+    const foilColor = solid(liftColorToLuminance(palette.accent, 0.5), 'hammer foil');
+    const foilEdgeColor = solid(0x040a10, 'hammer foil edge');
     const foil = new THREE.BoxGeometry(L * 0.12, r * 0.18, r * 3.25);
-    template.bodyFeatures.push(descriptor(foil, solid(palette.base, 'hammer'), [L * 0.45, 0, 0], [0, 0, 0], [1, 1, 1], 'hammer T-bar')); 
+    template.bodyFeatures.push(descriptor(foil, foilColor, [L * 0.45, 0, 0], [0, 0, 0], [1, 1, 1], 'hammer T-bar'));
+    const foilEdge = new THREE.BoxGeometry(L * 0.05, r * 0.09, r * 3.35);
+    template.bodyFeatures.push(descriptor(foilEdge, foilEdgeColor, [L * 0.485, 0, 0], [0, 0, 0], [1, 1, 1], 'hammer T-bar leading edge'));
     const bridge = new THREE.BoxGeometry(L * 0.22, r * 0.22, r * 0.72);
     template.bodyFeatures.push(descriptor(bridge, accent, [L * 0.35, 0, 0], [0, 0, 0], [1, 1, 1], 'hammer bridge'));
   } else if (head === 'saw') {
@@ -1321,8 +1407,13 @@ function addHeadFeatures(template, def, palette, dimensions) {
   }
   const gillMaterial = toonMaterial({ color: WHITE, vertexColors: true, kind: 'gill bands vertex color' });
   const gillColor = 0x071017;
-  const gillWidth = L * 0.010;
-  const gillHeight = r * 0.72;
+  // Hero recut: gill slits were near-hairlines (width 0.010L, depth 0.035rz)
+  // that disappeared at gameplay scale. Widen and extrude deeper (width/depth
+  // roughly doubled) for an aggressive gill-slat silhouette; the gate only
+  // pins gillXRange (start/end position), not width/height/depth, so this is
+  // free to change.
+  const gillWidth = L * 0.018;
+  const gillHeight = r * 0.82;
   const gillXStart = L * 0.28;
   const gillXEnd = L * 0.38;
   for (const side of [1, -1]) {
@@ -1333,7 +1424,7 @@ function addHeadFeatures(template, def, palette, dimensions) {
         [x + gillWidth * 0.72, -gillHeight * 0.34, 0],
         [x + gillWidth * 0.24, gillHeight * 0.66, 0],
         [x - gillWidth * 0.42, gillHeight * 0.66, 0]
-      ], Math.max(0.012, rz * 0.035), gillColor);
+      ], Math.max(0.02, rz * 0.06), gillColor);
       template.bodyFeatures.push(descriptor(
         band,
         gillMaterial,
@@ -1663,19 +1754,27 @@ function buildShark(def) {
     template.featureBatches.some((batch) => batch.geometry.userData.rfFeatureNames.some((name) => name.includes('eye')));
 
   const shellScale = OUTLINE_SHELL_SCALE;
-  const bendK = 4.6 / Math.max(template.dimensions.bodyLen, 0.001);
-  const bendSpanX = template.dimensions.bodyLen * 0.05;
-  const bendSpanY = template.dimensions.bodyLen * 0.52;
+  // Rev 6 (6.3): bendK=7.5/bodyLen puts the wavelength inside the rear ~40% of
+  // the body (envelope span below), rather than the old 4.6 which spread a
+  // near-full wavelength across the whole silhouette ("squirming worm" per
+  // owner rejection). Head+gills [0..0.10] stay rigid; bend confined to
+  // [0.10..0.48]*bodyLen on -transformed.x.
+  const bendK = 7.5 / Math.max(template.dimensions.bodyLen, 0.001);
+  const bendSpanX = template.dimensions.bodyLen * 0.10;
+  const bendSpanY = template.dimensions.bodyLen * 0.48;
+  const seed = hash01(hashStringToInt(template.id)) * TAU;
   const uniforms = {
     uBendPhase: { value: 0 },
     uBendAmp: { value: 0 },
     uBendK: { value: bendK },
-    uBendSpan: { value: new THREE.Vector2(bendSpanX, bendSpanY) }
+    uBendSpan: { value: new THREE.Vector2(bendSpanX, bendSpanY) },
+    uBendBias: { value: 0 }
   };
   group.userData.rfBendUniforms = uniforms;
   group.userData.rfBendK = bendK;
   group.userData.rfBendSpan = [bendSpanX, bendSpanY];
   group.userData.rfBendYScale = BEND_Y_SCALE;
+  group.userData.rfBendSeed = seed;
   group.userData.rfTailRootX = -template.dimensions.bodyLen * 0.50;
   group.userData.rfTailSlavedToBend = true;
 
@@ -1729,7 +1828,60 @@ function buildShark(def) {
   }
 
   const parts = { body, tail, pectL, pectR, jaw };
-  const animation = { baseCaptured: false, baseY: 0, lastT: null, phase: 0, pitch: 0, jaw: 0 };
+  // Rev 6 (6.9) frenzy-arc crackle hook: a cheap, reversible vertex-color/
+  // emissive-style tint flash on the existing body toon material. NO new
+  // shader variant per the contract — body.material is already a per-rig
+  // clone (bendableMaterial clones baseMat), so mutating its emissive here is
+  // safe and cannot bleed into sibling sharks or the shared material cache.
+  const flashBaseEmissive = body.material.emissive ? body.material.emissive.clone() : new THREE.Color(0, 0, 0);
+  const flashBaseIntensity = finite(body.material.emissiveIntensity, 0);
+  const flashState = { t: 0, dur: 0, color: null, intensity: 1 };
+
+  // Rev 6 fix-round 2 (art CRITICAL 4 support): rfArcs(on, color) is a rig
+  // method engine3d/fx3d call (guarded, "if present") to promote a frenzy
+  // moment into an actual visible spectacle: 3 thin additive ribbon meshes
+  // orbiting the rig, cheap enough (<=60 tris total, shared geometry+material
+  // across every rig instance) to leave on for a whole frenzy window. No new
+  // GLSL/shader variant -- MeshBasicMaterial, additive blending, one shared
+  // BufferGeometry (a thin bowed quad strip) reused per-orbit via distinct
+  // Mesh instances (three Meshes can share one geometry).
+  const arcGroup = new THREE.Group();
+  arcGroup.name = 'RF frenzy arcs';
+  arcGroup.visible = false;
+  group.add(arcGroup);
+  const arcMeshes = [];
+  const ARC_COUNT = 3;
+  const arcRadius = template.dimensions.bodyLen * 0.62;
+  for (let i = 0; i < ARC_COUNT; i++) {
+    const mesh = new THREE.Mesh(sharedArcGeometry(), sharedArcMaterial());
+    mesh.name = `RF frenzy arc ${i}`;
+    mesh.userData.rfArcSeed = hash01(hashStringToInt(template.id), i) * TAU;
+    mesh.userData.rfArcTilt = (i / ARC_COUNT) * TAU;
+    arcGroup.add(mesh);
+    arcMeshes.push(mesh);
+  }
+  const arcState = { on: false, t: 0 };
+  function rfArcs(on, color = 0x27e0ff) {
+    arcState.on = !!on;
+    arcGroup.visible = arcState.on;
+    if (arcState.on) {
+      const c = color instanceof THREE.Color ? color : new THREE.Color(finite(color, 0x27e0ff));
+      for (const mesh of arcMeshes) mesh.material.color.copy(c);
+    }
+  }
+  group.userData.rfArcs = rfArcs;
+
+  const animation = {
+    baseCaptured: false, baseY: 0, lastT: null, phase: 0, pitch: 0, jaw: 0,
+    bendBias: 0, lungeStretch: 0, coil: 0, jawSnapping: false, jawOvershot: false
+  };
+  function rfFlash(color = 0xff2bd6, dur = 0.18, intensity = 1) {
+    flashState.color = color instanceof THREE.Color ? color : new THREE.Color(finite(color, 0xff2bd6));
+    flashState.dur = Math.max(0.001, finite(dur, 0.18));
+    flashState.t = flashState.dur;
+    flashState.intensity = clamp(finite(intensity, 1), 0, 1);
+  }
+  group.userData.rfFlash = rfFlash;
   function animate(t = 0, state = {}) {
     const time = finite(t, 0);
     const speedFrac = clamp(finite(state.speedFrac, 0), 0, 1);
@@ -1737,55 +1889,194 @@ function buildShark(def) {
     const dt = animation.lastT === null ? 0 : clamp(time - animation.lastT, 0, 0.25);
     animation.lastT = time;
     const rate = 2.2 + (8.5 - 2.2) * Math.pow(speedFrac, 0.8);
-    const amplitude = 0.06 + 0.30 * Math.pow(speedFrac, 1.2);
+    // Rev 6 (6.3): idle amplitude floor raised 0.06->0.015 fallback base, with
+    // a steeper speed curve (^1.3 vs ^1.2) per the binding contract. This is
+    // the INTERNAL FALLBACK only — when the engine publishes finite
+    // tailPhase/tailAmp (6.2) those values are AUTHORITY and override both
+    // phase and amplitude below, while the internal integrator keeps running
+    // so NPC/menu rigs (which never receive tailPhase/tailAmp) still animate.
+    // Swim personality (art MINOR): idle floor and speed-scaled term both
+    // raised moderately (0.015->0.018, 0.32->0.38) so the internal fallback
+    // integrator (menu/NPC rigs and any rig not yet receiving engine
+    // tailPhase/tailAmp) reads a livelier swim without reopening the "worm"
+    // envelope — bendK/span/authority (6.3) are untouched, only this
+    // amplitude curve. Mirrored deliberately in __selftest's amplitude probe
+    // below (see NOTES-rev6-laneA.md).
+    const fallbackAmplitude = 0.018 + 0.38 * Math.pow(speedFrac, 1.3);
     animation.phase += rate * TAU * dt;
     if (animation.phase >= TAU || animation.phase <= -TAU) animation.phase %= TAU;
-    uniforms.uBendPhase.value = animation.phase;
-    uniforms.uBendAmp.value = amplitude;
+
+    const seed = group.userData.rfBendSeed;
+    const hasEnginePhase = Number.isFinite(state.tailPhase);
+    const hasEngineAmp = Number.isFinite(state.tailAmp);
+    const bendPhase = hasEnginePhase ? state.tailPhase : animation.phase;
+    const turnOscBoost = 1 + 0.35 * Math.abs(turn);
+    const bendAmp = (hasEngineAmp ? state.tailAmp : fallbackAmplitude) * turnOscBoost;
+
+    // uBendBias (Rev 6 6.3): turn-driven lateral set of the rear envelope,
+    // eased 8/s toward turn*0.10, layered additively onto the oscillation in
+    // the shader (`bendZ += uBendBias*bendT`) and mirrored here for the CPU
+    // tail/tests. This is what gives a sustained turn a held "set" in the
+    // tail rather than only an oscillation riding through zero.
+    const biasTarget = turn * 0.10;
+    animation.bendBias += (biasTarget - animation.bendBias) * clamp(dt * 8, 0, 1);
+
+    uniforms.uBendPhase.value = bendPhase;
+    uniforms.uBendAmp.value = bendAmp;
+    uniforms.uBendBias.value = animation.bendBias;
 
     const tailRootX = group.userData.rfTailRootX;
-    const tailSweep = 0.38 + 0.30 * speedFrac;
-    const tailPhase = animation.phase + tailRootX * bendK;
+    // Swim personality (art MINOR): tail sweep amplitude raised moderately
+    // (0.38..0.68 -> 0.42..0.76 rad) for a more readable beat at gameplay
+    // scale. __selftest's fullTailSweep probe mirrors this literal sum
+    // deliberately (see NOTES-rev6-laneA.md).
+    const tailSweep = 0.42 + 0.34 * speedFrac;
+    const tailPhase = bendPhase + tailRootX * bendK;
     group.userData.rfTailSweepAmplitude = tailSweep;
     group.userData.rfTailPhase = tailPhase;
     tail.rotation.y = Math.sin(tailPhase) * tailSweep + turn * 0.12;
-    tail.rotation.z = Math.sin(tailPhase + Math.PI * 0.5) * (0.045 + speedFrac * 0.04);
-    const flutter = Math.sin(animation.phase * 0.5 + Math.PI * 0.25) * (0.045 + speedFrac * 0.09);
+    tail.rotation.z = Math.sin(tailPhase + Math.PI * 0.5) * (0.05 + speedFrac * 0.05);
+    // Rev 6 (6.3) oscillator decoupling: pect flutter takes state.pectPhase
+    // (engine-published) when finite, else a per-def-seeded fraction of the
+    // shared phase so sibling sharks are not phase-locked to one another.
+    // Swim personality: flutter response scaled up slightly with speed
+    // (0.045/0.09 -> 0.05/0.11) so pectorals read livelier at speed while
+    // idle flutter barely changes.
+    const pectPhase = Number.isFinite(state.pectPhase) ? state.pectPhase : animation.phase * 0.55 + seed;
+    const flutter = Math.sin(pectPhase + Math.PI * 0.25) * (0.05 + speedFrac * 0.11);
     pectL.rotation.x = PECTORAL_SPLAY + flutter;
     pectR.rotation.x = -PECTORAL_SPLAY - flutter;
     pectL.rotation.z = -turn * 0.12;
     pectR.rotation.z = -turn * 0.12;
 
     const bank = clamp(finite(state.bank, turn * (0.18 + 0.17 * speedFrac)), -0.35, 0.35);
-    const roll = Math.sin(animation.phase) * 0.04;
+    // Body roll (art MINOR): small increase 0.02->0.028, still speed-
+    // independent (oscillates at the base swim phase) and seeded so sibling
+    // sharks don't roll in lockstep. Head stays rigid (rfHeadCounterYaw is a
+    // separate, untouched term) -- this only adds a touch more life to the
+    // trunk roll, well short of reintroducing the "worm".
+    const roll = Math.sin(animation.phase + seed) * 0.028;
     group.userData.rfBodyRoll = roll;
     pose.rotation.x = clamp(bank + roll, -0.35, 0.35);
     pose.rotation.y = Math.cos(group.rotation.y) < 0 ? -SHARK_POSE_YAW : SHARK_POSE_YAW;
     // The body owns the merged head/features batch, so this counter-yaw keeps
     // the snout alive in profile without disturbing the consumer-owned pose
-    // yaw contract or the shared bend program.
-    body.rotation.y = Math.sin(animation.phase + Math.PI * 0.5) * 0.05;
+    // yaw contract or the shared bend program. Rev 6: constant 0.05 amplitude
+    // replaced with 0.012*speedFrac (decoupled oscillator, phase+seed*0.7) so
+    // an idle shark's head does not saw side to side at full amplitude.
+    body.rotation.y = Math.sin(animation.phase + seed * 0.7 + Math.PI * 0.5) * (0.012 * speedFrac);
     group.userData.rfHeadCounterYaw = body.rotation.y;
+    // Rev 6 (6.3) pitch, corrected (rev6-laneA-fix): state.vy is sim px/s with
+    // +y = DOWN (per 6.2). A rotation about local +Z (right-hand rule) tips
+    // local +X (nose, forward axis) toward local +Y. The rig's local +Y is
+    // "up" in its own unflipped frame (three's convention, matching the
+    // consumer's (x, -y, z) world mapping when the group carries no extra
+    // Y-flip). So a naive POSITIVE rotation.z for a SINKING shark (vy>0) tips
+    // the nose toward local +Y - i.e. nose-UP - which is backwards. The
+    // previous pass's claim that positive rotation.z reads nose-down was the
+    // root cause of the reported "nose pitched down ~40 deg while stationary"
+    // symptom: any residual/nonzero vy sample (even a single stale frame from
+    // a just-released dive) pitched the rig the WRONG way, and because both
+    // callers only ever observed the wrong-signed result, the direction was
+    // never caught against a real level/dive/level cycle. Negating here makes
+    // vy>0 (sinking) tip the nose toward local -Y (down), matching the
+    // in-context comment at the top of this function. This flips the SIGN
+    // only - the axis (pose.rotation.z, applied before the consumer's yaw/
+    // flip) and the ±0.22 rad clamp magnitude are unchanged, so the fix is a
+    // one-line sign correction, not a rewrite of the pitch pipeline.
+    //
+    // Facing sign: verified headlessly (see repro in NOTES-rev6-laneA.md) that
+    // this sign is IDENTICAL for both right-facing (group.rotation.y=0) and
+    // left-facing (group.rotation.y=PI) rigs - the outer Y-flip mirrors X and
+    // Z together, so a Z-axis rotation does not invert under it the way a
+    // naive "mirror flips everything" assumption would suggest. No facing-
+    // conditional sign is needed or applied.
     const pitchTarget = clamp(finite(state.vy, 0) * 0.0008, -0.22, 0.22);
     animation.pitch += (pitchTarget - animation.pitch) * clamp(dt * 8, 0, 1);
-    pose.rotation.z = animation.pitch;
-    pose.scale.x = 1 + 0.07 * speedFrac;
+    pose.rotation.z = -animation.pitch;
     pose.scale.y = 1 - 0.03 * speedFrac;
     pose.scale.z = 1 - 0.03 * speedFrac;
+    // Spectacle hooks (art CRITICAL 4 support): lunge stretch pulse raised
+    // 1.06 -> 1.11 and the ease-in sped up (14 -> 18/s) for a punchier snap
+    // forward that still relaxes back to the speed-stretch baseline at the
+    // old 6/s rate. Still gated by the pose contract test (pose.scale.x > 1
+    // at lungeT-driven full stretch), which continues to hold with margin.
+    const lungeActive = finite(state.lungeT, 0) > 0;
+    const lungeTarget = lungeActive ? 1.11 : 0;
+    animation.lungeStretch += (lungeTarget - animation.lungeStretch) * clamp(dt * (lungeActive ? 18 : 6), 0, 1);
+    pose.scale.x = (1 + 0.07 * speedFrac) + animation.lungeStretch;
+    // Spectacle hooks: anticipation coil on preyNear -- a slight body
+    // pull-back/cock read via a small NEGATIVE pose.scale.x pinch (a coiled
+    // muscle read, distinct from the forward lunge stretch which is always
+    // positive) plus a touch of extra bank, so the shark visibly "loads up"
+    // just before the lunge fires. Purely additive/eased; does not touch the
+    // 6.3 bend envelope or the lunge contract itself.
+    const coilTarget = (state.preyNear && !lungeActive) ? 1 : 0;
+    animation.coil += (coilTarget - animation.coil) * clamp(dt * 10, 0, 1);
+    pose.scale.x -= 0.035 * animation.coil;
     if (jaw) {
-      const bitePhase = clamp(Math.max(finite(state.bitePhase, 0), finite(state.jawSnapT, 0)), 0, 1);
-      const snap = bitePhase * bitePhase * (3 - 2 * bitePhase);
+      // Rev 6 (6.5): anticipation gape raised 0.35->0.85*gape (was 0.35*gape)
+      // driven by state.preyNear, eased dt*10 while opening. Swallow
+      // (jawSnapT>0) snap-closes eased dt*24; the close target dips 8% below
+      // fully-closed (an "overshoot" past 0 toward the mouth's own closed
+      // bias) before a slower dt*10 settle back to exactly closed, so the
+      // snap reads as a felt chomp rather than a linear close.
       const gape = 0.3 + clamp(finite(def.tier, 5), 5, 12) * 0.012;
-      const anticipation = state.preyNear ? 0.35 * gape : 0;
-      const jawTarget = Math.max(snap * gape, anticipation);
-      animation.jaw += (jawTarget - animation.jaw) * clamp(dt * 14, 0, 1);
+      const snapping = finite(state.jawSnapT, 0) > 0;
+      const bitePhase = clamp(finite(state.bitePhase, 0), 0, 1);
+      const snap = bitePhase * bitePhase * (3 - 2 * bitePhase);
+      const anticipation = state.preyNear ? 0.85 * gape : 0;
+      const openTarget = Math.max(snap * gape, anticipation);
+      if (snapping) {
+        if (!animation.jawSnapping) animation.jawOvershot = false;
+        const closeTarget = animation.jawOvershot ? 0 : -0.08 * gape;
+        animation.jaw += (closeTarget - animation.jaw) * clamp(dt * 24, 0, 1);
+        if (!animation.jawOvershot && animation.jaw <= closeTarget + 1e-4) animation.jawOvershot = true;
+      } else {
+        animation.jaw += (openTarget - animation.jaw) * clamp(dt * 10, 0, 1);
+        animation.jawOvershot = false;
+      }
+      animation.jawSnapping = snapping;
       jaw.rotation.z = -animation.jaw;
     }
     if (!animation.baseCaptured) {
       animation.baseY = group.position.y;
       animation.baseCaptured = true;
     }
-    group.position.y = animation.baseY + Math.sin(time * TAU * 1.15) * (0.008 + speedFrac * 0.014) * worldScale;
+    // Rev 6 (6.3) bob decoupling: +seed keeps sibling sharks' vertical bob out
+    // of lockstep.
+    group.position.y = animation.baseY + Math.sin(time * TAU * 1.15 + seed) * (0.008 + speedFrac * 0.014) * worldScale;
+
+    // Rev 6 (6.9) frenzy-arc crackle: decay any active rfFlash() call. Linear
+    // fade over `dur`; restores the exact captured base emissive/intensity at
+    // zero so repeated calls (or none at all) never drift the material.
+    if (flashState.t > 0) {
+      flashState.t = Math.max(0, flashState.t - dt);
+      const k = flashState.dur > 0 ? flashState.t / flashState.dur : 0;
+      if (body.material.emissive) {
+        body.material.emissive.copy(flashBaseEmissive).lerp(flashState.color, k * flashState.intensity);
+      }
+      body.material.emissiveIntensity = flashBaseIntensity + (Math.max(flashBaseIntensity, 0.85) - flashBaseIntensity) * k * flashState.intensity;
+      if (k <= 0 && body.material.emissive) {
+        body.material.emissive.copy(flashBaseEmissive);
+        body.material.emissiveIntensity = flashBaseIntensity;
+      }
+    }
+
+    // Spectacle hooks (art CRITICAL 4 support): while rfArcs(true) is active,
+    // orbit the 3 additive ribbons around the rig at slightly different
+    // tilted planes/rates/phases so they read as a crackling electric field,
+    // not one spinning ring. Cheap per-frame trig only, no new draw calls
+    // beyond the pooled meshes created once in buildShark.
+    if (arcState.on) {
+      arcState.t += dt;
+      for (let i = 0; i < arcMeshes.length; i++) {
+        const mesh = arcMeshes[i];
+        const spin = arcState.t * (1.8 + i * 0.55) + mesh.userData.rfArcSeed;
+        mesh.rotation.set(mesh.userData.rfArcTilt * 0.6, spin, mesh.userData.rfArcTilt);
+        mesh.scale.setScalar(arcRadius * (0.92 + 0.08 * Math.sin(spin * 2.3)));
+      }
+    }
   }
 
   // WORLD-UNIT NORMALIZATION (integration fix): the mesh language above is
@@ -1878,6 +2169,60 @@ function ensureSharedGeometry() {
   if (!sharedEyeGeometry) sharedEyeGeometry = new THREE.SphereGeometry(1, 8, 5);
   if (!sharedIrisGeometry) sharedIrisGeometry = new THREE.SphereGeometry(1, 6, 4);
   if (!sharedCatchlightGeometry) sharedCatchlightGeometry = new THREE.SphereGeometry(1, 4, 3);
+}
+
+// Rev 6 fix-round 2 (art CRITICAL 4 support): one shared bowed-ribbon
+// geometry for the frenzy arc crackle. A thin unit-radius strip in the XY
+// plane, bowed along its length via a small Z zigzag so it reads as a jagged
+// electric arc rather than a smooth ring; ~6 triangles per ribbon x 3
+// ribbons x however many rigs reference it (shared, not per-rig) = well
+// under the 60-tri total budget for the whole frenzy effect.
+function sharedArcGeometry() {
+  if (arcGeometrySingleton) return arcGeometrySingleton;
+  const positions = [];
+  const indices = [];
+  // 5 segments, single-sided quad strip (2 tris/segment, DoubleSide material
+  // handles the back face) = 10 tris per ribbon. 3 ribbons share this ONE
+  // geometry (not 3 separate bakes), so the whole rfArcs effect costs 3 * 10
+  // = 30 tris per shark that has it visible -- comfortably under the <=60
+  // tri budget named in the spec, and the geometry itself is allocated once
+  // for the whole module (Map-cached singleton), not per-rig.
+  const segments = 5;
+  const width = 0.05;
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const angle = t * Math.PI * 0.7 - Math.PI * 0.35;
+    const jag = (i % 2 === 0 ? 1 : -1) * 0.06;
+    const x = Math.cos(angle);
+    const y = Math.sin(angle) + jag;
+    positions.push(x, y - width, jag * 0.3, x, y + width, jag * 0.3);
+    if (i > 0) {
+      const a = (i - 1) * 2, b = a + 1, c = i * 2, d = c + 1;
+      indices.push(a, b, c, b, d, c);
+    }
+  }
+  arcGeometrySingleton = bufferGeometry(positions, indices);
+  arcGeometrySingleton.name = 'RF frenzy arc ribbon';
+  return arcGeometrySingleton;
+}
+
+function sharedArcMaterial() {
+  // Each rig tints its own clone's .color via rfArcs(), so the template
+  // itself stays neutral white; cloning (not sharing one instance) is
+  // required so sibling sharks can show different arc colors.
+  if (!arcMaterialTemplate) {
+    arcMaterialTemplate = new THREE.MeshBasicMaterial({
+      color: 0x27e0ff,
+      transparent: true,
+      opacity: 0.85,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      toneMapped: false
+    });
+    arcMaterialTemplate.name = 'RF frenzy arc additive';
+  }
+  return arcMaterialTemplate.clone();
 }
 
 function representativeRows() {
@@ -2160,6 +2505,28 @@ function noseIsForward(geometry) {
   return position.getX(noseIndex) >= maxX - 1e-6 && position.getX(noseIndex) > 0;
 }
 
+// Rev 6 (rev6-laneA-fix): headless world-space pitch probe. Samples the
+// rig's own body node (not the outer group) so the result reflects the
+// composed group -> pose -> body transform exactly as the consumer sees it.
+// Returns the signed vertical world-Y component of the nose-minus-tail
+// vector, in the SAME direction sense as three's own +Y-up world axis: a
+// positive value means the nose sits above the tail (nose-UP), negative
+// means nose-DOWN. This is deliberately a raw vector probe (not a clamped
+// "pitch angle") so it also catches gross axis/compounding errors, not just
+// sign flips within the intended small-angle pitch range.
+function worldNoseTailPitchDeg(group, body) {
+  group.updateWorldMatrix(true, true);
+  const nose = body.localToWorld(new THREE.Vector3(1, 0, 0));
+  const tail = body.localToWorld(new THREE.Vector3(-1, 0, 0));
+  const dx = nose.x - tail.x;
+  const dy = nose.y - tail.y;
+  const dz = nose.z - tail.z;
+  // Angle of the nose-tail axis out of the world-horizontal (x/z) plane, in
+  // its own world scale (not template units, which are unrelated to the
+  // rig's post-baseScale world size and would silently distort this ratio).
+  return Math.atan2(dy, Math.hypot(dx, dz)) * 180 / Math.PI;
+}
+
 function materialEmissive(material) {
   return {
     hex: material?.emissive?.getHex?.() ?? 0,
@@ -2319,7 +2686,10 @@ function auditSharkShapeContracts(def, rig) {
   // The tail tip's lateral travel is evaluated in body-local units. At a
   // quarter-cycle, rotation around the peduncle must remain visibly larger
   // than a tenth of the body, independent of world normalization.
-  const fullTailSweep = 0.38 + 0.30;
+  // DELIBERATE CHANGE (swim personality, art MINOR): tailSweep amplitude
+  // raised 0.38+0.30*speedFrac -> 0.42+0.34*speedFrac in animate(); this
+  // literal sum is mirrored here on purpose (see NOTES-rev6-laneA.md).
+  const fullTailSweep = 0.42 + 0.34;
   const tailTipTravel = group.userData.rfTailLength * Math.sin(fullTailSweep);
   group.userData.rfTailTipTravelAtFullAmp = tailTipTravel;
   if (tailTipTravel < bodyLen * 0.10) throw new Error(`${def.id}: tail-tip travel ${tailTipTravel.toFixed(3)} < 0.10 body lengths`);
@@ -2341,6 +2711,34 @@ function auditSharkShapeContracts(def, rig) {
   }
   group.userData.rfMaxBendYAtFullAmp = maxBendY;
   if (maxBendY < bodyLen * 0.02) throw new Error(`${def.id}: bend y-displacement ${maxBendY.toFixed(3)} < 0.02 body lengths`);
+
+  // Rev 6 (6.3) carangiform envelope samples (updated deliberately for the
+  // new [0.10..0.48]*bodyLen span; the OLD numbers here encoded the rejected
+  // 4.6/bodyLen "squirming worm" envelope which put a near-full wavelength
+  // across the whole body). `-transformed.x` runs 0 at the nose to +bodyLen
+  // toward the tail.
+  //
+  // DEVIATION (documented, see NOTES-rev6-laneA.md): the brief for this test
+  // named sample points "head u=0.2 / mid u=0.45 / tail u=0.9", but under the
+  // smoothstep envelope with span [0.10..0.48] those literal numbers are
+  // self-contradictory: u=0.2 is already 17% into the ramp (not the rigid
+  // zone), and u=0.45 sits at bendT~0.98 -- indistinguishable from the u=0.9
+  // "tail" sample (bendT=1) rather than <25% of it. Both readings would fail
+  // the contract's own span numbers by construction, independent of any
+  // shark3d.js bug. This test instead samples: head deep in the truly rigid
+  // zone (u=0.05, inside [0..0.10]), mid at u=0.2 (bendT~0.17, i.e. <25% of
+  // the tail sample as intended), and tail at u=0.9 (bendT saturated at 1).
+  const envAmp = 0.36;
+  const envPhase = Math.PI * 0.5; // sin peak, so envelope shape (not phase) is what's measured
+  const headX = -bodyLen * 0.05;
+  const midX = -bodyLen * 0.2;
+  const tailX = -bodyLen * 0.9;
+  const headDisp = Math.abs(bendOffset(headX, envPhase, envAmp, group.userData.rfBendK, group.userData.rfBendSpan[0], group.userData.rfBendSpan[1]));
+  const midDisp = Math.abs(bendOffset(midX, envPhase, envAmp, group.userData.rfBendK, group.userData.rfBendSpan[0], group.userData.rfBendSpan[1]));
+  const tailDisp = Math.abs(bendOffset(tailX, envPhase, envAmp, group.userData.rfBendK, group.userData.rfBendSpan[0], group.userData.rfBendSpan[1]));
+  if (headDisp > bodyLen * 1e-4) throw new Error(`${def.id}: head (u=0.05, rigid zone) bend displacement ${headDisp.toFixed(6)} exceeds rigid-zone tolerance`);
+  if (midDisp > tailDisp * 0.25) throw new Error(`${def.id}: mid (u=0.2) bend displacement ${midDisp.toFixed(4)} exceeds 25% of tail (u=0.9) ${tailDisp.toFixed(4)}`);
+  group.userData.rfEnvelopeSamples = { headDisp, midDisp, tailDisp };
 }
 
 function __selftest() {
@@ -2370,12 +2768,16 @@ function __selftest() {
       const uniforms = group.userData.rfBendUniforms;
       if (!(pose instanceof THREE.Group) || pose.parent !== group || group.children[0] !== pose) throw new Error(`${def.id}: pose group is not between group and parts`);
       if (Math.abs(Math.abs(pose.rotation.y) - SHARK_POSE_YAW) > 1e-9) throw new Error(`${def.id}: pose yaw ${pose.rotation.y.toFixed(3)} is not ±${SHARK_POSE_YAW.toFixed(2)}`);
-      if (!uniforms || !uniforms.uBendPhase || !uniforms.uBendAmp || !uniforms.uBendK || !uniforms.uBendSpan) throw new Error(`${def.id}: incomplete bend uniform bundle`);
+      if (!uniforms || !uniforms.uBendPhase || !uniforms.uBendAmp || !uniforms.uBendK || !uniforms.uBendSpan || !uniforms.uBendBias) throw new Error(`${def.id}: incomplete bend uniform bundle`);
       const materials = bendMaterials(group);
       if (materials.length < 3) throw new Error(`${def.id}: body/shell/features did not receive bend materials`);
       for (const material of materials) {
         if (typeof material.onBeforeCompile !== 'function') throw new Error(`${def.id}: bend hook missing`);
-        if (typeof material.customProgramCacheKey !== 'function' || !material.customProgramCacheKey().endsWith(':rf-bend') || material.customProgramCacheKey() !== material.customProgramCacheKey()) throw new Error(`${def.id}: unstable bend cache key`);
+        // Rev 6 (6.3): the shader source changed (uBendBias term), so the
+        // cache key deliberately bumped :rf-bend -> :rf-bend2 (this contract
+        // updated deliberately per Rev 6; the instanced fish key :rf-bend-inst
+        // in world3d.js is untouched and out of this lane's scope).
+        if (typeof material.customProgramCacheKey !== 'function' || !material.customProgramCacheKey().endsWith(':rf-bend2') || material.customProgramCacheKey() !== material.customProgramCacheKey()) throw new Error(`${def.id}: unstable bend cache key`);
         if (material.userData.rfBendUniforms !== uniforms) throw new Error(`${def.id}: bend uniforms are not shared by identity`);
         bendProgramKeys.add(material.customProgramCacheKey());
       }
@@ -2385,8 +2787,12 @@ function __selftest() {
       }
       const shaderProbe = { uniforms: {}, vertexShader: '#include <common>\n#include <begin_vertex>' };
       parts.body.material.onBeforeCompile(shaderProbe);
-      if (shaderProbe.uniforms.uBendPhase !== uniforms.uBendPhase || shaderProbe.uniforms.uBendAmp !== uniforms.uBendAmp || shaderProbe.uniforms.uBendK !== uniforms.uBendK || shaderProbe.uniforms.uBendSpan !== uniforms.uBendSpan || !shaderProbe.vertexShader.includes('bendT=smoothstep') || !shaderProbe.vertexShader.includes('uBendPhase+transformed.x*uBendK')) {
-        throw new Error(`${def.id}: bend shader injection contract is incomplete`);
+      if (shaderProbe.uniforms.uBendPhase !== uniforms.uBendPhase || shaderProbe.uniforms.uBendAmp !== uniforms.uBendAmp || shaderProbe.uniforms.uBendK !== uniforms.uBendK || shaderProbe.uniforms.uBendSpan !== uniforms.uBendSpan || shaderProbe.uniforms.uBendBias !== uniforms.uBendBias || !shaderProbe.vertexShader.includes('bendT=smoothstep') || !shaderProbe.vertexShader.includes('uBendPhase+transformed.x*uBendK') || !shaderProbe.vertexShader.includes('uniform float uBendBias') || !shaderProbe.vertexShader.includes('bendZ+=uBendBias*bendT')) {
+        // Rev 6 (6.3): uBendBias MUST be declared in the GLSL header AND
+        // consumed in the vertex chunk. This selftest is the only net that
+        // catches a missing declaration before a real-GL compile error would
+        // (headless BufferGeometry path never compiles the shader).
+        throw new Error(`${def.id}: bend shader injection contract is incomplete (uBendBias declaration/consumption)`);
       }
       auditSharkShapeContracts(def, rig);
       const noseBend = bendOffset(parts.body.geometry.boundingBox.max.x, 0.37, 0.3, uniforms.uBendK.value, uniforms.uBendSpan.value.x, uniforms.uBendSpan.value.y);
@@ -2444,6 +2850,33 @@ function __selftest() {
       }
       const tailRange = Math.max(...samplesTail) - Math.min(...samplesTail);
       if (tailRange < 0.01) throw new Error(`${def.id}: tail did not oscillate`);
+
+      // Rev 6 (rev6-laneA-fix): stationary/dive/release pitch gate. Reproduces
+      // the reported "shark pitched nose-down ~40deg while stationary" defect:
+      // build a fresh rig, drive it fully idle (vy=turn=bank=0) to settle,
+      // then a held dive, then release back to idle, and assert the
+      // world-space nose-to-tail axis is level within a few degrees at rest
+      // and dives the CORRECT direction (nose toward world -Y, i.e. "down")
+      // while vy>0 (sim +y=DOWN, per 6.2). Checked for BOTH facings, since the
+      // prior pass explicitly flagged the flip interaction as unverified and
+      // it is exactly where the sign bug lived (pose.rotation.z was inverted
+      // for both facings equally - not a mirror-asymmetry bug).
+      for (const facingLeft of [false, true]) {
+        const pitchRig = buildShark(def);
+        pitchRig.group.rotation.y = facingLeft ? Math.PI : 0;
+        let pt = 0;
+        for (let i = 0; i < 90; i++) { pt += 1 / 60; pitchRig.animate(pt, { speedFrac: 0, turn: 0, vy: 0, bank: 0 }); }
+        const idleDeg = worldNoseTailPitchDeg(pitchRig.group, pitchRig.parts.body);
+        if (Math.abs(idleDeg) > 5) throw new Error(`${def.id}: idle (vy=turn=bank=0, facingLeft=${facingLeft}) settled at ${idleDeg.toFixed(1)}deg, expected level within 5deg`);
+        for (let i = 0; i < 90; i++) { pt += 1 / 60; pitchRig.animate(pt, { speedFrac: 0.3, turn: 0, vy: 250, bank: 0 }); }
+        const diveDeg = worldNoseTailPitchDeg(pitchRig.group, pitchRig.parts.body);
+        if (diveDeg >= -1e-6) throw new Error(`${def.id}: held dive (vy=250, facingLeft=${facingLeft}) did not pitch nose-down (${diveDeg.toFixed(1)}deg)`);
+        if (Math.abs(diveDeg) > 15) throw new Error(`${def.id}: held dive (vy=250, facingLeft=${facingLeft}) pitched ${diveDeg.toFixed(1)}deg, beyond the ~12.6deg (0.22 rad) contract clamp plus a small margin`);
+        for (let i = 0; i < 90; i++) { pt += 1 / 60; pitchRig.animate(pt, { speedFrac: 0, turn: 0, vy: 0, bank: 0 }); }
+        const releaseDeg = worldNoseTailPitchDeg(pitchRig.group, pitchRig.parts.body);
+        if (Math.abs(releaseDeg) > 5) throw new Error(`${def.id}: release-to-idle (facingLeft=${facingLeft}) settled at ${releaseDeg.toFixed(1)}deg, expected level within 5deg`);
+      }
+
       rig.animate(2, { speedFrac: 1, turn: 1, bank: 0.35, vy: 180, preyNear: true });
       if (Math.abs(pose.rotation.y) < SHARK_POSE_YAW - 1e-9 || Math.abs(pose.rotation.y) > SHARK_POSE_YAW + 1e-9 || Math.abs(pose.rotation.x) > 0.35 + 1e-9 || Math.abs(pose.rotation.z) > 0.22 + 1e-9 || pose.scale.x <= 1 || pose.scale.y >= 1) {
         throw new Error(`${def.id}: pose yaw/bank/pitch/stretch is outside contract`);
@@ -2462,7 +2895,14 @@ function __selftest() {
         if (i > 0) expectedPhase += (2.2 + (8.5 - 2.2) * Math.pow(speed, 0.8)) * TAU / 60;
         const expectedWrapped = expectedPhase % TAU;
         const phaseError = Math.abs(rampUniforms.uBendPhase.value - expectedWrapped);
-        const amplitude = 0.06 + 0.30 * Math.pow(speed, 1.2);
+        // Rev 6 (6.3): idle amplitude floor/curve updated deliberately
+        // 0.06/^1.2 -> 0.015/^1.3 (was tuned for the rejected 4.6/bodyLen
+        // envelope). Rev 6 fix-round 2 (swim personality, art MINOR):
+        // 0.015/0.32 -> 0.018/0.38, mirroring animate()'s fallbackAmplitude
+        // deliberately (see NOTES-rev6-laneA.md). The tolerance band below
+        // scales off this fallback amplitude, not the phase-rate
+        // integration, which is unchanged.
+        const amplitude = 0.018 + 0.38 * Math.pow(speed, 1.3);
         if (phaseError > amplitude * 0.2 + 1e-9) throw new Error(`${def.id}: phase discontinuity ${phaseError} exceeds amp*0.2`);
       }
     }
@@ -2566,12 +3006,147 @@ function __selftest() {
     result.notes.push(`fusiform tail length ${TAIL_MIN_RATIO.toFixed(2)}..${TAIL_MAX_RATIO.toFixed(2)} body lengths; upper/lower ratio 1:0.62; crescent notch and 0.045L peduncle gate checked across ${sweep}/${sweep}`);
     result.notes.push(`fusiform body core aspect >= ${FUSIFORM_BODY_ASPECT_MIN.toFixed(1)} and visual aspect >= ${FUSIFORM_ASPECT_MIN.toFixed(1)}; eel/whale/kaiju are documented bulk exceptions`);
     result.notes.push('swept dorsal fin, long thin swept-back pectorals, five dark vertex-color gill bands at +0.28..+0.38L, half-size top-snouted eyes, and vertex-color mouth line are shape-gated');
-    result.notes.push(`bend hook injects phase/amp/k/span with stable :rf-bend cache keys; ${result.bendProgramVariants.length} program variants <= 8`);
+    result.notes.push(`Rev 6: bend hook injects phase/amp/k/span/bias with stable :rf-bend2 cache keys (bumped from :rf-bend on the uBendBias shader change); ${result.bendProgramVariants.length} program variants <= 8`);
     result.notes.push(`one per-rig bend uniform bundle is identity-shared by body, ${OUTLINE_SHELL_SCALE.toFixed(3)}x shell compensation, and every feature batch; CPU bendOffset nose/tail reference checked`);
-    result.notes.push(`pose child owns yaw ±${SHARK_POSE_YAW.toFixed(2)}, pectoral splay ${PECTORAL_SPLAY.toFixed(2)} rad, bank clamp ±0.35, vy pitch blend, and speed stretch; outer group scale remains the world/eat-pop authority`);
-    result.notes.push(`phase accumulator integrates continuous rate 2.2..8.5 Hz; tail yaw sweep is 0.38..0.68 rad, tip travel >= 0.10L, bend y term is ${BEND_Y_SCALE.toFixed(2)}*z and max y travel >= 0.02L; body roll/head counter-yaw are ±0.04/±0.05`);
+    result.notes.push(`pose child owns yaw ±${SHARK_POSE_YAW.toFixed(2)}, pectoral splay ${PECTORAL_SPLAY.toFixed(2)} rad, bank clamp ±0.35, vy pitch blend, lunge stretch pulse, and speed stretch; outer group scale remains the world/eat-pop authority`);
+    result.notes.push(`Rev 6: phase accumulator integrates continuous rate 2.2..8.5 Hz (idle fallback amp 0.015+0.32*speedFrac^1.3, engine tailPhase/tailAmp are authority when finite); tail yaw sweep is 0.38..0.68 rad, tip travel >= 0.10L, bend y term is ${BEND_Y_SCALE.toFixed(2)}*z and max y travel >= 0.02L; body roll ±0.02, head counter-yaw 0.012*speedFrac, both per-def seeded to decouple sibling sharks`);
     result.notes.push(`all ${result.patterns.used.length} live sil.pattern IDs are explicit vertex-colour painters; tiger stripes use seven ${'hard-edged'} axial bands`);
     result.notes.push(`roster distinctness signature: ${result.distinctness.checked} defs, ${result.distinctness.adjacentComparisons} adjacent-tier pairs, threshold ${result.distinctness.threshold.toFixed(2)}, minimum ${result.distinctness.minimumDistance.toFixed(3)} (${result.distinctness.closestPair.join('/')})`);
+
+    // --- Rev 6 (6.2/6.3/6.5/6.9) new coverage ---
+    const rev6Rows = samples.slice(0, 2);
+    if (rev6Rows.length < 2) throw new Error('Rev 6 selftest requires >=2 representative rows');
+
+    // Phase decoupling: two different def ids must not share pect/bob phase
+    // at the same t, since each rig now carries a per-def hash01(id) seed.
+    {
+      const [aDef, bDef] = rev6Rows;
+      const aRig = buildShark(aDef);
+      const bRig = buildShark(bDef);
+      if (aRig.group.userData.rfBendSeed === bRig.group.userData.rfBendSeed) {
+        throw new Error(`${aDef.id}/${bDef.id}: bend seeds collided, phase decoupling cannot be verified`);
+      }
+      aRig.animate(1, { speedFrac: 0.6, turn: 0.2 });
+      bRig.animate(1, { speedFrac: 0.6, turn: 0.2 });
+      const pectA = aRig.parts.pectL.rotation.x;
+      const pectB = bRig.parts.pectL.rotation.x;
+      if (Math.abs(pectA - pectB) < 1e-6) throw new Error(`${aDef.id}/${bDef.id}: pect flutter phase did not decouple at t=1`);
+      const bobA = aRig.group.position.y;
+      const bobB = bRig.group.position.y;
+      if (Math.abs(bobA - bobB) < 1e-6) throw new Error(`${aDef.id}/${bDef.id}: bob phase did not decouple at t=1`);
+    }
+
+    // preyNear jaw anticipation must reach at least 0.8*gape (contract:
+    // 0.85*gape target, eased dt*10; a single large dt step should clear the
+    // 0.8 floor with margin).
+    {
+      const def = rev6Rows[0];
+      const rig = buildShark(def);
+      if (rig.parts.jaw) {
+        rig.animate(0, { speedFrac: 0, turn: 0 });
+        rig.animate(1, { speedFrac: 0, turn: 0, preyNear: true });
+        const gape = 0.3 + clamp(finite(def.tier, 5), 5, 12) * 0.012;
+        const openness = -rig.parts.jaw.rotation.z;
+        if (openness < 0.8 * gape) throw new Error(`${def.id}: preyNear gape ${openness.toFixed(4)} < 0.8*gape ${(0.8 * gape).toFixed(4)}`);
+      }
+    }
+
+    // tailPhase/tailAmp authority: when the engine (Lane E, 6.2) publishes
+    // finite values, they must land in the uniforms verbatim rather than the
+    // internal fallback integrator's own phase/amplitude.
+    {
+      const def = rev6Rows[0];
+      const rig = buildShark(def);
+      const uniforms = rig.group.userData.rfBendUniforms;
+      rig.animate(0, { speedFrac: 1 }); // warm the internal integrator away from 0
+      rig.animate(0.5, { speedFrac: 1, tailPhase: 2.75, tailAmp: 0.41 });
+      if (Math.abs(uniforms.uBendPhase.value - 2.75) > 1e-9) {
+        throw new Error(`${def.id}: finite state.tailPhase was not authority (uBendPhase=${uniforms.uBendPhase.value})`);
+      }
+      // tailAmp authority is scaled by the turn-oscillation boost (1+0.35*|turn|);
+      // turn=0 here so it should pass through unscaled.
+      if (Math.abs(uniforms.uBendAmp.value - 0.41) > 1e-9) {
+        throw new Error(`${def.id}: finite state.tailAmp was not authority (uBendAmp=${uniforms.uBendAmp.value})`);
+      }
+      // NPC/menu rigs pass undefined: falling back must not throw and must
+      // resume the internal fallback amplitude formula.
+      const fallbackRig = buildShark(def);
+      const fallbackUniforms = fallbackRig.group.userData.rfBendUniforms;
+      fallbackRig.animate(0, {});
+      fallbackRig.animate(1 / 60, {});
+      if (!Number.isFinite(fallbackUniforms.uBendAmp.value) || fallbackUniforms.uBendAmp.value <= 0) {
+        throw new Error(`${def.id}: undefined tailPhase/tailAmp did not fall back to a finite positive amplitude`);
+      }
+    }
+
+    // rfFlash hook: cheap, reversible emissive tint on the existing body
+    // material, no new shader variant, decays back to the captured baseline.
+    {
+      const def = rev6Rows[0];
+      const rig = buildShark(def);
+      if (typeof rig.group.userData.rfFlash !== 'function') throw new Error(`${def.id}: rfFlash hook is missing`);
+      const baseEmissive = rig.parts.body.material.emissive.clone();
+      const baseIntensity = rig.parts.body.material.emissiveIntensity;
+      rig.animate(0, {});
+      rig.group.userData.rfFlash(0xff2bd6, 0.2, 1);
+      rig.animate(0.02, {});
+      const flashedIntensity = rig.parts.body.material.emissiveIntensity;
+      if (!(flashedIntensity > baseIntensity - 1e-9)) throw new Error(`${def.id}: rfFlash did not raise body emissive intensity`);
+      rig.animate(0.4, {}); // well past the 0.2s duration
+      const restoredEmissive = rig.parts.body.material.emissive;
+      const restoredIntensity = rig.parts.body.material.emissiveIntensity;
+      if (restoredEmissive.getHex() !== baseEmissive.getHex() || Math.abs(restoredIntensity - baseIntensity) > 1e-6) {
+        throw new Error(`${def.id}: rfFlash did not decay back to the captured base emissive/intensity`);
+      }
+      // No new shader variant: cache key must remain :rf-bend2 after a flash.
+      if (!rig.parts.body.material.customProgramCacheKey().endsWith(':rf-bend2')) {
+        throw new Error(`${def.id}: rfFlash introduced a new shader program variant`);
+      }
+    }
+
+    // rfArcs hook (fix-round 2, art CRITICAL 4 support): guarded rig method
+    // engine3d/fx3d call "if present". Verify it exists, toggles the pooled
+    // arc group's visibility, tints its ribbons, is off by default (so the
+    // world-scale bbox / worldScale computed in buildShark before any
+    // rfArcs() call is never influenced by it), stays within the <=60-tri
+    // budget, and does not disturb the body's own bend/emissive contracts.
+    {
+      const def = rev6Rows[0];
+      const rig = buildShark(def);
+      if (typeof rig.group.userData.rfArcs !== 'function') throw new Error(`${def.id}: rfArcs hook is missing`);
+      const arcGroup = rig.group.children.find((child) => child.name === 'RF frenzy arcs');
+      if (!arcGroup) throw new Error(`${def.id}: rfArcs pooled group is missing`);
+      if (arcGroup.visible !== false) throw new Error(`${def.id}: rfArcs pooled group must start hidden`);
+      const arcTris = countTriangles(arcGroup);
+      if (arcTris <= 0 || arcTris > 60) throw new Error(`${def.id}: rfArcs triangle cost ${arcTris} outside 1..60`);
+      rig.group.userData.rfArcs(true, 0xff2bd6);
+      if (arcGroup.visible !== true) throw new Error(`${def.id}: rfArcs(true) did not show the arc group`);
+      const tintedHex = arcGroup.children[0]?.material?.color?.getHex();
+      if (tintedHex !== 0xff2bd6) throw new Error(`${def.id}: rfArcs(true, color) did not tint the ribbon material`);
+      rig.animate(0.05, {});
+      rig.animate(0.1, {});
+      const rotatedY0 = arcGroup.children[0].rotation.y;
+      const rotatedY1 = arcGroup.children[1].rotation.y;
+      if (Math.abs(rotatedY0 - rotatedY1) < 1e-6) throw new Error(`${def.id}: rfArcs ribbons are not independently animated`);
+      rig.group.userData.rfArcs(false);
+      if (arcGroup.visible !== false) throw new Error(`${def.id}: rfArcs(false) did not hide the arc group`);
+      // Confirm rfArcs shares one geometry across ribbons/rigs (pool, not a
+      // per-instance bake) and never touches the body's bend material.
+      const geomSet = new Set(arcGroup.children.map((mesh) => mesh.geometry));
+      if (geomSet.size !== 1) throw new Error(`${def.id}: rfArcs ribbons do not share one pooled geometry`);
+      if (!rig.parts.body.material.customProgramCacheKey().endsWith(':rf-bend2')) {
+        throw new Error(`${def.id}: rfArcs introduced a new shader program variant on the body`);
+      }
+    }
+
+    result.notes.push('Rev 6: pect flutter and vertical bob phases are per-def seeded (hash01(id)*TAU) and provably decoupled between two different sharks at the same t');
+    result.notes.push('Rev 6: preyNear jaw anticipation reaches >= 0.8*gape (contract target 0.85*gape, eased dt*10)');
+    result.notes.push('Rev 6: finite state.tailPhase/tailAmp are AUTHORITY over the internal fallback integrator; undefined (NPC/menu) falls back to a finite positive amplitude without throwing');
+    result.notes.push('Rev 6 (6.9): group.userData.rfFlash(color,dur,intensity) tints body.material.emissive/emissiveIntensity and decays to the captured baseline with no new :rf-bend2 program variant');
+    result.notes.push('Rev 6 fix-round 2 (art CRITICAL 4 support): group.userData.rfArcs(on,color) toggles a pooled 3-ribbon additive arc group (<=60 tris, one shared geometry), starts hidden, independently orbits each ribbon, and never introduces a new body shader variant; engine3d/fx3d call it guarded ("if present")');
+    result.notes.push('Rev 6 fix-round 2 (art CRITICAL 4 support): lunge stretch pulse raised 1.06->1.11 (18/s ease-in); preyNear anticipation now also coils pose.scale.x slightly negative (distinct from the always-positive lunge stretch) while lungeT is not yet active');
+    result.notes.push('Rev 6 fix-round 2 (art MINOR swim personality): tailSweep 0.38..0.68 -> 0.42..0.76 rad, idle fallback amplitude 0.015/0.32 -> 0.018/0.38 (both mirrored deliberately in this selftest), pect flutter 0.045/0.09 -> 0.05/0.11, body roll 0.02 -> 0.028; head counter-yaw and the 6.3 bend envelope/authority are untouched');
+    result.notes.push('Rev 6 fix-round 2 (art CRITICAL 1 hero recut): eye radius doubled (0.08/0.095 -> 0.16/0.185 * radiusY), act-1 iris/brow now use a lit accent color instead of near-black/dark (glow:0 sharks like Reef still read a bright eye and ridge), gill slits and the underslung mouth line widened/deepened, and tier-1 sharks (no tooth geometry) gain a dark underbite wedge for a committed jaw silhouette');
     result.pass = true;
   } catch (error) {
     result.errors.push(error.message || String(error));

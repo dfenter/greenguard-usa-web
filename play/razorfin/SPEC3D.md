@@ -330,10 +330,8 @@ writer after the lights are handed over.
 
 ### Camera correction
 
-The live gameplay camera contract is perspective `fov 50` with the tiered
-dolly owned by `engine3d.js`: tier-1 base `z=470`, with the tiered deep-view
-value currently `z=360` where selected by the engine. The stale Rev 1 `z=620`
-value is not a shipped contract.
+SUPERSEDED by the Rev 6 framing contract at the end of this document. (The
+470/360 values in this section were stale prose; do not tune from here.)
 
 ## Rev 3 (fish loft lane, 2026-08-20)
 
@@ -548,12 +546,9 @@ Authored data versus code defaults:
 
 ### Camera correction
 
-The shipped camera contract is the one implemented by `engine3d.js`, not the
-stale Rev 1 value. It is perspective FOV 50 with the gameplay plane at z = 0.
-The tier-1 dolly is z = 470; it pulls in by 10 units per shark tier and clamps
-at z = 360 for the largest roster entries. Position remains `(px, -py, z)` and
-lookAt remains the corresponding gameplay point. The 620 value in older prose
-is superseded.
+SUPERSEDED by the Rev 6 framing contract at the end of this document.
+Position remains `(px, -py, z)` and lookAt remains the corresponding gameplay
+point; every dolly number in this section is stale.
 
 ### Instanced prey lifecycle
 
@@ -709,3 +704,242 @@ offset, positive +x extent, and at least `0.12 * bodyLen` overlap with the
 spine. Whale rows additionally require a front profile at least `1.35x` the
 rear profile and a terminal profile below `0.82x` the front profile. Distinctness,
 silhouette, and the `<=3500` triangle sweep remain unchanged gates.
+
+## Rev 6 — OVERHAUL CONTRACTS (2026-08-21, owner rejection round; BINDING for lanes W/E/A/F)
+
+Owner bar: graphics, animations, gameplay, and shark models must look AND
+perform better than Hungry Shark Evolution. Art direction: CYBERPUNK reef
+(neon-noir). All prior camera prose is superseded by 6.1.
+
+### 6.1 Framing contract (Lane E owns; selftest-gated)
+
+- Perspective `fov 50`, gameplay plane z = 0, position `(px, -py, z)`,
+  lookAt z = 0 always (plane readability is law).
+- Dolly is LENGTH-PROPORTIONAL, not tiered: `z = renderedLenPx * 1.60`,
+  clamped `[185 .. 400]`. `renderedLenPx = SHARK_LEN_PX * sil.len` (124 base).
+  Result: every shark reads ~31% of frame width (accept band 0.28–0.34,
+  asserted at tiers 1/6/12 in the engine selftest).
+- Pitch and look offset become fractions of z: `camY -= 0.17 * z`,
+  `lookY += 0.07 * z` (≈9.6° tilt at any dolly).
+- Yaw orbit hint: camState.yaw eases (2.5/s) toward
+  `headingSign * 0.13rad * speedFrac`; applied to camera position only,
+  lookAt unchanged. Quarter-view hint, NOT a chase cam.
+- Lookahead 0.34s capped 150px. CAM_BOB amplitude 3. Pulse/FOV systems
+  unchanged. `camZForTier` name stays exported, delegating to camZForLen.
+
+### 6.2 Rig state-bag contract (Lane E writes, Lane A reads; NPC path world3d)
+
+Player bag (engine3d stepAnim) gains, all numbers:
+- `vy` (sim px/s, +y = down) — drives rig pitch. world3d NPC rigState gains
+  `vy = e.vy` likewise.
+- `preyNear` (bool) — true while an eatable target is inside 2.2*mouthR
+  (0.25s refresh window). Drives jaw anticipation gape 0.85*gape (was 0.35).
+- `lungeT` (s remaining of 0.22s lunge window).
+- `tailPhase`, `tailAmp` — when finite these are the AUTHORITY for the bend
+  phase/amplitude; shark3d keeps its internal integrator only as fallback
+  (NPC/menu rigs pass undefined). TAIL_AMP_IDLE 0.03, TAIL_AMP_TURN 0.28.
+
+### 6.3 Swim (carangiform) contract (Lane A owns shark3d.js)
+
+- `bendK = 7.5 / bodyLen`; envelope span `[0.10 .. 0.48] * bodyLen` on
+  `-transformed.x` (head+gills rigid; bend confined to rear ~40%).
+- Idle amplitude floor 0.015 (internal fallback `0.015 + 0.32*speedFrac^1.3`).
+- New uniform `uBendBias` (float, MUST be declared in the GLSL header):
+  `bendZ += uBendBias * bendT;` set from `turn * 0.10` eased 8/s; oscillation
+  amp scaled `*(1 + 0.35*|turn|)`. Shader source change ⇒ program cache key
+  bumps to `:rf-bend2` (instanced fish key `:rf-bend-inst` untouched).
+- Oscillators decouple via per-def seed `hash01(def.id)*TAU`; head counter-yaw
+  0.012*speedFrac; body roll 0.02. ONE shader-variant change this round —
+  eat/flash effects use pose-space transforms and vertex color, not new GLSL.
+- Pitch from `state.vy * 0.0008` clamp ±0.22; sign verified on real GL
+  (left-facing flip interaction).
+
+### 6.4 World API contract (Lane W owns world3d.js; consumers guard `RF.World.*`)
+
+- World 14400 x 4800 (gen_data.py WORLD + ZONES yMax 1200/2400/3600/4800).
+- Build-time 2D SDF grid, 64px cells (Float32Array 225x75 + Uint8 region ids)
+  rasterized from a deterministic (S.rng) cavern-graph: 4-6 caverns/band
+  (900-1600px wide) + lateral tunnels (half-width 130-190px) + 2-3 vertical
+  shafts per band boundary; value-noise edges; open water above y≈500.
+- `World.terrainSDF(x,y) -> signed px (positive = water)`
+- `World.resolveBody(body, r)` — push-out along SDF gradient + remove normal
+  velocity component (slide, never bounce/snag). Called by engine stepMotion
+  (player, after integration, before edge clamps) and world integrate (every
+  mover incl. pickups).
+- `World.regionAt(x,y) -> id` (flood-fill labels, built once).
+- Spawn: ringPoint resamples ≤6 tries requiring `sdf > radiusFor(def)+24` AND
+  same region as player. NPC steer whisker: sample sdf at pos+heading*120,
+  rotate want-vector along wall tangent when < r+40.
+- Near-rock render: marching-squares front cap z=+55 extruded to z=-130,
+  `MeshLambertMaterial({vertexColors:true, fog:true})` lit by the existing
+  rig, AO baked into vertex color from -sdf, chunked 1800px columns
+  (frustum-culled; +2..4 draws typical). Parallax ridges stay as background,
+  re-seeded to echo the maze. Budgets: total draws < 120, tris < 60k.
+
+### 6.5 Eat contract (Lane E state/lunge, Lane A jaw, Lane W suction/panic, Lane F gibs)
+
+- Lunge: eatable target in cone ±35° of heading, range 2.2*p.r ⇒ capture
+  target POINT (numbers, never an entity ref — pools recycle), accel*2.4
+  toward it for 0.22s, heading blend 0.35, cooldown 0.9s. `st.lungeT`
+  published per 6.2; pose.scale.x pulses 1.06 during lunge.
+- Jaw: open-wide on preyNear (0.85*gape, ease dt*10); snap-close on swallow
+  (jawSnapT 0.12, close ease dt*24, 8% overshoot).
+- Suction: `MOUTH.strength 260 -> 900` while `MOUTH.lunge` flag true
+  (engine publishes the flag on the existing MOUTH object).
+- Prey panic: mouth center within 170px ⇒ `panicT 0.6s`, FLEE_BURST +
+  perpendicular jitter + doubled instanced bend amp.
+- Gibs: NEW fx3d pool `gib` (24 quad items, prey-tinted, spin + drag + slight
+  sink, 0.55s life), 4-7 per swallow scaled by meal tier; `poolFor('gib')`.
+  deathBurst/motes emits stay.
+
+### 6.6 Generosity + blood grammar (Lane E + Lane F)
+
+- Eat gate: `tier <= p.tier + BITE_UP_BASE(1) + biteUp`; instant swallow
+  `tier <= p.tier - 1`; MOUTH.eligibleTierMax mirrors the full formula.
+- TOO BIG cue replaces the silent continue (0.6s cd: shake(2,70), dim ring at
+  prey, chomp rate 0.7 vol 0.5, 'TOO BIG' toast).
+- Blood Frenzy trigger: equal-or-bigger kills only (`tier >= p.tier`).
+  One-shot crimson deathBurst (count 22) at the PREY position (scratch
+  FRENZY_EAT_X/Y arrays). Player-attached mist loop is DELETED.
+- Visual grammar law: RED = the player is hurt, nothing else. Frenzy vignette
+  shifts to amber-gold 0xd98a2b. FRENZY2.blood buff numbers unchanged.
+
+### 6.7 Powerups (HM port; Lane E lifecycle/economy, Lane W spawn/drift, Lane F FX/HUD)
+
+- Pickup capsules (weighted table in data.js via gen_data.py; drop from
+  notable kills + rare ambient): OVERDRIVE (speed surge + afterburner wake,
+  8s), SHIELD BUBBLE (absorbs 2 hits), MEGA-JAW (+1 bite reach & +1 instant
+  swallow, 10s), FRENZY MAGNET (suction radius x2.5, 8s), CHUM CLOUD (prey
+  converge, 6s), APEX SURGE (overdrive+mega-jaw, 5s, legendary-rare).
+  GOLD RUSH stays as shipped. Buffs stack through the single-cue bus; one
+  vignette at a time (priority: damage > frenzy > gold rush > buff).
+- Superpower active: each shark's elemental active becomes a charged power:
+  dedicated HUD button + double-tap trigger with HM's exact humane
+  thresholds (any-pointer taps, arm <400ms held & <34px moved, confirm
+  40-500ms & <160px; see horde-meridian game.js:2640-2662). 3 opening
+  charges, cap 8; charges earned at combo streak thresholds and frenzy
+  completions. Leviathan Rex Atomic Breath remains the tier-12 ceiling.
+
+### 6.8 Controls contract (Lane E; owner law: EXACT horde-meridian mechanics)
+
+- STICK_DEAD 0.03. When stick active: `p.angle = atan2(iy,ix)` instantly;
+  `p.vx/vy = cos/sin(p.angle) * speedCap * mag` direct assignment. Idle:
+  hard stop vx=vy=0. NO turn-rate cap, NO accel lerp, NO idle drag
+  (TURN_EASE_MIN/MAX, IDLE_DRAG deleted).
+- EXCEPTION: while airborne (p.y < 0 breach arc) stepControl must not write
+  vy (gravity owns it) — vx only, no vy hard-stop.
+- `ctl.turnIn` becomes presentation-only, derived from actual heading delta
+  normalized by `s.turn * TURN_BOOSTA * STEP`; feeds bank/tail/pose only.
+- 2nd-pointer boost, boost meter, keyboard merge, liveMult speedCap all stay.
+- Rig yaw may get a render-side-only visualAngle slew (~20 rad/s) if reversal
+  snap reads broken on device; MOUTH/camera/movement always use p.angle.
+
+### 6.9 Cyberpunk art direction (Lane V bible; implemented by file owners)
+
+- Palette: deep teal/indigo water; accents hot magenta 0xff2bd6, cyan
+  0x27e0ff, acid green 0x9dff2b; amber 0xd98a2b reserved for frenzy/reward,
+  red reserved for damage. Zone arc: shallow = warm sun + subtle neon,
+  abyss = pure neon glow on near-black.
+- Env: emissive neon tips on kelp/coral (vertex color, no textures); sunken
+  cyber-ruin props (holo billboards, conduit lines, drifting drones) as
+  merged billboard batches in the existing decor system; caustics/god rays
+  tinted per zone; deep-zone motes = data-mote sparkles.
+- Spectacle: boost afterburner wake (trail ribbon + speed lines pool); eat
+  shockwave ring + chromatic pulse; frenzy electric arc crackle via vertex-
+  color flash (NO new shader variant); tier-up/pickup hologram materialize;
+  elemental actives full-screen-worthy.
+- HUD: synthwave restyle (scanline/glow, neon chips) — CSS + existing DOM.
+- SCREEN BALANCE LAW (owner): in-run HUD = hp/hunger, score+combo, boost
+  meter, power button, minimap ONLY. Everything else through ONE queued
+  toast slot (cooldown, never stacked, corner-anchored, safe-area margins,
+  auto-fades during frenzies). One vignette at a time. Layout gate: no
+  element overlap at 844x390 and ≥60% of frame UI-free in normal play.
+- Readability law: flash never obscures gameplay; contrast-validate FX vs
+  measured backdrop. Budgets unchanged: draws < 120, tris < 60k, ~30MB iOS
+  texture ceiling, zero new texture fetches.
+
+### 6.10 Landscape menu + dev mode (Fable direct)
+
+- `@media (orientation: landscape) and (max-height: 480px)` compact variant:
+  ≥2 card rows visible at 390px height, 44px touch-target floor holds.
+- DevMode switches mirror to sessionStorage 'rfDevSession' (NEVER
+  localStorage), rehydrated when the query is absent; `?dev=0` /
+  `__rf.clearDev()` escape. Triple-enforcement selftest passes unmodified.
+  engine3d reads `forceInvincible` (the `invincible` field name was a dead
+  read — fixed).
+
+### 6.11 Fix-round 2 contracts (2026-08-21, post-Luna-review; BINDING)
+
+- PICKUP ID SEAM: world writes `e.buffId = '<id>'` (plain id: overdrive/shield/
+  megajaw/magnet/chum/apex) on buffpickup entities; engine reads e.buffId ONLY.
+  stepPickups runs BEFORE stepEat and buffpickup entities are excluded from
+  eatQuery consumption (never edible, never scored).
+- CHUM SEAM: engine keeps publishing ctx.run.buffs.chum; world3d's prey AI
+  reads it via its update ctx and converges prey toward the player while > 0.
+- NURSERY LAW: no predator may spawn within 1600px of a player whose tier is
+  <= 2, regardless of zone/region; predator AI leashes (no pursuit) when
+  target tier <= 2 and the predator entered from another zone band.
+- CONTROLS EXACTNESS: keyboard merges WITH the stick (HM game.js:5445), not
+  only when the stick is idle. OVERDRIVE buff = HM's overdrive semantics:
+  1.42x with accel 860 px/s^2 clamp + braking (HM :5453-5476).
+- LUNGE: arming range is 2.2 * p.r (body radius, ~115px tier 1) as 6.5 wrote,
+  NOT 2.2*mouthR; cooldown 0.9 -> 0.5s; per-target chew cd 0.25 -> 0.15s.
+- FRENZY SUSTAIN: blood trigger relaxes to `tier >= p.tier - 1`; zone
+  pressure hunger multiplier 3 -> 2 (starve-out at boundary was 25s).
+- MEGAJAW/FRENZY: swallow() sets ent.hp = 0 before the frenzy record so
+  instant swallows still qualify.
+- MAZE REACHABILITY: connectivity selftest must be body-radius-aware (BFS
+  with clearance = tier-12 radius 98 + 24); carving widens until it passes.
+- SDF dims: the grid is 226x76 CORNER samples (225x75 cells) - 6.4's numbers
+  were cell counts; this sentence is the authoritative wording.
+- HUD: score+combo and a HUNGER/hp readout are REQUIRED in-run elements
+  (screen-balance law list is amended to include them); name/coins leave the
+  in-run HUD (menu/results only).
+- ART BAR (from review, all CRITICAL): hero-recut shark faces/palettes
+  (visible eye/jaw/gill/brow, saturated indigo+cyan+magenta accents,
+  progressive by tier, <=3500 tris/shark holds); rock = irregular contour
+  caps + triangulated faces + neon fault lines (no square cell seams);
+  emissive/additive accent batches so neon is VISIBLE in ordinary play;
+  staged bite/boost/frenzy spectacle (layered shockwave, chromatic pulse,
+  fragments, afterburner ribbon, orbiting arcs); distinct ability signatures
+  with Atomic Breath as the ceiling; menu thumbnails from baked 3D renders
+  (memory-bounded per the iOS 30MB lesson); tutorial copy never clipped at
+  844x390; draws < 120 / tris < 60k still gate.
+
+### 6.12 Fix-round 3 contracts (2026-08-21, post re-review; BINDING)
+
+- STICK MATH (HM-exact, final form): velocity = stored normalized components
+  * speedCap * min(1, rawLen) applied ONCE - never normalized components
+  multiplied by magnitude again (half deflection must give 0.5x, not 0.25x).
+- PREY SENSING RANGE: preyNear detection range = 2.2 * p.r (body radius,
+  same as lunge query). One shared eligibility helper feeds preyNear, lunge,
+  and stepEat: includes megajaw's +1 while active, excludes kind 'pickup'
+  AND 'buffpickup'.
+- SUPERPOWER OPENING: ability meter starts FULL at run start, so one of the
+  3 opening charges is immediately usable; meter+charge economy unchanged
+  after the first fire.
+- BUFF CADENCE: ambient buff roll happens BEFORE the entity-cap early return
+  in runSpawner; live buffpickup concurrency cap 2; spawnBuffDrop respects a
+  10s global drop cooldown. Result: a reliable trickle, never a flood.
+- BLOOD FRENZY THRESHOLD: `ent.tier >= (p.tier >= 4 ? p.tier - 1 : p.tier)`
+  - equal-or-bigger early (earned), tier-1 grace late (sustains scarcity).
+  No re-trigger refresh while blood.t > 2 remains.
+- PUBLIC SPAWN LAW: spawnOne/spawnBurst enforce the same nursery distance,
+  SDF clearance, and region checks as runSpawner (resample or skip).
+- HUD ONLY-LAW (final): in-run persistent chrome = hunger/hp, score+combo,
+  boost, power button, minimap. Buff feedback lives in the power-button pips
+  + toast slot; the buff bar row is removed. The DEV tag does not render
+  in-run (menu chip + toast on run start only).
+- ROCK WELD: contour jitter keyed by STABLE EDGE KEY (shared between
+  adjacent cells - no cracks); uniform-row interior fill replaced by welded
+  irregular polygons; no axis-aligned rectangular seams at gameplay scale.
+- NEON LANDMARKS: each zone gets 2+ large camera-visible emissive landmarks;
+  abyss gets a readable ruin skyline; emissive contrast raised until the
+  neon identity is visible in an ORDINARY gameplay frame (not only closeups).
+- SPECTACLE WIRING: staged bite FX fire on every COMPLETED bite with
+  {tier: mealT}; ONE boost emitter authority (fx3d owns; engine speedlines
+  emitter removed); frenzy uses rig rfArcs via player.rig.group.userData
+  (fx3d's player.rig.userData lookup is a bug); hologram wired to pickup
+  toast; Atomic Breath gets dedicated wind-up/impact signature.
+- PREY PANIC CUE: the lunge-captured target gets a visible cue (tracer
+  particles or instance-color flash) beyond movement thrash.

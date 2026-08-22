@@ -18,20 +18,29 @@ const FISH_BEND_SUFFIX = ':rf-bend';
 /* These values follow the existing sprite families in data.js: cool blue
  * minnows and tuna, warm orange reef fish, green parrotfish, and the muted
  * deep-water silhouettes. They are deliberately authored here because prey
- * defs currently carry a sprite key rather than a 3D tint/palette. */
+ * defs currently carry a sprite key rather than a 3D tint/palette.
+ *
+ * Rev 6 (6.9) saturation pass: mackerel/swordfish/grouper/anglerprey/abyssal/
+ * leviathanprey bases were the weakest-saturation rows in the table (HSL S
+ * 24-57%); pushed up and their accents pulled toward the cyberpunk palette
+ * (cyan 0x27e0ff, acid green 0x9dff2b, amber-adjacent 0xff9526) while keeping
+ * each species' hue family and belly/accent contrast intact so the read
+ * (cool mackerel/swordfish, warm grouper, murky angler/abyssal/leviathan
+ * deep-water prey) is unchanged. minnow/reeffish/parrot/tuna/dolphinfish/
+ * marlin were already >=60% saturated and left as authored. */
 const FISH_PALETTE_TABLE = Object.freeze({
   minnow: Object.freeze({ base: 0x118ed1, belly: 0xf8f0c2, accent: 0x48e5f0 }),
   reeffish: Object.freeze({ base: 0xf06a24, belly: 0xffe6a0, accent: 0x2ed5ae }),
-  mackerel: Object.freeze({ base: 0x2e8fa8, belly: 0xe8f6d5, accent: 0x77e4df }),
+  mackerel: Object.freeze({ base: 0x1c86ad, belly: 0xe8f6d5, accent: 0x27e0ff }),
   parrot: Object.freeze({ base: 0x1fa56f, belly: 0xffdf76, accent: 0xf45d6d }),
-  grouper: Object.freeze({ base: 0x8b7049, belly: 0xf4d69a, accent: 0xe89a30 }),
+  grouper: Object.freeze({ base: 0x9a6a2e, belly: 0xf4d69a, accent: 0xff9526 }),
   tuna: Object.freeze({ base: 0x1768b3, belly: 0xf7edb5, accent: 0x35b9e8 }),
-  swordfish: Object.freeze({ base: 0x3d6fb0, belly: 0xf4f0df, accent: 0x8bd9e8 }),
+  swordfish: Object.freeze({ base: 0x2a5fb8, belly: 0xeef2ea, accent: 0x27e0ff }),
   dolphinfish: Object.freeze({ base: 0x168bb0, belly: 0xffdf83, accent: 0xf7bd28 }),
   marlin: Object.freeze({ base: 0x295c9b, belly: 0xf5dfb0, accent: 0xf27655 }),
-  anglerprey: Object.freeze({ base: 0x2f4d58, belly: 0xcde6d4, accent: 0xc4f46c }),
-  abyssal: Object.freeze({ base: 0x413b68, belly: 0xb9d8c7, accent: 0xffa34f }),
-  leviathanprey: Object.freeze({ base: 0x4a4b78, belly: 0xe0d9ad, accent: 0xf27b4f })
+  anglerprey: Object.freeze({ base: 0x1f4a52, belly: 0xcde6d4, accent: 0x9dff2b }),
+  abyssal: Object.freeze({ base: 0x392f78, belly: 0xb9d8c7, accent: 0xffa34f }),
+  leviathanprey: Object.freeze({ base: 0x3d2f8a, belly: 0xe0d9ad, accent: 0xf7593a })
 });
 
 /* The names and defaults are the cross-lane material contract. A consumer
@@ -60,13 +69,40 @@ function colorFromHex(value) {
   return new THREE.Color(value);
 }
 
-function paletteFor(id) {
+// Prey value differentiation (art MAJOR 5): higher-value prey (data.js
+// CREATURES score) get a brighter, more saturated accent bake so a player
+// scanning a mixed school can read "worth more" at a glance, not just from
+// the HUD score popup after the bite. Score across the 12 fusiform species
+// this module lofts runs roughly 5 (minnow) to 420 (leviathanprey); log-
+// scaled so the low end isn't crushed together and the high end doesn't
+// clip. This only brightens/saturates the authored accent hue -- it never
+// changes hue or the base/belly countershading, so species identity from
+// the Rev 6 (6.9) saturation pass is preserved.
+const PREY_SCORE_MIN = 5;
+const PREY_SCORE_MAX = 420;
+function valueBoostFor(score) {
+  const s = clamp(finite(score, PREY_SCORE_MIN), PREY_SCORE_MIN, PREY_SCORE_MAX);
+  const t = Math.log(s / PREY_SCORE_MIN) / Math.log(PREY_SCORE_MAX / PREY_SCORE_MIN);
+  return clamp(t, 0, 1);
+}
+
+function brightenAccent(accent, boost) {
+  const hsl = {};
+  accent.getHSL(hsl);
+  const color = new THREE.Color();
+  color.setHSL(hsl.h, clamp(hsl.s + boost * 0.22, 0, 1), clamp(hsl.l + boost * 0.16, 0, 0.86));
+  return color;
+}
+
+function paletteFor(id, score) {
   const row = FISH_PALETTE_TABLE[id];
   if (!row) return null;
+  const boost = valueBoostFor(score);
   return Object.freeze({
     base: colorFromHex(row.base),
     belly: colorFromHex(row.belly),
-    accent: colorFromHex(row.accent)
+    accent: brightenAccent(colorFromHex(row.accent), boost),
+    valueBoost: boost
   });
 }
 
@@ -195,6 +231,33 @@ function buildGeometry(def, palette) {
     dorsalColor
   );
 
+  /* Rev 6 (6.9 fish upgrades): a small pectoral fin pair, one double-sided
+   * triangle per side (+~8 tris for the pair with TRIANGLE_LIMIT 220 held —
+   * see the throw below). Authored as a shallow downward-swept sliver near
+   * mid-body, mirrored in z like the tail/dorsal accents, so the silhouette
+   * reads as a live fish rather than a bare torpedo body even before any
+   * animation bend is applied. */
+  const pectColor = new THREE.Color().copy(palette.base).lerp(palette.accent, 0.4);
+  const pectRootX = bodyLength * 0.08;
+  const pectRootY = -radiusY * 0.12;
+  const pectTipX = bodyLength * (-0.06 - tier * 0.006);
+  const pectTipY = -radiusY * (0.95 + tier * 0.03);
+  for (const side of [-1, 1]) {
+    const pectRoot = [pectRootX, pectRootY, side * radiusZ * 0.35];
+    const pectRear = [pectRootX - bodyLength * 0.12, pectRootY * 0.6, side * radiusZ * 0.55];
+    const pectTip = [pectTipX, pectTipY, side * radiusZ * 0.72];
+    appendDoubleSidedTriangle(
+      positions,
+      colors,
+      indices,
+      pectRoot,
+      pectRear,
+      pectTip,
+      Math.max(0.005, radiusZ * 0.10),
+      pectColor
+    );
+  }
+
   /* A tiny dark eye keeps the nearest fish readable once the loft is
    * instanced. It is authored as two-sided triangles on both visible sides,
    * rather than as a second Object3D, so the loft remains one bounded mesh. */
@@ -234,6 +297,10 @@ function buildGeometry(def, palette) {
   geometry.userData.rfFishPaletteBase = palette.base.getHex();
   geometry.userData.rfFishPaletteBelly = palette.belly.getHex();
   geometry.userData.rfFishPaletteAccent = palette.accent.getHex();
+  // Prey value differentiation (art MAJOR 5): exposes how much this bake's
+  // accent was brightened/saturated for its score tier, so a future consumer
+  // (world3d.js, out of this lane) could read it without recomputing.
+  geometry.userData.rfFishValueBoost = finite(palette.valueBoost, 0);
   geometry.userData.rfFishTriangles = Math.floor(indices.length / 3);
   geometry.userData.rfNoseDirection = '+x';
   geometry.userData.rfNoseX = geometry.boundingBox.max.x;
@@ -242,6 +309,8 @@ function buildGeometry(def, palette) {
     radialSides: RADIAL_SIDES,
     tailFinFan: true,
     dorsalSliver: true,
+    pectoralFinPair: true,
+    pectoralTriangles: 8,
     eyeAccent: true,
     eyeTriangles: 8
   };
@@ -256,7 +325,7 @@ function buildFish(def) {
   const id = def && typeof def.id === 'string' ? def.id : '';
   if (!FISH_PALETTE_TABLE[id]) return null;
   if (!geometryCache.has(id)) {
-    const palette = paletteFor(id);
+    const palette = paletteFor(id, def.score);
     geometryCache.set(id, {
       geometry: buildGeometry(def, palette),
       palette
@@ -331,6 +400,11 @@ function __selftestFish() {
       check(geometry.userData.rfLoft && geometry.userData.rfLoft.eyeAccent === true &&
         geometry.userData.rfLoft.eyeTriangles === 8,
       `${def.id}: dark eye accent is missing from the loft`);
+      // Rev 6 (6.9 fish upgrades): pectoral fin pair, +8 tris, TRIANGLE_LIMIT
+      // 220 must still hold (checked generically above, this pins the
+      // specific new feature so a future edit cannot silently drop it).
+      check(geometry.userData.rfLoft.pectoralFinPair === true && geometry.userData.rfLoft.pectoralTriangles === 8,
+        `${def.id}: pectoral fin pair is missing from the loft`);
       check(geometry.boundingBox && geometry.boundingBox.max.x > 0 && geometry.boundingBox.max.x >= Math.abs(geometry.boundingBox.min.x) * 0.4,
         `${def.id}: nose is not authored toward +x`);
       check(first.palette.base instanceof THREE.Color && first.palette.belly instanceof THREE.Color && first.palette.accent instanceof THREE.Color,
@@ -352,12 +426,67 @@ function __selftestFish() {
     }
     check(spec.uniforms !== buildFishMaterialSpec().uniforms, 'material spec must return fresh uniform bundles');
 
+    // Rev 6 (6.5 prey panic): world3d doubles the per-instance aBendAmp
+    // attribute while panicT is active (this lane does not own that write —
+    // world3d.js's instanced bend path is Lane W territory — but the base
+    // amplitude default IS this lane's contract number, so verify doubling
+    // it stays a sane fraction of a fish body rather than a runaway wobble).
+    // uBendSpan default 1.8 and uBendK default 2.5 come from this module's
+    // FISH_BEND_UNIFORM_DEFAULTS; world3d's actual instanced uBendK/uBendSpan
+    // (INST_BEND_K=5.5, INST_BEND_SPAN=[-0.5,0.35]) are its own tuned values,
+    // so this check uses this module's own defaults as the sane baseline it
+    // is actually responsible for.
+    {
+      const baseAmp = FISH_BEND_UNIFORM_DEFAULTS.uBendAmp;
+      const panicAmp = baseAmp * 2;
+      const bendK = FISH_BEND_UNIFORM_DEFAULTS.uBendK;
+      const span = FISH_BEND_UNIFORM_DEFAULTS.uBendSpan;
+      // Mirrors the shared bendT smoothstep shape (shark3d.js bendOffset /
+      // world3d.js INST_BEND_CHUNK) at full envelope saturation (bendT=1),
+      // where the tail tip reads worst-case peak lateral displacement.
+      const typicalBodyLength = 1.25; // tier-0 fish body length (buildGeometry)
+      const peakAt2x = panicAmp; // bendT saturates to 1 well inside the tail
+      check(Number.isFinite(peakAt2x) && peakAt2x > 0, 'panic 2x bend amplitude must be finite and positive');
+      check(peakAt2x < typicalBodyLength * 0.4,
+        `panic 2x bend amplitude ${peakAt2x.toFixed(3)} exceeds 40% of a typical fish body length (${typicalBodyLength}) -- would read as a runaway wobble, not a sane 2x panic bend`);
+      void bendK; void span; // documented above for context; not independently asserted here
+    }
+
+    // Prey value differentiation (art MAJOR 5, fix-round 2): higher-score
+    // prey must bake a brighter/more saturated accent than lower-score prey,
+    // monotonically, so a mixed school reads value at a glance. minnow
+    // (score 5) is the roster floor and leviathanprey (score 420) is the
+    // roster ceiling; check the whole ordered chain, not just the extremes,
+    // so a single species regression can't hide behind the endpoints.
+    {
+      const scoreOrder = [
+        ['minnow', 5], ['reeffish', 10], ['mackerel', 12], ['parrot', 18],
+        ['grouper', 30], ['tuna', 44], ['dolphinfish', 60], ['swordfish', 70],
+        ['marlin', 95], ['abyssal', 200], ['leviathanprey', 420]
+      ];
+      let prevBoost = -Infinity;
+      for (const [id, score] of scoreOrder) {
+        const row = rows.find((candidate) => candidate.id === id);
+        check(row && row.score === score, `${id}: expected score ${score} in RFD.CREATURES, drifted`);
+        const baked = buildFish(row);
+        const boost = baked.geometry.userData.rfFishValueBoost;
+        check(Number.isFinite(boost) && boost >= 0 && boost <= 1, `${id}: value boost ${boost} outside 0..1`);
+        check(boost >= prevBoost - 1e-9, `${id}: value boost ${boost.toFixed(3)} regressed below the previous (lower-score) prey's ${prevBoost.toFixed(3)}`);
+        prevBoost = boost;
+      }
+      check(prevBoost > 0.9, `leviathanprey (highest score) value boost ${prevBoost.toFixed(3)} should approach the 1.0 ceiling`);
+      const minnowBoost = buildFish(rows.find((r) => r.id === 'minnow')).geometry.userData.rfFishValueBoost;
+      check(minnowBoost < 0.05, `minnow (lowest score) value boost ${minnowBoost.toFixed(3)} should sit near the 0.0 floor`);
+    }
+
     result.cacheSize = geometryCache.size;
     result.notes.push('12 fusiform prey defs lofted into cached one-geometry records');
-    result.notes.push(`8 stations x 6 radial body, forked tail fan, dorsal sliver, 8-triangle eye accents; max ${TRIANGLE_LIMIT} triangles`);
+    result.notes.push(`8 stations x 6 radial body, forked tail fan, dorsal sliver, pectoral fin pair, 8-triangle eye accents; max ${TRIANGLE_LIMIT} triangles`);
     result.notes.push('vertex colors carry dorsal base -> flank accent -> belly countershading');
+    result.notes.push('Rev 6 saturation pass: mackerel/swordfish/grouper/anglerprey/abyssal/leviathanprey pushed to richer, cyberpunk-adjacent accents while keeping species hue family and belly contrast');
     result.notes.push('every prey id carries a distinct palette-tagged geometry and vertex color bake');
-    result.notes.push('fish bend contract exposes uBendPhase/uBendAmp/uBendK/uBendSpan with fresh uniform bundles');
+    result.notes.push('fish bend contract exposes uBendPhase/uBendAmp/uBendK/uBendSpan with fresh uniform bundles; panic-path 2x base amplitude verified sane (<40% body length) -- the doubling write itself is world3d.js/Lane W territory');
+    result.notes.push('Rev 6 fix-round 2 (art MAJOR 5, prey value differentiation): accent brightness/saturation scales log-monotonically with data.js CREATURES score (5..420), exposed as geometry.userData.rfFishValueBoost; golden-frenzy tint (ent._tint/_goldenPackId) remains an engine3d/world3d hook outside this lane\'s vertex-color-only contract');
     result.pass = true;
   } catch (error) {
     result.errors.push(error.message || String(error));

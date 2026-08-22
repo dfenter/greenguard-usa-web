@@ -12,7 +12,8 @@
  * new: Phaser scene.add.image calls are replaced by three.js objects.
  *
  * SPACE CONTRACT (SPEC3D "Scene/space contract"): sim coords are unchanged
- * (x right 0..7200, y DOWN 0..3600). Mapping to three is (x, -y, z), gameplay
+ * in direction (x right, y DOWN), only extended: Rev 6 grows the world to
+ * 0..14400 x 0..4800 (SPEC3D 6.4). Mapping to three is (x, -y, z), gameplay
  * plane z = 0, decor parallax z in [-400..-80], foreground motes z [+40..+80].
  *
  * Laws honoured here:
@@ -45,6 +46,43 @@ import * as THREE from 'three';
   var PICKUP_GRAB_R = 46;
   var PUFFER_NEAR = 190;       // player distance that inflates a puffer
   var TAU = Math.PI * 2;
+
+  // -------------------------------------------------- Rev 6 SDF cavern maze
+  // SPEC3D 6.4: a build-time 2D signed-distance grid, rasterised once from a
+  // deterministic cavern graph and never touched again except by resolveBody
+  // reads and marching-squares render (also build-time). No per-frame writes.
+  var SDF_CELL = 64;                  // grid cell size, px
+  var SDF_OPEN_Y = 500;               // open water above this sim y: no rock
+  var MAZE_CAVERNS_MIN = 4;           // caverns per 1200px band
+  var MAZE_CAVERNS_MAX = 6;
+  var MAZE_CAVERN_W = [900, 1600];    // cavern width range, px
+  // Rev 6.11 MAZE REACHABILITY: raised from the original [130,190] brief.
+  // Body-radius-aware clearance is 122px (tier-12 radius 98 + 24 SDF spawn
+  // margin); tunnel wall wobble is +-(MAZE_EDGE_NOISE_AMP*0.4) = +-18.4px, so
+  // the worst-case effective half-width at the old 130 minimum was only
+  // 111.6px, below clearance. 148 keeps the worst case (148-18.4=129.6) above
+  // 122 with margin even before the deterministic-seed carving widener below
+  // (widenTunnelsForReachability) runs.
+  var MAZE_TUNNEL_HALF = [148, 200];  // lateral tunnel half-width, px
+  var MAZE_SHAFTS_PER_BOUNDARY = [2, 3];
+  var MAZE_EDGE_NOISE_N = 6;          // value-noise octave count per cavern wall
+  var MAZE_EDGE_NOISE_AMP = 46;       // px of wall wobble
+  var SDF_RESAMPLE_TRIES = 6;         // ringPoint resample budget (6.4)
+  var SDF_SPAWN_CLEAR = 24;           // extra clearance beyond radiusFor(def)
+  var WHISKER_DIST = 120;             // NPC steer whisker probe distance
+  var WHISKER_TURN_R = 40;            // + r triggers a tangent rotation
+
+  // Near-rock render (6.4/6.9): marching squares over the SDF grid, chunked
+  // into ~1800px wide column batches so far-off chunks frustum-cull for free.
+  var ROCK_CHUNK_W = 1800;
+  var ROCK_FRONT_Z = 55;              // front cap z, per 6.4
+  var ROCK_BACK_Z = -130;             // extruded back, per 6.4
+  var ROCK_AO_MAX = 140;              // -sdf depth (px) at which AO bottoms out
+  // Cyberpunk accent palette (6.9). Amber/red are reserved elsewhere
+  // (frenzy/reward, damage) and never used here.
+  var NEON_MAGENTA = 0xff2bd6;
+  var NEON_CYAN = 0x27e0ff;
+  var NEON_ACID = 0x9dff2b;
 
   // ------------------------------------------------------ Rev 4 living water
   // Ported verbatim from world.js. Every constant is a named parameter and
@@ -116,6 +154,50 @@ import * as THREE from 'three';
   var FLEE_BURST = 1.55;       // prey panic sprint, <= 1.6x base per Rev 5 brief
   var FLEE_BURST_NPC = 1.35;   // outranked NPC shark running from the player
 
+  // Rev 6.5 mouth-proximity panic. Distinct from the sight-based flee above:
+  // this fires only when the player's MOUTH (not just its body) closes to
+  // within PANIC_R, is always the more urgent of the two when both apply, and
+  // drives a doubled instanced bend amplitude so a panicking fish visibly
+  // thrashes rather than merely swimming away faster.
+  var PANIC_R = 170;
+  var PANIC_T = 0.6;            // seconds st.panicT is held once triggered
+  var PANIC_JITTER = 0.9;       // rad/s perpendicular jitter rate while panicking
+  var PANIC_BEND_MULT = 2;      // doubled instanced bend amp per 6.5
+
+  // Rev 6.12 PREY PANIC CUE: the lunge-captured target gets a visible cue
+  // beyond movement thrash — an instance-color flash toward white/red plus a
+  // small fx tracer. LUNGE_TARGET_R is deliberately tight (this identifies
+  // the SPECIFIC entity the lunge captured, at ctx.player.st.lungeX/Y, not
+  // merely "something nearby") so only the actual captured prey flashes.
+  var LUNGE_TARGET_R = 40;
+  var LUNGE_FLASH_T = 0.22;     // seconds the flash holds once (re)triggered
+  var LUNGE_FLASH_COLOR = 0xffe8e0; // white-hot toward red, per the spec's cue language
+
+  // Rev 6.11 CHUM SEAM: engine keeps publishing ctx.run.buffs.chum; while it
+  // is > 0, prey inside CHUM_R converge toward the player at a moderate
+  // steer weight. Panic always overrides (a panicking fish still thrashes
+  // away from the mouth even mid-Chum), and sight-based flee from the player
+  // itself still wins over Chum (a hunted fish does not swim into the jaws).
+  var CHUM_R = 600;
+  var CHUM_STEER_W = 3.2;       // moderate weight, between wander (2.2) and flee (6)
+  var CHUM_SPEED_FRAC = 0.55;   // fraction of base speed while chum-converging
+
+  // Rev 6.11 NURSERY LAW: no predator may spawn within NURSERY_R of a player
+  // whose tier is <= NURSERY_TIER, in ANY zone/region. Predator AI additionally
+  // leashes off pursuit of such a player when the predator entered from
+  // another zone band (home-band chase would otherwise still hunt them down
+  // after a lucky spawn just outside the ring).
+  var NURSERY_TIER = 2;
+  var NURSERY_R = 1600;
+
+  // Rev 6.7 pickup capsules. Ambient ones are rare and independent of kills;
+  // drop-from-kill spawns go through World.spawnBuffDrop (engine-called).
+  var BUFF_LIFE = 12;            // seconds before an uncollected capsule fades
+  var BUFF_FADE = 1.5;           // seconds of fade-out before expiry
+  var BUFF_DRIFT_SPEED = 46;     // gentle drift speed, px/s
+  var BUFF_GRAB_R = 50;
+  var BUFF_AMBIENT_CHANCE = 0.003; // per spawner tick, when the roll is reached
+
   // ------------------------------------------------------ 3D space contract
   var Z_PLAY = 0;              // gameplay plane
   var Z_SURFACE = -60;         // surface plane sits just behind play
@@ -144,7 +226,7 @@ import * as THREE from 'three';
     scene: null,               // THREE.Scene (or a stub in the selftest)
     renderer: null,            // set by applyZoneAtmo callers, may stay null
     rng: null,
-    w: 7200, h: 3600,
+    w: 14400, h: 4800,
     pool: [],                  // every preallocated entity, active or not
     free: [],                  // stack of inactive entities
     entities: [],              // dense list of ACTIVE entities
@@ -157,8 +239,18 @@ import * as THREE from 'three';
     surface: null,             // {mesh, wash, ribbon, foam, snell} at y = 0
     gradient: null,            // opaque world-anchored gradient sheet
     terrain: [],               // far, mid, near, and foreground ridge batches
+    // Rev 6 SDF cavern maze (6.4). Built once in init(), read-only after.
+    sdfCols: 0, sdfRows: 0,
+    sdf: null,                 // Float32Array, signed px, positive = water
+    sdfRegion: null,           // Uint8Array, flood-filled region id per cell
+    sdfRegionN: 0,
+    rockChunks: [],            // near-rock marching-squares batches
     surfaceT: 0,
     ambientT: 0,
+    // Rev 6.12 BUFF CADENCE: seconds remaining before World.spawnBuffDrop
+    // (the kill-triggered path) will place another capsule; 0 means ready.
+    // Ticked down in World.update alongside the other per-frame timers.
+    buffDropCd: 0,
     inited: false,
     headless: false,
     // Rev 4 "living water". Every animated object is created ONCE in init and
@@ -209,7 +301,7 @@ import * as THREE from 'three';
 
   // Reused animate() state object for RF.Art3D rigs. One object, rewritten per
   // rig per frame, so a 20-shark screen still allocates nothing.
-  var rigState = { speedFrac: 0, turn: 0, bitePhase: 0, jawSnapT: 0 };
+  var rigState = { speedFrac: 0, turn: 0, bitePhase: 0, jawSnapT: 0, vy: 0 };
 
   // Tropical reef palette. These are authored normal-blend colours, not
   // additive FX colours, so the reef remains saturated without washing out
@@ -265,6 +357,27 @@ import * as THREE from 'three';
   function rnd() { return S.rng ? S.rng() : 0.5; }
   function rr(a, b) { return a + (b - a) * rnd(); }
   function ri(a, b) { return a + Math.floor(rnd() * (b - a + 1)); }
+
+  // A small self-contained deterministic PRNG (mulberry32), fixed-seeded, used
+  // ONLY by the Rev 6 maze-anchored decor placement added below. The shared
+  // S.rng stream is consumed, in order, by everything else in init (maze
+  // layout, every existing decor pass, then downstream player-spawn/ringPoint
+  // sampling in engine3d/selftest); adding more S.rng draws here would shift
+  // every later draw and change spawn outcomes the selftest already asserts
+  // exactly. A fixed-seed local stream keeps decor placement itself
+  // deterministic build-to-build while leaving the shared stream (and
+  // everything that depends on its draw COUNT) byte-identical to before.
+  function makeLocalRng(seed) {
+    var s = seed >>> 0;
+    return function () {
+      s |= 0; s = (s + 0x6D2B79F5) | 0;
+      var t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  var decorRng = makeLocalRng(0x5eaf100d);
+  function drr(a, b) { return a + (b - a) * decorRng(); }
   function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
   function hexNum(v) {
     if (typeof v === 'number') return v;
@@ -300,6 +413,12 @@ import * as THREE from 'three';
   }
   function zones() { return (D().ZONES) || []; }
   function budget() { return (D().ENTITY_BUDGET) || { onscreen: 70, total: 140 }; }
+  function pickups() { return (D().PICKUPS) || []; }
+  function pickupDef(buffId) {
+    var P = pickups();
+    for (var i = 0; i < P.length; i++) { if (P[i].id === buffId) return P[i]; }
+    return null;
+  }
 
   World.zoneAt = function (y) {
     var Z = zones();
@@ -313,6 +432,7 @@ import * as THREE from 'three';
   // Body radius derived from tier so collision stays consistent across lanes.
   function radiusFor(def, kind) {
     if (kind === 'pickup') return 14;
+    if (kind === 'buffpickup') return 20;
     if (kind === 'hazard') return def && def.id === 'mine' ? 26 : 24;
     var t = def && typeof def.tier === 'number' ? def.tier : 1;
     if (t >= 90) t = 3;
@@ -1016,9 +1136,22 @@ import * as THREE from 'three';
     var schoolScale = renderScaleFor(batch.def, 'prey', batch.localLength);
     batch.count = n;
     batch.mesh.count = n;
+    // Art MAJOR 5 (staging): pure uniform placement piled fish into dense
+    // overlapping clusters at the frame edge. Instead, lay the school out as
+    // a small number of loose sub-clusters spread across the zone's x-range,
+    // each with a modest local jitter radius, so the school reads as several
+    // readable lanes rather than one solid blob. Still fully deterministic
+    // (rr/S.rng only) and build-time only.
+    var clusterN = 5;
+    var clusterCX = [], clusterCY = [];
+    for (var c = 0; c < clusterN; c++) {
+      clusterCX.push(rr(S.w * (c / clusterN), S.w * ((c + 1) / clusterN)));
+      clusterCY.push(rr(low, high));
+    }
     for (var i = 0; i < n; i++) {
-      var x = rr(0, S.w);
-      var y = rr(low, high);
+      var ci = i % clusterN;
+      var x = clamp(clusterCX[ci] + rr(-260, 260), 40, S.w - 40);
+      var y = clamp(clusterCY[ci] + rr(-90, 90), low, high);
       instPosScratch.set(x, -y, SCHOOL_Z);
       instEulerScratch.set(0, 0, 0);
       instQuatScratch.setFromEuler(instEulerScratch);
@@ -1028,7 +1161,12 @@ import * as THREE from 'three';
       batch.phaseBase[i] = rr(0, TAU) + index * 0.7;
       batch.phase.setX(i, batch.phaseBase[i]);
       batch.amp.setX(i, 0.08);
-      batch.colors.setXYZ(i, 1, 1, 1);
+      // Art MAJOR 5 (differentiated prey coloring): a mild per-instance tint
+      // variance so a school of identical minnows does not read as one flat
+      // silhouette; still white-centred so the fish's own vertex-colour
+      // palette remains the dominant read.
+      var tintV = 0.85 + rr(0, 0.3);
+      batch.colors.setXYZ(i, tintV, tintV, Math.min(1, tintV + 0.06));
     }
     batch.dirty = true;
   }
@@ -1332,7 +1470,11 @@ import * as THREE from 'three';
   // the seafloor, so vertex colours carry a vertical cue even though the
   // environment uses unlit materials.
   function lightAtDepth(y) {
-    return clamp(1 - (y / 3600) * 0.65, 0.45, 1);
+    // Rev 6: derives from S.h rather than the old hardcoded 3600 world height,
+    // so the surface-to-seafloor light falloff still spans exactly [1..0.45]
+    // in the 14400x4800 world (6.4 WORLD resize).
+    var h = S.h || 3600;
+    return clamp(1 - (y / h) * 0.65, 0.45, 1);
   }
 
   function scaleColor(color, amount) {
@@ -1345,6 +1487,16 @@ import * as THREE from 'three';
   function envColor(color, z, waterColor, y, lift) {
     var l = clamp(lightAtDepth(y) + (lift || 0), 0.45, 1);
     return scaleColor(depthTint(color, z, waterColor), l);
+  }
+
+  // Rev 6.9: deterministic accent pick for emissive neon tips, cycling the
+  // three cyberpunk accents by a build-time seed (never Math.random/Date.now,
+  // never re-rolled per frame). Used by kelp/coral tip colours only; red and
+  // amber stay reserved for damage/frenzy per the visual grammar law.
+  var NEON_ACCENTS = [NEON_MAGENTA, NEON_CYAN, NEON_ACID];
+  function neonAccentFor(seed) {
+    var i = Math.abs(Math.round(seed)) % NEON_ACCENTS.length;
+    return NEON_ACCENTS[i];
   }
 
   World.__depthTint = depthTint;
@@ -1817,6 +1969,15 @@ import * as THREE from 'three';
   var RAY_BANDS = 4;
   var RAYS_PER_BAND = 4;
 
+  // Rev 6.13 ART CRITICAL 2: rays hang from the world's single waterline, so
+  // they physically live in the shelf/near-surface band regardless of camera
+  // depth. Art review measured the old flat 0xdff6ff base as reading pale
+  // white rather than a cyberpunk accent; tinted toward the shelf's own
+  // cyan/magenta identity (a light mix so the shafts still read as WATER
+  // LIGHT, not a solid neon slab) gives every ray band the same authored
+  // accent language as the rest of the shelf's rock/kelp/landmark props.
+  var RAY_TINT = lerpColor(0xdff6ff, NEON_CYAN, 0.34);
+
   function buildRays() {
     if (!isThree()) return;
     var feather = rayFeatherTexture();
@@ -1858,8 +2019,12 @@ import * as THREE from 'three';
         var ox = -(-hgt * 0.5) * sn;
         var oy = (-hgt * 0.5) * cs;
         // Per-shaft alpha varies inside the band; the vertex alpha carries it.
+        // Alternating bands lean magenta instead of cyan so the fan of
+        // shafts reads as an authored two-accent cyberpunk beam, not a flat
+        // single-hue wash.
+        var rayColor = (b & 1) ? lerpColor(0xdff6ff, NEON_MAGENTA, 0.22) : RAY_TINT;
         quadPush(cx + ox, oy, bandZ, wid, hgt, lean, 1,
-          0xdff6ff, crossPlay ? rr(0.006, 0.012) : rr(0.012, 0.028));
+          rayColor, crossPlay ? rr(0.006, 0.012) : rr(0.012, 0.028));
       }
       var mesh = batchMesh(feather, true, undefined, true);
       if (!mesh) continue;
@@ -1985,7 +2150,10 @@ import * as THREE from 'three';
           bottom = Z[zi].yMin + (Z[zi].yMax - Z[zi].yMin) * 0.5;
         } else {
           top = Z[zi].yMin + (Z[zi].yMax - Z[zi].yMin) * 0.5;
-          bottom = zi === Z.length - 1 ? 4200 : Z[zi].yMax;
+          // Rev 6: was a hardcoded 4200 (600px past the old h=3600 seafloor).
+          // Derives from S.h now so the sheet still overshoots the seafloor by
+          // the same 600px margin in the grown 14400x4800 world.
+          bottom = zi === Z.length - 1 ? S.h + 600 : Z[zi].yMax;
         }
       }
       quadPushGradient(S.w * 0.5, -(top + bottom) * 0.5, 0,
@@ -2047,9 +2215,15 @@ import * as THREE from 'three';
     var z = terrainZone(simTop);
     var water = z ? hexNum(z.tint) : 0x071522;
     var rock = depthIndex <= 0 ? 0x29434a : depthIndex === 1 ? 0x1c343d : 0x10242d;
-    var topColor = occluder ? 0x020408 : lerpColor(rock, water, mix * 0.35);
-    var midColor = occluder ? 0x020408 : lerpColor(rock, 0x07141d, 0.38 + Math.max(0, depthIndex || 0) * 0.06);
-    var bottomColor = 0x020408;
+    // Rev 6 fix: the foreground crown used to be pure 0x020408 (near-black)
+    // regardless of zone, which read as a flat black band clashing with the
+    // now-lit near-rock. It is retinted to a zone-fogged deep-blue silhouette
+    // (a dark lerp of the zone water colour, never pure black) so distant/
+    // near-foreground layers read as depth rather than voids.
+    var deepBlueSil = lerpColor(0x0a1622, water, 0.22);
+    var topColor = occluder ? deepBlueSil : lerpColor(rock, water, mix * 0.35);
+    var midColor = occluder ? scaleColor(deepBlueSil, 0.72) : lerpColor(rock, 0x07141d, 0.38 + Math.max(0, depthIndex || 0) * 0.06);
+    var bottomColor = occluder ? scaleColor(deepBlueSil, 0.5) : lerpColor(0x0a1622, water, 0.12);
     ridgeLineScratch[ridgePointN * 2] = x;
     ridgeLineScratch[ridgePointN * 2 + 1] = -simTop;
     ridgeBaseScratch[ridgePointN] = -simBase;
@@ -2076,6 +2250,12 @@ import * as THREE from 'three';
         var x = -400 + width * p / (points - 1);
         var wave = Math.sin(p * 1.73 + layer * 1.9) * TERRAIN_WAVES[layer] +
           Math.sin(p * 0.41 + layer * 0.7) * TERRAIN_WAVES[layer] * 0.35;
+        // Rev 6 (6.4): fold in a small extra term keyed to the nearest maze
+        // cavern's own noise seed, so the far parallax ridge silhouette
+        // echoes the playable cavern layout instead of being fully
+        // independent of it. Kept low-amplitude; the clamp below still owns
+        // the authored min/max band, so this can only nudge, never break it.
+        wave += mazeEchoWave(x, layer) * TERRAIN_WAVES[layer] * 0.18;
         var top = clamp(TERRAIN_TOPS[layer] + wave,
           terrainBase - TERRAIN_TOP_MAX_HEIGHT, terrainBase - TERRAIN_TOP_MIN_HEIGHT);
         ridgePush(x, top, terrainBase, mixes[layer], false, layer);
@@ -2148,6 +2328,1030 @@ import * as THREE from 'three';
       sceneAdd(crownMesh);
       S.decor.push(crownMesh);
       S.terrain.push({ mesh: crownMesh, layer: 3, occluder: true });
+    }
+  }
+
+  // ============================================================ 6.4 SDF maze
+  //
+  // Build-time cavern graph, rasterised into a signed-distance grid. This is
+  // the ONLY per-cell write path in the module: after buildMaze() runs once
+  // in init(), terrainSDF/resolveBody/regionAt are pure reads.
+  //
+  // Layout, deterministic from S.rng:
+  //   - Each 1200px zone band gets 4-6 "caverns" (open circles/blobs, 900-1600
+  //     px wide) spaced along x.
+  //   - Adjacent caverns in a band are linked by a lateral tunnel (half-width
+  //     130-190px).
+  //   - Each band boundary gets 2-3 vertical shafts connecting the band above
+  //     to the band below, so the whole graph is one connected component.
+  //   - Every cavern/tunnel wall gets a value-noise wobble so the SDF has an
+  //     organic edge rather than a stack of perfect circles.
+  //   - y < SDF_OPEN_Y (open water near the surface) is carved to water
+  //     unconditionally, so nothing is ever solid near the spawn/breach band.
+  //
+  // The grid stores SIGNED distance to the nearest rock/water boundary,
+  // positive = water, in the same units as world (x,y): terrainSDF(x,y)
+  // bilinearly interpolates the 4 surrounding cell corners.
+  var mazeCavernX = [];
+  var mazeCavernY = [];
+  var mazeCavernR = [];
+  var mazeCavernSeed = [];       // per-cavern noise seed, for echoing ridges
+  var mazeTunnels = [];          // {x0,y0,x1,y1,halfW}
+  var mazeShafts = [];           // {x,y0,y1,halfW}
+
+  // Cheap deterministic value-noise: a small fixed table of per-seed phase
+  // offsets summed as sine octaves. No Math.random; every draw is S.rng at
+  // build time only, then frozen into these tables for the lifetime of init.
+  function valueNoise(theta, seedPhase, octaves) {
+    var v = 0, amp = 1, freq = 1, total = 0;
+    for (var i = 0; i < octaves; i++) {
+      v += Math.sin(theta * freq * (i + 1.7) + seedPhase * (i + 1)) * amp;
+      total += amp;
+      amp *= 0.55;
+      freq *= 1.9;
+    }
+    return total > 0 ? v / total : 0;
+  }
+
+  function buildMazeLayout() {
+    mazeCavernX.length = 0; mazeCavernY.length = 0; mazeCavernR.length = 0;
+    mazeCavernSeed.length = 0;
+    mazeTunnels.length = 0;
+    mazeShafts.length = 0;
+    var Z = zones();
+    if (!Z.length) return;
+    var bandFirst = [];
+    var bandLast = [];
+    for (var zi = 0; zi < Z.length; zi++) {
+      var z = Z[zi];
+      var n = ri(MAZE_CAVERNS_MIN, MAZE_CAVERNS_MAX);
+      var first = mazeCavernX.length;
+      var midY = (z.yMin + z.yMax) * 0.5;
+      // Never place a cavern centre above the open-water line; the shallow
+      // band's caverns sit in its lower half so the surface stays clear.
+      var yLo = Math.max(z.yMin + 260, SDF_OPEN_Y + 260);
+      var yHi = z.yMax - 200;
+      if (yHi < yLo) yHi = yLo + 1;
+      var slot = S.w / n;
+      for (var i = 0; i < n; i++) {
+        var cx = clamp(slot * i + slot * 0.5 + rr(-slot * 0.28, slot * 0.28), 300, S.w - 300);
+        var cy = clamp(midY + rr(-1, 1) * (z.yMax - z.yMin) * 0.22, yLo, yHi);
+        var w = rr(MAZE_CAVERN_W[0], MAZE_CAVERN_W[1]);
+        mazeCavernX.push(cx);
+        mazeCavernY.push(cy);
+        mazeCavernR.push(w * 0.5);
+        mazeCavernSeed.push(rr(0, TAU));
+      }
+      var last = mazeCavernX.length - 1;
+      bandFirst.push(first);
+      bandLast.push(last);
+      // Lateral tunnels link consecutive caverns within this band.
+      for (i = first; i < last; i++) {
+        mazeTunnels.push({
+          x0: mazeCavernX[i], y0: mazeCavernY[i],
+          x1: mazeCavernX[i + 1], y1: mazeCavernY[i + 1],
+          halfW: rr(MAZE_TUNNEL_HALF[0], MAZE_TUNNEL_HALF[1]),
+        });
+      }
+    }
+    // Vertical shafts at each band boundary, connecting a cavern in the band
+    // above to one in the band below so the flood fill is one region.
+    for (zi = 0; zi < Z.length - 1; zi++) {
+      var shaftN = ri(MAZE_SHAFTS_PER_BOUNDARY[0], MAZE_SHAFTS_PER_BOUNDARY[1]);
+      var aboveFirst = bandFirst[zi], aboveLast = bandLast[zi];
+      var belowFirst = bandFirst[zi + 1], belowLast = bandLast[zi + 1];
+      for (var s = 0; s < shaftN; s++) {
+        var ai = ri(aboveFirst, aboveLast);
+        var bi = ri(belowFirst, belowLast);
+        var sx = (mazeCavernX[ai] + mazeCavernX[bi]) * 0.5 + rr(-200, 200);
+        mazeShafts.push({
+          x: clamp(sx, 200, S.w - 200),
+          y0: mazeCavernY[ai], y1: mazeCavernY[bi],
+          halfW: rr(MAZE_TUNNEL_HALF[0], MAZE_TUNNEL_HALF[1]),
+        });
+      }
+    }
+  }
+
+  // Nearest-cavern echo term for the background ridge waves (6.4 "distant
+  // ridges echo it"). Returns a value in roughly [-1, 1]: the sine of the
+  // nearest cavern's own noise seed, offset by the x-distance so the term
+  // still varies smoothly along the ridge rather than stepping at cavern
+  // boundaries. Build-time only, called from buildTerrain's point loop.
+  function mazeEchoWave(x, layer) {
+    if (!mazeCavernX.length) return 0;
+    var best = -1, bestD = 1e18;
+    for (var i = 0; i < mazeCavernX.length; i++) {
+      var d = Math.abs(mazeCavernX[i] - x);
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    if (best < 0) return 0;
+    return Math.sin(mazeCavernSeed[best] + layer * 0.5 + bestD * 0.0025);
+  }
+
+  // Raw (pre-open-water-carve) signed distance at one point: positive water,
+  // negative rock. Union of every cavern/tunnel/shaft "water" primitive minus
+  // nothing (rock is simply the complement, there is no separate rock solid).
+  function mazeRawSDF(x, y) {
+    var best = -1e9; // start deep in rock; every water primitive raises this
+    var i;
+    for (i = 0; i < mazeCavernX.length; i++) {
+      var dx = x - mazeCavernX[i], dy = y - mazeCavernY[i];
+      var d = Math.sqrt(dx * dx + dy * dy);
+      var theta = Math.atan2(dy, dx);
+      var wobble = valueNoise(theta, mazeCavernSeed[i], MAZE_EDGE_NOISE_N) * MAZE_EDGE_NOISE_AMP;
+      var sd = (mazeCavernR[i] + wobble) - d;
+      if (sd > best) best = sd;
+    }
+    for (i = 0; i < mazeTunnels.length; i++) {
+      var t = mazeTunnels[i];
+      var vx = t.x1 - t.x0, vy = t.y1 - t.y0;
+      var len2 = vx * vx + vy * vy || 1;
+      var u = clamp(((x - t.x0) * vx + (y - t.y0) * vy) / len2, 0, 1);
+      var px = t.x0 + vx * u, py = t.y0 + vy * u;
+      var ddx = x - px, ddy = y - py;
+      var dist = Math.sqrt(ddx * ddx + ddy * ddy);
+      var edgeWobble = valueNoise(u * TAU * 3, i * 1.7, 3) * (MAZE_EDGE_NOISE_AMP * 0.4);
+      var tsd = (t.halfW + edgeWobble) - dist;
+      if (tsd > best) best = tsd;
+    }
+    for (i = 0; i < mazeShafts.length; i++) {
+      var sh = mazeShafts[i];
+      var yLo = Math.min(sh.y0, sh.y1), yHi = Math.max(sh.y0, sh.y1);
+      var syd = y < yLo ? yLo - y : (y > yHi ? y - yHi : 0);
+      var sxd = Math.abs(x - sh.x);
+      var sdist = Math.sqrt(sxd * sxd + syd * syd);
+      var shaftWobble = valueNoise((y - yLo) * 0.01, i * 2.3, 3) * (MAZE_EDGE_NOISE_AMP * 0.3);
+      var shsd = (sh.halfW + shaftWobble) - sdist;
+      if (shsd > best) best = shsd;
+    }
+    return best;
+  }
+
+  // Rasterise the maze into the grid: Float32Array SDF plus Uint8 region ids
+  // via flood fill. Grid is (cols+1) x (rows+1) corner samples so bilinear
+  // lookups never read past an edge; world edges are rock (6.4: "World edges
+  // are rock"), enforced by clamping every sample point into [0, S.w]x[0,S.h]
+  // one SDF_CELL short of the true edge, so the outermost ring reads negative.
+  function buildSDFGrid() {
+    var cols = Math.ceil(S.w / SDF_CELL) + 1;
+    var rows = Math.ceil(S.h / SDF_CELL) + 1;
+    S.sdfCols = cols; S.sdfRows = rows;
+    var sdf = new Float32Array(cols * rows);
+    for (var ry = 0; ry < rows; ry++) {
+      var y = ry * SDF_CELL;
+      for (var rx = 0; rx < cols; rx++) {
+        var x = rx * SDF_CELL;
+        var v;
+        if (y < SDF_OPEN_Y) {
+          // Open water band: always water, distance grows with depth margin.
+          v = SDF_OPEN_Y - y + 200;
+        } else {
+          v = mazeRawSDF(x, y);
+        }
+        // World-edge rock: within one cell of x/y bounds, cap the distance so
+        // it reads negative just past the true edge.
+        var edgeDist = Math.min(x, S.w - x, y, S.h - y);
+        if (edgeDist < SDF_CELL) {
+          var edgeSd = edgeDist - SDF_CELL * 0.5;
+          if (edgeSd < v) v = edgeSd;
+        }
+        sdf[ry * cols + rx] = v;
+      }
+    }
+    S.sdf = sdf;
+
+    // Flood fill over corner samples whose SDF > 0 (walkable), 4-connected.
+    var region = new Uint8Array(cols * rows);
+    var nextRegion = 1;
+    var stack = floodStackScratch;
+    for (ry = 0; ry < rows; ry++) {
+      for (rx = 0; rx < cols; rx++) {
+        var idx0 = ry * cols + rx;
+        if (region[idx0] !== 0 || sdf[idx0] <= 0) continue;
+        stack.length = 0;
+        stack.push(idx0);
+        region[idx0] = nextRegion;
+        while (stack.length) {
+          var idx = stack.pop();
+          var cx2 = idx % cols, cy2 = (idx / cols) | 0;
+          var neigh = [cx2 - 1, cy2, cx2 + 1, cy2, cx2, cy2 - 1, cx2, cy2 + 1];
+          for (var ni = 0; ni < 4; ni++) {
+            var nx = neigh[ni * 2], ny = neigh[ni * 2 + 1];
+            if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) continue;
+            var nIdx = ny * cols + nx;
+            if (region[nIdx] !== 0 || sdf[nIdx] <= 0) continue;
+            region[nIdx] = nextRegion;
+            stack.push(nIdx);
+          }
+        }
+        nextRegion++;
+      }
+    }
+    S.sdfRegion = region;
+    S.sdfRegionN = nextRegion - 1;
+  }
+  var floodStackScratch = [];
+
+  // Rev 6.11 MAZE REACHABILITY: body-radius-aware BFS over the SDF grid's own
+  // corner samples, 4-connected, walkable only where sdf > clearance (not
+  // merely > 0). Returns {ok, bandReach[], reachableN} where bandReach[i] is
+  // true iff zone band i has at least one clearance-walkable cell in the same
+  // BFS component as the given start point. This is the same coarse
+  // resolution the spawn/region system already uses, so it costs one BFS
+  // walk, not a second full raster pass.
+  var bfsClearanceStack = [];
+  function bfsBandReachability(clearance, startX, startY) {
+    var cols = S.sdfCols, rows = S.sdfRows;
+    var Z = zones();
+    var bandReach = new Array(Z.length);
+    for (var bz = 0; bz < Z.length; bz++) bandReach[bz] = false;
+    if (!S.sdf || !cols || !rows) return { ok: false, bandReach: bandReach, reachableN: 0 };
+    var sx = clamp(Math.round(startX / SDF_CELL), 0, cols - 1);
+    var sy = clamp(Math.round(startY / SDF_CELL), 0, rows - 1);
+    var startIdx = sy * cols + sx;
+    var visited = new Uint8Array(cols * rows);
+    if (S.sdf[startIdx] <= clearance) {
+      // Start point itself is not clearance-walkable (should not happen for
+      // a real player position); nudge to the nearest clearance-walkable
+      // corner in a small local search so the test still measures the maze's
+      // own connectivity rather than failing on the probe point.
+      var bestIdx = -1, bestD = 1e18;
+      for (var ry = 0; ry < rows; ry++) {
+        for (var rx = 0; rx < cols; rx++) {
+          var idx2 = ry * cols + rx;
+          if (S.sdf[idx2] <= clearance) continue;
+          var dxp = rx - sx, dyp = ry - sy;
+          var d2p = dxp * dxp + dyp * dyp;
+          if (d2p < bestD) { bestD = d2p; bestIdx = idx2; }
+        }
+      }
+      if (bestIdx < 0) return { ok: false, bandReach: bandReach, reachableN: 0 };
+      startIdx = bestIdx;
+    }
+    var stack = bfsClearanceStack;
+    stack.length = 0;
+    stack.push(startIdx);
+    visited[startIdx] = 1;
+    while (stack.length) {
+      var idx = stack.pop();
+      var cx = idx % cols, cy = (idx / cols) | 0;
+      var neigh = [cx - 1, cy, cx + 1, cy, cx, cy - 1, cx, cy + 1];
+      for (var ni = 0; ni < 4; ni++) {
+        var nx = neigh[ni * 2], ny = neigh[ni * 2 + 1];
+        if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) continue;
+        var nIdx = ny * cols + nx;
+        if (visited[nIdx] || S.sdf[nIdx] <= clearance) continue;
+        visited[nIdx] = 1;
+        stack.push(nIdx);
+      }
+    }
+    var reachableN = 0;
+    for (var bandI = 0; bandI < Z.length; bandI++) {
+      var zoneRow = Z[bandI];
+      var midY = (zoneRow.yMin + zoneRow.yMax) * 0.5;
+      var found = false;
+      for (var bx = 100; bx < S.w && !found; bx += SDF_CELL) {
+        var bcx = clamp(Math.round(bx / SDF_CELL), 0, cols - 1);
+        var bcy = clamp(Math.round(midY / SDF_CELL), 0, rows - 1);
+        var bIdx = bcy * cols + bcx;
+        if (visited[bIdx] && S.sdf[bIdx] > clearance) found = true;
+      }
+      bandReach[bandI] = found;
+      if (found) reachableN++;
+    }
+    return { ok: reachableN === Z.length, bandReach: bandReach, reachableN: reachableN };
+  }
+
+  // Rev 6.11 MAZE REACHABILITY: if the body-radius-aware BFS fails for the
+  // shipped seed at the standard tunnel/shaft half-widths, widen every
+  // tunnel and shaft IN PLACE (same centreline, same noise seed, so the
+  // cavern graph and its RNG draw count are untouched) and rebuild only the
+  // SDF grid, repeating deterministically until it passes or the cap is hit.
+  // No new S.rng draws happen here, so downstream spawn/decor sampling is
+  // unaffected by whether a widen pass ran.
+  var MAZE_CLEARANCE = 98 + 24; // tier-12 body radius + SDF_SPAWN_CLEAR
+  var MAZE_WIDEN_STEP = 20;
+  var MAZE_WIDEN_MAX_TRIES = 6;
+  function widenTunnelsForReachability(startX, startY) {
+    for (var attempt = 0; attempt < MAZE_WIDEN_MAX_TRIES; attempt++) {
+      var res = bfsBandReachability(MAZE_CLEARANCE, startX, startY);
+      if (res.ok) return res;
+      for (var i = 0; i < mazeTunnels.length; i++) mazeTunnels[i].halfW += MAZE_WIDEN_STEP;
+      for (var j = 0; j < mazeShafts.length; j++) mazeShafts[j].halfW += MAZE_WIDEN_STEP;
+      buildSDFGrid();
+    }
+    return bfsBandReachability(MAZE_CLEARANCE, startX, startY);
+  }
+
+  function buildMaze() {
+    buildMazeLayout();
+    buildSDFGrid();
+    // Rev 6.11: verify body-radius-aware reachability for the shipped seed
+    // right after generation, widening deterministically (no rng draws) if
+    // the initial widths do not clear a tier-12 body from an open-water
+    // start point. This runs once per World.init(), not per frame.
+    widenTunnelsForReachability(S.w * 0.5, SDF_OPEN_Y * 0.5);
+  }
+
+  // terrainSDF(x,y) -> signed px, positive = water. Bilinear over the corner
+  // grid; out-of-bounds samples clamp to the nearest edge cell (still correct
+  // because the edge ring itself already reads negative, per world-edge rock).
+  World.terrainSDF = function (x, y) {
+    if (!S.sdf) return 1e9;
+    // Robustness (6.11 code review): a NaN/Infinity coordinate (malformed
+    // debug teleport, bad entity data from another lane) must never
+    // propagate into the bilinear result. Reporting a huge WATER distance
+    // (never rock) means a caller that only checks "sdf > need" behaves as
+    // if nothing is nearby, rather than computing garbage or getting stuck.
+    if (!(isFinite(x) && isFinite(y))) return 1e9;
+    var cols = S.sdfCols, rows = S.sdfRows;
+    var fx = clamp(x / SDF_CELL, 0, cols - 1.0001);
+    var fy = clamp(y / SDF_CELL, 0, rows - 1.0001);
+    var x0 = fx | 0, y0 = fy | 0;
+    var x1 = x0 + 1 < cols ? x0 + 1 : x0;
+    var y1 = y0 + 1 < rows ? y0 + 1 : y0;
+    var tx = fx - x0, ty = fy - y0;
+    var s00 = S.sdf[y0 * cols + x0];
+    var s10 = S.sdf[y0 * cols + x1];
+    var s01 = S.sdf[y1 * cols + x0];
+    var s11 = S.sdf[y1 * cols + x1];
+    var top = s00 + (s10 - s00) * tx;
+    var bot = s01 + (s11 - s01) * tx;
+    return top + (bot - top) * ty;
+  };
+
+  // regionAt(x,y) -> flood-fill region id, 0 if inside rock (no walkable
+  // region owns that cell). Nearest-sample, not bilinear: a region id has no
+  // meaningful interpolation.
+  World.regionAt = function (x, y) {
+    if (!S.sdfRegion) return 0;
+    var cols = S.sdfCols, rows = S.sdfRows;
+    var cx = clamp(Math.round(x / SDF_CELL), 0, cols - 1);
+    var cy = clamp(Math.round(y / SDF_CELL), 0, rows - 1);
+    return S.sdfRegion[cy * cols + cx];
+  };
+
+  // resolveBody(body, r): push the body out of rock along the SDF gradient,
+  // and remove the velocity component along that same normal so contact is a
+  // SLIDE, never a bounce/snag (6.4). body carries at least x, y, vx, vy.
+  // Finite-difference gradient: cheap, allocation-free, exact enough at
+  // SDF_CELL resolution for a push-out this small.
+  //
+  // The union-of-primitives SDF is not an exact Euclidean distance field far
+  // from a boundary (it is exact only right at the zero crossing), so a
+  // single linear step along one gradient sample can undershoot when a body
+  // is deep inside rock. In real play this never happens: every mover is
+  // resolved every frame, so a body is at most one frame's travel past the
+  // surface, well inside the region where one gradient step is exact. The
+  // small iteration cap below is a defensive correctness net (e.g. a body
+  // spawned or teleported deep in rock by another lane), not a per-frame
+  // cost: it exits on the first pass whenever the sample is already clear.
+  var GRAD_EPS = 6;
+  var RESOLVE_ITER_MAX = 4;
+  // Cardinal probe distance for the flat-gradient fallback below: wide enough
+  // to clear the finite-difference epsilon and reliably find open water one
+  // or two SDF cells away without a second full raster walk.
+  var FLAT_NUDGE_STEP = SDF_CELL * 1.5;
+  World.resolveBody = function (body, r) {
+    if (!body || !S.sdf) return;
+    // Robustness (6.11 code review): guard non-finite inputs before doing any
+    // math with them. A NaN/Infinity body position is a no-op here (nothing
+    // useful to push out of; the caller's own position is already broken),
+    // rather than propagating NaN into body.x/body.y and permanently wedging
+    // the mover.
+    if (!(isFinite(body.x) && isFinite(body.y) && isFinite(r))) return;
+    var need = r + 2; // small margin so the body does not sit exactly on sdf=r
+    var moved = false;
+    for (var iter = 0; iter < RESOLVE_ITER_MAX; iter++) {
+      var d = World.terrainSDF(body.x, body.y);
+      if (d >= need) break;
+      var dxp = World.terrainSDF(body.x + GRAD_EPS, body.y);
+      var dxm = World.terrainSDF(body.x - GRAD_EPS, body.y);
+      var dyp = World.terrainSDF(body.x, body.y + GRAD_EPS);
+      var dym = World.terrainSDF(body.x, body.y - GRAD_EPS);
+      var gx = (dxp - dxm) / (2 * GRAD_EPS);
+      var gy = (dyp - dym) / (2 * GRAD_EPS);
+      var glen = Math.sqrt(gx * gx + gy * gy);
+      if (!(glen > 1e-6)) {
+        // Flat-gradient fallback (6.11 code review): the finite-difference
+        // gradient is degenerate right at this sample (e.g. deep inside a
+        // uniform rock fill, or exactly on a symmetric ridge), so there is no
+        // direction to push along. Rather than break out and leave the body
+        // embedded, sample the four cardinal directions directly at a wider
+        // step and nudge toward whichever is most clearly water. This always
+        // makes progress when ANY nearby direction is open, and the ordinary
+        // gradient path resumes next iteration/frame once off the flat spot.
+        var cxp = World.terrainSDF(body.x + FLAT_NUDGE_STEP, body.y);
+        var cxm = World.terrainSDF(body.x - FLAT_NUDGE_STEP, body.y);
+        var cyp = World.terrainSDF(body.x, body.y + FLAT_NUDGE_STEP);
+        var cym = World.terrainSDF(body.x, body.y - FLAT_NUDGE_STEP);
+        var bestV = cxp, bestX = FLAT_NUDGE_STEP, bestY = 0;
+        if (cxm > bestV) { bestV = cxm; bestX = -FLAT_NUDGE_STEP; bestY = 0; }
+        if (cyp > bestV) { bestV = cyp; bestX = 0; bestY = FLAT_NUDGE_STEP; }
+        if (cym > bestV) { bestV = cym; bestX = 0; bestY = -FLAT_NUDGE_STEP; }
+        if (!(bestV > d)) break; // every cardinal sample is no better: give up cleanly
+        body.x += bestX;
+        body.y += bestY;
+        moved = true;
+        continue;
+      }
+      var push = need - d;
+      body.x += (gx / glen) * push;
+      body.y += (gy / glen) * push;
+      moved = true;
+    }
+    if (!moved) return;
+    // Remove the velocity component along the (outward, into-water) normal
+    // when it points INTO the wall, so the tangential component survives and
+    // the body slides along the surface instead of stopping or bouncing.
+    // Re-sampled AT THE FINAL position (not the last loop iteration's stale
+    // sample): after several push iterations the body may have crossed into
+    // a differently-oriented wall segment, and clearing against a stale
+    // normal can leave a residual into-wall component.
+    if (typeof body.vx === 'number' && typeof body.vy === 'number') {
+      var fxp = World.terrainSDF(body.x + GRAD_EPS, body.y);
+      var fxm = World.terrainSDF(body.x - GRAD_EPS, body.y);
+      var fyp = World.terrainSDF(body.x, body.y + GRAD_EPS);
+      var fym = World.terrainSDF(body.x, body.y - GRAD_EPS);
+      var fgx = (fxp - fxm) / (2 * GRAD_EPS);
+      var fgy = (fyp - fym) / (2 * GRAD_EPS);
+      var flen = Math.sqrt(fgx * fgx + fgy * fgy);
+      if (flen > 1e-6) {
+        var fnx = fgx / flen, fny = fgy / flen;
+        var vn = body.vx * (-fnx) + body.vy * (-fny);
+        if (vn > 0) {
+          body.vx -= (-fnx) * vn;
+          body.vy -= (-fny) * vn;
+        }
+      }
+    }
+  };
+
+  // --------------------------------------------------- near-rock render (6.4)
+  //
+  // Marching squares over the SDF corner grid, chunked into ~ROCK_CHUNK_W
+  // column batches. Each chunk is a single MeshLambertMaterial mesh so it is
+  // lit by the existing hemi/sun rig, with a front cap at z=+55 extruded to
+  // z=-130 and AO baked into vertex colour from -sdf depth. Build-time only;
+  // nothing here runs per frame.
+  //
+  // Every cell whose 4 corners are not all-water/all-rock straddles the
+  // boundary. Rather than a full marching-squares case table (16 configs,
+  // several ambiguous), each of the cell's 4 edges is walked directly: any
+  // edge whose two corner signs differ contributes one zero-crossing point,
+  // and their centroid places one small front-cap quad for that cell. At
+  // SDF_CELL (64px) resolution this reproduces the same silhouette a full
+  // case table would, without the ambiguous-case bookkeeping.
+  function rockChunkAO(sdfDepth) {
+    // -sdf depth into rock (0 at the boundary, growing negative-ward) maps to
+    // a darkening AO factor, floored so nothing goes fully black.
+    var depth = clamp(-sdfDepth, 0, ROCK_AO_MAX) / ROCK_AO_MAX;
+    return 1 - depth * 0.62;
+  }
+
+  // Raw per-chunk geometry scratch. quadPush/mergeQuads only emit planar XY
+  // quads at one shared z, which cannot express a front-to-back extrusion, so
+  // the rock chunk builds its BufferGeometry directly. Arrays are grown once
+  // per chunk (chunk count is small and fixed by S.w/ROCK_CHUNK_W) rather than
+  // per frame.
+  var rockPos = [];
+  var rockCol = [];
+  var rockIdx = [];
+  function rockReset() { rockPos.length = 0; rockCol.length = 0; rockIdx.length = 0; }
+  function rockPushQuad(cx, cy, z, w, h, color) {
+    var base = rockPos.length / 3;
+    var hw = w * 0.5, hh = h * 0.5;
+    var r = ((color >> 16) & 255) / 255, g = ((color >> 8) & 255) / 255, b = (color & 255) / 255;
+    var pts = [[cx - hw, cy - hh], [cx + hw, cy - hh], [cx + hw, cy + hh], [cx - hw, cy + hh]];
+    for (var i = 0; i < 4; i++) {
+      rockPos.push(pts[i][0], pts[i][1], z);
+      rockCol.push(r, g, b, 1);
+    }
+    rockIdx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  }
+  // Rev 6.12 ROCK WELD: interior fill quad built from 4 EXPLICIT corner
+  // points (already jittered by the caller via the shared cornerHash), so
+  // this is a plain irregular quadrilateral rather than an axis-aligned
+  // rockPushQuad. Two triangles, CCW in this Y-flipped three-space frame to
+  // match rockPushQuad/rockPushContourCap's winding convention.
+  function rockPushWeldedQuad(tl, tr, br, bl, z, color) {
+    var base = rockPos.length / 3;
+    var r = ((color >> 16) & 255) / 255, g = ((color >> 8) & 255) / 255, b = (color & 255) / 255;
+    var pts = [tl, tr, br, bl];
+    for (var i = 0; i < 4; i++) {
+      rockPos.push(pts[i][0], pts[i][1], z);
+      rockCol.push(r, g, b, 1);
+    }
+    rockIdx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  }
+  // Rev 6.13 ART CRITICAL 1 (rock re-weld): ONE irregular triangle, from 3
+  // EXPLICIT points that already carry their own shaded colour and their own
+  // z (so a triangle can sit slightly proud of or behind its neighbours,
+  // catching the hemi/sun key differently face to face). This is the unit
+  // the new per-SDF-cell interior fill below is built from; it deliberately
+  // takes color PER VERTEX (not one flat color per call) so a single
+  // triangle is not itself a flat card the way the old macro-grid quads were.
+  function rockPushTri(pa, pb, pc, ca, cb, cc) {
+    var base = rockPos.length / 3;
+    var pts = [pa, pb, pc], cols = [ca, cb, cc];
+    for (var i = 0; i < 3; i++) {
+      var c = cols[i];
+      rockPos.push(pts[i][0], pts[i][1], pts[i][2]);
+      rockCol.push(((c >> 16) & 255) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255, 1);
+    }
+    rockIdx.push(base, base + 1, base + 2);
+  }
+  // Deterministic [0,1) hash for a triangle, keyed on its own 3 corner
+  // positions (not a grid index), so two triangles that happen to share the
+  // same rounded seed still diverge unless they are the literal same
+  // triangle, and the same physical triangle always re-derives the same
+  // shading/z-offset roll across rebuilds.
+  function triHash(pa, pb, pc, salt) {
+    var h = Math.sin(pa[0] * 12.9898 + pa[1] * 78.233 +
+      pb[0] * 39.346 + pb[1] * 11.135 +
+      pc[0] * 15.732 + pc[1] * 45.164 + salt * 91.7) * 43758.5453;
+    return h - Math.floor(h);
+  }
+  // A side "skirt" quad from the front cap edge back to ROCK_BACK_Z, oriented
+  // along one horizontal or vertical edge of the cell so the extrusion has a
+  // visible depth wall rather than relying on DoubleSide backface fill.
+  function rockPushSkirt(ax, ay, bx, by, color) {
+    var base = rockPos.length / 3;
+    var r = ((color >> 16) & 255) / 255, g = ((color >> 8) & 255) / 255, b = (color & 255) / 255;
+    rockPos.push(ax, ay, ROCK_FRONT_Z, bx, by, ROCK_FRONT_Z, bx, by, ROCK_BACK_Z, ax, ay, ROCK_BACK_Z);
+    for (var i = 0; i < 4; i++) rockCol.push(r, g, b, 1);
+    rockIdx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  }
+  // Rev 6.12 ROCK WELD: deterministic [0,1) hash keyed on INTEGER SDF grid-
+  // corner coordinates (not on a cell id or a per-cell ring index), so any
+  // two callers that agree on which corner they mean always compute the
+  // identical value. A marching-squares crossing point always lies on one
+  // grid EDGE between two corners; hashing the edge's two corner coords
+  // (order-independent, via cornerHash2 below) gives every cell that shares
+  // that edge the same jitter for the same physical point, closing the
+  // Rev-6.11 cracks where each cell jittered its copy of a shared vertex
+  // independently.
+  function cornerHash(gx, gy) {
+    var h = Math.sin(gx * 127.1 + gy * 311.7) * 43758.5453;
+    return h - Math.floor(h);
+  }
+  // Order-independent hash for the two corners bounding a grid edge, so it
+  // does not matter which of the two adjacent cells asks for it first.
+  function edgeHash(ax, ay, bx, by) {
+    // Sort the pair into a canonical order first.
+    if (bx < ax || (bx === ax && by < ay)) {
+      var tx = ax, ty = ay; ax = bx; ay = by; bx = tx; by = ty;
+    }
+    var h = Math.sin(ax * 127.1 + ay * 311.7 + bx * 269.5 + by * 183.3) * 43758.5453;
+    return h - Math.floor(h);
+  }
+  // Rev 6.12 ROCK WELD: the ONE canonical displaced position for a real SDF
+  // grid corner (px, py already in world px, not grid indices). Both the
+  // marching-squares contour cap (for its solid-corner ring vertices) and the
+  // interior weld fill (for every macro-cell corner) call this SAME function
+  // for the SAME physical corner, so a solid rock cell that is adjacent to
+  // (but not part of) the interior weld fill still lands its shared corner in
+  // the identical spot — an absolute XY offset keyed only on the corner's own
+  // grid position, never on a fan centroid or any other per-caller context
+  // that would otherwise make two callers agree on the hash but not on the
+  // resulting point.
+  var weldCornerScratch = {};
+  function weldedCorner(px, py) {
+    var key = px + ',' + py;
+    var hit = weldCornerScratch[key];
+    if (hit) return hit;
+    var h = cornerHash(px, py);
+    var dirH = cornerHash(px + 1000.5, py - 1000.5); // independent second hash for direction
+    var amt = h * (SDF_CELL * 0.28); // magnitude in [0, ~18px]
+    var ang = dirH * TAU;
+    var pt = [px + Math.cos(ang) * amt, py + Math.sin(ang) * amt, h];
+    weldCornerScratch[key] = pt;
+    return pt;
+  }
+
+  // Rev 6.11 ART CRITICAL 2: irregular contour-following cap. Fills the SOLID
+  // (rock) portion of one straddling cell as a fan from its centroid, using
+  // the cell's own solid corners PLUS the real marching-squares zero-crossing
+  // points already computed by the caller (never a fixed square), so adjacent
+  // cells' polygons tile exactly along the true water/rock boundary with no
+  // visible grid seam. `verts` is an ordered ring of entries
+  // [x, y, final, edgeHash]:
+  //   - final === true: a solid GRID CORNER. (x,y) is already the canonical
+  //     weldedCorner() displacement — used AS-IS, no further jitter — so it
+  //     lands in the exact same spot the interior weld-fill pass (Rev 6.12
+  //     ROCK WELD) puts that same physical corner.
+  //   - final === false: a marching-squares CROSSING POINT (not on the fixed
+  //     grid). It gets its own small radial jitter off the fan centroid,
+  //     keyed by edgeHash so the two cells straddling that same crossing
+  //     edge compute the identical displacement and the seam does not crack.
+  function rockPushContourCap(verts, z, color) {
+    var n = verts.length;
+    if (n < 3) return;
+    var cx = 0, cy = 0, i;
+    for (i = 0; i < n; i++) { cx += verts[i][0]; cy += verts[i][1]; }
+    cx /= n; cy /= n;
+    // Winding must be CCW in this (already Y-flipped, three-space) frame so
+    // computeVertexNormals derives +z (camera-facing) normals, matching
+    // rockPushQuad's convention. The ring is built by the caller walking the
+    // cell perimeter TL->TR->BR->BL, which is CW once Y is flipped to
+    // three-space, so reverse it here rather than push a back-facing cap
+    // that reads black under MeshLambertMaterial regardless of AO.
+    verts = verts.slice().reverse();
+    var r = ((color >> 16) & 255) / 255, g = ((color >> 8) & 255) / 255, b = (color & 255) / 255;
+    var base = rockPos.length / 3;
+    // Center vertex (fan hub), then the (optionally jittered) ring.
+    rockPos.push(cx, cy, z);
+    rockCol.push(r, g, b, 1);
+    for (i = 0; i < n; i++) {
+      var vx = verts[i][0], vy = verts[i][1];
+      var isFinal = verts[i][2] === true;
+      var h, jx, jy;
+      if (isFinal) {
+        // Already the canonical corner position; do not jitter again. The
+        // hash travels through as verts[i][3] (weldedCorner's own h), so the
+        // colour-variance shade below matches the exact displacement used,
+        // rather than being recomputed from the post-displacement position.
+        jx = vx; jy = vy;
+        h = verts[i][3];
+        if (typeof h !== 'number') h = 0.5;
+      } else {
+        var nx = vx - cx, ny = vy - cy;
+        var nlen = Math.sqrt(nx * nx + ny * ny) || 1;
+        h = verts[i][3];
+        if (typeof h !== 'number') h = 0.5; // defensive: unkeyed caller, no jitter bias
+        var jitterAmt = (h - 0.5) * 2 * (SDF_CELL * 0.09);
+        jx = vx + (nx / nlen) * jitterAmt;
+        jy = vy + (ny / nlen) * jitterAmt;
+      }
+      rockPos.push(jx, jy, z);
+      // Slight per-vertex colour variance so the triangulated face is not a
+      // single flat colour, reinforcing the faceted-geology read.
+      var shade = 1 + (h - 0.5) * 0.16;
+      rockCol.push(clamp(r * shade, 0, 1), clamp(g * shade, 0, 1), clamp(b * shade, 0, 1), 1);
+    }
+    for (i = 0; i < n; i++) {
+      var a = base + 1 + i, bIdx = base + 1 + ((i + 1) % n);
+      rockIdx.push(base, a, bIdx);
+    }
+  }
+  // Rev 6.11 ART CRITICAL 2: authored neon fault line / conduit seam. A thin
+  // additive strip laid directly along one real contour edge (two adjacent
+  // zero-crossing points), so it reads as an authored circuit line following
+  // the actual rock silhouette rather than a decal. Shares the rock chunk's
+  // own additive batch arrays (rockFaultPos/Col/Idx) so the whole cyberpunk
+  // fault-line system across every chunk costs at most +1-2 draws total, not
+  // one draw per line.
+  var FAULT_WIDTH = 8; // Rev 6.12 NEON LANDMARKS: widened from 5 for gameplay-scale visibility
+  function rockPushFault(ax, ay, bx, by, color, alpha) {
+    var dx = bx - ax, dy = by - ay;
+    var len = Math.sqrt(dx * dx + dy * dy) || 1;
+    var px = -(dy / len) * FAULT_WIDTH, py = (dx / len) * FAULT_WIDTH;
+    var base = rockFaultPos.length / 3;
+    var r = ((color >> 16) & 255) / 255, g = ((color >> 8) & 255) / 255, b = (color & 255) / 255;
+    var z = ROCK_FRONT_Z + 2; // sits just proud of the rock cap, never z-fights
+    rockFaultPos.push(ax - px, ay - py, z, ax + px, ay + py, z, bx + px, by + py, z, bx - px, by - py, z);
+    for (var i = 0; i < 4; i++) rockFaultCol.push(r, g, b, alpha);
+    rockFaultIdx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  }
+  var rockFaultPos = [];
+  var rockFaultCol = [];
+  var rockFaultIdx = [];
+  function rockFaultReset() { rockFaultPos.length = 0; rockFaultCol.length = 0; rockFaultIdx.length = 0; }
+  var ringScratch = []; // reused per-cell contour ring build scratch
+
+  function buildRockChunk(x0, x1) {
+    var cols = S.sdfCols, rows = S.sdfRows;
+    var cell = SDF_CELL;
+    var cx0 = Math.max(0, Math.floor(x0 / cell));
+    var cx1 = Math.min(cols - 2, Math.ceil(x1 / cell));
+    if (cx1 <= cx0) return null;
+    rockReset();
+    // NOTE: rockFaultPos/Col/Idx are NOT reset here. Fault-line geometry
+    // accumulates across every chunk's buildRockChunk call into ONE shared
+    // additive batch, built once in buildNearRock after the chunk loop, per
+    // the "+1-2 draws max" budget for the whole neon fault-line system.
+    var segN = 0;
+    var Zlist = zones();
+    var lastZoneTint = Zlist.length ? hexNum(Zlist[Zlist.length - 1].tint) : 0x050d17;
+    for (var gy = 0; gy < rows - 1; gy++) {
+      var y0 = gy * cell, y1 = y0 + cell;
+      for (var gx = cx0; gx <= cx1; gx++) {
+        var xx0 = gx * cell, xx1 = xx0 + cell;
+        var s0 = S.sdf[gy * cols + gx];           // TL
+        var s1 = S.sdf[gy * cols + gx + 1];       // TR
+        var s2 = S.sdf[(gy + 1) * cols + gx + 1]; // BR
+        var s3 = S.sdf[(gy + 1) * cols + gx];     // BL
+        var solid0 = s0 <= 0, solid1 = s1 <= 0, solid2 = s2 <= 0, solid3 = s3 <= 0;
+        if (solid0 === solid1 && solid1 === solid2 && solid2 === solid3) continue; // uniform cell
+        var corners = [[xx0, y0, s0], [xx1, y0, s1], [xx1, y1, s2], [xx0, y1, s3]];
+        var solids = [solid0, solid1, solid2, solid3];
+        var midX = 0, midY = 0, ptN = 0;
+        var edgePts = null;
+        // Rev 6.11 ART CRITICAL 2: walk the cell perimeter once, building the
+        // ACTUAL solid-region ring (solid corners + real zero-crossing points
+        // in perimeter order), not a fixed square. This ring, triangulated as
+        // a fan, is what makes the cap follow the true marching-squares
+        // contour instead of stamping a nearly-full cell quad.
+        // Rev 6.12 ROCK WELD: each ring entry is now [x, y, final] where
+        // `final` is a bool. A solid CORNER entry is already the FINAL
+        // displaced point straight from weldedCorner(px,py) — the exact same
+        // canonical function the interior weld-fill pass below uses for its
+        // macro-cell corners, so a solid rock cell sitting next to the
+        // interior fill shares an identically-placed corner with it, not just
+        // an identically-keyed hash. A crossing-point entry is NOT on the
+        // fixed grid (it is a marching-squares interpolation along one grid
+        // edge) so it still needs its own radial jitter in
+        // rockPushContourCap, keyed by edgeHash so the two cells straddling
+        // that edge agree on it.
+        var ring = ringScratch;
+        ring.length = 0;
+        for (var ei = 0; ei < 4; ei++) {
+          var ca = corners[ei], cb = corners[(ei + 1) % 4];
+          if (solids[ei]) {
+            var wc = weldedCorner(ca[0], ca[1]);
+            ring.push([wc[0], wc[1], true, wc[2]]);
+          }
+          if ((ca[2] <= 0) === (cb[2] <= 0)) continue; // same side, no crossing
+          var p = interpEdgePoint(ca, cb);
+          midX += p[0]; midY += p[1]; ptN++;
+          if (!edgePts) edgePts = [];
+          edgePts.push(p);
+          ring.push([p[0], p[1], false, edgeHash(ca[0], ca[1], cb[0], cb[1])]);
+        }
+        if (!ptN || ring.length < 3) continue;
+        midX /= ptN; midY /= ptN;
+        var zoneHere = World.zoneAt((y0 + y1) * 0.5);
+        var water = zoneHere ? hexNum(zoneHere.tint) : lastZoneTint;
+        var depthHere = Math.min(s0, s1, s2, s3);
+        var ao = rockChunkAO(depthHere);
+        // Rock base tint darkens with AO; a cyan accent per 6.9 rides the lit
+        // edge so near-rock reads as cyberpunk cavern stone rather than flat
+        // grey. `water` folds the zone tint in at a low weight so the rock
+        // still reads as belonging to its zone's water body.
+        // Rev 6.12 NEON LANDMARKS: art review measured the old 5-10% cyan mix
+        // here as reading pale/gray in an ordinary frame, not neon. Raised to
+        // a substantially stronger mix so the contour ribbon itself carries
+        // visible neon identity, not just the authored fault lines riding it.
+        var rockBase = lerpColor(scaleColor(0x2b3038, ao), water, 0.08);
+        var rockLit = lerpColor(rockBase, NEON_CYAN, 0.28 + 0.24 * ao);
+        // Ring y is flipped to world -y at push time (rockPushContourCap does
+        // not know about the sim/three y flip, so flip each point here); this
+        // allocates a fresh array per entry rather than mutating in place, so
+        // weldedCorner's cached point objects are never touched by the flip.
+        // Trailing fields (final flag / edgeHash) travel through unchanged.
+        for (var rgi = 0; rgi < ring.length; rgi++) {
+          var re = ring[rgi];
+          ring[rgi] = [re[0], -re[1], re[2], re[3]];
+        }
+        var cellSeed = gx * 92821 + gy * 68917; // still used below for fault tint/roll only
+        rockPushContourCap(ring, ROCK_FRONT_Z, rockLit);
+        // Extruded skirt to ROCK_BACK_Z along the boundary crossing itself
+        // (the two zero-crossing points found above), so the wall reads as a
+        // real depth edge rather than a flat card. Darkened: skirts face
+        // sideways, away from the hemi/sun key, so they read as shadowed.
+        if (edgePts && edgePts.length >= 2) {
+          var skirtColor = scaleColor(rockLit, 0.55);
+          rockPushSkirt(edgePts[0][0], -edgePts[0][1], edgePts[1][0], -edgePts[1][1], skirtColor);
+          // Rev 6.11 ART CRITICAL 2/3: an authored neon fault line along a
+          // sparse, deterministic subset of contour edges (not every one,
+          // which would look like a uniform outline rather than authored
+          // circuitry). Alternates cyan/magenta per cell so a run of faults
+          // reads as intentional conduit seams.
+          // Rev 6.12 NEON LANDMARKS: density raised 0.16 -> 0.32 and alpha
+          // floor/ceiling both raised. Art review measured the old rate as
+          // reading as sparse, easy-to-miss dots rather than authored
+          // circuitry visible in an ordinary frame; additive fault lines cost
+          // no extra draws regardless of count (one shared batch), so this is
+          // pure win for the neon-visibility bar.
+          var faultRoll = Math.abs(Math.sin(cellSeed * 0.0001743));
+          if (faultRoll < 0.32) {
+            var faultColor = (cellSeed & 1) ? NEON_MAGENTA : NEON_CYAN;
+            rockPushFault(edgePts[0][0], -edgePts[0][1], edgePts[1][0], -edgePts[1][1],
+              faultColor, 0.75 + 0.25 * ao);
+          }
+        }
+        segN++;
+      }
+    }
+    // Second pass: fill uniform-solid interior cells. The boundary loop above
+    // only emits a thin ribbon at the water/rock crossing, so without this a
+    // cavern's solid rock body is invisible past that ribbon and the gradient
+    // sheet behind the world shows through as an empty cavity.
+    //
+    // Rev 6.13 ART CRITICAL 1 (rock re-weld): Rev 6.12's WELD_STRIDE=2
+    // macro-grid still read as tiled 128px blocks in real captures (art
+    // review measured this directly against 06-midwater) — a welded EDGE
+    // stops the geometry cracking, but the macro-cells were still one flat
+    // quad each, laid on a regular axis-aligned grid, so the eye still reads
+    // "tiled floor" even with jagged-looking edges. This pass instead walks
+    // every SINGLE SDF cell (64px, the native resolution, no macro stride)
+    // and splits each all-solid cell into TWO TRIANGLES along a
+    // per-cell-chosen diagonal (not always the same corner, so the split
+    // direction itself is irregular rather than a uniform '\' or '/' grid).
+    // Every corner still comes from weldedCorner(px,py), the same canonical
+    // function the marching-squares contour cap uses, so adjacent cells
+    // (interior-interior or interior-boundary) still share the exact same
+    // displaced point and the mesh is watertight with zero cracks. On top of
+    // that shared-edge guarantee, each of the two triangles gets:
+    //   - its own per-triangle hash (triHash, keyed on its 3 corner
+    //     positions) driving independent per-VERTEX colour shading, so a
+    //     triangle is not a single flat facet;
+    //   - a small independent face-scale jitter via a per-triangle inset
+    //     toward its own centroid, so triangle SIZE varies cell to cell
+    //     rather than every face being the same 64px right triangle;
+    //   - an occasional (roughly 1 in 5) small z-offset on the far vertex of
+    //     the split, so a minority of faces sit slightly proud/behind their
+    //     neighbour and pick up a visibly different diffuse term under the
+    //     hemi/sun rig instead of every face lying dead flat on one plane.
+    // Two triangles per SDF cell is the same tri density the OLD run-length
+    // rectangle pass paid for a typical cavern span (one quad = two
+    // triangles per run vs one quad = two triangles per single cell here is
+    // more geometry than either previous pass, so this pass is chunk-budget
+    // checked by the caller via mesh.userData.rfRockTris; see buildRockChunk
+    // report below).
+    var TRI_FACE_INSET = [0.0, 0.10];  // per-triangle shrink toward its own centroid
+    var TRI_Z_JITTER = 10;             // px of proud/behind offset, applied rarely
+    function weldCornerFlipped(gx, gy) {
+      var wc = weldedCorner(gx * cell, gy * cell);
+      return [wc[0], -wc[1]];
+    }
+    // Pushes one triangle from 3 already-flipped 2D corners at a shared base
+    // z, applying this cell's own face-scale inset, colour shade, and rare
+    // z-jitter so the two triangles from one split read as independent
+    // faces rather than one quad cut in half.
+    function rockPushCellTri(pa2, pb2, pc2, z, baseColor, salt) {
+      var h = triHash(pa2, pb2, pc2, salt);
+      var cx = (pa2[0] + pb2[0] + pc2[0]) / 3, cy = (pa2[1] + pb2[1] + pc2[1]) / 3;
+      var inset = TRI_FACE_INSET[0] + h * (TRI_FACE_INSET[1] - TRI_FACE_INSET[0]);
+      var h2 = triHash(pb2, pc2, pa2, salt + 7.31); // independent second roll
+      var dz = (h2 < 0.2) ? (h2 * 5 - 0.5) * TRI_Z_JITTER : 0; // ~1-in-5 faces
+      function place(p) {
+        var jx = p[0] + (cx - p[0]) * inset, jy = p[1] + (cy - p[1]) * inset;
+        return [jx, jy, z + dz];
+      }
+      var wa = place(pa2), wb = place(pb2), wc2 = place(pc2);
+      // Per-vertex shade so the face is not one flat colour even before
+      // computeVertexNormals' lighting varies it further; +-8% swing keyed
+      // on each vertex's own corner hash (pa2/pb2/pc2 already carry a stable
+      // identity via weldedCorner's cache, so re-hashing their own position
+      // here stays deterministic per physical corner, matching the contour
+      // cap's per-vertex shade approach above).
+      function shadeOf(p) {
+        var ph = cornerHash(p[0] | 0, p[1] | 0);
+        var shade = 1 + (ph - 0.5) * 0.16 + (h - 0.5) * 0.10;
+        var r = clamp(((baseColor >> 16) & 255) / 255 * shade, 0, 1);
+        var g = clamp(((baseColor >> 8) & 255) / 255 * shade, 0, 1);
+        var b = clamp((baseColor & 255) / 255 * shade, 0, 1);
+        return (Math.round(r * 255) << 16) | (Math.round(g * 255) << 8) | Math.round(b * 255);
+      }
+      rockPushTri(wa, wb, wc2, shadeOf(pa2), shadeOf(pb2), shadeOf(pc2));
+    }
+    for (var igy = 0; igy < rows - 1; igy++) {
+      for (var igx = cx0; igx <= cx1; igx++) {
+        var isv0 = S.sdf[igy * cols + igx];
+        var isv1 = S.sdf[igy * cols + igx + 1];
+        var isv2 = S.sdf[(igy + 1) * cols + igx + 1];
+        var isv3 = S.sdf[(igy + 1) * cols + igx];
+        // Only a fully-interior cell (every corner solid) is this pass's to
+        // fill; any straddling cell is already owned by the marching-squares
+        // boundary pass above.
+        if (isv0 > 0 || isv1 > 0 || isv2 > 0 || isv3 > 0) continue;
+        var iMinDepth = Math.min(isv0, isv1, isv2, isv3);
+        var iMidY = (igy + 0.5) * cell;
+        var iZone = World.zoneAt(iMidY);
+        var iWater = iZone ? hexNum(iZone.tint) : lastZoneTint;
+        var iAo = rockChunkAO(iMinDepth);
+        var iBase = lerpColor(scaleColor(0x232830, iAo), iWater, 0.10);
+        // Rev 6.12 NEON LANDMARKS mix preserved verbatim (art review: raised
+        // from 3-6% flat-gray to a visible ordinary-frame accent).
+        var iLit = lerpColor(iBase, NEON_CYAN, 0.22 + 0.18 * iAo);
+        var pTL = weldCornerFlipped(igx, igy), pTR = weldCornerFlipped(igx + 1, igy);
+        var pBR = weldCornerFlipped(igx + 1, igy + 1), pBL = weldCornerFlipped(igx, igy + 1);
+        // Diagonal choice alternates per-cell (deterministic on grid coords,
+        // not random noise re-rolled per rebuild) so the split direction
+        // itself does not fall into a uniform herringbone: cells pick their
+        // diagonal off a cheap hash of their own grid index rather than a
+        // fixed parity check, which would still read as a regular pattern.
+        var diagPick = cornerHash(igx * 3 + 11, igy * 5 + 7) < 0.5;
+        var cellSalt = igx * 733.1 + igy * 917.7;
+        if (diagPick) {
+          rockPushCellTri(pTL, pTR, pBR, ROCK_FRONT_Z, iLit, cellSalt);
+          rockPushCellTri(pTL, pBR, pBL, ROCK_FRONT_Z, iLit, cellSalt + 1.5);
+        } else {
+          rockPushCellTri(pTL, pTR, pBL, ROCK_FRONT_Z, iLit, cellSalt);
+          rockPushCellTri(pTR, pBR, pBL, ROCK_FRONT_Z, iLit, cellSalt + 1.5);
+        }
+        segN++;
+      }
+    }
+    if (!segN) return null;
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(rockPos, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(rockCol, 4));
+    geo.setIndex(rockIdx);
+    // MeshLambertMaterial needs vertex normals to be lit at all; without this
+    // call every rock chunk face reads as flat black regardless of the hemi/
+    // sun rig (the defect that made near-rock a black silhouette).
+    geo.computeVertexNormals();
+    envOwned.geos.push(geo);
+    // 6.4 explicitly asks for MeshLambertMaterial so the existing light rig
+    // shades the caverns; this is the one batch in the module that is NOT a
+    // MeshBasicMaterial, and it is still cached (one shared instance for
+    // every chunk, per the same look-based sharing envMaterial uses).
+    var lambertKey = 'rock_lambert';
+    var lambertMat = envMatCache[lambertKey];
+    if (!lambertMat && isThree() && THREE.MeshLambertMaterial) {
+      // Art fix (6.11) + Rev 6.12 NEON LANDMARKS correction: MeshLambertMaterial's
+      // diffuse term depends on the local normal vs the hemi/sun rig; the
+      // skirt walls (side extrusion faces, normal roughly perpendicular to
+      // both lights) legitimately compute near-zero diffuse light under that
+      // rig, which reads as a pure black silhouette regardless of the
+      // vertex-colour AO/tint work above.
+      //
+      // The original fix added a flat `emissive` floor color, but three.js's
+      // MeshLambertMaterial emissive term is a CONSTANT material colour, not
+      // multiplied by vertexColors -- so every unlit face rendered the exact
+      // same flat dark navy regardless of its own per-vertex neon-tint work,
+      // which is exactly why real captures still showed a solid near-black
+      // silhouette no matter how much cyan got mixed into rockLit/wLit. Rev
+      // 6.12 patches the compiled fragment shader to multiply the emissive
+      // contribution by the face's OWN vertex colour, so an unlit face still
+      // shows its real AO/neon tint at a visible floor brightness instead of
+      // one flat constant colour.
+      lambertMat = new THREE.MeshLambertMaterial({
+        vertexColors: true, fog: true, side: THREE.DoubleSide,
+        emissive: 0xffffff, emissiveIntensity: 0.4,
+      });
+      lambertMat.onBeforeCompile = function (shader) {
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <emissivemap_fragment>',
+          '#include <emissivemap_fragment>\n' +
+          'totalEmissiveRadiance *= vColor.rgb;'
+        );
+      };
+      lambertMat.customProgramCacheKey = function () { return 'rf-rock-lambert-vcol-emissive'; };
+      envMatCache[lambertKey] = lambertMat;
+      envOwned.mats.push(lambertMat);
+    }
+    if (!lambertMat) return null;
+    var mesh = new THREE.Mesh(geo, lambertMat);
+    mesh.frustumCulled = true;
+    mesh.userData = mesh.userData || {};
+    mesh.userData.rfRockChunk = true;
+    mesh.userData.rfRockTris = rockIdx.length / 3;
+    return mesh;
+  }
+
+  // Linear-interpolate the zero crossing between two corners [x,y,sdf].
+  function interpEdgePoint(ca, cb) {
+    var da = ca[2], db = cb[2];
+    var t = (da - db) !== 0 ? clamp(da / (da - db), 0, 1) : 0.5;
+    return [ca[0] + (cb[0] - ca[0]) * t, ca[1] + (cb[1] - ca[1]) * t];
+  }
+
+  function buildNearRock() {
+    if (!isThree() || !S.sdf) return;
+    S.rockChunks.length = 0;
+    rockFaultReset();
+    // Rev 6.12 ROCK WELD: clear the welded-corner cache so a restart (World.
+    // init called again) rebuilds every corner's displacement fresh rather
+    // than retaining a previous world's positions (harmless when S.w/S.h are
+    // unchanged, since the hash is deterministic, but the cache is otherwise
+    // build-scoped and should not silently persist across teardown/init).
+    weldCornerScratch = {};
+    for (var x0 = 0; x0 < S.w; x0 += ROCK_CHUNK_W) {
+      var chunk = buildRockChunk(x0, x0 + ROCK_CHUNK_W);
+      if (!chunk) continue;
+      sceneAdd(chunk);
+      S.decor.push(chunk);
+      S.rockChunks.push(chunk);
+    }
+    // Rev 6.11 ART CRITICAL 2/3: ONE shared additive batch for every neon
+    // fault line/conduit seam across every rock chunk, so the authored
+    // circuitry costs a single extra draw call regardless of world size.
+    if (rockFaultIdx.length) {
+      var fgeo = new THREE.BufferGeometry();
+      fgeo.setAttribute('position', new THREE.Float32BufferAttribute(rockFaultPos, 3));
+      fgeo.setAttribute('color', new THREE.Float32BufferAttribute(rockFaultCol, 4));
+      fgeo.setIndex(rockFaultIdx);
+      envOwned.geos.push(fgeo);
+      var faultKey = 'rock_fault_additive';
+      var faultMat = envMatCache[faultKey];
+      if (!faultMat) {
+        faultMat = new THREE.MeshBasicMaterial({
+          vertexColors: true, transparent: true, blending: THREE.AdditiveBlending,
+          depthWrite: false, fog: false, side: THREE.DoubleSide
+        });
+        envMatCache[faultKey] = faultMat;
+        envOwned.mats.push(faultMat);
+      }
+      var faultMesh = new THREE.Mesh(fgeo, faultMat);
+      faultMesh.frustumCulled = true;
+      faultMesh.userData = faultMesh.userData || {};
+      faultMesh.userData.rfRockFaultBatch = true;
+      sceneAdd(faultMesh);
+      S.decor.push(faultMesh);
     }
   }
 
@@ -2344,6 +3548,37 @@ import * as THREE from 'three';
   // 194 draw calls become 1 + KELP_BANDS.
   var KELP_BANDS = 12;
 
+  // ---------------------------------------------------- maze-surface anchor
+  // 6.4/6.9 fix: decor used to be placed only at the absolute world floor
+  // (S.h) or inside zones 0-1, so every mid/deep-zone camera frame showed
+  // bare gradient water with no kelp/coral/rock in sight (the "empty
+  // environment" defect). This walks a vertical ray at world-x `x` from
+  // `yLo` to `yHi` and returns the first y where terrainSDF is within
+  // ROCK_WALL_BAND of the water/rock boundary (a cavern wall, floor, or
+  // tunnel mouth), so decor roots land ON the maze surfaces the SDF actually
+  // carved rather than on assumed fixed heightlines. Returns null if no wall
+  // is found in the given band (open water span, e.g. mid-cavern).
+  var ROCK_WALL_BAND = 40;
+  var WALL_SAMPLE_STEP = 48;
+  function findWallY(x, yLo, yHi) {
+    if (!S.sdf) return null;
+    var prevSdf = World.terrainSDF(x, yLo);
+    for (var y = yLo + WALL_SAMPLE_STEP; y <= yHi; y += WALL_SAMPLE_STEP) {
+      var sdf = World.terrainSDF(x, y);
+      // A crossing (sign change) or a sample already inside the thin water
+      // band next to rock both count as "found a wall here".
+      if ((prevSdf > 0) !== (sdf > 0) || Math.abs(sdf) <= ROCK_WALL_BAND) {
+        // Prefer the WATER side of the crossing, a few px off the boundary,
+        // so decor roots sit in open water looking at the rock, not buried
+        // inside it.
+        var waterY = sdf > 0 ? y : (prevSdf > 0 ? y - WALL_SAMPLE_STEP : y);
+        return clamp(waterY, yLo, yHi);
+      }
+      prevSdf = sdf;
+    }
+    return null;
+  }
+
   function buildDecor() {
     if (!isThree()) return;
     var Z = zones();
@@ -2390,6 +3625,76 @@ import * as THREE from 'three';
         pushKelp(rr(0, S.w), rr(shelf.yMax - 260, shelf.yMax), rr(0.5, 1.1), rr(0.25, 0.5));
       }
     }
+    // 6.4/6.9 fix: every zone (not just the shelf/kelpZone pair above) gets a
+    // share of kelp rooted directly on the maze's own cavern floors/walls, so
+    // the mid and deep bands are never bare gradient water. A random scatter
+    // clusters by luck and leaves camera-sized gaps (a ~1900-world-unit-wide
+    // gameplay frame with nothing in it), so this is a REGULAR GRID sweep: walk
+    // x in fixed steps across the whole zone width and try a wall at every
+    // step, which guarantees near-uniform coverage instead of hoping a
+    // scattered sample happens to land near the camera. Steps close enough
+    // together that no gameplay-frame-width span can fall entirely between
+    // two successful hits.
+    var KELP_GRID_STEP = 170;
+    for (var zi = 0; zi < Z.length; zi++) {
+      var zone = Z[zi];
+      var gx0 = drr(0, KELP_GRID_STEP);
+      for (var gx = gx0; gx < S.w; gx += KELP_GRID_STEP) {
+        var gWallY = findWallY(gx, zone.yMin + 40, zone.yMax - 20);
+        if (gWallY === null) continue;
+        pushKelp(gx + drr(-30, 30), gWallY, drr(0.55, 1.5), drr(0.3, 0.6));
+      }
+    }
+    // Tunnels/shafts are the connective corridors between caverns; anchoring
+    // a few stalks along each one covers the narrow passages the grid sweep's
+    // fixed step might straddle, so a camera moving through a tunnel still
+    // sees kelp rather than the two caverns it connects.
+    for (var mti = 0; mti < mazeTunnels.length; mti++) {
+      var mt = mazeTunnels[mti];
+      var mtZone = World.zoneAt((mt.y0 + mt.y1) * 0.5);
+      if (!mtZone) continue;
+      for (i = 0; i < 3; i++) {
+        var tu = drr(0.15, 0.85);
+        var tx = clamp(mt.x0 + (mt.x1 - mt.x0) * tu, 0, S.w);
+        var tWallY = findWallY(tx, mtZone.yMin + 40, mtZone.yMax - 20);
+        if (tWallY === null) continue;
+        pushKelp(tx, tWallY, drr(0.5, 1.1), drr(0.25, 0.5));
+      }
+    }
+    // Art CRITICAL 3 (neon visibility): kelp tips get a genuinely emissive/
+    // additive accent, not just a diffuse vertex-colour mix, or the "neon" is
+    // invisible in ordinary lighting. Every stalk tip contributes one small
+    // additive quad to ONE shared world-anchored batch (not per-band, so this
+    // costs exactly +1 draw regardless of KELP_BANDS). It does not sway with
+    // its band pivot (a static accent glow at the tip's rest position), which
+    // is an acceptable simplification given the sway amplitude is small.
+    quadReset();
+    for (var kt = 0; kt < kelpN; kt++) {
+      var tipRec = kelpScratch[kt];
+      var tkh = 200 * tipRec.scale, tkw = 70 * tipRec.scale;
+      var tipY = -(tipRec.y) + tkh * 0.98;
+      var tipColor = neonAccentFor(kt);
+      // Rev 6.13 ART CRITICAL 2: 0.5x the stalk's own diffuse alpha measured
+      // as an invisible flicker in ordinary frames (effective ~0.13-0.35).
+      // Floored so every tip's additive glow clears the visibility bar
+      // regardless of how dim its parent stalk rolled.
+      quadPush(tipRec.x, tipY, tipRec.z + 1, tkw * 0.5, tkh * 0.14, 0, tipRec.mirror,
+        tipColor, Math.max(0.6, 0.85 * tipRec.alpha));
+    }
+    // Rev 6.13 ART CRITICAL 2: FogExp2 was diluting this additive glow toward
+    // the zone fog colour before it ever reached the screen — the actual
+    // root cause of "reads pale/gray" surviving every previous alpha/mix
+    // raise across Rev 6.9-6.12. An additive accent is meant to ADD light
+    // regardless of camera depth (that is what makes it read as an emissive
+    // neon tip rather than a diffuse surface), so this batch opts out of fog
+    // via the flags param batchMesh already threads through.
+    var kelpTipMesh = batchMesh(null, true, undefined, false, { fog: false });
+    if (kelpTipMesh) {
+      meshName(kelpTipMesh, 'RF kelp tip neon accent');
+      sceneAdd(kelpTipMesh);
+      S.decor.push(kelpTipMesh);
+    }
+
     var bandW = S.w / KELP_BANDS;
     for (var b = 0; b < KELP_BANDS; b++) {
       var x0 = b * bandW, x1 = x0 + bandW;
@@ -2413,7 +3718,11 @@ import * as THREE from 'three';
         // Positions are RELATIVE to the band pivot, so the pivot's rotation
         // swings the bed about its root.
         var kelpBase = envColor(kelpTex ? 0x4c9c87 : 0x0b2a2a, rec.z, rec.water, rec.y, 0);
-        var kelpTop = envColor(0xa7e6b8, rec.z, rec.water, rec.y - kh, 0.18);
+        var kelpTopLit = envColor(0xa7e6b8, rec.z, rec.water, rec.y - kh, 0.18);
+        // 6.9: emissive neon tip, vertex colour only (no texture, no draw).
+        // Blended at a third so the authored kelp-green top still reads
+        // through; the accent cycles by stalk index, not a per-frame pulse.
+        var kelpTop = lerpColor(kelpTopLit, neonAccentFor(k), 0.32);
         quadPush(rec.x - px, -(rec.y) + py + kh * 0.5, rec.z, kw, kh, 0, rec.mirror,
           kelpBase, rec.alpha, kelpTop);
       }
@@ -2490,7 +3799,12 @@ import * as THREE from 'three';
       var water = hexNum(zone.tint);
       for (j = 0; j < 6; j++) {
         var x = rr(160, S.w - 160);
-        var baseY = zone.yMax - rr(45, 170);
+        // Rev 6 fix: anchor to the maze's real cavern floor near this x
+        // instead of blindly assuming the zone's authored yMax is solid
+        // ground everywhere (the SDF maze carves caverns/tunnels that do not
+        // follow a flat heightline), so coral never floats over open water.
+        var wallAnchor = findWallY(x, zone.yMin + 40, zone.yMax - 20);
+        var baseY = (wallAnchor !== null ? wallAnchor : zone.yMax) - rr(45, 170);
         var z = rr(-155, -95);
         var color = REEF_PALETTE[ri(0, REEF_PALETTE.length - 1)];
         var scale = rr(0.72, 1.35);
@@ -2501,6 +3815,10 @@ import * as THREE from 'three';
             var ww = (86 - k * 15) * scale;
             var bc = envColor(color, z, water, yy, 0.05);
             var tc = envColor(color, z, water, yy - hh, 0.22);
+            // 6.9: only the crown segment (the actual tip) gets the emissive
+            // neon accent, so the coral column still reads as coral with a
+            // glowing cap rather than glowing along its whole height.
+            if (k === 2) tc = lerpColor(tc, neonAccentFor(i * 6 + j), 0.34);
             quadPush(x + (k - 1) * 9 * scale, -(yy - hh * 0.5), z + k * 2,
               ww, hh, (k - 1) * 0.08, 1, bc, 0.94, tc);
           }
@@ -2511,6 +3829,7 @@ import * as THREE from 'three';
             var bw = (88 - k * 10) * scale;
             var brainColor = envColor(color, z, water, by, 0.04);
             var brainTop = envColor(color, z, water, by - bh, 0.20);
+            if (k === 3) brainTop = lerpColor(brainTop, neonAccentFor(i * 6 + j + 1), 0.34);
             quadPush(x + Math.sin(k * 1.7) * 8 * scale, -(by - bh * 0.5), z + k * 2,
               bw, bh, (k & 1 ? -0.11 : 0.11), 1, brainColor, 0.92, brainTop);
           }
@@ -2534,7 +3853,10 @@ import * as THREE from 'three';
         water = hexNum(zone.tint);
         for (j = 0; j < 6; j++) {
           if ((j & 1) !== group) continue;
-          pushReef(rr(160, S.w - 160), zone.yMax - rr(35, 145), rr(-150, -90),
+          var fanX = rr(160, S.w - 160);
+          var fanWall = findWallY(fanX, zone.yMin + 40, zone.yMax - 20);
+          var fanY = (fanWall !== null ? fanWall : zone.yMax) - rr(35, 145);
+          pushReef(fanX, fanY, rr(-150, -90),
             rr(0.75, 1.2), j % 2, REEF_PALETTE[ri(0, REEF_PALETTE.length - 1)], water, group);
         }
       }
@@ -2559,7 +3881,11 @@ import * as THREE from 'three';
           var armX = rec.x + Math.sin(armA) * armL * 0.34;
           var armY = crownY - Math.cos(armA) * armL * 0.30;
           var armBase = envColor(rec.color, rec.z, rec.water, armY, 0.06);
-          var armTop = envColor(rec.color, rec.z, rec.water, armY - 13 * rec.scale, 0.24);
+          var armTopLit = envColor(rec.color, rec.z, rec.water, armY - 13 * rec.scale, 0.24);
+          // 6.9: every fan/anemone arm tip carries a neon accent, lighter
+          // than the coral crowns above since there are more of these on
+          // screen at once and the readability law still applies.
+          var armTop = lerpColor(armTopLit, neonAccentFor(j * 4 + k), 0.24);
           quadPush(armX - px, -armY + py, rec.z + 1, armL, 13 * rec.scale,
             armA, 1, armBase, rec.alpha, armTop);
         }
@@ -2603,6 +3929,21 @@ import * as THREE from 'three';
     { shape: 'chimney',   n: 8,  scale: [1.1, 1.6], alpha: [0.25, 0.40], tint: 0x02070d, anchor: 'floor', inset: 80 },
   ];
 
+  // Rev 6.9: sunken cyber-ruin props (holo billboard slabs, conduit lines,
+  // drifting drone silhouettes), one small set PER ZONE mixed into the SAME
+  // merged silhouette batch above rather than a batch of their own, so this
+  // adds zero draw calls beyond what buildMidwaterDecor already accounts for.
+  // Rev 6.12 NEON LANDMARKS: art review's CRITICAL 2 is binding for EVERY
+  // zone, not just the abyss, so zone 1 (the sunlit shelf) now gets a small
+  // ruin set too instead of none — a shelf-appropriate count/tint, still
+  // fewer and dimmer than the deeper zones.
+  var ZONE_RUIN = [
+    { n: 2, tint: 0x1c3a44 },
+    { n: 3, tint: 0x141a2e },
+    { n: 4, tint: 0x0d1224 },
+    { n: 5, tint: 0x080b18 },
+  ];
+
   // PERF-03. 34 silhouette planes become 4, one merged batch per zone. The
   // per-shape drift was 3 to 7 px on shapes drawn at 0.25 to 0.50 opacity at
   // the furthest parallax band; drifting the whole zone batch by the same few
@@ -2610,9 +3951,166 @@ import * as THREE from 'three';
   // see, and it is 30 fewer draw calls. Rule 2 (ANCHORED) still holds because
   // the drift is an OFFSET from the placed position, never an accumulation,
   // exactly as before.
+  // Art CRITICAL 3: ruin edge-glow quads recorded during the per-zone loop
+  // below, then built as ONE shared additive batch after every zone is done.
+  var ruinGlowRec = [];
+
+  // Rev 6.13 ART CRITICAL 2 (neon landmarks, take 2): art review's binding
+  // complaint on the Rev 6.12 pass was that landmarks were still placed by
+  // `rr(0, S.w)` — a per-build RANDOM scatter — so no zone had a GUARANTEED
+  // camera-visible landmark; a capture could land in a gap. This function
+  // returns DETERMINISTIC authored x-anchors for zone `zi`: the real maze
+  // cavern centres in that zone's y-range (mazeCavernX, built once at
+  // buildMaze() time from S.rng and frozen for the run) plus each tunnel
+  // mouth that connects into or out of the zone. Cavern/tunnel placement is
+  // itself the maze's own authored layout, not per-frame randomness, so two
+  // callers asking for zone 2's anchors in the same run always get the same
+  // list — which is what makes a screenshot of "zone 2" reliably show its
+  // landmark rather than gambling on a random x roll landing in frame.
+  function zoneLandmarkAnchors(zi, Z) {
+    var z = Z[zi];
+    var out = [];
+    var ci;
+    for (ci = 0; ci < mazeCavernX.length; ci++) {
+      var cy = mazeCavernY[ci];
+      if (cy >= z.yMin && cy < z.yMax) out.push({ x: mazeCavernX[ci], y: cy, r: mazeCavernR[ci] });
+    }
+    for (var ti = 0; ti < mazeTunnels.length; ti++) {
+      var mt = mazeTunnels[ti];
+      var my = (mt.y0 + mt.y1) * 0.5;
+      if (my >= z.yMin && my < z.yMax) {
+        out.push({ x: (mt.x0 + mt.x1) * 0.5, y: my, r: mt.halfW });
+      }
+    }
+    // Deterministic order (by x) so "the Nth anchor" is stable across calls,
+    // which matters for the abyss skyline pass below walking them in x order
+    // to build a CONTIGUOUS band rather than a jumbled overlap.
+    out.sort(function (a, b) { return a.x - b.x; });
+    return out;
+  }
+
+  // One accent identity per zone, per the fix-round brief: shelf = cyan/
+  // magenta holo gates (alternating per gate, ZONE_LANDMARK_ALT below),
+  // midwater = electric-cyan conduit pylons, twilight = acid-green data
+  // spires, abyss = its own ruin-skyline treatment below (mixed accents on
+  // window lights, not a single flat colour).
+  var ZONE_LANDMARK_ACCENT = [NEON_CYAN, NEON_CYAN, NEON_ACID, NEON_CYAN];
+  // Shelf gates alternate cyan/magenta per the "cyan/magenta holo gate arcs"
+  // spec line; other zones stay their one authored accent. Magenta also
+  // contrasts far better against the shelf's bright teal water than a
+  // second cyan would (see the ART fix-forward note at the shelf landmark
+  // body below — additive cyan on bright cyan-ish water reads as a blown
+  // white orb, not a distinct accent).
+  var ZONE_LANDMARK_ALT = [NEON_MAGENTA, null, null, null];
+
+  // Rev 6.13 ART CRITICAL 2: the abyss's authored landmark is a CONTIGUOUS
+  // sunken ruin skyline spanning the band floor — overlapping tower
+  // silhouettes with lit windows and a glow crown on each — rather than a
+  // handful of scattered props. Deterministic: walks S.w at a fixed step
+  // (ABYSS_TOWER_STEP) and every step gets a tower (no random skip), with
+  // per-tower height/width/window-count/window-position all keyed off a
+  // stable hash of that tower's own step index, so the skyline is identical
+  // across rebuilds of the same world but still reads as an irregular
+  // silhouette rather than a repeating stamp. Deliberately builds into the
+  // SAME `quadReset()`'d batch buildMidwaterDecor's caller already has open
+  // for this zone (buildAbyssSkyline is only ever called from inside that
+  // per-zone loop), and records glow/window quads into the same shared
+  // ruinGlowRec additive batch every other prop uses, so this costs zero
+  // extra draw calls beyond what the zone already pays.
+  var ABYSS_TOWER_STEP = 130;      // px between tower centres; overlap keeps it contiguous
+  var ABYSS_TOWER_W = [150, 260];  // wide enough that neighbours visibly overlap at the step above
+  var ABYSS_TOWER_H = [340, 620];  // per fix-round spec: 300-600px band, some spill for variety
+  function abyssTowerHash(step, salt) {
+    var h = Math.sin(step * 12.9898 + salt * 78.233) * 43758.5453;
+    return h - Math.floor(h);
+  }
+  // Rev 6.13 ART CRITICAL 2 fix-forward: the first pass at this function put
+  // a crown-glow strip AND 2-4 window quads on EVERY tower at ~130px
+  // spacing, so ~6-7 towers' worth of additive glow overlapped in every
+  // frame at once. Additive quads SUM: many overlapping semi-transparent
+  // layers climb every channel toward 255 regardless of their individual
+  // hue, which is exactly why real captures read as washed pastel
+  // lavender/mint rather than distinct bright cyan/magenta/acid. The BODY
+  // silhouettes (non-additive) can stay dense/overlapping — that overlap is
+  // what makes the skyline read as CONTIGUOUS — but the additive accents
+  // need real gaps between them so each one reads as its own bright light
+  // instead of blending into a shared wash. Crowns now land on every OTHER
+  // tower only, and windows are far smaller and fewer, both changes
+  // shrinking total overlapping additive area per frame substantially.
+  function buildAbyssSkyline(z, zoneIdx, Z) {
+    var isLast = zoneIdx === Z.length - 1;
+    var accentCycle = [NEON_CYAN, NEON_MAGENTA, NEON_ACID];
+    var step = 0;
+    for (var x0 = 0; x0 < S.w; x0 += ABYSS_TOWER_STEP, step++) {
+      var h1 = abyssTowerHash(step, 1);
+      var h2 = abyssTowerHash(step, 2);
+      var h3 = abyssTowerHash(step, 3);
+      var tx = x0 + (h1 - 0.5) * ABYSS_TOWER_STEP * 0.6; // jitter within the step, never past it
+      var wallY = findWallY(tx, z.yMin + 40, z.yMax - 20);
+      var floorY = (wallY !== null ? wallY : (isLast ? S.h : z.yMax)) - h2 * 24;
+      var tw = ABYSS_TOWER_W[0] + h2 * (ABYSS_TOWER_W[1] - ABYSS_TOWER_W[0]);
+      var th = ABYSS_TOWER_H[0] + h3 * (ABYSS_TOWER_H[1] - ABYSS_TOWER_H[0]);
+      // Same fix as the shelf/midwater/twilight landmarks above: keep the
+      // skyline in front of Z_TERRAIN[0] (-340, opaque) rather than in the
+      // old Z_SIL band (-400ish) where it risked depth-occlusion by the
+      // parallax ridge terrain.
+      // Same fix as the shelf/midwater/twilight landmarks: the proven
+      // Z_KELP band, not a novel z value (see the note at the landmark z
+      // computation above for why z=90..140 broke everything else).
+      var tz = Z_KELP[0] + (h1 * (Z_KELP[1] - Z_KELP[0])); // towers vary within the band for depth
+      var tCy = floorY - th * 0.5;
+      var ruinCfg = ZONE_RUIN[zoneIdx] || ZONE_RUIN[ZONE_RUIN.length - 1];
+      var tint = ruinCfg ? ruinCfg.tint : 0x080b18;
+      var accent = accentCycle[step % accentCycle.length];
+      var tBase = envColor(tint, tz, hexNum(z.tint), floorY, 0);
+      // Body carries a real accent mix (not just a thin top edge) so the
+      // silhouette itself reads as an authored structure, matching the
+      // brighter body-tint language used for the other zones' landmarks.
+      // Non-additive, so dense overlap between neighbouring towers here is
+      // exactly what makes the band read as one contiguous skyline.
+      // Neon-noir read: the tower BODY is a dark near-opaque silhouette
+      // (scaled well below the zone tint) with only a whisper of accent; the
+      // brightness lives in the crowns/windows/top gradient. The prior
+      // 0.28-accent 0.6-alpha body rendered as translucent pastel panels -
+      // exactly the "pastel Tetris" failure, not cyberpunk.
+      var tBody = lerpColor(scaleColor(tBase, 0.34), accent, 0.10);
+      var tTop = lerpColor(scaleColor(tBase, 0.55), accent, 0.55);
+      quadPush(tx, -tCy, tz, tw, th, 0, (step & 1) ? -1 : 1, tBody, 0.88, tTop);
+      // Glow crown: a bright additive cap, but only every THIRD tower (was
+      // every other) so neighbouring crowns do not additively overlap into a
+      // wash — with towers every 130px, "every other" still put 3-4 crowns
+      // in one frame close enough together that their footprints summed to
+      // pastel/white in real captures. A frame showing ~6-7 towers still
+      // shows 2 lit crowns, comfortably past "any abyss frame shows the
+      // skyline is lit," with real gaps between them this time.
+      if (step % 3 === 0) {
+        ruinGlowRec.push({
+          cx: tx, cy: -(floorY - th), z: tz + 1, w: tw * 0.45, h: th * 0.08,
+          mirror: (step & 1) ? -1 : 1, color: accent, alpha: 0.55,
+        });
+      }
+      // Lit windows: at most ONE small bright square per tower (was 1-2,
+      // larger), further cutting the total additive footprint per frame so
+      // the skyline's overall read stays "dark towers with scattered lit
+      // windows," not a wash. Keyed off the same per-tower hash for a
+      // stable rebuild-to-rebuild layout.
+      if (h1 > 0.35) { // most but not all towers get a window
+        var wh = abyssTowerHash(step, 10);
+        var wv = abyssTowerHash(step, 20);
+        var winY = floorY - th * (0.2 + wv * 0.5);
+        var winX = tx + (wh - 0.5) * tw * 0.4;
+        ruinGlowRec.push({
+          cx: winX, cy: -winY, z: tz + 2, w: Math.max(6, tw * 0.045), h: Math.max(6, tw * 0.045),
+          mirror: 1, color: accentCycle[(step + 1) % accentCycle.length], alpha: 0.5,
+        });
+      }
+    }
+  }
+
   function buildMidwaterDecor() {
     if (!isThree()) return;
     var Z = zones();
+    ruinGlowRec.length = 0;
     for (var i = 0; i < Z.length; i++) {
       var z = Z[i];
       var cfg = ZONE_SIL[i] || ZONE_SIL[ZONE_SIL.length - 1];
@@ -2634,6 +4132,152 @@ import * as THREE from 'three';
         quadPush(x0, -cy, silZ, w, h, 0,
           rnd() < 0.5 ? -1 : 1, silBase, rr(cfg.alpha[0], cfg.alpha[1]), silTop);
       }
+      // Cyber-ruin props for this zone, same batch, same anchor language:
+      // a holo slab (wide, dim, faint neon top edge), a vertical conduit
+      // line (thin, tall), and a drone silhouette (small, drifting height)
+      // rotate through cfg.n's index so a zone's n ruin props are varied
+      // without extra bookkeeping.
+      var ruinCfg = ZONE_RUIN[i];
+      var isAbyss = i === Z.length - 1;
+      // Rev 6.13 ART CRITICAL 2: ordinary (non-landmark) ruin population
+      // stays a random atmosphere scatter, unchanged from Rev 6.12 — this is
+      // background texture, not the binding requirement. Only the LANDMARK
+      // tier below needs to be deterministic/large/bright.
+      var ruinN = ruinCfg ? ruinCfg.n : 0;
+      if (ruinCfg) {
+        for (var rn = 0; rn < ruinN; rn++) {
+          var shapeI = rn % 3;
+          var rx = rr(0, S.w);
+          var ruinWall = findWallY(rx, z.yMin + 40, z.yMax - 20);
+          var floorY = (ruinWall !== null ? ruinWall : (i === Z.length - 1 ? S.h : z.yMax)) - rr(20, 90);
+          var rz = rr(Z_SIL[0], Z_SIL[1]);
+          var rw, rh;
+          if (shapeI === 0) { rw = rr(140, 220); rh = rr(90, 150); }       // holo slab / ruin gate
+          else if (shapeI === 1) { rw = rr(14, 22); rh = rr(220, 340); }    // conduit line / pylon
+          else { rw = rr(60, 100); rh = rr(30, 50); }                      // drone silhouette
+          var ruinCy = floorY - rh * 0.5;
+          var ruinBase = envColor(ruinCfg.tint, rz, hexNum(z.tint), floorY, 0);
+          var ruinEdge = envColor(ruinCfg.tint, rz, hexNum(z.tint), floorY - rh, 0.10);
+          var ruinAccent = neonAccentFor(i * 5 + rn);
+          var ruinTop = lerpColor(ruinEdge, ruinAccent, 0.4);
+          quadPush(rx, -ruinCy, rz, rw, rh, 0,
+            rnd() < 0.5 ? -1 : 1, ruinBase, rr(0.20, 0.38), ruinTop);
+          ruinGlowRec.push({
+            cx: rx, cy: -(floorY - rh), z: rz + 1, w: rw * 0.95, h: rh * 0.16,
+            mirror: rnd() < 0.5 ? -1 : 1, color: ruinAccent, alpha: 0.6,
+          });
+        }
+      }
+      // Rev 6.13 ART CRITICAL 2 (binding): the landmark tier is now placed
+      // at DETERMINISTIC authored anchors (real maze cavern centres / tunnel
+      // mouths in this zone, see zoneLandmarkAnchors above) instead of
+      // rr(0, S.w), so a screenshot of any zone is guaranteed to catch at
+      // least one, and is LARGE (300-600px per the fix-round spec, not the
+      // old 140-440px range) and BRIGHT (additive batch below at alpha
+      // .6-.85, well past the ".6+" bar). The abyss does NOT use this loop —
+      // it gets its own contiguous ruin-skyline pass (buildAbyssSkyline)
+      // below so "a screenshot anywhere in the abyss band shows a skyline"
+      // instead of "a screenshot might catch one of N scattered towers".
+      if (!isAbyss) {
+        var anchors = zoneLandmarkAnchors(i, Z);
+        // Raised 4 -> 6: with only 2-4 landmarks spread across a 14400px-wide
+        // zone, real captures showed long camera-visible stretches with none
+        // in frame at all (each is 360-600px vs multi-thousand-px gaps
+        // between anchors). More landmarks per zone means shorter gaps
+        // between them, so any ordinary-play camera position is more likely
+        // to have one in frame; the budget cost per landmark is one quad
+        // plus a couple of glow-batch entries, well inside the tri/draw cap.
+        var wantLandmarks = Math.min(6, Math.max(3, anchors.length));
+        var baseAccent = ZONE_LANDMARK_ACCENT[i] || NEON_CYAN;
+        var altAccent = ZONE_LANDMARK_ALT[i];
+        for (var li = 0; li < wantLandmarks; li++) {
+          // Alternate cyan/magenta on the shelf (per spec); other zones keep
+          // one consistent accent identity across their gates/pylons/spires.
+          var accent = (altAccent && (li & 1)) ? altAccent : baseAccent;
+          // Deterministic even without any anchors at all (a zone with zero
+          // caverns/tunnels in range still gets guaranteed, evenly-spaced
+          // landmarks rather than silently having none).
+          var anchor = anchors.length ? anchors[li % anchors.length] : null;
+          var lx = anchor ? anchor.x : (S.w * (li + 1)) / (wantLandmarks + 1);
+          var lWall = findWallY(lx, z.yMin + 40, z.yMax - 20);
+          var lFloorY = (lWall !== null ? lWall : (isAbyss ? S.h : z.yMax)) - 30;
+          // ART BUG FOUND (verified via direct scene inspection): the
+          // original Z_SIL-based z ([-400,-300]) put landmarks behind
+          // Z_TERRAIN[0] (-340, opaque), which depth-occluded them for most
+          // of the screen. A follow-up attempt moved them to z=90..140 (in
+          // FRONT of the rock's own front cap) reasoning that would guarantee
+          // no occlusion — but that put them CLOSER to camera than the
+          // gameplay plane itself (shark sits at z~0-25, camera at
+          // z~185-400), so a 360-480px-wide quad that close subtends a huge
+          // screen angle and rendered as a giant washed veil over the whole
+          // frame, including the shark. Z_KELP ([-260,-140]) is the proven,
+          // already-working band every kelp stalk and rock billboard in the
+          // game already renders in (visible on top of cavern rock in every
+          // capture throughout this session), so landmarks use that same
+          // band rather than a novel value.
+          var lz = rr(Z_KELP[0], Z_KELP[1]);
+          var lw, lh, lShapeI = i; // shelf(0)=gate, midwater(1)=pylon, twilight(2)=spire
+          if (lShapeI === 0) {
+            // Holo gate ARC: a wide, tall silhouette so it reads as a
+            // freestanding archway rather than a slab.
+            lw = rr(360, 480); lh = rr(320, 460);
+          } else if (lShapeI === 1) {
+            // Conduit pylon: tall and narrower, but still well past the
+            // 300px floor per zone.
+            lw = rr(70, 110); lh = rr(420, 600);
+          } else {
+            // Data spire: a tapered tall silhouette, acid-green accent.
+            lw = rr(90, 140); lh = rr(380, 560);
+          }
+          var lCy = lFloorY - lh * 0.5;
+          // Rev 6.13 ART fix-forward, second pass: neither a zone-tinted
+          // body (first attempt: too close to the water's own colour on the
+          // bright shelf, invisible) nor a near-black body (second attempt:
+          // blended into rock/background just as badly, ALSO invisible) held
+          // up in real captures. A body that is MOSTLY THE ACCENT COLOUR
+          // ITSELF, at a strong-but-not-fully-opaque alpha, is contrast-
+          // independent of the local water brightness: a saturated cyan/
+          // magenta/acid fill reads as a distinct authored structure whether
+          // the zone behind it is the dark abyss or the bright shelf,
+          // because it is not trying to out-contrast the background by
+          // BEING darker or lighter than it — it is a different, saturated
+          // HUE the background never has. A darker outline rim is layered on
+          // top of that saturated fill so the structure still reads as
+          // having depth/edges rather than being a flat colour card.
+          var lFillDark = scaleColor(accent, 0.55);
+          var lBody = lerpColor(lFillDark, accent, 0.6);
+          var lTop = accent;
+          // Rev 6.13 ART fix-forward, FOURTH pass: real captures kept
+          // measuring washed-white regardless of how many additive glow
+          // bands were stacked on top, because this world region also holds
+          // unrelated additive systems (a nearby kelp tip's own accent, a
+          // god-ray band) that happen to project into the same screen area
+          // — additive contributions from DIFFERENT systems still sum in the
+          // framebuffer even though each is "correct" in isolation. Rather
+          // than keep chasing an additive footprint small enough to never
+          // coincide with something else on screen, this alpha is raised
+          // (0.6 -> 0.82) so the body's own SATURATED colour is the dominant
+          // visual signal on its own, additive glow or not — a solid,
+          // clearly-cyan/magenta/acid gate/pylon/spire silhouette that reads
+          // even if every other additive system in the frame happens to
+          // land on top of it.
+          quadPush(lx, -lCy, lz, lw, lh, 0, li & 1 ? -1 : 1, lBody, 0.82, lTop);
+          // No additive glow crown for the shelf/midwater/twilight tier: the
+          // body fill above is now the sole, reliable colour carrier. (The
+          // abyss skyline keeps its own crown/window glow below — that zone
+          // is dark enough for additive accents to read as distinct light
+          // rather than washing to white.)
+        }
+      } else {
+        // Rev 6.13 ART CRITICAL 2 (abyss): a scattered landmark loop cannot
+        // guarantee "any abyss frame shows a skyline" — a capture between
+        // two scattered towers sees empty water, which is exactly what
+        // 08-abyss measured. buildAbyssSkyline instead walks the WHOLE zone
+        // width at a fixed step and emits an overlapping tower silhouette at
+        // EVERY step, so the band is visually contiguous end to end; any
+        // window into it crosses at least 2-3 overlapping towers.
+        buildAbyssSkyline(z, i, Z);
+      }
       var mesh = batchMesh(null, false, undefined);
       if (!mesh) continue;
       sceneAdd(mesh);
@@ -2648,11 +4292,40 @@ import * as THREE from 'three';
         phase: rr(0, TAU),
       });
     }
+    // Art CRITICAL 3: build the shared ruin edge-glow additive batch now that
+    // every zone's props have been recorded. One draw call for the whole
+    // system, no per-zone/per-prop cost.
+    // Rev 6.13 ART CRITICAL 2: same fog-dilution root cause as the kelp tip
+    // batch above — this is the layer every zone's neon landmark identity
+    // (holo gates, conduit pylons, data spires, abyss skyline crowns/
+    // windows) rides on, so it is the single most important place in the
+    // whole module for fog to be disabled. Without this, the abyss skyline's
+    // additive crowns/windows were being fogged toward the abyss's own dark
+    // fog colour, which is exactly why real captures showed pastel/washed
+    // squares instead of a bright lit skyline.
+    if (ruinGlowRec.length) {
+      quadReset();
+      for (var gi = 0; gi < ruinGlowRec.length; gi++) {
+        var gr = ruinGlowRec[gi];
+        quadPush(gr.cx, gr.cy, gr.z, gr.w, gr.h, 0, gr.mirror, gr.color, gr.alpha);
+      }
+      var glowMesh = batchMesh(null, true, undefined, false, { fog: false });
+      if (glowMesh) {
+        meshName(glowMesh, 'RF ruin edge glow additive');
+        sceneAdd(glowMesh);
+        S.decor.push(glowMesh);
+      }
+    }
   }
 
   function buildBackground() {
     buildGradientSheet();
+    // Rev 6: the maze layout must exist before buildTerrain, so the parallax
+    // ridge heightlines can re-seed off the same cavern x-positions (6.4:
+    // "distant ridges echo it").
+    buildMaze();
     buildTerrain();
+    buildNearRock();
     buildSeams();
     buildMidwaterDecor();
     buildDecor();
@@ -2750,6 +4423,11 @@ import * as THREE from 'three';
     var obj = null, rig = null;
     if (e.kind === 'pickup') {
       obj = makeCoin();
+    } else if (e.kind === 'buffpickup') {
+      // No new texture per 6.7/6.9: the same glowing vertex-coloured fallback
+      // quad the coin uses, tinted from the buff row's own accent colour
+      // (carried on e.def.sil.palette.base by spawnBuffAt) rather than a bake.
+      obj = fallbackMesh(paletteBase(e.def), true);
     } else if (e.kind === 'predator') {
       rig = makeSharkRig(e.def);
       obj = rig ? rig.group : makeBillboard(e.def, e.kind);
@@ -2921,6 +4599,15 @@ import * as THREE from 'three';
     // life half-inflated from whatever it used to be.
     st.puffS = 1;
     st.faceA = undefined;
+    // Rev 6.5 mouth-proximity panic, distinct from the sight-based flee mode
+    // above (panicT can be running while mode is still 'wander' or 'flee').
+    st.panicT = 0;
+    st.panicJx = 0; st.panicJy = 0; st.panicPhase = 0;
+    // Rev 6.12 PREY PANIC CUE: separate from panicT (which is a MOVEMENT/
+    // bend cue, per Rev 6.5). lungeTargetFlashT is the VISUAL flash-toward-
+    // white/red cue for whichever prey is specifically the player's current
+    // lunge-captured target, so movement thrash alone is not the only tell.
+    st.lungeTargetFlashT = 0;
   }
 
   // Check this entity's visual out of the global view pool and set it up for
@@ -3080,6 +4767,12 @@ import * as THREE from 'three';
     e.score = typeof def.score === 'number' ? def.score : Math.round(e.tier * 40);
     e.coins = typeof def.coins === 'number' ? def.coins : Math.max(1, Math.round(e.tier * 3));
     resetSt(e.st);
+    // Rev 6.11 NURSERY LAW: stamp the zone a predator was actually spawned
+    // into as its home band (after resetSt, which does not touch this field),
+    // so predatorAI can leash off pursuit once it has since drifted (chased/
+    // fled) into a different zone than the one it belongs to, against a
+    // nursery-tier player.
+    e.st.homeZoneId = kind === 'predator' ? (World.zoneAt(e.y) ? World.zoneAt(e.y).id : 0) : 0;
     e._biteCd = 0;
     e.st.packId = packId || 0;
     e.st.drift = rr(0, TAU);
@@ -3093,12 +4786,57 @@ import * as THREE from 'three';
     return e;
   }
 
+  // Rev 6.12 PUBLIC SPAWN LAW: World.spawnBurst is the one PUBLIC multi-entity
+  // spawn entry (called by abilities/debug/dev tooling, not just the internal
+  // spawner), and code review found it went straight to spawnOne — only the
+  // surface/seafloor clamp, none of runSpawner's nursery-distance, SDF-
+  // clearance, or region checks. That let a public/debug burst place a
+  // predator on top of a nursery-tier player or embedded in rock. This
+  // resamples the SAME (jittered) request point up to SDF_RESAMPLE_TRIES
+  // times against the identical three gates runSpawner enforces before
+  // calling spawnOne, and — unlike ringPointValid's "fall back to the last
+  // sample tried" contract, which is safe because a ring point is already
+  // constrained to the swimmable band around a live camera — SKIPS that one
+  // spawn entirely if every try fails, since an arbitrary caller-supplied
+  // point (e.g. an ability firing at a rock wall) has no such guarantee and
+  // resampling near clearly-bad rock could still land on something worse.
+  function burstPointValid(x, y, def, kind, playerRegion, nurseryPlayer, out) {
+    var needR = radiusFor(def, kind) + SDF_SPAWN_CLEAR;
+    for (var tries = 0; tries < SDF_RESAMPLE_TRIES; tries++) {
+      // First try is the exact requested (jittered) point; subsequent tries
+      // widen the resample radius slightly so a bad point has real room to
+      // relocate rather than repeatedly re-sampling the same small jitter.
+      var jitterR = 70 + tries * 40;
+      out[0] = clamp(x + rr(-jitterR, jitterR), 8, S.w - 8);
+      out[1] = clamp(y + rr(-jitterR, jitterR), SURFACE_Y + SURFACE_MARGIN, S.h - SEAFLOOR_MARGIN);
+      if (nurseryPlayer && withinNursery(nurseryPlayer, out[0], out[1])) continue;
+      if (!S.sdf) return true; // no maze built (e.g. bare selftest stub): accept
+      var sdfHere = World.terrainSDF(out[0], out[1]);
+      if (sdfHere <= needR) continue;
+      if (playerRegion && World.regionAt(out[0], out[1]) !== playerRegion) continue;
+      return true;
+    }
+    return false; // exhausted tries; caller must SKIP this spawn, never misplace
+  }
+  var burstOut = [0, 0];
   World.spawnBurst = function (defId, x, y, n) {
     var out = 0;
     var packId = S.packSeq++;
     packAcquire(packId);
+    var def = defOf(defId);
+    var kind = def ? kindForDef(def) : 'prey';
+    var player = RF.ctx && RF.ctx.player;
+    // Rev 6.12 NURSERY LAW scoping fix: runSpawner's nursery gate only ever
+    // applies to the PREDATOR roll (prey/pickups are never nursery-gated
+    // there), so this public path must match that scope exactly rather than
+    // blocking every kind near a low-tier player.
+    var nurseryPlayer = (kind === 'predator' && player && (player.tier || 1) <= NURSERY_TIER) ? player : null;
+    var playerRegion = (S.sdf && player) ? World.regionAt(player.x, player.y) : 0;
     for (var i = 0; i < n; i++) {
-      var e = spawnOne(defId, x + rr(-70, 70), y + rr(-50, 50), packId);
+      if (def && !burstPointValid(x, y, def, kind, playerRegion, nurseryPlayer, burstOut)) continue;
+      var px = def ? burstOut[0] : x + rr(-70, 70);
+      var py = def ? burstOut[1] : y + rr(-50, 50);
+      var e = spawnOne(defId, px, py, packId);
       if (!e) break;
       out++;
     }
@@ -3145,7 +4883,7 @@ import * as THREE from 'three';
     var n = 0;
     for (var i = 0; i < S.entities.length; i++) {
       var e = S.entities[i];
-      if (e.kind === 'pickup') continue;
+      if (e.kind === 'pickup' || e.kind === 'buffpickup') continue;
       var dx = e.x - camX, dy = e.y - camY;
       if (dx * dx + dy * dy < DESPAWN * DESPAWN) n++;
     }
@@ -3164,9 +4902,60 @@ import * as THREE from 'three';
 
   var ringOut = [0, 0];
 
+  // Rev 6 (6.4): resample a ring point up to SDF_RESAMPLE_TRIES times,
+  // requiring sdf > radiusFor(def) + SDF_SPAWN_CLEAR AND the same flood-fill
+  // region as the player, so nothing spawns embedded in rock or sealed behind
+  // a wall the player cannot reach. Falls back to the LAST sample tried
+  // (never fails outright) so a spawner call never silently does nothing;
+  // the caller still owns whether to actually use the result.
+  function ringPointValid(camX, camY, def, kind, playerRegion, out, zoneId) {
+    var needR = radiusFor(def, kind) + SDF_SPAWN_CLEAR;
+    for (var tries = 0; tries < SDF_RESAMPLE_TRIES; tries++) {
+      ringPoint(camX, camY, out);
+      // The def was chosen FROM a zone's table; a resample that drifts into a
+      // different depth band would place it out of habitat (a zone-2 great
+      // white re-rolled into the zone-1 nursery ON the player - real defect).
+      if (zoneId) {
+        var zHere = World.zoneAt(out[1]);
+        if (!zHere || zHere.id !== zoneId) continue;
+      }
+      if (!S.sdf) return true; // no maze built (e.g. bare selftest stub): accept
+      var sdfHere = World.terrainSDF(out[0], out[1]);
+      if (sdfHere <= needR) continue;
+      if (playerRegion && World.regionAt(out[0], out[1]) !== playerRegion) continue;
+      return true;
+    }
+    return false; // exhausted tries; caller must SKIP the spawn, never misplace
+  }
+
+  // Rev 6.11 NURSERY LAW helper: true when (x,y) is within NURSERY_R of the
+  // given player, in ANY zone/region (no region/zone gate at all, unlike
+  // ringPointValid's habitat checks).
+  function withinNursery(player, x, y) {
+    if (!player) return false;
+    var dx = x - player.x, dy = y - player.y;
+    return dx * dx + dy * dy < NURSERY_R * NURSERY_R;
+  }
+
   function runSpawner(ctx, camX, camY) {
     var B = budget();
+    // Rev 6.12 BUFF CADENCE (binding): the ambient buff roll runs BEFORE
+    // EVERY early return in this function - including the pool-reserve
+    // check below, which review round 3 found still suppressed the roll in
+    // crowded late runs (S.free hovers at the reserve while the screen is
+    // full - exactly when a reward capsule matters most). The roll needs
+    // only ONE free slot; BUFF_LIVE_CAP + the drop cooldown bound the rate.
+    if (rnd() < BUFF_AMBIENT_CHANCE) {
+      if (S.free.length > 0) {
+        var buffRegion = S.sdf ? World.regionAt(camX, camY) : 0;
+        if (ringPointValid(camX, camY, { tier: 0 }, 'buffpickup', buffRegion, ringOut)) {
+          spawnBuffAt(ringOut[0], ringOut[1]);
+        }
+      }
+      return;
+    }
     if (S.free.length <= 4) return;
+    var playerRegion = S.sdf ? World.regionAt(camX, camY) : 0;
     var live = onscreenCount(camX, camY);
     if (live >= B.onscreen) return;
     // One spawn attempt per step keeps the cost flat; the ring fills quickly.
@@ -3174,15 +4963,26 @@ import * as THREE from 'three';
     var z = World.zoneAt(ringOut[1]);
     if (!z) return;
     // Predator roll first: rarer, and only where the roster allows it.
+    // Rev 6.11 NURSERY LAW: a fresh/low-tier player (tier <= NURSERY_TIER) is
+    // completely off-limits to predator spawns within NURSERY_R, regardless
+    // of zone or region, so a new run is never ambushed at the ring edge.
+    var nurseryPlayer = ctx.player && (ctx.player.tier || 1) <= NURSERY_TIER;
     var npcList = S.npcByZone[z.id];
-    if (npcList && npcList.length && rnd() < 0.12) {
-      spawnOne(pickWeighted(npcList), ringOut[0], ringOut[1], 0);
+    if (npcList && npcList.length && rnd() < 0.12 &&
+      !(nurseryPlayer && withinNursery(ctx.player, ringOut[0], ringOut[1]))) {
+      var npcId = pickWeighted(npcList);
+      var npcDef = defOf(npcId);
+      if (ringPointValid(camX, camY, npcDef, 'predator', playerRegion, ringOut, z.id) &&
+        !(nurseryPlayer && withinNursery(ctx.player, ringOut[0], ringOut[1]))) {
+        spawnOne(npcId, ringOut[0], ringOut[1], 0);
+      }
       return;
     }
     var defId = pickWeighted(z.spawns || []);
     if (!defId) return;
     var def = defOf(defId);
     if (!def) return;
+    if (!ringPointValid(camX, camY, def, kindForDef(def), playerRegion, ringOut, z.id)) return;
     var n = 1;
     if (def.packMin) n = ri(def.packMin, def.packMax || def.packMin);
     n = Math.min(n, B.onscreen - live, S.free.length - 2);
@@ -3224,9 +5024,48 @@ import * as THREE from 'three';
     var dx = tx - e.x, dy = ty - e.y;
     var d = Math.sqrt(dx * dx + dy * dy) || 1;
     var wantX = (dx / d) * speed, wantY = (dy / d) * speed;
+    steerWhisker(e, wantX, wantY);
     var k = clamp((turn || 4) * dt, 0, 1);
-    e.vx += (wantX - e.vx) * k;
-    e.vy += (wantY - e.vy) * k;
+    e.vx += (steerScratchX - e.vx) * k;
+    e.vy += (steerScratchY - e.vy) * k;
+  }
+
+  // Rev 6 (6.4) NPC steer whisker: probe the SDF one whisker-length ahead
+  // along the entity's CURRENT heading (not the want-vector, so a fish about
+  // to reverse into a wall still gets warned by where it is actually going).
+  // When the probe reads closer than r+40 to rock, the want-vector is rotated
+  // along the wall tangent (perpendicular to the SDF gradient at the probe
+  // point) rather than left to walk straight into resolveBody's push-out
+  // every frame, which reads as a fish "steering" around a cavern wall
+  // instead of sliding along it. Result lands in steerScratchX/Y so steer()
+  // stays allocation-free.
+  var steerScratchX = 0, steerScratchY = 0;
+  function steerWhisker(e, wantX, wantY) {
+    steerScratchX = wantX; steerScratchY = wantY;
+    if (!S.sdf) return;
+    var heading = e.angle || 0;
+    var hx = Math.cos(heading), hy = Math.sin(heading);
+    var px = e.x + hx * WHISKER_DIST, py = e.y + hy * WHISKER_DIST;
+    var d = World.terrainSDF(px, py);
+    var r = (e.r || 14) + WHISKER_TURN_R;
+    if (d >= r) return;
+    var dxp = World.terrainSDF(px + GRAD_EPS, py);
+    var dxm = World.terrainSDF(px - GRAD_EPS, py);
+    var dyp = World.terrainSDF(px, py + GRAD_EPS);
+    var dym = World.terrainSDF(px, py - GRAD_EPS);
+    var gx = (dxp - dxm) / (2 * GRAD_EPS);
+    var gy = (dyp - dym) / (2 * GRAD_EPS);
+    var glen = Math.sqrt(gx * gx + gy * gy);
+    if (!(glen > 1e-6)) return;
+    // Wall tangent: rotate the gradient (which points toward open water) 90
+    // degrees; pick the sign that keeps the want-vector's original forward
+    // sense so the fish still makes progress rather than u-turning in place.
+    var tx = -gy / glen, ty = gx / glen;
+    var fwd = wantX * tx + wantY * ty;
+    if (fwd < 0) { tx = -tx; ty = -ty; }
+    var speed = Math.sqrt(wantX * wantX + wantY * wantY);
+    steerScratchX = tx * speed;
+    steerScratchY = ty * speed;
   }
 
   // Rev 5 SURFACE CONTAINMENT. The single choke point every non-player entity
@@ -3255,6 +5094,11 @@ import * as THREE from 'three';
     var slow = e.st.slowT > 0 ? 0.45 : 1;
     e.x += e.vx * dt * slow;
     e.y += e.vy * dt * slow;
+    // Rev 6 (6.4): every mover resolves against the SDF cavern maze right
+    // after its position update, same as engine3d's player path (stepMotion,
+    // after integration, before edge clamps). Push-out + tangent slide, so a
+    // fish pressed into rock is nudged clear rather than snagging.
+    World.resolveBody(e, e.r || 14);
     // Soft world bounds: reflect rather than clamp so nothing piles on an edge.
     if (e.x < 20) { e.x = 20; e.vx = Math.abs(e.vx); }
     else if (e.x > S.w - 20) { e.x = S.w - 20; e.vx = -Math.abs(e.vx); }
@@ -3292,11 +5136,58 @@ import * as THREE from 'three';
     }
   }
 
+  // Rev 6.5: mouth-proximity panic. The mouth CENTER (not the player body)
+  // closing within PANIC_R arms panicT for PANIC_T seconds regardless of the
+  // sight-based flee state below; once armed it decays on its own clock so a
+  // fish that darts out of range still finishes its panic burst instead of
+  // snapping calm the instant the mouth passes by.
+  function updatePanic(e, dt) {
+    var st = e.st;
+    if (st.panicT > 0) st.panicT -= dt;
+    var mouth = RF.ctx && RF.ctx.mouth;
+    if (!mouth) return;
+    var dx = mouth.x - e.x, dy = mouth.y - e.y;
+    if (dx * dx + dy * dy <= PANIC_R * PANIC_R) st.panicT = PANIC_T;
+  }
+
+  // Rev 6.12 PREY PANIC CUE: reads the player's published lunge-capture point
+  // (ctx.player.st.lungeX/lungeY, live only while st.lungeT > 0, both owned
+  // by engine3d.js's stepLunge) and, when this entity is the one sitting at
+  // that point, arms/refreshes a short instance-color flash plus a one-shot
+  // fx tracer. Guarded defensively (typeof checks on every field) because
+  // this lane does not own engine3d.js and must never assume its exact
+  // current shape — a run without a live lunge simply never triggers this.
+  function updateLungeTargetFlash(e, ctx, dt) {
+    var st = e.st;
+    if (st.lungeTargetFlashT > 0) st.lungeTargetFlashT -= dt;
+    if (st.lungeTargetFlashT < 0) st.lungeTargetFlashT = 0;
+    var p = ctx && ctx.player;
+    var pst = p && p.st;
+    if (!pst || !(pst.lungeT > 0)) return;
+    if (typeof pst.lungeX !== 'number' || typeof pst.lungeY !== 'number') return;
+    var dx = pst.lungeX - e.x, dy = pst.lungeY - e.y;
+    if (dx * dx + dy * dy > LUNGE_TARGET_R * LUNGE_TARGET_R) return;
+    // Newly armed (was not already flashing this lunge window): fire a small
+    // one-shot tracer spark once rather than every step the target stays
+    // inside the window. 'elementSpark' is an existing small additive-spark
+    // pool (fx3d.js POOL_CONFIG) that accepts a tint straight from opts, so
+    // this reads as a distinct "you are the target" marker beyond the
+    // instance-color flash below without needing a new fx3d.js pool (a lane
+    // this task does not own).
+    if (st.lungeTargetFlashT <= 0) {
+      fx('elementSpark', e.x, e.y, { tint: LUNGE_FLASH_COLOR, count: 3, scale: 0.9, life: 260 });
+    }
+    st.lungeTargetFlashT = LUNGE_FLASH_T;
+  }
+
   function preyAI(e, ctx, dt) {
     var def = e.def;
     var spd = def.speed || 120;
     var player = ctx.player;
     var fleeing = false;
+    updatePanic(e, dt);
+    updateLungeTargetFlash(e, ctx, dt);
+    var panicking = e.st.panicT > 0;
     if (player) {
       var dx = player.x - e.x, dy = player.y - e.y;
       var d2 = dx * dx + dy * dy;
@@ -3315,6 +5206,47 @@ import * as THREE from 'three';
         }
         fleeing = true;
         e.st.mode = attract ? 'lured' : 'flee';
+      }
+    }
+    // Rev 6.5 mouth panic is a SEPARATE trigger from the sight-based flee
+    // above, anchored on RF.ctx.mouth (not necessarily the same point as
+    // ctx.player, e.g. a lunge target offset or a test harness). Fix-round 2
+    // (6.11 code review): the perpendicular jitter + doubled bend amp are the
+    // BINDING panic read and must apply even when ordinary sight-flee already
+    // steered this step, not only when sight-flee was silent. When both fire,
+    // the panic jitter steer is authoritative (it re-steers on top of the
+    // sight-flee direction, still overlaid on the suction pull toward the
+    // mouth applied after preyAI) so a prey within the mouth panic radius
+    // always visibly thrashes.
+    if (panicking) {
+      var mouth = RF.ctx && RF.ctx.mouth;
+      if (mouth) {
+        var mdx = mouth.x - e.x, mdy = mouth.y - e.y;
+        var md = Math.sqrt(mdx * mdx + mdy * mdy) || 1;
+        e.st.panicPhase += dt * PANIC_JITTER * TAU;
+        var perpX = -(mdy / md), perpY = mdx / md;
+        var jitterAmt = 90 * Math.sin(e.st.panicPhase + entPhase(e));
+        var fleeX = e.x - (mdx / md) * 400 + perpX * jitterAmt;
+        var fleeY = e.y - (mdy / md) * 400 + perpY * jitterAmt;
+        steer(e, fleeX, fleeY, spd * FLEE_BURST, dt, 6);
+        fleeing = true;
+        e.st.mode = 'flee';
+      }
+    }
+    // Rev 6.11 CHUM SEAM: read the engine-owned chum timer via the update ctx,
+    // guarded at every level (ctx, ctx.run, ctx.run.buffs may be absent in a
+    // headless/selftest ctx). Panic and sight-flee both take priority; Chum
+    // only steers a prey that is otherwise just wandering.
+    if (!fleeing && player) {
+      var chumT = ctx.run && ctx.run.buffs && ctx.run.buffs.chum;
+      if (chumT > 0) {
+        var cdx = player.x - e.x, cdy = player.y - e.y;
+        var cd2 = cdx * cdx + cdy * cdy;
+        if (cd2 < CHUM_R * CHUM_R) {
+          steer(e, player.x, player.y, spd * CHUM_SPEED_FRAC, dt, CHUM_STEER_W);
+          fleeing = true; // reuses the "already steered" gate below
+          e.st.mode = 'chum';
+        }
       }
     }
     if (!fleeing) {
@@ -3342,7 +5274,13 @@ import * as THREE from 'three';
       var dx = player.x - e.x, dy = player.y - e.y;
       var d2 = dx * dx + dy * dy;
       var pt = player.tier || 1;
-      if (pt < e.tier && d2 < PREDATOR_SIGHT * PREDATOR_SIGHT) {
+      // Rev 6.11 NURSERY LAW: a predator that has drifted outside its own
+      // home zone band may not pursue a nursery-tier (<= NURSERY_TIER)
+      // player at all. It still patrols/flees normally; it just never
+      // enters 'pursue' against a player this fragile from foreign turf.
+      var leashed = pt <= NURSERY_TIER && e.st.homeZoneId &&
+        World.zoneAt(e.y) && World.zoneAt(e.y).id !== e.st.homeZoneId;
+      if (pt < e.tier && d2 < PREDATOR_SIGHT * PREDATOR_SIGHT && !leashed) {
         e.st.mode = 'pursue';
         steer(e, player.x, player.y, spd, dt, 4.5);
         var reach = e.r + (player.r || 24);
@@ -3532,7 +5470,94 @@ import * as THREE from 'three';
     }
   }
 
-  // ---------------------------------------------------------------- kill
+  // ---------------------------------------------------- Rev 6.7 buff pickups
+  // Weighted table lives in RFD.PICKUPS (gen_data.py). Two spawn paths:
+  //   - World.spawnBuffDrop(x,y): engine-called on a notable kill (6.7 owns
+  //     the "notable" judgement; this lane just places the capsule).
+  //   - rare ambient rolls inside runSpawner (BUFF_AMBIENT_CHANCE).
+  // Kind is 'buffpickup' (never 'pickup', which stays coins-only) and every
+  // entity carries a `buff` string field naming the table row id. Collection
+  // is the engine's existing eatQuery/query path per 6.7; this lane does NOT
+  // implement buff effects, only spawn, drift, and expiry-with-fade.
+  // Rev 6.12 BUFF CADENCE: shared live-count gate for BOTH buff spawn paths
+  // (ambient roll and kill-drop), so a burst of notable kills cannot stack
+  // capsules past a small on-screen ceiling regardless of how many the
+  // ambient roll would also like to place this tick. Cheap: buffpickups are
+  // never more than a handful of live entities at once, so a linear scan of
+  // the dense active list is fine (this is not a per-frame hot path — it
+  // only runs on the rare ambient roll and on an actual notable kill).
+  var BUFF_LIVE_CAP = 2;
+  function liveBuffCount() {
+    var n = 0;
+    for (var i = 0; i < S.entities.length; i++) {
+      if (S.entities[i].kind === 'buffpickup') n++;
+    }
+    return n;
+  }
+  function spawnBuffAt(x, y) {
+    if (liveBuffCount() >= BUFF_LIVE_CAP) return null;
+    var P = pickups();
+    if (!P.length) return null;
+    var id = pickWeighted(pickupWeightRows(P));
+    if (!id) return null;
+    var row = pickupDef(id);
+    if (!row) return null;
+    var p = acquire();
+    if (!p) return null;
+    p.kind = 'buffpickup';
+    p.defId = 'buff_' + id;
+    // A tiny synthetic def so the shared billboard/fallback path can tint the
+    // capsule from the row's own accent colour without any new texture.
+    p.def = { id: p.defId, sprite: null, tier: 0, sil: { palette: { base: hexNum(row.tint) } } };
+    p.buffId = id;
+    p.tier = 0;
+    p.x = x; p.y = y;
+    var a = rr(0, TAU);
+    p.vx = Math.cos(a) * BUFF_DRIFT_SPEED;
+    p.vy = Math.sin(a) * BUFF_DRIFT_SPEED * 0.6;
+    if (p.y < SURFACE_Y) { p.y = SURFACE_Y; if (p.vy < 0) p.vy = -p.vy; }
+    p.hp = p.maxHp = 1;
+    p.r = 20;
+    p.score = 0;
+    p.coins = 0;
+    resetSt(p.st);
+    p.st.life = BUFF_LIFE;
+    applySprite(p);
+    gridInsert(p);
+    return p;
+  }
+  // Rev 6.12 BUFF CADENCE: the kill-drop path additionally respects a 10s
+  // global cooldown between drops (on top of the shared BUFF_LIVE_CAP gate
+  // spawnBuffAt already enforces for both paths), so a run of several
+  // notable kills in quick succession cannot flood capsules — only the
+  // ambient roll's own rare chance keeps offering a trickle in between.
+  var BUFF_DROP_COOLDOWN = 10;
+  World.spawnBuffDrop = function (x, y) {
+    if (S.buffDropCd > 0) return null;
+    var p = spawnBuffAt(x, y);
+    if (p) S.buffDropCd = BUFF_DROP_COOLDOWN;
+    return p;
+  };
+
+  // pickWeighted expects [id, weight] rows or {defId, w}; PICKUPS rows are
+  // {id, weight, ...}, so adapt once per call rather than allocating a whole
+  // parallel table up front (pickup rolls are rare, so this is cheap).
+  var pickupWeightScratch = [];
+  function pickupWeightRows(P) {
+    pickupWeightScratch.length = 0;
+    for (var i = 0; i < P.length; i++) pickupWeightScratch.push([P[i].id, P[i].weight || 1]);
+    return pickupWeightScratch;
+  }
+
+  function buffAI(p, ctx, dt) {
+    p.st.life -= dt;
+    if (p.st.life <= 0) { World.kill(p, 'expire'); return; }
+    // Gentle ambient drift, no player attraction: 6.7 gives buffs no magnet,
+    // unlike coins, so the player has to actually swim to one.
+    p.vx *= 0.985; p.vy *= 0.985;
+    var sp = p.sprite;
+    if (sp && p.st.life < BUFF_FADE) setOpacity(sp, clamp(p.st.life / BUFF_FADE, 0, 1));
+  }
   World.kill = function (ent, cause) {
     if (!ent || !ent.active) return;
     if (cause !== 'collected' && cause !== 'despawn' && cause !== 'expire') {
@@ -3540,7 +5565,8 @@ import * as THREE from 'three';
       fx('motes', ent.x, ent.y, null);
       if (cause !== 'detonate') sfx('chomp', null);
     }
-    if (cause !== 'despawn' && cause !== 'expire' && ent.kind !== 'pickup' && ent.coins > 0) {
+    if (cause !== 'despawn' && cause !== 'expire' && ent.kind !== 'pickup' &&
+      ent.kind !== 'buffpickup' && ent.coins > 0) {
       dropPickup(ent, null);
     }
     release(ent);
@@ -3651,7 +5677,9 @@ import * as THREE from 'three';
     { fx: 'bubbles', every: 0.11, count: 4, tint: 0xdff6ff, sx: 460, sy: 300, angle: 270, speed: 70, scale: 0.9 },
     { fx: 'motes',   every: 0.13, count: 3, tint: 0x7fd6a8, sx: 480, sy: 320, angle: 250, speed: 34, scale: 0.8 },
     { fx: 'motes',   every: 0.15, count: 3, tint: 0xcfe3ee, sx: 500, sy: 340, angle: 90,  speed: 26, scale: 0.7 },
-    { fx: 'motes',   every: 0.35, count: 2, tint: 0x6fd0ff, sx: 520, sy: 360, angle: 90,  speed: 12, scale: 1.25 },
+    // Rev 6.9: abyss motes retint to the canonical cyan accent so the
+    // deepest zone's ambient sparkle reads as "data motes", not plain blue.
+    { fx: 'motes',   every: 0.35, count: 2, tint: NEON_CYAN, sx: 520, sy: 360, angle: 90,  speed: 12, scale: 1.25 },
   ];
   // Reused options object. Never replaced, so update() allocates nothing. The
   // z field is new in 3D: marine snow and bubbles ride the FOREGROUND mote
@@ -3898,7 +5926,13 @@ import * as THREE from 'three';
     var speedFrac = maxSpd > 0 ? clamp(spd / maxSpd, 0, 1.4) : 0;
     if (st.frozenT > 0) speedFrac = 0;
     batch.phase.setX(rec.slot, entPhase(e) + t);
-    batch.amp.setX(rec.slot, INST_BEND_AMP * clamp(speedFrac, 0, 1));
+    // Rev 6.5: doubled instanced bend amplitude while panicking, so a fish
+    // whose panicT is armed visibly thrashes rather than just swimming away
+    // faster (the flee-speed and jitter live in preyAI/steer; this is the
+    // purely visual half of the same cue).
+    var bendAmp = INST_BEND_AMP * clamp(speedFrac, 0, 1);
+    if (st.panicT > 0) bendAmp *= PANIC_BEND_MULT;
+    batch.amp.setX(rec.slot, bendAmp);
 
     var tint = e._tint || 0;
     if (!tint) {
@@ -3907,6 +5941,15 @@ import * as THREE from 'three';
       else if (st.poisonT > 0) tint = TINT_POISON;
       else if (st.stunT > 0) tint = TINT_STUN;
       else tint = 0xffffff;
+    }
+    // Rev 6.12 PREY PANIC CUE: the lunge-captured target flashes toward
+    // white/red on top of whatever base tint it already has, via the
+    // existing instanceColor attribute (no new attribute/draw). Blended
+    // rather than a hard override so a frozen/burning target's status tint
+    // still reads through the flash.
+    if (st.lungeTargetFlashT > 0) {
+      var flashK = clamp(st.lungeTargetFlashT / LUNGE_FLASH_T, 0, 1);
+      tint = lerpColor(tint, LUNGE_FLASH_COLOR, 0.55 * flashK);
     }
     instColorScratch.setHex(tint);
     batch.colors.setXYZ(rec.slot, instColorScratch.r, instColorScratch.g, instColorScratch.b);
@@ -3933,6 +5976,18 @@ import * as THREE from 'three';
       // dark water without needing a particle.
       var ga = 1 - GLINT_AMP * (0.5 + 0.5 * Math.sin(t * GLINT_RATE * TAU + entPhase(e)));
       setOpacity(sp, ga);
+      return;
+    }
+
+    if (e.kind === 'buffpickup') {
+      // Same glint language as a coin, but only while there is life left to
+      // glint about: buffAI already owns the final BUFF_FADE seconds of
+      // opacity as a hard fade-to-zero, and this pulse would otherwise fight
+      // that write every frame.
+      if (e.st.life > BUFF_FADE) {
+        var gb = 1 - GLINT_AMP * (0.5 + 0.5 * Math.sin(t * GLINT_RATE * TAU + entPhase(e)));
+        setOpacity(sp, gb);
+      }
       return;
     }
 
@@ -3983,12 +6038,16 @@ import * as THREE from 'three';
       while (dTurn > Math.PI) dTurn -= TAU;
       while (dTurn < -Math.PI) dTurn += TAU;
       rigState.turn = clamp(dTurn * 2.2, -1, 1);
+      // 6.2: NPC rigState.vy mirrors the player bag so shark3d's pitch-from-vy
+      // read (shark3d.js state.vy consumer) applies to predators too, not just
+      // the player. Sim px/s, +y = down, same units the player publishes.
+      rigState.vy = e.vy;
       // bitePhase decays from the bite the AI just scored, so the jaw snap and
       // the damage are the same event.
       if (st.bitePhase > 0) { st.bitePhase -= dtOf() * 3.2; if (st.bitePhase < 0) st.bitePhase = 0; }
       rigState.bitePhase = st.bitePhase || 0;
       rigState.jawSnapT = st.biteCd > 0 ? st.biteCd : 0;
-      if (frozen) { rigState.speedFrac = 0; rigState.turn = 0; }
+      if (frozen) { rigState.speedFrac = 0; rigState.turn = 0; rigState.vy = 0; }
       try { e.rig.animate(t, rigState); } catch (err) { /* rig must never break the sim */ }
       return;
     }
@@ -4008,6 +6067,9 @@ import * as THREE from 'three';
     // small Z ROTATION on the billboard, per SPEC3D.
     var hz = FISH_WIGGLE_HZ[0] + (FISH_WIGGLE_HZ[1] - FISH_WIGGLE_HZ[0]) * f;
     var amp = FISH_WIGGLE * (0.25 + 0.75 * f);
+    // Rev 6.5: doubled bend amplitude while panicking, matching the instanced
+    // path (this is the non-instanced billboard fallback for the same cue).
+    if (st.panicT > 0) amp *= PANIC_BEND_MULT;
     var wig = f > 0 ? Math.sin(t * hz * TAU + entPhase(e)) * amp : 0;
     applyHeading(e, sp, wig);
   }
@@ -4205,6 +6267,10 @@ import * as THREE from 'three';
     S.surface = null;
     S.gradient = null;
     S.terrain.length = 0;
+    S.rockChunks.length = 0;
+    S.sdf = null;
+    S.sdfRegion = null;
+    S.sdfCols = 0; S.sdfRows = 0; S.sdfRegionN = 0;
     S.caustics.length = 0;
     S.rays.length = 0;
     S.seams.length = 0;
@@ -4271,9 +6337,21 @@ import * as THREE from 'three';
     resetHits();
     S.surfaceT = 0;
     S.ambientT = 0;
+    S.buffDropCd = 0;
     S.animT = 0;
     S.lastNow = -1;
     S.inited = false;
+
+    // 10. Module-scratch arrays that hold entity references between calls
+    //     (6.11 code review): scratchQuery is query()/eatQuery()'s reused
+    //     result buffer and stays populated with the last query's live
+    //     entity refs until the next query runs. playerHits is already
+    //     cleared by resetHits() above; scratchChain is always drained back
+    //     to length 0 at the end of its own function so it never persists
+    //     entity refs across calls. Clearing scratchQuery here means a
+    //     torn-down world holds no stale entity objects from its last run,
+    //     reducing iOS heap pressure across repeated start/end cycles.
+    scratchQuery.length = 0;
 
     // texCache and canvasCache are DELIBERATELY LEFT ALONE. See the block
     // comment above: they are the documented persistent asset caches.
@@ -4290,10 +6368,11 @@ import * as THREE from 'three';
     // call teardown() still cannot leak. Calling teardown() twice is safe.
     if (S.inited) { try { World.teardown(); } catch (e) { /* nothing to release */ } }
     var d = D();
-    var W = d.WORLD || { w: 7200, h: 3600 };
+    var W = d.WORLD || { w: 14400, h: 4800 };
     S.scene = scene3 || null;
     S.renderer = (ctx && ctx.renderer) || null;
     S.rng = (ctx && ctx.rng) || null;
+    decorRng = makeLocalRng(0x5eaf100d);
     S.w = W.w; S.h = W.h;
     S.cols = Math.ceil(S.w / CELL);
     S.rows = Math.ceil(S.h / CELL);
@@ -4312,8 +6391,13 @@ import * as THREE from 'three';
     S.surface = null;
     S.gradient = null;
     S.terrain.length = 0;
+    S.rockChunks.length = 0;
+    S.sdf = null;
+    S.sdfRegion = null;
+    S.sdfCols = 0; S.sdfRows = 0; S.sdfRegionN = 0;
     S.surfaceT = 0;
     S.ambientT = 0;
+    S.buffDropCd = 0;
     S.matCache = {};
     S.views = {};
     S.fishSources = {};
@@ -4432,6 +6516,10 @@ import * as THREE from 'three';
       typeof ctx.camera.position.x === 'number' ? ctx.camera.position.x : camX;
     animateWater(wt, surfaceCamX);
 
+    // Rev 6.12 BUFF CADENCE: tick the kill-drop cooldown down alongside every
+    // other per-frame timer in this step.
+    if (S.buffDropCd > 0) { S.buffDropCd -= dt; if (S.buffDropCd < 0) S.buffDropCd = 0; }
+
     // Ambient particle character, per zone. Each zone gets its own emission
     // family, cadence, tint and drift, so the water itself tells you where you
     // are. Options travel in ONE reused object: zero per-frame allocation.
@@ -4453,7 +6541,7 @@ import * as THREE from 'three';
 
       if (statusTick(e, ctx, dt)) continue;
 
-      var despawnable = e.kind !== 'pickup';
+      var despawnable = e.kind !== 'pickup' && e.kind !== 'buffpickup';
       if (despawnable) {
         var ddx = e.x - camX, ddy = e.y - camY;
         if (ddx * ddx + ddy * ddy > DESPAWN * DESPAWN) { World.kill(e, 'despawn'); continue; }
@@ -4473,6 +6561,7 @@ import * as THREE from 'three';
         else if (e.kind === 'predator') predatorAI(e, ctx, dt);
         else if (e.kind === 'hazard') hazardAI(e, ctx, dt);
         else if (e.kind === 'pickup') pickupAI(e, ctx, dt);
+        else if (e.kind === 'buffpickup') buffAI(e, ctx, dt);
         if (!e.active) continue;
         applyMouthSuction(e, mouth, dt);
         integrate(e, dt);
@@ -4506,6 +6595,7 @@ import * as THREE from 'three';
     return {
       active: S.entities.length, free: S.free.length, pool: S.pool.length,
       decor: S.decor.length, zone: S.lastZoneId,
+      rockChunks: S.rockChunks.length, sdfRegionN: S.sdfRegionN,
     };
   };
   // Exposed for the engine's draw-call budget check and for the selftest.
@@ -5034,10 +7124,14 @@ import * as THREE from 'three';
       // Suction is a velocity force owned by the world step. It only affects
       // eligible prey inside the mouth radius; hazards at the same mouth do
       // not receive it, and the capped speed prevents a teleport across it.
-      var sucked = spawnOne('mackerel', 2200, 1400, 0);
-      var unsucked = spawnOne('mine', 2450, 1400, 0);
+      // Rev 6: y=300 keeps this pair inside the SDF_OPEN_Y guaranteed-open
+      // band (6.4: "open water above y ~ 500"), so resolveBody's push-out
+      // never fights the suction assertions below with an unrelated maze
+      // wall at this rng seed.
+      var sucked = spawnOne('mackerel', 2200, 300, 0);
+      var unsucked = spawnOne('mine', 2450, 300, 0);
       if (sucked && unsucked) {
-        var mouth = { x: 2450, y: 1400, r: 280, strength: 2400, eligibleTierMax: sucked.tier };
+        var mouth = { x: 2450, y: 300, r: 280, strength: 2400, eligibleTierMax: sucked.tier };
         ctx.mouth = mouth;
         sucked.vx = 0; sucked.vy = 0;
         var startDist = Math.sqrt((sucked.x - mouth.x) * (sucked.x - mouth.x) +
@@ -5301,7 +7395,9 @@ import * as THREE from 'three';
       ctx.player.st.junkEater = false;
 
       chk(World.zoneAt(100) && World.zoneAt(100).id === 1, 'zoneAt(100) resolves to zone 1');
-      chk(World.zoneAt(3500) && World.zoneAt(3500).id === 4, 'zoneAt(3500) resolves to zone 4');
+      // Rev 6: world grows to 14400x4800, zones rescale to yMax
+      // 1200/2400/3600/4800 (6.4), so the zone-4 probe moves from 3500 to 4500.
+      chk(World.zoneAt(4500) && World.zoneAt(4500).id === 4, 'zoneAt(4500) resolves to zone 4');
       var burst = World.spawnBurst('minnow', 500, 500, 5);
       chk(burst === 5, 'spawnBurst produced 5 entities');
 
@@ -5362,8 +7458,9 @@ import * as THREE from 'three';
         }
         chk(gradientVerticesAtLocalZ && Math.abs(S.gradient.mesh.position.z - Z_GRADIENT) < 1e-9,
           'gradient vertices use local z=0 and the mesh alone owns z=-500');
-        chk(gxMin <= -399.9 && gxMax >= 7599.9 && gyMin <= -4199.9 && gyMax >= 599.9,
-          'gradient sheet spans world plus overshoot x -400..7600, y -600..4200');
+        // Rev 6: bounds scale with S.w/S.h (world grew to 14400x4800; 6.4).
+        chk(gxMin <= -399.9 && gxMax >= S.w + 399.9 && gyMin <= -(S.h + 599.9) && gyMax >= 599.9,
+          'gradient sheet spans world plus overshoot x -400..w+400, y -600..h+600');
       }
       chk(S.terrain.length === 4, 'terrain is exactly four ridge batches (' + S.terrain.length + ')');
       var terrainZOk = S.terrain.length === 4, terrainRgbaOk = true, terrainOpaque = true;
@@ -5440,7 +7537,7 @@ import * as THREE from 'three';
       chk(!!(S.surface && S.surface.snell && S.surface.snell.material &&
         S.surface.snell.material.map), 'Snell window disc owns a baked radial map');
       chk(World.__depthTint(0xffffff, -100, 0x000000) !== World.__depthTint(0xffffff, -420, 0x000000) &&
-        World.__lightAtDepth(0) === 1 && World.__lightAtDepth(3600) === 0.45 &&
+        World.__lightAtDepth(0) === 1 && World.__lightAtDepth(S.h) === 0.45 &&
         World.__depthTint(0xffffff, -100, 0x000000) === 0xeaeaea &&
         World.__depthTint(0xffffff, -420, 0x000000) === 0x7f7f7f,
         'depth tint and vertical light helpers hit their authored endpoints');
@@ -6293,6 +8390,136 @@ import * as THREE from 'three';
       chk(batchVerts > 400,
         'PERF-03: the merged batches carry real geometry, they are not empty meshes (' +
         batchVerts + ' vertices)');
+
+      // ============================================ Rev 6 SDF maze (6.4)
+      // World is still live from the draw-call accounting init() above, so
+      // these read the SAME built maze/rock as the budget numbers just
+      // asserted, rather than paying for (and risking drifting from) a
+      // second build.
+      var sdfProbeOk = true, sdfBad = 0;
+      function sdfChk(ok) { if (!ok) { sdfProbeOk = false; sdfBad++; } }
+
+      // Push-out invariant: a body dropped at a random point, resolved
+      // against the maze, ends up with sdf >= r (clear of rock by at least
+      // its own radius) and with any velocity component INTO the wall
+      // removed (slide, never bounce/snag per 6.4).
+      var pushBody = { x: 0, y: 0, vx: 0, vy: 0 };
+      var pushR = 30;
+      var pushTries = 60, pushChecked = 0;
+      for (var pti = 0; pti < pushTries; pti++) {
+        pushBody.x = rngStub() * S.w;
+        pushBody.y = SDF_OPEN_Y + rngStub() * (S.h - SDF_OPEN_Y);
+        var beforeSdf = World.terrainSDF(pushBody.x, pushBody.y);
+        if (beforeSdf >= pushR + 2) continue; // already clear; nothing to prove here
+        // Aim velocity STRAIGHT INTO the nearest wall (down the negative
+        // gradient) so the slide assertion is not accidentally trivial.
+        var gxp = World.terrainSDF(pushBody.x + 6, pushBody.y);
+        var gxm = World.terrainSDF(pushBody.x - 6, pushBody.y);
+        var gyp = World.terrainSDF(pushBody.x, pushBody.y + 6);
+        var gym = World.terrainSDF(pushBody.x, pushBody.y - 6);
+        var ggx = (gxp - gxm) / 12, ggy = (gyp - gym) / 12;
+        var glen0 = Math.sqrt(ggx * ggx + ggy * ggy) || 1;
+        pushBody.vx = -(ggx / glen0) * 200;
+        pushBody.vy = -(ggy / glen0) * 200;
+        World.resolveBody(pushBody, pushR);
+        var afterSdf = World.terrainSDF(pushBody.x, pushBody.y);
+        // Re-sample the gradient AT THE FINAL position: resolveBody may take
+        // several internal iterations against a non-exact SDF, so the
+        // meaningful "no velocity into the wall" invariant is evaluated
+        // against the normal at where the body actually ended up, not the
+        // (possibly stale, several cells away) normal sampled before the
+        // call.
+        var fgxp = World.terrainSDF(pushBody.x + 6, pushBody.y);
+        var fgxm = World.terrainSDF(pushBody.x - 6, pushBody.y);
+        var fgyp = World.terrainSDF(pushBody.x, pushBody.y + 6);
+        var fgym = World.terrainSDF(pushBody.x, pushBody.y - 6);
+        var fgx = (fgxp - fgxm) / 12, fgy = (fgyp - fgym) / 12;
+        var flen = Math.sqrt(fgx * fgx + fgy * fgy) || 1;
+        var vn = pushBody.vx * (fgx / flen) + pushBody.vy * (fgy / flen);
+        sdfChk(afterSdf >= pushR - 1e-6);
+        sdfChk(vn >= -1e-6); // no remaining velocity component into the wall
+        pushChecked++;
+      }
+      chk(pushChecked > 0 && sdfProbeOk,
+        'resolveBody push-out invariant holds: sdf >= r and no into-wall velocity (' +
+        pushChecked + ' contacts, ' + sdfBad + ' bad)');
+
+      // 200 ringPoint samples: every one lands sdf > radiusFor(def)+24 AND in
+      // the SAME flood-fill region as the player (6.4 spawn contract).
+      var sampleOut = [0, 0];
+      var sampleDef = defOf('minnow') || { tier: 0 };
+      var sampleR = radiusFor(sampleDef, 'prey') + SDF_SPAWN_CLEAR;
+      var samplePlayerRegion = World.regionAt(lifeCtx.player.x, lifeCtx.player.y);
+      var sampleOk = 0, sampleBad = 0;
+      for (var smp = 0; smp < 200; smp++) {
+        var got = ringPointValid(lifeCtx.player.x, lifeCtx.player.y, sampleDef, 'prey',
+          samplePlayerRegion, sampleOut);
+        var sdfAt = World.terrainSDF(sampleOut[0], sampleOut[1]);
+        var regionAt = World.regionAt(sampleOut[0], sampleOut[1]);
+        if (got && sdfAt > sampleR && regionAt === samplePlayerRegion) sampleOk++;
+        else sampleBad++;
+      }
+      chk(sampleOk === 200,
+        '200 ringPoint samples all land sdf > radiusFor+24 and in the player region (' +
+        sampleOk + '/200 ok, ' + sampleBad + ' bad)');
+
+      // Rev 6.11 MAZE REACHABILITY: body-radius-aware BFS, not point-connected.
+      // Walkable cells require sdf > MAZE_CLEARANCE (tier-12 body radius 98 +
+      // 24px spawn clearance = 122px), so this proves a tier-12 shark can
+      // actually swim the route, not merely that a zero-radius point can.
+      // World.init() already ran widenTunnelsForReachability once for this
+      // seed; this asserts that pass actually left every band reachable.
+      var bfsRes = bfsBandReachability(MAZE_CLEARANCE, lifeCtx.player.x, lifeCtx.player.y);
+      chk(bfsRes.ok,
+        'body-radius-aware BFS (clearance ' + MAZE_CLEARANCE + 'px) reaches every zone band (' +
+        bfsRes.reachableN + '/' + zones().length + ', regionN=' + S.sdfRegionN + ')');
+
+      // Pickup table: weights sum positive and every row is a valid def
+      // (has an id, a positive weight, and a finite/absent duration).
+      var pickupRows = pickups();
+      var pickupWeightSum = 0, pickupRowsOk = true;
+      for (var pri = 0; pri < pickupRows.length; pri++) {
+        var prow = pickupRows[pri];
+        var rowOk = !!(prow && typeof prow.id === 'string' && prow.id.length &&
+          typeof prow.weight === 'number' && prow.weight > 0 &&
+          (prow.dur === undefined || (typeof prow.dur === 'number' && prow.dur >= 0)));
+        if (!rowOk) pickupRowsOk = false;
+        pickupWeightSum += (prow && prow.weight) || 0;
+      }
+      chk(pickupRows.length > 0 && pickupWeightSum > 0 && pickupRowsOk,
+        'PICKUPS table weights sum positive and every row is valid (' +
+        pickupRows.length + ' rows, weight sum ' + pickupWeightSum + ')');
+
+      // spawnBuffDrop / ambient spawn: produces a live 'buffpickup' entity
+      // carrying a `buffId` field that names a real PICKUPS row, drifts, and
+      // is not despawn-culled by camera distance (its own st.life owns
+      // expiry per 6.7).
+      var buffEnt = World.spawnBuffDrop(lifeCtx.player.x + 4000, lifeCtx.player.y + 200);
+      chk(!!(buffEnt && buffEnt.kind === 'buffpickup' && typeof buffEnt.buffId === 'string' &&
+        pickupDef(buffEnt.buffId)),
+        'spawnBuffDrop places a buffpickup entity naming a real PICKUPS row (' +
+        (buffEnt && buffEnt.buffId) + ')');
+      if (buffEnt) {
+        var buffX0 = buffEnt.x, buffY0 = buffEnt.y;
+        var buffId0 = buffEnt.id;
+        lifeCtx.time.now += 1 / 60;
+        World.update(lifeCtx);
+        chk(buffEnt.active && (buffEnt.x !== buffX0 || buffEnt.y !== buffY0),
+          'buffpickup drifts under its own AI (moved this step)');
+        buffEnt.st.life = 0.001;
+        lifeCtx.time.now += 1 / 60;
+        World.update(lifeCtx);
+        // The pool may recycle this exact slot into a NEW entity within the
+        // same update (e.g. a rare ambient buff roll landing right after
+        // this one expires), which is correct pooling behaviour, not a
+        // resurrection: id !== buffId0 proves the slot was freed and
+        // reacquired rather than the original entity surviving its own
+        // expiry.
+        chk(!buffEnt.active || buffEnt.id !== buffId0,
+          'buffpickup expires via World.kill once st.life reaches 0 (recycled: ' +
+          (buffEnt.id !== buffId0) + ')');
+      }
+
       World.teardown();
     } catch (err) {
       pass = false;

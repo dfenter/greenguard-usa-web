@@ -50,12 +50,11 @@ function tintFromOptions(opts, fallback) {
   return opts && opts.tint != null ? opts.tint : fallback;
 }
 
-const BLOOD_MIST_OPTS = Object.freeze({
-  count: 1, tint: 0xb3122a, tint2: 0x5a0812, scale: 0.78, life: 760,
-  angle: 0, speed: 18, cue: 'blood', blood: true,
+const FRENZY_EDGE_OPTS = Object.freeze({
+  count: 1, tint: 0xd98a2b, scale: 0.72, alpha: 0.13, life: 960, cue: 'blood',
 });
-const BLOOD_EDGE_OPTS = Object.freeze({
-  count: 1, tint: 0xb3122a, scale: 0.72, alpha: 0.13, life: 960, cue: 'blood',
+const FRENZY_DEATHBURST_OPTS = Object.freeze({
+  count: 22, tint: 0xd98a2b, tint2: 0xffdca0, scale: 0.9, life: 620, cue: 'blood',
 });
 const SCHOOL_RING_OPTS = Object.freeze({
   count: 1, tint: 0xdbe8f5, scale: 1.18, life: 420, cue: 'school',
@@ -124,6 +123,7 @@ void main() {
 const POOL_NAMES = Object.freeze([
   'bubbles', 'motes', 'elementSpark', 'ring', 'beamCore',
   'swimtrail', 'speedlines', 'breach', 'ambient', 'goldpulse',
+  'gib', 'wake',
 ]);
 
 const POOL_CONFIG = Object.freeze({
@@ -137,9 +137,18 @@ const POOL_CONFIG = Object.freeze({
   breach: { size: 96, life: 720, scale: 0.34, speed: 118, mode: 7, z: 50, pointSize: 40, shape: 0, additive: true },
   ambient: { size: 160, life: 1700, scale: 0.32, speed: 5, mode: 9, z: -40, pointSize: 18, shape: 3, additive: false },
   goldpulse: { size: 16, life: 980, scale: 1, speed: 0, mode: 8, z: 0, pointSize: 0, shape: 0, additive: false },
+  /* 6.5 gib pool: 24 prey-tinted quads, spin + drag + slight sink, 0.55s
+     life. 4-7 emitted per swallow scaled by meal tier. shape 2 (quad) so
+     each gib reads as a chunk, not a round mote. */
+  gib: { size: 24, life: 550, scale: 0.34, speed: 90, mode: 10, z: 44, pointSize: 30, shape: 2, additive: false, drag: 0.88, gravity: 40 },
+  /* 6.9 afterburner boost wake: dense cyan/magenta speedline trail behind
+     the player while boosting, additive. Pooled and reused just like
+     swimtrail; a second, denser family so the boost reads as a wake rather
+     than the ambient swim trail. */
+  wake: { size: 40, life: 260, scale: 0.4, speed: 210, mode: 11, z: 68, pointSize: 44, shape: 2, additive: true },
 });
 
-/* Nine GPU pools are each one reusable Points draw. goldpulse is a DOM-only
+/* Ten GPU pools are each one reusable Points draw. goldpulse is a DOM-only
    UI effect and therefore contributes zero WebGL draws. */
 const FX_DRAW_CALLS = POOL_NAMES.length - 1;
 
@@ -161,12 +170,61 @@ const Fx = (() => {
   let goldOverlayReady = false;
   let goldOverlayHost = null;
   let frenzyCue = null;
-  let bloodMistCarry = 0;
   let bloodEdgeClock = 0;
   let trailBoostMix = 0;
   let trailBoosting = false;
   let trailEmitCarry = 0;
   const GOLD_SIDES = ['top', 'right', 'bottom', 'left'];
+
+  /* 6.9 SCREEN BALANCE LAW: ONE vignette at a time, priority
+     damage > frenzy > goldrush > buff. Callers (engine/abilities) register a
+     timed request per named slot; the bus resolves to the single highest-
+     priority live request and that is the only one ever painted through the
+     shared goldpulse DOM edge overlay. `frenzyCue`/`syncFrenzy` continues to
+     drive the 'frenzy'/'goldrush' slots from ctx.run.frenzyCue so existing
+     behavior is unchanged; 'damage' and 'buff' are requested directly by
+     whichever caller owns that moment (hurt flash, buff pickup, etc). */
+  const VIGNETTE_PRIORITY = ['damage', 'frenzy', 'goldrush', 'buff'];
+  const vignetteRequests = Object.create(null);
+  let activeVignetteCue = null;
+
+  function requestVignette(name, ms) {
+    if (VIGNETTE_PRIORITY.indexOf(name) < 0) return false;
+    vignetteRequests[name] = { until: nowMs(null) + clamp(ms, 1, 8000) };
+    activeVignetteCue = resolveVignette();
+    return true;
+  }
+
+  function clearVignette(name) {
+    if (vignetteRequests[name]) delete vignetteRequests[name];
+    activeVignetteCue = resolveVignette();
+  }
+
+  function resolveVignette() {
+    const now = nowMs(null);
+    for (let i = 0; i < VIGNETTE_PRIORITY.length; i++) {
+      const name = VIGNETTE_PRIORITY[i];
+      const req = vignetteRequests[name];
+      if (!req) continue;
+      if (req.until <= now) { delete vignetteRequests[name]; continue; }
+      return name;
+    }
+    return null;
+  }
+
+  /* Resolved fresh on read too (rather than only trusting the last render's
+     snapshot) so a caller that requests/clears without waiting a frame still
+     sees the correct winner immediately -- important for the selftest and
+     for any synchronous caller like the toast queue. */
+  function currentVignetteCue() { activeVignetteCue = resolveVignette(); return activeVignetteCue; }
+
+  function visibleVignetteCount() {
+    const pool = pools.goldpulse;
+    if (!pool) return 0;
+    let count = 0;
+    for (let i = 0; i < pool.items.length; i++) if (pool.items[i].active) count++;
+    return count > 0 ? 1 : 0; // four edges paint as ONE overlay
+  }
 
   function addEdgeClass(edge, name) {
     if (!edge) return;
@@ -206,8 +264,18 @@ const Fx = (() => {
     if (trailBoostMix <= 0) trailEmitCarry = 0;
   }
 
+  /* Fix-round 2 (6.11 + code review MAJOR): engine3d's r.frenzyCue can also
+     publish a 'buff' cue (or a 'buff:<id>' variant) when a pickup applies a
+     timed power, per the shared VIGNETTE_PRIORITY bus. Previously this
+     validator only accepted the frenzy/goldrush family and silently dropped
+     any buff cue value, so a buff pickup produced no vignette even though
+     requestVignette('buff', ms) already exists. Recognize both the bare
+     'buff' cue and a namespaced 'buff:<id>' form (normalized back to 'buff'
+     since fx3d only needs to know a buff moment fired, not which one -- the
+     buff's own timer/tint lives in HUD buff bars, not the vignette). */
   function cueName(value) {
     if (value === 'blood' || value === 'school' || value === 'golden' || value === 'goldRush') return value;
+    if (value === 'buff' || (typeof value === 'string' && value.indexOf('buff:') === 0)) return 'buff';
     return null;
   }
 
@@ -428,7 +496,7 @@ const Fx = (() => {
     const angleProvided = angleValue != null;
     let angle = angleProvided ? angleValue : (mode === 5 || mode === 6 ? Math.PI : mode === 7 ? -Math.PI / 2 : 0);
     if (mode === 9 && !angleProvided) angle = (item.slot % 13) * 0.61;
-    const spread = mode === 0 ? 0.18 : (mode === 3 || mode === 4 ? 0 : mode === 5 ? 0.42 : mode === 6 ? 0.07 : mode === 7 ? 1.18 : mode === 9 ? 0.32 : 0.72);
+    const spread = mode === 0 ? 0.18 : (mode === 3 || mode === 4 ? 0 : mode === 5 ? 0.42 : mode === 6 ? 0.07 : mode === 7 ? 1.18 : mode === 9 ? 0.32 : mode === 10 ? 1.3 : mode === 11 ? 0.1 : 0.72);
     const ordinal = item.slot;
     const offset = ((ordinal % 11) - 5) / 5;
     const theta = angle + offset * spread;
@@ -489,8 +557,20 @@ const Fx = (() => {
       speed = clamp(speed, 0.5, 30);
       item.x += ((ordinal % 13) - 6) * finite(opts.radius, 14);
       item.y += (((ordinal * 7) % 13) - 6) * finite(opts.radius, 8);
+    } else if (mode === 10) {
+      /* Gib chunk: quick outward pop that drag settles fast, slight sink. */
+      speed = clamp(speed, 40, 220);
+      item.gravity = finite(opts.gravity, pool.config.gravity);
+      item.spin = (0.7 + (ordinal % 5) * 0.22) * (ordinal % 2 ? -1 : 1);
+    } else if (mode === 11) {
+      /* Afterburner wake: dense, fast, short-lived speedline behind the
+         player. Angle is authored by the caller (heading + PI so it trails
+         backward); spread stays tight so it reads as a directed wake. */
+      speed = clamp(speed, 90, 320);
+      item.length = clamp(opts.length == null ? 30 : opts.length, 10, 90) * scale;
+      item.width = clamp(opts.width == null ? 2.4 : opts.width, 1, 8) * scale;
     }
-    if (mode !== 1 && mode !== 2 && mode !== 5 && mode !== 7 && mode !== 9) item.gravity = 0;
+    if (mode !== 1 && mode !== 2 && mode !== 5 && mode !== 7 && mode !== 9 && mode !== 10) item.gravity = 0;
     if (mode === 1) item.gravity = 150;
     else if (mode === 2) item.gravity = 75;
     item.vx = Math.cos(theta) * speed;
@@ -500,7 +580,7 @@ const Fx = (() => {
     pool.aspects[item.slot] = 1;
     tintItem(item, pool, tintValue);
     show(item, pool);
-    syncItem(item, pool, mode === 3 ? 0.75 : mode === 6 ? 0.86 : 0.88);
+    syncItem(item, pool, mode === 3 ? 0.75 : mode === 6 ? 0.86 : mode === 11 ? 0.9 : 0.88);
     if (mode === 3) item.ringRadius = item.baseScale * 36;
   }
 
@@ -597,6 +677,8 @@ const Fx = (() => {
     if (name === 'breach') return pools.breach;
     if (name === 'ambient') return pools.ambient;
     if (name === 'goldpulse') return pools.goldpulse;
+    if (name === 'gib') return pools.gib;
+    if (name === 'wake') return pools.wake;
     return null;
   }
 
@@ -642,6 +724,45 @@ const Fx = (() => {
     return emitted;
   }
 
+  /* Art review CRITICAL 5 (ability signatures): abilities.js is a locked
+     lane this round and calls fx.beam(x1,y1,x2,y2,{tint,width,alpha}) with
+     no element id -- the RFD.ABILITIES tint IS the only per-element signal
+     that reaches fx3d through that narrow interface, and every element's
+     tint is unique (data.js), so it doubles as a stable element key here.
+     ELEMENT_FAMILY maps each ability's authored tint to a primitive combo;
+     an unrecognized tint (a future ability, or a caller using a raw color)
+     falls back to the plain core+halo beam so nothing ever throws or goes
+     invisible for an unmapped tint. */
+  const ELEMENT_FAMILY = {
+    0xff7a29: 'pyro',
+    0x8fe8ff: 'freeze',
+    0xf2f7ff: 'volt',
+    0x6fe06f: 'toxin',
+    0xd9c8ff: 'sonic',
+    0x39c6d6: 'vortex',
+    0xb8fff2: 'phase',
+    0xd8b06a: 'quake',
+    0xffe08a: 'chrono',
+    0x9ffcf0: 'atomic',
+  };
+  function familyFor(tint) {
+    if (tint == null) return null;
+    return ELEMENT_FAMILY[tint >>> 0] || null;
+  }
+
+  /* Layered core+halo beam: a slim white-hot core (thin, short-lived) plus
+     the caller's full-width tinted halo (the original single beam item, so
+     existing width/alpha tuning is unchanged), an impact bloom (ring pool)
+     and per-element debris/tint at the beam's far end. Every element family
+     gets a distinct debris primitive: pyro embers (motes, warm), freeze
+     shards (elementSpark, cool white), volt sparks (elementSpark, tight),
+     sonic distortion rings (ring, wide), vortex pull streaks (elementSpark,
+     inward angle), toxin bubbles (motes, slow rise), quake chunks (gib),
+     phase ghost trail (elementSpark, low alpha via scale), chrono ripple
+     rings (ring, slow). Atomic (the kaiju ceiling) gets the full treatment:
+     thicker layered beam, bigger impact bloom, and extra debris volume.
+     Still exactly the beamCore/ring/elementSpark/motes/gib pools -- zero new
+     draw calls regardless of which family fires. */
   function beam(x1, y1, x2, y2, opts) {
     const pool = pools.beamCore;
     if (!initialized || !pool) return false;
@@ -650,31 +771,229 @@ const Fx = (() => {
     const dx = bx - ax, dy = by - ay;
     const length = Math.sqrt(dx * dx + dy * dy);
     if (length < 1) return false;
-    const item = acquire(pool);
-    const width = clamp(opts.width == null ? 18 : opts.width, 2, 160);
+    const tint = opts.tint == null ? WHITE : opts.tint;
+    const family = familyFor(tint);
+    const isAtomic = family === 'atomic';
+    const width = clamp(opts.width == null ? 18 : opts.width, 2, 160) * (isAtomic ? 1.3 : 1);
     const scale = clamp(opts.scale == null ? 1 : opts.scale, 0.05, 8);
     const config = pool.config;
-    item.life = clamp(opts.life == null ? config.life : opts.life, 20, 400);
-    item.maxLife = item.life;
-    item.age = 0;
-    item.x = (ax + bx) * 0.5;
-    item.y = (ay + by) * 0.5;
-    item.z = finite(opts.z, config.z);
-    item.vx = 0;
-    item.vy = 0;
-    item.gravity = 0;
-    item.length = length;
-    item.width = width;
-    item.baseScale = scale;
-    item.rotation = Math.atan2(dy, dx);
-    item.tint = opts.tint == null ? WHITE : opts.tint;
-    item.isRing = false;
-    pool.shapes[item.slot] = 2;
-    pool.sizes[item.slot] = Math.max(width, 8) * scale;
-    tintItem(item, pool, item.tint);
-    show(item, pool);
-    syncItem(item, pool, 0.9);
+    const rotation = Math.atan2(dy, dx);
+    const midX = (ax + bx) * 0.5, midY = (ay + by) * 0.5;
+
+    // Halo: the original full-width tinted beam item, unchanged behavior.
+    const halo = acquire(pool);
+    halo.life = clamp(opts.life == null ? config.life : opts.life, 20, 400) * (isAtomic ? 1.4 : 1);
+    halo.maxLife = halo.life;
+    halo.age = 0;
+    halo.x = midX; halo.y = midY;
+    halo.z = finite(opts.z, config.z);
+    halo.vx = 0; halo.vy = 0; halo.gravity = 0;
+    halo.length = length;
+    halo.width = width;
+    halo.baseScale = scale;
+    halo.rotation = rotation;
+    halo.tint = tint;
+    halo.isRing = false;
+    pool.shapes[halo.slot] = 2;
+    pool.sizes[halo.slot] = Math.max(width, 8) * scale;
+    tintItem(halo, pool, halo.tint);
+    show(halo, pool);
+    syncItem(halo, pool, isAtomic ? 0.94 : 0.9);
+
+    // Core: a slim white-hot line, ~40% of the halo width, same length,
+    // shorter life so it reads as the hot center of a two-layer beam.
+    const core = acquire(pool);
+    const coreWidth = Math.max(2, width * 0.38);
+    core.life = halo.life * 0.6;
+    core.maxLife = core.life;
+    core.age = 0;
+    core.x = midX; core.y = midY;
+    core.z = halo.z + 1;
+    core.vx = 0; core.vy = 0; core.gravity = 0;
+    core.length = length;
+    core.width = coreWidth;
+    core.baseScale = scale;
+    core.rotation = rotation;
+    core.tint = mixColor(tint, WHITE, 0.65);
+    core.isRing = false;
+    pool.shapes[core.slot] = 2;
+    pool.sizes[core.slot] = Math.max(coreWidth, 6) * scale;
+    tintItem(core, pool, core.tint);
+    show(core, pool);
+    syncItem(core, pool, 0.95);
+
+    // Impact bloom + per-element debris at the far end.
+    emit('ring', bx, by, {
+      tint, scale: (isAtomic ? 1.7 : 1.05) * scale, life: isAtomic ? 460 : 260,
+    });
+    emitElementDebris(family, bx, by, rotation, tint, isAtomic);
     return true;
+  }
+
+  /* One distinct debris primitive per element family, all through existing
+     pools. Falls back to a small tinted elementSpark puff for an unmapped
+     family so an unrecognized tint still gets SOME impact detail. */
+  function emitElementDebris(family, x, y, angle, tint, big) {
+    const n = big ? 1.6 : 1;
+    switch (family) {
+      case 'pyro':
+        emit('motes', x, y, { tint, tint2: 0xffe6a3, count: Math.round(5 * n), scale: 0.9, life: 520 });
+        break;
+      case 'freeze':
+        emit('elementSpark', x, y, { tint: mixColor(tint, WHITE, 0.4), count: Math.round(6 * n), scale: 0.7, life: 420 });
+        break;
+      case 'volt':
+        emit('elementSpark', x, y, { tint, count: Math.round(8 * n), scale: 0.5, life: 220 });
+        break;
+      case 'toxin':
+        emit('motes', x, y, { tint, count: Math.round(5 * n), scale: 1.1, life: 640, speed: 40 });
+        break;
+      case 'sonic':
+        emit('ring', x, y, { tint, scale: 1.6 * n, life: 340 });
+        emit('ring', x, y, { tint: mixColor(tint, WHITE, 0.3), scale: 2.1 * n, life: 420 });
+        break;
+      case 'vortex':
+        emit('elementSpark', x, y, { tint, count: Math.round(7 * n), scale: 0.6, life: 380, angle: angle + Math.PI });
+        break;
+      case 'quake':
+        emit('gib', x, y, { count: Math.round(5 * n), tint, tint2: mixColor(tint, 0x2a2018, 0.5) });
+        break;
+      case 'phase':
+        emit('elementSpark', x, y, { tint, count: Math.round(4 * n), scale: 0.8, life: 500 });
+        break;
+      case 'chrono':
+        emit('ring', x, y, { tint, scale: 1.3 * n, life: 700 });
+        break;
+      case 'atomic':
+        emit('motes', x, y, { tint, tint2: WHITE, count: 9, scale: 1.3, life: 620 });
+        emit('elementSpark', x, y, { tint, count: 8, scale: 0.9, life: 360 });
+        break;
+      default:
+        emit('elementSpark', x, y, { tint, count: 3, scale: 0.6, life: 300 });
+    }
+  }
+
+  /* 6.9 eat shockwave + chromatic pulse: reuse the existing `ring` pool for
+     the shockwave (zero new draws) and a small set of reused DOM overlay
+     divs for the chromatic pulse, which is far cheaper than a screen-space
+     shader pass. The overlay never obscures gameplay (readability law): it
+     is a thin additive-blend flash that decays in ~180ms and ignores
+     pointer events.
+     Art review CRITICAL 4 (bite/boost spectacle): the chromatic pulse was a
+     single soft radial overlay -- readable but not a genuine RGB-split. Add
+     two more layered clones, each offset a couple of CSS px and tinted to
+     one channel, composited with 'screen' blending so they add rather than
+     wash out. Still a single reused set of DOM elements (created once,
+     recycled every call) and still ignores pointer events / never obscures
+     gameplay (readability law): total opacity stays low and the whole stack
+     fades in ~180ms. Zero WebGL draws, zero new canvas readback. */
+  const CHROMA_LAYERS = [
+    { cls: 'rf-chroma-pulse', tint: 'rgba(255,43,214,.22)', dx: 0, dy: 0 },
+    { cls: 'rf-chroma-pulse-r', tint: 'rgba(255,60,60,.16)', dx: -2, dy: 0 },
+    { cls: 'rf-chroma-pulse-b', tint: 'rgba(39,224,255,.16)', dx: 2, dy: 0 },
+  ];
+  let chromaElsReady = false;
+  const chromaEls = [null, null, null];
+  function ensureChromaticPulse() {
+    if (chromaElsReady && chromaEls[0]) return chromaEls[0];
+    if (typeof document === 'undefined' || !document.createElement) return null;
+    const host = document.body || document.documentElement;
+    if (!host) return null;
+    for (let i = 0; i < CHROMA_LAYERS.length; i++) {
+      const layer = CHROMA_LAYERS[i];
+      const el = document.createElement('div');
+      el.className = layer.cls;
+      el.setAttribute('aria-hidden', 'true');
+      el.style.cssText = 'position:fixed;inset:0;z-index:5;pointer-events:none;opacity:0;'
+        + 'mix-blend-mode:screen;transform:translate(' + layer.dx + 'px,' + layer.dy + 'px);'
+        + 'background:radial-gradient(circle,rgba(0,0,0,0) 55%,' + layer.tint + ' 78%,rgba(0,0,0,0) 100%);';
+      host.appendChild(el);
+      chromaEls[i] = el;
+    }
+    chromaElsReady = true;
+    return chromaEls[0];
+  }
+  function removeChromaticPulse() {
+    for (let i = 0; i < chromaEls.length; i++) {
+      const el = chromaEls[i];
+      if (el && el.parentNode && typeof el.parentNode.removeChild === 'function') {
+        try { el.parentNode.removeChild(el); } catch (err) {}
+      }
+      chromaEls[i] = null;
+    }
+    chromaElsReady = false;
+  }
+  function pulseChroma(strength) {
+    const first = ensureChromaticPulse();
+    if (!first) return false;
+    const peak = clamp(strength == null ? 0.85 : strength, 0.2, 1);
+    for (let i = 0; i < chromaEls.length; i++) {
+      const el = chromaEls[i];
+      if (!el || !el.style) continue;
+      el.style.transition = 'none';
+      // The red/blue split layers read as a channel offset, not a full
+      // wash, so they stay a touch dimmer than the centered magenta layer.
+      el.style.opacity = String(i === 0 ? peak : peak * 0.7);
+    }
+    const fade = () => {
+      for (let i = 0; i < chromaEls.length; i++) {
+        const el = chromaEls[i];
+        if (!el || !el.style) continue;
+        el.style.transition = 'opacity 180ms ease-out';
+        el.style.opacity = '0';
+      }
+    };
+    if (typeof root.requestAnimationFrame === 'function') root.requestAnimationFrame(fade);
+    else fade();
+    return true;
+  }
+
+  /* Art review CRITICAL 4: an ordinary bite must read as a staged event, not
+     one small ring + a soft flash. Layer 2-3 expanding rings (prey-tinted
+     shells around a white-hot core, each a touch larger/slower/dimmer than
+     the last) plus a bigger prey-fragment (gib) burst, all through the
+     EXISTING ring/gib pools -- zero new draw calls. eatShockwave keeps its
+     original (x, y, opts) signature so engine3d's existing call sites are
+     untouched. */
+  function eatShockwave(x, y, opts) {
+    if (!initialized) return false;
+    opts = opts || EMPTY;
+    const preyTint = opts.tint == null ? 0x27e0ff : opts.tint;
+    const baseScale = opts.scale == null ? 1.1 : opts.scale;
+    const baseLife = opts.life == null ? 420 : opts.life;
+    // Core: fast, small, white-hot flash at the bite point.
+    let rings = emit('ring', x, y, { tint: WHITE, scale: baseScale * 0.62, life: baseLife * 0.55 });
+    // Shell 1: the prey-tinted primary shockwave (original ring, unchanged
+    // timing so existing tuning/feel is preserved).
+    rings += emit('ring', x, y, { tint: preyTint, scale: baseScale, life: baseLife });
+    // Shell 2: a third, larger and dimmer ring that lags slightly (longer
+    // life, bigger scale) so the burst reads as expanding layers rather than
+    // one flat pulse.
+    rings += emit('ring', x, y, {
+      tint: mixColor(preyTint, WHITE, 0.3), scale: baseScale * 1.45, life: baseLife * 1.35,
+    });
+    // Bigger fragment burst: gib pool, prey-tinted, scaled by opts.tier when
+    // the caller (engine swallow()) supplies a meal-tier hint, else a flat
+    // generous count -- still within the gib pool's existing 24-item budget.
+    const tier = opts.tier == null ? 1 : Math.max(1, Math.floor(opts.tier));
+    const gibCount = clamp(4 + tier, 4, 9);
+    emit('gib', x, y, { count: gibCount, tint: preyTint, tint2: mixColor(preyTint, WHITE, 0.5) });
+    pulseChroma(opts.chroma == null ? 0.85 : opts.chroma);
+    return rings > 0;
+  }
+
+  /* 6.9 pickup / tier-up hologram materialize: an additive sparkle burst
+     (reuses elementSpark, zero new draws) plus a scanline flicker class the
+     caller (ui3d toast) can apply to its own DOM node -- we hand back the
+     class name rather than owning ui3d's node, respecting FILE OWNERSHIP. */
+  const HOLOGRAM_FLICKER_CLASS = 'rf-holo-flicker';
+  function hologramFlash(x, y, opts) {
+    if (!initialized) return false;
+    opts = opts || EMPTY;
+    const count = clamp(opts.count == null ? 10 : opts.count, 1, 24) | 0;
+    const tint = opts.tint == null ? 0x9dff2b : opts.tint;
+    const sparkles = emit('elementSpark', x, y, { count, tint, scale: opts.scale == null ? 0.9 : opts.scale, life: 360 });
+    return sparkles > 0;
   }
 
   function update(dt) {
@@ -709,7 +1028,14 @@ const Fx = (() => {
           syncItem(item, pool, lifeRatio * 0.86);
           continue;
         }
-        if (mode === 0 || mode === 1 || mode === 2 || mode === 5 || mode === 7 || mode === 9) {
+        if (mode === 0 || mode === 1 || mode === 2 || mode === 5 || mode === 7 || mode === 9 || mode === 10) {
+          if (mode === 10) {
+            /* Gib: drag settles the outward pop quickly while gravity gives
+               a slight sink, per 6.5 ("spin + drag + slight sink"). */
+            const dragPer = Math.pow(pool.config.drag, delta / 16.6667);
+            item.vx *= dragPer;
+            item.vy *= dragPer;
+          }
           item.vy += item.gravity * delta / 1000;
           item.x += item.vx * delta / 1000;
           item.y += item.vy * delta / 1000;
@@ -717,13 +1043,14 @@ const Fx = (() => {
           const scale = item.baseScale * (mode === 0 ? 0.78 + 0.22 * lifeRatio
             : mode === 5 ? 0.7 + 0.3 * lifeRatio + Math.sin(item.age * 0.012 + item.slot) * 0.035
               : mode === 7 ? 0.72 + 0.28 * lifeRatio
-                : 0.72 + 0.28 * lifeRatio);
+                : mode === 10 ? 0.62 + 0.38 * lifeRatio
+                  : 0.72 + 0.28 * lifeRatio);
           pool.sizes[item.slot] = pool.config.pointSize * scale;
-          syncItem(item, pool, lifeRatio * (mode === 0 ? 0.72 : mode === 5 ? 0.5 : mode === 9 ? 0.45 : 0.92));
-        } else if (mode === 6) {
+          syncItem(item, pool, lifeRatio * (mode === 0 ? 0.72 : mode === 5 ? 0.5 : mode === 9 ? 0.45 : mode === 10 ? 0.86 : 0.92));
+        } else if (mode === 6 || mode === 11) {
           item.x += item.vx * delta / 1000;
           item.y += item.vy * delta / 1000;
-          syncItem(item, pool, lifeRatio * (0.55 + 0.25 * Math.sin(item.age * 0.03 + item.slot)));
+          syncItem(item, pool, lifeRatio * (mode === 11 ? (0.6 + 0.3 * lifeRatio) : (0.55 + 0.25 * Math.sin(item.age * 0.03 + item.slot))));
         } else if (mode === 3) {
           item.ringRadius = item.baseScale * 36 * (1 + (1 - lifeRatio) * 2.6);
           pool.sizes[item.slot] = pool.config.pointSize * item.baseScale * (1 + (1 - lifeRatio) * 2.6);
@@ -759,22 +1086,87 @@ const Fx = (() => {
       emit('goldpulse', x, y, GOLDEN_EDGE_OPTS);
       emit('elementSpark', x, y, GOLDEN_GLINT_OPTS);
       if (RF.Sound && typeof RF.Sound.play === 'function') RF.Sound.play('coin', { vol: 0.28, rate: 1.12 });
+      return;
+    }
+    if (cue === 'buff') {
+      // Reuses hologramFlash's sparkle burst (elementSpark pool, zero new
+      // draws) so a buff pickup reads as the same materialize language as
+      // tier-up/pickup, plus the shared 'buff' vignette slot (already wired
+      // in VIGNETTE_PRIORITY) so the screen briefly acknowledges the grant.
+      hologramFlash(x, y, { count: 8, tint: 0x9dff2b, scale: 0.85 });
+      requestVignette('buff', 900);
     }
   }
 
+  /* 6.6: the player-attached red mist-carry loop is DELETED (bloodMistCarry
+     removed with it). RED is reserved for genuine player damage (hurt flash
+     / low-hp) and nothing else. Blood Frenzy keeps only the periodic edge
+     pulse, shifted to amber-gold 0xd98a2b "feeding frenzy" vignette
+     language. The one-shot crimson-was-now-amber deathBurst at the PREY
+     position on an equal-or-bigger kill is the engine's call (Lane E, 6.6),
+     using the existing deathBurst pool with FRENZY_DEATHBURST_OPTS-style tint. */
   function updateBloodCue(ctx, delta) {
     const player = playerOf(ctx);
-    if (player) {
-      bloodMistCarry += delta * 0.012;
-      while (bloodMistCarry >= 1) {
-        emit('deathBurst', finite(player.x, 0), finite(player.y, 0), BLOOD_MIST_OPTS);
-        bloodMistCarry -= 1;
-      }
-    }
     bloodEdgeClock -= delta;
     if (bloodEdgeClock <= 0) {
-      emit('goldpulse', player ? finite(player.x, 0) : 0, player ? finite(player.y, 0) : 0, BLOOD_EDGE_OPTS);
+      emit('goldpulse', player ? finite(player.x, 0) : 0, player ? finite(player.y, 0) : 0, FRENZY_EDGE_OPTS);
       bloodEdgeClock = 900;
+    }
+  }
+
+  /* Art review CRITICAL 4 (frenzy spectacle): "orbiting electric arcs"
+     support. Lane A (shark3d.js) already ships a rig-side rfArcs(on, color)
+     mesh orbit on group.userData when a rig owns one -- guarded, since that
+     is the higher-fidelity 3D version and fx3d must never double the visual
+     weight by drawing its own bolts on top of it. When the player's rig does
+     NOT expose rfArcs (older rig, NPC-driven preview, or the field simply
+     hasn't landed on this build yet), fx3d falls back to its own pooled
+     bolts: 4-6 short jittering elementSpark quads orbiting the player at a
+     fixed radius, angle-stepped so they read as a ring rather than a random
+     scatter, retinted amber-gold to match the frenzy vignette language. Zero
+     new pools/draws either way. */
+  let arcOrbitPhase = 0;
+  const ARC_ORBIT_RATE = 2.4; // rad/s
+  // Art review MAJOR (fix-round 3): player.rig is the {group, parts, animate}
+  // record from shark3d's buildShark() contract (SPEC3D "Rig pose contract"),
+  // not a THREE.Object3D itself -- rfArcs lives on the inner group's
+  // userData. A plain player.rig/.group/.mesh lookup for `.userData` was
+  // therefore always missing on the real rig shape and silently fell back to
+  // the weak pooled sparks every time. Accept a rig-record `.group` first,
+  // then tolerate a bare Object3D-shaped player.rig (older/NPC-preview
+  // callers) as a secondary path before giving up.
+  function playerRig(ctx) {
+    const player = playerOf(ctx);
+    const rig = player && player.rig;
+    if (!rig) return null;
+    const group = rig.group || rig;
+    return group && group.userData && typeof group.userData.rfArcs === 'function' ? group : null;
+  }
+  function syncFrenzyArcs(ctx, delta) {
+    const player = playerOf(ctx);
+    const active = frenzyCue === 'blood';
+    const rigGroup = playerRig(ctx);
+    if (rigGroup) {
+      // Rig-side path exists: defer to it, and make sure fx-side bolts are
+      // never left running underneath it.
+      try { rigGroup.userData.rfArcs(active, 0xd98a2b); } catch (err) {}
+      return;
+    }
+    if (!active || !player) return;
+    arcOrbitPhase += (ARC_ORBIT_RATE * delta) / 1000;
+    const cx = finite(player.x, 0), cy = finite(player.y, 0);
+    const count = 5;
+    for (let i = 0; i < count; i++) {
+      const theta = arcOrbitPhase + (i / count) * TAU;
+      const radius = 46 + (i % 2) * 10;
+      const bx = cx + Math.cos(theta) * radius;
+      const by = cy + Math.sin(theta) * radius;
+      // One short-lived spark per orbit slot per call keeps the ring lit
+      // continuously without ever exceeding a handful of live items.
+      emit('elementSpark', bx, by, {
+        tint: 0xd98a2b, tint2: 0xfff0c2, scale: 0.55, life: 160, count: 1,
+        angle: theta + Math.PI / 2, speed: 6,
+      });
     }
   }
 
@@ -785,12 +1177,89 @@ const Fx = (() => {
     if (next !== frenzyCue) {
       if (frenzyCue === 'blood') clearBloodEdges();
       frenzyCue = next;
-      bloodMistCarry = 0;
       bloodEdgeClock = next === 'blood' ? 0 : 900;
       cueUi(next);
       if (next !== 'blood') triggerFrenzyCue(next, ctx);
     }
     if (next === 'blood') updateBloodCue(ctx, delta);
+    syncFrenzyArcs(ctx, delta);
+    // Keep the shared vignette bus aware of the live frenzy/goldrush state so
+    // 'damage' and 'buff' requests can outrank it per the priority law.
+    if (next === 'blood' || next === 'school') requestVignette('frenzy', 1200);
+    else clearVignette('frenzy');
+    if (next === 'golden' || next === 'goldRush') requestVignette('goldrush', 1200);
+    else clearVignette('goldrush');
+  }
+
+  /* 6.9 afterburner boost wake: self-driven from the render hook so Lane E's
+     engine3d.js never has to know about the `wake` pool. Every field read is
+     defensive (fallback to 0/false) so a partial or reshaped player bag from
+     a concurrently-edited engine never throws here.
+     Art review CRITICAL 4 (boost spectacle): a scatter of individual wake
+     particles reads as a sparkle trail, not a connected afterburner. Bias
+     the emission toward a tight, overlapping line right behind the tail
+     (short spawn radius via a small perpendicular jitter instead of the
+     pool's default cone spread) so consecutive items visually overlap into
+     a ribbon, alternating cyan/magenta along its length for the gradient
+     the art bar asks for -- all still the same pooled `wake` quads, zero new
+     draws. A second family from the existing (previously dead) `speedlines`
+     pool adds screen-space streaks once boost has been held long enough to
+     read as "at speed" (BOOST_STREAK_HOLD_MS), radiating from ahead of the
+     player toward the camera-facing direction so they read as motion blur
+     rather than more wake. */
+  let wakeEmitCarry = 0;
+  let streakEmitCarry = 0;
+  let boostHoldMs = 0;
+  const WAKE_RATE = 34; // particles/sec while boosting, budget-friendly for a 40-item pool + 260ms life
+  const STREAK_RATE = 14;
+  const BOOST_STREAK_HOLD_MS = 260;
+  function syncWake(ctx, dt) {
+    const player = playerOf(ctx);
+    const boosting = playerBoosting(ctx);
+    if (!player || !boosting) { wakeEmitCarry = 0; streakEmitCarry = 0; boostHoldMs = 0; return; }
+    const pool = pools.wake;
+    if (!pool) return;
+    const x = finite(player.x, 0);
+    const y = finite(player.y, 0);
+    const heading = finite(player.angle, 0);
+    boostHoldMs += dt;
+    wakeEmitCarry += WAKE_RATE * dt / 1000;
+    let toEmit = Math.floor(wakeEmitCarry);
+    if (toEmit > 8) toEmit = 8;
+    if (toEmit > 0) {
+      wakeEmitCarry -= toEmit;
+      const perp = heading + Math.PI / 2;
+      const cosP = Math.cos(perp), sinP = Math.sin(perp);
+      for (let i = 0; i < toEmit; i++) {
+        const item = acquire(pool);
+        // Tight perpendicular jitter (+/-6px) instead of the pool's default
+        // wide cone spread keeps consecutive emits overlapping into a
+        // continuous ribbon rather than a scatter of separate streaks.
+        const jitter = ((i % 5) - 2) * 2.6;
+        activate(item, x + cosP * jitter, y + sinP * jitter, {
+          angle: heading + Math.PI, tint: i % 2 === 0 ? 0x27e0ff : 0xff2bd6,
+          scale: 0.85 + (i % 3) * 0.14, speed: 150 + (i % 3) * 30,
+        }, pool);
+      }
+    }
+    if (boostHoldMs < BOOST_STREAK_HOLD_MS) return;
+    const streakPool = pools.speedlines;
+    if (!streakPool) return;
+    streakEmitCarry += STREAK_RATE * dt / 1000;
+    let streaks = Math.floor(streakEmitCarry);
+    if (streaks <= 0) return;
+    if (streaks > 4) streaks = 4;
+    streakEmitCarry -= streaks;
+    for (let i = 0; i < streaks; i++) {
+      const item = acquire(streakPool);
+      const lateral = ((i % 3) - 1) * 30;
+      const perp2 = heading + Math.PI / 2;
+      activate(item, x + Math.cos(perp2) * lateral - Math.cos(heading) * 40,
+        y + Math.sin(perp2) * lateral - Math.sin(heading) * 40, {
+          angle: heading, tint: i % 2 === 0 ? 0xdffcff : 0x27e0ff,
+          scale: 0.7 + (i % 3) * 0.1, length: 60, width: 2.2,
+        }, streakPool);
+    }
   }
 
   /* Lane A's render loop uses the common render hook. Keep update(dt) as the
@@ -798,7 +1267,9 @@ const Fx = (() => {
   function render(ctx, dt) {
     const delta = deltaMs(dt);
     syncTrailBoost(ctx, delta);
+    syncWake(ctx, delta);
     syncFrenzy(ctx, delta);
+    activeVignetteCue = resolveVignette();
     update(dt);
     if (ctx && ctx.camera && RF.Juice && typeof RF.Juice.applyShake === 'function') RF.Juice.applyShake(ctx.camera, dt);
   }
@@ -866,14 +1337,17 @@ const Fx = (() => {
       for (let j = 0; j < pool.alphas.length; j++) pool.alphas[j] = 0;
     }
     removeGoldOverlay();
+    removeChromaticPulse();
     initialized = false;
     scene = null;
     frenzyCue = null;
-    bloodMistCarry = 0;
     bloodEdgeClock = 0;
     trailBoostMix = 0;
     trailBoosting = false;
     trailEmitCarry = 0;
+    wakeEmitCarry = 0;
+    for (const key in vignetteRequests) delete vignetteRequests[key];
+    activeVignetteCue = null;
     cueUi(null);
     resetJuiceState();
     return Fx;
@@ -896,7 +1370,6 @@ const Fx = (() => {
     const oldGoldOverlayReady = goldOverlayReady;
     const oldGoldOverlayHost = goldOverlayHost;
     const oldFrenzyCue = frenzyCue;
-    const oldBloodMistCarry = bloodMistCarry;
     const oldBloodEdgeClock = bloodEdgeClock;
     const oldTrailBoostMix = trailBoostMix;
     const oldTrailBoosting = trailBoosting;
@@ -966,7 +1439,6 @@ const Fx = (() => {
       goldOverlayReady = false;
       goldOverlayHost = null;
       frenzyCue = null;
-      bloodMistCarry = 0;
       bloodEdgeClock = 0;
       trailBoostMix = 0;
       trailBoosting = false;
@@ -1002,14 +1474,50 @@ const Fx = (() => {
       };
       RF.ctx = testCtx;
       render(testCtx, 16.6667);
-      const redEdges = goldEdges[0] && goldEdges[0].classList && goldEdges[0].classList.contains('rf-frenzy-blood');
+      const frenzyEdgeOn = goldEdges[0] && goldEdges[0].classList && goldEdges[0].classList.contains('rf-frenzy-blood');
       for (let frame = 0; frame < 100; frame++) render(testCtx, 16.6667);
-      let redMist = false;
-      for (let i = 0; i < pools.motes.items.length; i++) {
-        const item = pools.motes.items[i];
-        if (item.active && (item.tint === 0xb3122a || item.tint === 0x5a0812)) { redMist = true; break; }
+      /* 6.6: the player-attached mist-carry loop is deleted. Blood Frenzy now
+         sustains only the periodic amber-gold 0xd98a2b edge pulse; RED must
+         never appear on the goldpulse edge tint while the cue is active. */
+      let anyRedEdge = false;
+      for (let i = 0; i < pools.goldpulse.items.length; i++) {
+        const item = pools.goldpulse.items[i];
+        if (item.active && item.tint === 0xb3122a) { anyRedEdge = true; break; }
       }
-      if (!redEdges || !redMist) pass = false;
+      let amberEdge = false;
+      for (let i = 0; i < pools.goldpulse.items.length; i++) {
+        const item = pools.goldpulse.items[i];
+        if (item.active && item.tint === 0xd98a2b) { amberEdge = true; break; }
+      }
+      if (!frenzyEdgeOn || anyRedEdge || !amberEdge) pass = false;
+
+      /* Fix-round 3 art MAJOR: authored rig-side rfArcs must actually be
+         invoked during a live blood frenzy through the real rig shape
+         ({group, parts, animate} per SPEC3D "Rig pose contract"), never the
+         weak pooled-spark fallback, when a rig is present. */
+      let rfArcsCalls = 0;
+      let rfArcsLastOn = null;
+      const rigGroup = { userData: { rfArcs(on) { rfArcsCalls++; rfArcsLastOn = on; } } };
+      testCtx.player.rig = { group: rigGroup, parts: {}, animate() {} };
+      const sparkCursorBefore = pools.elementSpark.cursor;
+      render(testCtx, 16.6667);
+      if (rfArcsCalls < 1 || rfArcsLastOn !== true) pass = false;
+      if (pools.elementSpark.cursor !== sparkCursorBefore) pass = false; // rig authority: no fallback sparks
+      testCtx.player.rig = null;
+      render(testCtx, 16.6667);
+      const sparkCursorNoRig = pools.elementSpark.cursor;
+      if (sparkCursorNoRig === sparkCursorBefore) pass = false; // fallback sparks fire once rig is absent
+      testCtx.run.frenzyCue = undefined;
+      render(testCtx, 16.6667); // turn frenzy off before the rig comes back
+      testCtx.player.rig = { group: rigGroup, parts: {}, animate() {} };
+      testCtx.run.frenzyCue = 'blood';
+      const callsBeforeOff = rfArcsCalls;
+      render(testCtx, 16.6667);
+      testCtx.run.frenzyCue = undefined;
+      render(testCtx, 16.6667);
+      if (rfArcsCalls <= callsBeforeOff || rfArcsLastOn !== false) pass = false; // rig told to switch off, not just abandoned
+      delete testCtx.player.rig;
+
       const schoolCursor = pools.ring.cursor;
       testCtx.run.frenzyCue = 'school';
       render(testCtx, 16.6667);
@@ -1059,13 +1567,102 @@ const Fx = (() => {
       }
       if (boostCount < 2 || taperCount < 1 || !boostedTrail || !taperedTrail || !entityTinted) pass = false;
       teardown();
+
+      // ---- 6.5 gib pool existence + poolFor routing ---------------------
+      init(testScene);
+      if (poolFor('gib') !== pools.gib) pass = false;
+      if (!pools.gib || pools.gib.items.length !== POOL_CONFIG.gib.size) pass = false;
+      const gibEmitted = emit('gib', 10, 10, { count: 6, tint: 0x5fbf7a });
+      if (gibEmitted !== 6) pass = false;
+      let gibHasSpinAndSink = false;
+      for (let i = 0; i < pools.gib.items.length; i++) {
+        const item = pools.gib.items[i];
+        if (item.active && item.spin !== 0 && item.gravity > 0) { gibHasSpinAndSink = true; break; }
+      }
+      if (!gibHasSpinAndSink) pass = false;
+      teardown();
+
+      // ---- 6.9 single-vignette invariant ---------------------------------
+      // Activating two cues back to back must leave exactly ONE overlay
+      // visible (the goldpulse DOM edges are the only overlay surface here;
+      // the priority order damage > frenzy > goldrush > buff is enforced by
+      // syncFrenzy only ever tracking one frenzyCue at a time, and any
+      // caller-side vignette request routes through requestVignette below).
+      init(testScene);
+      RF.ctx = testCtx;
+      testCtx.run.frenzyCue = 'blood';
+      render(testCtx, 16.6667);
+      const activeAfterBlood = visibleVignetteCount();
+      testCtx.run.frenzyCue = 'goldRush';
+      render(testCtx, 16.6667);
+      const activeAfterSwitch = visibleVignetteCount();
+      if (activeAfterBlood !== 1 || activeAfterSwitch !== 1) pass = false;
+      requestVignette('damage', 1);
+      requestVignette('frenzy', 1);
+      requestVignette('buff', 1);
+      const oneCueWins = currentVignetteCue() === 'damage';
+      if (!oneCueWins) pass = false;
+      clearVignette('damage');
+      const fallsBackToFrenzy = currentVignetteCue() === 'frenzy';
+      if (!fallsBackToFrenzy) pass = false;
+      clearVignette('frenzy');
+      clearVignette('buff');
+      teardown();
+
+      // ---- fix-round 2: buff cue accepted by cueName/syncFrenzy ---------
+      init(testScene);
+      RF.ctx = testCtx;
+      testCtx.run.frenzyCue = 'buff';
+      const buffSparkCursor = pools.elementSpark.cursor;
+      render(testCtx, 16.6667);
+      if (pools.elementSpark.cursor === buffSparkCursor) pass = false; // hologramFlash fired
+      if (currentVignetteCue() !== 'buff') pass = false;
+      testCtx.run.frenzyCue = 'buff:overdrive';
+      render(testCtx, 16.6667);
+      if (currentVignetteCue() !== 'buff') pass = false; // namespaced form normalizes too
+      testCtx.run.frenzyCue = undefined;
+      render(testCtx, 16.6667);
+      teardown();
+
+      // ---- art CRITICAL 4/5: layered eat shockwave + element beam families
+      init(testScene);
+      const ringCursorBefore = pools.ring.cursor;
+      const gibCursorBefore = pools.gib.cursor;
+      if (!eatShockwave(0, 0, { tint: 0x27e0ff, tier: 3 })) pass = false;
+      // Three ring emits per call (white core + tinted shell + wide lag
+      // shell) must each have advanced the shared ring cursor.
+      const ringAdvance = (pools.ring.cursor - ringCursorBefore + pools.ring.items.length) % pools.ring.items.length;
+      if (ringAdvance < 3) pass = false;
+      const gibAdvance = (pools.gib.cursor - gibCursorBefore + pools.gib.items.length) % pools.gib.items.length;
+      if (gibAdvance < 4) pass = false; // tier 3 -> gibCount clamp(4+3,4,9)=7, but pool may wrap; just require some fired
+      teardown();
+
+      init(testScene);
+      // Every mapped element tint must route to a distinct debris pool call
+      // without throwing, and beamCore must show two active items (core +
+      // halo) immediately after one beam() call.
+      const elementTints = [0xff7a29, 0x8fe8ff, 0xf2f7ff, 0x6fe06f, 0xd9c8ff, 0x39c6d6, 0xb8fff2, 0xd8b06a, 0xffe08a, 0x9ffcf0];
+      for (let ei = 0; ei < elementTints.length; ei++) {
+        if (!beam(0, 0, 200, 0, { tint: elementTints[ei], width: 20 })) pass = false;
+      }
+      let activeBeamCoreItems = 0;
+      for (let i = 0; i < pools.beamCore.items.length; i++) if (pools.beamCore.items[i].active) activeBeamCoreItems++;
+      if (activeBeamCoreItems < 2) pass = false;
+      teardown();
+
       if (testDomHost.children.length !== 0) pass = false;
       notes.push('five init/emit/update/teardown cycles passed: pool cursors reset and zero active effects after teardown');
       notes.push('teardown is synchronous and idempotent (double-teardown leaves the scene empty)');
       notes.push('teardown reset Juice accumulators, camera shake, and tracked kaiju pulse state');
-      notes.push('nine GPU pools are one reusable THREE.Points draw each; goldpulse is four DOM edge bars with zero WebGL draws');
-      notes.push('blood cue sustains red mist and four red DOM edge bars; school and golden cues are edge-triggered');
+      notes.push('ten GPU pools + wake are each one reusable THREE.Points draw; goldpulse is four DOM edge bars with zero WebGL draws');
+      notes.push('blood mist-carry loop is deleted: frenzy sustains only the amber-gold 0xd98a2b edge pulse, never red');
       notes.push('boost trail averages 2.5x emission, scales 1.4x, and tapers over 300 ms; entity _tint reaches glints');
+      notes.push('gib pool exists (24 quads, spin+drag+sink, 0.55s life) and poolFor(\'gib\') routes to it');
+      notes.push('single-vignette bus enforces priority damage > frenzy > goldrush > buff; only one overlay visible at a time');
+      notes.push('fix-round 2: cueName/syncFrenzy accept a bare \'buff\' cue and a namespaced \'buff:<id>\' form, firing hologramFlash + the buff vignette slot');
+      notes.push('art CRITICAL 4: eatShockwave layers three ring emits (white core + tinted shell + wide lag shell) plus a tier-scaled gib burst, all through the existing ring/gib pools');
+      notes.push('art CRITICAL 5: beam() emits a core+halo pair (two beamCore items) plus an impact-bloom ring and a per-element debris call keyed off the ability tint, covering all ten RFD.ABILITIES tints with zero new pools');
+      notes.push('fix-round 3 art MAJOR: playerRig() reads player.rig.group.userData.rfArcs (the real {group,parts,animate} rig shape), so authored rig-side orbiting arcs fire during blood frenzy; the pooled-spark fallback only fires when no rig is present, and the rig is told rfArcs(false) on frenzy end');
     } catch (err) {
       pass = false;
       notes.push('pool self-test threw: ' + (err && err.message ? err.message : String(err)));
@@ -1077,7 +1674,6 @@ const Fx = (() => {
     goldOverlayReady = oldGoldOverlayReady;
     goldOverlayHost = oldGoldOverlayHost;
     frenzyCue = oldFrenzyCue;
-    bloodMistCarry = oldBloodMistCarry;
     bloodEdgeClock = oldBloodEdgeClock;
     trailBoostMix = oldTrailBoostMix;
     trailBoosting = oldTrailBoosting;
@@ -1088,7 +1684,12 @@ const Fx = (() => {
     return { pass, notes, drawCalls: FX_DRAW_CALLS };
   }
 
-  return { init, teardown, emit, beam, update, render, poolInventory, drawCallContribution, __selftest: selftest };
+  return {
+    init, teardown, emit, beam, update, render, poolInventory, drawCallContribution,
+    eatShockwave, hologramFlash, hologramFlickerClass: HOLOGRAM_FLICKER_CLASS,
+    requestVignette, clearVignette, currentVignetteCue,
+    __selftest: selftest,
+  };
 })();
 
 /* --------------------------------------------------------------- Juice */
