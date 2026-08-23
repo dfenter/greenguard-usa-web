@@ -1014,7 +1014,8 @@ var RF = window.RF = window.RF || {};
   };
 
   function actName(act) {
-    return act === 1 ? 'Real Sharks' : act === 2 ? 'Monsters' : 'Legends';
+    return act === 1 ? 'Real Sharks' : act === 2 ? 'Monsters' : act === 3 ? 'Legends'
+      : act === 4 ? 'Pantheon' : act === 5 ? 'Underworld' : ('Act ' + act);
   }
 
   function paletteOf(def) {
@@ -1272,7 +1273,13 @@ var RF = window.RF = window.RF || {};
         this.rowViews = [];
         var y = 10;
         var rowH = 78;
-        var acts = [1, 2, 3];
+        var all0 = allSharks();
+        var actSet = {}, acts = [];
+        for (var ai = 0; ai < all0.length; ai++) {
+          var aa = all0[ai].act;
+          if (!actSet[aa]) { actSet[aa] = true; acts.push(aa); }
+        }
+        acts.sort(function (x, y2) { return x - y2; });
 
         for (var a = 0; a < acts.length; a++) {
           var act = acts[a];
@@ -2090,6 +2097,14 @@ var RF = window.RF = window.RF || {};
       var thirdF = endRun({ kit: kitF, save: pF, run: runF });
       ok(thirdF === firstF, 'B4: a third call (with run.running reset) still returns the cached result, not a fresh recompute');
       ok(pF.runs === 1, 'B4: a third call still does not re-increment runs');
+
+      // Pantheon/Underworld: actName covers acts 4-5, not just the old 3.
+      ok(actName(1) === 'Real Sharks' && actName(2) === 'Monsters' && actName(3) === 'Legends',
+        'actName: acts 1-3 unchanged');
+      ok(actName(4) === 'Pantheon', 'actName: act 4 is Pantheon');
+      ok(actName(5) === 'Underworld', 'actName: act 5 is Underworld');
+      var allSChk = allSharks();
+      ok(allSChk.length === 85, 'roster carries all 85 sharks (61 base + 24 Pantheon/Underworld)');
     } catch (e) {
       pass = false;
       notes.push('FAIL threw: ' + (e && e.message ? e.message : String(e)));

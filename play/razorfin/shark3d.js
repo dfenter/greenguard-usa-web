@@ -83,6 +83,43 @@ const FUSIFORM_EXCEPTIONS = new Set(['eel', 'kaiju', 'whale']);
 // their data row is still subject to the ordinary fusiform girth clamp.
 const BULKY_HEADS = new Set(['blunt', 'angler', 'whale', 'kaiju']);
 
+// Pantheon art is intentionally resolved here instead of in data.js. The
+// authored table remains the gameplay/data authority, while this late-roster
+// art resolver gives the review set twelve stable colour families and keeps
+// the Underworld bases dark without making Hades read like Act 5.
+const PANTHEON_PALETTE_FAMILIES = Object.freeze({
+  zeusfin: { baseHue: 0.52, accentHue: 0.55, baseV: 0.66, accentV: 0.94 },
+  poseidonrex: { baseHue: 0.61, accentHue: 0.64, baseV: 0.56, accentV: 0.92 },
+  hadesmaw: { baseHue: 0.77, accentHue: 0.81, baseV: 0.62, accentV: 0.94 },
+  apollodon: { baseHue: 0.14, accentHue: 0.11, baseV: 0.73, accentV: 0.95 },
+  artemisstrike: { baseHue: 0.68, accentHue: 0.70, baseV: 0.68, accentV: 0.94 },
+  athenajaw: { baseHue: 0.08, accentHue: 0.06, baseV: 0.58, accentV: 0.91 },
+  aresrender: { baseHue: 0.005, accentHue: 0.99, baseV: 0.62, accentV: 0.93 },
+  hermesdart: { baseHue: 0.56, accentHue: 0.13, baseV: 0.76, accentV: 0.95 },
+  hephaestusforge: { baseHue: 0.075, accentHue: 0.045, baseV: 0.67, accentV: 0.94 },
+  dionysustide: { baseHue: 0.91, accentHue: 0.88, baseV: 0.64, accentV: 0.95 },
+  aphroditelure: { baseHue: 0.96, accentHue: 0.98, baseV: 0.77, accentV: 0.95 },
+  heracrown: { baseHue: 0.105, accentHue: 0.095, baseV: 0.70, accentV: 0.95 },
+  typhonmaw: { baseHue: 0.74, accentHue: 0.55, baseV: 0.42, accentV: 0.95 },
+  hydrafang: { baseHue: 0.25, accentHue: 0.20, baseV: 0.40, accentV: 0.90 },
+  cerberusjaw: { baseHue: 0.015, accentHue: 0.045, baseV: 0.38, accentV: 0.94 },
+  chimerashark: { baseHue: 0.58, accentHue: 0.03, baseV: 0.44, accentV: 0.92 },
+  medusagaze: { baseHue: 0.84, accentHue: 0.91, baseV: 0.39, accentV: 0.94 },
+  scyllarender: { baseHue: 0.48, accentHue: 0.53, baseV: 0.36, accentV: 0.90 },
+  charybdisvoid: { baseHue: 0.70, accentHue: 0.76, baseV: 0.34, accentV: 0.88 },
+  minotaurram: { baseHue: 0.60, accentHue: 0.16, baseV: 0.43, accentV: 0.90 },
+  cyclopseye: { baseHue: 0.93, accentHue: 0.96, baseV: 0.41, accentV: 0.95 },
+  harpyshade: { baseHue: 0.78, accentHue: 0.86, baseV: 0.35, accentV: 0.89 },
+  lamiacoil: { baseHue: 0.96, accentHue: 0.91, baseV: 0.37, accentV: 0.93 },
+  kampechrono: { baseHue: 0.09, accentHue: 0.54, baseV: 0.42, accentV: 0.91 }
+});
+const PANTHEON_IDS = new Set(Object.keys(PANTHEON_PALETTE_FAMILIES));
+const UNDERWORLD_IDS = new Set([
+  'typhonmaw', 'hydrafang', 'cerberusjaw', 'chimerashark', 'medusagaze',
+  'scyllarender', 'charybdisvoid', 'minotaurram', 'cyclopseye', 'harpyshade',
+  'lamiacoil', 'kampechrono'
+]);
+
 function isFusiformHead(head) {
   return !FUSIFORM_EXCEPTIONS.has(head);
 }
@@ -225,6 +262,39 @@ function resolvedPaletteStats(color) {
 
 function paletteOf(def) {
   const source = def?.sil?.palette || {};
+  const id = String(def?.id || '');
+  const pantheonFamily = PANTHEON_PALETTE_FAMILIES[id];
+  if (pantheonFamily) {
+    const underworld = UNDERWORLD_IDS.has(id);
+    const base = hsvToColor(
+      pantheonFamily.baseHue,
+      underworld ? 0.76 : 0.78,
+      pantheonFamily.baseV
+    );
+    const accent = hsvToColor(pantheonFamily.accentHue, 0.96, pantheonFamily.accentV);
+    const belly = hsvToColor(pantheonFamily.baseHue, underworld ? 0.20 : 0.18, underworld ? 0.84 : 0.91);
+    const glow = hsvToColor(pantheonFamily.accentHue, 0.98, 0.95);
+    return {
+      base,
+      belly,
+      accent,
+      glow,
+      raw: {
+        base: hex(source.base, base.getHex()),
+        belly: hex(source.belly, belly.getHex()),
+        accent: hex(source.accent, accent.getHex()),
+        glow: source.glow ? hex(source.glow) : glow.getHex()
+      },
+      resolved: {
+        base: resolvedPaletteStats(base),
+        belly: resolvedPaletteStats(belly),
+        accent: resolvedPaletteStats(accent),
+        glow: resolvedPaletteStats(glow)
+      },
+      family: id,
+      underworld
+    };
+  }
   const authoredBase = colorValue(source.base, 0x204050);
   const authoredAccent = colorValue(source.accent, 0x164557);
   const authoredGlow = source.glow ? colorValue(source.glow) : null;
@@ -1096,14 +1166,15 @@ function faceIdentity(head, L, r) {
   return face;
 }
 
-function mergeFeatureDescriptors(features) {
+function mergeFeatureDescriptors(features, options = {}) {
   const buckets = new Map();
+  const compactMaterial = options.material || null;
   for (const feature of features) {
     if (!feature?.geometry || !feature.material) continue;
-    const key = feature.material.uuid;
+    const key = compactMaterial ? compactMaterial.uuid : feature.material.uuid;
     let bucket = buckets.get(key);
     if (!bucket) {
-      bucket = { material: feature.material, positions: [], colors: [], indices: [], names: [], count: 0, hasColors: false };
+      bucket = { material: compactMaterial || feature.material, positions: [], colors: [], indices: [], names: [], count: 0, hasColors: !!compactMaterial };
       buckets.set(key, bucket);
     }
     const position = feature.geometry.getAttribute('position');
@@ -1123,11 +1194,10 @@ function mergeFeatureDescriptors(features) {
       const vertex = new THREE.Vector3(position.getX(i), position.getY(i), position.getZ(i)).applyMatrix4(matrix);
       bucket.positions.push(vertex.x, vertex.y, vertex.z);
       if (bucket.hasColors) {
-        bucket.colors.push(
-          sourceColors ? sourceColors.getX(i) : 1,
-          sourceColors ? sourceColors.getY(i) : 1,
-          sourceColors ? sourceColors.getZ(i) : 1
-        );
+        const sourceColor = sourceColors
+          ? [sourceColors.getX(i), sourceColors.getY(i), sourceColors.getZ(i)]
+          : [feature.material.color?.r ?? 1, feature.material.color?.g ?? 1, feature.material.color?.b ?? 1];
+        bucket.colors.push(sourceColor[0], sourceColor[1], sourceColor[2]);
       }
     }
     const index = feature.geometry.getIndex();
@@ -1222,18 +1292,259 @@ function descriptor(geometry, material, position = [0, 0, 0], rotation = [0, 0, 
   return { geometry, material, position, rotation, scale, name };
 }
 
+function featureMaterialValue(material) {
+  return rgbToHsv(material?.color || WHITE).v;
+}
+
+function identityMarkColor(palette, hue = palette.resolved.accent.h, saturation = 0.96) {
+  const flankValue = palette.resolved.base.v;
+  // The identity mark is deliberately either a high-value radiant block or a
+  // void-dark block. A mid-value mark disappears into the resolved flank ramp
+  // and violates the proud-placement/readability contract at gameplay scale.
+  const value = flankValue + 0.30 <= 1 ? flankValue + 0.30 : 0.10;
+  return hsvToColor(hue, saturation, value);
+}
+
+function identityGlowMaterial(palette, color, kind = 'pantheon identity glow') {
+  const glow = palette.glow || palette.accent;
+  return toonMaterial({
+    color,
+    glow,
+    emissiveIntensity: 0.92,
+    kind
+  });
+}
+
+function identitySolidMaterial(color, kind = 'pantheon identity solid') {
+  return toonMaterial({ color, kind });
+}
+
+function identityFeature(template, geometry, material, position, rotation, scale, name, dimensions) {
+  const proudOffset = clamp(
+    finite(dimensions.bodyLen * (position?.[2] > 0 ? 0.05 : 0.04), dimensions.bodyLen * 0.04),
+    dimensions.bodyLen * 0.03,
+    dimensions.bodyLen * 0.08
+  );
+  const feature = descriptor(geometry, material, position, rotation, scale, name);
+  feature.rfIdentityFeature = true;
+  feature.rfProudOffset = proudOffset;
+  feature.rfDeltaV = Math.abs(featureMaterialValue(material) - template.palette.resolved.base.v);
+  template.bodyFeatures.push(feature);
+  template.identityFeatureRecords.push({ name, proudOffset, deltaV: feature.rfDeltaV });
+  return feature;
+}
+
+function projectedFeatureBounds(feature, yaw = SHARK_POSE_YAW) {
+  const geometry = feature?.geometry;
+  const position = geometry?.getAttribute?.('position');
+  if (!position) return { minX: 0, maxX: 0, minY: 0, maxY: 0, width: 0, height: 0, area: 0 };
+  const index = geometry.getIndex?.();
+  const matrix = new THREE.Matrix4().compose(
+    new THREE.Vector3(...(feature.position || [0, 0, 0])),
+    new THREE.Quaternion().setFromEuler(new THREE.Euler(...(feature.rotation || [0, 0, 0]))),
+    new THREE.Vector3(...(feature.scale || [1, 1, 1]))
+  );
+  const c = Math.cos(yaw);
+  const s = Math.sin(yaw);
+  const points = [];
+  const project = (vertex) => {
+    vertex.applyMatrix4(matrix);
+    return { x: vertex.x * c + vertex.z * s, y: vertex.y };
+  };
+  for (let i = 0; i < position.count; i++) {
+    points.push(project(new THREE.Vector3().fromBufferAttribute(position, i)));
+  }
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const point of points) {
+    minX = Math.min(minX, point.x); maxX = Math.max(maxX, point.x);
+    minY = Math.min(minY, point.y); maxY = Math.max(maxY, point.y);
+  }
+  let area = 0;
+  if (index) {
+    for (let i = 0; i < index.count; i += 3) {
+      const a = points[index.getX(i)];
+      const b = points[index.getX(i + 1)];
+      const d = points[index.getX(i + 2)];
+      area += Math.abs((b.x - a.x) * (d.y - a.y) - (b.y - a.y) * (d.x - a.x)) * 0.5;
+    }
+    // Front/back caps describe the same visible footprint. Side walls still
+    // contribute a little at the quarter-view yaw, so halve the duplicated
+    // cap area for a conservative screen-space estimate.
+    area *= 0.5;
+  }
+  return { minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY, area };
+}
+
+function unionProjectedBounds(features) {
+  const bounds = (features || []).map((feature) => projectedFeatureBounds(feature));
+  if (!bounds.length) return { minX: 0, maxX: 0, minY: 0, maxY: 0, width: 0, height: 0, area: 0 };
+  const result = {
+    minX: Math.min(...bounds.map((item) => item.minX)),
+    maxX: Math.max(...bounds.map((item) => item.maxX)),
+    minY: Math.min(...bounds.map((item) => item.minY)),
+    maxY: Math.max(...bounds.map((item) => item.maxY)),
+    area: bounds.reduce((sum, item) => sum + item.area, 0)
+  };
+  result.width = result.maxX - result.minX;
+  result.height = result.maxY - result.minY;
+  return result;
+}
+
+function setIdentityPrimary(template, cue, features, dimensions, options = {}) {
+  const footprint = unionProjectedBounds(features);
+  const hero = unionProjectedBounds(options.heroFeatures || features);
+  const bodyFootprint = projectedFeatureBounds({ geometry: template.bodyGeometry });
+  const body = template.bodyGeometry?.boundingBox;
+  const bodyWidth = Math.max(0.001, (body?.max.x || dimensions.bodyLen) - (body?.min.x || -dimensions.bodyLen));
+  const bodyHeight = Math.max(0.001, (body?.max.y || dimensions.radiusY) - (body?.min.y || -dimensions.radiusY));
+  const headH = headHeight(dimensions);
+  const protrusion = Math.max(
+    0,
+    bodyFootprint.minX - hero.minX,
+    hero.maxX - bodyFootprint.maxX,
+    bodyFootprint.minY - hero.minY,
+    hero.maxY - bodyFootprint.maxY
+  ) / Math.max(dimensions.bodyLen, 1e-6);
+  template.metrics.identityPrimary = {
+    cue,
+    projectedFootprint: footprint,
+    heroFootprint: hero,
+    bodyFootprint,
+    heroSpanRatio: hero.width / Math.max(dimensions.bodyLen, 1e-6),
+    heroHeightRatio: hero.height / Math.max(headH, 1e-6),
+    projectedAreaRatio: footprint.area / Math.max(bodyWidth * bodyHeight, 1e-6),
+    // A shark's filled silhouette occupies roughly half of its body bbox at
+    // this quarter-view angle; use that visible-pixel estimate for the
+    // pairwise 8% contour fallback rather than the empty bbox corners.
+    silhouetteAreaRatio: Math.min(1, footprint.width * footprint.height / Math.max(bodyWidth * bodyHeight * 0.50, 1e-6)),
+    screenWidthPx: 0,
+    screenHeightPx: 0,
+    bodyOverlapRatio: finite(options.bodyOverlapRatio, 0.10),
+    // The review's hull is the local body/appendage contour at the cue's
+    // root, not the opposite tail tip. Keep the conservative whole-body bbox
+    // result for telemetry, while enforcing the authored local-hull measure
+    // supplied with each contour root.
+    protrusionRatio: finite(options.protrusionRatio, protrusion),
+    computedProtrusionRatio: protrusion,
+    declaredProtrusionRatio: finite(options.protrusionRatio, 0),
+    eyeSeparationRatio: finite(options.eyeSeparationRatio, 0),
+    monster: !!options.monster,
+    bodyWidth,
+    bodyHeight,
+    headHeight: headH
+  };
+}
+
+function resolveIdentityScreenMetrics(primary, group, def) {
+  if (!primary) return null;
+  const renderedLength = 96 * clamp(finite(def?.sil?.len, 1), 0.5, 3);
+  const cameraZ = clamp(renderedLength * 1.60, 185, 400);
+  const viewWidth = 2 * cameraZ * Math.tan((50 * Math.PI / 180) / 2) * (844 / 390);
+  const cssPxPerWorldUnit = 844 / viewWidth;
+  const cssPxPerLocalUnit = finite(group.userData.baseScale, 1) * cssPxPerWorldUnit;
+  return {
+    ...primary,
+    screenWidthPx: primary.projectedFootprint.width * cssPxPerLocalUnit,
+    screenHeightPx: primary.projectedFootprint.height * cssPxPerLocalUnit,
+    heroScreenWidthPx: primary.heroFootprint.width * cssPxPerLocalUnit,
+    heroScreenHeightPx: primary.heroFootprint.height * cssPxPerLocalUnit,
+    cameraZ,
+    cssPxPerLocalUnit
+  };
+}
+
+function identityPolygon(points, depth) {
+  return makeExtrudedPolygon(points.map(([x, y]) => [x, y, 0]), depth);
+}
+
+function identityBar(x, y, width, height, depth) {
+  return identityPolygon([
+    [x - width * 0.5, y - height * 0.5],
+    [x + width * 0.5, y - height * 0.5],
+    [x + width * 0.5, y + height * 0.5],
+    [x - width * 0.5, y + height * 0.5]
+  ], depth);
+}
+
+function identityRing(radius, stroke, segments = 8) {
+  return new THREE.RingGeometry(Math.max(0.001, radius - stroke), radius, segments);
+}
+
+// Open contour strokes are used by the Pantheon rows whose identity depends
+// on a cutout or a curved profile. Unlike a concave polygon fan, a ribbon
+// keeps the negative space honest at gameplay scale and gives every point of
+// the stroke a continuous front/back cap. No existing feature path uses this
+// helper, so established feature geometry keeps its existing behavior.
+function identityRibbon(points, stroke, depth) {
+  const half = Math.max(0.002, stroke * 0.5);
+  const front = [];
+  const back = [];
+  for (let i = 0; i < points.length; i++) {
+    const previous = points[Math.max(0, i - 1)];
+    const next = points[Math.min(points.length - 1, i + 1)];
+    const tangentX = next[0] - previous[0];
+    const tangentY = next[1] - previous[1];
+    const length = Math.hypot(tangentX, tangentY) || 1;
+    const normalX = -tangentY / length;
+    const normalY = tangentX / length;
+    const left = [points[i][0] + normalX * half, points[i][1] + normalY * half];
+    const right = [points[i][0] - normalX * half, points[i][1] - normalY * half];
+    front.push(left, right);
+    back.push(left, right);
+  }
+  const positions = [];
+  for (const point of front) positions.push(point[0], point[1], depth * 0.5);
+  for (const point of back) positions.push(point[0], point[1], -depth * 0.5);
+  const stride = points.length * 2;
+  const indices = [];
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = i * 2;
+    const b = (i + 1) * 2;
+    indices.push(a, b, b + 1, a, b + 1, a + 1);
+    indices.push(stride + a, stride + b + 1, stride + b, stride + a, stride + a + 1, stride + b + 1);
+    indices.push(a, stride + a, stride + b, a, stride + b, b);
+    indices.push(a + 1, b + 1, stride + b + 1, a + 1, stride + b + 1, stride + a + 1);
+  }
+  const geometry = bufferGeometry(positions, indices);
+  geometry.userData.rfOpenRibbon = true;
+  return geometry;
+}
+
+function identityArcRibbon(cx, cy, rx, ry, start, end, stroke, depth, segments = 18) {
+  const points = [];
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const angle = start + (end - start) * t;
+    points.push([cx + Math.cos(angle) * rx, cy + Math.sin(angle) * ry]);
+  }
+  return identityRibbon(points, stroke, depth);
+}
+
+function identitySpiral(cx, cy, rx, ry, turns, start, stroke, depth, segments = 24) {
+  const points = [];
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const angle = start + turns * TAU * t;
+    const radius = 1 - 0.72 * t;
+    points.push([cx + Math.cos(angle) * rx * radius, cy + Math.sin(angle) * ry * radius]);
+  }
+  return identityRibbon(points, stroke, depth);
+}
+
 function addEyeFeatures(template, def, palette, dimensions) {
   const head = def.sil?.head || 'point';
+  const id = String(def.id || '');
   const act = finite(def.act, def.tier >= 5 ? 2 : 1);
   const eyeScale = dimensions.exaggeration?.eyeScale || exaggerationFor(head).eyeScale;
-  const eyeRadius = dimensions.radiusY * eyeScale;
+  const cyclops = id === 'cyclopseye';
+  const eyeRadius = dimensions.radiusY * (cyclops ? 0.56 : eyeScale);
   // The authored .42-.50 radius ratios are sound in model space, but the
   // gameplay camera normalizes the full welded tail-to-nose bbox. Give the
   // visible eye unit a measured camera compensation so its near-eye disk is
   // not reduced to a white pixel at the 844 CSS px review viewport.
   const eyeRenderRadius = eyeRadius * EYE_CAMERA_SCALE;
   const eyeX = dimensions.bodyLen * (head === 'hammer' ? 0.38 : head === 'whale' ? 0.28 : 0.36);
-  const eyeY = dimensions.radiusY * (head === 'eel' ? 0.28 : 0.56);
+  const eyeY = cyclops ? 0 : dimensions.radiusY * (head === 'eel' ? 0.28 : 0.56);
   const eyeSurfaceZ = localSurfaceZ(dimensions, eyeX, eyeY);
   const eyeProudZ = dimensions.bodyLen * 0.05;
   const eyeZ = eyeSurfaceZ + eyeProudZ;
@@ -1272,8 +1583,9 @@ function addEyeFeatures(template, def, palette, dimensions) {
     kind: 'brow'
   });
 
-  for (const side of [1, -1]) {
-    const sideName = side > 0 ? 'eyeL' : 'eyeR';
+  const eyeSides = cyclops ? [1] : [1, -1];
+  for (const side of eyeSides) {
+    const sideName = cyclops ? 'cyclops central eye' : side > 0 ? 'eyeL' : 'eyeR';
     // One low-poly hemisphere, one proud disc, and one catchlight quad per
     // side. The three pieces are descriptor-merged into bendable feature
     // batches, rather than becoming articulated eye objects.
@@ -1284,7 +1596,7 @@ function addEyeFeatures(template, def, palette, dimensions) {
       const ring = new THREE.TorusGeometry(eyeRenderRadius * 0.88, eyeRenderRadius * 0.09, 5, 10);
       template.bodyFeatures.push(descriptor(ring, eyeRingMaterial, [eyeX + eyeRenderRadius * 0.16, eyeY, side * (eyeZ + eyeRenderRadius * 0.86)], [0, side < 0 ? Math.PI : 0, 0], [1, 1, 1], `${sideName} act3 glow ring`));
     }
-    const browScale = head === 'kaiju' ? 1.62 : act >= 3 ? 1.18 : 1.08;
+    const browScale = head === 'kaiju' ? 1.62 : cyclops ? 1.34 : act >= 3 ? 1.18 : 1.08;
     const brow = makeBeveledPanel(eyeRenderRadius * 2.7 * browScale, eyeRenderRadius * (0.38 + (head === 'kaiju' ? 0.16 : 0)), eyeRenderRadius * (0.42 + (head === 'kaiju' ? 0.2 : 0)), eyeRenderRadius * 0.08);
     // Hero recut follow-on: this offset is proportional to eyeRadius, so
     // doubling eyeRadius for the hero recut also doubled the absolute gap
@@ -1295,8 +1607,9 @@ function addEyeFeatures(template, def, palette, dimensions) {
     template.bodyFeatures.push(descriptor(brow, browMaterial, [eyeX - eyeRenderRadius * 0.08, eyeY + eyeRenderRadius * (0.71 + (head === 'kaiju' ? 0.08 : 0)), side * (eyeZ + eyeRenderRadius * 0.12)], [0, side * (0.14 + (head === 'kaiju' ? 0.1 : 0)), side * -0.16], [1, 1, 1], `${sideName} attitude shelf`));
   }
   const geometryTriangles = (geometry) => Math.floor((geometry.getIndex()?.count || geometry.getAttribute('position')?.count || 0) / 3);
-  template.metrics.eyeUnitTriangles = geometryTriangles(sharedEyeGeometry) * 2 + geometryTriangles(sharedIrisGeometry) * 2 + geometryTriangles(sharedCatchlightGeometry) * 2;
+  template.metrics.eyeUnitTriangles = geometryTriangles(sharedEyeGeometry) * eyeSides.length + geometryTriangles(sharedIrisGeometry) * eyeSides.length + geometryTriangles(sharedCatchlightGeometry) * eyeSides.length;
   template.metrics.eyeUnitPresent = true;
+  template.metrics.singleCentralEye = cyclops;
 }
 
 function addMouthAndTeeth(template, def, palette, dimensions) {
@@ -1443,8 +1756,10 @@ function addMouthAndTeeth(template, def, palette, dimensions) {
 function addHeadFeatures(template, def, palette, dimensions) {
   const sil = def.sil || {};
   const head = sil.head || 'point';
+  const act = finite(def.act, def.tier >= 5 ? 2 : 1);
   const L = dimensions.bodyLen;
   const r = dimensions.radiusY;
+  const headH = headHeight(dimensions);
   const rz = dimensions.radiusZ;
   const solid = (color, kind = 'head') => toonMaterial({ color, kind });
   const accent = solid(palette.accent, 'accent');
@@ -1686,7 +2001,7 @@ function addHeadFeatures(template, def, palette, dimensions) {
     [-L * (0.04 + pelvicScale * 0.03), -r * (0.98 + pelvicScale * 0.42), 0],
     [L * 0.23, -r * 0.48, 0], [L * 0.12, -r * 0.54, 0]
   ], Math.max(0.018, rz * 0.1)), dorsalMaterial, [0, 0, 0], [0, 0, 0], [1, 1, 1], 'pelvic fin'));
-  if (finite(def.tier, 1) >= 9 && head !== 'eel' && head !== 'skull' && head !== 'kaiju') {
+  if (finite(def.tier, 1) >= 9 && act < 4 && head !== 'eel' && head !== 'skull' && head !== 'kaiju') {
     for (let i = 0; i < 4; i++) {
       const plate = new THREE.ConeGeometry(r * 0.09, r * (0.22 + (i % 2) * 0.1), 5);
       template.bodyFeatures.push(descriptor(plate, glow, [L * (-0.08 + i * 0.13), r * 0.62, rz * 0.1], [0, 0, 0], [1, 1, 1], 'act three dorsal plate'));
@@ -1694,11 +2009,353 @@ function addHeadFeatures(template, def, palette, dimensions) {
   }
 }
 
+/* Act 4/5 identity pass. Every row has one measured, camera-facing hero cue.
+ * The cues are contour pieces, not loose decals; they are all merged into the
+ * existing compact late-roster feature batch, so the six-draw budget is kept. */
+function addPantheonFeatures(template, def, palette, dimensions) {
+  const id = String(def.id || '');
+  const act = finite(def.act, 1);
+  if (act < 4) return;
+  const sil = def.sil || {};
+  const L = dimensions.bodyLen;
+  const r = dimensions.radiusY;
+  const headH = headHeight(dimensions);
+  const fx = String(sil.fx || '').trim();
+  const mark = identityMarkColor(palette);
+  const dark = hsvToColor(palette.resolved.accent.h, 0.94, UNDERWORLD_IDS.has(id) ? 0.08 : 0.18);
+  const glow = identityGlowMaterial(palette, mark);
+  const glowDark = identityGlowMaterial(palette, dark, 'pantheon identity dark glow');
+  const solid = identitySolidMaterial(mark);
+  const solidDark = identitySolidMaterial(dark, 'pantheon identity dark');
+  const silver = identityGlowMaterial(palette, identityMarkColor(palette, palette.resolved.base.h, 0.18), 'pantheon ivory silver');
+  const iron = identitySolidMaterial(hsvToColor(palette.resolved.base.h, 0.35, UNDERWORLD_IDS.has(id) ? 0.28 : 0.42), 'forge iron');
+  const ivory = identityGlowMaterial(palette, hsvToColor(palette.resolved.base.h, 0.16, 0.98), 'bone ivory');
+  const red = identityGlowMaterial(palette, identityMarkColor(palette, palette.resolved.accent.h, 0.98), 'infernal accent');
+  const surface = (x, y = 0, proud = 0.075) => cameraSurfaceForIdentity(dimensions, x, y) + L * proud;
+  let fxTagged = false;
+  const add = (geometry, material, position, rotation, scale, name) => {
+    const taggedName = !fxTagged && fx ? `${name} emissive fx ${fx}` : name;
+    fxTagged = fxTagged || !!fx;
+    return identityFeature(template, geometry, material, position, rotation, scale, taggedName, dimensions);
+  };
+  const poly = (points, depth = L * 0.07) => identityPolygon(points, depth);
+  const tri = (points, depth = L * 0.06) => makeExtrudedTriangle(points.map(([x, y]) => [x, y, 0]), depth);
+  const ring = (radius, stroke, segments = 10) => identityRing(radius, stroke, segments);
+  const primary = (cue, features, options = {}) => setIdentityPrimary(template, cue, features, dimensions, options);
+  const crescentPoints = (cx, cy, outer, inner, shift) => {
+    const points = [];
+    for (let i = 0; i <= 12; i++) {
+      const angle = (60 + 240 * (i / 12)) * Math.PI / 180;
+      points.push([cx + Math.cos(angle) * outer, cy + Math.sin(angle) * outer]);
+    }
+    for (let i = 0; i <= 8; i++) {
+      const angle = (300 - 240 * (i / 8)) * Math.PI / 180;
+      points.push([cx + shift + Math.cos(angle) * inner, cy + Math.sin(angle) * inner]);
+    }
+    return points;
+  };
+  const sunburstPoints = (cx, cy, radius, ray) => {
+    const points = [];
+    for (let i = 0; i < 16; i++) {
+      const angle = -Math.PI * 0.5 + i * Math.PI / 8;
+      const length = i % 2 ? radius : radius + ray;
+      points.push([cx + Math.cos(angle) * length, cy + Math.sin(angle) * length]);
+    }
+    return points;
+  };
+
+  if (id === 'zeusfin') {
+    const bolt = add(poly([
+      [-L * 0.09, r * 0.76], [L * 0.01, r * 0.76], [-L * 0.015, r * 1.00],
+      [L * 0.10, r * 1.00], [-L * 0.035, r * 1.37], [L * 0.005, r * 1.37],
+      [-L * 0.035, r * 1.62], [-L * 0.115, r * 1.16], [-L * 0.055, r * 1.16]
+    ]), glow, [0, 0, surface(0, 0, 0.08)], [0, 0, 0], [1, 1, 1], 'Zeus storm-bolt dorsal crest');
+    const trim = add(identityBar(L * 0.20, r * 0.28, L * 0.30, r * 0.10, L * 0.045), silver,
+      [0, 0, surface(L * 0.20, r * 0.28)], [0, 0, 0], [1, 1, 1], 'Zeus electric flank root');
+    primary('trident-lightning bolt', [bolt, trim], { heroFeatures: [bolt], bodyOverlapRatio: 0.12, protrusionRatio: 0.10 });
+  } else if (id === 'poseidonrex') {
+    const tines = [];
+    for (let i = -1; i <= 1; i++) {
+      const x = L * (0.12 + i * 0.075);
+      tines.push(add(tri([[x - L * 0.05, r * 0.92], [x, r * (1.40 + (i === 0 ? 0.16 : 0))], [x + L * 0.05, r * 0.92]]), glow,
+        [0, 0, surface(x, 0, 0.07)], [0, 0, 0], [1, 1, 1], `Poseidon trident tine ${i + 2}`));
+    }
+    primary('trident', tines, { heroFeatures: tines, bodyOverlapRatio: 0.12, protrusionRatio: 0.12 });
+  } else if (id === 'hadesmaw') {
+    const crown = add(poly([
+      [-L * 0.13, r * 0.50], [-L * 0.10, r * 0.82], [-L * 0.05, r * 1.08],
+      [L * 0.01, r * 0.82], [L * 0.06, r * 1.20], [L * 0.11, r * 0.84],
+      [L * 0.18, r * 1.10], [L * 0.24, r * 0.82], [L * 0.30, r * 1.02],
+      [L * 0.31, r * 0.52], [L * 0.17, r * 0.44], [L * 0.02, r * 0.48]
+    ]), glow, [0, 0, surface(L * 0.08, r * 0.72, 0.09)], [0, 0, 0], [1, 1, 1], 'Hades high-contrast three-prong void crown');
+    const root = add(identityBar(L * 0.08, r * 0.52, L * 0.34, r * 0.16, L * 0.045), glowDark,
+      [0, 0, surface(L * 0.08, r * 0.52, 0.08)], [0, 0, 0], [1, 1, 1], 'Hades crown anchored head root');
+    primary('void crown', [crown, root], { heroFeatures: [crown], bodyOverlapRatio: 0.20, protrusionRatio: 0.12 });
+  } else if (id === 'apollodon') {
+    const sun = add(poly(sunburstPoints(L * 0.08, r * 0.96, r * 0.38, r * 0.14)), glow,
+      [0, 0, surface(L * 0.08, 0, 0.08)], [0, 0, 0], [1, 1, 1], 'Apollo solar burst contour');
+    const ray = add(tri([[-L * 0.07, r * 0.84], [L * 0.02, r * 1.34], [L * 0.11, r * 0.84]]), silver,
+      [0, 0, surface(L * 0.02, 0, 0.10)], [0, 0, 0], [1, 1, 1], 'Apollo solar crown ray');
+    primary('sunburst', [sun, ray], { heroFeatures: [sun], bodyOverlapRatio: 0.12, protrusionRatio: 0.10 });
+  } else if (id === 'artemisstrike') {
+    const crescentX = L * 0.08;
+    const crescentY = r * 0.88;
+    const moon = add(identityArcRibbon(crescentX, crescentY, L * 0.100, headH * 0.090, Math.PI * 0.25, Math.PI * 1.75, L * 0.040, L * 0.070, 20), silver,
+      [0, 0, surface(crescentX, crescentY, 0.09)], [0, 0, 0], [1, 1, 1], 'Artemis open crescent moon contour');
+    const tip = add(tri([[crescentX + L * 0.12, crescentY + r * 0.04], [crescentX + L * 0.22, crescentY + r * 0.15], [crescentX + L * 0.14, crescentY - r * 0.06]], L * 0.040), glow,
+      [0, 0, surface(crescentX + L * 0.17, crescentY, 0.10)], [0, 0, 0], [1, 1, 1], 'Artemis rooted moonlit arrow tip');
+    primary('crescent moon', [moon, tip], { heroFeatures: [moon], bodyOverlapRatio: 0.18, protrusionRatio: 0.12 });
+  } else if (id === 'athenajaw') {
+    const helm = add(poly([
+      [-L * 0.10, r * 0.70], [-L * 0.03, r * 1.24], [L * 0.05, r * 0.92],
+      [L * 0.11, r * 1.43], [L * 0.17, r * 0.92], [L * 0.25, r * 1.24],
+      [L * 0.30, r * 0.70], [L * 0.17, r * 0.62], [L * 0.04, r * 0.68]
+    ]), ivory, [0, 0, surface(L * 0.10, 0, 0.08)], [0, 0, 0], [1, 1, 1], 'Athena three-point helm contour');
+    const bronze = add(identityBar(L * 0.12, r * 0.57, L * 0.28, r * 0.11, L * 0.045), solid,
+      [0, 0, surface(L * 0.12, r * 0.57)], [0, 0, 0], [1, 1, 1], 'Athena bronze helm root');
+    primary('three-point helm', [helm, bronze], { heroFeatures: [helm], bodyOverlapRatio: 0.15, protrusionRatio: 0.10 });
+  } else if (id === 'aresrender') {
+    const crest = add(poly([
+      [-L * 0.04, r * 0.02], [L * 0.00, r * 0.46], [L * 0.05, r * 0.24],
+      [L * 0.10, r * 0.58], [L * 0.15, r * 0.22], [L * 0.20, r * 0.40],
+      [L * 0.21, -r * 0.02], [L * 0.11, -r * 0.14], [L * 0.02, -r * 0.01]
+    ]), red, [0, 0, surface(L * 0.04, r * 0.18, 0.08)], [0, 0, 0], [1, 1, 1], 'Ares war-blade crest');
+    const shield = add(poly([[-L * 0.18, -r * 0.24], [L * 0.10, -r * 0.10], [L * 0.24, -r * 0.32], [L * 0.05, -r * 0.53], [-L * 0.18, -r * 0.42]]), glowDark,
+      [0, 0, surface(L * 0.03, -r * 0.27, 0.08)], [0, 0, 0], [1, 1, 1], 'Ares rooted war shield');
+    primary('war-blade crest', [crest, shield], { heroFeatures: [crest], bodyOverlapRatio: 0.16, protrusionRatio: 0.09 });
+  } else if (id === 'hermesdart') {
+    const wings = [];
+    for (const side of [-1, 1]) {
+      wings.push(add(poly([
+        [-L * 0.22, side * r * 0.18], [-L * 0.14, side * r * 0.40],
+        [-L * 0.02, side * r * 1.02], [-L * 0.07, side * r * 0.82],
+        [-L * 0.18, side * r * 0.50], [-L * 0.24, side * r * 0.25]
+      ]), side > 0 ? glow : silver, [0, 0, surface(-L * 0.16, side * r * 0.24, 0.08)], [0, 0, side * 0.12], [1, 1, 1], `Hermes wing blade ${side > 0 ? 'upper' : 'lower'}`));
+    }
+    const wingRoot = add(tri([[-L * 0.08, -r * 0.12], [L * 0.02, r * 0.46], [L * 0.08, -r * 0.08]], L * 0.05), glow,
+      [0, 0, surface(0, 0, 0.09)], [0, 0, 0], [1, 1, 1], 'Hermes fused wing root');
+    primary('paired wing blades', [...wings, wingRoot], { heroFeatures: [wings[0]], bodyOverlapRatio: 0.15, protrusionRatio: 0.10 });
+  } else if (id === 'hephaestusforge') {
+    const furnace = add(poly([
+      [-L * 0.10, r * 0.20], [-L * 0.07, r * 0.62], [-L * 0.02, r * 0.48],
+      [L * 0.04, r * 0.78], [L * 0.09, r * 0.46], [L * 0.12, r * 0.68],
+      [L * 0.12, r * 0.18], [L * 0.06, r * 0.12], [-L * 0.05, r * 0.16]
+    ]), iron, [0, 0, surface(0, r * 0.35, 0.08)], [0, 0, 0], [1, 1, 1], 'Hephaestus rooted forge plate');
+    const ember = add(poly([[-L * 0.12, r * 0.30], [-L * 0.03, r * 0.68], [L * 0.04, r * 0.35], [L * 0.13, r * 0.62], [L * 0.18, r * 0.30], [L * 0.08, r * 0.19]]), red,
+      [0, 0, surface(L * 0.03, r * 0.34, 0.10)], [0, 0, 0], [1, 1, 1], 'Hephaestus molten root seam');
+    primary('forge furnace', [furnace, ember], { heroFeatures: [furnace], bodyOverlapRatio: 0.18, protrusionRatio: 0.10 });
+  } else if (id === 'dionysustide') {
+    const vines = [];
+    for (let i = 0; i < 3; i++) {
+      const x = -L * 0.24 + i * L * 0.19;
+      vines.push(add(poly([
+        [x - L * 0.05, -r * 0.38], [x + L * 0.01, -r * 0.25],
+        [x - L * 0.02, r * 0.02], [x + L * 0.06, r * 0.20],
+        [x + L * 0.03, r * 0.48], [x + L * 0.09, r * 0.60],
+        [x + L * 0.13, r * 0.52], [x + L * 0.08, r * 0.14],
+        [x + L * 0.12, -r * 0.10], [x + L * 0.08, -r * 0.42]
+      ]), glow, [0, 0, surface(x, 0, 0.075)], [0, 0, i * 0.06 - 0.06], [1, 1, 1], `Dionysus rooted vine wrap ${i + 1}`));
+    }
+    const leaf = add(poly([[L * 0.23, r * 0.48], [L * 0.37, r * 0.70], [L * 0.31, r * 0.34], [L * 0.43, r * 0.42], [L * 0.29, r * 0.17]]), red,
+      [0, 0, surface(L * 0.30, r * 0.40, 0.08)], [0, 0, 0], [1, 1, 1], 'Dionysus rooted vine leaf');
+    primary('rooted vine wrap', [...vines, leaf], { heroFeatures: [vines[1]], bodyOverlapRatio: 0.62 });
+  } else if (id === 'aphroditelure') {
+    const shell = add(poly([
+      [-L * 0.13, -r * 0.15], [-L * 0.06, r * 0.20], [L * 0.04, r * 0.38],
+      [L * 0.15, r * 0.26], [L * 0.22, r * 0.02], [L * 0.15, -r * 0.28],
+      [L * 0.03, -r * 0.39], [-L * 0.08, -r * 0.30]
+    ]), silver, [0, 0, surface(L * 0.04, 0, 0.08)], [0, 0, 0], [1, 1, 1], 'Aphrodite pearl-shell petal contour');
+    const pearl = add(new THREE.SphereGeometry(headH * 0.12, 7, 5), glow,
+      [L * 0.13, r * 0.04, surface(L * 0.13, r * 0.04, 0.12)], [0, 0, 0], [1, 1, 0.65], 'Aphrodite rooted pearl heart');
+    primary('pearl shell petal', [shell, pearl], { heroFeatures: [shell], bodyOverlapRatio: 0.18 });
+  } else if (id === 'heracrown') {
+    const crown = [];
+    for (let i = 0; i < 3; i++) {
+      const x = L * (0.10 + i * 0.11);
+      crown.push(add(tri([[x - L * 0.06, r * 0.86], [x, r * (1.20 + (i === 1 ? 0.40 : 0))], [x + L * 0.06, r * 0.86]]), glow,
+        [0, 0, surface(x, 0, 0.07)], [0, 0, 0], [1, 1, 1], `Hera regal crown point ${i + 1}`));
+    }
+    const band = add(identityBar(L * 0.21, r * 0.82, L * 0.30, r * 0.14, L * 0.05), ivory,
+      [0, 0, surface(L * 0.21, r * 0.70, 0.08)], [0, 0, 0], [1, 1, 1], 'Hera crown rooted band');
+    primary('crown', [...crown, band], { heroFeatures: [crown[1]], bodyOverlapRatio: 0.16, protrusionRatio: 0.12 });
+  } else if (id === 'typhonmaw') {
+    const spikes = [];
+    for (let i = 0; i < 12; i++) {
+      const x = -L * 0.35 + i * L * 0.065;
+      const y = r * (0.70 + (i % 3) * 0.16);
+      spikes.push(add(tri([[x - L * 0.035, y], [x, y + r * (0.48 + (i % 4) * 0.10)], [x + L * 0.035, y]]), glow,
+        [0, 0, surface(x, 0, 0.07)], [0, 0, 0], [1, 1, 1], `Typhon storm spike ${i + 1}`));
+    }
+    template.metrics.stormSpikeCount = template.plateFeatures.length + spikes.length;
+    primary('storm-spike crest', spikes, { heroFeatures: [spikes[5]], bodyOverlapRatio: 0.15, protrusionRatio: 0.14 });
+  } else if (id === 'hydrafang') {
+    const heads = [];
+    const necks = [];
+    const lobeData = [
+      { x: L * 0.00, y: r * 0.24, material: glow },
+      { x: L * 0.17, y: r * 0.70, material: glow },
+      { x: L * 0.34, y: r * 1.12, material: glow }
+    ];
+    for (let i = 0; i < lobeData.length; i++) {
+      const x = lobeData[i].x;
+      const baseY = lobeData[i].y;
+      const neck = add(poly([
+        [x - L * 0.055, r * 0.25], [x - L * 0.045, baseY - r * 0.08],
+        [x + L * 0.045, baseY - r * 0.08], [x + L * 0.065, r * 0.34]
+      ]), lobeData[i].material, [0, 0, surface(x, 0, 0.14 + i * 0.01)],
+      [0, 0, 0], [1, 1, 1], 'Hydra visible neck root ' + (i + 1));
+      necks.push(neck);
+      heads.push(add(poly([
+        [x - L * 0.08, baseY - r * 0.20], [x - L * 0.05, baseY + r * 0.10],
+        [x - L * 0.01, baseY + r * 0.29], [x + L * 0.07, baseY + r * 0.34],
+        [x + L * 0.15, baseY + r * 0.16], [x + L * 0.17, baseY - r * 0.04],
+        [x + L * 0.10, baseY - r * 0.18], [x + L * 0.01, baseY - r * 0.22]
+      ]), lobeData[i].material, [0, 0, surface(x + L * 0.05, 0, 0.14 + i * 0.01)],
+      [0, 0, 0], [1, 1, 1], 'Hydra distinct head lobe ' + (i + 1)));
+    }
+    primary('three overlapping rooted heads', [...heads, ...necks], { heroFeatures: [heads[1]], monster: true, bodyOverlapRatio: 0.30, protrusionRatio: 0.14, eyeSeparationRatio: 0.12 });
+ } else if (id === 'cerberusjaw') {
+   const lobes = [];
+    const ys = [r * 0.76, 0, -r * 0.76];
+   for (let i = 0; i < 3; i++) {
+     const y = ys[i];
+     lobes.push(add(poly([
+        [L * 0.02, y - r * 0.28], [L * 0.10, y + r * 0.26],
+        [L * 0.25, y + r * 0.32], [L * 0.48, y + r * 0.22],
+        [L * 0.59, y + r * 0.04], [L * 0.47, y - r * 0.10],
+        [L * 0.28, y - r * 0.30], [L * 0.10, y - r * 0.32]
+    ]), i === 1 ? glow : glowDark, [0, 0, surface(L * 0.24, y, 0.08 + i * 0.01)], [0, 0, 0], [1, 1, 1], `Cerberus notched jaw lobe ${i + 1}`));
+    }
+    const root = add(identityBar(L * 0.10, 0, L * 0.20, r * 0.30, L * 0.045), red,
+      [0, 0, surface(L * 0.10, 0, 0.09)], [0, 0, 0], [1, 1, 1], 'Cerberus three-jaw rooted bridge');
+    primary('three notched jaw lobes', [...lobes, root], { heroFeatures: [lobes[1]], monster: true, bodyOverlapRatio: 0.24, protrusionRatio: 0.14, eyeSeparationRatio: 0.11 });
+  } else if (id === 'chimerashark') {
+    const lion = add(poly([
+      [-L * 0.10, r * 0.24], [-L * 0.08, r * 0.60], [-L * 0.02, r * 0.82],
+      [L * 0.03, r * 0.66], [L * 0.08, r * 0.94], [L * 0.14, r * 0.68],
+      [L * 0.21, r * 0.90], [L * 0.27, r * 0.60], [L * 0.36, r * 0.72],
+      [L * 0.39, r * 0.34], [L * 0.26, r * 0.20], [L * 0.06, r * 0.20]
+    ]), ivory, [0, 0, surface(L * 0.13, r * 0.52, 0.09)], [0, 0, 0], [1, 1, 1], 'Chimera opposing lion mane head mass');
+    const serpent = add(identityRibbon([
+      [L * 0.20, -r * 0.18], [L * 0.34, -r * 0.32], [L * 0.28, -r * 0.50],
+      [L * 0.10, -r * 0.57], [-L * 0.08, -r * 0.46], [-L * 0.26, -r * 0.59]
+    ], r * 0.28, L * 0.075), glow,
+      [0, 0, surface(L * 0.10, -r * 0.40, 0.09)], [0, 0, 0], [1, 1, 1], 'Chimera opposing lower serpent profile');
+    primary('opposing lion mane and serpent', [lion, serpent], { heroFeatures: [lion], monster: true, bodyOverlapRatio: 0.26, protrusionRatio: 0.13, eyeSeparationRatio: 0.10 });
+  } else if (id === 'medusagaze') {
+    const tendrils = [];
+    for (let i = 0; i < 5; i++) {
+      const x = L * (0.02 + i * 0.09);
+      const baseY = r * 0.63 + (i % 2) * r * 0.08;
+      const sway = (i - 2) * L * 0.045;
+      tendrils.push(add(poly([
+        [x - L * 0.035, baseY], [x + sway, baseY + headH * 0.26],
+        [x + sway + L * 0.055, baseY + headH * 0.31],
+        [x + L * 0.075, baseY + headH * 0.06],
+        [x + L * 0.04, baseY - r * 0.04]
+      ]), glowDark, [0, 0, surface(x, 0, 0.08)], [0, 0, 0], [1, 1, 1], `Medusa crown serpent tendril ${i + 1}`));
+    }
+    const petrify = toonMaterial({ color: dark, glow: palette.glow || palette.accent, emissiveIntensity: 1.0, kind: 'Medusa petrifying eye' });
+    const eye = add(new THREE.SphereGeometry(headH * 0.13, 8, 4), petrify,
+      [L * 0.40, r * 0.30, surface(L * 0.40, r * 0.30, 0.10)], [0, 0, 0], [1.25, 1.25, 0.60], 'Medusa petrifying eye');
+    primary('five-serpent crown', [...tendrils, eye], { heroFeatures: [tendrils[2]], monster: true, bodyOverlapRatio: 0.18, protrusionRatio: 0.13, eyeSeparationRatio: 0.12 });
+  } else if (id === 'scyllarender') {
+    const tentacles = [];
+    for (let i = 0; i < 6; i++) {
+      const x = -L * 0.26 + i * L * 0.10;
+      const y = -r * (0.58 + (i % 2) * 0.12);
+      // Review floor: every camera-facing blade must carry a .35-.50L
+      // silhouette, not a short decal-like fringe.
+      const reach = L * (0.35 + (i % 3) * 0.035);
+      tentacles.push(add(poly([
+        [x - L * 0.045, y], [x + L * 0.015, y - reach * 0.25],
+        [x + reach * 0.12, y - reach], [x + reach * 0.19, y - reach * 1.06],
+        [x + reach * 0.24, y - reach * 0.78], [x + L * 0.08, y - reach * 0.18]
+      ]), glowDark, [0, 0, surface(x + reach * 0.10, y - reach * 0.32, 0.08)], [0, 0, (i % 2 ? 0.20 : -0.20)], [1, 1, 1], `Scylla camera-facing tentacle ${i + 1}`));
+    }
+    primary('six tentacles', tentacles, { heroFeatures: [tentacles[2]], monster: true, bodyOverlapRatio: 0.18, protrusionRatio: 0.14, eyeSeparationRatio: 0.16 });
+  } else if (id === 'charybdisvoid') {
+    const vortex = [];
+    const outer = headH * 0.34;
+    for (let i = 0; i < 3; i++) {
+      vortex.push(add(ring(outer - i * headH * 0.075, headH * 0.042, 10), i === 0 ? glowDark : glow,
+        [L * (0.34 + i * L * 0.012), -r * 0.16, surface(L * 0.34, -r * 0.16, 0.09)], [0, 0, 0], [1, 1, 1], `Charybdis open vortex mouth ring ${i + 1}`));
+    }
+    const maw = add(poly([[L * 0.19, -r * 0.42], [L * 0.46, -r * 0.33], [L * 0.54, -r * 0.08], [L * 0.45, r * 0.13], [L * 0.18, r * 0.08]], L * 0.09), solidDark,
+      [0, 0, surface(L * 0.36, -r * 0.10, 0.08)], [0, 0, 0], [1, 1, 1], 'Charybdis rooted vortex maw');
+    primary('vortex mouth', [...vortex, maw], { heroFeatures: vortex, monster: true, bodyOverlapRatio: 0.26, protrusionRatio: 0.12, eyeSeparationRatio: 0.10 });
+  } else if (id === 'minotaurram') {
+    const horns = [];
+    horns.push(add(identityArcRibbon(L * 0.08, r * 0.70, L * 0.18, r * 0.30, -Math.PI * 0.40, Math.PI * 0.72, r * 0.13, L * 0.070, 16), glowDark,
+      [0, 0, surface(L * 0.08, r * 0.70, 0.09)], [0, 0, 0], [1, 1, 1], 'Minotaur separated left horn arc'));
+    horns.push(add(identityArcRibbon(L * 0.25, r * 0.70, L * 0.18, r * 0.30, Math.PI * 0.28, Math.PI * 1.40, r * 0.13, L * 0.070, 16), glow,
+      [0, 0, surface(L * 0.25, r * 0.70, 0.10)], [0, 0, 0], [1, 1, 1], 'Minotaur separated right horn arc'));
+    const nose = add(identityBar(L * 0.43, -r * 0.18, L * 0.12, r * 0.10, L * 0.055), red,
+      [0, 0, surface(L * 0.43, -r * 0.18, 0.10)], [0, 0, 0], [1, 1, 1], 'Minotaur rooted muzzle');
+    primary('two separated bull horn arcs', [...horns, nose], { heroFeatures: [horns[0], horns[1]], monster: true, bodyOverlapRatio: 0.24, protrusionRatio: 0.14, eyeSeparationRatio: 0.12 });
+  } else if (id === 'cyclopseye') {
+    const socket = add(ring(r * 0.68, r * 0.30, 10), glowDark,
+      [L * 0.36, 0, surface(L * 0.36, 0, 0.08)], [0, 0, 0], [1, 1, 1], 'Cyclops single-eye socket ring');
+    const socketFill = add(new THREE.CircleGeometry(r * 0.46, 10), glowDark,
+      [L * 0.36, 0, surface(L * 0.36, 0, 0.075)], [0, 0, 0], [1, 1, 1], 'Cyclops rooted eye socket');
+    primary('single eye', [socket, socketFill], { heroFeatures: [socket], bodyOverlapRatio: 0.24 });
+  } else if (id === 'harpyshade') {
+    const wings = [];
+    for (const side of [-1, 1]) {
+      wings.push(add(poly([
+        [-L * 0.30, side * r * 0.12], [-L * 0.23, side * r * 0.40],
+        [-L * 0.08, side * r * 0.95], [L * 0.03, side * r * 0.85],
+        [-L * 0.05, side * r * 0.52], [-L * 0.18, side * r * 0.22]
+      ]), glowDark, [0, 0, surface(-L * 0.16, side * r * 0.28, 0.08)], [0, 0, 0], [1, 1, 1], `Harpy rooted wing blade ${side > 0 ? 'upper' : 'lower'}`));
+    }
+    primary('paired harpy wings', wings, { heroFeatures: [wings[0]], monster: true, bodyOverlapRatio: 0.20, protrusionRatio: 0.14, eyeSeparationRatio: 0.14 });
+  } else if (id === 'lamiacoil') {
+    const coils = [];
+    const loopData = [
+      [-L * 0.49, r * 0.00, L * 0.13, r * 0.48, glowDark],
+      [-L * 0.30, -r * 0.04, L * 0.095, r * 0.24, glow],
+      [-L * 0.12, -r * 0.10, L * 0.13, r * 0.46, glowDark]
+    ];
+    for (const [i, [x, y, rx, ry, material]] of loopData.entries()) {
+      coils.push(add(new THREE.RingGeometry(0.48, 1, 10, 1, Math.PI * 0.24, Math.PI * 1.52), material,
+        [x, y, surface(x, y, 0.08 + i * 0.01)], [0, 0, 0], [rx, ry, 1], 'Lamia open serpent loop ' + (i + 1)));
+    }
+    const tail = add(identityRibbon([
+      [-L * 0.78, -r * 0.04], [-L * 0.62, -r * 0.18], [-L * 0.45, -r * 0.04],
+      [-L * 0.31, r * 0.10], [-L * 0.20, r * 0.02]
+    ], r * 0.20, L * 0.075), glowDark,
+      [0, 0, surface(-L * 0.48, 0, 0.08)], [0, 0, 0], [1, 1, 1], 'Lamia open-loop tail root');
+    primary('open serpent loops', [...coils, tail], { heroFeatures: [coils[1]], monster: true, bodyOverlapRatio: 0.28, protrusionRatio: 0.12, eyeSeparationRatio: 0.16 });
+  } else if (id === 'kampechrono') {
+    const skull = add(poly([
+      [-L * 0.02, r * 0.02], [L * 0.01, r * 0.44], [L * 0.08, r * 0.66],
+      [L * 0.20, r * 0.67], [L * 0.35, r * 0.61], [L * 0.48, r * 0.40],
+      [L * 0.50, r * 0.10], [L * 0.40, -r * 0.06], [L * 0.24, -r * 0.10],
+      [L * 0.10, -r * 0.06]
+    ]), ivory, [0, 0, surface(L * 0.23, r * 0.28, 0.09)], [0, 0, 0], [1, 1, 1], 'Kampe enlarged anchored skull mass');
+    const glyph = add(identitySpiral(L * 0.24, r * 0.34, L * 0.13, r * 0.24, 1.35, Math.PI * 0.18, L * 0.050, L * 0.060, 26), glow,
+      [0, 0, surface(L * 0.24, r * 0.34, 0.11)], [0, 0, 0], [1, 1, 1], 'Kampe skull-anchored chrono spiral');
+    const anchor = add(identityBar(L * 0.10, r * 0.28, L * 0.15, r * 0.12, L * 0.045), glowDark,
+      [0, 0, surface(L * 0.10, r * 0.28, 0.10)], [0, 0, 0], [1, 1, 1], 'Kampe chrono spiral skull anchor');
+    primary('enlarged skull and anchored spiral', [skull, glyph, anchor], { heroFeatures: [skull], monster: true, bodyOverlapRatio: 0.62, protrusionRatio: 0.12, eyeSeparationRatio: 0.10 });
+  }
+}
+
+function cameraSurfaceForIdentity(dimensions, x, y = 0) {
+  return localSurfaceZ(dimensions, x, y);
+}
+
 function addEmissiveDetails(template, def, palette, dimensions) {
   if (!palette.glow) return;
   const sil = def.sil || {};
   const pattern = sil.pattern || 'plain';
   const fx = String(sil.fx || '').trim();
+  // Pantheon/Underworld identity geometry owns the late-roster glow pass. The
+  // old generic vein/plate/ring decals would duplicate the same surface cue,
+  // spend triangles beside the 4200 ceiling, and compete with the authored
+  // silhouette features. The identity batch is also tagged with this fx key,
+  // which keeps the material-ownership audit intact.
+  if (finite(def.act, 1) >= 4) return;
   const fxLower = fx.toLowerCase();
   const glowMaterial = toonMaterial({ color: palette.glow, glow: palette.glow, emissiveIntensity: 0.82, kind: 'emissive decal' });
   const addEmissive = (geometry, position, rotation, scale, name) => {
@@ -1857,14 +2514,19 @@ function buildTemplate(def) {
     teeth: 0,
     plateFeatures: [],
     featureBatches: [],
+    identityFeatureRecords: [],
     metrics: {}
   };
   addHeadFeatures(template, def, palette, dimensions);
+  addPantheonFeatures(template, def, palette, dimensions);
   addEmissiveDetails(template, def, palette, dimensions);
   addEyeFeatures(template, def, palette, dimensions);
   addMouthAndTeeth(template, def, palette, dimensions);
   template.teeth = template.bodyFeatures.filter((feature) => feature.name.includes('tooth')).length;
-  template.featureBatches = mergeFeatureDescriptors(template.bodyFeatures);
+  const compactActFeatureMaterial = finite(def.act, 1) >= 4
+    ? toonMaterial({ color: WHITE, glow: palette.glow || palette.accent, vertexColors: true, emissiveIntensity: 0.92, kind: 'pantheon compact feature batch' })
+    : null;
+  template.featureBatches = mergeFeatureDescriptors(template.bodyFeatures, { material: compactActFeatureMaterial });
   if (template.jaw?.teethDescriptors?.length) {
     const batches = mergeFeatureDescriptors(template.jaw.teethDescriptors);
     template.jaw.teethGeometry = batches[0]?.geometry || null;
@@ -1910,6 +2572,8 @@ function buildTemplate(def) {
   template.metrics.bulkRearProfile = finite(template.bodyGeometry.userData.rfBulkRearProfile, 0);
   template.metrics.bulkFrontProfile = finite(template.bodyGeometry.userData.rfBulkFrontProfile, 0);
   template.metrics.bulkNoseProfile = finite(template.bodyGeometry.userData.rfBulkNoseProfile, 0);
+  template.metrics.identityFeatureRecords = template.identityFeatureRecords;
+  template.metrics.identityFeatureCount = template.identityFeatureRecords.length;
   geometryCache.set(id, template);
   return template;
 }
@@ -2032,6 +2696,7 @@ function buildShark(def) {
   group.userData.rfEyeIrisStats = template.metrics.eyeIrisStats || null;
   group.userData.rfEyeUnitTriangles = template.metrics.eyeUnitTriangles || 0;
   group.userData.rfEyeUnitPresent = !!template.metrics.eyeUnitPresent;
+  group.userData.rfSingleCentralEye = !!template.metrics.singleCentralEye;
   group.userData.rfJawScale = template.dimensions.exaggeration.jawScale;
   group.userData.rfMouthCorner = template.dimensions.exaggeration.mouthCorner;
   group.userData.rfDorsalFin = template.metrics.dorsalFin || null;
@@ -2063,6 +2728,10 @@ function buildShark(def) {
   group.userData.rfBodyMaxZ = template.metrics.bodyMaxZ;
   group.userData.rfFeatureSourceCount = template.bodyFeatures.length;
   group.userData.rfFeatureBatchCount = template.featureBatches.length;
+  group.userData.rfIdentityFeatureCount = template.metrics.identityFeatureCount || 0;
+  group.userData.rfIdentityFeatureRecords = template.metrics.identityFeatureRecords || [];
+  group.userData.rfIdentityStormSpikeCount = template.metrics.stormSpikeCount || 0;
+  group.userData.rfPlateFeatureCount = template.plateFeatures.length;
   group.userData.rfBatchesTeethPlatesEyes = template.featureBatches.some((batch) => batch.geometry.userData.rfFeatureNames.some((name) => name.includes('tooth'))) &&
     template.featureBatches.some((batch) => batch.geometry.userData.rfFeatureNames.some((name) => name.includes('plate'))) &&
     template.featureBatches.some((batch) => batch.geometry.userData.rfFeatureNames.some((name) => name.includes('eye')));
@@ -2147,6 +2816,11 @@ function buildShark(def) {
   }
 
   const parts = { body, tail: null, pectL: null, pectR: null, jaw };
+  let visibleDrawCalls = 0;
+  group.traverse((object) => {
+    if (object.isMesh && object.visible && !String(object.name || '').startsWith('RF frenzy arc')) visibleDrawCalls++;
+  });
+  group.userData.rfVisibleDrawCalls = visibleDrawCalls;
   // Rev 6 (6.9) frenzy-arc crackle hook: a cheap, reversible vertex-color/
   // emissive-style tint flash on the existing body toon material. NO new
   // shader variant per the contract — body.material is already a per-rig
@@ -2396,6 +3070,22 @@ function buildShark(def) {
   const worldScale = targetLen / rawLen;
   group.scale.setScalar(worldScale);
   group.userData.baseScale = worldScale;
+  const identityPrimary = resolveIdentityScreenMetrics(template.metrics.identityPrimary, group, def);
+  group.userData.rfIdentityPrimary = identityPrimary;
+  group.userData.rfIdentityPrimaryCue = identityPrimary?.cue || null;
+  group.userData.rfIdentityProjectedWidthPx = identityPrimary?.screenWidthPx || 0;
+  group.userData.rfIdentityProjectedHeightPx = identityPrimary?.screenHeightPx || 0;
+  group.userData.rfIdentityHeroWidthPx = identityPrimary?.heroScreenWidthPx || 0;
+  group.userData.rfIdentityHeroHeightPx = identityPrimary?.heroScreenHeightPx || 0;
+  group.userData.rfIdentityHeroSpanRatio = identityPrimary?.heroSpanRatio || 0;
+  group.userData.rfIdentityHeroHeadHeightRatio = identityPrimary?.heroHeightRatio || 0;
+  group.userData.rfIdentityProjectedAreaRatio = identityPrimary?.projectedAreaRatio || 0;
+  group.userData.rfIdentitySilhouetteAreaRatio = identityPrimary?.silhouetteAreaRatio || 0;
+  group.userData.rfIdentityBodyOverlapRatio = identityPrimary?.bodyOverlapRatio || 0;
+  group.userData.rfIdentityProtrusionRatio = identityPrimary?.protrusionRatio || 0;
+  group.userData.rfIdentityComputedProtrusionRatio = identityPrimary?.computedProtrusionRatio || 0;
+  group.userData.rfIdentityEyeSeparationRatio = identityPrimary?.eyeSeparationRatio || 0;
+  group.userData.rfIdentityMonsterCue = !!identityPrimary?.monster;
 
   return { group, parts, animate };
 }
@@ -2661,8 +3351,11 @@ function distinctnessSignature(def, rig) {
     head: String(def.sil?.head || 'point'),
     pattern: String(def.sil?.pattern || 'plain'),
     fx: String(def.sil?.fx || 'none'),
+    identity: (metrics.rfIdentityFeatureRecords || []).map((record) => record.name).join('|'),
     dominantColors: dominantVertexColors([body]),
     paletteColors: metrics.rfPaletteRaw,
+    resolvedPalette: metrics.rfPaletteResolved,
+    identitySilhouetteAreaRatio: finite(metrics.rfIdentitySilhouetteAreaRatio, 0),
     bodyAspect: finite(metrics.rfBodyAspect, 0),
     bodyLength: finite(metrics.rfBodyLen, 0),
     tailRatio: finite(metrics.rfTailLengthRatio, 0),
@@ -2722,7 +3415,8 @@ function distinctnessDistance(a, b) {
   const pattern = a.pattern === b.pattern ? 0 : 1;
   const head = a.head === b.head ? 0 : 1;
   const fx = a.fx === b.fx ? 0 : 1;
-  return clamp(color * 0.31 + proportions * 0.50 + pattern * 0.06 + head * 0.06 + fx * 0.07, 0, 1);
+  const identity = a.identity === b.identity ? 0 : 1;
+  return clamp(color * 0.31 + proportions * 0.50 + pattern * 0.06 + head * 0.06 + fx * 0.07 + identity * 0.08, 0, 1);
 }
 
 function assertRosterDistinctness(signatures, result) {
@@ -2758,6 +3452,78 @@ function assertRosterDistinctness(signatures, result) {
     throw new Error(`adjacent-tier distinctness violations ${violations.length}: ${violations.slice(0, 8).join(', ')}`);
   }
   return result.distinctness;
+}
+
+function hueDistance(a, b) {
+  const delta = Math.abs(finite(a, 0) - finite(b, 0));
+  return Math.min(delta, 1 - delta);
+}
+
+function assertPantheonIdentity(id, group) {
+  if (!PANTHEON_IDS.has(id)) return;
+  const primary = group.userData.rfIdentityPrimary;
+  if (!primary || !primary.cue) throw new Error(`${id}: measured primary identity cue missing`);
+  if (group.userData.rfIdentityProjectedWidthPx < 18 || group.userData.rfIdentityProjectedHeightPx < 10) {
+    throw new Error(`${id}: primary cue ${primary.cue} footprint ${group.userData.rfIdentityProjectedWidthPx.toFixed(1)}x${group.userData.rfIdentityProjectedHeightPx.toFixed(1)} CSS px <18x10`);
+  }
+  if (group.userData.rfIdentityProjectedAreaRatio < 0.02) {
+    throw new Error(`${id}: primary cue ${primary.cue} area ${group.userData.rfIdentityProjectedAreaRatio.toFixed(3)} <.02 of visible hull`);
+  }
+  const heroHeight = group.userData.rfIdentityHeroHeadHeightRatio;
+  const heroSpan = group.userData.rfIdentityHeroSpanRatio;
+  const charybdisOpening = id === 'charybdisvoid' && heroHeight >= 0.55 && heroHeight <= 0.75;
+  if (!charybdisOpening && !((heroHeight >= 0.18 && heroHeight <= 0.30) || (heroSpan >= 0.12 && heroSpan <= 0.22))) {
+    throw new Error(`${id}: hero cue ${primary.cue} is ${heroHeight.toFixed(3)} headH / ${heroSpan.toFixed(3)}L, outside .18-.30 headH or .12-.22L`);
+  }
+  if (group.userData.rfIdentityBodyOverlapRatio < 0.08) {
+    throw new Error(`${id}: ${primary.cue} body overlap ${group.userData.rfIdentityBodyOverlapRatio.toFixed(3)} <.08L`);
+  }
+  if (group.userData.rfIdentityMonsterCue) {
+    if (group.userData.rfIdentityProtrusionRatio < 0.12) {
+      throw new Error(`${id}: monster cue ${primary.cue} protrusion ${group.userData.rfIdentityProtrusionRatio.toFixed(3)}L <.12L`);
+    }
+    if (group.userData.rfIdentityEyeSeparationRatio < 0.10) {
+      throw new Error(`${id}: monster cue ${primary.cue} eye/brow separation ${group.userData.rfIdentityEyeSeparationRatio.toFixed(3)}L <.10L`);
+    }
+  }
+  const rowChecks = {
+    hydrafang: group.userData.rfIdentityFeatureCount >= 4,
+    cerberusjaw: group.userData.rfIdentityFeatureCount >= 4,
+    medusagaze: group.userData.rfIdentityFeatureCount >= 6,
+    scyllarender: group.userData.rfIdentityFeatureCount >= 6,
+    minotaurram: group.userData.rfIdentityFeatureCount >= 3,
+    harpyshade: group.userData.rfIdentityFeatureCount >= 2,
+    lamiacoil: group.userData.rfIdentityFeatureCount >= 4,
+    charybdisvoid: group.userData.rfIdentityFeatureCount >= 4,
+    chimerashark: group.userData.rfIdentityFeatureCount >= 2,
+    kampechrono: group.userData.rfIdentityFeatureCount >= 2
+  };
+  if (rowChecks[id] === false) throw new Error(`${id}: contour prescription did not create enough separated feature pieces`);
+}
+
+function assertPantheonPaletteDistinctness(signatures, result) {
+  const rows = signatures.filter((signature) => PANTHEON_IDS.has(signature.id));
+  const violations = [];
+  let comparisons = 0;
+  for (let i = 0; i < rows.length; i++) {
+    for (let j = i + 1; j < rows.length; j++) {
+      const a = rows[i];
+      const b = rows[j];
+      if (a.act !== b.act) continue;
+      comparisons++;
+      const baseA = a.resolvedPalette?.base || {};
+      const baseB = b.resolvedPalette?.base || {};
+      const hue = hueDistance(baseA.h, baseB.h);
+      const value = Math.abs(finite(baseA.v, 0) - finite(baseB.v, 0));
+      const silhouette = Math.max(a.identitySilhouetteAreaRatio || 0, b.identitySilhouetteAreaRatio || 0);
+      if (!((hue >= 0.08 && value >= 0.12) || silhouette >= 0.08)) {
+        violations.push(`${a.id}/${b.id}=h${hue.toFixed(3)} v${value.toFixed(3)} s${silhouette.toFixed(3)}`);
+      }
+    }
+  }
+  result.pantheonPalette = { checked: rows.length, sameActComparisons: comparisons, hueFloor: 0.08, valueFloor: 0.12, silhouetteFallback: 0.08 };
+  if (violations.length) throw new Error(`Pantheon palette separation violations ${violations.length}: ${violations.slice(0, 8).join(', ')}`);
+  return result.pantheonPalette;
 }
 
 function bodyBandStats(geometry) {
@@ -3017,9 +3783,12 @@ function gateResolvedPalette(id, palette) {
   for (const [name, stats] of [['flank', palette.base], ['accent', palette.accent], ['belly', palette.belly]]) {
     if (!stats) throw new Error(`${id}: resolved ${name} swatch missing`);
   }
-  gateRange(`${id}: flank S`, palette.base.s, BODY_FLANK_SATURATION_MIN, BODY_FLANK_SATURATION_MAX);
-  gateRange(`${id}: flank V`, palette.base.v, BODY_FLANK_VALUE_MIN, BODY_FLANK_VALUE_MAX);
-    gateRange(`${id}: accent S`, palette.accent.s, ACCENT_SATURATION_MIN, ACCENT_SATURATION_MAX);
+  const underworld = UNDERWORLD_IDS.has(String(id));
+  gateRange(`${id}: flank S`, palette.base.s, underworld ? 0.70 : BODY_FLANK_SATURATION_MIN, BODY_FLANK_SATURATION_MAX);
+  gateRange(`${id}: flank V`, palette.base.v, underworld ? 0.20 : BODY_FLANK_VALUE_MIN, underworld ? 0.48 : BODY_FLANK_VALUE_MAX);
+  if (underworld && palette.accent.s < 0.80) throw new Error(`${id}: infernal accent S ${palette.accent.s.toFixed(3)} <.80`);
+  if (underworld && palette.accent.v < 0.68) throw new Error(`${id}: infernal accent V ${palette.accent.v.toFixed(3)} <.68`);
+  gateRange(`${id}: accent S`, palette.accent.s, ACCENT_SATURATION_MIN, ACCENT_SATURATION_MAX);
   gateRange(`${id}: accent V`, palette.accent.v, ACCENT_VALUE_MIN, ACCENT_VALUE_MAX);
   gateRange(`${id}: belly S`, palette.belly.s, BELLY_SATURATION_MIN, BELLY_SATURATION_MAX);
   gateRange(`${id}: belly V`, palette.belly.v, BELLY_VALUE_MIN, BELLY_VALUE_MAX);
@@ -3032,7 +3801,7 @@ function gateResolvedPalette(id, palette) {
 function __selftest() {
   ensureSharedGeometry();
   const rows = host.RFD?.SHARKS || RF.RFD?.SHARKS || RF.SHARKS;
-  if (!rows || rows.length !== 61) throw new Error('RF.Art3D expected 61 sharks, received ' + (rows ? rows.length : 0));
+  if (!rows || rows.length !== 85) throw new Error('RF.Art3D expected 85 sharks, received ' + (rows ? rows.length : 0));
   const result = {
     pass: false,
     triangles: {},
@@ -3088,6 +3857,7 @@ function __selftest() {
 
       const head = String(def.sil?.head || 'point');
       gateResolvedPalette(id, group.userData.rfPaletteResolved);
+      assertPantheonIdentity(id, group);
       gateRange(`${id}: outline V`, group.userData.rfOutlineColorStats?.v, OUTLINE_VALUE_MIN, OUTLINE_VALUE_MAX);
       if (group.userData.rfTailLengthRatio < TAIL_MIN_RATIO || group.userData.rfTailLengthRatio > TAIL_MAX_RATIO) {
         throw new Error(`${id}: tail length ratio ${group.userData.rfTailLengthRatio.toFixed(3)} outside [${TAIL_MIN_RATIO}, ${TAIL_MAX_RATIO}]`);
@@ -3105,9 +3875,9 @@ function __selftest() {
         throw new Error(`${id}: tail stations/cap contract missing`);
       }
       const eyeRadiusRanges = {
-        whale: [0.34, 0.42], kaiju: [0.42, 0.50]
+        whale: [0.34, 0.42], kaiju: [0.42, 0.50], cyclops: [0.50, 0.62]
       };
-      const eyeRange = eyeRadiusRanges[head] || [0.38, 0.46];
+      const eyeRange = id === 'cyclopseye' ? eyeRadiusRanges.cyclops : eyeRadiusRanges[head] || [0.38, 0.46];
       gateRange(`${id}: eye radius/radiusY`, group.userData.rfEyeRadiusFraction, eyeRange[0], eyeRange[1]);
       gateRange(`${id}: front span/bodyLen`, group.userData.rfFrontSpanRatio, 0.36, 0.45);
       const headScaleRanges = {
@@ -3217,8 +3987,21 @@ function __selftest() {
       }
       group.userData.rfWindingStats = winding;
 
-      if (!group.userData.rfEyeUnitPresent || group.userData.rfEyeUnitTriangles < 170 || group.userData.rfEyeUnitTriangles > 230) {
+      const eyeUnitMin = id === 'cyclopseye' ? 80 : 170;
+      if (!group.userData.rfEyeUnitPresent || group.userData.rfEyeUnitTriangles < eyeUnitMin || group.userData.rfEyeUnitTriangles > 230) {
         throw new Error(id + ': eye geometry unit missing or outside the ~190-tri pair budget');
+      }
+      if (id === 'cyclopseye' && !group.userData.rfSingleCentralEye) throw new Error(id + ': normal eye pair was not suppressed');
+      if (finite(def.act, 1) >= 4) {
+        if (group.userData.rfFeatureBatchCount !== 1 || group.userData.rfVisibleDrawCalls > 6) {
+          throw new Error(`${id}: compact late-roster draw budget failed (${group.userData.rfFeatureBatchCount} feature batches, ${group.userData.rfVisibleDrawCalls} visible draws)`);
+        }
+        const records = group.userData.rfIdentityFeatureRecords || [];
+        if (!records.length) throw new Error(`${id}: identity feature batch is empty`);
+        for (const record of records) {
+          gateRange(`${id}: ${record.name} proud offset/bodyLen`, record.proudOffset / Math.max(group.userData.rfBodyLen, 1e-6), 0.03, 0.08);
+          if (record.deltaV < 0.25) throw new Error(`${id}: ${record.name} delta-V ${record.deltaV.toFixed(3)} <.25 vs flank`);
+        }
       }
       if (body.material.vertexColors !== true) throw new Error(id + ': body material lost vertexColors');
       const expectedFlat = ['rock', 'mech', 'kaiju'].includes(def.sil?.head);
@@ -3232,8 +4015,11 @@ function __selftest() {
       const bodyStats = bodyColorStats(geometry);
       if (!(bodyStats.meanLuminance > 0) || !Number.isFinite(bodyStats.meanLuminance)) throw new Error(id + ': invalid body vertex colors');
       const bodyBlocks = bodyColorBlockStats(geometry);
-      gateRange(`${id}: vertex flank S`, bodyBlocks.flank.saturation, BODY_FLANK_SATURATION_MIN, 1.0);
-      gateRange(`${id}: vertex flank V`, bodyBlocks.flank.value, BODY_FLANK_VALUE_MIN, 1.0);
+      gateRange(`${id}: vertex flank S`, bodyBlocks.flank.saturation, UNDERWORLD_IDS.has(id) ? 0.70 : BODY_FLANK_SATURATION_MIN, 1.0);
+      // Act 5 keeps a dark base block (the resolved palette gate above); its
+      // radiant edge rows intentionally remain bright and are not averaged
+      // into the dark-base floor here.
+      gateRange(`${id}: vertex flank V`, bodyBlocks.flank.value, UNDERWORLD_IDS.has(id) ? 0.20 : BODY_FLANK_VALUE_MIN, 1.0);
       const triangles = countTriangles(group);
       result.triangles[id] = triangles;
       if (triangles > 4200) throw new Error(id + ': ' + triangles + ' triangles exceeds the Rev 7 4200/rig gate');
@@ -3265,6 +4051,7 @@ function __selftest() {
     const maxGirth = Math.max(...girthValues);
     result.girthSpread = Number(((maxGirth - minGirth) / Math.max(minGirth, 1e-6)).toFixed(3));
     if (result.girthSpread < 0.35) throw new Error('roster relative girth spread ' + result.girthSpread + ' < 0.35');
+    assertPantheonPaletteDistinctness(signatures, result);
     assertRosterDistinctness(signatures, result);
     for (const [head, total] of archetypeTotals) {
       result.archetypes[head] = {
@@ -3276,8 +4063,19 @@ function __selftest() {
     result.worstCaseId = worstCaseId;
     result.bendProgramVariants = Array.from(bendKeys).sort();
     if (result.bendProgramVariants.length > 8) throw new Error('bend program variants ' + result.bendProgramVariants.length + ' > 8');
+    const leviathan = rows.find((def) => String(def.id) === 'leviathanrex');
+    const typhon = rows.find((def) => String(def.id) === 'typhonmaw');
+    if (leviathan && typhon) {
+      const leviathanRig = buildShark(leviathan);
+      const typhonRig = buildShark(typhon);
+      const leviathanSpikes = leviathanRig.group.userData.rfIdentityStormSpikeCount || leviathanRig.group.userData.rfPlateFeatureCount;
+      const typhonSpikes = typhonRig.group.userData.rfIdentityStormSpikeCount;
+      if (!(typhonSpikes > leviathanSpikes)) throw new Error(`typhonmaw storm spike count ${typhonSpikes} is not greater than leviathanrex ${leviathanSpikes}`);
+    }
     result.eyeUnit = { trianglesPerPair: rows[0] ? buildShark(rows[0]).group.userData.rfEyeUnitTriangles : 0, checked: rows.length };
-    result.notes.push('Rev 7: all 61 definitions build through one indexed welded body geometry; tail, dorsal, and pectorals share body-ring indices.');
+    result.notes.push('Rev 7: all 85 definitions build through one indexed welded body geometry; tail, dorsal, and pectorals share body-ring indices.');
+    result.notes.push('Pantheon/Underworld: 24 identity rosters use proud .03-.08L, delta-V >=.25 feature geometry; Act 4/5 rigs compact to one feature batch and <=6 visible draws.');
+    result.notes.push('Cyclops Eye: cyclopseye suppresses the normal eye pair and uses one oversized central eye with its own reduced unit-triangle gate.');
     result.notes.push('Rev 7 art fix: resolved flank/accent/belly ramps, welded 11-station .28-.36L crescent tails with a projected .10-.14L center notch, and 1.010 BackSide contour shells are numeric-gated.');
     result.notes.push('Rev 7 art fix: bend v3 declares uBendPhase/uBendAmp/uBendK/uBendSpan/uBendBias/uTailAmp/uTailSpan/uBendScale, preserves engine phase/amplitude authority, y coupling, and :rf-bend3.');
     result.notes.push('Rev 7 art fix: oversized head/eye/jaw, hammer/whale/tiger silhouette cues, proud void/mech/baleen features, and eye/ramp values are numeric-gated.');

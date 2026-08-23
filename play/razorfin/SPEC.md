@@ -4,6 +4,18 @@ Orchestrator-owned. Lanes implement EXACTLY these interfaces. If an interface
 must change, the lane STOPS and reports; the orchestrator revises this file.
 Read play/_shared/NOTES.md defect classes before writing input/render code.
 
+## Rev 8 addendum (2026-08-23): roster expansion 61 -> 85
+
+RFD.SHARKS grows from 61 to 85 rows: 24 new sharks added as two new acts,
+tiers 9-12 in each (same tier band as Act 3's super/legendary rows).
+  - Act 4 "Pantheon" (12 sharks) — Greek GOD versions, radiant palettes.
+  - Act 5 "Underworld" (12 sharks) — Greek DEMON/monster versions, infernal
+    palettes.
+Act numbers are now 1-5. Several consuming files hardcode act 1-3 (act
+names, act clamps in silhouette/eye rendering, a hard `rows.length !== 61`
+roster-count assertion in shark3d.js). See NOTES-pantheon-data.md for the
+full inventory — those are NOT fixed here (out of this lane's ownership).
+
 ## Modules, ownership, load order
 
 index.html loads, in order:
@@ -82,7 +94,9 @@ RF.Art.paletteOf(sharkDef)                 // -> {base, belly, accent, glow} for
 Silhouette params come ONLY from sharkDef.sil (see data.js schema). Head enum:
 point|blunt|hammer|saw|frill|whale|croc|angler|eel|rock|mech|skull|void|kaiju.
 Every baked texture MUST be visually distinct at 96px length; countershading
-mandatory; Act 2/3 add glow/pattern layers keyed off sharkDef.sil.fx.
+mandatory; Act 2/3 add glow/pattern layers keyed off sharkDef.sil.fx. Act 4
+("Pantheon", tiers 9-12, gods) and Act 5 ("Underworld", tiers 9-12, demons)
+follow the same glow/pattern convention (Rev 7 addendum, 2026-08-23).
 
 ### abilities.js (Lane E)
 RF.Abilities.passives(sharkDef)            // -> resolved passive struct {wideBite, lunge, biteUp, filterFeed, ambush, slowMetab, junkEater, pressureImmune, armored, coinMagnet, fireWake, dreadAura, undying} + stat multipliers
@@ -114,7 +128,7 @@ RF.Meta.canBuy / RF.Meta.buy(profile, sharkId | upgrade)   // economy per RFD.EC
 RF.Meta.ownedFor(profile, id)              // || RF.DevMode.state.forceUnlockAll  (dev overlay NEVER persisted)
 RF.Meta.tierUnlocked(profile, tier)
 RF.DevMode.init()                          // parse URLSearchParams ONCE: unlockall, invincible, coins, notut; expose window.__rf {version, state, switches, unlockAll(), resetSave(), giveCoins(n), forceGoldRush(), forcePower(id), forceZone(n)}
-Scenes owned: Shop (tier-grouped, 3 act sections, scrollable), Results.
+Scenes owned: Shop (tier-grouped, 5 act sections, scrollable), Results.
 UI LAW: no center banners in play; Shop/Results are out-of-run, free-form.
 
 ### game.js (Lane A)

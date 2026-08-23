@@ -271,7 +271,11 @@
     var bh = bodyLen / bodyRatio / 2;
     var cy = h * (menu ? 0.52 : 0.52);
     var sharkTier = clamp(finiteNumber(tier, 1), 1, 12);
-    var sharkAct = clamp(finiteNumber(act, sharkTier >= 5 ? 2 : 1), 1, 3);
+    /* Acts 4 (Pantheon, gods) and 5 (Underworld, demons) extend the ladder
+     * past Legends; both lean into the same "heavier act reads as more
+     * monstrous" curve mouthGape already rides below, so the clamp widens
+     * rather than re-mapping them onto 1-3. */
+    var sharkAct = clamp(finiteNumber(act, sharkTier >= 5 ? 2 : 1), 1, 5);
     return {
       w: w, h: h, cy: cy, bh: bh, rx: peduncleX, peduncleX: peduncleX,
       noseX: noseX, bodyNoseX: noseX, bodyLen: bodyLen,
@@ -751,7 +755,11 @@
   function drawEye(ctx, g, palette) {
     var pos = eyePosition(g), x = pos[0], y = pos[1];
     var tier = clamp(finiteNumber(g.tier, 1), 1, 12);
-    var act = clamp(finiteNumber(g.act, tier >= 5 ? 2 : 1), 1, 3);
+    // Widened to [1,5]: act 4 (Pantheon gods) keeps the glow-eye branch
+    // (act >= 2) and reads brighter via r growth with tier; act 5
+    // (Underworld demons) also glows, consistent with act-2/3 "monster"
+    // styling rather than getting a separate branch.
+    var act = clamp(finiteNumber(g.act, tier >= 5 ? 2 : 1), 1, 5);
     var r = Math.max(2.05, g.w * (0.015 + tier * 0.00072));
     var glow = palette.glow || blend(palette.accent, palette.belly, 0.2);
     var iris = act >= 2 ? glow : blend(palette.accent, 0x01060d, 0.18);

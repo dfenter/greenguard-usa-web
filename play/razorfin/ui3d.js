@@ -36,7 +36,7 @@
   var RF = window.RF = window.RF || {};
 
   // ------------------------------------------------------------ constants
-  var ACT_NAMES = { 1: 'Real Sharks', 2: 'Monsters', 3: 'Legends' };
+  var ACT_NAMES = { 1: 'Real Sharks', 2: 'Monsters', 3: 'Legends', 4: 'Pantheon', 5: 'Underworld' };
   var TRACKS = ['bite', 'speed', 'boost', 'power'];
   var TRACK_LABEL = { bite: 'Bite', speed: 'Speed', boost: 'Boost', power: 'Power' };
   var UP_PIPS = 5;
@@ -1100,7 +1100,14 @@
 
     var list = allSharks().slice();
     // Act sections, each sorted by tier then cost, mirroring the 2D shop.
-    var acts = [1, 2, 3];
+    // Derived dynamically from the roster so new acts (Pantheon, Underworld,
+    // ...) render without touching this function again.
+    var actSet = {}, acts = [];
+    for (var li = 0; li < list.length; li++) {
+      var la = list[li].act;
+      if (!actSet[la]) { actSet[la] = true; acts.push(la); }
+    }
+    acts.sort(function (x, y) { return x - y; });
     for (var a = 0; a < acts.length; a++) {
       var act = acts[a];
       var rows = list.filter(function (s) { return s.act === act; });
@@ -3641,6 +3648,30 @@
         if (N(SCREENS[screens[sk]]).classList.contains('rf-on')) anyOn = true;
       }
       ok('none hides everything', anyOn === false);
+
+      // ---- Pantheon/Underworld: ACT_NAMES + dynamic shop/roster acts ----
+      ok('ACT_NAMES has all 5 acts named', Object.keys(ACT_NAMES).length === 5
+        && ACT_NAMES[4] === 'Pantheon' && ACT_NAMES[5] === 'Underworld');
+      var rosterHas85 = allSharks().length === 85;
+      ok('roster carries all 85 sharks (61 base + 24 Pantheon/Underworld)', rosterHas85);
+      var actTestProfile = { coins: 0, level: 12, xp: 0, selected: 'reef', sharks: {} };
+      showShop({ profile: actTestProfile });
+      var shopRoot = N('rfShopList');
+      var shopAllSecs = shopRoot ? shopRoot.querySelectorAll('.rf-shop-act') : [];
+      // Exclude the trailing Collection section (also class rf-shop-act) --
+      // only the per-act sections should number 5.
+      var shopHeaders = [];
+      var shopActSecCount = 0;
+      for (var shi = 0; shi < shopAllSecs.length; shi++) {
+        var hh = shopAllSecs[shi].querySelector('.rf-shop-act-h');
+        if (!hh || hh.classList.contains('rf-collection-h')) continue;
+        shopActSecCount++;
+        shopHeaders.push(hh.textContent);
+      }
+      ok('shop renders one section per act present in the roster (5, not hardcoded 3)',
+        rosterHas85 && shopActSecCount === 5);
+      ok('shop act headers include Pantheon and Underworld',
+        shopHeaders.indexOf('Pantheon') >= 0 && shopHeaders.indexOf('Underworld') >= 0);
 
     } finally {
       if (S.chipTimer) { clearTimeout(S.chipTimer); S.chipTimer = null; }
