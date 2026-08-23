@@ -89,7 +89,7 @@
           <span class="devname">SparkCalc</span>
           <span class="job">Turns raw readings into the numbers people actually use</span>
         </a>
-        <a class="dev st-comm" href="/sparkbridge/flow">
+        <a class="dev st-svc" href="/sparkbridge/flow">
           <span class="tagno">Stream</span>
           <span class="devname">SparkFlow</span>
           <span class="job">Carries Sparkplug into NATS/JetStream without losing quality or timestamp</span>
@@ -125,7 +125,7 @@
     <div class="sec-head">
       <span class="path">The line</span>
       <h2>What Each One Does, And What It Costs</h2>
-      <p>Twelve released products, each solving one problem properly, plus SparkFlow in commissioning. Most plants start with one and add the next when the need shows up. Every price is list, per gateway, bought once and kept.</p>
+      <p>Thirteen released products, each solving one problem properly. Most plants start with one and add the next when the need shows up. Every price is list, per gateway, bought once and kept.</p>
     </div>
 
     <div class="scroller">
@@ -200,7 +200,7 @@
             <td class="num">$495</td>
           </tr>
           <tr>
-            <td><a href="/sparkbridge/flow">SparkFlow</a> <span class="stat comm" style="margin-left:8px">Commissioning</span></td>
+            <td><a href="/sparkbridge/flow">SparkFlow</a></td>
             <td>Carries Sparkplug's birth, death, quality and source timestamp into NATS/JetStream, so millions of points can be historized without becoming millions of tags.</td>
             <td class="num">Not yet released</td>
           </tr>
@@ -217,7 +217,7 @@
     <div class="sec-head">
       <span class="path">Inside SparkBridge</span>
       <h2>Edge, Host And Provider</h2>
-      <p>SparkBridge itself is three modules for Ignition. Install the ones a site needs, and each works with any conformant Sparkplug software on the other side.</p>
+      <p>SparkBridge itself is four modules for Ignition, with Flow optional. Install the ones a site needs, and each works with any conformant Sparkplug software on the other side.</p>
     </div>
     <div class="cards">
       <div class="card"><span class="tag">Edge Node &middot; publisher</span><h3>Edge</h3><p>Publishes Ignition tag data as Sparkplug and keeps publishing into a disk buffer when the link drops.</p></div>

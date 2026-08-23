@@ -39,7 +39,7 @@
   <div class="wrap">
     <div class="eyebrow">Download</div>
     <h1>The release package</h1>
-    <p>One zip per release: three signed modules, the broker extension, the Perspective status project, the checksums, the license and the documents you install from. Current release 2.4.0.</p>
+    <p>One zip per release: four signed modules, the broker extension, the Perspective status project, the checksums, the license and the documents you install from. Current release 2.5.0.</p>
   </div>
 </header>
 
@@ -49,16 +49,16 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="path">how to get it</div>
-      <h2>Ask For the Build</h2>
-      <p>The artifacts are not on a public link yet. Email us and the current bundle comes back to you, usually the same day.</p>
+      <h2>Download the Build</h2>
+      <p>The bundles are public. Pick the one for your gateway line; they are not interchangeable.</p>
     </div>
     <div class="leads">
-      <p>We are honest about the reason rather than dressing it up as a gate. The modules are signed with a SparkBridge certificate rather than an Inductive Automation one, which means the gateway shows a certificate acceptance page on first install, and we would rather walk a first-time installer past that screen than let them meet it alone from an anonymous download. Certification through Inductive Automation's third-party module program is in progress, and public hosting arrives with it.</p>
-      <p>So the delivery is request-based for now. Tell us the version you want and the Ignition version you are running, and you get the bundle plus the checksums to verify it against. There is no form, no lead-nurture sequence, and no waiting on a sales call.</p>
+      <p>The modules are signed with a SparkBridge certificate rather than an Inductive Automation one, so the gateway shows a certificate acceptance page on the first module you install. Print the fingerprint from the bundled <span class="mono">sparkbridge-signing-cert.pem</span> and compare it against that page before accepting; the checksums below let you verify the download against this page rather than against the file that traveled with it. Certification through Inductive Automation's third-party module program is in progress. If you would rather have a person walk the first install with you, email us and you get exactly that, usually the same day.</p>
     </div>
     <div class="cta-row">
-      <a class="btn" href="mailto:admin@greenguard-usa.com?subject=SparkBridge%20download%20request%202.4.0&amp;body=Ignition%20version%3A%0AGateway%20OS%3A%0ANumber%20of%20sites%3A%0A">Request the 2.4.0 bundle</a>
-      <a class="btn ghost dark" href="/sparkbridge/contact">Ask a question first</a>
+      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.5.0/sparkbridge-2.5.0-ign81-bundle.zip">Download 2.5.0 for Ignition 8.1</a>
+      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.5.0/sparkbridge-2.5.0-ign83-bundle.zip">Download 2.5.0 for Ignition 8.3</a>
+      <a class="btn ghost dark" href="mailto:admin@greenguard-usa.com?subject=SparkBridge%202.5.0%20install%20help&amp;body=Ignition%20version%3A%0AGateway%20OS%3A%0ANumber%20of%20sites%3A%0A">Ask for a walkthrough</a>
     </div>
   </div>
 </section>
@@ -72,8 +72,8 @@
     </div>
     <div class="plain">
       <div>
-        <h3>Three signed modules</h3>
-        <p><b>SparkBridge-Provider.modl</b> owns the broker: it runs the embedded Moquette for a zero-configuration first install, or stands down and lets an external HiveMQ CE own the ports. <b>SparkBridge-Host.modl</b> decodes Sparkplug into a managed Ignition tag provider. <b>SparkBridge-Edge.modl</b> publishes a folder of gateway tags as Sparkplug. Install them in that order, because the Provider has to be running before the Host subscribes and before the Edge publishes.</p>
+        <h3>Four signed modules</h3>
+        <p><b>SparkBridge-Provider.modl</b> owns the broker: it runs the embedded Moquette for a zero-configuration first install, or stands down and lets an external HiveMQ CE own the ports. <b>SparkBridge-Host.modl</b> decodes Sparkplug into a managed Ignition tag provider. <b>SparkBridge-Edge.modl</b> publishes a folder of gateway tags as Sparkplug. Install them in that order, because the Provider has to be running before the Host subscribes and before the Edge publishes. <b>SparkBridge-Flow.modl</b>, new in 2.5.0, is optional: it carries everything the Host decodes onto NATS/JetStream as a unified namespace, with last-known value and lifecycle in a KV bucket, a confirmed-write command path back to the edge and a Perspective dispatcher fed from the stream. Install it last, only if you run a nats-server, and read <b>docs/FLOW_MODULE.md</b> in the bundle first.</p>
       </div>
       <div>
         <h3>The broker authorization extension</h3>
@@ -81,7 +81,7 @@
       </div>
       <div>
         <h3>The Perspective status project</h3>
-        <p><b>sparkbridge-perspective-2.4.0.zip</b> is an importable Perspective project that puts the suite's status on a screen: node health, per-node SLO statistics and the signed fleet configuration each site is running, with nothing to build by hand.</p>
+        <p><b>sparkbridge-perspective-2.5.0.zip</b> is an importable Perspective project that puts the suite's status on a screen: node health, per-node SLO statistics and the signed fleet configuration each site is running, with nothing to build by hand.</p>
       </div>
       <div>
         <h3>Checksums and the signing certificate</h3>
@@ -89,7 +89,7 @@
       </div>
       <div>
         <h3>The documents you install from</h3>
-        <p><b>QUICKSTART.md</b> is a first run in two sessions: Sparkplug flowing on one gateway with the embedded broker in about twenty minutes, then external HiveMQ with TLS, file RBAC, separate host and edge identities and the authorization extension in another thirty-five. <b>INSTALL.md</b> is the reference walkthrough, including the upgrade path and the production checklist. <b>RELEASE-NOTES-2.4.0.md</b> is what changed and what an upgrade requires of you.</p>
+        <p><b>QUICKSTART.md</b> is a first run in two sessions: Sparkplug flowing on one gateway with the embedded broker in about twenty minutes, then external HiveMQ with TLS, file RBAC, separate host and edge identities and the authorization extension in another thirty-five. <b>INSTALL.md</b> is the reference walkthrough, including the upgrade path and the production checklist. <b>RELEASE-NOTES-2.5.0.md</b> is what changed and what an upgrade requires of you.</p>
       </div>
       <div>
         <h3>The license</h3>
@@ -104,20 +104,22 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="path">verify</div>
-      <h2>SHA-256, Release 2.4.0</h2>
+      <h2>SHA-256, Release 2.5.0</h2>
       <p>Published here per release, from the release build's own SHA256SUMS.txt. Check what you received against this page rather than against the file that traveled with it.</p>
     </div>
     <div class="scroller">
       <table class="tbl">
-        <caption>Suite 2.4.0, signed release build</caption>
+        <caption>Suite 2.5.0, signed release build</caption>
         <thead><tr><th>Artifact</th><th>SHA-256</th></tr></thead>
         <tbody>
-          <tr><td>SparkBridge-Host.modl</td><td class="num">e183a49314fe72606e6f0c0f6525e827f7ad70b0673be8e29dfa1ca93e7d2ed7</td></tr>
-          <tr><td>SparkBridge-Edge.modl</td><td class="num">5e8c9cc32ea71ff3992be90c29828fb6c4dc715e02d5964bd6c8e841fcfab611</td></tr>
-          <tr><td>SparkBridge-Provider.modl</td><td class="num">9b51015b8e1da0d5b5eeecfea718b6bfb68b436a476384a046f270e1250e5c83</td></tr>
-          <tr><td>sparkbridge-broker-extension-2.4.0.zip</td><td class="num">20526e5cddf9b67319e415ad232b96e9f3ef7a8f1f007b8556eec574ba2bc6db</td></tr>
-          <tr><td>sparkbridge-perspective-2.4.0.zip</td><td class="num">cb75a4015e77286e7894b5bc97d49d8608305ff4ff504ebe1ad68b4831ce78e1</td></tr>
-          <tr><td>sparkbridge-2.4.0-bundle.zip</td><td class="num">ca2f182fdc51bc269a409e1d2c3c3e6c55e1137d4726bfe07215d8794de8c1c6</td></tr>
+          <tr><td>SparkBridge-Host.modl</td><td class="num">829f1ed1bda1f8b3611f50bd41e8f742c5629a9196eca7a6ffbd45de726acd6b</td></tr>
+          <tr><td>SparkBridge-Edge.modl</td><td class="num">4cc4914a6a21bd38caec35c86a7dae9605aa760c3677de666682865ca1f39570</td></tr>
+          <tr><td>SparkBridge-Provider.modl</td><td class="num">64a18096166f37694bb5429ffb50f67f4f1f29d60ed626a867382d54cb06202d</td></tr>
+          <tr><td>SparkBridge-Flow.modl</td><td class="num">f8933b333a1b2c219cb7f590053957e60539b36e55bddbdb2653aaed3b9bcc0c</td></tr>
+          <tr><td>sparkbridge-broker-extension-2.5.0.zip</td><td class="num">9427653dcd366e23118e4422dae91171aa921b42f7770d3c85ae11202771b2a5</td></tr>
+          <tr><td>sparkbridge-perspective-2.5.0.zip</td><td class="num">94dc05c0561498a4e413cc79fdc4d3edff770b55b4fd05dc75ce4ccc336129b6</td></tr>
+          <tr><td>sparkbridge-2.5.0-ign81-bundle.zip</td><td class="num">6e964f580bbc038f7311d645ef6ac4947abf0f299ef2f164a72618952e0a925c</td></tr>
+          <tr><td>sparkbridge-2.5.0-ign83-bundle.zip</td><td class="num">af7e97de4cb1c598d348a5c823dc01dd7711f6a1ba95bb4fde7985c15c3052f4</td></tr>
         </tbody>
       </table>
     </div>
@@ -133,7 +135,7 @@
       <p>The same trial mechanism every Ignition module uses, with no separate key to request and no expiry date on the calendar.</p>
     </div>
     <div class="leads">
-      <p>Install the modules and they run on Ignition's standard two-hour trial. When the two hours are up all three modules pause, store-and-forward keeps capturing rather than dropping what it was holding, and clicking <b>Reset Trial</b> on the gateway resumes them with no restart. There is no limit on how many times you may reset it, so a bench that gets picked up on a Tuesday and again a fortnight later never runs out, and there is nothing to renew or re-request in between.</p>
+      <p>Install the modules and they run on Ignition's standard two-hour trial. When the two hours are up all four modules pause, store-and-forward keeps capturing rather than dropping what it was holding, and clicking <b>Reset Trial</b> on the gateway resumes them with no restart. There is no limit on how many times you may reset it, so a bench that gets picked up on a Tuesday and again a fortnight later never runs out, and there is nothing to renew or re-request in between.</p>
       <p>Two hours is enough for the whole quickstart with time to spare, and it is enough to answer the questions that actually decide the purchase: does it hold your tag count, does the store-and-forward buffer survive the link you have, does the projection land where you expect it in the tag browser. What it is not built for is an unattended soak. For that, or for anything that has to survive a weekend without a person at the keyboard, tell us and we will sort out an arrangement.</p>
       <p><b>Paid activation is coming through Inductive Automation's third-party module program.</b> That is the same licensing surface as any other commercial Ignition module, activated against your gateway the way you already activate modules. Until it lands, the trial is the whole story: there is no interim license file, no dongle, and nothing you can buy today that changes what the modules do.</p>
     </div>
@@ -165,10 +167,10 @@
 
 <section class="tail">
   <div class="wrap">
-    <h2>Ask and It Arrives</h2>
-    <p>Tell us your Ignition version and roughly how many tags you want to move. The bundle and the checksums come back, and the quickstart in it takes an afternoon at most.</p>
+    <h2>Grab It and Go</h2>
+    <p>Download the bundle for your gateway line, verify the checksums, and the quickstart in it takes an afternoon at most. If you would rather have company for the first install, email us your Ignition version and you get a person, not a sequence.</p>
     <div class="cta-row">
-      <a class="btn" href="mailto:admin@greenguard-usa.com?subject=SparkBridge%20download%20request%202.4.0&amp;body=Ignition%20version%3A%0AGateway%20OS%3A%0ANumber%20of%20sites%3A%0A">Request the bundle</a>
+      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/v2.5.0">Download 2.5.0</a>
       <a class="btn ghost" href="/sparkbridge/resources">Read the documentation</a>
     </div>
   </div>

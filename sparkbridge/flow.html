@@ -42,7 +42,7 @@
         <div class="eyebrow">SparkFlow</div>
         <h1>Sparkplug into NATS, kept honest</h1>
         <p>Most bridges into a streaming backbone drop the industrial data model at the door: what is left is opaque payloads on a subject, with no idea whether a value is fresh, stale or missing entirely. SparkFlow carries Sparkplug's birth, death, quality and source timestamp across the seam, so the backbone can answer questions your equipment already answered once.</p>
-        <div class="pmeta"><span class="stat comm">Commissioning</span><span>Live on the dev estate</span><span>Pre-release</span></div>
+        <div class="pmeta"><span class="stat">Released</span><span>SparkBridge 2.5.0</span><span>In the release bundle</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>Live gateway &middot; wire capture</span><span class="live"><i class="dot"></i>Captured live</span></div>
@@ -84,7 +84,7 @@ missing: 0   ordering violations: 0</pre>
           <tr><th>What it carries</th><td>Birth/death, quality, stale and source timestamp into subjects and a KV last-value store</td></tr>
           <tr><th>Command path</th><td>Request/reply write-back, fails closed without credentials and TLS</td></tr>
           <tr><th>Authorization</th><td>Per-identity NATS accounts generated from the same SparkID intent model as the broker ACLs</td></tr>
-          <tr><th>State</th><td>Commissioning: live on the dev estate, pre-release. See <a href="/sparkbridge/pricing">pricing</a> for released modules</td></tr>
+          <tr><th>State</th><td>Released 2026-08-23 in SparkBridge 2.5.0 as <span class="mono">SparkBridge-Flow.modl</span>. <a href="/sparkbridge/download">Download</a>. Pricing on request until it joins the <a href="/sparkbridge/pricing">price list</a></td></tr>
         </table>
       </div>
     </div>
@@ -129,7 +129,7 @@ missing: 0   ordering violations: 0</pre>
     <div class="sec-head">
       <span class="path">honest ledger</span>
       <h2>What Is Proven, What Is Owed</h2>
-      <p>SparkFlow is commissioning, not released. This is the actual state, not the pitch.</p>
+      <p>SparkFlow shipped in 2.5.0. This is the actual state, not the pitch.</p>
     </div>
     <div class="ledger">
       <div class="col">
@@ -146,10 +146,10 @@ missing: 0   ordering violations: 0</pre>
       <div class="col owed">
         <h3>Owed</h3>
         <ul class="owed">
-          <li class="owes">Full-scale throughput against the twelve-million-point hypothesis has not reached target on a contended bench box; the transport itself drops nothing, but the harness's single consumer is the bottleneck at scale.</li>
+          <li class="owes">Full-scale throughput against the twelve-million-point hypothesis still lacks an uncontended-box run. Parallel ingest workers with per-worker connections shipped (about 35 percent faster drain); all published figures are honestly labelled contended-box.</li>
           <li>Provider tags confirmed live over the token-gated /tags route: seven TAGFEED-projected tags returned with real values and quality.</li>
           <li>Exactly-once identity is live: every published metric carries a Nats-Msg-Id built from a per-session UUID and a non-wrapping sequence, verified on the wire past the 256-message Sparkplug wraparound.</li>
-          <li class="owes">Native cross-domain JetStream stream sourcing across a leaf boundary needs an account export/import fix before it replaces the current pull-and-reconcile catch-up step.</li>
+          <li>Native cross-domain JetStream stream sourcing across a leaf boundary works; the earlier failure was a bootstrap ordering race, root-caused and fixed, and the partition heal test now passes natively.</li>
         </ul>
       </div>
     </div>
@@ -159,10 +159,10 @@ missing: 0   ordering violations: 0</pre>
 <section>
   <div class="wrap">
     <div class="measure">
-      <p>SparkFlow suits plants already running SparkBridge that are hitting the ceiling of tag-per-point scale, or that need a replayable application-tier backbone alongside Sparkplug rather than in place of it. It is commissioning today: live on the dev estate, proven against a licensed gateway, not yet released for purchase.</p>
+      <p>SparkFlow suits plants already running SparkBridge that are hitting the ceiling of tag-per-point scale, or that need a replayable application-tier backbone alongside Sparkplug rather than in place of it. It shipped in SparkBridge 2.5.0: proven against a licensed gateway, three adversarial review rounds and a security red team behind it, and the honest ledger above says what is still owed.</p>
     </div>
     <div class="cta-row">
-      <a class="btn" href="/sparkbridge/contact">Ask about the commissioning program</a>
+      <a class="btn" href="/sparkbridge/download">Get the 2.5.0 bundle</a>
       <a class="btn ghost dark" href="/sparkbridge/products">See the products</a>
     </div>
   </div>

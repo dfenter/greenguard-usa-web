@@ -187,8 +187,8 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="path">modules</div>
-      <h2>Three Modules at the Core</h2>
-      <p>SparkBridge itself is three Ignition modules. Install only what a site needs. Each interoperates with any other vendor's Sparkplug software.</p>
+      <h2>Four Modules at the Core</h2>
+      <p>SparkBridge itself is four Ignition modules. Install only what a site needs. Each interoperates with any other vendor's Sparkplug software.</p>
     </div>
     <div class="cards">
       <article class="card">
@@ -202,6 +202,10 @@
       <article class="card">
         <h3>Provider</h3>
         <p>Supplies the broker: embedded for a single node, or a managed HiveMQ CE companion for MQTT 5 and shared subscriptions. <b>No connected-client tier.</b></p>
+      </article>
+      <article class="card">
+        <h3>Flow</h3>
+        <p>Optional. Carries the decoded namespace onto NATS/JetStream with quality, source timestamp and exactly-once identity, KV last-known value, and a confirmed-write command path back. <b>New in 2.5.0.</b> <a href="/sparkbridge/flow">Details</a>.</p>
       </article>
     </div>
     <p class="note">Full feature detail, wire behavior and outage semantics are on the <a href="/sparkbridge/products">products page</a>.</p>

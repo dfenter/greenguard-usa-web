@@ -39,7 +39,7 @@
   <div class="wrap">
     <div class="eyebrow">Changelog</div>
     <h1>Version history</h1>
-    <p>Every release, what changed, and what the change was for. The current release is 2.4.0;
+    <p>Every release, what changed, and what the change was for. The current release is 2.5.0;
     the full customer notes ship in the release package.</p>
   </div>
 </header>
@@ -50,7 +50,27 @@
   <div class="wrap">
     <ul class="lifeline">
       <li>
-        <span class="lc lc-birth">2.4.0<br>2026&#8209;08&#8209;15</span>
+        <span class="lc lc-birth">2.5.0<br>2026&#8209;08&#8209;23</span>
+        <div>
+          <h3>The backbone: SparkFlow ships</h3>
+          <p>A fourth module, SparkBridge Flow, carries everything the Host decodes onto
+          NATS/JetStream as a unified namespace: one subject per metric with a mandatory device
+          slot and reversible escaping, a body that keeps quality, source timestamp and the
+          historical flag, last-known value and lifecycle in a KV bucket, a digital-twin bucket,
+          and a confirmed-write command path back to the edge with optional Ed25519-signed
+          commands on top of the broker ACL. Every message carries an exactly-once identity
+          minted per BIRTH rather than the mod-256 wire sequence. A Perspective dispatcher feeds
+          views from the stream, a TAGFEED subset projects onto a tag provider and hot-reloads
+          from KV, and leaf-node store-and-forward survived a real 60-second partition with zero
+          acked loss. Three adversarial review rounds and a security red team ran before the
+          freeze. The Host now recognises and clears its own stale retained STATE after an
+          unclean restart instead of demoting itself in a phantom split brain, and the release
+          bundle is version-guarded so the documents in it cannot be a release behind the
+          modules beside them.</p>
+        </div>
+      </li>
+      <li>
+        <span class="lc">2.4.0<br>2026&#8209;08&#8209;15</span>
         <div>
           <h3>Standby, fleet configuration and speed</h3>
           <p>The availability release. A warm-standby Host takes over by rank when the primary
@@ -158,7 +178,7 @@
     <p>The release package carries the full customer notes for each version alongside the signed
     modules and checksums.</p>
     <div class="cta-row">
-      <a class="btn" href="/sparkbridge/download">Download 2.4.0</a>
+      <a class="btn" href="/sparkbridge/download">Download 2.5.0</a>
       <a class="btn ghost" href="/sparkbridge/resources">See the evidence</a>
     </div>
   </div>
