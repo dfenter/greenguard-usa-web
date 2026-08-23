@@ -5,8 +5,9 @@
    setTimeout/setInterval. Scene classes are handed to game.js on
    RF.Meta.scenes; this file never boots Phaser.
 
-   Save shape (SAVE_VERSION = 1):
-     { v:1, coins, xp, level, selected,
+   Save shape (SAVE_VERSION = 2, Rev 7 -- see meta.js save schema additions in
+   SPEC.md for the gems/relics/skins/missions fields added on top of v1):
+     { v:2, coins, xp, level, selected,
        sharks:{ [id]: { owned:bool, up:{bite,speed,boost,power} } },
        best:{ score, biggestTier }, runs, tutorialDone, lastBonusDay }
 
@@ -22,12 +23,36 @@ var RF = window.RF = window.RF || {};
   'use strict';
 
   var RFD = window.RFD;
-  var SAVE_VERSION = 1;
+  var SAVE_VERSION = 2;
   var UP_TRACKS = ['bite', 'speed', 'boost', 'power'];
   var COIN_CAP = 1e12;
   var XP_CAP = 1e12;
   var RUNS_CAP = 1e9;
   var SCORE_CAP = 1e12;
+  var GEMS_CAP = 1e9;
+  var MISSION_PROGRESS_CAP = 1e9;
+  var ACTIVE_MISSIONS_N = 3;
+
+  function zoneIds() {
+    var zones = (RFD && RFD.ZONES) || [];
+    var out = [];
+    for (var i = 0; i < zones.length; i++) if (isInt(zones[i].id)) out.push(zones[i].id);
+    return out;
+  }
+  function relicsByZone(zoneId) {
+    var rz = (RFD && RFD.RELICS_BY_ZONE) || {};
+    return rz[zoneId] || [];
+  }
+  function missionById(id) {
+    var list = (RFD && RFD.MISSIONS) || [];
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
+  }
+  function skinById(id) {
+    var list = (RFD && RFD.SKINS) || [];
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i];
+    return null;
+  }
 
   function ECON() { return (RFD && RFD.ECONOMY) || {}; }
   function levelCap() { var n = ECON().levelCap; return isInt(n) && n > 0 ? n : 60; }
@@ -75,6 +100,13 @@ var RF = window.RF = window.RF || {};
   }
 
   // -------------------------------------------------------------- profile
+  function defaultRelics() {
+    var out = {};
+    var ids = zoneIds();
+    for (var i = 0; i < ids.length; i++) out[ids[i]] = [false, false, false];
+    return out;
+  }
+
   function defaultProfile() {
     var p = {
       v: SAVE_VERSION,
@@ -86,7 +118,11 @@ var RF = window.RF = window.RF || {};
       best: { score: 0, biggestTier: 0 },
       runs: 0,
       tutorialDone: false,
-      lastBonusDay: null
+      lastBonusDay: null,
+      gems: 0,
+      relics: defaultRelics(),
+      skins: { owned: [], selectedSkin: null },
+      missions: { active: [], progress: {}, completed: {} }
     };
     p.sharks.reef = { owned: true, up: { bite: 0, speed: 0, boost: 0, power: 0 } };
     return p;
@@ -147,6 +183,52 @@ var RF = window.RF = window.RF || {};
     // selected must be owned by the PERSISTED profile (dev picks never land here)
     var sel = obj.sharks[obj.selected];
     if (!sel || !sel.owned) return false;
+
+    // ---- Rev 7 additions: gems, relics, skins, missions ----
+    if (!counter(obj.gems, GEMS_CAP)) return false;
+
+    if (!isPlainObj(obj.relics)) return false;
+    var zids = zoneIds();
+    var relicKeys = Object.getOwnPropertyNames(obj.relics);
+    for (var rk = 0; rk < relicKeys.length; rk++) {
+      var zk = relicKeys[rk];
+      if (zids.indexOf(Number(zk)) < 0 && zids.indexOf(zk) < 0) return false;
+      var arr = obj.relics[zk];
+      if (!Array.isArray(arr) || arr.length !== 3) return false;
+      for (var ai = 0; ai < arr.length; ai++) {
+        if (typeof arr[ai] !== 'boolean' && arr[ai] !== 0 && arr[ai] !== 1) return false;
+      }
+    }
+
+    if (!isPlainObj(obj.skins)) return false;
+    if (!Array.isArray(obj.skins.owned)) return false;
+    for (var si = 0; si < obj.skins.owned.length; si++) {
+      if (typeof obj.skins.owned[si] !== 'string' || !skinById(obj.skins.owned[si])) return false;
+    }
+    if (obj.skins.selectedSkin != null) {
+      if (typeof obj.skins.selectedSkin !== 'string') return false;
+      if (!skinById(obj.skins.selectedSkin)) return false;
+      if (obj.skins.owned.indexOf(obj.skins.selectedSkin) < 0) return false;
+    }
+
+    if (!isPlainObj(obj.missions)) return false;
+    if (!Array.isArray(obj.missions.active) || obj.missions.active.length > ACTIVE_MISSIONS_N) return false;
+    for (var mi = 0; mi < obj.missions.active.length; mi++) {
+      if (typeof obj.missions.active[mi] !== 'string' || !missionById(obj.missions.active[mi])) return false;
+    }
+    if (!isPlainObj(obj.missions.progress)) return false;
+    var progKeys = Object.getOwnPropertyNames(obj.missions.progress);
+    for (var pk = 0; pk < progKeys.length; pk++) {
+      if (!missionById(progKeys[pk])) return false;
+      if (!counter(obj.missions.progress[progKeys[pk]], MISSION_PROGRESS_CAP)) return false;
+    }
+    if (!isPlainObj(obj.missions.completed)) return false;
+    var compKeys = Object.getOwnPropertyNames(obj.missions.completed);
+    for (var ck = 0; ck < compKeys.length; ck++) {
+      if (!missionById(compKeys[ck])) return false;
+      if (obj.missions.completed[compKeys[ck]] !== true && obj.missions.completed[compKeys[ck]] !== 1) return false;
+    }
+
     return true;
   }
 
@@ -163,6 +245,25 @@ var RF = window.RF = window.RF || {};
       }
     }
     if (p.lastBonusDay === undefined) p.lastBonusDay = null;
+
+    // Rev 7: coerce boolean-ish relic flags, backfill any zone missing from
+    // the persisted record (e.g. a zone added after the save was written).
+    if (!isPlainObj(p.relics)) p.relics = defaultRelics();
+    var zids = zoneIds();
+    for (var zi = 0; zi < zids.length; zi++) {
+      var zk = zids[zi];
+      if (!Array.isArray(p.relics[zk]) || p.relics[zk].length !== 3) p.relics[zk] = [false, false, false];
+      else for (var ai = 0; ai < 3; ai++) p.relics[zk][ai] = !!p.relics[zk][ai];
+    }
+    if (!isPlainObj(p.skins)) p.skins = { owned: [], selectedSkin: null };
+    if (!Array.isArray(p.skins.owned)) p.skins.owned = [];
+    if (p.skins.selectedSkin === undefined) p.skins.selectedSkin = null;
+    if (!isPlainObj(p.missions)) p.missions = { active: [], progress: {}, completed: {} };
+    if (!Array.isArray(p.missions.active)) p.missions.active = [];
+    if (!isPlainObj(p.missions.progress)) p.missions.progress = {};
+    if (!isPlainObj(p.missions.completed)) p.missions.completed = {};
+    if (!isInt(p.gems) || p.gems < 0) p.gems = 0;
+
     return p;
   }
 
@@ -183,8 +284,17 @@ var RF = window.RF = window.RF || {};
       if (counter(p.runs, RUNS_CAP)) rebuilt.runs = p.runs;
       p = rebuilt;
     }
+    // Rev 7: v1 -> v2 adds gems/relics/skins/missions. coins/xp/level/sharks/
+    // best/runs/tutorialDone/lastBonusDay are untouched by this step.
+    if (p.v === 1) {
+      p.gems = 0;
+      p.relics = defaultRelics();
+      p.skins = { owned: [], selectedSkin: null };
+      p.missions = { active: [], progress: {}, completed: {} };
+      p.v = 2;
+    }
     // Future steps chain here:
-    //   if (p.v === 1) { ...upgrade to 2...; p.v = 2; }
+    //   if (p.v === 2) { ...upgrade to 3...; p.v = 3; }
     if (p.v !== SAVE_VERSION) return null;
     // RF-SAVE-VAL-01: repair-not-reject. A junk daily-bonus marker is a
     // single recoverable field, so scrub it here and let the rest of the
@@ -394,6 +504,196 @@ var RF = window.RF = window.RF || {};
     return profile ? profile.selected : 'reef';
   }
 
+  // -------------------------------------------------------------- gems
+  // Single spend authority (D5/7.6 law). reason is a short string for
+  // future logging/analytics; not persisted anywhere today.
+  function spendGems(kit, profile, n, reason) {
+    var cost = isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
+    if (!isPlainObj(profile)) return { ok: false, reason: 'bad-profile' };
+    if (profile.gems < cost) return { ok: false, reason: 'gems', cost: cost };
+    profile.gems = clamp(profile.gems - cost, 0, GEMS_CAP);
+    if (kit) commit(kit, profile);
+    return { ok: true, cost: cost, spentFor: reason || null, gems: profile.gems };
+  }
+
+  // Single award authority. Gems are NEVER purchasable; every credit path
+  // (frenzy completion, daily bonus, mission reward, gempickup) funnels here.
+  function addGems(profile, n) {
+    var add = isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
+    profile.gems = clamp(profile.gems + add, 0, GEMS_CAP);
+    return profile.gems;
+  }
+
+  // Buy/unlock a skin with gems. Global skins (sharkId:null) are usable on
+  // any owned shark; shark-locked skins require that shark to be owned first.
+  function buySkin(kit, profile, skinId) {
+    var def = skinById(skinId);
+    if (!def) return { ok: false, reason: 'unknown-skin' };
+    if (profile.skins.owned.indexOf(skinId) >= 0) return { ok: false, reason: 'owned' };
+    if (def.sharkId && !reallyOwned(profile, def.sharkId)) return { ok: false, reason: 'shark-not-owned' };
+    var res = spendGems(null, profile, def.cost, 'skin:' + skinId);
+    if (!res.ok) return res;
+    profile.skins.owned.push(skinId);
+    if (kit) commit(kit, profile);
+    return { ok: true, skin: skinId, cost: def.cost };
+  }
+
+  function selectSkin(kit, profile, skinId) {
+    if (skinId != null && profile.skins.owned.indexOf(skinId) < 0) return { ok: false, reason: 'not-owned' };
+    profile.skins.selectedSkin = skinId || null;
+    if (kit) commit(kit, profile);
+    return { ok: true, skin: profile.skins.selectedSkin };
+  }
+
+  // relicSetCount: number of zones where the player has all 3 relics.
+  function relicSetCount(profile) {
+    var zids = zoneIds();
+    var n = 0;
+    for (var i = 0; i < zids.length; i++) {
+      var arr = profile.relics[zids[i]];
+      if (arr && arr[0] && arr[1] && arr[2]) n++;
+    }
+    return n;
+  }
+
+  function secretSharkUnlocked(profile, sharkId) {
+    var list = (RFD && RFD.SECRET_SHARKS) || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].sharkId !== sharkId) continue;
+      if (relicSetCount(profile) >= list[i].relicSets) return true;
+      return false; // gemCost path is an explicit purchase, not passive ownedFor
+    }
+    return null; // not a secret shark
+  }
+
+  // Attempt the gems-only unlock path for a secret shark (used from Shop/UI).
+  function unlockSecretSharkWithGems(kit, profile, sharkId) {
+    var list = (RFD && RFD.SECRET_SHARKS) || [];
+    var row = null;
+    for (var i = 0; i < list.length; i++) if (list[i].sharkId === sharkId) { row = list[i]; break; }
+    if (!row) return { ok: false, reason: 'not-secret' };
+    if (reallyOwned(profile, sharkId)) return { ok: false, reason: 'owned' };
+    var res = spendGems(null, profile, row.gemCost, 'secretshark:' + sharkId);
+    if (!res.ok) return res;
+    profile.sharks[sharkId] = { owned: true, up: blankUp() };
+    if (kit) commit(kit, profile);
+    return { ok: true, shark: sharkId, cost: row.gemCost };
+  }
+
+  // Relic-set unlocks that just became newly true this run (zones that
+  // reached 3/3 for the first time). Returns skin/shark unlock records;
+  // called from endRun. Does not mutate ownership itself for skins (skins
+  // stay gem-purchases) -- but auto-grants the relic-count secret sharks
+  // whose relicSets threshold is now met and are not yet owned.
+  function relicSetUnlocks(profile, previouslyCompleteZones) {
+    var out = [];
+    var zids = zoneIds();
+    for (var i = 0; i < zids.length; i++) {
+      var zk = zids[i];
+      var arr = profile.relics[zk];
+      var complete = !!(arr && arr[0] && arr[1] && arr[2]);
+      var wasComplete = previouslyCompleteZones.indexOf(zk) >= 0 || previouslyCompleteZones.indexOf(Number(zk)) >= 0;
+      if (complete && !wasComplete) out.push({ type: 'relicSet', zoneId: zk });
+    }
+    if (out.length) {
+      var count = relicSetCount(profile);
+      var secrets = (RFD && RFD.SECRET_SHARKS) || [];
+      for (var s = 0; s < secrets.length; s++) {
+        var row = secrets[s];
+        if (count >= row.relicSets && !reallyOwned(profile, row.sharkId)) {
+          profile.sharks[row.sharkId] = { owned: true, up: blankUp() };
+          out.push({ type: 'sharkUnlock', sharkId: row.sharkId, via: 'relicSet' });
+        }
+      }
+    }
+    return out;
+  }
+
+  // ---------------------------------------------------------- missions
+  // Choose ACTIVE_MISSIONS_N missions for the upcoming run. Deterministic
+  // given no rng arg (falls back to Math.random); pass ctx.rng (mulberry32)
+  // when available so the pick is seed-reproducible in headless tests.
+  function rollMissions(profile, rng) {
+    var pool = ((RFD && RFD.MISSIONS) || []).slice();
+    var rand = typeof rng === 'function' ? rng : Math.random;
+    // Fisher-Yates partial shuffle, skipping already-completed missions first
+    // so a fresh 3 favors uncompleted goals; falls back to the full pool if
+    // fewer than N remain uncompleted.
+    var uncompleted = pool.filter(function (m) { return !profile.missions.completed[m.id]; });
+    var source = uncompleted.length >= ACTIVE_MISSIONS_N ? uncompleted : pool;
+    var arr = source.slice();
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(rand() * (i + 1));
+      var tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+    }
+    var picked = arr.slice(0, Math.min(ACTIVE_MISSIONS_N, arr.length)).map(function (m) { return m.id; });
+    profile.missions.active = picked;
+    for (var p = 0; p < picked.length; p++) {
+      if (!isInt(profile.missions.progress[picked[p]])) profile.missions.progress[picked[p]] = 0;
+    }
+    return picked;
+  }
+
+  // Mission progress API, consumed by the engine/world via the existing kit
+  // bus. type in 'eat' | 'relic' | 'zoneTime' | 'score'. payload shapes:
+  //   eat:      { defId }                (one eat event; missions with
+  //                                        target.defId===null match any)
+  //   relic:    { zoneId }                (one relic collected)
+  //   zoneTime: { zoneId, seconds }       (cumulative seconds this run in
+  //                                        that zone; caller may call once
+  //                                        per fixed step with a running total
+  //                                        -- progress is set to max(), not
+  //                                        summed, so repeated calls are safe)
+  //   score:    { score }                 (current run score, monotonic)
+  // Returns the list of mission ids that just completed on this call (empty
+  // if none). ctx.run.gems accumulates completion rewards; ctx.run.missionResults
+  // collects {id, name, gems} records for the Results payload (S4 reads this).
+  function missionEvent(ctx, type, payload) {
+    var run = ctx && ctx.run;
+    var profile = ctx && ctx.save;
+    if (!run || !profile || !isPlainObj(profile.missions)) return [];
+    if (!Array.isArray(run.missionResults)) run.missionResults = [];
+    if (!isFinite(run.gems)) run.gems = 0;
+
+    var justCompleted = [];
+    var active = profile.missions.active || [];
+    for (var i = 0; i < active.length; i++) {
+      var id = active[i];
+      if (profile.missions.completed[id]) continue;
+      var def = missionById(id);
+      if (!def) continue;
+      var cur = isInt(profile.missions.progress[id]) ? profile.missions.progress[id] : 0;
+      var next = cur;
+      var target = def.target || {};
+
+      if (def.type === 'eatCount' && type === 'eat') {
+        if (target.defId == null || target.defId === payload.defId) next = cur + 1;
+      } else if (def.type === 'findRelic' && type === 'relic') {
+        if (target.zoneId == null || target.zoneId === payload.zoneId) next = cur + 1;
+      } else if (def.type === 'surviveZone' && type === 'zoneTime') {
+        if (target.zoneId === payload.zoneId) next = Math.max(cur, Math.floor(payload.seconds || 0));
+      } else if (def.type === 'score' && type === 'score') {
+        next = Math.max(cur, Math.floor(payload.score || 0));
+      }
+
+      if (next !== cur) profile.missions.progress[id] = clamp(next, 0, MISSION_PROGRESS_CAP);
+
+      var done = false;
+      if (def.type === 'eatCount') done = profile.missions.progress[id] >= target.n;
+      else if (def.type === 'findRelic') done = profile.missions.progress[id] >= target.n;
+      else if (def.type === 'surviveZone') done = profile.missions.progress[id] >= target.seconds;
+      else if (def.type === 'score') done = profile.missions.progress[id] >= target.n;
+
+      if (done) {
+        profile.missions.completed[id] = true;
+        run.gems += def.gems;
+        run.missionResults.push({ id: id, name: def.name, gems: def.gems });
+        justCompleted.push(id);
+      }
+    }
+    return justCompleted;
+  }
+
   // ------------------------------------------------------------- end run
   function localDayString(d) {
     var dt = d || new Date();
@@ -436,11 +736,53 @@ var RF = window.RF = window.RF || {};
     return best;
   }
 
+  // Rev 7 B4: Meta.endRun is a public, re-entrant payout primitive. Any
+  // retry/restore/future UI path calling it twice on the same run bag must
+  // not double-pay coins/xp/gems/runs/daily/frenzy. Stamp the run bag with a
+  // settlement token on first call and return the cached result verbatim on
+  // re-entry. Deliberately does NOT consult the engine's separate `running`
+  // flag -- that guard lives in a different module and this primitive must
+  // be safe even if that guard is bypassed or absent.
+  var SETTLED_KEY = '__metaSettled';
+
   function endRun(ctx) {
+    var run = (ctx && ctx.run) || {};
+    if (run[SETTLED_KEY] && run.__metaSettledResult) return run.__metaSettledResult;
+
     var kit = ctx && ctx.kit;
     var profile = (ctx && ctx.save) || defaultProfile();
-    var run = (ctx && ctx.run) || {};
     var econ = ECON();
+
+    // Rev 7: snapshot which zones already had a full relic set BEFORE this
+    // run's finds are applied, so relicSetUnlocks() can tell "just completed"
+    // apart from "was already complete".
+    var previouslyCompleteZones = [];
+    (function () {
+      var zids = zoneIds();
+      for (var i = 0; i < zids.length; i++) {
+        var arr = profile.relics[zids[i]];
+        if (arr && arr[0] && arr[1] && arr[2]) previouslyCompleteZones.push(zids[i]);
+      }
+    }());
+
+    // ctx.run.relics: array of {relicId, zoneId} collected this run (engine/
+    // world push via missionEvent('relic',...) AND here directly). Mark them
+    // owned on the persisted profile.
+    var relicFinds = Array.isArray(run.relics) ? run.relics : [];
+    for (var rf = 0; rf < relicFinds.length; rf++) {
+      var find = relicFinds[rf];
+      if (!find || find.zoneId == null) continue;
+      var zoneRelics = relicsByZone(find.zoneId);
+      var idx = -1;
+      for (var zi2 = 0; zi2 < zoneRelics.length; zi2++) {
+        if (zoneRelics[zi2].id === find.relicId) { idx = zi2; break; }
+      }
+      if (idx < 0) continue;
+      if (!Array.isArray(profile.relics[find.zoneId]) || profile.relics[find.zoneId].length !== 3) {
+        profile.relics[find.zoneId] = [false, false, false];
+      }
+      profile.relics[find.zoneId][idx] = true;
+    }
 
     var rawCoins = isFinite(run.coins) ? Math.max(0, Math.floor(run.coins)) : 0;
     var rawXp = isFinite(run.xp) ? Math.max(0, Math.floor(run.xp)) : 0;
@@ -478,10 +820,37 @@ var RF = window.RF = window.RF || {};
     var unlocks = unlockCallouts(profile, oldLevel, profile.level);
     var lv = levelForXp(profile.xp);
 
+    // Rev 7: gem accounting. run.gems already carries mission-completion
+    // gems (missionEvent adds them as it fires); this adds frenzy-completion
+    // and daily-bonus gems, then credits the profile once.
+    var gemsCfg = (RFD && RFD.GEMS) || { frenzy: {}, daily: 0, gempickup: 0 };
+    var runGems = isFinite(run.gems) ? Math.max(0, Math.floor(run.gems)) : 0;
+    var frenzyGems = 0;
+    if (run.frenzyCompletions && isPlainObj(run.frenzyCompletions)) {
+      var fk = ['goldrush', 'blood', 'school'];
+      for (var fi = 0; fi < fk.length; fi++) {
+        var n = run.frenzyCompletions[fk[fi]];
+        if (isFinite(n) && n > 0) {
+          frenzyGems += Math.floor(n) * (isFinite(gemsCfg.frenzy[fk[fi]]) ? gemsCfg.frenzy[fk[fi]] : 0);
+        }
+      }
+    }
+    var dailyGems = dailyApplied && isFinite(gemsCfg.daily) ? gemsCfg.daily : 0;
+    var totalGems = runGems + frenzyGems + dailyGems;
+    addGems(profile, totalGems);
+
+    var relicUnlocks = relicSetUnlocks(profile, previouslyCompleteZones);
+    var missionResults = Array.isArray(run.missionResults) ? run.missionResults : [];
+
     if (kit) commit(kit, profile);
 
-    return {
+    var result = {
       score: score,
+      gems: totalGems,
+      gemsBreakdown: { missions: runGems, frenzy: frenzyGems, daily: dailyGems },
+      missionResults: missionResults,
+      relicFinds: relicFinds,
+      relicUnlocks: relicUnlocks,
       coins: coinsEarned,
       baseCoins: Math.floor(rawCoins * coinMult),
       bonusCoins: bonusCoins,
@@ -500,6 +869,14 @@ var RF = window.RF = window.RF || {};
       // profile.best.score is raised above, so this is a strict improvement.
       newBest: score > prevBestScore && score > 0
     };
+
+    // B4: stamp the settlement token + cache the result on the run bag
+    // itself (not a module-level map) so it travels with the run and is
+    // naturally scoped/GC'd with it. Re-entrant calls short-circuit above.
+    run[SETTLED_KEY] = true;
+    run.__metaSettledResult = result;
+
+    return result;
   }
 
   // ------------------------------------------------------------- DevMode
@@ -1512,6 +1889,207 @@ var RF = window.RF = window.RF || {};
       ok(mono, 'xp curve strictly increases to the cap');
       ok(levelForXp(xpForLevel(10)).level === 10, 'levelForXp inverts xpForLevel');
       ok(levelForXp(1e12).level === levelCap(), 'level clamps at the cap');
+
+      // 8. Rev 7: old-save (v1) fixture survives migration with data intact
+      var oldSave = {
+        v: 1, coins: 5000, xp: 3400, level: 5, selected: 'mako',
+        sharks: {
+          reef: { owned: true, up: { bite: 1, speed: 0, boost: 0, power: 0 } },
+          mako: { owned: true, up: { bite: 2, speed: 1, boost: 0, power: 0 } }
+        },
+        best: { score: 900, biggestTier: 3 },
+        runs: 12, tutorialDone: true, lastBonusDay: '2026-08-01'
+      };
+      var kitOld = stubKit();
+      kitOld.save.set(oldSave);
+      var migrated1 = load(kitOld);
+      ok(migrated1.v === SAVE_VERSION, 'v1 fixture migrates to current SAVE_VERSION');
+      ok(migrated1.coins === 5000, 'v1->v2 migration preserves coins');
+      ok(migrated1.xp === 3400, 'v1->v2 migration preserves xp');
+      ok(migrated1.level === 5, 'v1->v2 migration preserves level');
+      ok(migrated1.selected === 'mako', 'v1->v2 migration preserves selected shark');
+      ok(migrated1.sharks.mako && migrated1.sharks.mako.owned === true && migrated1.sharks.mako.up.bite === 2,
+        'v1->v2 migration preserves owned sharks and upgrade levels');
+      ok(migrated1.best.score === 900 && migrated1.best.biggestTier === 3, 'v1->v2 migration preserves best');
+      ok(migrated1.runs === 12, 'v1->v2 migration preserves runs');
+      ok(migrated1.gems === 0, 'v1->v2 migration backfills gems to 0');
+      ok(isPlainObj(migrated1.relics), 'v1->v2 migration backfills a relics object');
+      var zidsChk = zoneIds();
+      for (var zci = 0; zci < zidsChk.length; zci++) {
+        ok(Array.isArray(migrated1.relics[zidsChk[zci]]) && migrated1.relics[zidsChk[zci]].length === 3
+          && migrated1.relics[zidsChk[zci]].every(function (b) { return b === false; }),
+          'v1->v2 migration backfills relics[' + zidsChk[zci] + '] to [false,false,false]');
+      }
+      ok(Array.isArray(migrated1.skins.owned) && migrated1.skins.owned.length === 0 && migrated1.skins.selectedSkin === null,
+        'v1->v2 migration backfills empty skins');
+      ok(Array.isArray(migrated1.missions.active) && migrated1.missions.active.length === 0,
+        'v1->v2 migration backfills empty active missions');
+      ok(validateSave(migrated1), 'migrated v1->v2 profile validates');
+
+      // 9. gem accounting: spendGems/addGems single authority
+      var pG = defaultProfile();
+      ok(addGems(pG, 10) === 10, 'addGems credits and returns new total');
+      ok(addGems(pG, 3) === 13, 'addGems accumulates');
+      var spendOk = spendGems(null, pG, 5, 'test');
+      ok(spendOk.ok && pG.gems === 8, 'spendGems deducts on success');
+      var spendFail = spendGems(null, pG, 999, 'test');
+      ok(!spendFail.ok && spendFail.reason === 'gems' && pG.gems === 8, 'spendGems refuses and does not mutate on insufficient gems');
+      ok(addGems(pG, -50) === 8, 'addGems ignores a negative amount');
+
+      // skin buy/select via gems
+      var skinsList = (RFD && RFD.SKINS) || [];
+      var globalSkin = null;
+      for (var sgi = 0; sgi < skinsList.length; sgi++) if (!skinsList[sgi].sharkId) { globalSkin = skinsList[sgi]; break; }
+      ok(!!globalSkin, 'found a global (any-shark) skin for the skin test');
+      if (globalSkin) {
+        var pS = defaultProfile();
+        pS.gems = globalSkin.cost + 5;
+        var buyRes = buySkin(null, pS, globalSkin.id);
+        ok(buyRes.ok && pS.skins.owned.indexOf(globalSkin.id) >= 0 && pS.gems === 5, 'buySkin spends gems and grants ownership');
+        var rebuy = buySkin(null, pS, globalSkin.id);
+        ok(!rebuy.ok && rebuy.reason === 'owned', 'buySkin refuses to rebuy an owned skin');
+        var selRes2 = selectSkin(null, pS, globalSkin.id);
+        ok(selRes2.ok && pS.skins.selectedSkin === globalSkin.id, 'selectSkin selects an owned skin');
+        var selFail = selectSkin(null, pS, 'skin_not_owned_xyz');
+        ok(!selFail.ok && selFail.reason === 'not-owned', 'selectSkin refuses an unowned skin');
+      }
+
+      // 10. mission roll / progress / complete
+      var pM = defaultProfile();
+      var picked = rollMissions(pM, function () { return 0.42; });
+      ok(Array.isArray(picked) && picked.length === Math.min(ACTIVE_MISSIONS_N, ((RFD && RFD.MISSIONS) || []).length),
+        'rollMissions picks up to ' + ACTIVE_MISSIONS_N + ' active missions');
+      ok(pM.missions.active.length === picked.length, 'rollMissions writes profile.missions.active');
+      for (var pmi = 0; pmi < picked.length; pmi++) {
+        ok(pM.missions.progress[picked[pmi]] === 0, 'rollMissions initializes progress to 0 for ' + picked[pmi]);
+      }
+
+      // find an eatCount mission with no defId restriction to drive to completion
+      var anyEatMission = null;
+      var allMissions = (RFD && RFD.MISSIONS) || [];
+      for (var ami = 0; ami < allMissions.length; ami++) {
+        if (allMissions[ami].type === 'eatCount' && allMissions[ami].target.defId == null) { anyEatMission = allMissions[ami]; break; }
+      }
+      ok(!!anyEatMission, 'found an any-prey eatCount mission for the progress test');
+      if (anyEatMission) {
+        var pM2 = defaultProfile();
+        pM2.missions.active = [anyEatMission.id];
+        pM2.missions.progress[anyEatMission.id] = 0;
+        var ctxM = { save: pM2, run: {} };
+        var completed = [];
+        for (var ei = 0; ei < anyEatMission.target.n; ei++) {
+          completed = missionEvent(ctxM, 'eat', { defId: 'reeffish' });
+        }
+        ok(pM2.missions.progress[anyEatMission.id] === anyEatMission.target.n, 'missionEvent increments eatCount progress to target');
+        ok(pM2.missions.completed[anyEatMission.id] === true, 'missionEvent marks the mission completed');
+        ok(completed.indexOf(anyEatMission.id) >= 0, 'missionEvent returns the just-completed mission id');
+        ok(ctxM.run.gems === anyEatMission.gems, 'missionEvent credits ctx.run.gems with the mission reward');
+        ok(ctxM.run.missionResults.length === 1 && ctxM.run.missionResults[0].id === anyEatMission.id,
+          'missionEvent records a missionResults entry');
+        // further eat events must not double-award
+        missionEvent(ctxM, 'eat', { defId: 'reeffish' });
+        ok(ctxM.run.gems === anyEatMission.gems, 'a completed mission does not re-award on further matching events');
+      }
+
+      // findRelic mission progress
+      var anyRelicMission = null;
+      for (var ari = 0; ari < allMissions.length; ari++) {
+        if (allMissions[ari].type === 'findRelic' && allMissions[ari].target.zoneId == null && allMissions[ari].target.n === 1) { anyRelicMission = allMissions[ari]; break; }
+      }
+      if (anyRelicMission) {
+        var pM3 = defaultProfile();
+        pM3.missions.active = [anyRelicMission.id];
+        var ctxM3 = { save: pM3, run: {} };
+        var comp3 = missionEvent(ctxM3, 'relic', { zoneId: 1 });
+        ok(comp3.indexOf(anyRelicMission.id) >= 0, 'missionEvent completes a findRelic mission on a relic event');
+      }
+
+      // 11. relic set unlock via endRun (relicFinds + relicSetCount + secret shark)
+      var secretList = (RFD && RFD.SECRET_SHARKS) || [];
+      ok(secretList.length > 0, 'RFD.SECRET_SHARKS has at least one gated shark for the unlock test');
+      if (secretList.length) {
+        var lowestGate = secretList[0];
+        for (var sli = 1; sli < secretList.length; sli++) if (secretList[sli].relicSets < lowestGate.relicSets) lowestGate = secretList[sli];
+        var zidsAll = zoneIds();
+        ok(zidsAll.length >= lowestGate.relicSets, 'enough zones exist to satisfy the lowest relicSets gate');
+
+        var pR = defaultProfile();
+        var kitR2 = stubKit();
+        ok(reallyOwned(pR, lowestGate.sharkId) === false, 'the secret shark starts unowned');
+
+        // Complete relicSets zones worth of relic finds across separate runs
+        // (each run only reports the finds made during that run).
+        for (var zsi = 0; zsi < lowestGate.relicSets; zsi++) {
+          var zid = zidsAll[zsi];
+          var zoneRelics2 = relicsByZone(zid);
+          ok(zoneRelics2.length === 3, 'zone ' + zid + ' has exactly 3 relics in the table');
+          var runFinds = zoneRelics2.map(function (r) { return { relicId: r.id, zoneId: zid }; });
+          var resR = endRun({ kit: kitR2, save: pR, run: { score: 1, coins: 0, xp: 0, relics: runFinds } });
+          var gotZoneUnlock = resR.relicUnlocks.some(function (u) { return u.type === 'relicSet' && String(u.zoneId) === String(zid); });
+          ok(gotZoneUnlock, 'endRun reports a relicSet unlock the run a zone reaches 3/3 (zone ' + zid + ')');
+        }
+        ok(relicSetCount(pR) === lowestGate.relicSets, 'relicSetCount matches the number of completed zones');
+        ok(reallyOwned(pR, lowestGate.sharkId) === true, 'the secret shark auto-unlocks once its relicSets threshold is met');
+
+        // completing the same zone set again must not re-report the unlock
+        var zid0 = zidsAll[0];
+        var resAgain = endRun({ kit: kitR2, save: pR, run: { score: 1, coins: 0, xp: 0, relics: relicsByZone(zid0).map(function (r) { return { relicId: r.id, zoneId: zid0 }; }) } });
+        var reReported = resAgain.relicUnlocks.some(function (u) { return u.type === 'relicSet' && String(u.zoneId) === String(zid0); });
+        ok(!reReported, 'an already-complete relic set is not re-reported as a new unlock');
+      }
+
+      // 12. gems flow through endRun (frenzy + daily + mission)
+      var pE = defaultProfile();
+      var kitE = stubKit();
+      var gemsCfgChk = (RFD && RFD.GEMS) || { frenzy: { goldrush: 0, blood: 0, school: 0 }, daily: 0 };
+      var resE = endRun({
+        kit: kitE, save: pE,
+        run: {
+          score: 10, coins: 0, xp: 0,
+          gems: 2, missionResults: [{ id: 'x', name: 'x', gems: 2 }],
+          frenzyCompletions: { goldrush: 1, blood: 1, school: 0 }
+        }
+      });
+      var expectFrenzy = (gemsCfgChk.frenzy.goldrush || 0) + (gemsCfgChk.frenzy.blood || 0);
+      var expectDaily = gemsCfgChk.daily || 0; // first run of the day
+      ok(resE.gems === 2 + expectFrenzy + expectDaily, 'endRun totals mission + frenzy + daily gems');
+      ok(pE.gems === resE.gems, 'endRun credits total gems to the profile');
+      ok(resE.gemsBreakdown.missions === 2 && resE.gemsBreakdown.frenzy === expectFrenzy && resE.gemsBreakdown.daily === expectDaily,
+        'endRun reports a gems breakdown by source');
+      ok(resE.missionResults.length === 1 && resE.missionResults[0].id === 'x', 'endRun payload carries missionResults through');
+      ok(validateSave(kitE.save.get(null)), 'record persisted by endRun with gems/relics/skins/missions validates');
+
+      // 13. B4: Meta.endRun is re-entrant-safe -- calling it twice on the SAME
+      // run bag must settle exactly once. A retry/restore/future UI path can
+      // call the public endRun again; the second call must return the
+      // identical cached payload and must not touch the profile a second
+      // time (no double coins/xp/gems/runs/daily/frenzy).
+      var pF = defaultProfile();
+      var kitF = stubKit();
+      var runF = {
+        score: 250, coins: 100, xp: 50, biggestTier: 3, comboPeak: 7,
+        gems: 3, missionResults: [{ id: 'y', name: 'y', gems: 3 }],
+        frenzyCompletions: { goldrush: 1, blood: 0, school: 1 }
+      };
+      var firstF = endRun({ kit: kitF, save: pF, run: runF });
+      var coinsAfterFirst = pF.coins, xpAfterFirst = pF.xp, gemsAfterFirst = pF.gems,
+        runsAfterFirst = pF.runs, dayAfterFirst = pF.lastBonusDay;
+      var secondF = endRun({ kit: kitF, save: pF, run: runF });
+      ok(JSON.stringify(firstF) === JSON.stringify(secondF),
+        'B4: a second endRun call on the same run bag returns the identical cached payload');
+      ok(secondF === firstF, 'B4: the second call returns the exact same cached object, not a recomputation');
+      ok(pF.coins === coinsAfterFirst && pF.xp === xpAfterFirst && pF.gems === gemsAfterFirst &&
+        pF.runs === runsAfterFirst && pF.lastBonusDay === dayAfterFirst,
+        'B4: profile (coins/xp/gems/runs/daily) is unchanged by the second call -- no double payout');
+      ok(pF.runs === 1, 'B4: runs incremented exactly once across both calls');
+      ok(runF.__metaSettled === true, 'B4: the run bag is stamped with a settlement token on first call');
+      // A THIRD call, and one against a run bag whose engine `running` flag
+      // (a field this primitive intentionally never reads) has been reset to
+      // simulate a bypassed/absent engine guard, both still short-circuit.
+      runF.running = false;
+      var thirdF = endRun({ kit: kitF, save: pF, run: runF });
+      ok(thirdF === firstF, 'B4: a third call (with run.running reset) still returns the cached result, not a fresh recompute');
+      ok(pF.runs === 1, 'B4: a third call still does not re-increment runs');
     } catch (e) {
       pass = false;
       notes.push('FAIL threw: ' + (e && e.message ? e.message : String(e)));
@@ -1563,6 +2141,16 @@ var RF = window.RF = window.RF || {};
     unlockCallouts: unlockCallouts,
     localDayString: localDayString,
     endRun: endRun,
+
+    spendGems: spendGems,
+    addGems: addGems,
+    buySkin: buySkin,
+    selectSkin: selectSkin,
+    relicSetCount: relicSetCount,
+    secretSharkUnlocked: secretSharkUnlocked,
+    unlockSecretSharkWithGems: unlockSecretSharkWithGems,
+    rollMissions: rollMissions,
+    missionEvent: missionEvent,
 
     scenes: null,
     UI: UI,

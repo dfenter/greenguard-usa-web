@@ -63,6 +63,84 @@
     '.rf-frenzy-blood{filter:saturate(1.12)}'
   ].join('');
 
+  // ------------------------------------------------------ Rev 7 economy UI
+  // S4 owns ui3d.js only (SPEC3D 7.7 ownership map); index.html is the
+  // orchestrator's file, so every Rev 7 economy element (mission strip, gem
+  // counters, relic dots, Collection/Skins shop section, the DEV-chip/SHOP
+  // overlap guard) is built and styled entirely in JS here, injected as a
+  // second <style> node alongside the existing frenzy-cue stylesheet.
+  var GEM_ICON = '♦'; // simple diamond glyph, no image asset dependency
+  var MISSION_KIND_LABEL = {
+    eatCount: 'Eat', findRelic: 'Find a relic', surviveZone: 'Survive', score: 'Score'
+  };
+  var REV7_STYLE_TEXT = [
+    // Mission strip: menu-only, sits directly under .rf-bar-top per task 1.
+    '#rfMissionStrip{display:flex;gap:8px;flex:0 0 auto;padding:8px 2px 0;overflow-x:auto;-webkit-overflow-scrolling:touch}',
+    '#rfMissionStrip:empty{display:none}',
+    '.rf-mission{flex:0 0 auto;min-width:132px;max-width:200px;padding:6px 10px;border-radius:8px;',
+    'background:rgba(10,34,51,.7);border:1px solid var(--line,rgba(88,176,214,.28))}',
+    '.rf-mission-l{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--dim,#8fb4c4);',
+    'white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.rf-mission-bar{height:4px;border-radius:2px;background:rgba(207,245,255,.12);margin-top:4px;overflow:hidden}',
+    '.rf-mission-bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#27e0ff,#9dff2b)}',
+    '.rf-mission.rf-mission-done .rf-mission-bar>i{background:linear-gradient(90deg,#ffd67a,#ffe8ad)}',
+    '.rf-mission.rf-mission-done .rf-mission-l{color:#ffd67a}',
+    // Gem stat, reuses the existing .rf-stat look (menu/shop header + HUD).
+    '.rf-gem b{color:#8fe3ff}',
+    '#rfHudGems{position:absolute;left:calc(var(--pad-l,0px) + 12px);top:calc(var(--pad-t,0px) + 8px);',
+    'display:flex;align-items:baseline;gap:4px;font-size:13px;font-weight:800;color:#8fe3ff;',
+    'text-shadow:0 0 8px rgba(39,224,255,.4);pointer-events:none}',
+    '#rfHudGems:empty{display:none}',
+    // Per-zone relic dots (menu roster tier head).
+    '.rf-relic-dots{display:inline-flex;gap:3px;margin-left:8px;vertical-align:middle}',
+    '.rf-relic-dot{width:7px;height:7px;border-radius:50%;background:rgba(207,245,255,.16);',
+    'border:1px solid rgba(207,245,255,.3)}',
+    '.rf-relic-dot.rf-relic-on{background:#ffd67a;border-color:#ffd67a;box-shadow:0 0 5px rgba(255,214,122,.7)}',
+    // Mission-tick chip variant (task 2: chip styling supports a mission tick).
+    '#rfChip.rf-chip-mission,.rf-chip.rf-chip-mission{background:rgba(157,255,43,.18);color:#c8ffb0;',
+    'border:1px solid rgba(157,255,43,.5)}',
+    // Results: gems / mission results / relic finds / unlock callouts.
+    '.rf-res-gems{color:#8fe3ff}',
+    '.rf-res-mission{display:flex;align-items:center;justify-content:space-between;gap:8px;',
+    'padding:4px 0;font-size:13px;color:var(--dim,#8fb4c4)}',
+    '.rf-res-mission.rf-res-mission-done{color:#ffd67a}',
+    '.rf-res-mission-tag{font-size:11px;font-weight:800;letter-spacing:.06em}',
+    '.rf-res-relic{padding:3px 0;font-size:13px;color:#ffd67a}',
+    '.rf-res-callout{margin-top:6px;padding:8px 10px;border-radius:8px;',
+    'background:rgba(255,214,122,.12);border:1px solid rgba(255,214,122,.4);',
+    'font-size:13px;font-weight:700;color:#ffe8ad}',
+    // Shop: Collection/Skins section.
+    '.rf-shop-act-h.rf-collection-h{color:#8fe3ff}',
+    '.rf-collect-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}',
+    '.rf-collect-card{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 6px;',
+    'border-radius:8px;background:rgba(10,34,51,.7);border:1px solid var(--line,rgba(88,176,214,.28));',
+    'font-size:12px;text-align:center;cursor:pointer}',
+    '.rf-collect-card:disabled{cursor:default;opacity:.55}',
+    '.rf-collect-card.rf-collect-owned{border-color:#7fe3b0}',
+    '.rf-collect-swatch{width:36px;height:28px;border-radius:6px}',
+    '.rf-collect-silhouette{background:#0a1420;filter:brightness(.35)}',
+    '.rf-collect-cost{color:#8fe3ff;font-weight:800}',
+    '.rf-collect-hint{color:var(--dim,#8fb4c4);font-size:10px;line-height:1.25}',
+    // 6: known-bug fixes. DEV chip vs SHOP button overlap guard -- forces the
+    // dev chip out of the flex row's shrink pool so a long roster line can
+    // never squeeze it over the SHOP/DIVE buttons in the bottom bar, and
+    // caps it to a fixed max-width so an unusually wide render never spills.
+    '#rfDevChip{flex:0 0 auto;max-width:64px;z-index:5}'
+  ].join('');
+  var rev7StyleNode = null;
+  function ensureRev7Styles() {
+    var d = D();
+    if (!d || !d.createElement) return false;
+    if (rev7StyleNode) return true;
+    var style = d.createElement('style');
+    style.id = 'rfRev7Styles';
+    style.textContent = REV7_STYLE_TEXT;
+    var host = d.head || d.body || d.documentElement;
+    if (host && host.appendChild) host.appendChild(style);
+    rev7StyleNode = style;
+    return true;
+  }
+
   // ------------------------------------------------------------- plumbing
   // A document reference resolved lazily so __selftest can inject a stub.
   var doc = null;
@@ -342,6 +420,112 @@
     return false;
   }
 
+  // ------------------------------------------------ Rev 7 economy readers
+  // Every read here is defensive: S3's meta.js/data.js Rev 7 fields
+  // (gems/relics/missions, MISSIONS/RELICS tables, Meta.spendGems/
+  // rollMissions) may not have landed yet, or may land in a slightly
+  // different shape (NOTES-rev7-laneS3.md was absent at S4 authoring time,
+  // per SPEC3D 7.6). Every accessor below falls back to an inert value
+  // rather than throwing so the whole UI keeps working standalone.
+  function gems() {
+    var p = profile();
+    var v = p && p.gems;
+    return (typeof v === 'number' && isFinite(v)) ? v : 0;
+  }
+
+  // data.js MISSIONS entries: {id, type, name, target:{...}, gems}. type is
+  // one of eatCount/findRelic/surviveZone/score; target carries the numeric
+  // goal under a type-specific key (n for eatCount/findRelic/score, seconds
+  // for surviveZone). missionById() below still tolerates an id with no
+  // matching def (a save referencing a MISSIONS entry removed by a future
+  // data.js regen) by falling back to the id itself as the label.
+  function missionGoal(def) {
+    var t = (def && def.target) || {};
+    if (def && def.type === 'surviveZone') return (typeof t.seconds === 'number') ? t.seconds : 1;
+    return (typeof t.n === 'number') ? t.n : 1;
+  }
+
+  function activeMissionDefs() {
+    var p = profile();
+    var ids = p && p.missions && Array.isArray(p.missions.active) ? p.missions.active : [];
+    var d = RFD();
+    var list = (d && Array.isArray(d.MISSIONS)) ? d.MISSIONS : [];
+    var out = [];
+    for (var i = 0; i < ids.length; i++) {
+      var id = ids[i];
+      var def = null;
+      for (var j = 0; j < list.length; j++) if (list[j] && list[j].id === id) { def = list[j]; break; }
+      var progress = (p.missions.progress && p.missions.progress[id]) || 0;
+      var done = !!(p.missions.completed && p.missions.completed[id]);
+      out.push({
+        id: id,
+        label: (def && def.name) || (def && def.type && MISSION_KIND_LABEL[def.type]) || String(id),
+        kind: def && def.type,
+        goal: missionGoal(def),
+        progress: (typeof progress === 'number' && isFinite(progress)) ? progress : 0,
+        done: done
+      });
+    }
+    return out;
+  }
+
+  // profile.relics[zoneId] = [bool, bool, bool] (meta.js defaultRelics/
+  // validateSave). zoneId keys are numbers in RFD.ZONES but object property
+  // access below works either way (numeric or string key).
+  function relicProgress(zoneId) {
+    var p = profile();
+    var arr = p && p.relics && Array.isArray(p.relics[zoneId]) ? p.relics[zoneId] : null;
+    if (!arr) return null;
+    var have = 0;
+    for (var i = 0; i < arr.length; i++) if (arr[i]) have++;
+    return { have: have, total: arr.length };
+  }
+
+  function zoneRelicCap() {
+    return 3; // SPEC3D 7.6 + data.js RELICS_BY_ZONE: 3 relics per zone.
+  }
+
+  function relicName(zoneId, relicId) {
+    var d = RFD();
+    var byZone = d && d.RELICS_BY_ZONE;
+    var arr = byZone && byZone[zoneId];
+    if (arr) {
+      for (var i = 0; i < arr.length; i++) if (arr[i] && arr[i].id === relicId) return arr[i].name;
+    }
+    // Fall back to a flat scan of RELICS in case RELICS_BY_ZONE is absent.
+    var flat = (d && Array.isArray(d.RELICS)) ? d.RELICS : [];
+    for (var j = 0; j < flat.length; j++) if (flat[j] && flat[j].id === relicId) return flat[j].name;
+    return null;
+  }
+
+  // data.js SKINS: {id, name, sharkId (null = usable on any owned shark, or
+  // a specific shark id), cost, palette:{base,belly,accent,glow}}.
+  // data.js SECRET_SHARKS: {sharkId, relicSets, gemCost} -- rendered as a
+  // silhouette collection card alongside skins per task 4 ("secret sharks
+  // shown as silhouettes with unlock hint").
+  function collectionSkins() {
+    var d = RFD();
+    return (d && Array.isArray(d.SKINS)) ? d.SKINS : [];
+  }
+
+  function secretSharkRows() {
+    var d = RFD();
+    return (d && Array.isArray(d.SECRET_SHARKS)) ? d.SECRET_SHARKS : [];
+  }
+
+  function skinOwned(id) {
+    var p = profile();
+    return !!(p && p.skins && Array.isArray(p.skins.owned) && p.skins.owned.indexOf(id) >= 0);
+  }
+
+  // Meta.spendGems(kit, profile, n, reason) is the single spend authority
+  // (D5/7.6 law). doBuySkin/doUnlockSecretShark below call the higher-level
+  // Meta.buySkin/Meta.unlockSecretSharkWithGems, which spend gems through
+  // that same authority internally; both call sites guard against an older
+  // meta.js build (or a headless/partial boot) missing the Rev 7 economy
+  // API by checking typeof before calling and falling back to a toast
+  // rather than throwing, per the task brief's "guard if API absent".
+
   function tierNeed(tier) {
     var m = Meta();
     if (m && typeof m.tierUnlockLevel === 'function') {
@@ -380,10 +564,23 @@
   // shark3d/engine push baked thumbnails in as data URLs. Until one arrives
   // for a given id the card renders a styled monogram so the menu is fully
   // usable with no thumbnails at all.
+  //
+  // Rev 7 D4/plan "Thumbnails": L1 is rebuilding every shark rig in
+  // parallel (welded loft, exaggeration, girth de-clamp), so the CACHE KEY
+  // itself carries THUMB_CACHE_REV -- an id-only key would let a bake taken
+  // against the OLD glued-together mesh silently survive and keep showing
+  // in the roster after L1's rebuild lands, since nothing else here would
+  // ever know the underlying geometry changed. Bumping THUMB_CACHE_REV is
+  // therefore the actual invalidation lever for a future rig rebuild, not
+  // just documentation. The public id-based surface (setThumb/paintThumb
+  // arguments, the data-shark DOM attribute, S.thumbs' external shape) is
+  // unchanged; only the internal S.thumbs storage key is rev-scoped.
+  function tk(id) { return THUMB_CACHE_REV + ':' + id; }
+
   function setThumb(id, url) {
     if (typeof id !== 'string' || !id) return false;
     if (typeof url !== 'string' || url.indexOf('data:') !== 0) return false;
-    S.thumbs[id] = url;
+    S.thumbs[tk(id)] = url;
     // Live-patch any card already on screen rather than rebuilding the list.
     var d = D();
     if (d && d.querySelectorAll) {
@@ -396,7 +593,7 @@
   function paintThumb(node, id) {
     if (!node) return;
     var def = sharkById(id);
-    var url = S.thumbs[id];
+    var url = S.thumbs[tk(id)];
     clear(node);
     if (url) {
       removeClass(node, 'rf-mono');
@@ -452,6 +649,15 @@
   var THUMB_W = 112, THUMB_H = 90;
   var BAKE_BYTE_CAP = 8 * 1024 * 1024;
   var bakeScene = null, bakeCamera = null, bakeLights = null;
+  // Rev 7 (D4/plan "Thumbnails"): L1 is rebuilding shark meshes (welded rig,
+  // exaggeration, girth de-clamp), so every stale bake keyed only by shark
+  // id would otherwise survive across the mesh rebuild and show the OLD
+  // glued-together silhouette forever (S.thumbs/bakeQueued/bakeVisible are
+  // plain in-memory maps, not persisted, but a long-lived tab or a future
+  // persisted-thumb cache would still serve stale art). All bake-path keys
+  // below are suffixed with this token so a rev bump invalidates every old
+  // entry by construction (new key, cache miss, re-bake).
+  var THUMB_CACHE_REV = 'rev7';
 
   function idleSchedule(fn) {
     if (typeof window.requestIdleCallback === 'function') {
@@ -482,7 +688,7 @@
   // dataURL, then dispose the rig and restore the renderer's prior size so
   // the next live game frame is unaffected.
   function bakeThumb(id) {
-    if (S.bakeDisabled || S.thumbs[id]) return false;
+    if (S.bakeDisabled || S.thumbs[tk(id)]) return false;
     var art = RF.Art3D, game = RF.Game;
     if (!art || typeof art.buildShark !== 'function') { S.bakeDisabled = true; return false; }
     if (!game || !game.renderer || !game.three) return false;
@@ -585,7 +791,7 @@
   }
 
   function queueBake(id) {
-    if (S.bakeDisabled || !id || S.thumbs[id] || S.bakeQueued[id]) return;
+    if (S.bakeDisabled || !id || S.thumbs[tk(id)] || S.bakeQueued[id]) return;
     S.bakeQueued[id] = true;
     S.bakeQueue.push(id);
     if (!S.bakeTimer) S.bakeTimer = idleSchedule(drainBakeQueue);
@@ -621,6 +827,8 @@
       if (head) {
         head.appendChild(mk('span', 'rf-tier-n', 'Tier ' + tier));
         head.appendChild(mk('span', 'rf-tier-act', ACT_NAMES[byTier[tier][0].act] || ''));
+        var relicDots = buildRelicDots(tier);
+        if (relicDots) head.appendChild(relicDots);
         if (!open) head.appendChild(mk('span', 'rf-tier-lock', 'Reach level ' + need));
         sec.appendChild(head);
       }
@@ -636,6 +844,45 @@
 
     paintMenuHeader(p);
     paintMenuSelection(sel);
+  }
+
+  // Task 1: "per-zone relic progress, e.g. 3 dots per zone" shown on the
+  // roster ladder. data.js ZONES carry an intendedTier (the shark tier a
+  // zone is balanced around, per SPEC3D 7.2); that is the natural tier ->
+  // zone mapping, so a tier's relic dots show the zone whose intendedTier
+  // matches (nearest-below if no exact match, since 4 zones cover many more
+  // than 4 tiers). Falls back to null (no dots) if ZONES is unavailable,
+  // rather than guessing a wrong zone id.
+  function zonesList() {
+    var d = RFD();
+    return (d && Array.isArray(d.ZONES)) ? d.ZONES : [];
+  }
+
+  function zoneIdForTier(tier) {
+    var zones = zonesList();
+    if (!zones.length) return null;
+    var best = null;
+    for (var i = 0; i < zones.length; i++) {
+      var z = zones[i];
+      if (typeof z.intendedTier !== 'number') continue;
+      if (z.intendedTier <= tier && (best === null || z.intendedTier > best.intendedTier)) best = z;
+    }
+    if (!best) best = zones[0];
+    return best.id != null ? best.id : null;
+  }
+
+  function buildRelicDots(tier) {
+    var zoneId = zoneIdForTier(tier);
+    if (zoneId == null) return null;
+    var rp = relicProgress(zoneId);
+    if (!rp) return null; // no relic data for this zone yet: stay silent
+    var wrap = mk('span', 'rf-relic-dots');
+    if (!wrap) return null;
+    var cap = rp.total || zoneRelicCap();
+    for (var i = 0; i < cap; i++) {
+      wrap.appendChild(mk('i', 'rf-relic-dot' + (i < rp.have ? ' rf-relic-on' : '')));
+    }
+    return wrap;
   }
 
   function buildCard(def, tierOpen, sel) {
@@ -688,6 +935,26 @@
     return card;
   }
 
+  // Known bug fix: re-apply rf-card-sel + the Owned/Selected footer badge
+  // on any already-rendered roster cards without a full buildMenu() rebuild.
+  // Cheap (class + one text node per card, no re-creation) and idempotent,
+  // so calling it opportunistically from doSelect costs nothing when the
+  // Menu roster has not been built yet (root is null/empty -> no-op loop).
+  function resyncMenuSelectionBadges(selId) {
+    var root = N('rfMenuRoster');
+    if (!root || !root.querySelectorAll) return;
+    var cards = root.querySelectorAll('.rf-card');
+    for (var i = 0; i < cards.length; i++) {
+      var card = cards[i];
+      var cardId = card.getAttribute ? card.getAttribute('data-shark') : null;
+      if (!cardId) continue;
+      var isSel = cardId === selId;
+      toggleClass(card, 'rf-card-sel', isSel);
+      var foot = card.querySelector ? card.querySelector('.rf-card-own') : null;
+      if (foot) setText(foot, isSel ? 'Selected' : 'Owned');
+    }
+  }
+
   function pickMenu(id) {
     var m = Meta(), p = profile();
     if (m && typeof m.select === 'function' && p) {
@@ -712,11 +979,96 @@
     toggleClass(N('rfDevChip'), 'rf-on', !!(d && d.active));
   }
 
+  // Mission strip: built once directly under .rf-bar-top, task 1. Renders up
+  // to 3 active missions with a progress bar; empty/absent missions collapse
+  // the strip (:empty rule in REV7_STYLE_TEXT) so an old save with no
+  // missions field shows nothing extra, never a broken row.
+  // Existence check is a live tree query (querySelector), not
+  // getElementById: this file's own selftest DOM stub auto-vivifies an
+  // empty node on the FIRST getElementById lookup for any id (to satisfy
+  // the fixed NODE_IDS contract), which would mask this node's very first
+  // creation. querySelector (implemented as a real subtree walk in that
+  // same stub) has no such auto-vivify behavior and matches real-DOM
+  // getElementById semantics (null when nothing has been inserted yet).
+  function ensureMissionStrip() {
+    var menu = N('rfMenu');
+    if (!menu) return null;
+    var existing = menu.querySelector ? menu.querySelector('#rfMissionStrip') : null;
+    if (existing) return existing;
+    // Anchor: inserted as the element right after .rf-bar-top so it always
+    // reads "Menu -> goals -> roster -> DIVE" top to bottom.
+    var topBar = menu.children && menu.children.length ? menu.children[0] : null;
+    var strip = mk('div', '');
+    if (!strip) return null;
+    strip.id = 'rfMissionStrip';
+    if (topBar && topBar.parentNode === menu && topBar.nextSibling) {
+      menu.insertBefore(strip, topBar.nextSibling);
+    } else if (topBar) {
+      menu.insertBefore(strip, topBar.nextSibling || null);
+    } else {
+      menu.insertBefore(strip, menu.firstChild);
+    }
+    return strip;
+  }
+
+  function paintMissionStrip() {
+    var strip = ensureMissionStrip();
+    if (!strip) return;
+    clear(strip);
+    var missions = activeMissionDefs();
+    for (var i = 0; i < missions.length && i < 3; i++) {
+      var mNode = buildMissionChip(missions[i]);
+      if (mNode) strip.appendChild(mNode);
+    }
+  }
+
+  function buildMissionChip(m) {
+    var card = mk('div', 'rf-mission' + (m.done ? ' rf-mission-done' : ''));
+    if (!card) return null;
+    var label = m.label + (m.done ? ' (done)' : (' ' + fmt(m.progress) + '/' + fmt(m.goal)));
+    card.appendChild(mk('span', 'rf-mission-l', label));
+    var track = mk('span', 'rf-mission-bar');
+    if (track) {
+      var fill = mk('i', '');
+      if (fill) {
+        fill.style.width = m.done ? '100%' : pct(m.progress, m.goal);
+        track.appendChild(fill);
+      }
+      card.appendChild(track);
+    }
+    return card;
+  }
+
+  // Gem balance stat, built once and inserted right after the coins stat in
+  // the menu header bar. Built dynamically (index.html is orchestrator-
+  // owned) rather than assumed to exist in markup.
+  function ensureMenuGemStat() {
+    var coinsB = N('rfMenuCoins');
+    var coinsStat = coinsB && coinsB.parentNode;
+    if (!coinsStat || !coinsStat.parentNode) return null;
+    var existing = coinsStat.parentNode.querySelector
+      ? coinsStat.parentNode.querySelector('#rfMenuGemStat') : null;
+    if (existing) return existing;
+    var wrap = mk('div', 'rf-stat rf-gem');
+    if (!wrap) return null;
+    wrap.id = 'rfMenuGemStat';
+    var b = mk('b', '', '0');
+    b.id = 'rfMenuGems';
+    wrap.appendChild(b);
+    wrap.appendChild(mk('span', '', 'GEMS'));
+    coinsStat.parentNode.insertBefore(wrap, coinsStat.nextSibling);
+    return wrap;
+  }
+
   function paintMenuHeader(p) {
     setText(N('rfMenuCoins'), fmt(coins()));
+    var gemStat = ensureMenuGemStat();
+    var gemNode = gemStat && gemStat.querySelector ? gemStat.querySelector('#rfMenuGems') : null;
+    setText(gemNode, fmt(gems()));
     var lvl = p ? (p.level | 0) : 1;
     setText(N('rfMenuLevel'), 'Level ' + lvl);
     paintMenuDevChip();
+    paintMissionStrip();
 
     var m = Meta();
     var into = 0, need = 1;
@@ -765,8 +1117,225 @@
       root.appendChild(sec);
     }
 
+    var collectSec = buildCollectionSection();
+    if (collectSec) root.appendChild(collectSec);
+
     setText(N('rfShopCoins'), fmt(coins()));
+    ensureShopGemStat();
     buildUpgradePanel();
+  }
+
+  // Shop gem stat, mirrors ensureMenuGemStat but anchored beside the Shop's
+  // own coin stat.
+  function ensureShopGemStat() {
+    var coinsB = N('rfShopCoins');
+    var coinsStat = coinsB && coinsB.parentNode;
+    if (!coinsStat || !coinsStat.parentNode) return null;
+    var host = coinsStat.parentNode;
+    var existing = host.querySelector ? host.querySelector('#rfShopGemStat') : null;
+    if (!existing) {
+      var wrap = mk('div', 'rf-stat rf-gem');
+      if (!wrap) return null;
+      wrap.id = 'rfShopGemStat';
+      var b = mk('b', '', '0');
+      b.id = 'rfShopGems';
+      wrap.appendChild(b);
+      wrap.appendChild(mk('span', '', 'GEMS'));
+      host.insertBefore(wrap, coinsStat.nextSibling);
+      existing = wrap;
+    }
+    var gemNode = existing.querySelector ? existing.querySelector('#rfShopGems') : null;
+    setText(gemNode, fmt(gems()));
+    return existing;
+  }
+
+  // Task 4: Collection/Skins section -- owned/lockable skins with gem
+  // costs, secret sharks shown as silhouettes with an unlock hint. Defensive:
+  // if RFD.SKINS/SECRET_SHARKS are both empty/absent (an older data.js
+  // build), the section itself is simply not appended.
+  function buildCollectionSection() {
+    var skins = collectionSkins();
+    var secrets = secretSharkRows();
+    if (!skins.length && !secrets.length) return null;
+    var sec = mk('section', 'rf-shop-act');
+    if (!sec) return null;
+    sec.appendChild(mk('h2', 'rf-shop-act-h rf-collection-h', 'Collection'));
+    var grid = mk('div', 'rf-collect-grid');
+    if (grid) {
+      for (var i = 0; i < skins.length; i++) {
+        var card = buildSkinCard(skins[i]);
+        if (card) grid.appendChild(card);
+      }
+      for (var j = 0; j < secrets.length; j++) {
+        var sCard = buildSecretSharkCard(secrets[j]);
+        if (sCard) grid.appendChild(sCard);
+      }
+      sec.appendChild(grid);
+    }
+    return sec;
+  }
+
+  function buildSkinCard(skin) {
+    var id = skin && skin.id;
+    if (!id) return null;
+    var have = skinOwned(id);
+    var cls = 'rf-collect-card' + (have ? ' rf-collect-owned' : '');
+    var card = mk('button', cls);
+    if (!card) return null;
+    card.type = 'button';
+
+    var swatch = mk('span', 'rf-collect-swatch');
+    if (swatch) {
+      var pal = (skin.palette && typeof skin.palette.base === 'number') ? hex(skin.palette.base) : '#4a8fb0';
+      swatch.style.background = pal;
+      card.appendChild(swatch);
+    }
+    card.appendChild(mk('span', '', skin.name || id));
+
+    if (have) {
+      // B8 fix: owned skins become selectable via Meta.selectSkin, reflecting
+      // profile.skins.selectedSkin. The card itself stays enabled (not
+      // disabled) so the Select/Selected control below is clickable; card
+      // click no-ops (selection happens via the explicit button) so the
+      // whole card doesn't act as a toggle by accident.
+      var p = profile();
+      var isSelected = !!(p && p.skins && p.skins.selectedSkin === id);
+      card.appendChild(mk('span', 'rf-collect-cost', 'OWNED'));
+      var selBtn = mk('span', 'rf-collect-select' + (isSelected ? ' rf-collect-selected' : ''),
+        isSelected ? 'Selected' : 'Select');
+      if (selBtn) card.appendChild(selBtn);
+      if (isSelected) {
+        card.classList.add('rf-collect-selected-card');
+      } else {
+        card.addEventListener('click', function () { doSelectSkin(id); });
+      }
+    } else {
+      var cost = (typeof skin.cost === 'number') ? skin.cost : 0;
+      // A shark-locked skin (skin.sharkId set) also requires that shark be
+      // owned first (meta.js buySkin's 'shark-not-owned' reason); shown as
+      // a disabled hint rather than a silent failed click.
+      if (skin.sharkId && !owned(skin.sharkId)) {
+        var lockDef = sharkById(skin.sharkId);
+        card.appendChild(mk('span', 'rf-collect-hint',
+          'Own ' + (lockDef ? lockDef.name : skin.sharkId) + ' first'));
+        card.disabled = true;
+      } else {
+        card.appendChild(mk('span', 'rf-collect-cost', GEM_ICON + ' ' + fmt(cost)));
+        card.addEventListener('click', function () { doBuySkin(id); });
+      }
+    }
+    return card;
+  }
+
+  // Secret sharks (task 4): silhouette card with an unlock hint, e.g.
+  // "Find all Reef relics" -- built from relicSets (how many full zone
+  // relic sets are needed) so the hint text is data-driven, not hardcoded
+  // to a specific zone name.
+  function buildSecretSharkCard(row) {
+    var sharkId = row && row.sharkId;
+    if (!sharkId) return null;
+    var have = owned(sharkId);
+    var cls = 'rf-collect-card' + (have ? ' rf-collect-owned' : '');
+    var card = mk('button', cls);
+    if (!card) return null;
+    card.type = 'button';
+
+    var swatch = mk('span', 'rf-collect-swatch' + (have ? '' : ' rf-collect-silhouette'));
+    if (swatch) {
+      if (have) {
+        var def = sharkById(sharkId);
+        var pal = paletteOf(def);
+        swatch.style.background = hex(pal.base);
+      }
+      card.appendChild(swatch);
+    }
+
+    var def2 = sharkById(sharkId);
+    card.appendChild(mk('span', '', have ? (def2 ? def2.name : sharkId) : '???'));
+
+    if (have) {
+      card.appendChild(mk('span', 'rf-collect-cost', 'OWNED'));
+      card.disabled = true;
+    } else {
+      var sets = (typeof row.relicSets === 'number') ? row.relicSets : 1;
+      var haveSets = 0;
+      var zones = zonesList();
+      for (var i = 0; i < zones.length; i++) {
+        var rp = relicProgress(zones[i].id);
+        if (rp && rp.have >= rp.total && rp.total > 0) haveSets++;
+      }
+      var hint = 'Find ' + sets + ' full relic set' + (sets === 1 ? '' : 's');
+      card.appendChild(mk('span', 'rf-collect-hint', hint + ' (' + haveSets + '/' + sets + ')'));
+      // B3 fix: the gems-only unlock path (meta.js unlockSecretSharkWithGems)
+      // is independent of relic-set progress -- either path can unlock the
+      // shark per SPEC.md. Show the gem purchase button whenever the API
+      // exists and the shark is still locked; keep the relic hint text above
+      // regardless. Meta remains the final affordability/idempotency check
+      // (spendGems inside unlockSecretSharkWithGems).
+      var m = Meta();
+      if (m && typeof m.unlockSecretSharkWithGems === 'function') {
+        var cost = (typeof row.gemCost === 'number') ? row.gemCost : 0;
+        card.appendChild(mk('span', 'rf-collect-cost', GEM_ICON + ' ' + fmt(cost)));
+        card.addEventListener('click', function () { doUnlockSecretShark(sharkId); });
+      } else {
+        card.disabled = true;
+      }
+    }
+    return card;
+  }
+
+  function doBuySkin(id) {
+    var m = Meta(), p = profile();
+    if (!m || !p || typeof m.buySkin !== 'function') { toast('Collection is not available yet'); return; }
+    var kit = S.ctx ? S.ctx.kit : null;
+    var r = null;
+    try { r = m.buySkin(kit, p, id); } catch (e) { r = null; }
+    if (r && r.ok) {
+      var skin = null, list = collectionSkins();
+      for (var i = 0; i < list.length; i++) if (list[i] && list[i].id === id) { skin = list[i]; break; }
+      toast('Unlocked ' + (skin ? skin.name : id));
+      buildShop();
+      return;
+    }
+    var reason = r && r.reason;
+    toast(reason === 'gems' ? 'Not enough gems'
+      : reason === 'shark-not-owned' ? 'Own that shark first'
+      : reason === 'owned' ? 'Already owned'
+      : 'That purchase is not available');
+  }
+
+  function doSelectSkin(id) {
+    var m = Meta(), p = profile();
+    if (!m || !p || typeof m.selectSkin !== 'function') { toast('Collection is not available yet'); return; }
+    var kit = S.ctx ? S.ctx.kit : null;
+    var r = null;
+    try { r = m.selectSkin(kit, p, id); } catch (e) { r = null; }
+    if (r && r.ok) {
+      // Refresh card states (Selected toggle, prior selection's Select
+      // button) after the action, per task requirement.
+      buildShop();
+      return;
+    }
+    toast('Could not select that skin');
+  }
+
+  function doUnlockSecretShark(sharkId) {
+    var m = Meta(), p = profile();
+    if (!m || !p || typeof m.unlockSecretSharkWithGems !== 'function') {
+      toast('Collection is not available yet');
+      return;
+    }
+    var kit = S.ctx ? S.ctx.kit : null;
+    var r = null;
+    try { r = m.unlockSecretSharkWithGems(kit, p, sharkId); } catch (e) { r = null; }
+    if (r && r.ok) {
+      var def = sharkById(sharkId);
+      toast('Unlocked ' + (def ? def.name : sharkId));
+      buildShop();
+      return;
+    }
+    var reason = r && r.reason;
+    toast(reason === 'gems' ? 'Not enough gems' : 'That purchase is not available');
   }
 
   function buildShopRow(def) {
@@ -901,6 +1470,21 @@
       S.menuPick = id;
       S.shopPick = id;
       buildShop();
+      // Known bug (ported fix from the pre-3D UI's "Menu ON-badge resync"):
+      // a SELECT here (including the desktop path where a focused SELECT
+      // button fires this same click handler on an Enter keypress, per
+      // native <button> behavior -- no separate keydown listener needed)
+      // changes the active shark, but showMenu()/buildMenu() only runs when
+      // the player actually navigates back to the Menu screen. If the Menu
+      // DOM is ever left mounted underneath the Shop (current index.html
+      // uses exclusive .rf-on screens, but this repaint is cheap and inert
+      // either way), its roster cards would keep showing the OLD card as
+      // "Selected"/rf-card-sel until the next full buildMenu(). Repainting
+      // the header + selection here (not the whole roster, to stay cheap)
+      // keeps S.menuPick's OWN screen state honest immediately rather than
+      // relying on a future showMenu() call to notice the drift.
+      if (N('rfMenu')) paintMenuSelection(id);
+      resyncMenuSelectionBadges(id);
       return;
     }
     toast('That shark is not owned yet');
@@ -998,10 +1582,19 @@
       if (d.dailyBonus) {
         rows.appendChild(resRow('Daily bonus', '+' + fmt(d.bonusCoins), 'rf-res-bonus'));
       }
+      // SPEC3D 7.6: endRun payload adds gems (optional; a pre-Rev7 payload or
+      // a zero-gem run simply omits the row rather than showing "0").
+      var gemsEarned = (typeof d.gems === 'number' && isFinite(d.gems)) ? d.gems : 0;
+      if (gemsEarned > 0) {
+        rows.appendChild(resRow('Gems earned', GEM_ICON + ' ' + fmt(gemsEarned), 'rf-res-gems'));
+      }
       rows.appendChild(resRow('Biggest prey', 'Tier ' + ((d.biggestTier | 0) || 0)));
       rows.appendChild(resRow('Best combo', 'x' + ((d.bestCombo | 0) || 0)));
       rows.appendChild(resRow('XP gained', fmt(d.xp)));
     }
+
+    buildMissionResults(d.missionResults);
+    buildRelicFinds(d.relicFinds, d.relicUnlocks);
 
     var lvlUps = d.levelUps | 0;
     var lvlNode = N('rfResLevel');
@@ -1032,6 +1625,67 @@
         un.appendChild(mk('div', 'rf-unlock',
           'Tier ' + u.tier + ' unlocked: ' + names + extra));
       }
+      // SPEC3D 7.6: full zone relic set => unlock skin/bonus shark. meta.js
+      // endRun's relicSetUnlocks() returns [{type:'relicSet', zoneId}] for a
+      // newly-completed zone and [{type:'sharkUnlock', sharkId, via}] for a
+      // secret shark that just crossed its relicSets threshold -- rendered
+      // as unlock callouts alongside the existing tier-unlock rows.
+      var relicUnlocks = Array.isArray(d.relicUnlocks) ? d.relicUnlocks : [];
+      for (var ci = 0; ci < relicUnlocks.length && ci < 3; ci++) {
+        var c = relicUnlocks[ci];
+        if (!c) continue;
+        if (c.type === 'relicSet') {
+          un.appendChild(mk('div', 'rf-res-callout', 'Relic set complete: Zone ' + c.zoneId));
+        } else if (c.type === 'sharkUnlock') {
+          var def = sharkById(c.sharkId);
+          un.appendChild(mk('div', 'rf-res-callout',
+            'Secret shark unlocked: ' + (def ? def.name : c.sharkId)));
+        }
+      }
+    }
+  }
+
+  // Mission results (task 3): endRun's ctx.run.missionResults (meta.js
+  // missionEvent, line ~689) is a completion log -- {id, name, gems}, pushed
+  // ONLY when a mission finishes this run, so every entry here IS "done"
+  // (there is no partial/in-progress entry in this array by construction;
+  // in-progress missions live on the Menu's mission strip instead, per
+  // task 1). Reads m.progress/m.goal defensively in case a future build
+  // adds a partial-result shape, but falls back to the DONE tag either way.
+  function buildMissionResults(missionResults) {
+    var root = N('rfResRows');
+    if (!root) return;
+    var list = Array.isArray(missionResults) ? missionResults : [];
+    for (var i = 0; i < list.length && i < 3; i++) {
+      var m = list[i] || {};
+      var hasProgress = typeof m.progress === 'number' && typeof m.goal === 'number' && m.goal > 0;
+      var done = hasProgress ? (m.progress >= m.goal) : !(m.done === false);
+      var label = m.name || m.label || m.id || 'Mission';
+      var row = mk('div', 'rf-res-mission' + (done ? ' rf-res-mission-done' : ''));
+      if (!row) continue;
+      row.appendChild(mk('span', '', label));
+      row.appendChild(mk('span', 'rf-res-mission-tag',
+        done ? 'DONE' : (fmt(m.progress) + '/' + fmt(m.goal))));
+      root.appendChild(row);
+    }
+  }
+
+  // Relic finds (task 3): endRun's relicFinds passes ctx.run.relics through
+  // verbatim -- entries are {relicId, zoneId} (engine/world push these as
+  // the player collects them mid-run). Resolved to a human name via
+  // RFD.RELICS_BY_ZONE/RFD.RELICS; falls back to the raw relicId if the
+  // table lookup misses (never drops the row, since a find still happened).
+  function buildRelicFinds(relicFinds) {
+    var root = N('rfResRows');
+    if (!root) return;
+    var list = Array.isArray(relicFinds) ? relicFinds : [];
+    for (var i = 0; i < list.length && i < 5; i++) {
+      var r = list[i];
+      if (!r) continue;
+      var name = (r.relicId != null && r.zoneId != null) ? relicName(r.zoneId, r.relicId) : null;
+      var label = name || r.name || r.label || r.relicId || 'Relic';
+      var row = mk('div', 'rf-res-relic', 'Relic found: ' + label);
+      if (row) root.appendChild(row);
     }
   }
 
@@ -1271,10 +1925,14 @@
   var toastCooldownTimer = null;
 
   // One chip at a time, <= 24px tall, <= 1.0s, replaced not stacked.
-  function chip(text, cue) {
+  // opts.missionTick applies the rf-chip-mission variant (task 2: chip
+  // styling supports a mission-tick look, distinct from a plain toast/combo
+  // pop) and is always cleared on the next chip so it never lingers.
+  function chip(text, cue, opts) {
     var n = N('rfChip');
     if (!n) return;
     if (cue !== undefined) setFrenzyCue(cue);
+    toggleClass(n, 'rf-chip-mission', !!(opts && opts.missionTick));
     setText(n, text);
     addClass(n, 'rf-on');
     S.chipToken++;
@@ -1299,7 +1957,7 @@
     toastCooldownTimer = null;
     var next = toastQueue.shift();
     if (next === undefined) return;
-    chip(next.text, next.cue);
+    chip(next.text, next.cue, { missionTick: next.missionTick });
     if (next.holo) applyHoloFlicker(N('rfChip'));
     toastCooldownUntil = Date.now() + TOAST_COOLDOWN_MS;
     if (toastQueue.length) toastCooldownTimer = setTimeout(drainToastQueue, TOAST_COOLDOWN_MS);
@@ -1309,18 +1967,20 @@
   // callouts. Distinct from chip() so the high-frequency combo path is never
   // subject to the 1.2s gap (a combo readout must always be current).
   // opts.holo applies the 6.9 hologram materialize scanline flicker
-  // (pairs with RF.Fx.hologramFlash's additive sparkle burst).
+  // (pairs with RF.Fx.hologramFlash's additive sparkle burst). opts.
+  // missionTick applies the mission-tick chip variant (task 2).
   function queueToast(text, cue, opts) {
     var holo = !!(opts && opts.holo);
+    var missionTick = !!(opts && opts.missionTick);
     var now = Date.now();
     if (now >= toastCooldownUntil && !toastCooldownTimer) {
-      chip(text, cue);
+      chip(text, cue, { missionTick: missionTick });
       if (holo) applyHoloFlicker(N('rfChip'));
       toastCooldownUntil = now + TOAST_COOLDOWN_MS;
       return;
     }
     if (toastQueue.length >= TOAST_QUEUE_MAX) toastQueue.shift();
-    toastQueue.push({ text: text, cue: cue, holo: holo });
+    toastQueue.push({ text: text, cue: cue, holo: holo, missionTick: missionTick });
     if (!toastCooldownTimer) {
       var wait = Math.max(0, toastCooldownUntil - now);
       toastCooldownTimer = setTimeout(drainToastQueue, wait);
@@ -1678,6 +2338,7 @@
     var o = opts || {};
     doc = o.document || (typeof document !== 'undefined' ? document : null);
     ensureFrenzyCueStyles();
+    ensureRev7Styles();
     S.ctx = o.ctx || null;
     S.profile = o.profile || (S.ctx ? S.ctx.save : null) || null;
     S.handles = {
@@ -1732,6 +2393,7 @@
     toastCooldownUntil = 0;
     S.chipToken++;
     removeClass(N('rfChip'), 'rf-on');
+    removeClass(N('rfChip'), 'rf-chip-mission');
     removeClass(N('rfShopToast'), 'rf-on');
     setFrenzyCue(null);
     if (!keepTut) {
@@ -1764,11 +2426,61 @@
     return true;
   }
 
+  // Task 2, HUD only-law: the ONLY new persistent in-run element is a gem
+  // counter beside the coin counter. The in-run HUD has no coin counter at
+  // all (6.11 removed it to menu/results only per code review MAJOR 5), so
+  // this reads the run's gem total (profile.gems, static for the run's
+  // duration since gems are awarded at endRun, not mid-run) once per
+  // showHud() and lives in the same top-left corner as the retired coin
+  // stat used to. Built dynamically since index.html has no such node yet.
+  // Existence check is a direct object reference (S.hudGemNode), not a
+  // getElementById('rfHudGems') round-trip: index.html has no such id in
+  // its markup (this lane injects the node), and getElementById on an id
+  // that has never been created is only guaranteed to return null in a
+  // real DOM -- a test-harness DOM stub that auto-vivifies unknown ids
+  // (which this file's own selftest stub does, to satisfy the fixed
+  // NODE_IDS contract) would otherwise mask the very first creation.
+  var hudGemNode = null;
+  function ensureHudGemNode() {
+    var hud = N('rfHud');
+    if (!hud) return null;
+    if (hudGemNode && hudGemNode.parentNode === hud) return hudGemNode;
+    var node = mk('div', '');
+    if (!node) return null;
+    node.id = 'rfHudGems';
+    hud.insertBefore(node, hud.firstChild);
+    hudGemNode = node;
+    return node;
+  }
+
+  function paintHudGems() {
+    var node = ensureHudGemNode();
+    if (!node) return;
+    var n = gems();
+    // :empty CSS rule hides the node entirely on saves with no gems yet
+    // (task: purely additive, never a visible zero-state clutter regression
+    // on an old save); once any gems exist it shows the compact readout.
+    clear(node);
+    if (n > 0) {
+      node.appendChild(mk('span', '', GEM_ICON));
+      node.appendChild(mk('span', '', compact(n)));
+    }
+  }
+
+  // Mission progress ticks arrive via the existing toast/chip channels
+  // (task 2). This is the caller-facing helper: fires the ONE queued toast
+  // slot with the mission-tick chip variant so a mission completion or
+  // step reads distinctly from a plain toast without adding new UI.
+  function missionTick(text) {
+    queueToast(text, null, { holo: false, missionTick: true });
+  }
+
   function showHud() {
     // A fresh run means a fresh diff baseline, or the first push after a
     // menu round trip would be silently swallowed as unchanged.
     S.lastHud = null;
     showOnly('hud');
+    paintHudGems();
     return true;
   }
 
@@ -1794,18 +2506,49 @@
     }
 
     // ---- minimal DOM stub -------------------------------------------
+    // getElementById(id) below must find nodes ui3d.js creates dynamically
+    // via mk()+node.id=... (the Rev 7 gem-stat/mission-strip/HUD-gem
+    // helpers), not only ones the harness itself looked up first. store
+    // is declared here (Node's closure) and registerId() is called from
+    // both setAttribute('id', ...) and the `id` property setter below.
+    var store = {};
+    function registerId(node) { if (node.id) store[node.id] = node; }
     function Node(tag) {
       this.tagName = String(tag || 'div').toUpperCase();
       this.children = [];
       this.firstChild = null;
+      this.nextSibling = null;
+      this.parentNode = null;
       this._text = '';
       this.style = {};
       this.disabled = false;
       this.type = '';
       this.attrs = {};
       this._cls = {};
-      this.className = '';
+      this._className = '';
+      this._id = '';
       var self = this;
+      Object.defineProperty(this, 'id', {
+        get: function () { return self._id; },
+        set: function (v) { self._id = String(v); registerId(self); },
+        enumerable: true
+      });
+      // className is a plain assignable property in real DOM (mk() writes
+      // it as a shorthand for a whole class list, e.g. 'rf-mission
+      // rf-mission-done'), and classList.contains() reflects it live. The
+      // stub must mirror that: a className assignment repopulates _cls so
+      // classList.contains(...) stays truthful for code that never calls
+      // classList.add() directly.
+      Object.defineProperty(this, 'className', {
+        get: function () { return self._className; },
+        set: function (v) {
+          self._className = String(v == null ? '' : v);
+          self._cls = {};
+          var parts = self._className.split(/\s+/);
+          for (var i = 0; i < parts.length; i++) if (parts[i]) self._cls[parts[i]] = true;
+        },
+        enumerable: true
+      });
       this.classList = {
         add: function (c) { self._cls[c] = true; self._sync(); },
         remove: function (c) { delete self._cls[c]; self._sync(); },
@@ -1818,19 +2561,44 @@
       for (var k in this._cls) if (this._cls[k]) out.push(k);
       this.className = out.join(' ');
     };
+    Node.prototype._relink = function () {
+      for (var i = 0; i < this.children.length; i++) {
+        this.children[i].parentNode = this;
+        this.children[i].nextSibling = (i + 1 < this.children.length) ? this.children[i + 1] : null;
+      }
+      this.firstChild = this.children.length ? this.children[0] : null;
+    };
     Node.prototype.appendChild = function (c) {
       if (!c) return c;
+      var i = this.children.indexOf(c);
+      if (i >= 0) this.children.splice(i, 1);
       this.children.push(c);
-      this.firstChild = this.children[0];
+      this._relink();
       return c;
     };
     Node.prototype.removeChild = function (c) {
       var i = this.children.indexOf(c);
       if (i >= 0) this.children.splice(i, 1);
-      this.firstChild = this.children.length ? this.children[0] : null;
+      c.parentNode = null;
+      this._relink();
       return c;
     };
-    Node.prototype.setAttribute = function (k, v) { this.attrs[k] = String(v); };
+    // Minimal insertBefore: refIndex null/undefined appends at the end
+    // (matching native insertBefore(node, null) semantics), which is the
+    // only form the Rev 7 dynamic-node helpers above use.
+    Node.prototype.insertBefore = function (c, ref) {
+      if (!c) return c;
+      var i = this.children.indexOf(c);
+      if (i >= 0) this.children.splice(i, 1);
+      var at = ref ? this.children.indexOf(ref) : -1;
+      if (at < 0) this.children.push(c); else this.children.splice(at, 0, c);
+      this._relink();
+      return c;
+    };
+    Node.prototype.setAttribute = function (k, v) {
+      this.attrs[k] = String(v);
+      if (k === 'id') { this.id = String(v); registerId(this); }
+    };
     Node.prototype.getAttribute = function (k) { return this.attrs[k]; };
     Node.prototype.addEventListener = function (t, fn) {
       (this._listeners[t] = this._listeners[t] || []).push(fn);
@@ -1839,9 +2607,51 @@
       var l = this._listeners[t] || [];
       for (var i = 0; i < l.length; i++) l[i](ev || {});
     };
+    // Minimal recursive selector support: only what this file's own code
+    // actually issues (#id and .class), enough to exercise the dynamic
+    // gem-stat/collection-card/relic-dot helpers headlessly.
+    function matchesSel(node, sel) {
+      if (sel.charAt(0) === '#') return node.id === sel.slice(1);
+      if (sel.charAt(0) === '.') return !!node._cls[sel.slice(1)];
+      return node.tagName === sel.toUpperCase();
+    }
+    function walk(node, sel, out, first) {
+      for (var i = 0; i < node.children.length; i++) {
+        var c = node.children[i];
+        if (matchesSel(c, sel)) { out.push(c); if (first) return true; }
+        if (walk(c, sel, out, first) && first) return true;
+      }
+      return false;
+    }
+    Node.prototype.querySelector = function (sel) {
+      var out = [];
+      walk(this, sel, out, true);
+      return out.length ? out[0] : null;
+    };
+    Node.prototype.querySelectorAll = function (sel) {
+      var out = [];
+      walk(this, sel, out, false);
+      return out;
+    };
+    // Real DOM's textContent GETTER concatenates every descendant text node;
+    // this stub has no separate text-node type (mk() sets a leaf's _text
+    // directly), so the getter recurses: a node with children reports the
+    // concatenation of their textContent, a childless node reports its own
+    // _text. The Rev 7 gem-stat/mission-strip/results/collection helpers
+    // all build "icon span + value span" pairs and read the WRAPPER's
+    // textContent to assert on the combined text, exactly like real DOM
+    // code checking a card's rendered text.
     Object.defineProperty(Node.prototype, 'textContent', {
-      get: function () { return this._text; },
-      set: function (v) { this._text = String(v); this.children.length = 0; this.firstChild = null; }
+      get: function () {
+        if (!this.children.length) return this._text;
+        var out = '';
+        for (var i = 0; i < this.children.length; i++) out += this.children[i].textContent;
+        return out;
+      },
+      set: function (v) {
+        this._text = String(v); this.children.length = 0; this.firstChild = null;
+        this.nextSibling = null;
+      }
     });
     // Minimal canvas 2D stub so the minimap's one-time background paint (6.4)
     // can be exercised headlessly: draw calls are no-ops, geometry is inert.
@@ -1857,11 +2667,10 @@
       return this._ctx2d;
     };
 
-    var store = {};
     var stub = {
       createElement: function (t) { return new Node(t); },
       getElementById: function (id) {
-        if (!store[id]) { store[id] = new Node('div'); store[id].attrs.id = id; }
+        if (!store[id]) { store[id] = new Node('div'); store[id].id = id; }
         return store[id];
       },
       querySelectorAll: function () {
@@ -2198,10 +3007,11 @@
       ok('thumb rejects empty id', setThumb('', 'data:image/png;base64,AA') === false);
       ok('thumb rejects non-string', setThumb('reef', null) === false);
       ok('thumb accepts data url', setThumb('reef', 'data:image/png;base64,AA') === true);
-      ok('thumb cached', S.thumbs.reef === 'data:image/png;base64,AA');
+      ok('thumb cached', S.thumbs[tk('reef')] === 'data:image/png;base64,AA');
       setThumb('reef', 'data:image/png;base64,BB');
-      ok('thumb overwritten', S.thumbs.reef === 'data:image/png;base64,BB');
-      ok('thumb cache isolated', S.thumbs.tiger === undefined);
+      ok('thumb overwritten', S.thumbs[tk('reef')] === 'data:image/png;base64,BB');
+      ok('thumb cache isolated', S.thumbs[tk('tiger')] === undefined);
+      ok('thumb cache key carries the rev token', tk('reef').indexOf(THUMB_CACHE_REV + ':') === 0);
 
       // A card with a cached thumb paints the image; without one it falls
       // back to a monogram, which is what keeps the menu usable at boot.
@@ -2266,7 +3076,7 @@
       };
       ok('bakeThumb bakes with stub Art3D/Game', bakeThumb('mako') === true);
       ok('bake rendered exactly one frame', fakeCanvasCalls === 1);
-      ok('bake result is cached via setThumb', typeof S.thumbs.mako === 'string' && S.thumbs.mako.indexOf('data:') === 0);
+      ok('bake result is cached via setThumb', typeof S.thumbs[tk('mako')] === 'string' && S.thumbs[tk('mako')].indexOf('data:') === 0);
       ok('bake disposes the one-off rig geometry/material', disposedGeo === 1 && disposedMat === 1);
       ok('bakeThumb is a no-op once already cached', (function () {
         var before = fakeCanvasCalls;
@@ -2278,7 +3088,7 @@
       // a new bake even though the render itself would have succeeded.
       S.bakeBytes = BAKE_BYTE_CAP + 1;
       ok('bake refuses past the byte cap', bakeThumb('tiger') === false);
-      ok('over-cap bake does not populate the thumb cache', S.thumbs.tiger === undefined);
+      ok('over-cap bake does not populate the thumb cache', S.thumbs[tk('tiger')] === undefined);
       S.bakeBytes = 0;
 
       // queueBake dedupes and drains lazily via the idle scheduler.
@@ -2290,13 +3100,371 @@
       if (S.bakeTimer && typeof window.clearTimeout === 'function') { try { window.clearTimeout(S.bakeTimer); } catch (eBT3) {} }
       S.bakeTimer = null;
       drainBakeQueue();
-      ok('drainBakeQueue bakes the queued id', S.thumbs.mako !== undefined);
+      ok('drainBakeQueue bakes the queued id', S.thumbs[tk('mako')] !== undefined);
       ok('drainBakeQueue clears the dedupe flag', S.bakeQueued.mako === undefined);
 
       RF.Art3D = savedArt3D; RF.Game = savedGame;
       if (savedArt3D === undefined) delete RF.Art3D;
       if (savedGame === undefined) delete RF.Game;
       bakeScene = savedBakeScene; bakeCamera = savedBakeCamera; bakeLights = savedBakeLights;
+
+      // ---- Rev 7 economy: mission strip, gems, relic dots, results, shop
+      // Collection section (task 7). RF.Meta is not loaded by the `ui`
+      // selftest target (see tools/selftest.mjs), so Meta()-backed reads
+      // (coins/owned/tierUnlocked/etc) already fall back to their existing
+      // defensive defaults throughout this file; the assertions below drive
+      // the Rev 7 surfaces directly off S.profile / RFD (real data.js IS
+      // loaded here) plus a minimal fake RF.Meta for the buy/spend paths,
+      // exercising exactly the same defensive fallbacks a real, older, or
+      // partially-booted meta.js build would hit.
+      (function rev7SelftestBlock() {
+        var savedMeta = RF.Meta;
+        // profile() prefers S.ctx.save over S.profile; a prior block in this
+        // same __selftest run left S.ctx set from an earlier runStarted()
+        // call, which would otherwise shadow every profile below.
+        S.ctx = null;
+
+        // This stub's getElementById(id) auto-vivifies a bare, PARENTLESS
+        // div for any of the fixed NODE_IDS on first lookup (grab() has
+        // already touched all of them by this point in the run) -- it does
+        // not reconstruct index.html's actual nesting (.rf-bar-top wrapping
+        // rfMenuCoins, etc). The Rev 7 gem-stat helpers walk UP from
+        // rfMenuCoins/rfShopCoins's real parentNode to find their insertion
+        // point, so exercising them meaningfully here requires rebuilding
+        // that one level of real nesting the stub does not provide.
+        var menuBarTop = N('rfMenu').querySelector('.rf-bar-top') || mk('div', 'rf-bar-top');
+        var menuCoinsStatWrap = mk('div', 'rf-stat');
+        menuCoinsStatWrap.appendChild(N('rfMenuCoins'));
+        menuBarTop.appendChild(menuCoinsStatWrap);
+        if (!menuBarTop.parentNode) N('rfMenu').insertBefore(menuBarTop, N('rfMenu').firstChild);
+        var shopBarTop = N('rfShop').querySelector('.rf-bar-top') || mk('div', 'rf-bar-top');
+        var shopCoinsStatWrap = mk('div', 'rf-stat');
+        shopCoinsStatWrap.appendChild(N('rfShopCoins'));
+        shopBarTop.appendChild(shopCoinsStatWrap);
+        if (!shopBarTop.parentNode) N('rfShop').insertBefore(shopBarTop, N('rfShop').firstChild);
+        var profOld = { coins: 0, level: 5, xp: 0, selected: 'reef', sharks: {} };
+        var profRev7 = {
+          coins: 0, level: 5, xp: 0, selected: 'reef', sharks: {},
+          gems: 7,
+          relics: { 1: [true, true, false], 2: [false, false, false] },
+          skins: { owned: ['skin_neon_riptide'], selectedSkin: null },
+          missions: {
+            active: ['m_eat_any_15', 'm_find_relic_any'],
+            progress: { m_eat_any_15: 9, m_find_relic_any: 1 },
+            completed: { m_find_relic_any: true }
+          }
+        };
+
+        // Old (pre-Rev7) save shape: gems()/activeMissionDefs()/
+        // relicProgress() must degrade to inert defaults, never throw.
+        delete RF.Meta;
+        showMenu({ profile: profOld });
+        ok('gems() defaults to 0 on a pre-Rev7 profile', gems() === 0);
+        ok('activeMissionDefs() empty on a pre-Rev7 profile', activeMissionDefs().length === 0);
+        ok('relicProgress() null on a pre-Rev7 profile', relicProgress(1) === null);
+        var threwOldMenu = false;
+        try { buildMenu(); } catch (e) { threwOldMenu = true; }
+        ok('buildMenu tolerates a pre-Rev7 profile', threwOldMenu === false);
+        ok('mission strip stays empty on a pre-Rev7 profile', (function () {
+          var menu = N('rfMenu');
+          var s = menu && menu.querySelector ? menu.querySelector('#rfMissionStrip') : null;
+          return !s || s.children.length === 0;
+        })());
+
+        // Rev 7 profile: gems/missions/relics all read correctly.
+        showMenu({ profile: profRev7 });
+        ok('gems() reads profile.gems', gems() === 7);
+        var missions = activeMissionDefs();
+        ok('activeMissionDefs() returns the active ids in order',
+          missions.length === 2 && missions[0].id === 'm_eat_any_15' && missions[1].id === 'm_find_relic_any');
+        ok('activeMissionDefs() resolves the real MISSIONS name', missions[0].label === 'Eat 15 fish');
+        ok('activeMissionDefs() carries progress/goal', missions[0].progress === 9 && missions[0].goal === 15);
+        ok('activeMissionDefs() flags a completed mission done', missions[1].done === true);
+        ok('missionGoal() reads target.n for eatCount', missionGoal({ type: 'eatCount', target: { n: 15 } }) === 15);
+        ok('missionGoal() reads target.seconds for surviveZone',
+          missionGoal({ type: 'surviveZone', target: { seconds: 90 } }) === 90);
+
+        var rp1 = relicProgress(1);
+        ok('relicProgress() counts true entries', rp1 && rp1.have === 2 && rp1.total === 3);
+        var rp2 = relicProgress(2);
+        ok('relicProgress() reads a zero-progress zone', rp2 && rp2.have === 0);
+        ok('relicProgress() null for an untouched zone key', relicProgress(999) === null);
+        ok('zoneIdForTier maps a low tier to zone 1', zoneIdForTier(1) === 1);
+        ok('zoneIdForTier maps a high tier to the nearest-below zone', zoneIdForTier(9) === 4);
+        ok('zoneIdForTier falls back to the first zone below any intendedTier', zoneIdForTier(0) === 1);
+
+        // ---- Menu: mission strip, gem stat, relic dots ---------------
+        buildMenu();
+        var stripNode = N('rfMenu').querySelector('#rfMissionStrip');
+        ok('mission strip renders one card per active mission',
+          !!stripNode && stripNode.children.length === 2);
+        ok('mission strip shows progress text for an in-progress mission',
+          stripNode.children[0].children[0].textContent.indexOf('9/15') > 0);
+        ok('mission strip flags a completed mission with the done class',
+          stripNode.children[1].classList.contains('rf-mission-done') === true);
+        var gemStatNode = N('rfMenu').querySelector('#rfMenuGems');
+        ok('menu gem stat reflects profile.gems', !!gemStatNode && gemStatNode.textContent === '7');
+
+        ok('roster tier head carries relic dots for a zone with progress', (function () {
+          var roster = N('rfMenuRoster');
+          if (!roster) return false;
+          var dots = roster.querySelectorAll('.rf-relic-dots');
+          return dots.length > 0 && dots[0].children.length === 3
+            && dots[0].children[0].classList.contains('rf-relic-on') === true;
+        })());
+
+        // ---- HUD: gem counter beside the (retired) coin counter -------
+        showHud();
+        var hudGemNode = N('rfHud').querySelector('#rfHudGems');
+        ok('HUD gem node created on showHud', !!hudGemNode);
+        ok('HUD gem node shows the compact gem count', hudGemNode.textContent.indexOf('7') >= 0);
+        showHud(); // idempotent: must not duplicate the node or throw
+        ok('HUD gem node is not duplicated across repeated showHud calls',
+          N('rfHud').querySelectorAll('#rfHudGems').length <= 1);
+
+        // Zero-gem profile: the HUD node must render EMPTY (no clutter on a
+        // fresh save), never a "0" readout.
+        S.profile = { coins: 0, level: 1, xp: 0, selected: 'reef', sharks: {}, gems: 0 };
+        showHud();
+        ok('HUD gem node is empty at zero gems',
+          N('rfHud').querySelector('#rfHudGems').textContent === '');
+        S.profile = profRev7;
+
+        // Mission-tick chip variant (task 2).
+        clearTransients();
+        missionTick('Mission complete!');
+        ok('missionTick shows immediately via the one queued toast slot',
+          N('rfChip').textContent === 'Mission complete!' && N('rfChip').classList.contains('rf-on') === true);
+        ok('missionTick applies the rf-chip-mission variant',
+          N('rfChip').classList.contains('rf-chip-mission') === true);
+        clearTransients();
+        ok('clearTransients removes the mission-tick chip variant',
+          N('rfChip').classList.contains('rf-chip-mission') === false);
+        chip('x3');
+        ok('a plain chip does not carry the mission-tick variant',
+          N('rfChip').classList.contains('rf-chip-mission') === false);
+
+        // ---- Results: gems / mission results / relic finds / unlocks --
+        showResults({
+          score: 900, coins: 40, xp: 5, gems: 4,
+          missionResults: [{ id: 'm_eat_any_15', name: 'Eat 15 fish', gems: 1 }],
+          relicFinds: [{ relicId: 'relic_z1_a', zoneId: 1 }],
+          relicUnlocks: [
+            { type: 'relicSet', zoneId: 1 },
+            { type: 'sharkUnlock', sharkId: 'nullfin', via: 'relicSet' }
+          ],
+          unlocks: []
+        });
+        ok('results screen renders a gems-earned row', (function () {
+          var rows = N('rfResRows');
+          for (var i = 0; i < rows.children.length; i++) {
+            if (rows.children[i].classList.contains('rf-res-gems')
+              || (rows.children[i].children[0] && rows.children[i].children[0].textContent === 'Gems earned')) return true;
+          }
+          return false;
+        })());
+        ok('results screen renders the completed mission as DONE', (function () {
+          var rows = N('rfResRows');
+          for (var i = 0; i < rows.children.length; i++) {
+            if (rows.children[i].classList.contains('rf-res-mission-done')) return true;
+          }
+          return false;
+        })());
+        ok('results screen renders the relic find by resolved name', (function () {
+          var rows = N('rfResRows');
+          for (var i = 0; i < rows.children.length; i++) {
+            if (rows.children[i].classList.contains('rf-res-relic')
+              && rows.children[i].textContent.indexOf('Coral Shard') >= 0) return true;
+          }
+          return false;
+        })());
+        ok('results screen renders the relic-set + secret-shark unlock callouts', (function () {
+          var un = N('rfResUnlocks');
+          var joined = '';
+          for (var i = 0; i < un.children.length; i++) joined += un.children[i].textContent + '|';
+          return joined.indexOf('Relic set complete: Zone 1') >= 0
+            && joined.indexOf('Secret shark unlocked') >= 0;
+        })());
+
+        // A zero/absent Rev 7 payload must still render cleanly (no gems
+        // row, no mission/relic rows, no callouts) -- exactly the
+        // defensive contract the task calls for.
+        showResults({ score: 5, coins: 1, xp: 1, unlocks: [] });
+        ok('results screen omits the gems row when gems is absent', (function () {
+          var rows = N('rfResRows');
+          for (var i = 0; i < rows.children.length; i++) {
+            if (rows.children[i].classList.contains('rf-res-gems')) return false;
+          }
+          return true;
+        })());
+        var threwBareResults = false;
+        try { showResults({}); } catch (e) { threwBareResults = true; }
+        ok('results screen tolerates a bare payload with no Rev 7 fields', threwBareResults === false);
+
+        // ---- Shop: Collection/Skins section ---------------------------
+        // A minimal fake RF.Meta must be present for buildSecretSharkCard's
+        // B3 gem-button gating (typeof m.unlockSecretSharkWithGems ===
+        // 'function'); the real meta.js is not loaded in this ui-only
+        // selftest run.
+        RF.Meta = { unlockSecretSharkWithGems: function () { return { ok: false }; }, selectSkin: function () { return { ok: false }; } };
+        showShop({ profile: profRev7 });
+        var shopRoot = N('rfShopList');
+        ok('shop renders a Collection section when SKINS/SECRET_SHARKS exist',
+          !!shopRoot && shopRoot.querySelectorAll('.rf-collection-h').length === 1);
+        var cards = shopRoot.querySelectorAll('.rf-collect-card');
+        ok('shop Collection renders at least one skin + one secret shark card',
+          cards.length >= (RFD().SKINS || []).length + (RFD().SECRET_SHARKS || []).length);
+        var ownedCard = null, lockedSecretCard = null;
+        for (var cci = 0; cci < cards.length; cci++) {
+          if (cards[cci].classList.contains('rf-collect-owned') && ownedCard === null) ownedCard = cards[cci];
+          if (cards[cci].textContent.indexOf('???') >= 0 && lockedSecretCard === null) lockedSecretCard = cards[cci];
+        }
+        ok('an owned skin card is flagged rf-collect-owned',
+          !!ownedCard && ownedCard.classList.contains('rf-collect-owned'));
+        ok('an unmet secret shark renders as a silhouette (???) with a relic-set hint',
+          !!lockedSecretCard && lockedSecretCard.textContent.indexOf('relic set') > 0);
+
+        // B3 selftest coverage: gem-unlock button presence for a locked
+        // secret shark with 0 relic sets -- the gems-only path must be
+        // reachable regardless of relic progress (fix-lane F3 blocker 3).
+        ok('a locked secret shark with 0 relic sets still shows the gem-unlock button',
+          !!lockedSecretCard && lockedSecretCard.textContent.indexOf('(0/') > 0
+          && !!lockedSecretCard.querySelector('.rf-collect-cost')
+          && lockedSecretCard.disabled !== true);
+
+        // B8 selftest coverage: owned skins get a Select/Selected toggle
+        // reflecting profile.skins.selectedSkin, calling Meta.selectSkin and
+        // refreshing card states after the action.
+        ok('an owned skin card renders a Select toggle instead of being disabled',
+          !!ownedCard && ownedCard.disabled !== true
+          && !!ownedCard.querySelector('.rf-collect-select'));
+        var shopGemNode = N('rfShop') && N('rfShop').querySelector ? N('rfShop').querySelector('#rfShopGems') : null;
+        ok('shop gem stat reflects profile.gems', !!shopGemNode && shopGemNode.textContent === '7');
+
+        // buySkin/unlockSecretSharkWithGems guarded when Meta is absent
+        // (task 4: "guard if API absent").
+        delete RF.Meta;
+        var toastNoApi = 0;
+        var savedToastTimer = toastTimer;
+        doBuySkin('skin_magma_core');
+        ok('doBuySkin does not throw with no RF.Meta', N('rfShopToast').textContent.indexOf('not available') >= 0);
+        doUnlockSecretShark('banshee');
+        ok('doUnlockSecretShark does not throw with no RF.Meta', N('rfShopToast').textContent.indexOf('not available') >= 0);
+        if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+
+        // buySkin/unlockSecretSharkWithGems success + failure paths via a
+        // minimal fake RF.Meta (mirrors the real meta.js signatures this
+        // file calls: buySkin(kit,p,id) / unlockSecretSharkWithGems(kit,p,id)).
+        var buySkinCalls = [], unlockCalls = [], selectCalls = [];
+        RF.Meta = {
+          buySkin: function (kit, p, id) {
+            buySkinCalls.push(id);
+            if (id === 'skin_fail') return { ok: false, reason: 'gems' };
+            return { ok: true, skin: id, cost: 6 };
+          },
+          unlockSecretSharkWithGems: function (kit, p, id) {
+            unlockCalls.push(id);
+            return { ok: true, shark: id, cost: 20 };
+          },
+          selectSkin: function (kit, p, id) {
+            selectCalls.push(id);
+            if (p) p.skins.selectedSkin = id;
+            return { ok: true, skin: id };
+          }
+        };
+        doSelectSkin('skin_neon_riptide');
+        ok('doSelectSkin calls Meta.selectSkin with the skin id',
+          selectCalls.indexOf('skin_neon_riptide') >= 0);
+        ok('doSelectSkin refreshes the shop so the newly-selected card shows Selected', (function () {
+          var refreshedCards = N('rfShopList').querySelectorAll('.rf-collect-card');
+          for (var i = 0; i < refreshedCards.length; i++) {
+            var selNode = refreshedCards[i].querySelector('.rf-collect-selected');
+            if (selNode && selNode.textContent === 'Selected'
+              && refreshedCards[i].textContent.indexOf('Neon') >= 0) return true;
+          }
+          return false;
+        })());
+        doBuySkin('skin_neon_riptide');
+        ok('doBuySkin calls Meta.buySkin with the skin id', buySkinCalls.indexOf('skin_neon_riptide') >= 0);
+        doBuySkin('skin_fail');
+        ok('doBuySkin surfaces a gems-shortfall toast on failure',
+          N('rfShopToast').textContent === 'Not enough gems');
+        if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+        doUnlockSecretShark('nullfin');
+        ok('doUnlockSecretShark calls Meta.unlockSecretSharkWithGems with the shark id',
+          unlockCalls.indexOf('nullfin') >= 0);
+        if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+
+        RF.Meta = savedMeta;
+        if (savedMeta === undefined) delete RF.Meta;
+        S.profile = null;
+      }());
+
+      // ---- known-bug fixes (task 6) ----------------------------------
+      (function knownBugsSelftestBlock() {
+        // DEV chip / SHOP button overlap guard: the injected Rev 7
+        // stylesheet must define the #rfDevChip layout guard (flex:0 0
+        // auto + max-width), since index.html itself is orchestrator-owned
+        // and this lane cannot edit its CSS directly.
+        ok('Rev 7 stylesheet is injected', !!rev7StyleNode);
+        ok('Rev 7 stylesheet guards #rfDevChip against the SHOP-button overlap',
+          !!rev7StyleNode && String(rev7StyleNode.textContent).indexOf('#rfDevChip{flex:0 0 auto') >= 0);
+
+        // Menu ON-badge stale-after-Shop-select fix: doSelect's own click
+        // handler (which a focused <button>'s native Enter keypress also
+        // fires -- the "desktop Enter path", no separate keydown listener
+        // needed) must resync the roster's rf-card-sel + Owned/Selected
+        // badge immediately, not only on the next full buildMenu().
+        var savedMeta2 = RF.Meta;
+        var selectCalls = [];
+        RF.Meta = {
+          select: function (p, id) { selectCalls.push(id); p.selected = id; return { ok: true, persisted: false }; },
+          ownedFor: function (p, id) { return !!(p.sharks && p.sharks[id] && p.sharks[id].owned); },
+          tierUnlocked: function () { return true; },
+          activeShark: function (p) { return p.selected; },
+          displayCoins: function (p) { return p.coins; }
+        };
+        var pSel = { coins: 0, level: 5, xp: 0, selected: 'reef', sharks: { reef: { owned: true }, mako: { owned: true } } };
+        var savedRFD = window.RFD;
+        window.RFD = {
+          SHARKS: [
+            { id: 'reef', name: 'Reef Shark', tier: 1, act: 1, cost: 0, stats: { speed: 1, bite: 1, hp: 1 } },
+            { id: 'mako', name: 'Mako', tier: 1, act: 1, cost: 0, stats: { speed: 2, bite: 2, hp: 2 } }
+          ],
+          SHARK_BY_ID: {
+            reef: { id: 'reef', name: 'Reef Shark', tier: 1, act: 1, cost: 0, stats: { speed: 1, bite: 1, hp: 1 } },
+            mako: { id: 'mako', name: 'Mako', tier: 1, act: 1, cost: 0, stats: { speed: 2, bite: 2, hp: 2 } }
+          }
+        };
+        showMenu({ profile: pSel });
+        var reefCard = null, makoCard = null;
+        var rosterCards = N('rfMenuRoster').querySelectorAll('.rf-card');
+        for (var rci = 0; rci < rosterCards.length; rci++) {
+          var rid = rosterCards[rci].getAttribute('data-shark');
+          if (rid === 'reef') reefCard = rosterCards[rci];
+          if (rid === 'mako') makoCard = rosterCards[rci];
+        }
+        ok('roster starts with reef selected', !!reefCard && reefCard.classList.contains('rf-card-sel') === true);
+        S.shopPick = 'mako';
+        doSelect('mako');
+        ok('doSelect calls Meta.select with the new shark id', selectCalls.indexOf('mako') >= 0);
+        ok('ON-badge resync: previously-selected card loses rf-card-sel without a full buildMenu()',
+          !!reefCard && reefCard.classList.contains('rf-card-sel') === false);
+        ok('ON-badge resync: newly-selected card gains rf-card-sel immediately',
+          !!makoCard && makoCard.classList.contains('rf-card-sel') === true);
+        var makoFoot = makoCard && makoCard.querySelector ? makoCard.querySelector('.rf-card-own') : null;
+        ok('ON-badge resync: newly-selected card footer reads Selected, not stale Owned',
+          !!makoFoot && makoFoot.textContent === 'Selected');
+        window.RFD = savedRFD;
+        RF.Meta = savedMeta2;
+        if (savedMeta2 === undefined) delete RF.Meta;
+      }());
+
+      // ---- thumbnail bake cache rev token (task 5) -------------------
+      ok('thumb cache key function exists and is rev-scoped', typeof tk === 'function'
+        && tk('x').indexOf('rev7:') === 0);
+      ok('THUMB_CACHE_REV matches the rev token documented in the plan (L1 rig rebuild)',
+        THUMB_CACHE_REV === 'rev7');
 
       // ---- callbacks -----------------------------------------------
       var dived = 0, powered = 0, navd = 0;

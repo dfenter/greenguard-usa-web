@@ -44,8 +44,13 @@ import * as THREE from 'three';
   var STEP = 1 / 60, MAX_STEPS = 4;
   var TAU = Math.PI * 2;
 
-  var WORLD_W = (RFD.WORLD && RFD.WORLD.w) || 7200;
-  var WORLD_H = (RFD.WORLD && RFD.WORLD.h) || 3600;
+  // Minor (REVIEW-REV7): world grew to 14400x4800 at Rev 6 (SPEC3D.md:759,
+  // world3d.js's WORLD.w/h) - these fallbacks were stale at the old
+  // 7200x3600 pre-Rev-6 size. RFD.WORLD is not currently emitted by
+  // gen_data.py, so this fallback is what actually runs; keep it matching
+  // the landed contract.
+  var WORLD_W = (RFD.WORLD && RFD.WORLD.w) || 14400;
+  var WORLD_H = (RFD.WORLD && RFD.WORLD.h) || 4800;
 
   var FRENZY = RFD.FRENZY || {
     comboWindow: 3, steps: [3, 6, 10], mults: [1, 2, 3, 5],
@@ -119,20 +124,30 @@ import * as THREE from 'three';
   var FRENZY_FX_OPT = { count: 0, speed: 0, angle: 0, up: false, tint: 0, tint2: 0, scale: 1 };
   var FRENZY_GOLD_TINT = 0xffd67a;
 
-  // ------------------------------------------------- controls (ported)
-  // Floating virtual stick, horde-meridian feel. In the three rev the ring and
-  // nub are DOM elements instead of a Phaser graphics object, but every number
-  // is the one game.js shipped and the mechanics are identical.
-  var STICK_R_CSS = 62;        // max deflection, CSS px
-  var STICK_RECENTER = 1.35;   // base follows the finger past this * radius
-  var STICK_RING_A = 0.16;
-  var STICK_NUB_A = 0.5;
-  // Rev 6 / 6.8: dead zone tightened from 0.12 to horde-meridian's 0.03 - the
-  // owner law is EXACT hm mechanics (game.js stepInput :5439-5480). TURN_EASE_
-  // MIN/MAX and IDLE_DRAG are DELETED per 6.8: there is no turn-rate cap, no
-  // accel lerp and no idle drag any more. ctl.turnIn survives only as a
-  // presentation-only signal (see stepControl).
-  var STICK_DEAD = 0.03;
+  // Blocker 7 (REVIEW-REV7): fixed-shape option records for the per-eat FX
+  // calls in swallow(), hoisted to module scratch and overwritten in place
+  // every bite instead of allocating fresh objects each call. Field sets
+  // mirror exactly what swallow() previously constructed inline.
+  var EAT_DEATHBURST_OPT = { count: 0, scale: 1, tint: 0 };
+  var EAT_MOTES_OPT = { count: 0, tint: 0 };
+  var EAT_GIB_OPT = { count: 0, tint: 0 };
+  var EAT_SHOCKWAVE_OPT = { tint: 0, tier: 0 };
+
+  // ------------------------------------------------- controls (Rev 7 / 7.1)
+  // Head-drag world-target steering (REPLACES the floating stick). The
+  // steering finger's CSS point unprojects through the live camera into a
+  // world point (ctl.tx/ty) every fixed step, so zoom/camera pulses never
+  // skew it. The shark's HEAD seeks that point: heading eases toward it at a
+  // distance-scaled turn rate, speed is proportional to head->finger
+  // distance, and release/arrival glides to a stop instead of hard-zeroing.
+  var CTL_DEAD_CSS_MIN = 18;     // px floor on the dead zone
+  var CTL_DEAD_HEADR_MULT = 0.4; // dead zone = max(18, 0.4*headRcss)
+  var CTL_FULL_CSS = 180;        // distance (css px) for full speed
+  var CTL_TURN_BASE = 10;        // rad/s turn rate at zero distance
+  var CTL_TURN_DIST = 6;         // rad/s added at/after CTL_FULL_CSS distance
+  var CTL_ACCEL_MULT = 8;        // velocity approach rate = 8*speedCap /s
+  var CTL_GLIDE_TAU = 0.18;      // seconds, release/arrival decay time-constant
+  var CTL_KEY_TARGET_CSS = 220;  // keyboard virtual target distance, css px
   var TURN_BOOSTA = 2.0;       // still scales the PRESENTATION turnIn signal
 
   // ------------------------------------------------------- rig anim
@@ -167,9 +182,9 @@ import * as THREE from 'three';
   var LEN_SCALE = SHARK_LEN_PX / 96;
 
   // ------------------------------------------------- camera (SPEC3D Rev 6 / 6.1)
-  // World coords are unchanged (x right 0..7200, y DOWN 0..3600); the mapping
-  // into three is (x, -y, z) with the gameplay plane at z = 0, lookAt z = 0
-  // ALWAYS (plane readability is law per 6.1).
+  // World coords (x right 0..14400, y DOWN 0..4800 per the Rev 6 world grow,
+  // SPEC3D.md:759); the mapping into three is (x, -y, z) with the gameplay
+  // plane at z = 0, lookAt z = 0 ALWAYS (plane readability is law per 6.1).
   var CAM_FOV = 50;                 // SPEC3D space contract
   // Rev 6 dolly is LENGTH-PROPORTIONAL, not tiered: z = renderedLenPx * 1.60,
   // clamped [185..400]. camZForTier(tier) is kept EXPORTED (name stays, per
@@ -362,6 +377,28 @@ import * as THREE from 'three';
     if (!u || typeof u[fn] !== 'function') return null;
     try { return u[fn](a, b); } catch (e) { warnOnce('UI.' + fn, e); return null; }
   }
+  // Blocker 1 (REVIEW-REV7): the single call-site wrapper every mission
+  // producer below goes through. Guarded against an absent RF.Meta; forwards
+  // every completed id's mission name to the UI mission-tick channel
+  // (RF.UI.missionTick, per NOTES-rev7-laneS4.md) via the existing chip/toast
+  // slot - no new persistent UI element.
+  function missionEvent(type, payload) {
+    if (!RF.Meta || !RF.Meta.missionEvent) return;
+    var done;
+    try { done = RF.Meta.missionEvent(ctx, type, payload); } catch (e) { warnOnce('Meta.missionEvent', e); return; }
+    if (!done || !done.length) return;
+    for (var i = 0; i < done.length; i++) {
+      var name = null;
+      try {
+        if (RFD.MISSIONS) {
+          for (var j = 0; j < RFD.MISSIONS.length; j++) {
+            if (RFD.MISSIONS[j].id === done[i]) { name = RFD.MISSIONS[j].name; break; }
+          }
+        }
+      } catch (e) {}
+      uiCall('missionTick', (name || 'Mission') + ' complete!');
+    }
+  }
   function ggkit() { return root.GGKit || null; }
   function boundedPush(arr, item, cap) {
     var g = ggkit();
@@ -450,6 +487,14 @@ import * as THREE from 'three';
   // transient object is created by combo/death/blood camera presentation.
   var camState = { x: 0, y: 0, fov: CAM_FOV, zoom: 0, pulse: 0, pulseT: 0, yaw: 0 };
   var zoneState = { fog: 0x9fd4e8, density: 0.00042, tint: 0x1b4d66 };
+  // Blocker 1: cumulative per-zone survive time this run, reported to
+  // missionEvent('zoneTime', ...) once per second (not per fixed step -
+  // missionEvent's zoneTime progress is max()'d, so a coarser cadence is
+  // safe and cheaper). Keyed by zone id; reset implicitly by a fresh run's
+  // buildContext() replacing ctx.run (this module-scratch accumulator map is
+  // cleared explicitly in startRun below).
+  var zoneTimeAcc = {};
+  var zoneTimeReportAt = 0;
 
   // ATMO-01 / Rev 2: the light + renderer handles this engine creates once and
   // lends to the atmosphere owner (world3d.js). Pre-allocated module scratch,
@@ -778,6 +823,51 @@ import * as THREE from 'three';
     }
     if (!z) z = zoneAtFallback(p.y);
     zoneState.name = (z && z.name) || '';
+
+    // Blocker 1: cumulative zoneTime mission event, reported once per second
+    // (not every fixed step) off ctx.time.now rather than a frame counter, so
+    // it still fires correctly under a variable step count per frame.
+    if (z && z.id !== undefined && z.id !== null) {
+      zoneTimeAcc[z.id] = num(zoneTimeAcc[z.id], 0) + STEP;
+      if (ctx.time.now - zoneTimeReportAt >= 1) {
+        zoneTimeReportAt = ctx.time.now;
+        missionEvent('zoneTime', { zoneId: z.id, seconds: zoneTimeAcc[z.id] });
+      }
+    }
+  }
+
+  // Blocker 8 (REVIEW-REV7): resolve profile.skins.selectedSkin into a
+  // palette-swapped CLONE of the shark def, ES5-composed exactly like the
+  // rest of this file ({...def} equivalent), never mutating the shared def
+  // or editing shark3d.js. Returns def unchanged if there is no selection, no
+  // matching RFD.SKINS row, or the row is shark-locked to a different shark
+  // (buildShark reads def.sil.palette for every render lane, per
+  // NOTES-rev7-laneS3.md's SKINS schema). One clone at build time only - not
+  // called per step.
+  function skinnedDef(def) {
+    if (!def) return def;
+    var skinId = profile && profile.skins && profile.skins.selectedSkin;
+    if (!skinId) return def;
+    var row = null;
+    var list = RFD.SKINS || [];
+    for (var i = 0; i < list.length; i++) { if (list[i].id === skinId) { row = list[i]; break; } }
+    if (!row || !row.palette) return def;
+    if (row.sharkId && row.sharkId !== def.id) return def;
+    var baseSil = def.sil || {};
+    var basePalette = baseSil.palette || {};
+    var newPalette = {
+      base: (row.palette.base !== undefined) ? row.palette.base : basePalette.base,
+      belly: (row.palette.belly !== undefined) ? row.palette.belly : basePalette.belly,
+      accent: (row.palette.accent !== undefined) ? row.palette.accent : basePalette.accent,
+      glow: (row.palette.glow !== undefined) ? row.palette.glow : basePalette.glow
+    };
+    var newSil = {};
+    for (var k in baseSil) { if (Object.prototype.hasOwnProperty.call(baseSil, k)) newSil[k] = baseSil[k]; }
+    newSil.palette = newPalette;
+    var out = {};
+    for (var dk in def) { if (Object.prototype.hasOwnProperty.call(def, dk)) out[dk] = def[dk]; }
+    out.sil = newSil;
+    return out;
   }
 
   // ==================================================== player rig (3D)
@@ -785,9 +875,10 @@ import * as THREE from 'three';
   // Missing lane D3 = a colored capsule mesh so the run is still playable and
   // the shark is still visible, per the brief.
   function buildPlayerRig(def) {
+    var renderDef = skinnedDef(def);
     if (RF.Art3D && RF.Art3D.buildShark) {
       try {
-        var rec = RF.Art3D.buildShark(def);
+        var rec = RF.Art3D.buildShark(renderDef);
         if (rec && rec.group && rec.group.isObject3D) {
           if (typeof rec.animate !== 'function') rec.animate = function () {};
           if (!rec.parts || typeof rec.parts !== 'object') rec.parts = {};
@@ -807,7 +898,7 @@ import * as THREE from 'three';
         }
       } catch (e) { warnOnce('Art3D.buildShark', e); }
     }
-    return fallbackShark(def);
+    return fallbackShark(renderDef);
   }
 
   function fallbackShark(def) {
@@ -856,61 +947,157 @@ import * as THREE from 'three';
   }
 
   // ==================================================== score popups (3D)
-  // Pooled sprites at the bite point. Built once; never allocated at eat time.
+  // SPEC3D 7.3: a glyph atlas baked ONCE at init (digits 0-9, '+', 'x', '.',
+  // space, two weights). Popups are pooled quads with per-glyph UVs; ZERO
+  // canvas 2D calls and ZERO texture.needsUpdate after init. Every call site
+  // in this file only ever formats '+' + digits, so that is the covered
+  // alphabet (with 'x'/'.'/space kept for forward compatibility with any
+  // future multiplier/decimal popup string).
+  var POP_GLYPHS = '0123456789+x. ';
+  var POP_ATLAS_COLS = POP_GLYPHS.length;   // one column per glyph
+  var POP_ATLAS_ROWS = 2;                   // row 0 = normal weight, row 1 = big
+  var POP_CELL_W = 40, POP_CELL_H = 56;     // px per glyph cell in the atlas
+  var POP_MAX_CHARS = 8;                    // longest string any pop needs
+  var popAtlas = null;   // { texture, cols, rows, cellU, cellV, baked: true, geoms: [...] }
+
+  function glyphIndex(ch) {
+    var i = POP_GLYPHS.indexOf(ch);
+    return i >= 0 ? i : POP_GLYPHS.length - 1;  // fall back to space
+  }
+
+  // Blocker 6 (REVIEW-REV7): one PlaneGeometry per atlas cell (cols*rows,
+  // baked once at atlas-init time), each with its UV attribute set to that
+  // cell's quad and never touched again. paintGlyph swaps a sprite's
+  // .geometry reference to the shared prebuilt variant for its cellIndex -
+  // no per-popup geometry clone, no uv.needsUpdate, ever.
+  function buildPopGeomVariants(atlas) {
+    var geoms = new Array(atlas.cols * atlas.rows);
+    for (var row = 0; row < atlas.rows; row++) {
+      for (var col = 0; col < atlas.cols; col++) {
+        var u0 = col * atlas.cellU, u1 = u0 + atlas.cellU;
+        var v0 = 1 - (row + 1) * atlas.cellV, v1 = v0 + atlas.cellV;
+        var g = new THREE.PlaneGeometry(1, 1);
+        var uv = g.attributes.uv;
+        // Sprite geometry UV winding matches three's built-in plane: (0,0)
+        // bottom-left .. (1,1) top-right in the same 4-vertex order the old
+        // per-instance clone used.
+        uv.setXY(0, u0, v1); uv.setXY(1, u1, v1); uv.setXY(2, u0, v0); uv.setXY(3, u1, v0);
+        // Set once at construction time; not touched again after this point.
+        uv.needsUpdate = true;
+        geoms[row * atlas.cols + col] = g;
+      }
+    }
+    return geoms;
+  }
+
+  // Baked ONCE at init. This is the ONLY canvas 2D usage in the popup path;
+  // nothing after this point (scorePopup/stepPops) touches a 2D context or
+  // sets texture.needsUpdate.
+  function buildPopAtlas() {
+    var doc = root.document;
+    if (!doc || !doc.createElement) { popAtlas = null; return null; }
+    var c = doc.createElement('canvas');
+    var cw = POP_CELL_W * POP_ATLAS_COLS, ch = POP_CELL_H * POP_ATLAS_ROWS;
+    c.width = Math.round(cw * DPR); c.height = Math.round(ch * DPR);
+    var cx = c.getContext ? c.getContext('2d') : null;
+    if (!cx) { popAtlas = null; return null; }
+    cx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    cx.clearRect(0, 0, cw, ch);
+    cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    for (var row = 0; row < POP_ATLAS_ROWS; row++) {
+      var big = row === 1;
+      cx.font = (big ? '900 ' : '800 ') + (big ? 34 : 27) + 'px Avenir Next, Trebuchet MS, system-ui, sans-serif';
+      cx.lineWidth = 6; cx.strokeStyle = 'rgba(2,18,28,0.85)';
+      cx.fillStyle = big ? '#ffd98a' : '#ffe9a8';
+      for (var col = 0; col < POP_ATLAS_COLS; col++) {
+        var ch2 = POP_GLYPHS.charAt(col);
+        var cxp = col * POP_CELL_W + POP_CELL_W / 2;
+        var cyp = row * POP_CELL_H + POP_CELL_H / 2;
+        if (ch2 !== ' ') {
+          cx.strokeText(ch2, cxp, cyp);
+          cx.fillText(ch2, cxp, cyp);
+        }
+      }
+    }
+    var t = new THREE.CanvasTexture(c);
+    if (THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace;
+    t.needsUpdate = true;      // one upload, at bake time only
+    t.generateMipmaps = false;
+    if (THREE.NearestFilter) { /* keep default linear for crisp scaled text */ }
+    popAtlas = {
+      texture: t, cols: POP_ATLAS_COLS, rows: POP_ATLAS_ROWS,
+      cellU: 1 / POP_ATLAS_COLS, cellV: 1 / POP_ATLAS_ROWS,
+      baked: true
+    };
+    popAtlas.geoms = buildPopGeomVariants(popAtlas);
+    return popAtlas;
+  }
+
+  var POP_GLYPH_W = 22, POP_GLYPH_H = 30, POP_GLYPH_ADVANCE = 17;
+  // Pooled quads: each pool item is a fixed-size row of POP_MAX_CHARS glyph
+  // sprites (sharing the ONE atlas material/texture) plus its own life/pos
+  // state. Built once at init; scorePopup only sets per-glyph UV offsets
+  // (geometry attribute writes) and toggles visibility - no texture upload.
   function buildPopPool(n) {
     var pool = { items: [], cursor: 0, ok: false };
     var doc = root.document;
     if (!doc || !doc.createElement || !scene3) { popPool = pool; return pool; }
+    if (!popAtlas) buildPopAtlas();
+    if (!popAtlas) { popPool = pool; return pool; }
+    var baseMat = new THREE.SpriteMaterial({
+      map: popAtlas.texture, transparent: true, depthTest: false, depthWrite: false
+    });
     for (var i = 0; i < n; i++) {
-      var tex = makeTextTexture();
-      if (!tex) break;
-      var mat = new THREE.SpriteMaterial({ map: tex.texture, transparent: true, depthTest: false, depthWrite: false });
-      var spr = new THREE.Sprite(mat);
-      spr.visible = false;
-      spr.renderOrder = 900;
-      spr.scale.set(tex.w, tex.h, 1);
-      scene3.add(spr);
-      pool.items.push({ sprite: spr, mat: mat, tex: tex, life: 0 });
+      var glyphs = [];
+      for (var g = 0; g < POP_MAX_CHARS; g++) {
+        var mat = baseMat.clone();       // per-glyph opacity/uv-offset only
+        mat.map = popAtlas.texture;
+        var spr = new THREE.Sprite(mat);
+        // Blocker 6: start each sprite on a prebuilt atlas-cell geometry (the
+        // space glyph) so paintGlyph only ever swaps between geoms already
+        // baked at buildPopAtlas time - no lazy clone on first paint.
+        spr.geometry = popAtlas.geoms[glyphIndex(' ')];
+        spr.visible = false;
+        spr.renderOrder = 900;
+        spr.center.set(0, 0.5);
+        scene3.add(spr);
+        glyphs.push({ sprite: spr, mat: mat });
+      }
+      pool.items.push({ glyphs: glyphs, life: 0, len: 0, x: 0, y: 0 });
     }
     pool.ok = pool.items.length > 0;
     popPool = pool;
     return pool;
   }
-  var POP_W = 128, POP_H = 64, POP_SCALE = 0.62;
-  function makeTextTexture() {
-    var doc = root.document;
-    if (!doc || !doc.createElement) return null;
-    var c = doc.createElement('canvas');
-    c.width = Math.round(POP_W * DPR); c.height = Math.round(POP_H * DPR);
-    var cx = c.getContext ? c.getContext('2d') : null;
-    if (!cx) return null;
-    var t = new THREE.CanvasTexture(c);
-    if (THREE.SRGBColorSpace) t.colorSpace = THREE.SRGBColorSpace;
-    return { canvas: c, ctx: cx, texture: t, w: POP_W * POP_SCALE, h: POP_H * POP_SCALE };
-  }
-  function paintPop(rec, str, big) {
-    var t = rec.tex, cx = t.ctx;
-    cx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    cx.clearRect(0, 0, POP_W, POP_H);
-    cx.font = (big ? '900 ' : '800 ') + (big ? 34 : 27) + 'px Avenir Next, Trebuchet MS, system-ui, sans-serif';
-    cx.textAlign = 'center'; cx.textBaseline = 'middle';
-    cx.lineWidth = 6; cx.strokeStyle = 'rgba(2,18,28,0.85)';
-    cx.strokeText(str, POP_W / 2, POP_H / 2);
-    cx.fillStyle = big ? '#ffd98a' : '#ffe9a8';
-    cx.fillText(str, POP_W / 2, POP_H / 2);
-    t.texture.needsUpdate = true;
+  // Blocker 6 (REVIEW-REV7): assigns a glyph sprite to its prebuilt atlas-cell
+  // geometry variant (baked once at buildPopAtlas/buildPopGeomVariants time).
+  // No geometry clone, no uv attribute write, no needsUpdate of any kind here
+  // - this is a reference swap between pool-owned meshes only.
+  function paintGlyph(spr, mat, cellIndex) {
+    spr.geometry = popAtlas.geoms[cellIndex];
   }
   function scorePopup(wx, wy, str, big) {
     if (!popPool || !popPool.ok) return;
     var rec = popPool.items[popPool.cursor];
     popPool.cursor = (popPool.cursor + 1) % popPool.items.length;
-    paintPop(rec, str, big);
-    rec.life = 0.7;
-    rec.sprite.position.set(wx, -wy - 6, 8);
     var s = big ? 1.25 : 1;
-    rec.sprite.scale.set(rec.tex.w * s, rec.tex.h * s, 1);
-    rec.mat.opacity = 1;
-    rec.sprite.visible = true;
+    var row = big ? 1 : 0;
+    var n = Math.min(String(str).length, POP_MAX_CHARS);
+    rec.len = n;
+    rec.x = wx; rec.y = wy;
+    var totalW = (n > 0 ? (n - 1) * POP_GLYPH_ADVANCE * s + POP_GLYPH_W * s : 0);
+    var startX = wx - totalW / 2;
+    for (var i = 0; i < n; i++) {
+      var g = rec.glyphs[i];
+      var idx = row * popAtlas.cols + glyphIndex(String(str).charAt(i));
+      paintGlyph(g.sprite, g.mat, idx);
+      g.sprite.scale.set(POP_GLYPH_W * s, POP_GLYPH_H * s, 1);
+      g.sprite.position.set(startX + i * POP_GLYPH_ADVANCE * s, -wy - 6, 8);
+      g.mat.opacity = 1;
+      g.sprite.visible = true;
+    }
+    for (var j = n; j < rec.glyphs.length; j++) rec.glyphs[j].sprite.visible = false;
+    rec.life = 0.7;
   }
   function stepPops(dt) {
     if (!popPool || !popPool.ok) return;
@@ -918,17 +1105,22 @@ import * as THREE from 'three';
       var r = popPool.items[i];
       if (r.life <= 0) continue;
       r.life -= dt;
-      r.sprite.position.y += 46 * dt;      // world y is DOWN, three y is UP
-      r.mat.opacity = clamp(r.life / 0.7, 0, 1);
-      if (r.life <= 0) r.sprite.visible = false;
+      var op = clamp(r.life / 0.7, 0, 1);
+      for (var g = 0; g < r.len; g++) {
+        var spr = r.glyphs[g].sprite;
+        spr.position.y += 46 * dt;      // world y is DOWN, three y is UP
+        r.glyphs[g].mat.opacity = op;
+        if (r.life <= 0) spr.visible = false;
+      }
     }
   }
 
-  // ==================================================== stick (DOM)
-  // SPEC3D: the ring and nub are DOM elements now. Same 62 CSS px radius,
-  // same 1.35x re-centering, same 0.12 dead zone as game.js. Coordinates are
-  // CSS px in the viewport, which is exactly what kit.input hands over, so
-  // there is no design-space conversion in this rev at all.
+  // ==================================================== head-drag steering
+  // SPEC3D 7.1: the steering pointer is a WORLD TARGET, not a joystick. A
+  // small DOM dot marks the live finger point (purely cosmetic - the actual
+  // steering math lives in stepControl/publishWorldTarget below). Names kept
+  // (buildStick/plantStick/dragStick/clearStick/paintStick) so bindInput and
+  // teardown call sites are unchanged; only the mechanic underneath moved.
   function buildStick() {
     var doc = root.document;
     if (!doc || !doc.createElement) return null;
@@ -939,17 +1131,11 @@ import * as THREE from 'three';
       rootEl.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:40;display:none;';
       doc.body.appendChild(rootEl);
     }
-    var ring = doc.createElement('div');
-    var r = STICK_R_CSS;
-    ring.style.cssText = 'position:absolute;width:' + (r * 2) + 'px;height:' + (r * 2) + 'px;' +
-      'margin-left:' + (-r) + 'px;margin-top:' + (-r) + 'px;border-radius:50%;' +
-      'background:rgba(223,242,246,' + STICK_RING_A + ');' +
-      'border:2px solid rgba(143,232,255,' + (STICK_RING_A * 2) + ');box-sizing:border-box;';
     var nub = doc.createElement('div');
-    nub.style.cssText = 'position:absolute;width:44px;height:44px;margin-left:-22px;margin-top:-22px;' +
-      'border-radius:50%;background:rgba(143,232,255,' + STICK_NUB_A + ');';
-    rootEl.appendChild(ring); rootEl.appendChild(nub);
-    stickEls = { root: rootEl, ring: ring, nub: nub };
+    nub.style.cssText = 'position:absolute;width:22px;height:22px;margin-left:-11px;margin-top:-11px;' +
+      'border-radius:50%;background:rgba(143,232,255,0.35);border:2px solid rgba(143,232,255,0.6);';
+    rootEl.appendChild(nub);
+    stickEls = { root: rootEl, nub: nub };
     return stickEls;
   }
   function paintStick() {
@@ -957,32 +1143,20 @@ import * as THREE from 'three';
     var ctl = ctx.player.ctl;
     if (!ctl.active) { stickEls.root.style.display = 'none'; return; }
     stickEls.root.style.display = 'block';
-    stickEls.ring.style.left = ctl.bx + 'px';
-    stickEls.ring.style.top = ctl.by + 'px';
-    stickEls.nub.style.left = (ctl.bx + ctl.sx * STICK_R_CSS) + 'px';
-    stickEls.nub.style.top = (ctl.by + ctl.sy * STICK_R_CSS) + 'px';
+    stickEls.nub.style.left = ctl.px + 'px';
+    stickEls.nub.style.top = ctl.py + 'px';
   }
+  // dx/dy are the finger's CSS point (kit.input coordinates, viewport px).
   function plantStick(dx, dy) {
     var ctl = ctx.player.ctl;
     ctl.active = true;
-    ctl.bx = dx; ctl.by = dy;
-    ctl.sx = 0; ctl.sy = 0; ctl.mag = 0;
+    ctl.px = dx; ctl.py = dy;
     paintStick();
   }
   function dragStick(px, py) {
     var ctl = ctx.player.ctl;
     if (!ctl.active) return;
-    var max = STICK_R_CSS;
-    var dx = px - ctl.bx, dy = py - ctl.by;
-    var len = Math.sqrt(dx * dx + dy * dy);
-    if (len > max) { var k = max / len; dx *= k; dy *= k; }
-    // Re-centering drag: past 1.35x the radius the base follows the finger,
-    // so a long swipe never runs out of stick.
-    if (len > max * STICK_RECENTER) { ctl.bx = px - dx; ctl.by = py - dy; }
-    ctl.sx = dx / max;
-    ctl.sy = dy / max;
-    ctl.mag = Math.sqrt(ctl.sx * ctl.sx + ctl.sy * ctl.sy);
-    if (ctl.mag > 1) ctl.mag = 1;
+    ctl.px = px; ctl.py = py;
     paintStick();
   }
   function clearStick() {
@@ -990,8 +1164,48 @@ import * as THREE from 'three';
     var ctl = ctx.player.ctl;
     ctl.active = false;
     ctl.steerId = null;
-    ctl.sx = 0; ctl.sy = 0; ctl.mag = 0;
+    ctl.hasTarget = false;
+    ctl.mag = 0;
     if (stickEls) stickEls.root.style.display = 'none';
+  }
+
+  // Scratch for unprojecting a CSS point into the world (z=0 plane). No
+  // allocation per step: one Vector3/Raycaster/Plane, reused every call.
+  var WT_VEC = (typeof THREE !== 'undefined') ? new THREE.Vector3() : null;
+  var WT_RAY = (typeof THREE !== 'undefined') ? new THREE.Raycaster() : null;
+  var WT_PLANE = (typeof THREE !== 'undefined') ? new THREE.Plane(new THREE.Vector3(0, 0, 1), 0) : null;
+  var WT_HIT = (typeof THREE !== 'undefined') ? new THREE.Vector3() : null;
+  // ctl.tx/ty are cached world coords for the last successful unprojection so
+  // a missing camera/renderer (headless selftest) degrades to "no target"
+  // rather than throwing.
+  function cssToWorld(cssX, cssY, outX, outY) {
+    if (!camera || !renderer || !WT_VEC || !WT_RAY || !WT_PLANE) return false;
+    var size = renderer.getSize ? renderer.getSize(WT_VEC) : null;
+    var w = (size && size.x) || root.innerWidth || CSS_W;
+    var h = (size && size.y) || root.innerHeight || CSS_H;
+    if (!(w > 0) || !(h > 0)) return false;
+    var ndcX = (cssX / w) * 2 - 1;
+    var ndcY = -(cssY / h) * 2 + 1;
+    WT_VEC.set(ndcX, ndcY, 0.5);
+    WT_RAY.setFromCamera(WT_VEC, camera);
+    var hit = WT_RAY.ray.intersectPlane(WT_PLANE, WT_HIT);
+    if (!hit) return false;
+    outX.v = WT_HIT.x;
+    outY.v = -WT_HIT.y;
+    return true;
+  }
+  var WT_OUT_X = { v: 0 }, WT_OUT_Y = { v: 0 };
+
+  // Blocker 5 (REVIEW-REV7): world-units-per-CSS-px derived from the LIVE
+  // camera dolly z / fov (same quantities stepCamera actually writes onto
+  // `camera` each frame, including pulses/zoom), not the boot CAM_Z/CAM_FOV
+  // constants. Falls back to the boot constants only when there is no live
+  // camera (headless selftest), matching cssToWorld's own degrade. No
+  // allocation: pure scalar math off already-live fields.
+  function liveWorldPerCssPx() {
+    var z = (camera && isFinite(camera.position.z) && camera.position.z > 0) ? camera.position.z : CAM_Z;
+    var fov = (camera && isFinite(camera.fov) && camera.fov > 0) ? camera.fov : CAM_FOV;
+    return (2 * z * Math.tan((fov * Math.PI / 180) / 2)) / CSS_H;
   }
 
   // Rev 6 / 6.7: the elemental active becomes a CHARGED power. abilities.js
@@ -1086,6 +1300,24 @@ import * as THREE from 'three';
   function buildContext() {
     // ONE context object, created here and passed everywhere. Schema exactly
     // per SPEC.md, with `scene` now the THREE.Scene rather than a Phaser one.
+    // Rev 7 (orchestrator glue, SPEC3D 7.2): minimal pub/sub bus on the kit.
+    // world3d publishes 'rf-sting' on inedible-hazard contact (1.2s cooldown
+    // world-side); the engine answers with the toast. Created once per boot.
+    if (kit && !kit.bus) {
+      kit.bus = (function () {
+        var subs = {};
+        return {
+          on: function (ev, fn) { (subs[ev] = subs[ev] || []).push(fn); return fn; },
+          emit: function (ev, payload) {
+            var list = subs[ev]; if (!list) return;
+            for (var i = 0; i < list.length; i++) {
+              try { list[i](payload); } catch (e) { warnOnce('bus:' + ev, e); }
+            }
+          }
+        };
+      })();
+      kit.bus.on('rf-sting', function () { uiCall('toast', 'Stings!'); });
+    }
     ctx = RF.ctx = {
       kit: kit,
       scene: scene3,
@@ -1118,7 +1350,21 @@ import * as THREE from 'three';
         // FIX-ROUND-3 item 4 (BUFF CADENCE): engine-side global drop cooldown
         // timestamp for spawnBuffDrop, in ctx.time.now units. -Infinity so the
         // very first notable kill of a run is never blocked by the cooldown.
-        _lastBuffDropAt: -Infinity
+        _lastBuffDropAt: -Infinity,
+        // SPEC3D 7.6: run-scoped relic/gem accounting. relics collects the
+        // relic records found this run (kind 'relic' pickup path); gems is
+        // the in-run gem count added to the profile at endRun (S3's job).
+        // Both are guarded so the game runs before S2/S3 land spawning/data.
+        relics: [], gems: 0,
+        // Blocker 2 (REVIEW-REV7): counts of each frenzy type completed this
+        // run - meta.js's endRun multiplies each by RFD.GEMS.frenzy.<type>
+        // and sums into the gem total; this lane is the sole producer,
+        // incremented exactly once beside each existing completion edge.
+        frenzyCompletions: { goldrush: 0, blood: 0, school: 0 },
+        // Blocker 1: missions active this run get an id list from
+        // RF.Meta.rollMissions at startRun; missionResults/gems are written
+        // by RF.Meta.missionEvent (meta.js owns those fields on first write).
+        missionResults: []
       },
       // Render-layer handles the other 3D lanes need. Additive to the SPEC.md
       // schema, never a replacement for any field in it.
@@ -1187,11 +1433,13 @@ import * as THREE from 'three';
       },
       // The stick vector IS the desired velocity. sx/sy are the normalised
       // deflection (-1..1 each axis, magnitude clamped to 1); bx/by are the
-      // floating base in CSS px in the viewport.
+      // px/py: the live finger CSS point (viewport px). tx/ty: that point
+      // unprojected into world coords this step (SPEC3D 7.1 head-drag).
+      // mag: normalized head->finger distance fraction (0 dead, 1 = FULL_CSS+).
       ctl: {
         steerId: null, boostId: null,
-        sx: 0, sy: 0, mag: 0,
-        bx: 0, by: 0, active: false,
+        px: 0, py: 0, tx: 0, ty: 0, hasTarget: false, mag: 0,
+        active: false,
         boost: 1, boosting: false,
         drive: 0, turnIn: 0, speedCap: 0
       },
@@ -1263,57 +1511,95 @@ import * as THREE from 'three';
     if (p.hp <= 0 && !dying) onDeath();
   }
 
-  // Rev 6 / 6.8: EXACT horde-meridian mechanics (game.js stepInput :5439-5480).
-  // The stick vector IS the desired velocity, applied INSTANTLY: no turn-rate
-  // cap, no accel lerp, no idle drag. p.angle snaps to atan2(iy,ix) the moment
-  // the stick reads active; p.vx/vy are a direct cos/sin*speedCap*mag
-  // assignment, not an eased approach. Releasing the stick is a hard stop.
+  // SPEC3D 7.1 (REPLACES 6.11 CONTROLS EXACTNESS): head-drag world-target
+  // steering. Each fixed step the live finger CSS point (ctl.px/py) is
+  // unprojected through the camera into a world point (ctl.tx/ty); the
+  // shark's HEAD seeks that point. Heading eases toward it (finite turn
+  // rate, no instant snap); speed is proportional to head->finger distance;
+  // velocity approaches the "want" vector at a finite accel and glides
+  // (never hard-zeros) on release or arrival.
   //
-  // EXCEPTION (6.8): while airborne (p.y < 0, mid breach arc) this function
-  // must never write vy - gravity owns it exclusively in stepMotion. Writing
-  // vx is still fine and still snaps to the stick heading; only the vy channel
-  // (both the direct-assignment branch and the idle hard-stop) is skipped, or
-  // every breach would be yanked back into the water by the idle stop the
-  // instant the player releases the stick mid-arc.
+  // EXCEPTION (kept from 6.8): while airborne (p.y < 0, mid breach arc) this
+  // function must never write vy - gravity owns it exclusively in
+  // stepMotion.
   //
-  // ctl.turnIn is NOT a mechanic input any more: it is a PRESENTATION-ONLY
-  // signal derived from the actual heading delta this step, normalized by
-  // s.turn * TURN_BOOSTA * STEP. Nothing here reads it back for motion; it
-  // only feeds stepAnim's bank/tail/pose.
+  // ctl.turnIn is a PRESENTATION-ONLY signal: the eased heading error this
+  // step, normalized by s.turn * TURN_BOOSTA * STEP, feeding bank/tail/pose.
   function stepControl(p) {
     var s = p.stat;
     var ctl = p.ctl;
 
-    // Rev 6.11 CONTROLS EXACTNESS: keyboard merges WITH the stick, always -
-    // not only when the stick is idle (HM game.js stepInput :5439-5446 adds
-    // key axes and stick axes into the SAME dx/dy before normalizing). ix/iy
-    // here are the pre-normalize combined axis, mag is |combined| clamped to
-    // the stick's own [0,1] deflection fraction (a fully-deflected stick plus
-    // a held key must not exceed the stick's own top speed contribution).
+    // Keyboard acts as a virtual target CTL_KEY_TARGET_CSS px along the key
+    // direction from the head, merged WITH an active drag (not only when
+    // idle) - kept verbatim from the prior control law's merge behavior.
     var kx = 0, ky = 0;
     if (kit.input.keyDown('KeyA') || kit.input.keyDown('ArrowLeft')) kx -= 1;
     if (kit.input.keyDown('KeyD') || kit.input.keyDown('ArrowRight')) kx += 1;
     if (kit.input.keyDown('KeyW') || kit.input.keyDown('ArrowUp')) ky -= 1;
     if (kit.input.keyDown('KeyS') || kit.input.keyDown('ArrowDown')) ky += 1;
-
-    // FIX-ROUND-3 item 1 (STICK MATH, HM-exact): ctl.sx/sy are ALREADY the
-    // deflection-scaled components (dx/max, dy/max in dragStick) - each one
-    // independently carries both direction AND magnitude fraction. Multiplying
-    // by ctl.mag again re-applies the same magnitude a second time, so a half
-    // deflection (sx=0.5) became 0.5*0.5=0.25 speed instead of 0.5. HM
-    // (game.js :5445-5446) adds the raw stick components directly with no
-    // second magnitude multiply; mirror that exactly here. The single
-    // magnitude clamp still happens ONCE below via clampedLen = min(1, len).
-    var dx = kx, dy = ky;
-    if (ctl.active) { dx += ctl.sx; dy += ctl.sy; }
-    var len = Math.sqrt(dx * dx + dy * dy);
-    var ix = 0, iy = 0, mag = 0;
-    if (len > 0) {
-      var clampedLen = Math.min(1, len);
-      ix = dx / len; iy = dy / len; mag = clampedLen;
+    var haveKey = (kx !== 0 || ky !== 0);
+    if (haveKey) {
+      var klen = Math.sqrt(kx * kx + ky * ky) || 1;
+      kx = kx / klen; ky = ky / klen;
     }
-    if (mag < STICK_DEAD) { mag = 0; ix = 0; iy = 0; }
+
+    // Resolve the world target this step. Pointer drag unprojects fresh
+    // (camera-safe against zoom/pulse); keyboard is a virtual target at a
+    // fixed CSS distance from the head, converted into world units using the
+    // same px->world scale the pointer path uses (derived from mouthR/headR
+    // vs its CSS on-screen size is unnecessary here - the target is defined
+    // directly in world space, offset from the head along the key axis).
+    var headX = p.x, headY = p.y;
+    var haveTarget = false;
+    var tgtX = 0, tgtY = 0;
+    if (ctl.active) {
+      if (cssToWorld(ctl.px, ctl.py, WT_OUT_X, WT_OUT_Y)) {
+        ctl.tx = WT_OUT_X.v; ctl.ty = WT_OUT_Y.v;
+        haveTarget = true;
+      } else if (ctl.hasTarget) {
+        // Headless/no-camera fallback: keep the last resolved target so
+        // selftests without a real renderer can still drive stepControl.
+        haveTarget = true;
+      }
+      tgtX = ctl.tx; tgtY = ctl.ty;
+    }
+    if (haveKey) {
+      // Blocker 5: world-units-per-CSS-px from the LIVE camera dolly/fov
+      // (pulses/zoom-safe), not the boot CAM_Z/CAM_FOV constants.
+      var wpp = liveWorldPerCssPx();
+      var kwx = headX + kx * CTL_KEY_TARGET_CSS * wpp;
+      var kwy = headY + ky * CTL_KEY_TARGET_CSS * wpp;
+      if (haveTarget) {
+        // Merge: average the pointer target and the key target so both
+        // inputs influence heading/speed simultaneously (mirrors the prior
+        // law's "keys merge WITH the stick, not only when idle").
+        tgtX = (tgtX + kwx) / 2; tgtY = (tgtY + kwy) / 2;
+      } else {
+        tgtX = kwx; tgtY = kwy;
+        haveTarget = true;
+      }
+    }
+    ctl.hasTarget = haveTarget;
+
+    // Blocker 5: headRcss and distCss both derive from the same live
+    // camera-based wpp scale (liveWorldPerCssPx), so a pulse/zoom mid-eat or
+    // mid-death never desyncs the dead zone / speed magnitude from what the
+    // pointer path is seeing this same frame.
+    var wppLive = liveWorldPerCssPx();
+    var headRcss = (p.r || 8) / Math.max(1e-6, wppLive);
+    var DEAD = Math.max(CTL_DEAD_CSS_MIN, CTL_DEAD_HEADR_MULT * headRcss);
+
+    var dxw = 0, dyw = 0, distCss = 0, mag = 0, wantAngle = p.angle;
+    if (haveTarget) {
+      dxw = tgtX - headX; dyw = tgtY - headY;
+      var distWorld = Math.sqrt(dxw * dxw + dyw * dyw);
+      // World -> CSS distance uses the same live wpp scale as the key target above.
+      distCss = wppLive > 0 ? distWorld / wppLive : distWorld;
+      if (distWorld > 1e-6) wantAngle = Math.atan2(dyw, dxw);
+      mag = clamp((distCss - DEAD) / Math.max(1e-6, CTL_FULL_CSS - DEAD), 0, 1);
+    }
     ctl.drive = mag;
+    ctl.mag = mag;
 
     var boosting = (ctl.boostId !== null)
       || kit.input.keyDown('ShiftLeft') || kit.input.keyDown('ShiftRight');
@@ -1328,61 +1614,75 @@ import * as THREE from 'three';
 
     var airborne = p.y < 0;
     var prevAngle = p.angle;
-    var turnIn = 0;
 
     // Live multipliers, not the boot snapshot (RF-PASSIVE-01).
     var speedM = liveMult(p, 'speed') / num(p.pas.mult.speed, 1);
     var boostM = liveMult(p, 'boost') / num(p.pas.mult.boost, 1);
-    // Rev 6.11: OVERDRIVE (and APEX, which folds overdrive in) is HM's EXACT
-    // semantics (game.js :5449-5476), not a flat multiplier applied to a
-    // direct-assignment velocity: 1.42x target speed, reached via an
-    // accel-clamped approach while driving and an explicit brake while idle,
-    // both independent of and stacking with Gold Rush's own speedCap term.
+    // OVERDRIVE (and APEX, which folds overdrive in) is HM's EXACT semantics
+    // (game.js :5449-5476), kept verbatim as the SPEC 7.1 "overdrive
+    // exception": 1.42x target speed reached via an accel-clamped approach
+    // while driving and an explicit brake while idle.
     var overdriveOn = ctx.run.buffs && ctx.run.buffs.overdrive > 0;
     var speedCap = s.speed * speedM * (ctl.boosting ? s.boost * boostM : 1)
       * (ctx.run.goldRushT > 0 ? num(FRENZY.goldRushSpeed, 1.4) : 1)
       * (overdriveOn ? OVERDRIVE_SPEED_MULT : 1);
 
-    if (mag > 0) {
-      // Instant heading snap: NO turn-rate cap, NO ease.
-      p.angle = Math.atan2(iy, ix);
+    // Heading: ease toward the target angle at a distance-scaled turn rate
+    // (7.1: 10 + 6*clamp(distCss/240, 0,1) rad/s). No instant snap.
+    if (mag > 0 || haveTarget) {
+      var turnRate = CTL_TURN_BASE + CTL_TURN_DIST * clamp(distCss / 240, 0, 1);
+      var maxStep = turnRate * STEP;
+      var dAng = angDelta(p.angle, wantAngle);
+      if (dAng > maxStep) dAng = maxStep;
+      else if (dAng < -maxStep) dAng = -maxStep;
+      p.angle += dAng;
+    }
+
+    if (overdriveOn) {
+      // HM :5453-5476 - accelerate toward / brake off the target velocity,
+      // clamped by OVERDRIVE_ACCEL*dt per axis (kept verbatim exception).
       var want = speedCap * mag;
       var wx = Math.cos(p.angle) * want;
       var wy = Math.sin(p.angle) * want;
-      if (overdriveOn) {
-        // HM :5453-5456 - accelerate toward the target velocity, clamped by
-        // OVERDRIVE_ACCEL*dt per axis, rather than snapping to it directly.
+      if (mag > 0) {
         var accelStep = OVERDRIVE_ACCEL * STEP;
         var dvx = clamp(wx - p.vx, -accelStep, accelStep);
         p.vx += dvx;
-        if (!airborne) {
-          var dvy = clamp(wy - p.vy, -accelStep, accelStep);
-          p.vy += dvy;
-        }
+        if (!airborne) { var dvy = clamp(wy - p.vy, -accelStep, accelStep); p.vy += dvy; }
       } else {
-        p.vx = wx;
-        if (!airborne) p.vy = wy;    // airborne: gravity owns vy exclusively
+        var brake = Math.max(0, 1 - STEP * OVERDRIVE_BRAKE);
+        p.vx *= brake;
+        if (!airborne) p.vy *= brake;
       }
-    } else if (overdriveOn) {
-      // HM :5466-5468 - idle-with-overdrive brakes toward zero instead of a
-      // hard stop, so the surge bleeds off rather than snapping dead.
-      var brake = Math.max(0, 1 - STEP * OVERDRIVE_BRAKE);
-      p.vx *= brake;
-      if (!airborne) p.vy *= brake;
     } else {
-      // Idle: hard stop. Airborne is exempt on vy only - the breach arc must
-      // not be yanked back into the water the instant the stick is released.
-      p.vx = 0;
-      if (!airborne) p.vy = 0;
+      // 7.1: velocity approaches "want" at ACCEL >= 8*speedCap/s; on release
+      // or arrival (mag===0) it decays toward zero with GLIDE tau ~0.18s -
+      // never a hard vx=vy=0 while moving.
+      var want2 = speedCap * mag;
+      var wantVx = Math.cos(p.angle) * want2;
+      var wantVy = Math.sin(p.angle) * want2;
+      if (mag > 0) {
+        var accel = CTL_ACCEL_MULT * Math.max(1, speedCap) * STEP;
+        var ddx = clamp(wantVx - p.vx, -accel, accel);
+        p.vx += ddx;
+        if (!airborne) { var ddy = clamp(wantVy - p.vy, -accel, accel); p.vy += ddy; }
+      } else {
+        // Glide decay: exponential approach to zero, tau = CTL_GLIDE_TAU.
+        var glideK = Math.exp(-STEP / CTL_GLIDE_TAU);
+        p.vx *= glideK;
+        if (!airborne) p.vy *= glideK;
+        // Snap out the last epsilon so idle truly settles (selftest: "no
+        // drift after release").
+        if (Math.abs(p.vx) < 0.05) p.vx = 0;
+        if (!airborne && Math.abs(p.vy) < 0.05) p.vy = 0;
+      }
     }
 
-    // Presentation-only turnIn: how far the heading actually swung this step,
-    // normalized by the historical turn-rate scale so bank/tail/pose read the
-    // same as before even though the mechanic itself no longer eases.
+    // Presentation-only turnIn: how far the heading actually swung this
+    // step, normalized by the historical turn-rate scale.
     var dAngle = angDelta(prevAngle, p.angle);
     var turnScale = s.turn * TURN_BOOSTA * STEP;
-    turnIn = turnScale > 0 ? clamp(dAngle / turnScale, -1, 1) : 0;
-    ctl.turnIn = turnIn;
+    ctl.turnIn = turnScale > 0 ? clamp(dAngle / turnScale, -1, 1) : 0;
 
     if (!airborne) {
       var sp2 = p.vx * p.vx + p.vy * p.vy;
@@ -1391,8 +1691,7 @@ import * as THREE from 'three';
         p.vx *= k; p.vy *= k;
       }
     } else {
-      // Airborne: only vx is capped (vy is gravity's ballistic arc, never a
-      // hard-capped mechanic value here).
+      // Airborne: only vx is capped (vy is gravity's ballistic arc).
       var vxCap = speedCap;
       if (Math.abs(p.vx) > vxCap) p.vx = p.vx < 0 ? -vxCap : vxCap;
     }
@@ -1412,7 +1711,8 @@ import * as THREE from 'three';
   // Pure predicate, no query - callers own their own World.query and range.
   function eatEligible(p, e) {
     if (!e || !e.active || e === p || e.kind === 'player') return false;
-    if (e.kind === 'pickup' || e.kind === 'buffpickup') return false;
+    // SPEC3D 7.6: relic/gempickup entities are collectibles, never food.
+    if (e.kind === 'pickup' || e.kind === 'buffpickup' || e.kind === 'relic' || e.kind === 'gempickup') return false;
     var isHazard = e.kind === 'hazard';
     if (isHazard) return !!p.pas.junkEater;
     var biteUp = num(p.pas.biteUp, 0) + megajawBiteUp();
@@ -1741,6 +2041,10 @@ import * as THREE from 'three';
       // is unavailable) it must be skipped rather than falling into the
       // tier-based eat gate below as if it were tier-0 prey.
       if (e.kind === 'buffpickup') continue;
+      // SPEC3D 7.6: relic/gempickup collectibles, never edible/scored as
+      // prey. Guarded so the game runs before S2/S3 land spawning/data.
+      if (e.kind === 'relic') { collectRelic(e); continue; }
+      if (e.kind === 'gempickup') { collectGemPickup(e); continue; }
 
       var isHazard = e.kind === 'hazard';
       // Hazards are tier 99: only a junkEater shark may swallow them.
@@ -1777,7 +2081,7 @@ import * as THREE from 'three';
     if (p.st.chewFxCd <= 0) {
       p.st.chewFxCd = 0.12;
       p.st.jawSnapT = 0.18;
-      hitStop(40);
+      hitStop(25);
       shake(3, 90);
       CHEW_SFX_OPT.rate = 0.94 + ctx.rng() * 0.12;
       sfx('chomp', CHEW_SFX_OPT);
@@ -1805,6 +2109,13 @@ import * as THREE from 'three';
     ctx.run.xp += Math.max(1, Math.round(score * 0.25));
     if (num(e.tier, 0) > ctx.run.biggestTier) ctx.run.biggestTier = num(e.tier, 0);
 
+    // Blocker 1: eat + (cheap) score mission events. Score is reported here
+    // rather than a separate hook - missionEvent's 'score' progress is
+    // max()'d, not summed, so reporting it on every eat (the only place score
+    // changes) is equivalent to a dedicated score-change hook.
+    missionEvent('eat', { defId: e.defId });
+    missionEvent('score', { score: ctx.run.score });
+
     p.hp = clamp(p.hp + (6 + num(e.tier, 0) * 3.2), 0, p.maxHp);
 
     if (RF.Abilities && RF.Abilities.chargeFromEat) {
@@ -1816,9 +2127,18 @@ import * as THREE from 'three';
     // jaw snap and a scale pop on the shark, and a hit-stop long enough to feel.
     var mealT = num(e.tier, 0);
     var preyTint = (e.def && e.def.tint) || 0xffe9a8;
-    fxEmit('deathBurst', e.x, e.y, { count: 14 + mealT * 3, scale: 1 + mealT * 0.12, tint: preyTint });
-    fxEmit('motes', e.x, e.y, { count: 8 + mealT * 2, tint: 0xffffff });
-    fxEmit('gib', e.x, e.y, { count: 4 + Math.min(3, mealT), tint: preyTint });
+    // Blocker 7: overwrite the hoisted scratch records in place - no fresh
+    // option object is allocated per bite.
+    EAT_DEATHBURST_OPT.count = 14 + mealT * 3;
+    EAT_DEATHBURST_OPT.scale = 1 + mealT * 0.12;
+    EAT_DEATHBURST_OPT.tint = preyTint;
+    fxEmit('deathBurst', e.x, e.y, EAT_DEATHBURST_OPT);
+    EAT_MOTES_OPT.count = 8 + mealT * 2;
+    EAT_MOTES_OPT.tint = 0xffffff;
+    fxEmit('motes', e.x, e.y, EAT_MOTES_OPT);
+    EAT_GIB_OPT.count = 4 + Math.min(3, mealT);
+    EAT_GIB_OPT.tint = preyTint;
+    fxEmit('gib', e.x, e.y, EAT_GIB_OPT);
     // FIX-ROUND-3 item 6 (SPECTACLE WIRING): the staged bite FX fires on
     // EVERY completed bite (swallow() is the single completion point for both
     // instant swallows and multiBite's final kill), not only meals at or
@@ -1826,13 +2146,15 @@ import * as THREE from 'three';
     // too, not just the notable ones. {tier: mealT} lets fx3d pick the
     // tier-scaled staging instead of defaulting to tier 1.
     if (RF.Fx && RF.Fx.eatShockwave) {
-      try { RF.Fx.eatShockwave(e.x, e.y, { tint: preyTint, tier: mealT }); } catch (err) { warnOnce('Fx.eatShockwave', err); }
+      EAT_SHOCKWAVE_OPT.tint = preyTint;
+      EAT_SHOCKWAVE_OPT.tier = mealT;
+      try { RF.Fx.eatShockwave(e.x, e.y, EAT_SHOCKWAVE_OPT); } catch (err) { warnOnce('Fx.eatShockwave', err); }
     }
     scorePopup(e.x, e.y, '+' + Math.round(score * mult), mult > 1);
     p.st.jawSnapT = JAW_SNAP_T;           // Rev 6 / 6.5: 0.12 snap-close on swallow
     p.st.eatPopT = 0.16;                 // scale pop consumed by renderPlayer
     sfx('chomp');
-    hitStop(mealT >= p.tier - 1 ? 60 : 40);
+    hitStop(mealT >= p.tier - 1 ? 45 : 25);
     // Review r3 (bite signature): EVERY completed bite gets a camera impulse
     // scaled by meal size (combo thresholds still add their own on top), and
     // a directional streak burst along the bite heading so the chomp reads
@@ -1889,6 +2211,47 @@ import * as THREE from 'three';
   // so stepEat does not treat a coin as food.
   function collectPickup(e) {
     return;
+  }
+
+  // SPEC3D 7.6: relic collectible. S2/data.js own placement/table; this lane
+  // only owns the collection lifecycle so the game runs before those land.
+  // Every field read is guarded/defaulted so an S2-shaped relic entity (with
+  // zoneId/relicId) and a bare stub both collect safely.
+  function collectRelic(e) {
+    var r = ctx.run;
+    if (!r.relics) r.relics = [];
+    r.relics.push({
+      zoneId: (e.zoneId !== undefined) ? e.zoneId : null,
+      relicId: e.relicId || e.defId || null,
+      x: e.x, y: e.y, t: ctx.time.now
+    });
+    // Blocker 1: relic mission event.
+    missionEvent('relic', { zoneId: (e.zoneId !== undefined) ? e.zoneId : null });
+    uiCall('toast', 'RELIC FOUND');
+    sfx('relic');
+    fxEmit('ring', e.x, e.y, { count: 1, scale: 1.2, tint: 0xff2bd6 });
+    fxEmit('motes', e.x, e.y, { count: 10, tint: 0xff2bd6 });
+    if (RF.Fx && RF.Fx.hologramFlash) {
+      try { RF.Fx.hologramFlash(e.x, e.y, { tint: 0xff2bd6 }); } catch (err) { warnOnce('Fx.relicFlash', err); }
+    }
+    if (RF.World && RF.World.kill) {
+      try { RF.World.kill(e, 'collected'); } catch (err) { warnOnce('World.kill relic', err); e.active = false; }
+    } else { e.active = false; }
+  }
+
+  // SPEC3D 7.6: rare gem pickup, a separate world drop from frenzy/mission
+  // gem awards. `value` defaults to 1 when data.js has not supplied one yet.
+  function collectGemPickup(e) {
+    var r = ctx.run;
+    var value = num(e.value, num(e.gemValue, 1));
+    r.gems = num(r.gems, 0) + value;
+    uiCall('chip', '+' + value + ' GEM');
+    sfx('gem');
+    fxEmit('ring', e.x, e.y, { count: 1, scale: 1, tint: 0x9dff2b });
+    fxEmit('elementSpark', e.x, e.y, { count: 6, tint: 0x9dff2b });
+    if (RF.World && RF.World.kill) {
+      try { RF.World.kill(e, 'collected'); } catch (err) { warnOnce('World.kill gempickup', err); e.active = false; }
+    } else { e.active = false; }
   }
 
   // Rev 6 / 6.7: BUFF CAPSULE pickups are a separate collection path from the
@@ -2284,6 +2647,9 @@ import * as THREE from 'three';
       if (FRENZY_EAT_BLOOD[i] && !(r.blood.t > 2)) {
         r.blood.t = bloodDur;
         bloodTriggered = true;
+        // Blocker 2: increment exactly once at this completion edge.
+        if (!r.frenzyCompletions) r.frenzyCompletions = { goldrush: 0, blood: 0, school: 0 };
+        r.frenzyCompletions.blood = num(r.frenzyCompletions.blood, 0) + 1;
         // Rev 6 / 6.6: ONE-SHOT crimson deathBurst at the PREY position (not
         // the player). The old player-attached sustained mist loop is DELETED
         // here on the engine side; fx3d's matching player-mist pool removal
@@ -2314,6 +2680,9 @@ import * as THREE from 'three';
       }
       if (s.count >= num(FRENZY2.school.count, 4) && r._schoolTriggeredPackId !== packId) {
         r._schoolTriggeredPackId = packId;
+        // Blocker 2: increment exactly once at this completion edge.
+        if (!r.frenzyCompletions) r.frenzyCompletions = { goldrush: 0, blood: 0, school: 0 };
+        r.frenzyCompletions.school = num(r.frenzyCompletions.school, 0) + 1;
         s.swirlT = num(FRENZY2.school.swirlT, 5);
         ctx.schoolSwirl.packId = packId;
         ctx.schoolSwirl.t = s.swirlT;
@@ -2415,6 +2784,9 @@ import * as THREE from 'three';
       if (!r._goldRushAnnounced) {
         r._goldRushAnnounced = true;
         announceFrenzy('GOLD RUSH', 'Gold Rush: score and coins doubled');
+        // Blocker 2: increment exactly once at this completion edge.
+        if (!r.frenzyCompletions) r.frenzyCompletions = { goldrush: 0, blood: 0, school: 0 };
+        r.frenzyCompletions.goldrush = num(r.frenzyCompletions.goldrush, 0) + 1;
         // Rev 6 / 6.7: frenzy completions earn a superpower charge.
         grantPowerCharge(1);
       }
@@ -2597,9 +2969,22 @@ import * as THREE from 'three';
     acc = 0; freezeMs = 0; hudHurt = 0;
     comboQueue.length = 0;
     musicState = 'calm';
+    // Blocker 1: fresh per-run zoneTime accumulator (object is reused/cleared
+    // in place, not reallocated, matching the module's no-per-step-alloc law
+    // - this only runs once per run start, not per step).
+    for (var _zk in zoneTimeAcc) { if (Object.prototype.hasOwnProperty.call(zoneTimeAcc, _zk)) delete zoneTimeAcc[_zk]; }
+    zoneTimeReportAt = 0;
 
     selectedSharkId = sharkId || activeSharkId();
     buildContext();
+    // Blocker 1 (REVIEW-REV7): pick this run's active missions. Guarded -
+    // absent RF.Meta / rollMissions degrades to no active missions rather
+    // than throwing. profile.missions is normalized by meta.js's load path;
+    // still guard here in case a caller boots the engine against a raw
+    // pre-normalize profile in a test harness.
+    if (RF.Meta && RF.Meta.rollMissions && profile && profile.missions) {
+      try { RF.Meta.rollMissions(profile, ctx.rng); } catch (e) { warnOnce('Meta.rollMissions', e); }
+    }
     buildPlayer(sharkById(selectedSharkId));
     // FIX-ROUND-3 item 3: seed the ability meter FULL so one of the 3 opening
     // powerCharges is immediately usable at run start (abilities.js still
@@ -2712,26 +3097,32 @@ import * as THREE from 'three';
     uiCall('runEnded', ctx);
   }
 
-  // Score-popup pool teardown. Removes each sprite from whatever scene holds
-  // it, then disposes the sprite material and the CanvasTexture behind it (the
-  // canvas itself is garbage once the texture lets go). popPool is nulled so
-  // startRun rebuilds it; scorePopup() and stepPops() both already no-op on a
-  // null pool, so a popup fired between teardown and rebuild is safely dropped.
+  // Score-popup pool teardown. Removes each glyph sprite from whatever scene
+  // holds it and disposes its per-glyph material + cloned geometry. The
+  // glyph ATLAS TEXTURE is a persistent init-time cache (SPEC3D 7.3: baked
+  // ONCE) and is deliberately NOT disposed here - it is rebuilt only if
+  // popAtlas is null, matching the shark3d/world3d asset-cache pattern.
+  // popPool is nulled so startRun rebuilds the pooled quads (against the
+  // SAME atlas); scorePopup()/stepPops() both already no-op on a null pool.
   function teardownPops() {
     if (!popPool) return;
     var items = popPool.items || [];
     for (var i = 0; i < items.length; i++) {
       var r = items[i];
       if (!r) continue;
-      if (r.sprite) {
-        if (r.sprite.parent && r.sprite.parent.remove) r.sprite.parent.remove(r.sprite);
-        else if (scene3 && scene3.remove) scene3.remove(r.sprite);
-        r.sprite.visible = false;
+      var glyphs = r.glyphs || [];
+      for (var g = 0; g < glyphs.length; g++) {
+        var it = glyphs[g];
+        if (!it || !it.sprite) continue;
+        if (it.sprite.parent && it.sprite.parent.remove) it.sprite.parent.remove(it.sprite);
+        else if (scene3 && scene3.remove) scene3.remove(it.sprite);
+        it.sprite.visible = false;
+        if (it.sprite.geometry && it.sprite.geometry.__popOwn && it.sprite.geometry.dispose) {
+          try { it.sprite.geometry.dispose(); } catch (e) {}
+        }
+        if (it.mat && it.mat.dispose) { try { it.mat.dispose(); } catch (e) {} }
       }
-      if (r.tex && r.tex.texture && r.tex.texture.dispose) {
-        try { r.tex.texture.dispose(); } catch (e) {}
-      }
-      if (r.mat && r.mat.dispose) { try { r.mat.dispose(); } catch (e) {} }
+      glyphs.length = 0;
       r.life = 0;
     }
     items.length = 0;
@@ -3238,9 +3629,11 @@ import * as THREE from 'three';
 
       var x0 = p.x, hp0 = p.hp;
 
-      // ---- 120 steps of stick sim with a meal on the line.
-      p.ctl.active = true;
-      p.ctl.sx = 1; p.ctl.sy = 0; p.ctl.mag = 1;
+      // ---- 120 steps of head-drag sim with a meal on the line. Headless
+      // (no renderer), so cssToWorld() fails and stepControl's hasTarget
+      // fallback is exercised: set tx/ty directly, same as a resolved drag.
+      p.ctl.active = true; p.ctl.hasTarget = true;
+      p.ctl.tx = p.x + 400; p.ctl.ty = p.y; p.ctl.px = 999; p.ctl.py = 999;
       prey.x = p.x + 140; prey.y = p.y;
       var score0 = ctx.run.score;
       for (var i = 0; i < 120; i++) step();
@@ -3665,6 +4058,49 @@ import * as THREE from 'three';
       RF.World.query = savedQPick; RF.World.eatQuery = savedEQPick; RF.World.kill = savedKillPick;
       ctx.run.buffs.overdrive = 0;
 
+      // ---- SPEC3D 7.6: relic/gempickup collection lifecycle. Guarded so the
+      // game runs before S2/S3 land spawning/data.
+      check(Array.isArray(ctx.run.relics) && ctx.run.relics.length === 0 && ctx.run.gems === 0,
+        'ctx.run.relics/gems initialize empty at run start');
+      var savedQRelic = RF.World.query, savedEQRelic = RF.World.eatQuery, savedKillRelic = RF.World.kill;
+      var fakeRelic = { active: true, kind: 'relic', zoneId: 2, relicId: 'r2-1', x: pc.x, y: pc.y, r: 12, hp: 1, st: {} };
+      var killedRelic = [];
+      RF.World.kill = function (e, cause) { e.active = false; killedRelic.push({ e: e, cause: cause }); };
+      RF.World.eatQuery = function () { return fakeRelic.active ? [fakeRelic] : []; };
+      RF.World.query = function () { return fakeRelic.active ? [fakeRelic] : []; };
+      var relicsBefore = ctx.run.relics.length;
+      pc.st.chewFxCd = 0;
+      stepEat(pc);
+      check(ctx.run.relics.length === relicsBefore + 1 && killedRelic.length === 1
+        && killedRelic[0].cause === 'collected' && fakeRelic.active === false,
+        'stepEat collects a relic entity into ctx.run.relics and removes it (kind=relic)');
+      check(ctx.run.relics[ctx.run.relics.length - 1].relicId === 'r2-1',
+        'collected relic record carries relicId/zoneId through');
+      check(eatEligible(pc, { active: true, kind: 'relic', tier: 0 }) === false,
+        'eatEligible excludes kind relic');
+
+      var fakeGem = { active: true, kind: 'gempickup', value: 3, x: pc.x, y: pc.y, r: 10, hp: 1, st: {} };
+      var killedGem = [];
+      RF.World.kill = function (e, cause) { e.active = false; killedGem.push({ e: e, cause: cause }); };
+      RF.World.eatQuery = function () { return fakeGem.active ? [fakeGem] : []; };
+      RF.World.query = function () { return fakeGem.active ? [fakeGem] : []; };
+      var gemsBefore = ctx.run.gems;
+      pc.st.chewFxCd = 0;
+      stepEat(pc);
+      check(ctx.run.gems === gemsBefore + 3 && killedGem.length === 1 && fakeGem.active === false,
+        'stepEat collects a gempickup entity into ctx.run.gems += value (kind=gempickup)');
+      check(eatEligible(pc, { active: true, kind: 'gempickup', tier: 0 }) === false,
+        'eatEligible excludes kind gempickup');
+      // Missing/undefined value defaults to 1 rather than throwing or NaN-ing.
+      var fakeGem2 = { active: true, kind: 'gempickup', x: pc.x, y: pc.y, r: 10, hp: 1, st: {} };
+      RF.World.eatQuery = function () { return fakeGem2.active ? [fakeGem2] : []; };
+      RF.World.query = function () { return fakeGem2.active ? [fakeGem2] : []; };
+      var gemsBefore2 = ctx.run.gems;
+      pc.st.chewFxCd = 0;
+      stepEat(pc);
+      check(ctx.run.gems === gemsBefore2 + 1, 'gempickup with no value field defaults to +1 gem');
+      RF.World.query = savedQRelic; RF.World.eatQuery = savedEQRelic; RF.World.kill = savedKillRelic;
+
       // ---- Rev 6 / 6.7: charge economy never drops below 0 or exceeds the cap.
       ctx.run.powerCharges = 0;
       grantPowerCharge(1);
@@ -3724,36 +4160,39 @@ import * as THREE from 'three';
 
       pc.x = 3000; pc.y = 600; pc.vx = 0; pc.vy = 0; pc.angle = 0;
       var ang45 = Math.PI / 4;
-      pc.ctl.active = true;
-      pc.ctl.sx = Math.cos(ang45); pc.ctl.sy = Math.sin(ang45); pc.ctl.mag = 1;
+      // Head-drag target far along ang45 (headless: hasTarget fallback).
+      pc.ctl.active = true; pc.ctl.hasTarget = true;
+      pc.ctl.tx = pc.x + Math.cos(ang45) * 2000; pc.ctl.ty = pc.y + Math.sin(ang45) * 2000;
       var sx0 = pc.x, sy0 = pc.y;
       for (var s4 = 0; s4 < 120; s4++) step();
       var mx = pc.x - sx0, my = pc.y - sy0;
       var mlen = Math.sqrt(mx * mx + my * my);
-      check(mlen > 40, 'stick input accelerated the player (' + mlen.toFixed(1) + ' px)');
+      check(mlen > 40, 'head-drag target accelerated the player (' + mlen.toFixed(1) + ' px)');
       var dot = (mx * Math.cos(ang45) + my * Math.sin(ang45)) / (mlen || 1);
-      check(dot > 0.9, 'travel followed the stick direction (cos=' + dot.toFixed(3) + ')');
-      check(Math.abs(angDelta(pc.angle, ang45)) < 0.2, 'heading aligned to the stick');
+      check(dot > 0.9, 'travel followed the target direction (cos=' + dot.toFixed(3) + ')');
+      check(Math.abs(angDelta(pc.angle, ang45)) < 0.25, 'heading eased toward the target');
       var movingSpeed = Math.sqrt(pc.vx * pc.vx + pc.vy * pc.vy);
       check(movingSpeed > 10, 'player is genuinely under way (' + movingSpeed.toFixed(1) + ' px/s)');
 
-      // FIX-ROUND-3 item 1 (STICK MATH, HM-exact): magnitude is a throttle,
-      // and a half-deflected stick (sx/sy each already scaled to 0.5, mag
-      // 0.5) must settle at ~0.5x the full-deflection speed - NOT 0.25x. The
-      // old loose "< movingSpeed*0.75" bound passed even with the
-      // double-scaling bug (0.5*0.5=0.25 easily clears that bar), so this now
-      // asserts a tight ratio band instead of a one-sided ceiling.
-      pc.ctl.sx = Math.cos(ang45) * 0.5; pc.ctl.sy = Math.sin(ang45) * 0.5; pc.ctl.mag = 0.5;
+      // 7.1: speed is monotone in distCss. A near target (small head->finger
+      // distance, mid-range of the dead-to-full band) settles at a LOWER
+      // speed than a far target (full deflection) - never the same, never
+      // inverted.
+      pc.x = 3000; pc.y = 600; pc.vx = 0; pc.vy = 0; pc.angle = 0;
+      var wpp = (2 * CAM_Z * Math.tan((CAM_FOV * Math.PI / 180) / 2)) / CSS_H;
+      pc.ctl.tx = pc.x + Math.cos(ang45) * (90 * wpp);
+      pc.ctl.ty = pc.y + Math.sin(ang45) * (90 * wpp);
       for (var s5 = 0; s5 < 120; s5++) step();
-      var halfSpeed = Math.sqrt(pc.vx * pc.vx + pc.vy * pc.vy);
-      var halfRatio = halfSpeed / (movingSpeed || 1);
-      check(halfRatio > 0.42 && halfRatio < 0.58,
-        'half deflection settles at ~0.5x full speed, not 0.25x (ratio=' + halfRatio.toFixed(3) +
-        ', half=' + halfSpeed.toFixed(1) + ' vs full=' + movingSpeed.toFixed(1) + ')');
+      var nearSpeed = Math.sqrt(pc.vx * pc.vx + pc.vy * pc.vy);
+      check(nearSpeed > 0 && nearSpeed < movingSpeed,
+        'closer target settles at a slower, non-zero speed than a far target (near=' +
+        nearSpeed.toFixed(1) + ' vs far=' + movingSpeed.toFixed(1) + ')');
 
-      // RELEASE: decelerate to rest and stay there.
+      // RELEASE: decelerate (glide, not a hard stop) and settle at rest.
       clearStick();
-      check(!pc.ctl.active && pc.ctl.mag === 0, 'clearStick cleared the stick state');
+      check(!pc.ctl.active && pc.ctl.mag === 0, 'clearStick cleared the head-drag state');
+      var immediatelyAfterRelease = Math.sqrt(pc.vx * pc.vx + pc.vy * pc.vy);
+      check(immediatelyAfterRelease > 0.01, 'release does not hard-zero velocity in the same step (glide, not a snap)');
       for (var s6 = 0; s6 < 120; s6++) step();
       var restSpeed = Math.sqrt(pc.vx * pc.vx + pc.vy * pc.vy);
       check(restSpeed < 1.0, 'player decelerated to rest on release (' + restSpeed.toFixed(4) + ')');
@@ -3762,30 +4201,38 @@ import * as THREE from 'three';
       check((Math.abs(pc.x - restX) + Math.abs(pc.y - restY)) < 0.5, 'no drift after release');
 
       // Cancel path releases both pointers.
-      pc.ctl.active = true; pc.ctl.sx = 1; pc.ctl.sy = 0; pc.ctl.mag = 1;
+      pc.ctl.active = true; pc.ctl.hasTarget = true;
+      pc.ctl.tx = pc.x + 400; pc.ctl.ty = pc.y;
       pc.ctl.steerId = 7; pc.ctl.boostId = 9;
       clearStick(); pc.ctl.boostId = null;
       check(pc.ctl.steerId === null && pc.ctl.boostId === null && !pc.ctl.active,
         'cancel path releases both pointers');
 
-      // Stick geometry: clamp to the radius, re-center past 1.35x, dead zone.
+      // Dead zone: a target inside DEAD (max(18, 0.4*headRcss) css px) must
+      // not creep the player. headRcss for this shark is tiny relative to the
+      // 18px floor, so a few-world-unit offset (well under 18 css px) probes it.
       plantStick(400, 300);
-      check(pc.ctl.active && pc.ctl.bx === 400 && pc.ctl.by === 300,
-        'plantStick placed the base under the finger');
-      var maxR = STICK_R_CSS;
-      dragStick(400 + maxR * 4, 300);
-      check(Math.abs(pc.ctl.mag - 1) < 1e-9, 'deflection clamped to the stick radius');
-      check(Math.abs(pc.ctl.bx - (400 + maxR * 3)) < 1e-6,
-        'base re-centered past 1.35x radius (bx=' + pc.ctl.bx.toFixed(1) + ')');
-      dragStick(pc.ctl.bx + maxR * 0.5, pc.ctl.by);
-      check(Math.abs(pc.ctl.mag - 0.5) < 1e-9, 'partial deflection reads as partial magnitude');
-      // Rev 6 / 6.8: STICK_DEAD tightened 0.12 -> 0.03, so the old 0.05*radius
-      // deadzone probe no longer sits below the line. 0.02*radius is the new
-      // sub-dead-zone probe.
-      dragStick(pc.ctl.bx + maxR * 0.02, pc.ctl.by);
+      check(pc.ctl.active && pc.ctl.px === 400 && pc.ctl.py === 300,
+        'plantStick placed the finger point');
+      pc.ctl.hasTarget = true;
+      pc.ctl.tx = pc.x + 2 * wpp; pc.ctl.ty = pc.y;   // ~2 css px, well under DEAD
       pc.vx = 0; pc.vy = 0;
       for (var s8 = 0; s8 < 30; s8++) step();
-      check(Math.sqrt(pc.vx * pc.vx + pc.vy * pc.vy) < 0.5, 'sub-dead-zone deflection does not creep');
+      check(Math.sqrt(pc.vx * pc.vx + pc.vy * pc.vy) < 0.5, 'sub-dead-zone target does not creep');
+      clearStick();
+      // Heading never changes more than turnRate*dt in a single step.
+      pc.angle = 0; pc.ctl.active = true; pc.ctl.hasTarget = true;
+      pc.ctl.tx = pc.x + Math.cos(Math.PI) * 2000; pc.ctl.ty = pc.y + Math.sin(Math.PI) * 2000;
+      var maxTurnStep = (CTL_TURN_BASE + CTL_TURN_DIST) * STEP + 1e-6;
+      var prevA = pc.angle, worstTurn = 0;
+      for (var s9 = 0; s9 < 60; s9++) {
+        stepControl(pc);
+        var d = Math.abs(angDelta(prevA, pc.angle));
+        if (d > worstTurn) worstTurn = d;
+        prevA = pc.angle;
+      }
+      check(worstTurn <= maxTurnStep, 'heading never changes more than turnRate*dt per step (' +
+        worstTurn.toFixed(4) + ' <= ' + maxTurnStep.toFixed(4) + ')');
       clearStick();
 
       // ---- rig animation advances in the fixed step
@@ -3915,7 +4362,8 @@ import * as THREE from 'three';
       // ---- eat feedback parity: burst + popup + jaw snap + scale pop + hit-stop
       var savedJuice = RF.Juice, savedSound2 = RF.Sound;
       var fxSeen = [], stops = [], sfxSeen2 = [];
-      RF.Fx = { emit: function (n) { fxSeen.push(n); return 1; } };
+      var burstOpts = [];
+      RF.Fx = { emit: function (n, x, y, opts) { fxSeen.push(n); if (n === 'deathBurst') burstOpts.push(opts); return 1; } };
       RF.Juice = { hitStop: function (ms) { stops.push(ms); }, shake: function () {} };
       RF.Sound = { play: function (n) { sfxSeen2.push(n); } };
       ctx.player = pc;
@@ -3927,8 +4375,16 @@ import * as THREE from 'three';
         'eat emitted the two-stage burst');
       check(pc.st.jawSnapT > 0, 'eat set the jaw snap');
       check(pc.st.eatPopT > 0, 'eat set the scale pop');
-      check(stops.length >= 1 && (stops[0] === 40 || stops[0] === 60),
-        'eat hit-stop is 40 or 60 ms (' + stops.join(',') + ')');
+      check(stops.length >= 1 && (stops[0] === 25 || stops[0] === 45),
+        'eat hit-stop is 25 or 45 ms (7.3 tuned down from 40/60) (' + stops.join(',') + ')');
+      check(burstOpts.length >= 1 && burstOpts[0].tint === 0xffe9a8,
+        'swallow() falls back to 0xffe9a8 when def.tint is absent');
+      burstOpts.length = 0;
+      var tintedMeal = { active: true, kind: 'prey', defId: 'minnow', tier: 0, x: pc.x, y: pc.y,
+        hp: 1, coins: 2, st: {}, r: 8, def: { id: 'minnow', tier: 0, score: 5, coins: 2, tint: 0x27e0ff } };
+      swallow(tintedMeal);
+      check(burstOpts.length >= 1 && burstOpts[0].tint === 0x27e0ff,
+        'swallow() uses def.tint (S3 data.js field) when present');
 
       // ---- FIX-ROUND-3 item 6: staged bite FX fires on EVERY completed
       // bite, including a plain minnow well below the shark's own tier - not
@@ -3993,10 +4449,10 @@ import * as THREE from 'three';
       var hpBlocked = chewy.hp;
       multiBite(chewy);
       check(chewy.hp === hpBlocked, 'the same target is blocked until its cooldown expires');
-      check(stops.length === 1 && stops[0] === 40 && sfxSeen2.length === 1
+      check(stops.length === 1 && stops[0] === 25 && sfxSeen2.length === 1
         && fxSeen.filter(function (n) { return n === 'chomp'; }).length === 1
         && pc.st.jawSnapT > 0,
-        'three-fish school fires chew hit-stop/audio/fx/jaw once per 120 ms cadence');
+        'three-fish school fires chew hit-stop/audio/fx/jaw once per 120 ms cadence (7.3: 25ms)');
 
       // The engine owns a fallback decay only until World advertises that it
       // already decays the field. This prevents double decay after lane merge.
@@ -4019,6 +4475,97 @@ import * as THREE from 'three';
       var threwPop = null;
       try { scorePopup(10, 20, '+5', true); stepPops(STEP); } catch (e) { threwPop = e; }
       check(!threwPop, 'score popups no-op safely without a canvas pool');
+
+      // ---- SPEC3D 7.3: glyph atlas contract (headless-safe math checks).
+      check(glyphIndex('5') === POP_GLYPHS.indexOf('5') && glyphIndex('+') === POP_GLYPHS.indexOf('+'),
+        'glyphIndex resolves digits and + to their atlas column');
+      check(glyphIndex('?') === POP_GLYPHS.length - 1,
+        'glyphIndex falls back to the space cell for an unmapped char');
+      check(buildPopAtlas() === null, 'buildPopAtlas is a safe no-op without document (headless)');
+      // A fake document (real THREE.CanvasTexture, since the ESM namespace
+      // export cannot be reassigned) proves the bake path sets
+      // texture.needsUpdate exactly ONCE (at bake time) and never again - the
+      // 7.3 gate ("no texture.needsUpdate after init") is asserted by
+      // instrumenting the CONSTRUCTED instance's needsUpdate setter (an
+      // own-property override on the instance, not the frozen module export)
+      // and recording every write across a bake + several pops.
+      var savedDoc = root.document;
+      var needsUpdateWrites = 0;
+      var fakeCtx2d = {
+        setTransform: function () {}, clearRect: function () {}, strokeText: function () {}, fillText: function () {},
+        font: '', textAlign: '', textBaseline: '', lineWidth: 0, strokeStyle: '', fillStyle: ''
+      };
+      var fakeCanvas = { width: 0, height: 0, getContext: function () { return fakeCtx2d; } };
+      root.document = { createElement: function () { return fakeCanvas; } };
+      popAtlas = null;
+      var atlas = buildPopAtlas();
+      check(!!atlas && atlas.baked === true, 'buildPopAtlas bakes once and returns a baked atlas record');
+      // Instrument the real texture's needsUpdate AFTER the bake (three.js's
+      // needsUpdate setter is write-only/version-bumping, not a readable
+      // flag, so the bake-time write itself cannot be inspected after the
+      // fact). From this point on, ZERO further writes are the 7.3 gate.
+      var tex = atlas.texture;
+      var rawNeedsUpdate = false;
+      Object.defineProperty(tex, 'needsUpdate', {
+        configurable: true,
+        get: function () { return rawNeedsUpdate; },
+        set: function (v) { rawNeedsUpdate = v; if (v) needsUpdateWrites++; }
+      });
+      // Blocker 6 (REVIEW-REV7): the prebuilt UV geometry variants are baked
+      // by buildPopGeomVariants INSIDE buildPopAtlas, before this point - so
+      // by now every geom's uv.needsUpdate has already fired once (at bake
+      // time) and this instrumentation only needs to prove ZERO further
+      // writes across pops. Instrument every variant's uv attribute
+      // needsUpdate setter (same own-property-override technique as the
+      // texture above), and also assert no geometry object is ever replaced
+      // (identity-checked) or cloned on a live sprite.
+      var geomUvWrites = 0;
+      var geomVariants = atlas.geoms || [];
+      for (var gv = 0; gv < geomVariants.length; gv++) {
+        (function (uvAttr) {
+          var rawUv = false;
+          Object.defineProperty(uvAttr, 'needsUpdate', {
+            configurable: true,
+            get: function () { return rawUv; },
+            set: function (v) { rawUv = v; if (v) geomUvWrites++; }
+          });
+        })(geomVariants[gv].attributes.uv);
+      }
+      // Pooled quads: build against a real scene, fire several pops, and
+      // prove no further needsUpdate write ever happens (only geometry
+      // reference swaps between the already-instrumented prebuilt variants),
+      // while the pool itself functions (visible glyphs, cursor cycles).
+      var atlasScene = new THREE.Scene();
+      var savedScene3ForAtlas = scene3, savedPopPoolForAtlas = popPool;
+      scene3 = atlasScene;
+      popPool = null;
+      buildPopPool(4);
+      check(!!popPool && popPool.ok, 'buildPopPool builds pooled glyph quads against the baked atlas');
+      var geomsBefore = popPool.items[0].glyphs.map(function (g) { return g.sprite.geometry; });
+      scorePopup(0, 0, '+120', false);
+      var rec0 = popPool.items[0];
+      check(rec0.len === 4 && rec0.glyphs[0].sprite.visible === true && rec0.glyphs[4].sprite.visible === false,
+        'scorePopup writes exactly len glyph sprites visible, rest hidden');
+      check(geomVariants.indexOf(rec0.glyphs[0].sprite.geometry) >= 0,
+        'Blocker 6: paintGlyph swaps to a prebuilt atlas geometry variant, not a clone');
+      scorePopup(0, 0, '+7', true);
+      scorePopup(0, 0, '+42', false);
+      stepPops(STEP);
+      check(needsUpdateWrites === 0,
+        'ZERO texture.needsUpdate writes after init, across 3 pops (' + needsUpdateWrites + ')');
+      check(geomUvWrites === 0,
+        'Blocker 6: ZERO geometry uv.needsUpdate writes after atlas init, across 3 pops (' + geomUvWrites + ')');
+      var geomsAfterIdentitySet = {};
+      for (var pi = 0; pi < popPool.items.length; pi++) {
+        for (var gi = 0; gi < popPool.items[pi].glyphs.length; gi++) {
+          var g2 = popPool.items[pi].glyphs[gi].sprite.geometry;
+          check(geomVariants.indexOf(g2) >= 0,
+            pi === 0 && gi === 0 ? 'Blocker 6: every pooled sprite geometry is one of the prebuilt atlas variants' : true);
+        }
+      }
+      scene3 = savedScene3ForAtlas; popPool = savedPopPoolForAtlas;
+      root.document = savedDoc;
+      popAtlas = null;
 
       // ---- UI absence: hudState and friends are console-quiet no-ops.
       var savedUI = RF.UI;
@@ -4184,6 +4731,194 @@ import * as THREE from 'three';
             + seedMeterCalls + '/5)')
           : 'FIX-ROUND-3 item 3: skipped - RF.Abilities stubbed by an earlier chained selftest (covered on fresh-page runs)');
       RF.Abilities = savedRealAbilities;
+
+      // ---- Blocker 1/2/8 (REVIEW-REV7): mission wiring, frenzy completion
+      // counters, and skin selection smoke, against a stub RF.Meta so this
+      // covers the engine's producer/consumer wiring without depending on
+      // meta.js's own selftest (that lane's business logic is S3's coverage;
+      // this is only "does engine3d call the right things at the right
+      // times, with the right shapes").
+      (function () {
+        var stubProfile = {
+          missions: { active: [], progress: {}, completed: {} },
+          skins: { owned: [], selectedSkin: null }
+        };
+        var rollCalls = 0, rolledWithRng = null;
+        var eventCalls = [];
+        var missionTickTexts = [];
+        var savedMetaForMissions = RF.Meta;
+        var completeOnEatCount = 0;
+        RF.Meta = {
+          rollMissions: function (profile, rng) {
+            rollCalls++; rolledWithRng = rng;
+            profile.missions.active = ['stub_mission'];
+            return profile.missions.active;
+          },
+          missionEvent: function (c, type, payload) {
+            eventCalls.push({ type: type, payload: payload });
+            if (type === 'eat') {
+              completeOnEatCount++;
+              if (completeOnEatCount === 1) return ['stub_mission'];
+            }
+            return [];
+          }
+        };
+        var savedUIForMissions = RF.UI;
+        RF.UI = { init: function () {}, hudState: function () {}, tutorial: function () {},
+                  showResults: function () {}, showMenu: function () {},
+                  runStarted: function () {}, runEnded: function () {}, notice: function () {},
+                  missionTick: function (text) { missionTickTexts.push(text); } };
+        RF.World = { init: function () {}, update: function () { stubHits.length = 0; },
+                     query: function () { return EMPTY_Q; }, kill: function (e) { e.active = false; },
+                     zoneAt: function (y) { return zoneAtFallback(y); }, entities: [],
+                     playerHits: stubHits };
+        RF.Fx = { init: function () {}, emit: function () { return 0; } };
+        var savedProfileForMissions = profile;
+        profile = stubProfile;
+
+        startRun('reef');
+        check(rollCalls === 1, 'Blocker 1: startRun calls RF.Meta.rollMissions exactly once');
+        check(rolledWithRng === ctx.rng, 'Blocker 1: rollMissions is passed the run-seeded ctx.rng');
+        check(ctx.run.missionResults && ctx.run.missionResults.length === 0,
+          'Blocker 1: run starts with an empty missionResults array');
+
+        // Blocker 2: frenzyCompletions initialized to zeroed counters.
+        check(ctx.run.frenzyCompletions
+          && ctx.run.frenzyCompletions.goldrush === 0
+          && ctx.run.frenzyCompletions.blood === 0
+          && ctx.run.frenzyCompletions.school === 0,
+          'Blocker 2: ctx.run.frenzyCompletions initialized to {goldrush:0,blood:0,school:0}');
+
+        // Blocker 1: eat -> missionEvent('eat', {defId}) + missionEvent('score', ...),
+        // and a completion forwards to RF.UI.missionTick.
+        var eatEnt = { active: true, kind: 'prey', defId: 'minnow', tier: 0, x: 10, y: 10,
+                        coins: 1, hp: 1, def: { tint: 0xffe9a8, score: 5, coins: 1 } };
+        swallow(eatEnt);
+        var sawEat = false, sawScore = false;
+        for (var ei = 0; ei < eventCalls.length; ei++) {
+          if (eventCalls[ei].type === 'eat' && eventCalls[ei].payload.defId === 'minnow') sawEat = true;
+          if (eventCalls[ei].type === 'score' && eventCalls[ei].payload.score === ctx.run.score) sawScore = true;
+        }
+        check(sawEat, "Blocker 1: swallow() sends missionEvent('eat', {defId})");
+        check(sawScore, "Blocker 1: swallow() sends missionEvent('score', {score}) on the same eat");
+        check(missionTickTexts.length === 1, 'Blocker 1: a mission completion forwards exactly one call to RF.UI.missionTick');
+
+        // Blocker 1: relic collection -> missionEvent('relic', {zoneId}).
+        eventCalls.length = 0;
+        var relicEnt = { active: true, kind: 'relic', zoneId: 2, relicId: 'r2-1', x: 5, y: 5, hp: 1, st: {} };
+        collectRelic(relicEnt);
+        var sawRelic = false;
+        for (var ri = 0; ri < eventCalls.length; ri++) {
+          if (eventCalls[ri].type === 'relic' && eventCalls[ri].payload.zoneId === 2) sawRelic = true;
+        }
+        check(sawRelic, "Blocker 1: collectRelic() sends missionEvent('relic', {zoneId})");
+
+        // Blocker 1: cumulative zoneTime, reported at most once per second
+        // (not once per fixed step) via stepZoneName inside the normal step().
+        eventCalls.length = 0;
+        for (var st = 0; st < 65; st++) step();   // ~65 fixed steps = ~1.08s
+        var zoneTimeCalls = 0;
+        for (var zi = 0; zi < eventCalls.length; zi++) if (eventCalls[zi].type === 'zoneTime') zoneTimeCalls++;
+        check(zoneTimeCalls === 1,
+          'Blocker 1: zoneTime mission event fires once per second, not once per fixed step (' + zoneTimeCalls + ' in ~1.08s)');
+
+        // Blocker 2: frenzy completion edges increment their counter exactly
+        // once. Drive Blood Frenzy's trigger path directly (FRENZY_EAT_BLOOD
+        // is module-private, so route through the public frenzy-recording
+        // hook the eat path itself uses: force r.blood.t to 0 and stage one
+        // qualifying kill via the same processFrenzyEvents entry step()
+        // already calls each frame - simplest is asserting the counter
+        // shape/monotonic-once behavior directly against ctx.run state after
+        // a real blood trigger, which recordFrenzyKill sets up from a normal
+        // swallow of a same-or-bigger-tier meal while r.blood.t is 0).
+        ctx.run.blood.t = 0;
+        ctx.run.frenzyCompletions.blood = 0;
+        var bloodEnt = { active: true, kind: 'prey', defId: 'megalodon', tier: p.tier, x: 1, y: 1,
+                          coins: 1, hp: 1, def: { tint: 0xffe9a8, score: 5, coins: 1 } };
+        swallow(bloodEnt);
+        stepFrenzy();
+        check(ctx.run.frenzyCompletions.blood === 1,
+          'Blocker 2: a Blood Frenzy completion increments frenzyCompletions.blood exactly once');
+        // Re-triggering while already inside the window (blood.t > 2, per the
+        // FIX-ROUND-3 item 5 no-re-announce guard) must not double-increment.
+        var bloodEnt2 = { active: true, kind: 'prey', defId: 'megalodon', tier: p.tier, x: 1, y: 1,
+                           coins: 1, hp: 1, def: { tint: 0xffe9a8, score: 5, coins: 1 } };
+        swallow(bloodEnt2);
+        stepFrenzy();
+        check(ctx.run.frenzyCompletions.blood === 1,
+          'Blocker 2: re-triggering inside the same blood window does not double-increment');
+
+        // Blocker 2: Gold Rush completion edge.
+        ctx.run.frenzyCompletions.goldrush = 0;
+        ctx.run._goldRushAnnounced = false;
+        ctx.run.goldRushT = 0;
+        ctx.run.frenzy = 1;
+        stepFrenzy();
+        check(ctx.run.frenzyCompletions.goldrush === 1,
+          'Blocker 2: a Gold Rush completion increments frenzyCompletions.goldrush exactly once');
+
+        endRun();
+        profile = savedProfileForMissions;
+        RF.Meta = savedMetaForMissions;
+        RF.UI = savedUIForMissions;
+      })();
+
+      // ---- Blocker 8: profile.skins.selectedSkin is consumed into a
+      // palette-swapped def clone at rig build time, without mutating the
+      // shared shark def or touching shark3d.js's own module state.
+      (function () {
+        var savedProfileForSkin = profile;
+        var buildShar_calls = [];
+        var savedArt3DForSkin = RF.Art3D;
+        RF.Art3D = {
+          buildShark: function (def) {
+            buildShar_calls.push(def);
+            var g = new THREE.Group();
+            return { group: g, parts: {}, animate: function () {} };
+          }
+        };
+        var reefDef = (RFD.SHARK_BY_ID && RFD.SHARK_BY_ID['reef']) || (RFD.SHARKS || [])[0];
+        var origPaletteBase = reefDef && reefDef.sil && reefDef.sil.palette && reefDef.sil.palette.base;
+
+        // No selection: def passed through unchanged (same palette values).
+        profile = { skins: { owned: [], selectedSkin: null },
+                    missions: { active: [], progress: {}, completed: {} } };
+        buildShar_calls.length = 0;
+        var rigNone = buildPlayerRig(reefDef);
+        check(buildShar_calls.length === 1 && buildShar_calls[0].sil.palette.base === origPaletteBase,
+          'Blocker 8: no selectedSkin leaves the shark def/palette unchanged');
+
+        // A global (sharkId:null) selected skin swaps the palette passed to
+        // Art3D.buildShark, without mutating the shared RFD def.
+        var globalSkin = (RFD.SKINS || []).filter(function (s) { return !s.sharkId; })[0];
+        if (globalSkin) {
+          profile.skins.selectedSkin = globalSkin.id;
+          buildShar_calls.length = 0;
+          var rigGlobal = buildPlayerRig(reefDef);
+          check(buildShar_calls.length === 1 && buildShar_calls[0].sil.palette.base === globalSkin.palette.base,
+            'Blocker 8: a selected global skin palette-swaps the def passed to Art3D.buildShark');
+          check(reefDef.sil.palette.base === origPaletteBase,
+            'Blocker 8: the shared RFD shark def is never mutated by skin selection');
+        } else {
+          check(true, 'Blocker 8: no global skin in RFD.SKINS to probe (data.js shape changed) - skipped');
+        }
+
+        // A shark-locked skin for a DIFFERENT shark than the one being built
+        // must not apply.
+        var lockedSkin = (RFD.SKINS || []).filter(function (s) { return s.sharkId && s.sharkId !== 'reef'; })[0];
+        if (lockedSkin) {
+          profile.skins.selectedSkin = lockedSkin.id;
+          buildShar_calls.length = 0;
+          buildPlayerRig(reefDef);
+          check(buildShar_calls.length === 1 && buildShar_calls[0].sil.palette.base === origPaletteBase,
+            "Blocker 8: a skin locked to a different shark does not apply to this shark's rig");
+        } else {
+          check(true, 'Blocker 8: no cross-shark-locked skin in RFD.SKINS to probe - skipped');
+        }
+
+        RF.Art3D = savedArt3DForSkin;
+        profile = savedProfileForSkin;
+      })();
 
       // Only the two engine-owned lights should remain resident between runs.
       // (Rev 2: the lights are created ONCE at boot and never per run.)

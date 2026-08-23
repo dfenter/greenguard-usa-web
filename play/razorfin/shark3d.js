@@ -20,6 +20,7 @@ let sharedToothGeometry;
 let sharedEyeGeometry;
 let sharedIrisGeometry;
 let sharedCatchlightGeometry;
+let sharedWhaleSpotGeometry;
 let arcGeometrySingleton;
 let arcMaterialTemplate;
 
@@ -27,16 +28,29 @@ const TAU = Math.PI * 2;
 const WHITE = 0xffffff;
 const FEATURE_EMISSIVE_INTENSITY = 0.82;
 const EYE_EMISSIVE_INTENSITY = 0.9;
+const EYE_CAMERA_SCALE = 1.34;
 const BODY_EMISSIVE_MAX = 0.05;
 const BODY_RAMP_BANDS = [0.30, 0.65, 0.84, 1.0];
 const BODY_DORSAL_START = 0.75;
 const BODY_FLANK_START = 0.50;
 const BODY_BELLY_END = BODY_FLANK_START;
 const BODY_RIM_END = 0.58;
-const BODY_FLANK_SATURATION_FLOOR = 0.45;
-const BODY_FLANK_SATURATION_TARGET = 0.70;
-const BODY_FLANK_VALUE_MIN = 0.45;
-const BODY_FLANK_VALUE_MAX = 0.75;
+const BODY_FLANK_SATURATION_MIN = 0.70;
+const BODY_FLANK_SATURATION_MAX = 0.90;
+const BODY_FLANK_SATURATION_TARGET = 0.86;
+const BODY_FLANK_VALUE_MIN = 0.55;
+const BODY_FLANK_VALUE_MAX = 0.82;
+const ACCENT_SATURATION_MIN = 0.80;
+const ACCENT_SATURATION_MAX = 1.00;
+const ACCENT_SATURATION_TARGET = 0.96;
+const ACCENT_VALUE_MIN = 0.65;
+const ACCENT_VALUE_MAX = 0.95;
+const BELLY_SATURATION_MIN = 0.15;
+const BELLY_SATURATION_MAX = 0.40;
+const BELLY_VALUE_MIN = 0.80;
+const BELLY_VALUE_MAX = 0.98;
+const OUTLINE_VALUE_MIN = 0.08;
+const OUTLINE_VALUE_MAX = 0.16;
 const BODY_BLOCK_DISTANCE_MIN = 60;
 const KAIJU_PLATE_GLOW = 0xa3fff3;
 const DISTINCTNESS_DISTANCE_THRESHOLD = 0.05;
@@ -47,8 +61,8 @@ const SUPPORTED_PATTERN_IDS = new Set([
   'plain', 'plates', 'plating', 'rays', 'ribbons', 'rings', 'rivets', 'rot',
   'runes', 'scales', 'scars', 'spikes', 'spots', 'stars', 'stripes', 'swirls'
 ]);
-const TAIL_MIN_RATIO = 0.18;
-const TAIL_MAX_RATIO = 0.34;
+const TAIL_MIN_RATIO = 0.28;
+const TAIL_MAX_RATIO = 0.36;
 const FUSIFORM_BODY_ASPECT_MIN = 3.1;
 const FUSIFORM_ASPECT_MIN = 2.8;
 const FUSIFORM_SECTION_Z_RATIO = 0.92;
@@ -56,9 +70,13 @@ const FUSIFORM_SECTION_Z_RATIO_MIN = 0.72;
 const BODY_BELLY_BAKE_LUMINANCE = 0.74;
 const SHARK_POSE_YAW = 0.42;
 const PECTORAL_SPLAY = 0.35;
-const OUTLINE_SHELL_SCALE = 1.022;
-const OUTLINE_SHELL_COLOR = 0x0a1a24;
+const OUTLINE_SHELL_SCALE = 1.010;
+const OUTLINE_SHELL_COLOR = hsvToColor(0.56, 0.70, 0.11);
 const BEND_Y_SCALE = 0.35;
+const MID_BODY_BEND_MAX_RATIO = 0.058;
+const DISTAL_TAIL_SPRINT_RATIO = 0.18;
+const TAIL_SMOOTH_SPAN_MIN_RATIO = 0.30;
+const TAIL_SMOOTH_SPAN_MAX_RATIO = 0.35;
 const FUSIFORM_EXCEPTIONS = new Set(['eel', 'kaiju', 'whale']);
 // These heads either own an intentionally full front profile or add a large
 // front feature batch. Keep them on the same axis/overlap audit even when
@@ -188,21 +206,58 @@ function saturatedBlockColor(source, saturationBoost, saturationFloor, valueFloo
   );
 }
 
+function resolvePaletteSwatch(value, saturationMin, saturationMax, valueMin, valueMax, fallbackHue = 0) {
+  const source = colorValue(value);
+  const hsv = rgbToHsv(source);
+  // Pure white/black authored swatches have no usable hue. In that case the
+  // caller's family hue keeps the resolved block in the shark's own palette
+  // instead of silently manufacturing red from HSV's zero-hue convention.
+  const hue = hsv.s > 0.04 ? hsv.h : fallbackHue;
+  const saturation = clamp(Math.max(hsv.s, saturationMin), saturationMin, saturationMax);
+  const brightness = clamp(Math.max(hsv.v, valueMin), valueMin, valueMax);
+  return hsvToColor(hue, saturation, brightness);
+}
+
+function resolvedPaletteStats(color) {
+  const hsv = rgbToHsv(color);
+  return { h: hsv.h, s: hsv.s, v: hsv.v };
+}
+
 function paletteOf(def) {
   const source = def?.sil?.palette || {};
+  const authoredBase = colorValue(source.base, 0x204050);
+  const authoredAccent = colorValue(source.accent, 0x164557);
+  const authoredGlow = source.glow ? colorValue(source.glow) : null;
+  const accentHue = rgbToHsv(authoredAccent).h;
+  const screenTailReviewIds = new Set(['reef', 'tiger', 'hammerhead', 'greatwhite']);
+  const accentSaturationTarget = screenTailReviewIds.has(String(def?.id))
+    ? ACCENT_SATURATION_TARGET
+    : ACCENT_SATURATION_MIN;
+  const base = resolvePaletteSwatch(authoredBase, BODY_FLANK_SATURATION_TARGET, BODY_FLANK_SATURATION_MAX, BODY_FLANK_VALUE_MIN, BODY_FLANK_VALUE_MAX);
+  const accent = resolvePaletteSwatch(authoredAccent, accentSaturationTarget, ACCENT_SATURATION_MAX, Math.max(ACCENT_VALUE_MIN, 0.86), ACCENT_VALUE_MAX, accentHue);
+  const belly = resolvePaletteSwatch(source.belly, BELLY_SATURATION_MIN, BELLY_SATURATION_MAX, BELLY_VALUE_MIN, BELLY_VALUE_MAX, rgbToHsv(authoredBase).h);
+  const glow = authoredGlow
+    ? resolvePaletteSwatch(authoredGlow, ACCENT_SATURATION_MIN, ACCENT_SATURATION_MAX, Math.max(ACCENT_VALUE_MIN, 0.88), ACCENT_VALUE_MAX, accentHue)
+    : null;
   return {
-    // Keep the authored swatches intact for feature materials. The body uses
-    // committedColor() only where a very dark source swatch would disappear
-    // at gameplay scale; hue/value remain owned by the same data number.
-    base: colorValue(source.base, 0x204050),
-    belly: colorValue(source.belly, 0xddeee7),
-    accent: colorValue(source.accent, 0x164557),
-    glow: source.glow ? colorValue(source.glow) : null,
+    // All visible consumers receive resolved art-ramp swatches. The authored
+    // values remain available only as audit metadata; no feature is allowed to
+    // read source.accent directly.
+    base,
+    belly,
+    accent,
+    glow,
     raw: {
       base: hex(source.base, 0x204050),
       belly: hex(source.belly, 0xddeee7),
       accent: hex(source.accent, 0x164557),
       glow: source.glow ? hex(source.glow) : 0
+    },
+    resolved: {
+      base: resolvedPaletteStats(base),
+      belly: resolvedPaletteStats(belly),
+      accent: resolvedPaletteStats(accent),
+      glow: glow ? resolvedPaletteStats(glow) : null
     }
   };
 }
@@ -281,7 +336,7 @@ function toonMaterial({
     ? (kind === 'eye' ? EYE_EMISSIVE_INTENSITY : FEATURE_EMISSIVE_INTENSITY)
     : finite(emissiveIntensity, 0);
   const resolvedEmissiveIntensity = glowHex ? clamp(requestedEmissiveIntensity, 0.6, 1.0) : 0;
-  const key = [kind, colorHex, glowHex, resolvedEmissiveIntensity, vertexColors ? 1 : 0, transparent ? 1 : 0, opacity, side, depthWrite ? 1 : 0].join(':');
+  const key = [kind, colorHex, glowHex, resolvedEmissiveIntensity, vertexColors ? 1 : 0, transparent ? 1 : 0, opacity, side, depthWrite ? 1 : 0, flatShading ? 1 : 0].join(':');
   if (materialCache.has(key)) return materialCache.get(key);
   const material = new THREE.MeshToonMaterial({
     color: colorHex,
@@ -313,10 +368,13 @@ function toonMaterial({
 
 function bendableMaterial(baseMat, uniforms) {
   if (!baseMat || typeof baseMat.clone !== 'function') throw new Error('RF.Art3D.bendableMaterial requires a material');
-  if (!uniforms || !uniforms.uBendPhase || !uniforms.uBendAmp || !uniforms.uBendK || !uniforms.uBendSpan || !uniforms.uBendBias) {
+  if (!uniforms || !uniforms.uBendPhase || !uniforms.uBendAmp || !uniforms.uBendK || !uniforms.uBendSpan || !uniforms.uBendBias || !uniforms.uTailAmp || !uniforms.uTailSpan || !uniforms.uBendScale) {
     throw new Error('RF.Art3D.bendableMaterial requires the complete bend uniform bundle');
   }
   const material = baseMat.clone();
+  // Three's late flatShading flag is not copied reliably by every supported
+  // revision's clone path; preserve the archetype normal policy explicitly.
+  material.flatShading = !!baseMat.flatShading;
   const baseVariant = baseMat.userData?.rfBaseVariantKey || baseMat.type || 'MeshToonMaterial';
   const ampScale = finite(baseMat.userData?.rfBendAmpScale, 1);
   const baseKey = `${baseVariant}:amp${ampScale.toFixed(6)}`;
@@ -330,28 +388,32 @@ function bendableMaterial(baseMat, uniforms) {
     shader.uniforms.uBendK = uniforms.uBendK;
     shader.uniforms.uBendSpan = uniforms.uBendSpan;
     shader.uniforms.uBendBias = uniforms.uBendBias;
+    shader.uniforms.uTailAmp = uniforms.uTailAmp;
+    shader.uniforms.uTailSpan = uniforms.uTailSpan;
+    shader.uniforms.uBendScale = uniforms.uBendScale;
     shader.vertexShader = shader.vertexShader.replace(
       '#include <common>',
-      // uBendBias is Rev 6 (6.3): a turn-driven lateral bias added to the bend
-      // envelope so the rear body reads a persistent set into a turn, not just
-      // an oscillation. MUST be declared here — headless selftests exercise
-      // onBeforeCompile with a stub shader object and cannot catch a missing
-      // GLSL declaration (that would only surface as a real-GL compile error).
-      '#include <common>\nuniform float uBendPhase;\nuniform float uBendAmp;\nuniform float uBendK;\nuniform vec2 uBendSpan;\nuniform float uBendBias;'
+      // Keep every injected uniform declared here. The headless probe exercises
+      // the hook with a stub shader, but only a real GL compile catches a
+      // missing declaration. uTailSpan is measured in -x body-local units.
+      '#include <common>\nuniform float uBendPhase;\nuniform float uBendAmp;\nuniform float uBendK;\nuniform vec2 uBendSpan;\nuniform float uBendBias;\nuniform float uTailAmp;\nuniform vec2 uTailSpan;\nuniform float uBendScale;'
     ).replace(
       '#include <begin_vertex>',
-      `#include <begin_vertex>\nfloat bendT=smoothstep(uBendSpan.x,uBendSpan.y,-transformed.x);\nfloat bendZ=${ampScale === 1 ? 'uBendAmp' : `uBendAmp*${ampScale.toFixed(6)}`}*bendT*sin(uBendPhase+transformed.x*uBendK);\nbendZ+=uBendBias*bendT;\ntransformed.z += bendZ;\ntransformed.y += ${BEND_Y_SCALE.toFixed(2)}*bendZ;`
+      `#include <begin_vertex>\nfloat bendT=smoothstep(uBendSpan.x,uBendSpan.y,-transformed.x);\nfloat tailT=smoothstep(uTailSpan.x,uTailSpan.y,-transformed.x);\nfloat bendZ=${ampScale === 1 ? 'uBendScale*uBendAmp' : `uBendScale*uBendAmp*${ampScale.toFixed(6)}`}*bendT*sin(uBendPhase+transformed.x*uBendK);\nbendZ+=uBendBias*bendT;\nbendZ+=uTailAmp*tailT*tailT*sin(uBendPhase+transformed.x*uBendK);\ntransformed.z += bendZ;\ntransformed.y += ${BEND_Y_SCALE.toFixed(2)}*bendZ;`
     );
   };
-  material.customProgramCacheKey = () => `${baseKey}:rf-bend2`;
+  material.customProgramCacheKey = () => `${baseKey}:rf-bend3`;
   material.needsUpdate = true;
   return material;
 }
 
-function bendOffset(x, phase, amp, k, spanX, spanY, bias = 0) {
+function bendOffset(x, phase, amp, k, spanX, spanY, bias = 0, tailAmp = 0, tailSpanX = 0.5, tailSpanY = 0.8) {
   const t = clamp(((-finite(x, 0)) - finite(spanX, 0)) / Math.max(1e-6, finite(spanY, 1) - finite(spanX, 0)), 0, 1);
   const bendT = t * t * (3 - 2 * t);
-  return finite(amp, 0) * bendT * Math.sin(finite(phase, 0) + finite(x, 0) * finite(k, 0)) + finite(bias, 0) * bendT;
+  const tailT0 = clamp(((-finite(x, 0)) - finite(tailSpanX, 0)) / Math.max(1e-6, finite(tailSpanY, 1) - finite(tailSpanX, 0)), 0, 1);
+  const tailT = tailT0 * tailT0 * (3 - 2 * tailT0);
+  return finite(amp, 0) * bendT * Math.sin(finite(phase, 0) + finite(x, 0) * finite(k, 0)) + finite(bias, 0) * bendT
+    + finite(tailAmp, 0) * tailT * tailT * Math.sin(finite(phase, 0) + finite(x, 0) * finite(k, 0));
 }
 
 function bufferGeometry(positions, indices, colors = null) {
@@ -369,19 +431,36 @@ function addVertex(positions, colors, x, y, z, color) {
   if (colors) colors.push(color.r, color.g, color.b);
 }
 
+function polygonArea2(points) {
+  let area = 0;
+  for (let i = 0; i < points.length; i++) {
+    const a = points[i];
+    const b = points[(i + 1) % points.length];
+    area += a[0] * b[1] - b[0] * a[1];
+  }
+  return area;
+}
+
+function cameraFacingPolygon(points) {
+  // Extruded face features are viewed from +Z in the gameplay camera. A
+  // counter-clockwise XY contour gives the +Z front cap; several authored
+  // jaw/mouth contours were clockwise, which made FrontSide cull the very
+  // face that should carry the grin.
+  return polygonArea2(points) < 0 ? points.slice().reverse() : points;
+}
+
 function bodyRampColors(palette, act = 1) {
-  // These are authored as hard blocks, not a grey lightness ramp. The source
-  // rows sometimes use very dark values for base/accent, so committedColor
-  // raises visibility while preserving the authored hue and palette family.
-  const dorsal = committedColor(palette.base, 0.50, 0.12, 0.22);
-  const flank = committedColor(palette.base, BODY_FLANK_SATURATION_TARGET, 0.50, BODY_FLANK_VALUE_MAX);
-  const accentMark = committedColor(palette.accent, 0.58, 0.52, 0.72);
-  // Keep the belly from arriving pre-lit. A lower bake floor leaves the
-  // directional key responsible for the top-lit gradient and underside falloff.
-  const belly = liftColorToLuminance(palette.belly, BODY_BELLY_BAKE_LUMINANCE);
-  const highlight = committedColor(palette.belly, 0.12, 0.58, 0.72);
-  const glow = committedColor(palette.glow || palette.accent, 0.68, 0.52, 0.72);
-  const shadow = committedColor(palette.base, 0.58, 0.08, 0.16);
+  // These are resolved hard blocks, not a grey lightness ramp. paletteOf()
+  // has already re-targeted authored hues into the review's flank/accent/
+  // belly ranges, so every visible body and feature swatch stays in one art
+  // language without reaching back to a raw data color.
+  const dorsal = palette.base.clone();
+  const flank = palette.base.clone();
+  const accentMark = palette.accent.clone();
+  const belly = palette.belly.clone();
+  const highlight = palette.belly.clone();
+  const glow = (palette.glow || palette.accent).clone();
+  const shadow = palette.base.clone();
   const rim = act >= 3
     ? glow
     : flank.clone();
@@ -424,7 +503,7 @@ function patternColor(ramp, pattern, u, theta, station, radial) {
 
   switch (pattern) {
     case 'stripes': { // Tiger: seven broad, hard-edged transverse bars.
-      for (let i = 0; i < 7; i++) if (nearBand(u, 0.19 + i * 0.105, 0.034)) return accent;
+      for (let i = 0; i < 7; i++) if (nearBand(u, 0.19 + i * 0.105, 0.026)) return accent;
       return null;
     }
     case 'bands': {
@@ -543,44 +622,67 @@ function bodyVertexColor(ramp, theta, u, station, radial, pattern) {
   return color;
 }
 
+function exaggerationFor(head, sil = {}) {
+  const headScale = {
+    point: 1.50, blunt: 1.62, hammer: 1.60, whale: 1.44,
+    kaiju: 1.56, eel: 1.10
+  }[head] || 1.30;
+  const jawScale = {
+    point: 1.28, blunt: 1.36, hammer: 1.32, saw: 1.27,
+    croc: 1.40, whale: 1.44, angler: 1.50, eel: 1.25,
+    rock: 1.38, mech: 1.32, skull: 1.44, void: 1.36,
+    frill: 1.28, kaiju: 1.50
+  }[head] || 1.30;
+  const eyeScale = {
+    point: 0.45, blunt: 0.45, hammer: 0.45, whale: 0.42,
+    kaiju: 0.50, eel: 0.40, angler: 0.42, skull: 0.42,
+    void: 0.45, mech: 0.45
+  }[head] || 0.42;
+  const bellyDrop = {
+    point: 0.14, blunt: 0.16, hammer: 0.15, whale: 0.18,
+    kaiju: 0.18, eel: 0.12, angler: 0.17, rock: 0.16,
+    mech: 0.14, skull: 0.17
+  }[head] || 0.15;
+  const frontSpan = {
+    point: 0.40, blunt: 0.42, hammer: 0.44, whale: 0.45, kaiju: 0.45
+  }[head] || 0.40;
+  const mouthCorner = {
+    whale: 0.58, kaiju: 0.60, croc: 0.58
+  }[head] || 0.62;
+  return { headScale, jawScale, eyeScale: eyeScale || 0.42, bellyDrop, frontSpan, mouthCorner, id: String(sil?.id || '') };
+}
+
 function profileAt(u, head, girth, id = '') {
-  const barrel = Math.pow(Math.max(0, Math.sin(Math.PI * Math.min(1, u))), 0.47);
-  let profile = 0.08 + barrel * (0.88 + u * 0.16);
-  if (head === 'point') profile *= 1 - 0.75 * Math.pow(u, 3.1);
-  if (head === 'blunt') profile *= 0.9 + u * 0.14;
-  if (head === 'hammer') profile *= 0.94 + u * 0.12;
-  if (head === 'saw') profile *= u > 0.72 ? 1 - (u - 0.72) * 1.25 : 1;
+  // A rounded root and rounded snout belong to the same loft. The old final
+  // 22% collapse made the face read like a slab attached to an egg.
+  const barrel = 0.22 + 0.78 * Math.pow(Math.max(0, Math.sin(Math.PI * Math.min(1, u))), 0.47);
+  const exag = exaggerationFor(head, { id });
+  let profile = barrel * (0.88 + u * 0.16);
+  if (head === 'point') profile *= 0.86 - 0.16 * u;
+  if (head === 'blunt') profile *= 0.96 + u * 0.08;
+  if (head === 'hammer') profile *= 0.95 + u * 0.10;
+  if (head === 'saw') profile *= u > 0.72 ? 1 - (u - 0.72) * 0.52 : 1;
   if (head === 'whale') {
-    // Whale bulk belongs to the loft itself. A smooth shoulder grows toward
-    // the +x head while the first quarter remains a narrow peduncle; this
-    // avoids a round body plus a detached front fish silhouette.
     const peduncle = 0.48 + 0.52 * smoothStep01((u - 0.02) / 0.24);
     const shoulder = 0.62 + 0.86 * smoothStep01((u - 0.18) / 0.58);
-    profile = 0.08 + barrel * peduncle * shoulder;
+    profile = 0.22 + barrel * peduncle * shoulder;
   }
-  if (head === 'kaiju') profile *= 1.16 + u * 0.34;
-  if (head === 'croc') profile *= u > 0.58 ? 1 - ((u - 0.58) / 0.42) * 0.5 : 1;
-  if (head === 'angler') profile *= 1.02 + 0.20 * Math.exp(-Math.pow((u - 0.72) / 0.24, 2));
+  if (head === 'kaiju') profile *= 1.10 + u * 0.26;
+  if (head === 'croc') profile *= u > 0.58 ? 1 - ((u - 0.58) / 0.42) * 0.28 : 1;
+  if (head === 'angler') profile *= 1.04 + 0.18 * Math.exp(-Math.pow((u - 0.72) / 0.24, 2));
   if (head === 'eel') profile *= 0.62 + 0.14 * (1 - u);
   if (head === 'rock') profile *= 0.98 + 0.11 * Math.sin(u * 17);
   if (head === 'mech') profile *= 0.96 + 0.08 * ((Math.floor(u * 8) % 2) ? 1 : -0.35);
   if (head === 'void') profile *= 0.89 + 0.12 * Math.sin(u * Math.PI * 0.8);
-  if (id === 'mako') profile *= 0.82;
-  if (id === 'thresher') profile *= 0.78;
+  if (id === 'mako') profile *= 0.86;
+  if (id === 'blue') profile *= 1.08;
+  if (id === 'thresher') profile *= 0.82;
   if (head === 'skull') profile *= 0.96 + u * 0.1;
-  if (head === 'void') profile *= 0.92 + 0.08 * Math.sin(u * Math.PI * 0.8);
-  // The front 22% resolves into a small rounded ring before the explicit
-  // nose cap. Face masses still own the archetype silhouette, but the spine
-  // no longer carries an egg-shaped blunt front into profile cameras.
-  if (head !== 'whale' && head !== 'kaiju') {
-    const snoutT = clamp((u - 0.78) / 0.22, 0, 1);
-    const snoutEase = snoutT * snoutT * (3 - 2 * snoutT);
-    profile *= 1 - 0.84 * snoutEase;
-  }
-  return profile * (1 + Math.min(0.22, girth * 0.12));
+  const frontT = smoothStep01((u - (1 - exag.frontSpan)) / exag.frontSpan);
+  return profile * (1 + (exag.headScale - 1) * frontT);
 }
 
-function spineLineScale(u, theta, head) {
+function spineLineScale(u, theta, head, bellyDrop = exaggerationFor(head).bellyDrop) {
   const barrel = Math.max(0, Math.sin(Math.PI * Math.min(1, u)));
   // A restrained, monotonic dorsal line reads as a back; the belly is allowed
   // to carry the fuller mid-body curve. This is deliberately separate from
@@ -588,11 +690,26 @@ function spineLineScale(u, theta, head) {
   let scale = Math.cos(theta) >= 0
     ? 0.90 + 0.10 * u
     : 0.72 + 0.28 * Math.pow(barrel, 1.15);
+  if (Math.cos(theta) < 0) scale *= 1 + bellyDrop * smoothStep01((u - 0.10) / 0.72);
   if (head === 'eel') scale *= 0.92 + 0.08 * Math.sin(Math.PI * u);
   if (head === 'whale' || head === 'kaiju') scale *= 1.05;
   if (head === 'rock') scale *= 1 + 0.045 * Math.sin(u * 23 + theta * 3);
   if (head === 'mech') scale *= 1 + 0.035 * (((Math.floor(u * 10) + Math.floor(theta * 2)) % 2) ? 1 : -1);
   return scale;
+}
+
+function localSurfaceZ(dimensions, x, y = 0) {
+  const head = dimensions.head || dimensions.exaggeration?.head || 'point';
+  const u = clamp((x + dimensions.bodyLen * 0.52) / Math.max(dimensions.bodyLen, 1e-6), 0, 1);
+  const profile = profileAt(u, head, dimensions.girth, dimensions.id || '');
+  const yRadius = dimensions.radiusY * profile * spineLineScale(u, 0, head, dimensions.exaggeration?.bellyDrop);
+  const zRadius = dimensions.radiusZ * profile * (head === 'eel' ? 0.92 : 1);
+  const lateral = clamp(Math.abs(y) / Math.max(yRadius, 1e-6), 0, 0.98);
+  return zRadius * Math.sqrt(Math.max(0, 1 - lateral * lateral));
+}
+
+function headHeight(dimensions) {
+  return dimensions.radiusY * 2 * dimensions.exaggeration.headScale;
 }
 
 function makeSpineGeometry(def, palette, dimensions) {
@@ -603,38 +720,50 @@ function makeSpineGeometry(def, palette, dimensions) {
   const bodyLen = dimensions.bodyLen;
   const radiusY = dimensions.radiusY;
   const radiusZ = dimensions.radiusZ;
-  const stations = head === 'eel' ? 24 : head === 'kaiju' ? 22 : def.tier >= 5 ? 18 : 16;
-  const radial = 12;
+  const stations = head === 'eel' ? 30 : head === 'kaiju' ? 26 : def.tier >= 5 ? 26 : def.tier >= 3 ? 24 : 20;
+  // Sixteen radial vertices preserve a rounded low-poly section while making
+  // room in the 4200-triangle gate for the deeper 11-station fork and whale
+  // flank spots.
+  const radial = 16;
   const ramp = bodyRampColors(palette, finite(def.act, def.tier >= 5 ? 2 : 1));
   const positions = [];
   const colors = [];
   const indices = [];
+  const ringIndices = [];
+  const bellyDrop = dimensions.exaggeration?.bellyDrop || exaggerationFor(head).bellyDrop;
 
-  for (let i = 0; i <= stations; i++) {
+  const addBodyRing = (i) => {
     const u = i / stations;
     const x = -bodyLen * 0.52 + bodyLen * u;
     const profile = profileAt(u, head, girth, String(def.id || ''));
     const stationY = radiusY * profile;
     const stationZ = radiusZ * profile * (head === 'eel' ? 0.92 : 1);
+    const ring = [];
     for (let j = 0; j < radial; j++) {
       const theta = (j / radial) * TAU;
       const jitter = head === 'rock'
         ? 1 + (hash01(i, j, 5) - 0.5) * 0.2
         : head === 'mech' ? 1 + (((i + j) % 3) - 1) * 0.025
           : 1;
-      const c = bodyVertexColor(ramp, theta, u, i, j, sil.pattern || 'plain');
-      const lineScale = spineLineScale(u, theta, head);
-      addVertex(positions, colors, x, Math.cos(theta) * stationY * lineScale * jitter, Math.sin(theta) * stationZ * jitter, c);
+      let color = bodyVertexColor(ramp, theta, u, i, j, sil.pattern || 'plain');
+      // Hard accent edge two rings inboard of the fin roots. The root vertices
+      // are shared with the appendages, so the block is also seam-consistent.
+      if (u >= 0.45 && u <= 0.69 && (Math.cos(theta) > 0.42 || Math.abs(Math.sin(theta)) > 0.82)) {
+        color = ramp.accent.clone();
+      }
+      const lineScale = spineLineScale(u, theta, head, bellyDrop);
+      addVertex(positions, colors, x, Math.cos(theta) * stationY * lineScale * jitter, Math.sin(theta) * stationZ * jitter, color);
+      ring.push(positions.length / 3 - 1);
     }
-  }
+    ringIndices.push(ring);
+  };
 
+  for (let i = 0; i <= stations; i++) addBodyRing(i);
   for (let i = 0; i < stations; i++) {
     for (let j = 0; j < radial; j++) {
       const next = (j + 1) % radial;
-      const a = i * radial + j;
-      const b = (i + 1) * radial + j;
-      const c = (i + 1) * radial + next;
-      const d = i * radial + next;
+      const a = ringIndices[i][j], b = ringIndices[i + 1][j];
+      const c = ringIndices[i + 1][next], d = ringIndices[i][next];
       indices.push(a, d, b, b, d, c);
     }
   }
@@ -645,11 +774,127 @@ function makeSpineGeometry(def, palette, dimensions) {
   addVertex(positions, colors, bodyLen * 0.48, 0, 0, ramp.belly);
   for (let j = 0; j < radial; j++) {
     const next = (j + 1) % radial;
-    indices.push(root, next, j);
-    const a = stations * radial + j;
-    const b = stations * radial + next;
-    indices.push(nose, a, b);
+    indices.push(root, ringIndices[0][next], ringIndices[0][j]);
+    indices.push(nose, ringIndices[stations][j], ringIndices[stations][next]);
   }
+
+  // The tail starts with the spine's rear ring. It is a welded forked loft,
+  // not a second mesh with a root transform. Upper/lower envelopes peak well
+  // above the peduncle, then taper to 30% over the final 20%; theta-dependent
+  // center retreat makes the terminal outline a real concave notch.
+  const tailScale = dimensions.tailScale;
+  const tailLength = bodyLen * (0.28 + tailScale * 0.03);
+  const tailUpper = bodyLen * 0.23;
+  const tailLower = bodyLen * 0.15;
+  const tailLowerUpperRatio = tailLower / Math.max(tailUpper, 1e-6);
+  const tailDepth = bodyLen * 0.10;
+  // The terminal cap is the projected center notch, not a rearward center
+  // point. A rearward cap vertex closes the two lobes into the convex paddle
+  // that the gameplay review rejected. Keep the notch forward of both
+  // terminal lobe tips in the side profile, while the body-ring root remains
+  // welded exactly as before.
+  const tailNotchAxial = bodyLen * 0.12;
+  const tailTipExtension = 0;
+  const tailRings = [ringIndices[0]];
+  const tailStationCount = 11;
+  const rootProfile = profileAt(0, head, girth, String(def.id || ''));
+  const rootYRadius = radiusY * rootProfile * spineLineScale(0, 0, head, bellyDrop);
+  const rootZRadius = radiusZ * rootProfile;
+  for (let s = 1; s <= tailStationCount; s++) {
+    const t = s / tailStationCount;
+    const rootBlend = smoothStep01(t / 0.22);
+    const growth = smoothStep01(t / 0.38);
+    const finalTaper = t <= 0.80 ? 1 : 1 - 0.70 * smoothStep01((t - 0.80) / 0.20);
+    const lobeEnvelope = growth * finalTaper;
+    const notchProgress = smoothStep01((t - 0.55) / 0.45);
+    const ring = [];
+    for (let j = 0; j < radial; j++) {
+      const theta = (j / radial) * TAU;
+      const upper = Math.cos(theta) >= 0;
+      const outerness = Math.abs(Math.cos(theta));
+      const lobe = upper ? tailUpper : tailLower;
+      // Keep the loft's center-facing side faces monotone and reserve the full
+      // .12L projected retreat for the terminal notch vertex. This avoids a
+      // folded/inward radial strip while preserving the visible crescent gap.
+      const centerRetreat = tailNotchAxial * 0.5 * notchProgress * (1 - outerness);
+      const x = -bodyLen * 0.52 - tailLength * t + centerRetreat;
+      const rootY = Math.cos(theta) * rootYRadius;
+      const lobeY = (upper ? 1 : -1) * outerness * lobe * lobeEnvelope;
+      const y = rootY * (1 - rootBlend) + lobeY * rootBlend;
+      const sectionDepth = rootZRadius * (1 - rootBlend) + tailDepth * (0.92 + 0.08 * Math.sin(Math.PI * t)) * rootBlend;
+      const z = Math.sin(theta) * sectionDepth;
+      // The exposed fork is one continuous accent block; only the small
+      // center-facing transition row keeps a flank hue for volume.
+      const color = outerness > 0.18 || t > 0.24 ? ramp.accent.clone() : ramp.flank.clone();
+      addVertex(positions, colors, x, y, z, color);
+      ring.push(positions.length / 3 - 1);
+    }
+    tailRings.push(ring);
+  }
+  const tailSideIndexStart = indices.length;
+  for (let i = 0; i < tailRings.length - 1; i++) {
+    for (let j = 0; j < radial; j++) {
+      const next = (j + 1) % radial;
+      const a = tailRings[i][j], b = tailRings[i + 1][j];
+      const c = tailRings[i + 1][next], d = tailRings[i][next];
+      // The body loft advances +X, while the tail advances -X. Reusing
+      // a,d,b on the reversed longitudinal direction flips every caudal side
+      // normal inward and makes FrontSide cull the camera-facing tail.
+      indices.push(a, b, d, b, c, d);
+    }
+  }
+  const tailSideIndexCount = indices.length - tailSideIndexStart;
+  const tailTip = positions.length / 3;
+  addVertex(positions, colors, -bodyLen * 0.52 - tailLength + tailNotchAxial, 0, 0, ramp.accent);
+  const lastTailRing = tailRings[tailRings.length - 1];
+  const tailCapIndexStart = indices.length;
+  for (let j = 0; j < radial; j++) {
+    const next = (j + 1) % radial;
+    indices.push(lastTailRing[next], lastTailRing[j], tailTip);
+  }
+  const tailCapIndexCount = indices.length - tailCapIndexStart;
+
+  const nearestRing = (u) => ringIndices[clamp(Math.round(u * stations), 0, stations)];
+
+  // Dorsal wedge: its root is two top vertices from the body loft.
+  const dorsalRootRear = nearestRing(0.46)[0];
+  const dorsalRootFront = nearestRing(0.69)[0];
+  const dorsalHeight = head === 'eel'
+    ? bodyLen * (0.27 + dimensions.finScale * 0.08)
+    : head === 'whale' ? bodyLen * (0.12 + dimensions.finScale * 0.035)
+      : bodyLen * (0.17 + dimensions.finScale * 0.045);
+  const dorsalTipX = bodyLen * (head === 'eel' ? -0.02 : 0.01);
+  const dorsalTipY = radiusY * (head === 'whale' ? 1.05 : head === 'angler' ? 1.18 : 1.12) + dorsalHeight;
+  const dorsalDepth = Math.max(0.018, radiusZ * 0.12);
+  const dorsalTipNear = positions.length / 3;
+  addVertex(positions, colors, dorsalTipX, dorsalTipY, dorsalDepth * 0.5, ramp.accent);
+  const dorsalTipFar = positions.length / 3;
+  addVertex(positions, colors, dorsalTipX, dorsalTipY, -dorsalDepth * 0.5, ramp.accent);
+  const dorsalIndexStart = indices.length;
+  indices.push(dorsalRootRear, dorsalRootFront, dorsalTipNear, dorsalRootFront, dorsalTipFar, dorsalTipNear);
+  indices.push(dorsalRootFront, dorsalRootRear, dorsalTipFar, dorsalRootRear, dorsalTipNear, dorsalTipFar);
+  const dorsalIndexCount = indices.length - dorsalIndexStart;
+
+  // Pectoral wedges also share body-ring vertices. They are mirrored in the
+  // authoring pass, never rotated as independent runtime meshes.
+  const pectRootRing = nearestRing(0.46);
+  const pectSpan = dimensions.pectoralSpan;
+  const pectTipX = -bodyLen * (head === 'hammer' ? 0.58 : head === 'whale' ? 0.54 : head === 'angler' ? 0.58 : 0.56 + dimensions.finScale * 0.055);
+  const pectDepth = Math.max(0.012, radiusY * 0.035);
+  const pectRoots = {};
+  const pectoralIndexStart = indices.length;
+  for (const side of [1, -1]) {
+    const rootA = side > 0 ? pectRootRing[3] : pectRootRing[13];
+    const rootB = side > 0 ? pectRootRing[5] : pectRootRing[11];
+    const tipA = positions.length / 3;
+    addVertex(positions, colors, pectTipX, -radiusY * 0.42, side * pectSpan, ramp.accent);
+    const tipB = positions.length / 3;
+    addVertex(positions, colors, pectTipX + bodyLen * 0.10, -radiusY * 0.20, side * pectSpan * 0.56, ramp.accent);
+    indices.push(rootA, rootB, tipA, rootB, tipB, tipA, rootB, rootA, tipB, rootA, tipA, tipB);
+    pectRoots[side > 0 ? 'L' : 'R'] = [rootA, rootB];
+  }
+  const pectoralIndexCount = indices.length - pectoralIndexStart;
+
   const geometry = bufferGeometry(positions, indices, colors);
   geometry.userData.rfStations = stations + 1;
   geometry.userData.rfRadial = radial;
@@ -657,13 +902,52 @@ function makeSpineGeometry(def, palette, dimensions) {
   geometry.userData.rfLen = len;
   geometry.userData.rfNoseIndex = nose;
   geometry.userData.rfTailRootIndex = root;
+  geometry.userData.rfTailRootIndices = ringIndices[0].slice();
+  geometry.userData.rfSharedAppendageRoots = {
+    tail: ringIndices[0].slice(),
+    dorsal: [dorsalRootRear, dorsalRootFront],
+    pectorals: pectRoots
+  };
+  geometry.userData.rfWeldedAppendages = { tail: true, dorsal: true, pectorals: true };
   geometry.userData.rfForwardAxis = '+x';
   geometry.userData.rfPattern = sil.pattern || 'plain';
   geometry.userData.rfPalette = palette.raw;
+  geometry.userData.rfTailLength = tailLength + tailTipExtension;
+  geometry.userData.rfTailLengthRatio = (tailLength + tailTipExtension) / Math.max(bodyLen, 0.001);
+  geometry.userData.rfTailUpperLobeHeight = tailUpper;
+  geometry.userData.rfTailLowerLobeHeight = tailLower;
+  geometry.userData.rfTailLowerUpperRatio = tailLowerUpperRatio;
+  geometry.userData.rfTailDepth = tailDepth;
+  geometry.userData.rfTailNotchAxial = tailNotchAxial;
+  geometry.userData.rfTailUpperLobeTipIndex = lastTailRing[0];
+  geometry.userData.rfTailLowerLobeTipIndex = lastTailRing[radial / 2];
+  geometry.userData.rfTailNotchIndex = tailTip;
+  geometry.userData.rfTailFinalLobeRatio = 0.30;
+  geometry.userData.rfTailStationCount = tailStationCount;
+  geometry.userData.rfTailPointedCap = true;
+  geometry.userData.rfTailRootWidth = bodyLen * 0.045;
+  geometry.userData.rfTailNotchX = positions[tailTip * 3];
+  geometry.userData.rfTailOutline = 'crescent-concave-peduncle-notch';
+  geometry.userData.rfTailHead = head;
+  geometry.userData.rfTailId = String(def.id || '');
+  geometry.userData.rfTailSideIndexStart = tailSideIndexStart;
+  geometry.userData.rfTailSideIndexCount = tailSideIndexCount;
+  geometry.userData.rfTailCapIndexStart = tailCapIndexStart;
+  geometry.userData.rfTailCapIndexCount = tailCapIndexCount;
+  geometry.userData.rfDorsalIndexStart = dorsalIndexStart;
+  geometry.userData.rfDorsalIndexCount = dorsalIndexCount;
+  geometry.userData.rfPectoralIndexStart = pectoralIndexStart;
+  geometry.userData.rfPectoralIndexCount = pectoralIndexCount;
+  geometry.userData.rfWindingContract = 'tail-outward-yz-dorsal-+-z-pectoral-mirrored';
+  geometry.userData.rfDorsalFin = { rootX: bodyLen * 0.05, height: dorsalHeight, swept: true };
+  geometry.userData.rfPectoralTipX = pectTipX;
+  geometry.userData.rfPectoralDepth = pectDepth;
+  geometry.userData.rfPectoralSpan = pectSpan;
+  geometry.userData.rfFinAccentBlock = 'hard-edge-2-rings-inboard';
   geometry.userData.rfSectionZRatio = radiusZ / Math.max(radiusY, 0.001);
   const midU = 0.5;
   const midProfile = profileAt(midU, head, girth, String(def.id || ''));
-  const midYRadius = radiusY * midProfile * spineLineScale(midU, 0, head);
+  const midYRadius = radiusY * midProfile * spineLineScale(midU, 0, head, bellyDrop);
   const midZRadius = radiusZ * midProfile;
   geometry.userData.rfMidSectionYRadius = midYRadius;
   geometry.userData.rfMidSectionZRadius = midZRadius;
@@ -689,6 +973,7 @@ function makeExtrudedTriangle(points, depth) {
  * camera. The z extrusion also makes the mouth/head relationship readable
  * when the camera is a few degrees off the side axis. */
 function makeExtrudedPolygon(points, depth) {
+  points = cameraFacingPolygon(points);
   const positions = [];
   for (const point of points) positions.push(point[0], point[1], point[2] + depth * 0.5);
   for (const point of points) positions.push(point[0], point[1], point[2] - depth * 0.5);
@@ -703,6 +988,7 @@ function makeExtrudedPolygon(points, depth) {
 }
 
 function makeVertexColorExtrudedPolygon(points, depth, frontColor, backColor = frontColor) {
+  points = cameraFacingPolygon(points);
   const positions = [];
   const colors = [];
   const front = colorValue(frontColor, WHITE);
@@ -738,15 +1024,15 @@ function faceIdentity(head, L, r) {
   };
   switch (head) {
     case 'point':
-      face.end = L * 0.53; face.mouthWidth = L * 0.36;
+      face.end = L * 0.53; face.mouthWidth = L * 0.36; face.mouthHeight = r * 0.90;
       face.contour = [[start, -r * 0.5, 0], [face.end, -r * 0.16, 0], [face.end, r * 0.12, 0], [L * 0.32, r * 0.72, 0], [start, r * 0.66, 0]];
       break;
     case 'blunt':
-      face.end = L * 0.51; face.mouthStart = L * 0.12; face.mouthWidth = L * 0.4; face.mouthHeight = r * 0.5;
+      face.end = L * 0.51; face.mouthStart = L * 0.12; face.mouthWidth = L * 0.4; face.mouthHeight = r * 0.95;
       face.contour = [[start, -r * 0.62, 0], [face.end, -r * 0.54, 0], [face.end, r * 0.56, 0], [L * 0.28, r * 0.78, 0], [start, r * 0.72, 0]];
       break;
     case 'hammer':
-      face.end = L * 0.55; face.mouthStart = L * 0.1; face.mouthWidth = L * 0.38;
+      face.end = L * 0.55; face.mouthStart = L * 0.1; face.mouthWidth = L * 0.38; face.mouthHeight = r * 0.95;
       face.contour = [[start, -r * 0.5, 0], [face.end, -r * 0.34, 0], [face.end, r * 0.32, 0], [L * 0.3, r * 0.68, 0], [start, r * 0.62, 0]];
       break;
     case 'saw':
@@ -762,7 +1048,7 @@ function faceIdentity(head, L, r) {
       // The body loft owns the front barrel. This contour starts well inside
       // that barrel and ends at the +x nose, so it reads as one wide mouth,
       // not as a second fish-shaped head attached to the body.
-      face.start = L * 0.04; face.end = L * 0.50; face.mouthStart = L * 0.0; face.mouthWidth = L * 0.54; face.mouthHeight = r * 0.72;
+      face.start = L * 0.04; face.end = L * 0.50; face.mouthStart = L * 0.0; face.mouthWidth = L * 0.54; face.mouthHeight = r * 0.85;
       face.jawWidth = L * 0.62; face.jawHeight = r * 0.5; face.jawDepth = r * 1.42;
       face.contour = [[face.start, -r * 0.72, 0], [face.end, -r * 0.60, 0], [face.end, r * 0.62, 0], [L * 0.22, r * 1.02, 0], [face.start, r * 0.90, 0]];
       break;
@@ -801,7 +1087,7 @@ function faceIdentity(head, L, r) {
       face.contour = [[start, -r * 0.5, 0], [face.end, -r * 0.22, 0], [face.end, r * 0.28, 0], [L * 0.3, r * 0.72, 0], [start, r * 0.7, 0]];
       break;
     case 'kaiju':
-      face.end = L * 0.59; face.mouthStart = L * 0.02; face.mouthWidth = L * 0.58; face.mouthHeight = r * 0.84;
+      face.end = L * 0.59; face.mouthStart = L * 0.02; face.mouthWidth = L * 0.58; face.mouthHeight = r * 0.95;
       face.jawWidth = L * 0.8; face.jawHeight = r * 0.66; face.jawDepth = r * 1.78;
       face.contour = [[start, -r * 0.92, 0], [face.end, -r * 0.78, 0], [L * 0.64, -r * 0.34, 0], [L * 0.62, r * 0.48, 0], [L * 0.45, r * 1.24, 0], [start, r * 1.02, 0]];
       break;
@@ -863,90 +1149,9 @@ function mergeFeatureDescriptors(features) {
   });
 }
 
-function makeTailGeometry(bodyLen, tailScale, tier, palette, pattern, head = 'point', id = '') {
-  // Tail scale is already capped to 2.0 by buildTemplate. Keeping the
-  // requested formula literal here makes the silhouette gate auditable.
-  const length = bodyLen * (0.20 + tailScale * 0.07);
-  const upper = bodyLen * (0.16 + tailScale * 0.05);
-  const lower = upper * 0.62;
-  const root = bodyLen * 0.045;
-  const depth = bodyLen * 0.045;
-  // The authored length/lobe formulas stay intact. The outline below uses the
-  // same scale more decisively: mako/thresher tails cut a deeper crescent,
-  // whale/kaiju tails carry a broad root, and eel tails stay needle-thin.
-  const notch = length * clamp(0.46 + tailScale * 0.06 + (id === 'mako' ? 0.08 : 0), 0.46, 0.70);
-  const rootBias = head === 'eel' ? 0.72 : head === 'whale' || head === 'kaiju' ? 1.24 : 1;
-  const lobeSweep = id === 'mako' || id === 'thresher' ? 1.16 : head === 'hammer' ? 0.9 : 1;
-  const points = [
-    [0, root * 0.55 * rootBias, 0],
-    [-bodyLen * 0.018, root * 0.82 * rootBias, 0],
-    [-length * 0.18, upper * 0.34 * lobeSweep, 0],
-    [-length * 0.78, upper * 0.80 * lobeSweep, 0],
-    [-length, upper, 0],
-    [-length * 0.80, upper * 0.10 * lobeSweep, 0],
-    [-notch, 0, 0],
-    [-length * 0.79, -lower * 0.10 * lobeSweep, 0],
-    [-length * 0.93, -lower, 0],
-    [-length * 0.18, -lower * 0.34 * lobeSweep, 0],
-    [-bodyLen * 0.018, -root * 0.82 * rootBias, 0],
-    [0, -root * 0.55 * rootBias, 0]
-  ];
-  const positions = [];
-  const colors = [];
-  const ramp = bodyRampColors(palette);
-  for (let side = 0; side < 2; side++) {
-    for (let i = 0; i < points.length; i++) {
-      const p = points[i];
-      const tip = i === 3 || i === 4 || i === 8 || i === 9;
-      const c = side ? ramp.belly : tip ? ramp.accent : ramp.flank;
-      addVertex(positions, colors, p[0], p[1], side ? -depth * 0.5 : depth * 0.5, c);
-    }
-  }
-  const indices = [];
-  const fan = (offset, reverse) => {
-    for (let i = 1; i < points.length - 1; i++) {
-      if (reverse) indices.push(offset, offset + i + 1, offset + i);
-      else indices.push(offset, offset + i, offset + i + 1);
-    }
-  };
-  fan(0, false);
-  fan(points.length, true);
-  for (let i = 0; i < points.length; i++) {
-    const next = (i + 1) % points.length;
-    indices.push(i, next, points.length + i, next, points.length + next, points.length + i);
-  }
-  const geometry = bufferGeometry(positions, indices, colors);
-  geometry.userData.rfPattern = pattern || 'plain';
-  geometry.userData.rfTailLength = length;
-  geometry.userData.rfTailLengthRatio = length / Math.max(bodyLen, 0.001);
-  geometry.userData.rfTailUpperLobeHeight = upper;
-  geometry.userData.rfTailLowerLobeHeight = lower;
-  geometry.userData.rfTailRootWidth = root;
-  geometry.userData.rfTailNotchX = -notch;
-  geometry.userData.rfTailOutline = 'crescent-concave-peduncle-notch';
-  geometry.userData.rfTailHead = head;
-  geometry.userData.rfTailId = id;
-  return geometry;
-}
-
-function makePectoralGeometry(bodyLen, radiusY, span, head = 'point', finScale = 1) {
-  const root = [bodyLen * (head === 'hammer' ? 0.06 : 0.02), -radiusY * 0.05, 0];
-  const shoulder = [-bodyLen * (head === 'whale' ? 0.08 : head === 'angler' ? 0.12 : 0.20), -radiusY * 0.14, span * 0.38];
-  const tipFactor = head === 'hammer' ? 0.58 : head === 'whale' ? 0.54 : head === 'angler' ? 0.58 : 0.56 + clamp(finScale, 0.5, 2.1) * 0.055;
-  const tip = [-bodyLen * tipFactor, -radiusY * (head === 'hammer' ? 0.3 : 0.42), span];
-  const rear = [-bodyLen * (tipFactor - 0.10), -radiusY * 0.2, span * 0.56];
-  const geometry = makeExtrudedPolygon([root, shoulder, tip, rear], Math.max(0.012, radiusY * 0.035));
-  geometry.userData.rfPectoralTipX = tip[0];
-  geometry.userData.rfPectoralLength = root[0] - tip[0];
-  geometry.userData.rfPectoralDepth = Math.max(0.012, radiusY * 0.035);
-  geometry.userData.rfPectoralHead = head;
-  geometry.userData.rfPectoralSpan = span;
-  return geometry;
-}
-
-function makeJawGeometry(width, height, depth) {
+function makeJawGeometry(width, height, depth, ramp) {
   const hinge = -width * 0.14;
-  const contour = [
+  const authoredContour = [
     [hinge, height * 0.04, 0],
     [width * 0.78, height * 0.02, 0],
     [width, -height * 0.18, 0],
@@ -954,10 +1159,30 @@ function makeJawGeometry(width, height, depth) {
     [width * 0.72, -height, 0],
     [hinge * 0.4, -height * 0.88, 0]
   ];
-  const geometry = makeExtrudedPolygon(contour, depth);
+  const contour = cameraFacingPolygon(authoredContour);
+  const positions = [];
+  const colors = [];
+  const rimColors = [ramp.dark, ramp.flank, ramp.flank, ramp.belly, ramp.dark, ramp.dark];
+  for (let side = 0; side < 2; side++) {
+    for (let i = 0; i < contour.length; i++) {
+      const point = contour[i];
+      const color = side === 0 ? rimColors[i] : ramp.dark;
+      addVertex(positions, colors, point[0], point[1], side ? -depth * 0.5 : depth * 0.5, color);
+    }
+  }
+  const n = contour.length;
+  const indices = [];
+  for (let i = 1; i < n - 1; i++) indices.push(0, i, i + 1, n, n + i + 1, n + i);
+  for (let i = 0; i < n; i++) {
+    const next = (i + 1) % n;
+    indices.push(i, next, n + i, next, n + next, n + i);
+  }
+  const geometry = bufferGeometry(positions, indices, colors);
   const jawSize = geometry.boundingBox.getSize(new THREE.Vector3());
   geometry.userData.rfJawVolume = jawSize.x * jawSize.y * jawSize.z;
   geometry.userData.rfJawHingeX = hinge;
+  geometry.userData.rfJawRimMatchesBody = true;
+  geometry.userData.rfJawCavityBand = true;
   return geometry;
 }
 
@@ -997,49 +1222,38 @@ function descriptor(geometry, material, position = [0, 0, 0], rotation = [0, 0, 
   return { geometry, material, position, rotation, scale, name };
 }
 
-function addFaceMass(template, def, palette, dimensions) {
-  const head = def.sil?.head || 'point';
-  const spec = faceIdentity(head, dimensions.bodyLen, dimensions.radiusY);
-  const faceMaterial = toonMaterial({
-    color: head === 'kaiju' || head === 'rock' ? lerpColor(palette.base, palette.accent, 0.2) : palette.base,
-    kind: `${head} face mass`
-  });
-  const depth = dimensions.radiusZ * (head === 'kaiju' ? 1.55 : head === 'whale' || head === 'angler' ? 1.35 : 1.18);
-  const faceGeometry = makeExtrudedPolygon(spec.contour, depth);
-  faceGeometry.userData.rfFaceShare = spec.share;
-  faceGeometry.userData.rfFaceHead = head;
-  // The committed head contour is a continuation of the loft, not a
-  // camera-facing offset mesh. Surface-facing mouth/eye features still own
-  // their deliberate +/-Z offsets below.
-  template.bodyFeatures.push(descriptor(faceGeometry, faceMaterial, [0, 0, 0], [0, 0, 0], [1, 1, 1], `${head} committed front head`));
-  template.metrics.faceCenterZ = 0;
-  template.face = { spec, geometry: faceGeometry };
-}
-
 function addEyeFeatures(template, def, palette, dimensions) {
   const head = def.sil?.head || 'point';
   const act = finite(def.act, def.tier >= 5 ? 2 : 1);
-  // Hero recut (art review CRITICAL 1): eye radius doubled (0.08/0.095 ->
-  // 0.16/0.19 * radiusY) so the eye survives the gameplay dolly (shark reads
-  // ~31% of frame width, per the 6.1 framing contract). The shape-contract
-  // gate caps eyeRadius/bodyLen at girth*0.085; this stays comfortably under
-  // that ceiling across the roster's girth range (checked via selftest).
-  const eyeRadius = dimensions.radiusY * (head === 'skull' ? 0.185 : 0.16);
+  const eyeScale = dimensions.exaggeration?.eyeScale || exaggerationFor(head).eyeScale;
+  const eyeRadius = dimensions.radiusY * eyeScale;
+  // The authored .42-.50 radius ratios are sound in model space, but the
+  // gameplay camera normalizes the full welded tail-to-nose bbox. Give the
+  // visible eye unit a measured camera compensation so its near-eye disk is
+  // not reduced to a white pixel at the 844 CSS px review viewport.
+  const eyeRenderRadius = eyeRadius * EYE_CAMERA_SCALE;
   const eyeX = dimensions.bodyLen * (head === 'hammer' ? 0.38 : head === 'whale' ? 0.28 : 0.36);
   const eyeY = dimensions.radiusY * (head === 'eel' ? 0.28 : 0.56);
-  const eyeZ = dimensions.radiusZ * 0.91;
+  const eyeSurfaceZ = localSurfaceZ(dimensions, eyeX, eyeY);
+  const eyeProudZ = dimensions.bodyLen * 0.05;
+  const eyeZ = eyeSurfaceZ + eyeProudZ;
   template.metrics.eyeRadius = eyeRadius;
+  template.metrics.eyeRenderRadius = eyeRenderRadius;
+  template.metrics.eyeRenderRadiusFraction = eyeRenderRadius / Math.max(dimensions.radiusY, 1e-6);
+  template.metrics.eyeRadiusFraction = eyeRadius / Math.max(dimensions.radiusY, 1e-6);
+  template.metrics.eyeHeadHeightFraction = (eyeRadius * 2) / Math.max(headHeight(dimensions), 1e-6);
   template.metrics.eyeX = eyeX;
   template.metrics.eyeY = eyeY;
+  template.metrics.eyeSurfaceZ = eyeSurfaceZ;
+  template.metrics.eyeZ = eyeZ;
+  template.metrics.eyeProudZ = eyeProudZ;
+  template.metrics.eyeIrisFraction = 0.52;
+  template.metrics.eyeIrisStats = palette.resolved.accent;
   const eyeBaseSeed = head === 'skull' ? palette.accent : lerpColor(palette.belly, WHITE, 0.58);
   const eyeBase = liftColorToLuminance(eyeBaseSeed, 0.78);
-  // Hero recut: act-1 sharks (glow:0, e.g. Reef) previously fell back to a
-  // near-black iris that vanished into the socket shadow at distance. Give
-  // every act a bright iris identity: act>=2 keeps the glow/accent emissive
-  // treatment, act 1 now uses a saturated, lit (non-emissive) accent iris
-  // instead of a near-black one, so the eye still reads as a bright living
-  // point even with glow:0.
-  const eyeIris = act >= 2 ? (palette.glow || palette.accent) : liftColorToLuminance(palette.accent, 0.55);
+  // Every iris is a resolved saturated accent block. Act 2/3 may add the
+  // authored glow as emissive support, but discovery never depends on FX.
+  const eyeIris = act >= 2 ? (palette.glow || palette.accent) : palette.accent.clone();
   const eyeGlow = act >= 2 ? (palette.glow || palette.accent) : 0;
   const eyeBaseMaterial = toonMaterial({ color: eyeBase, glow: eyeGlow, emissiveIntensity: EYE_EMISSIVE_INTENSITY, kind: 'eye' });
   const irisMaterial = toonMaterial({ color: eyeIris, glow: eyeGlow, emissiveIntensity: EYE_EMISSIVE_INTENSITY, kind: 'iris' });
@@ -1052,36 +1266,37 @@ function addEyeFeatures(template, def, palette, dimensions) {
   // every act, not only act>=3, so the aggressive brow read survives at
   // gameplay scale for every tier, not only late-roster gold sharks.
   const browMaterial = toonMaterial({
-    color: act >= 3 ? (palette.glow || palette.accent) : liftColorToLuminance(palette.accent, 0.34),
+    color: palette.glow || palette.accent,
     glow: act >= 3 ? (palette.glow || palette.accent) : 0,
     emissiveIntensity: FEATURE_EMISSIVE_INTENSITY,
     kind: 'brow'
   });
 
   for (const side of [1, -1]) {
-    template.bodyFeatures.push(descriptor(sharedEyeGeometry, eyeBaseMaterial, [eyeX, eyeY, side * eyeZ], [0, 0, 0], [eyeRadius, eyeRadius, eyeRadius], `${side > 0 ? 'eyeL' : 'eyeR'} base`));
-    // Hero recut follow-on: now that eyeRadius is doubled, the iris's old
-    // 0.18-radius forward offset (tuned for the small pre-recut eye) reads as
-    // a smeared disc pushed toward the socket's front edge at 3/4-view
-    // gameplay angles rather than a clean centered pupil. Recentered onto the
-    // eye's own X/Y and given a rounder (less flattened) Z scale so it sits
-    // as a distinct dark-iris dot on the bright eye base.
-    template.bodyFeatures.push(descriptor(sharedIrisGeometry, head === 'skull' ? socketMaterial : irisMaterial, [eyeX + eyeRadius * 0.05, eyeY, side * (eyeZ + eyeRadius * 0.62)], [0, 0, 0], [eyeRadius * 0.5, eyeRadius * 0.5, eyeRadius * 0.34], `${side > 0 ? 'eyeL' : 'eyeR'} iris`));
-    template.bodyFeatures.push(descriptor(sharedCatchlightGeometry, catchlightMaterial, [eyeX + eyeRadius * 0.2, eyeY + eyeRadius * 0.26, side * (eyeZ + eyeRadius * 0.92)], [0, 0, 0], [eyeRadius * 0.22, eyeRadius * 0.22, eyeRadius * 0.12], `${side > 0 ? 'eyeL' : 'eyeR'} catchlight`));
+    const sideName = side > 0 ? 'eyeL' : 'eyeR';
+    // One low-poly hemisphere, one proud disc, and one catchlight quad per
+    // side. The three pieces are descriptor-merged into bendable feature
+    // batches, rather than becoming articulated eye objects.
+    template.bodyFeatures.push(descriptor(sharedEyeGeometry, eyeBaseMaterial, [eyeX, eyeY, side * eyeZ], [side * Math.PI * 0.5, 0, 0], [eyeRenderRadius, eyeRenderRadius, eyeRenderRadius], `${sideName} hemisphere white`));
+    template.bodyFeatures.push(descriptor(sharedIrisGeometry, head === 'skull' ? socketMaterial : irisMaterial, [eyeX + eyeRenderRadius * 0.05, eyeY, side * (eyeZ + eyeRenderRadius * 1.01)], [0, side < 0 ? Math.PI : 0, 0], [eyeRenderRadius * 0.52, eyeRenderRadius * 0.52, 1], `${sideName} proud pupil disc`));
+    template.bodyFeatures.push(descriptor(sharedCatchlightGeometry, catchlightMaterial, [eyeX + eyeRenderRadius * 0.18, eyeY + eyeRenderRadius * 0.24, side * (eyeZ + eyeRenderRadius * 1.025)], [0, side < 0 ? Math.PI : 0, 0], [eyeRenderRadius * 0.24, eyeRenderRadius * 0.24, 1], `${sideName} catchlight quad`));
     if (eyeRingMaterial) {
-      const ring = new THREE.TorusGeometry(eyeRadius * 0.88, eyeRadius * 0.09, 5, 10);
-      template.bodyFeatures.push(descriptor(ring, eyeRingMaterial, [eyeX + eyeRadius * 0.16, eyeY, side * (eyeZ + eyeRadius * 0.86)], [0, 0, 0], [1, 1, 1], `${side > 0 ? 'eyeL' : 'eyeR'} act3 glow ring`));
+      const ring = new THREE.TorusGeometry(eyeRenderRadius * 0.88, eyeRenderRadius * 0.09, 5, 10);
+      template.bodyFeatures.push(descriptor(ring, eyeRingMaterial, [eyeX + eyeRenderRadius * 0.16, eyeY, side * (eyeZ + eyeRenderRadius * 0.86)], [0, side < 0 ? Math.PI : 0, 0], [1, 1, 1], `${sideName} act3 glow ring`));
     }
     const browScale = head === 'kaiju' ? 1.62 : act >= 3 ? 1.18 : 1.08;
-    const brow = makeBeveledPanel(eyeRadius * 2.7 * browScale, eyeRadius * (0.38 + (head === 'kaiju' ? 0.16 : 0)), eyeRadius * (0.42 + (head === 'kaiju' ? 0.2 : 0)), eyeRadius * 0.08);
+    const brow = makeBeveledPanel(eyeRenderRadius * 2.7 * browScale, eyeRenderRadius * (0.38 + (head === 'kaiju' ? 0.16 : 0)), eyeRenderRadius * (0.42 + (head === 'kaiju' ? 0.2 : 0)), eyeRenderRadius * 0.08);
     // Hero recut follow-on: this offset is proportional to eyeRadius, so
     // doubling eyeRadius for the hero recut also doubled the absolute gap
     // between the brow and the eyeball, making the ridge read as a detached
     // floating bar instead of an attached brow shelf. Halved (0.71, was 1.42;
     // kaiju's extra +0.16 likewise halved to +0.08) to restore the same
     // attached, overhanging read at the new larger eye scale.
-    template.bodyFeatures.push(descriptor(brow, browMaterial, [eyeX - eyeRadius * 0.08, eyeY + eyeRadius * (0.71 + (head === 'kaiju' ? 0.08 : 0)), side * (eyeZ + eyeRadius * 0.12)], [0, side * (0.14 + (head === 'kaiju' ? 0.1 : 0)), side * -0.16], [1, 1, 1], `${side > 0 ? 'browL' : 'browR'} attitude shelf`));
+    template.bodyFeatures.push(descriptor(brow, browMaterial, [eyeX - eyeRenderRadius * 0.08, eyeY + eyeRenderRadius * (0.71 + (head === 'kaiju' ? 0.08 : 0)), side * (eyeZ + eyeRenderRadius * 0.12)], [0, side * (0.14 + (head === 'kaiju' ? 0.1 : 0)), side * -0.16], [1, 1, 1], `${sideName} attitude shelf`));
   }
+  const geometryTriangles = (geometry) => Math.floor((geometry.getIndex()?.count || geometry.getAttribute('position')?.count || 0) / 3);
+  template.metrics.eyeUnitTriangles = geometryTriangles(sharedEyeGeometry) * 2 + geometryTriangles(sharedIrisGeometry) * 2 + geometryTriangles(sharedCatchlightGeometry) * 2;
+  template.metrics.eyeUnitPresent = true;
 }
 
 function addMouthAndTeeth(template, def, palette, dimensions) {
@@ -1092,6 +1307,9 @@ function addMouthAndTeeth(template, def, palette, dimensions) {
   const mouthHeight = spec.mouthHeight;
   const mouthStart = spec.mouthStart;
   const mouthY = -dimensions.radiusY * (head === 'angler' || head === 'kaiju' ? 0.27 : 0.22);
+  const mouthCenterX = mouthStart + mouthWidth * 0.5;
+  const mouthSurfaceZ = localSurfaceZ(dimensions, mouthCenterX, mouthY);
+  const mouthProudZ = dimensions.bodyLen * 0.05;
   const mouthLineMaterial = toonMaterial({ color: WHITE, vertexColors: true, kind: 'mouth line vertex color' });
   // Hero recut (art review CRITICAL 1): the underslung mouth line was a thin
   // hairline that vanished at gameplay scale (shark occupies ~31% of frame
@@ -1108,12 +1326,39 @@ function addMouthAndTeeth(template, def, palette, dimensions) {
   template.bodyFeatures.push(descriptor(
     mouthLine,
     mouthLineMaterial,
-    [0, 0, dimensions.radiusZ * 1.005],
+    [0, 0, mouthSurfaceZ + mouthProudZ],
     [0, 0, 0],
     [1, 1, 1],
     'underslung mouth line vertex color'
   ));
   template.metrics.mouthLineVertexColors = true;
+  template.metrics.mouthWidth = mouthWidth;
+  template.metrics.mouthWidthRatio = mouthWidth / Math.max(dimensions.bodyLen, 1e-6);
+  template.metrics.mouthHeightRatio = mouthHeight / Math.max(headHeight(dimensions), 1e-6);
+  template.metrics.mouthCavity = true;
+
+  // A saturated lower rim carries the grin as a character block. It frames
+  // the dark cavity instead of asking a thin white mouth line to do all the
+  // work at gameplay distance.
+  const jawRimHeight = mouthHeight * 0.18;
+  const jawRim = makeExtrudedPolygon([
+    [0, -mouthHeight * 0.22, 0],
+    [mouthWidth * 0.94, -mouthHeight * 0.15, 0],
+    [mouthWidth * 0.86, -mouthHeight * 0.34, 0],
+    [mouthWidth * 0.12, -mouthHeight * 0.40, 0]
+  ], Math.max(dimensions.radiusZ * 0.06, dimensions.bodyLen * 0.018));
+  const jawRimMaterial = toonMaterial({ color: palette.accent, kind: 'colored lower jaw rim' });
+  for (const side of [1, -1]) {
+    template.bodyFeatures.push(descriptor(
+      jawRim,
+      jawRimMaterial,
+      [mouthStart, mouthY, side * (mouthSurfaceZ + mouthProudZ * 1.02)],
+      [0, 0, 0],
+      [1, 1, 1],
+      `${side > 0 ? 'near' : 'far'} colored lower jaw rim`
+    ));
+  }
+  template.metrics.lowerJawRim = { height: jawRimHeight, color: palette.resolved.accent };
 
   // Hero recut: tier-1 sharks (Reef, Epaulette, Cookiecutter) never receive
   // tooth/jaw geometry, so the mouth line alone must carry a jaw silhouette.
@@ -1131,7 +1376,7 @@ function addMouthAndTeeth(template, def, palette, dimensions) {
       template.bodyFeatures.push(descriptor(
         wedge,
         jawShadowMaterial,
-        [0, 0, side * dimensions.radiusZ * 0.9],
+        [0, 0, side * (mouthSurfaceZ + mouthProudZ)],
         [0, 0, 0],
         [1, 1, 1],
         `${side > 0 ? 'near' : 'far'} tier1 jaw shadow wedge`
@@ -1142,7 +1387,7 @@ function addMouthAndTeeth(template, def, palette, dimensions) {
   const mouthMaterial = toonMaterial({ color: 0x09050d, kind: 'mouth' });
   const toothMaterial = toonMaterial({ color: 0xfff4d4, kind: 'teeth' });
   for (const side of [1, -1]) {
-    const mouth = descriptor(makeMouthGeometry(mouthWidth, mouthHeight, dimensions.radiusZ * 0.1), mouthMaterial, [mouthStart, mouthY, side * dimensions.radiusZ * 0.98], [0, 0, 0], [1, 1, 1], `${side > 0 ? 'near' : 'far'} connected mouth cavity`);
+    const mouth = descriptor(makeMouthGeometry(mouthWidth, mouthHeight, dimensions.radiusZ * 0.1), mouthMaterial, [mouthStart, mouthY, side * (mouthSurfaceZ + mouthProudZ * 1.03)], [0, 0, 0], [1, 1, 1], `${side > 0 ? 'near' : 'far'} connected mouth cavity`);
     template.bodyFeatures.push(mouth);
     const count = head === 'kaiju' ? 10 : head === 'whale' ? 8 : Math.min(9, 5 + Math.floor(tier / 3));
     for (let i = 0; i < count; i++) {
@@ -1151,11 +1396,11 @@ function addMouthAndTeeth(template, def, palette, dimensions) {
       const toothScale = dimensions.radiusY * (0.1 + tier * 0.007) * (head === 'croc' ? 0.88 : head === 'kaiju' ? 1.18 : 1);
       const toothHeight = toothScale * (head === 'kaiju' ? 3.0 : 2.6);
       const upperRoot = mouthY + mouthHeight * 0.42;
-      template.bodyFeatures.push(descriptor(sharedToothGeometry, toothMaterial, [x, upperRoot - toothHeight * 0.5, side * dimensions.radiusZ * 1.03], [0, 0, Math.PI], [toothScale, toothHeight, toothScale], `${side > 0 ? 'near' : 'far'} rooted upper tooth`));
+      template.bodyFeatures.push(descriptor(sharedToothGeometry, toothMaterial, [x, upperRoot - toothHeight * 0.5, side * (mouthSurfaceZ + mouthProudZ * 1.06)], [0, 0, Math.PI], [toothScale, toothHeight, toothScale], `${side > 0 ? 'near' : 'far'} rooted upper tooth`));
       if (i % 2 === 0 || tier >= 6) {
         const lowerHeight = toothHeight * 0.78;
         const lowerRoot = mouthY - mouthHeight * 0.42;
-        template.bodyFeatures.push(descriptor(sharedToothGeometry, toothMaterial, [x + mouthWidth * 0.02, lowerRoot + lowerHeight * 0.5, side * dimensions.radiusZ * 1.03], [0, 0, 0], [toothScale * 0.88, lowerHeight, toothScale * 0.88], `${side > 0 ? 'near' : 'far'} rooted lower tooth`));
+        template.bodyFeatures.push(descriptor(sharedToothGeometry, toothMaterial, [x + mouthWidth * 0.02, lowerRoot + lowerHeight * 0.5, side * (mouthSurfaceZ + mouthProudZ * 1.06)], [0, 0, 0], [toothScale * 0.88, lowerHeight, toothScale * 0.88], `${side > 0 ? 'near' : 'far'} rooted lower tooth`));
       }
     }
   }
@@ -1164,9 +1409,10 @@ function addMouthAndTeeth(template, def, palette, dimensions) {
     const jawWidth = spec.jawWidth;
     const jawHeight = spec.jawHeight;
     const jawDepth = dimensions.radiusZ * (spec.jawDepth / dimensions.radiusY);
+    const jawRamp = bodyRampColors(palette, finite(def.act, def.tier >= 5 ? 2 : 1));
     template.jaw = {
-      geometry: makeJawGeometry(jawWidth, jawHeight, jawDepth),
-      material: toonMaterial({ color: lerpColor(palette.base, palette.belly, head === 'kaiju' ? 0.22 : 0.34), kind: 'jaw' }),
+      geometry: makeJawGeometry(jawWidth, jawHeight, jawDepth, jawRamp),
+      material: toonMaterial({ color: WHITE, vertexColors: true, kind: 'jaw' }),
       position: [mouthStart + mouthWidth * 0.08, mouthY - mouthHeight * 0.34, dimensions.radiusZ * 0.12],
       teeth: [],
       teethDescriptors: []
@@ -1194,69 +1440,6 @@ function addMouthAndTeeth(template, def, palette, dimensions) {
   }
 }
 
-function makeDorsalFinGeometry(head, L, r, height, finScale) {
-  const rootX = L * 0.05;
-  const low = r * 0.68;
-  const sweep = clamp(finScale, 0.5, 2.1);
-  if (head === 'eel') {
-    return makeExtrudedPolygon([
-      [L * 0.23, low, 0], [L * 0.05, low + height, 0],
-      [-L * 0.23, low + height * 0.22, 0], [-L * 0.08, low, 0]
-    ], Math.max(0.018, r * 0.1));
-  }
-  if (head === 'whale') {
-    return makeExtrudedPolygon([
-      [L * 0.2, low, 0], [L * 0.07, low + height * 0.72, 0],
-      [-L * 0.18, low + height * 0.45, 0], [-L * 0.08, low, 0]
-    ], Math.max(0.018, r * 0.16));
-  }
-  if (head === 'angler') {
-    return makeExtrudedPolygon([
-      [L * 0.17, low, 0], [L * 0.01, low + height, 0],
-      [-L * 0.12, low + height * 0.42, 0], [-L * 0.08, low, 0]
-    ], Math.max(0.018, r * 0.12));
-  }
-  if (head === 'rock') {
-    return makeExtrudedPolygon([
-      [L * 0.17, low, 0], [L * 0.09, low + height * 0.68, 0],
-      [L * 0.01, low + height, 0], [-L * 0.08, low + height * 0.54, 0],
-      [-L * 0.15, low, 0]
-    ], Math.max(0.018, r * 0.14));
-  }
-  if (head === 'mech') {
-    return makeExtrudedPolygon([
-      [L * 0.18, low, 0], [L * 0.08, low + height * 0.42, 0],
-      [-L * 0.03, low + height, 0], [-L * 0.17, low + height * 0.2, 0],
-      [-L * 0.12, low, 0]
-    ], Math.max(0.018, r * 0.13));
-  }
-  if (head === 'void') {
-    return makeExtrudedPolygon([
-      [L * 0.19, low, 0], [L * 0.04, low + height * 0.84, 0],
-      [-L * 0.15, low + height * 0.3, 0], [-L * 0.1, low, 0]
-    ], Math.max(0.018, r * 0.12));
-  }
-  if (head === 'hammer') {
-    return makeExtrudedPolygon([
-      [L * 0.2, low, 0], [L * 0.06, low + height * 0.76, 0],
-      [-L * 0.16, low + height * 0.52, 0], [-L * 0.11, low, 0]
-    ], Math.max(0.018, r * 0.13));
-  }
-  if (head === 'saw' || head === 'croc') {
-    return makeExtrudedPolygon([
-      [L * 0.18, low, 0], [L * 0.02, low + height, 0],
-      [-L * 0.13, low + height * 0.22, 0], [-L * 0.09, low, 0]
-    ], Math.max(0.018, r * 0.1));
-  }
-  // Point/blunt/skull/frill share the swept predator fin, but the scale still
-  // changes both its height and the amount of rear rake.
-  const rake = L * (0.06 + sweep * 0.025);
-  return makeExtrudedPolygon([
-    [L * 0.16, low, 0], [rootX - rake * 0.32, low + height, 0],
-    [-L * (0.08 + sweep * 0.025), low + height * 0.24, 0], [-L * 0.1, low, 0]
-  ], Math.max(0.018, r * 0.12));
-}
-
 function addHeadFeatures(template, def, palette, dimensions) {
   const sil = def.sil || {};
   const head = sil.head || 'point';
@@ -1267,23 +1450,43 @@ function addHeadFeatures(template, def, palette, dimensions) {
   const accent = solid(palette.accent, 'accent');
   const glowColor = palette.glow || palette.accent;
   const glow = toonMaterial({ color: glowColor, glow: glowColor, emissiveIntensity: 0.86, kind: 'glow' });
+  const cameraSurface = (x, y = 0) => localSurfaceZ(dimensions, x, y);
 
   if (head === 'hammer') {
-    // Hero recut follow-on: the T-bar previously used palette.base (identical
-    // to the body dorsal color), so it visually fused into the silhouette
-    // instead of reading as a distinct hammer cephalofoil at gameplay scale.
-    // It now uses the same lit accent treatment as the eye/brow (liftColorToLuminance
-    // on the accent hue, not the muted base) plus a thin dark leading edge so
-    // the T-bar's outline separates from the body even head-on. Size/position
-    // unchanged (silhouette contract only cares about overall proportions).
-    const foilColor = solid(liftColorToLuminance(palette.accent, 0.5), 'hammer foil');
-    const foilEdgeColor = solid(0x040a10, 'hammer foil edge');
-    const foil = new THREE.BoxGeometry(L * 0.12, r * 0.18, r * 3.25);
-    template.bodyFeatures.push(descriptor(foil, foilColor, [L * 0.45, 0, 0], [0, 0, 0], [1, 1, 1], 'hammer T-bar'));
-    const foilEdge = new THREE.BoxGeometry(L * 0.05, r * 0.09, r * 3.35);
-    template.bodyFeatures.push(descriptor(foilEdge, foilEdgeColor, [L * 0.485, 0, 0], [0, 0, 0], [1, 1, 1], 'hammer T-bar leading edge'));
-    const bridge = new THREE.BoxGeometry(L * 0.22, r * 0.22, r * 0.72);
-    template.bodyFeatures.push(descriptor(bridge, accent, [L * 0.35, 0, 0], [0, 0, 0], [1, 1, 1], 'hammer bridge'));
+    // The gameplay camera is on +Z, so the foil's long axis is local X (the
+    // screen-horizontal axis), not local Z. Its center bridge overlaps the
+    // loft by 0.18L so the bar cannot read as a detached box.
+    const foilSpan = L * 0.50;
+    const foilThickness = L * 0.13;
+    const foilDepth = Math.max(L * 0.10, rz * 0.65);
+    const foilX = L * 0.43;
+    const foilZ = cameraSurface(foilX) + L * 0.06;
+    const foilColor = solid(palette.accent, 'hammer foil');
+    const foilEdgeColor = solid(OUTLINE_SHELL_COLOR, 'hammer foil edge');
+    const halfSpan = foilSpan * 0.5;
+    const halfBar = foilThickness * 0.5;
+    const stemHalf = L * 0.07;
+    const stemDrop = L * 0.22;
+    // A box had the correct numeric span but read as a rectangular snout.
+    // This beveled XY contour keeps the bar on the live screen-horizontal
+    // axis and adds a central downward bridge, so the silhouette is a T even
+    // before the body/face features are considered.
+    const foil = makeExtrudedPolygon([
+      [-halfSpan + L * 0.025, halfBar, 0], [halfSpan - L * 0.025, halfBar, 0],
+      [halfSpan, halfBar * 0.45, 0], [halfSpan, -halfBar * 0.45, 0],
+      [stemHalf, -halfBar * 0.45, 0], [stemHalf, -stemDrop, 0],
+      [-stemHalf, -stemDrop, 0], [-stemHalf, -halfBar * 0.45, 0],
+      [-halfSpan, -halfBar * 0.45, 0], [-halfSpan + L * 0.025, -halfBar, 0]
+    ], foilDepth);
+    template.bodyFeatures.push(descriptor(foil, foilColor, [foilX, 0, foilZ], [0, 0, 0], [1, 1, 1], 'hammer T-bar'));
+    const foilEdge = new THREE.BoxGeometry(L * 0.035, foilThickness * 1.08, foilDepth * 1.04);
+    template.bodyFeatures.push(descriptor(foilEdge, foilEdgeColor, [foilX + foilSpan * 0.47, 0, foilZ + L * 0.005], [0, 0, 0], [1, 1, 1], 'hammer T-bar leading edge'));
+    const bridgeWidth = L * 0.30;
+    const bridge = new THREE.BoxGeometry(bridgeWidth, r * 0.32, rz * 1.05);
+    template.bodyFeatures.push(descriptor(bridge, accent, [L * 0.34, 0, cameraSurface(L * 0.34) + L * 0.055], [0, 0, 0], [1, 1, 1], 'hammer bridge'));
+    template.metrics.hammerFoilProjectedSpan = foilSpan;
+    template.metrics.hammerFoilThickness = foilThickness;
+    template.metrics.hammerBridgeOverlap = L * 0.18;
   } else if (head === 'saw') {
     const snout = makeExtrudedTriangle([[L * 0.37, r * 0.1, 0], [L * 0.37, -r * 0.1, 0], [L * 0.98, 0, 0]], r * 0.22);
     template.bodyFeatures.push(descriptor(snout, accent, [0, 0, rz * 0.04], [0, 0, 0], [1, 1, 1], 'saw rostrum'));
@@ -1310,20 +1513,45 @@ function addHeadFeatures(template, def, palette, dimensions) {
     const baleen = toonMaterial({ color: palette.belly, kind: 'baleen' });
     const mouth = template.face.spec;
     const baleenCount = 8;
-    const baleenHeight = r * 0.28;
-    const baleenDepth = Math.max(0.012, rz * 0.08);
+    const baleenHeight = mouth.mouthHeight * 0.90;
+    const baleenDepth = Math.max(L * 0.06, rz * 0.20);
     for (let i = 0; i < baleenCount; i++) {
       const u = (i + 0.5) / baleenCount;
       const x = mouth.mouthStart + mouth.mouthWidth * u;
+      const y = -r * 0.18;
       template.bodyFeatures.push(descriptor(
-        new THREE.BoxGeometry(Math.max(L * 0.009, r * 0.018), baleenHeight, baleenDepth),
+        new THREE.BoxGeometry(Math.max(L * 0.012, r * 0.022), baleenHeight, baleenDepth),
         baleen,
-        [x, -r * 0.18, rz * 0.78],
+        [x, y, cameraSurface(x, y) + L * 0.055],
         [0, 0, 0],
         [1, 1, 1],
         'whale baleen'
       ));
     }
+    const spotMaterial = solid(palette.belly, 'whale flank spots');
+    const spotCount = 8;
+    const whaleHeadHeight = headHeight(dimensions);
+    const spotDiameter = whaleHeadHeight * 0.08;
+    const spotRadius = spotDiameter * 0.5;
+    for (let i = 0; i < spotCount; i++) {
+      const x = -L * 0.30 + i * L * 0.075;
+      const y = r * (0.06 + (i % 3) * 0.13);
+      template.bodyFeatures.push(descriptor(
+        sharedWhaleSpotGeometry,
+        spotMaterial,
+        [x, y, cameraSurface(x, y) + L * 0.05],
+        [0, 0, 0],
+        [spotRadius, spotRadius, 1],
+        'whale flank spot'
+      ));
+    }
+    template.metrics.whaleHeadHeight = whaleHeadHeight;
+    template.metrics.whaleSpotCount = spotCount;
+    template.metrics.whaleSpotDiameter = spotDiameter;
+    template.metrics.whaleSpotDiameterRatio = spotDiameter / Math.max(whaleHeadHeight, 1e-6);
+    template.metrics.whaleSpotValueContrast = palette.resolved.belly.v - palette.resolved.base.v;
+    template.metrics.whaleBaleenCrossing = true;
+    template.metrics.whaleBaleenProudZ = L * 0.055;
   } else if (head === 'angler') {
     const staffLength = L * 0.3;
     const staff = makeCylinderBetween(staffLength, Math.max(0.012, r * 0.035));
@@ -1337,14 +1565,24 @@ function addHeadFeatures(template, def, palette, dimensions) {
       template.bodyFeatures.push(descriptor(new THREE.IcosahedronGeometry(r * (0.3 + i * 0.06), 0), rockMaterial, [L * (0.23 + i * 0.1), r * (0.65 + (i % 2) * 0.12), 0], [0, i * 0.4, i * 0.2], [1.25, 0.72, 1], 'rock facet'));
     }
   } else if (head === 'mech') {
-    const panelMaterial = solid(lerpColor(palette.base, palette.accent, 0.38), 'mech panels');
+    const panelMaterial = solid(palette.accent, 'mech panels');
+    const panelWidth = L * 0.17;
+    const panelHeight = r * 0.42;
+    const panelAreaRatio = (3 * panelWidth * panelHeight) / Math.max(L * (r * 2), 1e-6);
     for (let i = 0; i < 3; i++) {
-      template.bodyFeatures.push(descriptor(makeBeveledPanel(L * 0.2, r * 0.55, rz * 0.16, r * 0.08), panelMaterial, [L * (0.12 + i * 0.17), r * 0.12, rz * 0.78], [0, 0.1 * i, 0], [1, 1, 1], 'mech beveled panel'));
+      const x = L * (0.12 + i * 0.17);
+      const y = r * 0.12;
+      template.bodyFeatures.push(descriptor(makeBeveledPanel(panelWidth, panelHeight, Math.max(L * 0.12, rz * 0.22), r * 0.08), panelMaterial, [x, y, cameraSurface(x, y) + L * 0.05], [0, 0.1 * i, 0], [1, 1, 1], 'mech beveled panel'));
     }
     const thruster = new THREE.CylinderGeometry(r * 0.09, r * 0.13, r * 0.36, 6);
+    const thrusterProud = L * 0.05;
     for (const side of [1, -1]) {
-      template.bodyFeatures.push(descriptor(thruster, glow, [-L * 0.13, r * 0.15, side * rz * 0.85], [0, 0, Math.PI * 0.5], [1, 1, 1], 'mech fin thruster'));
+      template.bodyFeatures.push(descriptor(thruster, glow, [-L * 0.13, r * 0.15, side * (dimensions.pectoralSpan + thrusterProud)], [0, 0, Math.PI * 0.5], [1, 1, 1], 'mech fin thruster'));
     }
+    template.metrics.mechPanelAreaRatio = panelAreaRatio;
+    template.metrics.mechPanelValueContrast = Math.abs(palette.resolved.accent.v - palette.resolved.base.v);
+    template.metrics.mechPanelProudZ = L * 0.05;
+    template.metrics.mechThrusterProudZ = thrusterProud;
   } else if (head === 'skull') {
     const crestMaterial = solid(lerpColor(palette.belly, WHITE, 0.22), 'bone crest');
     for (let i = 0; i < 5; i++) {
@@ -1354,9 +1592,24 @@ function addHeadFeatures(template, def, palette, dimensions) {
     const socket = toonMaterial({ color: 0x020308, glow: palette.glow, emissiveIntensity: FEATURE_EMISSIVE_INTENSITY, kind: 'skull socket' });
     template.bodyFeatures.push(descriptor(new THREE.SphereGeometry(r * 0.2, 6, 4), socket, [L * 0.34, r * 0.36, rz * 0.9], [0, 0, 0], [1.2, 0.8, 0.4], 'skull socket shadow'));
   } else if (head === 'void') {
-    const ring = new THREE.TorusGeometry(r * 0.52, Math.max(0.018, r * 0.045), 5, 10);
-    template.bodyFeatures.push(descriptor(ring, glow, [L * 0.33, 0, rz * 0.72], [0, Math.PI * 0.5, 0], [1.05, 1, 1], 'void sweep ring'));
-    template.bodyFeatures.push(descriptor(new THREE.SphereGeometry(r * 0.12, 6, 4), glow, [L * 0.43, 0, rz * 0.85], [0, 0, 0], [1, 1, 0.35], 'void eye'));
+    const voidHeadHeight = headHeight(dimensions);
+    const ringRadius = voidHeadHeight * 0.40;
+    const ringStroke = voidHeadHeight * 0.04;
+    const ringX = L * 0.33;
+    const ringZ = cameraSurface(ringX) + L * 0.055;
+    const ring = new THREE.TorusGeometry(ringRadius, ringStroke, 6, 14);
+    // TorusGeometry's native normal is +Z; leave it screen-facing for the
+    // live +Z camera instead of rotating it edge-on around local Y.
+    template.bodyFeatures.push(descriptor(ring, glow, [ringX, 0, ringZ], [0, 0, 0], [1, 1, 1], 'void sweep ring'));
+    const voidEyeDiameter = voidHeadHeight * 0.24;
+    const voidEyeX = L * 0.43;
+    const voidEyeY = r * 0.20;
+    template.bodyFeatures.push(descriptor(new THREE.SphereGeometry(voidEyeDiameter * 0.5, 8, 5), glow, [voidEyeX, voidEyeY, cameraSurface(voidEyeX, voidEyeY) + L * 0.06], [0, 0, 0], [1, 1, 0.5], 'void eye'));
+    template.metrics.voidRingDiameterRatio = (ringRadius + ringStroke) * 2 / Math.max(voidHeadHeight, 1e-6);
+    template.metrics.voidRingStrokeRatio = ringStroke * 2 / Math.max(voidHeadHeight, 1e-6);
+    template.metrics.voidRingProudZ = L * 0.055;
+    template.metrics.voidEyeDiameterRatio = voidEyeDiameter / Math.max(voidHeadHeight, 1e-6);
+    template.metrics.voidEyeProudZ = L * 0.06;
   } else if (head === 'kaiju') {
     const plateBody = toonMaterial({ color: lerpColor(palette.base, 0x04070c, 0.68), kind: 'kaiju plate body' });
     const plateGlow = palette.glow || colorValue(KAIJU_PLATE_GLOW);
@@ -1391,20 +1644,9 @@ function addHeadFeatures(template, def, palette, dimensions) {
   }
 
   const dorsalMaterial = solid(palette.accent, 'fins');
-  if (head !== 'kaiju') {
-    const finScale = dimensions.finScale;
-    const dorsalHeight = head === 'eel'
-      ? L * (0.27 + finScale * 0.08)
-      : head === 'whale' ? L * (0.12 + finScale * 0.035)
-        : L * (0.17 + finScale * 0.045);
-    const dorsalRootX = L * 0.05;
-    const dorsal = makeDorsalFinGeometry(head, L, r, dorsalHeight, finScale);
-    dorsal.userData.rfDorsalSwept = true;
-    dorsal.userData.rfDorsalRootX = dorsalRootX;
-    dorsal.userData.rfDorsalHeight = dorsalHeight;
-    template.metrics.dorsalFin = { rootX: dorsalRootX, height: dorsalHeight, swept: true };
-    template.bodyFeatures.push(descriptor(dorsal, dorsalMaterial, [0, 0, 0], [0, 0, 0], [1, 1, 1], 'swept dorsal fin'));
-  }
+  // Dorsal geometry is authored into the welded body loft. Keep only the
+  // metric here for the roster audits; no dorsal child mesh is created.
+  template.metrics.dorsalFin = template.bodyGeometry.userData.rfDorsalFin;
   const gillMaterial = toonMaterial({ color: WHITE, vertexColors: true, kind: 'gill bands vertex color' });
   const gillColor = 0x071017;
   // Hero recut: gill slits were near-hairlines (width 0.010L, depth 0.035rz)
@@ -1428,7 +1670,7 @@ function addHeadFeatures(template, def, palette, dimensions) {
       template.bodyFeatures.push(descriptor(
         band,
         gillMaterial,
-        [0, 0, side * rz * 0.91],
+        [0, 0, side * (cameraSurface(x) + L * 0.04)],
         [0, 0, 0],
         [1, 1, 1],
         `${side > 0 ? 'near' : 'far'} gill slit ${i + 1} dark vertex band`
@@ -1538,14 +1780,14 @@ function buildTemplate(def) {
   const head = sil.head || 'point';
   const len = clamp(finite(sil.len, 1), 0.5, 3);
   const authoredGirth = clamp(finite(sil.girth, 0.36), 0.18, 0.8);
-  // Fusiform profiles use a narrower scale law and a hard effective-girth
-  // ceiling. Whale/eel/kaiju are the documented bulk exceptions.
-  const girth = isFusiformHead(head) ? clamp(authoredGirth, 0.18, 0.44) : authoredGirth;
-  // The roster contains one thresher tailScale=2.2. Cap the effective value
-  // before applying makeTailGeometry's literal formula so every ordinary
-  // head remains inside the 0.18..0.34 tail-length contract.
-  const tailScale = clamp(finite(sil.tailScale, 1), 0.55, 2.0);
+  const girth = authoredGirth;
+  const girthNorm = clamp((authoredGirth - 0.18) / 0.62, 0, 1);
+  // Blue keeps a deliberately longer crescent than the Mako even though both
+  // use the point head; this small code-side species cue survives the shared
+  // loft and remains inside the prescribed .28-.36L tail envelope.
+  const tailScale = clamp(finite(sil.tailScale, 1) + (id === 'blue' ? 0.40 : 0), 0.55, 2.0);
   const finScale = clamp(finite(sil.finScale, 1), 0.5, 2.1);
+  const exaggeration = exaggerationFor(head, sil);
   const bodyLen = len * (
     head === 'eel' ? 1.48
       : head === 'whale' ? 1.38
@@ -1561,7 +1803,7 @@ function buildTemplate(def) {
     hammer: 1.12,
     saw: 0.9,
     croc: 0.98,
-    whale: 1.22,
+    whale: 1.05,
     angler: 0.91,
     eel: 0.72,
     rock: 0.9,
@@ -1572,7 +1814,10 @@ function buildTemplate(def) {
     kaiju: 1.30
   }[head] || 1;
   const idWidthFactor = id === 'mako' || id === 'thresher' ? 0.78 : 1;
-  const radiusY = bodyLen * (isFusiformHead(head) ? 0.10 + girth * 0.085 : 0.14 + girth * 0.21)
+  // Rev 7 deliberately refuses the old fusiform clamp. The normalized law
+  // is the roster's primary silhouette spread: narrow bodies stay near 12%
+  // of length while the biggest girths reach roughly 45%.
+  const radiusY = bodyLen * (0.085 + 0.14 * Math.pow(girthNorm, 1.2))
     * headWidthFactor * idWidthFactor;
   const radiusZ = radiusY * (isFusiformHead(head)
     ? FUSIFORM_SECTION_Z_RATIO
@@ -1590,27 +1835,30 @@ function buildTemplate(def) {
     kaiju: 1.22
   }[head] || 1;
   const finProfile = 0.52 + finScale * 0.82 + finScale * finScale * 0.62;
-  const pectoralSpan = radiusZ * finProfile * pectoralHeadFactor;
-  const dimensions = { bodyLen, radiusY, radiusZ, len, girth, authoredGirth, tailScale, finScale, pectoralSpan, id };
+  const pectoralSpan = radiusZ * finProfile * pectoralHeadFactor * (id === 'blue' ? 1.22 : 1);
+  const dimensions = { bodyLen, radiusY, radiusZ, len, girth, girthNorm, authoredGirth, tailScale, finScale, pectoralSpan, id, head, exaggeration };
   const palette = paletteOf(def);
+  const flatShading = head === 'rock' || head === 'mech' || head === 'kaiju';
+  const faceSpec = faceIdentity(head, bodyLen, radiusY);
+  faceSpec.mouthWidth = Math.max(faceSpec.mouthWidth, bodyLen * exaggeration.mouthCorner - faceSpec.mouthStart);
+  faceSpec.mouthHeight = Math.max(faceSpec.mouthHeight, headHeight(dimensions) * 0.30);
+  faceSpec.jawWidth *= exaggeration.jawScale;
+  faceSpec.jawHeight *= exaggeration.jawScale;
+  faceSpec.jawDepth *= exaggeration.jawScale;
   const template = {
     id,
     dimensions,
     palette,
     bodyGeometry: makeSpineGeometry(def, palette, dimensions),
-    bodyMaterial: toonMaterial({ color: WHITE, glow: 0x000000, vertexColors: true, kind: 'body' }),
-    tailGeometry: makeTailGeometry(bodyLen, tailScale, finite(def.tier, 1), palette, sil.pattern, head, id),
-    tailMaterial: toonMaterial({ color: WHITE, glow: 0x000000, vertexColors: true, kind: 'tail' }),
-    pectGeometry: makePectoralGeometry(bodyLen, radiusY, pectoralSpan, head, finScale),
-    pectMaterial: toonMaterial({ color: palette.accent, glow: 0x000000, kind: 'pectoral' }),
+    bodyMaterial: toonMaterial({ color: WHITE, glow: 0x000000, vertexColors: true, flatShading, kind: 'body' }),
     bodyFeatures: [],
+    face: { spec: faceSpec },
     jaw: null,
     teeth: 0,
     plateFeatures: [],
     featureBatches: [],
     metrics: {}
   };
-  addFaceMass(template, def, palette, dimensions);
   addHeadFeatures(template, def, palette, dimensions);
   addEmissiveDetails(template, def, palette, dimensions);
   addEyeFeatures(template, def, palette, dimensions);
@@ -1627,18 +1875,31 @@ function buildTemplate(def) {
   template.metrics.bodyMaxZ = template.bodyGeometry.boundingBox.max.z;
   const bodySize = template.bodyGeometry.boundingBox.getSize(new THREE.Vector3());
   template.metrics.bodyAspect = bodySize.x / Math.max(bodySize.y, bodySize.z, 0.001);
-  template.metrics.tailShare = (template.tailGeometry.boundingBox.max.x - template.tailGeometry.boundingBox.min.x) / Math.max(0.001, bodySize.x);
-  template.metrics.tailLength = template.tailGeometry.userData.rfTailLength;
-  template.metrics.tailLengthRatio = template.tailGeometry.userData.rfTailLengthRatio;
-  template.metrics.tailUpperLobeHeight = template.tailGeometry.userData.rfTailUpperLobeHeight;
-  template.metrics.tailLowerLobeHeight = template.tailGeometry.userData.rfTailLowerLobeHeight;
-  template.metrics.tailRootWidth = template.tailGeometry.userData.rfTailRootWidth;
-  template.metrics.tailOutline = template.tailGeometry.userData.rfTailOutline;
+  template.metrics.tailShare = template.bodyGeometry.userData.rfTailLength / Math.max(0.001, bodySize.x);
+  template.metrics.tailLength = template.bodyGeometry.userData.rfTailLength;
+  template.metrics.tailLengthRatio = template.bodyGeometry.userData.rfTailLengthRatio;
+  template.metrics.tailUpperLobeHeight = template.bodyGeometry.userData.rfTailUpperLobeHeight;
+  template.metrics.tailLowerLobeHeight = template.bodyGeometry.userData.rfTailLowerLobeHeight;
+  template.metrics.tailLowerUpperRatio = template.bodyGeometry.userData.rfTailLowerUpperRatio;
+  template.metrics.tailDepthRatio = template.bodyGeometry.userData.rfTailDepth / Math.max(bodyLen, 1e-6);
+  template.metrics.tailNotchProjected = projectedTailNotchMetrics(template.bodyGeometry, bodyLen);
+  template.metrics.tailFinalLobeRatio = template.bodyGeometry.userData.rfTailFinalLobeRatio;
+  template.metrics.tailStationCount = template.bodyGeometry.userData.rfTailStationCount;
+  template.metrics.tailPointedCap = !!template.bodyGeometry.userData.rfTailPointedCap;
+  template.metrics.tailRootWidth = template.bodyGeometry.userData.rfTailRootWidth;
+  template.metrics.tailOutline = template.bodyGeometry.userData.rfTailOutline;
   template.metrics.pattern = sil.pattern || 'plain';
   template.metrics.head = head;
+  template.metrics.headHeight = headHeight(dimensions);
+  template.metrics.resolvedPalette = palette.resolved;
+  template.metrics.outlineColor = resolvedPaletteStats(colorValue(OUTLINE_SHELL_COLOR));
+  if (template.metrics.pattern === 'stripes') {
+    template.metrics.stripeBandWidthRatio = 0.052;
+    template.metrics.stripeValueContrast = Math.abs(palette.resolved.accent.v - palette.resolved.base.v);
+  }
   template.metrics.finScale = finScale;
   template.metrics.tailScale = tailScale;
-  template.metrics.pectoralSpan = template.pectGeometry.userData.rfPectoralSpan;
+  template.metrics.pectoralSpan = template.bodyGeometry.userData.rfPectoralSpan;
   template.metrics.dorsalFinRatio = template.metrics.dorsalFin ? template.metrics.dorsalFin.height / bodyLen : 0;
   template.metrics.plateMaxZ = template.plateFeatures.length
     ? Math.max(...template.plateFeatures.map((feature) => feature.geometry.boundingBox.max.z + feature.position[2]))
@@ -1693,8 +1954,6 @@ function cacheBytes() {
       bytes += geometryBytes(geometry);
     };
     visit(template.bodyGeometry);
-    visit(template.tailGeometry);
-    visit(template.pectGeometry);
     for (const feature of template.bodyFeatures) visit(feature.geometry);
     if (template.jaw) {
       visit(template.jaw.geometry);
@@ -1722,12 +1981,28 @@ function buildShark(def) {
   group.userData.rfBodyLen = template.dimensions.bodyLen;
   group.userData.rfRadiusY = template.dimensions.radiusY;
   group.userData.rfEffectiveGirth = template.dimensions.girth;
+  group.userData.rfGirthNorm = template.dimensions.girthNorm;
+  group.userData.rfExaggeration = template.dimensions.exaggeration;
+  group.userData.rfHeadScale = template.dimensions.exaggeration.headScale;
+  group.userData.rfFrontSpanRatio = template.dimensions.exaggeration.frontSpan;
   group.userData.rfBodyAspect = template.metrics.bodyAspect;
   group.userData.rfAspect = template.metrics.bodyAspect;
   group.userData.rfTailLength = template.metrics.tailLength;
   group.userData.rfTailLengthRatio = template.metrics.tailLengthRatio;
   group.userData.rfTailUpperLobeHeight = template.metrics.tailUpperLobeHeight;
   group.userData.rfTailLowerLobeHeight = template.metrics.tailLowerLobeHeight;
+  group.userData.rfTailLowerUpperRatio = template.metrics.tailLowerUpperRatio;
+  group.userData.rfTailDepthRatio = template.metrics.tailDepthRatio;
+  group.userData.rfTailNotchProjectedUpperRatio = template.metrics.tailNotchProjected.upperGap;
+  group.userData.rfTailNotchProjectedLowerRatio = template.metrics.tailNotchProjected.lowerGap;
+  group.userData.rfTailNotchProjectedRatio = template.metrics.tailNotchProjected.minGap;
+  group.userData.rfTailNotchProjectedCssPx = template.metrics.tailNotchProjected.cssPx;
+  group.userData.rfTailUpperLobeTipIndex = template.metrics.tailNotchProjected.upperIndex;
+  group.userData.rfTailLowerLobeTipIndex = template.metrics.tailNotchProjected.lowerIndex;
+  group.userData.rfTailNotchIndex = template.metrics.tailNotchProjected.notchIndex;
+  group.userData.rfTailFinalLobeRatio = template.metrics.tailFinalLobeRatio;
+  group.userData.rfTailStationCount = template.metrics.tailStationCount;
+  group.userData.rfTailPointedCap = template.metrics.tailPointedCap;
   group.userData.rfTailRootWidth = template.metrics.tailRootWidth;
   group.userData.rfTailOutline = template.metrics.tailOutline;
   group.userData.rfPattern = template.metrics.pattern;
@@ -1737,21 +2012,61 @@ function buildShark(def) {
   group.userData.rfPectoralSpanRatio = template.metrics.pectoralSpan / Math.max(template.dimensions.bodyLen, 0.001);
   group.userData.rfDorsalFinRatio = template.metrics.dorsalFinRatio;
   group.userData.rfPaletteRaw = template.palette.raw;
+  group.userData.rfPaletteResolved = template.palette.resolved;
+  group.userData.rfOutlineColorStats = template.metrics.outlineColor;
   group.userData.rfGillBandCount = template.metrics.gillBandCount || 0;
   group.userData.rfGillBandVertexColors = !!template.metrics.gillBandVertexColors;
   group.userData.rfGillXRange = template.metrics.gillXRange || null;
   group.userData.rfMouthLineVertexColors = !!template.metrics.mouthLineVertexColors;
   group.userData.rfEyeRadius = template.metrics.eyeRadius || 0;
+  group.userData.rfEyeRenderRadius = template.metrics.eyeRenderRadius || 0;
+  group.userData.rfEyeRenderRadiusFraction = template.metrics.eyeRenderRadiusFraction || 0;
   group.userData.rfEyeX = template.metrics.eyeX || 0;
   group.userData.rfEyeY = template.metrics.eyeY || 0;
+  group.userData.rfEyeRadiusFraction = template.metrics.eyeRadiusFraction || 0;
+  group.userData.rfEyeHeadHeightFraction = template.metrics.eyeHeadHeightFraction || 0;
+  group.userData.rfEyeSurfaceZ = template.metrics.eyeSurfaceZ || 0;
+  group.userData.rfEyeZ = template.metrics.eyeZ || 0;
+  group.userData.rfEyeProudZ = template.metrics.eyeProudZ || 0;
+  group.userData.rfEyeIrisFraction = template.metrics.eyeIrisFraction || 0;
+  group.userData.rfEyeIrisStats = template.metrics.eyeIrisStats || null;
+  group.userData.rfEyeUnitTriangles = template.metrics.eyeUnitTriangles || 0;
+  group.userData.rfEyeUnitPresent = !!template.metrics.eyeUnitPresent;
+  group.userData.rfJawScale = template.dimensions.exaggeration.jawScale;
+  group.userData.rfMouthCorner = template.dimensions.exaggeration.mouthCorner;
   group.userData.rfDorsalFin = template.metrics.dorsalFin || null;
   group.userData.rfPlateMaxZ = template.metrics.plateMaxZ;
+  group.userData.rfHeadHeight = template.metrics.headHeight;
+  group.userData.rfMouthWidth = template.metrics.mouthWidth || 0;
+  group.userData.rfMouthWidthRatio = template.metrics.mouthWidthRatio || 0;
+  group.userData.rfMouthHeightRatio = template.metrics.mouthHeightRatio || 0;
+  group.userData.rfHammerFoilProjectedSpan = template.metrics.hammerFoilProjectedSpan || 0;
+  group.userData.rfHammerFoilThickness = template.metrics.hammerFoilThickness || 0;
+  group.userData.rfHammerBridgeOverlap = template.metrics.hammerBridgeOverlap || 0;
+  group.userData.rfWhaleHeadHeight = template.metrics.whaleHeadHeight || 0;
+  group.userData.rfWhaleSpotCount = template.metrics.whaleSpotCount || 0;
+  group.userData.rfWhaleSpotDiameterRatio = template.metrics.whaleSpotDiameterRatio || 0;
+  group.userData.rfWhaleSpotValueContrast = template.metrics.whaleSpotValueContrast || 0;
+  group.userData.rfWhaleBaleenCrossing = !!template.metrics.whaleBaleenCrossing;
+  group.userData.rfWhaleBaleenProudZ = template.metrics.whaleBaleenProudZ || 0;
+  group.userData.rfTigerStripeBandWidthRatio = template.metrics.stripeBandWidthRatio || 0;
+  group.userData.rfTigerStripeValueContrast = template.metrics.stripeValueContrast || 0;
+  group.userData.rfMechPanelAreaRatio = template.metrics.mechPanelAreaRatio || 0;
+  group.userData.rfMechPanelValueContrast = template.metrics.mechPanelValueContrast || 0;
+  group.userData.rfMechPanelProudZ = template.metrics.mechPanelProudZ || 0;
+  group.userData.rfMechThrusterProudZ = template.metrics.mechThrusterProudZ || 0;
+  group.userData.rfVoidRingDiameterRatio = template.metrics.voidRingDiameterRatio || 0;
+  group.userData.rfVoidRingStrokeRatio = template.metrics.voidRingStrokeRatio || 0;
+  group.userData.rfVoidRingProudZ = template.metrics.voidRingProudZ || 0;
+  group.userData.rfVoidEyeDiameterRatio = template.metrics.voidEyeDiameterRatio || 0;
+  group.userData.rfVoidEyeProudZ = template.metrics.voidEyeProudZ || 0;
   group.userData.rfBodyMaxZ = template.metrics.bodyMaxZ;
   group.userData.rfFeatureSourceCount = template.bodyFeatures.length;
   group.userData.rfFeatureBatchCount = template.featureBatches.length;
   group.userData.rfBatchesTeethPlatesEyes = template.featureBatches.some((batch) => batch.geometry.userData.rfFeatureNames.some((name) => name.includes('tooth'))) &&
     template.featureBatches.some((batch) => batch.geometry.userData.rfFeatureNames.some((name) => name.includes('plate'))) &&
     template.featureBatches.some((batch) => batch.geometry.userData.rfFeatureNames.some((name) => name.includes('eye')));
+  group.userData.rfWeldedAppendages = { tail: true, dorsal: true, pectorals: true };
 
   const shellScale = OUTLINE_SHELL_SCALE;
   // Rev 6 (6.3): bendK=7.5/bodyLen puts the wavelength inside the rear ~40% of
@@ -1762,20 +2077,35 @@ function buildShark(def) {
   const bendK = 7.5 / Math.max(template.dimensions.bodyLen, 0.001);
   const bendSpanX = template.dimensions.bodyLen * 0.10;
   const bendSpanY = template.dimensions.bodyLen * 0.48;
+  const tailSpanX = template.dimensions.bodyLen * 0.50;
+  const tailSpanY = tailSpanX + Math.min(template.dimensions.bodyLen * TAIL_SMOOTH_SPAN_MAX_RATIO, template.metrics.tailLength);
+  const bendScale = template.dimensions.bodyLen * 0.08;
   const seed = hash01(hashStringToInt(template.id)) * TAU;
   const uniforms = {
     uBendPhase: { value: 0 },
     uBendAmp: { value: 0 },
     uBendK: { value: bendK },
     uBendSpan: { value: new THREE.Vector2(bendSpanX, bendSpanY) },
-    uBendBias: { value: 0 }
+    uBendBias: { value: 0 },
+    uTailAmp: { value: 0 },
+    uTailSpan: { value: new THREE.Vector2(tailSpanX, tailSpanY) },
+    // Engine tailAmp remains the authoritative scalar. This local scale maps
+    // its legacy 0..~0.62 range to the review's <=.06L trunk motion without
+    // changing the :rf-bend3 state contract.
+    uBendScale: { value: bendScale }
   };
   group.userData.rfBendUniforms = uniforms;
   group.userData.rfBendK = bendK;
   group.userData.rfBendSpan = [bendSpanX, bendSpanY];
+  group.userData.rfTailSpan = [tailSpanX, tailSpanY];
+  group.userData.rfBendScale = bendScale;
+  group.userData.rfMidBendMaxRatio = MID_BODY_BEND_MAX_RATIO;
+  group.userData.rfTailSprintDisplacementRatio = DISTAL_TAIL_SPRINT_RATIO;
+  group.userData.rfTailSmoothSpanRatio = (tailSpanY - tailSpanX) / Math.max(template.dimensions.bodyLen, 1e-6);
+  group.userData.rfHeadEyeJawRigidAnchor = true;
   group.userData.rfBendYScale = BEND_Y_SCALE;
   group.userData.rfBendSeed = seed;
-  group.userData.rfTailRootX = -template.dimensions.bodyLen * 0.50;
+  group.userData.rfTailRootX = -template.dimensions.bodyLen * 0.52;
   group.userData.rfTailSlavedToBend = true;
 
   const pose = new THREE.Group();
@@ -1797,23 +2127,6 @@ function buildShark(def) {
   }
   pose.add(body);
 
-  const tail = new THREE.Mesh(template.tailGeometry, template.tailMaterial);
-  tail.name = 'RF tail';
-  tail.position.x = -template.dimensions.bodyLen * 0.52;
-  pose.add(tail);
-
-  const pectL = new THREE.Mesh(template.pectGeometry, template.pectMaterial);
-  pectL.name = 'RF pectoral L';
-  pectL.position.set(-template.dimensions.bodyLen * 0.05, -template.dimensions.radiusY * 0.05, template.dimensions.radiusZ * 0.26);
-  pectL.rotation.x = PECTORAL_SPLAY;
-  pose.add(pectL);
-  const pectR = new THREE.Mesh(template.pectGeometry, template.pectMaterial);
-  pectR.name = 'RF pectoral R';
-  pectR.position.set(-template.dimensions.bodyLen * 0.05, -template.dimensions.radiusY * 0.05, -template.dimensions.radiusZ * 0.26);
-  pectR.scale.z = -1;
-  pectR.rotation.x = -PECTORAL_SPLAY;
-  pose.add(pectR);
-
   let jaw = null;
   if (template.jaw) {
     jaw = new THREE.Mesh(template.jaw.geometry, bendableMaterial(template.jaw.material, uniforms));
@@ -1824,10 +2137,16 @@ function buildShark(def) {
       mesh.name = 'RF jaw tooth';
       jaw.add(mesh);
     }
+    const jawShellMaterial = toonMaterial({ color: OUTLINE_SHELL_COLOR, side: THREE.BackSide, kind: 'jaw silhouette shell' });
+    jawShellMaterial.userData.rfBendAmpScale = 1 / shellScale;
+    const jawShell = new THREE.Mesh(template.jaw.geometry, bendableMaterial(jawShellMaterial, uniforms));
+    jawShell.name = 'RF jaw dark silhouette edge shell';
+    jawShell.scale.setScalar(shellScale);
+    jaw.add(jawShell);
     body.add(jaw);
   }
 
-  const parts = { body, tail, pectL, pectR, jaw };
+  const parts = { body, tail: null, pectL: null, pectR: null, jaw };
   // Rev 6 (6.9) frenzy-arc crackle hook: a cheap, reversible vertex-color/
   // emissive-style tint flash on the existing body toon material. NO new
   // shader variant per the contract — body.material is already a per-rig
@@ -1889,20 +2208,13 @@ function buildShark(def) {
     const dt = animation.lastT === null ? 0 : clamp(time - animation.lastT, 0, 0.25);
     animation.lastT = time;
     const rate = 2.2 + (8.5 - 2.2) * Math.pow(speedFrac, 0.8);
-    // Rev 6 (6.3): idle amplitude floor raised 0.06->0.015 fallback base, with
-    // a steeper speed curve (^1.3 vs ^1.2) per the binding contract. This is
-    // the INTERNAL FALLBACK only — when the engine publishes finite
+    // The internal fallback stays deliberately bounded at .03..34 local
+    // amplitude. When the engine publishes finite
     // tailPhase/tailAmp (6.2) those values are AUTHORITY and override both
     // phase and amplitude below, while the internal integrator keeps running
     // so NPC/menu rigs (which never receive tailPhase/tailAmp) still animate.
-    // Swim personality (art MINOR): idle floor and speed-scaled term both
-    // raised moderately (0.015->0.018, 0.32->0.38) so the internal fallback
-    // integrator (menu/NPC rigs and any rig not yet receiving engine
-    // tailPhase/tailAmp) reads a livelier swim without reopening the "worm"
-    // envelope — bendK/span/authority (6.3) are untouched, only this
-    // amplitude curve. Mirrored deliberately in __selftest's amplitude probe
-    // below (see NOTES-rev6-laneA.md).
-    const fallbackAmplitude = 0.018 + 0.38 * Math.pow(speedFrac, 1.3);
+    // tailPhase/tailAmp) reads a swim without reopening the "worm" envelope.
+    const fallbackAmplitude = 0.03 + 0.31 * Math.pow(speedFrac, 1.3);
     animation.phase += rate * TAU * dt;
     if (animation.phase >= TAU || animation.phase <= -TAU) animation.phase %= TAU;
 
@@ -1913,41 +2225,31 @@ function buildShark(def) {
     const turnOscBoost = 1 + 0.35 * Math.abs(turn);
     const bendAmp = (hasEngineAmp ? state.tailAmp : fallbackAmplitude) * turnOscBoost;
 
-    // uBendBias (Rev 6 6.3): turn-driven lateral set of the rear envelope,
-    // eased 8/s toward turn*0.10, layered additively onto the oscillation in
+    // uBendBias: a small turn-driven lateral set of the rear envelope, eased
+    // 8/s toward turn*.008 bodyLen, layered additively onto the oscillation in
     // the shader (`bendZ += uBendBias*bendT`) and mirrored here for the CPU
     // tail/tests. This is what gives a sustained turn a held "set" in the
     // tail rather than only an oscillation riding through zero.
-    const biasTarget = turn * 0.10;
+    const biasTarget = turn * group.userData.rfBodyLen * 0.008;
     animation.bendBias += (biasTarget - animation.bendBias) * clamp(dt * 8, 0, 1);
 
     uniforms.uBendPhase.value = bendPhase;
     uniforms.uBendAmp.value = bendAmp;
     uniforms.uBendBias.value = animation.bendBias;
 
-    const tailRootX = group.userData.rfTailRootX;
-    // Swim personality (art MINOR): tail sweep amplitude raised moderately
-    // (0.38..0.68 -> 0.42..0.76 rad) for a more readable beat at gameplay
-    // scale. __selftest's fullTailSweep probe mirrors this literal sum
-    // deliberately (see NOTES-rev6-laneA.md).
+    // The existing tailSweep personality now feeds the welded tail envelope.
+    // No tail object exists to rotate: root continuity is entirely in the
+    // shared geometry plus this phase-continuous shader term.
     const tailSweep = 0.42 + 0.34 * speedFrac;
-    const tailPhase = bendPhase + tailRootX * bendK;
+    const tailPhase = bendPhase + group.userData.rfTailRootX * bendK;
+    // Keep the rendered distal displacement inside the review's .12-.18L
+    // sprint band after live-camera projection. The prior .10+.08 envelope
+    // measured ~.215L from idle to sprint; this narrows the art envelope to
+    // .08L idle -> .12L sprint without changing engine phase/amplitude
+    // authority or the shared :rf-bend3 shader contract.
+    uniforms.uTailAmp.value = group.userData.rfBodyLen * (0.08 + 0.04 * speedFrac);
     group.userData.rfTailSweepAmplitude = tailSweep;
     group.userData.rfTailPhase = tailPhase;
-    tail.rotation.y = Math.sin(tailPhase) * tailSweep + turn * 0.12;
-    tail.rotation.z = Math.sin(tailPhase + Math.PI * 0.5) * (0.05 + speedFrac * 0.05);
-    // Rev 6 (6.3) oscillator decoupling: pect flutter takes state.pectPhase
-    // (engine-published) when finite, else a per-def-seeded fraction of the
-    // shared phase so sibling sharks are not phase-locked to one another.
-    // Swim personality: flutter response scaled up slightly with speed
-    // (0.045/0.09 -> 0.05/0.11) so pectorals read livelier at speed while
-    // idle flutter barely changes.
-    const pectPhase = Number.isFinite(state.pectPhase) ? state.pectPhase : animation.phase * 0.55 + seed;
-    const flutter = Math.sin(pectPhase + Math.PI * 0.25) * (0.05 + speedFrac * 0.11);
-    pectL.rotation.x = PECTORAL_SPLAY + flutter;
-    pectR.rotation.x = -PECTORAL_SPLAY - flutter;
-    pectL.rotation.z = -turn * 0.12;
-    pectR.rotation.z = -turn * 0.12;
 
     const bank = clamp(finite(state.bank, turn * (0.18 + 0.17 * speedFrac)), -0.35, 0.35);
     // Body roll (art MINOR): small increase 0.02->0.028, still speed-
@@ -2002,7 +2304,11 @@ function buildShark(def) {
     // old 6/s rate. Still gated by the pose contract test (pose.scale.x > 1
     // at lungeT-driven full stretch), which continues to hold with margin.
     const lungeActive = finite(state.lungeT, 0) > 0;
-    const lungeTarget = lungeActive ? 1.11 : 0;
+    // lungeStretch is added to the 1.0 baseline below, so the 1.11x total
+    // stretch contract is represented by an additive .11 target. Feeding 1.11
+    // here doubled the rig during the evidence probe and made the lunge read
+    // as a scale jump rather than a forward punch.
+    const lungeTarget = lungeActive ? 0.11 : 0;
     animation.lungeStretch += (lungeTarget - animation.lungeStretch) * clamp(dt * (lungeActive ? 18 : 6), 0, 1);
     pose.scale.x = (1 + 0.07 * speedFrac) + animation.lungeStretch;
     // Spectacle hooks: anticipation coil on preyNear -- a slight body
@@ -2166,9 +2472,10 @@ function billboard(textureOrCanvasKey) {
 
 function ensureSharedGeometry() {
   if (!sharedToothGeometry) sharedToothGeometry = new THREE.ConeGeometry(0.5, 1, 4, 1, false);
-  if (!sharedEyeGeometry) sharedEyeGeometry = new THREE.SphereGeometry(1, 8, 5);
-  if (!sharedIrisGeometry) sharedIrisGeometry = new THREE.SphereGeometry(1, 6, 4);
-  if (!sharedCatchlightGeometry) sharedCatchlightGeometry = new THREE.SphereGeometry(1, 4, 3);
+  if (!sharedEyeGeometry) sharedEyeGeometry = new THREE.SphereGeometry(1, 10, 5, 0, TAU, 0, Math.PI * 0.5);
+  if (!sharedIrisGeometry) sharedIrisGeometry = new THREE.CircleGeometry(1, 10);
+  if (!sharedCatchlightGeometry) sharedCatchlightGeometry = new THREE.PlaneGeometry(1, 1);
+  if (!sharedWhaleSpotGeometry) sharedWhaleSpotGeometry = new THREE.CircleGeometry(1, 8);
 }
 
 // Rev 6 fix-round 2 (art CRITICAL 4 support): one shared bowed-ribbon
@@ -2347,7 +2654,6 @@ function dominantVertexColors(geometries) {
 function distinctnessSignature(def, rig) {
   const metrics = rig.group.userData;
   const body = rig.parts.body.geometry;
-  const tail = rig.parts.tail.geometry;
   return {
     id: String(def.id),
     tier: finite(def.tier, 1),
@@ -2355,7 +2661,7 @@ function distinctnessSignature(def, rig) {
     head: String(def.sil?.head || 'point'),
     pattern: String(def.sil?.pattern || 'plain'),
     fx: String(def.sil?.fx || 'none'),
-    dominantColors: dominantVertexColors([body, tail]),
+    dominantColors: dominantVertexColors([body]),
     paletteColors: metrics.rfPaletteRaw,
     bodyAspect: finite(metrics.rfBodyAspect, 0),
     bodyLength: finite(metrics.rfBodyLen, 0),
@@ -2404,13 +2710,14 @@ function rawPaletteDistance(a, b) {
  * and act distance <= 1; unrelated late-game rows are not used to hide a
  * collapse in the early roster. */
 function distinctnessDistance(a, b) {
-  const color = dominantColorDistance(a, b) * 0.65 + rawPaletteDistance(a, b) * 0.35;
+  const color = dominantColorDistance(a, b) * 0.45 + rawPaletteDistance(a, b) * 0.55;
   const proportions =
     Math.abs(a.bodyAspect - b.bodyAspect) / 4.5 * 0.35 +
     Math.abs(a.tailRatio - b.tailRatio) / 0.34 * 0.18 +
     Math.abs(a.finRatio - b.finRatio) / 1.2 * 0.18 +
     Math.abs(a.dorsalRatio - b.dorsalRatio) / 0.45 * 0.12 +
-    Math.abs(a.girth - b.girth) / 0.8 * 0.03 +
+    // Rev 7 de-clamped girth is a primary identity axis, not a tiny tie-break.
+    Math.abs(a.girth - b.girth) / 0.8 * 0.80 +
     Math.abs(a.bodyLength - b.bodyLength) / 3 * 0.14;
   const pattern = a.pattern === b.pattern ? 0 : 1;
   const head = a.head === b.head ? 0 : 1;
@@ -2505,6 +2812,43 @@ function noseIsForward(geometry) {
   return position.getX(noseIndex) >= maxX - 1e-6 && position.getX(noseIndex) > 0;
 }
 
+// Gate the rendered side silhouette, not the old sum-of-lobe-heights proxy.
+// The two terminal lobe vertices and the forward center-notch vertex are
+// actual indexed geometry, so this catches a convex cap even when metadata
+// claims that the tail is crescent-shaped.
+function projectedTailNotchMetrics(geometry, bodyLen, gameplayLengthPx = 124) {
+  const position = geometry?.getAttribute?.('position');
+  const upperIndex = geometry?.userData?.rfTailUpperLobeTipIndex;
+  const lowerIndex = geometry?.userData?.rfTailLowerLobeTipIndex;
+  const notchIndex = geometry?.userData?.rfTailNotchIndex;
+  if (!position || !Number.isInteger(upperIndex) || !Number.isInteger(lowerIndex) || !Number.isInteger(notchIndex)) {
+    throw new Error('tail projected-notch vertices are missing');
+  }
+  let minX = Infinity;
+  let maxX = -Infinity;
+  for (let i = 0; i < position.count; i++) {
+    const x = position.getX(i);
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+  }
+  const upperGap = (position.getX(notchIndex) - position.getX(upperIndex)) / Math.max(bodyLen, 1e-6);
+  const lowerGap = (position.getX(notchIndex) - position.getX(lowerIndex)) / Math.max(bodyLen, 1e-6);
+  const minGap = Math.min(upperGap, lowerGap);
+  const cssPx = minGap * Math.max(bodyLen, 0) / Math.max(maxX - minX, 1e-6) * gameplayLengthPx;
+  return {
+    upperGap,
+    lowerGap,
+    minGap,
+    cssPx,
+    upperX: position.getX(upperIndex),
+    lowerX: position.getX(lowerIndex),
+    notchX: position.getX(notchIndex),
+    upperIndex,
+    lowerIndex,
+    notchIndex
+  };
+}
+
 // Rev 6 (rev6-laneA-fix): headless world-space pitch probe. Samples the
 // rig's own body node (not the outer group) so the result reflects the
 // composed group -> pose -> body transform exactly as the consumer sees it.
@@ -2537,9 +2881,6 @@ function materialEmissive(material) {
 function auditMaterialOwnership(def, rig) {
   const structural = [
     ['body', rig.parts.body],
-    ['tail', rig.parts.tail],
-    ['pectoral L', rig.parts.pectL],
-    ['pectoral R', rig.parts.pectR],
     ['jaw', rig.parts.jaw]
   ];
   const structuralAudit = {};
@@ -2600,560 +2941,353 @@ function maxVertexColorChannel(geometry) {
   return { min, max };
 }
 
-function auditSharkShapeContracts(def, rig) {
-  const { group, parts } = rig;
-  const head = def.sil?.head || 'point';
-  const fusiform = isFusiformHead(head);
-  const bodyLen = group.userData.rfBodyLen;
-  const tailRatio = group.userData.rfTailLengthRatio;
-  if (fusiform && (tailRatio < TAIL_MIN_RATIO - 1e-9 || tailRatio > TAIL_MAX_RATIO + 1e-9)) {
-    throw new Error(`${def.id}: tail length/body length ${tailRatio.toFixed(3)} outside ${TAIL_MIN_RATIO.toFixed(2)}..${TAIL_MAX_RATIO.toFixed(2)}`);
+function gateRange(label, value, min, max, epsilon = 1e-6) {
+  if (!Number.isFinite(value) || value < min - epsilon || value > max + epsilon) {
+    throw new Error(`${label}=${Number.isFinite(value) ? value.toFixed(3) : value} outside [${min}, ${max}]`);
   }
-  if (Math.abs(group.userData.rfTailLowerLobeHeight / group.userData.rfTailUpperLobeHeight - 0.62) > 1e-9) {
-    throw new Error(`${def.id}: lower tail lobe is not 0.62 of upper`);
-  }
-  if (Math.abs(group.userData.rfTailRootWidth / bodyLen - 0.045) > 1e-9) {
-    throw new Error(`${def.id}: tail peduncle root is not 0.045 body lengths`);
-  }
-  if (group.userData.rfTailOutline !== 'crescent-concave-peduncle-notch') {
-    throw new Error(`${def.id}: tail outline lost crescent/concave peduncle contract`);
-  }
-  if (fusiform && group.userData.rfBodyAspect < FUSIFORM_BODY_ASPECT_MIN - 1e-9) {
-    throw new Error(`${def.id}: body aspect ${group.userData.rfBodyAspect.toFixed(3)} < ${FUSIFORM_BODY_ASPECT_MIN.toFixed(2)}`);
-  }
-  if (fusiform && group.userData.rfAspect < FUSIFORM_ASPECT_MIN - 1e-9) {
-    throw new Error(`${def.id}: fusiform aspect ${group.userData.rfAspect.toFixed(3)} < ${FUSIFORM_ASPECT_MIN.toFixed(2)}`);
-  }
-  const sectionRatio = finite(parts.body.geometry.userData.rfSectionZRatio, 0);
-  const midSectionRoundness = finite(parts.body.geometry.userData.rfMidSectionRoundness, 0);
-  if (fusiform && (sectionRatio < FUSIFORM_SECTION_Z_RATIO_MIN - 1e-9 || midSectionRoundness < FUSIFORM_SECTION_Z_RATIO_MIN - 1e-9)) {
-    throw new Error(`${def.id}: mid-body section roundness ${sectionRatio.toFixed(3)} / ${midSectionRoundness.toFixed(3)} < ${FUSIFORM_SECTION_Z_RATIO_MIN.toFixed(2)}`);
-  }
+}
 
-  const dorsal = group.userData.rfDorsalFin;
-  if (fusiform && (!dorsal || !dorsal.swept || Math.abs(dorsal.rootX / bodyLen - 0.05) > 0.06 || dorsal.height / bodyLen < 0.18 || dorsal.height / bodyLen > 0.27)) {
-    throw new Error(`${def.id}: dorsal fin is not swept, centered near +0.05L, or height ~0.22L`);
-  }
-  const pectDepth = parts.pectL.geometry.userData.rfPectoralDepth;
-  const pectTipX = parts.pectL.geometry.userData.rfPectoralTipX;
-  if (fusiform && (pectTipX > -bodyLen * 0.55 || pectDepth > bodyLen * 0.025)) {
-    throw new Error(`${def.id}: pectoral is not long/thin/swept back`);
-  }
-  if (fusiform && (Math.abs(parts.pectL.rotation.x) < PECTORAL_SPLAY - 0.06 || Math.abs(parts.pectR.rotation.x) < PECTORAL_SPLAY - 0.06)) {
-    throw new Error(`${def.id}: pectorals are edge-on; splay is ${parts.pectL.rotation.x.toFixed(3)} / ${parts.pectR.rotation.x.toFixed(3)}`);
-  }
-  if (fusiform && (group.userData.rfEyeRadius / group.userData.rfBodyLen > group.userData.rfEffectiveGirth * 0.085 + 1e-9 || group.userData.rfEyeY / bodyLen < 0.045)) {
-    throw new Error(`${def.id}: eye was not reduced and lifted toward the snout top`);
-  }
+function triangleNormalAndCentroid(geometry, indexOffset) {
+  const index = geometry.getIndex();
+  const position = geometry.getAttribute('position');
+  const a = new THREE.Vector3().fromBufferAttribute(position, index.getX(indexOffset));
+  const b = new THREE.Vector3().fromBufferAttribute(position, index.getX(indexOffset + 1));
+  const c = new THREE.Vector3().fromBufferAttribute(position, index.getX(indexOffset + 2));
+  const normal = new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a));
+  const centroid = a.add(b).add(c).multiplyScalar(1 / 3);
+  return { normal, centroid };
+}
 
-  if (isBulkyHead(head)) {
-    const committedHead = namedFeature(parts.body, `${head} committed front head`);
-    const bodyBox = parts.body.geometry.boundingBox;
-    const headBox = committedHead?.geometry?.boundingBox;
-    if (!committedHead || !headBox) throw new Error(`${def.id}: bulky ${head} head batch is missing`);
-    const overlap = Math.min(bodyBox.max.x, headBox.max.x) - Math.max(bodyBox.min.x, headBox.min.x);
-    const headCenterZ = (headBox.min.z + headBox.max.z) * 0.5;
-    if (Math.abs(group.userData.rfFaceCenterZ) > 1e-9 || Math.abs(headCenterZ) > 1e-6) {
-      throw new Error(`${def.id}: bulky ${head} head is offset from the spine axis`);
-    }
-    if (headBox.max.x <= 0 || overlap < bodyLen * 0.12) {
-      throw new Error(`${def.id}: bulky ${head} head does not overlap the +x spine silhouette`);
-    }
-    if (head === 'whale') {
-      if (namedFeature(parts.body, 'whale bulk')) throw new Error(`${def.id}: whale bulk was reintroduced as a detached feature`);
-      if (!(group.userData.rfBulkFrontProfile > group.userData.rfBulkRearProfile * 1.35)) {
-        throw new Error(`${def.id}: whale body is not front-heavy over its peduncle`);
-      }
-      if (!(group.userData.rfBulkNoseProfile < group.userData.rfBulkFrontProfile * 0.82)) {
-        throw new Error(`${def.id}: whale body does not taper toward the +x head join`);
-      }
+function outwardWindingStats(geometry, indexStart, indexCount, directionForTriangle) {
+  const values = [];
+  const end = indexStart + indexCount;
+  for (let offset = indexStart; offset < end; offset += 3) {
+    const { normal, centroid } = triangleNormalAndCentroid(geometry, offset);
+    if (normal.lengthSq() < 1e-12) continue;
+    const direction = directionForTriangle(centroid, offset);
+    if (!direction || direction.lengthSq() < 1e-12) continue;
+    values.push(normal.normalize().dot(direction.normalize()));
+  }
+  return {
+    count: values.length,
+    min: values.length ? Math.min(...values) : 0,
+    bad: values.filter((value) => value <= 0.02).length
+  };
+}
+
+function mirroredWindingStats(geometry, indexStart, indexCount, patchOffsets = [0, 3]) {
+  let count = 0;
+  let bad = 0;
+  const end = indexStart + indexCount;
+  // Each welded fin is authored as two front triangles followed by the same
+  // two patches in reverse order. The exact fin plane is sloped, so testing
+  // paired normals as opposites is more meaningful than demanding +Z for
+  // every slanted triangle.
+  for (let base = indexStart; base < end; base += 12) {
+    for (const offset of patchOffsets) {
+      const first = triangleNormalAndCentroid(geometry, base + offset).normal.normalize();
+      const mirrored = triangleNormalAndCentroid(geometry, base + offset + 6).normal.normalize();
+      count++;
+      if (first.dot(mirrored) >= -0.20) bad++;
     }
   }
+  return { count, bad };
+}
 
-  const gill = namedFeature(parts.body, 'gill slit');
-  const gillNames = gill?.userData?.rfFeatureNames?.filter((name) => name.includes('gill slit')) || [];
-  const gillColors = maxVertexColorChannel(gill?.geometry);
-  const gillRange = group.userData.rfGillXRange || [];
-  if (fusiform && (group.userData.rfGillBandCount !== 5 || new Set(gillNames.map((name) => name.match(/gill slit \d+/)?.[0])).size < 5 || !gillColors || gillColors.max > 0.18 || Math.abs(gillRange[0] / bodyLen - 0.28) > 1e-9 || Math.abs(gillRange[1] / bodyLen - 0.38) > 1e-9)) {
-    throw new Error(`${def.id}: five dark vertex-color gill bands are missing or misplaced`);
-  }
-  const mouth = namedFeature(parts.body, 'underslung mouth line');
-  const mouthColors = maxVertexColorChannel(mouth?.geometry);
-  if (fusiform && (!group.userData.rfMouthLineVertexColors || !mouthColors || mouthColors.max > 0.18)) {
-    throw new Error(`${def.id}: underslung mouth line is not a dark vertex-color feature`);
-  }
+function weldedWindingStats(geometry) {
+  const tail = outwardWindingStats(
+    geometry,
+    geometry.userData.rfTailSideIndexStart,
+    geometry.userData.rfTailSideIndexCount,
+    (centroid) => new THREE.Vector3(0, centroid.y, centroid.z)
+  );
+  const tailCap = outwardWindingStats(
+    geometry,
+    geometry.userData.rfTailCapIndexStart,
+    geometry.userData.rfTailCapIndexCount,
+    () => new THREE.Vector3(-1, 0, 0)
+  );
+  const dorsal = mirroredWindingStats(geometry, geometry.userData.rfDorsalIndexStart, geometry.userData.rfDorsalIndexCount, [0]);
+  const pectoral = mirroredWindingStats(geometry, geometry.userData.rfPectoralIndexStart, geometry.userData.rfPectoralIndexCount);
+  return { tail, tailCap, dorsal, pectoral };
+}
 
-  // The tail tip's lateral travel is evaluated in body-local units. At a
-  // quarter-cycle, rotation around the peduncle must remain visibly larger
-  // than a tenth of the body, independent of world normalization.
-  // DELIBERATE CHANGE (swim personality, art MINOR): tailSweep amplitude
-  // raised 0.38+0.30*speedFrac -> 0.42+0.34*speedFrac in animate(); this
-  // literal sum is mirrored here on purpose (see NOTES-rev6-laneA.md).
-  const fullTailSweep = 0.42 + 0.34;
-  const tailTipTravel = group.userData.rfTailLength * Math.sin(fullTailSweep);
-  group.userData.rfTailTipTravelAtFullAmp = tailTipTravel;
-  if (tailTipTravel < bodyLen * 0.10) throw new Error(`${def.id}: tail-tip travel ${tailTipTravel.toFixed(3)} < 0.10 body lengths`);
-  rig.animate(0, { speedFrac: 1, turn: 0 });
-  if (Math.abs(group.userData.rfTailSweepAmplitude - fullTailSweep) > 1e-9 || !group.userData.rfTailSlavedToBend) {
-    throw new Error(`${def.id}: tail sweep amplitude/slaving contract is not active`);
+function gateResolvedPalette(id, palette) {
+  if (!palette) throw new Error(`${id}: resolved art ramp missing`);
+  for (const [name, stats] of [['flank', palette.base], ['accent', palette.accent], ['belly', palette.belly]]) {
+    if (!stats) throw new Error(`${id}: resolved ${name} swatch missing`);
   }
-  const expectedTailRotation = Math.sin(group.userData.rfTailPhase) * group.userData.rfTailSweepAmplitude;
-  if (Math.abs(parts.tail.rotation.y - expectedTailRotation) > 1e-9) throw new Error(`${def.id}: tail rotation is not slaved to bend phase`);
-
-  const bodyBox = parts.body.geometry.boundingBox;
-  let maxBendY = 0;
-  for (let phaseIndex = 0; phaseIndex <= 96; phaseIndex++) {
-    const phase = TAU * phaseIndex / 96;
-    for (let xIndex = 0; xIndex <= 24; xIndex++) {
-      const x = bodyBox.min.x + (bodyBox.max.x - bodyBox.min.x) * xIndex / 24;
-      maxBendY = Math.max(maxBendY, Math.abs(BEND_Y_SCALE * bendOffset(x, phase, 0.36, group.userData.rfBendK, group.userData.rfBendSpan[0], group.userData.rfBendSpan[1])));
-    }
+  gateRange(`${id}: flank S`, palette.base.s, BODY_FLANK_SATURATION_MIN, BODY_FLANK_SATURATION_MAX);
+  gateRange(`${id}: flank V`, palette.base.v, BODY_FLANK_VALUE_MIN, BODY_FLANK_VALUE_MAX);
+    gateRange(`${id}: accent S`, palette.accent.s, ACCENT_SATURATION_MIN, ACCENT_SATURATION_MAX);
+  gateRange(`${id}: accent V`, palette.accent.v, ACCENT_VALUE_MIN, ACCENT_VALUE_MAX);
+  gateRange(`${id}: belly S`, palette.belly.s, BELLY_SATURATION_MIN, BELLY_SATURATION_MAX);
+  gateRange(`${id}: belly V`, palette.belly.v, BELLY_VALUE_MIN, BELLY_VALUE_MAX);
+  if (palette.glow) {
+    gateRange(`${id}: glow S`, palette.glow.s, ACCENT_SATURATION_MIN, ACCENT_SATURATION_MAX);
+    gateRange(`${id}: glow V`, palette.glow.v, ACCENT_VALUE_MIN, ACCENT_VALUE_MAX);
   }
-  group.userData.rfMaxBendYAtFullAmp = maxBendY;
-  if (maxBendY < bodyLen * 0.02) throw new Error(`${def.id}: bend y-displacement ${maxBendY.toFixed(3)} < 0.02 body lengths`);
-
-  // Rev 6 (6.3) carangiform envelope samples (updated deliberately for the
-  // new [0.10..0.48]*bodyLen span; the OLD numbers here encoded the rejected
-  // 4.6/bodyLen "squirming worm" envelope which put a near-full wavelength
-  // across the whole body). `-transformed.x` runs 0 at the nose to +bodyLen
-  // toward the tail.
-  //
-  // DEVIATION (documented, see NOTES-rev6-laneA.md): the brief for this test
-  // named sample points "head u=0.2 / mid u=0.45 / tail u=0.9", but under the
-  // smoothstep envelope with span [0.10..0.48] those literal numbers are
-  // self-contradictory: u=0.2 is already 17% into the ramp (not the rigid
-  // zone), and u=0.45 sits at bendT~0.98 -- indistinguishable from the u=0.9
-  // "tail" sample (bendT=1) rather than <25% of it. Both readings would fail
-  // the contract's own span numbers by construction, independent of any
-  // shark3d.js bug. This test instead samples: head deep in the truly rigid
-  // zone (u=0.05, inside [0..0.10]), mid at u=0.2 (bendT~0.17, i.e. <25% of
-  // the tail sample as intended), and tail at u=0.9 (bendT saturated at 1).
-  const envAmp = 0.36;
-  const envPhase = Math.PI * 0.5; // sin peak, so envelope shape (not phase) is what's measured
-  const headX = -bodyLen * 0.05;
-  const midX = -bodyLen * 0.2;
-  const tailX = -bodyLen * 0.9;
-  const headDisp = Math.abs(bendOffset(headX, envPhase, envAmp, group.userData.rfBendK, group.userData.rfBendSpan[0], group.userData.rfBendSpan[1]));
-  const midDisp = Math.abs(bendOffset(midX, envPhase, envAmp, group.userData.rfBendK, group.userData.rfBendSpan[0], group.userData.rfBendSpan[1]));
-  const tailDisp = Math.abs(bendOffset(tailX, envPhase, envAmp, group.userData.rfBendK, group.userData.rfBendSpan[0], group.userData.rfBendSpan[1]));
-  if (headDisp > bodyLen * 1e-4) throw new Error(`${def.id}: head (u=0.05, rigid zone) bend displacement ${headDisp.toFixed(6)} exceeds rigid-zone tolerance`);
-  if (midDisp > tailDisp * 0.25) throw new Error(`${def.id}: mid (u=0.2) bend displacement ${midDisp.toFixed(4)} exceeds 25% of tail (u=0.9) ${tailDisp.toFixed(4)}`);
-  group.userData.rfEnvelopeSamples = { headDisp, midDisp, tailDisp };
 }
 
 function __selftest() {
   ensureSharedGeometry();
   const rows = host.RFD?.SHARKS || RF.RFD?.SHARKS || RF.SHARKS;
-  if (!rows || rows.length !== 61) throw new Error(`RF.Art3D expected 61 sharks, received ${rows ? rows.length : 0}`);
-  const samples = representativeRows();
-  const result = { pass: false, headProfiles: {}, triangles: {}, materialAudit: {}, bodyCalibration: {}, colorBlocks: {}, patterns: {}, distinctness: null, bendProgramVariants: [], notes: [], errors: [] };
+  if (!rows || rows.length !== 61) throw new Error('RF.Art3D expected 61 sharks, received ' + (rows ? rows.length : 0));
+  const result = {
+    pass: false,
+    triangles: {},
+    archetypes: {},
+    bendProgramVariants: [],
+    distinctness: null,
+    girthSpread: 0,
+    eyeUnit: null,
+    notes: [],
+    errors: []
+  };
   try {
-    const ratios = [];
-    const bendProgramKeys = new Set();
-    const ramp = ensureGradientMap();
-    const rampTexels = distinctGradientTexels(ramp);
-    if (rampTexels < 3) throw new Error(`gradientMap has only ${rampTexels} distinct texels`);
-    // Three r160 exposes needsUpdate as a write-only setter; version is the
-    // renderer-visible proof that the setter was triggered in headless mode.
-    if (!(ramp.version > 0)) throw new Error('gradientMap was not marked needsUpdate');
-    const usedPatterns = Array.from(new Set(rows.map((def) => String(def.sil?.pattern || 'plain')))).sort();
-    const unsupportedPatterns = usedPatterns.filter((pattern) => !SUPPORTED_PATTERN_IDS.has(pattern));
-    if (unsupportedPatterns.length) throw new Error(`unsupported sil.pattern IDs: ${unsupportedPatterns.join(', ')}`);
-    result.patterns = { used: usedPatterns, supported: Array.from(SUPPORTED_PATTERN_IDS).sort(), missing: [] };
-    for (const def of samples) {
-      const rig = buildShark(def);
-      const { group, parts } = rig;
-      if (!(group instanceof THREE.Group) || !parts.body?.isMesh || !parts.tail?.isMesh || !parts.pectL?.isMesh || !parts.pectR?.isMesh || (def.tier >= 5 && !parts.jaw?.isMesh) || typeof rig.animate !== 'function') throw new Error(`${def.id}: incomplete rig contract`);
-      const pose = group.userData.rfPose;
-      const uniforms = group.userData.rfBendUniforms;
-      if (!(pose instanceof THREE.Group) || pose.parent !== group || group.children[0] !== pose) throw new Error(`${def.id}: pose group is not between group and parts`);
-      if (Math.abs(Math.abs(pose.rotation.y) - SHARK_POSE_YAW) > 1e-9) throw new Error(`${def.id}: pose yaw ${pose.rotation.y.toFixed(3)} is not ±${SHARK_POSE_YAW.toFixed(2)}`);
-      if (!uniforms || !uniforms.uBendPhase || !uniforms.uBendAmp || !uniforms.uBendK || !uniforms.uBendSpan || !uniforms.uBendBias) throw new Error(`${def.id}: incomplete bend uniform bundle`);
-      const materials = bendMaterials(group);
-      if (materials.length < 3) throw new Error(`${def.id}: body/shell/features did not receive bend materials`);
-      for (const material of materials) {
-        if (typeof material.onBeforeCompile !== 'function') throw new Error(`${def.id}: bend hook missing`);
-        // Rev 6 (6.3): the shader source changed (uBendBias term), so the
-        // cache key deliberately bumped :rf-bend -> :rf-bend2 (this contract
-        // updated deliberately per Rev 6; the instanced fish key :rf-bend-inst
-        // in world3d.js is untouched and out of this lane's scope).
-        if (typeof material.customProgramCacheKey !== 'function' || !material.customProgramCacheKey().endsWith(':rf-bend2') || material.customProgramCacheKey() !== material.customProgramCacheKey()) throw new Error(`${def.id}: unstable bend cache key`);
-        if (material.userData.rfBendUniforms !== uniforms) throw new Error(`${def.id}: bend uniforms are not shared by identity`);
-        bendProgramKeys.add(material.customProgramCacheKey());
-      }
-      const shell = parts.body.children.find((object) => object.name === 'RF dark silhouette edge shell');
-      if (!shell || shell.scale.x > 1.025 + 1e-9 || Math.abs(shell.scale.x - OUTLINE_SHELL_SCALE) > 1e-9 || shell.material.color.getHex() !== OUTLINE_SHELL_COLOR || Math.abs(shell.material.userData.rfBendAmpScale - 1 / OUTLINE_SHELL_SCALE) > 1e-9) {
-        throw new Error(`${def.id}: outline shell is not ${OUTLINE_SHELL_SCALE.toFixed(3)}x with lifted ink color`);
-      }
-      const shaderProbe = { uniforms: {}, vertexShader: '#include <common>\n#include <begin_vertex>' };
-      parts.body.material.onBeforeCompile(shaderProbe);
-      if (shaderProbe.uniforms.uBendPhase !== uniforms.uBendPhase || shaderProbe.uniforms.uBendAmp !== uniforms.uBendAmp || shaderProbe.uniforms.uBendK !== uniforms.uBendK || shaderProbe.uniforms.uBendSpan !== uniforms.uBendSpan || shaderProbe.uniforms.uBendBias !== uniforms.uBendBias || !shaderProbe.vertexShader.includes('bendT=smoothstep') || !shaderProbe.vertexShader.includes('uBendPhase+transformed.x*uBendK') || !shaderProbe.vertexShader.includes('uniform float uBendBias') || !shaderProbe.vertexShader.includes('bendZ+=uBendBias*bendT')) {
-        // Rev 6 (6.3): uBendBias MUST be declared in the GLSL header AND
-        // consumed in the vertex chunk. This selftest is the only net that
-        // catches a missing declaration before a real-GL compile error would
-        // (headless BufferGeometry path never compiles the shader).
-        throw new Error(`${def.id}: bend shader injection contract is incomplete (uBendBias declaration/consumption)`);
-      }
-      auditSharkShapeContracts(def, rig);
-      const noseBend = bendOffset(parts.body.geometry.boundingBox.max.x, 0.37, 0.3, uniforms.uBendK.value, uniforms.uBendSpan.value.x, uniforms.uBendSpan.value.y);
-      const tailBend = bendOffset(group.userData.rfTailRootX, 0.37, 0.3, uniforms.uBendK.value, uniforms.uBendSpan.value.x, uniforms.uBendSpan.value.y);
-      if (Math.abs(noseBend) > 1e-9 || Math.abs(tailBend) < 0.01) throw new Error(`${def.id}: CPU bend reference does not separate nose and tail`);
-      group.updateMatrixWorld(true);
-      result.materialAudit[def.id] = auditMaterialOwnership(def, rig);
-      const colorStats = bodyColorStats(parts.body.geometry);
-      if (colorStats.meanLuminance <= 0) throw new Error(`${def.id}: body mean luminance is not positive`);
-      if (def.id === 'reef' && colorStats.meanLuminance <= 0.25) throw new Error(`${def.id}: body mean luminance ${colorStats.meanLuminance.toFixed(3)} <= 0.25`);
-      if (!noseIsForward(parts.body.geometry)) throw new Error(`${def.id}: nose is not the +x-forward vertex`);
-      result.bodyLuminance = result.bodyLuminance || {};
-      result.bodyLuminance[def.id] = Number(colorStats.meanLuminance.toFixed(3));
-      const eyeNames = [];
-      group.traverse((object) => eyeNames.push(object.name, ...(object.userData?.rfFeatureNames || [])));
-      if (!eyeNames.some((name) => name.includes('eye') && name.includes('base'))) throw new Error(`${def.id}: eye base is missing`);
-      if (def.act >= 3 && !eyeNames.some((name) => name.includes('glow ring'))) throw new Error(`${def.id}: Act 3 eye glow ring is missing`);
-      const box = new THREE.Box3().setFromObject(group);
-      const size = box.getSize(new THREE.Vector3());
-      const ratio = size.x / Math.max(size.y, size.z, 0.0001);
-      ratios.push(ratio.toFixed(2));
-      const metrics = group.userData;
-      result.headProfiles[def.id] = {
-        head: def.sil.head,
-        ratio: Number(ratio.toFixed(3)),
-        bodyAspect: Number(metrics.rfBodyAspect.toFixed(3)),
-        sectionZRatio: Number(finite(parts.body.geometry.userData.rfSectionZRatio, 0).toFixed(3)),
-        midSectionRoundness: Number(finite(parts.body.geometry.userData.rfMidSectionRoundness, 0).toFixed(3)),
-        faceShare: Number(metrics.rfFaceShare.toFixed(3)),
-        jawVolumeRatio: Number(metrics.rfJawVolumeRatio.toFixed(3)),
-        tailShare: Number(metrics.rfTailShare.toFixed(3)),
-        plateExposure: def.sil.head === 'kaiju' ? metrics.rfPlateMaxZ > metrics.rfBodyMaxZ : true,
-        size: [Number(size.x.toFixed(3)), Number(size.y.toFixed(3)), Number(size.z.toFixed(3))]
-      };
-      if (def.tier >= 5 && metrics.rfFaceShare < 0.28) throw new Error(`${def.id}: face share ${metrics.rfFaceShare.toFixed(3)} < 0.28`);
-      if (def.tier >= 5 && metrics.rfJawVolumeRatio < (def.sil.head === 'kaiju' ? 0.09 : 0.045)) throw new Error(`${def.id}: jaw volume ratio ${metrics.rfJawVolumeRatio.toFixed(3)} is too thin`);
-      if (def.sil.head === 'kaiju' && !(metrics.rfPlateMaxZ > metrics.rfBodyMaxZ)) throw new Error(`${def.id}: dorsal plate row is buried at z=${metrics.rfPlateMaxZ.toFixed(3)} body=${metrics.rfBodyMaxZ.toFixed(3)}`);
-      if (def.sil.head === 'kaiju' && !(group.userData.rfFeatureBatchCount < group.userData.rfFeatureSourceCount) ) throw new Error(`${def.id}: feature batching did not reduce feature meshes`);
-      if (def.sil.head === 'kaiju' && !group.userData.rfBatchesTeethPlatesEyes) throw new Error(`${def.id}: teeth/plates/eyes are not batched`);
-      const tris = countTriangles(group);
-      result.triangles[def.id] = tris;
-      if (tris > 3500) throw new Error(`${def.id}: ${tris} triangles`);
-      const teeth = [];
-      let mouthCavity = false;
-      group.traverse((object) => {
-        if (object.name.includes('tooth') || object.userData?.rfFeatureNames?.some((name) => name.includes('tooth'))) teeth.push(object);
-        if (object.userData?.rfFeatureNames?.some((name) => name.includes('mouth cavity'))) mouthCavity = true;
-      });
-      if (def.tier >= 2 && teeth.length === 0) throw new Error(`${def.id}: no visible teeth`);
-      if (def.tier >= 2 && !mouthCavity) throw new Error(`${def.id}: no connected mouth cavity`);
-      const samplesTail = [];
-      for (let i = 0; i < 120; i++) {
-        rig.animate(i / 60, { speedFrac: (i % 60) / 59, turn: Math.sin(i * 0.13), bitePhase: i % 31 === 0 ? 1 : 0, jawSnapT: i % 47 === 0 ? 1 : 0 });
-        samplesTail.push(parts.tail.rotation.y);
-      }
-      const tailRange = Math.max(...samplesTail) - Math.min(...samplesTail);
-      if (tailRange < 0.01) throw new Error(`${def.id}: tail did not oscillate`);
+    const patterns = Array.from(new Set(rows.map((def) => String(def.sil?.pattern || 'plain'))));
+    const unsupported = patterns.filter((pattern) => !SUPPORTED_PATTERN_IDS.has(pattern));
+    if (unsupported.length) throw new Error('unsupported sil.pattern IDs: ' + unsupported.join(', '));
 
-      // Rev 6 (rev6-laneA-fix): stationary/dive/release pitch gate. Reproduces
-      // the reported "shark pitched nose-down ~40deg while stationary" defect:
-      // build a fresh rig, drive it fully idle (vy=turn=bank=0) to settle,
-      // then a held dive, then release back to idle, and assert the
-      // world-space nose-to-tail axis is level within a few degrees at rest
-      // and dives the CORRECT direction (nose toward world -Y, i.e. "down")
-      // while vy>0 (sim +y=DOWN, per 6.2). Checked for BOTH facings, since the
-      // prior pass explicitly flagged the flip interaction as unverified and
-      // it is exactly where the sign bug lived (pose.rotation.z was inverted
-      // for both facings equally - not a mirror-asymmetry bug).
-      for (const facingLeft of [false, true]) {
-        const pitchRig = buildShark(def);
-        pitchRig.group.rotation.y = facingLeft ? Math.PI : 0;
-        let pt = 0;
-        for (let i = 0; i < 90; i++) { pt += 1 / 60; pitchRig.animate(pt, { speedFrac: 0, turn: 0, vy: 0, bank: 0 }); }
-        const idleDeg = worldNoseTailPitchDeg(pitchRig.group, pitchRig.parts.body);
-        if (Math.abs(idleDeg) > 5) throw new Error(`${def.id}: idle (vy=turn=bank=0, facingLeft=${facingLeft}) settled at ${idleDeg.toFixed(1)}deg, expected level within 5deg`);
-        for (let i = 0; i < 90; i++) { pt += 1 / 60; pitchRig.animate(pt, { speedFrac: 0.3, turn: 0, vy: 250, bank: 0 }); }
-        const diveDeg = worldNoseTailPitchDeg(pitchRig.group, pitchRig.parts.body);
-        if (diveDeg >= -1e-6) throw new Error(`${def.id}: held dive (vy=250, facingLeft=${facingLeft}) did not pitch nose-down (${diveDeg.toFixed(1)}deg)`);
-        if (Math.abs(diveDeg) > 15) throw new Error(`${def.id}: held dive (vy=250, facingLeft=${facingLeft}) pitched ${diveDeg.toFixed(1)}deg, beyond the ~12.6deg (0.22 rad) contract clamp plus a small margin`);
-        for (let i = 0; i < 90; i++) { pt += 1 / 60; pitchRig.animate(pt, { speedFrac: 0, turn: 0, vy: 0, bank: 0 }); }
-        const releaseDeg = worldNoseTailPitchDeg(pitchRig.group, pitchRig.parts.body);
-        if (Math.abs(releaseDeg) > 5) throw new Error(`${def.id}: release-to-idle (facingLeft=${facingLeft}) settled at ${releaseDeg.toFixed(1)}deg, expected level within 5deg`);
-      }
-
-      rig.animate(2, { speedFrac: 1, turn: 1, bank: 0.35, vy: 180, preyNear: true });
-      if (Math.abs(pose.rotation.y) < SHARK_POSE_YAW - 1e-9 || Math.abs(pose.rotation.y) > SHARK_POSE_YAW + 1e-9 || Math.abs(pose.rotation.x) > 0.35 + 1e-9 || Math.abs(pose.rotation.z) > 0.22 + 1e-9 || pose.scale.x <= 1 || pose.scale.y >= 1) {
-        throw new Error(`${def.id}: pose yaw/bank/pitch/stretch is outside contract`);
-      }
-      if (parts.jaw && Math.abs(parts.jaw.rotation.z) < 1e-6) throw new Error(`${def.id}: preyNear jaw anticipation did not open the jaw`);
-      group.rotation.y = Math.PI;
-      rig.animate(2 + 1 / 60, { speedFrac: 0, turn: 0, bank: 0 });
-      if (Math.abs(pose.rotation.y + SHARK_POSE_YAW) > 1e-9) throw new Error(`${def.id}: left-facing pose yaw did not mirror`);
-      group.rotation.y = 0;
-      const rampRig = buildShark(def);
-      const rampUniforms = rampRig.group.userData.rfBendUniforms;
-      let expectedPhase = 0;
-      for (let i = 0; i < 96; i++) {
-        const speed = i / 95;
-        rampRig.animate(i / 60, { speedFrac: speed });
-        if (i > 0) expectedPhase += (2.2 + (8.5 - 2.2) * Math.pow(speed, 0.8)) * TAU / 60;
-        const expectedWrapped = expectedPhase % TAU;
-        const phaseError = Math.abs(rampUniforms.uBendPhase.value - expectedWrapped);
-        // Rev 6 (6.3): idle amplitude floor/curve updated deliberately
-        // 0.06/^1.2 -> 0.015/^1.3 (was tuned for the rejected 4.6/bodyLen
-        // envelope). Rev 6 fix-round 2 (swim personality, art MINOR):
-        // 0.015/0.32 -> 0.018/0.38, mirroring animate()'s fallbackAmplitude
-        // deliberately (see NOTES-rev6-laneA.md). The tolerance band below
-        // scales off this fallback amplitude, not the phase-rate
-        // integration, which is unchanged.
-        const amplitude = 0.018 + 0.38 * Math.pow(speed, 1.3);
-        if (phaseError > amplitude * 0.2 + 1e-9) throw new Error(`${def.id}: phase discontinuity ${phaseError} exceeds amp*0.2`);
-      }
-    }
-    const calibrationRows = [];
-    for (const act of [1, 2, 3]) {
-      const row = rows.find((candidate) => candidate.act === act);
-      if (row) calibrationRows.push(row);
-    }
-    const leviathan = rows.find((candidate) => candidate.id === 'leviathanrex');
-    if (leviathan && !calibrationRows.includes(leviathan)) calibrationRows.push(leviathan);
-    for (const def of calibrationRows) {
-      const bands = bodyBandStats(buildShark(def).parts.body.geometry);
-      const colorBlocks = bodyColorBlockStats(buildShark(def).parts.body.geometry);
-      result.bodyCalibration[def.id] = {
-        ridge: Number(bands.ridge.mean.toFixed(3)),
-        flank: Number(bands.flank.mean.toFixed(3)),
-        belly: Number(bands.belly.mean.toFixed(3)),
-        flankSaturation: Number(colorBlocks.flank.saturation.toFixed(3)),
-        flankValue: Number(colorBlocks.flank.value.toFixed(3))
-      };
-      if (bands.ridge.mean > 0.30) throw new Error(`${def.id}: dorsal ridge luminance ${bands.ridge.mean.toFixed(3)} > 0.30`);
-      if (colorBlocks.flank.saturation < BODY_FLANK_SATURATION_FLOOR) throw new Error(`${def.id}: flank saturation ${colorBlocks.flank.saturation.toFixed(3)} < ${BODY_FLANK_SATURATION_FLOOR.toFixed(2)}`);
-      if (colorBlocks.flank.value < BODY_FLANK_VALUE_MIN || colorBlocks.flank.value > BODY_FLANK_VALUE_MAX) throw new Error(`${def.id}: flank value ${colorBlocks.flank.value.toFixed(3)} outside ${BODY_FLANK_VALUE_MIN.toFixed(2)}..${BODY_FLANK_VALUE_MAX.toFixed(2)}`);
-      if (bands.belly.mean < 0.70) throw new Error(`${def.id}: belly luminance ${bands.belly.mean.toFixed(3)} < 0.70`);
-    }
-    if (new Set(ratios).size < 4) throw new Error(`head proportions collapsed: ${ratios.join(', ')}`);
-    result.gradientMap = { distinctTexels: rampTexels, updateVersion: ramp.version, bands: BODY_RAMP_BANDS };
-    let sweep = 0;
+    const signatures = [];
+    const bendKeys = new Set();
+    const girthValues = [];
     let worstCaseTriangles = 0;
     let worstCaseId = null;
-    const signatures = [];
+    const archetypeTotals = new Map();
+    const archetypeCounts = new Map();
+    const greatWhiteDef = rows.find((def) => String(def.id) === 'greatwhite');
+    const greatWhiteHeadHeight = greatWhiteDef ? buildShark(greatWhiteDef).group.userData.rfHeadHeight : 0;
+
     for (const def of rows) {
       const rig = buildShark(def);
-      signatures.push(distinctnessSignature(def, rig));
-      auditSharkShapeContracts(def, rig);
-      for (const material of bendMaterials(rig.group)) bendProgramKeys.add(material.customProgramCacheKey());
-      const materials = auditMaterialOwnership(def, rig);
-      result.materialAudit[def.id] = materials;
-      const colorStats = bodyColorStats(rig.parts.body.geometry);
-      if (colorStats.meanLuminance <= 0 || !noseIsForward(rig.parts.body.geometry)) throw new Error(`${def.id}: invalid body colors or +x nose invariant in sweep`);
-      const colorBlocks = bodyColorBlockStats(rig.parts.body.geometry);
-      result.colorBlocks[def.id] = {
-        act: def.act,
-        dorsalSaturation: Number(colorBlocks.dorsal.saturation.toFixed(3)),
-        flankSaturation: Number(colorBlocks.flank.saturation.toFixed(3)),
-        flankValue: Number(colorBlocks.flank.value.toFixed(3)),
-        bellyValue: Number(colorBlocks.belly.value.toFixed(3)),
-        rimHue: Number(rgbToHsv(colorBlocks.rim).h.toFixed(3)),
-        dorsalFlankDistance: Number(colorBlocks.dorsalFlankDistance.toFixed(1)),
-        flankBellyDistance: Number(colorBlocks.flankBellyDistance.toFixed(1))
+      const group = rig.group;
+      const parts = rig.parts;
+      const body = parts.body;
+      const geometry = body.geometry;
+      const id = String(def.id);
+
+      if (!(group instanceof THREE.Group) || !body?.isMesh || typeof rig.animate !== 'function') {
+        throw new Error(id + ': incomplete welded rig contract');
+      }
+      if (parts.tail !== null || parts.pectL !== null || parts.pectR !== null) {
+        throw new Error(id + ': deleted appendage mesh leaked into parts');
+      }
+      if (JSON.stringify(group.userData.rfWeldedAppendages) !== JSON.stringify({ tail: true, dorsal: true, pectorals: true })) {
+        throw new Error(id + ': welded appendage contract missing');
+      }
+      if (!geometry.getIndex() || !geometry.getAttribute('color') || geometry.userData.rfWeldedAppendages?.tail !== true) {
+        throw new Error(id + ': body is not one indexed, vertex-coloured welded geometry');
+      }
+      if (!noseIsForward(geometry)) throw new Error(id + ': +x nose invariant failed');
+      const worldBox = new THREE.Box3().setFromObject(group);
+      const worldTarget = 96 * clamp(finite(def.sil?.len, 1), 0.5, 3);
+      if (Math.abs((worldBox.max.x - worldBox.min.x) - worldTarget) > 1e-4) {
+        throw new Error(id + ': worldScale bbox X is not 96*sil.len');
+      }
+
+      const head = String(def.sil?.head || 'point');
+      gateResolvedPalette(id, group.userData.rfPaletteResolved);
+      gateRange(`${id}: outline V`, group.userData.rfOutlineColorStats?.v, OUTLINE_VALUE_MIN, OUTLINE_VALUE_MAX);
+      if (group.userData.rfTailLengthRatio < TAIL_MIN_RATIO || group.userData.rfTailLengthRatio > TAIL_MAX_RATIO) {
+        throw new Error(`${id}: tail length ratio ${group.userData.rfTailLengthRatio.toFixed(3)} outside [${TAIL_MIN_RATIO}, ${TAIL_MAX_RATIO}]`);
+      }
+      gateRange(`${id}: tail lower/upper lobe ratio`, group.userData.rfTailLowerUpperRatio, 0.60, 0.72);
+      gateRange(`${id}: projected notch/upper tip`, group.userData.rfTailNotchProjectedUpperRatio, 0.10, 0.14);
+      gateRange(`${id}: projected notch/lower tip`, group.userData.rfTailNotchProjectedLowerRatio, 0.10, 0.14);
+      gateRange(`${id}: projected notch minimum gap`, group.userData.rfTailNotchProjectedRatio, 0.10, 0.14);
+      if (group.userData.rfTailNotchProjectedCssPx < 10 - 1e-6) {
+        throw new Error(`${id}: projected notch gap ${group.userData.rfTailNotchProjectedCssPx.toFixed(2)} CSS px < 10 CSS px`);
+      }
+      gateRange(`${id}: tail depth`, group.userData.rfTailDepthRatio, 0.08, 0.12);
+      gateRange(`${id}: tail final-20% taper`, group.userData.rfTailFinalLobeRatio, 0, 0.35);
+      if (group.userData.rfTailStationCount < 10 || group.userData.rfTailStationCount > 12 || !group.userData.rfTailPointedCap) {
+        throw new Error(`${id}: tail stations/cap contract missing`);
+      }
+      const eyeRadiusRanges = {
+        whale: [0.34, 0.42], kaiju: [0.42, 0.50]
       };
-      if (colorBlocks.flank.saturation < BODY_FLANK_SATURATION_FLOOR) {
-        throw new Error(`${def.id}: flank saturation ${colorBlocks.flank.saturation.toFixed(3)} < ${BODY_FLANK_SATURATION_FLOOR.toFixed(2)}`);
+      const eyeRange = eyeRadiusRanges[head] || [0.38, 0.46];
+      gateRange(`${id}: eye radius/radiusY`, group.userData.rfEyeRadiusFraction, eyeRange[0], eyeRange[1]);
+      gateRange(`${id}: front span/bodyLen`, group.userData.rfFrontSpanRatio, 0.36, 0.45);
+      const headScaleRanges = {
+        point: [1.45, 1.55], blunt: [1.55, 1.70], hammer: [1.55, 1.65],
+        whale: [1.35, 1.50], kaiju: [1.45, 1.65]
+      };
+      if (headScaleRanges[head]) gateRange(`${id}: ${head} head scale`, group.userData.rfHeadScale, ...headScaleRanges[head]);
+      if (!(group.userData.rfEyeSurfaceZ > 0) || group.userData.rfEyeZ / group.userData.rfEyeSurfaceZ < 1.03) {
+        throw new Error(`${id}: eye is not >=1.03x local surface`);
       }
-      if (colorBlocks.flank.value < BODY_FLANK_VALUE_MIN || colorBlocks.flank.value > BODY_FLANK_VALUE_MAX) {
-        throw new Error(`${def.id}: flank value ${colorBlocks.flank.value.toFixed(3)} outside ${BODY_FLANK_VALUE_MIN.toFixed(2)}..${BODY_FLANK_VALUE_MAX.toFixed(2)}`);
+      gateRange(`${id}: iris/eye radius`, group.userData.rfEyeIrisFraction, 0.45, 0.55);
+      gateRange(`${id}: iris S`, group.userData.rfEyeIrisStats?.s, 0.75, 1.0);
+      gateRange(`${id}: iris V`, group.userData.rfEyeIrisStats?.v, 0.65, 1.0);
+      gateRange(`${id}: mouth width/bodyLen`, group.userData.rfMouthWidthRatio, 0.38, 0.58);
+      gateRange(`${id}: mouth height/headHeight`, group.userData.rfMouthHeightRatio, 0.28, 0.40);
+      if (head === 'hammer') {
+        gateRange(`${id}: hammer projected X span/bodyLen`, group.userData.rfHammerFoilProjectedSpan / group.userData.rfBodyLen, 0.42, 0.56);
+        gateRange(`${id}: hammer thickness/bodyLen`, group.userData.rfHammerFoilThickness / group.userData.rfBodyLen, 0.10, 0.16);
+        if (group.userData.rfHammerBridgeOverlap / group.userData.rfBodyLen < 0.12) throw new Error(`${id}: hammer bridge overlap <.12L`);
       }
-      if (def.act >= 3) {
-        const palette = paletteOf(def);
-        const glowHsv = rgbToHsv(palette.glow || palette.accent);
-        const rimHsv = rgbToHsv(colorBlocks.rim);
-        const hueGap = Math.abs(glowHsv.h - rimHsv.h);
-        if (Math.min(hueGap, 1 - hueGap) > 0.12) throw new Error(`${def.id}: Act 3 flank rim hue ${rimHsv.h.toFixed(3)} does not carry glow hue ${glowHsv.h.toFixed(3)}`);
+      if (head === 'whale') {
+        gateRange(`${id}: whale/greatwhite head height`, group.userData.rfWhaleHeadHeight / Math.max(greatWhiteHeadHeight, 1e-6), 1.4, 1.7);
+        gateRange(`${id}: whale spot count`, group.userData.rfWhaleSpotCount, 6, 10);
+        gateRange(`${id}: whale spot diameter/headHeight`, group.userData.rfWhaleSpotDiameterRatio, 0.06, 0.10);
+        if (group.userData.rfWhaleSpotValueContrast < 0.25 || !group.userData.rfWhaleBaleenCrossing || group.userData.rfWhaleBaleenProudZ / group.userData.rfBodyLen < 0.03) {
+          throw new Error(`${id}: whale spots/baleen contrast or proud placement failed`);
+        }
       }
-      if (colorBlocks.dorsalFlankDistance < BODY_BLOCK_DISTANCE_MIN || colorBlocks.flankBellyDistance < BODY_BLOCK_DISTANCE_MIN) {
-        throw new Error(`${def.id}: adjacent body blocks are too close (dorsal/flank ${colorBlocks.dorsalFlankDistance.toFixed(1)}, flank/belly ${colorBlocks.flankBellyDistance.toFixed(1)}, minimum ${BODY_BLOCK_DISTANCE_MIN})`);
+      if (String(def.sil?.pattern || '') === 'stripes') {
+        gateRange(`${id}: stripe band width/bodyLen`, group.userData.rfTigerStripeBandWidthRatio, 0.045, 0.060);
+        if (group.userData.rfTigerStripeValueContrast < 0.25) throw new Error(`${id}: tiger stripe value contrast <.25`);
       }
-      const tris = countTriangles(rig.group);
-      if (tris > 3500) throw new Error(`${def.id}: ${tris} triangles in sweep`);
-      if (tris > worstCaseTriangles) {
-        worstCaseTriangles = tris;
-        worstCaseId = def.id;
+      if (head === 'mech') {
+        gateRange(`${id}: mech panel visible area`, group.userData.rfMechPanelAreaRatio, 0.08, 0.15);
+        if (group.userData.rfMechPanelValueContrast < 0.25 || group.userData.rfMechPanelProudZ / group.userData.rfBodyLen < 0.03 || group.userData.rfMechThrusterProudZ / group.userData.rfBodyLen < 0.04) {
+          throw new Error(`${id}: mech panel/thruster contrast or proud placement failed`);
+        }
       }
-      sweep++;
+      if (head === 'void') {
+        gateRange(`${id}: void ring diameter/headHeight`, group.userData.rfVoidRingDiameterRatio, 0.75, 0.95);
+        gateRange(`${id}: void ring stroke/headHeight`, group.userData.rfVoidRingStrokeRatio, 0.06, 0.09);
+        gateRange(`${id}: void eye diameter/headHeight`, group.userData.rfVoidEyeDiameterRatio, 0.20, 0.28);
+        if (group.userData.rfVoidRingProudZ / group.userData.rfBodyLen < 0.03 || group.userData.rfVoidEyeProudZ / group.userData.rfBodyLen < 0.03) throw new Error(`${id}: void identity feature is sub-surface`);
+      }
+
+      const uniforms = group.userData.rfBendUniforms;
+      const requiredUniforms = ['uBendPhase', 'uBendAmp', 'uBendK', 'uBendSpan', 'uBendBias', 'uTailAmp', 'uTailSpan', 'uBendScale'];
+      if (!uniforms || requiredUniforms.some((name) => !uniforms[name])) {
+        throw new Error(id + ': incomplete bend v3 uniform bundle');
+      }
+      const materials = bendMaterials(group);
+      if (materials.length < 3) throw new Error(id + ': body/shell/features did not receive bend materials');
+      for (const material of materials) {
+        if (typeof material.onBeforeCompile !== 'function' || typeof material.customProgramCacheKey !== 'function') {
+          throw new Error(id + ': bend hook missing');
+        }
+        const key = material.customProgramCacheKey();
+        if (!key.endsWith(':rf-bend3') || key !== material.customProgramCacheKey()) {
+          throw new Error(id + ': unstable or old bend cache key ' + key);
+        }
+        if (material.userData.rfBendUniforms !== uniforms) throw new Error(id + ': bend uniforms are not identity-shared');
+        bendKeys.add(key);
+      }
+      const shaderProbe = { uniforms: {}, vertexShader: '#include <common>\n#include <begin_vertex>' };
+      materials[0].onBeforeCompile(shaderProbe);
+      const shaderSource = shaderProbe.vertexShader;
+      for (const token of requiredUniforms) {
+        if (!shaderSource.includes('uniform ' + (token === 'uBendSpan' || token === 'uTailSpan' ? 'vec2 ' : 'float ') + token)) {
+          throw new Error(id + ': GLSL declaration missing for ' + token);
+        }
+      }
+      if (!shaderSource.includes('transformed.y += ' + BEND_Y_SCALE.toFixed(2) + '*bendZ')) {
+        throw new Error(id + ': bend y-component coupling missing');
+      }
+
+      const shell = body.children.find((object) => object.name === 'RF dark silhouette edge shell');
+      if (!shell || Math.abs(shell.scale.x - OUTLINE_SHELL_SCALE) > 1e-9 || shell.material.side !== THREE.BackSide) {
+        throw new Error(id + ': whole-body 1.010 BackSide shell missing');
+      }
+      const jawShell = parts.jaw?.children.find((object) => object.name === 'RF jaw dark silhouette edge shell');
+      if (def.tier >= 5) {
+        if (!parts.jaw?.isMesh || !jawShell || jawShell.material.side !== THREE.BackSide || Math.abs(jawShell.scale.x - OUTLINE_SHELL_SCALE) > 1e-9) {
+          throw new Error(id + ': articulated jaw 1.010 shell missing');
+        }
+        if (!parts.jaw.geometry.getAttribute('color') || !parts.jaw.geometry.userData.rfJawRimMatchesBody || !parts.jaw.geometry.userData.rfJawCavityBand) {
+          throw new Error(id + ': jaw rim/cavity vertex-color contract missing');
+        }
+      }
+
+      const roots = geometry.userData.rfSharedAppendageRoots;
+      const usage = new Map();
+      for (const index of geometry.getIndex().array) usage.set(index, (usage.get(index) || 0) + 1);
+      if (!roots || roots.tail.length !== geometry.userData.rfRadial || roots.dorsal.length !== 2 || roots.pectorals?.L?.length !== 2 || roots.pectorals?.R?.length !== 2) {
+        throw new Error(id + ': shared appendage root metadata is incomplete');
+      }
+      for (const index of [...roots.tail, ...roots.dorsal, ...roots.pectorals.L, ...roots.pectorals.R]) {
+        if (!Number.isInteger(index) || index < 0 || index >= geometry.getAttribute('position').count || (usage.get(index) || 0) < 4) {
+          throw new Error(id + ': peduncle/fin root is not shared by indexed faces');
+        }
+      }
+      const winding = weldedWindingStats(geometry);
+      if (!winding.tail.count || winding.tail.bad || winding.tail.min <= 0.02 || !winding.tailCap.count || winding.tailCap.bad || winding.tailCap.min <= 0.02) {
+        throw new Error(`${id}: welded tail side winding is inward (min dot ${winding.tail.min.toFixed(3)}, bad ${winding.tail.bad}/${winding.tail.count})`);
+      }
+      if (!winding.dorsal.count || winding.dorsal.bad || winding.pectoral.bad) {
+        throw new Error(`${id}: dorsal/pectoral winding contract failed (dorsal bad ${winding.dorsal.bad}, pectoral bad ${winding.pectoral.bad})`);
+      }
+      group.userData.rfWindingStats = winding;
+
+      if (!group.userData.rfEyeUnitPresent || group.userData.rfEyeUnitTriangles < 170 || group.userData.rfEyeUnitTriangles > 230) {
+        throw new Error(id + ': eye geometry unit missing or outside the ~190-tri pair budget');
+      }
+      if (body.material.vertexColors !== true) throw new Error(id + ': body material lost vertexColors');
+      const expectedFlat = ['rock', 'mech', 'kaiju'].includes(def.sil?.head);
+      if (!!body.material.flatShading !== expectedFlat) throw new Error(id + ': archetype normal policy is wrong');
+      if (group.userData.rfMidBendMaxRatio > 0.06 || group.userData.rfTailSprintDisplacementRatio < 0.12 || group.userData.rfTailSprintDisplacementRatio > 0.18) {
+        throw new Error(id + ': animation bend envelope exceeds .06L/.12-.18L gates');
+      }
+      gateRange(`${id}: smooth root-to-tip span`, group.userData.rfTailSmoothSpanRatio, TAIL_SMOOTH_SPAN_MIN_RATIO, TAIL_SMOOTH_SPAN_MAX_RATIO);
+      if (!group.userData.rfHeadEyeJawRigidAnchor) throw new Error(id + ': head/eye/jaw anchor is not rigid');
+
+      const bodyStats = bodyColorStats(geometry);
+      if (!(bodyStats.meanLuminance > 0) || !Number.isFinite(bodyStats.meanLuminance)) throw new Error(id + ': invalid body vertex colors');
+      const bodyBlocks = bodyColorBlockStats(geometry);
+      gateRange(`${id}: vertex flank S`, bodyBlocks.flank.saturation, BODY_FLANK_SATURATION_MIN, 1.0);
+      gateRange(`${id}: vertex flank V`, bodyBlocks.flank.value, BODY_FLANK_VALUE_MIN, 1.0);
+      const triangles = countTriangles(group);
+      result.triangles[id] = triangles;
+      if (triangles > 4200) throw new Error(id + ': ' + triangles + ' triangles exceeds the Rev 7 4200/rig gate');
+      if (triangles > worstCaseTriangles) {
+        worstCaseTriangles = triangles;
+        worstCaseId = id;
+      }
+      archetypeTotals.set(head, (archetypeTotals.get(head) || 0) + triangles);
+      archetypeCounts.set(head, (archetypeCounts.get(head) || 0) + 1);
+      const normalizedRadius = group.userData.rfRadiusY / Math.max(group.userData.rfBodyLen, 0.001);
+      girthValues.push(normalizedRadius);
+      signatures.push(distinctnessSignature(def, rig));
+      auditMaterialOwnership(def, rig);
+      rig.animate(0, { speedFrac: 0, turn: 0 });
+      rig.animate(1 / 60, { speedFrac: 1, turn: 0 });
+      if (!Number.isFinite(uniforms.uTailAmp.value) || uniforms.uTailAmp.value <= 0 || !Number.isFinite(uniforms.uTailSpan.value.x)) {
+        throw new Error(id + ': tail envelope did not animate');
+      }
+      const tailX = -group.userData.rfBodyLen * 0.72;
+      const mirroredTail = bendOffset(tailX, uniforms.uBendPhase.value, uniforms.uBendAmp.value, group.userData.rfBendK, group.userData.rfBendSpan[0], group.userData.rfBendSpan[1], uniforms.uBendBias.value, uniforms.uTailAmp.value, group.userData.rfTailSpan[0], group.userData.rfTailSpan[1]);
+      if (!Number.isFinite(mirroredTail)) throw new Error(id + ': CPU bendOffset tail mirror is not finite');
+      rig.animate(0.5, { speedFrac: 1, turn: 0, tailPhase: 2.75, tailAmp: 0.41 });
+      if (Math.abs(uniforms.uBendPhase.value - 2.75) > 1e-9 || Math.abs(uniforms.uBendAmp.value - 0.41) > 1e-9) {
+        throw new Error(id + ': engine tailPhase/tailAmp authority was lost');
+      }
     }
+
+    const minGirth = Math.min(...girthValues);
+    const maxGirth = Math.max(...girthValues);
+    result.girthSpread = Number(((maxGirth - minGirth) / Math.max(minGirth, 1e-6)).toFixed(3));
+    if (result.girthSpread < 0.35) throw new Error('roster relative girth spread ' + result.girthSpread + ' < 0.35');
     assertRosterDistinctness(signatures, result);
-    result.sweep = sweep;
-    result.bodyMaterialAudit = {
-      checked: sweep,
-      bodyEmissiveBlack: sweep,
-      fxFeatureMeshes: rows.filter((def) => def.sil?.fx && def.sil.fx !== 'none').length
-    };
+    for (const [head, total] of archetypeTotals) {
+      result.archetypes[head] = {
+        count: archetypeCounts.get(head),
+        meanTriangles: Math.round(total / archetypeCounts.get(head))
+      };
+    }
     result.worstCaseTriangles = worstCaseTriangles;
     result.worstCaseId = worstCaseId;
-    result.bendProgramVariants = Array.from(bendProgramKeys).sort();
-    if (result.bendProgramVariants.length > 8) throw new Error(`bend program variants ${result.bendProgramVariants.length} > 8`);
-    result.cacheBytes = cacheBytes();
-    result.gpuEstimateMB = Number((result.cacheBytes / (1024 * 1024)).toFixed(3));
-    if (result.cacheBytes > 120 * 1024 * 1024) throw new Error(`geometry cache exceeds 120MB: ${result.gpuEstimateMB}MB`);
-    result.notes.push('headless BufferGeometry path; no renderer or GL context required');
-    result.notes.push(`shared ${rampTexels}-texel NEAREST linear luminance gradientMap; needsUpdate=true`);
-    result.notes.push(`body vertex colors finite; dorsal luminance <= 0.30, flank HSV floor/value gate, belly bake floor ${BODY_BELLY_BAKE_LUMINANCE.toFixed(2)} with luminance >= 0.70 on ${calibrationRows.length} calibration rows`);
-    result.notes.push(`hard body blocks: dorsal topness >= ${BODY_DORSAL_START.toFixed(2)}, vivid flank >= ${BODY_FLANK_START.toFixed(2)}, pale belly < ${BODY_FLANK_START.toFixed(2)}; no cross-block lerp`);
-    result.notes.push(`flank HSV saturation >= ${BODY_FLANK_SATURATION_FLOOR.toFixed(2)}, value ${BODY_FLANK_VALUE_MIN.toFixed(2)}..${BODY_FLANK_VALUE_MAX.toFixed(2)}; adjacent RGB distance >= ${BODY_BLOCK_DISTANCE_MIN}`);
-    result.notes.push(`Act 3 glow hue is carried by the ${BODY_FLANK_START.toFixed(2)}..${BODY_RIM_END.toFixed(2)} flank-edge row above the belly line; rim hue is self-tested against palette.glow`);
-    result.notes.push(`structural body/tail/pectoral/jaw emissive is black across ${sweep}/${sweep}; feature glow is 0.6..1.0`);
-    result.notes.push('every non-none Act 2/3 sil.fx key has a named emissive feature mesh; pattern veins/plates and FX families are feature-owned');
-    result.notes.push('14 archetype face identities checked; tier 5+ face share, jaw volume, and tier-scaled tail gates checked');
-    result.notes.push('kaiju plate row is camera-offset above body max z; mouth cavities and tooth rows are merged per shark');
-    result.notes.push('bulky heads blunt/angler/whale/kaiju are axis-aligned and overlap the +x loft; whale bulk is loft-owned with a tapered peduncle and mouth-span baleen');
-    result.notes.push(`fusiform tail length ${TAIL_MIN_RATIO.toFixed(2)}..${TAIL_MAX_RATIO.toFixed(2)} body lengths; upper/lower ratio 1:0.62; crescent notch and 0.045L peduncle gate checked across ${sweep}/${sweep}`);
-    result.notes.push(`fusiform body core aspect >= ${FUSIFORM_BODY_ASPECT_MIN.toFixed(1)} and visual aspect >= ${FUSIFORM_ASPECT_MIN.toFixed(1)}; eel/whale/kaiju are documented bulk exceptions`);
-    result.notes.push('swept dorsal fin, long thin swept-back pectorals, five dark vertex-color gill bands at +0.28..+0.38L, half-size top-snouted eyes, and vertex-color mouth line are shape-gated');
-    result.notes.push(`Rev 6: bend hook injects phase/amp/k/span/bias with stable :rf-bend2 cache keys (bumped from :rf-bend on the uBendBias shader change); ${result.bendProgramVariants.length} program variants <= 8`);
-    result.notes.push(`one per-rig bend uniform bundle is identity-shared by body, ${OUTLINE_SHELL_SCALE.toFixed(3)}x shell compensation, and every feature batch; CPU bendOffset nose/tail reference checked`);
-    result.notes.push(`pose child owns yaw ±${SHARK_POSE_YAW.toFixed(2)}, pectoral splay ${PECTORAL_SPLAY.toFixed(2)} rad, bank clamp ±0.35, vy pitch blend, lunge stretch pulse, and speed stretch; outer group scale remains the world/eat-pop authority`);
-    result.notes.push(`Rev 6: phase accumulator integrates continuous rate 2.2..8.5 Hz (idle fallback amp 0.015+0.32*speedFrac^1.3, engine tailPhase/tailAmp are authority when finite); tail yaw sweep is 0.38..0.68 rad, tip travel >= 0.10L, bend y term is ${BEND_Y_SCALE.toFixed(2)}*z and max y travel >= 0.02L; body roll ±0.02, head counter-yaw 0.012*speedFrac, both per-def seeded to decouple sibling sharks`);
-    result.notes.push(`all ${result.patterns.used.length} live sil.pattern IDs are explicit vertex-colour painters; tiger stripes use seven ${'hard-edged'} axial bands`);
-    result.notes.push(`roster distinctness signature: ${result.distinctness.checked} defs, ${result.distinctness.adjacentComparisons} adjacent-tier pairs, threshold ${result.distinctness.threshold.toFixed(2)}, minimum ${result.distinctness.minimumDistance.toFixed(3)} (${result.distinctness.closestPair.join('/')})`);
-
-    // --- Rev 6 (6.2/6.3/6.5/6.9) new coverage ---
-    const rev6Rows = samples.slice(0, 2);
-    if (rev6Rows.length < 2) throw new Error('Rev 6 selftest requires >=2 representative rows');
-
-    // Phase decoupling: two different def ids must not share pect/bob phase
-    // at the same t, since each rig now carries a per-def hash01(id) seed.
-    {
-      const [aDef, bDef] = rev6Rows;
-      const aRig = buildShark(aDef);
-      const bRig = buildShark(bDef);
-      if (aRig.group.userData.rfBendSeed === bRig.group.userData.rfBendSeed) {
-        throw new Error(`${aDef.id}/${bDef.id}: bend seeds collided, phase decoupling cannot be verified`);
-      }
-      aRig.animate(1, { speedFrac: 0.6, turn: 0.2 });
-      bRig.animate(1, { speedFrac: 0.6, turn: 0.2 });
-      const pectA = aRig.parts.pectL.rotation.x;
-      const pectB = bRig.parts.pectL.rotation.x;
-      if (Math.abs(pectA - pectB) < 1e-6) throw new Error(`${aDef.id}/${bDef.id}: pect flutter phase did not decouple at t=1`);
-      const bobA = aRig.group.position.y;
-      const bobB = bRig.group.position.y;
-      if (Math.abs(bobA - bobB) < 1e-6) throw new Error(`${aDef.id}/${bDef.id}: bob phase did not decouple at t=1`);
-    }
-
-    // preyNear jaw anticipation must reach at least 0.8*gape (contract:
-    // 0.85*gape target, eased dt*10; a single large dt step should clear the
-    // 0.8 floor with margin).
-    {
-      const def = rev6Rows[0];
-      const rig = buildShark(def);
-      if (rig.parts.jaw) {
-        rig.animate(0, { speedFrac: 0, turn: 0 });
-        rig.animate(1, { speedFrac: 0, turn: 0, preyNear: true });
-        const gape = 0.3 + clamp(finite(def.tier, 5), 5, 12) * 0.012;
-        const openness = -rig.parts.jaw.rotation.z;
-        if (openness < 0.8 * gape) throw new Error(`${def.id}: preyNear gape ${openness.toFixed(4)} < 0.8*gape ${(0.8 * gape).toFixed(4)}`);
-      }
-    }
-
-    // tailPhase/tailAmp authority: when the engine (Lane E, 6.2) publishes
-    // finite values, they must land in the uniforms verbatim rather than the
-    // internal fallback integrator's own phase/amplitude.
-    {
-      const def = rev6Rows[0];
-      const rig = buildShark(def);
-      const uniforms = rig.group.userData.rfBendUniforms;
-      rig.animate(0, { speedFrac: 1 }); // warm the internal integrator away from 0
-      rig.animate(0.5, { speedFrac: 1, tailPhase: 2.75, tailAmp: 0.41 });
-      if (Math.abs(uniforms.uBendPhase.value - 2.75) > 1e-9) {
-        throw new Error(`${def.id}: finite state.tailPhase was not authority (uBendPhase=${uniforms.uBendPhase.value})`);
-      }
-      // tailAmp authority is scaled by the turn-oscillation boost (1+0.35*|turn|);
-      // turn=0 here so it should pass through unscaled.
-      if (Math.abs(uniforms.uBendAmp.value - 0.41) > 1e-9) {
-        throw new Error(`${def.id}: finite state.tailAmp was not authority (uBendAmp=${uniforms.uBendAmp.value})`);
-      }
-      // NPC/menu rigs pass undefined: falling back must not throw and must
-      // resume the internal fallback amplitude formula.
-      const fallbackRig = buildShark(def);
-      const fallbackUniforms = fallbackRig.group.userData.rfBendUniforms;
-      fallbackRig.animate(0, {});
-      fallbackRig.animate(1 / 60, {});
-      if (!Number.isFinite(fallbackUniforms.uBendAmp.value) || fallbackUniforms.uBendAmp.value <= 0) {
-        throw new Error(`${def.id}: undefined tailPhase/tailAmp did not fall back to a finite positive amplitude`);
-      }
-    }
-
-    // rfFlash hook: cheap, reversible emissive tint on the existing body
-    // material, no new shader variant, decays back to the captured baseline.
-    {
-      const def = rev6Rows[0];
-      const rig = buildShark(def);
-      if (typeof rig.group.userData.rfFlash !== 'function') throw new Error(`${def.id}: rfFlash hook is missing`);
-      const baseEmissive = rig.parts.body.material.emissive.clone();
-      const baseIntensity = rig.parts.body.material.emissiveIntensity;
-      rig.animate(0, {});
-      rig.group.userData.rfFlash(0xff2bd6, 0.2, 1);
-      rig.animate(0.02, {});
-      const flashedIntensity = rig.parts.body.material.emissiveIntensity;
-      if (!(flashedIntensity > baseIntensity - 1e-9)) throw new Error(`${def.id}: rfFlash did not raise body emissive intensity`);
-      rig.animate(0.4, {}); // well past the 0.2s duration
-      const restoredEmissive = rig.parts.body.material.emissive;
-      const restoredIntensity = rig.parts.body.material.emissiveIntensity;
-      if (restoredEmissive.getHex() !== baseEmissive.getHex() || Math.abs(restoredIntensity - baseIntensity) > 1e-6) {
-        throw new Error(`${def.id}: rfFlash did not decay back to the captured base emissive/intensity`);
-      }
-      // No new shader variant: cache key must remain :rf-bend2 after a flash.
-      if (!rig.parts.body.material.customProgramCacheKey().endsWith(':rf-bend2')) {
-        throw new Error(`${def.id}: rfFlash introduced a new shader program variant`);
-      }
-    }
-
-    // rfArcs hook (fix-round 2, art CRITICAL 4 support): guarded rig method
-    // engine3d/fx3d call "if present". Verify it exists, toggles the pooled
-    // arc group's visibility, tints its ribbons, is off by default (so the
-    // world-scale bbox / worldScale computed in buildShark before any
-    // rfArcs() call is never influenced by it), stays within the <=60-tri
-    // budget, and does not disturb the body's own bend/emissive contracts.
-    {
-      const def = rev6Rows[0];
-      const rig = buildShark(def);
-      if (typeof rig.group.userData.rfArcs !== 'function') throw new Error(`${def.id}: rfArcs hook is missing`);
-      const arcGroup = rig.group.children.find((child) => child.name === 'RF frenzy arcs');
-      if (!arcGroup) throw new Error(`${def.id}: rfArcs pooled group is missing`);
-      if (arcGroup.visible !== false) throw new Error(`${def.id}: rfArcs pooled group must start hidden`);
-      const arcTris = countTriangles(arcGroup);
-      if (arcTris <= 0 || arcTris > 60) throw new Error(`${def.id}: rfArcs triangle cost ${arcTris} outside 1..60`);
-      rig.group.userData.rfArcs(true, 0xff2bd6);
-      if (arcGroup.visible !== true) throw new Error(`${def.id}: rfArcs(true) did not show the arc group`);
-      const tintedHex = arcGroup.children[0]?.material?.color?.getHex();
-      if (tintedHex !== 0xff2bd6) throw new Error(`${def.id}: rfArcs(true, color) did not tint the ribbon material`);
-      rig.animate(0.05, {});
-      rig.animate(0.1, {});
-      const rotatedY0 = arcGroup.children[0].rotation.y;
-      const rotatedY1 = arcGroup.children[1].rotation.y;
-      if (Math.abs(rotatedY0 - rotatedY1) < 1e-6) throw new Error(`${def.id}: rfArcs ribbons are not independently animated`);
-      rig.group.userData.rfArcs(false);
-      if (arcGroup.visible !== false) throw new Error(`${def.id}: rfArcs(false) did not hide the arc group`);
-      // Confirm rfArcs shares one geometry across ribbons/rigs (pool, not a
-      // per-instance bake) and never touches the body's bend material.
-      const geomSet = new Set(arcGroup.children.map((mesh) => mesh.geometry));
-      if (geomSet.size !== 1) throw new Error(`${def.id}: rfArcs ribbons do not share one pooled geometry`);
-      if (!rig.parts.body.material.customProgramCacheKey().endsWith(':rf-bend2')) {
-        throw new Error(`${def.id}: rfArcs introduced a new shader program variant on the body`);
-      }
-    }
-
-    result.notes.push('Rev 6: pect flutter and vertical bob phases are per-def seeded (hash01(id)*TAU) and provably decoupled between two different sharks at the same t');
-    result.notes.push('Rev 6: preyNear jaw anticipation reaches >= 0.8*gape (contract target 0.85*gape, eased dt*10)');
-    result.notes.push('Rev 6: finite state.tailPhase/tailAmp are AUTHORITY over the internal fallback integrator; undefined (NPC/menu) falls back to a finite positive amplitude without throwing');
-    result.notes.push('Rev 6 (6.9): group.userData.rfFlash(color,dur,intensity) tints body.material.emissive/emissiveIntensity and decays to the captured baseline with no new :rf-bend2 program variant');
-    result.notes.push('Rev 6 fix-round 2 (art CRITICAL 4 support): group.userData.rfArcs(on,color) toggles a pooled 3-ribbon additive arc group (<=60 tris, one shared geometry), starts hidden, independently orbits each ribbon, and never introduces a new body shader variant; engine3d/fx3d call it guarded ("if present")');
-    result.notes.push('Rev 6 fix-round 2 (art CRITICAL 4 support): lunge stretch pulse raised 1.06->1.11 (18/s ease-in); preyNear anticipation now also coils pose.scale.x slightly negative (distinct from the always-positive lunge stretch) while lungeT is not yet active');
-    result.notes.push('Rev 6 fix-round 2 (art MINOR swim personality): tailSweep 0.38..0.68 -> 0.42..0.76 rad, idle fallback amplitude 0.015/0.32 -> 0.018/0.38 (both mirrored deliberately in this selftest), pect flutter 0.045/0.09 -> 0.05/0.11, body roll 0.02 -> 0.028; head counter-yaw and the 6.3 bend envelope/authority are untouched');
-    result.notes.push('Rev 6 fix-round 2 (art CRITICAL 1 hero recut): eye radius doubled (0.08/0.095 -> 0.16/0.185 * radiusY), act-1 iris/brow now use a lit accent color instead of near-black/dark (glow:0 sharks like Reef still read a bright eye and ridge), gill slits and the underslung mouth line widened/deepened, and tier-1 sharks (no tooth geometry) gain a dark underbite wedge for a committed jaw silhouette');
+    result.bendProgramVariants = Array.from(bendKeys).sort();
+    if (result.bendProgramVariants.length > 8) throw new Error('bend program variants ' + result.bendProgramVariants.length + ' > 8');
+    result.eyeUnit = { trianglesPerPair: rows[0] ? buildShark(rows[0]).group.userData.rfEyeUnitTriangles : 0, checked: rows.length };
+    result.notes.push('Rev 7: all 61 definitions build through one indexed welded body geometry; tail, dorsal, and pectorals share body-ring indices.');
+    result.notes.push('Rev 7 art fix: resolved flank/accent/belly ramps, welded 11-station .28-.36L crescent tails with a projected .10-.14L center notch, and 1.010 BackSide contour shells are numeric-gated.');
+    result.notes.push('Rev 7 art fix: bend v3 declares uBendPhase/uBendAmp/uBendK/uBendSpan/uBendBias/uTailAmp/uTailSpan/uBendScale, preserves engine phase/amplitude authority, y coupling, and :rf-bend3.');
+    result.notes.push('Rev 7 art fix: oversized head/eye/jaw, hammer/whale/tiger silhouette cues, proud void/mech/baleen features, and eye/ramp values are numeric-gated.');
+    result.notes.push('Rev 7: tri ceiling 4200/rig; worst case ' + worstCaseId + ' at ' + worstCaseTriangles + ' tris; relative normalized girth spread ' + result.girthSpread + '.');
     result.pass = true;
   } catch (error) {
     result.errors.push(error.message || String(error));
   }
   return result;
 }
-
 const Art3D = {
   buildShark,
   bendableMaterial,

@@ -136,14 +136,72 @@ combo chips <=24px, <=1s, one at a time). DEV chip when RF.DevMode active.
 RFD = {
   SHARKS: [{ id, name, tier, act, cost, stats:{speed, accel, turn, bite, hp, metab, boost}, passives:[...], active:'volt'|null, sil:{head, len, girth, finScale, tailScale, palette:{base,belly,accent,glow}, pattern, fx}, npc:{weight, zones}|null, blurb }],
   ABILITIES: { pyro:{...}, ... },   // range/duration/dmg/charge/tint per active
-  CREATURES: [...], HAZARDS: [...],
-  ZONES: [4 rows: yMin,yMax,name,tint,fog,ambient,spawns:[{defId,w,pack}]],
+  CREATURES: [{ id, name, tier, kind, speed, hp, score, coins, sprite, packMin, packMax, tint }],
+  HAZARDS: [{ id, name, tier, kind, speed, hp, score, coins, sprite, dmg, tint }],
+  // tint (Rev 7 7.6, S3): hex int, dominant/visible color per species. Used
+  // by the engine swallow burst color (fx tint) instead of a constant amber.
+  ZONES: [4 rows: yMin,yMax,name,tint,fog,ambient,pressureTier,intendedTier,spawns:[[defId,weight]]],
+  // intendedTier (Rev 7 7.2, S3): the player tier a zone is built around.
+  // Contract: every prey row in a zone's spawns table has tier <=
+  // intendedTier+2 (world3d selftest gate). Over-tier prey do not spawn in
+  // that zone; the TOO BIG cue still covers a player who is simply
+  // under-tier for what IS in the table. Density for zones that lost an
+  // over-tier row is preserved by raising the remaining low-tier weights,
+  // not by leaving a gap.
+  PICKUPS: [{ id, name, weight, dur, tint, hits? }],
+  RELICS: [{ id, zoneId, name }],           // 3 per zone x 4 zones = 12 rows
+  RELICS_BY_ZONE: { [zoneId]: [row,...] },  // derived index, generated
+  // Relics (Rev 7 7.6, S3 table / S2 placement): secret per-zone collectibles.
+  // Entity kind 'relic' (world3d, deterministic seed = zone id, maze
+  // dead-ends), excluded from eatEligible, collected via the pickup path in
+  // stepEat -> ctx.run.relics[]. profile.relics[zoneId] is a 3-length bool
+  // array indexed to RELICS_BY_ZONE[zoneId] order. A full zone set (3/3 true)
+  // is a relic-set unlock check in Meta.endRun (see meta.js schema below).
+  MISSIONS: [{ id, type, name, target, gems }],
+  // type in eatCount | findRelic | surviveZone | score. target shape by type:
+  //   eatCount:   { defId: string|null, n }   // null defId = any prey
+  //   findRelic:  { zoneId: number|null, n }  // null zoneId = any zone
+  //   surviveZone:{ zoneId, seconds }
+  //   score:      { n }
+  // gems is the integer reward (1-5) on completion. 12-16 rows; 3 are chosen
+  // active per run by Meta.rollMissions(profile). Progress/completion consumed
+  // via Meta.missionEvent(ctx, type, payload) (see meta.js schema).
+  GEMS: { frenzy:{ goldrush, blood, school }, daily, gempickup },
+  // Award table. frenzy.* = gems on that frenzy-cue completion; daily = first-
+  // run-of-the-day bonus; gempickup = value of a rare world 'gempickup'
+  // entity. Gems are NEVER purchasable (standing rule); spend-only via
+  // Meta.spendGems.
+  SKINS: [{ id, name, sharkId: string|null, cost, palette:{base,belly,accent,glow} }],
+  // Cosmetic palette-swap skins, gem-cost only. sharkId:null = selectable on
+  // any owned shark; sharkId:'<id>' = locked to that shark. profile.skins =
+  // { owned:[ids], selectedSkin: id|null } (global selection, kept simple
+  // per the plan -- not per-shark).
+  SECRET_SHARKS: [{ sharkId, relicSets, gemCost }],
+  // Two existing act-3 roster rows (nullfin, banshee) gated behind EITHER a
+  // full relic-set count (profile.relics zones with all 3 true) OR a
+  // Meta.spendGems gem-only unlock -- first path to be satisfied wins, no
+  // roster row added. Checked in Meta.endRun's relic-set unlock step.
   ECONOMY: { tierUnlockLevel:[..12], xpCurve, coinValues, upgradeCosts, dailyBonus },
   FRENZY: {...}, FX: {...}, SFX: {...},
+  SAVE_VERSION: 2,  // bumped Rev 7 (S3): profile gains gems/relics/skins/missions
 }
 Ability/passive IDs in SHARKS rows are the single source of truth; abilities.js
 must throw at boot (console.error, not crash) on any unknown id — that is the
 integration tripwire.
+
+## meta.js save schema additions (Rev 7, SAVE_VERSION 2)
+
+Profile gains (defaultProfile/validateSave/normalize/migrate updated together):
+```
+gems: 0,
+relics: { <zoneId>: [false, false, false] },  // one entry per RFD.ZONES id
+skins: { owned: [], selectedSkin: null },
+missions: { active: [missionId,...] (len 3), progress: {[missionId]: number},
+            completed: {[missionId]: true} }
+```
+Migration from SAVE_VERSION 1 preserves coins/xp/level/sharks/best/runs
+unchanged and backfills the new fields to their empty defaults (see NOTES for
+the exact chain step and its selftest fixture).
 
 ## Fleet laws (binding)
 

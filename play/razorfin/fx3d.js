@@ -120,10 +120,53 @@ void main() {
   gl_FragColor = vec4(vColor, alpha * vAlpha);
 }`;
 
+/* 7.3 pulseChroma GL overlay: a fullscreen screen-space triangle rendered
+   with its own vertex shader that ignores camera/model matrices entirely
+   (gl_Position is fed straight from clip-space position), so it always
+   covers the viewport regardless of camera fov/pulse and costs one extra
+   draw call. depthTest/Write off, additive blending, high renderOrder so it
+   composites after everything else -- and since ShaderMaterial.fog defaults
+   to false (never set true here), the fog law (additive overlays are never
+   fog-attenuated) holds automatically, same as every other additive pool in
+   this file. Three RGB-split layers are packed into ONE quad via three
+   uOffset-shifted radial samples in the fragment shader (no extra geometry,
+   no extra draw) so the channel-split look from the old DOM triple survives
+   at zero extra draw-call cost. */
+const CHROMA_VERT = `
+attribute vec2 aCorner;
+void main() {
+  gl_Position = vec4(aCorner, 0.0, 1.0);
+}`;
+const CHROMA_FRAG = `
+precision mediump float;
+uniform float uOpacity;
+uniform vec3 uColor;
+uniform vec2 uResolution;
+void main() {
+  if (uOpacity <= 0.002) discard;
+  vec2 uv = gl_FragCoord.xy / max(uResolution, vec2(1.0));
+  vec2 p = uv - 0.5;
+  p.x *= uResolution.x / max(1.0, uResolution.y);
+  float d = length(p) * 1.35;
+  float centerMag = smoothstep(0.55, 1.0, d);
+  vec2 dir = length(p) > 0.0001 ? normalize(p) : vec2(1.0, 0.0);
+  float px = 1.6 / max(1.0, uResolution.y);
+  float rMag = smoothstep(0.55, 1.0, length(p - dir * px * 2.0));
+  float bMag = smoothstep(0.55, 1.0, length(p + dir * px * 2.0));
+  vec3 col = uColor * centerMag + vec3(1.0, 0.24, 0.24) * rMag * 0.7 + vec3(0.15, 0.88, 1.0) * bMag * 0.7;
+  float alpha = max(centerMag, max(rMag, bMag) * 0.7) * uOpacity;
+  gl_FragColor = vec4(col, alpha);
+}`;
+
 const POOL_NAMES = Object.freeze([
   'bubbles', 'motes', 'elementSpark', 'ring', 'beamCore',
   'swimtrail', 'speedlines', 'breach', 'ambient', 'goldpulse',
   'gib', 'wake',
+  /* 7.6 economy FX: gemPickup (small cyan/purple sparkle burst + rising
+     glint) and relicFound (bigger golden ring bloom + motes), each its own
+     small pool per D5/7.6 -- pooled, zero allocation at emit time, same
+     discipline as every pool above. */
+  'gemPickup', 'relicFound',
 ]);
 
 const POOL_CONFIG = Object.freeze({
@@ -146,11 +189,22 @@ const POOL_CONFIG = Object.freeze({
      swimtrail; a second, denser family so the boost reads as a wake rather
      than the ambient swim trail. */
   wake: { size: 40, life: 260, scale: 0.4, speed: 210, mode: 11, z: 68, pointSize: 44, shape: 2, additive: true },
+  /* 7.6 gem pickup: small cyan/purple sparkle burst (round motes) plus one
+     rising glint (quad) per emit. Sized for ~8 concurrent live items --
+     roughly one burst's worth (6 sparkles + 1 glint) -- the modest budget
+     the spec calls for; a same-frame second pickup reuses the pool via the
+     normal acquire() ring-buffer recycle. */
+  gemPickup: { size: 8, life: 480, scale: 0.42, speed: 130, mode: 12, z: 56, pointSize: 30, shape: 0, additive: true },
+  /* 7.6 relic found: a bigger golden ring bloom + slow-rising motes, the
+     "bigger moment" per D5/7.6. Sized for ~2 concurrent relic-find moments
+     (each emit uses one ring + several motes from this same small pool). */
+  relicFound: { size: 8, life: 900, scale: 0.85, speed: 60, mode: 13, z: 60, pointSize: 46, shape: 0, additive: true },
 });
 
-/* Ten GPU pools are each one reusable Points draw. goldpulse is a DOM-only
-   UI effect and therefore contributes zero WebGL draws. */
-const FX_DRAW_CALLS = POOL_NAMES.length - 1;
+/* Twelve GPU pools are each one reusable Points draw, plus the pooled GL
+   chroma overlay quad. goldpulse is a DOM-only UI effect and therefore
+   contributes zero WebGL draws; the chroma overlay adds exactly one. */
+const FX_DRAW_CALLS = POOL_NAMES.length - 1 + 1;
 
 function angleFromOptions(opts, mode) {
   if (opts.angle == null) return null;
@@ -175,6 +229,12 @@ const Fx = (() => {
   let trailBoosting = false;
   let trailEmitCarry = 0;
   const GOLD_SIDES = ['top', 'right', 'bottom', 'left'];
+  let chromaMesh = null;
+  let chromaUniforms = null;
+  let chromaLife = 0;
+  let chromaMaxLife = 1;
+  let chromaPeak = 0;
+  const CHROMA_LIFE_MS = 180;
 
   /* 6.9 SCREEN BALANCE LAW: ONE vignette at a time, priority
      damage > frenzy > goldrush > buff. Callers (engine/abilities) register a
@@ -569,8 +629,32 @@ const Fx = (() => {
       speed = clamp(speed, 90, 320);
       item.length = clamp(opts.length == null ? 30 : opts.length, 10, 90) * scale;
       item.width = clamp(opts.width == null ? 2.4 : opts.width, 1, 8) * scale;
+    } else if (mode === 12) {
+      /* 7.6 gemPickup: most items are quick outward cyan/purple sparkles;
+         every 4th item (variant 3) is a slower rising glint (negative
+         gravity floats it upward) that reads as the collected gem. */
+      item.variant = ordinal % 4;
+      if (item.variant === 3) {
+        speed = clamp(speed * 0.3, 6, 30);
+        item.baseScale = scale * 1.2;
+        item.gravity = -70;
+        tintValue = opts.tint2 == null ? mixColor(tintValue, WHITE, 0.5) : opts.tint2;
+      } else {
+        speed = clamp(speed, 60, 220);
+        item.baseScale = scale * (0.7 + item.variant * 0.12);
+        item.gravity = 40;
+      }
+      item.tint = tintValue;
+    } else if (mode === 13) {
+      /* 7.6 relicFound: slow-rising golden motes drifting up and outward
+         around the bloom -- the ring itself is a separate activateRelicRing
+         call, this mode only covers the surrounding motes. */
+      speed = clamp(speed * 0.4, 8, 40);
+      item.gravity = -34;
+      item.baseScale = scale * (0.6 + (ordinal % 5) * 0.1);
     }
-    if (mode !== 1 && mode !== 2 && mode !== 5 && mode !== 7 && mode !== 9 && mode !== 10) item.gravity = 0;
+    if (mode !== 1 && mode !== 2 && mode !== 5 && mode !== 7 && mode !== 9 && mode !== 10
+      && mode !== 12 && mode !== 13) item.gravity = 0;
     if (mode === 1) item.gravity = 150;
     else if (mode === 2) item.gravity = 75;
     item.vx = Math.cos(theta) * speed;
@@ -580,8 +664,50 @@ const Fx = (() => {
     pool.aspects[item.slot] = 1;
     tintItem(item, pool, tintValue);
     show(item, pool);
-    syncItem(item, pool, mode === 3 ? 0.75 : mode === 6 ? 0.86 : mode === 11 ? 0.9 : 0.88);
+    syncItem(item, pool, mode === 3 ? 0.75 : mode === 6 ? 0.86 : mode === 11 ? 0.9 : mode === 12 ? 0.9 : mode === 13 ? 0.6 : 0.88);
     if (mode === 3) item.ringRadius = item.baseScale * 36;
+  }
+
+  function activateRelicRing(item, x, y, opts, pool) {
+    activate(item, x, y, opts, pool);
+    item.isRing = true;
+    item.vx = 0;
+    item.vy = 0;
+    item.gravity = 0;
+    item.rotation = 0;
+    item.baseScale = clamp(opts.scale == null ? pool.config.scale : opts.scale, 0.05, 8) * 1.1;
+    item.tint = opts.tint == null ? GOLD : opts.tint;
+    item.ringRadius = item.baseScale * 30;
+    pool.shapes[item.slot] = 1;
+    pool.sizes[item.slot] = pool.config.pointSize * item.baseScale;
+    tintItem(item, pool, item.tint);
+    syncItem(item, pool, 0.82);
+  }
+
+  function emitGemPickup(x, y, opts, pool) {
+    const requested = opts.count == null ? 6 : Math.floor(finite(opts.count, 6));
+    const count = requested < 0 ? 0 : requested > 7 ? 7 : requested;
+    let emitted = 0;
+    for (let i = 0; i < count; i++) {
+      const item = acquire(pool);
+      activate(item, x, y, opts, pool);
+      emitted++;
+    }
+    return emitted;
+  }
+
+  function emitRelicFound(x, y, opts, pool) {
+    const ring = acquire(pool);
+    activateRelicRing(ring, x, y, opts, pool);
+    let emitted = 1;
+    const requested = opts.count == null ? 6 : Math.floor(finite(opts.count, 6));
+    const moteCount = requested < 0 ? 0 : requested > 6 ? 6 : requested;
+    for (let i = 0; i < moteCount; i++) {
+      const item = acquire(pool);
+      activate(item, x, y, opts, pool);
+      emitted++;
+    }
+    return emitted;
   }
 
   function activateBreachRing(item, x, y, opts, pool) {
@@ -679,6 +805,8 @@ const Fx = (() => {
     if (name === 'goldpulse') return pools.goldpulse;
     if (name === 'gib') return pools.gib;
     if (name === 'wake') return pools.wake;
+    if (name === 'gemPickup') return pools.gemPickup;
+    if (name === 'relicFound') return pools.relicFound;
     return null;
   }
 
@@ -698,6 +826,16 @@ const Fx = (() => {
       const breachCount = emitBreach(x, y, opts, pool);
       if (breachCount && RF.Sound && typeof RF.Sound.play === 'function') RF.Sound.play('breach', { vol: 0.34, rate: 0.92 });
       return breachCount;
+    }
+    if (name === 'gemPickup') {
+      const gemCount = emitGemPickup(x, y, opts, pool);
+      if (gemCount && RF.Sound && typeof RF.Sound.play === 'function') RF.Sound.play('coin', { vol: 0.22, rate: 1.3 });
+      return gemCount;
+    }
+    if (name === 'relicFound') {
+      const relicCount = emitRelicFound(x, y, opts, pool);
+      if (relicCount && RF.Sound && typeof RF.Sound.play === 'function') RF.Sound.play('coin', { vol: 0.4, rate: 0.85 });
+      return relicCount;
     }
     const requested = opts.count == null ? (name === 'bubbles' ? 3 : 1) : Math.floor(finite(opts.count, 1));
     let count = requested < 0 ? 0 : requested > 24 ? 24 : requested;
@@ -873,80 +1011,94 @@ const Fx = (() => {
     }
   }
 
-  /* 6.9 eat shockwave + chromatic pulse: reuse the existing `ring` pool for
-     the shockwave (zero new draws) and a small set of reused DOM overlay
-     divs for the chromatic pulse, which is far cheaper than a screen-space
-     shader pass. The overlay never obscures gameplay (readability law): it
-     is a thin additive-blend flash that decays in ~180ms and ignores
-     pointer events.
-     Art review CRITICAL 4 (bite/boost spectacle): the chromatic pulse was a
-     single soft radial overlay -- readable but not a genuine RGB-split. Add
-     two more layered clones, each offset a couple of CSS px and tinted to
-     one channel, composited with 'screen' blending so they add rather than
-     wash out. Still a single reused set of DOM elements (created once,
-     recycled every call) and still ignores pointer events / never obscures
-     gameplay (readability law): total opacity stays low and the whole stack
-     fades in ~180ms. Zero WebGL draws, zero new canvas readback. */
-  const CHROMA_LAYERS = [
-    { cls: 'rf-chroma-pulse', tint: 'rgba(255,43,214,.22)', dx: 0, dy: 0 },
-    { cls: 'rf-chroma-pulse-r', tint: 'rgba(255,60,60,.16)', dx: -2, dy: 0 },
-    { cls: 'rf-chroma-pulse-b', tint: 'rgba(39,224,255,.16)', dx: 2, dy: 0 },
-  ];
-  let chromaElsReady = false;
-  const chromaEls = [null, null, null];
-  function ensureChromaticPulse() {
-    if (chromaElsReady && chromaEls[0]) return chromaEls[0];
-    if (typeof document === 'undefined' || !document.createElement) return null;
-    const host = document.body || document.documentElement;
-    if (!host) return null;
-    for (let i = 0; i < CHROMA_LAYERS.length; i++) {
-      const layer = CHROMA_LAYERS[i];
-      const el = document.createElement('div');
-      el.className = layer.cls;
-      el.setAttribute('aria-hidden', 'true');
-      el.style.cssText = 'position:fixed;inset:0;z-index:5;pointer-events:none;opacity:0;'
-        + 'mix-blend-mode:screen;transform:translate(' + layer.dx + 'px,' + layer.dy + 'px);'
-        + 'background:radial-gradient(circle,rgba(0,0,0,0) 55%,' + layer.tint + ' 78%,rgba(0,0,0,0) 100%);';
-      host.appendChild(el);
-      chromaEls[i] = el;
-    }
-    chromaElsReady = true;
-    return chromaEls[0];
-  }
-  function removeChromaticPulse() {
-    for (let i = 0; i < chromaEls.length; i++) {
-      const el = chromaEls[i];
-      if (el && el.parentNode && typeof el.parentNode.removeChild === 'function') {
-        try { el.parentNode.removeChild(el); } catch (err) {}
-      }
-      chromaEls[i] = null;
-    }
-    chromaElsReady = false;
-  }
-  function pulseChroma(strength) {
-    const first = ensureChromaticPulse();
-    if (!first) return false;
-    const peak = clamp(strength == null ? 0.85 : strength, 0.2, 1);
-    for (let i = 0; i < chromaEls.length; i++) {
-      const el = chromaEls[i];
-      if (!el || !el.style) continue;
-      el.style.transition = 'none';
-      // The red/blue split layers read as a channel offset, not a full
-      // wash, so they stay a touch dimmer than the centered magenta layer.
-      el.style.opacity = String(i === 0 ? peak : peak * 0.7);
-    }
-    const fade = () => {
-      for (let i = 0; i < chromaEls.length; i++) {
-        const el = chromaEls[i];
-        if (!el || !el.style) continue;
-        el.style.transition = 'opacity 180ms ease-out';
-        el.style.opacity = '0';
-      }
+  /* 7.3: pulseChroma moved off the DOM entirely onto a pooled fullscreen GL
+     overlay (one triangle-strip quad, screen-space vertex shader, additive
+     blending, depthTest/Write off). No per-eat DOM writes, no per-eat
+     closures/allocations, no requestAnimationFrame callback -- opacity is
+     driven every frame from the existing fx `update()` loop by decaying
+     `chromaLife`, exactly like every other pooled fx item's lifeRatio decay.
+     Public signature stays pulseChroma(color, strength) so engine/ability
+     call sites (which pass either just a strength number, per the pre-7.3
+     signature, or a (tint, strength) pair) are unaffected either way. */
+  function buildChromaOverlay() {
+    if (chromaMesh) return;
+    const geometry = new THREE.BufferGeometry();
+    // A single oversized triangle covering clip space [-1,1] on both axes
+    // (cheaper than a quad: one triangle, no index buffer).
+    const corners = new Float32Array([-1, -1, 3, -1, -1, 3]);
+    geometry.setAttribute('aCorner', new THREE.BufferAttribute(corners, 2));
+    geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 10000000);
+    chromaUniforms = {
+      uOpacity: { value: 0 },
+      uColor: { value: new THREE.Vector3(1, 0.17, 0.84) },
+      uResolution: { value: new THREE.Vector2(1, 1) },
     };
-    if (typeof root.requestAnimationFrame === 'function') root.requestAnimationFrame(fade);
-    else fade();
+    const material = new THREE.ShaderMaterial({
+      vertexShader: CHROMA_VERT,
+      fragmentShader: CHROMA_FRAG,
+      uniforms: chromaUniforms,
+      transparent: true,
+      depthWrite: false,
+      depthTest: false,
+      blending: THREE.AdditiveBlending,
+    });
+    chromaMesh = new THREE.Mesh(geometry, material);
+    chromaMesh.frustumCulled = false;
+    chromaMesh.renderOrder = 9999;
+    if (scene) scene.add(chromaMesh);
+  }
+
+  function removeChromaOverlay() {
+    if (chromaMesh) disposeObject(chromaMesh);
+    chromaMesh = null;
+    chromaUniforms = null;
+    chromaLife = 0;
+    chromaMaxLife = 1;
+    chromaPeak = 0;
+  }
+
+  function hexToVec3(target, hex) {
+    const value = (hex == null ? 0xff2bd6 : hex) >>> 0;
+    target.x = ((value >>> 16) & 255) / 255;
+    target.y = ((value >>> 8) & 255) / 255;
+    target.z = (value & 255) / 255;
+    return target;
+  }
+
+  function pulseChroma(color, strength) {
+    if (!initialized || !chromaMesh || !chromaUniforms) return false;
+    // Pre-7.3 callers passed a single (strength) argument in [0.2, 1]; the
+    // new signature is (tint, strength). Disambiguate on argument count: if
+    // only one argument was actually passed, treat it as the legacy
+    // strength value with the default magenta-split tint (matches the
+    // original visual exactly). Two-plus arguments always means (tint,
+    // strength) even if strength is omitted (undefined) -- callers wanting
+    // the old single-arg strength meaning must call with one argument.
+    let tint = null;
+    let peakIn = color;
+    if (arguments.length > 1) {
+      tint = color;
+      peakIn = strength;
+    }
+    const peak = clamp(peakIn == null ? 0.85 : peakIn, 0.2, 1);
+    hexToVec3(chromaUniforms.uColor.value, tint == null ? 0xff2bd6 : tint);
+    chromaPeak = peak;
+    chromaMaxLife = CHROMA_LIFE_MS;
+    chromaLife = CHROMA_LIFE_MS;
+    chromaUniforms.uOpacity.value = peak;
     return true;
   }
+
+  /* Review blocker 7 (fx part): eatShockwave used to build four fresh option
+     literals per call (one per ring/gib emit). Hoist them to module-level
+     scratch objects, overwritten in place each call -- same discipline as
+     the pool items themselves (acquire/activate over an existing slot,
+     never `new`/literal per emit). Fields are plain numbers only, so no
+     nested allocation sneaks back in through them. */
+  const EAT_CORE_RING_OPTS = { tint: WHITE, scale: 0, life: 0 };
+  const EAT_SHELL1_RING_OPTS = { tint: 0, scale: 0, life: 0 };
+  const EAT_SHELL2_RING_OPTS = { tint: 0, scale: 0, life: 0 };
+  const EAT_GIB_OPTS = { count: 0, tint: 0, tint2: 0 };
 
   /* Art review CRITICAL 4: an ordinary bite must read as a staged event, not
      one small ring + a soft flash. Layer 2-3 expanding rings (prey-tinted
@@ -962,23 +1114,33 @@ const Fx = (() => {
     const baseScale = opts.scale == null ? 1.1 : opts.scale;
     const baseLife = opts.life == null ? 420 : opts.life;
     // Core: fast, small, white-hot flash at the bite point.
-    let rings = emit('ring', x, y, { tint: WHITE, scale: baseScale * 0.62, life: baseLife * 0.55 });
+    EAT_CORE_RING_OPTS.scale = baseScale * 0.62;
+    EAT_CORE_RING_OPTS.life = baseLife * 0.55;
+    let rings = emit('ring', x, y, EAT_CORE_RING_OPTS);
     // Shell 1: the prey-tinted primary shockwave (original ring, unchanged
     // timing so existing tuning/feel is preserved).
-    rings += emit('ring', x, y, { tint: preyTint, scale: baseScale, life: baseLife });
+    EAT_SHELL1_RING_OPTS.tint = preyTint;
+    EAT_SHELL1_RING_OPTS.scale = baseScale;
+    EAT_SHELL1_RING_OPTS.life = baseLife;
+    rings += emit('ring', x, y, EAT_SHELL1_RING_OPTS);
     // Shell 2: a third, larger and dimmer ring that lags slightly (longer
     // life, bigger scale) so the burst reads as expanding layers rather than
     // one flat pulse.
-    rings += emit('ring', x, y, {
-      tint: mixColor(preyTint, WHITE, 0.3), scale: baseScale * 1.45, life: baseLife * 1.35,
-    });
+    EAT_SHELL2_RING_OPTS.tint = mixColor(preyTint, WHITE, 0.3);
+    EAT_SHELL2_RING_OPTS.scale = baseScale * 1.45;
+    EAT_SHELL2_RING_OPTS.life = baseLife * 1.35;
+    rings += emit('ring', x, y, EAT_SHELL2_RING_OPTS);
     // Bigger fragment burst: gib pool, prey-tinted, scaled by opts.tier when
     // the caller (engine swallow()) supplies a meal-tier hint, else a flat
     // generous count -- still within the gib pool's existing 24-item budget.
     const tier = opts.tier == null ? 1 : Math.max(1, Math.floor(opts.tier));
-    const gibCount = clamp(4 + tier, 4, 9);
-    emit('gib', x, y, { count: gibCount, tint: preyTint, tint2: mixColor(preyTint, WHITE, 0.5) });
-    pulseChroma(opts.chroma == null ? 0.85 : opts.chroma);
+    EAT_GIB_OPTS.count = clamp(4 + tier, 4, 9);
+    EAT_GIB_OPTS.tint = preyTint;
+    EAT_GIB_OPTS.tint2 = mixColor(preyTint, WHITE, 0.5);
+    emit('gib', x, y, EAT_GIB_OPTS);
+    // 7.3: pulseChroma now takes the prey tint so the screen flash matches
+    // the burst color instead of the old fixed magenta split.
+    pulseChroma(preyTint, opts.chroma == null ? 0.85 : opts.chroma);
     return rings > 0;
   }
 
@@ -1028,7 +1190,15 @@ const Fx = (() => {
           syncItem(item, pool, lifeRatio * 0.86);
           continue;
         }
-        if (mode === 0 || mode === 1 || mode === 2 || mode === 5 || mode === 7 || mode === 9 || mode === 10) {
+        if (mode === 13 && item.isRing) {
+          /* relicFound bloom ring: expands and fades like the breach ring. */
+          item.ringRadius = item.baseScale * 30 * (1 + (1 - lifeRatio) * 2.2);
+          pool.sizes[item.slot] = pool.config.pointSize * item.baseScale * (1 + (1 - lifeRatio) * 2.2);
+          syncItem(item, pool, lifeRatio * 0.7);
+          continue;
+        }
+        if (mode === 0 || mode === 1 || mode === 2 || mode === 5 || mode === 7 || mode === 9 || mode === 10
+          || mode === 12 || mode === 13) {
           if (mode === 10) {
             /* Gib: drag settles the outward pop quickly while gravity gives
                a slight sink, per 6.5 ("spin + drag + slight sink"). */
@@ -1044,9 +1214,12 @@ const Fx = (() => {
             : mode === 5 ? 0.7 + 0.3 * lifeRatio + Math.sin(item.age * 0.012 + item.slot) * 0.035
               : mode === 7 ? 0.72 + 0.28 * lifeRatio
                 : mode === 10 ? 0.62 + 0.38 * lifeRatio
-                  : 0.72 + 0.28 * lifeRatio);
+                  : mode === 12 ? 0.7 + 0.3 * lifeRatio
+                    : mode === 13 ? 0.65 + 0.35 * lifeRatio
+                      : 0.72 + 0.28 * lifeRatio);
           pool.sizes[item.slot] = pool.config.pointSize * scale;
-          syncItem(item, pool, lifeRatio * (mode === 0 ? 0.72 : mode === 5 ? 0.5 : mode === 9 ? 0.45 : mode === 10 ? 0.86 : 0.92));
+          syncItem(item, pool, lifeRatio * (mode === 0 ? 0.72 : mode === 5 ? 0.5 : mode === 9 ? 0.45
+            : mode === 10 ? 0.86 : mode === 12 ? 0.88 : mode === 13 ? 0.6 : 0.92));
         } else if (mode === 6 || mode === 11) {
           item.x += item.vx * delta / 1000;
           item.y += item.vy * delta / 1000;
@@ -1070,6 +1243,18 @@ const Fx = (() => {
         pool.geometry.attributes.aRotation.needsUpdate = true;
         pool.geometry.attributes.aAspect.needsUpdate = true;
         pool.geometry.attributes.aShape.needsUpdate = true;
+      }
+    }
+    if (chromaUniforms && chromaLife > 0) {
+      chromaLife -= delta;
+      if (chromaLife <= 0) {
+        chromaLife = 0;
+        chromaUniforms.uOpacity.value = 0;
+      } else {
+        // ease-out decay to roughly match the old CSS 'opacity 180ms
+        // ease-out' fade feel.
+        const ratio = chromaLife / chromaMaxLife;
+        chromaUniforms.uOpacity.value = chromaPeak * ratio * ratio;
       }
     }
   }
@@ -1264,11 +1449,24 @@ const Fx = (() => {
 
   /* Lane A's render loop uses the common render hook. Keep update(dt) as the
      direct three.js API while accepting the engine's `(ctx, dt)` call shape. */
+  function syncChromaResolution(ctx) {
+    if (!chromaUniforms) return;
+    const renderer = ctx && ctx.renderer;
+    if (renderer && typeof renderer.getSize === 'function') {
+      // getSize accepts a target Vector2 in three.js -- reuse uResolution
+      // itself as the scratch target so this is allocation-free every call.
+      try { renderer.getSize(chromaUniforms.uResolution.value); return; } catch (err) {}
+    }
+    const w = root.innerWidth, h = root.innerHeight;
+    if (w > 0 && h > 0) { chromaUniforms.uResolution.value.x = w; chromaUniforms.uResolution.value.y = h; }
+  }
+
   function render(ctx, dt) {
     const delta = deltaMs(dt);
     syncTrailBoost(ctx, delta);
     syncWake(ctx, delta);
     syncFrenzy(ctx, delta);
+    syncChromaResolution(ctx);
     activeVignetteCue = resolveVignette();
     update(dt);
     if (ctx && ctx.camera && RF.Juice && typeof RF.Juice.applyShake === 'function') RF.Juice.applyShake(ctx.camera, dt);
@@ -1289,7 +1487,28 @@ const Fx = (() => {
       pools[name] = buildPool(name, POOL_CONFIG[name]);
     }
     createGoldOverlay();
+    buildChromaOverlay();
+    hideLegacyChromaDom();
     return Fx;
+  }
+
+  /* 7.3 cleanup: index.html may still carry the old DOM chroma-pulse
+     overlay divs (rf-chroma-pulse / -r / -b) from before the GL migration.
+     fx3d may not edit index.html (file ownership), so this does a one-time
+     hide at init if any such elements exist, and leaves a note for the
+     orchestrator to delete the markup/CSS from index.html directly. */
+  const LEGACY_CHROMA_CLASSES = ['rf-chroma-pulse', 'rf-chroma-pulse-r', 'rf-chroma-pulse-b'];
+  function hideLegacyChromaDom() {
+    if (typeof document === 'undefined' || typeof document.querySelectorAll !== 'function') return;
+    for (let i = 0; i < LEGACY_CHROMA_CLASSES.length; i++) {
+      let found;
+      try { found = document.querySelectorAll('.' + LEGACY_CHROMA_CLASSES[i]); } catch (err) { continue; }
+      if (!found) continue;
+      for (let j = 0; j < found.length; j++) {
+        const el = found[j];
+        if (el && el.style) el.style.display = 'none';
+      }
+    }
   }
 
   function activeEffectCount() {
@@ -1337,7 +1556,7 @@ const Fx = (() => {
       for (let j = 0; j < pool.alphas.length; j++) pool.alphas[j] = 0;
     }
     removeGoldOverlay();
-    removeChromaticPulse();
+    removeChromaOverlay();
     initialized = false;
     scene = null;
     frenzyCue = null;
@@ -1375,6 +1594,11 @@ const Fx = (() => {
     const oldTrailBoosting = trailBoosting;
     const oldTrailEmitCarry = trailEmitCarry;
     const oldContext = RF.ctx;
+    const oldChromaMesh = chromaMesh;
+    const oldChromaUniforms = chromaUniforms;
+    const oldChromaLife = chromaLife;
+    const oldChromaMaxLife = chromaMaxLife;
+    const oldChromaPeak = chromaPeak;
     const testDomHost = {
       children: [],
       appendChild(node) { node.parentNode = this; this.children.push(node); return node; },
@@ -1385,9 +1609,11 @@ const Fx = (() => {
         return node;
       },
     };
+    let querySelectorAllCalls = 0;
     const testDocument = {
       body: testDomHost,
       documentElement: testDomHost,
+      querySelectorAll(sel) { querySelectorAllCalls++; return []; },
       createElement(tag) {
         const classes = Object.create(null);
         const node = {
@@ -1443,6 +1669,11 @@ const Fx = (() => {
       trailBoostMix = 0;
       trailBoosting = false;
       trailEmitCarry = 0;
+      chromaMesh = null;
+      chromaUniforms = null;
+      chromaLife = 0;
+      chromaMaxLife = 1;
+      chromaPeak = 0;
       RF.ctx = null;
       for (let cycle = 0; cycle < 5; cycle++) {
         init(testScene);
@@ -1582,6 +1813,83 @@ const Fx = (() => {
       if (!gibHasSpinAndSink) pass = false;
       teardown();
 
+      // ---- 7.3 pulseChroma GL overlay (no DOM chroma path) ---------------
+      init(testScene);
+      // The GL chroma quad must be a real object added to the scene at
+      // init, and it is the ONLY chroma-related DOM interaction (a one-time
+      // legacy-hide querySelectorAll at init) -- there must be zero
+      // document.createElement calls for any chroma-named class.
+      const domNodesBeforeChroma = testDomHost.children.length;
+      if (testScene.children.indexOf(chromaMesh) < 0) pass = false;
+      if (!chromaUniforms || !chromaUniforms.uOpacity || !chromaUniforms.uColor) pass = false;
+      if (querySelectorAllCalls < 1) pass = false; // legacy-hide ran once at init
+      const domNodesAfterChroma = testDomHost.children.length;
+      if (domNodesAfterChroma !== domNodesBeforeChroma) pass = false; // zero chroma DOM nodes created
+      const opacityBefore = chromaUniforms.uOpacity.value;
+      if (!eatShockwave(5, 5, { tint: 0x27e0ff })) pass = false;
+      if (!(chromaUniforms.uOpacity.value > opacityBefore)) pass = false; // eatShockwave drove the GL uniform, not DOM
+      update(16);
+      const opacityAfterOneFrame = chromaUniforms.uOpacity.value;
+      // update() clamps a single call's delta to 50ms (matches every other
+      // pool's frame-delta clamp), so decaying past CHROMA_LIFE_MS (180ms)
+      // takes several calls -- exactly like a real multi-frame fade, driven
+      // entirely from this update loop with no timer/rAF callback anywhere.
+      for (let i = 0; i < 8; i++) update(50);
+      if (!(chromaUniforms.uOpacity.value === 0)) pass = false; // decays to zero without any timer/rAF callback
+      if (!(opacityAfterOneFrame < chromaPeak)) pass = false; // opacity is already decaying after the first frame
+      // Legacy single-arg signature (strength only) must still work.
+      const legacyOk = pulseChroma(0.5);
+      if (!legacyOk || chromaUniforms.uOpacity.value !== 0.5) pass = false;
+      teardown();
+      if (testDomHost.children.length !== 0) pass = false; // teardown never leaves chroma DOM nodes
+      notes.push('7.3: pulseChroma is a pooled fullscreen GL overlay quad (additive, fog-exempt via ShaderMaterial.fog default false); zero DOM chroma elements are ever created, only a one-time legacy-hide querySelectorAll at init');
+      notes.push('7.3: pulseChroma(color, strength) accepts both the legacy single-arg strength signature and the new (tint, strength) signature so eatShockwave can pass the prey tint');
+
+      // ---- 7.6 eatShockwave prey-tint plumbing ----------------------------
+      init(testScene);
+      const ringCursorTint = pools.ring.cursor;
+      if (!eatShockwave(0, 0, { tint: 0xff8a2b, tier: 2 })) pass = false;
+      let tintedRingSeen = false;
+      for (let i = 0; i < pools.ring.items.length; i++) {
+        const item = pools.ring.items[i];
+        if (item.active && item.tint === 0xff8a2b) { tintedRingSeen = true; break; }
+      }
+      if (!tintedRingSeen) pass = false;
+      teardown();
+
+      // ---- 7.6 gemPickup / relicFound pools -------------------------------
+      init(testScene);
+      if (poolFor('gemPickup') !== pools.gemPickup) pass = false;
+      if (poolFor('relicFound') !== pools.relicFound) pass = false;
+      if (!pools.gemPickup || pools.gemPickup.items.length !== POOL_CONFIG.gemPickup.size) pass = false;
+      if (!pools.relicFound || pools.relicFound.items.length !== POOL_CONFIG.relicFound.size) pass = false;
+      const gemCursorBefore = pools.gemPickup.cursor;
+      const gemEmitted = emit('gemPickup', 40, 40, { tint: 0x27e0ff, tint2: 0xd98aff });
+      if (gemEmitted <= 0) pass = false;
+      const gemAdvance = (pools.gemPickup.cursor - gemCursorBefore + pools.gemPickup.items.length) % pools.gemPickup.items.length;
+      if (gemAdvance <= 0) pass = false;
+      let gemRisingGlintSeen = false;
+      for (let i = 0; i < pools.gemPickup.items.length; i++) {
+        const item = pools.gemPickup.items[i];
+        if (item.active && item.gravity < 0) { gemRisingGlintSeen = true; break; }
+      }
+      if (!gemRisingGlintSeen) pass = false;
+      const relicCursorBefore = pools.relicFound.cursor;
+      const relicEmitted = emit('relicFound', 60, 60, { tint: GOLD });
+      if (relicEmitted <= 0) pass = false;
+      let relicRingSeen = false;
+      for (let i = 0; i < pools.relicFound.items.length; i++) {
+        const item = pools.relicFound.items[i];
+        if (item.active && item.isRing) { relicRingSeen = true; break; }
+      }
+      if (!relicRingSeen) pass = false;
+      update(16);
+      if (activeEffectCount() <= 0) pass = false;
+      teardown();
+      if (activeEffectCount() !== 0 || !cursorsReset()) pass = false;
+      notes.push('7.6: eatShockwave forwards opts.tint into the ring bursts (prey-tinted eat FX) instead of a fixed color');
+      notes.push('7.6: gemPickup (8-item pool, sparkle burst + one rising glint via negative gravity) and relicFound (8-item pool, ring bloom + rising motes) are pooled with zero per-emit allocation, following the same acquire/activate discipline as every existing pool');
+
       // ---- 6.9 single-vignette invariant ---------------------------------
       // Activating two cues back to back must leave exactly ONE overlay
       // visible (the goldpulse DOM edges are the only overlay surface here;
@@ -1635,6 +1943,21 @@ const Fx = (() => {
       if (ringAdvance < 3) pass = false;
       const gibAdvance = (pools.gib.cursor - gibCursorBefore + pools.gib.items.length) % pools.gib.items.length;
       if (gibAdvance < 4) pass = false; // tier 3 -> gibCount clamp(4+3,4,9)=7, but pool may wrap; just require some fired
+      // Review blocker 7: eatShockwave's four ring/gib option records must be
+      // hoisted module-level scratch, never fresh literals per call. Capture
+      // identity before a loop of calls and assert it never changes, then
+      // spot-check that overwritten scalar fields actually took (proves the
+      // scratch objects are live, not stale/frozen).
+      const eatOptIdentitiesBefore = [EAT_CORE_RING_OPTS, EAT_SHELL1_RING_OPTS, EAT_SHELL2_RING_OPTS, EAT_GIB_OPTS];
+      for (let call = 0; call < 40; call++) {
+        eatShockwave(1, 1, { tint: 0x27e0ff + call, tier: (call % 5) + 1 });
+      }
+      const eatOptIdentitiesAfter = [EAT_CORE_RING_OPTS, EAT_SHELL1_RING_OPTS, EAT_SHELL2_RING_OPTS, EAT_GIB_OPTS];
+      for (let i = 0; i < eatOptIdentitiesBefore.length; i++) {
+        if (eatOptIdentitiesBefore[i] !== eatOptIdentitiesAfter[i]) pass = false; // per-call allocation regressed
+      }
+      if (EAT_SHELL1_RING_OPTS.tint !== 0x27e0ff + 39) pass = false; // last call's scalar overwrite landed
+      if (EAT_GIB_OPTS.count !== clamp(4 + ((39 % 5) + 1), 4, 9)) pass = false;
       teardown();
 
       init(testScene);
@@ -1661,6 +1984,7 @@ const Fx = (() => {
       notes.push('single-vignette bus enforces priority damage > frenzy > goldrush > buff; only one overlay visible at a time');
       notes.push('fix-round 2: cueName/syncFrenzy accept a bare \'buff\' cue and a namespaced \'buff:<id>\' form, firing hologramFlash + the buff vignette slot');
       notes.push('art CRITICAL 4: eatShockwave layers three ring emits (white core + tinted shell + wide lag shell) plus a tier-scaled gib burst, all through the existing ring/gib pools');
+      notes.push('review blocker 7 (fx): eatShockwave\'s four ring/gib option records are hoisted module-level scratch overwritten in place per call (identity-checked across 40 calls); gemPickup/relicFound emit helpers already pass caller opts through without building their own literals, so no further hoist was needed there');
       notes.push('art CRITICAL 5: beam() emits a core+halo pair (two beamCore items) plus an impact-bloom ring and a per-element debris call keyed off the ability tint, covering all ten RFD.ABILITIES tints with zero new pools');
       notes.push('fix-round 3 art MAJOR: playerRig() reads player.rig.group.userData.rfArcs (the real {group,parts,animate} rig shape), so authored rig-side orbiting arcs fire during blood frenzy; the pooled-spark fallback only fires when no rig is present, and the rig is told rfArcs(false) on frenzy end');
     } catch (err) {
@@ -1678,6 +2002,11 @@ const Fx = (() => {
     trailBoostMix = oldTrailBoostMix;
     trailBoosting = oldTrailBoosting;
     trailEmitCarry = oldTrailEmitCarry;
+    chromaMesh = oldChromaMesh;
+    chromaUniforms = oldChromaUniforms;
+    chromaLife = oldChromaLife;
+    chromaMaxLife = oldChromaMaxLife;
+    chromaPeak = oldChromaPeak;
     RF.ctx = oldContext;
     if (oldDocument === undefined) delete globalThis.document;
     else globalThis.document = oldDocument;

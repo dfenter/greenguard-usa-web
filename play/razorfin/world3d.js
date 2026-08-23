@@ -119,8 +119,6 @@ import * as THREE from 'three';
   var INST_BEND_K = 5.5;
   var INST_BEND_SPAN = [-0.5, 0.35];
   var INST_BEND_AMP = 0.12;
-  var SCHOOL_N = 32;
-  var SCHOOL_Z = -150;
   var JELLY_PULSE = 0.08;      // scale 0.92 - 1.08
   var JELLY_RATE = 0.55;
   var PUFF_TIME = 0.2;         // seconds to inflate or deflate
@@ -275,11 +273,12 @@ import * as THREE from 'three';
     fishSources: null,         // def id -> guarded RF.Art3D.buildFish source
     instancedByDef: null,      // def id -> one dense interactive fish batch
     instancedPrey: [],         // interactive instanced batches, built at init
-    backgroundSchools: [],     // one decorative minnow batch per zone
     fog: null,                 // THREE.FogExp2 owned by this module
     clearCol: null,            // THREE.Color scratch for the renderer clear
     atmoA: null, atmoB: null,  // THREE.Color scratches for the zone lerp
     lastZoneId: -1,
+    relics: [],                 // Rev 7: {zoneId, index, x, y, entity} per placed relic
+    stingCd: 0,                 // Rev 7: 'rf-sting' publish cooldown, seconds remaining
   };
 
   // Reused scratch. Never reallocated after init.
@@ -403,6 +402,29 @@ import * as THREE from 'three';
     }
   }
 
+  // Rev 7 7.2: on player contact with an inedible hazard, world PUBLISHES the
+  // sting event; the engine/UI layer is responsible for the toast ('Stings!')
+  // and any flinch presentation. World only announces, gated at S.stingCd so
+  // a sustained overlap (e.g. parked against a jelly) reads as one sting, not
+  // a toast per frame.
+  //
+  // No pub/sub bus exists on ctx.kit anywhere in this codebase yet (checked
+  // engine3d.js/ui3d.js/meta.js/fx3d.js: kit is only ever used for
+  // kit.audio/.registerPWA/.openSettings). This publishes on ctx.kit.bus if a
+  // future lane adds one, and is a guarded no-op otherwise so this lane never
+  // depends on infrastructure it does not own. See NOTES-rev7-laneS2.md.
+  function publishSting(x, y, defId) {
+    if (S.stingCd > 0) return;
+    S.stingCd = 1.2;
+    var kit = RF.ctx && RF.ctx.kit;
+    var bus = kit && kit.bus;
+    if (bus && typeof bus.emit === 'function') {
+      try { bus.emit('rf-sting', { x: x, y: y, defId: defId }); } catch (e) { /* bus must never break the sim */ }
+    } else if (bus && typeof bus.publish === 'function') {
+      try { bus.publish('rf-sting', { x: x, y: y, defId: defId }); } catch (e) { /* bus must never break the sim */ }
+    }
+  }
+
   // ------------------------------------------------------------- data lookup
   function D() { return root.RFD || {}; }
   function defOf(defId) {
@@ -420,6 +442,74 @@ import * as THREE from 'three';
     return null;
   }
 
+  // Rev 7 7.6: RELICS table, 3 per zone x 4 zones, consumed from data.js when
+  // S3 lands it. This built-in default keeps world3d testable standalone
+  // (spec: "fall back to a built-in default table of 3x4 entries"). Shape
+  // mirrors PICKUPS: one row per relic slot, id/name/tint only - placement
+  // itself is deterministic and computed here, not authored per-row.
+  var DEFAULT_RELICS = [
+    { id: 'relic_z1_a', name: 'Sunlit Shard', zoneId: 1, tint: '0xffe8ad' },
+    { id: 'relic_z1_b', name: 'Shelf Coin', zoneId: 1, tint: '0xffe8ad' },
+    { id: 'relic_z1_c', name: 'Tide Charm', zoneId: 1, tint: '0xffe8ad' },
+    { id: 'relic_z2_a', name: 'Kelp Idol', zoneId: 2, tint: '0x9dff9d' },
+    { id: 'relic_z2_b', name: 'Midwater Rune', zoneId: 2, tint: '0x9dff9d' },
+    { id: 'relic_z2_c', name: 'Drift Token', zoneId: 2, tint: '0x9dff9d' },
+    { id: 'relic_z3_a', name: 'Twilight Glyph', zoneId: 3, tint: '0x9d9dff' },
+    { id: 'relic_z3_b', name: 'Reef Sigil', zoneId: 3, tint: '0x9d9dff' },
+    { id: 'relic_z3_c', name: 'Motelight Relic', zoneId: 3, tint: '0x9d9dff' },
+    { id: 'relic_z4_a', name: 'Abyssal Core', zoneId: 4, tint: '0xd98aff' },
+    { id: 'relic_z4_b', name: 'Void Fragment', zoneId: 4, tint: '0xd98aff' },
+    { id: 'relic_z4_c', name: 'Leviathan Tooth', zoneId: 4, tint: '0xd98aff' },
+  ];
+  function relicRows() {
+    var R = D().RELICS;
+    return (Array.isArray(R) && R.length) ? R : DEFAULT_RELICS;
+  }
+  function relicRowsForZone(zoneId) {
+    var rows = relicRows(), out = [];
+    for (var i = 0; i < rows.length; i++) { if (rows[i].zoneId === zoneId) out.push(rows[i]); }
+    return out;
+  }
+
+  // Rev 7 7.2: intendedTier(zone) - S3/gen_data.py is expected to encode
+  // intendedTier directly on the zone row (data.js already carries it at
+  // time of writing: 1/3/6/9, one-for-one with pressureTier). Read it when
+  // present; otherwise derive it from the zone's own pressureTier, which is
+  // the only per-zone difficulty signal that predates this field and tracks
+  // it exactly in the current table (verified: zone 1..4 pressureTier
+  // 1/3/6/9 === intendedTier 1/3/6/9). Formula documented in
+  // NOTES-rev7-laneS2.md.
+  function intendedTier(zone) {
+    if (!zone) return 0;
+    if (typeof zone.intendedTier === 'number') return zone.intendedTier;
+    if (typeof zone.pressureTier === 'number') return zone.pressureTier;
+    return 0;
+  }
+  World.intendedTier = intendedTier;
+
+  // Rev 7 7.2 selftest gate: every zone spawn def is (prey with
+  // tier <= intendedTier(zone)+2) OR hazard. Returns {ok, violations:[...]}.
+  function checkSpawnTableGate() {
+    var Z = zones();
+    var violations = [];
+    for (var zi = 0; zi < Z.length; zi++) {
+      var zone = Z[zi];
+      var it = intendedTier(zone);
+      var spawns = zone.spawns || [];
+      for (var si = 0; si < spawns.length; si++) {
+        var row = spawns[si];
+        var id = Array.isArray(row) ? row[0] : (row && row.id);
+        var def = defOf(id);
+        var isHazard = !!(def && def.kind === 'hazard');
+        var tier = def && typeof def.tier === 'number' ? def.tier : null;
+        var ok = isHazard || (typeof tier === 'number' && tier <= it + 2);
+        if (!ok) violations.push(zone.id + ':' + id + ' tier=' + tier + ' intended=' + it);
+      }
+    }
+    return { ok: violations.length === 0, violations: violations };
+  }
+  World.__checkSpawnTableGate = checkSpawnTableGate;
+
   World.zoneAt = function (y) {
     var Z = zones();
     if (!Z.length) return null;
@@ -433,6 +523,8 @@ import * as THREE from 'three';
   function radiusFor(def, kind) {
     if (kind === 'pickup') return 14;
     if (kind === 'buffpickup') return 20;
+    if (kind === 'gempickup') return 18;
+    if (kind === 'relic') return RELIC_R;
     if (kind === 'hazard') return def && def.id === 'mine' ? 26 : 24;
     var t = def && typeof def.tier === 'number' ? def.tier : 1;
     if (t >= 90) t = 3;
@@ -979,7 +1071,11 @@ import * as THREE from 'three';
 
   var INST_BEND_CHUNK =
     'float bendT=smoothstep(uBendSpan.x,uBendSpan.y,-transformed.x); ' +
-    'transformed.z += aBendAmp*bendT*sin(aBendPhase+transformed.x*uBendK);';
+    'float bendTail=bendT*bendT; ' +
+    'float bendWave=sin(aBendPhase+transformed.x*uBendK); ' +
+    'float bendZ=aBendAmp*bendTail*bendWave; ' +
+    'transformed.z += bendZ; ' +
+    'transformed.y += 0.35*bendZ + 0.06*aBendAmp*bendTail*sin(aBendPhase*1.17+transformed.x*uBendK*1.35);';
 
   // Install the instanced bend contract on a CLONED material only. The base
   // fish-lane material remains untouched, and the cache key is distinct from
@@ -1004,7 +1100,7 @@ import * as THREE from 'three';
           '#include <begin_vertex>\n' + INST_BEND_CHUNK);
       }
     };
-    material.customProgramCacheKey = function () { return String(baseKey) + ':rf-bend-inst'; };
+    material.customProgramCacheKey = function () { return String(baseKey) + ':rf-bend-inst2'; };
     material.userData.rfBendInstanced = true;
     material.userData.rfBendSpan = new THREE.Vector2(INST_BEND_SPAN[0], INST_BEND_SPAN[1]);
     material.userData.rfBendK = INST_BEND_K;
@@ -1126,86 +1222,6 @@ import * as THREE from 'three';
 
   function meshName(mesh, name) {
     if (mesh) mesh.name = name;
-  }
-
-  function fillSchoolBatch(batch, zone, index) {
-    var low = Math.max(SURFACE_Y + 45, zone.yMin + 40);
-    var high = Math.min(S.h - SEAFLOOR_MARGIN - 20, zone.yMax - 40);
-    if (high < low) high = low;
-    var n = SCHOOL_N;
-    var schoolScale = renderScaleFor(batch.def, 'prey', batch.localLength);
-    batch.count = n;
-    batch.mesh.count = n;
-    // Art MAJOR 5 (staging): pure uniform placement piled fish into dense
-    // overlapping clusters at the frame edge. Instead, lay the school out as
-    // a small number of loose sub-clusters spread across the zone's x-range,
-    // each with a modest local jitter radius, so the school reads as several
-    // readable lanes rather than one solid blob. Still fully deterministic
-    // (rr/S.rng only) and build-time only.
-    var clusterN = 5;
-    var clusterCX = [], clusterCY = [];
-    for (var c = 0; c < clusterN; c++) {
-      clusterCX.push(rr(S.w * (c / clusterN), S.w * ((c + 1) / clusterN)));
-      clusterCY.push(rr(low, high));
-    }
-    for (var i = 0; i < n; i++) {
-      var ci = i % clusterN;
-      var x = clamp(clusterCX[ci] + rr(-260, 260), 40, S.w - 40);
-      var y = clamp(clusterCY[ci] + rr(-90, 90), low, high);
-      instPosScratch.set(x, -y, SCHOOL_Z);
-      instEulerScratch.set(0, 0, 0);
-      instQuatScratch.setFromEuler(instEulerScratch);
-      instScaleScratch.set(schoolScale, schoolScale, schoolScale);
-      instMatrixScratch.compose(instPosScratch, instQuatScratch, instScaleScratch);
-      batch.mesh.setMatrixAt(i, instMatrixScratch);
-      batch.phaseBase[i] = rr(0, TAU) + index * 0.7;
-      batch.phase.setX(i, batch.phaseBase[i]);
-      batch.amp.setX(i, 0.08);
-      // Art MAJOR 5 (differentiated prey coloring): a mild per-instance tint
-      // variance so a school of identical minnows does not read as one flat
-      // silhouette; still white-centred so the fish's own vertex-colour
-      // palette remains the dominant read.
-      var tintV = 0.85 + rr(0, 0.3);
-      batch.colors.setXYZ(i, tintV, tintV, Math.min(1, tintV + 0.06));
-    }
-    batch.dirty = true;
-  }
-
-  function buildBackgroundSchools() {
-    var rows = zones();
-    for (var i = 0; i < rows.length; i++) {
-      var zone = rows[i];
-      var source = S.fishSources && S.fishSources.minnow;
-      var batch = source ? createInstancedBatch(source.def || defOf('minnow'), source, SCHOOL_N, false) : null;
-      if (batch) {
-        fillSchoolBatch(batch, zone, i);
-        meshName(batch.mesh, 'RF minnow school zone ' + (i + 1));
-        sceneAdd(batch.mesh);
-        S.decor.push(batch.mesh);
-        S.backgroundSchools.push({ batch: batch, mesh: batch.mesh, rate: 0.08 + i * 0.017,
-          phase: rr(0, TAU), x0: 0, y0: 0, ampX: 0, ampY: 0, fallback: false });
-        continue;
-      }
-
-      // If the loft or instancing path is absent, keep the same one-draw school
-      // promise with a merged billboard batch. It is decorative only and never
-      // enters the entity pool or spatial hash.
-      quadReset();
-      var tex = kenneyTexture('fish_blue');
-      for (var j = 0; j < SCHOOL_N; j++) {
-        var sx = rr(0, S.w), sy = rr(Math.max(SURFACE_Y + 45, zone.yMin + 40),
-          Math.min(S.h - SEAFLOOR_MARGIN - 20, zone.yMax - 40));
-        quadPush(sx, -sy, SCHOOL_Z, rr(36, 62), rr(14, 26), 0,
-          rnd() < 0.5 ? -1 : 1, tex ? 0xffffff : paletteBase(defOf('minnow')), 0.46);
-      }
-      var fallback = batchMesh(tex, false, undefined);
-      if (!fallback) continue;
-      meshName(fallback, 'RF minnow billboard school zone ' + (i + 1));
-      sceneAdd(fallback);
-      S.decor.push(fallback);
-      S.backgroundSchools.push({ batch: null, mesh: fallback, rate: 0.08 + i * 0.017,
-        phase: rr(0, TAU), x0: 0, y0: 0, ampX: 18 + i * 5, ampY: 6 + i * 2, fallback: true });
-    }
   }
 
   function makeFishMesh(def) {
@@ -4353,6 +4369,12 @@ import * as THREE from 'three';
       tier: 1, x: 0, y: 0, vx: 0, vy: 0, angle: 0, _biteCd: 0,
       _tint: 0, _goldenPackId: 0, _schoolCdSeen: 0,
       hp: 1, maxHp: 1, r: 12, score: 0, coins: 0,
+      value: 0, // Rev 7 7.6: gempickup gem value, read by engine3d.js's collectGemPickup(e)
+      // Rev 7 7.6: fields only meaningful when kind === 'relic'. zoneId is
+      // the exact field name engine3d.js's collectRelic(e) reads; relicId,
+      // relicZoneId (kept as an alias) and relicIndex are for world3d's own
+      // bookkeeping (S.relics[], selftest).
+      subKind: null, relicId: null, relicZoneId: 0, relicIndex: -1, zoneId: 0,
       st: {
         frozenT: 0, stunT: 0, burnT: 0, poisonT: 0, slowT: 0, cookedBy: null,
         burnDmg: 0, poisonDmg: 0, fireImmune: false, toxinImmune: false,
@@ -4421,12 +4443,18 @@ import * as THREE from 'three';
     // Nothing spare: build one. Bounded by the peak concurrent count of this
     // def, which the entity budget caps.
     var obj = null, rig = null;
-    if (e.kind === 'pickup') {
+    if (e.kind === 'relic') {
+      // Rev 7 7.6: reuse the buffpickup fallback-quad path (same glint
+      // language, tinted from the relic row's own colour) rather than a new
+      // bake, matching the "reuse the pickup sparkle path" instruction.
+      obj = fallbackMesh(paletteBase(e.def), true);
+    } else if (e.kind === 'pickup') {
       obj = makeCoin();
-    } else if (e.kind === 'buffpickup') {
+    } else if (e.kind === 'buffpickup' || e.kind === 'gempickup') {
       // No new texture per 6.7/6.9: the same glowing vertex-coloured fallback
       // quad the coin uses, tinted from the buff row's own accent colour
       // (carried on e.def.sil.palette.base by spawnBuffAt) rather than a bake.
+      // Rev 7: gempickup (spawnGemAt) reuses this identical path, tinted gem-cyan.
       obj = fallbackMesh(paletteBase(e.def), true);
     } else if (e.kind === 'predator') {
       rig = makeSharkRig(e.def);
@@ -4613,7 +4641,13 @@ import * as THREE from 'three';
   // Check this entity's visual out of the global view pool and set it up for
   // the def the entity now holds.
   function applySprite(e) {
-    var viewKey = (e.kind === 'pickup') ? '__coin' : (e.kind + ':' + (e.defId || '?'));
+    // Rev 7 7.6: a relic is kind:'relic' (see buildRelics), keyed by relicId
+    // so each of the 12 relics can eventually carry a distinct tint without
+    // fighting over one shared mesh (rather than falling into the generic
+    // kind+defId key below, which would already be unique per relicId too,
+    // but this keeps the relic namespace explicit).
+    var viewKey = (e.kind === 'relic') ? ('relic:' + (e.relicId || e.defId || '?')) :
+      (e.kind === 'pickup') ? '__coin' : (e.kind + ':' + (e.defId || '?'));
     // A slot is always released before it is re-acquired, so there is never a
     // stale view to hand back here; the guard is belt and braces.
     if (e._viewRec && e._view !== viewKey) { viewRelease(e._view, e._viewRec); e._viewRec = null; }
@@ -4883,7 +4917,7 @@ import * as THREE from 'three';
     var n = 0;
     for (var i = 0; i < S.entities.length; i++) {
       var e = S.entities[i];
-      if (e.kind === 'pickup' || e.kind === 'buffpickup') continue;
+      if (e.kind === 'pickup' || e.kind === 'buffpickup' || e.kind === 'gempickup' || e.kind === 'relic') continue;
       var dx = e.x - camX, dy = e.y - camY;
       if (dx * dx + dy * dy < DESPAWN * DESPAWN) n++;
     }
@@ -4948,7 +4982,15 @@ import * as THREE from 'three';
     if (rnd() < BUFF_AMBIENT_CHANCE) {
       if (S.free.length > 0) {
         var buffRegion = S.sdf ? World.regionAt(camX, camY) : 0;
-        if (ringPointValid(camX, camY, { tier: 0 }, 'buffpickup', buffRegion, ringOut)) {
+        // Rev 7 7.6: piggyback the same cadence gate + ring placement for the
+        // much rarer gempickup roll (SPEC3D: "piggyback the existing buff
+        // ambient roll cadence... a much rarer chance ~0.02 of the buff
+        // roll"). One extra rnd() draw, only on the already-rare buff tick.
+        if (rnd() < GEM_AMBIENT_CHANCE) {
+          if (ringPointValid(camX, camY, { tier: 0 }, 'gempickup', buffRegion, ringOut)) {
+            spawnGemAt(ringOut[0], ringOut[1]);
+          }
+        } else if (ringPointValid(camX, camY, { tier: 0 }, 'buffpickup', buffRegion, ringOut)) {
           spawnBuffAt(ringOut[0], ringOut[1]);
         }
       }
@@ -5360,6 +5402,7 @@ import * as THREE from 'three';
           pushHit(e, (e.def.dmg || 6), e.x, e.y, true);
           if (player.st) player.st.slowT = Math.max(player.st.slowT || 0, 2.0);
           fx('elementSpark', e.x, e.y, null);
+          publishSting(e.x, e.y, 'jelly');
         }
       }
       e.st.biteCd -= dt;
@@ -5380,7 +5423,8 @@ import * as THREE from 'three';
         var qx = player.x - e.x, qy = player.y - e.y;
         if (qx * qx + qy * qy < pr * pr && e.st.biteCd <= 0) {
           e.st.biteCd = 1.0;
-          pushHit(e, (e.def.dmg || 10), e.x, e.y, false);
+          pushHit(e, (e.def.dmg || 10), e.x, e.y, true);
+          publishSting(e.x, e.y, 'puffer');
         }
       }
       e.st.biteCd -= dt;
@@ -5426,6 +5470,7 @@ import * as THREE from 'three';
       var p = acquire();
       if (!p) return;
       p.kind = 'pickup';
+      p.subKind = null; // a recycled pool slot must never inherit a prior relic tag
       p.defId = 'coin';
       p.def = null;
       p.tier = 0;
@@ -5445,6 +5490,15 @@ import * as THREE from 'three';
       applySprite(p);
       gridInsert(p);
     }
+  }
+
+  // Rev 7 7.6: relics are static and permanent (kind:'relic', never expire,
+  // never drift). Collection lifecycle lives in engine3d.js's collectRelic()
+  // (already landed there, reads e.zoneId/e.relicId/e.x/e.y - see
+  // buildRelics). World's own job is only to hold the relic still and
+  // glinting until stepEat collects it.
+  function relicAI(e, ctx, dt) {
+    e.vx = 0; e.vy = 0;
   }
 
   function pickupAI(p, ctx, dt) {
@@ -5526,7 +5580,207 @@ import * as THREE from 'three';
     gridInsert(p);
     return p;
   }
-  // Rev 6.12 BUFF CADENCE: the kill-drop path additionally respects a 10s
+
+  // ---------------------------------------------------------- Rev 7 gempickup
+  // SPEC3D 7.6: rare ambient gem drops. Piggybacks the existing buff ambient
+  // roll cadence in runSpawner (same cadence gate, same ring placement) so
+  // this needs no new roll/cooldown machinery: when the buff roll already
+  // fires, an additional much-rarer ~0.02 roll decides gem vs buff. Engine
+  // collects it (kind:'gempickup', mirrors buffpickup's stepPickups path).
+  var GEM_AMBIENT_CHANCE = 0.02; // of the buff roll firing, per SPEC3D 7.6
+  var GEM_LIFE = 14;
+  var GEM_DRIFT_SPEED = 30;
+  var GEM_LIVE_CAP = 1;
+  function liveGemCount() {
+    var n = 0;
+    for (var i = 0; i < S.entities.length; i++) {
+      if (S.entities[i].kind === 'gempickup') n++;
+    }
+    return n;
+  }
+  function spawnGemAt(x, y) {
+    if (liveGemCount() >= GEM_LIVE_CAP) return null;
+    var p = acquire();
+    if (!p) return null;
+    p.kind = 'gempickup';
+    p.defId = 'gem';
+    // Synthetic def, same shape convention as spawnBuffAt's, so the shared
+    // fallback-quad view path can tint it without a new bake.
+    p.def = { id: 'gem', sprite: null, tier: 0, sil: { palette: { base: 0x8ff0ff } } };
+    p.tier = 0;
+    // engine3d.js's collectGemPickup(e) reads e.value (falls back to
+    // e.gemValue, then 1). data.js's GEMS.gempickup (already present at time
+    // of writing) is the authored award; world3d just carries it onto the
+    // entity so the engine does not need a second data.js read.
+    var G = D().GEMS;
+    p.value = (G && typeof G.gempickup === 'number') ? G.gempickup : 1;
+    p.x = x; p.y = y;
+    var a = rr(0, TAU);
+    p.vx = Math.cos(a) * GEM_DRIFT_SPEED;
+    p.vy = Math.sin(a) * GEM_DRIFT_SPEED * 0.6;
+    if (p.y < SURFACE_Y) { p.y = SURFACE_Y; if (p.vy < 0) p.vy = -p.vy; }
+    p.hp = p.maxHp = 1;
+    p.r = 18;
+    p.score = 0;
+    p.coins = 0;
+    resetSt(p.st);
+    p.st.life = GEM_LIFE;
+    applySprite(p);
+    gridInsert(p);
+    return p;
+  }
+
+  // ------------------------------------------------------------- Rev 7 relics
+  // SPEC3D 7.6: 3 relics per zone, deterministic seeded placement (seed =
+  // zone id) in maze dead-ends/behind landmarks, static + glinting, in the
+  // spatial hash so eatQuery finds them, kind excluded from predator AI.
+  //
+  // CROSS-LANE NOTE: engine3d.js already landed its half of 7.6 ahead of this
+  // lane (checked at implementation time) - it expects entities shaped
+  // exactly as buildRelics() below produces:
+  //   - e.kind === 'relic' (a real kind, not 'pickup'+subKind - checked
+  //     against engine3d.js's actual eatEligible()/stepEat()/collectRelic(),
+  //     not guessed)
+  //   - e.zoneId, e.relicId, e.x, e.y read directly by collectRelic(e)
+  // eatEligible() in engine3d.js already excludes kind==='relic' explicitly,
+  // and stepEat() already branches `if (e.kind === 'relic') { collectRelic(e);
+  // continue; }` BEFORE the tier gate, so nothing further is needed on the
+  // engine side for collection or predator/prey targeting - predatorAI/preyAI
+  // in this file only ever query kind:'prey', so a kind:'relic' entity is
+  // never a valid query result for either. See NOTES-rev7-laneS2.md.
+  var RELIC_R = 16;
+
+  // A cell "reads as a dead end" when it is walkable (sdf > 0, body fits) but
+  // most of its 4-neighborhood is not, i.e. it is a short cul-de-sac off the
+  // main corridor rather than open water. Simple deterministic candidate
+  // scan per SPEC3D 7.6 ("a simple deterministic candidate-scan is fine").
+  function deadEndScore(cols, rows, cx, cy, clearance) {
+    var idx = cy * cols + cx;
+    var v = S.sdf[idx];
+    if (v <= clearance) return -1; // not walkable enough for a relic to sit here
+    var openNeighbors = 0;
+    var neigh = [cx - 1, cy, cx + 1, cy, cx, cy - 1, cx, cy + 1];
+    for (var n = 0; n < 4; n++) {
+      var nx = neigh[n * 2], ny = neigh[n * 2 + 1];
+      if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) continue;
+      if (S.sdf[ny * cols + nx] > clearance) openNeighbors++;
+    }
+    // Fewer open neighbors = more enclosed = more "dead end". A fully open
+    // 4-neighbor cell (mid-corridor or open water) scores worst; a 1-neighbor
+    // cul-de-sac scores best. 0-neighbor cells are isolated noise, excluded.
+    if (openNeighbors === 0 || openNeighbors > 2) return -1;
+    // Prefer cells with some clearance (room for the relic's own radius) but
+    // not so much they read as open water.
+    var clearanceScore = clamp(v / (RELIC_R * 4), 0, 1);
+    return (3 - openNeighbors) + clearanceScore;
+  }
+
+  function placeRelicsForZone(zone, seedRng, count) {
+    var out = [];
+    if (!S.sdf || !S.sdfCols || !S.sdfRows) return out;
+    var cols = S.sdfCols, rows = S.sdfRows;
+    var clearance = RELIC_R * 0.6;
+    var y0 = clamp(Math.floor(zone.yMin / SDF_CELL), 0, rows - 1);
+    var y1 = clamp(Math.ceil(zone.yMax / SDF_CELL), 0, rows - 1);
+    var candidates = [];
+    for (var cy = y0; cy <= y1; cy++) {
+      for (var cx = 1; cx < cols - 1; cx++) {
+        var score = deadEndScore(cols, rows, cx, cy, clearance);
+        if (score > 0) candidates.push({ cx: cx, cy: cy, score: score });
+      }
+    }
+    // Deterministic order: sort by score desc, tie-broken by position so the
+    // sort itself never depends on array-build iteration order surprises.
+    candidates.sort(function (a, b) {
+      if (b.score !== a.score) return b.score - a.score;
+      if (a.cy !== b.cy) return a.cy - b.cy;
+      return a.cx - b.cx;
+    });
+    // Take the best candidates, spaced apart so 3 relics in one zone don't
+    // cluster into the same pocket, using the seeded local rng only to break
+    // ties among near-equal-score candidates and to jitter placement inside
+    // the chosen cell (never to reorder the deterministic score ranking).
+    var MIN_SEP = 260;
+    var picked = [];
+    for (var i = 0; i < candidates.length && picked.length < count; i++) {
+      var c = candidates[i];
+      var wx = c.cx * SDF_CELL, wy = c.cy * SDF_CELL;
+      var tooClose = false;
+      for (var j = 0; j < picked.length; j++) {
+        var dx = picked[j].wx - wx, dy = picked[j].wy - wy;
+        if (dx * dx + dy * dy < MIN_SEP * MIN_SEP) { tooClose = true; break; }
+      }
+      if (tooClose) continue;
+      picked.push({ wx: wx, wy: wy });
+    }
+    // Fallback: if the maze didn't yield enough well-separated dead ends
+    // (small map, degenerate SDF in a headless/selftest stub), fill any
+    // remaining slots from the best-scoring candidates regardless of
+    // separation, so a relic table is never short.
+    for (var k = 0; k < candidates.length && picked.length < count; k++) {
+      var c2 = candidates[k];
+      var wx2 = c2.cx * SDF_CELL, wy2 = c2.cy * SDF_CELL;
+      var dup = false;
+      for (var m = 0; m < picked.length; m++) {
+        if (picked[m].wx === wx2 && picked[m].wy === wy2) { dup = true; break; }
+      }
+      if (!dup) picked.push({ wx: wx2, wy: wy2 });
+    }
+    for (var p = 0; p < picked.length; p++) {
+      // Small deterministic in-cell jitter (seeded rng, not S.rng) so relics
+      // don't all sit dead-center on the grid.
+      var jx = (seedRng() - 0.5) * SDF_CELL * 0.6;
+      var jy = (seedRng() - 0.5) * SDF_CELL * 0.6;
+      out.push({ x: clamp(picked[p].wx + jx, 20, S.w - 20), y: clamp(picked[p].wy + jy, zone.yMin + 20, zone.yMax - 20) });
+    }
+    return out;
+  }
+
+  function buildRelics() {
+    var Z = zones();
+    for (var zi = 0; zi < Z.length; zi++) {
+      var zone = Z[zi];
+      var rows = relicRowsForZone(zone.id);
+      var count = rows.length || 3;
+      // SPEC3D 7.6: "seed = zone id" - deterministic per zone, independent of
+      // S.rng (the shared per-run stream) so relic layout never shifts other
+      // draws and is stable across runs for the SAME zone id.
+      var seedRng = makeLocalRng(zone.id >>> 0);
+      var spots = placeRelicsForZone(zone, seedRng, count);
+      for (var si = 0; si < spots.length; si++) {
+        var row = rows[si] || { id: 'relic_z' + zone.id + '_' + si, name: 'Relic', tint: '0xffe8ad' };
+        var e = acquire();
+        if (!e) break;
+        // kind:'relic', with zoneId/relicId/x/y - the EXACT field contract
+        // engine3d.js's collectRelic(e) already reads (SPEC3D 7.6 landed
+        // there ahead of this lane; see NOTES-rev7-laneS2.md). Kept as its
+        // own kind rather than piggybacking 'pickup' so eatEligible's
+        // existing kind === 'relic' exclusion (engine3d.js ~1562) applies
+        // directly with no further engine change needed.
+        e.kind = 'relic';
+        e.subKind = 'relic';
+        e.relicId = row.id;
+        e.relicZoneId = zone.id;
+        e.zoneId = zone.id;
+        e.relicIndex = si;
+        e.defId = row.id;
+        e.def = { id: row.id, sprite: null, tier: 0, kind: 'relic',
+          sil: { palette: { base: hexNum(row.tint) } } };
+        e.tier = 0;
+        e.x = spots[si].x; e.y = spots[si].y;
+        e.vx = 0; e.vy = 0;
+        e.hp = e.maxHp = 1;
+        e.r = RELIC_R;
+        e.score = 0;
+        e.coins = 0;
+        resetSt(e.st);
+        e.st.life = 0; // static, never expires
+        applySprite(e);
+        gridInsert(e);
+        S.relics.push({ zoneId: zone.id, index: si, id: row.id, x: e.x, y: e.y, entity: e });
+      }
+    }
+  }
   // global cooldown between drops (on top of the shared BUFF_LIVE_CAP gate
   // spawnBuffAt already enforces for both paths), so a run of several
   // notable kills in quick succession cannot flood capsules — only the
@@ -5558,6 +5812,17 @@ import * as THREE from 'three';
     var sp = p.sprite;
     if (sp && p.st.life < BUFF_FADE) setOpacity(sp, clamp(p.st.life / BUFF_FADE, 0, 1));
   }
+  // Rev 7 7.6: gempickup AI mirrors buffAI exactly (ambient drift, no magnet,
+  // life-based fade-then-expire). Collection itself is the engine's job
+  // (stepPickups/stepEat, mirroring buffpickup's own collection path) -
+  // world3d only keeps the entity alive, drifting, and glinting until then.
+  function gemAI(p, ctx, dt) {
+    p.st.life -= dt;
+    if (p.st.life <= 0) { World.kill(p, 'expire'); return; }
+    p.vx *= 0.985; p.vy *= 0.985;
+    var sp = p.sprite;
+    if (sp && p.st.life < BUFF_FADE) setOpacity(sp, clamp(p.st.life / BUFF_FADE, 0, 1));
+  }
   World.kill = function (ent, cause) {
     if (!ent || !ent.active) return;
     if (cause !== 'collected' && cause !== 'despawn' && cause !== 'expire') {
@@ -5566,7 +5831,7 @@ import * as THREE from 'three';
       if (cause !== 'detonate') sfx('chomp', null);
     }
     if (cause !== 'despawn' && cause !== 'expire' && ent.kind !== 'pickup' &&
-      ent.kind !== 'buffpickup' && ent.coins > 0) {
+      ent.kind !== 'buffpickup' && ent.kind !== 'gempickup' && ent.kind !== 'relic' && ent.coins > 0) {
       dropPickup(ent, null);
     }
     release(ent);
@@ -5816,42 +6081,12 @@ import * as THREE from 'three';
       S.surface.foam.position.x = S.surface.x0 + Math.sin(t * 0.6) * 40 + (t * 14) % 240;
     }
 
-    // Background schools are decorative registries, not entities. Their phase
-    // writes stay in this fixed-size render pass and never touch the sim.
-    animateSchools(t);
-  }
-
-  function animateSchools(t) {
-    for (var i = 0; i < S.backgroundSchools.length; i++) {
-      var school = S.backgroundSchools[i];
-      if (!school || !school.mesh) continue;
-      if (school.batch) {
-        var batch = school.batch;
-        for (var j = 0; j < batch.count; j++) {
-          batch.phase.setX(j, school.phase + t * school.rate + batch.phaseBase[j]);
-        }
-        batch.dirty = true;
-      } else if (school.mesh.position) {
-        var ph = school.phase + t * school.rate;
-        school.mesh.position.x = school.x0 + Math.sin(ph) * school.ampX;
-        school.mesh.position.y = school.y0 + Math.sin(ph * 0.71 + 0.8) * school.ampY;
-      }
-    }
   }
 
   function flushInstancedUpdates() {
     var i, batch;
     for (i = 0; i < S.instancedPrey.length; i++) {
       batch = S.instancedPrey[i];
-      if (!batch || !batch.dirty) continue;
-      if (batch.mesh.instanceMatrix) batch.mesh.instanceMatrix.needsUpdate = true;
-      batch.phase.needsUpdate = true;
-      batch.amp.needsUpdate = true;
-      batch.colors.needsUpdate = true;
-      batch.dirty = false;
-    }
-    for (i = 0; i < S.backgroundSchools.length; i++) {
-      batch = S.backgroundSchools[i] && S.backgroundSchools[i].batch;
       if (!batch || !batch.dirty) continue;
       if (batch.mesh.instanceMatrix) batch.mesh.instanceMatrix.needsUpdate = true;
       batch.phase.needsUpdate = true;
@@ -5926,11 +6161,10 @@ import * as THREE from 'three';
     var speedFrac = maxSpd > 0 ? clamp(spd / maxSpd, 0, 1.4) : 0;
     if (st.frozenT > 0) speedFrac = 0;
     batch.phase.setX(rec.slot, entPhase(e) + t);
-    // Rev 6.5: doubled instanced bend amplitude while panicking, so a fish
-    // whose panicT is armed visibly thrashes rather than just swimming away
-    // faster (the flee-speed and jitter live in preyAI/steer; this is the
-    // purely visual half of the same cue).
-    var bendAmp = INST_BEND_AMP * clamp(speedFrac, 0, 1);
+    // Rev 7.5: preserve a small idle swim while retaining a hard frozen
+    // override. Panic still multiplies the resulting visual amplitude.
+    var bendAmp = INST_BEND_AMP * (0.28 + 0.72 * clamp(speedFrac, 0, 1));
+    if (st.frozenT > 0) bendAmp = 0;
     if (st.panicT > 0) bendAmp *= PANIC_BEND_MULT;
     batch.amp.setX(rec.slot, bendAmp);
 
@@ -5971,17 +6205,20 @@ import * as THREE from 'three';
       return;
     }
 
-    if (e.kind === 'pickup') {
+    if (e.kind === 'pickup' || e.kind === 'relic') {
       // Pickups glint: a slow alpha pulse so a dropped coin catches the eye in
-      // dark water without needing a particle.
+      // dark water without needing a particle. Relics reuse this identical
+      // glint language per SPEC3D 7.6 ("reuse the pickup sparkle path") -
+      // they are static (relicAI holds vx/vy at 0) so this is their only
+      // motion, which is deliberate: it is what makes them findable.
       var ga = 1 - GLINT_AMP * (0.5 + 0.5 * Math.sin(t * GLINT_RATE * TAU + entPhase(e)));
       setOpacity(sp, ga);
       return;
     }
 
-    if (e.kind === 'buffpickup') {
+    if (e.kind === 'buffpickup' || e.kind === 'gempickup') {
       // Same glint language as a coin, but only while there is life left to
-      // glint about: buffAI already owns the final BUFF_FADE seconds of
+      // glint about: buffAI/gemAI already own the final BUFF_FADE seconds of
       // opacity as a hard fade-to-zero, and this pulse would otherwise fight
       // that write every frame.
       if (e.st.life > BUFF_FADE) {
@@ -6000,12 +6237,23 @@ import * as THREE from 'three';
         var jasp = (e._viewRec && e._viewRec.aspect) || 0.52;
         var pulse = frozen ? 1 : 1 + JELLY_PULSE * Math.sin(st.drift * JELLY_RATE * TAU + entPhase(e));
         setScale(sp, jl * (2 - pulse), jl * jasp * pulse);
+        // Rev 7 7.2: hazard read law. A jelly must not read as edible prey at
+        // a glance, so on top of the existing bell pulse it gets a
+        // translucent alpha pulse (never fully opaque, unlike prey/pickups)
+        // and a slow tendril-sway rotation, both riding the same st.drift
+        // phase the bell already uses so nothing desyncs.
+        var jAlpha = frozen ? 0.72 : (0.58 + 0.22 * (0.5 + 0.5 * Math.sin(st.drift * JELLY_RATE * TAU + entPhase(e))));
+        setOpacity(sp, jAlpha);
+        setRot(sp, Math.sin(st.drift * JELLY_RATE * 0.4 + entPhase(e)) * 0.18);
         return;
       }
       if (id === 'puffer') {
         // Inflate/deflate ANIMATES over PUFF_TIME instead of snapping between
         // 1.0 and 1.5. st.puffS is the eased current scale; st.inflated stays
         // the gameplay authority and is untouched here.
+        // Rev 7 7.2: this scale swell IS the puffer's hazard read (spike
+        // inflation) — a puffer that inflates when the player gets close
+        // reads as "back off", unlike prey which never changes size.
         var want = st.inflated ? 1.5 : 1.0;
         if (typeof st.puffS !== 'number') st.puffS = want;
         var step = (1.5 - 1.0) * (dtOf() / PUFF_TIME);
@@ -6199,12 +6447,7 @@ import * as THREE from 'three';
       clearInstancedBatch(batch);
       detach(batch && batch.mesh);
     }
-    for (i = 0; i < S.backgroundSchools.length; i++) {
-      batch = S.backgroundSchools[i] && S.backgroundSchools[i].batch;
-      if (batch) clearInstancedBatch(batch);
-    }
     S.instancedPrey.length = 0;
-    S.backgroundSchools.length = 0;
     S.instancedByDef = {};
     S.fishSources = null;
   }
@@ -6403,7 +6646,8 @@ import * as THREE from 'three';
     S.fishSources = {};
     S.instancedByDef = {};
     S.instancedPrey.length = 0;
-    S.backgroundSchools.length = 0;
+    S.relics.length = 0;
+    S.stingCd = 0;
     // Ownership ledgers for this run. Every environment material, geometry and
     // run-created texture is pushed into these at its creation site, and
     // teardown() disposes exactly what is in them, so nothing has to be found
@@ -6444,8 +6688,13 @@ import * as THREE from 'three';
     buildFishSources();
     buildInstancedPrey();
     buildBackground();
-    buildBackgroundSchools();
     buildPool((d.ENTITY_BUDGET && d.ENTITY_BUDGET.total) || 140);
+    // Rev 7 7.6: relics need live pool slots (spawnOne/acquire), so placement
+    // runs after buildPool, not inside buildBackground with the rest of the
+    // decor passes. Ambient/decorative "fish-shaped" rendering outside the
+    // entity pool is banned by 7.2 (buildBackgroundSchools deleted); relics
+    // are real pooled entities, not decor.
+    buildRelics();
 
     var F = RF.Fx;
     if (F && typeof F.init === 'function' && scene3) {
@@ -6519,6 +6768,10 @@ import * as THREE from 'three';
     // Rev 6.12 BUFF CADENCE: tick the kill-drop cooldown down alongside every
     // other per-frame timer in this step.
     if (S.buffDropCd > 0) { S.buffDropCd -= dt; if (S.buffDropCd < 0) S.buffDropCd = 0; }
+    // Rev 7 7.2: global 'rf-sting' publish cooldown, independent of each
+    // hazard's own per-entity biteCd, so standing against two hazards at once
+    // still surfaces one toast at a time rather than spamming the bus.
+    if (S.stingCd > 0) { S.stingCd -= dt; if (S.stingCd < 0) S.stingCd = 0; }
 
     // Ambient particle character, per zone. Each zone gets its own emission
     // family, cadence, tint and drift, so the water itself tells you where you
@@ -6541,7 +6794,7 @@ import * as THREE from 'three';
 
       if (statusTick(e, ctx, dt)) continue;
 
-      var despawnable = e.kind !== 'pickup' && e.kind !== 'buffpickup';
+      var despawnable = e.kind !== 'pickup' && e.kind !== 'buffpickup' && e.kind !== 'gempickup' && e.kind !== 'relic';
       if (despawnable) {
         var ddx = e.x - camX, ddy = e.y - camY;
         if (ddx * ddx + ddy * ddy > DESPAWN * DESPAWN) { World.kill(e, 'despawn'); continue; }
@@ -6562,6 +6815,8 @@ import * as THREE from 'three';
         else if (e.kind === 'hazard') hazardAI(e, ctx, dt);
         else if (e.kind === 'pickup') pickupAI(e, ctx, dt);
         else if (e.kind === 'buffpickup') buffAI(e, ctx, dt);
+        else if (e.kind === 'gempickup') gemAI(e, ctx, dt);
+        else if (e.kind === 'relic') relicAI(e, ctx, dt);
         if (!e.active) continue;
         applyMouthSuction(e, mouth, dt);
         integrate(e, dt);
@@ -6823,10 +7078,12 @@ import * as THREE from 'three';
         chk(!probeBatch || (probeBatch.mesh.frustumCulled === false &&
           probeBatch.mesh.instanceMatrix.usage === THREE.DynamicDrawUsage),
         'instanced prey disables culling and uses DynamicDrawUsage matrices');
-        chk(S.backgroundSchools.length === zones().length &&
-          S.backgroundSchools[0] && S.backgroundSchools[0].batch &&
-          S.backgroundSchools[0].batch.mesh.count === SCHOOL_N,
-        'one 32-instance minnow school is built per zone at the decor depth');
+        chk(!World.__decaysBiteCd || typeof S.backgroundSchools === 'undefined',
+          'Rev 7 7.2: buildBackgroundSchools/S.backgroundSchools removed, no fish-shaped decor outside the entity pool');
+        chk(S.relics.length === zones().length * 3,
+          '3 relics placed per zone (' + S.relics.length + ' / ' + (zones().length * 3) + ')');
+        chk(S.relics.every(function (r) { return r.entity && r.entity.kind === 'relic' && r.entity.zoneId === r.zoneId; }),
+          'every placed relic is a kind:relic entity carrying the zoneId collectRelic(e) reads');
 
         var pi1 = spawnOne('mackerel', 3200, 700, 0);
         var pi2 = spawnOne('mackerel', 3300, 700, 0);
@@ -6880,13 +7137,15 @@ import * as THREE from 'three';
           chk(probeBatch.material.vertexColors === true &&
             probeBatch.material.color && probeBatch.material.color.getHex() === 0xffffff &&
             probeBatch.material.side === THREE.DoubleSide &&
-            bendKey.slice(-13) === ':rf-bend-inst' &&
+            bendKey.slice(-14) === ':rf-bend-inst2' &&
             probeShader.uniforms.uBendK && probeShader.uniforms.uBendSpan &&
             probeShader.vertexShader.indexOf('uniform float uBendK') >= 0 &&
             probeShader.vertexShader.indexOf('uniform vec2 uBendSpan') >= 0 &&
             probeShader.vertexShader.indexOf('aBendPhase') >= 0 &&
+            probeShader.vertexShader.indexOf('float bendTail=bendT*bendT;') >= 0 &&
+            probeShader.vertexShader.indexOf('transformed.y += 0.35*bendZ') >= 0 &&
             probeShader.vertexShader.indexOf(INST_BEND_CHUNK) >= 0,
-          'instanced toon material preserves the Rev 3 bend uniforms, attributes, and cache key');
+          'instanced toon material preserves the Rev 7.5 bend uniforms, attributes, idle floor, Y ripple, tail envelope, and cache key');
           chk(!!(probeBatch.mesh.instanceColor && probeBatch.mesh.instanceColor.isInstancedBufferAttribute),
             'instanced tint uses Three built-in instanceColor');
         }
@@ -6903,6 +7162,89 @@ import * as THREE from 'three';
         var fallbackFish = spawnOne('mackerel', 3200, 700, 0);
         chk(!!(fallbackFish && fallbackFish._viewRec && !fallbackFish._viewRec.instanced),
           'absent RF.Art3D.buildFish falls back to the billboard lifecycle');
+        World.teardown();
+
+        // ============================================== Rev 7 probes (S2)
+        // Run in their own isolated init/teardown bracket, AFTER the Rev 3
+        // instancing probe sequence above, so re-running World.init here for
+        // the determinism check cannot disturb probeBatch/pi1/pi2/pi3 state
+        // that sequence still depends on later in the same try block.
+        //
+        // The determinism check needs its OWN fresh mulberry32 rng per
+        // World.init call (not the shared rngStub closure, whose `seed`
+        // keeps advancing across every call this whole selftest makes) -
+        // otherwise the MAZE itself differs between the two inits (S.rng
+        // feeds maze layout), which legitimately changes which dead-ends
+        // exist and would fail this check for the wrong reason. Given the
+        // SAME maze-seeding rng, relic placement (its own independent
+        // makeLocalRng(zone.id) stream, per SPEC3D 7.6) must still land on
+        // the same positions.
+        function freshMazeRng() {
+          var s = 0x9e3779b9 >>> 0;
+          return function () {
+            s = (s + 0x6D2B79F5) >>> 0;
+            var t = s;
+            t = Math.imul(t ^ (t >>> 15), t | 1);
+            t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+          };
+        }
+        var prevProbeRng = probeCtx.rng;
+        probeCtx.rng = freshMazeRng();
+        World.init(probeScene, probeCtx);
+        var relicSnapshot1 = S.relics.map(function (r) { return r.zoneId + ':' + r.index + ':' + r.x.toFixed(2) + ',' + r.y.toFixed(2); });
+        probeCtx.rng = freshMazeRng();
+        World.init(probeScene, probeCtx);
+        var relicSnapshot2 = S.relics.map(function (r) { return r.zoneId + ':' + r.index + ':' + r.x.toFixed(2) + ',' + r.y.toFixed(2); });
+        probeCtx.rng = prevProbeRng;
+        chk(relicSnapshot1.length === relicSnapshot2.length &&
+          relicSnapshot1.every(function (v, i) { return v === relicSnapshot2[i]; }),
+          'relic placement is deterministic: same seed (zone id) produces the same positions across World.init runs');
+
+        // ------------------------------------------------- Rev 7 7.2 spawn gate
+        var gate = World.__checkSpawnTableGate();
+        chk(gate.ok, 'Rev 7 7.2 spawn-table gate: every zone spawn is (prey tier <= intendedTier+2) or hazard' +
+          (gate.violations.length ? (' - violations: ' + gate.violations.join('; ')) : ''));
+        chk(World.intendedTier({ pressureTier: 6 }) === 6 && World.intendedTier({ intendedTier: 4, pressureTier: 6 }) === 4,
+          'intendedTier(zone) prefers an authored intendedTier field, falls back to pressureTier');
+
+        // ---------------------------------------------- Rev 7 7.2 sting publish
+        // publishSting() reads RF.ctx.kit.bus, not the ctx PARAMETER hazardAI
+        // is called with - RF.ctx must point at the same ctx object as the
+        // probe for the kit stub to actually be seen.
+        var prevRFCtxForSting = RF.ctx;
+        RF.ctx = probeCtx;
+        var stingEvents = [];
+        var prevKit = probeCtx.kit;
+        probeCtx.kit = { bus: { emit: function (name, payload) { stingEvents.push({ name: name, payload: payload }); } } };
+        S.stingCd = 0;
+        var jellyE = spawnOne('jelly', probeCtx.player.x, probeCtx.player.y, 0);
+        if (jellyE) {
+          hazardAI(jellyE, probeCtx, 1 / 60);
+          chk(stingEvents.length === 1 && stingEvents[0].name === 'rf-sting',
+            'player contact with an inedible hazard publishes rf-sting on kit.bus');
+          // Second contact inside the 1.2s cooldown window must NOT publish again.
+          jellyE.st.biteCd = 0;
+          hazardAI(jellyE, probeCtx, 1 / 60);
+          chk(stingEvents.length === 1,
+            'rf-sting respects its own 1.2s cooldown independent of the hazard\'s own biteCd');
+          World.kill(jellyE, 'test');
+        } else {
+          chk(false, 'spawnOne(jelly) for the sting-publish probe');
+        }
+        probeCtx.kit = prevKit;
+        RF.ctx = prevRFCtxForSting;
+
+        // ---------------------------------------------------- Rev 7 gempickup
+        var gemE = spawnGemAt(probeCtx.player.x + 50, probeCtx.player.y);
+        chk(!!gemE && gemE.kind === 'gempickup' && gemE.value > 0 && !!gemE.sprite,
+          'spawnGemAt produces a live, valued, rendered gempickup entity');
+        var gemList = World.eatQuery(gemE.x, gemE.y, 5);
+        chk(gemList.indexOf(gemE) >= 0, 'a spawned gempickup is discoverable via World.eatQuery like any other entity');
+        chk(spawnGemAt(probeCtx.player.x, probeCtx.player.y) === null,
+          'spawnGemAt respects GEM_LIVE_CAP (a second concurrent gem is refused)');
+        World.kill(gemE, 'test');
+
         World.teardown();
       } catch (probeErr) {
         chk(false, 'Rev 3 instancing probe completed without exception (' +

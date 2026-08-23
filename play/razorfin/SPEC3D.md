@@ -943,3 +943,116 @@ Player bag (engine3d stepAnim) gains, all numbers:
   toast; Atomic Breath gets dedicated wind-up/impact signature.
 - PREY PANIC CUE: the lunge-captured target gets a visible cue (tracer
   particles or instance-color flash) beyond movement thrash.
+
+## Rev 7 — COHERENT-ANIMAL + GAME-LOOP CONTRACTS (2026-08-22, owner rejection round; BINDING for lanes S1-S5, L1, L2)
+
+Plan: ~/.claude/plans/ok-for-razorfin-the-dynamic-willow.md. Reference art:
+~/Downloads/sharks.jpg + sharks2.jpg (HSE rosters). Bar: every shark reads as ONE
+cartoon animal with exaggerated head/jaw/eyes; every fish reads as a fish; every
+visible fish is eatable or visibly a hazard; eats never hitch; the finger drags
+the head. Rev 6 laws stay in force unless explicitly replaced below.
+
+### 7.1 Controls — head-drag (REPLACES 6.11 CONTROLS EXACTNESS; Lane S1 owns engine3d.js)
+- The steering pointer is a WORLD TARGET, not a joystick. Each fixed step the
+  engine unprojects the finger's CSS point through the live camera (zoom/pulse
+  safe) into world coords ctl.tx/ty.
+- Heading: p.angle eases toward atan2(ty-heady, tx-headx) at turnRate =
+  10 + 6*clamp(distCss/240, 0, 1) rad/s. No instant snap.
+- Speed: mag = clamp((distCss - DEAD)/(FULL - DEAD), 0, 1) with DEAD =
+  max(18, 0.4*headRcss), FULL = 180 CSS px. want = speedCap*mag.
+- Arrival/release: velocity approaches want at ACCEL >= 8*speedCap /s (feels
+  direct, not floaty); on release or arrival decay velocity with GLIDE tau
+  ~0.18s — never a hard vx=vy=0 while moving.
+- Keep verbatim: second-pointer boost, keyboard merge (keys act as a virtual
+  target 220 CSS px along key direction), double-tap superpower, overdrive
+  accel/brake exception, ctl.turnIn presentation feed (now = eased heading err).
+- Selftest: heading never changes more than turnRate*dt per step; speed
+  monotone in distCss; release leaves |v| decaying, not zero-step.
+
+### 7.2 Eatable-or-hazard law (Lane S2 owns world3d.js; S3 supplies data)
+- buildBackgroundSchools is DELETED. No fish-shaped render outside the entity
+  pool. Ambient density comes from spawn-table weights (S3).
+- Hazards must read as hazards: jelly gets translucent pulse tint + tendrils,
+  puffer gets spike inflation (view-layer treatment in world3d hazard path).
+  Player contact with an inedible hazard emits flinch + toast('Stings!') via
+  existing channels, cooldown 1.2s (engine already suppresses TOO BIG for
+  hazards; world publishes the sting event on kit bus 'rf-sting').
+- Zone spawn tables (S3, gen_data.py): a zone's table may contain prey only up
+  to intendedTier(zone)+2. TOO BIG cue for over-tier prey stays.
+- world3d selftest gate: iterate all zone spawn defs — each is (kind prey and
+  tier <= intended+2) or kind hazard.
+
+### 7.3 Eat-path perf (S1 engine3d popups, S5 fx3d chroma)
+- paintPop: replaced by a pre-baked glyph atlas (digits 0-9 + 'x + . COMBO
+  GOLD', two weights) built ONCE at init; pop sprites are pooled quads with
+  per-glyph UVs. ZERO canvas 2D calls and ZERO texture.needsUpdate after init.
+- pulseChroma: no per-eat DOM style writes or closures. Replace with a pooled
+  fullscreen GL quad in fx3d (opacity uniform driven in the fx update loop);
+  chromaEls DOM path deleted.
+- hitStop eat values 40/60ms -> 25/45ms.
+- Gate: scripted 20-eat probe, no frame > 20ms attributable to eat path.
+
+### 7.4 Welded shark rig (Lane L1 owns shark3d.js; design in plan D4)
+- ONE welded indexed BufferGeometry: spine loft + tail crescent + dorsal +
+  pectorals sharing ring vertices at appendage roots. Jaw remains the only
+  separate articulated mesh, with its own 1.022 BackSide shell, same
+  vertexColors ramp family, hinge hidden in mouth-cavity color band.
+- Bend v3: uniforms uBendPhase/Amp/K/Span/Bias + NEW uTailAmp/uTailSpan; tail
+  envelope over rear ~18% shares uBendPhase. customProgramCacheKey suffix
+  ':rf-bend3'. bendOffset CPU mirror updated. Tail CPU rotation deleted.
+- Exaggeration: exaggerationFor(head, sil) table (headScale/jawScale/eyeScale/
+  bellyDrop per plan numbers); girth de-clamp radius = bodyLen*(0.085 +
+  0.14*girthNorm^1.2). addFaceMass + profileAt snout collapse deleted.
+- Eyes: hemisphere white + proud pupil disc + catchlight, per side, in the
+  bendable feature batch.
+- Shading: MeshToonMaterial 4-band, smooth normals for organic heads, flat
+  retained for rock/mech/kaiju via archetype flag; ONE body material
+  vertexColors:true incl. fin accent blocks (hard edge 1-2 rings inboard).
+- Contract keeps: buildShark(def) -> {group, parts, animate}; pose hierarchy;
+  worldScale bbox X = 96*sil.len; engine tailPhase/tailAmp authority; rfArcs/
+  rfFlash userData. parts.tail/pectL/pectR = null + userData.rfWeldedAppendages
+  = {tail:true,dorsal:true,pectorals:true}. Selftest: tri gate 4200/rig, key
+  ':rf-bend3', jaw shell present, peduncle-continuity check (bend applied on
+  CPU mirror: max seam gap at shared rings == 0 by construction, assert shared
+  indices), roster girth spread >= 0.35 relative.
+
+### 7.5 Fish rework (Lane L2 owns fish3d.js + installInstancedBend REGION of
+world3d.js delivered as NOTES-rev7-laneL2-world3d.md patch; orchestrator applies)
+- RADIAL_SIDES 8; TRIANGLE_LIMIT 350 (~280 actual); rounder stationProfile ends
+  ~0.30/0.35; radiusZ = 0.62*radiusY; fins are CLOSED wedges angled out of
+  plane (forked tail fan +-15deg, dorsal, swept pectorals, pelvic/anal); round
+  proud 8-gon eye both sides.
+- Instanced bend v2: bendAmp = INST_BEND_AMP*(0.28 + 0.72*speedFrac) (frozen
+  still forces 0), Y ripple + tail-heavy squared envelope in INST_BEND_CHUNK,
+  cache key ':rf-bend-inst2', world3d shader-probe strings updated same change.
+- Add lofts for the 4 palette-missing defs (ray, turtle, squidling, giantsquid)
+  OR explicit stylized billboard upgrade — no def may fall back silently.
+
+### 7.6 Economy: gems, relics, missions (S3 meta.js+gen_data.py+data.js; S2
+world relics; S4 ui3d; S5 fx)
+- SAVE_VERSION bump. Profile adds: gems:0, relics:{zoneId:[bool...]},
+  skins:{}, missions:{active:[ids], progress:{}, completed:{}}. defaultProfile
+  + validateSave + normalize + migrate in ONE change; meta selftest gains an
+  old-save fixture that must survive migration with coins/xp/sharks intact.
+- Gems awarded: frenzy completion (GoldRush 2, Blood/School 1), mission
+  complete (per-def 1-5), daily first-run +2, rare 'gempickup' world drops.
+  Gems NEVER purchasable. Spent on: skins, secret-shark unlocks, superpower
+  top-ups (Meta.spendGems(kit, n, reason) single authority).
+- Relics: data.js RELICS table, 3 per zone x 4 zones, deterministic seeded
+  placement (seed = zone id) in maze dead-ends; entity kind 'relic', excluded
+  in eatEligible, collected in stepEat pickup path -> ctx.run.relics[]; full
+  zone set => unlock skin/bonus shark in endRun.
+- Missions: data.js MISSIONS table (eatCount/findRelic/surviveZone/score
+  types); 3 active per run chosen by Meta.rollMissions; progress events via
+  existing kit bus; ticks shown via toast/chip only. endRun payload adds
+  gems, missionResults, relicFinds; ui3d Results/Shop/Collection render them.
+  HUD adds ONLY a gem counter beside coins (HUD only-law otherwise intact).
+- Creatures gain tint field (gen_data.py); engine swallow uses e.def.tint for
+  burst color (kills the constant-amber bug); S5 consumes.
+
+### 7.7 Ownership map (BINDING)
+S1 engine3d.js | S2 world3d.js (minus installInstancedBend region) | S3
+meta.js + tools/gen_data + data.js | S4 ui3d.js | S5 fx3d.js | L1 shark3d.js |
+L2 fish3d.js (+ world3d bend region via patch file). index.html/sw.js/
+selftest runner: orchestrator. game.js/world.js/juice.js/index2d.html are DEAD
+— touching them is an automatic review REJECT.

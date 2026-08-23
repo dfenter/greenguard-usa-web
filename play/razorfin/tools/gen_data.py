@@ -194,40 +194,59 @@ SHARKS = [
 ]
 
 CREATURES = [
- # id, name, tier, kind, speed, hp, score, coins, spriteKey|proc, packMin, packMax
- ("minnow","Minnow Shoal",0,"prey",65,1,5,1,"fish_blue",6,14),
- ("reeffish","Reef Fish",1,"prey",70,1,10,2,"fish_orange",6,12),
- ("mackerel","Mackerel",1,"prey",95,1,12,2,"fish_grey_long_a",6,12),
- ("parrot","Parrotfish",2,"prey",75,2,18,3,"fish_green",2,5),
- ("grouper","Grouper",3,"prey",65,4,30,5,"fish_brown",1,3),
- ("ray","Coasting Ray",3,"prey",80,3,34,5,"proc_ray",1,2),
- ("turtle","Sea Turtle",4,"prey",55,6,50,8,"proc_turtle",1,2),
- ("tuna","Bluefin Tuna",4,"prey",135,4,44,7,"fish_red",2,6),
- ("swordfish","Swordfish",5,"prey",160,6,70,10,"proc_sword",1,2),
- ("dolphinfish","Dorado",5,"prey",125,5,60,9,"fish_pink",2,4),
- ("marlin","Marlin",6,"prey",170,8,95,14,"proc_sword",1,1),
- ("squidling","Squidling",2,"prey",80,2,20,4,"proc_squid",3,7),
- ("giantsquid","Giant Squid",7,"prey",95,14,150,22,"proc_squid_big",1,1),
- ("anglerprey","Lanternfish Swarm",6,"prey",75,1,16,3,"fish_grey",8,16),
- ("abyssal","Abyss Grazer",8,"prey",85,18,200,30,"proc_grazer",1,2),
- ("leviathanprey","Deep Leviathan Calf",10,"prey",110,40,420,60,"proc_calf",1,1),
+ # id, name, tier, kind, speed, hp, score, coins, spriteKey|proc, packMin, packMax, tint
+ # tint = hex int matching each species' dominant/visible color (Rev 7 7.6:
+ # engine swallow burst color; kills the constant-amber bug).
+ ("minnow","Minnow Shoal",0,"prey",65,1,5,1,"fish_blue",6,14,0x5fa8e8),
+ ("reeffish","Reef Fish",1,"prey",70,1,10,2,"fish_orange",6,12,0xff9d4a),
+ ("mackerel","Mackerel",1,"prey",95,1,12,2,"fish_grey_long_a",6,12,0x8fa0ac),
+ ("parrot","Parrotfish",2,"prey",75,2,18,3,"fish_green",2,5,0x5ad687),
+ ("grouper","Grouper",3,"prey",65,4,30,5,"fish_brown",1,3,0x8a6b45),
+ ("ray","Coasting Ray",3,"prey",80,3,34,5,"proc_ray",1,2,0x4a5f70),
+ ("turtle","Sea Turtle",4,"prey",55,6,50,8,"proc_turtle",1,2,0x4a7a4f),
+ ("tuna","Bluefin Tuna",4,"prey",135,4,44,7,"fish_red",2,6,0xd94f4a),
+ ("swordfish","Swordfish",5,"prey",160,6,70,10,"proc_sword",1,2,0x3a5570),
+ ("dolphinfish","Dorado",5,"prey",125,5,60,9,"fish_pink",2,4,0xff7ab0),
+ ("marlin","Marlin",6,"prey",170,8,95,14,"proc_sword",1,1,0x2f5c85),
+ ("squidling","Squidling",2,"prey",80,2,20,4,"proc_squid",3,7,0xc76fd6),
+ ("giantsquid","Giant Squid",7,"prey",95,14,150,22,"proc_squid_big",1,1,0x8a3fa0),
+ ("anglerprey","Lanternfish Swarm",6,"prey",75,1,16,3,"fish_grey",8,16,0xffe08a),
+ ("abyssal","Abyss Grazer",8,"prey",85,18,200,30,"proc_grazer",1,2,0x3d5c6e),
+ ("leviathanprey","Deep Leviathan Calf",10,"prey",110,40,420,60,"proc_calf",1,1,0x2a4a5c),
 ]
+# NOTE (S3): anglerprey score outlier (16 at tier 6, far below grouper's 30 at
+# tier 3) is NOT trivially parameterized -- score does not follow a clean
+# f(tier) curve across the roster already (turtle t4=50, tuna t4=44, marlin
+# t6=95 vs anglerprey t6=16); anglerprey is intentionally a large loose pack
+# (8-16) of low-value fodder, unlike the other tier-6 single-catch marlin.
+# Left as authored; flagged here rather than silently reparameterized.
 HAZARDS = [
- ("mine","Drift Mine",99,"hazard",0,1,0,0,"proc_mine",25),
- ("jelly","Moon Jelly",99,"hazard",30,2,8,2,"proc_jelly",6),
- ("puffer","Pufferfish",99,"hazard",90,3,26,4,"proc_puffer",10),
+ ("mine","Drift Mine",99,"hazard",0,1,0,0,"proc_mine",25,0xd9484a),
+ ("jelly","Moon Jelly",99,"hazard",30,2,8,2,"proc_jelly",6,0xc79dff),
+ ("puffer","Pufferfish",99,"hazard",90,3,26,4,"proc_puffer",10,0xffd45a),
 ]
 # Rev 6: world grows to 14400x4800 (6.4). Zone band count stays 4; yMax moves
 # to 1200/2400/3600/4800 so each band is 1200px tall (was 900).
+# Rev 7 7.2 (S3): intendedTier per zone = the player tier a zone is built
+# around. Rule: every prey row's tier <= intendedTier+2 (over-tier prey moved
+# to a deeper zone; density preserved by raising in-band low-tier weights
+# rather than dropping population). turtle(t4) and dolphinfish(t5) moved out
+# of zone1/zone2 respectively; zone3's marlin(t6)/giantsquid(t7) moved to
+# zone4; low-tier weights raised in the zones that lost rows so total spawn
+# pressure per zone stays comparable to Rev 6.
 ZONES = [
  {"id":1,"name":"Sunlit Shelf","yMin":0,"yMax":1200,"tint":"0x1b4d66","fog":"0x5fa8c2","ambient":"bubbles","pressureTier":1,
-  "spawns":[["minnow",5],["reeffish",5],["mackerel",4],["parrot",3],["squidling",2],["turtle",1],["jelly",2],["puffer",1]]},
+  "intendedTier":1,
+  "spawns":[["minnow",6],["reeffish",6],["mackerel",5],["parrot",4],["squidling",3],["jelly",2],["puffer",1]]},
  {"id":2,"name":"Kelp Midwater","yMin":1200,"yMax":2400,"tint":"0x14384d","fog":"0x4e8199","ambient":"kelp","pressureTier":3,
-  "spawns":[["mackerel",4],["parrot",3],["grouper",4],["ray",3],["tuna",4],["dolphinfish",2],["jelly",2],["mine",1],["puffer",1]]},
+  "intendedTier":3,
+  "spawns":[["mackerel",4],["parrot",3],["grouper",4],["ray",3],["turtle",2],["tuna",4],["jelly",2],["mine",1],["puffer",1]]},
  {"id":3,"name":"Twilight Reef","yMin":2400,"yMax":3600,"tint":"0x0c2233","fog":"0x304e65","ambient":"motes","pressureTier":6,
-  "spawns":[["grouper",2],["tuna",3],["swordfish",3],["marlin",2],["anglerprey",4],["giantsquid",1],["mine",2],["jelly",1]]},
+  "intendedTier":6,
+  "spawns":[["grouper",2],["tuna",3],["dolphinfish",3],["swordfish",3],["anglerprey",4],["mine",2],["jelly",1]]},
  {"id":4,"name":"The Abyss","yMin":3600,"yMax":4800,"tint":"0x050d17","fog":"0x162533","ambient":"abyss","pressureTier":9,
-  "spawns":[["anglerprey",3],["giantsquid",2],["abyssal",3],["leviathanprey",1],["mine",2]]},
+  "intendedTier":9,
+  "spawns":[["anglerprey",3],["marlin",2],["giantsquid",2],["abyssal",3],["leviathanprey",1],["mine",2]]},
 ]
 # Rev 6.7: pickup capsule table. Weighted draw on notable-kill drops (Lane E
 # calls World.spawnBuffDrop) and rare ambient spawns (Lane W runSpawner).
@@ -239,6 +258,79 @@ PICKUPS = [
  {"id":"magnet","name":"Frenzy Magnet","weight":18,"dur":8.0,"tint":"0xff2bd6"},
  {"id":"chum","name":"Chum Cloud","weight":16,"dur":6.0,"tint":"0x27e0ff"},
  {"id":"apex","name":"Apex Surge","weight":3,"dur":5.0,"tint":"0xd98a2b"},
+]
+# Rev 7 7.6 (S3): secret items + missions + gems config.
+# RELICS: 3 per zone x 4 zones, deterministic seeded placement (seed=zone id)
+# done by world3d (S2) at spawn init; this table is id/zoneId/name only.
+RELICS = [
+ {"id":"relic_z1_a","zoneId":1,"name":"Coral Shard"},
+ {"id":"relic_z1_b","zoneId":1,"name":"Sunken Compass"},
+ {"id":"relic_z1_c","zoneId":1,"name":"Barnacled Coin"},
+ {"id":"relic_z2_a","zoneId":2,"name":"Kelp-Wrapped Idol"},
+ {"id":"relic_z2_b","zoneId":2,"name":"Diver's Lantern"},
+ {"id":"relic_z2_c","zoneId":2,"name":"Cracked Porthole"},
+ {"id":"relic_z3_a","zoneId":3,"name":"Twilight Pearl"},
+ {"id":"relic_z3_b","zoneId":3,"name":"Ghost Net Buckle"},
+ {"id":"relic_z3_c","zoneId":3,"name":"Bioluminescent Vial"},
+ {"id":"relic_z4_a","zoneId":4,"name":"Abyssal Rune"},
+ {"id":"relic_z4_b","zoneId":4,"name":"Leviathan Tooth"},
+ {"id":"relic_z4_c","zoneId":4,"name":"Void Fragment"},
+]
+# MISSIONS: type in eatCount/findRelic/surviveZone/score. gem reward 1-5.
+# target: eatCount->{defId|null(any prey), n}; findRelic->{zoneId|null}; # of
+# relics found in that run; surviveZone->{zoneId, seconds}; score->{n}.
+MISSIONS = [
+ {"id":"m_eat_any_15","type":"eatCount","name":"Eat 15 fish","target":{"defId":None,"n":15},"gems":1},
+ {"id":"m_eat_any_40","type":"eatCount","name":"Eat 40 fish","target":{"defId":None,"n":40},"gems":2},
+ {"id":"m_eat_reef_25","type":"eatCount","name":"Eat 25 reef fish","target":{"defId":"reeffish","n":25},"gems":2},
+ {"id":"m_eat_mackerel_20","type":"eatCount","name":"Eat 20 mackerel","target":{"defId":"mackerel","n":20},"gems":2},
+ {"id":"m_eat_tuna_10","type":"eatCount","name":"Eat 10 tuna","target":{"defId":"tuna","n":10},"gems":3},
+ {"id":"m_eat_squid_8","type":"eatCount","name":"Eat 8 squidlings","target":{"defId":"squidling","n":8},"gems":2},
+ {"id":"m_eat_marlin_5","type":"eatCount","name":"Eat 5 marlin","target":{"defId":"marlin","n":5},"gems":3},
+ {"id":"m_find_relic_any","type":"findRelic","name":"Find a relic","target":{"zoneId":None,"n":1},"gems":3},
+ {"id":"m_find_relic_2","type":"findRelic","name":"Find 2 relics","target":{"zoneId":None,"n":2},"gems":4},
+ {"id":"m_find_relic_z1","type":"findRelic","name":"Find a relic in the Sunlit Shelf","target":{"zoneId":1,"n":1},"gems":2},
+ {"id":"m_find_relic_z4","type":"findRelic","name":"Find a relic in the Abyss","target":{"zoneId":4,"n":1},"gems":5},
+ {"id":"m_survive_z2_60","type":"surviveZone","name":"Survive 60s in the Kelp Midwater","target":{"zoneId":2,"seconds":60},"gems":2},
+ {"id":"m_survive_z3_90","type":"surviveZone","name":"Survive 90s in the Twilight Reef","target":{"zoneId":3,"seconds":90},"gems":3},
+ {"id":"m_survive_z4_60","type":"surviveZone","name":"Survive 60s in the Abyss","target":{"zoneId":4,"seconds":60},"gems":4},
+ {"id":"m_score_2000","type":"score","name":"Score 2000 in one run","target":{"n":2000},"gems":2},
+ {"id":"m_score_6000","type":"score","name":"Score 6000 in one run","target":{"n":6000},"gems":4},
+]
+# GEMS: award table for frenzy completions + daily bonus + world pickup value.
+# Never purchasable (D5/7.6 law). goldrush/blood/school key off ctx.run
+# frenzy completion type; daily is the once-per-day first-run bonus (meta.js);
+# gempickup is the value of a rare world 'gempickup' entity kind.
+GEMS = {"frenzy":{"goldrush":2,"blood":1,"school":1},"daily":2,"gempickup":1}
+# SKINS: cosmetic palette-swap skins, gem-cost only. sharkId:null = a global
+# skin selectable on any owned shark; sharkId:'<id>' = locked to that shark's
+# silhouette (palette remap only, same geometry).
+SKINS = [
+ {"id":"skin_neon_riptide","name":"Neon Riptide","sharkId":None,"cost":6,
+  "palette":{"base":0x27e0ff,"belly":0xd8fbff,"accent":0xff2bd6,"glow":0x9dff2b}},
+ {"id":"skin_magma_core","name":"Magma Core","sharkId":None,"cost":6,
+  "palette":{"base":0xff5a1f,"belly":0xffe0b0,"accent":0x9dff2b,"glow":0xffd45a}},
+ {"id":"skin_acid_wake","name":"Acid Wake","sharkId":None,"cost":8,
+  "palette":{"base":0x9dff2b,"belly":0xeaffcf,"accent":0x27e0ff,"glow":0xff2bd6}},
+ {"id":"skin_void_chrome","name":"Void Chrome","sharkId":None,"cost":10,
+  "palette":{"base":0x2a2f3a,"belly":0x9fa8bf,"accent":0xa07fff,"glow":0xffffff}},
+ {"id":"skin_bloodtide","name":"Bloodtide","sharkId":None,"cost":8,
+  "palette":{"base":0x8f1a2a,"belly":0xffc4c9,"accent":0xd98a2b,"glow":0xff2bd6}},
+ {"id":"skin_gilded","name":"Gilded","sharkId":None,"cost":12,
+  "palette":{"base":0xd8b06a,"belly":0xfff4d8,"accent":0xffe08a,"glow":0xffffff}},
+ {"id":"skin_reef_ghost","name":"Reef Ghost","sharkId":"reef","cost":5,
+  "palette":{"base":0xcfe8f0,"belly":0xffffff,"accent":0x8fd4ff,"glow":0xa0f0ff}},
+ {"id":"skin_megalodon_bone","name":"Bonewhite Meg","sharkId":"megalodon","cost":15,
+  "palette":{"base":0xe8e4d8,"belly":0xfff8ec,"accent":0x8f8a7a,"glow":0xfff0c4}},
+]
+# SECRET_SHARKS: gems-only unlock path for two existing act-3 sharks (design
+# call: gate by RELIC SET count rather than adding new roster rows -- keeps
+# the 61-shark roster canonical). relicSets = number of FULL zone relic sets
+# (3/3 collected) required; gemCost is an alternative gems-only unlock if the
+# player has not found the relics. Either path unlocks (OR, not AND).
+SECRET_SHARKS = [
+ {"sharkId":"nullfin","relicSets":2,"gemCost":20},
+ {"sharkId":"banshee","relicSets":3,"gemCost":30},
 ]
 ABILITIES = {
  "pyro":   {"name":"Pyro Breath","kind":"cone","range":320,"arc":0.9,"dur":2.2,"dmg":3,"charge":14,"tint":0xff7a29,"sfx":"power_fire"},
@@ -299,10 +391,15 @@ def table(name, rows, keys):
         out.append(js(dict(zip(keys,r)))+",")
     out.append("];")
     return out
-lines+=table("CREATURES",CREATURES,["id","name","tier","kind","speed","hp","score","coins","sprite","packMin","packMax"])
-lines+=table("HAZARDS",HAZARDS,["id","name","tier","kind","speed","hp","score","coins","sprite","dmg"])
+lines+=table("CREATURES",CREATURES,["id","name","tier","kind","speed","hp","score","coins","sprite","packMin","packMax","tint"])
+lines+=table("HAZARDS",HAZARDS,["id","name","tier","kind","speed","hp","score","coins","sprite","dmg","tint"])
 lines.append("var ZONES="+js(ZONES)+";")
 lines.append("var PICKUPS="+js(PICKUPS)+";")
+lines.append("var RELICS="+js(RELICS)+";")
+lines.append("var MISSIONS="+js(MISSIONS)+";")
+lines.append("var GEMS="+js(GEMS)+";")
+lines.append("var SKINS="+js(SKINS)+";")
+lines.append("var SECRET_SHARKS="+js(SECRET_SHARKS)+";")
 lines.append("var ABILITIES="+js(ABILITIES)+";")
 lines.append("var ECONOMY="+js(ECONOMY)+";")
 lines.append("var FRENZY="+js(FRENZY)+";")
@@ -313,9 +410,11 @@ lines.append("var SFX="+js(SFX)+";")
 lines.append("var MUSIC="+js(MUSIC)+";")
 lines.append("var SHARK_BY_ID={};SHARKS.forEach(function(s){SHARK_BY_ID[s.id]=s;});")
 lines.append("var CREATURE_BY_ID={};CREATURES.concat(HAZARDS).forEach(function(c){CREATURE_BY_ID[c.id]=c;});")
+lines.append("var RELICS_BY_ZONE={};RELICS.forEach(function(r){(RELICS_BY_ZONE[r.zoneId]=RELICS_BY_ZONE[r.zoneId]||[]).push(r);});")
 lines.append("return {SHARKS:SHARKS,SHARK_BY_ID:SHARK_BY_ID,CREATURES:CREATURES,HAZARDS:HAZARDS,")
-lines.append("CREATURE_BY_ID:CREATURE_BY_ID,ZONES:ZONES,PICKUPS:PICKUPS,ABILITIES:ABILITIES,ECONOMY:ECONOMY,")
+lines.append("CREATURE_BY_ID:CREATURE_BY_ID,ZONES:ZONES,PICKUPS:PICKUPS,RELICS:RELICS,RELICS_BY_ZONE:RELICS_BY_ZONE,")
+lines.append("MISSIONS:MISSIONS,GEMS:GEMS,SKINS:SKINS,SECRET_SHARKS:SECRET_SHARKS,ABILITIES:ABILITIES,ECONOMY:ECONOMY,")
 lines.append("FRENZY:FRENZY,BAL:BAL,FRENZY2:FRENZY2,FX:FX,SFX:SFX,MUSIC:MUSIC,WORLD:{w:14400,h:4800},")
-lines.append("SAVE_VERSION:1,ENTITY_BUDGET:{onscreen:110,total:220}};")
+lines.append("SAVE_VERSION:2,ENTITY_BUDGET:{onscreen:110,total:220}};")
 lines.append("})();")
 print("\n".join(lines))
