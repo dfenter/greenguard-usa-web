@@ -202,13 +202,13 @@
           <tr>
             <td><a href="/sparkbridge/flow">SparkFlow</a></td>
             <td>Carries Sparkplug's birth, death, quality and source timestamp into NATS/JetStream, so millions of points can be historized without becoming millions of tags.</td>
-            <td class="num">Not yet released</td>
+            <td class="num">$995</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <p class="note">Any single additional module is $495 on a gateway you already own. If you expect to run several, the <a href="/sparkbridge/pricing">pricing page</a> has the two packages: the $1,895 edge package covers SparkBridge Edge plus every module that runs at a site, and the $3,495 central server suite covers SparkBridge Central plus every module that runs centrally.</p>
+    <p class="note">Any single additional module is $495 on a gateway you already own; SparkFlow, the NATS/JetStream backbone new in 2.5.0, is $995 and sits outside both packages. If you expect to run several, the <a href="/sparkbridge/pricing">pricing page</a> has the two packages: the $1,895 edge package covers SparkBridge Edge plus every module that runs at a site, and the $3,495 central server suite covers SparkBridge Central plus every module that runs centrally.</p>
   </div>
 </section>
 
@@ -216,13 +216,14 @@
   <div class="wrap">
     <div class="sec-head">
       <span class="path">Inside SparkBridge</span>
-      <h2>Edge, Host And Provider</h2>
+      <h2>Edge, Host, Provider and Flow</h2>
       <p>SparkBridge itself is four modules for Ignition, with Flow optional. Install the ones a site needs, and each works with any conformant Sparkplug software on the other side.</p>
     </div>
     <div class="cards">
       <div class="card"><span class="tag">Edge Node &middot; publisher</span><h3>Edge</h3><p>Publishes Ignition tag data as Sparkplug and keeps publishing into a disk buffer when the link drops.</p></div>
       <div class="card"><span class="tag">Host Application &middot; consumer</span><h3>Host</h3><p>Subscribes to the namespace, learns each node's model from its birth certificate, projects it into a tag provider.</p></div>
       <div class="card"><span class="tag">Broker &middot; infrastructure</span><h3>Provider</h3><p>Embedded broker for one node, or control of a HiveMQ CE companion for MQTT 5 and shared subscriptions.</p></div>
+      <div class="card"><span class="tag">Backbone &middot; optional</span><h3>Flow</h3><p>Carries the decoded namespace onto NATS/JetStream with quality, timestamps and exactly-once identity, and a confirmed-write command path back. New in 2.5.0.</p></div>
     </div>
   </div>
 </section>
