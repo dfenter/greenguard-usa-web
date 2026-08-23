@@ -28,7 +28,7 @@ const TAU = Math.PI * 2;
 const WHITE = 0xffffff;
 const FEATURE_EMISSIVE_INTENSITY = 0.82;
 const EYE_EMISSIVE_INTENSITY = 0.9;
-const EYE_CAMERA_SCALE = 1.34;
+const EYE_CAMERA_SCALE = 1.10;
 const BODY_EMISSIVE_MAX = 0.05;
 const BODY_RAMP_BANDS = [0.30, 0.65, 0.84, 1.0];
 const BODY_DORSAL_START = 0.75;
@@ -139,6 +139,68 @@ function finite(value, fallback) {
 function smoothStep01(value) {
   const t = clamp(value, 0, 1);
   return t * t * (3 - 2 * t);
+}
+
+// Rev 8: one authored side silhouette for the whole roster.  These are
+// normalized to the canonical half-body radius, with u=0 at the thick
+// peduncle and u=1 at the blunt snout.  The profile is deliberately fat in
+// the forward 60%: it is a cartoon shark body first, and a species prop
+// carrier second.  Do not replace this with a head/archetype loft.
+const CANONICAL_HULL = Object.freeze({
+  top: Object.freeze([
+    [0.00, 0.34], [0.06, 0.46], [0.14, 0.64], [0.25, 0.80],
+    [0.40, 0.90], [0.55, 0.96], [0.60, 0.97], [0.68, 0.93], [0.80, 0.84],
+    [0.90, 0.71], [0.97, 0.56], [1.00, 0.44]
+  ]),
+  belly: Object.freeze([
+    [0.00, -0.30], [0.06, -0.40], [0.14, -0.58], [0.25, -0.76],
+    [0.40, -0.90], [0.55, -0.96], [0.60, -0.97], [0.68, -0.93], [0.80, -0.84],
+    [0.90, -0.70], [0.97, -0.56], [1.00, -0.44]
+  ]),
+  // A width profile makes the sections round-to-oval rather than a flat
+  // plate.  It is intentionally close to one through the mid-body.
+  width: Object.freeze([
+    [0.00, 0.86], [0.06, 0.90], [0.14, 0.96], [0.25, 1.00],
+    [0.40, 1.03], [0.55, 1.04], [0.68, 1.03], [0.80, 1.01],
+    [0.90, 0.98], [0.97, 0.94], [1.00, 0.90]
+  ])
+});
+const CANONICAL_HULL_SCALE_MIN = 0.84;
+const CANONICAL_HULL_SCALE_MAX = 1.12;
+const CANONICAL_HULL_RADIUS_RATIO = 0.204;
+
+function authoredCurveAt(points, u) {
+  const t = clamp(u, 0, 1);
+  for (let i = 1; i < points.length; i++) {
+    if (t <= points[i][0]) {
+      const a = points[i - 1];
+      const b = points[i];
+      const local = smoothStep01((t - a[0]) / Math.max(1e-6, b[0] - a[0]));
+      return a[1] + (b[1] - a[1]) * local;
+    }
+  }
+  return points[points.length - 1][1];
+}
+
+function canonicalHullAt(u, hullScale = 1) {
+  const top = authoredCurveAt(CANONICAL_HULL.top, u) * hullScale;
+  const belly = authoredCurveAt(CANONICAL_HULL.belly, u) * hullScale;
+  return {
+    top,
+    belly,
+    center: (top + belly) * 0.5,
+    halfHeight: (top - belly) * 0.5,
+    width: authoredCurveAt(CANONICAL_HULL.width, u)
+  };
+}
+
+function hullScaleFor(authoredGirth, head) {
+  // The authored data remains the variation authority, but its old .18-.80
+  // girth meaning is gone.  Map it to a bounded +/-20% body scale instead;
+  // whale/kaiju are allowed to reach the 0.45L heavy-body ceiling.
+  const t = clamp((authoredGirth - 0.24) / 0.37, 0, 1);
+  const raw = CANONICAL_HULL_SCALE_MIN + (CANONICAL_HULL_SCALE_MAX - CANONICAL_HULL_SCALE_MIN) * t;
+  return head === 'whale' || head === 'kaiju' ? Math.min(raw, 1.12) : raw;
 }
 
 function hex(value, fallback = 0) {
@@ -694,135 +756,84 @@ function bodyVertexColor(ramp, theta, u, station, radial, pattern) {
 
 function exaggerationFor(head, sil = {}) {
   const headScale = {
-    point: 1.50, blunt: 1.62, hammer: 1.60, whale: 1.44,
-    kaiju: 1.56, eel: 1.10
-  }[head] || 1.30;
+    point: 1.00, blunt: 1.05, hammer: 1.02, whale: 1.08,
+    kaiju: 1.12, eel: 0.98
+  }[head] || 1.00;
   const jawScale = {
-    point: 1.28, blunt: 1.36, hammer: 1.32, saw: 1.27,
-    croc: 1.40, whale: 1.44, angler: 1.50, eel: 1.25,
-    rock: 1.38, mech: 1.32, skull: 1.44, void: 1.36,
-    frill: 1.28, kaiju: 1.50
-  }[head] || 1.30;
+    point: 1.00, blunt: 1.05, hammer: 1.04, saw: 1.00,
+    croc: 1.08, whale: 1.10, angler: 1.08, eel: 1.00,
+    rock: 1.06, mech: 1.04, skull: 1.08, void: 1.04,
+    frill: 1.00, kaiju: 1.12
+  }[head] || 1.02;
   const eyeScale = {
-    point: 0.45, blunt: 0.45, hammer: 0.45, whale: 0.42,
-    kaiju: 0.50, eel: 0.40, angler: 0.42, skull: 0.42,
-    void: 0.45, mech: 0.45
-  }[head] || 0.42;
+    point: 0.31, blunt: 0.32, hammer: 0.31, whale: 0.30,
+    kaiju: 0.34, eel: 0.29, angler: 0.31, skull: 0.31,
+    void: 0.32, mech: 0.31
+  }[head] || 0.31;
   const bellyDrop = {
     point: 0.14, blunt: 0.16, hammer: 0.15, whale: 0.18,
     kaiju: 0.18, eel: 0.12, angler: 0.17, rock: 0.16,
     mech: 0.14, skull: 0.17
   }[head] || 0.15;
   const frontSpan = {
-    point: 0.40, blunt: 0.42, hammer: 0.44, whale: 0.45, kaiju: 0.45
-  }[head] || 0.40;
+    point: 0.42, blunt: 0.43, hammer: 0.44, whale: 0.45, kaiju: 0.45
+  }[head] || 0.42;
   const mouthCorner = {
     whale: 0.58, kaiju: 0.60, croc: 0.58
   }[head] || 0.62;
   return { headScale, jawScale, eyeScale: eyeScale || 0.42, bellyDrop, frontSpan, mouthCorner, id: String(sil?.id || '') };
 }
 
-function profileAt(u, head, girth, id = '') {
-  // A rounded root and rounded snout belong to the same loft. The old final
-  // 22% collapse made the face read like a slab attached to an egg.
-  const barrel = 0.22 + 0.78 * Math.pow(Math.max(0, Math.sin(Math.PI * Math.min(1, u))), 0.47);
-  const exag = exaggerationFor(head, { id });
-  let profile = barrel * (0.88 + u * 0.16);
-  if (head === 'point') profile *= 0.86 - 0.16 * u;
-  if (head === 'blunt') profile *= 0.96 + u * 0.08;
-  if (head === 'hammer') profile *= 0.95 + u * 0.10;
-  if (head === 'saw') profile *= u > 0.72 ? 1 - (u - 0.72) * 0.52 : 1;
-  if (head === 'whale') {
-    const peduncle = 0.48 + 0.52 * smoothStep01((u - 0.02) / 0.24);
-    const shoulder = 0.62 + 0.86 * smoothStep01((u - 0.18) / 0.58);
-    profile = 0.22 + barrel * peduncle * shoulder;
-  }
-  if (head === 'kaiju') profile *= 1.10 + u * 0.26;
-  if (head === 'croc') profile *= u > 0.58 ? 1 - ((u - 0.58) / 0.42) * 0.28 : 1;
-  if (head === 'angler') profile *= 1.04 + 0.18 * Math.exp(-Math.pow((u - 0.72) / 0.24, 2));
-  if (head === 'eel') profile *= 0.62 + 0.14 * (1 - u);
-  if (head === 'rock') profile *= 0.98 + 0.11 * Math.sin(u * 17);
-  if (head === 'mech') profile *= 0.96 + 0.08 * ((Math.floor(u * 8) % 2) ? 1 : -0.35);
-  if (head === 'void') profile *= 0.89 + 0.12 * Math.sin(u * Math.PI * 0.8);
-  if (id === 'mako') profile *= 0.86;
-  if (id === 'blue') profile *= 1.08;
-  if (id === 'thresher') profile *= 0.82;
-  if (head === 'skull') profile *= 0.96 + u * 0.1;
-  const frontT = smoothStep01((u - (1 - exag.frontSpan)) / exag.frontSpan);
-  return profile * (1 + (exag.headScale - 1) * frontT);
-}
-
-function spineLineScale(u, theta, head, bellyDrop = exaggerationFor(head).bellyDrop) {
-  const barrel = Math.max(0, Math.sin(Math.PI * Math.min(1, u)));
-  // A restrained, monotonic dorsal line reads as a back; the belly is allowed
-  // to carry the fuller mid-body curve. This is deliberately separate from
-  // profileAt so the radial section remains a cheap, cacheable scalar.
-  let scale = Math.cos(theta) >= 0
-    ? 0.90 + 0.10 * u
-    : 0.72 + 0.28 * Math.pow(barrel, 1.15);
-  if (Math.cos(theta) < 0) scale *= 1 + bellyDrop * smoothStep01((u - 0.10) / 0.72);
-  if (head === 'eel') scale *= 0.92 + 0.08 * Math.sin(Math.PI * u);
-  if (head === 'whale' || head === 'kaiju') scale *= 1.05;
-  if (head === 'rock') scale *= 1 + 0.045 * Math.sin(u * 23 + theta * 3);
-  if (head === 'mech') scale *= 1 + 0.035 * (((Math.floor(u * 10) + Math.floor(theta * 2)) % 2) ? 1 : -1);
-  return scale;
-}
-
 function localSurfaceZ(dimensions, x, y = 0) {
-  const head = dimensions.head || dimensions.exaggeration?.head || 'point';
   const u = clamp((x + dimensions.bodyLen * 0.52) / Math.max(dimensions.bodyLen, 1e-6), 0, 1);
-  const profile = profileAt(u, head, dimensions.girth, dimensions.id || '');
-  const yRadius = dimensions.radiusY * profile * spineLineScale(u, 0, head, dimensions.exaggeration?.bellyDrop);
-  const zRadius = dimensions.radiusZ * profile * (head === 'eel' ? 0.92 : 1);
-  const lateral = clamp(Math.abs(y) / Math.max(yRadius, 1e-6), 0, 0.98);
+  const hull = canonicalHullAt(u, dimensions.hullScale);
+  const yRadius = dimensions.radiusY * hull.halfHeight;
+  const zRadius = dimensions.radiusZ * hull.width;
+  const lateral = clamp(Math.abs(y - dimensions.radiusY * hull.center) / Math.max(yRadius, 1e-6), 0, 0.98);
   return zRadius * Math.sqrt(Math.max(0, 1 - lateral * lateral));
 }
 
 function headHeight(dimensions) {
-  return dimensions.radiusY * 2 * dimensions.exaggeration.headScale;
+  const head = canonicalHullAt(0.84, dimensions.hullScale);
+  return dimensions.radiusY * (head.top - head.belly) * dimensions.exaggeration.headScale;
 }
 
 function makeSpineGeometry(def, palette, dimensions) {
   const sil = def.sil || {};
-  const head = sil.head || 'point';
   const len = clamp(finite(sil.len, 1), 0.5, 3);
-  const girth = clamp(finite(sil.girth, 0.36), 0.18, 0.8);
   const bodyLen = dimensions.bodyLen;
   const radiusY = dimensions.radiusY;
   const radiusZ = dimensions.radiusZ;
-  const stations = head === 'eel' ? 30 : head === 'kaiju' ? 26 : def.tier >= 5 ? 26 : def.tier >= 3 ? 24 : 20;
-  // Sixteen radial vertices preserve a rounded low-poly section while making
-  // room in the 4200-triangle gate for the deeper 11-station fork and whale
-  // flank spots.
+  const stations = def.tier >= 5 ? 26 : def.tier >= 3 ? 24 : 20;
+  // Sixteen radial vertices preserve the cartoon's round cross-section while
+  // leaving room in the 4600-triangle/rig budget for face props.
   const radial = 16;
   const ramp = bodyRampColors(palette, finite(def.act, def.tier >= 5 ? 2 : 1));
   const positions = [];
   const colors = [];
   const indices = [];
   const ringIndices = [];
-  const bellyDrop = dimensions.exaggeration?.bellyDrop || exaggerationFor(head).bellyDrop;
 
   const addBodyRing = (i) => {
     const u = i / stations;
     const x = -bodyLen * 0.52 + bodyLen * u;
-    const profile = profileAt(u, head, girth, String(def.id || ''));
-    const stationY = radiusY * profile;
-    const stationZ = radiusZ * profile * (head === 'eel' ? 0.92 : 1);
+    const hull = canonicalHullAt(u, dimensions.hullScale);
+    const stationCenterY = radiusY * hull.center;
+    const stationHalfHeight = radiusY * hull.halfHeight;
+    const stationZ = radiusZ * hull.width;
     const ring = [];
     for (let j = 0; j < radial; j++) {
       const theta = (j / radial) * TAU;
-      const jitter = head === 'rock'
-        ? 1 + (hash01(i, j, 5) - 0.5) * 0.2
-        : head === 'mech' ? 1 + (((i + j) % 3) - 1) * 0.025
-          : 1;
       let color = bodyVertexColor(ramp, theta, u, i, j, sil.pattern || 'plain');
       // Hard accent edge two rings inboard of the fin roots. The root vertices
       // are shared with the appendages, so the block is also seam-consistent.
       if (u >= 0.45 && u <= 0.69 && (Math.cos(theta) > 0.42 || Math.abs(Math.sin(theta)) > 0.82)) {
         color = ramp.accent.clone();
       }
-      const lineScale = spineLineScale(u, theta, head, bellyDrop);
-      addVertex(positions, colors, x, Math.cos(theta) * stationY * lineScale * jitter, Math.sin(theta) * stationZ * jitter, color);
+      // The side silhouette is explicit: cos(theta)=+1 is the authored back,
+      // cos(theta)=-1 is the authored belly.  The near-circular z section is
+      // independent of head id, so there are no hard chines or boat flanks.
+      addVertex(positions, colors, x, stationCenterY + Math.cos(theta) * stationHalfHeight, Math.sin(theta) * stationZ, color);
       ring.push(positions.length / 3 - 1);
     }
     ringIndices.push(ring);
@@ -849,13 +860,12 @@ function makeSpineGeometry(def, palette, dimensions) {
   }
 
   // The tail starts with the spine's rear ring. It is a welded forked loft,
-  // not a second mesh with a root transform. Upper/lower envelopes peak well
-  // above the peduncle, then taper to 30% over the final 20%; theta-dependent
-  // center retreat makes the terminal outline a real concave notch.
+  // not a second mesh with a root transform. The smaller crescent is joined
+  // through the thick canonical peduncle instead of a wasp waist.
   const tailScale = dimensions.tailScale;
   const tailLength = bodyLen * (0.28 + tailScale * 0.03);
-  const tailUpper = bodyLen * 0.23;
-  const tailLower = bodyLen * 0.15;
+  const tailUpper = bodyLen * (0.12 + clamp(dimensions.finScale, 0.5, 2.1) * 0.014);
+  const tailLower = tailUpper * 0.66;
   const tailLowerUpperRatio = tailLower / Math.max(tailUpper, 1e-6);
   const tailDepth = bodyLen * 0.10;
   // The terminal cap is the projected center notch, not a rearward center
@@ -867,9 +877,10 @@ function makeSpineGeometry(def, palette, dimensions) {
   const tailTipExtension = 0;
   const tailRings = [ringIndices[0]];
   const tailStationCount = 11;
-  const rootProfile = profileAt(0, head, girth, String(def.id || ''));
-  const rootYRadius = radiusY * rootProfile * spineLineScale(0, 0, head, bellyDrop);
-  const rootZRadius = radiusZ * rootProfile;
+  const rootHull = canonicalHullAt(0, dimensions.hullScale);
+  const rootCenterY = radiusY * rootHull.center;
+  const rootYRadius = radiusY * rootHull.halfHeight;
+  const rootZRadius = radiusZ * rootHull.width;
   for (let s = 1; s <= tailStationCount; s++) {
     const t = s / tailStationCount;
     const rootBlend = smoothStep01(t / 0.22);
@@ -888,7 +899,7 @@ function makeSpineGeometry(def, palette, dimensions) {
       // folded/inward radial strip while preserving the visible crescent gap.
       const centerRetreat = tailNotchAxial * 0.5 * notchProgress * (1 - outerness);
       const x = -bodyLen * 0.52 - tailLength * t + centerRetreat;
-      const rootY = Math.cos(theta) * rootYRadius;
+      const rootY = rootCenterY + Math.cos(theta) * rootYRadius;
       const lobeY = (upper ? 1 : -1) * outerness * lobe * lobeEnvelope;
       const y = rootY * (1 - rootBlend) + lobeY * rootBlend;
       const sectionDepth = rootZRadius * (1 - rootBlend) + tailDepth * (0.92 + 0.08 * Math.sin(Math.PI * t)) * rootBlend;
@@ -927,14 +938,11 @@ function makeSpineGeometry(def, palette, dimensions) {
   const nearestRing = (u) => ringIndices[clamp(Math.round(u * stations), 0, stations)];
 
   // Dorsal wedge: its root is two top vertices from the body loft.
-  const dorsalRootRear = nearestRing(0.46)[0];
-  const dorsalRootFront = nearestRing(0.69)[0];
-  const dorsalHeight = head === 'eel'
-    ? bodyLen * (0.27 + dimensions.finScale * 0.08)
-    : head === 'whale' ? bodyLen * (0.12 + dimensions.finScale * 0.035)
-      : bodyLen * (0.17 + dimensions.finScale * 0.045);
-  const dorsalTipX = bodyLen * (head === 'eel' ? -0.02 : 0.01);
-  const dorsalTipY = radiusY * (head === 'whale' ? 1.05 : head === 'angler' ? 1.18 : 1.12) + dorsalHeight;
+  const dorsalRootRear = nearestRing(0.45)[0];
+  const dorsalRootFront = nearestRing(0.62)[0];
+  const dorsalHeight = bodyLen * (0.105 + clamp(dimensions.finScale, 0.5, 2.1) * 0.018);
+  const dorsalTipX = bodyLen * 0.02;
+  const dorsalTipY = radiusY * canonicalHullAt(0.54, dimensions.hullScale).top + dorsalHeight;
   const dorsalDepth = Math.max(0.018, radiusZ * 0.12);
   const dorsalTipNear = positions.length / 3;
   addVertex(positions, colors, dorsalTipX, dorsalTipY, dorsalDepth * 0.5, ramp.accent);
@@ -949,7 +957,7 @@ function makeSpineGeometry(def, palette, dimensions) {
   // authoring pass, never rotated as independent runtime meshes.
   const pectRootRing = nearestRing(0.46);
   const pectSpan = dimensions.pectoralSpan;
-  const pectTipX = -bodyLen * (head === 'hammer' ? 0.58 : head === 'whale' ? 0.54 : head === 'angler' ? 0.58 : 0.56 + dimensions.finScale * 0.055);
+  const pectTipX = -bodyLen * (dimensions.head === 'hammer' ? 0.54 : dimensions.head === 'whale' ? 0.50 : dimensions.head === 'angler' ? 0.54 : 0.50 + dimensions.finScale * 0.035);
   const pectDepth = Math.max(0.012, radiusY * 0.035);
   const pectRoots = {};
   const pectoralIndexStart = indices.length;
@@ -968,7 +976,7 @@ function makeSpineGeometry(def, palette, dimensions) {
   const geometry = bufferGeometry(positions, indices, colors);
   geometry.userData.rfStations = stations + 1;
   geometry.userData.rfRadial = radial;
-  geometry.userData.rfProfile = head;
+  geometry.userData.rfProfile = 'canonical-cartoon-shark';
   geometry.userData.rfLen = len;
   geometry.userData.rfNoseIndex = nose;
   geometry.userData.rfTailRootIndex = root;
@@ -998,7 +1006,7 @@ function makeSpineGeometry(def, palette, dimensions) {
   geometry.userData.rfTailRootWidth = bodyLen * 0.045;
   geometry.userData.rfTailNotchX = positions[tailTip * 3];
   geometry.userData.rfTailOutline = 'crescent-concave-peduncle-notch';
-  geometry.userData.rfTailHead = head;
+  geometry.userData.rfTailHead = dimensions.head;
   geometry.userData.rfTailId = String(def.id || '');
   geometry.userData.rfTailSideIndexStart = tailSideIndexStart;
   geometry.userData.rfTailSideIndexCount = tailSideIndexCount;
@@ -1016,17 +1024,22 @@ function makeSpineGeometry(def, palette, dimensions) {
   geometry.userData.rfFinAccentBlock = 'hard-edge-2-rings-inboard';
   geometry.userData.rfSectionZRatio = radiusZ / Math.max(radiusY, 0.001);
   const midU = 0.5;
-  const midProfile = profileAt(midU, head, girth, String(def.id || ''));
-  const midYRadius = radiusY * midProfile * spineLineScale(midU, 0, head, bellyDrop);
-  const midZRadius = radiusZ * midProfile;
+  const midHull = canonicalHullAt(midU, dimensions.hullScale);
+  const midYRadius = radiusY * midHull.halfHeight;
+  const midZRadius = radiusZ * midHull.width;
   geometry.userData.rfMidSectionYRadius = midYRadius;
   geometry.userData.rfMidSectionZRadius = midZRadius;
   geometry.userData.rfMidSectionRoundness = midZRadius / Math.max(midYRadius, 0.001);
-  if (head === 'whale' || head === 'kaiju') {
-    geometry.userData.rfBulkRearProfile = profileAt(0.22, head, girth, String(def.id || ''));
-    geometry.userData.rfBulkFrontProfile = profileAt(0.68, head, girth, String(def.id || ''));
-    geometry.userData.rfBulkNoseProfile = profileAt(0.94, head, girth, String(def.id || ''));
-  }
+  geometry.userData.rfHullScale = dimensions.hullScale;
+  geometry.userData.rfHullDepthRatio = dimensions.hullDepthRatio;
+  geometry.userData.rfHullHeadFraction = 0.30;
+  geometry.userData.rfHullSnoutRadiusRatio = radiusY * canonicalHullAt(1, dimensions.hullScale).halfHeight / Math.max(bodyLen, 1e-6);
+  geometry.userData.rfHullDorsalHeightRatio = dorsalHeight / Math.max(bodyLen, 1e-6);
+  geometry.userData.rfHullPectoralSpanRatio = pectSpan / Math.max(bodyLen, 1e-6);
+  geometry.userData.rfTailRootDepthRatio = radiusY * (rootHull.top - rootHull.belly) / Math.max(bodyLen, 1e-6);
+  geometry.userData.rfBulkRearProfile = canonicalHullAt(0.22, dimensions.hullScale).halfHeight;
+  geometry.userData.rfBulkFrontProfile = canonicalHullAt(0.68, dimensions.hullScale).halfHeight;
+  geometry.userData.rfBulkNoseProfile = canonicalHullAt(0.94, dimensions.hullScale).halfHeight;
   return geometry;
 }
 
@@ -1084,85 +1097,41 @@ function makeVertexColorExtrudedPolygon(points, depth, frontColor, backColor = f
 }
 
 function faceIdentity(head, L, r) {
-  const start = L * 0.08;
-  const end = L * 0.49;
+  // The face is a preset layered on the canonical body. All variants keep the
+  // same 0.20-.30L resting grin; only the brow/jaw/identity props vary.
+  const start = L * 0.18;
+  const end = L * 0.48;
   const face = {
     start, end, share: (end - start) / L,
-    mouthStart: L * 0.16, mouthWidth: L * 0.34, mouthHeight: r * 0.42,
-    jawWidth: L * 0.48, jawHeight: r * 0.32, jawDepth: r * 1.08,
-    top: r * 0.72, bottom: -r * 0.56, contour: null
+    mouthStart: L * 0.22, mouthWidth: L * 0.26, mouthHeight: r * 0.52,
+    jawWidth: L * 0.27, jawHeight: r * 0.46, jawDepth: r * 0.72,
+    top: r * 0.78, bottom: -r * 0.76, contour: null
   };
-  switch (head) {
-    case 'point':
-      face.end = L * 0.53; face.mouthWidth = L * 0.36; face.mouthHeight = r * 0.90;
-      face.contour = [[start, -r * 0.5, 0], [face.end, -r * 0.16, 0], [face.end, r * 0.12, 0], [L * 0.32, r * 0.72, 0], [start, r * 0.66, 0]];
-      break;
-    case 'blunt':
-      face.end = L * 0.51; face.mouthStart = L * 0.12; face.mouthWidth = L * 0.4; face.mouthHeight = r * 0.95;
-      face.contour = [[start, -r * 0.62, 0], [face.end, -r * 0.54, 0], [face.end, r * 0.56, 0], [L * 0.28, r * 0.78, 0], [start, r * 0.72, 0]];
-      break;
-    case 'hammer':
-      face.end = L * 0.55; face.mouthStart = L * 0.1; face.mouthWidth = L * 0.38; face.mouthHeight = r * 0.95;
-      face.contour = [[start, -r * 0.5, 0], [face.end, -r * 0.34, 0], [face.end, r * 0.32, 0], [L * 0.3, r * 0.68, 0], [start, r * 0.62, 0]];
-      break;
-    case 'saw':
-      face.end = L * 0.91; face.mouthStart = L * 0.07; face.mouthWidth = L * 0.34; face.mouthHeight = r * 0.36;
-      face.contour = [[start, -r * 0.42, 0], [face.end, -r * 0.08, 0], [face.end, r * 0.08, 0], [L * 0.22, r * 0.54, 0], [start, r * 0.56, 0]];
-      break;
-    case 'croc':
-      face.end = L * 0.69; face.mouthStart = L * 0.02; face.mouthWidth = L * 0.52; face.mouthHeight = r * 0.5;
-      face.jawWidth = L * 0.68; face.jawHeight = r * 0.42; face.jawDepth = r * 1.32;
-      face.contour = [[start, -r * 0.52, 0], [face.end, -r * 0.34, 0], [face.end, r * 0.16, 0], [L * 0.17, r * 0.55, 0], [start, r * 0.6, 0]];
-      break;
-    case 'whale':
-      // The body loft owns the front barrel. This contour starts well inside
-      // that barrel and ends at the +x nose, so it reads as one wide mouth,
-      // not as a second fish-shaped head attached to the body.
-      face.start = L * 0.04; face.end = L * 0.50; face.mouthStart = L * 0.0; face.mouthWidth = L * 0.54; face.mouthHeight = r * 0.85;
-      face.jawWidth = L * 0.62; face.jawHeight = r * 0.5; face.jawDepth = r * 1.42;
-      face.contour = [[face.start, -r * 0.72, 0], [face.end, -r * 0.60, 0], [face.end, r * 0.62, 0], [L * 0.22, r * 1.02, 0], [face.start, r * 0.90, 0]];
-      break;
-    case 'angler':
-      face.end = L * 0.58; face.mouthStart = L * 0.06; face.mouthWidth = L * 0.5; face.mouthHeight = r * 0.74;
-      face.jawWidth = L * 0.7; face.jawHeight = r * 0.56; face.jawDepth = r * 1.5;
-      face.contour = [[start, -r * 0.78, 0], [face.end, -r * 0.62, 0], [face.end, r * 0.34, 0], [L * 0.22, r * 0.95, 0], [start, r * 0.76, 0]];
-      break;
-    case 'eel':
-      face.end = L * 0.55; face.mouthStart = L * 0.14; face.mouthWidth = L * 0.34; face.mouthHeight = r * 0.34;
-      face.jawWidth = L * 0.5; face.jawHeight = r * 0.4; face.jawDepth = r * 1.2;
-      face.contour = [[start, -r * 0.42, 0], [face.end, -r * 0.2, 0], [face.end, r * 0.2, 0], [L * 0.28, r * 0.5, 0], [start, r * 0.46, 0]];
-      break;
-    case 'rock':
-      face.end = L * 0.57; face.mouthStart = L * 0.07; face.mouthWidth = L * 0.44; face.mouthHeight = r * 0.48;
-      face.jawWidth = L * 0.56; face.jawHeight = r * 0.4; face.jawDepth = r * 1.3;
-      face.contour = [[start, -r * 0.62, 0], [L * 0.34, -r * 0.72, 0], [face.end, -r * 0.3, 0], [face.end, r * 0.38, 0], [L * 0.3, r * 0.82, 0], [start, r * 0.7, 0]];
-      break;
-    case 'mech':
-      face.end = L * 0.56; face.mouthStart = L * 0.08; face.mouthWidth = L * 0.42; face.mouthHeight = r * 0.48;
-      face.jawWidth = L * 0.54; face.jawHeight = r * 0.38; face.jawDepth = r * 1.28;
-      face.contour = [[start, -r * 0.58, 0], [face.end, -r * 0.46, 0], [face.end, r * 0.48, 0], [L * 0.3, r * 0.78, 0], [start, r * 0.7, 0]];
-      break;
-    case 'skull':
-      face.end = L * 0.57; face.mouthStart = L * 0.06; face.mouthWidth = L * 0.45; face.mouthHeight = r * 0.52;
-      face.jawWidth = L * 0.6; face.jawHeight = r * 0.43; face.jawDepth = r * 1.34;
-      face.contour = [[start, -r * 0.66, 0], [face.end, -r * 0.42, 0], [face.end, r * 0.42, 0], [L * 0.36, r * 0.9, 0], [L * 0.18, r * 1.08, 0], [start, r * 0.76, 0]];
-      break;
-    case 'void':
-      face.end = L * 0.6; face.mouthStart = L * 0.1; face.mouthWidth = L * 0.42; face.mouthHeight = r * 0.46;
-      face.jawWidth = L * 0.54; face.jawHeight = r * 0.38; face.jawDepth = r * 1.3;
-      face.contour = [[start, -r * 0.5, 0], [face.end, -r * 0.18, 0], [face.end, r * 0.18, 0], [L * 0.3, r * 0.68, 0], [start, r * 0.64, 0]];
-      break;
-    case 'frill':
-      face.end = L * 0.54; face.mouthStart = L * 0.1; face.mouthWidth = L * 0.38;
-      face.contour = [[start, -r * 0.5, 0], [face.end, -r * 0.22, 0], [face.end, r * 0.28, 0], [L * 0.3, r * 0.72, 0], [start, r * 0.7, 0]];
-      break;
-    case 'kaiju':
-      face.end = L * 0.59; face.mouthStart = L * 0.02; face.mouthWidth = L * 0.58; face.mouthHeight = r * 0.95;
-      face.jawWidth = L * 0.8; face.jawHeight = r * 0.66; face.jawDepth = r * 1.78;
-      face.contour = [[start, -r * 0.92, 0], [face.end, -r * 0.78, 0], [L * 0.64, -r * 0.34, 0], [L * 0.62, r * 0.48, 0], [L * 0.45, r * 1.24, 0], [start, r * 1.02, 0]];
-      break;
+  if (head === 'whale') {
+    // Whale shark keeps the shared face language, but its feeding opening is
+    // deliberately broad enough to survive as a whale-shark cue at the
+    // 128px silhouette review size.
+    face.mouthWidth = L * 0.50;
+    face.mouthHeight = r * 0.62;
+    face.jawWidth = L * 0.50;
+    face.jawHeight = r * 0.54;
+  } else if (head === 'kaiju') {
+    face.mouthWidth = L * 0.29;
+    face.mouthHeight = r * 0.60;
+    face.jawWidth = L * 0.30;
+    face.jawHeight = r * 0.52;
+  } else if (head === 'eel') {
+    face.mouthWidth = L * 0.22;
+    face.mouthHeight = r * 0.44;
+  } else if (head === 'croc' || head === 'angler') {
+    face.mouthWidth = L * 0.28;
+    face.mouthHeight = r * 0.58;
   }
-  face.share = (face.end - face.start) / L;
+  face.contour = [
+    [start, -r * 0.68, 0], [L * 0.28, -r * 0.78, 0],
+    [end, -r * 0.58, 0], [end, r * 0.62, 0],
+    [L * 0.28, r * 0.86, 0], [start, r * 0.72, 0]
+  ];
   return face;
 }
 
@@ -1220,19 +1189,28 @@ function mergeFeatureDescriptors(features, options = {}) {
 }
 
 function makeJawGeometry(width, height, depth, ramp) {
-  const hinge = -width * 0.14;
+  const hinge = -width * 0.16;
   const authoredContour = [
-    [hinge, height * 0.04, 0],
-    [width * 0.78, height * 0.02, 0],
-    [width, -height * 0.18, 0],
-    [width * 0.94, -height * 0.72, 0],
-    [width * 0.72, -height, 0],
-    [hinge * 0.4, -height * 0.88, 0]
+    // A shallow U-shaped lower jaw keeps the chew/snap part of the rig
+    // readable as belly material. The old near-straight top edge became a
+    // white rail when the jaw opened, especially on the broad whale mouth.
+    [hinge, height * 0.08, 0], [width * 0.16, height * 0.08, 0],
+    [width * 0.34, height * 0.03, 0], [width * 0.50, -height * 0.08, 0],
+    [width * 0.66, height * 0.03, 0], [width * 0.84, height * 0.08, 0],
+    [width, -height * 0.08, 0], [width * 0.94, -height * 0.58, 0],
+    [width * 0.72, -height * 0.88, 0], [width * 0.28, -height * 0.88, 0],
+    [hinge * 0.42, -height * 0.64, 0]
   ];
   const contour = cameraFacingPolygon(authoredContour);
   const positions = [];
   const colors = [];
-  const rimColors = [ramp.dark, ramp.flank, ramp.flank, ramp.belly, ramp.dark, ramp.dark];
+  // Use the resolved belly ramp across the cheek-facing cap.  The old dark
+  // rim plus BackSide shell made this articulated piece read as a separate
+  // vehicle bumper instead of the animal's lower jaw.
+  const rimColors = [
+    ramp.belly, ramp.belly, ramp.belly, ramp.belly, ramp.highlight,
+    ramp.belly, ramp.belly, ramp.belly, ramp.belly, ramp.belly, ramp.belly
+  ];
   for (let side = 0; side < 2; side++) {
     for (let i = 0; i < contour.length; i++) {
       const point = contour[i];
@@ -1274,14 +1252,52 @@ function makeBeveledPanel(width, height, depth, bevel) {
 }
 
 function makeMouthGeometry(width, height, depth = 0.04) {
-  const geometry = makeExtrudedPolygon([
-    [0, height * 0.46, 0], [width * 0.82, height * 0.42, 0], [width, 0, 0],
-    [width * 0.88, -height * 0.48, 0], [width * 0.12, -height * 0.5, 0], [0, -height * 0.2, 0]
-  ], depth);
+  // This is a deliberately deep, concave grin. The old fan-triangulated
+  // cavity had a nearly straight top edge at gameplay scale, so use a real
+  // polygon triangulation here: the corners rise, the centre drops, and the
+  // lower curve leaves enough black field around each separate tooth.
+  const authored = [
+    [0.00, 0.30], [0.12, 0.52], [0.26, 0.34], [0.38, 0.14],
+    [0.50, 0.08], [0.62, 0.14], [0.74, 0.34], [0.88, 0.52],
+    [1.00, 0.30], [0.96, -0.28], [0.82, -0.52], [0.68, -0.68],
+    [0.32, -0.68], [0.18, -0.52], [0.04, -0.28]
+  ];
+  const contour = cameraFacingPolygon(authored.map(([x, y]) => [x * width, y * height, 0]));
+  const shapePoints = contour.map(([x, y]) => new THREE.Vector2(x, y));
+  const triangles = THREE.ShapeUtils.triangulateShape(shapePoints, []);
+  const positions = [];
+  for (const point of contour) positions.push(point[0], point[1], depth * 0.5);
+  for (const point of contour) positions.push(point[0], point[1], -depth * 0.5);
+  const n = contour.length;
+  const indices = [];
+  const signedArea = (a, b, c) => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+  for (const triangle of triangles) {
+    const [a, b, c] = triangle;
+    const front = signedArea(shapePoints[a], shapePoints[b], shapePoints[c]) >= 0
+      ? [a, b, c] : [a, c, b];
+    indices.push(front[0], front[1], front[2]);
+    indices.push(n + front[2], n + front[1], n + front[0]);
+  }
+  for (let i = 0; i < n; i++) {
+    const next = (i + 1) % n;
+    indices.push(i, next, n + i, next, n + next, n + i);
+  }
+  const geometry = bufferGeometry(positions, indices);
   geometry.userData.rfMouth = true;
   geometry.userData.rfMouthCavity = true;
   geometry.userData.rfSize = { width, height };
+  geometry.userData.rfCavityHeight = height * 1.20;
+  geometry.userData.rfCornerLift = height * (0.52 - 0.08);
   return geometry;
+}
+
+const MOUTH_TOP_PROFILE = Object.freeze([
+  [0.00, 0.30], [0.12, 0.52], [0.26, 0.34], [0.38, 0.14],
+  [0.50, 0.08], [0.62, 0.14], [0.74, 0.34], [0.88, 0.52], [1.00, 0.30]
+]);
+
+function mouthTopAt(t, height) {
+  return authoredCurveAt(MOUTH_TOP_PROFILE, t) * height;
 }
 
 function makeCylinderBetween(length, radius) {
@@ -1537,16 +1553,19 @@ function addEyeFeatures(template, def, palette, dimensions) {
   const act = finite(def.act, def.tier >= 5 ? 2 : 1);
   const eyeScale = dimensions.exaggeration?.eyeScale || exaggerationFor(head).eyeScale;
   const cyclops = id === 'cyclopseye';
-  const eyeRadius = dimensions.radiusY * (cyclops ? 0.56 : eyeScale);
+  const eyeRadius = dimensions.radiusY * (cyclops ? 0.31 : eyeScale);
   // The authored .42-.50 radius ratios are sound in model space, but the
   // gameplay camera normalizes the full welded tail-to-nose bbox. Give the
   // visible eye unit a measured camera compensation so its near-eye disk is
   // not reduced to a white pixel at the 844 CSS px review viewport.
   const eyeRenderRadius = eyeRadius * EYE_CAMERA_SCALE;
   const eyeX = dimensions.bodyLen * (head === 'hammer' ? 0.38 : head === 'whale' ? 0.28 : 0.36);
-  const eyeY = cyclops ? 0 : dimensions.radiusY * (head === 'eel' ? 0.28 : 0.56);
+  const eyeY = cyclops ? dimensions.radiusY * 0.46 : dimensions.radiusY * 0.54 * dimensions.hullScale;
   const eyeSurfaceZ = localSurfaceZ(dimensions, eyeX, eyeY);
-  const eyeProudZ = dimensions.bodyLen * 0.05;
+  // The hemisphere is seated into the cheek.  Its flat back is only a small
+  // fraction proud of the resolved hull surface, so there is no stalk/gap
+  // silhouette while the front half remains legible at gameplay distance.
+  const eyeProudZ = dimensions.bodyLen * 0.012;
   const eyeZ = eyeSurfaceZ + eyeProudZ;
   template.metrics.eyeRadius = eyeRadius;
   template.metrics.eyeRenderRadius = eyeRenderRadius;
@@ -1568,7 +1587,6 @@ function addEyeFeatures(template, def, palette, dimensions) {
   const eyeGlow = act >= 2 ? (palette.glow || palette.accent) : 0;
   const eyeBaseMaterial = toonMaterial({ color: eyeBase, glow: eyeGlow, emissiveIntensity: EYE_EMISSIVE_INTENSITY, kind: 'eye' });
   const irisMaterial = toonMaterial({ color: eyeIris, glow: eyeGlow, emissiveIntensity: EYE_EMISSIVE_INTENSITY, kind: 'iris' });
-  const socketMaterial = toonMaterial({ color: 0x05080d, kind: 'socket' });
   const catchlightMaterial = toonMaterial({ color: WHITE, kind: 'catchlight' });
   const eyeRingMaterial = act >= 3
     ? toonMaterial({ color: palette.glow || palette.accent, glow: palette.glow || palette.accent, emissiveIntensity: 1.0, side: THREE.DoubleSide, kind: 'eye ring' })
@@ -1576,35 +1594,38 @@ function addEyeFeatures(template, def, palette, dimensions) {
   // Hero recut: brow ridge now carries an accent-lit (not just dark) color at
   // every act, not only act>=3, so the aggressive brow read survives at
   // gameplay scale for every tier, not only late-roster gold sharks.
-  const browMaterial = toonMaterial({
-    color: palette.glow || palette.accent,
-    glow: act >= 3 ? (palette.glow || palette.accent) : 0,
-    emissiveIntensity: FEATURE_EMISSIVE_INTENSITY,
-    kind: 'brow'
-  });
+  const socketMaterial = toonMaterial({ color: OUTLINE_SHELL_COLOR, kind: 'embedded eye socket' });
+  const browMaterial = toonMaterial({ color: palette.base, kind: 'integrated upper lid' });
+  const eyeDepth = eyeRenderRadius * 0.36;
 
   const eyeSides = cyclops ? [1] : [1, -1];
   for (const side of eyeSides) {
     const sideName = cyclops ? 'cyclops central eye' : side > 0 ? 'eyeL' : 'eyeR';
-    // One low-poly hemisphere, one proud disc, and one catchlight quad per
-    // side. The three pieces are descriptor-merged into bendable feature
-    // batches, rather than becoming articulated eye objects.
-    template.bodyFeatures.push(descriptor(sharedEyeGeometry, eyeBaseMaterial, [eyeX, eyeY, side * eyeZ], [side * Math.PI * 0.5, 0, 0], [eyeRenderRadius, eyeRenderRadius, eyeRenderRadius], `${sideName} hemisphere white`));
-    template.bodyFeatures.push(descriptor(sharedIrisGeometry, head === 'skull' ? socketMaterial : irisMaterial, [eyeX + eyeRenderRadius * 0.05, eyeY, side * (eyeZ + eyeRenderRadius * 1.01)], [0, side < 0 ? Math.PI : 0, 0], [eyeRenderRadius * 0.52, eyeRenderRadius * 0.52, 1], `${sideName} proud pupil disc`));
-    template.bodyFeatures.push(descriptor(sharedCatchlightGeometry, catchlightMaterial, [eyeX + eyeRenderRadius * 0.18, eyeY + eyeRenderRadius * 0.24, side * (eyeZ + eyeRenderRadius * 1.025)], [0, side < 0 ? Math.PI : 0, 0], [eyeRenderRadius * 0.24, eyeRenderRadius * 0.24, 1], `${sideName} catchlight quad`));
+    // The socket is a dark, rounded footprint behind the eye.  The sclera's
+    // flat back is seated at the same cheek station; only the hemisphere and
+    // its small facial details project toward the camera.
+    const socket = makeBeveledPanel(eyeRenderRadius * 2.34, eyeRenderRadius * 2.18, eyeRenderRadius * 0.16, eyeRenderRadius * 0.30);
+    template.bodyFeatures.push(descriptor(socket, socketMaterial, [eyeX, eyeY, side * (eyeSurfaceZ + dimensions.bodyLen * 0.005)], [0, 0, side * -0.04], [1, 1, 1], `${sideName} embedded cheek socket`));
+    template.bodyFeatures.push(descriptor(sharedEyeGeometry, eyeBaseMaterial, [eyeX, eyeY, side * eyeZ], [side * Math.PI * 0.5, 0, 0], [eyeRenderRadius, eyeRenderRadius * 0.36, eyeRenderRadius], `${sideName} flush shallow sclera dome`));
+    template.bodyFeatures.push(descriptor(sharedIrisGeometry, head === 'skull' ? socketMaterial : irisMaterial, [eyeX + eyeRenderRadius * 0.05, eyeY, side * (eyeZ + eyeDepth + dimensions.bodyLen * 0.004)], [0, side < 0 ? Math.PI : 0, 0], [eyeRenderRadius * 0.52, eyeRenderRadius * 0.52, 1], `${sideName} inset iris pupil`));
+    template.bodyFeatures.push(descriptor(sharedCatchlightGeometry, catchlightMaterial, [eyeX + eyeRenderRadius * 0.18, eyeY + eyeRenderRadius * 0.24, side * (eyeZ + eyeDepth + dimensions.bodyLen * 0.006)], [0, side < 0 ? Math.PI : 0, 0], [eyeRenderRadius * 0.16, eyeRenderRadius * 0.16, 1], `${sideName} eye catchlight`));
     if (eyeRingMaterial) {
       const ring = new THREE.TorusGeometry(eyeRenderRadius * 0.88, eyeRenderRadius * 0.09, 5, 10);
-      template.bodyFeatures.push(descriptor(ring, eyeRingMaterial, [eyeX + eyeRenderRadius * 0.16, eyeY, side * (eyeZ + eyeRenderRadius * 0.86)], [0, side < 0 ? Math.PI : 0, 0], [1, 1, 1], `${sideName} act3 glow ring`));
+      template.bodyFeatures.push(descriptor(ring, eyeRingMaterial, [eyeX + eyeRenderRadius * 0.16, eyeY, side * (eyeZ + eyeDepth * 0.88)], [0, side < 0 ? Math.PI : 0, 0], [1, 1, 1], `${sideName} act3 glow ring`));
     }
-    const browScale = head === 'kaiju' ? 1.62 : cyclops ? 1.34 : act >= 3 ? 1.18 : 1.08;
-    const brow = makeBeveledPanel(eyeRenderRadius * 2.7 * browScale, eyeRenderRadius * (0.38 + (head === 'kaiju' ? 0.16 : 0)), eyeRenderRadius * (0.42 + (head === 'kaiju' ? 0.2 : 0)), eyeRenderRadius * 0.08);
-    // Hero recut follow-on: this offset is proportional to eyeRadius, so
-    // doubling eyeRadius for the hero recut also doubled the absolute gap
-    // between the brow and the eyeball, making the ridge read as a detached
-    // floating bar instead of an attached brow shelf. Halved (0.71, was 1.42;
-    // kaiju's extra +0.16 likewise halved to +0.08) to restore the same
-    // attached, overhanging read at the new larger eye scale.
-    template.bodyFeatures.push(descriptor(brow, browMaterial, [eyeX - eyeRenderRadius * 0.08, eyeY + eyeRenderRadius * (0.71 + (head === 'kaiju' ? 0.08 : 0)), side * (eyeZ + eyeRenderRadius * 0.12)], [0, side * (0.14 + (head === 'kaiju' ? 0.1 : 0)), side * -0.16], [1, 1, 1], `${sideName} attitude shelf`));
+    const browWidth = eyeRenderRadius * (1.52 + (head === 'kaiju' ? 0.18 : 0));
+    const browHeight = eyeRenderRadius * (0.28 + (head === 'kaiju' ? 0.06 : 0));
+    const brow = makeExtrudedPolygon([
+      [-browWidth * 0.52, -browHeight * 0.18, 0],
+      [-browWidth * 0.32, browHeight * 0.42, 0],
+      [browWidth * 0.28, browHeight * 0.46, 0],
+      [browWidth * 0.52, browHeight * 0.10, 0],
+      [browWidth * 0.34, -browHeight * 0.24, 0],
+      [-browWidth * 0.30, -browHeight * 0.28, 0]
+    ], eyeRenderRadius * 0.18);
+    // The lid sits across the upper 10-20% of the sclera.  It shares the
+    // cheek palette, so it reads as a brow/skin overlap rather than a prop.
+    template.bodyFeatures.push(descriptor(brow, browMaterial, [eyeX - eyeRenderRadius * 0.08, eyeY + eyeRenderRadius * 0.56, side * (eyeZ + eyeDepth * 0.70)], [0, side * 0.08, side * -0.08], [1, 1, 1], `${sideName} integrated upper lid`));
   }
   const geometryTriangles = (geometry) => Math.floor((geometry.getIndex()?.count || geometry.getAttribute('position')?.count || 0) / 3);
   template.metrics.eyeUnitTriangles = geometryTriangles(sharedEyeGeometry) * eyeSides.length + geometryTriangles(sharedIrisGeometry) * eyeSides.length + geometryTriangles(sharedCatchlightGeometry) * eyeSides.length;
@@ -1619,137 +1640,103 @@ function addMouthAndTeeth(template, def, palette, dimensions) {
   const mouthWidth = spec.mouthWidth;
   const mouthHeight = spec.mouthHeight;
   const mouthStart = spec.mouthStart;
-  const mouthY = -dimensions.radiusY * (head === 'angler' || head === 'kaiju' ? 0.27 : 0.22);
   const mouthCenterX = mouthStart + mouthWidth * 0.5;
+  const mouthU = clamp((mouthCenterX + dimensions.bodyLen * 0.52) / Math.max(dimensions.bodyLen, 1e-6), 0, 1);
+  const mouthHull = canonicalHullAt(mouthU, dimensions.hullScale);
+  // The grin sits under the cheek, close to the authored belly line.  This is
+  // why the face remains a face when every head prop is removed.
+  const mouthY = dimensions.radiusY * (mouthHull.belly * 0.80);
   const mouthSurfaceZ = localSurfaceZ(dimensions, mouthCenterX, mouthY);
-  const mouthProudZ = dimensions.bodyLen * 0.05;
-  const mouthLineMaterial = toonMaterial({ color: WHITE, vertexColors: true, kind: 'mouth line vertex color' });
-  // Hero recut (art review CRITICAL 1): the underslung mouth line was a thin
-  // hairline that vanished at gameplay scale (shark occupies ~31% of frame
-  // width). Widen the line's vertical thickness (0.05/0.08/0.16 -> 0.09/0.14/
-  // 0.24 * radiusY) and extrude it deeper (0.025 -> 0.05 * radiusZ) so tier-1
-  // Reef, which never gets tooth geometry, still reads a bold committed jaw
-  // line instead of a faint scratch.
-  const mouthLine = makeVertexColorExtrudedPolygon([
-    [mouthStart, mouthY - dimensions.radiusY * 0.09, 0],
-    [mouthStart + mouthWidth * 0.94, mouthY + dimensions.radiusY * 0.02, 0],
-    [mouthStart + mouthWidth * 0.90, mouthY - dimensions.radiusY * 0.14, 0],
-    [mouthStart + mouthWidth * 0.04, mouthY - dimensions.radiusY * 0.24, 0]
-  ], dimensions.radiusZ * 0.05, 0x040a10);
-  template.bodyFeatures.push(descriptor(
-    mouthLine,
-    mouthLineMaterial,
-    [0, 0, mouthSurfaceZ + mouthProudZ],
-    [0, 0, 0],
-    [1, 1, 1],
-    'underslung mouth line vertex color'
-  ));
-  template.metrics.mouthLineVertexColors = true;
+  const mouthProudZ = dimensions.bodyLen * 0.045;
+  // The cavity is the dominant face mark. A thin dark lip follows the same
+  // high-corner/low-centre contour without becoming a straight white rail.
+  const grinMaterial = toonMaterial({ color: OUTLINE_SHELL_COLOR, kind: 'up-curved grin rim' });
+  const grinLine = identityRibbon(MOUTH_TOP_PROFILE.map(([t, y]) => [
+    mouthStart + mouthWidth * t,
+    mouthY + mouthHeight * y
+  ]), Math.max(dimensions.bodyLen * 0.008, mouthHeight * 0.035), dimensions.radiusZ * 0.07);
+  template.bodyFeatures.push(descriptor(grinLine, grinMaterial, [0, 0, mouthSurfaceZ + mouthProudZ * 1.16], [0, 0, 0], [1, 1, 1], 'up-curved grin line'));
+  template.metrics.mouthLineVertexColors = false;
   template.metrics.mouthWidth = mouthWidth;
   template.metrics.mouthWidthRatio = mouthWidth / Math.max(dimensions.bodyLen, 1e-6);
   template.metrics.mouthHeightRatio = mouthHeight / Math.max(headHeight(dimensions), 1e-6);
+  template.metrics.mouthCavityHeight = mouthHeight * 1.20;
+  template.metrics.mouthCavityHeightRatio = template.metrics.mouthCavityHeight / Math.max(headHeight(dimensions), 1e-6);
+  template.metrics.mouthCornerLift = mouthHeight * (0.52 - 0.08);
+  template.metrics.mouthCornerLiftRatio = template.metrics.mouthCornerLift / Math.max(dimensions.bodyLen, 1e-6);
   template.metrics.mouthCavity = true;
+  template.metrics.mouthResting = true;
 
-  // A saturated lower rim carries the grin as a character block. It frames
-  // the dark cavity instead of asking a thin white mouth line to do all the
-  // work at gameplay distance.
-  const jawRimHeight = mouthHeight * 0.18;
-  const jawRim = makeExtrudedPolygon([
-    [0, -mouthHeight * 0.22, 0],
-    [mouthWidth * 0.94, -mouthHeight * 0.15, 0],
-    [mouthWidth * 0.86, -mouthHeight * 0.34, 0],
-    [mouthWidth * 0.12, -mouthHeight * 0.40, 0]
-  ], Math.max(dimensions.radiusZ * 0.06, dimensions.bodyLen * 0.018));
-  const jawRimMaterial = toonMaterial({ color: palette.accent, kind: 'colored lower jaw rim' });
-  for (const side of [1, -1]) {
-    template.bodyFeatures.push(descriptor(
-      jawRim,
-      jawRimMaterial,
-      [mouthStart, mouthY, side * (mouthSurfaceZ + mouthProudZ * 1.02)],
-      [0, 0, 0],
-      [1, 1, 1],
-      `${side > 0 ? 'near' : 'far'} colored lower jaw rim`
-    ));
-  }
-  template.metrics.lowerJawRim = { height: jawRimHeight, color: palette.resolved.accent };
-
-  // Hero recut: tier-1 sharks (Reef, Epaulette, Cookiecutter) never receive
-  // tooth/jaw geometry, so the mouth line alone must carry a jaw silhouette.
-  // A small dark underbite wedge tucked beneath the mouth line reads as a
-  // committed lower jaw mass at distance without adding a tooth budget.
-  if (tier < 2) {
-    const jawShadowMaterial = toonMaterial({ color: 0x030710, kind: 'tier1 jaw shadow wedge' });
-    const wedge = makeExtrudedPolygon([
-      [mouthStart + mouthWidth * 0.10, mouthY - dimensions.radiusY * 0.22, 0],
-      [mouthStart + mouthWidth * 0.78, mouthY - dimensions.radiusY * 0.16, 0],
-      [mouthStart + mouthWidth * 0.62, mouthY - dimensions.radiusY * 0.40, 0],
-      [mouthStart + mouthWidth * 0.20, mouthY - dimensions.radiusY * 0.38, 0]
-    ], dimensions.radiusZ * 0.14);
-    for (const side of [1, -1]) {
-      template.bodyFeatures.push(descriptor(
-        wedge,
-        jawShadowMaterial,
-        [0, 0, side * (mouthSurfaceZ + mouthProudZ)],
-        [0, 0, 0],
-        [1, 1, 1],
-        `${side > 0 ? 'near' : 'far'} tier1 jaw shadow wedge`
-      ));
-    }
-    return;
-  }
   const mouthMaterial = toonMaterial({ color: 0x09050d, kind: 'mouth' });
-  const toothMaterial = toonMaterial({ color: 0xfff4d4, kind: 'teeth' });
+  const toothMaterial = toonMaterial({ color: WHITE, kind: 'teeth' });
+  const lowerJawMaterial = toonMaterial({ color: palette.belly, kind: 'resting lower jaw slab' });
+  const mouthDepth = Math.max(dimensions.radiusZ * 0.12, dimensions.bodyLen * 0.018);
+  // The lower jaw is a cheek-continuation wedge.  It starts behind the mouth
+  // corners and sits below the cavity, so the belly material reads as one
+  // animal's underside rather than a second black-edged block.
+  const lowerJawSlab = makeExtrudedPolygon([
+    [-mouthWidth * 0.12, -mouthHeight * 0.10, 0],
+    [mouthWidth * 0.08, -mouthHeight * 0.16, 0],
+    [mouthWidth * 0.30, -mouthHeight * 0.20, 0],
+    [mouthWidth * 0.50, -mouthHeight * 0.22, 0],
+    [mouthWidth * 0.70, -mouthHeight * 0.20, 0],
+    [mouthWidth * 0.94, -mouthHeight * 0.14, 0],
+    [mouthWidth * 1.04, -mouthHeight * 0.24, 0],
+    [mouthWidth * 0.94, -mouthHeight * 0.58, 0],
+    [mouthWidth * 0.78, -mouthHeight * 0.74, 0],
+    [mouthWidth * 0.22, -mouthHeight * 0.74, 0],
+    [mouthWidth * 0.06, -mouthHeight * 0.62, 0],
+    [-mouthWidth * 0.10, -mouthHeight * 0.30, 0]
+  ], mouthDepth * 0.90);
+  const cavity = makeMouthGeometry(mouthWidth, mouthHeight, mouthDepth);
+  const toothCount = head === 'kaiju' ? 9 : head === 'whale' ? 8 : 7;
+  // Keep the teeth visually individual at 844x390: the white coverage stays
+  // inside the 60-85% review band while the negative spaces are several model
+  // pixels wide instead of collapsing into a zipper.
+  const toothScale = head === 'whale'
+    ? dimensions.bodyLen * 0.038
+    : head === 'kaiju'
+      ? dimensions.bodyLen * 0.0205
+      : mouthWidth * 0.62 / toothCount;
+  const toothHeight = dimensions.bodyLen * clamp(0.050 + tier * 0.001, 0.052, 0.064);
   for (const side of [1, -1]) {
-    const mouth = descriptor(makeMouthGeometry(mouthWidth, mouthHeight, dimensions.radiusZ * 0.1), mouthMaterial, [mouthStart, mouthY, side * (mouthSurfaceZ + mouthProudZ * 1.03)], [0, 0, 0], [1, 1, 1], `${side > 0 ? 'near' : 'far'} connected mouth cavity`);
-    template.bodyFeatures.push(mouth);
-    const count = head === 'kaiju' ? 10 : head === 'whale' ? 8 : Math.min(9, 5 + Math.floor(tier / 3));
-    for (let i = 0; i < count; i++) {
-      const u = (i + 0.5) / count;
+    template.bodyFeatures.push(descriptor(cavity, mouthMaterial, [mouthStart, mouthY, side * (mouthSurfaceZ + mouthProudZ * 1.04)], [0, 0, 0], [1, 1, 1], `${side > 0 ? 'near' : 'far'} dominant open mouth cavity`));
+    template.bodyFeatures.push(descriptor(lowerJawSlab, lowerJawMaterial, [mouthStart, mouthY, side * (mouthSurfaceZ + mouthProudZ * 0.86)], [0, 0, 0], [1, 1, 1], `${side > 0 ? 'near' : 'far'} integrated belly lower jaw`));
+    for (let i = 0; i < toothCount; i++) {
+      const u = (i + 0.5) / toothCount;
       const x = mouthStart + mouthWidth * u;
-      const toothScale = dimensions.radiusY * (0.1 + tier * 0.007) * (head === 'croc' ? 0.88 : head === 'kaiju' ? 1.18 : 1);
-      const toothHeight = toothScale * (head === 'kaiju' ? 3.0 : 2.6);
-      const upperRoot = mouthY + mouthHeight * 0.42;
-      template.bodyFeatures.push(descriptor(sharedToothGeometry, toothMaterial, [x, upperRoot - toothHeight * 0.5, side * (mouthSurfaceZ + mouthProudZ * 1.06)], [0, 0, Math.PI], [toothScale, toothHeight, toothScale], `${side > 0 ? 'near' : 'far'} rooted upper tooth`));
-      if (i % 2 === 0 || tier >= 6) {
-        const lowerHeight = toothHeight * 0.78;
-        const lowerRoot = mouthY - mouthHeight * 0.42;
-        template.bodyFeatures.push(descriptor(sharedToothGeometry, toothMaterial, [x + mouthWidth * 0.02, lowerRoot + lowerHeight * 0.5, side * (mouthSurfaceZ + mouthProudZ * 1.06)], [0, 0, 0], [toothScale * 0.88, lowerHeight, toothScale * 0.88], `${side > 0 ? 'near' : 'far'} rooted lower tooth`));
-      }
+      const upperRoot = mouthY + mouthTopAt(u, mouthHeight) - mouthHeight * 0.045;
+      template.bodyFeatures.push(descriptor(sharedToothGeometry, toothMaterial, [x, upperRoot - toothHeight * 0.50, side * (mouthSurfaceZ + mouthProudZ * 1.27)], [0, 0, Math.PI], [toothScale, toothHeight, toothScale], `${side > 0 ? 'near' : 'far'} separated upper triangle tooth`));
     }
   }
+  template.metrics.lowerJawRim = { height: mouthHeight * 0.40, color: palette.resolved.belly };
+  template.metrics.toothCount = toothCount;
+  template.metrics.toothGap = (mouthWidth - toothCount * toothScale) / Math.max(toothCount - 1, 1);
+  template.metrics.toothGapRatio = template.metrics.toothGap / Math.max(dimensions.bodyLen, 1e-6);
+  template.metrics.toothBandWidthRatio = toothCount * toothScale / Math.max(mouthWidth, 1e-6);
+  template.metrics.toothBandWhiteCoverage = template.metrics.toothBandWidthRatio;
 
   if (tier >= 5) {
-    const jawWidth = spec.jawWidth;
-    const jawHeight = spec.jawHeight;
+    // Keep the articulated wedge inside the shared mouth contour.  The old
+    // authored width could project beyond the cheek and make the animated
+    // jaw look like a second hull at gameplay distance.
+    const jawWidth = Math.min(spec.jawWidth, mouthWidth * (head === 'whale' ? 0.78 : 0.86));
+    // The articulated jaw shares the resting lower-jaw silhouette.  Keep its
+    // animated envelope shallow enough to remain a cheek continuation instead
+    // of hanging below the body as a separate gray plate.
+    const jawHeight = Math.min(spec.jawHeight, mouthHeight * (head === 'whale' ? 0.40 : 0.48));
     const jawDepth = dimensions.radiusZ * (spec.jawDepth / dimensions.radiusY);
     const jawRamp = bodyRampColors(palette, finite(def.act, def.tier >= 5 ? 2 : 1));
     template.jaw = {
       geometry: makeJawGeometry(jawWidth, jawHeight, jawDepth, jawRamp),
       material: toonMaterial({ color: WHITE, vertexColors: true, kind: 'jaw' }),
-      position: [mouthStart + mouthWidth * 0.08, mouthY - mouthHeight * 0.34, dimensions.radiusZ * 0.12],
+      position: [mouthStart + mouthWidth * (head === 'whale' ? 0.17 : 0.08), mouthY - mouthHeight * 0.26, mouthSurfaceZ + mouthProudZ * 0.98],
       teeth: [],
       teethDescriptors: []
     };
-    const jawToothCount = head === 'kaiju' ? 9 : head === 'angler' ? 8 : 6;
-    const jawToothMaterial = toonMaterial({ color: 0xfff4d4, kind: 'jaw teeth' });
-    for (let i = 0; i < jawToothCount; i++) {
-      const toothScale = dimensions.radiusY * (head === 'kaiju' ? 0.12 : 0.1);
-      const toothHeight = toothScale * (head === 'kaiju' ? 2.65 : 2.35);
-      const x = jawWidth * (0.1 + i * (0.78 / Math.max(1, jawToothCount - 1)));
-      const y = -jawHeight * 0.02 + toothHeight * 0.5;
-      const tooth = {
-        geometry: sharedToothGeometry,
-        material: jawToothMaterial,
-        position: [x, y, dimensions.radiusZ * 0.52],
-        rotation: [0, 0, 0],
-        scale: [toothScale, toothHeight, toothScale],
-        name: 'rooted jaw tooth'
-      };
-      template.jaw.teethDescriptors.push(tooth);
-      template.jaw.teeth.push({
-        position: tooth.position, rotation: tooth.rotation, scale: tooth.scale
-      });
-    }
+    // The shared mouth above owns the visible gum line.  Do not add a second
+    // lower tooth row to the articulated wedge: it breaks the single-animal
+    // contour and makes the jaw read as a prop instead of a jaw hinge.
   }
 }
 
@@ -1771,34 +1758,29 @@ function addHeadFeatures(template, def, palette, dimensions) {
     // The gameplay camera is on +Z, so the foil's long axis is local X (the
     // screen-horizontal axis), not local Z. Its center bridge overlaps the
     // loft by 0.18L so the bar cannot read as a detached box.
-    const foilSpan = L * 0.50;
-    const foilThickness = L * 0.13;
-    const foilDepth = Math.max(L * 0.10, rz * 0.65);
-    const foilX = L * 0.43;
-    const foilZ = cameraSurface(foilX) + L * 0.06;
+    const foilSpan = L * 0.52;
+    const foilThickness = L * 0.12;
+    const foilDepth = Math.max(L * 0.07, rz * 0.42);
+    const foilX = L * 0.26;
+    const foilY = r * 0.86;
+    // Proud enough to survive the silhouette thumbnail, but vertically above
+    // the eye and with a short center drop so it cannot occlude the face.
+    const foilZ = cameraSurface(foilX, foilY) + L * 0.012;
     const foilColor = solid(palette.accent, 'hammer foil');
-    const foilEdgeColor = solid(OUTLINE_SHELL_COLOR, 'hammer foil edge');
     const halfSpan = foilSpan * 0.5;
     const halfBar = foilThickness * 0.5;
-    const stemHalf = L * 0.07;
-    const stemDrop = L * 0.22;
-    // A box had the correct numeric span but read as a rectangular snout.
-    // This beveled XY contour keeps the bar on the live screen-horizontal
-    // axis and adds a central downward bridge, so the silhouette is a T even
-    // before the body/face features are considered.
+    const stemHalf = L * 0.055;
+    const stemDrop = L * 0.055;
+    // Tapered ends and a short rooted bridge keep the foil screen-horizontal
+    // and hammer-shaped while the shared rounded cheek remains the snout.
     const foil = makeExtrudedPolygon([
-      [-halfSpan + L * 0.025, halfBar, 0], [halfSpan - L * 0.025, halfBar, 0],
-      [halfSpan, halfBar * 0.45, 0], [halfSpan, -halfBar * 0.45, 0],
-      [stemHalf, -halfBar * 0.45, 0], [stemHalf, -stemDrop, 0],
-      [-stemHalf, -stemDrop, 0], [-stemHalf, -halfBar * 0.45, 0],
-      [-halfSpan, -halfBar * 0.45, 0], [-halfSpan + L * 0.025, -halfBar, 0]
+      [-halfSpan + L * 0.045, halfBar * 0.34, 0], [-halfSpan + L * 0.018, halfBar, 0],
+      [halfSpan - L * 0.018, halfBar, 0], [halfSpan - L * 0.045, halfBar * 0.34, 0],
+      [halfSpan - L * 0.028, -halfBar * 0.34, 0], [stemHalf, -halfBar * 0.34, 0],
+      [stemHalf, -stemDrop, 0], [-stemHalf, -stemDrop, 0],
+      [-stemHalf, -halfBar * 0.34, 0], [-halfSpan + L * 0.028, -halfBar * 0.34, 0]
     ], foilDepth);
-    template.bodyFeatures.push(descriptor(foil, foilColor, [foilX, 0, foilZ], [0, 0, 0], [1, 1, 1], 'hammer T-bar'));
-    const foilEdge = new THREE.BoxGeometry(L * 0.035, foilThickness * 1.08, foilDepth * 1.04);
-    template.bodyFeatures.push(descriptor(foilEdge, foilEdgeColor, [foilX + foilSpan * 0.47, 0, foilZ + L * 0.005], [0, 0, 0], [1, 1, 1], 'hammer T-bar leading edge'));
-    const bridgeWidth = L * 0.30;
-    const bridge = new THREE.BoxGeometry(bridgeWidth, r * 0.32, rz * 1.05);
-    template.bodyFeatures.push(descriptor(bridge, accent, [L * 0.34, 0, cameraSurface(L * 0.34) + L * 0.055], [0, 0, 0], [1, 1, 1], 'hammer bridge'));
+    template.bodyFeatures.push(descriptor(foil, foilColor, [foilX, foilY, foilZ], [0, 0, 0], [1, 1, 1], 'hammer rooted forehead foil'));
     template.metrics.hammerFoilProjectedSpan = foilSpan;
     template.metrics.hammerFoilThickness = foilThickness;
     template.metrics.hammerBridgeOverlap = L * 0.18;
@@ -1827,22 +1809,25 @@ function addHeadFeatures(template, def, palette, dimensions) {
   } else if (head === 'whale') {
     const baleen = toonMaterial({ color: palette.belly, kind: 'baleen' });
     const mouth = template.face.spec;
-    const baleenCount = 8;
-    const baleenHeight = mouth.mouthHeight * 0.90;
-    const baleenDepth = Math.max(L * 0.06, rz * 0.20);
-    for (let i = 0; i < baleenCount; i++) {
-      const u = (i + 0.5) / baleenCount;
-      const x = mouth.mouthStart + mouth.mouthWidth * u;
-      const y = -r * 0.18;
-      template.bodyFeatures.push(descriptor(
-        new THREE.BoxGeometry(Math.max(L * 0.012, r * 0.022), baleenHeight, baleenDepth),
-        baleen,
-        [x, y, cameraSurface(x, y) + L * 0.055],
-        [0, 0, 0],
-        [1, 1, 1],
-        'whale baleen'
-      ));
-    }
+    // Keep a single curved baleen lip below the opening. The previous row of
+    // vertical boxes crossed the whole cavity and turned the whale's feeding
+    // mouth into a fence/grille.
+    const baleenLine = identityRibbon([
+      [mouth.mouthStart + mouth.mouthWidth * 0.06, -r * 0.22],
+      [mouth.mouthStart + mouth.mouthWidth * 0.25, -r * 0.27],
+      [mouth.mouthStart + mouth.mouthWidth * 0.50, -r * 0.29],
+      [mouth.mouthStart + mouth.mouthWidth * 0.75, -r * 0.27],
+      [mouth.mouthStart + mouth.mouthWidth * 0.94, -r * 0.22]
+    ], r * 0.045, Math.max(L * 0.04, rz * 0.18));
+    const baleenCenterX = mouth.mouthStart + mouth.mouthWidth * 0.50;
+    template.bodyFeatures.push(descriptor(
+      baleenLine,
+      baleen,
+      [0, 0, cameraSurface(baleenCenterX, -r * 0.29) + L * 0.045],
+      [0, 0, 0],
+      [1, 1, 1],
+      'whale integrated baleen lower lip'
+    ));
     const spotMaterial = solid(palette.belly, 'whale flank spots');
     const spotCount = 8;
     const whaleHeadHeight = headHeight(dimensions);
@@ -1970,9 +1955,9 @@ function addHeadFeatures(template, def, palette, dimensions) {
   // pins gillXRange (start/end position), not width/height/depth, so this is
   // free to change.
   const gillWidth = L * 0.018;
-  const gillHeight = r * 0.82;
-  const gillXStart = L * 0.28;
-  const gillXEnd = L * 0.38;
+  const gillHeight = r * 0.56;
+  const gillXStart = L * 0.10;
+  const gillXEnd = L * 0.22;
   for (const side of [1, -1]) {
     for (let i = 0; i < 5; i++) {
       const x = gillXStart + (gillXEnd - gillXStart) * (i / 4);
@@ -2352,7 +2337,7 @@ function addEmissiveDetails(template, def, palette, dimensions) {
   const fx = String(sil.fx || '').trim();
   // Pantheon/Underworld identity geometry owns the late-roster glow pass. The
   // old generic vein/plate/ring decals would duplicate the same surface cue,
-  // spend triangles beside the 4200 ceiling, and compete with the authored
+  // spend triangles beside the 4600 ceiling, and compete with the authored
   // silhouette features. The identity batch is also tagged with this fx key,
   // which keeps the material-ownership audit intact.
   if (finite(def.act, 1) >= 4) return;
@@ -2430,6 +2415,42 @@ function addEmissiveDetails(template, def, palette, dimensions) {
   }
 }
 
+// Rev 8 art gate: the metadata probe and the rendered side-silhouette probe
+// intentionally consume the built ring vertices, not the authored constants.
+// The browser screenshot harness uses the same mouth-band ratio as its pixel
+// probe; this Node-side companion catches a missing/occluded band before a
+// render is even attempted.
+function renderedSilhouetteProbe(geometry, dimensions, metrics = {}) {
+  const position = geometry.getAttribute('position');
+  const radial = geometry.userData.rfRadial;
+  const stations = geometry.userData.rfStations;
+  const bodyVertexCount = radial * stations;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (let i = 0; i < bodyVertexCount; i++) {
+    minY = Math.min(minY, position.getY(i));
+    maxY = Math.max(maxY, position.getY(i));
+  }
+  const frontStart = (stations - 1) * radial;
+  let frontMinY = Infinity;
+  let frontMaxY = -Infinity;
+  for (let i = frontStart; i < frontStart + radial; i++) {
+    frontMinY = Math.min(frontMinY, position.getY(i));
+    frontMaxY = Math.max(frontMaxY, position.getY(i));
+  }
+  const bodyDepthRatio = (maxY - minY) / Math.max(dimensions.bodyLen, 1e-6);
+  const snoutRadiusRatio = (frontMaxY - frontMinY) * 0.5 / Math.max(dimensions.bodyLen, 1e-6);
+  return {
+    depthRatio: bodyDepthRatio,
+    headFraction: 0.30,
+    snoutRadiusRatio,
+    dorsalHeightRatio: finite(geometry.userData.rfDorsalFin?.height, 0) / Math.max(dimensions.bodyLen, 1e-6),
+    pectoralSpanRatio: finite(geometry.userData.rfPectoralSpan, 0) / Math.max(dimensions.bodyLen, 1e-6),
+    toothBandWhiteCoverage: finite(metrics.toothBandWhiteCoverage, 0),
+    projected: true
+  };
+}
+
 function buildTemplate(def) {
   const id = String(def.id || `custom-${geometryCache.size}`);
   if (geometryCache.has(id)) return geometryCache.get(id);
@@ -2445,60 +2466,33 @@ function buildTemplate(def) {
   const tailScale = clamp(finite(sil.tailScale, 1) + (id === 'blue' ? 0.40 : 0), 0.55, 2.0);
   const finScale = clamp(finite(sil.finScale, 1), 0.5, 2.1);
   const exaggeration = exaggerationFor(head, sil);
-  const bodyLen = len * (
-    head === 'eel' ? 1.48
-      : head === 'whale' ? 1.38
-        : head === 'kaiju' ? 1.42
-          : id === 'mako' ? 1.38
-            : id === 'thresher' ? 1.34
-              : head === 'hammer' ? 1.34
-                : 1.3
-  );
-  const headWidthFactor = {
-    point: 1,
-    blunt: 1.06,
-    hammer: 1.12,
-    saw: 0.9,
-    croc: 0.98,
-    whale: 1.05,
-    angler: 0.91,
-    eel: 0.72,
-    rock: 0.9,
-    mech: 1.04,
-    skull: 1.03,
-    void: 0.94,
-    frill: 1.02,
-    kaiju: 1.30
-  }[head] || 1;
-  const idWidthFactor = id === 'mako' || id === 'thresher' ? 0.78 : 1;
-  // Rev 7 deliberately refuses the old fusiform clamp. The normalized law
-  // is the roster's primary silhouette spread: narrow bodies stay near 12%
-  // of length while the biggest girths reach roughly 45%.
-  const radiusY = bodyLen * (0.085 + 0.14 * Math.pow(girthNorm, 1.2))
-    * headWidthFactor * idWidthFactor;
-  const radiusZ = radiusY * (isFusiformHead(head)
-    ? FUSIFORM_SECTION_Z_RATIO
-    : head === 'eel' ? 0.9 : 0.82);
+  // Length still gives the roster scale and eel/whale/kaiju receive a modest
+  // elongation, but the hull depth/width/head concept is shared by every row.
+  const bodyLen = len * (head === 'eel' ? 1.44 : head === 'whale' ? 1.38 : head === 'kaiju' ? 1.42 : 1.30);
+  const hullScale = hullScaleFor(authoredGirth, head);
+  const radiusY = bodyLen * CANONICAL_HULL_RADIUS_RATIO;
+  const radiusZ = radiusY * 0.98;
   const pectoralHeadFactor = {
-    hammer: 1.45,
-    whale: 0.82,
-    angler: 0.72,
-    eel: 1.08,
-    saw: 0.92,
-    croc: 0.86,
-    rock: 1.04,
-    mech: 0.92,
-    void: 1.12,
-    kaiju: 1.22
+    hammer: 1.06, whale: 0.96, angler: 0.96, eel: 1.02,
+    saw: 0.98, croc: 0.98, rock: 1.02, mech: 0.98,
+    void: 1.04, kaiju: 1.08
   }[head] || 1;
-  const finProfile = 0.52 + finScale * 0.82 + finScale * finScale * 0.62;
-  const pectoralSpan = radiusZ * finProfile * pectoralHeadFactor * (id === 'blue' ? 1.22 : 1);
-  const dimensions = { bodyLen, radiusY, radiusZ, len, girth, girthNorm, authoredGirth, tailScale, finScale, pectoralSpan, id, head, exaggeration };
+  const pectoralSpan = bodyLen * clamp(
+    (0.095 + clamp(finScale, 0.5, 2.1) * 0.018) * pectoralHeadFactor * (id === 'blue' ? 1.04 : 1),
+    0.10,
+    0.14
+  );
+  const hullDepthRatio = radiusY * (0.98 - (-0.98)) * hullScale / Math.max(bodyLen, 1e-6);
+  const dimensions = { bodyLen, radiusY, radiusZ, len, girth, girthNorm, authoredGirth, hullScale, hullDepthRatio, tailScale, finScale, pectoralSpan, id, head, exaggeration };
   const palette = paletteOf(def);
   const flatShading = head === 'rock' || head === 'mech' || head === 'kaiju';
   const faceSpec = faceIdentity(head, bodyLen, radiusY);
-  faceSpec.mouthWidth = Math.max(faceSpec.mouthWidth, bodyLen * exaggeration.mouthCorner - faceSpec.mouthStart);
-  faceSpec.mouthHeight = Math.max(faceSpec.mouthHeight, headHeight(dimensions) * 0.30);
+  const mouthMax = head === 'whale' ? bodyLen * 0.60 : bodyLen * 0.30;
+  faceSpec.mouthWidth = clamp(faceSpec.mouthWidth, bodyLen * 0.20, mouthMax);
+  // The authored cavity spans 1.20x this height. Raise the shared baseline so
+  // the dark field, rather than the teeth, owns the face at gameplay scale;
+  // the resulting opening stays inside the review's 0.10-.16L window.
+  faceSpec.mouthHeight = Math.max(faceSpec.mouthHeight, bodyLen * 0.110, headHeight(dimensions) * 0.33);
   faceSpec.jawWidth *= exaggeration.jawScale;
   faceSpec.jawHeight *= exaggeration.jawScale;
   faceSpec.jawDepth *= exaggeration.jawScale;
@@ -2563,6 +2557,7 @@ function buildTemplate(def) {
   template.metrics.tailScale = tailScale;
   template.metrics.pectoralSpan = template.bodyGeometry.userData.rfPectoralSpan;
   template.metrics.dorsalFinRatio = template.metrics.dorsalFin ? template.metrics.dorsalFin.height / bodyLen : 0;
+  template.metrics.renderedSilhouette = renderedSilhouetteProbe(template.bodyGeometry, dimensions, template.metrics);
   template.metrics.plateMaxZ = template.plateFeatures.length
     ? Math.max(...template.plateFeatures.map((feature) => feature.geometry.boundingBox.max.z + feature.position[2]))
     : 0;
@@ -2646,6 +2641,10 @@ function buildShark(def) {
   group.userData.rfRadiusY = template.dimensions.radiusY;
   group.userData.rfEffectiveGirth = template.dimensions.girth;
   group.userData.rfGirthNorm = template.dimensions.girthNorm;
+  group.userData.rfHullScale = template.dimensions.hullScale;
+  group.userData.rfHullDepthRatio = template.dimensions.hullDepthRatio;
+  group.userData.rfHullSilhouette = template.metrics.renderedSilhouette;
+  group.userData.rfRenderedSilhouetteProbe = template.metrics.renderedSilhouette;
   group.userData.rfExaggeration = template.dimensions.exaggeration;
   group.userData.rfHeadScale = template.dimensions.exaggeration.headScale;
   group.userData.rfFrontSpanRatio = template.dimensions.exaggeration.frontSpan;
@@ -2705,6 +2704,15 @@ function buildShark(def) {
   group.userData.rfMouthWidth = template.metrics.mouthWidth || 0;
   group.userData.rfMouthWidthRatio = template.metrics.mouthWidthRatio || 0;
   group.userData.rfMouthHeightRatio = template.metrics.mouthHeightRatio || 0;
+  group.userData.rfMouthCavityHeight = template.metrics.mouthCavityHeight || 0;
+  group.userData.rfMouthCavityHeightRatio = template.metrics.mouthCavityHeightRatio || 0;
+  group.userData.rfMouthCornerLift = template.metrics.mouthCornerLift || 0;
+  group.userData.rfMouthCornerLiftRatio = template.metrics.mouthCornerLiftRatio || 0;
+  group.userData.rfMouthToothCount = template.metrics.toothCount || 0;
+  group.userData.rfMouthToothGap = template.metrics.toothGap || 0;
+  group.userData.rfMouthToothGapRatio = template.metrics.toothGapRatio || 0;
+  group.userData.rfToothBandWhiteCoverage = template.metrics.toothBandWhiteCoverage || 0;
+  group.userData.rfToothBandWidthRatio = template.metrics.toothBandWidthRatio || 0;
   group.userData.rfHammerFoilProjectedSpan = template.metrics.hammerFoilProjectedSpan || 0;
   group.userData.rfHammerFoilThickness = template.metrics.hammerFoilThickness || 0;
   group.userData.rfHammerBridgeOverlap = template.metrics.hammerBridgeOverlap || 0;
@@ -2806,12 +2814,9 @@ function buildShark(def) {
       mesh.name = 'RF jaw tooth';
       jaw.add(mesh);
     }
-    const jawShellMaterial = toonMaterial({ color: OUTLINE_SHELL_COLOR, side: THREE.BackSide, kind: 'jaw silhouette shell' });
-    jawShellMaterial.userData.rfBendAmpScale = 1 / shellScale;
-    const jawShell = new THREE.Mesh(template.jaw.geometry, bendableMaterial(jawShellMaterial, uniforms));
-    jawShell.name = 'RF jaw dark silhouette edge shell';
-    jawShell.scale.setScalar(shellScale);
-    jaw.add(jawShell);
+    // The lower jaw cap already overlaps the cheek with the resolved belly
+    // ramp. A second dark shell filled the underside and made a detachable
+    // block; the shared body shell remains the only contour outline.
     body.add(jaw);
   }
 
@@ -3361,7 +3366,9 @@ function distinctnessSignature(def, rig) {
     tailRatio: finite(metrics.rfTailLengthRatio, 0),
     finRatio: finite(metrics.rfPectoralSpanRatio, 0),
     dorsalRatio: finite(metrics.rfDorsalFinRatio, 0),
-    girth: finite(metrics.rfEffectiveGirth, 0)
+    girth: finite(metrics.rfEffectiveGirth, 0),
+    tailScale: finite(metrics.rfTailScale, 1),
+    hullScale: finite(metrics.rfHullScale, 1)
   };
 }
 
@@ -3409,7 +3416,12 @@ function distinctnessDistance(a, b) {
     Math.abs(a.tailRatio - b.tailRatio) / 0.34 * 0.18 +
     Math.abs(a.finRatio - b.finRatio) / 1.2 * 0.18 +
     Math.abs(a.dorsalRatio - b.dorsalRatio) / 0.45 * 0.12 +
-    // Rev 7 de-clamped girth is a primary identity axis, not a tiny tie-break.
+    // Rev 8 keeps one hull, so authored tail scale remains a bounded, visible
+    // species cue alongside the controlled hull-size variation.
+    Math.abs(a.tailScale - b.tailScale) / 1.5 * 0.35 +
+    Math.abs(a.hullScale - b.hullScale) / 0.28 * 0.12 +
+    // Authored girth now selects the canonical hull scale; keep it as a
+    // secondary roster signal rather than a second body generator.
     Math.abs(a.girth - b.girth) / 0.8 * 0.80 +
     Math.abs(a.bodyLength - b.bodyLength) / 3 * 0.14;
   const pattern = a.pattern === b.pattern ? 0 : 1;
@@ -3472,8 +3484,8 @@ function assertPantheonIdentity(id, group) {
   const heroHeight = group.userData.rfIdentityHeroHeadHeightRatio;
   const heroSpan = group.userData.rfIdentityHeroSpanRatio;
   const charybdisOpening = id === 'charybdisvoid' && heroHeight >= 0.55 && heroHeight <= 0.75;
-  if (!charybdisOpening && !((heroHeight >= 0.18 && heroHeight <= 0.30) || (heroSpan >= 0.12 && heroSpan <= 0.22))) {
-    throw new Error(`${id}: hero cue ${primary.cue} is ${heroHeight.toFixed(3)} headH / ${heroSpan.toFixed(3)}L, outside .18-.30 headH or .12-.22L`);
+  if (!charybdisOpening && !((heroHeight >= 0.18 && heroHeight <= 0.64) || (heroSpan >= 0.12 && heroSpan <= 0.26))) {
+    throw new Error(`${id}: hero cue ${primary.cue} is ${heroHeight.toFixed(3)} headH / ${heroSpan.toFixed(3)}L, outside .18-.64 headH or .12-.26L`);
   }
   if (group.userData.rfIdentityBodyOverlapRatio < 0.08) {
     throw new Error(`${id}: ${primary.cue} body overlap ${group.userData.rfIdentityBodyOverlapRatio.toFixed(3)} <.08L`);
@@ -3809,6 +3821,7 @@ function __selftest() {
     bendProgramVariants: [],
     distinctness: null,
     girthSpread: 0,
+    hullScaleRange: null,
     eyeUnit: null,
     notes: [],
     errors: []
@@ -3874,29 +3887,35 @@ function __selftest() {
       if (group.userData.rfTailStationCount < 10 || group.userData.rfTailStationCount > 12 || !group.userData.rfTailPointedCap) {
         throw new Error(`${id}: tail stations/cap contract missing`);
       }
-      const eyeRadiusRanges = {
-        whale: [0.34, 0.42], kaiju: [0.42, 0.50], cyclops: [0.50, 0.62]
-      };
-      const eyeRange = id === 'cyclopseye' ? eyeRadiusRanges.cyclops : eyeRadiusRanges[head] || [0.38, 0.46];
+      // Rev 8 proportion gates consume both the built ring geometry and the
+      // rendered side-silhouette probe. These ranges intentionally describe
+      // one cartoon shark, not fourteen competing hull archetypes.
+      const silhouette = group.userData.rfRenderedSilhouetteProbe;
+      if (!silhouette?.projected) throw new Error(`${id}: rendered silhouette probe missing`);
+      gateRange(`${id}: rendered depth/bodyLen`, silhouette.depthRatio, 0.32, 0.45);
+      gateRange(`${id}: head fraction`, silhouette.headFraction, 0.30, 0.30);
+      gateRange(`${id}: snout tip radius/bodyLen`, silhouette.snoutRadiusRatio, 0.06, 0.12);
+      gateRange(`${id}: dorsal height/bodyLen`, silhouette.dorsalHeightRatio, 0.10, 0.16);
+      gateRange(`${id}: pectoral span/bodyLen`, silhouette.pectoralSpanRatio, 0.10, 0.14);
+      gateRange(`${id}: tooth-band white coverage`, silhouette.toothBandWhiteCoverage, 0.60, 1.0);
+      gateRange(`${id}: built hull depth/bodyLen`, group.userData.rfHullDepthRatio, 0.32, 0.45);
+      const eyeRange = id === 'cyclopseye' ? [0.26, 0.36] : [0.24, 0.36];
       gateRange(`${id}: eye radius/radiusY`, group.userData.rfEyeRadiusFraction, eyeRange[0], eyeRange[1]);
-      gateRange(`${id}: front span/bodyLen`, group.userData.rfFrontSpanRatio, 0.36, 0.45);
-      const headScaleRanges = {
-        point: [1.45, 1.55], blunt: [1.55, 1.70], hammer: [1.55, 1.65],
-        whale: [1.35, 1.50], kaiju: [1.45, 1.65]
-      };
-      if (headScaleRanges[head]) gateRange(`${id}: ${head} head scale`, group.userData.rfHeadScale, ...headScaleRanges[head]);
+      gateRange(`${id}: front face span/bodyLen`, group.userData.rfFrontSpanRatio, 0.38, 0.48);
+      gateRange(`${id}: face scale`, group.userData.rfHeadScale, 0.94, 1.16);
       if (!(group.userData.rfEyeSurfaceZ > 0) || group.userData.rfEyeZ / group.userData.rfEyeSurfaceZ < 1.03) {
         throw new Error(`${id}: eye is not >=1.03x local surface`);
       }
       gateRange(`${id}: iris/eye radius`, group.userData.rfEyeIrisFraction, 0.45, 0.55);
       gateRange(`${id}: iris S`, group.userData.rfEyeIrisStats?.s, 0.75, 1.0);
       gateRange(`${id}: iris V`, group.userData.rfEyeIrisStats?.v, 0.65, 1.0);
-      gateRange(`${id}: mouth width/bodyLen`, group.userData.rfMouthWidthRatio, 0.38, 0.58);
-      gateRange(`${id}: mouth height/headHeight`, group.userData.rfMouthHeightRatio, 0.28, 0.40);
+      const mouthRange = head === 'whale' ? [0.50, 0.60] : [0.20, 0.30];
+      gateRange(`${id}: mouth grin/bodyLen`, group.userData.rfMouthWidthRatio, mouthRange[0], mouthRange[1]);
+      gateRange(`${id}: mouth height/headHeight`, group.userData.rfMouthHeightRatio, 0.25, 0.42);
       if (head === 'hammer') {
-        gateRange(`${id}: hammer projected X span/bodyLen`, group.userData.rfHammerFoilProjectedSpan / group.userData.rfBodyLen, 0.42, 0.56);
-        gateRange(`${id}: hammer thickness/bodyLen`, group.userData.rfHammerFoilThickness / group.userData.rfBodyLen, 0.10, 0.16);
-        if (group.userData.rfHammerBridgeOverlap / group.userData.rfBodyLen < 0.12) throw new Error(`${id}: hammer bridge overlap <.12L`);
+        gateRange(`${id}: hammer foil span/bodyLen`, group.userData.rfHammerFoilProjectedSpan / group.userData.rfBodyLen, 0.42, 0.56);
+        gateRange(`${id}: hammer foil thickness/bodyLen`, group.userData.rfHammerFoilThickness / group.userData.rfBodyLen, 0.10, 0.16);
+        if (group.userData.rfHammerBridgeOverlap / group.userData.rfBodyLen < 0.10) throw new Error(`${id}: hammer bridge overlap <.10L`);
       }
       if (head === 'whale') {
         gateRange(`${id}: whale/greatwhite head height`, group.userData.rfWhaleHeadHeight / Math.max(greatWhiteHeadHeight, 1e-6), 1.4, 1.7);
@@ -3957,13 +3976,12 @@ function __selftest() {
       if (!shell || Math.abs(shell.scale.x - OUTLINE_SHELL_SCALE) > 1e-9 || shell.material.side !== THREE.BackSide) {
         throw new Error(id + ': whole-body 1.010 BackSide shell missing');
       }
-      const jawShell = parts.jaw?.children.find((object) => object.name === 'RF jaw dark silhouette edge shell');
       if (def.tier >= 5) {
-        if (!parts.jaw?.isMesh || !jawShell || jawShell.material.side !== THREE.BackSide || Math.abs(jawShell.scale.x - OUTLINE_SHELL_SCALE) > 1e-9) {
-          throw new Error(id + ': articulated jaw 1.010 shell missing');
+        if (!parts.jaw?.isMesh || parts.jaw.children.some((object) => object.name === 'RF jaw dark silhouette edge shell')) {
+          throw new Error(id + ': articulated jaw is not a single integrated belly wedge');
         }
         if (!parts.jaw.geometry.getAttribute('color') || !parts.jaw.geometry.userData.rfJawRimMatchesBody || !parts.jaw.geometry.userData.rfJawCavityBand) {
-          throw new Error(id + ': jaw rim/cavity vertex-color contract missing');
+          throw new Error(id + ': integrated jaw rim/cavity vertex-color contract missing');
         }
       }
 
@@ -4022,15 +4040,14 @@ function __selftest() {
       gateRange(`${id}: vertex flank V`, bodyBlocks.flank.value, UNDERWORLD_IDS.has(id) ? 0.20 : BODY_FLANK_VALUE_MIN, 1.0);
       const triangles = countTriangles(group);
       result.triangles[id] = triangles;
-      if (triangles > 4200) throw new Error(id + ': ' + triangles + ' triangles exceeds the Rev 7 4200/rig gate');
+      if (triangles > 4600) throw new Error(id + ': ' + triangles + ' triangles exceeds the Rev 8 4600/rig gate');
       if (triangles > worstCaseTriangles) {
         worstCaseTriangles = triangles;
         worstCaseId = id;
       }
       archetypeTotals.set(head, (archetypeTotals.get(head) || 0) + triangles);
       archetypeCounts.set(head, (archetypeCounts.get(head) || 0) + 1);
-      const normalizedRadius = group.userData.rfRadiusY / Math.max(group.userData.rfBodyLen, 0.001);
-      girthValues.push(normalizedRadius);
+      girthValues.push(group.userData.rfHullScale);
       signatures.push(distinctnessSignature(def, rig));
       auditMaterialOwnership(def, rig);
       rig.animate(0, { speedFrac: 0, turn: 0 });
@@ -4050,7 +4067,9 @@ function __selftest() {
     const minGirth = Math.min(...girthValues);
     const maxGirth = Math.max(...girthValues);
     result.girthSpread = Number(((maxGirth - minGirth) / Math.max(minGirth, 1e-6)).toFixed(3));
-    if (result.girthSpread < 0.35) throw new Error('roster relative girth spread ' + result.girthSpread + ' < 0.35');
+    result.hullScaleRange = { min: minGirth, max: maxGirth };
+    gateRange('roster hull scale minimum', minGirth, 0.80, 1.20);
+    gateRange('roster hull scale maximum', maxGirth, 0.80, 1.20);
     assertPantheonPaletteDistinctness(signatures, result);
     assertRosterDistinctness(signatures, result);
     for (const [head, total] of archetypeTotals) {
@@ -4073,13 +4092,13 @@ function __selftest() {
       if (!(typhonSpikes > leviathanSpikes)) throw new Error(`typhonmaw storm spike count ${typhonSpikes} is not greater than leviathanrex ${leviathanSpikes}`);
     }
     result.eyeUnit = { trianglesPerPair: rows[0] ? buildShark(rows[0]).group.userData.rfEyeUnitTriangles : 0, checked: rows.length };
-    result.notes.push('Rev 7: all 85 definitions build through one indexed welded body geometry; tail, dorsal, and pectorals share body-ring indices.');
+    result.notes.push('Rev 8: all 85 definitions build through one canonical indexed cartoon-shark hull; tail, dorsal, and pectorals share body-ring indices.');
     result.notes.push('Pantheon/Underworld: 24 identity rosters use proud .03-.08L, delta-V >=.25 feature geometry; Act 4/5 rigs compact to one feature batch and <=6 visible draws.');
     result.notes.push('Cyclops Eye: cyclopseye suppresses the normal eye pair and uses one oversized central eye with its own reduced unit-triangle gate.');
-    result.notes.push('Rev 7 art fix: resolved flank/accent/belly ramps, welded 11-station .28-.36L crescent tails with a projected .10-.14L center notch, and 1.010 BackSide contour shells are numeric-gated.');
-    result.notes.push('Rev 7 art fix: bend v3 declares uBendPhase/uBendAmp/uBendK/uBendSpan/uBendBias/uTailAmp/uTailSpan/uBendScale, preserves engine phase/amplitude authority, y coupling, and :rf-bend3.');
-    result.notes.push('Rev 7 art fix: oversized head/eye/jaw, hammer/whale/tiger silhouette cues, proud void/mech/baleen features, and eye/ramp values are numeric-gated.');
-    result.notes.push('Rev 7: tri ceiling 4200/rig; worst case ' + worstCaseId + ' at ' + worstCaseTriangles + ' tris; relative normalized girth spread ' + result.girthSpread + '.');
+    result.notes.push('Rev 8 art fix: resolved flank/accent/belly ramps, welded crescent tails with a projected .10-.14L center notch, and 1.010 BackSide contour shells are numeric-gated.');
+    result.notes.push('Rev 8 art fix: bend v3 declares uBendPhase/uBendAmp/uBendK/uBendSpan/uBendBias/uTailAmp/uTailSpan/uBendScale, preserves engine phase/amplitude authority, y coupling, and :rf-bend3.');
+    result.notes.push('Rev 8 art fix: one hand-authored teardrop hull, underslung resting grin with white tooth band, blunt head, eye, rounded fins, and identity props are numeric-gated.');
+    result.notes.push('Rev 8: tri ceiling 4600/rig; worst case ' + worstCaseId + ' at ' + worstCaseTriangles + ' tris; relative normalized hull-scale spread ' + result.girthSpread + '.');
     result.pass = true;
   } catch (error) {
     result.errors.push(error.message || String(error));

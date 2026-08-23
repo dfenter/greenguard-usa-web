@@ -1056,3 +1056,56 @@ meta.js + tools/gen_data + data.js | S4 ui3d.js | S5 fx3d.js | L1 shark3d.js |
 L2 fish3d.js (+ world3d bend region via patch file). index.html/sw.js/
 selftest runner: orchestrator. game.js/world.js/juice.js/index2d.html are DEAD
 — touching them is an automatic review REJECT.
+
+## Rev 8 — CARTOON SHARK RESTART (2026-08-23, owner rejection: "looks like a racecar or boat, start over, cartoon shark"; BINDING)
+
+### 8.1 One canonical cartoon body (replaces the per-head profileAt hull cascade)
+The owner's bar is the HSE reference: EVERY shark shares ONE chunky cartoon
+body plan; species identity comes from color, proportions-within-limits, and
+props — never from a different hull concept. Canonical proportions (fractions
+of body length L, measured off the reference images; body = side profile):
+- Body depth (max, at ~0.40L from nose): 0.32-0.40L. Fat teardrop; max depth
+  forward of center, full rounded belly. NOT a slender dart (old girth read
+  ~0.18-0.24 = the "boat").
+- Head: blunt and rounded, snout tip radius >= 0.06L (no pointed prow). The
+  front 0.30L is head: forehead dome curves down into the mouth.
+- Mouth: underslung grin cut spanning 0.20-0.30L, corner up-curved, ALWAYS
+  open enough to show a white tooth band (teeth visible at rest, not only
+  when biting). Lower jaw slab visibly lighter/belly-colored.
+- Eye: on the head side, diameter 0.10-0.14L (0.30-0.40 of head height),
+  white sclera + dark pupil + catchlight, placed high, slight forward tilt.
+- Dorsal: rounded-triangle, height <= 0.16L, tip swept back, base 0.14-0.18L
+  — a fin, not a sail.
+- Pectorals: small and cute, 0.10-0.14L, angled down-back.
+- Tail: crescent, span 0.22-0.30L, joined through a THICK peduncle (depth
+  >= 0.10L at the join — no wasp-waist).
+- Cross-sections: round-to-oval everywhere (radiusZ >= 0.80*radiusY through
+  the mid-body); smooth normals; no visible hard chines along the flank
+  (chines = boat read).
+- Per-def variation limits: depth/length/head scale within +-20% of
+  canonical; heavy rows (whale/kaiju) may go to depth 0.45L. Head archetype
+  ids from data.js now select FACE/prop presets (jaw width, brow, horns,
+  hammer foil, etc.) layered on the canonical hull — never a hull swap.
+- All Rev 7 welded/winding/bend/:rf-bend3/outline/ramp laws stay in force.
+  Identity props from the Pantheon rounds are re-mounted on the new hull and
+  must keep their contour-level reads.
+- Gate: an automated proportion probe measures rendered silhouette (depth/L,
+  head fraction, snout radius, dorsal height, tooth-band visibility >= 60% of
+  mouth span white pixels) on every def; art3d selftest enforces the ranges.
+
+### 8.2 Controls — pure pursuit, nose leads (replaces 7.1 head-drag hybrid)
+"Where your finger points should lead where the head goes."
+- While touching: the NOSE point (snout tip, not body center) continuously
+  seeks the finger's world point. Heading turns toward the finger at
+  turnRate >= 14 rad/s (effectively immediate but continuous — no snap
+  flicker, no recenter, no dead-zone larger than 0.5*noseR).
+- Speed: full cruise whenever the finger is > 60 CSS px from the nose;
+  smooth ramp inside that. The shark ARRIVES at the finger and rests nose-at
+  -finger (gentle orbit damp, no jitter), it never overshoots and circles.
+- The finger is ALWAYS the target while down — dragging sweeps the shark
+  along the drag path head-first. Release: short glide, then idle drift.
+- Boost second finger, double-tap superpower, keyboard = virtual finger:
+  unchanged. Zero allocations per step.
+- Gate: scripted probe drags a path (circle + zigzag); assert nose tracks
+  within 90 CSS px of the finger after 300ms settle on every segment and
+  heading error < 25deg while moving.

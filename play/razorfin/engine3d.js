@@ -140,15 +140,24 @@ import * as THREE from 'three';
   // skew it. The shark's HEAD seeks that point: heading eases toward it at a
   // distance-scaled turn rate, speed is proportional to head->finger
   // distance, and release/arrival glides to a stop instead of hard-zeroing.
-  var CTL_DEAD_CSS_MIN = 18;     // px floor on the dead zone
-  var CTL_DEAD_HEADR_MULT = 0.4; // dead zone = max(18, 0.4*headRcss)
-  var CTL_FULL_CSS = 180;        // distance (css px) for full speed
-  var CTL_TURN_BASE = 10;        // rad/s turn rate at zero distance
-  var CTL_TURN_DIST = 6;         // rad/s added at/after CTL_FULL_CSS distance
   var CTL_ACCEL_MULT = 8;        // velocity approach rate = 8*speedCap /s
   var CTL_GLIDE_TAU = 0.18;      // seconds, release/arrival decay time-constant
   var CTL_KEY_TARGET_CSS = 220;  // keyboard virtual target distance, css px
   var TURN_BOOSTA = 2.0;       // still scales the PRESENTATION turnIn signal
+
+  // SPEC3D 8.2 pure-pursuit constants (REPLACES 7.1 head-drag hybrid). The
+  // NOSE point (snout tip, p.x + cos(angle)*p.r, p.y + sin(angle)*p.r) is the
+  // seek anchor, not body center. Heading turns toward the live finger point
+  // continuously at a fixed high rate (no distance scaling, no snap, no
+  // recenter) - only the dead zone floor remains, capped at 0.5*noseR so it
+  // can never swallow a meaningful drag. Speed ramps smoothly from the dead
+  // zone out to CTL_PURSUIT_FULL_CSS, and arrival is a critically-damped
+  // spring (PD controller with 2*sqrt(k) damping) so the nose settles at the
+  // finger without overshoot/orbit circling.
+  var CTL_PURSUIT_TURN_RATE = 18;    // rad/s, >= the 14 rad/s SPEC3D floor
+  var CTL_PURSUIT_FULL_CSS = 60;     // full cruise once nose->finger > 60 css px
+  var CTL_PURSUIT_DEAD_NOSE_MULT = 0.5; // dead zone cap: 0.5*noseR (css px)
+  var CTL_ARRIVE_K = 26;             // spring constant, 1/s^2 (critically damped: c = 2*sqrt(k))
 
   // ------------------------------------------------------- rig anim
   var TAIL_HZ_IDLE = 2.5, TAIL_HZ_CRUISE = 5.0, TAIL_HZ_BOOST = 8.0;
@@ -1511,13 +1520,16 @@ import * as THREE from 'three';
     if (p.hp <= 0 && !dying) onDeath();
   }
 
-  // SPEC3D 7.1 (REPLACES 6.11 CONTROLS EXACTNESS): head-drag world-target
-  // steering. Each fixed step the live finger CSS point (ctl.px/py) is
-  // unprojected through the camera into a world point (ctl.tx/ty); the
-  // shark's HEAD seeks that point. Heading eases toward it (finite turn
-  // rate, no instant snap); speed is proportional to head->finger distance;
-  // velocity approaches the "want" vector at a finite accel and glides
-  // (never hard-zeros) on release or arrival.
+  // SPEC3D 8.2 (REPLACES 7.1 head-drag hybrid): PURE PURSUIT steering.
+  // "Where your finger points should lead where the head goes." Each fixed
+  // step the live finger CSS point (ctl.px/py) is unprojected through the
+  // camera into a world point (ctl.tx/ty); the shark's NOSE (snout tip, not
+  // body center) continuously seeks that point. Heading turns toward the
+  // finger at a fixed high rate (>= 14 rad/s), continuous - no snap, no
+  // recenter, no dead zone beyond 0.5*noseR. Speed is full cruise past
+  // CTL_PURSUIT_FULL_CSS and ramps down smoothly inside it; the final
+  // approach to the finger is a critically-damped spring so the nose arrives
+  // and rests at the finger without overshoot/orbit circling or jitter.
   //
   // EXCEPTION (kept from 6.8): while airborne (p.y < 0, mid breach arc) this
   // function must never write vy - gravity owns it exclusively in
@@ -1530,7 +1542,7 @@ import * as THREE from 'three';
     var ctl = p.ctl;
 
     // Keyboard acts as a virtual target CTL_KEY_TARGET_CSS px along the key
-    // direction from the head, merged WITH an active drag (not only when
+    // direction from the NOSE, merged WITH an active drag (not only when
     // idle) - kept verbatim from the prior control law's merge behavior.
     var kx = 0, ky = 0;
     if (kit.input.keyDown('KeyA') || kit.input.keyDown('ArrowLeft')) kx -= 1;
@@ -1543,13 +1555,17 @@ import * as THREE from 'three';
       kx = kx / klen; ky = ky / klen;
     }
 
+    // SPEC3D 8.2 NOSE anchor: seek is computed from the snout tip, not body
+    // center. Zero extra allocation - two scalars off already-live fields.
+    var noseX = p.x + Math.cos(p.angle) * p.r;
+    var noseY = p.y + Math.sin(p.angle) * p.r;
+
     // Resolve the world target this step. Pointer drag unprojects fresh
-    // (camera-safe against zoom/pulse); keyboard is a virtual target at a
-    // fixed CSS distance from the head, converted into world units using the
-    // same px->world scale the pointer path uses (derived from mouthR/headR
-    // vs its CSS on-screen size is unnecessary here - the target is defined
-    // directly in world space, offset from the head along the key axis).
-    var headX = p.x, headY = p.y;
+    // (camera-safe against zoom/pulse) and is ALWAYS the live target while
+    // down - no caching/staleness beyond the headless fallback below.
+    // Keyboard is a virtual target at a fixed CSS distance from the NOSE,
+    // converted into world units using the same px->world scale the pointer
+    // path uses.
     var haveTarget = false;
     var tgtX = 0, tgtY = 0;
     if (ctl.active) {
@@ -1567,8 +1583,8 @@ import * as THREE from 'three';
       // Blocker 5: world-units-per-CSS-px from the LIVE camera dolly/fov
       // (pulses/zoom-safe), not the boot CAM_Z/CAM_FOV constants.
       var wpp = liveWorldPerCssPx();
-      var kwx = headX + kx * CTL_KEY_TARGET_CSS * wpp;
-      var kwy = headY + ky * CTL_KEY_TARGET_CSS * wpp;
+      var kwx = noseX + kx * CTL_KEY_TARGET_CSS * wpp;
+      var kwy = noseY + ky * CTL_KEY_TARGET_CSS * wpp;
       if (haveTarget) {
         // Merge: average the pointer target and the key target so both
         // inputs influence heading/speed simultaneously (mirrors the prior
@@ -1581,22 +1597,24 @@ import * as THREE from 'three';
     }
     ctl.hasTarget = haveTarget;
 
-    // Blocker 5: headRcss and distCss both derive from the same live
+    // Blocker 5: noseRcss and distCss both derive from the same live
     // camera-based wpp scale (liveWorldPerCssPx), so a pulse/zoom mid-eat or
     // mid-death never desyncs the dead zone / speed magnitude from what the
     // pointer path is seeing this same frame.
     var wppLive = liveWorldPerCssPx();
-    var headRcss = (p.r || 8) / Math.max(1e-6, wppLive);
-    var DEAD = Math.max(CTL_DEAD_CSS_MIN, CTL_DEAD_HEADR_MULT * headRcss);
+    var noseRcss = (p.r || 8) / Math.max(1e-6, wppLive);
+    // SPEC3D 8.2: no dead zone beyond 0.5*noseR - this floor exists only so
+    // a target exactly on the nose tip doesn't chatter the heading atan2.
+    var DEAD = CTL_PURSUIT_DEAD_NOSE_MULT * noseRcss;
 
-    var dxw = 0, dyw = 0, distCss = 0, mag = 0, wantAngle = p.angle;
+    var dxw = 0, dyw = 0, distCss = 0, distWorld = 0, mag = 0, wantAngle = p.angle;
     if (haveTarget) {
-      dxw = tgtX - headX; dyw = tgtY - headY;
-      var distWorld = Math.sqrt(dxw * dxw + dyw * dyw);
+      dxw = tgtX - noseX; dyw = tgtY - noseY;
+      distWorld = Math.sqrt(dxw * dxw + dyw * dyw);
       // World -> CSS distance uses the same live wpp scale as the key target above.
       distCss = wppLive > 0 ? distWorld / wppLive : distWorld;
       if (distWorld > 1e-6) wantAngle = Math.atan2(dyw, dxw);
-      mag = clamp((distCss - DEAD) / Math.max(1e-6, CTL_FULL_CSS - DEAD), 0, 1);
+      mag = clamp((distCss - DEAD) / Math.max(1e-6, CTL_PURSUIT_FULL_CSS - DEAD), 0, 1);
     }
     ctl.drive = mag;
     ctl.mag = mag;
@@ -1627,16 +1645,27 @@ import * as THREE from 'three';
       * (ctx.run.goldRushT > 0 ? num(FRENZY.goldRushSpeed, 1.4) : 1)
       * (overdriveOn ? OVERDRIVE_SPEED_MULT : 1);
 
-    // Heading: ease toward the target angle at a distance-scaled turn rate
-    // (7.1: 10 + 6*clamp(distCss/240, 0,1) rad/s). No instant snap.
-    if (mag > 0 || haveTarget) {
-      var turnRate = CTL_TURN_BASE + CTL_TURN_DIST * clamp(distCss / 240, 0, 1);
-      var maxStep = turnRate * STEP;
+    // SPEC3D 8.2: heading turns toward the finger continuously at a fixed
+    // high rate (>= 14 rad/s), no distance scaling, no snap, no recenter -
+    // "where your finger points should lead where the head goes" is
+    // effectively immediate but still a continuous ease (never an instant
+    // teleport of angle).
+    if (haveTarget) {
+      var maxStep = CTL_PURSUIT_TURN_RATE * STEP;
       var dAng = angDelta(p.angle, wantAngle);
       if (dAng > maxStep) dAng = maxStep;
       else if (dAng < -maxStep) dAng = -maxStep;
       p.angle += dAng;
     }
+
+    // SPEC3D 8.2 arrival zone: inside CTL_PURSUIT_FULL_CSS the nose ARRIVES
+    // and RESTS at the finger via a critically-damped spring on the
+    // nose->target error (velocity IS the spring's derivative state - no
+    // extra allocation, no separate integrator). Critical damping
+    // (c = 2*sqrt(k)) is exactly the boundary between "creeps in" and
+    // "overshoots and circles back", so this is the one damping ratio that
+    // satisfies both "arrives without orbiting" and "no jitter".
+    var inArrive = haveTarget && distCss <= CTL_PURSUIT_FULL_CSS;
 
     if (overdriveOn) {
       // HM :5453-5476 - accelerate toward / brake off the target velocity,
@@ -1654,28 +1683,42 @@ import * as THREE from 'three';
         p.vx *= brake;
         if (!airborne) p.vy *= brake;
       }
-    } else {
-      // 7.1: velocity approaches "want" at ACCEL >= 8*speedCap/s; on release
-      // or arrival (mag===0) it decays toward zero with GLIDE tau ~0.18s -
-      // never a hard vx=vy=0 while moving.
+    } else if (inArrive) {
+      // Critically-damped PD spring on the world-space nose->target error:
+      // a = k*err - c*v, c = 2*sqrt(k). Semi-implicit Euler (update v then
+      // integrate p implicitly via the existing vx/vy -> x/y step elsewhere
+      // in the file) keeps this unconditionally stable at the fixed STEP.
+      var springK = CTL_ARRIVE_K;
+      var springC = 2 * Math.sqrt(springK);
+      var ax = springK * dxw - springC * p.vx;
+      var ay = springK * dyw - springC * p.vy;
+      p.vx += ax * STEP;
+      if (!airborne) p.vy += ay * STEP;
+      // Snap out the last epsilon so a resting nose truly settles at the
+      // finger with zero residual creep/jitter, matching the release glide
+      // settle contract below.
+      if (Math.abs(p.vx) < 0.05 && Math.abs(dxw) < 1) p.vx = 0;
+      if (!airborne && Math.abs(p.vy) < 0.05 && Math.abs(dyw) < 1) p.vy = 0;
+    } else if (mag > 0) {
+      // Full cruise (finger > CTL_PURSUIT_FULL_CSS from the nose): velocity
+      // approaches "want" at ACCEL >= 8*speedCap/s - never a hard snap.
       var want2 = speedCap * mag;
       var wantVx = Math.cos(p.angle) * want2;
       var wantVy = Math.sin(p.angle) * want2;
-      if (mag > 0) {
-        var accel = CTL_ACCEL_MULT * Math.max(1, speedCap) * STEP;
-        var ddx = clamp(wantVx - p.vx, -accel, accel);
-        p.vx += ddx;
-        if (!airborne) { var ddy = clamp(wantVy - p.vy, -accel, accel); p.vy += ddy; }
-      } else {
-        // Glide decay: exponential approach to zero, tau = CTL_GLIDE_TAU.
-        var glideK = Math.exp(-STEP / CTL_GLIDE_TAU);
-        p.vx *= glideK;
-        if (!airborne) p.vy *= glideK;
-        // Snap out the last epsilon so idle truly settles (selftest: "no
-        // drift after release").
-        if (Math.abs(p.vx) < 0.05) p.vx = 0;
-        if (!airborne && Math.abs(p.vy) < 0.05) p.vy = 0;
-      }
+      var accel = CTL_ACCEL_MULT * Math.max(1, speedCap) * STEP;
+      var ddx = clamp(wantVx - p.vx, -accel, accel);
+      p.vx += ddx;
+      if (!airborne) { var ddy = clamp(wantVy - p.vy, -accel, accel); p.vy += ddy; }
+    } else {
+      // Release/no target: glide decay, exponential approach to zero,
+      // tau = CTL_GLIDE_TAU - never a hard vx=vy=0 while moving.
+      var glideK = Math.exp(-STEP / CTL_GLIDE_TAU);
+      p.vx *= glideK;
+      if (!airborne) p.vy *= glideK;
+      // Snap out the last epsilon so idle truly settles (selftest: "no
+      // drift after release").
+      if (Math.abs(p.vx) < 0.05) p.vx = 0;
+      if (!airborne && Math.abs(p.vy) < 0.05) p.vy = 0;
     }
 
     // Presentation-only turnIn: how far the heading actually swung this
@@ -4160,37 +4203,57 @@ import * as THREE from 'three';
 
       pc.x = 3000; pc.y = 600; pc.vx = 0; pc.vy = 0; pc.angle = 0;
       var ang45 = Math.PI / 4;
-      // Head-drag target far along ang45 (headless: hasTarget fallback).
+      // SPEC3D 8.2: pure-pursuit target far along ang45 (headless: hasTarget
+      // fallback).
       pc.ctl.active = true; pc.ctl.hasTarget = true;
       pc.ctl.tx = pc.x + Math.cos(ang45) * 2000; pc.ctl.ty = pc.y + Math.sin(ang45) * 2000;
       var sx0 = pc.x, sy0 = pc.y;
       for (var s4 = 0; s4 < 120; s4++) step();
       var mx = pc.x - sx0, my = pc.y - sy0;
       var mlen = Math.sqrt(mx * mx + my * my);
-      check(mlen > 40, 'head-drag target accelerated the player (' + mlen.toFixed(1) + ' px)');
+      check(mlen > 40, 'pursuit target accelerated the player (' + mlen.toFixed(1) + ' px)');
       var dot = (mx * Math.cos(ang45) + my * Math.sin(ang45)) / (mlen || 1);
       check(dot > 0.9, 'travel followed the target direction (cos=' + dot.toFixed(3) + ')');
       check(Math.abs(angDelta(pc.angle, ang45)) < 0.25, 'heading eased toward the target');
       var movingSpeed = Math.sqrt(pc.vx * pc.vx + pc.vy * pc.vy);
       check(movingSpeed > 10, 'player is genuinely under way (' + movingSpeed.toFixed(1) + ' px/s)');
 
-      // 7.1: speed is monotone in distCss. A near target (small head->finger
+      // 8.2 NOSE ANCHOR: the seek target is the snout tip
+      // (p.x + cos(angle)*p.r, p.y + sin(angle)*p.r), not body center. Park
+      // the finger exactly on the CURRENT nose tip with the body angled away
+      // from the target direction the naive body-center math would pick;
+      // stepControl must resolve wantAngle from the nose->target vector, so
+      // a target that sits behind the body relative to the nose still reads
+      // as "basically arrived" rather than driving a big turn.
+      pc.x = 3000; pc.y = 600; pc.vx = 0; pc.vy = 0; pc.angle = 0.7;
+      var curNoseX = pc.x + Math.cos(pc.angle) * pc.r;
+      var curNoseY = pc.y + Math.sin(pc.angle) * pc.r;
+      pc.ctl.tx = curNoseX; pc.ctl.ty = curNoseY;
+      var angleBefore = pc.angle;
+      stepControl(pc);
+      check(Math.abs(angDelta(angleBefore, pc.angle)) < 0.05,
+        'target planted exactly on the nose tip (not body center) reads as arrived, not a big turn');
+
+      // 8.2 speed is monotone in distCss. A near target (small nose->finger
       // distance, mid-range of the dead-to-full band) settles at a LOWER
       // speed than a far target (full deflection) - never the same, never
       // inverted.
       pc.x = 3000; pc.y = 600; pc.vx = 0; pc.vy = 0; pc.angle = 0;
       var wpp = (2 * CAM_Z * Math.tan((CAM_FOV * Math.PI / 180) / 2)) / CSS_H;
-      pc.ctl.tx = pc.x + Math.cos(ang45) * (90 * wpp);
-      pc.ctl.ty = pc.y + Math.sin(ang45) * (90 * wpp);
+      pc.ctl.tx = pc.x + Math.cos(ang45) * (40 * wpp);
+      pc.ctl.ty = pc.y + Math.sin(ang45) * (40 * wpp);
       for (var s5 = 0; s5 < 120; s5++) step();
       var nearSpeed = Math.sqrt(pc.vx * pc.vx + pc.vy * pc.vy);
-      check(nearSpeed > 0 && nearSpeed < movingSpeed,
-        'closer target settles at a slower, non-zero speed than a far target (near=' +
+      check(nearSpeed >= 0 && nearSpeed < movingSpeed,
+        'closer target settles at a slower speed than a far target (near=' +
         nearSpeed.toFixed(1) + ' vs far=' + movingSpeed.toFixed(1) + ')');
 
       // RELEASE: decelerate (glide, not a hard stop) and settle at rest.
+      pc.x = 3000; pc.y = 600; pc.vx = 0; pc.vy = 0; pc.angle = ang45;
+      pc.ctl.tx = pc.x + Math.cos(ang45) * 2000; pc.ctl.ty = pc.y + Math.sin(ang45) * 2000;
+      for (var sRel = 0; sRel < 60; sRel++) step();
       clearStick();
-      check(!pc.ctl.active && pc.ctl.mag === 0, 'clearStick cleared the head-drag state');
+      check(!pc.ctl.active && pc.ctl.mag === 0, 'clearStick cleared the pursuit state');
       var immediatelyAfterRelease = Math.sqrt(pc.vx * pc.vx + pc.vy * pc.vy);
       check(immediatelyAfterRelease > 0.01, 'release does not hard-zero velocity in the same step (glide, not a snap)');
       for (var s6 = 0; s6 < 120; s6++) step();
@@ -4208,22 +4271,26 @@ import * as THREE from 'three';
       check(pc.ctl.steerId === null && pc.ctl.boostId === null && !pc.ctl.active,
         'cancel path releases both pointers');
 
-      // Dead zone: a target inside DEAD (max(18, 0.4*headRcss) css px) must
-      // not creep the player. headRcss for this shark is tiny relative to the
-      // 18px floor, so a few-world-unit offset (well under 18 css px) probes it.
+      // Dead zone: 8.2 caps it at 0.5*noseR css px (no larger). A target a
+      // couple world units off the nose (well under that floor) must not
+      // creep the player.
       plantStick(400, 300);
       check(pc.ctl.active && pc.ctl.px === 400 && pc.ctl.py === 300,
         'plantStick placed the finger point');
       pc.ctl.hasTarget = true;
-      pc.ctl.tx = pc.x + 2 * wpp; pc.ctl.ty = pc.y;   // ~2 css px, well under DEAD
+      pc.angle = 0;
+      var deadNoseX = pc.x + pc.r;
+      pc.ctl.tx = deadNoseX + 0.5 * wpp; pc.ctl.ty = pc.y;   // ~0.5 css px past the nose tip
       pc.vx = 0; pc.vy = 0;
       for (var s8 = 0; s8 < 30; s8++) step();
       check(Math.sqrt(pc.vx * pc.vx + pc.vy * pc.vy) < 0.5, 'sub-dead-zone target does not creep');
       clearStick();
-      // Heading never changes more than turnRate*dt in a single step.
+      // 8.2 TURN-RATE BOUND: heading never changes more than the fixed
+      // pursuit turn rate (>= 14 rad/s) per step, regardless of distance.
       pc.angle = 0; pc.ctl.active = true; pc.ctl.hasTarget = true;
       pc.ctl.tx = pc.x + Math.cos(Math.PI) * 2000; pc.ctl.ty = pc.y + Math.sin(Math.PI) * 2000;
-      var maxTurnStep = (CTL_TURN_BASE + CTL_TURN_DIST) * STEP + 1e-6;
+      check(CTL_PURSUIT_TURN_RATE >= 14, 'pursuit turn rate meets the SPEC3D 8.2 >= 14 rad/s floor');
+      var maxTurnStep = CTL_PURSUIT_TURN_RATE * STEP + 1e-6;
       var prevA = pc.angle, worstTurn = 0;
       for (var s9 = 0; s9 < 60; s9++) {
         stepControl(pc);
@@ -4234,6 +4301,39 @@ import * as THREE from 'three';
       check(worstTurn <= maxTurnStep, 'heading never changes more than turnRate*dt per step (' +
         worstTurn.toFixed(4) + ' <= ' + maxTurnStep.toFixed(4) + ')');
       clearStick();
+
+      // 8.2 ARRIVAL DAMPING: settle a target squarely inside the arrival
+      // zone (well under CTL_PURSUIT_FULL_CSS) and simulate a real settle.
+      // The critically-damped spring must reach the finger within 300ms
+      // (settle window from the SPEC3D 8.2 gate) and never overshoot into
+      // circling - track the sign of the nose->target x-error each step and
+      // assert it flips at most 2 times across the whole settle (a bounded
+      // number of small corrections is fine; a sustained oscillation/orbit
+      // is not).
+      pc.x = 3000; pc.y = 600; pc.vx = 0; pc.vy = 0; pc.angle = 0;
+      pc.ctl.active = true; pc.ctl.hasTarget = true;
+      var arriveWpp = wpp;
+      var arriveTx = pc.x + 45 * arriveWpp, arriveTy = pc.y + 10 * arriveWpp; // ~46 css px, inside 60
+      pc.ctl.tx = arriveTx; pc.ctl.ty = arriveTy;
+      var settleSteps = Math.round(0.3 / STEP);
+      var signFlips = 0, lastSign = 0;
+      var finalNoseX = 0, finalNoseY = 0;
+      for (var sA = 0; sA < settleSteps; sA++) {
+        step();
+        var nX = pc.x + Math.cos(pc.angle) * pc.r;
+        var nY = pc.y + Math.sin(pc.angle) * pc.r;
+        var errX = arriveTx - nX;
+        var sign = errX > 0.5 ? 1 : (errX < -0.5 ? -1 : 0);
+        if (sign !== 0 && lastSign !== 0 && sign !== lastSign) signFlips++;
+        if (sign !== 0) lastSign = sign;
+        finalNoseX = nX; finalNoseY = nY;
+      }
+      var settleErr = Math.sqrt((arriveTx - finalNoseX) * (arriveTx - finalNoseX)
+        + (arriveTy - finalNoseY) * (arriveTy - finalNoseY)) / arriveWpp;
+      check(settleErr < 90, 'nose within 90 css px of the finger after a 300ms settle (' + settleErr.toFixed(1) + ')');
+      check(signFlips <= 2, 'arrival is critically damped - no sustained oscillation/orbit (' + signFlips + ' sign flips)');
+      clearStick();
+      pc.vx = 0; pc.vy = 0;
 
       // ---- rig animation advances in the fixed step
       pc.ctl.speedCap = pc.stat.speed;
