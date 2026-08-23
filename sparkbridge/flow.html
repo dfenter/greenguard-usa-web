@@ -147,8 +147,8 @@ missing: 0   ordering violations: 0</pre>
         <h3>Owed</h3>
         <ul class="owed">
           <li class="owes">Full-scale throughput against the twelve-million-point hypothesis has not reached target on a contended bench box; the transport itself drops nothing, but the harness's single consumer is the bottleneck at scale.</li>
-          <li class="owes">Tag existence in the Ignition managed provider was not directly confirmed via Designer or REST in the live pass; the KV-level evidence is strong but indirect.</li>
-          <li class="owes">Per-message bdSeq/seq are not yet threaded into the Nats-Msg-Id dedup header; synthesizing a placeholder was ruled out as unsafe.</li>
+          <li>Provider tags confirmed live over the token-gated /tags route: seven TAGFEED-projected tags returned with real values and quality.</li>
+          <li>Exactly-once identity is live: every published metric carries a Nats-Msg-Id built from a per-session UUID and a non-wrapping sequence, verified on the wire past the 256-message Sparkplug wraparound.</li>
           <li class="owes">Native cross-domain JetStream stream sourcing across a leaf boundary needs an account export/import fix before it replaces the current pull-and-reconcile catch-up step.</li>
         </ul>
       </div>
