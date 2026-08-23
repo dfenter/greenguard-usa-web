@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkFlow: Sparkplug into NATS, kept honest | SparkBridge</title>
+<meta name="description" content="SparkFlow carries Sparkplug's birth, death, quality and source timestamps into NATS subjects and a tag-less last-value store, so millions of points can be historized without becoming millions of tags.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/flow">
+<meta property="og:title" content="SparkFlow: Sparkplug into NATS, kept honest">
+<meta property="og:description" content="The certified translation from Sparkplug to NATS/JetStream: birth, death, quality and source timestamps carried into subjects and a tag-less last-value store.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+SemiCondensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/products">Products</a>
+        <a href="/sparkbridge/technology">Technology</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top">
+  <div class="wrap">
+    <div class="phead-grid">
+      <div>
+        <div class="eyebrow">SparkFlow</div>
+        <h1>Sparkplug into NATS, kept honest</h1>
+        <p>Most bridges into a streaming backbone drop the industrial data model at the door: what is left is opaque payloads on a subject, with no idea whether a value is fresh, stale or missing entirely. SparkFlow carries Sparkplug's birth, death, quality and source timestamp across the seam, so the backbone can answer questions your equipment already answered once.</p>
+        <div class="pmeta"><span class="stat comm">Commissioning</span><span>Live on the dev estate</span><span>Pre-release</span></div>
+      </div>
+      <div class="artifact">
+        <div class="artifact-head"><span>Live gateway &middot; wire capture</span><span class="live"><i class="dot"></i>Captured live</span></div>
+        <div class="artifact-body">
+<pre style="margin:0;white-space:pre-wrap">$ nats sub 'uns.Ignition.Gateway.&gt;'
+<span class="hi">uns.Ignition.Gateway._.CPU=20Usage</span>
+  header: <span class="acc">Nats-Msg-Id</span>: ignition-gateway-cpuusage-000482
+  {"value":<span class="hi">12.4</span>,"ts":1786... ,"quality":"<span class="acc">Good</span>","historical":false}
+
+$ nats kv get uns-last Ignition.Gateway._.CPU=20Usage
+  revision 12, quality: Good, stale: false
+
+--- leaf-node partition, 60s real link cut, gg-wsl ---
+attempts: 447  buffered: 447  reconciled on hub: <span class="hi">447 / 447</span>
+missing: 0   ordering violations: 0</pre>
+        </div>
+        <div class="artifact-foot">Escaped subject and KV key ("CPU Usage" &rarr; CPU=20Usage) so a real Ignition metric name with a space in it survives the wire without dropping the reading, from the live gateway verification pass.</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <p class="claim">Sparkplug stays the contract. <em>NATS becomes the tier north of it.</em></p>
+    <div class="twocol">
+      <div class="measure">
+        <p>SparkFlow does not replace the broker. Sparkplug-over-MQTT stays the OT contract at the edge, exactly as it is today, with the same Edge, Host and Provider modules and the same TCK-certified codec. SparkFlow is what sits north of that: a certified translation that decodes Sparkplug once and republishes it as NATS subjects and a JetStream stream, carrying the semantics the wire format leaves opaque otherwise, birth and death, quality, stale, and the timestamp the equipment actually gave the reading, not the moment it arrived.</p>
+        <p>The payoff is the twelve-million-point problem. Most of a plant's points are historized and almost none are alarmed or ever rendered on a screen at once, so most of them do not need to live as a tag object. SparkFlow's KV store holds a last-known value with quality per metric with no tag behind it; only the subset a site actually alarms or views gets projected into an Ignition tag through the existing Host managed-provider path. Everything else is still there, still queryable, still carrying its real timestamp.</p>
+        <p>JetStream also makes the transport itself durable and replayable, not just the store behind it. A consumer that joins late, drops, or needs to re-walk a window can resume or replay at the transport tier, on top of the store-tier replay SparkVault already does. Command write-back is request/reply over NATS, and it is deliberately fail-closed: without configured NATS credentials and TLS, the command bridge does not start at all, telemetry publish is unaffected either way.</p>
+      </div>
+      <div>
+        <span class="spectitle">At a glance</span>
+        <table class="spec">
+          <tr><th>What it is</th><td>The certified Sparkplug-to-NATS/JetStream backbone module</td></tr>
+          <tr><th>Where it runs</th><td>Alongside HiveMQ on your gateway, not instead of it</td></tr>
+          <tr><th>What it carries</th><td>Birth/death, quality, stale and source timestamp into subjects and a KV last-value store</td></tr>
+          <tr><th>Command path</th><td>Request/reply write-back, fails closed without credentials and TLS</td></tr>
+          <tr><th>Authorization</th><td>Per-identity NATS accounts generated from the same SparkID intent model as the broker ACLs</td></tr>
+          <tr><th>State</th><td>Commissioning: live on the dev estate, pre-release. See <a href="/sparkbridge/pricing">pricing</a> for released modules</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="figure"><b>447/447</b><span>messages held and reconciled through a real 60-second network cut</span></div>
+    <div class="measure">
+      <p>A leaf-node gateway kept publishing into its own local JetStream buffer while its link to the hub was cut for real, an iptables rule dropping the TCP connection on a second box, not a same-host simulation. Every one of the 447 messages published during the cut stayed on the leaf, with zero publish errors and zero ordering violations, and every one of them was confirmed present on the hub afterward by content, matched on its Nats-Msg-Id.</p>
+      <p>That is store-and-forward at the transport tier, the same discipline SparkBridge's Edge already applies to its own disk buffer, now proven one layer up for a site whose link to the rest of the fleet is not always there.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">where it earns its keep</span>
+      <h2>Three Situations This Solves</h2>
+      <p>Three places where a tag-per-point model or a bare pub/sub bridge stops working.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>The situation</th><th>What changes</th></tr></thead>
+        <tbody>
+          <tr><td><b>A site with millions of IO points and a handful of screens</b><br><span class="sub">Plants where almost everything is historized and almost nothing is alarmed or watched live.</span></td>
+              <td>Making every point a tag to get it into a provider does not scale, and most of those points are never rendered at once anyway. SparkFlow's KV store keeps a last-known value with quality for every metric with no tag behind it; only the alarmed or actively-viewed subset is projected into an Ignition tag. The rest stays queryable and historized without paying the tag-object cost.</td></tr>
+          <tr><td><b>A consumer that needs to catch up, not just subscribe</b><br><span class="sub">A new dashboard, a recovering service, or an operator re-walking an incident window.</span></td>
+              <td>A bare pub/sub bridge only has what is happening right now. JetStream durable consumers can join late, resume from where they left off, or replay a window on demand, composing with SparkVault's own store-tier replay rather than duplicating it.</td></tr>
+          <tr><td><b>A site whose link to the rest of the fleet is not always there</b><br><span class="sub">Remote or cellular-connected sites, the same population SparkLink already serves.</span></td>
+              <td>SparkFlow's leaf-node deployment buffers durably at the site during an outage and reconciles with the hub once the link returns, proven with a real 60-second network cut and zero acked-message loss. This is store-and-forward at the transport tier, not just at the historian.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">honest ledger</span>
+      <h2>What Is Proven, What Is Owed</h2>
+      <p>SparkFlow is commissioning, not released. This is the actual state, not the pitch.</p>
+    </div>
+    <div class="ledger">
+      <div class="col">
+        <h3>Proven</h3>
+        <ul>
+          <li>Sparkplug decode reuses the same certified codec as Edge and Host, no reimplementation.</li>
+          <li>Birth/death, quality, stale and source timestamp verified end to end against a live, licensed Ignition gateway.</li>
+          <li>Metric names with spaces and other subject-illegal characters escape reversibly instead of failing silently, closing a real gap found in live verification.</li>
+          <li>Leaf-node store-and-forward proven with a real 60-second network partition on a second, genuinely disconnected box: 447/447 reconciled, zero loss.</li>
+          <li>Command bridge verified fail-closed without configured credentials and TLS.</li>
+          <li>Restart, redelivery and KV-compaction failure scenarios pass their gates on the transport-tier bench harness.</li>
+        </ul>
+      </div>
+      <div class="col owed">
+        <h3>Owed</h3>
+        <ul class="owed">
+          <li class="owes">Full-scale throughput against the twelve-million-point hypothesis has not reached target on a contended bench box; the transport itself drops nothing, but the harness's single consumer is the bottleneck at scale.</li>
+          <li class="owes">Tag existence in the Ignition managed provider was not directly confirmed via Designer or REST in the live pass; the KV-level evidence is strong but indirect.</li>
+          <li class="owes">Per-message bdSeq/seq are not yet threaded into the Nats-Msg-Id dedup header; synthesizing a placeholder was ruled out as unsafe.</li>
+          <li class="owes">Native cross-domain JetStream stream sourcing across a leaf boundary needs an account export/import fix before it replaces the current pull-and-reconcile catch-up step.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="measure">
+      <p>SparkFlow suits plants already running SparkBridge that are hitting the ceiling of tag-per-point scale, or that need a replayable application-tier backbone alongside Sparkplug rather than in place of it. It is commissioning today: live on the dev estate, proven against a licensed gateway, not yet released for purchase.</p>
+    </div>
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge/contact">Ask about the commissioning program</a>
+      <a class="btn ghost dark" href="/sparkbridge/products">See the products</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>
