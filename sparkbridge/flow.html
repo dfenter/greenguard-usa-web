@@ -146,10 +146,11 @@ missing: 0   ordering violations: 0</pre>
       <div class="col owed">
         <h3>Owed</h3>
         <ul class="owed">
-          <li class="owes">Full-scale throughput against the twelve-million-point hypothesis still lacks an uncontended-box run. Parallel ingest workers with per-worker connections shipped (about 35 percent faster drain); all published figures are honestly labelled contended-box.</li>
+          <li>The uncontended split-host run landed: 7,250,485 messages published at 48,000 per second over a real network hop, 7,250,485 delivered. One hundred percent, zero redeliveries, nothing pending. The "consumer ceiling" earlier rounds reported was bench-box contention, not the transport.</li>
           <li>Provider tags confirmed live over the token-gated /tags route: seven TAGFEED-projected tags returned with real values and quality.</li>
           <li>Exactly-once identity is live: every published metric carries a Nats-Msg-Id built from a per-session UUID and a non-wrapping sequence, verified on the wire past the 256-message Sparkplug wraparound.</li>
           <li>Native cross-domain JetStream stream sourcing across a leaf boundary works; the earlier failure was a bootstrap ordering race, root-caused and fixed, and the partition heal test now passes natively.</li>
+          <li class="owes">The site-to-cloud mirror design is written and gated except for one spike: cross-domain sourcing across an account import/export boundary has not been run live. It happens before the first customer mirror install, not after.</li>
         </ul>
       </div>
     </div>
