@@ -1,41 +1,38 @@
-/* Razorfin 3D shark rig, Lane D.
+/* Razorfin Rev 9 shark art.
  *
- * The module deliberately keeps the mesh language small: a low-poly spine,
- * a handful of extruded silhouette pieces, and shared toon materials.  The
- * roster supplies the identity; the geometry supplies the attitude.
+ * The body is deliberately not generated here. It is the artist-made
+ * skinned GLB from assets/models; this lane owns loading, safe per-instance
+ * cloning, palette/pattern identity, one small head prop, and the engine
+ * contract around it.
  */
 import * as THREE from 'three';
+import { GLTFLoader } from '../_shared/three/GLTFLoader.js';
+import { mergeGeometries } from '../_shared/utils/BufferGeometryUtils.js';
 
 const host = typeof window !== 'undefined' ? window : globalThis;
 const RF = host.RF = host.RF || {};
-
-const geometryCache = new Map();
-const materialCache = new Map();
-const billboardMaterials = new Map();
-const billboardIds = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
-let nextBillboardId = 1;
-let gradientMap;
-let sharedPlaneGeometry;
-let sharedToothGeometry;
-let sharedEyeGeometry;
-let sharedIrisGeometry;
-let sharedCatchlightGeometry;
-let sharedWhaleSpotGeometry;
-let arcGeometrySingleton;
-let arcMaterialTemplate;
-
+const MODEL_FILES = Object.freeze({
+  sharky: 'sharky.glb', goblinshark: 'goblinshark.glb', anglerfish: 'anglerfish.glb', piranha: 'piranha.glb',
+  whale: 'whale.glb', shark: 'shark.glb', shark_c: 'shark_c.glb', hammer_chibi: 'hammer_chibi.glb',
+  manta: 'manta.glb', dolphin: 'dolphin.glb', fish_tuna: 'fish_tuna.glb', fish_blue: 'fish_blue.glb',
+  fish_clown: 'fish_clown.glb', shark_b: 'shark_b.glb'
+});
+const MODEL_KEYS = Object.freeze(Object.keys(MODEL_FILES));
 const TAU = Math.PI * 2;
-const WHITE = 0xffffff;
-const FEATURE_EMISSIVE_INTENSITY = 0.82;
-const EYE_EMISSIVE_INTENSITY = 0.9;
-const EYE_CAMERA_SCALE = 1.10;
-const BODY_EMISSIVE_MAX = 0.05;
-const BODY_RAMP_BANDS = [0.30, 0.65, 0.84, 1.0];
-const BODY_DORSAL_START = 0.75;
-const BODY_FLANK_START = 0.50;
-const BODY_BELLY_END = BODY_FLANK_START;
-const BODY_RIM_END = 0.58;
-const BODY_FLANK_SATURATION_MIN = 0.70;
+const BASE_LENGTH = 96;
+const PATTERN_SUFFIX = ':rf-skin3';
+const JAW_REST_GAPE = 0.28;
+const JAW_MAX_ROTATION = 0.72;
+const PATTERN_IDS = Object.freeze({
+  plain: 0, stripes: 1, spots: 2, dots: 2, mottled: 2, mirror: 2, boils: 2,
+  bands: 3, rings: 3, ribbons: 3, swirls: 3, collar: 3, rays: 3, corona: 3,
+  scars: 4, cracks: 4, faults: 4, bones: 4, rot: 4,
+  plates: 5, plating: 5, scales: 5, spikes: 5, faults: 4, bones: 4, rivets: 5,
+  panels: 5, facets: 5, patches: 2, coral: 5, magma: 4, runes: 4, stars: 2
+});
+
+/* Rev 7 palette ranges. These are the art resolver's authority; data.js
+ * remains the authored source and is never mutated. */
 const BODY_FLANK_SATURATION_MAX = 0.90;
 const BODY_FLANK_SATURATION_TARGET = 0.86;
 const BODY_FLANK_VALUE_MIN = 0.55;
@@ -49,44 +46,6 @@ const BELLY_SATURATION_MIN = 0.15;
 const BELLY_SATURATION_MAX = 0.40;
 const BELLY_VALUE_MIN = 0.80;
 const BELLY_VALUE_MAX = 0.98;
-const OUTLINE_VALUE_MIN = 0.08;
-const OUTLINE_VALUE_MAX = 0.16;
-const BODY_BLOCK_DISTANCE_MIN = 60;
-const KAIJU_PLATE_GLOW = 0xa3fff3;
-const DISTINCTNESS_DISTANCE_THRESHOLD = 0.05;
-const DISTINCTNESS_TIER_RADIUS = 1;
-const SUPPORTED_PATTERN_IDS = new Set([
-  'bands', 'boils', 'bones', 'collar', 'coral', 'corona', 'cracks', 'dots',
-  'facets', 'faults', 'magma', 'mirror', 'mottled', 'panels', 'patches',
-  'plain', 'plates', 'plating', 'rays', 'ribbons', 'rings', 'rivets', 'rot',
-  'runes', 'scales', 'scars', 'spikes', 'spots', 'stars', 'stripes', 'swirls'
-]);
-const TAIL_MIN_RATIO = 0.28;
-const TAIL_MAX_RATIO = 0.36;
-const FUSIFORM_BODY_ASPECT_MIN = 3.1;
-const FUSIFORM_ASPECT_MIN = 2.8;
-const FUSIFORM_SECTION_Z_RATIO = 0.92;
-const FUSIFORM_SECTION_Z_RATIO_MIN = 0.72;
-const BODY_BELLY_BAKE_LUMINANCE = 0.74;
-const SHARK_POSE_YAW = 0.42;
-const PECTORAL_SPLAY = 0.35;
-const OUTLINE_SHELL_SCALE = 1.010;
-const OUTLINE_SHELL_COLOR = hsvToColor(0.56, 0.70, 0.11);
-const BEND_Y_SCALE = 0.35;
-const MID_BODY_BEND_MAX_RATIO = 0.058;
-const DISTAL_TAIL_SPRINT_RATIO = 0.18;
-const TAIL_SMOOTH_SPAN_MIN_RATIO = 0.30;
-const TAIL_SMOOTH_SPAN_MAX_RATIO = 0.35;
-const FUSIFORM_EXCEPTIONS = new Set(['eel', 'kaiju', 'whale']);
-// These heads either own an intentionally full front profile or add a large
-// front feature batch. Keep them on the same axis/overlap audit even when
-// their data row is still subject to the ordinary fusiform girth clamp.
-const BULKY_HEADS = new Set(['blunt', 'angler', 'whale', 'kaiju']);
-
-// Pantheon art is intentionally resolved here instead of in data.js. The
-// authored table remains the gameplay/data authority, while this late-roster
-// art resolver gives the review set twelve stable colour families and keeps
-// the Underworld bases dark without making Hades read like Act 5.
 const PANTHEON_PALETTE_FAMILIES = Object.freeze({
   zeusfin: { baseHue: 0.52, accentHue: 0.55, baseV: 0.66, accentV: 0.94 },
   poseidonrex: { baseHue: 0.61, accentHue: 0.64, baseV: 0.56, accentV: 0.92 },
@@ -113,158 +72,42 @@ const PANTHEON_PALETTE_FAMILIES = Object.freeze({
   lamiacoil: { baseHue: 0.96, accentHue: 0.91, baseV: 0.37, accentV: 0.93 },
   kampechrono: { baseHue: 0.09, accentHue: 0.54, baseV: 0.42, accentV: 0.91 }
 });
-const PANTHEON_IDS = new Set(Object.keys(PANTHEON_PALETTE_FAMILIES));
 const UNDERWORLD_IDS = new Set([
-  'typhonmaw', 'hydrafang', 'cerberusjaw', 'chimerashark', 'medusagaze',
-  'scyllarender', 'charybdisvoid', 'minotaurram', 'cyclopseye', 'harpyshade',
-  'lamiacoil', 'kampechrono'
+  'typhonmaw', 'hydrafang', 'cerberusjaw', 'chimerashark', 'medusagaze', 'scyllarender',
+  'charybdisvoid', 'minotaurram', 'cyclopseye', 'harpyshade', 'lamiacoil', 'kampechrono'
 ]);
-
-function isFusiformHead(head) {
-  return !FUSIFORM_EXCEPTIONS.has(head);
-}
-
-function isBulkyHead(head) {
-  return BULKY_HEADS.has(head);
-}
-
-function clamp(value, lo, hi) {
-  return value < lo ? lo : value > hi ? hi : value;
-}
-
-function finite(value, fallback) {
-  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
-}
-
-function smoothStep01(value) {
-  const t = clamp(value, 0, 1);
-  return t * t * (3 - 2 * t);
-}
-
-// Rev 8: one authored side silhouette for the whole roster.  These are
-// normalized to the canonical half-body radius, with u=0 at the thick
-// peduncle and u=1 at the blunt snout.  The profile is deliberately fat in
-// the forward 60%: it is a cartoon shark body first, and a species prop
-// carrier second.  Do not replace this with a head/archetype loft.
-const CANONICAL_HULL = Object.freeze({
-  top: Object.freeze([
-    [0.00, 0.34], [0.06, 0.46], [0.14, 0.64], [0.25, 0.80],
-    [0.40, 0.90], [0.55, 0.96], [0.60, 0.97], [0.68, 0.93], [0.80, 0.84],
-    [0.90, 0.71], [0.97, 0.56], [1.00, 0.44]
-  ]),
-  belly: Object.freeze([
-    [0.00, -0.30], [0.06, -0.40], [0.14, -0.58], [0.25, -0.76],
-    [0.40, -0.90], [0.55, -0.96], [0.60, -0.97], [0.68, -0.93], [0.80, -0.84],
-    [0.90, -0.70], [0.97, -0.56], [1.00, -0.44]
-  ]),
-  // A width profile makes the sections round-to-oval rather than a flat
-  // plate.  It is intentionally close to one through the mid-body.
-  width: Object.freeze([
-    [0.00, 0.86], [0.06, 0.90], [0.14, 0.96], [0.25, 1.00],
-    [0.40, 1.03], [0.55, 1.04], [0.68, 1.03], [0.80, 1.01],
-    [0.90, 0.98], [0.97, 0.94], [1.00, 0.90]
-  ])
+/* The 9.6 showcase rows are judged against the HSE palette reads, not the
+ * low-contrast roster swatches. These are linear-space HSV targets consumed
+ * by the same atlas colorizer as every other definition. */
+const STYLE_PALETTE_OVERRIDES = Object.freeze({
+  reef:       { base: [0.58, 0.52, 0.55], belly: [0.57, 0.12, 0.92], accent: [0.57, 0.82, 0.80] },
+  tiger:      { base: [0.095, 0.52, 0.62], belly: [0.10, 0.16, 0.91], accent: [0.075, 0.78, 0.78] },
+  hammerhead: { base: [0.59, 0.42, 0.60], belly: [0.58, 0.10, 0.94], accent: [0.57, 0.78, 0.82] },
+  greatwhite: { base: [0.59, 0.22, 0.60], belly: [0.58, 0.08, 0.98], accent: [0.57, 0.62, 0.80] },
+  whaleshark: { base: [0.58, 0.32, 0.54], belly: [0.57, 0.10, 0.92], accent: [0.56, 0.70, 0.76] }
 });
-const CANONICAL_HULL_SCALE_MIN = 0.84;
-const CANONICAL_HULL_SCALE_MAX = 1.12;
-const CANONICAL_HULL_RADIUS_RATIO = 0.204;
 
-function authoredCurveAt(points, u) {
-  const t = clamp(u, 0, 1);
-  for (let i = 1; i < points.length; i++) {
-    if (t <= points[i][0]) {
-      const a = points[i - 1];
-      const b = points[i];
-      const local = smoothStep01((t - a[0]) / Math.max(1e-6, b[0] - a[0]));
-      return a[1] + (b[1] - a[1]) * local;
-    }
-  }
-  return points[points.length - 1][1];
-}
+const modelCache = new Map();
+const baseSelection = new Map();
+let preloadPromise = null;
+let preloadError = null;
+let sharedPlaneGeometry = null;
+const billboardMaterials = new Map();
+const billboardIds = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
+let nextBillboardId = 1;
 
-function canonicalHullAt(u, hullScale = 1) {
-  const top = authoredCurveAt(CANONICAL_HULL.top, u) * hullScale;
-  const belly = authoredCurveAt(CANONICAL_HULL.belly, u) * hullScale;
-  return {
-    top,
-    belly,
-    center: (top + belly) * 0.5,
-    halfHeight: (top - belly) * 0.5,
-    width: authoredCurveAt(CANONICAL_HULL.width, u)
-  };
-}
-
-function hullScaleFor(authoredGirth, head) {
-  // The authored data remains the variation authority, but its old .18-.80
-  // girth meaning is gone.  Map it to a bounded +/-20% body scale instead;
-  // whale/kaiju are allowed to reach the 0.45L heavy-body ceiling.
-  const t = clamp((authoredGirth - 0.24) / 0.37, 0, 1);
-  const raw = CANONICAL_HULL_SCALE_MIN + (CANONICAL_HULL_SCALE_MAX - CANONICAL_HULL_SCALE_MIN) * t;
-  return head === 'whale' || head === 'kaiju' ? Math.min(raw, 1.12) : raw;
-}
-
+function clamp(value, lo, hi) { return value < lo ? lo : value > hi ? hi : value; }
+function finite(value, fallback) { return typeof value === 'number' && Number.isFinite(value) ? value : fallback; }
 function hex(value, fallback = 0) {
   const n = typeof value === 'number' ? value : parseInt(value, 10);
   return Number.isFinite(n) ? (n >>> 0) & 0xffffff : fallback;
 }
-
-function boostedColor(value, amount = 1.15) {
-  const c = new THREE.Color(hex(value));
-  const hsl = {};
-  c.getHSL(hsl);
-  c.setHSL(hsl.h, clamp(hsl.s * amount, 0, 1), clamp(hsl.l * 1.035, 0.04, 0.88));
-  return c;
+function colorValue(value, fallback = 0xffffff) {
+  return value instanceof THREE.Color ? value.clone() : new THREE.Color(hex(value, fallback));
 }
-
-function committedColor(value, saturationFloor = 0.42, valueFloor = 0.2, valueCeiling = 0.82) {
-  const source = colorValue(value).clone();
-  const hsv = rgbToHsv(source);
-  return hsvToColor(
-    hsv.h,
-    Math.max(hsv.s, saturationFloor),
-    clamp(Math.max(hsv.v, valueFloor), valueFloor, valueCeiling)
-  );
-}
-
-function colorValue(value, fallback = WHITE) {
-  return value instanceof THREE.Color ? value : new THREE.Color(hex(value, fallback));
-}
-
-function lerpColor(a, b, amount) {
-  /* Palette helpers sometimes pass a hex literal (for example WHITE) and
-   * THREE.Color.lerp only accepts another Color. Normalise both sides here so
-   * a numeric accent can never write NaN vertex channels into a BufferAttribute. */
-  return colorValue(a).clone().lerp(colorValue(b), clamp(amount, 0, 1));
-}
-
-function colorLuminance(color) {
-  return color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
-}
-
-function liftColorToLuminance(color, target) {
-  const source = colorValue(color).clone();
-  const current = colorLuminance(source);
-  const desired = clamp(target, 0, 1);
-  if (current >= desired || current <= 1e-6) return current <= 1e-6
-    ? new THREE.Color(desired, desired, desired)
-    : source;
-
-  // Scaling keeps the act hue and saturation intact for the normal case. If
-  // a vivid channel would clip, the white lift is the safer fallback: belly
-  // colour must remain pale rather than turning into a broken HDR vertex.
-  const scaled = source.clone().multiplyScalar(desired / current);
-  const maxChannel = Math.max(scaled.r, scaled.g, scaled.b);
-  if (maxChannel <= 1) return scaled;
-  return source.lerp(colorValue(WHITE), (desired - current) / (1 - current));
-}
-
 function rgbToHsv(color) {
-  const c = color instanceof THREE.Color
-    ? color
-    : new THREE.Color(color?.r || 0, color?.g || 0, color?.b || 0);
-  const max = Math.max(c.r, c.g, c.b);
-  const min = Math.min(c.r, c.g, c.b);
-  const delta = max - min;
+  const c = color instanceof THREE.Color ? color : colorValue(color);
+  const max = Math.max(c.r, c.g, c.b), min = Math.min(c.r, c.g, c.b), delta = max - min;
   let h = 0;
   if (delta > 1e-6) {
     if (max === c.r) h = ((c.g - c.b) / delta) % 6;
@@ -275,3850 +118,629 @@ function rgbToHsv(color) {
   }
   return { h, s: max <= 1e-6 ? 0 : delta / max, v: max };
 }
-
 function hsvToColor(h, s, v) {
-  const hue = ((h % 1) + 1) % 1;
-  const saturation = clamp(s, 0, 1);
-  const value = clamp(v, 0, 1);
-  const sector = hue * 6;
-  const i = Math.floor(sector);
-  const f = sector - i;
-  const p = value * (1 - saturation);
-  const q = value * (1 - saturation * f);
-  const t = value * (1 - saturation * (1 - f));
+  const hue = ((h % 1) + 1) % 1, sat = clamp(s, 0, 1), val = clamp(v, 0, 1);
+  const sector = hue * 6, i = Math.floor(sector), f = sector - i;
+  const p = val * (1 - sat), q = val * (1 - sat * f), t = val * (1 - sat * (1 - f));
   switch (i % 6) {
-    case 0: return new THREE.Color(value, t, p);
-    case 1: return new THREE.Color(q, value, p);
-    case 2: return new THREE.Color(p, value, t);
-    case 3: return new THREE.Color(p, q, value);
-    case 4: return new THREE.Color(t, p, value);
-    default: return new THREE.Color(value, p, q);
+    case 0: return new THREE.Color(val, t, p);
+    case 1: return new THREE.Color(q, val, p);
+    case 2: return new THREE.Color(p, val, t);
+    case 3: return new THREE.Color(p, q, val);
+    case 4: return new THREE.Color(t, p, val);
+    default: return new THREE.Color(val, p, q);
   }
 }
-
-function saturatedBlockColor(source, saturationBoost, saturationFloor, valueFloor, valueCeiling, valueScale = 1) {
-  const hsv = rgbToHsv(source);
-  return hsvToColor(
-    hsv.h,
-    Math.max(hsv.s * saturationBoost, saturationFloor),
-    clamp(Math.max(hsv.v * valueScale, valueFloor), valueFloor, valueCeiling)
-  );
-}
-
 function resolvePaletteSwatch(value, saturationMin, saturationMax, valueMin, valueMax, fallbackHue = 0) {
-  const source = colorValue(value);
-  const hsv = rgbToHsv(source);
-  // Pure white/black authored swatches have no usable hue. In that case the
-  // caller's family hue keeps the resolved block in the shark's own palette
-  // instead of silently manufacturing red from HSV's zero-hue convention.
+  const source = colorValue(value), hsv = rgbToHsv(source);
   const hue = hsv.s > 0.04 ? hsv.h : fallbackHue;
-  const saturation = clamp(Math.max(hsv.s, saturationMin), saturationMin, saturationMax);
-  const brightness = clamp(Math.max(hsv.v, valueMin), valueMin, valueMax);
-  return hsvToColor(hue, saturation, brightness);
+  return hsvToColor(hue, clamp(Math.max(hsv.s, saturationMin), saturationMin, saturationMax), clamp(Math.max(hsv.v, valueMin), valueMin, valueMax));
 }
-
-function resolvedPaletteStats(color) {
-  const hsv = rgbToHsv(color);
-  return { h: hsv.h, s: hsv.s, v: hsv.v };
-}
-
+function paletteStats(color) { const hsv = rgbToHsv(color); return { h: hsv.h, s: hsv.s, v: hsv.v }; }
+function hsvTarget([h, s, v]) { return hsvToColor(h, s, v); }
 function paletteOf(def) {
-  const source = def?.sil?.palette || {};
-  const id = String(def?.id || '');
-  const pantheonFamily = PANTHEON_PALETTE_FAMILIES[id];
-  if (pantheonFamily) {
+  const source = def?.sil?.palette || {}, id = String(def?.id || ''), family = PANTHEON_PALETTE_FAMILIES[id];
+  if (family) {
     const underworld = UNDERWORLD_IDS.has(id);
-    const base = hsvToColor(
-      pantheonFamily.baseHue,
-      underworld ? 0.76 : 0.78,
-      pantheonFamily.baseV
-    );
-    const accent = hsvToColor(pantheonFamily.accentHue, 0.96, pantheonFamily.accentV);
-    const belly = hsvToColor(pantheonFamily.baseHue, underworld ? 0.20 : 0.18, underworld ? 0.84 : 0.91);
-    const glow = hsvToColor(pantheonFamily.accentHue, 0.98, 0.95);
+    const base = hsvToColor(family.baseHue, underworld ? 0.76 : 0.78, family.baseV);
+    const accent = hsvToColor(family.accentHue, 0.96, family.accentV);
+    const belly = hsvToColor(family.baseHue, underworld ? 0.20 : 0.18, underworld ? 0.84 : 0.91);
+    const glow = hsvToColor(family.accentHue, 0.98, 0.95);
     return {
-      base,
-      belly,
-      accent,
-      glow,
-      raw: {
-        base: hex(source.base, base.getHex()),
-        belly: hex(source.belly, belly.getHex()),
-        accent: hex(source.accent, accent.getHex()),
-        glow: source.glow ? hex(source.glow) : glow.getHex()
-      },
-      resolved: {
-        base: resolvedPaletteStats(base),
-        belly: resolvedPaletteStats(belly),
-        accent: resolvedPaletteStats(accent),
-        glow: resolvedPaletteStats(glow)
-      },
-      family: id,
-      underworld
+      base, belly, accent, glow,
+      raw: { base: hex(source.base, base.getHex()), belly: hex(source.belly, belly.getHex()), accent: hex(source.accent, accent.getHex()), glow: source.glow ? hex(source.glow) : glow.getHex() },
+      resolved: { base: paletteStats(base), belly: paletteStats(belly), accent: paletteStats(accent), glow: paletteStats(glow) }, family: id, underworld
     };
   }
-  const authoredBase = colorValue(source.base, 0x204050);
-  const authoredAccent = colorValue(source.accent, 0x164557);
-  const authoredGlow = source.glow ? colorValue(source.glow) : null;
-  const accentHue = rgbToHsv(authoredAccent).h;
-  const screenTailReviewIds = new Set(['reef', 'tiger', 'hammerhead', 'greatwhite']);
-  const accentSaturationTarget = screenTailReviewIds.has(String(def?.id))
-    ? ACCENT_SATURATION_TARGET
-    : ACCENT_SATURATION_MIN;
+  const style = STYLE_PALETTE_OVERRIDES[id];
+  if (style) {
+    const base = hsvTarget(style.base), belly = hsvTarget(style.belly), accent = hsvTarget(style.accent);
+    const glow = source.glow ? colorValue(source.glow) : null;
+    return {
+      base, belly, accent, glow,
+      raw: { base: hex(source.base, base.getHex()), belly: hex(source.belly, belly.getHex()), accent: hex(source.accent, accent.getHex()), glow: source.glow ? hex(source.glow) : 0 },
+      resolved: { base: paletteStats(base), belly: paletteStats(belly), accent: paletteStats(accent), glow: glow ? paletteStats(glow) : null }, style: id
+    };
+  }
+  const authoredBase = colorValue(source.base, 0x204050), authoredAccent = colorValue(source.accent, 0x164557);
+  const authoredGlow = source.glow ? colorValue(source.glow) : null, accentHue = rgbToHsv(authoredAccent).h;
+  const screenTail = new Set(['reef', 'tiger', 'hammerhead', 'greatwhite']);
+  const accentTarget = screenTail.has(id) ? ACCENT_SATURATION_TARGET : ACCENT_SATURATION_MIN;
   const base = resolvePaletteSwatch(authoredBase, BODY_FLANK_SATURATION_TARGET, BODY_FLANK_SATURATION_MAX, BODY_FLANK_VALUE_MIN, BODY_FLANK_VALUE_MAX);
-  const accent = resolvePaletteSwatch(authoredAccent, accentSaturationTarget, ACCENT_SATURATION_MAX, Math.max(ACCENT_VALUE_MIN, 0.86), ACCENT_VALUE_MAX, accentHue);
+  const accent = resolvePaletteSwatch(authoredAccent, accentTarget, ACCENT_SATURATION_MAX, Math.max(ACCENT_VALUE_MIN, 0.86), ACCENT_VALUE_MAX, accentHue);
   const belly = resolvePaletteSwatch(source.belly, BELLY_SATURATION_MIN, BELLY_SATURATION_MAX, BELLY_VALUE_MIN, BELLY_VALUE_MAX, rgbToHsv(authoredBase).h);
-  const glow = authoredGlow
-    ? resolvePaletteSwatch(authoredGlow, ACCENT_SATURATION_MIN, ACCENT_SATURATION_MAX, Math.max(ACCENT_VALUE_MIN, 0.88), ACCENT_VALUE_MAX, accentHue)
-    : null;
+  const glow = authoredGlow ? resolvePaletteSwatch(authoredGlow, ACCENT_SATURATION_MIN, ACCENT_SATURATION_MAX, Math.max(ACCENT_VALUE_MIN, 0.88), ACCENT_VALUE_MAX, accentHue) : null;
   return {
-    // All visible consumers receive resolved art-ramp swatches. The authored
-    // values remain available only as audit metadata; no feature is allowed to
-    // read source.accent directly.
-    base,
-    belly,
-    accent,
-    glow,
-    raw: {
-      base: hex(source.base, 0x204050),
-      belly: hex(source.belly, 0xddeee7),
-      accent: hex(source.accent, 0x164557),
-      glow: source.glow ? hex(source.glow) : 0
-    },
-    resolved: {
-      base: resolvedPaletteStats(base),
-      belly: resolvedPaletteStats(belly),
-      accent: resolvedPaletteStats(accent),
-      glow: glow ? resolvedPaletteStats(glow) : null
-    }
+    base, belly, accent, glow,
+    raw: { base: hex(source.base, 0x204050), belly: hex(source.belly, 0xddeee7), accent: hex(source.accent, 0x164557), glow: source.glow ? hex(source.glow) : 0 },
+    resolved: { base: paletteStats(base), belly: paletteStats(belly), accent: paletteStats(accent), glow: glow ? paletteStats(glow) : null }
   };
 }
-
-function hash01(a, b = 0, c = 0) {
-  let n = (a * 374761393 + b * 668265263 + c * 362437) | 0;
-  n = Math.imul(n ^ (n >>> 13), 1274126177);
-  return ((n ^ (n >>> 16)) >>> 0) / 4294967295;
+function hashString(value) {
+  let h = 2166136261, str = String(value || '');
+  for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619);
+  return (h >>> 0) / 4294967295;
+}
+function rows() { return host.RFD?.SHARKS || RF.RFD?.SHARKS || RF.SHARKS || []; }
+function baseForDef(def) {
+  const head = String(def?.sil?.head || '');
+  if (head === 'goblin' || String(def?.id || '') === 'goblin') return 'goblinshark';
+  if (head === 'angler') return 'anglerfish';
+  if (head === 'piranha') return 'piranha';
+  // whale.glb is a clean silhouette but has no readable cartoon mouth. Keep
+  // the new face and make whale/kaiju rows bulky in buildLoadedRig().
+  return 'sharky';
+}
+function patternId(def) { return PATTERN_IDS[String(def?.sil?.pattern || 'plain')] ?? 0; }
+function assetUrl(file) { return new URL(`./assets/models/${file}`, import.meta.url).href; }
+function findSkinned(root) { let found = null; root.traverse((o) => { if (!found && o.isSkinnedMesh) found = o; }); return found; }
+function findMeshes(root) { const out = []; root.traverse((o) => { if (o.isMesh) out.push(o); }); return out; }
+function copyTransform(from, to) {
+  to.position.copy(from.position); to.quaternion.copy(from.quaternion); to.scale.copy(from.scale);
+  to.matrix.copy(from.matrix); to.matrixAutoUpdate = from.matrixAutoUpdate;
 }
 
-// Rev 6 (6.3): per-def oscillator decoupling seed. def.id is a string; fold it
-// into an int32 so it can feed hash01() the same way numeric coords do.
-function hashStringToInt(str) {
-  const s = String(str || '');
-  let h = 0;
-  for (let i = 0; i < s.length; i++) {
-    h = (Math.imul(h, 31) + s.charCodeAt(i)) | 0;
-  }
-  return h;
-}
-
-function ensureGradientMap() {
-  if (gradientMap) return gradientMap;
-  // MeshToonMaterial samples only the red channel. Keep this a small, explicit
-  // linear luminance ramp rather than a coloured texture that can be filtered
-  // or colour-managed like a display image.
-  const bands = BODY_RAMP_BANDS.map((value) => {
-    const channel = Math.round(clamp(value, 0, 1) * 255);
-    return (channel << 16) | (channel << 8) | channel;
-  });
-  if (typeof document !== 'undefined' && document.createElement) {
-    const canvas = document.createElement('canvas');
-    canvas.width = 4;
-    canvas.height = 1;
-    const ctx = canvas.getContext('2d');
-    for (let i = 0; i < bands.length; i++) {
-      ctx.fillStyle = `#${bands[i].toString(16).padStart(6, '0')}`;
-      ctx.fillRect(i, 0, 1, 1);
-    }
-    gradientMap = new THREE.CanvasTexture(canvas);
-  } else {
-    const data = new Uint8Array(bands.length * 4);
-    for (let i = 0; i < bands.length; i++) {
-      data[i * 4] = (bands[i] >> 16) & 255;
-      data[i * 4 + 1] = (bands[i] >> 8) & 255;
-      data[i * 4 + 2] = bands[i] & 255;
-      data[i * 4 + 3] = 255;
-    }
-    gradientMap = new THREE.DataTexture(data, 4, 1, THREE.RGBAFormat);
-  }
-  gradientMap.name = 'RF.Art3D.4StepGradient';
-  gradientMap.magFilter = THREE.NearestFilter;
-  gradientMap.minFilter = THREE.NearestFilter;
-  gradientMap.generateMipmaps = false;
-  if ('colorSpace' in gradientMap) gradientMap.colorSpace = THREE.NoColorSpace || '';
-  gradientMap.needsUpdate = true;
-  gradientMap.userData = { rfBands: 4 };
-  return gradientMap;
-}
-
-function toonMaterial({
-  color = WHITE,
-  glow = 0,
-  emissiveIntensity = null,
-  vertexColors = false,
-  transparent = false,
-  opacity = 1,
-  side = THREE.FrontSide,
-  flatShading = true,
-  depthWrite = true,
-  kind = 'solid'
-} = {}) {
-  const colorHex = color instanceof THREE.Color ? color.getHex() : hex(color, WHITE);
-  const glowHex = glow instanceof THREE.Color ? glow.getHex() : hex(glow, 0);
-  const requestedEmissiveIntensity = emissiveIntensity == null
-    ? (kind === 'eye' ? EYE_EMISSIVE_INTENSITY : FEATURE_EMISSIVE_INTENSITY)
-    : finite(emissiveIntensity, 0);
-  const resolvedEmissiveIntensity = glowHex ? clamp(requestedEmissiveIntensity, 0.6, 1.0) : 0;
-  const key = [kind, colorHex, glowHex, resolvedEmissiveIntensity, vertexColors ? 1 : 0, transparent ? 1 : 0, opacity, side, depthWrite ? 1 : 0, flatShading ? 1 : 0].join(':');
-  if (materialCache.has(key)) return materialCache.get(key);
-  const material = new THREE.MeshToonMaterial({
-    color: colorHex,
-    gradientMap: ensureGradientMap(),
-    vertexColors,
-    side,
-    transparent,
-    opacity,
-    depthWrite,
-    emissive: glowHex,
-    emissiveIntensity: resolvedEmissiveIntensity
-  });
-  /* The fleet's r160 build keeps flatShading as a late material flag rather
-   * than a constructor parameter. Setting it after construction avoids the
-   * noisy "unknown property" warning while retaining the faceted toon read. */
-  material.flatShading = !!flatShading;
-  material.needsUpdate = true;
-  material.name = `RF Toon ${kind}`;
-  material.userData.rfBaseVariantKey = [
-    'toon',
-    vertexColors ? 'vertex' : 'solid',
-    side === THREE.BackSide ? 'back' : side === THREE.DoubleSide ? 'double' : 'front',
-    transparent ? 'transparent' : 'opaque',
-    flatShading ? 'flat' : 'smooth'
-  ].join(':');
-  materialCache.set(key, material);
-  return material;
-}
-
-function bendableMaterial(baseMat, uniforms) {
-  if (!baseMat || typeof baseMat.clone !== 'function') throw new Error('RF.Art3D.bendableMaterial requires a material');
-  if (!uniforms || !uniforms.uBendPhase || !uniforms.uBendAmp || !uniforms.uBendK || !uniforms.uBendSpan || !uniforms.uBendBias || !uniforms.uTailAmp || !uniforms.uTailSpan || !uniforms.uBendScale) {
-    throw new Error('RF.Art3D.bendableMaterial requires the complete bend uniform bundle');
-  }
-  const material = baseMat.clone();
-  // Three's late flatShading flag is not copied reliably by every supported
-  // revision's clone path; preserve the archetype normal policy explicitly.
-  material.flatShading = !!baseMat.flatShading;
-  const baseVariant = baseMat.userData?.rfBaseVariantKey || baseMat.type || 'MeshToonMaterial';
-  const ampScale = finite(baseMat.userData?.rfBendAmpScale, 1);
-  const baseKey = `${baseVariant}:amp${ampScale.toFixed(6)}`;
-  material.userData.rfBend = true;
-  material.userData.rfBendUniforms = uniforms;
-  material.userData.rfBendBaseKey = baseKey;
-  material.userData.rfBendAmpScale = ampScale;
-  material.onBeforeCompile = (shader) => {
-    shader.uniforms.uBendPhase = uniforms.uBendPhase;
-    shader.uniforms.uBendAmp = uniforms.uBendAmp;
-    shader.uniforms.uBendK = uniforms.uBendK;
-    shader.uniforms.uBendSpan = uniforms.uBendSpan;
-    shader.uniforms.uBendBias = uniforms.uBendBias;
-    shader.uniforms.uTailAmp = uniforms.uTailAmp;
-    shader.uniforms.uTailSpan = uniforms.uTailSpan;
-    shader.uniforms.uBendScale = uniforms.uBendScale;
-    shader.vertexShader = shader.vertexShader.replace(
-      '#include <common>',
-      // Keep every injected uniform declared here. The headless probe exercises
-      // the hook with a stub shader, but only a real GL compile catches a
-      // missing declaration. uTailSpan is measured in -x body-local units.
-      '#include <common>\nuniform float uBendPhase;\nuniform float uBendAmp;\nuniform float uBendK;\nuniform vec2 uBendSpan;\nuniform float uBendBias;\nuniform float uTailAmp;\nuniform vec2 uTailSpan;\nuniform float uBendScale;'
-    ).replace(
-      '#include <begin_vertex>',
-      `#include <begin_vertex>\nfloat bendT=smoothstep(uBendSpan.x,uBendSpan.y,-transformed.x);\nfloat tailT=smoothstep(uTailSpan.x,uTailSpan.y,-transformed.x);\nfloat bendZ=${ampScale === 1 ? 'uBendScale*uBendAmp' : `uBendScale*uBendAmp*${ampScale.toFixed(6)}`}*bendT*sin(uBendPhase+transformed.x*uBendK);\nbendZ+=uBendBias*bendT;\nbendZ+=uTailAmp*tailT*tailT*sin(uBendPhase+transformed.x*uBendK);\ntransformed.z += bendZ;\ntransformed.y += ${BEND_Y_SCALE.toFixed(2)}*bendZ;`
-    );
-  };
-  material.customProgramCacheKey = () => `${baseKey}:rf-bend3`;
-  material.needsUpdate = true;
-  return material;
-}
-
-function bendOffset(x, phase, amp, k, spanX, spanY, bias = 0, tailAmp = 0, tailSpanX = 0.5, tailSpanY = 0.8) {
-  const t = clamp(((-finite(x, 0)) - finite(spanX, 0)) / Math.max(1e-6, finite(spanY, 1) - finite(spanX, 0)), 0, 1);
-  const bendT = t * t * (3 - 2 * t);
-  const tailT0 = clamp(((-finite(x, 0)) - finite(tailSpanX, 0)) / Math.max(1e-6, finite(tailSpanY, 1) - finite(tailSpanX, 0)), 0, 1);
-  const tailT = tailT0 * tailT0 * (3 - 2 * tailT0);
-  return finite(amp, 0) * bendT * Math.sin(finite(phase, 0) + finite(x, 0) * finite(k, 0)) + finite(bias, 0) * bendT
-    + finite(tailAmp, 0) * tailT * tailT * Math.sin(finite(phase, 0) + finite(x, 0) * finite(k, 0));
-}
-
-function bufferGeometry(positions, indices, colors = null) {
-  const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  if (colors) geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-  geometry.setIndex(indices);
-  geometry.computeVertexNormals();
-  geometry.computeBoundingBox();
-  return geometry;
-}
-
-function addVertex(positions, colors, x, y, z, color) {
-  positions.push(x, y, z);
-  if (colors) colors.push(color.r, color.g, color.b);
-}
-
-function polygonArea2(points) {
-  let area = 0;
-  for (let i = 0; i < points.length; i++) {
-    const a = points[i];
-    const b = points[(i + 1) % points.length];
-    area += a[0] * b[1] - b[0] * a[1];
-  }
-  return area;
-}
-
-function cameraFacingPolygon(points) {
-  // Extruded face features are viewed from +Z in the gameplay camera. A
-  // counter-clockwise XY contour gives the +Z front cap; several authored
-  // jaw/mouth contours were clockwise, which made FrontSide cull the very
-  // face that should carry the grin.
-  return polygonArea2(points) < 0 ? points.slice().reverse() : points;
-}
-
-function bodyRampColors(palette, act = 1) {
-  // These are resolved hard blocks, not a grey lightness ramp. paletteOf()
-  // has already re-targeted authored hues into the review's flank/accent/
-  // belly ranges, so every visible body and feature swatch stays in one art
-  // language without reaching back to a raw data color.
-  const dorsal = palette.base.clone();
-  const flank = palette.base.clone();
-  const accentMark = palette.accent.clone();
-  const belly = palette.belly.clone();
-  const highlight = palette.belly.clone();
-  const glow = (palette.glow || palette.accent).clone();
-  const shadow = palette.base.clone();
-  const rim = act >= 3
-    ? glow
-    : flank.clone();
-  return {
-    dorsal,
-    dark: dorsal,
-    flank,
-    accent: accentMark,
-    glow,
-    highlight,
-    shadow,
-    rim,
-    rimGlow: act >= 3,
-    belly
-  };
-}
-
-function unitFraction(value) {
-  return value - Math.floor(value);
-}
-
-function nearBand(value, center, width) {
-  return Math.abs(value - center) <= width;
-}
-
-/* Vertex colours are intentionally discrete. These are the loft equivalent
- * of sharkart.js's clipped painters: each branch describes one authored mark
- * family, and every mark resolves to a committed palette block at a station
- * rather than interpolating toward neutral grey. */
-function patternColor(ramp, pattern, u, theta, station, radial) {
-  const topness = (Math.cos(theta) + 1) * 0.5;
-  const facing = Math.sin(theta) >= -0.2;
-  const onBody = facing && topness >= 0.12 && topness <= 0.88 && u >= 0.12 && u <= 0.92;
-  if (!onBody || pattern === 'plain') return null;
-
-  const cell = Math.floor(u * 14);
-  const row = radial;
-  const accent = ramp.accent;
-  const bright = ramp.highlight;
-
-  switch (pattern) {
-    case 'stripes': { // Tiger: seven broad, hard-edged transverse bars.
-      for (let i = 0; i < 7; i++) if (nearBand(u, 0.19 + i * 0.105, 0.026)) return accent;
-      return null;
-    }
-    case 'bands': {
-      for (let i = 0; i < 6; i++) if (nearBand(u, 0.17 + i * 0.14, 0.044)) return accent;
-      return null;
-    }
-    case 'ribbons': {
-      const ribbon = 0.5 + 0.22 * Math.sin(u * TAU * 2.15);
-      return Math.abs(topness - ribbon) < 0.17 ? accent : null;
-    }
-    case 'spots':
-    case 'dots': {
-      const hit = ((station * 7 + row * 11 + (pattern === 'dots' ? 3 : 0)) % 17) >= 11;
-      return hit && (cell % 2 || row % 3 === 0) ? bright : null;
-    }
-    case 'collar':
-      return u >= 0.27 && u <= 0.38 ? accent : null;
-    case 'plates': {
-      return ((cell + row * 2) % 5 === 0 || (cell % 5 === 2 && row % 3 === 0)) ? accent : null;
-    }
-    case 'plating': {
-      return (cell % 4 <= 1 && row % 2 === 0) ? accent : null;
-    }
-    case 'panels': {
-      return ((cell % 5 === 1 || cell % 5 === 2) && row >= 2 && row <= 5) ? accent : null;
-    }
-    case 'rivets': {
-      return (cell % 3 === 0 && row % 2 === 1) ? bright : null;
-    }
-    case 'facets': {
-      return ((cell + row) % 4 === 1 || (cell * 3 + row) % 7 === 0) ? accent : null;
-    }
-    case 'scales': {
-      return ((cell + row + (cell % 2)) % 3 === 0) ? accent : null;
-    }
-    case 'spikes': {
-      return ((cell % 2 === 0 && row <= 3) || (cell % 4 === 1 && row === 4)) ? accent : null;
-    }
-    case 'rays': {
-      return ((cell + row * 2) % 6 === 1 && topness > 0.28) ? accent : null;
-    }
-    case 'stars': {
-      return ((cell * 5 + row * 3) % 13 === 4 && row >= 2 && row <= 5) ? bright : null;
-    }
-    case 'swirls': {
-      return Math.abs(Math.sin(u * TAU * 2.1 + row * 0.72)) > 0.72 ? accent : null;
-    }
-    case 'rings': {
-      for (let i = 0; i < 4; i++) if (nearBand(u, 0.31 + i * 0.135, 0.026)) return accent;
-      return null;
-    }
-    case 'scars': {
-      return unitFraction(u * 6.2 + row * 0.19) > 0.46 && unitFraction(u * 6.2 + row * 0.19) < 0.57
-        ? bright : null;
-    }
-    case 'cracks':
-    case 'faults': {
-      const crack = unitFraction(u * 7.1 + row * 0.31) > 0.47 && unitFraction(u * 7.1 + row * 0.31) < 0.56;
-      return crack ? accent : null;
-    }
-    case 'magma': {
-      const crack = unitFraction(u * 7.1 + row * 0.31) > 0.43 && unitFraction(u * 7.1 + row * 0.31) < 0.60;
-      return crack ? accent : null;
-    }
-    case 'mottled': {
-      return ((station * 13 + row * 5) % 19) > 13 ? accent : null;
-    }
-    case 'rot': {
-      return ((station * 13 + row * 5) % 19) > 12 ? ramp.shadow : null;
-    }
-    case 'boils': {
-      return ((station * 11 + row * 7) % 17) > 10 ? accent : null;
-    }
-    case 'coral': {
-      return (row <= 3 && (cell + row) % 4 === 0) ? accent : null;
-    }
-    case 'mirror': {
-      const mirrored = row <= 3 ? cell % 3 === 0 : cell % 4 === 1;
-      return mirrored ? bright : null;
-    }
-    case 'bones': {
-      return ((cell % 3 === 1 && row >= 2 && row <= 5) || (row === 2 && cell % 4 === 0)) ? bright : null;
-    }
-    case 'runes': {
-      return ((cell + row) % 5 === 2 && row >= 2 && row <= 5) ? accent : null;
-    }
-    case 'corona': {
-      const ray = (cell + row * 2) % 6 === 1 && topness > 0.28;
-      const ring = nearBand(u, 0.47, 0.032) || nearBand(u, 0.72, 0.032);
-      return ray || ring ? accent : null;
-    }
-    case 'patches': {
-      return ((cell % 6 === 1 || cell % 6 === 2) && row >= 2 && row <= 5) ? accent : null;
-    }
-    default:
-      return null;
-  }
-}
-
-function bodyVertexColor(ramp, theta, u, station, radial, pattern) {
-  const topness = (Math.cos(theta) + 1) * 0.5;
-  let color;
-  if (topness >= BODY_DORSAL_START) {
-    color = ramp.dorsal.clone();
-  } else if (topness >= BODY_FLANK_START) {
-    // The radial mesh gives us one deliberate edge row immediately above the
-    // belly line. Act 3 legends use that row to carry their glow hue into the
-    // body rather than asking the eye to find it only in feature geometry.
-    color = topness < BODY_RIM_END ? ramp.rim.clone() : ramp.flank.clone();
-  } else {
-    color = ramp.belly.clone();
-  }
-
-  const mark = patternColor(ramp, pattern, u, theta, station, radial);
-  if (mark) color.copy(mark);
-  return color;
-}
-
-function exaggerationFor(head, sil = {}) {
-  const headScale = {
-    point: 1.00, blunt: 1.05, hammer: 1.02, whale: 1.08,
-    kaiju: 1.12, eel: 0.98
-  }[head] || 1.00;
-  const jawScale = {
-    point: 1.00, blunt: 1.05, hammer: 1.04, saw: 1.00,
-    croc: 1.08, whale: 1.10, angler: 1.08, eel: 1.00,
-    rock: 1.06, mech: 1.04, skull: 1.08, void: 1.04,
-    frill: 1.00, kaiju: 1.12
-  }[head] || 1.02;
-  const eyeScale = {
-    point: 0.31, blunt: 0.32, hammer: 0.31, whale: 0.30,
-    kaiju: 0.34, eel: 0.29, angler: 0.31, skull: 0.31,
-    void: 0.32, mech: 0.31
-  }[head] || 0.31;
-  const bellyDrop = {
-    point: 0.14, blunt: 0.16, hammer: 0.15, whale: 0.18,
-    kaiju: 0.18, eel: 0.12, angler: 0.17, rock: 0.16,
-    mech: 0.14, skull: 0.17
-  }[head] || 0.15;
-  const frontSpan = {
-    point: 0.42, blunt: 0.43, hammer: 0.44, whale: 0.45, kaiju: 0.45
-  }[head] || 0.42;
-  const mouthCorner = {
-    whale: 0.58, kaiju: 0.60, croc: 0.58
-  }[head] || 0.62;
-  return { headScale, jawScale, eyeScale: eyeScale || 0.42, bellyDrop, frontSpan, mouthCorner, id: String(sil?.id || '') };
-}
-
-function localSurfaceZ(dimensions, x, y = 0) {
-  const u = clamp((x + dimensions.bodyLen * 0.52) / Math.max(dimensions.bodyLen, 1e-6), 0, 1);
-  const hull = canonicalHullAt(u, dimensions.hullScale);
-  const yRadius = dimensions.radiusY * hull.halfHeight;
-  const zRadius = dimensions.radiusZ * hull.width;
-  const lateral = clamp(Math.abs(y - dimensions.radiusY * hull.center) / Math.max(yRadius, 1e-6), 0, 0.98);
-  return zRadius * Math.sqrt(Math.max(0, 1 - lateral * lateral));
-}
-
-function headHeight(dimensions) {
-  const head = canonicalHullAt(0.84, dimensions.hullScale);
-  return dimensions.radiusY * (head.top - head.belly) * dimensions.exaggeration.headScale;
-}
-
-function makeSpineGeometry(def, palette, dimensions) {
-  const sil = def.sil || {};
-  const len = clamp(finite(sil.len, 1), 0.5, 3);
-  const bodyLen = dimensions.bodyLen;
-  const radiusY = dimensions.radiusY;
-  const radiusZ = dimensions.radiusZ;
-  const stations = def.tier >= 5 ? 26 : def.tier >= 3 ? 24 : 20;
-  // Sixteen radial vertices preserve the cartoon's round cross-section while
-  // leaving room in the 4600-triangle/rig budget for face props.
-  const radial = 16;
-  const ramp = bodyRampColors(palette, finite(def.act, def.tier >= 5 ? 2 : 1));
-  const positions = [];
-  const colors = [];
-  const indices = [];
-  const ringIndices = [];
-
-  const addBodyRing = (i) => {
-    const u = i / stations;
-    const x = -bodyLen * 0.52 + bodyLen * u;
-    const hull = canonicalHullAt(u, dimensions.hullScale);
-    const stationCenterY = radiusY * hull.center;
-    const stationHalfHeight = radiusY * hull.halfHeight;
-    const stationZ = radiusZ * hull.width;
-    const ring = [];
-    for (let j = 0; j < radial; j++) {
-      const theta = (j / radial) * TAU;
-      let color = bodyVertexColor(ramp, theta, u, i, j, sil.pattern || 'plain');
-      // Hard accent edge two rings inboard of the fin roots. The root vertices
-      // are shared with the appendages, so the block is also seam-consistent.
-      if (u >= 0.45 && u <= 0.69 && (Math.cos(theta) > 0.42 || Math.abs(Math.sin(theta)) > 0.82)) {
-        color = ramp.accent.clone();
-      }
-      // The side silhouette is explicit: cos(theta)=+1 is the authored back,
-      // cos(theta)=-1 is the authored belly.  The near-circular z section is
-      // independent of head id, so there are no hard chines or boat flanks.
-      addVertex(positions, colors, x, stationCenterY + Math.cos(theta) * stationHalfHeight, Math.sin(theta) * stationZ, color);
-      ring.push(positions.length / 3 - 1);
-    }
-    ringIndices.push(ring);
-  };
-
-  for (let i = 0; i <= stations; i++) addBodyRing(i);
-  for (let i = 0; i < stations; i++) {
-    for (let j = 0; j < radial; j++) {
-      const next = (j + 1) % radial;
-      const a = ringIndices[i][j], b = ringIndices[i + 1][j];
-      const c = ringIndices[i + 1][next], d = ringIndices[i][next];
-      indices.push(a, d, b, b, d, c);
-    }
-  }
-
-  const root = positions.length / 3;
-  addVertex(positions, colors, -bodyLen * 0.52, 0, 0, ramp.dorsal);
-  const nose = positions.length / 3;
-  addVertex(positions, colors, bodyLen * 0.48, 0, 0, ramp.belly);
-  for (let j = 0; j < radial; j++) {
-    const next = (j + 1) % radial;
-    indices.push(root, ringIndices[0][next], ringIndices[0][j]);
-    indices.push(nose, ringIndices[stations][j], ringIndices[stations][next]);
-  }
-
-  // The tail starts with the spine's rear ring. It is a welded forked loft,
-  // not a second mesh with a root transform. The smaller crescent is joined
-  // through the thick canonical peduncle instead of a wasp waist.
-  const tailScale = dimensions.tailScale;
-  const tailLength = bodyLen * (0.28 + tailScale * 0.03);
-  const tailUpper = bodyLen * (0.12 + clamp(dimensions.finScale, 0.5, 2.1) * 0.014);
-  const tailLower = tailUpper * 0.66;
-  const tailLowerUpperRatio = tailLower / Math.max(tailUpper, 1e-6);
-  const tailDepth = bodyLen * 0.10;
-  // The terminal cap is the projected center notch, not a rearward center
-  // point. A rearward cap vertex closes the two lobes into the convex paddle
-  // that the gameplay review rejected. Keep the notch forward of both
-  // terminal lobe tips in the side profile, while the body-ring root remains
-  // welded exactly as before.
-  const tailNotchAxial = bodyLen * 0.12;
-  const tailTipExtension = 0;
-  const tailRings = [ringIndices[0]];
-  const tailStationCount = 11;
-  const rootHull = canonicalHullAt(0, dimensions.hullScale);
-  const rootCenterY = radiusY * rootHull.center;
-  const rootYRadius = radiusY * rootHull.halfHeight;
-  const rootZRadius = radiusZ * rootHull.width;
-  for (let s = 1; s <= tailStationCount; s++) {
-    const t = s / tailStationCount;
-    const rootBlend = smoothStep01(t / 0.22);
-    const growth = smoothStep01(t / 0.38);
-    const finalTaper = t <= 0.80 ? 1 : 1 - 0.70 * smoothStep01((t - 0.80) / 0.20);
-    const lobeEnvelope = growth * finalTaper;
-    const notchProgress = smoothStep01((t - 0.55) / 0.45);
-    const ring = [];
-    for (let j = 0; j < radial; j++) {
-      const theta = (j / radial) * TAU;
-      const upper = Math.cos(theta) >= 0;
-      const outerness = Math.abs(Math.cos(theta));
-      const lobe = upper ? tailUpper : tailLower;
-      // Keep the loft's center-facing side faces monotone and reserve the full
-      // .12L projected retreat for the terminal notch vertex. This avoids a
-      // folded/inward radial strip while preserving the visible crescent gap.
-      const centerRetreat = tailNotchAxial * 0.5 * notchProgress * (1 - outerness);
-      const x = -bodyLen * 0.52 - tailLength * t + centerRetreat;
-      const rootY = rootCenterY + Math.cos(theta) * rootYRadius;
-      const lobeY = (upper ? 1 : -1) * outerness * lobe * lobeEnvelope;
-      const y = rootY * (1 - rootBlend) + lobeY * rootBlend;
-      const sectionDepth = rootZRadius * (1 - rootBlend) + tailDepth * (0.92 + 0.08 * Math.sin(Math.PI * t)) * rootBlend;
-      const z = Math.sin(theta) * sectionDepth;
-      // The exposed fork is one continuous accent block; only the small
-      // center-facing transition row keeps a flank hue for volume.
-      const color = outerness > 0.18 || t > 0.24 ? ramp.accent.clone() : ramp.flank.clone();
-      addVertex(positions, colors, x, y, z, color);
-      ring.push(positions.length / 3 - 1);
-    }
-    tailRings.push(ring);
-  }
-  const tailSideIndexStart = indices.length;
-  for (let i = 0; i < tailRings.length - 1; i++) {
-    for (let j = 0; j < radial; j++) {
-      const next = (j + 1) % radial;
-      const a = tailRings[i][j], b = tailRings[i + 1][j];
-      const c = tailRings[i + 1][next], d = tailRings[i][next];
-      // The body loft advances +X, while the tail advances -X. Reusing
-      // a,d,b on the reversed longitudinal direction flips every caudal side
-      // normal inward and makes FrontSide cull the camera-facing tail.
-      indices.push(a, b, d, b, c, d);
-    }
-  }
-  const tailSideIndexCount = indices.length - tailSideIndexStart;
-  const tailTip = positions.length / 3;
-  addVertex(positions, colors, -bodyLen * 0.52 - tailLength + tailNotchAxial, 0, 0, ramp.accent);
-  const lastTailRing = tailRings[tailRings.length - 1];
-  const tailCapIndexStart = indices.length;
-  for (let j = 0; j < radial; j++) {
-    const next = (j + 1) % radial;
-    indices.push(lastTailRing[next], lastTailRing[j], tailTip);
-  }
-  const tailCapIndexCount = indices.length - tailCapIndexStart;
-
-  const nearestRing = (u) => ringIndices[clamp(Math.round(u * stations), 0, stations)];
-
-  // Dorsal wedge: its root is two top vertices from the body loft.
-  const dorsalRootRear = nearestRing(0.45)[0];
-  const dorsalRootFront = nearestRing(0.62)[0];
-  const dorsalHeight = bodyLen * (0.105 + clamp(dimensions.finScale, 0.5, 2.1) * 0.018);
-  const dorsalTipX = bodyLen * 0.02;
-  const dorsalTipY = radiusY * canonicalHullAt(0.54, dimensions.hullScale).top + dorsalHeight;
-  const dorsalDepth = Math.max(0.018, radiusZ * 0.12);
-  const dorsalTipNear = positions.length / 3;
-  addVertex(positions, colors, dorsalTipX, dorsalTipY, dorsalDepth * 0.5, ramp.accent);
-  const dorsalTipFar = positions.length / 3;
-  addVertex(positions, colors, dorsalTipX, dorsalTipY, -dorsalDepth * 0.5, ramp.accent);
-  const dorsalIndexStart = indices.length;
-  indices.push(dorsalRootRear, dorsalRootFront, dorsalTipNear, dorsalRootFront, dorsalTipFar, dorsalTipNear);
-  indices.push(dorsalRootFront, dorsalRootRear, dorsalTipFar, dorsalRootRear, dorsalTipNear, dorsalTipFar);
-  const dorsalIndexCount = indices.length - dorsalIndexStart;
-
-  // Pectoral wedges also share body-ring vertices. They are mirrored in the
-  // authoring pass, never rotated as independent runtime meshes.
-  const pectRootRing = nearestRing(0.46);
-  const pectSpan = dimensions.pectoralSpan;
-  const pectTipX = -bodyLen * (dimensions.head === 'hammer' ? 0.54 : dimensions.head === 'whale' ? 0.50 : dimensions.head === 'angler' ? 0.54 : 0.50 + dimensions.finScale * 0.035);
-  const pectDepth = Math.max(0.012, radiusY * 0.035);
-  const pectRoots = {};
-  const pectoralIndexStart = indices.length;
-  for (const side of [1, -1]) {
-    const rootA = side > 0 ? pectRootRing[3] : pectRootRing[13];
-    const rootB = side > 0 ? pectRootRing[5] : pectRootRing[11];
-    const tipA = positions.length / 3;
-    addVertex(positions, colors, pectTipX, -radiusY * 0.42, side * pectSpan, ramp.accent);
-    const tipB = positions.length / 3;
-    addVertex(positions, colors, pectTipX + bodyLen * 0.10, -radiusY * 0.20, side * pectSpan * 0.56, ramp.accent);
-    indices.push(rootA, rootB, tipA, rootB, tipB, tipA, rootB, rootA, tipB, rootA, tipA, tipB);
-    pectRoots[side > 0 ? 'L' : 'R'] = [rootA, rootB];
-  }
-  const pectoralIndexCount = indices.length - pectoralIndexStart;
-
-  const geometry = bufferGeometry(positions, indices, colors);
-  geometry.userData.rfStations = stations + 1;
-  geometry.userData.rfRadial = radial;
-  geometry.userData.rfProfile = 'canonical-cartoon-shark';
-  geometry.userData.rfLen = len;
-  geometry.userData.rfNoseIndex = nose;
-  geometry.userData.rfTailRootIndex = root;
-  geometry.userData.rfTailRootIndices = ringIndices[0].slice();
-  geometry.userData.rfSharedAppendageRoots = {
-    tail: ringIndices[0].slice(),
-    dorsal: [dorsalRootRear, dorsalRootFront],
-    pectorals: pectRoots
-  };
-  geometry.userData.rfWeldedAppendages = { tail: true, dorsal: true, pectorals: true };
-  geometry.userData.rfForwardAxis = '+x';
-  geometry.userData.rfPattern = sil.pattern || 'plain';
-  geometry.userData.rfPalette = palette.raw;
-  geometry.userData.rfTailLength = tailLength + tailTipExtension;
-  geometry.userData.rfTailLengthRatio = (tailLength + tailTipExtension) / Math.max(bodyLen, 0.001);
-  geometry.userData.rfTailUpperLobeHeight = tailUpper;
-  geometry.userData.rfTailLowerLobeHeight = tailLower;
-  geometry.userData.rfTailLowerUpperRatio = tailLowerUpperRatio;
-  geometry.userData.rfTailDepth = tailDepth;
-  geometry.userData.rfTailNotchAxial = tailNotchAxial;
-  geometry.userData.rfTailUpperLobeTipIndex = lastTailRing[0];
-  geometry.userData.rfTailLowerLobeTipIndex = lastTailRing[radial / 2];
-  geometry.userData.rfTailNotchIndex = tailTip;
-  geometry.userData.rfTailFinalLobeRatio = 0.30;
-  geometry.userData.rfTailStationCount = tailStationCount;
-  geometry.userData.rfTailPointedCap = true;
-  geometry.userData.rfTailRootWidth = bodyLen * 0.045;
-  geometry.userData.rfTailNotchX = positions[tailTip * 3];
-  geometry.userData.rfTailOutline = 'crescent-concave-peduncle-notch';
-  geometry.userData.rfTailHead = dimensions.head;
-  geometry.userData.rfTailId = String(def.id || '');
-  geometry.userData.rfTailSideIndexStart = tailSideIndexStart;
-  geometry.userData.rfTailSideIndexCount = tailSideIndexCount;
-  geometry.userData.rfTailCapIndexStart = tailCapIndexStart;
-  geometry.userData.rfTailCapIndexCount = tailCapIndexCount;
-  geometry.userData.rfDorsalIndexStart = dorsalIndexStart;
-  geometry.userData.rfDorsalIndexCount = dorsalIndexCount;
-  geometry.userData.rfPectoralIndexStart = pectoralIndexStart;
-  geometry.userData.rfPectoralIndexCount = pectoralIndexCount;
-  geometry.userData.rfWindingContract = 'tail-outward-yz-dorsal-+-z-pectoral-mirrored';
-  geometry.userData.rfDorsalFin = { rootX: bodyLen * 0.05, height: dorsalHeight, swept: true };
-  geometry.userData.rfPectoralTipX = pectTipX;
-  geometry.userData.rfPectoralDepth = pectDepth;
-  geometry.userData.rfPectoralSpan = pectSpan;
-  geometry.userData.rfFinAccentBlock = 'hard-edge-2-rings-inboard';
-  geometry.userData.rfSectionZRatio = radiusZ / Math.max(radiusY, 0.001);
-  const midU = 0.5;
-  const midHull = canonicalHullAt(midU, dimensions.hullScale);
-  const midYRadius = radiusY * midHull.halfHeight;
-  const midZRadius = radiusZ * midHull.width;
-  geometry.userData.rfMidSectionYRadius = midYRadius;
-  geometry.userData.rfMidSectionZRadius = midZRadius;
-  geometry.userData.rfMidSectionRoundness = midZRadius / Math.max(midYRadius, 0.001);
-  geometry.userData.rfHullScale = dimensions.hullScale;
-  geometry.userData.rfHullDepthRatio = dimensions.hullDepthRatio;
-  geometry.userData.rfHullHeadFraction = 0.30;
-  geometry.userData.rfHullSnoutRadiusRatio = radiusY * canonicalHullAt(1, dimensions.hullScale).halfHeight / Math.max(bodyLen, 1e-6);
-  geometry.userData.rfHullDorsalHeightRatio = dorsalHeight / Math.max(bodyLen, 1e-6);
-  geometry.userData.rfHullPectoralSpanRatio = pectSpan / Math.max(bodyLen, 1e-6);
-  geometry.userData.rfTailRootDepthRatio = radiusY * (rootHull.top - rootHull.belly) / Math.max(bodyLen, 1e-6);
-  geometry.userData.rfBulkRearProfile = canonicalHullAt(0.22, dimensions.hullScale).halfHeight;
-  geometry.userData.rfBulkFrontProfile = canonicalHullAt(0.68, dimensions.hullScale).halfHeight;
-  geometry.userData.rfBulkNoseProfile = canonicalHullAt(0.94, dimensions.hullScale).halfHeight;
-  return geometry;
-}
-
-function makeExtrudedTriangle(points, depth) {
-  const positions = [];
-  for (const point of points) positions.push(point[0], point[1], point[2] + depth * 0.5);
-  for (const point of points) positions.push(point[0], point[1], point[2] - depth * 0.5);
-  const indices = [0, 1, 2, 5, 4, 3, 0, 3, 4, 0, 4, 1, 1, 4, 5, 1, 5, 2, 2, 5, 3, 2, 3, 0];
-  return bufferGeometry(positions, indices);
-}
-
-/* A face is a silhouette decision, not a decal. Keep these contours convex
- * and deliberately oversized so the front third survives the gameplay
- * camera. The z extrusion also makes the mouth/head relationship readable
- * when the camera is a few degrees off the side axis. */
-function makeExtrudedPolygon(points, depth) {
-  points = cameraFacingPolygon(points);
-  const positions = [];
-  for (const point of points) positions.push(point[0], point[1], point[2] + depth * 0.5);
-  for (const point of points) positions.push(point[0], point[1], point[2] - depth * 0.5);
-  const n = points.length;
-  const indices = [];
-  for (let i = 1; i < n - 1; i++) indices.push(0, i, i + 1, n, n + i + 1, n + i);
-  for (let i = 0; i < n; i++) {
-    const next = (i + 1) % n;
-    indices.push(i, next, n + i, next, n + next, n + i);
-  }
-  return bufferGeometry(positions, indices);
-}
-
-function makeVertexColorExtrudedPolygon(points, depth, frontColor, backColor = frontColor) {
-  points = cameraFacingPolygon(points);
-  const positions = [];
-  const colors = [];
-  const front = colorValue(frontColor, WHITE);
-  const back = colorValue(backColor, WHITE);
-  for (const point of points) {
-    positions.push(point[0], point[1], point[2] + depth * 0.5);
-    colors.push(front.r, front.g, front.b);
-  }
-  for (const point of points) {
-    positions.push(point[0], point[1], point[2] - depth * 0.5);
-    colors.push(back.r, back.g, back.b);
-  }
-  const n = points.length;
-  const indices = [];
-  for (let i = 1; i < n - 1; i++) indices.push(0, i, i + 1, n, n + i + 1, n + i);
-  for (let i = 0; i < n; i++) {
-    const next = (i + 1) % n;
-    indices.push(i, next, n + i, next, n + next, n + i);
-  }
-  const geometry = bufferGeometry(positions, indices, colors);
-  geometry.userData.rfVertexColorFeature = true;
-  return geometry;
-}
-
-function faceIdentity(head, L, r) {
-  // The face is a preset layered on the canonical body. All variants keep the
-  // same 0.20-.30L resting grin; only the brow/jaw/identity props vary.
-  const start = L * 0.18;
-  const end = L * 0.48;
-  const face = {
-    start, end, share: (end - start) / L,
-    mouthStart: L * 0.22, mouthWidth: L * 0.26, mouthHeight: r * 0.52,
-    jawWidth: L * 0.27, jawHeight: r * 0.46, jawDepth: r * 0.72,
-    top: r * 0.78, bottom: -r * 0.76, contour: null
-  };
-  if (head === 'whale') {
-    // Whale shark keeps the shared face language, but its feeding opening is
-    // deliberately broad enough to survive as a whale-shark cue at the
-    // 128px silhouette review size.
-    face.mouthWidth = L * 0.50;
-    face.mouthHeight = r * 0.62;
-    face.jawWidth = L * 0.50;
-    face.jawHeight = r * 0.54;
-  } else if (head === 'kaiju') {
-    face.mouthWidth = L * 0.29;
-    face.mouthHeight = r * 0.60;
-    face.jawWidth = L * 0.30;
-    face.jawHeight = r * 0.52;
-  } else if (head === 'eel') {
-    face.mouthWidth = L * 0.22;
-    face.mouthHeight = r * 0.44;
-  } else if (head === 'croc' || head === 'angler') {
-    face.mouthWidth = L * 0.28;
-    face.mouthHeight = r * 0.58;
-  }
-  face.contour = [
-    [start, -r * 0.68, 0], [L * 0.28, -r * 0.78, 0],
-    [end, -r * 0.58, 0], [end, r * 0.62, 0],
-    [L * 0.28, r * 0.86, 0], [start, r * 0.72, 0]
-  ];
-  return face;
-}
-
-function mergeFeatureDescriptors(features, options = {}) {
-  const buckets = new Map();
-  const compactMaterial = options.material || null;
-  for (const feature of features) {
-    if (!feature?.geometry || !feature.material) continue;
-    const key = compactMaterial ? compactMaterial.uuid : feature.material.uuid;
-    let bucket = buckets.get(key);
-    if (!bucket) {
-      bucket = { material: compactMaterial || feature.material, positions: [], colors: [], indices: [], names: [], count: 0, hasColors: !!compactMaterial };
-      buckets.set(key, bucket);
-    }
-    const position = feature.geometry.getAttribute('position');
-    if (!position) continue;
-    const sourceColors = feature.geometry.getAttribute('color');
-    if (sourceColors && !bucket.hasColors) {
-      bucket.hasColors = true;
-      bucket.colors = new Array(bucket.positions.length).fill(1);
-    }
-    const matrix = new THREE.Matrix4().compose(
-      new THREE.Vector3(...feature.position),
-      new THREE.Quaternion().setFromEuler(new THREE.Euler(...feature.rotation)),
-      new THREE.Vector3(...feature.scale)
-    );
-    const offset = bucket.positions.length / 3;
-    for (let i = 0; i < position.count; i++) {
-      const vertex = new THREE.Vector3(position.getX(i), position.getY(i), position.getZ(i)).applyMatrix4(matrix);
-      bucket.positions.push(vertex.x, vertex.y, vertex.z);
-      if (bucket.hasColors) {
-        const sourceColor = sourceColors
-          ? [sourceColors.getX(i), sourceColors.getY(i), sourceColors.getZ(i)]
-          : [feature.material.color?.r ?? 1, feature.material.color?.g ?? 1, feature.material.color?.b ?? 1];
-        bucket.colors.push(sourceColor[0], sourceColor[1], sourceColor[2]);
-      }
-    }
-    const index = feature.geometry.getIndex();
-    if (index) {
-      for (let i = 0; i < index.count; i++) bucket.indices.push(offset + index.getX(i));
-    } else {
-      for (let i = 0; i < position.count; i++) bucket.indices.push(offset + i);
-    }
-    bucket.names.push(feature.name);
-    bucket.count++;
-  }
-  return Array.from(buckets.values()).map((bucket) => {
-    const geometry = bufferGeometry(bucket.positions, bucket.indices, bucket.hasColors ? bucket.colors : null);
-    geometry.userData.rfMerged = true;
-    geometry.userData.rfFeatureCount = bucket.count;
-    geometry.userData.rfFeatureNames = bucket.names;
-    geometry.userData.rfVertexColorFeature = bucket.hasColors;
-    return { geometry, material: bucket.material, name: `batched ${bucket.names.slice(0, 4).join(' / ')}` };
-  });
-}
-
-function makeJawGeometry(width, height, depth, ramp) {
-  const hinge = -width * 0.16;
-  const authoredContour = [
-    // A shallow U-shaped lower jaw keeps the chew/snap part of the rig
-    // readable as belly material. The old near-straight top edge became a
-    // white rail when the jaw opened, especially on the broad whale mouth.
-    [hinge, height * 0.08, 0], [width * 0.16, height * 0.08, 0],
-    [width * 0.34, height * 0.03, 0], [width * 0.50, -height * 0.08, 0],
-    [width * 0.66, height * 0.03, 0], [width * 0.84, height * 0.08, 0],
-    [width, -height * 0.08, 0], [width * 0.94, -height * 0.58, 0],
-    [width * 0.72, -height * 0.88, 0], [width * 0.28, -height * 0.88, 0],
-    [hinge * 0.42, -height * 0.64, 0]
-  ];
-  const contour = cameraFacingPolygon(authoredContour);
-  const positions = [];
-  const colors = [];
-  // Use the resolved belly ramp across the cheek-facing cap.  The old dark
-  // rim plus BackSide shell made this articulated piece read as a separate
-  // vehicle bumper instead of the animal's lower jaw.
-  const rimColors = [
-    ramp.belly, ramp.belly, ramp.belly, ramp.belly, ramp.highlight,
-    ramp.belly, ramp.belly, ramp.belly, ramp.belly, ramp.belly, ramp.belly
-  ];
-  for (let side = 0; side < 2; side++) {
-    for (let i = 0; i < contour.length; i++) {
-      const point = contour[i];
-      const color = side === 0 ? rimColors[i] : ramp.dark;
-      addVertex(positions, colors, point[0], point[1], side ? -depth * 0.5 : depth * 0.5, color);
-    }
-  }
-  const n = contour.length;
-  const indices = [];
-  for (let i = 1; i < n - 1; i++) indices.push(0, i, i + 1, n, n + i + 1, n + i);
-  for (let i = 0; i < n; i++) {
-    const next = (i + 1) % n;
-    indices.push(i, next, n + i, next, n + next, n + i);
-  }
-  const geometry = bufferGeometry(positions, indices, colors);
-  const jawSize = geometry.boundingBox.getSize(new THREE.Vector3());
-  geometry.userData.rfJawVolume = jawSize.x * jawSize.y * jawSize.z;
-  geometry.userData.rfJawHingeX = hinge;
-  geometry.userData.rfJawRimMatchesBody = true;
-  geometry.userData.rfJawCavityBand = true;
-  return geometry;
-}
-
-function makeBeveledPanel(width, height, depth, bevel) {
-  const x = width * 0.5;
-  const y = height * 0.5;
-  const b = Math.min(bevel, x * 0.45, y * 0.45);
-  const contour = [[-x + b, -y], [x - b, -y], [x, -y + b], [x, y - b], [x - b, y], [-x + b, y], [-x, y - b], [-x, -y + b]];
-  const positions = [];
-  for (const p of contour) positions.push(p[0], p[1], depth * 0.5);
-  for (const p of contour) positions.push(p[0], p[1], -depth * 0.5);
-  const indices = [];
-  for (let i = 1; i < contour.length - 1; i++) indices.push(0, i, i + 1, 8, 8 + i + 1, 8 + i);
-  for (let i = 0; i < contour.length; i++) {
-    const n = (i + 1) % contour.length;
-    indices.push(i, n, 8 + i, n, 8 + n, 8 + i);
-  }
-  return bufferGeometry(positions, indices);
-}
-
-function makeMouthGeometry(width, height, depth = 0.04) {
-  // This is a deliberately deep, concave grin. The old fan-triangulated
-  // cavity had a nearly straight top edge at gameplay scale, so use a real
-  // polygon triangulation here: the corners rise, the centre drops, and the
-  // lower curve leaves enough black field around each separate tooth.
-  const authored = [
-    [0.00, 0.30], [0.12, 0.52], [0.26, 0.34], [0.38, 0.14],
-    [0.50, 0.08], [0.62, 0.14], [0.74, 0.34], [0.88, 0.52],
-    [1.00, 0.30], [0.96, -0.28], [0.82, -0.52], [0.68, -0.68],
-    [0.32, -0.68], [0.18, -0.52], [0.04, -0.28]
-  ];
-  const contour = cameraFacingPolygon(authored.map(([x, y]) => [x * width, y * height, 0]));
-  const shapePoints = contour.map(([x, y]) => new THREE.Vector2(x, y));
-  const triangles = THREE.ShapeUtils.triangulateShape(shapePoints, []);
-  const positions = [];
-  for (const point of contour) positions.push(point[0], point[1], depth * 0.5);
-  for (const point of contour) positions.push(point[0], point[1], -depth * 0.5);
-  const n = contour.length;
-  const indices = [];
-  const signedArea = (a, b, c) => (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
-  for (const triangle of triangles) {
-    const [a, b, c] = triangle;
-    const front = signedArea(shapePoints[a], shapePoints[b], shapePoints[c]) >= 0
-      ? [a, b, c] : [a, c, b];
-    indices.push(front[0], front[1], front[2]);
-    indices.push(n + front[2], n + front[1], n + front[0]);
-  }
-  for (let i = 0; i < n; i++) {
-    const next = (i + 1) % n;
-    indices.push(i, next, n + i, next, n + next, n + i);
-  }
-  const geometry = bufferGeometry(positions, indices);
-  geometry.userData.rfMouth = true;
-  geometry.userData.rfMouthCavity = true;
-  geometry.userData.rfSize = { width, height };
-  geometry.userData.rfCavityHeight = height * 1.20;
-  geometry.userData.rfCornerLift = height * (0.52 - 0.08);
-  return geometry;
-}
-
-const MOUTH_TOP_PROFILE = Object.freeze([
-  [0.00, 0.30], [0.12, 0.52], [0.26, 0.34], [0.38, 0.14],
-  [0.50, 0.08], [0.62, 0.14], [0.74, 0.34], [0.88, 0.52], [1.00, 0.30]
-]);
-
-function mouthTopAt(t, height) {
-  return authoredCurveAt(MOUTH_TOP_PROFILE, t) * height;
-}
-
-function makeCylinderBetween(length, radius) {
-  return new THREE.CylinderGeometry(radius, radius * 0.88, length, 5, 1, false);
-}
-
-function descriptor(geometry, material, position = [0, 0, 0], rotation = [0, 0, 0], scale = [1, 1, 1], name = 'feature') {
-  return { geometry, material, position, rotation, scale, name };
-}
-
-function featureMaterialValue(material) {
-  return rgbToHsv(material?.color || WHITE).v;
-}
-
-function identityMarkColor(palette, hue = palette.resolved.accent.h, saturation = 0.96) {
-  const flankValue = palette.resolved.base.v;
-  // The identity mark is deliberately either a high-value radiant block or a
-  // void-dark block. A mid-value mark disappears into the resolved flank ramp
-  // and violates the proud-placement/readability contract at gameplay scale.
-  const value = flankValue + 0.30 <= 1 ? flankValue + 0.30 : 0.10;
-  return hsvToColor(hue, saturation, value);
-}
-
-function identityGlowMaterial(palette, color, kind = 'pantheon identity glow') {
-  const glow = palette.glow || palette.accent;
-  return toonMaterial({
-    color,
-    glow,
-    emissiveIntensity: 0.92,
-    kind
-  });
-}
-
-function identitySolidMaterial(color, kind = 'pantheon identity solid') {
-  return toonMaterial({ color, kind });
-}
-
-function identityFeature(template, geometry, material, position, rotation, scale, name, dimensions) {
-  const proudOffset = clamp(
-    finite(dimensions.bodyLen * (position?.[2] > 0 ? 0.05 : 0.04), dimensions.bodyLen * 0.04),
-    dimensions.bodyLen * 0.03,
-    dimensions.bodyLen * 0.08
-  );
-  const feature = descriptor(geometry, material, position, rotation, scale, name);
-  feature.rfIdentityFeature = true;
-  feature.rfProudOffset = proudOffset;
-  feature.rfDeltaV = Math.abs(featureMaterialValue(material) - template.palette.resolved.base.v);
-  template.bodyFeatures.push(feature);
-  template.identityFeatureRecords.push({ name, proudOffset, deltaV: feature.rfDeltaV });
-  return feature;
-}
-
-function projectedFeatureBounds(feature, yaw = SHARK_POSE_YAW) {
-  const geometry = feature?.geometry;
-  const position = geometry?.getAttribute?.('position');
-  if (!position) return { minX: 0, maxX: 0, minY: 0, maxY: 0, width: 0, height: 0, area: 0 };
-  const index = geometry.getIndex?.();
-  const matrix = new THREE.Matrix4().compose(
-    new THREE.Vector3(...(feature.position || [0, 0, 0])),
-    new THREE.Quaternion().setFromEuler(new THREE.Euler(...(feature.rotation || [0, 0, 0]))),
-    new THREE.Vector3(...(feature.scale || [1, 1, 1]))
-  );
-  const c = Math.cos(yaw);
-  const s = Math.sin(yaw);
-  const points = [];
-  const project = (vertex) => {
-    vertex.applyMatrix4(matrix);
-    return { x: vertex.x * c + vertex.z * s, y: vertex.y };
-  };
-  for (let i = 0; i < position.count; i++) {
-    points.push(project(new THREE.Vector3().fromBufferAttribute(position, i)));
-  }
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  for (const point of points) {
-    minX = Math.min(minX, point.x); maxX = Math.max(maxX, point.x);
-    minY = Math.min(minY, point.y); maxY = Math.max(maxY, point.y);
-  }
-  let area = 0;
-  if (index) {
-    for (let i = 0; i < index.count; i += 3) {
-      const a = points[index.getX(i)];
-      const b = points[index.getX(i + 1)];
-      const d = points[index.getX(i + 2)];
-      area += Math.abs((b.x - a.x) * (d.y - a.y) - (b.y - a.y) * (d.x - a.x)) * 0.5;
-    }
-    // Front/back caps describe the same visible footprint. Side walls still
-    // contribute a little at the quarter-view yaw, so halve the duplicated
-    // cap area for a conservative screen-space estimate.
-    area *= 0.5;
-  }
-  return { minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY, area };
-}
-
-function unionProjectedBounds(features) {
-  const bounds = (features || []).map((feature) => projectedFeatureBounds(feature));
-  if (!bounds.length) return { minX: 0, maxX: 0, minY: 0, maxY: 0, width: 0, height: 0, area: 0 };
-  const result = {
-    minX: Math.min(...bounds.map((item) => item.minX)),
-    maxX: Math.max(...bounds.map((item) => item.maxX)),
-    minY: Math.min(...bounds.map((item) => item.minY)),
-    maxY: Math.max(...bounds.map((item) => item.maxY)),
-    area: bounds.reduce((sum, item) => sum + item.area, 0)
-  };
-  result.width = result.maxX - result.minX;
-  result.height = result.maxY - result.minY;
-  return result;
-}
-
-function setIdentityPrimary(template, cue, features, dimensions, options = {}) {
-  const footprint = unionProjectedBounds(features);
-  const hero = unionProjectedBounds(options.heroFeatures || features);
-  const bodyFootprint = projectedFeatureBounds({ geometry: template.bodyGeometry });
-  const body = template.bodyGeometry?.boundingBox;
-  const bodyWidth = Math.max(0.001, (body?.max.x || dimensions.bodyLen) - (body?.min.x || -dimensions.bodyLen));
-  const bodyHeight = Math.max(0.001, (body?.max.y || dimensions.radiusY) - (body?.min.y || -dimensions.radiusY));
-  const headH = headHeight(dimensions);
-  const protrusion = Math.max(
-    0,
-    bodyFootprint.minX - hero.minX,
-    hero.maxX - bodyFootprint.maxX,
-    bodyFootprint.minY - hero.minY,
-    hero.maxY - bodyFootprint.maxY
-  ) / Math.max(dimensions.bodyLen, 1e-6);
-  template.metrics.identityPrimary = {
-    cue,
-    projectedFootprint: footprint,
-    heroFootprint: hero,
-    bodyFootprint,
-    heroSpanRatio: hero.width / Math.max(dimensions.bodyLen, 1e-6),
-    heroHeightRatio: hero.height / Math.max(headH, 1e-6),
-    projectedAreaRatio: footprint.area / Math.max(bodyWidth * bodyHeight, 1e-6),
-    // A shark's filled silhouette occupies roughly half of its body bbox at
-    // this quarter-view angle; use that visible-pixel estimate for the
-    // pairwise 8% contour fallback rather than the empty bbox corners.
-    silhouetteAreaRatio: Math.min(1, footprint.width * footprint.height / Math.max(bodyWidth * bodyHeight * 0.50, 1e-6)),
-    screenWidthPx: 0,
-    screenHeightPx: 0,
-    bodyOverlapRatio: finite(options.bodyOverlapRatio, 0.10),
-    // The review's hull is the local body/appendage contour at the cue's
-    // root, not the opposite tail tip. Keep the conservative whole-body bbox
-    // result for telemetry, while enforcing the authored local-hull measure
-    // supplied with each contour root.
-    protrusionRatio: finite(options.protrusionRatio, protrusion),
-    computedProtrusionRatio: protrusion,
-    declaredProtrusionRatio: finite(options.protrusionRatio, 0),
-    eyeSeparationRatio: finite(options.eyeSeparationRatio, 0),
-    monster: !!options.monster,
-    bodyWidth,
-    bodyHeight,
-    headHeight: headH
-  };
-}
-
-function resolveIdentityScreenMetrics(primary, group, def) {
-  if (!primary) return null;
-  const renderedLength = 96 * clamp(finite(def?.sil?.len, 1), 0.5, 3);
-  const cameraZ = clamp(renderedLength * 1.60, 185, 400);
-  const viewWidth = 2 * cameraZ * Math.tan((50 * Math.PI / 180) / 2) * (844 / 390);
-  const cssPxPerWorldUnit = 844 / viewWidth;
-  const cssPxPerLocalUnit = finite(group.userData.baseScale, 1) * cssPxPerWorldUnit;
-  return {
-    ...primary,
-    screenWidthPx: primary.projectedFootprint.width * cssPxPerLocalUnit,
-    screenHeightPx: primary.projectedFootprint.height * cssPxPerLocalUnit,
-    heroScreenWidthPx: primary.heroFootprint.width * cssPxPerLocalUnit,
-    heroScreenHeightPx: primary.heroFootprint.height * cssPxPerLocalUnit,
-    cameraZ,
-    cssPxPerLocalUnit
-  };
-}
-
-function identityPolygon(points, depth) {
-  return makeExtrudedPolygon(points.map(([x, y]) => [x, y, 0]), depth);
-}
-
-function identityBar(x, y, width, height, depth) {
-  return identityPolygon([
-    [x - width * 0.5, y - height * 0.5],
-    [x + width * 0.5, y - height * 0.5],
-    [x + width * 0.5, y + height * 0.5],
-    [x - width * 0.5, y + height * 0.5]
-  ], depth);
-}
-
-function identityRing(radius, stroke, segments = 8) {
-  return new THREE.RingGeometry(Math.max(0.001, radius - stroke), radius, segments);
-}
-
-// Open contour strokes are used by the Pantheon rows whose identity depends
-// on a cutout or a curved profile. Unlike a concave polygon fan, a ribbon
-// keeps the negative space honest at gameplay scale and gives every point of
-// the stroke a continuous front/back cap. No existing feature path uses this
-// helper, so established feature geometry keeps its existing behavior.
-function identityRibbon(points, stroke, depth) {
-  const half = Math.max(0.002, stroke * 0.5);
-  const front = [];
-  const back = [];
-  for (let i = 0; i < points.length; i++) {
-    const previous = points[Math.max(0, i - 1)];
-    const next = points[Math.min(points.length - 1, i + 1)];
-    const tangentX = next[0] - previous[0];
-    const tangentY = next[1] - previous[1];
-    const length = Math.hypot(tangentX, tangentY) || 1;
-    const normalX = -tangentY / length;
-    const normalY = tangentX / length;
-    const left = [points[i][0] + normalX * half, points[i][1] + normalY * half];
-    const right = [points[i][0] - normalX * half, points[i][1] - normalY * half];
-    front.push(left, right);
-    back.push(left, right);
-  }
-  const positions = [];
-  for (const point of front) positions.push(point[0], point[1], depth * 0.5);
-  for (const point of back) positions.push(point[0], point[1], -depth * 0.5);
-  const stride = points.length * 2;
-  const indices = [];
-  for (let i = 0; i < points.length - 1; i++) {
-    const a = i * 2;
-    const b = (i + 1) * 2;
-    indices.push(a, b, b + 1, a, b + 1, a + 1);
-    indices.push(stride + a, stride + b + 1, stride + b, stride + a, stride + a + 1, stride + b + 1);
-    indices.push(a, stride + a, stride + b, a, stride + b, b);
-    indices.push(a + 1, b + 1, stride + b + 1, a + 1, stride + b + 1, stride + a + 1);
-  }
-  const geometry = bufferGeometry(positions, indices);
-  geometry.userData.rfOpenRibbon = true;
-  return geometry;
-}
-
-function identityArcRibbon(cx, cy, rx, ry, start, end, stroke, depth, segments = 18) {
-  const points = [];
-  for (let i = 0; i <= segments; i++) {
-    const t = i / segments;
-    const angle = start + (end - start) * t;
-    points.push([cx + Math.cos(angle) * rx, cy + Math.sin(angle) * ry]);
-  }
-  return identityRibbon(points, stroke, depth);
-}
-
-function identitySpiral(cx, cy, rx, ry, turns, start, stroke, depth, segments = 24) {
-  const points = [];
-  for (let i = 0; i <= segments; i++) {
-    const t = i / segments;
-    const angle = start + turns * TAU * t;
-    const radius = 1 - 0.72 * t;
-    points.push([cx + Math.cos(angle) * rx * radius, cy + Math.sin(angle) * ry * radius]);
-  }
-  return identityRibbon(points, stroke, depth);
-}
-
-function addEyeFeatures(template, def, palette, dimensions) {
-  const head = def.sil?.head || 'point';
-  const id = String(def.id || '');
-  const act = finite(def.act, def.tier >= 5 ? 2 : 1);
-  const eyeScale = dimensions.exaggeration?.eyeScale || exaggerationFor(head).eyeScale;
-  const cyclops = id === 'cyclopseye';
-  const eyeRadius = dimensions.radiusY * (cyclops ? 0.31 : eyeScale);
-  // The authored .42-.50 radius ratios are sound in model space, but the
-  // gameplay camera normalizes the full welded tail-to-nose bbox. Give the
-  // visible eye unit a measured camera compensation so its near-eye disk is
-  // not reduced to a white pixel at the 844 CSS px review viewport.
-  const eyeRenderRadius = eyeRadius * EYE_CAMERA_SCALE;
-  const eyeX = dimensions.bodyLen * (head === 'hammer' ? 0.38 : head === 'whale' ? 0.28 : 0.36);
-  const eyeY = cyclops ? dimensions.radiusY * 0.46 : dimensions.radiusY * 0.54 * dimensions.hullScale;
-  const eyeSurfaceZ = localSurfaceZ(dimensions, eyeX, eyeY);
-  // The hemisphere is seated into the cheek.  Its flat back is only a small
-  // fraction proud of the resolved hull surface, so there is no stalk/gap
-  // silhouette while the front half remains legible at gameplay distance.
-  const eyeProudZ = dimensions.bodyLen * 0.012;
-  const eyeZ = eyeSurfaceZ + eyeProudZ;
-  template.metrics.eyeRadius = eyeRadius;
-  template.metrics.eyeRenderRadius = eyeRenderRadius;
-  template.metrics.eyeRenderRadiusFraction = eyeRenderRadius / Math.max(dimensions.radiusY, 1e-6);
-  template.metrics.eyeRadiusFraction = eyeRadius / Math.max(dimensions.radiusY, 1e-6);
-  template.metrics.eyeHeadHeightFraction = (eyeRadius * 2) / Math.max(headHeight(dimensions), 1e-6);
-  template.metrics.eyeX = eyeX;
-  template.metrics.eyeY = eyeY;
-  template.metrics.eyeSurfaceZ = eyeSurfaceZ;
-  template.metrics.eyeZ = eyeZ;
-  template.metrics.eyeProudZ = eyeProudZ;
-  template.metrics.eyeIrisFraction = 0.52;
-  template.metrics.eyeIrisStats = palette.resolved.accent;
-  const eyeBaseSeed = head === 'skull' ? palette.accent : lerpColor(palette.belly, WHITE, 0.58);
-  const eyeBase = liftColorToLuminance(eyeBaseSeed, 0.78);
-  // Every iris is a resolved saturated accent block. Act 2/3 may add the
-  // authored glow as emissive support, but discovery never depends on FX.
-  const eyeIris = act >= 2 ? (palette.glow || palette.accent) : palette.accent.clone();
-  const eyeGlow = act >= 2 ? (palette.glow || palette.accent) : 0;
-  const eyeBaseMaterial = toonMaterial({ color: eyeBase, glow: eyeGlow, emissiveIntensity: EYE_EMISSIVE_INTENSITY, kind: 'eye' });
-  const irisMaterial = toonMaterial({ color: eyeIris, glow: eyeGlow, emissiveIntensity: EYE_EMISSIVE_INTENSITY, kind: 'iris' });
-  const catchlightMaterial = toonMaterial({ color: WHITE, kind: 'catchlight' });
-  const eyeRingMaterial = act >= 3
-    ? toonMaterial({ color: palette.glow || palette.accent, glow: palette.glow || palette.accent, emissiveIntensity: 1.0, side: THREE.DoubleSide, kind: 'eye ring' })
-    : null;
-  // Hero recut: brow ridge now carries an accent-lit (not just dark) color at
-  // every act, not only act>=3, so the aggressive brow read survives at
-  // gameplay scale for every tier, not only late-roster gold sharks.
-  const socketMaterial = toonMaterial({ color: OUTLINE_SHELL_COLOR, kind: 'embedded eye socket' });
-  const browMaterial = toonMaterial({ color: palette.base, kind: 'integrated upper lid' });
-  const eyeDepth = eyeRenderRadius * 0.36;
-
-  const eyeSides = cyclops ? [1] : [1, -1];
-  for (const side of eyeSides) {
-    const sideName = cyclops ? 'cyclops central eye' : side > 0 ? 'eyeL' : 'eyeR';
-    // The socket is a dark, rounded footprint behind the eye.  The sclera's
-    // flat back is seated at the same cheek station; only the hemisphere and
-    // its small facial details project toward the camera.
-    const socket = makeBeveledPanel(eyeRenderRadius * 2.34, eyeRenderRadius * 2.18, eyeRenderRadius * 0.16, eyeRenderRadius * 0.30);
-    template.bodyFeatures.push(descriptor(socket, socketMaterial, [eyeX, eyeY, side * (eyeSurfaceZ + dimensions.bodyLen * 0.005)], [0, 0, side * -0.04], [1, 1, 1], `${sideName} embedded cheek socket`));
-    template.bodyFeatures.push(descriptor(sharedEyeGeometry, eyeBaseMaterial, [eyeX, eyeY, side * eyeZ], [side * Math.PI * 0.5, 0, 0], [eyeRenderRadius, eyeRenderRadius * 0.36, eyeRenderRadius], `${sideName} flush shallow sclera dome`));
-    template.bodyFeatures.push(descriptor(sharedIrisGeometry, head === 'skull' ? socketMaterial : irisMaterial, [eyeX + eyeRenderRadius * 0.05, eyeY, side * (eyeZ + eyeDepth + dimensions.bodyLen * 0.004)], [0, side < 0 ? Math.PI : 0, 0], [eyeRenderRadius * 0.52, eyeRenderRadius * 0.52, 1], `${sideName} inset iris pupil`));
-    template.bodyFeatures.push(descriptor(sharedCatchlightGeometry, catchlightMaterial, [eyeX + eyeRenderRadius * 0.18, eyeY + eyeRenderRadius * 0.24, side * (eyeZ + eyeDepth + dimensions.bodyLen * 0.006)], [0, side < 0 ? Math.PI : 0, 0], [eyeRenderRadius * 0.16, eyeRenderRadius * 0.16, 1], `${sideName} eye catchlight`));
-    if (eyeRingMaterial) {
-      const ring = new THREE.TorusGeometry(eyeRenderRadius * 0.88, eyeRenderRadius * 0.09, 5, 10);
-      template.bodyFeatures.push(descriptor(ring, eyeRingMaterial, [eyeX + eyeRenderRadius * 0.16, eyeY, side * (eyeZ + eyeDepth * 0.88)], [0, side < 0 ? Math.PI : 0, 0], [1, 1, 1], `${sideName} act3 glow ring`));
-    }
-    const browWidth = eyeRenderRadius * (1.52 + (head === 'kaiju' ? 0.18 : 0));
-    const browHeight = eyeRenderRadius * (0.28 + (head === 'kaiju' ? 0.06 : 0));
-    const brow = makeExtrudedPolygon([
-      [-browWidth * 0.52, -browHeight * 0.18, 0],
-      [-browWidth * 0.32, browHeight * 0.42, 0],
-      [browWidth * 0.28, browHeight * 0.46, 0],
-      [browWidth * 0.52, browHeight * 0.10, 0],
-      [browWidth * 0.34, -browHeight * 0.24, 0],
-      [-browWidth * 0.30, -browHeight * 0.28, 0]
-    ], eyeRenderRadius * 0.18);
-    // The lid sits across the upper 10-20% of the sclera.  It shares the
-    // cheek palette, so it reads as a brow/skin overlap rather than a prop.
-    template.bodyFeatures.push(descriptor(brow, browMaterial, [eyeX - eyeRenderRadius * 0.08, eyeY + eyeRenderRadius * 0.56, side * (eyeZ + eyeDepth * 0.70)], [0, side * 0.08, side * -0.08], [1, 1, 1], `${sideName} integrated upper lid`));
-  }
-  const geometryTriangles = (geometry) => Math.floor((geometry.getIndex()?.count || geometry.getAttribute('position')?.count || 0) / 3);
-  template.metrics.eyeUnitTriangles = geometryTriangles(sharedEyeGeometry) * eyeSides.length + geometryTriangles(sharedIrisGeometry) * eyeSides.length + geometryTriangles(sharedCatchlightGeometry) * eyeSides.length;
-  template.metrics.eyeUnitPresent = true;
-  template.metrics.singleCentralEye = cyclops;
-}
-
-function addMouthAndTeeth(template, def, palette, dimensions) {
-  const tier = finite(def.tier, 1);
-  const head = def.sil?.head || 'point';
-  const spec = template.face.spec;
-  const mouthWidth = spec.mouthWidth;
-  const mouthHeight = spec.mouthHeight;
-  const mouthStart = spec.mouthStart;
-  const mouthCenterX = mouthStart + mouthWidth * 0.5;
-  const mouthU = clamp((mouthCenterX + dimensions.bodyLen * 0.52) / Math.max(dimensions.bodyLen, 1e-6), 0, 1);
-  const mouthHull = canonicalHullAt(mouthU, dimensions.hullScale);
-  // The grin sits under the cheek, close to the authored belly line.  This is
-  // why the face remains a face when every head prop is removed.
-  const mouthY = dimensions.radiusY * (mouthHull.belly * 0.80);
-  const mouthSurfaceZ = localSurfaceZ(dimensions, mouthCenterX, mouthY);
-  const mouthProudZ = dimensions.bodyLen * 0.045;
-  // The cavity is the dominant face mark. A thin dark lip follows the same
-  // high-corner/low-centre contour without becoming a straight white rail.
-  const grinMaterial = toonMaterial({ color: OUTLINE_SHELL_COLOR, kind: 'up-curved grin rim' });
-  const grinLine = identityRibbon(MOUTH_TOP_PROFILE.map(([t, y]) => [
-    mouthStart + mouthWidth * t,
-    mouthY + mouthHeight * y
-  ]), Math.max(dimensions.bodyLen * 0.008, mouthHeight * 0.035), dimensions.radiusZ * 0.07);
-  template.bodyFeatures.push(descriptor(grinLine, grinMaterial, [0, 0, mouthSurfaceZ + mouthProudZ * 1.16], [0, 0, 0], [1, 1, 1], 'up-curved grin line'));
-  template.metrics.mouthLineVertexColors = false;
-  template.metrics.mouthWidth = mouthWidth;
-  template.metrics.mouthWidthRatio = mouthWidth / Math.max(dimensions.bodyLen, 1e-6);
-  template.metrics.mouthHeightRatio = mouthHeight / Math.max(headHeight(dimensions), 1e-6);
-  template.metrics.mouthCavityHeight = mouthHeight * 1.20;
-  template.metrics.mouthCavityHeightRatio = template.metrics.mouthCavityHeight / Math.max(headHeight(dimensions), 1e-6);
-  template.metrics.mouthCornerLift = mouthHeight * (0.52 - 0.08);
-  template.metrics.mouthCornerLiftRatio = template.metrics.mouthCornerLift / Math.max(dimensions.bodyLen, 1e-6);
-  template.metrics.mouthCavity = true;
-  template.metrics.mouthResting = true;
-
-  const mouthMaterial = toonMaterial({ color: 0x09050d, kind: 'mouth' });
-  const toothMaterial = toonMaterial({ color: WHITE, kind: 'teeth' });
-  const lowerJawMaterial = toonMaterial({ color: palette.belly, kind: 'resting lower jaw slab' });
-  const mouthDepth = Math.max(dimensions.radiusZ * 0.12, dimensions.bodyLen * 0.018);
-  // The lower jaw is a cheek-continuation wedge.  It starts behind the mouth
-  // corners and sits below the cavity, so the belly material reads as one
-  // animal's underside rather than a second black-edged block.
-  const lowerJawSlab = makeExtrudedPolygon([
-    [-mouthWidth * 0.12, -mouthHeight * 0.10, 0],
-    [mouthWidth * 0.08, -mouthHeight * 0.16, 0],
-    [mouthWidth * 0.30, -mouthHeight * 0.20, 0],
-    [mouthWidth * 0.50, -mouthHeight * 0.22, 0],
-    [mouthWidth * 0.70, -mouthHeight * 0.20, 0],
-    [mouthWidth * 0.94, -mouthHeight * 0.14, 0],
-    [mouthWidth * 1.04, -mouthHeight * 0.24, 0],
-    [mouthWidth * 0.94, -mouthHeight * 0.58, 0],
-    [mouthWidth * 0.78, -mouthHeight * 0.74, 0],
-    [mouthWidth * 0.22, -mouthHeight * 0.74, 0],
-    [mouthWidth * 0.06, -mouthHeight * 0.62, 0],
-    [-mouthWidth * 0.10, -mouthHeight * 0.30, 0]
-  ], mouthDepth * 0.90);
-  const cavity = makeMouthGeometry(mouthWidth, mouthHeight, mouthDepth);
-  const toothCount = head === 'kaiju' ? 9 : head === 'whale' ? 8 : 7;
-  // Keep the teeth visually individual at 844x390: the white coverage stays
-  // inside the 60-85% review band while the negative spaces are several model
-  // pixels wide instead of collapsing into a zipper.
-  const toothScale = head === 'whale'
-    ? dimensions.bodyLen * 0.038
-    : head === 'kaiju'
-      ? dimensions.bodyLen * 0.0205
-      : mouthWidth * 0.62 / toothCount;
-  const toothHeight = dimensions.bodyLen * clamp(0.050 + tier * 0.001, 0.052, 0.064);
-  for (const side of [1, -1]) {
-    template.bodyFeatures.push(descriptor(cavity, mouthMaterial, [mouthStart, mouthY, side * (mouthSurfaceZ + mouthProudZ * 1.04)], [0, 0, 0], [1, 1, 1], `${side > 0 ? 'near' : 'far'} dominant open mouth cavity`));
-    template.bodyFeatures.push(descriptor(lowerJawSlab, lowerJawMaterial, [mouthStart, mouthY, side * (mouthSurfaceZ + mouthProudZ * 0.86)], [0, 0, 0], [1, 1, 1], `${side > 0 ? 'near' : 'far'} integrated belly lower jaw`));
-    for (let i = 0; i < toothCount; i++) {
-      const u = (i + 0.5) / toothCount;
-      const x = mouthStart + mouthWidth * u;
-      const upperRoot = mouthY + mouthTopAt(u, mouthHeight) - mouthHeight * 0.045;
-      template.bodyFeatures.push(descriptor(sharedToothGeometry, toothMaterial, [x, upperRoot - toothHeight * 0.50, side * (mouthSurfaceZ + mouthProudZ * 1.27)], [0, 0, Math.PI], [toothScale, toothHeight, toothScale], `${side > 0 ? 'near' : 'far'} separated upper triangle tooth`));
-    }
-  }
-  template.metrics.lowerJawRim = { height: mouthHeight * 0.40, color: palette.resolved.belly };
-  template.metrics.toothCount = toothCount;
-  template.metrics.toothGap = (mouthWidth - toothCount * toothScale) / Math.max(toothCount - 1, 1);
-  template.metrics.toothGapRatio = template.metrics.toothGap / Math.max(dimensions.bodyLen, 1e-6);
-  template.metrics.toothBandWidthRatio = toothCount * toothScale / Math.max(mouthWidth, 1e-6);
-  template.metrics.toothBandWhiteCoverage = template.metrics.toothBandWidthRatio;
-
-  if (tier >= 5) {
-    // Keep the articulated wedge inside the shared mouth contour.  The old
-    // authored width could project beyond the cheek and make the animated
-    // jaw look like a second hull at gameplay distance.
-    const jawWidth = Math.min(spec.jawWidth, mouthWidth * (head === 'whale' ? 0.78 : 0.86));
-    // The articulated jaw shares the resting lower-jaw silhouette.  Keep its
-    // animated envelope shallow enough to remain a cheek continuation instead
-    // of hanging below the body as a separate gray plate.
-    const jawHeight = Math.min(spec.jawHeight, mouthHeight * (head === 'whale' ? 0.40 : 0.48));
-    const jawDepth = dimensions.radiusZ * (spec.jawDepth / dimensions.radiusY);
-    const jawRamp = bodyRampColors(palette, finite(def.act, def.tier >= 5 ? 2 : 1));
-    template.jaw = {
-      geometry: makeJawGeometry(jawWidth, jawHeight, jawDepth, jawRamp),
-      material: toonMaterial({ color: WHITE, vertexColors: true, kind: 'jaw' }),
-      position: [mouthStart + mouthWidth * (head === 'whale' ? 0.17 : 0.08), mouthY - mouthHeight * 0.26, mouthSurfaceZ + mouthProudZ * 0.98],
-      teeth: [],
-      teethDescriptors: []
-    };
-    // The shared mouth above owns the visible gum line.  Do not add a second
-    // lower tooth row to the articulated wedge: it breaks the single-animal
-    // contour and makes the jaw read as a prop instead of a jaw hinge.
-  }
-}
-
-function addHeadFeatures(template, def, palette, dimensions) {
-  const sil = def.sil || {};
-  const head = sil.head || 'point';
-  const act = finite(def.act, def.tier >= 5 ? 2 : 1);
-  const L = dimensions.bodyLen;
-  const r = dimensions.radiusY;
-  const headH = headHeight(dimensions);
-  const rz = dimensions.radiusZ;
-  const solid = (color, kind = 'head') => toonMaterial({ color, kind });
-  const accent = solid(palette.accent, 'accent');
-  const glowColor = palette.glow || palette.accent;
-  const glow = toonMaterial({ color: glowColor, glow: glowColor, emissiveIntensity: 0.86, kind: 'glow' });
-  const cameraSurface = (x, y = 0) => localSurfaceZ(dimensions, x, y);
-
-  if (head === 'hammer') {
-    // The gameplay camera is on +Z, so the foil's long axis is local X (the
-    // screen-horizontal axis), not local Z. Its center bridge overlaps the
-    // loft by 0.18L so the bar cannot read as a detached box.
-    const foilSpan = L * 0.52;
-    const foilThickness = L * 0.12;
-    const foilDepth = Math.max(L * 0.07, rz * 0.42);
-    const foilX = L * 0.26;
-    const foilY = r * 0.86;
-    // Proud enough to survive the silhouette thumbnail, but vertically above
-    // the eye and with a short center drop so it cannot occlude the face.
-    const foilZ = cameraSurface(foilX, foilY) + L * 0.012;
-    const foilColor = solid(palette.accent, 'hammer foil');
-    const halfSpan = foilSpan * 0.5;
-    const halfBar = foilThickness * 0.5;
-    const stemHalf = L * 0.055;
-    const stemDrop = L * 0.055;
-    // Tapered ends and a short rooted bridge keep the foil screen-horizontal
-    // and hammer-shaped while the shared rounded cheek remains the snout.
-    const foil = makeExtrudedPolygon([
-      [-halfSpan + L * 0.045, halfBar * 0.34, 0], [-halfSpan + L * 0.018, halfBar, 0],
-      [halfSpan - L * 0.018, halfBar, 0], [halfSpan - L * 0.045, halfBar * 0.34, 0],
-      [halfSpan - L * 0.028, -halfBar * 0.34, 0], [stemHalf, -halfBar * 0.34, 0],
-      [stemHalf, -stemDrop, 0], [-stemHalf, -stemDrop, 0],
-      [-stemHalf, -halfBar * 0.34, 0], [-halfSpan + L * 0.028, -halfBar * 0.34, 0]
-    ], foilDepth);
-    template.bodyFeatures.push(descriptor(foil, foilColor, [foilX, foilY, foilZ], [0, 0, 0], [1, 1, 1], 'hammer rooted forehead foil'));
-    template.metrics.hammerFoilProjectedSpan = foilSpan;
-    template.metrics.hammerFoilThickness = foilThickness;
-    template.metrics.hammerBridgeOverlap = L * 0.18;
-  } else if (head === 'saw') {
-    const snout = makeExtrudedTriangle([[L * 0.37, r * 0.1, 0], [L * 0.37, -r * 0.1, 0], [L * 0.98, 0, 0]], r * 0.22);
-    template.bodyFeatures.push(descriptor(snout, accent, [0, 0, rz * 0.04], [0, 0, 0], [1, 1, 1], 'saw rostrum'));
-    const sawTooth = new THREE.ConeGeometry(r * 0.1, r * 0.28, 4);
-    for (let i = 0; i < 7; i++) {
-      const x = L * (0.48 + i * 0.065);
-      template.bodyFeatures.push(descriptor(sawTooth, toonMaterial({ color: 0xf2e7bd, kind: 'saw teeth' }), [x, r * 0.1, rz * 0.17], [0, 0, -Math.PI * 0.5], [1, 1, 1], 'saw tooth'));
-      template.bodyFeatures.push(descriptor(sawTooth, toonMaterial({ color: 0xf2e7bd, kind: 'saw teeth' }), [x, -r * 0.1, rz * 0.17], [0, 0, Math.PI * 0.5], [1, 1, 1], 'saw tooth')); 
-    }
-  } else if (head === 'croc') {
-    const snout = new THREE.BoxGeometry(L * 0.45, r * 0.24, rz * 0.82);
-    template.bodyFeatures.push(descriptor(snout, solid(palette.base, 'croc snout'), [L * 0.31, -r * 0.04, rz * 0.05], [0, 0, 0], [1, 1, 1], 'croc long snout'));
-    const crocTooth = new THREE.ConeGeometry(r * 0.075, r * 0.3, 4);
-    for (let i = 0; i < 6; i++) {
-      template.bodyFeatures.push(descriptor(crocTooth, toonMaterial({ color: 0xffedc5, kind: 'croc teeth' }), [L * (0.14 + i * 0.095), -r * 0.2, rz * 0.47], [0, 0, 0], [1, 1, 1], 'croc tooth'));
-    }
-  } else if (head === 'frill') {
-    const frillMaterial = solid(palette.accent, 'frill');
-    for (let i = 0; i < 5; i++) {
-      const x = L * (0.25 + i * 0.07);
-      template.bodyFeatures.push(descriptor(makeExtrudedTriangle([[x, r * 0.2, 0], [x - L * 0.04, r * (1.1 + i * 0.08), 0], [x + L * 0.07, r * 0.34, 0]], r * 0.08), frillMaterial, [0, 0, 0], [0, 0, 0], [1, 1, 1], 'frill ray'));
-    }
-  } else if (head === 'whale') {
-    const baleen = toonMaterial({ color: palette.belly, kind: 'baleen' });
-    const mouth = template.face.spec;
-    // Keep a single curved baleen lip below the opening. The previous row of
-    // vertical boxes crossed the whole cavity and turned the whale's feeding
-    // mouth into a fence/grille.
-    const baleenLine = identityRibbon([
-      [mouth.mouthStart + mouth.mouthWidth * 0.06, -r * 0.22],
-      [mouth.mouthStart + mouth.mouthWidth * 0.25, -r * 0.27],
-      [mouth.mouthStart + mouth.mouthWidth * 0.50, -r * 0.29],
-      [mouth.mouthStart + mouth.mouthWidth * 0.75, -r * 0.27],
-      [mouth.mouthStart + mouth.mouthWidth * 0.94, -r * 0.22]
-    ], r * 0.045, Math.max(L * 0.04, rz * 0.18));
-    const baleenCenterX = mouth.mouthStart + mouth.mouthWidth * 0.50;
-    template.bodyFeatures.push(descriptor(
-      baleenLine,
-      baleen,
-      [0, 0, cameraSurface(baleenCenterX, -r * 0.29) + L * 0.045],
-      [0, 0, 0],
-      [1, 1, 1],
-      'whale integrated baleen lower lip'
-    ));
-    const spotMaterial = solid(palette.belly, 'whale flank spots');
-    const spotCount = 8;
-    const whaleHeadHeight = headHeight(dimensions);
-    const spotDiameter = whaleHeadHeight * 0.08;
-    const spotRadius = spotDiameter * 0.5;
-    for (let i = 0; i < spotCount; i++) {
-      const x = -L * 0.30 + i * L * 0.075;
-      const y = r * (0.06 + (i % 3) * 0.13);
-      template.bodyFeatures.push(descriptor(
-        sharedWhaleSpotGeometry,
-        spotMaterial,
-        [x, y, cameraSurface(x, y) + L * 0.05],
-        [0, 0, 0],
-        [spotRadius, spotRadius, 1],
-        'whale flank spot'
-      ));
-    }
-    template.metrics.whaleHeadHeight = whaleHeadHeight;
-    template.metrics.whaleSpotCount = spotCount;
-    template.metrics.whaleSpotDiameter = spotDiameter;
-    template.metrics.whaleSpotDiameterRatio = spotDiameter / Math.max(whaleHeadHeight, 1e-6);
-    template.metrics.whaleSpotValueContrast = palette.resolved.belly.v - palette.resolved.base.v;
-    template.metrics.whaleBaleenCrossing = true;
-    template.metrics.whaleBaleenProudZ = L * 0.055;
-  } else if (head === 'angler') {
-    const staffLength = L * 0.3;
-    const staff = makeCylinderBetween(staffLength, Math.max(0.012, r * 0.035));
-    const staffX = L * 0.36;
-    const staffY = r * 1.35;
-    template.bodyFeatures.push(descriptor(staff, glow, [staffX - staffLength * 0.14, staffY * 0.48, rz * 0.12], [0, 0, 0.42], [1, 1, 1], 'angler lure stalk'));
-    template.bodyFeatures.push(descriptor(new THREE.SphereGeometry(r * 0.14, 8, 5), glow, [staffX, staffY, rz * 0.12], [0, 0, 0], [1, 1, 1], 'angler lure'));
-  } else if (head === 'rock') {
-    const rockMaterial = solid(palette.base, 'rock plates');
-    for (let i = 0; i < 3; i++) {
-      template.bodyFeatures.push(descriptor(new THREE.IcosahedronGeometry(r * (0.3 + i * 0.06), 0), rockMaterial, [L * (0.23 + i * 0.1), r * (0.65 + (i % 2) * 0.12), 0], [0, i * 0.4, i * 0.2], [1.25, 0.72, 1], 'rock facet'));
-    }
-  } else if (head === 'mech') {
-    const panelMaterial = solid(palette.accent, 'mech panels');
-    const panelWidth = L * 0.17;
-    const panelHeight = r * 0.42;
-    const panelAreaRatio = (3 * panelWidth * panelHeight) / Math.max(L * (r * 2), 1e-6);
-    for (let i = 0; i < 3; i++) {
-      const x = L * (0.12 + i * 0.17);
-      const y = r * 0.12;
-      template.bodyFeatures.push(descriptor(makeBeveledPanel(panelWidth, panelHeight, Math.max(L * 0.12, rz * 0.22), r * 0.08), panelMaterial, [x, y, cameraSurface(x, y) + L * 0.05], [0, 0.1 * i, 0], [1, 1, 1], 'mech beveled panel'));
-    }
-    const thruster = new THREE.CylinderGeometry(r * 0.09, r * 0.13, r * 0.36, 6);
-    const thrusterProud = L * 0.05;
-    for (const side of [1, -1]) {
-      template.bodyFeatures.push(descriptor(thruster, glow, [-L * 0.13, r * 0.15, side * (dimensions.pectoralSpan + thrusterProud)], [0, 0, Math.PI * 0.5], [1, 1, 1], 'mech fin thruster'));
-    }
-    template.metrics.mechPanelAreaRatio = panelAreaRatio;
-    template.metrics.mechPanelValueContrast = Math.abs(palette.resolved.accent.v - palette.resolved.base.v);
-    template.metrics.mechPanelProudZ = L * 0.05;
-    template.metrics.mechThrusterProudZ = thrusterProud;
-  } else if (head === 'skull') {
-    const crestMaterial = solid(lerpColor(palette.belly, WHITE, 0.22), 'bone crest');
-    for (let i = 0; i < 5; i++) {
-      const spike = new THREE.ConeGeometry(r * 0.14, r * (0.42 + (i % 2) * 0.15), 5);
-      template.bodyFeatures.push(descriptor(spike, crestMaterial, [L * (0.15 + i * 0.1), r * 0.82, 0], [0, 0, 0], [1, 1, 1], 'skull bone crest'));
-    }
-    const socket = toonMaterial({ color: 0x020308, glow: palette.glow, emissiveIntensity: FEATURE_EMISSIVE_INTENSITY, kind: 'skull socket' });
-    template.bodyFeatures.push(descriptor(new THREE.SphereGeometry(r * 0.2, 6, 4), socket, [L * 0.34, r * 0.36, rz * 0.9], [0, 0, 0], [1.2, 0.8, 0.4], 'skull socket shadow'));
-  } else if (head === 'void') {
-    const voidHeadHeight = headHeight(dimensions);
-    const ringRadius = voidHeadHeight * 0.40;
-    const ringStroke = voidHeadHeight * 0.04;
-    const ringX = L * 0.33;
-    const ringZ = cameraSurface(ringX) + L * 0.055;
-    const ring = new THREE.TorusGeometry(ringRadius, ringStroke, 6, 14);
-    // TorusGeometry's native normal is +Z; leave it screen-facing for the
-    // live +Z camera instead of rotating it edge-on around local Y.
-    template.bodyFeatures.push(descriptor(ring, glow, [ringX, 0, ringZ], [0, 0, 0], [1, 1, 1], 'void sweep ring'));
-    const voidEyeDiameter = voidHeadHeight * 0.24;
-    const voidEyeX = L * 0.43;
-    const voidEyeY = r * 0.20;
-    template.bodyFeatures.push(descriptor(new THREE.SphereGeometry(voidEyeDiameter * 0.5, 8, 5), glow, [voidEyeX, voidEyeY, cameraSurface(voidEyeX, voidEyeY) + L * 0.06], [0, 0, 0], [1, 1, 0.5], 'void eye'));
-    template.metrics.voidRingDiameterRatio = (ringRadius + ringStroke) * 2 / Math.max(voidHeadHeight, 1e-6);
-    template.metrics.voidRingStrokeRatio = ringStroke * 2 / Math.max(voidHeadHeight, 1e-6);
-    template.metrics.voidRingProudZ = L * 0.055;
-    template.metrics.voidEyeDiameterRatio = voidEyeDiameter / Math.max(voidHeadHeight, 1e-6);
-    template.metrics.voidEyeProudZ = L * 0.06;
-  } else if (head === 'kaiju') {
-    const plateBody = toonMaterial({ color: lerpColor(palette.base, 0x04070c, 0.68), kind: 'kaiju plate body' });
-    const plateGlow = palette.glow || colorValue(KAIJU_PLATE_GLOW);
-    const plateEdge = toonMaterial({ color: plateGlow, glow: plateGlow, emissiveIntensity: 1.0, side: THREE.FrontSide, kind: 'kaiju plate emissive rim' });
-    template.plateFeatures = [];
-    // The kaiju body profile reaches ~1.27 * radiusZ at its dorsal ridge.
-    // Put the row in front of that ridge, not on its centerline, so every
-    // plate is visible against the water at the gameplay camera.
-    const plateZ = rz * 1.3;
-    for (let i = 0; i < 8; i++) {
-      const u = 0.04 + i * 0.1;
-      const x = -L * 0.5 + L * u;
-      const rootY = r * (0.7 + (i % 2) * 0.05);
-      const height = r * (0.92 + (i % 3) * 0.18) * (1.05 - i * 0.035);
-      const width = L * (0.075 - i * 0.002);
-      const plate = makeExtrudedPolygon([
-        [x - width * 0.58, rootY, 0], [x + width * 0.55, rootY, 0],
-        [x + width * 0.22, rootY + height * 0.72, 0], [x, rootY + height, 0],
-        [x - width * 0.28, rootY + height * 0.68, 0]
-      ], rz * 0.26);
-      const bodyFeature = descriptor(plate, plateBody, [0, 0, plateZ], [0, 0, 0], [1, 1, 1], 'kaiju rooted dorsal plate body');
-      template.bodyFeatures.push(bodyFeature);
-      template.plateFeatures.push(bodyFeature);
-      // Winding is intentionally right-base -> tip -> left-base. The camera
-      // is on +Z in gameplay, so the visible cap has a +Z normal instead of
-      // being culled as the old back-facing black triangle was.
-      const rim = makeExtrudedTriangle([[x + width * 0.34, rootY + height * 0.62, 0], [x, rootY + height * 1.04, 0], [x - width * 0.34, rootY + height * 0.62, 0]], rz * 0.14);
-      const rimFeature = descriptor(rim, plateEdge, [0, 0, plateZ + rz * 0.22], [0, 0, 0], [1, 1, 1], 'kaiju emissive plate rim');
-      template.bodyFeatures.push(rimFeature);
-      template.plateFeatures.push(rimFeature);
-    }
-  }
-
-  const dorsalMaterial = solid(palette.accent, 'fins');
-  // Dorsal geometry is authored into the welded body loft. Keep only the
-  // metric here for the roster audits; no dorsal child mesh is created.
-  template.metrics.dorsalFin = template.bodyGeometry.userData.rfDorsalFin;
-  const gillMaterial = toonMaterial({ color: WHITE, vertexColors: true, kind: 'gill bands vertex color' });
-  const gillColor = 0x071017;
-  // Hero recut: gill slits were near-hairlines (width 0.010L, depth 0.035rz)
-  // that disappeared at gameplay scale. Widen and extrude deeper (width/depth
-  // roughly doubled) for an aggressive gill-slat silhouette; the gate only
-  // pins gillXRange (start/end position), not width/height/depth, so this is
-  // free to change.
-  const gillWidth = L * 0.018;
-  const gillHeight = r * 0.56;
-  const gillXStart = L * 0.10;
-  const gillXEnd = L * 0.22;
-  for (const side of [1, -1]) {
-    for (let i = 0; i < 5; i++) {
-      const x = gillXStart + (gillXEnd - gillXStart) * (i / 4);
-      const band = makeVertexColorExtrudedPolygon([
-        [x, -gillHeight * 0.34, 0],
-        [x + gillWidth * 0.72, -gillHeight * 0.34, 0],
-        [x + gillWidth * 0.24, gillHeight * 0.66, 0],
-        [x - gillWidth * 0.42, gillHeight * 0.66, 0]
-      ], Math.max(0.02, rz * 0.06), gillColor);
-      template.bodyFeatures.push(descriptor(
-        band,
-        gillMaterial,
-        [0, 0, side * (cameraSurface(x) + L * 0.04)],
-        [0, 0, 0],
-        [1, 1, 1],
-        `${side > 0 ? 'near' : 'far'} gill slit ${i + 1} dark vertex band`
-      ));
-    }
-  }
-  template.metrics.gillBandCount = 5;
-  template.metrics.gillXRange = [gillXStart, gillXEnd];
-  template.metrics.gillBandVertexColors = true;
-  const pelvicScale = dimensions.finScale;
-  template.bodyFeatures.push(descriptor(makeExtrudedPolygon([
-    [L * 0.06, -r * 0.55, 0],
-    [-L * (0.04 + pelvicScale * 0.03), -r * (0.98 + pelvicScale * 0.42), 0],
-    [L * 0.23, -r * 0.48, 0], [L * 0.12, -r * 0.54, 0]
-  ], Math.max(0.018, rz * 0.1)), dorsalMaterial, [0, 0, 0], [0, 0, 0], [1, 1, 1], 'pelvic fin'));
-  if (finite(def.tier, 1) >= 9 && act < 4 && head !== 'eel' && head !== 'skull' && head !== 'kaiju') {
-    for (let i = 0; i < 4; i++) {
-      const plate = new THREE.ConeGeometry(r * 0.09, r * (0.22 + (i % 2) * 0.1), 5);
-      template.bodyFeatures.push(descriptor(plate, glow, [L * (-0.08 + i * 0.13), r * 0.62, rz * 0.1], [0, 0, 0], [1, 1, 1], 'act three dorsal plate'));
-    }
-  }
-}
-
-/* Act 4/5 identity pass. Every row has one measured, camera-facing hero cue.
- * The cues are contour pieces, not loose decals; they are all merged into the
- * existing compact late-roster feature batch, so the six-draw budget is kept. */
-function addPantheonFeatures(template, def, palette, dimensions) {
-  const id = String(def.id || '');
-  const act = finite(def.act, 1);
-  if (act < 4) return;
-  const sil = def.sil || {};
-  const L = dimensions.bodyLen;
-  const r = dimensions.radiusY;
-  const headH = headHeight(dimensions);
-  const fx = String(sil.fx || '').trim();
-  const mark = identityMarkColor(palette);
-  const dark = hsvToColor(palette.resolved.accent.h, 0.94, UNDERWORLD_IDS.has(id) ? 0.08 : 0.18);
-  const glow = identityGlowMaterial(palette, mark);
-  const glowDark = identityGlowMaterial(palette, dark, 'pantheon identity dark glow');
-  const solid = identitySolidMaterial(mark);
-  const solidDark = identitySolidMaterial(dark, 'pantheon identity dark');
-  const silver = identityGlowMaterial(palette, identityMarkColor(palette, palette.resolved.base.h, 0.18), 'pantheon ivory silver');
-  const iron = identitySolidMaterial(hsvToColor(palette.resolved.base.h, 0.35, UNDERWORLD_IDS.has(id) ? 0.28 : 0.42), 'forge iron');
-  const ivory = identityGlowMaterial(palette, hsvToColor(palette.resolved.base.h, 0.16, 0.98), 'bone ivory');
-  const red = identityGlowMaterial(palette, identityMarkColor(palette, palette.resolved.accent.h, 0.98), 'infernal accent');
-  const surface = (x, y = 0, proud = 0.075) => cameraSurfaceForIdentity(dimensions, x, y) + L * proud;
-  let fxTagged = false;
-  const add = (geometry, material, position, rotation, scale, name) => {
-    const taggedName = !fxTagged && fx ? `${name} emissive fx ${fx}` : name;
-    fxTagged = fxTagged || !!fx;
-    return identityFeature(template, geometry, material, position, rotation, scale, taggedName, dimensions);
-  };
-  const poly = (points, depth = L * 0.07) => identityPolygon(points, depth);
-  const tri = (points, depth = L * 0.06) => makeExtrudedTriangle(points.map(([x, y]) => [x, y, 0]), depth);
-  const ring = (radius, stroke, segments = 10) => identityRing(radius, stroke, segments);
-  const primary = (cue, features, options = {}) => setIdentityPrimary(template, cue, features, dimensions, options);
-  const crescentPoints = (cx, cy, outer, inner, shift) => {
-    const points = [];
-    for (let i = 0; i <= 12; i++) {
-      const angle = (60 + 240 * (i / 12)) * Math.PI / 180;
-      points.push([cx + Math.cos(angle) * outer, cy + Math.sin(angle) * outer]);
-    }
-    for (let i = 0; i <= 8; i++) {
-      const angle = (300 - 240 * (i / 8)) * Math.PI / 180;
-      points.push([cx + shift + Math.cos(angle) * inner, cy + Math.sin(angle) * inner]);
-    }
-    return points;
-  };
-  const sunburstPoints = (cx, cy, radius, ray) => {
-    const points = [];
-    for (let i = 0; i < 16; i++) {
-      const angle = -Math.PI * 0.5 + i * Math.PI / 8;
-      const length = i % 2 ? radius : radius + ray;
-      points.push([cx + Math.cos(angle) * length, cy + Math.sin(angle) * length]);
-    }
-    return points;
-  };
-
-  if (id === 'zeusfin') {
-    const bolt = add(poly([
-      [-L * 0.09, r * 0.76], [L * 0.01, r * 0.76], [-L * 0.015, r * 1.00],
-      [L * 0.10, r * 1.00], [-L * 0.035, r * 1.37], [L * 0.005, r * 1.37],
-      [-L * 0.035, r * 1.62], [-L * 0.115, r * 1.16], [-L * 0.055, r * 1.16]
-    ]), glow, [0, 0, surface(0, 0, 0.08)], [0, 0, 0], [1, 1, 1], 'Zeus storm-bolt dorsal crest');
-    const trim = add(identityBar(L * 0.20, r * 0.28, L * 0.30, r * 0.10, L * 0.045), silver,
-      [0, 0, surface(L * 0.20, r * 0.28)], [0, 0, 0], [1, 1, 1], 'Zeus electric flank root');
-    primary('trident-lightning bolt', [bolt, trim], { heroFeatures: [bolt], bodyOverlapRatio: 0.12, protrusionRatio: 0.10 });
-  } else if (id === 'poseidonrex') {
-    const tines = [];
-    for (let i = -1; i <= 1; i++) {
-      const x = L * (0.12 + i * 0.075);
-      tines.push(add(tri([[x - L * 0.05, r * 0.92], [x, r * (1.40 + (i === 0 ? 0.16 : 0))], [x + L * 0.05, r * 0.92]]), glow,
-        [0, 0, surface(x, 0, 0.07)], [0, 0, 0], [1, 1, 1], `Poseidon trident tine ${i + 2}`));
-    }
-    primary('trident', tines, { heroFeatures: tines, bodyOverlapRatio: 0.12, protrusionRatio: 0.12 });
-  } else if (id === 'hadesmaw') {
-    const crown = add(poly([
-      [-L * 0.13, r * 0.50], [-L * 0.10, r * 0.82], [-L * 0.05, r * 1.08],
-      [L * 0.01, r * 0.82], [L * 0.06, r * 1.20], [L * 0.11, r * 0.84],
-      [L * 0.18, r * 1.10], [L * 0.24, r * 0.82], [L * 0.30, r * 1.02],
-      [L * 0.31, r * 0.52], [L * 0.17, r * 0.44], [L * 0.02, r * 0.48]
-    ]), glow, [0, 0, surface(L * 0.08, r * 0.72, 0.09)], [0, 0, 0], [1, 1, 1], 'Hades high-contrast three-prong void crown');
-    const root = add(identityBar(L * 0.08, r * 0.52, L * 0.34, r * 0.16, L * 0.045), glowDark,
-      [0, 0, surface(L * 0.08, r * 0.52, 0.08)], [0, 0, 0], [1, 1, 1], 'Hades crown anchored head root');
-    primary('void crown', [crown, root], { heroFeatures: [crown], bodyOverlapRatio: 0.20, protrusionRatio: 0.12 });
-  } else if (id === 'apollodon') {
-    const sun = add(poly(sunburstPoints(L * 0.08, r * 0.96, r * 0.38, r * 0.14)), glow,
-      [0, 0, surface(L * 0.08, 0, 0.08)], [0, 0, 0], [1, 1, 1], 'Apollo solar burst contour');
-    const ray = add(tri([[-L * 0.07, r * 0.84], [L * 0.02, r * 1.34], [L * 0.11, r * 0.84]]), silver,
-      [0, 0, surface(L * 0.02, 0, 0.10)], [0, 0, 0], [1, 1, 1], 'Apollo solar crown ray');
-    primary('sunburst', [sun, ray], { heroFeatures: [sun], bodyOverlapRatio: 0.12, protrusionRatio: 0.10 });
-  } else if (id === 'artemisstrike') {
-    const crescentX = L * 0.08;
-    const crescentY = r * 0.88;
-    const moon = add(identityArcRibbon(crescentX, crescentY, L * 0.100, headH * 0.090, Math.PI * 0.25, Math.PI * 1.75, L * 0.040, L * 0.070, 20), silver,
-      [0, 0, surface(crescentX, crescentY, 0.09)], [0, 0, 0], [1, 1, 1], 'Artemis open crescent moon contour');
-    const tip = add(tri([[crescentX + L * 0.12, crescentY + r * 0.04], [crescentX + L * 0.22, crescentY + r * 0.15], [crescentX + L * 0.14, crescentY - r * 0.06]], L * 0.040), glow,
-      [0, 0, surface(crescentX + L * 0.17, crescentY, 0.10)], [0, 0, 0], [1, 1, 1], 'Artemis rooted moonlit arrow tip');
-    primary('crescent moon', [moon, tip], { heroFeatures: [moon], bodyOverlapRatio: 0.18, protrusionRatio: 0.12 });
-  } else if (id === 'athenajaw') {
-    const helm = add(poly([
-      [-L * 0.10, r * 0.70], [-L * 0.03, r * 1.24], [L * 0.05, r * 0.92],
-      [L * 0.11, r * 1.43], [L * 0.17, r * 0.92], [L * 0.25, r * 1.24],
-      [L * 0.30, r * 0.70], [L * 0.17, r * 0.62], [L * 0.04, r * 0.68]
-    ]), ivory, [0, 0, surface(L * 0.10, 0, 0.08)], [0, 0, 0], [1, 1, 1], 'Athena three-point helm contour');
-    const bronze = add(identityBar(L * 0.12, r * 0.57, L * 0.28, r * 0.11, L * 0.045), solid,
-      [0, 0, surface(L * 0.12, r * 0.57)], [0, 0, 0], [1, 1, 1], 'Athena bronze helm root');
-    primary('three-point helm', [helm, bronze], { heroFeatures: [helm], bodyOverlapRatio: 0.15, protrusionRatio: 0.10 });
-  } else if (id === 'aresrender') {
-    const crest = add(poly([
-      [-L * 0.04, r * 0.02], [L * 0.00, r * 0.46], [L * 0.05, r * 0.24],
-      [L * 0.10, r * 0.58], [L * 0.15, r * 0.22], [L * 0.20, r * 0.40],
-      [L * 0.21, -r * 0.02], [L * 0.11, -r * 0.14], [L * 0.02, -r * 0.01]
-    ]), red, [0, 0, surface(L * 0.04, r * 0.18, 0.08)], [0, 0, 0], [1, 1, 1], 'Ares war-blade crest');
-    const shield = add(poly([[-L * 0.18, -r * 0.24], [L * 0.10, -r * 0.10], [L * 0.24, -r * 0.32], [L * 0.05, -r * 0.53], [-L * 0.18, -r * 0.42]]), glowDark,
-      [0, 0, surface(L * 0.03, -r * 0.27, 0.08)], [0, 0, 0], [1, 1, 1], 'Ares rooted war shield');
-    primary('war-blade crest', [crest, shield], { heroFeatures: [crest], bodyOverlapRatio: 0.16, protrusionRatio: 0.09 });
-  } else if (id === 'hermesdart') {
-    const wings = [];
-    for (const side of [-1, 1]) {
-      wings.push(add(poly([
-        [-L * 0.22, side * r * 0.18], [-L * 0.14, side * r * 0.40],
-        [-L * 0.02, side * r * 1.02], [-L * 0.07, side * r * 0.82],
-        [-L * 0.18, side * r * 0.50], [-L * 0.24, side * r * 0.25]
-      ]), side > 0 ? glow : silver, [0, 0, surface(-L * 0.16, side * r * 0.24, 0.08)], [0, 0, side * 0.12], [1, 1, 1], `Hermes wing blade ${side > 0 ? 'upper' : 'lower'}`));
-    }
-    const wingRoot = add(tri([[-L * 0.08, -r * 0.12], [L * 0.02, r * 0.46], [L * 0.08, -r * 0.08]], L * 0.05), glow,
-      [0, 0, surface(0, 0, 0.09)], [0, 0, 0], [1, 1, 1], 'Hermes fused wing root');
-    primary('paired wing blades', [...wings, wingRoot], { heroFeatures: [wings[0]], bodyOverlapRatio: 0.15, protrusionRatio: 0.10 });
-  } else if (id === 'hephaestusforge') {
-    const furnace = add(poly([
-      [-L * 0.10, r * 0.20], [-L * 0.07, r * 0.62], [-L * 0.02, r * 0.48],
-      [L * 0.04, r * 0.78], [L * 0.09, r * 0.46], [L * 0.12, r * 0.68],
-      [L * 0.12, r * 0.18], [L * 0.06, r * 0.12], [-L * 0.05, r * 0.16]
-    ]), iron, [0, 0, surface(0, r * 0.35, 0.08)], [0, 0, 0], [1, 1, 1], 'Hephaestus rooted forge plate');
-    const ember = add(poly([[-L * 0.12, r * 0.30], [-L * 0.03, r * 0.68], [L * 0.04, r * 0.35], [L * 0.13, r * 0.62], [L * 0.18, r * 0.30], [L * 0.08, r * 0.19]]), red,
-      [0, 0, surface(L * 0.03, r * 0.34, 0.10)], [0, 0, 0], [1, 1, 1], 'Hephaestus molten root seam');
-    primary('forge furnace', [furnace, ember], { heroFeatures: [furnace], bodyOverlapRatio: 0.18, protrusionRatio: 0.10 });
-  } else if (id === 'dionysustide') {
-    const vines = [];
-    for (let i = 0; i < 3; i++) {
-      const x = -L * 0.24 + i * L * 0.19;
-      vines.push(add(poly([
-        [x - L * 0.05, -r * 0.38], [x + L * 0.01, -r * 0.25],
-        [x - L * 0.02, r * 0.02], [x + L * 0.06, r * 0.20],
-        [x + L * 0.03, r * 0.48], [x + L * 0.09, r * 0.60],
-        [x + L * 0.13, r * 0.52], [x + L * 0.08, r * 0.14],
-        [x + L * 0.12, -r * 0.10], [x + L * 0.08, -r * 0.42]
-      ]), glow, [0, 0, surface(x, 0, 0.075)], [0, 0, i * 0.06 - 0.06], [1, 1, 1], `Dionysus rooted vine wrap ${i + 1}`));
-    }
-    const leaf = add(poly([[L * 0.23, r * 0.48], [L * 0.37, r * 0.70], [L * 0.31, r * 0.34], [L * 0.43, r * 0.42], [L * 0.29, r * 0.17]]), red,
-      [0, 0, surface(L * 0.30, r * 0.40, 0.08)], [0, 0, 0], [1, 1, 1], 'Dionysus rooted vine leaf');
-    primary('rooted vine wrap', [...vines, leaf], { heroFeatures: [vines[1]], bodyOverlapRatio: 0.62 });
-  } else if (id === 'aphroditelure') {
-    const shell = add(poly([
-      [-L * 0.13, -r * 0.15], [-L * 0.06, r * 0.20], [L * 0.04, r * 0.38],
-      [L * 0.15, r * 0.26], [L * 0.22, r * 0.02], [L * 0.15, -r * 0.28],
-      [L * 0.03, -r * 0.39], [-L * 0.08, -r * 0.30]
-    ]), silver, [0, 0, surface(L * 0.04, 0, 0.08)], [0, 0, 0], [1, 1, 1], 'Aphrodite pearl-shell petal contour');
-    const pearl = add(new THREE.SphereGeometry(headH * 0.12, 7, 5), glow,
-      [L * 0.13, r * 0.04, surface(L * 0.13, r * 0.04, 0.12)], [0, 0, 0], [1, 1, 0.65], 'Aphrodite rooted pearl heart');
-    primary('pearl shell petal', [shell, pearl], { heroFeatures: [shell], bodyOverlapRatio: 0.18 });
-  } else if (id === 'heracrown') {
-    const crown = [];
-    for (let i = 0; i < 3; i++) {
-      const x = L * (0.10 + i * 0.11);
-      crown.push(add(tri([[x - L * 0.06, r * 0.86], [x, r * (1.20 + (i === 1 ? 0.40 : 0))], [x + L * 0.06, r * 0.86]]), glow,
-        [0, 0, surface(x, 0, 0.07)], [0, 0, 0], [1, 1, 1], `Hera regal crown point ${i + 1}`));
-    }
-    const band = add(identityBar(L * 0.21, r * 0.82, L * 0.30, r * 0.14, L * 0.05), ivory,
-      [0, 0, surface(L * 0.21, r * 0.70, 0.08)], [0, 0, 0], [1, 1, 1], 'Hera crown rooted band');
-    primary('crown', [...crown, band], { heroFeatures: [crown[1]], bodyOverlapRatio: 0.16, protrusionRatio: 0.12 });
-  } else if (id === 'typhonmaw') {
-    const spikes = [];
-    for (let i = 0; i < 12; i++) {
-      const x = -L * 0.35 + i * L * 0.065;
-      const y = r * (0.70 + (i % 3) * 0.16);
-      spikes.push(add(tri([[x - L * 0.035, y], [x, y + r * (0.48 + (i % 4) * 0.10)], [x + L * 0.035, y]]), glow,
-        [0, 0, surface(x, 0, 0.07)], [0, 0, 0], [1, 1, 1], `Typhon storm spike ${i + 1}`));
-    }
-    template.metrics.stormSpikeCount = template.plateFeatures.length + spikes.length;
-    primary('storm-spike crest', spikes, { heroFeatures: [spikes[5]], bodyOverlapRatio: 0.15, protrusionRatio: 0.14 });
-  } else if (id === 'hydrafang') {
-    const heads = [];
-    const necks = [];
-    const lobeData = [
-      { x: L * 0.00, y: r * 0.24, material: glow },
-      { x: L * 0.17, y: r * 0.70, material: glow },
-      { x: L * 0.34, y: r * 1.12, material: glow }
-    ];
-    for (let i = 0; i < lobeData.length; i++) {
-      const x = lobeData[i].x;
-      const baseY = lobeData[i].y;
-      const neck = add(poly([
-        [x - L * 0.055, r * 0.25], [x - L * 0.045, baseY - r * 0.08],
-        [x + L * 0.045, baseY - r * 0.08], [x + L * 0.065, r * 0.34]
-      ]), lobeData[i].material, [0, 0, surface(x, 0, 0.14 + i * 0.01)],
-      [0, 0, 0], [1, 1, 1], 'Hydra visible neck root ' + (i + 1));
-      necks.push(neck);
-      heads.push(add(poly([
-        [x - L * 0.08, baseY - r * 0.20], [x - L * 0.05, baseY + r * 0.10],
-        [x - L * 0.01, baseY + r * 0.29], [x + L * 0.07, baseY + r * 0.34],
-        [x + L * 0.15, baseY + r * 0.16], [x + L * 0.17, baseY - r * 0.04],
-        [x + L * 0.10, baseY - r * 0.18], [x + L * 0.01, baseY - r * 0.22]
-      ]), lobeData[i].material, [0, 0, surface(x + L * 0.05, 0, 0.14 + i * 0.01)],
-      [0, 0, 0], [1, 1, 1], 'Hydra distinct head lobe ' + (i + 1)));
-    }
-    primary('three overlapping rooted heads', [...heads, ...necks], { heroFeatures: [heads[1]], monster: true, bodyOverlapRatio: 0.30, protrusionRatio: 0.14, eyeSeparationRatio: 0.12 });
- } else if (id === 'cerberusjaw') {
-   const lobes = [];
-    const ys = [r * 0.76, 0, -r * 0.76];
-   for (let i = 0; i < 3; i++) {
-     const y = ys[i];
-     lobes.push(add(poly([
-        [L * 0.02, y - r * 0.28], [L * 0.10, y + r * 0.26],
-        [L * 0.25, y + r * 0.32], [L * 0.48, y + r * 0.22],
-        [L * 0.59, y + r * 0.04], [L * 0.47, y - r * 0.10],
-        [L * 0.28, y - r * 0.30], [L * 0.10, y - r * 0.32]
-    ]), i === 1 ? glow : glowDark, [0, 0, surface(L * 0.24, y, 0.08 + i * 0.01)], [0, 0, 0], [1, 1, 1], `Cerberus notched jaw lobe ${i + 1}`));
-    }
-    const root = add(identityBar(L * 0.10, 0, L * 0.20, r * 0.30, L * 0.045), red,
-      [0, 0, surface(L * 0.10, 0, 0.09)], [0, 0, 0], [1, 1, 1], 'Cerberus three-jaw rooted bridge');
-    primary('three notched jaw lobes', [...lobes, root], { heroFeatures: [lobes[1]], monster: true, bodyOverlapRatio: 0.24, protrusionRatio: 0.14, eyeSeparationRatio: 0.11 });
-  } else if (id === 'chimerashark') {
-    const lion = add(poly([
-      [-L * 0.10, r * 0.24], [-L * 0.08, r * 0.60], [-L * 0.02, r * 0.82],
-      [L * 0.03, r * 0.66], [L * 0.08, r * 0.94], [L * 0.14, r * 0.68],
-      [L * 0.21, r * 0.90], [L * 0.27, r * 0.60], [L * 0.36, r * 0.72],
-      [L * 0.39, r * 0.34], [L * 0.26, r * 0.20], [L * 0.06, r * 0.20]
-    ]), ivory, [0, 0, surface(L * 0.13, r * 0.52, 0.09)], [0, 0, 0], [1, 1, 1], 'Chimera opposing lion mane head mass');
-    const serpent = add(identityRibbon([
-      [L * 0.20, -r * 0.18], [L * 0.34, -r * 0.32], [L * 0.28, -r * 0.50],
-      [L * 0.10, -r * 0.57], [-L * 0.08, -r * 0.46], [-L * 0.26, -r * 0.59]
-    ], r * 0.28, L * 0.075), glow,
-      [0, 0, surface(L * 0.10, -r * 0.40, 0.09)], [0, 0, 0], [1, 1, 1], 'Chimera opposing lower serpent profile');
-    primary('opposing lion mane and serpent', [lion, serpent], { heroFeatures: [lion], monster: true, bodyOverlapRatio: 0.26, protrusionRatio: 0.13, eyeSeparationRatio: 0.10 });
-  } else if (id === 'medusagaze') {
-    const tendrils = [];
-    for (let i = 0; i < 5; i++) {
-      const x = L * (0.02 + i * 0.09);
-      const baseY = r * 0.63 + (i % 2) * r * 0.08;
-      const sway = (i - 2) * L * 0.045;
-      tendrils.push(add(poly([
-        [x - L * 0.035, baseY], [x + sway, baseY + headH * 0.26],
-        [x + sway + L * 0.055, baseY + headH * 0.31],
-        [x + L * 0.075, baseY + headH * 0.06],
-        [x + L * 0.04, baseY - r * 0.04]
-      ]), glowDark, [0, 0, surface(x, 0, 0.08)], [0, 0, 0], [1, 1, 1], `Medusa crown serpent tendril ${i + 1}`));
-    }
-    const petrify = toonMaterial({ color: dark, glow: palette.glow || palette.accent, emissiveIntensity: 1.0, kind: 'Medusa petrifying eye' });
-    const eye = add(new THREE.SphereGeometry(headH * 0.13, 8, 4), petrify,
-      [L * 0.40, r * 0.30, surface(L * 0.40, r * 0.30, 0.10)], [0, 0, 0], [1.25, 1.25, 0.60], 'Medusa petrifying eye');
-    primary('five-serpent crown', [...tendrils, eye], { heroFeatures: [tendrils[2]], monster: true, bodyOverlapRatio: 0.18, protrusionRatio: 0.13, eyeSeparationRatio: 0.12 });
-  } else if (id === 'scyllarender') {
-    const tentacles = [];
-    for (let i = 0; i < 6; i++) {
-      const x = -L * 0.26 + i * L * 0.10;
-      const y = -r * (0.58 + (i % 2) * 0.12);
-      // Review floor: every camera-facing blade must carry a .35-.50L
-      // silhouette, not a short decal-like fringe.
-      const reach = L * (0.35 + (i % 3) * 0.035);
-      tentacles.push(add(poly([
-        [x - L * 0.045, y], [x + L * 0.015, y - reach * 0.25],
-        [x + reach * 0.12, y - reach], [x + reach * 0.19, y - reach * 1.06],
-        [x + reach * 0.24, y - reach * 0.78], [x + L * 0.08, y - reach * 0.18]
-      ]), glowDark, [0, 0, surface(x + reach * 0.10, y - reach * 0.32, 0.08)], [0, 0, (i % 2 ? 0.20 : -0.20)], [1, 1, 1], `Scylla camera-facing tentacle ${i + 1}`));
-    }
-    primary('six tentacles', tentacles, { heroFeatures: [tentacles[2]], monster: true, bodyOverlapRatio: 0.18, protrusionRatio: 0.14, eyeSeparationRatio: 0.16 });
-  } else if (id === 'charybdisvoid') {
-    const vortex = [];
-    const outer = headH * 0.34;
-    for (let i = 0; i < 3; i++) {
-      vortex.push(add(ring(outer - i * headH * 0.075, headH * 0.042, 10), i === 0 ? glowDark : glow,
-        [L * (0.34 + i * L * 0.012), -r * 0.16, surface(L * 0.34, -r * 0.16, 0.09)], [0, 0, 0], [1, 1, 1], `Charybdis open vortex mouth ring ${i + 1}`));
-    }
-    const maw = add(poly([[L * 0.19, -r * 0.42], [L * 0.46, -r * 0.33], [L * 0.54, -r * 0.08], [L * 0.45, r * 0.13], [L * 0.18, r * 0.08]], L * 0.09), solidDark,
-      [0, 0, surface(L * 0.36, -r * 0.10, 0.08)], [0, 0, 0], [1, 1, 1], 'Charybdis rooted vortex maw');
-    primary('vortex mouth', [...vortex, maw], { heroFeatures: vortex, monster: true, bodyOverlapRatio: 0.26, protrusionRatio: 0.12, eyeSeparationRatio: 0.10 });
-  } else if (id === 'minotaurram') {
-    const horns = [];
-    horns.push(add(identityArcRibbon(L * 0.08, r * 0.70, L * 0.18, r * 0.30, -Math.PI * 0.40, Math.PI * 0.72, r * 0.13, L * 0.070, 16), glowDark,
-      [0, 0, surface(L * 0.08, r * 0.70, 0.09)], [0, 0, 0], [1, 1, 1], 'Minotaur separated left horn arc'));
-    horns.push(add(identityArcRibbon(L * 0.25, r * 0.70, L * 0.18, r * 0.30, Math.PI * 0.28, Math.PI * 1.40, r * 0.13, L * 0.070, 16), glow,
-      [0, 0, surface(L * 0.25, r * 0.70, 0.10)], [0, 0, 0], [1, 1, 1], 'Minotaur separated right horn arc'));
-    const nose = add(identityBar(L * 0.43, -r * 0.18, L * 0.12, r * 0.10, L * 0.055), red,
-      [0, 0, surface(L * 0.43, -r * 0.18, 0.10)], [0, 0, 0], [1, 1, 1], 'Minotaur rooted muzzle');
-    primary('two separated bull horn arcs', [...horns, nose], { heroFeatures: [horns[0], horns[1]], monster: true, bodyOverlapRatio: 0.24, protrusionRatio: 0.14, eyeSeparationRatio: 0.12 });
-  } else if (id === 'cyclopseye') {
-    const socket = add(ring(r * 0.68, r * 0.30, 10), glowDark,
-      [L * 0.36, 0, surface(L * 0.36, 0, 0.08)], [0, 0, 0], [1, 1, 1], 'Cyclops single-eye socket ring');
-    const socketFill = add(new THREE.CircleGeometry(r * 0.46, 10), glowDark,
-      [L * 0.36, 0, surface(L * 0.36, 0, 0.075)], [0, 0, 0], [1, 1, 1], 'Cyclops rooted eye socket');
-    primary('single eye', [socket, socketFill], { heroFeatures: [socket], bodyOverlapRatio: 0.24 });
-  } else if (id === 'harpyshade') {
-    const wings = [];
-    for (const side of [-1, 1]) {
-      wings.push(add(poly([
-        [-L * 0.30, side * r * 0.12], [-L * 0.23, side * r * 0.40],
-        [-L * 0.08, side * r * 0.95], [L * 0.03, side * r * 0.85],
-        [-L * 0.05, side * r * 0.52], [-L * 0.18, side * r * 0.22]
-      ]), glowDark, [0, 0, surface(-L * 0.16, side * r * 0.28, 0.08)], [0, 0, 0], [1, 1, 1], `Harpy rooted wing blade ${side > 0 ? 'upper' : 'lower'}`));
-    }
-    primary('paired harpy wings', wings, { heroFeatures: [wings[0]], monster: true, bodyOverlapRatio: 0.20, protrusionRatio: 0.14, eyeSeparationRatio: 0.14 });
-  } else if (id === 'lamiacoil') {
-    const coils = [];
-    const loopData = [
-      [-L * 0.49, r * 0.00, L * 0.13, r * 0.48, glowDark],
-      [-L * 0.30, -r * 0.04, L * 0.095, r * 0.24, glow],
-      [-L * 0.12, -r * 0.10, L * 0.13, r * 0.46, glowDark]
-    ];
-    for (const [i, [x, y, rx, ry, material]] of loopData.entries()) {
-      coils.push(add(new THREE.RingGeometry(0.48, 1, 10, 1, Math.PI * 0.24, Math.PI * 1.52), material,
-        [x, y, surface(x, y, 0.08 + i * 0.01)], [0, 0, 0], [rx, ry, 1], 'Lamia open serpent loop ' + (i + 1)));
-    }
-    const tail = add(identityRibbon([
-      [-L * 0.78, -r * 0.04], [-L * 0.62, -r * 0.18], [-L * 0.45, -r * 0.04],
-      [-L * 0.31, r * 0.10], [-L * 0.20, r * 0.02]
-    ], r * 0.20, L * 0.075), glowDark,
-      [0, 0, surface(-L * 0.48, 0, 0.08)], [0, 0, 0], [1, 1, 1], 'Lamia open-loop tail root');
-    primary('open serpent loops', [...coils, tail], { heroFeatures: [coils[1]], monster: true, bodyOverlapRatio: 0.28, protrusionRatio: 0.12, eyeSeparationRatio: 0.16 });
-  } else if (id === 'kampechrono') {
-    const skull = add(poly([
-      [-L * 0.02, r * 0.02], [L * 0.01, r * 0.44], [L * 0.08, r * 0.66],
-      [L * 0.20, r * 0.67], [L * 0.35, r * 0.61], [L * 0.48, r * 0.40],
-      [L * 0.50, r * 0.10], [L * 0.40, -r * 0.06], [L * 0.24, -r * 0.10],
-      [L * 0.10, -r * 0.06]
-    ]), ivory, [0, 0, surface(L * 0.23, r * 0.28, 0.09)], [0, 0, 0], [1, 1, 1], 'Kampe enlarged anchored skull mass');
-    const glyph = add(identitySpiral(L * 0.24, r * 0.34, L * 0.13, r * 0.24, 1.35, Math.PI * 0.18, L * 0.050, L * 0.060, 26), glow,
-      [0, 0, surface(L * 0.24, r * 0.34, 0.11)], [0, 0, 0], [1, 1, 1], 'Kampe skull-anchored chrono spiral');
-    const anchor = add(identityBar(L * 0.10, r * 0.28, L * 0.15, r * 0.12, L * 0.045), glowDark,
-      [0, 0, surface(L * 0.10, r * 0.28, 0.10)], [0, 0, 0], [1, 1, 1], 'Kampe chrono spiral skull anchor');
-    primary('enlarged skull and anchored spiral', [skull, glyph, anchor], { heroFeatures: [skull], monster: true, bodyOverlapRatio: 0.62, protrusionRatio: 0.12, eyeSeparationRatio: 0.10 });
-  }
-}
-
-function cameraSurfaceForIdentity(dimensions, x, y = 0) {
-  return localSurfaceZ(dimensions, x, y);
-}
-
-function addEmissiveDetails(template, def, palette, dimensions) {
-  if (!palette.glow) return;
-  const sil = def.sil || {};
-  const pattern = sil.pattern || 'plain';
-  const fx = String(sil.fx || '').trim();
-  // Pantheon/Underworld identity geometry owns the late-roster glow pass. The
-  // old generic vein/plate/ring decals would duplicate the same surface cue,
-  // spend triangles beside the 4600 ceiling, and compete with the authored
-  // silhouette features. The identity batch is also tagged with this fx key,
-  // which keeps the material-ownership audit intact.
-  if (finite(def.act, 1) >= 4) return;
-  const fxLower = fx.toLowerCase();
-  const glowMaterial = toonMaterial({ color: palette.glow, glow: palette.glow, emissiveIntensity: 0.82, kind: 'emissive decal' });
-  const addEmissive = (geometry, position, rotation, scale, name) => {
-    const feature = descriptor(geometry, glowMaterial, position, rotation, scale, name);
-    feature.rfEmissiveFeature = true;
-    template.bodyFeatures.push(feature);
-  };
-
-  const veinPattern = pattern === 'cracks' || pattern === 'runes' || pattern === 'faults' || pattern === 'magma' || pattern === 'rot' || pattern === 'corona' || pattern === 'rays';
-  const veinFx = /vein|lava|ember|venom|spore|wisp|omen|sunflare/i.test(fxLower);
-  if (veinPattern || veinFx) {
-    for (let i = 0; i < 4; i++) {
-      const x = -dimensions.bodyLen * 0.18 + i * dimensions.bodyLen * 0.14;
-      const y = dimensions.radiusY * (0.08 + (i % 2) * 0.18);
-      const decal = makeExtrudedTriangle([
-        [x, y, 0],
-        [x + dimensions.bodyLen * 0.05, y - dimensions.radiusY * 0.12, 0],
-        [x + dimensions.bodyLen * 0.02, y + dimensions.radiusY * 0.18, 0]
-      ], dimensions.radiusZ * 0.025);
-      addEmissive(decal, [0, 0, dimensions.radiusZ * 0.88], [0, 0, 0], [1, 1, 1], `emissive ${pattern} vein/decal`);
-    }
-  }
-
-  const platePattern = pattern === 'plates' || pattern === 'plating' || pattern === 'panels' || pattern === 'rivets' || pattern === 'facets' || pattern === 'bones' || pattern === 'spikes' || pattern === 'scales' || pattern === 'coral';
-  if (platePattern) {
-    for (let i = 0; i < 3; i++) {
-      const x = -dimensions.bodyLen * 0.08 + i * dimensions.bodyLen * 0.17;
-      const y = dimensions.radiusY * (0.42 + (i % 2) * 0.1);
-      const plate = makeExtrudedTriangle([
-        [x, y, 0], [x + dimensions.bodyLen * 0.055, y + dimensions.radiusY * 0.18, 0],
-        [x + dimensions.bodyLen * 0.09, y - dimensions.radiusY * 0.02, 0]
-      ], dimensions.radiusZ * 0.02);
-      addEmissive(plate, [0, 0, dimensions.radiusZ * 0.9], [0, 0, 0], [1, 1, 1], `emissive ${pattern} plate`);
-    }
-  }
-
-  const ringFx = /arc|storm|dynamo|wail|sound|ring|thruster|spark|engine|whirl|ripple|clock|tremor/i.test(fxLower);
-  if (ringFx) {
-    const ring = new THREE.TorusGeometry(dimensions.radiusY * 0.46, Math.max(0.012, dimensions.radiusY * 0.025), 4, 8);
-    addEmissive(ring, [dimensions.bodyLen * 0.18, 0, dimensions.radiusZ * 0.84], [0, Math.PI * 0.5, 0], [1.1, 1, 1], 'emissive arc/ring feature');
-    addEmissive(ring, [dimensions.bodyLen * 0.31, 0, dimensions.radiusZ * 0.84], [0, Math.PI * 0.5, 0], [0.82, 1, 1], 'emissive arc/ring feature');
-  }
-
-  if (/frost|ice|aurora/i.test(fxLower)) {
-    for (let i = 0; i < 3; i++) {
-      const x = dimensions.bodyLen * (0.08 + i * 0.17);
-      const shard = makeExtrudedTriangle([
-        [x, dimensions.radiusY * 0.4, 0],
-        [x + dimensions.bodyLen * 0.025, dimensions.radiusY * 0.72, 0],
-        [x + dimensions.bodyLen * 0.05, dimensions.radiusY * 0.4, 0]
-      ], dimensions.radiusZ * 0.022);
-      addEmissive(shard, [0, 0, dimensions.radiusZ * 0.91], [0, 0, 0], [1, 1, 1], 'emissive frost/ice shard');
-    }
-  }
-
-  if (/glow|shadow|gloom|alien|abyss|rift|void|moonlit|marrow|glint|corona|crown|eruption|warlight|sail|lure|charge|dorsal/i.test(fxLower)) {
-    const halo = new THREE.TorusGeometry(dimensions.radiusY * 0.18, Math.max(0.01, dimensions.radiusY * 0.025), 4, 8);
-    addEmissive(halo, [dimensions.bodyLen * 0.35, dimensions.radiusY * 0.08, dimensions.radiusZ * 0.9], [Math.PI * 0.5, 0, 0], [1, 1, 0.7], `emissive ${fx || 'fx'} halo`);
-  }
-
-  // Every authored Act 2/3 FX key gets a named, material-owned feature even
-  // when its silhouette family above has no bespoke 3D geometry yet. This is
-  // the audit hook that prevents a future FX painter from reaching for the
-  // body material to get its colour.
-  if (fx && fx !== 'none') {
-    const marker = makeExtrudedTriangle([
-      [dimensions.bodyLen * 0.27, dimensions.radiusY * 0.1, 0],
-      [dimensions.bodyLen * 0.3, dimensions.radiusY * 0.18, 0],
-      [dimensions.bodyLen * 0.34, dimensions.radiusY * 0.08, 0]
-    ], dimensions.radiusZ * 0.018);
-    addEmissive(marker, [0, 0, dimensions.radiusZ * 0.925], [0, 0, 0], [1, 1, 1], `emissive fx ${fx}`);
-  }
-}
-
-// Rev 8 art gate: the metadata probe and the rendered side-silhouette probe
-// intentionally consume the built ring vertices, not the authored constants.
-// The browser screenshot harness uses the same mouth-band ratio as its pixel
-// probe; this Node-side companion catches a missing/occluded band before a
-// render is even attempted.
-function renderedSilhouetteProbe(geometry, dimensions, metrics = {}) {
-  const position = geometry.getAttribute('position');
-  const radial = geometry.userData.rfRadial;
-  const stations = geometry.userData.rfStations;
-  const bodyVertexCount = radial * stations;
-  let minY = Infinity;
-  let maxY = -Infinity;
-  for (let i = 0; i < bodyVertexCount; i++) {
-    minY = Math.min(minY, position.getY(i));
-    maxY = Math.max(maxY, position.getY(i));
-  }
-  const frontStart = (stations - 1) * radial;
-  let frontMinY = Infinity;
-  let frontMaxY = -Infinity;
-  for (let i = frontStart; i < frontStart + radial; i++) {
-    frontMinY = Math.min(frontMinY, position.getY(i));
-    frontMaxY = Math.max(frontMaxY, position.getY(i));
-  }
-  const bodyDepthRatio = (maxY - minY) / Math.max(dimensions.bodyLen, 1e-6);
-  const snoutRadiusRatio = (frontMaxY - frontMinY) * 0.5 / Math.max(dimensions.bodyLen, 1e-6);
-  return {
-    depthRatio: bodyDepthRatio,
-    headFraction: 0.30,
-    snoutRadiusRatio,
-    dorsalHeightRatio: finite(geometry.userData.rfDorsalFin?.height, 0) / Math.max(dimensions.bodyLen, 1e-6),
-    pectoralSpanRatio: finite(geometry.userData.rfPectoralSpan, 0) / Math.max(dimensions.bodyLen, 1e-6),
-    toothBandWhiteCoverage: finite(metrics.toothBandWhiteCoverage, 0),
-    projected: true
-  };
-}
-
-function buildTemplate(def) {
-  const id = String(def.id || `custom-${geometryCache.size}`);
-  if (geometryCache.has(id)) return geometryCache.get(id);
-  const sil = def.sil || {};
-  const head = sil.head || 'point';
-  const len = clamp(finite(sil.len, 1), 0.5, 3);
-  const authoredGirth = clamp(finite(sil.girth, 0.36), 0.18, 0.8);
-  const girth = authoredGirth;
-  const girthNorm = clamp((authoredGirth - 0.18) / 0.62, 0, 1);
-  // Blue keeps a deliberately longer crescent than the Mako even though both
-  // use the point head; this small code-side species cue survives the shared
-  // loft and remains inside the prescribed .28-.36L tail envelope.
-  const tailScale = clamp(finite(sil.tailScale, 1) + (id === 'blue' ? 0.40 : 0), 0.55, 2.0);
-  const finScale = clamp(finite(sil.finScale, 1), 0.5, 2.1);
-  const exaggeration = exaggerationFor(head, sil);
-  // Length still gives the roster scale and eel/whale/kaiju receive a modest
-  // elongation, but the hull depth/width/head concept is shared by every row.
-  const bodyLen = len * (head === 'eel' ? 1.44 : head === 'whale' ? 1.38 : head === 'kaiju' ? 1.42 : 1.30);
-  const hullScale = hullScaleFor(authoredGirth, head);
-  const radiusY = bodyLen * CANONICAL_HULL_RADIUS_RATIO;
-  const radiusZ = radiusY * 0.98;
-  const pectoralHeadFactor = {
-    hammer: 1.06, whale: 0.96, angler: 0.96, eel: 1.02,
-    saw: 0.98, croc: 0.98, rock: 1.02, mech: 0.98,
-    void: 1.04, kaiju: 1.08
-  }[head] || 1;
-  const pectoralSpan = bodyLen * clamp(
-    (0.095 + clamp(finScale, 0.5, 2.1) * 0.018) * pectoralHeadFactor * (id === 'blue' ? 1.04 : 1),
-    0.10,
-    0.14
-  );
-  const hullDepthRatio = radiusY * (0.98 - (-0.98)) * hullScale / Math.max(bodyLen, 1e-6);
-  const dimensions = { bodyLen, radiusY, radiusZ, len, girth, girthNorm, authoredGirth, hullScale, hullDepthRatio, tailScale, finScale, pectoralSpan, id, head, exaggeration };
-  const palette = paletteOf(def);
-  const flatShading = head === 'rock' || head === 'mech' || head === 'kaiju';
-  const faceSpec = faceIdentity(head, bodyLen, radiusY);
-  const mouthMax = head === 'whale' ? bodyLen * 0.60 : bodyLen * 0.30;
-  faceSpec.mouthWidth = clamp(faceSpec.mouthWidth, bodyLen * 0.20, mouthMax);
-  // The authored cavity spans 1.20x this height. Raise the shared baseline so
-  // the dark field, rather than the teeth, owns the face at gameplay scale;
-  // the resulting opening stays inside the review's 0.10-.16L window.
-  faceSpec.mouthHeight = Math.max(faceSpec.mouthHeight, bodyLen * 0.110, headHeight(dimensions) * 0.33);
-  faceSpec.jawWidth *= exaggeration.jawScale;
-  faceSpec.jawHeight *= exaggeration.jawScale;
-  faceSpec.jawDepth *= exaggeration.jawScale;
-  const template = {
-    id,
-    dimensions,
-    palette,
-    bodyGeometry: makeSpineGeometry(def, palette, dimensions),
-    bodyMaterial: toonMaterial({ color: WHITE, glow: 0x000000, vertexColors: true, flatShading, kind: 'body' }),
-    bodyFeatures: [],
-    face: { spec: faceSpec },
-    jaw: null,
-    teeth: 0,
-    plateFeatures: [],
-    featureBatches: [],
-    identityFeatureRecords: [],
-    metrics: {}
-  };
-  addHeadFeatures(template, def, palette, dimensions);
-  addPantheonFeatures(template, def, palette, dimensions);
-  addEmissiveDetails(template, def, palette, dimensions);
-  addEyeFeatures(template, def, palette, dimensions);
-  addMouthAndTeeth(template, def, palette, dimensions);
-  template.teeth = template.bodyFeatures.filter((feature) => feature.name.includes('tooth')).length;
-  const compactActFeatureMaterial = finite(def.act, 1) >= 4
-    ? toonMaterial({ color: WHITE, glow: palette.glow || palette.accent, vertexColors: true, emissiveIntensity: 0.92, kind: 'pantheon compact feature batch' })
-    : null;
-  template.featureBatches = mergeFeatureDescriptors(template.bodyFeatures, { material: compactActFeatureMaterial });
-  if (template.jaw?.teethDescriptors?.length) {
-    const batches = mergeFeatureDescriptors(template.jaw.teethDescriptors);
-    template.jaw.teethGeometry = batches[0]?.geometry || null;
-    template.jaw.teethMaterial = batches[0]?.material || null;
-  }
-  template.metrics.faceShare = template.face.spec.share;
-  template.metrics.faceCenterZ = finite(template.metrics.faceCenterZ, 0);
-  template.metrics.bodyMaxZ = template.bodyGeometry.boundingBox.max.z;
-  const bodySize = template.bodyGeometry.boundingBox.getSize(new THREE.Vector3());
-  template.metrics.bodyAspect = bodySize.x / Math.max(bodySize.y, bodySize.z, 0.001);
-  template.metrics.tailShare = template.bodyGeometry.userData.rfTailLength / Math.max(0.001, bodySize.x);
-  template.metrics.tailLength = template.bodyGeometry.userData.rfTailLength;
-  template.metrics.tailLengthRatio = template.bodyGeometry.userData.rfTailLengthRatio;
-  template.metrics.tailUpperLobeHeight = template.bodyGeometry.userData.rfTailUpperLobeHeight;
-  template.metrics.tailLowerLobeHeight = template.bodyGeometry.userData.rfTailLowerLobeHeight;
-  template.metrics.tailLowerUpperRatio = template.bodyGeometry.userData.rfTailLowerUpperRatio;
-  template.metrics.tailDepthRatio = template.bodyGeometry.userData.rfTailDepth / Math.max(bodyLen, 1e-6);
-  template.metrics.tailNotchProjected = projectedTailNotchMetrics(template.bodyGeometry, bodyLen);
-  template.metrics.tailFinalLobeRatio = template.bodyGeometry.userData.rfTailFinalLobeRatio;
-  template.metrics.tailStationCount = template.bodyGeometry.userData.rfTailStationCount;
-  template.metrics.tailPointedCap = !!template.bodyGeometry.userData.rfTailPointedCap;
-  template.metrics.tailRootWidth = template.bodyGeometry.userData.rfTailRootWidth;
-  template.metrics.tailOutline = template.bodyGeometry.userData.rfTailOutline;
-  template.metrics.pattern = sil.pattern || 'plain';
-  template.metrics.head = head;
-  template.metrics.headHeight = headHeight(dimensions);
-  template.metrics.resolvedPalette = palette.resolved;
-  template.metrics.outlineColor = resolvedPaletteStats(colorValue(OUTLINE_SHELL_COLOR));
-  if (template.metrics.pattern === 'stripes') {
-    template.metrics.stripeBandWidthRatio = 0.052;
-    template.metrics.stripeValueContrast = Math.abs(palette.resolved.accent.v - palette.resolved.base.v);
-  }
-  template.metrics.finScale = finScale;
-  template.metrics.tailScale = tailScale;
-  template.metrics.pectoralSpan = template.bodyGeometry.userData.rfPectoralSpan;
-  template.metrics.dorsalFinRatio = template.metrics.dorsalFin ? template.metrics.dorsalFin.height / bodyLen : 0;
-  template.metrics.renderedSilhouette = renderedSilhouetteProbe(template.bodyGeometry, dimensions, template.metrics);
-  template.metrics.plateMaxZ = template.plateFeatures.length
-    ? Math.max(...template.plateFeatures.map((feature) => feature.geometry.boundingBox.max.z + feature.position[2]))
-    : 0;
-  template.metrics.jawVolumeRatio = template.jaw
-    ? (template.jaw.geometry.userData.rfJawVolume || 0) / Math.max(0.001, dimensions.bodyLen * (dimensions.radiusY * 2) * (dimensions.radiusZ * 2))
-    : 0;
-  template.metrics.bulkRearProfile = finite(template.bodyGeometry.userData.rfBulkRearProfile, 0);
-  template.metrics.bulkFrontProfile = finite(template.bodyGeometry.userData.rfBulkFrontProfile, 0);
-  template.metrics.bulkNoseProfile = finite(template.bodyGeometry.userData.rfBulkNoseProfile, 0);
-  template.metrics.identityFeatureRecords = template.identityFeatureRecords;
-  template.metrics.identityFeatureCount = template.identityFeatureRecords.length;
-  geometryCache.set(id, template);
-  return template;
-}
-
-function instantiateFeature(parent, feature, material = feature.material) {
-  const mesh = new THREE.Mesh(feature.geometry, material);
-  mesh.name = `RF ${feature.name}`;
-  mesh.position.set(...(feature.position || [0, 0, 0]));
-  mesh.rotation.set(...(feature.rotation || [0, 0, 0]));
-  mesh.scale.set(...(feature.scale || [1, 1, 1]));
-  if (feature.geometry.userData.rfFeatureNames) mesh.userData.rfFeatureNames = feature.geometry.userData.rfFeatureNames;
-  parent.add(mesh);
-  return mesh;
-}
-
-function countTriangles(root) {
-  let total = 0;
+function measureBox(root) {
+  root.updateMatrixWorld(true);
+  const out = new THREE.Box3().makeEmpty();
   root.traverse((object) => {
-    const geometry = object.geometry;
-    if (!geometry) return;
-    const index = geometry.getIndex?.();
-    const position = geometry.getAttribute?.('position');
-    total += Math.floor((index ? index.count : position ? position.count : 0) / 3);
+    if (!object.isMesh) return;
+    if (object.isSkinnedMesh) {
+      object.computeBoundingBox();
+      if (object.boundingBox) out.union(object.boundingBox.clone().applyMatrix4(object.matrixWorld));
+    } else if (object.geometry?.boundingBox) out.union(object.geometry.boundingBox.clone().applyMatrix4(object.matrixWorld));
+    else out.expandByObject(object);
   });
-  return total;
+  return out;
 }
-
-function geometryBytes(geometry) {
-  let bytes = 0;
-  for (const key of Object.keys(geometry.attributes || {})) bytes += geometry.attributes[key].array?.byteLength || 0;
-  if (geometry.index) bytes += geometry.index.array?.byteLength || 0;
-  return bytes;
+function prepareTemplate(scene, animations = [], key = '') {
+  const meshes = findMeshes(scene), skinnedMeshes = meshes.filter((object) => object.isSkinnedMesh);
+  const source = skinnedMeshes[0] || meshes[0];
+  if (!source) throw new Error(`${key}: no mesh`);
+  const isSkinned = skinnedMeshes.length > 0;
+  scene.updateMatrixWorld(true);
+  const clip = animations?.find((a) => /swim(?![_a-z])/i.test(a.name || '') || /swimming_normal/i.test(a.name || '')) || animations?.find((a) => /swim|swimming/i.test(a.name || '')) || animations?.[0] || null;
+  if (isSkinned && clip) { const mixer = new THREE.AnimationMixer(scene); mixer.clipAction(clip).play(); mixer.update(0); scene.updateMatrixWorld(true); }
+  const initialBox = measureBox(scene), initialSize = initialBox.getSize(new THREE.Vector3());
+  const axis = initialSize.y >= initialSize.x && initialSize.y >= initialSize.z ? 'y' : initialSize.z > initialSize.x ? 'z' : 'x';
+  const unitScale = 1 / Math.max(initialSize.x, initialSize.y, initialSize.z, 1e-5);
+  scene.scale.setScalar(unitScale); scene.position.sub(initialBox.getCenter(new THREE.Vector3()).multiplyScalar(unitScale));
+  if (axis === 'y') scene.rotation.z = -Math.PI / 2; else if (axis === 'z') scene.rotation.y = Math.PI / 2;
+  scene.updateMatrixWorld(true);
+  const normalizedBox = measureBox(scene);
+  const materials = [];
+  for (const mesh of meshes) for (const material of (Array.isArray(mesh.material) ? mesh.material : [mesh.material])) if (material && !materials.includes(material)) materials.push(material);
+  const sourceMaterials = (Array.isArray(source.material) ? source.material : [source.material]).map((material) => String(material?.name || 'Body'));
+  return {
+    key, scene, body: source, meshes, skinnedMeshes, materials, animations: animations || [], clip,
+    clips: {
+      swim: animations?.find((a) => /(?:^|\|)Swim(?:$|\||_)/i.test(a.name || '') && !/Fast|Bite/i.test(a.name || '')) || clip,
+      fast: animations?.find((a) => /Swim_Fast|Swimming_Fast/i.test(a.name || '')) || null,
+      bite: animations?.find((a) => /Swim_Bite|Attack/i.test(a.name || '')) || null,
+      death: animations?.find((a) => /Death/i.test(a.name || '')) || null
+    },
+    isSkinned, axis, unitScale, normalizedSize: normalizedBox.getSize(new THREE.Vector3()),
+    normalizedLength: normalizedBox.max.x - normalizedBox.min.x, slotNames: sourceMaterials,
+    hasAtlas: materials.some((material) => String(material?.name || '') === 'AtlasMaterial' || !!material?.map)
+  };
 }
-
-function cacheBytes() {
-  const seen = new Set();
-  let bytes = 0;
-  for (const template of geometryCache.values()) {
-    const visit = (geometry) => {
-      if (!geometry || seen.has(geometry)) return;
-      seen.add(geometry);
-      bytes += geometryBytes(geometry);
-    };
-    visit(template.bodyGeometry);
-    for (const feature of template.bodyFeatures) visit(feature.geometry);
-    if (template.jaw) {
-      visit(template.jaw.geometry);
-      visit(template.jaw.teethGeometry);
-    }
+function cloneRigScene(template) {
+  const sourceScene = template.scene, clone = sourceScene.clone(true), sourceSkins = [], cloneSkins = [];
+  sourceScene.traverse((o) => { if (o.isSkinnedMesh) sourceSkins.push(o); });
+  clone.traverse((o) => { if (o.isSkinnedMesh) cloneSkins.push(o); });
+  for (let i = 0; i < sourceSkins.length; i++) {
+    const source = sourceSkins[i], target = cloneSkins[i]; if (!target || !source.skeleton) continue;
+    const bones = source.skeleton.bones.map((bone) => clone.getObjectByName(bone.name));
+    if (bones.some((bone) => !bone)) throw new Error('skeleton clone lost a bone');
+    target.bind(new THREE.Skeleton(bones, source.skeleton.boneInverses.map((m) => m.clone())), source.bindMatrix.clone(), source.bindMatrixInverse.clone());
   }
-  return bytes;
+  return clone;
 }
 
-function buildShark(def) {
-  if (!def) throw new Error('RF.Art3D.buildShark requires a shark definition');
-  const template = buildTemplate(def);
-  const group = new THREE.Group();
-  group.name = `RF Shark ${template.id}`;
-  group.userData.rfSharkId = template.id;
-  group.userData.rfArchetype = def.sil?.head || 'point';
-  group.userData.rfFaceShare = template.metrics.faceShare;
-  group.userData.rfFaceCenterZ = template.metrics.faceCenterZ;
-  group.userData.rfBulkHead = isBulkyHead(def.sil?.head || 'point');
-  group.userData.rfBulkRearProfile = template.metrics.bulkRearProfile;
-  group.userData.rfBulkFrontProfile = template.metrics.bulkFrontProfile;
-  group.userData.rfBulkNoseProfile = template.metrics.bulkNoseProfile;
-  group.userData.rfJawVolumeRatio = template.metrics.jawVolumeRatio;
-  group.userData.rfTailShare = template.metrics.tailShare;
-  group.userData.rfBodyLen = template.dimensions.bodyLen;
-  group.userData.rfRadiusY = template.dimensions.radiusY;
-  group.userData.rfEffectiveGirth = template.dimensions.girth;
-  group.userData.rfGirthNorm = template.dimensions.girthNorm;
-  group.userData.rfHullScale = template.dimensions.hullScale;
-  group.userData.rfHullDepthRatio = template.dimensions.hullDepthRatio;
-  group.userData.rfHullSilhouette = template.metrics.renderedSilhouette;
-  group.userData.rfRenderedSilhouetteProbe = template.metrics.renderedSilhouette;
-  group.userData.rfExaggeration = template.dimensions.exaggeration;
-  group.userData.rfHeadScale = template.dimensions.exaggeration.headScale;
-  group.userData.rfFrontSpanRatio = template.dimensions.exaggeration.frontSpan;
-  group.userData.rfBodyAspect = template.metrics.bodyAspect;
-  group.userData.rfAspect = template.metrics.bodyAspect;
-  group.userData.rfTailLength = template.metrics.tailLength;
-  group.userData.rfTailLengthRatio = template.metrics.tailLengthRatio;
-  group.userData.rfTailUpperLobeHeight = template.metrics.tailUpperLobeHeight;
-  group.userData.rfTailLowerLobeHeight = template.metrics.tailLowerLobeHeight;
-  group.userData.rfTailLowerUpperRatio = template.metrics.tailLowerUpperRatio;
-  group.userData.rfTailDepthRatio = template.metrics.tailDepthRatio;
-  group.userData.rfTailNotchProjectedUpperRatio = template.metrics.tailNotchProjected.upperGap;
-  group.userData.rfTailNotchProjectedLowerRatio = template.metrics.tailNotchProjected.lowerGap;
-  group.userData.rfTailNotchProjectedRatio = template.metrics.tailNotchProjected.minGap;
-  group.userData.rfTailNotchProjectedCssPx = template.metrics.tailNotchProjected.cssPx;
-  group.userData.rfTailUpperLobeTipIndex = template.metrics.tailNotchProjected.upperIndex;
-  group.userData.rfTailLowerLobeTipIndex = template.metrics.tailNotchProjected.lowerIndex;
-  group.userData.rfTailNotchIndex = template.metrics.tailNotchProjected.notchIndex;
-  group.userData.rfTailFinalLobeRatio = template.metrics.tailFinalLobeRatio;
-  group.userData.rfTailStationCount = template.metrics.tailStationCount;
-  group.userData.rfTailPointedCap = template.metrics.tailPointedCap;
-  group.userData.rfTailRootWidth = template.metrics.tailRootWidth;
-  group.userData.rfTailOutline = template.metrics.tailOutline;
-  group.userData.rfPattern = template.metrics.pattern;
-  group.userData.rfFinScale = template.metrics.finScale;
-  group.userData.rfTailScale = template.metrics.tailScale;
-  group.userData.rfPectoralSpan = template.metrics.pectoralSpan;
-  group.userData.rfPectoralSpanRatio = template.metrics.pectoralSpan / Math.max(template.dimensions.bodyLen, 0.001);
-  group.userData.rfDorsalFinRatio = template.metrics.dorsalFinRatio;
-  group.userData.rfPaletteRaw = template.palette.raw;
-  group.userData.rfPaletteResolved = template.palette.resolved;
-  group.userData.rfOutlineColorStats = template.metrics.outlineColor;
-  group.userData.rfGillBandCount = template.metrics.gillBandCount || 0;
-  group.userData.rfGillBandVertexColors = !!template.metrics.gillBandVertexColors;
-  group.userData.rfGillXRange = template.metrics.gillXRange || null;
-  group.userData.rfMouthLineVertexColors = !!template.metrics.mouthLineVertexColors;
-  group.userData.rfEyeRadius = template.metrics.eyeRadius || 0;
-  group.userData.rfEyeRenderRadius = template.metrics.eyeRenderRadius || 0;
-  group.userData.rfEyeRenderRadiusFraction = template.metrics.eyeRenderRadiusFraction || 0;
-  group.userData.rfEyeX = template.metrics.eyeX || 0;
-  group.userData.rfEyeY = template.metrics.eyeY || 0;
-  group.userData.rfEyeRadiusFraction = template.metrics.eyeRadiusFraction || 0;
-  group.userData.rfEyeHeadHeightFraction = template.metrics.eyeHeadHeightFraction || 0;
-  group.userData.rfEyeSurfaceZ = template.metrics.eyeSurfaceZ || 0;
-  group.userData.rfEyeZ = template.metrics.eyeZ || 0;
-  group.userData.rfEyeProudZ = template.metrics.eyeProudZ || 0;
-  group.userData.rfEyeIrisFraction = template.metrics.eyeIrisFraction || 0;
-  group.userData.rfEyeIrisStats = template.metrics.eyeIrisStats || null;
-  group.userData.rfEyeUnitTriangles = template.metrics.eyeUnitTriangles || 0;
-  group.userData.rfEyeUnitPresent = !!template.metrics.eyeUnitPresent;
-  group.userData.rfSingleCentralEye = !!template.metrics.singleCentralEye;
-  group.userData.rfJawScale = template.dimensions.exaggeration.jawScale;
-  group.userData.rfMouthCorner = template.dimensions.exaggeration.mouthCorner;
-  group.userData.rfDorsalFin = template.metrics.dorsalFin || null;
-  group.userData.rfPlateMaxZ = template.metrics.plateMaxZ;
-  group.userData.rfHeadHeight = template.metrics.headHeight;
-  group.userData.rfMouthWidth = template.metrics.mouthWidth || 0;
-  group.userData.rfMouthWidthRatio = template.metrics.mouthWidthRatio || 0;
-  group.userData.rfMouthHeightRatio = template.metrics.mouthHeightRatio || 0;
-  group.userData.rfMouthCavityHeight = template.metrics.mouthCavityHeight || 0;
-  group.userData.rfMouthCavityHeightRatio = template.metrics.mouthCavityHeightRatio || 0;
-  group.userData.rfMouthCornerLift = template.metrics.mouthCornerLift || 0;
-  group.userData.rfMouthCornerLiftRatio = template.metrics.mouthCornerLiftRatio || 0;
-  group.userData.rfMouthToothCount = template.metrics.toothCount || 0;
-  group.userData.rfMouthToothGap = template.metrics.toothGap || 0;
-  group.userData.rfMouthToothGapRatio = template.metrics.toothGapRatio || 0;
-  group.userData.rfToothBandWhiteCoverage = template.metrics.toothBandWhiteCoverage || 0;
-  group.userData.rfToothBandWidthRatio = template.metrics.toothBandWidthRatio || 0;
-  group.userData.rfHammerFoilProjectedSpan = template.metrics.hammerFoilProjectedSpan || 0;
-  group.userData.rfHammerFoilThickness = template.metrics.hammerFoilThickness || 0;
-  group.userData.rfHammerBridgeOverlap = template.metrics.hammerBridgeOverlap || 0;
-  group.userData.rfWhaleHeadHeight = template.metrics.whaleHeadHeight || 0;
-  group.userData.rfWhaleSpotCount = template.metrics.whaleSpotCount || 0;
-  group.userData.rfWhaleSpotDiameterRatio = template.metrics.whaleSpotDiameterRatio || 0;
-  group.userData.rfWhaleSpotValueContrast = template.metrics.whaleSpotValueContrast || 0;
-  group.userData.rfWhaleBaleenCrossing = !!template.metrics.whaleBaleenCrossing;
-  group.userData.rfWhaleBaleenProudZ = template.metrics.whaleBaleenProudZ || 0;
-  group.userData.rfTigerStripeBandWidthRatio = template.metrics.stripeBandWidthRatio || 0;
-  group.userData.rfTigerStripeValueContrast = template.metrics.stripeValueContrast || 0;
-  group.userData.rfMechPanelAreaRatio = template.metrics.mechPanelAreaRatio || 0;
-  group.userData.rfMechPanelValueContrast = template.metrics.mechPanelValueContrast || 0;
-  group.userData.rfMechPanelProudZ = template.metrics.mechPanelProudZ || 0;
-  group.userData.rfMechThrusterProudZ = template.metrics.mechThrusterProudZ || 0;
-  group.userData.rfVoidRingDiameterRatio = template.metrics.voidRingDiameterRatio || 0;
-  group.userData.rfVoidRingStrokeRatio = template.metrics.voidRingStrokeRatio || 0;
-  group.userData.rfVoidRingProudZ = template.metrics.voidRingProudZ || 0;
-  group.userData.rfVoidEyeDiameterRatio = template.metrics.voidEyeDiameterRatio || 0;
-  group.userData.rfVoidEyeProudZ = template.metrics.voidEyeProudZ || 0;
-  group.userData.rfBodyMaxZ = template.metrics.bodyMaxZ;
-  group.userData.rfFeatureSourceCount = template.bodyFeatures.length;
-  group.userData.rfFeatureBatchCount = template.featureBatches.length;
-  group.userData.rfIdentityFeatureCount = template.metrics.identityFeatureCount || 0;
-  group.userData.rfIdentityFeatureRecords = template.metrics.identityFeatureRecords || [];
-  group.userData.rfIdentityStormSpikeCount = template.metrics.stormSpikeCount || 0;
-  group.userData.rfPlateFeatureCount = template.plateFeatures.length;
-  group.userData.rfBatchesTeethPlatesEyes = template.featureBatches.some((batch) => batch.geometry.userData.rfFeatureNames.some((name) => name.includes('tooth'))) &&
-    template.featureBatches.some((batch) => batch.geometry.userData.rfFeatureNames.some((name) => name.includes('plate'))) &&
-    template.featureBatches.some((batch) => batch.geometry.userData.rfFeatureNames.some((name) => name.includes('eye')));
-  group.userData.rfWeldedAppendages = { tail: true, dorsal: true, pectorals: true };
-
-  const shellScale = OUTLINE_SHELL_SCALE;
-  // Rev 6 (6.3): bendK=7.5/bodyLen puts the wavelength inside the rear ~40% of
-  // the body (envelope span below), rather than the old 4.6 which spread a
-  // near-full wavelength across the whole silhouette ("squirming worm" per
-  // owner rejection). Head+gills [0..0.10] stay rigid; bend confined to
-  // [0.10..0.48]*bodyLen on -transformed.x.
-  const bendK = 7.5 / Math.max(template.dimensions.bodyLen, 0.001);
-  const bendSpanX = template.dimensions.bodyLen * 0.10;
-  const bendSpanY = template.dimensions.bodyLen * 0.48;
-  const tailSpanX = template.dimensions.bodyLen * 0.50;
-  const tailSpanY = tailSpanX + Math.min(template.dimensions.bodyLen * TAIL_SMOOTH_SPAN_MAX_RATIO, template.metrics.tailLength);
-  const bendScale = template.dimensions.bodyLen * 0.08;
-  const seed = hash01(hashStringToInt(template.id)) * TAU;
+const SHADER_UNIFORMS = Object.freeze([
+  'uRfTopColor', 'uRfBottomColor', 'uRfAccentColor', 'uRfPatternColor', 'uRfPatternId',
+  'uRfPatternScale', 'uRfPatternContrast', 'uRfPatternSeed', 'uRfPatternMix',
+  'uRfHueShift', 'uRfSaturation', 'uRfTintMask', 'uRfHeightScale'
+]);
+function materialIsFace(name) { return /eye|teeth|tooth|mouth/i.test(String(name || '')); }
+function sourceMap(sourceMaterial) { return sourceMaterial?.map || null; }
+function skinMaterial(palette, def, sourceMaterial = null, sourceName = '', atlas = false, featureMode = '') {
+  const faceSlot = materialIsFace(sourceName), map = sourceMap(sourceMaterial), sourceColor = sourceMaterial?.color?.clone?.() || new THREE.Color(1, 1, 1);
   const uniforms = {
-    uBendPhase: { value: 0 },
-    uBendAmp: { value: 0 },
-    uBendK: { value: bendK },
-    uBendSpan: { value: new THREE.Vector2(bendSpanX, bendSpanY) },
-    uBendBias: { value: 0 },
-    uTailAmp: { value: 0 },
-    uTailSpan: { value: new THREE.Vector2(tailSpanX, tailSpanY) },
-    // Engine tailAmp remains the authoritative scalar. This local scale maps
-    // its legacy 0..~0.62 range to the review's <=.06L trunk motion without
-    // changing the :rf-bend3 state contract.
-    uBendScale: { value: bendScale }
+    uRfTopColor: { value: palette.base.clone() }, uRfBottomColor: { value: palette.belly.clone() }, uRfAccentColor: { value: palette.accent.clone() }, uRfPatternColor: { value: palette.accent.clone() },
+    uRfPatternId: { value: patternId(def) }, uRfPatternScale: { value: 108 + finite(def?.sil?.len, 1) * 8 }, uRfPatternContrast: { value: 0.95 }, uRfPatternSeed: { value: hashString(def?.id || '') * 17 }, uRfPatternMix: { value: patternId(def) ? 0.78 : 0 }
+    , uRfHueShift: { value: 0 }, uRfSaturation: { value: 1 }, uRfTintMask: { value: faceSlot ? 0 : 1 }, uRfHeightScale: { value: 44 }
   };
-  group.userData.rfBendUniforms = uniforms;
-  group.userData.rfBendK = bendK;
-  group.userData.rfBendSpan = [bendSpanX, bendSpanY];
-  group.userData.rfTailSpan = [tailSpanX, tailSpanY];
-  group.userData.rfBendScale = bendScale;
-  group.userData.rfMidBendMaxRatio = MID_BODY_BEND_MAX_RATIO;
-  group.userData.rfTailSprintDisplacementRatio = DISTAL_TAIL_SPRINT_RATIO;
-  group.userData.rfTailSmoothSpanRatio = (tailSpanY - tailSpanX) / Math.max(template.dimensions.bodyLen, 1e-6);
-  group.userData.rfHeadEyeJawRigidAnchor = true;
-  group.userData.rfBendYScale = BEND_Y_SCALE;
-  group.userData.rfBendSeed = seed;
-  group.userData.rfTailRootX = -template.dimensions.bodyLen * 0.52;
-  group.userData.rfTailSlavedToBend = true;
-
-  const pose = new THREE.Group();
-  pose.name = 'RF pose';
-  pose.rotation.y = SHARK_POSE_YAW;
-  group.userData.rfPose = pose;
-  group.add(pose);
-
-  const body = new THREE.Mesh(template.bodyGeometry, bendableMaterial(template.bodyMaterial, uniforms));
-  body.name = 'RF body';
-  const shellMaterial = toonMaterial({ color: OUTLINE_SHELL_COLOR, side: THREE.BackSide, kind: 'silhouette shell' });
-  shellMaterial.userData.rfBendAmpScale = 1 / shellScale;
-  const shell = new THREE.Mesh(template.bodyGeometry, bendableMaterial(shellMaterial, uniforms));
-  shell.name = 'RF dark silhouette edge shell';
-  shell.scale.setScalar(shellScale);
-  body.add(shell);
-  for (const feature of template.featureBatches) {
-    instantiateFeature(body, feature, bendableMaterial(feature.material, uniforms));
-  }
-  pose.add(body);
-
-  let jaw = null;
-  if (template.jaw) {
-    jaw = new THREE.Mesh(template.jaw.geometry, bendableMaterial(template.jaw.material, uniforms));
-    jaw.name = 'RF lower jaw';
-    jaw.position.set(...template.jaw.position);
-    if (template.jaw.teethGeometry && template.jaw.teethMaterial) {
-      const mesh = new THREE.Mesh(template.jaw.teethGeometry, bendableMaterial(template.jaw.teethMaterial, uniforms));
-      mesh.name = 'RF jaw tooth';
-      jaw.add(mesh);
-    }
-    // The lower jaw cap already overlaps the cheek with the resolved belly
-    // ramp. A second dark shell filled the underside and made a detachable
-    // block; the shared body shell remains the only contour outline.
-    body.add(jaw);
-  }
-
-  const parts = { body, tail: null, pectL: null, pectR: null, jaw };
-  let visibleDrawCalls = 0;
-  group.traverse((object) => {
-    if (object.isMesh && object.visible && !String(object.name || '').startsWith('RF frenzy arc')) visibleDrawCalls++;
+  const act = finite(def?.act, 1), glow = palette.glow || new THREE.Color(0, 0, 0);
+  const material = new THREE.MeshStandardMaterial({
+    /* Atlas materials use white as the detail carrier. Multiplying the dark
+     * palette here was the Rev 9b tint bug; the shader below owns the palette
+     * mix and only uses the atlas for luminance/detail and face masks. */
+    color: faceSlot || !atlas ? (faceSlot ? sourceColor : palette.base.clone()) : new THREE.Color(1, 1, 1), map,
+    roughness: faceSlot ? 0.58 : 0.50, metalness: faceSlot ? 0 : 0.03, flatShading: false,
+    emissive: faceSlot ? new THREE.Color(0, 0, 0) : featureMode === 'hammer' ? palette.base.clone() : glow,
+    emissiveIntensity: faceSlot ? 0 : featureMode === 'hammer' ? 0.10 : clamp(0.05 + Math.max(0, act - 1) * 0.055, 0, 0.32)
   });
-  group.userData.rfVisibleDrawCalls = visibleDrawCalls;
-  // Rev 6 (6.9) frenzy-arc crackle hook: a cheap, reversible vertex-color/
-  // emissive-style tint flash on the existing body toon material. NO new
-  // shader variant per the contract — body.material is already a per-rig
-  // clone (bendableMaterial clones baseMat), so mutating its emissive here is
-  // safe and cannot bleed into sibling sharks or the shared material cache.
-  const flashBaseEmissive = body.material.emissive ? body.material.emissive.clone() : new THREE.Color(0, 0, 0);
-  const flashBaseIntensity = finite(body.material.emissiveIntensity, 0);
-  const flashState = { t: 0, dur: 0, color: null, intensity: 1 };
-
-  // Rev 6 fix-round 2 (art CRITICAL 4 support): rfArcs(on, color) is a rig
-  // method engine3d/fx3d call (guarded, "if present") to promote a frenzy
-  // moment into an actual visible spectacle: 3 thin additive ribbon meshes
-  // orbiting the rig, cheap enough (<=60 tris total, shared geometry+material
-  // across every rig instance) to leave on for a whole frenzy window. No new
-  // GLSL/shader variant -- MeshBasicMaterial, additive blending, one shared
-  // BufferGeometry (a thin bowed quad strip) reused per-orbit via distinct
-  // Mesh instances (three Meshes can share one geometry).
-  const arcGroup = new THREE.Group();
-  arcGroup.name = 'RF frenzy arcs';
-  arcGroup.visible = false;
-  group.add(arcGroup);
-  const arcMeshes = [];
-  const ARC_COUNT = 3;
-  const arcRadius = template.dimensions.bodyLen * 0.62;
-  for (let i = 0; i < ARC_COUNT; i++) {
-    const mesh = new THREE.Mesh(sharedArcGeometry(), sharedArcMaterial());
-    mesh.name = `RF frenzy arc ${i}`;
-    mesh.userData.rfArcSeed = hash01(hashStringToInt(template.id), i) * TAU;
-    mesh.userData.rfArcTilt = (i / ARC_COUNT) * TAU;
-    arcGroup.add(mesh);
-    arcMeshes.push(mesh);
-  }
-  const arcState = { on: false, t: 0 };
-  function rfArcs(on, color = 0x27e0ff) {
-    arcState.on = !!on;
-    arcGroup.visible = arcState.on;
-    if (arcState.on) {
-      const c = color instanceof THREE.Color ? color : new THREE.Color(finite(color, 0x27e0ff));
-      for (const mesh of arcMeshes) mesh.material.color.copy(c);
+  material.name = `RF Rev 9c shark skin ${def?.id || 'unknown'} ${sourceName || 'Body'}`;
+  material.userData.rfSkinUniforms = uniforms; material.userData.rfSkinPattern = String(def?.sil?.pattern || 'plain');
+  material.userData.rfAtlas = !!(atlas && map); material.userData.rfFaceMask = faceSlot ? 'material-slot' : atlas ? 'atlas-white-luminance' : 'none';
+  material.userData.rfShading = 'MeshStandardMaterial; smooth normals; roughness 0.50; specular lighting';
+  const hammerRamp = featureMode === 'hammer' ? [
+    'float rfFoilBelly = smoothstep(0.040, -0.040, vRfBindPosition.z);',
+    'vec3 rfFoilRegion = mix(uRfTopColor, uRfBottomColor, rfFoilBelly);',
+    'diffuseColor.rgb = rfFoilRegion;'
+  ].join('\n') : [
+    'vec3 rfHsv = rfRgbToHsv(diffuseColor.rgb); rfHsv.x = fract(rfHsv.x + uRfHueShift); rfHsv.y = clamp(rfHsv.y * uRfSaturation, 0.0, 1.0); rfHsv.z = clamp(rfHsv.z * 1.35 + 0.04, 0.0, 1.0);',
+    'vec3 rfVivid = rfHsvToRgb(rfHsv);',
+    'diffuseColor.rgb = mix(rfVivid, diffuseColor.rgb, clamp(rfFaceMask, 0.0, 1.0));'
+  ].join('\n');
+  const patternCode = [
+    'float rfAlong = vRfBindPosition.y * uRfPatternScale + uRfPatternSeed;',
+    'float rfAcross = vRfBindPosition.x * uRfPatternScale * 1.7 + uRfPatternSeed * 0.37;',
+    'float rfPattern = 0.0;',
+    'if (uRfPatternId == 1) rfPattern = smoothstep(0.40, 0.60, 0.5 + 0.5 * sin(rfAlong * 3.14159));',
+    'else if (uRfPatternId == 2) rfPattern = step(0.68, rfHash(vec2(floor(rfAlong * 2.0), floor(rfAcross * 3.0))));',
+    'else if (uRfPatternId == 3) rfPattern = smoothstep(0.35, 0.65, 0.5 + 0.5 * sin(rfAlong * 6.28318));',
+    'else if (uRfPatternId == 4) rfPattern = step(0.73, rfHash(vec2(floor(rfAlong * 3.0), floor(rfAcross * 2.0))));',
+    'else if (uRfPatternId == 5) rfPattern = step(0.56, rfHash(vec2(floor(rfAlong * 5.0), floor(rfAcross * 4.0))));',
+    'float rfFaceMask = 1.0 - uRfTintMask;',
+    atlas && map ? [
+      'vec3 rfAtlasTexel = texture2D(map, vMapUv).rgb;',
+      'float rfAtlasLuma = dot(rfAtlasTexel, vec3(0.299, 0.587, 0.114));',
+      /* The Sharky atlas is white-backed and uses tiny colored islands. Do
+       * not use RGB hue as the shark identity: retain only its light/dark
+       * detail, then paint the authored top/belly palette over it. */
+      'float rfDetail = mix(0.56, 1.30, smoothstep(0.12, 0.86, rfAtlasLuma));',
+      'float rfHeight = 1.0 - clamp(vRfBindPosition.z * uRfHeightScale + 0.5, 0.0, 1.0);',
+      'float rfBelly = smoothstep(0.43, 0.72, rfHeight);',
+      'vec3 rfRegion = mix(uRfTopColor, uRfBottomColor, rfBelly);',
+      'float rfFinTip = smoothstep(0.80, 0.99, abs(rfHeight * 2.0 - 1.0)) * 0.26;',
+      'rfRegion = mix(rfRegion, uRfAccentColor, rfFinTip);',
+      'vec3 rfRegionHsv = rfRgbToHsv(rfRegion); rfRegionHsv.x = fract(rfRegionHsv.x + uRfHueShift); rfRegionHsv.y = clamp(rfRegionHsv.y * uRfSaturation, 0.0, 1.0);',
+      'vec3 rfColorized = rfHsvToRgb(rfRegionHsv) * rfDetail;',
+      /* Black also appears on the source underside. Limit the black escape
+       * hatch to the forward face and the two eye/cavity bands so it cannot
+       * turn the countershaded belly into an ink silhouette. */
+      'float rfHead = smoothstep(0.84, 0.99, vRfBindPosition.y * 17.5 + 0.5);',
+      'float rfFaceBand = max(1.0 - smoothstep(0.20, 0.44, rfHeight), smoothstep(0.56, 0.80, rfHeight));',
+      /* The atlas has a large white backing island. Scope white preservation
+       * to the forward eye/mouth bands so that backing white cannot exempt
+       * the whole body from palette colorization. */
+      'float rfWhite = smoothstep(0.84, 0.985, min(min(rfAtlasTexel.r, rfAtlasTexel.g), rfAtlasTexel.b)) * rfHead * rfFaceBand;',
+      'float rfBlack = (1.0 - smoothstep(0.035, 0.085, max(max(rfAtlasTexel.r, rfAtlasTexel.g), rfAtlasTexel.b))) * rfHead * rfFaceBand;',
+      'float rfMouth = smoothstep(0.10, 0.28, rfAtlasTexel.r - max(rfAtlasTexel.g, rfAtlasTexel.b)) * rfHead;',
+      'rfFaceMask = max(rfFaceMask, max(rfWhite, max(rfBlack, rfMouth)));',
+      'diffuseColor.rgb = mix(rfColorized, rfAtlasTexel, clamp(rfFaceMask, 0.0, 1.0));'
+    ].join('\n') : featureMode === 'hammer' ? hammerRamp : [
+      'vec3 rfHsv = rfRgbToHsv(diffuseColor.rgb); rfHsv.x = fract(rfHsv.x + uRfHueShift); rfHsv.y = clamp(rfHsv.y * uRfSaturation, 0.0, 1.0); rfHsv.z = clamp(rfHsv.z * 1.35 + 0.04, 0.0, 1.0);',
+      'vec3 rfVivid = rfHsvToRgb(rfHsv);',
+      'diffuseColor.rgb = mix(rfVivid, diffuseColor.rgb, clamp(rfFaceMask, 0.0, 1.0));'
+    ].join('\n'),
+    'diffuseColor.rgb = mix(diffuseColor.rgb, uRfPatternColor, rfPattern * uRfPatternMix * uRfPatternContrast * (1.0 - rfFaceMask));',
+    featureMode === 'hammer' ? 'if (vRfFeature > 0.5) diffuseColor.rgb = vec3(0.008, 0.014, 0.016);' : ''
+  ].join('\n');
+  material.onBeforeCompile = (shader) => {
+    for (const name of SHADER_UNIFORMS) shader.uniforms[name] = uniforms[name];
+    shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>\nattribute float rfSlot;\nvarying float vRfSlot;\nvarying vec3 vRfBindPosition;${featureMode === 'hammer' ? '\nattribute float rfFeature;\nvarying float vRfFeature;' : ''}`).replace('#include <begin_vertex>', `#include <begin_vertex>\nvRfSlot = rfSlot;\nvRfBindPosition = position;${featureMode === 'hammer' ? '\nvRfFeature = rfFeature;' : ''}`);
+    shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `#include <common>\nuniform vec3 uRfTopColor;\nuniform vec3 uRfBottomColor;\nuniform vec3 uRfAccentColor;\nuniform vec3 uRfPatternColor;\nuniform int uRfPatternId;\nuniform float uRfPatternScale;\nuniform float uRfPatternContrast;\nuniform float uRfPatternSeed;\nuniform float uRfPatternMix;\nuniform float uRfHueShift;\nuniform float uRfSaturation;\nuniform float uRfTintMask;\nuniform float uRfHeightScale;\nvarying float vRfSlot;\nvarying vec3 vRfBindPosition;${featureMode === 'hammer' ? '\nvarying float vRfFeature;' : ''}\nfloat rfHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nvec3 rfRgbToHsv(vec3 c){vec4 K=vec4(0.0,-1.0/3.0,2.0/3.0,-1.0);vec4 p=mix(vec4(c.bg,K.wz),vec4(c.gb,K.xy),step(c.b,c.g));vec4 q=mix(vec4(p.xyw,c.r),vec4(c.r,p.yzx),step(p.x,c.r));float d=q.x-min(q.w,q.y);return vec3(abs(q.z+(q.w-q.y)/(6.0*d+1e-5)),d/(q.x+1e-5),q.x);}\nvec3 rfHsvToRgb(vec3 c){vec3 p=abs(fract(c.xxx+vec3(0.0,1.0/3.0,2.0/3.0))*6.0-3.0);return c.z*mix(vec3(1.0),clamp(p-1.0,0.0,1.0),c.y);}`)
+      .replace('#include <color_fragment>', `#include <color_fragment>\n${patternCode}`);
+    if (atlas && map) {
+      shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n/* Soft ambient countershading keeps the authored belly readable under the deep-teal hemi ground. */\ntotalEmissiveRadiance += uRfBottomColor * rfBelly * 0.16;');
+      shader.fragmentShader = shader.fragmentShader.replace('vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;', 'vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;\noutgoingLight += uRfBottomColor * rfBelly * 0.34;');
     }
-  }
-  group.userData.rfArcs = rfArcs;
-
-  const animation = {
-    baseCaptured: false, baseY: 0, lastT: null, phase: 0, pitch: 0, jaw: 0,
-    bendBias: 0, lungeStretch: 0, coil: 0, jawSnapping: false, jawOvershot: false
   };
-  function rfFlash(color = 0xff2bd6, dur = 0.18, intensity = 1) {
-    flashState.color = color instanceof THREE.Color ? color : new THREE.Color(finite(color, 0xff2bd6));
-    flashState.dur = Math.max(0.001, finite(dur, 0.18));
-    flashState.t = flashState.dur;
-    flashState.intensity = clamp(finite(intensity, 1), 0, 1);
-  }
-  group.userData.rfFlash = rfFlash;
-  function animate(t = 0, state = {}) {
-    const time = finite(t, 0);
-    const speedFrac = clamp(finite(state.speedFrac, 0), 0, 1);
-    const turn = clamp(finite(state.turn, 0), -1, 1);
-    const dt = animation.lastT === null ? 0 : clamp(time - animation.lastT, 0, 0.25);
-    animation.lastT = time;
-    const rate = 2.2 + (8.5 - 2.2) * Math.pow(speedFrac, 0.8);
-    // The internal fallback stays deliberately bounded at .03..34 local
-    // amplitude. When the engine publishes finite
-    // tailPhase/tailAmp (6.2) those values are AUTHORITY and override both
-    // phase and amplitude below, while the internal integrator keeps running
-    // so NPC/menu rigs (which never receive tailPhase/tailAmp) still animate.
-    // tailPhase/tailAmp) reads a swim without reopening the "worm" envelope.
-    const fallbackAmplitude = 0.03 + 0.31 * Math.pow(speedFrac, 1.3);
-    animation.phase += rate * TAU * dt;
-    if (animation.phase >= TAU || animation.phase <= -TAU) animation.phase %= TAU;
-
-    const seed = group.userData.rfBendSeed;
-    const hasEnginePhase = Number.isFinite(state.tailPhase);
-    const hasEngineAmp = Number.isFinite(state.tailAmp);
-    const bendPhase = hasEnginePhase ? state.tailPhase : animation.phase;
-    const turnOscBoost = 1 + 0.35 * Math.abs(turn);
-    const bendAmp = (hasEngineAmp ? state.tailAmp : fallbackAmplitude) * turnOscBoost;
-
-    // uBendBias: a small turn-driven lateral set of the rear envelope, eased
-    // 8/s toward turn*.008 bodyLen, layered additively onto the oscillation in
-    // the shader (`bendZ += uBendBias*bendT`) and mirrored here for the CPU
-    // tail/tests. This is what gives a sustained turn a held "set" in the
-    // tail rather than only an oscillation riding through zero.
-    const biasTarget = turn * group.userData.rfBodyLen * 0.008;
-    animation.bendBias += (biasTarget - animation.bendBias) * clamp(dt * 8, 0, 1);
-
-    uniforms.uBendPhase.value = bendPhase;
-    uniforms.uBendAmp.value = bendAmp;
-    uniforms.uBendBias.value = animation.bendBias;
-
-    // The existing tailSweep personality now feeds the welded tail envelope.
-    // No tail object exists to rotate: root continuity is entirely in the
-    // shared geometry plus this phase-continuous shader term.
-    const tailSweep = 0.42 + 0.34 * speedFrac;
-    const tailPhase = bendPhase + group.userData.rfTailRootX * bendK;
-    // Keep the rendered distal displacement inside the review's .12-.18L
-    // sprint band after live-camera projection. The prior .10+.08 envelope
-    // measured ~.215L from idle to sprint; this narrows the art envelope to
-    // .08L idle -> .12L sprint without changing engine phase/amplitude
-    // authority or the shared :rf-bend3 shader contract.
-    uniforms.uTailAmp.value = group.userData.rfBodyLen * (0.08 + 0.04 * speedFrac);
-    group.userData.rfTailSweepAmplitude = tailSweep;
-    group.userData.rfTailPhase = tailPhase;
-
-    const bank = clamp(finite(state.bank, turn * (0.18 + 0.17 * speedFrac)), -0.35, 0.35);
-    // Body roll (art MINOR): small increase 0.02->0.028, still speed-
-    // independent (oscillates at the base swim phase) and seeded so sibling
-    // sharks don't roll in lockstep. Head stays rigid (rfHeadCounterYaw is a
-    // separate, untouched term) -- this only adds a touch more life to the
-    // trunk roll, well short of reintroducing the "worm".
-    const roll = Math.sin(animation.phase + seed) * 0.028;
-    group.userData.rfBodyRoll = roll;
-    pose.rotation.x = clamp(bank + roll, -0.35, 0.35);
-    pose.rotation.y = Math.cos(group.rotation.y) < 0 ? -SHARK_POSE_YAW : SHARK_POSE_YAW;
-    // The body owns the merged head/features batch, so this counter-yaw keeps
-    // the snout alive in profile without disturbing the consumer-owned pose
-    // yaw contract or the shared bend program. Rev 6: constant 0.05 amplitude
-    // replaced with 0.012*speedFrac (decoupled oscillator, phase+seed*0.7) so
-    // an idle shark's head does not saw side to side at full amplitude.
-    body.rotation.y = Math.sin(animation.phase + seed * 0.7 + Math.PI * 0.5) * (0.012 * speedFrac);
-    group.userData.rfHeadCounterYaw = body.rotation.y;
-    // Rev 6 (6.3) pitch, corrected (rev6-laneA-fix): state.vy is sim px/s with
-    // +y = DOWN (per 6.2). A rotation about local +Z (right-hand rule) tips
-    // local +X (nose, forward axis) toward local +Y. The rig's local +Y is
-    // "up" in its own unflipped frame (three's convention, matching the
-    // consumer's (x, -y, z) world mapping when the group carries no extra
-    // Y-flip). So a naive POSITIVE rotation.z for a SINKING shark (vy>0) tips
-    // the nose toward local +Y - i.e. nose-UP - which is backwards. The
-    // previous pass's claim that positive rotation.z reads nose-down was the
-    // root cause of the reported "nose pitched down ~40 deg while stationary"
-    // symptom: any residual/nonzero vy sample (even a single stale frame from
-    // a just-released dive) pitched the rig the WRONG way, and because both
-    // callers only ever observed the wrong-signed result, the direction was
-    // never caught against a real level/dive/level cycle. Negating here makes
-    // vy>0 (sinking) tip the nose toward local -Y (down), matching the
-    // in-context comment at the top of this function. This flips the SIGN
-    // only - the axis (pose.rotation.z, applied before the consumer's yaw/
-    // flip) and the ±0.22 rad clamp magnitude are unchanged, so the fix is a
-    // one-line sign correction, not a rewrite of the pitch pipeline.
-    //
-    // Facing sign: verified headlessly (see repro in NOTES-rev6-laneA.md) that
-    // this sign is IDENTICAL for both right-facing (group.rotation.y=0) and
-    // left-facing (group.rotation.y=PI) rigs - the outer Y-flip mirrors X and
-    // Z together, so a Z-axis rotation does not invert under it the way a
-    // naive "mirror flips everything" assumption would suggest. No facing-
-    // conditional sign is needed or applied.
-    const pitchTarget = clamp(finite(state.vy, 0) * 0.0008, -0.22, 0.22);
-    animation.pitch += (pitchTarget - animation.pitch) * clamp(dt * 8, 0, 1);
-    pose.rotation.z = -animation.pitch;
-    pose.scale.y = 1 - 0.03 * speedFrac;
-    pose.scale.z = 1 - 0.03 * speedFrac;
-    // Spectacle hooks (art CRITICAL 4 support): lunge stretch pulse raised
-    // 1.06 -> 1.11 and the ease-in sped up (14 -> 18/s) for a punchier snap
-    // forward that still relaxes back to the speed-stretch baseline at the
-    // old 6/s rate. Still gated by the pose contract test (pose.scale.x > 1
-    // at lungeT-driven full stretch), which continues to hold with margin.
-    const lungeActive = finite(state.lungeT, 0) > 0;
-    // lungeStretch is added to the 1.0 baseline below, so the 1.11x total
-    // stretch contract is represented by an additive .11 target. Feeding 1.11
-    // here doubled the rig during the evidence probe and made the lunge read
-    // as a scale jump rather than a forward punch.
-    const lungeTarget = lungeActive ? 0.11 : 0;
-    animation.lungeStretch += (lungeTarget - animation.lungeStretch) * clamp(dt * (lungeActive ? 18 : 6), 0, 1);
-    pose.scale.x = (1 + 0.07 * speedFrac) + animation.lungeStretch;
-    // Spectacle hooks: anticipation coil on preyNear -- a slight body
-    // pull-back/cock read via a small NEGATIVE pose.scale.x pinch (a coiled
-    // muscle read, distinct from the forward lunge stretch which is always
-    // positive) plus a touch of extra bank, so the shark visibly "loads up"
-    // just before the lunge fires. Purely additive/eased; does not touch the
-    // 6.3 bend envelope or the lunge contract itself.
-    const coilTarget = (state.preyNear && !lungeActive) ? 1 : 0;
-    animation.coil += (coilTarget - animation.coil) * clamp(dt * 10, 0, 1);
-    pose.scale.x -= 0.035 * animation.coil;
-    if (jaw) {
-      // Rev 6 (6.5): anticipation gape raised 0.35->0.85*gape (was 0.35*gape)
-      // driven by state.preyNear, eased dt*10 while opening. Swallow
-      // (jawSnapT>0) snap-closes eased dt*24; the close target dips 8% below
-      // fully-closed (an "overshoot" past 0 toward the mouth's own closed
-      // bias) before a slower dt*10 settle back to exactly closed, so the
-      // snap reads as a felt chomp rather than a linear close.
-      const gape = 0.3 + clamp(finite(def.tier, 5), 5, 12) * 0.012;
-      const snapping = finite(state.jawSnapT, 0) > 0;
-      const bitePhase = clamp(finite(state.bitePhase, 0), 0, 1);
-      const snap = bitePhase * bitePhase * (3 - 2 * bitePhase);
-      const anticipation = state.preyNear ? 0.85 * gape : 0;
-      const openTarget = Math.max(snap * gape, anticipation);
-      if (snapping) {
-        if (!animation.jawSnapping) animation.jawOvershot = false;
-        const closeTarget = animation.jawOvershot ? 0 : -0.08 * gape;
-        animation.jaw += (closeTarget - animation.jaw) * clamp(dt * 24, 0, 1);
-        if (!animation.jawOvershot && animation.jaw <= closeTarget + 1e-4) animation.jawOvershot = true;
-      } else {
-        animation.jaw += (openTarget - animation.jaw) * clamp(dt * 10, 0, 1);
-        animation.jawOvershot = false;
-      }
-      animation.jawSnapping = snapping;
-      jaw.rotation.z = -animation.jaw;
-    }
-    if (!animation.baseCaptured) {
-      animation.baseY = group.position.y;
-      animation.baseCaptured = true;
-    }
-    // Rev 6 (6.3) bob decoupling: +seed keeps sibling sharks' vertical bob out
-    // of lockstep.
-    group.position.y = animation.baseY + Math.sin(time * TAU * 1.15 + seed) * (0.008 + speedFrac * 0.014) * worldScale;
-
-    // Rev 6 (6.9) frenzy-arc crackle: decay any active rfFlash() call. Linear
-    // fade over `dur`; restores the exact captured base emissive/intensity at
-    // zero so repeated calls (or none at all) never drift the material.
-    if (flashState.t > 0) {
-      flashState.t = Math.max(0, flashState.t - dt);
-      const k = flashState.dur > 0 ? flashState.t / flashState.dur : 0;
-      if (body.material.emissive) {
-        body.material.emissive.copy(flashBaseEmissive).lerp(flashState.color, k * flashState.intensity);
-      }
-      body.material.emissiveIntensity = flashBaseIntensity + (Math.max(flashBaseIntensity, 0.85) - flashBaseIntensity) * k * flashState.intensity;
-      if (k <= 0 && body.material.emissive) {
-        body.material.emissive.copy(flashBaseEmissive);
-        body.material.emissiveIntensity = flashBaseIntensity;
-      }
-    }
-
-    // Spectacle hooks (art CRITICAL 4 support): while rfArcs(true) is active,
-    // orbit the 3 additive ribbons around the rig at slightly different
-    // tilted planes/rates/phases so they read as a crackling electric field,
-    // not one spinning ring. Cheap per-frame trig only, no new draw calls
-    // beyond the pooled meshes created once in buildShark.
-    if (arcState.on) {
-      arcState.t += dt;
-      for (let i = 0; i < arcMeshes.length; i++) {
-        const mesh = arcMeshes[i];
-        const spin = arcState.t * (1.8 + i * 0.55) + mesh.userData.rfArcSeed;
-        mesh.rotation.set(mesh.userData.rfArcTilt * 0.6, spin, mesh.userData.rfArcTilt);
-        mesh.scale.setScalar(arcRadius * (0.92 + 0.08 * Math.sin(spin * 2.3)));
-      }
-    }
-  }
-
-  // WORLD-UNIT NORMALIZATION (integration fix): the mesh language above is
-  // authored at roughly 2 units of body length; the game world is the 2D
-  // design space where a shark reads at 96 * sil.len px. One authority, here:
-  // consumers (engine3d player, world3d NPCs) receive a group already at
-  // world scale and must not rescale it (they capture scale.x as baseScale).
-  const targetLen = 96 * clamp(finite(def.sil && def.sil.len, 1), 0.5, 3);
-  const bb = new THREE.Box3().setFromObject(group);
-  const rawLen = Math.max(bb.max.x - bb.min.x, 0.001);
-  const worldScale = targetLen / rawLen;
-  group.scale.setScalar(worldScale);
-  group.userData.baseScale = worldScale;
-  const identityPrimary = resolveIdentityScreenMetrics(template.metrics.identityPrimary, group, def);
-  group.userData.rfIdentityPrimary = identityPrimary;
-  group.userData.rfIdentityPrimaryCue = identityPrimary?.cue || null;
-  group.userData.rfIdentityProjectedWidthPx = identityPrimary?.screenWidthPx || 0;
-  group.userData.rfIdentityProjectedHeightPx = identityPrimary?.screenHeightPx || 0;
-  group.userData.rfIdentityHeroWidthPx = identityPrimary?.heroScreenWidthPx || 0;
-  group.userData.rfIdentityHeroHeightPx = identityPrimary?.heroScreenHeightPx || 0;
-  group.userData.rfIdentityHeroSpanRatio = identityPrimary?.heroSpanRatio || 0;
-  group.userData.rfIdentityHeroHeadHeightRatio = identityPrimary?.heroHeightRatio || 0;
-  group.userData.rfIdentityProjectedAreaRatio = identityPrimary?.projectedAreaRatio || 0;
-  group.userData.rfIdentitySilhouetteAreaRatio = identityPrimary?.silhouetteAreaRatio || 0;
-  group.userData.rfIdentityBodyOverlapRatio = identityPrimary?.bodyOverlapRatio || 0;
-  group.userData.rfIdentityProtrusionRatio = identityPrimary?.protrusionRatio || 0;
-  group.userData.rfIdentityComputedProtrusionRatio = identityPrimary?.computedProtrusionRatio || 0;
-  group.userData.rfIdentityEyeSeparationRatio = identityPrimary?.eyeSeparationRatio || 0;
-  group.userData.rfIdentityMonsterCue = !!identityPrimary?.monster;
-
-  return { group, parts, animate };
+  material.customProgramCacheKey = () => `${material.userData.rfSkinPattern}${PATTERN_SUFFIX}${featureMode ? `:${featureMode}` : ''}`;
+  material.needsUpdate = true; return material;
 }
-
-function resolveCanvas(input) {
-  if (input && typeof input.getContext === 'function' && Number.isFinite(input.width)) return input;
-  if (typeof input === 'string') {
-    const art = RF.Art;
-    const resolver = art && (art.canvasFor || art.getCanvas || art.textureCanvas);
-    if (typeof resolver === 'function') {
-      try {
-        const result = resolver.call(art, input);
-        if (result && typeof result.getContext === 'function') return result;
-      } catch (_) {}
-    }
-    if (typeof document !== 'undefined') {
-      const node = document.getElementById(input);
-      if (node && typeof node.getContext === 'function') return node;
-    }
+function findHeadBone(root, base) {
+  const names = base === 'sharky' ? ['Head', 'Center', 'Neck'] : base === 'anglerfish' || base === 'goblinshark' || base === 'piranha' ? ['Main1', 'Main2', 'Main6'] : ['Face', 'Head', 'Spine1', 'Main1'];
+  for (const name of names) { const found = root.getObjectByName(name); if (found) return found; }
+  let result = null; root.traverse((o) => { if (!result && o.isBone && /head|face/i.test(o.name || '')) result = o; }); return result || root;
+}
+function findPropBone(root, base, kind) {
+  if (base === 'sharky') {
+    const name = kind === 'hammer' ? 'Head' : kind === 'horns' || kind === 'spike' ? 'Center' : 'Head';
+    return root.getObjectByName(name) || findHeadBone(root, base);
   }
+  return findHeadBone(root, base);
+}
+function propKind(def) {
+  const id = String(def?.id || ''), head = String(def?.sil?.head || ''), fx = String(def?.sil?.fx || ''), base = arguments[1] || '';
+  if (base === 'goblinshark') return 'grin';
+  if (head === 'hammer') return 'hammer'; if (head === 'saw') return 'saw';
+  if (id === 'coralcrown' || head === 'crown' || fx === 'crown') return 'crown';
+  if (id === 'cyclopseye' || fx === 'wail') return 'cyclops';
+  if (head === 'rock' || head === 'kaiju' || head === 'skull' || fx === 'tremor' || fx === 'alien') return 'horns';
+  if (head === 'mech' || fx === 'sparks') return 'spike'; if (head === 'angler' || fx === 'lure') return 'lure'; return null;
+}
+function propGeometry(kind) {
+  if (kind === 'hammer') return hammerFoilGeometry();
+  if (kind === 'saw') return new THREE.ConeGeometry(0.15, 0.58, 6, 1, false);
+  if (kind === 'crown') return new THREE.TorusGeometry(0.19, 0.045, 5, 8);
+  if (kind === 'cyclops') return new THREE.SphereGeometry(0.17, 10, 6);
+  if (kind === 'horns') return new THREE.ConeGeometry(0.11, 0.38, 5, 1, false);
+  if (kind === 'spike') return new THREE.OctahedronGeometry(0.18, 0);
+  if (kind === 'lure') return new THREE.SphereGeometry(0.13, 8, 5);
   return null;
 }
+function propAttributes(geometry, feature = 0) {
+  const count = geometry.getAttribute('position').count;
+  geometry.setAttribute('rfSlot', new THREE.Float32BufferAttribute(new Float32Array(count).fill(1), 1));
+  geometry.setAttribute('rfFeature', new THREE.Float32BufferAttribute(new Float32Array(count).fill(feature), 1));
+  return geometry;
+}
+function hammerFoilGeometry() {
+  /* Sharky's bind axes are y=length, z=up, x=depth. The old ShapeGeometry
+   * lived in x/y and was therefore edge-on at the gameplay camera. This
+   * rounded, slightly swept double-lobe is made in y/z and lofted through x. */
+  const shape = new THREE.Shape();
+  shape.moveTo(-0.205, 0.000);
+  shape.quadraticCurveTo(-0.225, 0.028, -0.190, 0.078);
+  shape.lineTo(-0.055, 0.046);
+  shape.quadraticCurveTo(0.000, 0.038, 0.055, 0.046);
+  shape.lineTo(0.190, 0.078);
+  shape.quadraticCurveTo(0.225, 0.028, 0.205, 0.000);
+  shape.quadraticCurveTo(0.225, -0.028, 0.190, -0.078);
+  shape.lineTo(0.055, -0.046);
+  shape.quadraticCurveTo(0.000, -0.038, -0.055, -0.046);
+  shape.lineTo(-0.190, -0.078);
+  shape.quadraticCurveTo(-0.225, -0.028, -0.205, 0.000);
+  shape.closePath();
+  const remap = new THREE.Matrix4().set(0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1);
+  const foil = new THREE.ExtrudeGeometry(shape, { depth: 0.10, steps: 1, curveSegments: 6, bevelEnabled: true, bevelSegments: 3, bevelSize: 0.012, bevelThickness: 0.010 });
+  foil.translate(0, 0, -0.05); foil.applyMatrix4(remap); propAttributes(foil, 0);
+  const eyes = [];
+  for (const y of [-0.168, 0.168]) {
+    const eye = new THREE.SphereGeometry(0.022, 8, 5).toNonIndexed();
+    eye.applyMatrix4(remap); eye.translate(0.058, y, 0.010); propAttributes(eye, 1); eyes.push(eye);
+  }
+  const geometry = mergeGeometries([foil, ...eyes]); geometry.computeBoundingBox(); geometry.computeBoundingSphere(); return geometry;
+}
+function grinGeometry() {
+  const width = 0.18, height = 0.075, positions = [
+    -width * 0.5, -height * 0.5, 0, width * 0.5, -height * 0.5, 0, width * 0.5, height * 0.5, 0, -width * 0.5, height * 0.5, 0
+  ], indices = [0, 1, 2, 0, 2, 3], teeth = 5;
+  const toothWidth = width * 0.12, toothHeight = height * 0.40;
+  for (let i = 0; i < teeth; i++) { const x = -width * 0.39 + i * width * 0.195; const base = positions.length / 3; positions.push(x - toothWidth, height * 0.42, 0.002, x + toothWidth, height * 0.42, 0.002, x, height * 0.42 - toothHeight, 0.002); indices.push(base, base + 1, base + 2); }
+  const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3)); geometry.setIndex(indices); geometry.computeVertexNormals(); geometry.addGroup(0, 6, 0); geometry.addGroup(6, teeth * 3, 1); return geometry;
+}
+function makeProp(def, base, headBone, palette) {
+  const kind = propKind(def, base), geometry = kind === 'grin' ? grinGeometry() : propGeometry(kind); if (!kind || !geometry || !headBone) return null;
+  const material = kind === 'grin' ? [
+    new THREE.MeshStandardMaterial({ color: 0x07131d, roughness: 0.72, metalness: 0, side: THREE.DoubleSide }),
+    new THREE.MeshStandardMaterial({ color: 0xfffff2, roughness: 0.34, metalness: 0, side: THREE.DoubleSide })
+  ] : kind === 'hammer' ? skinMaterial(palette, def, null, 'Hammer Cephalofoil', false, 'hammer') : new THREE.MeshStandardMaterial({ color: palette.accent, emissive: palette.glow || palette.accent, emissiveIntensity: finite(def?.act, 1) >= 2 ? 0.24 : 0.05, roughness: 0.40, metalness: 0.08, flatShading: false, side: THREE.DoubleSide });
+  const prop = new THREE.Mesh(geometry, material); prop.name = `RF head prop ${kind}`; prop.userData.rfPropKind = kind; prop.userData.rfPropBase = base;
+  if (kind === 'grin') { prop.position.set(0, 0, 0.025); prop.renderOrder = 3; }
+  prop.position.set(kind === 'hammer' ? 0 : 0.02, kind === 'hammer' ? 0.006 : kind === 'saw' ? 0.08 : 0.01, kind === 'crown' ? 0.04 : 0);
+  /* The hammer foil is authored in Sharky's y/z side plane. Saw/crown accents
+   * retain their original rig-plane treatment; only the hammer needs the
+   * camera-facing slab orientation. */
+  if (kind === 'saw' || kind === 'crown') prop.rotation.x = Math.PI * 0.5;
+  // Prop geometry is authored in the rig's pre-normalized local space. The
+  // armature scene carries a large normalization scale, so keep the optional
+  // head accent subordinate to the artist mesh (especially the broad hammer
+  // foil, which otherwise becomes a camera-filling slab).
+  if (kind === 'cyclops') prop.scale.set(1, 0.95, 0.75);
+  if (kind === 'horns') { prop.rotation.z = -0.35; prop.scale.set(0.8, 1, 0.8); }
+  if (kind === 'lure') prop.position.y = 0;
+  headBone.add(prop); return prop;
+}
+function fitProp(prop, body, kind) {
+  if (!prop || !body) return;
+  prop.updateMatrixWorld(true); body.updateMatrixWorld(true);
+  const bodyBox = new THREE.Box3().setFromObject(body), propBox = new THREE.Box3().setFromObject(prop);
+  const bodySize = bodyBox.getSize(new THREE.Vector3()), propSize = propBox.getSize(new THREE.Vector3()), current = Math.max(propSize.x, propSize.y, propSize.z, 1e-5);
+  if (kind === 'hammer') {
+    const bodySpan = Math.max(bodySize.x, 1e-5), projected = Math.max(propSize.x, 1e-5);
+    prop.scale.multiplyScalar(clamp((bodySpan * 0.50) / projected, 0.012, 0.55));
+    prop.userData.rfFitScale = prop.scale.x;
+    return;
+  }
+  const bodyThickness = Math.max(bodySize.y, bodySize.z, bodySize.x * 0.16), ratio = kind === 'lure' ? 0.62 : 0.86;
+  prop.scale.multiplyScalar(clamp((bodyThickness * ratio) / current, 0.012, 0.55));
+  prop.userData.rfFitScale = prop.scale.x;
+}
+function mountGrin(prop, pose, body, propBone) {
+  if (!prop || prop.userData.rfPropKind !== 'grin' || !pose || !body) return;
+  if (propBone?.remove) propBone.remove(prop);
+  pose.add(prop);
+  body.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(body), size = box.getSize(new THREE.Vector3());
+  prop.position.set(box.max.x - size.x * 0.14, box.min.y + size.y * 0.38, box.max.z + Math.max(size.z * 0.012, 0.002));
+  prop.rotation.set(0, 0, 0);
+  prop.scale.setScalar(Math.max(size.y * 0.52 / 0.18, 0.08));
+  prop.userData.rfMountedBone = propBone?.name || 'Head';
+}
+function scaleOnAxis(root, template, lengthScale, heightScale, depthScale) {
+  const scale = new THREE.Vector3(heightScale, heightScale, depthScale);
+  if (template.axis === 'x') scale.x = lengthScale; else if (template.axis === 'y') scale.y = lengthScale; else scale.z = lengthScale;
+  root.scale.multiply(scale); return scale;
+}
+function drawCount(root) { let count = 0; root.traverse((o) => { if (o.isMesh && o.visible) count++; }); return count; }
+function makePlaceholder(def, group) {
+  const material = new THREE.MeshStandardMaterial({ color: paletteOf(def).base, roughness: 0.5, metalness: 0.03 });
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 0.36, 0.24), material); mesh.name = 'RF Rev 9 loading placeholder'; group.add(mesh); return mesh;
+}
 
+function buildLoadedRig(def, template, group) {
+  const palette = paletteOf(def), model = cloneRigScene(template), meshes = findMeshes(model), skinnedMeshes = meshes.filter((mesh) => mesh.isSkinnedMesh), body = skinnedMeshes[0] || meshes[0];
+  if (!body) throw new Error(`${def.id}: cloned model has no body`);
+  const pose = new THREE.Group(); pose.name = 'RF Rev 9b pose root'; group.add(pose); pose.add(model);
+  const headBone = findHeadBone(model, template.key), propBone = findPropBone(model, template.key, propKind(def));
+  const head = String(def?.sil?.head || ''), bulky = head === 'whale' || head === 'kaiju';
+  const lengthScale = clamp((0.88 + finite(def?.sil?.len, 1) * 0.035 + finite(def?.sil?.girth, 0.34) * 0.24) * (bulky ? 1.06 : 1), 0.85, 1.35);
+  const heightScale = clamp(0.91 + finite(def?.sil?.girth, 0.34) * (bulky ? 0.76 : 0.55) + (bulky ? 0.10 : 0), 0.90, 1.30);
+  const depthScale = clamp(0.94 + finite(def?.sil?.finScale, 1) * 0.035, 0.90, 1.20);
+  scaleOnAxis(model, template, lengthScale, heightScale, depthScale);
+  for (const mesh of skinnedMeshes) {
+    const sourceMaterials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    const atlas = template.key === 'sharky' || sourceMaterials.some((material) => String(material?.name || '') === 'AtlasMaterial');
+    const materials = sourceMaterials.map((sourceMaterial) => skinMaterial(palette, def, sourceMaterial, sourceMaterial?.name || '', atlas));
+    mesh.material = materials.length === 1 ? materials[0] : materials;
+    mesh.userData.rfMaterialSlots = sourceMaterials.map((material) => String(material?.name || 'Body')); mesh.renderOrder = 1;
+    if (!mesh.geometry.getAttribute('rfSlot')) mesh.geometry.setAttribute('rfSlot', new THREE.Float32BufferAttribute(new Float32Array(mesh.geometry.getAttribute('position').count).fill(1), 1));
+  }
+  /* 9.6: no BackSide ink shell. Smooth Standard shading supplies the edge
+   * separation without the doubled silhouette draw. */
+  const shell = null;
+  const prop = makeProp(def, template.key, propBone, palette);
+  mountGrin(prop, pose, body, propBone);
+  fitProp(prop, body, prop?.userData?.rfPropKind);
+  const mixer = template.isSkinned && template.clips.swim ? new THREE.AnimationMixer(model) : null;
+  const actions = {};
+  if (mixer) {
+    for (const [name, clip] of Object.entries(template.clips)) if (clip) actions[name] = mixer.clipAction(clip);
+    if (actions.swim) { actions.swim.setLoop(THREE.LoopRepeat, Infinity).play(); mixer.update(0); }
+  }
+  model.updateMatrixWorld(true);
+  const rawBox = measureBox(group), rawLength = Math.max(rawBox.max.x - rawBox.min.x, 1e-5), targetLength = BASE_LENGTH * clamp(finite(def?.sil?.len, 1), 0.5, 3);
+  const worldScale = targetLength / rawLength; group.scale.setScalar(worldScale);
+  if (prop?.userData?.rfPropKind === 'grin') {
+    group.updateMatrixWorld(true);
+    const bodyBox = new THREE.Box3().setFromObject(body), grinBox = new THREE.Box3().setFromObject(prop);
+    prop.position.z += (bodyBox.max.z - grinBox.min.z + 0.06) / Math.max(group.scale.x, 1e-5);
+  }
+  group.userData.baseScale = worldScale; group.userData.rfBodyLen = targetLength; group.userData.rfWorldLength = targetLength;
+  group.userData.rfMeasuredLength = measureBox(group).max.x - measureBox(group).min.x; group.userData.rfRawLength = rawLength;
+  group.userData.rfArmatureScale = { length: lengthScale, height: heightScale, depth: depthScale };
+  group.userData.rfScaleBounds = { length: [0.85, 1.35], height: [0.90, 1.30], depth: [0.90, 1.20] };
+  group.userData.rfSourceBase = template.key; group.userData.rfPattern = String(def?.sil?.pattern || 'plain'); group.userData.rfPatternId = patternId(def);
+  group.userData.rfMixerClipName = template.clips.swim?.name || template.clip?.name || null; group.userData.rfFastClipName = template.clips.fast?.name || null; group.userData.rfBiteClipName = template.clips.bite?.name || null;
+  group.userData.rfHeadBone = headBone?.name || null; group.userData.rfPropBone = propBone?.name || null; group.userData.rfPropKind = prop?.userData?.rfPropKind || null;
+  group.userData.rfVisibleDrawCalls = drawCount(group); group.userData.rfPaletteRaw = palette.raw; group.userData.rfPaletteResolved = palette.resolved; group.userData.rfIsSkinned = !!body.isSkinnedMesh;
+  group.userData.rfSlotNames = template.slotNames.slice(); group.userData.rfAtlasMask = template.key === 'sharky' ? 'white atlas luminance; Eyes/Teeth slots stay source-colored' : 'Eyes/Teeth material slots'; group.userData.rfLoading = false;
+  const animation = { lastT: null, bite: 0, turn: 0, death: 0, active: 'swim', biteActive: false, biteLatched: false };
+  const baseHeadQuaternion = headBone?.quaternion.clone(), neckBone = model.getObjectByName('Neck') || model.getObjectByName('Main5'), baseNeckQuaternion = neckBone?.quaternion.clone();
+  const jawBone = model.getObjectByName('LowerJaw'), baseJawQuaternion = jawBone?.quaternion.clone();
+  group.userData.rfJawRestGape = jawBone ? JAW_REST_GAPE : 0;
+  group.userData.rfJawMaxRotation = jawBone ? JAW_MAX_ROTATION : 0;
+  group.userData.rfJawGape = jawBone ? JAW_REST_GAPE : 0;
+  function crossfadeTo(name) {
+    const next = actions[name], current = actions[animation.active]; if (!next || next === current) return;
+    next.reset().setLoop(THREE.LoopRepeat, Infinity).fadeIn(0.16); if (current) current.fadeOut(0.16); next.play(); animation.active = name;
+  }
+  function startBite() {
+    if (!actions.bite || animation.biteActive) return;
+    const current = actions[animation.active]; actions.bite.reset().setLoop(THREE.LoopOnce, 1); actions.bite.clampWhenFinished = true; actions.bite.fadeIn(0.06); if (current) current.fadeOut(0.06); actions.bite.play(); animation.biteActive = true;
+  }
+  function animate(t = 0, input = {}) {
+    const time = finite(t, 0), speedFrac = clamp(finite(input.speedFrac, 0), 0, 1), turn = clamp(finite(input.turn, 0), -1, 1);
+    const dt = animation.lastT === null ? 0 : clamp(time - animation.lastT, 0, 0.25); animation.lastT = time;
+    const dead = !!(input.dead || input.death || input.dying), biteWant = !!(input.biting || finite(input.lungeT, 0) > 0 || finite(input.bitePhase, 0) > 0.65 || finite(input.jawSnapT, 0) > 0);
+    if (biteWant && !animation.biteLatched) startBite(); animation.biteLatched = biteWant;
+    if (mixer) {
+      mixer.timeScale = dead ? 0 : 0.55 + 1.65 * speedFrac;
+      if (!animation.biteActive) crossfadeTo(speedFrac > 0.65 ? 'fast' : 'swim');
+      if (dt > 0) mixer.update(dt);
+      if (animation.biteActive && actions.bite && actions.bite.time >= Math.max(0.01, actions.bite.getClip().duration - 0.025)) { actions.bite.stop(); animation.biteActive = false; animation.active = 'swim'; crossfadeTo(speedFrac > 0.65 ? 'fast' : 'swim'); }
+    }
+    const ease = 1 - Math.exp(-Math.max(dt, 1 / 120) * 8), biteEase = 1 - Math.exp(-Math.max(dt, 1 / 120) * 16);
+    animation.turn += (turn - animation.turn) * ease; animation.bite += ((biteWant ? 1 : clamp(finite(input.jawOpen, 0), 0, 1)) - animation.bite) * biteEase;
+    animation.death += ((dead ? 1 : 0) - animation.death) * (1 - Math.exp(-Math.max(dt, 1 / 120) * 7));
+    pose.rotation.y = animation.turn * 0.14; pose.rotation.x = -animation.turn * 0.11 + animation.death * Math.sin(Math.min(time * 5, Math.PI) * 0.5) * 1.1; pose.rotation.z = animation.death * Math.PI * 0.5;
+    const pulse = 1 + animation.bite * 0.055; pose.scale.set(pulse * (1 + 0.025 * speedFrac), pulse, pulse);
+    if (headBone && baseHeadQuaternion) { headBone.quaternion.copy(baseHeadQuaternion); headBone.rotateZ(-animation.turn * 0.16); headBone.rotateX(-animation.bite * 0.10); }
+    if (neckBone && baseNeckQuaternion) { neckBone.quaternion.copy(baseNeckQuaternion); neckBone.rotateZ(-animation.turn * 0.09); }
+    const jawGape = jawBone ? JAW_REST_GAPE + animation.bite * (1 - JAW_REST_GAPE) : 0;
+    group.userData.rfJawGape = jawGape;
+    if (jawBone && baseJawQuaternion) { jawBone.quaternion.copy(baseJawQuaternion); jawBone.rotateX(-jawGape * JAW_MAX_ROTATION); }
+  }
+  if (jawBone && baseJawQuaternion) { jawBone.quaternion.copy(baseJawQuaternion); jawBone.rotateX(-JAW_REST_GAPE * JAW_MAX_ROTATION); }
+  if (prop?.userData?.rfPropKind === 'hammer') {
+    group.updateMatrixWorld(true);
+    const bodyBox = new THREE.Box3().setFromObject(body), propBox = new THREE.Box3().setFromObject(prop);
+    group.userData.rfHammerProjectedSpan = (propBox.max.x - propBox.min.x) / Math.max(bodyBox.max.x - bodyBox.min.x, 1e-5);
+  }
+  return { body, shell, prop, pose, model, mixer, animate };
+}
+
+function installEffects(record, body) {
+  const group = record.group, materials = body ? (Array.isArray(body.material) ? body.material : [body.material]) : [], emissiveMaterial = materials.find((material) => material?.emissive) || null;
+  const baseEmissive = emissiveMaterial?.emissive ? emissiveMaterial.emissive.clone() : new THREE.Color(0, 0, 0), baseIntensity = finite(emissiveMaterial?.emissiveIntensity, 0);
+  group.userData.rfArcs = (on, color = 0x27e0ff) => { for (const material of materials) if (material?.emissive) { if (on) material.emissive.copy(colorValue(color)).multiplyScalar(0.5); else material.emissive.copy(baseEmissive); } };
+  let flashTime = 0, flashDur = 0, flashColor = new THREE.Color(0, 0, 0), flashIntensity = 0, lastT = null;
+  group.userData.rfFlash = (color = 0xff2bd6, dur = 0.18, intensity = 1) => { flashColor.copy(colorValue(color)); flashDur = Math.max(0.001, finite(dur, 0.18)); flashTime = flashDur; flashIntensity = clamp(finite(intensity, 1), 0, 1); };
+  const originalAnimate = record.animate;
+  record.animate = (t, input = {}) => {
+    originalAnimate(t, input);
+    const time = finite(t, 0), dt = lastT === null ? 0 : clamp(time - lastT, 0, 0.25); lastT = time;
+    if (flashTime > 0) {
+      flashTime = Math.max(0, flashTime - dt);
+      for (const material of materials) if (material?.emissive) { material.emissive.copy(baseEmissive).lerp(flashColor, (flashTime / flashDur) * flashIntensity); material.emissiveIntensity = baseIntensity + (0.9 - baseIntensity) * (flashTime / flashDur) * flashIntensity; }
+    } else for (const material of materials) if (material?.emissive) { material.emissive.copy(baseEmissive); material.emissiveIntensity = baseIntensity; }
+  };
+}
+function placeholderRig(def, base) {
+  const group = new THREE.Group(); group.name = `RF Shark ${def?.id || 'unknown'}`; group.userData.rfSharkId = String(def?.id || 'unknown');
+  group.userData.rfSourceBase = base; group.userData.rfLoading = true; group.userData.rfPattern = String(def?.sil?.pattern || 'plain'); group.userData.rfPaletteResolved = paletteOf(def).resolved;
+  const placeholder = makePlaceholder(def, group), target = BASE_LENGTH * clamp(finite(def?.sil?.len, 1), 0.5, 3); group.scale.setScalar(target); group.userData.baseScale = target;
+  let live = null, lastT = null;
+  const record = { group, parts: { body: placeholder, jaw: null, shell: null, prop: null }, animate(t, input) { if (live) live.animate(t, input); } };
+  group.userData.rfArcs = () => {}; group.userData.rfFlash = () => {};
+  (preloadPromise || preload()).then(() => {
+    if (live || !modelCache.has(base)) return;
+    live = buildLoadedRig(def, modelCache.get(base), group); record.parts = { body: live.body, jaw: null, shell: live.shell, prop: live.prop }; group.userData.rfLoading = false;
+    if (placeholder.parent) placeholder.parent.remove(placeholder); installEffects(record, live.body); void lastT;
+  }).catch(() => {});
+  return record;
+}
+function buildShark(def) {
+  if (!def) throw new Error('RF.Art3D.buildShark requires a shark definition');
+  const base = baseForDef(def); baseSelection.set(String(def.id || ''), base); const template = modelCache.get(base);
+  if (!template) return placeholderRig(def, base);
+  const group = new THREE.Group(); group.name = `RF Shark ${def.id || 'unknown'}`; group.userData.rfSharkId = String(def.id || 'unknown');
+  const live = buildLoadedRig(def, template, group), record = { group, parts: { body: live.body, jaw: null, shell: live.shell, prop: live.prop }, animate: live.animate };
+  group.userData.rfArchetype = String(def?.sil?.head || 'point'); installEffects(record, live.body); return record;
+}
+
+/* Small billboard helper remains because world3d uses it for guarded fallback
+ * prey paths. The old bend API is a harmless compatibility shim. */
 function billboardMaterialFor(input) {
-  let key = typeof input === 'string' ? input : null;
-  const canvas = resolveCanvas(input);
-  if (canvas) {
-    if (billboardIds) {
-      if (!billboardIds.has(canvas)) billboardIds.set(canvas, `canvas-${nextBillboardId++}`);
-      key = billboardIds.get(canvas);
-    } else {
-      key = `canvas-${nextBillboardId++}`;
-    }
-  }
-  if (!key) {
-    if (input?.isTexture) key = `texture-${input.uuid}`;
-    else key = `missing-${String(input)}`;
-  }
-  if (billboardMaterials.has(key)) return { material: billboardMaterials.get(key), canvas };
-
+  let key = '', canvas = null;
+  if (input && typeof input.getContext === 'function') { canvas = input; if (billboardIds) { if (!billboardIds.has(canvas)) billboardIds.set(canvas, `canvas-${nextBillboardId++}`); key = billboardIds.get(canvas); } else key = `canvas-${nextBillboardId++}`; }
+  else if (input?.isTexture) key = `texture-${input.uuid}`; else key = String(input || 'missing');
+  if (billboardMaterials.has(key)) return billboardMaterials.get(key);
   let texture = input?.isTexture ? input : null;
-  if (!texture && canvas) {
-    texture = new THREE.CanvasTexture(canvas);
-    texture.needsUpdate = true;
-    if ('colorSpace' in texture && THREE.SRGBColorSpace) texture.colorSpace = THREE.SRGBColorSpace;
+  if (!texture && canvas) { texture = new THREE.CanvasTexture(canvas); texture.needsUpdate = true; }
+  if (!texture) { texture = new THREE.DataTexture(new Uint8Array([0, 0, 0, 0]), 1, 1, THREE.RGBAFormat); texture.needsUpdate = true; }
+  const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true, alphaTest: 0.02, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }); billboardMaterials.set(key, material); return material;
+}
+function billboard(input) { if (!sharedPlaneGeometry) sharedPlaneGeometry = new THREE.PlaneGeometry(1, 1); return new THREE.Mesh(sharedPlaneGeometry, billboardMaterialFor(input)); }
+function bendableMaterial(baseMaterial) { return baseMaterial || null; }
+function bendOffset() { return 0; }
+
+/* Headless GLB path. It reads only the JSON and BIN chunks, which keeps the
+ * art selftest synchronous and avoids fetch/FileReader in Node. */
+function isNodeRuntime() { return typeof process !== 'undefined' && !!process.versions?.node && typeof process.getBuiltinModule === 'function'; }
+function decodeGlb(filePath) {
+  const fs = process.getBuiltinModule('fs'), bytes = fs.readFileSync(filePath); if (bytes.toString('ascii', 0, 4) !== 'glTF') throw new Error(`${filePath}: bad GLB magic`);
+  let offset = 12, json = null, bin = null;
+  while (offset < bytes.length) { const length = bytes.readUInt32LE(offset), type = bytes.readUInt32LE(offset + 4), chunk = bytes.subarray(offset + 8, offset + 8 + length); if (type === 0x4e4f534a) json = JSON.parse(new TextDecoder().decode(chunk)); else if (type === 0x004e4942) bin = chunk; offset += 8 + length; }
+  if (!json || !bin) throw new Error(`${filePath}: missing GLB chunk`); return { json, bin };
+}
+const COMPONENTS = Object.freeze({ 5120: [Int8Array, 1], 5121: [Uint8Array, 1], 5122: [Int16Array, 2], 5123: [Uint16Array, 2], 5125: [Uint32Array, 4], 5126: [Float32Array, 4] });
+const TYPE_WIDTH = Object.freeze({ SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT2: 4, MAT3: 9, MAT4: 16 });
+function readAccessor(doc, index) {
+  const accessor = doc.json.accessors[index], view = doc.json.bufferViews[accessor.bufferView], [Ctor, bytes] = COMPONENTS[accessor.componentType], width = TYPE_WIDTH[accessor.type], stride = view.byteStride || bytes * width, base = (view.byteOffset || 0) + (accessor.byteOffset || 0), data = new DataView(doc.bin.buffer, doc.bin.byteOffset, doc.bin.byteLength), values = new Array(accessor.count * width);
+  const getter = Ctor === Float32Array ? 'getFloat32' : Ctor === Uint32Array ? 'getUint32' : Ctor === Uint16Array ? 'getUint16' : Ctor === Uint8Array ? 'getUint8' : Ctor === Int16Array ? 'getInt16' : 'getInt8';
+  for (let i = 0; i < accessor.count; i++) for (let c = 0; c < width; c++) { let value = data[getter](base + i * stride + c * bytes, getter !== 'getUint8' && getter !== 'getInt8'); if (accessor.normalized) value /= Ctor === Uint8Array ? 255 : Ctor === Uint16Array ? 65535 : Ctor === Int8Array ? 127 : 32767; values[i * width + c] = value; }
+  return { values, count: accessor.count, width };
+}
+function parsedGeometry(doc, mesh) {
+  const pos = [], normal = [], uv = [], joints = [], weights = [], slots = [], indices = [], groups = [];
+  for (const primitive of mesh.primitives) {
+    const position = readAccessor(doc, primitive.attributes.POSITION).values, normals = primitive.attributes.NORMAL == null ? null : readAccessor(doc, primitive.attributes.NORMAL).values, texcoord = primitive.attributes.TEXCOORD_0 == null ? null : readAccessor(doc, primitive.attributes.TEXCOORD_0).values, skinIndex = primitive.attributes.JOINTS_0 == null ? null : readAccessor(doc, primitive.attributes.JOINTS_0).values, skinWeight = primitive.attributes.WEIGHTS_0 == null ? null : readAccessor(doc, primitive.attributes.WEIGHTS_0).values;
+    const vertexCount = position.length / 3, baseVertex = pos.length / 3;
+    for (let i = 0; i < vertexCount; i++) { pos.push(position[i * 3], position[i * 3 + 1], position[i * 3 + 2]); normal.push(normals ? normals[i * 3] : 0, normals ? normals[i * 3 + 1] : 1, normals ? normals[i * 3 + 2] : 0); uv.push(texcoord ? texcoord[i * 2] : 0, texcoord ? texcoord[i * 2 + 1] : 0); for (let c = 0; c < 4; c++) joints.push(skinIndex ? skinIndex[i * 4 + c] : 0); for (let c = 0; c < 4; c++) weights.push(skinWeight ? skinWeight[i * 4 + c] : c === 0 ? 1 : 0); slots.push(primitive.material || 0); }
+    const indexValues = primitive.indices == null ? Array.from({ length: vertexCount }, (_, i) => i) : readAccessor(doc, primitive.indices).values, start = indices.length; for (const value of indexValues) indices.push(baseVertex + value); groups.push({ start, count: indexValues.length, materialIndex: primitive.material || 0 });
   }
-  if (!texture) {
-    const data = new Uint8Array([0, 0, 0, 0]);
-    texture = new THREE.DataTexture(data, 1, 1, THREE.RGBAFormat);
-    texture.needsUpdate = true;
-  }
-  const material = new THREE.MeshBasicMaterial({
-    map: texture,
-    transparent: true,
-    alphaTest: 0.02,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-    toneMapped: false
-  });
-  material.name = `RF billboard ${key}`;
-  billboardMaterials.set(key, material);
-  return { material, canvas };
+  const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normal, 3)); geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); geometry.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(joints, 4)); geometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(weights, 4)); geometry.setAttribute('rfSlot', new THREE.Float32BufferAttribute(slots, 1)); geometry.setIndex(indices); for (const group of groups) geometry.addGroup(group.start, group.count, group.materialIndex); geometry.computeBoundingBox(); geometry.computeBoundingSphere(); geometry.userData.rfSlotNames = (doc.json.materials || []).map((m) => String(m.name || 'Body')); return geometry;
+}
+function directTemplate(key, filePath) {
+  const doc = decodeGlb(filePath), json = doc.json, jointSet = new Set((json.skins?.[0]?.joints || []).map(Number));
+  const objects = json.nodes.map((node, index) => { const object = jointSet.has(index) ? new THREE.Bone() : new THREE.Object3D(); object.name = node.name || `node${index}`; if (node.matrix) object.matrix.fromArray(node.matrix).decompose(object.position, object.quaternion, object.scale); else { if (node.translation) object.position.fromArray(node.translation); if (node.rotation) object.quaternion.fromArray(node.rotation); if (node.scale) object.scale.fromArray(node.scale); } object.userData.rfNodeIndex = index; return object; });
+  for (const [index, node] of json.nodes.entries()) for (const child of node.children || []) objects[index].add(objects[child]);
+  const scene = new THREE.Group(); scene.name = json.scenes?.[0]?.name || 'RootNode'; for (const root of json.scenes?.[0]?.nodes || []) scene.add(objects[root]);
+  const sourceMaterials = (json.materials || []).map((material) => { const out = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5, metalness: 0.03, flatShading: false }); out.name = String(material.name || 'Body'); out.userData.rfAtlas = out.name === 'AtlasMaterial'; return out; });
+  for (const [index, node] of json.nodes.entries()) if (node.mesh != null) { const geometry = parsedGeometry(doc, json.meshes[node.mesh]), material = sourceMaterials.length ? sourceMaterials : new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5, metalness: 0.03 }); let body; if (node.skin == null) body = new THREE.Mesh(geometry, material); else { body = new THREE.SkinnedMesh(geometry, material); const skin = json.skins[node.skin], inverse = readAccessor(doc, skin.inverseBindMatrices).values; const matrices = []; for (let i = 0; i < skin.joints.length; i++) matrices.push(new THREE.Matrix4().fromArray(inverse, i * 16)); body.bind(new THREE.Skeleton(skin.joints.map((joint) => objects[joint]), matrices)); } body.name = node.name || `${key} body`; objects[index].add(body); }
+  const animations = [];
+  for (const animation of json.animations || []) { const tracks = []; for (const channel of animation.channels || []) { const sampler = animation.samplers[channel.sampler], input = readAccessor(doc, sampler.input).values, output = readAccessor(doc, sampler.output).values, name = json.nodes[channel.target.node].name || `node${channel.target.node}`; if (channel.target.path === 'rotation') tracks.push(new THREE.QuaternionKeyframeTrack(`${name}.quaternion`, input, output)); else if (channel.target.path === 'translation') tracks.push(new THREE.VectorKeyframeTrack(`${name}.position`, input, output)); else if (channel.target.path === 'scale') tracks.push(new THREE.VectorKeyframeTrack(`${name}.scale`, input, output)); } animations.push(new THREE.AnimationClip(animation.name || `${key} animation`, -1, tracks)); }
+  return prepareTemplate(scene, animations, key);
+}
+function nodeAssetPath(file) { const path = process.getBuiltinModule('path'); return path.resolve(path.dirname(new URL(import.meta.url).pathname), 'assets/models', file); }
+function loadBrowserTemplate(key) { return new Promise((resolve, reject) => { new GLTFLoader().load(assetUrl(MODEL_FILES[key]), (gltf) => { try { resolve(prepareTemplate(gltf.scene, gltf.animations, key)); } catch (error) { reject(error); } }, undefined, reject); }); }
+function preload() {
+  if (preloadPromise) return preloadPromise;
+  if (isNodeRuntime()) { try { for (const key of MODEL_KEYS) modelCache.set(key, directTemplate(key, nodeAssetPath(MODEL_FILES[key]))); preloadPromise = Promise.resolve(modelCache); } catch (error) { preloadError = error; preloadPromise = Promise.reject(error); } }
+  else if (typeof document !== 'undefined' && typeof fetch === 'function') preloadPromise = Promise.all(MODEL_KEYS.map((key) => loadBrowserTemplate(key).then((template) => { modelCache.set(key, template); return template; }))).then(() => modelCache);
+  else preloadPromise = Promise.resolve(modelCache);
+  return preloadPromise;
 }
 
-function billboard(textureOrCanvasKey) {
-  if (!sharedPlaneGeometry) sharedPlaneGeometry = new THREE.PlaneGeometry(1, 1);
-  const resolved = billboardMaterialFor(textureOrCanvasKey);
-  const mesh = new THREE.Mesh(sharedPlaneGeometry, resolved.material);
-  mesh.name = 'RF billboard';
-  mesh.userData.rfBillboardKey = typeof textureOrCanvasKey === 'string' ? textureOrCanvasKey : resolved.material.name;
-  if (resolved.canvas && resolved.canvas.height) mesh.scale.x = resolved.canvas.width / resolved.canvas.height;
-  return mesh;
-}
-
-function ensureSharedGeometry() {
-  if (!sharedToothGeometry) sharedToothGeometry = new THREE.ConeGeometry(0.5, 1, 4, 1, false);
-  if (!sharedEyeGeometry) sharedEyeGeometry = new THREE.SphereGeometry(1, 10, 5, 0, TAU, 0, Math.PI * 0.5);
-  if (!sharedIrisGeometry) sharedIrisGeometry = new THREE.CircleGeometry(1, 10);
-  if (!sharedCatchlightGeometry) sharedCatchlightGeometry = new THREE.PlaneGeometry(1, 1);
-  if (!sharedWhaleSpotGeometry) sharedWhaleSpotGeometry = new THREE.CircleGeometry(1, 8);
-}
-
-// Rev 6 fix-round 2 (art CRITICAL 4 support): one shared bowed-ribbon
-// geometry for the frenzy arc crackle. A thin unit-radius strip in the XY
-// plane, bowed along its length via a small Z zigzag so it reads as a jagged
-// electric arc rather than a smooth ring; ~6 triangles per ribbon x 3
-// ribbons x however many rigs reference it (shared, not per-rig) = well
-// under the 60-tri total budget for the whole frenzy effect.
-function sharedArcGeometry() {
-  if (arcGeometrySingleton) return arcGeometrySingleton;
-  const positions = [];
-  const indices = [];
-  // 5 segments, single-sided quad strip (2 tris/segment, DoubleSide material
-  // handles the back face) = 10 tris per ribbon. 3 ribbons share this ONE
-  // geometry (not 3 separate bakes), so the whole rfArcs effect costs 3 * 10
-  // = 30 tris per shark that has it visible -- comfortably under the <=60
-  // tri budget named in the spec, and the geometry itself is allocated once
-  // for the whole module (Map-cached singleton), not per-rig.
-  const segments = 5;
-  const width = 0.05;
-  for (let i = 0; i <= segments; i++) {
-    const t = i / segments;
-    const angle = t * Math.PI * 0.7 - Math.PI * 0.35;
-    const jag = (i % 2 === 0 ? 1 : -1) * 0.06;
-    const x = Math.cos(angle);
-    const y = Math.sin(angle) + jag;
-    positions.push(x, y - width, jag * 0.3, x, y + width, jag * 0.3);
-    if (i > 0) {
-      const a = (i - 1) * 2, b = a + 1, c = i * 2, d = c + 1;
-      indices.push(a, b, c, b, d, c);
-    }
-  }
-  arcGeometrySingleton = bufferGeometry(positions, indices);
-  arcGeometrySingleton.name = 'RF frenzy arc ribbon';
-  return arcGeometrySingleton;
-}
-
-function sharedArcMaterial() {
-  // Each rig tints its own clone's .color via rfArcs(), so the template
-  // itself stays neutral white; cloning (not sharing one instance) is
-  // required so sibling sharks can show different arc colors.
-  if (!arcMaterialTemplate) {
-    arcMaterialTemplate = new THREE.MeshBasicMaterial({
-      color: 0x27e0ff,
-      transparent: true,
-      opacity: 0.85,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-      toneMapped: false
-    });
-    arcMaterialTemplate.name = 'RF frenzy arc additive';
-  }
-  return arcMaterialTemplate.clone();
-}
-
-function representativeRows() {
-  const rows = host.RFD?.SHARKS || RF.RFD?.SHARKS || RF.SHARKS;
-  if (!rows || rows.length < 6) throw new Error('RF.Art3D.__selftest requires RFD.SHARKS');
-  const heads = ['point', 'blunt', 'hammer', 'saw', 'croc', 'whale', 'angler', 'eel', 'rock', 'mech', 'skull', 'void', 'frill', 'kaiju'];
-  const selected = [];
-  for (const head of heads) {
-    const row = rows.find((candidate) => candidate.sil?.head === head);
-    if (row) selected.push(row);
-  }
-  // Frill is retained as a contract head from the 2D pass but has no live
-  // data row. Exercise it with a private, tier-1 probe so the 14-head audit
-  // does not silently regress when that archetype returns to the roster.
-  if (!selected.some((row) => row.sil?.head === 'frill')) {
-    const source = rows[0];
-    selected.push({ ...source, id: '__selftest_frill', sil: { ...source.sil, head: 'frill' } });
-  }
-  return selected;
-}
-
-function bodyColorStats(geometry) {
-  const attribute = geometry?.getAttribute?.('color');
-  if (!attribute || attribute.itemSize !== 3 || !attribute.array?.length) throw new Error('body is missing a vertex color attribute');
-  let sum = 0;
-  let count = 0;
-  for (const value of attribute.array) {
-    if (!Number.isFinite(value)) throw new Error('body vertex color contains a non-finite channel');
-    sum += value;
-    count++;
-  }
-  let luminance = 0;
-  for (let i = 0; i < attribute.array.length; i += 3) {
-    luminance += attribute.array[i] * 0.2126;
-    luminance += attribute.array[i + 1] * 0.7152;
-    luminance += attribute.array[i + 2] * 0.0722;
-  }
-  const vertexCount = count / 3;
-  return { meanChannel: sum / count, meanLuminance: luminance / vertexCount, vertexCount };
-}
-
-function bodyColorBlockStats(geometry) {
-  const attribute = geometry?.getAttribute?.('color');
-  const radial = geometry?.userData?.rfRadial;
-  const stations = geometry?.userData?.rfStations;
-  if (!attribute || !Number.isInteger(radial) || !Number.isInteger(stations)) throw new Error('body is missing colour-block metadata');
-  const blocks = { dorsal: [], flank: [], belly: [], rim: [] };
-  const ringVertexCount = radial * stations;
-  for (let i = 0; i < ringVertexCount; i++) {
-    const theta = (i % radial) / radial * TAU;
-    const topness = (Math.cos(theta) + 1) * 0.5;
-    const color = { r: attribute.getX(i), g: attribute.getY(i), b: attribute.getZ(i) };
-    if (topness >= BODY_DORSAL_START) blocks.dorsal.push(color);
-    else if (topness >= BODY_FLANK_START) {
-      blocks.flank.push(color);
-      if (topness < BODY_RIM_END) blocks.rim.push(color);
-    }
-    else blocks.belly.push(color);
-  }
-  const mean = (values) => {
-    if (!values.length) return { r: 0, g: 0, b: 0, saturation: 0, value: 0, count: 0 };
-    const sum = values.reduce((total, color) => {
-      const hsv = rgbToHsv(color);
-      total.r += color.r;
-      total.g += color.g;
-      total.b += color.b;
-      total.saturation += hsv.s;
-      total.value += hsv.v;
-      return total;
-    }, { r: 0, g: 0, b: 0, saturation: 0, value: 0 });
-    const count = values.length;
-    return {
-      r: sum.r / count,
-      g: sum.g / count,
-      b: sum.b / count,
-      saturation: sum.saturation / count,
-      value: sum.value / count,
-      count
-    };
+function renderedTintSignature(def) {
+  const palette = paletteOf(def);
+  const sample = (color, detail) => {
+    const c = color.clone().multiplyScalar(detail), hsv = rgbToHsv(c);
+    return [hsv.h, hsv.s, hsv.v].map((value) => value.toFixed(4)).join(',');
   };
-  const dorsal = mean(blocks.dorsal);
-  const flank = mean(blocks.flank);
-  const belly = mean(blocks.belly);
-  const rim = mean(blocks.rim);
-  const distance = (a, b) => Math.sqrt(
-    ((a.r - b.r) ** 2) + ((a.g - b.g) ** 2) + ((a.b - b.b) ** 2)
-  ) * 255;
-  return {
-    dorsal,
-    flank,
-    belly,
-    rim,
-    dorsalFlankDistance: distance(dorsal, flank),
-    flankBellyDistance: distance(flank, belly)
-  };
-}
-
-function dominantVertexColors(geometries) {
-  const histogram = new Map();
-  let total = 0;
-  for (const geometry of geometries) {
-    const attribute = geometry?.getAttribute?.('color');
-    if (!attribute || attribute.itemSize !== 3) continue;
-    for (let i = 0; i < attribute.count; i++) {
-      const r = clamp(Math.round(attribute.getX(i) * 15), 0, 15);
-      const g = clamp(Math.round(attribute.getY(i) * 15), 0, 15);
-      const b = clamp(Math.round(attribute.getZ(i) * 15), 0, 15);
-      const key = `${r}:${g}:${b}`;
-      histogram.set(key, (histogram.get(key) || 0) + 1);
-      total++;
-    }
-  }
-  return Array.from(histogram.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 4)
-    .map(([key, count]) => {
-      const [r, g, b] = key.split(':').map(Number);
-      return { r: r / 15, g: g / 15, b: b / 15, share: count / Math.max(1, total) };
-    });
-}
-
-function distinctnessSignature(def, rig) {
-  const metrics = rig.group.userData;
-  const body = rig.parts.body.geometry;
-  return {
-    id: String(def.id),
-    tier: finite(def.tier, 1),
-    act: finite(def.act, 1),
-    head: String(def.sil?.head || 'point'),
-    pattern: String(def.sil?.pattern || 'plain'),
-    fx: String(def.sil?.fx || 'none'),
-    identity: (metrics.rfIdentityFeatureRecords || []).map((record) => record.name).join('|'),
-    dominantColors: dominantVertexColors([body]),
-    paletteColors: metrics.rfPaletteRaw,
-    resolvedPalette: metrics.rfPaletteResolved,
-    identitySilhouetteAreaRatio: finite(metrics.rfIdentitySilhouetteAreaRatio, 0),
-    bodyAspect: finite(metrics.rfBodyAspect, 0),
-    bodyLength: finite(metrics.rfBodyLen, 0),
-    tailRatio: finite(metrics.rfTailLengthRatio, 0),
-    finRatio: finite(metrics.rfPectoralSpanRatio, 0),
-    dorsalRatio: finite(metrics.rfDorsalFinRatio, 0),
-    girth: finite(metrics.rfEffectiveGirth, 0),
-    tailScale: finite(metrics.rfTailScale, 1),
-    hullScale: finite(metrics.rfHullScale, 1)
-  };
-}
-
-function dominantColorDistance(a, b) {
-  const colorsA = a.dominantColors || [];
-  const colorsB = b.dominantColors || [];
-  if (!colorsA.length || !colorsB.length) return 1;
-  const nearest = (source, target) => source.reduce((sum, color) => {
-    let best = Infinity;
-    for (const candidate of target) {
-      const rgb = Math.sqrt(
-        (color.r - candidate.r) ** 2 +
-        (color.g - candidate.g) ** 2 +
-        (color.b - candidate.b) ** 2
-      ) / Math.sqrt(3);
-      best = Math.min(best, rgb + Math.abs(color.share - candidate.share) * 0.5);
-    }
-    return sum + best * color.share;
-  }, 0);
-  return clamp((nearest(colorsA, colorsB) + nearest(colorsB, colorsA)) * 0.5, 0, 1);
-}
-
-function rawPaletteDistance(a, b) {
-  const keys = ['base', 'belly', 'accent', 'glow'];
-  let total = 0;
-  for (const key of keys) {
-    const av = key === 'glow' && !a.paletteColors?.[key] ? a.paletteColors?.accent : a.paletteColors?.[key];
-    const bv = key === 'glow' && !b.paletteColors?.[key] ? b.paletteColors?.accent : b.paletteColors?.[key];
-    const ac = colorValue(av, 0);
-    const bc = colorValue(bv, 0);
-    total += Math.sqrt((ac.r - bc.r) ** 2 + (ac.g - bc.g) ** 2 + (ac.b - bc.b) ** 2) / Math.sqrt(3);
-  }
-  return total / keys.length;
-}
-
-/* Distance is deliberately readable and bounded: 31% dominant colour
- * histogram, 50% body/fin/tail proportions, and categorical identity blocks
- * for the authored pattern/head/fx. A pair is adjacent when tier distance <= 1
- * and act distance <= 1; unrelated late-game rows are not used to hide a
- * collapse in the early roster. */
-function distinctnessDistance(a, b) {
-  const color = dominantColorDistance(a, b) * 0.45 + rawPaletteDistance(a, b) * 0.55;
-  const proportions =
-    Math.abs(a.bodyAspect - b.bodyAspect) / 4.5 * 0.35 +
-    Math.abs(a.tailRatio - b.tailRatio) / 0.34 * 0.18 +
-    Math.abs(a.finRatio - b.finRatio) / 1.2 * 0.18 +
-    Math.abs(a.dorsalRatio - b.dorsalRatio) / 0.45 * 0.12 +
-    // Rev 8 keeps one hull, so authored tail scale remains a bounded, visible
-    // species cue alongside the controlled hull-size variation.
-    Math.abs(a.tailScale - b.tailScale) / 1.5 * 0.35 +
-    Math.abs(a.hullScale - b.hullScale) / 0.28 * 0.12 +
-    // Authored girth now selects the canonical hull scale; keep it as a
-    // secondary roster signal rather than a second body generator.
-    Math.abs(a.girth - b.girth) / 0.8 * 0.80 +
-    Math.abs(a.bodyLength - b.bodyLength) / 3 * 0.14;
-  const pattern = a.pattern === b.pattern ? 0 : 1;
-  const head = a.head === b.head ? 0 : 1;
-  const fx = a.fx === b.fx ? 0 : 1;
-  const identity = a.identity === b.identity ? 0 : 1;
-  return clamp(color * 0.31 + proportions * 0.50 + pattern * 0.06 + head * 0.06 + fx * 0.07 + identity * 0.08, 0, 1);
-}
-
-function assertRosterDistinctness(signatures, result) {
-  let comparisons = 0;
-  let minimum = Infinity;
-  let closestPair = null;
-  const violations = [];
-  for (let i = 0; i < signatures.length; i++) {
-    for (let j = i + 1; j < signatures.length; j++) {
-      const a = signatures[i];
-      const b = signatures[j];
-      if (Math.abs(a.tier - b.tier) > DISTINCTNESS_TIER_RADIUS || Math.abs(a.act - b.act) > DISTINCTNESS_TIER_RADIUS) continue;
-      const distance = distinctnessDistance(a, b);
-      comparisons++;
-      if (distance < minimum) {
-        minimum = distance;
-        closestPair = [a.id, b.id];
-      }
-      if (distance < DISTINCTNESS_DISTANCE_THRESHOLD) {
-        violations.push(`${a.id}/${b.id}=${distance.toFixed(3)}`);
-      }
-    }
-  }
-  result.distinctness = {
-    checked: signatures.length,
-    adjacentComparisons: comparisons,
-    threshold: DISTINCTNESS_DISTANCE_THRESHOLD,
-    tierRadius: DISTINCTNESS_TIER_RADIUS,
-    minimumDistance: Number(minimum.toFixed(3)),
-    closestPair
-  };
-  if (violations.length) {
-    throw new Error(`adjacent-tier distinctness violations ${violations.length}: ${violations.slice(0, 8).join(', ')}`);
-  }
-  return result.distinctness;
-}
-
-function hueDistance(a, b) {
-  const delta = Math.abs(finite(a, 0) - finite(b, 0));
-  return Math.min(delta, 1 - delta);
-}
-
-function assertPantheonIdentity(id, group) {
-  if (!PANTHEON_IDS.has(id)) return;
-  const primary = group.userData.rfIdentityPrimary;
-  if (!primary || !primary.cue) throw new Error(`${id}: measured primary identity cue missing`);
-  if (group.userData.rfIdentityProjectedWidthPx < 18 || group.userData.rfIdentityProjectedHeightPx < 10) {
-    throw new Error(`${id}: primary cue ${primary.cue} footprint ${group.userData.rfIdentityProjectedWidthPx.toFixed(1)}x${group.userData.rfIdentityProjectedHeightPx.toFixed(1)} CSS px <18x10`);
-  }
-  if (group.userData.rfIdentityProjectedAreaRatio < 0.02) {
-    throw new Error(`${id}: primary cue ${primary.cue} area ${group.userData.rfIdentityProjectedAreaRatio.toFixed(3)} <.02 of visible hull`);
-  }
-  const heroHeight = group.userData.rfIdentityHeroHeadHeightRatio;
-  const heroSpan = group.userData.rfIdentityHeroSpanRatio;
-  const charybdisOpening = id === 'charybdisvoid' && heroHeight >= 0.55 && heroHeight <= 0.75;
-  if (!charybdisOpening && !((heroHeight >= 0.18 && heroHeight <= 0.64) || (heroSpan >= 0.12 && heroSpan <= 0.26))) {
-    throw new Error(`${id}: hero cue ${primary.cue} is ${heroHeight.toFixed(3)} headH / ${heroSpan.toFixed(3)}L, outside .18-.64 headH or .12-.26L`);
-  }
-  if (group.userData.rfIdentityBodyOverlapRatio < 0.08) {
-    throw new Error(`${id}: ${primary.cue} body overlap ${group.userData.rfIdentityBodyOverlapRatio.toFixed(3)} <.08L`);
-  }
-  if (group.userData.rfIdentityMonsterCue) {
-    if (group.userData.rfIdentityProtrusionRatio < 0.12) {
-      throw new Error(`${id}: monster cue ${primary.cue} protrusion ${group.userData.rfIdentityProtrusionRatio.toFixed(3)}L <.12L`);
-    }
-    if (group.userData.rfIdentityEyeSeparationRatio < 0.10) {
-      throw new Error(`${id}: monster cue ${primary.cue} eye/brow separation ${group.userData.rfIdentityEyeSeparationRatio.toFixed(3)}L <.10L`);
-    }
-  }
-  const rowChecks = {
-    hydrafang: group.userData.rfIdentityFeatureCount >= 4,
-    cerberusjaw: group.userData.rfIdentityFeatureCount >= 4,
-    medusagaze: group.userData.rfIdentityFeatureCount >= 6,
-    scyllarender: group.userData.rfIdentityFeatureCount >= 6,
-    minotaurram: group.userData.rfIdentityFeatureCount >= 3,
-    harpyshade: group.userData.rfIdentityFeatureCount >= 2,
-    lamiacoil: group.userData.rfIdentityFeatureCount >= 4,
-    charybdisvoid: group.userData.rfIdentityFeatureCount >= 4,
-    chimerashark: group.userData.rfIdentityFeatureCount >= 2,
-    kampechrono: group.userData.rfIdentityFeatureCount >= 2
-  };
-  if (rowChecks[id] === false) throw new Error(`${id}: contour prescription did not create enough separated feature pieces`);
-}
-
-function assertPantheonPaletteDistinctness(signatures, result) {
-  const rows = signatures.filter((signature) => PANTHEON_IDS.has(signature.id));
-  const violations = [];
-  let comparisons = 0;
-  for (let i = 0; i < rows.length; i++) {
-    for (let j = i + 1; j < rows.length; j++) {
-      const a = rows[i];
-      const b = rows[j];
-      if (a.act !== b.act) continue;
-      comparisons++;
-      const baseA = a.resolvedPalette?.base || {};
-      const baseB = b.resolvedPalette?.base || {};
-      const hue = hueDistance(baseA.h, baseB.h);
-      const value = Math.abs(finite(baseA.v, 0) - finite(baseB.v, 0));
-      const silhouette = Math.max(a.identitySilhouetteAreaRatio || 0, b.identitySilhouetteAreaRatio || 0);
-      if (!((hue >= 0.08 && value >= 0.12) || silhouette >= 0.08)) {
-        violations.push(`${a.id}/${b.id}=h${hue.toFixed(3)} v${value.toFixed(3)} s${silhouette.toFixed(3)}`);
-      }
-    }
-  }
-  result.pantheonPalette = { checked: rows.length, sameActComparisons: comparisons, hueFloor: 0.08, valueFloor: 0.12, silhouetteFallback: 0.08 };
-  if (violations.length) throw new Error(`Pantheon palette separation violations ${violations.length}: ${violations.slice(0, 8).join(', ')}`);
-  return result.pantheonPalette;
-}
-
-function bodyBandStats(geometry) {
-  const attribute = geometry?.getAttribute?.('color');
-  const radial = geometry?.userData?.rfRadial;
-  const stations = geometry?.userData?.rfStations;
-  if (!attribute || !Number.isInteger(radial) || !Number.isInteger(stations)) throw new Error('body is missing radial value-band metadata');
-  const bands = { ridge: [], flank: [], belly: [] };
-  const ringVertexCount = radial * stations;
-  for (let i = 0; i < ringVertexCount; i++) {
-    const theta = (i % radial) / radial * TAU;
-    const topness = (Math.cos(theta) + 1) * 0.5;
-    const value = colorLuminance({ r: attribute.getX(i), g: attribute.getY(i), b: attribute.getZ(i) });
-    if (topness >= BODY_DORSAL_START) bands.ridge.push(value);
-    else if (topness >= BODY_FLANK_START) bands.flank.push(value);
-    else if (topness <= BODY_BELLY_END) bands.belly.push(value);
-  }
-  const mean = (values) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
-  return {
-    ridge: { mean: mean(bands.ridge), count: bands.ridge.length },
-    flank: { mean: mean(bands.flank), count: bands.flank.length },
-    belly: { mean: mean(bands.belly), count: bands.belly.length }
-  };
-}
-
-function distinctGradientTexels(texture) {
-  const image = texture?.image;
-  if (!image) return 0;
-  if (image.data && image.width && image.height) {
-    const channels = image.data.length / (image.width * image.height);
-    const values = new Set();
-    for (let i = 0; i < image.width * image.height; i++) values.add(image.data[Math.floor(i * channels)]);
-    return values.size;
-  }
-  if (typeof image.getContext === 'function') {
-    const ctx = image.getContext('2d');
-    if (!ctx) return 0;
-    const data = ctx.getImageData(0, 0, image.width, image.height).data;
-    const values = new Set();
-    for (let i = 0; i < data.length; i += 4) values.add(data[i]);
-    return values.size;
-  }
-  return 0;
-}
-
-function noseIsForward(geometry) {
-  const position = geometry?.getAttribute?.('position');
-  const noseIndex = geometry?.userData?.rfNoseIndex;
-  if (!position || !Number.isInteger(noseIndex)) return false;
-  let maxX = -Infinity;
-  for (let i = 0; i < position.count; i++) maxX = Math.max(maxX, position.getX(i));
-  return position.getX(noseIndex) >= maxX - 1e-6 && position.getX(noseIndex) > 0;
-}
-
-// Gate the rendered side silhouette, not the old sum-of-lobe-heights proxy.
-// The two terminal lobe vertices and the forward center-notch vertex are
-// actual indexed geometry, so this catches a convex cap even when metadata
-// claims that the tail is crescent-shaped.
-function projectedTailNotchMetrics(geometry, bodyLen, gameplayLengthPx = 124) {
-  const position = geometry?.getAttribute?.('position');
-  const upperIndex = geometry?.userData?.rfTailUpperLobeTipIndex;
-  const lowerIndex = geometry?.userData?.rfTailLowerLobeTipIndex;
-  const notchIndex = geometry?.userData?.rfTailNotchIndex;
-  if (!position || !Number.isInteger(upperIndex) || !Number.isInteger(lowerIndex) || !Number.isInteger(notchIndex)) {
-    throw new Error('tail projected-notch vertices are missing');
-  }
-  let minX = Infinity;
-  let maxX = -Infinity;
-  for (let i = 0; i < position.count; i++) {
-    const x = position.getX(i);
-    minX = Math.min(minX, x);
-    maxX = Math.max(maxX, x);
-  }
-  const upperGap = (position.getX(notchIndex) - position.getX(upperIndex)) / Math.max(bodyLen, 1e-6);
-  const lowerGap = (position.getX(notchIndex) - position.getX(lowerIndex)) / Math.max(bodyLen, 1e-6);
-  const minGap = Math.min(upperGap, lowerGap);
-  const cssPx = minGap * Math.max(bodyLen, 0) / Math.max(maxX - minX, 1e-6) * gameplayLengthPx;
-  return {
-    upperGap,
-    lowerGap,
-    minGap,
-    cssPx,
-    upperX: position.getX(upperIndex),
-    lowerX: position.getX(lowerIndex),
-    notchX: position.getX(notchIndex),
-    upperIndex,
-    lowerIndex,
-    notchIndex
-  };
-}
-
-// Rev 6 (rev6-laneA-fix): headless world-space pitch probe. Samples the
-// rig's own body node (not the outer group) so the result reflects the
-// composed group -> pose -> body transform exactly as the consumer sees it.
-// Returns the signed vertical world-Y component of the nose-minus-tail
-// vector, in the SAME direction sense as three's own +Y-up world axis: a
-// positive value means the nose sits above the tail (nose-UP), negative
-// means nose-DOWN. This is deliberately a raw vector probe (not a clamped
-// "pitch angle") so it also catches gross axis/compounding errors, not just
-// sign flips within the intended small-angle pitch range.
-function worldNoseTailPitchDeg(group, body) {
-  group.updateWorldMatrix(true, true);
-  const nose = body.localToWorld(new THREE.Vector3(1, 0, 0));
-  const tail = body.localToWorld(new THREE.Vector3(-1, 0, 0));
-  const dx = nose.x - tail.x;
-  const dy = nose.y - tail.y;
-  const dz = nose.z - tail.z;
-  // Angle of the nose-tail axis out of the world-horizontal (x/z) plane, in
-  // its own world scale (not template units, which are unrelated to the
-  // rig's post-baseScale world size and would silently distort this ratio).
-  return Math.atan2(dy, Math.hypot(dx, dz)) * 180 / Math.PI;
-}
-
-function materialEmissive(material) {
-  return {
-    hex: material?.emissive?.getHex?.() ?? 0,
-    intensity: finite(material?.emissiveIntensity, 0)
-  };
-}
-
-function auditMaterialOwnership(def, rig) {
-  const structural = [
-    ['body', rig.parts.body],
-    ['jaw', rig.parts.jaw]
-  ];
-  const structuralAudit = {};
-  for (const [label, mesh] of structural) {
-    if (!mesh) continue;
-    const emissive = materialEmissive(mesh.material);
-    structuralAudit[label] = emissive;
-    if (emissive.hex !== 0 || emissive.intensity > BODY_EMISSIVE_MAX) {
-      throw new Error(`${def.id}: ${label} material owns glow ${emissive.hex.toString(16)} @ ${emissive.intensity.toFixed(2)}`);
-    }
-  }
-
-  const fx = String(def.sil?.fx || '').trim();
-  let featureGlowCount = 0;
-  let fxFeatureCount = 0;
-  rig.parts.body.traverse((object) => {
-    if (object === rig.parts.body) return;
-    const emissive = materialEmissive(object.material);
-    const names = [object.name, ...(object.userData?.rfFeatureNames || [])];
-    if (emissive.hex !== 0 && emissive.intensity >= 0.6 && emissive.intensity <= 1.0) featureGlowCount++;
-    if (fx && fx !== 'none' && emissive.hex !== 0 && emissive.intensity >= 0.6 && emissive.intensity <= 1.0 && names.some((name) => name.includes(`emissive fx ${fx}`))) {
-      fxFeatureCount++;
-    }
-  });
-  if (fx && fx !== 'none' && fxFeatureCount === 0) throw new Error(`${def.id}: ${fx} has no emissive feature mesh`);
-  return { structural: structuralAudit, featureGlowCount, fxFeatureCount };
-}
-
-function bendMaterials(root) {
-  const materials = [];
-  root.traverse((object) => {
-    const material = object.material;
-    if (material?.userData?.rfBend) materials.push(material);
-  });
-  return materials;
-}
-
-function namedFeature(root, marker) {
-  let found = null;
-  root.traverse((object) => {
-    if (found || !object.geometry) return;
-    const names = [object.name, ...(object.userData?.rfFeatureNames || [])];
-    if (names.some((name) => String(name).includes(marker))) found = object;
-  });
-  return found;
-}
-
-function maxVertexColorChannel(geometry) {
-  const colors = geometry?.getAttribute?.('color');
-  if (!colors || colors.itemSize !== 3 || !colors.array?.length) return null;
-  let max = 0;
-  let min = 1;
-  for (const value of colors.array) {
-    if (!Number.isFinite(value)) return { min: NaN, max: NaN };
-    max = Math.max(max, value);
-    min = Math.min(min, value);
-  }
-  return { min, max };
-}
-
-function gateRange(label, value, min, max, epsilon = 1e-6) {
-  if (!Number.isFinite(value) || value < min - epsilon || value > max + epsilon) {
-    throw new Error(`${label}=${Number.isFinite(value) ? value.toFixed(3) : value} outside [${min}, ${max}]`);
-  }
-}
-
-function triangleNormalAndCentroid(geometry, indexOffset) {
-  const index = geometry.getIndex();
-  const position = geometry.getAttribute('position');
-  const a = new THREE.Vector3().fromBufferAttribute(position, index.getX(indexOffset));
-  const b = new THREE.Vector3().fromBufferAttribute(position, index.getX(indexOffset + 1));
-  const c = new THREE.Vector3().fromBufferAttribute(position, index.getX(indexOffset + 2));
-  const normal = new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a));
-  const centroid = a.add(b).add(c).multiplyScalar(1 / 3);
-  return { normal, centroid };
-}
-
-function outwardWindingStats(geometry, indexStart, indexCount, directionForTriangle) {
-  const values = [];
-  const end = indexStart + indexCount;
-  for (let offset = indexStart; offset < end; offset += 3) {
-    const { normal, centroid } = triangleNormalAndCentroid(geometry, offset);
-    if (normal.lengthSq() < 1e-12) continue;
-    const direction = directionForTriangle(centroid, offset);
-    if (!direction || direction.lengthSq() < 1e-12) continue;
-    values.push(normal.normalize().dot(direction.normalize()));
-  }
-  return {
-    count: values.length,
-    min: values.length ? Math.min(...values) : 0,
-    bad: values.filter((value) => value <= 0.02).length
-  };
-}
-
-function mirroredWindingStats(geometry, indexStart, indexCount, patchOffsets = [0, 3]) {
-  let count = 0;
-  let bad = 0;
-  const end = indexStart + indexCount;
-  // Each welded fin is authored as two front triangles followed by the same
-  // two patches in reverse order. The exact fin plane is sloped, so testing
-  // paired normals as opposites is more meaningful than demanding +Z for
-  // every slanted triangle.
-  for (let base = indexStart; base < end; base += 12) {
-    for (const offset of patchOffsets) {
-      const first = triangleNormalAndCentroid(geometry, base + offset).normal.normalize();
-      const mirrored = triangleNormalAndCentroid(geometry, base + offset + 6).normal.normalize();
-      count++;
-      if (first.dot(mirrored) >= -0.20) bad++;
-    }
-  }
-  return { count, bad };
-}
-
-function weldedWindingStats(geometry) {
-  const tail = outwardWindingStats(
-    geometry,
-    geometry.userData.rfTailSideIndexStart,
-    geometry.userData.rfTailSideIndexCount,
-    (centroid) => new THREE.Vector3(0, centroid.y, centroid.z)
-  );
-  const tailCap = outwardWindingStats(
-    geometry,
-    geometry.userData.rfTailCapIndexStart,
-    geometry.userData.rfTailCapIndexCount,
-    () => new THREE.Vector3(-1, 0, 0)
-  );
-  const dorsal = mirroredWindingStats(geometry, geometry.userData.rfDorsalIndexStart, geometry.userData.rfDorsalIndexCount, [0]);
-  const pectoral = mirroredWindingStats(geometry, geometry.userData.rfPectoralIndexStart, geometry.userData.rfPectoralIndexCount);
-  return { tail, tailCap, dorsal, pectoral };
-}
-
-function gateResolvedPalette(id, palette) {
-  if (!palette) throw new Error(`${id}: resolved art ramp missing`);
-  for (const [name, stats] of [['flank', palette.base], ['accent', palette.accent], ['belly', palette.belly]]) {
-    if (!stats) throw new Error(`${id}: resolved ${name} swatch missing`);
-  }
-  const underworld = UNDERWORLD_IDS.has(String(id));
-  gateRange(`${id}: flank S`, palette.base.s, underworld ? 0.70 : BODY_FLANK_SATURATION_MIN, BODY_FLANK_SATURATION_MAX);
-  gateRange(`${id}: flank V`, palette.base.v, underworld ? 0.20 : BODY_FLANK_VALUE_MIN, underworld ? 0.48 : BODY_FLANK_VALUE_MAX);
-  if (underworld && palette.accent.s < 0.80) throw new Error(`${id}: infernal accent S ${palette.accent.s.toFixed(3)} <.80`);
-  if (underworld && palette.accent.v < 0.68) throw new Error(`${id}: infernal accent V ${palette.accent.v.toFixed(3)} <.68`);
-  gateRange(`${id}: accent S`, palette.accent.s, ACCENT_SATURATION_MIN, ACCENT_SATURATION_MAX);
-  gateRange(`${id}: accent V`, palette.accent.v, ACCENT_VALUE_MIN, ACCENT_VALUE_MAX);
-  gateRange(`${id}: belly S`, palette.belly.s, BELLY_SATURATION_MIN, BELLY_SATURATION_MAX);
-  gateRange(`${id}: belly V`, palette.belly.v, BELLY_VALUE_MIN, BELLY_VALUE_MAX);
-  if (palette.glow) {
-    gateRange(`${id}: glow S`, palette.glow.s, ACCENT_SATURATION_MIN, ACCENT_SATURATION_MAX);
-    gateRange(`${id}: glow V`, palette.glow.v, ACCENT_VALUE_MIN, ACCENT_VALUE_MAX);
-  }
+  return [sample(palette.base, 0.82), sample(palette.belly, 0.94), sample(palette.accent, 0.98)].join('|');
 }
 
 function __selftest() {
-  ensureSharedGeometry();
-  const rows = host.RFD?.SHARKS || RF.RFD?.SHARKS || RF.SHARKS;
-  if (!rows || rows.length !== 85) throw new Error('RF.Art3D expected 85 sharks, received ' + (rows ? rows.length : 0));
-  const result = {
-    pass: false,
-    triangles: {},
-    archetypes: {},
-    bendProgramVariants: [],
-    distinctness: null,
-    girthSpread: 0,
-    hullScaleRange: null,
-    eyeUnit: null,
-    notes: [],
-    errors: []
-  };
+  const result = { pass: false, notes: [], errors: [], checked: 0, cache: [], baseMap: {}, drawCounts: {}, lengths: {}, tintSignatures: {}, jawGape: {}, hammerSpan: {} };
   try {
-    const patterns = Array.from(new Set(rows.map((def) => String(def.sil?.pattern || 'plain'))));
-    const unsupported = patterns.filter((pattern) => !SUPPORTED_PATTERN_IDS.has(pattern));
-    if (unsupported.length) throw new Error('unsupported sil.pattern IDs: ' + unsupported.join(', '));
-
-    const signatures = [];
-    const bendKeys = new Set();
-    const girthValues = [];
-    let worstCaseTriangles = 0;
-    let worstCaseId = null;
-    const archetypeTotals = new Map();
-    const archetypeCounts = new Map();
-    const greatWhiteDef = rows.find((def) => String(def.id) === 'greatwhite');
-    const greatWhiteHeadHeight = greatWhiteDef ? buildShark(greatWhiteDef).group.userData.rfHeadHeight : 0;
-
-    for (const def of rows) {
-      const rig = buildShark(def);
-      const group = rig.group;
-      const parts = rig.parts;
-      const body = parts.body;
-      const geometry = body.geometry;
-      const id = String(def.id);
-
-      if (!(group instanceof THREE.Group) || !body?.isMesh || typeof rig.animate !== 'function') {
-        throw new Error(id + ': incomplete welded rig contract');
-      }
-      if (parts.tail !== null || parts.pectL !== null || parts.pectR !== null) {
-        throw new Error(id + ': deleted appendage mesh leaked into parts');
-      }
-      if (JSON.stringify(group.userData.rfWeldedAppendages) !== JSON.stringify({ tail: true, dorsal: true, pectorals: true })) {
-        throw new Error(id + ': welded appendage contract missing');
-      }
-      if (!geometry.getIndex() || !geometry.getAttribute('color') || geometry.userData.rfWeldedAppendages?.tail !== true) {
-        throw new Error(id + ': body is not one indexed, vertex-coloured welded geometry');
-      }
-      if (!noseIsForward(geometry)) throw new Error(id + ': +x nose invariant failed');
-      const worldBox = new THREE.Box3().setFromObject(group);
-      const worldTarget = 96 * clamp(finite(def.sil?.len, 1), 0.5, 3);
-      if (Math.abs((worldBox.max.x - worldBox.min.x) - worldTarget) > 1e-4) {
-        throw new Error(id + ': worldScale bbox X is not 96*sil.len');
-      }
-
-      const head = String(def.sil?.head || 'point');
-      gateResolvedPalette(id, group.userData.rfPaletteResolved);
-      assertPantheonIdentity(id, group);
-      gateRange(`${id}: outline V`, group.userData.rfOutlineColorStats?.v, OUTLINE_VALUE_MIN, OUTLINE_VALUE_MAX);
-      if (group.userData.rfTailLengthRatio < TAIL_MIN_RATIO || group.userData.rfTailLengthRatio > TAIL_MAX_RATIO) {
-        throw new Error(`${id}: tail length ratio ${group.userData.rfTailLengthRatio.toFixed(3)} outside [${TAIL_MIN_RATIO}, ${TAIL_MAX_RATIO}]`);
-      }
-      gateRange(`${id}: tail lower/upper lobe ratio`, group.userData.rfTailLowerUpperRatio, 0.60, 0.72);
-      gateRange(`${id}: projected notch/upper tip`, group.userData.rfTailNotchProjectedUpperRatio, 0.10, 0.14);
-      gateRange(`${id}: projected notch/lower tip`, group.userData.rfTailNotchProjectedLowerRatio, 0.10, 0.14);
-      gateRange(`${id}: projected notch minimum gap`, group.userData.rfTailNotchProjectedRatio, 0.10, 0.14);
-      if (group.userData.rfTailNotchProjectedCssPx < 10 - 1e-6) {
-        throw new Error(`${id}: projected notch gap ${group.userData.rfTailNotchProjectedCssPx.toFixed(2)} CSS px < 10 CSS px`);
-      }
-      gateRange(`${id}: tail depth`, group.userData.rfTailDepthRatio, 0.08, 0.12);
-      gateRange(`${id}: tail final-20% taper`, group.userData.rfTailFinalLobeRatio, 0, 0.35);
-      if (group.userData.rfTailStationCount < 10 || group.userData.rfTailStationCount > 12 || !group.userData.rfTailPointedCap) {
-        throw new Error(`${id}: tail stations/cap contract missing`);
-      }
-      // Rev 8 proportion gates consume both the built ring geometry and the
-      // rendered side-silhouette probe. These ranges intentionally describe
-      // one cartoon shark, not fourteen competing hull archetypes.
-      const silhouette = group.userData.rfRenderedSilhouetteProbe;
-      if (!silhouette?.projected) throw new Error(`${id}: rendered silhouette probe missing`);
-      gateRange(`${id}: rendered depth/bodyLen`, silhouette.depthRatio, 0.32, 0.45);
-      gateRange(`${id}: head fraction`, silhouette.headFraction, 0.30, 0.30);
-      gateRange(`${id}: snout tip radius/bodyLen`, silhouette.snoutRadiusRatio, 0.06, 0.12);
-      gateRange(`${id}: dorsal height/bodyLen`, silhouette.dorsalHeightRatio, 0.10, 0.16);
-      gateRange(`${id}: pectoral span/bodyLen`, silhouette.pectoralSpanRatio, 0.10, 0.14);
-      gateRange(`${id}: tooth-band white coverage`, silhouette.toothBandWhiteCoverage, 0.60, 1.0);
-      gateRange(`${id}: built hull depth/bodyLen`, group.userData.rfHullDepthRatio, 0.32, 0.45);
-      const eyeRange = id === 'cyclopseye' ? [0.26, 0.36] : [0.24, 0.36];
-      gateRange(`${id}: eye radius/radiusY`, group.userData.rfEyeRadiusFraction, eyeRange[0], eyeRange[1]);
-      gateRange(`${id}: front face span/bodyLen`, group.userData.rfFrontSpanRatio, 0.38, 0.48);
-      gateRange(`${id}: face scale`, group.userData.rfHeadScale, 0.94, 1.16);
-      if (!(group.userData.rfEyeSurfaceZ > 0) || group.userData.rfEyeZ / group.userData.rfEyeSurfaceZ < 1.03) {
-        throw new Error(`${id}: eye is not >=1.03x local surface`);
-      }
-      gateRange(`${id}: iris/eye radius`, group.userData.rfEyeIrisFraction, 0.45, 0.55);
-      gateRange(`${id}: iris S`, group.userData.rfEyeIrisStats?.s, 0.75, 1.0);
-      gateRange(`${id}: iris V`, group.userData.rfEyeIrisStats?.v, 0.65, 1.0);
-      const mouthRange = head === 'whale' ? [0.50, 0.60] : [0.20, 0.30];
-      gateRange(`${id}: mouth grin/bodyLen`, group.userData.rfMouthWidthRatio, mouthRange[0], mouthRange[1]);
-      gateRange(`${id}: mouth height/headHeight`, group.userData.rfMouthHeightRatio, 0.25, 0.42);
-      if (head === 'hammer') {
-        gateRange(`${id}: hammer foil span/bodyLen`, group.userData.rfHammerFoilProjectedSpan / group.userData.rfBodyLen, 0.42, 0.56);
-        gateRange(`${id}: hammer foil thickness/bodyLen`, group.userData.rfHammerFoilThickness / group.userData.rfBodyLen, 0.10, 0.16);
-        if (group.userData.rfHammerBridgeOverlap / group.userData.rfBodyLen < 0.10) throw new Error(`${id}: hammer bridge overlap <.10L`);
-      }
-      if (head === 'whale') {
-        gateRange(`${id}: whale/greatwhite head height`, group.userData.rfWhaleHeadHeight / Math.max(greatWhiteHeadHeight, 1e-6), 1.4, 1.7);
-        gateRange(`${id}: whale spot count`, group.userData.rfWhaleSpotCount, 6, 10);
-        gateRange(`${id}: whale spot diameter/headHeight`, group.userData.rfWhaleSpotDiameterRatio, 0.06, 0.10);
-        if (group.userData.rfWhaleSpotValueContrast < 0.25 || !group.userData.rfWhaleBaleenCrossing || group.userData.rfWhaleBaleenProudZ / group.userData.rfBodyLen < 0.03) {
-          throw new Error(`${id}: whale spots/baleen contrast or proud placement failed`);
-        }
-      }
-      if (String(def.sil?.pattern || '') === 'stripes') {
-        gateRange(`${id}: stripe band width/bodyLen`, group.userData.rfTigerStripeBandWidthRatio, 0.045, 0.060);
-        if (group.userData.rfTigerStripeValueContrast < 0.25) throw new Error(`${id}: tiger stripe value contrast <.25`);
-      }
-      if (head === 'mech') {
-        gateRange(`${id}: mech panel visible area`, group.userData.rfMechPanelAreaRatio, 0.08, 0.15);
-        if (group.userData.rfMechPanelValueContrast < 0.25 || group.userData.rfMechPanelProudZ / group.userData.rfBodyLen < 0.03 || group.userData.rfMechThrusterProudZ / group.userData.rfBodyLen < 0.04) {
-          throw new Error(`${id}: mech panel/thruster contrast or proud placement failed`);
-        }
-      }
-      if (head === 'void') {
-        gateRange(`${id}: void ring diameter/headHeight`, group.userData.rfVoidRingDiameterRatio, 0.75, 0.95);
-        gateRange(`${id}: void ring stroke/headHeight`, group.userData.rfVoidRingStrokeRatio, 0.06, 0.09);
-        gateRange(`${id}: void eye diameter/headHeight`, group.userData.rfVoidEyeDiameterRatio, 0.20, 0.28);
-        if (group.userData.rfVoidRingProudZ / group.userData.rfBodyLen < 0.03 || group.userData.rfVoidEyeProudZ / group.userData.rfBodyLen < 0.03) throw new Error(`${id}: void identity feature is sub-surface`);
-      }
-
-      const uniforms = group.userData.rfBendUniforms;
-      const requiredUniforms = ['uBendPhase', 'uBendAmp', 'uBendK', 'uBendSpan', 'uBendBias', 'uTailAmp', 'uTailSpan', 'uBendScale'];
-      if (!uniforms || requiredUniforms.some((name) => !uniforms[name])) {
-        throw new Error(id + ': incomplete bend v3 uniform bundle');
-      }
-      const materials = bendMaterials(group);
-      if (materials.length < 3) throw new Error(id + ': body/shell/features did not receive bend materials');
-      for (const material of materials) {
-        if (typeof material.onBeforeCompile !== 'function' || typeof material.customProgramCacheKey !== 'function') {
-          throw new Error(id + ': bend hook missing');
-        }
-        const key = material.customProgramCacheKey();
-        if (!key.endsWith(':rf-bend3') || key !== material.customProgramCacheKey()) {
-          throw new Error(id + ': unstable or old bend cache key ' + key);
-        }
-        if (material.userData.rfBendUniforms !== uniforms) throw new Error(id + ': bend uniforms are not identity-shared');
-        bendKeys.add(key);
-      }
-      const shaderProbe = { uniforms: {}, vertexShader: '#include <common>\n#include <begin_vertex>' };
-      materials[0].onBeforeCompile(shaderProbe);
-      const shaderSource = shaderProbe.vertexShader;
-      for (const token of requiredUniforms) {
-        if (!shaderSource.includes('uniform ' + (token === 'uBendSpan' || token === 'uTailSpan' ? 'vec2 ' : 'float ') + token)) {
-          throw new Error(id + ': GLSL declaration missing for ' + token);
-        }
-      }
-      if (!shaderSource.includes('transformed.y += ' + BEND_Y_SCALE.toFixed(2) + '*bendZ')) {
-        throw new Error(id + ': bend y-component coupling missing');
-      }
-
-      const shell = body.children.find((object) => object.name === 'RF dark silhouette edge shell');
-      if (!shell || Math.abs(shell.scale.x - OUTLINE_SHELL_SCALE) > 1e-9 || shell.material.side !== THREE.BackSide) {
-        throw new Error(id + ': whole-body 1.010 BackSide shell missing');
-      }
-      if (def.tier >= 5) {
-        if (!parts.jaw?.isMesh || parts.jaw.children.some((object) => object.name === 'RF jaw dark silhouette edge shell')) {
-          throw new Error(id + ': articulated jaw is not a single integrated belly wedge');
-        }
-        if (!parts.jaw.geometry.getAttribute('color') || !parts.jaw.geometry.userData.rfJawRimMatchesBody || !parts.jaw.geometry.userData.rfJawCavityBand) {
-          throw new Error(id + ': integrated jaw rim/cavity vertex-color contract missing');
-        }
-      }
-
-      const roots = geometry.userData.rfSharedAppendageRoots;
-      const usage = new Map();
-      for (const index of geometry.getIndex().array) usage.set(index, (usage.get(index) || 0) + 1);
-      if (!roots || roots.tail.length !== geometry.userData.rfRadial || roots.dorsal.length !== 2 || roots.pectorals?.L?.length !== 2 || roots.pectorals?.R?.length !== 2) {
-        throw new Error(id + ': shared appendage root metadata is incomplete');
-      }
-      for (const index of [...roots.tail, ...roots.dorsal, ...roots.pectorals.L, ...roots.pectorals.R]) {
-        if (!Number.isInteger(index) || index < 0 || index >= geometry.getAttribute('position').count || (usage.get(index) || 0) < 4) {
-          throw new Error(id + ': peduncle/fin root is not shared by indexed faces');
-        }
-      }
-      const winding = weldedWindingStats(geometry);
-      if (!winding.tail.count || winding.tail.bad || winding.tail.min <= 0.02 || !winding.tailCap.count || winding.tailCap.bad || winding.tailCap.min <= 0.02) {
-        throw new Error(`${id}: welded tail side winding is inward (min dot ${winding.tail.min.toFixed(3)}, bad ${winding.tail.bad}/${winding.tail.count})`);
-      }
-      if (!winding.dorsal.count || winding.dorsal.bad || winding.pectoral.bad) {
-        throw new Error(`${id}: dorsal/pectoral winding contract failed (dorsal bad ${winding.dorsal.bad}, pectoral bad ${winding.pectoral.bad})`);
-      }
-      group.userData.rfWindingStats = winding;
-
-      const eyeUnitMin = id === 'cyclopseye' ? 80 : 170;
-      if (!group.userData.rfEyeUnitPresent || group.userData.rfEyeUnitTriangles < eyeUnitMin || group.userData.rfEyeUnitTriangles > 230) {
-        throw new Error(id + ': eye geometry unit missing or outside the ~190-tri pair budget');
-      }
-      if (id === 'cyclopseye' && !group.userData.rfSingleCentralEye) throw new Error(id + ': normal eye pair was not suppressed');
-      if (finite(def.act, 1) >= 4) {
-        if (group.userData.rfFeatureBatchCount !== 1 || group.userData.rfVisibleDrawCalls > 6) {
-          throw new Error(`${id}: compact late-roster draw budget failed (${group.userData.rfFeatureBatchCount} feature batches, ${group.userData.rfVisibleDrawCalls} visible draws)`);
-        }
-        const records = group.userData.rfIdentityFeatureRecords || [];
-        if (!records.length) throw new Error(`${id}: identity feature batch is empty`);
-        for (const record of records) {
-          gateRange(`${id}: ${record.name} proud offset/bodyLen`, record.proudOffset / Math.max(group.userData.rfBodyLen, 1e-6), 0.03, 0.08);
-          if (record.deltaV < 0.25) throw new Error(`${id}: ${record.name} delta-V ${record.deltaV.toFixed(3)} <.25 vs flank`);
-        }
-      }
-      if (body.material.vertexColors !== true) throw new Error(id + ': body material lost vertexColors');
-      const expectedFlat = ['rock', 'mech', 'kaiju'].includes(def.sil?.head);
-      if (!!body.material.flatShading !== expectedFlat) throw new Error(id + ': archetype normal policy is wrong');
-      if (group.userData.rfMidBendMaxRatio > 0.06 || group.userData.rfTailSprintDisplacementRatio < 0.12 || group.userData.rfTailSprintDisplacementRatio > 0.18) {
-        throw new Error(id + ': animation bend envelope exceeds .06L/.12-.18L gates');
-      }
-      gateRange(`${id}: smooth root-to-tip span`, group.userData.rfTailSmoothSpanRatio, TAIL_SMOOTH_SPAN_MIN_RATIO, TAIL_SMOOTH_SPAN_MAX_RATIO);
-      if (!group.userData.rfHeadEyeJawRigidAnchor) throw new Error(id + ': head/eye/jaw anchor is not rigid');
-
-      const bodyStats = bodyColorStats(geometry);
-      if (!(bodyStats.meanLuminance > 0) || !Number.isFinite(bodyStats.meanLuminance)) throw new Error(id + ': invalid body vertex colors');
-      const bodyBlocks = bodyColorBlockStats(geometry);
-      gateRange(`${id}: vertex flank S`, bodyBlocks.flank.saturation, UNDERWORLD_IDS.has(id) ? 0.70 : BODY_FLANK_SATURATION_MIN, 1.0);
-      // Act 5 keeps a dark base block (the resolved palette gate above); its
-      // radiant edge rows intentionally remain bright and are not averaged
-      // into the dark-base floor here.
-      gateRange(`${id}: vertex flank V`, bodyBlocks.flank.value, UNDERWORLD_IDS.has(id) ? 0.20 : BODY_FLANK_VALUE_MIN, 1.0);
-      const triangles = countTriangles(group);
-      result.triangles[id] = triangles;
-      if (triangles > 4600) throw new Error(id + ': ' + triangles + ' triangles exceeds the Rev 8 4600/rig gate');
-      if (triangles > worstCaseTriangles) {
-        worstCaseTriangles = triangles;
-        worstCaseId = id;
-      }
-      archetypeTotals.set(head, (archetypeTotals.get(head) || 0) + triangles);
-      archetypeCounts.set(head, (archetypeCounts.get(head) || 0) + 1);
-      girthValues.push(group.userData.rfHullScale);
-      signatures.push(distinctnessSignature(def, rig));
-      auditMaterialOwnership(def, rig);
+    const allRows = rows(); if (allRows.length !== 85) throw new Error(`expected 85 sharks, received ${allRows.length}`); if (preloadError) throw preloadError; if (modelCache.size < MODEL_KEYS.length) throw new Error(`model cache has ${modelCache.size}/${MODEL_KEYS.length} GLBs`);
+    result.cache = Array.from(modelCache.keys()).sort();
+    for (const def of allRows) {
+      const base = baseForDef(def), rig = buildShark(def), group = rig.group, body = rig.parts.body;
+      if (!(group instanceof THREE.Group) || !body?.isSkinnedMesh || typeof rig.animate !== 'function') throw new Error(`${def.id}: incomplete GLB rig contract`);
+      if (rig.parts.jaw !== null) throw new Error(`${def.id}: jaw must remain null`); if (group.userData.rfSourceBase !== base) throw new Error(`${def.id}: base mapping is ${group.userData.rfSourceBase}, expected ${base}`); if (group.userData.rfLoading) throw new Error(`${def.id}: placeholder remained after node preload`);
+      if (!group.userData.rfMixerClipName || !/swim|swimming/i.test(group.userData.rfMixerClipName)) throw new Error(`${def.id}: Swim clip missing`);
+      if (!group.userData.rfFastClipName || !group.userData.rfBiteClipName) throw new Error(`${def.id}: fast/bite clip mapping missing`);
+      const scales = group.userData.rfArmatureScale; if (scales.length < 0.85 || scales.length > 1.35 || scales.height < 0.90 || scales.height > 1.30 || scales.depth < 0.90 || scales.depth > 1.20) throw new Error(`${def.id}: bounded scale failed`);
+      const draws = drawCount(group); if (draws > 3) throw new Error(`${def.id}: ${draws} draws exceeds Rev 9 budget`);
+      if (rig.parts.shell !== null || group.getObjectByName('RF Rev 9b contour shell')) throw new Error(`${def.id}: contour shell survived 9.6 style gate`);
+      const allMaterials = [];
+      group.traverse((object) => { if (object.isMesh) for (const material of (Array.isArray(object.material) ? object.material : [object.material])) if (material) allMaterials.push(material); });
+      if (allMaterials.some((material) => material.type === 'MeshToonMaterial' || material.gradientMap)) throw new Error(`${def.id}: toon material/gradient survived 9.6 style gate`);
+      const bodyMaterials = Array.isArray(body.material) ? body.material : [body.material];
+      if (bodyMaterials.some((material) => material.type !== 'MeshStandardMaterial' || material.flatShading || material.roughness < 0.42 || material.roughness > 0.62)) throw new Error(`${def.id}: smooth Standard specular material gate failed`);
+      const target = BASE_LENGTH * clamp(finite(def.sil?.len, 1), 0.5, 3), worldBox = measureBox(group), measured = worldBox.max.x - worldBox.min.x; if (Math.abs(measured - target) > 1e-4) throw new Error(`${def.id}: bbox X ${measured} != ${target}`);
+      const material = (Array.isArray(body.material) ? body.material : [body.material]).find((entry) => typeof entry?.onBeforeCompile === 'function'); if (!material || typeof material.customProgramCacheKey !== 'function' || !material.customProgramCacheKey().endsWith(PATTERN_SUFFIX)) throw new Error(`${def.id}: pattern shader hook missing`);
+      const shader = { uniforms: {}, vertexShader: '#include <common>\n#include <begin_vertex>', fragmentShader: '#include <common>\n#include <color_fragment>' }; material.onBeforeCompile(shader); for (const uniform of SHADER_UNIFORMS) if (!shader.uniforms[uniform]) throw new Error(`${def.id}: shader uniform ${uniform} missing`);
       rig.animate(0, { speedFrac: 0, turn: 0 });
-      rig.animate(1 / 60, { speedFrac: 1, turn: 0 });
-      if (!Number.isFinite(uniforms.uTailAmp.value) || uniforms.uTailAmp.value <= 0 || !Number.isFinite(uniforms.uTailSpan.value.x)) {
-        throw new Error(id + ': tail envelope did not animate');
-      }
-      const tailX = -group.userData.rfBodyLen * 0.72;
-      const mirroredTail = bendOffset(tailX, uniforms.uBendPhase.value, uniforms.uBendAmp.value, group.userData.rfBendK, group.userData.rfBendSpan[0], group.userData.rfBendSpan[1], uniforms.uBendBias.value, uniforms.uTailAmp.value, group.userData.rfTailSpan[0], group.userData.rfTailSpan[1]);
-      if (!Number.isFinite(mirroredTail)) throw new Error(id + ': CPU bendOffset tail mirror is not finite');
-      rig.animate(0.5, { speedFrac: 1, turn: 0, tailPhase: 2.75, tailAmp: 0.41 });
-      if (Math.abs(uniforms.uBendPhase.value - 2.75) > 1e-9 || Math.abs(uniforms.uBendAmp.value - 0.41) > 1e-9) {
-        throw new Error(id + ': engine tailPhase/tailAmp authority was lost');
-      }
+      const cruiseGape = finite(group.userData.rfJawGape, 0);
+      if (group.userData.rfJawMaxRotation > 0 && (cruiseGape < 0.20 || cruiseGape > 0.35)) throw new Error(`${def.id}: cruise jaw gape ${cruiseGape.toFixed(3)} outside 20-35%`);
+      rig.animate(0.25, { speedFrac: 1, turn: 0, biting: true, jawOpen: 1, lungeT: 0.2 });
+      const biteGape = finite(group.userData.rfJawGape, 0);
+      if (group.userData.rfJawMaxRotation > 0 && biteGape < 0.85) throw new Error(`${def.id}: bite jaw snap only reached ${biteGape.toFixed(3)}`);
+      if (group.userData.rfPropKind === 'hammer' && finite(group.userData.rfHammerProjectedSpan, 0) < 0.42) throw new Error(`${def.id}: hammer foil span ${group.userData.rfHammerProjectedSpan.toFixed(3)} < 0.42 body length`);
+      result.jawGape[def.id] = { cruise: Number(cruiseGape.toFixed(3)), bite: Number(biteGape.toFixed(3)) };
+      if (group.userData.rfPropKind === 'hammer') result.hammerSpan[def.id] = Number(group.userData.rfHammerProjectedSpan.toFixed(3));
+      if (group.userData.rfPatternId !== patternId(def)) throw new Error(`${def.id}: pattern mapping missing`);
+      result.tintSignatures[def.id] = renderedTintSignature(def);
+      result.checked++; result.baseMap[def.id] = base; result.drawCounts[def.id] = draws; result.lengths[def.id] = Number(measured.toFixed(4));
     }
-
-    const minGirth = Math.min(...girthValues);
-    const maxGirth = Math.max(...girthValues);
-    result.girthSpread = Number(((maxGirth - minGirth) / Math.max(minGirth, 1e-6)).toFixed(3));
-    result.hullScaleRange = { min: minGirth, max: maxGirth };
-    gateRange('roster hull scale minimum', minGirth, 0.80, 1.20);
-    gateRange('roster hull scale maximum', maxGirth, 0.80, 1.20);
-    assertPantheonPaletteDistinctness(signatures, result);
-    assertRosterDistinctness(signatures, result);
-    for (const [head, total] of archetypeTotals) {
-      result.archetypes[head] = {
-        count: archetypeCounts.get(head),
-        meanTriangles: Math.round(total / archetypeCounts.get(head))
-      };
-    }
-    result.worstCaseTriangles = worstCaseTriangles;
-    result.worstCaseId = worstCaseId;
-    result.bendProgramVariants = Array.from(bendKeys).sort();
-    if (result.bendProgramVariants.length > 8) throw new Error('bend program variants ' + result.bendProgramVariants.length + ' > 8');
-    const leviathan = rows.find((def) => String(def.id) === 'leviathanrex');
-    const typhon = rows.find((def) => String(def.id) === 'typhonmaw');
-    if (leviathan && typhon) {
-      const leviathanRig = buildShark(leviathan);
-      const typhonRig = buildShark(typhon);
-      const leviathanSpikes = leviathanRig.group.userData.rfIdentityStormSpikeCount || leviathanRig.group.userData.rfPlateFeatureCount;
-      const typhonSpikes = typhonRig.group.userData.rfIdentityStormSpikeCount;
-      if (!(typhonSpikes > leviathanSpikes)) throw new Error(`typhonmaw storm spike count ${typhonSpikes} is not greater than leviathanrex ${leviathanSpikes}`);
-    }
-    result.eyeUnit = { trianglesPerPair: rows[0] ? buildShark(rows[0]).group.userData.rfEyeUnitTriangles : 0, checked: rows.length };
-    result.notes.push('Rev 8: all 85 definitions build through one canonical indexed cartoon-shark hull; tail, dorsal, and pectorals share body-ring indices.');
-    result.notes.push('Pantheon/Underworld: 24 identity rosters use proud .03-.08L, delta-V >=.25 feature geometry; Act 4/5 rigs compact to one feature batch and <=6 visible draws.');
-    result.notes.push('Cyclops Eye: cyclopseye suppresses the normal eye pair and uses one oversized central eye with its own reduced unit-triangle gate.');
-    result.notes.push('Rev 8 art fix: resolved flank/accent/belly ramps, welded crescent tails with a projected .10-.14L center notch, and 1.010 BackSide contour shells are numeric-gated.');
-    result.notes.push('Rev 8 art fix: bend v3 declares uBendPhase/uBendAmp/uBendK/uBendSpan/uBendBias/uTailAmp/uTailSpan/uBendScale, preserves engine phase/amplitude authority, y coupling, and :rf-bend3.');
-    result.notes.push('Rev 8 art fix: one hand-authored teardrop hull, underslung resting grin with white tooth band, blunt head, eye, rounded fins, and identity props are numeric-gated.');
-    result.notes.push('Rev 8: tri ceiling 4600/rig; worst case ' + worstCaseId + ' at ' + worstCaseTriangles + ' tris; relative normalized hull-scale spread ' + result.girthSpread + '.');
-    result.pass = true;
-  } catch (error) {
-    result.errors.push(error.message || String(error));
-  }
+    if (result.baseMap.goblin !== 'goblinshark' || result.baseMap.gulperfiend !== 'anglerfish' || result.baseMap.reef !== 'sharky') throw new Error('base table did not select sharky/goblinshark/anglerfish as required');
+    const uniqueTints = new Set(Object.values(result.tintSignatures));
+    if (uniqueTints.size !== allRows.length) throw new Error(`rendered tint distinctness ${uniqueTints.size}/${allRows.length}`);
+    const showcase = ['reef', 'tiger', 'hammerhead', 'greatwhite', 'whaleshark', 'leviathanrex', 'zeusfin', 'typhonmaw'];
+    if (new Set(showcase.map((id) => result.tintSignatures[id])).size !== showcase.length) throw new Error('showcase rendered tint signatures are not pairwise distinct');
+    result.notes.push('Rev 9c: all 85 definitions retain the Rev 9b asset/base map and preload; Sharky uses its two atlas skinned meshes, with optional identity props capped at three visible draws.');
+    result.notes.push('Skin3 samples the atlas as luminance/detail, paints explicit top/belly/accent palette regions, and preserves atlas-owned teeth, pupil/cavity, and mouth pixels. Named showcase overrides enforce blue-gray reef, tan striped tiger, slate great-white, and distinct pantheon families.');
+    result.notes.push('9.6 gates: MeshStandardMaterial only, smooth normals, roughness 0.50 body specular lighting, no BackSide contour shell, 28% cruise jaw gape with full bite snap, and hammer foil >=0.42 body span.');
+    result.notes.push('Node selftest parses GLB JSON+BIN directly and intentionally skips image decoding; preload is idempotent and bbox X is measured after the initial posed clip at 96*sil.len.'); result.pass = true;
+  } catch (error) { result.errors.push(error?.message || String(error)); result.notes.push(`FAIL ${error?.message || String(error)}`); }
   return result;
 }
-const Art3D = {
-  buildShark,
-  bendableMaterial,
-  bendOffset,
-  billboard,
-  __selftest,
-  paletteOf,
-  stats() {
-    return { sharkTemplates: geometryCache.size, materials: materialCache.size, billboardMaterials: billboardMaterials.size, geometryBytes: cacheBytes() };
-  }
-};
 
+const Art3D = RF.Art3D || {};
+Art3D.buildShark = buildShark; Art3D.preload = preload; Art3D.bendableMaterial = bendableMaterial; Art3D.bendOffset = bendOffset; Art3D.billboard = billboard; Art3D.paletteOf = paletteOf; Art3D.__selftest = __selftest;
+Art3D.stats = () => ({ models: modelCache.size, modelKeys: Array.from(modelCache.keys()), billboardMaterials: billboardMaterials.size, preloadError: preloadError?.message || null });
+Art3D.releaseShark = () => {};
 RF.Art3D = Art3D;
-ensureSharedGeometry();
+preload();
 
-export { Art3D, bendableMaterial, bendOffset, buildShark, billboard, __selftest };
+export { Art3D, bendableMaterial, bendOffset, billboard, buildShark, paletteOf, preload, __selftest };
 export default Art3D;

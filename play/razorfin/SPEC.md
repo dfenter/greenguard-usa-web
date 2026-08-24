@@ -288,3 +288,29 @@ bite burst, surface breach splash, Gold Rush screen tint pulse.
 60fps target midphone: parts add draw calls - player rig 4-6 sprites, NPC
 rigs 3; measure texture memory (<=80MB) and frame time headless; the REAL
 gate remains the owner's iPhone.
+
+## Rev 9.5 open ocean (2026-08-24)
+Owner: "you cannot dive down." Root cause (verified): the world SDF
+(mazeRawSDF/buildMazeLayout, 14400x4800) rasterised a rock-maze cavern graph
+— most of the map was solid rock, and rock sat only ~230 units below the
+player's spawn point. That is a cavern-crawler, not the open-ocean feel the
+game is going for (Hungry Shark reference).
+
+mazeRawSDF/buildMazeLayout are replaced with an open-ocean generator using
+the SAME grid raster call sites (buildSDFGrid/terrainSDF/resolveBody/
+regionAt are unchanged and stay generic reads):
+- A rolling seabed height profile along x (y ~4300-4600), with a few deeper
+  trenches (down to ~4750).
+- 6-10 sparse large mounds/islands/pillars rising off the seabed as tapered
+  cones, some reaching mid-depth (Twilight band); none seal a full vertical
+  column (enforced by a build-time open-column check, see SPEC3D).
+- Side walls and world-edge rock, same mechanism as before.
+- Zones are now DEPTH BANDS over open water: 1 Sunlit 0-1100, 2 Reef
+  1100-2300, 3 Twilight 2300-3500, 4 Abyss 3500-4800 (was 0/1200/2400/3600/
+  4800 maze bands; boundaries moved, band count and world height unchanged).
+- Relics: still 3/zone, deterministic seeded (seed = zone id), but now sit
+  in small cave pockets carved into mound flanks or trench floors instead of
+  maze dead-ends.
+- Player spawns in open water at (7200, 260); no rock within 600px of spawn.
+
+Full design notes, constants, and probe results: NOTES-rev9-ocean.md.

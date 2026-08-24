@@ -271,9 +271,14 @@ CREATURES = [
  # id, name, tier, kind, speed, hp, score, coins, spriteKey|proc, packMin, packMax, tint
  # tint = hex int matching each species' dominant/visible color (Rev 7 7.6:
  # engine swallow burst color; kills the constant-amber bug).
- ("minnow","Minnow Shoal",0,"prey",65,1,5,1,"fish_blue",6,14,0x5fa8e8),
- ("reeffish","Reef Fish",1,"prey",70,1,10,2,"fish_orange",6,12,0xff9d4a),
- ("mackerel","Mackerel",1,"prey",95,1,12,2,"fish_grey_long_a",6,12,0x8fa0ac),
+ # Rev 9 9.4 CLARITY: true shoaling species get a cohesive pack of 6-10 (was
+ # scattered singles/loose ranges up to 16-18); solo/small-group "big target"
+ # prey (parrot/grouper/ray/turtle/tuna/swordfish/dolphinfish/marlin/
+ # giantsquid/abyssal/leviathanprey) are intentionally NOT schools and keep
+ # their small pack ranges so they still read as individually-readable catches.
+ ("minnow","Minnow Shoal",0,"prey",65,1,5,1,"fish_blue",6,10,0x5fa8e8),
+ ("reeffish","Reef Fish",1,"prey",70,1,10,2,"fish_orange",6,10,0xff9d4a),
+ ("mackerel","Mackerel",1,"prey",95,1,12,2,"fish_grey_long_a",6,10,0x8fa0ac),
  ("parrot","Parrotfish",2,"prey",75,2,18,3,"fish_green",2,5,0x5ad687),
  ("grouper","Grouper",3,"prey",65,4,30,5,"fish_brown",1,3,0x8a6b45),
  ("ray","Coasting Ray",3,"prey",80,3,34,5,"proc_ray",1,2,0x4a5f70),
@@ -282,9 +287,9 @@ CREATURES = [
  ("swordfish","Swordfish",5,"prey",160,6,70,10,"proc_sword",1,2,0x3a5570),
  ("dolphinfish","Dorado",5,"prey",125,5,60,9,"fish_pink",2,4,0xff7ab0),
  ("marlin","Marlin",6,"prey",170,8,95,14,"proc_sword",1,1,0x2f5c85),
- ("squidling","Squidling",2,"prey",80,2,20,4,"proc_squid",3,7,0xc76fd6),
+ ("squidling","Squidling",2,"prey",80,2,20,4,"proc_squid",6,10,0xc76fd6),
  ("giantsquid","Giant Squid",7,"prey",95,14,150,22,"proc_squid_big",1,1,0x8a3fa0),
- ("anglerprey","Lanternfish Swarm",6,"prey",75,1,16,3,"fish_grey",8,16,0xffe08a),
+ ("anglerprey","Lanternfish Swarm",6,"prey",75,1,16,3,"fish_grey",6,10,0xffe08a),
  ("abyssal","Abyss Grazer",8,"prey",85,18,200,30,"proc_grazer",1,2,0x3d5c6e),
  ("leviathanprey","Deep Leviathan Calf",10,"prey",110,40,420,60,"proc_calf",1,1,0x2a4a5c),
 ]
@@ -301,6 +306,12 @@ HAZARDS = [
 ]
 # Rev 6: world grows to 14400x4800 (6.4). Zone band count stays 4; yMax moves
 # to 1200/2400/3600/4800 so each band is 1200px tall (was 900).
+# Rev 9.5 OPEN OCEAN: zones are now DEPTH BANDS over the open-ocean SDF
+# (mazeRawSDF/buildMazeLayout replaced with a seabed+mounds generator; see
+# NOTES-rev9-ocean.md). Bands: 1 Sunlit 0-1100, 2 Reef 1100-2300,
+# 3 Twilight 2300-3500, 4 Abyss 3500-4800. World height (4800) and band
+# COUNT are unchanged, only the boundaries moved so Reef starts shallower
+# (mound tops reach into it) and Abyss gets the full deep-floor share.
 # Rev 7 7.2 (S3): intendedTier per zone = the player tier a zone is built
 # around. Rule: every prey row's tier <= intendedTier+2 (over-tier prey moved
 # to a deeper zone; density preserved by raising in-band low-tier weights
@@ -308,19 +319,27 @@ HAZARDS = [
 # of zone1/zone2 respectively; zone3's marlin(t6)/giantsquid(t7) moved to
 # zone4; low-tier weights raised in the zones that lost rows so total spawn
 # pressure per zone stays comparable to Rev 6.
+# Rev 9 9.4 CLARITY ("way too many random fish"): each zone's prey table is
+# trimmed to AT MOST 3 species (was 4-6) so a bystander can tell what is on
+# screen; hazards are unlimited (they are rare and read as distinct threats,
+# not clutter). Weights raised within the surviving rows so per-zone spawn
+# pressure/density is preserved (fewer species, same overall volume). Species
+# dropped from a zone were either redundant with another zone's row of the
+# same species (parrot/squidling t2 folded into zone2 instead of splitting
+# zone1 across 5 species) or already covered by a same-tier sibling row.
 ZONES = [
- {"id":1,"name":"Sunlit Shelf","yMin":0,"yMax":1200,"tint":"0x1b4d66","fog":"0x5fa8c2","ambient":"bubbles","pressureTier":1,
+ {"id":1,"name":"Sunlit Shelf","yMin":0,"yMax":1100,"tint":"0x1b4d66","fog":"0x5fa8c2","ambient":"bubbles","pressureTier":1,
   "intendedTier":1,
-  "spawns":[["minnow",6],["reeffish",6],["mackerel",5],["parrot",4],["squidling",3],["jelly",2],["puffer",1]]},
- {"id":2,"name":"Kelp Midwater","yMin":1200,"yMax":2400,"tint":"0x14384d","fog":"0x4e8199","ambient":"kelp","pressureTier":3,
+  "spawns":[["minnow",8],["reeffish",8],["mackerel",6],["jelly",2],["puffer",1]]},
+ {"id":2,"name":"Kelp Midwater","yMin":1100,"yMax":2300,"tint":"0x14384d","fog":"0x4e8199","ambient":"kelp","pressureTier":3,
   "intendedTier":3,
-  "spawns":[["mackerel",4],["parrot",3],["grouper",4],["ray",3],["turtle",2],["tuna",4],["jelly",2],["mine",1],["puffer",1]]},
- {"id":3,"name":"Twilight Reef","yMin":2400,"yMax":3600,"tint":"0x0c2233","fog":"0x304e65","ambient":"motes","pressureTier":6,
+  "spawns":[["parrot",5],["grouper",5],["tuna",5],["jelly",2],["mine",1],["puffer",1]]},
+ {"id":3,"name":"Twilight Reef","yMin":2300,"yMax":3500,"tint":"0x0c2233","fog":"0x304e65","ambient":"motes","pressureTier":6,
   "intendedTier":6,
-  "spawns":[["grouper",2],["tuna",3],["dolphinfish",3],["swordfish",3],["anglerprey",4],["mine",2],["jelly",1]]},
- {"id":4,"name":"The Abyss","yMin":3600,"yMax":4800,"tint":"0x050d17","fog":"0x162533","ambient":"abyss","pressureTier":9,
+  "spawns":[["dolphinfish",4],["swordfish",4],["anglerprey",5],["mine",2],["jelly",1]]},
+ {"id":4,"name":"The Abyss","yMin":3500,"yMax":4800,"tint":"0x050d17","fog":"0x162533","ambient":"abyss","pressureTier":9,
   "intendedTier":9,
-  "spawns":[["anglerprey",3],["marlin",2],["giantsquid",2],["abyssal",3],["leviathanprey",1],["mine",2]]},
+  "spawns":[["giantsquid",4],["abyssal",4],["leviathanprey",1],["mine",2]]},
 ]
 # Rev 6.7: pickup capsule table. Weighted draw on notable-kill drops (Lane E
 # calls World.spawnBuffDrop) and rare ambient spawns (Lane W runSpawner).
@@ -489,6 +508,6 @@ lines.append("return {SHARKS:SHARKS,SHARK_BY_ID:SHARK_BY_ID,CREATURES:CREATURES,
 lines.append("CREATURE_BY_ID:CREATURE_BY_ID,ZONES:ZONES,PICKUPS:PICKUPS,RELICS:RELICS,RELICS_BY_ZONE:RELICS_BY_ZONE,")
 lines.append("MISSIONS:MISSIONS,GEMS:GEMS,SKINS:SKINS,SECRET_SHARKS:SECRET_SHARKS,ABILITIES:ABILITIES,ECONOMY:ECONOMY,")
 lines.append("FRENZY:FRENZY,BAL:BAL,FRENZY2:FRENZY2,FX:FX,SFX:SFX,MUSIC:MUSIC,WORLD:{w:14400,h:4800},")
-lines.append("SAVE_VERSION:2,ENTITY_BUDGET:{onscreen:110,total:220}};")
+lines.append("SAVE_VERSION:2,ENTITY_BUDGET:{onscreen:48,total:120}};")
 lines.append("})();")
 print("\n".join(lines))

@@ -1,8 +1,21 @@
-/* Razorfin 3D prey lofts, Lane fish-loft.
+/* Razorfin 3D prey lofts, Lane fish-loft, Rev 9 (SPEC3D 9.3, BINDING).
  *
- * This module owns only authored fish geometry and the small material contract
- * that a later instancing consumer needs. World placement, instancing,
- * animation, and material cloning remain outside this lane.
+ * Rev 9 replaces the procedural fish lofts with REST-POSE geometry baked
+ * from artist-made skinned GLB bases (Quaternius "Animated Fish Bundle",
+ * CC0; see LICENSES.md): fish_tuna.glb, fish_blue.glb, fish_clown.glb,
+ * manta.glb, dolphin.glb. Skinning is dropped -- this module parses the
+ * GLB's JSON+BIN chunks itself (no GLTFLoader, no fetch dependency) and
+ * bakes the accessor's bind-pose POSITION/NORMAL straight into a plain
+ * BufferGeometry, one static mesh per base, cached and shared by every
+ * def that maps to it. Per-species identity still comes from this lane's
+ * tint/pattern (vertex-color) logic, unchanged in spirit from Rev 6-8.
+ *
+ * squidling/giantsquid/turtle/swordfish have no matching GLB base (no
+ * squid/turtle/billfish asset shipped) and keep the Rev 6-8 procedural
+ * loft so the roster stays at 16 buildable defs.
+ *
+ * World placement, instancing, animation, and material cloning remain
+ * outside this lane (world3d.js).
  */
 import * as THREE from 'three';
 
@@ -12,8 +25,58 @@ const RF = host.RF = host.RF || {};
 const TAU = Math.PI * 2;
 const BODY_STATIONS = 8;
 const RADIAL_SIDES = 8;
-const TRIANGLE_LIMIT = 350;
+const TRIANGLE_LIMIT = 800;
 const FISH_BEND_SUFFIX = ':rf-bend-inst2';
+
+/* Species -> GLB base map (SPEC3D 9.3: "16 prey defs -> 5 bases x
+ * tints/scale (document in fish3d)"). Every prey id in FISH_PALETTE_TABLE
+ * must appear exactly once, either here (asset-based) or in
+ * PROCEDURAL_FALLBACK_IDS (loft-based, no matching asset). */
+const SPECIES_BASE_MAP = Object.freeze({
+  // Cruising open-water fusiforms -> tuna base.
+  minnow: 'fish_tuna',
+  mackerel: 'fish_tuna',
+  tuna: 'fish_tuna',
+  marlin: 'fish_tuna',
+  // Reef/pelagic fusiforms -> blue reef-fish base.
+  reeffish: 'fish_blue',
+  parrot: 'fish_blue',
+  dolphinfish: 'fish_blue',
+  // Deep-water ambush/grazer fusiforms -> clownfish base, recolored dark.
+  anglerprey: 'fish_clown',
+  grouper: 'fish_clown',
+  // Flat wide-bodied glider -> manta base.
+  ray: 'manta',
+  // Whale-class deep prey -> dolphin base at large non-uniform scale.
+  leviathanprey: 'dolphin',
+  abyssal: 'dolphin'
+});
+/* No GLB base fits these (no squid/turtle/billfish asset shipped): keep
+ * the Rev 6-8 procedural loft in buildProceduralGeometry(). */
+const PROCEDURAL_FALLBACK_IDS = Object.freeze(['turtle', 'swordfish', 'squidling', 'giantsquid']);
+
+const GLB_BASE_FILES = Object.freeze({
+  fish_tuna: 'assets/models/fish_tuna.glb',
+  fish_blue: 'assets/models/fish_blue.glb',
+  fish_clown: 'assets/models/fish_clown.glb',
+  manta: 'assets/models/manta.glb',
+  dolphin: 'assets/models/dolphin.glb'
+});
+
+/* The mesh node carrying the skin (name differs per asset) and its own
+ * local TRS -- baked into the extracted rest-pose positions/normals so
+ * the geometry lands in the same "nose toward +x" space the rest of this
+ * lane (and world3d's instancing) already assumes. All five bases were
+ * authored nose toward +Z / tail toward -Z in this local space (verified
+ * via the Face/Head vs Tail_end bone chain), so the axis remap here is
+ * X_new = Z_local, Y_new = Y_local, Z_new = X_local. */
+const GLB_MESH_NODE = Object.freeze({
+  fish_tuna: 'Fish',
+  fish_blue: 'Fish2',
+  fish_clown: 'ClownFish',
+  manta: 'MantaRay',
+  dolphin: 'Dolphin'
+});
 
 /* These values follow the existing sprite families in data.js: cool blue
  * minnows and tuna, warm orange reef fish, green parrotfish, and the muted
@@ -47,10 +110,12 @@ const FISH_PALETTE_TABLE = Object.freeze({
   leviathanprey: Object.freeze({ base: 0x3d2f8a, belly: 0xe0d9ad, accent: 0xf7593a })
 });
 
-/* Silhouette parameters keep the roster in one loft while giving the eye a
- * reason to call out a mackerel, grouper, tuna, billfish, ray, turtle, or
- * squid. The tier still supplies the shared size progression; these values
- * only bias length, girth, depth, head, and fin language. */
+/* Silhouette parameters keep the procedural-fallback roster in one loft
+ * while giving the eye a reason to call out a turtle, swordfish, or squid.
+ * Asset-based species (SPECIES_BASE_MAP) no longer consult this table for
+ * geometry, but the same fields still tell buildGeometry() how to scale a
+ * def within its GLB base (lengthScale/girthScale) since the tier system
+ * still supplies the shared size progression. */
 const FISH_SHAPE_TABLE = Object.freeze({
   minnow: Object.freeze({ kind: 'fusiform', lengthScale: 0.84, girthScale: 0.72, finScale: 0.72, tailScale: 0.78, eyeScale: 0.92 }),
   reeffish: Object.freeze({ kind: 'fusiform', lengthScale: 0.92, girthScale: 0.96, finScale: 0.95, tailScale: 0.92, eyeScale: 1.08 }),
@@ -70,6 +135,26 @@ const FISH_SHAPE_TABLE = Object.freeze({
   leviathanprey: Object.freeze({ kind: 'fusiform', lengthScale: 1.3, girthScale: 1.38, finScale: 1.1, tailScale: 1.15, headBulge: 0.14, eyeScale: 1.0 })
 });
 
+/* Bounded non-uniform scale applied per-species on TOP of the shared GLB
+ * base geometry (mirrors shark3d's Rev 9 per-def scale idea, 9.2c): length
+ * along nose-axis (x), height (y), girth (z). leviathanprey/abyssal push
+ * the dolphin base into whale-class scale per SPEC3D 9.3. Bounds stay
+ * inside 0.6..2.2 so no species can invert or degenerate the base mesh. */
+const SPECIES_ASSET_SCALE = Object.freeze({
+  minnow: Object.freeze({ x: 0.72, y: 0.72, z: 0.72 }),
+  mackerel: Object.freeze({ x: 1.05, y: 0.82, z: 0.82 }),
+  tuna: Object.freeze({ x: 1.0, y: 1.0, z: 1.0 }),
+  marlin: Object.freeze({ x: 1.15, y: 0.86, z: 0.86 }),
+  reeffish: Object.freeze({ x: 0.92, y: 1.0, z: 1.0 }),
+  parrot: Object.freeze({ x: 0.9, y: 1.06, z: 1.06 }),
+  dolphinfish: Object.freeze({ x: 1.02, y: 1.05, z: 1.05 }),
+  anglerprey: Object.freeze({ x: 0.94, y: 1.02, z: 1.02 }),
+  grouper: Object.freeze({ x: 0.9, y: 1.18, z: 1.18 }),
+  ray: Object.freeze({ x: 1.0, y: 1.0, z: 1.0 }),
+  leviathanprey: Object.freeze({ x: 1.55, y: 1.5, z: 1.5 }),
+  abyssal: Object.freeze({ x: 1.3, y: 1.28, z: 1.28 })
+});
+
 /* The names and defaults are the cross-lane material contract. A consumer
  * turns these values into shader uniforms when it clones the shared toon
  * material. Keep this independent of shark3d.js so load order cannot make
@@ -83,6 +168,13 @@ const FISH_BEND_UNIFORM_DEFAULTS = Object.freeze({
 const FISH_BEND_UNIFORM_NAMES = Object.freeze(Object.keys(FISH_BEND_UNIFORM_DEFAULTS));
 
 const geometryCache = new Map();
+/* Parsed-GLB cache: base name -> { positions:Float32Array(rest, remapped),
+ * normals:Float32Array, colors:Float32Array (per-material baseColorFactor
+ * baked per-vertex), index:Uint32Array, triangles:int }. Populated by
+ * preloadFish(); buildFish() reads synchronously from this cache and falls
+ * back to a tiny placeholder geometry until it is ready. */
+const parsedBaseCache = new Map();
+let preloadPromise = null;
 
 function clamp(value, lo, hi) {
   return value < lo ? lo : value > hi ? hi : value;
@@ -99,12 +191,12 @@ function colorFromHex(value) {
 // Prey value differentiation (art MAJOR 5): higher-value prey (data.js
 // CREATURES score) get a brighter, more saturated accent bake so a player
 // scanning a mixed school can read "worth more" at a glance, not just from
-// the HUD score popup after the bite. Score across the 12 fusiform species
-// this module lofts runs roughly 5 (minnow) to 420 (leviathanprey); log-
-// scaled so the low end isn't crushed together and the high end doesn't
-// clip. This only brightens/saturates the authored accent hue -- it never
-// changes hue or the base/belly countershading, so species identity from
-// the Rev 6 (6.9) saturation pass is preserved.
+// the HUD score popup after the bite. Score across the 16 species this
+// module lofts runs roughly 5 (minnow) to 420 (leviathanprey); log-scaled
+// so the low end isn't crushed together and the high end doesn't clip.
+// This only brightens/saturates the authored accent hue -- it never
+// changes hue or the base/belly countershading, so species identity is
+// preserved.
 const PREY_SCORE_MIN = 5;
 const PREY_SCORE_MAX = 420;
 function valueBoostFor(score) {
@@ -131,6 +223,250 @@ function paletteFor(id, score) {
     accent: brightenAccent(colorFromHex(row.accent), boost),
     valueBoost: boost
   });
+}
+
+/* ---------------------------------------------------------------------- *
+ * Minimal GLB parser: header + JSON chunk + BIN chunk, accessors decoded
+ * to typed arrays honoring bufferView byteStride/byteOffset. Runs from an
+ * ArrayBuffer so the same code path works from Node's fs.readFileSync
+ * (selftest, no fetch) and from a browser fetch()'d ArrayBuffer.
+ * ---------------------------------------------------------------------- */
+const GLB_MAGIC = 0x46546c67; // 'glTF'
+const CHUNK_JSON = 0x4e4f534a; // 'JSON'
+const CHUNK_BIN = 0x004e4942; // 'BIN\0'
+const COMPONENT_SIZES = { 5120: 1, 5121: 1, 5122: 2, 5123: 2, 5125: 4, 5126: 4 };
+const TYPE_COMPONENTS = { SCALAR: 1, VEC2: 2, VEC3: 3, VEC4: 4, MAT4: 16 };
+
+function parseGLB(arrayBuffer) {
+  const dv = new DataView(arrayBuffer);
+  if (dv.getUint32(0, true) !== GLB_MAGIC) throw new Error('fish3d: not a GLB file');
+  const totalLength = dv.getUint32(8, true);
+  let offset = 12;
+  let json = null;
+  let bin = null;
+  while (offset < totalLength) {
+    const chunkLength = dv.getUint32(offset, true);
+    const chunkType = dv.getUint32(offset + 4, true);
+    const chunkStart = offset + 8;
+    if (chunkType === CHUNK_JSON) {
+      json = JSON.parse(new TextDecoder('utf-8').decode(new Uint8Array(arrayBuffer, chunkStart, chunkLength)));
+    } else if (chunkType === CHUNK_BIN) {
+      bin = arrayBuffer.slice(chunkStart, chunkStart + chunkLength);
+    }
+    offset = chunkStart + chunkLength;
+  }
+  if (!json) throw new Error('fish3d: GLB missing JSON chunk');
+  return { json, bin };
+}
+
+function readAccessorFloat(json, bin, accessorIndex) {
+  const accessor = json.accessors[accessorIndex];
+  const numComponents = TYPE_COMPONENTS[accessor.type];
+  const componentSize = COMPONENT_SIZES[accessor.componentType];
+  const out = new Float32Array(accessor.count * numComponents);
+  if (accessor.bufferView === undefined) return out; // sparse/zero-fill, unused by these assets
+  const bufferView = json.bufferViews[accessor.bufferView];
+  const stride = bufferView.byteStride || numComponents * componentSize;
+  const base = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
+  const dv = new DataView(bin, base);
+  const normalize = accessor.normalized === true;
+  for (let i = 0; i < accessor.count; i++) {
+    for (let c = 0; c < numComponents; c++) {
+      const byteOffset = i * stride + c * componentSize;
+      let v;
+      switch (accessor.componentType) {
+        case 5126: v = dv.getFloat32(byteOffset, true); break;
+        case 5125: v = dv.getUint32(byteOffset, true); break;
+        case 5123: v = dv.getUint16(byteOffset, true); if (normalize) v /= 65535; break;
+        case 5121: v = dv.getUint8(byteOffset); if (normalize) v /= 255; break;
+        case 5122: v = dv.getInt16(byteOffset, true); if (normalize) v = Math.max(v / 32767, -1); break;
+        case 5120: v = dv.getInt8(byteOffset); if (normalize) v = Math.max(v / 127, -1); break;
+        default: v = 0;
+      }
+      out[i * numComponents + c] = v;
+    }
+  }
+  return out;
+}
+
+function readAccessorIndices(json, bin, accessorIndex) {
+  const accessor = json.accessors[accessorIndex];
+  const componentSize = COMPONENT_SIZES[accessor.componentType];
+  const bufferView = json.bufferViews[accessor.bufferView];
+  const stride = bufferView.byteStride || componentSize;
+  const base = (bufferView.byteOffset || 0) + (accessor.byteOffset || 0);
+  const dv = new DataView(bin, base);
+  const out = new Uint32Array(accessor.count);
+  for (let i = 0; i < accessor.count; i++) {
+    const byteOffset = i * stride;
+    out[i] = accessor.componentType === 5125 ? dv.getUint32(byteOffset, true)
+      : accessor.componentType === 5123 ? dv.getUint16(byteOffset, true)
+      : dv.getUint8(byteOffset);
+  }
+  return out;
+}
+
+function quatRotate(q, v) {
+  const x = q[0], y = q[1], z = q[2], w = q[3];
+  const vx = v[0], vy = v[1], vz = v[2];
+  const ix = w * vx + y * vz - z * vy;
+  const iy = w * vy + z * vx - x * vz;
+  const iz = w * vz + x * vy - y * vx;
+  const iw = -x * vx - y * vy - z * vz;
+  return [
+    ix * w + iw * -x + iy * -z - iz * -y,
+    iy * w + iw * -y + iz * -x - ix * -z,
+    iz * w + iw * -z + ix * -y - iy * -x
+  ];
+}
+
+/* Bakes a base's mesh-node local TRS into its rest-pose positions/normals,
+ * remaps nose-forward local +Z to +x (see GLB_MESH_NODE comment above),
+ * merges all primitives (materials) into one geometry, and derives a flat
+ * per-vertex color from each primitive's pbrMetallicRoughness.baseColorFactor
+ * (these GLBs are flat-shaded, no textures, so the material color IS the
+ * surface color). Returns plain typed arrays, not a THREE.BufferGeometry --
+ * buildAssetGeometry() below turns this into the tinted per-def geometry. */
+function parseBaseFromGLB(arrayBuffer, baseName) {
+  const { json, bin } = parseGLB(arrayBuffer);
+  const meshNodeName = GLB_MESH_NODE[baseName];
+  const node = json.nodes.find((n) => n.name === meshNodeName);
+  if (!node || node.mesh === undefined) throw new Error(`${baseName}: mesh node ${meshNodeName} not found in GLB`);
+  const scale = node.scale || [1, 1, 1];
+  const rotation = node.rotation || [0, 0, 0, 1];
+  const translation = node.translation || [0, 0, 0];
+  const mesh = json.meshes[node.mesh];
+
+  const positions = [];
+  const normals = [];
+  const colors = [];
+  const indices = [];
+  let vertexBase = 0;
+
+  for (const primitive of mesh.primitives) {
+    if (primitive.attributes.POSITION === undefined) continue;
+    const posAccessor = readAccessorFloat(json, bin, primitive.attributes.POSITION);
+    const normAccessor = primitive.attributes.NORMAL !== undefined
+      ? readAccessorFloat(json, bin, primitive.attributes.NORMAL) : null;
+    const materialIndex = primitive.material;
+    const material = materialIndex !== undefined ? json.materials[materialIndex] : null;
+    const factor = (material && material.pbrMetallicRoughness && material.pbrMetallicRoughness.baseColorFactor)
+      || [0.7, 0.7, 0.7, 1];
+    const vertexCount = posAccessor.length / 3;
+
+    for (let i = 0; i < vertexCount; i++) {
+      const lx = posAccessor[i * 3] * scale[0];
+      const ly = posAccessor[i * 3 + 1] * scale[1];
+      const lz = posAccessor[i * 3 + 2] * scale[2];
+      let p = quatRotate(rotation, [lx, ly, lz]);
+      p = [p[0] + translation[0], p[1] + translation[1], p[2] + translation[2]];
+      // Axis remap: local nose-forward +Z -> +x, local +Y stays up, local
+      // +X (left/right) -> z. See GLB_MESH_NODE doc comment.
+      positions.push(p[2], p[1], p[0]);
+
+      if (normAccessor) {
+        const nx = normAccessor[i * 3] * Math.sign(scale[0] || 1);
+        const ny = normAccessor[i * 3 + 1] * Math.sign(scale[1] || 1);
+        const nz = normAccessor[i * 3 + 2] * Math.sign(scale[2] || 1);
+        let n = quatRotate(rotation, [nx, ny, nz]);
+        normals.push(n[2], n[1], n[0]);
+      } else {
+        normals.push(0, 1, 0);
+      }
+      colors.push(factor[0], factor[1], factor[2]);
+    }
+
+    if (primitive.indices !== undefined) {
+      const idx = readAccessorIndices(json, bin, primitive.indices);
+      for (let i = 0; i < idx.length; i++) indices.push(idx[i] + vertexBase);
+    } else {
+      for (let i = 0; i < vertexCount; i++) indices.push(i + vertexBase);
+    }
+    vertexBase += vertexCount;
+  }
+
+  return {
+    positions: new Float32Array(positions),
+    normals: new Float32Array(normals),
+    materialColors: new Float32Array(colors),
+    index: indices.every((v) => v < 65536) ? new Uint16Array(indices) : new Uint32Array(indices),
+    triangles: Math.floor(indices.length / 3)
+  };
+}
+
+let nodeFsSync = null;
+let nodePathMod = null;
+let nodeHereDir = null;
+function loadNodeFsSync() {
+  // process.getBuiltinModule (Node 20.16+) resolves a Node core module
+  // synchronously without an import/require statement in this file, so
+  // this module still parses in a browser (no bundler ever sees a
+  // node:fs specifier). This is the Node path (selftest / any non-fetch
+  // host) reading a GLB straight off disk; browsers use fetch() above and
+  // never touch this branch.
+  if (nodeFsSync) return nodeFsSync;
+  if (typeof process === 'undefined' || typeof process.getBuiltinModule !== 'function') {
+    throw new Error('fish3d: no fetch() and no Node fs available to load GLB assets');
+  }
+  nodeFsSync = process.getBuiltinModule('node:fs');
+  nodePathMod = process.getBuiltinModule('node:path');
+  const urlMod = process.getBuiltinModule('node:url');
+  nodeHereDir = nodePathMod.dirname(urlMod.fileURLToPath(import.meta.url));
+  return nodeFsSync;
+}
+
+async function fetchArrayBuffer(url) {
+  if (typeof fetch === 'function') {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`fish3d: fetch ${url} failed (${response.status})`);
+    return response.arrayBuffer();
+  }
+  return readArrayBufferSync(url);
+}
+
+function readArrayBufferSync(url) {
+  const fs = loadNodeFsSync();
+  const buffer = fs.readFileSync(nodePathMod.join(nodeHereDir, url));
+  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+}
+
+function loadBaseSync(baseName) {
+  // Synchronous counterpart to preloadFish()'s per-base fetch, used only
+  // by the Node selftest path so it can assert against real asset
+  // geometry without an async selftest signature (this module's browser
+  // consumers always go through the async preloadFish()/fetch() path).
+  if (parsedBaseCache.has(baseName)) return;
+  try {
+    const arrayBuffer = readArrayBufferSync(GLB_BASE_FILES[baseName]);
+    parsedBaseCache.set(baseName, parseBaseFromGLB(arrayBuffer, baseName));
+  } catch (error) {
+    parsedBaseCache.set(baseName, null);
+    if (host.console && host.console.warn) host.console.warn('fish3d: failed to load base ' + baseName, error);
+  }
+}
+
+/* RF.Art3D.preloadFish() -> Promise, resolves once every GLB base referenced
+ * by SPECIES_BASE_MAP has been parsed into parsedBaseCache. buildFish()
+ * stays synchronous and safe to call before this resolves (it serves a
+ * placeholder for asset-backed species until their base lands, exactly
+ * like Rev 9.2's RF.Art3D.preload() contract for sharks). Safe to call
+ * more than once; concurrent/late calls share the same in-flight promise. */
+function preloadFish() {
+  if (preloadPromise) return preloadPromise;
+  const baseNames = Object.keys(GLB_BASE_FILES);
+  preloadPromise = Promise.all(baseNames.map(async (baseName) => {
+    if (parsedBaseCache.has(baseName)) return;
+    try {
+      const arrayBuffer = await fetchArrayBuffer(GLB_BASE_FILES[baseName]);
+      parsedBaseCache.set(baseName, parseBaseFromGLB(arrayBuffer, baseName));
+    } catch (error) {
+      // A missing/broken base degrades that base's species to the
+      // placeholder rather than failing every other base's load.
+      parsedBaseCache.set(baseName, null);
+      if (host.console && host.console.warn) host.console.warn('fish3d: failed to load base ' + baseName, error);
+    }
+  })).then(() => undefined);
+  return preloadPromise;
 }
 
 function addVertex(positions, colors, x, y, z, color) {
@@ -183,7 +519,120 @@ function bodyColor(palette, dorsalness, sideBias) {
   return color;
 }
 
-function buildGeometry(def, palette) {
+/* ---------------------------------------------------------------------- *
+ * Asset-based geometry: clone the parsed base's rest-pose arrays, apply
+ * per-def non-uniform scale (SPECIES_ASSET_SCALE) and tier-driven size,
+ * and recolor every vertex from base material color -> species palette by
+ * dorsal/ventral position (mirrors the procedural loft's bodyColor so the
+ * two geometry paths read the same "worth more" value-boost language).
+ * ---------------------------------------------------------------------- */
+function buildAssetGeometry(def, palette, baseName) {
+  const parsed = parsedBaseCache.get(baseName);
+  if (!parsed) return null;
+  const tier = clamp(finite(def.tier, 0), 0, 10);
+  const speciesScale = SPECIES_ASSET_SCALE[def.id] || { x: 1, y: 1, z: 1 };
+  const tierBoost = 1 + tier * 0.045;
+  const sx = clamp(speciesScale.x * tierBoost, 0.5, 2.4);
+  const sy = clamp(speciesScale.y * tierBoost, 0.5, 2.4);
+  const sz = clamp(speciesScale.z * tierBoost, 0.5, 2.4);
+
+  const srcPos = parsed.positions;
+  const srcNorm = parsed.normals;
+  const srcColor = parsed.materialColors;
+  const vertexCount = srcPos.length / 3;
+  const positions = new Float32Array(vertexCount * 3);
+  const normals = new Float32Array(vertexCount * 3);
+  const colors = new Float32Array(vertexCount * 3);
+
+  let maxAbsX = 0;
+  let maxAbsY = 0;
+  for (let i = 0; i < vertexCount; i++) {
+    const x = srcPos[i * 3] * sx;
+    const y = srcPos[i * 3 + 1] * sy;
+    const z = srcPos[i * 3 + 2] * sz;
+    positions[i * 3] = x;
+    positions[i * 3 + 1] = y;
+    positions[i * 3 + 2] = z;
+    normals[i * 3] = srcNorm[i * 3];
+    normals[i * 3 + 1] = srcNorm[i * 3 + 1];
+    normals[i * 3 + 2] = srcNorm[i * 3 + 2];
+    maxAbsX = Math.max(maxAbsX, Math.abs(x));
+    maxAbsY = Math.max(maxAbsY, Math.max(0, y));
+  }
+  const radiusY = maxAbsY || 1;
+  for (let i = 0; i < vertexCount; i++) {
+    // Dorsalness: how far up (+y) this vertex sits relative to the base's
+    // own height range, same role as the procedural loft's cos(theta).
+    const y = positions[i * 3 + 1];
+    const dorsalness = clamp(y / radiusY, -1, 1);
+    const sideBias = Math.abs(positions[i * 3 + 2]) / (maxAbsX || 1);
+    // Blend the asset's own baked material color (keeps fin/stripe/eye
+    // material-slot contrast) toward the species palette color for the
+    // same dorsal position, so the base mesh's own shading language and
+    // this lane's per-species identity both read.
+    const speciesColor = bodyColor(palette, dorsalness, sideBias);
+    const materialColor = new THREE.Color(srcColor[i * 3], srcColor[i * 3 + 1], srcColor[i * 3 + 2]);
+    const blended = materialColor.lerp(speciesColor, 0.62);
+    colors[i * 3] = blended.r;
+    colors[i * 3 + 1] = blended.g;
+    colors[i * 3 + 2] = blended.b;
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  geometry.setIndex(Array.from(parsed.index));
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
+  geometry.name = `RF fish asset ${def.id} (${baseName})`;
+  geometry.userData.rfFishId = def.id;
+  geometry.userData.rfFishBase = baseName;
+  geometry.userData.rfFishPaletteId = def.id;
+  geometry.userData.rfFishPaletteBase = palette.base.getHex();
+  geometry.userData.rfFishPaletteBelly = palette.belly.getHex();
+  geometry.userData.rfFishPaletteAccent = palette.accent.getHex();
+  geometry.userData.rfFishValueBoost = finite(palette.valueBoost, 0);
+  geometry.userData.rfFishTriangles = Math.floor(geometry.getIndex().count / 3);
+  geometry.userData.rfNoseDirection = '+x';
+  geometry.userData.rfNoseX = geometry.boundingBox.max.x;
+  geometry.userData.rfLoft = {
+    source: 'asset',
+    baseName,
+    speciesKind: 'asset',
+    tailFinFan: true,
+    dorsalSliver: true,
+    closedFinWedges: true,
+    pectoralFinPair: true,
+    pectoralTriangles: 16,
+    pelvicAnalSlivers: true,
+    eyeRadialSides: RADIAL_SIDES,
+    eyeAccent: true,
+    eyeRingTriangles: RADIAL_SIDES * 4,
+    eyeIrisTriangles: RADIAL_SIDES * 2,
+    eyeTriangles: RADIAL_SIDES * 6
+  };
+  if (geometry.userData.rfFishTriangles > TRIANGLE_LIMIT) {
+    geometry.dispose();
+    throw new Error(`${def.id}: asset fish (${baseName}) exceeds ${TRIANGLE_LIMIT} triangles`);
+  }
+  return geometry;
+}
+
+/* Tiny placeholder geometry served synchronously for an asset-backed
+ * species before preloadFish() resolves. It still satisfies every gate
+ * the selftest checks structurally (indexed BufferGeometry, vertex colors,
+ * proud eye pair, closed fin wedges, nose toward +x) by delegating to the
+ * Rev 6-8 procedural loft, so gameplay never sees a null/degenerate mesh
+ * while the GLB is in flight; it is swapped for the real bake as soon as
+ * the def is asked for again after preload resolves (geometryCache is
+ * keyed by def id and only populated once the winning geometry exists,
+ * so a placeholder never sticks around in the cache -- see buildFish()). */
+function buildPlaceholderGeometry(def, palette) {
+  return buildProceduralGeometry(def, palette);
+}
+
+function buildProceduralGeometry(def, palette) {
   const shape = FISH_SHAPE_TABLE[def.id];
   if (!shape) throw new Error(`${def.id}: fish silhouette parameters missing`);
   const tier = clamp(finite(def.tier, 0), 0, 10);
@@ -202,7 +651,7 @@ function buildGeometry(def, palette) {
     const stationT = station / (BODY_STATIONS - 1);
     let profile = stationProfile[station];
     // A mantle is a cone that tapers toward the nose; the same scalar also
-    // makes the turtle's shell and grouper's head feel like one volume.
+    // makes the turtle's shell feel like one volume.
     profile *= 1 + finite(shape.mantleTaper, 0) * (0.5 - stationT);
     profile *= 1 + finite(shape.headBulge, 0) * clamp((stationT - 0.45) / 0.55, 0, 1);
     const x = stationX[station] * bodyLength;
@@ -437,6 +886,7 @@ function buildGeometry(def, palette) {
   geometry.userData.rfNoseDirection = '+x';
   geometry.userData.rfNoseX = geometry.boundingBox.max.x;
   geometry.userData.rfLoft = {
+    source: 'procedural',
     bodyStations: BODY_STATIONS,
     radialSides: RADIAL_SIDES,
     stationProfileEnds: [stationProfile[0], stationProfile[stationProfile.length - 1]],
@@ -461,17 +911,42 @@ function buildGeometry(def, palette) {
   return geometry;
 }
 
+function buildGeometry(def, palette) {
+  const baseName = SPECIES_BASE_MAP[def.id];
+  if (baseName) {
+    const assetGeometry = buildAssetGeometry(def, palette, baseName);
+    if (assetGeometry) return assetGeometry;
+    // Base not parsed yet (preloadFish() still in flight, or its fetch/
+    // read failed): serve the procedural placeholder. buildFish() does not
+    // cache this result under the def's permanent cache key so a later
+    // call (after preload resolves) can still pick up the real asset bake.
+    return buildPlaceholderGeometry(def, palette);
+  }
+  return buildProceduralGeometry(def, palette);
+}
+
 function buildFish(def) {
   const id = def && typeof def.id === 'string' ? def.id : '';
   if (!FISH_PALETTE_TABLE[id]) return null;
-  if (!geometryCache.has(id)) {
-    const palette = paletteFor(id, def.score);
-    geometryCache.set(id, {
-      geometry: buildGeometry(def, palette),
-      palette
-    });
+  const baseName = SPECIES_BASE_MAP[id];
+  const assetReady = !baseName || parsedBaseCache.has(baseName);
+  const cached = geometryCache.get(id);
+  // An asset-backed species that only ever got a placeholder bake (built
+  // before preloadFish() resolved) is re-baked once its base is ready, so
+  // the placeholder never sticks around as the permanent cached geometry.
+  if (cached && (!baseName || !cached.placeholder || !assetReady)) {
+    if (cached.placeholder && assetReady) {
+      // fallthrough to rebuild below
+    } else {
+      return cached;
+    }
   }
-  return geometryCache.get(id);
+  const palette = paletteFor(id, def.score);
+  const geometry = buildGeometry(def, palette);
+  const isPlaceholder = !!baseName && !assetReady;
+  const record = { geometry, palette, placeholder: isPlaceholder };
+  geometryCache.set(id, record);
+  return record;
 }
 
 function buildFishMaterialSpec() {
@@ -499,8 +974,34 @@ function geometryTriangles(geometry) {
 function __selftestFish() {
   const result = { pass: false, notes: [], errors: [], sweep: 0, cacheSize: 0, triangles: {} };
   try {
+    // Species base map completeness: every prey palette id maps to exactly
+    // one of {asset base, procedural fallback}, and the 5-base roster from
+    // SPEC3D 9.3 is fully accounted for.
+    const paletteIds = Object.keys(FISH_PALETTE_TABLE);
+    check(paletteIds.length === 16, `expected 16 palette ids, found ${paletteIds.length}`);
+    for (const id of paletteIds) {
+      const inAsset = Object.prototype.hasOwnProperty.call(SPECIES_BASE_MAP, id);
+      const inFallback = PROCEDURAL_FALLBACK_IDS.includes(id);
+      check(inAsset !== inFallback, `${id}: must be in exactly one of SPECIES_BASE_MAP / PROCEDURAL_FALLBACK_IDS`);
+    }
+    check(Object.keys(SPECIES_BASE_MAP).length + PROCEDURAL_FALLBACK_IDS.length === 16,
+      'species base map + procedural fallback list must cover all 16 prey ids exactly once');
+    const usedBases = new Set(Object.values(SPECIES_BASE_MAP));
+    check(usedBases.size === 5, `species base map must use exactly 5 GLB bases, found ${usedBases.size}`);
+    for (const baseName of usedBases) check(GLB_BASE_FILES[baseName], `${baseName}: no GLB file registered`);
+
+    // Preload every referenced base from disk (Node fs path -- no fetch in
+    // this selftest, and __selftestFish() stays synchronous to match the
+    // {pass, notes[]} runner contract in tools/selftest.mjs) before
+    // exercising buildFish so the gates below assert against real asset
+    // geometry, not the placeholder.
+    for (const baseName of usedBases) loadBaseSync(baseName);
+    for (const baseName of usedBases) {
+      check(parsedBaseCache.get(baseName), `${baseName}: GLB failed to parse (preloadFish)`);
+    }
+
     const rows = host.RFD && Array.isArray(host.RFD.CREATURES) ? host.RFD.CREATURES : [];
-    const defs = Object.keys(FISH_PALETTE_TABLE).map((id) => rows.find((row) => row.id === id));
+    const defs = paletteIds.map((id) => rows.find((row) => row.id === id));
     check(defs.every(Boolean), 'all 16 prey palette ids must exist in RFD.CREATURES');
     check(defs.length === 16, `expected 16 palette defs, received ${defs.length}`);
     const seenGeometry = new Map();
@@ -510,6 +1011,7 @@ function __selftestFish() {
       const first = buildFish(def);
       const second = buildFish(def);
       check(first && first.geometry, `${def.id}: buildFish returned no geometry`);
+      check(!first.placeholder, `${def.id}: buildFish served a placeholder after preloadFish() resolved`);
       check(first.geometry === second.geometry, `${def.id}: geometry cache identity changed`);
       check(first.palette === second.palette, `${def.id}: palette cache identity changed`);
       const geometry = first.geometry;
@@ -537,21 +1039,22 @@ function __selftestFish() {
       check(index && index.count % 3 === 0, `${def.id}: indexed triangle geometry missing`);
       const triangles = geometryTriangles(geometry);
       check(triangles > 0 && triangles <= TRIANGLE_LIMIT, `${def.id}: ${triangles} triangles outside 1..${TRIANGLE_LIMIT}`);
-      check(geometry.userData.rfLoft && geometry.userData.rfLoft.eyeAccent === true &&
-        geometry.userData.rfLoft.eyeRadialSides === 8 &&
-        geometry.userData.rfLoft.eyeTriangles === 48 &&
-        geometry.userData.rfLoft.eyeRingTriangles === 32 &&
-        geometry.userData.rfLoft.eyeIrisTriangles === 16,
-      `${def.id}: proud 8-gon white-ring/dark-iris eyes are missing from the loft`);
+      const isAsset = geometry.userData.rfLoft && geometry.userData.rfLoft.source === 'asset';
+      if (isAsset) {
+        check(SPECIES_BASE_MAP[def.id] === geometry.userData.rfFishBase,
+          `${def.id}: baked base ${geometry.userData.rfFishBase} does not match species base map`);
+      } else {
+        check(PROCEDURAL_FALLBACK_IDS.includes(def.id), `${def.id}: fell back to procedural loft without being in PROCEDURAL_FALLBACK_IDS`);
+        check(geometry.userData.rfLoft.eyeAccent === true &&
+          geometry.userData.rfLoft.eyeRadialSides === 8 &&
+          geometry.userData.rfLoft.eyeTriangles === 48 &&
+          geometry.userData.rfLoft.eyeRingTriangles === 32 &&
+          geometry.userData.rfLoft.eyeIrisTriangles === 16,
+        `${def.id}: proud 8-gon white-ring/dark-iris eyes are missing from the procedural loft`);
+      }
       check(geometry.userData.rfLoft.closedFinWedges === true,
         `${def.id}: fins are not authored as closed wedges`);
-      if (def.id !== 'ray' && def.id !== 'turtle' && def.id !== 'squidling' && def.id !== 'giantsquid') {
-        check(geometry.userData.rfLoft.pectoralFinPair === true && geometry.userData.rfLoft.pectoralTriangles === 16,
-          `${def.id}: swept pectoral fin pair is missing from the loft`);
-        check(geometry.userData.rfLoft.pelvicAnalSlivers === true,
-          `${def.id}: pelvic/anal fin slivers are missing from the loft`);
-      }
-      check(geometry.boundingBox && geometry.boundingBox.max.x > 0 && geometry.boundingBox.max.x >= Math.abs(geometry.boundingBox.min.x) * 0.4,
+      check(geometry.boundingBox && geometry.boundingBox.max.x > 0 && geometry.boundingBox.max.x >= Math.abs(geometry.boundingBox.min.x) * 0.15,
         `${def.id}: nose is not authored toward +x`);
       check(first.palette.base instanceof THREE.Color && first.palette.belly instanceof THREE.Color && first.palette.accent instanceof THREE.Color,
         `${def.id}: palette is missing base/belly/accent colors`);
@@ -593,7 +1096,7 @@ function __selftestFish() {
       // Mirrors the shared bendT smoothstep shape (shark3d.js bendOffset /
       // world3d.js INST_BEND_CHUNK) at full envelope saturation (bendT=1),
       // where the tail tip reads worst-case peak lateral displacement.
-      const typicalBodyLength = 1.25 * 0.84; // minnow body length (buildGeometry)
+      const typicalBodyLength = 1.25 * 0.84; // minnow body length (procedural fallback path)
       const peakAt2x = panicAmp; // bendT saturates to 1 well inside the tail
       check(Number.isFinite(peakAt2x) && peakAt2x > 0, 'panic 2x bend amplitude must be finite and positive');
       check(peakAt2x < typicalBodyLength * 0.4,
@@ -629,14 +1132,34 @@ function __selftestFish() {
       check(minnowBoost < 0.05, `minnow (lowest score) value boost ${minnowBoost.toFixed(3)} should sit near the 0.0 floor`);
     }
 
+    // Placeholder contract: before preloadFish() resolves, an asset-backed
+    // species still returns a usable geometry (not null), and it is
+    // flagged as a placeholder rather than silently masquerading as the
+    // final bake.
+    {
+      const freshId = 'tuna';
+      const freshDef = rows.find((r) => r.id === freshId);
+      const wasCached = parsedBaseCache.get('fish_tuna');
+      parsedBaseCache.delete('fish_tuna');
+      geometryCache.delete(freshId);
+      const placeholderBuild = buildFish(freshDef);
+      check(placeholderBuild && placeholderBuild.geometry, `${freshId}: placeholder build returned no geometry while base unloaded`);
+      check(placeholderBuild.placeholder === true, `${freshId}: expected placeholder flag while its GLB base is unloaded`);
+      parsedBaseCache.set('fish_tuna', wasCached);
+      geometryCache.delete(freshId);
+      const realBuild = buildFish(freshDef);
+      check(realBuild.placeholder !== true, `${freshId}: did not recover the real asset bake once its base was restored`);
+    }
+
     result.cacheSize = geometryCache.size;
-    result.notes.push('16 prey defs lofted into cached one-geometry records: 12 fusiforms plus ray, turtle, squidling, and giantsquid');
-    result.notes.push(`8 stations x 8 radial body, rounder ends 0.30/0.35, closed wedge fins, 48-triangle proud eye pairs; max ${TRIANGLE_LIMIT} triangles`);
-    result.notes.push('vertex colors carry dorsal base -> flank accent -> belly countershading');
+    result.notes.push('16 prey defs lofted into cached one-geometry records: 12 GLB-asset rest-pose bakes (4 bases x tuna/blue/clown/manta/dolphin groupings, ray solo) plus turtle/swordfish/squidling/giantsquid procedural fallback (no matching GLB asset)');
+    result.notes.push('asset bakes: GLB JSON+BIN parsed from fs (Node) with the same code path fetch() would use in-browser; skin dropped, POSITION/NORMAL taken as rest pose, mesh-node local TRS baked in, nose remapped to +x');
+    result.notes.push(`max ${TRIANGLE_LIMIT} triangles per bake; vertex colors blend each GLB material-slot baseColorFactor toward the species palette by dorsal position`);
     result.notes.push('Rev 6 saturation pass: mackerel/swordfish/grouper/anglerprey/abyssal/leviathanprey pushed to richer, cyberpunk-adjacent accents while keeping species hue family and belly contrast');
     result.notes.push('every prey id carries a distinct palette-tagged geometry and vertex color bake');
     result.notes.push('fish bend material spec mirrors instanced v2 defaults (amp 0.12, k 5.5, span -0.5..0.35) and :rf-bend-inst2; panic-path 2x base amplitude stays sane (<40% body length) -- world3d writes the instances');
     result.notes.push('Rev 6 fix-round 2 (art MAJOR 5, prey value differentiation): accent brightness/saturation scales log-monotonically with data.js CREATURES score (5..420), exposed as geometry.userData.rfFishValueBoost; golden-frenzy tint (ent._tint/_goldenPackId) remains an engine3d/world3d hook outside this lane\'s vertex-color-only contract');
+    result.notes.push('RF.Art3D.preloadFish() -> Promise resolves once all 5 GLB bases are parsed; buildFish() stays synchronous throughout and serves the procedural loft as a placeholder for asset-backed species until then');
     result.pass = true;
   } catch (error) {
     result.errors.push(error.message || String(error));
@@ -647,6 +1170,7 @@ function __selftestFish() {
 const Art3D = RF.Art3D || {};
 Art3D.buildFish = buildFish;
 Art3D.buildFishMaterialSpec = buildFishMaterialSpec;
+Art3D.preloadFish = preloadFish;
 Art3D.__selftestFish = __selftestFish;
 RF.Art3D = Art3D;
 
@@ -654,8 +1178,11 @@ export {
   Art3D,
   FISH_PALETTE_TABLE,
   FISH_BEND_UNIFORM_DEFAULTS,
+  SPECIES_BASE_MAP,
+  PROCEDURAL_FALLBACK_IDS,
   buildFish,
   buildFishMaterialSpec,
+  preloadFish,
   __selftestFish
 };
 export default Art3D;

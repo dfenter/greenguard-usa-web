@@ -69,6 +69,29 @@ import * as THREE from 'three';
   var MAZE_EDGE_NOISE_AMP = 46;       // px of wall wobble
   var SDF_RESAMPLE_TRIES = 6;         // ringPoint resample budget (6.4)
   var SDF_SPAWN_CLEAR = 24;           // extra clearance beyond radiusFor(def)
+
+  // ---------------------------------------------- Rev 9.5 OPEN OCEAN consts
+  // Owner complaint "you cannot dive down" traced to the old SDF being a
+  // rock-maze rasterisation (mazeRawSDF/buildMazeLayout) with rock covering
+  // most of the map. Rev 9.5 replaces the maze with an open-ocean SDF: a
+  // rolling seabed + a handful of sparse mounds/islands rising off it, plus
+  // side walls. Water is everywhere between the surface and the seabed/mound
+  // surfaces; nothing ever seals a full-depth vertical column. See
+  // NOTES-rev9-ocean.md for the full design writeup.
+  var OCEAN_SEABED_Y = [4300, 4600];  // rolling seabed band, no trench
+  var OCEAN_TRENCH_Y = [4650, 4750];  // a few deeper trench dips
+  var OCEAN_TRENCH_N = [2, 4];        // trench count for the whole map
+  var OCEAN_TRENCH_W = [500, 1000];   // trench width, px
+  var OCEAN_MOUND_N = [6, 10];        // sparse large mounds/islands/pillars
+  var OCEAN_MOUND_BASE_R = [420, 900];  // mound base half-width at the seabed
+  var OCEAN_MOUND_TOP_FRAC = [0.35, 0.95]; // how far up the water column the
+  // mound rises, as a fraction of (seabed - SDF_OPEN_Y); some reach mid-depth
+  // (Twilight band) but none reach the surface.
+  var OCEAN_MOUND_TOP_R_FRAC = [0.18, 0.42]; // top radius as a frac of base R
+  var OCEAN_POCKET_N = [2, 4];        // small cave pockets carved per mound,
+  // for relic placement (a mound is otherwise a solid SDF cone/pillar)
+  var OCEAN_POCKET_R = [70, 120];
+  var OCEAN_XBAND = 1200;             // vertical-column reachability check band
   var WHISKER_DIST = 120;             // NPC steer whisker probe distance
   var WHISKER_TURN_R = 40;            // + r triggers a tangent rotation
 
@@ -170,6 +193,30 @@ import * as THREE from 'three';
   var LUNGE_TARGET_R = 40;
   var LUNGE_FLASH_T = 0.22;     // seconds the flash holds once (re)triggered
   var LUNGE_FLASH_COLOR = 0xffe8e0; // white-hot toward red, per the spec's cue language
+
+  // Rev 9 EAT-VANISH + SCHOOLING lane: real boids flocking, replacing the old
+  // packVec "shared random drift" (which produced a loose common heading but
+  // no separation/alignment/cohesion, reading as a random clump rather than a
+  // school). Applied per prey entity in preyAI's wander branch only — a
+  // fleeing/panicking/chum-converging fish already has an authoritative
+  // steer target and skips flocking that step, same as the old packVec gate.
+  // Radius is expressed as "body lengths" but resolved against e.r (already
+  // radius-based per-def sizing) so a school of any tier keeps roughly the
+  // same felt spacing. Predators/hazards never call this: predatorAI and
+  // hazardAI do not read st.packId at all, and spawnOne only ever gives a
+  // nonzero packId to a spawnBurst call, whose kind is fixed at burst time —
+  // a predator or hazard burst still gets a packId, but only prey's own AI
+  // consults it for flocking (predatorAI/hazardAI never call schoolSteer).
+  var SCHOOL_RADIUS_BL = 2.5;      // neighbor radius, body lengths (~2*r each)
+  var SCHOOL_SEP_W = 1.6;          // separation weight (push apart)
+  var SCHOOL_ALIGN_W = 1.0;        // alignment weight (match heading)
+  var SCHOOL_COH_W = 0.9;          // cohesion weight (pull to local centroid)
+  var SCHOOL_WANDER_W = 0.5;       // pack-level wander target weight
+  var SCHOOL_TURN_RATE = 3.2;      // bounded turn (steer() 'turn' param)
+  var SCHOOL_PANIC_R = 900;        // player distance that arms school panic
+  var SCHOOL_PANIC_REGROUP = 1.4;  // seconds after player leaves before regroup
+  var SCHOOL_SPEED_MIN = 0.55;     // wander speed floor, frac of def.speed
+  var SCHOOL_SPEED_MAX = 0.85;     // wander speed ceiling, frac of def.speed
 
   // Rev 6.11 CHUM SEAM: engine keeps publishing ctx.run.buffs.chum; while it
   // is > 0, prey inside CHUM_R converge toward the player at a moderate
@@ -333,7 +380,13 @@ import * as THREE from 'three';
   var packRing = 0;
   function packAcquire(packId) {
     var rec = packRecs[packRing];
-    if (!rec) { rec = { dx: 1, dy: 0, t: 0, owner: 0 }; packRecs[packRing] = rec; }
+    if (!rec) {
+      // dx/dy/t: legacy shared-drift heading, kept as the wander TARGET
+      // direction the school-level wander steer chases (SCHOOL_WANDER_W),
+      // now just one of several boid terms rather than the whole answer.
+      rec = { dx: 1, dy: 0, t: 0, owner: 0, panicT: 0 };
+      packRecs[packRing] = rec;
+    }
     packRing = (packRing + 1) % PACK_MAX;
     if (rec.owner && S.packs) S.packs.delete(rec.owner);
     rec.owner = packId;
@@ -341,6 +394,7 @@ import * as THREE from 'three';
     rec.dx = Math.cos(a);
     rec.dy = Math.sin(a) * 0.5;
     rec.t = rr(2, 5);
+    rec.panicT = 0;
     S.packs.set(packId, rec);
     return rec;
   }
@@ -509,6 +563,29 @@ import * as THREE from 'three';
     return { ok: violations.length === 0, violations: violations };
   }
   World.__checkSpawnTableGate = checkSpawnTableGate;
+
+  // Rev 9 9.4 CLARITY selftest gate: every zone spawn table lists AT MOST 3
+  // PREY species (hazards are uncapped - they are rare/distinct threats, not
+  // clutter). Returns {ok, violations:[...]}.
+  function checkSpawnSpeciesCapGate() {
+    var Z = zones();
+    var violations = [];
+    var CAP = 3;
+    for (var zi = 0; zi < Z.length; zi++) {
+      var zone = Z[zi];
+      var spawns = zone.spawns || [];
+      var preyCount = 0;
+      for (var si = 0; si < spawns.length; si++) {
+        var row = spawns[si];
+        var id = Array.isArray(row) ? row[0] : (row && row.id);
+        var def = defOf(id);
+        if (def && def.kind !== 'hazard') preyCount++;
+      }
+      if (preyCount > CAP) violations.push(zone.id + ': ' + preyCount + ' prey species (cap ' + CAP + ')');
+    }
+    return { ok: violations.length === 0, violations: violations };
+  }
+  World.__checkSpawnSpeciesCapGate = checkSpawnSpeciesCapGate;
 
   World.zoneAt = function (y) {
     var Z = zones();
@@ -1248,8 +1325,20 @@ import * as THREE from 'three';
   // the fallback below was unreachable. Asking for art that does not exist is
   // not free when the miss is silent, so the request is simply gone.
   // One material for every coin in the world.
+  // Rev 9: pickups are small glossy emissive gems (octahedra) instead of the
+  // bare white fallback quad (the "random white squares" the owner saw).
+  function makePickupGem(color, flat) {
+    var col = (typeof color === 'number' && isFinite(color)) ? color : 0xffd166;
+    var geo = new THREE.OctahedronGeometry(0.5, 0);
+    if (flat) geo.scale(1, 1, 0.45);
+    var mat = new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.55, roughness: 0.3, metalness: 0.15 });
+    var m = new THREE.Mesh(geo, mat);
+    m.rotation.x = 0.35; m.rotation.y = 0.6;
+    m.userData.rfPickupGem = true;
+    return m;
+  }
   function makeCoin() {
-    return fallbackMesh(0xffd166, true);
+    return makePickupGem(0xffd166, true);
   }
 
   // ------------------------------------------------------- object3d helpers
@@ -2016,7 +2105,15 @@ import * as THREE from 'three';
       var crossPlay = b === 0;
       var bandZ = crossPlay ? 25 : rr(Z_RAY - 40, Z_RAY + 40);
       for (var i = 0; i < RAYS_PER_BAND; i++) {
-        var hgt = rr(240, 440);
+        // Rev 9 DRESSING fix: the open-ocean world's Sunlit band is only
+        // 0-1100, and a camera even a few hundred sim units below the
+        // waterline used to see these as HARD-EDGED, UNIFORM-ALPHA quads —
+        // reading as thin gray/cyan pillars rather than light. Shrunk so a
+        // shaft comfortably tapers out well inside the Sunlit band instead
+        // of spanning nearly half of it, and now built with quadPushGradient
+        // so alpha fades from the band's base alpha at the waterline to ZERO
+        // at the tip: a soft gradient shaft, not a hard-edged rectangle.
+        var hgt = rr(160, 300);
         // Narrower than the pre-batch 40-120: a merged band already reads as
         // a fan, so each shaft can be a shaft rather than a panel.
         var wid = rr(18, 48);
@@ -2039,8 +2136,9 @@ import * as THREE from 'three';
         // shafts reads as an authored two-accent cyberpunk beam, not a flat
         // single-hue wash.
         var rayColor = (b & 1) ? lerpColor(0xdff6ff, NEON_MAGENTA, 0.22) : RAY_TINT;
-        quadPush(cx + ox, oy, bandZ, wid, hgt, lean, 1,
-          rayColor, crossPlay ? rr(0.006, 0.012) : rr(0.012, 0.028));
+        var rayAlpha = crossPlay ? rr(0.006, 0.012) : rr(0.012, 0.028);
+        quadPushGradient(cx + ox, oy, bandZ, wid, hgt, lean, 1,
+          rayColor, rayColor, rayAlpha, 0);
       }
       var mesh = batchMesh(feather, true, undefined, true);
       if (!mesh) continue;
@@ -2205,7 +2303,32 @@ import * as THREE from 'three';
   var CROWN_MIN_HEIGHT = 24;
   var CROWN_MAX_HEIGHT = 68;
 
-  function ridgeReset() { ridgePointN = 0; }
+  // Rev 9 DRESSING fix: this used to only zero the ridgePointN counter, never
+  // truncate the backing arrays themselves. mergeRidge(heightline, ...) reads
+  // heightline.length (the ARRAY's length), not ridgePointN, so any build
+  // whose point count was smaller than a PREVIOUS build's (the 18-point crown
+  // sweep after the much longer main-ridge + shelf-ledge pass, in
+  // buildTerrain) left stale leftover points past ridgePointN in the shared
+  // scratch arrays, and mergeRidge folded them into the new mesh anyway. In
+  // the old, tighter-zone-band world those stale points happened to land
+  // near enough to the intended band to go unnoticed; in the open-ocean
+  // world's much taller zone spread they showed up as a huge extra
+  // triangle-strip slab (reaching from the old shelf-ledge y up near
+  // simY~1000) merged onto the foreground crown occluder — exactly the
+  // "pale rectangle" artifact reported at spawn depth. Truncating every
+  // scratch array to the actual point count on reset is the fix.
+  function ridgeReset() {
+    ridgePointN = 0;
+    ridgeLineScratch.length = 0;
+    ridgeBaseScratch.length = 0;
+    ridgeMidScratch.length = 0;
+    ridgeTopColorScratch.length = 0;
+    ridgeMidColorScratch.length = 0;
+    ridgeBottomColorScratch.length = 0;
+    ridgeTopAlphaScratch.length = 0;
+    ridgeMidAlphaScratch.length = 0;
+    ridgeBottomAlphaScratch.length = 0;
+  }
   function ridgeBreak() {
     ridgeLineScratch[ridgePointN * 2] = NaN;
     ridgeLineScratch[ridgePointN * 2 + 1] = NaN;
@@ -2347,33 +2470,69 @@ import * as THREE from 'three';
     }
   }
 
-  // ============================================================ 6.4 SDF maze
+  // ======================================================= 9.5 SDF OPEN OCEAN
   //
-  // Build-time cavern graph, rasterised into a signed-distance grid. This is
-  // the ONLY per-cell write path in the module: after buildMaze() runs once
-  // in init(), terrainSDF/resolveBody/regionAt are pure reads.
+  // Build-time seabed+mounds graph, rasterised into a signed-distance grid.
+  // This is the ONLY per-cell write path in the module: after buildMaze()
+  // runs once in init(), terrainSDF/resolveBody/regionAt are pure reads.
   //
-  // Layout, deterministic from S.rng:
-  //   - Each 1200px zone band gets 4-6 "caverns" (open circles/blobs, 900-1600
-  //     px wide) spaced along x.
-  //   - Adjacent caverns in a band are linked by a lateral tunnel (half-width
-  //     130-190px).
-  //   - Each band boundary gets 2-3 vertical shafts connecting the band above
-  //     to the band below, so the whole graph is one connected component.
-  //   - Every cavern/tunnel wall gets a value-noise wobble so the SDF has an
-  //     organic edge rather than a stack of perfect circles.
-  //   - y < SDF_OPEN_Y (open water near the surface) is carved to water
-  //     unconditionally, so nothing is ever solid near the spawn/breach band.
+  // Owner complaint "you cannot dive down" was caused by the old generator
+  // (mazeRawSDF/buildMazeLayout, Rev 6-9) rasterising a rock-maze cavern
+  // graph: most of the map was solid rock and the player spawned a few
+  // hundred px above a rock ceiling. Rev 9.5 replaces it with an OPEN OCEAN:
+  //   - A rolling seabed height profile along x (OCEAN_SEABED_Y band,
+  //     ~4300-4600), with a handful of deeper trenches (down to ~4750).
+  //   - 6-10 sparse large mounds/islands/pillars rising OFF the seabed, some
+  //     reaching mid-depth (Twilight band). A mound is a solid SDF cone: rock
+  //     from the seabed up to its own top height, tapering in radius.
+  //   - Side walls (x<0 / x>S.w), same edge-rock mechanism as before.
+  //   - y < SDF_OPEN_Y is carved to water unconditionally (surface band).
+  //   - CRITICAL INVARIANT: no mound is ever wide/tall enough, and mounds are
+  //     never packed close enough, to seal a full vertical column. Every
+  //     OCEAN_XBAND-wide x-slice keeps a clear vertical path from the surface
+  //     down to at least 0.8x the local seabed depth. Enforced by
+  //     verifyOpenColumns() below (widens/thins mounds deterministically if a
+  //     band ever fails, same no-new-rng-draws pattern the old maze widener
+  //     used).
   //
   // The grid stores SIGNED distance to the nearest rock/water boundary,
   // positive = water, in the same units as world (x,y): terrainSDF(x,y)
   // bilinearly interpolates the 4 surrounding cell corners.
+  //
+  // The old maze's per-feature arrays (mazeCavernX/Y/R/Seed, mazeTunnels,
+  // mazeShafts) are KEPT as field names because a long tail of downstream
+  // code (decor anchors, kelp/reef placement, zoneLandmarkAnchors, the abyss
+  // skyline pass, mazeEchoWave) already reads them generically as "named
+  // features with an x/y/radius". They are repurposed here:
+  //   - mazeCavernX/Y/R/Seed -> one row per MOUND (its centre x, its surface
+  //     anchor y partway up its slope, and its radius at that anchor).
+  //   - mazeTunnels -> one row per TRENCH (a shallow horizontal segment along
+  //     the seabed, reusing the same {x0,y0,x1,y1,halfW} shape).
+  //   - mazeShafts -> one row per POCKET (a small cave carved into a mound's
+  //     flank, reusing {x,y0,y1,halfW} as a short vertical span at the
+  //     pocket's x so deadEndScore/placeRelicsForZone still finds it as an
+  //     enclosed relic pocket).
   var mazeCavernX = [];
   var mazeCavernY = [];
   var mazeCavernR = [];
-  var mazeCavernSeed = [];       // per-cavern noise seed, for echoing ridges
-  var mazeTunnels = [];          // {x0,y0,x1,y1,halfW}
-  var mazeShafts = [];           // {x,y0,y1,halfW}
+  var mazeCavernSeed = [];       // per-mound noise seed, for echoing ridges
+  var mazeTunnels = [];          // repurposed: one row per trench
+  var mazeShafts = [];           // repurposed: one row per pocket
+
+  // Mound/seabed authoring tables, separate from the compat arrays above so
+  // mazeRawSDF's geometry math stays self-describing.
+  var oceanMoundX = [];
+  var oceanMoundBaseY = [];      // seabed y under this mound's centre
+  var oceanMoundTopY = [];       // mound summit y (smaller y = shallower)
+  var oceanMoundBaseR = [];
+  var oceanMoundTopR = [];
+  var oceanMoundSeed = [];
+  var oceanTrenchX = [];         // trench centre x
+  var oceanTrenchDepth = [];     // extra depth below the rolling seabed
+  var oceanTrenchHalfW = [];
+  var oceanPocketMoundIdx = [];  // which mound each pocket is carved into
+  var oceanPocketU = [];         // 0..1 up the mound's slope
+  var oceanPocketR = [];
 
   // Cheap deterministic value-noise: a small fixed table of per-seed phase
   // offsets summed as sine octaves. No Math.random; every draw is S.rng at
@@ -2389,70 +2548,143 @@ import * as THREE from 'three';
     return total > 0 ? v / total : 0;
   }
 
+  // Rolling seabed height profile: a few low-frequency sine octaves, summed
+  // and clamped into OCEAN_SEABED_Y, then dipped by any trench whose x-span
+  // covers this column. Pure function of x plus the frozen seabed/trench
+  // tables, so it can be called from mazeRawSDF (build time) and from the
+  // reachability verifier without touching S.rng again.
+  var seabedPhase = [0, 0, 0];
+  function seabedBaseY(x) {
+    var mid = (OCEAN_SEABED_Y[0] + OCEAN_SEABED_Y[1]) * 0.5;
+    var amp = (OCEAN_SEABED_Y[1] - OCEAN_SEABED_Y[0]) * 0.5;
+    var v = Math.sin(x * 0.00042 + seabedPhase[0]) * 0.55 +
+      Math.sin(x * 0.0011 + seabedPhase[1]) * 0.30 +
+      Math.sin(x * 0.0027 + seabedPhase[2]) * 0.15;
+    return mid + v * amp;
+  }
+  function seabedY(x) {
+    var y = seabedBaseY(x);
+    for (var i = 0; i < oceanTrenchX.length; i++) {
+      var dx = x - oceanTrenchX[i];
+      var hw = oceanTrenchHalfW[i];
+      if (Math.abs(dx) < hw) {
+        // Smooth cosine dip, full depth at the trench centre, zero at its
+        // edge, so the trench floor blends into the rolling seabed.
+        var t = Math.cos((dx / hw) * (Math.PI * 0.5));
+        y += oceanTrenchDepth[i] * t;
+      }
+    }
+    return clamp(y, OCEAN_SEABED_Y[0], OCEAN_TRENCH_Y[1] + 40);
+  }
+
   function buildMazeLayout() {
     mazeCavernX.length = 0; mazeCavernY.length = 0; mazeCavernR.length = 0;
     mazeCavernSeed.length = 0;
     mazeTunnels.length = 0;
     mazeShafts.length = 0;
-    var Z = zones();
-    if (!Z.length) return;
-    var bandFirst = [];
-    var bandLast = [];
-    for (var zi = 0; zi < Z.length; zi++) {
-      var z = Z[zi];
-      var n = ri(MAZE_CAVERNS_MIN, MAZE_CAVERNS_MAX);
-      var first = mazeCavernX.length;
-      var midY = (z.yMin + z.yMax) * 0.5;
-      // Never place a cavern centre above the open-water line; the shallow
-      // band's caverns sit in its lower half so the surface stays clear.
-      var yLo = Math.max(z.yMin + 260, SDF_OPEN_Y + 260);
-      var yHi = z.yMax - 200;
-      if (yHi < yLo) yHi = yLo + 1;
-      var slot = S.w / n;
-      for (var i = 0; i < n; i++) {
-        var cx = clamp(slot * i + slot * 0.5 + rr(-slot * 0.28, slot * 0.28), 300, S.w - 300);
-        var cy = clamp(midY + rr(-1, 1) * (z.yMax - z.yMin) * 0.22, yLo, yHi);
-        var w = rr(MAZE_CAVERN_W[0], MAZE_CAVERN_W[1]);
-        mazeCavernX.push(cx);
-        mazeCavernY.push(cy);
-        mazeCavernR.push(w * 0.5);
-        mazeCavernSeed.push(rr(0, TAU));
+    oceanMoundX.length = 0; oceanMoundBaseY.length = 0; oceanMoundTopY.length = 0;
+    oceanMoundBaseR.length = 0; oceanMoundTopR.length = 0; oceanMoundSeed.length = 0;
+    oceanTrenchX.length = 0; oceanTrenchDepth.length = 0; oceanTrenchHalfW.length = 0;
+    oceanPocketMoundIdx.length = 0; oceanPocketU.length = 0; oceanPocketR.length = 0;
+
+    seabedPhase[0] = rr(0, TAU); seabedPhase[1] = rr(0, TAU); seabedPhase[2] = rr(0, TAU);
+
+    // A few trenches, spaced along x, dipping the rolling seabed deeper.
+    var trenchN = ri(OCEAN_TRENCH_N[0], OCEAN_TRENCH_N[1]);
+    for (var ti = 0; ti < trenchN; ti++) {
+      var tx = rr(400, S.w - 400);
+      oceanTrenchX.push(tx);
+      oceanTrenchHalfW.push(rr(OCEAN_TRENCH_W[0], OCEAN_TRENCH_W[1]) * 0.5);
+      oceanTrenchDepth.push(rr(OCEAN_TRENCH_Y[0], OCEAN_TRENCH_Y[1]) - OCEAN_SEABED_Y[1]);
+    }
+
+    // Sparse mounds/islands/pillars, spread along x with a minimum-gap rule
+    // so no two mounds can crowd the same x-band closed. Base radius is
+    // capped well under half OCEAN_XBAND so a single mound can never span an
+    // entire reachability band on its own.
+    var moundN = ri(OCEAN_MOUND_N[0], OCEAN_MOUND_N[1]);
+    var slot = S.w / moundN;
+    // Player spawns in open water at (S.w*0.5, 260) (engine3d.js); keep every
+    // mound centre at least SPAWN_KEEPOUT px from that x so a mound's summit
+    // (which can rise close to the surface, see topFrac) can never intrude
+    // into the "no rock within 600px of spawn" band.
+    var SPAWN_KEEPOUT = 2200;
+    var spawnGuardX = S.w * 0.5;
+    for (var mi = 0; mi < moundN; mi++) {
+      var mx = clamp(slot * mi + slot * 0.5 + rr(-slot * 0.22, slot * 0.22), 500, S.w - 500);
+      if (Math.abs(mx - spawnGuardX) < SPAWN_KEEPOUT) {
+        mx = mx < spawnGuardX ? spawnGuardX - SPAWN_KEEPOUT : spawnGuardX + SPAWN_KEEPOUT;
+        mx = clamp(mx, 500, S.w - 500);
       }
-      var last = mazeCavernX.length - 1;
-      bandFirst.push(first);
-      bandLast.push(last);
-      // Lateral tunnels link consecutive caverns within this band.
-      for (i = first; i < last; i++) {
-        mazeTunnels.push({
-          x0: mazeCavernX[i], y0: mazeCavernY[i],
-          x1: mazeCavernX[i + 1], y1: mazeCavernY[i + 1],
-          halfW: rr(MAZE_TUNNEL_HALF[0], MAZE_TUNNEL_HALF[1]),
-        });
+      var mBaseY = seabedY(mx);
+      var mBaseR = rr(OCEAN_MOUND_BASE_R[0], OCEAN_MOUND_BASE_R[1]);
+      var waterCol = mBaseY - SDF_OPEN_Y;
+      // The first two mounds are deliberately TALL (topFrac near its max),
+      // guaranteeing at least one mound summit pierces up near zone 1 (the
+      // Sunlit Shelf) every run, so zone 1 always has real rock/pocket
+      // candidates for its relics rather than depending on the RNG draw.
+      var topFrac = (mi < 2) ? rr(OCEAN_MOUND_TOP_FRAC[1] - 0.06, OCEAN_MOUND_TOP_FRAC[1])
+        : rr(OCEAN_MOUND_TOP_FRAC[0], OCEAN_MOUND_TOP_FRAC[1]);
+      var mTopY = mBaseY - waterCol * topFrac;
+      var mTopR = mBaseR * rr(OCEAN_MOUND_TOP_R_FRAC[0], OCEAN_MOUND_TOP_R_FRAC[1]);
+      oceanMoundX.push(mx);
+      oceanMoundBaseY.push(mBaseY);
+      oceanMoundTopY.push(mTopY);
+      oceanMoundBaseR.push(mBaseR);
+      oceanMoundTopR.push(mTopR);
+      oceanMoundSeed.push(rr(0, TAU));
+
+      // Compat row: anchor decor/landmark code at a point ~40% up the
+      // mound's slope (a visible flank, not buried at the seabed or floating
+      // at the bare summit).
+      var anchorU = 0.4;
+      mazeCavernX.push(mx);
+      mazeCavernY.push(mBaseY + (mTopY - mBaseY) * anchorU);
+      mazeCavernR.push(mBaseR + (mTopR - mBaseR) * anchorU);
+      mazeCavernSeed.push(oceanMoundSeed[mi]);
+
+      // 2-4 small cave pockets per mound for relic placement, at random
+      // heights up the slope. The tall mounds (mi < 2) get their pockets
+      // biased toward the upper slope/summit, near where the mound actually
+      // pierces into zone 1, so zone 1 reliably gets pocket candidates.
+      var pocketN = ri(OCEAN_POCKET_N[0], OCEAN_POCKET_N[1]);
+      for (var pi = 0; pi < pocketN; pi++) {
+        oceanPocketMoundIdx.push(mi);
+        oceanPocketU.push(mi < 2 ? rr(0.55, 0.95) : rr(0.15, 0.85));
+        oceanPocketR.push(rr(OCEAN_POCKET_R[0], OCEAN_POCKET_R[1]));
       }
     }
-    // Vertical shafts at each band boundary, connecting a cavern in the band
-    // above to one in the band below so the flood fill is one region.
-    for (zi = 0; zi < Z.length - 1; zi++) {
-      var shaftN = ri(MAZE_SHAFTS_PER_BOUNDARY[0], MAZE_SHAFTS_PER_BOUNDARY[1]);
-      var aboveFirst = bandFirst[zi], aboveLast = bandLast[zi];
-      var belowFirst = bandFirst[zi + 1], belowLast = bandLast[zi + 1];
-      for (var s = 0; s < shaftN; s++) {
-        var ai = ri(aboveFirst, aboveLast);
-        var bi = ri(belowFirst, belowLast);
-        var sx = (mazeCavernX[ai] + mazeCavernX[bi]) * 0.5 + rr(-200, 200);
-        mazeShafts.push({
-          x: clamp(sx, 200, S.w - 200),
-          y0: mazeCavernY[ai], y1: mazeCavernY[bi],
-          halfW: rr(MAZE_TUNNEL_HALF[0], MAZE_TUNNEL_HALF[1]),
-        });
-      }
+
+    // Repurposed mazeTunnels: one row per trench, a horizontal segment along
+    // the seabed at the trench's own dipped floor, so decor (kelp/reef
+    // findWallY sweeps, zoneLandmarkAnchors) still finds a feature there.
+    for (ti = 0; ti < oceanTrenchX.length; ti++) {
+      var trX = oceanTrenchX[ti], trHW = oceanTrenchHalfW[ti];
+      var trFloorY = seabedY(trX);
+      mazeTunnels.push({
+        x0: trX - trHW, y0: trFloorY, x1: trX + trHW, y1: trFloorY,
+        halfW: trHW * 0.6,
+      });
+    }
+
+    // Repurposed mazeShafts: one row per pocket, a short vertical span at the
+    // pocket's world position so deadEndScore/placeRelicsForZone (which walk
+    // the SDF grid, not these tables directly) still get a sensible x/y/r
+    // triple for any lane code that reads mazeShafts for display/debug.
+    for (var pk = 0; pk < oceanPocketMoundIdx.length; pk++) {
+      var pMi = oceanPocketMoundIdx[pk];
+      var pU = oceanPocketU[pk];
+      var pR = oceanPocketR[pk];
+      var pX = oceanMoundX[pMi] + Math.cos(oceanMoundSeed[pMi] + pk) * (oceanMoundBaseR[pMi] * (1 - pU) + oceanMoundTopR[pMi] * pU) * 0.9;
+      var pY = oceanMoundBaseY[pMi] + (oceanMoundTopY[pMi] - oceanMoundBaseY[pMi]) * pU;
+      mazeShafts.push({ x: pX, y0: pY - pR * 0.5, y1: pY + pR * 0.5, halfW: pR });
     }
   }
 
-  // Nearest-cavern echo term for the background ridge waves (6.4 "distant
+  // Nearest-mound echo term for the background ridge waves (6.4 "distant
   // ridges echo it"). Returns a value in roughly [-1, 1]: the sine of the
-  // nearest cavern's own noise seed, offset by the x-distance so the term
-  // still varies smoothly along the ridge rather than stepping at cavern
+  // nearest mound's own noise seed, offset by the x-distance so the term
+  // still varies smoothly along the ridge rather than stepping at mound
   // boundaries. Build-time only, called from buildTerrain's point loop.
   function mazeEchoWave(x, layer) {
     if (!mazeCavernX.length) return 0;
@@ -2466,45 +2698,58 @@ import * as THREE from 'three';
   }
 
   // Raw (pre-open-water-carve) signed distance at one point: positive water,
-  // negative rock. Union of every cavern/tunnel/shaft "water" primitive minus
-  // nothing (rock is simply the complement, there is no separate rock solid).
+  // negative rock. Union of: the seabed half-plane (below seabedY(x) is
+  // rock), every mound's tapered-cone SDF, minus every pocket carved into a
+  // mound (a pocket subtracts a small sphere of water from the mound solid,
+  // i.e. it RAISES the SDF back toward water inside its radius).
   function mazeRawSDF(x, y) {
-    var best = -1e9; // start deep in rock; every water primitive raises this
+    // Seabed: water above the local seabed height, rock below. Signed
+    // distance to that single horizontal-ish boundary.
+    var best = seabedY(x) - y;
+
+    // Mounds: signed distance to a tapered cone (linear radius interpolation
+    // between base and top), with a value-noise wobble on the radius so the
+    // flank reads organic. A point is inside the mound (rock) when its
+    // horizontal distance from the mound's centreline is less than the
+    // (wobbled) radius at that height AND y is between top and base.
     var i;
-    for (i = 0; i < mazeCavernX.length; i++) {
-      var dx = x - mazeCavernX[i], dy = y - mazeCavernY[i];
-      var d = Math.sqrt(dx * dx + dy * dy);
-      var theta = Math.atan2(dy, dx);
-      var wobble = valueNoise(theta, mazeCavernSeed[i], MAZE_EDGE_NOISE_N) * MAZE_EDGE_NOISE_AMP;
-      var sd = (mazeCavernR[i] + wobble) - d;
+    for (i = 0; i < oceanMoundX.length; i++) {
+      var mx = oceanMoundX[i];
+      var mBaseY = oceanMoundBaseY[i], mTopY = oceanMoundTopY[i];
+      var mBaseR = oceanMoundBaseR[i], mTopR = oceanMoundTopR[i];
+      if (y > mBaseY + 40 || y < mTopY - 40) continue; // outside vertical span
+      var u = clamp((mBaseY - y) / Math.max(1, mBaseY - mTopY), 0, 1);
+      var rHere = mBaseR + (mTopR - mBaseR) * u;
+      var wobble = valueNoise(Math.atan2(y - mBaseY, x - mx), oceanMoundSeed[i], MAZE_EDGE_NOISE_N) * MAZE_EDGE_NOISE_AMP * 0.7;
+      var dxm = x - mx;
+      // Inside-cone signed distance: positive OUTSIDE (water), i.e. how far
+      // past the mound's radius this point sits, softened near the cap ends.
+      var horiz = Math.abs(dxm) - (rHere + wobble);
+      var capTop = mTopY - y;   // negative once above the summit (water)
+      var capBase = y - (mBaseY + 20); // negative once below the base (water, blends into seabed term)
+      var sd = -Math.max(horiz, Math.max(capTop, capBase));
       if (sd > best) best = sd;
     }
-    for (i = 0; i < mazeTunnels.length; i++) {
-      var t = mazeTunnels[i];
-      var vx = t.x1 - t.x0, vy = t.y1 - t.y0;
-      var len2 = vx * vx + vy * vy || 1;
-      var u = clamp(((x - t.x0) * vx + (y - t.y0) * vy) / len2, 0, 1);
-      var px = t.x0 + vx * u, py = t.y0 + vy * u;
-      var ddx = x - px, ddy = y - py;
-      var dist = Math.sqrt(ddx * ddx + ddy * ddy);
-      var edgeWobble = valueNoise(u * TAU * 3, i * 1.7, 3) * (MAZE_EDGE_NOISE_AMP * 0.4);
-      var tsd = (t.halfW + edgeWobble) - dist;
-      if (tsd > best) best = tsd;
+
+    // Pockets: small spheres of water subtracted from whichever mound they
+    // sit in, so a pocket always carves INTO rock (never floats in open
+    // water) and always stays open-column safe (radius is small, OCEAN_POCKET_R).
+    for (i = 0; i < oceanPocketMoundIdx.length; i++) {
+      var pMi = oceanPocketMoundIdx[i];
+      var pU = oceanPocketU[i];
+      var pR = oceanPocketR[i];
+      var pX = oceanMoundX[pMi] + Math.cos(oceanMoundSeed[pMi] + i) * (oceanMoundBaseR[pMi] * (1 - pU) + oceanMoundTopR[pMi] * pU) * 0.9;
+      var pY = oceanMoundBaseY[pMi] + (oceanMoundTopY[pMi] - oceanMoundBaseY[pMi]) * pU;
+      var pdx = x - pX, pdy = y - pY;
+      var pdist = Math.sqrt(pdx * pdx + pdy * pdy);
+      var psd = pR - pdist; // positive (water) inside the pocket sphere
+      if (psd > best) best = psd;
     }
-    for (i = 0; i < mazeShafts.length; i++) {
-      var sh = mazeShafts[i];
-      var yLo = Math.min(sh.y0, sh.y1), yHi = Math.max(sh.y0, sh.y1);
-      var syd = y < yLo ? yLo - y : (y > yHi ? y - yHi : 0);
-      var sxd = Math.abs(x - sh.x);
-      var sdist = Math.sqrt(sxd * sxd + syd * syd);
-      var shaftWobble = valueNoise((y - yLo) * 0.01, i * 2.3, 3) * (MAZE_EDGE_NOISE_AMP * 0.3);
-      var shsd = (sh.halfW + shaftWobble) - sdist;
-      if (shsd > best) best = shsd;
-    }
+
     return best;
   }
 
-  // Rasterise the maze into the grid: Float32Array SDF plus Uint8 region ids
+  // Rasterise the ocean into the grid: Float32Array SDF plus Uint8 region ids
   // via flood fill. Grid is (cols+1) x (rows+1) corner samples so bilinear
   // lookups never read past an edge; world edges are rock (6.4: "World edges
   // are rock"), enforced by clamping every sample point into [0, S.w]x[0,S.h]
@@ -2569,106 +2814,67 @@ import * as THREE from 'three';
   }
   var floodStackScratch = [];
 
-  // Rev 6.11 MAZE REACHABILITY: body-radius-aware BFS over the SDF grid's own
-  // corner samples, 4-connected, walkable only where sdf > clearance (not
-  // merely > 0). Returns {ok, bandReach[], reachableN} where bandReach[i] is
-  // true iff zone band i has at least one clearance-walkable cell in the same
-  // BFS component as the given start point. This is the same coarse
-  // resolution the spawn/region system already uses, so it costs one BFS
-  // walk, not a second full raster pass.
-  var bfsClearanceStack = [];
-  function bfsBandReachability(clearance, startX, startY) {
-    var cols = S.sdfCols, rows = S.sdfRows;
-    var Z = zones();
-    var bandReach = new Array(Z.length);
-    for (var bz = 0; bz < Z.length; bz++) bandReach[bz] = false;
-    if (!S.sdf || !cols || !rows) return { ok: false, bandReach: bandReach, reachableN: 0 };
-    var sx = clamp(Math.round(startX / SDF_CELL), 0, cols - 1);
-    var sy = clamp(Math.round(startY / SDF_CELL), 0, rows - 1);
-    var startIdx = sy * cols + sx;
-    var visited = new Uint8Array(cols * rows);
-    if (S.sdf[startIdx] <= clearance) {
-      // Start point itself is not clearance-walkable (should not happen for
-      // a real player position); nudge to the nearest clearance-walkable
-      // corner in a small local search so the test still measures the maze's
-      // own connectivity rather than failing on the probe point.
-      var bestIdx = -1, bestD = 1e18;
-      for (var ry = 0; ry < rows; ry++) {
-        for (var rx = 0; rx < cols; rx++) {
-          var idx2 = ry * cols + rx;
-          if (S.sdf[idx2] <= clearance) continue;
-          var dxp = rx - sx, dyp = ry - sy;
-          var d2p = dxp * dxp + dyp * dyp;
-          if (d2p < bestD) { bestD = d2p; bestIdx = idx2; }
-        }
+  // Rev 9.5 OPEN-COLUMN REACHABILITY: for every OCEAN_XBAND-wide x-slice,
+  // walk a vertical ray at the slice's centre x and require a clearance-
+  // walkable column (sdf > clearance) from the surface down to at least 0.8x
+  // the local seabed depth. This is the open-ocean replacement for the old
+  // maze's band-to-band BFS: "can a tier-12 shark dive down" is now answered
+  // directly by "is there a clear shaft here", not by flood-fill region
+  // membership (region membership is still checked separately for spawn
+  // ring validity, but connectivity between bands no longer depends on
+  // finding a shaft/tunnel — open water IS the connective tissue).
+  function verifyOpenColumns(clearance) {
+    var bad = [];
+    for (var bx = OCEAN_XBAND * 0.5; bx < S.w; bx += OCEAN_XBAND) {
+      var seabed = seabedY(bx);
+      var need = SDF_OPEN_Y + (seabed - SDF_OPEN_Y) * 0.8;
+      var clearY = -1;
+      for (var y = SDF_OPEN_Y; y <= need; y += SDF_CELL) {
+        if (World.terrainSDF(bx, y) <= clearance) { clearY = y; break; }
       }
-      if (bestIdx < 0) return { ok: false, bandReach: bandReach, reachableN: 0 };
-      startIdx = bestIdx;
+      if (clearY >= 0) bad.push({ x: bx, blockedY: clearY, need: need });
     }
-    var stack = bfsClearanceStack;
-    stack.length = 0;
-    stack.push(startIdx);
-    visited[startIdx] = 1;
-    while (stack.length) {
-      var idx = stack.pop();
-      var cx = idx % cols, cy = (idx / cols) | 0;
-      var neigh = [cx - 1, cy, cx + 1, cy, cx, cy - 1, cx, cy + 1];
-      for (var ni = 0; ni < 4; ni++) {
-        var nx = neigh[ni * 2], ny = neigh[ni * 2 + 1];
-        if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) continue;
-        var nIdx = ny * cols + nx;
-        if (visited[nIdx] || S.sdf[nIdx] <= clearance) continue;
-        visited[nIdx] = 1;
-        stack.push(nIdx);
-      }
-    }
-    var reachableN = 0;
-    for (var bandI = 0; bandI < Z.length; bandI++) {
-      var zoneRow = Z[bandI];
-      var midY = (zoneRow.yMin + zoneRow.yMax) * 0.5;
-      var found = false;
-      for (var bx = 100; bx < S.w && !found; bx += SDF_CELL) {
-        var bcx = clamp(Math.round(bx / SDF_CELL), 0, cols - 1);
-        var bcy = clamp(Math.round(midY / SDF_CELL), 0, rows - 1);
-        var bIdx = bcy * cols + bcx;
-        if (visited[bIdx] && S.sdf[bIdx] > clearance) found = true;
-      }
-      bandReach[bandI] = found;
-      if (found) reachableN++;
-    }
-    return { ok: reachableN === Z.length, bandReach: bandReach, reachableN: reachableN };
+    return { ok: bad.length === 0, bad: bad };
   }
 
-  // Rev 6.11 MAZE REACHABILITY: if the body-radius-aware BFS fails for the
-  // shipped seed at the standard tunnel/shaft half-widths, widen every
-  // tunnel and shaft IN PLACE (same centreline, same noise seed, so the
-  // cavern graph and its RNG draw count are untouched) and rebuild only the
-  // SDF grid, repeating deterministically until it passes or the cap is hit.
-  // No new S.rng draws happen here, so downstream spawn/decor sampling is
-  // unaffected by whether a widen pass ran.
+  // Deterministic (no new S.rng draws) fixup: if a band fails the open-column
+  // check, shrink the base radius of every mound whose horizontal span
+  // reaches that band's centre x, then rebuild only the SDF grid. Mirrors the
+  // old maze's widenTunnelsForReachability shape (same centreline/seed,
+  // rebuild grid, repeat up to a cap) but shrinks mounds instead of widening
+  // tunnels, since here the failure mode is "too much rock", not "too little".
+  var OCEAN_SHRINK_STEP = 40;
+  var OCEAN_SHRINK_MAX_TRIES = 8;
   var MAZE_CLEARANCE = 98 + 24; // tier-12 body radius + SDF_SPAWN_CLEAR
-  var MAZE_WIDEN_STEP = 20;
-  var MAZE_WIDEN_MAX_TRIES = 6;
-  function widenTunnelsForReachability(startX, startY) {
-    for (var attempt = 0; attempt < MAZE_WIDEN_MAX_TRIES; attempt++) {
-      var res = bfsBandReachability(MAZE_CLEARANCE, startX, startY);
+  function ensureOpenColumns() {
+    for (var attempt = 0; attempt < OCEAN_SHRINK_MAX_TRIES; attempt++) {
+      var res = verifyOpenColumns(MAZE_CLEARANCE);
       if (res.ok) return res;
-      for (var i = 0; i < mazeTunnels.length; i++) mazeTunnels[i].halfW += MAZE_WIDEN_STEP;
-      for (var j = 0; j < mazeShafts.length; j++) mazeShafts[j].halfW += MAZE_WIDEN_STEP;
+      for (var b = 0; b < res.bad.length; b++) {
+        var bx = res.bad[b].x;
+        for (var mi = 0; mi < oceanMoundX.length; mi++) {
+          if (Math.abs(oceanMoundX[mi] - bx) < oceanMoundBaseR[mi] + OCEAN_XBAND * 0.5) {
+            oceanMoundBaseR[mi] = Math.max(120, oceanMoundBaseR[mi] - OCEAN_SHRINK_STEP);
+            oceanMoundTopR[mi] = Math.min(oceanMoundTopR[mi], oceanMoundBaseR[mi] * OCEAN_MOUND_TOP_R_FRAC[1]);
+            mazeCavernR[mi] = oceanMoundBaseR[mi] + (oceanMoundTopR[mi] - oceanMoundBaseR[mi]) * 0.4;
+          }
+        }
+      }
       buildSDFGrid();
     }
-    return bfsBandReachability(MAZE_CLEARANCE, startX, startY);
+    return verifyOpenColumns(MAZE_CLEARANCE);
   }
 
   function buildMaze() {
     buildMazeLayout();
     buildSDFGrid();
-    // Rev 6.11: verify body-radius-aware reachability for the shipped seed
-    // right after generation, widening deterministically (no rng draws) if
-    // the initial widths do not clear a tier-12 body from an open-water
-    // start point. This runs once per World.init(), not per frame.
-    widenTunnelsForReachability(S.w * 0.5, SDF_OPEN_Y * 0.5);
+    // Rev 9.5: verify every OCEAN_XBAND-wide x-slice keeps a clear vertical
+    // path from the surface to 0.8x local seabed depth, shrinking mounds
+    // deterministically (no rng draws) if the initial layout ever fails.
+    // This runs once per World.init(), not per frame.
+    ensureOpenColumns();
   }
+
 
   // terrainSDF(x,y) -> signed px, positive = water. Bilinear over the corner
   // grid; out-of-bounds samples clamp to the nearest edge cell (still correct
@@ -3435,6 +3641,8 @@ import * as THREE from 'three';
   // radial Snell window sits just behind it and fades by atmosphere depth.
   var SURFACE_SEGMENTS = 64;
   var SURFACE_RIBBON_H = 54;
+  var SURFACE_RIBBON_ALPHA = 0.34;  // base alpha before ribbonFade() depth scaling
+  var SURFACE_FOAM_ALPHA = 0.10;    // base alpha before ribbonFade() depth scaling
   var SURFACE_WAVE_RATE = 0.8;
   var SURFACE_WAVE_K = 0.012;
   var SNELL_W = 1400;
@@ -3479,16 +3687,27 @@ import * as THREE from 'three';
 
   function buildSurface() {
     if (!isThree()) return;
-    // The wash is a full-width ADDITIVE plane blanketing the top
-    // SURFACE_LIGHT_H px, which is exactly the zone-1 gameplay band, so its
-    // alpha is charged against the shelf's saturation on every frame the
-    // player is on the shelf. The wash is a restrained 0.025 accent, not a
-    // second water-colour layer.
+    // Rev 9 DRESSING fix: this used to be a flat-alpha planeMesh (uniform
+    // 0.025 opacity top to bottom) spanning the full SURFACE_LIGHT_H=500px —
+    // a hard-edged rectangle with a visible bottom seam wherever the camera
+    // sat below it, which is exactly the "pale rectangle" read reported at
+    // spawn depth. Rebuilt as a vertical-gradient quad (quadPushGradient):
+    // brightest right at the waterline, tight through the true y~0..120
+    // surface band, then a soft fade down to zero alpha by SURFACE_LIGHT_H —
+    // a light gradient, not an opaque panel with an edge.
     var ripple = surfaceTexture('__rf_surface_ripple', false);
     var snellMap = surfaceTexture('__rf_snell_window', true);
-    var wash = planeMesh(S.w, SURFACE_LIGHT_H, 0xbfe9f5, 0.025, true, ripple);
+    quadReset();
+    // cy is THREE-space y (sim y negated, per quadPush's convention used
+    // throughout this module — see the ray/reef/caustic callers), and
+    // topColor/topAlpha land on the quad's greater-local-y (screen-up, i.e.
+    // sim-shallower) vertices, so topAlpha is the waterline edge and
+    // bottomAlpha is the deep edge, matching the fade direction intended.
+    quadPushGradient(S.w * 0.5, -SURFACE_LIGHT_H * 0.5, Z_SURFACE - 20,
+      S.w, SURFACE_LIGHT_H, 0, 1, 0xbfe9f5, 0xbfe9f5, 0.04, 0);
+    var washGeo = mergeQuads();
+    var wash = washGeo ? batchMesh(ripple, true, undefined, false, { fog: false }, washGeo) : null;
     if (wash) {
-      setPos(wash, S.w * 0.5, SURFACE_LIGHT_H * 0.5, Z_SURFACE - 20);
       sceneAdd(wash);
       S.decor.push(wash);
     }
@@ -3595,6 +3814,36 @@ import * as THREE from 'three';
     return null;
   }
 
+  // Rev 9 DRESSING fix: findWallY sweeps a vertical ray inside a fixed
+  // [yLo, yHi] band and returns null whenever that whole band is open water,
+  // which the OPEN-OCEAN generator (9.5) makes true for most of a shallow
+  // zone's random x samples (a mound is a sparse, narrow rock feature, not a
+  // wall-to-wall cavern floor). Callers that fell back to `zone.yMax` on a
+  // null read ended up rooting coral/kelp/ruins at the bare zone BOUNDARY —
+  // floating in open water, not on any real terrain — which is why the
+  // seabed/mound tops read empty near spawn. This instead looks up the
+  // nearest MOUND that actually pierces the given y-range and returns a
+  // point on its flank (a fraction `u` up its slope), so shallow-zone decor
+  // roots on a real mound surface when one is in range, and only degrades to
+  // null (caller's own boundary fallback) when no mound reaches this y-band
+  // at all near `xNear`.
+  function moundFlankY(xNear, yLo, yHi, u) {
+    if (!oceanMoundX.length) return null;
+    var best = -1, bestD = 1e18;
+    for (var i = 0; i < oceanMoundX.length; i++) {
+      var topY = oceanMoundTopY[i], baseY = oceanMoundBaseY[i];
+      // Mound must reach into [yLo, yHi] somewhere along its vertical span.
+      if (topY > yHi || baseY < yLo) continue;
+      var d = Math.abs(oceanMoundX[i] - xNear);
+      if (d < bestD) { bestD = d; best = i; }
+    }
+    if (best < 0) return null;
+    var uu = u === undefined ? 0.5 : u;
+    var y = clamp(oceanMoundBaseY[best] + (oceanMoundTopY[best] - oceanMoundBaseY[best]) * uu, yLo, yHi);
+    var r = oceanMoundBaseR[best] + (oceanMoundTopR[best] - oceanMoundBaseR[best]) * uu;
+    return { x: oceanMoundX[best], y: y, r: r, idx: best };
+  }
+
   function buildDecor() {
     if (!isThree()) return;
     var Z = zones();
@@ -3604,11 +3853,27 @@ import * as THREE from 'three';
     var floorZone = Z[Z.length - 1];
     var floorWater = floorZone ? hexNum(floorZone.tint) : 0x050d17;
     quadReset();
+    // Rev 9 DRESSING: these used to root flat at S.h (the absolute world
+    // floor), which only matches the true seabed in the deepest trenches —
+    // the open-ocean seabed rolls between OCEAN_SEABED_Y[0..1] (~4300-4600)
+    // and rises well above that on mound flanks, so a flat S.h anchor left
+    // rocks buried below the visible terrain almost everywhere. 60 root on
+    // the real rolling seabedY(x); 30 root on mound flanks (a fraction u up
+    // the slope) so mounds read as dressed rock, not bare cones, up near the
+    // shallow zones where their summits actually reach.
     for (i = 0; i < 90; i++) {
       var rs = rr(0.5, 1.5);
       var rw = 90 * rs, rh = 70 * rs;
-      var rx = rr(0, S.w);
-      var ry = S.h - rr(0, 26);
+      var rx, ry;
+      if (i < 60 || !oceanMoundX.length) {
+        rx = rr(0, S.w);
+        ry = seabedY(rx) - rr(0, 26);
+      } else {
+        var rmi = ri(0, oceanMoundX.length - 1);
+        var rmu = rr(0, 0.85);
+        rx = oceanMoundX[rmi] + rr(-0.7, 0.7) * (oceanMoundBaseR[rmi] + (oceanMoundTopR[rmi] - oceanMoundBaseR[rmi]) * rmu);
+        ry = oceanMoundBaseY[rmi] + (oceanMoundTopY[rmi] - oceanMoundBaseY[rmi]) * rmu - rr(0, 20);
+      }
       var mir = rnd() < 0.5 ? -1 : 1;
       // Rooted on the floor: the quad centre is half a height above the root.
       var rz = rr(Z_KELP[0], Z_KELP[1]);
@@ -3813,14 +4078,40 @@ import * as THREE from 'three';
     for (i = 0; i < shallow; i++) {
       var zone = Z[i];
       var water = hexNum(zone.tint);
-      for (j = 0; j < 6; j++) {
-        var x = rr(160, S.w - 160);
-        // Rev 6 fix: anchor to the maze's real cavern floor near this x
-        // instead of blindly assuming the zone's authored yMax is solid
-        // ground everywhere (the SDF maze carves caverns/tunnels that do not
-        // follow a flat heightline), so coral never floats over open water.
-        var wallAnchor = findWallY(x, zone.yMin + 40, zone.yMax - 20);
-        var baseY = (wallAnchor !== null ? wallAnchor : zone.yMax) - rr(45, 170);
+      // Rev 9 DRESSING: the open-ocean SDF (9.5) put real rock only on
+      // sparse mounds, not a wall-to-wall zone floor, so a plain rr(0, S.w)
+      // x sample mostly lands over bare open water in a shallow zone. Bias
+      // most of this zone's coral count toward the mounds that actually
+      // pierce into it (moundsHere), and keep a few open-water rr() samples
+      // for whatever real cavern/tunnel floor findWallY still finds, so
+      // coral both clusters on mound tops/flanks (readable near spawn) and
+      // still covers any leftover real terrain.
+      var moundsHere = [];
+      for (var mi9 = 0; mi9 < oceanMoundX.length; mi9++) {
+        if (oceanMoundTopY[mi9] <= zone.yMax && oceanMoundBaseY[mi9] >= zone.yMin) moundsHere.push(mi9);
+      }
+      var REEF_N = moundsHere.length ? 10 : 6;
+      for (j = 0; j < REEF_N; j++) {
+        var x, baseY;
+        var useMound = moundsHere.length && (j % 3 !== 2 || !zone);
+        if (useMound) {
+          var mIdx = moundsHere[j % moundsHere.length];
+          var mu = rr(0.05, 0.55); // lower/mid flank, not the bare summit
+          x = oceanMoundX[mIdx] + rr(-0.6, 0.6) * (oceanMoundBaseR[mIdx] + (oceanMoundTopR[mIdx] - oceanMoundBaseR[mIdx]) * mu);
+          baseY = clamp(oceanMoundBaseY[mIdx] + (oceanMoundTopY[mIdx] - oceanMoundBaseY[mIdx]) * mu, zone.yMin + 40, zone.yMax - 20) - rr(20, 70);
+        } else {
+          x = rr(160, S.w - 160);
+          // Rev 6 fix: anchor to the maze's real cavern floor near this x
+          // instead of blindly assuming the zone's authored yMax is solid
+          // ground everywhere (the SDF maze carves caverns/tunnels that do not
+          // follow a flat heightline), so coral never floats over open water.
+          var wallAnchor = findWallY(x, zone.yMin + 40, zone.yMax - 20);
+          if (wallAnchor === null) {
+            var mFlank = moundFlankY(x, zone.yMin + 40, zone.yMax - 20, rr(0.1, 0.5));
+            wallAnchor = mFlank ? mFlank.y : null;
+          }
+          baseY = (wallAnchor !== null ? wallAnchor : zone.yMax) - rr(45, 170);
+        }
         var z = rr(-155, -95);
         var color = REEF_PALETTE[ri(0, REEF_PALETTE.length - 1)];
         var scale = rr(0.72, 1.35);
@@ -3871,6 +4162,10 @@ import * as THREE from 'three';
           if ((j & 1) !== group) continue;
           var fanX = rr(160, S.w - 160);
           var fanWall = findWallY(fanX, zone.yMin + 40, zone.yMax - 20);
+          if (fanWall === null) {
+            var fanFlank = moundFlankY(fanX, zone.yMin + 40, zone.yMax - 20, rr(0.05, 0.5));
+            fanWall = fanFlank ? fanFlank.y : null;
+          }
           var fanY = (fanWall !== null ? fanWall : zone.yMax) - rr(35, 145);
           pushReef(fanX, fanY, rr(-150, -90),
             rr(0.75, 1.2), j % 2, REEF_PALETTE[ri(0, REEF_PALETTE.length - 1)], water, group);
@@ -4090,7 +4385,19 @@ import * as THREE from 'three';
       // 0.28-accent 0.6-alpha body rendered as translucent pastel panels -
       // exactly the "pastel Tetris" failure, not cyberpunk.
       var tBody = lerpColor(scaleColor(tBase, 0.34), accent, 0.10);
-      var tTop = lerpColor(scaleColor(tBase, 0.55), accent, 0.55);
+      // Rev 9 DRESSING fix: quadPush interpolates top/bottom colour linearly
+      // across the WHOLE quad, not just a thin cap, so at 0.55/0.55 this top
+      // colour (~55% of the raw accent, e.g. RGB(0.55,0.10,0.47) for
+      // magenta) painted roughly the top half of every 340-620px-tall tower
+      // a fully saturated solid colour. With towers every ABYSS_TOWER_STEP=
+      // 130px overlapping densely (deliberately, for a contiguous skyline),
+      // that summed into one wide, flat, brightly saturated slab — the
+      // "big pale/saturated rectangle" defect reported for the abyss band,
+      // not a set of dark towers with a lit crown. Lowered so the top edge
+      // reads as a modest highlight (the real "lit crown" brightness still
+      // comes from the separate ruinGlowRec additive crown/window pass a
+      // few lines below, which is deliberately small and sparse).
+      var tTop = lerpColor(scaleColor(tBase, 0.55), accent, 0.22);
       quadPush(tx, -tCy, tz, tw, th, 0, (step & 1) ? -1 : 1, tBody, 0.88, tTop);
       // Glow crown: a bright additive cap, but only every THIRD tower (was
       // every other) so neighbouring crowns do not additively overlap into a
@@ -4165,6 +4472,10 @@ import * as THREE from 'three';
           var shapeI = rn % 3;
           var rx = rr(0, S.w);
           var ruinWall = findWallY(rx, z.yMin + 40, z.yMax - 20);
+          if (ruinWall === null && i !== Z.length - 1) {
+            var ruinFlank = moundFlankY(rx, z.yMin + 40, z.yMax - 20, rr(0.1, 0.5));
+            ruinWall = ruinFlank ? ruinFlank.y : null;
+          }
           var floorY = (ruinWall !== null ? ruinWall : (i === Z.length - 1 ? S.h : z.yMax)) - rr(20, 90);
           var rz = rr(Z_SIL[0], Z_SIL[1]);
           var rw, rh;
@@ -4203,7 +4514,12 @@ import * as THREE from 'three';
         // between them, so any ordinary-play camera position is more likely
         // to have one in frame; the budget cost per landmark is one quad
         // plus a couple of glow-batch entries, well inside the tri/draw cap.
-        var wantLandmarks = Math.min(6, Math.max(3, anchors.length));
+        // Rev 9 DRESSING: capped relative to the real anchor count (at most
+        // 2 landmarks per real mound-flank anchor) rather than a flat 3-6,
+        // since the open-ocean world can offer very few anchors in a given
+        // shallow zone and over-requesting just forced the x-offset spread
+        // above to work harder for no visual gain.
+        var wantLandmarks = anchors.length ? Math.min(6, anchors.length * 2) : 3;
         var baseAccent = ZONE_LANDMARK_ACCENT[i] || NEON_CYAN;
         var altAccent = ZONE_LANDMARK_ALT[i];
         for (var li = 0; li < wantLandmarks; li++) {
@@ -4214,7 +4530,22 @@ import * as THREE from 'three';
           // caverns/tunnels in range still gets guaranteed, evenly-spaced
           // landmarks rather than silently having none).
           var anchor = anchors.length ? anchors[li % anchors.length] : null;
-          var lx = anchor ? anchor.x : (S.w * (li + 1)) / (wantLandmarks + 1);
+          // Rev 9 DRESSING fix: the open-ocean SDF (9.5) can leave a shallow
+          // zone with very few real anchors (often just 1-2 mound flanks
+          // piercing into it), so `li % anchors.length` was reusing the SAME
+          // anchor x for every wrap of the landmark loop — up to 6 large
+          // (360-480px), high-alpha (0.82) holo-gate quads stacked directly
+          // on top of one another at one x. Several saturated cyan/magenta
+          // quads alpha-blended on top of each other like that read as one
+          // big washed-pale slab (mixing cyan+magenta toward white), which
+          // is exactly the "big flat pale rectangle" defect reported at
+          // spawn depth. Every wrap past the first now gets a deterministic
+          // x offset off that anchor so repeats spread out along the mound
+          // flank instead of colliding at one point.
+          var anchorWrap = anchors.length ? Math.floor(li / anchors.length) : 0;
+          var lx = anchor ? anchor.x + anchorWrap * (anchor.r || 300) * 2.4 * (li & 1 ? -1 : 1)
+            : (S.w * (li + 1)) / (wantLandmarks + 1);
+          lx = clamp(lx, 200, S.w - 200);
           var lWall = findWallY(lx, z.yMin + 40, z.yMax - 20);
           var lFloorY = (lWall !== null ? lWall : (isAbyss ? S.h : z.yMax)) - 30;
           // ART BUG FOUND (verified via direct scene inspection): the
@@ -4444,10 +4775,8 @@ import * as THREE from 'three';
     // def, which the entity budget caps.
     var obj = null, rig = null;
     if (e.kind === 'relic') {
-      // Rev 7 7.6: reuse the buffpickup fallback-quad path (same glint
-      // language, tinted from the relic row's own colour) rather than a new
-      // bake, matching the "reuse the pickup sparkle path" instruction.
-      obj = fallbackMesh(paletteBase(e.def), true);
+      // Rev 9: relics are golden emissive gems (were bare white quads).
+      obj = makePickupGem(0xffc857, false);
     } else if (e.kind === 'pickup') {
       obj = makeCoin();
     } else if (e.kind === 'buffpickup' || e.kind === 'gempickup') {
@@ -4455,7 +4784,7 @@ import * as THREE from 'three';
       // quad the coin uses, tinted from the buff row's own accent colour
       // (carried on e.def.sil.palette.base by spawnBuffAt) rather than a bake.
       // Rev 7: gempickup (spawnGemAt) reuses this identical path, tinted gem-cyan.
-      obj = fallbackMesh(paletteBase(e.def), true);
+      obj = makePickupGem(paletteBase(e.def), false);
     } else if (e.kind === 'predator') {
       rig = makeSharkRig(e.def);
       obj = rig ? rig.group : makeBillboard(e.def, e.kind);
@@ -5008,9 +5337,12 @@ import * as THREE from 'three';
     // Rev 6.11 NURSERY LAW: a fresh/low-tier player (tier <= NURSERY_TIER) is
     // completely off-limits to predator spawns within NURSERY_R, regardless
     // of zone or region, so a new run is never ambushed at the ring edge.
+    // Rev 9 9.4 CLARITY: roll trimmed 0.12 -> 0.09 (modest cut) so predators
+    // are not competing for the much smaller onscreen budget as heavily as
+    // before, leaving more of the reduced budget for readable prey schools.
     var nurseryPlayer = ctx.player && (ctx.player.tier || 1) <= NURSERY_TIER;
     var npcList = S.npcByZone[z.id];
-    if (npcList && npcList.length && rnd() < 0.12 &&
+    if (npcList && npcList.length && rnd() < 0.09 &&
       !(nurseryPlayer && withinNursery(ctx.player, ringOut[0], ringOut[1]))) {
       var npcId = pickWeighted(npcList);
       var npcDef = defOf(npcId);
@@ -5049,6 +5381,96 @@ import * as THREE from 'three';
       p.t = rr(2.5, 6);
     }
     return p;
+  }
+
+  // ------------------------------------------------------- Rev 9 SCHOOLING
+  // Real boids: separation + alignment + cohesion computed from same-pack
+  // neighbors found via the existing spatial grid (S.grid / CELL), so this
+  // adds zero new allocation and zero new data structures — only a direct
+  // grid walk (own scratch accumulators, not the shared scratchQuery buffer
+  // World.query/eatQuery use, since schoolSteer can run mid-entity-loop
+  // while those may also be live elsewhere in the same frame).
+  //
+  // Separation: steer away from neighbors closer than ~1 body length.
+  // Alignment: match the mean heading (velocity direction) of neighbors.
+  // Cohesion: steer toward the mean position (local centroid) of neighbors.
+  // All three read directly off entity x/y/vx/vy; no per-entity allocation,
+  // no per-pack precompute pass needed since the grid walk is already O(local
+  // density) not O(pack size).
+  function schoolSteer(e, dt) {
+    var r = e.r || 14;
+    var rad = r * SCHOOL_RADIUS_BL * 2; // "body length" ~= 2r
+    var rad2 = rad * rad;
+    var sepR = r * 1.4;
+    var sepR2 = sepR * sepR;
+    var x0 = clamp(Math.floor((e.x - rad) / CELL), 0, S.cols - 1);
+    var x1 = clamp(Math.floor((e.x + rad) / CELL), 0, S.cols - 1);
+    var y0 = clamp(Math.floor((e.y - rad) / CELL), 0, S.rows - 1);
+    var y1 = clamp(Math.floor((e.y + rad) / CELL), 0, S.rows - 1);
+    var sepX = 0, sepY = 0;
+    var alignX = 0, alignY = 0;
+    var cohX = 0, cohY = 0;
+    var n = 0;
+    var packId = e.st.packId;
+    for (var cy = y0; cy <= y1; cy++) {
+      for (var cx = x0; cx <= x1; cx++) {
+        var bucket = S.grid[cy * S.cols + cx];
+        if (!bucket) continue;
+        for (var i = 0; i < bucket.length; i++) {
+          var o = bucket[i];
+          if (o === e || !o.active || o.kind !== 'prey' || o.st.packId !== packId) continue;
+          var dx = o.x - e.x, dy = o.y - e.y;
+          var d2 = dx * dx + dy * dy;
+          if (d2 > rad2) continue;
+          n++;
+          cohX += o.x; cohY += o.y;
+          alignX += o.vx; alignY += o.vy;
+          if (d2 < sepR2 && d2 > 1e-6) {
+            var d = Math.sqrt(d2);
+            var push = (sepR - d) / sepR; // stronger the closer they are
+            sepX -= (dx / d) * push;
+            sepY -= (dy / d) * push;
+          }
+        }
+      }
+    }
+    schoolScratchN = n;
+    if (n === 0) { schoolScratchX = e.x; schoolScratchY = e.y; return false; }
+    // Cohesion target: local centroid (mean position of neighbors, excluding
+    // self, which already biases toward "the rest of the school").
+    var invN = 1 / n;
+    cohX *= invN; cohY *= invN;
+    alignX *= invN; alignY *= invN;
+    var toCohX = cohX - e.x, toCohY = cohY - e.y;
+    // Combine the three terms into one steer target point ahead of e, weighted
+    // per SCHOOL_*_W. Alignment is a heading (velocity), so it is added as a
+    // direction rather than a point-toward.
+    var alignLen = Math.sqrt(alignX * alignX + alignY * alignY);
+    var alignDirX = alignLen > 1e-4 ? alignX / alignLen : 0;
+    var alignDirY = alignLen > 1e-4 ? alignY / alignLen : 0;
+    schoolScratchX = e.x + sepX * SCHOOL_SEP_W * 40 + toCohX * SCHOOL_COH_W * 0.5 +
+      alignDirX * SCHOOL_ALIGN_W * 60;
+    schoolScratchY = e.y + sepY * SCHOOL_SEP_W * 40 + toCohY * SCHOOL_COH_W * 0.5 +
+      alignDirY * SCHOOL_ALIGN_W * 60;
+    return true;
+  }
+  var schoolScratchX = 0, schoolScratchY = 0, schoolScratchN = 0;
+
+  // School-level panic: when the player is within SCHOOL_PANIC_R of the pack's
+  // wander record owner (approximated per-entity, cheap dx/dy, no separate
+  // per-pack pass needed since this already runs once per prey per step), the
+  // WHOLE pack record is marked panicked so every member's cohesion pulls
+  // toward a scatter point instead of the calm centroid, then regroups
+  // SCHOOL_PANIC_REGROUP seconds after the player leaves range.
+  function updateSchoolPanic(pack, e, ctx, dt) {
+    if (pack.panicT > 0) pack.panicT -= dt;
+    var player = ctx && ctx.player;
+    if (!player) return pack.panicT > 0;
+    var dx = player.x - e.x, dy = player.y - e.y;
+    if (dx * dx + dy * dy < SCHOOL_PANIC_R * SCHOOL_PANIC_R) {
+      pack.panicT = SCHOOL_PANIC_REGROUP;
+    }
+    return pack.panicT > 0;
   }
 
   function tierGap(playerTier, entTier) {
@@ -5299,6 +5721,56 @@ import * as THREE from 'three';
         e.st.jitterT = rr(0.5, 1.6);
         e.st.jx = rr(-1, 1);
         e.st.jy = rr(-0.6, 0.6);
+      }
+      // Rev 9 SCHOOLING: an ungrouped fish (packId 0, e.g. a solo tier or a
+      // single-spawn) falls back to the original lone-wander jitter exactly
+      // as before. A packed fish instead flocks: boids separation/alignment/
+      // cohesion from same-pack neighbors, blended with the pack's shared
+      // wander target (the same p.dx/p.dy heading packVec already rolls) so
+      // the WHOLE school still drifts toward one shared destination rather
+      // than only clumping locally with no net travel. Bounded turn rate via
+      // steer()'s own 'turn' param (SCHOOL_TURN_RATE), same mechanism the
+      // rest of the AI already relies on for smooth heading changes.
+      if (p) {
+        var panicked = updateSchoolPanic(p, e, ctx, dt);
+        var haveNeighbors = schoolSteer(e, dt);
+        var wanderX = e.x + p.dx * 260, wanderY = e.y + p.dy * 260;
+        var tx, ty, speedFrac;
+        if (panicked) {
+          // Scatter: push away from the pack centroid (or, with no visible
+          // neighbors this step, straight away from the player) instead of
+          // toward it, and sprint. schoolSteer's cohesion term already
+          // points AT the local centroid when neighbors are found; panic
+          // inverts that pull by steering to the mirror point across e, so
+          // members spray outward rather than balling up tighter under
+          // threat. Regroup happens naturally once p.panicT decays back to
+          // calm and cohesion resumes pulling members back together.
+          if (haveNeighbors) {
+            tx = e.x - (schoolScratchX - e.x);
+            ty = e.y - (schoolScratchY - e.y);
+          } else {
+            tx = wanderX; ty = wanderY;
+          }
+          speedFrac = FLEE_BURST;
+        } else if (haveNeighbors) {
+          tx = schoolScratchX * (1 - SCHOOL_WANDER_W * 0.3) + wanderX * (SCHOOL_WANDER_W * 0.3);
+          ty = schoolScratchY * (1 - SCHOOL_WANDER_W * 0.3) + wanderY * (SCHOOL_WANDER_W * 0.3);
+          speedFrac = SCHOOL_SPEED_MIN + (SCHOOL_SPEED_MAX - SCHOOL_SPEED_MIN) *
+            clamp(schoolScratchN / 6, 0, 1);
+        } else {
+          // No same-pack neighbor within radius this step (e.g. just spawned,
+          // or scattered far out) — chase the shared pack wander target alone
+          // until it rejoins, same behavior as the pre-Rev-9 packVec path.
+          tx = wanderX; ty = wanderY;
+          speedFrac = 0.6;
+        }
+        tx += e.st.jx * 18; ty += e.st.jy * 18; // small per-fish undulation jitter
+        // steer() already routes through steerWhisker (SDF wall-tangent
+        // avoidance) and integrate() resolves against the terrain SDF right
+        // after, same as every other mover — schooling adds no separate
+        // terrain push, it only changes the TARGET steer() chases.
+        steer(e, tx, ty, spd * speedFrac, dt, SCHOOL_TURN_RATE);
+        return;
       }
       var dirX = (p ? p.dx : Math.cos(e.st.drift)) + e.st.jx * 0.5;
       var dirY = (p ? p.dy : Math.sin(e.st.drift) * 0.5) + e.st.jy * 0.5;
@@ -5665,10 +6137,15 @@ import * as THREE from 'three';
       if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) continue;
       if (S.sdf[ny * cols + nx] > clearance) openNeighbors++;
     }
-    // Fewer open neighbors = more enclosed = more "dead end". A fully open
-    // 4-neighbor cell (mid-corridor or open water) scores worst; a 1-neighbor
-    // cul-de-sac scores best. 0-neighbor cells are isolated noise, excluded.
-    if (openNeighbors === 0 || openNeighbors > 2) return -1;
+    // Fewer open neighbors = more enclosed = more "dead end"/"pocket". A
+    // fully open 4-neighbor cell (open water) scores worst; a 1-neighbor
+    // cul-de-sac scores best. Rev 9.5: open-ocean relic pockets are small
+    // spheres carved into a mound (see oceanPocketMoundIdx et al.), so a
+    // valid pocket interior cell can have anywhere from 1 to 3 open
+    // neighbors depending on how the SDF_CELL grid happens to straddle the
+    // pocket's rounded boundary; only a fully-open (4) or fully-enclosed (0)
+    // cell is excluded.
+    if (openNeighbors === 0 || openNeighbors > 3) return -1;
     // Prefer cells with some clearance (room for the relic's own radius) but
     // not so much they read as open water.
     var clearanceScore = clamp(v / (RELIC_R * 4), 0, 1);
@@ -5981,7 +6458,26 @@ import * as THREE from 'three';
   // this function reads records and writes scalars onto three objects. It
   // allocates nothing, calls no rng, and its cost is O(background layers),
   // which is a constant of the build, not of the entity count.
-  function animateWater(t, camX) {
+  // Rev 9 DRESSING: the ribbon/foam are TRUE-SURFACE dressing (y~0..120 per
+  // the WORLD READ brief) — a solid pale strip meant to be seen from just
+  // under the waterline, not a feature the camera should still read clearly
+  // from mid-zone depth. A camera hundreds of sim units below sees any
+  // world-wide plane at y~0 nearly edge-on, which reads as a big pale band
+  // across the frame regardless of its own alpha tuning (grazing incidence
+  // covers screen area; it is not attenuated by the material's alpha). The
+  // real fix is depth-based: fade the ribbon/foam toward invisible as the
+  // camera leaves the true surface band, the same treatment snellAlpha()
+  // already gives the Snell window disc.
+  var RIBBON_FADE_Y = 260;   // ribbon/foam at full strength above this depth
+  var RIBBON_FADE_END = 900; // fully faded by this depth
+  function ribbonFade(camY) {
+    if (typeof camY !== 'number') return 1;
+    if (camY <= RIBBON_FADE_Y) return 1;
+    if (camY >= RIBBON_FADE_END) return 0;
+    return 1 - (camY - RIBBON_FADE_Y) / (RIBBON_FADE_END - RIBBON_FADE_Y);
+  }
+
+  function animateWater(t, camX, camY) {
     var i, rec, o;
 
     // Caustic light planes: horizontal sine drift plus an independent alpha
@@ -6073,12 +6569,26 @@ import * as THREE from 'three';
         if (S.surface.snell.position && typeof camX === 'number') S.surface.snell.position.x = camX;
         if (S.surface.snell.material) S.surface.snell.material.opacity = snellAlpha();
       }
+      // Depth-fade the ribbon itself and the wash, same reasoning as the
+      // Snell window: a plane spanning the whole world at y~0 reads as a
+      // pale band from far below it regardless of its own alpha, so scale
+      // material opacity down with camera depth to keep both true-surface
+      // features (visible only in the y~0..120 band) rather than a
+      // mid-water rectangle.
+      var fade = ribbonFade(camY);
+      if (S.surface.mesh && S.surface.mesh.material) {
+        S.surface.mesh.material.opacity = SURFACE_RIBBON_ALPHA * fade;
+      }
+      if (S.surface.wash && S.surface.wash.material) {
+        S.surface.wash.material.opacity = fade;
+      }
     }
 
     // Foam strip rides the waterline on a slow sine, so the boundary between
     // water and air is never a dead straight edge.
     if (S.surface && S.surface.foam && S.surface.foam.position) {
       S.surface.foam.position.x = S.surface.x0 + Math.sin(t * 0.6) * 40 + (t * 14) % 240;
+      if (S.surface.foam.material) S.surface.foam.material.opacity = SURFACE_FOAM_ALPHA * ribbonFade(camY);
     }
 
   }
@@ -6137,6 +6647,34 @@ import * as THREE from 'three';
   var lastDt = 1 / 60;
   function dtOf() { return lastDt; }
 
+  // Rev 9 EAT-VANISH: a chewed-but-not-yet-dead prey (multiBite hit it but
+  // e.hp is still > 0) must visibly READ as chewed — it shrinks toward its
+  // remaining-hp fraction and pops with a brief flinch right on each bite —
+  // rather than looking untouched until the instant it vanishes. Floor of
+  // 0.55 keeps a badly-chewed fish readable/eatable rather than shrinking to
+  // nothing before World.kill actually fires (that final vanish is instant,
+  // per the eat-vanish contract; this is only the "still alive, visibly hurt"
+  // read in between chews). _biteCd is multiBite's own 0.15s per-target chew
+  // cooldown (world3d.js S._biteCd tick in World.update), so a fresh flinch
+  // pop is available with no new timer field.
+  var CHEW_SHRINK_FLOOR = 0.55;
+  var CHEW_FLINCH_POP = 0.16;
+  var CHEW_FLINCH_T = 0.15; // matches multiBite's e._biteCd window
+  function chewShrinkScale(e) {
+    var maxHp = e.maxHp > 0 ? e.maxHp : 1;
+    if (maxHp <= 1) return 1; // tier-0 one-hit prey never survives a partial chew
+    var hpFrac = clamp(e.hp / maxHp, 0, 1);
+    var shrink = CHEW_SHRINK_FLOOR + (1 - CHEW_SHRINK_FLOOR) * hpFrac;
+    if (e._biteCd > 0) {
+      // Flinch: a brief outward pop on the frame(s) right after a chew lands,
+      // eased back down over the cooldown window so it reads as a flinch
+      // rather than a snap.
+      var flinchK = clamp(e._biteCd / CHEW_FLINCH_T, 0, 1);
+      shrink *= 1 + CHEW_FLINCH_POP * flinchK;
+    }
+    return shrink;
+  }
+
   function animateInstancedEntity(e, t) {
     var rec = e && e._viewRec;
     var batch = rec && rec.instanced ? rec.batch : null;
@@ -6152,6 +6690,7 @@ import * as THREE from 'three';
     instEulerScratch.set(0, left ? Math.PI : 0, -fa);
     instQuatScratch.setFromEuler(instEulerScratch);
     var len = renderScaleFor(e.def, e.kind, rec.localLength);
+    if (e.kind === 'prey') len *= chewShrinkScale(e);
     instScaleScratch.set(len, len, len);
     instMatrixScratch.compose(instPosScratch, instQuatScratch, instScaleScratch);
     batch.mesh.setMatrixAt(rec.slot, instMatrixScratch);
@@ -6320,6 +6859,20 @@ import * as THREE from 'three';
     if (st.panicT > 0) amp *= PANIC_BEND_MULT;
     var wig = f > 0 ? Math.sin(t * hz * TAU + entPhase(e)) * amp : 0;
     applyHeading(e, sp, wig);
+    // Rev 9 EAT-VANISH: the non-instanced billboard fallback for the same
+    // chew shrink/flinch cue animateInstancedEntity applies. applySprite
+    // sets scale ONCE at acquire time (base length/aspect), so this is the
+    // only per-frame writer for a billboard prey's scale; a fresh sign read
+    // off the CURRENT scale (already possibly mirrored by applyHeading
+    // above) keeps the mirror intact rather than re-deriving it here.
+    if (e.kind === 'prey' && sp.scale) {
+      var shrinkK = chewShrinkScale(e);
+      var baseLen = displayLen(e.def, e.kind);
+      var baseAsp = (e._viewRec && e._viewRec.aspect) || 0.52;
+      var signX = sp.scale.x < 0 ? -1 : 1;
+      sp.scale.x = signX * baseLen * shrinkK;
+      sp.scale.y = baseLen * baseAsp * shrinkK;
+    }
   }
 
   // Write the display heading and the mirror onto one billboard. Split out so
@@ -6763,7 +7316,7 @@ import * as THREE from 'three';
     var wt = worldClock(ctx, dt);
     var surfaceCamX = ctx && ctx.camera && ctx.camera.position &&
       typeof ctx.camera.position.x === 'number' ? ctx.camera.position.x : camX;
-    animateWater(wt, surfaceCamX);
+    animateWater(wt, surfaceCamX, camY);
 
     // Rev 6.12 BUFF CADENCE: tick the kill-drop cooldown down alongside every
     // other per-frame timer in this step.
@@ -7205,6 +7758,11 @@ import * as THREE from 'three';
         var gate = World.__checkSpawnTableGate();
         chk(gate.ok, 'Rev 7 7.2 spawn-table gate: every zone spawn is (prey tier <= intendedTier+2) or hazard' +
           (gate.violations.length ? (' - violations: ' + gate.violations.join('; ')) : ''));
+
+        // ------------------------------------------- Rev 9 9.4 species cap
+        var speciesGate = World.__checkSpawnSpeciesCapGate();
+        chk(speciesGate.ok, 'Rev 9 9.4 CLARITY gate: every zone lists at most 3 prey species' +
+          (speciesGate.violations.length ? (' - violations: ' + speciesGate.violations.join('; ')) : ''));
         chk(World.intendedTier({ pressureTier: 6 }) === 6 && World.intendedTier({ intendedTier: 4, pressureTier: 6 }) === 4,
           'intendedTier(zone) prefers an authored intendedTier field, falls back to pressureTier');
 
@@ -8805,16 +9363,74 @@ import * as THREE from 'three';
         '200 ringPoint samples all land sdf > radiusFor+24 and in the player region (' +
         sampleOk + '/200 ok, ' + sampleBad + ' bad)');
 
-      // Rev 6.11 MAZE REACHABILITY: body-radius-aware BFS, not point-connected.
-      // Walkable cells require sdf > MAZE_CLEARANCE (tier-12 body radius 98 +
-      // 24px spawn clearance = 122px), so this proves a tier-12 shark can
-      // actually swim the route, not merely that a zero-radius point can.
-      // World.init() already ran widenTunnelsForReachability once for this
-      // seed; this asserts that pass actually left every band reachable.
-      var bfsRes = bfsBandReachability(MAZE_CLEARANCE, lifeCtx.player.x, lifeCtx.player.y);
-      chk(bfsRes.ok,
-        'body-radius-aware BFS (clearance ' + MAZE_CLEARANCE + 'px) reaches every zone band (' +
-        bfsRes.reachableN + '/' + zones().length + ', regionN=' + S.sdfRegionN + ')');
+      // Rev 9.5 OPEN-COLUMN REACHABILITY: replaces the old maze's band-to-band
+      // BFS. Walkable cells require sdf > MAZE_CLEARANCE (tier-12 body radius
+      // 98 + 24px spawn clearance = 122px). Every OCEAN_XBAND-wide x-slice
+      // must have a clear vertical column from the surface down to at least
+      // 0.8x the local seabed depth - this is what "you can dive down" now
+      // asserts directly, rather than mere flood-fill region membership.
+      // World.init() already ran ensureOpenColumns() once for this seed;
+      // this asserts that pass actually left every band open.
+      var colRes = verifyOpenColumns(MAZE_CLEARANCE);
+      chk(colRes.ok,
+        'open-column reachability (clearance ' + MAZE_CLEARANCE + 'px) clears every ' +
+        OCEAN_XBAND + 'px x-band from surface to 0.8x seabed depth (' +
+        (colRes.bad.length ? ('blocked at: ' + colRes.bad.map(function (b) { return b.x.toFixed(0); }).join(', ')) : 'all clear') + ')');
+
+      // Seabed bounds: seabedY(x) stays within [OCEAN_SEABED_Y[0], trench
+      // floor cap] across the whole map width, i.e. the rolling profile plus
+      // trenches never wanders outside its authored band.
+      var seabedOk = true, seabedMin = 1e9, seabedMax = -1e9;
+      for (var sbx = 0; sbx < S.w; sbx += 400) {
+        var sby = seabedY(sbx);
+        if (sby < seabedMin) seabedMin = sby;
+        if (sby > seabedMax) seabedMax = sby;
+        if (sby < OCEAN_SEABED_Y[0] - 1 || sby > OCEAN_TRENCH_Y[1] + 41) seabedOk = false;
+      }
+      chk(seabedOk, 'seabed height profile stays within its authored band (' +
+        seabedMin.toFixed(0) + '..' + seabedMax.toFixed(0) + ')');
+
+      // No rock within 600px of spawn: the shallow open-water band the
+      // player actually spawns into (SDF_OPEN_Y and just below it) must read
+      // clear water in a 600px ring around the map's horizontal centre,
+      // where engine3d.js places the player at init (WORLD_W*0.5, 260).
+      var spawnCx = S.w * 0.5, spawnCy = 260;
+      var spawnOk = true, spawnBad = 0, spawnChecked = 0;
+      for (var sang = 0; sang < TAU; sang += TAU / 24) {
+        for (var srad = 0; srad <= 600; srad += 100) {
+          var ssx = spawnCx + Math.cos(sang) * srad, ssy = spawnCy + Math.sin(sang) * srad;
+          // Skip samples off the top/bottom world edge: world-edge rock (the
+          // same SDF_CELL-wide clamp the old maze used, per "World edges are
+          // rock") is expected there and is not the gameplay-relevant rock
+          // this gate is checking for.
+          if (ssy < SDF_CELL || ssy > S.h - SDF_CELL) continue;
+          spawnChecked++;
+          if (World.terrainSDF(ssx, ssy) <= 0) { spawnOk = false; spawnBad++; }
+        }
+      }
+      chk(spawnOk, 'no rock within 600px of spawn (' + spawnChecked + ' samples, ' + spawnBad + ' rock)');
+
+      // Zones cover 0..H: the ZONES table's bands are contiguous and span
+      // the full world height with no gap or overlap, so zoneAt(y) never
+      // falls through for any y in [0, S.h).
+      var Zcov = zones();
+      var zonesCoverOk = Zcov.length > 0 && Zcov[0].yMin === 0 && Zcov[Zcov.length - 1].yMax === S.h;
+      for (var zci = 1; zci < Zcov.length; zci++) {
+        if (Zcov[zci].yMin !== Zcov[zci - 1].yMax) zonesCoverOk = false;
+      }
+      chk(zonesCoverOk, 'zone depth bands are contiguous and cover 0..' + S.h);
+
+      // Relic pockets valid: every placed relic sits at sdf > 0 (real water,
+      // not buried in rock) and inside its own zone's y-range.
+      var relicPocketOk = true, relicPocketBad = 0;
+      for (var rpi = 0; rpi < S.relics.length; rpi++) {
+        var rp = S.relics[rpi];
+        var rpZone = World.zoneAt(rp.y);
+        var rpSdf = World.terrainSDF(rp.x, rp.y);
+        if (!(rpSdf > 0 && rpZone && rpZone.id === rp.zoneId)) { relicPocketOk = false; relicPocketBad++; }
+      }
+      chk(relicPocketOk, 'every relic pocket sits in open water inside its own zone band (' +
+        S.relics.length + ' relics, ' + relicPocketBad + ' bad)');
 
       // Pickup table: weights sum positive and every row is a valid def
       // (has an id, a positive weight, and a finite/absent duration).
@@ -8862,6 +9478,124 @@ import * as THREE from 'three';
           (buffEnt.id !== buffId0) + ')');
       }
 
+      // --------------------------------------------------- Rev 9 SCHOOLING
+      // Boids selftest: spawn one packed burst of minnows in open water near
+      // the live spawn point (same clear-water ring the rock gate above just
+      // verified), run the fixed step for N frames with the player far away
+      // (no flee/panic override), then check cohesion (mean distance to the
+      // school centroid shrinks/stays tight) and alignment (mean heading
+      // variance is low — the school moves as one body) plus a hard NaN gate
+      // and a live-entity-count (budget) check across the run.
+      var schoolCx = S.w * 0.5 + 900, schoolCy = 260;
+      // Far enough to stay well outside prey sight range (max ~370px, see
+      // preyAI's `sight` calc) and mouth-panic range (PANIC_R=170) so no
+      // flee/panic override fires, but INSIDE DESPAWN (2000px) so
+      // World.update's own camera-distance cull does not recycle every
+      // member mid-run, which would read as a flocking bug but is really
+      // just the despawn gate doing its job on a badly-placed probe.
+      var schoolPlayerFar = { x: schoolCx - 1200, y: schoolCy, tier: 3, r: 30, st: {} };
+      var schoolCtx = { rng: rngStub, renderer: renderer, time: { now: lifeCtx.time.now, dt: 1 / 60 },
+        run: { score: 0, coins: 0 }, player: schoolPlayerFar, mouth: null };
+      RF.ctx = schoolCtx;
+      var schoolN = World.spawnBurst('minnow', schoolCx, schoolCy, 8);
+      var schoolMembers = [];
+      for (var smi = 0; smi < S.entities.length; smi++) {
+        var sme = S.entities[smi];
+        if (sme.active && sme.defId === 'minnow' && sme.st.packId) schoolMembers.push(sme);
+      }
+      chk(schoolN === 8 && schoolMembers.length === 8,
+        'schooling probe: spawnBurst placed the full 8-strong single-species pack (' +
+        schoolN + ' spawned, ' + schoolMembers.length + ' tagged with a shared packId)');
+      var budget0 = S.entities.length;
+      var nanFound = false;
+      for (var sstep = 0; sstep < 90; sstep++) {
+        schoolCtx.time.now += 1 / 60;
+        World.update(schoolCtx);
+        for (var smj = 0; smj < schoolMembers.length; smj++) {
+          var smje = schoolMembers[smj];
+          if (!smje.active) continue;
+          if (!isFinite(smje.x) || !isFinite(smje.y) || !isFinite(smje.vx) || !isFinite(smje.vy)) {
+            nanFound = true;
+          }
+        }
+      }
+      chk(!nanFound, 'schooling probe: no NaN/Infinity in position or velocity across 90 steps');
+      // Budget: flocking itself allocates nothing and frees nothing — the
+      // spawner (runSpawner, called every World.update) is free to add its
+      // own entities over 90 steps, which is normal and not a flocking
+      // regression, so this checks growth stays bounded (spawner's own caps
+      // still apply) rather than asserting a frozen count.
+      chk(S.entities.length >= budget0 && S.entities.length < budget0 + 200,
+        'schooling probe: entity count stays bounded across 90 steps (' +
+        budget0 + ' -> ' + S.entities.length + ', spawner may add its own entities)');
+
+      // Cohesion metric: mean distance from each live member to the school's
+      // own centroid, after the run above has had time to settle from its
+      // scattered spawn points into a flocked body.
+      var cAlive = [];
+      for (var sck = 0; sck < schoolMembers.length; sck++) {
+        if (schoolMembers[sck].active) cAlive.push(schoolMembers[sck]);
+      }
+      if (cAlive.length >= 3) {
+        var ccx = 0, ccy = 0;
+        for (var cci = 0; cci < cAlive.length; cci++) { ccx += cAlive[cci].x; ccy += cAlive[cci].y; }
+        ccx /= cAlive.length; ccy /= cAlive.length;
+        var meanDist = 0;
+        for (var cdi = 0; cdi < cAlive.length; cdi++) {
+          var cddx = cAlive[cdi].x - ccx, cddy = cAlive[cdi].y - ccy;
+          meanDist += Math.sqrt(cddx * cddx + cddy * cddy);
+        }
+        meanDist /= cAlive.length;
+        // A minnow's radius is small (~14px); SCHOOL_RADIUS_BL=2.5 body
+        // lengths (~2r each) puts the intended neighbor/cohesion radius
+        // around 70px. A settled school's mean distance to its own centroid
+        // comfortably clearing 400px (roughly 5-6x that radius) would mean
+        // the "school" is really just several independent fish that happen
+        // to share a packId — this threshold catches that regression while
+        // leaving room for the school's own travel/turning spread.
+        chk(meanDist < 400,
+          'cohesion: mean distance to school centroid after 90 steps is tight (' +
+          meanDist.toFixed(1) + 'px < 400px, n=' + cAlive.length + ')');
+
+        // Alignment metric: heading variance (1 - mean resultant length of
+        // the unit heading vectors) low means the school shares one heading
+        // rather than each member facing a different way.
+        var hSumX = 0, hSumY = 0, hN = 0;
+        for (var hai = 0; hai < cAlive.length; hai++) {
+          var hae = cAlive[hai];
+          var hspd = Math.sqrt(hae.vx * hae.vx + hae.vy * hae.vy);
+          if (hspd < 1e-3) continue;
+          hSumX += hae.vx / hspd; hSumY += hae.vy / hspd; hN++;
+        }
+        if (hN >= 3) {
+          var resultantLen = Math.sqrt(hSumX * hSumX + hSumY * hSumY) / hN;
+          var headingVariance = 1 - resultantLen; // 0 = perfectly aligned, 1 = random
+          chk(headingVariance < 0.5,
+            'alignment: mean heading variance after 90 steps is low (' +
+            headingVariance.toFixed(3) + ' < 0.5, n=' + hN + ')');
+        } else {
+          notes.push('ok alignment: skipped (too few moving members, n=' + hN + ')');
+        }
+      } else {
+        notes.push('ok cohesion/alignment: skipped (too few surviving members, n=' + cAlive.length + ')');
+      }
+
+      // Species/kind purity: every member of the pack is still the same
+      // defId (spawnBurst only ever places one defId per call) and predators
+      // never carry a packId a prey school would flock with (predatorAI does
+      // not call schoolSteer/packVec at all, so this is a structural
+      // guarantee, checked here as a regression trip-wire).
+      var speciesPure = true;
+      for (var spi = 0; spi < schoolMembers.length; spi++) {
+        // A released slot may be recycled into an unrelated entity by the
+        // pool/spawner within the 90-step run; that is normal pooling, not a
+        // species-purity violation, so only STILL-ACTIVE members (the ones
+        // that are still, in fact, this school) are checked.
+        if (schoolMembers[spi].active && schoolMembers[spi].defId !== 'minnow') speciesPure = false;
+      }
+      chk(speciesPure, 'schooling probe: every still-active pack member stayed the same species (minnow)');
+
+      RF.ctx = lifeCtx;
       World.teardown();
     } catch (err) {
       pass = false;

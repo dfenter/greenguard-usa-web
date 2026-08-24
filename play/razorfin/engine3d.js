@@ -157,6 +157,7 @@ import * as THREE from 'three';
   var CTL_PURSUIT_TURN_RATE = 18;    // rad/s, >= the 14 rad/s SPEC3D floor
   var CTL_PURSUIT_FULL_CSS = 60;     // full cruise once nose->finger > 60 css px
   var CTL_PURSUIT_DEAD_NOSE_MULT = 0.5; // dead zone cap: 0.5*noseR (css px)
+  var CTL_PURSUIT_DEAD_CSS_MAX = 14;   // Rev 9: dead zone never exceeds 14 css px (big sharks/close camera)
   var CTL_ARRIVE_K = 26;             // spring constant, 1/s^2 (critically damped: c = 2*sqrt(k))
 
   // ------------------------------------------------------- rig anim
@@ -199,8 +200,9 @@ import * as THREE from 'three';
   // clamped [185..400]. camZForTier(tier) is kept EXPORTED (name stays, per
   // the contract) but now delegates to camZForLen so every existing caller
   // (startRun) still works unchanged.
-  var CAM_Z_LEN_MULT = 1.60;
-  var CAM_Z_MIN = 185, CAM_Z_MAX = 400;
+  // Rev 9.6 (HSE framing law): shark ~25-35% of screen width at cruise.
+  var CAM_Z_LEN_MULT = 1.75;
+  var CAM_Z_MIN = 200, CAM_Z_MAX = 450;
   var CAM_Z = CAM_Z_MAX;             // live value, set per run from shark length
   function camZForLen(lenPx) {
     var l = num(lenPx, SHARK_LEN_PX);
@@ -1605,11 +1607,19 @@ import * as THREE from 'three';
     var noseRcss = (p.r || 8) / Math.max(1e-6, wppLive);
     // SPEC3D 8.2: no dead zone beyond 0.5*noseR - this floor exists only so
     // a target exactly on the nose tip doesn't chatter the heading atan2.
-    var DEAD = CTL_PURSUIT_DEAD_NOSE_MULT * noseRcss;
+    var DEAD = Math.min(CTL_PURSUIT_DEAD_NOSE_MULT * noseRcss, CTL_PURSUIT_DEAD_CSS_MAX);
 
+    // Rev 9 controls fix (owner: "cannot dive down"): the seek error is
+    // measured from the BODY CENTER, not the nose. With the close tier camera
+    // the shark's own radius spans ~100 CSS px, so on a 390px-tall screen a
+    // finger below the shark could never get past the nose's dead/arrive
+    // zone when the shark pointed down - vertical steering silently died
+    // while horizontal (844px of room) worked. The nose still LEADS: heading
+    // is atan2 of the same center->finger vector, so the snout points at the
+    // finger; only the distance/speed magnitude changed anchor.
     var dxw = 0, dyw = 0, distCss = 0, distWorld = 0, mag = 0, wantAngle = p.angle;
     if (haveTarget) {
-      dxw = tgtX - noseX; dyw = tgtY - noseY;
+      dxw = tgtX - p.x; dyw = tgtY - p.y;
       distWorld = Math.sqrt(dxw * dxw + dyw * dyw);
       // World -> CSS distance uses the same live wpp scale as the key target above.
       distCss = wppLive > 0 ? distWorld / wppLive : distWorld;
@@ -1665,7 +1675,9 @@ import * as THREE from 'three';
     // (c = 2*sqrt(k)) is exactly the boundary between "creeps in" and
     // "overshoots and circles back", so this is the one damping ratio that
     // satisfies both "arrives without orbiting" and "no jitter".
-    var inArrive = haveTarget && distCss <= CTL_PURSUIT_FULL_CSS;
+    // Inside the dead zone the nose IS at the finger: no spring pull (it would
+    // creep by k*err), just the glide settle below.
+    var inArrive = haveTarget && distCss <= CTL_PURSUIT_FULL_CSS && distCss > DEAD;
 
     if (overdriveOn) {
       // HM :5453-5476 - accelerate toward / brake off the target velocity,
@@ -3470,7 +3482,22 @@ import * as THREE from 'three';
 
     // First screen: the 2D build's Phaser Menu scene auto-started here; the
     // DOM menu must be shown explicitly or the boot lands on empty water.
-    uiCall('showMenu');
+    // Rev 9 (orchestrator glue, SPEC3D 9.2): the shark/fish rigs are artist
+    // GLB assets parsed asynchronously. Wait for both preloads before the
+    // first menu so thumbnails/rigs build from the real meshes; on failure
+    // or a 6s stall fall through to the menu anyway (rigs degrade to
+    // placeholders), never a black screen.
+    var pre = [];
+    try { if (RF.Art3D && typeof RF.Art3D.preload === 'function') pre.push(RF.Art3D.preload()); } catch (e) { warnOnce('Art3D.preload', e); }
+    try { if (RF.Art3D && typeof RF.Art3D.preloadFish === 'function') pre.push(RF.Art3D.preloadFish()); } catch (e) { warnOnce('Art3D.preloadFish', e); }
+    if (pre.length && typeof Promise !== 'undefined') {
+      var menuShown = false;
+      var showMenuOnce = function () { if (!menuShown) { menuShown = true; uiCall('showMenu'); } };
+      Promise.all(pre).then(showMenuOnce, function (e) { warnOnce('asset preload', e); showMenuOnce(); });
+      if (root.setTimeout) root.setTimeout(showMenuOnce, 6000);
+    } else {
+      uiCall('showMenu');
+    }
 
     lastNow = 0;
     if (root.requestAnimationFrame) rafId = root.requestAnimationFrame(frame);
@@ -3607,7 +3634,7 @@ import * as THREE from 'three';
       // Rev 6 / 6.1: dolly is LENGTH-PROPORTIONAL. camZForLen(len) = clamp(len
       // * 1.60, 185, 400); camZForTier keeps its exported NAME but delegates
       // to it by resolving a def with that tier.
-      check(Math.abs(camZForLen(150) - 240) < 1e-9, 'camZForLen scales 1.60x inside the clamp band (150px -> 240)');
+      check(Math.abs(camZForLen(150) - 262.5) < 1e-9, 'camZForLen scales 1.75x inside the clamp band (150px -> 262.5)');
       check(camZForLen(50) === CAM_Z_MIN, 'camZForLen floors at 185 for a tiny rendered length');
       check(camZForLen(1000) === CAM_Z_MAX, 'camZForLen ceilings at 400 for a huge rendered length');
       check(camZForTier(1) === camZForLen(sharkLenPx(sharkById('reef'))),
@@ -4279,8 +4306,9 @@ import * as THREE from 'three';
         'plantStick placed the finger point');
       pc.ctl.hasTarget = true;
       pc.angle = 0;
-      var deadNoseX = pc.x + pc.r;
-      pc.ctl.tx = deadNoseX + 0.5 * wpp; pc.ctl.ty = pc.y;   // ~0.5 css px past the nose tip
+      // Rev 9: the seek anchor is the body CENTER (see stepControl); a target
+      // ~0.5 css px off the center is inside the (capped) dead zone.
+      pc.ctl.tx = pc.x + 0.5 * wpp; pc.ctl.ty = pc.y;
       pc.vx = 0; pc.vy = 0;
       for (var s8 = 0; s8 < 30; s8++) step();
       check(Math.sqrt(pc.vx * pc.vx + pc.vy * pc.vy) < 0.5, 'sub-dead-zone target does not creep');

@@ -1109,3 +1109,166 @@ of body length L, measured off the reference images; body = side profile):
 - Gate: scripted probe drags a path (circle + zigzag); assert nose tracks
   within 90 CSS px of the finger after 300ms settle on every segment and
   heading error < 25deg while moving.
+
+## Rev 9 — ASSET-BASED SHARKS (2026-08-23, owner: "scrap the modeling system... closer to the original game"; BINDING)
+
+### 9.1 Why
+Four rejection rounds on the procedural loft system (Rev 3-8): every result
+read as parts glued together; a bystander could not identify the animal. The
+concept is retired. Rev 9 uses artist-made skinned GLB base meshes (HSE's own
+model: sculpted base + skeletal swim + recolors), in play/razorfin/assets/models/
+(licenses in LICENSES.md): shark.glb (primary, 8-bone spine, Swim clip,
+materials Top/Bottom), shark_b.glb (static alt body), whale.glb (13-bone),
+manta.glb, dolphin.glb, fish_tuna/fish_blue/fish_clown.glb (8/6-bone).
+
+### 9.2 Shark rig (shark3d.js is REWRITTEN; the loft/feature/welding code is deleted)
+- Base selection per def from data.js head/act: whale/kaiju heads -> whale.glb;
+  hammer/saw/etc -> shark.glb with a head prop; everything else shark.glb
+  (shark_b.glb may serve a second body family, e.g. bulky rows).
+- Per-def identity = (a) material-slot recolor Top/Bottom/Fins from the def
+  palette (resolved to the Rev 7 saturation ranges), (b) procedural PATTERN in
+  the fragment shader (stripes/spots/bands/scars computed from bind-pose
+  position, onBeforeCompile on the skinned material; cache key ':rf-skin1'),
+  (c) bounded non-uniform scale (length 0.85-1.35, height 0.9-1.3, applied on
+  the armature root so skinning stays valid), (d) emissive glow tint for act
+  2-5, (e) at most ONE bone-mounted prop for special rows (crown/horns/foil/
+  spikes) parented to the head/spine bone so it moves WITH the animal. No
+  other geometry is added to the animal. The eye and mouth are the asset's.
+- Animation: AnimationMixer plays Swim; timeScale = 0.6 + 1.6*speedFrac
+  (engine tailPhase/tailAmp authority is retired — engine state.speedFrac,
+  turn, lunge, biting drive the mixer/pose). Turn lean = root yaw/roll from
+  state.turn (eased). Bite = head-bone pitch pop + scale pulse 1.11x + FX (the
+  assets have no jaw bone). Death = mixer pause + roll.
+- Outline: single BackSide shell of the SAME skinned geometry (shares skeleton)
+  scaled 1.01, ink color — or none if it causes artifacts; toon banding stays.
+- Contract keeps: RF.Art3D.buildShark(def) -> {group, parts:{body,jaw:null},
+  animate(t,state)}; group scaled so bbox X = 96*sil.len; userData rfArcs/
+  rfFlash preserved for engine FX hooks; bendableMaterial/:rf-bend3 exports
+  REMOVED (grep engine3d/world3d for any consumer and shim as no-ops).
+- Loading: RF.Art3D.preload() -> Promise resolving when all GLBs are parsed
+  (GLTFLoader from /play/_shared/three/GLTFLoader.js); engine boot awaits it
+  before showMenu. buildShark stays synchronous (clones from the parsed cache
+  via SkeletonUtils.clone semantics — implement a local clone that shares
+  geometry and duplicates skeleton/bones).
+- Draw budget: <= 3 draws per shark (body, shell, prop). Selftest: node needs
+  a fs-backed GLB parse path — the selftest may construct the loader with a
+  FileReader/fetch shim or parse the GLB JSON+BIN directly; gates: all 85 defs
+  build, base/prop mapping table complete, pattern shader chunk declares its
+  uniforms, mixer clip present, scale bounds, <=3 draws.
+
+### 9.3 Fish (fish3d.js + world3d instancing)
+- Prey geometry = REST-POSE geometry extracted from fish_tuna/fish_blue/
+  fish_clown/manta/dolphin GLBs (skin dropped), per-species tint + procedural
+  pattern; the existing instanced bend shader (:rf-bend-inst2) keeps the
+  swim — real fish shapes, instanced draw counts unchanged.
+- Species map: 16 prey defs -> 5 bases x tints/scale (document in fish3d).
+
+### 9.4 Clarity ("way too many random fish")
+- ENTITY_BUDGET onscreen 110 -> 48, total 220 -> 120. Each zone spawn table
+  lists at most 3 prey species + hazards; schools are cohesive (6-10, tight
+  spacing) rather than scattered singles. Decor must not resemble fish.
+- Larger, fewer, readable targets; the eat gate/mouth contract is unchanged.
+
+### 8.2a Amendment (Rev 9, 2026-08-23): seek anchor = BODY CENTER
+Owner: "cannot dive down." Root cause: nose-anchored distance + close tier
+camera (shark radius ~100 CSS px) meant a finger below the shark could never
+exceed the nose's dead/arrive zone on a 390px-tall screen. Distance/speed
+magnitude is now measured center->finger; heading is atan2 of the same
+vector so the nose still leads. Dead zone = min(0.5*noseR, 14) CSS px.
+Gate: real-touch probe (touchprobe.js) — hold-below must produce vy >= +0.6*
+cruise within 1s; hold-above symmetric.
+
+### Rev 9.5 open ocean (2026-08-24)
+mazeRawSDF/buildMazeLayout (the Rev 6 rock-maze cavern-graph generator) are
+replaced with an open-ocean SDF generator. buildSDFGrid/terrainSDF/
+resolveBody/regionAt are unchanged (they were already generic reads over
+whatever mazeRawSDF produces). Geometry:
+- seabedY(x): rolling profile (3 summed sine octaves, S.rng-seeded phases),
+  clamped to OCEAN_SEABED_Y=[4300,4600], dipped by 2-4 trenches
+  (OCEAN_TRENCH_Y=[4650,4750], width 500-1000px, cosine-smoothed dip).
+- 6-10 mounds (OCEAN_MOUND_N): each a tapered-cone SDF from its seabed base
+  (radius OCEAN_MOUND_BASE_R=[420,900]) up to a summit (radius
+  OCEAN_MOUND_BASE_R * OCEAN_MOUND_TOP_R_FRAC=[0.18,0.42]). Summit height is
+  base_y - waterColumn*topFrac, topFrac in OCEAN_MOUND_TOP_FRAC=[0.35,0.95]
+  (0.95 for the first two mounds specifically, so at least one summit
+  reliably pierces near zone 1 every run). Mound centres keep >=2200px from
+  the spawn x (S.w*0.5) so a tall summit can never intrude on the spawn
+  keepout ring.
+- 2-4 small "pocket" spheres per mound (OCEAN_POCKET_R=[70,120]), carved out
+  of the mound solid (raise SDF back toward water inside the sphere) at
+  random heights up the slope — these are the relic sites (see below). The
+  tall mounds' pockets are biased toward the upper slope (u in [0.55,0.95])
+  so zone 1 always has real pocket candidates.
+- Compat: the old per-feature arrays mazeCavernX/Y/R/Seed, mazeTunnels,
+  mazeShafts are KEPT (same field shapes) because a long tail of downstream
+  code reads them generically (decor's findWallY sweep + kelp/reef anchors,
+  zoneLandmarkAnchors, mazeEchoWave, deadEndScore/placeRelicsForZone).
+  mazeCavernX/Y/R/Seed now hold one row per mound (anchored 40% up its
+  slope); mazeTunnels holds one row per trench (a flat segment along its
+  dipped floor); mazeShafts holds one row per pocket (a short vertical span
+  at the pocket's world position).
+
+Open-column invariant (replaces Rev 6.11's bfsBandReachability BFS, which
+proved band-to-band flood-fill connectivity through tunnels/shafts — open
+water is now the connective tissue, so that BFS no longer applies):
+verifyOpenColumns(clearance) walks a vertical ray at the centre x of every
+OCEAN_XBAND=1200px-wide slice and requires a clearance-walkable (sdf >
+clearance) path from SDF_OPEN_Y down to 0.8x the local seabed depth.
+ensureOpenColumns() (called once from buildMaze(), like the old widener) re-
+checks after generation and, on failure, deterministically SHRINKS the base
+radius of any mound overlapping a failing band's x (no new S.rng draws),
+rebuilds only the SDF grid, and repeats up to OCEAN_SHRINK_MAX_TRIES=8.
+
+Zones are DEPTH BANDS (gen_data.py ZONES, y-ranges only — id/name/tint/fog/
+spawns unchanged): 1 Sunlit 0-1100, 2 Reef 1100-2300, 3 Twilight 2300-3500,
+4 Abyss 3500-4800. zoneAt(y)/regionAt/applyZoneAtmo are unchanged generic
+reads over the ZONES table, so no code change was needed there.
+
+Relics: placeRelicsForZone/deadEndScore (SPEC3D 7.6) are reused as-is except
+the "dead end" openNeighbors gate is widened from [1,2] to [1,3] open
+neighbors out of 4, because a pocket's rounded sphere boundary against the
+SDF_CELL=64 grid can leave a valid interior cell with up to 3 open
+neighbors (a maze corridor dead-end and a mound-flank pocket read
+differently at grid resolution, even though both are "an enclosed water
+cell just off open space").
+
+Selftest gates (tools/selftest.mjs world), replacing the maze-specific
+tier-12 BFS clearance gate:
+- verifyOpenColumns(MAZE_CLEARANCE) passes for every 1200px x-band.
+- seabedY(x) stays within its authored band across the whole map width.
+- No rock within 600px of spawn (7200,260), sampled on a 24-ray x 7-radius
+  ring, excluding the SDF_CELL-wide world-top/bottom edge rock band (an
+  expected, pre-existing edge artifact unrelated to gameplay rock).
+- ZONES bands are contiguous and cover 0..S.h with no gap/overlap.
+- Every placed relic sits at sdf>0 (real water) inside its own zone's
+  y-range.
+- resolveBody push-out invariant (unchanged, generic) and the 200-sample
+  ringPoint spawn-validity check (unchanged, generic) both still pass
+  against the new SDF.
+
+Played probes (headless Chrome via puppeteer-core, see NOTES-rev9-ocean.md
+for full output): sdfprobe.js holdBelowTrack shows y increasing
+continuously for the full ~2.7s hold at ~299px/s average with vy pinned at
+288 the whole time (no floor stall); plainload.js boots to the HUD screen
+with zero console/page errors; density_probe.js reports 38 visible prey in
+6 groups with zero errors.
+
+### 9.6 STYLE CORRECTION from official HSE screenshots (2026-08-23, BINDING for all art lanes)
+Reference set: scratchpad hse_refs/ (12 official App Store screenshots) — the
+bar is these, not the roster thumbnails. What they actually show:
+- SHADING: smooth (no facets), gradient lit with SPECULAR highlights and soft
+  ambient, subtle painted texture (scales/scars), strong countershading. NO
+  toon banding, NO ink outline shell. Use MeshStandard/Phong-class lighting on
+  the GLB atlas; retire MeshToon + BackSide shells for sharks.
+- FACE: heavy BROW RIDGE over a smallish squinting eye (angry/determined, not
+  googly), huge OPEN JAWS with gum line and many individual teeth, visible
+  mouth cavity; the mouth is the character. Sharky's LowerJaw bone must rest
+  partly open (gape 20-35%) and snap on bite.
+- BODY: muscular, smooth, big pectorals, thick tail root; species read from
+  proportions + texture, not props.
+- CAMERA: shark occupies ~25-35% of screen WIDTH at cruise (ours fills ~50%);
+  dolly out accordingly (camZForTier x1.5-1.8), keep the slight 3/4 angle.
+- WORLD READ: rich painted environment (wrecks, coral, rock, kelp), prey are
+  SMALL relative to the shark, spread in loose lines/schools; varied species
+  (fish, rays, turtles, jellyfish, divers, mines) rather than clumps of one.
+- HUD: minimal, corners only; no dark panels over play space.
