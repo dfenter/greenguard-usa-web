@@ -65,6 +65,33 @@ import * as THREE from 'three';
   var ECON = RFD.ECONOMY || {};
   var UPEFF = ECON.upgradeEffect || { bite: 0.1, speed: 0.06, boost: 0.12, power: 0.08 };
 
+  // Rev 12 / 12.4: MODES config (Gold Rush as a visible mode, Mega Gold Rush
+  // chain, and the new super-size/shield/speed power-up buffs). data.js
+  // (gen_data.py) is the source of truth once it lands RFD.MODES; these
+  // defaults mirror the landed shape exactly so the game runs identically
+  // before/after/without that data (defensive per the Rev 12 lane split).
+  var MODES = RFD.MODES || {
+    goldRush: {
+      dur: 8, coinMult: 2, speedMult: 1.4, invulnerable: true,
+      tint: '0xffd400', banner: 'GOLD RUSH!'
+    },
+    megaGoldRush: {
+      dur: 10, coinMult: 3, speedMult: 1.5, invulnerable: true,
+      allEdible: true, tint: '0xfff5b0', banner: 'MEGA GOLD RUSH!'
+    },
+    buffs: {
+      supersize: { dur: 10, sizeMult: 1.5, tierBonus: 2, tint: '0xffd400' },
+      shield: { dur: 12, hits: 3, tint: '0x27e0ff' },
+      speed: { dur: 9, speedMult: 1.5, tint: '0x9dff2b' }
+    }
+  };
+  var MODE_GOLD = MODES.goldRush || {};
+  var MODE_MEGA = MODES.megaGoldRush || {};
+  var MODE_BUFFS = MODES.buffs || {};
+  var SUPERSIZE_CFG = MODE_BUFFS.supersize || { dur: 10, sizeMult: 1.5, tierBonus: 2 };
+  var MODE_SHIELD_CFG = MODE_BUFFS.shield || { dur: 12, hits: 3 };
+  var MODE_SPEED_CFG = MODE_BUFFS.speed || { dur: 9, speedMult: 1.5 };
+
   // Rev 6 / 6.6: generosity gate. tier <= p.tier + BITE_UP_BASE + biteUp is
   // eatable at all; tier <= p.tier - 1 swallows instantly (was p.tier - 2).
   // megajaw (6.7) folds into this SAME formula by adding +1 to both numbers
@@ -201,8 +228,12 @@ import * as THREE from 'three';
   // the contract) but now delegates to camZForLen so every existing caller
   // (startRun) still works unchanged.
   // Rev 9.6 (HSE framing law): shark ~25-35% of screen width at cruise.
-  var CAM_Z_LEN_MULT = 1.75;
-  var CAM_Z_MIN = 200, CAM_Z_MAX = 450;
+  // Rev 12 / 12.5: dolly out ~25% so bigger rosters (len up to 2.6) still
+  // read on screen. Clamps widen to 250..600 to give the longer dolly room
+  // at both ends; framing gate moves to [0.20, 0.28] to match (see the
+  // selftest below).
+  var CAM_Z_LEN_MULT = 2.2;
+  var CAM_Z_MIN = 250, CAM_Z_MAX = 600;
   var CAM_Z = CAM_Z_MAX;             // live value, set per run from shark length
   function camZForLen(lenPx) {
     var l = num(lenPx, SHARK_LEN_PX);
@@ -263,8 +294,10 @@ import * as THREE from 'three';
   }
   function mouthRadiusForLen(lenPx) {
     // Keep the original proportion and guard both small and future large
-    // roster rows. Current max len 1.9 remains well below the upper clamp.
-    return clamp(lenPx * 0.22, 14, 90);
+    // roster rows. Rev 12 / 12.5 raises sil.len as high as 2.6 (124*2.6*0.22
+    // = ~70.9px), so the upper clamp widens to 100 to keep headroom above
+    // that ceiling instead of sitting right against it.
+    return clamp(lenPx * 0.22, 14, 100);
   }
 
   function triggerCamPulse(amount, duration) {
@@ -532,11 +565,14 @@ import * as THREE from 'three';
     name: '', hp: 0, hpFrac: 0, maxHp: 0, boost: 1, boosting: false,
     power: 0, powerReady: false, powerId: null, powerTint: 0,
     coins: 0, score: 0, combo: 0, comboMult: 1, frenzy: 0, goldRush: 0,
+    // Rev 12 / 12.4: mode banner name + chained mega-meter fill (0..1).
+    mode: '', megaMeter: 0,
     hurt: 0, tier: 1, zone: '', dev: false, chips: null,
     // Rev 6 / 6.7: powerup buff timers + charge count, reused object so the
     // HUD lane can read it every frame without a new allocation.
     powerCharges: 0, powerChargeCap: 0,
-    buffs: { overdrive: 0, shield: 0, megajaw: 0, magnet: 0, chum: 0, apex: 0 },
+    buffs: { overdrive: 0, shield: 0, megajaw: 0, magnet: 0, chum: 0, apex: 0,
+             supersize: 0, modeShield: 0, modeSpeed: 0 },
     // ui3d minimap + buff bars: player position and remaining-fraction list
     // (reused array, fractions 0..1, active buffs only).
     px: 0, py: 0, buffTimers: []
@@ -662,6 +698,20 @@ import * as THREE from 'three';
     var sel = profile && profile.selected;
     if (sel && sharkById(sel) && ownedFor(sel)) return sel;
     return 'reef';
+  }
+
+  // Rev 12 / 12.1: resolve this run's level id. meta.js (save schema v3) owns
+  // profile.selectedLevel + unlock state; this only READS it, defaulting to
+  // 'hawaii' whenever meta.js, RFD.LEVEL_BY_ID, or the saved selection is
+  // absent/unrecognised - the game must run identically before/without the
+  // Rev 12 data/meta lanes landing.
+  function activeLevelId() {
+    var sel = profile && profile.selectedLevel;
+    if (sel && RFD.LEVEL_BY_ID && RFD.LEVEL_BY_ID[sel]) return sel;
+    if (RFD.LEVELS && RFD.LEVELS.length && RFD.LEVELS[0] && RFD.LEVELS[0].id) {
+      return RFD.LEVELS[0].id;
+    }
+    return 'hawaii';
   }
   // NOTES-laneC: displayCoins() is persisted + the non-persisted dev overlay,
   // and is the number any coin readout must show.
@@ -1087,11 +1137,31 @@ import * as THREE from 'three';
   function paintGlyph(spr, mat, cellIndex) {
     spr.geometry = popAtlas.geoms[cellIndex];
   }
-  function scorePopup(wx, wy, str, big) {
-    if (!popPool || !popPool.ok) return;
-    var rec = popPool.items[popPool.cursor];
-    popPool.cursor = (popPool.cursor + 1) % popPool.items.length;
-    var s = big ? 1.25 : 1;
+  // Owner feedback (2026-08-24, rev11-fx): eat-score popups were "taking
+  // over the screen". Toned down HSE-style: ~40% smaller glyphs, a much
+  // shorter life (was 0.7s), lighter opacity ceiling (never fully opaque),
+  // a gentler upward drift, and a hard cap on how many can be alive/visible
+  // at once so a feeding frenzy never stacks into a wall of text. Rapid eats
+  // (within POP_COMBO_MERGE_WINDOW of the last pop) merge into ONE running
+  // combo number anchored near the mouth instead of spawning a fresh popup
+  // per bite - see mergeOrSpawnPopup below, the only call site for eats.
+  var POP_SCALE = 0.6;          // ~40% smaller than the old 1.0/1.25 baseline
+  var POP_SCALE_BIG = 0.75;
+  var POP_LIFE = 0.55;          // was 0.7s
+  var POP_OPACITY_MAX = 0.82;   // lighter weight - never fully opaque
+  var POP_DRIFT_Y = 34;         // px/s rise, gentler than the old 46
+  var POP_MAX_CONCURRENT = 4;   // never more than this many alive at once
+  var POP_COMBO_MERGE_WINDOW = 0.45; // s: eats this close merge into one running number
+  var popLiveCount = 0;
+  var popLastX = 0, popLastY = 0, popLastAt = -Infinity, popLastRec = null, popComboTotal = 0;
+
+  // Paints str into pool slot `rec` in place (no cursor advance, no pool
+  // lookup) - the shared body scorePopup and the in-place combo-merge path
+  // both drive, so a merge can restamp the SAME sprites a fresh eat would
+  // have gotten from the ring cursor instead of leaving the old ones alive
+  // and layering a second popup on top.
+  function paintPopupInto(rec, wx, wy, str, big) {
+    var s = big ? POP_SCALE_BIG : POP_SCALE;
     var row = big ? 1 : 0;
     var n = Math.min(String(str).length, POP_MAX_CHARS);
     rec.len = n;
@@ -1104,26 +1174,61 @@ import * as THREE from 'three';
       paintGlyph(g.sprite, g.mat, idx);
       g.sprite.scale.set(POP_GLYPH_W * s, POP_GLYPH_H * s, 1);
       g.sprite.position.set(startX + i * POP_GLYPH_ADVANCE * s, -wy - 6, 8);
-      g.mat.opacity = 1;
+      g.mat.opacity = POP_OPACITY_MAX;
       g.sprite.visible = true;
     }
     for (var j = n; j < rec.glyphs.length; j++) rec.glyphs[j].sprite.visible = false;
-    rec.life = 0.7;
+    rec.life = POP_LIFE;
+  }
+  function scorePopup(wx, wy, str, big) {
+    if (!popPool || !popPool.ok) return;
+    // Cap concurrent popups: if we're at the cap, steal the oldest-cursor
+    // slot (already what the ring cursor does) rather than growing the
+    // count - popLiveCount only tracks slots that are currently `visible`
+    // so a full-of-expired-but-not-yet-hidden pool never blocks new pops.
+    var rec = popPool.items[popPool.cursor];
+    var wasLive = rec.life > 0;
+    popPool.cursor = (popPool.cursor + 1) % popPool.items.length;
+    paintPopupInto(rec, wx, wy, str, big);
+    if (!wasLive) popLiveCount = Math.min(POP_MAX_CONCURRENT, popLiveCount + 1);
+    return rec;
+  }
+  // FEEDBACK 2026-08-24: rapid eats (a feeding-frenzy chomp-chomp-chomp)
+  // merge into ONE running combo number that tracks near the mouth, rather
+  // than each bite spawning its own popup that stacks on top of the still-
+  // fading previous one. The merge path REPAINTS THE SAME pool slot in
+  // place (paintPopupInto, no cursor advance) - it never leaves a second,
+  // independently-fading sprite group behind, which is what actually keeps
+  // concurrent popups low during a frenzy (not just the hard cap below).
+  function mergeOrSpawnPopup(wx, wy, addAmount, big, now) {
+    var t = num(now, 0);
+    if (popLastRec && popLastRec.life > 0 && (t - popLastAt) <= POP_COMBO_MERGE_WINDOW && popPool && popPool.ok) {
+      popComboTotal += addAmount;
+      popLastX = wx; popLastY = wy; popLastAt = t;
+      paintPopupInto(popLastRec, wx, wy, '+' + Math.round(popComboTotal), big);
+      return;
+    }
+    popComboTotal = addAmount;
+    popLastX = wx; popLastY = wy; popLastAt = t;
+    popLastRec = scorePopup(wx, wy, '+' + Math.round(popComboTotal), big);
   }
   function stepPops(dt) {
     if (!popPool || !popPool.ok) return;
+    var liveNow = 0;
     for (var i = 0; i < popPool.items.length; i++) {
       var r = popPool.items[i];
       if (r.life <= 0) continue;
       r.life -= dt;
-      var op = clamp(r.life / 0.7, 0, 1);
+      var op = clamp(r.life / POP_LIFE, 0, 1) * POP_OPACITY_MAX;
       for (var g = 0; g < r.len; g++) {
         var spr = r.glyphs[g].sprite;
-        spr.position.y += 46 * dt;      // world y is DOWN, three y is UP
+        spr.position.y += POP_DRIFT_Y * dt;      // world y is DOWN, three y is UP
         r.glyphs[g].mat.opacity = op;
         if (r.life <= 0) spr.visible = false;
       }
+      if (r.life > 0) liveNow++;
     }
+    popLiveCount = liveNow;
   }
 
   // ==================================================== head-drag steering
@@ -1333,6 +1438,11 @@ import * as THREE from 'three';
       kit: kit,
       scene: scene3,
       dpr: DPR,
+      // Rev 12 / 12.1: the selected level id, resolved once per run from the
+      // profile (default 'hawaii'). world3d reads ctx.level to pick its
+      // sky/seabed/water/prey-mix; meta.js's endRun scoring also reads it
+      // (ctx.level || run.level || profile.selectedLevel).
+      level: activeLevelId(),
       time: { now: 0, dt: STEP, frame: 0 },
       rng: mulberry32(((num(profile && profile.runs, 0) + runCount) * 2654435761) >>> 0),
       player: null,
@@ -1340,6 +1450,12 @@ import * as THREE from 'three';
       run: {
         score: 0, coins: 0, xp: 0, combo: 0, comboT: 0, comboPeak: 0, frenzy: 0,
         goldRushT: 0, biggestTier: 0, slowmoT: 0, timeScale: 1,
+        // Rev 12 / 12.4: run.mode is the visible MODE name ('' | 'goldRush' |
+        // 'megaGoldRush'), read by shark3d/ui3d/world3d for the gold tint,
+        // vignette and HUD banner. goldRushT/frenzy stay the engine's own
+        // timers/meter (unchanged); mode is a pure presentation projection of
+        // them plus the chained mega-meter below.
+        mode: '', megaMeter: 0, _megaAnnounced: false,
         // Canonical Rev 3 frenzy state. frenzy/goldRushT remain compatibility
         // aliases because HUD, payout, and damage blocks are owned elsewhere.
         goldRush: { meter: 0, t: 0 },
@@ -1354,7 +1470,13 @@ import * as THREE from 'three';
         // Rev 6 / 6.7: powerup buff timers (seconds remaining; 0 = inactive).
         // shield uses charges (integer hits absorbed), everything else a
         // countdown. HM's pattern verbatim (game.js run.buffs.<name>).
-        buffs: { overdrive: 0, shield: 0, megajaw: 0, magnet: 0, chum: 0, apex: 0 },
+        // Rev 12 / 12.4 additions: supersize (rig scale 1.5x + tier eat
+        // bonus), modeShield (charge count, separate from the legacy
+        // 'shield' overdrive-table buff so the two power-up tables never
+        // collide), modeSpeed (a plain speed multiplier timer distinct from
+        // overdrive's accel/brake exception).
+        buffs: { overdrive: 0, shield: 0, megajaw: 0, magnet: 0, chum: 0, apex: 0,
+                 supersize: 0, modeShield: 0, modeSpeed: 0 },
         // Rev 6 / 6.7: superpower charge economy. 3 opening charges, cap 8,
         // earned at combo streak thresholds (every 8 combo) + frenzy completions.
         powerCharges: POWER_CHARGE_START, _lastComboCharge: 0,
@@ -1375,7 +1497,10 @@ import * as THREE from 'three';
         // Blocker 1: missions active this run get an id list from
         // RF.Meta.rollMissions at startRun; missionResults/gems are written
         // by RF.Meta.missionEvent (meta.js owns those fields on first write).
-        missionResults: []
+        missionResults: [],
+        // Rev 12 / 12.1: mirrors ctx.level onto run state too, matching the
+        // meta.js endRun read order (ctx.level || run.level || profile.selectedLevel).
+        level: activeLevelId()
       },
       // Render-layer handles the other 3D lanes need. Additive to the SPEC.md
       // schema, never a replacement for any field in it.
@@ -1429,9 +1554,19 @@ import * as THREE from 'three';
             preyNear: false, preyNearCd: 0, lungeT: 0, lungeCd: 0,
             lungeX: 0, lungeY: 0,
             // Rev 6 / 6.6: TOO BIG cue cooldown.
-            tooBigCd: 0 },
+            tooBigCd: 0,
+            // Rev 12 / 12.4: SUPER SIZE live scale, written by stepSuperSize
+            // each sim step and read by renderPlayer each render frame.
+            supersizeOn: false, superSizeScale: 1 },
       sprite: null,       // three Group once the rig is attached
       rig: null,
+      // Rev 12 / 12.4: rBase/mouthRBase are the shark's true (unbuffed) body
+      // and mouth radii; r/mouthR are the LIVE values stepSuperSize scales by
+      // SUPERSIZE_CFG.sizeMult while the buff is active. Every existing
+      // reader (lunge range, world-edge clamp, mouth sensor, minimap) keeps
+      // reading p.r/p.mouthR unchanged - only the source of truth for those
+      // two fields gained a live scale step.
+      rBase: lenPx * 0.42, mouthRBase: mouthRadiusForLen(lenPx),
       r: lenPx * 0.42,
       mouthR: mouthRadiusForLen(lenPx),
       stat: stat,
@@ -1491,6 +1626,7 @@ import * as THREE from 'three';
     var p = ctx.player;
     if (!p || !p.active) return;
 
+    stepSuperSize(p);
     stepControl(p);
     stepPreyNear(p);
     stepLunge(p);
@@ -1520,6 +1656,30 @@ import * as THREE from 'three';
     stepZoneName(p);
 
     if (p.hp <= 0 && !dying) onDeath();
+  }
+
+  // Rev 12 / 12.4: SUPER SIZE live scale. Runs once at the top of step(),
+  // before anything reads p.r/p.mouthR this frame, so lunge range, world-edge
+  // clamps, the mouth sensor and the rig's on-screen scale all agree on the
+  // same buffed/unbuffed size for the whole step. buffs.supersize is a plain
+  // timer (decayed in stepBuffs, later this same frame - a one-frame lag on
+  // the expiry edge is negligible); the rig group's scale is set directly
+  // here rather than folded into renderPlayer's eat-pop pop so a super-sized
+  // shark's eat-pop still reads as a small extra flourish on TOP of the
+  // sustained size, not a competing scale write.
+  function stepSuperSize(p) {
+    var b = ctx && ctx.run && ctx.run.buffs;
+    var on = !!(b && b.supersize > 0);
+    var mult = on ? num(SUPERSIZE_CFG.sizeMult, 1.5) : 1;
+    p.r = p.rBase * mult;
+    p.mouthR = p.mouthRBase * mult;
+    p.st.supersizeOn = on;
+    // The rig group's on-screen scale itself is set every RENDER frame by
+    // renderPlayer() (g.__baseScale * eat-pop) - not here, which only runs
+    // once per fixed SIM step - so this stores the live multiplier on the
+    // sprite for renderPlayer to fold in, rather than writing g.scale
+    // directly and having renderPlayer's next frame silently clobber it.
+    p.st.superSizeScale = mult;
   }
 
   // SPEC3D 8.2 (REPLACES 7.1 head-drag hybrid): PURE PURSUIT steering.
@@ -1651,8 +1811,17 @@ import * as THREE from 'three';
     // exception": 1.42x target speed reached via an accel-clamped approach
     // while driving and an explicit brake while idle.
     var overdriveOn = ctx.run.buffs && ctx.run.buffs.overdrive > 0;
+    // Rev 12 / 12.4: the visible MODE (goldRush/megaGoldRush) drives its own
+    // speed multiplier from MODES config (mode.speedMult), NOT the legacy
+    // FRENZY.goldRushSpeed constant - stepFrenzy/updateMode resolves
+    // ctx.run.mode from goldRushT/megaMeter each step, so this reads that
+    // single resolved source. modeSpeed (the SPEED pickup) stacks on top.
+    var modeSpeedMult = ctx.run.mode === 'megaGoldRush' ? num(MODE_MEGA.speedMult, 1.5)
+      : ctx.run.mode === 'goldRush' ? num(MODE_GOLD.speedMult, 1.3) : 1;
+    var pickupSpeedOn = ctx.run.buffs && ctx.run.buffs.modeSpeed > 0;
     var speedCap = s.speed * speedM * (ctl.boosting ? s.boost * boostM : 1)
-      * (ctx.run.goldRushT > 0 ? num(FRENZY.goldRushSpeed, 1.4) : 1)
+      * modeSpeedMult
+      * (pickupSpeedOn ? num(MODE_SPEED_CFG.speedMult, 1.5) : 1)
       * (overdriveOn ? OVERDRIVE_SPEED_MULT : 1);
 
     // SPEC3D 8.2: heading turns toward the finger continuously at a fixed
@@ -1770,9 +1939,21 @@ import * as THREE from 'three';
     if (e.kind === 'pickup' || e.kind === 'buffpickup' || e.kind === 'relic' || e.kind === 'gempickup') return false;
     var isHazard = e.kind === 'hazard';
     if (isHazard) return !!p.pas.junkEater;
-    var biteUp = num(p.pas.biteUp, 0) + megajawBiteUp();
+    // Rev 12 / 12.4: MEGA GOLD RUSH makes every non-hazard prey edible
+    // regardless of tier for its duration - the widest possible gate,
+    // checked before the normal biteUp math so it always wins.
+    if (ctx && ctx.run && ctx.run.mode === 'megaGoldRush') return true;
+    var biteUp = num(p.pas.biteUp, 0) + megajawBiteUp() + supersizeTierBonus();
     var tier = num(e.tier, 0);
     return tier <= p.tier + BITE_UP_BASE + biteUp;
+  }
+
+  // Rev 12 / 12.4: SUPER SIZE folds into the SAME single eatable-tier gate
+  // formula as megajaw (+tierBonus reach), matching the megajawBiteUp
+  // pattern rather than forking a second gate.
+  function supersizeTierBonus() {
+    var b = ctx && ctx.run && ctx.run.buffs;
+    return (b && b.supersize > 0) ? num(SUPERSIZE_CFG.tierBonus, 2) : 0;
   }
 
   // Rev 6 / 6.2 + 6.5, FIX-ROUND-3 item 2: preyNear is a 0.25s-refreshed
@@ -2023,9 +2204,11 @@ import * as THREE from 'three';
     // 6.7: FRENZY MAGNET buff widens suction radius x2.5.
     var buffs = ctx && ctx.run && ctx.run.buffs;
     if (buffs && buffs.magnet > 0) MOUTH.r *= 2.5;
-    // 6.6/6.7: eligibleTierMax mirrors the FULL gate formula, megajaw included.
-    MOUTH.eligibleTierMax = p.pas.junkEater ? 99
-      : p.tier + BITE_UP_BASE + num(p.pas.biteUp, 0) + megajawBiteUp();
+    // 6.6/6.7/12.4: eligibleTierMax mirrors the FULL gate formula, megajaw
+    // and supersize included; MEGA GOLD RUSH makes everything eligible.
+    var megaOn = ctx && ctx.run && ctx.run.mode === 'megaGoldRush';
+    MOUTH.eligibleTierMax = (p.pas.junkEater || megaOn) ? 99
+      : p.tier + BITE_UP_BASE + num(p.pas.biteUp, 0) + megajawBiteUp() + supersizeTierBonus();
     ctx.mouth = MOUTH;
   }
 
@@ -2158,7 +2341,11 @@ import * as THREE from 'three';
     var def = e.def || creatureById(e.defId) || null;
     var mult = comboMult();
     var score = num(def && def.score, 5);
-    var coinMult = ctx.run.goldRushT > 0 ? num(FRENZY.goldRushCoinMult, 2) : 1;
+    // Rev 12 / 12.4: coin multiplier follows the resolved MODE (2x Gold Rush,
+    // 3x Mega Gold Rush per MODES config), not a flat FRENZY constant.
+    var coinMult = ctx.run.mode === 'megaGoldRush' ? num(MODE_MEGA.coinMult, 3)
+      : ctx.run.mode === 'goldRush' ? num(MODE_GOLD.coinMult, num(FRENZY.goldRushCoinMult, 2))
+      : 1;
 
     // RF-COINS-01: ONE payout authority for player-eaten prey. Prey the PLAYER
     // swallows pays HERE, so the combo and Gold Rush multipliers apply. Zeroing
@@ -2190,6 +2377,13 @@ import * as THREE from 'three';
     // jaw snap and a scale pop on the shark, and a hit-stop long enough to feel.
     var mealT = num(e.tier, 0);
     var preyTint = (e.def && e.def.tint) || 0xffe9a8;
+    // FEEDBACK 2026-08-24: "tone it down" for small prey specifically - a
+    // meal BELOW the shark's own tier shouldn't hit as hard as a same-tier
+    // or bigger one. Declared up front so every rev11-fx lever below
+    // (shockwave scale/life/chroma, hitStop, camera pulse) reads the SAME
+    // bar - the same mealT >= p.tier "notable" bar spawnBuffDrop already
+    // uses further down, just inverted.
+    var isSmallPrey = mealT < p.tier;
     // Blocker 7: overwrite the hoisted scratch records in place - no fresh
     // option object is allocated per bite.
     EAT_DEATHBURST_OPT.count = 14 + mealT * 3;
@@ -2211,18 +2405,31 @@ import * as THREE from 'three';
     if (RF.Fx && RF.Fx.eatShockwave) {
       EAT_SHOCKWAVE_OPT.tint = preyTint;
       EAT_SHOCKWAVE_OPT.tier = mealT;
+      // FEEDBACK 2026-08-24: rings/gibs scaled DOWN for small prey (a small
+      // fish is now a tiny puff, not the same shockwave a big meal gets) -
+      // uses the SAME isSmallPrey (mealT < p.tier) bar as hitStop/cam pulse
+      // above, so "big prey" reads consistently across every lever.
+      EAT_SHOCKWAVE_OPT.scale = isSmallPrey ? 0.55 : 1.1;
+      EAT_SHOCKWAVE_OPT.life = isSmallPrey ? 260 : 420;
+      // Chroma screen-flash: NOT every minnow anymore, only combo milestones
+      // or a big/same-tier meal - reuses the same "notable" bar spawnBuffDrop
+      // uses below (mealT >= p.tier, or landing on the combo streak this eat
+      // is ABOUT to land on - ctx.run.combo hasn't incremented yet here).
+      var chromaNotable = !isSmallPrey || (FRENZY.steps || []).indexOf(ctx.run.combo + 1) >= 0;
+      EAT_SHOCKWAVE_OPT.chroma = chromaNotable ? 0.425 : 0;
       try { RF.Fx.eatShockwave(e.x, e.y, EAT_SHOCKWAVE_OPT); } catch (err) { warnOnce('Fx.eatShockwave', err); }
     }
-    scorePopup(e.x, e.y, '+' + Math.round(score * mult), mult > 1);
+    mergeOrSpawnPopup(e.x, e.y, Math.round(score * mult), mult > 1, ctx.time.now);
     p.st.jawSnapT = JAW_SNAP_T;           // Rev 6 / 6.5: 0.12 snap-close on swallow
     p.st.eatPopT = 0.16;                 // scale pop consumed by renderPlayer
     sfx('chomp');
-    hitStop(mealT >= p.tier - 1 ? 45 : 25);
+    hitStop(!isSmallPrey ? 45 : 15);
     // Review r3 (bite signature): EVERY completed bite gets a camera impulse
     // scaled by meal size (combo thresholds still add their own on top), and
     // a directional streak burst along the bite heading so the chomp reads
-    // as motion, not just particles at a point.
-    triggerCamPulse(CAM_EAT_ZOOM * (0.5 + Math.min(0.5, mealT * 0.12)), 0.28);
+    // as motion, not just particles at a point. Small prey gets HALF the
+    // pulse amplitude per owner feedback (big prey/combos unaffected).
+    triggerCamPulse(CAM_EAT_ZOOM * (0.5 + Math.min(0.5, mealT * 0.12)) * (isSmallPrey ? 0.5 : 1), 0.28);
     FX_OPT.count = 6 + mealT * 2; FX_OPT.angle = p.angle; FX_OPT.speed = 320;
     FX_OPT.tint = preyTint; FX_OPT.up = false;
     fxEmit('speedlines', e.x, e.y, FX_OPT);
@@ -2242,7 +2449,17 @@ import * as THREE from 'three';
     // RF-BEST-01: Results wants the PEAK combo, not the streak at death.
     if (ctx.run.combo > num(ctx.run.comboPeak, 0)) ctx.run.comboPeak = ctx.run.combo;
     ctx.run.comboT = num(FRENZY.comboWindow, 3);
-    ctx.run.frenzy = clamp(ctx.run.frenzy + num(FRENZY.meterPerEat, 0.06), 0, 1);
+    // Rev 12 / 12.4: MEGA GOLD RUSH is a SECOND full meter chained while Gold
+    // Rush is already running - eats/combo fill megaMeter instead of the
+    // (already-pinned-at-1) primary frenzy meter during that window, so the
+    // player can chain straight into Mega without the bar visibly emptying
+    // first. Outside Gold Rush (including during Mega Gold Rush itself,
+    // where a second chain is not spec'd) eats fill the normal meter.
+    if (ctx.run.mode === 'goldRush') {
+      ctx.run.megaMeter = clamp(num(ctx.run.megaMeter, 0) + num(FRENZY.meterPerEat, 0.06), 0, 1);
+    } else if (ctx.run.mode !== 'megaGoldRush') {
+      ctx.run.frenzy = clamp(ctx.run.frenzy + num(FRENZY.meterPerEat, 0.06), 0, 1);
+    }
     queueComboChip();
 
     // Rev 6 / 6.7: notable kills may spawn a buff capsule. "Notable" is an
@@ -2362,6 +2579,17 @@ import * as THREE from 'three';
         maxTimer(b, 'overdrive', BUFF_DUR.apex);
         maxTimer(b, 'megajaw', BUFF_DUR.apex);
         break;
+      // Rev 12 / 12.4: SUPER SIZE / SHIELD / SPEED power-ups, sourced from
+      // MODES.buffs (data.js) with the built-in defaults above as fallback.
+      // 'buff_shield' is deliberately a SEPARATE charge counter (modeShield)
+      // from the legacy 'shield' id above so the two pickup tables can never
+      // stomp each other's charge count.
+      case 'buff_supersize': maxTimer(b, 'supersize', num(SUPERSIZE_CFG.dur, 10)); break;
+      case 'buff_shield':
+        b.modeShield = Math.min(num(MODE_SHIELD_CFG.hits, 3),
+          num(b.modeShield, 0) + num(MODE_SHIELD_CFG.hits, 3));
+        break;
+      case 'buff_speed': maxTimer(b, 'modeSpeed', num(MODE_SPEED_CFG.dur, 9)); break;
       default: return;   // unknown buff id: no-op, no cue
     }
     uiCall('chip', (id || 'BUFF').toUpperCase());
@@ -2395,8 +2623,11 @@ import * as THREE from 'three';
     if (b.magnet > 0) { b.magnet -= dt; if (b.magnet <= 0) { b.magnet = 0; uiCall('chip', 'MAGNET END'); } }
     if (b.chum > 0) { b.chum -= dt; if (b.chum <= 0) { b.chum = 0; uiCall('chip', 'CHUM END'); } }
     if (b.apex > 0) { b.apex -= dt; if (b.apex <= 0) { b.apex = 0; uiCall('chip', 'APEX END'); } }
-    // shield is charge-based (integer hits absorbed), not a timer: it decays
-    // only in stepPlayerHits when it actually absorbs a hit.
+    // Rev 12 / 12.4: SUPER SIZE and mode SPEED are plain timers; mode SHIELD
+    // is charge-based like the legacy shield and decays only when it
+    // actually absorbs a hit (stepPlayerHits).
+    if (b.supersize > 0) { b.supersize -= dt; if (b.supersize <= 0) { b.supersize = 0; uiCall('chip', 'SUPER SIZE END'); } }
+    if (b.modeSpeed > 0) { b.modeSpeed -= dt; if (b.modeSpeed <= 0) { b.modeSpeed = 0; uiCall('chip', 'SPEED END'); } }
 
     // Rev 6 / 6.7: publish the CHUM CLOUD flag every step, in place.
     var p = ctx.player;
@@ -2412,7 +2643,9 @@ import * as THREE from 'three';
       // the camelCase names were silently dropped by both validators).
       if (b.apex > 0) r.frenzyCue = 'buff:apex';
       else if (b.overdrive > 0) r.frenzyCue = 'buff:overdrive';
+      else if (b.supersize > 0) r.frenzyCue = 'buff:supersize';
       else if (b.megajaw > 0) r.frenzyCue = 'buff:megajaw';
+      else if (b.modeSpeed > 0) r.frenzyCue = 'buff:speed';
       else if (b.magnet > 0) r.frenzyCue = 'buff:magnet';
       else if (b.chum > 0) r.frenzyCue = 'buff:chum';
     }
@@ -2446,6 +2679,11 @@ import * as THREE from 'three';
     var hits = RF.World && RF.World.playerHits;
     if (!hits || !hits.length) return;
 
+    // Rev 12 / 12.4: both goldRush and megaGoldRush are invulnerable per
+    // MODES config (MODE_GOLD.invulnerable / MODE_MEGA.invulnerable both
+    // true) - goldRushT > 0 exactly covers "any gold mode is running" since
+    // it is the single shared timer both modes ride on, so this gate stays
+    // one check instead of branching per mode.
     var invuln = p.st.invulnT > 0
       || ctx.run.goldRushT > 0
       || p.st.phaseT > 0
@@ -2467,6 +2705,16 @@ import * as THREE from 'three';
     // (however many contacts landed this frame) consumes exactly one charge -
     // matching the "one damage event per frame" rule already in force here.
     var buffs = ctx.run.buffs;
+    // Rev 12 / 12.4: modeShield (the new SHIELD power-up, MODES.buffs.shield)
+    // absorbs first when both are stacked, then the legacy overdrive-table
+    // 'shield' - two separate charge counters, one absorb per hit event,
+    // same "one damage event per frame" rule the legacy path already used.
+    if (buffs && buffs.modeShield > 0) {
+      buffs.modeShield--;
+      fxEmit('ring', p.x, p.y, { count: 1, scale: 1.2, tint: 0x27e0ff });
+      sfx('shieldhit');
+      return;
+    }
     if (buffs && buffs.shield > 0) {
       buffs.shield--;
       fxEmit('ring', p.x, p.y, { count: 1, scale: 1.2, tint: 0x27e0ff });
@@ -2679,11 +2927,14 @@ import * as THREE from 'three';
     if (!r._frenzyApplied || Math.abs(num(mult.bite, 1) - num(r._frenzyAppliedBite, 1)) > 1e-9) {
       baseBite = num(mult.bite, 1);
     }
+    // Rev 12 / 12.4: Gold/Mega Gold Rush speed moved OUT of this multiplier
+    // (it is now applied once, cleanly, in stepControl's speedCap via
+    // ctx.run.mode) so it is never double-applied on top of this one. Blood
+    // Frenzy speed stays here unchanged - it is the only frenzy left that
+    // owns this statMults.speed path.
     var bloodOn = r.blood.t > 0;
     var bloodSpeed = bloodOn ? num(FRENZY2.blood.speed, 1.2) : 1;
-    var goldSpeed = r.goldRushT > 0 ? num(FRENZY.goldRushSpeed, 1.4) : 1;
-    var targetSpeed = Math.max(goldSpeed, bloodSpeed);
-    mult.speed = baseSpeed * (targetSpeed / goldSpeed);
+    mult.speed = baseSpeed * bloodSpeed;
     mult.bite = baseBite * (bloodOn ? num(FRENZY2.blood.bite, 1.5) : 1);
     r._frenzyBaseSpeed = baseSpeed;
     r._frenzyBaseBite = baseBite;
@@ -2834,19 +3085,24 @@ import * as THREE from 'three';
       if (r.goldRushT <= 0) {
         r.goldRushT = 0;
         r.frenzy = 0;
+        r.megaMeter = 0;
         r.goldRush.meter = 0;
         r.goldRush.t = 0;
         r._goldRushAnnounced = false;
+        r._megaAnnounced = false;
+        r.mode = '';
         musicLayer(musicState === 'danger' ? 'danger' : 'calm');
       }
     } else if (r.frenzy >= 1) {
-      r.goldRushT = num(FRENZY.goldRushDur, 8);
+      r.goldRushT = num(FRENZY.goldRushDur, num(MODE_GOLD.dur, 8));
       r.frenzy = 1;
       r.goldRush.meter = 1;
       r.goldRush.t = r.goldRushT;
+      r.mode = 'goldRush';
       if (!r._goldRushAnnounced) {
         r._goldRushAnnounced = true;
-        announceFrenzy('GOLD RUSH', 'Gold Rush: score and coins doubled');
+        announceFrenzy(num(MODE_GOLD.banner, 'GOLD RUSH!'), 'Gold Rush: score and coins doubled');
+        uiCall('notice', num(MODE_GOLD.banner, 'GOLD RUSH!'));
         // Blocker 2: increment exactly once at this completion edge.
         if (!r.frenzyCompletions) r.frenzyCompletions = { goldrush: 0, blood: 0, school: 0 };
         r.frenzyCompletions.goldrush = num(r.frenzyCompletions.goldrush, 0) + 1;
@@ -2857,7 +3113,29 @@ import * as THREE from 'three';
       sfx('goldrush');
       shake(6, 240);
     }
-    r.goldRush.meter = r.frenzy;
+    // Rev 12 / 12.4: MEGA GOLD RUSH chains from a SECOND full meter reached
+    // during Gold Rush (megaMeter, filled by swallow() above). Reaching 1
+    // upgrades the CURRENT Gold Rush window in place - mode flips to
+    // 'megaGoldRush', goldRushT is topped up to the mega duration (never
+    // shortened if more of the original window remained), and megaMeter
+    // resets so a third chain is not spec'd but the field stays well-formed.
+    if (r.mode === 'goldRush' && r.megaMeter >= 1) {
+      r.mode = 'megaGoldRush';
+      r.megaMeter = 0;
+      r.goldRushT = Math.max(r.goldRushT, num(MODE_MEGA.dur, 10));
+      if (!r._megaAnnounced) {
+        r._megaAnnounced = true;
+        announceFrenzy(num(MODE_MEGA.banner, 'MEGA GOLD RUSH!'), 'Mega Gold Rush: everything is edible');
+        uiCall('notice', num(MODE_MEGA.banner, 'MEGA GOLD RUSH!'));
+        grantPowerCharge(1);
+      }
+      shake(9, 320);
+      sfx('goldrush');
+    }
+    // goldRush.meter is HUD/audio-facing: the CHAIN meter (megaMeter) while
+    // any gold mode is running (so the HUD gold bar shows progress toward
+    // the next chain step), the primary frenzy meter otherwise.
+    r.goldRush.meter = r.mode ? r.megaMeter : r.frenzy;
     r.goldRush.t = r.goldRushT;
     applyFrenzyMults(ctx);
     updateFrenzyCue(r);
@@ -3298,7 +3576,11 @@ import * as THREE from 'three';
       // captures its unit group here. Never recapture after an eat pop.
       if (g.__baseScale == null) g.__baseScale = num(g.scale.x, 1) || 1;
       var pop = p.st.eatPopT > 0 ? (1 + 0.14 * clamp(p.st.eatPopT / 0.16, 0, 1)) : 1;
-      var s = g.__baseScale * pop;
+      // Rev 12 / 12.4: SUPER SIZE multiplies the SAME base scale the eat-pop
+      // rides on top of, so a super-sized shark's eat-pop still reads as a
+      // small extra flourish on the sustained bigger size, not a competing write.
+      var superMult = num(p.st.superSizeScale, 1);
+      var s = g.__baseScale * pop * superMult;
       g.scale.set(s, s, s);
     }
 
@@ -3377,6 +3659,9 @@ import * as THREE from 'three';
     h.comboMult = comboMult();
     h.frenzy = ctx.run.frenzy;
     h.goldRush = ctx.run.goldRushT;
+    // Rev 12 / 12.4: HUD mode banner + the chained mega-meter (0..1) fill.
+    h.mode = ctx.run.mode || '';
+    h.megaMeter = clamp(num(ctx.run.megaMeter, 0), 0, 1);
     h.hurt = hudHurt;
     h.zone = zoneState.name || '';
     h.dev = !!(RF.DevMode && RF.DevMode.state && devAny());
@@ -3407,6 +3692,8 @@ import * as THREE from 'three';
       h.buffs.overdrive = buffs.overdrive; h.buffs.shield = buffs.shield;
       h.buffs.megajaw = buffs.megajaw; h.buffs.magnet = buffs.magnet;
       h.buffs.chum = buffs.chum; h.buffs.apex = buffs.apex;
+      h.buffs.supersize = buffs.supersize; h.buffs.modeShield = buffs.modeShield;
+      h.buffs.modeSpeed = buffs.modeSpeed;
     }
     h.px = p.x; h.py = p.y;
     var bt = h.buffTimers; bt.length = 0;
@@ -3417,6 +3704,9 @@ import * as THREE from 'three';
       if (buffs.magnet > 0) bt.push(clamp(buffs.magnet / BUFF_DUR.magnet, 0, 1));
       if (buffs.chum > 0) bt.push(clamp(buffs.chum / BUFF_DUR.chum, 0, 1));
       if (buffs.apex > 0) bt.push(clamp(buffs.apex / BUFF_DUR.apex, 0, 1));
+      if (buffs.supersize > 0) bt.push(clamp(buffs.supersize / num(SUPERSIZE_CFG.dur, 10), 0, 1));
+      if (buffs.modeShield > 0) bt.push(clamp(buffs.modeShield / num(MODE_SHIELD_CFG.hits, 3), 0, 1));
+      if (buffs.modeSpeed > 0) bt.push(clamp(buffs.modeSpeed / num(MODE_SPEED_CFG.dur, 9), 0, 1));
     }
     uiCall('hudState', h);
   }
@@ -3642,17 +3932,21 @@ import * as THREE from 'three';
       // Rev 6 / 6.1: dolly is LENGTH-PROPORTIONAL. camZForLen(len) = clamp(len
       // * 1.60, 185, 400); camZForTier keeps its exported NAME but delegates
       // to it by resolving a def with that tier.
-      check(Math.abs(camZForLen(150) - 262.5) < 1e-9, 'camZForLen scales 1.75x inside the clamp band (150px -> 262.5)');
+      check(Math.abs(camZForLen(150) - 150 * CAM_Z_LEN_MULT) < 1e-9,
+        'camZForLen scales by CAM_Z_LEN_MULT inside the clamp band (150px -> ' + (150 * CAM_Z_LEN_MULT) + ')');
       check(camZForLen(50) === CAM_Z_MIN, 'camZForLen floors at 185 for a tiny rendered length');
-      check(camZForLen(1000) === CAM_Z_MAX, 'camZForLen ceilings at 400 for a huge rendered length');
+      check(camZForLen(1000) === CAM_Z_MAX, 'camZForLen ceilings at ' + CAM_Z_MAX + ' for a huge rendered length');
       check(camZForTier(1) === camZForLen(sharkLenPx(sharkById('reef'))),
         'camZForTier(1) delegates to camZForLen for a tier-1 def');
       check(camZForTier(12) === camZForLen(sharkLenPx(sharkById('leviathanrex'))),
         'camZForTier(12) delegates to camZForLen for the tier-12 def');
 
-      // Rev 6 / 6.1: framing fraction gate. sharkLenPx / (2.018 * z) must sit
-      // in [0.28, 0.34] for tiers 1/6/12 (2.018 is the precomputed 2*tan(fov/2)
-      // for fov=50, matching CAM_FRAME_TAN2 below to a tight tolerance).
+      // Rev 12 / 12.5: framing fraction gate. sharkLenPx / (2.018 * z) must
+      // sit in [0.20, 0.28] for tiers 1/6/12 - the ~25% dolly-out (CAM_Z_LEN_MULT
+      // 1.75 -> 2.2, clamps 250..600) reads as a smaller on-screen fraction at
+      // the same shark length, so the accept band moves down from the prior
+      // [0.28, 0.34] to match (2.018 is the precomputed 2*tan(fov/2) for
+      // fov=50, matching CAM_FRAME_TAN2 below to a tight tolerance).
       check(Math.abs(CAM_FRAME_TAN2 - 2.018) < 0.01,
         'CAM_FRAME_TAN2 matches the documented 2*tan(fov/2) constant (' + CAM_FRAME_TAN2.toFixed(4) + ')');
       var framingTiers = [
@@ -3663,8 +3957,8 @@ import * as THREE from 'three';
         var flen = sharkLenPx(fdef);
         var fz = camZForLen(flen);
         var frac = flen / (CAM_FRAME_TAN2 * fz);
-        check(frac >= 0.28 && frac <= 0.34,
-          'framing fraction in [0.28,0.34] for tier ' + framingTiers[fti].tier
+        check(frac >= 0.20 && frac <= 0.28,
+          'framing fraction in [0.20,0.28] for tier ' + framingTiers[fti].tier
           + ' (' + frac.toFixed(3) + ')');
       }
       check(LIGHT_RIG.hemiIntensity === 0.55 && LIGHT_RIG.sunIntensity === 1.25
@@ -3910,13 +4204,18 @@ import * as THREE from 'three';
       updateFrenzyCue(ctx.run);
       check(ctx.run.frenzyCue === 'goldRush', 'all frenzy cues use Gold Rush priority');
 
+      // Rev 12 / 12.4: Gold/Mega Gold Rush speed moved OUT of applyFrenzyMults
+      // into stepControl's speedCap (via ctx.run.mode), so this function now
+      // only ever applies Blood Frenzy's speed/bite - Gold Rush being active
+      // alongside it must leave statMults.speed untouched by this function.
       p.st.statMults = { speed: 1, bite: 1, boost: 1, hp: 1, metab: 1 };
       ctx.run._frenzyApplied = false; ctx.run.goldRushT = 2; ctx.run.blood.t = 2;
       applyFrenzyMults(ctx);
       check(Math.abs(p.st.statMults.bite - 1.5) < 1e-9,
         'Blood bite multiplier is applied through live stat multipliers');
-      check(Math.abs(p.st.statMults.speed * num(FRENZY.goldRushSpeed, 1.4) - 1.4) < 1e-9,
-        'Blood speed does not compound with Gold Rush speed');
+      check(Math.abs(p.st.statMults.speed - num(FRENZY2.blood.speed, 1.2)) < 1e-9,
+        'applyFrenzyMults applies only Blood speed - Gold Rush speed lives in stepControl now');
+      p.st.statMults = { speed: 1, bite: 1, boost: 1, hp: 1, metab: 1 };
       ctx.run._frenzyApplied = false; ctx.run.goldRushT = 0; ctx.run.blood.t = 2;
       applyFrenzyMults(ctx);
       check(Math.abs(p.st.statMults.speed - 1.2) < 1e-9,
@@ -4096,6 +4395,95 @@ import * as THREE from 'three';
         'an unknown buff id is a silent no-op (buffs unchanged, no throw)');
       ctx.run.buffs.overdrive = 0; ctx.run.buffs.shield = 0; ctx.run.buffs.megajaw = 0;
       ctx.run.buffs.magnet = 0; ctx.run.buffs.chum = 0; ctx.run.buffs.apex = 0;
+
+      // ---- Rev 12 / 12.4: the three new power-up pickups (super size,
+      // mode shield, mode speed), their durations, and their decay.
+      applyBuffPickup('buff_supersize');
+      check(ctx.run.buffs.supersize === num(SUPERSIZE_CFG.dur, 10),
+        'applyBuffPickup arms SUPER SIZE for its configured duration');
+      applyBuffPickup('buff_shield');
+      check(ctx.run.buffs.modeShield === num(MODE_SHIELD_CFG.hits, 3),
+        'applyBuffPickup grants the mode SHIELD its configured charge count');
+      check(ctx.run.buffs.shield === 0,
+        'the mode SHIELD pickup uses its OWN charge counter, never the legacy overdrive-table shield');
+      applyBuffPickup('buff_speed');
+      check(ctx.run.buffs.modeSpeed === num(MODE_SPEED_CFG.dur, 9),
+        'applyBuffPickup arms mode SPEED for its configured duration');
+      ctx.run.buffs.supersize = STEP * 1.5; ctx.run.buffs.modeSpeed = STEP * 1.5;
+      stepBuffs(); stepBuffs();
+      check(ctx.run.buffs.supersize === 0 && ctx.run.buffs.modeSpeed === 0,
+        'SUPER SIZE and mode SPEED timers decay to exactly 0, never negative');
+      ctx.run.buffs.modeShield = 0;
+
+      // ---- Rev 12 / 12.4: SUPER SIZE folds into the SAME eatable-tier gate
+      // as megajaw (+tierBonus reach) and live-scales p.r/p.mouthR from the
+      // stored *Base fields, matching the megajaw pattern rather than
+      // forking a second gate.
+      var ssPrey = { active: true, kind: 'prey', tier: pc.tier + num(SUPERSIZE_CFG.tierBonus, 2),
+        x: pc.x, y: pc.y, coins: 1, hp: 1 };
+      ctx.run.buffs.supersize = 0;
+      check(eatEligible(pc, ssPrey) === false,
+        'a prey at +tierBonus is TOO BIG without SUPER SIZE active');
+      ctx.run.buffs.supersize = num(SUPERSIZE_CFG.dur, 10);
+      check(eatEligible(pc, ssPrey) === true,
+        'SUPER SIZE widens the eatable-tier gate by tierBonus, same formula as megajaw');
+      var rBefore = pc.rBase, mrBefore = pc.mouthRBase;
+      stepSuperSize(pc);
+      check(Math.abs(pc.r - rBefore * num(SUPERSIZE_CFG.sizeMult, 1.5)) < 1e-9
+        && Math.abs(pc.mouthR - mrBefore * num(SUPERSIZE_CFG.sizeMult, 1.5)) < 1e-9,
+        'stepSuperSize live-scales p.r/p.mouthR by sizeMult while active');
+      ctx.run.buffs.supersize = 0;
+      stepSuperSize(pc);
+      check(pc.r === rBefore && pc.mouthR === mrBefore,
+        'stepSuperSize restores the true (unbuffed) radii once the buff ends');
+
+      // ---- Rev 12 / 12.4: GOLD RUSH / MEGA GOLD RUSH mode transitions,
+      // multipliers, and durations. A fresh ctx.run frenzy state so this
+      // section's edges are not polluted by whatever ran above.
+      ctx.run.mode = ''; ctx.run.frenzy = 0; ctx.run.megaMeter = 0;
+      ctx.run.goldRushT = 0; ctx.run._goldRushAnnounced = false; ctx.run._megaAnnounced = false;
+      ctx.run.frenzy = 1;
+      stepFrenzy();
+      check(ctx.run.mode === 'goldRush', 'a full frenzy meter enters GOLD RUSH mode');
+      check(Math.abs(ctx.run.goldRushT - num(MODE_GOLD.dur, num(FRENZY.goldRushDur, 8))) < 1e-9,
+        'Gold Rush timer starts at its configured duration');
+      var ssPrey2 = { active: true, kind: 'prey', tier: pc.tier + 50, x: pc.x, y: pc.y, coins: 1, hp: 1 };
+      check(eatEligible(pc, ssPrey2) === false,
+        'plain Gold Rush does NOT make an absurdly-oversized prey edible (that is Mega only)');
+      var coinsBefore = ctx.run.coins;
+      var goldPrey = { active: true, kind: 'prey', tier: 0, x: pc.x, y: pc.y, coins: 10, hp: 1, def: null };
+      var multBeforeGold = comboMult();   // swallow() increments combo itself
+      swallow(goldPrey);
+      check(ctx.run.coins - coinsBefore === 10 * multBeforeGold * num(MODE_GOLD.coinMult, 2),
+        'Gold Rush pays out coinMult from MODES config on a swallow');
+      // Fill the CHAINED mega meter (swallow() above already added one
+      // meterPerEat step to megaMeter since mode is 'goldRush'); force it the
+      // rest of the way to 1 and let stepFrenzy resolve the chain.
+      ctx.run.megaMeter = 1;
+      stepFrenzy();
+      check(ctx.run.mode === 'megaGoldRush',
+        'a second full meter DURING Gold Rush chains into MEGA GOLD RUSH');
+      check(ctx.run.goldRushT >= num(MODE_MEGA.dur, 10) - 1e-9,
+        'Mega Gold Rush tops the shared timer up to at least its own configured duration');
+      check(eatEligible(pc, ssPrey2) === true,
+        'MEGA GOLD RUSH makes an arbitrarily-oversized prey edible for its duration');
+      // Fresh prey object: swallow() zeroes e.coins in place (RF-COINS-01),
+      // so reusing goldPrey here would silently pay out 0 the second time.
+      var goldPrey2 = { active: true, kind: 'prey', tier: 0, x: pc.x, y: pc.y, coins: 10, hp: 1, def: null };
+      var coinsBefore2 = ctx.run.coins;
+      var multBeforeMega = comboMult();
+      swallow(goldPrey2);
+      check(ctx.run.coins - coinsBefore2 === 10 * multBeforeMega * num(MODE_MEGA.coinMult, 3),
+        'Mega Gold Rush pays out its own (higher) coinMult from MODES config');
+      // Timer expiry clears BOTH the mode and the mega chain state, not just
+      // the primary meter - a stale mode string would leave eatEligible/HUD
+      // reading a mode that is no longer actually running.
+      ctx.run.goldRushT = STEP * 0.5;
+      stepFrenzy();
+      check(ctx.run.mode === '' && ctx.run.goldRushT === 0 && ctx.run.frenzy === 0 && ctx.run.megaMeter === 0,
+        'Gold/Mega Gold Rush timer expiry clears mode + both meters together');
+      ctx.run.mode = ''; ctx.run.frenzy = 0; ctx.run.megaMeter = 0; ctx.run.goldRushT = 0;
+      ctx.run._goldRushAnnounced = false; ctx.run._megaAnnounced = false;
 
       // ---- Rev 6.11 item 1: real buffpickup spawn -> collect integration
       // test, replacing the old unconditional check(true). Exercises the
@@ -4511,8 +4899,8 @@ import * as THREE from 'three';
         'eat emitted the two-stage burst');
       check(pc.st.jawSnapT > 0, 'eat set the jaw snap');
       check(pc.st.eatPopT > 0, 'eat set the scale pop');
-      check(stops.length >= 1 && (stops[0] === 25 || stops[0] === 45),
-        'eat hit-stop is 25 or 45 ms (7.3 tuned down from 40/60) (' + stops.join(',') + ')');
+      check(stops.length >= 1 && (stops[0] === 15 || stops[0] === 45),
+        'eat hit-stop is 15 or 45 ms (rev11-fx: small prey tuned down from 25 to 15) (' + stops.join(',') + ')');
       check(burstOpts.length >= 1 && burstOpts[0].tint === 0xffe9a8,
         'swallow() falls back to 0xffe9a8 when def.tint is absent');
       burstOpts.length = 0;
@@ -5196,10 +5584,37 @@ import * as THREE from 'three';
     return { pass: pass, notes: notes };
   }
 
+  // Rev 12 / 12.1: RF.Game.selectLevel(id) - the engine-owned entry point for
+  // level select UI. Delegates the persisted choice + unlock gate to
+  // RF.Meta.selectLevel (meta.js owns profile.levels/selectedLevel and the
+  // unlock check); this function's own job is only to keep a LIVE run's
+  // ctx.level in sync if one is already running, and to degrade to a no-op
+  // report when meta.js is not loaded (defensive per the Rev 12 lane split -
+  // level select may land before/without the data/meta lane).
+  function selectLevel(id) {
+    var result = { ok: false, reason: 'no-meta' };
+    if (RF.Meta && RF.Meta.selectLevel) {
+      try { result = RF.Meta.selectLevel(profile, id); } catch (e) { warnOnce('Meta.selectLevel', e); result = { ok: false, reason: 'exception' }; }
+    } else if (RFD.LEVEL_BY_ID && RFD.LEVEL_BY_ID[id]) {
+      // No meta.js loaded (e.g. a standalone engine harness): still honor a
+      // recognised level id so a live run can react to it.
+      if (profile) profile.selectedLevel = id;
+      result = { ok: true };
+    } else {
+      result = { ok: false, reason: 'unknown-level' };
+    }
+    if (result && result.ok && ctx) {
+      ctx.level = id;
+      if (ctx.run) ctx.run.level = id;
+    }
+    return result;
+  }
+
   // ---------------------------------------------------------- exports
   RF.Game = {
     boot: boot,
     __selftest: __selftest,
+    selectLevel: selectLevel,
     dpr: DPR,
     CSS_W: CSS_W, CSS_H: CSS_H,
     STEP: STEP,

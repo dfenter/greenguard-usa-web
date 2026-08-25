@@ -188,9 +188,11 @@ SHARKS = [
 ("absolutezero","Absolute Zero",11,3,95000,(375,696,2.7,12,880,2.5,2.8),["freezeTouch","armored","freezeField"],"freeze",
  ("blunt",1.75,0.48,1.10,1.00,0x4a7a99,0xf8fdff,0x2f5470,0xe0f8ff,"facets","iceAge"),None,
  "The water freezes first. The rest is scheduling."),
-("leviathanrex","Leviathan Rex",12,3,150000,(400,720,2.5,16,1400,2.6,3.0),["armored","pressureImmune","junkEater","biteUpX"],"atomic",
- ("kaiju",2.20,0.60,1.30,1.20,0x2e3d38,0xb8cdc4,0x1a2622,0x9ffcf0,"plates","dorsalCharge"),None,
- "The ocean has a king. The land has a warning."),
+("leviathanrex","Sharkjira",12,3,150000,(400,720,2.5,16,1400,2.6,3.0),["armored","pressureImmune","junkEater","biteUpX"],"atomic",
+ ("kaiju",2.40,0.60,1.30,1.20,0x1b1f22,0xb8cdc4,0x2a3138,0x3fd6ff,"plates","dorsalCharge"),None,
+ "A kaiju wearing a shark's face. Jagged dorsal plates, an atomic-blue glow "
+ "in its spine and gills, and an underbite that ends arguments. The ocean "
+ "has a king. The land has a warning."),
 # --- Act 4: Pantheon (12), gods, tiers 9-12 ---
 ("zeusfin","Zeusfin",9,4,160000,(420,804,3.1,10,600,2.9,3.1),["shockTouch","comboSpeed"],"volt",
  ("point",1.58,0.40,1.25,1.15,0xd8b03a,0xfff6d0,0x8a6a10,0xfff2a0,"rays","stormcrown"),None,
@@ -276,6 +278,15 @@ CREATURES = [
  # prey (parrot/grouper/ray/turtle/tuna/swordfish/dolphinfish/marlin/
  # giantsquid/abyssal/leviathanprey) are intentionally NOT schools and keep
  # their small pack ranges so they still read as individually-readable catches.
+ # Rev 12 12.1 level specials: seal/sealion/orca are alaska/california level
+ # creatures; orca is a predator-class NPC (kind stays "prey" for eat-table
+ # plumbing consistency with the rest of this table -- npc weighting/zones
+ # elsewhere in the codebase is what actually governs predator behavior for
+ # the roster; this table has no npc column, so orca is simply a big-ticket
+ # catch here and its predator behavior is out of gen_data.py's ownership).
+ ("seal","Harbor Seal",3,"prey",100,3,32,5,"proc_seal",1,3,0x8a8f94),
+ ("sealion","Sea Lion",4,"prey",115,4,46,7,"proc_sealion",1,2,0xa0855a),
+ ("orca","Orca",8,"prey",190,20,220,32,"proc_orca",1,1,0x1a1e22),
  ("minnow","Minnow Shoal",0,"prey",65,1,5,1,"fish_blue",6,10,0x5fa8e8),
  ("reeffish","Reef Fish",1,"prey",70,1,10,2,"fish_orange",6,10,0xff9d4a),
  ("mackerel","Mackerel",1,"prey",95,1,12,2,"fish_grey_long_a",6,10,0x8fa0ac),
@@ -341,6 +352,82 @@ ZONES = [
   "intendedTier":9,
   "spawns":[["giantsquid",4],["abyssal",4],["leviathanprey",1],["mine",2]]},
 ]
+# Rev 12 12.1: LEVELS -- 12 locations, world3d level select + above-water sky
+# backdrop. unlock: {"type":"coins"|"gems"|"score","n"|"levelId"} -- coins/
+# gems are a flat currency threshold; score is {"levelId":<prior id>,"n":
+# <score needed on that prior level>} (progression gate). sky: gradient top/
+# horizon colors + a horizonTheme id consumed by world3d's parallax silhouette
+# layer (z -600). water: surface tint, 4 depth-band tints (shallow->abyss,
+# matches the 4 ZONES bands), haze color. seabed: sand|reef|rock|ice|kelp|
+# volcanic. preyWeights: {defId:weight} overlay merged onto the zone spawn
+# tables for this level (world3d ownership; gen_data only supplies the
+# weights). special: list of CREATURES ids that are level-signature spawns
+# (in addition to preyWeights, for level-select blurb/thumbnail purposes).
+# hazards: list of HAZARDS ids active on this level (subset of the 3 hazard
+# rows above; all 12 levels currently share the full hazard set unless noted).
+LEVELS = [
+ {"id":"hawaii","name":"Hawaii","unlock":{"type":"coins","n":0},
+  "sky":{"top":"0x1f6fb0","horizon":"0xffb066","horizonTheme":"volcano_palms"},
+  "water":{"surface":"0x1b4d66","bands":["0x2a6f8c","0x1b4d66","0x0e3348","0x061a26"],"haze":"0x5fa8c2"},
+  "seabed":"sand","preyWeights":{"minnow":8,"reeffish":8,"parrot":3},
+  "special":["turtle"],"hazards":["jelly","puffer","mine"]},
+ {"id":"mexico","name":"Mexico","unlock":{"type":"coins","n":4000},
+  "sky":{"top":"0x2a5c8f","horizon":"0xd98a4a","horizonTheme":"cliffs_cacti_ruins"},
+  "water":{"surface":"0x18475e","bands":["0x265f7a","0x18475e","0x0d2e3f","0x071a26"],"haze":"0x5a96ac"},
+  "seabed":"rock","preyWeights":{"grouper":5,"mackerel":6,"tuna":4},
+  "special":["ray"],"hazards":["jelly","puffer","mine"]},
+ {"id":"belize","name":"Belize","unlock":{"type":"coins","n":9000},
+  "sky":{"top":"0x1e77b8","horizon":"0xffe0a0","horizonTheme":"barrier_reef_cays"},
+  "water":{"surface":"0x14556f","bands":["0x1f7091","0x14556f","0x0b3549","0x051c28"],"haze":"0x4fa4c4"},
+  "seabed":"reef","preyWeights":{"reeffish":8,"parrot":6,"grouper":4},
+  "special":["ray"],"hazards":["jelly","puffer","mine"]},
+ {"id":"maldives","name":"Maldives","unlock":{"type":"coins","n":16000},
+  "sky":{"top":"0x2f8fc4","horizon":"0xfff0c4","horizonTheme":"atolls_overwater_huts"},
+  "water":{"surface":"0x156078","bands":["0x2288a8","0x156078","0x0c3c4c","0x061f28"],"haze":"0x66b8d0"},
+  "seabed":"sand","preyWeights":{"dolphinfish":4,"swordfish":3,"squidling":6},
+  "special":["ray"],"hazards":["jelly","puffer","mine"]},
+ {"id":"newzealand","name":"New Zealand","unlock":{"type":"coins","n":26000},
+  "sky":{"top":"0x3a5a78","horizon":"0xd8e4ec","horizonTheme":"fjords_snow"},
+  "water":{"surface":"0x11384a","bands":["0x1c4a5f","0x11384a","0x092430","0x04131a"],"haze":"0x4a7a92"},
+  "seabed":"rock","preyWeights":{"tuna":5,"marlin":2,"mackerel":5},
+  "special":["seal"],"hazards":["jelly","mine"]},
+ {"id":"alaska","name":"Alaska","unlock":{"type":"coins","n":40000},
+  "sky":{"top":"0x4a6a82","horizon":"0xe8f0f4","horizonTheme":"glaciers_icebergs"},
+  "water":{"surface":"0x0f2e3f","bands":["0x184156","0x0f2e3f","0x081e29","0x040f16"],"haze":"0x5a8a9e"},
+  "seabed":"ice","preyWeights":{"tuna":4,"anglerprey":6,"seal":3},
+  "special":["seal","orca"],"hazards":["mine"]},
+ {"id":"tahiti","name":"Tahiti","unlock":{"type":"coins","n":58000},
+  "sky":{"top":"0x1f7fc0","horizon":"0xffcf94","horizonTheme":"peaks_lagoon"},
+  "water":{"surface":"0x175a76","bands":["0x257da0","0x175a76","0x0d3a4c","0x061e28"],"haze":"0x5fb0cc"},
+  "seabed":"reef","preyWeights":{"parrot":6,"dolphinfish":4,"squidling":5},
+  "special":["ray"],"hazards":["jelly","puffer","mine"]},
+ {"id":"azores","name":"Azores","unlock":{"type":"coins","n":80000},
+  "sky":{"top":"0x2c5c7a","horizon":"0xc4a488","horizonTheme":"volcanic_isles"},
+  "water":{"surface":"0x123b4e","bands":["0x1d5064","0x123b4e","0x0a2632","0x05141c"],"haze":"0x4f8ca4"},
+  "seabed":"volcanic","preyWeights":{"swordfish":4,"giantsquid":2,"marlin":2},
+  "special":["marlin"],"hazards":["mine","jelly"]},
+ {"id":"bali","name":"Bali","unlock":{"type":"coins","n":105000},
+  "sky":{"top":"0x2a76b8","horizon":"0xffdca0","horizonTheme":"temples_rice_terraces"},
+  "water":{"surface":"0x155a72","bands":["0x217f9c","0x155a72","0x0c3948","0x061e26"],"haze":"0x5ab0cc"},
+  "seabed":"reef","preyWeights":{"parrot":6,"squidling":5,"reeffish":6},
+  "special":["ray"],"hazards":["jelly","puffer","mine"]},
+ {"id":"aruba","name":"Aruba","unlock":{"type":"coins","n":135000},
+  "sky":{"top":"0x1e84c0","horizon":"0xfff0d0","horizonTheme":"divi_trees_beach"},
+  "water":{"surface":"0x14607a","bands":["0x2088a4","0x14607a","0x0b3d4d","0x061f28"],"haze":"0x5fb8d4"},
+  "seabed":"sand","preyWeights":{"mackerel":6,"tuna":5,"dolphinfish":4},
+  "special":["turtle"],"hazards":["jelly","puffer","mine"]},
+ {"id":"jamaica","name":"Jamaica","unlock":{"type":"coins","n":170000},
+  "sky":{"top":"0x2472ac","horizon":"0xa8d888","horizonTheme":"green_hills"},
+  "water":{"surface":"0x155a70","bands":["0x1f7c94","0x155a70","0x0c3a48","0x061e26"],"haze":"0x54a4bc"},
+  "seabed":"reef","preyWeights":{"grouper":5,"parrot":5,"reeffish":6},
+  "special":["turtle"],"hazards":["jelly","puffer","mine"]},
+ {"id":"california","name":"California","unlock":{"type":"score","levelId":"jamaica","n":8000},
+  "sky":{"top":"0x3a5f78","horizon":"0xd8c8b0","horizonTheme":"cliffs_pier_kelp"},
+  "water":{"surface":"0x11384a","bands":["0x1c4f60","0x11384a","0x092431","0x04121a"],"haze":"0x5088a0"},
+  "seabed":"kelp","preyWeights":{"tuna":5,"marlin":2,"sealion":4},
+  "special":["sealion"],"hazards":["mine","jelly"]},
+]
+
 # Rev 6.7: pickup capsule table. Weighted draw on notable-kill drops (Lane E
 # calls World.spawnBuffDrop) and rare ambient spawns (Lane W runSpawner).
 # dur is seconds; GOLD RUSH is unchanged and stays in FRENZY2, not here.
@@ -351,6 +438,13 @@ PICKUPS = [
  {"id":"magnet","name":"Frenzy Magnet","weight":18,"dur":8.0,"tint":"0xff2bd6"},
  {"id":"chum","name":"Chum Cloud","weight":16,"dur":6.0,"tint":"0x27e0ff"},
  {"id":"apex","name":"Apex Surge","weight":3,"dur":5.0,"tint":"0xd98a2b"},
+ # Rev 12 12.4: MODES power-up pickups (supersize/shield/speed). Distinct ids
+ # from the Rev 6.7 "shield"/"magnet" rows above (those stay as-is; this is a
+ # separate son's-list buff set). All use the gem-mesh look (world3d) with a
+ # per-type color + icon glyph, keyed by MODES.buffs below.
+ {"id":"buff_supersize","name":"Super Size","weight":14,"dur":10.0,"tint":"0xffd400","icon":"supersize"},
+ {"id":"buff_shield","name":"Aegis Shield","weight":16,"dur":12.0,"tint":"0x27e0ff","icon":"shield"},
+ {"id":"buff_speed","name":"Riptide Speed","weight":18,"dur":9.0,"tint":"0x9dff2b","icon":"speed"},
 ]
 # Rev 7 7.6 (S3): secret items + missions + gems config.
 # RELICS: 3 per zone x 4 zones, deterministic seeded placement (seed=zone id)
@@ -451,6 +545,23 @@ BAL = {"metabScale":0.5,"eatHealBonus":1.25}
 FRENZY2 = {"school":{"count":4,"swirlT":5.0,"eatRate":1.3},
            "blood":{"dur":6.0,"bite":1.5,"speed":1.2},
            "golden":{"chance":0.02,"coinBurst":250,"deadline":10.0}}
+# Rev 12 12.4: MODES -- GOLD RUSH / MEGA GOLD RUSH as visible modes, plus
+# buff-pickup effect sizes for supersize/shield/speed. goldRush reuses the
+# existing FRENZY.goldRushDur/Speed/CoinMult meter mechanics (unchanged) but
+# is now surfaced as a named mode with a banner/vignette/HUD bar (engine3d/
+# ui3d ownership); megaGoldRush is a NEW second-tier mode reached by chaining
+# a second full meter fill during Gold Rush.
+MODES = {
+ "goldRush": {"dur": 8.0, "coinMult": 2, "speedMult": 1.4, "invulnerable": True,
+              "tint": "0xffd400", "banner": "GOLD RUSH!"},
+ "megaGoldRush": {"dur": 10.0, "coinMult": 3, "speedMult": 1.5, "invulnerable": True,
+                   "allEdible": True, "tint": "0xfff5b0", "banner": "MEGA GOLD RUSH!"},
+ "buffs": {
+   "supersize": {"dur": 10.0, "sizeMult": 1.5, "tierBonus": 2, "tint": "0xffd400"},
+   "shield": {"dur": 12.0, "hits": 3, "tint": "0x27e0ff"},
+   "speed": {"dur": 9.0, "speedMult": 1.5, "tint": "0x9dff2b"},
+ },
+}
 FX = {"bubbles":{},"motes":{},"chomp":{},"deathBurst":{},"elementSpark":{},"ring":{},"beamCore":{}}
 SFX = {"chomp":"sfx_snap.mp3","bubble":"sfx_bubble.mp3","splash":"sfx_splash.mp3",
        "power_fire":None,"power_ice":None,"power_volt":None,"power_toxin":None,"power_sonic":None,
@@ -461,12 +572,24 @@ MUSIC = {"calm":"dawn_loop.mp3","danger":None,"goldrush":None}
 def js(o):
     return json.dumps(o, separators=(",", ":"))
 
+# Rev 12 12.2: shark class rule. common = act1 tiers1-4; rare = act1 tiers5-6
+# or act2 tier7; epic = act2 tier8 or act3 tiers9-10; legendary = act3
+# tiers11-12; god = act4 (Pantheon); demon = act5 (Underworld).
+def shark_cls(tier, act):
+    if act == 1 and 1 <= tier <= 4: return "common"
+    if (act == 1 and tier in (5, 6)) or (act == 2 and tier == 7): return "rare"
+    if (act == 2 and tier == 8) or (act == 3 and 9 <= tier <= 10): return "epic"
+    if act == 3 and 11 <= tier <= 12: return "legendary"
+    if act == 4: return "god"
+    if act == 5: return "demon"
+    raise ValueError("no class rule for tier=%r act=%r" % (tier, act))
+
 def shark_row(t):
     (sid,name,tier,act,cost,st,pas,active,sil,npc,blurb)=t
     stats={"speed":st[0],"accel":st[1],"turn":st[2],"bite":st[3],"hp":st[4],"metab":st[5],"boost":st[6]}
     sils={"head":sil[0],"len":sil[1],"girth":sil[2],"finScale":sil[3],"tailScale":sil[4],
           "palette":{"base":sil[5],"belly":sil[6],"accent":sil[7],"glow":sil[8]},"pattern":sil[9],"fx":sil[10]}
-    row={"id":sid,"name":name,"tier":tier,"act":act,"cost":cost,"stats":stats,"passives":pas,
+    row={"id":sid,"name":name,"tier":tier,"act":act,"cls":shark_cls(tier,act),"cost":cost,"stats":stats,"passives":pas,
          "active":active,"sil":sils,"npc":({"weight":npc[0],"zones":npc[1]} if npc else None),"blurb":blurb}
     return js(row)
 
@@ -487,6 +610,8 @@ def table(name, rows, keys):
 lines+=table("CREATURES",CREATURES,["id","name","tier","kind","speed","hp","score","coins","sprite","packMin","packMax","tint"])
 lines+=table("HAZARDS",HAZARDS,["id","name","tier","kind","speed","hp","score","coins","sprite","dmg","tint"])
 lines.append("var ZONES="+js(ZONES)+";")
+lines.append("var LEVELS="+js(LEVELS)+";")
+lines.append("var MODES="+js(MODES)+";")
 lines.append("var PICKUPS="+js(PICKUPS)+";")
 lines.append("var RELICS="+js(RELICS)+";")
 lines.append("var MISSIONS="+js(MISSIONS)+";")
@@ -504,10 +629,11 @@ lines.append("var MUSIC="+js(MUSIC)+";")
 lines.append("var SHARK_BY_ID={};SHARKS.forEach(function(s){SHARK_BY_ID[s.id]=s;});")
 lines.append("var CREATURE_BY_ID={};CREATURES.concat(HAZARDS).forEach(function(c){CREATURE_BY_ID[c.id]=c;});")
 lines.append("var RELICS_BY_ZONE={};RELICS.forEach(function(r){(RELICS_BY_ZONE[r.zoneId]=RELICS_BY_ZONE[r.zoneId]||[]).push(r);});")
+lines.append("var LEVEL_BY_ID={};LEVELS.forEach(function(l){LEVEL_BY_ID[l.id]=l;});")
 lines.append("return {SHARKS:SHARKS,SHARK_BY_ID:SHARK_BY_ID,CREATURES:CREATURES,HAZARDS:HAZARDS,")
-lines.append("CREATURE_BY_ID:CREATURE_BY_ID,ZONES:ZONES,PICKUPS:PICKUPS,RELICS:RELICS,RELICS_BY_ZONE:RELICS_BY_ZONE,")
+lines.append("CREATURE_BY_ID:CREATURE_BY_ID,ZONES:ZONES,LEVELS:LEVELS,LEVEL_BY_ID:LEVEL_BY_ID,MODES:MODES,PICKUPS:PICKUPS,RELICS:RELICS,RELICS_BY_ZONE:RELICS_BY_ZONE,")
 lines.append("MISSIONS:MISSIONS,GEMS:GEMS,SKINS:SKINS,SECRET_SHARKS:SECRET_SHARKS,ABILITIES:ABILITIES,ECONOMY:ECONOMY,")
 lines.append("FRENZY:FRENZY,BAL:BAL,FRENZY2:FRENZY2,FX:FX,SFX:SFX,MUSIC:MUSIC,WORLD:{w:14400,h:4800},")
-lines.append("SAVE_VERSION:2,ENTITY_BUDGET:{onscreen:48,total:120}};")
+lines.append("SAVE_VERSION:3,ENTITY_BUDGET:{onscreen:48,total:120}};")
 lines.append("})();")
 print("\n".join(lines))

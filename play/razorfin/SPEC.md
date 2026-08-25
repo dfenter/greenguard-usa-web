@@ -217,6 +217,65 @@ Migration from SAVE_VERSION 1 preserves coins/xp/level/sharks/best/runs
 unchanged and backfills the new fields to their empty defaults (see NOTES for
 the exact chain step and its selftest fixture).
 
+## Rev 12 addendum (2026-08-24): LEVELS, shark classes, MODES, SAVE_VERSION 3
+
+Data-lane deliverable for SPEC3D Rev 12 (12.1-12.5), gen_data.py/data.js/
+SPEC.md only (see razorfin/NOTES-rev12-data.md for the full pass writeup and
+the consumer-failure inventory owed to the engine3d/world3d/meta/ui3d
+follow-up lanes).
+
+```
+RFD.LEVELS: [{
+  id, name,
+  unlock: {type:'coins', n} | {type:'gems', n} | {type:'score', levelId, n},
+  sky: {top, horizon, horizonTheme},        // hex-string colors + silhouette theme id
+  water: {surface, bands:[4 hex-strings], haze},  // matches the 4 ZONES depth bands
+  seabed: 'sand'|'reef'|'rock'|'ice'|'kelp'|'volcanic',
+  preyWeights: {defId: weight},             // overlay merged onto the level's zone spawn table
+  special: [creatureId,...],                // level-signature CREATURES ids
+  hazards: [hazardId,...],
+}],
+RFD.LEVEL_BY_ID: {[id]: row},               // derived index, generated
+// 12 rows: hawaii, mexico, belize, maldives, newzealand, alaska, tahiti,
+// azores, bali, aruba, jamaica, california (unlock order). Above-water sky/
+// horizon renders as a world3d parallax layer at z -600 when the camera
+// crosses the surface. Level select drives ctx.level -> world init
+// (seabed/sky/palette/prey mix). Save: profile.levels {id:{best, unlocked}}.
+
+RFD.SHARKS[i].cls: 'common'|'rare'|'epic'|'legendary'|'god'|'demon',
+// Derived from tier+act (SPEC3D 12.2): common=act1 t1-4, rare=act1 t5-6 or
+// act2 t7, epic=act2 t8 or act3 t9-10, legendary=act3 t11-12, god=act4,
+// demon=act5. UI: class badge + color (common gray, rare blue, epic purple,
+// legendary gold, god radiant white-gold, demon infernal red) on roster/
+// shop cards and the run HUD name plate; roster grouped by class within acts.
+
+RFD.SHARKS leviathanrex row: id UNCHANGED, name is now "Sharkjira".
+
+RFD.MODES: {
+  goldRush: {dur, coinMult, speedMult, invulnerable, tint, banner},
+  megaGoldRush: {dur, coinMult, speedMult, invulnerable, allEdible, tint, banner},
+  buffs: { supersize: {dur, sizeMult, tierBonus, tint},
+           shield: {dur, hits, tint},
+           speed: {dur, speedMult, tint} },
+}
+// goldRush numbers mirror the existing FRENZY meter mechanics (unchanged),
+// now surfaced as a named mode object for engine3d (banner/vignette/HUD bar)
+// and ui3d (HUD gold bar) to read directly. megaGoldRush is reached by
+// chaining a second full meter fill during Gold Rush (trigger logic is
+// engine3d's, not data's).
+
+RFD.PICKUPS gains an optional `icon` string field (glyph key) alongside the
+existing `tint`; three new rows use it: buff_supersize, buff_shield,
+buff_speed (distinct ids from the pre-existing shield/magnet rows, which are
+a separate mechanic and are unchanged).
+
+SAVE_VERSION: 2 -> 3. New save-shape field per 12.1: profile.levels =
+{ [levelId]: {best: number, unlocked: bool} }, one entry per RFD.LEVELS id.
+Migration from SAVE_VERSION 2 preserves gems/relics/skins/missions unchanged
+and backfills profile.levels (hawaii unlocked:true/best:0, rest
+unlocked:false/best:0) — meta.js owns the actual migration chain step.
+```
+
 ## Fleet laws (binding)
 
 - RETINA: bake at DPR via GGKit.hiDpi.canvas; >64 distinct colors/frame.

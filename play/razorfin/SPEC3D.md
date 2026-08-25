@@ -1272,3 +1272,62 @@ bar is these, not the roster thumbnails. What they actually show:
   SMALL relative to the shark, spread in loose lines/schools; varied species
   (fish, rays, turtles, jellyfish, divers, mines) rather than clumps of one.
 - HUD: minimal, corners only; no dark panels over play space.
+
+## Rev 12 — LEVELS, CLASSES, GOLD MODE, SHARKJIRA, ZOOM (2026-08-23, owner + son; BINDING)
+
+### 12.1 Levels (12 locations)
+data.js LEVELS (gen_data.py): hawaii, mexico, belize, maldives, newzealand,
+alaska, tahiti, azores, bali, aruba, jamaica, california. Each: id, name,
+unlock (coins or gems or prior-level score), sky preset (sky gradient +
+horizon silhouette theme: hawaii volcano+palms; mexico cliffs+cacti/ruins;
+belize barrier reef+cays; maldives atolls+overwater huts; newzealand fjords
++snow; alaska glaciers+icebergs; tahiti peaks+lagoon; azores volcanic isles;
+bali temples+rice terraces; aruba divi trees+beach; jamaica green hills;
+california cliffs+pier+kelp), water color script (surface tint, band tints,
+haze), seabed type (sand/reef/rock/ice/kelp/volcanic), prey mix weights and
+special creatures (alaska seals/orca-class predator, california sea lions,
+belize rays, maldives mantas, azores whales), hazards.
+- ABOVE-WATER backdrop: when the camera sees above the surface (breach or
+  near-surface swim), the level's sky + horizon silhouette layer renders
+  (parallax quads, world3d "sky" layer at z -600), matching the location.
+- Level select: ui3d Menu -> Level cards (name, thumbnail = sky preset
+  swatch + icon, lock state, best score) -> DIVE. ctx.level drives world init
+  (seabed/sky/palette/prey mix). Save: profile.levels {id:{best, unlocked}}.
+
+### 12.2 Shark classes
+data.js SHARKS gain `cls`: common (act 1 tiers 1-4), rare (act 1 5-6, act 2
+7), epic (act 2 8, act 3 9-10), legendary (act 3 11-12), god (act 4), demon
+(act 5). UI: class badge + color (common gray, rare blue, epic purple,
+legendary gold, god radiant white-gold, demon infernal red) on roster/shop
+cards and the run HUD name plate; roster grouped by class within acts.
+
+### 12.3 Sharkjira
+leviathanrex is RENAMED "Sharkjira" (id stays) — a Godzilla-like kaiju
+shark: charcoal-black hide, jagged dorsal plates down the spine (morph, not
+prop), glowing atomic-blue spine/gill/eye emissive, massive underbite jaw;
+active = Atomic Breath (existing). Class legendary. Menu blurb updated.
+
+### 12.4 Special modes / power-ups (son's list: GOLD MODE)
+- GOLD RUSH exists (meter); make it a visible MODE: gold tint on everything
+  edible, gold vignette, 2x coins, invulnerable, faster; HUD banner "GOLD
+  RUSH!"; meter fills from eating + combo; shown on HUD as a gold bar.
+- MEGA GOLD RUSH: reached by chaining a second full meter during Gold Rush
+  (3x coins, screen-wide gold, all prey edible regardless of tier for its
+  duration).
+- Power-ups (pickups): existing buffs stay; add SUPER SIZE (shark grows 1.5x
+  for 10s, eats +2 tiers), MAGNET (exists), SHIELD, SPEED. All pickups use
+  the gem-mesh look with per-type color + icon glyph.
+- Selftests: mode transitions, multipliers, durations.
+
+### 12.5 Zoom + bigger sharks
+Camera: dolly out ~25% (CAM_Z_LEN_MULT 1.75 -> 2.2, clamps 250..600);
+framing gate updated to [0.20, 0.28]. Shark size cap: LEN_SCALE-driven rigs
+may reach sil.len 2.6 (Sharkjira 2.4); world eat/collision radii follow;
+menu thumbs unaffected.
+
+### 12.6 Ownership
+Data: gen_data.py/data.js/SPEC.md. Engine: engine3d.js (camera, modes,
+level ctx, super size). World: world3d.js (levels: sky layer, seabed type,
+color script, prey mix; AFTER the Rev 11 env lane lands). UI: ui3d.js +
+meta.js (level select, classes, save schema v3 with migration). Shark:
+shark3d.js (Sharkjira morphs; after the Rev 11 personality lane).

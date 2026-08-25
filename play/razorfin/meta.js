@@ -23,7 +23,7 @@ var RF = window.RF = window.RF || {};
   'use strict';
 
   var RFD = window.RFD;
-  var SAVE_VERSION = 2;
+  var SAVE_VERSION = 3;
   var UP_TRACKS = ['bite', 'speed', 'boost', 'power'];
   var COIN_CAP = 1e12;
   var XP_CAP = 1e12;
@@ -37,6 +37,41 @@ var RF = window.RF = window.RF || {};
     var zones = (RFD && RFD.ZONES) || [];
     var out = [];
     for (var i = 0; i < zones.length; i++) if (isInt(zones[i].id)) out.push(zones[i].id);
+    return out;
+  }
+  // Rev 12: RFD.LEVELS is the data lane's 12-location table (id, name, sky
+  // preset, unlock cost, etc -- see SPEC3D.md 12.1). It may not exist yet
+  // (parallel lane), so every reader here treats a missing/empty table as
+  // "no levels" and degrades gracefully rather than throwing.
+  function levelList() {
+    return (RFD && Array.isArray(RFD.LEVELS)) ? RFD.LEVELS : [];
+  }
+  function levelIds() {
+    var lv = levelList();
+    var out = [];
+    for (var i = 0; i < lv.length; i++) if (lv[i] && typeof lv[i].id === 'string') out.push(lv[i].id);
+    return out;
+  }
+  function levelById(id) {
+    var lv = levelList();
+    for (var i = 0; i < lv.length; i++) if (lv[i] && lv[i].id === id) return lv[i];
+    return null;
+  }
+  // First level is the default unlocked/selected one. Falls back to a
+  // stable literal id if the data lane hasn't landed LEVELS yet -- the
+  // profile field still round-trips fine even if levelById() can't resolve it.
+  function firstLevelId() {
+    var ids = levelIds();
+    return ids.length ? ids[0] : 'hawaii';
+  }
+  function defaultLevels() {
+    var out = {};
+    var ids = levelIds();
+    var first = firstLevelId();
+    if (ids.indexOf(first) < 0) ids = [first].concat(ids);
+    for (var i = 0; i < ids.length; i++) {
+      out[ids[i]] = { best: 0, unlocked: ids[i] === first };
+    }
     return out;
   }
   function relicsByZone(zoneId) {
@@ -122,7 +157,9 @@ var RF = window.RF = window.RF || {};
       gems: 0,
       relics: defaultRelics(),
       skins: { owned: [], selectedSkin: null },
-      missions: { active: [], progress: {}, completed: {} }
+      missions: { active: [], progress: {}, completed: {} },
+      levels: defaultLevels(),
+      selectedLevel: firstLevelId()
     };
     p.sharks.reef = { owned: true, up: { bite: 0, speed: 0, boost: 0, power: 0 } };
     return p;
@@ -229,6 +266,25 @@ var RF = window.RF = window.RF || {};
       if (obj.missions.completed[compKeys[ck]] !== true && obj.missions.completed[compKeys[ck]] !== 1) return false;
     }
 
+    // ---- Rev 12 additions: levels (save schema v3) ----
+    if (!isPlainObj(obj.levels)) return false;
+    var lids = levelIds();
+    var lvKeys = Object.getOwnPropertyNames(obj.levels);
+    for (var lk = 0; lk < lvKeys.length; lk++) {
+      var lid = lvKeys[lk];
+      // If the data lane hasn't landed RFD.LEVELS yet, accept any string key
+      // rather than rejecting every save -- defensive per SPEC3D 12.6.
+      if (lids.length && lids.indexOf(lid) < 0) return false;
+      var lrow = obj.levels[lid];
+      if (!isPlainObj(lrow)) return false;
+      if (!counter(lrow.best, SCORE_CAP)) return false;
+      if (typeof lrow.unlocked !== 'boolean') {
+        if (lrow.unlocked !== 0 && lrow.unlocked !== 1) return false;
+      }
+    }
+    if (typeof obj.selectedLevel !== 'string') return false;
+    if (!obj.levels[obj.selectedLevel]) return false;
+
     return true;
   }
 
@@ -264,6 +320,41 @@ var RF = window.RF = window.RF || {};
     if (!isPlainObj(p.missions.completed)) p.missions.completed = {};
     if (!isInt(p.gems) || p.gems < 0) p.gems = 0;
 
+    // Rev 12: backfill any level missing from the persisted record (e.g. a
+    // location added after the save was written), coerce boolean-ish flags.
+    if (!isPlainObj(p.levels)) p.levels = defaultLevels();
+    var lids2 = levelIds();
+    var haveAny = false;
+    for (var li = 0; li < lids2.length; li++) {
+      var lid2 = lids2[li];
+      if (!isPlainObj(p.levels[lid2])) {
+        p.levels[lid2] = { best: 0, unlocked: lid2 === firstLevelId() };
+      } else {
+        if (!isInt(p.levels[lid2].best) || p.levels[lid2].best < 0) p.levels[lid2].best = 0;
+        p.levels[lid2].unlocked = !!p.levels[lid2].unlocked;
+      }
+      haveAny = true;
+    }
+    // Always coerce existing entries even when RFD.LEVELS hasn't landed.
+    var existingLevelKeys = Object.getOwnPropertyNames(p.levels);
+    for (var ek = 0; ek < existingLevelKeys.length; ek++) {
+      var row2 = p.levels[existingLevelKeys[ek]];
+      if (!isPlainObj(row2)) { p.levels[existingLevelKeys[ek]] = { best: 0, unlocked: false }; continue; }
+      if (!isInt(row2.best) || row2.best < 0) row2.best = 0;
+      row2.unlocked = !!row2.unlocked;
+    }
+    if (!haveAny && !Object.getOwnPropertyNames(p.levels).length) p.levels = defaultLevels();
+    if (typeof p.selectedLevel !== 'string' || !p.levels[p.selectedLevel]) {
+      var fallback = firstLevelId();
+      if (!p.levels[fallback]) {
+        var anyKey = Object.getOwnPropertyNames(p.levels)[0];
+        fallback = anyKey || fallback;
+        if (!p.levels[fallback]) p.levels[fallback] = { best: 0, unlocked: true };
+      }
+      p.selectedLevel = fallback;
+    }
+    if (!p.levels[p.selectedLevel].unlocked) p.levels[p.selectedLevel].unlocked = true;
+
     return p;
   }
 
@@ -293,8 +384,16 @@ var RF = window.RF = window.RF || {};
       p.missions = { active: [], progress: {}, completed: {} };
       p.v = 2;
     }
+    // Rev 12: v2 -> v3 adds levels/selectedLevel (save schema v3). Everything
+    // else on the profile (coins/xp/sharks/gems/relics/skins/missions/etc)
+    // is preserved untouched by this step.
+    if (p.v === 2) {
+      p.levels = defaultLevels();
+      p.selectedLevel = firstLevelId();
+      p.v = 3;
+    }
     // Future steps chain here:
-    //   if (p.v === 2) { ...upgrade to 3...; p.v = 3; }
+    //   if (p.v === 3) { ...upgrade to 4...; p.v = 4; }
     if (p.v !== SAVE_VERSION) return null;
     // RF-SAVE-VAL-01: repair-not-reject. A junk daily-bonus marker is a
     // single recoverable field, so scrub it here and let the rest of the
@@ -502,6 +601,72 @@ var RF = window.RF = window.RF || {};
   function activeShark(profile) {
     if (Meta.sessionSelected && ownedFor(profile, Meta.sessionSelected)) return Meta.sessionSelected;
     return profile ? profile.selected : 'reef';
+  }
+
+  // ------------------------------------------------------------- levels
+  // Rev 12 (12.1/12.6): level select lives in ui3d/meta; engine/world just
+  // consume ctx.level. Every function here is defensive against RFD.LEVELS
+  // not existing yet (parallel data lane) -- an unrecognised id is simply
+  // treated as "not a real level" rather than thrown on.
+  function ensureLevelRow(profile, id) {
+    if (!isPlainObj(profile.levels)) profile.levels = defaultLevels();
+    if (!isPlainObj(profile.levels[id])) profile.levels[id] = { best: 0, unlocked: false };
+    return profile.levels[id];
+  }
+
+  function levelBest(profile, id) {
+    if (!profile || !isPlainObj(profile.levels) || !profile.levels[id]) return 0;
+    return counter(profile.levels[id].best, SCORE_CAP) ? profile.levels[id].best : 0;
+  }
+
+  function levelUnlocked(profile, id) {
+    // Rev 12: dev unlock-all (?unlockall=1) is a runtime overlay that must
+    // apply to levels too, and from ONE authority, so the UI's copy and the
+    // engine's profile can never disagree about what is selectable.
+    try { if (typeof DevMode !== 'undefined' && DevMode && DevMode.state && DevMode.state.forceUnlockAll && levelById(id)) return true; } catch (e) {}
+    if (!profile || !isPlainObj(profile.levels)) return id === firstLevelId();
+    var row = profile.levels[id];
+    return !!(row && row.unlocked);
+  }
+
+  // unlockLevel is coin/gem-cost aware when the data lane provides an
+  // `unlock` field (12.1: "coins or gems or prior-level score"); a level
+  // with no recognised cost shape unlocks for free rather than blocking.
+  function unlockLevel(kit, profile, id) {
+    var lvl = levelById(id);
+    if (!lvl && levelIds().length) return { ok: false, reason: 'unknown-level' };
+    if (levelUnlocked(profile, id)) return { ok: true, already: true, id: id };
+
+    // RFD.LEVELS unlock shape (12.1, gen_data.py): {type:'coins'|'gems'|
+    // 'score', n, levelId}. A cost with an unrecognised/missing type or a
+    // zero/negative n is treated as free rather than blocking.
+    var cost = lvl && lvl.unlock;
+    if (cost && isPlainObj(cost) && isFinite(cost.n) && cost.n > 0) {
+      if (cost.type === 'coins') {
+        var haveCoins = isFinite(profile.coins) ? profile.coins : 0;
+        if (haveCoins < cost.n) return { ok: false, reason: 'insufficient-coins' };
+        profile.coins = clamp(profile.coins - cost.n, 0, COIN_CAP);
+      } else if (cost.type === 'gems') {
+        var gr = spendGems(kit, profile, cost.n, 'unlockLevel:' + id);
+        if (!gr.ok) return gr;
+      } else if (cost.type === 'score') {
+        var priorId = typeof cost.levelId === 'string' ? cost.levelId : null;
+        if (priorId && levelBest(profile, priorId) < cost.n) {
+          return { ok: false, reason: 'score-gate' };
+        }
+      }
+    }
+
+    ensureLevelRow(profile, id).unlocked = true;
+    if (kit) commit(kit, profile);
+    return { ok: true, already: false, id: id };
+  }
+
+  function selectLevel(profile, id) {
+    if (levelIds().length && !levelById(id)) return { ok: false, reason: 'unknown-level' };
+    if (!levelUnlocked(profile, id)) return { ok: false, reason: 'locked' };
+    profile.selectedLevel = id;
+    return { ok: true, id: id };
   }
 
   // -------------------------------------------------------------- gems
@@ -816,6 +981,16 @@ var RF = window.RF = window.RF || {};
     if (score > profile.best.score) profile.best.score = Math.min(score, SCORE_CAP);
     if (biggest > profile.best.biggestTier) profile.best.biggestTier = biggest;
     profile.runs = clamp(profile.runs + 1, 0, RUNS_CAP);
+
+    // Rev 12: record this run's score as the per-level best. ctx.level (or
+    // run.level, whichever the engine ends up publishing -- defensive
+    // against either seam) falls back to the profile's selected level.
+    var runLevelId = (ctx && ctx.level) || run.level || profile.selectedLevel;
+    if (typeof runLevelId === 'string') {
+      var lrow = ensureLevelRow(profile, runLevelId);
+      lrow.unlocked = true;
+      if (score > lrow.best) lrow.best = Math.min(score, SCORE_CAP);
+    }
 
     var unlocks = unlockCallouts(profile, oldLevel, profile.level);
     var lv = levelForXp(profile.xp);
@@ -1933,6 +2108,70 @@ var RF = window.RF = window.RF || {};
         'v1->v2 migration backfills empty active missions');
       ok(validateSave(migrated1), 'migrated v1->v2 profile validates');
 
+      // 8b. Rev 12: v2 fixture migrates to v3 (levels save schema), everything
+      // else preserved untouched.
+      var oldSave2 = {
+        v: 2, coins: 8000, xp: 4200, level: 6, selected: 'mako',
+        sharks: {
+          reef: { owned: true, up: { bite: 0, speed: 0, boost: 0, power: 0 } },
+          mako: { owned: true, up: { bite: 3, speed: 1, boost: 0, power: 0 } }
+        },
+        best: { score: 2200, biggestTier: 5 },
+        runs: 30, tutorialDone: true, lastBonusDay: '2026-08-10',
+        gems: 42,
+        relics: defaultRelics(),
+        skins: { owned: [], selectedSkin: null },
+        missions: { active: [], progress: {}, completed: {} }
+      };
+      var kitOld2 = stubKit();
+      kitOld2.save.set(oldSave2);
+      var migrated2 = load(kitOld2);
+      ok(migrated2.v === SAVE_VERSION, 'v2 fixture migrates to current SAVE_VERSION (3)');
+      ok(migrated2.coins === 8000 && migrated2.xp === 4200 && migrated2.level === 6,
+        'v2->v3 migration preserves coins/xp/level');
+      ok(migrated2.selected === 'mako', 'v2->v3 migration preserves selected shark');
+      ok(migrated2.sharks.mako && migrated2.sharks.mako.up.bite === 3,
+        'v2->v3 migration preserves owned sharks and upgrades');
+      ok(migrated2.best.score === 2200 && migrated2.runs === 30, 'v2->v3 migration preserves best/runs');
+      ok(migrated2.gems === 42, 'v2->v3 migration preserves gems');
+      ok(isPlainObj(migrated2.levels), 'v2->v3 migration backfills a levels object');
+      ok(typeof migrated2.selectedLevel === 'string' && !!migrated2.levels[migrated2.selectedLevel],
+        'v2->v3 migration backfills a valid selectedLevel');
+      ok(migrated2.levels[migrated2.selectedLevel].unlocked === true,
+        'v2->v3 migration unlocks the default/selected level');
+      ok(validateSave(migrated2), 'migrated v2->v3 profile validates');
+
+      // 8c. Rev 12: level select / unlock / best round-trip
+      var pL = defaultProfile();
+      var firstLv = firstLevelId();
+      ok(pL.levels[firstLv] && pL.levels[firstLv].unlocked === true, 'default profile starts with the first level unlocked');
+      ok(levelUnlocked(pL, firstLv) === true, 'levelUnlocked reports the starter level unlocked');
+      ok(levelBest(pL, 'no-such-level') === 0, 'levelBest is 0 for an unknown level');
+      var kitL = stubKit();
+      var ctxL1 = { kit: kitL, save: pL, level: firstLv, run: { score: 300, coins: 10, xp: 5, biggestTier: 1 } };
+      endRun(ctxL1);
+      ok(pL.levels[firstLv].best === 300, 'endRun records the per-level best score');
+      var ctxL2 = { kit: kitL, save: pL, level: firstLv, run: { score: 100, coins: 10, xp: 5, biggestTier: 1 } };
+      endRun(ctxL2);
+      ok(pL.levels[firstLv].best === 300, 'endRun does not lower an existing per-level best');
+      var otherIds = levelIds();
+      if (otherIds.length > 1) {
+        var second = otherIds[1];
+        ok(levelUnlocked(pL, second) === false, 'a second level starts locked');
+        var selLocked = selectLevel(pL, second);
+        ok(!selLocked.ok && selLocked.reason === 'locked', 'selectLevel refuses a locked level');
+        pL.coins = 1e9; // enough to cover any coin-gated level's unlock cost
+        var unlockRes = unlockLevel(kitL, pL, second);
+        ok(unlockRes.ok, 'unlockLevel succeeds on a recognised level');
+        ok(levelUnlocked(pL, second) === true, 'unlockLevel marks the level unlocked');
+        var selOk = selectLevel(pL, second);
+        ok(selOk.ok && pL.selectedLevel === second, 'selectLevel switches the profile selection');
+        var alreadyRes = unlockLevel(kitL, pL, second);
+        ok(alreadyRes.ok && alreadyRes.already === true, 'unlockLevel is idempotent on an already-unlocked level');
+      }
+      var selUnknown = selectLevel(pL, 'totally-not-a-level');
+      ok(!selUnknown.ok, 'selectLevel refuses an unrecognised level id');
+
       // 9. gem accounting: spendGems/addGems single authority
       var pG = defaultProfile();
       ok(addGems(pG, 10) === 10, 'addGems credits and returns new total');
@@ -2166,6 +2405,14 @@ var RF = window.RF = window.RF || {};
     unlockSecretSharkWithGems: unlockSecretSharkWithGems,
     rollMissions: rollMissions,
     missionEvent: missionEvent,
+
+    levelIds: levelIds,
+    levelById: levelById,
+    firstLevelId: firstLevelId,
+    levelBest: levelBest,
+    levelUnlocked: levelUnlocked,
+    unlockLevel: unlockLevel,
+    selectLevel: selectLevel,
 
     scenes: null,
     UI: UI,

@@ -49,8 +49,52 @@
   // rather than throwing, so a data-only new capsule still reads as *something*.
   var BUFF_LABEL = {
     overdrive: 'OVERDRIVE', shield: 'SHIELD BUBBLE', megajaw: 'MEGA-JAW',
-    magnet: 'FRENZY MAGNET', chum: 'CHUM CLOUD', apex: 'APEX SURGE'
+    magnet: 'FRENZY MAGNET', chum: 'CHUM CLOUD', apex: 'APEX SURGE',
+    // Rev 12 (12.4): SUPER SIZE, SHIELD, SPEED pickups. shield/speed reuse
+    // the id an engine build already has a chance of publishing (existing
+    // 'shield' above; 'speed' added new) alongside a longer supersize id.
+    supersize: 'SUPER SIZE', superSize: 'SUPER SIZE', speed: 'SPEED BOOST'
   };
+  // Rev 12 (12.4): pickup icon glyphs shown on the buff tick chips, gem-mesh
+  // look with a per-type glyph. Keyed the same as BUFF_LABEL/pickup ids so
+  // an unrecognised id simply renders no glyph rather than throwing.
+  var BUFF_ICON = {
+    overdrive: '⚡', shield: '🛡', megajaw: '🦷',
+    magnet: '🧲', chum: '🩸', apex: '👑',
+    supersize: '⬆', superSize: '⬆', speed: '💨'
+  };
+  // Rev 12 (12.2): shark classes. data.js SHARKS gain `cls`; a def with no
+  // recognised class simply renders no badge (older data.js build, or a
+  // typo'd class id) rather than throwing.
+  var CLASS_LABEL = {
+    common: 'COMMON', rare: 'RARE', epic: 'EPIC',
+    legendary: 'LEGENDARY', god: 'GOD', demon: 'DEMON'
+  };
+  var CLASS_CSS = {
+    common: 'rf-class-common', rare: 'rf-class-rare', epic: 'rf-class-epic',
+    legendary: 'rf-class-legendary', god: 'rf-class-god', demon: 'rf-class-demon'
+  };
+  // Rev 12 (12.1): a simple emoji/glyph per level's horizon theme. An
+  // unrecognised/absent theme falls back to a generic wave glyph rather than
+  // a blank card.
+  var LEVEL_THEME_ICON = {
+    volcano_palms: '🌋', cliffs_cacti_ruins: '🏜', barrier_reef_cays: '🏝',
+    atolls_overwater_huts: '🏖', fjords_snow: '🏔', glaciers_icebergs: '🧊',
+    peaks_lagoon: '🌴', volcanic_isles: '🌋', temples_rice_terraces: '🛕',
+    divi_trees_beach: '🌊', green_hills: '⛰', cliffs_pier_kelp: '🎣'
+  };
+  function levelThemeIcon(lvl) {
+    var theme = lvl && lvl.sky && lvl.sky.horizonTheme;
+    return (theme && LEVEL_THEME_ICON[theme]) || '🌊';
+  }
+
+  var CLASS_RANK = { common: 0, rare: 1, epic: 2, legendary: 3, god: 4, demon: 5 };
+  function classBadge(def) {
+    var c = def && def.cls;
+    if (!c || !CLASS_LABEL[c]) return null;
+    return mk('span', 'rf-class-badge ' + CLASS_CSS[c], CLASS_LABEL[c]);
+  }
+
   var FRENZY_VARIANTS = {
     blood: { chip: 'rf-chip-blood', toast: 'rf-toast-blood' },
     school: { chip: 'rf-chip-school', toast: 'rf-toast-school' },
@@ -125,7 +169,49 @@
     // dev chip out of the flex row's shrink pool so a long roster line can
     // never squeeze it over the SHOP/DIVE buttons in the bottom bar, and
     // caps it to a fixed max-width so an unusually wide render never spills.
-    '#rfDevChip{flex:0 0 auto;max-width:64px;z-index:5}'
+    '#rfDevChip{flex:0 0 auto;max-width:64px;z-index:5}',
+    // Rev 12 (12.4): GOLD RUSH HUD -- corner meter bar + banner, HUD ONLY-LAW
+    // minimal (one small bar, one line, no new persistent chrome).
+    '#rfGoldRush{position:absolute;right:calc(var(--pad-r,0px) + 12px);top:calc(var(--pad-t,0px) + 8px);',
+    'display:none;flex-direction:column;align-items:flex-end;gap:2px;pointer-events:none;width:120px}',
+    '#rfGoldRush.rf-on{display:flex}',
+    '#rfGoldRushBar{width:100%;height:6px;border-radius:3px;background:rgba(10,34,51,.7);',
+    'border:1px solid rgba(255,214,122,.4);overflow:hidden}',
+    '#rfGoldRushFill{display:block;height:100%;width:0;background:linear-gradient(90deg,#ffd67a,#fff3c4)}',
+    '#rfGoldRushBanner{font-size:12px;font-weight:800;letter-spacing:.04em;color:#ffd67a;',
+    'text-shadow:0 0 8px rgba(255,214,122,.6);opacity:0;transition:opacity .15s}',
+    '#rfGoldRushBanner.rf-on{opacity:1}',
+    '#rfGoldRushBanner.rf-gold-mega{color:#fff3c4;text-shadow:0 0 10px rgba(255,214,122,.9)}',
+    // Rev 12 (12.2): class badges (common/rare/epic/legendary/god/demon).
+    '.rf-class-badge{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.05em;',
+    'padding:1px 5px;border-radius:6px;text-transform:uppercase;margin-left:4px;vertical-align:middle}',
+    '.rf-class-common{background:rgba(158,169,178,.22);color:#c7cdd3;border:1px solid rgba(158,169,178,.5)}',
+    '.rf-class-rare{background:rgba(63,140,255,.22);color:#a9c8ff;border:1px solid rgba(63,140,255,.55)}',
+    '.rf-class-epic{background:rgba(168,85,247,.22);color:#dcb9ff;border:1px solid rgba(168,85,247,.55)}',
+    '.rf-class-legendary{background:rgba(255,214,122,.22);color:#ffe8ad;border:1px solid rgba(255,214,122,.6)}',
+    '.rf-class-god{background:rgba(255,255,255,.28);color:#fffdf3;border:1px solid rgba(255,232,173,.85);',
+    'text-shadow:0 0 6px rgba(255,255,255,.8)}',
+    '.rf-class-demon{background:rgba(179,18,42,.28);color:#ffb3ba;border:1px solid rgba(255,84,84,.7)}',
+    // Rev 12 (12.1): Level Select screen -- 12 location cards between Menu
+    // and DIVE.
+    '#rfLevelSelect{position:absolute;inset:0;display:none;flex-direction:column;',
+    'background:rgba(4,14,22,.96);z-index:8;padding:12px}',
+    '#rfLevelSelect.rf-on{display:flex}',
+    '#rfLevelSelectGrid{flex:1;overflow-y:auto;display:grid;',
+    'grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;padding:8px 2px}',
+    '.rf-level-card{position:relative;display:flex;flex-direction:column;justify-content:flex-end;',
+    'min-height:96px;border-radius:10px;padding:8px;border:1px solid var(--line,rgba(88,176,214,.28));',
+    'color:#eaf4ff;text-align:left;overflow:hidden;cursor:pointer}',
+    '.rf-level-card:disabled{cursor:default}',
+    '.rf-level-card.rf-level-sel{border-color:#ffd67a;box-shadow:0 0 0 2px rgba(255,214,122,.5)}',
+    '.rf-level-icon{font-size:22px}',
+    '.rf-level-name{font-size:13px;font-weight:800;margin-top:4px}',
+    '.rf-level-best{font-size:11px;color:var(--dim,#cfe9f5);opacity:.85}',
+    '.rf-level-lock{position:absolute;inset:0;display:flex;flex-direction:column;',
+    'align-items:center;justify-content:center;gap:4px;background:rgba(4,14,22,.72);',
+    'font-size:11px;font-weight:700;color:#cfe9f5}',
+    '.rf-level-lock-glyph{font-size:18px}',
+    '#rfLevelSelectBar{display:flex;gap:8px;padding-top:8px}'
   ].join('');
   var rev7StyleNode = null;
   function ensureRev7Styles() {
@@ -375,6 +461,11 @@
       if (!Object.prototype.hasOwnProperty.call(SCREENS, k)) continue;
       toggleClass(N(SCREENS[k]), 'rf-on', k === name);
     }
+    // Rev 12 (12.1): Level Select is a dynamically-injected overlay (index3d
+    // .html predates it, per file ownership -- ui3d.js builds its own DOM
+    // node the same way the Rev 7 gem stat / mission strip were added), so
+    // it is not part of the fixed SCREENS map above and is toggled here.
+    if (levelSelectNode) toggleClass(levelSelectNode, 'rf-on', name === 'levelSelect');
     S.screen = name || 'none';
   }
 
@@ -833,9 +924,19 @@
         sec.appendChild(head);
       }
 
+      // Rev 12 (12.2): "roster grouped by class within acts" -- a tier
+      // (this ladder's existing grouping) sits inside one act, so sort each
+      // tier's rows by class rank before rendering; a shark with no
+      // recognised class sorts last rather than breaking the group.
+      var tierRows = byTier[tier].slice();
+      tierRows.sort(function (a, b) {
+        return (CLASS_RANK[a.cls] != null ? CLASS_RANK[a.cls] : 99)
+          - (CLASS_RANK[b.cls] != null ? CLASS_RANK[b.cls] : 99);
+      });
+
       var grid = mk('div', 'rf-grid');
-      for (var j = 0; j < byTier[tier].length; j++) {
-        var card = buildCard(byTier[tier][j], open, sel);
+      for (var j = 0; j < tierRows.length; j++) {
+        var card = buildCard(tierRows[j], open, sel);
         if (card && grid) grid.appendChild(card);
       }
       if (grid) sec.appendChild(grid);
@@ -910,7 +1011,12 @@
     // queueBake is a no-op once cached, disabled, or already queued.
     queueBake(def.id);
 
-    card.appendChild(mk('span', 'rf-card-name', def.name));
+    var nameRow = mk('span', 'rf-card-name', def.name);
+    if (nameRow) {
+      var cardBadge = classBadge(def);
+      if (cardBadge) nameRow.appendChild(cardBadge);
+      card.appendChild(nameRow);
+    }
 
     var foot = mk('span', 'rf-card-foot');
     if (foot) {
@@ -1112,7 +1218,13 @@
       var act = acts[a];
       var rows = list.filter(function (s) { return s.act === act; });
       if (!rows.length) continue;
-      rows.sort(function (x, y) { return (x.tier - y.tier) || (x.cost - y.cost); });
+      // Rev 12 (12.2): group by class within the act, tier/cost as before
+      // inside a class.
+      rows.sort(function (x, y) {
+        var cr = (CLASS_RANK[x.cls] != null ? CLASS_RANK[x.cls] : 99)
+          - (CLASS_RANK[y.cls] != null ? CLASS_RANK[y.cls] : 99);
+        return cr || (x.tier - y.tier) || (x.cost - y.cost);
+      });
 
       var sec = mk('section', 'rf-shop-act');
       if (!sec) continue;
@@ -1365,7 +1477,12 @@
 
     var mid = mk('div', 'rf-row-mid');
     if (mid) {
-      mid.appendChild(mk('div', 'rf-row-name', def.name));
+      var rowName = mk('div', 'rf-row-name', def.name);
+      if (rowName) {
+        var rowBadge = classBadge(def);
+        if (rowBadge) rowName.appendChild(rowBadge);
+        mid.appendChild(rowName);
+      }
 
       var mx = statMax();
       var bars = mk('div', 'rf-bars');
@@ -1723,7 +1840,7 @@
   // power-button pips + a toast on pickup/expiry.
   var HUD_FIELDS = ['hp', 'maxHp', 'hpFrac', 'hungerFrac', 'boost', 'power', 'powerId',
                     'powerName', 'powerReady', 'dev', 'powerCharges',
-                    'score', 'px', 'py'];
+                    'score', 'px', 'py', 'mode', 'goldMeter'];
   // buffTimers is a plain array of {frac} (or numbers 0..1) and is read
   // straight off the incoming object every push (not diffed with the rest)
   // since a buff bar is cheap to repaint and the shape may vary.
@@ -1844,10 +1961,66 @@
       paintPowerPips(n.powerCharges);
     }
 
+    if (n.mode !== prev.mode || n.goldMeter !== prev.goldMeter) {
+      paintGoldRush(n.mode, n.goldMeter);
+    }
+
     // Fix-round 3 HUD ONLY-LAW: 'dev' is no longer painted into any in-run
     // element. It is still tracked in the diff buffer (S.lastHud.dev) so
     // devRunStartToast() can read the very first push of a run without a
     // second engine API, but there is intentionally no DOM write here.
+  }
+
+  // ------------------------------------------------------- GOLD RUSH HUD
+  // Rev 12 (12.4): a visible MODE with a gold meter bar + banner, driven by
+  // hudState fields the engine publishes (h.mode: 'goldrush'|'mega'|null,
+  // h.goldMeter: 0..1). Defensive against an engine build that has not
+  // landed those fields yet -- both are simply absent from HUD_FIELDS diffs
+  // until pushed, and this whole block no-ops (stays hidden) if #rfHud is
+  // unavailable. HUD ONLY-LAW: corners only, one small bar + one banner
+  // line, no new persistent chrome beyond that.
+  var goldRushNode = null;
+  function ensureGoldRushNode() {
+    var hud = N('rfHud');
+    if (!hud) return null;
+    if (goldRushNode && goldRushNode.parentNode === hud) return goldRushNode;
+    var wrap = mk('div', '');
+    if (!wrap) return null;
+    wrap.id = 'rfGoldRush';
+    var bar = mk('div', 'rf-meter');
+    bar.id = 'rfGoldRushBar';
+    var fill = mk('i', '');
+    fill.id = 'rfGoldRushFill';
+    bar.appendChild(fill);
+    wrap.appendChild(bar);
+    var banner = mk('div', '');
+    banner.id = 'rfGoldRushBanner';
+    wrap.appendChild(banner);
+    hud.appendChild(wrap);
+    goldRushNode = wrap;
+    return wrap;
+  }
+
+  var GOLD_MODE_LABEL = {
+    goldrush: 'GOLD RUSH!', goldRush: 'GOLD RUSH!',
+    mega: 'MEGA GOLD RUSH!', megaGoldRush: 'MEGA GOLD RUSH!', megagoldrush: 'MEGA GOLD RUSH!'
+  };
+
+  function paintGoldRush(mode, meter) {
+    var wrap = ensureGoldRushNode();
+    if (!wrap) return;
+    var frac = (typeof meter === 'number' && isFinite(meter)) ? Math.max(0, Math.min(1, meter)) : 0;
+    var label = mode ? GOLD_MODE_LABEL[mode] : null;
+    var active = !!label;
+    toggleClass(wrap, 'rf-on', active || frac > 0);
+    var fillNode = wrap.querySelector ? wrap.querySelector('#rfGoldRushFill') : null;
+    if (fillNode) fillNode.style.width = pct(frac, 1);
+    var bannerNode = wrap.querySelector ? wrap.querySelector('#rfGoldRushBanner') : null;
+    if (bannerNode) {
+      setText(bannerNode, label || '');
+      toggleClass(bannerNode, 'rf-on', active);
+      toggleClass(bannerNode, 'rf-gold-mega', mode === 'mega' || mode === 'megaGoldRush' || mode === 'megagoldrush');
+    }
   }
 
   // 6.7 POWER button: charge pips (0-8). Rebuilds the small pip row only
@@ -1877,6 +2050,13 @@
         if (frac < 0) frac = 0; else if (frac > 1) frac = 1;
         el.style.display = 'block';
         el.style.transform = 'scaleX(' + frac.toFixed(3) + ')';
+        // Rev 12 (12.4): pickup icon glyph on the buff tick chip, IF the
+        // engine publishes an id/buffId per entry -- the existing plain
+        // number / {frac} shape (no id) still renders exactly as before.
+        var buffId = entry && typeof entry === 'object' ? (entry.id || entry.buffId) : null;
+        var glyph = buffId ? BUFF_ICON[buffId] : null;
+        if (glyph) { el.textContent = glyph; el.setAttribute('data-buff', buffId); }
+        else { el.textContent = ''; el.removeAttribute('data-buff'); }
       } else {
         el.style.display = 'none';
       }
@@ -2006,7 +2186,8 @@
     if (cue === 'buff' || (typeof cue === 'string' && cue.indexOf('buff:') === 0)) {
       var buffId = cue.indexOf('buff:') === 0 ? cue.slice(5) : '';
       var label = (buffId && BUFF_LABEL[buffId]) || 'BUFF ACTIVE';
-      queueToast(label, null, { holo: true });
+      var icon = buffId && BUFF_ICON[buffId];
+      queueToast(icon ? (icon + ' ' + label) : label, null, { holo: true });
       return true;
     }
     var key = setFrenzyCue(cue);
@@ -2075,10 +2256,11 @@
     if (S.bound) return;
     var n;
 
+    // Rev 12 (12.1): Menu -> DIVE now opens Level Select first (spec: "Menu
+    // -> Level cards -> DIVE"); the level-select screen's own DIVE button
+    // (diveIntoSelectedLevel) is what actually starts the run.
     n = N('rfDive');
-    if (n) n.addEventListener('click', function () {
-      fire('onDive', activeId(), handle('start'));
-    });
+    if (n) n.addEventListener('click', function () { showLevelSelect(); });
 
     n = N('rfMenuShop');
     if (n) n.addEventListener('click', function () { navShop(null); });
@@ -2415,6 +2597,207 @@
     S.menuPick = (state && state.selected) || activeId();
     buildMenu();
     showOnly('menu');
+    return true;
+  }
+
+  // -------------------------------------------------------- LEVEL SELECT
+  // Rev 12 (12.1): a screen between Menu and DIVE. 12 location cards (name,
+  // CSS-gradient thumbnail from the level's sky preset + a theme glyph, lock
+  // state with unlock cost, best score). DIVE from here calls
+  // RF.Meta.selectLevel (which sets profile.selectedLevel) then the normal
+  // start handle, and RF.Game.selectLevel if the engine lane has landed it
+  // (defensive: absent is fine, ctx.level/profile.selectedLevel already
+  // carries the choice for engine/world to read).
+  var levelSelectNode = null;
+  function levelList() {
+    var d = RFD();
+    return (d && Array.isArray(d.LEVELS)) ? d.LEVELS : [];
+  }
+  function levelBest(id) {
+    var m = Meta(), p = profile();
+    if (m && typeof m.levelBest === 'function') {
+      try { return m.levelBest(p, id) | 0; } catch (e) { return 0; }
+    }
+    return 0;
+  }
+  function levelUnlockedM(id) {
+    var m = Meta(), p = profile();
+    if (m && typeof m.levelUnlocked === 'function') {
+      try { return !!m.levelUnlocked(p, id); } catch (e) { return false; }
+    }
+    return false;
+  }
+  function selectedLevelId() {
+    var p = profile();
+    if (p && typeof p.selectedLevel === 'string') return p.selectedLevel;
+    var m = Meta();
+    if (m && typeof m.firstLevelId === 'function') {
+      try { return m.firstLevelId(); } catch (e) { /* fall through */ }
+    }
+    var lv = levelList();
+    return lv.length ? lv[0].id : 'hawaii';
+  }
+
+  function unlockCostLabel(lvl) {
+    var cost = lvl && lvl.unlock;
+    if (!cost || !isFiniteNum(cost.n) || cost.n <= 0) return null;
+    if (cost.type === 'coins') return fmt(cost.n) + ' coins';
+    if (cost.type === 'gems') return fmt(cost.n) + ' ' + GEM_ICON;
+    if (cost.type === 'score') return 'Score ' + fmt(cost.n) + ' on ' + (cost.levelId || 'a prior level');
+    return null;
+  }
+  function isFiniteNum(v) { return typeof v === 'number' && isFinite(v); }
+  function skyHex(v, fallback) {
+    var n = typeof v === 'number' ? v : Number(v);
+    return isFinite(n) ? hex(n) : fallback;
+  }
+
+  function ensureLevelSelectNode() {
+    var d = D();
+    if (!d) return null;
+    if (levelSelectNode && levelSelectNode.parentNode) return levelSelectNode;
+    ensureRev7Styles();
+    var wrap = mk('div', '');
+    if (!wrap) return null;
+    wrap.id = 'rfLevelSelect';
+
+    var bar = mk('div', 'rf-bar-top');
+    var h1 = mk('h1', 'rf-title', 'CHOOSE YOUR WATERS');
+    if (h1 && bar) bar.appendChild(h1);
+    if (bar) wrap.appendChild(bar);
+
+    var grid = mk('div', '');
+    if (grid) { grid.id = 'rfLevelSelectGrid'; wrap.appendChild(grid); }
+
+    var actions = mk('div', '');
+    if (actions) {
+      actions.id = 'rfLevelSelectBar';
+      var back = mk('button', 'rf-btn rf-btn-ghost', 'BACK');
+      if (back) {
+        back.type = 'button';
+        back.addEventListener('click', function () { showMenu(); });
+        actions.appendChild(back);
+      }
+      var dive = mk('button', 'rf-btn rf-btn-go', 'DIVE');
+      if (dive) {
+        dive.type = 'button';
+        dive.id = 'rfLevelSelectDive';
+        dive.addEventListener('click', function () { diveIntoSelectedLevel(); });
+        actions.appendChild(dive);
+      }
+      wrap.appendChild(actions);
+    }
+
+    // Anchored as a sibling of #rfMenu (its parentNode), matching how the
+    // Rev 7 mission strip anchors relative to an existing container -- this
+    // works both in the real page (rfMenu's parent is the shared overlay
+    // root) and in this file's own selftest DOM stub, whose document object
+    // has no .body/.head at all.
+    var menuNode = N('rfMenu');
+    var host = menuNode && menuNode.parentNode ? menuNode.parentNode : menuNode;
+    if (!host) return null;
+    host.appendChild(wrap);
+    levelSelectNode = wrap;
+    return wrap;
+  }
+
+  function diveIntoSelectedLevel() {
+    var id = selectedLevelId();
+    // RF.Game.selectLevel is the engine lane's seam (parallel lane per
+    // SPEC3D 12.6); it may not exist yet, so this is a best-effort call and
+    // never blocks DIVE -- profile.selectedLevel (already set by
+    // doSelectLevel/doUnlockLevel) is the source of truth either way.
+    if (window.RF && RF.Game && typeof RF.Game.selectLevel === 'function') {
+      try { RF.Game.selectLevel(id); } catch (e) { /* engine lane owns its errors */ }
+    }
+    fire('onDive', activeId(), handle('start'));
+  }
+
+  function buildLevelCard(lvl, selId) {
+    var id = lvl.id;
+    var unlockedFlag = levelUnlockedM(id);
+    var isSel = id === selId;
+    var cls = 'rf-level-card' + (isSel ? ' rf-level-sel' : '');
+    var card = mk('button', cls);
+    if (!card) return null;
+    card.type = 'button';
+    card.setAttribute('data-level', id);
+
+    // CSS-gradient thumbnail from the level's sky preset (top -> horizon).
+    // gen_data.py writes sky colors as hex STRINGS ("0x1f6fb0"), unlike the
+    // numeric silhouette palettes elsewhere in data.js, so this coerces
+    // through Number() first rather than reusing hex()'s numeric-only path.
+    var sky = lvl.sky || {};
+    var top = skyHex(sky.top, '#1f6fb0');
+    var horizon = skyHex(sky.horizon, '#ffb066');
+    card.style.background = 'linear-gradient(180deg,' + top + ' 0%,' + horizon + ' 100%)';
+
+    card.appendChild(mk('span', 'rf-level-icon', levelThemeIcon(lvl)));
+    card.appendChild(mk('span', 'rf-level-name', lvl.name || id));
+    var best = levelBest(id);
+    card.appendChild(mk('span', 'rf-level-best', best > 0 ? ('Best ' + fmt(best)) : 'Unplayed'));
+
+    if (!unlockedFlag) {
+      var lock = mk('div', 'rf-level-lock');
+      if (lock) {
+        lock.appendChild(mk('span', 'rf-level-lock-glyph', '🔒'));
+        var costLabel = unlockCostLabel(lvl);
+        lock.appendChild(mk('span', '', costLabel || 'Locked'));
+        card.appendChild(lock);
+      }
+      card.addEventListener('click', function () { doUnlockLevel(id); });
+    } else {
+      card.addEventListener('click', function () { doSelectLevel(id); });
+    }
+    return card;
+  }
+
+  function doSelectLevel(id) {
+    var m = Meta(), p = profile();
+    if (m && typeof m.selectLevel === 'function' && p) {
+      var r = null;
+      try { r = m.selectLevel(p, id); } catch (e) { r = null; }
+      if (r && r.ok) commit();
+    }
+    buildLevelSelect();
+  }
+
+  function doUnlockLevel(id) {
+    var m = Meta(), p = profile();
+    if (!m || !p || typeof m.unlockLevel !== 'function') return;
+    var kit = S.ctx ? S.ctx.kit : null;
+    var r = null;
+    try { r = m.unlockLevel(kit, p, id); } catch (e) { r = null; }
+    if (r && r.ok) {
+      // Land straight on the newly-unlocked level, matching the roster's
+      // buy-then-select feel.
+      try { m.selectLevel(p, id); } catch (e2) { /* best-effort */ }
+      commit();
+    }
+    buildLevelSelect();
+  }
+
+  function buildLevelSelect() {
+    var wrap = ensureLevelSelectNode();
+    if (!wrap) return;
+    var grid = wrap.querySelector ? wrap.querySelector('#rfLevelSelectGrid') : null;
+    if (!grid) return;
+    clear(grid);
+    var levels = levelList();
+    var selId = selectedLevelId();
+    for (var i = 0; i < levels.length; i++) {
+      var card = buildLevelCard(levels[i], selId);
+      if (card) grid.appendChild(card);
+    }
+    var diveBtn = wrap.querySelector ? wrap.querySelector('#rfLevelSelectDive') : null;
+    if (diveBtn) diveBtn.disabled = !levelUnlockedM(selId);
+  }
+
+  function showLevelSelect(state) {
+    if (state && state.ctx) S.ctx = state.ctx;
+    if (state && state.profile) S.profile = state.profile;
+    buildLevelSelect();
+    showOnly('levelSelect');
     return true;
   }
 
@@ -2784,7 +3167,10 @@
       clearTransients();
       var buffOk = frenzyCue('buff:overdrive');
       ok('buff:<id> cue is handled (not dropped)', buffOk === true);
-      ok('buff pickup toast uses the known label', N('rfChip').textContent === 'OVERDRIVE');
+      // Rev 12 (12.4): the toast now leads with the pickup's icon glyph
+      // (gem-mesh look + per-type icon), so this checks the label is
+      // present rather than requiring an exact match with no icon.
+      ok('buff pickup toast uses the known label', N('rfChip').textContent.indexOf('OVERDRIVE') >= 0);
       ok('buff pickup toast shows immediately', N('rfChip').classList.contains('rf-on') === true);
       ok('buff pickup toast gets the holo flicker class', N('rfChip').classList.contains('rf-holo-flicker') === true);
       clearTransients();
@@ -3467,6 +3853,108 @@
         if (savedMeta2 === undefined) delete RF.Meta;
       }());
 
+      // ---- Rev 12: Level Select, class badges, v3 save --------------
+      (function () {
+        var m = window.RF && window.RF.Meta;
+        var rfd = window.RFD;
+        if (!m || !rfd || !Array.isArray(rfd.LEVELS) || !rfd.LEVELS.length) {
+          // Data/meta lanes not loaded in this selftest invocation (this
+          // file's ui suite can run standalone without meta.js/data.js in
+          // some harness modes) -- skip rather than false-failing.
+          return;
+        }
+        var pLv = m.defaultProfile();
+        showMenu({ profile: pLv });
+        N('rfDive').fire('click');
+        ok('DIVE from Menu opens Level Select', S.screen === 'levelSelect');
+        var grid = el('rfLevelSelectGrid');
+        var cards = grid && grid.querySelectorAll ? grid.querySelectorAll('.rf-level-card') : [];
+        ok('Level Select renders one card per RFD.LEVELS entry (12)',
+          cards.length === rfd.LEVELS.length && cards.length === 12);
+
+        var firstId = m.firstLevelId();
+        var firstCard = null, secondCard = null;
+        var secondId = rfd.LEVELS[1] && rfd.LEVELS[1].id;
+        for (var ci = 0; ci < cards.length; ci++) {
+          var lid = cards[ci].getAttribute('data-level');
+          if (lid === firstId) firstCard = cards[ci];
+          if (lid === secondId) secondCard = cards[ci];
+        }
+        ok('the starter level card is selected/highlighted',
+          !!firstCard && firstCard.classList.contains('rf-level-sel') === true);
+        ok('the starter level card shows no lock overlay',
+          !!firstCard && firstCard.querySelector('.rf-level-lock') === null);
+        ok('a second level card shows a lock overlay (unlock cost/state)',
+          !!secondCard && secondCard.querySelector('.rf-level-lock') !== null);
+
+        // Unlock via the card's own click path (doUnlockLevel), then it
+        // should render unlocked with no lock overlay on rebuild.
+        pLv.coins = 1e9;
+        if (secondCard) secondCard.fire('click');
+        var grid2 = el('rfLevelSelectGrid');
+        var cards2 = grid2 && grid2.querySelectorAll ? grid2.querySelectorAll('.rf-level-card') : [];
+        var secondCard2 = null;
+        for (var ci2 = 0; ci2 < cards2.length; ci2++) {
+          if (cards2[ci2].getAttribute('data-level') === secondId) secondCard2 = cards2[ci2];
+        }
+        ok('unlocking a level from its card clears the lock overlay on rebuild',
+          !!secondCard2 && secondCard2.querySelector('.rf-level-lock') === null);
+        ok('unlocking persists on the profile', pLv.levels[secondId].unlocked === true);
+
+        // Selecting the now-unlocked card should move the highlight + DIVE
+        // should start with that level selected.
+        if (secondCard2) secondCard2.fire('click');
+        ok('selecting an unlocked level updates profile.selectedLevel', pLv.selectedLevel === secondId);
+
+        // Class badges: reef (common), a legend (legendary/epic), Sharkjira.
+        // The selftest DOM stub's querySelector only supports #id/.class
+        // (see matchesSel above), not attribute selectors, so this walks
+        // the roster cards by data-shark like the ON-badge test above does.
+        showMenu({ profile: pLv });
+        var rosterRoot = N('rfMenuRoster');
+        var rosterAllCards = rosterRoot && rosterRoot.querySelectorAll
+          ? rosterRoot.querySelectorAll('.rf-card') : [];
+        var reefBadgeCard = null;
+        for (var rbi = 0; rbi < rosterAllCards.length; rbi++) {
+          if (rosterAllCards[rbi].getAttribute('data-shark') === 'reef') { reefBadgeCard = rosterAllCards[rbi]; break; }
+        }
+        var reefBadge = reefBadgeCard && reefBadgeCard.querySelector
+          ? reefBadgeCard.querySelector('.rf-class-badge') : null;
+        ok('reef (common class) shows a class badge on its roster card',
+          !!reefBadge && reefBadge.textContent === 'COMMON');
+        var jiraDef = null;
+        for (var sdi = 0; sdi < rfd.SHARKS.length; sdi++) {
+          if (rfd.SHARKS[sdi].id === 'leviathanrex') jiraDef = rfd.SHARKS[sdi];
+        }
+        ok('Sharkjira renders its data-driven name', !jiraDef || jiraDef.name === 'Sharkjira');
+        if (jiraDef && jiraDef.cls) {
+          ok('Sharkjira has a recognised class badge label',
+            !!CLASS_LABEL[jiraDef.cls]);
+        }
+
+        // v3 migration fixture: an old v2 save round-trips through load()
+        // with a valid, unlocked levels object.
+        var v2Fixture = {
+          v: 2, coins: 100, xp: 0, level: 1, selected: 'reef',
+          sharks: { reef: { owned: true, up: { bite: 0, speed: 0, boost: 0, power: 0 } } },
+          best: { score: 0, biggestTier: 0 }, runs: 0, tutorialDone: false, lastBonusDay: null,
+          gems: 0, relics: {}, skins: { owned: [], selectedSkin: null },
+          missions: { active: [], progress: {}, completed: {} }
+        };
+        var kitFixture = {
+          save: (function () {
+            var raw = null;
+            return { get: function () { return raw; }, set: function (v) { raw = v; } };
+          }())
+        };
+        kitFixture.save.set(v2Fixture);
+        var migrated = m.load(kitFixture);
+        ok('v2->v3 migration fixture produces a valid levels object',
+          migrated.v === m.SAVE_VERSION && !!migrated.levels && !!migrated.selectedLevel);
+        ok('v2->v3 migration fixture unlocks the starter level',
+          migrated.levels[migrated.selectedLevel].unlocked === true);
+      }());
+
       // ---- thumbnail bake cache rev token (task 5) -------------------
       ok('thumb cache key function exists and is rev-scoped', typeof tk === 'function'
         && tk('x').indexOf('rev7:') === 0);
@@ -3486,14 +3974,22 @@
       N('rfPower').fire('click', { preventDefault: function () { prevented++; } });
       ok('click suppressed, no double fire', powered === 1 && prevented === 2);
 
+      // Rev 12 (12.1): Menu's DIVE now opens Level Select first (Menu ->
+      // Level cards -> DIVE); the level-select screen's own DIVE button is
+      // what reaches the dive callback. AGAIN (post-run) is unaffected --
+      // it still dives straight back in.
       N('rfDive').fire('click');
-      ok('dive callback fired', dived === 1);
+      ok('menu DIVE opens level select, does not dive directly', dived === 0 && S.screen === 'levelSelect');
+      var lsDive = levelSelectNode && levelSelectNode.querySelector
+        ? levelSelectNode.querySelector('#rfLevelSelectDive') : null;
+      if (lsDive) lsDive.fire('click');
+      ok('level select DIVE reaches the dive callback', dived === 1);
       N('rfResAgain').fire('click');
       ok('again reuses dive callback', dived === 2);
 
       onDive(null);
       var threw2 = false;
-      try { N('rfDive').fire('click'); } catch (e) { threw2 = true; }
+      try { if (lsDive) lsDive.fire('click'); } catch (e) { threw2 = true; }
       ok('null dive callback is safe', threw2 === false);
 
       // A throwing callback must not escape into the engine's frame.
@@ -3517,6 +4013,9 @@
              firePower: function () { fired++; },
              quit: function () { quit++; } });
       N('rfDive').fire('click');
+      var lsDive2 = levelSelectNode && levelSelectNode.querySelector
+        ? levelSelectNode.querySelector('#rfLevelSelectDive') : null;
+      if (lsDive2) lsDive2.fire('click');
       ok('engine start handle reached by DIVE', started.length === 1);
       N('rfResAgain').fire('click');
       ok('engine start handle reached by AGAIN', started.length === 2);

@@ -3,7 +3,10 @@
  * Rev 9 replaces the procedural fish lofts with REST-POSE geometry baked
  * from artist-made skinned GLB bases (Quaternius "Animated Fish Bundle",
  * CC0; see LICENSES.md): fish_tuna.glb, fish_blue.glb, fish_clown.glb,
- * manta.glb, dolphin.glb. Skinning is dropped -- this module parses the
+ * manta.glb, dolphin.glb, whale.glb (Rev 12 (12.1): level-special pinnipeds
+ * seal/sealion/orca reuse the dolphin base tinted+reproportioned per
+ * species; leviathanprey/abyssal moved from dolphin to the dedicated whale
+ * base). Skinning is dropped -- this module parses the
  * GLB's JSON+BIN chunks itself (no GLTFLoader, no fetch dependency) and
  * bakes the accessor's bind-pose POSITION/NORMAL straight into a plain
  * BufferGeometry, one static mesh per base, cached and shared by every
@@ -12,7 +15,8 @@
  *
  * squidling/giantsquid/turtle/swordfish have no matching GLB base (no
  * squid/turtle/billfish asset shipped) and keep the Rev 6-8 procedural
- * loft so the roster stays at 16 buildable defs.
+ * loft so the roster stays at 19 buildable defs (Rev 12 (12.1) adds
+ * seal/sealion/orca, all asset-backed via the dolphin base).
  *
  * World placement, instancing, animation, and material cloning remain
  * outside this lane (world3d.js).
@@ -29,9 +33,12 @@ const TRIANGLE_LIMIT = 800;
 const FISH_BEND_SUFFIX = ':rf-bend-inst2';
 
 /* Species -> GLB base map (SPEC3D 9.3: "16 prey defs -> 5 bases x
- * tints/scale (document in fish3d)"). Every prey id in FISH_PALETTE_TABLE
- * must appear exactly once, either here (asset-based) or in
- * PROCEDURAL_FALLBACK_IDS (loft-based, no matching asset). */
+ * tints/scale (document in fish3d)"; Rev 12 (12.1) extends this to 19 prey
+ * defs -> 6 bases with the seal/sealion/orca level specials added onto the
+ * dolphin base and leviathanprey/abyssal moved onto a dedicated whale base).
+ * Every prey id in FISH_PALETTE_TABLE must appear exactly once, either here
+ * (asset-based) or in PROCEDURAL_FALLBACK_IDS (loft-based, no matching
+ * asset). */
 const SPECIES_BASE_MAP = Object.freeze({
   // Cruising open-water fusiforms -> tuna base.
   minnow: 'fish_tuna',
@@ -47,9 +54,14 @@ const SPECIES_BASE_MAP = Object.freeze({
   grouper: 'fish_clown',
   // Flat wide-bodied glider -> manta base.
   ray: 'manta',
-  // Whale-class deep prey -> dolphin base at large non-uniform scale.
-  leviathanprey: 'dolphin',
-  abyssal: 'dolphin'
+  // Whale-class deep prey -> whale base at large non-uniform scale.
+  leviathanprey: 'whale',
+  abyssal: 'whale',
+  // Rev 12 (12.1): pinniped/orca level specials -> dolphin base, recolored
+  // and reproportioned per species (see SPECIES_ASSET_SCALE / palette below).
+  seal: 'dolphin',
+  sealion: 'dolphin',
+  orca: 'dolphin'
 });
 /* No GLB base fits these (no squid/turtle/billfish asset shipped): keep
  * the Rev 6-8 procedural loft in buildProceduralGeometry(). */
@@ -60,7 +72,8 @@ const GLB_BASE_FILES = Object.freeze({
   fish_blue: 'assets/models/fish_blue.glb',
   fish_clown: 'assets/models/fish_clown.glb',
   manta: 'assets/models/manta.glb',
-  dolphin: 'assets/models/dolphin.glb'
+  dolphin: 'assets/models/dolphin.glb',
+  whale: 'assets/models/whale.glb'
 });
 
 /* The mesh node carrying the skin (name differs per asset) and its own
@@ -75,7 +88,8 @@ const GLB_MESH_NODE = Object.freeze({
   fish_blue: 'Fish2',
   fish_clown: 'ClownFish',
   manta: 'MantaRay',
-  dolphin: 'Dolphin'
+  dolphin: 'Dolphin',
+  whale: 'Whale'
 });
 
 /* These values follow the existing sprite families in data.js: cool blue
@@ -107,7 +121,13 @@ const FISH_PALETTE_TABLE = Object.freeze({
   giantsquid: Object.freeze({ base: 0x5b2a91, belly: 0xdac1f0, accent: 0xff6b85 }),
   anglerprey: Object.freeze({ base: 0x1f4a52, belly: 0xcde6d4, accent: 0x9dff2b }),
   abyssal: Object.freeze({ base: 0x392f78, belly: 0xb9d8c7, accent: 0xffa34f }),
-  leviathanprey: Object.freeze({ base: 0x3d2f8a, belly: 0xe0d9ad, accent: 0xf7593a })
+  leviathanprey: Object.freeze({ base: 0x3d2f8a, belly: 0xe0d9ad, accent: 0xf7593a }),
+  // Rev 12 (12.1): level-special pinnipeds/orca. seal/sealion tan/brown per
+  // spec; orca black/white (belly stands in for the white saddle patches
+  // since this loft's palette has no dedicated third slot).
+  seal: Object.freeze({ base: 0x8a6a3f, belly: 0xe8d6a8, accent: 0xc99a52 }),
+  sealion: Object.freeze({ base: 0x7a5a30, belly: 0xdfc696, accent: 0xb8863f }),
+  orca: Object.freeze({ base: 0x0c0e11, belly: 0xf4f6f8, accent: 0x3ce4ff })
 });
 
 /* Silhouette parameters keep the procedural-fallback roster in one loft
@@ -152,7 +172,17 @@ const SPECIES_ASSET_SCALE = Object.freeze({
   grouper: Object.freeze({ x: 0.9, y: 1.18, z: 1.18 }),
   ray: Object.freeze({ x: 1.0, y: 1.0, z: 1.0 }),
   leviathanprey: Object.freeze({ x: 1.55, y: 1.5, z: 1.5 }),
-  abyssal: Object.freeze({ x: 1.3, y: 1.28, z: 1.28 })
+  abyssal: Object.freeze({ x: 1.3, y: 1.28, z: 1.28 }),
+  // Rev 12 (12.1): seal/sealion plumper (shorter nose-to-tail, taller/rounder
+  // body) per spec: scale y 1.25, x 0.8. orca gets a taller dorsal read; the
+  // baked rest-pose has no separate dorsal-fin bone/region to scale
+  // independently (dolphin/whale rig's Spine/Tail/Flipper bones are the only
+  // joints, no fin bone), so per SPEC3D's "else scale" fallback this is done
+  // as a whole-body y bump instead, kept modest so orca doesn't just read as
+  // a bigger dolphin.
+  seal: Object.freeze({ x: 0.8, y: 1.25, z: 1.0 }),
+  sealion: Object.freeze({ x: 0.8, y: 1.25, z: 1.0 }),
+  orca: Object.freeze({ x: 1.1, y: 1.35, z: 1.0 })
 });
 
 /* The names and defaults are the cross-lane material contract. A consumer
@@ -978,16 +1008,16 @@ function __selftestFish() {
     // one of {asset base, procedural fallback}, and the 5-base roster from
     // SPEC3D 9.3 is fully accounted for.
     const paletteIds = Object.keys(FISH_PALETTE_TABLE);
-    check(paletteIds.length === 16, `expected 16 palette ids, found ${paletteIds.length}`);
+    check(paletteIds.length === 19, `expected 19 palette ids, found ${paletteIds.length}`);
     for (const id of paletteIds) {
       const inAsset = Object.prototype.hasOwnProperty.call(SPECIES_BASE_MAP, id);
       const inFallback = PROCEDURAL_FALLBACK_IDS.includes(id);
       check(inAsset !== inFallback, `${id}: must be in exactly one of SPECIES_BASE_MAP / PROCEDURAL_FALLBACK_IDS`);
     }
-    check(Object.keys(SPECIES_BASE_MAP).length + PROCEDURAL_FALLBACK_IDS.length === 16,
-      'species base map + procedural fallback list must cover all 16 prey ids exactly once');
+    check(Object.keys(SPECIES_BASE_MAP).length + PROCEDURAL_FALLBACK_IDS.length === 19,
+      'species base map + procedural fallback list must cover all 19 prey ids exactly once');
     const usedBases = new Set(Object.values(SPECIES_BASE_MAP));
-    check(usedBases.size === 5, `species base map must use exactly 5 GLB bases, found ${usedBases.size}`);
+    check(usedBases.size === 6, `species base map must use exactly 6 GLB bases, found ${usedBases.size}`);
     for (const baseName of usedBases) check(GLB_BASE_FILES[baseName], `${baseName}: no GLB file registered`);
 
     // Preload every referenced base from disk (Node fs path -- no fetch in
@@ -1002,8 +1032,8 @@ function __selftestFish() {
 
     const rows = host.RFD && Array.isArray(host.RFD.CREATURES) ? host.RFD.CREATURES : [];
     const defs = paletteIds.map((id) => rows.find((row) => row.id === id));
-    check(defs.every(Boolean), 'all 16 prey palette ids must exist in RFD.CREATURES');
-    check(defs.length === 16, `expected 16 palette defs, received ${defs.length}`);
+    check(defs.every(Boolean), 'all 19 prey palette ids must exist in RFD.CREATURES');
+    check(defs.length === 19, `expected 19 palette defs, received ${defs.length}`);
     const seenGeometry = new Map();
     const seenColors = new Map();
 
@@ -1060,6 +1090,20 @@ function __selftestFish() {
         `${def.id}: palette is missing base/belly/accent colors`);
       result.triangles[def.id] = triangles;
       result.sweep++;
+    }
+
+    // Rev 12 (12.1): seal/sealion/orca level specials must be asset-backed
+    // (no more crude egg-blob fallback loft) once their shared dolphin base
+    // is loaded -- confirm each returns real, non-null, non-placeholder
+    // geometry tagged to the dolphin base.
+    for (const id of ['seal', 'sealion', 'orca']) {
+      const row = rows.find((candidate) => candidate.id === id);
+      check(row, `${id}: missing from RFD.CREATURES`);
+      const baked = buildFish(row);
+      check(baked && baked.geometry, `${id}: expected asset-backed geometry, got none`);
+      check(baked.placeholder !== true, `${id}: still serving the egg-blob placeholder loft`);
+      check(baked.geometry.userData.rfLoft.source === 'asset', `${id}: expected an asset-sourced bake`);
+      check(baked.geometry.userData.rfFishBase === 'dolphin', `${id}: expected dolphin.glb base, got ${baked.geometry.userData.rfFishBase}`);
     }
 
     const cacheBeforeUnknown = geometryCache.size;
@@ -1152,7 +1196,7 @@ function __selftestFish() {
     }
 
     result.cacheSize = geometryCache.size;
-    result.notes.push('16 prey defs lofted into cached one-geometry records: 12 GLB-asset rest-pose bakes (4 bases x tuna/blue/clown/manta/dolphin groupings, ray solo) plus turtle/swordfish/squidling/giantsquid procedural fallback (no matching GLB asset)');
+    result.notes.push('19 prey defs lofted into cached one-geometry records: 15 GLB-asset rest-pose bakes (6 bases: tuna/blue/clown groupings, manta/ray solo, dolphin shared by seal/sealion/orca/tuna-class dolphinfish groupings, whale shared by leviathanprey/abyssal) plus turtle/swordfish/squidling/giantsquid procedural fallback (no matching GLB asset)');
     result.notes.push('asset bakes: GLB JSON+BIN parsed from fs (Node) with the same code path fetch() would use in-browser; skin dropped, POSITION/NORMAL taken as rest pose, mesh-node local TRS baked in, nose remapped to +x');
     result.notes.push(`max ${TRIANGLE_LIMIT} triangles per bake; vertex colors blend each GLB material-slot baseColorFactor toward the species palette by dorsal position`);
     result.notes.push('Rev 6 saturation pass: mackerel/swordfish/grouper/anglerprey/abyssal/leviathanprey pushed to richer, cyberpunk-adjacent accents while keeping species hue family and belly contrast');

@@ -1140,7 +1140,13 @@ const Fx = (() => {
     emit('gib', x, y, EAT_GIB_OPTS);
     // 7.3: pulseChroma now takes the prey tint so the screen flash matches
     // the burst color instead of the old fixed magenta split.
-    pulseChroma(preyTint, opts.chroma == null ? 0.85 : opts.chroma);
+    // FEEDBACK 2026-08-24: chroma strength halved (engine now sends 0.425
+    // for a "notable" bite, was 0.85) and ordinary small-prey bites pass an
+    // explicit 0 to skip the flash entirely -- pulseChroma's own [0.2,1]
+    // clamp would otherwise floor a 0 back up to a visible flash, so treat
+    // <=0 as "no flash" here before it ever reaches pulseChroma.
+    var chromaStrength = opts.chroma == null ? 0.425 : opts.chroma;
+    if (chromaStrength > 0) pulseChroma(preyTint, chromaStrength);
     return rings > 0;
   }
 

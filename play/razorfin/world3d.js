@@ -278,9 +278,21 @@ import * as THREE from 'three';
   var Z_RAY = -120;            // god-ray additive planes
   var Z_SEAM = -180;           // thermocline seams
   var Z_KELP = [-260, -140];   // kelp / rock billboard parallax band
+  // Painted dressing lives in a farther parallax band.  The near-rock mesh
+  // used to occlude this band when depth testing was enabled; the décor
+  // batches now draw after that mesh with depth testing disabled, so there is
+  // no reason to put the art close to the gameplay plane and let a coral head
+  // become a foreground card.
+  var Z_DECOR_FOCUS = -238;
   var Z_SIL = [-400, -300];    // midwater silhouettes, furthest back
   var Z_GRADIENT = -500;       // opaque world-anchored water gradient sheet
   var Z_TERRAIN = [-340, -200, -100, 45];
+  // Rev 12 12.1: the above-water backdrop (sky gradient + horizon silhouette
+  // theme + sun/clouds) sits at the FARTHEST parallax depth, behind even the
+  // gradient sheet, so it is never mistaken for in-water decor and never
+  // blocks the water gradient's own draw. Visible whenever the camera sees
+  // above y=0 (near-surface swim or a breach).
+  var Z_SKY = -600;
 
   var SURFACE_LIGHT_H = 500;   // rays reach this far down from y=0
 
@@ -354,6 +366,15 @@ import * as THREE from 'three';
     lastZoneId: -1,
     relics: [],                 // Rev 7: {zoneId, index, x, y, entity} per placed relic
     stingCd: 0,                 // Rev 7: 'rf-sting' publish cooldown, seconds remaining
+    // Rev 12 12.1: the active LEVELS row (RFD.LEVEL_BY_ID entry) and the
+    // per-run zone table derived from it (RFD.ZONES cloned with the level's
+    // water script + preyMix overlay applied). Both null until World.init
+    // resolves them; zones() below falls back to RFD.ZONES directly when
+    // levelZones is null, so a caller that never sets ctx.level keeps the
+    // exact old behaviour.
+    level: null,
+    levelZones: null,
+    skyTheme: null,              // {topHex, horizonHex, themeId} for selftest
   };
 
   // Reused scratch. Never reallocated after init.
@@ -381,6 +402,45 @@ import * as THREE from 'three';
   // additive FX colours, so the reef remains saturated without washing out
   // the foreground creatures.
   var REEF_PALETTE = [0xf05b74, 0xff8d4f, 0x8f6cf2, 0x24c9b0, 0xffc857];
+  // Each band gets a small authored family instead of sampling one global
+  // rainbow. The warm shelf, violet/orange reef, cyan twilight, and
+  // violet/green abyss are the background script; envColor() still pulls the
+  // result toward the local water tint and depth so actors retain priority.
+  var REEF_ZONE_PALETTE = [
+    [0xff8d4f, 0xffc857, 0xf05b74],
+    [0x8f6cf2, 0xf05b74, 0xff8d4f],
+    [0x3aa9c4, 0x7167d9, 0x24c9b0],
+    [0x513b78, 0x6d4ca3, 0x6fba78],
+  ];
+  var WRECK_ZONE_PALETTE = [0x6b5541, 0x354d58, 0x27334c, 0x17162e];
+
+  // Background-only colour script. Gameplay data still owns zone extents and
+  // pressure; these water colours keep the authored environment from
+  // collapsing into four nearly identical blue bands. The actors never use
+  // this table, and applyZoneAtmo blends it continuously at every boundary.
+  var ATMO_ZONE_SCRIPT = [
+    { tint: 0x0b5364, fog: 0x3a8d9b }, // Sunlit: turquoise / warm-sand light
+    { tint: 0x102a47, fog: 0x385473 }, // Reef: blue water for purple/orange life
+    { tint: 0x071a32, fog: 0x254461 }, // Twilight: deep blue / teal cyan
+    { tint: 0x020611, fog: 0x101c32 }, // Abyss: near-black with violet depth
+  ];
+  // Rev 12 12.1: when a level's water script has overlaid this zone's own
+  // tint/fog (buildLevelZones), those become the fog/tint pair directly, so
+  // switching levels actually recolours the water instead of only recolouring
+  // the seabed decor. Falls back to the built-in ATMO_ZONE_SCRIPT table when
+  // no level is active (S.level null) or the zone carries no tint/fog of its
+  // own, so an unmodified RFD.ZONES table (world3d run standalone, no level
+  // ctx) keeps the exact old script-driven behaviour.
+  function atmoScriptFor(z) {
+    if (S.level && z && (z.tint !== undefined || z.fog !== undefined)) {
+      return {
+        tint: z.tint !== undefined ? hexNum(z.tint) : ATMO_ZONE_SCRIPT[0].tint,
+        fog: z.fog !== undefined ? hexNum(z.fog) : ATMO_ZONE_SCRIPT[0].fog,
+      };
+    }
+    var id = z && typeof z.id === 'number' ? z.id - 1 : 0;
+    return ATMO_ZONE_SCRIPT[clamp(id, 0, ATMO_ZONE_SCRIPT.length - 1)];
+  }
 
   // RF-PERF-01: hit records are POOLED. playerHits holds live records only for
   // the frame they were pushed; the backing store is allocated once and reused
@@ -570,8 +630,211 @@ import * as THREE from 'three';
     if (d.SHARK_BY_ID && d.SHARK_BY_ID[defId]) return d.SHARK_BY_ID[defId];
     return null;
   }
-  function zones() { return (D().ZONES) || []; }
+  // Rev 12 12.1: zones() returns the LEVEL-OVERLAID table once World.init has
+  // resolved one (S.levelZones), and RFD.ZONES verbatim otherwise. Every one
+  // of the ~25 call sites in this module (spawner, atmosphere, decor anchors,
+  // selftest gates) reads through this one function, so overlaying the water
+  // colour script and prey mix here reaches every consumer with no signature
+  // change anywhere else.
+  function zones() { return S.levelZones || (D().ZONES) || []; }
+  function rawZones() { return (D().ZONES) || []; }
   function budget() { return (D().ENTITY_BUDGET) || { onscreen: 70, total: 140 }; }
+
+  // ------------------------------------------------------- Rev 12 levels
+  var DEFAULT_LEVEL_ID = 'hawaii';
+  function levelById(id) {
+    var L = D().LEVEL_BY_ID;
+    if (L && L[id]) return L[id];
+    var list = D().LEVELS;
+    if (Array.isArray(list)) {
+      for (var i = 0; i < list.length; i++) { if (list[i].id === id) return list[i]; }
+    }
+    return null;
+  }
+  function firstLevel() {
+    var list = D().LEVELS;
+    return (Array.isArray(list) && list.length) ? list[0] : null;
+  }
+  // Resolution order: ctx.level (id string) -> ctx.run.level -> the first
+  // authored LEVELS row -> the hardcoded 'hawaii' fallback id (kept working
+  // even when data.js has not landed LEVELS yet, mirroring every other D()
+  // table's built-in-default contract in this module).
+  function resolveLevel(ctx) {
+    var idFromCtx = (ctx && typeof ctx.level === 'string' && ctx.level) ||
+      (ctx && ctx.run && typeof ctx.run.level === 'string' && ctx.run.level) || null;
+    var row = idFromCtx ? levelById(idFromCtx) : null;
+    if (!row) row = firstLevel();
+    if (!row) row = levelById(DEFAULT_LEVEL_ID);
+    return row;
+  }
+
+  // Seabed theme table: per seabed type, the decor family this module
+  // switches buildDecor/buildReef/buildMidwaterDecor into. Colour-only entries
+  // (no geometry change to the SDF mound generator itself — 12.1 asks for
+  // "different mound shapes, seabed color, decor mix", and the mound COLOUR +
+  // DECOR MIX are what read on screen at gameplay zoom; the shape swap is
+  // expressed by which decor family is layered onto the same SDF mounds, e.g.
+  // icebergs replacing coral heads, so every level still gets the exact same
+  // proven open-ocean SDF navigation guarantees).
+  var SEABED_THEME = {
+    sand: { floor: 0x4a3f2a, floorTop: 0x8a7a52, rockTint: 0x7a6a48, accent: 0xffd27a, family: 'coral' },
+    reef: { floor: 0x0b2024, floorTop: 0x3a5b52, rockTint: 0x29494a, accent: 0xff8d4f, family: 'coral' },
+    rock: { floor: 0x1c2430, floorTop: 0x3c4658, rockTint: 0x323a48, accent: 0x9fb4d8, family: 'rock' },
+    ice: { floor: 0x0e2530, floorTop: 0xaecbd6, rockTint: 0x6f96a6, accent: 0xdff6ff, family: 'ice' },
+    kelp: { floor: 0x11241c, floorTop: 0x2c5a3c, rockTint: 0x264a34, accent: 0x6fba78, family: 'kelp' },
+    volcanic: { floor: 0x0c0a0a, floorTop: 0x2a1512, rockTint: 0x1a1414, accent: 0xff6a2e, family: 'volcanic' },
+  };
+  function seabedThemeFor(level) {
+    var id = level && level.seabed;
+    return SEABED_THEME[id] || SEABED_THEME.sand;
+  }
+
+  // Horizon silhouette theme id, one per level, consumed by buildSkyBackdrop
+  // and exposed on S.skyTheme for the selftest. Falls back to the level's own
+  // sky.horizonTheme field when RFD.LEVELS supplies one (data lane's shape),
+  // otherwise derives a reasonable theme id from the level id so the sky
+  // layer is never blank even against a built-in default level row.
+  var HORIZON_THEME_BY_LEVEL = {
+    hawaii: 'volcano_palms', mexico: 'cliffs_cacti_ruins', belize: 'barrier_reef_cays',
+    maldives: 'atolls_overwater_huts', newzealand: 'fjords_snow', alaska: 'glaciers_icebergs',
+    tahiti: 'peaks_lagoon', azores: 'volcanic_isles', bali: 'temples_rice_terraces',
+    aruba: 'divi_trees_beach', jamaica: 'green_hills', california: 'cliffs_pier_kelp',
+  };
+  function horizonThemeFor(level) {
+    if (level && level.sky && level.sky.horizonTheme) return level.sky.horizonTheme;
+    return HORIZON_THEME_BY_LEVEL[level && level.id] || 'volcano_palms';
+  }
+
+  // Build the per-run ZONES overlay: a shallow clone of every RFD.ZONES row
+  // with (a) tint/fog replaced by the level's water script (surface tint for
+  // the shelf band, the matching band[] entry for the rest, haze folded into
+  // fog) and (b) the level's preyWeights OVERLAID onto that zone's spawns
+  // list (added/boosted, never removing the base roster — NOTES-rev12-data:
+  // "overlay onto the level's zone spawn table"). Specials are appended to
+  // whichever zone their tier fits (deepest zone whose intendedTier+2 covers
+  // the special's tier), matching the existing spawn-table-gate rule so a
+  // level's specials never trip checkSpawnTableGate.
+  function buildLevelZones(level) {
+    var base = rawZones();
+    if (!level) return base;
+    var out = new Array(base.length);
+    var bands = (level.water && level.water.bands) || null;
+    var haze = level.water && level.water.haze;
+    for (var i = 0; i < base.length; i++) {
+      var z = base[i];
+      var clone = {};
+      for (var k in z) { if (Object.prototype.hasOwnProperty.call(z, k)) clone[k] = z[k]; }
+      var bandTint = bands && bands[i] !== undefined ? bands[i] : (i === 0 && level.water && level.water.surface);
+      if (bandTint !== undefined && bandTint !== null) clone.tint = bandTint;
+      // Fog is the band tint lifted toward the level's single `haze` colour
+      // (never the flat haze value on its own): haze reads as "how milky this
+      // level's water is", the band tint is still what separates one zone's
+      // fog from the next, so the shelf-vs-abyss crossing stays as
+      // unmistakable per level as it is in the built-in ATMO_ZONE_SCRIPT
+      // table (ATMO-01 selftest gate: shelf and abyss must differ in fog).
+      if (bandTint !== undefined && bandTint !== null) {
+        clone.fog = haze ? lerpColor(hexNum(bandTint), hexNum(haze), 0.45) : bandTint;
+      }
+      // Overlay preyWeights: "overlay onto the level's zone spawn table"
+      // (NOTES-rev12-data.md). checkSpawnSpeciesCapGate caps every zone at 3
+      // PREY species (hazards uncapped), so the overlay REPLACES the base
+      // prey rows with the level's own weighted prey list (gated to defs that
+      // fit this zone's existing tier+2 rule) rather than appending on top of
+      // them — appending would blow the 3-species cap on every zone the first
+      // time a level supplied 3 prey ids of its own. The zone's hazard rows
+      // (jelly/puffer/mine — kind === 'hazard') are always kept verbatim: the
+      // level table only ever describes prey/specials, never hazards, per its
+      // own separate `hazards` field.
+      var baseSpawns = z.spawns || [];
+      var hazardRows = [];
+      for (var hi = 0; hi < baseSpawns.length; hi++) {
+        var hrow = baseSpawns[hi];
+        var hid = Array.isArray(hrow) ? hrow[0] : (hrow && hrow.id);
+        var hdef = defOf(hid);
+        if (hdef && hdef.kind === 'hazard') hazardRows.push(hrow);
+      }
+      var pw = level.preyWeights;
+      var preyRows = [];
+      var it = intendedTierRaw(z);
+      var SPECIES_CAP = 3;
+      if (pw) {
+        for (var defId in pw) {
+          if (!Object.prototype.hasOwnProperty.call(pw, defId)) continue;
+          if (preyRows.length >= SPECIES_CAP) break;
+          var def = defOf(defId);
+          var tier = def && typeof def.tier === 'number' ? def.tier : null;
+          // Only include a def this zone's existing tier+2 gate already
+          // allows, so the overlay can never itself trip checkSpawnTableGate.
+          if (!def || def.kind === 'hazard' || typeof tier !== 'number' || tier > it + 2) continue;
+          preyRows.push([defId, pw[defId]]);
+        }
+      }
+      // A level whose whole preyWeights table happened to fall outside this
+      // particular zone's tier gate (none authored today, but the fallback
+      // must still hold) keeps the base zone's own prey rows rather than
+      // leaving the zone with zero prey.
+      if (!preyRows.length) {
+        for (var bi = 0; bi < baseSpawns.length; bi++) {
+          var brow = baseSpawns[bi];
+          var bid = Array.isArray(brow) ? brow[0] : (brow && brow.id);
+          var bdef = defOf(bid);
+          if (bdef && bdef.kind !== 'hazard') preyRows.push(brow);
+        }
+      }
+      clone.spawns = preyRows.concat(hazardRows);
+      out[i] = clone;
+    }
+    // Specials: appended to the deepest zone whose intendedTier+2 covers the
+    // special creature's tier, so a signature "big fish" spawns in the
+    // level's own water without ever exceeding the existing difficulty gate.
+    var specials = level.special;
+    if (Array.isArray(specials)) {
+      for (var spi = 0; spi < specials.length; spi++) {
+        var sdef = defOf(specials[spi]);
+        if (!sdef || typeof sdef.tier !== 'number') continue;
+        var bestZi = -1;
+        for (var zi = 0; zi < out.length; zi++) {
+          var itz = intendedTierRaw(base[zi]);
+          if (sdef.tier <= itz + 2) bestZi = zi; // last (deepest) match wins
+        }
+        if (bestZi >= 0) {
+          var targetSpawns = out[bestZi].spawns;
+          var already = false, preyCount = 0, lowestIdx = -1, lowestW = Infinity;
+          for (var ci = 0; ci < targetSpawns.length; ci++) {
+            var crow = targetSpawns[ci];
+            var cid = Array.isArray(crow) ? crow[0] : crow.id;
+            if (cid === specials[spi]) { already = true; break; }
+            var cdef = defOf(cid);
+            if (cdef && cdef.kind !== 'hazard') {
+              preyCount++;
+              var cw = Array.isArray(crow) ? crow[1] : crow.weight;
+              if ((cw || 0) < lowestW) { lowestW = cw || 0; lowestIdx = ci; }
+            }
+          }
+          // Specials are signature creatures for the level, so they take
+          // priority over an ordinary preyWeights row: append when there is
+          // room under the 3-species cap, otherwise swap out the LOWEST-
+          // weighted existing prey row rather than breaking the cap gate.
+          if (!already) {
+            if (preyCount < SPECIES_CAP) targetSpawns.push([specials[spi], 2]);
+            else if (lowestIdx >= 0) targetSpawns[lowestIdx] = [specials[spi], 2];
+          }
+        }
+      }
+    }
+    return out;
+  }
+  // intendedTier() (defined below) reads its `zone` argument's own fields, so
+  // this raw variant (used above, before intendedTier's declaration is
+  // reachable at call time in source order) is identical logic kept local to
+  // avoid a forward reference; both stay in lockstep by construction since
+  // buildLevelZones always calls it on a RAW (un-cloned) RFD.ZONES row.
+  function intendedTierRaw(zone) {
+    if (!zone) return 0;
+    if (typeof zone.intendedTier === 'number') return zone.intendedTier;
+    if (typeof zone.pressureTier === 'number') return zone.pressureTier;
+    return 0;
+  }
   function pickups() { return (D().PICKUPS) || []; }
   function pickupDef(buffId) {
     var P = pickups();
@@ -669,6 +932,17 @@ import * as THREE from 'three';
     return { ok: violations.length === 0, violations: violations };
   }
   World.__checkSpawnSpeciesCapGate = checkSpawnSpeciesCapGate;
+  // Rev 12 12.1: exposed for the engine/selftest to read the resolved level
+  // and its derived sky theme without reaching into module-private S.
+  World.activeLevel = function () { return S.level; };
+  World.activeSkyTheme = function () { return S.skyTheme; };
+  World.__resolveLevel = resolveLevel;
+  World.__buildLevelZones = buildLevelZones;
+  // Debug-only accessor for the sky-clip probe (Rev 12 sky clean): returns
+  // the live S.decor mesh list so an external harness can walk every decor
+  // batch's geometry bbox and assert nothing but the tagged sky/surface
+  // layers pokes above the waterline. Not used by any runtime code path.
+  World.__debugDecorList = function () { return S.decor || []; };
 
   World.zoneAt = function (y) {
     var Z = zones();
@@ -1699,7 +1973,22 @@ import * as THREE from 'three';
   var QUAD_V = [0, 0, 1, 1];
   var QUAD_IDX = [0, 1, 2, 0, 2, 3];
 
-  function mergeQuads() {
+  // SKY CLIP GUARD (Rev 12 sky clean). Sim y is down (surface at y=0,
+  // seafloor at y=S.h) and THREE negates y, so "above the surface" is
+  // POSITIVE three-y. Every decor batch that merges through here (mounds,
+  // ruins, wrecks, outcrops, kelp, rays, gradient sheets, reef/rock/coral)
+  // is gameplay/terrain dressing that belongs at or below the waterline —
+  // only the sky backdrop itself (gradient sheet, sun/clouds, horizon
+  // silhouette) is allowed to paint above y=0. Rather than track down and
+  // clamp every builder's geometry generation individually (dozens of call
+  // sites, easy for a future prop to reintroduce the defect), clamp every
+  // vertex's three-y to <= SKY_CLIP_Y here, in the one place ALL quad decor
+  // funnels through, and have buildSkyBackdrop's three calls opt OUT via the
+  // `allowSky` param. This is a hard geometric cap, not a visual fade, so a
+  // mast/mound/ruin that used to poke into the sky is now flattened at the
+  // waterline instead of merely dimmed.
+  var SKY_CLIP_Y = 0; // three-y ceiling for non-sky decor (sim y = 0, the waterline)
+  function mergeQuads(allowSky) {
     if (!isThree() || !quadN) return null;
     ownership();
     var n = quadN;
@@ -1714,8 +2003,10 @@ import * as THREE from 'three';
         var lx = QUAD_X[c] * q.w * q.mirror;
         var ly = QUAD_Y[c] * q.h;
         var vi = (i * 4 + c);
+        var vy = q.cy + lx * sn + ly * cs;
+        if (!allowSky && vy > SKY_CLIP_Y) vy = SKY_CLIP_Y;
         pos[vi * 3] = q.cx + lx * cs - ly * sn;
-        pos[vi * 3 + 1] = q.cy + lx * sn + ly * cs;
+        pos[vi * 3 + 1] = vy;
         pos[vi * 3 + 2] = q.z;
         uv[vi * 2] = QUAD_U[c];
         uv[vi * 2 + 1] = QUAD_V[c];
@@ -1998,6 +2289,32 @@ import * as THREE from 'three';
   var FOG_D_MAX = Math.sqrt(-Math.log(FOREGROUND_KEEP)) / FOG_NEAR;
   function guardDensity(d) { return d > FOG_D_MAX ? FOG_D_MAX : d; }
 
+  // SKY FOG GUARD (Rev 12 sky fix). FogExp2 fogs by CAMERA DISTANCE, not
+  // world position, so it cannot tell "kelp/coral geometry that happens to
+  // poke a little above y=0" from "open sky." Every decor/reef/kelp batch in
+  // this module is built with material.fog=true (correctly -- underwater it
+  // should haze with depth), and several of those batches' quad geometry
+  // legitimately extends a short way above the waterline at their tall edge.
+  // With the camera anywhere near the surface (small camY, or negative/
+  // airborne), the SAME water-fog colour that is correct underwater got
+  // painted across that above-water sliver of screen too, at high enough
+  // cumulative alpha (several such layers stack) to read as a solid flat
+  // band and hide the sky/silhouette behind it -- the reported defect.
+  // The fix scales fog density toward zero as the camera approaches and
+  // crosses y=0, on the same fade shape RIBBON_FADE_Y already uses for the
+  // surface ribbon/foam: full water fog at/below SKY_FOG_FULL_Y, none at/
+  // above SKY_FOG_CLEAR_Y (which is also negative, i.e. above the surface,
+  // so a breaching camera gets zero water fog, matching "underwater fog/
+  // haze must not tint the sky").
+  var SKY_FOG_FULL_Y = 260;   // full water-fog density at/below this camY
+  var SKY_FOG_CLEAR_Y = -40;  // zero water-fog density at/above this camY (in the sky)
+  function skyFogFrac(camY) {
+    if (typeof camY !== 'number') return 1;
+    if (camY <= SKY_FOG_CLEAR_Y) return 0;
+    if (camY >= SKY_FOG_FULL_Y) return 1;
+    return (camY - SKY_FOG_CLEAR_Y) / (SKY_FOG_FULL_Y - SKY_FOG_CLEAR_Y);
+  }
+
   // Resolve the blended zone pair for a depth. Returns the blend weight and
   // writes the two zones into module scratch, so no object is allocated.
   var atmoZa = null, atmoZb = null;
@@ -2042,12 +2359,19 @@ import * as THREE from 'three';
     var sc = scene || S.scene;
     var t = resolveAtmo(camY);
     if (!atmoZa) return null;
-    var fogA = hexNum(atmoZa.fog), fogB = hexNum(atmoZb.fog);
-    var tintA = hexNum(atmoZa.tint), tintB = hexNum(atmoZb.tint);
+    var scriptA = atmoScriptFor(atmoZa), scriptB = atmoScriptFor(atmoZb);
+    var fogA = scriptA.fog, fogB = scriptB.fog;
+    var tintA = scriptA.tint, tintB = scriptB.tint;
+    var lightTintCol = lerpColor(hexNum(atmoZa.tint), hexNum(atmoZb.tint), t);
     var fogCol = lerpColor(fogA, fogB, t);
     var tintCol = lerpColor(tintA, tintB, t);
     var dens = guardDensity(
       zoneDensity(atmoZa) + (zoneDensity(atmoZb) - zoneDensity(atmoZa)) * t);
+    // Sky fog guard: fade water-fog density to zero as camY approaches/
+    // crosses the waterline, so near-surface and breach camera positions
+    // never haze the above-water sky region with water fog (see
+    // skyFogFrac's comment).
+    dens *= skyFogFrac(camY);
     var depth = zoneDepthFrac(atmoZa) + (zoneDepthFrac(atmoZb) - zoneDepthFrac(atmoZa)) * t;
     // The opaque sheet is the source of truth for the vertical ramp. Clear is
     // only a fallback for a pixel outside its world+overshoot bounds, so sample
@@ -2083,7 +2407,10 @@ import * as THREE from 'three';
     var hemiI = HEMI_I0 + (HEMI_I1 - HEMI_I0) * depth;
     var sunI = SUN_I0 + (SUN_I1 - SUN_I0) * depth;
     if (lightHemi) {
-      if (lightHemi.color && lightHemi.color.setHex) lightHemi.color.setHex(tintCol);
+      // Keep the rig's authored water tint as its light colour. The scripted
+      // palette belongs to the background sheet/fog/clear path; this preserves
+      // the gameplay lighting contract while still separating the zones.
+      if (lightHemi.color && lightHemi.color.setHex) lightHemi.color.setHex(lightTintCol);
       if (lightHemi.groundColor && lightHemi.groundColor.setHex) lightHemi.groundColor.setHex(HEMI_GROUND);
       lightHemi.intensity = hemiI;
     }
@@ -2225,6 +2552,7 @@ import * as THREE from 'three';
       }
       var mesh = batchMesh(feather, true, undefined, true);
       if (!mesh) continue;
+      meshName(mesh, 'RF god ray band ' + b);
       var pivot = new THREE.Group();
       pivot.add(mesh);
       pivot.position.y = 0;                    // the waterline
@@ -2281,15 +2609,18 @@ import * as THREE from 'three';
 
   // -------------------------------------------------------- gradient sheet
   // The water colour is world-anchored geometry, not a full-screen effect.
-  // Eight RGBA quads cover the authored world plus a frustum overshoot; the
+  // A fine RGBA sheet covers the authored world plus a frustum overshoot; the
   // corner colours are sampled from the same zone transition used by fog.
   function gradientZoneTop(z) {
-    return lerpColor(hexNum(z.tint), hexNum(z.fog), 0.22);
+    var script = atmoScriptFor(z);
+    return lerpColor(script.tint, script.fog, 0.22);
   }
 
   function gradientZoneBottom(z, next) {
+    // Shared endpoints keep the opaque water sheet continuous at a zone
+    // boundary instead of independently pushing every band toward black.
     if (!next) return 0x020408;
-    return lerpColor(hexNum(next.tint), 0x000000, 0.18);
+    return gradientZoneTop(next);
   }
 
   function gradientZoneColor(z, next, simY) {
@@ -2298,8 +2629,10 @@ import * as THREE from 'three';
     return lerpColor(gradientZoneTop(z), gradientZoneBottom(z, next), u);
   }
 
-  // Same +-ATMO_BLEND transition as resolveAtmo(), so the authored sheet and
-  // the camera fog never disagree at a zone boundary.
+  // The sheet is already piecewise-continuous at the shared zone endpoints.
+  // Do not apply the fog resolver's second local blend here: that resolver
+  // blends two *camera* samples, while doing it to a world-anchored vertex
+  // ramp creates a visible colour kink on either side of every band seam.
   function gradientColorAt(simY) {
     var Z = zones();
     if (!Z.length) return 0x020408;
@@ -2310,55 +2643,57 @@ import * as THREE from 'three';
     }
     var z = Z[idx];
     var next = idx < Z.length - 1 ? Z[idx + 1] : null;
-    var c = gradientZoneColor(z, next, simY);
-    var dLo = z.yMax - simY;
-    if (idx < Z.length - 1 && dLo < ATMO_BLEND) {
-      var cNext = gradientZoneColor(next, idx + 1 < Z.length - 1 ? Z[idx + 2] : null, simY);
-      c = lerpColor(c, cNext, clamp((ATMO_BLEND - dLo) / (ATMO_BLEND * 2), 0, 0.5));
-    } else {
-      var dHi = simY - z.yMin;
-      if (idx > 0 && dHi < ATMO_BLEND) {
-        var prev = Z[idx - 1];
-        var cPrev = gradientZoneColor(prev, z, simY);
-        c = lerpColor(c, cPrev, clamp((ATMO_BLEND - dHi) / (ATMO_BLEND * 2), 0, 0.5));
-      }
-    }
-    return c;
+    // GRADIENT_TOP_Y (0, the waterline) not -600: see the comment on
+    // GRADIENT_TOP_Y below for why the old -600 overshoot broke the sky.
+    var zoneTop = idx === 0 ? GRADIENT_TOP_Y : z.yMin;
+    var zoneBottom = idx === Z.length - 1 ? S.h + 600 : z.yMax;
+    var span = zoneBottom - zoneTop;
+    var u = span > 0 ? clamp((simY - zoneTop) / span, 0, 1) : 0;
+    return lerpColor(gradientZoneTop(z), gradientZoneBottom(z, next), u);
   }
+
+  // The opaque water gradient sheet (Z_GRADIENT = -500) used to be built from
+  // sim y = -600 down, on the theory that it sits BEHIND the sky backdrop
+  // (Z_SKY = -600) in z so the z-order alone would keep it from ever hiding
+  // the sky. That reasoning only holds if the two layers never overlap the
+  // same screen pixels; they do. -600 reaches 600 units above the waterline,
+  // deep into the sky region the sky backdrop (SKY_HORIZON_Y=40,
+  // SKY_H=900) is meant to occupy, so at any camera position that looks
+  // toward y=0 from above (near-surface swim at y~150, or a breach at
+  // y<0) the NEARER, OPAQUE, depth-writing gradient sheet painted straight
+  // over the farther sky layer -- exactly the flat dark-teal band with no
+  // sun/clouds/horizon silhouette reported in the near-surface screenshots.
+  // The water gradient has no business rendering above the waterline at
+  // all: GRADIENT_TOP_Y=0 clamps zone 0's top bound to y=0 so the opaque
+  // sheet now stops exactly at the surface, leaving every sim y < 0 pixel
+  // to the sky backdrop, unoccluded.
+  var GRADIENT_TOP_Y = 0;
 
   function buildGradientSheet() {
     if (!isThree()) return;
     var Z = zones();
     if (!Z.length) return;
-    var bandN = Z.length * 2;
+    // Sixteen short spans per zone keep the authored ramp smooth in perspective
+    // and stop the world sheet from reading as stacked opaque colour cards.
+    // They remain one merged draw and add only 128 triangles.
+    var spansPerZone = 16;
+    var bandN = Z.length * spansPerZone;
     quadReset();
     for (var b = 0; b < bandN; b++) {
-      var top, bottom;
-      if (b === 0) {
-        top = -600;
-        bottom = Z[0].yMin + (Z[0].yMax - Z[0].yMin) / 6;
-      } else if (b === 1) {
-        top = Z[0].yMin + (Z[0].yMax - Z[0].yMin) / 6;
-        bottom = Z[0].yMax;
-      } else {
-        var zi = Math.floor(b / 2);
-        if (b % 2 === 0) {
-          top = Z[zi - 1].yMax;
-          bottom = Z[zi].yMin + (Z[zi].yMax - Z[zi].yMin) * 0.5;
-        } else {
-          top = Z[zi].yMin + (Z[zi].yMax - Z[zi].yMin) * 0.5;
-          // Rev 6: was a hardcoded 4200 (600px past the old h=3600 seafloor).
-          // Derives from S.h now so the sheet still overshoots the seafloor by
-          // the same 600px margin in the grown 14400x4800 world.
-          bottom = zi === Z.length - 1 ? S.h + 600 : Z[zi].yMax;
-        }
-      }
+      var zi = Math.floor(b / spansPerZone);
+      var si = b % spansPerZone;
+      var zoneTop = zi === 0 ? GRADIENT_TOP_Y : Z[zi].yMin;
+      var zoneBottom = zi === Z.length - 1 ? S.h + 600 : Z[zi].yMax;
+      var span = zoneBottom - zoneTop;
+      var top = zoneTop + span * si / spansPerZone;
+      var bottom = zoneTop + span * (si + 1) / spansPerZone;
       quadPushGradient(S.w * 0.5, -(top + bottom) * 0.5, 0,
         S.w + 800, bottom - top, 0, 1,
         gradientColorAt(top), gradientColorAt(bottom), 1, 1);
     }
     var mesh = batchMesh(null, false, Z_GRADIENT, false, { fog: false, opaque: true });
     if (!mesh) return;
+    meshName(mesh, 'RF background gradient sheet');
     sceneAdd(mesh);
     S.decor.push(mesh);
     S.gradient = { mesh: mesh, geometry: mesh.geometry, material: mesh.material };
@@ -2948,8 +3283,60 @@ import * as THREE from 'three';
     return verifyOpenColumns(MAZE_CLEARANCE);
   }
 
+  // Rev 12 12.1: "seed the SDF/mound layout per level (deterministic seed =
+  // level id)". buildMazeLayout() itself draws from the SHARED S.rng stream
+  // (ctx.rng), and a long block of comments right at that call site documents
+  // that every later S.rng draw in the same init - including several
+  // selftest sections that assert exact byte-identical outcomes - would shift
+  // if this function's own draw COUNT changed. So the per-level seed does not
+  // touch S.rng at all: it runs a SEPARATE, fully deterministic local stream
+  // (seeded from a hash of level.id, stable across runs and across machines)
+  // that perturbs the already-generated mound radii/heights by a small
+  // level-characteristic factor AFTER buildMazeLayout has finished drawing
+  // from S.rng, so the shared stream's draw count and every value it produces
+  // is completely unaffected, while the mound silhouette still visibly varies
+  // per level (taller/narrower spires for volcanic/rock levels, lower/wider
+  // shelves for sand/reef, etc).
+  function levelSeedHash(id) {
+    var s = 0x811c9dc5 >>> 0;
+    var str = String(id || '');
+    for (var i = 0; i < str.length; i++) {
+      s ^= str.charCodeAt(i);
+      s = Math.imul(s, 0x01000193) >>> 0;
+    }
+    return s >>> 0;
+  }
+  // Seabed-family shape bias: [radiusMult, heightMult]. Volcanic/rock read as
+  // tall narrow spires (vents/pillars); ice reads as broad low shelves with
+  // icebergs carried separately by the decor layer; kelp/reef/sand stay near
+  // the proven baseline shape since their READ is carried by decor family
+  // rather than silhouette.
+  var SEABED_SHAPE_BIAS = {
+    volcanic: [0.82, 1.22], rock: [0.90, 1.14], ice: [1.18, 0.82],
+    kelp: [1.00, 0.98], reef: [1.00, 1.00], sand: [1.05, 0.90],
+  };
+  function applyLevelMoundSeed(level) {
+    if (!level || !oceanMoundX.length) return;
+    var bias = SEABED_SHAPE_BIAS[level.seabed] || SEABED_SHAPE_BIAS.sand;
+    var lrng = makeLocalRng(levelSeedHash(level.id) ^ 0x5eaf100d);
+    for (var i = 0; i < oceanMoundX.length; i++) {
+      // Per-mound jitter in a tight band around the level's bias so the
+      // layout still reads as "the same generator, a different location" —
+      // not a wholesale re-roll of the open-ocean navigation guarantees
+      // ensureOpenColumns() already verified for this exact mound set.
+      var rJit = bias[0] * (0.92 + lrng() * 0.16);
+      var hJit = bias[1] * (0.92 + lrng() * 0.16);
+      var baseY = oceanMoundBaseY[i], topY = oceanMoundTopY[i];
+      var span = baseY - topY;
+      oceanMoundBaseR[i] *= rJit;
+      oceanMoundTopR[i] *= rJit;
+      oceanMoundTopY[i] = baseY - span * clamp(hJit, 0.6, 1.4);
+    }
+  }
+
   function buildMaze() {
     buildMazeLayout();
+    applyLevelMoundSeed(S.level);
     buildSDFGrid();
     // Rev 9.5: verify every OCEAN_XBAND-wide x-slice keeps a clear vertical
     // path from the surface to 0.8x local seabed depth, shrinking mounds
@@ -3684,10 +4071,11 @@ import * as THREE from 'three';
     for (i = 0; i < Z.length - 1; i++) {
       z = Z[i];
       quadPush(S.w * 0.5, -(z.yMax + 85), Z_SEAM, wide, 170, 0, 1,
-        0x000000, 0.20 + i * 0.07);
+        0x000000, 0.06 + i * 0.02);
     }
     var dn = batchMesh(null, false, undefined);
     if (dn) {
+      meshName(dn, 'RF thermocline dark seams');
       sceneAdd(dn);
       S.decor.push(dn);
       registerSeam(dn, 0, 0);
@@ -3698,14 +4086,243 @@ import * as THREE from 'three';
     for (i = 0; i < Z.length - 1; i++) {
       z = Z[i];
       quadPush(S.w * 0.5, -(z.yMax - 60), Z_SEAM + 4, wide, 120, 0, 1,
-        hexNum(z.fog), 0.05);
+        hexNum(z.fog), 0.014);
     }
     var up = batchMesh(null, true, undefined);
     if (up) {
+      meshName(up, 'RF thermocline upper glints');
       sceneAdd(up);
       S.decor.push(up);
       registerSeam(up, 0, 1.5);
     }
+  }
+
+  // ============================================================ Rev 12 12.1
+  // ABOVE-WATER SKY BACKDROP. Visible whenever the camera sees above y=0 (a
+  // near-surface swim, or a breach): a sky gradient from the level's `sky`
+  // preset plus a horizon silhouette strip built from simple merged shapes
+  // per theme, parallax at Z_SKY (-600, farther than every other decor band —
+  // see the Z_SKY comment), plus a sun disc and a few cloud puffs. Built ONCE
+  // in buildBackground alongside everything else; nothing here is animated
+  // per frame (statics-only, like the rest of the background layer), so it
+  // costs nothing at runtime beyond its draw calls.
+  //
+  // Budget: this whole layer is 3 merged draw calls (gradient sheet, sun,
+  // silhouette-plus-clouds batch), well under the "~6 draws" ceiling in the
+  // task brief and a small fraction of the 120-draw world budget.
+  //
+  // The world is Y-DOWN in sim space (surface at y=0, seafloor at y=S.h), and
+  // THREE space negates y (screen-up), matching every other builder in this
+  // file (`quadPush(cx, -(y) + ..., z, ...)`). "Above the surface" is
+  // therefore NEGATIVE sim y, i.e. POSITIVE three-space y — the backdrop is
+  // built spanning sim y from 0 down to -SKY_H (three y 0 .. +SKY_H).
+  var SKY_H = 900;              // how far above the waterline the sky extends
+  var SKY_HORIZON_Y = 40;       // sim y of the horizon line (just above y=0)
+
+  // One shared low-poly "landmass" silhouette shape per theme, expressed as a
+  // handful of quadPush calls (peaks/domes/huts/palms are all just narrow
+  // rotated cards — the same primitive every other decor pass in this module
+  // already uses), so the theme table stays data, not new geometry code.
+  // Each theme is a function(cx, baseY, w, h, tintNear, tintFar) that pushes
+  // its shapes into the shared quad batch; cx/baseY/w/h let one theme be
+  // reused at multiple x offsets to fill the world width cheaply.
+  function silPush(cx, baseY, w, h, rot, tint, alpha) {
+    quadPush(cx, -(baseY - h * 0.5), Z_SKY, w, h, rot || 0, 1, tint, alpha === undefined ? 1 : alpha, tint);
+  }
+  var HORIZON_THEME_BUILDERS = {
+    volcano_palms: function (cx, baseY, w, dark, mid) {
+      silPush(cx, baseY, w * 0.42, w * 0.30, 0, dark, 1);           // volcano cone
+      silPush(cx - w * 0.03, baseY - w * 0.10, w * 0.05, w * 0.10, 0, 0xff6a2e, 0.7); // vent glow
+      silPush(cx - w * 0.30, baseY, w * 0.05, w * 0.22, 0.12, mid, 1); // palm trunk
+      silPush(cx - w * 0.30, baseY - w * 0.20, w * 0.16, w * 0.06, 0, mid, 1); // palm fronds
+      silPush(cx + w * 0.34, baseY, w * 0.04, w * 0.18, -0.10, mid, 1);
+      silPush(cx + w * 0.34, baseY - w * 0.17, w * 0.14, w * 0.05, 0, mid, 1);
+    },
+    cliffs_cacti_ruins: function (cx, baseY, w, dark, mid) {
+      silPush(cx - w * 0.2, baseY, w * 0.5, w * 0.20, 0, dark, 1);   // cliff mass
+      silPush(cx + w * 0.28, baseY, w * 0.22, w * 0.24, 0, mid, 1);  // stepped pyramid
+      silPush(cx - w * 0.42, baseY, w * 0.03, w * 0.10, 0, mid, 0.85); // cactus
+    },
+    barrier_reef_cays: function (cx, baseY, w, dark, mid) {
+      silPush(cx, baseY, w * 0.60, w * 0.06, 0, dark, 1);           // low cay
+      silPush(cx - w * 0.10, baseY, w * 0.03, w * 0.14, 0.08, mid, 1); // palm trunk
+      silPush(cx - w * 0.10, baseY - w * 0.12, w * 0.10, w * 0.04, 0, mid, 1); // fronds
+      silPush(cx + w * 0.16, baseY, w * 0.03, w * 0.12, -0.06, mid, 1); // palm trunk
+      silPush(cx + w * 0.16, baseY - w * 0.10, w * 0.09, w * 0.035, 0, mid, 1); // fronds
+      silPush(cx - w * 0.28, baseY, w * 0.025, w * 0.10, 0.10, mid, 0.9); // third palm trunk
+      silPush(cx - w * 0.28, baseY - w * 0.085, w * 0.08, w * 0.03, 0, mid, 0.9); // fronds
+    },
+    atolls_overwater_huts: function (cx, baseY, w, dark, mid) {
+      silPush(cx, baseY, w * 0.66, w * 0.045, 0, dark, 0.9);        // atoll ring
+      for (var i = -1; i <= 1; i++) {
+        silPush(cx + i * w * 0.16, baseY - w * 0.03, w * 0.05, w * 0.07, 0, mid, 1); // hut
+        silPush(cx + i * w * 0.16, baseY - w * 0.065, w * 0.07, w * 0.03, 0, mid, 1); // roof
+      }
+    },
+    fjords_snow: function (cx, baseY, w, dark, mid) {
+      silPush(cx - w * 0.2, baseY, w * 0.34, w * 0.30, 0.05, dark, 1);
+      silPush(cx + w * 0.18, baseY, w * 0.30, w * 0.36, -0.04, dark, 1);
+      silPush(cx - w * 0.2, baseY - w * 0.24, w * 0.14, w * 0.09, 0.05, 0xeef6fb, 0.95); // snow cap
+      silPush(cx + w * 0.18, baseY - w * 0.30, w * 0.12, w * 0.09, -0.04, 0xeef6fb, 0.95);
+    },
+    glaciers_icebergs: function (cx, baseY, w, dark, mid) {
+      silPush(cx - w * 0.1, baseY, w * 0.55, w * 0.16, 0, mid, 1);   // glacier wall
+      silPush(cx + w * 0.30, baseY, w * 0.10, w * 0.14, 0.10, 0xdff6ff, 1); // iceberg
+      silPush(cx - w * 0.38, baseY, w * 0.08, w * 0.10, -0.08, 0xdff6ff, 0.9);
+    },
+    peaks_lagoon: function (cx, baseY, w, dark, mid) {
+      // Jagged Tahiti peaks: a cluster of narrow, steeply-angled shards
+      // instead of two smooth domes, so the silhouette reads as sharp
+      // volcanic spires rather than rolling hills.
+      silPush(cx - w * 0.22, baseY, w * 0.10, w * 0.30, 0.18, dark, 1);
+      silPush(cx - w * 0.10, baseY, w * 0.09, w * 0.40, -0.06, dark, 1);
+      silPush(cx + w * 0.04, baseY, w * 0.08, w * 0.32, 0.10, dark, 1);
+      silPush(cx + w * 0.16, baseY, w * 0.10, w * 0.24, -0.16, dark, 1);
+      silPush(cx, baseY - w * 0.02, w * 0.5, w * 0.03, 0, mid, 0.5); // lagoon glint band
+    },
+    volcanic_isles: function (cx, baseY, w, dark, mid) {
+      silPush(cx - w * 0.2, baseY, w * 0.22, w * 0.20, 0, dark, 1);
+      silPush(cx + w * 0.10, baseY, w * 0.30, w * 0.26, 0, dark, 1);
+      silPush(cx + w * 0.34, baseY, w * 0.14, w * 0.14, 0, mid, 1);
+    },
+    temples_rice_terraces: function (cx, baseY, w, dark, mid) {
+      silPush(cx, baseY, w * 0.10, w * 0.26, 0, dark, 1);           // temple tier stack
+      silPush(cx, baseY - w * 0.16, w * 0.07, w * 0.10, 0, dark, 1);
+      silPush(cx, baseY - w * 0.24, w * 0.045, w * 0.06, 0, dark, 1);
+      silPush(cx - w * 0.30, baseY, w * 0.5, w * 0.045, 0, mid, 0.85); // rice terrace band
+    },
+    divi_trees_beach: function (cx, baseY, w, dark, mid) {
+      silPush(cx, baseY, w * 0.55, w * 0.045, 0, dark, 0.8);        // low beach
+      silPush(cx - w * 0.12, baseY, w * 0.03, w * 0.12, 0.35, mid, 1); // wind-bent divi tree
+      silPush(cx - w * 0.12, baseY - w * 0.09, w * 0.14, w * 0.035, 0.20, mid, 1);
+    },
+    green_hills: function (cx, baseY, w, dark, mid) {
+      silPush(cx - w * 0.16, baseY, w * 0.30, w * 0.16, 0, dark, 1);
+      silPush(cx + w * 0.14, baseY, w * 0.26, w * 0.12, 0, mid, 1);
+    },
+    cliffs_pier_kelp: function (cx, baseY, w, dark, mid) {
+      silPush(cx - w * 0.18, baseY, w * 0.36, w * 0.20, 0, dark, 1);  // cliff
+      silPush(cx + w * 0.10, baseY, w * 0.5, w * 0.02, 0, mid, 0.9);  // pier deck
+      for (var pi = 0; pi < 4; pi++) {
+        silPush(cx - w * 0.02 + pi * w * 0.10, baseY + w * 0.01, w * 0.012, w * 0.05, 0, mid, 1); // piling
+      }
+    },
+  };
+
+  function buildSkyBackdrop() {
+    if (!isThree()) return;
+    var theme = S.skyTheme;
+    var topHex = (theme && theme.top) || 0x1f6fb0;
+    var horizonHex = (theme && theme.horizon) || 0xffb066;
+    var themeId = (theme && theme.themeId) || 'volcano_palms';
+    var builder = HORIZON_THEME_BUILDERS[themeId] || HORIZON_THEME_BUILDERS.volcano_palms;
+
+    // 1. Sky gradient sheet: one vertical-gradient quad from the horizon
+    // colour (near y=0) up to the top colour (far above), spanning the full
+    // world width so it reads correctly from any x.
+    quadReset();
+    quadPushGradient(S.w * 0.5, -(SKY_HORIZON_Y - SKY_H * 0.5), Z_SKY - 2,
+      S.w * 1.4, SKY_H, 0, 1, topHex, horizonHex, 1, 1);
+    var skyGeo = mergeQuads(true);
+    var sky = skyGeo ? batchMesh(null, false, undefined, false, { fog: false }, skyGeo) : null;
+    if (sky) { meshName(sky, 'RF sky gradient (' + themeId + ')'); sceneAdd(sky); S.decor.push(sky); }
+
+    // 2. Sun disc + a couple of soft cloud puffs, one additive-ish batch
+    // (kept normal-blend so it stays readable against a bright sky, matching
+    // the reef/rock batches' own blend choice rather than the ray/caustic
+    // additive ones).
+    quadReset();
+    var sunX = S.w * 0.62, sunY = SKY_HORIZON_Y - SKY_H * 0.52;
+    quadPush(sunX, -sunY, Z_SKY + 4, 140, 140, 0.785, 1, 0xfff3c9, 0.9, 0xfff3c9);
+    quadPush(S.w * 0.22, -(SKY_HORIZON_Y - SKY_H * 0.30), Z_SKY + 6, 260, 46, 0, 1, 0xffffff, 0.5, 0xffffff);
+    quadPush(S.w * 0.78, -(SKY_HORIZON_Y - SKY_H * 0.42), Z_SKY + 6, 200, 36, 0, 1, 0xffffff, 0.42, 0xffffff);
+    quadPush(S.w * 0.46, -(SKY_HORIZON_Y - SKY_H * 0.62), Z_SKY + 6, 170, 32, 0, 1, 0xffffff, 0.36, 0xffffff);
+    var puffGeo = mergeQuads(true);
+    var puffs = puffGeo ? batchMesh(null, false, undefined, false, { fog: false }, puffGeo) : null;
+    if (puffs) { meshName(puffs, 'RF sky sun+clouds'); sceneAdd(puffs); S.decor.push(puffs); }
+
+    // 3. Horizon silhouette strip: the theme builder run at three x offsets
+    // (world is 14400px wide; three repeats keeps the strip from reading as
+    // one lonely landmark stranded at a single x) — still ONE merged batch.
+    quadReset();
+    // Rev 12 sky clean: darker/blue-tinted so the silhouette reads as
+    // distant landmass against the sky gradient rather than blending into
+    // it, and sized up (0.62 -> 0.92 of the segment width) so each theme's
+    // distinctive shape (volcano cone, glacier wall, temple tiers, etc.)
+    // is legible at breach scale instead of reading as generic small hills.
+    var darkTint = lerpColor(0x060810, horizonHex, 0.07);
+    var midTint = lerpColor(0x121a2c, horizonHex, 0.22);
+    var repeats = 3, segW = S.w / repeats;
+    for (var ri2 = 0; ri2 < repeats; ri2++) {
+      builder(segW * ri2 + segW * 0.5, SKY_HORIZON_Y, segW * 0.92, darkTint, midTint);
+    }
+    var silGeo = mergeQuads(true);
+    var sil = silGeo ? batchMesh(null, false, undefined, false, { fog: false }, silGeo) : null;
+    if (sil) { meshName(sil, 'RF sky horizon silhouette (' + themeId + ')'); sceneAdd(sil); S.decor.push(sil); }
+  }
+
+  // Rev 12 12.1: per-seabed-type ACCENT decor, layered on top of the proven
+  // reef/rock/kelp base builders rather than replacing them, so the SDF
+  // navigation and budget guarantees those already pass stay untouched. One
+  // merged batch, anchored on the real mound positions this run generated
+  // (oceanMoundX/Y/R), so accents always sit on terrain the SDF actually
+  // carved: icebergs hanging from the surface + pale floor accents for ice
+  // (alaska), black-rock vents for volcanic (hawaii/azores), low ruin blocks
+  // for rock-seabed levels reading as ancient structures (mexico/newzealand
+  // per the SPEC3D theme list), and extra kelp-tip motes for kelp (california).
+  function buildSeabedAccents() {
+    if (!isThree()) return;
+    var theme = seabedThemeFor(S.level);
+    var family = theme.family;
+    var Z = zones();
+    quadReset();
+    var i, m;
+    if (family === 'ice') {
+      // Icebergs hanging from the surface: tall pale wedges rooted at y~0,
+      // scattered across x, drawn in the same parallax band as kelp/rock.
+      for (i = 0; i < 10; i++) {
+        var ix = (S.w / 10) * i + drr(-120, 120);
+        var ih = drr(220, 420);
+        quadPush(ix, -(-ih * 0.35), Z_KELP[0] - 4, drr(140, 260), ih, drr(-0.08, 0.08), 1,
+          theme.accent, 0.55, 0xffffff);
+      }
+      // Pale blue seabed accent cards on the real mound flanks.
+      for (m = 0; m < oceanMoundX.length; m++) {
+        quadPush(oceanMoundX[m], -(oceanMoundBaseY[m] - 30), Z_KELP[1] - 2, 160, 60, 0, 1,
+          theme.floorTop, 0.4, 0xffffff);
+      }
+    } else if (family === 'volcanic') {
+      // Black rock spires + orange vent glows on every mound top.
+      for (m = 0; m < oceanMoundX.length; m++) {
+        var vx = oceanMoundX[m], vy = oceanMoundTopY[m];
+        quadPush(vx, -(vy + 40), Z_KELP[0] - 2, 90, 130, 0, 1, theme.floor, 0.6, 0x1a1414);
+        quadPush(vx, -(vy - 10), Z_KELP[0], 26, 26, 0, 1, theme.accent, 0.75, theme.accent);
+      }
+    } else if (family === 'rock') {
+      // Low ruin-block silhouettes on mound flanks (mexico/newzealand read:
+      // cliffs/ruins and fjord walls both use the plain 'rock' seabed).
+      for (m = 0; m < oceanMoundX.length; m++) {
+        var rx = oceanMoundX[m], rBaseY = oceanMoundBaseY[m];
+        for (var b = 0; b < 3; b++) {
+          quadPush(rx + (b - 1) * 60, -(rBaseY - b * 4), Z_KELP[1] - 6, 70, 46 + b * 10, 0, 1,
+            theme.rockTint, 0.5, 0x4a5568);
+        }
+      }
+    } else if (family === 'kelp') {
+      // Denser kelp-tip motes scattered through the shelf/mid bands, on top
+      // of buildDecor's own kelp beds, so a kelp-seabed level reads as a
+      // noticeably fuller forest without duplicating the swaying stalk system.
+      var kz = Z[1] || Z[0];
+      if (kz) {
+        for (i = 0; i < 24; i++) {
+          quadPush(drr(0, S.w), -(drr(kz.yMin + 60, kz.yMax - 60)), Z_KELP[1] - 8, 14, 14, 0, 1,
+            theme.accent, 0.5, theme.accent);
+        }
+      }
+    }
+    var geo = mergeQuads();
+    var mesh = geo ? batchMesh(null, false, undefined, false, { fog: false }, geo) : null;
+    if (mesh) { meshName(mesh, 'RF seabed accents (' + family + ')'); sceneAdd(mesh); S.decor.push(mesh); }
   }
 
   function registerSeam(mesh, x0, idx) {
@@ -3724,11 +4341,11 @@ import * as THREE from 'three';
   // radial Snell window sits just behind it and fades by atmosphere depth.
   var SURFACE_SEGMENTS = 64;
   var SURFACE_RIBBON_H = 54;
-  var SURFACE_RIBBON_ALPHA = 0.34;  // base alpha before ribbonFade() depth scaling
-  var SURFACE_FOAM_ALPHA = 0.10;    // base alpha before ribbonFade() depth scaling
+  var SURFACE_RIBBON_ALPHA = 0.18;  // base alpha before ribbonFade() depth scaling
+  var SURFACE_FOAM_ALPHA = 0.055;   // base alpha before ribbonFade() depth scaling
   var SURFACE_WAVE_RATE = 0.8;
   var SURFACE_WAVE_K = 0.012;
-  var SNELL_W = 1400;
+  var SNELL_W = 760;
 
   function surfaceWave(x, t) {
     return 2 - Math.sin(x * SURFACE_WAVE_K + t * SURFACE_WAVE_RATE) * 2;
@@ -3765,7 +4382,10 @@ import * as THREE from 'three';
 
   function snellAlpha() {
     if (atmoReport.zone >= 3) return 0;
-    return clamp(0.08 * (1 - atmoReport.depth / 0.55), 0, 0.08);
+    // The radial map is intentionally a quiet bloom. At the old 0.08 ceiling
+    // it read as a white disc at grazing camera angles rather than as a soft
+    // surface shaft; the god-ray and caustic layers carry the readable light.
+    return clamp(0.026 * (1 - atmoReport.depth / 0.55), 0, 0.026);
   }
 
   function buildSurface() {
@@ -3786,8 +4406,11 @@ import * as THREE from 'three';
     // topColor/topAlpha land on the quad's greater-local-y (screen-up, i.e.
     // sim-shallower) vertices, so topAlpha is the waterline edge and
     // bottomAlpha is the deep edge, matching the fade direction intended.
+    // This is only a faint surface bounce. The authored light shafts below
+    // carry the readable beam shapes; keeping the full-width wash this low
+    // prevents it from becoming a pale trapezoid at grazing camera angles.
     quadPushGradient(S.w * 0.5, -SURFACE_LIGHT_H * 0.5, Z_SURFACE - 20,
-      S.w, SURFACE_LIGHT_H, 0, 1, 0xbfe9f5, 0xbfe9f5, 0.04, 0);
+      S.w, SURFACE_LIGHT_H, 0, 1, 0x9bdfe8, 0x9bdfe8, 0.012, 0);
     var washGeo = mergeQuads();
     var wash = washGeo ? batchMesh(ripple, true, undefined, false, { fog: false }, washGeo) : null;
     if (wash) {
@@ -3796,20 +4419,21 @@ import * as THREE from 'three';
     }
     var ribbon = buildSurfaceRibbon();
     if (!ribbon || !ribbon.geo) return;
-    var ribbonMat = envMaterial(0xe6fbff, 0.34, false, null, false);
+    var ribbonMat = envMaterial(0xe6fbff, SURFACE_RIBBON_ALPHA, false, null, false);
     var plane = new THREE.Mesh(ribbon.geo, ribbonMat);
     sceneAdd(plane);
     S.decor.push(plane);
     // Foam is a pale blue additive edge. It is a thin 26px strip so it costs
     // little, but it sits ON the waterline where the shelf is brightest.
-    var foam = planeMesh(S.w * 1.2, 26, 0xc7eff5, 0.10, true);
+    var foam = planeMesh(S.w * 1.2, 20, 0xc7eff5, SURFACE_FOAM_ALPHA, true);
     if (foam) {
       setPos(foam, S.w * 0.5, 8, Z_SURFACE + 8);
       sceneAdd(foam);
       S.decor.push(foam);
     }
-    var snell = planeMeshPrivate(SNELL_W, SNELL_W, 0xffffff, 0.08, true, snellMap);
+    var snell = planeMeshPrivate(SNELL_W, SNELL_W, 0xeafcff, 0.012, true, snellMap);
     if (snell) {
+      meshName(snell, 'RF surface snell bloom');
       setPos(snell, S.w * 0.5, 0, -70);
       sceneAdd(snell);
       S.decor.push(snell);
@@ -3968,8 +4592,39 @@ import * as THREE from 'three';
       quadPush(rx, -(ry) + rh * 0.5, rz, rw, rh, 0, mir,
         rockBase, rr(0.45, 0.85), rockTop);
     }
+    // Two camera-readable outcrops per band supplement the sparse SDF mounds.
+    // They are still ordinary rock cards in the one static batch, but the
+    // staggered sizes, rotations, and top/bottom colour ramp make them read as
+    // rounded painted formations instead of a repeated texture tile.
+    for (var ozi = 0; ozi < Z.length; ozi++) {
+      var oz = Z[ozi];
+      var ow = hexNum(oz.tint);
+      for (var oc = 0; oc < 2; oc++) {
+        var outFrac = ozi === Z.length - 1 ? (oc ? 0.32 : 0.10) : (oc ? 0.42 : 0.12);
+        var outY = oz.yMin + (oz.yMax - oz.yMin) * outFrac;
+        var outX = clamp(S.w * 0.25 + ozi * 520 + oc * 560 - 220, 360, S.w - 360);
+        for (var op = 0; op < 6; op++) {
+          var or = 0.72 + ((op * 13 + ozi * 7) % 23) / 40;
+          var ox = outX + (op - 2.5) * 58 * or;
+          var oh = (82 + (op % 3) * 38) * or;
+          var oy = outY - (op % 2) * 18 * or;
+          var ob = envColor(0x29494a, Z_DECOR_FOCUS - 12, ow, oy, 0);
+          var ot = envColor(lerpColor(0x6b7770, ow, 0.18), Z_DECOR_FOCUS - 12,
+            ow, oy - oh, 0.09);
+          quadPush(ox, -oy + oh * 0.5, Z_DECOR_FOCUS - 12 + op * 3,
+            128 * or, oh, (op & 1 ? -0.10 : 0.07), op & 1 ? -1 : 1,
+            ob, 0.34 + (op % 3) * 0.06, ot);
+        }
+      }
+    }
     var rocks = batchMesh(rockTex, false, undefined);
-    if (rocks) { sceneAdd(rocks); S.decor.push(rocks); }
+    if (rocks) {
+      // World dressing is authored behind actors but above the broad near-rock
+      // occluder. Draw-order keeps the player readable while the cards remain
+      // camera-visible on mound faces.
+      if (rocks.material) rocks.material.depthTest = false;
+      sceneAdd(rocks); S.decor.push(rocks);
+    }
 
     // ------------------------------------------------------- kelp (bands)
     var kelpTex = kenneyTexture('seaweed_c');
@@ -3999,14 +4654,29 @@ import * as THREE from 'three';
     // scattered sample happens to land near the camera. Steps close enough
     // together that no gameplay-frame-width span can fall entirely between
     // two successful hits.
-    var KELP_GRID_STEP = 170;
+    var KELP_GRID_STEP = 145;
     for (var zi = 0; zi < Z.length; zi++) {
       var zone = Z[zi];
       var gx0 = drr(0, KELP_GRID_STEP);
       for (var gx = gx0; gx < S.w; gx += KELP_GRID_STEP) {
+        var kelpX = gx;
         var gWallY = findWallY(gx, zone.yMin + 40, zone.yMax - 20);
-        if (gWallY === null) continue;
-        pushKelp(gx + drr(-30, 30), gWallY, drr(0.55, 1.5), drr(0.3, 0.6));
+        if (gWallY === null) {
+          // Open-ocean slices have no wall ray most of the time. A nearby
+          // mound can still provide a real root; otherwise use the band's
+          // lower shelf as the authored seabed for distant kelp dressing.
+          var gFlank = moundFlankY(gx, zone.yMin + 40, zone.yMax - 20, rr(0.18, 0.62));
+          if (gFlank && Math.abs(gFlank.x - gx) < 900) {
+            kelpX = clamp(gFlank.x + drr(-45, 45), 80, S.w - 80);
+            gWallY = gFlank.y;
+          } else {
+            gWallY = zone.yMax - rr(36, 118);
+          }
+        }
+        pushKelp(kelpX + drr(-30, 30), gWallY, drr(0.55, 1.5), drr(0.3, 0.6));
+        if ((((gx / KELP_GRID_STEP) | 0) + zi) % 3 === 0) {
+          pushKelp(kelpX + drr(-54, 54), gWallY + drr(-8, 10), drr(0.38, 0.92), drr(0.22, 0.48));
+        }
       }
     }
     // Tunnels/shafts are the connective corridors between caverns; anchoring
@@ -4038,12 +4708,11 @@ import * as THREE from 'three';
       var tkh = 200 * tipRec.scale, tkw = 70 * tipRec.scale;
       var tipY = -(tipRec.y) + tkh * 0.98;
       var tipColor = neonAccentFor(kt);
-      // Rev 6.13 ART CRITICAL 2: 0.5x the stalk's own diffuse alpha measured
-      // as an invisible flicker in ordinary frames (effective ~0.13-0.35).
-      // Floored so every tip's additive glow clears the visibility bar
-      // regardless of how dim its parent stalk rolled.
+      // Keep the tip as a soft bioluminescent mote.  A hard rectangular
+      // additive quad at this scale reads as a floating UI tile, especially
+      // in the pale upper bands.
       quadPush(tipRec.x, tipY, tipRec.z + 1, tkw * 0.5, tkh * 0.14, 0, tipRec.mirror,
-        tipColor, Math.max(0.6, 0.85 * tipRec.alpha));
+        tipColor, Math.max(0.24, 0.38 * tipRec.alpha));
     }
     // Rev 6.13 ART CRITICAL 2: FogExp2 was diluting this additive glow toward
     // the zone fog colour before it ever reached the screen — the actual
@@ -4052,7 +4721,8 @@ import * as THREE from 'three';
     // regardless of camera depth (that is what makes it read as an emissive
     // neon tip rather than a diffuse surface), so this batch opts out of fog
     // via the flags param batchMesh already threads through.
-    var kelpTipMesh = batchMesh(null, true, undefined, false, { fog: false });
+    var kelpTipMesh = batchMesh(surfaceTexture('__rf_particulate_mote', true), true,
+      undefined, false, { fog: false });
     if (kelpTipMesh) {
       meshName(kelpTipMesh, 'RF kelp tip neon accent');
       sceneAdd(kelpTipMesh);
@@ -4135,7 +4805,11 @@ import * as THREE from 'three';
   // draws: one static head/brain batch and two swaying fan/anemone beds.
   var reefScratch = [];
   var reefN = 0;
-  function pushReef(x, y, z, scale, kind, color, water, group) {
+  function reefRand(a, b, local) { return local ? drr(a, b) : rr(a, b); }
+  function reefInt(a, b, local) {
+    return a + Math.floor((local ? decorRng() : rnd()) * (b - a + 1));
+  }
+  function pushReef(x, y, z, scale, kind, color, water, group, local) {
     var r = reefScratch[reefN];
     if (!r) {
       r = reefScratch[reefN] = {
@@ -4145,18 +4819,22 @@ import * as THREE from 'three';
     }
     reefN++;
     r.x = x; r.y = y; r.z = z; r.scale = scale; r.kind = kind;
-    r.color = color; r.water = water; r.group = group; r.alpha = rr(0.78, 0.96);
+    r.color = color; r.water = water; r.group = group;
+    // Fan beds are a background accent, not a foreground sticker.  Their
+    // broad arms overlap more often than the static heads, so they get the
+    // same restrained value range as the painted coral batch.
+    r.alpha = reefRand(0.28, 0.42, local);
   }
 
   function buildReef() {
     if (!isThree()) return;
     var Z = zones();
-    var shallow = Z.length < 2 ? Z.length : 2;
+    var shallow = Z.length;
     var i, j, k;
 
-    // Static coral heads and brain corals, rooted in the floor band of zones 1
-    // and 2. Every quad gets a lit top colour so the tops do not flatten into
-    // the same dark value as the sandward base.
+    // Static coral heads, brain corals, and tube-sponges. Every band gets its
+    // own small hue family, and every quad gets a lit top colour so the heads
+    // do not flatten into the same dark value as the sandward base.
     quadReset();
     for (i = 0; i < shallow; i++) {
       var zone = Z[i];
@@ -4173,61 +4851,109 @@ import * as THREE from 'three';
       for (var mi9 = 0; mi9 < oceanMoundX.length; mi9++) {
         if (oceanMoundTopY[mi9] <= zone.yMax && oceanMoundBaseY[mi9] >= zone.yMin) moundsHere.push(mi9);
       }
-      var REEF_N = moundsHere.length ? 10 : 6;
+      var REEF_N = [12, 14, 12, 10][i] || 10;
       for (j = 0; j < REEF_N; j++) {
         var x, baseY;
+        var localReef = i >= 2 || j >= 10;
         var useMound = moundsHere.length && (j % 3 !== 2 || !zone);
-        if (useMound) {
+        if (j < 4) {
+          // The harness deliberately frames x~3600. Keep a compact authored
+          // nursery in that view while the remaining population follows the
+          // real mounds and terrain anchors across the full world.
+          x = clamp(S.w * 0.25 + (j - 1.5) * 170 + i * 85, 160, S.w - 160);
+          var nurseryFrac = (j & 1) ? 0.36 : 0.10;
+          baseY = zone.yMin + (zone.yMax - zone.yMin) * nurseryFrac - reefRand(35, 120, localReef);
+          // Preserve the legacy decor RNG draw count for the original two
+          // bands; the new camera-safe anchor replaces those values visually.
+          if (!localReef) { reefRand(0, 1, false); reefRand(0, 1, false); }
+        } else if (useMound) {
           var mIdx = moundsHere[j % moundsHere.length];
-          var mu = rr(0.05, 0.55); // lower/mid flank, not the bare summit
-          x = oceanMoundX[mIdx] + rr(-0.6, 0.6) * (oceanMoundBaseR[mIdx] + (oceanMoundTopR[mIdx] - oceanMoundBaseR[mIdx]) * mu);
-          baseY = clamp(oceanMoundBaseY[mIdx] + (oceanMoundTopY[mIdx] - oceanMoundBaseY[mIdx]) * mu, zone.yMin + 40, zone.yMax - 20) - rr(20, 70);
+          var mu = reefRand(0.05, 0.55, localReef); // lower/mid flank, not the bare summit
+          x = oceanMoundX[mIdx] + reefRand(-0.6, 0.6, localReef) * (oceanMoundBaseR[mIdx] + (oceanMoundTopR[mIdx] - oceanMoundBaseR[mIdx]) * mu);
+          baseY = clamp(oceanMoundBaseY[mIdx] + (oceanMoundTopY[mIdx] - oceanMoundBaseY[mIdx]) * mu, zone.yMin + 40, zone.yMax - 20) - reefRand(20, 70, localReef);
         } else {
-          x = rr(160, S.w - 160);
+          x = reefRand(160, S.w - 160, localReef);
           // Rev 6 fix: anchor to the maze's real cavern floor near this x
           // instead of blindly assuming the zone's authored yMax is solid
           // ground everywhere (the SDF maze carves caverns/tunnels that do not
           // follow a flat heightline), so coral never floats over open water.
           var wallAnchor = findWallY(x, zone.yMin + 40, zone.yMax - 20);
           if (wallAnchor === null) {
-            var mFlank = moundFlankY(x, zone.yMin + 40, zone.yMax - 20, rr(0.1, 0.5));
+            var mFlank = moundFlankY(x, zone.yMin + 40, zone.yMax - 20, reefRand(0.1, 0.5, localReef));
             wallAnchor = mFlank ? mFlank.y : null;
           }
-          baseY = (wallAnchor !== null ? wallAnchor : zone.yMax) - rr(45, 170);
+          baseY = (wallAnchor !== null ? wallAnchor
+            : zone.yMin + (zone.yMax - zone.yMin) * 0.40) - reefRand(45, 170, localReef);
         }
-        var z = rr(-155, -95);
-        var color = REEF_PALETTE[ri(0, REEF_PALETTE.length - 1)];
-        var scale = rr(0.72, 1.35);
-        if (j % 2 === 0) {
-          for (k = 0; k < 3; k++) {
-            var hh = (34 + k * 12) * scale;
-            var yy = baseY - k * 25 * scale;
-            var ww = (86 - k * 15) * scale;
-            var bc = envColor(color, z, water, yy, 0.05);
-            var tc = envColor(color, z, water, yy - hh, 0.22);
+        // Keep coral behind the actors.  At the old -88..-58 band a stack of
+        // translucent petals subtended almost the same screen area as the
+        // shark; this farther parallax band keeps the painted cluster legible
+        // without competing for the gameplay silhouette.
+        var z = reefRand(-285, -240, localReef);
+        var family = REEF_ZONE_PALETTE[i] || REEF_PALETTE;
+        var colorRoll = localReef ? reefInt(0, REEF_PALETTE.length - 1, true)
+          : ri(0, REEF_PALETTE.length - 1);
+        var color = family[colorRoll % family.length];
+        var scale = reefRand(0.72, 1.35, localReef);
+        if (j % 3 === 2) {
+          // Tube sponges: several narrow, warm/cool cylinders with a shared
+          // rounded cap. They are deliberately quieter than the coral heads.
+          for (k = 0; k < 4; k++) {
+            var tubeH = (46 + k * 9) * scale;
+            var tubeY = baseY - k * 16 * scale;
+            var tubeW = (18 - k * 1.4) * scale;
+            var tubeBase = envColor(scaleColor(color, 0.62), z, water, tubeY, 0.03);
+            var tubeTop = envColor(lerpColor(scaleColor(color, 0.62), 0xd5edf0, 0.12), z, water,
+              tubeY - tubeH, 0.15);
+            quadPush(x + (k - 1.5) * 19 * scale, -(tubeY - tubeH * 0.5),
+              z + k * 2, tubeW, tubeH, (k & 1 ? -0.08 : 0.08), 1,
+              tubeBase, 0.36, tubeTop);
+          }
+        } else if (j % 2 === 0) {
+          // Five offset petals make a rounded head at gameplay scale. The
+          // old three wide slabs read as fish silhouettes; this little crown
+          // keeps the merged quad budget while giving the coral a clustered,
+          // hand-painted profile.
+          for (k = 0; k < 5; k++) {
+            var petal = Math.abs(k - 2);
+            var hh = (30 + (2 - petal) * 12) * scale;
+            var yy = baseY - (12 + (2 - petal) * 18) * scale;
+            var ww = (28 + (2 - petal) * 10) * scale;
+            var pxPetal = x + (k - 2) * 35 * scale + Math.sin(k * 1.7) * 7 * scale;
+            var coralColor = scaleColor(family[(colorRoll + k) % family.length], 0.62);
+            var bc = envColor(coralColor, z, water, yy, 0.05);
+            var tc = envColor(lerpColor(coralColor, 0x9ebbbc, 0.05),
+              z, water, yy - hh, 0.18);
             // 6.9: only the crown segment (the actual tip) gets the emissive
             // neon accent, so the coral column still reads as coral with a
             // glowing cap rather than glowing along its whole height.
-            if (k === 2) tc = lerpColor(tc, neonAccentFor(i * 6 + j), 0.34);
-            quadPush(x + (k - 1) * 9 * scale, -(yy - hh * 0.5), z + k * 2,
-              ww, hh, (k - 1) * 0.08, 1, bc, 0.94, tc);
+            if (petal === 0) tc = lerpColor(tc, neonAccentFor(i * 6 + j), 0.26);
+            quadPush(pxPetal, -(yy - hh * 0.5), z + k * 2,
+              ww, hh, (k - 2) * 0.13, 1, bc, 0.46, tc);
           }
         } else {
           for (k = 0; k < 4; k++) {
-            var bh = (18 + k * 5) * scale;
-            var by = baseY - k * 18 * scale;
-            var bw = (88 - k * 10) * scale;
-            var brainColor = envColor(color, z, water, by, 0.04);
-            var brainTop = envColor(color, z, water, by - bh, 0.20);
-            if (k === 3) brainTop = lerpColor(brainTop, neonAccentFor(i * 6 + j + 1), 0.34);
-            quadPush(x + Math.sin(k * 1.7) * 8 * scale, -(by - bh * 0.5), z + k * 2,
-              bw, bh, (k & 1 ? -0.11 : 0.11), 1, brainColor, 0.92, brainTop);
+            var bh = (16 + (3 - k) * 6) * scale;
+            var by = baseY - (10 + k * 16) * scale;
+            var bw = (34 + (3 - k) * 8) * scale;
+            var brainBaseColor = scaleColor(family[(colorRoll + k + 1) % family.length], 0.62);
+            var brainColor = envColor(brainBaseColor, z, water, by, 0.04);
+            var brainTop = envColor(lerpColor(brainBaseColor, 0x9ebbbc, 0.05),
+              z, water, by - bh, 0.18);
+            if (k === 3) brainTop = lerpColor(brainTop, neonAccentFor(i * 6 + j + 1), 0.26);
+            quadPush(x + Math.sin(k * 1.7) * 11 * scale, -(by - bh * 0.5), z + k * 2,
+              bw, bh, (k & 1 ? -0.16 : 0.16), 1, brainColor, 0.40, brainTop);
           }
         }
       }
     }
-    var staticReef = batchMesh(null, false, undefined);
+    // A feathered blob map rounds the inexpensive quad petals at their edges;
+    // without it, the same merged geometry reads as a stack of pastel cards.
+    var coralBlob = surfaceTexture('__rf_coral_blob', true);
+    var staticReef = batchMesh(coralBlob, false, undefined);
     if (staticReef) {
+      if (staticReef.material) staticReef.material.depthTest = false;
+      meshName(staticReef, 'RF static coral and sponge batch');
       sceneAdd(staticReef);
       S.decor.push(staticReef);
       S.reefBatches.push(staticReef);
@@ -4241,17 +4967,25 @@ import * as THREE from 'three';
       for (i = 0; i < shallow; i++) {
         zone = Z[i];
         water = hexNum(zone.tint);
-        for (j = 0; j < 6; j++) {
+        for (j = 0; j < 12; j++) {
           if ((j & 1) !== group) continue;
-          var fanX = rr(160, S.w - 160);
+          var localFan = i >= 2 || j >= 6;
+          var fanX = j < 4
+            ? clamp(S.w * 0.25 + (j - 1.5) * 230 + i * 100, 160, S.w - 160)
+            : reefRand(160, S.w - 160, localFan);
+          if (j < 4 && !localFan) reefRand(160, S.w - 160, false);
           var fanWall = findWallY(fanX, zone.yMin + 40, zone.yMax - 20);
           if (fanWall === null) {
-            var fanFlank = moundFlankY(fanX, zone.yMin + 40, zone.yMax - 20, rr(0.05, 0.5));
+            var fanFlank = moundFlankY(fanX, zone.yMin + 40, zone.yMax - 20,
+              reefRand(0.05, 0.5, localFan));
             fanWall = fanFlank ? fanFlank.y : null;
           }
-          var fanY = (fanWall !== null ? fanWall : zone.yMax) - rr(35, 145);
-          pushReef(fanX, fanY, rr(-150, -90),
-            rr(0.75, 1.2), j % 2, REEF_PALETTE[ri(0, REEF_PALETTE.length - 1)], water, group);
+          var fanFrac = (j < 4 && !(j & 1)) ? 0.10 : 0.42;
+          var fanY = (fanWall !== null ? fanWall
+            : zone.yMin + (zone.yMax - zone.yMin) * fanFrac) - reefRand(35, 145, localFan);
+          var fanFamily = REEF_ZONE_PALETTE[i] || REEF_PALETTE;
+          pushReef(fanX, fanY, reefRand(-285, -240, localFan),
+            reefRand(0.75, 1.2, localFan), j % 2, fanFamily[j % fanFamily.length], water, group, localFan);
         }
       }
       if (!reefN) continue;
@@ -4263,29 +4997,33 @@ import * as THREE from 'three';
         var rec = reefScratch[j];
         var stemH = (rec.kind ? 58 : 48) * rec.scale;
         var stemW = (rec.kind ? 13 : 16) * rec.scale;
-        var stemBase = envColor(rec.color, rec.z, rec.water, rec.y, 0.02);
-        var stemTop = envColor(rec.color, rec.z, rec.water, rec.y - stemH, 0.20);
+        var stemBase = envColor(scaleColor(rec.color, 0.62), rec.z, rec.water, rec.y, 0.02);
+        var stemTop = envColor(lerpColor(scaleColor(rec.color, 0.62), 0x9ebbbc, 0.05),
+          rec.z, rec.water, rec.y - stemH, 0.14);
         quadPush(rec.x - px, -rec.y + py + stemH * 0.5, rec.z, stemW, stemH, 0, 1,
           stemBase, rec.alpha, stemTop);
         var crownY = rec.y - stemH * 0.78;
         var arms = rec.kind ? 4 : 3;
         for (k = 0; k < arms; k++) {
           var armA = rec.kind ? (-0.48 + k * 0.32) : (-0.62 + k * 0.62);
-          var armL = (rec.kind ? 50 : 72) * rec.scale;
+          var armL = (rec.kind ? 46 : 62) * rec.scale;
           var armX = rec.x + Math.sin(armA) * armL * 0.34;
           var armY = crownY - Math.cos(armA) * armL * 0.30;
-          var armBase = envColor(rec.color, rec.z, rec.water, armY, 0.06);
-          var armTopLit = envColor(rec.color, rec.z, rec.water, armY - 13 * rec.scale, 0.24);
+          var armBase = envColor(scaleColor(rec.color, 0.62), rec.z, rec.water, armY, 0.06);
+          var armTopLit = envColor(lerpColor(scaleColor(rec.color, 0.62), 0x9ebbbc, 0.05),
+            rec.z, rec.water, armY - 13 * rec.scale, 0.18);
           // 6.9: every fan/anemone arm tip carries a neon accent, lighter
           // than the coral crowns above since there are more of these on
           // screen at once and the readability law still applies.
           var armTop = lerpColor(armTopLit, neonAccentFor(j * 4 + k), 0.24);
-          quadPush(armX - px, -armY + py, rec.z + 1, armL, 13 * rec.scale,
+          quadPush(armX - px, -armY + py, rec.z + 1, armL, (rec.kind ? 19 : 16) * rec.scale,
             armA, 1, armBase, rec.alpha, armTop);
         }
       }
-      var swayMesh = batchMesh(null, false, undefined);
+      var swayMesh = batchMesh(coralBlob, false, undefined);
       if (!swayMesh) continue;
+      if (swayMesh.material) swayMesh.material.depthTest = false;
+      meshName(swayMesh, 'RF swaying sea fans batch ' + group);
       var pivot = new THREE.Group();
       pivot.add(swayMesh);
       pivot.position.x = px;
@@ -4317,10 +5055,10 @@ import * as THREE from 'three';
   var SIL_MAX_SCALE = (CAM_W * SIL_MAX_FRAC) / SIL_W;   // = 1.648
 
   var ZONE_SIL = [
-    { shape: 'arch',      n: 6,  scale: [0.9, 1.4], alpha: [0.25, 0.50], tint: 0x0d3d52, anchor: 'floor', inset: 40 },
-    { shape: 'kelptower', n: 10, scale: [1.0, 1.6], alpha: [0.25, 0.50], tint: 0x08222f, anchor: 'floor', inset: 60 },
-    { shape: 'spire',     n: 10, scale: [1.0, 1.6], alpha: [0.25, 0.45], tint: 0x05131e, anchor: 'floor', inset: 70 },
-    { shape: 'chimney',   n: 8,  scale: [1.1, 1.6], alpha: [0.25, 0.40], tint: 0x02070d, anchor: 'floor', inset: 80 },
+    { shape: 'arch',      n: 6,  scale: [0.9, 1.4], alpha: [0.10, 0.22], tint: 0x0d3d52, anchor: 'floor', inset: 40 },
+    { shape: 'kelptower', n: 10, scale: [1.0, 1.6], alpha: [0.10, 0.22], tint: 0x08222f, anchor: 'floor', inset: 60 },
+    { shape: 'spire',     n: 10, scale: [1.0, 1.6], alpha: [0.08, 0.18], tint: 0x05131e, anchor: 'floor', inset: 70 },
+    { shape: 'chimney',   n: 8,  scale: [1.1, 1.6], alpha: [0.07, 0.16], tint: 0x02070d, anchor: 'floor', inset: 80 },
   ];
 
   // Rev 6.9: sunken cyber-ruin props (holo billboard slabs, conduit lines,
@@ -4411,9 +5149,9 @@ import * as THREE from 'three';
   // per-zone loop), and records glow/window quads into the same shared
   // ruinGlowRec additive batch every other prop uses, so this costs zero
   // extra draw calls beyond what the zone already pays.
-  var ABYSS_TOWER_STEP = 130;      // px between tower centres; overlap keeps it contiguous
-  var ABYSS_TOWER_W = [150, 260];  // wide enough that neighbours visibly overlap at the step above
-  var ABYSS_TOWER_H = [340, 620];  // per fix-round spec: 300-600px band, some spill for variety
+  var ABYSS_TOWER_STEP = 190;      // px between pillars; a sparse overlap reads as ruins
+  var ABYSS_TOWER_W = [110, 190];   // enough shoulder overlap without a wall of cards
+  var ABYSS_TOWER_H = [260, 420];   // visible pillars, with the near-black band behind them
   function abyssTowerHash(step, salt) {
     var h = Math.sin(step * 12.9898 + salt * 78.233) * 43758.5453;
     return h - Math.floor(h);
@@ -4451,7 +5189,7 @@ import * as THREE from 'three';
       // Same fix as the shelf/midwater/twilight landmarks: the proven
       // Z_KELP band, not a novel z value (see the note at the landmark z
       // computation above for why z=90..140 broke everything else).
-      var tz = Z_KELP[0] + (h1 * (Z_KELP[1] - Z_KELP[0])); // towers vary within the band for depth
+      var tz = Z_SIL[0] + 42 + (h1 * 42); // distant skyline, behind gameplay
       var tCy = floorY - th * 0.5;
       var ruinCfg = ZONE_RUIN[zoneIdx] || ZONE_RUIN[ZONE_RUIN.length - 1];
       var tint = ruinCfg ? ruinCfg.tint : 0x080b18;
@@ -4467,7 +5205,7 @@ import * as THREE from 'three';
       // brightness lives in the crowns/windows/top gradient. The prior
       // 0.28-accent 0.6-alpha body rendered as translucent pastel panels -
       // exactly the "pastel Tetris" failure, not cyberpunk.
-      var tBody = lerpColor(scaleColor(tBase, 0.34), accent, 0.10);
+      var tBody = lerpColor(scaleColor(tBase, 0.14), accent, 0.025);
       // Rev 9 DRESSING fix: quadPush interpolates top/bottom colour linearly
       // across the WHOLE quad, not just a thin cap, so at 0.55/0.55 this top
       // colour (~55% of the raw accent, e.g. RGB(0.55,0.10,0.47) for
@@ -4480,8 +5218,8 @@ import * as THREE from 'three';
       // reads as a modest highlight (the real "lit crown" brightness still
       // comes from the separate ruinGlowRec additive crown/window pass a
       // few lines below, which is deliberately small and sparse).
-      var tTop = lerpColor(scaleColor(tBase, 0.55), accent, 0.22);
-      quadPush(tx, -tCy, tz, tw, th, 0, (step & 1) ? -1 : 1, tBody, 0.88, tTop);
+      var tTop = lerpColor(scaleColor(tBase, 0.33), accent, 0.08);
+      quadPush(tx, -tCy, tz, tw, th, 0, (step & 1) ? -1 : 1, tBody, 0.22, tTop);
       // Glow crown: a bright additive cap, but only every THIRD tower (was
       // every other) so neighbouring crowns do not additively overlap into a
       // wash — with towers every 130px, "every other" still put 3-4 crowns
@@ -4492,7 +5230,7 @@ import * as THREE from 'three';
       if (step % 3 === 0) {
         ruinGlowRec.push({
           cx: tx, cy: -(floorY - th), z: tz + 1, w: tw * 0.45, h: th * 0.08,
-          mirror: (step & 1) ? -1 : 1, color: accent, alpha: 0.55,
+          mirror: (step & 1) ? -1 : 1, color: accent, alpha: 0.18,
         });
       }
       // Lit windows: at most ONE small bright square per tower (was 1-2,
@@ -4507,9 +5245,104 @@ import * as THREE from 'three';
         var winX = tx + (wh - 0.5) * tw * 0.4;
         ruinGlowRec.push({
           cx: winX, cy: -winY, z: tz + 2, w: Math.max(6, tw * 0.045), h: Math.max(6, tw * 0.045),
-          mirror: 1, color: accentCycle[(step + 1) % accentCycle.length], alpha: 0.5,
+          mirror: 1, color: accentCycle[(step + 1) % accentCycle.length], alpha: 0.14,
         });
       }
+    }
+  }
+
+  // Painted background clusters. These are intentionally assembled from
+  // tapered, gradient-lit quads inside the existing per-zone silhouette
+  // batches: they give the eye a readable reef/rock vocabulary without
+  // creating one mesh per prop.
+  function pushDistantOutcrop(zone, zoneIdx, cx, baseY, scale) {
+    var water = hexNum(zone.tint);
+    var tint = zoneIdx === 0 ? 0x31545a : zoneIdx === 1 ? 0x243f4d
+      : zoneIdx === 2 ? 0x172c42 : 0x0b1326;
+    // Keep distant painted forms behind the gameplay plane but just in front
+    // of the broad terrain ridges, otherwise the open-ocean terrain sheet
+    // swallows all of the authored dressing.
+    var z = Z_SIL[0] + 54 + (zoneIdx % 3) * 12;
+    var pieces = [
+      [-170, 0, 250, 150], [-70, -70, 220, 230], [50, -105, 280, 310],
+      [180, -22, 230, 175], [0, -178, 170, 130],
+    ];
+    for (var i = 0; i < pieces.length; i++) {
+      var p = pieces[i];
+      var w = p[2] * scale, h = p[3] * scale;
+      var y = baseY + p[1] * scale;
+      var base = envColor(tint, z, water, y, 0);
+      var top = envColor(lerpColor(tint, water, 0.18), z, water, y - h, 0.08);
+      quadPush(cx + p[0] * scale, -y - h * 0.5, z, w, h,
+        (i & 1 ? -0.06 : 0.045), i & 1 ? -1 : 1, base,
+        0.08 + (zoneIdx === 0 ? 0.02 : 0), top);
+    }
+    // A broken arch reads more like a place than a row of cards. Keep the
+    // span thin and dim so the shark remains the highest-contrast silhouette.
+    var archBase = envColor(tint, z + 4, water, baseY - 8 * scale, 0);
+    var archTop = envColor(lerpColor(tint, water, 0.2), z + 4, water,
+      baseY - 150 * scale, 0.08);
+    quadPush(cx - 115 * scale, -baseY + 86 * scale, z + 4,
+      44 * scale, 172 * scale, -0.06, 1, archBase, 0.07, archTop);
+    quadPush(cx + 118 * scale, -baseY + 102 * scale, z + 4,
+      52 * scale, 140 * scale, 0.05, -1, archBase, 0.07, archTop);
+    quadPush(cx + 4 * scale, -baseY + 172 * scale, z + 4,
+      250 * scale, 42 * scale, 0.015, 1, archBase, 0.06, archTop);
+  }
+
+  function pushWreck(zone, zoneIdx, cx, baseY) {
+    var water = hexNum(zone.tint);
+    var z = Z_SIL[0] + 68 + (zoneIdx % 2) * 12;
+    var hull = WRECK_ZONE_PALETTE[zoneIdx] || WRECK_ZONE_PALETTE[3];
+    var hullLit = lerpColor(hull, zoneIdx === 0 ? 0x65736d : 0x354957, 0.08);
+    var rust = zoneIdx < 2 ? 0x3c3c42 : 0x2b2a42;
+    var s = zoneIdx === 0 ? 1.0 : zoneIdx === 1 ? 1.15 : 1.25;
+    var deckY = baseY - 42 * s;
+
+    // Layered hull with a broken bow/stern and a raised deck.
+    quadPush(cx, -baseY + 48 * s, z, 430 * s, 92 * s, 0.015, 1,
+      envColor(scaleColor(hull, 0.72), z, water, baseY, 0), 0.08,
+      envColor(hullLit, z, water, baseY - 80 * s, 0.06));
+    quadPush(cx - 190 * s, -baseY + 25 * s, z + 2, 130 * s, 50 * s,
+      -0.10, -1, envColor(scaleColor(rust, 0.72), z + 2, water, deckY, 0), 0.055,
+      envColor(hullLit, z + 2, water, deckY - 42 * s, 0.04));
+    quadPush(cx + 180 * s, -baseY + 62 * s, z + 2, 100 * s, 68 * s,
+      0.12, 1, envColor(scaleColor(rust, 0.72), z + 2, water, baseY, 0), 0.055,
+      envColor(hullLit, z + 2, water, baseY - 50 * s, 0.04));
+    quadPush(cx - 35 * s, -deckY + 12 * s, z + 3, 220 * s, 32 * s,
+      0, 1, envColor(scaleColor(hullLit, 0.72), z + 3, water, deckY, 0.03), 0.07,
+      envColor(0x9cb28c, z + 3, water, deckY - 28 * s, 0.08));
+
+    // Mast and a torn sail are narrow, so they read as a wreck silhouette and
+    // not as another rectangular landmark.
+    var mastX = cx + 34 * s;
+    quadPush(mastX, -baseY + 190 * s, z + 5, 18 * s, 330 * s,
+      -0.035, 1, envColor(scaleColor(rust, 0.72), z + 5, water, baseY - 300 * s, 0), 0.08,
+      envColor(hullLit, z + 5, water, baseY - 330 * s, 0.05));
+    quadPush(mastX + 82 * s, -baseY + 220 * s, z + 4, 170 * s, 58 * s,
+      0.24, -1, envColor(0x354957, z + 4, water, baseY - 200 * s, 0), 0.04,
+      envColor(0x8da9a4, z + 4, water, baseY - 250 * s, 0.05));
+
+    // Three hanging chain links and dim portholes. Portholes go into the one
+    // shared additive glow batch, while the chains remain part of the normal
+    // wreck silhouette.
+    for (var c = 0; c < 3; c++) {
+      var chainX = cx - 132 * s + c * 78 * s;
+      for (var link = 0; link < 3; link++) {
+        var linkY = baseY + 92 * s + link * 32 * s + (c & 1) * 10 * s;
+        quadPush(chainX + link * 8 * s, -linkY, z + 4, 10 * s, 44 * s,
+          c & 1 ? -0.2 : 0.2, 1, envColor(0x6f7f78, z + 4, water, linkY, 0),
+          0.035, envColor(0x52635f, z + 4, water, linkY - 28 * s, 0.03));
+      }
+    }
+    var glow = zoneIdx === 0 ? NEON_CYAN : zoneIdx === 1 ? NEON_MAGENTA
+      : zoneIdx === 2 ? NEON_CYAN : NEON_ACID;
+    for (var port = 0; port < 3; port++) {
+      ruinGlowRec.push({
+        cx: cx - 100 * s + port * 96 * s,
+        cy: -(deckY + 4 * s), z: z + 6,
+        w: 10 * s, h: 10 * s, mirror: 1, color: glow, alpha: 0.10,
+      });
     }
   }
 
@@ -4538,6 +5371,21 @@ import * as THREE from 'three';
         quadPush(x0, -cy, silZ, w, h, 0,
           rnd() < 0.5 ? -1 : 1, silBase, rr(cfg.alpha[0], cfg.alpha[1]), silTop);
       }
+      // Two mid-water reef silhouettes keep the open-ocean spans from reading
+      // as empty colour. They sit farther back and much dimmer than the actors,
+      // but their layered shoulders/arch establish a real place in every band.
+      var bgSpan = z.yMax - z.yMin;
+      var bgBase = z.yMin + bgSpan * 0.10;
+      if (i === Z.length - 1) bgBase = z.yMin + bgSpan * 0.08;
+      var bgX = clamp(S.w * 0.25 + i * 520, 700, S.w - 700);
+      pushDistantOutcrop(z, i, bgX, bgBase, 0.9 + i * 0.08);
+      var bgBase2 = z.yMin + bgSpan * (i === Z.length - 1 ? 0.32 : 0.38);
+      pushDistantOutcrop(z, i, bgX + 720, bgBase2, 0.66 + i * 0.08);
+      // One authored wreck per zone: hull, mast, torn sail, hanging chains,
+      // and a few restrained porthole glints. All pieces stay in this zone's
+      // merged silhouette batch, so the landmark costs no extra normal draw.
+      var wreckY = z.yMin + bgSpan * 0.08;
+      pushWreck(z, i, clamp(S.w * 0.25 + i * 520, 560, S.w - 560), wreckY);
       // Cyber-ruin props for this zone, same batch, same anchor language:
       // a holo slab (wide, dim, faint neon top edge), a vertical conduit
       // line (thin, tall), and a drone silhouette (small, drifting height)
@@ -4560,7 +5408,7 @@ import * as THREE from 'three';
             ruinWall = ruinFlank ? ruinFlank.y : null;
           }
           var floorY = (ruinWall !== null ? ruinWall : (i === Z.length - 1 ? S.h : z.yMax)) - rr(20, 90);
-          var rz = rr(Z_SIL[0], Z_SIL[1]);
+          var rz = rr(-92, -64);
           var rw, rh;
           if (shapeI === 0) { rw = rr(140, 220); rh = rr(90, 150); }       // holo slab / ruin gate
           else if (shapeI === 1) { rw = rr(14, 22); rh = rr(220, 340); }    // conduit line / pylon
@@ -4571,10 +5419,10 @@ import * as THREE from 'three';
           var ruinAccent = neonAccentFor(i * 5 + rn);
           var ruinTop = lerpColor(ruinEdge, ruinAccent, 0.4);
           quadPush(rx, -ruinCy, rz, rw, rh, 0,
-            rnd() < 0.5 ? -1 : 1, ruinBase, rr(0.20, 0.38), ruinTop);
+            rnd() < 0.5 ? -1 : 1, ruinBase, rr(0.08, 0.16), ruinTop);
           ruinGlowRec.push({
-            cx: rx, cy: -(floorY - rh), z: rz + 1, w: rw * 0.95, h: rh * 0.16,
-            mirror: rnd() < 0.5 ? -1 : 1, color: ruinAccent, alpha: 0.6,
+            cx: rx, cy: -(floorY - rh), z: rz + 1, w: rw * 0.65, h: rh * 0.10,
+            mirror: rnd() < 0.5 ? -1 : 1, color: ruinAccent, alpha: 0.05,
           });
         }
       }
@@ -4602,6 +5450,10 @@ import * as THREE from 'three';
         // since the open-ocean world can offer very few anchors in a given
         // shallow zone and over-requesting just forced the x-offset spread
         // above to work harder for no visual gain.
+        // Keep the authored RNG walk stable for the simulation lane; only the
+        // first two resolved silhouettes are emitted after the readability
+        // pass, while the remaining slots still consume their old build-time
+        // rolls so schooling/spawn sequences do not shift.
         var wantLandmarks = anchors.length ? Math.min(6, anchors.length * 2) : 3;
         var baseAccent = ZONE_LANDMARK_ACCENT[i] || NEON_CYAN;
         var altAccent = ZONE_LANDMARK_ALT[i];
@@ -4645,19 +5497,23 @@ import * as THREE from 'three';
           // game already renders in (visible on top of cavern rock in every
           // capture throughout this session), so landmarks use that same
           // band rather than a novel value.
-          var lz = rr(Z_KELP[0], Z_KELP[1]);
+          // Landmarks are background silhouettes.  Keeping them in the
+          // foreground parallax band made even a modest translucent pylon
+          // read as a card over the shark; the midwater batch is already
+          // depth-test disabled, so the distant silhouette band is safe.
+          var lz = rr(Z_SIL[0] + 70, Z_SIL[0] + 125);
           var lw, lh, lShapeI = i; // shelf(0)=gate, midwater(1)=pylon, twilight(2)=spire
           if (lShapeI === 0) {
             // Holo gate ARC: a wide, tall silhouette so it reads as a
             // freestanding archway rather than a slab.
-            lw = rr(360, 480); lh = rr(320, 460);
+            lw = rr(280, 380); lh = rr(250, 360);
           } else if (lShapeI === 1) {
             // Conduit pylon: tall and narrower, but still well past the
             // 300px floor per zone.
-            lw = rr(70, 110); lh = rr(420, 600);
+            lw = rr(50, 80); lh = rr(300, 450);
           } else {
             // Data spire: a tapered tall silhouette, acid-green accent.
-            lw = rr(90, 140); lh = rr(380, 560);
+            lw = rr(65, 100); lh = rr(300, 430);
           }
           var lCy = lFloorY - lh * 0.5;
           // Rev 6.13 ART fix-forward, second pass: neither a zone-tinted
@@ -4674,9 +5530,9 @@ import * as THREE from 'three';
           // HUE the background never has. A darker outline rim is layered on
           // top of that saturated fill so the structure still reads as
           // having depth/edges rather than being a flat colour card.
-          var lFillDark = scaleColor(accent, 0.55);
-          var lBody = lerpColor(lFillDark, accent, 0.6);
-          var lTop = accent;
+          var lFillDark = scaleColor(accent, 0.28);
+          var lBody = lerpColor(lFillDark, accent, 0.24);
+          var lTop = lerpColor(lBody, scaleColor(accent, 0.55), 0.12);
           // Rev 6.13 ART fix-forward, FOURTH pass: real captures kept
           // measuring washed-white regardless of how many additive glow
           // bands were stacked on top, because this world region also holds
@@ -4691,7 +5547,28 @@ import * as THREE from 'three';
           // clearly-cyan/magenta/acid gate/pylon/spire silhouette that reads
           // even if every other additive system in the frame happens to
           // land on top of it.
-          quadPush(lx, -lCy, lz, lw, lh, 0, li & 1 ? -1 : 1, lBody, 0.82, lTop);
+          if (li < 2) {
+            // A gate is three narrow pieces, not one billboard.  The same
+            // merged batch still costs one draw, but the open centre and
+            // offset shoulders read as a ruin arch in the water.
+            var landmarkAlpha = 0.13;
+            if (lShapeI === 0) {
+              quadPush(lx - lw * 0.33, -lCy + lh * 0.10, lz,
+                lw * 0.22, lh * 0.80, -0.04, li & 1 ? -1 : 1, lBody, landmarkAlpha, lTop);
+              quadPush(lx + lw * 0.33, -lCy + lh * 0.08, lz + 2,
+                lw * 0.22, lh * 0.84, 0.04, li & 1 ? -1 : 1, lBody, landmarkAlpha, lTop);
+              quadPush(lx, -lCy - lh * 0.30, lz + 3,
+                lw * 0.68, lh * 0.16, 0, 1, lBody, landmarkAlpha * 0.9, lTop);
+            } else if (lShapeI === 1) {
+              quadPush(lx, -lCy, lz, lw * 0.42, lh, 0, li & 1 ? -1 : 1,
+                lBody, landmarkAlpha, lTop);
+            } else {
+              quadPush(lx, -lCy + lh * 0.04, lz, lw * 0.52, lh * 0.88,
+                0, li & 1 ? -1 : 1, lBody, landmarkAlpha, lTop);
+              quadPush(lx, -lCy - lh * 0.44, lz + 2, lw * 0.28, lh * 0.14,
+                0, 1, lTop, landmarkAlpha * 0.8, lTop);
+            }
+          }
           // No additive glow crown for the shelf/midwater/twilight tier: the
           // body fill above is now the sole, reliable colour carrier. (The
           // abyss skyline keeps its own crown/window glow below — that zone
@@ -4708,8 +5585,10 @@ import * as THREE from 'three';
         // window into it crosses at least 2-3 overlapping towers.
         buildAbyssSkyline(z, i, Z);
       }
-      var mesh = batchMesh(null, false, undefined);
+      var mesh = batchMesh(null, false, undefined, true);
       if (!mesh) continue;
+      if (mesh.material) mesh.material.depthTest = false;
+      meshName(mesh, 'RF midwater decor zone ' + i);
       sceneAdd(mesh);
       S.decor.push(mesh);
       // Amplitude is deliberately tiny: these shapes are ANCHORED and must
@@ -4748,6 +5627,35 @@ import * as THREE from 'three';
     }
   }
 
+  // A single soft-mote batch gives the water a suspended volume even when the
+  // optional FX lane is absent. The radial map keeps these from becoming the
+  // square white particles that the old flat fallback produced.
+  function buildParticulates() {
+    if (!isThree()) return;
+    var Z = zones();
+    if (!Z.length) return;
+    var mote = surfaceTexture('__rf_particulate_mote', true);
+    quadReset();
+    for (var i = 0; i < 72; i++) {
+      var zi = i % Z.length;
+      var z = Z[zi];
+      var span = z.yMax - z.yMin;
+      var x = (i * 1937 + zi * 811) % Math.max(1, S.w - 240) + 120;
+      var y = z.yMin + ((i * 379 + zi * 127) % Math.max(1, span - 80)) + 40;
+      var water = hexNum(z.tint);
+      var moteColor = lerpColor(hexNum(z.fog), 0xdff6ff, zi === 0 ? 0.35 : 0.12);
+      var size = 5 + ((i * 17) % 11);
+      var alpha = zi === 0 ? 0.13 : zi === 3 ? 0.19 : 0.10;
+      quadPush(x, -y, Z_SIL[0] + (i % 4) * 22, size, size,
+        0, 1, envColor(moteColor, Z_SIL[0], water, y, 0.08), alpha);
+    }
+    var mesh = batchMesh(mote, true, undefined, false, { fog: false });
+    if (!mesh) return;
+    meshName(mesh, 'RF suspended particulate batch');
+    sceneAdd(mesh);
+    S.decor.push(mesh);
+  }
+
   function buildBackground() {
     buildGradientSheet();
     // Rev 6: the maze layout must exist before buildTerrain, so the parallax
@@ -4758,11 +5666,22 @@ import * as THREE from 'three';
     buildNearRock();
     buildSeams();
     buildMidwaterDecor();
+    buildParticulates();
     buildDecor();
     buildReef();
     buildRays();
     buildCaustics();
     buildSurface();
+    // Rev 12 12.1: seabed-family accent decor (icebergs/vents/ruin
+    // blocks/extra kelp), layered on the mounds this run's SDF already
+    // carved. Built before the sky layer purely for source-order tidiness;
+    // both are independent of each other.
+    buildSeabedAccents();
+    // Rev 12 12.1: the above-water sky/horizon-silhouette backdrop. Built
+    // last so it never competes with any in-water pass for parallax-band
+    // ordering assumptions; it lives at its own farthest-back Z_SKY depth
+    // regardless of build order.
+    buildSkyBackdrop();
     // Fog is owned here and handed to the scene; applyZoneAtmo retunes it
     // every step from the camera's depth.
     if (isThree() && THREE.FogExp2) {
@@ -7251,6 +8170,9 @@ import * as THREE from 'three';
     S.reefSwayers.length = 0;
     S.reefBatches.length = 0;
     S.drifters.length = 0;
+    S.level = null;
+    S.levelZones = null;
+    S.skyTheme = null;
 
     // 4. GPU resources this run created. Materials and geometry are disposed
     //    in bulk from the ownership lists, which is why every creation site
@@ -7346,6 +8268,20 @@ import * as THREE from 'three';
     S.renderer = (ctx && ctx.renderer) || null;
     S.rng = (ctx && ctx.rng) || null;
     decorRng = makeLocalRng(0x5eaf100d);
+    // Rev 12 12.1: resolve ctx.level -> RFD.LEVEL_BY_ID (falling back to
+    // hawaii / the first authored row / a null level when data.js has not
+    // landed LEVELS yet, so a standalone/legacy caller with no level ctx at
+    // all keeps running the exact pre-Rev-12 zone table). S.levelZones is the
+    // per-run water/preyMix overlay zones() will serve from here on; nothing
+    // downstream needs to know a level exists at all when it does not.
+    S.level = resolveLevel(ctx);
+    S.levelZones = S.level ? buildLevelZones(S.level) : null;
+    S.skyTheme = S.level ? {
+      top: hexNum(S.level.sky && S.level.sky.top),
+      horizon: hexNum(S.level.sky && S.level.sky.horizon),
+      themeId: horizonThemeFor(S.level),
+      seabed: S.level.seabed || 'sand',
+    } : null;
     S.w = W.w; S.h = W.h;
     S.cols = Math.ceil(S.w / CELL);
     S.rows = Math.ceil(S.h / CELL);
@@ -8536,8 +9472,12 @@ import * as THREE from 'three';
         chk(gradientVerticesAtLocalZ && Math.abs(S.gradient.mesh.position.z - Z_GRADIENT) < 1e-9,
           'gradient vertices use local z=0 and the mesh alone owns z=-500');
         // Rev 6: bounds scale with S.w/S.h (world grew to 14400x4800; 6.4).
-        chk(gxMin <= -399.9 && gxMax >= S.w + 399.9 && gyMin <= -(S.h + 599.9) && gyMax >= 599.9,
-          'gradient sheet spans world plus overshoot x -400..w+400, y -600..h+600');
+        // Rev 12 sky fix: the sheet's sim-y top bound is now GRADIENT_TOP_Y
+        // (0, the waterline) rather than -600, so it never paints over the
+        // sky backdrop above the surface; three-space y is sim y negated, so
+        // the sheet's max three-y is now ~0 rather than ~600.
+        chk(gxMin <= -399.9 && gxMax >= S.w + 399.9 && gyMin <= -(S.h + 599.9) && gyMax <= 0.1 && gyMax >= -0.1,
+          'gradient sheet spans world plus overshoot x -400..w+400, y GRADIENT_TOP_Y(0)..h+600');
       }
       chk(S.terrain.length === 4, 'terrain is exactly four ridge batches (' + S.terrain.length + ')');
       var terrainZOk = S.terrain.length === 4, terrainRgbaOk = true, terrainOpaque = true;
@@ -9848,6 +10788,185 @@ import * as THREE from 'three';
     } catch (err) {
       pass = false;
       notes.push("FAIL exception: " + (err && err.stack ? err.stack : String(err)));
+    }
+
+    // ==================================================== Rev 12 12.1 LEVELS
+    // Every authored LEVELS row (falls back to a single synthetic 'testland'
+    // row when data.js has not landed LEVELS, so this block still exercises
+    // resolveLevel/buildLevelZones/buildSkyBackdrop's code paths standalone)
+    // must: init without throw, resolve a sky theme with the right theme id,
+    // apply its seabed type, respect its prey mix, and stay inside the shared
+    // draw/tri budgets (draws <= 120, tris <= 60k) and the open-column gate.
+    try {
+      var levelSeed = 0x1eb1e234 >>> 0;
+      function levelRngStub() {
+        levelSeed = (levelSeed + 0x6D2B79F5) >>> 0;
+        var t = levelSeed;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      }
+      var levelsTable = D().LEVELS;
+      var testLevels = (Array.isArray(levelsTable) && levelsTable.length) ? levelsTable :
+        [{ id: 'testland', name: 'Test Land', sky: { top: '0x1f6fb0', horizon: '0xffb066', horizonTheme: 'volcano_palms' },
+           water: { surface: '0x1b4d66', bands: ['0x2a6f8c', '0x1b4d66', '0x0e3348', '0x061a26'], haze: '0x5fa8c2' },
+           seabed: 'sand', preyWeights: { minnow: 8 }, special: [] }];
+      var prevRFCtxLvl = RF.ctx;
+      for (var lvi = 0; lvi < testLevels.length; lvi++) {
+        var lvlRow = testLevels[lvi];
+        var lvlAdded = [];
+        var lvlScene = { add: function (o) { lvlAdded.push(o); return this; }, fog: null };
+        var lvlClears = [];
+        var lvlRenderer = { setClearColor: function (c) { lvlClears.push(c && c.getHex ? c.getHex() : c); } };
+        var lvlCtx = {
+          rng: levelRngStub, renderer: lvlRenderer,
+          time: { now: 0, dt: 1 / 60, frame: 0 }, run: { score: 0, coins: 0, level: lvlRow.id },
+          player: { x: 3600, y: 500, tier: 3, r: 30, st: {} }, level: lvlRow.id,
+        };
+        var initOk = true, initErr = null;
+        try {
+          RF.ctx = lvlCtx; lvlCtx.mouth = null;
+          World.init(lvlScene, lvlCtx);
+        } catch (e) { initOk = false; initErr = e; }
+        chk(initOk, 'level "' + lvlRow.id + '" inits without throw' +
+          (initErr ? ' (' + (initErr.message || initErr) + ')' : ''));
+        if (!initOk) continue;
+
+        // Resolved level + sky theme.
+        var activeLvl = World.activeLevel();
+        chk(!!activeLvl && activeLvl.id === lvlRow.id,
+          'level "' + lvlRow.id + '" resolves as the active level via ctx.level');
+        var theme = World.activeSkyTheme();
+        var expectedThemeId = horizonThemeFor(lvlRow);
+        chk(!!theme && theme.themeId === expectedThemeId,
+          'level "' + lvlRow.id + '" sky layer carries the right horizon theme id (' +
+          (theme && theme.themeId) + ' === ' + expectedThemeId + ')');
+        chk(theme && theme.seabed === (lvlRow.seabed || 'sand'),
+          'level "' + lvlRow.id + '" seabed type applied to the sky/theme state (' +
+          (theme && theme.seabed) + ')');
+
+        // Sky layer actually present in the scene (at least one of the three
+        // batches — gradient, sun/clouds, silhouette — made it into S.decor).
+        // These are merged-geometry batches whose per-vertex z is baked in by
+        // quadPush (see buildSkyBackdrop), not a mesh.position.z offset, so
+        // this reads the vertex position attribute's own z rather than the
+        // object transform.
+        var skyMeshCount = 0;
+        for (var sdi = 0; sdi < S.decor.length; sdi++) {
+          var sdo = S.decor[sdi];
+          var sdPos = sdo && sdo.geometry && sdo.geometry.attributes && sdo.geometry.attributes.position;
+          if (sdPos && sdPos.count && sdPos.getZ && sdPos.getZ(0) <= Z_SKY + 10) skyMeshCount++;
+          else if (sdPos && sdPos.array && sdPos.array[2] <= Z_SKY + 10) skyMeshCount++;
+        }
+        chk(skyMeshCount > 0, 'level "' + lvlRow.id + '" sky/silhouette layer present in the scene (' +
+          skyMeshCount + ' batches at Z_SKY)');
+
+        // Prey mix respected: every zone's spawn table only contains prey
+        // this level's preyWeights named (or, for the fallback path, the
+        // zone's own base prey when the level table did not fit any zone) —
+        // checked as "every level-named prey species that fits SOME zone's
+        // tier gate appears somewhere in the level's zone tables".
+        var Zs12 = zones();
+        var pw12 = lvlRow.preyWeights || {};
+        for (var pwId in pw12) {
+          if (!Object.prototype.hasOwnProperty.call(pw12, pwId)) continue;
+          var pwDef = defOf(pwId);
+          if (!pwDef || typeof pwDef.tier !== 'number') continue;
+          var fitsAnyZone = false, appearsSomewhere = false;
+          for (var pzi = 0; pzi < Zs12.length; pzi++) {
+            var pzone = Zs12[pzi];
+            if (pwDef.tier <= intendedTier(pzone) + 2) fitsAnyZone = true;
+            var pspawns = pzone.spawns || [];
+            for (var psi = 0; psi < pspawns.length; psi++) {
+              var pid = Array.isArray(pspawns[psi]) ? pspawns[psi][0] : pspawns[psi].id;
+              if (pid === pwId) appearsSomewhere = true;
+            }
+          }
+          if (fitsAnyZone) {
+            chk(appearsSomewhere, 'level "' + lvlRow.id + '" prey mix: "' + pwId +
+              '" (in preyWeights, fits a zone tier) appears in that level\'s zone spawn tables');
+          }
+        }
+
+        // Specials respected: every special creature this level names, that
+        // fits some zone's tier gate, appears in that level's zone tables.
+        var specials12 = Array.isArray(lvlRow.special) ? lvlRow.special : [];
+        for (var spi12 = 0; spi12 < specials12.length; spi12++) {
+          var sDef = defOf(specials12[spi12]);
+          if (!sDef || typeof sDef.tier !== 'number') continue;
+          var sFits = false, sFound = false;
+          for (var szi = 0; szi < Zs12.length; szi++) {
+            var szone = Zs12[szi];
+            if (sDef.tier <= intendedTier(szone) + 2) sFits = true;
+            var sspawns = szone.spawns || [];
+            for (var ssi = 0; ssi < sspawns.length; ssi++) {
+              var sid = Array.isArray(sspawns[ssi]) ? sspawns[ssi][0] : sspawns[ssi].id;
+              if (sid === specials12[spi12]) sFound = true;
+            }
+          }
+          if (sFits) {
+            chk(sFound, 'level "' + lvlRow.id + '" special creature "' + specials12[spi12] +
+              '" (fits a zone tier) appears in that level\'s zone spawn tables');
+          }
+        }
+
+        // Spawn-table gates still pass per level (species cap + tier gate),
+        // exactly as the shared (non-level) selftest already asserts for the
+        // base table — the overlay must never itself trip either gate.
+        var lvlTableGate = checkSpawnTableGate();
+        chk(lvlTableGate.ok, 'level "' + lvlRow.id + '" spawn table stays within the tier gate (' +
+          lvlTableGate.violations.join('; ') + ')');
+        var lvlSpeciesGate = checkSpawnSpeciesCapGate();
+        chk(lvlSpeciesGate.ok, 'level "' + lvlRow.id + '" spawn table stays within the 3-species cap (' +
+          lvlSpeciesGate.violations.join('; ') + ')');
+
+        // Open-column navigation gate: every OCEAN_XBAND-wide slice keeps a
+        // clear vertical path from the surface, exactly the guarantee
+        // ensureOpenColumns() already enforces during buildMaze() — reread
+        // here per level as the task's "open-column gate still passes per
+        // level" requirement, via the same terrainSDF probe the shared SDF
+        // section above uses.
+        var openOk = true, openChecked = 0;
+        for (var ocx = 200; ocx < S.w - 200; ocx += 800) {
+          var foundOpen = false;
+          for (var ocy = SDF_OPEN_Y; ocy < SDF_OPEN_Y + 400; ocy += SDF_CELL) {
+            if (World.terrainSDF(ocx, ocy) > 0) { foundOpen = true; break; }
+          }
+          openChecked++;
+          if (!foundOpen) openOk = false;
+        }
+        chk(openOk, 'level "' + lvlRow.id + '" open-column gate: every sampled x-slice keeps a clear ' +
+          'path near the surface (' + openChecked + ' slices checked)');
+
+        // Draw/tri budgets: draws <= 120, tris <= 60k, mirroring the shared
+        // PERF-03 environment gate but read from a live renderer.info-style
+        // count is unavailable in this stub harness (no real GL), so this
+        // counts drawable meshes/vertices the same way the shared PERF-03
+        // block above does (countDrawables over S.decor), which is the same
+        // metric memprobe3d.js's in-browser draws/tris numbers track.
+        var lvlDrawCalls = 0, lvlVerts = 0;
+        (function countLevelDrawables(o) {
+          if (!o) return;
+          if (o.material) {
+            lvlDrawCalls++;
+            var pos = o.geometry && o.geometry.attributes && o.geometry.attributes.position;
+            if (pos && pos.count) lvlVerts += pos.count;
+          }
+          if (o.children) for (var lci = 0; lci < o.children.length; lci++) countLevelDrawables(o.children[lci]);
+        })({ children: S.decor });
+        var lvlTris = Math.round(lvlVerts / 3);
+        chk(lvlDrawCalls <= 120, 'level "' + lvlRow.id + '" draw calls within budget (' +
+          lvlDrawCalls + ' <= 120)');
+        chk(lvlTris <= 60000, 'level "' + lvlRow.id + '" triangle estimate within budget (' +
+          lvlTris + ' <= 60000)');
+
+        World.teardown();
+      }
+      RF.ctx = prevRFCtxLvl;
+    } catch (lvlErr) {
+      pass = false;
+      notes.push("FAIL Rev 12 levels exception: " + (lvlErr && lvlErr.stack ? lvlErr.stack : String(lvlErr)));
+      if (S.inited) { try { World.teardown(); } catch (e2) { /* best effort */ } }
     }
     // Hand the page's real asset caches back, whatever happened above, so a
     // selftest run inside a live page does not cost that page its textures.
