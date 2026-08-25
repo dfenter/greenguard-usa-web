@@ -1,0 +1,199 @@
+/* SparkBridge architecture page. Extends suite.css (load AFTER it). Adds NO colours
+   and NO typefaces. Reuses the run diagram (.run/.dev/.seg/.taps) and adds only the
+   parts a deployment drawing needs that a product run does not: a gateway enclosure
+   listing the modules installed in it, a broker, an external system, a fan-in bus,
+   a labelled wire, and a stacked pair for standby. */
+
+/* ---- a drawing: one topology on its own graphite plate --------------------------- */
+.drawing{
+  background:var(--graphite);color:#fff;padding:28px 26px 26px;overflow:hidden;
+  border:1px solid var(--steel-dark);margin:22px 0 0;
+}
+.drawing .run{align-items:center}
+.drawing .run .seg.s4::after{animation-delay:2.35s}
+.drawing .run .seg.s5::after{animation-delay:3.05s}
+
+/* modules installed in a gateway, listed as chips inside the enclosure */
+.dev .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.dev .chips span{
+  font-family:"Spline Sans Mono",monospace;font-size:10.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:#fff;border:1px solid var(--steel-dark);padding:2px 7px;
+}
+.dev .chips span.acc{border-color:var(--marker);color:var(--marker)}
+.dev .chips span.off{color:var(--paper-dim);border-style:dotted}
+
+/* the broker: a double rule, like a bus bar */
+.dev.brk{border-left-style:double;border-left-width:10px;background:#1d232a;flex:0 1 190px}
+/* an external system we do not ship: proposed-device outline */
+.dev.ext{background:transparent;border:1px dashed var(--steel-dark);border-left:6px dashed var(--steel-dark)}
+.dev.ext .devname{color:var(--paper-dim);font-weight:600;font-size:16px}
+/* a machine that is not a gateway (signing box, cloud, NATS) */
+.dev.box{flex:0 1 170px}
+.drawing .fan{flex:0 1 190px}
+
+/* a labelled wire: topic or verb printed above the segment */
+.run .seg[data-l]::before{
+  content:attr(data-l);position:absolute;left:50%;top:-20px;transform:translateX(-50%);
+  white-space:nowrap;font-family:"Spline Sans Mono",monospace;font-size:10px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--paper-dim);
+}
+.run .seg.two[data-l]::before{color:var(--marker)}
+/* reverse flow (commands travelling back down) */
+.run .seg.up::after{animation-name:travel-back}
+@keyframes travel-back{0%{left:100%;opacity:0}12%{opacity:1}88%{opacity:1}100%{left:-34%;opacity:0}}
+
+/* fan-in: many sources on the left joined to one bus on the right (mirror of .taps) */
+.fan{display:flex;flex-direction:column;gap:10px;position:relative;padding-right:34px;flex:0 1 220px}
+.fan::before{content:"";position:absolute;right:0;top:0;bottom:0;width:2px;background:var(--steel-dark)}
+.fan .dev{position:relative;flex:0 0 auto;padding:10px 14px 11px}
+.fan .dev .devname{font-size:16px}
+.fan .dev::before{content:"";position:absolute;right:-34px;top:50%;width:34px;height:2px;background:var(--steel-dark)}
+.fan .more{
+  font-family:"Spline Sans Mono",monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--paper-dim);padding:2px 14px;
+}
+
+/* a stacked pair: primary over standby, joined by a claim wire */
+.pair{display:flex;flex-direction:column;gap:0;flex:0 1 230px}
+.pair .dev{flex:0 0 auto}
+.pair .claimwire{
+  position:relative;height:30px;width:2px;background:var(--steel-dark);margin-left:28px;
+}
+.pair .claimwire::before{
+  content:attr(data-l);position:absolute;left:12px;top:7px;white-space:nowrap;
+  font-family:"Spline Sans Mono",monospace;font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--paper-dim);
+}
+
+/* the sentence a screen reader gets instead of the wires */
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---- a topology entry: title, use, drawing, spec ---------------------------------- */
+.topo{padding:38px 0 8px;border-top:1px solid var(--steel)}
+.topo:first-of-type{border-top:0;padding-top:0}
+.topo .tno{
+  font-family:"Spline Sans Mono",monospace;font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--marker);margin:0 0 6px;display:block;
+}
+.topo h3{
+  font-family:"Saira SemiCondensed",sans-serif;font-weight:700;text-transform:uppercase;
+  font-size:clamp(22px,2.4vw,30px);line-height:1.06;letter-spacing:.01em;margin:0 0 8px;max-width:26ch;
+}
+.topo .use{font-size:16.5px;line-height:1.55;max-width:66ch;margin:0;color:var(--ink-soft)}
+.band .topo .use{color:var(--paper-dim)}
+.band .topo{border-top-color:var(--steel-dark)}
+.topo .spec{margin-top:18px}
+.topo .links{
+  margin:14px 0 0;font-family:"Spline Sans Mono",monospace;font-size:11.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-soft);display:flex;flex-wrap:wrap;gap:6px 18px;
+}
+.band .topo .links{color:var(--paper-dim)}
+.topo .links a{color:inherit}
+.topo .links a:hover{color:var(--marker)}
+.topo .honest{
+  margin:14px 0 0;padding:12px 16px;border-left:6px dotted var(--ink-soft);
+  font-size:14.8px;line-height:1.5;max-width:70ch;color:var(--ink-soft);
+}
+.band .topo .honest{border-left-color:var(--paper-dim);color:var(--paper-dim)}
+
+/* the chooser: where the dashed legend rules meet the "which one is mine" table */
+.bandhead{margin:0 0 6px}
+.bandhead .path{display:block}
+
+@media (max-width:1000px){
+  .drawing{padding:22px 18px 20px}
+  .run .seg[data-l]::before{left:22px;top:50%;transform:translateY(-50%)}
+  .fan{padding-right:0;padding-left:28px;flex:0 0 auto}
+  .fan::before{right:auto;left:0;top:-8px}
+  .fan .dev::before{right:auto;left:-28px;width:28px}
+  .pair{flex:0 0 auto}
+  .dev.brk,.dev.box,.dev.ext{flex:0 0 auto}
+}
+@media (prefers-reduced-motion:reduce){
+  .drawing .run .seg::after{animation:none;opacity:0}
+}
+
+/* ---- tiered drawing: sites / brokers / central Ignition / consumers ------------- */
+/* A rack elevation rather than a single run. Each tier is a labelled row; the rows
+   are joined by a bus with the traffic printed on it. Every Ignition server is its
+   own enclosure and says which SparkBridge modules are installed in it. */
+.arack{display:flex;flex-direction:column;gap:0}
+.arow{display:grid;grid-template-columns:118px 1fr;gap:18px;align-items:center;padding:14px 0}
+.arow .alab{
+  font-family:"Spline Sans Mono",monospace;font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--paper-dim);line-height:1.5;align-self:start;padding-top:6px;
+}
+.arow .alab b{display:block;color:#fff;font-weight:400}
+.arow .acells{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch;min-width:0}
+.arow .acells .dev{flex:1 1 200px;max-width:100%}
+.arow .acells .dev.ign{flex:1 1 240px}
+.arow .acells .dev.wide{flex:2 1 420px}
+.arow .acells .dev.narrow{flex:0 1 160px}
+/* the bus between tiers */
+.bus{
+  position:relative;height:38px;margin-left:136px;margin-right:0;
+  border-top:2px solid var(--steel-dark);
+}
+.bus::before{
+  content:"";position:absolute;left:20%;top:0;bottom:-14px;width:2px;background:var(--steel-dark);
+}
+.bus::after{
+  content:attr(data-l);position:absolute;left:calc(20% + 14px);top:8px;white-space:nowrap;
+  font-family:"Spline Sans Mono",monospace;font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--paper-dim);
+}
+.bus.two::after{color:var(--marker)}
+.bus.right::before{left:auto;right:20%}
+.bus.right::after{left:auto;right:calc(20% + 14px)}
+.bus.pulse span{
+  position:absolute;left:20%;top:-2px;width:2px;height:40%;
+  background:linear-gradient(180deg,transparent,var(--marker),transparent);
+  opacity:0;animation:travel-v .8s ease-in-out 1 forwards;animation-delay:.6s;
+}
+/* an Ignition server enclosure */
+.dev.ign{border-left-width:8px}
+.dev.ign .tagno{color:var(--marker)}
+.dev.ign .where{font-size:12px;color:var(--paper-dim);margin-top:2px;line-height:1.4}
+.dev.ign .chips{margin-top:6px}
+/* the modules that are ours vs Ignition's own */
+.dev .chips span.ia{border-color:var(--steel-dark);color:var(--paper-dim)}
+/* a whole rack of identical servers, said once */
+.dev .count{
+  font-family:"Saira SemiCondensed",sans-serif;font-weight:700;font-size:28px;line-height:1;color:var(--marker);
+}
+/* the before drawing: dimmed, drawn as it is today */
+.drawing.before{border-style:dashed;background:transparent;color:var(--ink)}
+.drawing.before .dev{background:transparent;border:1px solid var(--steel);border-left:6px solid var(--steel);color:var(--ink)}
+.drawing.before .dev .tagno,.drawing.before .dev .job,.drawing.before .arow .alab{color:var(--ink-soft)}
+.drawing.before .arow .alab b{color:var(--ink)}
+.drawing.before .bus{border-top-color:var(--steel)}
+.drawing.before .bus::before{background:var(--steel)}
+.drawing.before .bus::after{color:var(--ink-soft)}
+.drawing.before .dev .chips span{color:var(--ink-soft);border-color:var(--steel)}
+.band .drawing.before{color:#fff}
+.band .drawing.before .dev{color:#fff;border-color:var(--steel-dark)}
+.band .drawing.before .dev .tagno,.band .drawing.before .dev .job,.band .drawing.before .arow .alab{color:var(--paper-dim)}
+.band .drawing.before .arow .alab b{color:#fff}
+.band .drawing.before .dev .chips span{color:var(--paper-dim);border-color:var(--steel-dark)}
+.beforeafter{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+.beforeafter .drawing{margin-top:0}
+.baLabel{
+  font-family:"Spline Sans Mono",monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  margin:22px 0 8px;color:var(--ink-soft);
+}
+.band .baLabel{color:var(--paper-dim)}
+.baLabel b{color:var(--marker);font-weight:400}
+@media (max-width:1000px){
+  .arow{grid-template-columns:1fr;gap:8px}
+  .bus{margin-left:0}
+  .beforeafter{grid-template-columns:1fr}
+}
+/* the clamp on a bone section */
+.topo > .clamp{color:var(--ink);border-color:var(--steel);border-left-color:var(--ink-soft);background:transparent}
+.topo > .clamp .job,.topo > .clamp .tagno{color:var(--ink-soft)}
+.band .topo > .clamp{color:#fff;border-color:var(--steel-dark);border-left-color:var(--paper-dim)}
+.band .topo > .clamp .job,.band .topo > .clamp .tagno{color:var(--paper-dim)}
+
+/* an owned system inside the light before-drawing */
+.drawing.before .dev.ext .devname{color:var(--ink-soft)}
+.band .drawing.before .dev.ext .devname{color:var(--paper-dim)}
