@@ -243,12 +243,28 @@ import * as THREE from 'three';
   // the contract) but now delegates to camZForLen so every existing caller
   // (startRun) still works unchanged.
   // Rev 9.6 (HSE framing law): shark ~25-35% of screen width at cruise.
-  // Rev 12 / 12.5: dolly out ~25% so bigger rosters (len up to 2.6) still
-  // read on screen. Clamps widen to 250..600 to give the longer dolly room
-  // at both ends; framing gate moves to [0.20, 0.28] to match (see the
-  // selftest below).
-  var CAM_Z_LEN_MULT = 2.2;
-  var CAM_Z_MIN = 250, CAM_Z_MAX = 600;
+  // Rev 12 / 12.5 dollied OUT to 2.2 so the biggest rows still fit, which
+  // cost the framing: at 2.2 the roster measured 0.209-0.246 of viewport
+  // width, and the tier-5 great white rendered at 0.221 - roughly 8% of the
+  // 844px CSS viewport once the 3/4 pitch foreshortening is taken off. The
+  // reference bar (Hungry Shark Evolution) frames its player at 25-35%.
+  //
+  // Rev 14 pulls the dolly back IN. The framing fraction is
+  //   frac = lenPx / (CAM_FRAME_TAN2 * z),  z = lenPx * CAM_Z_LEN_MULT
+  // so inside the clamp band the lenPx cancels and frac = 1/(TAN2 * mult) -
+  // one constant fraction for EVERY tier, which is exactly the property the
+  // roster needs when sil.len spans 0.85..2.4. Solving for the middle of the
+  // 28-32% target with TAN2 = 2.0183 gives mult = 1/(2.0183*0.30) = 1.6516;
+  // 1.65 lands the whole roster at 0.3003.
+  //
+  // The clamps are then set so they CANNOT bind anywhere on the roster
+  // (shortest row 105.4px -> z 173.9, longest 297.6px -> z 491.0). A binding
+  // clamp is what breaks the constant-fraction property, because a clamped
+  // row keeps its length while its z stops tracking - that is how the old
+  // 250 floor pushed the small rows down to 0.209 while the big ones sat at
+  // 0.246. 170/500 leaves headroom at both ends without touching any row.
+  var CAM_Z_LEN_MULT = 1.65;
+  var CAM_Z_MIN = 170, CAM_Z_MAX = 500;
   var CAM_Z = CAM_Z_MAX;             // live value, set per run from shark length
   function camZForLen(lenPx) {
     var l = num(lenPx, SHARK_LEN_PX);
@@ -3988,40 +4004,62 @@ import * as THREE from 'three';
         && isFinite(CAM_EAT_ZOOM) && isFinite(CAM_EAT_ZOOM_T)
         && isFinite(CAM_DEATH_PULL) && isFinite(CAM_DEATH_PULL_T)
         && isFinite(CAM_BLOOD_PUSH),
-        'camera constants are finite (fov 50, z clamp [185..400], pitch/bob finite)');
+        'camera constants are finite (fov 50, z clamp [' + CAM_Z_MIN + '..' + CAM_Z_MAX + '], pitch/bob finite)');
 
       // Rev 6 / 6.1: dolly is LENGTH-PROPORTIONAL. camZForLen(len) = clamp(len
       // * 1.60, 185, 400); camZForTier keeps its exported NAME but delegates
       // to it by resolving a def with that tier.
       check(Math.abs(camZForLen(150) - 150 * CAM_Z_LEN_MULT) < 1e-9,
         'camZForLen scales by CAM_Z_LEN_MULT inside the clamp band (150px -> ' + (150 * CAM_Z_LEN_MULT) + ')');
-      check(camZForLen(50) === CAM_Z_MIN, 'camZForLen floors at 185 for a tiny rendered length');
+      check(camZForLen(50) === CAM_Z_MIN, 'camZForLen floors at ' + CAM_Z_MIN + ' for a tiny rendered length');
       check(camZForLen(1000) === CAM_Z_MAX, 'camZForLen ceilings at ' + CAM_Z_MAX + ' for a huge rendered length');
+      // Rev 14: the clamps must not bind on any REAL roster row, or the
+      // constant framing fraction below silently stops holding for that row.
+      // This is the gate that would have caught the Rev 12 regression.
+      var clampRows = RFD.SHARKS || [];
+      for (var cri = 0; cri < clampRows.length; cri++) {
+        var clen = sharkLenPx(clampRows[cri]);
+        check(clen * CAM_Z_LEN_MULT > CAM_Z_MIN && clen * CAM_Z_LEN_MULT < CAM_Z_MAX,
+          'camZ clamps do not bind for ' + clampRows[cri].id + ' (z ' + (clen * CAM_Z_LEN_MULT).toFixed(1) + ' inside ' + CAM_Z_MIN + '..' + CAM_Z_MAX + ')');
+      }
       check(camZForTier(1) === camZForLen(sharkLenPx(sharkById('reef'))),
         'camZForTier(1) delegates to camZForLen for a tier-1 def');
       check(camZForTier(12) === camZForLen(sharkLenPx(sharkById('leviathanrex'))),
         'camZForTier(12) delegates to camZForLen for the tier-12 def');
 
-      // Rev 12 / 12.5: framing fraction gate. sharkLenPx / (2.018 * z) must
-      // sit in [0.20, 0.28] for tiers 1/6/12 - the ~25% dolly-out (CAM_Z_LEN_MULT
-      // 1.75 -> 2.2, clamps 250..600) reads as a smaller on-screen fraction at
-      // the same shark length, so the accept band moves down from the prior
-      // [0.28, 0.34] to match (2.018 is the precomputed 2*tan(fov/2) for
-      // fov=50, matching CAM_FRAME_TAN2 below to a tight tolerance).
+      // Rev 14: framing fraction gate. sharkLenPx / (2.018 * z) must sit in
+      // [0.28, 0.32] - the HSE framing bar (player at 25-35% of screen
+      // width), targeted at its centre. Rev 12/12.5 had dollied out to
+      // CAM_Z_LEN_MULT 2.2 with clamps 250..600, which measured 0.209-0.246
+      // and read as a distant shark; 1.65 with non-binding clamps 170..500
+      // puts EVERY row at 0.3003. The band is checked across the whole
+      // roster rather than three sample tiers, because the failure mode being
+      // guarded (a clamp binding at one end of the length range) shows up
+      // precisely on the rows the tier samples skip. 2.018 is the precomputed
+      // 2*tan(fov/2)*aspect for fov=50, matching CAM_FRAME_TAN2 below.
       check(Math.abs(CAM_FRAME_TAN2 - 2.018) < 0.01,
         'CAM_FRAME_TAN2 matches the documented 2*tan(fov/2) constant (' + CAM_FRAME_TAN2.toFixed(4) + ')');
-      var framingTiers = [
-        { id: 'reef', tier: 1 }, { id: 'megalodon', tier: 6 }, { id: 'leviathanrex', tier: 12 }
-      ];
-      for (var fti = 0; fti < framingTiers.length; fti++) {
-        var fdef = sharkById(framingTiers[fti].id);
-        var flen = sharkLenPx(fdef);
+      var framingRows = RFD.SHARKS || [];
+      var framingMin = Infinity, framingMax = -Infinity, framingWorst = '';
+      for (var fti = 0; fti < framingRows.length; fti++) {
+        var flen = sharkLenPx(framingRows[fti]);
         var fz = camZForLen(flen);
         var frac = flen / (CAM_FRAME_TAN2 * fz);
-        check(frac >= 0.20 && frac <= 0.28,
-          'framing fraction in [0.20,0.28] for tier ' + framingTiers[fti].tier
-          + ' (' + frac.toFixed(3) + ')');
+        if (frac < framingMin) framingMin = frac;
+        if (frac > framingMax) { framingMax = frac; framingWorst = framingRows[fti].id; }
+        if (!(frac >= 0.28 && frac <= 0.32)) {
+          check(false, 'framing fraction in [0.28,0.32] for ' + framingRows[fti].id + ' (' + frac.toFixed(4) + ')');
+          break;
+        }
       }
+      check(framingMin >= 0.28 && framingMax <= 0.32,
+        'framing fraction in [0.28,0.32] for all ' + framingRows.length + ' roster rows ('
+        + framingMin.toFixed(4) + '..' + framingMax.toFixed(4) + ', widest ' + framingWorst + ')');
+      // The fraction must be CONSTANT across the roster, which is the whole
+      // point of a length-proportional dolly with non-binding clamps. A
+      // spread here means a clamp is biting.
+      check(framingMax - framingMin < 1e-9,
+        'framing fraction is identical for every tier (spread ' + (framingMax - framingMin).toExponential(2) + ')');
       check(LIGHT_RIG.hemiIntensity === 0.55 && LIGHT_RIG.sunIntensity === 1.25
         && LIGHT_RIG.sunX < 0 && LIGHT_RIG.sunY > 0 && LIGHT_RIG.sunZ > 0
         && RF.Game && RF.Game.LIGHT_RIG

@@ -15,12 +15,29 @@ const MODEL_FILES = Object.freeze({
   sharky: 'sharky.glb', goblinshark: 'goblinshark.glb', anglerfish: 'anglerfish.glb', piranha: 'piranha.glb',
   whale: 'whale.glb', shark: 'shark.glb', shark_c: 'shark_c.glb', hammer_chibi: 'hammer_chibi.glb',
   manta: 'manta.glb', dolphin: 'dolphin.glb', fish_tuna: 'fish_tuna.glb', fish_blue: 'fish_blue.glb',
-  fish_clown: 'fish_clown.glb', shark_b: 'shark_b.glb'
+  fish_clown: 'fish_clown.glb', shark_b: 'shark_b.glb',
+  /* Rev 14 textured line. These come out of tools/shark_bake.py: ONE skinned
+   * mesh, one PBR material carrying a baked diffuse JPEG plus a tangent-space
+   * normal map, and the same bone names the low-poly rig uses (Nose/Head/
+   * LowerJaw/Neck/Spine1/Spine2/Tail1/Tail2/Tail3). */
+  textured_test: 'textured_test.glb'
 });
+/* A row opts in through sil.model. Membership here is what switches the
+ * material path from the Sharky white-atlas colorizer to the lit PBR path,
+ * and what suppresses the toon treatments (relief wobble, pattern blocks)
+ * that only make sense over a flat untextured hull. */
+const TEXTURED_KEYS = Object.freeze(new Set(['textured_test']));
 const MODEL_KEYS = Object.freeze(Object.keys(MODEL_FILES));
 const TAU = Math.PI * 2;
 const BASE_LENGTH = 96;
 const PATTERN_SUFFIX = ':rf-skin3';
+const TEXTURED_SUFFIX = ':rf-tex1';
+/* Rev 14 procedural-swim axes, in BONE-LOCAL space for a shark_bake.py rig.
+ * See the long note at the rotateOnAxis call in buildLoadedRig: local Z is
+ * world up for these bones, so a yaw beat turns about local Z, while a roll
+ * about the body's long axis turns about local Y. */
+const SWIM_YAW_AXIS = Object.freeze(new THREE.Vector3(0, 0, 1));
+const SWIM_ROLL_AXIS = Object.freeze(new THREE.Vector3(0, 1, 0));
 const JAW_REST_GAPE = 0.28;
 const JAW_MAX_ROTATION = 0.72;
 const PATTERN_IDS = Object.freeze({
@@ -904,6 +921,11 @@ function applyVariantBoneProfile(root, template, profile) {
 }
 function rows() { return host.RFD?.SHARKS || RF.RFD?.SHARKS || RF.SHARKS || []; }
 function baseForDef(def) {
+  /* Rev 14: an explicit sil.model wins over the head-tag routing. Unknown
+   * keys fall through to the tag rules rather than throwing, so a data row
+   * naming an asset this build does not ship still renders. */
+  const authored = String(def?.sil?.model || '');
+  if (authored && MODEL_FILES[authored]) return authored;
   const head = String(def?.sil?.head || '');
   if (head === 'goblin' || String(def?.id || '') === 'goblin') return 'goblinshark';
   if (head === 'angler') return 'anglerfish';
@@ -931,8 +953,37 @@ function measureBox(root) {
      * would rescale the whole shark. */
     if (object.userData.rfExcludeFromBounds) return;
     if (object.isSkinnedMesh) {
-      if (!object.userData.rfFrozenBounds) object.computeBoundingBox();
-      if (object.boundingBox) out.union(object.boundingBox.clone().applyMatrix4(object.matrixWorld));
+      /* Rev 14: THREE.SkinnedMesh.computeBoundingBox() walks every vertex
+       * THROUGH its bone matrices, so what it returns is the box of the
+       * currently POSED mesh, not of the mesh as authored. For the Sharky
+       * family that is harmless because their bind pose is identity-ish and
+       * the posed box tracks the hull. A shark_bake.py rig is different: its
+       * bind pose carries real bone rotations (Tail3 alone holds a -90 deg X
+       * quaternion) and a chain of +local-Y offsets, so the skinned box comes
+       * back effectively rotated and inflated - measured on textured_test,
+       * a true geometry box of x0.33 y0.37 z1.00 reported as x0.33 y1.00
+       * z0.86. Feeding that to the length normalization scaled the shark off
+       * its own long axis and rolled it in frame.
+       *
+       * The geometry box is the honest measure of the authored body, and the
+       * skinned box only differs from it when bones have moved the mesh. So
+       * prefer the geometry box, and fall back to the skinned box when the
+       * mesh has no geometry bounds to read. The swim wave and jaw gape are
+       * small deflections about this box, which is exactly the behaviour the
+       * length contract wants: a stable body length that does not breathe
+       * with the animation. */
+      /* Scoped to the baked rigs by an explicit per-mesh opt-in. The Sharky
+       * family keeps the posed box it has always used: its procedural face
+       * overlay is FITTED against that box, and swapping it there moves every
+       * eye and tooth. Only a rig whose bind pose actually misreports gets
+       * the geometry box. */
+      if (object.userData.rfBindPoseBounds && object.geometry?.attributes?.position) {
+        if (!object.geometry.boundingBox) object.geometry.computeBoundingBox();
+        out.union(object.geometry.boundingBox.clone().applyMatrix4(object.matrixWorld));
+      } else {
+        if (!object.userData.rfFrozenBounds) object.computeBoundingBox();
+        if (object.boundingBox) out.union(object.boundingBox.clone().applyMatrix4(object.matrixWorld));
+      }
     } else if (object.geometry?.boundingBox) out.union(object.geometry.boundingBox.clone().applyMatrix4(object.matrixWorld));
     else out.expandByObject(object);
   });
@@ -942,22 +993,139 @@ function prepareTemplate(scene, animations = [], key = '') {
   const meshes = findMeshes(scene), skinnedMeshes = meshes.filter((object) => object.isSkinnedMesh);
   const source = skinnedMeshes[0] || meshes[0];
   if (!source) throw new Error(`${key}: no mesh`);
+  /* Mark the baked rigs before ANY measurement happens, so the very first
+   * measureBox() in this function already reads their bind-pose bounds. */
+  if (TEXTURED_KEYS.has(String(key || ''))) for (const mesh of meshes) mesh.userData.rfBindPoseBounds = true;
   const isSkinned = skinnedMeshes.length > 0;
   scene.updateMatrixWorld(true);
   const clip = animations?.find((a) => /swim(?![_a-z])/i.test(a.name || '') || /swimming_normal/i.test(a.name || '')) || animations?.find((a) => /swim|swimming/i.test(a.name || '')) || animations?.[0] || null;
   if (isSkinned && clip) { const mixer = new THREE.AnimationMixer(scene); mixer.clipAction(clip).play(); mixer.update(0); scene.updateMatrixWorld(true); }
   const initialBox = measureBox(scene), initialSize = initialBox.getSize(new THREE.Vector3());
-  const axis = initialSize.y >= initialSize.x && initialSize.y >= initialSize.z ? 'y' : initialSize.z > initialSize.x ? 'z' : 'x';
+  /* Rev 14 axis law. measureBox() unions SKINNED bounding boxes, and
+   * THREE.SkinnedMesh.computeBoundingBox() expands the box by the bone
+   * matrices. The Sharky-family rigs happen to bind with their bones close
+   * to the hull, so their skinned box still reports the true long axis. A
+   * shark_bake.py rig does not: its spine is a chain of parent-relative
+   * +local-Y translations, which inflates the skinned Y extent past the real
+   * nose-to-tail Z extent (measured on textured_test: skinned 0.328 x 1.006
+   * x 0.863 against a true bind-pose 0.328 x 0.368 x 1.000). Picking the
+   * axis off that skinned box chose 'y' and laid the shark on its side.
+   * The BIND-POSE geometry is the honest measure of which way the body runs,
+   * so take the axis from it and keep the skinned box only for the
+   * center/scale normalization, which is unaffected. */
+  const axisSize = new THREE.Vector3();
+  {
+    const bindBox = new THREE.Box3().makeEmpty(), scratch = new THREE.Box3();
+    for (const mesh of meshes) {
+      if (mesh.userData.rfExcludeFromBounds || !mesh.geometry?.attributes?.position) continue;
+      scratch.setFromBufferAttribute(mesh.geometry.attributes.position);
+      bindBox.union(scratch.applyMatrix4(mesh.matrixWorld));
+    }
+    if (bindBox.isEmpty()) axisSize.copy(initialSize); else bindBox.getSize(axisSize);
+  }
+  const axis = axisSize.y >= axisSize.x && axisSize.y >= axisSize.z ? 'y' : axisSize.z > axisSize.x ? 'z' : 'x';
   const unitScale = 1 / Math.max(initialSize.x, initialSize.y, initialSize.z, 1e-5);
   scene.scale.setScalar(unitScale); scene.position.sub(initialBox.getCenter(new THREE.Vector3()).multiplyScalar(unitScale));
   if (axis === 'y') scene.rotation.z = -Math.PI / 2; else if (axis === 'z') scene.rotation.y = Math.PI / 2;
   scene.updateMatrixWorld(true);
+  /* Rev 14 nose-axis law. Every consumer downstream (the length
+   * normalization, the camera contract, world3d's heading) assumes the nose
+   * sits at +x after this rotation, which is what the Sharky rig happens to
+   * give. The baked assets are authored nose-at--Z in Blender, and the
+   * axis-'z' branch above maps local -Z onto world -x, so they would swim
+   * backwards. Rather than hard-code a per-asset flip, measure it: compare
+   * the world x of the Head bone against the last Tail bone and add a 180
+   * spin about the up axis when the head is behind the tail. This is a
+   * no-op for every existing model and self-corrects if a future bake
+   * changes handedness. */
+  /* Rev 14 roll law. After the axis rotation above, this file's downstream
+   * contract is that the body's LONG axis is world x and its DORSAL (up)
+   * axis is world z - not world y. The Sharky family satisfies that because
+   * the axis-'y' branch rotates about z, which carries the model's own up
+   * onto world z. The axis-'z' branch a Blender bake takes rotates about y,
+   * which preserves the model's up as world y and therefore lands the shark
+   * rolled 90 degrees onto its side - belly to camera, dorsal fin pointing
+   * sideways.
+   *
+   * Measured on the low-poly reference (reef): a correctly oriented shark
+   * has its mid-body z span EXCEED its y span, because the dorsal fin is a
+   * one-sided spike along up (reef: y 30.3 against z 34.6, with z reaching
+   * +31.5 on one side only). textured_test came out y 57.2 against z 50.9,
+   * i.e. the two swapped. So roll about the long axis until the taller,
+   * more one-sided span is on z. This is measured rather than hard-coded,
+   * so a future bake that already exports Z-up is left alone. */
+  {
+    const rollBox = new THREE.Box3().makeEmpty(), rollScratch = new THREE.Box3();
+    for (const mesh of meshes) {
+      if (mesh.userData.rfExcludeFromBounds || !mesh.geometry?.attributes?.position) continue;
+      rollScratch.setFromBufferAttribute(mesh.geometry.attributes.position);
+      rollBox.union(rollScratch.applyMatrix4(mesh.matrixWorld));
+    }
+    if (!rollBox.isEmpty()) {
+      const rollSize = rollBox.getSize(new THREE.Vector3());
+      if (rollSize.y > rollSize.z * 1.02) { scene.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2); scene.updateMatrixWorld(true); }
+    }
+  }
+  const noseBone = scene.getObjectByName('Head') || scene.getObjectByName('Nose');
+  const tailBone = scene.getObjectByName('Tail3') || scene.getObjectByName('Tail2') || scene.getObjectByName('Tail1');
+  if (noseBone && tailBone) {
+    const nosePosition = new THREE.Vector3().setFromMatrixPosition(noseBone.matrixWorld);
+    const tailPosition = new THREE.Vector3().setFromMatrixPosition(tailBone.matrixWorld);
+    if (nosePosition.x < tailPosition.x) { scene.rotation.y += Math.PI; scene.updateMatrixWorld(true); }
+  }
   const normalizedBox = measureBox(scene);
   const materials = [];
   for (const mesh of meshes) for (const material of (Array.isArray(mesh.material) ? mesh.material : [mesh.material])) if (material && !materials.includes(material)) materials.push(material);
   const sourceMaterials = (Array.isArray(source.material) ? source.material : [source.material]).map((material) => String(material?.name || 'Body'));
+  /* Rev 14 bind-space up axis.
+   *
+   * The countershade ramp and the wet-specular ramp both need to know which
+   * way is UP in the mesh's own bind space, because that is the only frame
+   * that stays welded to the body while the swim wave and jaw gape move
+   * vertices around. Which bind axis that is depends entirely on how the
+   * asset was authored, and guessing it wrong is silent: the ramp still
+   * compiles and still renders, it just modulates along a meaningless
+   * direction and the countershade measures flat. (Measured exactly that on
+   * textured_test: assuming bind Y gave a top-to-bottom flank gradient of
+   * 1.07x, effectively none, because bind Y correlates 0.015 with world up
+   * while bind -X correlates -1.000.)
+   *
+   * So MEASURE it rather than assume: correlate each bind axis against world
+   * up across the mesh and take the strongest, with its sign. Emitted as a
+   * vec3 the shader dots against, so any bake orientation works and no axis
+   * is hard-coded. */
+  const bindUp = (() => {
+    const position = source.geometry?.attributes?.position;
+    if (!position) return new THREE.Vector3(0, 1, 0);
+    const local = new THREE.Vector3(), world = new THREE.Vector3(), count = position.count;
+    let best = new THREE.Vector3(0, 1, 0), bestScore = 0;
+    for (const axis of ['x', 'y', 'z']) {
+      let sumAB = 0, sumA = 0, sumB = 0, sumAA = 0, sumBB = 0;
+      for (let i = 0; i < count; i++) {
+        local.fromBufferAttribute(position, i); world.copy(local).applyMatrix4(source.matrixWorld);
+        const a = local[axis], b = world.y;
+        sumAB += a * b; sumA += a; sumB += b; sumAA += a * a; sumBB += b * b;
+      }
+      const denominator = Math.sqrt((count * sumAA - sumA * sumA) * (count * sumBB - sumB * sumB));
+      const correlation = denominator > 1e-9 ? (count * sumAB - sumA * sumB) / denominator : 0;
+      if (Math.abs(correlation) > Math.abs(bestScore)) {
+        bestScore = correlation;
+        best = new THREE.Vector3(axis === 'x' ? 1 : 0, axis === 'y' ? 1 : 0, axis === 'z' ? 1 : 0).multiplyScalar(correlation > 0 ? 1 : -1);
+      }
+    }
+    return best;
+  })();
+  /* Half-extent of the body along that axis, so the ramp can be normalized
+   * into 0..1 instead of depending on the asset's authored scale. */
+  const bindUpExtent = (() => {
+    const position = source.geometry?.attributes?.position;
+    if (!position) return 0.5;
+    const local = new THREE.Vector3(); let lo = Infinity, hi = -Infinity;
+    for (let i = 0; i < position.count; i++) { const d = local.fromBufferAttribute(position, i).dot(bindUp); if (d < lo) lo = d; if (d > hi) hi = d; }
+    return Math.max((hi - lo) * 0.5, 1e-4);
+  })();
   return {
-    key, scene, body: source, meshes, skinnedMeshes, materials, animations: animations || [], clip,
+    key, scene, body: source, meshes, skinnedMeshes, materials, animations: animations || [], clip, bindUp, bindUpExtent,
     clips: {
       swim: animations?.find((a) => /(?:^|\|)Swim(?:$|\||_)/i.test(a.name || '') && !/Fast|Bite/i.test(a.name || '')) || clip,
       fast: animations?.find((a) => /Swim_Fast|Swimming_Fast/i.test(a.name || '')) || null,
@@ -1449,6 +1617,207 @@ const SHADER_UNIFORMS = Object.freeze([
 ]);
 function materialIsFace(name) { return /eye|teeth|tooth|mouth/i.test(String(name || '')); }
 function sourceMap(sourceMaterial) { return sourceMaterial?.map || null; }
+
+/* ---------------------------------------------------------------- Rev 14
+ * Textured skin path.
+ *
+ * The Sharky path above paints a palette over a white atlas because that
+ * asset has no real skin information: its "texture" is a flat-color island
+ * sheet, so the shader has to invent the countershade, the relief and the
+ * pattern. A shark_bake.py asset is the opposite. It carries a baked diffuse
+ * with real painted skin and a tangent-space normal map with real surface
+ * detail, and the correct job here is to LIGHT that, not to repaint it.
+ *
+ * So this material keeps the GLB's own maps as the base and applies the
+ * palette resolver as a HUE/SAT TINT over the diffuse rather than a
+ * replacement. That is what lets one baked asset serve 86 authored rows
+ * without each becoming a differently-colored copy of the same flat shape:
+ * the painted detail, the countershading and the wear all survive the
+ * recolor because only hue and saturation move, while the diffuse's own
+ * luminance carries the form.
+ *
+ * Countershading is preserved AND reinforced: the bake already paints a dark
+ * back and a bright belly, and a gentle bind-space ramp multiplies that
+ * existing gradient instead of overwriting it, so the tint cannot flatten
+ * the two sides into one tone the way a straight region mix would.
+ */
+const TEXTURED_UNIFORMS = Object.freeze([
+  'uRfHueShift', 'uRfHueBlend', 'uRfSaturation', 'uRfTopColor', 'uRfBottomColor', 'uRfAccentColor',
+  'uRfCounterGain', 'uRfRimColor', 'uRfRimPower', 'uRfRimStrength', 'uRfWetness', 'uRfBindUp', 'uRfBindUpExtent'
+]);
+function texturedSkinMaterial(palette, def, sourceMaterial = null, sourceName = '', bindUp = null, bindUpExtent = 0.5) {
+  const id = String(def?.id || ''), faceSlot = materialIsFace(sourceName);
+  const map = sourceMap(sourceMaterial), normalMap = sourceMaterial?.normalMap || null;
+  /* The palette resolver stays the single authority on a row's identity. Its
+   * resolved base hue/sat becomes the tint target; its belly and accent feed
+   * the countershade reinforcement and the rim. */
+  const baseHsv = rgbToHsv(palette.base);
+  const uniforms = {
+    /* uRfHueShift is a hue TARGET, not a delta.
+     *
+     * The first cut computed a delta against sourceMaterial.color, which for
+     * a glTF PBR material is the base-color FACTOR - white (h 0, s 0)
+     * whenever the color lives in the texture, which is the whole point of a
+     * baked asset. Differencing against a hue that does not exist produced a
+     * full +0.600 rotation on greatwhite and turned grey shark skin magenta.
+     *
+     * A baked shark hide is near-neutral by construction: its identity is
+     * value and detail, not hue. So the shader STEERS hue toward the
+     * authored target proportionally to how saturated the texel already is
+     * (see uRfHueBlend), which recolors the skin without inventing rotations
+     * for texels that have no meaningful hue to rotate. */
+    uRfHueShift: { value: baseHsv.h },
+    /* How firmly to pull toward that target. A neutral texel takes the
+     * authored hue outright; a texel that already carries strong hue of its
+     * own (a red mouth, a blue eye) keeps more of itself. */
+    uRfHueBlend: { value: 0.85 },
+    /* Saturation is ADDITIVE toward the authored saturation rather than a
+     * pure multiplier, because multiplying a near-zero baked saturation by
+     * any finite gain is still near zero - a grey shark stays grey no matter
+     * how vivid the palette row is. This carries the row's identity onto a
+     * neutral hide while the ACES/cyan-wash pre-compensation the Sharky path
+     * uses is folded into the target. */
+    /* Rev 14 scene pre-compensation, measured rather than assumed. The
+     * shader steers the hide to the authored hue correctly (simulated over
+     * the real diffuse: mean hue 0.607 against a 0.600 target), but the
+     * rendered flank measured 0.467 - the cyan HemisphereLight and the
+     * FogExp2 in the same 0x9fd4e8 drag every hue toward the water before it
+     * reaches the eye, which is the exact effect the Rev 13 notes recorded
+     * for the toon path. A low-saturation authored row like greatwhite
+     * (s 0.34) has nothing left to resist that with, so raise the SATURATION
+     * FLOOR: the more washed-out the authored swatch, the more headroom it
+     * needs to survive the water. Ceilinged well below 1 so the hide never
+     * posterizes into a flat color chip. */
+    uRfSaturation: { value: clamp(0.30 + baseHsv.s * SCENE_SATURATION_GAIN, 0.30, 0.88) },
+    uRfTopColor: { value: palette.base.clone() },
+    uRfBottomColor: { value: palette.belly.clone() },
+    uRfAccentColor: { value: palette.accent.clone() },
+    /* How hard the bind-space ramp reinforces the bake's own countershade.
+     * This MULTIPLIES the diffuse, so 1.0 at the belly and <1 at the back
+     * deepens an existing gradient without inventing a new terminator. */
+    uRfCounterGain: { value: faceSlot ? 0 : SCENE_COUNTERSHADE_GAIN },
+    /* Measured in prepareTemplate: the bind-space direction that maps to
+     * world up for THIS asset, plus the body's half-extent along it. The
+     * shader dots the bind position against this instead of assuming an
+     * axis, which is what makes the countershade track the real back-to-
+     * belly direction on any bake orientation. */
+    uRfBindUp: { value: (bindUp ? bindUp.clone() : new THREE.Vector3(0, 1, 0)) },
+    uRfBindUpExtent: { value: bindUpExtent },
+    /* A subtle fresnel rim in the belly hue. Underwater, the light that
+     * separates a body from the water is scattered fill wrapping the
+     * silhouette, so the rim is tinted toward the belly rather than white. */
+    uRfRimColor: { value: palette.belly.clone().lerp(new THREE.Color(0.62, 0.86, 1.0), 0.55) },
+    uRfRimPower: { value: 2.6 },
+    uRfRimStrength: { value: faceSlot ? 0.10 : 0.34 },
+    /* Wet specular: a broad-band gloss boost concentrated on the upper body,
+     * which is where a wet hide actually catches the key. */
+    uRfWetness: { value: faceSlot ? 0.20 : 0.62 }
+  };
+  const material = new THREE.MeshStandardMaterial({
+    /* White base color: the diffuse map IS the color. Multiplying the palette
+     * in here would double-apply the tint the shader already does in HSV. */
+    color: new THREE.Color(1, 1, 1), map, normalMap,
+    /* Owner's brief: wet painted skin. 0.40 is glossy enough to hold a
+     * specular highlight under the directional key without going plastic,
+     * and the shader modulates it lower still along the lit back. */
+    roughness: 0.40, metalness: 0.0, flatShading: false,
+    emissive: new THREE.Color(0, 0, 0), emissiveIntensity: 0
+  });
+  if (normalMap && sourceMaterial?.normalScale) material.normalScale.copy(sourceMaterial.normalScale);
+  material.name = `RF Rev 14 textured skin ${id} ${sourceName || 'Body'}`;
+  material.userData.rfTexturedUniforms = uniforms;
+  material.userData.rfTextured = true;
+  material.userData.rfHasDiffuse = !!map;
+  material.userData.rfHasNormalMap = !!normalMap;
+  material.userData.rfShading = 'MeshStandardMaterial; baked diffuse + tangent normal map; roughness 0.40 with wet specular; fresnel rim; palette applied as HSV tint';
+  material.onBeforeCompile = (shader) => {
+    for (const name of TEXTURED_UNIFORMS) shader.uniforms[name] = uniforms[name];
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vRfBindPosition;')
+      /* Bind-space position, i.e. BEFORE skinning. Taking it here means the
+       * countershade terminator is welded to the body and does not slide
+       * along the flank as the swim bend and the jaw gape move vertices. */
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRfBindPosition = position;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', [
+        '#include <common>',
+        'uniform float uRfHueShift;', 'uniform float uRfHueBlend;', 'uniform float uRfSaturation;',
+        'uniform vec3 uRfTopColor;', 'uniform vec3 uRfBottomColor;', 'uniform vec3 uRfAccentColor;',
+        'uniform float uRfCounterGain;', 'uniform vec3 uRfBindUp;', 'uniform float uRfBindUpExtent;',
+        'uniform vec3 uRfRimColor;', 'uniform float uRfRimPower;', 'uniform float uRfRimStrength;',
+        'uniform float uRfWetness;',
+        'varying vec3 vRfBindPosition;',
+        'vec3 rfRgbToHsv(vec3 c){vec4 K=vec4(0.0,-1.0/3.0,2.0/3.0,-1.0);vec4 p=mix(vec4(c.bg,K.wz),vec4(c.gb,K.xy),step(c.b,c.g));vec4 q=mix(vec4(p.xyw,c.r),vec4(c.r,p.yzx),step(p.x,c.r));float d=q.x-min(q.w,q.y);return vec3(abs(q.z+(q.w-q.y)/(6.0*d+1e-5)),d/(q.x+1e-5),q.x);}',
+        'vec3 rfHsvToRgb(vec3 c){vec3 p=abs(fract(c.xxx+vec3(0.0,1.0/3.0,2.0/3.0))*6.0-3.0);return c.z*mix(vec3(1.0),clamp(p-1.0,0.0,1.0),c.y);}'
+      ].join('\n'))
+      /* Tint AFTER <map_fragment> so diffuseColor already holds the sampled,
+       * colorspace-converted diffuse texel. */
+      .replace('#include <map_fragment>', ['#include <map_fragment>',
+        'vec3 rfHsv = rfRgbToHsv(diffuseColor.rgb);',
+        /* Steer hue toward the authored target. The pull is strongest where
+         * the baked texel is closest to neutral, which is most of a shark
+         * hide, and weakest where the bake painted a deliberate hue (mouth,
+         * eye, fin edge) that should survive the recolor. Interpolate the
+         * SHORT way around the wheel so a target near 0.0 and a texel near
+         * 1.0 do not sweep through the whole spectrum. */
+        'float rfHueGap = fract(uRfHueShift - rfHsv.x + 1.5) - 0.5;',
+        /* The neutral weight was originally 1.0 - smoothstep(0.10, 0.45),
+         * which faded the steer out over most of a hide whose baked
+         * saturation sits around 0.2-0.3, leaving the flank short of its
+         * authored hue (measured 0.468 against a 0.600 target). Push the
+         * fade window up so only genuinely colored texels resist. */
+        'float rfNeutral = 1.0 - smoothstep(0.42, 0.80, rfHsv.y);',
+        'rfHsv.x = fract(rfHsv.x + rfHueGap * uRfHueBlend * rfNeutral);',
+        /* Additive toward the authored saturation, weighted the same way, so
+         * a neutral hide actually takes the row color while an already
+         * colored texel is only nudged. */
+        'rfHsv.y = clamp(mix(rfHsv.y, max(rfHsv.y, uRfSaturation), rfNeutral), 0.0, 1.0);',
+        'diffuseColor.rgb = rfHsvToRgb(rfHsv);',
+        /* Reinforce the bake's countershade. vRfBindPosition.y is up in bind
+         * space (the rig is authored Y-up before prepareTemplate rotates it),
+         * so this is a vertical ramp: darken toward the back, lift toward the
+         * belly, both as MULTIPLIERS on the painted skin. */
+        'float rfUp = clamp(dot(vRfBindPosition, uRfBindUp) / (2.0 * uRfBindUpExtent) + 0.5, 0.0, 1.0);',
+        /* Countershade: dark back, bright belly. rfUp is 1 at the dorsal
+         * ridge and 0 at the belly, so the multiplier runs the other way.
+         * The span is deliberately wide (0.55 back against 1.45 belly) - the
+         * cyan fog sits on top of this and compresses it hard, so a timid
+         * ramp arrives as no ramp at all. A smoothstep keeps the terminator
+         * a soft wrap rather than a painted waterline. */
+        'float rfShade = smoothstep(0.02, 0.86, rfUp);',
+        'float rfCounter = mix(1.52, 0.46, rfShade);',
+        'diffuseColor.rgb *= mix(1.0, rfCounter, clamp(uRfCounterGain, 0.0, 1.4));',
+        /* A whisper of the authored belly hue in the lowest band keeps the
+         * underside reading as this row's color rather than neutral grey. */
+        /* A whisper of the authored belly hue in the LOWEST band (rfUp near
+         * 0) keeps the underside reading as this row\'s color rather than
+         * neutral grey, and a touch of the base hue along the ridge does the
+         * same for the back. */
+        'diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * uRfBottomColor * 2.10, (1.0 - smoothstep(0.02, 0.38, rfUp)) * 0.34);',
+        'diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * uRfTopColor * 2.10, smoothstep(0.66, 0.99, rfUp) * 0.30);'
+      ].join('\n'))
+      /* Wet look: pull roughness down along the upper body so the key light
+       * lays a real specular streak down the back, which is the single
+       * strongest "this is a lit 3D animal" cue at gameplay size. */
+      .replace('#include <roughnessmap_fragment>', ['#include <roughnessmap_fragment>',
+        'float rfWetUp = clamp(dot(vRfBindPosition, uRfBindUp) / (2.0 * uRfBindUpExtent) + 0.5, 0.0, 1.0);',
+        /* Gloss concentrated along the BACK, which is the surface actually
+         * facing the key light and where a wet hide catches its highlight. */
+        'roughnessFactor = clamp(roughnessFactor * mix(1.06, 0.46, uRfWetness * smoothstep(0.30, 0.98, rfWetUp)), 0.06, 1.0);'
+      ].join('\n'))
+      /* Fresnel rim, added with the emissive so it survives tone mapping the
+       * same way the rest of the lighting does. */
+      .replace('#include <emissivemap_fragment>', ['#include <emissivemap_fragment>',
+        'float rfFresnel = pow(clamp(1.0 - abs(dot(normalize(normal), normalize(vViewPosition))), 0.0, 1.0), uRfRimPower);',
+        'totalEmissiveRadiance += uRfRimColor * rfFresnel * uRfRimStrength;'
+      ].join('\n'));
+  };
+  /* A distinct cache key: this program shares nothing with the :rf-skin3
+   * atlas shader and must never be reused for it. */
+  material.customProgramCacheKey = () => `${id}${TEXTURED_SUFFIX}`;
+  material.needsUpdate = true;
+  return material;
+}
 function skinMaterial(palette, def, sourceMaterial = null, sourceName = '', atlas = false, featureMode = '') {
   const id = String(def?.id || ''), profile = variantProfile(def), personality = personalityOf(def), face = personality?.face || { eye: 1, brow: 0, pupil: 1, gape: 0, tilt: 0 }, surface = personality?.surface || { relief: 0.04, density: 1, scars: 0, plates: 0, mode: 0 }, faceSlot = materialIsFace(sourceName), map = sourceMap(sourceMaterial), sourceColor = sourceMaterial?.color?.clone?.() || new THREE.Color(1, 1, 1);
   const uniforms = {
@@ -2339,6 +2708,12 @@ function makePlaceholder(def, group) {
 
 function buildLoadedRig(def, template, group) {
   const palette = paletteOf(def), personality = personalityOf(def), model = cloneRigScene(template), meshes = findMeshes(model), skinnedMeshes = meshes.filter((mesh) => mesh.isSkinnedMesh), body = skinnedMeshes[0] || meshes[0];
+  /* Rev 14: a textured row is lit painted skin, not a repainted toon hull.
+   * That single flag gates the material choice, the personality sculpt (the
+   * bake already carries its own silhouette and the sculpt would fight the
+   * baked normal map and UVs), the geometry face overlay (the bake paints
+   * its own eyes and mouth), and the procedural swim below. */
+  const textured = TEXTURED_KEYS.has(String(template.key || ''));
   if (!body) throw new Error(`${def.id}: cloned model has no body`);
   const pose = new THREE.Group(); pose.name = 'RF Rev 9b pose root'; group.add(pose); pose.add(model);
   const headBone = findHeadBone(model, template.key), propBone = findPropBone(model, template.key, propKind(def));
@@ -2354,12 +2729,20 @@ function buildLoadedRig(def, template, group) {
   const bakedGeometry = [];
   for (let meshIndex = 0; meshIndex < skinnedMeshes.length; meshIndex++) {
     const mesh = skinnedMeshes[meshIndex], sourceMesh = template.skinnedMeshes[meshIndex] || template.body;
-    mesh.geometry = personalityGeometryFor(sourceMesh, def, template.key, meshIndex); bakedGeometry.push(mesh.geometry.userData.rfPersonalityBaked || null);
+    /* The personality sculpt displaces vertices against the Sharky bind pose
+     * and recomputes normals. On a baked asset that would desynchronize the
+     * mesh from its tangent-space normal map and its UV layout, so a textured
+     * row keeps the authored geometry exactly as the bake produced it. */
+    mesh.geometry = textured ? sourceMesh.geometry : personalityGeometryFor(sourceMesh, def, template.key, meshIndex);
+    if (textured && !mesh.geometry.userData.rfPersonalityBaked) mesh.geometry.userData.rfPersonalityBaked = { id: String(def?.id || ''), neutral: true, maxOffset: 0, maxOffsetRatio: 0, maxOffsetOutsideCrest: 0, maxOffsetOutsideCrestRatio: 0, vertexCount: mesh.geometry.getAttribute('position')?.count || 0, seamFree: true, roleSource: 'textured bake: authored geometry preserved', crest: null };
+    bakedGeometry.push(mesh.geometry.userData.rfPersonalityBaked || null);
     const sourceMaterials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
     const atlas = template.key === 'sharky' || sourceMaterials.some((material) => String(material?.name || '') === 'AtlasMaterial');
     if (def?.id === SHARKJIRA_ID && !mesh.geometry.getAttribute('rfCrest')) mesh.geometry.setAttribute('rfCrest', new THREE.Float32BufferAttribute(new Float32Array(mesh.geometry.getAttribute('position').count), 1));
     if (def?.id === SHARKJIRA_ID && !mesh.geometry.getAttribute('rfCrestEdge')) mesh.geometry.setAttribute('rfCrestEdge', new THREE.Float32BufferAttribute(new Float32Array(mesh.geometry.getAttribute('position').count), 1));
-    const materials = sourceMaterials.map((sourceMaterial) => skinMaterial(palette, def, sourceMaterial, sourceMaterial?.name || '', atlas));
+    const materials = sourceMaterials.map((sourceMaterial) => textured
+      ? texturedSkinMaterial(palette, def, sourceMaterial, sourceMaterial?.name || '', template.bindUp, template.bindUpExtent)
+      : skinMaterial(palette, def, sourceMaterial, sourceMaterial?.name || '', atlas));
     mesh.material = materials.length === 1 ? materials[0] : materials;
     mesh.userData.rfMaterialSlots = sourceMaterials.map((material) => String(material?.name || 'Body')); mesh.renderOrder = 1;
     if (def?.id === SHARKJIRA_ID) mesh.frustumCulled = false;
@@ -2367,7 +2750,9 @@ function buildLoadedRig(def, template, group) {
   }
   const sharkjira = def?.id === SHARKJIRA_ID ? makeSharkjiraFeatures(body) : null;
   const leviathan = def?.id === LEVIATHAN_ID ? makeLeviathanFeatures(body) : null;
-  const faceMesh = makeFace(body, def, palette);
+  /* The bake paints eyes, mouth and teeth into the diffuse. Bolting the
+   * procedural face batch on top would double them. */
+  const faceMesh = textured ? null : makeFace(body, def, palette);
   /* 9.6: no BackSide ink shell. Smooth Standard shading supplies the edge
    * separation without the doubled silhouette draw. */
   const shell = null;
@@ -2409,7 +2794,6 @@ function buildLoadedRig(def, template, group) {
   group.userData.rfPersonality = personality ? { id: def.id, brief: personality.brief, bulk: personality.bulk, sculpt: personality.sculpt, face: personality.face, surface: personality.surface, signature: personality.signature } : null;
   group.userData.rfMorph = bakedGeometry[0] || { id: def.id, neutral: false, maxOffset: 0, maxOffsetRatio: 0, vertexCount: body.geometry.getAttribute('position')?.count || 0, seamFree: false };
   group.userData.rfSourceBase = template.key; group.userData.rfPattern = String(def?.sil?.pattern || 'plain'); group.userData.rfPatternId = patternId(def);
-  group.userData.rfMixerClipName = template.clips.swim?.name || template.clip?.name || null; group.userData.rfFastClipName = template.clips.fast?.name || null; group.userData.rfBiteClipName = template.clips.bite?.name || null;
   group.userData.rfHeadBone = headBone?.name || null; group.userData.rfPropBone = propBone?.name || null; group.userData.rfPropKind = prop?.userData?.rfPropKind || null;
   group.userData.rfPropAllowlisted = !prop || PROP_ALLOWLIST_IDS.has(String(def?.id || ''));
   group.userData.rfPropContactGap = prop ? finite(prop.userData.rfContactGap, Infinity) : 0;
@@ -2423,6 +2807,31 @@ function buildLoadedRig(def, template, group) {
   const animation = { lastT: null, bite: 0, turn: 0, death: 0, active: 'swim', biteActive: false, biteLatched: false };
   const baseHeadQuaternion = headBone?.quaternion.clone(), neckBone = model.getObjectByName('Neck') || model.getObjectByName('Main5'), baseNeckQuaternion = neckBone?.quaternion.clone();
   const jawBone = model.getObjectByName('LowerJaw'), baseJawQuaternion = jawBone?.quaternion.clone();
+  /* Rev 14 procedural swim. shark_bake.py builds the rig but exports no
+   * animation clips, so a textured row has no Swim/Fast/Bite action to play.
+   * Rather than ship a rigid shark, drive the spine directly: a travelling
+   * sine wave down the bone chain, which is what a real swim clip on this
+   * skeleton would encode anyway. It runs on the SAME bones the GPU skinning
+   * already consumes, so the hardware skinning path, the jaw gape and the
+   * bend all compose without a second vertex pipeline.
+   *
+   * Amplitude ramps toward the tail (a shark's head barely yaws while the
+   * caudal fin does the work) and scales with speed, matching how the clip-
+   * driven rows read at the same speedFrac. */
+  const SWIM_CHAIN = ['Neck', 'Spine1', 'Spine2', 'Tail1', 'Tail2', 'Tail3'];
+  const swimBones = textured ? SWIM_CHAIN.map((name, index) => {
+    const bone = model.getObjectByName(name);
+    return bone ? { bone, base: bone.quaternion.clone(), phase: index * 0.55, gain: 0.035 + index * 0.028 } : null;
+  }).filter(Boolean) : [];
+  /* A textured bake ships no clips, so the procedural spine wave IS this
+   * row's swim/fast/bite source. Name it so the art gate reads a real
+   * animation source rather than a missing one, and so a debug dump says
+   * plainly which path drove the motion. */
+  group.userData.rfMixerClipName = template.clips.swim?.name || template.clip?.name || (swimBones.length ? 'Swim (procedural spine wave)' : null);
+  group.userData.rfFastClipName = template.clips.fast?.name || (swimBones.length ? 'Swim_Fast (procedural, speed-scaled)' : null);
+  group.userData.rfBiteClipName = template.clips.bite?.name || (swimBones.length ? 'Swim_Bite (procedural, jaw gape)' : null);
+  group.userData.rfTextured = textured;
+  group.userData.rfSwimSource = swimBones.length ? { kind: 'procedural', bones: swimBones.map((entry) => entry.bone.name) } : { kind: 'clip' };
   const jawRestGape = jawBone ? clamp(JAW_REST_GAPE + finite(personality?.face?.gape, 0), 0.20, 0.35) : 0;
   group.userData.rfJawRestGape = jawRestGape;
   group.userData.rfJawMaxRotation = jawBone ? JAW_MAX_ROTATION : 0;
@@ -2456,6 +2865,32 @@ function buildLoadedRig(def, template, group) {
     const jawGape = jawBone ? jawRestGape + animation.bite * (1 - jawRestGape) : 0;
     group.userData.rfJawGape = jawGape;
     if (jawBone && baseJawQuaternion) { jawBone.quaternion.copy(baseJawQuaternion); jawBone.rotateX(-jawGape * JAW_MAX_ROTATION); }
+    if (swimBones.length) {
+      /* Travelling wave: phase LAGS down the chain so the bend propagates
+       * nose to tail instead of the whole body flexing in lockstep. */
+      const swimRate = 2.3 + 3.4 * speedFrac, amplitude = (0.55 + 0.75 * speedFrac) * (1 - animation.death * 0.85);
+      for (const entry of swimBones) {
+        entry.bone.quaternion.copy(entry.base);
+        /* SWIM_YAW_AXIS, not 'Y'. These bones are authored Blender-style:
+         * the bone points down its own local +Y (that is why the chain is a
+         * stack of [0, 0.14, 0] translations), and the rig root carries the
+         * -90 deg X quaternion that lifts Blender Z-up into glTF Y-up. The
+         * measured world mapping for every spine bone is
+         *   local X -> world Z (lateral),  local Y -> world X (nose-tail),
+         *   local Z -> world Y (up).
+         * A swim beat is a YAW: the tail sweeps side to side through the
+         * horizontal plane, which is a rotation about world Y, and therefore
+         * about bone-local Z. Rotating about local Y - the intuitive guess -
+         * spins each segment about the body's own long axis instead, which
+         * corkscrews the shark rather than swimming it. */
+        entry.bone.rotateOnAxis(SWIM_YAW_AXIS, Math.sin(time * swimRate - entry.phase) * entry.gain * amplitude);
+        /* A little counter-roll about the LONG axis (local Y) keeps the flank
+         * catching the key light as it sweeps, which is what sells the wet
+         * specular in motion. This one genuinely is a roll, so local Y is
+         * correct here. */
+        entry.bone.rotateOnAxis(SWIM_ROLL_AXIS, Math.cos(time * swimRate - entry.phase) * entry.gain * amplitude * 0.22 - animation.turn * 0.05);
+      }
+    }
     if (sharkjira) sharkjira.pulse.value = 0.72 + 0.28 * (0.5 + 0.5 * Math.sin(time * 5.4));
     /* Slower, deeper swell than Sharkjira's fast atomic flicker. */
     if (leviathan) leviathan.pulse.value = 0.52 + 0.34 * (0.5 + 0.5 * Math.sin(time * 2.15));
@@ -2556,7 +2991,27 @@ function directTemplate(key, filePath) {
   const objects = json.nodes.map((node, index) => { const object = jointSet.has(index) ? new THREE.Bone() : new THREE.Object3D(); object.name = node.name || `node${index}`; if (node.matrix) object.matrix.fromArray(node.matrix).decompose(object.position, object.quaternion, object.scale); else { if (node.translation) object.position.fromArray(node.translation); if (node.rotation) object.quaternion.fromArray(node.rotation); if (node.scale) object.scale.fromArray(node.scale); } object.userData.rfNodeIndex = index; return object; });
   for (const [index, node] of json.nodes.entries()) for (const child of node.children || []) objects[index].add(objects[child]);
   const scene = new THREE.Group(); scene.name = json.scenes?.[0]?.name || 'RootNode'; for (const root of json.scenes?.[0]?.nodes || []) scene.add(objects[root]);
-  const sourceMaterials = (json.materials || []).map((material) => { const out = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5, metalness: 0.03, flatShading: false }); out.name = String(material.name || 'Body'); out.userData.rfAtlas = out.name === 'AtlasMaterial'; return out; });
+  /* Rev 14: this headless decoder reads the JSON and BIN chunks only - it
+   * never decodes the embedded JPEGs, because there is no image decoder in
+   * the Node selftest environment. That is fine for geometry, but it left
+   * the textured gate unable to tell "this asset has no maps" from "this
+   * runtime cannot decode them". So declare the maps the glTF ACTUALLY
+   * references with placeholder 1x1 textures carrying the source image name.
+   * The gate then verifies the real asset contract (a diffuse and a tangent
+   * normal map are present and wired to the right slots) headlessly, while
+   * the browser path loads the true pixels through GLTFLoader. */
+  const placeholderTexture = (label) => { const texture = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1, THREE.RGBAFormat); texture.name = label; texture.userData.rfHeadlessPlaceholder = true; texture.needsUpdate = true; return texture; };
+  const imageName = (textureIndex) => { const source = json.textures?.[textureIndex]?.source; return String(json.images?.[source]?.name || `image${source}`); };
+  const sourceMaterials = (json.materials || []).map((material) => {
+    const out = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5, metalness: 0.03, flatShading: false });
+    out.name = String(material.name || 'Body'); out.userData.rfAtlas = out.name === 'AtlasMaterial';
+    const baseColorTexture = material.pbrMetallicRoughness?.baseColorTexture;
+    if (baseColorTexture) out.map = placeholderTexture(imageName(baseColorTexture.index));
+    if (material.normalTexture) out.normalMap = placeholderTexture(imageName(material.normalTexture.index));
+    if (typeof material.pbrMetallicRoughness?.roughnessFactor === 'number') out.roughness = material.pbrMetallicRoughness.roughnessFactor;
+    if (typeof material.pbrMetallicRoughness?.metallicFactor === 'number') out.metalness = material.pbrMetallicRoughness.metallicFactor;
+    return out;
+  });
   for (const [index, node] of json.nodes.entries()) if (node.mesh != null) { const geometry = parsedGeometry(doc, json.meshes[node.mesh]), material = sourceMaterials.length ? sourceMaterials : new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5, metalness: 0.03 }); let body; if (node.skin == null) body = new THREE.Mesh(geometry, material); else { body = new THREE.SkinnedMesh(geometry, material); const skin = json.skins[node.skin], inverse = readAccessor(doc, skin.inverseBindMatrices).values; const matrices = []; for (let i = 0; i < skin.joints.length; i++) matrices.push(new THREE.Matrix4().fromArray(inverse, i * 16)); body.bind(new THREE.Skeleton(skin.joints.map((joint) => objects[joint]), matrices)); } body.name = node.name || `${key} body`; objects[index].add(body); }
   const animations = [];
   for (const animation of json.animations || []) { const tracks = []; for (const channel of animation.channels || []) { const sampler = animation.samplers[channel.sampler], input = readAccessor(doc, sampler.input).values, output = readAccessor(doc, sampler.output).values, name = json.nodes[channel.target.node].name || `node${channel.target.node}`; if (channel.target.path === 'rotation') tracks.push(new THREE.QuaternionKeyframeTrack(`${name}.quaternion`, input, output)); else if (channel.target.path === 'translation') tracks.push(new THREE.VectorKeyframeTrack(`${name}.position`, input, output)); else if (channel.target.path === 'scale') tracks.push(new THREE.VectorKeyframeTrack(`${name}.scale`, input, output)); } animations.push(new THREE.AnimationClip(animation.name || `${key} animation`, -1, tracks)); }
@@ -2630,22 +3085,52 @@ function __selftest() {
        * a 2.75x widening. `toothOutsideHeadSpan` is the hard one: a tooth
        * outside the head span is the floating speck trail / dangling chin
        * cluster the owner reported, and it must be exactly zero. */
+      /* Rev 14: these gates all measure the PROCEDURAL face overlay - teeth
+       * welded to the lip line, a socket with real depth, an off-centre
+       * pupil. A textured row has no overlay to measure because the bake
+       * paints its face into the diffuse, so every one of these metrics
+       * would be undefined rather than failing. The textured contract is
+       * asserted on its own terms just below instead of being waved through:
+       * the row must genuinely carry the baked maps and the lit material. */
+      const textured = !!group.userData.rfTextured;
       const faceMetrics = group.userData.rfFace;
-      if (!faceMetrics) throw new Error(`${def.id}: face batch missing`);
-      if (faceMetrics.toothOutsideHeadSpan !== 0) throw new Error(`${def.id}: ${faceMetrics.toothOutsideHeadSpan} teeth outside the head span`);
-      if (!(faceMetrics.toothSurfaceMedianRatio < 0.16)) throw new Error(`${def.id}: tooth row median ${faceMetrics.toothSurfaceMedianRatio.toFixed(4)} off the head surface`);
-      if (!(faceMetrics.toothSurfaceMaxRatio < 0.45)) throw new Error(`${def.id}: worst tooth ${faceMetrics.toothSurfaceMaxRatio.toFixed(4)} off the head surface`);
-      if (!(faceMetrics.socketDepthRatio > 0.05)) throw new Error(`${def.id}: eye socket is flat`);
-      if (!(faceMetrics.pupilOffsetRatio > 0.06)) throw new Error(`${def.id}: pupil is dead-centre`);
-      if (!(faceMetrics.toothGapRatio > 0.15)) throw new Error(`${def.id}: teeth are a grille, not separated`);
-      if (!(faceMetrics.toothCount >= 12)) throw new Error(`${def.id}: only ${faceMetrics.toothCount} teeth`);
-      result.face[def.id] = {
-        outside: faceMetrics.toothOutsideHeadSpan,
-        toothMed: Number(faceMetrics.toothSurfaceMedianRatio.toFixed(4)),
-        toothMax: Number(faceMetrics.toothSurfaceMaxRatio.toFixed(4)),
-        socket: Number(faceMetrics.socketDepthRatio.toFixed(4)),
-        eyeRadius: Number(faceMetrics.eyeRadius.toFixed(5))
-      };
+      if (!textured) {
+        if (!faceMetrics) throw new Error(`${def.id}: face batch missing`);
+        if (faceMetrics.toothOutsideHeadSpan !== 0) throw new Error(`${def.id}: ${faceMetrics.toothOutsideHeadSpan} teeth outside the head span`);
+        if (!(faceMetrics.toothSurfaceMedianRatio < 0.16)) throw new Error(`${def.id}: tooth row median ${faceMetrics.toothSurfaceMedianRatio.toFixed(4)} off the head surface`);
+        if (!(faceMetrics.toothSurfaceMaxRatio < 0.45)) throw new Error(`${def.id}: worst tooth ${faceMetrics.toothSurfaceMaxRatio.toFixed(4)} off the head surface`);
+        if (!(faceMetrics.socketDepthRatio > 0.05)) throw new Error(`${def.id}: eye socket is flat`);
+        if (!(faceMetrics.pupilOffsetRatio > 0.06)) throw new Error(`${def.id}: pupil is dead-centre`);
+        if (!(faceMetrics.toothGapRatio > 0.15)) throw new Error(`${def.id}: teeth are a grille, not separated`);
+        if (!(faceMetrics.toothCount >= 12)) throw new Error(`${def.id}: only ${faceMetrics.toothCount} teeth`);
+        result.face[def.id] = {
+          outside: faceMetrics.toothOutsideHeadSpan,
+          toothMed: Number(faceMetrics.toothSurfaceMedianRatio.toFixed(4)),
+          toothMax: Number(faceMetrics.toothSurfaceMaxRatio.toFixed(4)),
+          socket: Number(faceMetrics.socketDepthRatio.toFixed(4)),
+          eyeRadius: Number(faceMetrics.eyeRadius.toFixed(5))
+        };
+      } else {
+        /* Textured contract. Every clause is a real failure mode seen while
+         * building this path: a bake whose maps silently failed to load
+         * (white plastic shark), a row that fell back to the toon atlas
+         * shader, an outline shell surviving onto a textured row, and a
+         * jaw/spine that never got bound so the shark swam rigid. */
+        if (faceMetrics) throw new Error(`${def.id}: textured row must not carry the procedural face overlay`);
+        const texturedMaterials = [];
+        group.traverse((object) => { if (object.isMesh) for (const material of (Array.isArray(object.material) ? object.material : [object.material])) if (material) texturedMaterials.push(material); });
+        if (!texturedMaterials.length || !texturedMaterials.every((material) => material.userData.rfTextured)) throw new Error(`${def.id}: textured row has a non-textured material`);
+        if (!texturedMaterials.every((material) => material.isMeshStandardMaterial || material.isMeshPhysicalMaterial)) throw new Error(`${def.id}: textured row must be Standard/Physical lit`);
+        if (!texturedMaterials.every((material) => material.userData.rfHasDiffuse)) throw new Error(`${def.id}: baked diffuse map missing`);
+        if (!texturedMaterials.every((material) => material.userData.rfHasNormalMap)) throw new Error(`${def.id}: tangent normal map missing`);
+        if (!texturedMaterials.every((material) => material.customProgramCacheKey().endsWith(TEXTURED_SUFFIX))) throw new Error(`${def.id}: textured shader hook missing`);
+        if (texturedMaterials.some((material) => material.side === THREE.BackSide)) throw new Error(`${def.id}: toon outline shell survived onto a textured row`);
+        const swim = group.userData.rfSwimSource;
+        if (!swim || swim.kind !== 'procedural' || !Array.isArray(swim.bones) || swim.bones.length < 4) throw new Error(`${def.id}: textured row has no procedural swim chain`);
+        if (!(group.userData.rfJawMaxRotation > 0)) throw new Error(`${def.id}: textured row has no LowerJaw gape`);
+        result.textured = result.textured || {};
+        result.textured[def.id] = { base: group.userData.rfSourceBase, materials: texturedMaterials.length, swimBones: swim.bones.length, draws, roughness: texturedMaterials[0].roughness, normalMap: true };
+      }
       if (def.id === SHARKJIRA_ID) {
         const kaiju = group.userData.rfSharkjira;
         const crest = morph.crest, bodyBox = body.geometry.boundingBox || body.geometry.computeBoundingBox() && body.geometry.boundingBox, bodySpan = Math.max((bodyBox?.max.y || 0) - (bodyBox?.min.y || 0), 1e-5);
@@ -2701,10 +3186,42 @@ function __selftest() {
         if (armor.emissiveIntensity > 0.40) throw new Error(`${def.id}: scute glow ${armor.emissiveIntensity} exceeds a seam accent`);
       }
       const bodyMaterials = Array.isArray(body.material) ? body.material : [body.material];
-      if (bodyMaterials.some((material) => material.type !== 'MeshStandardMaterial' || material.flatShading || material.roughness < 0.42 || material.roughness > 0.62)) throw new Error(`${def.id}: smooth Standard specular material gate failed`);
+      /* Rev 14: the [0.42, 0.62] band is the UNTEXTURED hull's look - a matt
+       * toon surface whose form comes from the palette shader, where a
+       * glossier setting would blow a hot spot across flat-shaded geometry.
+       * A baked row is the opposite case: the owner's bar is wet painted
+       * skin, and the specular streak down the back is carried by a real
+       * normal map, so it wants a glossier 0.30-0.46. Both bands are floored
+       * well above mirror and ceilinged below fully matt, so neither path can
+       * drift into plastic or into chalk. */
+      const roughnessBand = group.userData.rfTextured ? [0.30, 0.46] : [0.42, 0.62];
+      if (bodyMaterials.some((material) => (material.type !== 'MeshStandardMaterial' && material.type !== 'MeshPhysicalMaterial') || material.flatShading || material.roughness < roughnessBand[0] || material.roughness > roughnessBand[1])) throw new Error(`${def.id}: smooth Standard specular material gate failed (roughness band ${roughnessBand[0]}-${roughnessBand[1]})`);
       const target = BASE_LENGTH * clamp(finite(def.sil?.len, 1), 0.5, 3), worldBox = measureBox(group), measured = worldBox.max.x - worldBox.min.x; if (Math.abs(measured - target) > 1e-4) throw new Error(`${def.id}: bbox X ${measured} != ${target}`);
-      const material = (Array.isArray(body.material) ? body.material : [body.material]).find((entry) => typeof entry?.onBeforeCompile === 'function'); if (!material || typeof material.customProgramCacheKey !== 'function' || !material.customProgramCacheKey().endsWith(PATTERN_SUFFIX)) throw new Error(`${def.id}: pattern shader hook missing`);
-      const shader = { uniforms: {}, vertexShader: '#include <common>\n#include <begin_vertex>', fragmentShader: '#include <common>\n#include <color_fragment>' }; material.onBeforeCompile(shader); for (const uniform of SHADER_UNIFORMS) if (!shader.uniforms[uniform]) throw new Error(`${def.id}: shader uniform ${uniform} missing`);
+      const material = (Array.isArray(body.material) ? body.material : [body.material]).find((entry) => typeof entry?.onBeforeCompile === 'function');
+      /* Both paths install an onBeforeCompile hook and both must declare every
+       * uniform their injected GLSL references - a uniform the JS forgets is
+       * a shader that fails to link in the browser and renders nothing, which
+       * a headless run cannot otherwise see. So run the SAME check against
+       * whichever suffix and uniform list this row's path owns. The chunk
+       * names below are the real ones each path patches, so a rename that
+       * silently stops the injection also trips this. */
+      const shaderSuffix = group.userData.rfTextured ? TEXTURED_SUFFIX : PATTERN_SUFFIX;
+      const shaderUniforms = group.userData.rfTextured ? TEXTURED_UNIFORMS : SHADER_UNIFORMS;
+      if (!material || typeof material.customProgramCacheKey !== 'function' || !material.customProgramCacheKey().endsWith(shaderSuffix)) throw new Error(`${def.id}: ${group.userData.rfTextured ? 'textured' : 'pattern'} shader hook missing`);
+      const shader = group.userData.rfTextured
+        ? { uniforms: {}, vertexShader: '#include <common>\n#include <begin_vertex>', fragmentShader: '#include <common>\n#include <map_fragment>\n#include <roughnessmap_fragment>\n#include <emissivemap_fragment>' }
+        : { uniforms: {}, vertexShader: '#include <common>\n#include <begin_vertex>', fragmentShader: '#include <common>\n#include <color_fragment>' };
+      material.onBeforeCompile(shader);
+      for (const uniform of shaderUniforms) if (!shader.uniforms[uniform]) throw new Error(`${def.id}: shader uniform ${uniform} missing`);
+      if (group.userData.rfTextured) {
+        /* Prove the injection actually landed, not merely that the hook ran:
+         * an unmatched replace() is a silent no-op that would ship an
+         * untinted, unlit shark. */
+        if (!/rfHsvToRgb/.test(shader.fragmentShader) || !/uRfHueShift/.test(shader.fragmentShader)) throw new Error(`${def.id}: textured palette tint did not inject`);
+        if (!/rfFresnel/.test(shader.fragmentShader)) throw new Error(`${def.id}: textured rim light did not inject`);
+        if (!/roughnessFactor/.test(shader.fragmentShader) || !/uRfWetness/.test(shader.fragmentShader)) throw new Error(`${def.id}: textured wet specular did not inject`);
+        if (!/vRfBindPosition/.test(shader.vertexShader)) throw new Error(`${def.id}: textured bind-space varying did not inject`);
+      }
       rig.animate(0, { speedFrac: 0, turn: 0 });
       const cruiseGape = finite(group.userData.rfJawGape, 0);
       if (group.userData.rfJawMaxRotation > 0 && (cruiseGape < 0.20 || cruiseGape > 0.35)) throw new Error(`${def.id}: cruise jaw gape ${cruiseGape.toFixed(3)} outside 20-35%`);

@@ -40,7 +40,7 @@ SHARKS = [
  ("point",1.18,0.33,0.90,1.00,0xc79aa6,0xf0dfe4,0x8f5f70,0,"plain",None),None,
  "A jaw that arrives before the shark does."),
 ("greatwhite","Great White",5,1,7000,(400,744,2.8,6,260,2.7,3.2),["lunge"],"pyro",
- ("point",1.45,0.46,1.15,1.10,0x74808c,0xf2f5f7,0x47525c,0,"plain",None),(3,[2,3]),
+ ("point",1.45,0.46,1.15,1.10,0x74808c,0xf2f5f7,0x47525c,0,"plain",None,"textured_test"),(3,[2,3]),
  "The apex everyone pictures. Now it breathes fire."),
 ("whaleshark","Whale Shark",5,1,7500,(300,576,2.4,4,320,2.2,2.4),["filterFeedMax"],"vortex",
  ("whale",1.80,0.55,1.00,0.95,0x3e5a75,0xdce8f0,0x27415a,0,"dots",None),None,
@@ -592,6 +592,12 @@ def shark_row(t):
     stats={"speed":st[0],"accel":st[1],"turn":st[2],"bite":st[3],"hp":st[4],"metab":st[5],"boost":st[6]}
     sils={"head":sil[0],"len":sil[1],"girth":sil[2],"finScale":sil[3],"tailScale":sil[4],
           "palette":{"base":sil[5],"belly":sil[6],"accent":sil[7],"glow":sil[8]},"pattern":sil[9],"fx":sil[10]}
+    # Rev 14: optional 12th SIL field selects a TEXTURED base asset by
+    # MODEL_FILES key (shark3d.js). Rows that omit it keep the low-poly
+    # Sharky/goblin/angler/piranha routing exactly as before, so the key is
+    # emitted only when a row actually sets one.
+    if len(sil) > 11 and sil[11]:
+        sils["model"] = sil[11]
     row={"id":sid,"name":name,"tier":tier,"act":act,"cls":shark_cls(tier,act),"cost":cost,"stats":stats,"passives":pas,
          "active":active,"sil":sils,"npc":({"weight":npc[0],"zones":npc[1]} if npc else None),"blurb":blurb}
     return js(row)
