@@ -4151,8 +4151,8 @@
       // ---- Pantheon/Underworld: ACT_NAMES + dynamic shop/roster acts ----
       ok('ACT_NAMES has all 5 acts named', Object.keys(ACT_NAMES).length === 5
         && ACT_NAMES[4] === 'Pantheon' && ACT_NAMES[5] === 'Underworld');
-      var rosterHas85 = allSharks().length === 85;
-      ok('roster carries all 85 sharks (61 base + 24 Pantheon/Underworld)', rosterHas85);
+      var rosterHas85 = allSharks().length === 86;
+      ok('roster carries all 86 sharks (62 base + 24 Pantheon/Underworld)', rosterHas85);
       var actTestProfile = { coins: 0, level: 12, xp: 0, selected: 'reef', sharks: {} };
       showShop({ profile: actTestProfile });
       var shopRoot = N('rfShopList');

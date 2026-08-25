@@ -187,6 +187,21 @@ import * as THREE from 'three';
   var CTL_PURSUIT_DEAD_CSS_MAX = 14;   // Rev 9: dead zone never exceeds 14 css px (big sharks/close camera)
   var CTL_ARRIVE_K = 26;             // spring constant, 1/s^2 (critically damped: c = 2*sqrt(k))
 
+  // Rev 13 floating stick (fleet control standard, horde-meridian ring+nub).
+  // Owner on the pursuit law: "cannot dive consistently, finger drag does
+  // not follow along". Pure pursuit parks the shark UNDER the thumb and a
+  // dive needs the finger at the very bottom of a 390px screen, where iOS
+  // home-indicator/edge gestures cancel the touch. The stick is RELATIVE:
+  // touch-down plants an anchor, anchor->finger is heading + throttle, the
+  // anchor recenters when the finger overshoots 1.35x the radius, so a
+  // drag anywhere (including a short drag DOWN = dive) drives continuously
+  // while held. Keyboard keeps its virtual-target path; the stick feeds the
+  // same pursuit law as a far virtual target with a throttle override.
+  var CTL_STICK_RADIUS = 62;         // css px, full throttle at ring edge
+  var CTL_STICK_RECENTER = 1.35;     // anchor follows once finger > 1.35*radius
+  var CTL_STICK_DEAD = 6;            // css px, no heading change inside this
+  var CTL_STICK_TARGET_CSS = 400;    // virtual target distance (always cruise, never arrive)
+
   // ------------------------------------------------------- rig anim
   var TAIL_HZ_IDLE = 2.5, TAIL_HZ_CRUISE = 5.0, TAIL_HZ_BOOST = 8.0;
   // Rev 6 / 6.2: TAIL_AMP_IDLE/TURN are the binding contract values (0.03 /
@@ -1247,11 +1262,15 @@ import * as THREE from 'three';
       rootEl.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:40;display:none;';
       doc.body.appendChild(rootEl);
     }
+    var ring = doc.createElement('div');
+    ring.style.cssText = 'position:absolute;width:124px;height:124px;margin-left:-62px;margin-top:-62px;' +
+      'border-radius:50%;border:2px solid rgba(143,232,255,0.35);background:rgba(143,232,255,0.06);';
+    rootEl.appendChild(ring);
     var nub = doc.createElement('div');
-    nub.style.cssText = 'position:absolute;width:22px;height:22px;margin-left:-11px;margin-top:-11px;' +
-      'border-radius:50%;background:rgba(143,232,255,0.35);border:2px solid rgba(143,232,255,0.6);';
+    nub.style.cssText = 'position:absolute;width:30px;height:30px;margin-left:-15px;margin-top:-15px;' +
+      'border-radius:50%;background:rgba(143,232,255,0.45);border:2px solid rgba(143,232,255,0.8);';
     rootEl.appendChild(nub);
-    stickEls = { root: rootEl, nub: nub };
+    stickEls = { root: rootEl, ring: ring, nub: nub };
     return stickEls;
   }
   function paintStick() {
@@ -1259,6 +1278,10 @@ import * as THREE from 'three';
     var ctl = ctx.player.ctl;
     if (!ctl.active) { stickEls.root.style.display = 'none'; return; }
     stickEls.root.style.display = 'block';
+    if (stickEls.ring) {
+      stickEls.ring.style.left = ctl.ax + 'px';
+      stickEls.ring.style.top = ctl.ay + 'px';
+    }
     stickEls.nub.style.left = ctl.px + 'px';
     stickEls.nub.style.top = ctl.py + 'px';
   }
@@ -1267,12 +1290,23 @@ import * as THREE from 'three';
     var ctl = ctx.player.ctl;
     ctl.active = true;
     ctl.px = dx; ctl.py = dy;
+    ctl.ax = dx; ctl.ay = dy;
+    ctl.stick = true; ctl.stickMag = 0;
     paintStick();
   }
   function dragStick(px, py) {
     var ctl = ctx.player.ctl;
     if (!ctl.active) return;
     ctl.px = px; ctl.py = py;
+    // Recenter: the ring follows the finger once it overshoots 1.35x radius
+    // (HM :2415 mechanic), so a long drag never leaves the stick behind.
+    var rdx = px - ctl.ax, rdy = py - ctl.ay;
+    var rlen = Math.sqrt(rdx * rdx + rdy * rdy);
+    var lim = CTL_STICK_RADIUS * CTL_STICK_RECENTER;
+    if (rlen > lim) {
+      ctl.ax = px - rdx / rlen * lim;
+      ctl.ay = py - rdy / rlen * lim;
+    }
     paintStick();
   }
   function clearStick() {
@@ -1282,6 +1316,7 @@ import * as THREE from 'three';
     ctl.steerId = null;
     ctl.hasTarget = false;
     ctl.mag = 0;
+    ctl.stick = false; ctl.stickMag = 0;
     if (stickEls) stickEls.root.style.display = 'none';
   }
 
@@ -1585,6 +1620,7 @@ import * as THREE from 'three';
       ctl: {
         steerId: null, boostId: null,
         px: 0, py: 0, tx: 0, ty: 0, hasTarget: false, mag: 0,
+        ax: 0, ay: 0, stick: false, stickMag: 0, stickDx: 0, stickDy: -1,
         active: false,
         boost: 1, boosting: false,
         drive: 0, turnIn: 0, speedCap: 0
@@ -1730,7 +1766,25 @@ import * as THREE from 'three';
     // path uses.
     var haveTarget = false;
     var tgtX = 0, tgtY = 0;
-    if (ctl.active) {
+    var stickMode = !!(ctl.active && ctl.stick);
+    if (stickMode) {
+      // Relative stick: heading = anchor->finger, throttle = deflection /
+      // radius. Expressed as a far virtual target from the body center so
+      // the pursuit law below (turn rate, cruise accel, glide) is unchanged.
+      var sdx = ctl.px - ctl.ax, sdy = ctl.py - ctl.ay;
+      var slen = Math.sqrt(sdx * sdx + sdy * sdy);
+      if (slen > CTL_STICK_DEAD) {
+        ctl.stickDx = sdx / slen; ctl.stickDy = sdy / slen;
+        ctl.stickMag = clamp((slen - CTL_STICK_DEAD) / (CTL_STICK_RADIUS - CTL_STICK_DEAD), 0, 1);
+        var swpp = liveWorldPerCssPx();
+        ctl.tx = p.x + ctl.stickDx * CTL_STICK_TARGET_CSS * swpp;
+        ctl.ty = p.y + ctl.stickDy * CTL_STICK_TARGET_CSS * swpp;
+        haveTarget = true;
+      } else {
+        ctl.stickMag = 0;
+      }
+      tgtX = ctl.tx; tgtY = ctl.ty;
+    } else if (ctl.active) {
       if (cssToWorld(ctl.px, ctl.py, WT_OUT_X, WT_OUT_Y)) {
         ctl.tx = WT_OUT_X.v; ctl.ty = WT_OUT_Y.v;
         haveTarget = true;
@@ -1785,6 +1839,7 @@ import * as THREE from 'three';
       distCss = wppLive > 0 ? distWorld / wppLive : distWorld;
       if (distWorld > 1e-6) wantAngle = Math.atan2(dyw, dxw);
       mag = clamp((distCss - DEAD) / Math.max(1e-6, CTL_PURSUIT_FULL_CSS - DEAD), 0, 1);
+      if (stickMode && !haveKey) mag = ctl.stickMag;
     }
     ctl.drive = mag;
     ctl.mag = mag;
@@ -2050,10 +2105,13 @@ import * as THREE from 'three';
     // 6.4: maze rock is solid for the player too. Push-out + velocity slide
     // BEFORE the world-edge clamps so a wall touch never reads as a snag.
     if (RF.World && RF.World.resolveBody) {
-      try { RF.World.resolveBody(p, p.r); } catch (e) { warnOnce('World.resolveBody', e); }
+      try { RF.World.resolveBody(p, p.r, true); } catch (e) { warnOnce('World.resolveBody', e); }
     }
 
-    var minY = -46;
+    // Rev 13: real breaches. The old -46 ceiling allowed a 46px hop; the arc
+    // is now ballistic under gravity with a sky ceiling well above any
+    // boosted launch (vy 1200 -> apex 800px).
+    var minY = -900;
     if (p.x < p.r) { p.x = p.r; if (p.vx < 0) p.vx *= -0.3; }
     if (p.x > WORLD_W - p.r) { p.x = WORLD_W - p.r; if (p.vx > 0) p.vx *= -0.3; }
     if (p.y > WORLD_H - p.r) { p.y = WORLD_H - p.r; if (p.vy > 0) p.vy *= -0.3; }
@@ -2067,6 +2125,9 @@ import * as THREE from 'three';
         // its OWN sound, so the older 'splash' is only supplied when that pool
         // declined the emit. Otherwise the surface sounds twice.
         p.st.airborne = true;
+        // Launch kick: a surfacing shark clears the water with a little extra
+        // lift so a straight-up run reads as a jump, not a bob.
+        if (p.vy < -120) p.vy *= 1.3;
         FX_OPT.count = 14; FX_OPT.up = true; FX_OPT.speed = Math.abs(p.vy); FX_OPT.angle = p.angle;
         if (fxEmit('breach', p.x, 0, FX_OPT) === 0) {
           fxEmit('bubbles', p.x, 0, FX_OPT);
@@ -3363,7 +3424,7 @@ import * as THREE from 'three';
     var suppressed = !!(RF.DevMode && RF.DevMode.state
       && (RF.DevMode.state.forceSkipTutorial || RF.DevMode.state.notut));
     if (!(profile && profile.tutorialDone) && !suppressed) {
-      uiCall('tutorial', 'Hold and drag anywhere to swim. Second finger to boost. Eat to grow.');
+      uiCall('tutorial', 'Drag anywhere to steer: drag down to dive, up to breach. Second finger to boost. Eat to grow.');
       if (profile) { profile.tutorialDone = true; commitProfile(); }
     }
     uiCall('runStarted', ctx);

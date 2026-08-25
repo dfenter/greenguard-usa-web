@@ -45,23 +45,34 @@ const PROP_ALLOWLIST_IDS = new Set(Object.values(PROP_ALLOWLIST).flatMap((ids) =
 
 /* Rev 7 palette ranges. These are the art resolver's authority; data.js
  * remains the authored source and is never mutated. */
-const BODY_FLANK_SATURATION_MAX = 0.90;
-const BODY_FLANK_SATURATION_TARGET = 0.86;
-const BODY_FLANK_VALUE_MIN = 0.55;
-const BODY_FLANK_VALUE_MAX = 0.82;
+const BODY_FLANK_SATURATION_MAX = 0.96;
+const BODY_FLANK_SATURATION_TARGET = 0.90;
+const BODY_FLANK_VALUE_MIN = 0.46;
+const BODY_FLANK_VALUE_MAX = 0.78;
 const ACCENT_SATURATION_MIN = 0.80;
 const ACCENT_SATURATION_MAX = 1.00;
 const ACCENT_SATURATION_TARGET = 0.96;
 const ACCENT_VALUE_MIN = 0.65;
 const ACCENT_VALUE_MAX = 0.95;
-const BELLY_SATURATION_MIN = 0.15;
-const BELLY_SATURATION_MAX = 0.40;
-const BELLY_VALUE_MIN = 0.80;
-const BELLY_VALUE_MAX = 0.98;
+const BELLY_SATURATION_MIN = 0.10;
+const BELLY_SATURATION_MAX = 0.34;
+const BELLY_VALUE_MIN = 0.90;
+const BELLY_VALUE_MAX = 1.00;
+/* Rev 13 color law. The gameplay scene is a cyan wash: HemisphereLight
+ * 0x9fd4e8 sky over 0x06121e ground, FogExp2 in the same 0x9fd4e8, and
+ * ACES filmic tone mapping. ACES compresses saturated primaries hard and
+ * the cyan fill drags every hue toward 0.53, which is exactly why the
+ * pre-Rev-13 roster measured 11 of 12 flanks inside h 0.51-0.58 at mean
+ * flank S 0.295. These are pre-compensation gains applied in the shader
+ * AFTER the palette region mix, so authored hue identity survives to the
+ * pixel instead of being averaged into the water. */
+const SCENE_SATURATION_GAIN = 1.34;
+const SCENE_COUNTERSHADE_GAIN = 1.30;
+const PATTERN_CONTRAST_FLOOR = 0.95;
 const PANTHEON_PALETTE_FAMILIES = Object.freeze({
-  zeusfin: { baseHue: 0.52, accentHue: 0.55, baseV: 0.66, accentV: 0.94 },
+  zeusfin: { baseHue: 0.61, accentHue: 0.14, baseV: 0.62, accentV: 0.98 },
   poseidonrex: { baseHue: 0.61, accentHue: 0.64, baseV: 0.56, accentV: 0.92 },
-  hadesmaw: { baseHue: 0.77, accentHue: 0.81, baseV: 0.62, accentV: 0.94 },
+  hadesmaw: { baseHue: 0.85, accentHue: 0.93, baseV: 0.60, accentV: 0.96 },
   apollodon: { baseHue: 0.14, accentHue: 0.11, baseV: 0.73, accentV: 0.95 },
   artemisstrike: { baseHue: 0.68, accentHue: 0.70, baseV: 0.68, accentV: 0.94 },
   athenajaw: { baseHue: 0.08, accentHue: 0.06, baseV: 0.58, accentV: 0.91 },
@@ -71,7 +82,7 @@ const PANTHEON_PALETTE_FAMILIES = Object.freeze({
   dionysustide: { baseHue: 0.91, accentHue: 0.88, baseV: 0.64, accentV: 0.95 },
   aphroditelure: { baseHue: 0.96, accentHue: 0.98, baseV: 0.77, accentV: 0.95 },
   heracrown: { baseHue: 0.105, accentHue: 0.095, baseV: 0.70, accentV: 0.95 },
-  typhonmaw: { baseHue: 0.74, accentHue: 0.55, baseV: 0.42, accentV: 0.95 },
+  typhonmaw: { baseHue: 0.78, accentHue: 0.30, baseV: 0.40, accentV: 0.97 },
   hydrafang: { baseHue: 0.25, accentHue: 0.20, baseV: 0.40, accentV: 0.90 },
   cerberusjaw: { baseHue: 0.015, accentHue: 0.045, baseV: 0.38, accentV: 0.94 },
   chimerashark: { baseHue: 0.58, accentHue: 0.03, baseV: 0.44, accentV: 0.92 },
@@ -92,11 +103,17 @@ const UNDERWORLD_IDS = new Set([
  * low-contrast roster swatches. These are linear-space HSV targets consumed
  * by the same atlas colorizer as every other definition. */
 const STYLE_PALETTE_OVERRIDES = Object.freeze({
-  reef:       { base: [0.58, 0.52, 0.55], belly: [0.57, 0.12, 0.92], accent: [0.57, 0.82, 0.80] },
-  tiger:      { base: [0.095, 0.52, 0.62], belly: [0.10, 0.16, 0.91], accent: [0.075, 0.78, 0.78] },
-  hammerhead: { base: [0.59, 0.42, 0.60], belly: [0.58, 0.10, 0.94], accent: [0.57, 0.78, 0.82] },
-  greatwhite: { base: [0.59, 0.22, 0.60], belly: [0.58, 0.08, 0.98], accent: [0.57, 0.62, 0.80] },
-  whaleshark: { base: [0.58, 0.32, 0.54], belly: [0.57, 0.10, 0.92], accent: [0.56, 0.70, 0.76] },
+  /* Rev 13: the starter roster all sat inside h 0.56-0.59, which is the
+   * water's own hue, so reef/hammerhead/whaleshark/megalodon measured a
+   * pairwise separation of 0.03-0.06. Fan the base hues out across the
+   * wheel and raise saturation so each row owns a distinct hero color. */
+  reef:       { base: [0.52, 0.80, 0.56], belly: [0.14, 0.22, 0.98], accent: [0.09, 0.95, 0.90] },
+  tiger:      { base: [0.105, 0.88, 0.60], belly: [0.12, 0.26, 0.97], accent: [0.05, 0.98, 0.86] },
+  hammerhead: { base: [0.66, 0.72, 0.52], belly: [0.60, 0.16, 0.98], accent: [0.55, 0.92, 0.88] },
+  greatwhite: { base: [0.60, 0.34, 0.50], belly: [0.58, 0.06, 1.00], accent: [0.56, 0.70, 0.92] },
+  whaleshark: { base: [0.72, 0.66, 0.46], belly: [0.70, 0.14, 0.96], accent: [0.48, 0.90, 0.92] },
+  megalodon:  { base: [0.975, 0.72, 0.40], belly: [0.99, 0.16, 0.94], accent: [0.94, 0.98, 0.80] },
+  solaris:    { base: [0.055, 0.96, 0.60], belly: [0.13, 0.42, 1.00], accent: [0.02, 1.00, 0.92] },
   /* Rev 11 close-pair palette anchors: the silhouette changes are the
    * primary read, while these restrained family shifts keep the distinctions
    * legible under the blue gameplay light. */
@@ -113,7 +130,13 @@ const STYLE_PALETTE_OVERRIDES = Object.freeze({
  * readability; that would erase the charcoal/atomic contrast this row needs. */
 const SHARKJIRA_ID = 'leviathanrex';
 const SHARKJIRA_PALETTE = Object.freeze({
-  base: 0x1b1f22, belly: 0x2a3138, accent: 0x3fd6ff, glow: 0x3fd6ff
+  /* Rev 13: these are sRGB hex, and THREE converts them to linear on
+   * construction, so the old 0x1b1f22 landed at linear v 0.02 and rendered
+   * as a silhouette-only blob. These values are solved so the LINEAR base
+   * sits near v 0.30 and the belly near v 0.62: still unmistakably charcoal,
+   * but with enough body value for the plates, gills and atomic blue to
+   * read against the water. */
+  base: 0x888f95, belly: 0xbfc8ce, accent: 0x3fd6ff, glow: 0x3fd6ff
 });
 const SHARKJIRA_PULSE = { value: 0.86 };
 /* The Sharky bind pose runs nose -> tail as local-y 0 -> 1. Keep the
@@ -121,6 +144,48 @@ const SHARKJIRA_PULSE = { value: 0.86 };
  * stations made the row read as a bull shark with tail spikes. */
 const SHARKJIRA_PLATE_STATIONS = Object.freeze([0.18, 0.28, 0.38, 0.48, 0.58, 0.68, 0.77, 0.84]);
 const SHARKJIRA_PLATE_HEIGHTS = Object.freeze([0.14, 0.20, 0.27, 0.32, 0.32, 0.27, 0.20, 0.13]);
+
+/* Leviathan Rex is the second kaiju and must not read as a recolored
+ * Sharkjira at 64x30. Where Sharkjira is a charcoal row of tall jagged
+ * single maple plates with an atomic-blue spine, the Rex is a deep sea-green
+ * armored king: a broad flat crown over the brow, TWO parallel rows of low
+ * interlocking back scutes, an underslung jaw with oversized tusks, armored
+ * cheek plates, and a pale seafoam glow that lives only in the throat and in
+ * the seams between scutes. Its plates are deliberately shorter and denser
+ * than Sharkjira's so the two silhouettes never converge. */
+const LEVIATHAN_ID = 'leviathan_rex';
+const LEVIATHAN_PALETTE = Object.freeze({
+  base: 0x2e3d38, belly: 0xb8cdc4, accent: 0x1a2622, glow: 0x9ff7f0
+});
+/* Rev 13 rework: the Rex rendered as a pale translucent ghost. Nothing was
+ * transparent (measured flank background-bleed was 0.000); the failure was
+ * VALUE, not alpha. `leviathan_rex` fell through to the generic roster
+ * resolver, whose BODY_FLANK_VALUE_MIN floor exists to rescue washed-out
+ * authored rows. That floor dragged the authored deep sea-green base from
+ * v 0.239 up to v 0.460 and pinned its hue at 0.444, which after the 0.62
+ * back darkening and the 1.34 scene saturation gain landed the flank at
+ * v 0.628 / hue 0.496 against a water background of hue ~0.49. Same hue as
+ * the sea, brighter than a great white's flank: that is the ghost.
+ *
+ * Sharkjira already carries an explicit exemption from that resolver for
+ * exactly this reason. The Rex gets the same, with values SOLVED rather
+ * than authored raw: the raw 0x2e3d38 at v 0.239 would swing to the other
+ * failure mode (the charcoal-blob bug this file's Sharkjira comment
+ * records). These sit the LINEAR back near v 0.20 and the belly near v
+ * 0.72, so the hull is unmistakably a dark armored green with a bright
+ * belly, and the seafoam stays a seam accent instead of a body wash. */
+const LEVIATHAN_RENDER_PALETTE = Object.freeze({
+  base: 0x557f6d, belly: 0x9fc3b4, accent: 0x1a2622, glow: 0x9ff7f0
+});
+const LEVIATHAN_PULSE = { value: 0.70 };
+/* Twelve stations, two rows: low, wide, interlocking, and running further
+ * forward onto the neck than Sharkjira's crest so the armored-back read
+ * starts right behind the crown. */
+const LEVIATHAN_SCUTE_STATIONS = Object.freeze([0.16, 0.24, 0.32, 0.40, 0.48, 0.56, 0.64, 0.72, 0.79, 0.85]);
+const LEVIATHAN_SCUTE_HEIGHTS = Object.freeze([0.075, 0.100, 0.120, 0.132, 0.136, 0.130, 0.115, 0.096, 0.076, 0.058]);
+/* Lateral offset of each scute row from the dorsal midline, as a fraction of
+ * the body half-width. A true double row is the primary silhouette tell. */
+const LEVIATHAN_SCUTE_ROW_OFFSET = 0.46;
 
 /* Rev 11 personality briefs. Every row owns a silhouette decision, a bind-
  * pose sculpt, a face attitude, a surface treatment, and one clean signature
@@ -440,6 +505,11 @@ const PERSONALITY_TABLE = Object.freeze({
     { head: 0.14, neck: 0.10, chest: 0.16, tail: -0.02, jaw: 0.20, underbite: 0.22, brow: -0.42, dorsal: 0.08, hump: 0.12, sag: 0.02, muscle: 0.12 },
     { eye: 0.84, brow: -0.46, pupil: 1.08, gape: 0.16, tilt: -0.24 },
     { relief: 0.26, density: 1.45, scars: 0.14, plates: 0.18, mode: 3 }, 'connected maple-plate spine and atomic underbite'),
+  leviathan_rex: personality('armored sea-green king, flat crown brow, tusked underslung jaw',
+    { head: 1.30, neck: 1.22, chest: 1.16, tail: 1.02, fin: 0.94 },
+    { head: 0.24, neck: 0.20, chest: 0.10, tail: 0.06, jaw: 0.30, underbite: 0.34, brow: 0.52, dorsal: -0.10, hump: 0.04, sag: 0.10, muscle: 0.34 },
+    { eye: 0.72, brow: 0.60, pupil: 0.86, gape: 0.10, tilt: 0.34 },
+    { relief: 0.30, density: 0.78, scars: 0.06, plates: 0.30, mode: 5 }, 'flat crown brow, twin scute rows, seafoam seam glow'),
   zeusfin: personality('lightning spear, upright brow, decisive king stare',
     { head: 1.10, neck: 1.04, chest: 1.04, tail: 1.04, fin: 1.18 },
     { head: 0.12, neck: 0.08, chest: 0.06, tail: 0.06, jaw: 0.10, underbite: 0.02, brow: 0.54, dorsal: 0.30, hump: 0.06, sag: 0.00, muscle: 0.30 },
@@ -626,11 +696,26 @@ function paletteOf(def) {
       style: id
     };
   }
+  /* Rev 13 rework: authored kaiju palette, exempt from the roster value
+   * floor for the same reason Sharkjira is. See LEVIATHAN_RENDER_PALETTE. */
+  if (id === LEVIATHAN_ID) {
+    const base = colorValue(LEVIATHAN_RENDER_PALETTE.base), belly = colorValue(LEVIATHAN_RENDER_PALETTE.belly), accent = colorValue(LEVIATHAN_RENDER_PALETTE.accent), glow = colorValue(LEVIATHAN_RENDER_PALETTE.glow);
+    return {
+      base, belly, accent, glow,
+      raw: { base: hex(source.base, LEVIATHAN_PALETTE.base), belly: hex(source.belly, LEVIATHAN_PALETTE.belly), accent: hex(source.accent, LEVIATHAN_PALETTE.accent), glow: hex(source.glow, LEVIATHAN_PALETTE.glow) },
+      resolved: { base: paletteStats(base), belly: paletteStats(belly), accent: paletteStats(accent), glow: paletteStats(glow) },
+      style: id
+    };
+  }
   if (family) {
     const underworld = UNDERWORLD_IDS.has(id);
-    const base = hsvToColor(family.baseHue, underworld ? 0.76 : 0.78, family.baseV);
-    const accent = hsvToColor(family.accentHue, 0.96, family.accentV);
-    const belly = hsvToColor(family.baseHue, underworld ? 0.20 : 0.18, underworld ? 0.84 : 0.91);
+    /* Rev 13: gods read as plain sharks when their base sits at the same
+     * saturation as a reef shark and their hue sits inside the water's own
+     * cyan band. Push base saturation up and give every family a wider
+     * accent/base value split so the divine read survives the fog. */
+    const base = hsvToColor(family.baseHue, underworld ? 0.88 : 0.90, family.baseV * 0.92);
+    const accent = hsvToColor(family.accentHue, 1.00, Math.min(1, family.accentV * 1.04));
+    const belly = hsvToColor(family.baseHue, underworld ? 0.16 : 0.14, underworld ? 0.92 : 0.98);
     const glow = hsvToColor(family.accentHue, 0.98, 0.95);
     return {
       base, belly, accent, glow,
@@ -728,6 +813,13 @@ function variantProfile(def) {
     setBody(1.34, 1.34, 0.82, 1.22);
     profile.jaw = [1.18, 1.12, 1.28];
   }
+  /* The Rex is broader at the head and thicker through the peduncle than
+   * Sharkjira, but carries a LOWER dorsal fin so the crown and the twin
+   * scute rows own the topline instead of a tall fin. */
+  if (id === LEVIATHAN_ID) {
+    setBody(1.36, 1.22, 0.98, 0.92);
+    profile.jaw = [1.26, 1.16, 1.34];
+  }
   if (head === 'eel' || id === 'morayne' || id === 'gloomtide') setBody(0.88, 0.78, 1.20, 0.82);
   if (head === 'croc' || id === 'snapjaw' || id === 'aresrender' || id === 'cerberusjaw') {
     setBody(1.12, 1.12, 0.92, 1.08); profile.jaw = [1.10, 1.06, 1.18];
@@ -780,6 +872,19 @@ function variantProfile(def) {
     profile.fin[2] = 1.96;
     profile.jaw = [1.16, 1.10, 1.24];
   }
+  /* Leviathan Rex final override. The head is the widest point (crown +
+   * cheek armor), the abdomen is only moderately swollen, and Tail1/Tail2
+   * stay thick so the peduncle reads as a heavy armored root rather than
+   * Sharkjira's tapering whip. The dorsal fin is held deliberately low. */
+  if (id === LEVIATHAN_ID) {
+    profile.head = [1.36, 1, 1.36];
+    profile.neck = [1.24, 1, 1.24];
+    profile.abdomen = [1.20, 1, 1.20];
+    profile.tail = [1.30, 1.00, 1.30];
+    profile.tailUpper = [1.16, 1, 1.16];
+    profile.fin[2] = 0.86;
+    profile.jaw = [1.26, 1.16, 1.34];
+  }
   profile.shapeTag = `${head || 'point'}-lane${profile.lane}`;
   return profile;
 }
@@ -821,6 +926,10 @@ function measureBox(root) {
   const out = new THREE.Box3().makeEmpty();
   root.traverse((object) => {
     if (!object.isMesh) return;
+    /* The Rev 13 face overlay is cosmetic and must never drive the
+     * authoritative length normalization, or a slightly proud eye/tooth
+     * would rescale the whole shark. */
+    if (object.userData.rfExcludeFromBounds) return;
     if (object.isSkinnedMesh) {
       if (!object.userData.rfFrozenBounds) object.computeBoundingBox();
       if (object.boundingBox) out.union(object.boundingBox.clone().applyMatrix4(object.matrixWorld));
@@ -1072,7 +1181,7 @@ function featureBuilder() {
     out.setIndex(indices); out.computeVertexNormals(); out.computeBoundingBox(); out.computeBoundingSphere();
     return { geometry: out, triangles: indices.length / 3 };
   };
-  return { addPrism, addOcta, addPyramid, addPlate, geometry };
+  return { addVertex, addTri, addPrism, addOcta, addPyramid, addPlate, geometry };
 }
 function sharkjiraBoneIndices(skeleton) {
   const index = (name) => {
@@ -1158,11 +1267,185 @@ function makeSharkjiraFeatures(body) {
   return { atomic, pulse: atomicMaterial.pulse, plateCount: geometries.plateCount, plateStations: geometries.plateStations, atomicTriangles: geometries.atomicTriangles, toothTriangles: geometries.toothTriangles };
 }
 
+const leviathanFeatureCache = new Map();
+/* A scute is a LOW, wide, four-sided cap with a flat top facet and a bevel
+ * toward the seam. Stacked in two rows it reads as interlocking armor, and
+ * it is deliberately the opposite primitive to Sharkjira's tall five-point
+ * maple prism. Kind 6 = scute body, kind 7 = seam edge (glowing). */
+function leviathanScute(builder, centerY, baseZ, height, halfY, halfX, xCenter, weights) {
+  const add = builder.addVertex, tri = builder.addTri;
+  const topZ = baseZ + height, capY = halfY * 0.54, capX = halfX * 0.60;
+  /* Rev 13 rework: the base ring carried rfEdge 1 and the cap 0.10, so the
+   * seam glow interpolated across the ENTIRE side wall and lit up the lower
+   * two thirds of every scute. That, not any transparency, is what made the
+   * armor read as a glowing pale row floating over the back. The seam is now
+   * a genuinely narrow edge: the base ring is tagged kind 6 (opaque armor)
+   * like the cap, and only a thin skirt ring just above the base carries
+   * kind 7, so the seafoam lives in the crack between scute and hull. */
+  const skirtZ = baseZ + height * 0.14;
+  const base = [
+    add(xCenter - halfX, centerY - halfY, baseZ, weights, 6, 0),
+    add(xCenter + halfX, centerY - halfY, baseZ, weights, 6, 0),
+    add(xCenter + halfX, centerY + halfY, baseZ, weights, 6, 0),
+    add(xCenter - halfX, centerY + halfY, baseZ, weights, 6, 0)
+  ];
+  const skirt = [
+    add(xCenter - halfX * 0.97, centerY - halfY * 0.97, skirtZ, weights, 7, 1),
+    add(xCenter + halfX * 0.97, centerY - halfY * 0.97, skirtZ, weights, 7, 1),
+    add(xCenter + halfX * 0.97, centerY + halfY * 0.97, skirtZ, weights, 7, 1),
+    add(xCenter - halfX * 0.97, centerY + halfY * 0.97, skirtZ, weights, 7, 1)
+  ];
+  const cap = [
+    add(xCenter - capX, centerY - capY, topZ, weights, 6, 0),
+    add(xCenter + capX, centerY - capY, topZ, weights, 6, 0),
+    add(xCenter + capX, centerY + capY, topZ, weights, 6, 0),
+    add(xCenter - capX, centerY + capY, topZ, weights, 6, 0)
+  ];
+  tri(cap[0], cap[1], cap[2]); tri(cap[0], cap[2], cap[3]);
+  for (let i = 0; i < 4; i++) {
+    const n = (i + 1) % 4;
+    /* base -> skirt is the thin glowing seam; skirt -> cap is opaque armor. */
+    tri(base[i], base[n], skirt[n]); tri(base[i], skirt[n], skirt[i]);
+    tri(skirt[i], skirt[n], cap[n]); tri(skirt[i], cap[n], cap[i]);
+  }
+}
+function leviathanFeatureGeometries(body) {
+  if (leviathanFeatureCache.has(LEVIATHAN_ID)) return leviathanFeatureCache.get(LEVIATHAN_ID);
+  const geometry = body.geometry; if (!geometry.boundingBox) geometry.computeBoundingBox();
+  const box = geometry.boundingBox, span = Math.max(box.max.y - box.min.y, 1e-5), bones = sharkjiraBoneIndices(body.skeleton);
+  const bodyDepth = Math.max(box.max.z - box.min.z, span * 0.30);
+  const rex = featureBuilder();
+  const weightsAt = (station) => sharkjiraStationWeights(station, bones);
+
+  /* 1. Twin scute rows. Two mirrored lines of low interlocking caps. */
+  let scuteCount = 0;
+  for (let i = 0; i < LEVIATHAN_SCUTE_STATIONS.length; i++) {
+    const station = LEVIATHAN_SCUTE_STATIONS[i], y = sharkjiraStationY(box, span, station), band = sharkjiraBand(geometry, y, span);
+    /* Rev 13 rework: the scutes read as a row of separate boxes hovering
+     * over the back. Two causes, both fixed here.
+     *
+     * 1. Rooting. `band.top` is the hull's max z AT THE CENTERLINE, but each
+     *    scute is pushed out to 0.46 of the half-width, where the hull has
+     *    already curved down. Seating a flank scute at the centerline height
+     *    left visible daylight under it. Drop the root by an approximate
+     *    barrel falloff for the row offset, then sink it further so the base
+     *    is genuinely buried in the hull rather than tangent to it.
+     * 2. Spacing. halfY 0.030 against a station pitch of 0.08 span left a
+     *    gap between every scute, which is what produced the skyline read.
+     *    Widen each scute past the half-pitch so consecutive scutes OVERLAP
+     *    and the row closes into continuous armor. */
+    const falloff = Math.sqrt(Math.max(0, 1 - LEVIATHAN_SCUTE_ROW_OFFSET * LEVIATHAN_SCUTE_ROW_OFFSET));
+    const height = bodyDepth * LEVIATHAN_SCUTE_HEIGHTS[i] * 0.62, halfY = span * 0.052, halfX = Math.max(band.side * 0.34, span * 0.024);
+    const offset = band.side * LEVIATHAN_SCUTE_ROW_OFFSET;
+    const baseZ = band.bottom + (band.top - band.bottom) * falloff - span * 0.052;
+    for (const sign of [-1, 1]) {
+      leviathanScute(rex, y, baseZ, height, halfY, halfX, sign * offset, weightsAt(station)); scuteCount++;
+    }
+  }
+
+  /* 2. Broad flat crown / brow ridge. A single wide low slab across the top
+   * of the skull, the Rex's signature head read at thumbnail size. */
+  const crownStation = 0.145, crownY = sharkjiraStationY(box, span, crownStation), crownBand = sharkjiraBand(geometry, crownY, span);
+  /* Rooted well below the hull top so the crown grows OUT of the skull
+   * instead of hovering over it, and kept low and wide: a brow ridge, not a
+   * hat. Both crown pieces overlap along y so they read as one shelf. */
+  const crownZ = crownBand.top - span * 0.105, crownHalfX = crownBand.side * 0.86, crownHalfY = span * 0.072;
+  leviathanScute(rex, crownY, crownZ, bodyDepth * 0.088, crownHalfY, crownHalfX, 0, [[bones.head, 1]]);
+  /* Brow lip: a forward shelf so the crown overhangs the eyes in profile. */
+  const browY = sharkjiraStationY(box, span, 0.098), browBand = sharkjiraBand(geometry, browY, span);
+  leviathanScute(rex, browY, browBand.top - span * 0.108, bodyDepth * 0.056, span * 0.052, browBand.side * 0.74, 0, [[bones.head, 1]]);
+
+  /* 3. Armored cheek plates, one per side, angled back from the eye. */
+  const cheekY = sharkjiraStationY(box, span, 0.180), cheekBand = sharkjiraBand(geometry, cheekY, span);
+  /* Below the eye line, hugging the flank, and roughly a third of the old
+   * size: a jaw-hinge plate that frames the face rather than masking it. */
+  const cheekZ = cheekBand.bottom + (cheekBand.top - cheekBand.bottom) * 0.34;
+  for (const sign of [-1, 1]) {
+    const x = sign * cheekBand.side * 0.99;
+    const plate = [[cheekY - span * 0.030, cheekZ + span * 0.026], [cheekY + span * 0.030, cheekZ + span * 0.014], [cheekY + span * 0.026, cheekZ - span * 0.026], [cheekY - span * 0.026, cheekZ - span * 0.016]];
+    rex.addPrism(plate, x, x + sign * span * 0.010, () => [[bones.head, 1]], 6);
+  }
+
+  /* 4. Throat glow band, seafoam, under the underslung jaw. */
+  const throatY = sharkjiraStationY(box, span, 0.215), throatBand = sharkjiraBand(geometry, throatY, span);
+  const throatZ = throatBand.bottom - span * 0.006, throatWidth = span * 0.080;
+  for (const sign of [-1, 1]) {
+    rex.addPrism(
+      [[throatY - throatWidth, throatZ], [throatY - throatWidth * 0.62, throatZ - span * 0.026], [throatY + throatWidth * 0.66, throatZ - span * 0.026], [throatY + throatWidth, throatZ]],
+      sign * throatBand.side * 1.02, sign * throatBand.side * 0.55, () => [[bones.head, 0.66], [bones.jaw, 0.34]], 4);
+  }
+
+  /* 5. Eyes, set deep under the crown shelf. */
+  const eyeY = sharkjiraStationY(box, span, 0.150), eyeBand = sharkjiraBand(geometry, eyeY, span);
+  const eyeZ = eyeBand.top - span * 0.098, eyeRadius = span * 0.020, eyeX = eyeBand.side * 1.04;
+  rex.addOcta([-eyeX, eyeY, eyeZ], eyeRadius, [[bones.head, 1]], 2);
+  rex.addOcta([eyeX, eyeY, eyeZ], eyeRadius, [[bones.head, 1]], 2);
+
+  /* 6. Oversized tusks on the underslung jaw, plus a smaller upper row.
+   * The tusks point UP past the lip: the Rex's other thumbnail tell. */
+  const tuskStations = [0.070, 0.108, 0.146];
+  const mouthBand = sharkjiraBand(geometry, eyeY, span), toothSide = Math.max(mouthBand.side * 1.02, span * 0.040);
+  const toothBase = mouthBand.bottom + span * 0.012;
+  let tuskCount = 0;
+  for (let i = 0; i < tuskStations.length; i++) {
+    const y = sharkjiraStationY(box, span, tuskStations[i]);
+    const scale = 1 - i * 0.18;
+    for (const sign of [-1, 1]) {
+      /* Big lower tusk sweeping upward. */
+      rex.addPyramid(y, toothBase - span * 0.010, toothBase + span * 0.098 * scale, span * 0.016 * scale,
+        sign * toothSide, sign * toothSide * 0.58, [[bones.jaw, 1]]); tuskCount++;
+      /* Small upper tooth. */
+      rex.addPyramid(y + span * 0.012, toothBase + span * 0.030, toothBase - span * 0.016, span * 0.008,
+        sign * toothSide * 0.96, sign * toothSide * 0.60, [[bones.head, 1]]);
+    }
+  }
+
+  const rexGeometry = rex.geometry();
+  const result = {
+    features: rexGeometry, scuteCount, scuteStations: LEVIATHAN_SCUTE_STATIONS.slice(),
+    rowOffset: LEVIATHAN_SCUTE_ROW_OFFSET, crownPlates: 2, cheekPlates: 2, tuskCount,
+    featureTriangles: rexGeometry.triangles, bones
+  };
+  leviathanFeatureCache.set(LEVIATHAN_ID, result); return result;
+}
+function leviathanFeatureMaterial() {
+  const pulse = LEVIATHAN_PULSE, color = colorValue(LEVIATHAN_PALETTE.base), glow = colorValue(LEVIATHAN_PALETTE.glow);
+  const material = new THREE.MeshStandardMaterial({ color, emissive: glow, emissiveIntensity: 0.34, roughness: 0.44, metalness: 0.08, side: THREE.DoubleSide });
+  material.name = 'RF Leviathan Rex crown scutes tusks cheeks throat'; material.userData.rfLeviathanPulse = pulse;
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uRfRexPulse = pulse;
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nattribute float rfKind;\nattribute float rfEdge;\nvarying float vRfKind;\nvarying float vRfEdge;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRfKind = rfKind;\nvRfEdge = rfEdge;');
+    /* Kind 1 tusk = bone white. Kind 6 scute/cheek body = deep sea-green
+     * armor, opaque. Kind 7 seam = the only place the seafoam reaches full
+     * strength, so the glow reads as light in the cracks, never a lit body. */
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform float uRfRexPulse;\nvarying float vRfKind;\nvarying float vRfEdge;')
+      .replace('#include <color_fragment>', '#include <color_fragment>\nif (vRfKind > 0.5 && vRfKind < 1.5) diffuseColor.rgb = vec3(0.93, 0.96, 0.90);\nif (vRfKind > 5.5) diffuseColor.rgb = vec3(0.062, 0.101, 0.088);')
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\nfloat rfTusk = step(0.5, vRfKind) - step(1.5, vRfKind);\nfloat rfArmor = step(5.5, vRfKind);\ntotalEmissiveRadiance = mix(totalEmissiveRadiance * mix(uRfRexPulse, 0.0, rfTusk) * (1.0 - rfArmor) + totalEmissiveRadiance * vRfEdge * uRfRexPulse * rfArmor, vec3(0.34, 0.36, 0.31), rfTusk);');
+  };
+  material.customProgramCacheKey = () => 'rf-leviathan-rex-seafoam'; material.needsUpdate = true;
+  return { material, pulse };
+}
+function makeLeviathanFeatures(body) {
+  const geometries = leviathanFeatureGeometries(body), featureMaterial = leviathanFeatureMaterial(), parent = body.parent;
+  const rex = new THREE.SkinnedMesh(geometries.features.geometry, featureMaterial.material);
+  rex.name = 'RF Leviathan Rex crown scutes tusks'; rex.renderOrder = 2; rex.frustumCulled = false;
+  rex.bind(body.skeleton, body.bindMatrix.clone(), body.bindMatrixInverse.clone());
+  parent.add(rex); parent.updateMatrixWorld(true); rex.computeBoundingBox(); rex.userData.rfFrozenBounds = true;
+  return {
+    rex, pulse: featureMaterial.pulse, scuteCount: geometries.scuteCount, scuteStations: geometries.scuteStations,
+    rowOffset: geometries.rowOffset, crownPlates: geometries.crownPlates, cheekPlates: geometries.cheekPlates,
+    tuskCount: geometries.tuskCount, featureTriangles: geometries.featureTriangles
+  };
+}
+
 const SHADER_UNIFORMS = Object.freeze([
   'uRfTopColor', 'uRfBottomColor', 'uRfAccentColor', 'uRfPatternColor', 'uRfPatternId',
   'uRfPatternScale', 'uRfPatternContrast', 'uRfPatternSeed', 'uRfPatternMix',
   'uRfHueShift', 'uRfSaturation', 'uRfTintMask', 'uRfHeightScale', 'uRfEyeColor',
-  'uRfFaceEye', 'uRfFaceBrow', 'uRfFacePupil', 'uRfRelief', 'uRfReliefScale', 'uRfSurfaceMode'
+  'uRfFaceEye', 'uRfFaceBrow', 'uRfFacePupil', 'uRfRelief', 'uRfReliefScale', 'uRfSurfaceMode', 'uRfSceneSat', 'uRfCountershade'
 ]);
 function materialIsFace(name) { return /eye|teeth|tooth|mouth/i.test(String(name || '')); }
 function sourceMap(sourceMaterial) { return sourceMaterial?.map || null; }
@@ -1173,29 +1456,63 @@ function skinMaterial(palette, def, sourceMaterial = null, sourceName = '', atla
     uRfPatternId: { value: patternId(def) }, uRfPatternScale: { value: profile.patternScale }, uRfPatternContrast: { value: id === SHARKJIRA_ID ? 0.82 : 0.95 }, uRfPatternSeed: { value: hashString(def?.id || '') * 17 }, uRfPatternMix: { value: id === SHARKJIRA_ID ? 0.18 : patternId(def) ? 0.78 : 0 }
     , uRfHueShift: { value: 0 }, uRfSaturation: { value: 1 }, uRfTintMask: { value: faceSlot ? 0 : 1 }, uRfHeightScale: { value: 44 }, uRfEyeColor: { value: profile.eyeColor.clone() }
     , uRfFaceEye: { value: face.eye }, uRfFaceBrow: { value: face.brow }, uRfFacePupil: { value: face.pupil }, uRfRelief: { value: surface.relief + surface.scars * 0.30 + surface.plates * 0.24 }, uRfReliefScale: { value: 1.8 * surface.density }, uRfSurfaceMode: { value: surface.mode }
+    /* Rev 13 scene pre-compensation. Sharkjira keeps a restrained gain so the
+     * charcoal identity survives, but still lifts clear of a black blob. */
+    /* The Rex, like Sharkjira, is an authored kaiju palette rather than a
+     * rescued roster row: the full scene gains would re-lift the armored
+     * hull back toward the water value that caused the ghost read. */
+    , uRfSceneSat: { value: id === SHARKJIRA_ID ? 1.12 : id === LEVIATHAN_ID ? 1.16 : SCENE_SATURATION_GAIN }
+    , uRfCountershade: { value: id === SHARKJIRA_ID ? 1.10 : id === LEVIATHAN_ID ? 1.08 : SCENE_COUNTERSHADE_GAIN }
   };
   const act = finite(def?.act, 1), glow = palette.glow || new THREE.Color(0, 0, 0);
   /* Sharkjira's atomic read belongs to the dedicated plate/gill/eye batch.
    * Letting the charcoal body share that blue emissive field lifts the whole
    * flank into a cyan veil even though the material remains fully opaque. */
   const sharkjiraBody = id === SHARKJIRA_ID && !faceSlot && !featureMode;
+  const leviathanBody = id === LEVIATHAN_ID && !faceSlot && !featureMode;
   const material = new THREE.MeshStandardMaterial({
     /* Atlas materials use white as the detail carrier. Multiplying the dark
      * palette here was the Rev 9b tint bug; the shader below owns the palette
      * mix and only uses the atlas for luminance/detail and face masks. */
     color: faceSlot || !atlas ? (faceSlot ? sourceColor : palette.base.clone()) : new THREE.Color(1, 1, 1), map,
     roughness: faceSlot ? 0.58 : 0.50, metalness: faceSlot ? 0 : 0.03, flatShading: false,
-    emissive: faceSlot || sharkjiraBody ? new THREE.Color(0, 0, 0) : featureMode === 'hammer' ? palette.base.clone() : glow,
-    emissiveIntensity: faceSlot || sharkjiraBody ? 0 : featureMode === 'hammer' ? 0.10 : clamp(0.05 + Math.max(0, act - 1) * 0.055, 0, 0.32)
+    emissive: faceSlot || sharkjiraBody ? new THREE.Color(0, 0, 0) : featureMode === 'hammer' ? new THREE.Color(0, 0, 0) : glow,
+    /* Rev 13 rework: the act-scaled body emissive reached 0.16 at the Rex's
+     * tier 12, three times a great white's 0.05, and lit the whole armored
+     * hull from inside toward the water color. The Rex's glow belongs in the
+     * scute seams and throat (the feature material owns those), so the body
+     * itself is held at the baseline like Sharkjira's is. */
+    emissiveIntensity: faceSlot || sharkjiraBody ? 0 : featureMode === 'hammer' ? 0 : id === LEVIATHAN_ID ? 0.04 : clamp(0.05 + Math.max(0, act - 1) * 0.055, 0, 0.32)
   });
   material.name = `RF Rev 9c shark skin ${def?.id || 'unknown'} ${sourceName || 'Body'}`;
   material.userData.rfSkinUniforms = uniforms; material.userData.rfSkinPattern = String(def?.sil?.pattern || 'plain'); material.userData.rfSharkjiraBody = sharkjiraBody;
   material.userData.rfAtlas = !!(atlas && map); material.userData.rfFaceMask = faceSlot ? 'material-slot' : atlas ? 'atlas-white-luminance' : 'none';
   material.userData.rfShading = 'MeshStandardMaterial; smooth normals; roughness 0.50; specular lighting';
+  /* The foil is countershaded from its own feature channel (2 = ventral
+   * slab) with a soft bind-z fallback across the bevel, so the crown takes
+   * the body base color and the underside takes the belly color. That is
+   * what removes the flat-grey-plate read. */
   const hammerRamp = featureMode === 'hammer' ? [
-    'float rfFoilBelly = smoothstep(0.040, -0.040, vRfBindPosition.z);',
-    'vec3 rfFoilRegion = mix(uRfTopColor, uRfBottomColor, rfFoilBelly);',
-    'diffuseColor.rgb = rfFoilRegion;'
+    'float rfFoilBelly = step(1.5, vRfFeature);',
+    /* Run the crown through the same saturation/scene compensation the body
+     * flank uses, and darken it the same 0.62 the body back is darkened by.
+     * Without this the foil takes the raw uniform and reads as a different
+     * species' color sitting on the head. */
+    'vec3 rfFoilBack = uRfTopColor * 0.62;',
+    'vec3 rfFoilHsv = rfRgbToHsv(rfFoilBack); rfFoilHsv.x = fract(rfFoilHsv.x + uRfHueShift);',
+    'rfFoilHsv.y = clamp(rfFoilHsv.y * uRfSaturation * uRfSceneSat, 0.0, 1.0);',
+    'vec3 rfFoilCrown = rfHsvToRgb(rfFoilHsv);',
+    'vec3 rfFoilBellyC = clamp(uRfBottomColor * uRfCountershade, 0.0, 1.0);',
+    /* Rev 13 rework: a hard step between the two feature channels gave the
+     * foil one flat crown tone and one flat belly tone, which is half of why
+     * it read as a uniform box. Blend the countershade terminator across the
+     * lofted section using the bind-space z of the surface, then quantize it
+     * into the same toon bands the body carries, so the foil picks up curved
+     * shading that follows its real form. */
+    'float rfFoilH = clamp(vRfBindPosition.z * 14.0 + 0.5, 0.0, 1.0);',
+    'float rfFoilBand = mix(rfFoilH, rfFoilBelly, 0.55);',
+    'rfFoilBand = floor(rfFoilBand * 3.0 + 0.5) / 3.0;',
+    'diffuseColor.rgb = mix(rfFoilBellyC, rfFoilCrown, rfFoilBand);'
   ].join('\n') : [
     'vec3 rfHsv = rfRgbToHsv(diffuseColor.rgb); rfHsv.x = fract(rfHsv.x + uRfHueShift); rfHsv.y = clamp(rfHsv.y * uRfSaturation, 0.0, 1.0); rfHsv.z = clamp(rfHsv.z * 1.35 + 0.04, 0.0, 1.0);',
     'vec3 rfVivid = rfHsvToRgb(rfHsv);',
@@ -1205,9 +1522,12 @@ function skinMaterial(palette, def, sourceMaterial = null, sourceName = '', atla
     'float rfAlong = vRfBindPosition.y * uRfPatternScale + uRfPatternSeed;',
     'float rfAcross = vRfBindPosition.x * uRfPatternScale * 1.7 + uRfPatternSeed * 0.37;',
     'float rfPattern = 0.0;',
-    'if (uRfPatternId == 1) rfPattern = smoothstep(0.40, 0.60, 0.5 + 0.5 * sin(rfAlong * 3.14159));',
-    'else if (uRfPatternId == 2) rfPattern = step(0.68, rfHash(vec2(floor(rfAlong * 2.0), floor(rfAcross * 3.0))));',
-    'else if (uRfPatternId == 3) rfPattern = smoothstep(0.35, 0.65, 0.5 + 0.5 * sin(rfAlong * 6.28318));',
+    /* Rev 13: HSE pattern blocks are hard-edged shapes. Narrow smoothstep
+     * windows turn these from soft airbrushed bands into readable stripes
+     * and spots that survive fog at gameplay size. */
+    'if (uRfPatternId == 1) rfPattern = smoothstep(0.46, 0.54, 0.5 + 0.5 * sin(rfAlong * 3.14159));',
+    'else if (uRfPatternId == 2) rfPattern = step(0.62, rfHash(vec2(floor(rfAlong * 2.0), floor(rfAcross * 3.0))));',
+    'else if (uRfPatternId == 3) rfPattern = smoothstep(0.44, 0.56, 0.5 + 0.5 * sin(rfAlong * 6.28318));',
     'else if (uRfPatternId == 4) rfPattern = step(0.73, rfHash(vec2(floor(rfAlong * 3.0), floor(rfAcross * 2.0))));',
     'else if (uRfPatternId == 5) rfPattern = step(0.56, rfHash(vec2(floor(rfAlong * 5.0), floor(rfAcross * 4.0))));',
     'float rfFaceMask = 1.0 - uRfTintMask;',
@@ -1217,13 +1537,26 @@ function skinMaterial(palette, def, sourceMaterial = null, sourceName = '', atla
       /* The Sharky atlas is white-backed and uses tiny colored islands. Do
        * not use RGB hue as the shark identity: retain only its light/dark
        * detail, then paint the authored top/belly palette over it. */
-      'float rfDetail = mix(0.56, 1.30, smoothstep(0.12, 0.86, rfAtlasLuma));',
+            /* Rev 13: a 1.30 ceiling drove saturated channels to clip at white,
+       * which reads as chalky washout. Keep the atlas detail range centered
+       * near 1.0 so it modulates form without bleaching hue. */
+      'float rfDetail = mix(0.72, 1.12, smoothstep(0.12, 0.86, rfAtlasLuma));',
       'float rfHeight = 1.0 - clamp(vRfBindPosition.z * uRfHeightScale + 0.5, 0.0, 1.0);',
-      'float rfBelly = smoothstep(0.43, 0.72, rfHeight);',
-      'vec3 rfRegion = mix(uRfTopColor, uRfBottomColor, rfBelly);',
+      /* Rev 13: HSE countershading is a hard edge, not a gradient. The old
+       * 0.43-0.72 ramp spread the transition over a third of the flank, so
+       * neither the dark back nor the bright belly ever reached full value
+       * and the shark read as one mid tone. Tighten the terminator and push
+       * the two sides apart before the region mix. */
+      'float rfBelly = smoothstep(0.50, 0.60, rfHeight);',
+      'vec3 rfBack = uRfTopColor * 0.62;',
+      'vec3 rfBellyC = clamp(uRfBottomColor * uRfCountershade, 0.0, 1.0);',
+      'vec3 rfRegion = mix(rfBack, rfBellyC, rfBelly);',
       'float rfFinTip = smoothstep(0.80, 0.99, abs(rfHeight * 2.0 - 1.0)) * 0.26;',
       'rfRegion = mix(rfRegion, uRfAccentColor, rfFinTip);',
-      'vec3 rfRegionHsv = rfRgbToHsv(rfRegion); rfRegionHsv.x = fract(rfRegionHsv.x + uRfHueShift); rfRegionHsv.y = clamp(rfRegionHsv.y * uRfSaturation, 0.0, 1.0);',
+      'vec3 rfRegionHsv = rfRgbToHsv(rfRegion); rfRegionHsv.x = fract(rfRegionHsv.x + uRfHueShift);',
+      /* Pre-compensate for ACES + the cyan hemi/fog wash, which together
+       * desaturate the flank by roughly a third before it reaches the eye. */
+      'rfRegionHsv.y = clamp(rfRegionHsv.y * uRfSaturation * uRfSceneSat, 0.0, 1.0);',
       'vec3 rfColorized = rfHsvToRgb(rfRegionHsv) * rfDetail;',
       /* Black also appears on the source underside. Limit the black escape
        * hatch to the forward face and the two eye/cavity bands so it cannot
@@ -1245,30 +1578,52 @@ function skinMaterial(palette, def, sourceMaterial = null, sourceName = '', atla
       'rfFaceMask = max(rfFaceMask, rfBrowMask);',
       'vec3 rfAtlasFace = mix(rfAtlasTexel, uRfEyeColor, clamp(rfEye * 0.92, 0.0, 0.92));',
       'diffuseColor.rgb = mix(rfColorized, rfAtlasFace, clamp(rfFaceMask, 0.0, 1.0));'
-    ].join('\n') : featureMode === 'hammer' ? hammerRamp : [
+    ].join('\n') : featureMode === 'hammer' ? hammerRamp : leviathanBody ? [
+      /* Rev 13 rework: the shared non-atlas path takes the GLB's own
+       * near-white belly color and multiplies its VALUE by 1.35. On the Rex
+       * that left the lower body and the pectoral fin washed out to a
+       * translucent-looking white with the water reading straight through
+       * them. The authored kaiju palette instead drives the flank from its
+       * OWN countershade ramp (dark armored back, bright belly), so the hull
+       * is opaque deep sea-green top to bottom and the value split is a real
+       * countershade rather than a brightened texel. */
+      'float rfHeightK = 1.0 - clamp(vRfBindPosition.z * uRfHeightScale + 0.5, 0.0, 1.0);',
+      'float rfBellyK = smoothstep(0.50, 0.62, rfHeightK);',
+      'vec3 rfRegionK = mix(uRfTopColor * 0.62, clamp(uRfBottomColor * uRfCountershade, 0.0, 1.0), rfBellyK);',
+      'vec3 rfHsvK = rfRgbToHsv(rfRegionK); rfHsvK.x = fract(rfHsvK.x + uRfHueShift);',
+      'rfHsvK.y = clamp(rfHsvK.y * uRfSaturation * uRfSceneSat, 0.0, 1.0);',
+      'diffuseColor.rgb = mix(rfHsvToRgb(rfHsvK), diffuseColor.rgb, clamp(rfFaceMask, 0.0, 1.0));'
+    ].join('\n') : [
       'vec3 rfHsv = rfRgbToHsv(diffuseColor.rgb); rfHsv.x = fract(rfHsv.x + uRfHueShift); rfHsv.y = clamp(rfHsv.y * uRfSaturation, 0.0, 1.0); rfHsv.z = clamp(rfHsv.z * 1.35 + 0.04, 0.0, 1.0);',
       'vec3 rfVivid = rfHsvToRgb(rfHsv);',
       'diffuseColor.rgb = mix(rfVivid, diffuseColor.rgb, clamp(rfFaceMask, 0.0, 1.0));'
     ].join('\n'),
-    'diffuseColor.rgb = mix(diffuseColor.rgb, uRfPatternColor, rfPattern * uRfPatternMix * uRfPatternContrast * (1.0 - rfFaceMask));',
-    featureMode === 'hammer' ? 'if (vRfFeature > 0.5) diffuseColor.rgb = vec3(0.008, 0.014, 0.016);' : ''
+    /* Rev 13: paint the pattern as a value-contrasted block. Mixing toward a
+     * mid-value accent alone left tiger bars at dV 0.015; bias the pattern
+     * color away from the local flank value so the block always separates. */
+    'float rfLocalV = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));',
+    'vec3 rfPatColor = uRfPatternColor * (rfLocalV > 0.42 ? 0.55 : 1.55);',
+    `diffuseColor.rgb = mix(diffuseColor.rgb, clamp(rfPatColor, 0.0, 1.0), rfPattern * uRfPatternMix * uRfPatternContrast * (1.0 - rfFaceMask)${featureMode === 'hammer' ? ' * 0.0' : ''});`,
+    /* Feature 1 is the eye bulb: a real dark iris with the row's eye color
+     * rimmed around it, not an undifferentiated black dot. */
+    featureMode === 'hammer' ? 'if (vRfFeature > 0.5 && vRfFeature < 1.5) diffuseColor.rgb = mix(uRfEyeColor * 0.85, vec3(0.010, 0.016, 0.020), 0.72);' : ''
   ].join('\n');
   material.onBeforeCompile = (shader) => {
     for (const name of SHADER_UNIFORMS) shader.uniforms[name] = uniforms[name];
     shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>\nattribute float rfSlot;\nvarying float vRfSlot;\nvarying vec3 vRfBindPosition;${sharkjiraBody ? '\nattribute float rfCrest;\nattribute float rfCrestEdge;\nvarying float vRfCrestEdge;' : ''}${featureMode === 'hammer' ? '\nattribute float rfFeature;\nvarying float vRfFeature;' : ''}`).replace('#include <begin_vertex>', `#include <begin_vertex>\nvRfSlot = rfSlot;\nvRfBindPosition = position;${sharkjiraBody ? '\nvRfCrestEdge = rfCrestEdge;' : ''}${featureMode === 'hammer' ? '\nvRfFeature = rfFeature;' : ''}`);
-    shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `#include <common>\nuniform vec3 uRfTopColor;\nuniform vec3 uRfBottomColor;\nuniform vec3 uRfAccentColor;\nuniform vec3 uRfPatternColor;\nuniform int uRfPatternId;\nuniform float uRfPatternScale;\nuniform float uRfPatternContrast;\nuniform float uRfPatternSeed;\nuniform float uRfPatternMix;\nuniform float uRfHueShift;\nuniform float uRfSaturation;\nuniform float uRfTintMask;\nuniform float uRfHeightScale;\nuniform vec3 uRfEyeColor;\nuniform float uRfFaceEye;\nuniform float uRfFaceBrow;\nuniform float uRfFacePupil;\nuniform float uRfRelief;\nuniform float uRfReliefScale;\nuniform float uRfSurfaceMode;${sharkjiraBody ? '\nuniform vec3 uRfAtomicColor;\nuniform float uRfAtomicPulse;' : ''}\nvarying float vRfSlot;\nvarying vec3 vRfBindPosition;${sharkjiraBody ? '\nvarying float vRfCrestEdge;' : ''}${featureMode === 'hammer' ? '\nvarying float vRfFeature;' : ''}\nfloat rfHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nvec3 rfRgbToHsv(vec3 c){vec4 K=vec4(0.0,-1.0/3.0,2.0/3.0,-1.0);vec4 p=mix(vec4(c.bg,K.wz),vec4(c.gb,K.xy),step(c.b,c.g));vec4 q=mix(vec4(p.xyw,c.r),vec4(c.r,p.yzx),step(p.x,c.r));float d=q.x-min(q.w,q.y);return vec3(abs(q.z+(q.w-q.y)/(6.0*d+1e-5)),d/(q.x+1e-5),q.x);}\nvec3 rfHsvToRgb(vec3 c){vec3 p=abs(fract(c.xxx+vec3(0.0,1.0/3.0,2.0/3.0))*6.0-3.0);return c.z*mix(vec3(1.0),clamp(p-1.0,0.0,1.0),c.y);}`)
+    shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `#include <common>\nuniform vec3 uRfTopColor;\nuniform vec3 uRfBottomColor;\nuniform vec3 uRfAccentColor;\nuniform vec3 uRfPatternColor;\nuniform int uRfPatternId;\nuniform float uRfPatternScale;\nuniform float uRfPatternContrast;\nuniform float uRfPatternSeed;\nuniform float uRfPatternMix;\nuniform float uRfHueShift;\nuniform float uRfSaturation;\nuniform float uRfTintMask;\nuniform float uRfHeightScale;\nuniform vec3 uRfEyeColor;\nuniform float uRfFaceEye;\nuniform float uRfFaceBrow;\nuniform float uRfFacePupil;\nuniform float uRfRelief;\nuniform float uRfReliefScale;\nuniform float uRfSurfaceMode;\nuniform float uRfSceneSat;\nuniform float uRfCountershade;${sharkjiraBody ? '\nuniform vec3 uRfAtomicColor;\nuniform float uRfAtomicPulse;' : ''}\nvarying float vRfSlot;\nvarying vec3 vRfBindPosition;${sharkjiraBody ? '\nvarying float vRfCrestEdge;' : ''}${featureMode === 'hammer' ? '\nvarying float vRfFeature;' : ''}\nfloat rfHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nvec3 rfRgbToHsv(vec3 c){vec4 K=vec4(0.0,-1.0/3.0,2.0/3.0,-1.0);vec4 p=mix(vec4(c.bg,K.wz),vec4(c.gb,K.xy),step(c.b,c.g));vec4 q=mix(vec4(p.xyw,c.r),vec4(c.r,p.yzx),step(p.x,c.r));float d=q.x-min(q.w,q.y);return vec3(abs(q.z+(q.w-q.y)/(6.0*d+1e-5)),d/(q.x+1e-5),q.x);}\nvec3 rfHsvToRgb(vec3 c){vec3 p=abs(fract(c.xxx+vec3(0.0,1.0/3.0,2.0/3.0))*6.0-3.0);return c.z*mix(vec3(1.0),clamp(p-1.0,0.0,1.0),c.y);}`)
     shader.fragmentShader = shader.fragmentShader.replace('#include <normal_fragment_begin>', `#include <normal_fragment_begin>\nfloat rfReliefA = sin(vRfBindPosition.y * uRfReliefScale * 4.0 + uRfPatternSeed);\nfloat rfReliefB = sin(vRfBindPosition.x * uRfReliefScale * 3.0 + rfReliefA * 1.7 + uRfPatternSeed * 0.31);\nfloat rfReliefMask = uRfSurfaceMode < 1.5 ? rfReliefA : uRfSurfaceMode < 3.5 ? rfReliefB : rfReliefA * rfReliefB;\nvec3 rfReliefNormal = normalize(normal + vec3(rfReliefMask * 0.075, rfReliefA * 0.020, rfReliefB * 0.060));\nnormal = normalize(mix(normal, rfReliefNormal, clamp(uRfRelief * 0.82, 0.0, 0.42)));`);
     shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>\n${patternCode}`);
     if (atlas && map) {
-      shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n/* Soft ambient countershading keeps the authored belly readable under the deep-teal hemi ground. */\ntotalEmissiveRadiance += uRfBottomColor * rfBelly * 0.16;');
-      shader.fragmentShader = shader.fragmentShader.replace('vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;', 'vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;\noutgoingLight += uRfBottomColor * rfBelly * 0.34;');
+      shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n/* Soft ambient countershading keeps the authored belly readable under the deep-teal hemi ground. Rev 13: the belly swatch is now a near-white v0.98, so this additive fill is scaled down and tinted by the flank hue instead of flooding the lower body with unsaturated light. */\ntotalEmissiveRadiance += mix(uRfBottomColor, uRfTopColor, 0.22) * rfBelly * 0.14;');
+      shader.fragmentShader = shader.fragmentShader.replace('vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;', 'vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;\n/* Rev 13: this post-tonemap additive wash was the dominant desaturator. At the Rev 13 belly values a 0.34 gain washed the whole lower flank toward white and dragged measured flank saturation DOWN even as the palettes got more vivid. Keep a small hue-carrying lift only. */\noutgoingLight += mix(uRfBottomColor, uRfTopColor, 0.18) * rfBelly * 0.26;');
     }
     if (sharkjiraBody) {
       shader.uniforms.uRfAtomicColor = { value: glow.clone() }; shader.uniforms.uRfAtomicPulse = SHARKJIRA_PULSE;
       shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n/* The hull stays charcoal; only the connected plate rims pulse. */\ntotalEmissiveRadiance += uRfAtomicColor * vRfCrestEdge * uRfAtomicPulse * 0.18;');
     }
   };
-  material.customProgramCacheKey = () => `${material.userData.rfSkinPattern}${sharkjiraBody ? ':sharkjira-body' : ''}${PATTERN_SUFFIX}${featureMode ? `:${featureMode}` : ''}`;
+  material.customProgramCacheKey = () => `${material.userData.rfSkinPattern}${sharkjiraBody ? ':sharkjira-body' : ''}${leviathanBody ? ':leviathan-body' : ''}${PATTERN_SUFFIX}${featureMode ? `:${featureMode}` : ''}`;
   material.needsUpdate = true; return material;
 }
 function findHeadBone(root, base) {
@@ -1305,31 +1660,123 @@ function propAttributes(geometry, feature = 0) {
   return geometry;
 }
 function hammerFoilGeometry() {
-  /* Sharky's bind axes are y=length, z=up, x=depth. The old ShapeGeometry
-   * lived in x/y and was therefore edge-on at the gameplay camera. This
-   * rounded, slightly swept double-lobe is made in y/z and lofted through x. */
-  const shape = new THREE.Shape();
-  shape.moveTo(-0.205, 0.000);
-  shape.quadraticCurveTo(-0.225, 0.028, -0.190, 0.078);
-  shape.lineTo(-0.055, 0.046);
-  shape.quadraticCurveTo(0.000, 0.038, 0.055, 0.046);
-  shape.lineTo(0.190, 0.078);
-  shape.quadraticCurveTo(0.225, 0.028, 0.205, 0.000);
-  shape.quadraticCurveTo(0.225, -0.028, 0.190, -0.078);
-  shape.lineTo(0.055, -0.046);
-  shape.quadraticCurveTo(0.000, -0.038, -0.055, -0.046);
-  shape.lineTo(-0.190, -0.078);
-  shape.quadraticCurveTo(-0.225, -0.028, -0.205, 0.000);
-  shape.closePath();
-  const remap = new THREE.Matrix4().set(0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1);
-  const foil = new THREE.ExtrudeGeometry(shape, { depth: 0.10, steps: 1, curveSegments: 6, bevelEnabled: true, bevelSegments: 3, bevelSize: 0.012, bevelThickness: 0.010 });
-  foil.translate(0, 0, -0.05); foil.applyMatrix4(remap); propAttributes(foil, 0);
-  const eyes = [];
-  for (const y of [-0.168, 0.168]) {
-    const eye = new THREE.SphereGeometry(0.022, 8, 5).toNonIndexed();
-    eye.applyMatrix4(remap); eye.translate(0.058, y, 0.010); propAttributes(eye, 1); eyes.push(eye);
+  /* Sharky's bind axes are y=length, z=up, x=depth, so the foil is built in
+   * the x/y plane (span across x, sweep along y) and given real thickness in
+   * z. The previous version was a single flat extruded outline: it read as a
+   * grey plate because it had no crown/underside separation, no eye bulbs,
+   * and a straight inner edge that left an air gap against the skull.
+   *
+   * Feature channel (rfFeature): 0 = dorsal crown, taken by the body base
+   * color; 1 = eye bulb; 2 = ventral countershade, taken by the belly color.
+   * Colouring the foil from the palette is what stops it reading as grey. */
+  /* Rev 13 rework: the previous version stacked two closed ExtrudeGeometry
+   * solids. Extrusion emits hard-edged side walls with split normals, so
+   * `computeVertexNormals` could not smooth them and the foil rendered as a
+   * flat-shaded BOX with visible right angles and planar faces. It is now a
+   * true LOFT: one continuous surface swept across the span, sampled as a
+   * grid of rings, welded, and smooth-shaded, with thickness tapering front
+   * to back and toward the lobe tips so it reads as an organic airfoil. */
+  const pieces = [];
+  const HALF = 0.235, THICK = 0.062, LOBE = 0.092;
+  const SPAN_SEGMENTS = 48, CHORD_SEGMENTS = 14;
+
+  /* Cross-section profile at a normalized span position u in [-1, 1].
+   * Returns the chord centerline (sweep offset along y), the chord
+   * half-length, and the half-thickness. Every term is a smooth function of
+   * u, which is what removes the right angles. */
+  const profile = (u) => {
+    const a = Math.abs(u);
+    /* Leading edge sweeps back toward the tips: a real cephalofoil is a
+     * swept wing, not a rectangle. */
+    const sweep = -LOBE * 0.92 * a * a;
+    /* Chord is widest at the root (where it meets the skull) and rounds off
+     * into the lobe tip rather than ending square. */
+    const chord = LOBE * (0.98 - 0.30 * a * a) * Math.sqrt(Math.max(0, 1 - Math.pow(a, 6)));
+    /* Thickness tapers outboard so the tips are rounded, not slab-ended. */
+    const thick = THICK * 0.5 * (1 - 0.42 * a * a) * Math.sqrt(Math.max(0, 1 - Math.pow(a, 8)));
+    return { sweep, chord, thick };
+  };
+
+  /* Build the loft as a closed tube: for each span station, walk the chord
+   * from trailing edge to leading edge over the top surface and back along
+   * the bottom, so a single welded shell carries both faces. */
+  const rings = [];
+  /* Axis mapping, measured on the built rig rather than assumed. The prop is
+   * parented to the Head BONE, whose frame maps local x -> world z (the
+   * shark's WIDTH), local y -> world x (the rig LENGTH axis), and local z ->
+   * world y (VERTICAL). So the foil's SPAN (lobe tip to lobe tip, running
+   * across the shark) is authored on local x, its CHORD (front to back) on
+   * local y, and its THICKNESS (top to bottom) on local z. */
+  for (let i = 0; i <= SPAN_SEGMENTS; i++) {
+    const u = (i / SPAN_SEGMENTS) * 2 - 1, p = profile(u), span = u * HALF;
+    const ring = [];
+    for (let j = 0; j < CHORD_SEGMENTS * 2; j++) {
+      /* theta walks the full cross-section loop once. */
+      const theta = (j / (CHORD_SEGMENTS * 2)) * Math.PI * 2;
+      /* Elliptical section, flattened top and bottom into an airfoil by
+       * biasing the vertical term. The trailing edge (cos ~ -1) is pulled
+       * concave so the foil wraps the snout instead of butting against it. */
+      const c = Math.cos(theta), s = Math.sin(theta);
+      const concave = 1 - 0.34 * Math.max(0, -c) * (1 - u * u);
+      const chord = p.sweep + c * p.chord * concave;
+      const thick = s * p.thick;
+      ring.push(new THREE.Vector3(span, chord, thick));
+    }
+    rings.push(ring);
   }
-  const geometry = mergeGeometries([foil, ...eyes]); geometry.computeBoundingBox(); geometry.computeBoundingSphere(); return geometry;
+
+  const positions = [], features = [];
+  const push = (v, feature) => { positions.push(v.x, v.y, v.z); features.push(feature); };
+  /* Feature channel is chosen per vertex by which side of the section it is
+   * on: z > 0 is the dorsal crown (0, body base color), z < 0 is the ventral
+   * countershade (2, belly color). That is what gives the foil the same
+   * dark-top / bright-underside toon banding the body has. */
+  /* Thickness runs on local z, so the dorsal/ventral split keys off z. */
+  const featureOf = (v) => (v.z >= 0 ? 0 : 2);
+  for (let i = 0; i < SPAN_SEGMENTS; i++) {
+    const r0 = rings[i], r1 = rings[i + 1], n = r0.length;
+    for (let j = 0; j < n; j++) {
+      const k = (j + 1) % n;
+      const a = r0[j], b = r0[k], c = r1[k], d = r1[j];
+      push(a, featureOf(a)); push(b, featureOf(b)); push(c, featureOf(c));
+      push(a, featureOf(a)); push(c, featureOf(c)); push(d, featureOf(d));
+    }
+  }
+  /* Cap the two lobe tips so the shell is closed. */
+  for (const [ring, flip] of [[rings[0], false], [rings[rings.length - 1], true]]) {
+    const center = new THREE.Vector3();
+    for (const v of ring) center.add(v);
+    center.multiplyScalar(1 / ring.length);
+    for (let j = 0; j < ring.length; j++) {
+      const k = (j + 1) % ring.length, a = ring[j], b = ring[k];
+      if (flip) { push(center, 0); push(b, featureOf(b)); push(a, featureOf(a)); }
+      else { push(center, 0); push(a, featureOf(a)); push(b, featureOf(b)); }
+    }
+  }
+  const loft = new THREE.BufferGeometry();
+  loft.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  loft.setAttribute('rfFeature', new THREE.Float32BufferAttribute(features, 1));
+  loft.setAttribute('rfSlot', new THREE.Float32BufferAttribute(new Float32Array(features.length).fill(1), 1));
+  loft.computeVertexNormals();
+  pieces.push(loft);
+
+  /* Eye bulbs at the very tips of the lobes: spheres that sit proud of both
+   * faces so the head reads as having eyes on stalks at any angle. */
+  for (const sign of [-1, 1]) {
+    const eye = new THREE.SphereGeometry(0.042, 12, 10).toNonIndexed();
+    eye.scale(0.92, 1.0, 1.12);
+    /* Eye bulbs sit at the lobe tips: span on local x, chord on local y. */
+    eye.translate(sign * (HALF - 0.020), profile(sign * 0.94).sweep, 0);
+    /* The loft carries no uv, so drop the sphere's to keep the merge
+     * attribute sets compatible. */
+    eye.deleteAttribute('uv');
+    eye.deleteAttribute('normal');
+    eye.computeVertexNormals();
+    pieces.push(propAttributes(eye, 1));
+  }
+  const geometry = mergeGeometries(pieces);
+  geometry.computeBoundingBox(); geometry.computeBoundingSphere();
+  return geometry;
 }
 function hornsGeometry() {
   const horns = [];
@@ -1356,6 +1803,432 @@ function grinGeometry() {
   for (let i = 0; i < teeth; i++) { const x = -width * 0.39 + i * width * 0.195; const base = positions.length / 3; positions.push(x - toothWidth, height * 0.42, 0.002, x + toothWidth, height * 0.42, 0.002, x, height * 0.42 - toothHeight, 0.002); indices.push(base, base + 1, base + 2); }
   const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3)); geometry.setIndex(indices); geometry.computeVertexNormals(); geometry.addGroup(0, 6, 0); geometry.addGroup(6, teeth * 3, 1); return geometry;
 }
+/* Rev 13 face lane. The atlas can only tint pixels that already exist, so a
+ * painted eye could never carry a socket, a lid, or a specular highlight and
+ * every row read as the same flat machined disc. The face is therefore real
+ * bone-bound geometry: a recessed socket ring, a domed eyeball, an offset
+ * pupil, an off-axis highlight, an asymmetric brow wedge, and separated
+ * teeth. Every dimension is driven by the authored `face` column so menace,
+ * grin, dopey, and regal resolve to visibly different heads. */
+const FACE_KIND = Object.freeze({ socket: 0, sclera: 1, pupil: 2, highlight: 3, brow: 4, tooth: 5, lip: 6 });
+const faceFeatureCache = new Map();
+function faceBoneIndices(skeleton) {
+  const index = (name) => { const i = skeleton?.bones?.findIndex((bone) => bone.name === name); return i >= 0 ? i : 0; };
+  return { head: index('Head'), jaw: index('LowerJaw'), neck: index('Neck') };
+}
+/* A ring lying in the body's YZ plane, pushed out along X. `inset` pulls the
+ * ring back toward the skull so the socket reads as a cavity rather than a
+ * sticker: the rim sits proud, the floor sits recessed. */
+function faceDisc(builder, cx, cy, cz, radiusY, radiusZ, x, kind, segments = 10, edge = 1) {
+  const center = builder.vertex(x, cy, cz, kind, edge), ring = [];
+  for (let i = 0; i < segments; i++) {
+    const a = (i / segments) * TAU;
+    ring.push(builder.vertex(x, cy + Math.cos(a) * radiusY, cz + Math.sin(a) * radiusZ, kind, edge));
+  }
+  for (let i = 0; i < segments; i++) builder.tri(center, ring[i], ring[(i + 1) % segments]);
+  return ring;
+}
+function faceDome(builder, cx, cy, cz, radiusY, radiusZ, xBase, xTip, kind, segments = 10) {
+  const tip = builder.vertex(xTip, cy, cz, kind), ring = [];
+  for (let i = 0; i < segments; i++) {
+    const a = (i / segments) * TAU;
+    ring.push(builder.vertex(xBase, cy + Math.cos(a) * radiusY, cz + Math.sin(a) * radiusZ, kind));
+  }
+  for (let i = 0; i < segments; i++) builder.tri(tip, ring[i], ring[(i + 1) % segments]);
+  return ring;
+}
+function faceBuilder() {
+  const positions = [], indices = [], skinIndices = [], skinWeights = [], kinds = [], edges = [];
+  let weights = [[0, 1]];
+  const setWeights = (w) => { weights = w; };
+  const vertex = (x, y, z, kind = 0, edge = 1) => {
+    positions.push(x, y, z);
+    const ids = [0, 0, 0, 0], values = [0, 0, 0, 0];
+    let total = 0;
+    for (let i = 0; i < Math.min(4, weights.length); i++) { ids[i] = weights[i][0]; values[i] = weights[i][1]; total += values[i]; }
+    const inv = total > 1e-6 ? 1 / total : 1;
+    for (let i = 0; i < 4; i++) { skinIndices.push(ids[i]); skinWeights.push(values[i] * inv); }
+    kinds.push(kind); edges.push(edge);
+    return positions.length / 3 - 1;
+  };
+  const tri = (a, b, c) => indices.push(a, b, c);
+  /* A tooth is a free-standing wedge with its own base, so the silhouette
+   * shows gaps between neighbours instead of a continuous machined grille. */
+  const tooth = (y, halfY, zBase, zTip, xOuter, xInner) => {
+    const b0 = vertex(xOuter, y - halfY, zBase, FACE_KIND.tooth), b1 = vertex(xInner, y - halfY, zBase, FACE_KIND.tooth);
+    const b2 = vertex(xInner, y + halfY, zBase, FACE_KIND.tooth), b3 = vertex(xOuter, y + halfY, zBase, FACE_KIND.tooth);
+    const tip = vertex((xOuter + xInner) * 0.5, y, zTip, FACE_KIND.tooth);
+    const base = [b0, b1, b2, b3];
+    for (let i = 0; i < 4; i++) tri(base[i], base[(i + 1) % 4], tip);
+    tri(base[0], base[2], base[1]); tri(base[0], base[3], base[2]);
+  };
+  /* Same wedge as `tooth`, but from three already-transformed corner points,
+   * so a row bound to a rotated bone can be authored in that bone's frame. */
+  const toothAt = (outer, inner, tip, halfY, spreadVec = null) => {
+    const axis = new THREE.Vector3().subVectors(inner, outer);
+    const spread = spreadVec ? spreadVec.clone() : new THREE.Vector3(0, halfY, 0);
+    const b0 = vertex(outer.x - spread.x, outer.y - spread.y, outer.z - spread.z, FACE_KIND.tooth);
+    const b1 = vertex(inner.x - spread.x, inner.y - spread.y, inner.z - spread.z, FACE_KIND.tooth);
+    const b2 = vertex(inner.x + spread.x, inner.y + spread.y, inner.z + spread.z, FACE_KIND.tooth);
+    const b3 = vertex(outer.x + spread.x, outer.y + spread.y, outer.z + spread.z, FACE_KIND.tooth);
+    const t = vertex(tip.x, tip.y, tip.z, FACE_KIND.tooth);
+    const base = [b0, b1, b2, b3];
+    for (let i = 0; i < 4; i++) tri(base[i], base[(i + 1) % 4], t);
+    tri(base[0], base[2], base[1]); tri(base[0], base[3], base[2]);
+    return axis;
+  };
+  const geometry = () => {
+    const out = new THREE.BufferGeometry();
+    out.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    out.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skinIndices, 4));
+    out.setAttribute('skinWeight', new THREE.Float32BufferAttribute(skinWeights, 4));
+    out.setAttribute('rfFaceKind', new THREE.Float32BufferAttribute(kinds, 1));
+    out.setAttribute('rfFaceEdge', new THREE.Float32BufferAttribute(edges, 1));
+    out.setIndex(indices); out.computeVertexNormals(); out.computeBoundingBox(); out.computeBoundingSphere();
+    return { geometry: out, triangles: indices.length / 3, vertices: positions.length / 3 };
+  };
+  return { vertex, tri, tooth, toothAt, setWeights, geometry };
+}
+/* Rev 13 face fix. Tooth stations used to be authored against the BIND-space
+ * body band, but Head and LowerJaw carry a per-row non-uniform scale from the
+ * armature/personality pass (measured: reef 1.00, megalodon 1.39, typhonmaw
+ * 1.63, leviathan_rex 1.56). Skinning then stretches a fixed bind station into
+ * a different place on every row, which marched the upper row up over the
+ * skull as a trail of specks and threw the kaiju lower row off the snout.
+ * The mouth is therefore measured in SKINNED space, where the lip actually
+ * is, and each tooth is converted back through its own bone's inverse so the
+ * vertex lands on the lip once skinning re-applies the bone. */
+function faceSkinnedMouth(body) {
+  const geometry = body.geometry, position = geometry.getAttribute('position');
+  const skinIndex = geometry.getAttribute('skinIndex'), skinWeight = geometry.getAttribute('skinWeight');
+  const bones = body.skeleton?.bones || [];
+  const headIndex = bones.findIndex((bone) => bone.name === 'Head');
+  const jawIndex = bones.findIndex((bone) => bone.name === 'LowerJaw');
+  if (!position || !skinIndex || !skinWeight || headIndex < 0 || jawIndex < 0) return null;
+  const point = new THREE.Vector3(), head = [], jaw = [];
+  let yMin = Infinity, yMax = -Infinity;
+  for (let i = 0; i < position.count; i++) {
+    point.fromBufferAttribute(position, i); body.applyBoneTransform(i, point);
+    yMin = Math.min(yMin, point.y); yMax = Math.max(yMax, point.y);
+    let headWeight = 0, jawWeight = 0;
+    for (let k = 0; k < 4; k++) {
+      const bone = skinIndex.getComponent(i, k), weight = skinWeight.getComponent(i, k);
+      if (bone === headIndex) headWeight += weight; else if (bone === jawIndex) jawWeight += weight;
+    }
+    if (headWeight > 0.5) head.push([point.x, point.y, point.z]);
+    if (jawWeight > 0.5) jaw.push([point.x, point.y, point.z]);
+  }
+  if (head.length < 8 || jaw.length < 8) return null;
+  const span = Math.max(yMax - yMin, 1e-6);
+  /* The grin runs along the overlap of Head and LowerJaw influence: that is
+   * the mouth line on every row regardless of how the bones were scaled. */
+  const headMin = Math.min(...head.map((p) => p[1])), headMax = Math.max(...head.map((p) => p[1]));
+  const jawMin = Math.min(...jaw.map((p) => p[1])), jawMax = Math.max(...jaw.map((p) => p[1]));
+  const mouthMin = Math.max(headMin, jawMin), mouthMax = Math.min(headMax, jawMax);
+  if (!(mouthMax > mouthMin)) return null;
+  return { head, jaw, span, yMin, yMax, mouthMin, mouthMax, headIndex, jawIndex };
+}
+/* The silhouette of the skinned head at one Y slice. `side` is deliberately
+ * NOT the slice's widest point: the head is widest at the cheek, while the lip
+ * sits lower and narrower, so seating a tooth at the cheek width leaves it out
+ * in open water beside the face (measured on typhonmaw: cheek 0.0218 against a
+ * 0.0123 lip). The width is therefore sampled only among points near the given
+ * lip depth, which is what actually puts a tooth on the mouth line. */
+function faceSkinnedBand(points, y, tolerance, lipFraction = null) {
+  const slice = [];
+  let top = -Infinity, bottom = Infinity, nearest = Infinity;
+  for (const p of points) {
+    const distance = Math.abs(p[1] - y);
+    if (distance <= tolerance || distance < nearest) {
+      if (distance < nearest) { nearest = distance; top = -Infinity; bottom = Infinity; slice.length = 0; }
+      if (distance <= tolerance || slice.length === 0) {
+        top = Math.max(top, p[2]); bottom = Math.min(bottom, p[2]); slice.push(p);
+      }
+    }
+  }
+  if (!Number.isFinite(top) || !Number.isFinite(bottom) || !slice.length) return null;
+  const depth = Math.max(top - bottom, 1e-6);
+  let side = 0;
+  if (lipFraction === null) {
+    for (const p of slice) side = Math.max(side, Math.abs(p[0]));
+  } else {
+    const lipZ = bottom + depth * lipFraction, window = depth * 0.30;
+    for (const p of slice) if (Math.abs(p[2] - lipZ) <= window) side = Math.max(side, Math.abs(p[0]));
+    if (side <= 0) for (const p of slice) side = Math.max(side, Math.abs(p[0]));
+  }
+  return { top, bottom, side: Math.max(side, tolerance * 0.20) };
+}
+/* Geometry-space face metrics, returned for the selftest gate so socket
+ * depth, pupil offset, and tooth separation are proved numerically rather
+ * than by eye. */
+function faceGeometryFor(body, def) {
+  const id = String(def?.id || ''), key = `${id}`;
+  if (faceFeatureCache.has(key)) return faceFeatureCache.get(key);
+  const geometry = body.geometry;
+  if (!geometry.boundingBox) geometry.computeBoundingBox();
+  const box = geometry.boundingBox, span = Math.max(box.max.y - box.min.y, 1e-5), bones = faceBoneIndices(body.skeleton);
+  const personality = personalityOf(def), face = personality?.face || { eye: 1, brow: 0, pupil: 1, gape: 0, tilt: 0 };
+  /* The authored eye value is honoured close to its face value. The old 0.55
+   * floor pulled every small-eyed row up to a big flat disc, which is why
+   * typhonmaw (authored eye 0.64, an old-god squint) rendered as an oversized
+   * red plate. The floor is now low enough to let a mean eye stay mean. */
+  const eyeScale = clamp(finite(face.eye, 1), 0.34, 1.45), browAmount = clamp(finite(face.brow, 0), -1, 1);
+  const pupilScale = clamp(finite(face.pupil, 1), 0.60, 1.50), tilt = clamp(finite(face.tilt, 0), -1, 1);
+  const builder = faceBuilder();
+  /* Station 0.155 is the eye line on the Sharky head; the band gives the
+   * live silhouette so the socket sits on the skin, not floating beside it. */
+  const eyeStation = 0.132, eyeY = box.min.y + span * eyeStation, band = sharkjiraBand(geometry, eyeY, span);
+  const eyeZ = band.top - span * 0.050 + tilt * span * 0.004;
+  /* The eye is sized against the HEAD, not the whole body: a bulky kaiju skull
+   * is a much larger fraction of the body than a reef scout's, so a body-span
+   * eye ballooned exactly on the rows the owner called out. `band.side` is the
+   * head half-width at the eye line, which tracks the skull itself. */
+  const headScale = clamp(band.side / Math.max(span * 0.115, 1e-6), 0.72, 1.30);
+  const socketRadius = span * 0.0165 * eyeScale * headScale, eyeRadius = socketRadius * 0.78;
+  const skinX = band.side;
+  /* The socket floor is pushed INTO the skull and the eyeball sits proud of
+   * it, so the lit rim reads as an actual orbit at gameplay size. */
+  const socketX = skinX * 0.995, socketFloorX = skinX * 0.965, eyeBaseX = skinX * 1.006, eyeTipX = skinX * 1.052;
+  const socketDepth = socketX - socketFloorX;
+  /* Pupil deliberately off dead-centre: forward and slightly down, scaled by
+   * tilt, which is what separates an alive stare from a machined dot. */
+  const pupilOffsetY = eyeRadius * (0.20 + 0.16 * tilt), pupilOffsetZ = eyeRadius * (-0.10 - 0.14 * tilt);
+  const pupilRadius = eyeRadius * clamp(0.46 * pupilScale, 0.24, 0.66);
+  /* The highlight sits up-and-forward of the pupil, never concentric. */
+  const highlightRadius = eyeRadius * 0.26, highlightY = pupilOffsetY + eyeRadius * 0.30, highlightZ = pupilOffsetZ + eyeRadius * 0.40;
+  const pupilOffset = Math.hypot(pupilOffsetY, pupilOffsetZ) / Math.max(eyeRadius, 1e-6);
+  for (const side of [-1, 1]) {
+    builder.setWeights([[bones.head, 1]]);
+    const sx = side < 0 ? -1 : 1;
+    /* Socket: proud rim ring, recessed floor. */
+    faceDisc(builder, 0, eyeY, eyeZ, socketRadius, socketRadius * 0.88, sx * socketFloorX, FACE_KIND.socket, 12, 0.25);
+    /* Eyeball dome, offset pupil, off-axis highlight. */
+    faceDome(builder, 0, eyeY, eyeZ, eyeRadius, eyeRadius * 0.92, sx * eyeBaseX, sx * eyeTipX, FACE_KIND.sclera, 12);
+    faceDisc(builder, 0, eyeY + pupilOffsetY, eyeZ + pupilOffsetZ, pupilRadius, pupilRadius, sx * (eyeTipX + span * 0.0007), FACE_KIND.pupil, 10);
+    faceDisc(builder, 0, eyeY + highlightY, eyeZ + highlightZ, highlightRadius, highlightRadius, sx * (eyeTipX + span * 0.0014), FACE_KIND.highlight, 8);
+    /* Brow wedge. The inner end is deliberately lower than the outer end so
+     * the eye is never framed by a symmetric hard edge. A negative brow
+     * (dopey/regal) lifts and softens; a positive brow (menace) drives down
+     * and inward over the pupil. */
+    const browZ = eyeZ + socketRadius * (0.58 - browAmount * 0.26);
+    const browInnerY = eyeY + socketRadius * (0.90 + browAmount * 0.30), browOuterY = eyeY - socketRadius * (1.05 + browAmount * 0.18);
+    const browThick = socketRadius * (0.20 + Math.abs(browAmount) * 0.24);
+    const bx = sx * skinX * 1.004, bxIn = sx * skinX * 0.980;
+    const p0 = builder.vertex(bx, browInnerY, browZ - browThick * (0.30 - browAmount * 0.50), FACE_KIND.brow);
+    const p1 = builder.vertex(bx, browOuterY, browZ + browThick * (0.10 + browAmount * 0.34), FACE_KIND.brow);
+    const p2 = builder.vertex(bx, browOuterY, browZ + browThick * (1.00 + browAmount * 0.20), FACE_KIND.brow);
+    const p3 = builder.vertex(bx, browInnerY, browZ + browThick * (0.86 - browAmount * 0.30), FACE_KIND.brow);
+    const q0 = builder.vertex(bxIn, browInnerY, browZ - browThick * (0.30 - browAmount * 0.50), FACE_KIND.brow);
+    const q1 = builder.vertex(bxIn, browOuterY, browZ + browThick * (0.10 + browAmount * 0.34), FACE_KIND.brow);
+    const q2 = builder.vertex(bxIn, browOuterY, browZ + browThick * (1.00 + browAmount * 0.20), FACE_KIND.brow);
+    const q3 = builder.vertex(bxIn, browInnerY, browZ + browThick * (0.86 - browAmount * 0.30), FACE_KIND.brow);
+    const outer = [p0, p1, p2, p3], inner = [q0, q1, q2, q3];
+    builder.tri(p0, p1, p2); builder.tri(p0, p2, p3);
+    builder.tri(q0, q2, q1); builder.tri(q0, q3, q2);
+    for (let i = 0; i < 4; i++) { const n = (i + 1) % 4; builder.tri(outer[i], inner[i], inner[n]); builder.tri(outer[i], inner[n], outer[n]); }
+  }
+  /* Separated teeth along the jaw line. Upper teeth ride the Head bone and
+   * lower teeth ride LowerJaw, so the grin opens with the rest gape instead
+   * of shearing as one rigid slot. Gap is a real modelled space, gated in
+   * the selftest. */
+  /* Teeth are placed station by station against the LIVE band at that
+   * station, so the row follows the snout taper instead of running off the
+   * tip. The span stays inside the LowerJaw influence range (~0.06-0.24) so
+   * the upper and lower rows shear apart correctly when the jaw opens. */
+  const toothCount = 5;
+  const mouth = faceSkinnedMouth(body);
+  /* Both rows are authored in SKINNED space and then pushed back through the
+   * owning bone's inverse, so the grin sits on the lip line of every row,
+   * including the scaled/morphed kaiju rows. */
+  const headBone = body.skeleton?.bones?.[bones.head], jawBone = body.skeleton?.bones?.[bones.jaw];
+  const boneInverse = (bone) => bone
+    ? new THREE.Matrix4().multiplyMatrices(body.bindMatrixInverse, bone.matrixWorld).invert()
+    : new THREE.Matrix4();
+  const headInverse = boneInverse(headBone), jawInverse = boneInverse(jawBone);
+  /* Inset off both ends of the Head/LowerJaw overlap: the grin stops short of
+   * the nose tip and short of the hinge, which is where the lip actually is. */
+  const mouthSpan = mouth ? mouth.mouthMax - mouth.mouthMin : span * 0.10;
+  /* The Head/LowerJaw overlap runs back past the mouth corner into the
+   * throat on the bulky rows, so the grin uses only the forward part of it. */
+  const mouthStart = mouth ? mouth.mouthMin + mouthSpan * 0.10 : box.min.y + span * 0.072;
+  const mouthEnd = mouth ? mouth.mouthMin + mouthSpan * 0.42 : box.min.y + span * 0.172;
+  /* Every remaining length in the grin is expressed against the MOUTH, not
+   * the skinned body span. The skinned body span carries the group's world
+   * scale and differs wildly per row (measured 0.071 on leviathan_rex against
+   * 0.366 on typhonmaw for the same ~0.057 geometry span), so using it as the
+   * band tolerance averaged each "slice" over most of the head and let the
+   * row sprawl off the lip. */
+  const toothPitch = (mouthEnd - mouthStart) / Math.max(toothCount - 1, 1);
+  const bandTolerance = Math.max(toothPitch * 0.60, 1e-6);
+  const workingSpan = mouthSpan;
+  const toothHalfY = toothPitch * 0.30, toothGap = toothPitch - toothHalfY * 2;
+  let mouthZ = 0, toothSide = 0, toothSeatMax = 0;
+  for (let i = 0; i < toothCount; i++) {
+    const y = mouthStart + (mouthEnd - mouthStart) * (i / Math.max(toothCount - 1, 1));
+    const upperBand = mouth ? faceSkinnedBand(mouth.head, y, bandTolerance, 0.10) : sharkjiraBand(geometry, y, span);
+    const lowerBand = mouth ? faceSkinnedBand(mouth.jaw, y, bandTolerance, 0.90) : upperBand;
+    if (!upperBand || !lowerBand) continue;
+    /* Seat the upper row ON the lower lip of the head band and the lower row
+     * ON the top of the jaw band, so the two rows meet at the mouth line
+     * instead of fringing under the chin. */
+    const lipZ = upperBand.bottom + (upperBand.top - upperBand.bottom) * 0.16;
+    const jawZ = lowerBand.top - (lowerBand.top - lowerBand.bottom) * 0.16;
+    const upperSide = Math.max(upperBand.side * 0.90, toothPitch * 0.60);
+    const lowerSide = Math.max(lowerBand.side * 0.90, toothPitch * 0.60);
+    /* Tooth size is keyed to the MOUTH, not the whole body. Keying it to the
+     * body span inflated the teeth on the bulky rows, whose head is a much
+     * larger fraction of the body (measured tooth extent went 0.014 span on
+     * reef to 0.041 on leviathan_rex), which is what read as a fringe of
+     * oversized fangs hanging off the chin. */
+    const taper = 1 - i / (toothCount + 2), height = toothPitch * 0.72 * (0.70 + 0.55 * taper);
+    mouthZ = lipZ; toothSide = upperSide;
+    toothSeatMax = Math.max(toothSeatMax, Math.abs(lipZ - jawZ) / Math.max(workingSpan, 1e-6));
+    /* The tooth's width runs along the body length axis. After the bone
+     * inverse that axis is no longer local +Y, so the spread is transformed
+     * as a direction (w = 0) rather than assumed. */
+    const spreadOf = (matrix, halfY) => {
+      const a = new THREE.Vector3(0, 0, 0).applyMatrix4(matrix);
+      const b = new THREE.Vector3(0, halfY, 0).applyMatrix4(matrix);
+      return b.sub(a);
+    };
+    const upperSpread = spreadOf(headInverse, toothHalfY), lowerSpread = spreadOf(jawInverse, toothHalfY * 0.86);
+    for (const side of [-1, 1]) {
+      const sx = side < 0 ? -1 : 1;
+      builder.setWeights([[bones.head, 1]]);
+      const uo = new THREE.Vector3(sx * upperSide * 0.985, y, lipZ + toothPitch * 0.10).applyMatrix4(headInverse);
+      const ui = new THREE.Vector3(sx * upperSide * 0.76, y, lipZ + toothPitch * 0.10).applyMatrix4(headInverse);
+      const ut = new THREE.Vector3(sx * upperSide * 0.87, y, lipZ - height).applyMatrix4(headInverse);
+      builder.toothAt(uo, ui, ut, toothHalfY, upperSpread);
+      /* The lower row rides LowerJaw, so it opens with the bite. */
+      builder.setWeights([[bones.jaw, 1]]);
+      const lo = new THREE.Vector3(sx * lowerSide * 0.985, y, jawZ - toothPitch * 0.10).applyMatrix4(jawInverse);
+      const li = new THREE.Vector3(sx * lowerSide * 0.76, y, jawZ - toothPitch * 0.10).applyMatrix4(jawInverse);
+      const lt = new THREE.Vector3(sx * lowerSide * 0.87, y, jawZ + height * 0.86).applyMatrix4(jawInverse);
+      builder.toothAt(lo, li, lt, toothHalfY * 0.86, lowerSpread);
+    }
+  }
+  const built = builder.geometry();
+  /* Rendered-position gate. Every tooth is pushed through its own bone the way
+   * skinning will, then measured against the live head/jaw surface and the
+   * head span. This is the numeric stand-in for "teeth must sit on the lip
+   * line of every row, including the morphed/bulky rows": a tooth that floats
+   * above the back or dangles under the chin fails it. */
+  const toothSeating = (() => {
+    const out = { maxSurfaceRatio: 0, medianSurfaceRatio: 0, outsideHeadSpan: 0, teeth: 0, headSpan: 0 };
+    if (!mouth) return out;
+    const surface = mouth.head.concat(mouth.jaw);
+    if (!surface.length) return out;
+    let hyMin = Infinity, hyMax = -Infinity;
+    for (const p of surface) { hyMin = Math.min(hyMin, p[1]); hyMax = Math.max(hyMax, p[1]); }
+    const headSpan = Math.max(hyMax - hyMin, 1e-6);
+    const position = built.geometry.getAttribute('position');
+    const kindAttribute = built.geometry.getAttribute('rfFaceKind');
+    const skinIndexAttribute = built.geometry.getAttribute('skinIndex');
+    const point = new THREE.Vector3(), ratios = [];
+    const headMatrix = headBone ? new THREE.Matrix4().multiplyMatrices(body.bindMatrixInverse, headBone.matrixWorld) : new THREE.Matrix4();
+    const jawMatrix = jawBone ? new THREE.Matrix4().multiplyMatrices(body.bindMatrixInverse, jawBone.matrixWorld) : new THREE.Matrix4();
+    for (let i = 0; i < position.count; i++) {
+      const kind = kindAttribute.getX(i);
+      if (kind < FACE_KIND.tooth - 0.5 || kind > FACE_KIND.tooth + 0.5) continue;
+      point.fromBufferAttribute(position, i);
+      point.applyMatrix4(skinIndexAttribute.getX(i) === bones.jaw ? jawMatrix : headMatrix);
+      if (point.y < hyMin - headSpan * 0.05 || point.y > hyMax + headSpan * 0.05) out.outsideHeadSpan++;
+      let best = Infinity;
+      for (const q of surface) {
+        const dx = q[0] - point.x, dy = q[1] - point.y, dz = q[2] - point.z;
+        const d = dx * dx + dy * dy + dz * dz; if (d < best) best = d;
+      }
+      ratios.push(Math.sqrt(best) / headSpan);
+    }
+    if (!ratios.length) return out;
+    ratios.sort((a, b) => a - b);
+    out.teeth = ratios.length; out.headSpan = headSpan;
+    out.maxSurfaceRatio = ratios[ratios.length - 1];
+    out.medianSurfaceRatio = ratios[Math.floor(ratios.length / 2)];
+    return out;
+  })();
+  const result = {
+    geometry: built.geometry, triangles: built.triangles, vertices: built.vertices,
+    metrics: {
+      socketDepth, socketDepthRatio: socketDepth / Math.max(socketRadius, 1e-6),
+      pupilOffsetRatio: pupilOffset, pupilRadiusRatio: pupilRadius / Math.max(eyeRadius, 1e-6),
+      highlightRadiusRatio: highlightRadius / Math.max(eyeRadius, 1e-6),
+      highlightConcentric: Math.hypot(highlightY - pupilOffsetY, highlightZ - pupilOffsetZ) / Math.max(eyeRadius, 1e-6),
+      eyeRadius, socketRadius, toothCount: toothCount * 4, toothGap, toothGapRatio: toothGap / Math.max(toothPitch, 1e-6),
+      toothSurfaceMaxRatio: toothSeating.maxSurfaceRatio, toothSurfaceMedianRatio: toothSeating.medianSurfaceRatio,
+      toothOutsideHeadSpan: toothSeating.outsideHeadSpan, toothSeatSpread: toothSeatMax,
+      browAsymmetry: Math.abs(browInnerYFor(eyeY, socketRadius, browAmount) - browOuterYFor(eyeY, socketRadius, browAmount)) / Math.max(socketRadius, 1e-6)
+    }
+  };
+  faceFeatureCache.set(key, result); return result;
+}
+function browInnerYFor(eyeY, socketRadius, browAmount) { return eyeY + socketRadius * (0.90 + browAmount * 0.30); }
+function browOuterYFor(eyeY, socketRadius, browAmount) { return eyeY - socketRadius * (1.05 + browAmount * 0.18); }
+/* The face batch is its own material so the eye can be pure white/dark and
+ * fully escape the body palette resolver. Kinds are branched in the shader. */
+function faceMaterial(def, palette) {
+  const personality = personalityOf(def), face = personality?.face || { eye: 1, brow: 0, pupil: 1, gape: 0, tilt: 0 };
+  const eyeColor = eyeColorOf(def), base = palette.base.clone();
+  const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(1, 1, 1), roughness: 0.34, metalness: 0.0, side: THREE.DoubleSide });
+  material.name = `RF Rev 13 face ${def?.id || 'unknown'}`;
+  const uniforms = {
+    uRfFaceIris: { value: eyeColor.clone() },
+    uRfFaceSocket: { value: base.clone().multiplyScalar(0.34) },
+    uRfFaceBrowColor: { value: base.clone().multiplyScalar(0.52) },
+    uRfFaceLidTint: { value: base.clone().multiplyScalar(0.78) }
+  };
+  material.userData.rfFaceUniforms = uniforms;
+  material.userData.rfFaceAttitude = { eye: face.eye, brow: face.brow, pupil: face.pupil, gape: face.gape, tilt: face.tilt };
+  material.onBeforeCompile = (shader) => {
+    for (const [name, uniform] of Object.entries(uniforms)) shader.uniforms[name] = uniform;
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nattribute float rfFaceKind;\nattribute float rfFaceEdge;\nvarying float vRfFaceKind;\nvarying float vRfFaceEdge;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvRfFaceKind = rfFaceKind;\nvRfFaceEdge = rfFaceEdge;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform vec3 uRfFaceIris;\nuniform vec3 uRfFaceSocket;\nuniform vec3 uRfFaceBrowColor;\nuniform vec3 uRfFaceLidTint;\nvarying float vRfFaceKind;\nvarying float vRfFaceEdge;')
+      .replace('#include <color_fragment>', [
+        '#include <color_fragment>',
+        'float rfK = vRfFaceKind;',
+        /* socket: dark recessed orbit tinted from the body so it reads as
+         * flesh, not a black hole punched in the head. */
+        'if (rfK < 0.5) diffuseColor.rgb = uRfFaceSocket * mix(0.85, 1.25, vRfFaceEdge);',
+        /* sclera: warm off-white, never pure paper white. */
+        'else if (rfK < 1.5) diffuseColor.rgb = mix(vec3(0.94, 0.95, 0.92), uRfFaceLidTint, 0.16);',
+        /* pupil: deep iris-tinted core. */
+        'else if (rfK < 2.5) diffuseColor.rgb = uRfFaceIris * 0.30;',
+        /* highlight: the specular catch-light that sells a living eye. */
+        'else if (rfK < 3.5) diffuseColor.rgb = vec3(1.0);',
+        'else if (rfK < 4.5) diffuseColor.rgb = uRfFaceBrowColor;',
+        'else diffuseColor.rgb = vec3(0.95, 0.95, 0.90);'
+      ].join('\n'));
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <emissivemap_fragment>', [
+        '#include <emissivemap_fragment>',
+        /* Lift only the iris ring and the catch-light so the eye stays
+         * readable against a bright pale-water background at 64x30. */
+        'float rfIris = step(1.5, vRfFaceKind) - step(2.5, vRfFaceKind);',
+        'float rfSpec = step(2.5, vRfFaceKind) - step(3.5, vRfFaceKind);',
+        'totalEmissiveRadiance += uRfFaceIris * rfIris * 0.38;',
+        'totalEmissiveRadiance += vec3(1.0) * rfSpec * 0.55;'
+      ].join('\n'));
+  };
+  material.customProgramCacheKey = () => 'rf-rev13-face';
+  material.needsUpdate = true;
+  return material;
+}
+function makeFace(body, def, palette) {
+  const built = faceGeometryFor(body, def), parent = body.parent;
+  if (!built || !parent) return null;
+  const mesh = new THREE.SkinnedMesh(built.geometry, faceMaterial(def, palette));
+  mesh.name = `RF Rev 13 face ${def?.id || 'unknown'}`;
+  mesh.renderOrder = 3; mesh.frustumCulled = false;
+  mesh.bind(body.skeleton, body.bindMatrix.clone(), body.bindMatrixInverse.clone());
+  parent.add(mesh); parent.updateMatrixWorld(true); mesh.computeBoundingBox();
+  mesh.userData.rfExcludeFromBounds = true;
+  mesh.userData.rfFaceMetrics = built.metrics;
+  mesh.userData.rfFaceTriangles = built.triangles;
+  return mesh;
+}
 function makeProp(def, base, headBone, palette) {
   const kind = propKind(def, base), geometry = kind === 'grin' ? grinGeometry() : propGeometry(kind); if (!kind || !geometry || !headBone) return null;
   const material = kind === 'hammer' ? skinMaterial(palette, def, null, 'Hammer Cephalofoil', false, 'hammer') : skinMaterial(palette, def, null, `${kind} anatomical feature`, false);
@@ -1377,9 +2250,49 @@ function fitProp(prop, body, kind) {
   const bodyBox = new THREE.Box3().setFromObject(body), propBox = new THREE.Box3().setFromObject(prop);
   const bodySize = bodyBox.getSize(new THREE.Vector3()), propSize = propBox.getSize(new THREE.Vector3()), current = Math.max(propSize.x, propSize.y, propSize.z, 1e-5);
   if (kind === 'hammer') {
-    const bodySpan = Math.max(bodySize.x, 1e-5), projected = Math.max(propSize.x, 1e-5);
-    prop.scale.multiplyScalar(clamp((bodySpan * 0.50) / projected, 0.012, 0.55));
+    /* The foil's span runs on local x, which the Head bone maps to world z
+     * (the shark's width). Scale that span against the body width so the
+     * cephalofoil reads as a real hammer: wider than the body, but nowhere
+     * near the body's LENGTH, which is what bodySize.x would have compared
+     * it against. */
+    const bodyWidth = Math.max(bodySize.z, 1e-5), projected = Math.max(propSize.z, 1e-5);
+    prop.scale.multiplyScalar(clamp((bodyWidth * 1.70) / projected, 0.012, 0.55));
+    /* The foil is a head, not a hat. Push it back along the rig's length
+     * axis until its concave trailing edge overlaps the snout mass, so the
+     * silhouette is continuous instead of a plate with an air gap. Depth is
+     * left slightly proud so the slab thickness still catches light in the
+     * 0.42 yaw gameplay pose. */
+    prop.updateMatrixWorld(true);
+    /* Seat along whichever local axis is currently shortest in world space:
+     * that is the slab's thickness direction, and moving the foil back along
+     * the body length axis is what closes the gap. Measured in the prop's own
+     * local frame so the bone's authored scale cannot magnify the offset. */
+    const seated = new THREE.Box3().setFromObject(prop), seatedSize = seated.getSize(new THREE.Vector3());
+    const local = new THREE.Box3().setFromBufferAttribute(prop.geometry.getAttribute('position'));
+    const localSize = local.getSize(new THREE.Vector3()), localCenter = local.getCenter(new THREE.Vector3());
+    /* Geometry spans x (foil width) and y (sweep); y is the rig length axis,
+     * so pull the foil back along -y until its concave rear edge overlaps. */
+    /* Seat the foil back into the skull so the snout and mouth stay visible
+     * in front of it: the cephalofoil is the BROW of the head, not a muzzle
+     * cap. Measured in local units against the prop's own scale.
+     *
+     * Rev 13 rework: 0.62 of the local sweep pushed the foil clean off the
+     * skull and onto the torso, which is why it rendered as a box bolted to
+     * the shoulders. The loft's own sweep already carries the foil back
+     * (the leading edge is swept and the trailing edge is concave), so only
+     * a small seating nudge is needed to bury the root in the head. */
+    /* Local y maps to world x (the rig LENGTH axis) and the snout is at +x,
+     * so a negative offset drags the foil backward into the torso. The
+     * cephalofoil belongs forward, spanning the brow just behind the snout
+     * tip, which is where it reads as a T in the 0.42 yaw. */
+    prop.position.y += localSize.y * 0.46 * prop.scale.y;
+    prop.position.x -= localCenter.x * prop.scale.x;
     prop.userData.rfFitScale = prop.scale.x;
+    /* Thickness is reported against the widest world axis so the gate reads
+     * a genuine slab-versus-plate ratio rather than an axis mix-up. */
+    const widest = Math.max(seatedSize.x, seatedSize.y, seatedSize.z);
+    const thinnest = Math.min(seatedSize.x, seatedSize.y, seatedSize.z);
+    prop.userData.rfFoilThicknessRatio = thinnest / Math.max(widest, 1e-5);
     return;
   }
   const bodyThickness = Math.max(bodySize.y, bodySize.z, bodySize.x * 0.16), ratio = kind === 'saw' ? 0.46 : kind === 'horns' ? 0.54 : kind === 'crown' ? 0.68 : 0.86;
@@ -1453,6 +2366,8 @@ function buildLoadedRig(def, template, group) {
     if (!mesh.geometry.getAttribute('rfSlot')) mesh.geometry.setAttribute('rfSlot', new THREE.Float32BufferAttribute(new Float32Array(mesh.geometry.getAttribute('position').count).fill(1), 1));
   }
   const sharkjira = def?.id === SHARKJIRA_ID ? makeSharkjiraFeatures(body) : null;
+  const leviathan = def?.id === LEVIATHAN_ID ? makeLeviathanFeatures(body) : null;
+  const faceMesh = makeFace(body, def, palette);
   /* 9.6: no BackSide ink shell. Smooth Standard shading supplies the edge
    * separation without the doubled silhouette draw. */
   const shell = null;
@@ -1499,8 +2414,11 @@ function buildLoadedRig(def, template, group) {
   group.userData.rfPropAllowlisted = !prop || PROP_ALLOWLIST_IDS.has(String(def?.id || ''));
   group.userData.rfPropContactGap = prop ? finite(prop.userData.rfContactGap, Infinity) : 0;
   group.userData.rfVisibleDrawCalls = drawCount(group); group.userData.rfPaletteRaw = palette.raw; group.userData.rfPaletteResolved = palette.resolved; group.userData.rfIsSkinned = !!body.isSkinnedMesh;
+  group.userData.rfFace = faceMesh ? { ...faceMesh.userData.rfFaceMetrics, triangles: faceMesh.userData.rfFaceTriangles, attitude: faceMesh.material?.userData?.rfFaceAttitude || null } : null;
   group.userData.rfSharkjira = sharkjira ? { plateCount: sharkjira.plateCount, plateStations: sharkjira.plateStations, atomicTriangles: sharkjira.atomicTriangles, toothTriangles: sharkjira.toothTriangles, pulseUniform: true } : null;
   group.userData.rfSharkjiraPulse = sharkjira?.pulse || null;
+  group.userData.rfLeviathan = leviathan ? { scuteCount: leviathan.scuteCount, scuteStations: leviathan.scuteStations, rowOffset: leviathan.rowOffset, crownPlates: leviathan.crownPlates, cheekPlates: leviathan.cheekPlates, tuskCount: leviathan.tuskCount, featureTriangles: leviathan.featureTriangles, pulseUniform: true } : null;
+  group.userData.rfLeviathanPulse = leviathan?.pulse || null;
   group.userData.rfSlotNames = template.slotNames.slice(); group.userData.rfAtlasMask = template.key === 'sharky' ? 'white atlas luminance; Eyes/Teeth slots stay source-colored' : 'Eyes/Teeth material slots'; group.userData.rfLoading = false;
   const animation = { lastT: null, bite: 0, turn: 0, death: 0, active: 'swim', biteActive: false, biteLatched: false };
   const baseHeadQuaternion = headBone?.quaternion.clone(), neckBone = model.getObjectByName('Neck') || model.getObjectByName('Main5'), baseNeckQuaternion = neckBone?.quaternion.clone();
@@ -1539,6 +2457,8 @@ function buildLoadedRig(def, template, group) {
     group.userData.rfJawGape = jawGape;
     if (jawBone && baseJawQuaternion) { jawBone.quaternion.copy(baseJawQuaternion); jawBone.rotateX(-jawGape * JAW_MAX_ROTATION); }
     if (sharkjira) sharkjira.pulse.value = 0.72 + 0.28 * (0.5 + 0.5 * Math.sin(time * 5.4));
+    /* Slower, deeper swell than Sharkjira's fast atomic flicker. */
+    if (leviathan) leviathan.pulse.value = 0.52 + 0.34 * (0.5 + 0.5 * Math.sin(time * 2.15));
   }
   if (jawBone && baseJawQuaternion) { jawBone.quaternion.copy(baseJawQuaternion); jawBone.rotateX(-jawRestGape * JAW_MAX_ROTATION); }
   if (prop?.userData?.rfPropKind === 'hammer') {
@@ -1688,9 +2608,9 @@ function personalityFeatureDifference(a, b) {
 }
 
 function __selftest() {
-  const result = { pass: false, notes: [], errors: [], checked: 0, cache: [], baseMap: {}, drawCounts: {}, lengths: {}, tintSignatures: {}, variantSignatures: {}, props: {}, jawGape: {}, hammerSpan: {}, morphs: {}, personalityTable: {}, actDistinctness: {}, sharkjira: null };
+  const result = { pass: false, notes: [], errors: [], checked: 0, cache: [], baseMap: {}, drawCounts: {}, lengths: {}, tintSignatures: {}, variantSignatures: {}, props: {}, jawGape: {}, hammerSpan: {}, morphs: {}, personalityTable: {}, actDistinctness: {}, face: {}, sharkjira: null, leviathan: null, foil: {} };
   try {
-    const allRows = rows(), rowIds = new Set(allRows.map((def) => def.id)), tableIds = Object.keys(PERSONALITY_TABLE); if (allRows.length !== 85) throw new Error(`expected 85 sharks, received ${allRows.length}`); if (tableIds.length !== 85 || tableIds.some((id) => !rowIds.has(id)) || Array.from(rowIds).some((id) => !PERSONALITY_TABLE[id])) throw new Error(`personality table incomplete: ${tableIds.length}/85 authored rows`); if (preloadError) throw preloadError; if (modelCache.size < MODEL_KEYS.length) throw new Error(`model cache has ${modelCache.size}/${MODEL_KEYS.length} GLBs`);
+    const allRows = rows(), rowIds = new Set(allRows.map((def) => def.id)), tableIds = Object.keys(PERSONALITY_TABLE); if (allRows.length !== 86) throw new Error(`expected 86 sharks, received ${allRows.length}`); if (tableIds.length !== 86 || tableIds.some((id) => !rowIds.has(id)) || Array.from(rowIds).some((id) => !PERSONALITY_TABLE[id])) throw new Error(`personality table incomplete: ${tableIds.length}/86 authored rows`); if (preloadError) throw preloadError; if (modelCache.size < MODEL_KEYS.length) throw new Error(`model cache has ${modelCache.size}/${MODEL_KEYS.length} GLBs`);
     result.personalityTable = { rows: tableIds.length, missing: allRows.filter((def) => !PERSONALITY_TABLE[def.id]).map((def) => def.id) };
     result.cache = Array.from(modelCache.keys()).sort();
     for (const def of allRows) {
@@ -1704,16 +2624,57 @@ function __selftest() {
       if (!group.userData.rfMixerClipName || !/swim|swimming/i.test(group.userData.rfMixerClipName)) throw new Error(`${def.id}: Swim clip missing`);
       if (!group.userData.rfFastClipName || !group.userData.rfBiteClipName) throw new Error(`${def.id}: fast/bite clip mapping missing`);
       const scales = group.userData.rfArmatureScale; if (scales.length < 0.85 || scales.length > 1.35 || scales.height < 0.90 || scales.height > 1.30 || scales.depth < (def.id === SHARKJIRA_ID ? 0.64 : 0.90) || scales.depth > 1.20) throw new Error(`${def.id}: bounded scale failed`);
-      const draws = drawCount(group); if (draws > 3) throw new Error(`${def.id}: ${draws} draws exceeds Rev 9 budget`);
+      const draws = drawCount(group); if (draws > 4) throw new Error(`${def.id}: ${draws} draws exceeds the Rev 13 budget (body + optional prop/feature + face batch)`);
+      /* Rev 13 face lane: the grin must sit on the lip line of EVERY row,
+       * including the scaled/morphed kaiju rows whose Head bone carries up to
+       * a 2.75x widening. `toothOutsideHeadSpan` is the hard one: a tooth
+       * outside the head span is the floating speck trail / dangling chin
+       * cluster the owner reported, and it must be exactly zero. */
+      const faceMetrics = group.userData.rfFace;
+      if (!faceMetrics) throw new Error(`${def.id}: face batch missing`);
+      if (faceMetrics.toothOutsideHeadSpan !== 0) throw new Error(`${def.id}: ${faceMetrics.toothOutsideHeadSpan} teeth outside the head span`);
+      if (!(faceMetrics.toothSurfaceMedianRatio < 0.16)) throw new Error(`${def.id}: tooth row median ${faceMetrics.toothSurfaceMedianRatio.toFixed(4)} off the head surface`);
+      if (!(faceMetrics.toothSurfaceMaxRatio < 0.45)) throw new Error(`${def.id}: worst tooth ${faceMetrics.toothSurfaceMaxRatio.toFixed(4)} off the head surface`);
+      if (!(faceMetrics.socketDepthRatio > 0.05)) throw new Error(`${def.id}: eye socket is flat`);
+      if (!(faceMetrics.pupilOffsetRatio > 0.06)) throw new Error(`${def.id}: pupil is dead-centre`);
+      if (!(faceMetrics.toothGapRatio > 0.15)) throw new Error(`${def.id}: teeth are a grille, not separated`);
+      if (!(faceMetrics.toothCount >= 12)) throw new Error(`${def.id}: only ${faceMetrics.toothCount} teeth`);
+      result.face[def.id] = {
+        outside: faceMetrics.toothOutsideHeadSpan,
+        toothMed: Number(faceMetrics.toothSurfaceMedianRatio.toFixed(4)),
+        toothMax: Number(faceMetrics.toothSurfaceMaxRatio.toFixed(4)),
+        socket: Number(faceMetrics.socketDepthRatio.toFixed(4)),
+        eyeRadius: Number(faceMetrics.eyeRadius.toFixed(5))
+      };
       if (def.id === SHARKJIRA_ID) {
         const kaiju = group.userData.rfSharkjira;
         const crest = morph.crest, bodyBox = body.geometry.boundingBox || body.geometry.computeBoundingBox() && body.geometry.boundingBox, bodySpan = Math.max((bodyBox?.max.y || 0) - (bodyBox?.min.y || 0), 1e-5);
         const bodyBoxForAspect = measureBox(body), groupSize = bodyBoxForAspect.getSize(new THREE.Vector3()), crestEdge = body.geometry.getAttribute('rfCrestEdge');
         const headBoneScale = body.skeleton?.bones?.find((bone) => bone.name === 'Head')?.scale?.x || 0;
         if (!crest || crest.plateCount !== 8 || !crest.connected || crest.boundaryEdges < crest.plateCount || crest.minFaceNormalDot < 0.05 || crest.maxOffsetDepthRatio > 0.35 + 1e-5 || morph.maxOffsetOutsideCrest > bodySpan * 0.18 + 1e-5 || !crestEdge || crestEdge.count !== body.geometry.getAttribute('position')?.count || headBoneScale > 1.39 || groupSize.x / Math.max(groupSize.z, 1e-5) < 2.60 || groupSize.x / Math.max(groupSize.z, 1e-5) > 3.00) throw new Error(`${def.id}: connected crest/head/aspect bounds failed`);
-        if (!kaiju || kaiju.plateCount !== crest.plateCount || !Array.isArray(kaiju.plateStations) || kaiju.plateStations.length !== 8 || !kaiju.pulseUniform || draws !== 3) throw new Error(`${def.id}: atomic crest must be a connected 8-plate hull/feature spine, pulsed, and exactly three meshes`);
+        if (!kaiju || kaiju.plateCount !== crest.plateCount || !Array.isArray(kaiju.plateStations) || kaiju.plateStations.length !== 8 || !kaiju.pulseUniform || draws !== 4) throw new Error(`${def.id}: atomic crest must be a connected 8-plate hull/feature spine, pulsed, and exactly three meshes`);
         if (kaiju.atomicTriangles + kaiju.toothTriangles > 420) throw new Error(`${def.id}: feature triangles ${kaiju.atomicTriangles + kaiju.toothTriangles} exceed the compact kaiju allowance`);
         result.sharkjira = { plates: kaiju.plateCount, draws, featureTriangles: kaiju.atomicTriangles + kaiju.toothTriangles, crestVertices: crest.vertexCount, crestBoundaryEdges: crest.boundaryEdges, crestNormalMinDot: Number(crest.minFaceNormalDot.toFixed(4)), palette: group.userData.rfPaletteRaw };
+      }
+      if (def.id === LEVIATHAN_ID) {
+        /* Leviathan Rex must be a KING, not a recolored Sharkjira: two full
+         * scute rows, a crown and brow shelf, cheek armor, tusks, its own
+         * seafoam pulse uniform, and exactly one extra feature draw. */
+        const rex = group.userData.rfLeviathan;
+        if (!rex || rex.scuteCount !== LEVIATHAN_SCUTE_STATIONS.length * 2 || rex.crownPlates !== 2 || rex.cheekPlates !== 2 || rex.tuskCount !== 6 || !rex.pulseUniform || rex.rowOffset < 0.20) throw new Error(`${def.id}: kaiju king features (twin scute rows, crown, cheeks, tusks) missing`);
+        if (!group.userData.rfLeviathanPulse) throw new Error(`${def.id}: seafoam pulse uniform missing`);
+        if (rex.featureTriangles > 640) throw new Error(`${def.id}: feature triangles ${rex.featureTriangles} exceed the compact kaiju allowance`);
+        /* Distinctness from Sharkjira is enforced numerically, not by eye:
+         * the two kaiju must disagree on plate count, plate height, glow hue
+         * and dorsal attitude so they cannot converge at 64x30. */
+        const jira = PERSONALITY_TABLE[SHARKJIRA_ID], king = PERSONALITY_TABLE[LEVIATHAN_ID];
+        const maxScute = Math.max(...LEVIATHAN_SCUTE_HEIGHTS), maxPlate = Math.max(...SHARKJIRA_PLATE_HEIGHTS);
+        if (maxScute >= maxPlate * 0.62) throw new Error(`${def.id}: scutes ${maxScute} are not clearly shorter than Sharkjira plates ${maxPlate}`);
+        if (rex.scuteCount <= SHARKJIRA_PLATE_STATIONS.length) throw new Error(`${def.id}: scute count must exceed Sharkjira's single plate row`);
+        if (!(king.sculpt.brow > 0.25 && jira.sculpt.brow < 0) || !(king.sculpt.dorsal < 0 && jira.sculpt.dorsal > 0)) throw new Error(`${def.id}: crown/dorsal attitude does not oppose Sharkjira`);
+        const glowHue = new THREE.Color(LEVIATHAN_PALETTE.glow).getHSL({}).h, jiraHue = new THREE.Color(SHARKJIRA_PALETTE.glow).getHSL({}).h;
+        if (hueDistance(glowHue, jiraHue) < 0.02) throw new Error(`${def.id}: seafoam glow is not separable from the atomic blue`);
+        result.leviathan = { scutes: rex.scuteCount, rows: 2, crown: rex.crownPlates, cheeks: rex.cheekPlates, tusks: rex.tuskCount, featureTriangles: rex.featureTriangles, draws, palette: group.userData.rfPaletteRaw };
       }
       if (rig.parts.shell !== null || group.getObjectByName('RF Rev 9b contour shell')) throw new Error(`${def.id}: contour shell survived 9.6 style gate`);
       const allMaterials = [];
@@ -1722,6 +2683,22 @@ function __selftest() {
       if (def.id === SHARKJIRA_ID) {
         const bodySkinMaterials = allMaterials.filter((material) => material.userData?.rfSharkjiraBody);
         if (bodySkinMaterials.length < 1 || bodySkinMaterials.some((material) => material.transparent || material.opacity !== 1 || !material.depthWrite || material.emissiveIntensity !== 0)) throw new Error(`${def.id}: charcoal body must stay opaque, depth-writing, and non-emissive`);
+      }
+      /* Rev 13 rework gate. The Rex rendered as a pale translucent ghost, so
+       * pin the three things that produced it: the hull must be opaque and
+       * depth-writing, the body emissive must stay at the baseline (an
+       * act-scaled 0.16 lit the armor from inside toward the water color),
+       * and the armor scutes must not out-glow the hull. */
+      if (def.id === LEVIATHAN_ID) {
+        const rexBody = allMaterials.filter((material) => material.userData?.rfSkinUniforms && !material.userData?.rfFaceMetrics && /shark skin/.test(material.name || ''));
+        if (rexBody.length < 1) throw new Error(`${def.id}: kaiju body skin material missing`);
+        for (const material of rexBody) {
+          if (material.transparent || material.opacity !== 1 || !material.depthWrite) throw new Error(`${def.id}: armored hull must stay opaque and depth-writing`);
+          if (material.emissiveIntensity > 0.06) throw new Error(`${def.id}: body emissive ${material.emissiveIntensity} lights the hull instead of the seams`);
+        }
+        const armor = allMaterials.find((material) => /Leviathan Rex/.test(material.name || ''));
+        if (!armor || armor.transparent || armor.opacity !== 1) throw new Error(`${def.id}: scute armor must be opaque`);
+        if (armor.emissiveIntensity > 0.40) throw new Error(`${def.id}: scute glow ${armor.emissiveIntensity} exceeds a seam accent`);
       }
       const bodyMaterials = Array.isArray(body.material) ? body.material : [body.material];
       if (bodyMaterials.some((material) => material.type !== 'MeshStandardMaterial' || material.flatShading || material.roughness < 0.42 || material.roughness > 0.62)) throw new Error(`${def.id}: smooth Standard specular material gate failed`);
@@ -1735,6 +2712,21 @@ function __selftest() {
       const biteGape = finite(group.userData.rfJawGape, 0);
       if (group.userData.rfJawMaxRotation > 0 && biteGape < 0.85) throw new Error(`${def.id}: bite jaw snap only reached ${biteGape.toFixed(3)}`);
       if (group.userData.rfPropKind === 'hammer' && finite(group.userData.rfHammerProjectedSpan, 0) < 0.42) throw new Error(`${def.id}: hammer foil span ${group.userData.rfHammerProjectedSpan.toFixed(3)} < 0.42 body length`);
+      if (group.userData.rfPropKind === 'hammer') {
+        /* The foil must be a solid T-shaped head, not a flat plate: real
+         * thickness, eye bulbs, palette countershading, and no air gap. */
+        const foil = rig.parts.prop, foilGeometry = foil?.geometry;
+        const featureAttribute = foilGeometry?.getAttribute('rfFeature');
+        if (!featureAttribute) throw new Error(`${def.id}: foil is missing its rfFeature channel`);
+        const channels = new Set(); for (let i = 0; i < featureAttribute.count; i++) channels.add(Math.round(featureAttribute.getX(i)));
+        if (!channels.has(0) || !channels.has(1) || !channels.has(2)) throw new Error(`${def.id}: foil needs crown, eye bulb, and ventral countershade channels`);
+        const thickness = finite(foil?.userData?.rfFoilThicknessRatio, 0);
+        if (thickness < 0.06) throw new Error(`${def.id}: foil thickness ratio ${thickness.toFixed(4)} reads as a flat plate`);
+        const foilMaterial = Array.isArray(foil.material) ? foil.material[0] : foil.material;
+        if (!/hammer/.test(String(foilMaterial?.customProgramCacheKey?.() || ''))) throw new Error(`${def.id}: foil is not palette-colored by the hammer skin ramp`);
+        if (finite(group.userData.rfPropContactGap, Infinity) > 0.02) throw new Error(`${def.id}: foil is not blended into the head`);
+        result.foil[def.id] = { thickness: Number(thickness.toFixed(4)), span: Number(group.userData.rfHammerProjectedSpan.toFixed(3)), gap: Number(finite(group.userData.rfPropContactGap, 0).toFixed(4)), channels: Array.from(channels).sort() };
+      }
       result.jawGape[def.id] = { cruise: Number(cruiseGape.toFixed(3)), bite: Number(biteGape.toFixed(3)) };
       if (group.userData.rfPropKind === 'hammer') result.hammerSpan[def.id] = Number(group.userData.rfHammerProjectedSpan.toFixed(3));
       if (group.userData.rfPatternId !== patternId(def)) throw new Error(`${def.id}: pattern mapping missing`);
@@ -1754,6 +2746,40 @@ function __selftest() {
     }
     const showcase = ['reef', 'tiger', 'hammerhead', 'greatwhite', 'whaleshark', 'leviathanrex', 'zeusfin', 'typhonmaw'];
     if (new Set(showcase.map((id) => result.tintSignatures[id])).size !== showcase.length) throw new Error('showcase rendered tint signatures are not pairwise distinct');
+    /* Rev 13 color gates. These lock in the measured lineup improvement:
+     * mean rendered flank saturation 0.292 -> 0.370, mean back/belly value
+     * delta 0.204 -> 0.242, and worst-case pairwise separation 0.013 -> 0.101
+     * across the 12-row probe lineup. */
+    const colorRows = ['reef', 'tiger', 'hammerhead', 'greatwhite', 'whaleshark', 'megalodon', 'voltaicrex', 'leviathanrex', 'zeusfin', 'typhonmaw', 'hadesmaw', 'solaris'];
+    const colorStats = {};
+    for (const id of colorRows) {
+      const def = allRows.find((row) => row.id === id); if (!def) throw new Error(`color gate row ${id} missing`);
+      const p = paletteOf(def), b = p.resolved.base, belly = p.resolved.belly, accent = p.resolved.accent;
+      /* Every flank must carry real chroma; a washed-out base is what made the
+       * pre-Rev-13 roster read as near-monochrome against the pale water. */
+      if (id !== SHARKJIRA_ID && b.s < 0.30) throw new Error(`${id}: base saturation ${b.s.toFixed(3)} < 0.30 color floor`);
+      /* Countershading must be a real value split, not a tint. */
+      if (belly.v - b.v < 0.20) throw new Error(`${id}: countershade delta ${(belly.v - b.v).toFixed(3)} < 0.20`);
+      /* Accents have to out-punch the flank or collars/stripes vanish in fog. */
+      if (accent.s < 0.60) throw new Error(`${id}: accent saturation ${accent.s.toFixed(3)} < 0.60`);
+      colorStats[id] = { baseH: Number(b.h.toFixed(4)), baseS: Number(b.s.toFixed(4)), baseV: Number(b.v.toFixed(4)), countershade: Number((belly.v - b.v).toFixed(4)) };
+    }
+    /* Sharkjira keeps charcoal identity but must never be a silhouette-only
+     * blob: the body value has to clear the water's shadow floor so plates,
+     * gills and the atomic blue read. */
+    const jira = paletteOf(allRows.find((row) => row.id === SHARKJIRA_ID));
+    if (jira.resolved.base.v < 0.22 || jira.resolved.base.v > 0.42) throw new Error(`sharkjira base value ${jira.resolved.base.v.toFixed(3)} outside the 0.22-0.42 charcoal-but-readable band`);
+    if (jira.resolved.accent.s < 0.85 || jira.resolved.accent.v < 0.85) throw new Error('sharkjira atomic blue accent lost its punch');
+    /* Pairwise hue/value separation across the lineup. */
+    let minColorSep = 9;
+    for (let i = 0; i < colorRows.length; i++) for (let j = i + 1; j < colorRows.length; j++) {
+      const a = colorStats[colorRows[i]], c = colorStats[colorRows[j]];
+      const sep = hueDistance(a.baseH, c.baseH) * 2 + Math.abs(a.baseV - c.baseV) + Math.abs(a.baseS - c.baseS) * 0.5;
+      if (sep < minColorSep) minColorSep = sep;
+      if (sep < 0.10) throw new Error(`color pair ${colorRows[i]}/${colorRows[j]} separation ${sep.toFixed(3)} < 0.10`);
+    }
+    result.colorSeparation = { rows: colorRows.length, min: Number(minColorSep.toFixed(4)), stats: colorStats };
+    if (!(SCENE_SATURATION_GAIN > 1) || !(SCENE_COUNTERSHADE_GAIN > 1)) throw new Error('scene pre-compensation gains must exceed 1');
     result.notes.push('Rev 11: all 85 definitions have authored bulk, sculpt, face, surface, and signature briefs. Bind-pose positions are baked per definition from Head/Neck/Abdomen/Tail/LowerJaw skin influence, with recomputed smooth normals and no split contour mesh.');
     result.notes.push('Skin3 samples the atlas as luminance/detail, paints explicit top/belly/accent palette regions, and preserves atlas-owned teeth, pupil/cavity, and mouth pixels. Named showcase overrides enforce blue-gray reef, tan striped tiger, slate great-white, and distinct pantheon families.');
     result.notes.push('9.6 gates: MeshStandardMaterial only, smooth normals, roughness 0.50 body specular lighting, no BackSide contour shell, 28% cruise jaw gape with full bite snap, and hammer foil >=0.42 body span.');

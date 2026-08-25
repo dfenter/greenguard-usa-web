@@ -3405,8 +3405,14 @@ import * as THREE from 'three';
   // to clear the finite-difference epsilon and reliably find open water one
   // or two SDF cells away without a second full raster walk.
   var FLAT_NUDGE_STEP = SDF_CELL * 1.5;
-  World.resolveBody = function (body, r) {
+  World.resolveBody = function (body, r, allowSurface) {
     if (!body || !S.sdf) return;
+    // Rev 13 breach: the SDF's top row is the border wall, so the water
+    // surface reads as a rock ceiling (sdf -32 at y=0) and pinned a surfacing
+    // player under it. Only the player may breach (engine3d passes
+    // allowSurface); inside the top cell band it is simply not resolved.
+    // NPC fish keep the ceiling, so schooling/wall-avoid behavior is unchanged.
+    if (allowSurface && isFinite(body.y) && body.y < SDF_CELL + r) return;
     // Robustness (6.11 code review): guard non-finite inputs before doing any
     // math with them. A NaN/Infinity body position is a no-op here (nothing
     // useful to push out of; the caller's own position is already broken),

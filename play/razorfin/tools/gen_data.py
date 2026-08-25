@@ -193,6 +193,9 @@ SHARKS = [
  "A kaiju wearing a shark's face. Jagged dorsal plates, an atomic-blue glow "
  "in its spine and gills, and an underbite that ends arguments. The ocean "
  "has a king. The land has a warning."),
+("leviathan_rex","Leviathan Rex",12,3,150000,(400,720,2.5,16,1400,2.6,3.0),["armored","pressureImmune","junkEater","biteUpX"],"atomic",
+ ("kaiju",2.20,0.60,1.30,1.20,0x2e3d38,0xb8cdc4,0x1a2622,0x9ff7f0,"plates","dorsalCharge"),None,
+ "The ocean has a king. The land has a warning."),
 # --- Act 4: Pantheon (12), gods, tiers 9-12 ---
 ("zeusfin","Zeusfin",9,4,160000,(420,804,3.1,10,600,2.9,3.1),["shockTouch","comboSpeed"],"volt",
  ("point",1.58,0.40,1.25,1.15,0xd8b03a,0xfff6d0,0x8a6a10,0xfff2a0,"rays","stormcrown"),None,

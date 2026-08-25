@@ -2343,7 +2343,7 @@ var RF = window.RF = window.RF || {};
       ok(actName(4) === 'Pantheon', 'actName: act 4 is Pantheon');
       ok(actName(5) === 'Underworld', 'actName: act 5 is Underworld');
       var allSChk = allSharks();
-      ok(allSChk.length === 85, 'roster carries all 85 sharks (61 base + 24 Pantheon/Underworld)');
+      ok(allSChk.length === 86, 'roster carries all 86 sharks (62 base + 24 Pantheon/Underworld)');
     } catch (e) {
       pass = false;
       notes.push('FAIL threw: ' + (e && e.message ? e.message : String(e)));
