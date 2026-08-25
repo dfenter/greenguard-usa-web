@@ -31,6 +31,18 @@ const PATTERN_IDS = Object.freeze({
   panels: 5, facets: 5, patches: 2, coral: 5, magma: 4, runes: 4, stars: 2
 });
 
+/* Rev 10 variant-art law: props are exceptions, never the identity system.
+ * The allowlist is intentionally keyed by definition id, not by a loose
+ * head/fx value, so a future row cannot accidentally grow a random horn or
+ * lure just because it shares an authored tag. */
+const PROP_ALLOWLIST = Object.freeze({
+  hammer: new Set(['hammerhead', 'athenajaw']),
+  saw: new Set(['sawshark', 'barbhook', 'chimerashark']),
+  horns: new Set(['minotaurram']),
+  crown: new Set(['coralcrown', 'zeusfin', 'heracrown'])
+});
+const PROP_ALLOWLIST_IDS = new Set(Object.values(PROP_ALLOWLIST).flatMap((ids) => Array.from(ids)));
+
 /* Rev 7 palette ranges. These are the art resolver's authority; data.js
  * remains the authored source and is never mutated. */
 const BODY_FLANK_SATURATION_MAX = 0.90;
@@ -169,7 +181,9 @@ function paletteOf(def) {
   const base = resolvePaletteSwatch(authoredBase, BODY_FLANK_SATURATION_TARGET, BODY_FLANK_SATURATION_MAX, BODY_FLANK_VALUE_MIN, BODY_FLANK_VALUE_MAX);
   const accent = resolvePaletteSwatch(authoredAccent, accentTarget, ACCENT_SATURATION_MAX, Math.max(ACCENT_VALUE_MIN, 0.86), ACCENT_VALUE_MAX, accentHue);
   const belly = resolvePaletteSwatch(source.belly, BELLY_SATURATION_MIN, BELLY_SATURATION_MAX, BELLY_VALUE_MIN, BELLY_VALUE_MAX, rgbToHsv(authoredBase).h);
-  const glow = authoredGlow ? resolvePaletteSwatch(authoredGlow, ACCENT_SATURATION_MIN, ACCENT_SATURATION_MAX, Math.max(ACCENT_VALUE_MIN, 0.88), ACCENT_VALUE_MAX, accentHue) : null;
+  const glow = authoredGlow
+    ? resolvePaletteSwatch(authoredGlow, ACCENT_SATURATION_MIN, ACCENT_SATURATION_MAX, Math.max(ACCENT_VALUE_MIN, 0.88), ACCENT_VALUE_MAX, accentHue)
+    : finite(def?.act, 1) >= 2 ? hsvToColor(accentHue, 0.96, 0.94) : null;
   return {
     base, belly, accent, glow,
     raw: { base: hex(source.base, 0x204050), belly: hex(source.belly, 0xddeee7), accent: hex(source.accent, 0x164557), glow: source.glow ? hex(source.glow) : 0 },
@@ -180,6 +194,100 @@ function hashString(value) {
   let h = 2166136261, str = String(value || '');
   for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619);
   return (h >>> 0) / 4294967295;
+}
+function eyeColorOf(def) {
+  const id = String(def?.id || ''), head = String(def?.sil?.head || '');
+  const named = {
+    reef: 0x101b1d, epaulette: 0xd7a83b, cookiecutter: 0xf2a83b, mako: 0x63d8ff,
+    blue: 0x8cecff, hammerhead: 0xd9f25b, thresher: 0xffc74d, sawshark: 0xff8b45,
+    tiger: 0x79e85b, bull: 0xffbf49, goblin: 0xff6f48, greatwhite: 0x8bdcff,
+    whaleshark: 0x72f0d4, megalodon: 0xffcf72, greenland: 0x80b6ff,
+    leviathanrex: 0x8df6ff, zeusfin: 0xfff074, hadesmaw: 0xff5f9a,
+    typhonmaw: 0xff6d3f, minotaurram: 0xffbd4e, medusagaze: 0x9dff6b,
+    cyclopseye: 0xffe064
+  }[id];
+  if (named) return colorValue(named);
+  const hue = (hashString(`${id}:${head}`) * 0.84 + (finite(def?.act, 1) - 1) * 0.035) % 1;
+  return hsvToColor(hue, 0.82, 0.92);
+}
+function variantProfile(def) {
+  const id = String(def?.id || ''), sil = def?.sil || {}, head = String(sil.head || ''), act = finite(def?.act, 1);
+  const tailScale = clamp(finite(sil.tailScale, 1), 0.72, 2.4), finScale = clamp(finite(sil.finScale, 1), 0.65, 1.8);
+  const lane = Math.floor(hashString(`${id}:body`) * 5);
+  const laneScales = [
+    { head: 0.96, abdomen: 1.04, tail: 1.04, fin: 0.96 },
+    { head: 1.06, abdomen: 0.96, tail: 0.94, fin: 1.06 },
+    { head: 1.00, abdomen: 1.10, tail: 1.02, fin: 1.02 },
+    { head: 1.08, abdomen: 1.02, tail: 0.96, fin: 0.92 },
+    { head: 0.94, abdomen: 0.94, tail: 1.10, fin: 1.10 }
+  ][lane];
+  const profile = {
+    lane,
+    head: [laneScales.head, 1, laneScales.head],
+    neck: [1, 1, 1],
+    abdomen: [laneScales.abdomen, 1, laneScales.abdomen],
+    tail: [1, clamp(laneScales.tail * (0.94 + (tailScale - 1) * 0.26), 0.82, 1.32), 1],
+    tailUpper: [1, 1, 1],
+    fin: [1, clamp(0.96 + (finScale - 1) * 0.18, 0.90, 1.16), clamp(laneScales.fin * (0.96 + (finScale - 1) * 0.24), 0.78, 1.34)],
+    jaw: [1, 1, 1],
+    patternScale: patternId(def) ? 54 + hashString(`${id}:pattern`) * 20 : 108 + finite(sil.len, 1) * 8,
+    eyeColor: eyeColorOf(def)
+  };
+  const setBody = (headScale, abdomenScale, tailLength, finHeight) => {
+    profile.head = [headScale, profile.head[1], headScale];
+    profile.neck = [Math.min(headScale, 1.16), 1, Math.min(headScale, 1.16)];
+    profile.abdomen = [abdomenScale, 1, abdomenScale];
+    profile.tail[1] = tailLength;
+    profile.fin[2] = finHeight;
+  };
+
+  /* Silhouette families. These are bone scales, so they stay welded to the
+   * Sharky rig and cannot produce the floating-object failure mode. */
+  if (id === 'mako' || id === 'blue') setBody(0.88, 0.82, 1.18, 0.94);
+  if (id === 'thresher') { setBody(0.92, 0.80, 1.12, 0.98); profile.tailUpper = [1, 1.78, 1.05]; }
+  if (id === 'bull') setBody(1.10, 1.20, 0.86, 1.06);
+  if (id === 'hammerhead' || id === 'athenajaw') setBody(1.18, 1.06, 0.98, 1.10);
+  if (id === 'whaleshark' || id === 'greenland' || id === 'megalodon') setBody(1.18, 1.18, 0.88, 1.02);
+  if (head === 'whale' || head === 'kaiju' || id === 'leviathanrex' || id === 'typhonmaw') setBody(1.28, 1.26, 0.86, 1.18);
+  if (head === 'eel' || id === 'morayne' || id === 'gloomtide') setBody(0.88, 0.78, 1.20, 0.82);
+  if (head === 'croc' || id === 'snapjaw' || id === 'aresrender' || id === 'cerberusjaw') {
+    setBody(1.12, 1.12, 0.92, 1.08); profile.jaw = [1.10, 1.06, 1.18];
+  }
+  if (head === 'rock' || head === 'skull' || head === 'void' || head === 'mech') {
+    profile.head[0] *= 1.08; profile.head[2] *= 1.10; profile.abdomen[0] *= 1.08; profile.abdomen[2] *= 1.08;
+  }
+  if (act >= 4) {
+    profile.head[0] *= 1.05; profile.head[2] *= 1.05; profile.abdomen[0] *= 1.05; profile.abdomen[2] *= 1.05;
+    profile.patternScale = patternId(def) ? 48 + hashString(`${id}:late-pattern`) * 18 : profile.patternScale;
+  }
+  if (act >= 5) {
+    profile.jaw[0] *= 1.08; profile.jaw[2] *= 1.12; profile.head[1] *= 1.06;
+  }
+  if (id === 'sailfin' || id === 'harpyshade' || id === 'aurora') profile.fin[2] *= 1.18;
+  /* Reef is the approved Sharky reference row. Keep its silhouette at the
+   * authored bind-pose scale; all other rows earn their own variant shape. */
+  if (id === 'reef') {
+    profile.lane = 0;
+    profile.head = [1, 1, 1]; profile.neck = [1, 1, 1]; profile.abdomen = [1, 1, 1];
+    profile.tail = [1, 1, 1]; profile.tailUpper = [1, 1, 1]; profile.fin = [1, 1, 1]; profile.jaw = [1, 1, 1];
+    profile.patternScale = 108 + finite(sil.len, 1) * 8;
+  }
+  profile.shapeTag = `${head || 'point'}-lane${profile.lane}`;
+  return profile;
+}
+function applyVariantBoneProfile(root, template, profile) {
+  if (template.key !== 'sharky') return [];
+  const applied = [];
+  const targets = [
+    ['Head', profile.head], ['Neck', profile.neck], ['Abdomen', profile.abdomen],
+    ['Tail1', profile.tail], ['Tail2', profile.tail], ['Tail3', profile.tailUpper], ['Tail4', profile.tailUpper],
+    ['LowerJaw', profile.jaw], ['Fin1.L', profile.fin], ['Fin1.R', profile.fin], ['Fin2.L', profile.fin], ['Fin2.R', profile.fin]
+  ];
+  for (const [name, factors] of targets) {
+    const bone = root.getObjectByName(name); if (!bone) continue;
+    bone.scale.multiply(new THREE.Vector3(...factors)); applied.push({ name, scale: factors.slice() });
+  }
+  return applied;
 }
 function rows() { return host.RFD?.SHARKS || RF.RFD?.SHARKS || RF.SHARKS || []; }
 function baseForDef(def) {
@@ -260,16 +368,16 @@ function cloneRigScene(template) {
 const SHADER_UNIFORMS = Object.freeze([
   'uRfTopColor', 'uRfBottomColor', 'uRfAccentColor', 'uRfPatternColor', 'uRfPatternId',
   'uRfPatternScale', 'uRfPatternContrast', 'uRfPatternSeed', 'uRfPatternMix',
-  'uRfHueShift', 'uRfSaturation', 'uRfTintMask', 'uRfHeightScale'
+  'uRfHueShift', 'uRfSaturation', 'uRfTintMask', 'uRfHeightScale', 'uRfEyeColor'
 ]);
 function materialIsFace(name) { return /eye|teeth|tooth|mouth/i.test(String(name || '')); }
 function sourceMap(sourceMaterial) { return sourceMaterial?.map || null; }
 function skinMaterial(palette, def, sourceMaterial = null, sourceName = '', atlas = false, featureMode = '') {
-  const faceSlot = materialIsFace(sourceName), map = sourceMap(sourceMaterial), sourceColor = sourceMaterial?.color?.clone?.() || new THREE.Color(1, 1, 1);
+  const profile = variantProfile(def), faceSlot = materialIsFace(sourceName), map = sourceMap(sourceMaterial), sourceColor = sourceMaterial?.color?.clone?.() || new THREE.Color(1, 1, 1);
   const uniforms = {
     uRfTopColor: { value: palette.base.clone() }, uRfBottomColor: { value: palette.belly.clone() }, uRfAccentColor: { value: palette.accent.clone() }, uRfPatternColor: { value: palette.accent.clone() },
-    uRfPatternId: { value: patternId(def) }, uRfPatternScale: { value: 108 + finite(def?.sil?.len, 1) * 8 }, uRfPatternContrast: { value: 0.95 }, uRfPatternSeed: { value: hashString(def?.id || '') * 17 }, uRfPatternMix: { value: patternId(def) ? 0.78 : 0 }
-    , uRfHueShift: { value: 0 }, uRfSaturation: { value: 1 }, uRfTintMask: { value: faceSlot ? 0 : 1 }, uRfHeightScale: { value: 44 }
+    uRfPatternId: { value: patternId(def) }, uRfPatternScale: { value: profile.patternScale }, uRfPatternContrast: { value: 0.95 }, uRfPatternSeed: { value: hashString(def?.id || '') * 17 }, uRfPatternMix: { value: patternId(def) ? 0.78 : 0 }
+    , uRfHueShift: { value: 0 }, uRfSaturation: { value: 1 }, uRfTintMask: { value: faceSlot ? 0 : 1 }, uRfHeightScale: { value: 44 }, uRfEyeColor: { value: profile.eyeColor.clone() }
   };
   const act = finite(def?.act, 1), glow = palette.glow || new THREE.Color(0, 0, 0);
   const material = new THREE.MeshStandardMaterial({
@@ -330,7 +438,11 @@ function skinMaterial(palette, def, sourceMaterial = null, sourceName = '', atla
       'float rfBlack = (1.0 - smoothstep(0.035, 0.085, max(max(rfAtlasTexel.r, rfAtlasTexel.g), rfAtlasTexel.b))) * rfHead * rfFaceBand;',
       'float rfMouth = smoothstep(0.10, 0.28, rfAtlasTexel.r - max(rfAtlasTexel.g, rfAtlasTexel.b)) * rfHead;',
       'rfFaceMask = max(rfFaceMask, max(rfWhite, max(rfBlack, rfMouth)));',
-      'diffuseColor.rgb = mix(rfColorized, rfAtlasTexel, clamp(rfFaceMask, 0.0, 1.0));'
+      /* Keep the approved dark mouth/cavity, but give the atlas eye a small
+       * species read. The top face band excludes teeth and gills. */
+      'float rfEye = rfBlack * (1.0 - smoothstep(0.06, 0.42, rfHeight)) * rfHead;',
+      'vec3 rfAtlasFace = mix(rfAtlasTexel, uRfEyeColor, clamp(rfEye * 0.92, 0.0, 0.92));',
+      'diffuseColor.rgb = mix(rfColorized, rfAtlasFace, clamp(rfFaceMask, 0.0, 1.0));'
     ].join('\n') : featureMode === 'hammer' ? hammerRamp : [
       'vec3 rfHsv = rfRgbToHsv(diffuseColor.rgb); rfHsv.x = fract(rfHsv.x + uRfHueShift); rfHsv.y = clamp(rfHsv.y * uRfSaturation, 0.0, 1.0); rfHsv.z = clamp(rfHsv.z * 1.35 + 0.04, 0.0, 1.0);',
       'vec3 rfVivid = rfHsvToRgb(rfHsv);',
@@ -343,7 +455,8 @@ function skinMaterial(palette, def, sourceMaterial = null, sourceName = '', atla
     for (const name of SHADER_UNIFORMS) shader.uniforms[name] = uniforms[name];
     shader.vertexShader = shader.vertexShader.replace('#include <common>', `#include <common>\nattribute float rfSlot;\nvarying float vRfSlot;\nvarying vec3 vRfBindPosition;${featureMode === 'hammer' ? '\nattribute float rfFeature;\nvarying float vRfFeature;' : ''}`).replace('#include <begin_vertex>', `#include <begin_vertex>\nvRfSlot = rfSlot;\nvRfBindPosition = position;${featureMode === 'hammer' ? '\nvRfFeature = rfFeature;' : ''}`);
     shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `#include <common>\nuniform vec3 uRfTopColor;\nuniform vec3 uRfBottomColor;\nuniform vec3 uRfAccentColor;\nuniform vec3 uRfPatternColor;\nuniform int uRfPatternId;\nuniform float uRfPatternScale;\nuniform float uRfPatternContrast;\nuniform float uRfPatternSeed;\nuniform float uRfPatternMix;\nuniform float uRfHueShift;\nuniform float uRfSaturation;\nuniform float uRfTintMask;\nuniform float uRfHeightScale;\nvarying float vRfSlot;\nvarying vec3 vRfBindPosition;${featureMode === 'hammer' ? '\nvarying float vRfFeature;' : ''}\nfloat rfHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}\nvec3 rfRgbToHsv(vec3 c){vec4 K=vec4(0.0,-1.0/3.0,2.0/3.0,-1.0);vec4 p=mix(vec4(c.bg,K.wz),vec4(c.gb,K.xy),step(c.b,c.g));vec4 q=mix(vec4(p.xyw,c.r),vec4(c.r,p.yzx),step(p.x,c.r));float d=q.x-min(q.w,q.y);return vec3(abs(q.z+(q.w-q.y)/(6.0*d+1e-5)),d/(q.x+1e-5),q.x);}\nvec3 rfHsvToRgb(vec3 c){vec3 p=abs(fract(c.xxx+vec3(0.0,1.0/3.0,2.0/3.0))*6.0-3.0);return c.z*mix(vec3(1.0),clamp(p-1.0,0.0,1.0),c.y);}`)
-      .replace('#include <color_fragment>', `#include <color_fragment>\n${patternCode}`);
+    shader.fragmentShader = shader.fragmentShader.replace('uniform float uRfHeightScale;', 'uniform float uRfHeightScale;\nuniform vec3 uRfEyeColor;');
+    shader.fragmentShader = shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>\n${patternCode}`);
     if (atlas && map) {
       shader.fragmentShader = shader.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n/* Soft ambient countershading keeps the authored belly readable under the deep-teal hemi ground. */\ntotalEmissiveRadiance += uRfBottomColor * rfBelly * 0.16;');
       shader.fragmentShader = shader.fragmentShader.replace('vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;', 'vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;\noutgoingLight += uRfBottomColor * rfBelly * 0.34;');
@@ -365,22 +478,18 @@ function findPropBone(root, base, kind) {
   return findHeadBone(root, base);
 }
 function propKind(def) {
-  const id = String(def?.id || ''), head = String(def?.sil?.head || ''), fx = String(def?.sil?.fx || ''), base = arguments[1] || '';
-  if (base === 'goblinshark') return 'grin';
-  if (head === 'hammer') return 'hammer'; if (head === 'saw') return 'saw';
-  if (id === 'coralcrown' || head === 'crown' || fx === 'crown') return 'crown';
-  if (id === 'cyclopseye' || fx === 'wail') return 'cyclops';
-  if (head === 'rock' || head === 'kaiju' || head === 'skull' || fx === 'tremor' || fx === 'alien') return 'horns';
-  if (head === 'mech' || fx === 'sparks') return 'spike'; if (head === 'angler' || fx === 'lure') return 'lure'; return null;
+  const id = String(def?.id || '');
+  for (const [kind, ids] of Object.entries(PROP_ALLOWLIST)) if (ids.has(id)) return kind;
+  return null;
 }
 function propGeometry(kind) {
   if (kind === 'hammer') return hammerFoilGeometry();
-  if (kind === 'saw') return new THREE.ConeGeometry(0.15, 0.58, 6, 1, false);
-  if (kind === 'crown') return new THREE.TorusGeometry(0.19, 0.045, 5, 8);
-  if (kind === 'cyclops') return new THREE.SphereGeometry(0.17, 10, 6);
-  if (kind === 'horns') return new THREE.ConeGeometry(0.11, 0.38, 5, 1, false);
-  if (kind === 'spike') return new THREE.OctahedronGeometry(0.18, 0);
-  if (kind === 'lure') return new THREE.SphereGeometry(0.13, 8, 5);
+  if (kind === 'saw') {
+    const rostrum = new THREE.ConeGeometry(0.055, 0.30, 6, 1, false);
+    rostrum.translate(0, 0.13, 0); return propAttributes(rostrum);
+  }
+  if (kind === 'crown') return crownGeometry();
+  if (kind === 'horns') return hornsGeometry();
   return null;
 }
 function propAttributes(geometry, feature = 0) {
@@ -416,6 +525,23 @@ function hammerFoilGeometry() {
   }
   const geometry = mergeGeometries([foil, ...eyes]); geometry.computeBoundingBox(); geometry.computeBoundingSphere(); return geometry;
 }
+function hornsGeometry() {
+  const horns = [];
+  for (const x of [-0.075, 0.075]) {
+    const horn = new THREE.ConeGeometry(0.065, 0.24, 6, 1, false);
+    horn.rotateX(Math.PI * 0.5); horn.rotateY(x < 0 ? -0.24 : 0.24); horn.translate(x, 0.015, 0.11); horns.push(horn);
+  }
+  const geometry = mergeGeometries(horns); geometry.computeBoundingBox(); geometry.computeBoundingSphere(); return propAttributes(geometry);
+}
+function crownGeometry() {
+  const pieces = [new THREE.BoxGeometry(0.12, 0.26, 0.045)];
+  pieces[0].translate(0, 0.01, 0.065);
+  for (const y of [-0.09, 0, 0.09]) {
+    const point = new THREE.ConeGeometry(0.055, 0.18, 5, 1, false);
+    point.rotateX(Math.PI * 0.5); point.translate(0, y + 0.01, 0.17); pieces.push(point);
+  }
+  const geometry = mergeGeometries(pieces); geometry.computeBoundingBox(); geometry.computeBoundingSphere(); return propAttributes(geometry);
+}
 function grinGeometry() {
   const width = 0.18, height = 0.075, positions = [
     -width * 0.5, -height * 0.5, 0, width * 0.5, -height * 0.5, 0, width * 0.5, height * 0.5, 0, -width * 0.5, height * 0.5, 0
@@ -426,24 +552,17 @@ function grinGeometry() {
 }
 function makeProp(def, base, headBone, palette) {
   const kind = propKind(def, base), geometry = kind === 'grin' ? grinGeometry() : propGeometry(kind); if (!kind || !geometry || !headBone) return null;
-  const material = kind === 'grin' ? [
-    new THREE.MeshStandardMaterial({ color: 0x07131d, roughness: 0.72, metalness: 0, side: THREE.DoubleSide }),
-    new THREE.MeshStandardMaterial({ color: 0xfffff2, roughness: 0.34, metalness: 0, side: THREE.DoubleSide })
-  ] : kind === 'hammer' ? skinMaterial(palette, def, null, 'Hammer Cephalofoil', false, 'hammer') : new THREE.MeshStandardMaterial({ color: palette.accent, emissive: palette.glow || palette.accent, emissiveIntensity: finite(def?.act, 1) >= 2 ? 0.24 : 0.05, roughness: 0.40, metalness: 0.08, flatShading: false, side: THREE.DoubleSide });
+  const material = kind === 'hammer' ? skinMaterial(palette, def, null, 'Hammer Cephalofoil', false, 'hammer') : skinMaterial(palette, def, null, `${kind} anatomical feature`, false);
   const prop = new THREE.Mesh(geometry, material); prop.name = `RF head prop ${kind}`; prop.userData.rfPropKind = kind; prop.userData.rfPropBase = base;
-  if (kind === 'grin') { prop.position.set(0, 0, 0.025); prop.renderOrder = 3; }
-  prop.position.set(kind === 'hammer' ? 0 : 0.02, kind === 'hammer' ? 0.006 : kind === 'saw' ? 0.08 : 0.01, kind === 'crown' ? 0.04 : 0);
-  /* The hammer foil is authored in Sharky's y/z side plane. Saw/crown accents
-   * retain their original rig-plane treatment; only the hammer needs the
-   * camera-facing slab orientation. */
-  if (kind === 'saw' || kind === 'crown') prop.rotation.x = Math.PI * 0.5;
+  /* GLB bone matrices carry the armature's authored scale/shear. A non-zero
+   * child translation is magnified into a floating prop; the geometry itself
+   * owns its small anatomical offset and stays at the bone origin. */
+  prop.position.set(0, 0, 0);
   // Prop geometry is authored in the rig's pre-normalized local space. The
   // armature scene carries a large normalization scale, so keep the optional
   // head accent subordinate to the artist mesh (especially the broad hammer
   // foil, which otherwise becomes a camera-filling slab).
-  if (kind === 'cyclops') prop.scale.set(1, 0.95, 0.75);
-  if (kind === 'horns') { prop.rotation.z = -0.35; prop.scale.set(0.8, 1, 0.8); }
-  if (kind === 'lure') prop.position.y = 0;
+  if (kind === 'horns') prop.scale.set(0.9, 0.9, 0.9);
   headBone.add(prop); return prop;
 }
 function fitProp(prop, body, kind) {
@@ -457,9 +576,25 @@ function fitProp(prop, body, kind) {
     prop.userData.rfFitScale = prop.scale.x;
     return;
   }
-  const bodyThickness = Math.max(bodySize.y, bodySize.z, bodySize.x * 0.16), ratio = kind === 'lure' ? 0.62 : 0.86;
+  const bodyThickness = Math.max(bodySize.y, bodySize.z, bodySize.x * 0.16), ratio = kind === 'saw' ? 0.46 : kind === 'horns' ? 0.54 : kind === 'crown' ? 0.68 : 0.86;
   prop.scale.multiplyScalar(clamp((bodyThickness * ratio) / current, 0.012, 0.55));
   prop.userData.rfFitScale = prop.scale.x;
+}
+function propContactGap(body, prop) {
+  if (!body || !prop) return Infinity;
+  body.updateMatrixWorld(true); prop.updateMatrixWorld(true);
+  const bodyBox = new THREE.Box3().setFromObject(body), point = prop.getWorldPosition(new THREE.Vector3());
+  const closest = new THREE.Vector3(
+    clamp(point.x, bodyBox.min.x, bodyBox.max.x), clamp(point.y, bodyBox.min.y, bodyBox.max.y), clamp(point.z, bodyBox.min.z, bodyBox.max.z)
+  );
+  const gap = point.distanceTo(closest); prop.userData.rfContactGap = gap; return gap;
+}
+function propIsMounted(body, prop) {
+  if (!body || !prop) return false;
+  const bodyBox = new THREE.Box3().setFromObject(body), propBox = new THREE.Box3().setFromObject(prop), size = bodyBox.getSize(new THREE.Vector3());
+  const expanded = bodyBox.clone().expandByScalar(Math.max(size.x, size.y, size.z) * 0.025);
+  prop.userData.rfBoxContact = expanded.intersectsBox(propBox);
+  return prop.userData.rfBoxContact && propContactGap(body, prop) <= Math.max(size.x, size.y, size.z) * 0.08;
 }
 function mountGrin(prop, pose, body, propBone) {
   if (!prop || prop.userData.rfPropKind !== 'grin' || !pose || !body) return;
@@ -493,6 +628,7 @@ function buildLoadedRig(def, template, group) {
   const heightScale = clamp(0.91 + finite(def?.sil?.girth, 0.34) * (bulky ? 0.76 : 0.55) + (bulky ? 0.10 : 0), 0.90, 1.30);
   const depthScale = clamp(0.94 + finite(def?.sil?.finScale, 1) * 0.035, 0.90, 1.20);
   scaleOnAxis(model, template, lengthScale, heightScale, depthScale);
+  const profile = variantProfile(def), boneProfile = applyVariantBoneProfile(model, template, profile);
   for (const mesh of skinnedMeshes) {
     const sourceMaterials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
     const atlas = template.key === 'sharky' || sourceMaterials.some((material) => String(material?.name || '') === 'AtlasMaterial');
@@ -504,9 +640,10 @@ function buildLoadedRig(def, template, group) {
   /* 9.6: no BackSide ink shell. Smooth Standard shading supplies the edge
    * separation without the doubled silhouette draw. */
   const shell = null;
-  const prop = makeProp(def, template.key, propBone, palette);
+  let prop = makeProp(def, template.key, propBone, palette);
   mountGrin(prop, pose, body, propBone);
   fitProp(prop, body, prop?.userData?.rfPropKind);
+  if (prop && !propIsMounted(body, prop)) { prop.parent?.remove(prop); prop = null; }
   const mixer = template.isSkinned && template.clips.swim ? new THREE.AnimationMixer(model) : null;
   const actions = {};
   if (mixer) {
@@ -525,9 +662,12 @@ function buildLoadedRig(def, template, group) {
   group.userData.rfMeasuredLength = measureBox(group).max.x - measureBox(group).min.x; group.userData.rfRawLength = rawLength;
   group.userData.rfArmatureScale = { length: lengthScale, height: heightScale, depth: depthScale };
   group.userData.rfScaleBounds = { length: [0.85, 1.35], height: [0.90, 1.30], depth: [0.90, 1.20] };
+  group.userData.rfVariantProfile = { shapeTag: profile.shapeTag, lane: profile.lane, patternScale: profile.patternScale, boneProfile };
   group.userData.rfSourceBase = template.key; group.userData.rfPattern = String(def?.sil?.pattern || 'plain'); group.userData.rfPatternId = patternId(def);
   group.userData.rfMixerClipName = template.clips.swim?.name || template.clip?.name || null; group.userData.rfFastClipName = template.clips.fast?.name || null; group.userData.rfBiteClipName = template.clips.bite?.name || null;
   group.userData.rfHeadBone = headBone?.name || null; group.userData.rfPropBone = propBone?.name || null; group.userData.rfPropKind = prop?.userData?.rfPropKind || null;
+  group.userData.rfPropAllowlisted = !prop || PROP_ALLOWLIST_IDS.has(String(def?.id || ''));
+  group.userData.rfPropContactGap = prop ? finite(prop.userData.rfContactGap, Infinity) : 0;
   group.userData.rfVisibleDrawCalls = drawCount(group); group.userData.rfPaletteRaw = palette.raw; group.userData.rfPaletteResolved = palette.resolved; group.userData.rfIsSkinned = !!body.isSkinnedMesh;
   group.userData.rfSlotNames = template.slotNames.slice(); group.userData.rfAtlasMask = template.key === 'sharky' ? 'white atlas luminance; Eyes/Teeth slots stay source-colored' : 'Eyes/Teeth material slots'; group.userData.rfLoading = false;
   const animation = { lastT: null, bite: 0, turn: 0, death: 0, active: 'swim', biteActive: false, biteLatched: false };
@@ -686,9 +826,13 @@ function renderedTintSignature(def) {
   };
   return [sample(palette.base, 0.82), sample(palette.belly, 0.94), sample(palette.accent, 0.98)].join('|');
 }
+function renderedVariantSignature(def) {
+  const profile = variantProfile(def), shape = [profile.shapeTag, ...profile.head, ...profile.abdomen, ...profile.tail, ...profile.tailUpper, ...profile.fin].map((value) => typeof value === 'number' ? value.toFixed(3) : value).join(',');
+  return `${renderedTintSignature(def)}|${shape}|p${patternId(def)}|e${profile.eyeColor.getHexString()}`;
+}
 
 function __selftest() {
-  const result = { pass: false, notes: [], errors: [], checked: 0, cache: [], baseMap: {}, drawCounts: {}, lengths: {}, tintSignatures: {}, jawGape: {}, hammerSpan: {} };
+  const result = { pass: false, notes: [], errors: [], checked: 0, cache: [], baseMap: {}, drawCounts: {}, lengths: {}, tintSignatures: {}, variantSignatures: {}, props: {}, jawGape: {}, hammerSpan: {}, actDistinctness: {} };
   try {
     const allRows = rows(); if (allRows.length !== 85) throw new Error(`expected 85 sharks, received ${allRows.length}`); if (preloadError) throw preloadError; if (modelCache.size < MODEL_KEYS.length) throw new Error(`model cache has ${modelCache.size}/${MODEL_KEYS.length} GLBs`);
     result.cache = Array.from(modelCache.keys()).sort();
@@ -696,6 +840,9 @@ function __selftest() {
       const base = baseForDef(def), rig = buildShark(def), group = rig.group, body = rig.parts.body;
       if (!(group instanceof THREE.Group) || !body?.isSkinnedMesh || typeof rig.animate !== 'function') throw new Error(`${def.id}: incomplete GLB rig contract`);
       if (rig.parts.jaw !== null) throw new Error(`${def.id}: jaw must remain null`); if (group.userData.rfSourceBase !== base) throw new Error(`${def.id}: base mapping is ${group.userData.rfSourceBase}, expected ${base}`); if (group.userData.rfLoading) throw new Error(`${def.id}: placeholder remained after node preload`);
+      if (group.userData.rfPropKind && !PROP_ALLOWLIST_IDS.has(def.id)) throw new Error(`${def.id}: prop ${group.userData.rfPropKind} is not in the Rev 10 allowlist`);
+      if (!group.userData.rfPropAllowlisted) throw new Error(`${def.id}: prop allowlist gate failed`);
+      if (group.userData.rfPropKind && group.userData.rfPropContactGap > 0.08) throw new Error(`${def.id}: ${group.userData.rfPropKind} mount gap ${group.userData.rfPropContactGap.toFixed(4)} is not fitted to the head`);
       if (!group.userData.rfMixerClipName || !/swim|swimming/i.test(group.userData.rfMixerClipName)) throw new Error(`${def.id}: Swim clip missing`);
       if (!group.userData.rfFastClipName || !group.userData.rfBiteClipName) throw new Error(`${def.id}: fast/bite clip mapping missing`);
       const scales = group.userData.rfArmatureScale; if (scales.length < 0.85 || scales.length > 1.35 || scales.height < 0.90 || scales.height > 1.30 || scales.depth < 0.90 || scales.depth > 1.20) throw new Error(`${def.id}: bounded scale failed`);
@@ -720,16 +867,24 @@ function __selftest() {
       if (group.userData.rfPropKind === 'hammer') result.hammerSpan[def.id] = Number(group.userData.rfHammerProjectedSpan.toFixed(3));
       if (group.userData.rfPatternId !== patternId(def)) throw new Error(`${def.id}: pattern mapping missing`);
       result.tintSignatures[def.id] = renderedTintSignature(def);
+      result.variantSignatures[def.id] = renderedVariantSignature(def);
+      result.props[def.id] = group.userData.rfPropKind || null;
       result.checked++; result.baseMap[def.id] = base; result.drawCounts[def.id] = draws; result.lengths[def.id] = Number(measured.toFixed(4));
     }
     if (result.baseMap.goblin !== 'goblinshark' || result.baseMap.gulperfiend !== 'anglerfish' || result.baseMap.reef !== 'sharky') throw new Error('base table did not select sharky/goblinshark/anglerfish as required');
     const uniqueTints = new Set(Object.values(result.tintSignatures));
     if (uniqueTints.size !== allRows.length) throw new Error(`rendered tint distinctness ${uniqueTints.size}/${allRows.length}`);
+    for (const act of new Set(allRows.map((def) => def.act))) {
+      const actRows = allRows.filter((def) => def.act === act), unique = new Set(actRows.map((def) => result.variantSignatures[def.id]));
+      result.actDistinctness[act] = { rows: actRows.length, unique: unique.size };
+      if (unique.size !== actRows.length) throw new Error(`act ${act} variant signatures ${unique.size}/${actRows.length}`);
+    }
     const showcase = ['reef', 'tiger', 'hammerhead', 'greatwhite', 'whaleshark', 'leviathanrex', 'zeusfin', 'typhonmaw'];
     if (new Set(showcase.map((id) => result.tintSignatures[id])).size !== showcase.length) throw new Error('showcase rendered tint signatures are not pairwise distinct');
-    result.notes.push('Rev 9c: all 85 definitions retain the Rev 9b asset/base map and preload; Sharky uses its two atlas skinned meshes, with optional identity props capped at three visible draws.');
+    result.notes.push('Rev 10: all 85 definitions retain the approved Rev 9b/9c base, shading, jaw, and tint path. Identity is now welded per-bone shape + readable pattern/eye/glow family; props are allowlisted anatomical exceptions only.');
     result.notes.push('Skin3 samples the atlas as luminance/detail, paints explicit top/belly/accent palette regions, and preserves atlas-owned teeth, pupil/cavity, and mouth pixels. Named showcase overrides enforce blue-gray reef, tan striped tiger, slate great-white, and distinct pantheon families.');
     result.notes.push('9.6 gates: MeshStandardMaterial only, smooth normals, roughness 0.50 body specular lighting, no BackSide contour shell, 28% cruise jaw gape with full bite snap, and hammer foil >=0.42 body span.');
+    result.notes.push('Rev 10 gates: no non-allowlisted prop, every retained prop is head-contact fitted, and every act has pairwise-unique variant signatures. Browser render audit additionally measures pairwise pixel distance from the 85-row contact sheet.');
     result.notes.push('Node selftest parses GLB JSON+BIN directly and intentionally skips image decoding; preload is idempotent and bbox X is measured after the initial posed clip at 96*sil.len.'); result.pass = true;
   } catch (error) { result.errors.push(error?.message || String(error)); result.notes.push(`FAIL ${error?.message || String(error)}`); }
   return result;

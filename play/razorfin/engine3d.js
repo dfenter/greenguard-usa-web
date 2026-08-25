@@ -2075,14 +2075,13 @@ import * as THREE from 'three';
     if (n > EAT_BUF.length) n = EAT_BUF.length;
     for (var c = 0; c < n; c++) EAT_BUF[c] = list[c];
 
-    // Rev 6 / 6.6: BITE_UP_BASE(1) folded into the gate, plus megajaw's +1
-    // while active. instant swallow moves from tier <= p.tier-2 to
-    // tier <= p.tier-1 (more generous), plus megajaw's own +1 instant bonus.
-    // FIX-ROUND-3 item 2: eatEligible() below is now the SAME predicate
-    // preyNear/lunge use (kind exclusions + hazard/junkEater + megajaw-widened
-    // tier gate) - this loop only adds its own TOO BIG cue + instant-vs-chew
-    // split on top of that shared eligibility.
-    var instantBonus = megajawInstantBonus();
+    // REV10-EAT: eatEligible() below is the SAME predicate preyNear/lunge use
+    // (kind exclusions + hazard/junkEater + megajaw-widened tier gate) - this
+    // loop only adds its own TOO BIG cue on top of that shared eligibility.
+    // Hungry Shark rule: everything eatEligible() admits swallows in ONE bite
+    // on contact (see swallow() call below) - there is no more near-tier
+    // "chew" phase for prey, so megajaw's separate instant-bonus split is
+    // gone too (megajawBiteUp still widens eatEligible's tier gate itself).
     if (p.st.tooBigCd > 0) {
       p.st.tooBigCd = Math.max(0, p.st.tooBigCd - STEP);
     }
@@ -2120,9 +2119,18 @@ import * as THREE from 'three';
         continue;
       }
 
-      var tier = num(e.tier, 0);
-      if (!isHazard && tier <= p.tier - 1 + instantBonus) swallow(e);   // instant
-      else multiBite(e);                                                // near tier: chew
+      // Hungry Shark rule (owner-reported, verified on device): anything the
+      // player is allowed to eat is eaten in ONE bite - it vanishes into the
+      // mouth immediately. Only an over-tier "TOO BIG" target resists (that
+      // gate already ran above via eatEligible/tooBigCd). instantBonus and
+      // the old tier<=p.tier-1 near-tier split no longer gate a chew phase -
+      // eatEligible() already IS the "can this shark eat it" gate, so every
+      // target that reaches this line swallows on contact. No `chewy` flag
+      // exists on any creature def in data.js (grepped, none), so there is
+      // no armored/boss class left that still needs multiBite's per-target
+      // HP drain for prey. Hazards keep their own isHazard branch above
+      // (junkEater-only) and are unaffected by this change.
+      swallow(e);
     }
   }
 
@@ -4555,47 +4563,35 @@ import * as THREE from 'three';
         'a notable kill after the 10s cooldown elapses spawns another drop');
       RF.World = savedWorldDrop;
       ctx.run._lastBuffDropAt = -Infinity;
-      // EAT-REV3: each target owns its 250 ms chew cooldown. A school can
-      // therefore damage multiple same-tier fish in one player cadence.
+      // REV10-EAT (one-bite): owner-reported bug fix - "fish don't disappear
+      // when eaten." Previously a same-tier target only took multiBite
+      // damage per touch and stuck around flinching for several frames; now
+      // eatEligible() -> stepEat() swallows any eligible target in ONE bite
+      // on first contact (Hungry Shark rule), so a same-tier school is
+      // removed from World the same frame the mouth reaches it.
       stops.length = 0;
       fxSeen.length = 0; sfxSeen2.length = 0;
-      var chewy = { active: true, kind: 'prey', tier: pc.tier, x: pc.x, y: pc.y, hp: 999,
-        st: {}, r: 8, def: { tier: pc.tier, score: 5, coins: 1 } };
-      var chewy2 = { active: true, kind: 'prey', tier: pc.tier, x: pc.x, y: pc.y, hp: 999,
-        st: {}, r: 8, def: { tier: pc.tier, score: 5, coins: 1 } };
-      var chewy3 = { active: true, kind: 'prey', tier: pc.tier, x: pc.x, y: pc.y, hp: 999,
-        st: {}, r: 8, def: { tier: pc.tier, score: 5, coins: 1 } };
+      var oneBite1 = { active: true, kind: 'prey', tier: pc.tier, x: pc.x, y: pc.y, hp: 999,
+        st: {}, r: 8, coins: 1, def: { tier: pc.tier, score: 5, coins: 1 } };
+      var oneBite2 = { active: true, kind: 'prey', tier: pc.tier, x: pc.x, y: pc.y, hp: 999,
+        st: {}, r: 8, coins: 1, def: { tier: pc.tier, score: 5, coins: 1 } };
+      var oneBite3 = { active: true, kind: 'prey', tier: pc.tier, x: pc.x, y: pc.y, hp: 999,
+        st: {}, r: 8, coins: 1, def: { tier: pc.tier, score: 5, coins: 1 } };
+      var killedSchool = [];
+      var savedKillSchool = RF.World.kill;
+      var savedQSchool = RF.World.query, savedEQSchool = RF.World.eatQuery;
+      RF.World.kill = function (e) { e.active = false; killedSchool.push(e); };
+      RF.World.eatQuery = undefined;
+      RF.World.query = function () { return [oneBite1, oneBite2, oneBite3]; };
       pc.st.chewFxCd = 0;
-      multiBite(chewy);
-      multiBite(chewy2);
-      multiBite(chewy3);
-      check(chewy.hp < 999 && chewy2.hp < 999,
-        'two same-tier targets both take damage in one chew window');
-      // 6.11: per-target chew cooldown tightened 0.25 -> 0.15s.
-      check(chewy._biteCd === 0.15 && chewy2._biteCd === 0.15,
-        'multiBite stores the 150 ms cooldown on each target (6.11: was 250ms)');
-      var hpBlocked = chewy.hp;
-      multiBite(chewy);
-      check(chewy.hp === hpBlocked, 'the same target is blocked until its cooldown expires');
-      check(stops.length === 1 && stops[0] === 25 && sfxSeen2.length === 1
-        && fxSeen.filter(function (n) { return n === 'chomp'; }).length === 1
-        && pc.st.jawSnapT > 0,
-        'three-fish school fires chew hit-stop/audio/fx/jaw once per 120 ms cadence (7.3: 25ms)');
-
-      // The engine owns a fallback decay only until World advertises that it
-      // already decays the field. This prevents double decay after lane merge.
-      RF.World.entities = [chewy];
-      chewy._biteCd = STEP * 2;
-      RF.World.__decaysBiteCd = false;
       stepEat(pc);
-      check(Math.abs(chewy._biteCd - STEP) < 1e-9,
-        'engine locally decays target cooldown when World does not advertise decay');
-      chewy._biteCd = 0.25;
-      RF.World.__decaysBiteCd = true;
-      stepEat(pc);
-      check(Math.abs(chewy._biteCd - 0.25) < 1e-9,
-        'engine skips local target cooldown decay when World owns it');
-      delete RF.World.__decaysBiteCd;
+      check(killedSchool.length === 3
+        && oneBite1.active === false && oneBite2.active === false && oneBite3.active === false,
+        'a same-tier school is fully swallowed (removed from World) on the FIRST touch, no chew phase');
+      check(oneBite1.hp === 0 && oneBite2.hp === 0 && oneBite3.hp === 0,
+        'swallow() zeroes hp on every one-bite kill (frenzy hook still sees a real kill)');
+      RF.World.kill = savedKillSchool;
+      RF.World.query = savedQSchool; RF.World.eatQuery = savedEQSchool;
       RF.World.entities = [prey];
       RF.Fx = savedFx; RF.Juice = savedJuice; RF.Sound = savedSound2;
 

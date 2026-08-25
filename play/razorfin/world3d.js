@@ -207,16 +207,44 @@ import * as THREE from 'three';
   // nonzero packId to a spawnBurst call, whose kind is fixed at burst time —
   // a predator or hazard burst still gets a packId, but only prey's own AI
   // consults it for flocking (predatorAI/hazardAI never call schoolSteer).
-  var SCHOOL_RADIUS_BL = 2.5;      // neighbor radius, body lengths (~2*r each)
-  var SCHOOL_SEP_W = 1.6;          // separation weight (push apart)
-  var SCHOOL_ALIGN_W = 1.0;        // alignment weight (match heading)
-  var SCHOOL_COH_W = 0.9;          // cohesion weight (pull to local centroid)
+  // Rev 10 FORMATION lane: rev 9's boids were tuned into a tight BLOB (mean
+  // centroid distance ~29px on an 8-strong minnow school, i.e. body-length
+  // spacing near zero) because cohesion/separation/alignment were all
+  // similar-order weights with a short separation radius. Hungry-Shark-style
+  // schools read as a loose FORMATION: separation dominant and wide enough
+  // that neighbors actually keep 1.5-2.5 body lengths of daylight, alignment
+  // dominant (the group shares one heading, not one point), cohesion weak
+  // and only kicking in once a member has drifted OUTSIDE the formation (so
+  // it never pulls members back into a ball, only stops them wandering off).
+  // On top of boids, each member also chases a FORMATION SLOT — a fixed
+  // offset behind/beside the pack's own leader path — blended with the
+  // boids target so the school reads as a staggered line/V that still
+  // flexes with local boids rather than a rigid rank.
+  var SCHOOL_RADIUS_BL = 4.5;      // neighbor/cohesion search radius, body lengths
+  var SCHOOL_SEP_BL = 2.6;         // separation radius, body lengths (~2*r each);
+                                    // slightly above the 1.4-2.8 BL spacing target so
+                                    // the push resolves neighbors OUT to spec, not
+                                    // just up to the edge of it
+  var SCHOOL_COH_MIN_BL = 4.0;     // cohesion only acts beyond this many body lengths
+  var SCHOOL_SEP_W = 3.2;          // separation weight (push apart) — strong, dominant
+  var SCHOOL_ALIGN_W = 2.2;        // alignment weight (match heading) — dominant
+  var SCHOOL_COH_W = 0.5;          // cohesion weight — weak, long-range only
+  var SCHOOL_SLOT_W = 0.28;        // formation-slot weight (blended with boids; kept
+                                    // below separation so slot-chasing never overrides
+                                    // real-time neighbor spacing and re-clumps the school
   var SCHOOL_WANDER_W = 0.5;       // pack-level wander target weight
-  var SCHOOL_TURN_RATE = 3.2;      // bounded turn (steer() 'turn' param)
+  var SCHOOL_TURN_RATE = 2.1;      // bounded turn (steer() 'turn' param); slower than
+                                    // rev 9's 3.2 so the alignment/slot blend does not
+                                    // whiplash heading frame to frame as neighbor
+                                    // velocities/slot lag both shift the steer target
   var SCHOOL_PANIC_R = 900;        // player distance that arms school panic
   var SCHOOL_PANIC_REGROUP = 1.4;  // seconds after player leaves before regroup
   var SCHOOL_SPEED_MIN = 0.55;     // wander speed floor, frac of def.speed
   var SCHOOL_SPEED_MAX = 0.85;     // wander speed ceiling, frac of def.speed
+  var SCHOOL_SLOT_SPACING_BL = 1.9;  // slot spacing along/beside the leader, body lengths
+  var SCHOOL_LEADER_TURN_RATE = 0.9; // leader path turn-rate limit, rad/s
+  var SCHOOL_LEADER_WANDER_HZ = 0.18; // leader sinusoidal wander frequency, Hz
+  var SCHOOL_LEADER_WANDER_AMP = 0.5; // leader heading wander amplitude, rad
 
   // Rev 6.11 CHUM SEAM: engine keeps publishing ctx.run.buffs.chum; while it
   // is > 0, prey inside CHUM_R converge toward the player at a moderate
@@ -378,13 +406,24 @@ import * as THREE from 'three';
   var PACK_MAX = 48;
   var packRecs = [];
   var packRing = 0;
-  function packAcquire(packId) {
+  function packAcquire(packId, leadX, leadY) {
     var rec = packRecs[packRing];
     if (!rec) {
       // dx/dy/t: legacy shared-drift heading, kept as the wander TARGET
       // direction the school-level wander steer chases (SCHOOL_WANDER_W),
       // now just one of several boid terms rather than the whole answer.
-      rec = { dx: 1, dy: 0, t: 0, owner: 0, panicT: 0 };
+      // Rev 10: leadX/leadY/leadA are the school's own LEADER PATH — a
+      // virtual point the whole formation is built relative to, independent
+      // of any live member (so the formation survives a member's death and
+      // panic-scatter/regroup has a stable anchor to reform around).
+      // leadWanderPhase drives a bounded sinusoidal heading wander so the
+      // path smoothly snakes rather than turning on a dime or drifting
+      // dead straight forever; slotCount/nextSlot hand out formation slots.
+      rec = {
+        dx: 1, dy: 0, t: 0, owner: 0, panicT: 0,
+        leadX: 0, leadY: 0, leadA: 0, leadWanderPhase: 0,
+        slotCount: 0, nextSlot: 0, leadStamp: -1
+      };
       packRecs[packRing] = rec;
     }
     packRing = (packRing + 1) % PACK_MAX;
@@ -395,8 +434,52 @@ import * as THREE from 'three';
     rec.dy = Math.sin(a) * 0.5;
     rec.t = rr(2, 5);
     rec.panicT = 0;
+    rec.leadX = typeof leadX === 'number' ? leadX : 0;
+    rec.leadY = typeof leadY === 'number' ? leadY : 0;
+    rec.leadA = a;
+    // Derived from packId rather than a fresh rr() draw: packAcquire's RNG
+    // draw sequence (a, rec.t) must stay byte-identical to rev 9's, since
+    // several selftest sections downstream consume the SAME shared PRNG
+    // stream and assert on its later output (e.g. relic placement draws
+    // happen during a shared World.init a spawnBurst call earlier in the
+    // same run can perturb). packId is already unique per pack and varies
+    // enough call to call that this still reads as an unsynchronized phase
+    // per school, just without spending a stream slot to get it.
+    rec.leadWanderPhase = (packId * 2.399963) % TAU;
+    rec.slotCount = 0;
+    rec.nextSlot = 0;
+    rec.leadStamp = -1;
     S.packs.set(packId, rec);
     return rec;
+  }
+
+  // Rev 10: advance the school's own leader path once per frame per pack
+  // (called from schoolSteer the FIRST time a given pack is touched this
+  // step, guarded by a per-pack frame stamp so N members touching the same
+  // pack in one World.update pass only advance the path once). The path
+  // wanders via a bounded sinusoid (never a hard turn), stays mostly
+  // horizontal (y-component damped 0.4x) so schools stream across the level
+  // rather than porpoising, and the resulting rec.leadA is bounded by
+  // SCHOOL_LEADER_TURN_RATE so it always reads as a smooth snake, not a
+  // teleporting compass needle.
+  function packAdvanceLeader(rec, dt, speed) {
+    rec.leadWanderPhase += dt * SCHOOL_LEADER_WANDER_HZ * TAU;
+    var wanderA = Math.sin(rec.leadWanderPhase) * SCHOOL_LEADER_WANDER_AMP;
+    // Base heading drifts extremely slowly (reuses the legacy dx/dy pack
+    // drift target as the long-term destination) with the sinusoid riding
+    // on top for the visible undulation.
+    var baseA = Math.atan2(rec.dy, rec.dx);
+    var desiredA = baseA + wanderA;
+    var da = desiredA - rec.leadA;
+    while (da > Math.PI) da -= TAU;
+    while (da < -Math.PI) da += TAU;
+    var maxTurn = SCHOOL_LEADER_TURN_RATE * dt;
+    if (da > maxTurn) da = maxTurn; else if (da < -maxTurn) da = -maxTurn;
+    rec.leadA += da;
+    var mx = Math.cos(rec.leadA), my = Math.sin(rec.leadA) * 0.4;
+    var mlen = Math.sqrt(mx * mx + my * my) || 1;
+    rec.leadX += (mx / mlen) * speed * dt;
+    rec.leadY += (my / mlen) * speed * dt;
   }
 
   World.entities = S.entities;
@@ -4949,6 +5032,11 @@ import * as THREE from 'three';
   function resetSt(st) {
     st.frozenT = 0; st.stunT = 0; st.burnT = 0; st.poisonT = 0; st.slowT = 0;
     st.cookedBy = null; st.packId = 0; st.jitterT = 0; st.jx = 0; st.jy = 0;
+    // Rev 10 FORMATION: slotIdx is this member's fixed position in the
+    // school's staggered line/V (assigned once at spawn by spawnBurst, 0 is
+    // the leader/point of the V), never reassigned afterward so the
+    // formation reads as stable ranks rather than shuffling every frame.
+    st.slotIdx = 0;
     st.burnDmg = 0; st.poisonDmg = 0; st.fireImmune = false; st.toxinImmune = false;
     st.mode = 'wander'; st.inflated = false; st.biteCd = 0; st.life = 0;
     st.born = 0; st.drift = 0;
@@ -5163,13 +5251,18 @@ import * as THREE from 'three';
   // spawn entirely if every try fails, since an arbitrary caller-supplied
   // point (e.g. an ability firing at a rock wall) has no such guarantee and
   // resampling near clearly-bad rock could still land on something worse.
-  function burstPointValid(x, y, def, kind, playerRegion, nurseryPlayer, out) {
+  function burstPointValid(x, y, def, kind, playerRegion, nurseryPlayer, out, tightJitter) {
     var needR = radiusFor(def, kind) + SDF_SPAWN_CLEAR;
     for (var tries = 0; tries < SDF_RESAMPLE_TRIES; tries++) {
       // First try is the exact requested (jittered) point; subsequent tries
       // widen the resample radius slightly so a bad point has real room to
       // relocate rather than repeatedly re-sampling the same small jitter.
-      var jitterR = 70 + tries * 40;
+      // Rev 10: a formation-slot request (tightJitter) uses a much smaller
+      // jitter band so a rejected point still resamples close to its
+      // intended slot rather than snapping the member back into the old
+      // wide random scatter, which would read as a blob for the first
+      // several frames until boids/slot-chasing caught up.
+      var jitterR = (tightJitter ? 10 : 70) + tries * (tightJitter ? 8 : 40);
       out[0] = clamp(x + rr(-jitterR, jitterR), 8, S.w - 8);
       out[1] = clamp(y + rr(-jitterR, jitterR), SURFACE_Y + SURFACE_MARGIN, S.h - SEAFLOOR_MARGIN);
       if (nurseryPlayer && withinNursery(nurseryPlayer, out[0], out[1])) continue;
@@ -5185,7 +5278,7 @@ import * as THREE from 'three';
   World.spawnBurst = function (defId, x, y, n) {
     var out = 0;
     var packId = S.packSeq++;
-    packAcquire(packId);
+    var rec = packAcquire(packId, x, y);
     var def = defOf(defId);
     var kind = def ? kindForDef(def) : 'prey';
     var player = RF.ctx && RF.ctx.player;
@@ -5195,14 +5288,28 @@ import * as THREE from 'three';
     // blocking every kind near a low-tier player.
     var nurseryPlayer = (kind === 'predator' && player && (player.tier || 1) <= NURSERY_TIER) ? player : null;
     var playerRegion = (S.sdf && player) ? World.regionAt(player.x, player.y) : 0;
+    // Rev 10: only PREY packs get a formation — predator/hazard bursts
+    // (which never call schoolSteer at all, see the SCHOOLING comment above)
+    // keep the original scattered placement, since a formation slot target
+    // would be meaningless for AI that never reads it.
+    var useFormation = kind === 'prey';
+    var bl = def ? radiusFor(def, kind) * 2 : 28;
     for (var i = 0; i < n; i++) {
-      if (def && !burstPointValid(x, y, def, kind, playerRegion, nurseryPlayer, burstOut)) continue;
-      var px = def ? burstOut[0] : x + rr(-70, 70);
-      var py = def ? burstOut[1] : y + rr(-50, 50);
+      var reqX = x, reqY = y, tight = false;
+      if (useFormation) {
+        packSlotTarget(rec, i, bl);
+        reqX = schoolSlotX; reqY = schoolSlotY;
+        tight = true;
+      }
+      if (def && !burstPointValid(reqX, reqY, def, kind, playerRegion, nurseryPlayer, burstOut, tight)) continue;
+      var px = def ? burstOut[0] : reqX + rr(-70, 70);
+      var py = def ? burstOut[1] : reqY + rr(-50, 50);
       var e = spawnOne(defId, px, py, packId);
       if (!e) break;
+      if (useFormation) e.st.slotIdx = i;
       out++;
     }
+    if (useFormation) rec.slotCount = out;
     return out;
   };
 
@@ -5399,17 +5506,20 @@ import * as THREE from 'three';
   // density) not O(pack size).
   function schoolSteer(e, dt) {
     var r = e.r || 14;
-    var rad = r * SCHOOL_RADIUS_BL * 2; // "body length" ~= 2r
+    var bl = r * 2; // "body length" ~= 2r
+    var rad = bl * SCHOOL_RADIUS_BL;
     var rad2 = rad * rad;
-    var sepR = r * 1.4;
+    var sepR = bl * SCHOOL_SEP_BL;
     var sepR2 = sepR * sepR;
+    var cohMinR = bl * SCHOOL_COH_MIN_BL;
+    var cohMinR2 = cohMinR * cohMinR;
     var x0 = clamp(Math.floor((e.x - rad) / CELL), 0, S.cols - 1);
     var x1 = clamp(Math.floor((e.x + rad) / CELL), 0, S.cols - 1);
     var y0 = clamp(Math.floor((e.y - rad) / CELL), 0, S.rows - 1);
     var y1 = clamp(Math.floor((e.y + rad) / CELL), 0, S.rows - 1);
     var sepX = 0, sepY = 0;
     var alignX = 0, alignY = 0;
-    var cohX = 0, cohY = 0;
+    var cohX = 0, cohY = 0, cohN = 0;
     var n = 0;
     var packId = e.st.packId;
     for (var cy = y0; cy <= y1; cy++) {
@@ -5423,8 +5533,15 @@ import * as THREE from 'three';
           var d2 = dx * dx + dy * dy;
           if (d2 > rad2) continue;
           n++;
-          cohX += o.x; cohY += o.y;
           alignX += o.vx; alignY += o.vy;
+          // Cohesion ONLY counts neighbors already outside the "close"
+          // formation band (beyond SCHOOL_COH_MIN_BL body lengths) — pulling
+          // on close neighbors too is what turned rev 9 into a blob. Members
+          // already at proper spacing get zero cohesion pull, only far
+          // stragglers get pulled back toward the local body.
+          if (d2 > cohMinR2) {
+            cohX += o.x; cohY += o.y; cohN++;
+          }
           if (d2 < sepR2 && d2 > 1e-6) {
             var d = Math.sqrt(d2);
             var push = (sepR - d) / sepR; // stronger the closer they are
@@ -5436,25 +5553,65 @@ import * as THREE from 'three';
     }
     schoolScratchN = n;
     if (n === 0) { schoolScratchX = e.x; schoolScratchY = e.y; return false; }
-    // Cohesion target: local centroid (mean position of neighbors, excluding
-    // self, which already biases toward "the rest of the school").
     var invN = 1 / n;
-    cohX *= invN; cohY *= invN;
     alignX *= invN; alignY *= invN;
-    var toCohX = cohX - e.x, toCohY = cohY - e.y;
+    // Cohesion is normalized to a DIRECTION, not a raw distance-proportional
+    // pull — a straggler far beyond SCHOOL_COH_MIN_BL gets nudged toward the
+    // local body by a fixed bounded amount per step, same as alignment,
+    // rather than a pull whose magnitude grows with distance. An
+    // unbounded distance-proportional cohesion term was the rev 10.0 bug:
+    // over many frames it converges a straggler EXACTLY onto its neighbors'
+    // shared centroid (since separation never engages until they are
+    // already close), producing 0-distance overlap instead of a formation.
+    var toCohX = 0, toCohY = 0;
+    if (cohN > 0) {
+      var invCN = 1 / cohN;
+      var rawCohX = cohX * invCN - e.x, rawCohY = cohY * invCN - e.y;
+      var cohLen = Math.sqrt(rawCohX * rawCohX + rawCohY * rawCohY);
+      if (cohLen > 1e-4) { toCohX = rawCohX / cohLen; toCohY = rawCohY / cohLen; }
+    }
     // Combine the three terms into one steer target point ahead of e, weighted
-    // per SCHOOL_*_W. Alignment is a heading (velocity), so it is added as a
-    // direction rather than a point-toward.
+    // per SCHOOL_*_W. Alignment and cohesion are both headings/directions
+    // (bounded per-step nudges), so only separation scales with actual
+    // overlap distance. Alignment is the DOMINANT term so the group reads as
+    // one shared heading rather than each fish independently orbiting a
+    // centroid.
     var alignLen = Math.sqrt(alignX * alignX + alignY * alignY);
     var alignDirX = alignLen > 1e-4 ? alignX / alignLen : 0;
     var alignDirY = alignLen > 1e-4 ? alignY / alignLen : 0;
-    schoolScratchX = e.x + sepX * SCHOOL_SEP_W * 40 + toCohX * SCHOOL_COH_W * 0.5 +
+    schoolScratchX = e.x + sepX * SCHOOL_SEP_W * 110 + toCohX * SCHOOL_COH_W * 40 +
       alignDirX * SCHOOL_ALIGN_W * 60;
-    schoolScratchY = e.y + sepY * SCHOOL_SEP_W * 40 + toCohY * SCHOOL_COH_W * 0.5 +
+    schoolScratchY = e.y + sepY * SCHOOL_SEP_W * 110 + toCohY * SCHOOL_COH_W * 40 +
       alignDirY * SCHOOL_ALIGN_W * 60;
     return true;
   }
   var schoolScratchX = 0, schoolScratchY = 0, schoolScratchN = 0;
+
+  // Rev 10 FORMATION SLOT: this member's target point on the school's own
+  // leader path — a staggered line/V, slotIdx 0 riding the point, odd slots
+  // fanning back-left, even slots back-right, each rank further back than
+  // the last. Spacing is in body lengths so any tier's school keeps the same
+  // felt formation density. Purely a function of the pack's leader
+  // position/heading and this entity's own fixed slotIdx — no per-frame
+  // reassignment, no allocation (writes into the shared scratch pair).
+  function packSlotTarget(rec, slotIdx, bl) {
+    if (slotIdx <= 0) { schoolSlotX = rec.leadX; schoolSlotY = rec.leadY; return; }
+    var rank = (slotIdx + 1) >> 1;      // 1,1,2,2,3,3,...
+    var side = (slotIdx & 1) ? -1 : 1;  // odd = left, even = right
+    var spacing = bl * SCHOOL_SLOT_SPACING_BL;
+    // back:lateral ratio set well above 2:1 so the LATTICE itself (before
+    // any boids flex) already reads as an elongated line/V rather than a
+    // rounder wedge — the owner's aspect-ratio gate (major/minor > 2.0)
+    // measures the whole formation's covariance, so the slot geometry has
+    // to carry most of that elongation on its own.
+    var back = rank * spacing * 1.05;
+    var lateral = rank * spacing * 0.35 * side;
+    var fx = Math.cos(rec.leadA), fy = Math.sin(rec.leadA);
+    var lx = -fy, ly = fx; // left-hand perpendicular
+    schoolSlotX = rec.leadX - fx * back + lx * lateral;
+    schoolSlotY = rec.leadY - fy * back + ly * lateral;
+  }
+  var schoolSlotX = 0, schoolSlotY = 0;
 
   // School-level panic: when the player is within SCHOOL_PANIC_R of the pack's
   // wander record owner (approximated per-entity, cheap dx/dy, no separate
@@ -5734,35 +5891,55 @@ import * as THREE from 'three';
       if (p) {
         var panicked = updateSchoolPanic(p, e, ctx, dt);
         var haveNeighbors = schoolSteer(e, dt);
+        // Rev 10: advance the school's own leader path exactly once per
+        // World.update pass (S.animT is the shared monotonic sim clock —
+        // every member touches the same value this step, so stamping it on
+        // the pack record is a correct one-shot gate with no extra state).
+        if (p.leadStamp !== S.animT) {
+          p.leadStamp = S.animT;
+          packAdvanceLeader(p, dt, spd * 0.7);
+        }
+        var bl = (e.r || 14) * 2;
+        packSlotTarget(p, e.st.slotIdx, bl);
         var wanderX = e.x + p.dx * 260, wanderY = e.y + p.dy * 260;
         var tx, ty, speedFrac;
         if (panicked) {
-          // Scatter: push away from the pack centroid (or, with no visible
-          // neighbors this step, straight away from the player) instead of
-          // toward it, and sprint. schoolSteer's cohesion term already
-          // points AT the local centroid when neighbors are found; panic
-          // inverts that pull by steering to the mirror point across e, so
-          // members spray outward rather than balling up tighter under
-          // threat. Regroup happens naturally once p.panicT decays back to
-          // calm and cohesion resumes pulling members back together.
-          if (haveNeighbors) {
-            tx = e.x - (schoolScratchX - e.x);
-            ty = e.y - (schoolScratchY - e.y);
-          } else {
-            tx = wanderX; ty = wanderY;
-          }
+          // Scatter RADIALLY, each member along its OWN distinct direction,
+          // not a single shared flee vector. Rev 10.0 used one mirror-of-
+          // centroid vector for every member with a similar local neighbor
+          // set, which sends the whole cluster fleeing in lockstep along the
+          // same line — members that started overlapping stay overlapping,
+          // just stretched into a thin high-aspect streak (measured: NND
+          // near 0 with aspect ratio in the hundreds). Anchoring the scatter
+          // direction on this member's own fixed slotIdx (via packSlotTarget,
+          // which fans slots left/right and back by rank) guarantees every
+          // member gets a distinct radial heading, so panic itself pries the
+          // group apart instead of merely translating it. Reform is then
+          // "blend back toward this member's own formation slot" (the calm
+          // branch below), never toward a shared centroid, so it reassembles
+          // into the line/V rather than re-clumping into a ball.
+          var awayX = e.x - (schoolSlotX - p.leadX);
+          var awayY = e.y - (schoolSlotY - p.leadY);
+          var adx = awayX - e.x, ady = awayY - e.y;
+          var alen = Math.sqrt(adx * adx + ady * ady);
+          if (alen < 1e-3) { adx = e.st.jx || 1; ady = e.st.jy || 0.3; alen = Math.sqrt(adx * adx + ady * ady) || 1; }
+          tx = e.x + (adx / alen) * 500;
+          ty = e.y + (ady / alen) * 500;
           speedFrac = FLEE_BURST;
-        } else if (haveNeighbors) {
-          tx = schoolScratchX * (1 - SCHOOL_WANDER_W * 0.3) + wanderX * (SCHOOL_WANDER_W * 0.3);
-          ty = schoolScratchY * (1 - SCHOOL_WANDER_W * 0.3) + wanderY * (SCHOOL_WANDER_W * 0.3);
-          speedFrac = SCHOOL_SPEED_MIN + (SCHOOL_SPEED_MAX - SCHOOL_SPEED_MIN) *
-            clamp(schoolScratchN / 6, 0, 1);
         } else {
-          // No same-pack neighbor within radius this step (e.g. just spawned,
-          // or scattered far out) — chase the shared pack wander target alone
-          // until it rejoins, same behavior as the pre-Rev-9 packVec path.
-          tx = wanderX; ty = wanderY;
-          speedFrac = 0.6;
+          // Calm: blend the boids target (separation/alignment, cohesion
+          // only for stragglers) with this member's fixed formation slot on
+          // the leader path. The slot term is what turns "a loose flock" into
+          // a readable staggered line/V that flexes with local boids instead
+          // of holding a rigid rank.
+          var boidsX = haveNeighbors ? schoolScratchX : wanderX;
+          var boidsY = haveNeighbors ? schoolScratchY : wanderY;
+          var slotW = SCHOOL_SLOT_W / (SCHOOL_SLOT_W + 1);
+          tx = boidsX * (1 - slotW) + schoolSlotX * slotW;
+          ty = boidsY * (1 - slotW) + schoolSlotY * slotW;
+          speedFrac = haveNeighbors
+            ? SCHOOL_SPEED_MIN + (SCHOOL_SPEED_MAX - SCHOOL_SPEED_MIN) * clamp(schoolScratchN / 6, 0, 1)
+            : 0.6;
         }
         tx += e.st.jx * 18; ty += e.st.jy * 18; // small per-fish undulation jitter
         // steer() already routes through steerWhisker (SDF wall-tangent
@@ -9486,6 +9663,13 @@ import * as THREE from 'three';
       // school centroid shrinks/stays tight) and alignment (mean heading
       // variance is low — the school moves as one body) plus a hard NaN gate
       // and a live-entity-count (budget) check across the run.
+      // Rev 10: drain first — many earlier sections above spawn their own
+      // untracked minnows (some via spawnBurst/packId too) without an
+      // explicit World.kill, and this probe's own filter is by defId, not
+      // by the specific entities spawnBurst just handed back. A clean slate
+      // here keeps this probe's "8 in, 8 tagged" assertion meaningful
+      // regardless of how many stray minnows earlier sections leaked.
+      drainAll();
       var schoolCx = S.w * 0.5 + 900, schoolCy = 260;
       // Far enough to stay well outside prey sight range (max ~370px, see
       // preyAI's `sight` calc) and mouth-panic range (PANIC_R=170) so no
@@ -9508,7 +9692,11 @@ import * as THREE from 'three';
         schoolN + ' spawned, ' + schoolMembers.length + ' tagged with a shared packId)');
       var budget0 = S.entities.length;
       var nanFound = false;
-      for (var sstep = 0; sstep < 90; sstep++) {
+      // Rev 10: 300 steps (5s @ 60fps) rather than 90 (1.5s) — the owner's
+      // formation-aspect-ratio gate is specified "after 5s", and 1.5s is not
+      // enough for a scattered spawn to settle into a readable line/V shape.
+      var SCHOOL_TEST_STEPS = 300;
+      for (var sstep = 0; sstep < SCHOOL_TEST_STEPS; sstep++) {
         schoolCtx.time.now += 1 / 60;
         World.update(schoolCtx);
         for (var smj = 0; smj < schoolMembers.length; smj++) {
@@ -9519,14 +9707,15 @@ import * as THREE from 'three';
           }
         }
       }
-      chk(!nanFound, 'schooling probe: no NaN/Infinity in position or velocity across 90 steps');
+      chk(!nanFound, 'schooling probe: no NaN/Infinity in position or velocity across ' +
+        SCHOOL_TEST_STEPS + ' steps');
       // Budget: flocking itself allocates nothing and frees nothing — the
       // spawner (runSpawner, called every World.update) is free to add its
-      // own entities over 90 steps, which is normal and not a flocking
+      // own entities over the run, which is normal and not a flocking
       // regression, so this checks growth stays bounded (spawner's own caps
       // still apply) rather than asserting a frozen count.
-      chk(S.entities.length >= budget0 && S.entities.length < budget0 + 200,
-        'schooling probe: entity count stays bounded across 90 steps (' +
+      chk(S.entities.length >= budget0 && S.entities.length < budget0 + 400,
+        'schooling probe: entity count stays bounded across ' + SCHOOL_TEST_STEPS + ' steps (' +
         budget0 + ' -> ' + S.entities.length + ', spawner may add its own entities)');
 
       // Cohesion metric: mean distance from each live member to the school's
@@ -9576,8 +9765,67 @@ import * as THREE from 'three';
         } else {
           notes.push('ok alignment: skipped (too few moving members, n=' + hN + ')');
         }
+
+        // --------------------------------------------- Rev 10 FORMATION
+        // Four gates the owner specified directly: mean nearest-neighbor
+        // distance in body lengths (spacing reads as a formation, not a
+        // blob or a scatter), centroid-distance spread ratio (std/mean —
+        // NOT concentrated, i.e. not everyone sitting at the exact same
+        // radius from the centroid like a blob's shell), heading alignment
+        // variance (tighter bound than the pre-existing 0.5 gate above),
+        // and formation aspect ratio (major/minor axis of the position
+        // covariance — a line/V reads as elongated, a blob reads circular).
+        var flBl = ((cAlive[0].r || 14) * 2) || 28;
+        var nnSum = 0;
+        for (var nni = 0; nni < cAlive.length; nni++) {
+          var nnBest = Infinity;
+          for (var nnj = 0; nnj < cAlive.length; nnj++) {
+            if (nni === nnj) continue;
+            var nndx = cAlive[nni].x - cAlive[nnj].x, nndy = cAlive[nni].y - cAlive[nnj].y;
+            var nnd = Math.sqrt(nndx * nndx + nndy * nndy);
+            if (nnd < nnBest) nnBest = nnd;
+          }
+          nnSum += nnBest / flBl;
+        }
+        var meanNND_bl = nnSum / cAlive.length;
+        chk(meanNND_bl >= 1.4 && meanNND_bl <= 2.8,
+          'formation: mean nearest-neighbor distance is in spec (' +
+          meanNND_bl.toFixed(2) + ' bl, want [1.4, 2.8])');
+
+        var flVar = 0;
+        for (var fvi = 0; fvi < cAlive.length; fvi++) {
+          var fvdx = cAlive[fvi].x - ccx, fvdy = cAlive[fvi].y - ccy;
+          var fvd = Math.sqrt(fvdx * fvdx + fvdy * fvdy);
+          flVar += (fvd - meanDist) * (fvd - meanDist);
+        }
+        flVar /= cAlive.length;
+        var spreadRatio = meanDist > 0 ? Math.sqrt(flVar) / meanDist : 0;
+        chk(spreadRatio > 0.35,
+          'formation: centroid-distance distribution is not concentrated (' +
+          'std/mean ' + spreadRatio.toFixed(3) + ' > 0.35, i.e. not a blob shell)');
+
+        if (hN >= 3) {
+          chk(headingVariance < 0.05,
+            'formation: heading alignment variance is tight (' +
+            headingVariance.toFixed(3) + ' < 0.05)');
+        }
+
+        var sxx = 0, syy = 0, sxy = 0;
+        for (var fai = 0; fai < cAlive.length; fai++) {
+          var fadx = cAlive[fai].x - ccx, fady = cAlive[fai].y - ccy;
+          sxx += fadx * fadx; syy += fady * fady; sxy += fadx * fady;
+        }
+        sxx /= cAlive.length; syy /= cAlive.length; sxy /= cAlive.length;
+        var covTr = sxx + syy, covDet = sxx * syy - sxy * sxy;
+        var covDisc = Math.max(0, covTr * covTr / 4 - covDet);
+        var majorAxis = Math.sqrt(Math.max(covTr / 2 + Math.sqrt(covDisc), 0));
+        var minorAxis = Math.sqrt(Math.max(covTr / 2 - Math.sqrt(covDisc), 1e-6));
+        var aspectRatio = minorAxis > 1e-3 ? majorAxis / minorAxis : Infinity;
+        chk(aspectRatio > 2.0,
+          'formation: aspect ratio after ' + (SCHOOL_TEST_STEPS / 60).toFixed(1) + 's reads as a line/V, not a blob (' +
+          (isFinite(aspectRatio) ? aspectRatio.toFixed(2) : 'inf') + ' > 2.0)');
       } else {
-        notes.push('ok cohesion/alignment: skipped (too few surviving members, n=' + cAlive.length + ')');
+        notes.push('ok cohesion/alignment/formation: skipped (too few surviving members, n=' + cAlive.length + ')');
       }
 
       // Species/kind purity: every member of the pack is still the same
