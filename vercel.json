@@ -5,7 +5,18 @@
   "trailingSlash": false,
   "redirects": [
     {
-      "source": "/:path((?!sparkbridge|robots\\.txt|favicon\\.ico|sitemap.*).*)",
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "mqtt.greenguard-usa.com"
+        }
+      ],
+      "destination": "/sparkbridge",
+      "permanent": true
+    },
+    {
+      "source": "/:path((?!sparkbridge|robots\\.txt|favicon\\.ico|sitemap.+).+)",
       "has": [
         {
           "type": "host",
@@ -33,17 +44,6 @@
     {
       "source": "/sparkbridge/spec",
       "destination": "/sparkbridge/resources",
-      "permanent": true
-    },
-    {
-      "source": "/",
-      "has": [
-        {
-          "type": "host",
-          "value": "mqtt.greenguard-usa.com"
-        }
-      ],
-      "destination": "/sparkbridge",
       "permanent": true
     },
     {
@@ -205,18 +205,6 @@
           "value": "noindex"
         }
       ]
-    }
-  ],
-  "rewrites": [
-    {
-      "source": "/robots.txt",
-      "has": [
-        {
-          "type": "host",
-          "value": "mqtt.greenguard-usa.com"
-        }
-      ],
-      "destination": "/sparkbridge/robots.txt"
     }
   ]
 }

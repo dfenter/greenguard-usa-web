@@ -807,6 +807,7 @@ def main():
     if os.path.exists(robots_out) and os.path.isdir(os.path.join(OUT, 'sparkbridge')):
         with open(robots_out, 'a') as fh:
             fh.write('Sitemap: https://mqtt.greenguard-usa.com/sparkbridge/sitemap.xml\n')
+            fh.write('\nUser-agent: *\nDisallow: /sparkbridge/tck-*.log\nDisallow: /sparkbridge/tck-*.txt\n')
 
     # Generate Google Merchant Center product feed
     feed_path = os.path.join(OUT, 'products-feed.xml')
