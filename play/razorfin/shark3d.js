@@ -1106,7 +1106,27 @@ function prepareTemplate(scene, animations = [], key = '') {
       rollScratch.setFromBufferAttribute(mesh.geometry.attributes.position);
       rollBox.union(rollScratch.applyMatrix4(mesh.matrixWorld));
     }
-    if (!rollBox.isEmpty()) {
+    /* shark_bake.py rigs are deterministic: Blender dorsal +Z exports as
+     * glTF +Y, and the axis-'z' branch keeps that on world y, so every bake
+     * needs exactly one +90 roll. The measured span test misfires on wide
+     * heads (hammerhead foil) and slim bodies (dogfish), which the owner saw
+     * as rolled sharks on the phone; only non-bake rigs keep the measurement. */
+    if (TEXTURED_KEYS.has(String(key || ''))) {
+      /* Dorsal detector for bakes (they do not share one roll convention):
+       * over the middle 60% of the long axis, the dorsal fin and the taller
+       * upper caudal lobe are ONE-SIDED spikes, while pectorals and a hammer
+       * foil are paired and cancel. Up = the transverse direction with the
+       * largest one-sided extent asymmetry; roll it onto world +z. */
+      const xr = [Infinity, -Infinity]; const v = new THREE.Vector3();
+      for (const mesh of meshes) { if (mesh.userData.rfExcludeFromBounds || !mesh.geometry?.attributes?.position) continue; const pos = mesh.geometry.attributes.position; for (let i = 0; i < pos.count; i++) { v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld); if (v.x < xr[0]) xr[0] = v.x; if (v.x > xr[1]) xr[1] = v.x; } }
+      const x0 = xr[0] + (xr[1] - xr[0]) * 0.2, x1 = xr[0] + (xr[1] - xr[0]) * 0.8; const ext = { py: 0, ny: 0, pz: 0, nz: 0 };
+      for (const mesh of meshes) { if (mesh.userData.rfExcludeFromBounds || !mesh.geometry?.attributes?.position) continue; const pos = mesh.geometry.attributes.position; for (let i = 0; i < pos.count; i++) { v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld); if (v.x < x0 || v.x > x1) continue; if (v.y > ext.py) ext.py = v.y; if (-v.y > ext.ny) ext.ny = -v.y; if (v.z > ext.pz) ext.pz = v.z; if (-v.z > ext.nz) ext.nz = -v.z; } }
+      const asymY = ext.py - ext.ny, asymZ = ext.pz - ext.nz;
+      let rollAngle = 0;
+      if (Math.abs(asymY) >= Math.abs(asymZ)) rollAngle = asymY > 0 ? Math.PI / 2 : -Math.PI / 2; else rollAngle = asymZ > 0 ? 0 : Math.PI;
+      if (rollAngle !== 0) { scene.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), rollAngle); scene.updateMatrixWorld(true); }
+      scene.userData.rfDorsalAsym = { asymY, asymZ, rollAngle };
+    } else if (!rollBox.isEmpty()) {
       const rollSize = rollBox.getSize(new THREE.Vector3());
       if (rollSize.y > rollSize.z * 1.02) { scene.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2); scene.updateMatrixWorld(true); }
     }
@@ -1116,7 +1136,11 @@ function prepareTemplate(scene, animations = [], key = '') {
   if (noseBone && tailBone) {
     const nosePosition = new THREE.Vector3().setFromMatrixPosition(noseBone.matrixWorld);
     const tailPosition = new THREE.Vector3().setFromMatrixPosition(tailBone.matrixWorld);
-    if (nosePosition.x < tailPosition.x) { scene.rotation.y += Math.PI; scene.updateMatrixWorld(true); }
+    /* Spin about the WORLD dorsal axis (z after the roll law above), not the
+     * Euler y component: after rotateOnWorldAxis the object's local y is no
+     * longer world up, and += Math.PI on it yawed the baked rigs nose-to-camera
+     * (owner iPhone report 2026-08-26: "orientation is wrong"). */
+    if (nosePosition.x < tailPosition.x) { scene.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), Math.PI); scene.updateMatrixWorld(true); }
   }
   const normalizedBox = measureBox(scene);
   const materials = [];
