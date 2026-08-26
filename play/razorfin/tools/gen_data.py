@@ -290,9 +290,9 @@ CREATURES = [
  ("seal","Harbor Seal",3,"prey",100,3,32,5,"proc_seal",1,3,0x8a8f94),
  ("sealion","Sea Lion",4,"prey",115,4,46,7,"proc_sealion",1,2,0xa0855a),
  ("orca","Orca",8,"prey",190,20,220,32,"proc_orca",1,1,0x1a1e22),
- ("minnow","Minnow Shoal",0,"prey",65,1,5,1,"fish_blue",6,10,0x5fa8e8),
- ("reeffish","Reef Fish",1,"prey",70,1,10,2,"fish_orange",6,10,0xff9d4a),
- ("mackerel","Mackerel",1,"prey",95,1,12,2,"fish_grey_long_a",6,10,0x8fa0ac),
+ ("minnow","Minnow Shoal",0,"prey",65,1,5,1,"fish_blue",4,7,0x5fa8e8),
+ ("reeffish","Reef Fish",1,"prey",70,1,10,2,"fish_orange",4,7,0xff9d4a),
+ ("mackerel","Mackerel",1,"prey",95,1,12,2,"fish_grey_long_a",4,7,0x8fa0ac),
  ("parrot","Parrotfish",2,"prey",75,2,18,3,"fish_green",2,5,0x5ad687),
  ("grouper","Grouper",3,"prey",65,4,30,5,"fish_brown",1,3,0x8a6b45),
  ("ray","Coasting Ray",3,"prey",80,3,34,5,"proc_ray",1,2,0x4a5f70),
@@ -301,9 +301,9 @@ CREATURES = [
  ("swordfish","Swordfish",5,"prey",160,6,70,10,"proc_sword",1,2,0x3a5570),
  ("dolphinfish","Dorado",5,"prey",125,5,60,9,"fish_pink",2,4,0xff7ab0),
  ("marlin","Marlin",6,"prey",170,8,95,14,"proc_sword",1,1,0x2f5c85),
- ("squidling","Squidling",2,"prey",80,2,20,4,"proc_squid",6,10,0xc76fd6),
+ ("squidling","Squidling",2,"prey",80,2,20,4,"proc_squid",4,7,0xc76fd6),
  ("giantsquid","Giant Squid",7,"prey",95,14,150,22,"proc_squid_big",1,1,0x8a3fa0),
- ("anglerprey","Lanternfish Swarm",6,"prey",75,1,16,3,"fish_grey",6,10,0xffe08a),
+ ("anglerprey","Lanternfish Swarm",6,"prey",75,1,16,3,"fish_grey",4,7,0xffe08a),
  ("abyssal","Abyss Grazer",8,"prey",85,18,200,30,"proc_grazer",1,2,0x3d5c6e),
  ("leviathanprey","Deep Leviathan Calf",10,"prey",110,40,420,60,"proc_calf",1,1,0x2a4a5c),
 ]
@@ -755,6 +755,6 @@ lines.append("return {SHARKS:SHARKS,SHARK_BY_ID:SHARK_BY_ID,CREATURES:CREATURES,
 lines.append("CREATURE_BY_ID:CREATURE_BY_ID,ZONES:ZONES,LEVELS:LEVELS,LEVEL_BY_ID:LEVEL_BY_ID,MODES:MODES,PICKUPS:PICKUPS,RELICS:RELICS,RELICS_BY_ZONE:RELICS_BY_ZONE,")
 lines.append("MISSIONS:MISSIONS,GEMS:GEMS,SKINS:SKINS,SECRET_SHARKS:SECRET_SHARKS,ABILITIES:ABILITIES,ECONOMY:ECONOMY,")
 lines.append("FRENZY:FRENZY,BAL:BAL,FRENZY2:FRENZY2,FX:FX,SFX:SFX,MUSIC:MUSIC,WORLD:{w:14400,h:4800},")
-lines.append("SAVE_VERSION:3,ENTITY_BUDGET:{onscreen:48,total:120}};")
+lines.append("SAVE_VERSION:3,ENTITY_BUDGET:{onscreen:32,total:120}};")
 lines.append("})();")
 print("\n".join(lines))

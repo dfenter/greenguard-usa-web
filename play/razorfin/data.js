@@ -94,9 +94,9 @@ var CREATURES=[
 {"id":"seal","name":"Harbor Seal","tier":3,"kind":"prey","speed":100,"hp":3,"score":32,"coins":5,"sprite":"proc_seal","packMin":1,"packMax":3,"tint":9080724},
 {"id":"sealion","name":"Sea Lion","tier":4,"kind":"prey","speed":115,"hp":4,"score":46,"coins":7,"sprite":"proc_sealion","packMin":1,"packMax":2,"tint":10519898},
 {"id":"orca","name":"Orca","tier":8,"kind":"prey","speed":190,"hp":20,"score":220,"coins":32,"sprite":"proc_orca","packMin":1,"packMax":1,"tint":1711650},
-{"id":"minnow","name":"Minnow Shoal","tier":0,"kind":"prey","speed":65,"hp":1,"score":5,"coins":1,"sprite":"fish_blue","packMin":6,"packMax":10,"tint":6269160},
-{"id":"reeffish","name":"Reef Fish","tier":1,"kind":"prey","speed":70,"hp":1,"score":10,"coins":2,"sprite":"fish_orange","packMin":6,"packMax":10,"tint":16751946},
-{"id":"mackerel","name":"Mackerel","tier":1,"kind":"prey","speed":95,"hp":1,"score":12,"coins":2,"sprite":"fish_grey_long_a","packMin":6,"packMax":10,"tint":9412780},
+{"id":"minnow","name":"Minnow Shoal","tier":0,"kind":"prey","speed":65,"hp":1,"score":5,"coins":1,"sprite":"fish_blue","packMin":4,"packMax":7,"tint":6269160},
+{"id":"reeffish","name":"Reef Fish","tier":1,"kind":"prey","speed":70,"hp":1,"score":10,"coins":2,"sprite":"fish_orange","packMin":4,"packMax":7,"tint":16751946},
+{"id":"mackerel","name":"Mackerel","tier":1,"kind":"prey","speed":95,"hp":1,"score":12,"coins":2,"sprite":"fish_grey_long_a","packMin":4,"packMax":7,"tint":9412780},
 {"id":"parrot","name":"Parrotfish","tier":2,"kind":"prey","speed":75,"hp":2,"score":18,"coins":3,"sprite":"fish_green","packMin":2,"packMax":5,"tint":5953159},
 {"id":"grouper","name":"Grouper","tier":3,"kind":"prey","speed":65,"hp":4,"score":30,"coins":5,"sprite":"fish_brown","packMin":1,"packMax":3,"tint":9071429},
 {"id":"ray","name":"Coasting Ray","tier":3,"kind":"prey","speed":80,"hp":3,"score":34,"coins":5,"sprite":"proc_ray","packMin":1,"packMax":2,"tint":4874096},
@@ -105,9 +105,9 @@ var CREATURES=[
 {"id":"swordfish","name":"Swordfish","tier":5,"kind":"prey","speed":160,"hp":6,"score":70,"coins":10,"sprite":"proc_sword","packMin":1,"packMax":2,"tint":3822960},
 {"id":"dolphinfish","name":"Dorado","tier":5,"kind":"prey","speed":125,"hp":5,"score":60,"coins":9,"sprite":"fish_pink","packMin":2,"packMax":4,"tint":16743088},
 {"id":"marlin","name":"Marlin","tier":6,"kind":"prey","speed":170,"hp":8,"score":95,"coins":14,"sprite":"proc_sword","packMin":1,"packMax":1,"tint":3103877},
-{"id":"squidling","name":"Squidling","tier":2,"kind":"prey","speed":80,"hp":2,"score":20,"coins":4,"sprite":"proc_squid","packMin":6,"packMax":10,"tint":13070294},
+{"id":"squidling","name":"Squidling","tier":2,"kind":"prey","speed":80,"hp":2,"score":20,"coins":4,"sprite":"proc_squid","packMin":4,"packMax":7,"tint":13070294},
 {"id":"giantsquid","name":"Giant Squid","tier":7,"kind":"prey","speed":95,"hp":14,"score":150,"coins":22,"sprite":"proc_squid_big","packMin":1,"packMax":1,"tint":9060256},
-{"id":"anglerprey","name":"Lanternfish Swarm","tier":6,"kind":"prey","speed":75,"hp":1,"score":16,"coins":3,"sprite":"fish_grey","packMin":6,"packMax":10,"tint":16769162},
+{"id":"anglerprey","name":"Lanternfish Swarm","tier":6,"kind":"prey","speed":75,"hp":1,"score":16,"coins":3,"sprite":"fish_grey","packMin":4,"packMax":7,"tint":16769162},
 {"id":"abyssal","name":"Abyss Grazer","tier":8,"kind":"prey","speed":85,"hp":18,"score":200,"coins":30,"sprite":"proc_grazer","packMin":1,"packMax":2,"tint":4021358},
 {"id":"leviathanprey","name":"Deep Leviathan Calf","tier":10,"kind":"prey","speed":110,"hp":40,"score":420,"coins":60,"sprite":"proc_calf","packMin":1,"packMax":1,"tint":2771548},
 ];
@@ -141,5 +141,5 @@ return {SHARKS:SHARKS,SHARK_BY_ID:SHARK_BY_ID,CREATURES:CREATURES,HAZARDS:HAZARD
 CREATURE_BY_ID:CREATURE_BY_ID,ZONES:ZONES,LEVELS:LEVELS,LEVEL_BY_ID:LEVEL_BY_ID,MODES:MODES,PICKUPS:PICKUPS,RELICS:RELICS,RELICS_BY_ZONE:RELICS_BY_ZONE,
 MISSIONS:MISSIONS,GEMS:GEMS,SKINS:SKINS,SECRET_SHARKS:SECRET_SHARKS,ABILITIES:ABILITIES,ECONOMY:ECONOMY,
 FRENZY:FRENZY,BAL:BAL,FRENZY2:FRENZY2,FX:FX,SFX:SFX,MUSIC:MUSIC,WORLD:{w:14400,h:4800},
-SAVE_VERSION:3,ENTITY_BUDGET:{onscreen:48,total:120}};
+SAVE_VERSION:3,ENTITY_BUDGET:{onscreen:32,total:120}};
 })();

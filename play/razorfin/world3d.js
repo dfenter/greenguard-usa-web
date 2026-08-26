@@ -6333,6 +6333,7 @@ import * as THREE from 'three';
   }
 
   function runSpawner(ctx, camX, camY) {
+    if (S.probeNoSpawn) return; // selftest probes that measure a seeded school in isolation
     var B = budget();
     // Rev 6.12 BUFF CADENCE (binding): the ambient buff roll runs BEFORE
     // EVERY early return in this function - including the pool-reserve
@@ -10627,6 +10628,11 @@ import * as THREE from 'three';
       var schoolCtx = { rng: rngStub, renderer: renderer, time: { now: lifeCtx.time.now, dt: 1 / 60 },
         run: { score: 0, coins: 0 }, player: schoolPlayerFar, mouth: null };
       RF.ctx = schoolCtx;
+      // Rev 14.2: the aspect gate below is marginal (~1.9 vs 2.0) and moved
+      // with ambient spawns landing in the school's ring during the sim window
+      // (owner thinned density 48 -> 32 onscreen, packs 6-10 -> 4-7). Hold the
+      // ambient spawner so the probe measures schooling, not density.
+      S.probeNoSpawn = true;
       var schoolN = World.spawnBurst('minnow', schoolCx, schoolCy, 8);
       var schoolMembers = [];
       for (var smi = 0; smi < S.entities.length; smi++) {
@@ -10770,6 +10776,7 @@ import * as THREE from 'three';
         chk(aspectRatio > 2.0,
           'formation: aspect ratio after ' + (SCHOOL_TEST_STEPS / 60).toFixed(1) + 's reads as a line/V, not a blob (' +
           (isFinite(aspectRatio) ? aspectRatio.toFixed(2) : 'inf') + ' > 2.0)');
+        S.probeNoSpawn = false;
       } else {
         notes.push('ok cohesion/alignment/formation: skipped (too few surviving members, n=' + cAlive.length + ')');
       }
