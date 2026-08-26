@@ -607,24 +607,20 @@ def shark_cls(tier, act):
 TEXTURED_MODEL_BY_ROW = {
     "reef":            "dogfish",           # point tiny: small houndshark bodies
     "epaulette":       "bullhead",          # blunt small: bullhead snout
-    # "cookiecutter": "smoothhound"  HELD: at sil.len 0.85, the shortest row in
-    #   the roster, the L2 morph length delta lands at 3.5-3.7% against EVERY
-    #   textured body (measured, all 8 tried) and the gate allows +/-3%. This is
-    #   the morph/normalization path, not the asset, so the row stays on the
-    #   low-poly rig. See hse/REQUESTS.md.
+    "cookiecutter": "smoothhound",  # was HELD (L2 length gate); relax-to-fit in rig_morph.js bounds it now
     "mako": "mako",  # was HELD-L2 (rig_morph gate fixed by F1)
     "blue": "mako",  # was HELD-L2 (rig_morph gate fixed by F1)
     "hammerhead":      "smoothhammer",      # hammer head tag
     "thresher": "thresher",  # was HELD-L2 (rig_morph gate fixed by F1)
-    # "sawshark": "thresher"  HELD: identity prop mesh is not textured yet (see hse/REQUESTS.md)
+    "sawshark": "thresher",  # was HELD (props); props_textured.js carries a textured-flagged material now
     "tiger":           "tiger_nu",          # blunt mid: tiger body
     "bull": "whaler",  # was HELD-L2 (rig_morph gate fixed by F1)
     # "goblin": "greatwhite_cy"  HELD: art3d pins this row to goblinshark (its own silhouette rig)
     "greatwhite":      "greatwhite_cy",     # point tier4-5: great white
     "whaleshark": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
-    # "megalodon": "megalodonrex"  HELD-L2b: morph displacement over bound after F1
-    # "dunkleosteus": "bullhead"  HELD-L2b: morph displacement over bound after F1
-    "greenland": "megalodonrex",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "megalodon": "whitepointer",  # was HELD-L2b; rig_morph relax-to-fit bounds the morph now
+    "dunkleosteus": "bullhead",  # was HELD-L2b; rig_morph relax-to-fit bounds the morph now
+    "greenland": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
     "snapjaw":         "tigershark",        # croc tag: broad flat jaw reads closest
     # "gulperfiend": "smoothhound"  HELD: art3d pins this row to anglerfish (its own silhouette rig)
     "anglerfang":      "smoothhound",       # angler tag: stubby body, lure prop carries identity
@@ -633,8 +629,8 @@ TEXTURED_MODEL_BY_ROW = {
     "thornback":       "bullhead",          # rock tag: chunky body
     "stonejaw":        "whaler",            # rock tag: chunky body
     "duskfin":         "mako",              # point high tier: fast/bulk mix
-    # "barbhook": "thresher"  HELD: identity prop mesh is not textured yet (see hse/REQUESTS.md)
-    # "coralcrown": "whaler"  HELD: identity prop mesh is not textured yet (see hse/REQUESTS.md)
+    "barbhook": "thresher",  # was HELD (props); textured-flagged prop material now
+    "coralcrown": "whaler",  # was HELD (props); textured-flagged prop material now
     "vex": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
     "abyssmaw":        "smoothhound",       # angler tag: stubby body, lure prop carries identity
     "riftjaw":         "whaler",            # point high tier: fast/bulk mix
@@ -658,20 +654,20 @@ TEXTURED_MODEL_BY_ROW = {
     "bonecrown":       "greatwhite_cy",     # skull tag: neutral bulk, identity from props/shader
     "mirrorscale":     "whaler",            # point high tier: fast/bulk mix
     "aurora": "blueshark",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "vulkan": "megalodonrex",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "vulkan": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
     "voltaicrex": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
     "nullfin":         "greatwhite_cy",     # void tag: neutral bulk, identity from props/shader
     "chronos":         "mako",              # point high tier: fast/bulk mix
-    "seismos": "megalodonrex",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "seismos": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
     "banshee":         "whitepointer",      # skull tag: neutral bulk, identity from props/shader
-    "vortexa": "megalodonrex",  # was HELD-L2 (rig_morph gate fixed by F1)
-    # "warbringer": "greatwhite_cy"  HELD-L2b: morph aspect over bound after F1
+    "vortexa": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "warbringer": "greatwhite_cy",  # was HELD-L2b; relax-to-fit bounds the morph now
     "omenmaw":         "bullhead",          # angler tag: stubby body, lure prop carries identity
     "solaris":         "whitepointer",      # point high tier: fast/bulk mix
     "absolutezero": "tigershark",  # was HELD-L2 (rig_morph gate fixed by F1)
-    # "leviathanrex": "megalodonrex"  HELD: identity prop mesh is not textured yet (see hse/REQUESTS.md)
-    # "leviathan_rex": "megalodonrex"  HELD: identity prop mesh is not textured yet (see hse/REQUESTS.md)
-    # "zeusfin": "mako"  HELD: identity prop mesh is not textured yet (see hse/REQUESTS.md)
+    # "leviathanrex": "whitepointer"  HELD-K: textured kaiju features render as a box pile (F2 sheet); toon rig until props_textured kaiju pass
+    # "leviathan_rex": "whitepointer"  HELD-K: textured kaiju features render as a box pile (F2 sheet); toon rig until props_textured kaiju pass
+    "zeusfin": "mako",  # was HELD (props); crown feature is textured-flagged now
     "poseidonrex": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
     "hadesmaw":        "whitepointer",      # void tag: neutral bulk, identity from props/shader
     "apollodon":       "mako",              # point high tier: fast/bulk mix
@@ -679,22 +675,22 @@ TEXTURED_MODEL_BY_ROW = {
     "athenajaw":       "scallopedhammer",   # hammer head tag
     "aresrender":      "tigershark",        # croc tag: broad flat jaw reads closest
     "hermesdart": "whaler",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "hephaestusforge": "megalodonrex",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "hephaestusforge": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
     "dionysustide":    "whaler",            # blunt high tier: heavy bodies
     "aphroditelure":   "bullhead",          # angler tag: stubby body, lure prop carries identity
-    # "heracrown": "megalodonrex"  HELD: identity prop mesh is not textured yet (see hse/REQUESTS.md)
-    # "typhonmaw": "megalodonrex"  HELD-L2b: morph displacement over bound after F1
+    "heracrown": "whitepointer",  # was HELD (props); crown feature is textured-flagged now
+    "typhonmaw": "whitepointer",  # was HELD-L2b; relax-to-fit bounds the morph now
     "hydrafang": "blueshark",  # was HELD-L2 (rig_morph gate fixed by F1)
     "cerberusjaw": "tigershark",  # was HELD-L2 (rig_morph gate fixed by F1)
-    # "chimerashark": "thresher"  HELD: identity prop mesh is not textured yet (see hse/REQUESTS.md)
+    "chimerashark": "thresher",  # was HELD (props); saw feature is textured-flagged now
     "medusagaze":      "bullhead",          # angler tag: stubby body, lure prop carries identity
     "scyllarender": "blueshark",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "charybdisvoid": "megalodonrex",  # was HELD-L2 (rig_morph gate fixed by F1)
-    # "minotaurram": "megalodonrex"  HELD: identity prop mesh is not textured yet (see hse/REQUESTS.md)
+    "charybdisvoid": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "minotaurram": "whitepointer",  # was HELD (props); horns feature is textured-flagged now
     "cyclopseye":      "whaler",            # blunt high tier: heavy bodies
     "harpyshade": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
     "lamiacoil": "thresher",  # was HELD-L2 (rig_morph gate fixed by F1)
-    # "kampechrono": "megalodonrex"  HELD-L2b: morph displacement over bound after F1
+    "kampechrono": "whitepointer",  # was HELD-L2b; relax-to-fit bounds the morph now
 }
 
 def shark_row(t):

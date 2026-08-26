@@ -1,0 +1,554 @@
+{
+ "summary": {
+  "when": "2026-08-26T01:38:28.916Z",
+  "rows": 14,
+  "pass": 7,
+  "fail": 7,
+  "consoleErrors": [],
+  "gates": {
+   "satFloor": 0.18,
+   "backBellyDelta": 0.06,
+   "patternContrast": 0.1,
+   "distinctMin": 0.055,
+   "eyeHighlight": true,
+   "bgBleedMax": 0.02,
+   "drawsMax": 100,
+   "trisMax": 55000,
+   "texBytesMax": 8388608
+  },
+  "out": "hse/evidence/f2-g",
+  "sheet": "hse/evidence/f2-g/contact_sheet.png",
+  "closest": [
+   {
+    "a": "mako",
+    "b": "blue",
+    "d": 0.11481202208451476
+   },
+   {
+    "a": "tempest",
+    "b": "stormfin",
+    "d": 0.11562962808746537
+   },
+   {
+    "a": "whaleshark",
+    "b": "glacier",
+    "d": 0.1193759280330793
+   },
+   {
+    "a": "ironfin",
+    "b": "greenland",
+    "d": 0.11958456222814774
+   },
+   {
+    "a": "ironfin",
+    "b": "glacier",
+    "d": 0.12343260261475751
+   },
+   {
+    "a": "glacier",
+    "b": "greenland",
+    "d": 0.125973009541294
+   },
+   {
+    "a": "whaleshark",
+    "b": "greenland",
+    "d": 0.1263710564617686
+   },
+   {
+    "a": "ironfin",
+    "b": "whaleshark",
+    "d": 0.12726134254175744
+   },
+   {
+    "a": "vulkan",
+    "b": "greenland",
+    "d": 0.12887804275540493
+   },
+   {
+    "a": "greatwhite",
+    "b": "greenland",
+    "d": 0.12919500105443013
+   }
+  ],
+  "diff": null
+ },
+ "results": [
+  {
+   "id": "magmaw",
+   "row": {
+    "id": "magmaw",
+    "name": "Magmaw",
+    "tier": 8,
+    "act": 2,
+    "cls": "epic",
+    "pattern": "cracks",
+    "model": "bullhead"
+   },
+   "shot": "hse/evidence/f2-g/shark_magmaw.png",
+   "head": "hse/evidence/f2-g/heads/head_magmaw.png",
+   "thumb": "hse/evidence/f2-g/thumbs/thumb_magmaw.png",
+   "stats": {
+    "sat": 0.41476017236709595,
+    "val": 0.5358731746673584,
+    "hue": 0.1879136451823777,
+    "valStd": 0.190573588013649,
+    "back": 0.4964834153652191,
+    "belly": 0.5102164149284363,
+    "countershade": 0.013732999563217163,
+    "bgBleed": 0.036089966721493325,
+    "eyePx": 21,
+    "bodyFrac": 0.03512577469923441
+   },
+   "base": "bullhead",
+   "prop": null,
+   "draws": 1,
+   "tris": 6742,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade 0.014 < 0.06 (back 0.496 belly 0.510)",
+    "background bleeds through body at 3.61% > 2.00%"
+   ]
+  },
+  {
+   "id": "ironfin",
+   "row": {
+    "id": "ironfin",
+    "name": "Ironfin",
+    "tier": 9,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "panels",
+    "model": "greatwhite_cy"
+   },
+   "shot": "hse/evidence/f2-g/shark_ironfin.png",
+   "head": "hse/evidence/f2-g/heads/head_ironfin.png",
+   "thumb": "hse/evidence/f2-g/thumbs/thumb_ironfin.png",
+   "stats": {
+    "sat": 0.5348755121231079,
+    "val": 0.4461395740509033,
+    "hue": 0.5145577988118004,
+    "valStd": 0.16757206618785858,
+    "back": 0.3331317901611328,
+    "belly": 0.47195908427238464,
+    "countershade": 0.13882729411125183,
+    "bgBleed": 0.05172685199760728,
+    "eyePx": 258,
+    "bodyFrac": 0.04274061246810062
+   },
+   "base": "greatwhite_cy",
+   "prop": null,
+   "draws": 1,
+   "tris": 6784,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "background bleeds through body at 5.17% > 2.00%"
+   ]
+  },
+  {
+   "id": "bonecrown",
+   "row": {
+    "id": "bonecrown",
+    "name": "Bonecrown",
+    "tier": 9,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "bones",
+    "model": "greatwhite_cy"
+   },
+   "shot": "hse/evidence/f2-g/shark_bonecrown.png",
+   "head": "hse/evidence/f2-g/heads/head_bonecrown.png",
+   "thumb": "hse/evidence/f2-g/thumbs/thumb_bonecrown.png",
+   "stats": {
+    "sat": 0.49823665618896484,
+    "val": 0.3789261281490326,
+    "hue": 0.8554750067691211,
+    "valStd": 0.16238068044185638,
+    "back": 0.2516246438026428,
+    "belly": 0.3787088990211487,
+    "countershade": 0.12708425521850586,
+    "bgBleed": 0.019986755764252604,
+    "eyePx": 464,
+    "bodyFrac": 0.03539388139506623
+   },
+   "base": "greatwhite_cy",
+   "prop": null,
+   "draws": 1,
+   "tris": 6784,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "vulkan",
+   "row": {
+    "id": "vulkan",
+    "name": "Vulkan",
+    "tier": 10,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "magma",
+    "model": "megalodonrex"
+   },
+   "shot": "hse/evidence/f2-g/shark_vulkan.png",
+   "head": "hse/evidence/f2-g/heads/head_vulkan.png",
+   "thumb": "hse/evidence/f2-g/thumbs/thumb_vulkan.png",
+   "stats": {
+    "sat": 0.4032481908798218,
+    "val": 0.39231616258621216,
+    "hue": 0.3033213866512075,
+    "valStd": 0.20282182097434998,
+    "back": 0.26845523715019226,
+    "belly": 0.4870851933956146,
+    "countershade": 0.21862995624542236,
+    "bgBleed": 0.0026195249732925527,
+    "eyePx": 1327,
+    "bodyFrac": 0.04957163689391177
+   },
+   "base": "megalodonrex",
+   "prop": null,
+   "draws": 1,
+   "tris": 6787,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "whaleshark",
+   "row": {
+    "id": "whaleshark",
+    "name": "Whale Shark",
+    "tier": 5,
+    "act": 1,
+    "cls": "rare",
+    "pattern": "dots",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/f2-g/shark_whaleshark.png",
+   "head": "hse/evidence/f2-g/heads/head_whaleshark.png",
+   "thumb": "hse/evidence/f2-g/thumbs/thumb_whaleshark.png",
+   "stats": {
+    "sat": 0.5277591943740845,
+    "val": 0.40638431906700134,
+    "hue": 0.47884532045930833,
+    "valStd": 0.18753819167613983,
+    "back": 0.3412744402885437,
+    "belly": 0.4801812767982483,
+    "countershade": 0.1389068365097046,
+    "bgBleed": 0.06748688257644292,
+    "eyePx": 921,
+    "bodyFrac": 0.05205675051646615
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "background bleeds through body at 6.75% > 2.00%"
+   ]
+  },
+  {
+   "id": "greatwhite",
+   "row": {
+    "id": "greatwhite",
+    "name": "Great White",
+    "tier": 5,
+    "act": 1,
+    "cls": "rare",
+    "pattern": "plain",
+    "model": "greatwhite_cy"
+   },
+   "shot": "hse/evidence/f2-g/shark_greatwhite.png",
+   "head": "hse/evidence/f2-g/heads/head_greatwhite.png",
+   "thumb": "hse/evidence/f2-g/thumbs/thumb_greatwhite.png",
+   "stats": {
+    "sat": 0.48859405517578125,
+    "val": 0.44535699486732483,
+    "hue": 0.47311804391180673,
+    "valStd": 0.1588882952928543,
+    "back": 0.30845019221305847,
+    "belly": 0.47274383902549744,
+    "countershade": 0.16429364681243896,
+    "bgBleed": 0.2392599769074573,
+    "eyePx": 288,
+    "bodyFrac": 0.04060487301008628
+   },
+   "base": "greatwhite_cy",
+   "prop": null,
+   "draws": 1,
+   "tris": 6784,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "background bleeds through body at 23.93% > 2.00%"
+   ]
+  },
+  {
+   "id": "mako",
+   "row": {
+    "id": "mako",
+    "name": "Shortfin Mako",
+    "tier": 2,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "mako"
+   },
+   "shot": "hse/evidence/f2-g/shark_mako.png",
+   "head": "hse/evidence/f2-g/heads/head_mako.png",
+   "thumb": "hse/evidence/f2-g/thumbs/thumb_mako.png",
+   "stats": {
+    "sat": 0.4814435541629791,
+    "val": 0.3633800148963928,
+    "hue": 0.5522749059285532,
+    "valStd": 0.14071384072303772,
+    "back": 0.27518078684806824,
+    "belly": 0.36349886655807495,
+    "countershade": 0.08831807971000671,
+    "bgBleed": 0.00698796690899975,
+    "eyePx": 255,
+    "bodyFrac": 0.02295616113744076
+   },
+   "base": "mako",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "blue",
+   "row": {
+    "id": "blue",
+    "name": "Blue Shark",
+    "tier": 2,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "mako"
+   },
+   "shot": "hse/evidence/f2-g/shark_blue.png",
+   "head": "hse/evidence/f2-g/heads/head_blue.png",
+   "thumb": "hse/evidence/f2-g/thumbs/thumb_blue.png",
+   "stats": {
+    "sat": 0.47231048345565796,
+    "val": 0.427399218082428,
+    "hue": 0.5552689969411891,
+    "valStd": 0.16557222604751587,
+    "back": 0.31069469451904297,
+    "belly": 0.4934164881706238,
+    "countershade": 0.1827217936515808,
+    "bgBleed": 0.006124416877329233,
+    "eyePx": 1315,
+    "bodyFrac": 0.026641299064284845
+   },
+   "base": "mako",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "glacier",
+   "row": {
+    "id": "glacier",
+    "name": "Glacier",
+    "tier": 9,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "facets",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/f2-g/shark_glacier.png",
+   "head": "hse/evidence/f2-g/heads/head_glacier.png",
+   "thumb": "hse/evidence/f2-g/thumbs/thumb_glacier.png",
+   "stats": {
+    "sat": 0.5260356068611145,
+    "val": 0.400025337934494,
+    "hue": 0.5286985282405388,
+    "valStd": 0.19121824204921722,
+    "back": 0.31819865107536316,
+    "belly": 0.5131590366363525,
+    "countershade": 0.19496038556098938,
+    "bgBleed": 0.015974698659093477,
+    "eyePx": 1419,
+    "bodyFrac": 0.04386696439421558
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "voltaicrex",
+   "row": {
+    "id": "voltaicrex",
+    "name": "Voltaic Rex",
+    "tier": 10,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "plain",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/f2-g/shark_voltaicrex.png",
+   "head": "hse/evidence/f2-g/heads/head_voltaicrex.png",
+   "thumb": "hse/evidence/f2-g/thumbs/thumb_voltaicrex.png",
+   "stats": {
+    "sat": 0.6485769748687744,
+    "val": 0.36088043451309204,
+    "hue": 0.5040293489970573,
+    "valStd": 0.18122251331806183,
+    "back": 0.2673989534378052,
+    "belly": 0.40336427092552185,
+    "countershade": 0.13596531748771667,
+    "bgBleed": 0.01517939282428703,
+    "eyePx": 1112,
+    "bodyFrac": 0.03492982136347065
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "tempest",
+   "row": {
+    "id": "tempest",
+    "name": "Tempest",
+    "tier": 9,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "plain",
+    "model": "blueshark"
+   },
+   "shot": "hse/evidence/f2-g/shark_tempest.png",
+   "head": "hse/evidence/f2-g/heads/head_tempest.png",
+   "thumb": "hse/evidence/f2-g/thumbs/thumb_tempest.png",
+   "stats": {
+    "sat": 0.5861353874206543,
+    "val": 0.4013218581676483,
+    "hue": 0.5246402813668083,
+    "valStd": 0.19500811398029327,
+    "back": 0.2425583153963089,
+    "belly": 0.5036695599555969,
+    "countershade": 0.261111244559288,
+    "bgBleed": 0.07121021399028951,
+    "eyePx": 663,
+    "bodyFrac": 0.017818841900595454
+   },
+   "base": "blueshark",
+   "prop": null,
+   "draws": 1,
+   "tris": 6767,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "background bleeds through body at 7.12% > 2.00%"
+   ]
+  },
+  {
+   "id": "stormfin",
+   "row": {
+    "id": "stormfin",
+    "name": "Stormfin",
+    "tier": 8,
+    "act": 2,
+    "cls": "epic",
+    "pattern": "plain",
+    "model": "blueshark"
+   },
+   "shot": "hse/evidence/f2-g/shark_stormfin.png",
+   "head": "hse/evidence/f2-g/heads/head_stormfin.png",
+   "thumb": "hse/evidence/f2-g/thumbs/thumb_stormfin.png",
+   "stats": {
+    "sat": 0.5680681467056274,
+    "val": 0.4246038496494293,
+    "hue": 0.5525034843445268,
+    "valStd": 0.21770599484443665,
+    "back": 0.20309005677700043,
+    "belly": 0.568966269493103,
+    "countershade": 0.3658762127161026,
+    "bgBleed": 0.03400108283703303,
+    "eyePx": 483,
+    "bodyFrac": 0.018424170616113743
+   },
+   "base": "blueshark",
+   "prop": null,
+   "draws": 1,
+   "tris": 6767,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "background bleeds through body at 3.40% > 2.00%"
+   ]
+  },
+  {
+   "id": "greenland",
+   "row": {
+    "id": "greenland",
+    "name": "Greenland Shark",
+    "tier": 6,
+    "act": 1,
+    "cls": "rare",
+    "pattern": "mottled",
+    "model": "megalodonrex"
+   },
+   "shot": "hse/evidence/f2-g/shark_greenland.png",
+   "head": "hse/evidence/f2-g/heads/head_greenland.png",
+   "thumb": "hse/evidence/f2-g/thumbs/thumb_greenland.png",
+   "stats": {
+    "sat": 0.47617027163505554,
+    "val": 0.4223894476890564,
+    "hue": 0.5015474345043214,
+    "valStd": 0.15609784424304962,
+    "back": 0.3808891773223877,
+    "belly": 0.49337315559387207,
+    "countershade": 0.11248397827148438,
+    "bgBleed": 0.01619340255703892,
+    "eyePx": 498,
+    "bodyFrac": 0.0398127050674444
+   },
+   "base": "megalodonrex",
+   "prop": null,
+   "draws": 1,
+   "tris": 6787,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "sailfin",
+   "row": {
+    "id": "sailfin",
+    "name": "Sailfin Ripper",
+    "tier": 7,
+    "act": 2,
+    "cls": "rare",
+    "pattern": "plain",
+    "model": "blueshark"
+   },
+   "shot": "hse/evidence/f2-g/shark_sailfin.png",
+   "head": "hse/evidence/f2-g/heads/head_sailfin.png",
+   "thumb": "hse/evidence/f2-g/thumbs/thumb_sailfin.png",
+   "stats": {
+    "sat": 0.579719066619873,
+    "val": 0.404704213142395,
+    "hue": 0.5333102054030382,
+    "valStd": 0.19618293642997742,
+    "back": 0.2514269948005676,
+    "belly": 0.5258727073669434,
+    "countershade": 0.27444571256637573,
+    "bgBleed": 0.02861318360126144,
+    "eyePx": 294,
+    "bodyFrac": 0.01728490703609187
+   },
+   "base": "blueshark",
+   "prop": null,
+   "draws": 1,
+   "tris": 6767,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "background bleeds through body at 2.86% > 2.00%"
+   ]
+  }
+ ]
+}

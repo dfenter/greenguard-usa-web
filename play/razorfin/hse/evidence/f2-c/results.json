@@ -1,0 +1,665 @@
+{
+ "summary": {
+  "when": "2026-08-26T01:23:32.053Z",
+  "rows": 17,
+  "pass": 5,
+  "fail": 12,
+  "consoleErrors": [],
+  "gates": {
+   "satFloor": 0.18,
+   "backBellyDelta": 0.06,
+   "patternContrast": 0.1,
+   "distinctMin": 0.055,
+   "eyeHighlight": true,
+   "bgBleedMax": 0.02,
+   "drawsMax": 100,
+   "trisMax": 55000,
+   "texBytesMax": 8388608
+  },
+  "out": "hse/evidence/f2-c",
+  "sheet": "hse/evidence/f2-c/contact_sheet.png",
+  "closest": [
+   {
+    "a": "glacier",
+    "b": "voltaicrex",
+    "d": 0.06947517768346582
+   },
+   {
+    "a": "wreckfang",
+    "b": "greatwhite",
+    "d": 0.0701802255626656
+   },
+   {
+    "a": "mako",
+    "b": "blue",
+    "d": 0.0711492039370516
+   },
+   {
+    "a": "ironfin",
+    "b": "greatwhite",
+    "d": 0.07695256353460295
+   },
+   {
+    "a": "stormfin",
+    "b": "tempest",
+    "d": 0.08458016017490788
+   },
+   {
+    "a": "bull",
+    "b": "tiger",
+    "d": 0.08613670442206346
+   },
+   {
+    "a": "ironfin",
+    "b": "wreckfang",
+    "d": 0.08695058690213159
+   },
+   {
+    "a": "bull",
+    "b": "reef",
+    "d": 0.09402441490326789
+   },
+   {
+    "a": "mako",
+    "b": "reef",
+    "d": 0.10183733809958243
+   },
+   {
+    "a": "voltaicrex",
+    "b": "maelstrom",
+    "d": 0.10395274381942271
+   }
+  ],
+  "diff": null
+ },
+ "results": [
+  {
+   "id": "mako",
+   "row": {
+    "id": "mako",
+    "name": "Shortfin Mako",
+    "tier": 2,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "mako"
+   },
+   "shot": "hse/evidence/f2-c/shark_mako.png",
+   "head": "hse/evidence/f2-c/heads/head_mako.png",
+   "thumb": "hse/evidence/f2-c/thumbs/thumb_mako.png",
+   "stats": {
+    "sat": 0.49356481432914734,
+    "val": 0.3670240342617035,
+    "hue": 0.5546161467121495,
+    "valStd": 0.125804141163826,
+    "back": 0.28872284293174744,
+    "belly": 0.36062952876091003,
+    "countershade": 0.0719066858291626,
+    "bgBleed": 0.017852144434422915,
+    "eyePx": 4,
+    "bodyFrac": 0.02286122250577227
+   },
+   "base": "mako",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "blue",
+   "row": {
+    "id": "blue",
+    "name": "Blue Shark",
+    "tier": 2,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "mako"
+   },
+   "shot": "hse/evidence/f2-c/shark_blue.png",
+   "head": "hse/evidence/f2-c/heads/head_blue.png",
+   "thumb": "hse/evidence/f2-c/thumbs/thumb_blue.png",
+   "stats": {
+    "sat": 0.49357542395591736,
+    "val": 0.40287160873413086,
+    "hue": 0.5567943956948884,
+    "valStd": 0.13063840568065643,
+    "back": 0.3382093012332916,
+    "belly": 0.37757816910743713,
+    "countershade": 0.03936886787414551,
+    "bgBleed": 0.010759919300605245,
+    "eyePx": 150,
+    "bodyFrac": 0.02231893304168186
+   },
+   "base": "mako",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade 0.039 < 0.06 (back 0.338 belly 0.378)"
+   ]
+  },
+  {
+   "id": "bull",
+   "row": {
+    "id": "bull",
+    "name": "Bull Shark",
+    "tier": 4,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "whaler"
+   },
+   "shot": "hse/evidence/f2-c/shark_bull.png",
+   "head": "hse/evidence/f2-c/heads/head_bull.png",
+   "thumb": "hse/evidence/f2-c/thumbs/thumb_bull.png",
+   "stats": {
+    "sat": 0.4881206452846527,
+    "val": 0.18561124801635742,
+    "hue": 0.5476359173957437,
+    "valStd": 0.12318791449069977,
+    "back": 0.2299097776412964,
+    "belly": 0.21069204807281494,
+    "countershade": -0.019217729568481445,
+    "bgBleed": 0.0005759894676211635,
+    "eyePx": 550,
+    "bodyFrac": 0.01755833029529712
+   },
+   "base": "whaler",
+   "prop": null,
+   "draws": 1,
+   "tris": 6750,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.019 < 0.06 (back 0.230 belly 0.211)"
+   ]
+  },
+  {
+   "id": "reef",
+   "row": {
+    "id": "reef",
+    "name": "Reef Shark",
+    "tier": 1,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "dogfish"
+   },
+   "shot": "hse/evidence/f2-c/shark_reef.png",
+   "head": "hse/evidence/f2-c/heads/head_reef.png",
+   "thumb": "hse/evidence/f2-c/thumbs/thumb_reef.png",
+   "stats": {
+    "sat": 0.5544325113296509,
+    "val": 0.3020205795764923,
+    "hue": 0.4875644359321748,
+    "valStd": 0.1426018476486206,
+    "back": 0.378377228975296,
+    "belly": 0.27645379304885864,
+    "countershade": -0.10192343592643738,
+    "bgBleed": 0.0005578489345085351,
+    "eyePx": 173,
+    "bodyFrac": 0.01275899258719164
+   },
+   "base": "dogfish",
+   "prop": null,
+   "draws": 1,
+   "tris": 6715,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.102 < 0.06 (back 0.378 belly 0.276)"
+   ]
+  },
+  {
+   "id": "glacier",
+   "row": {
+    "id": "glacier",
+    "name": "Glacier",
+    "tier": 9,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "facets",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/f2-c/shark_glacier.png",
+   "head": "hse/evidence/f2-c/heads/head_glacier.png",
+   "thumb": "hse/evidence/f2-c/thumbs/thumb_glacier.png",
+   "stats": {
+    "sat": 0.5432034134864807,
+    "val": 0.4072338938713074,
+    "hue": 0.5286982217942082,
+    "valStd": 0.18574483692646027,
+    "back": 0.34094300866127014,
+    "belly": 0.5037320852279663,
+    "countershade": 0.16278907656669617,
+    "bgBleed": 0.016417767566532643,
+    "eyePx": 1158,
+    "bodyFrac": 0.04439634220439908
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "voltaicrex",
+   "row": {
+    "id": "voltaicrex",
+    "name": "Voltaic Rex",
+    "tier": 10,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "plain",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/f2-c/shark_voltaicrex.png",
+   "head": "hse/evidence/f2-c/heads/head_voltaicrex.png",
+   "thumb": "hse/evidence/f2-c/thumbs/thumb_voltaicrex.png",
+   "stats": {
+    "sat": 0.6241943836212158,
+    "val": 0.422819048166275,
+    "hue": 0.5072283739102746,
+    "valStd": 0.17341358959674835,
+    "back": 0.32395192980766296,
+    "belly": 0.50289386510849,
+    "countershade": 0.17894193530082703,
+    "bgBleed": 0.013551998428753806,
+    "eyePx": 1180,
+    "bodyFrac": 0.043579869972050066
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "frostjaw",
+   "row": {
+    "id": "frostjaw",
+    "name": "Frostjaw",
+    "tier": 8,
+    "act": 2,
+    "cls": "epic",
+    "pattern": "plain",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/f2-c/shark_frostjaw.png",
+   "head": "hse/evidence/f2-c/heads/head_frostjaw.png",
+   "thumb": "hse/evidence/f2-c/thumbs/thumb_frostjaw.png",
+   "stats": {
+    "sat": 0.5582518577575684,
+    "val": 0.3368268609046936,
+    "hue": 0.5560117573285013,
+    "valStd": 0.17774803936481476,
+    "back": 0.25185027718544006,
+    "belly": 0.38745513558387756,
+    "countershade": 0.1356048583984375,
+    "bgBleed": 0.0009159396395777518,
+    "eyePx": 610,
+    "bodyFrac": 0.03147253615263094
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "stormfin",
+   "row": {
+    "id": "stormfin",
+    "name": "Stormfin",
+    "tier": 8,
+    "act": 2,
+    "cls": "epic",
+    "pattern": "plain",
+    "model": "blueshark"
+   },
+   "shot": "hse/evidence/f2-c/shark_stormfin.png",
+   "head": "hse/evidence/f2-c/heads/head_stormfin.png",
+   "thumb": "hse/evidence/f2-c/thumbs/thumb_stormfin.png",
+   "stats": {
+    "sat": 0.6247252821922302,
+    "val": 0.3721262216567993,
+    "hue": 0.5543312477012223,
+    "valStd": 0.17572252452373505,
+    "back": 0.21521654725074768,
+    "belly": 0.40888845920562744,
+    "countershade": 0.19367191195487976,
+    "bgBleed": 0.029520605550883094,
+    "eyePx": 29,
+    "bodyFrac": 0.015876777251184835
+   },
+   "base": "blueshark",
+   "prop": null,
+   "draws": 1,
+   "tris": 6767,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "background bleeds through body at 2.95% > 2.00%"
+   ]
+  },
+  {
+   "id": "gloomtide",
+   "row": {
+    "id": "gloomtide",
+    "name": "Gloomtide",
+    "tier": 8,
+    "act": 2,
+    "cls": "epic",
+    "pattern": "plain",
+    "model": "blueshark"
+   },
+   "shot": "hse/evidence/f2-c/shark_gloomtide.png",
+   "head": "hse/evidence/f2-c/heads/head_gloomtide.png",
+   "thumb": "hse/evidence/f2-c/thumbs/thumb_gloomtide.png",
+   "stats": {
+    "sat": 0.5070195198059082,
+    "val": 0.4674369990825653,
+    "hue": 0.2776772864705552,
+    "valStd": 0.16557970643043518,
+    "back": 0.45662760734558105,
+    "belly": 0.48491165041923523,
+    "countershade": 0.028284043073654175,
+    "bgBleed": 0.027594695465734932,
+    "eyePx": 0,
+    "bodyFrac": 0.01717553773240977
+   },
+   "base": "blueshark",
+   "prop": null,
+   "draws": 1,
+   "tris": 6767,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade 0.028 < 0.06 (back 0.457 belly 0.485)",
+    "no eye highlight in head crop (0 bright px)",
+    "background bleeds through body at 2.76% > 2.00%"
+   ]
+  },
+  {
+   "id": "tempest",
+   "row": {
+    "id": "tempest",
+    "name": "Tempest",
+    "tier": 9,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "plain",
+    "model": "blueshark"
+   },
+   "shot": "hse/evidence/f2-c/shark_tempest.png",
+   "head": "hse/evidence/f2-c/heads/head_tempest.png",
+   "thumb": "hse/evidence/f2-c/thumbs/thumb_tempest.png",
+   "stats": {
+    "sat": 0.6037397384643555,
+    "val": 0.4009765684604645,
+    "hue": 0.5248429876242494,
+    "valStd": 0.18035368621349335,
+    "back": 0.27498340606689453,
+    "belly": 0.47541114687919617,
+    "countershade": 0.20042774081230164,
+    "bgBleed": 0.063718820861678,
+    "eyePx": 37,
+    "bodyFrac": 0.016878569692550735
+   },
+   "base": "blueshark",
+   "prop": null,
+   "draws": 1,
+   "tris": 6767,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "background bleeds through body at 6.37% > 2.00%"
+   ]
+  },
+  {
+   "id": "maelstrom",
+   "row": {
+    "id": "maelstrom",
+    "name": "Maelstrom",
+    "tier": 9,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "swirls",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/f2-c/shark_maelstrom.png",
+   "head": "hse/evidence/f2-c/heads/head_maelstrom.png",
+   "thumb": "hse/evidence/f2-c/thumbs/thumb_maelstrom.png",
+   "stats": {
+    "sat": 0.5388884544372559,
+    "val": 0.41172730922698975,
+    "hue": 0.5279361129979245,
+    "valStd": 0.18076340854167938,
+    "back": 0.3750271499156952,
+    "belly": 0.4718288779258728,
+    "countershade": 0.09680172801017761,
+    "bgBleed": 0.07689876751290424,
+    "eyePx": 315,
+    "bodyFrac": 0.05050279499331632
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "background bleeds through body at 7.69% > 2.00%"
+   ]
+  },
+  {
+   "id": "ironfin",
+   "row": {
+    "id": "ironfin",
+    "name": "Ironfin",
+    "tier": 9,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "panels",
+    "model": "greatwhite_cy"
+   },
+   "shot": "hse/evidence/f2-c/shark_ironfin.png",
+   "head": "hse/evidence/f2-c/heads/head_ironfin.png",
+   "thumb": "hse/evidence/f2-c/thumbs/thumb_ironfin.png",
+   "stats": {
+    "sat": 0.5621766448020935,
+    "val": 0.42392903566360474,
+    "hue": 0.5158652062735405,
+    "valStd": 0.16678060591220856,
+    "back": 0.31502023339271545,
+    "belly": 0.4459194839000702,
+    "countershade": 0.13089925050735474,
+    "bgBleed": 0.04776989356310188,
+    "eyePx": 168,
+    "bodyFrac": 0.04240187143030745
+   },
+   "base": "greatwhite_cy",
+   "prop": null,
+   "draws": 1,
+   "tris": 6784,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "background bleeds through body at 4.78% > 2.00%"
+   ]
+  },
+  {
+   "id": "wreckfang",
+   "row": {
+    "id": "wreckfang",
+    "name": "Wreckfang",
+    "tier": 8,
+    "act": 2,
+    "cls": "epic",
+    "pattern": "rivets",
+    "model": "greatwhite_cy"
+   },
+   "shot": "hse/evidence/f2-c/shark_wreckfang.png",
+   "head": "hse/evidence/f2-c/heads/head_wreckfang.png",
+   "thumb": "hse/evidence/f2-c/thumbs/thumb_wreckfang.png",
+   "stats": {
+    "sat": 0.5606752038002014,
+    "val": 0.4279266595840454,
+    "hue": 0.5159931039765789,
+    "valStd": 0.156639963388443,
+    "back": 0.3477669656276703,
+    "belly": 0.4458484351634979,
+    "countershade": 0.09808146953582764,
+    "bgBleed": 0.20846170380454251,
+    "eyePx": 462,
+    "bodyFrac": 0.046813100012152144
+   },
+   "base": "greatwhite_cy",
+   "prop": null,
+   "draws": 1,
+   "tris": 6784,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "background bleeds through body at 20.85% > 2.00%"
+   ]
+  },
+  {
+   "id": "tiger",
+   "row": {
+    "id": "tiger",
+    "name": "Tiger Shark",
+    "tier": 4,
+    "act": 1,
+    "cls": "common",
+    "pattern": "stripes",
+    "model": "tiger_nu"
+   },
+   "shot": "hse/evidence/f2-c/shark_tiger.png",
+   "head": "hse/evidence/f2-c/heads/head_tiger.png",
+   "thumb": "hse/evidence/f2-c/thumbs/thumb_tiger.png",
+   "stats": {
+    "sat": 0.46794480085372925,
+    "val": 0.25936657190322876,
+    "hue": 0.7810957282342829,
+    "valStd": 0.13943928480148315,
+    "back": 0.28958770632743835,
+    "belly": 0.2650940716266632,
+    "countershade": -0.024493634700775146,
+    "bgBleed": 0.0038224051749485444,
+    "eyePx": 1057,
+    "bodyFrac": 0.03843799368088468
+   },
+   "base": "tiger_nu",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.024 < 0.06 (back 0.290 belly 0.265)"
+   ]
+  },
+  {
+   "id": "greatwhite",
+   "row": {
+    "id": "greatwhite",
+    "name": "Great White",
+    "tier": 5,
+    "act": 1,
+    "cls": "rare",
+    "pattern": "plain",
+    "model": "greatwhite_cy"
+   },
+   "shot": "hse/evidence/f2-c/shark_greatwhite.png",
+   "head": "hse/evidence/f2-c/heads/head_greatwhite.png",
+   "thumb": "hse/evidence/f2-c/thumbs/thumb_greatwhite.png",
+   "stats": {
+    "sat": 0.5032072067260742,
+    "val": 0.43925240635871887,
+    "hue": 0.4758372497245471,
+    "valStd": 0.15046769380569458,
+    "back": 0.33468353748321533,
+    "belly": 0.4574049711227417,
+    "countershade": 0.12272143363952637,
+    "bgBleed": 0.03076326311392254,
+    "eyePx": 506,
+    "bodyFrac": 0.04599662777980314
+   },
+   "base": "greatwhite_cy",
+   "prop": null,
+   "draws": 1,
+   "tris": 6784,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "background bleeds through body at 3.08% > 2.00%"
+   ]
+  },
+  {
+   "id": "hadesmaw",
+   "row": {
+    "id": "hadesmaw",
+    "name": "Hadesmaw",
+    "tier": 10,
+    "act": 4,
+    "cls": "god",
+    "pattern": "runes",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/f2-c/shark_hadesmaw.png",
+   "head": "hse/evidence/f2-c/heads/head_hadesmaw.png",
+   "thumb": "hse/evidence/f2-c/thumbs/thumb_hadesmaw.png",
+   "stats": {
+    "sat": 0.44390273094177246,
+    "val": 0.5489090085029602,
+    "hue": 0.9193267554042627,
+    "valStd": 0.23198553919792175,
+    "back": 0.5941056609153748,
+    "belly": 0.5746367573738098,
+    "countershade": -0.01946890354156494,
+    "bgBleed": 0.020915832122926383,
+    "eyePx": 5220,
+    "bodyFrac": 0.04604599586827075
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.019 < 0.06 (back 0.594 belly 0.575)",
+    "background bleeds through body at 2.09% > 2.00%"
+   ]
+  },
+  {
+   "id": "thresher",
+   "row": {
+    "id": "thresher",
+    "name": "Thresher Shark",
+    "tier": 3,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "thresher"
+   },
+   "shot": "hse/evidence/f2-c/shark_thresher.png",
+   "head": "hse/evidence/f2-c/heads/head_thresher.png",
+   "thumb": "hse/evidence/f2-c/thumbs/thumb_thresher.png",
+   "stats": {
+    "sat": 0.5526744723320007,
+    "val": 0.3890436887741089,
+    "hue": 0.5479532543012673,
+    "valStd": 0.1774703711271286,
+    "back": 0.3164140582084656,
+    "belly": 0.4679935872554779,
+    "countershade": 0.15157952904701233,
+    "bgBleed": 0.006826356096009395,
+    "eyePx": 903,
+    "bodyFrac": 0.028540071697654636
+   },
+   "base": "thresher",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  }
+ ]
+}

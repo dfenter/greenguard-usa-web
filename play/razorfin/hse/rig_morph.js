@@ -312,32 +312,76 @@ function applyMorph(rigRoot, skinnedMesh, def, profile = {}) {
    * long-on-Z or long-on-Y depending on the source asset. */
   const beforeAxes = bodyAxes(before.bounds, rigRoot, vec3(profile?.bindUp, [0, 1, 0]));
   const bodyLength = Math.max(before.bounds.max[beforeAxes.long] - before.bounds.min[beforeAxes.long], 1e-6);
-  const p = buildMorphPlan(skinnedMesh, def, profile, bodyLength), record = {
+  const basePlan = buildMorphPlan(skinnedMesh, def, profile, bodyLength), record = {
     id: String(def?.id || ''), version: MORPH_VERSION, neutral: false, restPose: true, seamFree: true,
     roleSource: 'PERSONALITY_TABLE bulk/sculpt/face; bounded rest-pose bone morph', vertexCount: before.count,
     maxOffset: 0, maxOffsetRatio: 0, maxOffsetOutsideCrest: 0, maxOffsetOutsideCrestRatio: 0,
-    bones: {}, weights: beforeWeights, dorsal: { signal: Number(p.dorsalSignal.toFixed(5)), vertices: 0, maxOffset: 0 }, metrics: null
+    bones: {}, weights: beforeWeights, dorsal: { signal: Number(basePlan.dorsalSignal.toFixed(5)), vertices: 0, maxOffset: 0 }, metrics: null,
+    relax: 1
   };
-  makeBoneSpec(bones.Head, p.head, p.headOffset, 'Head', record);
-  makeBoneSpec(bones.LowerJaw, p.jaw, p.jawOffset, 'LowerJaw', record);
-  makeBoneSpec(bones.Neck, neutralizeAxial(p.neck), p.neckOffset, 'Neck', record);
-  makeBoneSpec(bones.Spine1, neutralizeAxial(p.spine1), p.spine1Offset, 'Spine1', record);
-  makeBoneSpec(bones.Spine2, neutralizeAxial(p.spine2), p.spine2Offset, 'Spine2', record);
-  makeBoneSpec(bones.Tail1, neutralizeAxial(p.tail1), [0, 0, 0], 'Tail1', record);
-  makeBoneSpec(bones.Tail2, neutralizeAxial(p.tail2), [0, 0, 0], 'Tail2', record);
-  makeBoneSpec(bones.Tail3, neutralizeAxial(p.tail3), [0, 0, 0], 'Tail3', record);
+  /* RELAX-TO-FIT: the gates further down are HARD silhouette bounds, but a
+   * row that threw over them lost its real textured skin entirely (that is
+   * what held megalodon/dunkleosteus/warbringer/typhonmaw/kampechrono on the
+   * toon rig). Instead of failing the build, walk the WHOLE plan toward
+   * neutral until the MEASURED morph fits: the row keeps the largest
+   * exaggeration the silhouette bound allows and never renders out of
+   * bounds. r=0 is the exact rest pose, which fits by construction, so the
+   * walk always terminates with a legal morph. */
+  const restBones = REQUIRED_BONES.map((name) => ({ bone: bones[name], scale: bones[name].scale.clone(), position: bones[name].position.clone() }));
+  const restGeometry = skinnedMesh.geometry;
+  const fitsBounds = (m) => Math.abs(m.lengthDeltaRatio) <= MAX_LENGTH_DELTA + 1e-5
+    && m.maxOffsetRatio <= MAX_DISPLACEMENT_RATIO + 1e-5
+    && Math.abs(m.aspectRatio - 1) <= MAX_ASPECT_DELTA + 1e-5
+    && Math.abs(m.areaRatio - 1) <= MAX_AREA_DELTA + 1e-5;
+  const towardNeutral = (value, r) => 1 + (value - 1) * r;
+  const scalePlan = (plan, r) => ({
+    head: plan.head.map((v) => towardNeutral(v, r)),
+    jaw: plan.jaw.map((v) => towardNeutral(v, r)),
+    neck: plan.neck.map((v) => towardNeutral(v, r)),
+    spine1: plan.spine1.map((v) => towardNeutral(v, r)),
+    spine2: plan.spine2.map((v) => towardNeutral(v, r)),
+    tail1: plan.tail1.map((v) => towardNeutral(v, r)),
+    tail2: plan.tail2.map((v) => towardNeutral(v, r)),
+    tail3: plan.tail3.map((v) => towardNeutral(v, r)),
+    headOffset: plan.headOffset.map((v) => v * r),
+    jawOffset: plan.jawOffset.map((v) => v * r),
+    neckOffset: plan.neckOffset.map((v) => v * r),
+    spine1Offset: plan.spine1Offset.map((v) => v * r),
+    spine2Offset: plan.spine2Offset.map((v) => v * r),
+    dorsalSignal: plan.dorsalSignal * r, sources: plan.sources
+  });
+  const restoreRest = () => {
+    for (const rest of restBones) { rest.bone.scale.copy(rest.scale); rest.bone.position.copy(rest.position); }
+    skinnedMesh.geometry = restGeometry;
+  };
   /* The dorsal crest must ride the rig's REAL up axis. buildLoadedRig passes
    * the template's measured bindUp (prepareTemplate correlates each bind axis
    * against world up and keeps the sign), so use it; the old [-1,0,0] default
    * pushed the crest sideways on every bake whose bind-up is Y, which is what
    * turned morphed rows into deformed blobs. */
   const up = vec3(profile?.bindUp, [0, 1, 0]);
-  const dorsal = morphGeometry(skinnedMesh, up, bodyLength, p.dorsalSignal);
-  if (dorsal.geometry !== skinnedMesh.geometry) skinnedMesh.geometry = dorsal.geometry;
-  record.dorsal = { signal: Number(p.dorsalSignal.toFixed(5)), vertices: dorsal.vertices, maxOffset: Number(dorsal.maxOffset.toFixed(6)) };
+  let p = basePlan, measured = null, relaxUsed = 1;
+  for (const r of [1, 0.72, 0.52, 0.36, 0.25, 0.12, 0]) {
+    restoreRest();
+    record.bones = {};
+    p = scalePlan(basePlan, r); relaxUsed = r;
+    makeBoneSpec(bones.Head, p.head, p.headOffset, 'Head', record);
+    makeBoneSpec(bones.LowerJaw, p.jaw, p.jawOffset, 'LowerJaw', record);
+    makeBoneSpec(bones.Neck, neutralizeAxial(p.neck), p.neckOffset, 'Neck', record);
+    makeBoneSpec(bones.Spine1, neutralizeAxial(p.spine1), p.spine1Offset, 'Spine1', record);
+    makeBoneSpec(bones.Spine2, neutralizeAxial(p.spine2), p.spine2Offset, 'Spine2', record);
+    makeBoneSpec(bones.Tail1, neutralizeAxial(p.tail1), [0, 0, 0], 'Tail1', record);
+    makeBoneSpec(bones.Tail2, neutralizeAxial(p.tail2), [0, 0, 0], 'Tail2', record);
+    makeBoneSpec(bones.Tail3, neutralizeAxial(p.tail3), [0, 0, 0], 'Tail3', record);
+    const dorsal = morphGeometry(skinnedMesh, up, bodyLength, p.dorsalSignal);
+    if (dorsal.geometry !== skinnedMesh.geometry) skinnedMesh.geometry = dorsal.geometry;
+    record.dorsal = { signal: Number(p.dorsalSignal.toFixed(5)), vertices: dorsal.vertices, maxOffset: Number(dorsal.maxOffset.toFixed(6)) };
+    measured = measureMorph(rigRoot, skinnedMesh, before, up);
+    if (fitsBounds(measured)) break;
+  }
+  record.relax = relaxUsed;
   const afterWeights = auditWeights(skinnedMesh);
   if (afterWeights.invalid || afterWeights.maxSumError > 0.02) throw new Error(`${def?.id || 'unknown'}: L2 morph changed or exposed invalid skin weights`);
-  const measured = measureMorph(rigRoot, skinnedMesh, before, up);
   record.maxOffset = Number(measured.maxOffset.toFixed(6)); record.maxOffsetRatio = Number(measured.maxOffsetRatio.toFixed(6));
   record.maxOffsetOutsideCrest = record.maxOffset; record.maxOffsetOutsideCrestRatio = record.maxOffsetRatio;
   record.metrics = {
@@ -349,11 +393,17 @@ function applyMorph(rigRoot, skinnedMesh, def, profile = {}) {
     axes: measured.axes
   };
   record.weights = { ...afterWeights, unchanged: afterWeights.invalid === beforeWeights.invalid && afterWeights.maxSumError <= beforeWeights.maxSumError + 1e-6 };
-  if (Math.abs(measured.lengthDeltaRatio) > MAX_LENGTH_DELTA + 1e-5) throw new Error(`${def?.id || 'unknown'}: L2 morph length delta ${(measured.lengthDeltaRatio * 100).toFixed(2)}% exceeds +/-3%`);
-  if (measured.maxOffsetRatio > MAX_DISPLACEMENT_RATIO + 1e-5) throw new Error(`${def?.id || 'unknown'}: L2 morph displacement ${measured.maxOffsetRatio.toFixed(4)} exceeds ${MAX_DISPLACEMENT_RATIO}`);
-  if (Math.abs(measured.aspectRatio - 1) > MAX_ASPECT_DELTA + 1e-5) throw new Error(`${def?.id || 'unknown'}: L2 morph silhouette aspect ${(measured.aspectRatio * 100).toFixed(1)}% of rest exceeds +/-${MAX_ASPECT_DELTA * 100}%`);
-  if (Math.abs(measured.areaRatio - 1) > MAX_AREA_DELTA + 1e-5) throw new Error(`${def?.id || 'unknown'}: L2 morph silhouette area ${(measured.areaRatio * 100).toFixed(1)}% of rest exceeds +/-${MAX_AREA_DELTA * 100}%`);
-  record.neutral = Object.values(record.bones).every((bone) => bone.factor.every((value) => Math.abs(value - 1) < 1e-6) && bone.offset.every((value) => Math.abs(value) < 1e-6)) && dorsal.vertices === 0;
+  /* The bounds themselves are unchanged and still hard. Relax-to-fit above
+   * guarantees they hold, so reaching this line out of bounds is a defect,
+   * not a row to reject. */
+  if (!fitsBounds(measured)) throw new Error(`${def?.id || 'unknown'}: L2 morph exceeds silhouette bounds even at neutral (measure defect)`);
+  /* Lane F2: read the crest vertex count off the RECORD, not off a `dorsal`
+   * binding. The relax-to-fit loop above scopes its `dorsal` result inside the
+   * loop body, so referring to it here threw `dorsal is not defined` on every
+   * textured build - which aborted buildLoadedRig and dropped every textured
+   * row back to an untextured placeholder capsule. record.dorsal is written on
+   * each iteration and holds the accepted iteration's count. */
+  record.neutral = Object.values(record.bones).every((bone) => bone.factor.every((value) => Math.abs(value - 1) < 1e-6) && bone.offset.every((value) => Math.abs(value) < 1e-6)) && record.dorsal.vertices === 0;
   rigRoot.userData.rfL2MorphRecord = record;
   return record;
 }

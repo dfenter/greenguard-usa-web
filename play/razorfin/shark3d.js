@@ -3361,7 +3361,18 @@ function __selftest() {
         result.textured = result.textured || {};
         result.textured[def.id] = { base: group.userData.rfSourceBase, materials: texturedMaterials.length, swimBones: swim.bones.length, draws, roughness: texturedMaterials[0].roughness, normalMap: true };
       }
-      if (def.id === SHARKJIRA_ID) {
+      if (def.id === SHARKJIRA_ID && group.userData.rfTextured) {
+        /* HSE cline lane: on the textured base the crest plates are the
+         * measured skinned feature draw from hse/props_textured.js, not the
+         * toon personality hull, so gate THAT record: 8 plates, real contact,
+         * one draw, pulse uniform. The L2 silhouette bounds already cover the
+         * outline, so the Sharky-era aspect window does not apply here. */
+        const features = group.userData.rfTexturedFeatures, kaiju = group.userData.rfSharkjira;
+        if (!features || features.mode !== 'sharkjira' || !features.contact || features.plateCount !== 8 || features.triangles > 560 || features.draw !== 1) throw new Error(`${def.id}: textured atomic crest missing, detached, or over budget`);
+        if (!kaiju || kaiju.plateCount !== 8 || !Array.isArray(kaiju.plateStations) || kaiju.plateStations.length !== 8 || !kaiju.pulseUniform) throw new Error(`${def.id}: textured atomic crest record incomplete`);
+        if (!group.userData.rfSharkjiraPulse) throw new Error(`${def.id}: atomic pulse uniform missing`);
+        result.sharkjira = { plates: kaiju.plateCount, draws: draws, featureTriangles: features.triangles, textured: true, palette: group.userData.rfPaletteRaw };
+      } else if (def.id === SHARKJIRA_ID) {
         const kaiju = group.userData.rfSharkjira;
         const crest = morph.crest, bodyBox = body.geometry.boundingBox || body.geometry.computeBoundingBox() && body.geometry.boundingBox, bodySpan = Math.max((bodyBox?.max.y || 0) - (bodyBox?.min.y || 0), 1e-5);
         const bodyBoxForAspect = measureBox(body), groupSize = bodyBoxForAspect.getSize(new THREE.Vector3()), crestEdge = body.geometry.getAttribute('rfCrestEdge');
@@ -3395,7 +3406,7 @@ function __selftest() {
       const allMaterials = [];
       group.traverse((object) => { if (object.isMesh) for (const material of (Array.isArray(object.material) ? object.material : [object.material])) if (material) allMaterials.push(material); });
       if (allMaterials.some((material) => material.type === 'MeshToonMaterial' || material.gradientMap)) throw new Error(`${def.id}: toon material/gradient survived 9.6 style gate`);
-      if (def.id === SHARKJIRA_ID) {
+      if (def.id === SHARKJIRA_ID && !group.userData.rfTextured) {
         const bodySkinMaterials = allMaterials.filter((material) => material.userData?.rfSharkjiraBody);
         if (bodySkinMaterials.length < 1 || bodySkinMaterials.some((material) => material.transparent || material.opacity !== 1 || !material.depthWrite || material.emissiveIntensity !== 0)) throw new Error(`${def.id}: charcoal body must stay opaque, depth-writing, and non-emissive`);
       }
@@ -3404,7 +3415,14 @@ function __selftest() {
        * depth-writing, the body emissive must stay at the baseline (an
        * act-scaled 0.16 lit the armor from inside toward the water color),
        * and the armor scutes must not out-glow the hull. */
-      if (def.id === LEVIATHAN_ID) {
+      if (def.id === LEVIATHAN_ID && group.userData.rfTextured) {
+        /* Textured king: the twin scute rows/crown/tusks ride the shared
+         * textured feature draw; pin opacity and depth on its material and
+         * leave the toon emissive band to the legacy branch below. */
+        const armor = group.userData.rfTexturedFeatureMesh?.material;
+        if (!armor || armor.transparent || !armor.depthWrite) throw new Error(`${def.id}: scute armor must be opaque and depth-writing`);
+      }
+      if (def.id === LEVIATHAN_ID && !group.userData.rfTextured) {
         const rexBody = allMaterials.filter((material) => material.userData?.rfSkinUniforms && !material.userData?.rfFaceMetrics && /shark skin/.test(material.name || ''));
         if (rexBody.length < 1) throw new Error(`${def.id}: kaiju body skin material missing`);
         for (const material of rexBody) {

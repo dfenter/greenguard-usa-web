@@ -185,3 +185,28 @@ Suggested ui3d change (one condition, this lane did not make it): in
 `rec.group.userData.rfWithheld` or `rec.group.userData.rfLoading`. That way a
 row whose model is not resident keeps its styled monogram, and the thumbnail
 bakes for real once the model is loaded.
+
+## Lane F2 -> the lane that un-held the prop-feature rows (2026-08-26)
+
+`tools/gen_data.py` currently un-holds `leviathanrex`, `leviathan_rex` and
+`zeusfin` onto textured models (`megalodonrex`, `megalodonrex`, `mako`). That
+breaks the art3d selftest:
+
+    FAIL leviathanrex: connected crest/head/aspect bounds failed
+
+Cause, measured with the check instrumented: on the TEXTURED path
+`buildLoadedRig` builds the Sharkjira and Leviathan feature sets only when
+`!textured` (`makeSharkjiraFeatures` / `makeLeviathanFeatures` are both guarded
+that way), so `group.userData.rfMorph.crest` is undefined and the shark3d
+selftest's crest/aspect contract has nothing to measure. Instrumented values on
+the textured rig: `plateCount=undefined connected=undefined depthRatio=undefined
+outside=0.159384 limit=0.0625 headScale=1.0638 aspect=1.93` against a required
+aspect band of 2.60-3.00.
+
+Verified by stripping ONLY `sil.model` from those three rows in `data.js`:
+art3d goes from 1 failure to `pass=true ok=29 fail=0`. Nothing else needed to
+change, so the other un-holds in that diff are not implicated.
+
+Lane F2 did not modify `gen_data.py` or `data.js` for this; both were left
+exactly as that lane wrote them. Either re-hold those three rows or extend the
+feature builders to the textured path before the roster run can be clean.
