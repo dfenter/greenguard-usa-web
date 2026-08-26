@@ -1,0 +1,39 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#3f8fa8}canvas{display:block}</style>
+<script type="importmap">{ "imports": { "three": "/play/_shared/three/three.module.min.js" } }</script></head><body>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from '/play/_shared/three/GLTFLoader.js';
+/* Lane O1 asset check. The bakeview default frames the POSED box, which the
+ * rev14 notes show is inflated through the bone matrices and collapses the
+ * nose-tail extent. Frame the BIND-POSE geometry box instead, which is the
+ * same box prepareTemplate uses, so what I judge here is what ships. */
+const name = new URLSearchParams(location.search).get('m');
+const r = new THREE.WebGLRenderer({antialias:true}); r.setPixelRatio(1); r.setSize(844,390);
+r.outputColorSpace = THREE.SRGBColorSpace; document.body.appendChild(r.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x3f8fa8);
+const cam = new THREE.PerspectiveCamera(35, 844/390, 0.001, 100);
+scene.add(new THREE.HemisphereLight(0xbfe8ff, 0x1a3a4a, 0.9));
+const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(2, 4, 3); scene.add(key);
+const rim = new THREE.DirectionalLight(0x9fe0ff, 0.8); rim.position.set(-3, 1, -2); scene.add(rim);
+new GLTFLoader().load('/play/razorfin/assets/bakeview/' + name + '.glb', (g) => {
+  const root = g.scene; scene.add(root);
+  const bind = new THREE.Box3(); let tris = 0, hasMap = false, hasNormal = false;
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    tris += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count) / 3;
+    o.geometry.computeBoundingBox();
+    bind.union(o.geometry.boundingBox);
+    const m = o.material; if (m) { hasMap = hasMap || !!m.map; hasNormal = hasNormal || !!m.normalMap; }
+    if (o.isSkinnedMesh) o.frustumCulled = false;
+  });
+  const size = bind.getSize(new THREE.Vector3()), c = bind.getCenter(new THREE.Vector3());
+  root.position.sub(c);
+  root.rotation.y = -Math.PI / 2;
+  const roll = parseFloat(new URLSearchParams(location.search).get('roll') || '0');
+  if (roll) { const g2 = new THREE.Group(); scene.remove(root); g2.add(root); scene.add(g2); g2.rotation.x = roll; }
+  const L = Math.max(size.x, size.y, size.z);
+  cam.position.set(0, L * 0.16, L * 1.5); cam.lookAt(0, 0, 0);
+  window.__info = { tris, bind: size.toArray().map(v => +v.toFixed(4)), hasMap, hasNormal };
+  r.render(scene, cam); window.__done = true;
+}, undefined, (e) => { window.__err = String(e); window.__done = true; });
+</script></body></html>

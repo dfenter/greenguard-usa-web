@@ -1,0 +1,11 @@
+Model Information:
+* title:	Shortfin mako shark
+* source:	https://sketchfab.com/3d-models/shortfin-mako-shark-0ec4d184c6ea4a6a8704f56cc2ba6e78
+* author:	faerbogdan99 (https://sketchfab.com/faerbogdan99)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Shortfin mako shark" (https://sketchfab.com/3d-models/shortfin-mako-shark-0ec4d184c6ea4a6a8704f56cc2ba6e78) by faerbogdan99 (https://sketchfab.com/faerbogdan99) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

@@ -8,6 +8,13 @@
 import * as THREE from 'three';
 import { GLTFLoader } from '../_shared/three/GLTFLoader.js';
 import { mergeGeometries } from '../_shared/utils/BufferGeometryUtils.js';
+import { applyIdentity, retargetIdentityAxes } from './hse/skin_identity.js';
+import { mountTexturedFeatures } from './hse/props_textured.js';
+import { applyMorph } from './hse/rig_morph.js';
+import { buildTexturedFace, checkTexturedFace } from './hse/face_textured.js';
+import { ModelBudget, TEXTURED_LRU_CAP } from './hse/model_budget.js';
+/* Lane O2 kill switch: see the note at the face mount in buildLoadedRig. */
+const RF_O2_TEXTURED_FACE = false;
 
 const host = typeof window !== 'undefined' ? window : globalThis;
 const RF = host.RF = host.RF || {};
@@ -18,15 +25,39 @@ const MODEL_FILES = Object.freeze({
   fish_clown: 'fish_clown.glb', shark_b: 'shark_b.glb',
   /* Rev 14 textured line. These come out of tools/shark_bake.py: ONE skinned
    * mesh, one PBR material carrying a baked diffuse JPEG plus a tangent-space
-   * normal map, and the same bone names the low-poly rig uses (Nose/Head/
-   * LowerJaw/Neck/Spine1/Spine2/Tail1/Tail2/Tail3). */
-  textured_test: 'textured_test.glb'
+   * normal map, and the same bone names the low-poly rig uses (Head/LowerJaw/
+   * Neck/Spine1/Spine2/Tail1/Tail2/Tail3).
+   * HSE lane O1: every key below was copied into assets/models/ and RENDERED
+   * before any row was switched onto it. Five further bakes exist in the bake
+   * folder and are deliberately absent because the render rejected them:
+   * altimus (a fossil jaw, not a body), bullshark (untextured grey creature),
+   * realisticshark (degenerate mesh), tiger_mg (paper-thin, no volume), and
+   * hammerhead_approved (a duplicate of scallopedhammer with a bigger map). */
+  textured_test: 'textured_test.glb',
+  blueshark: 'blueshark.glb',
+  bullhead: 'bullhead.glb',
+  dogfish: 'dogfish.glb',
+  greatwhite_cy: 'greatwhite_cy.glb',
+  mako: 'mako.glb',
+  megalodonrex: 'megalodonrex.glb',
+  scallopedhammer: 'scallopedhammer.glb',
+  smoothhammer: 'smoothhammer.glb',
+  smoothhound: 'smoothhound.glb',
+  thresher: 'thresher.glb',
+  tiger_nu: 'tiger_nu.glb',
+  tigershark: 'tigershark.glb',
+  whaler: 'whaler.glb',
+  whitepointer: 'whitepointer.glb'
 });
 /* A row opts in through sil.model. Membership here is what switches the
  * material path from the Sharky white-atlas colorizer to the lit PBR path,
  * and what suppresses the toon treatments (relief wobble, pattern blocks)
  * that only make sense over a flat untextured hull. */
-const TEXTURED_KEYS = Object.freeze(new Set(['textured_test']));
+const TEXTURED_KEYS = Object.freeze(new Set([
+  'textured_test', 'blueshark', 'bullhead', 'dogfish', 'greatwhite_cy', 'mako',
+  'megalodonrex', 'scallopedhammer', 'smoothhammer', 'smoothhound', 'thresher',
+  'tiger_nu', 'tigershark', 'whaler', 'whitepointer'
+]));
 const MODEL_KEYS = Object.freeze(Object.keys(MODEL_FILES));
 const TAU = Math.PI * 2;
 const BASE_LENGTH = 96;
@@ -655,6 +686,20 @@ const modelCache = new Map();
 const baseSelection = new Map();
 let preloadPromise = null;
 let preloadError = null;
+/* HSE lane O4 residency bookkeeper. modelCache stays the synchronous lookup
+ * every existing call site reads; the budget owns WHICH textured templates are
+ * allowed to be in it. The two are kept in step in admitTemplate()/evictions:
+ * an eviction deletes from modelCache too, so a later buildShark() for that
+ * base misses, serves the placeholder, and re-loads. */
+const modelBudget = new ModelBudget({
+  isTextured: (key) => TEXTURED_KEYS.has(String(key || '')),
+  cap: TEXTURED_LRU_CAP,
+  onEvent: (event) => { if (event.type === 'evict') modelCache.delete(event.key); }
+});
+/* Which base each LIVE rig group is holding a reference on, so releaseShark()
+ * can give exactly one reference back. Keyed by the rig's group object, weakly:
+ * a group that is dropped without releaseShark() must not pin the entry map. */
+const rigHolds = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
 let sharedPlaneGeometry = null;
 const billboardMaterials = new Map();
 const billboardIds = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
@@ -1729,6 +1774,8 @@ function texturedSkinMaterial(palette, def, sourceMaterial = null, sourceName = 
   material.userData.rfTextured = true;
   material.userData.rfHasDiffuse = !!map;
   material.userData.rfHasNormalMap = !!normalMap;
+  material.userData.rfBindUp = bindUp ? bindUp.clone() : new THREE.Vector3(0, 1, 0);
+  material.userData.rfBindUpExtent = bindUpExtent;
   material.userData.rfShading = 'MeshStandardMaterial; baked diffuse + tangent normal map; roughness 0.40 with wet specular; fresnel rim; palette applied as HSV tint';
   material.onBeforeCompile = (shader) => {
     for (const name of TEXTURED_UNIFORMS) shader.uniforms[name] = uniforms[name];
@@ -1812,6 +1859,7 @@ function texturedSkinMaterial(palette, def, sourceMaterial = null, sourceName = 
         'totalEmissiveRadiance += uRfRimColor * rfFresnel * uRfRimStrength;'
       ].join('\n'));
   };
+  applyIdentity(material, def, palette);
   /* A distinct cache key: this program shares nothing with the :rf-skin3
    * atlas shader and must never be reused for it. */
   material.customProgramCacheKey = () => `${id}${TEXTURED_SUFFIX}`;
@@ -2734,8 +2782,13 @@ function buildLoadedRig(def, template, group) {
      * mesh from its tangent-space normal map and its UV layout, so a textured
      * row keeps the authored geometry exactly as the bake produced it. */
     mesh.geometry = textured ? sourceMesh.geometry : personalityGeometryFor(sourceMesh, def, template.key, meshIndex);
-    if (textured && !mesh.geometry.userData.rfPersonalityBaked) mesh.geometry.userData.rfPersonalityBaked = { id: String(def?.id || ''), neutral: true, maxOffset: 0, maxOffsetRatio: 0, maxOffsetOutsideCrest: 0, maxOffsetOutsideCrestRatio: 0, vertexCount: mesh.geometry.getAttribute('position')?.count || 0, seamFree: true, roleSource: 'textured bake: authored geometry preserved', crest: null };
-    bakedGeometry.push(mesh.geometry.userData.rfPersonalityBaked || null);
+    /* HSE lane fix: the textured path SHARES the bake's authored geometry
+     * across every row that uses the template, so a morph record stamped on
+     * geometry.userData carried the FIRST row's id and failed the contract
+     * for the second row built from the same base. Build the record per rig
+     * call and leave the shared geometry untouched. */
+    const morphRecord = textured ? { id: String(def?.id || ''), neutral: true, maxOffset: 0, maxOffsetRatio: 0, maxOffsetOutsideCrest: 0, maxOffsetOutsideCrestRatio: 0, vertexCount: mesh.geometry.getAttribute('position')?.count || 0, seamFree: true, roleSource: 'textured bake: authored geometry preserved', crest: null } : (mesh.geometry.userData.rfPersonalityBaked || null);
+    bakedGeometry.push(morphRecord);
     const sourceMaterials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
     const atlas = template.key === 'sharky' || sourceMaterials.some((material) => String(material?.name || '') === 'AtlasMaterial');
     if (def?.id === SHARKJIRA_ID && !mesh.geometry.getAttribute('rfCrest')) mesh.geometry.setAttribute('rfCrest', new THREE.Float32BufferAttribute(new Float32Array(mesh.geometry.getAttribute('position').count), 1));
@@ -2748,18 +2801,53 @@ function buildLoadedRig(def, template, group) {
     if (def?.id === SHARKJIRA_ID) mesh.frustumCulled = false;
     if (!mesh.geometry.getAttribute('rfSlot')) mesh.geometry.setAttribute('rfSlot', new THREE.Float32BufferAttribute(new Float32Array(mesh.geometry.getAttribute('position').count).fill(1), 1));
   }
-  const sharkjira = def?.id === SHARKJIRA_ID ? makeSharkjiraFeatures(body) : null;
-  const leviathan = def?.id === LEVIATHAN_ID ? makeLeviathanFeatures(body) : null;
-  /* The bake paints eyes, mouth and teeth into the diffuse. Bolting the
-   * procedural face batch on top would double them. */
-  const faceMesh = textured ? null : makeFace(body, def, palette);
+  const hseMorph = textured ? applyMorph(model, body, def, { ...profile, personality, bindUp: template.bindUp }) : null;
+  /* HSE lane F1: re-measure the dorsal axis on the BOUND rig.
+   * prepareTemplate's bindUp is taken from the source mesh before the skeleton
+   * is bound, and for several bakes the answer changes across that step
+   * (measured against the posed rig: reef/tiger are skinned -X as reported,
+   * but hammerhead/greatwhite/hadesmaw/snapjaw/magmaw are skinned +Z where
+   * prepareTemplate reports +Y, which correlates ~0.0 with world up). Dotting
+   * against the stale axis ran the countershade along a meaningless direction
+   * and measured the BACK brighter than the belly on 20 rows. This updates the
+   * already-installed uniform objects in place: no recompile, no rebuild. */
+  const hseAxes = textured ? retargetIdentityAxes(body) : null;
+  if (hseAxes) group.userData.rfIdentityAxes = hseAxes;
+  const sharkjira = !textured && def?.id === SHARKJIRA_ID ? makeSharkjiraFeatures(body) : null;
+  const leviathan = !textured && def?.id === LEVIATHAN_ID ? makeLeviathanFeatures(body) : null;
+  /* Rev 14 shipped textured rows with no face overlay at all, on the grounds
+   * that the bake paints eyes and a mouth into the diffuse. At gameplay size
+   * that reads as a flat photo of a shark rather than a character, which is
+   * the opposite of the Hungry Shark bar. Lane O2 puts the batch back on the
+   * textured rows, but FITTED to the baked head - eye seated on the measured
+   * skin, grin on the measured Head/LowerJaw lip line - instead of reusing
+   * the Sharky-era constants, which land on the cheek or the snout tip on a
+   * baked rig. It is built after applyMorph so it measures the final head.
+   * Returns null on any rig it cannot measure, leaving that row on the face
+   * the bake painted. */
+  /* Lane O2 (face batch on textured heads) is BUILT but NOT SHIPPED. The
+   * module measures the baked head correctly on paper and every numeric gate
+   * passes, but a real-GL render shows the batch floating off the body rather
+   * than seated on the head (evidence: hse/evidence/head_after/head_reef.png,
+   * and the diagnosis in hse/STATUS-O2.md). Shipping a false green would be
+   * worse than shipping nothing, so the textured rows keep the face the bake
+   * painted until the seating is genuinely fixed.
+   *
+   * Flip RF_O2_TEXTURED_FACE to true to re-enable; nothing else changes. */
+  const faceMesh = textured
+    ? (RF_O2_TEXTURED_FACE ? buildTexturedFace({ palette, eyeColor: eyeColorOf(def) }, body, def, { ...profile, personality, face: personality?.face }) : null)
+    : makeFace(body, def, palette);
   /* 9.6: no BackSide ink shell. Smooth Standard shading supplies the edge
    * separation without the doubled silhouette draw. */
   const shell = null;
-  let prop = makeProp(def, template.key, propBone, palette);
+  /* HSE lane: a real cephalofoil is baked into the scallopedhammer diffuse,
+   * so the chibi hammer foil prop would double the head. Textured rows skip
+   * it; every other allowlisted prop still mounts. */
+  let prop = textured ? null : makeProp(def, template.key, propBone, palette);
   mountGrin(prop, pose, body, propBone);
   fitProp(prop, body, prop?.userData?.rfPropKind);
   if (prop && !propIsMounted(body, prop)) { prop.parent?.remove(prop); prop = null; }
+  if (textured) mountTexturedFeatures({ body, def, group, palette });
   const mixer = template.isSkinned && template.clips.swim ? new THREE.AnimationMixer(model) : null;
   const actions = {};
   if (mixer) {
@@ -2792,17 +2880,17 @@ function buildLoadedRig(def, template, group) {
   group.userData.rfScaleBounds = { length: [0.85, 1.35], height: [0.90, 1.30], depth: [0.90, 1.20] };
   group.userData.rfVariantProfile = { shapeTag: profile.shapeTag, lane: profile.lane, patternScale: profile.patternScale, boneProfile };
   group.userData.rfPersonality = personality ? { id: def.id, brief: personality.brief, bulk: personality.bulk, sculpt: personality.sculpt, face: personality.face, surface: personality.surface, signature: personality.signature } : null;
-  group.userData.rfMorph = bakedGeometry[0] || { id: def.id, neutral: false, maxOffset: 0, maxOffsetRatio: 0, vertexCount: body.geometry.getAttribute('position')?.count || 0, seamFree: false };
+  group.userData.rfMorph = hseMorph || bakedGeometry[0] || { id: def.id, neutral: false, maxOffset: 0, maxOffsetRatio: 0, vertexCount: body.geometry.getAttribute('position')?.count || 0, seamFree: false };
   group.userData.rfSourceBase = template.key; group.userData.rfPattern = String(def?.sil?.pattern || 'plain'); group.userData.rfPatternId = patternId(def);
   group.userData.rfHeadBone = headBone?.name || null; group.userData.rfPropBone = propBone?.name || null; group.userData.rfPropKind = prop?.userData?.rfPropKind || null;
   group.userData.rfPropAllowlisted = !prop || PROP_ALLOWLIST_IDS.has(String(def?.id || ''));
   group.userData.rfPropContactGap = prop ? finite(prop.userData.rfContactGap, Infinity) : 0;
   group.userData.rfVisibleDrawCalls = drawCount(group); group.userData.rfPaletteRaw = palette.raw; group.userData.rfPaletteResolved = palette.resolved; group.userData.rfIsSkinned = !!body.isSkinnedMesh;
   group.userData.rfFace = faceMesh ? { ...faceMesh.userData.rfFaceMetrics, triangles: faceMesh.userData.rfFaceTriangles, attitude: faceMesh.material?.userData?.rfFaceAttitude || null } : null;
-  group.userData.rfSharkjira = sharkjira ? { plateCount: sharkjira.plateCount, plateStations: sharkjira.plateStations, atomicTriangles: sharkjira.atomicTriangles, toothTriangles: sharkjira.toothTriangles, pulseUniform: true } : null;
-  group.userData.rfSharkjiraPulse = sharkjira?.pulse || null;
-  group.userData.rfLeviathan = leviathan ? { scuteCount: leviathan.scuteCount, scuteStations: leviathan.scuteStations, rowOffset: leviathan.rowOffset, crownPlates: leviathan.crownPlates, cheekPlates: leviathan.cheekPlates, tuskCount: leviathan.tuskCount, featureTriangles: leviathan.featureTriangles, pulseUniform: true } : null;
-  group.userData.rfLeviathanPulse = leviathan?.pulse || null;
+  group.userData.rfSharkjira = sharkjira ? { plateCount: sharkjira.plateCount, plateStations: sharkjira.plateStations, atomicTriangles: sharkjira.atomicTriangles, toothTriangles: sharkjira.toothTriangles, pulseUniform: true } : group.userData.rfSharkjira || null;
+  group.userData.rfSharkjiraPulse = sharkjira?.pulse || group.userData.rfSharkjiraPulse || null;
+  group.userData.rfLeviathan = leviathan ? { scuteCount: leviathan.scuteCount, scuteStations: leviathan.scuteStations, rowOffset: leviathan.rowOffset, crownPlates: leviathan.crownPlates, cheekPlates: leviathan.cheekPlates, tuskCount: leviathan.tuskCount, featureTriangles: leviathan.featureTriangles, pulseUniform: true } : group.userData.rfLeviathan || null;
+  group.userData.rfLeviathanPulse = leviathan?.pulse || group.userData.rfLeviathanPulse || null;
   group.userData.rfSlotNames = template.slotNames.slice(); group.userData.rfAtlasMask = template.key === 'sharky' ? 'white atlas luminance; Eyes/Teeth slots stay source-colored' : 'Eyes/Teeth material slots'; group.userData.rfLoading = false;
   const animation = { lastT: null, bite: 0, turn: 0, death: 0, active: 'swim', biteActive: false, biteLatched: false };
   const baseHeadQuaternion = headBone?.quaternion.clone(), neckBone = model.getObjectByName('Neck') || model.getObjectByName('Main5'), baseNeckQuaternion = neckBone?.quaternion.clone();
@@ -2927,18 +3015,45 @@ function placeholderRig(def, base) {
   let live = null, lastT = null;
   const record = { group, parts: { body: placeholder, jaw: null, shell: null, prop: null }, animate(t, input) { if (live) live.animate(t, input); } };
   group.userData.rfArcs = () => {}; group.userData.rfFlash = () => {};
-  (preloadPromise || preload()).then(() => {
-    if (live || !modelCache.has(base)) return;
-    live = buildLoadedRig(def, modelCache.get(base), group); record.parts = { body: live.body, jaw: null, shell: live.shell, prop: live.prop }; group.userData.rfLoading = false;
+  /* HSE lane O4: ask for THIS base specifically rather than waiting on a
+   * whole-cache preload that no longer loads everything. The swap goes through
+   * the normal buildLoadedRig() path, so the real rig arrives with its
+   * skinning, morph record, identity, props and face hooks intact - exactly
+   * the rig buildShark() would have returned had the template been resident. */
+  /* HSE lane O4: distinguish "loading" from "deliberately not loaded".
+   *
+   * requestTemplate() returns null for a textured base withheld at the menu.
+   * In that case there is no swap coming, and leaving the grey capsule visible
+   * makes ui3d.bakeThumb() render IT into the roster card - measured: the
+   * Epaulette Shark card baked a yellow box. ui3d only falls back to the
+   * card's monogram when the bake produces nothing, so hide the placeholder
+   * and let the bake come back empty. In-run placeholders (a load that IS
+   * coming) keep the capsule so the shark stays visible while it arrives. */
+  let pending = requestTemplate(base);
+  if (!pending && TEXTURED_KEYS.has(base) && !isNodeRuntime()) {
+    placeholder.visible = false;
+    group.userData.rfWithheld = true;
+    return record;
+  }
+  pending = pending || (preloadPromise || preload()).then(() => modelCache.get(base));
+  Promise.resolve(pending).then((template) => {
+    if (live || !template) return;
+    modelBudget.retain(base); if (rigHolds) rigHolds.set(group, base);
+    live = buildLoadedRig(def, template, group); record.parts = { body: live.body, jaw: null, shell: live.shell, prop: live.prop }; group.userData.rfLoading = false;
     if (placeholder.parent) placeholder.parent.remove(placeholder); installEffects(record, live.body); void lastT;
   }).catch(() => {});
   return record;
 }
 function buildShark(def) {
   if (!def) throw new Error('RF.Art3D.buildShark requires a shark definition');
-  const base = baseForDef(def); baseSelection.set(String(def.id || ''), base); const template = modelCache.get(base);
+  const base = baseForDef(def); baseSelection.set(String(def.id || ''), base);
+  /* HSE lane O4: go through the budget so this counts as a use and refreshes
+   * LRU order. A miss serves the placeholder and kicks off the on-demand load
+   * inside placeholderRig(). */
+  const template = modelBudget.get(base) || modelCache.get(base);
   if (!template) return placeholderRig(def, base);
   const group = new THREE.Group(); group.name = `RF Shark ${def.id || 'unknown'}`; group.userData.rfSharkId = String(def.id || 'unknown');
+  modelBudget.retain(base); if (rigHolds) rigHolds.set(group, base);
   const live = buildLoadedRig(def, template, group), record = { group, parts: { body: live.body, jaw: null, shell: live.shell, prop: live.prop }, animate: live.animate };
   group.userData.rfArchetype = String(def?.sil?.head || 'point'); installEffects(record, live.body); return record;
 }
@@ -3019,10 +3134,95 @@ function directTemplate(key, filePath) {
 }
 function nodeAssetPath(file) { const path = process.getBuiltinModule('path'); return path.resolve(path.dirname(new URL(import.meta.url).pathname), 'assets/models', file); }
 function loadBrowserTemplate(key) { return new Promise((resolve, reject) => { new GLTFLoader().load(assetUrl(MODEL_FILES[key]), (gltf) => { try { resolve(prepareTemplate(gltf.scene, gltf.animations, key)); } catch (error) { reject(error); } }, undefined, reject); }); }
+
+/* HSE lane O4: the boot set.
+ *
+ * Everything that is NOT a textured bake. That is the whole low-poly family
+ * (sharky, goblinshark, anglerfish, piranha, whale, shark, shark_c,
+ * hammer_chibi, manta, dolphin, the three fish, shark_b) and it costs 5.33 MB
+ * decoded in total, all of it sharky's 1K atlas - the rest carry no textures
+ * at all. It backs the menu, every roster row without a sil.model, and the
+ * placeholder path, so it is loaded eagerly and never evicted. */
+const BASE_KEYS = Object.freeze(MODEL_KEYS.filter((key) => !TEXTURED_KEYS.has(key)));
+
+/* The textured template the current selection needs at boot, if any. Read
+ * from the same places ui3d/meta keep the active shark so boot does not have
+ * to guess; falls back to the first roster row (the starter shark), which is
+ * what a fresh profile actually selects. */
+function bootTexturedKey() {
+  const allRows = rows();
+  if (!allRows.length) return null;
+  let id = '';
+  try {
+    id = String(host.RF?.Meta?.profile?.()?.activeShark || host.RF?.Meta?.activeShark?.() || '');
+  } catch (error) { id = ''; }
+  const def = (id && allRows.find((row) => String(row.id) === id)) || allRows[0];
+  const base = baseForDef(def);
+  return TEXTURED_KEYS.has(base) ? base : null;
+}
+
+/* On-demand load of one base. Returns a promise for the template, or null
+ * when this runtime cannot load (the caller then keeps the placeholder).
+ * Deduped and refcounted by the budget, so two defs asking for the same base
+ * at once produce ONE fetch and one resident copy - this is what makes NPC
+ * sharks share the player's template instead of loading it twice. */
+/* HSE lane O4: menu/roster thumbnails must not force-load textured models.
+ *
+ * ui3d's bakeThumb() calls buildShark(def) once per roster card to render a
+ * 112x90 thumbnail. With 40 rows carrying a sil.model that is a demand for all
+ * 13 textured bakes at the menu - measured on the first probe run as 9
+ * textured GLB fetches with 9 evictions of load/evict thrash, which is exactly
+ * what requirement 4 forbids. The LRU bounded the MEMORY, but the loads still
+ * happened.
+ *
+ * A thumbnail does not justify a 6.67 MB decode. So on-demand loading of a
+ * TEXTURED model is allowed only while a run is live; at the menu a textured
+ * base that is not already resident serves the placeholder, and ui3d's own
+ * guard (a bake that produces nothing keeps the card's monogram) handles it.
+ * Rows already resident still bake a real thumbnail. The low-poly base set is
+ * always loadable, so every unmodelled row thumbnails normally. */
+let demandLoadTextured = false;
+function runIsLive() {
+  try { return !!(host.RF?.Game?.ctx?.player); } catch (error) { return false; }
+}
+function mayLoadTextured() { return demandLoadTextured || runIsLive(); }
+
+function requestTemplate(key) {
+  if (!MODEL_FILES[key]) return null;
+  const resident = modelBudget.get(key);
+  if (resident) { modelCache.set(key, resident); return Promise.resolve(resident); }
+  if (TEXTURED_KEYS.has(key) && !isNodeRuntime() && !mayLoadTextured()) return null;
+  if (isNodeRuntime()) {
+    try { const template = directTemplate(key, nodeAssetPath(MODEL_FILES[key])); modelBudget.admit(key, template, true); modelCache.set(key, template); return Promise.resolve(template); }
+    catch (error) { return Promise.reject(error); }
+  }
+  if (typeof document === 'undefined' || typeof fetch !== 'function') return null;
+  return modelBudget.load(key, loadBrowserTemplate).then((template) => { modelCache.set(key, template); return template; });
+}
+
 function preload() {
   if (preloadPromise) return preloadPromise;
-  if (isNodeRuntime()) { try { for (const key of MODEL_KEYS) modelCache.set(key, directTemplate(key, nodeAssetPath(MODEL_FILES[key]))); preloadPromise = Promise.resolve(modelCache); } catch (error) { preloadError = error; preloadPromise = Promise.reject(error); } }
-  else if (typeof document !== 'undefined' && typeof fetch === 'function') preloadPromise = Promise.all(MODEL_KEYS.map((key) => loadBrowserTemplate(key).then((template) => { modelCache.set(key, template); return template; }))).then(() => modelCache);
+  /* Node keeps the eager, synchronous, everything-resident behaviour. The
+   * headless decoder never decodes the embedded JPEGs (it substitutes 1x1
+   * placeholders), so there is no memory pressure to relieve here, and two
+   * selftest gates depend on the full cache: the modelCache.size check and
+   * the per-row rfLoading assertion. */
+  if (isNodeRuntime()) { try { for (const key of MODEL_KEYS) { const template = directTemplate(key, nodeAssetPath(MODEL_FILES[key])); modelCache.set(key, template); modelBudget.admit(key, template, true); } preloadPromise = Promise.resolve(modelCache); } catch (error) { preloadError = error; preloadPromise = Promise.reject(error); } }
+  /* Browser: the low-poly base set plus at most ONE textured model. Every
+   * other textured model waits until a def that needs it is built. This is
+   * the whole fix - boot went from 165.3 MB of decoded texture to 5.3 MB
+   * plus one right-sized model. */
+  else if (typeof document !== 'undefined' && typeof fetch === 'function') {
+    const bootKey = bootTexturedKey();
+    const wanted = bootKey ? [...BASE_KEYS, bootKey] : BASE_KEYS.slice();
+    /* The boot set is a deliberate, bounded admission (base set + at most one
+     * textured model), so it opens the textured gate for exactly the duration
+     * of these requests. Without this, bootKey would be refused by
+     * mayLoadTextured() at the menu and the selected shark would show the
+     * placeholder until the run started. */
+    demandLoadTextured = true;
+    preloadPromise = Promise.all(wanted.map((key) => (requestTemplate(key) || Promise.resolve(null)).catch((error) => { preloadError = preloadError || error; return null; }))).then(() => modelCache).finally(() => { demandLoadTextured = false; });
+  }
   else preloadPromise = Promise.resolve(modelCache);
   return preloadPromise;
 }
@@ -3116,7 +3316,27 @@ function __selftest() {
          * (white plastic shark), a row that fell back to the toon atlas
          * shader, an outline shell surviving onto a textured row, and a
          * jaw/spine that never got bound so the shark swam rigid. */
-        if (faceMetrics) throw new Error(`${def.id}: textured row must not carry the procedural face overlay`);
+        /* Lane O2: a textured row now DOES carry a face batch, fitted to the
+         * baked head rather than to the Sharky one. It is gated on its own
+         * terms - the eye must sit on the measured skin and the grin on the
+         * measured lip line - using the same thresholds the module was tuned
+         * against, imported rather than copied so the two cannot drift. A row
+         * whose rig could not be measured legitimately has no overlay and is
+         * skipped rather than failed. */
+        if (faceMetrics) {
+          const faceFailures = checkTexturedFace(faceMetrics);
+          if (faceFailures.length) throw new Error(`${def.id}: textured face ${faceFailures.join('; ')}`);
+          result.texturedFace = result.texturedFace || {};
+          result.texturedFace[def.id] = {
+            eyeSource: faceMetrics.eyeSource,
+            mouthSource: faceMetrics.mouthSource,
+            toothMed: Number(faceMetrics.toothSurfaceMedianRatio.toFixed(4)),
+            toothMax: Number(faceMetrics.toothSurfaceMaxRatio.toFixed(4)),
+            eyeMed: Number(faceMetrics.eyeSurfaceMedianRatio.toFixed(4)),
+            outside: faceMetrics.toothOutsideHeadSpan,
+            triangles: faceMetrics.triangles
+          };
+        }
         const texturedMaterials = [];
         group.traverse((object) => { if (object.isMesh) for (const material of (Array.isArray(object.material) ? object.material : [object.material])) if (material) texturedMaterials.push(material); });
         if (!texturedMaterials.length || !texturedMaterials.every((material) => material.userData.rfTextured)) throw new Error(`${def.id}: textured row has a non-textured material`);
@@ -3125,6 +3345,16 @@ function __selftest() {
         if (!texturedMaterials.every((material) => material.userData.rfHasNormalMap)) throw new Error(`${def.id}: tangent normal map missing`);
         if (!texturedMaterials.every((material) => material.customProgramCacheKey().endsWith(TEXTURED_SUFFIX))) throw new Error(`${def.id}: textured shader hook missing`);
         if (texturedMaterials.some((material) => material.side === THREE.BackSide)) throw new Error(`${def.id}: toon outline shell survived onto a textured row`);
+        /* HSE cline lane: texture budget. The owner bar is <=1K texels per map
+         * per shark. Every bake currently ships 769x1024 JPEG diffuse plus a
+         * matching normal map (measured by parsing each GLB's embedded image
+         * headers), so this gate pins that ceiling against a future bake
+         * arriving with a fat 2K/4K map. Skipped when the runtime gives no
+         * decodable image dimensions, so it can never fail spuriously. */
+        for (const material of texturedMaterials) for (const slot of ['map', 'normalMap']) {
+          const image = material?.[slot]?.image;
+          if (image && image.width > 0 && (image.width > 1024 || image.height > 1024)) throw new Error(`${def.id}: ${slot} ${image.width}x${image.height} exceeds the 1K-per-map texture budget`);
+        }
         const swim = group.userData.rfSwimSource;
         if (!swim || swim.kind !== 'procedural' || !Array.isArray(swim.bones) || swim.bones.length < 4) throw new Error(`${def.id}: textured row has no procedural swim chain`);
         if (!(group.userData.rfJawMaxRotation > 0)) throw new Error(`${def.id}: textured row has no LowerJaw gape`);
@@ -3252,7 +3482,21 @@ function __selftest() {
       result.props[def.id] = group.userData.rfPropKind || null;
       result.checked++; result.baseMap[def.id] = base; result.drawCounts[def.id] = draws; result.lengths[def.id] = Number(measured.toFixed(4));
     }
-    if (result.baseMap.goblin !== 'goblinshark' || result.baseMap.gulperfiend !== 'anglerfish' || result.baseMap.reef !== 'sharky') throw new Error('base table did not select sharky/goblinshark/anglerfish as required');
+    if (result.baseMap.goblin !== 'goblinshark' || result.baseMap.gulperfiend !== 'anglerfish') throw new Error('base table did not select goblinshark/anglerfish as required');
+    /* HSE lane: the baked family map is a contract, not a preference. These
+     * rows are the first of each family to move off the low-poly rig, so the
+     * gate fails loudly if a data or routing change silently reverts them. */
+    /* Lane O1 rev 2: the three keys this table used to name (bullshark,
+     * realisticshark for whaleshark, blueshark for mako) were REJECTED on
+     * render - bullshark is an untextured grey creature and realisticshark is
+     * a degenerate mesh - so the expectations move with the validated map
+     * rather than pinning rows to assets the build no longer ships. */
+    const HSE_FAMILY_EXPECT = { reef: 'dogfish', hammerhead: 'smoothhammer', greatwhite: 'greatwhite_cy', tiger: 'tiger_nu' };
+    /* mako/bull/megalodon/whaleshark/thresher are intentionally NOT pinned
+     * here yet: they are among the 31 rows currently HELD on the low-poly rig
+     * by the rig_morph length-delta gate (hse/REQUESTS.md). Re-pin them in the
+     * same edit that un-holds them in tools/gen_data.py. */
+    for (const [rowId, expectedBase] of Object.entries(HSE_FAMILY_EXPECT)) if (result.baseMap[rowId] !== expectedBase) throw new Error(`HSE family map: ${rowId} routed to ${result.baseMap[rowId]}, expected ${expectedBase}`);
     const uniqueTints = new Set(Object.values(result.tintSignatures));
     if (uniqueTints.size !== allRows.length) throw new Error(`rendered tint distinctness ${uniqueTints.size}/${allRows.length}`);
     for (const act of new Set(allRows.map((def) => def.act))) {
@@ -3301,7 +3545,109 @@ function __selftest() {
     result.notes.push('Skin3 samples the atlas as luminance/detail, paints explicit top/belly/accent palette regions, and preserves atlas-owned teeth, pupil/cavity, and mouth pixels. Named showcase overrides enforce blue-gray reef, tan striped tiger, slate great-white, and distinct pantheon families.');
     result.notes.push('9.6 gates: MeshStandardMaterial only, smooth normals, roughness 0.50 body specular lighting, no BackSide contour shell, 28% cruise jaw gape with full bite snap, and hammer foil >=0.42 body span.');
     result.notes.push('Rev 10/11 gates: no non-allowlisted prop, every retained prop is head-contact fitted, every act has pairwise-unique signatures, and every same-act pair differs in at least two of silhouette, pattern, hue family, and face attitude. Browser render audit additionally measures pairwise pixel distance from the 85-row contact sheet.');
-    result.notes.push('Node selftest parses GLB JSON+BIN directly and intentionally skips image decoding; preload is idempotent and bbox X is measured after the initial posed clip at 96*sil.len.'); result.pass = true;
+    result.notes.push('Node selftest parses GLB JSON+BIN directly and intentionally skips image decoding; preload is idempotent and bbox X is measured after the initial posed clip at 96*sil.len.');
+    /* ==== HSE lane O3 verification gates (begin) ==================== *
+     * Numeric gates for the verification harness itself, so a broken or
+     * stale harness fails this run instead of quietly reporting green.
+     * Node-only: the pixel gates need a browser and live in hse/verify.mjs.
+     * ================================================================ */
+    if (typeof process !== 'undefined' && process.versions?.node) {
+      try {
+        /* Synchronous on purpose: __selftest() returns a plain object and the
+         * runner does not await it, so making this async would change a
+         * contract every other lane's test run depends on. createRequire gives
+         * a sync load of the harness's gate surface from inside an ES module. */
+        const { createRequire } = process.getBuiltinModule('module');
+        const req = createRequire(import.meta.url);
+        const o3 = req('./hse/verify_gates.cjs');
+        const v = o3.__verifyGates();
+        result.o3 = { pass: v.pass, rows: v.rows, gates: v.gates };
+        for (const n of v.notes) result.notes.push('O3 ' + n);
+        if (!v.pass) throw new Error('O3 verification gates failed');
+      } catch (e) {
+        result.notes.push('FAIL O3 verification harness: ' + (e?.message || String(e)));
+        throw e;
+      }
+    }
+    /* ==== HSE lane O3 verification gates (end) ====================== */
+
+    /* ==== HSE lane O4 model-residency gates ========================= */
+    {
+      const budget = modelBudget.report();
+      result.modelBudget = { cap: budget.cap, resident: budget.resident.length, textured: budget.texturedCount, stats: budget.stats };
+
+      /* The boot set must be exactly the non-textured models, and it must be
+       * derived, not hand-listed, so a new bake added to MODEL_FILES cannot
+       * silently rejoin the eager path. */
+      if (BASE_KEYS.some((key) => TEXTURED_KEYS.has(key))) throw new Error('lane O4: boot set contains a textured model');
+      if (BASE_KEYS.length + TEXTURED_KEYS.size !== MODEL_KEYS.length) throw new Error(`lane O4: boot set ${BASE_KEYS.length} + textured ${TEXTURED_KEYS.size} != ${MODEL_KEYS.length} models`);
+      result.modelBudget.bootSet = BASE_KEYS.length;
+
+      /* The LRU must actually bound residency. Exercised on a throwaway
+       * registry so the live one (pinned wholesale by the Node preload) is
+       * untouched: admit 5 textured keys with no references and only `cap`
+       * may survive. */
+      {
+        const probe = new ModelBudget({ isTextured: () => true, cap: TEXTURED_LRU_CAP });
+        const fakeTemplate = (key) => ({ key, scene: { traverse: () => {} } });
+        for (const key of ['a', 'b', 'c', 'd', 'e']) probe.admit(key, fakeTemplate(key));
+        if (probe.report().texturedCount !== TEXTURED_LRU_CAP) throw new Error(`lane O4: LRU kept ${probe.report().texturedCount} textured templates, cap is ${TEXTURED_LRU_CAP}`);
+        if (probe.has('a') || probe.has('b')) throw new Error('lane O4: LRU evicted the wrong entries (oldest must go first)');
+        if (!probe.has('e')) throw new Error('lane O4: LRU evicted the newest entry');
+        if (probe.report().stats.evictions !== 2) throw new Error(`lane O4: expected 2 evictions, saw ${probe.report().stats.evictions}`);
+        /* A referenced template is never evicted, even as the LRU choice:
+         * disposing it would pull buffers out from under a live rig. */
+        const held = new ModelBudget({ isTextured: () => true, cap: 1 });
+        held.admit('pinned', fakeTemplate('pinned')); held.retain('pinned');
+        held.admit('fresh', fakeTemplate('fresh'));
+        /* 'pinned' is the LRU choice but is referenced, so the sweep must skip
+         * it and take 'fresh' instead. Residency is legitimately over cap here
+         * only while the reference is live. */
+        if (!held.has('pinned')) throw new Error('lane O4: a referenced template was evicted');
+        if (held.has('fresh')) throw new Error('lane O4: the sweep did not fall through to an unreferenced entry');
+        /* ...and once the reference comes back, a later admit can reclaim it. */
+        held.release('pinned');
+        if (held.refs('pinned') !== 0) throw new Error('lane O4: release did not clear the reference');
+        held.admit('next', fakeTemplate('next'));
+        if (held.has('pinned')) throw new Error('lane O4: an unreferenced over-cap template survived the next admit');
+        result.modelBudget.lru = 'bounded; oldest-first; live references honoured; release reclaims';
+      }
+
+      /* Two rigs built from one base must SHARE the template rather than load
+       * it twice - this is the NPC-shares-the-player's-model contract. */
+      {
+        const textured = allRows.filter((def) => TEXTURED_KEYS.has(baseForDef(def)));
+        if (!textured.length) throw new Error('lane O4: no textured rows to check sharing against');
+        const base = baseForDef(textured[0]);
+        const before = modelBudget.report().stats.loads;
+        const a = buildShark(textured[0]), b = buildShark(textured[0]);
+        if (modelBudget.report().stats.loads !== before) throw new Error('lane O4: a second rig on a resident base triggered another load');
+        if (a.parts.body.geometry !== b.parts.body.geometry) throw new Error('lane O4: two rigs on one textured base do not share geometry');
+        /* Each rig holds its own reference, and releasing gives it back. */
+        const refsHeld = modelBudget.refs(base);
+        Art3D.releaseShark(a.group); Art3D.releaseShark(b.group);
+        if (modelBudget.refs(base) !== refsHeld - 2) throw new Error(`lane O4: releaseShark did not return both references (${modelBudget.refs(base)} vs ${refsHeld - 2})`);
+        result.modelBudget.sharing = `two rigs on ${base} shared one template and one geometry`;
+      }
+
+      /* releaseShark must not dispose buffers the template still owns. The
+       * ui3d bakeThumb fallback used to do exactly that. */
+      {
+        const textured = allRows.find((def) => TEXTURED_KEYS.has(baseForDef(def)));
+        const base = baseForDef(textured), template = modelBudget.peek(base);
+        const rig = buildShark(textured), geometry = rig.parts.body.geometry;
+        Art3D.releaseShark(rig.group);
+        const templateGeometries = new Set(); template.scene.traverse((o) => { if (o.isMesh && o.geometry) templateGeometries.add(o.geometry); });
+        if (!templateGeometries.has(geometry)) throw new Error('lane O4: textured rig geometry is not the template geometry');
+        if (geometry.attributes?.position == null) throw new Error('lane O4: releaseShark disposed template-owned geometry');
+        const stillBuilds = buildShark(textured);
+        if (!stillBuilds.parts.body?.isSkinnedMesh) throw new Error('lane O4: template unusable after a release');
+        Art3D.releaseShark(stillBuilds.group);
+        result.modelBudget.release = 'per-rig resources disposed; template-owned geometry preserved';
+      }
+    }
+    /* ==== HSE lane O4 model-residency gates (end) =================== */
+    result.pass = true;
   } catch (error) { result.errors.push(error?.message || String(error)); result.notes.push(`FAIL ${error?.message || String(error)}`); }
   return result;
 }
@@ -3309,7 +3655,49 @@ function __selftest() {
 const Art3D = RF.Art3D || {};
 Art3D.buildShark = buildShark; Art3D.preload = preload; Art3D.bendableMaterial = bendableMaterial; Art3D.bendOffset = bendOffset; Art3D.billboard = billboard; Art3D.paletteOf = paletteOf; Art3D.PERSONALITY_TABLE = PERSONALITY_TABLE; Art3D.__selftest = __selftest;
 Art3D.stats = () => ({ models: modelCache.size, modelKeys: Array.from(modelCache.keys()), personalityGeometries: personalityGeometryCache.size, billboardMaterials: billboardMaterials.size, preloadError: preloadError?.message || null });
-Art3D.releaseShark = () => {};
+/* HSE lane O4. Previously a no-op stub, which left ui3d's bakeThumb() falling
+ * through to its own best-effort cleanup - and that path traverses the rig
+ * disposing every geometry and material it finds. Those are SHARED with the
+ * template by cloneRigScene() (it clones the scene graph but not the buffers),
+ * and the textured path shares the bake's authored geometry outright across
+ * every row using it, so one thumbnail bake could dispose the buffers out from
+ * under a live shark. Implementing the hook takes that path out of play: ui3d
+ * and engine3d both prefer releaseShark() when it exists.
+ *
+ * What a release actually does is give back the template reference this rig
+ * claimed, then let the budget decide. Per-rig resources (the cloned skeleton,
+ * the per-row material instances, the face batch) are owned by the rig and are
+ * disposed here; the template's shared geometry and textures are disposed only
+ * by an eviction, once no rig references them. */
+Art3D.releaseShark = (group) => {
+  if (!group) return;
+  const target = group.group || group;
+  if (target.traverse) {
+    const templateGeometries = new Set();
+    const base = rigHolds ? rigHolds.get(target) : null;
+    const template = base ? modelBudget.peek(base) : null;
+    if (template?.scene?.traverse) template.scene.traverse((object) => { if (object.isMesh && object.geometry) templateGeometries.add(object.geometry); });
+    target.traverse((object) => {
+      if (!object.isMesh) return;
+      /* Never dispose a buffer the template still owns; that is the shared
+       * one, and other rigs plus the cache entry are still using it. */
+      if (object.geometry && !templateGeometries.has(object.geometry)) { try { object.geometry.dispose(); } catch (error) { /* already gone */ } }
+      const materials = Array.isArray(object.material) ? object.material : object.material ? [object.material] : [];
+      for (const material of materials) {
+        /* Materials ARE per-rig here (buildLoadedRig builds a fresh
+         * texturedSkinMaterial/colorizer per row), but their maps point at the
+         * template's textures, so dispose the material and leave its maps. */
+        if (material) { try { material.dispose(); } catch (error) { /* already gone */ } }
+      }
+    });
+  }
+  if (rigHolds && rigHolds.has(target)) { const base = rigHolds.get(target); rigHolds.delete(target); modelBudget.release(base); }
+};
+Art3D.modelBudget = () => modelBudget.report();
+/* For probes/gates: the live template objects, so a caller can count the
+ * textures this lane actually holds rather than every texture in the context
+ * (world3d owns most of those). */
+Art3D.residentTemplates = () => modelBudget.report().resident.map((entry) => modelBudget.peek(entry.key)).filter(Boolean);
 RF.Art3D = Art3D;
 preload();
 

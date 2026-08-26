@@ -1,0 +1,417 @@
+{
+ "summary": {
+  "when": "2026-08-26T00:37:04.000Z",
+  "rows": 10,
+  "pass": 5,
+  "fail": 5,
+  "consoleErrors": [],
+  "gates": {
+   "satFloor": 0.18,
+   "backBellyDelta": 0.06,
+   "patternContrast": 0.1,
+   "distinctMin": 0.055,
+   "eyeHighlight": true,
+   "bgBleedMax": 0.02,
+   "drawsMax": 100,
+   "trisMax": 55000,
+   "texBytesMax": 8388608
+  },
+  "out": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7",
+  "sheet": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/contact_sheet.png",
+  "closest": [
+   {
+    "a": "tiger",
+    "b": "hammerhead",
+    "d": 0.12851376648603852
+   },
+   {
+    "a": "tiger",
+    "b": "thresher",
+    "d": 0.14161125179654055
+   },
+   {
+    "a": "reef",
+    "b": "hammerhead",
+    "d": 0.14204538269409572
+   },
+   {
+    "a": "reef",
+    "b": "tiger",
+    "d": 0.1457623716212874
+   },
+   {
+    "a": "greatwhite",
+    "b": "thresher",
+    "d": 0.14933478887683996
+   },
+   {
+    "a": "reef",
+    "b": "thresher",
+    "d": 0.15006323239210995
+   },
+   {
+    "a": "hammerhead",
+    "b": "greatwhite",
+    "d": 0.15139454159690816
+   },
+   {
+    "a": "hammerhead",
+    "b": "mako",
+    "d": 0.15146618595628725
+   },
+   {
+    "a": "tiger",
+    "b": "bull",
+    "d": 0.15391487669725376
+   },
+   {
+    "a": "reef",
+    "b": "mako",
+    "d": 0.15412981737899548
+   }
+  ],
+  "diff": null
+ },
+ "results": [
+  {
+   "id": "reef",
+   "row": {
+    "id": "reef",
+    "name": "Reef Shark",
+    "tier": 1,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "dogfish"
+   },
+   "shot": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/shark_reef.png",
+   "head": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/heads/head_reef.png",
+   "thumb": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/thumbs/thumb_reef.png",
+   "stats": {
+    "sat": 0.4725446105003357,
+    "val": 0.2809731066226959,
+    "hue": 0.4790518631290922,
+    "valStd": 0.20625172555446625,
+    "back": 0.4008965492248535,
+    "belly": 0.132369264960289,
+    "countershade": -0.2685272842645645,
+    "bgBleed": 0.0014340655759076983,
+    "eyePx": 3,
+    "bodyFrac": 0.010589834730829991
+   },
+   "base": "dogfish",
+   "prop": null,
+   "draws": 1,
+   "tris": 6715,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.269 < 0.06 (back 0.401 belly 0.132)"
+   ]
+  },
+  {
+   "id": "tiger",
+   "row": {
+    "id": "tiger",
+    "name": "Tiger Shark",
+    "tier": 4,
+    "act": 1,
+    "cls": "common",
+    "pattern": "stripes",
+    "model": "tiger_nu"
+   },
+   "shot": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/shark_tiger.png",
+   "head": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/heads/head_tiger.png",
+   "thumb": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/thumbs/thumb_tiger.png",
+   "stats": {
+    "sat": 0.4164854884147644,
+    "val": 0.1904831826686859,
+    "hue": 0.7895074152266686,
+    "valStd": 0.10674479603767395,
+    "back": 0.20059193670749664,
+    "belly": 0.20521727204322815,
+    "countershade": 0.004625335335731506,
+    "bgBleed": 0,
+    "eyePx": 601,
+    "bodyFrac": 0.03280623405030988
+   },
+   "base": "tiger_nu",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade 0.005 < 0.06 (back 0.201 belly 0.205)"
+   ]
+  },
+  {
+   "id": "hammerhead",
+   "row": {
+    "id": "hammerhead",
+    "name": "Hammerhead",
+    "tier": 3,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "smoothhammer"
+   },
+   "shot": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/shark_hammerhead.png",
+   "head": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/heads/head_hammerhead.png",
+   "thumb": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/thumbs/thumb_hammerhead.png",
+   "stats": {
+    "sat": 0.6253929734230042,
+    "val": 0.3412361741065979,
+    "hue": 0.43459205662101164,
+    "valStd": 0.18703024089336395,
+    "back": 0.184942826628685,
+    "belly": 0.4109427034854889,
+    "countershade": 0.2259998768568039,
+    "bgBleed": 0.001759485924112607,
+    "eyePx": 482,
+    "bodyFrac": 0.018711265038279256
+   },
+   "base": "smoothhammer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6733,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "greatwhite",
+   "row": {
+    "id": "greatwhite",
+    "name": "Great White",
+    "tier": 5,
+    "act": 1,
+    "cls": "rare",
+    "pattern": "plain",
+    "model": "greatwhite_cy"
+   },
+   "shot": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/shark_greatwhite.png",
+   "head": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/heads/head_greatwhite.png",
+   "thumb": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/thumbs/thumb_greatwhite.png",
+   "stats": {
+    "sat": 0.44311609864234924,
+    "val": 0.39785921573638916,
+    "hue": 0.46635949844736263,
+    "valStd": 0.1982797533273697,
+    "back": 0.26111531257629395,
+    "belly": 0.46653616428375244,
+    "countershade": 0.2054208517074585,
+    "bgBleed": 0.00024289137897532222,
+    "eyePx": 644,
+    "bodyFrac": 0.04499255681127719
+   },
+   "base": "greatwhite_cy",
+   "prop": null,
+   "draws": 1,
+   "tris": 6784,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "mako",
+   "row": {
+    "id": "mako",
+    "name": "Shortfin Mako",
+    "tier": 2,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "mako"
+   },
+   "shot": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/shark_mako.png",
+   "head": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/heads/head_mako.png",
+   "thumb": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/thumbs/thumb_mako.png",
+   "stats": {
+    "sat": 0.5779892802238464,
+    "val": 0.44076600670814514,
+    "hue": 0.4701102500599542,
+    "valStd": 0.17051054537296295,
+    "back": 0.3204386234283447,
+    "belly": 0.49353352189064026,
+    "countershade": 0.17309489846229553,
+    "bgBleed": 0.007599059164103492,
+    "eyePx": 193,
+    "bodyFrac": 0.03140645886498967
+   },
+   "base": "mako",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "bull",
+   "row": {
+    "id": "bull",
+    "name": "Bull Shark",
+    "tier": 4,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "whaler"
+   },
+   "shot": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/shark_bull.png",
+   "head": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/heads/head_bull.png",
+   "thumb": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/thumbs/thumb_bull.png",
+   "stats": {
+    "sat": 0.48796024918556213,
+    "val": 0.3025476336479187,
+    "hue": 0.4938261739270016,
+    "valStd": 0.26006942987442017,
+    "back": 0.296911358833313,
+    "belly": 0.3362048268318176,
+    "countershade": 0.03929346799850464,
+    "bgBleed": 0.012382563622619776,
+    "eyePx": 524,
+    "bodyFrac": 0.019444191274759996
+   },
+   "base": "whaler",
+   "prop": null,
+   "draws": 1,
+   "tris": 6750,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade 0.039 < 0.06 (back 0.297 belly 0.336)"
+   ]
+  },
+  {
+   "id": "thresher",
+   "row": {
+    "id": "thresher",
+    "name": "Thresher Shark",
+    "tier": 3,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "thresher"
+   },
+   "shot": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/shark_thresher.png",
+   "head": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/heads/head_thresher.png",
+   "thumb": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/thumbs/thumb_thresher.png",
+   "stats": {
+    "sat": 0.6285675168037415,
+    "val": 0.3291707932949066,
+    "hue": 0.48243679579253507,
+    "valStd": 0.21572093665599823,
+    "back": 0.2749355137348175,
+    "belly": 0.4471242427825928,
+    "countershade": 0.17218872904777527,
+    "bgBleed": 0.0019216625940072596,
+    "eyePx": 1118,
+    "bodyFrac": 0.030056051768137075
+   },
+   "base": "thresher",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "hadesmaw",
+   "row": {
+    "id": "hadesmaw",
+    "name": "Hadesmaw",
+    "tier": 10,
+    "act": 4,
+    "cls": "god",
+    "pattern": "runes",
+    "model": "whitepointer"
+   },
+   "shot": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/shark_hadesmaw.png",
+   "head": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/heads/head_hadesmaw.png",
+   "thumb": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/thumbs/thumb_hadesmaw.png",
+   "stats": {
+    "sat": 0.47484925389289856,
+    "val": 0.5192310810089111,
+    "hue": 0.046993301604173934,
+    "valStd": 0.2586846649646759,
+    "back": 0.5487041473388672,
+    "belly": 0.5424543619155884,
+    "countershade": -0.006249785423278809,
+    "bgBleed": 0.0053099152455835805,
+    "eyePx": 5325,
+    "bodyFrac": 0.042262121764491435
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.006 < 0.06 (back 0.549 belly 0.542)"
+   ]
+  },
+  {
+   "id": "megalodon",
+   "row": {
+    "id": "megalodon",
+    "name": "Megalodon",
+    "tier": 6,
+    "act": 1,
+    "cls": "rare",
+    "pattern": "scars",
+    "model": null
+   },
+   "shot": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/shark_megalodon.png",
+   "head": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/heads/head_megalodon.png",
+   "thumb": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/thumbs/thumb_megalodon.png",
+   "stats": {
+    "sat": 0.3983761668205261,
+    "val": 0.5157532691955566,
+    "hue": 0.8900359343890126,
+    "valStd": 0.19765740633010864,
+    "back": 0.3939560353755951,
+    "belly": 0.6646029949188232,
+    "countershade": 0.27064695954322815,
+    "bgBleed": 0.00016675487758016923,
+    "eyePx": 6287,
+    "bodyFrac": 0.10167775549884554
+   },
+   "base": "sharky",
+   "prop": null,
+   "draws": 3,
+   "tris": 6832,
+   "texMB": 5.3333330154418945,
+   "fails": []
+  },
+  {
+   "id": "leviathan_rex",
+   "row": {
+    "id": "leviathan_rex",
+    "name": "Leviathan Rex",
+    "tier": 12,
+    "act": 3,
+    "cls": "legendary",
+    "pattern": "plates",
+    "model": null
+   },
+   "shot": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/shark_leviathan_rex.png",
+   "head": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/heads/head_leviathan_rex.png",
+   "thumb": "/Users/lucille/greenguard-usa-web/play/razorfin/hse/evidence/relaunch7/thumbs/thumb_leviathan_rex.png",
+   "stats": {
+    "sat": 0.3438445031642914,
+    "val": 0.4655415117740631,
+    "hue": 0.4947566478615487,
+    "valStd": 0.17068132758140564,
+    "back": 0.34566953778266907,
+    "belly": 0.5949487686157227,
+    "countershade": 0.2492792308330536,
+    "bgBleed": 0.034198312445959514,
+    "eyePx": 98,
+    "bodyFrac": 0.07031838619516345
+   },
+   "base": "sharky",
+   "prop": null,
+   "draws": 4,
+   "tris": 7340,
+   "texMB": 5.3333330154418945,
+   "fails": [
+    "background bleeds through body at 3.42% > 2.00%"
+   ]
+  }
+ ]
+}

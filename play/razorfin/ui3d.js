@@ -794,6 +794,13 @@
       rec = art.buildShark(def);
     } catch (e) { return false; }
     if (!rec || !rec.group) return false;
+    // Rev 14 (O4 lazy loading): a withheld or still-loading textured model
+    // comes back as a placeholder rig. Baking that would print a capsule or an
+    // empty frame; leave the styled monogram and let a later pass bake it.
+    if (rec.group.userData && (rec.group.userData.rfWithheld || rec.group.userData.rfLoading)) {
+      try { if (RF.Art3D && typeof RF.Art3D.releaseShark === 'function') RF.Art3D.releaseShark(rec); } catch (e) {}
+      return false;
+    }
     try {
       var group = rec.group;
       bakeScene.add(group);

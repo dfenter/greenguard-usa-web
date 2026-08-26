@@ -1,0 +1,90 @@
+<!doctype html><meta charset="utf-8"><title>O2 head view</title>
+<style>html,body{margin:0;background:#7fb3c4;overflow:hidden}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"../../_shared/three/three.module.min.js"}}</script>
+<script src="../data.js"></script>
+<script type="module">
+import * as THREE from 'three';
+import Art3D from '../shark3d.js';
+const P = new URLSearchParams(location.search);
+const ID = P.get('id') || 'reef';
+const NOFACE = P.get('noface') === '1';
+if (NOFACE) globalThis.__RF_O2_DISABLE = true;
+const W = 900, H = 700;
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(2); renderer.setSize(W, H);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.06;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0x7fb3c4);
+scene.add(new THREE.HemisphereLight(0x9fd4e8, 0x06121e, 0.55));
+const key = new THREE.DirectionalLight(0xffffff, 1.25); key.position.set(-1.1, 1.4, 1.6); scene.add(key);
+await Art3D.preload();
+const rows = (globalThis.RFD && RFD.SHARKS) || (globalThis.RF && RF.RFD && RF.RFD.SHARKS) || [];
+const def = rows.find((d) => d.id === ID);
+if (!def) { document.title = 'O2 NO ROW ' + ID; throw new Error('no row ' + ID + ' among ' + rows.length); }
+const rig = Art3D.buildShark(def);
+scene.add(rig.group);
+rig.group.updateMatrixWorld(true);
+// Frame the HEAD: find the forward end of the body along world x.
+const body = rig.parts.body;
+const box = new THREE.Box3().setFromObject(body);
+const size = box.getSize(new THREE.Vector3());
+const noseX = box.max.x, cy = (box.min.y + box.max.y) / 2, cz = (box.min.z + box.max.z) / 2;
+const headLen = size.x * 0.22;
+const cx = noseX - headLen * 0.45;
+const camera = new THREE.PerspectiveCamera(32, W / H, 0.1, 20000);
+/* Three-quarter front view so the eye, the brow and the tooth row are all
+   visible at once, which a pure side view cannot show.
+   The aim point is the EYE, not the head-box centre: framing on the box
+   centre put every eye vertex at screen x 919-1051 on a 900px viewport, i.e.
+   0/26 on screen, which looked exactly like a face that had not been built. */
+let aim = new THREE.Vector3(cx, cy, cz);
+let span = headLen;
+{
+  let f = null; rig.group.traverse((o) => { if (o.userData && o.userData.rfTexturedFace) f = o; });
+  if (f) {
+    f.skeleton.update();
+    const gp = f.geometry.getAttribute('position'), gk = f.geometry.getAttribute('rfFaceKind');
+    const gi = f.geometry.getAttribute('skinIndex'), gw = f.geometry.getAttribute('skinWeight');
+    const m = new THREE.Matrix4(), sv = new THREE.Vector3();
+    const fb = new THREE.Box3();
+    for (let i = 0; i < gp.count; i++) {
+      const out = new THREE.Vector3();
+      sv.fromBufferAttribute(gp, i).applyMatrix4(f.bindMatrix);
+      for (let k = 0; k < 4; k++) {
+        const w = gw.getComponent(i, k); if (!w) continue;
+        m.fromArray(f.skeleton.boneMatrices, gi.getComponent(i, k) * 16);
+        out.addScaledVector(new THREE.Vector3().copy(sv).applyMatrix4(m), w);
+      }
+      out.applyMatrix4(f.bindMatrixInverse).applyMatrix4(f.matrixWorld);
+      fb.expandByPoint(out);
+    }
+    if (!fb.isEmpty()) { aim = fb.getCenter(new THREE.Vector3()); span = Math.max(fb.getSize(new THREE.Vector3()).length(), headLen * 0.5); }
+  }
+}
+/* Frame on the face, but view it from the shark's own SIDE, derived from the
+   body's world box rather than from a hardcoded direction: the head points
+   along the body's longest world axis, so the camera is placed off the
+   shortest one (the flank) and lifted slightly. A fixed offset produced an
+   oblique view that made a correctly seated batch look detached. */
+const bsz = box.getSize(new THREE.Vector3());
+const axes = [['x', bsz.x], ['y', bsz.y], ['z', bsz.z]].sort((a, b) => a[1] - b[1]);
+const flank = axes[0][0];
+const dist = span * 3.0;
+const off = new THREE.Vector3();
+off[flank] = dist;
+off.y += dist * 0.18;
+camera.position.copy(aim).add(off);
+camera.lookAt(aim);
+if (P.get('xray') === '1') { rig.group.traverse((o) => { if (o.userData && o.userData.rfTexturedFace) { o.material.depthTest = false; o.renderOrder = 999; } }); }
+if (P.get('faceonly') === '1') { rig.group.traverse((o) => { if (o.isMesh && !o.userData.rfTexturedFace) o.visible = false; }); }
+if (P.get('nofaceonly') === '1') { rig.group.traverse((o) => { if (o.userData && o.userData.rfTexturedFace) o.visible = false; }); }
+renderer.render(scene, camera);
+// Report what was actually built so the screenshot can be trusted.
+let face = null; rig.group.traverse((o) => { if (o.userData && o.userData.rfTexturedFace) face = o; });
+globalThis.__O2 = {
+  id: ID, textured: !!rig.group.userData.rfTextured, base: rig.group.userData.rfSourceBase,
+  faceMounted: !!face, faceTriangles: face ? face.userData.rfFaceTriangles : 0,
+  metrics: face ? face.userData.rfFaceMetrics : null
+};
+document.title = 'O2 ' + ID + (face ? ' FACE' : ' noface');
+</script>

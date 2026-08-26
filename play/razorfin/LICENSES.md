@@ -38,3 +38,33 @@ All shipped art and audio are copied into this title's `assets/` directory. No n
 - shark_b.glb — "Shark" by Poly by Google, CC-BY 3.0 (https://poly.pizza/m/1mVWW4RFVHc). Attribution: Poly by Google.
 - sharky.glb ("Shark", rigged cartoon shark), goblinshark.glb ("Goblin Shark"), anglerfish.glb, piranha.glb, shark_c.glb — Quaternius, CC0 1.0 (poly.pizza/m/YYsK3gRCBZ, JQrBevTzgD, MRjSlwCjHM, F7bCnF1BFf, sZR8AMLMz5).
 - hammer_chibi.glb — "Tibu" by marioba, CC-BY 3.0 (https://poly.pizza/m/TEUntUD1wl). Attribution: marioba.
+
+## Rev 14 textured shark bakes (play/razorfin/assets/models/)
+
+Baked from the sources below through `tools/shark_bake.py` into a single
+skinned mesh with a 1K baked diffuse and a 1K tangent-space normal map. Only
+assets that passed the lane O1 render check ship; see `hse/FAMILY_MAP.md` for
+which roster rows use each one.
+
+CC0 sources (credit not required, given anyway):
+
+- `blueshark.glb` — "CC0 ヨシキリザメ Blue Shark, Prionace glauca" by ffish.asia / floraZia.com, CC0 1.0. https://sketchfab.com/3d-models/cc0-blue-shark-prionace-glauca-f2af470413744d109c5e1d6fad8fe992
+- `scallopedhammer.glb` — "CC0 アカシュモクザメ Scalloped Hammerhead Shark" by ffish.asia / floraZia.com, CC0 1.0. https://sketchfab.com/3d-models/cc0-scalloped-hammerhead-shark-b68fdc989ba74bec9495ac907995739e
+- `smoothhammer.glb` — "CC0 シロシュモクザメ Smooth Hammerhead Shark" by ffish.asia / floraZia.com, CC0 1.0. https://sketchfab.com/3d-models/cc0-smooth-hammerhead-shark-3d1e1898e87c4187bbf3e6a264a9f933
+- `whaler.glb` — "CC0 スミツキザメ Indonesian Whaler Shark" by ffish.asia / floraZia.com, CC0 1.0. https://sketchfab.com/3d-models/cc0-indonesian-whaler-shark-c8c0853a047e4fefa0ce98be353bcf6a
+- `smoothhound.glb` — "CC0 シロザメ Spotless Smooth-hound, M. griseus" by ffish.asia / floraZia.com, CC0 1.0. https://sketchfab.com/3d-models/cc0-spotless-smooth-hound-m-griseus-71f93eee4194460aafa5a9555b6099ef
+- `dogfish.glb` — "CC0 ホシザメ Starspotted Dogfish, M. manazo" by ffish.asia / floraZia.com, CC0 1.0. https://sketchfab.com/3d-models/cc0-starspotted-dogfish-m-manazo-7c24d07afe2645778593d0f64d38b429
+- `bullhead.glb` — "CC0 ネコザメ Japanese Bullhead Shark" by ffish.asia / floraZia.com, CC0 1.0. https://sketchfab.com/3d-models/cc0-japanese-bullhead-shark-022bd5232edd43329ea9267b74dfb4ac
+
+CC-BY 4.0 sources. **Attribution is required wherever this game is shared:**
+
+- `whitepointer.glb` — This work is based on "White Pointer" (https://sketchfab.com/3d-models/white-pointer-8e429052939a4677861d0d550a0e27cd) by 3dartstevenz (https://sketchfab.com/3dartstevenz) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).
+- `tigershark.glb` — This work is based on "Tiger Shark" (https://sketchfab.com/3d-models/tiger-shark-8a19770317984b4a9628934acd587a67) by intervirtual (https://sketchfab.com/intervirtual) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).
+- `greatwhite_cy.glb` — This work is based on "Great White Shark 3D Model" (https://sketchfab.com/3d-models/great-white-shark-3d-model-7a3f7e70f7054018919ad930ca586c62) by canyutsai1 (https://sketchfab.com/canyutsai1) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).
+- `megalodonrex.glb` — This work is based on "Megalodon Rex (WIP#3) Animating" (https://sketchfab.com/3d-models/megalodon-rex-wip3-animating-495d71bf2fbc4de0a5e3e25823589f11) by geneugene (https://sketchfab.com/geneugene) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).
+- `mako.glb` — This work is based on "Shortfin mako shark" (https://sketchfab.com/3d-models/shortfin-mako-shark-0ec4d184c6ea4a6a8704f56cc2ba6e78) by faerbogdan99 (https://sketchfab.com/faerbogdan99) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).
+- `tiger_nu.glb` — This work is based on "Tiger Shark (Galeocerdo Cuvier)" (https://sketchfab.com/3d-models/tiger-shark-galeocerdo-cuvier-b74e252a508d406490ecef3bde602e2f) by fdehell (https://sketchfab.com/fdehell) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).
+- `thresher.glb` — This work is based on "Pelagic Thresher Shark" (https://sketchfab.com/3d-models/pelagic-thresher-shark-b193a4cd16024e8d9efb19314129bf33) by charliegodofsharks (https://sketchfab.com/charliegodofsharks) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/).
+
+Downloaded 2026-08-25. Local license evidence for the CC-BY sources:
+`play/razorfin/scratchpad/cline_sharks/src/<name>/unpacked/license.txt`.

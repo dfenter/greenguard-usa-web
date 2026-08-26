@@ -40,7 +40,7 @@ SHARKS = [
  ("point",1.18,0.33,0.90,1.00,0xc79aa6,0xf0dfe4,0x8f5f70,0,"plain",None),None,
  "A jaw that arrives before the shark does."),
 ("greatwhite","Great White",5,1,7000,(400,744,2.8,6,260,2.7,3.2),["lunge"],"pyro",
- ("point",1.45,0.46,1.15,1.10,0x74808c,0xf2f5f7,0x47525c,0,"plain",None,"textured_test"),(3,[2,3]),
+ ("point",1.45,0.46,1.15,1.10,0x74808c,0xf2f5f7,0x47525c,0,"plain",None),(3,[2,3]),
  "The apex everyone pictures. Now it breathes fire."),
 ("whaleshark","Whale Shark",5,1,7500,(300,576,2.4,4,320,2.2,2.4),["filterFeedMax"],"vortex",
  ("whale",1.80,0.55,1.00,0.95,0x3e5a75,0xdce8f0,0x27415a,0,"dots",None),None,
@@ -587,6 +587,116 @@ def shark_cls(tier, act):
     if act == 5: return "demon"
     raise ValueError("no class rule for tier=%r act=%r" % (tier, act))
 
+# HSE lane O1: base-family map (row id -> MODEL_FILES key).
+#
+# Every key below was render-verified in assets/bakeview before a row was
+# pointed at it (evidence: hse/FAMILY_MAP.md). Five bakes were REJECTED and
+# are deliberately absent: altimus (a fossil jaw, not a shark body),
+# bullshark (untextured grey creature), realisticshark (degenerate mesh),
+# tiger_mg (paper-thin, no volume), hammerhead_approved (a byte-duplicate of
+# scallopedhammer carrying a larger texture).
+#
+# Families: small/reef -> dogfish, smoothhound, bullhead; hammer ->
+# smoothhammer (common) / scallopedhammer (god); fast point -> mako,
+# blueshark; bulk -> whitepointer, greatwhite_cy, megalodonrex; tiger ->
+# tiger_nu, tigershark; whaler -> whaler; thresher -> thresher.
+#
+# Stylized head tags (mech/skull/void/rock/croc/angler/kaiju) have no real
+# shark counterpart, so they take a neutral body of the right mass and get
+# their identity from the props and shader lanes rather than the base mesh.
+TEXTURED_MODEL_BY_ROW = {
+    "reef":            "dogfish",           # point tiny: small houndshark bodies
+    "epaulette":       "bullhead",          # blunt small: bullhead snout
+    # "cookiecutter": "smoothhound"  HELD: at sil.len 0.85, the shortest row in
+    #   the roster, the L2 morph length delta lands at 3.5-3.7% against EVERY
+    #   textured body (measured, all 8 tried) and the gate allows +/-3%. This is
+    #   the morph/normalization path, not the asset, so the row stays on the
+    #   low-poly rig. See hse/REQUESTS.md.
+    "mako": "mako",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "blue": "mako",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "hammerhead":      "smoothhammer",      # hammer head tag
+    "thresher": "thresher",  # was HELD-L2 (rig_morph gate fixed by F1)
+    # "sawshark": "thresher"  HELD: identity prop mesh is not textured yet (see hse/REQUESTS.md)
+    "tiger":           "tiger_nu",          # blunt mid: tiger body
+    "bull": "whaler",  # was HELD-L2 (rig_morph gate fixed by F1)
+    # "goblin": "greatwhite_cy"  HELD: art3d pins this row to goblinshark (its own silhouette rig)
+    "greatwhite":      "greatwhite_cy",     # point tier4-5: great white
+    "whaleshark": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
+    # "megalodon": "megalodonrex"  HELD-L2b: morph displacement over bound after F1
+    # "dunkleosteus": "bullhead"  HELD-L2b: morph displacement over bound after F1
+    "greenland": "megalodonrex",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "snapjaw":         "tigershark",        # croc tag: broad flat jaw reads closest
+    # "gulperfiend": "smoothhound"  HELD: art3d pins this row to anglerfish (its own silhouette rig)
+    "anglerfang":      "smoothhound",       # angler tag: stubby body, lure prop carries identity
+    "morayne": "thresher",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "sailfin": "blueshark",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "thornback":       "bullhead",          # rock tag: chunky body
+    "stonejaw":        "whaler",            # rock tag: chunky body
+    "duskfin":         "mako",              # point high tier: fast/bulk mix
+    # "barbhook": "thresher"  HELD: identity prop mesh is not textured yet (see hse/REQUESTS.md)
+    # "coralcrown": "whaler"  HELD: identity prop mesh is not textured yet (see hse/REQUESTS.md)
+    "vex": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "abyssmaw":        "smoothhound",       # angler tag: stubby body, lure prop carries identity
+    "riftjaw":         "whaler",            # point high tier: fast/bulk mix
+    "venomspine":      "mako",              # point high tier: fast/bulk mix
+    "howler":          "tigershark",        # blunt high tier: heavy bodies
+    "magmaw":          "bullhead",          # rock tag: chunky body
+    "frostjaw":        "whitepointer",      # blunt high tier: heavy bodies
+    "stormfin": "blueshark",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "gloomtide": "blueshark",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "wreckfang":       "greatwhite_cy",     # mech tag: neutral bulk, identity from props/shader
+    "ironfin":         "greatwhite_cy",     # mech tag: neutral bulk, identity from props/shader
+    "cindermaw":       "blueshark",         # point high tier: fast/bulk mix
+    "glacier":         "whitepointer",      # blunt high tier: heavy bodies
+    "gravewater":      "whitepointer",      # skull tag: neutral bulk, identity from props/shader
+    "teslafang": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "plaguemaw":       "tigershark",        # blunt high tier: heavy bodies
+    "sunspine":        "whitepointer",      # point high tier: fast/bulk mix
+    "nocturne": "blueshark",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "tempest":         "blueshark",         # point high tier: fast/bulk mix
+    "maelstrom": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "bonecrown":       "greatwhite_cy",     # skull tag: neutral bulk, identity from props/shader
+    "mirrorscale":     "whaler",            # point high tier: fast/bulk mix
+    "aurora": "blueshark",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "vulkan": "megalodonrex",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "voltaicrex": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "nullfin":         "greatwhite_cy",     # void tag: neutral bulk, identity from props/shader
+    "chronos":         "mako",              # point high tier: fast/bulk mix
+    "seismos": "megalodonrex",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "banshee":         "whitepointer",      # skull tag: neutral bulk, identity from props/shader
+    "vortexa": "megalodonrex",  # was HELD-L2 (rig_morph gate fixed by F1)
+    # "warbringer": "greatwhite_cy"  HELD-L2b: morph aspect over bound after F1
+    "omenmaw":         "bullhead",          # angler tag: stubby body, lure prop carries identity
+    "solaris":         "whitepointer",      # point high tier: fast/bulk mix
+    "absolutezero": "tigershark",  # was HELD-L2 (rig_morph gate fixed by F1)
+    # "leviathanrex": "megalodonrex"  HELD: identity prop mesh is not textured yet (see hse/REQUESTS.md)
+    # "leviathan_rex": "megalodonrex"  HELD: identity prop mesh is not textured yet (see hse/REQUESTS.md)
+    # "zeusfin": "mako"  HELD: identity prop mesh is not textured yet (see hse/REQUESTS.md)
+    "poseidonrex": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "hadesmaw":        "whitepointer",      # void tag: neutral bulk, identity from props/shader
+    "apollodon":       "mako",              # point high tier: fast/bulk mix
+    "artemisstrike":   "whaler",            # point high tier: fast/bulk mix
+    "athenajaw":       "scallopedhammer",   # hammer head tag
+    "aresrender":      "tigershark",        # croc tag: broad flat jaw reads closest
+    "hermesdart": "whaler",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "hephaestusforge": "megalodonrex",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "dionysustide":    "whaler",            # blunt high tier: heavy bodies
+    "aphroditelure":   "bullhead",          # angler tag: stubby body, lure prop carries identity
+    # "heracrown": "megalodonrex"  HELD: identity prop mesh is not textured yet (see hse/REQUESTS.md)
+    # "typhonmaw": "megalodonrex"  HELD-L2b: morph displacement over bound after F1
+    "hydrafang": "blueshark",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "cerberusjaw": "tigershark",  # was HELD-L2 (rig_morph gate fixed by F1)
+    # "chimerashark": "thresher"  HELD: identity prop mesh is not textured yet (see hse/REQUESTS.md)
+    "medusagaze":      "bullhead",          # angler tag: stubby body, lure prop carries identity
+    "scyllarender": "blueshark",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "charybdisvoid": "megalodonrex",  # was HELD-L2 (rig_morph gate fixed by F1)
+    # "minotaurram": "megalodonrex"  HELD: identity prop mesh is not textured yet (see hse/REQUESTS.md)
+    "cyclopseye":      "whaler",            # blunt high tier: heavy bodies
+    "harpyshade": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
+    "lamiacoil": "thresher",  # was HELD-L2 (rig_morph gate fixed by F1)
+    # "kampechrono": "megalodonrex"  HELD-L2b: morph displacement over bound after F1
+}
+
 def shark_row(t):
     (sid,name,tier,act,cost,st,pas,active,sil,npc,blurb)=t
     stats={"speed":st[0],"accel":st[1],"turn":st[2],"bite":st[3],"hp":st[4],"metab":st[5],"boost":st[6]}
@@ -596,8 +706,14 @@ def shark_row(t):
     # MODEL_FILES key (shark3d.js). Rows that omit it keep the low-poly
     # Sharky/goblin/angler/piranha routing exactly as before, so the key is
     # emitted only when a row actually sets one.
-    if len(sil) > 11 and sil[11]:
-        sils["model"] = sil[11]
+    model = sil[11] if len(sil) > 11 else None
+    # HSE lane: base-family map. Every real-shark family points at the best
+    # BAKED asset that exists right now and has been render-verified; a family
+    # whose bake has not landed yet stays on the current rig rather than
+    # breaking. Re-check the bake folder and widen this map as GLBs arrive.
+    model = model or TEXTURED_MODEL_BY_ROW.get(sid)
+    if model:
+        sils["model"] = model
     row={"id":sid,"name":name,"tier":tier,"act":act,"cls":shark_cls(tier,act),"cost":cost,"stats":stats,"passives":pas,
          "active":active,"sil":sils,"npc":({"weight":npc[0],"zones":npc[1]} if npc else None),"blurb":blurb}
     return js(row)

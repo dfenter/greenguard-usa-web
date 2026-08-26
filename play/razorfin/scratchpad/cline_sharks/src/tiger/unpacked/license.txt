@@ -1,0 +1,11 @@
+Model Information:
+* title:	Tiger Shark (Galeocerdo Cuvier)
+* source:	https://sketchfab.com/3d-models/tiger-shark-galeocerdo-cuvier-b74e252a508d406490ecef3bde602e2f
+* author:	fdehell (https://sketchfab.com/fdehell)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Tiger Shark (Galeocerdo Cuvier)" (https://sketchfab.com/3d-models/tiger-shark-galeocerdo-cuvier-b74e252a508d406490ecef3bde602e2f) by fdehell (https://sketchfab.com/fdehell) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
