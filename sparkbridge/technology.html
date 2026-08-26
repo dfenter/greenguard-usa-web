@@ -3,17 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Technology | SparkBridge</title>
-<meta name="description" content="How Sparkplug turns a plant into a subscription, and how SparkBridge compares: the life of one connection, MQTT 5, the unified namespace, a capability matrix that says 'not published' where no public figure exists, and measured numbers with the rig stated.">
+<title>How SparkBridge Compares: Sparkplug, MQTT 5 and UNS on Ignition | SparkBridge</title>
+<meta name="description" content="How Sparkplug B turns a plant into a subscription on Ignition, MQTT 5 and the unified namespace explained, and a capability matrix comparing SparkBridge with other Ignition MQTT modules, with measured numbers and the rig stated.">
 <link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/technology">
-<meta property="og:title" content="SparkBridge technology: how it works, and how it compares">
+<meta property="og:title" content="How SparkBridge compares with other Ignition MQTT modules">
 <meta property="og:description" content="How Sparkplug turns a plant into a subscription, and how SparkBridge compares: the life of one connection, MQTT 5, the unified namespace, a capability matrix that says 'not published' where no public figure exists, and measured numbers with the rig stated.">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/technology">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="How SparkBridge compares with other Ignition MQTT modules">
+<meta name="twitter:description" content="How Sparkplug turns a plant into a subscription, and how SparkBridge compares: the life of one connection, MQTT 5, the unified namespace, a capability matrix that says 'not published' where no public figure exists, and measured numbers with the rig stated.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Saira+SemiCondensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Technology","item":"https://mqtt.greenguard-usa.com/sparkbridge/technology"}]}]}
+</script>
 </head>
 <body>
 
@@ -49,7 +59,7 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="path">lifecycle</div>
-      <h2>The Life of One Connection</h2>
+      <h2 id="lifecycle">The Life of One Connection</h2>
       <p>MQTT moves messages but says nothing about what is inside them. Sparkplug defines the
       whole life of a connection, and every guarantee it gives you is delivered by one specific
       message in that life. Read it top to bottom: this is the order it happens on the wire.</p>
@@ -117,11 +127,32 @@
   </div>
 </section>
 
+<section class="band" id="glossary-section">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">glossary</div>
+      <h2 id="glossary">Sparkplug B Terms, Briefly</h2>
+      <p>The words used above, defined the way the specification uses them.</p>
+    </div>
+    <dl class="glossary">
+      <dt>Edge node</dt><dd>The Sparkplug client at a site that owns one MQTT session and publishes on behalf of the devices under it. In SparkBridge this is the Edge on a site gateway.</dd>
+      <dt>Host application (Primary Host)</dt><dd>The consumer that subscribes to every edge, tracks their state and is the one place commands originate. In SparkBridge this is the Host on the central gateway.</dd>
+      <dt>STATE</dt><dd>A retained message the host publishes to announce that it is online or offline. Edges wait for an online STATE before they birth.</dd>
+      <dt>NBIRTH / DBIRTH</dt><dd>The birth certificate of a node or a device: every metric with its name, datatype, units and current value, sent at seq 0 whenever a session starts.</dd>
+      <dt>NDATA / DDATA</dt><dd>Change-only updates for a node or device after birth, carried by alias rather than by name.</dd>
+      <dt>NCMD / DCMD</dt><dd>A command from the host to a node or device, for example a setpoint write or a rebirth request.</dd>
+      <dt>NDEATH / DDEATH</dt><dd>The death certificate, registered with the broker as the MQTT Will so it is published even when the site cannot say goodbye.</dd>
+      <dt>seq</dt><dd>The rolling 0 to 255 sequence number on every message in a session, used to detect gaps.</dd>
+      <dt>bdSeq</dt><dd>The birth/death sequence number: a metric in NBIRTH and NDEATH that ties a death certificate to the session it belongs to, so a stale death cannot kill a newer session.</dd>
+    </dl>
+  </div>
+</section>
+
 <section class="band">
   <div class="wrap">
     <div class="sec-head">
       <div class="path">mqtt5</div>
-      <h2>MQTT 5 and Beyond</h2>
+      <h2 id="mqtt5">MQTT 5 and Beyond</h2>
       <p>The group that maintains Sparkplug has said where the next version is heading. Everything in the right-hand column already ships and can be switched on today.</p>
     </div>
     <div class="scroller">
@@ -144,7 +175,7 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="path">uns</div>
-      <h2>The Unified Namespace, Explained</h2>
+      <h2 id="uns">The Unified Namespace, Explained</h2>
       <p>One up-to-date picture of the plant that every system reads from. You get it as a result of publishing properly, with no second project to fund.</p>
     </div>
     <div class="two">
@@ -159,6 +190,7 @@
         <p>The Edge can also send the same values as plain JSON on a readable path, for tools that cannot read the Sparkplug format. Sparkplug for the systems that need types and connection state; JSON for the ones that just need a simple feed.</p>
       </div>
     </div>
+    <p>For reference diagrams of where Edge, Host, Provider and Flow sit in a real estate, see the <a href="/sparkbridge/architecture">architecture page</a>.</p>
   </div>
 </section>
 
@@ -186,7 +218,7 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="path">why sparkbridge</div>
-      <h2>Why SparkBridge</h2>
+      <h2 id="why">Why SparkBridge</h2>
       <p>Eight capabilities designed to take MQTT further with greater efficiency, scalability, and future-ready architecture.</p>
     </div>
     <div class="leads cols">
@@ -206,15 +238,16 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="path">capability</div>
-      <h2>Feature by Feature</h2>
+      <h2 id="compare">Feature by Feature</h2>
       <p>Where a row says “not published”, no public figure exists for that product. Every SparkBridge number is measured and reproducible from the test suite that ships with it.</p>
+      <p>If you are weighing SparkBridge against the MQTT modules commonly used with Ignition, the Edge corresponds to a transmission-side module, the Host to an engine-side module, and the embedded broker plus HiveMQ CE companion to a distributor-side broker. The rows below compare only what is published or what we have measured. Where a competing figure is not public, the row says so rather than guessing.</p>
     </div>
     <div class="scroller">
       <table class="tbl ours-last">
         <thead><tr><th>Capability</th><th>Commercial modules</th><th>SparkBridge</th></tr></thead>
         <tbody>
-          <tr><td>Core Sparkplug B / 3.0</td><td>Yes</td><td>Yes, TCK-verified against a live stack</td></tr>
-          <tr><td>Templates / UDT modeling</td><td>Yes</td><td>Yes. TCK SendComplexDataTest, 49 assertions, PASS</td></tr>
+          <tr><td>Core Sparkplug B / 3.0</td><td>Yes</td><td>Yes, <a href="/sparkbridge/tck">TCK-verified against a live stack</a></td></tr>
+          <tr><td>Templates / UDT modeling</td><td>Yes</td><td>Yes. <a href="/sparkbridge/tck">TCK SendComplexDataTest, 49 assertions, PASS</a></td></tr>
           <tr><td>Store and forward with historical replay</td><td>Yes</td><td>Yes, disk-backed, capture timestamps and <code>is_historical</code> preserved and counted</td></tr>
           <tr><td>Multiple brokers for HA</td><td>Yes</td><td>Both models: server-set failover and simultaneous multi-server sessions. Since 2.4.0, warm-standby hosts as well: takeover by rank, measured at 244 ms across 25 nodes with zero rebirths</td></tr>
           <tr><td>UNS / ISA-95 publishing</td><td>Yes</td><td>Yes, dual Sparkplug plus JSON, configurable or empty prefix</td></tr>
@@ -238,7 +271,7 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="path">numbers</div>
-      <h2>Performance Quantified</h2>
+      <h2 id="numbers">Performance Quantified</h2>
       <p>Quiet-box gate, 2026-08-15, on a Linux reference rig with six cores, nothing else running, doing the full work of writing values into tags, and cross-checked on a four-core Mac. Bigger hardware goes further.</p>
     </div>
     <div class="scroller">

@@ -3,17 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Products | SparkBridge</title>
-<meta name="description" content="The whole SparkBridge product line, from the equipment on your floor to the warehouse your analysts use, with prices, and the Edge, Host and Provider detail inside SparkBridge itself.">
+<title>Sparkplug Edge, Host Application and Provider Modules for Ignition | SparkBridge</title>
+<meta name="description" content="Every SparkBridge module for Ignition with its price: the Sparkplug Edge, Host application and Provider modules, SparkFlow on NATS, SparkVault historian, native drivers, and the products that carry plant data to the warehouse.">
 <link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/products">
-<meta property="og:title" content="Products: plant to cloud, on one run">
+<meta property="og:title" content="SparkBridge products: Sparkplug Edge, Host and Provider modules for Ignition">
 <meta property="og:description" content="Every SparkBridge product with what it does and what it costs, plus the Edge, Host and Provider capability detail.">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/products">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SparkBridge products: Sparkplug Edge, Host and Provider modules for Ignition">
+<meta name="twitter:description" content="Every SparkBridge product with what it does and what it costs, plus the Edge, Host and Provider capability detail.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Saira+SemiCondensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Products","item":"https://mqtt.greenguard-usa.com/sparkbridge/products"}]}]}
+</script>
 </head>
 <body>
 
@@ -25,6 +35,7 @@
         <a href="/sparkbridge/">Overview</a>
         <a href="/sparkbridge/products" aria-current="page">Products</a>
         <a href="/sparkbridge/technology">Technology</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/resources">Resources</a>
@@ -256,8 +267,9 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="path">host</div>
-      <h2>Host</h2>
+      <h2>Host: the Sparkplug host application</h2>
       <p>The Host is where fleet scale is won or lost, so this is where the engineering went.</p>
+      <p>The Host passed all nine profiles of the Eclipse Sparkplug TCK 3.0.0, 346 of 346 assertions. The <a href="/sparkbridge/tck">conformance record</a> has the per-profile results and the unedited logs.</p>
     </div>
     <div class="scroller">
       <table class="tbl">
@@ -371,6 +383,7 @@
         </table>
       </div>
     </div>
+    <p>Want to see these drawn as a real estate? The <a href="/sparkbridge/architecture">architecture page</a> walks through one PLC, one plant, a rack of backends, and a 200-plant estate, module by module.</p>
   </div>
 </section>
 
@@ -379,6 +392,7 @@
     <h2>Where To Start</h2>
     <p>Most plants begin by getting their data moving reliably, then keep its history, then open it to the systems and people who need it. You are not buying a platform up front.</p>
     <p>That means most plants start with SparkBridge on its own and add a module when the need shows up. Each addition is $495 on a gateway they already own, so nothing has to be decided today that can be decided later.</p>
+    <p>Not sure which gateway role you have? <a href="/sparkbridge/architecture#s8">Pick by what you run today</a> on the architecture page. If you only need to read older or utility equipment into Ignition, the <a href="/sparkbridge/drivers">protocol drivers</a> are sold alone and do not require SparkBridge.</p>
     <div class="cta-row">
       <a class="btn" href="/sparkbridge/pricing">See pricing</a>
       <a class="btn ghost" href="/sparkbridge/contact">Talk to us about a pilot</a>

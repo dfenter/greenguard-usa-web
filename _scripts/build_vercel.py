@@ -774,7 +774,8 @@ def main():
     # path 301s to the new home via vercel.json.
     sparkbridge_src = os.path.join(REPO, 'sparkbridge')
     if os.path.isdir(sparkbridge_src):
-        shutil.copytree(sparkbridge_src, os.path.join(OUT, 'sparkbridge'))
+        shutil.copytree(sparkbridge_src, os.path.join(OUT, 'sparkbridge'),
+                        ignore=shutil.ignore_patterns('_spec_build.py', 'tck-final-report.log', 'tck-journal.log'))
         print('  COPY  sparkbridge/')
 
     # Overlay the redesigned Astro marketing site (staged locally by
@@ -799,6 +800,13 @@ def main():
                 shutil.copy(os.path.join(root, f), os.path.join(dst_dir, f))
                 copied += 1
         print(f'  OVERLAY redesign-dist/ ({copied} files, games protected)')
+
+    # Advertise the SparkBridge sitemap (mqtt host) after the overlay so it survives
+    # the redesign robots.txt overwrite.
+    robots_out = os.path.join(OUT, 'robots.txt')
+    if os.path.exists(robots_out) and os.path.isdir(os.path.join(OUT, 'sparkbridge')):
+        with open(robots_out, 'a') as fh:
+            fh.write('Sitemap: https://mqtt.greenguard-usa.com/sparkbridge/sitemap.xml\n')
 
     # Generate Google Merchant Center product feed
     feed_path = os.path.join(OUT, 'products-feed.xml')

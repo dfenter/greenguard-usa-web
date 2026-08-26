@@ -60,7 +60,7 @@
   position:relative;height:30px;width:2px;background:var(--steel-dark);margin-left:28px;
 }
 .pair .claimwire::before{
-  content:attr(data-l);position:absolute;left:12px;top:7px;white-space:nowrap;
+  content:attr(data-l);position:absolute;left:12px;top:7px;white-space:nowrap;max-width:calc(100vw - 60px);overflow:hidden;text-overflow:ellipsis;
   font-family:"Spline Sans Mono",monospace;font-size:10px;letter-spacing:.1em;
   text-transform:uppercase;color:var(--paper-dim);
 }
@@ -76,7 +76,7 @@
   text-transform:uppercase;color:var(--marker);margin:0 0 6px;display:block;
 }
 .topo h3{
-  font-family:"Saira SemiCondensed",sans-serif;font-weight:700;text-transform:uppercase;
+  font-family:"Saira Semi Condensed",sans-serif;font-weight:700;text-transform:uppercase;
   font-size:clamp(22px,2.4vw,30px);line-height:1.06;letter-spacing:.01em;margin:0 0 8px;max-width:26ch;
 }
 .topo .use{font-size:16.5px;line-height:1.55;max-width:66ch;margin:0;color:var(--ink-soft)}
@@ -159,7 +159,7 @@
 .dev .chips span.ia{border-color:var(--steel-dark);color:var(--paper-dim)}
 /* a whole rack of identical servers, said once */
 .dev .count{
-  font-family:"Saira SemiCondensed",sans-serif;font-weight:700;font-size:28px;line-height:1;color:var(--marker);
+  font-family:"Saira Semi Condensed",sans-serif;font-weight:700;font-size:28px;line-height:1;color:var(--marker);
 }
 /* the before drawing: dimmed, drawn as it is today */
 .drawing.before{border-style:dashed;background:transparent;color:var(--ink)}

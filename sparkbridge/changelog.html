@@ -3,17 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Changelog | SparkBridge</title>
+<title>SparkBridge Changelog: Ignition Module Release History</title>
 <meta name="description" content="SparkBridge version history: every release from the first working suite to the current conformance-verified build, with what changed and why.">
 <link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/changelog">
 <meta property="og:title" content="SparkBridge changelog and version history">
 <meta property="og:description" content="Every SparkBridge release, what changed, and what each change was for.">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/changelog">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SparkBridge changelog and version history">
+<meta name="twitter:description" content="Every SparkBridge release, what changed, and what each change was for.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Saira+SemiCondensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Changelog","item":"https://mqtt.greenguard-usa.com/sparkbridge/changelog"}]}]}
+</script>
 </head>
 <body>
 
@@ -25,6 +35,7 @@
         <a href="/sparkbridge/">Overview</a>
         <a href="/sparkbridge/products">Products</a>
         <a href="/sparkbridge/technology">Technology</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/resources">Resources</a>
@@ -53,7 +64,7 @@
         <span class="lc lc-birth">2.5.0<br>2026&#8209;08&#8209;23</span>
         <div>
           <h3>The backbone: SparkFlow ships</h3>
-          <p>A fourth module, SparkBridge Flow, carries everything the Host decodes onto
+          <p>A fourth module, <a href="/sparkbridge/flow">SparkBridge Flow</a>, carries everything the Host decodes onto
           NATS/JetStream as a unified namespace: one subject per metric with a mandatory device
           slot and reversible escaping, a body that keeps quality, source timestamp and the
           historical flag, last-known value and lifecycle in a KV bucket, a digital-twin bucket,
@@ -67,16 +78,17 @@
           unclean restart instead of demoting itself in a phantom split brain, and the release
           bundle is version-guarded so the documents in it cannot be a release behind the
           modules beside them.</p>
+          <p>Bundles for Ignition 8.1 and 8.3 are on the <a href="/sparkbridge/download">download page</a> and at <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/v2.5.0">the v2.5.0 GitHub release</a>.</p>
         </div>
       </li>
       <li>
         <span class="lc">2.4.0<br>2026&#8209;08&#8209;15</span>
         <div>
           <h3>Standby, fleet configuration and speed</h3>
-          <p>The availability release. A warm-standby Host takes over by rank when the primary
+          <p>The availability release. A <a href="/sparkbridge/technology#why">warm-standby Host</a> takes over by rank when the primary
           goes away, measured at 244 ms across 25 nodes with zero rebirths and verified live in
-          a two-JVM drill on the release bench, and configuration reaches each site as a P-256 signed document, with a fleet
-          dashboard, a JSON feed and birth metrics showing what every node is running. The
+          a two-JVM drill on the release bench, and configuration reaches each site as a P-256 signed document, with a <a href="/sparkbridge/fleetops">fleet
+          dashboard</a>, a JSON feed and birth metrics showing what every node is running. The
           broker extension now authorizes PUBLISH and SUBSCRIBE, deferring rather than allowing
           so file RBAC keeps authority, and the Ignition trial is enforced across all three
           modules: they pause on expiry with store-and-forward still capturing and resume on
@@ -96,7 +108,7 @@
           the specification permits and the previous Host refused, and reads UINT32 values from
           either legal wire field in metrics, dataset cells, properties and template parameters
           alike. Application-topic authorization now denies by default, version 1 client IDs are
-          no longer accepted, and the HiveMQ authorization extension ships in the release package
+          no longer accepted, and the <a href="/sparkbridge/sparkid">HiveMQ authorization extension</a> ships in the release package
           as an installable artifact. The Host MessageOrdering conformance profile, previously
           pass-but-incomplete because the reference edge could not birth, now passes every
           assertion. 531 automated tests.</p>

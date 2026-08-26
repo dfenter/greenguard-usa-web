@@ -3,17 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SparkBridge | Plant data infrastructure for Ignition</title>
-<meta name="description" content="One suite for Inductive Automation Ignition that carries plant data from the rack to the warehouse: connect older equipment, move it reliably, keep its history, deliver it, and open it to what you already own. Priced per gateway, bought once and kept.">
+<title>SparkBridge: Sparkplug B and MQTT Modules for Ignition</title>
+<meta name="description" content="Sparkplug B edge, host application and MQTT 5 modules for Inductive Automation Ignition 8.1, plus NATS/JetStream scale-out, a Sparkplug historian and native IEC 104, DNP3 and TI 505 drivers. Priced per gateway, bought once and kept.">
 <link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/">
-<meta property="og:title" content="SparkBridge: plant data infrastructure for Ignition">
+<meta property="og:title" content="SparkBridge: Sparkplug B and MQTT Modules for Ignition">
 <meta property="og:description" content="One path from the plant floor to the warehouse, on Ignition. Data you can trust, priced per gateway rather than per tag or per connected client.">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SparkBridge: Sparkplug B and MQTT Modules for Ignition">
+<meta name="twitter:description" content="One path from the plant floor to the warehouse, on Ignition. Data you can trust, priced per gateway rather than per tag or per connected client.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Saira+SemiCondensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org","name":"GreenGuard USA","alternateName":"SparkBridge","url":"https://mqtt.greenguard-usa.com/sparkbridge/","email":"admin@greenguard-usa.com","sameAs":["https://github.com/greenguard-usa/sparkbridge-releases"],"contactPoint":{"@type":"ContactPoint","contactType":"sales","email":"admin@greenguard-usa.com","url":"https://mqtt.greenguard-usa.com/sparkbridge/contact"}},{"@type":"WebSite","@id":"https://mqtt.greenguard-usa.com/sparkbridge/#website","url":"https://mqtt.greenguard-usa.com/sparkbridge/","name":"SparkBridge","description":"Sparkplug B edge, host application and MQTT 5 modules for Inductive Automation Ignition 8.1, plus NATS/JetStream scale-out, a Sparkplug historian and native IEC 104, DNP3 and TI 505 drivers. Priced per gateway, bought once and kept.","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"inLanguage":"en"},{"@type":"SoftwareApplication","@id":"https://mqtt.greenguard-usa.com/sparkbridge/#app","name":"SparkBridge","url":"https://mqtt.greenguard-usa.com/sparkbridge/","applicationCategory":"BusinessApplication","applicationSubCategory":"Industrial data infrastructure for Ignition","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","softwareVersion":"2.5.0","downloadUrl":"https://mqtt.greenguard-usa.com/sparkbridge/download","releaseNotes":"https://mqtt.greenguard-usa.com/sparkbridge/changelog","description":"Sparkplug B edge, host application and MQTT 5 modules for Inductive Automation Ignition 8.1, plus NATS/JetStream scale-out, a Sparkplug historian and native IEC 104, DNP3 and TI 505 drivers. Priced per gateway, bought once and kept.","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"offers":[{"@type":"Offer","name":"SparkBridge Edge","price":"995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per production site gateway"},{"@type":"Offer","name":"SparkBridge Central","price":"1995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per production central gateway"},{"@type":"Offer","name":"Site gateway package","price":"1895","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"SparkBridge Edge, SparkLink, SparkVault and SparkCalc on one site gateway. Perpetual, per production gateway"},{"@type":"Offer","name":"Central server suite","price":"3495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"SparkBridge Central, SparkVault, SparkInject, Passage, SparkCalc, SparkID and FleetOps on the central gateway. Perpetual, per production gateway"},{"@type":"Offer","name":"Development and testing","price":"0","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/download","availability":"https://schema.org/InStock","description":"Free for non-production use, no time limit"}]}]}
+</script>
 </head>
 <body>
 
@@ -25,6 +35,7 @@
         <a href="/sparkbridge/" aria-current="page">Overview</a>
         <a href="/sparkbridge/products">Products</a>
         <a href="/sparkbridge/technology">Technology</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/resources">Resources</a>
@@ -50,6 +61,7 @@
         <a class="btn" href="/sparkbridge/products">See the products</a>
         <a class="btn ghost" href="/sparkbridge/pricing">See pricing</a>
       </div>
+      <p><a href="/sparkbridge/technology#compare">How it compares, feature by feature</a></p>
       <p class="hero-foot mono">Verified against the Eclipse TCK · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+ · free for development</p>
     </div>
 
@@ -86,7 +98,7 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="path">why</div>
-      <h2>Data, Subscribed.</h2>
+      <h2>Sparkplug B for Ignition, Subscribed.</h2>
       <p>Most of the time the answer is “nothing changed”. That traffic grows with how many tags you have and how many systems want them, not with what the plant actually did. Sparkplug turns it around: a site sends a value once when it changes, and any number of systems can subscribe to it.</p>
     </div>
     <div class="two">
@@ -213,7 +225,7 @@
         <p>Optional. Sparkplug Hyperscaled: streams every point in the plant to the whole company, live, lossless and replayable, with commands back under your control. <b>New in 2.5.0.</b> <a href="/sparkbridge/flow">Details</a>.</p>
       </article>
     </div>
-    <p class="note">Full feature detail, wire behavior and outage semantics are on the <a href="/sparkbridge/products">products page</a>.</p>
+    <p class="note">Full feature detail, wire behavior and outage semantics are on the <a href="/sparkbridge/products">products page</a>. <a href="/sparkbridge/architecture">Reference architectures</a> show where each module sits in a real estate.</p>
   </div>
 </section>
 

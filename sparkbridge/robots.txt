@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /sparkbridge
+Disallow: /sparkbridge/tck-*.log
+Disallow: /sparkbridge/tck-*.txt
+Sitemap: https://mqtt.greenguard-usa.com/sparkbridge/sitemap.xml

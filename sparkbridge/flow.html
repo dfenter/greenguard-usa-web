@@ -3,17 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SparkFlow: Sparkplug Hyperscaled | SparkBridge</title>
-<meta name="description" content="SparkFlow takes the plant data you already trust and streams it at cloud scale: millions of points, every consumer, zero loss, without replacing anything you run today.">
+<title>SparkFlow: NATS/JetStream Backbone for Sparkplug on Ignition | SparkBridge</title>
+<meta name="description" content="SparkFlow is the NATS/JetStream backbone for SparkBridge on Ignition: Sparkplug data streamed at cloud scale, millions of points, every consumer, zero loss, without replacing anything you run today. $995 per gateway.">
 <link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/flow">
-<meta property="og:title" content="SparkFlow: Sparkplug Hyperscaled">
-<meta property="og:description" content="Your plant data at cloud scale. Millions of points, every consumer, zero loss, nothing replaced.">
+<meta property="og:title" content="SparkFlow: NATS/JetStream for Sparkplug on Ignition">
+<meta property="og:description" content="SparkFlow is the NATS/JetStream backbone for SparkBridge on Ignition: Sparkplug data streamed at cloud scale, millions of points, every consumer, zero loss, without replacing anything you run today. $995 per gateway.">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/flow">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SparkFlow: NATS/JetStream for Sparkplug on Ignition">
+<meta name="twitter:description" content="SparkFlow is the NATS/JetStream backbone for SparkBridge on Ignition: Sparkplug data streamed at cloud scale, millions of points, every consumer, zero loss, without replacing anything you run today. $995 per gateway.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Saira+SemiCondensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Products","item":"https://mqtt.greenguard-usa.com/sparkbridge/products"},{"@type":"ListItem","position":3,"name":"SparkFlow","item":"https://mqtt.greenguard-usa.com/sparkbridge/flow"}]},{"@type":"SoftwareApplication","name":"SparkFlow","alternateName":"Sparkplug Hyperscaled","url":"https://mqtt.greenguard-usa.com/sparkbridge/flow","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","softwareVersion":"2.5.0","isPartOf":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#app"},"publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"SparkFlow is the NATS/JetStream backbone for SparkBridge on Ignition: Sparkplug data streamed at cloud scale, millions of points, every consumer, zero loss, without replacing anything you run today. $995 per gateway.","offers":{"@type":"Offer","price":"995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per central gateway. Sits outside both packages"}}]}
+</script>
 </head>
 <body>
 
@@ -25,6 +35,7 @@
         <a href="/sparkbridge/">Overview</a>
         <a href="/sparkbridge/products">Products</a>
         <a href="/sparkbridge/technology">Technology</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/resources">Resources</a>
@@ -41,6 +52,7 @@
       <div>
         <div class="eyebrow">SparkFlow</div>
         <h1>Sparkplug Hyperscaled</h1>
+        <p><strong>NATS/JetStream under Sparkplug, on Ignition.</strong></p>
         <p>Your plant already produces more data than your SCADA can hold. SparkFlow lifts everything SparkBridge collects onto a streaming backbone built for cloud scale, so millions of points reach every dashboard, historian, analyst and AI pipeline in your company, live and lossless, without replacing a single thing on the plant floor.</p>
         <div class="pmeta"><span class="stat">Released</span><span>SparkBridge 2.5.0</span><span>In the release bundle</span></div>
       </div>
@@ -82,9 +94,10 @@ missing: 0   ordering violations: 0</pre>
           <tr><th>What it is</th><td>The streaming backbone for your SparkBridge estate</td></tr>
           <tr><th>What changes on the floor</th><td>Nothing. It installs alongside what you run today</td></tr>
           <tr><th>Scale</th><td>Millions of points live, with no per-tag cost and no per-tag licensing</td></tr>
-          <tr><th>Delivery</th><td>Measured at 100 percent: 7.25 million messages sent, 7.25 million received</td></tr>
+          <tr><th>Delivery</th><td><a href="/sparkbridge/technology#compare">Measured at 100 percent</a>: 7.25 million messages sent, 7.25 million received</td></tr>
           <tr><th>Control</th><td>Commands back to the floor only from systems you have authorized, every reading trusted end to end</td></tr>
           <tr><th>State</th><td>Released 2026-08-23 in SparkBridge 2.5.0 as <span class="mono">SparkBridge-Flow.modl</span>. <a href="/sparkbridge/download">Download</a>. $995 per central gateway, perpetual - see <a href="/sparkbridge/pricing">pricing</a></td></tr>
+          <tr><th>Underneath</th><td>Runs on the SparkBridge Host and Edge described on the <a href="/sparkbridge/technology#lifecycle">technology page</a>. Measured figures are in <a href="/sparkbridge/technology#numbers">Performance Quantified</a> and the <a href="/sparkbridge/technology#compare">feature comparison</a>.</td></tr>
         </table>
       </div>
     </div>

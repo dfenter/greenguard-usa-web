@@ -46,7 +46,7 @@ a.dev:hover{border-left-color:var(--marker)}
   text-transform:uppercase;color:var(--paper-dim);
 }
 .dev .devname{
-  font-family:"Saira SemiCondensed",sans-serif;font-weight:700;text-transform:uppercase;
+  font-family:"Saira Semi Condensed",sans-serif;font-weight:700;text-transform:uppercase;
   font-size:19px;line-height:1.06;letter-spacing:.015em;
 }
 .dev .job{font-size:13.5px;color:var(--paper-dim);line-height:1.42}
@@ -83,7 +83,7 @@ a.dev:hover{border-left-color:var(--marker)}
   text-decoration:none;color:#fff;background:rgba(255,255,255,.02);
 }
 a.clamp:hover,a.clamp:focus-visible{background:rgba(255,255,255,.05);border-color:var(--paper-dim)}
-.clamp .devname{font-family:"Saira SemiCondensed",sans-serif;font-weight:700;text-transform:uppercase;font-size:17px;letter-spacing:.015em}
+.clamp .devname{font-family:"Saira Semi Condensed",sans-serif;font-weight:700;text-transform:uppercase;font-size:17px;letter-spacing:.015em}
 .clamp .job{font-size:13.5px;color:var(--paper-dim)}
 .clamp .tagno{font-family:"Spline Sans Mono",monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--paper-dim)}
 
@@ -165,7 +165,7 @@ a.clamp:hover,a.clamp:focus-visible{background:rgba(255,255,255,.05);border-colo
 
 /* score plate (Sentinel) */
 .score{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin-bottom:6px}
-.score .n{font-family:"Saira SemiCondensed",sans-serif;font-weight:700;font-size:52px;line-height:1;color:#fff}
+.score .n{font-family:"Saira Semi Condensed",sans-serif;font-weight:700;font-size:52px;line-height:1;color:#fff}
 .score .n.was{color:var(--paper-dim);font-size:30px;text-decoration:line-through;text-decoration-thickness:2px}
 .score .grade{font-family:"Spline Sans Mono",monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--marker)}
 
@@ -199,7 +199,7 @@ a.clamp:hover,a.clamp:focus-visible{background:rgba(255,255,255,.05);border-colo
 /* A claim set at display size, then a narrow measure of prose, then a real spec
    table. Panel shops read datasheets; a three-up card grid is not their vernacular. */
 .claim{
-  font-family:"Saira SemiCondensed",sans-serif;font-weight:700;text-transform:uppercase;
+  font-family:"Saira Semi Condensed",sans-serif;font-weight:700;text-transform:uppercase;
   font-size:clamp(26px,3.4vw,42px);line-height:1.04;letter-spacing:.01em;
   max-width:22ch;margin:0 0 26px;
 }
@@ -239,7 +239,7 @@ a.clamp:hover,a.clamp:focus-visible{background:rgba(255,255,255,.05);border-colo
 /* one number, said once */
 .figure{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;margin:0 0 10px}
 .figure b{
-  font-family:"Saira SemiCondensed",sans-serif;font-weight:700;font-size:clamp(46px,6vw,74px);
+  font-family:"Saira Semi Condensed",sans-serif;font-weight:700;font-size:clamp(46px,6vw,74px);
   line-height:.92;letter-spacing:-.01em;
 }
 .figure span{font-family:"Spline Sans Mono",monospace;font-size:12px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-soft);max-width:30ch;line-height:1.5}

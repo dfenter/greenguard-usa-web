@@ -2,7 +2,7 @@
    Vernacular: the electrical panel. Machined-aluminum ground, graphite enclosure
    bands, and ONE accent — run-light green — used as the wire-marker tags that
    open every section along a vertical wire rail. Display type is signage
-   (Saira SemiCondensed), body is Public Sans, data is Spline Sans Mono.
+   (Saira Semi Condensed), body is Public Sans, data is Spline Sans Mono.
    Single committed look: light, precise, panel-shop. */
 :root{
   --graphite:#161A1F;   /* enclosure: bands, footer, buttons */
@@ -31,7 +31,7 @@ body{
   font-size:16.5px;line-height:1.62;
 }
 h1,h2,h3{
-  font-family:"Saira SemiCondensed","Saira",system-ui,sans-serif;
+  font-family:"Saira Semi Condensed","Arial Narrow",system-ui,sans-serif;
   margin:0;line-height:1.04;letter-spacing:.005em;font-weight:700;
   text-transform:uppercase;
 }
@@ -47,7 +47,7 @@ img{max-width:100%}
 .topicbar{position:sticky;top:0;z-index:50;background:var(--graphite);color:#fff;border-bottom:3px solid var(--marker)}
 .topicbar .wrap{display:flex;align-items:center;gap:20px;height:56px}
 .brand{
-  font-family:"Saira SemiCondensed",sans-serif;font-weight:700;font-size:19px;letter-spacing:.02em;
+  font-family:"Saira Semi Condensed",sans-serif;font-weight:700;font-size:19px;letter-spacing:.02em;
   text-transform:uppercase;text-decoration:none;white-space:nowrap;display:inline-flex;align-items:center;
 }
 .brand::before{content:"";width:14px;height:14px;margin-right:10px;background:var(--marker);clip-path:polygon(0 0,100% 0,100% 62%,62% 62%,62% 100%,0 100%)}
@@ -79,20 +79,13 @@ img{max-width:100%}
   clip-path:polygon(100% 0,0 25%,100% 50%,0 75%,100% 100%);
 }
 
-/* ---- wire rail down the page ---- */
-.railed{position:relative}
-.railed::before{
-  content:"";position:absolute;top:0;bottom:0;left:calc(50% - min(50%, calc(var(--maxw)/2)) + var(--rail-x));
-  width:2px;background:linear-gradient(var(--steel) 60%, transparent 0) 0 0/2px 9px repeat-y;
-}
-@media (max-width:900px){.railed::before{display:none}}
 
 /* ---- page head (interior pages) ---- */
 .phead{background:var(--graphite);color:#fff;padding:64px 0 52px;position:relative}
 .phead .eyebrow{margin-bottom:20px}
 .phead h1{font-size:clamp(38px,5.4vw,64px);max-width:20ch}
 .phead p{margin:20px 0 0;color:var(--paper-dim);max-width:62ch;font-size:17.5px}
-.eyebrow{display:inline-block;width:max-content;max-width:100%}
+.eyebrow{display:inline-block;width:max-content;max-width:100%;box-sizing:border-box;overflow-x:auto}
 .phead .eyebrow, .eyebrow{ /* eyebrows render as cable markers everywhere */
   font-family:"Spline Sans Mono",monospace;font-size:11.5px;font-weight:500;letter-spacing:.14em;
   text-transform:uppercase;color:var(--marker-ink);background:var(--marker);padding:4px 12px;border-radius:2px;
@@ -117,7 +110,7 @@ main section:nth-of-type(even):not(.band):not(.tail){background:var(--bone-2)}
 
 /* ---- buttons ---- */
 .btn{
-  display:inline-block;font-family:"Saira SemiCondensed",sans-serif;font-weight:600;font-size:15px;
+  display:inline-block;font-family:"Saira Semi Condensed",sans-serif;font-weight:600;font-size:15px;
   letter-spacing:.05em;text-transform:uppercase;padding:13px 24px;text-decoration:none;
   background:var(--graphite);color:#fff;border:1px solid var(--graphite);
   border-left:6px solid var(--marker);
@@ -150,7 +143,7 @@ main section:nth-of-type(even):not(.band):not(.tail){background:var(--bone-2)}
 /* ---- tables (engraved data plates, open engraving: no box, no verticals;
    hairline rows under a 2px graphite header rule whose lead-column segment
    runs light green — the lit legend strip) ---- */
-.scroller{overflow-x:auto}
+.scroller{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
 .tbl{border-collapse:collapse;width:100%;font-size:15px;background:transparent;border:0}
 .tbl th,.tbl td{
   padding:14px 32px 14px 0;text-align:left;vertical-align:top;
@@ -228,7 +221,7 @@ main section:nth-of-type(even):not(.band):not(.tail){background:var(--bone-2)}
    read as one system - equal heights from the grid, equal button position from the flex. */
 .tiers .tier{display:flex;flex-direction:column}
 .tier .act{margin-top:auto;padding-top:20px}
-.tier .act .btn{display:block;text-align:center;white-space:nowrap}
+.tier .act .btn{display:block;text-align:center;white-space:normal}
 .tier .top{padding-bottom:14px;border-bottom:1px solid var(--steel);margin-bottom:14px}
 .tier.feature .top{border-bottom-color:var(--steel-dark)}
 /* Dual role price: two labeled rows sharing one plate */
@@ -247,7 +240,7 @@ main section:nth-of-type(even):not(.band):not(.tail){background:var(--bone-2)}
 .tier.feature h3{color:var(--paper-dim)}
 .tier .why{border-left:0;padding:12px 0 0;margin:8px 0 0;border-top:1px solid var(--steel);font-size:14px}
 .tier.feature .why{border-top-color:var(--steel-dark)}
-.price{font-family:"Saira SemiCondensed",sans-serif;font-weight:700;font-size:42px;line-height:1.1;margin:10px 0 0}
+.price{font-family:"Saira Semi Condensed",sans-serif;font-weight:700;font-size:42px;line-height:1.1;margin:10px 0 0}
 .price small{display:block;font-family:"Public Sans",sans-serif;font-weight:400;font-size:13.5px;color:var(--ink-soft);margin-top:8px;text-transform:none;letter-spacing:0}
 
 /* ---- hero (index) ---- */
@@ -326,7 +319,7 @@ footer a:hover{color:#fff}
 /* ---- Ask an Engineer (sb-chat.js) ---- */
 #sbchat-fab{
   position:fixed;right:22px;bottom:22px;z-index:90;display:inline-flex;align-items:center;gap:9px;
-  font-family:"Saira SemiCondensed",sans-serif;font-weight:600;font-size:14.5px;letter-spacing:.05em;text-transform:uppercase;
+  font-family:"Saira Semi Condensed",sans-serif;font-weight:600;font-size:14.5px;letter-spacing:.05em;text-transform:uppercase;
   padding:12px 18px;border:1px solid var(--graphite);border-left:6px solid var(--marker);
   background:var(--graphite);color:#fff;cursor:pointer;box-shadow:0 8px 28px rgba(22,26,31,.35);
 }
@@ -342,7 +335,7 @@ footer a:hover{color:#fff}
   display:flex;justify-content:space-between;align-items:flex-start;gap:10px;
   background:var(--graphite);color:#fff;padding:13px 16px;border-bottom:3px solid var(--marker);
 }
-#sbchat-panel header strong{font-family:"Saira SemiCondensed",sans-serif;font-size:16px;letter-spacing:.04em;text-transform:uppercase;display:block}
+#sbchat-panel header strong{font-family:"Saira Semi Condensed",sans-serif;font-size:16px;letter-spacing:.04em;text-transform:uppercase;display:block}
 #sbchat-panel .sbchat-sub{display:block;font-size:11px;color:var(--paper-dim);margin-top:2px}
 #sbchat-close{background:none;border:0;color:#fff;font-size:22px;line-height:1;cursor:pointer;padding:0 2px}
 #sbchat-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
@@ -358,7 +351,7 @@ footer a:hover{color:#fff}
 #sbchat-in{flex:1;resize:none;border:1px solid var(--steel);padding:8px 10px;font:inherit;font-size:14px;background:var(--paper);color:var(--ink)}
 #sbchat-in:focus-visible{outline:2px solid var(--marker);outline-offset:1px}
 #sbchat-send{
-  font-family:"Saira SemiCondensed",sans-serif;font-weight:600;font-size:14px;letter-spacing:.05em;text-transform:uppercase;
+  font-family:"Saira Semi Condensed",sans-serif;font-weight:600;font-size:14px;letter-spacing:.05em;text-transform:uppercase;
   padding:0 18px;border:1px solid var(--graphite);border-left:5px solid var(--marker);background:var(--graphite);color:#fff;cursor:pointer;
 }
 #sbchat-send:disabled{opacity:.55;cursor:default}
@@ -367,7 +360,7 @@ footer a:hover{color:#fff}
 @media (prefers-reduced-motion:reduce){#sbchat-fab .sbchat-dot,.sbchat-thinking span{animation:none}}
 
 /* ---- spec page (generated by _spec_build.py) ---- */
-.spec-mast .mast{display:flex;flex-wrap:wrap;gap:0;margin:26px 0 22px;padding:0;border:1px solid var(--steel-dark);background:var(--graphite-2);width:max-content;max-width:100%}
+.spec-mast .mast{display:flex;flex-wrap:wrap;gap:0;margin:26px 0 22px;padding:0;border:1px solid var(--steel-dark);background:var(--graphite-2);width:max-content;max-width:100%;box-sizing:border-box;overflow-x:auto}
 .spec-mast .mast>div{display:flex;flex-direction:column;gap:2px;padding:10px 18px;border-right:1px solid var(--steel-dark);min-width:0}
 .spec-mast .mast>div:last-child{border-right:0}
 .spec-mast .mast dt{font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--paper-dim)}
@@ -428,7 +421,7 @@ footer a:hover{color:#fff}
 .c h3{font-size:18px;margin:8px 0 6px}
 .c p{font-size:13.5px;color:var(--ink-soft);margin:0 0 4px}
 .band .c p{color:var(--paper-dim)}
-.c .n{font-family:"Saira SemiCondensed",sans-serif;font-weight:700;font-size:40px;line-height:1;display:block;margin-top:10px}
+.c .n{font-family:"Saira Semi Condensed",sans-serif;font-weight:700;font-size:40px;line-height:1;display:block;margin-top:10px}
 section.tail{background:var(--graphite);color:#fff;text-align:left}
 section.tail h2{font-size:clamp(30px,4vw,48px)}
 section.tail p{color:var(--paper-dim);max-width:60ch}
@@ -447,18 +440,18 @@ section.tail p{color:var(--paper-dim);max-width:60ch}
 .mod .sig{font-family:"Spline Sans Mono",monospace;font-size:12px;color:var(--paper-dim);display:block;margin-bottom:8px}
 .modstat{margin:16px 0 6px}
 .modstat b{
-  font-family:"Saira SemiCondensed",sans-serif;font-weight:700;font-size:34px;line-height:1.05;
+  font-family:"Saira Semi Condensed",sans-serif;font-weight:700;font-size:34px;line-height:1.05;
   display:block;color:var(--marker);
 }
 .modstat span{font-size:13.5px;color:var(--paper-dim)}
-.mod-body h4,.mod-body summary{font-family:"Saira SemiCondensed",sans-serif;font-weight:600;font-size:15px;letter-spacing:.04em;text-transform:uppercase;margin:18px 0 8px;cursor:pointer}
+.mod-body h4,.mod-body summary{font-family:"Saira Semi Condensed",sans-serif;font-weight:600;font-size:15px;letter-spacing:.04em;text-transform:uppercase;margin:18px 0 8px;cursor:pointer}
 .mod-body ul{margin:0 0 12px;padding-left:0;list-style:none}
 .mod-body li{margin-bottom:10px;font-size:14px;color:var(--paper-dim)}
 .mod-body li b{display:block;color:#fff;font-weight:600;font-size:13.5px;letter-spacing:.02em;margin-bottom:2px}
 
 /* ---- spacing pass (2026-08-14 audit): sub-labels, run-in pairs, captions ---- */
 h4{
-  font-family:"Saira SemiCondensed",sans-serif;font-weight:600;font-size:15px;
+  font-family:"Saira Semi Condensed",sans-serif;font-weight:600;font-size:15px;
   letter-spacing:.05em;text-transform:uppercase;line-height:1.2;margin:0 0 10px;
 }
 .floor{
@@ -528,3 +521,13 @@ section.tail .cta-row{margin-top:26px}
   .lifeline li::before{left:4px}
   .lc{justify-self:start;text-align:left}
 }
+
+/* ---- mobile overflow guard (PERF-03) ---- */
+html,body{overflow-x:clip}
+@media (max-width:480px){
+  .scroller,.tbl,pre{max-width:100%}
+  img,svg,video{max-width:100%;height:auto}
+  .spec-mast .mast{width:100%}
+}
+
+.glossary dt{font-weight:600;margin-top:.6rem}
