@@ -104,6 +104,21 @@
   ],
   "headers": [
     {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "new.greenguard-usa.com"
+        }
+      ],
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
       "source": "/(.*)",
       "headers": [
         {
