@@ -302,6 +302,75 @@ function runClaude({ audience, email, message, history, context, images, deadlin
 
 // ── Per-user serialization (finding #5) ──────────────────────────────────────
 // Two concurrent turns for the same audience:email would resume ONE Claude
+
+// ── Generic completion (no MCP tools) ───────────────────────────────────────
+// Used by the Gmail agent (drafts, property assessment, win-back) and any
+// other server job that used to call the metered Messages API. Single-turn,
+// no session, no tools except Read scoped to scratch for attached images.
+// Body: { system, prompt, images?:[{media_type,data}], json?:true, model?, effort? }
+function runComplete({ system, prompt, images, json, model, effort, deadlineMs }) {
+  return new Promise((resolve) => {
+    const reqId = crypto.randomUUID()
+    const imageFiles = []
+    for (const [n, img] of (images || []).entries()) {
+      const ext = img.media_type === 'image/png' ? 'png' : img.media_type === 'image/webp' ? 'webp' : 'jpg'
+      const f = path.join(SCRATCH, `cimg-${reqId}-${n}.${ext}`)
+      try { fs.writeFileSync(f, Buffer.from(img.data, 'base64'), { mode: 0o600 }); imageFiles.push(f) } catch {}
+    }
+    const childEnv = {
+      ...process.env,
+      ANTHROPIC_API_KEY: undefined,
+      ANTHROPIC_AUTH_TOKEN: undefined,
+      PATH: `${process.env.PATH || ''}:${os.homedir()}/.local/bin:/usr/local/bin:/usr/bin:/bin`,
+      HOME: os.homedir(),
+    }
+    let sys = String(system || '')
+    if (json) sys += '\n\nRespond with VALID JSON only — no prose, no markdown fences. Start with { and end with }.'
+    let p = String(prompt || '')
+    if (imageFiles.length) {
+      p += `\n\n[${imageFiles.length} image(s) attached, saved at:\n${imageFiles.join('\n')}\nView them with the Read tool before answering.]`
+    }
+    const mcpConfigFile = path.join(SCRATCH, `mcp-${reqId}.json`)
+    fs.writeFileSync(mcpConfigFile, JSON.stringify({ mcpServers: {} }))
+    const args = [
+      '-p', '--output-format', 'json',
+      '--system-prompt', sys,
+      '--mcp-config', mcpConfigFile, '--strict-mcp-config',
+      '--allowedTools', imageFiles.length ? `Read(/${SCRATCH}/**)` : '',
+      '--disallowedTools', 'Bash,Write,Edit,Glob,Grep,WebFetch,WebSearch,Task,NotebookEdit,TodoWrite,KillShell,BashOutput' + (imageFiles.length ? '' : ',Read'),
+      '--max-turns', imageFiles.length ? '4' : '1',
+      '--model', ['haiku', 'sonnet', 'opus'].includes(model) ? model : 'haiku',
+      '--effort', ['low', 'medium', 'high'].includes(effort) ? effort : 'low',
+      '--session-id', crypto.randomUUID(),
+    ]
+    const child = spawn(CLAUDE_BIN, args, { cwd: SCRATCH, env: childEnv })
+    let stdout = '', stderr = '', killed = false
+    const timer = setTimeout(() => { killed = true; child.kill('SIGTERM'); setTimeout(() => { try { child.kill('SIGKILL') } catch {} }, 5000) }, Math.max(1000, deadlineMs - Date.now()))
+    child.stdout.on('data', (d) => { stdout += d })
+    child.stderr.on('data', (d) => { stderr += d })
+    child.stdin.write(p); child.stdin.end()
+    const cleanup = () => { try { fs.unlinkSync(mcpConfigFile) } catch {}; for (const f of imageFiles) { try { fs.unlinkSync(f) } catch {} } }
+    child.on('close', (code) => {
+      clearTimeout(timer); cleanup()
+      let parsed = null
+      try { parsed = JSON.parse(stdout) } catch {}
+      if (killed) return resolve({ ok: false, error: 'budget exceeded' })
+      if (code !== 0 || !parsed || parsed.is_error || typeof parsed.result !== 'string') {
+        return resolve({ ok: false, error: `claude exit ${code}: ${(parsed?.result || stderr || stdout || '').slice(0, 400)}` })
+      }
+      let text = parsed.result.trim()
+      if (json) {
+        const cleaned = text.replace(/^```(?:json)?\s*/, '').replace(/```\s*$/, '').trim()
+        const a = cleaned.indexOf('{'), b = cleaned.lastIndexOf('}')
+        const candidate = a >= 0 && b > a ? cleaned.slice(a, b + 1) : cleaned
+        try { JSON.parse(candidate); text = candidate } catch { return resolve({ ok: false, error: 'non-JSON reply', text }) }
+      }
+      resolve({ ok: true, text, usage: parsed.usage || null })
+    })
+    child.on('error', (e) => { clearTimeout(timer); cleanup(); resolve({ ok: false, error: `spawn failed: ${e.message}` }) })
+  })
+}
+
 // session simultaneously — interleaved context and racing mutations. Chain
 // same-key runs so a user's turns execute strictly one at a time. Different
 // users still run concurrently up to MAX_CONCURRENT.
@@ -367,6 +436,45 @@ function sendJson(res, code, obj) {
 const server = http.createServer((req, res) => {
   if (req.method === 'GET' && req.url === '/healthz') {
     return sendJson(res, 200, { ok: true, running, queued: queue.length })
+  }
+
+  if (req.url === '/complete') {
+    if (req.method !== 'POST') return sendJson(res, 404, { error: 'not found' })
+    const given = String(req.headers['x-gg-chat-secret'] || '')
+    const a = Buffer.from(given), b = Buffer.from(SECRET)
+    if (!SECRET || a.length !== b.length || !crypto.timingSafeEqual(a, b)) return sendJson(res, 401, { error: 'unauthorized' })
+    let size = 0; const chunks = []
+    req.on('data', (d) => { size += d.length; if (size > MAX_BODY) { req.destroy(); try { sendJson(res, 413, { error: 'too large' }) } catch {} } else chunks.push(d) })
+    req.on('end', () => {
+      if (size > MAX_BODY) return
+      let body
+      try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')) } catch { return sendJson(res, 400, { error: 'bad json' }) }
+      const { system, prompt, images, json, model, effort } = body || {}
+      if (!prompt || typeof prompt !== 'string') return sendJson(res, 400, { error: 'prompt required' })
+      if (prompt.length > 60_000 || String(system || '').length > 20_000) return sendJson(res, 400, { error: 'prompt too long' })
+      const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+      const capImages = Array.isArray(images) ? images.slice(0, 3).flatMap((i) => {
+        if (!i || !IMAGE_TYPES.has(i.media_type)) return []
+        const data = String(i.data || '')
+        if (!data || data.length > 2_500_000 || !/^[A-Za-z0-9+/=]+$/.test(data)) return []
+        return [{ media_type: i.media_type, data }]
+      }) : []
+      if (queue.length >= MAX_QUEUE) return sendJson(res, 503, { ok: false, error: 'busy' })
+      const deadlineMs = Date.now() + RUN_BUDGET_MS
+      queue.push({
+        enqueueDeadline: Date.now() + 20_000,
+        reject503: (why) => sendJson(res, 503, { ok: false, error: why }),
+        run: async () => {
+          const t0 = Date.now()
+          log(`complete: "${prompt.slice(0, 60).replace(/\n/g, ' ')}" json=${!!json} imgs=${capImages.length}`)
+          const out = await runComplete({ system, prompt, images: capImages, json: !!json, model, effort, deadlineMs })
+          log(`complete done ok=${out.ok} ${Date.now() - t0}ms${out.ok ? '' : ' err=' + out.error}`)
+          sendJson(res, out.ok ? 200 : 500, out)
+        },
+      })
+      pump()
+    })
+    return
   }
   const m = req.url.match(/^\/chat\/(customer|admin|sparkbridge)$/)
   if (!m) return sendJson(res, 404, { error: 'not found' })

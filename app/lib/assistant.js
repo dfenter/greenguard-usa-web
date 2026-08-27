@@ -17,6 +17,12 @@ async function runAssistant({
   maxTokens = 1024,
   maxTurns = 6,
 }) {
+  // Metered API path is OFF by default (2026-08-27): all assistant traffic runs
+  // through the Mac chat-daemon (claude CLI, subscription). Set
+  // ASSISTANT_API_FALLBACK=1 to re-enable the paid fallback when the Mac is down.
+  if (process.env.ASSISTANT_API_FALLBACK !== '1') {
+    return { reply: "The assistant is offline right now. Please try again in a few minutes, or email admin@greenguard-usa.com.", actions: [], offline: true }
+  }
   const client = getClient()
   const toolDefs = tools.map(({ name, description, input_schema }) => ({ name, description, input_schema }))
   const toolMap = Object.fromEntries(tools.map((t) => [t.name, t]))
