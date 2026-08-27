@@ -30,7 +30,7 @@ h3{font-size:22px;font-variation-settings:"wdth" 96}
 p.lede{font-size:clamp(18px,2vw,22px);color:#2C323B;max-width:56ch}
 /* nav */
 nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0}
-.brand{font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:-.01em;text-decoration:none;display:flex;align-items:center;gap:10px}
+.brand{white-space:nowrap;font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:-.01em;text-decoration:none;display:flex;align-items:center;gap:10px}
 .brand i{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--marquee);box-shadow:0 0 0 4px #F9D6DA}
 nav .links{display:flex;gap:26px;font-size:15px;font-weight:500}
 nav .links a{text-decoration:none;color:var(--slate)}
@@ -114,6 +114,7 @@ footer.site a{color:var(--slate)}
   .g3,.price{grid-template-columns:1fr}
   .g2{grid-template-columns:1fr}
   nav .links{display:none}
+  nav .btn{padding:10px 14px;font-size:14px;white-space:nowrap}
   section{padding:52px 0}
   .signup{padding:28px}
 }
