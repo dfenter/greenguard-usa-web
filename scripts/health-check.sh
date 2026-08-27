@@ -146,22 +146,25 @@ else
   fi
 fi
 
-# ── 6. Google Places API ──────────────────────────────────────────────────────
+# ── 6. Google Places API (New) ───────────────────────────────────────────────
 echo -e "\n${CYAN}── Google Places ─────────────────────────────────────────${NC}"
-GAPI_KEY="${GOOGLE_API_KEY:-}"
+# Legacy Place Details rejects our place ID ("no longer valid"); Places API (New)
+# resolves it. PLACES_SERVER_KEY lives in app/.env (same key astro/scripts/fetch-reviews.mjs uses).
+GAPI_KEY="${PLACES_SERVER_KEY:-}"
 if [[ -z "$GAPI_KEY" ]]; then
-  # GOOGLE_API_KEY is only required in GitHub Actions (secret: GOOGLE_PLACES_API_KEY)
-  # Not needed locally — skip as warning, not failure
-  warn "GOOGLE_API_KEY not set locally (only required in GitHub Actions)"
+  fail "PLACES_SERVER_KEY not set (app/.env)"
 else
   BODY=$(curl -s --max-time 10 \
-    "https://maps.googleapis.com/maps/api/place/details/json?place_id=ChIJx8wLC4K11wwRbfe7hhZiHXs&fields=name&key=${GAPI_KEY}")
-  if echo "$BODY" | grep -q '"OK"'; then
-    NAME=$(echo "$BODY" | grep -o '"name":"[^"]*"' | head -1)
-    ok "Google Places API → $NAME"
+    -H "X-Goog-Api-Key: ${GAPI_KEY}" \
+    -H "X-Goog-FieldMask: displayName,rating,userRatingCount" \
+    "https://places.googleapis.com/v1/places/ChIJx8wLC4K11wwRbfe7hhZiHXs")
+  if echo "$BODY" | grep -q '"userRatingCount"'; then
+    RATING=$(echo "$BODY" | grep -o '"rating": *[0-9.]*' | head -1 | grep -o '[0-9.]*$')
+    COUNT=$(echo "$BODY" | grep -o '"userRatingCount": *[0-9]*' | head -1 | grep -o '[0-9]*$')
+    ok "Google Places API → GreenGuard USA ${RATING}★ (${COUNT} reviews)"
   else
-    STATUS_VAL=$(echo "$BODY" | grep -o '"status":"[^"]*"' | head -1)
-    fail "Google Places API → $STATUS_VAL (expected OK)"
+    STATUS_VAL=$(echo "$BODY" | grep -o '"status": *"[^"]*"' | head -1)
+    fail "Google Places API → ${STATUS_VAL:-no response} (expected userRatingCount)"
   fi
 fi
 
