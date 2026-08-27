@@ -1,3 +1,4 @@
+const { localComplete } = require('./claude-local')
 // Thin LLM wrapper. Gemini primary, Groq fallback on rate-limit / 5xx.
 // Both free at GreenGuard's scale.
 
@@ -62,6 +63,9 @@ async function callGroq({ system, user, model = 'llama-3.3-70b-versatile', json 
  * error (5xx), fall back to Groq. Throws on both failures.
  */
 async function complete(opts) {
+  // Local-first: Claude CLI (Opus, low effort) on the office Mac.
+  const local = await localComplete({ system: opts.system || '', prompt: opts.user, json: !!opts.json })
+  if (local) return { text: local.text, usage: local.usage, model: 'claude-cli-opus-low' }
   // Skip Gemini entirely when the key is missing or known-bad.
   if (process.env.GOOGLE_GEMINI_API_KEY) {
     try {

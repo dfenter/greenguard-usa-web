@@ -229,7 +229,8 @@ function runClaude({ audience, email, message, history, context, images, deadlin
       // Public product Q&A runs on opus at low effort (Dan's call 2026-08-14):
       // stronger grounding and synthesis than haiku, effort capped for latency
       // and subscription spend. Portal tiers keep the default model.
-      ...(audience === 'sparkbridge' ? ['--model', 'opus', '--effort', 'low'] : []),
+      // All tiers run Opus at low effort (Dan's call 2026-08-27).
+      '--model', 'opus', '--effort', 'low',
       ...(resumeId ? ['--resume', resumeId] : ['--session-id', newSessionId]),
     ]
 
@@ -339,7 +340,7 @@ function runComplete({ system, prompt, images, json, model, effort, deadlineMs }
       '--allowedTools', imageFiles.length ? `Read(/${SCRATCH}/**)` : '',
       '--disallowedTools', 'Bash,Write,Edit,Glob,Grep,WebFetch,WebSearch,Task,NotebookEdit,TodoWrite,KillShell,BashOutput' + (imageFiles.length ? '' : ',Read'),
       '--max-turns', imageFiles.length ? '4' : '1',
-      '--model', ['haiku', 'sonnet', 'opus'].includes(model) ? model : 'haiku',
+      '--model', ['haiku', 'sonnet', 'opus'].includes(model) ? model : 'opus',
       '--effort', ['low', 'medium', 'high'].includes(effort) ? effort : 'low',
       '--session-id', crypto.randomUUID(),
     ]

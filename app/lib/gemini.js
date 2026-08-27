@@ -1,9 +1,12 @@
 // Google Gemini 2.0 Flash — AI text generation
 const biz = require('./business.config')
+const { localComplete, imageFromUrl } = require('./claude-local')
 const MODEL = 'gemini-2.0-flash-lite'
 const BASE = 'https://generativelanguage.googleapis.com/v1beta'
 
 async function generate(prompt, systemInstruction = null) {
+  const local = await localComplete({ system: systemInstruction || '', prompt })
+  if (local) return local.text
   const key = process.env.GOOGLE_GEMINI_API_KEY
   if (!key) throw new Error('GOOGLE_GEMINI_API_KEY not set')
 
@@ -71,6 +74,8 @@ Keep it to 2-3 sentences. No pressure. Focus on their benefit. Do not mention fr
 
 // ── JSON output helper ───────────────────────────────────────────────────────
 async function generateJSON({ system, user, maxTokens = 1024 }) {
+  const local = await localComplete({ system: system || '', prompt: user, json: true })
+  if (local) return JSON.parse(local.text)
   const key = process.env.GOOGLE_GEMINI_API_KEY
   if (!key) throw new Error('GOOGLE_GEMINI_API_KEY not set')
   const body = {
@@ -93,6 +98,11 @@ async function generateJSON({ system, user, maxTokens = 1024 }) {
 
 // ── Vision helper ────────────────────────────────────────────────────────────
 async function visionJSON({ system, imageUrl, prompt, maxTokens = 1024 }) {
+  try {
+    const img = await imageFromUrl(imageUrl)
+    const local = img && await localComplete({ system: system || '', prompt, images: [img], json: true })
+    if (local) return JSON.parse(local.text)
+  } catch (e) { console.log('claude-local vision skipped:', e.message) }
   const key = process.env.GOOGLE_GEMINI_API_KEY
   if (!key) throw new Error('GOOGLE_GEMINI_API_KEY not set')
   const r = await fetch(imageUrl)
@@ -127,6 +137,11 @@ async function visionJSON({ system, imageUrl, prompt, maxTokens = 1024 }) {
 
 // ── Conversational chat (multi-turn, optional tools via prompt-engineering) ──
 async function chat({ system, history = [], userMessage, maxTokens = 1024, temperature = 0.5 }) {
+  {
+    const h = history.map((m) => `${m.role === 'assistant' ? 'Assistant' : 'User'}: ${m.content}`).join('\n')
+    const local = await localComplete({ system: system || '', prompt: h ? `Earlier:\n${h}\n\nNew message: ${userMessage}` : userMessage })
+    if (local) return local.text
+  }
   const key = process.env.GOOGLE_GEMINI_API_KEY
   if (!key) throw new Error('GOOGLE_GEMINI_API_KEY not set')
   const contents = []
