@@ -18,7 +18,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{background:var(--ground);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased}
+body{overflow-x:hidden;background:var(--ground);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased}
 a{color:inherit}
 :focus-visible{outline:3px solid var(--marquee);outline-offset:3px}
 .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
@@ -42,6 +42,7 @@ nav .links a:hover{color:var(--ink)}
 .btn.ghost{background:transparent;color:var(--ink)}
 .btn.ghost:hover{background:#fff}
 /* hero */
+.hero>*{min-width:0}
 .hero{display:grid;grid-template-columns:1.05fr 1fr;gap:48px;align-items:center;padding:56px 0 72px}
 .hero .copy>*+*{margin-top:22px}
 .hero .cta{display:flex;gap:12px;flex-wrap:wrap}
@@ -56,6 +57,7 @@ h1 em{font-style:normal;color:var(--marquee)}
 .log ol{list-style:none}
 .log li{display:grid;grid-template-columns:52px 1fr;gap:14px;opacity:0;transform:translateY(6px);animation:rise .5s forwards}
 .log li time{color:var(--brass)}
+.log li span{min-width:0;overflow-wrap:anywhere}
 .log li span b{color:#fff;font-weight:500}
 .log li.owner{color:var(--log-dim);font-style:italic}
 .log li.owner time{color:var(--log-dim)}
@@ -94,6 +96,7 @@ section{padding:72px 0}
 .plan .btn{margin-top:20px;text-align:center}
 .fine{color:var(--slate);font-size:14px;margin-top:18px;max-width:70ch}
 /* form */
+.signup>*{min-width:0}
 .signup{background:var(--log);color:var(--log-ink);border-radius:16px;padding:44px;display:grid;grid-template-columns:1.1fr 1fr;gap:36px;align-items:center}
 .signup h2{color:#fff}
 .signup p{color:#B9C1CC}
@@ -105,6 +108,8 @@ form .btn{border-color:var(--marquee)}
 footer.site{padding:36px 0;color:var(--slate);font-size:14px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
 footer.site a{color:var(--slate)}
 @media (max-width:900px){
+  .log{padding:16px 14px;font-size:12.5px}
+  .log li{grid-template-columns:44px 1fr;gap:10px}
   .hero,.how,.signup{grid-template-columns:1fr}
   .g3,.price{grid-template-columns:1fr}
   .g2{grid-template-columns:1fr}
