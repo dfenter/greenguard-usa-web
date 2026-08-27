@@ -1,4 +1,2 @@
 User-agent: *
-Allow: /
-
-Sitemap: https://new.greenguard-usa.com/sitemap-index.xml
+Disallow: /

@@ -51,7 +51,7 @@ const faqSchema = faqs.length ? {
 <Base
   title={`Mosquito Control ${city} TX | Pesticide-Free CO₂ Traps | GreenGuard USA`}
   description={`Professional CO₂ mosquito control in ${city}, TX. Pesticide-free, no contracts, all-electric fleet. Free property assessment. Call 512-560-4129.`}
-  canonical={`https://www.greenguard-usa.com/mosquito-control-${entry.slug}`}
+  canonical={`https://www.greenguard-usa.com/mosquito-control-${entry.slug}/`}
 >
   <script slot="head" type="application/ld+json" set:html={JSON.stringify(serviceSchema)} />
   {faqSchema && <script slot="head" type="application/ld+json" set:html={JSON.stringify(faqSchema)} />}
