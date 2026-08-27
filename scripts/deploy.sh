@@ -3,6 +3,7 @@
 # Usage:
 #   ./scripts/deploy.sh portal     → deploys portal.greenguard-usa.com (Next.js app)
 #   ./scripts/deploy.sh site       → deploys greenguard-usa.com (static marketing site)
+#   ./scripts/deploy.sh ops        → deploys ops.greenguard-usa.com (One Person Show, static, ops/)
 #   ./scripts/deploy.sh astro      → deploys www.greenguard-usa.com (Astro rebuild)
 #   ./scripts/deploy.sh photos     → deploys photos.greenguard-usa.com (family photo gallery)
 #   ./scripts/deploy.sh all        → deploys all three in sequence
@@ -27,6 +28,13 @@ deploy_portal() {
   fi
   vercel --prod --scope "$SCOPE"
   echo -e "${GREEN}✓ Portal deployed → https://portal.greenguard-usa.com${NC}"
+}
+
+deploy_ops() {
+  echo -e "${CYAN}▲ Deploying One Person Show → https://ops.greenguard-usa.com ...${NC}"
+  cd "$REPO_ROOT/ops"
+  vercel --prod --scope "$SCOPE" --yes
+  echo -e "${GREEN}✓ OPS deployed → https://ops.greenguard-usa.com${NC}"
 }
 
 deploy_preview() {
@@ -125,6 +133,7 @@ case "${1:-all}" in
   poolpro) deploy_poolpro ;;
   lawnpro) deploy_lawnpro ;;
   site)    deploy_site ;;
+  ops)     deploy_ops ;;
   astro)   deploy_astro ;;
   photos)  deploy_photos ;;
   all)

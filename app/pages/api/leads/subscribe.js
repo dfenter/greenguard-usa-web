@@ -1,6 +1,6 @@
 const { upsertContact } = require('../../../lib/hubspot')
 
-const ALLOWED_ORIGINS = [
+const ALLOWED_ORIGINS = ['https://ops.greenguard-usa.com', 
   'https://www.greenguard-usa.com',
   'https://greenguard-usa.com',
   'https://new.greenguard-usa.com',
