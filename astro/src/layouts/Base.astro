@@ -93,6 +93,13 @@ const FB_PIXEL_ID = import.meta.env.PUBLIC_FB_PIXEL_ID ?? '2225826221565752';
       "priceRange": "$$",
       "openingHours": "Mo-Sa 08:00-18:00",
       "paymentAccepted": "Credit Card, Debit Card",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": String(reviewMeta.averageRating),
+        "reviewCount": String(reviewMeta.totalReviews),
+        "bestRating": "5",
+        "worstRating": "1"
+      },
       "sameAs": [
         "https://www.facebook.com/GreenGuardUSA",
         "https://www.greenguard-usa.com"
