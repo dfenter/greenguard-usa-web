@@ -176,7 +176,7 @@
         <tr><th>The plant gets more back</th><td>Install Host on the plant server as well and the rest of the estate appears there as a managed provider: sibling plants, SparkCalc results, corporate setpoints. A plant screen can show the neighbour's line without a Gateway Network link.</td></tr>
         <tr><th>Cutover order</th><td>Install Edge, leave the splitter running both legs, let SparkVault fill in parallel for one history partition, compare, then switch the remote leg off. Nothing is ripped out on day one; the plant's own history is never at risk because it never moved.</td></tr>
         <tr><th>Small onsite plants</th><td>A skid, a lift station, a packaging cell with no database of its own runs Ignition Edge instead. Same Edge module, same wire; its history lives at central only, with the Edge server's own disk buffer covering an outage.</td></tr>
-        <tr><th>License</th><td>Edge $995 on the plant server; Central $1,995 on the plant server only if you want the estate view there. Central $1,995 plus SparkVault $495 on the central server.</td></tr>
+        <tr><th>License</th><td>Edge $995 on the plant server; Central $1,995 on the plant server only if you want the estate view there. Central $1,995 plus SparkVault $495 on the central server. SparkCalc and Passage are included free.</td></tr>
       </table>
       <p class="honest">Honest limits: reports written against the central sqlth_ tables have to be re-pointed at SparkVault's table or the Timescale hypertable; the plant's own reports do not change. The alarm journal stays in the plant database; alarm state travels as tags, the journal rows do not. Host on a plant server is a full Central license.</p>
       <p class="links"><a href="/sparkbridge/vault">SparkVault</a><a href="/sparkbridge/technology">Store and forward, measured</a></p>
@@ -316,7 +316,7 @@
         <tr><th>On each plant or Edge server</th><td>SparkBridge Edge, plus our IEC-104 / DNP3 / TI 505 drivers where the rack needs them, plus SparkLink where the link is metered</td></tr>
         <tr><th>On each central server</th><td>SparkBridge Host, SparkVault, SparkCalc, Passage, SparkInject, SparkFlow, FleetOps. All are Ignition modules on the same server; none needs a box of its own.</td></tr>
         <tr><th>Off the servers</th><td>SparkID and Sentinel are tools you run from a workstation against the estate; nothing installs on a gateway for them</td></tr>
-        <tr><th>License</th><td>Per site server: Edge $995 (site package $1,895 with drivers and SparkLink). Per central server: central suite $3,495, or Central $1,995 plus $495 per module, SparkFlow $995.</td></tr>
+        <tr><th>License</th><td>Per site server: Edge $995 with SparkLink included free (site package $1,295 adds SparkVault; drivers $495 each). Per central server: central suite $2,995, or Central $1,995 plus $495 per paid module, SparkFlow $995. Passage, SparkCalc and SparkID are included free.</td></tr>
       </table>
       <p class="links"><a href="/sparkbridge/products">The product line</a><a href="/sparkbridge/pricing">Site package and central suite</a></p>
     </article>
@@ -367,7 +367,7 @@
         <tr><th>Historian</th><td>SparkVault on the central server; each plant's own database keeps its local history exactly as before. History for every site in one open table, on the plant's clock. 40,035 updates/s replay on loopback; a 4 h 11 min outage backfilled with zero loss.</td></tr>
         <tr><th>Twin</th><td>SparkFlow's last-value and model buckets plus Passage's OPC-UA address space plus SparkVault history. Nothing is copied into a second tool; each face reads the same namespace.</td></tr>
         <tr><th>Discipline</th><td>Replayed and computed values always publish under their own group with their own sequence, so a simulation or a derived number can never be mistaken for a live measurement.</td></tr>
-        <tr><th>License</th><td>SparkVault $495, Passage $495, SparkCalc $495, SparkFlow $995, all on the central server; included in the $3,495 central suite except SparkFlow</td></tr>
+        <tr><th>License</th><td>SparkVault $495 and SparkFlow $995 on the central server; Passage and SparkCalc are included free with Central. SparkVault is in the $2,995 central suite, SparkFlow is not</td></tr>
       </table>
       <p class="links"><a href="/sparkbridge/vault">SparkVault</a><a href="/sparkbridge/flow">SparkFlow</a><a href="/sparkbridge/passage">Passage</a><a href="/sparkbridge/sparkcalc">SparkCalc</a></p>
     </article>
@@ -464,7 +464,7 @@
         <tr><th>Servers</th><td>No new Ignition servers. One ops workstation runs the three tools.</td></tr>
         <tr><th>Trust</th><td>A site with no trusted key subscribes to nothing. The signing key is a root credential for the estate; it lives on the workstation, never on a gateway.</td></tr>
         <tr><th>Proof</th><td>A Sentinel run becomes an auditor-ready binder mapped to NERC CIP and IEC 62443 through the Compliance add-on</td></tr>
-        <tr><th>License</th><td>FleetOps $495 per server, SparkID $495, Sentinel free, Compliance add-on $2,495</td></tr>
+        <tr><th>License</th><td>FleetOps $495 per server, SparkID free with SparkBridge, Sentinel free, Compliance add-on $2,495</td></tr>
       </table>
       <p class="links"><a href="/sparkbridge/fleetops">FleetOps</a><a href="/sparkbridge/sparkid">SparkID</a><a href="/sparkbridge/sentinel">Sentinel</a></p>
     </article>
@@ -501,7 +501,7 @@
       <table class="spec">
         <tr><th>Servers</th><td>One Ignition server</td></tr>
         <tr><th>Broker</th><td>Embedded through the Provider module for a lab; a HiveMQ service beside the server for production, which is also what makes the later move to 02 a configuration change</td></tr>
-        <tr><th>License</th><td>Site package $1,895, or Edge $995 plus modules at $495</td></tr>
+        <tr><th>License</th><td>Site package $1,295, or Edge $995 plus SparkVault $495; SparkLink and SparkCalc included free</td></tr>
       </table>
       <p class="links"><a href="/sparkbridge/pricing">Site package</a><a href="/sparkbridge/download">Download</a></p>
     </article>
