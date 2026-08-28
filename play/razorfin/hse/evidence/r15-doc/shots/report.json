@@ -1,5 +1,43 @@
 [
   {
+    "id": "cookiecutter",
+    "shot": "profile",
+    "textured": true,
+    "base": "smoothhound",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      81.61,
+      19.65,
+      18.3
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 147.1,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "epaulette",
+    "shot": "profile",
+    "textured": true,
+    "base": "bullhead",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      87.8,
+      28.31,
+      31.88
+    ],
+    "aimX": -0.3,
+    "longAxis": "x",
+    "dist": 158.2,
+    "orient": null,
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ]
+  },
+  {
     "id": "reef",
     "shot": "profile",
     "textured": true,
@@ -14,93 +52,25 @@
     "aimX": 0,
     "longAxis": "x",
     "dist": 173,
-    "errors": [
-      "Failed to load resource: the server responded with a status of 404 (Not Found)"
-    ]
+    "orient": null,
+    "errors": []
   },
   {
-    "id": "greatwhite",
+    "id": "blue",
     "shot": "profile",
     "textured": true,
-    "base": "greatwhite_cy",
+    "base": "mako",
     "faceMounted": true,
     "faceTriangles": 156,
     "size": [
-      139.27,
-      69.48,
-      87.84
-    ],
-    "aimX": 0.1,
-    "longAxis": "x",
-    "dist": 250.9,
-    "errors": []
-  },
-  {
-    "id": "megalodon",
-    "shot": "profile",
-    "textured": true,
-    "base": "whitepointer",
-    "faceMounted": false,
-    "faceTriangles": 0,
-    "size": [
-      168.12,
-      87.85,
-      79.19
-    ],
-    "aimX": 0.1,
-    "longAxis": "x",
-    "dist": 302.9,
-    "errors": []
-  },
-  {
-    "id": "goblin",
-    "shot": "profile",
-    "textured": false,
-    "base": "goblinshark",
-    "faceMounted": false,
-    "faceTriangles": 0,
-    "size": [
-      113.28,
-      72.91,
-      101.78
-    ],
-    "aimX": -0.3,
-    "longAxis": "x",
-    "dist": 204.1,
-    "errors": []
-  },
-  {
-    "id": "gulperfiend",
-    "shot": "profile",
-    "textured": false,
-    "base": "anglerfish",
-    "faceMounted": false,
-    "faceTriangles": 0,
-    "size": [
-      144,
-      111.36,
-      119.47
-    ],
-    "aimX": 0.3,
-    "longAxis": "x",
-    "dist": 259.5,
-    "errors": []
-  },
-  {
-    "id": "hammerhead",
-    "shot": "profile",
-    "textured": true,
-    "base": "smoothhammer",
-    "faceMounted": true,
-    "faceTriangles": 156,
-    "size": [
-      115.24,
-      34.9,
-      39.89
+      110.39,
+      54.74,
+      34.18
     ],
     "aimX": 0,
     "longAxis": "x",
-    "dist": 207.6,
+    "dist": 198.9,
+    "orient": null,
     "errors": []
   },
   {
@@ -118,6 +88,97 @@
     "aimX": 0,
     "longAxis": "x",
     "dist": 190.2,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "hammerhead",
+    "shot": "profile",
+    "textured": true,
+    "base": "smoothhammer",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      115.24,
+      34.9,
+      39.89
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 207.6,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "sawshark",
+    "shot": "profile",
+    "textured": true,
+    "base": "thresher",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      110.43,
+      40.84,
+      43.04
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 199,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "thresher",
+    "shot": "profile",
+    "textured": true,
+    "base": "thresher",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      124.79,
+      49.42,
+      51.77
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 224.8,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "bull",
+    "shot": "profile",
+    "textured": true,
+    "base": "whaler",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      117.17,
+      45.43,
+      27.66
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 211.1,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "goblin",
+    "shot": "profile",
+    "textured": false,
+    "base": "goblinshark",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      113.28,
+      72.91,
+      101.78
+    ],
+    "aimX": -0.3,
+    "longAxis": "x",
+    "dist": 204.1,
+    "orient": null,
     "errors": []
   },
   {
@@ -135,6 +196,1357 @@
     "aimX": 0,
     "longAxis": "x",
     "dist": 224.9,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "greatwhite",
+    "shot": "profile",
+    "textured": true,
+    "base": "greatwhite_cy",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      139.27,
+      69.48,
+      87.84
+    ],
+    "aimX": 0.1,
+    "longAxis": "x",
+    "dist": 250.9,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "whaleshark",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      172.91,
+      88.42,
+      80.86
+    ],
+    "aimX": 0.1,
+    "longAxis": "x",
+    "dist": 311.6,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "dunkleosteus",
+    "shot": "profile",
+    "textured": true,
+    "base": "bullhead",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      148.04,
+      57.29,
+      63.48
+    ],
+    "aimX": -0.3,
+    "longAxis": "x",
+    "dist": 266.7,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "greenland",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      153.65,
+      65.48,
+      70.6
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 276.9,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "megalodon",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      168.12,
+      87.85,
+      79.19
+    ],
+    "aimX": 0.1,
+    "longAxis": "x",
+    "dist": 302.9,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "anglerfang",
+    "shot": "profile",
+    "textured": true,
+    "base": "smoothhound",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      129.65,
+      32.17,
+      29.07
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 233.6,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "barbhook",
+    "shot": "profile",
+    "textured": true,
+    "base": "thresher",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      134.44,
+      50.45,
+      52.51
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 242.2,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "coralcrown",
+    "shot": "profile",
+    "textured": true,
+    "base": "whaler",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      134.45,
+      50,
+      30
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 242.3,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "duskfin",
+    "shot": "profile",
+    "textured": true,
+    "base": "mako",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      129.58,
+      66.98,
+      41.01
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 233.5,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "gulperfiend",
+    "shot": "profile",
+    "textured": false,
+    "base": "anglerfish",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      144,
+      111.36,
+      119.47
+    ],
+    "aimX": 0.3,
+    "longAxis": "x",
+    "dist": 259.5,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "morayne",
+    "shot": "profile",
+    "textured": true,
+    "base": "thresher",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      182.39,
+      66,
+      71.72
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 328.6,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "sailfin",
+    "shot": "profile",
+    "textured": true,
+    "base": "blueshark",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      134.38,
+      28.37,
+      28.04
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 242.1,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "snapjaw",
+    "shot": "profile",
+    "textured": true,
+    "base": "tigershark",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      158.48,
+      54.1,
+      57.14
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 285.5,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "stonejaw",
+    "shot": "profile",
+    "textured": true,
+    "base": "whaler",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      144.08,
+      55.4,
+      33.45
+    ],
+    "aimX": 0.1,
+    "longAxis": "x",
+    "dist": 259.6,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "thornback",
+    "shot": "profile",
+    "textured": true,
+    "base": "bullhead",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      138.49,
+      54.33,
+      58.27
+    ],
+    "aimX": -0.3,
+    "longAxis": "x",
+    "dist": 249.5,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "abyssmaw",
+    "shot": "profile",
+    "textured": true,
+    "base": "smoothhound",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      153.68,
+      40.8,
+      38.05
+    ],
+    "aimX": 0.1,
+    "longAxis": "x",
+    "dist": 276.9,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "frostjaw",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      139.25,
+      64.57,
+      65.81
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 250.9,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "gloomtide",
+    "shot": "profile",
+    "textured": true,
+    "base": "blueshark",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      163.15,
+      27.3,
+      31.83
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 294,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "howler",
+    "shot": "profile",
+    "textured": true,
+    "base": "tigershark",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      136.37,
+      46.42,
+      49.04
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 245.7,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "magmaw",
+    "shot": "profile",
+    "textured": true,
+    "base": "bullhead",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      138.55,
+      54.31,
+      59.46
+    ],
+    "aimX": -0.3,
+    "longAxis": "x",
+    "dist": 249.6,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "riftjaw",
+    "shot": "profile",
+    "textured": true,
+    "base": "whaler",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      134.45,
+      45.42,
+      27.17
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 242.3,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "stormfin",
+    "shot": "profile",
+    "textured": true,
+    "base": "blueshark",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      134.41,
+      29.78,
+      29.09
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 242.2,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "venomspine",
+    "shot": "profile",
+    "textured": true,
+    "base": "mako",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      132.5,
+      75.68,
+      43.74
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 238.7,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "vex",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      124.81,
+      56.91,
+      61.31
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 224.9,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "wreckfang",
+    "shot": "profile",
+    "textured": true,
+    "base": "greatwhite_cy",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      144.06,
+      67.96,
+      88.2
+    ],
+    "aimX": 0.1,
+    "longAxis": "x",
+    "dist": 259.6,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "bonecrown",
+    "shot": "profile",
+    "textured": true,
+    "base": "greatwhite_cy",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      151.76,
+      72.33,
+      85.9
+    ],
+    "aimX": 0.1,
+    "longAxis": "x",
+    "dist": 273.4,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "cindermaw",
+    "shot": "profile",
+    "textured": true,
+    "base": "blueshark",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      148.84,
+      32.41,
+      34.03
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 268.2,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "glacier",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      158.49,
+      79.26,
+      73.93
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 285.6,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "gravewater",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      144.03,
+      61.43,
+      67.05
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 259.5,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "ironfin",
+    "shot": "profile",
+    "textured": true,
+    "base": "greatwhite_cy",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      148.84,
+      70.26,
+      82.97
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 268.2,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "maelstrom",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      168.11,
+      81.54,
+      79.4
+    ],
+    "aimX": 0.1,
+    "longAxis": "x",
+    "dist": 302.9,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "mirrorscale",
+    "shot": "profile",
+    "textured": true,
+    "base": "whaler",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      142.08,
+      47.34,
+      27.71
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 256,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "nocturne",
+    "shot": "profile",
+    "textured": true,
+    "base": "blueshark",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      144.01,
+      28.96,
+      31.25
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 259.5,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "plaguemaw",
+    "shot": "profile",
+    "textured": true,
+    "base": "tigershark",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      145.98,
+      49.24,
+      52.22
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 263,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "sunspine",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      144.02,
+      71.74,
+      71.83
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 259.5,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "tempest",
+    "shot": "profile",
+    "textured": true,
+    "base": "blueshark",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      145.95,
+      32.58,
+      32.72
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 263,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "teslafang",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      142.05,
+      70.12,
+      75.3
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 255.9,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "aurora",
+    "shot": "profile",
+    "textured": true,
+    "base": "blueshark",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      155.53,
+      34.46,
+      34.75
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 280.2,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "banshee",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      148.85,
+      65.01,
+      71.42
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 268.2,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "chronos",
+    "shot": "profile",
+    "textured": true,
+    "base": "mako",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      151.7,
+      86.3,
+      51.49
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 273.3,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "nullfin",
+    "shot": "profile",
+    "textured": true,
+    "base": "greatwhite_cy",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      148.84,
+      65.43,
+      78.33
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 268.2,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "seismos",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      168.09,
+      82.95,
+      79.24
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 302.9,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "voltaicrex",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      158.5,
+      85.96,
+      73.92
+    ],
+    "aimX": 0.1,
+    "longAxis": "x",
+    "dist": 285.6,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "vortexa",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      172.92,
+      83.69,
+      80.88
+    ],
+    "aimX": 0.1,
+    "longAxis": "x",
+    "dist": 311.6,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "vulkan",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      163.29,
+      81.59,
+      76.62
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 294.2,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "absolutezero",
+    "shot": "profile",
+    "textured": true,
+    "base": "tigershark",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      168.1,
+      55.64,
+      58.66
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 302.9,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "omenmaw",
+    "shot": "profile",
+    "textured": true,
+    "base": "bullhead",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      167.17,
+      61.67,
+      69.56
+    ],
+    "aimX": -0.3,
+    "longAxis": "x",
+    "dist": 301.2,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "solaris",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      163.25,
+      82.4,
+      79.32
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 294.1,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "warbringer",
+    "shot": "profile",
+    "textured": true,
+    "base": "greatwhite_cy",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      172.87,
+      85.47,
+      104.19
+    ],
+    "aimX": 0.1,
+    "longAxis": "x",
+    "dist": 311.5,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "leviathan_rex",
+    "shot": "profile",
+    "textured": true,
+    "base": "greatwhite_cy",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      211.31,
+      103,
+      131.83
+    ],
+    "aimX": 0.2,
+    "longAxis": "x",
+    "dist": 380.7,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "leviathanrex",
+    "shot": "profile",
+    "textured": true,
+    "base": "greatwhite_cy",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      230.5,
+      107.54,
+      140.37
+    ],
+    "aimX": 0.2,
+    "longAxis": "x",
+    "dist": 415.3,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "aphroditelure",
+    "shot": "profile",
+    "textured": true,
+    "base": "bullhead",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      141.31,
+      49.63,
+      55.09
+    ],
+    "aimX": -0.4,
+    "longAxis": "x",
+    "dist": 254.6,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "apollodon",
+    "shot": "profile",
+    "textured": true,
+    "base": "mako",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      147.88,
+      88.19,
+      51.47
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 266.5,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "artemisstrike",
+    "shot": "profile",
+    "textured": true,
+    "base": "whaler",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      143.99,
+      47.32,
+      27.8
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 259.4,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "dionysustide",
+    "shot": "profile",
+    "textured": true,
+    "base": "whaler",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      144.06,
+      52.17,
+      31.31
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 259.6,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "hermesdart",
+    "shot": "profile",
+    "textured": true,
+    "base": "whaler",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      140.14,
+      46.26,
+      27.26
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 252.5,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "poseidonrex",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      171,
+      91.08,
+      79.81
+    ],
+    "aimX": 0.1,
+    "longAxis": "x",
+    "dist": 308.1,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "zeusfin",
+    "shot": "profile",
+    "textured": true,
+    "base": "mako",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      151.73,
+      94.84,
+      54.55
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 273.4,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "aresrender",
+    "shot": "profile",
+    "textured": true,
+    "base": "tigershark",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      155.61,
+      53.71,
+      55.86
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 280.4,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "athenajaw",
+    "shot": "profile",
+    "textured": true,
+    "base": "scallopedhammer",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      150.1,
+      57.93,
+      63.37
+    ],
+    "aimX": -0.8,
+    "longAxis": "x",
+    "dist": 270.5,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "hadesmaw",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      151.76,
+      69.49,
+      72.11
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 273.4,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "hephaestusforge",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      155.6,
+      78.77,
+      73.65
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 280.4,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "heracrown",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      209.41,
+      109.86,
+      97.8
+    ],
+    "aimX": 0.1,
+    "longAxis": "x",
+    "dist": 377.3,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "chimerashark",
+    "shot": "profile",
+    "textured": true,
+    "base": "thresher",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      146,
+      56.47,
+      56.61
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 263.1,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "cyclopseye",
+    "shot": "profile",
+    "textured": true,
+    "base": "whaler",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      148.89,
+      56.23,
+      34.31
+    ],
+    "aimX": 0.1,
+    "longAxis": "x",
+    "dist": 268.3,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "harpyshade",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      136.31,
+      64.79,
+      67.56
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 245.6,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "lamiacoil",
+    "shot": "profile",
+    "textured": true,
+    "base": "thresher",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      180.49,
+      66.91,
+      72.99
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 325.2,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "medusagaze",
+    "shot": "profile",
+    "textured": true,
+    "base": "bullhead",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      137.54,
+      47.99,
+      54.22
+    ],
+    "aimX": -0.3,
+    "longAxis": "x",
+    "dist": 247.8,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "scyllarender",
+    "shot": "profile",
+    "textured": true,
+    "base": "blueshark",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      178.59,
+      33.53,
+      37.93
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 321.8,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "cerberusjaw",
+    "shot": "profile",
+    "textured": true,
+    "base": "tigershark",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      153.71,
+      52.79,
+      55.29
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 277,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "charybdisvoid",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      172.93,
+      84.08,
+      80
+    ],
+    "aimX": 0.1,
+    "longAxis": "x",
+    "dist": 311.6,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "hydrafang",
+    "shot": "profile",
+    "textured": true,
+    "base": "blueshark",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      177.63,
+      34,
+      38.01
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 320.1,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "kampechrono",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      151.81,
+      77.73,
+      69.27
+    ],
+    "aimX": 0.1,
+    "longAxis": "x",
+    "dist": 273.5,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "minotaurram",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      148.89,
+      76.12,
+      71.26
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 268.3,
+    "orient": null,
+    "errors": []
+  },
+  {
+    "id": "typhonmaw",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      213.27,
+      108.64,
+      98.61
+    ],
+    "aimX": 0.1,
+    "longAxis": "x",
+    "dist": 384.3,
+    "orient": null,
     "errors": []
   }
 ]

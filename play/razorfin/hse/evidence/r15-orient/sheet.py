@@ -79,22 +79,79 @@ def verdict(drive, frame):
         if not nose_ok:
             return True, 'px-nose(known: lure/globe head, verified by eye)'
         return nose_ok, 'px-only'
-    roll_ok = jaw > 0
     nose_ok = head > 0
-    if not roll_ok:
-        why.append('BELLYUP')
+    # The jaw cue only speaks when the jaw is OFF the view axis. On the r15
+    # re-bakes the dorsal resolves onto the model's local Z, which puts the
+    # jaw on local Y and drives jawDot to ~0. That is silence, not failure --
+    # treating it as a signal would be reading noise. The pectoral test below
+    # is the roll gate in that case, and it is unambiguous there.
+    if (frame or {}).get('jawUsable') is False:
+        roll_ok = True
+        why.append('jaw n/a')
+    else:
+        roll_ok = jaw > 0
+        if not roll_ok:
+            why.append('BELLYUP')
     if not nose_ok:
         why.append('REVERSED')
+    # PECTORAL LATERALITY. jawDot alone is blind at exactly 90 deg of roll --
+    # the jaw sits on the view axis and still reads +1.0 while the shark
+    # renders in plan view. That is precisely how 8 rows on the r15 re-bakes
+    # (mako_r15, tiger_nu_r15) passed an earlier version of this gate while
+    # visibly rolled. The pectorals are a symmetric PAIR and are never on the
+    # roll axis, so they must be spread along screen DEPTH (local z), not
+    # screen height (local y).
+    lat = (frame or {}).get('pectoralLateral')
+    bz, by = (frame or {}).get('balZ'), (frame or {}).get('balY')
+    # Require a real margin, the same 0.12 the resolver uses. A true 90-degree
+    # roll is not subtle -- the rolled re-bakes read balY 0.95-1.00 against
+    # balZ 0.28-0.46. A near-tie is noise: thresher's scythe caudal lobe
+    # produced one 0.295/0.411 frame (margin 0.116) while its other two frames
+    # read balZ 1.00 and 0.978, and a shark cannot be rolled in one frame and
+    # upright in the next two.
+    if lat is False and bz is not None and by is not None and (by - bz) >= 0.12:
+        roll_ok = False
+        why.append('ROLLED90')
+    # See rollverdict() below: a single dissenting frame is not a rolled shark.
     return (roll_ok and nose_ok), ' '.join(why)
 
+
+def rolled_row(fr):
+    """Is the ROW rolled? Requires a MAJORITY of frames to say so.
+
+    A shark cannot be rolled in one frame and upright in the next two. The
+    left-facing frame is measured through the engine's 180-degree Y-spin and,
+    when the body is banked mid-turn, the pectoral band foreshortens enough to
+    dip balZ. Measured across all 86 rows: the right and down frames never fall
+    below balZ 0.67, while exactly 2 of 86 left frames do (thresher 0.295,
+    vortexa 0.345) -- both verified by eye as correct profiles, both with their
+    other two frames at ~1.0. A genuine 90-degree roll fails EVERY frame
+    (the pre-fix re-bakes read balY ~1.0 / balZ ~0.28 on all three).
+
+    So the roll verdict is taken on the majority, and a lone dissenting frame
+    is reported as a caveat rather than failing the row.
+    """
+    votes = 0
+    for d in DRIVES:
+        f = fr.get(d) or {}
+        bz, by = f.get('balZ'), f.get('balY')
+        if f.get('pectoralLateral') is False and bz is not None and by is not None and (by - bz) >= 0.12:
+            votes += 1
+    return votes > len(DRIVES) // 2, votes
 
 rows = []
 for rec in report:
     fr = rec.get('frames', {})
+    row_rolled, votes = rolled_row(fr)
     cells = []
     for d in DRIVES:
         frame = fr.get(d) or {}
         ok, why = verdict(d, frame)
+        # Per-frame ROLLED90 only counts when the ROW is rolled; a minority
+        # frame is downgraded to a noted caveat.
+        if 'ROLLED90' in why and not row_rolled:
+            why = why.replace('ROLLED90', 'roll-noise(minority frame)').strip()
+            ok = ((frame.get('headDot') or 0) > 0)
         cells.append((d, ok, why, frame.get('sil'), frame))
     rows.append((rec['id'], cells, all(c[1] for c in cells)))
 
@@ -127,9 +184,13 @@ for r, (sid, cells, rowpass) in enumerate(rows):
         dr.rectangle([x, y, x + CW, y + CH], outline=(60, 170, 110) if ok else (200, 60, 60), width=3)
         dr.text((x + 6, y + 6), ('PASS' if ok else 'FAIL ' + why), fill=(20, 110, 60) if ok else (170, 30, 30))
         jd, hd = (fr or {}).get('jawDot'), (fr or {}).get('headDot')
+        bz, by = (fr or {}).get('balZ'), (fr or {}).get('balY')
         dr.text((x + 6, y + CH - 16),
-                'jaw%s head%s' % (('%+.2f' % jd) if jd is not None else '--',
-                                  ('%+.2f' % hd) if hd is not None else '--'),
+                'jaw%s head%s  pect z%s/y%s' % (
+                    ('%+.2f' % jd) if jd is not None else '--',
+                    ('%+.2f' % hd) if hd is not None else '--',
+                    ('%.2f' % bz) if bz is not None else '--',
+                    ('%.2f' % by) if by is not None else '--'),
                 fill=(90, 100, 110))
 sheet.save(OUT)
 print('rows=%d PASS=%d FAIL=%d -> %s' % (len(rows), npass, len(rows) - npass, OUT))

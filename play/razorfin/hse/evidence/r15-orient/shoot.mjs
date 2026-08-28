@@ -286,10 +286,60 @@ for (const id of IDS) {
           if (head && jaw) {
             const down = new T.Vector3(0, -1, 0).applyQuaternion(g.getWorldQuaternion(new T.Quaternion()));
             out.jawDot = +jaw.clone().sub(head).normalize().dot(down).toFixed(4);
+            /* jawDot is only meaningful when the jaw is OFF the view axis.
+             * On the r15 re-bakes the dorsal ends up on the model's local Z,
+             * which puts the jaw on local Y and drives jawDot to ~0 - not a
+             * failure, just an axis on which this cue says nothing. Record
+             * how much of the head->jaw vector actually lies in the
+             * screen-vertical plane so the gate can tell "belly up" from
+             * "this cue does not apply". */
+            const d = jaw.clone().sub(head).normalize();
+            const depth = new T.Vector3(0, 0, 1).applyQuaternion(g.getWorldQuaternion(new T.Quaternion()));
+            out.jawDepth = +Math.abs(d.dot(depth)).toFixed(4);
+            out.jawUsable = Math.abs(out.jawDot) > 0.35;
           }
           if (head && tail) {
             const fwd = new T.Vector3(1, 0, 0).applyQuaternion(g.getWorldQuaternion(new T.Quaternion()));
             out.headDot = +head.clone().sub(tail).normalize().dot(fwd).toFixed(4);
+          }
+          /* PECTORAL LATERALITY - the roll gate the jaw test cannot provide.
+           *
+           * At exactly 90 degrees of roll the jaw sits ON the view axis, so
+           * jawDot still reads ~+1.0 while the shark renders in plan view.
+           * That is how 8 rows on the r15 re-bakes passed this gate while
+           * visibly rolled. The pectorals are never on the roll axis: they
+           * are a symmetric PAIR spread along the lateral direction, which
+           * for a correctly-oriented shark is screen DEPTH (camera z), not
+           * screen height. So measure, in the rig's own frame, whether the
+           * paired lateral spread lies along local z (correct) or local y
+           * (rolled). Balance, not extent - extent picks the tall dorsal fin
+           * and mis-flags correct rigs. */
+          const body = p.sprite; const pts = [];
+          body.traverse((o) => {
+            if (!o.isMesh || !o.visible || !o.geometry?.attributes?.position) return;
+            const pos = o.geometry.attributes.position;
+            const step = Math.max(1, Math.floor(pos.count / 6000));
+            const inv = new T.Matrix4().copy(g.matrixWorld).invert();
+            for (let i = 0; i < pos.count; i += step) {
+              const v = new T.Vector3().fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld).applyMatrix4(inv);
+              pts.push(v);
+            }
+          });
+          if (pts.length > 200) {
+            const bb = new T.Box3(); for (const q of pts) bb.expandByPoint(q);
+            const sz = bb.getSize(new T.Vector3());
+            const x1 = bb.max.x - sz.x * 0.28, x0 = bb.max.x - sz.x * 0.65;
+            const band = pts.filter((q) => q.x >= x0 && q.x <= x1);
+            if (band.length > 40) {
+              const med = (a) => { const t2 = a.slice().sort((m, n) => m - n), k = t2.length >> 1;
+                return t2.length % 2 ? t2[k] : (t2[k - 1] + t2[k]) / 2; };
+              const bal = (ax) => { const c = med(band.map((q) => q[ax]));
+                let hi = 0, lo = 0;
+                for (const q of band) { const d = q[ax] - c; if (d > hi) hi = d; if (-d > lo) lo = -d; }
+                return Math.min(hi, lo) / Math.max(hi, lo || 1e-9); };
+              out.balY = +bal('y').toFixed(3); out.balZ = +bal('z').toFixed(3);
+              out.pectoralLateral = out.balZ > out.balY;   // true = correct
+            }
           }
         }
         return out;

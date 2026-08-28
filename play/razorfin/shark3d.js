@@ -1273,6 +1273,49 @@ function orientGirthBias(points, box, size) {
   lo = loN ? lo / loN : 0; hi = hiN ? hi / hiN : 0;
   return hi - lo;
 }
+/* LATERAL AXIS, from the PECTORAL PAIR.
+ *
+ * The jaw bone fixes which way is down, but only when the jaw is actually
+ * off the roll axis. On the r15 re-bakes (mako_r15, tiger_nu_r15) it is not:
+ * they are authored long-axis Z with the dorsal on X, so after the long-axis
+ * rotation the jaw sits exactly ON the view axis and (jaw - head) comes out
+ * [0, -0.085, 0] - indistinguishable from a correctly-oriented rig. Every
+ * one of those rows shipped rolled 90 degrees (plan view: pectorals splayed
+ * top and bottom, dorsal pointing sideways) while the jaw test read a
+ * confident +1.0. A single cue on the symmetry axis is ambiguous at exactly
+ * 90 degrees, so a second, INDEPENDENT cue is required.
+ *
+ * The pectorals are that cue, because they are the one PAIRED structure on
+ * the body: the hull reaches about equally far both ways along the lateral
+ * axis, while the dorsal fin and the caudal lobes are one-sided. So do not
+ * measure extent (that picks the tall dorsal fin and mis-flags correct rigs -
+ * measured: a raw max-extent test wrongly flagged whitepointer, dogfish and
+ * thresher). Measure BALANCE: over the pectoral band, per transverse axis,
+ * take min(reach+, reach-) / max(reach+, reach-) about the band's median
+ * centreline. The lateral axis is the balanced one.
+ *
+ * Measured separation is unambiguous - rolled rigs read Ybal 0.95-1.00
+ * against Zbal 0.28-0.37, correct rigs the other way round. Returns null when
+ * the band is too thin to judge, so a degenerate mesh falls back to the jaw. */
+function orientLateralAxis(points, box, size) {
+  const x1 = box.max.x - size.x * 0.28, x0 = box.max.x - size.x * 0.65;
+  const band = [];
+  for (const p of points) if (p.x >= x0 && p.x <= x1) band.push(p);
+  if (band.length < 40) return null;
+  const centreY = orientMedian(band.map((p) => p.y)), centreZ = orientMedian(band.map((p) => p.z));
+  const balance = (axis, centre) => {
+    let hi = 0, lo = 0;
+    for (const p of band) { const d = p[axis] - centre; if (d > hi) hi = d; if (-d > lo) lo = -d; }
+    const span = hi + lo;
+    return span > 1e-9 ? { bal: Math.min(hi, lo) / Math.max(hi, lo || 1e-9), span } : null;
+  };
+  const y = balance('y', centreY), z = balance('z', centreZ);
+  if (!y || !z) return null;
+  /* Require a real margin: a near-tie is not evidence and must not override
+   * the jaw. */
+  if (Math.abs(y.bal - z.bal) < 0.12) return null;
+  return { axis: y.bal > z.bal ? 'y' : 'z', balY: y.bal, balZ: z.bal };
+}
 /* The authoritative resolver. Returns the decision record for a model key,
  * computing it at most once. `scene` must be in its AUTHORED frame (no
  * orientation rotation applied yet). */
@@ -1326,6 +1369,34 @@ function resolveOrientation(scene, meshes, key) {
     }
   }
 
+  /* --- 2b. CROSS-CHECK the dorsal axis against the pectoral pair ---
+   *
+   * The dorsal axis and the lateral axis must be perpendicular, so the
+   * pectoral pair independently names which transverse axis is lateral, and
+   * therefore which is dorsal. When the two cues disagree, the pectorals win:
+   * the disagreement only ever happens when the jaw is sitting ON the roll
+   * axis, which is exactly the case the jaw cannot resolve (mako_r15 and
+   * tiger_nu_r15 both reported a textbook jaw delta of [0, -0.085, 0] while
+   * rendering in plan view). The pectorals are never on the roll axis. */
+  const lateral = orientLateralAxis(points, box, size);
+  let dorsalCrossCheck = 'not available';
+  if (lateral) {
+    const wantDorsal = lateral.axis === 'y' ? 'z' : 'y';
+    if (dorsal.axis === wantDorsal) dorsalCrossCheck = 'agrees';
+    else {
+      /* Re-pick the sign on the corrected axis from the strongest evidence
+       * available for it, rather than carrying over a sign measured on the
+       * wrong axis. */
+      const spike = orientSpike(points, box, size, wantDorsal);
+      let sign;
+      if (Math.abs(spike) >= SPIKE_DEGENERATE) sign = spike > 0 ? 1 : -1;
+      else { const sk = orientSkew(points, box, size, wantDorsal); sign = sk >= 0 ? 1 : -1; }
+      dorsalCrossCheck = `corrected ${dorsal.axis} -> ${wantDorsal} (pectoral balance y=${lateral.balY.toFixed(2)} z=${lateral.balZ.toFixed(2)})`;
+      dorsal = { axis: wantDorsal, sign };
+      dorsalSource += ' + pectoral correction';
+    }
+  }
+
   /* --- the roll that carries the dorsal direction onto world +y --- */
   const dorsalVec = new THREE.Vector3(); dorsalVec[dorsal.axis] = dorsal.sign;
   /* Rotate about world x (the long axis) only, so the nose stays on x. */
@@ -1359,6 +1430,7 @@ function resolveOrientation(scene, meshes, key) {
   const quaternion = new THREE.Quaternion().copy(flipQuat).multiply(rollQuat).multiply(longQuat);
   const record = {
     key: cacheKey, axis: longAxis, dorsalAxis: dorsal.axis, dorsalSign: dorsal.sign, dorsalSource,
+    dorsalCrossCheck, lateralAxis: lateral ? lateral.axis : null,
     roll, flip, noseSource, girthBias: +girthBias.toFixed(4),
     spikeY: +spikeY.toFixed(4), spikeZ: +spikeZ.toFixed(4), skewY: +skewY.toFixed(4), skewZ: +skewZ.toFixed(4),
     quaternion

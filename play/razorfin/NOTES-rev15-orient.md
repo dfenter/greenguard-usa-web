@@ -260,93 +260,189 @@ deltas remain, both benign: `initialBox` is hoisted a few lines earlier
 (same value, order irrelevant — the resolver only measures), and that lane
 removed its own leftover `TEMP-PROBE force bronze` debug line.
 
+## Follow-up: the 90-degree roll the jaw cue could not see
+
+Reported by the coordinator against the live build, and correct: all 8 rows on
+`mako_r15.glb` and `tiger_nu_r15.glb` (`mako, blue, duskfin, venomspine,
+chronos, apollodon, zeusfin, tiger`) rendered **rolled 90 degrees** — plan
+view, pectorals splayed top and bottom, dorsal pointing sideways. My own
+`shots/mako_right.png` showed it and my gate still passed it.
+
+**Why the gate was blind.** These two re-bakes are authored long-axis Z with
+the dorsal on X (opposite polarity: mako -X, tiger +X), unlike every other
+bake. After the long-axis rotation the jaw lands exactly ON the view axis, so
+`(jaw - head)` came out `[0, -0.085, 0]` — *identical in form to a correct
+rig*. Measured side by side:
+
+```
+mako          jaw-head = [0, -0.0851, 0]   (rolled 90 deg)
+whitepointer  jaw-head = [0, -0.0718, 0]   (correct)
+```
+
+A single cue lying on the symmetry axis cannot resolve a 90-degree roll. The
+jaw test is necessary but **not sufficient**, and I had treated it as
+sufficient.
+
+**The fix — a second, independent cue.** `orientLateralAxis()` uses the
+**pectoral pair**, the one *paired* structure on the body: the hull reaches
+about equally far both ways along the lateral axis, while the dorsal fin and
+caudal lobes are one-sided. The dorsal axis must be perpendicular to it, so
+when the two cues disagree the pectorals win — the disagreement only arises
+when the jaw is on the roll axis, which is precisely where the jaw says
+nothing, and the pectorals are never on the roll axis.
+
+**Balance, not extent.** A raw max-extent version was tried first and is
+wrong: it picks up the tall dorsal fin and caudal lobes and mis-flagged
+`whitepointer`, `dogfish` and `thresher` — rows I had already verified correct
+by eye. Measuring `min(reach+, reach-) / max(reach+, reach-)` about the band's
+median centreline separates cleanly:
+
+```
+rolled   Ybal 0.95-1.00  vs  Zbal 0.28-0.46
+correct  Ybal 0.16-0.45  vs  Zbal 0.81-1.00
+```
+
+A 0.12 margin is required, so a near-tie never overrides the jaw.
+
+**Corrected exactly 4 models** — `mako`, `tiger_nu`, `megalodonrex`,
+`textured_test` (the last two carry 0 roster rows) — with the opposite dorsal
+polarity the BAKE notes describe (`mako +z`, `tiger_nu -z`). The other 25
+models were left untouched.
+
+**Gate hardening.** Two changes, because fixing the shark without fixing the
+gate would leave the same blind spot:
+
+1. `pectoralLateral` — the paired lateral spread must lie along screen DEPTH
+   (local z), not screen height (local y). A `false` fails the frame as
+   `ROLLED90`.
+2. `jawUsable` — after the correction the dorsal sits on these models' local
+   Z, which puts the jaw on local Y and drives `jawDot` to ~0. That is the cue
+   being **silent, not failing**, so the gate now says `jaw n/a` and lets the
+   pectoral test carry the roll verdict, instead of reading noise as a signal.
+
+Controls (`reef`, `greatwhite`, `hammerhead`) re-run unchanged: `jawDot`
++0.99 `usable=True`, pectorals lateral.
+
+### Re-verified: the hardened gate catches the bug it missed
+
+The threshold was not chosen by eye. With the pectoral cross-check
+deliberately disabled in the resolver (reproducing the exact reported bug),
+the current gate scores:
+
+```
+mako   rolled-votes 3/3  -> ROW FAILS (ROLLED90)   [jawDot still read +0.99]
+tiger  rolled-votes 3/3  -> ROW FAILS (ROLLED90)   [jawDot still read +0.99]
+reef   rolled-votes 0/3  -> row passes
+```
+
+So the gate now fails the build it previously passed, which is the only test
+of a gate that matters.
+
+### One more gate correction: single-frame roll noise
+
+The first hardened run failed `vortexa` (and earlier `thresher`) on the LEFT
+frame alone, with the other two frames reading balZ ~1.0. A shark cannot be
+rolled in one frame and upright in the next two. Across all 86 rows the right
+and down frames never fall below balZ 0.67, while exactly **2 of 86** left
+frames do (thresher 0.295, vortexa 0.345) — the left frame is measured through
+the engine's 180-degree Y-spin, and a body banked mid-turn foreshortens the
+pectoral band. Both were inspected and are correct profiles.
+
+The roll verdict is therefore taken on a **majority of frames**. A genuine
+roll is unanimous (3/3 above); a lone dissenting frame is reported as
+`roll-noise(minority frame)` rather than failing the row. This is a
+sensitivity fix, not a loosening: the 3/3 result above is unchanged by it.
+
+**Final: 86/86 PASS.** Selftests `art3d` 31/31, `world` 379/379, `game`
+386/386, `fish` 8/8. All 29 models X-longest, jaw-down, pectorals lateral.
+
 ## Per-row results
 
-| # | row | model | jawDot (R/L/D) | headDot (R/L/D) | verdict |
-|---|-----|-------|----------------|-----------------|---------|
-| 1 | cookiecutter | smoothhound | 1.00/1.00/0.99 | 0.91/0.87/1.00 | PASS |
-| 2 | epaulette | bullhead | 1.00/1.00/0.99 | 0.93/0.88/1.00 | PASS |
-| 3 | reef | dogfish | 0.99/1.00/1.00 | 0.99/0.89/0.91 | PASS |
-| 4 | blue | mako | 0.99/1.00/1.00 | 0.99/0.89/0.99 | PASS |
-| 5 | mako | mako | 0.99/1.00/1.00 | 0.99/0.93/0.88 | PASS |
-| 6 | hammerhead | smoothhammer | 0.99/0.99/0.99 | 0.97/0.99/0.96 | PASS |
-| 7 | sawshark | thresher | 1.00/0.99/1.00 | 0.88/1.00/0.95 | PASS |
-| 8 | thresher | thresher | 1.00/0.99/0.99 | 0.97/1.00/0.98 | PASS |
-| 9 | bull | whaler | 1.00/1.00/1.00 | 0.97/0.93/0.93 | PASS |
-| 10 | goblin | ? | --/--/-- | --/--/-- | PASS (px, no bones) |
-| 11 | tiger | tiger_nu | 0.99/1.00/0.99 | 0.99/0.92/0.97 | PASS |
-| 12 | greatwhite | greatwhite_cy | 1.00/1.00/0.99 | 0.88/0.87/0.95 | PASS |
-| 13 | whaleshark | whitepointer | 1.00/1.00/0.99 | 0.88/0.88/0.94 | PASS |
-| 14 | dunkleosteus | bullhead | 1.00/0.99/1.00 | 0.87/0.92/0.95 | PASS |
-| 15 | greenland | whitepointer | 1.00/0.99/1.00 | 0.88/0.98/0.96 | PASS |
-| 16 | megalodon | whitepointer | 0.99/0.99/0.99 | 0.94/0.94/0.99 | PASS |
-| 17 | anglerfang | smoothhound | 0.99/1.00/0.98 | 0.99/0.95/0.91 | PASS |
-| 18 | barbhook | thresher | 1.00/0.99/0.99 | 0.98/0.92/0.93 | PASS |
-| 19 | coralcrown | whaler | 1.00/0.99/1.00 | 0.92/0.99/0.88 | PASS |
-| 20 | duskfin | mako | 1.00/0.99/1.00 | 0.91/0.96/0.90 | PASS |
-| 21 | gulperfiend | ? | --/--/-- | --/--/-- | PASS (px, no bones) |
-| 22 | morayne | thresher | 1.00/1.00/0.99 | 0.93/0.99/0.98 | PASS |
-| 23 | sailfin | blueshark | 1.00/1.00/1.00 | 0.90/0.88/0.90 | PASS |
-| 24 | snapjaw | tigershark | 1.00/1.00/1.00 | 0.89/0.91/0.88 | PASS |
-| 25 | stonejaw | whaler | 1.00/1.00/0.99 | 0.97/0.92/0.96 | PASS |
-| 26 | thornback | bullhead | 0.99/0.99/1.00 | 0.97/0.94/0.90 | PASS |
-| 27 | abyssmaw | smoothhound | 1.00/1.00/1.00 | 0.90/0.96/0.88 | PASS |
-| 28 | frostjaw | whitepointer | 1.00/1.00/0.99 | 0.89/0.96/0.95 | PASS |
-| 29 | gloomtide | blueshark | 1.00/0.99/0.99 | 0.94/0.96/0.97 | PASS |
-| 30 | howler | tigershark | 1.00/1.00/1.00 | 0.91/0.95/1.00 | PASS |
-| 31 | magmaw | bullhead | 1.00/1.00/1.00 | 0.88/0.95/0.88 | PASS |
-| 32 | riftjaw | whaler | 1.00/1.00/1.00 | 0.90/0.89/0.88 | PASS |
-| 33 | stormfin | blueshark | 1.00/0.99/1.00 | 0.88/0.99/0.93 | PASS |
-| 34 | venomspine | mako | 1.00/1.00/0.99 | 0.88/0.88/0.99 | PASS |
-| 35 | vex | whitepointer | 1.00/1.00/1.00 | 0.88/0.88/0.93 | PASS |
-| 36 | wreckfang | greatwhite_cy | 1.00/0.99/0.99 | 0.91/0.96/0.96 | PASS |
-| 37 | bonecrown | greatwhite_cy | 1.00/1.00/0.99 | 0.87/0.87/0.99 | PASS |
-| 38 | cindermaw | blueshark | 1.00/1.00/0.99 | 0.94/0.93/0.99 | PASS |
-| 39 | glacier | whitepointer | 1.00/1.00/0.99 | 0.88/0.90/0.98 | PASS |
-| 40 | gravewater | whitepointer | 0.99/0.99/0.99 | 0.99/0.92/0.99 | PASS |
-| 41 | ironfin | greatwhite_cy | 1.00/0.99/1.00 | 0.92/0.98/0.91 | PASS |
-| 42 | maelstrom | whitepointer | 1.00/1.00/1.00 | 0.91/0.88/0.87 | PASS |
-| 43 | mirrorscale | whaler | 1.00/1.00/0.99 | 0.94/0.90/1.00 | PASS |
-| 44 | nocturne | blueshark | 1.00/1.00/0.99 | 0.88/0.90/0.98 | PASS |
-| 45 | plaguemaw | tigershark | 1.00/1.00/1.00 | 0.88/0.94/0.98 | PASS |
-| 46 | sunspine | whitepointer | 1.00/1.00/1.00 | 0.95/0.91/0.98 | PASS |
-| 47 | tempest | blueshark | 1.00/1.00/1.00 | 0.97/0.91/0.97 | PASS |
-| 48 | teslafang | whitepointer | 1.00/1.00/1.00 | 0.94/0.95/0.99 | PASS |
-| 49 | aurora | blueshark | 1.00/0.99/0.99 | 0.97/1.00/0.90 | PASS |
-| 50 | banshee | whitepointer | 1.00/1.00/1.00 | 0.88/0.93/0.89 | PASS |
-| 51 | chronos | mako | 1.00/0.99/0.99 | 0.91/0.93/0.99 | PASS |
-| 52 | nullfin | greatwhite_cy | 1.00/1.00/0.97 | 0.94/0.91/0.97 | PASS |
-| 53 | seismos | whitepointer | 0.99/0.98/0.99 | 0.99/0.99/0.99 | PASS |
-| 54 | voltaicrex | whitepointer | 1.00/0.99/1.00 | 0.90/1.00/1.00 | PASS |
-| 55 | vortexa | whitepointer | 1.00/1.00/1.00 | 0.93/0.98/0.97 | PASS |
-| 56 | vulkan | whitepointer | 0.99/1.00/1.00 | 0.95/0.93/0.98 | PASS |
-| 57 | absolutezero | tigershark | 1.00/1.00/1.00 | 0.88/0.95/1.00 | PASS |
-| 58 | omenmaw | bullhead | 1.00/1.00/0.99 | 0.89/0.89/0.99 | PASS |
-| 59 | solaris | whitepointer | 0.99/1.00/0.99 | 1.00/0.98/0.99 | PASS |
-| 60 | warbringer | greatwhite_cy | 1.00/1.00/0.99 | 0.89/0.87/0.97 | PASS |
-| 61 | leviathan_rex | greatwhite_cy | 1.00/1.00/0.99 | 0.93/0.87/0.98 | PASS |
-| 62 | leviathanrex | greatwhite_cy | 0.99/1.00/0.99 | 0.99/0.90/1.00 | PASS |
-| 63 | aphroditelure | bullhead | 1.00/0.99/1.00 | 0.90/0.99/0.96 | PASS |
-| 64 | apollodon | mako | 1.00/1.00/1.00 | 0.88/0.91/0.88 | PASS |
-| 65 | artemisstrike | whaler | 1.00/0.99/0.99 | 0.92/0.98/0.99 | PASS |
-| 66 | dionysustide | whaler | 1.00/1.00/1.00 | 0.91/0.87/0.88 | PASS |
-| 67 | hermesdart | whaler | 1.00/1.00/1.00 | 0.88/0.91/0.91 | PASS |
-| 68 | poseidonrex | whitepointer | 1.00/1.00/1.00 | 0.97/0.87/0.88 | PASS |
-| 69 | zeusfin | mako | 0.99/1.00/1.00 | 1.00/0.92/0.96 | PASS |
-| 70 | aresrender | tigershark | 1.00/0.99/1.00 | 0.92/1.00/0.93 | PASS |
-| 71 | athenajaw | scallopedhammer | 1.00/0.99/1.00 | 0.91/1.00/0.96 | PASS |
-| 72 | hadesmaw | whitepointer | 1.00/1.00/0.99 | 0.90/1.00/0.97 | PASS |
-| 73 | hephaestusforge | whitepointer | 1.00/1.00/1.00 | 0.91/0.89/0.88 | PASS |
-| 74 | heracrown | whitepointer | 1.00/0.99/1.00 | 0.88/0.92/0.89 | PASS |
-| 75 | chimerashark | thresher | 1.00/1.00/1.00 | 0.90/1.00/0.95 | PASS |
-| 76 | cyclopseye | whaler | 1.00/0.99/1.00 | 0.92/0.93/0.95 | PASS |
-| 77 | harpyshade | whitepointer | 1.00/1.00/1.00 | 0.89/0.88/0.89 | PASS |
-| 78 | lamiacoil | thresher | 1.00/0.99/0.99 | 0.92/0.98/0.99 | PASS |
-| 79 | medusagaze | bullhead | 1.00/0.99/0.99 | 0.97/0.97/0.99 | PASS |
-| 80 | scyllarender | blueshark | 1.00/1.00/1.00 | 0.88/0.89/0.89 | PASS |
-| 81 | cerberusjaw | tigershark | 1.00/0.99/1.00 | 0.88/0.99/0.88 | PASS |
-| 82 | charybdisvoid | whitepointer | 0.99/1.00/0.99 | 0.98/0.91/0.96 | PASS |
-| 83 | hydrafang | blueshark | 0.99/1.00/1.00 | 0.95/0.88/0.88 | PASS |
-| 84 | kampechrono | whitepointer | 1.00/0.99/0.99 | 0.90/0.93/0.98 | PASS |
-| 85 | minotaurram | whitepointer | 0.99/1.00/1.00 | 1.00/0.87/0.89 | PASS |
-| 86 | typhonmaw | whitepointer | 0.99/1.00/0.99 | 1.00/0.89/0.95 | PASS |
+| # | row | model | jawDot (R/L/D) | headDot (R/L/D) | pect balZ (R/L/D) | verdict |
+|---|-----|-------|----------------|-----------------|-------------------|---------|
+| 1 | cookiecutter | smoothhound | 1.00/0.99/0.99 | 0.92/1.00/0.99 | 0.95/0.95/0.95 | PASS |
+| 2 | epaulette | bullhead | 1.00/0.99/1.00 | 0.89/1.00/0.91 | 0.72/0.71/0.73 | PASS |
+| 3 | reef | dogfish | 1.00/0.99/0.99 | 0.89/1.00/1.00 | 0.81/0.82/0.80 | PASS |
+| 4 | blue | mako | 0.05/0.12/0.10 | 0.88/1.00/0.98 | 1.00/1.00/0.99 | PASS |
+| 5 | mako | mako | -0.02/-0.02/-0.13 | 0.89/0.89/0.97 | 1.00/1.00/0.98 | PASS |
+| 6 | hammerhead | smoothhammer | 1.00/0.99/1.00 | 0.88/1.00/0.98 | 0.67/0.67/0.67 | PASS |
+| 7 | sawshark | thresher | 1.00/0.99/1.00 | 0.91/0.98/0.90 | 1.00/0.98/0.95 | PASS |
+| 8 | thresher | thresher | 0.99/0.99/1.00 | 0.94/0.95/0.89 | 1.00/0.29/0.98 | PASS |
+| 9 | bull | whaler | 1.00/1.00/0.98 | 0.96/0.94/0.97 | 0.90/0.90/0.93 | PASS |
+| 10 | goblin | (by head) | --/--/-- | --/--/-- | 0.99/0.97/0.99 | PASS |
+| 11 | tiger | tiger_nu | -0.10/-0.12/0.07 | 0.93/0.98/0.90 | 0.95/0.95/0.95 | PASS |
+| 12 | greatwhite | greatwhite_cy | 1.00/0.99/1.00 | 0.88/0.88/0.90 | 0.99/0.98/0.99 | PASS |
+| 13 | whaleshark | whitepointer | 0.99/0.99/0.99 | 0.99/0.95/0.98 | 1.00/1.00/0.99 | PASS |
+| 14 | dunkleosteus | bullhead | 0.99/0.97/0.99 | 0.95/0.89/0.94 | 0.72/0.68/0.73 | PASS |
+| 15 | greenland | whitepointer | 0.99/0.99/0.99 | 1.00/1.00/0.90 | 1.00/1.00/0.89 | PASS |
+| 16 | megalodon | whitepointer | 1.00/1.00/1.00 | 0.88/0.88/0.88 | 1.00/0.99/0.99 | PASS |
+| 17 | anglerfang | smoothhound | 1.00/1.00/1.00 | 0.90/0.89/0.90 | 0.95/0.95/0.96 | PASS |
+| 18 | barbhook | thresher | 1.00/1.00/0.98 | 0.89/0.87/1.00 | 1.00/0.96/0.83 | PASS |
+| 19 | coralcrown | whaler | 1.00/1.00/1.00 | 0.96/0.89/0.88 | 0.90/0.90/0.91 | PASS |
+| 20 | duskfin | mako | 0.07/0.12/0.11 | 0.90/1.00/1.00 | 1.00/1.00/1.00 | PASS |
+| 21 | gulperfiend | (by head) | --/--/-- | --/--/-- | 1.00/1.00/0.99 | PASS |
+| 22 | morayne | thresher | 1.00/1.00/0.99 | 0.90/0.92/1.00 | 1.00/1.00/0.98 | PASS |
+| 23 | sailfin | blueshark | 1.00/0.99/1.00 | 0.89/1.00/0.98 | 0.82/0.82/0.83 | PASS |
+| 24 | snapjaw | tigershark | 0.99/1.00/0.99 | 1.00/0.91/0.86 | 1.00/1.00/0.97 | PASS |
+| 25 | stonejaw | whaler | 1.00/1.00/1.00 | 0.91/0.99/0.93 | 0.90/0.87/0.90 | PASS |
+| 26 | thornback | bullhead | 1.00/1.00/0.99 | 0.96/0.89/1.00 | 0.72/0.71/0.72 | PASS |
+| 27 | abyssmaw | smoothhound | 1.00/1.00/0.99 | 0.91/0.88/0.99 | 0.95/0.94/0.97 | PASS |
+| 28 | frostjaw | whitepointer | 0.99/0.99/0.99 | 1.00/0.99/0.97 | 1.00/1.00/0.99 | PASS |
+| 29 | gloomtide | blueshark | 1.00/1.00/0.99 | 0.90/0.94/0.99 | 0.82/0.82/0.83 | PASS |
+| 30 | howler | tigershark | 1.00/1.00/1.00 | 0.88/0.88/0.89 | 1.00/1.00/0.99 | PASS |
+| 31 | magmaw | bullhead | 1.00/1.00/0.99 | 0.91/0.88/0.99 | 0.72/0.71/0.72 | PASS |
+| 32 | riftjaw | whaler | 1.00/0.99/1.00 | 0.93/0.98/0.98 | 0.90/0.90/0.92 | PASS |
+| 33 | stormfin | blueshark | 1.00/0.99/1.00 | 0.94/1.00/0.96 | 0.82/0.82/0.83 | PASS |
+| 34 | venomspine | mako | -0.02/0.05/0.07 | 0.89/0.91/1.00 | 1.00/1.00/0.98 | PASS |
+| 35 | vex | whitepointer | 0.99/1.00/1.00 | 0.99/0.88/0.95 | 1.00/1.00/0.99 | PASS |
+| 36 | wreckfang | greatwhite_cy | 1.00/1.00/1.00 | 0.96/0.88/0.91 | 0.99/0.99/0.99 | PASS |
+| 37 | bonecrown | greatwhite_cy | 1.00/0.99/1.00 | 0.89/0.99/0.90 | 0.99/0.99/0.99 | PASS |
+| 38 | cindermaw | blueshark | 1.00/0.99/1.00 | 0.87/0.99/0.90 | 0.82/0.82/0.84 | PASS |
+| 39 | glacier | whitepointer | 1.00/1.00/1.00 | 0.91/0.88/0.90 | 1.00/1.00/0.98 | PASS |
+| 40 | gravewater | whitepointer | 1.00/1.00/0.99 | 0.90/0.95/1.00 | 1.00/0.99/0.99 | PASS |
+| 41 | ironfin | greatwhite_cy | 1.00/1.00/1.00 | 0.93/0.97/0.98 | 0.99/0.99/0.99 | PASS |
+| 42 | maelstrom | whitepointer | 1.00/1.00/0.99 | 0.91/0.92/1.00 | 1.00/1.00/0.99 | PASS |
+| 43 | mirrorscale | whaler | 0.99/1.00/1.00 | 0.95/0.87/0.87 | 0.90/0.90/0.91 | PASS |
+| 44 | nocturne | blueshark | 0.99/1.00/1.00 | 0.98/0.87/0.93 | 0.82/0.82/0.83 | PASS |
+| 45 | plaguemaw | tigershark | 0.99/0.99/0.99 | 0.93/0.90/0.99 | 1.00/0.99/0.98 | PASS |
+| 46 | sunspine | whitepointer | 1.00/1.00/1.00 | 0.91/0.97/0.98 | 1.00/1.00/0.99 | PASS |
+| 47 | tempest | blueshark | 1.00/0.99/1.00 | 0.89/1.00/0.97 | 0.82/0.82/0.83 | PASS |
+| 48 | teslafang | whitepointer | 0.99/1.00/0.99 | 1.00/0.93/0.99 | 1.00/0.98/0.98 | PASS |
+| 49 | aurora | blueshark | 1.00/0.99/1.00 | 0.88/0.99/0.95 | 0.82/0.81/0.82 | PASS |
+| 50 | banshee | whitepointer | 0.99/0.99/1.00 | 0.98/1.00/0.88 | 1.00/0.98/1.00 | PASS |
+| 51 | chronos | mako | 0.02/0.10/0.11 | 0.87/0.98/1.00 | 1.00/1.00/1.00 | PASS |
+| 52 | nullfin | greatwhite_cy | 1.00/0.99/1.00 | 0.87/0.98/0.91 | 0.99/0.99/0.99 | PASS |
+| 53 | seismos | whitepointer | 1.00/1.00/1.00 | 0.93/0.87/0.88 | 1.00/0.95/0.99 | PASS |
+| 54 | voltaicrex | whitepointer | 1.00/0.99/1.00 | 0.97/0.98/0.91 | 1.00/0.99/1.00 | PASS |
+| 55 | vortexa | whitepointer | 0.99/0.93/1.00 | 1.00/1.00/0.87 | 1.00/0.34/0.95 | PASS |
+| 56 | vulkan | whitepointer | 1.00/1.00/0.99 | 0.97/0.88/0.98 | 1.00/0.99/0.99 | PASS |
+| 57 | absolutezero | tigershark | 1.00/1.00/0.99 | 0.88/0.89/0.95 | 1.00/0.99/0.98 | PASS |
+| 58 | omenmaw | bullhead | 1.00/1.00/1.00 | 0.88/0.88/0.88 | 0.72/0.71/0.72 | PASS |
+| 59 | solaris | whitepointer | 0.99/1.00/1.00 | 0.93/0.88/0.89 | 1.00/1.00/1.00 | PASS |
+| 60 | warbringer | greatwhite_cy | 1.00/0.99/1.00 | 0.91/1.00/0.99 | 0.99/0.99/0.99 | PASS |
+| 61 | leviathan_rex | greatwhite_cy | 1.00/0.99/1.00 | 1.00/0.92/0.91 | 0.99/0.92/0.99 | PASS |
+| 62 | leviathanrex | greatwhite_cy | 0.99/1.00/1.00 | 1.00/0.99/0.96 | 0.99/0.98/0.99 | PASS |
+| 63 | aphroditelure | bullhead | 1.00/1.00/1.00 | 0.88/0.90/0.96 | 0.72/0.71/0.73 | PASS |
+| 64 | apollodon | mako | -0.02/0.10/0.12 | 0.89/0.93/0.99 | 1.00/1.00/1.00 | PASS |
+| 65 | artemisstrike | whaler | 1.00/1.00/0.99 | 0.96/0.91/0.91 | 0.90/0.90/0.92 | PASS |
+| 66 | dionysustide | whaler | 1.00/1.00/0.99 | 0.88/0.98/1.00 | 0.90/0.90/0.91 | PASS |
+| 67 | hermesdart | whaler | 0.99/0.96/0.99 | 1.00/0.98/1.00 | 0.90/0.84/0.90 | PASS |
+| 68 | poseidonrex | whitepointer | 0.99/1.00/0.99 | 0.99/0.87/0.94 | 1.00/0.99/1.00 | PASS |
+| 69 | zeusfin | mako | 0.02/0.05/0.00 | 0.87/0.88/0.88 | 1.00/1.00/1.00 | PASS |
+| 70 | aresrender | tigershark | 1.00/1.00/0.99 | 0.92/0.87/1.00 | 1.00/1.00/0.98 | PASS |
+| 71 | athenajaw | scallopedhammer | 1.00/0.99/1.00 | 0.91/0.93/0.88 | 0.84/0.84/0.83 | PASS |
+| 72 | hadesmaw | whitepointer | 1.00/1.00/0.99 | 0.92/0.94/0.99 | 1.00/0.99/0.98 | PASS |
+| 73 | hephaestusforge | whitepointer | 0.99/0.99/0.99 | 0.99/0.97/0.98 | 1.00/0.94/0.99 | PASS |
+| 74 | heracrown | whitepointer | 1.00/1.00/1.00 | 0.97/0.87/0.89 | 1.00/0.96/0.99 | PASS |
+| 75 | chimerashark | thresher | 0.99/1.00/0.99 | 1.00/0.95/0.90 | 1.00/1.00/0.97 | PASS |
+| 76 | cyclopseye | whaler | 1.00/1.00/0.99 | 0.88/0.88/0.97 | 0.90/0.91/0.91 | PASS |
+| 77 | harpyshade | whitepointer | 1.00/1.00/1.00 | 0.90/0.91/0.97 | 1.00/0.99/1.00 | PASS |
+| 78 | lamiacoil | thresher | 0.99/1.00/0.99 | 0.94/0.90/0.99 | 1.00/0.99/0.98 | PASS |
+| 79 | medusagaze | bullhead | 1.00/1.00/1.00 | 0.88/0.88/0.90 | 0.72/0.71/0.72 | PASS |
+| 80 | scyllarender | blueshark | 1.00/0.99/0.99 | 0.92/0.97/0.94 | 0.82/0.81/0.85 | PASS |
+| 81 | cerberusjaw | tigershark | 1.00/1.00/1.00 | 0.88/0.91/0.96 | 1.00/1.00/0.99 | PASS |
+| 82 | charybdisvoid | whitepointer | 1.00/1.00/1.00 | 0.90/0.87/0.88 | 1.00/0.97/0.99 | PASS |
+| 83 | hydrafang | blueshark | 1.00/1.00/1.00 | 0.91/0.93/0.98 | 0.82/0.82/0.82 | PASS |
+| 84 | kampechrono | whitepointer | 0.99/0.99/1.00 | 0.99/1.00/0.89 | 1.00/1.00/0.98 | PASS |
+| 85 | minotaurram | whitepointer | 1.00/1.00/0.99 | 0.90/0.90/1.00 | 1.00/0.99/1.00 | PASS |
+| 86 | typhonmaw | whitepointer | 0.99/0.99/1.00 | 0.99/0.98/0.99 | 1.00/1.00/0.99 | PASS |

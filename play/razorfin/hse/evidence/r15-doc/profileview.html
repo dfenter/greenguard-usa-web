@@ -122,6 +122,10 @@ globalThis.__DOC = {
   size: [size.x, size.y, size.z].map((n) => +n.toFixed(2)),
   aimX: +aim.x.toFixed(1),
   longAxis, dist: +dist.toFixed(1),
+  /* Lane ORIENT's own physical gate, re-measured on the LIVE rig: the lower
+     jaw hangs below the snout, so (jaw - head) must point -Y once the rest
+     frame is right. A positive y here means the row is belly-up or rolled. */
+  })(),
   orient: (globalThis.RF_ART3D_ORIENT && globalThis.RF_ART3D_ORIENT[rig.group.userData.rfSourceBase]) || null,
 };
 document.title = 'DOC ' + ID + ' ' + SHOT;
