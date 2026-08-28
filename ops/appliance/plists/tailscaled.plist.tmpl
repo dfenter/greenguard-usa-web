@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.ops.__TENANT__.tailscaled</string>
+
+  <!-- Userspace-networking tailscaled. This Mac has no admin/sudo, so there is
+       no /dev/net/tun and no system-level Tailscale: the daemon runs entirely in
+       userspace and exposes a SOCKS5 proxy on localhost:1055, which is what the
+       `gg-wsl` ssh alias dials through (see ~/.ssh/config ProxyCommand).
+       Without this agent the daemon had to be started by hand after every
+       reboot; forgetting once cost a 28-day worker outage (2026-06-19 -> 07-17). -->
+  <key>ProgramArguments</key>
+  <array>
+    <string>__HOME__/go/bin/tailscaled</string>
+    <string>--tun=userspace-networking</string>
+    <string>--socks5-server=localhost:1055</string>
+    <string>--statedir=__HOME__/.tailscale-state</string>
+    <string>--socket=__HOME__/.tailscale-state/tailscaled.sock</string>
+  </array>
+
+  <!-- Start at login and keep it up: if it crashes, or exits after the Mac
+       wakes from sleep, launchd brings it straight back. -->
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+
+  <!-- Don't restart-loop faster than once every 10s. -->
+  <key>ThrottleInterval</key>
+  <integer>10</integer>
+
+  <key>StandardOutPath</key>
+  <string>__HOME__/.tailscale-state/tailscaled.log</string>
+  <key>StandardErrorPath</key>
+  <string>__HOME__/.tailscale-state/tailscaled.error.log</string>
+</dict>
+</plist>

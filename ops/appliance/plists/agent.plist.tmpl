@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Greenguard USA Gmail Agent — macOS LaunchAgent
+  Starts automatically on login, restarts on crash.
+
+  Install:
+    cp __AGENT__/greenguard-agent.plist \
+       ~/Library/LaunchAgents/com.ops.__TENANT__.agent.plist
+    launchctl load ~/Library/LaunchAgents/com.ops.__TENANT__.agent.plist
+
+  Check status:  launchctl list | grep greenguard
+  View logs:     tail -f __AGENT__/logs/agent.log
+  Stop:          launchctl unload ~/Library/LaunchAgents/com.ops.__TENANT__.agent.plist
+  Restart:       launchctl kickstart -k gui/$UID/com.ops.__TENANT__.agent
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.ops.__TENANT__.agent</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Library/Frameworks/Python.framework/Versions/3.13/bin/python3</string>
+        <string>__AGENT__/main.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>__AGENT__</string>
+
+    <!-- Restart automatically if the process exits for any reason -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Wait 10 seconds before restarting after a crash -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <!-- Start when the user logs in -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>StandardOutPath</key>
+    <string>__AGENT__/logs/agent.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>__AGENT__/logs/agent.error.log</string>
+
+    <!-- Give Homebrew and system Python tools a full PATH -->
+    <key>EnvironmentVariables</key>
+    <dict>
+		<key>OPS_TENANT</key>
+		<string>__TENANT__</string>
+        <key>PATH</key>
+        <string>/Library/Frameworks/Python.framework/Versions/3.13/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+</dict>
+</plist>

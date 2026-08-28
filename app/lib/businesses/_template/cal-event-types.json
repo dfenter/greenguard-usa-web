@@ -1,0 +1,31 @@
+{
+  "eventTypes": [
+    {
+      "title": "Recurring Service Visit",
+      "slug": "visit",
+      "skus": ["VISIT"],
+      "visitType": "service",
+      "systemType": null,
+      "durationMin": 45,
+      "price": 99.00
+    },
+    {
+      "title": "New Customer Installation",
+      "slug": "install",
+      "skus": ["INSTALL"],
+      "visitType": "install",
+      "systemType": null,
+      "durationMin": 60,
+      "price": 149.00
+    },
+    {
+      "title": "Free Assessment",
+      "slug": "free-assessment",
+      "skus": [],
+      "visitType": "assessment",
+      "systemType": null,
+      "durationMin": 30,
+      "price": 0
+    }
+  ]
+}

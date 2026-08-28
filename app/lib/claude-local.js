@@ -3,6 +3,8 @@
 // Returns { text } or null when the Mac is unreachable/declines (callers
 // fall back to their previous provider so nothing breaks when the Mac is down).
 
+const biz = require('./business.config')
+
 const TIMEOUT_MS = 55_000
 
 async function localComplete({ system, prompt, images = [], json = false, model = 'opus', effort = 'low', timeoutMs = TIMEOUT_MS }) {
@@ -13,7 +15,8 @@ async function localComplete({ system, prompt, images = [], json = false, model 
   try {
     resp = await fetch(`${base}/complete`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-gg-chat-secret': secret },
+      // Tenant selector; the daemon defaults to 'greenguard' when absent.
+      headers: { 'Content-Type': 'application/json', 'x-gg-chat-secret': secret, 'x-ops-tenant': biz.id },
       body: JSON.stringify({ system, prompt, images, json, model, effort }),
       signal: AbortSignal.timeout(timeoutMs),
     })

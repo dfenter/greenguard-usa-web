@@ -5,8 +5,8 @@ module.exports = {
   nameParts: { before: 'Lawn', accent: 'Pro', after: ' Services' },
   tagline:   'Perfect Lawn · Every Visit',
 
-  phone:     '',
-  phoneTel:  '',
+  phone:     '512-555-0100',   // placeholder demo tenant
+  phoneTel:  '+15125550100',
   email:     'admin@lawnpro-austin.com',
   city:      'Austin, TX',
   website:   'https://lawnpro-austin.com',

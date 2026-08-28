@@ -5,8 +5,8 @@ module.exports = {
   nameParts: { before: 'Pool', accent: 'Pro', after: ' Services' },
   tagline:   'Resort-Quality · Every Week',
 
-  phone:     '',           // TODO: set before launch
-  phoneTel:  '',
+  phone:     '512-555-0100',   // placeholder demo tenant
+  phoneTel:  '+15125550100',
   email:     'admin@poolpro-austin.com',   // TODO: set before launch
   city:      'Austin, TX',
   website:   'https://poolpro-austin.com', // TODO: set before launch

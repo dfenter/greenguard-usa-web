@@ -1,0 +1,64 @@
+# OPS policy rulebook — the operating rules Claude follows for this tenant.
+#
+# This file encodes the "how we run the business" rules that used to live
+# only in one operator's memory. It is read by ops/skills/build.js, merged
+# over these defaults with any `policy:` block found in
+# app/lib/businesses/<tenantId>/business.yaml, and rendered into the
+# `## Policy` section of the generated CLAUDE.md.
+#
+# Copy this file to a tenant's business.yaml as a `policy:` block and edit
+# only what differs from these GreenGuard-derived defaults.
+
+policy:
+  scheduling:
+    earliestAppointmentHour: 10        # never book before 10am, no exceptions
+    noSaturdays: true                  # Saturday requests shift to Friday
+    serviceRadiusMiles: 40             # ZIP gate for booking eligibility
+    routeFarFirst: true                # daily route order: farthest stop from depot first
+    readLiveCalendarOnly: true         # daily-ops pages must read the live calendar, never a route-plan cache
+    calendarTitleFormat: "Name: Service ({{bookingTag}})"   # GCal event title contract
+    recurringCadenceDays:
+      default: 28                      # default recurring service interval, in days
+      withoutTimer: 21                 # shorter interval when the customer has no automation/timer add-on
+    seriesDepth: 8                     # how many future occurrences to keep booked/auto-extended
+
+  notifications:
+    adminCalendarOps: silent           # sendUpdates=none on all admin-side calendar creates/edits
+    defaultChannel: email              # 48h reminder, review ask, thank-you: email
+    reminder2hChannel: text            # 2-hour-before reminder only: text (iMessage/SMS)
+    thankYouIncludesNextService: true  # every thank-you email states the next scheduled service date
+    bulkVia: gmail-api                 # bulk/manual sends go through the Gmail API, not a third-party ESP
+    ownerAlerts: [email, slack]        # owner-facing alerts (failures, cold quotes, etc.)
+    neverAskToNotify: true             # never prompt "should I notify the customer" — the channel rules above decide
+
+  data:
+    crmCanonicalFor: [system, plan, counts, access]   # CRM is the source of truth for these fields
+    billingCanonicalFor: [money]                       # billing platform is the source of truth for money
+    calendarCanonicalFor: [time]                       # calendar is the source of truth for appointment times
+    customerMeans: paid-invoice         # a "customer" (vs. prospect) is defined as: has a paid invoice
+    noteTags:
+      - "[ADMIN-NOTE]"
+      - "[TANK-LOG]"
+      - "[QUOTE-SENT]"
+      - "[QUOTE-PAID]"
+      - "[QUOTE-COLD]"
+      - "[QUOTE-LOST]"
+      - "[QUOTE-DEAD]"
+      - "[QUOTE-FOLLOWUP-T48]"
+      - "[SMS-IN]"
+      - "[SMS-OUT]"
+      - "[PURCHASE]"
+
+  billing:
+    oneTimeInvoicesOnly: true          # every charge is a one-time invoice
+    noSubscriptions: true              # never create a recurring Stripe subscription
+    quoteFollowupDays: [2, 7, 14]      # days after an unaccepted quote to nudge/escalate/mark lost
+    paymentResurrectionDays: [0, 2, 7, 14]   # failed-payment follow-up schedule
+
+  rhythm:
+    weeklyReview: monday               # KPI review day
+    newCustomerAudit: weekly           # self-heal audit of newly created customer records
+
+  compliance:
+    taxTablesRefresh: annual-january   # payroll tax tables must be refreshed every January
+    timesheetAuditAppendOnly: true     # timesheet revisions are append-only, never overwritten

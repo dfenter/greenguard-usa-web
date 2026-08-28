@@ -1,0 +1,9 @@
+{
+  "name": "ops-cli",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OPS (One Person Show) tenant management CLI",
+  "bin": {
+    "ops": "./ops.js"
+  }
+}

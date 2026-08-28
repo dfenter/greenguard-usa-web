@@ -12,6 +12,8 @@
 //     and may have executed tools before failing: do NOT fall back (a second
 //     run could re-execute mutations); apologize instead.
 
+const biz = require('./business.config')
+
 const TIMEOUT_MS = 52_000
 
 async function tryLocalChat({ audience, email, message, history, context, images, timeoutMs = TIMEOUT_MS }) {
@@ -23,7 +25,10 @@ async function tryLocalChat({ audience, email, message, history, context, images
   try {
     resp = await fetch(`${base}/chat/${audience}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-gg-chat-secret': secret },
+      // x-ops-tenant tells the daemon which tenant config to run as. The
+      // daemon defaults to 'greenguard' when the header is absent, so an older
+      // portal build talking to a newer daemon still behaves identically.
+      headers: { 'Content-Type': 'application/json', 'x-gg-chat-secret': secret, 'x-ops-tenant': biz.id },
       body: JSON.stringify({ email, message, history, context, images }),
       signal: AbortSignal.timeout(timeoutMs),
     })

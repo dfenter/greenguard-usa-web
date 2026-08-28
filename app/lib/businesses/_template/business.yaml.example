@@ -1,0 +1,39 @@
+# OPS tenant overlay — copy to business.yaml in this same directory and fill
+# in your values. Any key here is deep-merged OVER config.js at runtime
+# (YAML wins). You only need to list the keys you want to override; omit the
+# rest and config.js's value is kept.
+#
+# `ops init <id> ...` generates this file for you from --name/--email/etc.
+
+name: Acme Home Services
+email: admin@acme-example.com
+ownerEmail: admin@acme-example.com
+calendarId: admin@acme-example.com
+phone: 512-555-0100
+city: Austin, TX
+website: https://acme-example.com
+depot:
+  line1: 123 Main St
+  city: Austin
+  state: TX
+  zip: '78701'
+  lat: 30.2672
+  lng: -97.7431
+  full: 123 Main St, Austin, TX 78701
+taxRate: 8.25
+taxRateDecimal: 0.0825
+industry: home services business
+bookingTag: Acme Home Services
+
+# Business policy — read by scheduling/routing/notification logic.
+policy:
+  earliestAppointmentHour: 10     # never book before 10am
+  noSaturdays: true               # shift Saturday requests to Friday
+  serviceRadiusMiles: 40          # ZIP gate for booking eligibility
+  routeFarFirst: true             # daily route order: farthest stop first
+  notifications:
+    reminder2hChannel: text       # 2-hour-before reminder goes out by text only
+    defaultChannel: email         # everything else (48h reminder, review ask, thank-you) by email
+  quoteFollowupDays: [2, 7, 14]   # days after sending an unaccepted quote to follow up
+  recurringCadenceDays:
+    default: 28                   # default recurring service interval, in days

@@ -56,8 +56,64 @@ function log(...args) {
   console.log(new Date().toISOString(), '[chat-daemon]', ...args)
 }
 
+// ── Tenants (OPS multi-tenant) ───────────────────────────────────────────────
+// One daemon serves several tenants on one Mac. Callers pick one with the
+// `x-ops-tenant` header (or a `tenant` body field); absent = 'greenguard', so
+// every existing caller keeps working unchanged.
+//
+// v1.0 NOTE: the shared secret (CHAT_DAEMON_SECRET) is PER-MAC, not per-tenant.
+// Anyone holding the Mac's secret can address any tenant configured on it. That
+// is acceptable for v1.0 (one operator, one appliance); per-tenant secrets are
+// a v1.1 concern.
+const DEFAULT_TENANT = 'greenguard'
+const TENANT_RE = /^[a-z0-9-]{1,32}$/
+const BUSINESSES_DIR = path.join(APP_DIR, 'lib', 'businesses')
+
+function tenantConfigPath(tenant) {
+  return path.join(BUSINESSES_DIR, tenant, 'config.js')
+}
+function tenantExists(tenant) {
+  return TENANT_RE.test(tenant) && fs.existsSync(tenantConfigPath(tenant))
+}
+// Resolve the tenant for a request. Returns { tenant } or { error }.
+function resolveTenant(req, body) {
+  const raw = String(req.headers['x-ops-tenant'] || (body && body.tenant) || '').trim().toLowerCase()
+  if (!raw) return { tenant: DEFAULT_TENANT }
+  if (!TENANT_RE.test(raw)) return { error: 'invalid tenant' }
+  if (!tenantExists(raw)) return { error: `unknown tenant "${raw}"` }
+  return { tenant: raw }
+}
+
+// Load a tenant's merged config through business.config.js (which applies the
+// optional business.yaml overlay) with BUSINESS_ID temporarily pointed at it.
+// The require cache is cleared around the call so each tenant resolves fresh.
+const BUSINESS_CONFIG_PATH = require.resolve(path.join(APP_DIR, 'lib', 'business.config.js'))
+const tenantConfigCache = new Map()
+function tenantConfig(tenant) {
+  if (tenantConfigCache.has(tenant)) return tenantConfigCache.get(tenant)
+  const prevB = process.env.BUSINESS_ID
+  const prevN = process.env.NEXT_PUBLIC_BUSINESS_ID
+  let cfg
+  try {
+    process.env.BUSINESS_ID = tenant
+    process.env.NEXT_PUBLIC_BUSINESS_ID = tenant
+    delete require.cache[BUSINESS_CONFIG_PATH]
+    delete require.cache[require.resolve(tenantConfigPath(tenant))]
+    cfg = require(BUSINESS_CONFIG_PATH)
+  } catch (e) {
+    log(`tenant config load failed for ${tenant}: ${e.message}`)
+    cfg = { id: tenant, name: tenant, nameShort: tenant, city: '', phone: '', industry: 'business' }
+  } finally {
+    if (prevB === undefined) delete process.env.BUSINESS_ID; else process.env.BUSINESS_ID = prevB
+    if (prevN === undefined) delete process.env.NEXT_PUBLIC_BUSINESS_ID; else process.env.NEXT_PUBLIC_BUSINESS_ID = prevN
+    delete require.cache[BUSINESS_CONFIG_PATH]
+  }
+  tenantConfigCache.set(tenant, cfg)
+  return cfg
+}
+
 // ── System prompts ───────────────────────────────────────────────────────────
-const CUSTOMER_SYSTEM = (context) => `You are the GreenGuard USA customer assistant. You help the signed-in customer with questions about their CO2 mosquito-control service, their plan, and their billing, and can take safe actions for them.
+const CUSTOMER_SYSTEM = (context, biz = tenantConfig(DEFAULT_TENANT)) => `You are the ${biz.name} customer assistant. You help the signed-in customer with questions about their ${biz.serviceNoun || 'CO2 mosquito-control'} service, their plan, and their billing, and can take safe actions for them.
 
 GROUND RULES:
 1. Be warm, brief, plain-English. No marketing language. No emojis unless the customer used one first. Never use em dashes.
@@ -72,7 +128,7 @@ GROUND RULES:
 CUSTOMER CONTEXT:
 ${context || '(none)'}`
 
-const ADMIN_SYSTEM = () => `You are the GreenGuard USA operations assistant for the owner and field techs. You are a full administrative assistant: you can read routes, look up customers, check tank inventory, text customers, book, reschedule and cancel appointments, take notes, and create, edit and send Stripe invoices. Be terse and direct: answer the question, surface the number, do the task. No marketing language, no emojis, no em dashes.
+const ADMIN_SYSTEM = (biz = tenantConfig(DEFAULT_TENANT)) => `You are the ${biz.name} operations assistant for the owner and field techs. You are a full administrative assistant: you can read routes, look up customers, check tank inventory, text customers, book, reschedule and cancel appointments, take notes, and create, edit and send Stripe invoices. Be terse and direct: answer the question, surface the number, do the task. No marketing language, no emojis, no em dashes.
 
 YOUR TOOLS, BY JOB:
 - Routes: get_todays_route, get_route_for_date (stops carry eventId + calBookingUid for later mutations).
@@ -120,27 +176,37 @@ if (!state.sessions) state.sessions = {}
 function saveState() {
   try { fs.writeFileSync(STATE_PATH, JSON.stringify(state, null, 1)) } catch (e) { log('state save failed:', e.message) }
 }
-function sessionFor(audience, email) {
-  const key = `${audience}:${email}`
-  const s = state.sessions[key]
-  if (s && Date.now() - (s.updatedAt || 0) < SESSION_TTL_MS) return s.sessionId
+// Session keys are tenant-scoped so two tenants never resume each other's
+// Claude session. Legacy (pre-tenant) keys were `${audience}:${email}`; the
+// greenguard tenant reads those too so live sessions survive this upgrade.
+function sessionKey(tenant, audience, email) {
+  return `${tenant}:${audience}:${email}`
+}
+function sessionFor(tenant, audience, email) {
+  const keys = [sessionKey(tenant, audience, email)]
+  if (tenant === DEFAULT_TENANT) keys.push(`${audience}:${email}`)
+  for (const key of keys) {
+    const s = state.sessions[key]
+    if (s && Date.now() - (s.updatedAt || 0) < SESSION_TTL_MS) return s.sessionId
+  }
   return null
 }
-function rememberSession(audience, email, sessionId) {
-  state.sessions[`${audience}:${email}`] = { sessionId, updatedAt: Date.now() }
+function rememberSession(tenant, audience, email, sessionId) {
+  state.sessions[sessionKey(tenant, audience, email)] = { sessionId, updatedAt: Date.now() }
   // prune expired
   for (const [k, v] of Object.entries(state.sessions)) {
     if (Date.now() - (v.updatedAt || 0) > SESSION_TTL_MS) delete state.sessions[k]
   }
   saveState()
 }
-function forgetSession(audience, email) {
-  delete state.sessions[`${audience}:${email}`]
+function forgetSession(tenant, audience, email) {
+  delete state.sessions[sessionKey(tenant, audience, email)]
+  if (tenant === DEFAULT_TENANT) delete state.sessions[`${audience}:${email}`]
   saveState()
 }
 
 // ── Claude run ───────────────────────────────────────────────────────────────
-function runClaude({ audience, email, message, history, context, images, deadlineMs }) {
+function runClaude({ tenant = DEFAULT_TENANT, audience, email, message, history, context, images, deadlineMs }) {
   return new Promise((resolve) => {
     const reqId = crypto.randomUUID()
     const actionsFile = path.join(SCRATCH, `actions-${reqId}.jsonl`)
@@ -166,6 +232,11 @@ function runClaude({ audience, email, message, history, context, images, deadlin
       ANTHROPIC_AUTH_TOKEN: undefined,
       PATH: `${process.env.PATH || ''}:${os.homedir()}/.local/bin:/usr/local/bin:/usr/bin:/bin`,
       HOME: os.homedir(),
+      // Tenant selection for business.config.js and every lib the MCP server
+      // requires. Both names are set: server code reads BUSINESS_ID, shared
+      // client/server code reads NEXT_PUBLIC_BUSINESS_ID.
+      BUSINESS_ID: tenant,
+      NEXT_PUBLIC_BUSINESS_ID: tenant,
       GG_CHAT_AUDIENCE: audience,
       GG_CHAT_USER_EMAIL: email,
       GG_CHAT_CONTEXT_JSON: JSON.stringify(context && typeof context === 'object' ? context : {}),
@@ -181,6 +252,8 @@ function runClaude({ audience, email, message, history, context, images, deadlin
               command: process.execPath,
               args: [MCP_SERVER],
               env: {
+                BUSINESS_ID: tenant,
+                NEXT_PUBLIC_BUSINESS_ID: tenant,
                 GG_CHAT_AUDIENCE: audience,
                 GG_CHAT_USER_EMAIL: email,
                 GG_CHAT_CONTEXT_JSON: childEnv.GG_CHAT_CONTEXT_JSON,
@@ -191,11 +264,14 @@ function runClaude({ audience, email, message, history, context, images, deadlin
         }))
 
     const contextText = typeof context === 'string' ? context : (context?.text || '')
-    const system = audience === 'admin' ? ADMIN_SYSTEM()
+    // SparkBridge is a GreenGuard product line, not a tenant-scoped tier — its
+    // prompt stays fixed regardless of the tenant header.
+    const biz = tenantConfig(tenant)
+    const system = audience === 'admin' ? ADMIN_SYSTEM(biz)
         : audience === 'sparkbridge' ? SPARKBRIDGE_SYSTEM()
-        : CUSTOMER_SYSTEM(contextText)
+        : CUSTOMER_SYSTEM(contextText, biz)
 
-    const resumeId = sessionFor(audience, email)
+    const resumeId = sessionFor(tenant, audience, email)
     const newSessionId = crypto.randomUUID()
     // Resumed sessions already hold the conversation; fresh ones get the
     // portal-side history (last 10 turns) prepended so context carries over.
@@ -288,7 +364,7 @@ function runClaude({ audience, email, message, history, context, images, deadlin
         const errText = (parsed?.result || stderr || stdout || '').slice(0, 400)
         return resolve({ ok: false, started, error: `claude exit ${code}: ${errText}`, resumeFailed: !!resumeId, actions, escalated, escalateReason })
       }
-      rememberSession(audience, email, parsed.session_id || newSessionId)
+      rememberSession(tenant, audience, email, parsed.session_id || newSessionId)
       resolve({ ok: true, reply: parsed.result, actions, escalated, escalateReason })
     })
     child.on('error', (e) => {
@@ -309,7 +385,7 @@ function runClaude({ audience, email, message, history, context, images, deadlin
 // other server job that used to call the metered Messages API. Single-turn,
 // no session, no tools except Read scoped to scratch for attached images.
 // Body: { system, prompt, images?:[{media_type,data}], json?:true, model?, effort? }
-function runComplete({ system, prompt, images, json, model, effort, deadlineMs }) {
+function runComplete({ tenant = DEFAULT_TENANT, system, prompt, images, json, model, effort, deadlineMs }) {
   return new Promise((resolve) => {
     const reqId = crypto.randomUUID()
     const imageFiles = []
@@ -324,6 +400,8 @@ function runComplete({ system, prompt, images, json, model, effort, deadlineMs }
       ANTHROPIC_AUTH_TOKEN: undefined,
       PATH: `${process.env.PATH || ''}:${os.homedir()}/.local/bin:/usr/local/bin:/usr/bin:/bin`,
       HOME: os.homedir(),
+      BUSINESS_ID: tenant,
+      NEXT_PUBLIC_BUSINESS_ID: tenant,
     }
     let sys = String(system || '')
     if (json) sys += '\n\nRespond with VALID JSON only — no prose, no markdown fences. Start with { and end with }.'
@@ -450,6 +528,9 @@ const server = http.createServer((req, res) => {
       if (size > MAX_BODY) return
       let body
       try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')) } catch { return sendJson(res, 400, { error: 'bad json' }) }
+      const t = resolveTenant(req, body)
+      if (t.error) return sendJson(res, 400, { error: t.error })
+      const tenant = t.tenant
       const { system, prompt, images, json, model, effort } = body || {}
       if (!prompt || typeof prompt !== 'string') return sendJson(res, 400, { error: 'prompt required' })
       if (prompt.length > 60_000 || String(system || '').length > 20_000) return sendJson(res, 400, { error: 'prompt too long' })
@@ -467,9 +548,9 @@ const server = http.createServer((req, res) => {
         reject503: (why) => sendJson(res, 503, { ok: false, error: why }),
         run: async () => {
           const t0 = Date.now()
-          log(`complete: "${prompt.slice(0, 60).replace(/\n/g, ' ')}" json=${!!json} imgs=${capImages.length}`)
-          const out = await runComplete({ system, prompt, images: capImages, json: !!json, model, effort, deadlineMs })
-          log(`complete done ok=${out.ok} ${Date.now() - t0}ms${out.ok ? '' : ' err=' + out.error}`)
+          log(`complete [${tenant}]: "${prompt.slice(0, 60).replace(/\n/g, ' ')}" json=${!!json} imgs=${capImages.length}`)
+          const out = await runComplete({ tenant, system, prompt, images: capImages, json: !!json, model, effort, deadlineMs })
+          log(`complete done [${tenant}] ok=${out.ok} ${Date.now() - t0}ms${out.ok ? '' : ' err=' + out.error}`)
           sendJson(res, out.ok ? 200 : 500, out)
         },
       })
@@ -526,6 +607,9 @@ const server = http.createServer((req, res) => {
     if (size > MAX_BODY) return
     let body
     try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')) } catch { return sendJson(res, 400, { error: 'bad json' }) }
+    const t = resolveTenant(req, body)
+    if (t.error) return audience === 'sparkbridge' ? sbSend(400, { error: t.error }) : sendJson(res, 400, { error: t.error })
+    const tenant = t.tenant
     let { email, message, history, context, images } = body || {}
     if (audience === 'sparkbridge') {
       // Anonymous site visitors: identity is a client-generated UUID session id.
@@ -576,7 +660,7 @@ const server = http.createServer((req, res) => {
           return [{ media_type: i.media_type, data }]
         })
       : []
-    if (audience !== 'sparkbridge' && rateLimited(email.toLowerCase())) return sendJson(res, 429, { ok: false, started: false, error: 'rate limited' })
+    if (audience !== 'sparkbridge' && rateLimited(`${tenant}:${email.toLowerCase()}`)) return sendJson(res, 429, { ok: false, started: false, error: 'rate limited' })
     if (queue.length >= MAX_QUEUE) {
       return audience === 'sparkbridge'
         ? sbSend(503, { ok: false, started: false, error: 'busy' })
@@ -595,21 +679,22 @@ const server = http.createServer((req, res) => {
       run: async () => {
         const t0 = Date.now()
         const lc = email.toLowerCase()
-        log(`run ${audience} ${email}: "${message.slice(0, 80)}"`)
+        log(`run [${tenant}] ${audience} ${email}: "${message.slice(0, 80)}"`)
         // Serialize per user so concurrent turns don't share one resume session.
-        let out = await withUserLock(`${audience}:${lc}`, async () => {
-          let r = await runClaude({ audience, email: lc, message, history: capHistory, context: capContext, images: capImages, deadlineMs })
+        // Tenant-scoped: the same email at two tenants is two independent users.
+        let out = await withUserLock(`${tenant}:${audience}:${lc}`, async () => {
+          let r = await runClaude({ tenant, audience, email: lc, message, history: capHistory, context: capContext, images: capImages, deadlineMs })
           // A dead/expired --resume session self-heals: forget and retry fresh
           // once — ONLY when nothing started (guards against re-running a
           // partially-applied mutation, finding #1).
           if (!r.ok && r.resumeFailed && !r.started && Date.now() < deadlineMs - 15_000) {
-            log(`resume failed for ${audience}:${email}, retrying fresh`)
-            forgetSession(audience, lc)
-            r = await runClaude({ audience, email: lc, message, history: capHistory, context: capContext, images: capImages, deadlineMs })
+            log(`resume failed for ${tenant}:${audience}:${email}, retrying fresh`)
+            forgetSession(tenant, audience, lc)
+            r = await runClaude({ tenant, audience, email: lc, message, history: capHistory, context: capContext, images: capImages, deadlineMs })
           }
           return r
         })
-        log(`done ${audience} ${email}: ok=${out.ok} started=${out.started !== false} ${Date.now() - t0}ms actions=${(out.actions || []).length}${out.ok ? '' : ' err=' + out.error}`)
+        log(`done [${tenant}] ${audience} ${email}: ok=${out.ok} started=${out.started !== false} ${Date.now() - t0}ms actions=${(out.actions || []).length}${out.ok ? '' : ' err=' + out.error}`)
         const respond = audience === 'sparkbridge' ? sbSend : (code, obj) => sendJson(res, code, obj)
         if (out.ok) {
           respond(200, { ok: true, reply: out.reply, actions: out.actions, escalated: out.escalated, escalateReason: out.escalateReason })
