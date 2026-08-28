@@ -27,3 +27,14 @@ scripts
 
 # Redesign source project (built locally; staged output redesign-dist/ IS uploaded)
 redesign
+
+# Dev-only game lane evidence / scratch / source assets (>100MB files; Vercel per-file limit)
+play/*/scratchpad
+play/*/hse/evidence
+play/*/hse/evidence-*
+play/*/review_evidence
+play/*/shots*
+play/soulsteel/sources
+**/*.blend
+**/*.blend1
+**/archive.zip
