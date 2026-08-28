@@ -32,6 +32,7 @@ header.site .container{display:flex;align-items:center;justify-content:space-bet
 nav.main{display:flex;gap:22px;font-size:.88rem;font-weight:600}
 nav.main a{text-decoration:none;color:var(--cream-muted)}
 nav.main a:hover,nav.main a[aria-current]{color:#fff}
+nav.main a.btn-gold,nav.main a.btn-gold:hover{color:var(--bg-dark)}
 nav.main .drop{position:relative}
 nav.main .drop>a::after{content:" ▾";font-size:.7em}
 nav.main .menu{display:none;position:absolute;top:100%;left:-12px;padding-top:12px;min-width:250px}
@@ -55,8 +56,9 @@ a.card:hover{border-color:rgba(125,255,170,.45);transform:translateY(-2px)}
 .card p{color:var(--cream-muted);font-size:.95rem}
 .card .more{display:inline-block;margin-top:12px;color:var(--accent);font-weight:700;font-size:.85rem}
 .steps{list-style:none;counter-reset:s;margin-top:26px;display:grid;gap:14px}
-.steps li{display:grid;grid-template-columns:44px 1fr;gap:16px;align-items:start;background:rgba(13,26,16,.6);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.steps li{display:grid;grid-template-columns:44px minmax(0,1fr);gap:16px;align-items:start;background:rgba(13,26,16,.6);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
 .steps li::before{counter-increment:s;content:counter(s,decimal-leading-zero);font-family:var(--mono);color:var(--accent);font-weight:700;font-size:.95rem;padding-top:2px}
+.steps li>div{min-width:0}
 .steps b{display:block;color:#fff;margin-bottom:3px}
 .steps span{color:var(--cream-muted);font-size:.95rem}
 .split{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start}
@@ -306,10 +308,10 @@ pages['index'] = head('One Person Show', 'A company that runs itself, for the pe
   ${daylog()}
 </div></div></section>
 <section class="block" id="features"><div class="container"><span class="eyebrow">The product</span><h2>Six jobs you stop doing at night</h2><p class="lede">Each one is a page, because each one is a real system, not a bullet point.</p>
-<div class="cards">${FEATURES.map((f) => `<a class="card" href="/${f.slug}"><span class="eyebrow">${f.tag}</span><h3>${f.title}</h3><p>${f.lede.split('. ')[0]}.</p><span class="more">Read how it works →</span></a>`).join('')}</div></div></section>
+<div class="cards">${FEATURES.map((f) => `<a class="card" href="/${f.slug}"><span class="eyebrow">${f.tag}</span><h3>${f.title}</h3><p>${f.h1}</p><span class="more">Read how it works →</span></a>`).join('')}</div></div></section>
 <section class="block alt" id="how"><div class="container"><div class="split">
   <div><span class="eyebrow">How it works</span><h2>One Mac. Your accounts. A subscription, not a meter.</h2><p class="lede">Most "AI for small business" tools resell tokens. One Person Show runs Claude through the flat subscription you would buy for yourself, on a Mac mini in your house that talks to your portal over an encrypted tunnel. If the Mac is off, the portal keeps taking bookings and payments.</p><p style="margin-top:20px"><a class="btn-outline" href="/how-it-works">The full architecture</a></p></div>
-  <ol class="steps"><li><b>Your accounts</b><span>Google Workspace, Stripe, your calendar. Optional HubSpot. Nothing to migrate into.</span></li><li><b>Your portal</b><span>A customer site and an owner/tech app at your own domain, hosted for you.</span></li><li><b>The closet</b><span>A Mac mini running Claude on your subscription, with a daemon that does the work. No API bill.</span></li><li><b>Your rulebook</b><span>Earliest appointment, no-Saturday, service radius, who gets a text. Set once, enforced everywhere.</span></li></ol>
+  <ol class="steps"><li><div><b>Your accounts</b><span>Google Workspace, Stripe, your calendar. Optional HubSpot. Nothing to migrate into.</span></div></li><li><div><b>Your portal</b><span>A customer site and an owner/tech app at your own domain, hosted for you.</span></div></li><li><div><b>The closet</b><span>A Mac mini running Claude on your subscription, with a daemon that does the work. No API bill.</span></div></li><li><div><b>Your rulebook</b><span>Earliest appointment, no-Saturday, service radius, who gets a text. Set once, enforced everywhere.</span></div></li></ol>
 </div></div></section>
 <section class="block" id="proof"><div class="container"><span class="eyebrow">Proof</span><h2>It already runs a company</h2>
 <div class="cards two"><div class="card"><h3>GreenGuard USA, Austin</h3><p>CO₂ mosquito control, 86 customers on 21 and 28 day cadences, one owner, one tech. Every module on this site was built to run that business first, then generalized. The schedule in the log above is the real one.</p></div>
@@ -324,7 +326,7 @@ FEATURES.forEach((f, i) => {
   <div class="cta"><a class="btn-gold" href="/pricing#start">Request setup</a><a class="btn-outline" href="/how-it-works">How it runs</a></div></div>
   ${mock(f.mock)}
 </div></div></section>
-<section class="block"><div class="container"><span class="eyebrow">What happens</span><h2>Step by step</h2><ol class="steps">${f.steps.map(([b, s]) => `<li><b>${b}</b><span>${s}</span></li>`).join('')}</ol></div></section>
+<section class="block"><div class="container"><span class="eyebrow">What happens</span><h2>Step by step</h2><ol class="steps">${f.steps.map(([b, s]) => `<li><div><b>${b}</b><span>${s}</span></div></li>`).join('')}</ol></div></section>
 <section class="block alt"><div class="container"><div class="split">
   <div><span class="eyebrow">Under the hood</span><h2>What you get</h2><ul class="facts">${f.facts.map((x) => `<li>${x}</li>`).join('')}</ul></div>
   <div><span class="eyebrow">Your rulebook</span><h2>Rules it follows</h2><p class="lede" style="font-size:.95rem">Defaults from a real business. Every one is a setting you can change.</p><div class="rules">${f.rules.map(([b, s]) => `<div class="rule"><b>${b}</b><span>${s}</span></div>`).join('')}</div></div>
@@ -339,10 +341,10 @@ pages['how-it-works'] = head('How it works · One Person Show', 'One Mac, your a
   <div class="mock"><div class="bar"><i></i><i></i><i></i>&nbsp;architecture</div><div class="body"><div class="row"><span class="k">Customers</span><span class="v">your-company.com portal (hosted)</span></div><div class="row"><span class="k">Tunnel</span><span class="v">Encrypted, outbound-only from your Mac</span></div><div class="row"><span class="k">The closet</span><span class="v">Mac mini · Claude on your subscription</span></div><div class="row"><span class="k">Systems of record</span><span class="v">Google Calendar · Stripe · Gmail · CRM</span></div><div class="row"><span class="k">If the Mac is off</span><span class="v"><span class="pill dim">Portal keeps booking and charging</span></span></div></div></div>
 </div></div></section>
 <section class="block"><div class="container"><span class="eyebrow">The pieces</span><h2>Four layers</h2><ol class="steps">
-<li><b>Your accounts</b><span>Google Workspace for mail and calendar, Stripe for money, optional HubSpot as the customer record, optional Cal.com for self-booking. Each stays canonical for its own data: calendar for time, Stripe for money, CRM for configuration.</span></li>
-<li><b>Your portal</b><span>A customer site (quote, pay, book, plan, history, chat) and an owner/tech app (today, rounds, calendar, clients, invoices, books, payroll) at your domain, hosted and updated for you.</span></li>
-<li><b>The closet</b><span>A Mac mini running the Claude command line on your own subscription. A small daemon answers portal chat with real tools, drafts your email, categorizes your books, checks install photos. No per-token bill; a flat monthly plan you control.</span></li>
-<li><b>Your rulebook</b><span>A plain configuration file: earliest appointment, no-Saturday, service radius, routing order, which reminders go by text, quote follow-up windows, recurring cadence. Enforced in booking, routing and the assistant alike.</span></li>
+<li><div><b>Your accounts</b><span>Google Workspace for mail and calendar, Stripe for money, optional HubSpot as the customer record, optional Cal.com for self-booking. Each stays canonical for its own data: calendar for time, Stripe for money, CRM for configuration.</span></div></li>
+<li><div><b>Your portal</b><span>A customer site (quote, pay, book, plan, history, chat) and an owner/tech app (today, rounds, calendar, clients, invoices, books, payroll) at your domain, hosted and updated for you.</span></div></li>
+<li><div><b>The closet</b><span>A Mac mini running the Claude command line on your own subscription. A small daemon answers portal chat with real tools, drafts your email, categorizes your books, checks install photos. No per-token bill; a flat monthly plan you control.</span></div></li>
+<li><div><b>Your rulebook</b><span>A plain configuration file: earliest appointment, no-Saturday, service radius, routing order, which reminders go by text, quote follow-up windows, recurring cadence. Enforced in booking, routing and the assistant alike.</span></div></li>
 </ol></div></section>
 <section class="block alt"><div class="container"><div class="split">
 <div><span class="eyebrow">Failure modes</span><h2>What happens when things break</h2><ul class="facts"><li>Mac offline: portal, payments and bookings continue; chat says it will be back; drafts resume when the Mac returns</li><li>Card declined: retried and escalated on a schedule, service paused at day 14, never silently dropped</li><li>Booking outside your radius via a direct link: auto-cancelled with a note to you</li><li>A tool ran but the reply failed: the assistant never re-runs a mutation; it apologizes and flags you</li></ul></div>
@@ -358,7 +360,7 @@ pages['pricing'] = head('Pricing · One Person Show', 'Solo $249, Crew $449, App
   <div class="plan"><div class="n">Appliance</div><div class="amt">$449<small>/mo + $1,200 once</small></div><div class="sub">Crew, with the closet included</div><ul><li>Everything in Crew</li><li>Mac mini shipped configured</li><li>Tunnel and updates managed by us</li><li>Plug in, done</li></ul><a class="btn-outline" href="#start">Request setup</a></div>
 </div>
 <p class="fine">All plans: $1,500 white-glove setup (we import your customers, learn your voice, load your catalog and rules). You bring a Claude Max subscription on your own account and pay your own Stripe fees. Cancel any month; your data was always in your accounts.</p></div></section>
-<section class="block alt"><div class="container"><span class="eyebrow">Setup</span><h2>What white-glove means</h2><ol class="steps"><li><b>Import</b><span>Your customer list into the CRM, with plan, cadence and access notes.</span></li><li><b>Voice</b><span>Five of your own emails become the voice profile the inbox agent writes in.</span></li><li><b>Catalog and rules</b><span>Your services, prices, bundles and the rulebook, entered with you on a call.</span></li><li><b>Go live</b><span>Domain, portal, Mac, tunnel. A test booking, a test invoice, a test reply. Then we hand you the keys.</span></li></ol></div></section>
+<section class="block alt"><div class="container"><span class="eyebrow">Setup</span><h2>What white-glove means</h2><ol class="steps"><li><div><b>Import</b><span>Your customer list into the CRM, with plan, cadence and access notes.</span></div></li><li><div><b>Voice</b><span>Five of your own emails become the voice profile the inbox agent writes in.</span></div></li><li><div><b>Catalog and rules</b><span>Your services, prices, bundles and the rulebook, entered with you on a call.</span></div></li><li><div><b>Go live</b><span>Domain, portal, Mac, tunnel. A test booking, a test invoice, a test reply. Then we hand you the keys.</span></div></li></ol></div></section>
 ${ctaBand()}` + footer()
 
 fs.writeFileSync(path.join(OUT, 'site.css'), CSS.trim() + '\n')

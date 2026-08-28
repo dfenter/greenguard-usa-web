@@ -22,6 +22,7 @@ header.site .container{display:flex;align-items:center;justify-content:space-bet
 nav.main{display:flex;gap:22px;font-size:.88rem;font-weight:600}
 nav.main a{text-decoration:none;color:var(--cream-muted)}
 nav.main a:hover,nav.main a[aria-current]{color:#fff}
+nav.main a.btn-gold,nav.main a.btn-gold:hover{color:var(--bg-dark)}
 nav.main .drop{position:relative}
 nav.main .drop>a::after{content:" ▾";font-size:.7em}
 nav.main .menu{display:none;position:absolute;top:100%;left:-12px;padding-top:12px;min-width:250px}
@@ -45,8 +46,9 @@ a.card:hover{border-color:rgba(125,255,170,.45);transform:translateY(-2px)}
 .card p{color:var(--cream-muted);font-size:.95rem}
 .card .more{display:inline-block;margin-top:12px;color:var(--accent);font-weight:700;font-size:.85rem}
 .steps{list-style:none;counter-reset:s;margin-top:26px;display:grid;gap:14px}
-.steps li{display:grid;grid-template-columns:44px 1fr;gap:16px;align-items:start;background:rgba(13,26,16,.6);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.steps li{display:grid;grid-template-columns:44px minmax(0,1fr);gap:16px;align-items:start;background:rgba(13,26,16,.6);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
 .steps li::before{counter-increment:s;content:counter(s,decimal-leading-zero);font-family:var(--mono);color:var(--accent);font-weight:700;font-size:.95rem;padding-top:2px}
+.steps li>div{min-width:0}
 .steps b{display:block;color:#fff;margin-bottom:3px}
 .steps span{color:var(--cream-muted);font-size:.95rem}
 .split{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start}
