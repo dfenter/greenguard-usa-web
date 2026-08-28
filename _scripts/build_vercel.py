@@ -751,9 +751,17 @@ def main():
     play_src = os.path.join(REPO, 'play')
     if os.path.isdir(play_src):
         # Rev 15: lane evidence / scratchpads / notes are dev-only (hundreds of MB).
-        play_ignore = shutil.ignore_patterns('evidence', 'evidence-*', 'scratchpad', 'shots*',
+        _pat_ignore = shutil.ignore_patterns('evidence', 'evidence-*', 'scratchpad', 'shots*',
                                              'review_evidence', 'heads_raw', 'NOTES-*.md',
-                                             'REVIEW-*.md', '*.log', '*.bak')
+                                             'REVIEW-*.md', '*.log', '*.bak', 'sources',
+                                             '*.blend', '*.blend1')
+        def play_ignore(d, names):
+            skip = set(_pat_ignore(d, names))
+            for n in names:  # Vercel hard limit is 100 MB per file
+                fp = os.path.join(d, n)
+                if os.path.isfile(fp) and os.path.getsize(fp) > 90 * 1024 * 1024:
+                    skip.add(n)
+            return skip
         shutil.copytree(play_src, os.path.join(OUT, 'play'), ignore=play_ignore)
         print('  COPY  play/')
 
