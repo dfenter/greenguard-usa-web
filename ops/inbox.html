@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Replies in your voice · One Person Show</title>
+<meta name="description" content="The inbox agent reads new customer mail, sorts it by urgency, and writes a reply the way you write.">
+<link rel="canonical" href="https://ops.greenguard-usa.com/inbox">
+<meta property="og:title" content="Replies in your voice · One Person Show"><meta property="og:description" content="The inbox agent reads new customer mail, sorts it by urgency, and writes a reply the way you write."><meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site.css">
+</head>
+<body><header class="site"><div class="container">
+  <a class="brand" href="/">One <span>Person</span> Show</a>
+  <button class="menu-toggle" aria-expanded="false" aria-controls="mainnav" onclick="var n=document.getElementById('mainnav');n.classList.toggle('open');this.setAttribute('aria-expanded',n.classList.contains('open'))">Menu</button>
+  <nav class="main" id="mainnav">
+    <div class="drop"><a href="/#features" aria-current="page">Product</a><div class="menu"><div><a href="/front-office">Quote, pay, book<small>Customers quote themselves, pay by card, and pick a slot.</small></a><a href="/inbox" aria-current="page">Replies in your voice<small>Every customer email answered in your words, waiting for your tap.</small></a><a href="/day-of">Route, remind, invoice<small>The truck leaves with a route, the customers are warned, the invoices write themselves.</small></a><a href="/money">Books that close themselves<small>A ledger that fills itself, closes every month, and answers questions in plain English.</small></a><a href="/crew">Payroll without a provider<small>Clock in, clock out, and get paid correctly, without a payroll company.</small></a><a href="/growth">Follow-ups that never lapse<small>Quotes get chased, cards get retried, lapsed customers get a note, reviews get asked for.</small></a></div></div></div>
+    <a href="/how-it-works">How it works</a>
+    <a href="/pricing">Pricing</a>
+    <a href="/#proof">Proof</a>
+    <a class="btn-gold" href="/pricing#start" style="padding:10px 18px">Request setup</a>
+  </nav>
+</div></header>
+<section class="hero"><div class="container"><div class="grid">
+  <div><span class="eyebrow">Inbox</span><h1>Every customer email answered in your words, waiting for your tap.</h1><p class="lede">The inbox agent reads new customer mail, sorts it by urgency, and writes a reply the way you write. It never sends on its own. You open the draft, tap send, or change a line first.</p>
+  <div class="cta"><a class="btn-gold" href="/pricing#start">Request setup</a><a class="btn-outline" href="/how-it-works">How it runs</a></div></div>
+  <div class="mock"><div class="bar"><i></i><i></i><i></i>&nbsp;gmail / drafts</div><div class="body"><div class="row"><span class="k">From</span><span class="v">jane@…  "Can we move Thursday?"</span></div><div class="row"><span class="k">Class</span><span class="v"><span class="pill warn">Scheduling · medium</span></span></div><div class="row"><span class="k">Draft</span><span class="v">"Jane, sure thing. Thursday 2:00 or 4:00 open. Which works?"</span></div><div class="row"><span class="k">Action</span><span class="v">Waiting for you</span></div></div></div>
+</div></div></section>
+<section class="block"><div class="container"><span class="eyebrow">What happens</span><h2>Step by step</h2><ol class="steps"><li><b>Read</b><span>New mail is classified: scheduling, question, complaint, other. Newsletters and receipts are filed, not answered.</span></li><li><b>Draft</b><span>A reply is written from five sample emails you gave us at setup: your greeting, your length, your sign-off.</span></li><li><b>Offer times</b><span>If it is a scheduling request, the draft includes two real open slots from your calendar.</span></li><li><b>Alert</b><span>Genuine customer mail pings your phone and forwards to your tech, so nobody is the bottleneck.</span></li><li><b>Send</b><span>You tap send in Gmail. Edited drafts teach nothing to anyone but you; there is no training on your mail.</span></li></ol></div></section>
+<section class="block alt"><div class="container"><div class="split">
+  <div><span class="eyebrow">Under the hood</span><h2>What you get</h2><ul class="facts"><li>Drafts only; nothing goes out without a human tap</li><li>Runs on your Claude subscription, not a per-message API bill</li><li>Thread history is included so replies make sense</li><li>Owner alerts by text; customer replies by email</li></ul></div>
+  <div><span class="eyebrow">Your rulebook</span><h2>Rules it follows</h2><p class="lede" style="font-size:.95rem">Defaults from a real business. Every one is a setting you can change.</p><div class="rules"><div class="rule"><b>Never auto-send</b><span>Customer-facing mail always waits for you</span></div><div class="rule"><b>Voice profile</b><span>Built from your own emails, editable any time</span></div><div class="rule"><b>Channel</b><span>Email first; text only when there is no email</span></div><div class="rule"><b>Brand</b><span>Always your full company name, never a nickname</span></div></div></div>
+</div><div class="pager"><a href="/front-office">← Quote, pay, book</a><a href="/day-of">Route, remind, invoice →</a></div></div></section>
+<section class="cta-band" id="start"><div class="container"><div class="box">
+  <div><span class="eyebrow">First ten operators</span><h2>Austin first. Then everywhere.</h2><p class="lede" style="font-size:1rem">We are onboarding ten pool, lawn, pest and cleaning operators this fall. Setup is done by the people who built it. A human replies within a day.</p></div>
+  <form class="wl" id="waitlist">
+    <input name="name" placeholder="Your name" required autocomplete="name">
+    <input name="email" type="email" placeholder="Email" required autocomplete="email">
+    <input name="company" placeholder="Company and trade (e.g. Lakeway Pool Care)" required>
+    <select name="size" aria-label="Team size"><option value="solo">Just me</option><option value="crew">Me plus 1 to 3</option><option value="more">More than that</option></select>
+    <button class="btn-gold" type="submit">Request setup</button>
+    <div id="formMsg" aria-live="polite"></div>
+  </form>
+</div></div></section>
+<script>
+(function(){var f=document.getElementById('waitlist'),m=document.getElementById('formMsg');if(!f)return;f.addEventListener('submit',function(e){e.preventDefault();var d=Object.fromEntries(new FormData(f).entries());m.textContent='Sending…';fetch('https://portal.greenguard-usa.com/api/leads/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:d.email,firstName:d.name,source:'ops:'+d.company+' / '+d.size})}).then(function(r){if(!r.ok)throw 0;m.textContent='Got it. A human replies within a day.';f.reset()}).catch(function(){location.href='mailto:admin@greenguard-usa.com?subject='+encodeURIComponent('One Person Show setup: '+d.company)+'&body='+encodeURIComponent(d.name+' / '+d.email+' / '+d.size);m.textContent='Opening your email app instead.'})})})();
+</script><footer class="site"><div class="container">
+  <div>One Person Show is a product of GreenGuard USA, Austin, TX.<br><a href="mailto:admin@greenguard-usa.com">admin@greenguard-usa.com</a></div>
+  <nav><a href="/front-office">Front office</a><a href="/inbox">Inbox</a><a href="/day-of">Day of service</a><a href="/money">Money</a><a href="/crew">Crew</a><a href="/growth">Growth</a><a href="/how-it-works">How it works</a><a href="/pricing">Pricing</a></nav>
+</div></footer>
+</body></html>

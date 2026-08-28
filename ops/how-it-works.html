@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How it works · One Person Show</title>
+<meta name="description" content="One Mac, your accounts, a flat Claude subscription. The architecture of a company that runs itself.">
+<link rel="canonical" href="https://ops.greenguard-usa.com/how-it-works">
+<meta property="og:title" content="How it works · One Person Show"><meta property="og:description" content="One Mac, your accounts, a flat Claude subscription. The architecture of a company that runs itself."><meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site.css">
+</head>
+<body><header class="site"><div class="container">
+  <a class="brand" href="/">One <span>Person</span> Show</a>
+  <button class="menu-toggle" aria-expanded="false" aria-controls="mainnav" onclick="var n=document.getElementById('mainnav');n.classList.toggle('open');this.setAttribute('aria-expanded',n.classList.contains('open'))">Menu</button>
+  <nav class="main" id="mainnav">
+    <div class="drop"><a href="/#features">Product</a><div class="menu"><div><a href="/front-office">Quote, pay, book<small>Customers quote themselves, pay by card, and pick a slot.</small></a><a href="/inbox">Replies in your voice<small>Every customer email answered in your words, waiting for your tap.</small></a><a href="/day-of">Route, remind, invoice<small>The truck leaves with a route, the customers are warned, the invoices write themselves.</small></a><a href="/money">Books that close themselves<small>A ledger that fills itself, closes every month, and answers questions in plain English.</small></a><a href="/crew">Payroll without a provider<small>Clock in, clock out, and get paid correctly, without a payroll company.</small></a><a href="/growth">Follow-ups that never lapse<small>Quotes get chased, cards get retried, lapsed customers get a note, reviews get asked for.</small></a></div></div></div>
+    <a href="/how-it-works" aria-current="page">How it works</a>
+    <a href="/pricing">Pricing</a>
+    <a href="/#proof">Proof</a>
+    <a class="btn-gold" href="/pricing#start" style="padding:10px 18px">Request setup</a>
+  </nav>
+</div></header>
+<section class="hero"><div class="container"><div class="grid">
+  <div><span class="eyebrow">How it works</span><h1>One Mac. Your accounts. A subscription, not a meter.</h1><p class="lede">Your customers use a hosted portal. Your Mac does the thinking on a flat Claude subscription. Your data never leaves the Google, Stripe and calendar accounts you already own.</p>
+  <div class="cta"><a class="btn-gold" href="/pricing#start">Request setup</a></div></div>
+  <div class="mock"><div class="bar"><i></i><i></i><i></i>&nbsp;architecture</div><div class="body"><div class="row"><span class="k">Customers</span><span class="v">your-company.com portal (hosted)</span></div><div class="row"><span class="k">Tunnel</span><span class="v">Encrypted, outbound-only from your Mac</span></div><div class="row"><span class="k">The closet</span><span class="v">Mac mini · Claude on your subscription</span></div><div class="row"><span class="k">Systems of record</span><span class="v">Google Calendar · Stripe · Gmail · CRM</span></div><div class="row"><span class="k">If the Mac is off</span><span class="v"><span class="pill dim">Portal keeps booking and charging</span></span></div></div></div>
+</div></div></section>
+<section class="block"><div class="container"><span class="eyebrow">The pieces</span><h2>Four layers</h2><ol class="steps">
+<li><b>Your accounts</b><span>Google Workspace for mail and calendar, Stripe for money, optional HubSpot as the customer record, optional Cal.com for self-booking. Each stays canonical for its own data: calendar for time, Stripe for money, CRM for configuration.</span></li>
+<li><b>Your portal</b><span>A customer site (quote, pay, book, plan, history, chat) and an owner/tech app (today, rounds, calendar, clients, invoices, books, payroll) at your domain, hosted and updated for you.</span></li>
+<li><b>The closet</b><span>A Mac mini running the Claude command line on your own subscription. A small daemon answers portal chat with real tools, drafts your email, categorizes your books, checks install photos. No per-token bill; a flat monthly plan you control.</span></li>
+<li><b>Your rulebook</b><span>A plain configuration file: earliest appointment, no-Saturday, service radius, routing order, which reminders go by text, quote follow-up windows, recurring cadence. Enforced in booking, routing and the assistant alike.</span></li>
+</ol></div></section>
+<section class="block alt"><div class="container"><div class="split">
+<div><span class="eyebrow">Failure modes</span><h2>What happens when things break</h2><ul class="facts"><li>Mac offline: portal, payments and bookings continue; chat says it will be back; drafts resume when the Mac returns</li><li>Card declined: retried and escalated on a schedule, service paused at day 14, never silently dropped</li><li>Booking outside your radius via a direct link: auto-cancelled with a note to you</li><li>A tool ran but the reply failed: the assistant never re-runs a mutation; it apologizes and flags you</li></ul></div>
+<div><span class="eyebrow">Ownership</span><h2>Whose data is it</h2><ul class="facts"><li>Yours. It lives in your Google, Stripe and CRM accounts</li><li>The Claude subscription is on your account; we never proxy a shared key</li><li>Nothing is trained on your mail or customers</li><li>Cancel any month; nothing to export because nothing was moved</li></ul></div>
+</div></div></section>
+<section class="cta-band" id="start"><div class="container"><div class="box">
+  <div><span class="eyebrow">First ten operators</span><h2>Austin first. Then everywhere.</h2><p class="lede" style="font-size:1rem">We are onboarding ten pool, lawn, pest and cleaning operators this fall. Setup is done by the people who built it. A human replies within a day.</p></div>
+  <form class="wl" id="waitlist">
+    <input name="name" placeholder="Your name" required autocomplete="name">
+    <input name="email" type="email" placeholder="Email" required autocomplete="email">
+    <input name="company" placeholder="Company and trade (e.g. Lakeway Pool Care)" required>
+    <select name="size" aria-label="Team size"><option value="solo">Just me</option><option value="crew">Me plus 1 to 3</option><option value="more">More than that</option></select>
+    <button class="btn-gold" type="submit">Request setup</button>
+    <div id="formMsg" aria-live="polite"></div>
+  </form>
+</div></div></section>
+<script>
+(function(){var f=document.getElementById('waitlist'),m=document.getElementById('formMsg');if(!f)return;f.addEventListener('submit',function(e){e.preventDefault();var d=Object.fromEntries(new FormData(f).entries());m.textContent='Sending…';fetch('https://portal.greenguard-usa.com/api/leads/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:d.email,firstName:d.name,source:'ops:'+d.company+' / '+d.size})}).then(function(r){if(!r.ok)throw 0;m.textContent='Got it. A human replies within a day.';f.reset()}).catch(function(){location.href='mailto:admin@greenguard-usa.com?subject='+encodeURIComponent('One Person Show setup: '+d.company)+'&body='+encodeURIComponent(d.name+' / '+d.email+' / '+d.size);m.textContent='Opening your email app instead.'})})})();
+</script><footer class="site"><div class="container">
+  <div>One Person Show is a product of GreenGuard USA, Austin, TX.<br><a href="mailto:admin@greenguard-usa.com">admin@greenguard-usa.com</a></div>
+  <nav><a href="/front-office">Front office</a><a href="/inbox">Inbox</a><a href="/day-of">Day of service</a><a href="/money">Money</a><a href="/crew">Crew</a><a href="/growth">Growth</a><a href="/how-it-works">How it works</a><a href="/pricing">Pricing</a></nav>
+</div></footer>
+</body></html>

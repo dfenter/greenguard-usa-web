@@ -5,268 +5,55 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>One Person Show</title>
 <meta name="description" content="A company that runs itself, for the person who is the company. Booking, routing, reminders, invoicing, books, payroll and customer chat, run by Claude on a Mac in your closet.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root{
-  --ground:#EEF0F7; --card:#FFFFFF; --ink:#1B1E3C; --slate:#5F6486; --line:#D6D9E8;
-  --marquee:#F26B1D; --marquee-deep:#D65A12; --halo:#FCE0CF; --brass:#0E8C8F; --brass-soft:#D5F0F0; --log:#171A33; --log-ink:#E9EBF5; --log-dim:#8A8FB0; --log-line:#2A2E52;
-  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
-  --body:"Instrument Sans",ui-sans-serif,system-ui,sans-serif;
-  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{overflow-x:hidden;background:var(--ground);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased}
-a{color:inherit}
-:focus-visible{outline:3px solid var(--marquee);outline-offset:3px}
-.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
-h1,h2,h3{font-family:var(--display);font-weight:700;letter-spacing:-.02em;line-height:1.02}
-h1{font-size:clamp(44px,7vw,92px);font-variation-settings:"wdth" 88}
-h2{font-size:clamp(30px,4vw,48px);font-variation-settings:"wdth" 92;margin-bottom:18px}
-h3{font-size:22px;font-variation-settings:"wdth" 96}
-.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass)}
-p.lede{font-size:clamp(18px,2vw,22px);color:#2A2E52;max-width:56ch}
-/* nav */
-nav{display:flex;align-items:center;justify-content:space-between;padding:22px 0}
-.brand{white-space:nowrap;font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:-.01em;text-decoration:none;display:flex;align-items:center;gap:10px}
-.brand i{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--marquee);box-shadow:0 0 0 4px var(--halo)}
-nav .links{display:flex;gap:26px;font-size:15px;font-weight:500}
-nav .links a{text-decoration:none;color:var(--slate)}
-nav .links a:hover{color:var(--ink)}
-.btn{display:inline-block;font-family:var(--display);font-weight:700;font-size:16px;padding:14px 22px;border-radius:8px;text-decoration:none;border:2px solid var(--ink);background:var(--ink);color:#fff;transition:transform .15s,background .15s}
-.btn:hover{transform:translateY(-1px);background:#0E1030}
-.btn.red{background:var(--marquee);border-color:var(--marquee)}
-.btn.red:hover{background:var(--marquee-deep)}
-.btn.ghost{background:transparent;color:var(--ink)}
-.btn.ghost:hover{background:#fff}
-/* hero */
-.hero>*{min-width:0}
-.hero{display:grid;grid-template-columns:1.05fr 1fr;gap:48px;align-items:center;padding:56px 0 72px}
-.hero .copy>*+*{margin-top:22px}
-.hero .cta{display:flex;gap:12px;flex-wrap:wrap}
-.hero small{display:block;color:var(--slate);font-size:14px}
-h1 em{font-style:normal;color:var(--marquee)}
-/* day log: the signature */
-.log{background:var(--log);color:var(--log-ink);border-radius:14px;padding:22px 22px 18px;font-family:var(--mono);font-size:13.5px;line-height:1.7;box-shadow:0 30px 60px -30px rgba(27,30,60,.55);position:relative;overflow:hidden}
-.log header{display:flex;justify-content:space-between;align-items:center;color:var(--log-dim);font-size:12px;margin-bottom:12px;border-bottom:1px solid var(--log-line);padding-bottom:10px}
-.log header b{color:var(--log-ink);font-weight:500}
-.log .live{display:inline-flex;align-items:center;gap:6px}
-.log .live i{width:7px;height:7px;border-radius:50%;background:var(--marquee);animation:pulse 1.6s infinite}
-.log ol{list-style:none}
-.log li{display:grid;grid-template-columns:52px 1fr;gap:14px;opacity:0;transform:translateY(6px);animation:rise .5s forwards}
-.log li time{color:var(--brass)}
-.log li span{min-width:0;overflow-wrap:anywhere}
-.log li span b{color:#fff;font-weight:500}
-.log li.owner{color:var(--log-dim);font-style:italic}
-.log li.owner time{color:var(--log-dim)}
-.log footer{margin-top:14px;padding-top:10px;border-top:1px solid var(--log-line);color:var(--log-dim);font-size:12px}
-@keyframes rise{to{opacity:1;transform:none}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-/* sections */
-section{padding:72px 0}
-.band{background:var(--card);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.grid{display:grid;gap:18px}
-.g3{grid-template-columns:repeat(3,1fr)}
-.g2{grid-template-columns:repeat(2,1fr)}
-.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:24px}
-.band .tile{background:var(--ground)}
-.tile h3{margin-bottom:8px}
-.tile p{color:#33375A;font-size:15.5px}
-.tile ul{margin-top:12px;padding-left:18px;color:#33375A;font-size:15px}
-.tile ul li+li{margin-top:4px}
-.tile .tag{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--brass);margin-bottom:10px;display:block}
-/* how */
-.how{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start}
-.stack{list-style:none;border-left:2px solid var(--brass);padding-left:22px}
-.stack li{padding:12px 0}
-.stack li b{font-family:var(--display);font-size:19px;display:block;margin-bottom:2px}
-.stack li span{color:#33375A;font-size:15.5px}
-/* pricing */
-.price{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-.plan{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:26px;display:flex;flex-direction:column}
-.plan.hot{border-color:var(--marquee);box-shadow:0 0 0 4px var(--halo)}
-.plan .n{font-family:var(--display);font-size:20px;font-weight:700}
-.plan .amt{font-family:var(--display);font-size:46px;font-weight:800;letter-spacing:-.03em;margin:8px 0 2px}
-.plan .amt small{font-size:16px;font-weight:500;color:var(--slate);letter-spacing:0}
-.plan .sub{color:var(--slate);font-size:14px;margin-bottom:16px}
-.plan ul{padding-left:18px;font-size:15px;color:#33375A;flex:1}
-.plan ul li+li{margin-top:6px}
-.plan .btn{margin-top:20px;text-align:center}
-.fine{color:var(--slate);font-size:14px;margin-top:18px;max-width:70ch}
-/* form */
-.signup>*{min-width:0}
-.signup{background:var(--log);color:var(--log-ink);border-radius:16px;padding:44px;display:grid;grid-template-columns:1.1fr 1fr;gap:36px;align-items:center}
-.signup h2{color:#fff}
-.signup p{color:#B9BDD8}
-form{display:grid;gap:10px}
-form input,form select{font:inherit;font-size:16px;padding:13px 14px;border-radius:8px;border:1px solid #3A3F6A;background:#10122A;color:#fff}
-form input::placeholder{color:#6B7480}
-form .btn{border-color:var(--marquee)}
-#formMsg{font-family:var(--mono);font-size:13px;color:var(--brass);min-height:20px}
-footer.site{padding:36px 0;color:var(--slate);font-size:14px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}
-footer.site a{color:var(--slate)}
-@media (max-width:900px){
-  .log{padding:16px 14px;font-size:12.5px}
-  .log li{grid-template-columns:44px 1fr;gap:10px}
-  .hero,.how,.signup{grid-template-columns:1fr}
-  .g3,.price{grid-template-columns:1fr}
-  .g2{grid-template-columns:1fr}
-  nav .links{display:none}
-  nav .btn{padding:10px 14px;font-size:14px;white-space:nowrap}
-  section{padding:52px 0}
-  .signup{padding:28px}
-}
-@media (prefers-reduced-motion:reduce){
-  .log li{animation:none;opacity:1;transform:none}
-  .log .live i{animation:none}
-  html{scroll-behavior:auto}
-}
-</style>
+<link rel="canonical" href="https://ops.greenguard-usa.com/">
+<meta property="og:title" content="One Person Show"><meta property="og:description" content="A company that runs itself, for the person who is the company. Booking, routing, reminders, invoicing, books, payroll and customer chat, run by Claude on a Mac in your closet."><meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/site.css">
 </head>
-<body>
-<div class="wrap">
-  <nav>
-    <a class="brand" href="#"><i></i>One Person Show</a>
-    <div class="links">
-      <a href="#runs">What it runs</a><a href="#how">How it works</a><a href="#pricing">Pricing</a><a href="#proof">Proof</a>
-    </div>
-    <a class="btn red" href="#start">Get on the list</a>
+<body><header class="site"><div class="container">
+  <a class="brand" href="/">One <span>Person</span> Show</a>
+  <button class="menu-toggle" aria-expanded="false" aria-controls="mainnav" onclick="var n=document.getElementById('mainnav');n.classList.toggle('open');this.setAttribute('aria-expanded',n.classList.contains('open'))">Menu</button>
+  <nav class="main" id="mainnav">
+    <div class="drop"><a href="/#features">Product</a><div class="menu"><div><a href="/front-office">Quote, pay, book<small>Customers quote themselves, pay by card, and pick a slot.</small></a><a href="/inbox">Replies in your voice<small>Every customer email answered in your words, waiting for your tap.</small></a><a href="/day-of">Route, remind, invoice<small>The truck leaves with a route, the customers are warned, the invoices write themselves.</small></a><a href="/money">Books that close themselves<small>A ledger that fills itself, closes every month, and answers questions in plain English.</small></a><a href="/crew">Payroll without a provider<small>Clock in, clock out, and get paid correctly, without a payroll company.</small></a><a href="/growth">Follow-ups that never lapse<small>Quotes get chased, cards get retried, lapsed customers get a note, reviews get asked for.</small></a></div></div></div>
+    <a href="/how-it-works">How it works</a>
+    <a href="/pricing">Pricing</a>
+    <a href="/#proof">Proof</a>
+    <a class="btn-gold" href="/pricing#start" style="padding:10px 18px">Request setup</a>
   </nav>
-
-  <section class="hero">
-    <div class="copy">
-      <span class="eyebrow">For the person who is the company</span>
-      <h1>Your company ran all night. <em>You slept.</em></h1>
-      <p class="lede">One Person Show is the office half of a one-person service business: booking, routing, reminders, invoicing, quotes, books, payroll and customer chat, run by Claude on a Mac in your closet. Flat subscription. No per-message bill. No VA.</p>
-      <div class="cta">
-        <a class="btn red" href="#start">Get on the list</a>
-        <a class="btn ghost" href="#proof">See it running a real company</a>
-      </div>
-      <small>Built and proven on GreenGuard USA, an 86-customer mosquito control company in Austin, TX.</small>
-    </div>
-    <div class="log" aria-label="A typical day, run automatically">
-      <header><b>today.log</b><span class="live"><i></i>live from the closet</span></header>
-      <ol id="daylog"></ol>
-      <footer>Every line above is a real job on the real schedule. Owner touched the phone twice.</footer>
-    </div>
-  </section>
-
-  <section id="runs" class="band">
-    <div class="wrap">
-      <span class="eyebrow">What it runs</span>
-      <h2>Six jobs you stop doing at night</h2>
-      <div class="grid g3">
-        <div class="tile"><span class="tag">Front office</span><h3>Quote, pay, book</h3><p>Customers build a quote, pay by card and pick a slot without emailing you. The price is computed server-side, so nobody edits it in the browser.</p></div>
-        <div class="tile"><span class="tag">Inbox</span><h3>Replies in your voice</h3><p>Every customer email gets a draft written the way you write, sorted by urgency. You tap send, or edit first. It never sends on its own.</p></div>
-        <div class="tile"><span class="tag">Day of</span><h3>Route, remind, invoice</h3><p>Farthest stop first, ending near home. Reminders go out by email, and by text two hours before. Finish the visit, the invoice is already made.</p></div>
-        <div class="tile"><span class="tag">Money</span><h3>Books that close themselves</h3><p>Stripe and your bank feed into a ledger that categorizes itself, closes every month, and answers questions in plain English. QuickBooks sync if you want it.</p></div>
-        <div class="tile"><span class="tag">Crew</span><h3>Payroll without a provider</h3><p>Clock in, clock out, overtime, withholding, 941 and W-2s from the same portal. Add a second tech the day you hire them.</p></div>
-        <div class="tile"><span class="tag">Growth</span><h3>Follow-ups that never lapse</h3><p>Unpaid quotes get nudged at 48 hours, 7 days, 14 days. Failed cards get chased. Lapsed customers get a win-back note each season.</p></div>
-      </div>
-    </div>
-  </section>
-
-  <section id="how">
-    <div class="how">
-      <div>
-        <span class="eyebrow">How it works</span>
-        <h2>One Mac. Your accounts. A subscription, not a meter.</h2>
-        <p class="lede">Most "AI for small business" tools resell tokens. One Person Show runs Claude through the same flat subscription you would buy for yourself, on a Mac mini that sits in your house and talks to your customer portal over an encrypted tunnel. Your data stays in your Google, Stripe and calendar. If the Mac is off, the portal keeps taking bookings and payments; the assistant simply says it will be back.</p>
-      </div>
-      <ol class="stack">
-        <li><b>Your accounts</b><span>Google Workspace, Stripe, your calendar. Optional HubSpot. Nothing to migrate into.</span></li>
-        <li><b>Your portal</b><span>A customer site and an owner/tech app at your own domain, hosted for you.</span></li>
-        <li><b>The closet</b><span>A Mac mini running Claude on your subscription, with a daemon that reads the queue and does the work. No API bill.</span></li>
-        <li><b>Your rulebook</b><span>Earliest appointment, no-Saturday, service radius, who gets a text vs an email. Set once, enforced everywhere, editable any time.</span></li>
-      </ol>
-    </div>
-  </section>
-
-  <section id="proof" class="band">
-    <div class="wrap">
-      <span class="eyebrow">Proof</span>
-      <h2>It already runs a company</h2>
-      <div class="grid g2">
-        <div class="tile"><h3>GreenGuard USA, Austin</h3><p>CO2 mosquito control, 86 customers on 21 and 28 day cadences, one owner, one tech. Every module on this page was built to run that business first, then generalized. The schedule in the log above is the real one.</p></div>
-        <div class="tile"><h3>Numbers we watch</h3><ul><li>Zero metered AI spend since Aug 27, 2026. Everything runs on one subscription.</li><li>Customer reply drafts in about 4 seconds, in the owner's voice.</li><li>Quotes, bookings and payments continue when the Mac is offline.</li><li>Owner-only payroll, tech-only day view. Roles enforced at every route.</li></ul></div>
-      </div>
-    </div>
-  </section>
-
-  <section id="pricing">
-    <span class="eyebrow">Pricing</span>
-    <h2>Less than one day of a bookkeeper a month</h2>
-    <div class="price">
-      <div class="plan"><div class="n">Solo</div><div class="amt">$249<small>/mo</small></div><div class="sub">You, alone, running lean</div><ul><li>Customer portal and owner app</li><li>Quote, pay, book</li><li>Email drafts in your voice</li><li>Routing, reminders, invoicing</li><li>Books and monthly close</li></ul><a class="btn ghost" href="#start">Get on the list</a></div>
-      <div class="plan hot"><div class="n">Crew</div><div class="amt">$449<small>/mo</small></div><div class="sub">You plus up to three in the field</div><ul><li>Everything in Solo</li><li>Tech logins and day view</li><li>Timesheets and payroll, 941 and W-2</li><li>Expense claims and approvals</li><li>Weekly business review every Monday</li></ul><a class="btn red" href="#start">Get on the list</a></div>
-      <div class="plan"><div class="n">Appliance</div><div class="amt">$449<small>/mo + $1,200 once</small></div><div class="sub">Crew, with the closet included</div><ul><li>Everything in Crew</li><li>Mac mini shipped configured</li><li>Tunnel and updates managed by us</li><li>Plug in, done</li></ul><a class="btn ghost" href="#start">Get on the list</a></div>
-    </div>
-    <p class="fine">All plans: $1,500 white-glove setup (we import your customers, learn your voice, load your catalog and rules). You bring a Claude Max subscription on your own account and pay your own Stripe fees. Cancel any month; your data was always in your accounts.</p>
-  </section>
-
-  <section id="start">
-    <div class="signup">
-      <div>
-        <span class="eyebrow">First ten operators</span>
-        <h2>Austin first. Then everywhere.</h2>
-        <p>We are onboarding ten pool, lawn, pest and cleaning operators this fall. Setup is done by the people who built it. Tell us what you run and we will reply within a day, from a human.</p>
-      </div>
-      <form id="waitlist">
-        <input name="name" placeholder="Your name" required autocomplete="name">
-        <input name="email" type="email" placeholder="Email" required autocomplete="email">
-        <input name="company" placeholder="Company and trade (e.g. Lakeway Pool Care)" required>
-        <select name="size" aria-label="Team size"><option value="solo">Just me</option><option value="crew">Me plus 1 to 3</option><option value="more">More than that</option></select>
-        <button class="btn red" type="submit">Request setup</button>
-        <div id="formMsg" aria-live="polite"></div>
-      </form>
-    </div>
-  </section>
-
-  <footer class="site">
-    <span>One Person Show is a product of GreenGuard USA, Austin, TX.</span>
-    <span><a href="mailto:admin@greenguard-usa.com">admin@greenguard-usa.com</a> · <a href="https://www.greenguard-usa.com">greenguard-usa.com</a></span>
-  </footer>
-</div>
-
+</div></header>
+<section class="hero"><div class="container"><div class="grid">
+  <div><span class="eyebrow">For the person who is the company</span>
+    <h1>Your company ran all night. You slept.</h1>
+    <p class="lede">One Person Show is the office half of a one-person service business: booking, routing, reminders, invoicing, quotes, books, payroll and customer chat, run by Claude on a Mac in your closet. Flat subscription. No per-message bill. No VA.</p>
+    <div class="cta"><a class="btn-gold" href="/pricing#start">Request setup</a><a class="btn-outline" href="#proof">See it running a real company</a></div>
+    <p class="note">Built and proven on GreenGuard USA, an 86-customer mosquito control company in Austin, TX.</p></div>
+  <div class="mock"><div class="bar"><i></i><i></i><i></i>&nbsp;today.log · live from the closet</div><div class="body log"><ol><li style="animation-delay:0.20s"><time>00:00</time><span><b>Route built</b> for tomorrow. 11 stops, farthest first, home by 4:40.</span></li><li style="animation-delay:0.36s"><time>06:00</time><span><b>Billing warning</b> sent to 2 customers with cards expiring.</span></li><li style="animation-delay:0.52s"><time>07:00</time><span><b>Books closed</b> for yesterday. Cash and A/R in your brief.</span></li><li style="animation-delay:0.68s"><time>07:30</time><span><b>Route emailed</b> to the truck. Consumables: 6 needed, 9 on hand.</span></li><li style="animation-delay:0.84s"><time>08:00</time><span><b>3 thank-you emails</b> sent, next service date included.</span></li><li style="animation-delay:1.00s"><time>08:04</time><span><b>Inbox:</b> "Can we move Thursday?" Draft written, two slots offered.</span></li><li class="owner" style="animation-delay:1.16s"><time>08:06</time><span>owner: tapped send on the draft</span></li><li style="animation-delay:1.32s"><time>09:00</time><span><b>Quote follow-up:</b> 48h nudge to Miller. 14-day close on Ortiz.</span></li><li style="animation-delay:1.48s"><time>10:00</time><span><b>Failed card</b> retried for Nguyen. Paid.</span></li><li style="animation-delay:1.64s"><time>12:10</time><span><b>Text:</b> "On my way" to Steiner Ranch.</span></li><li class="owner" style="animation-delay:1.80s"><time>14:20</time><span>owner: took the photos, tapped finish</span></li><li style="animation-delay:1.96s"><time>14:32</time><span><b>Visit finished.</b> Signature, photos checked, invoice sent. $189.</span></li><li style="animation-delay:2.12s"><time>15:05</time><span><b>Customer chat:</b> "What plan am I on?" Answered from the account.</span></li><li style="animation-delay:2.28s"><time>17:00</time><span><b>Day summary</b> emailed. Revenue $1,240. 0 open issues.</span></li></ol></div></div>
+</div></div></section>
+<section class="block" id="features"><div class="container"><span class="eyebrow">The product</span><h2>Six jobs you stop doing at night</h2><p class="lede">Each one is a page, because each one is a real system, not a bullet point.</p>
+<div class="cards"><a class="card" href="/front-office"><span class="eyebrow">Front office</span><h3>Quote, pay, book</h3><p>Your website becomes the office.</p><span class="more">Read how it works →</span></a><a class="card" href="/inbox"><span class="eyebrow">Inbox</span><h3>Replies in your voice</h3><p>The inbox agent reads new customer mail, sorts it by urgency, and writes a reply the way you write.</p><span class="more">Read how it works →</span></a><a class="card" href="/day-of"><span class="eyebrow">Day of</span><h3>Route, remind, invoice</h3><p>At midnight tomorrow’s stops are ordered farthest-first so the day ends near home.</p><span class="more">Read how it works →</span></a><a class="card" href="/money"><span class="eyebrow">Money</span><h3>Books that close themselves</h3><p>Card payments flow in from Stripe.</p><span class="more">Read how it works →</span></a><a class="card" href="/crew"><span class="eyebrow">Crew</span><h3>Payroll without a provider</h3><p>Techs clock in from their phone.</p><span class="more">Read how it works →</span></a><a class="card" href="/growth"><span class="eyebrow">Growth</span><h3>Follow-ups that never lapse</h3><p>The revenue you lose is usually the follow-up you forgot.</p><span class="more">Read how it works →</span></a></div></div></section>
+<section class="block alt" id="how"><div class="container"><div class="split">
+  <div><span class="eyebrow">How it works</span><h2>One Mac. Your accounts. A subscription, not a meter.</h2><p class="lede">Most "AI for small business" tools resell tokens. One Person Show runs Claude through the flat subscription you would buy for yourself, on a Mac mini in your house that talks to your portal over an encrypted tunnel. If the Mac is off, the portal keeps taking bookings and payments.</p><p style="margin-top:20px"><a class="btn-outline" href="/how-it-works">The full architecture</a></p></div>
+  <ol class="steps"><li><b>Your accounts</b><span>Google Workspace, Stripe, your calendar. Optional HubSpot. Nothing to migrate into.</span></li><li><b>Your portal</b><span>A customer site and an owner/tech app at your own domain, hosted for you.</span></li><li><b>The closet</b><span>A Mac mini running Claude on your subscription, with a daemon that does the work. No API bill.</span></li><li><b>Your rulebook</b><span>Earliest appointment, no-Saturday, service radius, who gets a text. Set once, enforced everywhere.</span></li></ol>
+</div></div></section>
+<section class="block" id="proof"><div class="container"><span class="eyebrow">Proof</span><h2>It already runs a company</h2>
+<div class="cards two"><div class="card"><h3>GreenGuard USA, Austin</h3><p>CO₂ mosquito control, 86 customers on 21 and 28 day cadences, one owner, one tech. Every module on this site was built to run that business first, then generalized. The schedule in the log above is the real one.</p></div>
+<div class="card"><h3>Numbers we watch</h3><ul class="facts"><li>Zero metered AI spend since Aug 27, 2026; everything on one subscription</li><li>Customer reply drafts in about 4 seconds, in the owner’s voice</li><li>Quotes, bookings and payments continue when the Mac is offline</li><li>Owner-only payroll, tech-only day view; roles enforced on every route</li></ul></div></div></div></section>
+<section class="cta-band" id="start"><div class="container"><div class="box">
+  <div><span class="eyebrow">First ten operators</span><h2>Austin first. Then everywhere.</h2><p class="lede" style="font-size:1rem">We are onboarding ten pool, lawn, pest and cleaning operators this fall. Setup is done by the people who built it. A human replies within a day.</p></div>
+  <form class="wl" id="waitlist">
+    <input name="name" placeholder="Your name" required autocomplete="name">
+    <input name="email" type="email" placeholder="Email" required autocomplete="email">
+    <input name="company" placeholder="Company and trade (e.g. Lakeway Pool Care)" required>
+    <select name="size" aria-label="Team size"><option value="solo">Just me</option><option value="crew">Me plus 1 to 3</option><option value="more">More than that</option></select>
+    <button class="btn-gold" type="submit">Request setup</button>
+    <div id="formMsg" aria-live="polite"></div>
+  </form>
+</div></div></section>
 <script>
-(function(){
-  var rows=[
-    ['00:00','<b>Route built</b> for tomorrow. 11 stops, farthest first, home by 4:40.'],
-    ['06:00','<b>Billing warning</b> sent to 2 customers with cards expiring.'],
-    ['07:00','<b>Books closed</b> for yesterday. Cash position and A/R in your morning brief.'],
-    ['07:30','<b>Route emailed</b> to the truck. Tank count: 6 needed, 9 on hand.'],
-    ['08:00','<b>3 thank-you emails</b> sent for yesterday’s visits, next service date included.'],
-    ['08:04','<b>Inbox:</b> "Can we move Thursday?" Draft reply written, two open slots offered.'],
-    ['09:00','<b>Quote follow-up:</b> 48h nudge to Miller. 14-day close on Ortiz.'],
-    ['09:15','<b>Review request</b> sent to 2 customers past their third visit.'],
-    ['10:00','<b>Failed card</b> retried for Nguyen. Paid. Slack pinged.'],
-    ['12:10','<b>Text:</b> "On my way" to Steiner Ranch, 2 hours out.'],
-    ['14:32','<b>Visit finished.</b> Signature, 2 photos checked, invoice sent. $189.'],
-    ['15:05','<b>Customer chat:</b> "What plan am I on?" Answered from the account. No ticket.'],
-    ['17:00','<b>Day summary</b> emailed. Revenue $1,240. 0 open issues.'],
-  ];
-  var owner=[['08:06','owner: tapped send on the draft'],['14:20','owner: took the photos, tapped finish']];
-  var all=rows.map(function(r){return {t:r[0],h:r[1],o:false}}).concat(owner.map(function(r){return {t:r[0],h:r[1],o:true}}));
-  all.sort(function(a,b){return a.t<b.t?-1:1});
-  var ol=document.getElementById('daylog');
-  all.forEach(function(r,i){
-    var li=document.createElement('li'); if(r.o) li.className='owner';
-    li.style.animationDelay=(0.25+i*0.18)+'s';
-    li.innerHTML='<time>'+r.t+'</time><span>'+r.h+'</span>';
-    ol.appendChild(li);
-  });
-  var f=document.getElementById('waitlist'), msg=document.getElementById('formMsg');
-  f.addEventListener('submit',function(e){
-    e.preventDefault();
-    var d=Object.fromEntries(new FormData(f).entries());
-    msg.textContent='Sending…';
-    fetch('https://portal.greenguard-usa.com/api/leads/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:d.email,firstName:d.name,source:'ops:'+d.company+' / '+d.size})})
-      .then(function(r){ if(!r.ok) throw 0; msg.textContent='Got it. A human replies within a day.'; f.reset(); })
-      .catch(function(){ location.href='mailto:admin@greenguard-usa.com?subject='+encodeURIComponent('One Person Show setup: '+d.company)+'&body='+encodeURIComponent(d.name+' / '+d.email+' / '+d.size); msg.textContent='Opening your email app instead.'; });
-  });
-})();
-</script>
-</body>
-</html>
+(function(){var f=document.getElementById('waitlist'),m=document.getElementById('formMsg');if(!f)return;f.addEventListener('submit',function(e){e.preventDefault();var d=Object.fromEntries(new FormData(f).entries());m.textContent='Sending…';fetch('https://portal.greenguard-usa.com/api/leads/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:d.email,firstName:d.name,source:'ops:'+d.company+' / '+d.size})}).then(function(r){if(!r.ok)throw 0;m.textContent='Got it. A human replies within a day.';f.reset()}).catch(function(){location.href='mailto:admin@greenguard-usa.com?subject='+encodeURIComponent('One Person Show setup: '+d.company)+'&body='+encodeURIComponent(d.name+' / '+d.email+' / '+d.size);m.textContent='Opening your email app instead.'})})})();
+</script><footer class="site"><div class="container">
+  <div>One Person Show is a product of GreenGuard USA, Austin, TX.<br><a href="mailto:admin@greenguard-usa.com">admin@greenguard-usa.com</a></div>
+  <nav><a href="/front-office">Front office</a><a href="/inbox">Inbox</a><a href="/day-of">Day of service</a><a href="/money">Money</a><a href="/crew">Crew</a><a href="/growth">Growth</a><a href="/how-it-works">How it works</a><a href="/pricing">Pricing</a></nav>
+</div></footer>
+</body></html>
