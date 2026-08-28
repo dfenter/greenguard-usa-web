@@ -193,22 +193,7 @@ function CustomerSearch({ onSelect }) {
   )
 }
 
-// TODO(ops-v0.3): move to lib/catalog.js
-// Per-trap pricing for Biogents CO₂ rental
-// Biogents CO₂ rental packages — 1–6 traps. Volume discount kicks in at 4.
-const BG_RENTAL_PRICE = { 1: 159.99, 2: 266.99, 3: 399.99, 4: 500, 5: 625, 6: 750, 7: 875, 8: 1000, 9: 1125, 10: 1250 }
-// Hookup fee per trap for Biogents owned on tank service, or tank-only customers
-const BG_HOOKUP_PER_TRAP = 10.00
-// Biogents Non-CO₂ (customer owns trap)
-const BG_NONCO2_PER_TRAP = 10.00
-// Starter package — we rent the non-CO₂ trap (no tanks), per trap
-const STARTER_NONCO2_PER_TRAP = 49.99
-// TODO(ops-v0.3): move to lib/catalog.js
-// Mosqitter — $129.99 all-in (tank hookup, bait, maintenance included)
-const MQ_PRICE = { rental: 299.99, service: 129.99, install: 199.99 }
-// TODO(ops-v0.3): move to lib/catalog.js
-// CO₂ tank exchange — 20lb tanks only ($39 delivery + $49.99/tank)
-const TANK_PRICE = { 1: 89.99, 2: 139.99, 3: 189.99 }
+// Pricing tables come from lib/quote-pricing.js (tenant-driven); see the require below.
 
 // Products catalog (one-time purchases only)
 // Products + service-addon catalog pulled from the shared lib/catalog so
@@ -218,7 +203,10 @@ const TANK_PRICE = { 1: 89.99, 2: 139.99, 3: 189.99 }
 const { productsForQuote, addonsForQuote } = require('../../lib/catalog')
 // Shared canonical builders — the preview, the emailed quote, and the amount
 // billed at checkout all come from the same functions (lib/quote-pricing.js).
-const { buildServiceLines, buildQuoteOptions, firstAvailableServiceDate, isLocalDeliveryAddress } = require('../../lib/quote-pricing')
+const {
+  BG_RENTAL_PRICE, BG_HOOKUP_PER_TRAP, BG_NONCO2_PER_TRAP, STARTER_NONCO2_PER_TRAP, MQ_PRICE, TANK_PRICE,
+  buildServiceLines, buildQuoteOptions, firstAvailableServiceDate, isLocalDeliveryAddress,
+} = require('../../lib/quote-pricing')
 const DUAL_SYSTEMS = new Set(['biogents-co2', 'biogents-nonco2', 'mosqitter'])
 const PRODUCTS = productsForQuote()
 const QUOTE_LOCAL_SERVICES = [

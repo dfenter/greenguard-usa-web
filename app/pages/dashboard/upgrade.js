@@ -7,13 +7,13 @@ import { findContactByEmail } from '../../lib/hubspot'
 
 function fmt$(n) { return `$${Number(n).toFixed(2)}` }
 
-// ── Pricing constants (mirrors quote builder) ──────────────────────────────────
-// TODO(ops-v0.3): move to lib/catalog.js
-const BG_RENTAL = { 1: 159.99, 2: 266.99, 3: 399.99, 4: 500, 5: 625, 6: 750 }
-const MQ_RENTAL = 299.99
-const BARRIER    = 49.99
-const BG_INSTALL = 80.00
-const MQ_INSTALL = 199.99
+// ── Pricing constants: single source is lib/quote-pricing.js (tenant-driven) ──
+const { BG_RENTAL_PRICE, MQ_PRICE, BARRIER_PRICE, BG_INSTALL_PRICE } = require('../../lib/quote-pricing')
+const BG_RENTAL  = BG_RENTAL_PRICE
+const MQ_RENTAL  = MQ_PRICE.rental
+const BARRIER    = BARRIER_PRICE
+const BG_INSTALL = BG_INSTALL_PRICE
+const MQ_INSTALL = MQ_PRICE.install
 
 // ── Upgrade catalog keyed by current plan ──────────────────────────────────────
 // Each entry describes what a logged-in customer currently has and what they

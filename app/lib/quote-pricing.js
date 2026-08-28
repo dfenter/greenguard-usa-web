@@ -13,19 +13,28 @@ const { SKU_PRICES } = require('./sku-engine')
 const { productsForQuote, addonsForQuote } = require('./catalog')
 const biz = require('./business.config')
 
+// Tenant pricing. Values come from the tenant SKU table (lib/businesses/<id>/
+// sku-engine.js) where a SKU exists; a tenant may also export QUOTE_PRICING to
+// override any table wholesale. Defaults below equal the greenguard tenant.
+const { QUOTE_PRICING: TENANT = {} } = require('./sku-engine')
+const P = (sku, fallback) => (SKU_PRICES && SKU_PRICES[sku] != null ? SKU_PRICES[sku] : fallback)
+
 // Per-trap pricing for Biogents CO₂ rental (volume discount at 4+; extends to
 // 10 traps to cover the admin builder's larger commercial quotes)
-const BG_RENTAL_PRICE = { 1: 159.99, 2: 266.99, 3: 399.99, 4: 500, 5: 625, 6: 750, 7: 875, 8: 1000, 9: 1125, 10: 1250 }
+const BG_RENTAL_PRICE = TENANT.BG_RENTAL_PRICE || { 1: P('BG1', 159.99), 2: P('BG2', 266.99), 3: P('BG3', 399.99), 4: 500, 5: 625, 6: 750, 7: 875, 8: 1000, 9: 1125, 10: 1250 }
 // Hookup & maintenance fee, per trap
-const BG_HOOKUP_PER_TRAP = 10.00
+const BG_HOOKUP_PER_TRAP = TENANT.BG_HOOKUP_PER_TRAP ?? P('TANK-HOOKUP-MAINT', 10.00)
 // Biogents Non-CO₂ (customer owns trap), per trap
-const BG_NONCO2_PER_TRAP = 10.00
+const BG_NONCO2_PER_TRAP = TENANT.BG_NONCO2_PER_TRAP ?? P('OWN-NONCO2', 10.00)
 // Starter package — WE rent the non-CO₂ trap (no tanks), per trap
-const STARTER_NONCO2_PER_TRAP = 49.99
+const STARTER_NONCO2_PER_TRAP = TENANT.STARTER_NONCO2_PER_TRAP ?? P('STARTER-NONCO2', 49.99)
 // Mosqitter — all-in service / rental / install
-const MQ_PRICE = { rental: 299.99, service: 129.99, install: 199.99 }
+const MQ_PRICE = TENANT.MQ_PRICE || { rental: P('MQ-RENT', 299.99), service: P('MQ-SVC', 129.99), install: P('MQ-INST', 199.99) }
 // CO₂ tank exchange — 20lb tanks ($39 delivery + $49.99/tank, tiered 1–3)
-const TANK_PRICE = { 1: 89.99, 2: 139.99, 3: 189.99 }
+const TANK_PRICE = TENANT.TANK_PRICE || { 1: 89.99, 2: 139.99, 3: 189.99 }
+// Recurring add-on + install one-timers surfaced on the customer upgrade page
+const BARRIER_PRICE = TENANT.BARRIER_PRICE ?? P('BARRIER', 49.99)
+const BG_INSTALL_PRICE = TENANT.BG_INSTALL_PRICE ?? P('TRAP-INSTALL', 80.00)
 const TANK_EXT_PER_TANK = 49.99  // per-tank cost beyond 3 tanks
 
 const MAX_QTY = 24
@@ -294,6 +303,7 @@ function buildQuoteOptions({ serviceConfig, productQtys, addonQtys, localDeliver
 
 module.exports = {
   BG_RENTAL_PRICE, BG_HOOKUP_PER_TRAP, BG_NONCO2_PER_TRAP, STARTER_NONCO2_PER_TRAP, MQ_PRICE, TANK_PRICE,
+  BARRIER_PRICE, BG_INSTALL_PRICE,
   QUOTE_LOCAL_SERVICES, serviceAddons,
   buildServiceLines, buildProductLines, buildAddonLines, buildQuoteLines,
   buildQuoteOptions, purchaseEquipment, firstAvailableServiceDate, DUAL_PLAN_SYSTEMS,
