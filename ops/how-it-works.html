@@ -4,54 +4,56 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>How it works · One Person Show</title>
-<meta name="description" content="One Mac, your accounts, a flat Claude subscription. The architecture of a company that runs itself.">
+<meta name="description" content="A hosted portal, a Mac at your house running Claude on your own subscription, and the accounts you already have.">
 <link rel="canonical" href="https://ops.greenguard-usa.com/how-it-works">
-<meta property="og:title" content="How it works · One Person Show"><meta property="og:description" content="One Mac, your accounts, a flat Claude subscription. The architecture of a company that runs itself."><meta property="og:type" content="website">
+<meta property="og:title" content="How it works · One Person Show"><meta property="og:description" content="A hosted portal, a Mac at your house running Claude on your own subscription, and the accounts you already have."><meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/site.css">
 </head>
-<body><header class="site"><div class="container">
-  <a class="brand" href="/">One <span>Person</span> Show</a>
+<body><header class="site"><div class="wrap">
+  <a class="brand" href="/">One <i>Person</i> Show</a>
   <button class="menu-toggle" aria-expanded="false" aria-controls="mainnav" onclick="var n=document.getElementById('mainnav');n.classList.toggle('open');this.setAttribute('aria-expanded',n.classList.contains('open'))">Menu</button>
   <nav class="main" id="mainnav">
-    <div class="drop"><a href="/#features">Product</a><div class="menu"><div><a href="/front-office">Quote, pay, book<small>Customers quote themselves, pay by card, and pick a slot.</small></a><a href="/inbox">Replies in your voice<small>Every customer email answered in your words, waiting for your tap.</small></a><a href="/day-of">Route, remind, invoice<small>The truck leaves with a route, the customers are warned, the invoices write themselves.</small></a><a href="/money">Books that close themselves<small>A ledger that fills itself, closes every month, and answers questions in plain English.</small></a><a href="/crew">Payroll without a provider<small>Clock in, clock out, and get paid correctly, without a payroll company.</small></a><a href="/growth">Follow-ups that never lapse<small>Quotes get chased, cards get retried, lapsed customers get a note, reviews get asked for.</small></a></div></div></div>
+    <div class="drop"><a href="/everything">What it does</a><div class="menu"><div><a href="/customer-portal">Customer portal<small>What your customers see</small></a><a href="/office">The office<small>Owner and tech app</small></a><a href="/inbox">Inbox<small>Email in your voice</small></a><a href="/day-of">Day of service<small>Route, remind, invoice</small></a><a href="/money">Money<small>Books, billing, collections</small></a><a href="/crew">Crew<small>Time and payroll</small></a><a href="/growth">Growth<small>Follow-ups and marketing</small></a><a href="/everything">Everything it does<small>The complete list</small></a></div></div></div>
     <a href="/how-it-works" aria-current="page">How it works</a>
     <a href="/pricing">Pricing</a>
-    <a href="/#proof">Proof</a>
-    <a class="btn-gold" href="/pricing#start" style="padding:10px 18px">Request setup</a>
+    <a class="btn brass" href="/pricing#start" style="padding:10px 18px">Talk to us</a>
   </nav>
 </div></header>
-<section class="hero"><div class="container"><div class="grid">
-  <div><span class="eyebrow">How it works</span><h1>One Mac. Your accounts. A subscription, not a meter.</h1><p class="lede">Your customers use a hosted portal. Your Mac does the thinking on a flat Claude subscription. Your data never leaves the Google, Stripe and calendar accounts you already own.</p>
-  <div class="cta"><a class="btn-gold" href="/pricing#start">Request setup</a></div></div>
-  <div class="mock"><div class="bar"><i></i><i></i><i></i>&nbsp;architecture</div><div class="body"><div class="row"><span class="k">Customers</span><span class="v">your-company.com portal (hosted)</span></div><div class="row"><span class="k">Tunnel</span><span class="v">Encrypted, outbound-only from your Mac</span></div><div class="row"><span class="k">The closet</span><span class="v">Mac mini · Claude on your subscription</span></div><div class="row"><span class="k">Systems of record</span><span class="v">Google Calendar · Stripe · Gmail · CRM</span></div><div class="row"><span class="k">If the Mac is off</span><span class="v"><span class="pill dim">Portal keeps booking and charging</span></span></div></div></div>
-</div></div></section>
-<section class="block"><div class="container"><span class="eyebrow">The pieces</span><h2>Four layers</h2><ol class="steps">
-<li><div><b>Your accounts</b><span>Google Workspace for mail and calendar, Stripe for money, optional HubSpot as the customer record, optional Cal.com for self-booking. Each stays canonical for its own data: calendar for time, Stripe for money, CRM for configuration.</span></div></li>
-<li><div><b>Your portal</b><span>A customer site (quote, pay, book, plan, history, chat) and an owner/tech app (today, rounds, calendar, clients, invoices, books, payroll) at your domain, hosted and updated for you.</span></div></li>
-<li><div><b>The closet</b><span>A Mac mini running the Claude command line on your own subscription. A small daemon answers portal chat with real tools, drafts your email, categorizes your books, checks install photos. No per-token bill; a flat monthly plan you control.</span></div></li>
-<li><div><b>Your rulebook</b><span>A plain configuration file: earliest appointment, no-Saturday, service radius, routing order, which reminders go by text, quote follow-up windows, recurring cadence. Enforced in booking, routing and the assistant alike.</span></div></li>
-</ol></div></section>
-<section class="block alt"><div class="container"><div class="split">
-<div><span class="eyebrow">Failure modes</span><h2>What happens when things break</h2><ul class="facts"><li>Mac offline: portal, payments and bookings continue; chat says it will be back; drafts resume when the Mac returns</li><li>Card declined: retried and escalated on a schedule, service paused at day 14, never silently dropped</li><li>Booking outside your radius via a direct link: auto-cancelled with a note to you</li><li>A tool ran but the reply failed: the assistant never re-runs a mutation; it apologizes and flags you</li></ul></div>
-<div><span class="eyebrow">Ownership</span><h2>Whose data is it</h2><ul class="facts"><li>Yours. It lives in your Google, Stripe and CRM accounts</li><li>The Claude subscription is on your account; we never proxy a shared key</li><li>Nothing is trained on your mail or customers</li><li>Cancel any month; nothing to export because nothing was moved</li></ul></div>
-</div></div></section>
-<section class="cta-band" id="start"><div class="container"><div class="box">
-  <div><span class="eyebrow">First ten operators</span><h2>Austin first. Then everywhere.</h2><p class="lede" style="font-size:1rem">We are onboarding ten pool, lawn, pest and cleaning operators this fall. Setup is done by the people who built it. A human replies within a day.</p></div>
+<section class="hero"><div class="wrap"><span class="kicker">How it works</span><h1>A portal in the cloud, a Mac in the closet, <em>and the accounts you already have.</em></h1><p class="lede">There are three pieces. Your customers and your crew use a portal at your domain. The thinking happens on a small computer in your house. The data lives where it already lives.</p></div></section><hr>
+<section class="prose"><div class="wrap">
+  <div class="side"><span class="kicker">The portal</span><h2>Hosted, at your domain.</h2></div>
+  <div class="body"><p>The customer site and the office app are one application, hosted for you and updated without you noticing. It takes bookings and payments whether or not anything else is running. It talks to your calendar, your Stripe account and your CRM directly, and each of those remains the owner of its own data: the calendar decides when, Stripe decides how much, the CRM decides what the customer has. The portal never keeps a second copy that could drift.</p></div>
+</div></section>
+<section class="prose tint"><div class="wrap">
+  <div class="side"><span class="kicker">The closet</span><h2>Where the thinking happens.</h2></div>
+  <div class="body"><p>Every part of the system that reads, writes or judges anything runs on a Mac mini in your house: the email drafts, the install photo check, the bank categorization, the property assessment, the customer chat, the office chat. It runs Claude through the command line on your own subscription, the same flat monthly plan you would buy as a person, with no per-message bill and no shared key between you and us. A small program on that Mac listens for work from the portal over an encrypted tunnel that only opens outward; nothing on the internet can reach into your house.</p>
+<p>If the Mac is off, the portal keeps working. Bookings and payments go through. The chat says it will be back. Drafts resume when the Mac does. If you would rather not own a Mac, the appliance plan ships one configured; if you already have one, the installer takes about twenty minutes.</p></div>
+</div></section>
+<section class="prose"><div class="wrap">
+  <div class="side"><span class="kicker">The rulebook</span><h2>One file that everything obeys.</h2></div>
+  <div class="body"><p>How early you will take an appointment, whether Saturdays exist, how far you will drive, in what order, which reminder goes by text, how long to chase a quote, how often you visit: these are lines in a plain file, set with you at setup and changed any time. The booking form, the router, the reminder jobs and the assistant all read the same file, so a rule is never true in one place and false in another. The assistant also reads a written operating manual for your business, the same one a human office manager would, which is how it knows that your company name is always written in full or that a thank-you must include the next visit date.</p></div>
+</div></section>
+<section class="prose tint"><div class="wrap">
+  <div class="side"><span class="kicker">What breaks, and what happens</span><h2>Failure is designed in.</h2></div>
+  <div class="body"><p>A customer whose card declines is retried and emailed on a schedule, and their service pauses at two weeks rather than silently continuing unpaid. A booking placed outside your radius through a direct link is cancelled with a note to you. If the assistant started a change and could not finish it, it never tries again on its own; it tells you what happened. Every scheduled job reports whether it ran, and the Monday review tells you if one did not. Your data is in your Google, your Stripe and your calendar; if you cancel, there is nothing to export because nothing was moved.</p></div>
+</div></section>
+<section class="ask" id="start"><div class="wrap">
+  <div><h2>We are setting up ten operators this fall.</h2><p>Pool, lawn, pest, cleaning, detailing: any trade that visits the same customers on a cadence. Setup is done by the two people who built this and run a company on it. Write a line about your business and a person answers within a day.</p></div>
   <form class="wl" id="waitlist">
     <input name="name" placeholder="Your name" required autocomplete="name">
     <input name="email" type="email" placeholder="Email" required autocomplete="email">
-    <input name="company" placeholder="Company and trade (e.g. Lakeway Pool Care)" required>
-    <select name="size" aria-label="Team size"><option value="solo">Just me</option><option value="crew">Me plus 1 to 3</option><option value="more">More than that</option></select>
-    <button class="btn-gold" type="submit">Request setup</button>
+    <input name="company" placeholder="Company and trade" required>
+    <select name="size" aria-label="Team size"><option value="solo">Just me</option><option value="crew">Me plus one to three</option><option value="more">More than that</option></select>
+    <button class="btn brass" type="submit">Send</button>
     <div id="formMsg" aria-live="polite"></div>
   </form>
-</div></div></section>
+</div></section>
 <script>
-(function(){var f=document.getElementById('waitlist'),m=document.getElementById('formMsg');if(!f)return;f.addEventListener('submit',function(e){e.preventDefault();var d=Object.fromEntries(new FormData(f).entries());m.textContent='Sending…';fetch('https://portal.greenguard-usa.com/api/leads/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:d.email,firstName:d.name,source:'ops:'+d.company+' / '+d.size})}).then(function(r){if(!r.ok)throw 0;m.textContent='Got it. A human replies within a day.';f.reset()}).catch(function(){location.href='mailto:admin@greenguard-usa.com?subject='+encodeURIComponent('One Person Show setup: '+d.company)+'&body='+encodeURIComponent(d.name+' / '+d.email+' / '+d.size);m.textContent='Opening your email app instead.'})})})();
-</script><footer class="site"><div class="container">
-  <div>One Person Show is a product of GreenGuard USA, Austin, TX.<br><a href="mailto:admin@greenguard-usa.com">admin@greenguard-usa.com</a></div>
-  <nav><a href="/front-office">Front office</a><a href="/inbox">Inbox</a><a href="/day-of">Day of service</a><a href="/money">Money</a><a href="/crew">Crew</a><a href="/growth">Growth</a><a href="/how-it-works">How it works</a><a href="/pricing">Pricing</a></nav>
+(function(){var f=document.getElementById('waitlist'),m=document.getElementById('formMsg');if(!f)return;f.addEventListener('submit',function(e){e.preventDefault();var d=Object.fromEntries(new FormData(f).entries());m.textContent='Sending…';fetch('https://portal.greenguard-usa.com/api/leads/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:d.email,firstName:d.name,source:'ops:'+d.company+' / '+d.size})}).then(function(r){if(!r.ok)throw 0;m.textContent='Sent. A person replies within a day.';f.reset()}).catch(function(){location.href='mailto:admin@greenguard-usa.com?subject='+encodeURIComponent('One Person Show: '+d.company)+'&body='+encodeURIComponent(d.name+' / '+d.email+' / '+d.size);m.textContent='Opening your email app instead.'})})})();
+</script><footer class="site"><div class="wrap">
+  <div>One Person Show is made by GreenGuard USA in Austin, Texas, and runs GreenGuard first.<br><a href="mailto:admin@greenguard-usa.com">admin@greenguard-usa.com</a></div>
+  <nav><a href="/customer-portal">Customer portal</a><a href="/office">The office</a><a href="/inbox">Inbox</a><a href="/day-of">Day of service</a><a href="/money">Money</a><a href="/crew">Crew</a><a href="/growth">Growth</a><a href="/everything">Everything it does</a><a href="/how-it-works">How it works</a><a href="/pricing">Pricing</a></nav>
 </div></footer>
 </body></html>

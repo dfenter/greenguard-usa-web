@@ -1,240 +1,142 @@
 #!/usr/bin/env node
-// One Person Show marketing site generator. `node ops/src/build.js` writes
-// ops/*.html + ops/site.css from the page data below. Style system mirrors the
-// Astro marketing site (Inter, forest ground, cream text, electric-green
-// eyebrows, gold CTA, 1100px container) so the two feel like one company.
+// One Person Show site generator. `node ops/src/build.js` writes ops/*.html and
+// ops/site.css. Editorial, prose-first; palette and type are the Sanctuary
+// redesign at new.greenguard-usa.com (paper, ink, forest, sage, brass;
+// Fraunces + Inter). Edit content here, never the generated HTML.
 const fs = require('fs')
 const path = require('path')
 const OUT = path.join(__dirname, '..')
 
 const CSS = `
-:root{--bg:#1a2e1f;--bg-dark:#0a1a0d;--bg-card:#0d1a10;--bg-panel:#111c13;--accent:#7dffaa;--accent-muted:#3d7a4f;--accent-deep:#2d5a2d;--gold:#c9a84c;--gold-light:#e8d08a;--cream:#d4e6ca;--cream-muted:rgba(212,230,202,.7);--cream-dim:rgba(212,230,202,.45);--line:rgba(125,255,170,.15);--font:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+:root{--paper:#FAF7F1;--paper-2:#F2EDE3;--ink:#1E2B23;--ink-2:#14201A;--forest:#2E4A3B;--green:#2E6B46;--sage:#7C9885;--sage-2:#4A6B57;--brass:#B08D4C;--brass-2:#7E612B;--sand:#E5D5B0;--sand-2:#EFE3C6;--rust:#9C3A2E;--rule:rgba(30,43,35,.14);
+--serif:Fraunces,Georgia,"Times New Roman",serif;--sans:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--cream);font-family:var(--font);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-a{color:inherit;transition:color .15s}
-:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
-.container{max-width:1100px;margin:0 auto;padding:0 20px}
-h1,h2,h3{font-weight:800;letter-spacing:-.02em;line-height:1.1;color:#fff}
-h1{font-size:clamp(38px,5.4vw,64px)}
-h2{font-size:clamp(28px,3.4vw,40px);margin-bottom:14px}
-h3{font-size:19px;font-weight:700;margin-bottom:6px}
-.eyebrow{font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;display:block;margin-bottom:12px}
-.lede{font-size:clamp(17px,1.6vw,20px);color:var(--cream-muted);max-width:60ch}
-.btn-gold{display:inline-block;background:var(--gold);color:var(--bg-dark);font-weight:800;font-size:.9rem;padding:13px 28px;border-radius:8px;text-decoration:none;transition:transform .15s,background .15s;border:0;cursor:pointer;font-family:inherit}
-.btn-gold:hover{background:var(--gold-light);transform:translateY(-2px)}
-.btn-outline{display:inline-block;background:transparent;color:var(--accent);font-weight:700;font-size:.9rem;padding:12px 24px;border-radius:8px;text-decoration:none;border:1px solid rgba(125,255,170,.4)}
-.btn-outline:hover{border-color:var(--accent);color:#fff}
-header.site{position:sticky;top:0;z-index:20;background:rgba(10,26,13,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-header.site .container{display:flex;align-items:center;justify-content:space-between;height:66px;gap:16px}
-.brand{font-weight:900;font-size:1.05rem;color:#fff;text-decoration:none;letter-spacing:-.01em;white-space:nowrap}
-.brand span{color:var(--accent)}
-nav.main{display:flex;gap:22px;font-size:.88rem;font-weight:600}
-nav.main a{text-decoration:none;color:var(--cream-muted)}
-nav.main a:hover,nav.main a[aria-current]{color:#fff}
-nav.main a.btn-gold,nav.main a.btn-gold:hover{color:var(--bg-dark)}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:var(--green);text-decoration-thickness:1px;text-underline-offset:3px}
+a:hover{color:var(--forest)}
+:focus-visible{outline:2px solid var(--brass);outline-offset:3px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+.measure{max-width:68ch}
+h1,h2,h3,.serif{font-family:var(--serif);font-weight:400;letter-spacing:-.005em;color:var(--ink-2)}
+h1{font-size:clamp(40px,5.6vw,68px);line-height:1.04;font-variation-settings:"opsz" 144,"SOFT" 30}
+h2{font-size:clamp(30px,3.6vw,44px);line-height:1.12;margin:0 0 18px}
+h3{font-size:24px;line-height:1.25;margin:34px 0 10px}
+em{font-family:var(--serif);font-style:italic;font-size:1.04em}
+p{margin:0 0 1.15em}
+p.lede{font-size:clamp(19px,1.7vw,22px);line-height:1.5;color:var(--forest)}
+.small{font-size:.9rem;color:var(--sage-2)}
+.kicker{font-family:var(--sans);font-size:.78rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--brass-2);margin-bottom:14px;display:block}
+hr{border:0;border-top:1px solid var(--rule);margin:0}
+.btn{display:inline-block;font-family:var(--sans);font-weight:600;font-size:.95rem;padding:13px 24px;border-radius:6px;text-decoration:none;background:var(--forest);color:#fff;border:1px solid var(--forest);transition:background .15s}
+.btn:hover{background:var(--ink-2);color:#fff}
+.btn.quiet{background:transparent;color:var(--forest)}
+.btn.quiet:hover{background:var(--paper-2)}
+.btn.brass{background:var(--brass);border-color:var(--brass);color:var(--ink-2)}
+.btn.brass:hover{background:var(--brass-2);color:#fff}
+/* header */
+header.site{border-bottom:1px solid var(--rule);background:var(--paper)}
+header.site .wrap{display:flex;align-items:center;justify-content:space-between;height:72px;gap:20px}
+.brand{font-family:var(--serif);font-size:1.35rem;color:var(--ink-2);text-decoration:none;white-space:nowrap}
+.brand i{font-style:italic;color:var(--green)}
+nav.main{display:flex;gap:26px;font-size:.92rem;font-weight:500;align-items:center}
+nav.main a{text-decoration:none;color:var(--ink)}
+nav.main a:hover{color:var(--green)}
+nav.main a[aria-current]{color:var(--green);border-bottom:1px solid var(--green)}
 nav.main .drop{position:relative}
-nav.main .drop>a::after{content:" ▾";font-size:.7em}
-nav.main .menu{display:none;position:absolute;top:100%;left:-12px;padding-top:12px;min-width:250px}
+nav.main .menu{display:none;position:absolute;top:100%;left:-16px;padding-top:14px;min-width:300px;z-index:30}
 nav.main .drop:hover .menu,nav.main .drop:focus-within .menu{display:block}
-nav.main .menu div{background:var(--bg-dark);border:1px solid var(--line);border-radius:10px;padding:8px;box-shadow:0 20px 40px -20px #000}
-nav.main .menu a{display:block;padding:9px 12px;border-radius:7px;color:var(--cream)}
-nav.main .menu a:hover{background:var(--bg-panel)}
-nav.main .menu small{display:block;color:var(--cream-dim);font-weight:400;font-size:.78rem}
-.menu-toggle{display:none;background:none;border:1px solid var(--line);color:var(--cream);border-radius:8px;padding:8px 10px;font:inherit}
-.hero{padding:88px 0 72px;border-bottom:1px solid var(--line);background:radial-gradient(900px 400px at 15% -10%,rgba(125,255,170,.10),transparent 60%)}
-.hero .grid{display:grid;grid-template-columns:1.05fr 1fr;gap:56px;align-items:center}
-.hero .cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
-.hero .lede{margin-top:20px}
-.hero .note{margin-top:18px;color:var(--cream-dim);font-size:.85rem}
-section.block{padding:72px 0;border-bottom:1px solid var(--line)}
-section.block.alt{background:var(--bg-dark)}
-.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:28px}
-.cards.two{grid-template-columns:repeat(2,1fr)}
-.card{background:rgba(13,26,16,.6);border:1px solid var(--line);border-radius:12px;padding:24px;display:block;text-decoration:none;color:inherit;transition:border-color .15s,transform .15s}
-a.card:hover{border-color:rgba(125,255,170,.45);transform:translateY(-2px)}
-.card p{color:var(--cream-muted);font-size:.95rem}
-.card .more{display:inline-block;margin-top:12px;color:var(--accent);font-weight:700;font-size:.85rem}
-.steps{list-style:none;counter-reset:s;margin-top:26px;display:grid;gap:14px}
-.steps li{display:grid;grid-template-columns:44px minmax(0,1fr);gap:16px;align-items:start;background:rgba(13,26,16,.6);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
-.steps li::before{counter-increment:s;content:counter(s,decimal-leading-zero);font-family:var(--mono);color:var(--accent);font-weight:700;font-size:.95rem;padding-top:2px}
-.steps li>div{min-width:0}
-.steps b{display:block;color:#fff;margin-bottom:3px}
-.steps span{color:var(--cream-muted);font-size:.95rem}
-.split{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start}
-.facts{list-style:none;display:grid;gap:10px;margin-top:22px}
-.facts li{display:flex;gap:12px;color:var(--cream-muted);font-size:.95rem}
-.facts li::before{content:"✓";color:var(--accent);font-weight:800}
-.rules{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:22px}
-.rule{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--bg-panel);font-size:.92rem}
-.rule b{color:#fff;display:block;margin-bottom:2px}
-.rule span{color:var(--cream-muted)}
-.mock{background:var(--bg-dark);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 40px 80px -40px #000}
-.mock .bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:.75rem;color:var(--cream-dim)}
-.mock .bar i{width:9px;height:9px;border-radius:50%;background:var(--accent-deep);display:inline-block}
-.mock .body{padding:18px}
-.row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);font-size:.9rem;gap:12px}
-.row:last-child{border-bottom:0}
-.row .k{color:var(--cream-muted)}
-.row .v{color:#fff;font-weight:600;text-align:right}
-.pill{display:inline-block;padding:3px 9px;border-radius:99px;font-size:.72rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
-.pill.ok{background:rgba(125,255,170,.14);color:var(--accent)}
-.pill.warn{background:rgba(201,168,76,.16);color:var(--gold-light)}
-.pill.dim{background:rgba(212,230,202,.1);color:var(--cream-muted)}
-.log{font-family:var(--mono);font-size:.82rem;line-height:1.7}
-.log ol{list-style:none}
-.log li{display:grid;grid-template-columns:50px 1fr;gap:12px;padding:3px 0;opacity:0;transform:translateY(5px);animation:rise .45s forwards}
-.log time{color:var(--accent)}
-.log b{color:#fff;font-weight:600}
-.log li.owner{color:var(--cream-dim);font-style:italic}
-.log li.owner time{color:var(--cream-dim)}
-@keyframes rise{to{opacity:1;transform:none}}
-.price{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:28px}
-.plan{background:rgba(13,26,16,.6);border:1px solid var(--line);border-radius:12px;padding:26px;display:flex;flex-direction:column}
-.plan.hot{border-color:var(--gold);box-shadow:0 0 0 1px rgba(201,168,76,.4)}
-.plan .n{font-weight:800;color:#fff;font-size:1.05rem}
-.plan .amt{font-size:42px;font-weight:900;color:#fff;letter-spacing:-.03em;margin:8px 0 0}
-.plan .amt small{font-size:.9rem;font-weight:500;color:var(--cream-muted);letter-spacing:0}
-.plan .sub{color:var(--cream-dim);font-size:.85rem;margin:2px 0 16px}
-.plan ul{padding-left:18px;color:var(--cream-muted);font-size:.93rem;flex:1}
-.plan ul li+li{margin-top:6px}
-.plan .btn-gold,.plan .btn-outline{margin-top:22px;text-align:center}
-.fine{color:var(--cream-dim);font-size:.85rem;margin-top:18px;max-width:72ch}
-.cta-band{padding:72px 0}
-.cta-band .box{background:linear-gradient(135deg,rgba(125,255,170,.10),rgba(201,168,76,.08));border:1px solid var(--line);border-radius:16px;padding:44px;display:grid;grid-template-columns:1.1fr 1fr;gap:36px;align-items:center}
+nav.main .menu>div{background:var(--paper);border:1px solid var(--rule);border-radius:8px;padding:10px;box-shadow:0 24px 48px -24px rgba(20,32,26,.35)}
+nav.main .menu a{display:block;padding:9px 12px;border-radius:6px;border:0!important}
+nav.main .menu a:hover{background:var(--paper-2)}
+nav.main .menu small{display:block;color:var(--sage-2);font-weight:400;font-size:.8rem}
+.menu-toggle{display:none;background:none;border:1px solid var(--rule);color:var(--ink);border-radius:6px;padding:8px 12px;font:inherit;font-size:.9rem}
+/* sections */
+.hero{padding:84px 0 64px}
+.hero h1{max-width:18ch}
+.hero .lede{margin-top:26px;max-width:58ch}
+.hero .actions{margin-top:30px;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.hero .actions .small{margin-left:6px}
+section.prose{padding:64px 0}
+section.prose.tint{background:var(--paper-2)}
+section.prose .wrap{display:grid;grid-template-columns:260px minmax(0,1fr);gap:56px;align-items:start}
+section.prose .side{position:sticky;top:24px}
+section.prose .side h2{font-size:clamp(26px,2.6vw,34px)}
+section.prose .side p{color:var(--sage-2);font-size:.95rem}
+section.prose .body{max-width:66ch}
+section.prose.full .wrap{grid-template-columns:1fr}
+section.prose.full .body{max-width:none}
+/* the diary (home signature) */
+.diary{max-width:66ch}
+.diary p{margin:0 0 1.1em}
+.diary time{font-family:var(--serif);font-style:italic;color:var(--brass-2);margin-right:.5em}
+.diary p.you{color:var(--sage-2);padding-left:1.4em;border-left:2px solid var(--sand)}
+/* index of everything */
+.index{columns:2;column-gap:56px}
+.index section{break-inside:avoid;margin-bottom:34px}
+.index h3{margin:0 0 8px;font-size:22px}
+.index p{font-size:.97rem;color:var(--ink);margin:0 0 .5em}
+.index p b{font-weight:600;color:var(--ink-2)}
+/* aside figure */
+figure.aside{margin:34px 0;border:1px solid var(--rule);background:#fff;border-radius:8px;padding:22px 24px;max-width:66ch}
+figure.aside figcaption{font-family:var(--sans);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase;color:var(--sage-2);margin-bottom:12px}
+figure.aside dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;font-size:.95rem}
+figure.aside dt{color:var(--sage-2)}
+figure.aside dd{color:var(--ink-2);font-weight:500}
+/* pricing as prose table */
+table.plans{width:100%;border-collapse:collapse;margin:26px 0 12px;font-size:.98rem}
+table.plans th{text-align:left;font-family:var(--serif);font-weight:400;font-size:1.35rem;padding:14px 12px 10px;border-bottom:1px solid var(--ink-2);vertical-align:bottom}
+table.plans th small{display:block;font-family:var(--sans);font-size:.85rem;color:var(--sage-2);font-weight:400;margin-top:4px}
+table.plans td{padding:12px;border-bottom:1px solid var(--rule);vertical-align:top}
+table.plans td:first-child{color:var(--sage-2);width:26%}
+table.plans .price{font-family:var(--serif);font-size:2rem;color:var(--ink-2)}
+table.plans .price small{font-family:var(--sans);font-size:.85rem;color:var(--sage-2)}
+/* form */
+.ask{padding:72px 0;background:var(--forest);color:#fff}
+.ask h2{color:#fff}
+.ask .wrap{display:grid;grid-template-columns:1.1fr 1fr;gap:56px;align-items:center}
+.ask p{color:rgba(255,255,255,.82)}
 form.wl{display:grid;gap:10px}
-form.wl input,form.wl select{font:inherit;font-size:.95rem;padding:12px 14px;border-radius:8px;border:1px solid var(--line);background:var(--bg-dark);color:#fff}
-form.wl input::placeholder{color:var(--cream-dim)}
-#formMsg{font-size:.85rem;color:var(--accent);min-height:20px}
-footer.site{padding:40px 0;border-top:1px solid var(--line);color:var(--cream-dim);font-size:.85rem}
-footer.site .container{display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px}
-footer.site nav{display:flex;gap:16px;flex-wrap:wrap}
-footer.site a{color:var(--cream-muted);text-decoration:none}
-footer.site a:hover{color:#fff}
-.pager{display:flex;justify-content:space-between;gap:12px;margin-top:40px;font-size:.9rem}
-.pager a{text-decoration:none;color:var(--accent);font-weight:700}
+form.wl input,form.wl select{font:inherit;font-size:.95rem;padding:12px 14px;border-radius:6px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff}
+form.wl input::placeholder{color:rgba(255,255,255,.55)}
+form.wl select option{color:var(--ink)}
+#formMsg{font-size:.9rem;color:var(--sand);min-height:22px}
+.pager{display:flex;justify-content:space-between;gap:12px;padding:26px 0 0;font-family:var(--serif);font-size:1.05rem}
+footer.site{padding:44px 0;border-top:1px solid var(--rule);color:var(--sage-2);font-size:.9rem}
+footer.site .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:20px}
+footer.site nav{display:flex;gap:18px;flex-wrap:wrap}
+footer.site a{color:var(--sage-2);text-decoration:none}
+footer.site a:hover{color:var(--ink)}
 @media (max-width:900px){
-  .hero .grid,.split,.cta-band .box{grid-template-columns:1fr}
-  .cards,.cards.two,.price,.rules{grid-template-columns:1fr}
-  nav.main{display:none;position:absolute;top:66px;left:0;right:0;background:var(--bg-dark);border-bottom:1px solid var(--line);flex-direction:column;gap:0;padding:8px 20px 16px}
+  section.prose .wrap{grid-template-columns:1fr;gap:20px}
+  section.prose .side{position:static}
+  .index{columns:1}
+  .ask .wrap{grid-template-columns:1fr}
+  nav.main{display:none;position:absolute;top:72px;left:0;right:0;background:var(--paper);border-bottom:1px solid var(--rule);flex-direction:column;align-items:flex-start;gap:0;padding:6px 24px 16px;z-index:40}
   nav.main.open{display:flex}
-  nav.main a{padding:10px 0}
-  nav.main .menu{display:block;position:static;padding:0 0 0 12px;min-width:0}
-  nav.main .menu div{background:none;border:0;box-shadow:none;padding:0}
-  nav.main .drop>a::after{content:""}
+  nav.main a{padding:10px 0;border:0!important}
+  nav.main .menu{display:block;position:static;padding:0 0 0 14px;min-width:0}
+  nav.main .menu>div{background:none;border:0;box-shadow:none;padding:0}
   .menu-toggle{display:block}
-  .hero{padding:56px 0 48px}
-  section.block{padding:52px 0}
-  .cta-band .box{padding:28px}
+  header.site{position:relative}
+  .hero{padding:52px 0 40px}
+  section.prose{padding:48px 0}
+  table.plans{font-size:.9rem}
 }
-@media (prefers-reduced-motion:reduce){.log li{animation:none;opacity:1;transform:none}html{scroll-behavior:auto}}
 `
 
-const FEATURES = [
-  { slug: 'front-office', nav: 'Front office', title: 'Quote, pay, book', tag: 'Front office',
-    h1: 'Customers quote themselves, pay by card, and pick a slot.',
-    lede: 'Your website becomes the office. A visitor builds a quote, sees a rental and a purchase path side by side, pays, and books the first visit without emailing you once. The price is computed on the server, so what they paid is always what you meant to charge.',
-    steps: [
-      ['Build', 'The customer picks a service, quantity and add-ons. The same pricing engine that bills you renders the numbers, live.'],
-      ['Compare', 'Rental and purchase options are laid out next to each other with monthly and one-time totals. No PDF, no call.'],
-      ['Pay', 'Card checkout for the first month plus any one-time items. One-time invoices only; no surprise subscriptions.'],
-      ['Book', 'The confirmation screen offers real open slots inside your service radius and business hours. Booked slots land on your calendar.'],
-      ['Follow up', 'An unpaid quote gets a nudge at 48 hours, 7 days and 14 days, then goes cold on its own.'],
-    ],
-    mock: { title: 'quote / 3 traps, 28-day service', rows: [['System', 'CO₂ trap rental × 3'], ['Monthly', '$399.99'], ['One-time', 'Install $240.00'], ['Tax', 'computed server-side'], ['Status', '<span class="pill ok">Paid · slot booked Thu 10:00</span>']] },
-    facts: ['Quote links are signed tokens; a tampered price fails checkout', 'Service radius and earliest-hour rules enforced at booking time', 'Direct-link bookings outside the radius are auto-cancelled with a note', 'Customer portal shows plan, next visit, history and upgrades'],
-    rules: [['Earliest appointment', 'Never before 10:00 unless you say so'], ['Saturdays', 'Off by default; shifts to Friday'], ['Service radius', '40 miles from your depot, checked at booking'], ['Billing', 'Invoice per visit; no recurring card charges you did not create']],
-  },
-  { slug: 'inbox', nav: 'Inbox', title: 'Replies in your voice', tag: 'Inbox',
-    h1: 'Every customer email answered in your words, waiting for your tap.',
-    lede: 'The inbox agent reads new customer mail, sorts it by urgency, and writes a reply the way you write. It never sends on its own. You open the draft, tap send, or change a line first.',
-    steps: [
-      ['Read', 'New mail is classified: scheduling, question, complaint, other. Newsletters and receipts are filed, not answered.'],
-      ['Draft', 'A reply is written from five sample emails you gave us at setup: your greeting, your length, your sign-off.'],
-      ['Offer times', 'If it is a scheduling request, the draft includes two real open slots from your calendar.'],
-      ['Alert', 'Genuine customer mail pings your phone and forwards to your tech, so nobody is the bottleneck.'],
-      ['Send', 'You tap send in Gmail. Edited drafts teach nothing to anyone but you; there is no training on your mail.'],
-    ],
-    mock: { title: 'gmail / drafts', rows: [['From', 'jane@…  "Can we move Thursday?"'], ['Class', '<span class="pill warn">Scheduling · medium</span>'], ['Draft', '"Jane, sure thing. Thursday 2:00 or 4:00 open. Which works?"'], ['Action', 'Waiting for you']] },
-    facts: ['Drafts only; nothing goes out without a human tap', 'Runs on your Claude subscription, not a per-message API bill', 'Thread history is included so replies make sense', 'Owner alerts by text; customer replies by email'],
-    rules: [['Never auto-send', 'Customer-facing mail always waits for you'], ['Voice profile', 'Built from your own emails, editable any time'], ['Channel', 'Email first; text only when there is no email'], ['Brand', 'Always your full company name, never a nickname']],
-  },
-  { slug: 'day-of', nav: 'Day of service', title: 'Route, remind, invoice', tag: 'Day of',
-    h1: 'The truck leaves with a route, the customers are warned, the invoices write themselves.',
-    lede: 'At midnight tomorrow’s stops are ordered farthest-first so the day ends near home. Reminders go out by email and, two hours before, by text. When the tech taps Finish, the invoice already exists.',
-    steps: [
-      ['Route', 'Stops are read from the live calendar, never a cache, ordered farthest-first and emailed to the truck at 7:30.'],
-      ['Remind', 'Day-before email. Two-hour text. "On my way" text from the tech’s stop card with one tap.'],
-      ['Arrive', 'The stop card shows gate code, pets, access notes and the last visit’s notes. Navigate opens Maps.'],
-      ['Finish', 'Signature on the phone, photos checked for a proper install, services ticked. The invoice is generated from the same catalog.'],
-      ['Guard', 'A second finish on the same booking cannot bill twice. Thank-you email goes out at 8:00 the next morning with the next visit date.'],
-    ],
-    mock: { title: 'tech / today', rows: [['07:30', 'Route emailed · 11 stops · home 4:40'], ['12:10', '"On my way" sent · Steiner Ranch'], ['14:32', 'Visit finished · signature + 2 photos'], ['Invoice', '<span class="pill ok">$189.00 sent</span>'], ['Consumables', '6 needed · 9 on hand']] },
-    facts: ['Consumables forecast 56 days out from the schedule', 'Photo check flags a bad install before the customer does', 'Owner and tech get different screens; techs never see payroll', 'Works on a phone in the field; installs as an app'],
-    rules: [['Live calendar only', 'Today’s stops never come from a cached plan'], ['Far-first', 'Longest drive first, finish near the depot'], ['Two-hour text', 'The one reminder that goes by text'], ['Thank-you', 'Includes what was done and the next service date']],
-  },
-  { slug: 'money', nav: 'Money', title: 'Books that close themselves', tag: 'Money',
-    h1: 'A ledger that fills itself, closes every month, and answers questions in plain English.',
-    lede: 'Card payments flow in from Stripe. Bank and card statements come in as CSV. Transactions are categorized automatically, the month closes on the first, and you can ask "what did I spend on fuel in June" and get a number.',
-    steps: [
-      ['Ingest', 'Stripe charges, refunds and payouts post to the ledger every 15 minutes. Bank CSVs from Amex, Chase, Capital One or generic.'],
-      ['Categorize', 'Unmatched rows are categorized by the assistant and the rule it used is saved, so next month is automatic.'],
-      ['Brief', 'A 7:00 morning brief: cash position, receivables at risk, churn signals.'],
-      ['Close', 'On the first: P&L, receivables aging, sales tax, mileage. Emailed to you as a package.'],
-      ['Ask', 'Ask the books in English. The assistant writes a read-only query, runs it, and shows the answer with the SQL.'],
-    ],
-    mock: { title: 'books / ask', rows: [['You', '"Fuel spend, June?"'], ['Answer', '$412.18 across 9 transactions'], ['Open A/R', '$1,240 · 3 invoices'], ['Month', '<span class="pill ok">June closed · P&L sent</span>'], ['QuickBooks', 'Synced 07:02']] },
-    facts: ['Failed cards retried and escalated at 0, 2, 7 and 14 days', 'Expense receipts from the crew, approved by you, booked once', 'QuickBooks Online sync if your accountant wants it', 'Invoice-based billing; no subscription engine to reconcile'],
-    rules: [['Money lives in Stripe', 'The ledger mirrors it; it never invents a charge'], ['No double books', 'A reimbursed receipt hits the P&L once'], ['Monthly close', 'First of the month, automatically'], ['Read-only questions', 'The assistant can query, never edit, the ledger']],
-  },
-  { slug: 'crew', nav: 'Crew', title: 'Payroll without a provider', tag: 'Crew',
-    h1: 'Clock in, clock out, and get paid correctly, without a payroll company.',
-    lede: 'Techs clock in from their phone. Hours, overtime, withholding, FICA and unemployment are computed in the portal. Quarterly 941s come out pre-filled. Add a second tech the day you hire them.',
-    steps: [
-      ['Clock', 'Crew clock in and out on their own timesheet. They see only their own hours and rates.'],
-      ['Approve', 'You approve time weekly. Every edit is recorded in an append-only audit trail with who and when.'],
-      ['Run', 'Payroll computes FLSA overtime on the blended rate, IRS percentage-method withholding, FICA caps, FUTA and state unemployment.'],
-      ['Pay', 'Printable pay stubs. Expense reimbursements ride along, non-taxable, once.'],
-      ['File', 'Deposit schedule and amounts, quarterly 941 pre-filled as a PDF, 940 worksheet, W-2 boxes. You sign and submit.'],
-    ],
-    mock: { title: 'payroll / week 34', rows: [['Zeke', '38.5 h · OT 0 · $770.00 gross'], ['Withholding', 'computed · Pub 15-T'], ['Employer taxes', 'FICA · FUTA · TX SUTA'], ['Status', '<span class="pill ok">Approved · run Friday</span>'], ['941 Q3', 'Pre-filled · due Oct 31']] },
-    facts: ['Owner-only pages; a tech can never see another person’s pay', 'Tax tables refreshed each January, flagged if stale', 'Retention built in: time cards 2 years, payroll 3 years', 'No per-employee SaaS fee'],
-    rules: [['Owner vs crew', 'Roles enforced on every screen and API'], ['Append-only', 'Timesheet history cannot be rewritten'], ['Approve, then pay', 'Only approved hours are payable'], ['Nothing transmitted', 'Deposits and filings stay in your hands']],
-  },
-  { slug: 'growth', nav: 'Growth', title: 'Follow-ups that never lapse', tag: 'Growth',
-    h1: 'Quotes get chased, cards get retried, lapsed customers get a note, reviews get asked for.',
-    lede: 'The revenue you lose is usually the follow-up you forgot. Every quote, failed payment and lapsed customer has a schedule now, and a Monday review tells you what moved.',
-    steps: [
-      ['Quotes', 'Unpaid quotes are nudged at 48 hours, 7 days, 14 days, then marked cold. Paid ones book an install.'],
-      ['Payments', 'A failed card is retried and the customer is emailed at day 0, 2, 7 and 14 before service pauses.'],
-      ['Reviews', 'After the third visit, a review request with your direct link. Replies to reviews are drafted for you.'],
-      ['Win-back', 'Each season, lapsed customers get a short personal note written from their history.'],
-      ['Review', 'Monday 9:00: revenue, this week’s visits, open invoices, quote pipeline, new customers, system health, with what to do about each.'],
-    ],
-    mock: { title: 'monday / review', rows: [['Revenue, 7d', '$4,120'], ['Visits this week', '23'], ['Open invoices', '3 · $610'], ['Quotes', '2 warm · 1 cold'], ['Health', '<span class="pill ok">All crons ran</span>']] },
-    facts: ['Google Business Profile posts and review replies drafted in your voice', 'Ad and search analytics in the same dashboard', 'Lead capture from your site straight into the CRM', 'Every follow-up is logged on the customer record'],
-    rules: [['48 / 7 / 14', 'Quote follow-up windows, editable'], ['0 / 2 / 7 / 14', 'Failed-payment escalation'], ['One ask', 'Review requests go once, never nag'], ['Monday', 'The weekly review is a habit, not a report']],
-  },
+// ── Content ─────────────────────────────────────────────────────────────────
+const NAV = [
+  ['customer-portal', 'Customer portal', 'What your customers see'],
+  ['office', 'The office', 'Owner and tech app'],
+  ['inbox', 'Inbox', 'Email in your voice'],
+  ['day-of', 'Day of service', 'Route, remind, invoice'],
+  ['money', 'Money', 'Books, billing, collections'],
+  ['crew', 'Crew', 'Time and payroll'],
+  ['growth', 'Growth', 'Follow-ups and marketing'],
+  ['everything', 'Everything it does', 'The complete list'],
 ]
 
-const DAYLOG = [
-  ['00:00', '<b>Route built</b> for tomorrow. 11 stops, farthest first, home by 4:40.'],
-  ['06:00', '<b>Billing warning</b> sent to 2 customers with cards expiring.'],
-  ['07:00', '<b>Books closed</b> for yesterday. Cash and A/R in your brief.'],
-  ['07:30', '<b>Route emailed</b> to the truck. Consumables: 6 needed, 9 on hand.'],
-  ['08:00', '<b>3 thank-you emails</b> sent, next service date included.'],
-  ['08:04', '<b>Inbox:</b> "Can we move Thursday?" Draft written, two slots offered.'],
-  ['08:06', 'owner: tapped send on the draft', true],
-  ['09:00', '<b>Quote follow-up:</b> 48h nudge to Miller. 14-day close on Ortiz.'],
-  ['10:00', '<b>Failed card</b> retried for Nguyen. Paid.'],
-  ['12:10', '<b>Text:</b> "On my way" to Steiner Ranch.'],
-  ['14:20', 'owner: took the photos, tapped finish', true],
-  ['14:32', '<b>Visit finished.</b> Signature, photos checked, invoice sent. $189.'],
-  ['15:05', '<b>Customer chat:</b> "What plan am I on?" Answered from the account.'],
-  ['17:00', '<b>Day summary</b> emailed. Revenue $1,240. 0 open issues.'],
-]
-
-const esc = (s) => s
 function head(title, desc, canonical) {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -246,122 +148,314 @@ function head(title, desc, canonical) {
 <link rel="canonical" href="https://ops.greenguard-usa.com${canonical}">
 <meta property="og:title" content="${title}"><meta property="og:description" content="${desc}"><meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/site.css">
 </head>
 <body>`
 }
 function header(current) {
-  const items = FEATURES.map((f) => `<a href="/${f.slug}"${current === f.slug ? ' aria-current="page"' : ''}>${f.title}<small>${f.h1.split('.')[0]}.</small></a>`).join('')
-  return `<header class="site"><div class="container">
-  <a class="brand" href="/">One <span>Person</span> Show</a>
+  const items = NAV.map(([s, t, d]) => `<a href="/${s}"${current === s ? ' aria-current="page"' : ''}>${t}<small>${d}</small></a>`).join('')
+  return `<header class="site"><div class="wrap">
+  <a class="brand" href="/">One <i>Person</i> Show</a>
   <button class="menu-toggle" aria-expanded="false" aria-controls="mainnav" onclick="var n=document.getElementById('mainnav');n.classList.toggle('open');this.setAttribute('aria-expanded',n.classList.contains('open'))">Menu</button>
   <nav class="main" id="mainnav">
-    <div class="drop"><a href="/#features"${FEATURES.some((f) => f.slug === current) ? ' aria-current="page"' : ''}>Product</a><div class="menu"><div>${items}</div></div></div>
+    <div class="drop"><a href="/everything"${NAV.some(([s]) => s === current) ? ' aria-current="page"' : ''}>What it does</a><div class="menu"><div>${items}</div></div></div>
     <a href="/how-it-works"${current === 'how-it-works' ? ' aria-current="page"' : ''}>How it works</a>
     <a href="/pricing"${current === 'pricing' ? ' aria-current="page"' : ''}>Pricing</a>
-    <a href="/#proof">Proof</a>
-    <a class="btn-gold" href="/pricing#start" style="padding:10px 18px">Request setup</a>
+    <a class="btn brass" href="/pricing#start" style="padding:10px 18px">Talk to us</a>
   </nav>
 </div></header>`
 }
 function footer() {
-  return `<footer class="site"><div class="container">
-  <div>One Person Show is a product of GreenGuard USA, Austin, TX.<br><a href="mailto:admin@greenguard-usa.com">admin@greenguard-usa.com</a></div>
-  <nav>${FEATURES.map((f) => `<a href="/${f.slug}">${f.nav}</a>`).join('')}<a href="/how-it-works">How it works</a><a href="/pricing">Pricing</a></nav>
+  return `<footer class="site"><div class="wrap">
+  <div>One Person Show is made by GreenGuard USA in Austin, Texas, and runs GreenGuard first.<br><a href="mailto:admin@greenguard-usa.com">admin@greenguard-usa.com</a></div>
+  <nav>${NAV.map(([s, t]) => `<a href="/${s}">${t}</a>`).join('')}<a href="/how-it-works">How it works</a><a href="/pricing">Pricing</a></nav>
 </div></footer>
 </body></html>`
 }
-function ctaBand() {
-  return `<section class="cta-band" id="start"><div class="container"><div class="box">
-  <div><span class="eyebrow">First ten operators</span><h2>Austin first. Then everywhere.</h2><p class="lede" style="font-size:1rem">We are onboarding ten pool, lawn, pest and cleaning operators this fall. Setup is done by the people who built it. A human replies within a day.</p></div>
+function ask() {
+  return `<section class="ask" id="start"><div class="wrap">
+  <div><h2>We are setting up ten operators this fall.</h2><p>Pool, lawn, pest, cleaning, detailing: any trade that visits the same customers on a cadence. Setup is done by the two people who built this and run a company on it. Write a line about your business and a person answers within a day.</p></div>
   <form class="wl" id="waitlist">
     <input name="name" placeholder="Your name" required autocomplete="name">
     <input name="email" type="email" placeholder="Email" required autocomplete="email">
-    <input name="company" placeholder="Company and trade (e.g. Lakeway Pool Care)" required>
-    <select name="size" aria-label="Team size"><option value="solo">Just me</option><option value="crew">Me plus 1 to 3</option><option value="more">More than that</option></select>
-    <button class="btn-gold" type="submit">Request setup</button>
+    <input name="company" placeholder="Company and trade" required>
+    <select name="size" aria-label="Team size"><option value="solo">Just me</option><option value="crew">Me plus one to three</option><option value="more">More than that</option></select>
+    <button class="btn brass" type="submit">Send</button>
     <div id="formMsg" aria-live="polite"></div>
   </form>
-</div></div></section>
+</div></section>
 <script>
-(function(){var f=document.getElementById('waitlist'),m=document.getElementById('formMsg');if(!f)return;f.addEventListener('submit',function(e){e.preventDefault();var d=Object.fromEntries(new FormData(f).entries());m.textContent='Sending…';fetch('https://portal.greenguard-usa.com/api/leads/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:d.email,firstName:d.name,source:'ops:'+d.company+' / '+d.size})}).then(function(r){if(!r.ok)throw 0;m.textContent='Got it. A human replies within a day.';f.reset()}).catch(function(){location.href='mailto:admin@greenguard-usa.com?subject='+encodeURIComponent('One Person Show setup: '+d.company)+'&body='+encodeURIComponent(d.name+' / '+d.email+' / '+d.size);m.textContent='Opening your email app instead.'})})})();
+(function(){var f=document.getElementById('waitlist'),m=document.getElementById('formMsg');if(!f)return;f.addEventListener('submit',function(e){e.preventDefault();var d=Object.fromEntries(new FormData(f).entries());m.textContent='Sending…';fetch('https://portal.greenguard-usa.com/api/leads/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:d.email,firstName:d.name,source:'ops:'+d.company+' / '+d.size})}).then(function(r){if(!r.ok)throw 0;m.textContent='Sent. A person replies within a day.';f.reset()}).catch(function(){location.href='mailto:admin@greenguard-usa.com?subject='+encodeURIComponent('One Person Show: '+d.company)+'&body='+encodeURIComponent(d.name+' / '+d.email+' / '+d.size);m.textContent='Opening your email app instead.'})})})();
 </script>`
 }
-function mock(m) {
-  return `<div class="mock"><div class="bar"><i></i><i></i><i></i>&nbsp;${m.title}</div><div class="body">${m.rows.map(([k, v]) => `<div class="row"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}</div></div>`
+// A prose section: sticky title on the left, running text on the right.
+function prose({ kicker, title, side, body, tint, full, id }) {
+  return `<section class="prose${tint ? ' tint' : ''}${full ? ' full' : ''}"${id ? ` id="${id}"` : ''}><div class="wrap">
+  ${full ? '' : `<div class="side">${kicker ? `<span class="kicker">${kicker}</span>` : ''}<h2>${title}</h2>${side ? `<p>${side}</p>` : ''}</div>`}
+  <div class="body">${full ? `<h2>${title}</h2>` : ''}${body}</div>
+</div></section>`
 }
-function daylog() {
-  return `<div class="mock"><div class="bar"><i></i><i></i><i></i>&nbsp;today.log · live from the closet</div><div class="body log"><ol>${DAYLOG.map(([t, h, o], i) => `<li${o ? ' class="owner"' : ''} style="animation-delay:${(0.2 + i * 0.16).toFixed(2)}s"><time>${t}</time><span>${h}</span></li>`).join('')}</ol></div></div>`
+function aside(caption, rows) {
+  return `<figure class="aside"><figcaption>${caption}</figcaption><dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl></figure>`
+}
+function pager(slug) {
+  const i = NAV.findIndex(([s]) => s === slug)
+  if (i < 0) return ''
+  const p = NAV[(i + NAV.length - 1) % NAV.length], n = NAV[(i + 1) % NAV.length]
+  return `<div class="wrap"><hr><div class="pager"><a href="/${p[0]}">← ${p[1]}</a><a href="/${n[0]}">${n[1]} →</a></div></div>`
+}
+function featurePage(slug, title, desc, heroTitle, lede, sections) {
+  return head(`${title} · One Person Show`, desc, `/${slug}`) + header(slug) + `
+<section class="hero"><div class="wrap"><span class="kicker">${title}</span><h1>${heroTitle}</h1><p class="lede">${lede}</p></div></section><hr>
+${sections.map((s) => prose(s)).join('')}
+${pager(slug)}
+${ask()}` + footer()
 }
 
-// ── Pages ────────────────────────────────────────────────────────────────────
 const pages = {}
 
-pages['index'] = head('One Person Show', 'A company that runs itself, for the person who is the company. Booking, routing, reminders, invoicing, books, payroll and customer chat, run by Claude on a Mac in your closet.', '/') + header('index') + `
-<section class="hero"><div class="container"><div class="grid">
-  <div><span class="eyebrow">For the person who is the company</span>
-    <h1>Your company ran all night. You slept.</h1>
-    <p class="lede">One Person Show is the office half of a one-person service business: booking, routing, reminders, invoicing, quotes, books, payroll and customer chat, run by Claude on a Mac in your closet. Flat subscription. No per-message bill. No VA.</p>
-    <div class="cta"><a class="btn-gold" href="/pricing#start">Request setup</a><a class="btn-outline" href="#proof">See it running a real company</a></div>
-    <p class="note">Built and proven on GreenGuard USA, an 86-customer mosquito control company in Austin, TX.</p></div>
-  ${daylog()}
-</div></div></section>
-<section class="block" id="features"><div class="container"><span class="eyebrow">The product</span><h2>Six jobs you stop doing at night</h2><p class="lede">Each one is a page, because each one is a real system, not a bullet point.</p>
-<div class="cards">${FEATURES.map((f) => `<a class="card" href="/${f.slug}"><span class="eyebrow">${f.tag}</span><h3>${f.title}</h3><p>${f.h1}</p><span class="more">Read how it works →</span></a>`).join('')}</div></div></section>
-<section class="block alt" id="how"><div class="container"><div class="split">
-  <div><span class="eyebrow">How it works</span><h2>One Mac. Your accounts. A subscription, not a meter.</h2><p class="lede">Most "AI for small business" tools resell tokens. One Person Show runs Claude through the flat subscription you would buy for yourself, on a Mac mini in your house that talks to your portal over an encrypted tunnel. If the Mac is off, the portal keeps taking bookings and payments.</p><p style="margin-top:20px"><a class="btn-outline" href="/how-it-works">The full architecture</a></p></div>
-  <ol class="steps"><li><div><b>Your accounts</b><span>Google Workspace, Stripe, your calendar. Optional HubSpot. Nothing to migrate into.</span></div></li><li><div><b>Your portal</b><span>A customer site and an owner/tech app at your own domain, hosted for you.</span></div></li><li><div><b>The closet</b><span>A Mac mini running Claude on your subscription, with a daemon that does the work. No API bill.</span></div></li><li><div><b>Your rulebook</b><span>Earliest appointment, no-Saturday, service radius, who gets a text. Set once, enforced everywhere.</span></div></li></ol>
-</div></div></section>
-<section class="block" id="proof"><div class="container"><span class="eyebrow">Proof</span><h2>It already runs a company</h2>
-<div class="cards two"><div class="card"><h3>GreenGuard USA, Austin</h3><p>CO₂ mosquito control, 86 customers on 21 and 28 day cadences, one owner, one tech. Every module on this site was built to run that business first, then generalized. The schedule in the log above is the real one.</p></div>
-<div class="card"><h3>Numbers we watch</h3><ul class="facts"><li>Zero metered AI spend since Aug 27, 2026; everything on one subscription</li><li>Customer reply drafts in about 4 seconds, in the owner’s voice</li><li>Quotes, bookings and payments continue when the Mac is offline</li><li>Owner-only payroll, tech-only day view; roles enforced on every route</li></ul></div></div></div></section>
-${ctaBand()}` + footer()
+// ── Home ────────────────────────────────────────────────────────────────────
+pages.index = head('One Person Show', 'A company that runs itself, for the person who is the company. The portal, back office and assistant that run GreenGuard USA, packaged for one-person service businesses.', '/') + header('index') + `
+<section class="hero"><div class="wrap">
+  <h1>The business kept working. <em>You went home at four.</em></h1>
+  <p class="lede">One Person Show is the office half of a one-person service company. It books, routes, reminds, invoices, collects, keeps the books, runs payroll and answers the phone, the email and the chat, so the person who does the work does not also have to do the paperwork at eleven at night.</p>
+  <div class="actions"><a class="btn" href="/everything">See everything it does</a><a class="btn quiet" href="/how-it-works">How it works</a><span class="small">Runs GreenGuard USA in Austin. 86 customers, one owner, one tech.</span></div>
+</div></section><hr>
+${prose({ kicker: 'A Tuesday', title: 'What a day looks like when the office is somebody else\'s problem.', side: 'This is the real schedule from the company we run on it. Names changed, times not.', body: `<div class="diary">
+<p><time>Midnight.</time> Tomorrow's eleven stops are read off the calendar and put in order, farthest from the shop first so the last one is close to home. The route goes to the truck's inbox with the gate codes, the dogs, and what was done last time.</p>
+<p><time>Six.</time> Two customers whose cards expire this month get a short note asking them to update it before Friday's invoice. Nobody is surprised on Friday.</p>
+<p><time>Seven.</time> Yesterday's books close. Cash position, what is owed and how old it is, and the two customers who have gone quiet are in a five-line email you can read at a stoplight.</p>
+<p><time>Eight.</time> Three thank-you emails go out for yesterday's visits, each with what was done and the date of the next one. A customer writes, "Can we move Thursday?" A reply is drafted in your words with two real open times.</p>
+<p class="you">You read it at the first stop, change nothing, tap send.</p>
+<p><time>Nine.</time> A quote that has sat for two days gets a nudge. A quote that has sat for two weeks is marked cold and stops nudging. A failed card from last week is tried again and goes through.</p>
+<p><time>Noon.</time> "On my way" goes to the next customer from the stop card, two hours before the appointment, by text, because that is the one message people actually want as a text.</p>
+<p class="you">Two thirty. You finish the visit, get the signature on the phone, take the two photos. The install check passes. The invoice already exists; it goes out when you tap Finish.</p>
+<p><time>Three.</time> A customer asks the chat on their portal what plan they are on. It answers from their account and offers to move their next visit. It cannot cancel anything or move money; it can only ask you.</p>
+<p><time>Five.</time> A day summary: what came in, what went out, what needs you. Today, nothing needs you.</p>
+</div>` })}
+${prose({ kicker: 'Why it exists', title: 'We built it because we were the one person.', tint: true, body: `<p>GreenGuard USA is a mosquito control company in Austin with one owner and one technician. Every customer is visited on a twenty-one or twenty-eight day cadence, so the whole business is a scheduling problem wearing a trade as a costume. For two years the office was done at night: quotes in a spreadsheet, invoices typed into Stripe, reminders sent by hand, the books reconciled on Sundays.</p>
+<p>The software on this site is what replaced that. It was not designed as a product first. Each piece was built the week it hurt, run on real customers, and kept only if it held up. The customer portal came first, because people wanted to know when we were coming. The quote-and-pay flow came when we lost a job to a slow PDF. The inbox agent came when replies were taking two days. Payroll came the week we hired.</p>
+<p>What makes it different from the field-service apps you have seen is where the thinking happens. The assistant that drafts your email, checks your install photos, categorizes your bank statement and answers your customers runs on a Mac in your own house, on the same flat Claude subscription you would buy for yourself. There is no per-message meter and no one between you and your data, which stays in the Google, Stripe and calendar accounts you already own.</p>
+<p>It is now a product because three other operators asked for it. The pages under <a href="/everything">What it does</a> describe each part honestly, including what it will not do.</p>` })}
+${ask()}` + footer()
 
-FEATURES.forEach((f, i) => {
-  const prev = FEATURES[(i + FEATURES.length - 1) % FEATURES.length], next = FEATURES[(i + 1) % FEATURES.length]
-  pages[f.slug] = head(`${f.title} · One Person Show`, f.lede.split('. ')[0] + '.', '/' + f.slug) + header(f.slug) + `
-<section class="hero"><div class="container"><div class="grid">
-  <div><span class="eyebrow">${f.tag}</span><h1>${f.h1}</h1><p class="lede">${f.lede}</p>
-  <div class="cta"><a class="btn-gold" href="/pricing#start">Request setup</a><a class="btn-outline" href="/how-it-works">How it runs</a></div></div>
-  ${mock(f.mock)}
-</div></div></section>
-<section class="block"><div class="container"><span class="eyebrow">What happens</span><h2>Step by step</h2><ol class="steps">${f.steps.map(([b, s]) => `<li><div><b>${b}</b><span>${s}</span></div></li>`).join('')}</ol></div></section>
-<section class="block alt"><div class="container"><div class="split">
-  <div><span class="eyebrow">Under the hood</span><h2>What you get</h2><ul class="facts">${f.facts.map((x) => `<li>${x}</li>`).join('')}</ul></div>
-  <div><span class="eyebrow">Your rulebook</span><h2>Rules it follows</h2><p class="lede" style="font-size:.95rem">Defaults from a real business. Every one is a setting you can change.</p><div class="rules">${f.rules.map(([b, s]) => `<div class="rule"><b>${b}</b><span>${s}</span></div>`).join('')}</div></div>
-</div><div class="pager"><a href="/${prev.slug}">← ${prev.title}</a><a href="/${next.slug}">${next.title} →</a></div></div></section>
-${ctaBand()}` + footer()
-})
+// ── Customer portal ──────────────────────────────────────────────────────────
+pages['customer-portal'] = featurePage('customer-portal', 'Customer portal', 'What your customers see: their plan, next visit, history, invoices, upgrades and a chat that answers from their account.',
+  'Your customers get a place to look, so they stop calling to ask.',
+  'Every customer has a page at your domain. It shows what they are paying for, when you are coming next, what you did last time and what it cost. Most of the questions you answer by phone today are answered there, and the rest go to a chat that knows their account.',
+  [
+    { kicker: 'Signing in', title: 'No passwords to forget.', body: `<p>A customer types their email and gets a link. Tapping it signs them in for ninety days on that phone. There is a six-digit code for the people whose mail app opens links strangely, and the session survives being added to the home screen as an app, which is how most of ours use it. Somebody who has quoted but not paid lands on a page that shows them what they were quoted; a paying customer lands on their account.</p>` },
+    { kicker: 'The account page', title: 'Plan, next visit, and the thing you installed.', body: `<p>The first thing on the page is the plan in plain words: what equipment is on the property, how many, how often you come, what it costs a month. Under that is the next appointment, then a picture of the actual system they have, because people forget what they bought. If you use a CRM, the plan is read from the customer record there; if not, from the billing account.</p>
+${aside('A customer\'s account page', [['Plan', 'Two CO₂ traps, service every 28 days'], ['Next visit', 'Thursday, September 4, morning'], ['Monthly', '$266.99, invoiced after each visit'], ['Last visit', 'August 7: tanks swapped, bait refreshed'], ['Something wrong?', 'Chat, or request a visit']])}
+<p>History is a list of paid invoices with the visit notes your tech wrote that day, and a link to the invoice itself. A map shows where the equipment is on their property, drawn from the install photos, so a new gardener can find it without a phone call.</p>` },
+    { kicker: 'What they can change', title: 'Contact details, add-ons, a visit.', tint: true, body: `<p>Customers can change their phone, email and address themselves, and the change lands in your CRM and billing at once, so you never have two versions. They can ask for an extra visit, ask to move the next one, or ask for an upgrade: a third trap, a barrier treatment, a timer. Each of those is a request, not an order. It goes to you with the pricing already worked out from your catalog, and you approve it in the office app. Nothing on the customer side can charge a card or move an appointment without you.</p>
+<p>Billing is handled by a link to their card portal, where they update the card, download receipts, and see every invoice. You never handle card numbers; neither do we.</p>` },
+    { kicker: 'The chat', title: 'It answers from their account, and it knows what it is not allowed to do.', body: `<p>The chat in the corner is the same assistant that runs your office, restricted to this one customer. It can tell them their plan, their next visit, what an invoice was for, what a service costs. It can request a visit or a reschedule on their behalf, and it can escalate to you with a summary when it should not answer. It cannot cancel, refund, book, or see any other customer. When the Mac at your house is off, it says it will be back shortly and the rest of the portal keeps working.</p>
+<p>Every conversation is logged on the customer record with the actions taken, so when you open the account the next morning you can see what was asked and what was promised.</p>` },
+  ])
 
-pages['how-it-works'] = head('How it works · One Person Show', 'One Mac, your accounts, a flat Claude subscription. The architecture of a company that runs itself.', '/how-it-works') + header('how-it-works') + `
-<section class="hero"><div class="container"><div class="grid">
-  <div><span class="eyebrow">How it works</span><h1>One Mac. Your accounts. A subscription, not a meter.</h1><p class="lede">Your customers use a hosted portal. Your Mac does the thinking on a flat Claude subscription. Your data never leaves the Google, Stripe and calendar accounts you already own.</p>
-  <div class="cta"><a class="btn-gold" href="/pricing#start">Request setup</a></div></div>
-  <div class="mock"><div class="bar"><i></i><i></i><i></i>&nbsp;architecture</div><div class="body"><div class="row"><span class="k">Customers</span><span class="v">your-company.com portal (hosted)</span></div><div class="row"><span class="k">Tunnel</span><span class="v">Encrypted, outbound-only from your Mac</span></div><div class="row"><span class="k">The closet</span><span class="v">Mac mini · Claude on your subscription</span></div><div class="row"><span class="k">Systems of record</span><span class="v">Google Calendar · Stripe · Gmail · CRM</span></div><div class="row"><span class="k">If the Mac is off</span><span class="v"><span class="pill dim">Portal keeps booking and charging</span></span></div></div></div>
-</div></div></section>
-<section class="block"><div class="container"><span class="eyebrow">The pieces</span><h2>Four layers</h2><ol class="steps">
-<li><div><b>Your accounts</b><span>Google Workspace for mail and calendar, Stripe for money, optional HubSpot as the customer record, optional Cal.com for self-booking. Each stays canonical for its own data: calendar for time, Stripe for money, CRM for configuration.</span></div></li>
-<li><div><b>Your portal</b><span>A customer site (quote, pay, book, plan, history, chat) and an owner/tech app (today, rounds, calendar, clients, invoices, books, payroll) at your domain, hosted and updated for you.</span></div></li>
-<li><div><b>The closet</b><span>A Mac mini running the Claude command line on your own subscription. A small daemon answers portal chat with real tools, drafts your email, categorizes your books, checks install photos. No per-token bill; a flat monthly plan you control.</span></div></li>
-<li><div><b>Your rulebook</b><span>A plain configuration file: earliest appointment, no-Saturday, service radius, routing order, which reminders go by text, quote follow-up windows, recurring cadence. Enforced in booking, routing and the assistant alike.</span></div></li>
-</ol></div></section>
-<section class="block alt"><div class="container"><div class="split">
-<div><span class="eyebrow">Failure modes</span><h2>What happens when things break</h2><ul class="facts"><li>Mac offline: portal, payments and bookings continue; chat says it will be back; drafts resume when the Mac returns</li><li>Card declined: retried and escalated on a schedule, service paused at day 14, never silently dropped</li><li>Booking outside your radius via a direct link: auto-cancelled with a note to you</li><li>A tool ran but the reply failed: the assistant never re-runs a mutation; it apologizes and flags you</li></ul></div>
-<div><span class="eyebrow">Ownership</span><h2>Whose data is it</h2><ul class="facts"><li>Yours. It lives in your Google, Stripe and CRM accounts</li><li>The Claude subscription is on your account; we never proxy a shared key</li><li>Nothing is trained on your mail or customers</li><li>Cancel any month; nothing to export because nothing was moved</li></ul></div>
-</div></div></section>
-${ctaBand()}` + footer()
+// ── The office ───────────────────────────────────────────────────────────────
+pages.office = featurePage('office', 'The office', 'The owner and technician app: today, calendar, clients, quotes, invoices, inventory, reports and health, on a phone.',
+  'One app for the owner, a smaller one for the truck.',
+  'The office is where you run the company. The owner sees everything. A technician sees today, their own hours, and the customers in front of them, and nothing about money or other people. Both run on a phone and install like an app.',
+  [
+    { kicker: 'Today', title: 'The morning page.', body: `<p>The owner's first screen is today: the stops in route order, how many tanks or units the day needs against what is in the truck, invoices still open, customers who are due but not booked, and a map of every customer colored by whether they are active. Each stop is a card with navigate, "on my way", notes and finish. The technician's version drops the money and adds a scratchpad for things to tell the owner.</p>
+${aside('Owner, 7:40 a.m.', [['Stops', '11, farthest first, home 4:40'], ['Consumables', '6 needed, 9 on hand'], ['Open invoices', '3, oldest 9 days'], ['Due, unbooked', '2 customers'], ['Needs you', 'One upgrade request to approve']])}` },
+    { kicker: 'Rounds', title: 'Finishing a visit.', tint: true, body: `<p>Rounds is the page the tech uses at the curb. It reads the calendar live, never a saved plan, because the one time we trusted a cached route we missed a customer who had booked that morning. The tech ticks what was done from your catalog, adds products used, captures a signature on the screen, and takes photos. The photos are checked by the assistant for a proper install before the visit can be closed, which catches a trap in the shade or a tank not hooked up before the customer does. Finish generates the invoice from the same catalog, with the same bundle pricing your quotes use, and a booking that has already been invoiced cannot be invoiced again.</p>
+<p>A post-visit email is drafted at the same time. You can send it as is, edit it, or let the morning job send it at eight with the next service date.</p>` },
+    { kicker: 'Calendar and clients', title: 'The customer as one record.', body: `<p>The calendar shows the day or the week with a slide-out for any appointment: the customer's configuration, gate code and access notes, the notes from every past visit, and the notes on this one. You can book, move or cancel from there; by default no notification goes out on admin changes, because customers do not want a calendar invite every time you tidy the route. Clients is the same record from the other direction: one page per customer with their plan, billing, appointments, notes, and the chat and email history, gathered from your CRM, Stripe and calendar, which each keep owning their piece.</p>
+<p>Quotes, invoices, inventory, reports, analytics, and a health page that pings every service you depend on are all one tap from the top of the app. <a href="/everything">The full list</a> names each page.</p>` },
+  ])
 
-pages['pricing'] = head('Pricing · One Person Show', 'Solo $249, Crew $449, Appliance with the Mac included. Setup by the people who built it.', '/pricing') + header('pricing') + `
-<section class="hero" style="padding-bottom:40px"><div class="container"><span class="eyebrow">Pricing</span><h1>Less than one day of a bookkeeper a month</h1><p class="lede">Three plans. Every one runs on a flat Claude subscription you own, so the bill does not grow with your inbox.</p></div></section>
-<section class="block"><div class="container"><div class="price">
-  <div class="plan"><div class="n">Solo</div><div class="amt">$249<small>/mo</small></div><div class="sub">You, alone, running lean</div><ul><li>Customer portal and owner app</li><li>Quote, pay, book</li><li>Email drafts in your voice</li><li>Routing, reminders, invoicing</li><li>Books and monthly close</li></ul><a class="btn-outline" href="#start">Request setup</a></div>
-  <div class="plan hot"><div class="n">Crew</div><div class="amt">$449<small>/mo</small></div><div class="sub">You plus up to three in the field</div><ul><li>Everything in Solo</li><li>Tech logins and day view</li><li>Timesheets and payroll, 941 and W-2</li><li>Expense claims and approvals</li><li>Weekly business review every Monday</li></ul><a class="btn-gold" href="#start">Request setup</a></div>
-  <div class="plan"><div class="n">Appliance</div><div class="amt">$449<small>/mo + $1,200 once</small></div><div class="sub">Crew, with the closet included</div><ul><li>Everything in Crew</li><li>Mac mini shipped configured</li><li>Tunnel and updates managed by us</li><li>Plug in, done</li></ul><a class="btn-outline" href="#start">Request setup</a></div>
-</div>
-<p class="fine">All plans: $1,500 white-glove setup (we import your customers, learn your voice, load your catalog and rules). You bring a Claude Max subscription on your own account and pay your own Stripe fees. Cancel any month; your data was always in your accounts.</p></div></section>
-<section class="block alt"><div class="container"><span class="eyebrow">Setup</span><h2>What white-glove means</h2><ol class="steps"><li><div><b>Import</b><span>Your customer list into the CRM, with plan, cadence and access notes.</span></div></li><li><div><b>Voice</b><span>Five of your own emails become the voice profile the inbox agent writes in.</span></div></li><li><div><b>Catalog and rules</b><span>Your services, prices, bundles and the rulebook, entered with you on a call.</span></div></li><li><div><b>Go live</b><span>Domain, portal, Mac, tunnel. A test booking, a test invoice, a test reply. Then we hand you the keys.</span></div></li></ol></div></section>
-${ctaBand()}` + footer()
+// ── Inbox ────────────────────────────────────────────────────────────────────
+pages.inbox = featurePage('inbox', 'Inbox', 'Customer email read, sorted and answered in your voice, waiting for your tap. It never sends on its own.',
+  'Every customer email answered in your words, waiting for your tap.',
+  'The inbox agent reads your customer mail, sorts it by what it is and how urgent, and writes the reply you would have written. It does not send. You open Gmail, read the draft, and tap send, or change a line first.',
+  [
+    { kicker: 'How it reads', title: 'Scheduling, question, complaint, or noise.', body: `<p>New mail is classified before anything else. A newsletter or a receipt is filed and never answered. A genuine customer email is sorted as a scheduling request, a question, a complaint, or something else, and given an urgency. Complaints and anything mentioning safety or pets are marked high and pinged to your phone, and forwarded to your tech, so nobody is the bottleneck when a customer is upset.</p>` },
+    { kicker: 'How it writes', title: 'Your voice, from your own emails.', tint: true, body: `<p>At setup you give us five emails you have sent. The agent learns your greeting, your length, how you say no, how you sign off, and writes every draft that way. If it is a scheduling request, the draft includes two actual open times from your calendar, inside your hours and your rules. If a customer has written before, the thread is included so the reply makes sense. If it needs information it does not have, the draft says so instead of guessing.</p>
+${aside('A draft, waiting', [['From', 'Jane R. · "Can we move Thursday?"'], ['Sorted', 'Scheduling, medium'], ['Draft', '"Jane, sure thing. Thursday 2:00 or 4:00 both open. Which works?"'], ['Sent', 'Not yet. Waiting for you.']])}` },
+    { kicker: 'What it will not do', title: 'It never sends a customer anything by itself.', body: `<p>This is the rule we would not compromise on. Customer-facing email always waits for a person. The agent creates drafts, labels threads, and alerts you; sending is yours. It runs on your Claude subscription on the Mac at your house, with a daily spending guard that is now zero because there is no meter to run up. Nothing is trained on your mail, and the drafts you edit teach the model nothing; your voice profile is a file you can read and change.</p>
+<p>Reminders, thank-you notes, quote follow-ups and billing warnings are different: those are template emails you approved once, sent on a schedule. The agent is for the mail that needs a human answer.</p>` },
+  ])
+
+// ── Day of ───────────────────────────────────────────────────────────────────
+pages['day-of'] = featurePage('day-of', 'Day of service', 'Routing, reminders, on-my-way texts, visit completion and invoicing, from the calendar to the truck to the customer.',
+  'The truck leaves with a route, the customers are warned, the invoices write themselves.',
+  'Day of service is the part of the office that has to be right every single day. Stops are ordered overnight, customers are reminded on the schedule people actually appreciate, and finishing a visit produces an invoice without anyone typing.',
+  [
+    { kicker: 'Routing', title: 'Farthest first, home last.', body: `<p>At midnight tomorrow's stops are read from the calendar and ordered so the longest drive comes first and the day ends near the shop, which is the order that wastes the least fuel and gets you home earliest. The route is emailed to the truck at 7:30 with gate codes and last-visit notes, and shown on the tech's today page. A weekly optimizer suggests which days each customer should fall on; the daily route is always built from the live calendar, never from that plan, so a booking made this morning is never missed.</p>
+<p>New bookings are placed with the route in mind: the slot suggestions a customer sees favor days you are already nearby, and any address outside your service radius is refused at booking and, as a backstop, automatically cancelled with a note to you if someone gets around the form.</p>` },
+    { kicker: 'Reminders', title: 'Email the day before, a text two hours out.', tint: true, body: `<p>Customers get an email the day before with the window and what you will do. Two hours before, they get a text. That is the only reminder that goes by text, because it is the only one people want that way; everything else is email. From the stop card the tech can send "on my way" with one tap, and the customer can reply. Cancellations and reschedules you make in the office send nothing unless you ask, and the customer is never asked to confirm a calendar invite.</p>` },
+    { kicker: 'Finishing', title: 'Signature, photos, invoice, thank-you.', body: `<p>On the stop card the tech ticks the services done and the products used, gets the signature on the phone, and takes photos. The photos are checked for a proper install before the visit closes. The invoice is created from your catalog with the same bundle rules as the quote, sent to the customer, and recorded against the booking so it can never be billed twice. Consumables used are subtracted from inventory, which projects fifty-six days ahead so you order tanks before the calendar runs you out. The next morning at eight the thank-you goes out with what was done and the date of the next visit.</p>
+${aside('Tuesday, stop 7', [['Arrived', '2:20, "on my way" sent at 12:10'], ['Done', 'Tank swap × 2, bait, barrier'], ['Checked', 'Signature, 2 photos, install ok'], ['Invoice', '$189.00, sent 2:32'], ['Inventory', '4 tanks left on the truck']])}` },
+  ])
+
+// ── Money ────────────────────────────────────────────────────────────────────
+pages.money = featurePage('money', 'Money', 'Invoice-based billing, failed-payment recovery, a self-filling ledger, monthly close, bank imports, and books you can ask questions of.',
+  'A ledger that fills itself, closes every month, and answers questions.',
+  'Money in One Person Show is invoice by invoice. There is no subscription engine to reconcile; each visit produces an invoice, each invoice is paid by card, and the ledger records it. Bank and card statements come in as files, get categorized, and the month closes on the first.',
+  [
+    { kicker: 'Billing', title: 'One invoice per visit, and a plan for when the card fails.', body: `<p>Every completed visit produces an invoice from your catalog, sent by email with a card link. Quotes are paid the same way: first month plus any one-time items, by card, at the end of the quote. A card that fails is retried, and the customer is emailed at day zero, two, seven and fourteen; after that service pauses and you are told. Customers whose cards are about to expire are warned a day before the monthly billing run. Nothing is ever silently dropped and nothing is ever silently charged.</p>` },
+    { kicker: 'The books', title: 'Stripe, the bank, and a categorizer that learns your rules.', tint: true, body: `<p>Charges, refunds and payouts post to the ledger from Stripe every fifteen minutes. Bank and card statements from Amex, Chase, Capital One or any generic export are dropped in as files. Rows that match a rule are categorized; rows that do not are categorized by the assistant, and the rule it used is saved, so next month it is automatic. Expense receipts from the crew go through an approval queue and are booked exactly once, even when they are reimbursed through payroll. If your accountant wants QuickBooks Online, the ledger syncs to it.</p>
+<p>A morning brief arrives at seven: cash on hand, receivables and how old they are, customers who have gone quiet. On the first of the month the close runs: profit and loss, receivables aging, sales tax, mileage, emailed as one package.</p>` },
+    { kicker: 'Asking', title: 'Ask the books a question in English.', body: `<p>The books have a chat. Ask what you spent on fuel in June, which customers are behind, what a month looked like last year. The assistant writes a read-only query, runs it, and shows you the number with the query underneath so you can see exactly what it counted. It cannot change the ledger; that is a rule at the database, not a promise.</p>
+${aside('Ask the books', [['You', '"Fuel spend, June?"'], ['Answer', '$412.18 across 9 transactions'], ['Also open', '3 invoices, $610, oldest 9 days'], ['June', 'Closed on July 1, package sent']])}` },
+  ])
+
+// ── Crew ─────────────────────────────────────────────────────────────────────
+pages.crew = featurePage('crew', 'Crew', 'Timesheets, in-house payroll with overtime and withholding, pay stubs, expense claims and quarterly filings, without a payroll provider.',
+  'Clock in, clock out, get paid correctly, without a payroll company.',
+  'The day you hire someone, One Person Show becomes their timesheet and your payroll department. Hours, overtime, withholding, employer taxes and filings are computed in the office app, and the numbers are yours to check before anyone is paid.',
+  [
+    { kicker: 'Time', title: 'Their hours, their view.', body: `<p>A technician clocks in and out from their phone and sees their own hours, their own pay stubs, and nothing else: not another person's rate, not your tax ID, not the business's books. Every edit to a time card, by them or by you, is written to an audit trail that cannot be rewritten, with who changed it and when. Removed days can be re-entered; history cannot be erased. Time cards are kept two years and payroll records three, which is what the law asks.</p>` },
+    { kicker: 'Payroll', title: 'Approve the week, run it, print the stubs.', tint: true, body: `<p>You approve hours weekly. Payroll computes overtime the way the Fair Labor Standards Act requires, on the blended rate across the week; federal withholding by the IRS percentage method from each person's W-4; Social Security and Medicare with the wage caps; federal and state unemployment; and mileage reimbursed tax-free at the IRS rate. Expense claims a tech paid personally ride along as non-taxable reimbursement, once. Only approved hours are payable, a finalized run freezes its stubs, and voiding a run releases the hours and reverses the book entries in the right period.</p>
+${aside('Week 34, one employee', [['Hours', '38.5 regular, 0 overtime'], ['Gross', '$770.00'], ['Withheld', 'Federal, Social Security, Medicare'], ['Employer', 'FICA match, FUTA, Texas SUTA'], ['Stub', 'Printable, frozen on finalize']])}` },
+    { kicker: 'Filings', title: 'The forms filled in; the signing left to you.', body: `<p>The filings page shows your deposit schedule and amounts, each quarter's Form 941 figures with the official PDF pre-filled for download, a Form 940 worksheet for the year, and the W-2 box values to type into the Social Security site in January. Finalizing a run emails you the exact deposit amount and its due date. Nothing is transmitted on your behalf; the portal computes, you deposit and sign. The tax tables are refreshed every January and a pay date in a year without tables is flagged rather than guessed.</p>` },
+  ])
+
+// ── Growth ───────────────────────────────────────────────────────────────────
+pages.growth = featurePage('growth', 'Growth', 'Quote follow-ups, failed-payment recovery, review requests, win-back notes, Google Business Profile posts and replies, analytics, and a Monday review.',
+  'Quotes get chased, reviews get asked for, lapsed customers get a note.',
+  'Most of the revenue a one-person company loses is the follow-up it never sent. Every quote, every failed card, every customer who went quiet has a schedule now, and a Monday morning email tells you what moved and what to do about it.',
+  [
+    { kicker: 'Follow-ups', title: 'Forty-eight hours, seven days, fourteen days.', body: `<p>A quote that is not paid gets a nudge at forty-eight hours, another at seven days, a last one at fourteen, and then it is marked cold and left alone. Each step is a note on the customer record, so you can see where every prospect is. A paid quote books its own install. A card that fails follows its own schedule on the <a href="/money">money page</a>. After a customer's third visit, one email asks for a review with your direct link, once, never again. Each season, customers who have lapsed get a short note written from their history, in your voice, as a draft for you to send.</p>` },
+    { kicker: 'Being found', title: 'Your Google listing, your ads, your site.', tint: true, body: `<p>The office app drafts Google Business Profile posts for you and replies to reviews in your voice, and shows the listing's calls, directions and views next to the same week's revenue. If you run search or social ads, their spend and the bookings they produced are on the same analytics page as your search console and site traffic, so you can see which dollar became a customer. Leads from your website's forms go straight into your CRM with where they came from.</p>` },
+    { kicker: 'Monday', title: 'The weekly review.', body: `<p>Every Monday at nine you get one email: revenue for the last seven days, the visits booked this week by kind, invoices open and how old, quotes warm and cold, new customers, and whether every scheduled job ran on time. Under each number is what to do if it looks wrong. Once a week a second job checks that every customer has a plan on file and enough future visits booked, and quietly extends the ones that have run short.</p>
+${aside('Monday, 9:00', [['Revenue, 7 days', '$4,120'], ['Visits this week', '23'], ['Open invoices', '3, $610'], ['Quotes', '2 warm, 1 cold'], ['Jobs', 'All ran']])}` },
+  ])
+
+// ── Everything ───────────────────────────────────────────────────────────────
+const EVERYTHING = [
+  ['Customer portal', [
+    ['Sign-in', 'Email link or six-digit code, ninety-day session, works when added to the home screen.'],
+    ['Account', 'Plan in plain words, equipment and counts, cadence, monthly price, picture of the system.'],
+    ['Next visit and history', 'Upcoming appointment; past visits with the tech\'s notes and the paid invoice.'],
+    ['Property map', 'Where the equipment is, from install photos.'],
+    ['Settings', 'Phone, email, address; changes sync to CRM and billing.'],
+    ['Requests', 'Extra visit, reschedule, upgrade, with pricing from your catalog; all require your approval.'],
+    ['Billing', 'Card portal for updating cards and downloading receipts.'],
+    ['Chat', 'Answers from their account; can request, escalate; cannot cancel, refund or book.'],
+    ['Prospect page', 'A quoted-but-unpaid visitor sees their options, not an empty account.'],
+  ]],
+  ['Quotes and booking', [
+    ['Self-serve quote', 'Build a quote on your site, rental and purchase side by side, price computed server-side.'],
+    ['Admin quote builder', 'Same engine in the office; share a signed link by email.'],
+    ['Pay and book', 'Card checkout for month one plus one-time items; pick an install slot at the end.'],
+    ['Slot suggestions', 'Open times inside hours and rules, favoring days you are already nearby.'],
+    ['Radius gate', 'Addresses outside your service radius refused at booking; a backstop cancels any that slip through.'],
+    ['Recurring series', 'Visits booked as a series on your cadence, extended automatically.'],
+    ['Quote states', 'Sent, paid, followed up, cold, lost; each a note on the customer.'],
+  ]],
+  ['The office', [
+    ['Today', 'Stops in order, consumables needed versus on hand, open invoices, due-unbooked, customer map.'],
+    ['Tech view', 'Today without money; scratchpad; on-my-way; finish.'],
+    ['Rounds', 'Visit logging from the live calendar, catalog line items, signature, photo check, invoice, double-billing guard.'],
+    ['Calendar', 'Day and week, appointment dock with configuration, access notes, per-visit notes, book/move/cancel.'],
+    ['Clients', 'One page per customer across CRM, billing and calendar; prospects list; notes.'],
+    ['Inventory', 'Daily count log and a fifty-six-day demand projection.'],
+    ['Invoices', 'Search, draft, finalize, mark paid, browse by status; printable invoice PDF.'],
+    ['Route', 'Weekly plan map with a run-now button.'],
+    ['Reports and analytics', 'Appointments, revenue, add-ons, tips, import and export; traffic, ads, social, listing, finance.'],
+    ['Health', 'Live status of every service you depend on.'],
+    ['Legacy migration', 'Audit and move appointments from the scheduling tool you used before.'],
+  ]],
+  ['Inbox and messages', [
+    ['Email agent', 'Reads, classifies, drafts in your voice with real open slots; never sends.'],
+    ['Alerts', 'Genuine customer mail pinged to your phone and forwarded to your tech.'],
+    ['Templates', 'Reminder, thank-you, quote sent, follow-up, billing warning, post-visit; one-time approval.'],
+    ['Texting', 'Two-hour reminder and on-my-way by text; inbound texts and voicemails logged to the customer with a summary.'],
+    ['Bulk mail', 'Announcements to all customers through your own Gmail.'],
+  ]],
+  ['Day of service', [
+    ['Overnight routing', 'Farthest first, home last, from the live calendar; emailed to the truck at 7:30.'],
+    ['Reminders', 'Email the day before, text two hours out.'],
+    ['Photo check', 'Install photos assessed before a visit can close.'],
+    ['Thank-you', 'Next morning, with what was done and the next visit date.'],
+    ['Property assessment', 'Lot size and vegetation read from satellite and street view when a prospect asks for a quote.'],
+  ]],
+  ['Money', [
+    ['Per-visit invoicing', 'No subscriptions; bundle pricing shared with quotes.'],
+    ['Failed payments', 'Retry and email at day 0, 2, 7, 14; service paused after.'],
+    ['Ledger', 'Stripe every fifteen minutes; bank and card statement imports.'],
+    ['Categorization', 'Rules first, assistant second, new rules saved.'],
+    ['Morning brief and monthly close', 'Cash, receivables, quiet customers; P&L, aging, sales tax, mileage on the first.'],
+    ['Ask the books', 'Questions in English, read-only queries, shown with their SQL.'],
+    ['Expenses', 'Receipt upload, approval queue, booked once, reimbursed through payroll if personal.'],
+    ['QuickBooks Online', 'Optional sync for your accountant.'],
+  ]],
+  ['Crew', [
+    ['Timesheets', 'Clock in and out; own hours only; append-only revision history.'],
+    ['Payroll', 'FLSA overtime, IRS withholding, FICA caps, FUTA and state unemployment, mileage.'],
+    ['Stubs', 'Printable, frozen on finalize; void reverses correctly.'],
+    ['Filings', 'Deposit schedule, 941 pre-filled PDF, 940 worksheet, W-2 boxes; you sign.'],
+    ['Roles', 'Owner sees all; a tech sees only their own record.'],
+  ]],
+  ['Growth', [
+    ['Quote follow-up', '48 hours, 7 days, 14 days, then cold.'],
+    ['Review request', 'Once, after the third visit, with your direct link.'],
+    ['Win-back', 'Seasonal note drafted from history.'],
+    ['Google listing', 'Posts and review replies drafted; calls, directions, views.'],
+    ['Ads and analytics', 'Search and social spend against bookings; search console; site traffic.'],
+    ['Lead capture', 'Website forms into your CRM with source.'],
+    ['Monday review', 'Revenue, visits, invoices, pipeline, new customers, job health, with actions.'],
+    ['New-customer audit', 'Weekly check that every customer has a plan and enough visits booked.'],
+  ]],
+  ['The assistant', [
+    ['Office chat', 'For you and your tech: route, customer lookup, inventory, notes, booking changes, invoices, on-my-way.'],
+    ['Customer chat', 'Account questions, service and reschedule requests, escalation.'],
+    ['Where it runs', 'A Mac at your house on your own Claude subscription; no per-message bill.'],
+    ['Offline', 'Portal, payments and bookings continue; the assistant says it will be back.'],
+    ['Never twice', 'A change that started but failed is never re-run automatically.'],
+  ]],
+  ['Your rulebook', [
+    ['Scheduling', 'Earliest hour, no-Saturday, radius, farthest-first, cadence, series depth.'],
+    ['Notifications', 'Which message goes by text, which by email, which admin changes stay silent.'],
+    ['Data', 'Calendar owns time, Stripe owns money, CRM owns configuration.'],
+    ['Billing', 'Invoice only; follow-up and recovery windows.'],
+    ['Compliance', 'Tax-table refresh each January; audit trails and retention.'],
+  ]],
+  ['Under the hood', [
+    ['Your accounts', 'Google Workspace, Stripe, Google Calendar; optional HubSpot, Cal.com, QuickBooks, Slack.'],
+    ['Hosting', 'Portal at your domain, hosted; scheduled jobs across three free tiers with a shared secret.'],
+    ['Security', 'Signed sessions and quote links, webhook signature checks, owner-only routes, rate limits, monthly audit checklist.'],
+    ['Operator tooling', 'A command line to create, validate and check a business; a Mac installer; a written operating manual the assistant reads.'],
+    ['Your data', 'Stays in your accounts; cancel any month; nothing to export.'],
+  ]],
+]
+pages.everything = head('Everything it does · One Person Show', 'The complete, honest list of what One Person Show does, from the customer portal to payroll filings.', '/everything') + header('everything') + `
+<section class="hero"><div class="wrap"><span class="kicker">Everything it does</span><h1>The complete list, <em>including what it will not do.</em></h1><p class="lede">This is every part of the system as it runs today, grouped the way you would meet it. Where a feature is deliberately limited, the limit is written down here too.</p></div></section><hr>
+<section class="prose full"><div class="wrap"><div class="body"><div class="index">${EVERYTHING.map(([g, items]) => `<section><h3>${g}</h3>${items.map(([k, v]) => `<p><b>${k}.</b> ${v}</p>`).join('')}</section>`).join('')}</div></div></div></section>
+${ask()}` + footer()
+
+// ── How it works ─────────────────────────────────────────────────────────────
+pages['how-it-works'] = head('How it works · One Person Show', 'A hosted portal, a Mac at your house running Claude on your own subscription, and the accounts you already have.', '/how-it-works') + header('how-it-works') + `
+<section class="hero"><div class="wrap"><span class="kicker">How it works</span><h1>A portal in the cloud, a Mac in the closet, <em>and the accounts you already have.</em></h1><p class="lede">There are three pieces. Your customers and your crew use a portal at your domain. The thinking happens on a small computer in your house. The data lives where it already lives.</p></div></section><hr>
+${prose({ kicker: 'The portal', title: 'Hosted, at your domain.', body: `<p>The customer site and the office app are one application, hosted for you and updated without you noticing. It takes bookings and payments whether or not anything else is running. It talks to your calendar, your Stripe account and your CRM directly, and each of those remains the owner of its own data: the calendar decides when, Stripe decides how much, the CRM decides what the customer has. The portal never keeps a second copy that could drift.</p>` })}
+${prose({ kicker: 'The closet', title: 'Where the thinking happens.', tint: true, body: `<p>Every part of the system that reads, writes or judges anything runs on a Mac mini in your house: the email drafts, the install photo check, the bank categorization, the property assessment, the customer chat, the office chat. It runs Claude through the command line on your own subscription, the same flat monthly plan you would buy as a person, with no per-message bill and no shared key between you and us. A small program on that Mac listens for work from the portal over an encrypted tunnel that only opens outward; nothing on the internet can reach into your house.</p>
+<p>If the Mac is off, the portal keeps working. Bookings and payments go through. The chat says it will be back. Drafts resume when the Mac does. If you would rather not own a Mac, the appliance plan ships one configured; if you already have one, the installer takes about twenty minutes.</p>` })}
+${prose({ kicker: 'The rulebook', title: 'One file that everything obeys.', body: `<p>How early you will take an appointment, whether Saturdays exist, how far you will drive, in what order, which reminder goes by text, how long to chase a quote, how often you visit: these are lines in a plain file, set with you at setup and changed any time. The booking form, the router, the reminder jobs and the assistant all read the same file, so a rule is never true in one place and false in another. The assistant also reads a written operating manual for your business, the same one a human office manager would, which is how it knows that your company name is always written in full or that a thank-you must include the next visit date.</p>` })}
+${prose({ kicker: 'What breaks, and what happens', title: 'Failure is designed in.', tint: true, body: `<p>A customer whose card declines is retried and emailed on a schedule, and their service pauses at two weeks rather than silently continuing unpaid. A booking placed outside your radius through a direct link is cancelled with a note to you. If the assistant started a change and could not finish it, it never tries again on its own; it tells you what happened. Every scheduled job reports whether it ran, and the Monday review tells you if one did not. Your data is in your Google, your Stripe and your calendar; if you cancel, there is nothing to export because nothing was moved.</p>` })}
+${ask()}` + footer()
+
+// ── Pricing ──────────────────────────────────────────────────────────────────
+pages.pricing = head('Pricing · One Person Show', 'Solo $249 a month, Crew $449, Appliance with the Mac included. Setup by the people who built it.', '/pricing') + header('pricing') + `
+<section class="hero"><div class="wrap"><span class="kicker">Pricing</span><h1>Less than a day of a bookkeeper. <em>Every month.</em></h1><p class="lede">Three plans, one difference between them: whether you have a crew, and whether you want us to ship the Mac. Nothing here scales with how much email you get.</p></div></section><hr>
+<section class="prose full"><div class="wrap"><div class="body">
+<table class="plans"><thead><tr><th></th><th>Solo<small>You, alone</small></th><th>Crew<small>You plus up to three</small></th><th>Appliance<small>Crew, Mac included</small></th></tr></thead><tbody>
+<tr><td>Monthly</td><td><span class="price">$249</span></td><td><span class="price">$449</span></td><td><span class="price">$449</span> <small>plus $1,200 once</small></td></tr>
+<tr><td>Customer portal, quotes, booking, office app, inbox agent, routing, reminders, invoicing, books, monthly close, follow-ups, Monday review</td><td>Included</td><td>Included</td><td>Included</td></tr>
+<tr><td>Technician logins, timesheets, payroll, filings, expense claims</td><td></td><td>Included</td><td>Included</td></tr>
+<tr><td>Mac mini shipped configured, tunnel and updates managed</td><td></td><td></td><td>Included</td></tr>
+<tr><td>Setup</td><td colspan="3">$1,500 once, done with you: customers imported, catalog and rules entered, your voice learned from five emails, domain and Mac brought up, a test booking, invoice and reply before we hand you the keys.</td></tr>
+<tr><td>You bring</td><td colspan="3">A Claude Max subscription on your own account, and your own Stripe fees. Google Workspace if you do not already have it.</td></tr>
+</tbody></table>
+<p class="small">Cancel any month. Per-technician fees do not exist here; the field-service apps charge thirty to thirty-five dollars a seat, and we think that is the wrong thing to charge for.</p>
+<h3>How this compares</h3>
+<p>A one-person operator today typically pays a field-service app around two hundred a month, bookkeeping software around seventy-five, a payroll service around fifty-five plus per-employee fees, and an answering service or receptionist from eighty. That is roughly four hundred a month for four tools that do not know about each other, none of which will draft an email or close a book. Solo replaces all four for two hundred forty-nine; Crew adds the payroll department for four hundred forty-nine.</p>
+</div></div></section>
+${ask()}` + footer()
 
 fs.writeFileSync(path.join(OUT, 'site.css'), CSS.trim() + '\n')
 for (const [name, html] of Object.entries(pages)) fs.writeFileSync(path.join(OUT, `${name}.html`), html)
