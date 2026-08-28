@@ -128,7 +128,7 @@ footer.site a:hover{color:var(--ink)}
 // ── Content ─────────────────────────────────────────────────────────────────
 const NAV = [
   ['customer-portal', 'Customer portal', 'What your customers see'],
-  ['office', 'The office', 'Owner and tech app'],
+  ['office', 'The office', 'Owner and field app'],
   ['inbox', 'Inbox', 'Email in your voice'],
   ['day-of', 'Day of service', 'Route, remind, invoice'],
   ['money', 'Money', 'Books, billing, collections'],
@@ -168,7 +168,7 @@ function header(current) {
 }
 function footer() {
   return `<footer class="site"><div class="wrap">
-  <div>One Person Show is made by GreenGuard USA in Austin, Texas, and runs GreenGuard first.<br><a href="mailto:admin@greenguard-usa.com">admin@greenguard-usa.com</a></div>
+  <div>One Person Show is made in Austin, Texas, by the people who run a service company on it.<br><a href="mailto:admin@greenguard-usa.com">admin@greenguard-usa.com</a></div>
   <nav>${NAV.map(([s, t]) => `<a href="/${s}">${t}</a>`).join('')}<a href="/how-it-works">How it works</a><a href="/pricing">Pricing</a></nav>
 </div></footer>
 </body></html>`
@@ -216,27 +216,27 @@ ${ask()}` + footer()
 const pages = {}
 
 // ── Home ────────────────────────────────────────────────────────────────────
-pages.index = head('One Person Show', 'A company that runs itself, for the person who is the company. The portal, back office and assistant that run GreenGuard USA, packaged for one-person service businesses.', '/') + header('index') + `
+pages.index = head('One Person Show', 'A company that runs itself, for the person who is the company. Scheduling, quotes, invoicing, books, payroll and an assistant, for any service business that visits customers.', '/') + header('index') + `
 <section class="hero"><div class="wrap">
   <h1>The business kept working. <em>You went home at four.</em></h1>
   <p class="lede">One Person Show is the office half of a one-person service company. It books, routes, reminds, invoices, collects, keeps the books, runs payroll and answers the phone, the email and the chat, so the person who does the work does not also have to do the paperwork at eleven at night.</p>
-  <div class="actions"><a class="btn" href="/everything">See everything it does</a><a class="btn quiet" href="/how-it-works">How it works</a><span class="small">Runs GreenGuard USA in Austin. 86 customers, one owner, one tech.</span></div>
+  <div class="actions"><a class="btn" href="/everything">See everything it does</a><a class="btn quiet" href="/how-it-works">How it works</a><span class="small">Runs a real service company in Austin: 86 customers, one owner, one field employee.</span></div>
 </div></section><hr>
 ${prose({ kicker: 'A Tuesday', title: 'What a day looks like when the office is somebody else\'s problem.', side: 'This is the real schedule from the company we run on it. Names changed, times not.', body: `<div class="diary">
-<p><time>Midnight.</time> Tomorrow's eleven stops are read off the calendar and put in order, farthest from the shop first so the last one is close to home. The route goes to the truck's inbox with the gate codes, the dogs, and what was done last time.</p>
+<p><time>Midnight.</time> Tomorrow's eleven stops are read off the calendar and put in order, farthest from the shop first so the last one is close to home. The route goes to the vehicle's inbox with the access notes and what was done last time.</p>
 <p><time>Six.</time> Two customers whose cards expire this month get a short note asking them to update it before Friday's invoice. Nobody is surprised on Friday.</p>
 <p><time>Seven.</time> Yesterday's books close. Cash position, what is owed and how old it is, and the two customers who have gone quiet are in a five-line email you can read at a stoplight.</p>
 <p><time>Eight.</time> Three thank-you emails go out for yesterday's visits, each with what was done and the date of the next one. A customer writes, "Can we move Thursday?" A reply is drafted in your words with two real open times.</p>
 <p class="you">You read it at the first stop, change nothing, tap send.</p>
 <p><time>Nine.</time> A quote that has sat for two days gets a nudge. A quote that has sat for two weeks is marked cold and stops nudging. A failed card from last week is tried again and goes through.</p>
 <p><time>Noon.</time> "On my way" goes to the next customer from the stop card, two hours before the appointment, by text, because that is the one message people actually want as a text.</p>
-<p class="you">Two thirty. You finish the visit, get the signature on the phone, take the two photos. The install check passes. The invoice already exists; it goes out when you tap Finish.</p>
+<p class="you">Two thirty. You finish the visit, get the signature on the phone, take the two photos. The quality check passes. The invoice already exists; it goes out when you tap Finish.</p>
 <p><time>Three.</time> A customer asks the chat on their portal what plan they are on. It answers from their account and offers to move their next visit. It cannot cancel anything or move money; it can only ask you.</p>
 <p><time>Five.</time> A day summary: what came in, what went out, what needs you. Today, nothing needs you.</p>
 </div>` })}
-${prose({ kicker: 'Why it exists', title: 'We built it because we were the one person.', tint: true, body: `<p>GreenGuard USA is a mosquito control company in Austin with one owner and one technician. Every customer is visited on a twenty-one or twenty-eight day cadence, so the whole business is a scheduling problem wearing a trade as a costume. For two years the office was done at night: quotes in a spreadsheet, invoices typed into Stripe, reminders sent by hand, the books reconciled on Sundays.</p>
-<p>The software on this site is what replaced that. It was not designed as a product first. Each piece was built the week it hurt, run on real customers, and kept only if it held up. The customer portal came first, because people wanted to know when we were coming. The quote-and-pay flow came when we lost a job to a slow PDF. The inbox agent came when replies were taking two days. Payroll came the week we hired.</p>
-<p>What makes it different from the field-service apps you have seen is where the thinking happens. The assistant that drafts your email, checks your install photos, categorizes your bank statement and answers your customers runs on a Mac in your own house, on the same flat Claude subscription you would buy for yourself. There is no per-message meter and no one between you and your data, which stays in the Google, Stripe and calendar accounts you already own.</p>
+${prose({ kicker: 'Why it exists', title: 'We built it because we were the one person.', tint: true, body: `<p>We run a recurring-service company in Austin with one owner and one field employee. Every customer is visited on a twenty-one or twenty-eight day cadence, so the whole business is a scheduling problem wearing a trade as a costume. For two years the office was done at night: quotes in a spreadsheet, invoices typed into Stripe, reminders sent by hand, the books reconciled on Sundays.</p>
+<p>The software on this site is what replaced that. It was not designed as a product first. Each piece was built the week it hurt, run on real customers, and kept only if it held up. The customer portal came first, because people wanted to know when we were coming. The quote-and-pay flow came when we lost a job to a slow PDF. The inbox agent came when replies were taking two days. Payroll came the week we hired. It has since been set up for a lawn company and a pool company, and the trade turned out to be the easy part to change: a catalog, a rulebook, and five sample emails.</p>
+<p>What makes it different from the field-service apps you have seen is where the thinking happens. The assistant that drafts your email, checks your job photos, categorizes your bank statement and answers your customers runs on a Mac in your own house, on the same flat Claude subscription you would buy for yourself. There is no per-message meter and no one between you and your data, which stays in the Google, Stripe and calendar accounts you already own.</p>
 <p>It is now a product because three other operators asked for it. The pages under <a href="/everything">What it does</a> describe each part honestly, including what it will not do.</p>` })}
 ${ask()}` + footer()
 
@@ -246,25 +246,25 @@ pages['customer-portal'] = featurePage('customer-portal', 'Customer portal', 'Wh
   'Every customer has a page at your domain. It shows what they are paying for, when you are coming next, what you did last time and what it cost. Most of the questions you answer by phone today are answered there, and the rest go to a chat that knows their account.',
   [
     { kicker: 'Signing in', title: 'No passwords to forget.', body: `<p>A customer types their email and gets a link. Tapping it signs them in for ninety days on that phone. There is a six-digit code for the people whose mail app opens links strangely, and the session survives being added to the home screen as an app, which is how most of ours use it. Somebody who has quoted but not paid lands on a page that shows them what they were quoted; a paying customer lands on their account.</p>` },
-    { kicker: 'The account page', title: 'Plan, next visit, and the thing you installed.', body: `<p>The first thing on the page is the plan in plain words: what equipment is on the property, how many, how often you come, what it costs a month. Under that is the next appointment, then a picture of the actual system they have, because people forget what they bought. If you use a CRM, the plan is read from the customer record there; if not, from the billing account.</p>
-${aside('A customer\'s account page', [['Plan', 'Two CO₂ traps, service every 28 days'], ['Next visit', 'Thursday, September 4, morning'], ['Monthly', '$266.99, invoiced after each visit'], ['Last visit', 'August 7: tanks swapped, bait refreshed'], ['Something wrong?', 'Chat, or request a visit']])}
-<p>History is a list of paid invoices with the visit notes your tech wrote that day, and a link to the invoice itself. A map shows where the equipment is on their property, drawn from the install photos, so a new gardener can find it without a phone call.</p>` },
-    { kicker: 'What they can change', title: 'Contact details, add-ons, a visit.', tint: true, body: `<p>Customers can change their phone, email and address themselves, and the change lands in your CRM and billing at once, so you never have two versions. They can ask for an extra visit, ask to move the next one, or ask for an upgrade: a third trap, a barrier treatment, a timer. Each of those is a request, not an order. It goes to you with the pricing already worked out from your catalog, and you approve it in the office app. Nothing on the customer side can charge a card or move an appointment without you.</p>
+    { kicker: 'The account page', title: 'Plan, next visit, and the thing you installed.', body: `<p>The first thing on the page is the plan in plain words: what service they have, what equipment or materials are on the property, how often you come, what it costs a month. Under that is the next appointment, then a picture of what they actually have, because people forget what they bought. If you use a CRM, the plan is read from the customer record there; if not, from the billing account.</p>
+${aside('A customer\'s account page', [['Plan', 'Standard service, every 28 days'], ['Next visit', 'Thursday, September 4, morning'], ['Monthly', '$189.00, invoiced after each visit'], ['Last visit', 'August 7: full service, consumables replaced'], ['Something wrong?', 'Chat, or request a visit']])}
+<p>History is a list of paid invoices with the visit notes your field employee wrote that day, and a link to the invoice itself. A map shows where your equipment or work is on their property, drawn from the job photos, so anyone can find it without a phone call.</p>` },
+    { kicker: 'What they can change', title: 'Contact details, add-ons, a visit.', tint: true, body: `<p>Customers can change their phone, email and address themselves, and the change lands in your CRM and billing at once, so you never have two versions. They can ask for an extra visit, ask to move the next one, or ask for an upgrade: a bigger plan, an add-on service, a piece of equipment. Each of those is a request, not an order. It goes to you with the pricing already worked out from your catalog, and you approve it in the office app. Nothing on the customer side can charge a card or move an appointment without you.</p>
 <p>Billing is handled by a link to their card portal, where they update the card, download receipts, and see every invoice. You never handle card numbers; neither do we.</p>` },
     { kicker: 'The chat', title: 'It answers from their account, and it knows what it is not allowed to do.', body: `<p>The chat in the corner is the same assistant that runs your office, restricted to this one customer. It can tell them their plan, their next visit, what an invoice was for, what a service costs. It can request a visit or a reschedule on their behalf, and it can escalate to you with a summary when it should not answer. It cannot cancel, refund, book, or see any other customer. When the Mac at your house is off, it says it will be back shortly and the rest of the portal keeps working.</p>
 <p>Every conversation is logged on the customer record with the actions taken, so when you open the account the next morning you can see what was asked and what was promised.</p>` },
   ])
 
 // ── The office ───────────────────────────────────────────────────────────────
-pages.office = featurePage('office', 'The office', 'The owner and technician app: today, calendar, clients, quotes, invoices, inventory, reports and health, on a phone.',
-  'One app for the owner, a smaller one for the truck.',
-  'The office is where you run the company. The owner sees everything. A technician sees today, their own hours, and the customers in front of them, and nothing about money or other people. Both run on a phone and install like an app.',
+pages.office = featurePage('office', 'The office', 'The owner and field app: today, calendar, clients, quotes, invoices, inventory, reports and health, on a phone.',
+  'One app for the owner, a smaller one for the field.',
+  'The office is where you run the company. The owner sees everything. A field employee sees today, their own hours, and the customers in front of them, and nothing about money or other people. Both run on a phone and install like an app.',
   [
-    { kicker: 'Today', title: 'The morning page.', body: `<p>The owner's first screen is today: the stops in route order, how many tanks or units the day needs against what is in the truck, invoices still open, customers who are due but not booked, and a map of every customer colored by whether they are active. Each stop is a card with navigate, "on my way", notes and finish. The technician's version drops the money and adds a scratchpad for things to tell the owner.</p>
+    { kicker: 'Today', title: 'The morning page.', body: `<p>The owner's first screen is today: the stops in route order, how many consumables the day needs against what is in the vehicle, invoices still open, customers who are due but not booked, and a map of every customer colored by whether they are active. Each stop is a card with navigate, "on my way", notes and finish. The field version drops the money and adds a scratchpad for things to tell the owner.</p>
 ${aside('Owner, 7:40 a.m.', [['Stops', '11, farthest first, home 4:40'], ['Consumables', '6 needed, 9 on hand'], ['Open invoices', '3, oldest 9 days'], ['Due, unbooked', '2 customers'], ['Needs you', 'One upgrade request to approve']])}` },
-    { kicker: 'Rounds', title: 'Finishing a visit.', tint: true, body: `<p>Rounds is the page the tech uses at the curb. It reads the calendar live, never a saved plan, because the one time we trusted a cached route we missed a customer who had booked that morning. The tech ticks what was done from your catalog, adds products used, captures a signature on the screen, and takes photos. The photos are checked by the assistant for a proper install before the visit can be closed, which catches a trap in the shade or a tank not hooked up before the customer does. Finish generates the invoice from the same catalog, with the same bundle pricing your quotes use, and a booking that has already been invoiced cannot be invoiced again.</p>
+    { kicker: 'Rounds', title: 'Finishing a visit.', tint: true, body: `<p>Rounds is the page your field person uses at the curb. It reads the calendar live, never a saved plan, because the one time we trusted a cached route we missed a customer who had booked that morning. They tick what was done from your catalog, add products used, capture a signature on the screen, and take photos. The photos are checked by the assistant against what the job should look like before the visit can be closed, which catches a missed step before the customer does. Finish generates the invoice from the same catalog, with the same bundle pricing your quotes use, and a booking that has already been invoiced cannot be invoiced again.</p>
 <p>A post-visit email is drafted at the same time. You can send it as is, edit it, or let the morning job send it at eight with the next service date.</p>` },
-    { kicker: 'Calendar and clients', title: 'The customer as one record.', body: `<p>The calendar shows the day or the week with a slide-out for any appointment: the customer's configuration, gate code and access notes, the notes from every past visit, and the notes on this one. You can book, move or cancel from there; by default no notification goes out on admin changes, because customers do not want a calendar invite every time you tidy the route. Clients is the same record from the other direction: one page per customer with their plan, billing, appointments, notes, and the chat and email history, gathered from your CRM, Stripe and calendar, which each keep owning their piece.</p>
+    { kicker: 'Calendar and clients', title: 'The customer as one record.', body: `<p>The calendar shows the day or the week with a slide-out for any appointment: the customer's configuration, access notes, the notes from every past visit, and the notes on this one. You can book, move or cancel from there; by default no notification goes out on admin changes, because customers do not want a calendar invite every time you tidy the route. Clients is the same record from the other direction: one page per customer with their plan, billing, appointments, notes, and the chat and email history, gathered from your CRM, Stripe and calendar, which each keep owning their piece.</p>
 <p>Quotes, invoices, inventory, reports, analytics, and a health page that pings every service you depend on are all one tap from the top of the app. <a href="/everything">The full list</a> names each page.</p>` },
   ])
 
@@ -273,7 +273,7 @@ pages.inbox = featurePage('inbox', 'Inbox', 'Customer email read, sorted and ans
   'Every customer email answered in your words, waiting for your tap.',
   'The inbox agent reads your customer mail, sorts it by what it is and how urgent, and writes the reply you would have written. It does not send. You open Gmail, read the draft, and tap send, or change a line first.',
   [
-    { kicker: 'How it reads', title: 'Scheduling, question, complaint, or noise.', body: `<p>New mail is classified before anything else. A newsletter or a receipt is filed and never answered. A genuine customer email is sorted as a scheduling request, a question, a complaint, or something else, and given an urgency. Complaints and anything mentioning safety or pets are marked high and pinged to your phone, and forwarded to your tech, so nobody is the bottleneck when a customer is upset.</p>` },
+    { kicker: 'How it reads', title: 'Scheduling, question, complaint, or noise.', body: `<p>New mail is classified before anything else. A newsletter or a receipt is filed and never answered. A genuine customer email is sorted as a scheduling request, a question, a complaint, or something else, and given an urgency. Complaints and anything mentioning safety are marked high and pinged to your phone, and forwarded to your field employee, so nobody is the bottleneck when a customer is upset.</p>` },
     { kicker: 'How it writes', title: 'Your voice, from your own emails.', tint: true, body: `<p>At setup you give us five emails you have sent. The agent learns your greeting, your length, how you say no, how you sign off, and writes every draft that way. If it is a scheduling request, the draft includes two actual open times from your calendar, inside your hours and your rules. If a customer has written before, the thread is included so the reply makes sense. If it needs information it does not have, the draft says so instead of guessing.</p>
 ${aside('A draft, waiting', [['From', 'Jane R. · "Can we move Thursday?"'], ['Sorted', 'Scheduling, medium'], ['Draft', '"Jane, sure thing. Thursday 2:00 or 4:00 both open. Which works?"'], ['Sent', 'Not yet. Waiting for you.']])}` },
     { kicker: 'What it will not do', title: 'It never sends a customer anything by itself.', body: `<p>This is the rule we would not compromise on. Customer-facing email always waits for a person. The agent creates drafts, labels threads, and alerts you; sending is yours. It runs on your Claude subscription on the Mac at your house, with a daily spending guard that is now zero because there is no meter to run up. Nothing is trained on your mail, and the drafts you edit teach the model nothing; your voice profile is a file you can read and change.</p>
@@ -281,15 +281,15 @@ ${aside('A draft, waiting', [['From', 'Jane R. · "Can we move Thursday?"'], ['S
   ])
 
 // ── Day of ───────────────────────────────────────────────────────────────────
-pages['day-of'] = featurePage('day-of', 'Day of service', 'Routing, reminders, on-my-way texts, visit completion and invoicing, from the calendar to the truck to the customer.',
-  'The truck leaves with a route, the customers are warned, the invoices write themselves.',
+pages['day-of'] = featurePage('day-of', 'Day of service', 'Routing, reminders, on-my-way texts, visit completion and invoicing, from the calendar to the vehicle to the customer.',
+  'The vehicle leaves with a route, the customers are warned, the invoices write themselves.',
   'Day of service is the part of the office that has to be right every single day. Stops are ordered overnight, customers are reminded on the schedule people actually appreciate, and finishing a visit produces an invoice without anyone typing.',
   [
-    { kicker: 'Routing', title: 'Farthest first, home last.', body: `<p>At midnight tomorrow's stops are read from the calendar and ordered so the longest drive comes first and the day ends near the shop, which is the order that wastes the least fuel and gets you home earliest. The route is emailed to the truck at 7:30 with gate codes and last-visit notes, and shown on the tech's today page. A weekly optimizer suggests which days each customer should fall on; the daily route is always built from the live calendar, never from that plan, so a booking made this morning is never missed.</p>
+    { kicker: 'Routing', title: 'Farthest first, home last.', body: `<p>At midnight tomorrow's stops are read from the calendar and ordered so the longest drive comes first and the day ends near your base, which is the order that wastes the least fuel and gets you home earliest. The route is emailed to the field at 7:30 with access notes and last-visit notes, and shown on the field today page. A weekly optimizer suggests which days each customer should fall on; the daily route is always built from the live calendar, never from that plan, so a booking made this morning is never missed.</p>
 <p>New bookings are placed with the route in mind: the slot suggestions a customer sees favor days you are already nearby, and any address outside your service radius is refused at booking and, as a backstop, automatically cancelled with a note to you if someone gets around the form.</p>` },
-    { kicker: 'Reminders', title: 'Email the day before, a text two hours out.', tint: true, body: `<p>Customers get an email the day before with the window and what you will do. Two hours before, they get a text. That is the only reminder that goes by text, because it is the only one people want that way; everything else is email. From the stop card the tech can send "on my way" with one tap, and the customer can reply. Cancellations and reschedules you make in the office send nothing unless you ask, and the customer is never asked to confirm a calendar invite.</p>` },
-    { kicker: 'Finishing', title: 'Signature, photos, invoice, thank-you.', body: `<p>On the stop card the tech ticks the services done and the products used, gets the signature on the phone, and takes photos. The photos are checked for a proper install before the visit closes. The invoice is created from your catalog with the same bundle rules as the quote, sent to the customer, and recorded against the booking so it can never be billed twice. Consumables used are subtracted from inventory, which projects fifty-six days ahead so you order tanks before the calendar runs you out. The next morning at eight the thank-you goes out with what was done and the date of the next visit.</p>
-${aside('Tuesday, stop 7', [['Arrived', '2:20, "on my way" sent at 12:10'], ['Done', 'Tank swap × 2, bait, barrier'], ['Checked', 'Signature, 2 photos, install ok'], ['Invoice', '$189.00, sent 2:32'], ['Inventory', '4 tanks left on the truck']])}` },
+    { kicker: 'Reminders', title: 'Email the day before, a text two hours out.', tint: true, body: `<p>Customers get an email the day before with the window and what you will do. Two hours before, they get a text. That is the only reminder that goes by text, because it is the only one people want that way; everything else is email. From the stop card your field person can send "on my way" with one tap, and the customer can reply. Cancellations and reschedules you make in the office send nothing unless you ask, and the customer is never asked to confirm a calendar invite.</p>` },
+    { kicker: 'Finishing', title: 'Signature, photos, invoice, thank-you.', body: `<p>On the stop card the field person ticks the services done and the products used, gets the signature on the phone, and takes photos. The photos are checked against the job before the visit closes. The invoice is created from your catalog with the same bundle rules as the quote, sent to the customer, and recorded against the booking so it can never be billed twice. Consumables used are subtracted from inventory, which projects fifty-six days ahead so you reorder before the calendar runs you out. The next morning at eight the thank-you goes out with what was done and the date of the next visit.</p>
+${aside('Tuesday, stop 7', [['Arrived', '2:20, "on my way" sent at 12:10'], ['Done', 'Standard service, consumables × 2, add-on'], ['Checked', 'Signature, 2 photos, job ok'], ['Invoice', '$189.00, sent 2:32'], ['Inventory', '4 units left in the vehicle']])}` },
   ])
 
 // ── Money ────────────────────────────────────────────────────────────────────
@@ -309,8 +309,8 @@ pages.crew = featurePage('crew', 'Crew', 'Timesheets, in-house payroll with over
   'Clock in, clock out, get paid correctly, without a payroll company.',
   'The day you hire someone, One Person Show becomes their timesheet and your payroll department. Hours, overtime, withholding, employer taxes and filings are computed in the office app, and the numbers are yours to check before anyone is paid.',
   [
-    { kicker: 'Time', title: 'Their hours, their view.', body: `<p>A technician clocks in and out from their phone and sees their own hours, their own pay stubs, and nothing else: not another person's rate, not your tax ID, not the business's books. Every edit to a time card, by them or by you, is written to an audit trail that cannot be rewritten, with who changed it and when. Removed days can be re-entered; history cannot be erased. Time cards are kept two years and payroll records three, which is what the law asks.</p>` },
-    { kicker: 'Payroll', title: 'Approve the week, run it, print the stubs.', tint: true, body: `<p>You approve hours weekly. Payroll computes overtime the way the Fair Labor Standards Act requires, on the blended rate across the week; federal withholding by the IRS percentage method from each person's W-4; Social Security and Medicare with the wage caps; federal and state unemployment; and mileage reimbursed tax-free at the IRS rate. Expense claims a tech paid personally ride along as non-taxable reimbursement, once. Only approved hours are payable, a finalized run freezes its stubs, and voiding a run releases the hours and reverses the book entries in the right period.</p>
+    { kicker: 'Time', title: 'Their hours, their view.', body: `<p>A field employee clocks in and out from their phone and sees their own hours, their own pay stubs, and nothing else: not another person's rate, not your tax ID, not the business's books. Every edit to a time card, by them or by you, is written to an audit trail that cannot be rewritten, with who changed it and when. Removed days can be re-entered; history cannot be erased. Time cards are kept two years and payroll records three, which is what the law asks.</p>` },
+    { kicker: 'Payroll', title: 'Approve the week, run it, print the stubs.', tint: true, body: `<p>You approve hours weekly. Payroll computes overtime the way the Fair Labor Standards Act requires, on the blended rate across the week; federal withholding by the IRS percentage method from each person's W-4; Social Security and Medicare with the wage caps; federal and state unemployment; and mileage reimbursed tax-free at the IRS rate. Expense claims an employee paid personally ride along as non-taxable reimbursement, once. Only approved hours are payable, a finalized run freezes its stubs, and voiding a run releases the hours and reverses the book entries in the right period.</p>
 ${aside('Week 34, one employee', [['Hours', '38.5 regular, 0 overtime'], ['Gross', '$770.00'], ['Withheld', 'Federal, Social Security, Medicare'], ['Employer', 'FICA match, FUTA, Texas SUTA'], ['Stub', 'Printable, frozen on finalize']])}` },
     { kicker: 'Filings', title: 'The forms filled in; the signing left to you.', body: `<p>The filings page shows your deposit schedule and amounts, each quarter's Form 941 figures with the official PDF pre-filled for download, a Form 940 worksheet for the year, and the W-2 box values to type into the Social Security site in January. Finalizing a run emails you the exact deposit amount and its due date. Nothing is transmitted on your behalf; the portal computes, you deposit and sign. The tax tables are refreshed every January and a pay date in a year without tables is flagged rather than guessed.</p>` },
   ])
@@ -330,9 +330,9 @@ ${aside('Monday, 9:00', [['Revenue, 7 days', '$4,120'], ['Visits this week', '23
 const EVERYTHING = [
   ['Customer portal', [
     ['Sign-in', 'Email link or six-digit code, ninety-day session, works when added to the home screen.'],
-    ['Account', 'Plan in plain words, equipment and counts, cadence, monthly price, picture of the system.'],
+    ['Account', 'Plan in plain words, equipment or materials on site, cadence, monthly price, a picture of what they have.'],
     ['Next visit and history', 'Upcoming appointment; past visits with the tech\'s notes and the paid invoice.'],
-    ['Property map', 'Where the equipment is, from install photos.'],
+    ['Property map', 'Where your equipment or work is, from job photos.'],
     ['Settings', 'Phone, email, address; changes sync to CRM and billing.'],
     ['Requests', 'Extra visit, reschedule, upgrade, with pricing from your catalog; all require your approval.'],
     ['Billing', 'Card portal for updating cards and downloading receipts.'],
@@ -350,7 +350,7 @@ const EVERYTHING = [
   ]],
   ['The office', [
     ['Today', 'Stops in order, consumables needed versus on hand, open invoices, due-unbooked, customer map.'],
-    ['Tech view', 'Today without money; scratchpad; on-my-way; finish.'],
+    ['Field view', 'Today without money; scratchpad; on-my-way; finish.'],
     ['Rounds', 'Visit logging from the live calendar, catalog line items, signature, photo check, invoice, double-billing guard.'],
     ['Calendar', 'Day and week, appointment dock with configuration, access notes, per-visit notes, book/move/cancel.'],
     ['Clients', 'One page per customer across CRM, billing and calendar; prospects list; notes.'],
@@ -363,17 +363,17 @@ const EVERYTHING = [
   ]],
   ['Inbox and messages', [
     ['Email agent', 'Reads, classifies, drafts in your voice with real open slots; never sends.'],
-    ['Alerts', 'Genuine customer mail pinged to your phone and forwarded to your tech.'],
+    ['Alerts', 'Genuine customer mail pinged to your phone and forwarded to your field employee.'],
     ['Templates', 'Reminder, thank-you, quote sent, follow-up, billing warning, post-visit; one-time approval.'],
     ['Texting', 'Two-hour reminder and on-my-way by text; inbound texts and voicemails logged to the customer with a summary.'],
     ['Bulk mail', 'Announcements to all customers through your own Gmail.'],
   ]],
   ['Day of service', [
-    ['Overnight routing', 'Farthest first, home last, from the live calendar; emailed to the truck at 7:30.'],
+    ['Overnight routing', 'Farthest first, home last, from the live calendar; emailed to the field at 7:30.'],
     ['Reminders', 'Email the day before, text two hours out.'],
-    ['Photo check', 'Install photos assessed before a visit can close.'],
+    ['Photo check', 'Job photos assessed against the work before a visit can close.'],
     ['Thank-you', 'Next morning, with what was done and the next visit date.'],
-    ['Property assessment', 'Lot size and vegetation read from satellite and street view when a prospect asks for a quote.'],
+    ['Property assessment', 'Lot size and site conditions read from satellite and street view when a prospect asks for a quote.'],
   ]],
   ['Money', [
     ['Per-visit invoicing', 'No subscriptions; bundle pricing shared with quotes.'],
@@ -390,7 +390,7 @@ const EVERYTHING = [
     ['Payroll', 'FLSA overtime, IRS withholding, FICA caps, FUTA and state unemployment, mileage.'],
     ['Stubs', 'Printable, frozen on finalize; void reverses correctly.'],
     ['Filings', 'Deposit schedule, 941 pre-filled PDF, 940 worksheet, W-2 boxes; you sign.'],
-    ['Roles', 'Owner sees all; a tech sees only their own record.'],
+    ['Roles', 'Owner sees all; a field employee sees only their own record.'],
   ]],
   ['Growth', [
     ['Quote follow-up', '48 hours, 7 days, 14 days, then cold.'],
@@ -403,7 +403,7 @@ const EVERYTHING = [
     ['New-customer audit', 'Weekly check that every customer has a plan and enough visits booked.'],
   ]],
   ['The assistant', [
-    ['Office chat', 'For you and your tech: route, customer lookup, inventory, notes, booking changes, invoices, on-my-way.'],
+    ['Office chat', 'For you and your crew: route, customer lookup, inventory, notes, booking changes, invoices, on-my-way.'],
     ['Customer chat', 'Account questions, service and reschedule requests, escalation.'],
     ['Where it runs', 'A Mac at your house on your own Claude subscription; no per-message bill.'],
     ['Offline', 'Portal, payments and bookings continue; the assistant says it will be back.'],
@@ -433,27 +433,32 @@ ${ask()}` + footer()
 pages['how-it-works'] = head('How it works · One Person Show', 'A hosted portal, a Mac at your house running Claude on your own subscription, and the accounts you already have.', '/how-it-works') + header('how-it-works') + `
 <section class="hero"><div class="wrap"><span class="kicker">How it works</span><h1>A portal in the cloud, a Mac in the closet, <em>and the accounts you already have.</em></h1><p class="lede">There are three pieces. Your customers and your crew use a portal at your domain. The thinking happens on a small computer in your house. The data lives where it already lives.</p></div></section><hr>
 ${prose({ kicker: 'The portal', title: 'Hosted, at your domain.', body: `<p>The customer site and the office app are one application, hosted for you and updated without you noticing. It takes bookings and payments whether or not anything else is running. It talks to your calendar, your Stripe account and your CRM directly, and each of those remains the owner of its own data: the calendar decides when, Stripe decides how much, the CRM decides what the customer has. The portal never keeps a second copy that could drift.</p>` })}
-${prose({ kicker: 'The closet', title: 'Where the thinking happens.', tint: true, body: `<p>Every part of the system that reads, writes or judges anything runs on a Mac mini in your house: the email drafts, the install photo check, the bank categorization, the property assessment, the customer chat, the office chat. It runs Claude through the command line on your own subscription, the same flat monthly plan you would buy as a person, with no per-message bill and no shared key between you and us. A small program on that Mac listens for work from the portal over an encrypted tunnel that only opens outward; nothing on the internet can reach into your house.</p>
+${prose({ kicker: 'The closet', title: 'Where the thinking happens.', tint: true, body: `<p>Every part of the system that reads, writes or judges anything runs on a Mac mini in your house: the email drafts, the job photo check, the bank categorization, the property assessment, the customer chat, the office chat. It runs Claude through the command line on your own subscription, the same flat monthly plan you would buy as a person, with no per-message bill and no shared key between you and us. A small program on that Mac listens for work from the portal over an encrypted tunnel that only opens outward; nothing on the internet can reach into your house.</p>
 <p>If the Mac is off, the portal keeps working. Bookings and payments go through. The chat says it will be back. Drafts resume when the Mac does. If you would rather not own a Mac, the appliance plan ships one configured; if you already have one, the installer takes about twenty minutes.</p>` })}
 ${prose({ kicker: 'The rulebook', title: 'One file that everything obeys.', body: `<p>How early you will take an appointment, whether Saturdays exist, how far you will drive, in what order, which reminder goes by text, how long to chase a quote, how often you visit: these are lines in a plain file, set with you at setup and changed any time. The booking form, the router, the reminder jobs and the assistant all read the same file, so a rule is never true in one place and false in another. The assistant also reads a written operating manual for your business, the same one a human office manager would, which is how it knows that your company name is always written in full or that a thank-you must include the next visit date.</p>` })}
 ${prose({ kicker: 'What breaks, and what happens', title: 'Failure is designed in.', tint: true, body: `<p>A customer whose card declines is retried and emailed on a schedule, and their service pauses at two weeks rather than silently continuing unpaid. A booking placed outside your radius through a direct link is cancelled with a note to you. If the assistant started a change and could not finish it, it never tries again on its own; it tells you what happened. Every scheduled job reports whether it ran, and the Monday review tells you if one did not. Your data is in your Google, your Stripe and your calendar; if you cancel, there is nothing to export because nothing was moved.</p>` })}
 ${ask()}` + footer()
 
 // ── Pricing ──────────────────────────────────────────────────────────────────
-pages.pricing = head('Pricing · One Person Show', 'Solo $249 a month, Crew $449, Appliance with the Mac included. Setup by the people who built it.', '/pricing') + header('pricing') + `
-<section class="hero"><div class="wrap"><span class="kicker">Pricing</span><h1>Less than a day of a bookkeeper. <em>Every month.</em></h1><p class="lede">Three plans, one difference between them: whether you have a crew, and whether you want us to ship the Mac. Nothing here scales with how much email you get.</p></div></section><hr>
+pages.pricing = head('Pricing · One Person Show', 'Starter $99, Office $249, Crew $449 a month, and a managed Mac for $59. No per-seat fees. Setup by the people who built it.', '/pricing') + header('pricing') + `
+<section class="hero"><div class="wrap"><span class="kicker">Pricing</span><h1>Priced like the apps you already know. <em>Without the seats.</em></h1><p class="lede">Three plans that step up the way your business does: first the front office, then the assistant that runs it, then the crew. Nothing here is billed per user or per message.</p></div></section><hr>
 <section class="prose full"><div class="wrap"><div class="body">
-<table class="plans"><thead><tr><th></th><th>Solo<small>You, alone</small></th><th>Crew<small>You plus up to three</small></th><th>Appliance<small>Crew, Mac included</small></th></tr></thead><tbody>
-<tr><td>Monthly</td><td><span class="price">$249</span></td><td><span class="price">$449</span></td><td><span class="price">$449</span> <small>plus $1,200 once</small></td></tr>
-<tr><td>Customer portal, quotes, booking, office app, inbox agent, routing, reminders, invoicing, books, monthly close, follow-ups, Monday review</td><td>Included</td><td>Included</td><td>Included</td></tr>
-<tr><td>Technician logins, timesheets, payroll, filings, expense claims</td><td></td><td>Included</td><td>Included</td></tr>
-<tr><td>Mac mini shipped configured, tunnel and updates managed</td><td></td><td></td><td>Included</td></tr>
-<tr><td>Setup</td><td colspan="3">$1,500 once, done with you: customers imported, catalog and rules entered, your voice learned from five emails, domain and Mac brought up, a test booking, invoice and reply before we hand you the keys.</td></tr>
-<tr><td>You bring</td><td colspan="3">A Claude Max subscription on your own account, and your own Stripe fees. Google Workspace if you do not already have it.</td></tr>
+<table class="plans"><thead><tr><th></th><th>Starter<small>The front office, run by you</small></th><th>Office<small>The front office, run for you</small></th><th>Crew<small>Office, plus the people you hire</small></th></tr></thead><tbody>
+<tr><td>Monthly</td><td><span class="price">$99</span></td><td><span class="price">$249</span></td><td><span class="price">$449</span></td></tr>
+<tr><td>Who it is for</td><td>One person who wants customers to quote, pay and book themselves, and a calendar, client list and invoicing that stay in sync.</td><td>One person who wants the email, the books, the follow-ups and the customer chat handled while they work.</td><td>An owner with one to five people in the field who wants time, payroll and filings in the same place, with no per-seat fee.</td></tr>
+<tr><td>Customer portal, self-serve quotes, pay and book, calendar, clients, per-visit invoicing, overnight routing, reminders and on-my-way texts, inventory, health page</td><td>Included</td><td>Included</td><td>Included</td></tr>
+<tr><td>Inbox agent in your voice, office and customer chat, job photo check, property assessment on quotes</td><td></td><td>Included</td><td>Included</td></tr>
+<tr><td>Books: Stripe and bank imports, categorization, morning brief, monthly close, ask-the-books, expense claims, QuickBooks sync</td><td></td><td>Included</td><td>Included</td></tr>
+<tr><td>Follow-ups: quotes, failed cards, reviews, win-back; Google listing posts and replies; analytics; Monday review</td><td></td><td>Included</td><td>Included</td></tr>
+<tr><td>Field logins, timesheets with audit trail, payroll with overtime and withholding, stubs, 941 and W-2 worksheets, up to five field users</td><td></td><td></td><td>Included</td></tr>
+<tr><td>The Mac</td><td colspan="3">Office and Crew need a Mac at your place to run the assistant on your own Claude subscription. Bring one you have, or take the managed appliance: a Mac mini shipped configured, with the tunnel and updates handled, for $59 a month or $1,200 once.</td></tr>
+<tr><td>Setup</td><td>$500, done with you in an afternoon: customers imported, catalog and rules entered, domain live, a test booking and invoice.</td><td colspan="2">$1,500, done with you over a week: everything in Starter setup, plus your voice learned from five emails, the Mac brought up, the books connected, and a test reply, close and payroll run before we hand you the keys.</td></tr>
+<tr><td>You bring</td><td>Google Workspace and Stripe. Your own card fees.</td><td colspan="2">The same, plus a Claude Max subscription on your own account.</td></tr>
 </tbody></table>
-<p class="small">Cancel any month. Per-technician fees do not exist here; the field-service apps charge thirty to thirty-five dollars a seat, and we think that is the wrong thing to charge for.</p>
+<p class="small">Pay for the year and get two months free. Cancel any month; your data was always in your own accounts. More than one business, or more than one location, on one Mac: <a href="#start">write to us</a>.</p>
 <h3>How this compares</h3>
-<p>A one-person operator today typically pays a field-service app around two hundred a month, bookkeeping software around seventy-five, a payroll service around fifty-five plus per-employee fees, and an answering service or receptionist from eighty. That is roughly four hundred a month for four tools that do not know about each other, none of which will draft an email or close a book. Solo replaces all four for two hundred forty-nine; Crew adds the payroll department for four hundred forty-nine.</p>
+<p>The field-service apps price in three steps too. Jobber runs $39, $119 and $199 a month and adds $30 or more for each person after the first; Housecall Pro runs $79, $189 and $329 plus $35 a seat. Neither includes a customer portal that answers questions, an assistant that drafts your mail, bookkeeping, or payroll. To get those you add QuickBooks at $38 to $115, a payroll service at about $55 plus $6 a person, and an answering service from $80. A one-person operator on the middle tier of each is spending around four hundred a month across four tools that do not know about each other.</p>
+<p>Starter sits between their first and second tiers and already includes the portal and the self-serve quote. Office is priced against their top tier and replaces the bookkeeping, the answering service and most of the admin. Crew is the only plan that adds a fee for having employees, and it adds one flat fee, not one per person.</p>
 </div></div></section>
 ${ask()}` + footer()
 
