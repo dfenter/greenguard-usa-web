@@ -4,6 +4,7 @@
 // result back, and returns the final assistant text plus the list of tools used.
 
 const { client: getClient } = require('./claude')
+const biz = require('./business.config')
 
 const DEFAULT_MODEL = process.env.ASSISTANT_MODEL || 'claude-opus-5'
 
@@ -21,7 +22,7 @@ async function runAssistant({
   // through the Mac chat-daemon (claude CLI, subscription). Set
   // ASSISTANT_API_FALLBACK=1 to re-enable the paid fallback when the Mac is down.
   if (process.env.ASSISTANT_API_FALLBACK !== '1') {
-    return { reply: "The assistant is offline right now. Please try again in a few minutes, or email admin@greenguard-usa.com.", actions: [], offline: true }
+    return { reply: `The assistant is offline right now. Please try again in a few minutes, or email ${biz.email}.`, actions: [], offline: true }
   }
   const client = getClient()
   const toolDefs = tools.map(({ name, description, input_schema }) => ({ name, description, input_schema }))

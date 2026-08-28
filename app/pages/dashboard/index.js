@@ -8,8 +8,9 @@ import { getSessionFromRequest } from '../../lib/auth'
 import { getSubscriptions, getInvoices, getCustomer } from '../../lib/stripe'
 import { getUpcomingBookingsForEmail, getPastBookingsForEmail } from '../../lib/gcal'
 import { findContactByEmail } from '../../lib/hubspot'
+const biz = require('../../lib/business.config')
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.NEXT_PUBLIC_BIZ_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || process.env.NEXT_PUBLIC_BIZ_EMAIL || biz.ownerEmail
 
 function getTrapImage(systemType, trapCount) {
   const images = JSON.parse(process.env.NEXT_PUBLIC_BIZ_SYSTEM_IMAGES || 'null')
@@ -975,8 +976,8 @@ export default function CustomerOverview({
         )}
 
         <div style={{ marginTop: 24 }}>
-          <a href={`mailto:${process.env.NEXT_PUBLIC_BIZ_EMAIL || 'admin@greenguard-usa.com'}`} style={{ fontSize: '0.82rem', color: 'rgba(var(--text-rgb),0.4)' }}>
-            Questions? Email {process.env.NEXT_PUBLIC_BIZ_EMAIL || 'admin@greenguard-usa.com'}
+          <a href={`mailto:${process.env.NEXT_PUBLIC_BIZ_EMAIL || biz.email}`} style={{ fontSize: '0.82rem', color: 'rgba(var(--text-rgb),0.4)' }}>
+            Questions? Email {process.env.NEXT_PUBLIC_BIZ_EMAIL || biz.email}
           </a>
         </div>
       </PortalLayout>

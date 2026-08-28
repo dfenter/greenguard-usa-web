@@ -12,7 +12,8 @@ import SignaturePad from '../../components/SignaturePad'
 import CustomerPanel from '../../components/CustomerPanel'
 import StopCard, { CompletedRoundsSection } from '../../components/StopCard'
 import { useToast, useConfirm } from '../../components/ui'
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const biz = require('../../lib/business.config')
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || biz.ownerEmail
 
 export async function getServerSideProps({ req, query, res }) {
   res?.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=60')

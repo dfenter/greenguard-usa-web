@@ -3,10 +3,11 @@ import { useState } from 'react'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest } from '../../lib/auth'
 import { SKU_PRICES, isSubscriptionSKU } from '../../lib/sku-engine'
+const biz = require('../../lib/business.config')
 
 export async function getServerSideProps({ req, query }) {
   const session = await getSessionFromRequest(req)
-  if (!session || session.email !== (process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com')) {
+  if (!session || session.email !== (process.env.ADMIN_EMAIL || biz.ownerEmail)) {
     return { redirect: { destination: '/dashboard', permanent: false } }
   }
   return { props: { isAdmin: true, prefillEmail: query.email || '' } }

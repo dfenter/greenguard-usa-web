@@ -11,6 +11,7 @@
 
 const { SKU_PRICES } = require('./sku-engine')
 const { productsForQuote, addonsForQuote } = require('./catalog')
+const biz = require('./business.config')
 
 // Per-trap pricing for Biogents CO₂ rental (volume discount at 4+; extends to
 // 10 traps to cover the admin builder's larger commercial quotes)
@@ -186,7 +187,7 @@ function buildQuoteLines({ serviceConfig, productQtys, addonQtys } = {}) {
 // checkout are always the same numbers.
 
 const DUAL_PLAN_SYSTEMS = new Set(['biogents-co2', 'biogents-nonco2', 'mosqitter'])
-const TX_TAX_RATE = 0.0825
+const TX_TAX_RATE = biz.taxRateDecimal
 const round2 = (n) => Math.round(n * 100) / 100
 
 // Local delivery = Austin metro (786xx / 787xx ZIPs — same rule as the shop

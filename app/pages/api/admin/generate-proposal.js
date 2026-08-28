@@ -18,6 +18,7 @@
 const { requireOwner } = require('../../../lib/auth')
 const { generateJSON } = require('../../../lib/gemini')
 const { put } = require('@vercel/blob')
+const biz = require('../../../lib/business.config')
 
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#x27;'}[c]))
@@ -64,7 +65,7 @@ async function generateProposalCopy({ propertyName, propertyType, units, notes, 
   }
   try {
     return await generateJSON({
-      system: `You write professional B2B commercial mosquito-control proposals for GreenGuard USA. Voice: confident, factual, Austin-local. Avoid hype. Never say "free trial" or "no risk." Use "pesticide-free" not "chemical-free".`,
+      system: `You write professional B2B commercial mosquito-control proposals for ${biz.nameShort}. Voice: confident, factual, Austin-local. Avoid hype. Never say "free trial" or "no risk." Use "pesticide-free" not "chemical-free".`,
       user: `Generate the proposal copy as JSON with exact keys: coverHeadline, siteOverview, whyCO2, keyBenefits (array of 4 strings), serviceInclusions (array of 5 strings).
 
 Property: ${propertyName}
@@ -90,7 +91,7 @@ function renderHTML({ propertyName, address, propertyType, units, contactName, c
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>GreenGuard USA — Proposal for ${esc(propertyName)}</title>
+  <title>${biz.nameShort} — Proposal for ${esc(propertyName)}</title>
   <style>
     body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff;color:#1a2e1f;line-height:1.55;}
     .wrap{max-width:780px;margin:0 auto;padding:48px 32px;}
@@ -117,7 +118,7 @@ function renderHTML({ propertyName, address, propertyType, units, contactName, c
 <body>
   <div class="wrap">
     <div class="head">
-      <div class="tag">GreenGuard USA · Smart · Safe · Effective</div>
+      <div class="tag">${biz.nameShort} · Smart · Safe · Effective</div>
       <h1>${esc(copy.coverHeadline)}</h1>
       <div style="font-size:0.9rem;color:rgba(212,230,202,0.7);margin-top:8px;">
         Prepared for ${esc(contactName || propertyName)} · ${esc(generatedAt)}
@@ -152,12 +153,12 @@ function renderHTML({ propertyName, address, propertyType, units, contactName, c
 
     <div class="cta">
       <strong>Ready to start?</strong>
-      Reply to your email or call us at <a href="tel:+15125604129" style="color:#3a2e0f;text-decoration:underline;">512-560-4129</a>.
-      ${contactEmail ? `<br/><a href="mailto:admin@greenguard-usa.com?subject=Approve%20proposal%20for%20${encodeURIComponent(propertyName)}">Accept this proposal →</a>` : ''}
+      Reply to your email or call us at <a href="tel:+15125604129" style="color:#3a2e0f;text-decoration:underline;">${biz.phone}</a>.
+      ${contactEmail ? `<br/><a href="mailto:${biz.email}?subject=Approve%20proposal%20for%20${encodeURIComponent(propertyName)}">Accept this proposal →</a>` : ''}
     </div>
 
     <div class="footer">
-      GreenGuard USA · Austin TX · admin@greenguard-usa.com · 512-560-4129<br/>
+      ${biz.nameShort} · ${biz.city} · ${biz.email} · ${biz.phone}<br/>
       Pesticide-free CO₂ mosquito control · Proposal valid 30 days from ${esc(generatedAt)}
     </div>
   </div>

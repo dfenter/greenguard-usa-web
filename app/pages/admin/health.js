@@ -2,8 +2,9 @@ import { useState, useCallback } from 'react'
 import Head from 'next/head'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
+const biz = require('../../lib/business.config')
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || biz.ownerEmail
 
 export async function getServerSideProps({ req }) {
   const session = await getSessionFromRequest(req)
@@ -121,7 +122,7 @@ export default function HealthDashboard() {
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 800, fontSize: '0.88rem', marginBottom: 4 }}>Automatic Monitoring</div>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', margin: '0 0 8px', lineHeight: 1.5 }}>
-              Vercel Cron runs <code style={{ color: 'var(--gold)' }}>/api/cron/health</code> every 5 minutes. If any service is down, an alert email is sent to <strong>admin@greenguard-usa.com</strong> automatically.
+              Vercel Cron runs <code style={{ color: 'var(--gold)' }}>/api/cron/health</code> every 5 minutes. If any service is down, an alert email is sent to <strong>{biz.email}</strong> automatically.
             </p>
             <p style={{ fontSize: '0.78rem', color: 'var(--text-dim)', margin: 0 }}>
               GitHub Actions also runs a health check every 15 minutes as a backup monitor.

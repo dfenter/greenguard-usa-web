@@ -2,6 +2,7 @@ const { findContactByEmail, addNote } = require('../../../lib/hubspot')
 const { Client } = require('@hubspot/api-client')
 const { sendSms } = require('../../../lib/sms')
 const twilio = require('twilio')
+const biz = require('../../../lib/business.config')
 
 // Inbound customer texts are forwarded straight to the owner(s) as an iMessage
 // (via the local notify daemon — never Twilio). Sent explicitly to each number
@@ -85,7 +86,7 @@ export default async function handler(req, res) {
         `[SMS-IN] (${new Date().toISOString()}) From ${from} → ${to}:\n${body}`
       )
     } else {
-      const admin = await findContactByEmail(process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com').catch(() => null)
+      const admin = await findContactByEmail(process.env.ADMIN_EMAIL || biz.ownerEmail).catch(() => null)
       if (admin?.id) {
         await addNote(admin.id, `[SMS-IN UNKNOWN] From ${from} → ${to}:\n${body}`)
       }

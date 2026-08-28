@@ -14,6 +14,7 @@ const { buildTankCalendarData } = require('../../../lib/tank-data')
 const { sendSms } = require('../../../lib/sms')
 const { runAssistant } = require('../../../lib/assistant')
 const { tryLocalChat, STARTED_BUT_FAILED_REPLY } = require('../../../lib/chat-local')
+const biz = require('../../../lib/business.config')
 
 const TZ = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
 
@@ -35,7 +36,7 @@ function sanitizeImages(images) {
   })
 }
 
-const SYSTEM = `You are the GreenGuard USA operations assistant for the owner and field tech. Be terse and direct: answer the question, surface the number, name the next stop. No marketing language, no emojis, no em dashes.
+const SYSTEM = `You are the ${biz.nameShort} operations assistant for the owner and field tech. Be terse and direct: answer the question, surface the number, name the next stop. No marketing language, no emojis, no em dashes.
 
 You have tools to read today's route, look up a customer, check tank inventory, send a customer an "on my way" SMS, and save notes. Use them rather than guessing. When you send an SMS, confirm plainly who it went to. For anything you cannot do (booking, cancelling, invoicing, refunds), tell the user which admin page handles it (Rounds, Calendar, Invoice) instead of pretending to do it.
 
@@ -193,7 +194,7 @@ export default async function handler(req, res) {
         if (!to) return { sent: false, error: 'No phone number on file for that customer.' }
         const first = (name || '').split(' ')[0] || 'there'
         const eta = etaMinutes ? `~${etaMinutes} min` : 'shortly'
-        const body = `Hi ${first}, this is GreenGuard USA — your tech is on the way (${eta}). Please ensure backyard access is clear. Reply STOP to opt out. — GreenGuard`
+        const body = `Hi ${first}, this is ${biz.nameShort} — your tech is on the way (${eta}). Please ensure backyard access is clear. Reply STOP to opt out. — GreenGuard`
         const r = await sendSms({ to, body })
         return r.ok ? { sent: true, to } : { sent: false, error: r.error || 'SMS failed' }
       },

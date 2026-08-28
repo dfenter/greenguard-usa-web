@@ -2,10 +2,11 @@ const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { findContactByEmail, addNote, getContactNotes } = require('../../../lib/hubspot')
 const { logCompletedStop } = require('../../../lib/gsheets')
 const { sendEmail, escapeHtml } = require('../../../lib/email')
+const biz = require('../../../lib/business.config')
 
 const POST_VISIT_DEDUP_MS = 6 * 60 * 60 * 1000 // 6 hours — covers re-saves on same visit
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || biz.ownerEmail
 
 function fmtQtyObj(obj) {
   if (!obj || typeof obj !== 'object') return ''
@@ -91,7 +92,7 @@ export default async function handler(req, res) {
   <table width="580" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;width:100%;">
     <tr>
       <td align="center" bgcolor="#1a3320" style="border-radius:10px 10px 0 0;padding:24px 32px;">
-        <p style="margin:0;font-size:20px;font-weight:900;color:#ffffff;font-family:Arial,sans-serif;">GreenGuard USA</p>
+        <p style="margin:0;font-size:20px;font-weight:900;color:#ffffff;font-family:Arial,sans-serif;">${biz.nameShort}</p>
         <p style="margin:4px 0 0;font-size:11px;font-weight:700;color:#7dbc8a;letter-spacing:2px;text-transform:uppercase;font-family:Arial,sans-serif;">Service Complete</p>
       </td>
     </tr>
@@ -116,8 +117,8 @@ export default async function handler(req, res) {
     </tr>
     <tr>
       <td align="center" bgcolor="#dde8de" style="border-radius:0 0 10px 10px;padding:18px 32px;border:1px solid #dde8de;border-top:0;">
-        <p style="margin:0 0 3px;font-size:12px;font-weight:700;color:#1a3320;font-family:Arial,sans-serif;">GreenGuard USA</p>
-        <p style="margin:0;font-size:11px;color:#4a6650;font-family:Arial,sans-serif;">Austin, TX &nbsp;&#183;&nbsp; 512-560-4129 &nbsp;&#183;&nbsp; <a href="https://www.greenguard-usa.com" style="color:#2d6a3f;">greenguard-usa.com</a></p>
+        <p style="margin:0 0 3px;font-size:12px;font-weight:700;color:#1a3320;font-family:Arial,sans-serif;">${biz.nameShort}</p>
+        <p style="margin:0;font-size:11px;color:#4a6650;font-family:Arial,sans-serif;">${biz.city} &nbsp;&#183;&nbsp; ${biz.phone} &nbsp;&#183;&nbsp; <a href="https://www.greenguard-usa.com" style="color:#2d6a3f;">greenguard-usa.com</a></p>
       </td>
     </tr>
   </table>

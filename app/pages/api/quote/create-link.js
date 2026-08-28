@@ -9,9 +9,10 @@
 const { newJti } = require('../../../lib/auth')
 const { buildQuoteLines, buildQuoteOptions, firstAvailableServiceDate, isLocalDeliveryAddress, shippingForQtys } = require('../../../lib/quote-pricing')
 const { SignJWT } = require('jose')
+const biz = require('../../../lib/business.config')
 
 const VALID_SYSTEMS = new Set(['biogents-co2', 'biogents-nonco2', 'mosqitter', 'tank', 'none'])
-const TX_TAX_RATE = 0.0825
+const TX_TAX_RATE = biz.taxRateDecimal
 const MAX_LINE = 100000     // $100k per line (defense in depth; real lines are far lower)
 const MAX_TOTAL = 50000     // $50k per quote
 const round2 = (n) => Math.round(n * 100) / 100

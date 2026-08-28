@@ -3,6 +3,7 @@ import Head from 'next/head'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { useLazyData, LazyLoading, LazyError } from '../../components/useLazyData'
+const biz = require('../../lib/business.config')
 
 export async function getServerSideProps({ req, res }) {
   res?.setHeader('Cache-Control', 'private, max-age=10, stale-while-revalidate=60')
@@ -74,7 +75,7 @@ function SystemMapView({ customers, mapsKey }) {
   useEffect(() => {
     if (!loaded || !mapRef.current || mapObj.current) return
     mapObj.current = new window.google.maps.Map(mapRef.current, {
-      center: { lat: 30.2672, lng: -97.7431 }, // Austin, TX
+      center: { lat: biz.depot.lat, lng: biz.depot.lng }, // Austin, TX
       zoom: 11,
       styles: [
         { elementType: 'geometry', stylers: [{ color: '#f5f5f7' }] },

@@ -7,6 +7,7 @@ const fs = require('fs')
 const path = require('path')
 const { q } = require('./db')
 const { stripe } = require('./stripe')
+const biz = require('./business.config')
 
 const TAXABLE_CATEGORIES = new Set([
   'Revenue:Tanks:Refill', 'Revenue:Tanks:DeliveryFee', 'Revenue:Tanks:HookupMaint',
@@ -129,7 +130,7 @@ function renderClosePackageHtml({ label, pnl, ar, tax, mileage }) {
   return `
     <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:640px;margin:0 auto;padding:24px;color:#1a2e1f;">
       <div style="background:#0d1a10;border-radius:10px;padding:18px 22px;margin-bottom:24px;">
-        <h1 style="color:#7dffaa;font-size:1.3rem;margin:0;">GreenGuard USA — Monthly Close</h1>
+        <h1 style="color:#7dffaa;font-size:1.3rem;margin:0;">${biz.nameShort} — Monthly Close</h1>
         <p style="color:rgba(212,230,202,0.65);font-size:0.85rem;margin:6px 0 0;">${label}</p>
       </div>
 

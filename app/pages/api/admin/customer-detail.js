@@ -2,8 +2,9 @@ const { getSessionFromRequest, isAdminEmail, escapeStripeSearch } = require('../
 const { stripe } = require('../../../lib/stripe')
 const { findContactByEmail, getContactNotes } = require('../../../lib/hubspot')
 const { getUpcomingBookingsForEmail, getPastBookingsForEmail } = require('../../../lib/gcal')
+const biz = require('../../../lib/business.config')
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || biz.ownerEmail
 
 export default async function handler(req, res) {
   const session = await getSessionFromRequest(req)

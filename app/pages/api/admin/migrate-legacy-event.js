@@ -1,7 +1,8 @@
 const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { google } = require('googleapis')
+const biz = require('../../../lib/business.config')
 
-const CALENDAR_ID = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const CALENDAR_ID = process.env.ADMIN_EMAIL || biz.ownerEmail
 const CALCOM_API_KEY = process.env.CALCOM_API_KEY || ''
 const CALCOM_BASE = `${(process.env.CALCOM_BASE_URL || 'https://cal.com').replace(/\/$/, '')}/api/v2`
 const TZ = process.env.CALENDAR_TIMEZONE || 'America/Chicago'

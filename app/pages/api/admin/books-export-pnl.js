@@ -1,5 +1,6 @@
 import { getSessionFromRequest, isOwnerEmail } from '../../../lib/auth'
 import { q } from '../../../lib/db'
+const biz = require('../../../lib/business.config')
 
 function monthBounds(yyyymm) {
   const [y, m] = yyyymm.split('-').map(Number)
@@ -46,7 +47,7 @@ export default async function handler(req, res) {
   const totalOut = rows.rows.reduce((s, r) => s + Number(r.outflow_cents || 0), 0)
 
   const lines = [
-    ['GreenGuard USA — P&L Export', label],
+    [`${biz.nameShort} — P&L Export`, label],
     [],
     ['Category', 'Inflow', 'Outflow', 'Net', 'Transactions'],
     ...rows.rows.map((r) => [

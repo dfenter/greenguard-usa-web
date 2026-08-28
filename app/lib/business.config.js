@@ -1,4 +1,5 @@
-const id = process.env.BUSINESS_ID || 'greenguard'
+// NEXT_PUBLIC_ variant so client bundles resolve the same tenant as the server.
+const id = process.env.NEXT_PUBLIC_BUSINESS_ID || process.env.BUSINESS_ID || 'greenguard'
 
 let config
 try {

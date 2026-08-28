@@ -7,6 +7,7 @@
 
 const { buildClosePackage } = require('../../../lib/books-close')
 const { Resend } = require('resend')
+const biz = require('../../../lib/business.config')
 
 function priorMonth() {
   const d = new Date()
@@ -29,8 +30,8 @@ export default async function handler(req, res) {
     if (process.env.RESEND_API_KEY) {
       const resend = new Resend(process.env.RESEND_API_KEY)
       await resend.emails.send({
-        from: 'GreenGuard Books <admin@greenguard-usa.com>',
-        to: 'admin@greenguard-usa.com',
+        from: `GreenGuard Books <${biz.email}>`,
+        to: biz.email,
         subject: `📘 Monthly Close — ${pkg.label} · Net $${(pkg.pnl.net / 100).toFixed(2)}`,
         html: pkg.html,
       })

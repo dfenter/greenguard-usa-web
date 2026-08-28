@@ -1,8 +1,10 @@
 // Open-Meteo weather forecast — free, no API key required.
 // Default coordinates cover the Austin TX service area.
 
-const DEFAULT_LAT = 30.2672
-const DEFAULT_LON = -97.7431
+const biz = require('./business.config')
+
+const DEFAULT_LAT = biz.depot.lat
+const DEFAULT_LON = biz.depot.lng
 const DEFAULT_TZ  = 'America/Chicago'
 
 async function getForecast(lat = DEFAULT_LAT, lon = DEFAULT_LON, tz = DEFAULT_TZ) {

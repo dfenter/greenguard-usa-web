@@ -14,6 +14,14 @@ module.exports = {
   assessmentSlug: 'lawn-assessment',
 
   taxRate:   8.25,
+
+  ownerEmail: 'admin@lawnpro-austin.com',
+  calendarId: 'admin@lawnpro-austin.com',
+  alertsFrom: 'LawnPro Alerts <admin@lawnpro-austin.com>',
+  industry:   'lawn-care business',
+  depot: { line1: '1519 Parkway', city: 'Austin', state: 'TX', zip: '78703', lat: 30.2672, lng: -97.7431,
+           full: '1519 Parkway, Austin, TX 78703' },
+  taxRateDecimal: 0.0825,
   taxLabel:  'Austin, TX',
 
   colors: {

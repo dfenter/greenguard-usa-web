@@ -3,8 +3,9 @@ const { bookingTanks } = require('./tank-count')
 const { getBookingsForDateRange } = require('./gcal')
 const { cached } = require('./cache')
 const { fetchWithTimeout } = require('./http')
+const biz = require('./business.config')
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || biz.ownerEmail
 
 /**
  * Builds the data the Tank Calendar needs: scheduled tanks/day, history,

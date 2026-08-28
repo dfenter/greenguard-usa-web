@@ -6,10 +6,11 @@ import { getSessionFromRequest } from '../../../lib/auth'
 import { findContactByEmail, getContactNotes } from '../../../lib/hubspot'
 import { stripe } from '../../../lib/stripe'
 import { EVENT_TYPES } from '../../../lib/sku-engine'
+const biz = require('../../../lib/business.config')
 
 export async function getServerSideProps({ req, params }) {
   const session = await getSessionFromRequest(req)
-  const ADMIN = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+  const ADMIN = process.env.ADMIN_EMAIL || biz.ownerEmail
   if (!session || session.email !== ADMIN) {
     return { redirect: { destination: '/dashboard', permanent: false } }
   }

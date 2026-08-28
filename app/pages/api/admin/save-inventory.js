@@ -2,8 +2,9 @@ const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { findContactByEmail, addNote, upsertContact } = require('../../../lib/hubspot')
 const { logTankInventory } = require('../../../lib/gsheets')
 const { Resend } = require('resend')
+const biz = require('../../../lib/business.config')
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || biz.ownerEmail
 const LOW_TANK_THRESHOLD = 5
 
 export default async function handler(req, res) {

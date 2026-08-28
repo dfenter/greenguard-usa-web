@@ -2,8 +2,9 @@ const { getSessionFromRequest, isAdminEmail, escapeStripeSearch } = require('../
 const { stripe, getTaxRateId } = require('../../../lib/stripe')
 const { SKU_PRICES } = require('../../../lib/sku-engine')
 const { notifyAdminInvoiceSent } = require('../../../lib/purchase-notify')
+const biz = require('../../../lib/business.config')
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || biz.ownerEmail
 
 function createInvoiceItem(params, requestId) {
   return typeof requestId === 'string'

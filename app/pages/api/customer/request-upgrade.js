@@ -6,8 +6,9 @@
 const { getSessionFromRequest } = require('../../../lib/auth')
 const { findContactByEmail, addNote } = require('../../../lib/hubspot')
 const { Resend } = require('resend')
+const biz = require('../../../lib/business.config')
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || biz.ownerEmail
 const FROM = process.env.PORTAL_FROM_EMAIL || 'noreply@greenguard-usa.com'
 
 function fmt$(n) { return `$${Number(n).toFixed(2)}` }
@@ -77,7 +78,7 @@ export default async function handler(req, res) {
             </a>
           </div>
           <div style="padding:16px 28px;border-top:1px solid rgba(122,171,130,0.12);font-size:0.72rem;color:rgba(212,230,202,0.25);">
-            GreenGuard USA · Austin TX · No charges have been made. This is a request only.
+            ${biz.nameShort} · ${biz.city} · No charges have been made. This is a request only.
           </div>
         </div>
       `,
@@ -91,7 +92,7 @@ export default async function handler(req, res) {
     const resend = new Resend(process.env.RESEND_API_KEY)
     const firstName = customerName.split(' ')[0] || 'there'
     await resend.emails.send({
-      from: `GreenGuard USA <${FROM}>`,
+      from: `${biz.nameShort} <${FROM}>`,
       to: session.email,
       subject: `Your upgrade request is confirmed — ${upgradeTitle}`,
       html: `
@@ -110,11 +111,11 @@ export default async function handler(req, res) {
               <div style="font-size:0.88rem;color:rgba(212,230,202,0.6);">+${fmt$(monthlyDelta)}/month${totalOneTime > 0 ? ` · ${fmt$(totalOneTime)} one-time at first visit` : ''}</div>
             </div>
             <p style="color:rgba(212,230,202,0.45);font-size:0.82rem;margin:0;">
-              No charges until your upgrade is installed. Questions? Reply to this email or call <a href="tel:5125604129" style="color:#7dffaa;">512-560-4129</a>.
+              No charges until your upgrade is installed. Questions? Reply to this email or call <a href="tel:5125604129" style="color:#7dffaa;">${biz.phone}</a>.
             </p>
           </div>
           <div style="padding:14px 28px;border-top:1px solid rgba(122,171,130,0.12);font-size:0.72rem;color:rgba(212,230,202,0.25);">
-            GreenGuard USA · Austin TX
+            ${biz.nameShort} · ${biz.city}
           </div>
         </div>
       `,

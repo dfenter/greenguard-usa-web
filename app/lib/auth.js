@@ -1,5 +1,6 @@
 const { SignJWT, jwtVerify } = require('jose')
 const crypto = require('crypto')
+const biz = require('./business.config')
 
 function getSecret() {
   if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32) {
@@ -240,14 +241,14 @@ async function getSessionFromRequest(req, res) {
 
 function isAdminEmail(email) {
   if (!email) return false
-  const raw = process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+  const raw = process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || biz.ownerEmail
   const admins = raw.split(',').map((e) => e.trim().toLowerCase())
   return admins.includes(email.toLowerCase())
 }
 
 function isOwnerEmail(email) {
   if (!email) return false
-  const raw = process.env.OWNER_EMAIL || process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+  const raw = process.env.OWNER_EMAIL || process.env.ADMIN_EMAIL || biz.ownerEmail
   const owner = raw.split(',')[0].trim().toLowerCase()
   return email.toLowerCase() === owner
 }

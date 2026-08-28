@@ -5,8 +5,9 @@ import { upsertContact } from '../../../lib/hubspot'
 import { sendEmail, emailShell, escapeHtml } from '../../../lib/email'
 import { fireBookingConversions } from '../../../lib/booking-conversions'
 import { consumeJti } from '../../../lib/auth'
+const biz = require('../../../lib/business.config')
 
-const CALENDAR_ID = process.env.CALENDAR_ID || 'admin@greenguard-usa.com'
+const CALENDAR_ID = process.env.CALENDAR_ID || biz.calendarId
 const TZ = 'America/Chicago'
 const SLOT_MIN = 30
 
@@ -119,7 +120,7 @@ export default async function handler(req, res) {
       calendarId: CALENDAR_ID,
       sendUpdates: 'none',
       requestBody: {
-        summary: `${name}: Free Property Assessment (GreenGuard USA)`,
+        summary: `${name}: Free Property Assessment (${biz.bookingTag})`,
         location: address,
         description,
         start: { dateTime: startISO, timeZone: TZ },
@@ -146,7 +147,7 @@ export default async function handler(req, res) {
         html: emailShell(`
           <h2 style="margin:0 0 16px;font-size:1.25rem;color:#1a3320;font-family:Arial,sans-serif;">You're booked, ${escapeHtml(firstName)}!</h2>
           <p style="margin:0 0 20px;color:#444;font-family:Arial,sans-serif;line-height:1.6;font-size:0.95rem;">
-            Your free property assessment with GreenGuard USA is confirmed.
+            Your free property assessment with ${biz.nameShort} is confirmed.
           </p>
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f9f5;border-left:4px solid #2d6a35;border-radius:4px;margin:0 0 24px;">
             <tr><td style="padding:16px 20px;">
@@ -159,7 +160,7 @@ export default async function handler(req, res) {
           </p>
           ${notes ? `<p style="margin:10px 0;color:#555;font-size:0.9rem;font-family:Arial,sans-serif;"><strong>Your notes:</strong> ${escapeHtml(notes)}</p>` : ''}
           <p style="margin:20px 0 0;color:#888;font-size:0.82rem;font-family:Arial,sans-serif;line-height:1.5;">
-            Need to reschedule or cancel? Call or text us at <a href="tel:5125604129" style="color:#2d6a35;font-weight:700;">512-560-4129</a>
+            Need to reschedule or cancel? Call or text us at <a href="tel:5125604129" style="color:#2d6a35;font-weight:700;">${biz.phone}</a>
             or reply to this email and we'll get it sorted.
           </p>
         `),
@@ -168,7 +169,7 @@ export default async function handler(req, res) {
       // own inbox spam filter flags).
       sendEmail({
         to: CALENDAR_ID,
-        from: `GreenGuard Bookings <admin@greenguard-usa.com>`,
+        from: `GreenGuard Bookings <${biz.email}>`,
         subject: `New booking: ${name} — ${formattedDT}`,
         html: emailShell(`
           <h2 style="margin:0 0 16px;font-size:1.1rem;color:#1a3320;font-family:Arial,sans-serif;">New Property Assessment Booking</h2>

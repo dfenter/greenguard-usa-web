@@ -1,7 +1,8 @@
 const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { google } = require('googleapis')
+const biz = require('../../../lib/business.config')
 
-const CALENDAR_ID = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const CALENDAR_ID = process.env.ADMIN_EMAIL || biz.ownerEmail
 
 function calendar() {
   const auth = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET)

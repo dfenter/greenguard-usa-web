@@ -6,6 +6,7 @@ import { requireOwner } from '../../../lib/auth'
 import { listFinalizedItemRows, getSettings } from '../../../lib/payroll-store'
 import { aggregate941, aggregate940, aggregateW2, depositSchedule } from '../../../lib/payroll-filings'
 import { fill941Pdf } from '../../../lib/payroll-941-pdf'
+const biz = require('../../../lib/business.config')
 
 export default async function handler(req, res) {
   const session = await requireOwner(req, res)
@@ -33,7 +34,7 @@ export default async function handler(req, res) {
         settings,
         // Print-name is left for the owner to type when signing; the phone
         // matches the business number on /admin/invoice-pdf.
-        signer: { name: '', title: 'Owner', phone: '512-560-4129' },
+        signer: { name: '', title: 'Owner', phone: biz.phone },
       })
       res.setHeader('Content-Type', 'application/pdf')
       res.setHeader('Content-Disposition', `attachment; filename="form941_${year}_Q${quarter}.pdf"`)

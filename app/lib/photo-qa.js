@@ -3,8 +3,9 @@
 
 const { visionJSON } = require('./gemini')
 const { findContactByEmail, addNote } = require('./hubspot')
+const biz = require('./business.config')
 
-const SYSTEM = `You are a quality auditor for GreenGuard USA, a mosquito-control company that installs CO₂ traps and tanks at customer properties.
+const SYSTEM = `You are a quality auditor for ${biz.nameShort}, a mosquito-control company that installs CO₂ traps and tanks at customer properties.
 
 You receive a photo from a technician documenting an install or service visit. Your job is to verify the install looks correct.`
 

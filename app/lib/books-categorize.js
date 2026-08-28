@@ -6,6 +6,7 @@
 
 const { q } = require('./db')
 const { complete } = require('./llm')
+const biz = require('./business.config')
 
 const BATCH_SIZE = 25
 
@@ -50,7 +51,7 @@ function buildPrompt(categories, txs) {
     return `${i + 1}. type=${t.type} amount=${sign}$${dollars} sku=${t.sku || '—'} customer=${t.customer_name || t.customer_email || '—'} desc=${(t.description || '').slice(0, 120)}`
   }).join('\n')
 
-  return `You are categorizing financial transactions for a mosquito-control business in Austin, TX.
+  return `You are categorizing financial transactions for a ${biz.industry} in ${biz.city}.
 For each transaction below, pick the SINGLE BEST category from the list. Return a JSON object with an "assignments" array, one per input.
 
 Each assignment must be: {"i": <1-indexed number>, "category": "<exact label from list>", "confidence": 0.0-1.0, "reason": "<one-line why>"}

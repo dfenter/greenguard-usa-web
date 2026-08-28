@@ -22,8 +22,9 @@
 const { Resend } = require('resend')
 const { authorize } = require('../../../lib/cron-auth')
 const { postToOps } = require('../../../lib/slack')
+const biz = require('../../../lib/business.config')
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || biz.ownerEmail
 
 async function googleAdsToken() {
   const { google } = require('googleapis')

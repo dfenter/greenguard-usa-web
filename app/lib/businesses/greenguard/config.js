@@ -14,6 +14,15 @@ module.exports = {
   assessmentSlug: 'property-assessment',
 
   taxRate:   8.25,
+
+  // ── v0.2 tenant fields (One Person Show) ────────────────────────────────
+  ownerEmail: 'admin@greenguard-usa.com',      // owner login + default ADMIN_EMAIL fallback
+  calendarId: 'admin@greenguard-usa.com',      // Google Calendar id (source of truth for appointments)
+  alertsFrom: 'GreenGuard Alerts <admin@greenguard-usa.com>',
+  industry:   'mosquito-control business',      // used in AI prompts ("a <industry> in <city>")
+  depot: { line1: '1519 Parkway', city: 'Austin', state: 'TX', zip: '78703', lat: 30.2672, lng: -97.7431,
+           full: '1519 Parkway, Austin, TX 78703' },
+  taxRateDecimal: 0.0825,
   taxLabel:  'Austin, TX',
 
   colors: {

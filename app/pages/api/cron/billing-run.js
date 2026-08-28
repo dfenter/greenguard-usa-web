@@ -17,8 +17,9 @@
 const { stripe, getTaxRateId } = require('../../../lib/stripe')
 const { notifyAdminInvoiceSent } = require('../../../lib/purchase-notify')
 const { Resend } = require('resend')
+const biz = require('../../../lib/business.config')
 
-const ALERT_EMAIL = 'admin@greenguard-usa.com'
+const ALERT_EMAIL = biz.ownerEmail
 
 function todayISO() { return new Date().toISOString().slice(0, 10) }
 function dateISOPlusDays(n) {
@@ -59,7 +60,7 @@ async function runWarn() {
   `
   const resend = new Resend(process.env.RESEND_API_KEY)
   await resend.emails.send({
-    from: 'GreenGuard Billing <admin@greenguard-usa.com>',
+    from: `GreenGuard Billing <${biz.email}>`,
     to: ALERT_EMAIL,
     subject: `⏰ ${drafts.length} draft invoice${drafts.length === 1 ? '' : 's'} auto-submitting tomorrow`,
     html,
@@ -140,7 +141,7 @@ async function runFinalize() {
       lines.push(`<li><strong>${results.errors.length} error${results.errors.length === 1 ? '' : 's'}</strong>:<ul>${errs}</ul></li>`)
     }
     await resend.emails.send({
-      from: 'GreenGuard Billing <admin@greenguard-usa.com>',
+      from: `GreenGuard Billing <${biz.email}>`,
       to: ALERT_EMAIL,
       subject: `💳 Billing run: ${results.processed} invoice${results.processed === 1 ? '' : 's'} submitted${results.errors.length ? ' (with errors)' : ''}`,
       html: `<p>Daily 5-day auto-approve run completed.</p><ul>${lines.join('')}</ul>`,

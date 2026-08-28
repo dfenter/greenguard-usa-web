@@ -5,6 +5,7 @@
 // existing stop is a short drive away, with the free slots adjacent to it.
 import { getCalendar } from '../../../lib/gcal'
 import { suggestForAddress } from '../../../lib/geo-suggest'
+const biz = require('../../../lib/business.config')
 
 const TZ = 'America/Chicago'
 const SLOT_MIN = 30
@@ -13,7 +14,7 @@ const WORK_START = 10   // 10:00am
 const WORK_LAST = 17.5  // last slot starts 5:30pm, ends 6:00pm
 const MIN_NOTICE_H = 4  // don't show slots within 4 hours of now
 
-const CALENDAR_ID = process.env.CALENDAR_ID || 'admin@greenguard-usa.com'
+const CALENDAR_ID = process.env.CALENDAR_ID || biz.calendarId
 
 // Convert a CT wall-clock time to a real UTC ISO string.
 // Works correctly on a UTC server (Vercel) — same technique as gcal.js _tzDayBounds.

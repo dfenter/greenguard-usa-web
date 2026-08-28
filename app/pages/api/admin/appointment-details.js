@@ -9,8 +9,9 @@ const { requireAdmin } = require('../../../lib/auth')
 const { google } = require('googleapis')
 const { findContactByEmail } = require('../../../lib/hubspot')
 const { cached } = require('../../../lib/cache')
+const biz = require('../../../lib/business.config')
 
-const CALENDAR_ID = 'admin@greenguard-usa.com'
+const CALENDAR_ID = biz.calendarId
 
 function calendar() {
   const oauth = new google.auth.OAuth2(process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_CLIENT_SECRET)
@@ -18,7 +19,7 @@ function calendar() {
   return google.calendar({ version: 'v3', auth: oauth })
 }
 
-const ADMIN_EMAIL = 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = biz.ownerEmail
 
 function parseEmailFromDescription(desc) {
   if (!desc) return null

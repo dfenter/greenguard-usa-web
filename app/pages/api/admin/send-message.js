@@ -5,6 +5,7 @@
  */
 const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { sendEmail, escapeHtml } = require('../../../lib/email')
+const biz = require('../../../lib/business.config')
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()
@@ -25,8 +26,8 @@ export default async function handler(req, res) {
   <table width="580" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;width:100%;">
     <tr>
       <td align="center" bgcolor="#1a3320" style="border-radius:10px 10px 0 0;padding:24px 32px;">
-        <p style="margin:0;font-size:20px;font-weight:900;color:#ffffff;font-family:Arial,sans-serif;">GreenGuard USA</p>
-        <p style="margin:4px 0 0;font-size:11px;font-weight:700;color:#7dbc8a;letter-spacing:2px;text-transform:uppercase;font-family:Arial,sans-serif;">Austin, TX</p>
+        <p style="margin:0;font-size:20px;font-weight:900;color:#ffffff;font-family:Arial,sans-serif;">${biz.nameShort}</p>
+        <p style="margin:4px 0 0;font-size:11px;font-weight:700;color:#7dbc8a;letter-spacing:2px;text-transform:uppercase;font-family:Arial,sans-serif;">${biz.city}</p>
       </td>
     </tr>
     <tr>
@@ -34,15 +35,15 @@ export default async function handler(req, res) {
         <div style="font-size:15px;line-height:1.75;color:#3d4f41;font-family:Arial,sans-serif;">${htmlBody}</div>
         <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:32px;border-top:1px solid #e8efe9;">
           <tr><td style="padding-top:16px;font-size:12px;color:#9aab9c;font-family:Arial,sans-serif;">
-            Questions? Reply to this email or text us at <a href="tel:5125604129" style="color:#2d6a3f;font-weight:700;">512-560-4129</a>.
+            Questions? Reply to this email or text us at <a href="tel:5125604129" style="color:#2d6a3f;font-weight:700;">${biz.phone}</a>.
           </td></tr>
         </table>
       </td>
     </tr>
     <tr>
       <td align="center" bgcolor="#dde8de" style="border-radius:0 0 10px 10px;padding:18px 32px;border:1px solid #dde8de;border-top:0;">
-        <p style="margin:0 0 3px;font-size:12px;font-weight:700;color:#1a3320;font-family:Arial,sans-serif;">GreenGuard USA</p>
-        <p style="margin:0;font-size:11px;color:#4a6650;font-family:Arial,sans-serif;">Austin, TX &nbsp;&#183;&nbsp; 512-560-4129 &nbsp;&#183;&nbsp; <a href="https://www.greenguard-usa.com" style="color:#2d6a3f;">greenguard-usa.com</a></p>
+        <p style="margin:0 0 3px;font-size:12px;font-weight:700;color:#1a3320;font-family:Arial,sans-serif;">${biz.nameShort}</p>
+        <p style="margin:0;font-size:11px;color:#4a6650;font-family:Arial,sans-serif;">${biz.city} &nbsp;&#183;&nbsp; ${biz.phone} &nbsp;&#183;&nbsp; <a href="https://www.greenguard-usa.com" style="color:#2d6a3f;">greenguard-usa.com</a></p>
       </td>
     </tr>
   </table>

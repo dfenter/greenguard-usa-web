@@ -19,8 +19,9 @@ const { findContactByEmail, addNote, upsertContact } = require('../../../lib/hub
 const { sendSms } = require('../../../lib/sms')
 const { generateJSON } = require('../../../lib/gemini')
 const { postToOps } = require('../../../lib/slack')
+const biz = require('../../../lib/business.config')
 
-const ADMIN_EMAIL = process.env.OWNER_EMAIL || process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.OWNER_EMAIL || process.env.ADMIN_EMAIL || biz.ownerEmail
 const ADMIN_SMS = process.env.ADMIN_SMS_NUMBER || ''
 const FROM_EMAIL = process.env.PORTAL_FROM_EMAIL || 'noreply@greenguard-usa.com'
 

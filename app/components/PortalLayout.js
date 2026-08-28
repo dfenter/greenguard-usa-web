@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useState, useEffect } from 'react'
 import AdminChat from './AdminChat'
+const biz = require('../lib/business.config')
 
 const NAV_LINKS = [
   { href: '/dashboard',          label: 'My Account' },
@@ -134,7 +135,7 @@ export default function PortalLayout({ children, title, isAdmin = false, topPadd
         fontSize: '0.78rem',
         color: 'var(--text-dim)',
       }}>
-        © {new Date().getFullYear()} {process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard USA'} · {process.env.NEXT_PUBLIC_BIZ_CITY || 'Austin, TX'}
+        © {new Date().getFullYear()} {process.env.NEXT_PUBLIC_BIZ_NAME || biz.name} · {process.env.NEXT_PUBLIC_BIZ_CITY || biz.city}
       </footer>
 
       {/* Ops assistant — admin/tech only */}

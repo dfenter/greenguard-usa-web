@@ -3,8 +3,9 @@ import Head from 'next/head'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { useToast, useConfirm } from '../../components/ui'
+const biz = require('../../lib/business.config')
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || biz.ownerEmail
 
 export async function getServerSideProps({ req }) {
   const session = await getSessionFromRequest(req)
@@ -192,6 +193,7 @@ function CustomerSearch({ onSelect }) {
   )
 }
 
+// TODO(ops-v0.3): move to lib/catalog.js
 // Per-trap pricing for Biogents CO₂ rental
 // Biogents CO₂ rental packages — 1–6 traps. Volume discount kicks in at 4.
 const BG_RENTAL_PRICE = { 1: 159.99, 2: 266.99, 3: 399.99, 4: 500, 5: 625, 6: 750, 7: 875, 8: 1000, 9: 1125, 10: 1250 }
@@ -201,8 +203,10 @@ const BG_HOOKUP_PER_TRAP = 10.00
 const BG_NONCO2_PER_TRAP = 10.00
 // Starter package — we rent the non-CO₂ trap (no tanks), per trap
 const STARTER_NONCO2_PER_TRAP = 49.99
+// TODO(ops-v0.3): move to lib/catalog.js
 // Mosqitter — $129.99 all-in (tank hookup, bait, maintenance included)
 const MQ_PRICE = { rental: 299.99, service: 129.99, install: 199.99 }
+// TODO(ops-v0.3): move to lib/catalog.js
 // CO₂ tank exchange — 20lb tanks only ($39 delivery + $49.99/tank)
 const TANK_PRICE = { 1: 89.99, 2: 139.99, 3: 189.99 }
 
@@ -488,7 +492,7 @@ export default function QuoteBuilder({ mapsKey }) {
   const [linkCopied, setLinkCopied] = useState(false)
   const [checkingOut, setCheckingOut] = useState(false)
   const [checkoutError, setCheckoutError] = useState(null)
-  const taxRate = 8.25
+  const taxRate = biz.taxRate
   // 'auto' = auto-calculate per-item rates, 'free' = local delivery (waive shipping), 'none' = no shippable items
   const [shippingMode, setShippingMode] = useState('auto')
   const [mapLoaded, setMapLoaded] = useState(false)
@@ -525,7 +529,7 @@ export default function QuoteBuilder({ mapsKey }) {
   useEffect(() => {
     if (!mapLoaded || !mapRef.current || mapObj.current) return
     mapObj.current = new window.google.maps.Map(mapRef.current, {
-      center: { lat: 30.2672, lng: -97.7431 },
+      center: { lat: biz.depot.lat, lng: biz.depot.lng },
       zoom: 15,
       mapTypeId: 'satellite',
       mapId: 'DEMO_MAP_ID',
@@ -535,7 +539,7 @@ export default function QuoteBuilder({ mapsKey }) {
       scaleControl: true,
     })
     pinRef.current = new window.google.maps.marker.AdvancedMarkerElement({
-      position: { lat: 30.2672, lng: -97.7431 },
+      position: { lat: biz.depot.lat, lng: biz.depot.lng },
       gmpDraggable: true,
     })
     mapObj.current.addListener('click', (e) => {
@@ -553,7 +557,7 @@ export default function QuoteBuilder({ mapsKey }) {
   // Initialize Street View panorama lazily when user switches to it
   useEffect(() => {
     if (!mapLoaded || mapView !== 'street' || !streetRef.current || streetObj.current) return
-    const pos = mapPin || { lat: 30.2672, lng: -97.7431 }
+    const pos = mapPin || { lat: biz.depot.lat, lng: biz.depot.lng }
     streetObj.current = new window.google.maps.StreetViewPanorama(streetRef.current, {
       position: pos,
       pov: { heading: 0, pitch: 0 },
@@ -883,7 +887,7 @@ export default function QuoteBuilder({ mapsKey }) {
                   <OptionPreview title="Option 1 · Monthly Rental" tagline="Everything included, no upfront equipment" opt={quoteOptions.rental} accent="green" localDelivery={localDelivery} />
                   <OptionPreview title="Option 2 · Purchase & Service" tagline="Own the equipment, we keep it running" opt={quoteOptions.purchase} accent="info" localDelivery={localDelivery} />
                   <div style={{ fontSize: '0.72rem', color: 'rgba(var(--text-rgb),0.45)', lineHeight: 1.5 }}>
-                    The customer compares both options on their quote page and pays for the one they choose. Tax 8.25% (Austin, TX) included in totals.
+                    The customer compares both options on their quote page and pays for the one they choose. Tax {biz.taxRate}% ({biz.city}) included in totals.
                   </div>
                 </div>
               )}
@@ -940,7 +944,7 @@ export default function QuoteBuilder({ mapsKey }) {
               {/* Tax — fixed 8.25% Austin rate */}
               {!quoteOptions && (
               <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: 'rgba(var(--text-rgb),0.4)', fontWeight: 600 }}>
-                Tax: {taxRate}% (Austin, TX)
+                Tax: {taxRate}% ({biz.city})
               </div>
               )}
 

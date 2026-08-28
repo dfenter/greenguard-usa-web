@@ -3,8 +3,9 @@ import Head from 'next/head'
 import { useRouter } from 'next/router'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
+const biz = require('../../lib/business.config')
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || biz.ownerEmail
 
 export async function getServerSideProps({ req }) {
   const session = await getSessionFromRequest(req)

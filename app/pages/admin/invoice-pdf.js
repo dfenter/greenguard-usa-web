@@ -4,6 +4,7 @@ import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { listAllCustomers } from '../../lib/stripe'
 import { getAllContacts } from '../../lib/hubspot'
+const biz = require('../../lib/business.config')
 
 // Standalone, dependency-free PDF invoice generator for ONE-OFF / random items.
 // Builds a branded printable invoice sheet entirely client-side; "Save as PDF"
@@ -12,14 +13,14 @@ import { getAllContacts } from '../../lib/hubspot'
 // for billable Stripe invoices. This is for quick manual invoices/receipts.
 
 const COMPANY = {
-  name: 'GreenGuard USA',
-  line1: '1519 Parkway',
-  line2: 'Austin, TX 78703',
-  phone: '512-560-4129',
-  email: 'admin@greenguard-usa.com',
+  name: biz.name,
+  line1: biz.depot.line1,
+  line2: `${biz.depot.city}, ${biz.depot.state} ${biz.depot.zip}`,
+  phone: biz.phone,
+  email: biz.email,
   web: 'greenguard-usa.com',
 }
-const TAX_RATE_DEFAULT = 8.25 // Austin, matches books-close TX_RATE_BPS=825
+const TAX_RATE_DEFAULT = biz.taxRate // Austin, matches books-close TX_RATE_BPS=825
 
 export async function getServerSideProps({ req }) {
   const session = await getSessionFromRequest(req)
@@ -180,7 +181,7 @@ export default function InvoicePdf({ customers = [] }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '3px solid #1a3320', paddingBottom: 18 }}>
             <div>
               <div style={{ fontSize: 24, fontWeight: 900, color: '#1a3320', letterSpacing: '-0.5px' }}>{COMPANY.name}</div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#7dbc8a', letterSpacing: 2, textTransform: 'uppercase', marginTop: 2 }}>Mosquito Control · Austin, TX</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#7dbc8a', letterSpacing: 2, textTransform: 'uppercase', marginTop: 2 }}>Mosquito Control · {biz.city}</div>
               <div style={{ fontSize: 12, color: '#555', marginTop: 10, lineHeight: 1.5 }}>
                 {COMPANY.line1}<br />{COMPANY.line2}<br />{COMPANY.phone} · {COMPANY.email}
               </div>

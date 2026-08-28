@@ -2,6 +2,7 @@ const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { sendSms, normalizePhone } = require('../../../lib/sms')
 const { findContactByEmail, addNote, getContactNotes } = require('../../../lib/hubspot')
 const { kv, isKvConfigured } = require('../../../lib/notify-queue')
+const biz = require('../../../lib/business.config')
 
 const DEDUP_WINDOW_MS = 30 * 60 * 1000 // 30 min — covers re-clicks and "ETA changed" cases
 const DEDUP_WINDOW_SEC = 30 * 60
@@ -84,7 +85,7 @@ export default async function handler(req, res) {
   const first = (customerName || '').split(' ')[0] || 'there'
   const eta = etaMinutes ? `~${etaMinutes} min` : 'shortly'
   const body =
-    `Hi ${first}, this is GreenGuard USA — your tech is on the way (${eta}). ` +
+    `Hi ${first}, this is ${biz.nameShort} — your tech is on the way (${eta}). ` +
     `Please ensure backyard access is clear. Reply STOP to opt out. — GreenGuard`
 
   const result = await sendSms({ to: phone, body })

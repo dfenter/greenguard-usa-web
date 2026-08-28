@@ -1,6 +1,7 @@
 import Head from 'next/head'
 import PortalLayout from '../components/PortalLayout'
 import { getSessionFromRequest } from '../lib/auth'
+const biz = require('../lib/business.config')
 
 export async function getServerSideProps({ req }) {
   const session = await getSessionFromRequest(req)
@@ -84,7 +85,7 @@ export default function ProspectPage({ email, name }) {
             </p>
             <a href="tel:+15125604129" style={{ fontWeight: 900, fontSize: '1.1rem', color: 'var(--green)', textDecoration: 'none' }}>512-560-4129</a>
             <div style={{ marginTop: 6, fontSize: '0.8rem', color: 'var(--text-dim)' }}>
-              <a href="mailto:admin@greenguard-usa.com" style={{ color: 'var(--text-dim)', textDecoration: 'none' }}>admin@greenguard-usa.com</a>
+              <a href={`mailto:${biz.email}`} style={{ color: 'var(--text-dim)', textDecoration: 'none' }}>{biz.email}</a>
             </div>
           </div>
         </div>

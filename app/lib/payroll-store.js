@@ -14,6 +14,7 @@ const { q, getPool } = require('./db')
 const {
   computePayrollItem, workweekStart, elapsedHours, FEDERAL_MIN_WAGE_CENTS, TX_SUTA_DEFAULT_RATE,
 } = require('./payroll')
+const biz = require('./business.config')
 
 const BIZ_TZ = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
 
@@ -65,7 +66,7 @@ async function getSettings() {
   const { rows } = await q(`SELECT ${SETTINGS_COLS} FROM payroll_settings WHERE id = 1`)
   const s = rows[0] || {}
   return {
-    legalName: s.legal_name || process.env.NEXT_PUBLIC_BIZ_NAME || 'GreenGuard USA',
+    legalName: s.legal_name || process.env.NEXT_PUBLIC_BIZ_NAME || biz.name,
     ein: s.ein || null,
     address: s.address || null,
     sutaRate: s.suta_rate != null ? num(s.suta_rate) : TX_SUTA_DEFAULT_RATE,

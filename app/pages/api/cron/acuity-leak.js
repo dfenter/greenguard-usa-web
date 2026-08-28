@@ -11,8 +11,9 @@
 const { Resend } = require('resend')
 const { authorize } = require('../../../lib/cron-auth')
 const { consumeJti } = require('../../../lib/auth')
+const biz = require('../../../lib/business.config')
 
-const ALERT_EMAIL = 'admin@greenguard-usa.com'
+const ALERT_EMAIL = biz.ownerEmail
 const LOOKBACK_MIN = 70
 
 function isAcuityish(description) {
@@ -42,7 +43,7 @@ export default async function handler(req, res) {
     const cal = getCalendar()
 
     const r = await cal.events.list({
-      calendarId: 'admin@greenguard-usa.com',
+      calendarId: biz.calendarId,
       timeMin: new Date(Date.now() - 7 * 86400 * 1000).toISOString(),
       timeMax: new Date(Date.now() + 180 * 86400 * 1000).toISOString(),
       singleEvents: true,
@@ -86,11 +87,11 @@ export default async function handler(req, res) {
 
     const resend = new Resend(process.env.RESEND_API_KEY)
     await resend.emails.send({
-      from: 'GreenGuard Alerts <admin@greenguard-usa.com>',
+      from: biz.alertsFrom,
       to: ALERT_EMAIL,
       subject: `⚠ Acuity leak: ${newAcuity.length} new booking${newAcuity.length === 1 ? '' : 's'}`,
       html: `
-        <p>A new Acuity-sourced appointment landed in admin@greenguard-usa.com's calendar.
+        <p>A new Acuity-sourced appointment landed in ${biz.email}'s calendar.
         The old Squarespace/Acuity link is still picking up customers somewhere.</p>
         <ul>${lines.join('')}</ul>
         <p>Track the source: check Google Ads final URLs, GMB booking link, social bios,

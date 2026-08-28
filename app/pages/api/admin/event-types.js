@@ -1,6 +1,7 @@
 const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
+const biz = require('../../../lib/business.config')
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || biz.ownerEmail
 const CALCOM_API_KEY = process.env.CALCOM_API_KEY || ''
 const CALCOM_BASE = `${(process.env.CALCOM_BASE_URL || 'https://cal.com').replace(/\/$/, '')}/api/v2`
 

@@ -8,8 +8,9 @@ const { getSessionFromRequest, isAdminEmail, consumeJti } = require('../../../li
 const { stripe, getTaxRateId, priceIdForSku } = require('../../../lib/stripe')
 const { findContactByEmail, updateContact } = require('../../../lib/hubspot')
 const crypto = require('crypto')
+const biz = require('../../../lib/business.config')
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || biz.ownerEmail
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()

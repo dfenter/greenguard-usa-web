@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+const biz = require('../lib/business.config')
 
 const STATUS_COLORS = {
   active: '#176f2b',
@@ -79,7 +80,7 @@ export default function CustomerMap({ customers = [], mapsKey, height = 400, com
   useEffect(() => {
     if (!loaded || !mapRef.current || mapObj.current) return
     mapObj.current = new window.google.maps.Map(mapRef.current, {
-      center: { lat: 30.2672, lng: -97.7431 },
+      center: { lat: biz.depot.lat, lng: biz.depot.lng },
       zoom: zoom ?? (compact ? 10 : 11),
       disableDefaultUI: compact,
       zoomControl: true,

@@ -8,9 +8,10 @@
 const { Resend } = require('resend')
 const { postToOps } = require('./slack')
 const { assertSendOk, sendViaGmailApi } = require('./email')
+const biz = require('./business.config')
 
 const FROM = process.env.PORTAL_FROM_EMAIL || 'noreply@greenguard-usa.com'
-const ADMIN_EMAIL = process.env.OWNER_EMAIL || process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.OWNER_EMAIL || process.env.ADMIN_EMAIL || biz.ownerEmail
 const ADMIN_SMS = process.env.ADMIN_SMS_NUMBER || ''
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com'
 // Gmail label applied to admin ops mail at send time. See sendViaGmailApi:
@@ -30,7 +31,7 @@ function esc(s) {
 // meaningful cap for internal mail. Resend stays as the fallback so a Gmail
 // hiccup never drops the copy. Customer-facing receipts still use Resend.
 async function sendAdminCopy({ subject, html, fromName }) {
-  const from = `${fromName || 'GreenGuard USA'} <admin@greenguard-usa.com>`
+  const from = `${fromName || biz.nameShort} <${biz.email}>`
   try {
     await sendViaGmailApi({ to: ADMIN_EMAIL, subject, html, from, labelIds: OPS_LABEL_IDS })
     return { ok: true }
@@ -38,7 +39,7 @@ async function sendAdminCopy({ subject, html, fromName }) {
     console.warn('admin copy via Gmail failed (%s) — falling back to Resend', e.message)
     if (!process.env.RESEND_API_KEY) return { ok: false, reason: e.message }
     const result = await new Resend(process.env.RESEND_API_KEY).emails.send({
-      from: `${fromName || 'GreenGuard USA'} <${FROM}>`,
+      from: `${fromName || biz.nameShort} <${FROM}>`,
       to: ADMIN_EMAIL,
       subject,
       html,
@@ -182,7 +183,7 @@ async function sendCustomerReceipt({ invoice, customer, receiptUrl, hostedInvoic
   <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#0d1a10 0%,#1a2e1f 100%);border:1px solid rgba(122,171,130,0.2);border-radius:12px;margin-bottom:12px">
     <tr>
       <td style="padding:28px 28px 18px">
-        <div style="color:#c9a84c;font-size:10px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px">GreenGuard USA &nbsp;&middot;&nbsp; Payment Receipt</div>
+        <div style="color:#c9a84c;font-size:10px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px">${biz.nameShort} &nbsp;&middot;&nbsp; Payment Receipt</div>
         <div style="color:#7dffaa;font-size:36px;font-weight:900;letter-spacing:-0.03em;line-height:1">${fmt$(amount)}</div>
         <div style="color:rgba(212,230,202,0.6);font-size:14px;margin-top:8px">Payment received. Thank you, ${esc(firstName)}.</div>
       </td>
@@ -212,21 +213,21 @@ async function sendCustomerReceipt({ invoice, customer, receiptUrl, hostedInvoic
     </tr>
     <tr>
       <td style="padding:0 28px 22px;border-top:1px solid rgba(122,171,130,0.1)">
-        <div style="color:rgba(122,171,130,0.45);font-size:12px;line-height:1.6;padding-top:16px">Questions? Reply to this email or text <a href="tel:+15125604129" style="color:rgba(122,171,130,0.6);text-decoration:none">512-560-4129</a>. Ref: ${esc(invoice.id)}</div>
+        <div style="color:rgba(122,171,130,0.45);font-size:12px;line-height:1.6;padding-top:16px">Questions? Reply to this email or text <a href="tel:+15125604129" style="color:rgba(122,171,130,0.6);text-decoration:none">${biz.phone}</a>. Ref: ${esc(invoice.id)}</div>
       </td>
     </tr>
   </table>
 
-  <div style="text-align:center;color:rgba(122,171,130,0.18);font-size:10px;letter-spacing:0.08em;text-transform:uppercase">GreenGuard USA &nbsp;&middot;&nbsp; Smart, Safe, Effective mosquito control</div>
+  <div style="text-align:center;color:rgba(122,171,130,0.18);font-size:10px;letter-spacing:0.08em;text-transform:uppercase">${biz.nameShort} &nbsp;&middot;&nbsp; Smart, Safe, Effective mosquito control</div>
 </div>
 </body>
 </html>`
 
   try {
     const result = await new Resend(process.env.RESEND_API_KEY).emails.send({
-      from: `GreenGuard USA <${FROM}>`,
+      from: `${biz.nameShort} <${FROM}>`,
       to: customer.email,
-      subject: `Receipt — ${fmt$(amount)} paid to GreenGuard USA`,
+      subject: `Receipt — ${fmt$(amount)} paid to ${biz.nameShort}`,
       html,
     })
     if (!assertSendOk(result)) throw new Error('customer receipt was not confirmed by Resend')
@@ -264,7 +265,7 @@ async function sendCheckoutReceipt({ session, items, receiptUrl }) {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#0d1a10 0%,#1a2e1f 100%);border:1px solid rgba(122,171,130,0.2);border-radius:12px;margin-bottom:12px">
     <tr>
       <td style="padding:28px 28px 18px">
-        <div style="color:#c9a84c;font-size:10px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px">GreenGuard USA &nbsp;&middot;&nbsp; Payment Receipt</div>
+        <div style="color:#c9a84c;font-size:10px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:10px">${biz.nameShort} &nbsp;&middot;&nbsp; Payment Receipt</div>
         <div style="color:#7dffaa;font-size:36px;font-weight:900;letter-spacing:-0.03em;line-height:1">${fmt$(amount)}</div>
         <div style="color:rgba(212,230,202,0.6);font-size:14px;margin-top:8px">Payment received. Thank you, ${esc(firstName)}.</div>
       </td>
@@ -289,22 +290,22 @@ async function sendCheckoutReceipt({ session, items, receiptUrl }) {
     </tr>` : ''}
     <tr>
       <td style="padding:0 28px 22px;border-top:1px solid rgba(122,171,130,0.1)">
-        <div style="color:rgba(122,171,130,0.45);font-size:12px;line-height:1.6;padding-top:16px">Questions? Reply to this email or text <a href="tel:+15125604129" style="color:rgba(122,171,130,0.6);text-decoration:none">512-560-4129</a>. Ref: ${esc(session.id)}</div>
+        <div style="color:rgba(122,171,130,0.45);font-size:12px;line-height:1.6;padding-top:16px">Questions? Reply to this email or text <a href="tel:+15125604129" style="color:rgba(122,171,130,0.6);text-decoration:none">${biz.phone}</a>. Ref: ${esc(session.id)}</div>
       </td>
     </tr>
   </table>
 
-  <div style="text-align:center;color:rgba(122,171,130,0.18);font-size:10px;letter-spacing:0.08em;text-transform:uppercase">GreenGuard USA &nbsp;&middot;&nbsp; Smart, Safe, Effective mosquito control</div>
+  <div style="text-align:center;color:rgba(122,171,130,0.18);font-size:10px;letter-spacing:0.08em;text-transform:uppercase">${biz.nameShort} &nbsp;&middot;&nbsp; Smart, Safe, Effective mosquito control</div>
 </div>
 </body>
 </html>`
 
   try {
     const result = await new Resend(process.env.RESEND_API_KEY).emails.send({
-      from: `GreenGuard USA <${FROM}>`,
+      from: `${biz.nameShort} <${FROM}>`,
       to: email,
       bcc: ADMIN_EMAIL,
-      subject: `Receipt — ${fmt$(amount)} paid to GreenGuard USA`,
+      subject: `Receipt — ${fmt$(amount)} paid to ${biz.nameShort}`,
       html,
     })
     if (!assertSendOk(result)) throw new Error('checkout receipt was not confirmed by Resend')

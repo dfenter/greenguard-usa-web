@@ -6,10 +6,11 @@ const { Resend } = require('resend')
 const { stripe } = require('../../../lib/stripe')
 const { getBookingsForDate, tzDayBoundsISO } = require('../../../lib/gcal')
 const { resolveByTitle, normalizeEventTitle } = require('../../../lib/sku-engine')
+const biz = require('../../../lib/business.config')
 
 const TZ = 'America/Chicago'
-const SENDER = 'GreenGuard USA <admin@greenguard-usa.com>'
-const RECIPIENT = 'admin@greenguard-usa.com'
+const SENDER = `${biz.name} <${biz.email}>`
+const RECIPIENT = biz.email
 
 function todayCT() { return new Date().toLocaleDateString('en-CA', { timeZone: TZ }) }
 function tomorrowCT() {
@@ -135,7 +136,7 @@ function renderHtml({ date, completedVisits, invoices, cancellations, tomorrow, 
   </table>
 
   <!-- Footer -->
-  <div style="text-align:center;color:rgba(122,171,130,0.18);font-size:10px;letter-spacing:0.08em;text-transform:uppercase">GreenGuard USA &nbsp;&middot;&nbsp; portal.greenguard-usa.com</div>
+  <div style="text-align:center;color:rgba(122,171,130,0.18);font-size:10px;letter-spacing:0.08em;text-transform:uppercase">${biz.nameShort} &nbsp;&middot;&nbsp; portal.greenguard-usa.com</div>
 </div>
 </body>
 </html>`

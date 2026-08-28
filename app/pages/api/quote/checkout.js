@@ -1,6 +1,7 @@
 const { jwtVerify } = require('jose')
 const Stripe = require('stripe')
 const { isJtiRevoked, isQuotePaid } = require('../../../lib/auth')
+const biz = require('../../../lib/business.config')
 
 function getSecret() {
   return new TextEncoder().encode(process.env.JWT_SECRET)
@@ -109,7 +110,7 @@ export default async function handler(req, res) {
     }
 
     // Apply Texas 8.25% sales tax to services/products only (before shipping — TX delivery charges are exempt)
-    const TX_TAX_RATE = 0.0825
+    const TX_TAX_RATE = biz.taxRateDecimal
     const taxCents = Math.round(runningCents * TX_TAX_RATE)
     if (taxCents > 0) {
       runningCents += taxCents

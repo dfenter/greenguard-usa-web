@@ -6,8 +6,9 @@
 
 const { getCalendar, getUpcomingBookingsForEmail } = require('./gcal')
 const { invalidate } = require('./cache')
+const biz = require('./business.config')
 
-const CALENDAR_ID = process.env.CALENDAR_ID || 'admin@greenguard-usa.com'
+const CALENDAR_ID = process.env.CALENDAR_ID || biz.calendarId
 const TZ = 'America/Chicago'
 const WORK_DAYS = new Set([1, 2, 3, 4, 5])
 const WORK_START_MIN = 10 * 60       // 10:00am CT

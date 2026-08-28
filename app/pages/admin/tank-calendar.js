@@ -7,6 +7,7 @@ import { findContactByEmail, upsertContact, getNotesForContact } from '../../lib
 import { getBookingsForWeek } from '../../lib/gcal'
 import { resolveByTitle, normalizeEventTitle } from '../../lib/sku-engine'
 import { useToast } from '../../components/ui'
+const biz = require('../../lib/business.config')
 
 const INVENTORY_EMAIL = 'inventory@greenguard-usa.com'
 const SAFETY_STOCK = 3
@@ -199,7 +200,7 @@ async function computeProjection(rawNotes) {
 
 export async function getServerSideProps({ req }) {
   const session = await getSessionFromRequest(req)
-  const ADMIN = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+  const ADMIN = process.env.ADMIN_EMAIL || biz.ownerEmail
   if (!session || session.email !== ADMIN) {
     return { redirect: { destination: '/dashboard', permanent: false } }
   }

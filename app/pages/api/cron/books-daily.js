@@ -2,6 +2,7 @@
 
 const { buildDailyBrief } = require('../../../lib/books-daily')
 const { Resend } = require('resend')
+const biz = require('../../../lib/business.config')
 
 export default async function handler(req, res) {
   if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).end()
@@ -12,8 +13,8 @@ export default async function handler(req, res) {
     if (process.env.RESEND_API_KEY) {
       const resend = new Resend(process.env.RESEND_API_KEY)
       await resend.emails.send({
-        from: 'GreenGuard Books <admin@greenguard-usa.com>',
-        to: 'admin@greenguard-usa.com',
+        from: `GreenGuard Books <${biz.email}>`,
+        to: biz.email,
         subject: `☀ Morning brief · ${(brief.bal.available / 100).toFixed(2)} avail · ${brief.ar.length} aged · ${brief.anomalies.length} anomalies`,
         html: brief.html,
       })

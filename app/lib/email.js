@@ -92,7 +92,7 @@ async function sendViaGmailApi({ to, subject, html, bcc, from, labelIds }) {
 // time — one source of truth for how an email actually goes out.
 async function sendEmailDirect({ to, subject, html, bcc, from }) {
   const resendFrom = from || `${biz.name} <${FROM}>`
-  const gmailFrom = from || `${biz.name} <admin@greenguard-usa.com>`
+  const gmailFrom = from || `${biz.name} <${biz.email}>`
   // Try Gmail first; fall back to Resend on ANY Gmail failure so a Gmail
   // hiccup never drops the email. No labelIds here: customer mail must not
   // get the Daily Ops label (that's purchase-notify.js only).
@@ -136,7 +136,7 @@ function emailShell(body) {
   <table width="580" cellpadding="0" cellspacing="0" border="0" style="max-width:580px;width:100%;">
     <tr>
       <td align="center" bgcolor="#1a3320" style="border-radius:10px 10px 0 0;padding:24px 32px;">
-        <p style="margin:0;font-size:20px;font-weight:900;color:#ffffff;font-family:Arial,sans-serif;letter-spacing:-0.5px;">GreenGuard USA</p>
+        <p style="margin:0;font-size:20px;font-weight:900;color:#ffffff;font-family:Arial,sans-serif;letter-spacing:-0.5px;">${biz.nameShort}</p>
         <p style="margin:4px 0 0;font-size:11px;font-weight:700;color:#7dbc8a;letter-spacing:2px;text-transform:uppercase;font-family:Arial,sans-serif;">Smart &middot; Safe &middot; Effective</p>
       </td>
     </tr>
@@ -147,8 +147,8 @@ function emailShell(body) {
     </tr>
     <tr>
       <td align="center" bgcolor="#dde8de" style="border-radius:0 0 10px 10px;padding:18px 32px;border:1px solid #dde8de;border-top:0;">
-        <p style="margin:0 0 3px;font-size:12px;font-weight:700;color:#1a3320;font-family:Arial,sans-serif;">GreenGuard USA</p>
-        <p style="margin:0;font-size:11px;color:#4a6650;font-family:Arial,sans-serif;">Austin, TX &nbsp;&#183;&nbsp; 512-560-4129 &nbsp;&#183;&nbsp; <a href="https://www.greenguard-usa.com" style="color:#2d6a3f;">greenguard-usa.com</a></p>
+        <p style="margin:0 0 3px;font-size:12px;font-weight:700;color:#1a3320;font-family:Arial,sans-serif;">${biz.nameShort}</p>
+        <p style="margin:0;font-size:11px;color:#4a6650;font-family:Arial,sans-serif;">${biz.city} &nbsp;&#183;&nbsp; ${biz.phone} &nbsp;&#183;&nbsp; <a href="https://www.greenguard-usa.com" style="color:#2d6a3f;">greenguard-usa.com</a></p>
       </td>
     </tr>
   </table>

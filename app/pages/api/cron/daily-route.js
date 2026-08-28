@@ -7,10 +7,11 @@ const { getBookingsForDate } = require('../../../lib/gcal')
 const { findContactsByEmails } = require('../../../lib/hubspot')
 const { resolveByTitle, normalizeEventTitle } = require('../../../lib/sku-engine')
 const { getDayForecast, formatForecastLine, isBadWeather } = require('../../../lib/weather')
+const biz = require('../../../lib/business.config')
 
 const TZ = 'America/Chicago'
-const SENDER = 'GreenGuard USA <admin@greenguard-usa.com>'
-const RECIPIENTS = ['bruce@greenguard-usa.com', 'admin@greenguard-usa.com']
+const SENDER = `${biz.name} <${biz.email}>`
+const RECIPIENTS = ['bruce@greenguard-usa.com', biz.email]
 
 function fmtTime(iso) {
   if (!iso) return ''
@@ -120,7 +121,7 @@ function renderHtml(date, stops, forecast) {
   </table>
 
   <!-- Footer -->
-  <div style="text-align:center;color:rgba(122,171,130,0.18);font-size:10px;letter-spacing:0.08em;text-transform:uppercase">GreenGuard USA &nbsp;&middot;&nbsp; 1519 Parkway, Austin TX 78703</div>
+  <div style="text-align:center;color:rgba(122,171,130,0.18);font-size:10px;letter-spacing:0.08em;text-transform:uppercase">GreenGuard USA &nbsp;&middot;&nbsp; ${biz.depot.full}</div>
 </div>
 </body>
 </html>`

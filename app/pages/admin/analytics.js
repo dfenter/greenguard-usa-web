@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { useLazyData, LazyLoading, LazyError } from '../../components/useLazyData'
+const biz = require('../../lib/business.config')
 
 // Finding 35 — TODO: evaluate modular recharts imports further; keep these
 // dynamic boundaries until the chart bundle can be reduced without regressions.
@@ -19,7 +20,7 @@ const YAxis          = dynamic(() => import('recharts').then((m) => m.YAxis),   
 const Tooltip        = dynamic(() => import('recharts').then((m) => m.Tooltip),         { ssr: false })
 const ResponsiveContainer = dynamic(() => import('recharts').then((m) => m.ResponsiveContainer), { ssr: false })
 
-const ADMIN_EMAIL = 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = biz.ownerEmail
 
 export async function getServerSideProps({ req, res }) {
   // Cache in browser for 5 minutes — admin-only so CDN won't serve it to others
@@ -873,7 +874,7 @@ function MapTab({ mapsKey, customerLocations }) {
   function initMap() {
     if (!mapRef.current) return
     mapObj.current = new window.google.maps.Map(mapRef.current, {
-      center: { lat: 30.2672, lng: -97.7431 }, // Austin TX
+      center: { lat: biz.depot.lat, lng: biz.depot.lng }, // Austin TX
       zoom: 11,
       mapTypeId: 'roadmap',
       styles: [
@@ -1096,7 +1097,7 @@ function HealthTab() {
         </div>
       )}
       <div className="card" style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-        Vercel Cron runs <code style={{ color: 'var(--gold)' }}>/api/cron/health</code> every 5 minutes. Alerts go to <strong>admin@greenguard-usa.com</strong> if any service is down.{' '}
+        Vercel Cron runs <code style={{ color: 'var(--gold)' }}>/api/cron/health</code> every 5 minutes. Alerts go to <strong>{biz.email}</strong> if any service is down.{' '}
         <a href="https://portal.greenguard-usa.com/api/health?deep=1" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--green-muted)' }}>Raw JSON →</a>
       </div>
     </div>

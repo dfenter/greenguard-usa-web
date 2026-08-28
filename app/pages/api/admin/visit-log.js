@@ -1,7 +1,8 @@
 const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { findContactByEmail, addNote } = require('../../../lib/hubspot')
+const biz = require('../../../lib/business.config')
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || biz.ownerEmail
 const PREFIX = '[VISIT-LOG]'
 
 // GET ?email=x&date=YYYY-MM-DD  →  load saved visit log

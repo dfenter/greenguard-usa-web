@@ -34,7 +34,7 @@ async function draftVisitEmail({ customerName, address, services, notes, techNam
   return generate(
     `Write a friendly, brief post-service email for a mosquito control company.
 Customer: ${customerName || 'Customer'}
-Property: ${address || 'Austin, TX'}
+Property: ${address || biz.city}
 Services completed today: ${svcList || 'routine service'}
 Tech notes: ${notes || 'none'}
 Tech name: ${techName || biz.gemini.techLabel}

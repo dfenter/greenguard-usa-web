@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest } from '../../lib/auth'
 import { findContactByEmail } from '../../lib/hubspot'
+const biz = require('../../lib/business.config')
 
 export async function getServerSideProps({ req }) {
   const session = await getSessionFromRequest(req)
@@ -23,7 +24,7 @@ export async function getServerSideProps({ req }) {
     props: {
       markers,
       address: p.address || null,
-      isAdmin: session.email === 'admin@greenguard-usa.com',
+      isAdmin: session.email === biz.ownerEmail,
     },
   }
 }
@@ -48,7 +49,7 @@ export default function CustomerMapPage({ markers, address, isAdmin }) {
 
     const center = markers.length > 0
       ? { lat: markers[0].lat, lng: markers[0].lng }
-      : { lat: 30.2672, lng: -97.7431 }
+      : { lat: biz.depot.lat, lng: biz.depot.lng }
 
     const map = new window.google.maps.Map(mapRef.current, {
       center,

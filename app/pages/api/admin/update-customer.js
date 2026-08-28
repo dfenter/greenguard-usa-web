@@ -1,8 +1,9 @@
 const { getSessionFromRequest, isAdminEmail } = require('../../../lib/auth')
 const { stripe } = require('../../../lib/stripe')
 const { updateContact } = require('../../../lib/hubspot')
+const biz = require('../../../lib/business.config')
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || biz.ownerEmail
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()

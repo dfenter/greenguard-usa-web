@@ -2,13 +2,14 @@ const { getSessionFromRequest, isAdminEmail, escapeStripeSearch } = require('../
 const { findContactByEmail, upsertContact, addNote } = require('../../../lib/hubspot')
 const { addInvoiceItems, stripe } = require('../../../lib/stripe')
 const { SKU_PRICES, isSubscriptionSKU } = require('../../../lib/sku-engine')
+const biz = require('../../../lib/business.config')
 
 // Only non-subscription, non-free SKUs are valid for manual invoice items
 const BILLABLE_SKUS = new Set(
   Object.keys(SKU_PRICES).filter((sku) => !isSubscriptionSKU(sku) && sku !== 'ASSESS' && sku !== 'CHK')
 )
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || biz.ownerEmail
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end()

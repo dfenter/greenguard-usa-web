@@ -7,9 +7,10 @@
 // live. Any change here changes admin booking too.
 
 const { getCalendar } = require('./gcal')
+const biz = require('./business.config')
 
 const TZ = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
-const CALENDAR_ID = 'admin@greenguard-usa.com'
+const CALENDAR_ID = biz.calendarId
 
 // Direct Google Calendar event creation — used when admin opts to force a
 // double-booking through Cal.com's availability check. The event is created
@@ -32,7 +33,7 @@ async function createDirectGCalEvent({ firstName, lastName, email, phone, addres
     address ? `Address: ${address}` : null,
     ...(Array.isArray(extraLines) ? extraLines : []),
     '',
-    'Manual admin booking (Cal.com slot was unavailable — forced double-book). GreenGuard USA',
+    `Manual admin booking (Cal.com slot was unavailable — forced double-book). ${biz.nameShort}`,
     notes ? '' : null,
     notes ? `Notes: ${notes}` : null,
   ].filter((x) => x !== null).join('\n')
@@ -40,7 +41,7 @@ async function createDirectGCalEvent({ firstName, lastName, email, phone, addres
     calendarId: CALENDAR_ID,
     sendUpdates: 'none',
     requestBody: {
-      summary: `${name}: ${eventTypeTitle || 'Manual booking'} (GreenGuard USA)`,
+      summary: `${name}: ${eventTypeTitle || 'Manual booking'} (${biz.bookingTag})`,
       description,
       location: address,
       start: { dateTime: start.toISOString(), timeZone: TZ },

@@ -2,6 +2,7 @@ const { getSessionFromRequest } = require('../../../lib/auth')
 const { findContactByEmail } = require('../../../lib/hubspot')
 const { sendServiceRequest } = require('../../../lib/email')
 const { autoReschedule } = require('../../../lib/auto-reschedule')
+const biz = require('../../../lib/business.config')
 
 const TZ = 'America/Chicago'
 const fmtSlot = (d) => d.toLocaleString('en-US', {
@@ -9,7 +10,7 @@ const fmtSlot = (d) => d.toLocaleString('en-US', {
   timeZone: TZ, timeZoneName: 'short',
 })
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || biz.ownerEmail
 
 // In-process rate limit: max 3 requests per email per hour
 const rateLimitMap = new Map()

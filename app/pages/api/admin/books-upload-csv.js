@@ -11,6 +11,7 @@ const { getSessionFromRequest, isOwnerEmail } = require('../../../lib/auth')
 const { parseCsvStatement } = require('../../../lib/books-csv')
 const { complete } = require('../../../lib/llm')
 const { q } = require('../../../lib/db')
+const biz = require('../../../lib/business.config')
 
 export const config = { api: { bodyParser: { sizeLimit: '4mb' } } }
 
@@ -34,7 +35,7 @@ async function suggestCategories(rows) {
       return `${i + 1}. ${sign}$${dollars} ${(r.description || '').slice(0, 100)}`
     }).join('\n')
 
-    const prompt = `Categorize credit-card / bank statement rows for a mosquito-control business in Austin, TX.
+    const prompt = `Categorize credit-card / bank statement rows for a ${biz.industry} in ${biz.city}.
 Positive amounts = money in, negative = money out. Pick the SINGLE BEST category for each.
 
 CATEGORIES:

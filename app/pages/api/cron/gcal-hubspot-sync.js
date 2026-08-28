@@ -17,8 +17,9 @@ const {
   parseCustomerName,
 } = require('../../../lib/gcal')
 const { upsertContact } = require('../../../lib/hubspot')
+const biz = require('../../../lib/business.config')
 
-const CALENDAR_ID = process.env.CALENDAR_ID || 'admin@greenguard-usa.com'
+const CALENDAR_ID = process.env.CALENDAR_ID || biz.calendarId
 const LOOKBACK_DAYS = 90
 const LOOKAHEAD_DAYS = 90
 const MAX_EVENTS = 2000

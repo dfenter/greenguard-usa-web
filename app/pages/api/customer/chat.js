@@ -14,13 +14,14 @@ const { getUpcomingBookingsForEmail, getPastBookingsForEmail } = require('../../
 const { sendServiceRequest } = require('../../../lib/email')
 const { runAssistant } = require('../../../lib/assistant')
 const { tryLocalChat, STARTED_BUT_FAILED_REPLY } = require('../../../lib/chat-local')
+const biz = require('../../../lib/business.config')
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || biz.ownerEmail
 
 // The local (Mac daemon) path can take up to ~52s; default lambda cap is lower.
 export const config = { maxDuration: 60 }
 
-const SYSTEM_TEMPLATE = `You are the GreenGuard USA customer assistant. You help the signed-in customer with questions about their CO₂ mosquito-control service and can take two safe actions for them.
+const SYSTEM_TEMPLATE = `You are the ${biz.nameShort} customer assistant. You help the signed-in customer with questions about their CO₂ mosquito-control service and can take two safe actions for them.
 
 GROUND RULES:
 1. Be warm, brief, plain-English. No marketing language. No emojis unless the customer used one first. Never use em dashes.
@@ -172,6 +173,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ reply, escalated, escalateReason })
   } catch (e) {
     console.error('customer chat error:', e.message)
-    return res.status(500).json({ error: 'Chat unavailable right now — please email admin@greenguard-usa.com' })
+    return res.status(500).json({ error: `Chat unavailable right now — please email ${biz.email}` })
   }
 }

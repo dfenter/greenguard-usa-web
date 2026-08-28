@@ -5,8 +5,9 @@
  * Protected: only Vercel's cron runner can call this (Authorization header check).
  */
 const { Resend } = require('resend')
+const biz = require('../../../lib/business.config')
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || biz.ownerEmail
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com'
 
 export default async function handler(req, res) {

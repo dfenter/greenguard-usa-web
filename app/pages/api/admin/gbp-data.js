@@ -3,6 +3,7 @@ import fs from 'fs'
 import { getAccounts, getLocations, getInsights, getReviews } from '../../../lib/gbp'
 import { requireAdmin } from '../../../lib/auth'
 import { cached } from '../../../lib/cache'
+const biz = require('../../../lib/business.config')
 
 const GBP_TTL = 3600 // 1 hour — GBP quota is 5 req/min; cache prevents repeated 429s
 
@@ -39,7 +40,7 @@ export default async function handler(req, res) {
         return {
           configured: true,
           staticFallback: true,
-          location: { name: 'GreenGuard USA', phone: '(512) 560-4129', website: 'https://www.greenguard-usa.com' },
+          location: { name: biz.nameShort, phone: '(512) 560-4129', website: 'https://www.greenguard-usa.com' },
           insights: null,
           reviews: staticReviews,
         }

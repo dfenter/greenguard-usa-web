@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import Head from 'next/head'
 import PortalLayout from '../../components/PortalLayout'
 import { useToast, useConfirm } from '../../components/ui'
+const biz = require('../../lib/business.config')
 
 // Public self-serve quote builder. Mirrors /admin/quote but with no
 // auth, no customer-search panel, no admin actions (send-to-customer,
@@ -461,7 +462,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
   const [linkCopied, setLinkCopied] = useState(false)
   const [checkingOut, setCheckingOut] = useState(false)
   const [checkoutError, setCheckoutError] = useState(null)
-  const taxRate = 8.25
+  const taxRate = biz.taxRate
   const [mapLoaded, setMapLoaded] = useState(false)
   const [mapPin, setMapPin] = useState(null)
   const [machPins, setMachPins] = useState([])
@@ -496,7 +497,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
   useEffect(() => {
     if (!mapLoaded || !mapRef.current || mapObj.current) return
     mapObj.current = new window.google.maps.Map(mapRef.current, {
-      center: { lat: 30.2672, lng: -97.7431 },
+      center: { lat: biz.depot.lat, lng: biz.depot.lng },
       zoom: 15,
       mapTypeId: 'satellite',
       tilt: 0,
@@ -505,7 +506,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
       scaleControl: true,
     })
     pinRef.current = new window.google.maps.Marker({
-      position: { lat: 30.2672, lng: -97.7431 },
+      position: { lat: biz.depot.lat, lng: biz.depot.lng },
       map: mapObj.current,
       draggable: true,
       visible: false,
@@ -525,7 +526,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
   // Initialize Street View panorama lazily when user switches to it
   useEffect(() => {
     if (!mapLoaded || mapView !== 'street' || !streetRef.current || streetObj.current) return
-    const pos = mapPin || { lat: 30.2672, lng: -97.7431 }
+    const pos = mapPin || { lat: biz.depot.lat, lng: biz.depot.lng }
     streetObj.current = new window.google.maps.StreetViewPanorama(streetRef.current, {
       position: pos,
       pov: { heading: 0, pitch: 0 },
@@ -816,7 +817,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
                   <OptionPreview title="Option 1 · Monthly Rental" tagline="Everything included, no upfront equipment" opt={quoteOptions.rental} accent="green" localDelivery={localDelivery} />
                   <OptionPreview title="Option 2 · Purchase & Service" tagline="Own the equipment, we keep it running" opt={quoteOptions.purchase} accent="info" localDelivery={localDelivery} />
                   <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', lineHeight: 1.5 }}>
-                    The customer compares both options on their quote page and pays for the one they choose. Tax 8.25% (Austin, TX) included in totals.
+                    The customer compares both options on their quote page and pays for the one they choose. Tax {biz.taxRate}% ({biz.city}) included in totals.
                   </div>
                 </div>
               )}
@@ -856,7 +857,7 @@ export default function QuoteBuilder({ customers, mapsKey }) {
               {/* Tax — fixed 8.25% Austin rate */}
               {!quoteOptions && (
               <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.8rem', color: 'var(--text-dim)', fontWeight: 600 }}>
-                Tax: {taxRate}% (Austin, TX)
+                Tax: {taxRate}% ({biz.city})
               </div>
               )}
 

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+const biz = require('../lib/business.config')
 
 // Floating chat widget for customer dashboard.
 // Collapsed: round button bottom-right. Expanded: 360x520 panel.
@@ -32,10 +33,10 @@ export default function CustomerChat() {
       if (res.ok) {
         setMessages([...next, { role: 'assistant', content: j.reply, escalated: j.escalated }])
       } else {
-        setMessages([...next, { role: 'assistant', content: j.error || 'Sorry, something went wrong. Please email admin@greenguard-usa.com.' }])
+        setMessages([...next, { role: 'assistant', content: j.error || `Sorry, something went wrong. Please email ${biz.email}.` }])
       }
     } catch (e) {
-      setMessages([...next, { role: 'assistant', content: "I'm having trouble connecting. Please try again or email admin@greenguard-usa.com." }])
+      setMessages([...next, { role: 'assistant', content: `I'm having trouble connecting. Please try again or email ${biz.email}.` }])
     } finally {
       setBusy(false)
     }

@@ -1,9 +1,10 @@
 const { requireAdmin } = require('../../../lib/auth')
 const { upsertContact, addNote, findContactByEmail, getNotesForContact } = require('../../../lib/hubspot')
 const { sendInventoryReport } = require('../../../lib/email')
+const biz = require('../../../lib/business.config')
 
 const INVENTORY_EMAIL = 'inventory@greenguard-usa.com'
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || biz.ownerEmail
 
 const FIELD_LABELS = {
   fullTanks: 'Full CO₂ tanks',

@@ -8,6 +8,7 @@ import { findContactByEmail } from '../../lib/hubspot'
 function fmt$(n) { return `$${Number(n).toFixed(2)}` }
 
 // ── Pricing constants (mirrors quote builder) ──────────────────────────────────
+// TODO(ops-v0.3): move to lib/catalog.js
 const BG_RENTAL = { 1: 159.99, 2: 266.99, 3: 399.99, 4: 500, 5: 625, 6: 750 }
 const MQ_RENTAL = 299.99
 const BARRIER    = 49.99
