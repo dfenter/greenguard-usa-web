@@ -1,0 +1,690 @@
+[
+ {
+  "id": "cookiecutter",
+  "name": "Cookiecutter Shark",
+  "act": 1,
+  "tier": 1,
+  "cls": "common",
+  "model": "smoothhound"
+ },
+ {
+  "id": "epaulette",
+  "name": "Epaulette Shark",
+  "act": 1,
+  "tier": 1,
+  "cls": "common",
+  "model": "bullhead"
+ },
+ {
+  "id": "reef",
+  "name": "Reef Shark",
+  "act": 1,
+  "tier": 1,
+  "cls": "common",
+  "model": "dogfish"
+ },
+ {
+  "id": "blue",
+  "name": "Blue Shark",
+  "act": 1,
+  "tier": 2,
+  "cls": "common",
+  "model": "mako"
+ },
+ {
+  "id": "mako",
+  "name": "Shortfin Mako",
+  "act": 1,
+  "tier": 2,
+  "cls": "common",
+  "model": "mako"
+ },
+ {
+  "id": "hammerhead",
+  "name": "Hammerhead",
+  "act": 1,
+  "tier": 3,
+  "cls": "common",
+  "model": "smoothhammer"
+ },
+ {
+  "id": "sawshark",
+  "name": "Longnose Sawshark",
+  "act": 1,
+  "tier": 3,
+  "cls": "common",
+  "model": "thresher"
+ },
+ {
+  "id": "thresher",
+  "name": "Thresher Shark",
+  "act": 1,
+  "tier": 3,
+  "cls": "common",
+  "model": "thresher"
+ },
+ {
+  "id": "bull",
+  "name": "Bull Shark",
+  "act": 1,
+  "tier": 4,
+  "cls": "common",
+  "model": "whaler"
+ },
+ {
+  "id": "goblin",
+  "name": "Goblin Shark",
+  "act": 1,
+  "tier": 4,
+  "cls": "common",
+  "model": "?"
+ },
+ {
+  "id": "tiger",
+  "name": "Tiger Shark",
+  "act": 1,
+  "tier": 4,
+  "cls": "common",
+  "model": "tiger_nu"
+ },
+ {
+  "id": "greatwhite",
+  "name": "Great White",
+  "act": 1,
+  "tier": 5,
+  "cls": "rare",
+  "model": "greatwhite_cy"
+ },
+ {
+  "id": "whaleshark",
+  "name": "Whale Shark",
+  "act": 1,
+  "tier": 5,
+  "cls": "rare",
+  "model": "whitepointer"
+ },
+ {
+  "id": "dunkleosteus",
+  "name": "Dunkleosteus",
+  "act": 1,
+  "tier": 6,
+  "cls": "rare",
+  "model": "bullhead"
+ },
+ {
+  "id": "greenland",
+  "name": "Greenland Shark",
+  "act": 1,
+  "tier": 6,
+  "cls": "rare",
+  "model": "whitepointer"
+ },
+ {
+  "id": "megalodon",
+  "name": "Megalodon",
+  "act": 1,
+  "tier": 6,
+  "cls": "rare",
+  "model": "whitepointer"
+ },
+ {
+  "id": "anglerfang",
+  "name": "Anglerfang",
+  "act": 2,
+  "tier": 7,
+  "cls": "rare",
+  "model": "smoothhound"
+ },
+ {
+  "id": "barbhook",
+  "name": "Barbhook",
+  "act": 2,
+  "tier": 7,
+  "cls": "rare",
+  "model": "thresher"
+ },
+ {
+  "id": "coralcrown",
+  "name": "Coralcrown",
+  "act": 2,
+  "tier": 7,
+  "cls": "rare",
+  "model": "whaler"
+ },
+ {
+  "id": "duskfin",
+  "name": "Duskfin",
+  "act": 2,
+  "tier": 7,
+  "cls": "rare",
+  "model": "mako"
+ },
+ {
+  "id": "gulperfiend",
+  "name": "Gulper Fiend",
+  "act": 2,
+  "tier": 7,
+  "cls": "rare",
+  "model": "?"
+ },
+ {
+  "id": "morayne",
+  "name": "Morayne",
+  "act": 2,
+  "tier": 7,
+  "cls": "rare",
+  "model": "thresher"
+ },
+ {
+  "id": "sailfin",
+  "name": "Sailfin Ripper",
+  "act": 2,
+  "tier": 7,
+  "cls": "rare",
+  "model": "blueshark"
+ },
+ {
+  "id": "snapjaw",
+  "name": "Snapjaw",
+  "act": 2,
+  "tier": 7,
+  "cls": "rare",
+  "model": "tigershark"
+ },
+ {
+  "id": "stonejaw",
+  "name": "Stonejaw",
+  "act": 2,
+  "tier": 7,
+  "cls": "rare",
+  "model": "whaler"
+ },
+ {
+  "id": "thornback",
+  "name": "Thornback",
+  "act": 2,
+  "tier": 7,
+  "cls": "rare",
+  "model": "bullhead"
+ },
+ {
+  "id": "abyssmaw",
+  "name": "Abyss Maw",
+  "act": 2,
+  "tier": 8,
+  "cls": "epic",
+  "model": "smoothhound"
+ },
+ {
+  "id": "frostjaw",
+  "name": "Frostjaw",
+  "act": 2,
+  "tier": 8,
+  "cls": "epic",
+  "model": "whitepointer"
+ },
+ {
+  "id": "gloomtide",
+  "name": "Gloomtide",
+  "act": 2,
+  "tier": 8,
+  "cls": "epic",
+  "model": "blueshark"
+ },
+ {
+  "id": "howler",
+  "name": "Howler",
+  "act": 2,
+  "tier": 8,
+  "cls": "epic",
+  "model": "tigershark"
+ },
+ {
+  "id": "magmaw",
+  "name": "Magmaw",
+  "act": 2,
+  "tier": 8,
+  "cls": "epic",
+  "model": "bullhead"
+ },
+ {
+  "id": "riftjaw",
+  "name": "Riftjaw",
+  "act": 2,
+  "tier": 8,
+  "cls": "epic",
+  "model": "whaler"
+ },
+ {
+  "id": "stormfin",
+  "name": "Stormfin",
+  "act": 2,
+  "tier": 8,
+  "cls": "epic",
+  "model": "blueshark"
+ },
+ {
+  "id": "venomspine",
+  "name": "Venomspine",
+  "act": 2,
+  "tier": 8,
+  "cls": "epic",
+  "model": "mako"
+ },
+ {
+  "id": "vex",
+  "name": "Vex",
+  "act": 2,
+  "tier": 8,
+  "cls": "epic",
+  "model": "whitepointer"
+ },
+ {
+  "id": "wreckfang",
+  "name": "Wreckfang",
+  "act": 2,
+  "tier": 8,
+  "cls": "epic",
+  "model": "greatwhite_cy"
+ },
+ {
+  "id": "bonecrown",
+  "name": "Bonecrown",
+  "act": 3,
+  "tier": 9,
+  "cls": "epic",
+  "model": "greatwhite_cy"
+ },
+ {
+  "id": "cindermaw",
+  "name": "Cindermaw",
+  "act": 3,
+  "tier": 9,
+  "cls": "epic",
+  "model": "blueshark"
+ },
+ {
+  "id": "glacier",
+  "name": "Glacier",
+  "act": 3,
+  "tier": 9,
+  "cls": "epic",
+  "model": "whitepointer"
+ },
+ {
+  "id": "gravewater",
+  "name": "Gravewater",
+  "act": 3,
+  "tier": 9,
+  "cls": "epic",
+  "model": "whitepointer"
+ },
+ {
+  "id": "ironfin",
+  "name": "Ironfin",
+  "act": 3,
+  "tier": 9,
+  "cls": "epic",
+  "model": "greatwhite_cy"
+ },
+ {
+  "id": "maelstrom",
+  "name": "Maelstrom",
+  "act": 3,
+  "tier": 9,
+  "cls": "epic",
+  "model": "whitepointer"
+ },
+ {
+  "id": "mirrorscale",
+  "name": "Mirrorscale",
+  "act": 3,
+  "tier": 9,
+  "cls": "epic",
+  "model": "whaler"
+ },
+ {
+  "id": "nocturne",
+  "name": "Nocturne",
+  "act": 3,
+  "tier": 9,
+  "cls": "epic",
+  "model": "blueshark"
+ },
+ {
+  "id": "plaguemaw",
+  "name": "Plaguemaw",
+  "act": 3,
+  "tier": 9,
+  "cls": "epic",
+  "model": "tigershark"
+ },
+ {
+  "id": "sunspine",
+  "name": "Sunspine",
+  "act": 3,
+  "tier": 9,
+  "cls": "epic",
+  "model": "whitepointer"
+ },
+ {
+  "id": "tempest",
+  "name": "Tempest",
+  "act": 3,
+  "tier": 9,
+  "cls": "epic",
+  "model": "blueshark"
+ },
+ {
+  "id": "teslafang",
+  "name": "Teslafang",
+  "act": 3,
+  "tier": 9,
+  "cls": "epic",
+  "model": "whitepointer"
+ },
+ {
+  "id": "aurora",
+  "name": "Aurora",
+  "act": 3,
+  "tier": 10,
+  "cls": "epic",
+  "model": "blueshark"
+ },
+ {
+  "id": "banshee",
+  "name": "Banshee",
+  "act": 3,
+  "tier": 10,
+  "cls": "epic",
+  "model": "whitepointer"
+ },
+ {
+  "id": "chronos",
+  "name": "Chronos",
+  "act": 3,
+  "tier": 10,
+  "cls": "epic",
+  "model": "mako"
+ },
+ {
+  "id": "nullfin",
+  "name": "Nullfin",
+  "act": 3,
+  "tier": 10,
+  "cls": "epic",
+  "model": "greatwhite_cy"
+ },
+ {
+  "id": "seismos",
+  "name": "Seismos",
+  "act": 3,
+  "tier": 10,
+  "cls": "epic",
+  "model": "whitepointer"
+ },
+ {
+  "id": "voltaicrex",
+  "name": "Voltaic Rex",
+  "act": 3,
+  "tier": 10,
+  "cls": "epic",
+  "model": "whitepointer"
+ },
+ {
+  "id": "vortexa",
+  "name": "Vortexa",
+  "act": 3,
+  "tier": 10,
+  "cls": "epic",
+  "model": "whitepointer"
+ },
+ {
+  "id": "vulkan",
+  "name": "Vulkan",
+  "act": 3,
+  "tier": 10,
+  "cls": "epic",
+  "model": "whitepointer"
+ },
+ {
+  "id": "absolutezero",
+  "name": "Absolute Zero",
+  "act": 3,
+  "tier": 11,
+  "cls": "legendary",
+  "model": "tigershark"
+ },
+ {
+  "id": "omenmaw",
+  "name": "Omenmaw",
+  "act": 3,
+  "tier": 11,
+  "cls": "legendary",
+  "model": "bullhead"
+ },
+ {
+  "id": "solaris",
+  "name": "Solaris",
+  "act": 3,
+  "tier": 11,
+  "cls": "legendary",
+  "model": "whitepointer"
+ },
+ {
+  "id": "warbringer",
+  "name": "Warbringer",
+  "act": 3,
+  "tier": 11,
+  "cls": "legendary",
+  "model": "greatwhite_cy"
+ },
+ {
+  "id": "leviathan_rex",
+  "name": "Leviathan Rex",
+  "act": 3,
+  "tier": 12,
+  "cls": "legendary",
+  "model": "greatwhite_cy"
+ },
+ {
+  "id": "leviathanrex",
+  "name": "Sharkjira",
+  "act": 3,
+  "tier": 12,
+  "cls": "legendary",
+  "model": "greatwhite_cy"
+ },
+ {
+  "id": "aphroditelure",
+  "name": "Aphrodite Lure",
+  "act": 4,
+  "tier": 9,
+  "cls": "god",
+  "model": "bullhead"
+ },
+ {
+  "id": "apollodon",
+  "name": "Apollodon",
+  "act": 4,
+  "tier": 9,
+  "cls": "god",
+  "model": "mako"
+ },
+ {
+  "id": "artemisstrike",
+  "name": "Artemis Strike",
+  "act": 4,
+  "tier": 9,
+  "cls": "god",
+  "model": "whaler"
+ },
+ {
+  "id": "dionysustide",
+  "name": "Dionysus Tide",
+  "act": 4,
+  "tier": 9,
+  "cls": "god",
+  "model": "whaler"
+ },
+ {
+  "id": "hermesdart",
+  "name": "Hermes Dart",
+  "act": 4,
+  "tier": 9,
+  "cls": "god",
+  "model": "whaler"
+ },
+ {
+  "id": "poseidonrex",
+  "name": "Poseidonrex",
+  "act": 4,
+  "tier": 9,
+  "cls": "god",
+  "model": "whitepointer"
+ },
+ {
+  "id": "zeusfin",
+  "name": "Zeusfin",
+  "act": 4,
+  "tier": 9,
+  "cls": "god",
+  "model": "mako"
+ },
+ {
+  "id": "aresrender",
+  "name": "Aresrender",
+  "act": 4,
+  "tier": 10,
+  "cls": "god",
+  "model": "tigershark"
+ },
+ {
+  "id": "athenajaw",
+  "name": "Athenajaw",
+  "act": 4,
+  "tier": 10,
+  "cls": "god",
+  "model": "scallopedhammer"
+ },
+ {
+  "id": "hadesmaw",
+  "name": "Hadesmaw",
+  "act": 4,
+  "tier": 10,
+  "cls": "god",
+  "model": "whitepointer"
+ },
+ {
+  "id": "hephaestusforge",
+  "name": "Hephaestus Forge",
+  "act": 4,
+  "tier": 10,
+  "cls": "god",
+  "model": "whitepointer"
+ },
+ {
+  "id": "heracrown",
+  "name": "Hera Crown",
+  "act": 4,
+  "tier": 12,
+  "cls": "god",
+  "model": "whitepointer"
+ },
+ {
+  "id": "chimerashark",
+  "name": "Chimera Shark",
+  "act": 5,
+  "tier": 9,
+  "cls": "demon",
+  "model": "thresher"
+ },
+ {
+  "id": "cyclopseye",
+  "name": "Cyclops Eye",
+  "act": 5,
+  "tier": 9,
+  "cls": "demon",
+  "model": "whaler"
+ },
+ {
+  "id": "harpyshade",
+  "name": "Harpy Shade",
+  "act": 5,
+  "tier": 9,
+  "cls": "demon",
+  "model": "whitepointer"
+ },
+ {
+  "id": "lamiacoil",
+  "name": "Lamia Coil",
+  "act": 5,
+  "tier": 9,
+  "cls": "demon",
+  "model": "thresher"
+ },
+ {
+  "id": "medusagaze",
+  "name": "Medusa Gaze",
+  "act": 5,
+  "tier": 9,
+  "cls": "demon",
+  "model": "bullhead"
+ },
+ {
+  "id": "scyllarender",
+  "name": "Scylla Render",
+  "act": 5,
+  "tier": 9,
+  "cls": "demon",
+  "model": "blueshark"
+ },
+ {
+  "id": "cerberusjaw",
+  "name": "Cerberus Jaw",
+  "act": 5,
+  "tier": 10,
+  "cls": "demon",
+  "model": "tigershark"
+ },
+ {
+  "id": "charybdisvoid",
+  "name": "Charybdis Void",
+  "act": 5,
+  "tier": 10,
+  "cls": "demon",
+  "model": "whitepointer"
+ },
+ {
+  "id": "hydrafang",
+  "name": "Hydrafang",
+  "act": 5,
+  "tier": 10,
+  "cls": "demon",
+  "model": "blueshark"
+ },
+ {
+  "id": "kampechrono",
+  "name": "Kampe Chrono",
+  "act": 5,
+  "tier": 10,
+  "cls": "demon",
+  "model": "whitepointer"
+ },
+ {
+  "id": "minotaurram",
+  "name": "Minotaur Ram",
+  "act": 5,
+  "tier": 10,
+  "cls": "demon",
+  "model": "whitepointer"
+ },
+ {
+  "id": "typhonmaw",
+  "name": "Typhonmaw",
+  "act": 5,
+  "tier": 12,
+  "cls": "demon",
+  "model": "whitepointer"
+ }
+]

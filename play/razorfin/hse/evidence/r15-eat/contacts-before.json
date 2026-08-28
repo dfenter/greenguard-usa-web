@@ -1,0 +1,147 @@
+[
+  {
+    "level": "mexico",
+    "contacts": 1,
+    "eaten": 0,
+    "stung": 0,
+    "tooBig": 1,
+    "nothing": 0,
+    "nothingIds": {},
+    "tooBigIds": {
+      "grouper(t3)": 1
+    },
+    "dbg": {
+      "drive": 0,
+      "mag": 0,
+      "active": true,
+      "px": 420,
+      "py": 223,
+      "tx": 6784,
+      "ty": 185,
+      "speed": 17,
+      "nearest": 6
+    },
+    "playerTier": 1,
+    "endPos": [
+      6786,
+      180
+    ],
+    "entCount": 44,
+    "roster": {
+      "relic_z1_a:relic:t0": 1,
+      "relic_z1_b:relic:t0": 1,
+      "relic_z1_c:relic:t0": 1,
+      "relic_z2_a:relic:t0": 1,
+      "relic_z2_b:relic:t0": 1,
+      "relic_z2_c:relic:t0": 1,
+      "relic_z3_a:relic:t0": 1,
+      "relic_z3_b:relic:t0": 1,
+      "relic_z3_c:relic:t0": 1,
+      "relic_z4_a:relic:t0": 1,
+      "relic_z4_b:relic:t0": 1,
+      "relic_z4_c:relic:t0": 1,
+      "grouper:prey:t3": 11,
+      "jelly:hazard:t99": 1,
+      "mackerel:prey:t1": 20
+    }
+  },
+  {
+    "level": "alaska",
+    "contacts": 2,
+    "eaten": 0,
+    "stung": 0,
+    "tooBig": 2,
+    "nothing": 0,
+    "nothingIds": {},
+    "tooBigIds": {
+      "seal(t3)": 2
+    },
+    "dbg": {
+      "drive": 0,
+      "mag": 0,
+      "active": true,
+      "px": 413,
+      "py": 228,
+      "tx": 7616,
+      "ty": 277,
+      "speed": 5,
+      "nearest": 7
+    },
+    "playerTier": 1,
+    "endPos": [
+      7620,
+      272
+    ],
+    "entCount": 46,
+    "roster": {
+      "relic_z1_a:relic:t0": 1,
+      "relic_z1_b:relic:t0": 1,
+      "relic_z1_c:relic:t0": 1,
+      "relic_z2_a:relic:t0": 1,
+      "relic_z2_b:relic:t0": 1,
+      "relic_z2_c:relic:t0": 1,
+      "relic_z3_a:relic:t0": 1,
+      "relic_z3_b:relic:t0": 1,
+      "relic_z3_c:relic:t0": 1,
+      "relic_z4_a:relic:t0": 1,
+      "relic_z4_b:relic:t0": 1,
+      "relic_z4_c:relic:t0": 1,
+      "seal:prey:t3": 15,
+      "jelly:hazard:t99": 9,
+      "puffer:hazard:t99": 3,
+      "tuna:prey:t4": 5,
+      "buff_shield:buffpickup:t0": 1,
+      "buff_buff_speed:buffpickup:t0": 1
+    }
+  },
+  {
+    "level": "hawaii",
+    "contacts": 3,
+    "eaten": 0,
+    "stung": 2,
+    "tooBig": 0,
+    "nothing": 1,
+    "nothingIds": {
+      "puffer(t99)": 1
+    },
+    "tooBigIds": {},
+    "dbg": {
+      "drive": 1,
+      "mag": 1,
+      "active": true,
+      "px": 410,
+      "py": 212,
+      "tx": 2088,
+      "ty": 61,
+      "speed": 346,
+      "nearest": 1000000000
+    },
+    "playerTier": 1,
+    "endPos": [
+      2160,
+      61
+    ],
+    "entCount": 46,
+    "roster": {
+      "relic_z1_a:relic:t0": 1,
+      "relic_z1_b:relic:t0": 1,
+      "relic_z1_c:relic:t0": 1,
+      "relic_z2_a:relic:t0": 1,
+      "relic_z2_b:relic:t0": 1,
+      "relic_z2_c:relic:t0": 1,
+      "relic_z3_a:relic:t0": 1,
+      "relic_z3_b:relic:t0": 1,
+      "relic_z3_c:relic:t0": 1,
+      "relic_z4_a:relic:t0": 1,
+      "relic_z4_b:relic:t0": 1,
+      "relic_z4_c:relic:t0": 1,
+      "reeffish:prey:t1": 10,
+      "puffer:hazard:t99": 4,
+      "jelly:hazard:t99": 4,
+      "minnow:prey:t0": 11,
+      "parrot:prey:t2": 3,
+      "buff_magnet:buffpickup:t0": 1,
+      "buff_shield:buffpickup:t0": 1
+    }
+  }
+]

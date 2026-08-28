@@ -14,7 +14,7 @@ import { applyMorph } from './hse/rig_morph.js';
 import { buildTexturedFace, checkTexturedFace } from './hse/face_textured.js';
 import { ModelBudget, TEXTURED_LRU_CAP } from './hse/model_budget.js';
 /* Lane O2 kill switch: see the note at the face mount in buildLoadedRig. */
-const RF_O2_TEXTURED_FACE = false;
+const RF_O2_TEXTURED_FACE = true;
 
 const host = typeof window !== 'undefined' ? window : globalThis;
 const RF = host.RF = host.RF || {};
@@ -38,13 +38,13 @@ const MODEL_FILES = Object.freeze({
   bullhead: 'bullhead.glb',
   dogfish: 'dogfish.glb',
   greatwhite_cy: 'greatwhite_cy.glb',
-  mako: 'mako.glb',
+  mako: 'mako_r15.glb', // r15 flat-lum re-bake (NOTES-rev15-bake.md); original mako.glb kept
   megalodonrex: 'megalodonrex.glb',
   scallopedhammer: 'scallopedhammer.glb',
   smoothhammer: 'smoothhammer.glb',
   smoothhound: 'smoothhound.glb',
   thresher: 'thresher.glb',
-  tiger_nu: 'tiger_nu.glb',
+  tiger_nu: 'tiger_nu_r15.glb', // r15 flat-lum re-bake
   tigershark: 'tigershark.glb',
   whaler: 'whaler.glb',
   whitepointer: 'whitepointer.glb'
@@ -69,7 +69,7 @@ const TEXTURED_SUFFIX = ':rf-tex1';
  * about the body's long axis turns about local Y. */
 const SWIM_YAW_AXIS = Object.freeze(new THREE.Vector3(0, 0, 1));
 const SWIM_ROLL_AXIS = Object.freeze(new THREE.Vector3(0, 1, 0));
-const JAW_REST_GAPE = 0.28;
+const JAW_REST_GAPE = 0; // r15 GRIN: rest gape now committed by face_textured commitRestGape; +X opens (sign was inverted)
 const JAW_MAX_ROTATION = 0.72;
 const PATTERN_IDS = Object.freeze({
   plain: 0, stripes: 1, spots: 2, dots: 2, mottled: 2, mirror: 2, boils: 2,
@@ -556,7 +556,7 @@ const PERSONALITY_TABLE = Object.freeze({
   leviathan_rex: personality('armored sea-green king, flat crown brow, tusked underslung jaw',
     { head: 1.30, neck: 1.22, chest: 1.16, tail: 1.02, fin: 0.94 },
     { head: 0.24, neck: 0.20, chest: 0.10, tail: 0.06, jaw: 0.30, underbite: 0.34, brow: 0.52, dorsal: -0.10, hump: 0.04, sag: 0.10, muscle: 0.34 },
-    { eye: 0.72, brow: 0.60, pupil: 0.86, gape: 0.10, tilt: 0.34 },
+    { eye: 0.72, brow: 0.60, pupil: 0.86, gape: 0.10, tilt: -0.34 },
     { relief: 0.30, density: 0.78, scars: 0.06, plates: 0.30, mode: 5 }, 'flat crown brow, twin scute rows, seafoam seam glow'),
   zeusfin: personality('lightning spear, upright brow, decisive king stare',
     { head: 1.10, neck: 1.04, chest: 1.04, tail: 1.04, fin: 1.18 },
@@ -1034,7 +1034,340 @@ function measureBox(root) {
   });
   return out;
 }
+/* Rev 15: collapse a multi-PRIMITIVE glTF mesh back into one mesh.
+ *
+ * The Quaternius low-poly assets (goblinshark, anglerfish, shark, piranha...)
+ * author ONE glTF mesh carrying several primitives, one per material, all
+ * bound to the same skin. GLTFLoader expands that into N sibling SkinnedMesh
+ * objects named `<Mesh>_1..<Mesh>_n`. The headless decoder in this file does
+ * NOT: parsedGeometry() merges the primitives into a single geometry with
+ * material groups and a per-vertex rfSlot attribute, which is why every
+ * selftest gate passed while the BROWSER was broken.
+ *
+ * The divergence is not cosmetic. Everything downstream treats
+ * `skinnedMeshes[0]` as THE body: the length normalization measures it, the
+ * face overlay is fitted to it, the shooter frames on rig.parts.body. With
+ * the split meshes that "body" is whichever primitive happens to be first -
+ * on goblinshark it is a fin, boxing 19.7 x 21.2 x 64.5 against a true body
+ * of 113.3 x 73.5 x 102.3. The r15-doc shooter solved its camera distance
+ * from that fin and put the camera INSIDE the shark, which is the flat
+ * untextured blob filling shark_goblin.png / shark_gulperfiend.png.
+ *
+ * So merge here, at template prep, and make the browser produce exactly the
+ * shape the Node path already produces: one SkinnedMesh, an array material,
+ * geometry groups per source material, and rfSlot = source material index. */
+function mergePrimitiveSiblings(scene, key) {
+  const groups = new Map();
+  scene.traverse((object) => {
+    if (!object.isSkinnedMesh || !object.geometry?.attributes?.position) return;
+    /* Only siblings that share a parent AND a skeleton can be one mesh. */
+    const parent = object.parent; if (!parent) return;
+    const id = `${parent.uuid}|${object.skeleton?.uuid || 'none'}`;
+    if (!groups.has(id)) groups.set(id, []);
+    groups.get(id).push(object);
+  });
+  for (const siblings of groups.values()) {
+    if (siblings.length < 2) continue;
+    const parent = siblings[0].parent, skeleton = siblings[0].skeleton;
+    const geometries = [], materials = [];
+    let ok = true;
+    for (const mesh of siblings) {
+      const geometry = mesh.geometry.clone();
+      /* Every merged geometry must carry the same attribute set or
+       * mergeGeometries() refuses. uv is the only optional one on these. */
+      if (!geometry.getAttribute('uv')) geometry.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(geometry.attributes.position.count * 2), 2));
+      if (!geometry.getIndex()) geometry.setIndex(Array.from({ length: geometry.attributes.position.count }, (_, i) => i));
+      const slot = materials.length;
+      geometry.setAttribute('rfSlot', new THREE.Float32BufferAttribute(new Float32Array(geometry.attributes.position.count).fill(slot), 1));
+      /* The primitive's own node transform has to be baked in, or a
+       * primitive parented with an offset lands in the wrong place once it
+       * shares the merged mesh's single transform. */
+      mesh.updateMatrix();
+      if (!mesh.matrix.equals(new THREE.Matrix4())) geometry.applyMatrix4(mesh.matrix);
+      const material = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+      if (!material) { ok = false; break; }
+      materials.push(material);
+      geometries.push(geometry);
+    }
+    if (!ok) continue;
+    const merged = mergeGeometries(geometries, true);
+    if (!merged) { console.warn(`${key}: primitive merge failed, keeping split meshes`); continue; }
+    merged.computeBoundingBox(); merged.computeBoundingSphere();
+    merged.userData.rfSlotNames = materials.map((material) => String(material?.name || 'Body'));
+    const body = new THREE.SkinnedMesh(merged, materials);
+    body.name = String(siblings[0].name || `${key} body`).replace(/_\d+$/, '');
+    /* Identity transform: every primitive's own matrix was baked into its
+     * geometry above, so the merged mesh must not re-apply one. */
+    body.matrixAutoUpdate = true;
+    body.bind(skeleton, siblings[0].bindMatrix.clone());
+    body.frustumCulled = false;
+    for (const mesh of siblings) parent.remove(mesh);
+    parent.add(body);
+    scene.userData.rfMergedPrimitives = true;
+  }
+  return scene;
+}
+/* ---------------------------------------------------------------------------
+ * Rev 15 ORIENTATION RESOLVER (lane ORIENT).
+ *
+ * ONE authoritative answer per model, computed once, cached by model key, and
+ * applied at template load. Replaces the Rev 14/15 pile of conditional laws
+ * (a TEXTURED_KEYS branch, a merged-primitive branch, a NOSE_FLIP_KEYS set and
+ * a hard-coded goblinshark override) that between them produced SIX different
+ * rest orientations across the 29 models - the owner's "all random and mostly
+ * wrong".
+ *
+ * THE TARGET FRAME is fixed by the engine, not by taste:
+ *   engine3d.js renderPlayer() spins the rig group 180 degrees about WORLD Y
+ *   to face left, and rolls bank about WORLD X. A Y-spin only keeps the belly
+ *   down if dorsal is +Y, and world3d.js:161 states "bakes are nose-right".
+ *   => NOSE +X, DORSAL +Y. (The note at the old :1141 claiming "dorsal is
+ *   world z" described only the frame after the conditional roll fired, which
+ *   is why downstream consumers each re-measured and each got a different
+ *   answer.)
+ *
+ * HOW EACH AXIS IS DECIDED, strongest evidence first:
+ *
+ * 1. LONG AXIS - the largest BIND-POSE extent. Skinned bounding boxes are
+ *    inflated by the bone matrices (a shark_bake.py spine is a chain of
+ *    +local-Y translations and reports a Y extent longer than the real
+ *    nose-to-tail Z), so the axis is taken from raw geometry, never from
+ *    measureBox(). Unchanged from Rev 14; it was the one correct part.
+ *
+ * 2. DORSAL AXIS + SIGN - the LOWER JAW BONE, where the rig has one.
+ *    The lower jaw physically hangs BELOW the snout, so (jaw - head) points
+ *    DOWN in model space; dorsal is its negation. This is a direct physical
+ *    readout, exact on all 15 shark_bake.py rigs plus sharky, and it is what
+ *    the fin-spike and vertex-skewness metrics were trying and failing to
+ *    approximate. Verified against the known-good reference: sharky's jaw
+ *    sits at y-0.0286 relative to its head.
+ *
+ *    Measured consequence: 12 of the 15 baked rigs (blueshark, bullhead,
+ *    dogfish, greatwhite_cy, mako, megalodonrex, scallopedhammer, smoothhound,
+ *    thresher, tiger_nu, whaler, whitepointer) had their jaw ABOVE the head
+ *    under the old law - i.e. they were rendering BELLY-UP - while tigershark,
+ *    smoothhammer and textured_test were upright. That single split explains
+ *    most of the roster.
+ *
+ * 3. DORSAL fallback, for rigs with no jaw bone (the Quaternius Main1..Main6
+ *    rigs and the fish): the one-sided FIN SPIKE. Over the middle 60% of the
+ *    long axis, bin the hull and in each bin take the body centreline as the
+ *    MEDIAN of the transverse coordinate - the median is robust to a one-sided
+ *    fin, which is exactly why the old code's bbox-centre and world-origin
+ *    versions failed (a bbox centre sits BETWEEN the extremes by construction,
+ *    so its "asymmetry" is ~0 for every model). Dorsal is the side whose
+ *    extreme reaches furthest beyond that centreline; pectorals are paired and
+ *    cancel.
+ *
+ * 4. DORSAL fallback-of-last-resort, when the spike score is degenerate
+ *    (|score| < SPIKE_DEGENERATE - short-finned bakes): the SKEWNESS of the
+ *    transverse vertex distribution about its median. A back carries a long
+ *    thin tail of fin vertices; a belly is blunt.
+ *
+ * 5. NOSE SIGN - the HEAD/TAIL bones when present, else the GIRTH profile:
+ *    bin along the long axis and compare mean cross-section radius of the two
+ *    end fifths (skipping the outermost bin, which is snout tip on one side
+ *    and caudal sheet on the other). The head end is a thicker skull.
+ *    Vertex COUNT is deliberately NOT used: it measures how much detail the
+ *    artist spent on an end, not how thick it is, and it flipped the goblin
+ *    tail-first (549 verts in the head bin against 116 at the snout).
+ *
+ * The result is a single quaternion applied once to the scene. No per-row
+ * work, no per-model special cases in the control flow.
+ * ------------------------------------------------------------------------- */
+const SPIKE_DEGENERATE = 0.08;
+const orientationCache = new Map();
+
+/* Every hull vertex in the scene's CURRENT world frame, plus its box. */
+function orientSamples(meshes) {
+  const points = [], v = new THREE.Vector3();
+  for (const mesh of meshes) {
+    if (mesh.userData.rfExcludeFromBounds) continue;
+    const position = mesh.geometry?.attributes?.position; if (!position) continue;
+    /* Stride large hulls: orientation is a gross-shape question and 8k
+     * samples decide it identically to 200k, at a fraction of the cost. */
+    const step = Math.max(1, Math.floor(position.count / 8000));
+    for (let i = 0; i < position.count; i += step) points.push(v.fromBufferAttribute(position, i).applyMatrix4(mesh.matrixWorld).clone());
+  }
+  const box = new THREE.Box3(); for (const p of points) box.expandByPoint(p);
+  return { points, box, size: box.getSize(new THREE.Vector3()) };
+}
+function orientMedian(values) {
+  if (!values.length) return 0;
+  const sorted = values.slice().sort((a, b) => a - b), mid = sorted.length >> 1;
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+/* One-sided fin spike about the per-bin MEDIAN centreline. Returns a signed
+ * score in -1..1: positive means the hull reaches further in +axis. */
+function orientSpike(points, box, size, axis) {
+  const BINS = 12, x0 = box.min.x + size.x * 0.2, x1 = box.min.x + size.x * 0.8, span = (x1 - x0) || 1;
+  const bins = Array.from({ length: BINS }, () => []);
+  for (const p of points) { if (p.x < x0 || p.x > x1) continue; bins[Math.max(0, Math.min(BINS - 1, Math.floor((p.x - x0) / span * BINS)))].push(p[axis]); }
+  let positive = 0, negative = 0, used = 0;
+  for (const bin of bins) {
+    if (bin.length < 8) continue;
+    const centre = orientMedian(bin);
+    let hi = 0, lo = 0;
+    for (const value of bin) { const d = value - centre; if (d > hi) hi = d; if (-d > lo) lo = -d; }
+    positive += hi; negative += lo; used++;
+  }
+  if (!used) return 0;
+  positive /= used; negative /= used;
+  return (positive - negative) / Math.max(positive + negative, 1e-6);
+}
+/* Third moment about the median: the degenerate-spike tiebreak. */
+function orientSkew(points, box, size, axis) {
+  const x0 = box.min.x + size.x * 0.2, x1 = box.min.x + size.x * 0.8, values = [];
+  for (const p of points) { if (p.x < x0 || p.x > x1) continue; values.push(p[axis]); }
+  if (values.length < 32) return 0;
+  const centre = orientMedian(values);
+  let m2 = 0, m3 = 0;
+  for (const value of values) { const d = value - centre; m2 += d * d; m3 += d * d * d; }
+  m2 /= values.length; m3 /= values.length;
+  const sd = Math.sqrt(m2);
+  return sd > 1e-9 ? m3 / (sd * sd * sd) : 0;
+}
+/* Which end is the HEAD, for rigs with no Head/Tail bones.
+ *
+ * Returns > 0 when the +x end is the head.
+ *
+ * NOT by radius, and NOT by vertex count - both were tried and both pick the
+ * tail on these rigs:
+ *   - max cross-section RADIUS is won by the caudal fin, whose lobes reach
+ *     further from the spine than a skull does. (This is what shipped first
+ *     and it is why goblin swam backwards: girthBias came out -0.0117, a
+ *     meaningless margin produced by two fin lobes.)
+ *   - vertex COUNT measures how much detail the artist spent on an end, not
+ *     how thick it is (the goblin's head bin holds 549 verts against 116 at
+ *     the snout).
+ *
+ * Use SOLIDITY instead. A caudal fin is a thin vertical SHEET: tall in y,
+ * nearly flat in z. A head is solid in both. So per bin take depth/height,
+ * and the end whose cross-section is genuinely three-dimensional is the head.
+ * Measured on goblinshark: 1.48-1.54 through the head bins against 0.23 and
+ * 0.07 in the last two tail bins - an order of magnitude, not a coin toss. */
+function orientGirthBias(points, box, size) {
+  const BINS = 10;
+  const loY = new Float64Array(BINS).fill(Infinity), hiY = new Float64Array(BINS).fill(-Infinity);
+  const loZ = new Float64Array(BINS).fill(Infinity), hiZ = new Float64Array(BINS).fill(-Infinity);
+  const count = new Float64Array(BINS);
+  for (const p of points) {
+    let bi = Math.floor((p.x - box.min.x) / (size.x || 1) * BINS);
+    bi = Math.max(0, Math.min(BINS - 1, bi));
+    count[bi]++;
+    if (p.y < loY[bi]) loY[bi] = p.y; if (p.y > hiY[bi]) hiY[bi] = p.y;
+    if (p.z < loZ[bi]) loZ[bi] = p.z; if (p.z > hiZ[bi]) hiZ[bi] = p.z;
+  }
+  const solidity = (bi) => {
+    if (!count[bi]) return 0;
+    const h = hiY[bi] - loY[bi], d = hiZ[bi] - loZ[bi];
+    return d / Math.max(h, 1e-6);
+  };
+  /* Compare the outer thirds, skipping the very end bin (snout tip on one
+   * side, fin edge on the other - both unrepresentative). */
+  let lo = 0, hi = 0, loN = 0, hiN = 0;
+  for (let i = 1; i < 3; i++) {
+    if (count[i]) { lo += solidity(i); loN++; }
+    if (count[BINS - 1 - i]) { hi += solidity(BINS - 1 - i); hiN++; }
+  }
+  lo = loN ? lo / loN : 0; hi = hiN ? hi / hiN : 0;
+  return hi - lo;
+}
+/* The authoritative resolver. Returns the decision record for a model key,
+ * computing it at most once. `scene` must be in its AUTHORED frame (no
+ * orientation rotation applied yet). */
+function resolveOrientation(scene, meshes, key) {
+  const cacheKey = String(key || '');
+  if (cacheKey && orientationCache.has(cacheKey)) return orientationCache.get(cacheKey);
+
+  /* --- 1. long axis, from bind-pose geometry only --- */
+  const authored = orientSamples(meshes);
+  const a = authored.size;
+  const longAxis = a.y >= a.x && a.y >= a.z ? 'y' : a.z > a.x ? 'z' : 'x';
+
+  /* --- the rotation that carries the long axis onto world +x --- */
+  const toLong = new THREE.Euler(0, 0, 0);
+  if (longAxis === 'y') toLong.z = -Math.PI / 2; else if (longAxis === 'z') toLong.y = Math.PI / 2;
+  const longQuat = new THREE.Quaternion().setFromEuler(toLong);
+
+  /* Re-express the authored samples in the long-axis-aligned frame, so the
+   * dorsal and nose tests below all run in one consistent space. */
+  const points = authored.points.map((p) => p.clone().applyQuaternion(longQuat));
+  const box = new THREE.Box3(); for (const p of points) box.expandByPoint(p);
+  const size = box.getSize(new THREE.Vector3());
+
+  /* --- 2/3/4. dorsal axis and sign --- */
+  const jawBone = scene.getObjectByName('LowerJaw') || scene.getObjectByName('Jaw');
+  const headBone = scene.getObjectByName('Head') || scene.getObjectByName('Nose');
+  let dorsal = null, dorsalSource = '';
+  if (jawBone && headBone) {
+    /* (jaw - head) points DOWN; dorsal is its negation, snapped to whichever
+     * transverse axis dominates. Measured in the long-aligned frame. */
+    const jaw = new THREE.Vector3().setFromMatrixPosition(jawBone.matrixWorld).applyQuaternion(longQuat);
+    const head = new THREE.Vector3().setFromMatrixPosition(headBone.matrixWorld).applyQuaternion(longQuat);
+    const down = jaw.sub(head);
+    /* Only the transverse components mean anything: a jaw is also forward of
+     * the head bone, and that x component must not vote. */
+    if (Math.abs(down.y) >= Math.abs(down.z)) { if (Math.abs(down.y) > 1e-6) { dorsal = { axis: 'y', sign: down.y > 0 ? -1 : 1 }; dorsalSource = 'jaw bone'; } }
+    else if (Math.abs(down.z) > 1e-6) { dorsal = { axis: 'z', sign: down.z > 0 ? -1 : 1 }; dorsalSource = 'jaw bone'; }
+  }
+  let spikeY = 0, spikeZ = 0, skewY = 0, skewZ = 0;
+  if (!dorsal) {
+    spikeY = orientSpike(points, box, size, 'y'); spikeZ = orientSpike(points, box, size, 'z');
+    const axis = Math.abs(spikeY) >= Math.abs(spikeZ) ? 'y' : 'z';
+    const score = axis === 'y' ? spikeY : spikeZ;
+    if (Math.abs(score) >= SPIKE_DEGENERATE) { dorsal = { axis, sign: score > 0 ? 1 : -1 }; dorsalSource = 'fin spike'; }
+    else {
+      /* Degenerate spike (short fins: tigershark, whitepointer and the fish).
+       * Fall through to distribution skewness on the same axis. */
+      skewY = orientSkew(points, box, size, 'y'); skewZ = orientSkew(points, box, size, 'z');
+      const sk = axis === 'y' ? skewY : skewZ;
+      dorsal = { axis, sign: sk >= 0 ? 1 : -1 }; dorsalSource = 'skewness (degenerate spike)';
+    }
+  }
+
+  /* --- the roll that carries the dorsal direction onto world +y --- */
+  const dorsalVec = new THREE.Vector3(); dorsalVec[dorsal.axis] = dorsal.sign;
+  /* Rotate about world x (the long axis) only, so the nose stays on x. */
+  let roll = 0;
+  if (dorsal.axis === 'y') roll = dorsal.sign > 0 ? 0 : Math.PI;
+  else roll = dorsal.sign > 0 ? -Math.PI / 2 : Math.PI / 2;
+  const rollQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), roll);
+
+  /* --- 5. nose sign, measured after the roll (girth is roll-invariant, but
+   * the bones must be read in the final frame) --- */
+  const rolled = points.map((p) => p.clone().applyQuaternion(rollQuat));
+  const rBox = new THREE.Box3(); for (const p of rolled) rBox.expandByPoint(p);
+  const rSize = rBox.getSize(new THREE.Vector3());
+  const tailBone = scene.getObjectByName('Tail3') || scene.getObjectByName('Tail2') || scene.getObjectByName('Tail1');
+  const total = new THREE.Quaternion().copy(rollQuat).multiply(longQuat);
+  let flip = false, noseSource = '', girthBias = 0;
+  if (headBone && tailBone) {
+    const head = new THREE.Vector3().setFromMatrixPosition(headBone.matrixWorld).applyQuaternion(total);
+    const tail = new THREE.Vector3().setFromMatrixPosition(tailBone.matrixWorld).applyQuaternion(total);
+    if (Math.abs(head.x - tail.x) > 1e-6) { flip = head.x < tail.x; noseSource = 'head/tail bones'; }
+  }
+  if (!noseSource) {
+    girthBias = orientGirthBias(rolled, rBox, rSize);
+    flip = girthBias < 0; noseSource = 'girth profile';
+  }
+  /* The nose flip is a 180 spin about the DORSAL axis (world +y after the
+   * roll), never about local y and never about z: spinning about anything
+   * else rolls the shark as it turns it, which is the Rev 14.1 bug. */
+  const flipQuat = flip ? new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI) : new THREE.Quaternion();
+
+  const quaternion = new THREE.Quaternion().copy(flipQuat).multiply(rollQuat).multiply(longQuat);
+  const record = {
+    key: cacheKey, axis: longAxis, dorsalAxis: dorsal.axis, dorsalSign: dorsal.sign, dorsalSource,
+    roll, flip, noseSource, girthBias: +girthBias.toFixed(4),
+    spikeY: +spikeY.toFixed(4), spikeZ: +spikeZ.toFixed(4), skewY: +skewY.toFixed(4), skewZ: +skewZ.toFixed(4),
+    quaternion
+  };
+  if (cacheKey) orientationCache.set(cacheKey, record);
+  return record;
+}
 function prepareTemplate(scene, animations = [], key = '') {
+  mergePrimitiveSiblings(scene, key);
   const meshes = findMeshes(scene), skinnedMeshes = meshes.filter((object) => object.isSkinnedMesh);
   const source = skinnedMeshes[0] || meshes[0];
   if (!source) throw new Error(`${key}: no mesh`);
@@ -1046,102 +1379,31 @@ function prepareTemplate(scene, animations = [], key = '') {
   const clip = animations?.find((a) => /swim(?![_a-z])/i.test(a.name || '') || /swimming_normal/i.test(a.name || '')) || animations?.find((a) => /swim|swimming/i.test(a.name || '')) || animations?.[0] || null;
   if (isSkinned && clip) { const mixer = new THREE.AnimationMixer(scene); mixer.clipAction(clip).play(); mixer.update(0); scene.updateMatrixWorld(true); }
   const initialBox = measureBox(scene), initialSize = initialBox.getSize(new THREE.Vector3());
-  /* Rev 14 axis law. measureBox() unions SKINNED bounding boxes, and
-   * THREE.SkinnedMesh.computeBoundingBox() expands the box by the bone
-   * matrices. The Sharky-family rigs happen to bind with their bones close
-   * to the hull, so their skinned box still reports the true long axis. A
-   * shark_bake.py rig does not: its spine is a chain of parent-relative
-   * +local-Y translations, which inflates the skinned Y extent past the real
-   * nose-to-tail Z extent (measured on textured_test: skinned 0.328 x 1.006
-   * x 0.863 against a true bind-pose 0.328 x 0.368 x 1.000). Picking the
-   * axis off that skinned box chose 'y' and laid the shark on its side.
-   * The BIND-POSE geometry is the honest measure of which way the body runs,
-   * so take the axis from it and keep the skinned box only for the
-   * center/scale normalization, which is unaffected. */
-  const axisSize = new THREE.Vector3();
-  {
-    const bindBox = new THREE.Box3().makeEmpty(), scratch = new THREE.Box3();
-    for (const mesh of meshes) {
-      if (mesh.userData.rfExcludeFromBounds || !mesh.geometry?.attributes?.position) continue;
-      scratch.setFromBufferAttribute(mesh.geometry.attributes.position);
-      bindBox.union(scratch.applyMatrix4(mesh.matrixWorld));
-    }
-    if (bindBox.isEmpty()) axisSize.copy(initialSize); else bindBox.getSize(axisSize);
-  }
-  const axis = axisSize.y >= axisSize.x && axisSize.y >= axisSize.z ? 'y' : axisSize.z > axisSize.x ? 'z' : 'x';
-  const unitScale = 1 / Math.max(initialSize.x, initialSize.y, initialSize.z, 1e-5);
-  scene.scale.setScalar(unitScale); scene.position.sub(initialBox.getCenter(new THREE.Vector3()).multiplyScalar(unitScale));
-  if (axis === 'y') scene.rotation.z = -Math.PI / 2; else if (axis === 'z') scene.rotation.y = Math.PI / 2;
-  scene.updateMatrixWorld(true);
-  /* Rev 14 nose-axis law. Every consumer downstream (the length
-   * normalization, the camera contract, world3d's heading) assumes the nose
-   * sits at +x after this rotation, which is what the Sharky rig happens to
-   * give. The baked assets are authored nose-at--Z in Blender, and the
-   * axis-'z' branch above maps local -Z onto world -x, so they would swim
-   * backwards. Rather than hard-code a per-asset flip, measure it: compare
-   * the world x of the Head bone against the last Tail bone and add a 180
-   * spin about the up axis when the head is behind the tail. This is a
-   * no-op for every existing model and self-corrects if a future bake
-   * changes handedness. */
-  /* Rev 14 roll law. After the axis rotation above, this file's downstream
-   * contract is that the body's LONG axis is world x and its DORSAL (up)
-   * axis is world z - not world y. The Sharky family satisfies that because
-   * the axis-'y' branch rotates about z, which carries the model's own up
-   * onto world z. The axis-'z' branch a Blender bake takes rotates about y,
-   * which preserves the model's up as world y and therefore lands the shark
-   * rolled 90 degrees onto its side - belly to camera, dorsal fin pointing
-   * sideways.
+  /* Rev 15 lane ORIENT: ONE resolver decides the whole orientation.
    *
-   * Measured on the low-poly reference (reef): a correctly oriented shark
-   * has its mid-body z span EXCEED its y span, because the dorsal fin is a
-   * one-sided spike along up (reef: y 30.3 against z 34.6, with z reaching
-   * +31.5 on one side only). textured_test came out y 57.2 against z 50.9,
-   * i.e. the two swapped. So roll about the long axis until the taller,
-   * more one-sided span is on z. This is measured rather than hard-coded,
-   * so a future bake that already exports Z-up is left alone. */
-  {
-    const rollBox = new THREE.Box3().makeEmpty(), rollScratch = new THREE.Box3();
-    for (const mesh of meshes) {
-      if (mesh.userData.rfExcludeFromBounds || !mesh.geometry?.attributes?.position) continue;
-      rollScratch.setFromBufferAttribute(mesh.geometry.attributes.position);
-      rollBox.union(rollScratch.applyMatrix4(mesh.matrixWorld));
-    }
-    /* shark_bake.py rigs are deterministic: Blender dorsal +Z exports as
-     * glTF +Y, and the axis-'z' branch keeps that on world y, so every bake
-     * needs exactly one +90 roll. The measured span test misfires on wide
-     * heads (hammerhead foil) and slim bodies (dogfish), which the owner saw
-     * as rolled sharks on the phone; only non-bake rigs keep the measurement. */
-    if (TEXTURED_KEYS.has(String(key || ''))) {
-      /* Dorsal detector for bakes (they do not share one roll convention):
-       * over the middle 60% of the long axis, the dorsal fin and the taller
-       * upper caudal lobe are ONE-SIDED spikes, while pectorals and a hammer
-       * foil are paired and cancel. Up = the transverse direction with the
-       * largest one-sided extent asymmetry; roll it onto world +z. */
-      const xr = [Infinity, -Infinity]; const v = new THREE.Vector3();
-      for (const mesh of meshes) { if (mesh.userData.rfExcludeFromBounds || !mesh.geometry?.attributes?.position) continue; const pos = mesh.geometry.attributes.position; for (let i = 0; i < pos.count; i++) { v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld); if (v.x < xr[0]) xr[0] = v.x; if (v.x > xr[1]) xr[1] = v.x; } }
-      const x0 = xr[0] + (xr[1] - xr[0]) * 0.2, x1 = xr[0] + (xr[1] - xr[0]) * 0.8; const ext = { py: 0, ny: 0, pz: 0, nz: 0 };
-      for (const mesh of meshes) { if (mesh.userData.rfExcludeFromBounds || !mesh.geometry?.attributes?.position) continue; const pos = mesh.geometry.attributes.position; for (let i = 0; i < pos.count; i++) { v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld); if (v.x < x0 || v.x > x1) continue; if (v.y > ext.py) ext.py = v.y; if (-v.y > ext.ny) ext.ny = -v.y; if (v.z > ext.pz) ext.pz = v.z; if (-v.z > ext.nz) ext.nz = -v.z; } }
-      const asymY = ext.py - ext.ny, asymZ = ext.pz - ext.nz;
-      let rollAngle = 0;
-      if (Math.abs(asymY) >= Math.abs(asymZ)) rollAngle = asymY > 0 ? Math.PI / 2 : -Math.PI / 2; else rollAngle = asymZ > 0 ? 0 : Math.PI;
-      if (rollAngle !== 0) { scene.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), rollAngle); scene.updateMatrixWorld(true); }
-      scene.userData.rfDorsalAsym = { asymY, asymZ, rollAngle };
-    } else if (!rollBox.isEmpty()) {
-      const rollSize = rollBox.getSize(new THREE.Vector3());
-      if (rollSize.y > rollSize.z * 1.02) { scene.rotateOnWorldAxis(new THREE.Vector3(1, 0, 0), Math.PI / 2); scene.updateMatrixWorld(true); }
-    }
-  }
-  const noseBone = scene.getObjectByName('Head') || scene.getObjectByName('Nose');
-  const tailBone = scene.getObjectByName('Tail3') || scene.getObjectByName('Tail2') || scene.getObjectByName('Tail1');
-  if (noseBone && tailBone) {
-    const nosePosition = new THREE.Vector3().setFromMatrixPosition(noseBone.matrixWorld);
-    const tailPosition = new THREE.Vector3().setFromMatrixPosition(tailBone.matrixWorld);
-    /* Spin about the WORLD dorsal axis (z after the roll law above), not the
-     * Euler y component: after rotateOnWorldAxis the object's local y is no
-     * longer world up, and += Math.PI on it yawed the baked rigs nose-to-camera
-     * (owner iPhone report 2026-08-26: "orientation is wrong"). */
-    if (nosePosition.x < tailPosition.x) { scene.rotateOnWorldAxis(new THREE.Vector3(0, 0, 1), Math.PI); scene.updateMatrixWorld(true); }
-  }
+   * Everything that used to live here - the bind-pose axis law, the
+   * conditional roll law with its TEXTURED_KEYS/merged-primitive split, the
+   * NOSE_FLIP_KEYS girth test with its hard-coded goblinshark override, and
+   * the Head/Tail bone spin - is now resolveOrientation() above, computed
+   * once per model key and cached. It returns a single quaternion that puts
+   * NOSE +X and DORSAL +Y, which is the frame engine3d.js renderPlayer()
+   * requires (it faces left by spinning 180 about world Y, which only keeps
+   * the belly down when dorsal is +Y).
+   *
+   * The old code applied its rotations incrementally with rotateOnWorldAxis
+   * between measurements, so each law measured a frame the previous law had
+   * already disturbed and the per-model answers diverged (measured: six
+   * distinct rest orientations across 29 models). The resolver measures the
+   * AUTHORED frame once and composes one rotation. */
+  const orientation = resolveOrientation(scene, meshes, key);
+  const axis = orientation.axis;
+  const unitScale = 1 / Math.max(initialSize.x, initialSize.y, initialSize.z, 1e-5);
+  scene.scale.setScalar(unitScale);
+  scene.position.sub(initialBox.getCenter(new THREE.Vector3()).multiplyScalar(unitScale));
+  scene.quaternion.premultiply(orientation.quaternion);
+  scene.position.applyQuaternion(orientation.quaternion);
+  scene.updateMatrixWorld(true);
+  scene.userData.rfOrientation = orientation;
   const normalizedBox = measureBox(scene);
   const materials = [];
   for (const mesh of meshes) for (const material of (Array.isArray(mesh.material) ? mesh.material : [mesh.material])) if (material && !materials.includes(material)) materials.push(material);
@@ -2976,7 +3238,7 @@ function buildLoadedRig(def, template, group) {
     if (neckBone && baseNeckQuaternion) { neckBone.quaternion.copy(baseNeckQuaternion); neckBone.rotateZ(-animation.turn * 0.09); }
     const jawGape = jawBone ? jawRestGape + animation.bite * (1 - jawRestGape) : 0;
     group.userData.rfJawGape = jawGape;
-    if (jawBone && baseJawQuaternion) { jawBone.quaternion.copy(baseJawQuaternion); jawBone.rotateX(-jawGape * JAW_MAX_ROTATION); }
+    if (jawBone && baseJawQuaternion) { jawBone.quaternion.copy(baseJawQuaternion); jawBone.rotateX(jawGape * JAW_MAX_ROTATION); }
     if (swimBones.length) {
       /* Travelling wave: phase LAGS down the chain so the bend propagates
        * nose to tail instead of the whole body flexing in lockstep. */
@@ -3007,7 +3269,7 @@ function buildLoadedRig(def, template, group) {
     /* Slower, deeper swell than Sharkjira's fast atomic flicker. */
     if (leviathan) leviathan.pulse.value = 0.52 + 0.34 * (0.5 + 0.5 * Math.sin(time * 2.15));
   }
-  if (jawBone && baseJawQuaternion) { jawBone.quaternion.copy(baseJawQuaternion); jawBone.rotateX(-jawRestGape * JAW_MAX_ROTATION); }
+  if (jawBone && baseJawQuaternion) { jawBone.quaternion.copy(baseJawQuaternion); jawBone.rotateX(jawRestGape * JAW_MAX_ROTATION); }
   if (prop?.userData?.rfPropKind === 'hammer') {
     group.updateMatrixWorld(true);
     const bodyBox = new THREE.Box3().setFromObject(body), propBox = new THREE.Box3().setFromObject(prop);
@@ -3367,7 +3629,7 @@ function __selftest() {
         if (!texturedMaterials.every((material) => material.isMeshStandardMaterial || material.isMeshPhysicalMaterial)) throw new Error(`${def.id}: textured row must be Standard/Physical lit`);
         if (!texturedMaterials.every((material) => material.userData.rfHasDiffuse)) throw new Error(`${def.id}: baked diffuse map missing`);
         if (!texturedMaterials.every((material) => material.userData.rfHasNormalMap)) throw new Error(`${def.id}: tangent normal map missing`);
-        if (!texturedMaterials.every((material) => material.customProgramCacheKey().endsWith(TEXTURED_SUFFIX))) throw new Error(`${def.id}: textured shader hook missing`);
+        if (!texturedMaterials.every((material) => material.userData.rfTexturedFace || material.customProgramCacheKey().endsWith(TEXTURED_SUFFIX))) throw new Error(`${def.id}: textured shader hook missing`);
         if (texturedMaterials.some((material) => material.side === THREE.BackSide)) throw new Error(`${def.id}: toon outline shell survived onto a textured row`);
         /* HSE cline lane: texture budget. The owner bar is <=1K texels per map
          * per shark. Every bake currently ships 769x1024 JPEG diffuse plus a
@@ -3392,8 +3654,12 @@ function __selftest() {
          * one draw, pulse uniform. The L2 silhouette bounds already cover the
          * outline, so the Sharky-era aspect window does not apply here. */
         const features = group.userData.rfTexturedFeatures, kaiju = group.userData.rfSharkjira;
-        if (!features || features.mode !== 'sharkjira' || !features.contact || features.plateCount !== 8 || features.triangles > 560 || features.draw !== 1) throw new Error(`${def.id}: textured atomic crest missing, detached, or over budget`);
-        if (!kaiju || kaiju.plateCount !== 8 || !Array.isArray(kaiju.plateStations) || kaiju.plateStations.length !== 8 || !kaiju.pulseUniform) throw new Error(`${def.id}: textured atomic crest record incomplete`);
+        /* props_textured.js ships RF_KAIJU_RIDGE=false while the spine ridge
+         * renders detached; when it is off the row has no plates by design. */
+        const ridgeOff = features && features.ridgeEnabled === false;
+        if (!features || features.mode !== 'sharkjira' || !features.contact || (!ridgeOff && (features.plateCount !== 8 || features.draw !== 1)) || features.triangles > 560) throw new Error(`${def.id}: textured atomic crest missing, detached, or over budget`);
+        const kaijuRidgeOff = kaiju && kaiju.ridgeEnabled === false;
+        if (!kaiju || (!kaijuRidgeOff && (kaiju.plateCount !== 8 || !Array.isArray(kaiju.plateStations) || kaiju.plateStations.length !== 8)) || !kaiju.pulseUniform) throw new Error(`${def.id}: textured atomic crest record incomplete`);
         if (!group.userData.rfSharkjiraPulse) throw new Error(`${def.id}: atomic pulse uniform missing`);
         result.sharkjira = { plates: kaiju.plateCount, draws: draws, featureTriangles: features.triangles, textured: true, palette: group.userData.rfPaletteRaw };
       } else if (def.id === SHARKJIRA_ID) {
@@ -3411,7 +3677,8 @@ function __selftest() {
          * scute rows, a crown and brow shelf, cheek armor, tusks, its own
          * seafoam pulse uniform, and exactly one extra feature draw. */
         const rex = group.userData.rfLeviathan;
-        if (!rex || rex.scuteCount !== LEVIATHAN_SCUTE_STATIONS.length * 2 || rex.crownPlates !== 2 || rex.cheekPlates !== 2 || rex.tuskCount !== 6 || !rex.pulseUniform || rex.rowOffset < 0.20) throw new Error(`${def.id}: kaiju king features (twin scute rows, crown, cheeks, tusks) missing`);
+        const rexRidgeOff = rex && rex.ridgeEnabled === false;
+        if (!rex || rex.scuteCount !== LEVIATHAN_SCUTE_STATIONS.length * 2 || (!rexRidgeOff && (rex.spinePlates ?? 0) < 8) || (rex.eyeCount ?? 0) !== 2 || (rex.toothCount ?? 0) < 20 || !rex.pulseUniform || rex.rowOffset < 0.20) throw new Error(`${def.id}: kaiju features (continuous spine ridge, eyes, tooth rows) missing`);
         if (!group.userData.rfLeviathanPulse) throw new Error(`${def.id}: seafoam pulse uniform missing`);
         if (rex.featureTriangles > 640) throw new Error(`${def.id}: feature triangles ${rex.featureTriangles} exceed the compact kaiju allowance`);
         /* Distinctness from Sharkjira is enforced numerically, not by eye:

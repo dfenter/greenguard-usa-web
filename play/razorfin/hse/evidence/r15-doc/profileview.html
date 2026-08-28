@@ -1,0 +1,128 @@
+<!doctype html><meta charset="utf-8"><title>r15-doc profile view</title>
+<style>html,body{margin:0;background:#0d4a6e;overflow:hidden}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"../../../../_shared/three/three.module.min.js"}}</script>
+<script src="../../../data.js"></script>
+<script type="module">
+/* r15-doc profile shooter.
+ *
+ * Derived from hse/headview.html, which is the only harness that builds a rig
+ * standalone: no world3d, so no reef garden and no ambient props to crop out,
+ * and no HUD. The background is a plain open-water blue drawn by the scene
+ * clear colour, which is what the brief asks for.
+ *
+ * Two framings, selected by ?shot=:
+ *   profile - full body from the flank, shark spanning ~60% of frame width
+ *   head    - close crop on the face/eye
+ *
+ * The textured-GLB traps are handled by shoot.mjs (player stub + activeShark),
+ * not here; this page only builds and frames.
+ */
+import * as THREE from 'three';
+import Art3D from '../../../shark3d.js';
+const P = new URLSearchParams(location.search);
+const ID = P.get('id') || 'reef';
+const SHOT = P.get('shot') || 'profile';
+const W = +(P.get('w') || 1000), H = +(P.get('h') || 620);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(2); renderer.setSize(W, H);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.06;
+document.body.appendChild(renderer.domElement);
+
+/* Open water, deliberately deeper/bluer than the in-game fog colour so the
+   shark separates from the ground instead of matching its value - the exact
+   failure the owner's verdict calls out. No fog at all here: fog would drag
+   the subject toward the background and defeat the point of the document. */
+const scene = new THREE.Scene();
+const BG = new THREE.Color(0x0d4a6e);
+scene.background = BG;
+scene.add(new THREE.HemisphereLight(0x9fd4e8, 0x06121e, 0.55));
+const key = new THREE.DirectionalLight(0xffffff, 1.25); key.position.set(-1.1, 1.4, 1.6); scene.add(key);
+/* A second, dimmer light from behind-left puts a rim on the dorsal edge so the
+   silhouette reads against the water even on the pale rows. */
+const rim = new THREE.DirectionalLight(0xbfe4ff, 0.45); rim.position.set(1.2, 0.9, -1.4); scene.add(rim);
+
+await Art3D.preload();
+const rows = (globalThis.RFD && RFD.SHARKS) || (globalThis.RF && RF.RFD && RF.RFD.SHARKS) || [];
+const def = rows.find((d) => d.id === ID);
+if (!def) { document.title = 'DOC NO ROW ' + ID; throw new Error('no row ' + ID); }
+const rig = Art3D.buildShark(def);
+scene.add(rig.group);
+rig.group.updateMatrixWorld(true);
+
+const body = rig.parts.body;
+const box = new THREE.Box3().setFromObject(body);
+const size = box.getSize(new THREE.Vector3());
+const camera = new THREE.PerspectiveCamera(32, W / H, 0.1, 20000);
+
+/* Camera placement, round 2.
+ *
+ * ROUND 1 MEASURED THE FRAME. THAT WAS THE BUG.
+ *
+ * The first version of this shooter derived the dorsal axis per model (fin
+ * asymmetry, then vertex mass) and moved the camera to wherever it decided
+ * "up" was. That renders every model plausibly REGARDLESS of its true
+ * orientation, so it structurally could not see that 12 of the 15 baked rigs
+ * were rendering BELLY-UP. The r15-orient lane found that with a fixed camera
+ * and called this shooter out for it by name. The old comment here even
+ * concluded "there is no single right answer", which is what a pile of
+ * heuristics feels like from the inside.
+ *
+ * There is now one right answer. lane ORIENT installed a single orientation
+ * resolver in shark3d.js and the rest frame is fixed by the engine, not by
+ * taste: engine3d.js renderPlayer() turns the shark to face left with a 180
+ * degree spin about world Y, which keeps the belly down ONLY if dorsal is +Y,
+ * and world3d.js:161 states the bakes are nose-right.
+ *
+ *   NOSE +X, DORSAL +Y, for every model.
+ *
+ * So this camera no longer measures anything. It sits on the shark's flank
+ * (-Z, so +X runs left-to-right across the frame and every row faces RIGHT),
+ * with world +Y as up. Any row that comes back belly-up or tail-first is now
+ * a real defect in the art, which is the entire point of the document. */
+const longAxis = 'x';
+const bodyLen = size.x;
+const center = box.getCenter(new THREE.Vector3());
+camera.up.set(0, 1, 0);
+
+let aim, dist, lift;
+if (SHOT === 'profile') {
+  aim = center.clone();
+  /* Solve the distance that makes the shark span ~60% of frame WIDTH.
+     Horizontal half-FOV from the vertical one and the aspect, then the
+     distance at which bodyLen subtends 60% of the horizontal extent. */
+  const vFov = camera.fov * Math.PI / 180;
+  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * camera.aspect);
+  dist = (bodyLen / 0.60) / (2 * Math.tan(hFov / 2));
+  lift = dist * 0.06;
+} else {
+  /* Head crop. The nose is +X by contract now, so no detection is needed:
+     aim just short of the snout so the crop holds the whole head. */
+  aim = center.clone();
+  aim.x = box.max.x - bodyLen * 0.10;
+  const headSpan = bodyLen * 0.26;
+  const vFov = camera.fov * Math.PI / 180;
+  const hFov = 2 * Math.atan(Math.tan(vFov / 2) * camera.aspect);
+  dist = (headSpan / 0.60) / (2 * Math.tan(hFov / 2));
+  lift = dist * 0.10;
+}
+const off = new THREE.Vector3();
+off.z = -dist;
+off.y = lift;
+camera.position.copy(aim).add(off);
+camera.lookAt(aim);
+renderer.render(scene, camera);
+
+let face = null; rig.group.traverse((o) => { if (o.userData && o.userData.rfTexturedFace) face = o; });
+globalThis.__DOC = {
+  id: ID, shot: SHOT,
+  textured: !!rig.group.userData.rfTextured,
+  base: rig.group.userData.rfSourceBase || null,
+  faceMounted: !!face,
+  faceTriangles: face ? face.userData.rfFaceTriangles : 0,
+  size: [size.x, size.y, size.z].map((n) => +n.toFixed(2)),
+  aimX: +aim.x.toFixed(1),
+  longAxis, dist: +dist.toFixed(1),
+  orient: (globalThis.RF_ART3D_ORIENT && globalThis.RF_ART3D_ORIENT[rig.group.userData.rfSourceBase]) || null,
+};
+document.title = 'DOC ' + ID + ' ' + SHOT;
+</script>

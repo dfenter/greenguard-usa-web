@@ -1,0 +1,109 @@
+[
+  {
+    "id": "reef",
+    "textured": true,
+    "base": "dogfish",
+    "faceMounted": true,
+    "faceTriangles": 228,
+    "metrics": {
+      "eyeSource": "head-band geometry",
+      "mouthSource": "head/jaw weight overlap",
+      "overlapRatio": 0.5167712467301009,
+      "paintedEyeContrast": 0,
+      "upAxis": 1,
+      "maxJawWeight": 1,
+      "jawCut": 0.5,
+      "headPoints": 1416,
+      "jawPoints": 323,
+      "upCorrelation": -1,
+      "headSpan": 0.23869019169770506,
+      "headHalfWidth": 0.049539637250440624,
+      "headScale": 1.031401186770491,
+      "eyeRadius": 0.0157460147933198,
+      "socketRadius": 0.020187198452974103,
+      "socketDepth": 0.008478623350249119,
+      "socketDepthRatio": 0.4199999999999998,
+      "pupilOffsetRatio": 0.22360679774997902,
+      "pupilRadiusRatio": 0.46,
+      "highlightRadiusRatio": 0.26,
+      "highlightConcentric": 0.41036569057366384,
+      "eyeSurfaceMedianRatio": 0.03279382665697078,
+      "eyeSurfaceMaxRatio": 0.06044531935886206,
+      "eyeSamples": 52,
+      "toothCount": 20,
+      "toothGap": 0.0059207149414017505,
+      "toothGapRatio": 0.4000000000000001,
+      "toothSurfaceMedianRatio": 0.015831672360872098,
+      "toothSurfaceMaxRatio": 0.0546236274332788,
+      "toothOutsideHeadSpan": 0,
+      "toothSeatSpread": 0.4561060131242175,
+      "mouthSpanRatio": 0.12441542512989873
+    },
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ]
+  },
+  {
+    "id": "tiger",
+    "textured": false,
+    "base": "tiger_nu",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "metrics": null,
+    "errors": []
+  },
+  {
+    "id": "hammerhead",
+    "textured": false,
+    "base": "smoothhammer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "metrics": null,
+    "errors": []
+  },
+  {
+    "id": "greatwhite",
+    "textured": false,
+    "base": "greatwhite_cy",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "metrics": null,
+    "errors": []
+  },
+  {
+    "id": "blue",
+    "textured": false,
+    "base": "mako",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "metrics": null,
+    "errors": []
+  },
+  {
+    "id": "megalodon",
+    "textured": false,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "metrics": null,
+    "errors": []
+  },
+  {
+    "id": "zeusfin",
+    "textured": false,
+    "base": "mako",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "metrics": null,
+    "errors": []
+  },
+  {
+    "id": "typhonmaw",
+    "textured": false,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "metrics": null,
+    "errors": []
+  }
+]

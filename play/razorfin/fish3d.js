@@ -243,13 +243,80 @@ function brightenAccent(accent, boost) {
   return color;
 }
 
+/* Rev 15 (lane PREY, "fish are the SNACKS"): the authored table above was
+ * tuned for an UNLIT MeshToon material, where the vertex colour IS the pixel.
+ * Under the Rev 15 lit Standard material the same numbers are multiplied by
+ * the diffuse light term and then pushed through ACES, which desaturates and
+ * darkens them -- that is exactly the ghost-pale, low-contrast read the owner
+ * called out. These two helpers pre-compensate: the DORSAL base goes richer
+ * and a touch darker (so the countershade has somewhere to fall from), the
+ * BELLY goes to a near-white cream (so the countershade has somewhere to fall
+ * TO, and so the silver flash has a bright ground). Hue is never moved, so
+ * every species keeps the identity data.js and the sprite families gave it.
+ *
+ * Appetite, concretely: against the deep saturated blue water the prey must
+ * be BOTH brighter in value and further from the water's hue. Saturation is
+ * therefore floored, not merely scaled -- a 24%-saturation deep-water prey
+ * would otherwise stay water-coloured no matter how much light hits it. */
+/* The water this prey swims in is a deep saturated blue, hue ~0.56. A prey
+ * whose own base hue sits on top of the water's hue is camouflaged BY
+ * CONSTRUCTION -- no amount of light or saturation will separate it, because
+ * hue is what the eye segments on first. Most of this roster's open-water
+ * fusiforms (minnow/mackerel/tuna/marlin/swordfish) were authored right in
+ * that band, which is why the tuna and mackerel rows were nearly invisible.
+ *
+ * So cool prey get pushed OFF the water hue -- toward cyan-green on one side
+ * or violet on the other, whichever is nearer, by an amount that falls off
+ * as the fish's hue already differs. Warm prey (reef fish, clowns, groupers)
+ * are already maximally separated and are left exactly where they were. */
+const WATER_HUE = 0.56;
+const HUE_ESCAPE = 0.085;
+
+function hueAwayFromWater(h) {
+  let delta = h - WATER_HUE;
+  if (delta > 0.5) delta -= 1;
+  if (delta < -0.5) delta += 1;
+  const near = 1 - clamp(Math.abs(delta) / 0.14, 0, 1);
+  if (near <= 0) return h;
+  const dir = delta >= 0 ? 1 : -1;
+  let out = h + dir * HUE_ESCAPE * near;
+  if (out < 0) out += 1;
+  if (out > 1) out -= 1;
+  return out;
+}
+
+function appetizingBase(base) {
+  const hsl = {};
+  base.getHSL(hsl);
+  return new THREE.Color().setHSL(
+    hueAwayFromWater(hsl.h),
+    clamp(Math.max(hsl.s * 1.40, 0.74), 0, 1),
+    clamp(hsl.l * 0.78, 0.16, 0.38)
+  );
+}
+
+function appetizingBelly(belly) {
+  const hsl = {};
+  belly.getHSL(hsl);
+  // Never a blue belly: pull any cool belly to the warm cream side, which is
+  // both what the reference does and what reads as "food" against blue.
+  const h = (hsl.h > 0.42 && hsl.h < 0.75) ? 0.11 : hsl.h;
+  // Keep a whisper of the authored belly hue, but drive it to a bright cream
+  // so the countershade and the silver flash both have headroom.
+  return new THREE.Color().setHSL(
+    h,
+    clamp(Math.max(hsl.s * 0.80, 0.34), 0, 0.54),
+    clamp(Math.max(hsl.l, 0.72), 0.70, 0.80)
+  );
+}
+
 function paletteFor(id, score) {
   const row = FISH_PALETTE_TABLE[id];
   if (!row) return null;
   const boost = valueBoostFor(score);
   return Object.freeze({
-    base: colorFromHex(row.base),
-    belly: colorFromHex(row.belly),
+    base: appetizingBase(colorFromHex(row.base)),
+    belly: appetizingBelly(colorFromHex(row.belly)),
     accent: brightenAccent(colorFromHex(row.accent), boost),
     valueBoost: boost
   });
@@ -399,7 +466,25 @@ function parseBaseFromGLB(arrayBuffer, baseName) {
         const ny = normAccessor[i * 3 + 1] * Math.sign(scale[1] || 1);
         const nz = normAccessor[i * 3 + 2] * Math.sign(scale[2] || 1);
         let n = quatRotate(rotation, [nx, ny, nz]);
-        normals.push(n[2], n[1], n[0]);
+        /* Rev 15 NORMAL-HANDEDNESS FIX.
+         *
+         * The axis remap on the line above is (x, y, z) -> (z, y, x). That
+         * is a REFLECTION, not a rotation: its determinant is -1. Reflecting
+         * the positions mirrors the mesh, which reverses every triangle's
+         * winding and therefore flips which side of each face is "out" --
+         * so the normals must be NEGATED to keep pointing out of the
+         * surface. They were being remapped by the same (z, y, x) shuffle as
+         * the positions and left un-negated, which left all ~1130 vertices
+         * of every asset-backed prey with normals pointing INTO the body.
+         * (Verified: hse/diag_normals.mjs measured normal.dot(faceNormal)
+         * = -1.00 for 1130 of 1130 vertices before this fix.)
+         *
+         * This bug has been latent since Rev 9. Nothing caught it because
+         * prey used an UNLIT MeshToon material right up until Rev 15 -- an
+         * unlit material never reads the normal. The instant the prey became
+         * lit, every fish was being lit from the inside, which is what drew
+         * the tar-black band down the back and killed the specular. */
+        normals.push(-n[2], -n[1], -n[0]);
       } else {
         normals.push(0, 1, 0);
       }
@@ -538,15 +623,48 @@ function appendClosedWedge(positions, colors, indices, a, b, c, thickness, color
   }
 }
 
+/* Rev 15 (lane PREY): the countershade ramp. HSE prey read as a hard
+ * two-tone -- a dark saturated dorsal that separates from the bright water
+ * surface above, and a near-white belly that separates from the dark water
+ * below -- with the accent living only in a narrow lateral band where the
+ * two meet. The old ramp spent most of the body ON the accent (dorsalness
+ * near 0 returned pure accent from BOTH branches), which is why every
+ * species came out as one flat mid-tone with no vertical read at all.
+ *
+ * The ramp is now shaped, not linear: smoothstep pulls the transition into
+ * a tight lateral line, so most of the back is genuinely base and most of
+ * the underside is genuinely belly, exactly like the reference. */
 function bodyColor(palette, dorsalness, sideBias) {
   const color = new THREE.Color();
-  if (dorsalness >= 0) {
-    color.copy(palette.base).lerp(palette.accent, 1 - dorsalness);
+  const d = clamp(dorsalness, -1, 1);
+  if (d >= 0) {
+    // Back: base at the dorsal ridge, easing to the accent only as it
+    // approaches the lateral line.
+    const t = smoothstep01(1 - d, 0.60, 1.05);
+    color.copy(palette.base).lerp(palette.accent, t * 0.50);
   } else {
-    color.copy(palette.accent).lerp(palette.belly, -dorsalness);
+    // Underside: the accent survives only just below the lateral line, then
+    // the belly takes over hard.
+    const t = smoothstep01(-d, 0.10, 0.62);
+    color.copy(palette.accent).lerp(palette.belly, t);
+    // Deepen the true keel a shade under pure white so the silhouette does
+    // not blow out against a bright water column.
+    if (d < -0.72) color.lerp(palette.belly, 0.0);
   }
-  if (sideBias > 0.35) color.lerp(palette.accent, 0.12);
+  /* NO lateral accent stripe. It was tried and cut: several species' accents
+   * are pale (tuna 0x35b9e8, mackerel 0x27e0ff), and once the value-boost
+   * brightened them, a stripe of that colour across the widest part of the
+   * flank read as a bleached smear that broke the body into pieces -- the
+   * opposite of the clean two-tone the reference has. The countershade ramp
+   * above is doing the work; the accent stays where it belongs, in the thin
+   * transition between back and belly. */
+  if (sideBias > 0.35) color.lerp(palette.accent, 0.08);
   return color;
+}
+
+function smoothstep01(x, edge0, edge1) {
+  const t = clamp((x - edge0) / (edge1 - edge0 || 1), 0, 1);
+  return t * t * (3 - 2 * t);
 }
 
 /* ---------------------------------------------------------------------- *
@@ -573,9 +691,17 @@ function buildAssetGeometry(def, palette, baseName) {
   const positions = new Float32Array(vertexCount * 3);
   const normals = new Float32Array(vertexCount * 3);
   const colors = new Float32Array(vertexCount * 3);
+  // Rev 15: (dorsalness, eyeMask) per vertex -- see FISH_SHADE_ATTRIBUTE.
+  const shade = new Float32Array(vertexCount * 2);
 
   let maxAbsX = 0;
   let maxAbsY = 0;
+  // The eye must be anchored to the NOSE, not to maxAbsX -- on a fusiform the
+  // tail reaches further from the origin than the head does, so a fraction of
+  // maxAbsX lands the eye behind (or past) the face. Rev 15's first pass had
+  // exactly this bug and drew the eye as a smear amidships.
+  let noseX = -Infinity;
+  let bodyHalfZ = 0;
   for (let i = 0; i < vertexCount; i++) {
     const x = srcPos[i * 3] * sx;
     const y = srcPos[i * 3 + 1] * sy;
@@ -583,12 +709,33 @@ function buildAssetGeometry(def, palette, baseName) {
     positions[i * 3] = x;
     positions[i * 3 + 1] = y;
     positions[i * 3 + 2] = z;
-    normals[i * 3] = srcNorm[i * 3];
-    normals[i * 3 + 1] = srcNorm[i * 3 + 1];
-    normals[i * 3 + 2] = srcNorm[i * 3 + 2];
+    /* Rev 15 NORMAL FIX. Positions above are scaled non-uniformly by
+     * (sx, sy, sz), but the normals were being copied through UNCHANGED.
+     * A normal does not transform by a scale matrix, it transforms by that
+     * matrix's inverse transpose -- for a pure diagonal scale, by 1/s per
+     * axis, renormalised. Copying them straight through left every
+     * non-uniformly-scaled species with normals that no longer face out of
+     * their own surface.
+     *
+     * Under the old UNLIT MeshToon fallback this was invisible: an unlit
+     * material never consults the normal, so the bug sat here harmlessly
+     * through every prior rev. The moment Rev 15 made prey lit, those bad
+     * normals turned the whole dorsal band tar-black, because the key light
+     * was landing on a surface that claimed to point away from it. Fixing
+     * it here is what actually lets the countershade and the specular read. */
+    const nx = srcNorm[i * 3] / sx;
+    const ny = srcNorm[i * 3 + 1] / sy;
+    const nz = srcNorm[i * 3 + 2] / sz;
+    const nl = Math.hypot(nx, ny, nz) || 1;
+    normals[i * 3] = nx / nl;
+    normals[i * 3 + 1] = ny / nl;
+    normals[i * 3 + 2] = nz / nl;
     maxAbsX = Math.max(maxAbsX, Math.abs(x));
     maxAbsY = Math.max(maxAbsY, Math.max(0, y));
+    if (x > noseX) noseX = x;
+    bodyHalfZ = Math.max(bodyHalfZ, Math.abs(z));
   }
+  if (!Number.isFinite(noseX) || noseX <= 0) noseX = maxAbsX;
   const radiusY = maxAbsY || 1;
   for (let i = 0; i < vertexCount; i++) {
     // Dorsalness: how far up (+y) this vertex sits relative to the base's
@@ -602,16 +749,88 @@ function buildAssetGeometry(def, palette, baseName) {
     // this lane's per-species identity both read.
     const speciesColor = bodyColor(palette, dorsalness, sideBias);
     const materialColor = new THREE.Color(srcColor[i * 3], srcColor[i * 3 + 1], srcColor[i * 3 + 2]);
-    const blended = materialColor.lerp(speciesColor, 0.62);
+    /* Rev 15: several bases carry near-black material slots (mouth lines,
+     * fin edges, the baked-in eye). Unlit they read as pleasing ink detail;
+     * lit, they swallow the key light and drew a tar-black band down the
+     * flank. Lift the darkest slots toward the species colour so they stay
+     * DETAIL rather than becoming the silhouette. */
+    const slotLum = 0.2126 * materialColor.r + 0.7152 * materialColor.g + 0.0722 * materialColor.b;
+    if (slotLum < 0.16) materialColor.lerp(speciesColor, 1 - slotLum / 0.16);
+    /* ...and symmetrically for the PALE slots. The bases also carry very
+     * light material slots at the fin roots and gill plate. Blended at less
+     * than full strength they survived as washed-out patches sitting right
+     * across the widest part of the flank, which read as bleached smears
+     * breaking the body up -- the same failure as the lateral stripe, from
+     * the other direction. The species countershade should own the body;
+     * the asset's own slots are allowed to tint it, never to overrule it. */
+    if (slotLum > 0.72) materialColor.lerp(speciesColor, (slotLum - 0.72) / 0.28);
+    // Rev 15: lean harder on the species palette than on the GLB's own flat
+    // baseColorFactor. Those factors are the Quaternius bundle's pastel
+    // author colours; under a lit material they were most of what made the
+    // roster read as one washed-out grey-teal mass.
+    /* Rev 15: the species countershade is now the near-total authority on
+     * body colour. The GLB slots stay only as a faint 6% tint that preserves
+     * a hint of the base's own fin/gill detail. At the 0.62 (Rev 9) and even
+     * 0.86 blends, the Quaternius bases' pale fin-root and gill slots still
+     * survived as washed patches across the widest part of the flank, which
+     * broke the two-tone read the reference depends on.
+     *
+     * 0.88 is the measured sweet spot: at 0.94 the palette washed the roster
+     * out until reef fish, parrot and dolphinfish all read as "pale body with
+     * a coloured dorsal cap" and species identity collapsed; at the Rev 9
+     * value of 0.62 the bases' pastel author colours dominated and everything
+     * came out the same grey-teal. */
+    const blended = materialColor.lerp(speciesColor, 0.88);
     colors[i * 3] = blended.r;
     colors[i * 3 + 1] = blended.g;
     colors[i * 3 + 2] = blended.b;
+    shade[i * 2] = dorsalness;
+  }
+
+  /* Rev 15 EYE DOT. The GLB bases carry an eye only as a material slot on a
+   * handful of vertices, which the palette blend above was flattening away
+   * -- so at gameplay size the prey had no face at all. Stamp a real dark
+   * eye into the vertex colours at the head, on BOTH flanks, and flag those
+   * vertices in the shade attribute so the fragment shader lands a
+   * catch-light on them. This costs zero triangles: it recolours existing
+   * head vertices rather than adding eye geometry. */
+  // Place the eye a short way back from the nose and just above the midline,
+  // and size it in ABSOLUTE units so it comes out round -- a radius expressed
+  // as a fraction of the body's height stretches into a bar on a long
+  // fusiform, which is exactly how the first Rev 15 pass drew it.
+  const eyeCenterX = noseX * 0.74;
+  const eyeCenterY = radiusY * 0.26;
+  const eyeRadius = Math.min(radiusY * 0.30, noseX * 0.12);
+  const eyeDark = new THREE.Color(0x080d14);
+  for (let i = 0; i < vertexCount; i++) {
+    const x = positions[i * 3];
+    const y = positions[i * 3 + 1];
+    const z = positions[i * 3 + 2];
+    // Only the outward-facing flanks carry an eye, never the belly midline.
+    // Flanks only: the eye never wraps onto the dorsal ridge or the keel.
+    if (Math.abs(z) < bodyHalfZ * 0.35) continue;
+    const d = Math.hypot(x - eyeCenterX, y - eyeCenterY) / eyeRadius;
+    if (!(d < 1)) continue;
+    if (d >= 1) continue;
+    const ink = 1 - smoothstep01(d, 0.62, 1.0);
+    if (ink <= 0) continue;
+    const c = new THREE.Color(colors[i * 3], colors[i * 3 + 1], colors[i * 3 + 2]);
+    c.lerp(eyeDark, ink);
+    colors[i * 3] = c.r;
+    colors[i * 3 + 1] = c.g;
+    colors[i * 3 + 2] = c.b;
+    // Highlight sits on the upper-forward quadrant of the pupil, the way a
+    // real catch-light does, not dead centre.
+    shade[i * 2 + 1] = Math.max(shade[i * 2 + 1], ink * (1 - smoothstep01(
+      Math.hypot(x - (eyeCenterX + eyeRadius * 0.26), y - (eyeCenterY + eyeRadius * 0.26)) / eyeRadius,
+      0.0, 0.42)));
   }
 
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
   geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  geometry.setAttribute(FISH_SHADE_ATTRIBUTE, new THREE.Float32BufferAttribute(shade, 2));
   geometry.setIndex(Array.from(parsed.index));
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();
@@ -955,6 +1174,30 @@ function buildGeometry(def, palette) {
   return buildProceduralGeometry(def, palette);
 }
 
+/* Rev 15: every prey geometry MUST carry FISH_SHADE_ATTRIBUTE, because the
+ * lit prey material's vertex shader declares it unconditionally -- a bake
+ * that omitted it would render with garbage shade values. The asset path
+ * bakes a rich version (real eye mask); the procedural path already lofts
+ * proud eye geometry of its own, so it only needs the dorsalness channel,
+ * derived here from the bake's own height range. This also means any future
+ * geometry path gets a correct attribute for free. */
+function ensureShadeAttribute(geometry) {
+  if (!geometry || typeof geometry.getAttribute !== 'function') return geometry;
+  if (geometry.getAttribute(FISH_SHADE_ATTRIBUTE)) return geometry;
+  const position = geometry.getAttribute('position');
+  if (!position) return geometry;
+  if (!geometry.boundingBox) geometry.computeBoundingBox();
+  const box = geometry.boundingBox;
+  const maxY = Math.max(Math.abs(box.max.y), Math.abs(box.min.y)) || 1;
+  const shade = new Float32Array(position.count * 2);
+  for (let i = 0; i < position.count; i++) {
+    shade[i * 2] = clamp(position.getY(i) / maxY, -1, 1);
+    shade[i * 2 + 1] = 0;
+  }
+  geometry.setAttribute(FISH_SHADE_ATTRIBUTE, new THREE.Float32BufferAttribute(shade, 2));
+  return geometry;
+}
+
 function buildFish(def) {
   const id = def && typeof def.id === 'string' ? def.id : '';
   if (!FISH_PALETTE_TABLE[id]) return null;
@@ -972,11 +1215,177 @@ function buildFish(def) {
     }
   }
   const palette = paletteFor(id, def.score);
-  const geometry = buildGeometry(def, palette);
+  const geometry = ensureShadeAttribute(buildGeometry(def, palette));
   const isPlaceholder = !!baseName && !assetReady;
-  const record = { geometry, palette, placeholder: isPlaceholder };
+  // Rev 15: hand world3d a LIT material. fishBuildSource() prefers a
+  // material carried on the build record over its own MeshToon fallback, so
+  // this is the whole switch -- and because world3d clones per def before
+  // installing the bend, the roster still costs one draw per def.
+  const record = { geometry, palette, placeholder: isPlaceholder, material: buildFishMaterial() };
   geometryCache.set(id, record);
   return record;
+}
+
+/* ---------------------------------------------------------------------- *
+ * Rev 15 (lane PREY): the LIT prey material.
+ *
+ * Why this exists at all. Until Rev 15 this lane returned geometry and no
+ * material, so world3d fell through to its own MeshToonMaterial fallback.
+ * Sharks are MeshStandardMaterial with a real specular response; the prey
+ * being unlit toon in the same frame is the style mismatch the owner sees --
+ * the fish sit in the water like stickers instead of like objects the same
+ * sun is hitting. buildFish() now hands back a material on the record, which
+ * world3d.fishBuildSource() already prefers over its fallback, so the whole
+ * roster moves to lit shading with no change outside this file.
+ *
+ * What it must survive. world3d clones this material once per def and then
+ * runs installInstancedBend() on the clone, which appends the
+ * ':rf-bend-inst2' program-cache suffix and injects the tail-bend into
+ * <begin_vertex>. That injection is chained onto whatever onBeforeCompile
+ * the material already has, so ours runs FIRST and must leave the vertex
+ * shader in a state the bend patch can still find its anchors in. It does:
+ * we only touch fragment chunks plus a varying, never <begin_vertex>.
+ *
+ * THE UNIFORM-DECLARATION LANDMINE. A previous rev shipped an
+ * onBeforeCompile that assigned shader.uniforms.* without ALSO emitting the
+ * matching `uniform` declaration lines into the shader source. Three does
+ * not declare uniforms for you: the assignment binds a value to a name the
+ * GLSL never declares, the compile fails, and every fish silently vanishes.
+ * No selftest catches it, because no selftest compiles GLSL -- only a real
+ * GL context does. Every uniform this material introduces is therefore
+ * declared explicitly in RF_PREY_FRAG_PARS below, and hse/probe_school_shot.mjs
+ * renders a real school through a real WebGL context so a missing
+ * declaration fails loudly as a shader-compile error rather than quietly as
+ * an empty ocean.
+ * ---------------------------------------------------------------------- */
+
+/* Per-vertex shading hints, baked alongside the colours so the fragment
+ * shader can place the belly flash and the eye highlight without a second
+ * draw call or a texture:
+ *   x = dorsalness, -1 (keel) .. +1 (dorsal ridge)
+ *   y = eye mask, 1.0 on the eye dot, 0 elsewhere
+ * Kept in ONE vec2 attribute so the added GPU cost is 8 bytes a vertex and
+ * the draw budget and triangle count are both untouched. */
+const FISH_SHADE_ATTRIBUTE = 'rfPreyShade';
+
+const RF_PREY_FRAG_PARS = [
+  '#include <common>',
+  // Declared, not merely assigned -- see the landmine note above.
+  'uniform float uPreyFlash;',
+  'uniform float uPreyRim;',
+  'uniform vec3  uPreyRimColor;',
+  'uniform vec3  uPreyFlashColor;',
+  'varying vec2  vPreyShade;',
+  'varying vec3  vPreyViewNormal;',
+  'varying vec3  vPreyViewPos;'
+].join('\n');
+
+const RF_PREY_VERT_PARS = [
+  '#include <common>',
+  'attribute vec2 ' + FISH_SHADE_ATTRIBUTE + ';',
+  'varying vec2  vPreyShade;',
+  'varying vec3  vPreyViewNormal;',
+  'varying vec3  vPreyViewPos;'
+].join('\n');
+
+const RF_PREY_VERT_MAIN = [
+  '#include <defaultnormal_vertex>',
+  'vPreyShade = ' + FISH_SHADE_ATTRIBUTE + ';',
+  'vPreyViewNormal = normalize(transformedNormal);'
+].join('\n');
+
+/* Fragment tail. Three things, in the order the eye reads them:
+ *  1. SILVER SPECULAR BELLY FLASH -- a view-dependent sheen confined to the
+ *     ventral half. Real baitfish flash when their flank catches the light;
+ *     it is the single most "edible-looking" cue a small fish has, and it
+ *     also breaks the flat silhouette that made the old toon prey read as
+ *     paper. Gated on vPreyShade.x so the dark dorsal never turns silver.
+ *  2. FRESNEL RIM -- a cool edge light matching the shark lane's rim light,
+ *     which is what actually lifts the fish off the water at distance.
+ *  3. EYE HIGHLIGHT -- the eye dot is already dark in the vertex colours;
+ *     this stamps a small bright catch-light offset toward the key so the
+ *     eye reads as wet and alive rather than as a painted hole. */
+const RF_PREY_FRAG_MAIN = [
+  '#include <dithering_fragment>',
+  'float rfVentral = clamp(-vPreyShade.x, 0.0, 1.0);',
+  'vec3  rfN = normalize(vPreyViewNormal);',
+  'vec3  rfV = normalize(-vPreyViewPos);',
+  'float rfFacing = clamp(dot(rfN, rfV), 0.0, 1.0);',
+  '// A low-poly fish has flat facets whose normals graze the view direction',
+  '// well inside the silhouette, so a soft fresnel smears pale blobs across',
+  '// the flank instead of drawing an edge. Keep the falloff steep so the rim',
+  '// only fires within a few degrees of the true silhouette.',
+  'float rfFres = pow(1.0 - rfFacing, 9.0);',
+  // 1. belly flash
+  'float rfFlash = pow(clamp(dot(rfN, normalize(vec3(-0.28, 0.62, 0.73))), 0.0, 1.0), 48.0);',
+  'gl_FragColor.rgb += uPreyFlashColor * (rfFlash * uPreyFlash * smoothstep(0.05, 0.75, rfVentral));',
+  // 2. fresnel rim
+  'gl_FragColor.rgb += uPreyRimColor * (rfFres * uPreyRim);',
+  // 3. eye catch-light
+  'float rfEye = vPreyShade.y;',
+  'gl_FragColor.rgb += vec3(1.0) * (rfEye * pow(clamp(dot(rfN, normalize(vec3(-0.35, 0.55, 0.76))), 0.0, 1.0), 6.0) * 0.85);'
+].join('\n');
+
+const FISH_MATERIAL_DEFAULTS = Object.freeze({
+  roughness: 0.38,
+  metalness: 0.06,
+  flashStrength: 0.30,
+  rimStrength: 0.34,
+  rimColor: 0xbfe6ff,
+  flashColor: 0xfff4dc
+});
+
+/* One shared source material for the whole roster. world3d clones it per
+ * def before installing the bend, so mutating a clone can never reach back
+ * here, and the roster still costs exactly one InstancedMesh (one draw) per
+ * def as before. */
+let sharedFishMaterial = null;
+
+function buildFishMaterial() {
+  if (sharedFishMaterial) return sharedFishMaterial;
+  const material = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    vertexColors: true,
+    side: THREE.DoubleSide,
+    roughness: FISH_MATERIAL_DEFAULTS.roughness,
+    metalness: FISH_MATERIAL_DEFAULTS.metalness,
+    flatShading: false
+  });
+  const rimColor = new THREE.Color(FISH_MATERIAL_DEFAULTS.rimColor);
+  const flashColor = new THREE.Color(FISH_MATERIAL_DEFAULTS.flashColor);
+  material.onBeforeCompile = function (shader) {
+    shader.uniforms.uPreyFlash = { value: FISH_MATERIAL_DEFAULTS.flashStrength };
+    shader.uniforms.uPreyRim = { value: FISH_MATERIAL_DEFAULTS.rimStrength };
+    shader.uniforms.uPreyRimColor = { value: rimColor };
+    shader.uniforms.uPreyFlashColor = { value: flashColor };
+    if (shader.vertexShader.indexOf('vPreyShade') < 0) {
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', RF_PREY_VERT_PARS)
+        .replace('#include <defaultnormal_vertex>', RF_PREY_VERT_MAIN);
+      // vPreyViewPos rides the stock view-space position Three already
+      // computes for lighting, so nothing extra is transformed per vertex.
+      if (shader.vertexShader.indexOf('vPreyViewPos =') < 0) {
+        shader.vertexShader = shader.vertexShader.replace('#include <worldpos_vertex>',
+          '#include <worldpos_vertex>\nvPreyViewPos = (modelViewMatrix * vec4(transformed, 1.0)).xyz;');
+      }
+    }
+    if (shader.fragmentShader.indexOf('vPreyShade') < 0) {
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', RF_PREY_FRAG_PARS)
+        .replace('#include <dithering_fragment>', RF_PREY_FRAG_MAIN);
+    }
+  };
+  const baseKey = typeof material.customProgramCacheKey === 'function'
+    ? material.customProgramCacheKey() : material.type;
+  // Distinct from the shark/solid variants so Three can never alias programs.
+  material.customProgramCacheKey = function () { return String(baseKey) + ':rf-prey-lit'; };
+  material.userData = material.userData || {};
+  material.userData.rfFishMaterial = true;
+  material.userData.rfPreyLit = true;
+  material.userData.rfShading =
+    'MeshStandardMaterial; vertex-colour countershade; roughness 0.38 silver ventral flash; fresnel rim; eye catch-light; no outline shell';
+  sharedFishMaterial = material;
+  return material;
 }
 
 function buildFishMaterialSpec() {
@@ -1214,6 +1623,7 @@ function __selftestFish() {
 const Art3D = RF.Art3D || {};
 Art3D.buildFish = buildFish;
 Art3D.buildFishMaterialSpec = buildFishMaterialSpec;
+Art3D.buildFishMaterial = buildFishMaterial;
 Art3D.preloadFish = preloadFish;
 Art3D.__selftestFish = __selftestFish;
 RF.Art3D = Art3D;
@@ -1226,6 +1636,7 @@ export {
   PROCEDURAL_FALLBACK_IDS,
   buildFish,
   buildFishMaterialSpec,
+  buildFishMaterial,
   preloadFish,
   __selftestFish
 };

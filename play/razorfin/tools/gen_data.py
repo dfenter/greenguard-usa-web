@@ -665,8 +665,8 @@ TEXTURED_MODEL_BY_ROW = {
     "omenmaw":         "bullhead",          # angler tag: stubby body, lure prop carries identity
     "solaris":         "whitepointer",      # point high tier: fast/bulk mix
     "absolutezero": "tigershark",  # was HELD-L2 (rig_morph gate fixed by F1)
-    # "leviathanrex": "whitepointer"  HELD-K: textured kaiju features render as a box pile (F2 sheet); toon rig until props_textured kaiju pass
-    # "leviathan_rex": "whitepointer"  HELD-K: textured kaiju features render as a box pile (F2 sheet); toon rig until props_textured kaiju pass
+    "leviathanrex": "greatwhite_cy",  # r15 kaiju pass: textured spine ridge; NEVER megalodonrex (9th neutral_bone shifts skinning)
+    "leviathan_rex": "greatwhite_cy",  # r15 kaiju pass (see NOTES-rev15-kaiju.md HOOK 3)
     "zeusfin": "mako",  # was HELD (props); crown feature is textured-flagged now
     "poseidonrex": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
     "hadesmaw":        "whitepointer",      # void tag: neutral bulk, identity from props/shader

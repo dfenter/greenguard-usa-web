@@ -1,0 +1,3738 @@
+{
+ "summary": {
+  "when": "2026-08-27T20:17:44.549Z",
+  "rows": 86,
+  "pass": 13,
+  "fail": 73,
+  "consoleErrors": [],
+  "gates": {
+   "satFloor": 0.18,
+   "backBellyDelta": 0.06,
+   "patternContrast": 0.1,
+   "distinctMin": 0.055,
+   "eyeHighlight": true,
+   "bgBleedMax": 0.02,
+   "drawsMax": 100,
+   "trisMax": 55000,
+   "texBytesMax": 8388608
+  },
+  "out": "hse/evidence/r15-skin/after",
+  "sheet": "hse/evidence/r15-skin/after/contact_sheet.png",
+  "closest": [
+   {
+    "a": "seismos",
+    "b": "vortexa",
+    "d": 0.04990855334646787
+   },
+   {
+    "a": "maelstrom",
+    "b": "charybdisvoid",
+    "d": 0.050541834466517714
+   },
+   {
+    "a": "megalodon",
+    "b": "seismos",
+    "d": 0.05426743609177547
+   },
+   {
+    "a": "venomspine",
+    "b": "chronos",
+    "d": 0.055943333476902765
+   },
+   {
+    "a": "whaleshark",
+    "b": "charybdisvoid",
+    "d": 0.056467052926364086
+   },
+   {
+    "a": "mako",
+    "b": "blue",
+    "d": 0.05717626096063252
+   },
+   {
+    "a": "snapjaw",
+    "b": "aresrender",
+    "d": 0.061013847268286375
+   },
+   {
+    "a": "whaleshark",
+    "b": "poseidonrex",
+    "d": 0.06122616993942756
+   },
+   {
+    "a": "mako",
+    "b": "chronos",
+    "d": 0.06216069632027424
+   },
+   {
+    "a": "seismos",
+    "b": "hephaestusforge",
+    "d": 0.06235813232662978
+   }
+  ],
+  "diff": {
+   "baseline": "hse/evidence/r15-skin/before",
+   "regressed": [
+    {
+     "id": "reef",
+     "reason": "flank saturation 0.166 < 0.18"
+    },
+    {
+     "id": "reef",
+     "reason": "sat dropped 0.559 -> 0.166"
+    },
+    {
+     "id": "reef",
+     "reason": "countershade dropped 0.194 -> 0.101"
+    },
+    {
+     "id": "epaulette",
+     "reason": "flank saturation 0.147 < 0.18"
+    },
+    {
+     "id": "epaulette",
+     "reason": "sat dropped 0.429 -> 0.147"
+    },
+    {
+     "id": "cookiecutter",
+     "reason": "new failures: flank saturation 0.144 < 0.18; countershade 0.041 < 0.06 (back 0.569 belly 0.610)"
+    },
+    {
+     "id": "cookiecutter",
+     "reason": "sat dropped 0.557 -> 0.144"
+    },
+    {
+     "id": "mako",
+     "reason": "flank saturation 0.143 < 0.18; countershade -0.041 < 0.06 (back 0.636 belly 0.595)"
+    },
+    {
+     "id": "mako",
+     "reason": "sat dropped 0.502 -> 0.143"
+    },
+    {
+     "id": "mako",
+     "reason": "countershade dropped 0.219 -> -0.041"
+    },
+    {
+     "id": "blue",
+     "reason": "flank saturation 0.179 < 0.18; countershade -0.047 < 0.06 (back 0.625 belly 0.578)"
+    },
+    {
+     "id": "blue",
+     "reason": "sat dropped 0.503 -> 0.179"
+    },
+    {
+     "id": "blue",
+     "reason": "countershade dropped 0.220 -> -0.047"
+    },
+    {
+     "id": "hammerhead",
+     "reason": "new failures: flank saturation 0.118 < 0.18; no eye highlight in head crop (0 bright px)"
+    },
+    {
+     "id": "hammerhead",
+     "reason": "sat dropped 0.621 -> 0.118"
+    },
+    {
+     "id": "thresher",
+     "reason": "sat dropped 0.499 -> 0.133"
+    },
+    {
+     "id": "sawshark",
+     "reason": "sat dropped 0.433 -> 0.126"
+    },
+    {
+     "id": "tiger",
+     "reason": "flank saturation 0.134 < 0.18"
+    },
+    {
+     "id": "tiger",
+     "reason": "sat dropped 0.458 -> 0.134"
+    },
+    {
+     "id": "bull",
+     "reason": "sat dropped 0.552 -> 0.133"
+    },
+    {
+     "id": "bull",
+     "reason": "countershade dropped -0.060 -> -0.162"
+    },
+    {
+     "id": "goblin",
+     "reason": "sat dropped 0.579 -> 0.469"
+    },
+    {
+     "id": "goblin",
+     "reason": "countershade dropped 0.076 -> -0.197"
+    },
+    {
+     "id": "greatwhite",
+     "reason": "countershade -0.098 < 0.06 (back 0.591 belly 0.493)"
+    },
+    {
+     "id": "greatwhite",
+     "reason": "sat dropped 0.499 -> 0.209"
+    },
+    {
+     "id": "greatwhite",
+     "reason": "countershade dropped 0.213 -> -0.098"
+    },
+    {
+     "id": "whaleshark",
+     "reason": "sat dropped 0.489 -> 0.225"
+    },
+    {
+     "id": "megalodon",
+     "reason": "flank saturation 0.171 < 0.18; too close to seismos (thumb distance 0.0543 < 0.055)"
+    },
+    {
+     "id": "megalodon",
+     "reason": "sat dropped 0.403 -> 0.171"
+    },
+    {
+     "id": "dunkleosteus",
+     "reason": "flank saturation 0.150 < 0.18"
+    },
+    {
+     "id": "dunkleosteus",
+     "reason": "sat dropped 0.597 -> 0.150"
+    },
+    {
+     "id": "greenland",
+     "reason": "sat dropped 0.486 -> 0.159"
+    },
+    {
+     "id": "snapjaw",
+     "reason": "flank saturation 0.161 < 0.18"
+    },
+    {
+     "id": "snapjaw",
+     "reason": "sat dropped 0.445 -> 0.161"
+    },
+    {
+     "id": "gulperfiend",
+     "reason": "sat dropped 0.610 -> 0.384"
+    },
+    {
+     "id": "gulperfiend",
+     "reason": "countershade dropped -0.003 -> -0.177"
+    },
+    {
+     "id": "anglerfang",
+     "reason": "new failures: countershade 0.018 < 0.06 (back 0.714 belly 0.731); no eye highlight in head crop (0 bright px)"
+    },
+    {
+     "id": "anglerfang",
+     "reason": "sat dropped 0.411 -> 0.183"
+    },
+    {
+     "id": "anglerfang",
+     "reason": "valStd dropped 0.300 -> 0.212"
+    },
+    {
+     "id": "morayne",
+     "reason": "sat dropped 0.489 -> 0.180"
+    },
+    {
+     "id": "sailfin",
+     "reason": "new failures: flank saturation 0.154 < 0.18; countershade -0.099 < 0.06 (back 0.664 belly 0.565)"
+    },
+    {
+     "id": "sailfin",
+     "reason": "sat dropped 0.553 -> 0.154"
+    },
+    {
+     "id": "sailfin",
+     "reason": "countershade dropped 0.157 -> -0.099"
+    },
+    {
+     "id": "thornback",
+     "reason": "flank saturation 0.150 < 0.18"
+    },
+    {
+     "id": "thornback",
+     "reason": "sat dropped 0.570 -> 0.150"
+    },
+    {
+     "id": "stonejaw",
+     "reason": "flank saturation 0.136 < 0.18; countershade -0.151 < 0.06 (back 0.525 belly 0.374)"
+    },
+    {
+     "id": "stonejaw",
+     "reason": "sat dropped 0.485 -> 0.136"
+    },
+    {
+     "id": "stonejaw",
+     "reason": "countershade dropped 0.189 -> -0.151"
+    },
+    {
+     "id": "duskfin",
+     "reason": "flank saturation 0.167 < 0.18; countershade -0.010 < 0.06 (back 0.606 belly 0.596)"
+    },
+    {
+     "id": "duskfin",
+     "reason": "sat dropped 0.511 -> 0.167"
+    },
+    {
+     "id": "duskfin",
+     "reason": "countershade dropped 0.104 -> -0.010"
+    },
+    {
+     "id": "barbhook",
+     "reason": "sat dropped 0.468 -> 0.154"
+    },
+    {
+     "id": "coralcrown",
+     "reason": "flank saturation 0.164 < 0.18; countershade -0.088 < 0.06 (back 0.520 belly 0.432)"
+    },
+    {
+     "id": "coralcrown",
+     "reason": "sat dropped 0.460 -> 0.164"
+    },
+    {
+     "id": "coralcrown",
+     "reason": "countershade dropped 0.157 -> -0.088"
+    },
+    {
+     "id": "vex",
+     "reason": "flank saturation 0.139 < 0.18"
+    },
+    {
+     "id": "vex",
+     "reason": "sat dropped 0.477 -> 0.139"
+    },
+    {
+     "id": "abyssmaw",
+     "reason": "flank saturation 0.174 < 0.18; countershade 0.000 < 0.06 (back 0.676 belly 0.676)"
+    },
+    {
+     "id": "abyssmaw",
+     "reason": "sat dropped 0.444 -> 0.174"
+    },
+    {
+     "id": "abyssmaw",
+     "reason": "countershade dropped 0.130 -> 0.000"
+    },
+    {
+     "id": "riftjaw",
+     "reason": "flank saturation 0.134 < 0.18; countershade -0.156 < 0.06 (back 0.540 belly 0.383)"
+    },
+    {
+     "id": "riftjaw",
+     "reason": "sat dropped 0.548 -> 0.134"
+    },
+    {
+     "id": "riftjaw",
+     "reason": "countershade dropped 0.212 -> -0.156"
+    },
+    {
+     "id": "venomspine",
+     "reason": "new failures: flank saturation 0.164 < 0.18; countershade -0.006 < 0.06 (back 0.577 belly 0.572)"
+    },
+    {
+     "id": "venomspine",
+     "reason": "sat dropped 0.491 -> 0.164"
+    },
+    {
+     "id": "howler",
+     "reason": "sat dropped 0.346 -> 0.187"
+    },
+    {
+     "id": "magmaw",
+     "reason": "flank saturation 0.155 < 0.18"
+    },
+    {
+     "id": "magmaw",
+     "reason": "sat dropped 0.508 -> 0.155"
+    },
+    {
+     "id": "frostjaw",
+     "reason": "flank saturation 0.153 < 0.18"
+    },
+    {
+     "id": "frostjaw",
+     "reason": "sat dropped 0.488 -> 0.153"
+    },
+    {
+     "id": "stormfin",
+     "reason": "new failures: flank saturation 0.162 < 0.18; countershade -0.142 < 0.06 (back 0.692 belly 0.550)"
+    },
+    {
+     "id": "stormfin",
+     "reason": "sat dropped 0.560 -> 0.162"
+    },
+    {
+     "id": "stormfin",
+     "reason": "countershade dropped 0.156 -> -0.142"
+    },
+    {
+     "id": "gloomtide",
+     "reason": "flank saturation 0.172 < 0.18; countershade -0.116 < 0.06 (back 0.686 belly 0.570)"
+    },
+    {
+     "id": "gloomtide",
+     "reason": "sat dropped 0.528 -> 0.172"
+    },
+    {
+     "id": "gloomtide",
+     "reason": "countershade dropped 0.158 -> -0.116"
+    },
+    {
+     "id": "wreckfang",
+     "reason": "countershade -0.092 < 0.06 (back 0.575 belly 0.483)"
+    },
+    {
+     "id": "wreckfang",
+     "reason": "sat dropped 0.549 -> 0.219"
+    },
+    {
+     "id": "wreckfang",
+     "reason": "countershade dropped 0.265 -> -0.092"
+    },
+    {
+     "id": "ironfin",
+     "reason": "countershade -0.126 < 0.06 (back 0.589 belly 0.463)"
+    },
+    {
+     "id": "ironfin",
+     "reason": "sat dropped 0.529 -> 0.247"
+    },
+    {
+     "id": "ironfin",
+     "reason": "countershade dropped 0.168 -> -0.126"
+    },
+    {
+     "id": "cindermaw",
+     "reason": "new failures: flank saturation 0.170 < 0.18; countershade -0.153 < 0.06 (back 0.675 belly 0.521)"
+    },
+    {
+     "id": "cindermaw",
+     "reason": "sat dropped 0.431 -> 0.170"
+    },
+    {
+     "id": "glacier",
+     "reason": "sat dropped 0.506 -> 0.181"
+    },
+    {
+     "id": "gravewater",
+     "reason": "sat dropped 0.449 -> 0.195"
+    },
+    {
+     "id": "teslafang",
+     "reason": "flank saturation 0.149 < 0.18"
+    },
+    {
+     "id": "teslafang",
+     "reason": "sat dropped 0.451 -> 0.149"
+    },
+    {
+     "id": "plaguemaw",
+     "reason": "flank saturation 0.170 < 0.18"
+    },
+    {
+     "id": "plaguemaw",
+     "reason": "sat dropped 0.417 -> 0.170"
+    },
+    {
+     "id": "sunspine",
+     "reason": "flank saturation 0.179 < 0.18"
+    },
+    {
+     "id": "sunspine",
+     "reason": "sat dropped 0.447 -> 0.179"
+    },
+    {
+     "id": "nocturne",
+     "reason": "new failures: countershade -0.147 < 0.06 (back 0.776 belly 0.629); no eye highlight in head crop (0 bright px)"
+    },
+    {
+     "id": "nocturne",
+     "reason": "sat dropped 0.434 -> 0.190"
+    },
+    {
+     "id": "nocturne",
+     "reason": "countershade dropped 0.035 -> -0.147"
+    },
+    {
+     "id": "tempest",
+     "reason": "sat dropped 0.588 -> 0.175"
+    },
+    {
+     "id": "tempest",
+     "reason": "countershade dropped -0.067 -> -0.160"
+    },
+    {
+     "id": "maelstrom",
+     "reason": "background bleeds through body at 7.31% > 2.00%; too close to charybdisvoid (thumb distance 0.0505 < 0.055)"
+    },
+    {
+     "id": "maelstrom",
+     "reason": "sat dropped 0.518 -> 0.218"
+    },
+    {
+     "id": "bonecrown",
+     "reason": "countershade -0.146 < 0.06 (back 0.625 belly 0.478)"
+    },
+    {
+     "id": "bonecrown",
+     "reason": "sat dropped 0.468 -> 0.234"
+    },
+    {
+     "id": "bonecrown",
+     "reason": "countershade dropped 0.220 -> -0.146"
+    },
+    {
+     "id": "mirrorscale",
+     "reason": "sat dropped 0.419 -> 0.204"
+    },
+    {
+     "id": "mirrorscale",
+     "reason": "countershade dropped 0.047 -> -0.083"
+    },
+    {
+     "id": "aurora",
+     "reason": "sat dropped 0.407 -> 0.191"
+    },
+    {
+     "id": "aurora",
+     "reason": "countershade dropped -0.012 -> -0.117"
+    },
+    {
+     "id": "vulkan",
+     "reason": "sat dropped 0.411 -> 0.161"
+    },
+    {
+     "id": "voltaicrex",
+     "reason": "sat dropped 0.410 -> 0.151"
+    },
+    {
+     "id": "nullfin",
+     "reason": "sat dropped 0.410 -> 0.210"
+    },
+    {
+     "id": "chronos",
+     "reason": "sat dropped 0.410 -> 0.192"
+    },
+    {
+     "id": "seismos",
+     "reason": "sat dropped 0.412 -> 0.164"
+    },
+    {
+     "id": "banshee",
+     "reason": "sat dropped 0.410 -> 0.174"
+    },
+    {
+     "id": "vortexa",
+     "reason": "sat dropped 0.410 -> 0.189"
+    },
+    {
+     "id": "warbringer",
+     "reason": "sat dropped 0.413 -> 0.275"
+    },
+    {
+     "id": "warbringer",
+     "reason": "countershade dropped -0.006 -> -0.126"
+    },
+    {
+     "id": "omenmaw",
+     "reason": "sat dropped 0.412 -> 0.236"
+    },
+    {
+     "id": "solaris",
+     "reason": "sat dropped 0.410 -> 0.238"
+    },
+    {
+     "id": "leviathanrex",
+     "reason": "new failures: countershade -0.095 < 0.06 (back 0.583 belly 0.488); background bleeds through body at 4.37% > 2.00%"
+    },
+    {
+     "id": "leviathanrex",
+     "reason": "sat dropped 0.330 -> 0.243"
+    },
+    {
+     "id": "leviathanrex",
+     "reason": "countershade dropped 0.073 -> -0.095"
+    },
+    {
+     "id": "leviathan_rex",
+     "reason": "new failures: countershade -0.115 < 0.06 (back 0.620 belly 0.505); background bleeds through body at 3.13% > 2.00%"
+    },
+    {
+     "id": "leviathan_rex",
+     "reason": "countershade dropped 0.125 -> -0.115"
+    },
+    {
+     "id": "zeusfin",
+     "reason": "sat dropped 0.448 -> 0.198"
+    },
+    {
+     "id": "poseidonrex",
+     "reason": "background bleeds through body at 7.14% > 2.00%"
+    },
+    {
+     "id": "poseidonrex",
+     "reason": "sat dropped 0.513 -> 0.253"
+    },
+    {
+     "id": "hadesmaw",
+     "reason": "new failures: flank saturation 0.178 < 0.18; countershade 0.041 < 0.06 (back 0.521 belly 0.562)"
+    },
+    {
+     "id": "hadesmaw",
+     "reason": "sat dropped 0.400 -> 0.178"
+    },
+    {
+     "id": "apollodon",
+     "reason": "new failures: flank saturation 0.162 < 0.18; countershade -0.036 < 0.06 (back 0.641 belly 0.605)"
+    },
+    {
+     "id": "apollodon",
+     "reason": "sat dropped 0.448 -> 0.162"
+    },
+    {
+     "id": "artemisstrike",
+     "reason": "countershade -0.083 < 0.06 (back 0.613 belly 0.530)"
+    },
+    {
+     "id": "artemisstrike",
+     "reason": "sat dropped 0.467 -> 0.215"
+    },
+    {
+     "id": "artemisstrike",
+     "reason": "countershade dropped 0.132 -> -0.083"
+    },
+    {
+     "id": "athenajaw",
+     "reason": "sat dropped 0.460 -> 0.274"
+    },
+    {
+     "id": "athenajaw",
+     "reason": "countershade dropped -0.017 -> -0.106"
+    },
+    {
+     "id": "aresrender",
+     "reason": "sat dropped 0.440 -> 0.230"
+    },
+    {
+     "id": "hermesdart",
+     "reason": "sat dropped 0.523 -> 0.191"
+    },
+    {
+     "id": "hephaestusforge",
+     "reason": "sat dropped 0.482 -> 0.198"
+    },
+    {
+     "id": "dionysustide",
+     "reason": "countershade -0.133 < 0.06 (back 0.547 belly 0.414)"
+    },
+    {
+     "id": "dionysustide",
+     "reason": "sat dropped 0.449 -> 0.181"
+    },
+    {
+     "id": "dionysustide",
+     "reason": "countershade dropped 0.085 -> -0.133"
+    },
+    {
+     "id": "aphroditelure",
+     "reason": "sat dropped 0.350 -> 0.225"
+    },
+    {
+     "id": "heracrown",
+     "reason": "sat dropped 0.450 -> 0.225"
+    },
+    {
+     "id": "typhonmaw",
+     "reason": "sat dropped 0.483 -> 0.229"
+    },
+    {
+     "id": "hydrafang",
+     "reason": "new failures: flank saturation 0.169 < 0.18; countershade -0.114 < 0.06 (back 0.711 belly 0.597)"
+    },
+    {
+     "id": "hydrafang",
+     "reason": "sat dropped 0.453 -> 0.169"
+    },
+    {
+     "id": "cerberusjaw",
+     "reason": "sat dropped 0.387 -> 0.225"
+    },
+    {
+     "id": "chimerashark",
+     "reason": "sat dropped 0.464 -> 0.196"
+    },
+    {
+     "id": "medusagaze",
+     "reason": "sat dropped 0.377 -> 0.258"
+    },
+    {
+     "id": "scyllarender",
+     "reason": "sat dropped 0.530 -> 0.196"
+    },
+    {
+     "id": "scyllarender",
+     "reason": "countershade dropped 0.046 -> -0.107"
+    },
+    {
+     "id": "charybdisvoid",
+     "reason": "background bleeds through body at 6.85% > 2.00%; too close to maelstrom (thumb distance 0.0505 < 0.055)"
+    },
+    {
+     "id": "charybdisvoid",
+     "reason": "sat dropped 0.417 -> 0.207"
+    },
+    {
+     "id": "minotaurram",
+     "reason": "sat dropped 0.499 -> 0.233"
+    },
+    {
+     "id": "cyclopseye",
+     "reason": "sat dropped 0.447 -> 0.227"
+    },
+    {
+     "id": "harpyshade",
+     "reason": "sat dropped 0.349 -> 0.223"
+    },
+    {
+     "id": "lamiacoil",
+     "reason": "flank saturation 0.174 < 0.18"
+    },
+    {
+     "id": "lamiacoil",
+     "reason": "sat dropped 0.410 -> 0.174"
+    },
+    {
+     "id": "kampechrono",
+     "reason": "sat dropped 0.439 -> 0.219"
+    }
+   ],
+   "improved": [
+    "morayne",
+    "omenmaw",
+    "solaris",
+    "chimerashark",
+    "harpyshade"
+   ],
+   "added": [],
+   "missing": []
+  }
+ },
+ "results": [
+  {
+   "id": "reef",
+   "row": {
+    "id": "reef",
+    "name": "Reef Shark",
+    "tier": 1,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "dogfish"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_reef.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_reef.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_reef.png",
+   "stats": {
+    "sat": 0.16640113294124603,
+    "val": 0.582362949848175,
+    "hue": 0.45339789323245044,
+    "valStd": 0.15870071947574615,
+    "back": 0.5645885467529297,
+    "belly": 0.6654379367828369,
+    "countershade": 0.10084939002990723,
+    "bgBleed": 0.0021537711313394017,
+    "eyePx": 909,
+    "bodyFrac": 0.017666180580872524
+   },
+   "base": "dogfish",
+   "prop": null,
+   "draws": 1,
+   "tris": 6715,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.166 < 0.18"
+   ]
+  },
+  {
+   "id": "epaulette",
+   "row": {
+    "id": "epaulette",
+    "name": "Epaulette Shark",
+    "tier": 1,
+    "act": 1,
+    "cls": "common",
+    "pattern": "spots",
+    "model": "bullhead"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_epaulette.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_epaulette.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_epaulette.png",
+   "stats": {
+    "sat": 0.14684747159481049,
+    "val": 0.455638587474823,
+    "hue": 0.7789934810768172,
+    "valStd": 0.19058972597122192,
+    "back": 0.40549609065055847,
+    "belly": 0.5877863764762878,
+    "countershade": 0.18229028582572937,
+    "bgBleed": 0.000956507061272717,
+    "eyePx": 2304,
+    "bodyFrac": 0.025369121399927086
+   },
+   "base": "bullhead",
+   "prop": null,
+   "draws": 1,
+   "tris": 6742,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.147 < 0.18"
+   ]
+  },
+  {
+   "id": "cookiecutter",
+   "row": {
+    "id": "cookiecutter",
+    "name": "Cookiecutter Shark",
+    "tier": 1,
+    "act": 1,
+    "cls": "common",
+    "pattern": "collar",
+    "model": "smoothhound"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_cookiecutter.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_cookiecutter.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_cookiecutter.png",
+   "stats": {
+    "sat": 0.14370742440223694,
+    "val": 0.5503798723220825,
+    "hue": 0.8946892617844515,
+    "valStd": 0.170577734708786,
+    "back": 0.5686973929405212,
+    "belly": 0.6097829341888428,
+    "countershade": 0.04108554124832153,
+    "bgBleed": 0.0003996447602131439,
+    "eyePx": 1019,
+    "bodyFrac": 0.01617678332725726
+   },
+   "base": "smoothhound",
+   "prop": null,
+   "draws": 1,
+   "tris": 6649,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.144 < 0.18",
+    "countershade 0.041 < 0.06 (back 0.569 belly 0.610)"
+   ]
+  },
+  {
+   "id": "mako",
+   "row": {
+    "id": "mako",
+    "name": "Shortfin Mako",
+    "tier": 2,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "mako"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_mako.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_mako.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_mako.png",
+   "stats": {
+    "sat": 0.14346946775913239,
+    "val": 0.6231964230537415,
+    "hue": 0.41868644296355706,
+    "valStd": 0.1112952008843422,
+    "back": 0.6357289552688599,
+    "belly": 0.5947480201721191,
+    "countershade": -0.04098093509674072,
+    "bgBleed": 0,
+    "eyePx": 46,
+    "bodyFrac": 0.025778496779681612
+   },
+   "base": "mako",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.143 < 0.18",
+    "countershade -0.041 < 0.06 (back 0.636 belly 0.595)"
+   ]
+  },
+  {
+   "id": "blue",
+   "row": {
+    "id": "blue",
+    "name": "Blue Shark",
+    "tier": 2,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "mako"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_blue.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_blue.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_blue.png",
+   "stats": {
+    "sat": 0.17894606292247772,
+    "val": 0.6093034148216248,
+    "hue": 0.3872556675169233,
+    "valStd": 0.10902305692434311,
+    "back": 0.6247690320014954,
+    "belly": 0.5781510472297668,
+    "countershade": -0.046617984771728516,
+    "bgBleed": 0,
+    "eyePx": 35,
+    "bodyFrac": 0.02462100498237939
+   },
+   "base": "mako",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.179 < 0.18",
+    "countershade -0.047 < 0.06 (back 0.625 belly 0.578)"
+   ]
+  },
+  {
+   "id": "hammerhead",
+   "row": {
+    "id": "hammerhead",
+    "name": "Hammerhead",
+    "tier": 3,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "smoothhammer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_hammerhead.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_hammerhead.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_hammerhead.png",
+   "stats": {
+    "sat": 0.11822446435689926,
+    "val": 0.7329745292663574,
+    "hue": 0.7528433244368173,
+    "valStd": 0.1197974756360054,
+    "back": 0.630616307258606,
+    "belly": 0.7526281476020813,
+    "countershade": 0.12201184034347534,
+    "bgBleed": 0.00030073895858394914,
+    "eyePx": 0,
+    "bodyFrac": 0.016743377081054805
+   },
+   "base": "smoothhammer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6733,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.118 < 0.18",
+    "no eye highlight in head crop (0 bright px)"
+   ]
+  },
+  {
+   "id": "thresher",
+   "row": {
+    "id": "thresher",
+    "name": "Thresher Shark",
+    "tier": 3,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "thresher"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_thresher.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_thresher.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_thresher.png",
+   "stats": {
+    "sat": 0.13265758752822876,
+    "val": 0.6077115535736084,
+    "hue": 0.40092691516185774,
+    "valStd": 0.18743902444839478,
+    "back": 0.46736040711402893,
+    "belly": 0.6957100629806519,
+    "countershade": 0.22834965586662292,
+    "bgBleed": 0.000028069387525964184,
+    "eyePx": 64,
+    "bodyFrac": 0.025982804715032202
+   },
+   "base": "thresher",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.133 < 0.18"
+   ]
+  },
+  {
+   "id": "sawshark",
+   "row": {
+    "id": "sawshark",
+    "name": "Longnose Sawshark",
+    "tier": 3,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "thresher"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_sawshark.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_sawshark.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_sawshark.png",
+   "stats": {
+    "sat": 0.12611226737499237,
+    "val": 0.608189046382904,
+    "hue": 0.8596090427723455,
+    "valStd": 0.1819932609796524,
+    "back": 0.480090856552124,
+    "belly": 0.6885794401168823,
+    "countershade": 0.2084885835647583,
+    "bgBleed": 0,
+    "eyePx": 71,
+    "bodyFrac": 0.025541529955037064
+   },
+   "base": "thresher",
+   "prop": null,
+   "draws": 2,
+   "tris": 6826,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.126 < 0.18"
+   ]
+  },
+  {
+   "id": "tiger",
+   "row": {
+    "id": "tiger",
+    "name": "Tiger Shark",
+    "tier": 4,
+    "act": 1,
+    "cls": "common",
+    "pattern": "stripes",
+    "model": "tiger_nu"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_tiger.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_tiger.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_tiger.png",
+   "stats": {
+    "sat": 0.1341599076986313,
+    "val": 0.6308053135871887,
+    "hue": 0.8503117591504518,
+    "valStd": 0.14949077367782593,
+    "back": 0.5570282936096191,
+    "belly": 0.691942036151886,
+    "countershade": 0.13491374254226685,
+    "bgBleed": 0,
+    "eyePx": 431,
+    "bodyFrac": 0.047131334305504924
+   },
+   "base": "tiger_nu",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.134 < 0.18"
+   ]
+  },
+  {
+   "id": "bull",
+   "row": {
+    "id": "bull",
+    "name": "Bull Shark",
+    "tier": 4,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "whaler"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_bull.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_bull.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_bull.png",
+   "stats": {
+    "sat": 0.1327667087316513,
+    "val": 0.49822112917900085,
+    "hue": 0.8709910110165564,
+    "valStd": 0.24478891491889954,
+    "back": 0.5452983379364014,
+    "belly": 0.3832676112651825,
+    "countershade": -0.16203072667121887,
+    "bgBleed": 0.0004725277610059591,
+    "eyePx": 2666,
+    "bodyFrac": 0.027422074371126502
+   },
+   "base": "whaler",
+   "prop": null,
+   "draws": 1,
+   "tris": 6750,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.133 < 0.18",
+    "countershade -0.162 < 0.06 (back 0.545 belly 0.383)"
+   ]
+  },
+  {
+   "id": "goblin",
+   "row": {
+    "id": "goblin",
+    "name": "Goblin Shark",
+    "tier": 4,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": null
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_goblin.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_goblin.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_goblin.png",
+   "stats": {
+    "sat": 0.46862709522247314,
+    "val": 0.7745139598846436,
+    "hue": 0.07461353455320188,
+    "valStd": 0.24462518095970154,
+    "back": 0.8721629977226257,
+    "belly": 0.6747304797172546,
+    "countershade": -0.1974325180053711,
+    "bgBleed": 0.002841113798960317,
+    "eyePx": 2174,
+    "bodyFrac": 0.07213209381455828
+   },
+   "base": "goblinshark",
+   "prop": null,
+   "draws": 5,
+   "tris": 1498,
+   "texMB": 0,
+   "fails": [
+    "countershade -0.197 < 0.06 (back 0.872 belly 0.675)"
+   ]
+  },
+  {
+   "id": "greatwhite",
+   "row": {
+    "id": "greatwhite",
+    "name": "Great White",
+    "tier": 5,
+    "act": 1,
+    "cls": "rare",
+    "pattern": "plain",
+    "model": "greatwhite_cy"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_greatwhite.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_greatwhite.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_greatwhite.png",
+   "stats": {
+    "sat": 0.2091258466243744,
+    "val": 0.44485554099082947,
+    "hue": 0.4653161440367929,
+    "valStd": 0.26406586170196533,
+    "back": 0.5913861989974976,
+    "belly": 0.49289819598197937,
+    "countershade": -0.09848800301551819,
+    "bgBleed": 0.004952479472425163,
+    "eyePx": 11372,
+    "bodyFrac": 0.056568234293352775
+   },
+   "base": "greatwhite_cy",
+   "prop": null,
+   "draws": 1,
+   "tris": 6784,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.098 < 0.06 (back 0.591 belly 0.493)"
+   ]
+  },
+  {
+   "id": "whaleshark",
+   "row": {
+    "id": "whaleshark",
+    "name": "Whale Shark",
+    "tier": 5,
+    "act": 1,
+    "cls": "rare",
+    "pattern": "dots",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_whaleshark.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_whaleshark.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_whaleshark.png",
+   "stats": {
+    "sat": 0.2253391444683075,
+    "val": 0.5509040951728821,
+    "hue": 0.4610638199341352,
+    "valStd": 0.180354043841362,
+    "back": 0.4265587329864502,
+    "belly": 0.578624963760376,
+    "countershade": 0.15206623077392578,
+    "bgBleed": 0.06800809088129454,
+    "eyePx": 236,
+    "bodyFrac": 0.05691988698505286
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "background bleeds through body at 6.80% > 2.00%"
+   ]
+  },
+  {
+   "id": "megalodon",
+   "row": {
+    "id": "megalodon",
+    "name": "Megalodon",
+    "tier": 6,
+    "act": 1,
+    "cls": "rare",
+    "pattern": "scars",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_megalodon.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_megalodon.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_megalodon.png",
+   "stats": {
+    "sat": 0.17096921801567078,
+    "val": 0.5287039875984192,
+    "hue": 0.45167145768552547,
+    "valStd": 0.18322618305683136,
+    "back": 0.3984743654727936,
+    "belly": 0.564633846282959,
+    "countershade": 0.1661594808101654,
+    "bgBleed": 0,
+    "eyePx": 325,
+    "bodyFrac": 0.04035651354964151
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.171 < 0.18",
+    "too close to seismos (thumb distance 0.0543 < 0.055)"
+   ]
+  },
+  {
+   "id": "dunkleosteus",
+   "row": {
+    "id": "dunkleosteus",
+    "name": "Dunkleosteus",
+    "tier": 6,
+    "act": 1,
+    "cls": "rare",
+    "pattern": "plates",
+    "model": "bullhead"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_dunkleosteus.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_dunkleosteus.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_dunkleosteus.png",
+   "stats": {
+    "sat": 0.15021535754203796,
+    "val": 0.4001981317996979,
+    "hue": 0.8448787798672044,
+    "valStd": 0.20454807579517365,
+    "back": 0.3602016270160675,
+    "belly": 0.5110245943069458,
+    "countershade": 0.1508229672908783,
+    "bgBleed": 0.0002935843191434246,
+    "eyePx": 3944,
+    "bodyFrac": 0.04179350467857577
+   },
+   "base": "bullhead",
+   "prop": null,
+   "draws": 1,
+   "tris": 6742,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.150 < 0.18"
+   ]
+  },
+  {
+   "id": "greenland",
+   "row": {
+    "id": "greenland",
+    "name": "Greenland Shark",
+    "tier": 6,
+    "act": 1,
+    "cls": "rare",
+    "pattern": "mottled",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_greenland.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_greenland.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_greenland.png",
+   "stats": {
+    "sat": 0.15907126665115356,
+    "val": 0.5488101243972778,
+    "hue": 0.8177831276748578,
+    "valStd": 0.1894311159849167,
+    "back": 0.4164884388446808,
+    "belly": 0.5909619927406311,
+    "countershade": 0.17447355389595032,
+    "bgBleed": 0,
+    "eyePx": 226,
+    "bodyFrac": 0.034337404301859276
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.159 < 0.18"
+   ]
+  },
+  {
+   "id": "snapjaw",
+   "row": {
+    "id": "snapjaw",
+    "name": "Snapjaw",
+    "tier": 7,
+    "act": 2,
+    "cls": "rare",
+    "pattern": "scales",
+    "model": "tigershark"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_snapjaw.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_snapjaw.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_snapjaw.png",
+   "stats": {
+    "sat": 0.16139040887355804,
+    "val": 0.4958040714263916,
+    "hue": 0.8203450111985583,
+    "valStd": 0.20374037325382233,
+    "back": 0.36793240904808044,
+    "belly": 0.6563500165939331,
+    "countershade": 0.28841760754585266,
+    "bgBleed": 0.0011191772534785238,
+    "eyePx": 1177,
+    "bodyFrac": 0.0236526309393608
+   },
+   "base": "tigershark",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.161 < 0.18"
+   ]
+  },
+  {
+   "id": "gulperfiend",
+   "row": {
+    "id": "gulperfiend",
+    "name": "Gulper Fiend",
+    "tier": 7,
+    "act": 2,
+    "cls": "rare",
+    "pattern": "plain",
+    "model": null
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_gulperfiend.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_gulperfiend.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_gulperfiend.png",
+   "stats": {
+    "sat": 0.3836095631122589,
+    "val": 0.7266784310340881,
+    "hue": 0.3991298379544472,
+    "valStd": 0.19386683404445648,
+    "back": 0.7935882806777954,
+    "belly": 0.6166072487831116,
+    "countershade": -0.17698103189468384,
+    "bgBleed": 0.0005863346598635212,
+    "eyePx": 2822,
+    "bodyFrac": 0.0594201907886742
+   },
+   "base": "anglerfish",
+   "prop": null,
+   "draws": 7,
+   "tris": 2098,
+   "texMB": 0,
+   "fails": [
+    "countershade -0.177 < 0.06 (back 0.794 belly 0.617)"
+   ]
+  },
+  {
+   "id": "anglerfang",
+   "row": {
+    "id": "anglerfang",
+    "name": "Anglerfang",
+    "tier": 7,
+    "act": 2,
+    "cls": "rare",
+    "pattern": "plain",
+    "model": "smoothhound"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_anglerfang.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_anglerfang.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_anglerfang.png",
+   "stats": {
+    "sat": 0.18258124589920044,
+    "val": 0.6643126010894775,
+    "hue": 0.38397720940765157,
+    "valStd": 0.2117559164762497,
+    "back": 0.7135875225067139,
+    "belly": 0.731384813785553,
+    "countershade": 0.01779729127883911,
+    "bgBleed": 0.0006619726785821749,
+    "eyePx": 0,
+    "bodyFrac": 0.023922256653299306
+   },
+   "base": "smoothhound",
+   "prop": null,
+   "draws": 1,
+   "tris": 6649,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade 0.018 < 0.06 (back 0.714 belly 0.731)",
+    "no eye highlight in head crop (0 bright px)"
+   ]
+  },
+  {
+   "id": "morayne",
+   "row": {
+    "id": "morayne",
+    "name": "Morayne",
+    "tier": 7,
+    "act": 2,
+    "cls": "rare",
+    "pattern": "bands",
+    "model": "thresher"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_morayne.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_morayne.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_morayne.png",
+   "stats": {
+    "sat": 0.1803131252527237,
+    "val": 0.591455340385437,
+    "hue": 0.7589298574041243,
+    "valStd": 0.1741751730442047,
+    "back": 0.475690096616745,
+    "belly": 0.6458930373191833,
+    "countershade": 0.17020294070243835,
+    "bgBleed": 0,
+    "eyePx": 19,
+    "bodyFrac": 0.026233442702637014
+   },
+   "base": "thresher",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "sailfin",
+   "row": {
+    "id": "sailfin",
+    "name": "Sailfin Ripper",
+    "tier": 7,
+    "act": 2,
+    "cls": "rare",
+    "pattern": "plain",
+    "model": "blueshark"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_sailfin.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_sailfin.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_sailfin.png",
+   "stats": {
+    "sat": 0.15352670848369598,
+    "val": 0.6447325348854065,
+    "hue": 0.4197683066335533,
+    "valStd": 0.18058264255523682,
+    "back": 0.6640252470970154,
+    "belly": 0.5651310682296753,
+    "countershade": -0.09889417886734009,
+    "bgBleed": 0,
+    "eyePx": 145,
+    "bodyFrac": 0.018325434439178515
+   },
+   "base": "blueshark",
+   "prop": null,
+   "draws": 1,
+   "tris": 6767,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.154 < 0.18",
+    "countershade -0.099 < 0.06 (back 0.664 belly 0.565)"
+   ]
+  },
+  {
+   "id": "thornback",
+   "row": {
+    "id": "thornback",
+    "name": "Thornback",
+    "tier": 7,
+    "act": 2,
+    "cls": "rare",
+    "pattern": "spikes",
+    "model": "bullhead"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_thornback.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_thornback.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_thornback.png",
+   "stats": {
+    "sat": 0.14998261630535126,
+    "val": 0.43113598227500916,
+    "hue": 0.8652158980233737,
+    "valStd": 0.20118595659732819,
+    "back": 0.37393128871917725,
+    "belly": 0.5324586033821106,
+    "countershade": 0.15852731466293335,
+    "bgBleed": 0.0006912197369820283,
+    "eyePx": 3798,
+    "bodyFrac": 0.040629177299793415
+   },
+   "base": "bullhead",
+   "prop": null,
+   "draws": 1,
+   "tris": 6742,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.150 < 0.18"
+   ]
+  },
+  {
+   "id": "stonejaw",
+   "row": {
+    "id": "stonejaw",
+    "name": "Stonejaw",
+    "tier": 7,
+    "act": 2,
+    "cls": "rare",
+    "pattern": "cracks",
+    "model": "whaler"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_stonejaw.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_stonejaw.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_stonejaw.png",
+   "stats": {
+    "sat": 0.13633351027965546,
+    "val": 0.4823729395866394,
+    "hue": 0.8485569528794484,
+    "valStd": 0.24106593430042267,
+    "back": 0.5254218578338623,
+    "belly": 0.374246209859848,
+    "countershade": -0.15117564797401428,
+    "bgBleed": 0.0021866589773164168,
+    "eyePx": 3036,
+    "bodyFrac": 0.029803894762425568
+   },
+   "base": "whaler",
+   "prop": null,
+   "draws": 1,
+   "tris": 6750,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.136 < 0.18",
+    "countershade -0.151 < 0.06 (back 0.525 belly 0.374)"
+   ]
+  },
+  {
+   "id": "duskfin",
+   "row": {
+    "id": "duskfin",
+    "name": "Duskfin",
+    "tier": 7,
+    "act": 2,
+    "cls": "rare",
+    "pattern": "plain",
+    "model": "mako"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_duskfin.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_duskfin.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_duskfin.png",
+   "stats": {
+    "sat": 0.16703562438488007,
+    "val": 0.6070200204849243,
+    "hue": 0.41742929520627775,
+    "valStd": 0.11074067652225494,
+    "back": 0.6057050824165344,
+    "belly": 0.5956473350524902,
+    "countershade": -0.01005774736404419,
+    "bgBleed": 0.00010038900740368929,
+    "eyePx": 105,
+    "bodyFrac": 0.028769443431765705
+   },
+   "base": "mako",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.167 < 0.18",
+    "countershade -0.010 < 0.06 (back 0.606 belly 0.596)"
+   ]
+  },
+  {
+   "id": "barbhook",
+   "row": {
+    "id": "barbhook",
+    "name": "Barbhook",
+    "tier": 7,
+    "act": 2,
+    "cls": "rare",
+    "pattern": "plain",
+    "model": "thresher"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_barbhook.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_barbhook.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_barbhook.png",
+   "stats": {
+    "sat": 0.1543959677219391,
+    "val": 0.6110403537750244,
+    "hue": 0.4467076668227833,
+    "valStd": 0.17924313247203827,
+    "back": 0.482660710811615,
+    "belly": 0.6809900403022766,
+    "countershade": 0.19832932949066162,
+    "bgBleed": 0,
+    "eyePx": 65,
+    "bodyFrac": 0.028025884068538096
+   },
+   "base": "thresher",
+   "prop": null,
+   "draws": 2,
+   "tris": 6826,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.154 < 0.18"
+   ]
+  },
+  {
+   "id": "coralcrown",
+   "row": {
+    "id": "coralcrown",
+    "name": "Coralcrown",
+    "tier": 7,
+    "act": 2,
+    "cls": "rare",
+    "pattern": "coral",
+    "model": "whaler"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_coralcrown.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_coralcrown.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_coralcrown.png",
+   "stats": {
+    "sat": 0.16386611759662628,
+    "val": 0.4884515106678009,
+    "hue": 0.8561619139165733,
+    "valStd": 0.22311148047447205,
+    "back": 0.5199414491653442,
+    "belly": 0.43208208680152893,
+    "countershade": -0.08785936236381531,
+    "bgBleed": 0.0026410686169942607,
+    "eyePx": 2940,
+    "bodyFrac": 0.02815955766192733
+   },
+   "base": "whaler",
+   "prop": null,
+   "draws": 2,
+   "tris": 6782,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.164 < 0.18",
+    "countershade -0.088 < 0.06 (back 0.520 belly 0.432)"
+   ]
+  },
+  {
+   "id": "vex",
+   "row": {
+    "id": "vex",
+    "name": "Vex",
+    "tier": 8,
+    "act": 2,
+    "cls": "epic",
+    "pattern": "plain",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_vex.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_vex.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_vex.png",
+   "stats": {
+    "sat": 0.139048233628273,
+    "val": 0.5619981288909912,
+    "hue": 0.43886052034080425,
+    "valStd": 0.20252065360546112,
+    "back": 0.39955252408981323,
+    "belly": 0.5785393714904785,
+    "countershade": 0.17898684740066528,
+    "bgBleed": 0,
+    "eyePx": 214,
+    "bodyFrac": 0.03298699720500668
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.139 < 0.18"
+   ]
+  },
+  {
+   "id": "abyssmaw",
+   "row": {
+    "id": "abyssmaw",
+    "name": "Abyss Maw",
+    "tier": 8,
+    "act": 2,
+    "cls": "epic",
+    "pattern": "plain",
+    "model": "smoothhound"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_abyssmaw.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_abyssmaw.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_abyssmaw.png",
+   "stats": {
+    "sat": 0.17421551048755646,
+    "val": 0.6245678663253784,
+    "hue": 0.39117187590073643,
+    "valStd": 0.20309680700302124,
+    "back": 0.6759508848190308,
+    "belly": 0.6764500141143799,
+    "countershade": 0.0004991292953491211,
+    "bgBleed": 0.0005818181818181818,
+    "eyePx": 3192,
+    "bodyFrac": 0.02458454854781869
+   },
+   "base": "smoothhound",
+   "prop": null,
+   "draws": 1,
+   "tris": 6649,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.174 < 0.18",
+    "countershade 0.000 < 0.06 (back 0.676 belly 0.676)"
+   ]
+  },
+  {
+   "id": "riftjaw",
+   "row": {
+    "id": "riftjaw",
+    "name": "Riftjaw",
+    "tier": 8,
+    "act": 2,
+    "cls": "epic",
+    "pattern": "plain",
+    "model": "whaler"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_riftjaw.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_riftjaw.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_riftjaw.png",
+   "stats": {
+    "sat": 0.13429413735866547,
+    "val": 0.5064042210578918,
+    "hue": 0.8529646321372859,
+    "valStd": 0.24453066289424896,
+    "back": 0.5396432280540466,
+    "belly": 0.38324102759361267,
+    "countershade": -0.15640220046043396,
+    "bgBleed": 0.000743184993608609,
+    "eyePx": 2296,
+    "bodyFrac": 0.02403390448414145
+   },
+   "base": "whaler",
+   "prop": null,
+   "draws": 1,
+   "tris": 6750,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.134 < 0.18",
+    "countershade -0.156 < 0.06 (back 0.540 belly 0.383)"
+   ]
+  },
+  {
+   "id": "venomspine",
+   "row": {
+    "id": "venomspine",
+    "name": "Venomspine",
+    "tier": 8,
+    "act": 2,
+    "cls": "epic",
+    "pattern": "spikes",
+    "model": "mako"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_venomspine.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_venomspine.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_venomspine.png",
+   "stats": {
+    "sat": 0.16442812979221344,
+    "val": 0.5748597979545593,
+    "hue": 0.42813337745416036,
+    "valStd": 0.10731412470340729,
+    "back": 0.5772013664245605,
+    "belly": 0.5715634822845459,
+    "countershade": -0.0056378841400146484,
+    "bgBleed": 0,
+    "eyePx": 83,
+    "bodyFrac": 0.028430702393972537
+   },
+   "base": "mako",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.164 < 0.18",
+    "countershade -0.006 < 0.06 (back 0.577 belly 0.572)"
+   ]
+  },
+  {
+   "id": "howler",
+   "row": {
+    "id": "howler",
+    "name": "Howler",
+    "tier": 8,
+    "act": 2,
+    "cls": "epic",
+    "pattern": "plain",
+    "model": "tigershark"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_howler.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_howler.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_howler.png",
+   "stats": {
+    "sat": 0.18697822093963623,
+    "val": 0.6126431226730347,
+    "hue": 0.8210936783591181,
+    "valStd": 0.2367439568042755,
+    "back": 0.6001907587051392,
+    "belly": 0.6578472256660461,
+    "countershade": 0.05765646696090698,
+    "bgBleed": 0.0006216972334473111,
+    "eyePx": 0,
+    "bodyFrac": 0.027724358974358973
+   },
+   "base": "tigershark",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade 0.058 < 0.06 (back 0.600 belly 0.658)",
+    "no eye highlight in head crop (0 bright px)"
+   ]
+  },
+  {
+   "id": "magmaw",
+   "row": {
+    "id": "magmaw",
+    "name": "Magmaw",
+    "tier": 8,
+    "act": 2,
+    "cls": "epic",
+    "pattern": "cracks",
+    "model": "bullhead"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_magmaw.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_magmaw.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_magmaw.png",
+   "stats": {
+    "sat": 0.15474212169647217,
+    "val": 0.4495866000652313,
+    "hue": 0.8835657389294749,
+    "valStd": 0.2344207614660263,
+    "back": 0.3581506013870239,
+    "belly": 0.51402348279953,
+    "countershade": 0.1558728814125061,
+    "bgBleed": 0.0008299381318847141,
+    "eyePx": 3620,
+    "bodyFrac": 0.03842812006319115
+   },
+   "base": "bullhead",
+   "prop": null,
+   "draws": 1,
+   "tris": 6742,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.155 < 0.18"
+   ]
+  },
+  {
+   "id": "frostjaw",
+   "row": {
+    "id": "frostjaw",
+    "name": "Frostjaw",
+    "tier": 8,
+    "act": 2,
+    "cls": "epic",
+    "pattern": "plain",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_frostjaw.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_frostjaw.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_frostjaw.png",
+   "stats": {
+    "sat": 0.1527635157108307,
+    "val": 0.5579689741134644,
+    "hue": 0.4526360494937827,
+    "valStd": 0.18893608450889587,
+    "back": 0.40917178988456726,
+    "belly": 0.57008957862854,
+    "countershade": 0.16091778874397278,
+    "bgBleed": 0,
+    "eyePx": 260,
+    "bodyFrac": 0.03848584275124559
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.153 < 0.18"
+   ]
+  },
+  {
+   "id": "stormfin",
+   "row": {
+    "id": "stormfin",
+    "name": "Stormfin",
+    "tier": 8,
+    "act": 2,
+    "cls": "epic",
+    "pattern": "plain",
+    "model": "blueshark"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_stormfin.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_stormfin.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_stormfin.png",
+   "stats": {
+    "sat": 0.16245098412036896,
+    "val": 0.6428218483924866,
+    "hue": 0.38186090744649337,
+    "valStd": 0.18936559557914734,
+    "back": 0.6918322443962097,
+    "belly": 0.5499939918518066,
+    "countershade": -0.14183825254440308,
+    "bgBleed": 0,
+    "eyePx": 374,
+    "bodyFrac": 0.019709259934378418
+   },
+   "base": "blueshark",
+   "prop": null,
+   "draws": 1,
+   "tris": 6767,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.162 < 0.18",
+    "countershade -0.142 < 0.06 (back 0.692 belly 0.550)"
+   ]
+  },
+  {
+   "id": "gloomtide",
+   "row": {
+    "id": "gloomtide",
+    "name": "Gloomtide",
+    "tier": 8,
+    "act": 2,
+    "cls": "epic",
+    "pattern": "plain",
+    "model": "blueshark"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_gloomtide.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_gloomtide.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_gloomtide.png",
+   "stats": {
+    "sat": 0.17176491022109985,
+    "val": 0.6459317803382874,
+    "hue": 0.3876271386738728,
+    "valStd": 0.18874196708202362,
+    "back": 0.6864403486251831,
+    "belly": 0.5700775384902954,
+    "countershade": -0.1163628101348877,
+    "bgBleed": 0,
+    "eyePx": 345,
+    "bodyFrac": 0.015303347915907158
+   },
+   "base": "blueshark",
+   "prop": null,
+   "draws": 1,
+   "tris": 6767,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.172 < 0.18",
+    "countershade -0.116 < 0.06 (back 0.686 belly 0.570)"
+   ]
+  },
+  {
+   "id": "wreckfang",
+   "row": {
+    "id": "wreckfang",
+    "name": "Wreckfang",
+    "tier": 8,
+    "act": 2,
+    "cls": "epic",
+    "pattern": "rivets",
+    "model": "greatwhite_cy"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_wreckfang.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_wreckfang.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_wreckfang.png",
+   "stats": {
+    "sat": 0.21924924850463867,
+    "val": 0.4419175386428833,
+    "hue": 0.4637382901393768,
+    "valStd": 0.2536563277244568,
+    "back": 0.574654221534729,
+    "belly": 0.48287346959114075,
+    "countershade": -0.09178075194358826,
+    "bgBleed": 0.009791480402618753,
+    "eyePx": 10919,
+    "bodyFrac": 0.050242283388017984
+   },
+   "base": "greatwhite_cy",
+   "prop": null,
+   "draws": 1,
+   "tris": 6784,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.092 < 0.06 (back 0.575 belly 0.483)"
+   ]
+  },
+  {
+   "id": "ironfin",
+   "row": {
+    "id": "ironfin",
+    "name": "Ironfin",
+    "tier": 9,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "panels",
+    "model": "greatwhite_cy"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_ironfin.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_ironfin.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_ironfin.png",
+   "stats": {
+    "sat": 0.24710732698440552,
+    "val": 0.44978606700897217,
+    "hue": 0.48062320903224515,
+    "valStd": 0.2314711958169937,
+    "back": 0.5891530513763428,
+    "belly": 0.462795615196228,
+    "countershade": -0.12635743618011475,
+    "bgBleed": 0.0030327508751045165,
+    "eyePx": 9337,
+    "bodyFrac": 0.05166332482683193
+   },
+   "base": "greatwhite_cy",
+   "prop": null,
+   "draws": 1,
+   "tris": 6784,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.126 < 0.06 (back 0.589 belly 0.463)"
+   ]
+  },
+  {
+   "id": "cindermaw",
+   "row": {
+    "id": "cindermaw",
+    "name": "Cindermaw",
+    "tier": 9,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "cracks",
+    "model": "blueshark"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_cindermaw.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_cindermaw.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_cindermaw.png",
+   "stats": {
+    "sat": 0.1698337197303772,
+    "val": 0.6168548464775085,
+    "hue": 0.33351089051192423,
+    "valStd": 0.18310768902301788,
+    "back": 0.6749946475028992,
+    "belly": 0.5214968323707581,
+    "countershade": -0.1534978151321411,
+    "bgBleed": 0,
+    "eyePx": 266,
+    "bodyFrac": 0.02171968039859035
+   },
+   "base": "blueshark",
+   "prop": null,
+   "draws": 1,
+   "tris": 6767,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.170 < 0.18",
+    "countershade -0.153 < 0.06 (back 0.675 belly 0.521)"
+   ]
+  },
+  {
+   "id": "glacier",
+   "row": {
+    "id": "glacier",
+    "name": "Glacier",
+    "tier": 9,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "facets",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_glacier.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_glacier.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_glacier.png",
+   "stats": {
+    "sat": 0.18058447539806366,
+    "val": 0.5349459052085876,
+    "hue": 0.4467524075022355,
+    "valStd": 0.18724550306797028,
+    "back": 0.3924822211265564,
+    "belly": 0.5764478445053101,
+    "countershade": 0.18396562337875366,
+    "bgBleed": 0,
+    "eyePx": 387,
+    "bodyFrac": 0.04405228460323247
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "gravewater",
+   "row": {
+    "id": "gravewater",
+    "name": "Gravewater",
+    "tier": 9,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "rot",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_gravewater.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_gravewater.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_gravewater.png",
+   "stats": {
+    "sat": 0.19487860798835754,
+    "val": 0.5571498274803162,
+    "hue": 0.5095561280909906,
+    "valStd": 0.19302242994308472,
+    "back": 0.411471962928772,
+    "belly": 0.6086985468864441,
+    "countershade": 0.19722658395767212,
+    "bgBleed": 0.000021129141311697092,
+    "eyePx": 217,
+    "bodyFrac": 0.03434272086523271
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "teslafang",
+   "row": {
+    "id": "teslafang",
+    "name": "Teslafang",
+    "tier": 9,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "plain",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_teslafang.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_teslafang.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_teslafang.png",
+   "stats": {
+    "sat": 0.1485561579465866,
+    "val": 0.5539047122001648,
+    "hue": 0.3698093052184158,
+    "valStd": 0.20234455168247223,
+    "back": 0.3904472589492798,
+    "belly": 0.561923623085022,
+    "countershade": 0.1714763641357422,
+    "bgBleed": 0,
+    "eyePx": 205,
+    "bodyFrac": 0.035636924292137565
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.149 < 0.18"
+   ]
+  },
+  {
+   "id": "plaguemaw",
+   "row": {
+    "id": "plaguemaw",
+    "name": "Plaguemaw",
+    "tier": 9,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "boils",
+    "model": "tigershark"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_plaguemaw.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_plaguemaw.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_plaguemaw.png",
+   "stats": {
+    "sat": 0.16959494352340698,
+    "val": 0.5083695650100708,
+    "hue": 0.820971008329614,
+    "valStd": 0.2048984318971634,
+    "back": 0.3752308487892151,
+    "belly": 0.6408160924911499,
+    "countershade": 0.2655852437019348,
+    "bgBleed": 0.00006486135884546781,
+    "eyePx": 1167,
+    "bodyFrac": 0.02196803985903512
+   },
+   "base": "tigershark",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.170 < 0.18"
+   ]
+  },
+  {
+   "id": "sunspine",
+   "row": {
+    "id": "sunspine",
+    "name": "Sunspine",
+    "tier": 9,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "rays",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_sunspine.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_sunspine.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_sunspine.png",
+   "stats": {
+    "sat": 0.17918673157691956,
+    "val": 0.5734422206878662,
+    "hue": 0.3279294011948103,
+    "valStd": 0.19946205615997314,
+    "back": 0.4291691780090332,
+    "belly": 0.5897780656814575,
+    "countershade": 0.16060888767242432,
+    "bgBleed": 0.005995786744449846,
+    "eyePx": 236,
+    "bodyFrac": 0.040195497630331756
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.179 < 0.18"
+   ]
+  },
+  {
+   "id": "nocturne",
+   "row": {
+    "id": "nocturne",
+    "name": "Nocturne",
+    "tier": 9,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "stars",
+    "model": "blueshark"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_nocturne.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_nocturne.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_nocturne.png",
+   "stats": {
+    "sat": 0.1895957887172699,
+    "val": 0.7115603089332581,
+    "hue": 0.36961281392001105,
+    "valStd": 0.2063501626253128,
+    "back": 0.7758983373641968,
+    "belly": 0.6290063261985779,
+    "countershade": -0.1468920111656189,
+    "bgBleed": 0,
+    "eyePx": 0,
+    "bodyFrac": 0.023063251913962815
+   },
+   "base": "blueshark",
+   "prop": null,
+   "draws": 1,
+   "tris": 6767,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.147 < 0.06 (back 0.776 belly 0.629)",
+    "no eye highlight in head crop (0 bright px)"
+   ]
+  },
+  {
+   "id": "tempest",
+   "row": {
+    "id": "tempest",
+    "name": "Tempest",
+    "tier": 9,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "plain",
+    "model": "blueshark"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_tempest.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_tempest.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_tempest.png",
+   "stats": {
+    "sat": 0.17486269772052765,
+    "val": 0.6431920528411865,
+    "hue": 0.4103194488775376,
+    "valStd": 0.18150436878204346,
+    "back": 0.702501118183136,
+    "belly": 0.5429044365882874,
+    "countershade": -0.15959668159484863,
+    "bgBleed": 0,
+    "eyePx": 223,
+    "bodyFrac": 0.01944874832908008
+   },
+   "base": "blueshark",
+   "prop": null,
+   "draws": 1,
+   "tris": 6767,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.175 < 0.18",
+    "countershade -0.160 < 0.06 (back 0.703 belly 0.543)"
+   ]
+  },
+  {
+   "id": "maelstrom",
+   "row": {
+    "id": "maelstrom",
+    "name": "Maelstrom",
+    "tier": 9,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "swirls",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_maelstrom.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_maelstrom.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_maelstrom.png",
+   "stats": {
+    "sat": 0.2184421718120575,
+    "val": 0.5530410408973694,
+    "hue": 0.45734920656057315,
+    "valStd": 0.1776740849018097,
+    "back": 0.43735837936401367,
+    "belly": 0.5730999708175659,
+    "countershade": 0.13574159145355225,
+    "bgBleed": 0.07313471934462147,
+    "eyePx": 326,
+    "bodyFrac": 0.055958348523514403
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "background bleeds through body at 7.31% > 2.00%",
+    "too close to charybdisvoid (thumb distance 0.0505 < 0.055)"
+   ]
+  },
+  {
+   "id": "bonecrown",
+   "row": {
+    "id": "bonecrown",
+    "name": "Bonecrown",
+    "tier": 9,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "bones",
+    "model": "greatwhite_cy"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_bonecrown.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_bonecrown.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_bonecrown.png",
+   "stats": {
+    "sat": 0.2335980087518692,
+    "val": 0.45613017678260803,
+    "hue": 0.5252415854551302,
+    "valStd": 0.2661983072757721,
+    "back": 0.6245469450950623,
+    "belly": 0.4783543646335602,
+    "countershade": -0.14619258046150208,
+    "bgBleed": 0.004916464267314345,
+    "eyePx": 9760,
+    "bodyFrac": 0.04965366387167335
+   },
+   "base": "greatwhite_cy",
+   "prop": null,
+   "draws": 1,
+   "tris": 6784,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.146 < 0.06 (back 0.625 belly 0.478)"
+   ]
+  },
+  {
+   "id": "mirrorscale",
+   "row": {
+    "id": "mirrorscale",
+    "name": "Mirrorscale",
+    "tier": 9,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "mirror",
+    "model": "whaler"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_mirrorscale.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_mirrorscale.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_mirrorscale.png",
+   "stats": {
+    "sat": 0.2041260451078415,
+    "val": 0.5827145576477051,
+    "hue": 0.030802887299158005,
+    "valStd": 0.26390156149864197,
+    "back": 0.6181638240814209,
+    "belly": 0.5350919365882874,
+    "countershade": -0.08307188749313354,
+    "bgBleed": 0.0041015625,
+    "eyePx": 5304,
+    "bodyFrac": 0.02919780653785393
+   },
+   "base": "whaler",
+   "prop": null,
+   "draws": 1,
+   "tris": 6750,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.083 < 0.06 (back 0.618 belly 0.535)"
+   ]
+  },
+  {
+   "id": "aurora",
+   "row": {
+    "id": "aurora",
+    "name": "Aurora",
+    "tier": 10,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "ribbons",
+    "model": "blueshark"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_aurora.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_aurora.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_aurora.png",
+   "stats": {
+    "sat": 0.19089001417160034,
+    "val": 0.6420907974243164,
+    "hue": 0.4183945592551558,
+    "valStd": 0.17296038568019867,
+    "back": 0.6635627150535583,
+    "belly": 0.5462816953659058,
+    "countershade": -0.11728101968765259,
+    "bgBleed": 0.0024540301396377712,
+    "eyePx": 250,
+    "bodyFrac": 0.020762698991371977
+   },
+   "base": "blueshark",
+   "prop": null,
+   "draws": 1,
+   "tris": 6767,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.117 < 0.06 (back 0.664 belly 0.546)"
+   ]
+  },
+  {
+   "id": "vulkan",
+   "row": {
+    "id": "vulkan",
+    "name": "Vulkan",
+    "tier": 10,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "magma",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_vulkan.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_vulkan.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_vulkan.png",
+   "stats": {
+    "sat": 0.16081513464450836,
+    "val": 0.571532130241394,
+    "hue": 0.3762952029576718,
+    "valStd": 0.20162655413150787,
+    "back": 0.4935649335384369,
+    "belly": 0.5540997982025146,
+    "countershade": 0.06053486466407776,
+    "bgBleed": 0,
+    "eyePx": 256,
+    "bodyFrac": 0.0403071454611739
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.161 < 0.18"
+   ]
+  },
+  {
+   "id": "voltaicrex",
+   "row": {
+    "id": "voltaicrex",
+    "name": "Voltaic Rex",
+    "tier": 10,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "plain",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_voltaicrex.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_voltaicrex.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_voltaicrex.png",
+   "stats": {
+    "sat": 0.15073397755622864,
+    "val": 0.5540345907211304,
+    "hue": 0.43873491706302714,
+    "valStd": 0.1928265392780304,
+    "back": 0.39518052339553833,
+    "belly": 0.581838846206665,
+    "countershade": 0.1866583228111267,
+    "bgBleed": 0,
+    "eyePx": 322,
+    "bodyFrac": 0.038968131000121524
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.151 < 0.18"
+   ]
+  },
+  {
+   "id": "nullfin",
+   "row": {
+    "id": "nullfin",
+    "name": "Nullfin",
+    "tier": 10,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "plain",
+    "model": "greatwhite_cy"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_nullfin.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_nullfin.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_nullfin.png",
+   "stats": {
+    "sat": 0.21010255813598633,
+    "val": 0.4341978430747986,
+    "hue": 0.4490424125040042,
+    "valStd": 0.2609795331954956,
+    "back": 0.5889283418655396,
+    "belly": 0.5029763579368591,
+    "countershade": -0.08595198392868042,
+    "bgBleed": 0.007964906244624119,
+    "eyePx": 7733,
+    "bodyFrac": 0.042217310730343904
+   },
+   "base": "greatwhite_cy",
+   "prop": null,
+   "draws": 1,
+   "tris": 6784,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.086 < 0.06 (back 0.589 belly 0.503)"
+   ]
+  },
+  {
+   "id": "chronos",
+   "row": {
+    "id": "chronos",
+    "name": "Chronos",
+    "tier": 10,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "rings",
+    "model": "mako"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_chronos.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_chronos.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_chronos.png",
+   "stats": {
+    "sat": 0.19152432680130005,
+    "val": 0.5945649743080139,
+    "hue": 0.5146799772568769,
+    "valStd": 0.10404215008020401,
+    "back": 0.6055523157119751,
+    "belly": 0.5751529932022095,
+    "countershade": -0.030399322509765625,
+    "bgBleed": 0,
+    "eyePx": 58,
+    "bodyFrac": 0.02864488394701665
+   },
+   "base": "mako",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.030 < 0.06 (back 0.606 belly 0.575)"
+   ]
+  },
+  {
+   "id": "seismos",
+   "row": {
+    "id": "seismos",
+    "name": "Seismos",
+    "tier": 10,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "faults",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_seismos.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_seismos.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_seismos.png",
+   "stats": {
+    "sat": 0.16382049024105072,
+    "val": 0.5283506512641907,
+    "hue": 0.3652496599140437,
+    "valStd": 0.18289189040660858,
+    "back": 0.40014374256134033,
+    "belly": 0.5497066378593445,
+    "countershade": 0.14956289529800415,
+    "bgBleed": 0,
+    "eyePx": 357,
+    "bodyFrac": 0.0392119334062462
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.164 < 0.18",
+    "too close to vortexa (thumb distance 0.0499 < 0.055)",
+    "too close to megalodon (thumb distance 0.0543 < 0.055)"
+   ]
+  },
+  {
+   "id": "banshee",
+   "row": {
+    "id": "banshee",
+    "name": "Banshee",
+    "tier": 10,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "plain",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_banshee.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_banshee.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_banshee.png",
+   "stats": {
+    "sat": 0.1741357296705246,
+    "val": 0.6075569987297058,
+    "hue": 0.4292672767919483,
+    "valStd": 0.21983827650547028,
+    "back": 0.4965486526489258,
+    "belly": 0.6239624619483948,
+    "countershade": 0.127413809299469,
+    "bgBleed": 0,
+    "eyePx": 0,
+    "bodyFrac": 0.03623086037185563
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.174 < 0.18",
+    "no eye highlight in head crop (0 bright px)"
+   ]
+  },
+  {
+   "id": "vortexa",
+   "row": {
+    "id": "vortexa",
+    "name": "Vortexa",
+    "tier": 10,
+    "act": 3,
+    "cls": "epic",
+    "pattern": "swirls",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_vortexa.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_vortexa.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_vortexa.png",
+   "stats": {
+    "sat": 0.18942689895629883,
+    "val": 0.5540038347244263,
+    "hue": 0.44500568070889024,
+    "valStd": 0.17623594403266907,
+    "back": 0.42853352427482605,
+    "belly": 0.5687521696090698,
+    "countershade": 0.14021864533424377,
+    "bgBleed": 0.000018167944478761673,
+    "eyePx": 257,
+    "bodyFrac": 0.039452697776157494
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "too close to seismos (thumb distance 0.0499 < 0.055)"
+   ]
+  },
+  {
+   "id": "warbringer",
+   "row": {
+    "id": "warbringer",
+    "name": "Warbringer",
+    "tier": 11,
+    "act": 3,
+    "cls": "legendary",
+    "pattern": "plating",
+    "model": "greatwhite_cy"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_warbringer.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_warbringer.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_warbringer.png",
+   "stats": {
+    "sat": 0.2752798795700073,
+    "val": 0.4847719669342041,
+    "hue": 0.44128810674925,
+    "valStd": 0.22674141824245453,
+    "back": 0.6029673218727112,
+    "belly": 0.47672051191329956,
+    "countershade": -0.12624680995941162,
+    "bgBleed": 0.00013776845714635603,
+    "eyePx": 8227,
+    "bodyFrac": 0.04792957832057358
+   },
+   "base": "greatwhite_cy",
+   "prop": null,
+   "draws": 1,
+   "tris": 6784,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.126 < 0.06 (back 0.603 belly 0.477)"
+   ]
+  },
+  {
+   "id": "omenmaw",
+   "row": {
+    "id": "omenmaw",
+    "name": "Omenmaw",
+    "tier": 11,
+    "act": 3,
+    "cls": "legendary",
+    "pattern": "runes",
+    "model": "bullhead"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_omenmaw.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_omenmaw.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_omenmaw.png",
+   "stats": {
+    "sat": 0.2355470508337021,
+    "val": 0.4979645609855652,
+    "hue": 0.9013247939480316,
+    "valStd": 0.2233983427286148,
+    "back": 0.4323928654193878,
+    "belly": 0.6035131812095642,
+    "countershade": 0.1711203157901764,
+    "bgBleed": 0.0010302197802197802,
+    "eyePx": 5109,
+    "bodyFrac": 0.034947290071697654
+   },
+   "base": "bullhead",
+   "prop": null,
+   "draws": 1,
+   "tris": 6742,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "solaris",
+   "row": {
+    "id": "solaris",
+    "name": "Solaris",
+    "tier": 11,
+    "act": 3,
+    "cls": "legendary",
+    "pattern": "corona",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_solaris.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_solaris.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_solaris.png",
+   "stats": {
+    "sat": 0.2382570505142212,
+    "val": 0.6390539407730103,
+    "hue": 0.27310620513949946,
+    "valStd": 0.20923063158988953,
+    "back": 0.49350428581237793,
+    "belly": 0.6066205501556396,
+    "countershade": 0.11311626434326172,
+    "bgBleed": 0,
+    "eyePx": 224,
+    "bodyFrac": 0.04012790132458379
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "absolutezero",
+   "row": {
+    "id": "absolutezero",
+    "name": "Absolute Zero",
+    "tier": 11,
+    "act": 3,
+    "cls": "legendary",
+    "pattern": "facets",
+    "model": "tigershark"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_absolutezero.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_absolutezero.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_absolutezero.png",
+   "stats": {
+    "sat": 0.15633432567119598,
+    "val": 0.8158686757087708,
+    "hue": 0.8113535125025427,
+    "valStd": 0.23278304934501648,
+    "back": 0.9348910450935364,
+    "belly": 0.8673214912414551,
+    "countershade": -0.0675695538520813,
+    "bgBleed": 0.0027567195037904893,
+    "eyePx": 0,
+    "bodyFrac": 0.03174595941183619
+   },
+   "base": "tigershark",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.156 < 0.18",
+    "countershade -0.068 < 0.06 (back 0.935 belly 0.867)",
+    "no eye highlight in head crop (0 bright px)"
+   ]
+  },
+  {
+   "id": "leviathanrex",
+   "row": {
+    "id": "leviathanrex",
+    "name": "Sharkjira",
+    "tier": 12,
+    "act": 3,
+    "cls": "legendary",
+    "pattern": "plates",
+    "model": "greatwhite_cy"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_leviathanrex.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_leviathanrex.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_leviathanrex.png",
+   "stats": {
+    "sat": 0.24346429109573364,
+    "val": 0.4777471125125885,
+    "hue": 0.5143488374938405,
+    "valStd": 0.19657401740550995,
+    "back": 0.5827720165252686,
+    "belly": 0.4880332052707672,
+    "countershade": -0.09473881125450134,
+    "bgBleed": 0.04371670674967971,
+    "eyePx": 13392,
+    "bodyFrac": 0.09193249483533844
+   },
+   "base": "greatwhite_cy",
+   "prop": null,
+   "draws": 2,
+   "tris": 6982,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.095 < 0.06 (back 0.583 belly 0.488)",
+    "background bleeds through body at 4.37% > 2.00%"
+   ]
+  },
+  {
+   "id": "leviathan_rex",
+   "row": {
+    "id": "leviathan_rex",
+    "name": "Leviathan Rex",
+    "tier": 12,
+    "act": 3,
+    "cls": "legendary",
+    "pattern": "plates",
+    "model": "greatwhite_cy"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_leviathan_rex.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_leviathan_rex.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_leviathan_rex.png",
+   "stats": {
+    "sat": 0.24278855323791504,
+    "val": 0.4812777638435364,
+    "hue": 0.5261408495108189,
+    "valStd": 0.19610708951950073,
+    "back": 0.6204038262367249,
+    "belly": 0.5050233006477356,
+    "countershade": -0.11538052558898926,
+    "bgBleed": 0.03127604782224655,
+    "eyePx": 6252,
+    "bodyFrac": 0.056127719042410984
+   },
+   "base": "greatwhite_cy",
+   "prop": null,
+   "draws": 2,
+   "tris": 7012,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.115 < 0.06 (back 0.620 belly 0.505)",
+    "background bleeds through body at 3.13% > 2.00%"
+   ]
+  },
+  {
+   "id": "zeusfin",
+   "row": {
+    "id": "zeusfin",
+    "name": "Zeusfin",
+    "tier": 9,
+    "act": 4,
+    "cls": "god",
+    "pattern": "rays",
+    "model": "mako"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_zeusfin.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_zeusfin.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_zeusfin.png",
+   "stats": {
+    "sat": 0.19829033315181732,
+    "val": 0.6387971043586731,
+    "hue": 0.4013317297685349,
+    "valStd": 0.11463774740695953,
+    "back": 0.6652305722236633,
+    "belly": 0.6150944828987122,
+    "countershade": -0.05013608932495117,
+    "bgBleed": 0.000021003990758244067,
+    "eyePx": 36,
+    "bodyFrac": 0.03458424474419735
+   },
+   "base": "mako",
+   "prop": null,
+   "draws": 2,
+   "tris": 6822,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.050 < 0.06 (back 0.665 belly 0.615)"
+   ]
+  },
+  {
+   "id": "poseidonrex",
+   "row": {
+    "id": "poseidonrex",
+    "name": "Poseidonrex",
+    "tier": 9,
+    "act": 4,
+    "cls": "god",
+    "pattern": "swirls",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_poseidonrex.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_poseidonrex.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_poseidonrex.png",
+   "stats": {
+    "sat": 0.25304779410362244,
+    "val": 0.5687601566314697,
+    "hue": 0.48638608370783926,
+    "valStd": 0.17325910925865173,
+    "back": 0.4636675715446472,
+    "belly": 0.5994625687599182,
+    "countershade": 0.135794997215271,
+    "bgBleed": 0.0714201559885954,
+    "eyePx": 275,
+    "bodyFrac": 0.05641633248268319
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "background bleeds through body at 7.14% > 2.00%"
+   ]
+  },
+  {
+   "id": "hadesmaw",
+   "row": {
+    "id": "hadesmaw",
+    "name": "Hadesmaw",
+    "tier": 10,
+    "act": 4,
+    "cls": "god",
+    "pattern": "runes",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_hadesmaw.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_hadesmaw.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_hadesmaw.png",
+   "stats": {
+    "sat": 0.177954763174057,
+    "val": 0.596008837223053,
+    "hue": 0.3422617982756084,
+    "valStd": 0.19925327599048615,
+    "back": 0.5214075446128845,
+    "belly": 0.562192440032959,
+    "countershade": 0.04078489542007446,
+    "bgBleed": 0.00003962514611772631,
+    "eyePx": 3016,
+    "bodyFrac": 0.03667669218617086
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.178 < 0.18",
+    "countershade 0.041 < 0.06 (back 0.521 belly 0.562)"
+   ]
+  },
+  {
+   "id": "apollodon",
+   "row": {
+    "id": "apollodon",
+    "name": "Apollodon",
+    "tier": 9,
+    "act": 4,
+    "cls": "god",
+    "pattern": "corona",
+    "model": "mako"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_apollodon.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_apollodon.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_apollodon.png",
+   "stats": {
+    "sat": 0.16249386966228485,
+    "val": 0.6423284411430359,
+    "hue": 0.4528562609457552,
+    "valStd": 0.11250142753124237,
+    "back": 0.6412933468818665,
+    "belly": 0.6050193905830383,
+    "countershade": -0.036273956298828125,
+    "bgBleed": 0,
+    "eyePx": 14,
+    "bodyFrac": 0.03271813100012152
+   },
+   "base": "mako",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.162 < 0.18",
+    "countershade -0.036 < 0.06 (back 0.641 belly 0.605)"
+   ]
+  },
+  {
+   "id": "artemisstrike",
+   "row": {
+    "id": "artemisstrike",
+    "name": "Artemis Strike",
+    "tier": 9,
+    "act": 4,
+    "cls": "god",
+    "pattern": "facets",
+    "model": "whaler"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_artemisstrike.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_artemisstrike.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_artemisstrike.png",
+   "stats": {
+    "sat": 0.21525566279888153,
+    "val": 0.5965763926506042,
+    "hue": 0.8732511480055036,
+    "valStd": 0.2639100253582001,
+    "back": 0.6130566000938416,
+    "belly": 0.5296924710273743,
+    "countershade": -0.08336412906646729,
+    "bgBleed": 0.0001953452028799464,
+    "eyePx": 1627,
+    "bodyFrac": 0.02588558755620367
+   },
+   "base": "whaler",
+   "prop": null,
+   "draws": 1,
+   "tris": 6750,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.083 < 0.06 (back 0.613 belly 0.530)"
+   ]
+  },
+  {
+   "id": "athenajaw",
+   "row": {
+    "id": "athenajaw",
+    "name": "Athenajaw",
+    "tier": 10,
+    "act": 4,
+    "cls": "god",
+    "pattern": "plates",
+    "model": "scallopedhammer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_athenajaw.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_athenajaw.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_athenajaw.png",
+   "stats": {
+    "sat": 0.27357256412506104,
+    "val": 0.5629399418830872,
+    "hue": 0.905707794709851,
+    "valStd": 0.2361898273229599,
+    "back": 0.6571547985076904,
+    "belly": 0.5514919757843018,
+    "countershade": -0.10566282272338867,
+    "bgBleed": 0.001485535574667709,
+    "eyePx": 4492,
+    "bodyFrac": 0.03626124073398955
+   },
+   "base": "scallopedhammer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6742,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.106 < 0.06 (back 0.657 belly 0.551)"
+   ]
+  },
+  {
+   "id": "aresrender",
+   "row": {
+    "id": "aresrender",
+    "name": "Aresrender",
+    "tier": 10,
+    "act": 4,
+    "cls": "god",
+    "pattern": "cracks",
+    "model": "tigershark"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_aresrender.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_aresrender.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_aresrender.png",
+   "stats": {
+    "sat": 0.22998470067977905,
+    "val": 0.5185443758964539,
+    "hue": 0.8704585941616747,
+    "valStd": 0.1880447268486023,
+    "back": 0.4036005139350891,
+    "belly": 0.6287117600440979,
+    "countershade": 0.2251112461090088,
+    "bgBleed": 0.0019196125335932193,
+    "eyePx": 1052,
+    "bodyFrac": 0.024191882367237818
+   },
+   "base": "tigershark",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "hermesdart",
+   "row": {
+    "id": "hermesdart",
+    "name": "Hermes Dart",
+    "tier": 9,
+    "act": 4,
+    "cls": "god",
+    "pattern": "rings",
+    "model": "whaler"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_hermesdart.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_hermesdart.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_hermesdart.png",
+   "stats": {
+    "sat": 0.19132664799690247,
+    "val": 0.5582320094108582,
+    "hue": 0.8557323474506459,
+    "valStd": 0.20391827821731567,
+    "back": 0.5991039872169495,
+    "belly": 0.46086716651916504,
+    "countershade": -0.13823682069778442,
+    "bgBleed": 0.00023137436372049977,
+    "eyePx": 1087,
+    "bodyFrac": 0.021645248511362257
+   },
+   "base": "whaler",
+   "prop": null,
+   "draws": 1,
+   "tris": 6750,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.138 < 0.06 (back 0.599 belly 0.461)"
+   ]
+  },
+  {
+   "id": "hephaestusforge",
+   "row": {
+    "id": "hephaestusforge",
+    "name": "Hephaestus Forge",
+    "tier": 10,
+    "act": 4,
+    "cls": "god",
+    "pattern": "rivets",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_hephaestusforge.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_hephaestusforge.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_hephaestusforge.png",
+   "stats": {
+    "sat": 0.19753220677375793,
+    "val": 0.55892413854599,
+    "hue": 0.30673054863172167,
+    "valStd": 0.17226926982402802,
+    "back": 0.44482600688934326,
+    "belly": 0.5713080167770386,
+    "countershade": 0.1264820098876953,
+    "bgBleed": 0,
+    "eyePx": 266,
+    "bodyFrac": 0.045524213148620735
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "dionysustide",
+   "row": {
+    "id": "dionysustide",
+    "name": "Dionysus Tide",
+    "tier": 9,
+    "act": 4,
+    "cls": "god",
+    "pattern": "boils",
+    "model": "whaler"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_dionysustide.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_dionysustide.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_dionysustide.png",
+   "stats": {
+    "sat": 0.18096259236335754,
+    "val": 0.5119547247886658,
+    "hue": 0.8924574118277676,
+    "valStd": 0.23710069060325623,
+    "back": 0.5469298362731934,
+    "belly": 0.4136353135108948,
+    "countershade": -0.13329452276229858,
+    "bgBleed": 0.0017593144348911779,
+    "eyePx": 2525,
+    "bodyFrac": 0.025157977883096365
+   },
+   "base": "whaler",
+   "prop": null,
+   "draws": 1,
+   "tris": 6750,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.133 < 0.06 (back 0.547 belly 0.414)"
+   ]
+  },
+  {
+   "id": "aphroditelure",
+   "row": {
+    "id": "aphroditelure",
+    "name": "Aphrodite Lure",
+    "tier": 9,
+    "act": 4,
+    "cls": "god",
+    "pattern": "mirror",
+    "model": "bullhead"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_aphroditelure.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_aphroditelure.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_aphroditelure.png",
+   "stats": {
+    "sat": 0.22490324079990387,
+    "val": 0.5676496028900146,
+    "hue": 0.9116859364396179,
+    "valStd": 0.2231837809085846,
+    "back": 0.4742526412010193,
+    "belly": 0.7314267158508301,
+    "countershade": 0.2571740746498108,
+    "bgBleed": 0.002554381981470594,
+    "eyePx": 5288,
+    "bodyFrac": 0.035441730465427146
+   },
+   "base": "bullhead",
+   "prop": null,
+   "draws": 1,
+   "tris": 6742,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "heracrown",
+   "row": {
+    "id": "heracrown",
+    "name": "Hera Crown",
+    "tier": 12,
+    "act": 4,
+    "cls": "god",
+    "pattern": "faults",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_heracrown.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_heracrown.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_heracrown.png",
+   "stats": {
+    "sat": 0.22457270324230194,
+    "val": 0.5859037637710571,
+    "hue": 0.4687914375470991,
+    "valStd": 0.1826045960187912,
+    "back": 0.48531150817871094,
+    "belly": 0.6413042545318604,
+    "countershade": 0.15599274635314941,
+    "bgBleed": 0.036999102476110025,
+    "eyePx": 1188,
+    "bodyFrac": 0.06548411107060396
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 2,
+   "tris": 6822,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "background bleeds through body at 3.70% > 2.00%"
+   ]
+  },
+  {
+   "id": "typhonmaw",
+   "row": {
+    "id": "typhonmaw",
+    "name": "Typhonmaw",
+    "tier": 12,
+    "act": 5,
+    "cls": "demon",
+    "pattern": "faults",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_typhonmaw.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_typhonmaw.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_typhonmaw.png",
+   "stats": {
+    "sat": 0.22939465939998627,
+    "val": 0.5649302005767822,
+    "hue": 0.40183010521006673,
+    "valStd": 0.17018398642539978,
+    "back": 0.4613329768180847,
+    "belly": 0.5853697657585144,
+    "countershade": 0.12403678894042969,
+    "bgBleed": 0.0565251172937274,
+    "eyePx": 291,
+    "bodyFrac": 0.04499331632033054
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "background bleeds through body at 5.65% > 2.00%"
+   ]
+  },
+  {
+   "id": "hydrafang",
+   "row": {
+    "id": "hydrafang",
+    "name": "Hydrafang",
+    "tier": 10,
+    "act": 5,
+    "cls": "demon",
+    "pattern": "bands",
+    "model": "blueshark"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_hydrafang.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_hydrafang.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_hydrafang.png",
+   "stats": {
+    "sat": 0.16873404383659363,
+    "val": 0.6686059236526489,
+    "hue": 0.39371471801066227,
+    "valStd": 0.17307151854038239,
+    "back": 0.7108145952224731,
+    "belly": 0.5971581339836121,
+    "countershade": -0.11365646123886108,
+    "bgBleed": 0,
+    "eyePx": 48,
+    "bodyFrac": 0.01829429456799125
+   },
+   "base": "blueshark",
+   "prop": null,
+   "draws": 1,
+   "tris": 6767,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.169 < 0.18",
+    "countershade -0.114 < 0.06 (back 0.711 belly 0.597)"
+   ]
+  },
+  {
+   "id": "cerberusjaw",
+   "row": {
+    "id": "cerberusjaw",
+    "name": "Cerberus Jaw",
+    "tier": 10,
+    "act": 5,
+    "cls": "demon",
+    "pattern": "cracks",
+    "model": "tigershark"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_cerberusjaw.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_cerberusjaw.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_cerberusjaw.png",
+   "stats": {
+    "sat": 0.22477027773857117,
+    "val": 0.6186358332633972,
+    "hue": 0.9223301354969398,
+    "valStd": 0.21583211421966553,
+    "back": 0.6029448509216309,
+    "belly": 0.676251232624054,
+    "countershade": 0.0733063817024231,
+    "bgBleed": 0,
+    "eyePx": 0,
+    "bodyFrac": 0.02657825981285697
+   },
+   "base": "tigershark",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "no eye highlight in head crop (0 bright px)"
+   ]
+  },
+  {
+   "id": "chimerashark",
+   "row": {
+    "id": "chimerashark",
+    "name": "Chimera Shark",
+    "tier": 9,
+    "act": 5,
+    "cls": "demon",
+    "pattern": "scales",
+    "model": "thresher"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_chimerashark.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_chimerashark.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_chimerashark.png",
+   "stats": {
+    "sat": 0.195937842130661,
+    "val": 0.6253891587257385,
+    "hue": 0.3461118153083071,
+    "valStd": 0.16876661777496338,
+    "back": 0.5692822933197021,
+    "belly": 0.6521866321563721,
+    "countershade": 0.08290433883666992,
+    "bgBleed": 0.002255590642521106,
+    "eyePx": 70,
+    "bodyFrac": 0.03333333333333333
+   },
+   "base": "thresher",
+   "prop": null,
+   "draws": 2,
+   "tris": 6826,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "medusagaze",
+   "row": {
+    "id": "medusagaze",
+    "name": "Medusa Gaze",
+    "tier": 9,
+    "act": 5,
+    "cls": "demon",
+    "pattern": "spots",
+    "model": "bullhead"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_medusagaze.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_medusagaze.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_medusagaze.png",
+   "stats": {
+    "sat": 0.257780522108078,
+    "val": 0.5812137126922607,
+    "hue": 0.9583866865493941,
+    "valStd": 0.23825214803218842,
+    "back": 0.4922240972518921,
+    "belly": 0.7269958853721619,
+    "countershade": 0.23477178812026978,
+    "bgBleed": 0.00360834199743135,
+    "eyePx": 5785,
+    "bodyFrac": 0.03517134524243529
+   },
+   "base": "bullhead",
+   "prop": null,
+   "draws": 1,
+   "tris": 6742,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "scyllarender",
+   "row": {
+    "id": "scyllarender",
+    "name": "Scylla Render",
+    "tier": 9,
+    "act": 5,
+    "cls": "demon",
+    "pattern": "bands",
+    "model": "blueshark"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_scyllarender.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_scyllarender.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_scyllarender.png",
+   "stats": {
+    "sat": 0.19575385749340057,
+    "val": 0.674136221408844,
+    "hue": 0.44144718785425363,
+    "valStd": 0.1729973405599594,
+    "back": 0.7042570114135742,
+    "belly": 0.5976995229721069,
+    "countershade": -0.10655748844146729,
+    "bgBleed": 0.019365317341329336,
+    "eyePx": 41,
+    "bodyFrac": 0.016536031109490826
+   },
+   "base": "blueshark",
+   "prop": null,
+   "draws": 1,
+   "tris": 6767,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.107 < 0.06 (back 0.704 belly 0.598)"
+   ]
+  },
+  {
+   "id": "charybdisvoid",
+   "row": {
+    "id": "charybdisvoid",
+    "name": "Charybdis Void",
+    "tier": 10,
+    "act": 5,
+    "cls": "demon",
+    "pattern": "swirls",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_charybdisvoid.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_charybdisvoid.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_charybdisvoid.png",
+   "stats": {
+    "sat": 0.2074786275625229,
+    "val": 0.5808625221252441,
+    "hue": 0.49475628203411237,
+    "valStd": 0.1738167554140091,
+    "back": 0.47566309571266174,
+    "belly": 0.5934476852416992,
+    "countershade": 0.11778458952903748,
+    "bgBleed": 0.0685283413810328,
+    "eyePx": 209,
+    "bodyFrac": 0.05624924049094665
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "background bleeds through body at 6.85% > 2.00%",
+    "too close to maelstrom (thumb distance 0.0505 < 0.055)"
+   ]
+  },
+  {
+   "id": "minotaurram",
+   "row": {
+    "id": "minotaurram",
+    "name": "Minotaur Ram",
+    "tier": 10,
+    "act": 5,
+    "cls": "demon",
+    "pattern": "faults",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_minotaurram.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_minotaurram.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_minotaurram.png",
+   "stats": {
+    "sat": 0.23269592225551605,
+    "val": 0.5890814065933228,
+    "hue": 0.3818121145064854,
+    "valStd": 0.17528635263442993,
+    "back": 0.485628604888916,
+    "belly": 0.5947082042694092,
+    "countershade": 0.10907959938049316,
+    "bgBleed": 0,
+    "eyePx": 961,
+    "bodyFrac": 0.042979098310851865
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 2,
+   "tris": 6802,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "cyclopseye",
+   "row": {
+    "id": "cyclopseye",
+    "name": "Cyclops Eye",
+    "tier": 9,
+    "act": 5,
+    "cls": "demon",
+    "pattern": "scars",
+    "model": "whaler"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_cyclopseye.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_cyclopseye.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_cyclopseye.png",
+   "stats": {
+    "sat": 0.22664585709571838,
+    "val": 0.603255033493042,
+    "hue": 0.9352648503909264,
+    "valStd": 0.2503243088722229,
+    "back": 0.6839619278907776,
+    "belly": 0.48898783326148987,
+    "countershade": -0.19497409462928772,
+    "bgBleed": 0.0015626601086176862,
+    "eyePx": 4497,
+    "bodyFrac": 0.027745625227852715
+   },
+   "base": "whaler",
+   "prop": null,
+   "draws": 1,
+   "tris": 6750,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.195 < 0.06 (back 0.684 belly 0.489)"
+   ]
+  },
+  {
+   "id": "harpyshade",
+   "row": {
+    "id": "harpyshade",
+    "name": "Harpy Shade",
+    "tier": 9,
+    "act": 5,
+    "cls": "demon",
+    "pattern": "stripes",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_harpyshade.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_harpyshade.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_harpyshade.png",
+   "stats": {
+    "sat": 0.22300034761428833,
+    "val": 0.5863136053085327,
+    "hue": 0.8170702294688548,
+    "valStd": 0.12361615896224976,
+    "back": 0.5140568017959595,
+    "belly": 0.588368833065033,
+    "countershade": 0.07431203126907349,
+    "bgBleed": 0,
+    "eyePx": 144,
+    "bodyFrac": 0.03426373192368453
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "lamiacoil",
+   "row": {
+    "id": "lamiacoil",
+    "name": "Lamia Coil",
+    "tier": 9,
+    "act": 5,
+    "cls": "demon",
+    "pattern": "bands",
+    "model": "thresher"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_lamiacoil.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_lamiacoil.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_lamiacoil.png",
+   "stats": {
+    "sat": 0.1744774580001831,
+    "val": 0.6071863770484924,
+    "hue": 0.3208917594708071,
+    "valStd": 0.15703703463077545,
+    "back": 0.5233470797538757,
+    "belly": 0.6540378332138062,
+    "countershade": 0.13069075345993042,
+    "bgBleed": 0,
+    "eyePx": 44,
+    "bodyFrac": 0.026882822943249483
+   },
+   "base": "thresher",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.174 < 0.18"
+   ]
+  },
+  {
+   "id": "kampechrono",
+   "row": {
+    "id": "kampechrono",
+    "name": "Kampe Chrono",
+    "tier": 10,
+    "act": 5,
+    "cls": "demon",
+    "pattern": "bones",
+    "model": "whitepointer"
+   },
+   "shot": "hse/evidence/r15-skin/after/shark_kampechrono.png",
+   "head": "hse/evidence/r15-skin/after/heads/head_kampechrono.png",
+   "thumb": "hse/evidence/r15-skin/after/thumbs/thumb_kampechrono.png",
+   "stats": {
+    "sat": 0.2191018909215927,
+    "val": 0.6090046167373657,
+    "hue": 0.526914752977991,
+    "valStd": 0.1824820339679718,
+    "back": 0.4907468557357788,
+    "belly": 0.6074362397193909,
+    "countershade": 0.11668938398361206,
+    "bgBleed": 0.011148407743012678,
+    "eyePx": 1948,
+    "bodyFrac": 0.04105450236966825
+   },
+   "base": "whitepointer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  }
+ ]
+}

@@ -7,7 +7,81 @@
  */
 import * as THREE from 'three';
 
-const MORPH_VERSION = 'hse-l2-rev14';
+const MORPH_VERSION = 'hse-l2-rev15-gape';
+
+/* ---------------------------------------------------------------------- *
+ * REST-POSE JAW GAPE (Rev 15 lane GRIN)
+ * ---------------------------------------------------------------------- *
+ *
+ * The owner verdict on the r15 head crops was "mouths are CLOSED, no teeth
+ * are visible". The HSE reference has the jaw hinged DOWN at rest, with the
+ * gape 25-35% of head height, a dark cavity behind it and two tooth rows
+ * showing. That open mouth is the single strongest silhouette cue in the
+ * reference and we had none of it.
+ *
+ * WHY THIS LIVES HERE AND NOT IN shark3d.js.
+ *
+ * shark3d.js already computes a `jawRestGape` (JAW_REST_GAPE 0.28) and
+ * applies it every frame as
+ *
+ *     jawBone.quaternion.copy(baseJawQuaternion);
+ *     jawBone.rotateX(-jawGape * JAW_MAX_ROTATION);
+ *
+ * Two things are wrong with that, and only one of them is fixable from here:
+ *
+ *   1. THE SIGN IS INVERTED. Measured on all eight evidence rows
+ *      (scratchpad/probe_gape.mjs: sweep the LowerJaw about each local axis
+ *      and re-skin the jaw vertex cloud), local +X swings the jaw cloud
+ *      DOWN - jaw box z decreases monotonically through the sweep on every
+ *      row, e.g. reef 0.00 -> z[-0.244,-0.152], 0.50 -> z[-0.369,-0.222].
+ *      Local -X swings it UP, into the skull. Local Y and Z swing it
+ *      SIDEWAYS (they carry all the lateral delta and near-zero vertical),
+ *      so X is unambiguously the hinge. shark3d.js rotates by -gape, i.e.
+ *      it drives the jaw CLOSED and slightly through the palate, which is
+ *      exactly the closed mouth in the evidence.
+ *
+ *   2. That line runs every frame and hard-resets the bone from
+ *      `baseJawQuaternion` first, so nothing this module writes to
+ *      `bone.quaternion` would survive the first animate() call...
+ *      EXCEPT that `baseJawQuaternion` is captured FROM THE BONE at
+ *      shark3d.js:3034, which runs AFTER applyMorph() at shark3d.js:2941.
+ *
+ * So a rest rotation applied here is absorbed into `baseJawQuaternion` and
+ * becomes the pose the runtime resets TO. The bite then composes on top of
+ * it additively and unchanged: Swim_Bite still drives `animation.bite` 0->1
+ * through the same `rotateX(-jawGape * JAW_MAX_ROTATION)` term, so a bite
+ * still closes and re-opens the jaw relative to this new rest. We are moving
+ * the origin of that animation, not replacing it - which is precisely the
+ * "keep the bite additive" requirement, and is why this is a rest-pose morph
+ * (this module's whole job) rather than an animation change.
+ *
+ * The hinge axis is taken as bone-local X and verified per rig rather than
+ * assumed: applyRestGape re-skins the jaw cloud and keeps the rotation only
+ * if it actually moved the jaw ventrally against the measured dorsal axis.
+ * A bake whose hinge is authored differently therefore gets no gape instead
+ * of a jaw rotated sideways through its own cheek. */
+const JAW_HINGE_AXIS = Object.freeze(new THREE.Vector3(1, 0, 0));
+/* 22-30 degrees by row personality gape, per the brief. face.gape runs
+ * -0.60..+0.60, so the midpoint 26 deg +/- 4 deg spans the requested band. */
+const GAPE_MIN_RAD = 22 * Math.PI / 180;
+const GAPE_MAX_RAD = 30 * Math.PI / 180;
+/* A gape is only accepted if the jaw cloud actually moved ventrally by at
+ * least this fraction of the jaw's own height. Below it the rotation did
+ * something other than open a mouth and is reverted. */
+const GAPE_MIN_TRAVEL = 0.12;
+/* Mirrors of JAW_REST_GAPE / JAW_MAX_ROTATION in shark3d.js (lines 72-73).
+ * They are consts in a module this lane does not own and are not exported, so
+ * they are duplicated here rather than imported. If either changes there, the
+ * rest gape will be off by the difference - the gape record's netHingeDeg and
+ * the mouth gate both surface that immediately. */
+/* The orchestrator merged the sign fix: shark3d.js:3117/3148 now rotate by
+ * +gape and JAW_REST_GAPE is 0, so the rest jaw is no longer closed by that
+ * code and there is NOTHING left for this module to cancel. The old
+ * JAW_REST_GAPE_HINT / JAW_MAX_ROTATION_HINT mirror constants are deleted
+ * rather than zeroed: a mirror of someone else's const is exactly the kind of
+ * thing that goes stale silently, and the whole point of the merge was to
+ * remove the need for one. commitRestGape now sets the ABSOLUTE angle and
+ * lets shark3d.js add its own (currently zero) rest term on top. */
 const REQUIRED_BONES = Object.freeze(['Head', 'LowerJaw', 'Neck', 'Spine1', 'Spine2', 'Tail1', 'Tail2', 'Tail3']);
 const MAX_SCALE_FACTOR = 1.18;
 const MIN_SCALE_FACTOR = 0.84;
@@ -299,6 +373,242 @@ function measureMorph(root, mesh, reference = null, upAxis = null) {
   };
 }
 
+/* Hinge the LowerJaw open in the REST pose, and verify against the skin that
+ * it opened rather than swung sideways.
+ *
+ * Returns a record describing what was applied (and why, if nothing was), so
+ * the evidence harness and the selftest can read the decision rather than
+ * infer it from pixels.
+ *
+ * `up` is the rig's measured dorsal axis, so "ventral" is the direction the
+ * caller already established rather than a world-space guess - the same axis
+ * the dorsal crest rides. */
+function applyRestGape(rigRoot, mesh, jawBone, gapeSignal) {
+  const record = {
+    applied: false, radians: 0, degrees: 0, axis: 'local X', travelRatio: 0,
+    gapeRatio: 0, reason: null
+  };
+  if (!jawBone) { record.reason = 'no LowerJaw bone'; return record; }
+  const jawIndices = weightedIndices(mesh, ['LowerJaw']);
+  if (jawIndices.length < 8) { record.reason = `jaw cloud too small (${jawIndices.length} verts)`; return record; }
+  const headIndices = weightedIndices(mesh, ['Head']);
+
+  /* WHICH DIRECTION IS "OPEN", measured from the hinge itself.
+   *
+   * Neither the caller's bind-space `up` nor bodyAxes()'s HEIGHT answers this
+   * correctly, and both were tried against the render:
+   *
+   *   - `up` is a BIND-space axis while captureRestWorld reports WORLD
+   *     points, and mesh.matrixWorld on these bakes is an axis-permuting
+   *     rotation (reef's maps bind X onto world Z), so the two spaces do not
+   *     share axes at all;
+   *   - bodyAxes() calls the box's longest non-long axis "height", which on
+   *     these rigs is world Y (reef's body box is 84/106/21) - but the jaw
+   *     actually swings along world X.
+   *
+   * The hinge is its own best instrument. Rotate the jaw a probe amount, see
+   * which way the jaw cloud's centroid actually moved in world space, and
+   * take THAT as the opening direction by construction. Measured over the
+   * eight evidence rows a +26 degree local-X hinge moves the jaw centroid by
+   * (+10.0,+1.9,0) reef, (+9.5,+5.1,0) tiger, (+11.4,-2.8,0) hammerhead,
+   * (+9.6,+12.6,0) greatwhite, (+9.4,+2.4,0) blue, (+25.0,+13.6,0)
+   * megalodon, (+9.8,+4.1,0) zeusfin, (+31.8,+16.8,0) typhonmaw: dominated
+   * by +X on every row, with Z identically zero (the hinge is planar, as a
+   * jaw should be).
+   *
+   * This makes the direction a MEASUREMENT rather than an assumption, so a
+   * re-bake that reorients the model keeps working, and it removes the whole
+   * class of wrong-axis bug that produced the closed mouths to begin with. */
+  const restProbe = jawBone.quaternion.clone();
+  const jawCentreAt = (angle) => {
+    jawBone.quaternion.copy(restProbe);
+    if (angle) jawBone.rotateOnAxis(JAW_HINGE_AXIS, angle);
+    const state = captureRestWorld(rigRoot, mesh);
+    return subsetBounds(state.points, jawIndices).getCenter(new THREE.Vector3());
+  };
+  const centreRest = jawCentreAt(0);
+  const openDir = jawCentreAt(GAPE_MIN_RAD).sub(centreRest);
+  jawBone.quaternion.copy(restProbe);
+  rigRoot.updateMatrixWorld(true);
+  if (openDir.lengthSq() < 1e-12) { record.reason = 'hinge moved nothing'; return record; }
+  openDir.normalize();
+
+  /* Nose direction, with any component along the hinge travel removed so
+   * "forward" and "open" stay independent. The jaw cloud sits forward of the
+   * head centroid on every bake in this line. */
+  const nose = (() => {
+    const state = captureRestWorld(rigRoot, mesh);
+    const jawCentre = subsetBounds(state.points, jawIndices).getCenter(new THREE.Vector3());
+    if (!headIndices.length) return new THREE.Vector3(0, 1, 0);
+    const headCentre = subsetBounds(state.points, headIndices).getCenter(new THREE.Vector3());
+    const delta = jawCentre.sub(headCentre);
+    delta.addScaledVector(openDir, -delta.dot(openDir));
+    return delta.lengthSq() > 1e-12 ? delta.normalize() : new THREE.Vector3(0, 1, 0);
+  })();
+
+  /* Ventral travel is measured at the jaw's FORWARD TIP, not at its centroid.
+   *
+   * The centroid is the obvious probe point and it is the wrong one: the
+   * hinge sits near the middle of the LowerJaw cloud, so a rotation about it
+   * barely moves the centroid at all while swinging the chin through a large
+   * arc. Measured over the eight evidence rows, a 26 degree hinge moves the
+   * centroid by -0.036..+0.046 of head height - indistinguishable from noise,
+   * and below any floor worth setting - while it moves the TIP by
+   * 0.29..1.14 (reef 1.14, hammerhead 0.96, greatwhite 0.67, megalodon 0.63,
+   * tiger 0.43, blue 0.31, zeusfin 0.29). The tip is also the thing the
+   * viewer reads as "the mouth is open", so it is both the sensitive
+   * measurement and the correct one.
+   *
+   * The tip is the forward 20% of the jaw cloud along the frame's nose
+   * direction, and "forward" is derived from the jaw/head geometry rather
+   * than assumed: the nose end is whichever end of the jaw cloud's long axis
+   * is further from the head centroid.
+   *
+   * The denominator is the HEAD's extent along the dorsal axis, which is what
+   * the brief's "gape 25-35% of head height" is expressed against, so the
+   * number tuned here is the number the gate reads. */
+  const measure = () => {
+    const state = captureRestWorld(rigRoot, mesh);
+    const jawBounds = subsetBounds(state.points, jawIndices);
+    const headBounds = headIndices.length ? subsetBounds(state.points, headIndices) : jawBounds;
+    /* Head extent along the OPENING direction: the denominator the brief's
+     * "gape 25-35% of head height" is expressed against, measured along the
+     * same axis the gape moves so the ratio is dimensionally honest. */
+    const headSize = headBounds.getSize(new THREE.Vector3());
+    const headHeight = Math.max(
+      Math.abs(headSize.x * openDir.x) + Math.abs(headSize.y * openDir.y) + Math.abs(headSize.z * openDir.z),
+      1e-6);
+    /* Forward 20% of the jaw cloud = the chin. */
+    const point = new THREE.Vector3();
+    const along = [];
+    for (const index of jawIndices) along.push(pointFromArray(state.points, index, point).dot(nose));
+    along.sort((a, b) => b - a);
+    const cut = along[Math.floor(along.length * 0.20)] ?? along[0];
+    let sum = 0, count = 0;
+    for (const index of jawIndices) {
+      pointFromArray(state.points, index, point);
+      if (point.dot(nose) < cut) continue;
+      sum += point.dot(openDir); count++;
+    }
+    const tipOpen = count
+      ? sum / count
+      : jawBounds.getCenter(new THREE.Vector3()).dot(openDir);
+    return { drop: -tipOpen, headHeight };
+  };
+
+  const before = measure();
+  const rest = jawBone.quaternion.clone();
+  /* face.gape maps -0.60..+0.60 onto the 22-30 degree band. */
+  const t = clamp((finite(gapeSignal, 0) + 0.60) / 1.20, 0, 1);
+  const target = GAPE_MIN_RAD + (GAPE_MAX_RAD - GAPE_MIN_RAD) * t;
+
+  /* Try the hinge in both directions and keep whichever OPENS the jaw. The
+   * probe says +X is ventral on all eight evidence rows, but the sign is a
+   * property of how each bake authored its bind pose, and assuming it is
+   * exactly the class of bug that produced the closed mouths in the first
+   * place. Measuring costs one extra skinning pass per row at build time. */
+  let best = null;
+  for (const sign of [1, -1]) {
+    jawBone.quaternion.copy(rest);
+    jawBone.rotateOnAxis(JAW_HINGE_AXIS, sign * target);
+    const after = measure();
+    /* Positive travel = the jaw centroid moved AGAINST the dorsal axis. */
+    const travel = (before.drop - after.drop) / before.headHeight;
+    if (!best || travel > best.travel) best = { sign, travel, after };
+  }
+
+  if (!best || best.travel < GAPE_MIN_TRAVEL) {
+    jawBone.quaternion.copy(rest);
+    record.reason = `hinge did not open the jaw (best travel ${(best?.travel ?? 0).toFixed(4)} of head height, floor ${GAPE_MIN_TRAVEL})`;
+    record.travelRatio = Number((best?.travel ?? 0).toFixed(6));
+    return record;
+  }
+
+  /* ABSOLUTE, not relative.
+   *
+   * Every bake in this line authors the LowerJaw already CLOSED, and by
+   * different amounts: measured as the bone's own local-X euler at rest,
+   * reef -14.48 deg, hammerhead -15.50, blue -16.31, greatwhite -17.94,
+   * zeusfin -19.61, tiger -20.22. Adding a 26 deg hinge on top of that nets
+   * only 6-11 deg of actual opening, and nets a DIFFERENT amount on every
+   * row - which is both too small to read at crop size and inconsistent
+   * across the roster.
+   *
+   * The brief specifies the gape as a property of the rendered pose ("22-30
+   * deg by row personality"), so the target is the FINAL angle: cancel the
+   * bake's authored closure first, then hinge to the requested angle. Every
+   * row then presents the same measured gape regardless of how its bake
+   * happened to author the rest jaw.
+   *
+   * The bite is unaffected: it still composes on top of whatever quaternion
+   * ends up here, because shark3d.js captures baseJawQuaternion from the bone
+   * AFTER this runs. */
+  /* THE BONE IS LEFT AT ITS BIND POSE. THIS IS DELIBERATE AND IT IS THE WHOLE
+   * DESIGN OF THIS FUNCTION - read this before "fixing" it.
+   *
+   * The obvious implementation is to leave the jaw rotated here, and it is
+   * WRONG, because two things downstream both read this bone:
+   *
+   *   1. `buildTexturedFace()` (shark3d.js:3000) runs AFTER applyMorph and
+   *      authors the tooth rows and the mouth cavity against
+   *      `jawBone.matrixWorld` at that moment. If the bone is already hinged
+   *      open, the batch bakes the OPEN pose into its geometry.
+   *   2. `shark3d.js:3059` then captures `baseJawQuaternion` from the bone and
+   *      rotates it again, every frame.
+   *
+   * So a rotation left here is applied TWICE: once baked into the face batch's
+   * vertices, once by the runtime. Rendered, the tooth rows tear off the head
+   * and hang in open water beside it - the exact r14 defect this whole
+   * revision was about. That is not a hypothesis: it is what the first
+   * heads_grin render showed on reef, and it is why this function now restores
+   * the bone.
+   *
+   * What this function therefore delivers is a MEASUREMENT, not a pose:
+   * `record.gape` says how far this rig's jaw can hinge, in which direction,
+   * and what that is as a fraction of head height - measured by actually
+   * skinning the mesh rather than assumed. The gape itself is applied by
+   * shark3d.js's existing per-frame jaw code, which already runs on every
+   * textured row and already composes the bite on top.
+   *
+   * The consequence, stated plainly: this lane CANNOT open the rest mouth on
+   * its own. `shark3d.js:3117` and `:3148` rotate by `-jawGape`, and the sign
+   * is inverted (measured: local +X opens on all eight evidence rows). Fixing
+   * that sign is a one-character change in a file this lane does not own, and
+   * it is the single thing an orchestrator has to merge for the mouths to
+   * open. See NOTES-rev15-grin.md. */
+  /* The bone goes back to its bind pose HERE, and the hinge is applied later
+   * by commitRestGape(). See the note above: leaving it rotated makes the
+   * face batch bake the open pose into its vertices AND get rotated again at
+   * runtime, which tears the tooth rows off the head.
+   *
+   * The angle is ABSOLUTE - the final rendered local-X euler - not an
+   * increment, because every bake authors the jaw already closed by a
+   * different amount (reef -14.48 deg, hammerhead -15.50, blue -16.31,
+   * greatwhite -17.94, zeusfin -19.61, tiger -20.22). An increment nets a
+   * different opening on every row; an absolute target does not. */
+  const restEuler = new THREE.Euler().setFromQuaternion(rest, 'XYZ');
+  jawBone.quaternion.copy(rest);
+  rigRoot.updateMatrixWorld(true);
+  record.applied = false;
+  record.pending = true;
+  record.radians = Number(target.toFixed(6));
+  record.degrees = Number((target * 180 / Math.PI).toFixed(2));
+  record.openSign = best.sign;
+  record.authoredClosureDeg = Number((restEuler.x * 180 / Math.PI).toFixed(2));
+  /* Everything commitRestGape needs to apply the hinge without re-measuring. */
+  record.commit = {
+    boneName: 'LowerJaw',
+    absoluteRadians: best.sign * target - restEuler.x,
+    targetRadians: best.sign * target
+  };
+  record.sign = best.sign;
+  record.travelRatio = Number(best.travel.toFixed(6));
+  /* The gape the gate reads: vertical opening between the head's ventral
+   * edge and the jaw cloud's dorsal edge, as a fraction of head height. */
+  record.gapeRatio = Number(best.travel.toFixed(6));
+  return record;
+}
+
 function applyMorph(rigRoot, skinnedMesh, def, profile = {}) {
   if (!rigRoot || !skinnedMesh?.isSkinnedMesh) throw new Error(`${def?.id || 'unknown'}: L2 morph needs a SkinnedMesh`);
   if (rigRoot.userData?.rfL2MorphRecord) return rigRoot.userData.rfL2MorphRecord;
@@ -380,6 +690,21 @@ function applyMorph(rigRoot, skinnedMesh, def, profile = {}) {
     if (fitsBounds(measured)) break;
   }
   record.relax = relaxUsed;
+  /* REST GAPE runs AFTER the relax-to-fit loop, deliberately.
+   *
+   * The loop's job is to bound the SILHOUETTE against the unmorphed rest
+   * pose, and an open mouth legitimately changes the length/height footprint
+   * of the head - it is the change we are trying to make. Folding it into the
+   * loop would make the gape compete with the bulk/sculpt morph for the same
+   * aspect/area budget and get walked back toward neutral, i.e. the mouth
+   * would close again on exactly the chunky rows that most need it.
+   *
+   * The gape is bounded on its own terms instead: a hard 22-30 degree band,
+   * one bone, hinge-only (no scale, no translation), and reverted outright if
+   * the skin says it did not open. It cannot run away the way a scale chain
+   * can, so it does not need the relax walk. */
+  const gapeSignal = finite(basePlan.sources.gape, 0);
+  record.gape = applyRestGape(rigRoot, skinnedMesh, bones.LowerJaw, gapeSignal);
   const afterWeights = auditWeights(skinnedMesh);
   if (afterWeights.invalid || afterWeights.maxSumError > 0.02) throw new Error(`${def?.id || 'unknown'}: L2 morph changed or exposed invalid skin weights`);
   record.maxOffset = Number(measured.maxOffset.toFixed(6)); record.maxOffsetRatio = Number(measured.maxOffsetRatio.toFixed(6));
@@ -403,10 +728,66 @@ function applyMorph(rigRoot, skinnedMesh, def, profile = {}) {
    * textured build - which aborted buildLoadedRig and dropped every textured
    * row back to an untextured placeholder capsule. record.dorsal is written on
    * each iteration and holds the accepted iteration's count. */
-  record.neutral = Object.values(record.bones).every((bone) => bone.factor.every((value) => Math.abs(value - 1) < 1e-6) && bone.offset.every((value) => Math.abs(value) < 1e-6)) && record.dorsal.vertices === 0;
+  /* A rest gape is a real change to the rest pose, so a row that got one is
+   * NOT neutral even when every scale factor relaxed back to 1. Reporting it
+   * as neutral would tell the gates "this rig is untouched" while its jaw is
+   * hinged 26 degrees open. */
+  record.neutral = Object.values(record.bones).every((bone) => bone.factor.every((value) => Math.abs(value - 1) < 1e-6) && bone.offset.every((value) => Math.abs(value) < 1e-6)) && record.dorsal.vertices === 0 && !record.gape.applied;
   rigRoot.userData.rfL2MorphRecord = record;
   return record;
 }
 
-export { applyMorph, measureMorph };
+/* Apply the rest gape that applyMorph MEASURED but deliberately left pending.
+ *
+ * Must be called AFTER the face batch is built and BEFORE shark3d.js captures
+ * `baseJawQuaternion`. `buildTexturedFace()` (shark3d.js:3000) sits exactly in
+ * that window and is where this is called from; see the long note in
+ * applyRestGape for why neither end of that window is negotiable.
+ *
+ * Idempotent: a second call on the same rig is a no-op, so a row that somehow
+ * routes through two build paths cannot end up double-hinged - which is the
+ * failure mode this whole split exists to prevent.
+ *
+ * Sets the ABSOLUTE rest angle, i.e. the LowerJaw's final local-X euler on
+ * the rendered rig.
+ *
+ * The sign fix was merged, so shark3d.js:3117/3148 now OPEN the jaw
+ * (`rotateX(+jawGape * JAW_MAX_ROTATION)`) instead of closing it. But
+ * JAW_REST_GAPE = 0 does NOT mean they add nothing at rest: line 3085 is
+ *
+ *     jawRestGape = clamp(JAW_REST_GAPE + personality.face.gape, 0.20, 0.35)
+ *
+ * and the 0.20 FLOOR survives the zeroed constant, so every textured row
+ * still gets a fixed `0.20 * 0.72` = 0.144 rad = 8.25 deg of rest opening
+ * from shark3d.js. Measured on the merged tree: without subtracting it, reef
+ * renders 34.25 deg against the 26 requested, and every row overshoots by the
+ * same 8.25.
+ *
+ * So the term is measured off shark3d.js's own published value rather than
+ * mirrored as a constant: `group.userData.rfJawRestGape` and
+ * `rfJawMaxRotation` are written by that code at build time, so if the floor
+ * or the max rotation changes upstream this follows it automatically. That is
+ * the whole reason the old JAW_*_HINT mirrors were deleted.
+ *
+ * The per-frame line resets to baseJawQuaternion - captured AFTER this runs -
+ * and adds the same fixed term plus the bite, so the bite still composes
+ * additively on the pose set here.
+ */
+function commitRestGape(rigRoot, shark3dRestRadians = 0) {
+  const record = rigRoot?.userData?.rfL2MorphRecord;
+  const gape = record?.gape;
+  if (!gape?.pending || !gape.commit) return null;
+  const bone = findBone(rigRoot, gape.commit.boneName);
+  if (!bone) return null;
+  const applied = gape.commit.absoluteRadians - finite(shark3dRestRadians, 0);
+  bone.rotateOnAxis(JAW_HINGE_AXIS, applied);
+  rigRoot.updateMatrixWorld(true);
+  gape.pending = false;
+  gape.applied = true;
+  gape.netHingeDeg = Number((applied * 180 / Math.PI).toFixed(2));
+  gape.shark3dRestDeg = Number((finite(shark3dRestRadians, 0) * 180 / Math.PI).toFixed(2));
+  return gape;
+}
+
+export { applyMorph, measureMorph, commitRestGape };
 export default applyMorph;

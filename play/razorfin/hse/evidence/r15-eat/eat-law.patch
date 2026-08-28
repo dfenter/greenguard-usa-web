@@ -1,0 +1,128 @@
+--- /tmp/rfhead/world3d.js	2026-08-27 14:42:40.000000000 -0500
++++ /tmp/rfiso/world3d.js	2026-08-27 14:44:54.000000000 -0500
+@@ -769,6 +769,40 @@
+           preyRows.push([defId, pw[defId]]);
+         }
+       }
++      // Rev 15 EAT LAW (owner: "still lots of floating fish that you cannot
++      // eat"). The overlay above REPLACES the base prey rows, and its only
++      // gate is the zone table's tier+2 rule - which is one tier WIDER than
++      // what a player who belongs in this zone can actually swallow (eat
++      // ceiling = playerTier + BITE_UP_BASE(1)). A level whose preyWeights
++      // are all in that top band therefore hands the zone a roster of prey
++      // the resident player can never eat: alaska zone 1 became seal(t3)
++      // ONLY, so a fresh tier-1 run had nothing edible on the whole shelf;
++      // mexico/belize/jamaica zone 1 each got grouper(t3) alongside their
++      // edible rows. Above-tier prey is not a hazard either - it flees and
++      // never stings - so it reads as exactly the "floating fish you cannot
++      // eat" the owner reported.
++      //
++      // Rule: every zone must keep at least one prey row a resident player
++      // CAN eat, i.e. tier <= intendedTier(zone) (a zone's intendedTier is
++      // the tier of the shark meant to be there, and that shark's ceiling is
++      // intendedTier + 1, so intendedTier is always comfortably inside it).
++      // If the overlay left none, re-admit the base zone's own low-tier prey
++      // rows alongside it rather than dropping the level's flavour entirely.
++      var haveEdible = false;
++      for (var ei = 0; ei < preyRows.length; ei++) {
++        var edef = defOf(Array.isArray(preyRows[ei]) ? preyRows[ei][0] : preyRows[ei].defId);
++        if (edef && typeof edef.tier === 'number' && edef.tier <= it) { haveEdible = true; break; }
++      }
++      if (preyRows.length && !haveEdible) {
++        for (var ri2 = 0; ri2 < baseSpawns.length && preyRows.length < SPECIES_CAP; ri2++) {
++          var rrow = baseSpawns[ri2];
++          var rid = Array.isArray(rrow) ? rrow[0] : (rrow && rrow.id);
++          var rdef = defOf(rid);
++          if (!rdef || rdef.kind === 'hazard') continue;
++          if (typeof rdef.tier !== 'number' || rdef.tier > it) continue;
++          preyRows.push(rrow);
++        }
++      }
+       // A level whose whole preyWeights table happened to fall outside this
+       // particular zone's tier gate (none authored today, but the fallback
+       // must still hold) keeps the base zone's own prey rows rather than
+@@ -6258,6 +6292,56 @@
+     return Array.isArray(list[0]) ? list[0][0] : list[0].defId;
+   }
+ 
++  // Rev 15 EAT LAW: the player's live eat ceiling, mirroring engine3d's
++  // eatEligible()/publishMouth() formula (tier + BITE_UP_BASE + biteUp, with
++  // megajaw/supersize folded in by the engine itself). The engine publishes
++  // that exact number every step as ctx.mouth.eligibleTierMax, so read it
++  // when it is there and only fall back to the base formula when the spawner
++  // runs before the first publishMouth (run start) or in a headless harness
++  // with no mouth. Kept as ONE read so the spawn gate can never drift from
++  // the gate that actually decides whether a bite lands.
++  var EAT_BITE_UP_BASE = 1;      // engine3d BITE_UP_BASE
++  function playerEatCeiling(player, mouth) {
++    if (mouth && typeof mouth.eligibleTierMax === 'number') return mouth.eligibleTierMax;
++    if (!player) return EAT_BITE_UP_BASE;
++    var pas = player.pas || {};
++    var biteUp = typeof pas.biteUp === 'number' ? pas.biteUp : 0;
++    return (player.tier || 1) + EAT_BITE_UP_BASE + biteUp;
++  }
++
++  // Pick a prey/hazard row from this zone that the player can actually
++  // resolve: eatable prey, or a hazard (which stings, so it is legal under
++  // the eatable-or-hazard law even though it is tier 99). Above-ceiling prey
++  // rows are weighted to zero rather than resampled in a loop, so this stays
++  // one pass and allocation-free like pickWeighted itself.
++  var eatableScratch = [];
++  function pickEatablePrey(zone, player, mouth) {
++    var rows = (zone && zone.spawns) || [];
++    if (!rows.length) return null;
++    var ceil = playerEatCeiling(player, mouth);
++    eatableScratch.length = 0;
++    var lowestId = null, lowestTier = Infinity;
++    for (var i = 0; i < rows.length; i++) {
++      var row = rows[i];
++      var id = Array.isArray(row) ? row[0] : row.defId;
++      var def = defOf(id);
++      if (!def) continue;
++      if (def.kind === 'hazard') { eatableScratch.push(row); continue; }
++      var tier = typeof def.tier === 'number' ? def.tier : 0;
++      if (tier < lowestTier) { lowestTier = tier; lowestId = id; }
++      if (tier <= ceil) eatableScratch.push(row);
++    }
++    if (eatableScratch.length) {
++      var picked = pickWeighted(eatableScratch);
++      if (picked) return picked;
++    }
++    // Whole prey roster is above the ceiling (alaska zone 1 pre-fix): the
++    // shelf must never be empty, so place the zone's lowest-tier prey. It is
++    // still above the ceiling in the pathological case, but this is the last
++    // resort and keeps the world populated rather than dead.
++    return lowestId;
++  }
++
+   // NPC shark table, built once from RFD.SHARKS rows carrying npc weights.
+   function buildNpcTables() {
+     var Sh = (D().SHARKS) || [];
+@@ -6385,7 +6469,26 @@
+       }
+       return;
+     }
+-    var defId = pickWeighted(z.spawns || []);
++    // Rev 15 EAT LAW (owner: "still lots of floating fish that you cannot
++    // eat"). The zone spawn gate admits prey up to intendedTier(zone)+2, but
++    // the PLAYER's eat ceiling is player.tier + BITE_UP_BASE(1) + biteUp.
++    // Those two are not the same number: on the tier-1 shelf the table gate
++    // allows tier 3 while a tier-1 shark tops out at tier 2, so a level whose
++    // preyWeights overlay lands on a tier-3 prey (mexico grouper, alaska
++    // seal, belize/jamaica grouper) fills zone 1 with prey that is neither
++    // eatable NOR a hazard - it just floats and flees, giving nothing back
++    // but a rate-limited TOO BIG toast. Alaska zone 1 is the worst case: its
++    // whole prey roster is seal(t3), so a fresh run has literally nothing to
++    // eat on screen.
++    //
++    // Fix at the rule level, on SPAWN: prey above the player's live eat
++    // ceiling is resampled out of the table before it is ever placed. Hazards
++    // are exempt (they are tier 99 by construction and sting on contact,
++    // which is the feedback the law actually requires). If the whole zone
++    // table is above the ceiling, fall back to the zone's LOWEST-tier prey so
++    // the shelf is never empty - an under-tier fish is always eatable and so
++    // always satisfies the law.
++    var defId = pickEatablePrey(z, ctx.player, ctx.mouth);
+     if (!defId) return;
+     var def = defOf(defId);
+     if (!def) return;

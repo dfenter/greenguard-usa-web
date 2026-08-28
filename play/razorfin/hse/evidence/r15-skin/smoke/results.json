@@ -1,0 +1,251 @@
+{
+ "summary": {
+  "when": "2026-08-27T20:09:46.842Z",
+  "rows": 5,
+  "pass": 1,
+  "fail": 4,
+  "consoleErrors": [],
+  "gates": {
+   "satFloor": 0.18,
+   "backBellyDelta": 0.06,
+   "patternContrast": 0.1,
+   "distinctMin": 0.055,
+   "eyeHighlight": true,
+   "bgBleedMax": 0.02,
+   "drawsMax": 100,
+   "trisMax": 55000,
+   "texBytesMax": 8388608
+  },
+  "out": "hse/evidence/r15-skin/smoke",
+  "sheet": "hse/evidence/r15-skin/smoke/contact_sheet.png",
+  "closest": [
+   {
+    "a": "tiger",
+    "b": "bull",
+    "d": 0.17373343695064558
+   },
+   {
+    "a": "bull",
+    "b": "blue",
+    "d": 0.19386874289038009
+   },
+   {
+    "a": "tiger",
+    "b": "blue",
+    "d": 0.20835655318843269
+   },
+   {
+    "a": "greatwhite",
+    "b": "blue",
+    "d": 0.21204804865412075
+   },
+   {
+    "a": "tiger",
+    "b": "hammerhead",
+    "d": 0.21312849754313273
+   },
+   {
+    "a": "greatwhite",
+    "b": "bull",
+    "d": 0.23219752128233975
+   },
+   {
+    "a": "greatwhite",
+    "b": "tiger",
+    "d": 0.2426477744515441
+   },
+   {
+    "a": "bull",
+    "b": "hammerhead",
+    "d": 0.28459186458439734
+   },
+   {
+    "a": "blue",
+    "b": "hammerhead",
+    "d": 0.29437147345782716
+   },
+   {
+    "a": "greatwhite",
+    "b": "hammerhead",
+    "d": 0.3010618014235639
+   }
+  ],
+  "diff": null
+ },
+ "results": [
+  {
+   "id": "greatwhite",
+   "row": {
+    "id": "greatwhite",
+    "name": "Great White",
+    "tier": 5,
+    "act": 1,
+    "cls": "rare",
+    "pattern": "plain",
+    "model": "greatwhite_cy"
+   },
+   "shot": "hse/evidence/r15-skin/smoke/shark_greatwhite.png",
+   "head": "hse/evidence/r15-skin/smoke/heads/head_greatwhite.png",
+   "thumb": "hse/evidence/r15-skin/smoke/thumbs/thumb_greatwhite.png",
+   "stats": {
+    "sat": 0.2696378231048584,
+    "val": 0.46042555570602417,
+    "hue": 0.4853974990972533,
+    "valStd": 0.2395319640636444,
+    "back": 0.6211555004119873,
+    "belly": 0.4652039706707001,
+    "countershade": -0.15595152974128723,
+    "bgBleed": 0.006021360446547607,
+    "eyePx": 9809,
+    "bodyFrac": 0.049667335034633615
+   },
+   "base": "greatwhite_cy",
+   "prop": null,
+   "draws": 1,
+   "tris": 6784,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.156 < 0.06 (back 0.621 belly 0.465)"
+   ]
+  },
+  {
+   "id": "tiger",
+   "row": {
+    "id": "tiger",
+    "name": "Tiger Shark",
+    "tier": 4,
+    "act": 1,
+    "cls": "common",
+    "pattern": "stripes",
+    "model": "tiger_nu"
+   },
+   "shot": "hse/evidence/r15-skin/smoke/shark_tiger.png",
+   "head": "hse/evidence/r15-skin/smoke/heads/head_tiger.png",
+   "thumb": "hse/evidence/r15-skin/smoke/thumbs/thumb_tiger.png",
+   "stats": {
+    "sat": 0.22011828422546387,
+    "val": 0.6205772757530212,
+    "hue": 0.8685566306742226,
+    "valStd": 0.1499500721693039,
+    "back": 0.5433276891708374,
+    "belly": 0.6860116124153137,
+    "countershade": 0.14268392324447632,
+    "bgBleed": 0,
+    "eyePx": 509,
+    "bodyFrac": 0.04681917608457893
+   },
+   "base": "tiger_nu",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": []
+  },
+  {
+   "id": "bull",
+   "row": {
+    "id": "bull",
+    "name": "Bull Shark",
+    "tier": 4,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "whaler"
+   },
+   "shot": "hse/evidence/r15-skin/smoke/shark_bull.png",
+   "head": "hse/evidence/r15-skin/smoke/heads/head_bull.png",
+   "thumb": "hse/evidence/r15-skin/smoke/thumbs/thumb_bull.png",
+   "stats": {
+    "sat": 0.20437675714492798,
+    "val": 0.493925541639328,
+    "hue": 0.8967485954289309,
+    "valStd": 0.24769242107868195,
+    "back": 0.5297799706459045,
+    "belly": 0.3880195915699005,
+    "countershade": -0.14176037907600403,
+    "bgBleed": 0.0012459709092879005,
+    "eyePx": 2917,
+    "bodyFrac": 0.026399775185320207
+   },
+   "base": "whaler",
+   "prop": null,
+   "draws": 1,
+   "tris": 6750,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.142 < 0.06 (back 0.530 belly 0.388)"
+   ]
+  },
+  {
+   "id": "blue",
+   "row": {
+    "id": "blue",
+    "name": "Blue Shark",
+    "tier": 2,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "mako"
+   },
+   "shot": "hse/evidence/r15-skin/smoke/shark_blue.png",
+   "head": "hse/evidence/r15-skin/smoke/heads/head_blue.png",
+   "thumb": "hse/evidence/r15-skin/smoke/thumbs/thumb_blue.png",
+   "stats": {
+    "sat": 0.3024010956287384,
+    "val": 0.6164857149124146,
+    "hue": 0.43420075356846305,
+    "valStd": 0.11612506955862045,
+    "back": 0.6269720792770386,
+    "belly": 0.5948044657707214,
+    "countershade": -0.03216761350631714,
+    "bgBleed": 0,
+    "eyePx": 157,
+    "bodyFrac": 0.02487544051525094
+   },
+   "base": "mako",
+   "prop": null,
+   "draws": 1,
+   "tris": 6790,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "countershade -0.032 < 0.06 (back 0.627 belly 0.595)"
+   ]
+  },
+  {
+   "id": "hammerhead",
+   "row": {
+    "id": "hammerhead",
+    "name": "Hammerhead",
+    "tier": 3,
+    "act": 1,
+    "cls": "common",
+    "pattern": "plain",
+    "model": "smoothhammer"
+   },
+   "shot": "hse/evidence/r15-skin/smoke/shark_hammerhead.png",
+   "head": "hse/evidence/r15-skin/smoke/heads/head_hammerhead.png",
+   "thumb": "hse/evidence/r15-skin/smoke/thumbs/thumb_hammerhead.png",
+   "stats": {
+    "sat": 0.16203175485134125,
+    "val": 0.7398126125335693,
+    "hue": 0.8023883140748223,
+    "valStd": 0.12281523644924164,
+    "back": 0.6389630436897278,
+    "belly": 0.7595519423484802,
+    "countershade": 0.12058889865875244,
+    "bgBleed": 0.00017442113984214886,
+    "eyePx": 0,
+    "bodyFrac": 0.016502612711143515
+   },
+   "base": "smoothhammer",
+   "prop": null,
+   "draws": 1,
+   "tris": 6733,
+   "texMB": 6.6666669845581055,
+   "fails": [
+    "flank saturation 0.162 < 0.18",
+    "no eye highlight in head crop (0 bright px)"
+   ]
+  }
+ ]
+}

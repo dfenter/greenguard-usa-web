@@ -1,0 +1,56 @@
+{
+ "reef:fwd": {
+  "held": false,
+  "box": [
+   1215,
+   426,
+   380,
+   380
+  ]
+ },
+ "reef:rev": {
+  "held": false,
+  "box": [
+   603,
+   426,
+   380,
+   380
+  ]
+ },
+ "blue:fwd": {
+  "held": false,
+  "box": [
+   1263,
+   426,
+   380,
+   380
+  ]
+ },
+ "blue:rev": {
+  "held": false,
+  "box": [
+   554,
+   425,
+   380,
+   380
+  ]
+ },
+ "greatwhite:fwd": {
+  "held": false,
+  "box": [
+   1243,
+   464,
+   380,
+   380
+  ]
+ },
+ "greatwhite:rev": {
+  "held": false,
+  "box": [
+   576,
+   460,
+   380,
+   380
+  ]
+ }
+}

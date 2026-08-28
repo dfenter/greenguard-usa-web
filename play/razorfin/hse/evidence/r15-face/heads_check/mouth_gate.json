@@ -1,0 +1,15 @@
+{
+  "reef": {
+    "crop_px": 144400,
+    "shark_px": 24025,
+    "batch_px": 1292,
+    "scoped": true,
+    "cavity_px": 460,
+    "tooth_px": 113,
+    "cavity_frac": 0.003185595567867036,
+    "tooth_frac": 0.0007825484764542937,
+    "cavity_pass": false,
+    "tooth_pass": false,
+    "pass": false
+  }
+}

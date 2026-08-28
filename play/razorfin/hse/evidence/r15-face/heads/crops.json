@@ -1,0 +1,146 @@
+{
+ "reef:fwd": {
+  "held": false,
+  "box": [
+   1216,
+   428,
+   380,
+   380
+  ]
+ },
+ "reef:rev": {
+  "held": false,
+  "box": [
+   602,
+   428,
+   380,
+   380
+  ]
+ },
+ "tiger:fwd": {
+  "held": false,
+  "box": [
+   1216,
+   423,
+   380,
+   380
+  ]
+ },
+ "tiger:rev": {
+  "held": false,
+  "box": [
+   585,
+   420,
+   380,
+   380
+  ]
+ },
+ "hammerhead:fwd": {
+  "held": false,
+  "box": [
+   1204,
+   414,
+   380,
+   380
+  ]
+ },
+ "hammerhead:rev": {
+  "held": false,
+  "box": [
+   578,
+   426,
+   380,
+   380
+  ]
+ },
+ "greatwhite:fwd": {
+  "held": false,
+  "box": [
+   1204,
+   428,
+   380,
+   380
+  ]
+ },
+ "greatwhite:rev": {
+  "held": false,
+  "box": [
+   611,
+   428,
+   380,
+   380
+  ]
+ },
+ "blue:fwd": {
+  "held": false,
+  "box": [
+   1213,
+   402,
+   380,
+   380
+  ]
+ },
+ "blue:rev": {
+  "held": false,
+  "box": [
+   601,
+   404,
+   380,
+   380
+  ]
+ },
+ "megalodon:fwd": {
+  "held": true,
+  "box": [
+   1204,
+   442,
+   380,
+   380
+  ]
+ },
+ "megalodon:rev": {
+  "held": true,
+  "box": [
+   615,
+   444,
+   380,
+   380
+  ]
+ },
+ "zeusfin:fwd": {
+  "held": false,
+  "box": [
+   1218,
+   442,
+   380,
+   380
+  ]
+ },
+ "zeusfin:rev": {
+  "held": false,
+  "box": [
+   590,
+   447,
+   380,
+   380
+  ]
+ },
+ "typhonmaw:fwd": {
+  "held": true,
+  "box": [
+   1204,
+   456,
+   380,
+   380
+  ]
+ },
+ "typhonmaw:rev": {
+  "held": true,
+  "box": [
+   615,
+   454,
+   380,
+   380
+  ]
+ }
+}

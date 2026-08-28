@@ -1,0 +1,18 @@
+{
+  "surface": {
+    "medLum": 0,
+    "medSat": 0,
+    "n": 13319
+  },
+  "mid": {
+    "medLum": 0,
+    "medSat": 0,
+    "n": 13319
+  },
+  "abyss": {
+    "medLum": 0,
+    "medSat": 0,
+    "n": 13319
+  },
+  "drawCalls": null
+}

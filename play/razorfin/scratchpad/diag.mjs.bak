@@ -1,0 +1,21 @@
+import puppeteer from 'puppeteer-core';
+import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path';
+const root='/Users/lucille/greenguard-usa-web', port=47698;
+const server=http.createServer((q,s)=>{let f=decodeURIComponent(q.url.split('?')[0]); if(f.endsWith('/'))f+='index.html';
+ fs.readFile(path.join(root,f),(e,d)=>{ if(e){s.writeHead(404);s.end();return;} s.writeHead(200,{'content-type':f.endsWith('.js')?'text/javascript':'text/html'}); s.end(d);});});
+await new Promise(r=>server.listen(port,r));
+const b=await puppeteer.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',args:['--no-sandbox','--mute-audio','--use-gl=angle','--enable-unsafe-swiftshader']});
+const p=await b.newPage();
+p.on('pageerror',e=>console.log('PAGEERROR',e.message));
+p.on('console',m=>console.log('CONSOLE',m.type(),m.text().slice(0,200)));
+await p.setViewport({width:844,height:390,deviceScaleFactor:2,isMobile:true,hasTouch:true});
+await p.goto(`http://127.0.0.1:${port}/play/razorfin/?unlockall=1`,{waitUntil:'load'});
+await new Promise(r=>setTimeout(r,5000));
+console.log(JSON.stringify(await p.evaluate(()=>({
+  hasRF: !!window.RF, keys: window.RF?Object.keys(window.RF):null,
+  hasGame: !!window.RF?.Game, gameKeys: window.RF?.Game?Object.keys(window.RF.Game):null,
+  ctx: !!window.RF?.Game?.ctx,
+  canvases: [...document.querySelectorAll('canvas')].map(c=>({w:c.width,h:c.height,cls:c.className,id:c.id})),
+  bodyText: document.body.innerText.slice(0,300)
+}),null,2)));
+await b.close(); server.close();

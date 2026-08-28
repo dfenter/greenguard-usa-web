@@ -1,0 +1,350 @@
+[
+  {
+    "key": "anglerfish",
+    "sz": [
+      0.62,
+      0.378,
+      0.427
+    ],
+    "spikeY": -0.016,
+    "spikeZ": -0.001,
+    "skewY": 0.1,
+    "skewZ": 0
+  },
+  {
+    "key": "blueshark",
+    "sz": [
+      1,
+      0.172,
+      0.192
+    ],
+    "spikeY": -0.239,
+    "spikeZ": 0.272,
+    "skewY": -1.645,
+    "skewZ": -0.071
+  },
+  {
+    "key": "bullhead",
+    "sz": [
+      1,
+      0.298,
+      0.337
+    ],
+    "spikeY": -0.49,
+    "spikeZ": -0.11,
+    "skewY": -1.802,
+    "skewZ": -0.66
+  },
+  {
+    "key": "dogfish",
+    "sz": [
+      1,
+      0.23,
+      0.2
+    ],
+    "spikeY": -0.18,
+    "spikeZ": 0.011,
+    "skewY": -1.315,
+    "skewZ": 0.381
+  },
+  {
+    "key": "dolphin",
+    "sz": [
+      0.765,
+      0.247,
+      0.272
+    ],
+    "spikeY": 0.349,
+    "spikeZ": 0,
+    "skewY": 1.511,
+    "skewZ": 0
+  },
+  {
+    "key": "fish_blue",
+    "sz": [
+      0.735,
+      0.096,
+      0.458
+    ],
+    "spikeY": 0,
+    "spikeZ": 0.113,
+    "skewY": -0.032,
+    "skewZ": 1.509
+  },
+  {
+    "key": "fish_clown",
+    "sz": [
+      0.753,
+      0.092,
+      0.388
+    ],
+    "spikeY": 0,
+    "spikeZ": 0.226,
+    "skewY": 0,
+    "skewZ": 0.32
+  },
+  {
+    "key": "fish_tuna",
+    "sz": [
+      1.406,
+      0.203,
+      0.47
+    ],
+    "spikeY": 0,
+    "spikeZ": -0.294,
+    "skewY": 0,
+    "skewZ": -0.192
+  },
+  {
+    "key": "goblinshark",
+    "sz": [
+      0.582,
+      0.346,
+      0.49
+    ],
+    "spikeY": -0.103,
+    "spikeZ": 0.006,
+    "skewY": 0.375,
+    "skewZ": 0.059
+  },
+  {
+    "key": "greatwhite_cy",
+    "sz": [
+      1,
+      0.34,
+      0.446
+    ],
+    "spikeY": -0.146,
+    "spikeZ": -0.061,
+    "skewY": -2.027,
+    "skewZ": 0.026
+  },
+  {
+    "key": "hammer_chibi",
+    "sz": [
+      1,
+      0.698,
+      0.978
+    ],
+    "spikeY": -0.03,
+    "spikeZ": 0.259,
+    "skewY": -0.958,
+    "skewZ": 0.733
+  },
+  {
+    "key": "mako",
+    "sz": [
+      1,
+      0.473,
+      0.29
+    ],
+    "spikeY": 0.039,
+    "spikeZ": 0.072,
+    "skewY": -0.023,
+    "skewZ": 1.635
+  },
+  {
+    "key": "manta",
+    "sz": [
+      0.682,
+      0.078,
+      0.488
+    ],
+    "spikeY": -0.036,
+    "spikeZ": 0,
+    "skewY": 0.514,
+    "skewZ": 0.002
+  },
+  {
+    "key": "megalodonrex",
+    "sz": [
+      1,
+      0.341,
+      0.468
+    ],
+    "spikeY": 0.011,
+    "spikeZ": -0.487,
+    "skewY": -0.011,
+    "skewZ": -1.129
+  },
+  {
+    "key": "piranha",
+    "sz": [
+      0.561,
+      0.285,
+      0.375
+    ],
+    "spikeY": -0.149,
+    "spikeZ": -0.004,
+    "skewY": -0.964,
+    "skewZ": 0
+  },
+  {
+    "key": "scallopedhammer",
+    "sz": [
+      1,
+      0.296,
+      0.285
+    ],
+    "spikeY": -0.146,
+    "spikeZ": 0.036,
+    "skewY": -2.05,
+    "skewZ": 0.117
+  },
+  {
+    "key": "shark",
+    "sz": [
+      0.943,
+      0.309,
+      0.347
+    ],
+    "spikeY": 0.409,
+    "spikeZ": 0,
+    "skewY": 1.467,
+    "skewZ": 0
+  },
+  {
+    "key": "shark_b",
+    "sz": [
+      1,
+      0.344,
+      0.434
+    ],
+    "spikeY": -0.047,
+    "spikeZ": 0,
+    "skewY": 0.769,
+    "skewZ": 0
+  },
+  {
+    "key": "shark_c",
+    "sz": [
+      0.561,
+      0.397,
+      0.399
+    ],
+    "spikeY": 0.404,
+    "spikeZ": -0.003,
+    "skewY": 0.545,
+    "skewZ": -0.004
+  },
+  {
+    "key": "sharky",
+    "sz": [
+      0.801,
+      0.286,
+      0.327
+    ],
+    "spikeY": 0.276,
+    "spikeZ": 0,
+    "skewY": 1.597,
+    "skewZ": 0.001
+  },
+  {
+    "key": "smoothhammer",
+    "sz": [
+      1,
+      0.246,
+      0.265
+    ],
+    "spikeY": 0.186,
+    "spikeZ": 0.11,
+    "skewY": 1.665,
+    "skewZ": 0.292
+  },
+  {
+    "key": "smoothhound",
+    "sz": [
+      1,
+      0.21,
+      0.194
+    ],
+    "spikeY": 0.024,
+    "spikeZ": -0.01,
+    "skewY": -1.596,
+    "skewZ": -0.032
+  },
+  {
+    "key": "textured_test",
+    "sz": [
+      1,
+      0.368,
+      0.328
+    ],
+    "spikeY": 0.008,
+    "spikeZ": -0.33,
+    "skewY": -0.059,
+    "skewZ": -1.553
+  },
+  {
+    "key": "thresher",
+    "sz": [
+      1,
+      0.325,
+      0.346
+    ],
+    "spikeY": -0.312,
+    "spikeZ": 0.028,
+    "skewY": -1.385,
+    "skewZ": -0.139
+  },
+  {
+    "key": "tiger_nu",
+    "sz": [
+      1,
+      0.522,
+      0.317
+    ],
+    "spikeY": 0.045,
+    "spikeZ": -0.085,
+    "skewY": 0.078,
+    "skewZ": -1.027
+  },
+  {
+    "key": "tigershark",
+    "sz": [
+      1,
+      0.295,
+      0.327
+    ],
+    "spikeY": 0.299,
+    "spikeZ": 0.015,
+    "skewY": 0.096,
+    "skewZ": 0.027
+  },
+  {
+    "key": "whale",
+    "sz": [
+      0.701,
+      0.219,
+      0.28
+    ],
+    "spikeY": 0.149,
+    "spikeZ": 0,
+    "skewY": 0.33,
+    "skewZ": 0
+  },
+  {
+    "key": "whaler",
+    "sz": [
+      1,
+      0.293,
+      0.175
+    ],
+    "spikeY": -0.267,
+    "spikeZ": -0.163,
+    "skewY": -0.978,
+    "skewZ": -0.231
+  },
+  {
+    "key": "whitepointer",
+    "sz": [
+      1,
+      0.399,
+      0.427
+    ],
+    "spikeY": -0.018,
+    "spikeZ": -0.085,
+    "skewY": -0.417,
+    "skewZ": 0.183
+  }
+]

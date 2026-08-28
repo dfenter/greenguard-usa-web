@@ -575,15 +575,93 @@ import * as THREE from 'three';
   // lends to the atmosphere owner (world3d.js). Pre-allocated module scratch,
   // handed over by reference; never rebuilt per frame, never re-created per run.
   var LIGHTS = { hemi: null, sun: null, scene: null, renderer: null };
+  // Rev 15: engine-owned only. Never handed to world3d, so they stay neutral.
+  var fillLight = null, rimLight = null;
+  var envRT = null, envPMREM = null;
   // Volumetric shark read: keep the boot rig's ambient fill restrained while
   // the upper-front-left key carries the directional form. These are exported
   // below so the headless gate cannot silently drift from the live rig.
+  //
+  // REV 15 LIGHT LANE. The Rev 14 rig lit the shark DARKER than the water it
+  // swam in: the r15 pixel gate measured a shark/water median luminance ratio
+  // of 0.40 near the surface and 0.45 in the abyss, i.e. the subject was two
+  // and a half times darker than its own background, with a mean shark RGB of
+  // [45,97,88] -- a green-cyan cast with the red channel at less than half of
+  // green. That is the whole of the owner's "ghost-pale, zero contrast,
+  // everything dragged to cyan" verdict, and later "Avatar hybrid nonsense".
+  //
+  // Three separate causes, all addressed here:
+  //
+  //  1. THE HEMISPHERE WAS THE WATER. world3d.js (the atmosphere owner) writes
+  //     the hemisphere sky colour to the zone TINT every frame, so the single
+  //     largest contributor to the shark's diffuse was saturated water colour.
+  //     A subject lit by its own background cannot separate from it at any
+  //     exposure. The fix is the sky/key split below: world3d keeps driving an
+  //     ambient that legitimately belongs to the water, but it is handed a
+  //     restrained one, and the FORM now comes from a neutral key that
+  //     world3d does not own and cannot tint.
+  //
+  //  2. THERE WAS NO ENVIRONMENT. Every shark body is MeshStandardMaterial at
+  //     roughness 0.30-0.50 with a wet-specular shader injection, but with
+  //     scene.environment null the only specular term in the frame was a
+  //     single directional lobe. A PBR material with nothing to reflect reads
+  //     as flat paint, which is exactly what the screenshot showed. A PMREM of
+  //     a cheap procedural sky/water gradient (built once, 8ms, no addon
+  //     dependency) gives every roughness value something to return.
+  //
+  //  3. THE KEY WAS TOO WEAK AND THE EXPOSURE ABSORBED IT. ACES rolls the top
+  //     end off hard; 1.25 of directional under a 1.15 hemisphere never
+  //     reached the shoulder, so no highlight ever formed.
+  //
+  // OWNER OVERRIDE (r15): "just make them look like sharks" -- natural
+  // sunlight through water. So: the key is white-warm DAYLIGHT and the rim is
+  // NEUTRAL WHITE. No coloured key, no cyan/purple/teal ambient, no
+  // bioluminescent tinting anywhere in this rig. A great white must read grey
+  // on top and white on the belly with one clean sun highlight, like a nature
+  // documentary still. The only chroma this rig emits is the faint warmth of
+  // sunlight and the faint blue of skylight -- both of which real daylight has.
   var LIGHT_RIG = {
-    hemiIntensity: 0.55,
-    sunIntensity: 1.25,
+    // Ambient handed to world3d. Deliberately LOW: this is the term world3d
+    // paints with the zone's water colour, so every unit of it is a unit of
+    // cyan on the shark. It is now a floor that keeps shadow sides from going
+    // black, not the main source it used to be.
+    hemiIntensity: 0.30,
+    // The key. Neutral daylight, and strong enough to clear the ACES shoulder
+    // so a real specular hotspot forms on a roughness-0.40 hide.
+    sunIntensity: 3.10,
+    // Above and in front, camera-left. Positive Z is toward the camera, so
+    // this is a classic over-the-shoulder key that rakes the dorsal surface
+    // and leaves the belly to the fill.
     sunX: -120,
     sunY: 260,
-    sunZ: 420
+    sunZ: 420,
+    // Sunlight colour. Warm-neutral daylight, NOT cyan. Fixed here and
+    // re-asserted every frame so no other lane can drag it to water colour.
+    sunColor: 0xfff6ec,
+
+    // ---- lights below are created and owned entirely by this lane ----
+    // world3d.js only ever receives hemi + sun, so nothing else in the game
+    // can retint these. They are what actually holds the shark's form.
+
+    // Cool sky fill from above-behind-right, opposite the key. "Cool" here
+    // means the pale blue of open sky, which is what genuinely fills a
+    // shadow side outdoors -- it is not a teal gel.
+    fillColor: 0xdfe9f5,
+    fillIntensity: 0.85,
+    fillX: 300, fillY: 180, fillZ: -160,
+
+    // Rim / kicker from behind and above, to separate the dorsal edge from
+    // the water. NEUTRAL WHITE per the owner override.
+    rimColor: 0xffffff,
+    rimIntensity: 1.55,
+    rimX: 60, rimY: 340, rimZ: -430,
+
+    // Environment (PMREM) strength. Drives specular response only.
+    envIntensity: 0.85,
+    // ACES exposure. Lowered from 1.06 because the rig below puts far more
+    // light into the scene; the shark gains contrast from the key/fill ratio
+    // now, not from a hot global exposure that also blows out the water.
+    exposure: 0.92
   };
 
   // Pre-allocated scratch. step() must never allocate.
@@ -778,7 +856,7 @@ import * as THREE from 'three';
     renderer.setPixelRatio(DPR);
     if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.06;
+    renderer.toneMappingExposure = LIGHT_RIG.exposure;
 
     scene3 = new THREE.Scene();
     scene3.background = new THREE.Color(zoneState.tint);
@@ -794,12 +872,36 @@ import * as THREE from 'three';
     // RF.World.setLights() setter below, whichever that lane implements.
     hemi = new THREE.HemisphereLight(0x9fd4e8, 0x06121e, LIGHT_RIG.hemiIntensity);
     scene3.add(hemi);
-    sun = new THREE.DirectionalLight(0xffffff, LIGHT_RIG.sunIntensity);
+    sun = new THREE.DirectionalLight(LIGHT_RIG.sunColor, LIGHT_RIG.sunIntensity);
     sun.position.set(LIGHT_RIG.sunX, LIGHT_RIG.sunY, LIGHT_RIG.sunZ);
     sun.castShadow = false;
     scene3.add(sun);
     LIGHTS.hemi = hemi;
     LIGHTS.sun = sun;
+
+    // REV 15: fill + rim. These are NOT handed to world3d (LIGHTS carries only
+    // hemi and sun, and World.setLights reads only those two keys), so the
+    // atmosphere owner cannot retint them at depth. They are the reason the
+    // shark keeps a neutral, three-dimensional read in a saturated blue zone
+    // instead of dissolving into it.
+    //
+    // No shadow maps on any of them -- the perf budget is unchanged, and the
+    // r15 brief holds the FPS budget fixed. Two extra directional lights cost
+    // two more lobes in the same forward pass, no additional render targets
+    // and no additional draw calls.
+    fillLight = new THREE.DirectionalLight(LIGHT_RIG.fillColor, LIGHT_RIG.fillIntensity);
+    fillLight.position.set(LIGHT_RIG.fillX, LIGHT_RIG.fillY, LIGHT_RIG.fillZ);
+    fillLight.castShadow = false;
+    scene3.add(fillLight);
+
+    rimLight = new THREE.DirectionalLight(LIGHT_RIG.rimColor, LIGHT_RIG.rimIntensity);
+    rimLight.position.set(LIGHT_RIG.rimX, LIGHT_RIG.rimY, LIGHT_RIG.rimZ);
+    rimLight.castShadow = false;
+    scene3.add(rimLight);
+
+    // Specular environment. Without this every MeshStandardMaterial in the
+    // game has nothing to reflect and reads as flat paint (see LIGHT_RIG).
+    buildEnvironment();
     LIGHTS.scene = scene3;
     LIGHTS.renderer = renderer;
 
@@ -807,6 +909,141 @@ import * as THREE from 'three';
     camera.position.set(0, 0, CAM_Z);
     resize();
     return true;
+  }
+
+  // ------------------------------------------------- REV 15 environment map
+  //
+  // WHY THIS EXISTS: every shark body is MeshStandardMaterial. A PBR material
+  // computes its specular from (a) punctual lights and (b) scene.environment.
+  // With environment null, (b) is zero, so a roughness-0.40 wet hide had
+  // exactly one specular lobe in the entire frame and read as flat paint --
+  // the "no specular" half of the owner's verdict.
+  //
+  // WHY NOT RoomEnvironment: that is a three.js ADDON, and the shared build at
+  // /play/_shared/three/ ships only the core module (plus GLTF/OBJ/MTL
+  // loaders). Rather than add a dependency, this paints the gradient that
+  // actually belongs here -- bright sky above, mid water at the horizon, dark
+  // water below, which is what an underwater subject genuinely sees -- into a
+  // small canvas and lets PMREMGenerator convolve it.
+  //
+  // COST: one 256x128 canvas fill and one PMREM pass, ONCE at boot. No
+  // per-frame work, no extra render pass, no shadow maps. The FPS budget is
+  // untouched.
+  //
+  // COLOUR (owner override): this gradient is NEUTRAL DAYLIGHT -- warm-white
+  // sky, desaturated blue-grey water. It is deliberately far less saturated
+  // than the zone fog, because whatever chroma goes in here comes back out on
+  // every wet highlight in the game. A saturated environment is how a shark
+  // ends up looking like it is lit by a nightclub.
+  function buildEnvironment() {
+    if (!renderer || !scene3) return false;
+    if (!THREE.PMREMGenerator) return false;
+    if (typeof document === 'undefined' || !document.createElement) return false;
+    try {
+      var cv = document.createElement('canvas');
+      cv.width = 256; cv.height = 128;
+      var g2 = cv.getContext && cv.getContext('2d');
+      if (!g2) return false;
+      var grad = g2.createLinearGradient(0, 0, 0, 128);
+      // Sun-side sky: warm white, the brightest thing a highlight can catch.
+      grad.addColorStop(0.00, '#fff6ea');
+      grad.addColorStop(0.28, '#e8eef3');
+      // Waterline: neutral, slightly cool.
+      grad.addColorStop(0.50, '#9fb2c0');
+      // Below: desaturated blue-grey falling to near-black, so the belly picks
+      // up a dark floor reflection and the countershade actually reads.
+      grad.addColorStop(0.74, '#3f5566');
+      grad.addColorStop(1.00, '#101a22');
+      g2.fillStyle = grad;
+      g2.fillRect(0, 0, 256, 128);
+
+      var tex = new THREE.CanvasTexture(cv);
+      if (THREE.EquirectangularReflectionMapping) {
+        tex.mapping = THREE.EquirectangularReflectionMapping;
+      }
+      if (THREE.SRGBColorSpace) tex.colorSpace = THREE.SRGBColorSpace;
+      tex.needsUpdate = true;
+
+      envPMREM = new THREE.PMREMGenerator(renderer);
+      if (envPMREM.compileEquirectangularShader) envPMREM.compileEquirectangularShader();
+      envRT = envPMREM.fromEquirectangular(tex);
+      scene3.environment = envRT.texture;
+      // Scene-level intensity is a three r15x+ property; guard it so an older
+      // core build simply gets the default of 1 rather than throwing.
+      try { scene3.environmentIntensity = LIGHT_RIG.envIntensity; } catch (e) {}
+      tex.dispose();
+      return true;
+    } catch (e) {
+      warnOnce('buildEnvironment', e);
+      return false;
+    }
+  }
+
+  // Context loss destroys the PMREM render target with everything else, so the
+  // restore path rebuilds it. Disposing first keeps a re-entrant call from
+  // leaking the old target.
+  function disposeEnvironment() {
+    try { if (envRT && envRT.dispose) envRT.dispose(); } catch (e) {}
+    try { if (envPMREM && envPMREM.dispose) envPMREM.dispose(); } catch (e) {}
+    envRT = null; envPMREM = null;
+    if (scene3) scene3.environment = null;
+  }
+
+  // The rig this lane owns, re-asserted. world3d.js writes hemi and sun every
+  // fixed step from its zone blend; it must keep doing so (fog and light have
+  // to agree about depth), but it has no business deciding the KEY's colour --
+  // it used to lerp the sun toward 0xdff2ff, a cyan, at depth. Re-stamping the
+  // neutral daylight colour after the atmosphere pass is what guarantees the
+  // owner's "no colored key tints" rule holds at every depth, while leaving
+  // world3d's INTENSITY falloff (its depth cue) completely intact.
+  //
+  // Fill and rim are never touched by anyone else, so they only need setting
+  // once; they are re-stamped here purely so a hot-reload cannot desync them.
+  //
+  // INTENSITY, NOT JUST COLOUR. The first r15 pass only re-stamped the sun's
+  // colour and left intensity to world3d, and the pixel gate caught the
+  // result: the live sun read 1.00 and the live hemisphere 1.15 -- world3d's
+  // SUN_I0/HEMI_I0 -- so the authored 3.10-over-0.30 rig never reached the
+  // screen at all and the shark stayed darker than its water. world3d writes
+  // both every fixed step from its zone blend, so authoring them at boot is
+  // not enough; they have to be re-asserted after its pass.
+  //
+  // The depth cue is PRESERVED rather than discarded. world3d expresses depth
+  // as a falloff from its own SUN_I0/HEMI_I0 baselines, so the ratio it just
+  // wrote (live / baseline) is exactly its intended dimming for this depth.
+  // Multiplying the authored intensity by that ratio keeps the deep zones
+  // genuinely darker while restoring the key-dominant balance.
+  var W3D_SUN_I0 = 1.00;   // world3d SUN_I0  (shallow baseline)
+  var W3D_HEMI_I0 = 1.15;  // world3d HEMI_I0 (shallow baseline)
+  // The shark must never fall back into the water, so the key is not allowed
+  // to dim below this fraction of its authored value no matter how deep the
+  // camera goes. The abyss gets its darkness from fog and from the ambient
+  // term, not from switching the subject's key light off.
+  var KEY_DEPTH_FLOOR = 0.72;
+
+  function enforceLightRig() {
+    if (sun) {
+      var sunRatio = W3D_SUN_I0 > 0 ? (sun.intensity / W3D_SUN_I0) : 1;
+      if (!isFinite(sunRatio) || sunRatio <= 0) sunRatio = 1;
+      sun.intensity = LIGHT_RIG.sunIntensity
+        * Math.max(KEY_DEPTH_FLOOR, Math.min(1, sunRatio));
+    }
+    if (hemi) {
+      var hemiRatio = W3D_HEMI_I0 > 0 ? (hemi.intensity / W3D_HEMI_I0) : 1;
+      if (!isFinite(hemiRatio) || hemiRatio <= 0) hemiRatio = 1;
+      // The ambient keeps world3d's full falloff -- it is the term that is
+      // SUPPOSED to carry the water's colour and die away with depth.
+      hemi.intensity = LIGHT_RIG.hemiIntensity * Math.min(1, hemiRatio);
+    }
+    if (sun && sun.color && sun.color.setHex) sun.color.setHex(LIGHT_RIG.sunColor);
+    if (fillLight) {
+      if (fillLight.color && fillLight.color.setHex) fillLight.color.setHex(LIGHT_RIG.fillColor);
+      fillLight.intensity = LIGHT_RIG.fillIntensity;
+    }
+    if (rimLight) {
+      if (rimLight.color && rimLight.color.setHex) rimLight.color.setHex(LIGHT_RIG.rimColor);
+      rimLight.intensity = LIGHT_RIG.rimIntensity;
+    }
   }
 
   function resize() {
@@ -871,8 +1108,13 @@ import * as THREE from 'three';
         renderer.setPixelRatio(DPR);
         if (THREE.SRGBColorSpace) renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.06;
+        renderer.toneMappingExposure = LIGHT_RIG.exposure;
         if (renderer.resetState) renderer.resetState();
+        // The PMREM target died with the context; rebuild it or every
+        // Standard material comes back with no specular environment.
+        disposeEnvironment();
+        buildEnvironment();
+        enforceLightRig();
       } catch (e) { warnOnce('renderer restore', e); }
     }
     resize();
@@ -3623,6 +3865,10 @@ import * as THREE from 'three';
     if (RF.Fx && RF.Fx.render) {
       try { RF.Fx.render(ctx, dt); } catch (e) { warnOnce('Fx.render', e); }
     }
+    // Rev 15: world3d's applyZoneAtmo ran inside World.render above and
+    // relerped the sun toward cyan at depth. Re-stamp the neutral key
+    // colour (intensity is left alone -- that is world3d's depth cue).
+    enforceLightRig();
     if (renderer && scene3 && camera) renderer.render(scene3, camera);
   }
 
@@ -4060,7 +4306,12 @@ import * as THREE from 'three';
       // spread here means a clamp is biting.
       check(framingMax - framingMin < 1e-9,
         'framing fraction is identical for every tier (spread ' + (framingMax - framingMin).toExponential(2) + ')');
-      check(LIGHT_RIG.hemiIntensity === 0.55 && LIGHT_RIG.sunIntensity === 1.25
+      // Rev 15: the rig is now key-dominant rather than ambient-dominant. The
+      // gate checks the RELATIONSHIP that makes a subject read against its
+      // background, not the old literal numbers -- the key must clearly
+      // out-drive the water-tinted ambient world3d controls.
+      check(LIGHT_RIG.sunIntensity > LIGHT_RIG.hemiIntensity * 3
+        && LIGHT_RIG.hemiIntensity <= 0.40
         && LIGHT_RIG.sunX < 0 && LIGHT_RIG.sunY > 0 && LIGHT_RIG.sunZ > 0
         && RF.Game && RF.Game.LIGHT_RIG
         && RF.Game.LIGHT_RIG.hemiIntensity === LIGHT_RIG.hemiIntensity
@@ -4068,7 +4319,33 @@ import * as THREE from 'three';
         && RF.Game.LIGHT_RIG.sunPosition[0] === LIGHT_RIG.sunX
         && RF.Game.LIGHT_RIG.sunPosition[1] === LIGHT_RIG.sunY
         && RF.Game.LIGHT_RIG.sunPosition[2] === LIGHT_RIG.sunZ,
-        'volumetric light rig is 0.55 hemi plus 1.25 upper-front-left directional');
+        'Rev 15 rig is key-dominant: sun ' + LIGHT_RIG.sunIntensity
+        + ' over hemi ' + LIGHT_RIG.hemiIntensity + ' from upper-front-left');
+
+      // OWNER OVERRIDE (r15) "just make them look like sharks": natural
+      // sunlight only. Machine-check that no light this lane owns is tinted.
+      // A colour is "neutral" when its channel spread is small; the key is
+      // allowed a warm bias, the rim must be pure white.
+      function rfChan(hex) { return [(hex >> 16) & 255, (hex >> 8) & 255, hex & 255]; }
+      function rfSpread(hex) { var c = rfChan(hex); return Math.max.apply(null, c) - Math.min.apply(null, c); }
+      // Rim is literally white -- no gel of any kind.
+      check(LIGHT_RIG.rimColor === 0xffffff, 'rim light is neutral white (no coloured rim)');
+      // Key may be warm but must not be cool: red >= blue, and only mildly warm.
+      var keyC = rfChan(LIGHT_RIG.sunColor);
+      check(keyC[0] >= keyC[2] && rfSpread(LIGHT_RIG.sunColor) <= 32,
+        'key light is warm-neutral daylight, never cyan (spread '
+        + rfSpread(LIGHT_RIG.sunColor) + ', r' + keyC[0] + ' >= b' + keyC[2] + ')');
+      // Fill is skylight: may be faintly cool, but nowhere near a teal gel.
+      check(rfSpread(LIGHT_RIG.fillColor) <= 32,
+        'fill light is pale skylight, not a teal gel (spread ' + rfSpread(LIGHT_RIG.fillColor) + ')');
+      // No purple/green ambient: every owned colour must be within a narrow
+      // band, which rules out bioluminescent tints outright.
+      check(rfSpread(LIGHT_RIG.sunColor) <= 32 && rfSpread(LIGHT_RIG.fillColor) <= 32
+        && rfSpread(LIGHT_RIG.rimColor) === 0,
+        'no bioluminescent / purple / teal light in the engine-owned rig');
+      // Exposure must stay sane under a much brighter rig.
+      check(LIGHT_RIG.exposure > 0.7 && LIGHT_RIG.exposure < 1.2,
+        'ACES exposure retuned into [0.7,1.2] (' + LIGHT_RIG.exposure + ')');
       triggerCamPulse(CAM_EAT_ZOOM, CAM_EAT_ZOOM_T);
       for (var camPulseStep = 0; camPulseStep < 60; camPulseStep++) stepCameraZoom(STEP);
       check(camState.pulseT === 0 && Math.abs(camState.zoom) < 0.001,
@@ -5721,7 +5998,16 @@ import * as THREE from 'three';
     LIGHT_RIG: {
       hemiIntensity: LIGHT_RIG.hemiIntensity,
       sunIntensity: LIGHT_RIG.sunIntensity,
-      sunPosition: [LIGHT_RIG.sunX, LIGHT_RIG.sunY, LIGHT_RIG.sunZ]
+      sunPosition: [LIGHT_RIG.sunX, LIGHT_RIG.sunY, LIGHT_RIG.sunZ],
+      // Rev 15 additions, exported so the pixel gate and any downstream lane
+      // can read the rig instead of hard-coding a copy of it.
+      sunColor: LIGHT_RIG.sunColor,
+      fillColor: LIGHT_RIG.fillColor,
+      fillIntensity: LIGHT_RIG.fillIntensity,
+      rimColor: LIGHT_RIG.rimColor,
+      rimIntensity: LIGHT_RIG.rimIntensity,
+      envIntensity: LIGHT_RIG.envIntensity,
+      exposure: LIGHT_RIG.exposure
     },
     __resourceGate: RESOURCE_GATE,
     startRun: startRun,

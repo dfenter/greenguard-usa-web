@@ -1,0 +1,17 @@
+{
+  "surface": {
+    "medLum": 0,
+    "medSat": 0,
+    "calls": 70
+  },
+  "mid": {
+    "medLum": 0,
+    "medSat": 0,
+    "calls": 69
+  },
+  "abyss": {
+    "medLum": 0,
+    "medSat": 0,
+    "calls": 76
+  }
+}

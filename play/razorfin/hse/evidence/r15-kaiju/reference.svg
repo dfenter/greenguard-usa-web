@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" width="900" height="420">
+<rect width="900" height="420" fill="#0d1b24"/>
+<text x="24" y="34" fill="#cfe6f2" font-family="Helvetica,Arial" font-size="19" font-weight="bold">Rev 15 kaiju target: SHARK FIRST, Godzilla spine as the ONE add</text>
+<text x="24" y="56" fill="#7fa8bd" font-family="Helvetica,Arial" font-size="13">great-white body + real shark eye/brow/jaw. No horns, tendrils, face plates or alien colour.</text>
+
+<!-- shark body -->
+<path d="M170 250 C 250 196, 430 186, 600 208 C 660 216, 700 232, 726 250 C 700 268, 660 284, 600 292 C 430 314, 250 304, 170 250 Z" fill="#2f3a40" stroke="#8fb6c9" stroke-width="2"/>
+<!-- belly countershade -->
+<path d="M232 276 C 360 306, 520 306, 640 278 C 520 300, 360 300, 232 276 Z" fill="#c9d8dc" opacity="0.85"/>
+<!-- tail -->
+<path d="M170 250 L 96 196 L 120 250 L 96 306 Z" fill="#2f3a40" stroke="#8fb6c9" stroke-width="2"/>
+<!-- pectoral fin -->
+<path d="M520 288 L 486 342 L 566 300 Z" fill="#263136" stroke="#8fb6c9" stroke-width="1.6"/>
+<!-- dorsal fin (the shark's own, kept) -->
+<path d="M470 196 L 506 140 L 536 200 Z" fill="#263136" stroke="#8fb6c9" stroke-width="1.6"/>
+
+<!-- ONE continuous spine ridge: shared low web + maple-leaf plates -->
+<path d="M250 236 L 292 226 L 334 214 L 376 204 L 418 200 L 460 200 L 502 206 L 544 214 L 586 222 L 620 230 L 620 240 L 250 246 Z" fill="#1b2429" stroke="#9ec6d8" stroke-width="1.6"/>
+<g fill="#232e34" stroke="#9ec6d8" stroke-width="1.6">
+  <path d="M258 236 L 276 200 L 296 196 L 300 228 Z"/>
+  <path d="M300 228 L 320 182 L 342 178 L 344 214 Z"/>
+  <path d="M344 214 L 364 160 L 388 156 L 390 204 Z"/>
+  <path d="M390 204 L 410 146 L 434 144 L 436 200 Z"/>
+  <path d="M436 200 L 456 150 L 480 150 L 482 202 Z"/>
+  <path d="M482 202 L 502 166 L 524 168 L 526 210 Z"/>
+  <path d="M526 210 L 544 186 L 564 190 L 566 218 Z"/>
+  <path d="M566 218 L 582 202 L 600 206 L 602 226 Z"/>
+</g>
+<!-- hot seam on the ROOT line only, thin -->
+<path d="M256 240 L 300 232 L 344 220 L 390 210 L 436 206 L 482 208 L 526 216 L 566 224 L 602 232" fill="none" stroke="#8fd8ff" stroke-width="2.4" opacity="0.95"/>
+
+<!-- head: heavy brow, eye with highlight, tooth row -->
+<path d="M666 224 C 690 226, 706 234, 716 244 L 676 246 Z" fill="#1b2429" stroke="#9ec6d8" stroke-width="1.6"/>
+<circle cx="678" cy="242" r="9" fill="#b4b0a6" stroke="#0b1216" stroke-width="2"/>
+<circle cx="678" cy="242" r="4" fill="#0a0d10"/>
+<circle cx="675" cy="239" r="2.2" fill="#ffffff"/>
+<g fill="#f0eee4" stroke="#5d6b72" stroke-width="1">
+  <path d="M636 274 L 644 260 L 652 274 Z"/><path d="M652 274 L 660 259 L 668 274 Z"/>
+  <path d="M668 274 L 676 259 L 684 274 Z"/><path d="M684 273 L 692 259 L 700 273 Z"/>
+  <path d="M700 272 L 707 259 L 714 272 Z"/>
+</g>
+
+<g font-family="Helvetica,Arial" font-size="12" fill="#7fa8bd">
+  <text x="250" y="132">one continuous ridge: plates share a low web, roots overlap the hull</text>
+  <text x="250" y="150">root width and height BOTH decrease toward the tail</text>
+  <text x="620" y="300">heavy brow + eye highlight</text>
+  <text x="620" y="318">single tooth row, no stray line</text>
+  <text x="96" y="352">seam glow on the ROOT SEAM only, thin and low intensity</text>
+  <text x="96" y="370">Sharkjira = pale blue seam. Leviathan Rex = magma orange seam. Skin charcoal for both.</text>
+</g>
+</svg>

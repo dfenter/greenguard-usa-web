@@ -40,7 +40,18 @@ const CSS_W = 844, CSS_H = 390, DPR = 2;
  * it judged against, and so moving a gate is a visible one-line diff rather
  * than a constant buried in a branch. */
 const GATES = Object.freeze({
-  satFloor: 0.18,          // flank saturation floor: below this the row is grey mush in fog
+  /* Rev 15 orchestrator ruling: the owner's real-shark law wins over the old
+   * single 0.18 floor. Real sharks ARE desaturated - a great white is slate
+   * grey, a bull is grey-brown - and a gate written for the fantasy palettes
+   * was failing 42 of 86 rows for the crime of looking like the animal. So the
+   * gate becomes a BAND, and the band depends on what kind of row it is.
+   *
+   * A ceiling is now part of the gate too: nothing on the roster, fantasy rows
+   * included, may render more saturated than the owner's 0.35 cap. That is the
+   * half of the law that stops a row drifting back toward neon. */
+  satFloor: 0.08,          // real-species rows (act 1-2): natural hides run low
+  satFloorFantasy: 0.12,   // fantasy rows may carry a little more color
+  satCeiling: 0.35,        // owner's law: no shark is a saturated color
   backBellyDelta: 0.06,    // countershade: belly value minus back value, 0..1
   patternContrast: 0.10,   // patterned rows: stddev of value across the flank
   distinctMin: 0.055,      // pairwise thumbnail distance floor across the roster
@@ -542,12 +553,28 @@ function distance(a, b) {
   return Math.sqrt(s / a.length);
 }
 
+/* Real-species rows are acts 1-2 (tiers 1-8, the actual sharks); act 3 and up
+ * plus the god/demon/legendary classes are the fantasy tail. Mirrors
+ * isFantasyRow() in hse/skin_identity.js so the gate and the shader agree on
+ * which law applies to a row. */
+function isFantasy(row) {
+  const cls = String(row?.cls || '').toLowerCase();
+  if (cls === 'god' || cls === 'demon' || cls === 'legendary') return true;
+  return Number(row?.act || 1) >= 3;
+}
+
 function grade(row, m) {
   const fails = [];
   if (!m || m.error) { fails.push(`measure failed: ${m && m.error}`); return { fails, stats: {} }; }
   if (m.empty) { fails.push('no shark in frame (body mask under 400 px) - rig did not render'); return { fails, stats: {} }; }
 
-  if (m.satMean < GATES.satFloor) fails.push(`flank saturation ${m.satMean.toFixed(3)} < ${GATES.satFloor}`);
+  /* Saturation band, keyed on whether this is a real shark or a fantasy row.
+   * `row` is the data.js entry, so the classification comes from the roster
+   * rather than from a hardcoded id list. */
+  const fantasyRow = isFantasy(row);
+  const satFloor = fantasyRow ? GATES.satFloorFantasy : GATES.satFloor;
+  if (m.satMean < satFloor) fails.push(`flank saturation ${m.satMean.toFixed(3)} < ${satFloor}${fantasyRow ? ' (fantasy row)' : ' (real-species row)'}`);
+  if (m.satMean > GATES.satCeiling) fails.push(`flank saturation ${m.satMean.toFixed(3)} > ${GATES.satCeiling} (no shark is this saturated)`);
   if (m.countershade < GATES.backBellyDelta) fails.push(`countershade ${m.countershade.toFixed(3)} < ${GATES.backBellyDelta} (back ${m.backVal.toFixed(3)} belly ${m.bellyVal.toFixed(3)})`);
 
   /* Pattern contrast is only meaningful on rows that claim a pattern. A row
@@ -718,7 +745,9 @@ function writeReport(summary, results, rowsToRun) {
   L.push('');
   L.push('| gate | threshold |');
   L.push('| --- | --- |');
-  L.push(`| flank saturation floor | >= ${GATES.satFloor} |`);
+  L.push(`| flank saturation (real-species rows) | >= ${GATES.satFloor} |`);
+  L.push(`| flank saturation (fantasy rows) | >= ${GATES.satFloorFantasy} |`);
+  L.push(`| flank saturation ceiling (all rows) | <= ${GATES.satCeiling} |`);
   L.push(`| countershade (belly val - back val) | >= ${GATES.backBellyDelta} |`);
   L.push(`| pattern contrast (patterned rows only) | value stddev >= ${GATES.patternContrast} |`);
   L.push(`| pairwise thumbnail distinctness | >= ${GATES.distinctMin} |`);

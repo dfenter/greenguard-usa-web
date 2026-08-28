@@ -1,0 +1,140 @@
+[
+  {
+    "id": "reef",
+    "shot": "profile",
+    "textured": true,
+    "base": "dogfish",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      96,
+      24.32,
+      21.16
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 173,
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ]
+  },
+  {
+    "id": "greatwhite",
+    "shot": "profile",
+    "textured": true,
+    "base": "greatwhite_cy",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      139.27,
+      69.48,
+      87.84
+    ],
+    "aimX": 0.1,
+    "longAxis": "x",
+    "dist": 250.9,
+    "errors": []
+  },
+  {
+    "id": "megalodon",
+    "shot": "profile",
+    "textured": true,
+    "base": "whitepointer",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      168.12,
+      87.85,
+      79.19
+    ],
+    "aimX": 0.1,
+    "longAxis": "x",
+    "dist": 302.9,
+    "errors": []
+  },
+  {
+    "id": "goblin",
+    "shot": "profile",
+    "textured": false,
+    "base": "goblinshark",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      113.28,
+      72.91,
+      101.78
+    ],
+    "aimX": -0.3,
+    "longAxis": "x",
+    "dist": 204.1,
+    "errors": []
+  },
+  {
+    "id": "gulperfiend",
+    "shot": "profile",
+    "textured": false,
+    "base": "anglerfish",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "size": [
+      144,
+      111.36,
+      119.47
+    ],
+    "aimX": 0.3,
+    "longAxis": "x",
+    "dist": 259.5,
+    "errors": []
+  },
+  {
+    "id": "hammerhead",
+    "shot": "profile",
+    "textured": true,
+    "base": "smoothhammer",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      115.24,
+      34.9,
+      39.89
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 207.6,
+    "errors": []
+  },
+  {
+    "id": "mako",
+    "shot": "profile",
+    "textured": true,
+    "base": "mako",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      105.58,
+      54.01,
+      33.59
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 190.2,
+    "errors": []
+  },
+  {
+    "id": "tiger",
+    "shot": "profile",
+    "textured": true,
+    "base": "tiger_nu",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      124.83,
+      86.47,
+      49.6
+    ],
+    "aimX": 0,
+    "longAxis": "x",
+    "dist": 224.9,
+    "errors": []
+  }
+]

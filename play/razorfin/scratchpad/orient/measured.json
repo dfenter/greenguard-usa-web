@@ -1,0 +1,677 @@
+[
+  {
+    "key": "anglerfish",
+    "axis": "z",
+    "sz": [
+      0.62,
+      0.378,
+      0.427
+    ],
+    "ext": {
+      "py": 0.17,
+      "ny": 0.189,
+      "pz": 0.213,
+      "nz": 0.213
+    },
+    "asymY": -0.019,
+    "asymZ": 0,
+    "girthLo": 0.329,
+    "girthHi": 0.489,
+    "dorsalAsym": null,
+    "noseVol": {
+      "lo": 0.3294717544124939,
+      "hi": 0.4889652156001769
+    }
+  },
+  {
+    "key": "blueshark",
+    "axis": "z",
+    "sz": [
+      1,
+      0.172,
+      0.192
+    ],
+    "ext": {
+      "py": 0.086,
+      "ny": 0.086,
+      "pz": 0.096,
+      "nz": 0.096
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.264,
+    "girthHi": 0.311,
+    "dorsalAsym": {
+      "asymY": 0,
+      "asymZ": 0.002456627951655549,
+      "rollAngle": 0
+    },
+    "noseVol": null
+  },
+  {
+    "key": "bullhead",
+    "axis": "z",
+    "sz": [
+      1,
+      0.298,
+      0.337
+    ],
+    "ext": {
+      "py": 0.149,
+      "ny": 0.149,
+      "pz": 0.169,
+      "nz": 0.169
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.432,
+    "girthHi": 0.464,
+    "dorsalAsym": {
+      "asymY": -2.7755575615628914e-17,
+      "asymZ": 0.012967698968764707,
+      "rollAngle": 0
+    },
+    "noseVol": null
+  },
+  {
+    "key": "dogfish",
+    "axis": "z",
+    "sz": [
+      1,
+      0.23,
+      0.2
+    ],
+    "ext": {
+      "py": 0.115,
+      "ny": 0.115,
+      "pz": 0.1,
+      "nz": 0.1
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.254,
+    "girthHi": 0.303,
+    "dorsalAsym": {
+      "asymY": 0,
+      "asymZ": 0.006910121806556202,
+      "rollAngle": 0
+    },
+    "noseVol": null
+  },
+  {
+    "key": "dolphin",
+    "axis": "z",
+    "sz": [
+      0.765,
+      0.247,
+      0.272
+    ],
+    "ext": {
+      "py": 0.124,
+      "ny": 0.124,
+      "pz": 0.136,
+      "nz": 0.136
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.259,
+    "girthHi": 0.337,
+    "dorsalAsym": null,
+    "noseVol": null
+  },
+  {
+    "key": "fish_blue",
+    "axis": "z",
+    "sz": [
+      0.735,
+      0.096,
+      0.458
+    ],
+    "ext": {
+      "py": 0.048,
+      "ny": 0.048,
+      "pz": 0.229,
+      "nz": 0.229
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.443,
+    "girthHi": 0.335,
+    "dorsalAsym": null,
+    "noseVol": null
+  },
+  {
+    "key": "fish_clown",
+    "axis": "z",
+    "sz": [
+      0.753,
+      0.092,
+      0.388
+    ],
+    "ext": {
+      "py": 0.045,
+      "ny": 0.045,
+      "pz": 0.194,
+      "nz": 0.194
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.217,
+    "girthHi": 0.454,
+    "dorsalAsym": null,
+    "noseVol": null
+  },
+  {
+    "key": "fish_tuna",
+    "axis": "z",
+    "sz": [
+      1.406,
+      0.203,
+      0.47
+    ],
+    "ext": {
+      "py": 0.102,
+      "ny": 0.102,
+      "pz": 0.235,
+      "nz": 0.235
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.187,
+    "girthHi": 0.332,
+    "dorsalAsym": null,
+    "noseVol": null
+  },
+  {
+    "key": "goblinshark",
+    "axis": "z",
+    "sz": [
+      0.582,
+      0.346,
+      0.49
+    ],
+    "ext": {
+      "py": 0.173,
+      "ny": 0.173,
+      "pz": 0.245,
+      "nz": 0.245
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.293,
+    "girthHi": 0.305,
+    "dorsalAsym": null,
+    "noseVol": {
+      "lo": 0.3049717860629068,
+      "hi": 0.29327148458523145
+    }
+  },
+  {
+    "key": "greatwhite_cy",
+    "axis": "z",
+    "sz": [
+      1,
+      0.34,
+      0.446
+    ],
+    "ext": {
+      "py": 0.17,
+      "ny": 0.17,
+      "pz": 0.223,
+      "nz": 0.223
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.382,
+    "girthHi": 0.487,
+    "dorsalAsym": {
+      "asymY": 0,
+      "asymZ": 0.006886718164632044,
+      "rollAngle": 0
+    },
+    "noseVol": null
+  },
+  {
+    "key": "hammer_chibi",
+    "axis": "x",
+    "sz": [
+      1,
+      0.698,
+      0.978
+    ],
+    "ext": {
+      "py": 0.349,
+      "ny": 0.349,
+      "pz": 0.489,
+      "nz": 0.489
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.384,
+    "girthHi": 0.384,
+    "dorsalAsym": null,
+    "noseVol": null
+  },
+  {
+    "key": "mako",
+    "axis": "z",
+    "sz": [
+      1,
+      0.473,
+      0.29
+    ],
+    "ext": {
+      "py": 0.237,
+      "ny": 0.237,
+      "pz": 0.145,
+      "nz": 0.145
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.353,
+    "girthHi": 0.273,
+    "dorsalAsym": {
+      "asymY": -2.7755575615628914e-17,
+      "asymZ": 0.00005339878327823011,
+      "rollAngle": 0
+    },
+    "noseVol": null
+  },
+  {
+    "key": "manta",
+    "axis": "z",
+    "sz": [
+      0.682,
+      0.078,
+      0.488
+    ],
+    "ext": {
+      "py": 0.039,
+      "ny": 0.039,
+      "pz": 0.244,
+      "nz": 0.244
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.085,
+    "girthHi": 0.353,
+    "dorsalAsym": null,
+    "noseVol": null
+  },
+  {
+    "key": "megalodonrex",
+    "axis": "z",
+    "sz": [
+      1,
+      0.341,
+      0.468
+    ],
+    "ext": {
+      "py": 0.17,
+      "ny": 0.17,
+      "pz": 0.234,
+      "nz": 0.234
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.324,
+    "girthHi": 0.472,
+    "dorsalAsym": {
+      "asymY": 2.7755575615628914e-17,
+      "asymZ": 0.000881321036218935,
+      "rollAngle": 0
+    },
+    "noseVol": null
+  },
+  {
+    "key": "piranha",
+    "axis": "z",
+    "sz": [
+      0.561,
+      0.285,
+      0.375
+    ],
+    "ext": {
+      "py": 0.143,
+      "ny": 0.143,
+      "pz": 0.187,
+      "nz": 0.187
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.261,
+    "girthHi": 0.375,
+    "dorsalAsym": null,
+    "noseVol": null
+  },
+  {
+    "key": "scallopedhammer",
+    "axis": "z",
+    "sz": [
+      1,
+      0.296,
+      0.285
+    ],
+    "ext": {
+      "py": 0.148,
+      "ny": 0.148,
+      "pz": 0.116,
+      "nz": 0.104
+    },
+    "asymY": 0,
+    "asymZ": 0.012,
+    "girthLo": 0.163,
+    "girthHi": 0.459,
+    "dorsalAsym": {
+      "asymY": 2.7755575615628914e-17,
+      "asymZ": 0.013773505418931131,
+      "rollAngle": 0
+    },
+    "noseVol": null
+  },
+  {
+    "key": "shark",
+    "axis": "z",
+    "sz": [
+      0.943,
+      0.309,
+      0.347
+    ],
+    "ext": {
+      "py": 0.154,
+      "ny": 0.154,
+      "pz": 0.174,
+      "nz": 0.174
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.382,
+    "girthHi": 0.273,
+    "dorsalAsym": null,
+    "noseVol": null
+  },
+  {
+    "key": "shark_b",
+    "axis": "z",
+    "sz": [
+      1,
+      0.344,
+      0.434
+    ],
+    "ext": {
+      "py": 0.172,
+      "ny": 0.172,
+      "pz": 0.217,
+      "nz": 0.217
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.285,
+    "girthHi": 0.245,
+    "dorsalAsym": null,
+    "noseVol": null
+  },
+  {
+    "key": "shark_c",
+    "axis": "z",
+    "sz": [
+      0.561,
+      0.397,
+      0.399
+    ],
+    "ext": {
+      "py": 0.199,
+      "ny": 0.179,
+      "pz": 0.199,
+      "nz": 0.199
+    },
+    "asymY": 0.02,
+    "asymZ": 0,
+    "girthLo": 0.316,
+    "girthHi": 0.353,
+    "dorsalAsym": null,
+    "noseVol": null
+  },
+  {
+    "key": "sharky",
+    "axis": "z",
+    "sz": [
+      0.801,
+      0.286,
+      0.327
+    ],
+    "ext": {
+      "py": 0.143,
+      "ny": 0.143,
+      "pz": 0.163,
+      "nz": 0.163
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.391,
+    "girthHi": 0.298,
+    "dorsalAsym": null,
+    "noseVol": null
+  },
+  {
+    "key": "smoothhammer",
+    "axis": "z",
+    "sz": [
+      1,
+      0.246,
+      0.265
+    ],
+    "ext": {
+      "py": 0.123,
+      "ny": 0.123,
+      "pz": 0.094,
+      "nz": 0.085
+    },
+    "asymY": 0,
+    "asymZ": 0.009,
+    "girthLo": 0.128,
+    "girthHi": 0.437,
+    "dorsalAsym": {
+      "asymY": 0,
+      "asymZ": -0.005575282505470722,
+      "rollAngle": 3.141592653589793
+    },
+    "noseVol": null
+  },
+  {
+    "key": "smoothhound",
+    "axis": "z",
+    "sz": [
+      1,
+      0.21,
+      0.194
+    ],
+    "ext": {
+      "py": 0.105,
+      "ny": 0.105,
+      "pz": 0.097,
+      "nz": 0.097
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.296,
+    "girthHi": 0.297,
+    "dorsalAsym": {
+      "asymY": 1.3877787807814457e-17,
+      "asymZ": 0.013323697590533118,
+      "rollAngle": 0
+    },
+    "noseVol": null
+  },
+  {
+    "key": "textured_test",
+    "axis": "z",
+    "sz": [
+      1,
+      0.368,
+      0.328
+    ],
+    "ext": {
+      "py": 0.184,
+      "ny": 0.184,
+      "pz": 0.164,
+      "nz": 0.164
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.382,
+    "girthHi": 0.273,
+    "dorsalAsym": {
+      "asymY": 0,
+      "asymZ": -2.7755575615628914e-17,
+      "rollAngle": 3.141592653589793
+    },
+    "noseVol": null
+  },
+  {
+    "key": "thresher",
+    "axis": "z",
+    "sz": [
+      1,
+      0.325,
+      0.346
+    ],
+    "ext": {
+      "py": 0.163,
+      "ny": 0.163,
+      "pz": 0.173,
+      "nz": 0.173
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.242,
+    "girthHi": 0.231,
+    "dorsalAsym": {
+      "asymY": 2.7755575615628914e-17,
+      "asymZ": 0.00015474639145127145,
+      "rollAngle": 0
+    },
+    "noseVol": null
+  },
+  {
+    "key": "tiger_nu",
+    "axis": "z",
+    "sz": [
+      1,
+      0.522,
+      0.317
+    ],
+    "ext": {
+      "py": 0.261,
+      "ny": 0.261,
+      "pz": 0.159,
+      "nz": 0.159
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.316,
+    "girthHi": 0.323,
+    "dorsalAsym": {
+      "asymY": 0,
+      "asymZ": 0.0005357489889512845,
+      "rollAngle": 0
+    },
+    "noseVol": null
+  },
+  {
+    "key": "tigershark",
+    "axis": "z",
+    "sz": [
+      1,
+      0.295,
+      0.327
+    ],
+    "ext": {
+      "py": 0.147,
+      "ny": 0.147,
+      "pz": 0.163,
+      "nz": 0.163
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.235,
+    "girthHi": 0.243,
+    "dorsalAsym": {
+      "asymY": 0,
+      "asymZ": -0.001511873354311577,
+      "rollAngle": 3.141592653589793
+    },
+    "noseVol": null
+  },
+  {
+    "key": "whale",
+    "axis": "z",
+    "sz": [
+      0.701,
+      0.219,
+      0.28
+    ],
+    "ext": {
+      "py": 0.11,
+      "ny": 0.11,
+      "pz": 0.14,
+      "nz": 0.14
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.187,
+    "girthHi": 0.344,
+    "dorsalAsym": null,
+    "noseVol": null
+  },
+  {
+    "key": "whaler",
+    "axis": "z",
+    "sz": [
+      1,
+      0.293,
+      0.175
+    ],
+    "ext": {
+      "py": 0.146,
+      "ny": 0.146,
+      "pz": 0.088,
+      "nz": 0.088
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.175,
+    "girthHi": 0.352,
+    "dorsalAsym": {
+      "asymY": 0,
+      "asymZ": 0.004042047948199803,
+      "rollAngle": 0
+    },
+    "noseVol": null
+  },
+  {
+    "key": "whitepointer",
+    "axis": "z",
+    "sz": [
+      1,
+      0.399,
+      0.427
+    ],
+    "ext": {
+      "py": 0.2,
+      "ny": 0.2,
+      "pz": 0.214,
+      "nz": 0.214
+    },
+    "asymY": 0,
+    "asymZ": 0,
+    "girthLo": 0.191,
+    "girthHi": 0.282,
+    "dorsalAsym": {
+      "asymY": 0,
+      "asymZ": 5.551115123125783e-17,
+      "rollAngle": 0
+    },
+    "noseVol": null
+  }
+]

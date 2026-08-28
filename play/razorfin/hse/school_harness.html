@@ -1,0 +1,151 @@
+<!doctype html><html><head><meta charset="utf-8"><base href="/play/razorfin/"><title>RF prey school harness</title>
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"/play/_shared/three/three.module.min.js"}}</script>
+</head><body>
+<script type="module">
+import * as THREE from 'three';
+window.THREE = THREE;
+const params = new URLSearchParams(location.search);
+const W = 1000, H = 620;
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(2); renderer.setSize(W, H);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.92;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+// ---- exact engine3d LIGHT_RIG + world3d water fog, so the school is judged
+// under the same light the shipped game uses.
+const scene = new THREE.Scene();
+const WATER = 0x14618f;              // deep saturated zone water (r15 water lane)
+scene.background = new THREE.Color(WATER);
+scene.fog = new THREE.FogExp2(WATER, 0.0065);
+const hemi = new THREE.HemisphereLight(0x9fd4e8, 0x06121e, 0.30); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xfff6ec, 3.10); sun.position.set(-120, 260, 420); scene.add(sun);
+const fill = new THREE.DirectionalLight(0xdfe9f5, 0.85); fill.position.set(300, 180, -160); scene.add(fill);
+const rim = new THREE.DirectionalLight(0xffffff, 1.55); rim.position.set(60, 340, -430); scene.add(rim);
+
+const camera = new THREE.PerspectiveCamera(38, W / H, 0.1, 4000);
+
+// ---- world3d's instanced bend contract, copied VERBATIM from world3d.js so
+// the harness proves the real shader path compiles against our material.
+const INST_BEND_K = 5.5, INST_BEND_SPAN = [-0.5, 0.35];
+const INST_BEND_CHUNK =
+  'float bendT=smoothstep(uBendSpan.x,uBendSpan.y,-transformed.x); ' +
+  'float bendTail=bendT*bendT; ' +
+  'float bendWave=sin(aBendPhase+transformed.x*uBendK); ' +
+  'float bendZ=aBendAmp*bendTail*bendWave; ' +
+  'transformed.z += bendZ; ' +
+  'transformed.y += 0.35*bendZ + 0.06*aBendAmp*bendTail*sin(aBendPhase*1.17+transformed.x*uBendK*1.35);';
+function installInstancedBend(material) {
+  if (!material) return null;
+  if (!material.userData) material.userData = {};
+  const baseKey = typeof material.customProgramCacheKey === 'function'
+    ? material.customProgramCacheKey() : (material.type || 'rf-fish');
+  const previousCompile = material.onBeforeCompile;
+  material.onBeforeCompile = function (shader, r) {
+    if (previousCompile) previousCompile.call(this, shader, r);
+    shader.uniforms.uBendK = { value: INST_BEND_K };
+    shader.uniforms.uBendSpan = { value: material.userData.rfBendSpan };
+    const attrs = 'uniform float uBendK;\nuniform vec2 uBendSpan;\n' +
+      'attribute float aBendPhase;\nattribute float aBendAmp;\n';
+    if (shader.vertexShader.indexOf('attribute float aBendPhase') < 0) {
+      shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\n' + attrs);
+    }
+    if (shader.vertexShader.indexOf(INST_BEND_CHUNK) < 0) {
+      shader.vertexShader = shader.vertexShader.replace('#include <begin_vertex>',
+        '#include <begin_vertex>\n' + INST_BEND_CHUNK);
+    }
+  };
+  material.customProgramCacheKey = function () { return String(baseKey) + ':rf-bend-inst2'; };
+  material.userData.rfBendInstanced = true;
+  material.userData.rfBendSpan = new THREE.Vector2(INST_BEND_SPAN[0], INST_BEND_SPAN[1]);
+  material.userData.rfBendK = INST_BEND_K;
+  material.vertexColors = true;
+  material.needsUpdate = true;
+  return material;
+}
+
+// world3d's MeshToon fallback, for the BEFORE shot.
+function toonFallback() {
+  const m = new THREE.MeshToonMaterial({ color: 0xffffff, vertexColors: true, side: THREE.DoubleSide });
+  const k = m.customProgramCacheKey();
+  m.customProgramCacheKey = () => k + ':rf-bend';
+  return m;
+}
+
+const status = { ok: false, err: null, batches: [], draws: 0, tris: 0, shaderErrors: [] };
+window.__status = status;
+renderer.debug.onShaderError = (gl, prog, vs, fs) => {
+  status.shaderErrors.push(String(gl.getShaderInfoLog(vs) || '') + '|' + String(gl.getShaderInfoLog(fs) || ''));
+};
+
+try {
+  await import('/play/razorfin/data.js');
+  const Art = (await import('/play/razorfin/fish3d.js')).default;
+  if (Art.preloadFish) await Art.preloadFish();
+
+  const SPECIES = (params.get('ids') || 'reeffish,parrot,minnow,tuna,mackerel,dolphinfish,grouper').split(',');
+  const rows = window.RFD.CREATURES;
+  const rng = (() => { let s = 20260827; return () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff; })();
+  const useToon = params.get('mode') === 'toon';
+
+  const group = new THREE.Group(); scene.add(group);
+  const bbox = new THREE.Box3();
+  for (const id of SPECIES) {
+    const def = rows.find((r) => r.id === id); if (!def) continue;
+    const build = Art.buildFish(def); if (!build) continue;
+    const geometry = build.geometry.clone();
+    let base = useToon ? toonFallback() : (build.material ? build.material.clone() : toonFallback());
+    if (params.get('shade') === '1') {
+      // Visualise the rfPreyShade attribute directly: R = dorsalness remapped
+      // to 0..1, G = eye mask. Any smear that shows up here is in the bake.
+      const sh = geometry.getAttribute('rfPreyShade');
+      const col = geometry.getAttribute('color');
+      for (let i = 0; i < col.count; i++) col.setXYZ(i, sh.getX(i)*0.5+0.5, sh.getY(i), 0.15);
+      col.needsUpdate = true;
+      base = new THREE.MeshBasicMaterial({ color:0xffffff, vertexColors:true, side:THREE.DoubleSide });
+    }
+    if (params.get('nofx') === '1' && base.onBeforeCompile) { base.onBeforeCompile = function(){}; base.needsUpdate = true; }
+    if (params.get('plain') === '1') { base = new THREE.MeshStandardMaterial({ color:0xffffff, vertexColors:true, side:THREE.DoubleSide, roughness:0.38, metalness:0.06 }); }
+    if (params.get('flat') === '1') { base = new THREE.MeshBasicMaterial({ color:0xffffff, vertexColors:true, side:THREE.DoubleSide }); }
+    const material = installInstancedBend(base);
+    const N = Number(params.get('n') || 9);
+    const mesh = new THREE.InstancedMesh(geometry, material, N);
+    const phase = new THREE.InstancedBufferAttribute(new Float32Array(N), 1);
+    const amp = new THREE.InstancedBufferAttribute(new Float32Array(N), 1);
+    geometry.setAttribute('aBendPhase', phase);
+    geometry.setAttribute('aBendAmp', amp);
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(1, 1, 1), pos = new THREE.Vector3();
+    const lane = SPECIES.indexOf(id);
+    const size = new THREE.Box3().setFromBufferAttribute(geometry.getAttribute('position')).getSize(new THREE.Vector3());
+    const unit = 3.2 / Math.max(size.x, 0.001);
+    for (let i = 0; i < N; i++) {
+      pos.set((i - (N - 1) / 2) * 4.2 + (rng() - 0.5) * 1.4,
+              (lane - (SPECIES.length - 1) / 2) * -3.6 + (rng() - 0.5) * 0.9,
+              (rng() - 0.5) * 3.0);
+      q.setFromEuler(new THREE.Euler(0, (rng() - 0.5) * 0.35, (rng() - 0.5) * 0.18));
+      sc.setScalar(unit);
+      m4.compose(pos, q, sc);
+      mesh.setMatrixAt(i, m4);
+      phase.setX(i, rng() * 6.28); amp.setX(i, 0.12);
+      bbox.expandByPoint(pos);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.frustumCulled = false;
+    mesh.name = 'harness prey ' + id;
+    group.add(mesh);
+    status.batches.push({ id, type: material.type, rough: material.roughness, metal: material.metalness, key: material.customProgramCacheKey(), tri: (geometry.index ? geometry.index.count : geometry.getAttribute('position').count) / 3, n: N });
+  }
+  const c = bbox.getCenter(new THREE.Vector3()), s = bbox.getSize(new THREE.Vector3());
+  const zoom = Number(params.get('zoom') || 1);
+  camera.position.set(c.x + 2, c.y + 3, c.z + (Math.max(s.x, s.y) * 1.15 + 14) / zoom);
+  camera.lookAt(c.x, c.y, c.z);
+  renderer.render(scene, camera);
+  renderer.render(scene, camera);
+  status.draws = renderer.info.render.calls;
+  status.tris = renderer.info.render.triangles;
+  status.ok = true;
+} catch (e) { status.err = String(e && e.stack || e); }
+window.__done = true;
+</script></body></html>

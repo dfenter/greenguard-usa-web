@@ -574,6 +574,7 @@ import * as THREE from 'three';
   }
   var decorRng = makeLocalRng(0x5eaf100d);
   function drr(a, b) { return a + (b - a) * decorRng(); }
+  function dri(a, b) { return a + Math.floor(decorRng() * (b - a + 1)); }
   function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
   function hexNum(v) {
     if (typeof v === 'number') return v;
@@ -767,6 +768,40 @@ import * as THREE from 'three';
           // allows, so the overlay can never itself trip checkSpawnTableGate.
           if (!def || def.kind === 'hazard' || typeof tier !== 'number' || tier > it + 2) continue;
           preyRows.push([defId, pw[defId]]);
+        }
+      }
+      // Rev 15 EAT LAW (owner: "still lots of floating fish that you cannot
+      // eat"). The overlay above REPLACES the base prey rows, and its only
+      // gate is the zone table's tier+2 rule - which is one tier WIDER than
+      // what a player who belongs in this zone can actually swallow (eat
+      // ceiling = playerTier + BITE_UP_BASE(1)). A level whose preyWeights
+      // are all in that top band therefore hands the zone a roster of prey
+      // the resident player can never eat: alaska zone 1 became seal(t3)
+      // ONLY, so a fresh tier-1 run had nothing edible on the whole shelf;
+      // mexico/belize/jamaica zone 1 each got grouper(t3) alongside their
+      // edible rows. Above-tier prey is not a hazard either - it flees and
+      // never stings - so it reads as exactly the "floating fish you cannot
+      // eat" the owner reported.
+      //
+      // Rule: every zone must keep at least one prey row a resident player
+      // CAN eat, i.e. tier <= intendedTier(zone) (a zone's intendedTier is
+      // the tier of the shark meant to be there, and that shark's ceiling is
+      // intendedTier + 1, so intendedTier is always comfortably inside it).
+      // If the overlay left none, re-admit the base zone's own low-tier prey
+      // rows alongside it rather than dropping the level's flavour entirely.
+      var haveEdible = false;
+      for (var ei = 0; ei < preyRows.length; ei++) {
+        var edef = defOf(Array.isArray(preyRows[ei]) ? preyRows[ei][0] : preyRows[ei].defId);
+        if (edef && typeof edef.tier === 'number' && edef.tier <= it) { haveEdible = true; break; }
+      }
+      if (preyRows.length && !haveEdible) {
+        for (var ri2 = 0; ri2 < baseSpawns.length && preyRows.length < SPECIES_CAP; ri2++) {
+          var rrow = baseSpawns[ri2];
+          var rid = Array.isArray(rrow) ? rrow[0] : (rrow && rrow.id);
+          var rdef = defOf(rid);
+          if (!rdef || rdef.kind === 'hazard') continue;
+          if (typeof rdef.tier !== 'number' || rdef.tier > it) continue;
+          preyRows.push(rrow);
         }
       }
       // A level whose whole preyWeights table happened to fall outside this
@@ -1239,7 +1274,27 @@ import * as THREE from 'three';
       for (x = 0; x < size; x++) {
         u = x / size;
         i = (y * size + x) * 4;
-        if (radial) {
+        if (radial === 'peak') {
+          // u across, v down from the top of the quad. The ridge profile is a
+          // raised cosine with a little asymmetry so repeats do not read as
+          // one stamped shape; everything under the profile is opaque.
+          var pu = u * 2 - 1;
+          var prof = Math.cos(pu * 1.5708);           // 1 at centre, 0 at edges
+          prof = prof <= 0 ? 0 : Math.pow(prof, 0.62);
+          prof *= 0.86 + 0.14 * Math.cos(u * TAU * 3);
+          var surf = 1 - prof;                        // v of the ridge top
+          a = v < surf ? 0 : 255;
+          // Feather the top edge so the ridge is not aliased.
+          var fe = 0.035;
+          if (v >= surf && v < surf + fe) a = Math.round(((v - surf) / fe) * 255);
+          pixels[i] = 255; pixels[i + 1] = 255; pixels[i + 2] = 255; pixels[i + 3] = a;
+        } else if (radial === 'solid') {
+          // Rev 15 garden: opaque core, short feathered rim.
+          var sx2 = u * 2 - 1, sy2 = v * 2 - 1;
+          d = Math.sqrt(sx2 * sx2 + sy2 * sy2);
+          a = d >= 1 ? 0 : (d <= 0.82 ? 255 : Math.round((1 - (d - 0.82) / 0.18) * 255));
+          pixels[i] = 255; pixels[i + 1] = 255; pixels[i + 2] = 255; pixels[i + 3] = a;
+        } else if (radial) {
           var dx = u * 2 - 1;
           var dy = v * 2 - 1;
           d = Math.sqrt(dx * dx + dy * dy);
@@ -1946,6 +2001,24 @@ import * as THREE from 'three';
     return (r << 16) | (g << 8) | b;
   }
 
+  // Rev 15 WATER. Push a colour toward its own most-saturated form by pulling
+  // every channel down toward the darkest channel (chroma-preserving), then
+  // optionally re-scale value. `sat` 0 leaves the colour alone, 1 drives the
+  // minimum channel to zero. The HSE reference water is deep AND saturated;
+  // the failure mode this fixes is a blue that has been lifted so far toward
+  // white by overlay light that it reads as pale grey-cyan.
+  function saturateColor(color, sat, value) {
+    var r = (color >> 16) & 255, g = (color >> 8) & 255, b = color & 255;
+    var mn = Math.min(r, Math.min(g, b));
+    var k = clamp(sat || 0, 0, 1);
+    r -= mn * k; g -= mn * k; b -= mn * k;
+    var v = value === undefined ? 1 : value;
+    return (clamp(Math.round(r * v), 0, 255) << 16)
+      | (clamp(Math.round(g * v), 0, 255) << 8)
+      | clamp(Math.round(b * v), 0, 255);
+  }
+  World.__saturateColor = saturateColor;
+
   function envColor(color, z, waterColor, y, lift) {
     var l = clamp(lightAtDepth(y) + (lift || 0), 0.45, 1);
     return scaleColor(depthTint(color, z, waterColor), l);
@@ -2137,6 +2210,21 @@ import * as THREE from 'three';
         side: THREE.DoubleSide, depthWrite: false, vertexColors: true,
       });
       if (map) { mat.map = map; if ('toneMapped' in mat) mat.toneMapped = false; }
+      // Rev 15 round 2 (D): opaque-bodied props. See the note at the garden's
+      // batchMesh calls -- alpha blending a dense reef over blue water was
+      // washing every coral colour out.
+      if (flags && flags.alphaCut) {
+        mat.alphaTest = 0.5;
+        mat.transparent = false;
+        mat.depthWrite = true;
+      }
+      // THE PASTEL BUG. MeshBasicMaterial defaults fog to TRUE, and this
+      // private path never set it, so every garden prop was being mixed toward
+      // the pale fog colour by FogExp2. Authored coral #f2384f (sat 0.77) was
+      // reaching the frame as rgb(208,128,144) (sat 0.38) -- the blue channel
+      // lifted from 79 to 144 by fog. The near reef is only ~250 units from
+      // the camera and is meant to read at full chroma, so it opts out.
+      if (flags && flags.noFog) mat.fog = false;
       if (additive && THREE.AdditiveBlending !== undefined) mat.blending = THREE.AdditiveBlending;
       envOwned.mats.push(mat);
     } else {
@@ -2465,6 +2553,511 @@ import * as THREE from 'three';
   // If a future decor object here needs real lighting it must ask engine3d for
   // the light rather than adding a second rig.
 
+  // ------------------------------------------- Rev 15 round 2: near shafts
+  //
+  // (C) "the water is one flat teal band with nothing in it." The god-ray
+  // bands (buildRays) hang from the waterline and are capped by ATMO-01 at
+  // peak vertex alpha 0.028 -- correctly, because those four bands overlap and
+  // SUM, and raising them produced pale slabs across the whole shelf. That cap
+  // is why the open-water band has nothing crossing it.
+  //
+  // This is a SEPARATE, much smaller layer: a handful of wide, soft shafts
+  // that cross the PLAY PLANE near the camera, tilted with the sun, fading out
+  // with depth. Because there are few of them and they are spread across the
+  // world rather than stacked in bands, each one can carry more alpha than a
+  // god-ray band member without ever summing into a slab. It is deliberately
+  // NOT pushed into S.rays, so it neither animates with the ray bands nor
+  // enters ATMO-01's peak-alpha measurement -- that gate is about the shelf
+  // ray bands specifically, and this layer does not change their behaviour.
+  var NEAR_SHAFT_N = 14;
+  function buildNearShafts() {
+    if (!isThree()) return;
+    var Z = zones();
+    if (!Z.length) return;
+    var shelf = Z[0];
+    var tint = lerpColor(saturateColor(hexNum(shelf.tint), 0.18, 3.2), 0xfff4dc, 0.30);
+    quadReset();
+    for (var i = 0; i < NEAR_SHAFT_N; i++) {
+      var sx = drr(-200, S.w + 200);
+      var sw = drr(70, 170);
+      var sh = drr(520, 900);
+      // Hang from the surface, leaning with the sun.
+      var lean = drr(0.10, 0.30);
+      var cs = Math.cos(lean), sn = Math.sin(lean);
+      var ox = -(-sh * 0.5) * sn, oy = (-sh * 0.5) * cs;
+      quadPushGradient(sx + ox, oy, drr(40, 90), sw, sh, lean, 1,
+        tint, tint, drr(0.105, 0.165), 0);
+    }
+    var mesh = batchMesh(rayFeatherTexture(), true, undefined, true, { noFog: true });
+    if (!mesh) return;
+    meshName(mesh, 'RF near light shafts');
+    sceneAdd(mesh);
+    S.decor.push(mesh);
+  }
+
+  // ------------------------------------------------- Rev 15 tropical garden
+  //
+  // THE POSTCARD LAYER. Owner verdict, twice: "underwater scenes look like
+  // garbage, it looks nothing like a tropical paradise." The diagnosis was not
+  // that the old reef was badly coloured, it was that NOTHING WAS IN FRONT OF
+  // THE CAMERA. Every existing dressing pass (buildReef, buildDecor,
+  // buildMidwaterDecor) places its props at z = -240..-400, while the camera
+  // sits at z = +170..500 looking at the play plane at z = 0. That is 400 to
+  // 800 units behind the action: the props subtend almost no screen area, sit
+  // behind the full depth of the water gradient, and read as faint pale smudges
+  // if they read at all. The mid-depth screenshot was literally empty water.
+  //
+  // This pass owns the NEAR band (Z_GARDEN_*), between the play plane and the
+  // camera-facing side of the background, where props are big enough to carry
+  // colour and silhouette. It is the reef photo: a bright sand floor, dense
+  // coral heads in coral-pink/orange/yellow/purple, branching staghorn, sea
+  // fans, and anemones.
+  //
+  // BUDGET. The shelf sits at ~68-72 draw calls against a cap of 120, so this
+  // layer is allowed a handful, not a hundred. Everything here funnels through
+  // the same quadPush/mergeQuads batcher the rest of the module uses and comes
+  // out as THREE merged meshes total (floor, coral, fans+anemones), regardless
+  // of how many individual pieces are described. Density is therefore free in
+  // draw-call terms and costs only triangles.
+  //
+  // COLOUR. Reef life is the one thing in this world that is NOT water-tinted
+  // toward the zone colour: on a real reef the coral in the first few metres
+  // reads at nearly full chroma, and that contrast against blue water is most
+  // of what makes the postcard. So these colours are authored bright and only
+  // lightly pulled toward the water with depth, unlike envColor's stronger
+  // pull used by the far bands.
+  // THE VISIBLE WINDOW, and every size below expressed as a fraction of it.
+  //
+  // Measured with scratchpad/garden_diag.mjs at spawn (camera three-space
+  // y -294, z 204). At each of this layer's z bands the camera can see:
+  //     z -34  (near):  y -406..-183, height 223
+  //     z -70  (floor): y -423..-166, height 257
+  //     z -110 (back):  y -441..-148, height 293
+  // The world is 14400 wide, so anything sized in WORLD units is enormous in
+  // a ~257-unit-tall window: that is why earlier passes produced a beige band
+  // across mid-frame and single corals taller than the shark. Props are
+  // therefore sized as a FRACTION of GARDEN_WIN, never in raw world units.
+  var GARDEN_WIN = 257;             // reference window height (the floor band)
+  function winF(f) { return GARDEN_WIN * f; }
+  // Sim y the camera is centred on at spawn. The sand LINE is placed so the
+  // floor band occupies only the bottom ~15% of the frame: window bottom is
+  // three-space y -423, the band is winF(0.15) tall, so the line sits at
+  // three-space -384, i.e. sim y 384.
+  var PLAY_BAND_Y = 300;
+  // Sim y of the sand surface. Derived from a SCREEN-SPACE measurement, not
+  // from the world model: projecting the garden's own vertices through the
+  // live camera (scratchpad/garden_diag.mjs, projTest) put the bed at screen
+  // y 429..556 in a 390-tall viewport -- entirely below the bottom edge, with
+  // only a few coral tips showing. That is why the frame read as empty water
+  // even though the bboxes looked correct in world space. Raising the line by
+  // the measured 117px (~77 world units at 1.52 px/unit) brings the bed's top
+  // edge to ~80% of frame height, so the reef occupies the bottom third.
+  var GARDEN_SAND_LINE_Y = 262;     // sim y of the shallowest sand
+  // How far below that line the reef keeps going. Clusters are distributed
+  // over this whole span (not just the top of it), which is what makes the
+  // layer survive a camera that moves in depth.
+  var GARDEN_DEPTH_SPAN = 300;
+  // How far below the crest the bed is allowed to follow the terrain down.
+  // Terraced shelf beds: crest, then one every GARDEN_TERRACE_GAP units down.
+  var GARDEN_TERRACE_GAP = 300;
+  var GARDEN_TERRACES = 9;       // crest + 8 below it
+  var GARDEN_SNAP = 70;          // snap-to-rock search radius around a terrace
+  var GARDEN_BAND_H = winF(0.30);   // floor band, deep enough to read past the dense coral
+  var Z_GARDEN_FLOOR = -78;        // sand bed, behind the coral, before the back band
+  var Z_GARDEN_BACK = -110;    // larger, dimmer heads behind the near cluster
+  // Rev 15 round 2 (C): two parallax bands of haze-only reef silhouettes,
+  // filling the middle distance between the near coral and the background.
+  var Z_GARDEN_HAZE_MID = -190;
+  var Z_GARDEN_HAZE_FAR = -280;
+  var Z_GARDEN_NEAR = -34;     // the hero coral, closest to camera
+
+  // Coral-photo palette: pinks, corals, oranges, yellows, violets, and the
+  // teal-greens of plating coral. Deliberately warm-heavy, because warm
+  // against blue water is the contrast the reference photos live on.
+  // Warm tropical reef: pinks, corals, golds, violets, jade.
+  var GARDEN_CORAL_TROPICAL = [
+    0xf2384f, 0xff6a26, 0xffa310, 0xf5c518, 0xe03a63,
+    0xa838c8, 0x6a4fd8, 0x14b4a4, 0x2fbf5e, 0xff5f9a,
+  ];
+  // Cold kelp/rock coast: olive and amber weed, slate and umber stone, dull
+  // brick and rust anemones. Two muted accents only, so a stray bright note
+  // reads as a single anemone rather than as a flower bed.
+  var GARDEN_CORAL_COLD = [
+    0x6f7f3a, 0x8c9440, 0xa8842e, 0x6a5a33, 0x4d5a4a,
+    0x55606b, 0x7a4a34, 0xa8532e, 0x39705e, 0xb08a3c,
+  ];
+  // Ice: almost no growth. Pale blue-greens, grey-violet stone, sparse rust.
+  var GARDEN_CORAL_ICE = [
+    0x6f8f97, 0x7fa3a6, 0x8fa6b4, 0x5d6f7d, 0x6b7a86,
+    0x93a8ae, 0x4f6068, 0x8a6a54, 0x6d8f86, 0xa2b3ba,
+  ];
+  var GARDEN_CORAL = GARDEN_CORAL_TROPICAL;   // set per level in buildReefGarden
+  function gardenPaletteFor(level) {
+    var theme = seabedThemeFor(level);
+    var fam = theme && theme.family;
+    if (fam === 'ice') return GARDEN_CORAL_ICE;
+    if (fam === 'kelp' || fam === 'rock') return GARDEN_CORAL_COLD;
+    return GARDEN_CORAL_TROPICAL;
+  }
+  var GARDEN_SAND_TOP = 0xf2e4c4;   // sunlit white-gold sand
+  var GARDEN_SAND_BOT = 0xbfa87e;   // shadowed sand
+
+  // How much of the water colour a garden prop takes on at a given depth.
+  // Much gentler than envColor: the reef keeps its own colour.
+  function gardenTint(color, water, depthFrac) {
+    // Saturate first, THEN pull toward the water. Doing it in this order keeps
+    // the hue strong at depth instead of letting the water wash it to pastel.
+    return lerpColor(saturateColor(color, 0.30, 1), water,
+      clamp(depthFrac, 0, 1) * 0.30);
+  }
+  // Rev 15 round 2 (D). Baked lighting for a garden prop.
+  // `lit` > 0 lifts toward the warm key (crown, catching the surface light);
+  // `lit` < 0 darkens and pulls toward the water (base, in its own shadow and
+  // occluded by its neighbours). This is what stops the reef reading as flat
+  // unlit cutouts -- the light in this scene comes from above, so a prop must
+  // be brightest at its top and darkest where it meets the sand.
+  // THE PASTEL BUG, root cause. mergeQuads writes vertex colours as plain
+  // channel/255, and the renderer treats vertex colours as LINEAR and
+  // gamma-encodes them on output. Authored coral rgb(214,43,67) therefore
+  // reached the screen as ~rgb(236,114,140) -- lum up, saturation down from
+  // 0.80 to ~0.35, which is exactly the "candy pastel" reading. Every earlier
+  // attempt to fix this by choosing deeper colours failed because the encode
+  // happens AFTER the palette.
+  //
+  // gardenLinear() pre-converts a colour with the inverse transfer function,
+  // so that after the renderer's sRGB encode it lands on the authored value.
+  // Applied at the very end of the garden colour chain (gardenShade), so the
+  // whole palette above it can stay authored in ordinary sRGB terms.
+  function srgbToLinearCh(c) {
+    return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  }
+  function gardenLinear(color) {
+    var r = srgbToLinearCh(((color >> 16) & 255) / 255);
+    var g = srgbToLinearCh(((color >> 8) & 255) / 255);
+    var b = srgbToLinearCh((color & 255) / 255);
+    return (clamp(Math.round(r * 255), 0, 255) << 16)
+      | (clamp(Math.round(g * 255), 0, 255) << 8)
+      | clamp(Math.round(b * 255), 0, 255);
+  }
+
+  var GARDEN_KEY = 0xfff2d0;   // warm surface light
+  function gardenShade(color, water, lit) {
+    if (lit >= 0) {
+      // Small warm lift, then re-saturate, then linearise for the renderer.
+      return gardenLinear(
+        saturateColor(lerpColor(color, GARDEN_KEY, lit * 0.26), 0.26, 1.06));
+    }
+    var k = -lit;
+    // Form comes from the DARK end: deepen and slightly cool the base.
+    return gardenLinear(
+      saturateColor(lerpColor(scaleColor(color, 1 - k * 0.70), water, k * 0.24), 0.14, 1));
+  }
+
+  // RNG. This pass draws from the DEDICATED decor stream (drr/dri), never the
+  // shared S.rng one. The shared stream is consumed in a fixed order by the
+  // maze layout, every pre-existing decor pass, and then downstream
+  // player-spawn and fish-formation sampling; adding draws to it here shifted
+  // every later draw and broke the `formation` selftest gate (schools seeded
+  // off the shared stream stopped reading as blobs). Using the local stream
+  // keeps this layer's placement deterministic AND leaves every other lane's
+  // sequence byte-identical.
+  // Ground line for the garden at world x. Prefers real terrain so the reef
+  // persists as the camera dives; clamped to the authored crest at the shallow
+  // end so the shelf bed keeps the framing round 2 was accepted on.
+  function gardenTerraceY(ti) {
+    return GARDEN_SAND_LINE_Y + ti * GARDEN_TERRACE_GAP;
+  }
+  // Snap a terrace to real rock when the SDF has a surface near it at this x,
+  // so beds sit on terrain the world actually carved instead of floating.
+  function gardenBedY(x, ti) {
+    var base = gardenTerraceY(ti || 0);
+    var wall = findWallY(x, base - GARDEN_SNAP, base + GARDEN_SNAP);
+    if (wall !== null && isFinite(wall)) return wall;
+    return base;
+  }
+
+  function buildReefGarden() {
+    if (!isThree()) return;
+    var Z = zones();
+    if (!Z.length) return;
+    var shelf = Z[0];
+    var water = hexNum(shelf.tint);
+    // (5) per-level reef palette -- tropical / cold kelp-rock / ice.
+    GARDEN_CORAL = gardenPaletteFor(S.level);
+    var i, k;
+
+    // WHERE THE POSTCARD ACTUALLY SITS -- MEASURED, NOT GUESSED.
+    //
+    // The first placement anchored this to the shelf zone's yMax (1100) on the
+    // assumption that was "the floor". The in-browser probe
+    // (scratchpad/garden_diag.mjs) showed the whole layer landing at
+    // three-space y -1325..-1866 while the camera sat at y -294, z 204 -- the
+    // entire garden was built correctly and then placed ~1000 units below the
+    // bottom of the frame, which is why the shot came back as empty water.
+    //
+    // At this layer's z band the camera's VISIBLE window is three-space
+    // y -441..-148, i.e. sim y 148..441, only ~290 units tall. The player
+    // spawns near the surface (sim y ~260) and the run is played in the top
+    // few hundred units of the column, so a reef the camera can see has to
+    // live THERE. That is also true to the reference: a snorkelling photo is
+    // shot in a few metres of water with the reef crest right under the
+    // swimmer, not looking down into the abyss.
+
+    // ---- 1. SAND FLOOR + caustic ripple, one merged batch ----------------
+    // A bright bed under the whole shelf. Real reef sand is nearly white in
+    // sunlight and it is what makes the water above it read as turquoise
+    // rather than grey, so this is deliberately the brightest thing in the
+    // scene apart from the surface itself.
+    quadReset();
+    // The sand LINE (sim y), not a zone bound. Placed so the floor band fills
+    // only the bottom ~15% of the frame -- see GARDEN_SAND_LINE_Y.
+    var floorY = GARDEN_SAND_LINE_Y;
+    // Segment width is set against the WINDOW, not the world: a segment about
+    // a tenth of the window height wide gives a bed whose top edge reads as a
+    // rolling sand line rather than a few enormous slabs. The bed spans the
+    // whole world, so that is a lot of segments -- but they are one merged
+    // draw, so the cost is triangles only.
+    var segW = winF(0.10) * GARDEN_TERRACES * 0.85;
+    var segs = Math.ceil((S.w + 600) / segW);
+    // Roll amplitude is a small fraction of the window so the line undulates
+    // without ever climbing into mid-frame.
+    var rollA = winF(0.035), rollB = winF(0.016);
+    for (i = 0; i < segs * GARDEN_TERRACES; i++) {
+      var ti = Math.floor(i / segs);
+      var si2 = i % segs;
+      var fx0 = -300 + segW * (si2 + 0.5);
+      var roll = Math.sin(si2 * 0.055 + ti) * rollA + Math.sin(si2 * 0.148 + ti) * rollB;
+      var fy = gardenBedY(fx0, ti) + roll;
+      // `fy` is the sand SURFACE; the band hangs BELOW it, so the quad centre
+      // is half a band height further down. This is what keeps the bed at the
+      // bottom of frame instead of centred on the eye line.
+      quadPushGradient(fx0, -(fy + GARDEN_BAND_H * 0.5), Z_GARDEN_FLOOR,
+        segW + 4, GARDEN_BAND_H, 0, 1,
+        gardenTint(GARDEN_SAND_TOP, water, 0.18),
+        gardenTint(GARDEN_SAND_BOT, water, 0.42), 1, 1);
+      // Caustic ripple ON the sand: the surface's light pattern projected onto
+      // the floor, the cue the reef references have. Kept inside the band.
+      if ((i % 4) === 0) {
+        quadPush(fx0 + drr(-segW, segW),
+          -(fy + drr(GARDEN_BAND_H * 0.12, GARDEN_BAND_H * 0.62)),
+          Z_GARDEN_FLOOR + 2, segW * drr(1.6, 3.4), winF(drr(0.006, 0.014)),
+          drr(-0.08, 0.08), 1, 0xfffbe8, drr(0.12, 0.26), 0xffffff);
+      }
+    }
+    var sandMesh = batchMesh(null, false, undefined);
+    if (sandMesh) {
+      meshName(sandMesh, 'RF reef garden sand floor');
+      sceneAdd(sandMesh);
+      S.decor.push(sandMesh);
+    }
+
+    // ---- 1b. FAR REEF SILHOUETTES, one merged batch ----------------------
+    // Rev 15 round 2 (C). The orchestrator's read was "the water is one flat
+    // teal band with nothing in it": between the near reef and the background
+    // gradient there was simply nothing, so the frame had no middle distance.
+    // These are reef masses at two parallax depths well behind the play plane,
+    // drawn ONLY as haze-tinted silhouettes -- heavily pulled toward the zone
+    // water colour so they read as shapes seen through many metres of water,
+    // never as detail competing with the near coral. Aerial perspective is the
+    // whole point: the far band is paler and lower-contrast than the mid band.
+    quadReset();
+    var hazeBands = [
+      { z: Z_GARDEN_HAZE_FAR, mix: 0.80, sc: 1.35, n: 26 },
+      { z: Z_GARDEN_HAZE_MID, mix: 0.62, sc: 1.0, n: 22 },
+    ];
+    for (var hb = 0; hb < hazeBands.length; hb++) {
+      var band = hazeBands[hb];
+      for (var hi = 0; hi < band.n; hi++) {
+        var hx = drr(-300, S.w + 300);
+        var hw = winF(drr(0.55, 1.30)) * band.sc;
+        var hh = winF(drr(0.34, 0.72)) * band.sc;
+        var hy = gardenBedY(hx, dri(0, GARDEN_TERRACES - 1)) + drr(-winF(0.05), winF(0.10));
+        // Silhouette colour: the reef's own hue almost entirely dissolved into
+        // the water, slightly darker at the base so the mass still has a form.
+        var hHue = GARDEN_CORAL[dri(0, GARDEN_CORAL.length - 1)];
+        var hTop = lerpColor(hHue, water, band.mix);
+        var hBot = scaleColor(lerpColor(hHue, water, band.mix + 0.10), 0.86);
+        quadPushGradient(hx, -(hy - hh * 0.5), band.z + hi * 0.05,
+          hw, hh, 0, 1, hTop, hBot, 1, 1);
+      }
+    }
+    var hazeMesh = batchMesh(surfaceTexture('__rf_sky_peak', 'peak'), false, undefined);
+    if (hazeMesh) {
+      meshName(hazeMesh, 'RF reef garden far haze');
+      sceneAdd(hazeMesh);
+      S.decor.push(hazeMesh);
+    }
+
+    // ---- 2. CORAL HEADS, two depth bands, one merged batch ---------------
+    // Density is the whole point: a reef photo is CROWDED. 44 clusters of
+    // 5-9 pieces each is ~300 quads, which is nothing in one merged draw.
+    quadReset();
+    // SIZES ARE WINDOW FRACTIONS. A coral head is authored to stand 6-14% of
+    // the visible window tall (winF(0.06)..winF(0.14)); the `scale` roll only
+    // varies it inside that range, it never multiplies a world-unit size.
+    // Back-band heads are drawn a little smaller so the bed reads as having
+    // depth rather than one flat row of props.
+    //
+    // DENSITY is authored the same way -- per WINDOW, not per world. The
+    // measured probe says the camera sees ~634 units of width, while the world
+    // is 14400 wide: at a flat 260 clusters that is ~11 on screen, scattered,
+    // and the shot came back 0.8% reef with the middle 80% of frame empty. A
+    // reef photo is crowded, so the count is derived from how many clusters
+    // should be visible AT ONCE and then scaled up to world width.
+    var GARDEN_WIN_W = 634;                 // measured visible width (back band)
+    var CLUSTERS_ON_SCREEN = 64;            // per frame; terraces share this
+    var CLUSTERS = Math.round(CLUSTERS_ON_SCREEN * GARDEN_TERRACES * 0.42 * (S.w + 400) / GARDEN_WIN_W);
+    for (i = 0; i < CLUSTERS; i++) {
+      var back = (i % 3) === 0;
+      var gz = back ? Z_GARDEN_BACK + drr(-14, 14) : Z_GARDEN_NEAR + drr(-16, 16);
+      var gx = drr(-200, S.w + 200);
+      // Sit the cluster ON the rolling sand line, using the same wave the bed
+      // itself is built from so nothing floats above or sinks below it.
+      // Sit ON the sand line (same wave the bed is built from), then lift a
+      // share of the clusters up the slope so the reef builds a MASS in the
+      // lower third of frame instead of one flat row along the bed.
+      // Depth position of this cluster down the reef slope. Biased toward the
+      // top (sqrt) so the shallow crest stays the densest part, as on a real
+      // reef, while still populating the whole span.
+      var gTi = dri(0, GARDEN_TERRACES - 1);
+      var gDepth = gardenBedY(gx, gTi) - floorY;
+      var gy = floorY + gDepth
+        + Math.sin((gx / segW) * 0.055) * rollA
+        + Math.sin((gx / segW) * 0.148) * rollB
+        + 0;
+      var depthFrac = back ? 0.42 : 0.20;
+      // Head height, as a fraction of the window. This is the ONE number that
+      // sets how big the reef reads.
+      var headH = winF(back ? drr(0.09, 0.16) : drr(0.20, 0.34));
+      var hue = GARDEN_CORAL[dri(0, GARDEN_CORAL.length - 1)];
+      // Weighted form mix (2): 0 staghorn, 1 brain/boulder, 2 plating,
+      // 3 tube/sponge. Plating is deliberately rare -- as a wide flat disc it
+      // reads as a poker chip when it is everywhere -- and the rounded and
+      // branching forms carry the bed because they have vertical silhouette.
+      var kroll = drr(0, 1);
+      var kind = kroll < 0.38 ? 0 : (kroll < 0.72 ? 1 : (kroll < 0.80 ? 2 : 3));
+
+      if (kind === 0) {
+        // Branching staghorn: a fan of tapering fingers from a common base.
+        var fingers = dri(5, 8);
+        for (k = 0; k < fingers; k++) {
+          var fu = fingers > 1 ? (k / (fingers - 1)) - 0.5 : 0;
+          var fh = headH * (1 - Math.abs(fu) * 0.35);
+          var c1 = gardenShade(gardenTint(hue, water, depthFrac), water, -0.85);
+          // Tips catch the light: coral polyps are paler at the growing tip.
+          var c2 = gardenShade(gardenTint(lerpColor(hue, 0xfff0d8, 0.20), water, depthFrac * 0.6), water, 0.75);
+          quadPush(gx + fu * headH * 0.46, -(gy - fh * 0.5), gz + k,
+            headH * drr(0.30, 0.44), fh, fu * drr(0.5, 0.85), 1, c1, 0.98, c2);
+        }
+      } else if (kind === 1) {
+        // Brain / boulder coral: stacked rounded lobes, widest at the base.
+        // A boulder is wider than tall, so it uses a squat share of headH.
+        var lobes = dri(4, 6);
+        var brainH = headH * 0.72;
+        for (k = 0; k < lobes; k++) {
+          var lt = lobes > 1 ? k / (lobes - 1) : 0;
+          var lh = brainH * 0.46 * (1 - lt * 0.25);
+          var ly = gy - lt * brainH * 0.42 - lh * 0.4;
+          var b1 = gardenShade(gardenTint(hue, water, depthFrac + 0.10), water, -0.9);
+          var b2 = gardenShade(gardenTint(lerpColor(hue, 0xfff0d0, 0.18), water, depthFrac * 0.5), water, 0.8);
+          quadPush(gx + Math.sin(k * 1.6) * brainH * 0.14, -ly, gz + k,
+            brainH * drr(1.05, 1.55) * (1 - lt * 0.42), lh,
+            Math.sin(k * 2.1) * 0.10, 1, b1, 0.98, b2);
+        }
+      } else if (kind === 2) {
+        // Plating / table coral. Each plate gets its own TILT (a real table
+        // coral is not a level disc) and a darker rim card tucked just under
+        // its leading edge, so it has a lit top and a shaded underside instead
+        // of reading as a flat poker chip.
+        var plates = dri(1, 2);
+        var plateTilt = drr(-0.30, 0.30);
+        for (k = 0; k < plates; k++) {
+          var pw2 = headH * drr(0.85, 1.25) * (1 - k * 0.16);
+          var ph2 = headH * drr(0.11, 0.17);
+          var pTilt = plateTilt + drr(-0.16, 0.16);
+          var pcx = gx + Math.sin(k * 1.3) * headH * 0.20;
+          var pcy = gy - headH * 0.22 - k * headH * 0.30;
+          var p1 = gardenShade(gardenTint(lerpColor(hue, 0x2aa898, 0.30), water, depthFrac + 0.08), water, -0.8);
+          var p2 = gardenShade(gardenTint(lerpColor(hue, 0xfff4e0, 0.18), water, depthFrac * 0.5), water, 0.85);
+          // Shaded underside/rim, drawn first and nudged down along the tilt.
+          var pRim = gardenShade(gardenTint(hue, water, depthFrac + 0.16), water, -1.0);
+          quadPush(pcx, -(pcy - ph2 * 0.42), gz + k - 0.5,
+            pw2 * 0.98, ph2 * 0.85, pTilt, 1, pRim, 0.98, pRim);
+          quadPush(pcx, -pcy, gz + k, pw2, ph2, pTilt, 1, p1, 0.98, p2);
+        }
+      } else {
+        // Tube / barrel sponges and soft coral columns.
+        var tubes = dri(3, 5);
+        for (k = 0; k < tubes; k++) {
+          var th = headH * drr(0.62, 1.0);
+          var t1 = gardenShade(gardenTint(hue, water, depthFrac + 0.12), water, -0.9);
+          var t2 = gardenShade(gardenTint(lerpColor(hue, 0xffe9b0, 0.20), water, depthFrac * 0.5), water, 0.8);
+          quadPush(gx + (k - tubes * 0.5) * headH * 0.28, -(gy - th * 0.5), gz + k,
+            headH * drr(0.30, 0.46), th, (k & 1 ? -0.09 : 0.09), 1, t1, 0.98, t2);
+        }
+      }
+    }
+    var coralMesh = batchMesh(surfaceTexture('__rf_garden_blob', 'solid'), false, undefined, true, { alphaCut: true, noFog: true });
+    if (coralMesh) {
+      meshName(coralMesh, 'RF reef garden coral');
+      sceneAdd(coralMesh);
+      S.decor.push(coralMesh);
+    }
+
+    // ---- 3. SEA FANS + ANEMONES, one merged batch ------------------------
+    // The soft, translucent silhouettes. Kept in their own batch because they
+    // want a lower alpha than the solid coral heads.
+    quadReset();
+    var FANS = Math.round(16 * (S.w + 400) / GARDEN_WIN_W);
+    for (i = 0; i < FANS; i++) {
+      var sx = drr(-150, S.w + 150);
+      // Same sand wave as the bed and the coral, so everything shares a floor.
+      var sTi = dri(0, GARDEN_TERRACES - 1);
+      var sDepth = gardenBedY(sx, sTi) - floorY;
+      var sy = floorY + sDepth
+        + Math.sin((sx / segW) * 0.055) * rollA
+        + Math.sin((sx / segW) * 0.148) * rollB
+        + 0;
+      var sz = (i % 2) ? Z_GARDEN_NEAR + drr(-10, 10) : Z_GARDEN_BACK + drr(-10, 10);
+      var sHue = GARDEN_CORAL[dri(0, GARDEN_CORAL.length - 1)];
+      if (i % 3 !== 2) {
+        // Sea fan: a spread of thin blades on a short stem, leaning with the
+        // current. All blades share a lean so a fan reads as one organism.
+        // Fans are the tallest thing in the garden at up to 20% of the window.
+        var fanH = winF(drr(0.11, 0.20));
+        var fanLean = drr(-0.24, 0.24);
+        var blades = dri(6, 9);
+        for (k = 0; k < blades; k++) {
+          var bu = blades > 1 ? (k / (blades - 1)) - 0.5 : 0;
+          var bh = fanH * (1 - Math.abs(bu) * 0.45);
+          var f1 = gardenShade(gardenTint(sHue, water, 0.30), water, -0.75);
+          var f2 = gardenShade(gardenTint(lerpColor(sHue, 0xfff0dc, 0.14), water, 0.16), water, 0.7);
+          quadPush(sx + bu * fanH * 0.80, -(sy - bh * 0.5), sz + k,
+            fanH * drr(0.13, 0.21), bh, fanLean + bu * 0.5, 1, f1, 0.86, f2);
+        }
+      } else {
+        // Anemone: a low crown of tentacles, pale tipped. Deliberately the
+        // smallest prop, 3-5% of the window, so it reads as ground cover.
+        var anemH = winF(drr(0.03, 0.05));
+        var tent = dri(7, 10);
+        for (k = 0; k < tent; k++) {
+          var tu = tent > 1 ? (k / (tent - 1)) - 0.5 : 0;
+          var tHgt = anemH * drr(0.75, 1.0);
+          var a1 = gardenShade(gardenTint(sHue, water, 0.26), water, -0.7);
+          var a2 = gardenShade(gardenTint(lerpColor(sHue, 0xfff2e2, 0.26), water, 0.12), water, 0.8);
+          quadPush(sx + tu * anemH * 1.5, -(sy - tHgt * 0.5 - anemH * 0.12), sz + k,
+            anemH * drr(0.38, 0.55), tHgt, tu * 1.0, 1, a1, 0.92, a2);
+        }
+      }
+    }
+    var fanMesh = batchMesh(surfaceTexture('__rf_garden_blob', 'solid'), false, undefined, true, { alphaCut: true, noFog: true });
+    if (fanMesh) {
+      meshName(fanMesh, 'RF reef garden fans and anemones');
+      sceneAdd(fanMesh);
+      S.decor.push(fanMesh);
+    }
+  }
+
   // ------------------------------------------------------------- god rays
   // Additive shafts hanging from the waterline, swaying about their TOP edge
   // so a rotation pivots the shaft at the surface exactly like real light.
@@ -2545,8 +3138,25 @@ import * as THREE from 'three';
         // Alternating bands lean magenta instead of cyan so the fan of
         // shafts reads as an authored two-accent cyberpunk beam, not a flat
         // single-hue wash.
-        var rayColor = (b & 1) ? lerpColor(0xdff6ff, NEON_MAGENTA, 0.22) : RAY_TINT;
-        var rayAlpha = crossPlay ? rr(0.006, 0.012) : rr(0.012, 0.028);
+        // Rev 15 WATER. God rays are the strongest single depth cue in the
+        // HSE reference and they were effectively invisible here: alpha
+        // 0.006-0.028 of a NEON tint reads as nothing against pale water.
+        // They are now sunlight through the surface — the level's own water
+        // driven bright, warm-shifted a touch toward the sun — at alphas that
+        // actually register near the waterline. They still hang from y=0, so
+        // they fade out naturally with depth as the camera leaves the shelf;
+        // the band that crosses the play plane stays much dimmer so the shark
+        // never disappears into a shaft.
+        var rayBase = lerpColor(saturateColor(shelfWaterColor(), 0.18, 3.4), 0xfff2d6, 0.22);
+        var rayColor = (b & 1) ? lerpColor(rayBase, 0xffffff, 0.12) : rayBase;
+        // ATMO-01 caps peak vertex alpha at 0.028 ("shafts are accents, not
+        // slabs") and that gate is right -- additive shafts SUM where they
+        // overlap inside a merged band, so a higher alpha is what produced
+        // pale slabs across the shelf in an earlier revision. The visibility
+        // this pass needed therefore comes from the ray COLOUR above (bright,
+        // warm, saturated sunlight instead of the old dim neon tint), not
+        // from raising alpha through the gate.
+        var rayAlpha = crossPlay ? rr(0.008, 0.014) : rr(0.018, 0.028);
         quadPushGradient(cx + ox, oy, bandZ, wid, hgt, lean, 1,
           rayColor, rayColor, rayAlpha, 0);
       }
@@ -2587,8 +3197,13 @@ import * as THREE from 'three';
       var hgt = rr(150, 260) * (1 + t * 0.6);
       var aBase = rr(CAUSTIC_ALPHA[0], CAUSTIC_ALPHA[1]) * (1 - t * 0.45);
       // Private material: this plane's opacity breathes every frame.
+      // Rev 15 WATER: caustics are sunlight refracted THROUGH water, so they
+      // carry the water's hue rather than a flat near-white. Keyed off the
+      // level's own shelf band and lifted bright, they read as the moving
+      // dapple the HSE reference has instead of grey haze.
+      var causticTint = saturateColor(shelfWaterColor(), 0.22, i === 0 ? 3.2 : 2.7);
       var mesh = planeMeshPrivate(S.w + CAUSTIC_DRIFT * 4, hgt,
-        i === 0 ? 0xeafdff : 0xbfe9f5, aBase, true);
+        causticTint, aBase, true);
       if (!mesh) continue;
       setPos(mesh, x0, y, Z_CAUSTIC + i * 6);
       mesh.rotation.z = rr(-0.05, 0.05);
@@ -2611,9 +3226,33 @@ import * as THREE from 'three';
   // The water colour is world-anchored geometry, not a full-screen effect.
   // A fine RGBA sheet covers the authored world plus a frustum overshoot; the
   // corner colours are sampled from the same zone transition used by fog.
+  // Rev 15 WATER. The old 0.22 lift toward `fog` was the single biggest
+  // contributor to the washed-out frame: every level's `haze` is a pale
+  // cyan (0x5fa8c2 and friends, luminance ~0.76), so mixing 22 percent of it
+  // into the sheet raised the whole water column's value and dropped its
+  // saturation before a single overlay had drawn. The authored band tints are
+  // already correct (sat 0.70-0.84, lum 0.28-0.55); the sheet now uses them
+  // almost neat, with only a token haze lift near the surface, and is then
+  // driven to the HSE reference: saturated blue near the surface falling to a
+  // near-black abyss.
+  // The haze lift is gone entirely: any amount of a luminance-0.76 pale cyan
+  // mixed into the sheet costs more value than it buys in atmosphere, and the
+  // fog/clear path already carries the camera-depth haze cue on its own.
+  var GRADIENT_HAZE_LIFT = 0.0;
+  var GRADIENT_SAT = 0.45;        // chroma push applied to every sheet sample
+  // Value multiplier for the sheet. The LIGHT lane measured the old shelf
+  // water at max-channel ~165, which pinned the shark-to-water luminance ratio
+  // at 0.95 (the shark could not read brighter than its background at ANY
+  // exposure) and is also why the frame looked like a pale wash rather than a
+  // tropical postcard. 0.85 puts zone 0 at max-channel ~102, inside the
+  // 95-105 window LIGHT asked for in NOTES-rev15-light.md, while the deeper
+  // bands keep falling away on their own authored ramp.
+  var GRADIENT_VALUE = 0.85;
   function gradientZoneTop(z) {
     var script = atmoScriptFor(z);
-    return lerpColor(script.tint, script.fog, 0.22);
+    return saturateColor(
+      lerpColor(script.tint, script.fog, GRADIENT_HAZE_LIFT),
+      GRADIENT_SAT, GRADIENT_VALUE);
   }
 
   function gradientZoneBottom(z, next) {
@@ -2649,7 +3288,21 @@ import * as THREE from 'three';
     var zoneBottom = idx === Z.length - 1 ? S.h + 600 : z.yMax;
     var span = zoneBottom - zoneTop;
     var u = span > 0 ? clamp((simY - zoneTop) / span, 0, 1) : 0;
-    return lerpColor(gradientZoneTop(z), gradientZoneBottom(z, next), u);
+    var base = lerpColor(gradientZoneTop(z), gradientZoneBottom(z, next), u);
+    return waterDepthShade(base, simY);
+  }
+
+  // Vertical light falloff through the water column, independent of the zone
+  // ramp. `simY` 0 is the waterline; WATER_LIGHT_DEPTH is where the surface
+  // light has fallen to WATER_LIGHT_MIN of its value at the top.
+  var WATER_LIGHT_DEPTH = 1500;
+  var WATER_LIGHT_MIN = 0.62;
+  var WATER_LIGHT_TOP = 1.10;   // slight lift right under the surface
+  function waterDepthShade(color, simY) {
+    var t = clamp((simY || 0) / WATER_LIGHT_DEPTH, 0, 1);
+    var k = WATER_LIGHT_TOP + (WATER_LIGHT_MIN - WATER_LIGHT_TOP) * t;
+    // Scale value, then put back the chroma the scale costs.
+    return saturateColor(scaleColor(color, k), 0.12, 1);
   }
 
   // The opaque water gradient sheet (Z_GRADIENT = -500) used to be built from
@@ -4132,9 +4785,32 @@ import * as THREE from 'three';
   // Each theme is a function(cx, baseY, w, h, tintNear, tintFar) that pushes
   // its shapes into the shared quad batch; cx/baseY/w/h let one theme be
   // reused at multiple x offsets to fill the world width cheaply.
+  // Rev 15 round 2 (A). Every theme shape used to be ONE axis-aligned,
+  // untextured rectangle -- which is exactly the "flat grey rectangular slabs"
+  // the orchestrator saw filling the top of the frame. The theme table is
+  // fine (volcano, fjords, atolls, temples all differ); the PRIMITIVE was the
+  // problem. silPush now emits a small stack of shapes per call:
+  //   - a wide, slightly rotated base skirt so the landmass meets the horizon
+  //     on a soft diagonal instead of a hard right angle,
+  //   - the main mass, drawn with a vertical gradient (lit crown, darker
+  //     base) so it is SHADED rather than a flat fill,
+  //   - two narrower shoulder cards leaned opposite ways, which knocks the
+  //     corners off the rectangle and gives the mass a peaked, rounded read.
+  // Same merged batch, no new draw calls. Callers are unchanged.
+  // ONE card per call, shaped by the 'peak' alpha mask and vertically shaded
+  // (lit crown, shadowed foot). The previous revision emitted a skirt plus two
+  // leaned shoulder cards per call to fake a rounded mass; with an untextured
+  // quad those were just more rectangles, which is precisely the wall of grey
+  // slabs the orchestrator rejected. Shape belongs in the mask, not in extra
+  // geometry.
   function silPush(cx, baseY, w, h, rot, tint, alpha) {
-    quadPush(cx, -(baseY - h * 0.5), Z_SKY, w, h, rot || 0, 1, tint, alpha === undefined ? 1 : alpha, tint);
+    var a = alpha === undefined ? 1 : alpha;
+    var crown = lerpColor(tint, 0xffffff, 0.10);
+    var foot = scaleColor(tint, 0.66);
+    quadPushGradient(cx, -(baseY - h * 0.5), Z_SKY, w, h, rot || 0, 1,
+      crown, foot, a, a);
   }
+
   var HORIZON_THEME_BUILDERS = {
     volcano_palms: function (cx, baseY, w, dark, mid) {
       silPush(cx, baseY, w * 0.42, w * 0.30, 0, dark, 1);           // volcano cone
@@ -4215,6 +4891,45 @@ import * as THREE from 'three';
     },
   };
 
+  // Rev 15 round 2 (A). THE SKY WAS THE "BLOCKY GARBAGE".
+  //
+  // Orchestrator verdict: "the top 40% of every level is flat grey/beige
+  // rectangular slabs... it makes all 12 levels look the same." Three causes,
+  // all fixed here:
+  //   1. ONE two-stop gradient quad from topHex straight to horizonHex. Two
+  //      stops cannot describe a sky, so the upper half banded into flat
+  //      rectangles. It is now a multi-band ramp (SKY_BANDS) through a
+  //      zenith / mid / horizon-glow triple.
+  //   2. The sun and clouds were hard-edged UNTEXTURED quads -- literal
+  //      rectangles pasted on the sky. They now use a soft radial map, so the
+  //      sun is a disc with a glow halo and clouds are soft puffs.
+  //   3. The horizon silhouettes were axis-aligned rectangles at rot=0. Each
+  //      theme now builds from a rounded/rotated primitive set and is drawn in
+  //      two haze-tinted parallax layers (far ridge + near headland), so a
+  //      level reads as its own coast rather than as grey blocks.
+  //
+  // Still ONE merged batch per layer (gradient / sun+cloud / far sil / near
+  // sil) = 4 draws, same as before.
+
+  // A soft-edged radial map for the sun glow and cloud puffs.
+  function skyPuffTexture() { return surfaceTexture('__rf_sky_puff', true); }
+
+  // Vertical sky ramp. A real sky is deep and cool at the zenith, lighter and
+  // warmer toward the horizon, with a bright glow band just above it.
+  var SKY_BANDS = 14;
+  // Measured sky window at Z_SKY (see buildSkyBackdrop): ~750 tall, ~1620 wide.
+  var SKY_WIN_W = 1620;
+  var SKY_WIN_H = 750;
+  // Three-stop sky ramp sampled at t (0 = horizon, 1 = zenith). The glow band
+  // is squeezed into the bottom third so it reads as light sitting ON the
+  // horizon rather than as a wash over the whole sky.
+  function skyRamp(zenith, mid, glow, t) {
+    if (t < 0.18) return lerpColor(glow, mid, clamp(t / 0.18, 0, 1));
+    return lerpColor(mid, zenith, clamp((t - 0.18) / 0.82, 0, 1));
+  }
+  function skyZenith(topHex) { return saturateColor(topHex, 0.55, 0.60); }
+  function skyGlow(horizonHex) { return lerpColor(horizonHex, 0xffe6b4, 0.14); }
+
   function buildSkyBackdrop() {
     if (!isThree()) return;
     var theme = S.skyTheme;
@@ -4223,48 +4938,81 @@ import * as THREE from 'three';
     var themeId = (theme && theme.themeId) || 'volcano_palms';
     var builder = HORIZON_THEME_BUILDERS[themeId] || HORIZON_THEME_BUILDERS.volcano_palms;
 
-    // 1. Sky gradient sheet: one vertical-gradient quad from the horizon
-    // colour (near y=0) up to the top colour (far above), spanning the full
-    // world width so it reads correctly from any x.
+    // 1. SKY RAMP. Many short bands instead of one tall quad, so the ramp is
+    // smooth in perspective and never reads as two stacked colour cards.
+    var zenith = skyZenith(topHex);
+    var glow = skyGlow(horizonHex);
     quadReset();
-    quadPushGradient(S.w * 0.5, -(SKY_HORIZON_Y - SKY_H * 0.5), Z_SKY - 2,
-      S.w * 1.4, SKY_H, 0, 1, topHex, horizonHex, 1, 1);
+    for (var b = 0; b < SKY_BANDS; b++) {
+      var t0 = b / SKY_BANDS, t1 = (b + 1) / SKY_BANDS;
+      // t = 0 at the horizon, 1 at the top of the sky.
+      var yTopB = SKY_HORIZON_Y - SKY_H * t1;
+      var yBotB = SKY_HORIZON_Y - SKY_H * t0;
+      quadPushGradient(S.w * 0.5, -(yTopB + yBotB) * 0.5, Z_SKY - 2,
+        S.w * 1.4, yBotB - yTopB, 0, 1,
+        gardenLinear(skyRamp(zenith, topHex, glow, t1)),
+        gardenLinear(skyRamp(zenith, topHex, glow, t0)), 1, 1);
+    }
     var skyGeo = mergeQuads(true);
     var sky = skyGeo ? batchMesh(null, false, undefined, false, { fog: false }, skyGeo) : null;
     if (sky) { meshName(sky, 'RF sky gradient (' + themeId + ')'); sceneAdd(sky); S.decor.push(sky); }
 
-    // 2. Sun disc + a couple of soft cloud puffs, one additive-ish batch
-    // (kept normal-blend so it stays readable against a bright sky, matching
-    // the reef/rock batches' own blend choice rather than the ray/caustic
-    // additive ones).
+    // 2. SUN + CLOUDS, soft-edged. The sun is a small bright core inside a
+    // much larger glow halo; clouds are several overlapping puffs per bank so
+    // they have a lumpy top edge instead of being one flat bar.
     quadReset();
-    var sunX = S.w * 0.62, sunY = SKY_HORIZON_Y - SKY_H * 0.52;
-    quadPush(sunX, -sunY, Z_SKY + 4, 140, 140, 0.785, 1, 0xfff3c9, 0.9, 0xfff3c9);
-    quadPush(S.w * 0.22, -(SKY_HORIZON_Y - SKY_H * 0.30), Z_SKY + 6, 260, 46, 0, 1, 0xffffff, 0.5, 0xffffff);
-    quadPush(S.w * 0.78, -(SKY_HORIZON_Y - SKY_H * 0.42), Z_SKY + 6, 200, 36, 0, 1, 0xffffff, 0.42, 0xffffff);
-    quadPush(S.w * 0.46, -(SKY_HORIZON_Y - SKY_H * 0.62), Z_SKY + 6, 170, 32, 0, 1, 0xffffff, 0.36, 0xffffff);
+    var sunX = S.w * 0.62, sunY = SKY_HORIZON_Y - SKY_WIN_H * 0.52;
+    quadPush(sunX, -sunY, Z_SKY + 3, 520, 520, 0, 1, glow, 0.34, glow);          // halo
+    quadPush(sunX, -sunY, Z_SKY + 4, 260, 260, 0, 1, 0xfff6d8, 0.55, 0xfff6d8);  // inner glow
+    quadPush(sunX, -sunY, Z_SKY + 5, 108, 108, 0, 1, 0xfffdf0, 0.98, 0xfffdf0);  // disc
+    var cloudTint = lerpColor(0xffffff, horizonHex, 0.18);
+    for (var cb = 0; cb < 7; cb++) {
+      var ccx = S.w * (0.06 + cb * 0.14) + drr(-S.w * 0.03, S.w * 0.03);
+      var ccy = SKY_HORIZON_Y - SKY_WIN_H * drr(0.30, 0.86);
+      var cw = drr(150, 300), ch = cw * drr(0.26, 0.40);
+      var ca = drr(0.26, 0.52);
+      for (var cp = 0; cp < 4; cp++) {
+        var pu = (cp / 3) - 0.5;
+        quadPush(ccx + pu * cw * 0.62, -(ccy - Math.abs(pu) * ch * 0.30),
+          Z_SKY + 6 + cp, cw * drr(0.42, 0.62), ch * drr(0.75, 1.12), 0, 1,
+          cloudTint, ca, 0xffffff);
+      }
+    }
     var puffGeo = mergeQuads(true);
-    var puffs = puffGeo ? batchMesh(null, false, undefined, false, { fog: false }, puffGeo) : null;
+    var puffs = puffGeo ? batchMesh(skyPuffTexture(), false, undefined, false, { fog: false }, puffGeo) : null;
     if (puffs) { meshName(puffs, 'RF sky sun+clouds'); sceneAdd(puffs); S.decor.push(puffs); }
 
-    // 3. Horizon silhouette strip: the theme builder run at three x offsets
-    // (world is 14400px wide; three repeats keeps the strip from reading as
-    // one lonely landmark stranded at a single x) — still ONE merged batch.
+    // 3. HORIZON LANDMASS, two haze-tinted parallax layers. The far layer is
+    // smaller, paler and pushed toward the sky colour (aerial perspective);
+    // the near layer is larger and darker. Offsetting their repeats keeps the
+    // coast from reading as one shape stamped at a regular interval.
+    var farDark = scaleColor(lerpColor(horizonHex, topHex, 0.62), 0.80);
+    var farMid = lerpColor(farDark, 0xffffff, 0.10);
+    var nearDark = lerpColor(0x121a26, horizonHex, 0.20);
+    var nearMid = lerpColor(0x1d2836, horizonHex, 0.32);
+
     quadReset();
-    // Rev 12 sky clean: darker/blue-tinted so the silhouette reads as
-    // distant landmass against the sky gradient rather than blending into
-    // it, and sized up (0.62 -> 0.92 of the segment width) so each theme's
-    // distinctive shape (volcano cone, glacier wall, temple tiers, etc.)
-    // is legible at breach scale instead of reading as generic small hills.
-    var darkTint = lerpColor(0x060810, horizonHex, 0.07);
-    var midTint = lerpColor(0x121a2c, horizonHex, 0.22);
-    var repeats = 3, segW = S.w / repeats;
-    for (var ri2 = 0; ri2 < repeats; ri2++) {
-      builder(segW * ri2 + segW * 0.5, SKY_HORIZON_Y, segW * 0.92, darkTint, midTint);
+    // A far landmass spans about half the window width, so several of them are
+    // in frame at once and the coast reads as a ridgeline rather than as one
+    // enormous shape. Repeats tile the whole world at that size.
+    var farSeg = SKY_WIN_W * 0.52;
+    var farN = Math.ceil(S.w / farSeg) + 1;
+    for (var fi = 0; fi < farN; fi++) {
+      builder(farSeg * fi + farSeg * 0.5, SKY_HORIZON_Y - 4, farSeg * 0.62, farDark, farMid);
     }
-    var silGeo = mergeQuads(true);
-    var sil = silGeo ? batchMesh(null, false, undefined, false, { fog: false }, silGeo) : null;
-    if (sil) { meshName(sil, 'RF sky horizon silhouette (' + themeId + ')'); sceneAdd(sil); S.decor.push(sil); }
+    var farGeo = mergeQuads(true);
+    var farSil = farGeo ? batchMesh(surfaceTexture("__rf_sky_peak", "peak"), false, undefined, false, { fog: false }, farGeo) : null;
+    if (farSil) { meshName(farSil, 'RF sky horizon far (' + themeId + ')'); sceneAdd(farSil); S.decor.push(farSil); }
+
+    quadReset();
+    var nearSeg = SKY_WIN_W * 0.78;
+    var nearN = Math.ceil(S.w / nearSeg) + 1;
+    for (var ni = 0; ni < nearN; ni++) {
+      builder(nearSeg * ni + nearSeg * 0.34, SKY_HORIZON_Y, nearSeg * 0.66, nearDark, nearMid);
+    }
+    var nearGeo = mergeQuads(true);
+    var nearSil = nearGeo ? batchMesh(surfaceTexture("__rf_sky_peak", "peak"), false, undefined, false, { fog: false }, nearGeo) : null;
+    if (nearSil) { meshName(nearSil, 'RF sky horizon silhouette (' + themeId + ')'); sceneAdd(nearSil); S.decor.push(nearSil); }
   }
 
   // Rev 12 12.1: per-seabed-type ACCENT decor, layered on top of the proven
@@ -4276,6 +5024,12 @@ import * as THREE from 'three';
   // (alaska), black-rock vents for volcanic (hawaii/azores), low ruin blocks
   // for rock-seabed levels reading as ancient structures (mexico/newzealand
   // per the SPEC3D theme list), and extra kelp-tip motes for kelp (california).
+  // Rev 15 round 2: no seabed accent may cross the waterline. Everything in
+  // buildSeabedAccents is UNDERWATER dressing; a card whose top edge rises
+  // above y=0 gets painted onto the sky (the reported orange vents floating in
+  // the Hawaii/Azores sky). This is the hard floor those clamps use.
+  var ACCENT_MIN_Y = 60;   // sim y: nothing here comes shallower than this
+
   function buildSeabedAccents() {
     if (!isThree()) return;
     var theme = seabedThemeFor(S.level);
@@ -4289,8 +5043,17 @@ import * as THREE from 'three';
       for (i = 0; i < 10; i++) {
         var ix = (S.w / 10) * i + drr(-120, 120);
         var ih = drr(220, 420);
-        quadPush(ix, -(-ih * 0.35), Z_KELP[0] - 4, drr(140, 260), ih, drr(-0.08, 0.08), 1,
-          theme.accent, 0.55, 0xffffff);
+        // Below the waterline, but each berg at its OWN depth and lean --
+        // clamping them all to exactly ACCENT_MIN_Y stacked ten cards on one
+        // line and they merged into a single pale rectangle. Shaded (darker,
+        // water-tinted foot; bright crown) and drawn through the peak mask so
+        // a berg reads as submerged ice, not a slab.
+        var iceTop = ACCENT_MIN_Y + drr(0, 260);
+        var iceCy = iceTop + ih * 0.5;
+        var iceFoot = lerpColor(scaleColor(theme.accent, 0.55), hexNum(Z[0] && Z[0].tint), 0.35);
+        quadPushGradient(ix, -iceCy, Z_KELP[0] - 4 + (i % 3) * 6,
+          drr(110, 220), ih, drr(-0.16, 0.16), 1,
+          0xeaf7ff, iceFoot, 0.62, 0.62);
       }
       // Pale blue seabed accent cards on the real mound flanks.
       for (m = 0; m < oceanMoundX.length; m++) {
@@ -4301,8 +5064,12 @@ import * as THREE from 'three';
       // Black rock spires + orange vent glows on every mound top.
       for (m = 0; m < oceanMoundX.length; m++) {
         var vx = oceanMoundX[m], vy = oceanMoundTopY[m];
-        quadPush(vx, -(vy + 40), Z_KELP[0] - 2, 90, 130, 0, 1, theme.floor, 0.6, 0x1a1414);
-        quadPush(vx, -(vy - 10), Z_KELP[0], 26, 26, 0, 1, theme.accent, 0.75, theme.accent);
+        // Keep the spire's TOP edge (cy - h/2) and the glow at or below the
+        // waterline margin, whatever depth this run's mound summit came out at.
+        var spireH = 130, spireCy = Math.max(vy + 40, ACCENT_MIN_Y + spireH * 0.5);
+        quadPush(vx, -spireCy, Z_KELP[0] - 2, 90, spireH, 0, 1, theme.floor, 0.6, 0x1a1414);
+        var glowCy = Math.max(vy - 10, ACCENT_MIN_Y + 13);
+        quadPush(vx, -glowCy, Z_KELP[0], 26, 26, 0, 1, theme.accent, 0.75, theme.accent);
       }
     } else if (family === 'rock') {
       // Low ruin-block silhouettes on mound flanks (mexico/newzealand read:
@@ -4327,7 +5094,10 @@ import * as THREE from 'three';
       }
     }
     var geo = mergeQuads();
-    var mesh = geo ? batchMesh(null, false, undefined, false, { fog: false }, geo) : null;
+    // Drawn through the 'peak' mask for the same reason the horizon
+    // silhouettes are: with map=null every accent card is a hard rectangle,
+    // which is what made the Alaska bergs read as a pale slab.
+    var mesh = geo ? batchMesh(surfaceTexture('__rf_sky_peak', 'peak'), false, undefined, false, { fog: false }, geo) : null;
     if (mesh) { meshName(mesh, 'RF seabed accents (' + family + ')'); sceneAdd(mesh); S.decor.push(mesh); }
   }
 
@@ -4352,6 +5122,32 @@ import * as THREE from 'three';
   var SURFACE_WAVE_RATE = 0.8;
   var SURFACE_WAVE_K = 0.012;
   var SNELL_W = 760;
+
+  // Rev 15 WATER. Colours for the three surface layers, resolved at BUILD time
+  // from the active level's own shelf band so the waterline carries the same
+  // identity as the water under it. Each is the level's shallow water pushed
+  // bright (this is the lit side of the surface) but NOT toward white, so the
+  // membrane keeps its hue. Falls back to the built-in shelf script when no
+  // level is active, which is what the standalone world3d selftest runs.
+  function shelfWaterColor() {
+    var Z = zones();
+    var z = Z && Z.length ? Z[0] : null;
+    var script = atmoScriptFor(z);
+    return script ? script.tint : ATMO_ZONE_SCRIPT[0].tint;
+  }
+  // The underside of the surface: the level's own water, saturated and lifted
+  // in value. `saturateColor(c, 0.25, 2.6)` brightens without desaturating,
+  // which is exactly what the old flat near-white failed to do.
+  function surfaceUndersideTint() {
+    return saturateColor(shelfWaterColor(), 0.25, 2.6);
+  }
+  // Foam is the one layer allowed to approach white — it is scattered air, not
+  // water — but it is a thin 20px strip, so it costs almost no screen area.
+  function surfaceFoamTint() {
+    return lerpColor(saturateColor(shelfWaterColor(), 0.2, 3.0), 0xdff4ff, 0.45);
+  }
+  var SURFACE_UNDERSIDE_TINT = 0x3aa8d8;  // replaced per level in buildSurface
+  var SURFACE_FOAM_TINT = 0xa9e4f4;
 
   function surfaceWave(x, t) {
     return 2 - Math.sin(x * SURFACE_WAVE_K + t * SURFACE_WAVE_RATE) * 2;
@@ -4406,6 +5202,9 @@ import * as THREE from 'three';
     // a light gradient, not an opaque panel with an edge.
     var ripple = surfaceTexture('__rf_surface_ripple', false);
     var snellMap = surfaceTexture('__rf_snell_window', true);
+    // Rev 15 WATER: resolve the surface palette from THIS level's water.
+    SURFACE_UNDERSIDE_TINT = surfaceUndersideTint();
+    SURFACE_FOAM_TINT = surfaceFoamTint();
     quadReset();
     // cy is THREE-space y (sim y negated, per quadPush's convention used
     // throughout this module — see the ray/reef/caustic callers), and
@@ -4416,7 +5215,7 @@ import * as THREE from 'three';
     // carry the readable beam shapes; keeping the full-width wash this low
     // prevents it from becoming a pale trapezoid at grazing camera angles.
     quadPushGradient(S.w * 0.5, -SURFACE_LIGHT_H * 0.5, Z_SURFACE - 20,
-      S.w, SURFACE_LIGHT_H, 0, 1, 0x9bdfe8, 0x9bdfe8, 0.012, 0);
+      S.w, SURFACE_LIGHT_H, 0, 1, SURFACE_UNDERSIDE_TINT, SURFACE_UNDERSIDE_TINT, 0.012, 0);
     var washGeo = mergeQuads();
     var wash = washGeo ? batchMesh(ripple, true, undefined, false, { fog: false }, washGeo) : null;
     if (wash) {
@@ -4425,19 +5224,27 @@ import * as THREE from 'three';
     }
     var ribbon = buildSurfaceRibbon();
     if (!ribbon || !ribbon.geo) return;
-    var ribbonMat = envMaterial(0xe6fbff, SURFACE_RIBBON_ALPHA, false, null, false);
+    // Rev 15 WATER. The waterline ribbon used to be near-white (0xe6fbff) at
+    // alpha 0.18 across the full world width: at spawn depth it was the single
+    // largest source of the "flat pale-cyan, no depth" frame, because it laid
+    // an almost achromatic veil over the top of every level's water before any
+    // other layer drew. Seen from BELOW, the underside of the surface is not
+    // white — it is bright, saturated water lit from behind. Tinting it toward
+    // the shelf's own band colour keeps the surface reading as a lit membrane
+    // while returning the chroma the HSE reference has.
+    var ribbonMat = envMaterial(SURFACE_UNDERSIDE_TINT, SURFACE_RIBBON_ALPHA, false, null, false);
     var plane = new THREE.Mesh(ribbon.geo, ribbonMat);
     sceneAdd(plane);
     S.decor.push(plane);
     // Foam is a pale blue additive edge. It is a thin 26px strip so it costs
     // little, but it sits ON the waterline where the shelf is brightest.
-    var foam = planeMesh(S.w * 1.2, 20, 0xc7eff5, SURFACE_FOAM_ALPHA, true);
+    var foam = planeMesh(S.w * 1.2, 20, SURFACE_FOAM_TINT, SURFACE_FOAM_ALPHA, true);
     if (foam) {
       setPos(foam, S.w * 0.5, 8, Z_SURFACE + 8);
       sceneAdd(foam);
       S.decor.push(foam);
     }
-    var snell = planeMeshPrivate(SNELL_W, SNELL_W, 0xeafcff, 0.012, true, snellMap);
+    var snell = planeMeshPrivate(SNELL_W, SNELL_W, SURFACE_FOAM_TINT, 0.012, true, snellMap);
     if (snell) {
       meshName(snell, 'RF surface snell bloom');
       setPos(snell, S.w * 0.5, 0, -70);
@@ -5675,6 +6482,11 @@ import * as THREE from 'three';
     buildParticulates();
     buildDecor();
     buildReef();
+    // Rev 15: the near-camera tropical garden (see buildReefGarden). Built
+    // after buildReef so the far reef stays a background occluder and this
+    // layer owns the foreground.
+    buildReefGarden();
+    buildNearShafts();
     buildRays();
     buildCaustics();
     buildSurface();
@@ -6258,6 +7070,56 @@ import * as THREE from 'three';
     return Array.isArray(list[0]) ? list[0][0] : list[0].defId;
   }
 
+  // Rev 15 EAT LAW: the player's live eat ceiling, mirroring engine3d's
+  // eatEligible()/publishMouth() formula (tier + BITE_UP_BASE + biteUp, with
+  // megajaw/supersize folded in by the engine itself). The engine publishes
+  // that exact number every step as ctx.mouth.eligibleTierMax, so read it
+  // when it is there and only fall back to the base formula when the spawner
+  // runs before the first publishMouth (run start) or in a headless harness
+  // with no mouth. Kept as ONE read so the spawn gate can never drift from
+  // the gate that actually decides whether a bite lands.
+  var EAT_BITE_UP_BASE = 1;      // engine3d BITE_UP_BASE
+  function playerEatCeiling(player, mouth) {
+    if (mouth && typeof mouth.eligibleTierMax === 'number') return mouth.eligibleTierMax;
+    if (!player) return EAT_BITE_UP_BASE;
+    var pas = player.pas || {};
+    var biteUp = typeof pas.biteUp === 'number' ? pas.biteUp : 0;
+    return (player.tier || 1) + EAT_BITE_UP_BASE + biteUp;
+  }
+
+  // Pick a prey/hazard row from this zone that the player can actually
+  // resolve: eatable prey, or a hazard (which stings, so it is legal under
+  // the eatable-or-hazard law even though it is tier 99). Above-ceiling prey
+  // rows are weighted to zero rather than resampled in a loop, so this stays
+  // one pass and allocation-free like pickWeighted itself.
+  var eatableScratch = [];
+  function pickEatablePrey(zone, player, mouth) {
+    var rows = (zone && zone.spawns) || [];
+    if (!rows.length) return null;
+    var ceil = playerEatCeiling(player, mouth);
+    eatableScratch.length = 0;
+    var lowestId = null, lowestTier = Infinity;
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      var id = Array.isArray(row) ? row[0] : row.defId;
+      var def = defOf(id);
+      if (!def) continue;
+      if (def.kind === 'hazard') { eatableScratch.push(row); continue; }
+      var tier = typeof def.tier === 'number' ? def.tier : 0;
+      if (tier < lowestTier) { lowestTier = tier; lowestId = id; }
+      if (tier <= ceil) eatableScratch.push(row);
+    }
+    if (eatableScratch.length) {
+      var picked = pickWeighted(eatableScratch);
+      if (picked) return picked;
+    }
+    // Whole prey roster is above the ceiling (alaska zone 1 pre-fix): the
+    // shelf must never be empty, so place the zone's lowest-tier prey. It is
+    // still above the ceiling in the pathological case, but this is the last
+    // resort and keeps the world populated rather than dead.
+    return lowestId;
+  }
+
   // NPC shark table, built once from RFD.SHARKS rows carrying npc weights.
   function buildNpcTables() {
     var Sh = (D().SHARKS) || [];
@@ -6385,7 +7247,26 @@ import * as THREE from 'three';
       }
       return;
     }
-    var defId = pickWeighted(z.spawns || []);
+    // Rev 15 EAT LAW (owner: "still lots of floating fish that you cannot
+    // eat"). The zone spawn gate admits prey up to intendedTier(zone)+2, but
+    // the PLAYER's eat ceiling is player.tier + BITE_UP_BASE(1) + biteUp.
+    // Those two are not the same number: on the tier-1 shelf the table gate
+    // allows tier 3 while a tier-1 shark tops out at tier 2, so a level whose
+    // preyWeights overlay lands on a tier-3 prey (mexico grouper, alaska
+    // seal, belize/jamaica grouper) fills zone 1 with prey that is neither
+    // eatable NOR a hazard - it just floats and flees, giving nothing back
+    // but a rate-limited TOO BIG toast. Alaska zone 1 is the worst case: its
+    // whole prey roster is seal(t3), so a fresh run has literally nothing to
+    // eat on screen.
+    //
+    // Fix at the rule level, on SPAWN: prey above the player's live eat
+    // ceiling is resampled out of the table before it is ever placed. Hazards
+    // are exempt (they are tier 99 by construction and sting on contact,
+    // which is the feedback the law actually requires). If the whole zone
+    // table is above the ceiling, fall back to the zone's LOWEST-tier prey so
+    // the shelf is never empty - an under-tier fish is always eatable and so
+    // always satisfies the law.
+    var defId = pickEatablePrey(z, ctx.player, ctx.mouth);
     if (!defId) return;
     var def = defOf(defId);
     if (!def) return;

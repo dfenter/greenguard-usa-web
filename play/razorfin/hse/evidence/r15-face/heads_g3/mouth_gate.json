@@ -1,0 +1,41 @@
+{
+  "blue": {
+    "crop_px": 144400,
+    "shark_px": 21484,
+    "batch_px": 238,
+    "scoped": true,
+    "cavity_px": 166,
+    "tooth_px": 36,
+    "cavity_frac": 0.001149584487534626,
+    "tooth_frac": 0.00024930747922437675,
+    "cavity_pass": false,
+    "tooth_pass": false,
+    "pass": false
+  },
+  "greatwhite": {
+    "crop_px": 144400,
+    "shark_px": 49820,
+    "batch_px": 958,
+    "scoped": true,
+    "cavity_px": 720,
+    "tooth_px": 173,
+    "cavity_frac": 0.004986149584487534,
+    "tooth_frac": 0.0011980609418282548,
+    "cavity_pass": false,
+    "tooth_pass": false,
+    "pass": false
+  },
+  "reef": {
+    "crop_px": 144400,
+    "shark_px": 19025,
+    "batch_px": 641,
+    "scoped": true,
+    "cavity_px": 198,
+    "tooth_px": 45,
+    "cavity_frac": 0.001371191135734072,
+    "tooth_frac": 0.0003116343490304709,
+    "cavity_pass": false,
+    "tooth_pass": false,
+    "pass": false
+  }
+}

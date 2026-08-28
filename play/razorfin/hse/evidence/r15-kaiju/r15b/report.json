@@ -1,0 +1,23 @@
+[
+  {
+    "id": "leviathan_rex",
+    "shot": "profile",
+    "textured": true,
+    "base": "greatwhite_cy",
+    "faceMounted": true,
+    "faceTriangles": 156,
+    "size": [
+      211.31,
+      102.87,
+      131.83
+    ],
+    "aimX": 0.8,
+    "flank": "z",
+    "longAxis": "x",
+    "dorsal": "y+",
+    "dist": 380.7,
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ]
+  }
+]

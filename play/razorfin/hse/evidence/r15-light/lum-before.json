@@ -1,0 +1,46 @@
+[
+  {
+    "name": "l1-surface",
+    "W": 1688,
+    "H": 780,
+    "sharkPx": 24602,
+    "sharkMedian": 76.23,
+    "waterMedian": 191.8,
+    "ratio": 0.397,
+    "sharkP995": 208.68,
+    "hotspotOverMedian": 2.737,
+    "sharkMeanRGB": [
+      45,
+      97,
+      88
+    ],
+    "bbox": [
+      545,
+      369,
+      1137,
+      526
+    ]
+  },
+  {
+    "name": "abyss",
+    "W": 1688,
+    "H": 780,
+    "sharkPx": 24545,
+    "sharkMedian": 51.02,
+    "waterMedian": 114.48,
+    "ratio": 0.446,
+    "sharkP995": 145.32,
+    "hotspotOverMedian": 2.848,
+    "sharkMeanRGB": [
+      22,
+      68,
+      65
+    ],
+    "bbox": [
+      546,
+      369,
+      1137,
+      526
+    ]
+  }
+]

@@ -1,0 +1,24 @@
+import puppeteer from 'puppeteer-core';
+import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path';
+const root = '/Users/lucille/greenguard-usa-web';
+const mode = process.argv[2] || 'std';
+const out = process.argv[3] || `play/razorfin/hse/evidence/r15-prey/school-${mode}.png`;
+const port = Number(process.env.PORT || 47702);
+const types = { '.js': 'text/javascript', '.mjs': 'text/javascript', '.html': 'text/html', '.png': 'image/png', '.jpg': 'image/jpeg', '.glb': 'model/gltf-binary', '.json': 'application/json', '.css': 'text/css' };
+const server = http.createServer((rq, rs) => {
+  let f = decodeURIComponent(rq.url.split('?')[0]); if (f.endsWith('/')) f += 'index.html';
+  fs.readFile(path.join(root, f), (e, d) => { if (e) { rs.writeHead(404); rs.end(); return; } rs.writeHead(200, { 'content-type': types[path.extname(f)] || 'application/octet-stream' }); rs.end(d); });
+});
+await new Promise((r) => server.listen(port, r));
+const browser = await puppeteer.launch({ headless: true, executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', args: ['--no-sandbox', '--use-gl=angle', '--enable-unsafe-swiftshader'] });
+const page = await browser.newPage();
+const logs = [];
+page.on('pageerror', (e) => logs.push('PAGEERROR ' + e.message));
+page.on('console', (m) => { const t = m.text(); if (/error|shader|GLSL|undeclared|uniform/i.test(t)) logs.push(m.type() + ' ' + t); });
+await page.setViewport({ width: 1000, height: 620, deviceScaleFactor: 2 });
+await page.goto(`http://127.0.0.1:${port}/play/razorfin/hse/school_harness.html?mode=${mode.split(':')[0]}&${process.argv[4]||''}`, { waitUntil: 'load' });
+await page.waitForFunction('window.__done === true', { timeout: 40000 });
+const st = await page.evaluate(() => window.__status);
+fs.writeFileSync(path.join(root, out), await page.screenshot({ encoding: 'binary' }));
+console.log(JSON.stringify({ out, st, logs: logs.slice(0, 15) }, null, 2));
+await browser.close(); server.close(); process.exit(0);

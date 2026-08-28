@@ -1,0 +1,14 @@
+import fs from 'node:fs'; import vm from 'node:vm';
+import * as THREE from 'three';
+globalThis.window=globalThis; globalThis.devicePixelRatio=3;
+vm.runInThisContext(fs.readFileSync('data.js','utf8'),{filename:'data.js'});
+const { default: Art3D } = await import('../shark3d.js');
+const rows=globalThis.RF?.RFD?.SHARKS||globalThis.RFD?.SHARKS||[];
+const def=rows.find(d=>d.id==='reef');
+const rig=Art3D.buildShark(def), root=rig.group;
+const jb=root.getObjectByName('LowerJaw');
+const g=rig.group.userData.rfMorph?.gape;
+console.log('gape record:',JSON.stringify(g));
+const e=new THREE.Euler().setFromQuaternion(jb.quaternion,'XYZ');
+console.log('final bone eulerXYZ deg',[e.x,e.y,e.z].map(v=>(v*180/Math.PI).toFixed(2)).join(','));
+console.log('final quat',[jb.quaternion.x,jb.quaternion.y,jb.quaternion.z,jb.quaternion.w].map(v=>v.toFixed(4)).join(','));

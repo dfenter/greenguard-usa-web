@@ -38,6 +38,15 @@ ap.add_argument('--tex', type=int, default=1024)
 ap.add_argument('--name', default='shark')
 ap.add_argument('--length', type=float, default=1.0, help='target length (nose->tail) in scene units')
 ap.add_argument('--flip', action='store_true', help='force nose to the other end of the long axis')
+ap.add_argument('--flatlum', action='store_true',
+                help='equalise the baked diffuse so its luminance is FLAT along the '
+                     'dorsal-ventral axis (removes a painted countershade that no '
+                     'runtime shader can cancel); keeps detail contrast and chroma')
+ap.add_argument('--flatlum-mean', type=float, default=0.5,
+                help='target mean luminance for --flatlum (sRGB, default 0.5)')
+ap.add_argument('--desat', type=float, default=0.0,
+                help='pull the baked diffuse toward neutral by this fraction (0..1); '
+                     'use with --flatlum to drop a photographic colour cast')
 a = ap.parse_args(argv)
 
 TARGET = a.tris
@@ -644,6 +653,208 @@ if cov < 0.15:
     px = list(img_d.pixels)
     lit = sum(1 for i in range(0, len(px), 4) if px[i] + px[i + 1] + px[i + 2] > 0.02)
     print('BAKE diffuse retry coverage %.3f' % (lit / (len(px) / 4)))
+
+# ------------------------------------------------- flatten painted lighting
+# Several photogrammetry hides are photographed with their own countershade
+# already burned into the albedo, and on some of them it runs OPPOSITE to the
+# direction the game wants. Because that gradient is painted into the texels
+# rather than aligned to any mesh axis, NO runtime shader can cancel it: a
+# rotation cannot fix a gradient that is negative under every candidate axis.
+# The only place it can be removed is here.
+#
+# Method: project every vertex onto the mesh's dorsal-ventral axis, carry that
+# coordinate into UV space, fit the LOW-FREQUENCY luminance as a function of
+# that coordinate alone, then divide it out. Detail (pores, denticles, stripes)
+# is high-frequency and rides through untouched; only the broad top-to-bottom
+# ramp is removed. Chroma is preserved by scaling R,G,B together.
+def flatten_dorsal_luminance(img, obj, strength=1.0, target=0.5, desat=0.0):
+    import numpy as np
+
+    W, H = img.size
+    px = np.array(img.pixels[:], dtype=np.float32).reshape(H, W, 4)
+    rgb = px[:, :, :3]
+
+    def to_lin(c):
+        return np.where(c <= 0.04045, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
+
+    def to_srgb(c):
+        c = np.clip(c, 0.0, None)
+        return np.where(c <= 0.0031308, c * 12.92, 1.055 * (c ** (1 / 2.4)) - 0.055)
+
+    me = obj.data
+    co = np.empty(len(me.vertices) * 3, dtype=np.float32)
+    me.vertices.foreach_get('co', co)
+    co = co.reshape(-1, 3)
+
+    # Dorsal axis = the non-long axis whose vertex mass is most asymmetric.
+    # A near-symmetric axis scores lowest by construction, which is exactly
+    # how the Y-rigged and X-rigged bakes are told apart.
+    ext = co.max(axis=0) - co.min(axis=0)
+    long_ax = int(np.argmax(ext))
+    best, best_asym = None, -1.0
+    for i in range(3):
+        if i == long_ax:
+            continue
+        d = co[:, i] - np.median(co[:, i])
+        asym = abs(int((d > 0).sum()) - int((d < 0).sum())) / max(1, len(d))
+        if asym > best_asym:
+            best, best_asym = i, asym
+    up_ax = best
+    up = co[:, up_ax]
+    lo, hi = np.percentile(up, 2), np.percentile(up, 98)
+    tvert = np.clip((up - lo) / max(1e-9, hi - lo), 0.0, 1.0)
+
+    # Rasterise the per-vertex up-coordinate into UV space (loop triangles),
+    # so every texel knows where on the dorsal-ventral axis it lives.
+    me.calc_loop_triangles()
+    uv_layer = me.uv_layers.active.data
+    tmap = np.full((H, W), -1.0, dtype=np.float32)
+    for tri in me.loop_triangles:
+        pts = []
+        for li, vi in zip(tri.loops, tri.vertices):
+            u, v = uv_layer[li].uv
+            pts.append((u * (W - 1), (1.0 - v) * (H - 1), tvert[vi]))
+        xs = [p[0] for p in pts]; ys = [p[1] for p in pts]
+        x0 = max(0, int(math.floor(min(xs)))); x1 = min(W - 1, int(math.ceil(max(xs))))
+        y0 = max(0, int(math.floor(min(ys)))); y1 = min(H - 1, int(math.ceil(max(ys))))
+        if x1 < x0 or y1 < y0:
+            continue
+        (ax_, ay, at), (bx, by, bt), (cx, cy, ct) = pts
+        den = (by - cy) * (ax_ - cx) + (cx - bx) * (ay - cy)
+        if abs(den) < 1e-12:
+            continue
+        yy, xx = np.mgrid[y0:y1 + 1, x0:x1 + 1]
+        xx = xx.astype(np.float32); yy = yy.astype(np.float32)
+        l1 = ((by - cy) * (xx - cx) + (cx - bx) * (yy - cy)) / den
+        l2 = ((cy - ay) * (xx - cx) + (ax_ - cx) * (yy - cy)) / den
+        l3 = 1.0 - l1 - l2
+        m = (l1 >= -0.002) & (l2 >= -0.002) & (l3 >= -0.002)
+        if not m.any():
+            continue
+        blk = tmap[y0:y1 + 1, x0:x1 + 1]
+        blk[m] = (l1 * at + l2 * bt + l3 * ct)[m]
+        tmap[y0:y1 + 1, x0:x1 + 1] = blk
+
+    body = tmap >= 0.0
+    if body.sum() < 64:
+        print('FLATLUM skipped: UV rasterisation covered only %d texels' % body.sum())
+        return
+
+    # Weight every texel by how much MESH it represents, not by its area in the
+    # atlas. UV charts are not area-preserving -- a fin can own a quarter of the
+    # map -- so an atlas-uniform fit flattens the texture while leaving the
+    # SURFACE gradient (which is what the renderer and the verifier both see)
+    # partly intact. Vertex density per bin supplies that weight.
+    NB = 24
+    vbins = np.clip((tvert * NB).astype(np.int32), 0, NB - 1)
+    vcount = np.bincount(vbins, minlength=NB).astype(np.float64)
+    tcount = np.bincount(np.clip((tmap[body] * NB).astype(np.int32), 0, NB - 1),
+                         minlength=NB).astype(np.float64)
+    # per-texel weight = (verts in this bin) / (texels in this bin)
+    wbin = np.where(tcount > 0, vcount / np.maximum(tcount, 1.0), 0.0)
+    if wbin.max() > 0:
+        wbin = wbin / wbin.max()
+    # Bins carrying very few vertices are noise; do not let them drive the fit.
+    wbin = np.where(vcount < 12, 0.0, wbin)
+
+    lin = to_lin(rgb)
+    lum = 0.2126 * lin[:, :, 0] + 0.7152 * lin[:, :, 1] + 0.0722 * lin[:, :, 2]
+
+    # Low-frequency profile: mean luminance per dorsal-ventral bin, smoothed.
+    bins = np.clip((tmap * NB).astype(np.int32), 0, NB - 1)
+    idx = np.arange(NB)
+    k = np.array([1, 2, 3, 2, 1], dtype=np.float64); k /= k.sum()
+
+    def fit_profile(L):
+        p = np.zeros(NB, dtype=np.float64)
+        c = np.zeros(NB, dtype=np.float64)
+        np.add.at(p, bins[body], L[body])
+        np.add.at(c, bins[body], 1.0)
+        ok = (c > 8) & (wbin > 0)
+        if ok.sum() < 4:
+            return None
+        p = np.interp(idx, idx[ok], p[ok] / c[ok])
+        return np.convolve(np.pad(p, 2, mode='edge'), k, mode='valid')
+
+    prof = fit_profile(lum)
+    if prof is None:
+        print('FLATLUM skipped: too few populated bins')
+        return
+
+    # The profile can span 4x between the darkest and brightest band, so a
+    # single clamped divide under-corrects the dark end while fully correcting
+    # the bright end -- which shows up as a residual, inverted gradient. Apply
+    # the divide ITERATIVELY, re-fitting the profile from the corrected image
+    # each round, so each pass only has to move a little and the clamp never
+    # binds. Three rounds takes the residual into the noise.
+    ROUNDS = 4
+    for _ in range(ROUNDS):
+        lum_i = 0.2126 * lin[:, :, 0] + 0.7152 * lin[:, :, 1] + 0.0722 * lin[:, :, 2]
+        p = fit_profile(lum_i)
+        if p is None:
+            break
+        # The level to flatten TO is the vertex-weighted mean, so the surface
+        # (not the atlas) ends up uniform.
+        wsum = float(wbin.sum())
+        overall = float((p * wbin).sum() / wsum) if wsum > 1e-9 else float(p.mean())
+        ramp = np.maximum(np.interp(np.clip(tmap, 0, 1) * (NB - 1), idx, p), 1e-4)
+        gain = np.clip(overall / ramp, 0.30, 3.5)
+        gain = 1.0 + (gain - 1.0) * strength
+        lin *= np.where(body, gain, 1.0)[:, :, None]
+
+    # Renormalise the body's mean luminance to the target (in sRGB terms).
+    lum2 = 0.2126 * lin[:, :, 0] + 0.7152 * lin[:, :, 1] + 0.0722 * lin[:, :, 2]
+    # Vertex-weighted, so the level reflects the surface rather than the atlas.
+    # A uniform scale cannot change the dorsal-belly DELTA -- it only sets where
+    # the flattened hide sits overall.
+    pl = fit_profile(lum2)
+    wsum = float(wbin.sum())
+    if pl is not None and wsum > 1e-9:
+        cur_lin = float((pl * wbin).sum() / wsum)
+    else:
+        cur_lin = float(np.mean(lum2[body]))
+    if cur_lin > 1e-6:
+        lin *= to_lin(np.array([float(target)], dtype=np.float32))[0] / cur_lin
+
+    out = to_srgb(lin)
+
+    if desat > 0.0:
+        l2 = 0.2126 * lin[:, :, 0] + 0.7152 * lin[:, :, 1] + 0.0722 * lin[:, :, 2]
+        neutral = to_srgb(np.repeat(l2[:, :, None], 3, axis=2))
+        d = np.where(body[:, :, None], desat, 0.0)
+        out = out * (1.0 - d) + neutral * d
+
+    out = np.clip(out, 0.0, 1.0)
+    px[:, :, :3] = out
+    img.pixels[:] = px.reshape(-1).tolist()
+
+    # Report on the FINAL pixels, in the same linear-luminance terms the
+    # verifier uses, so the number here is the number that ships.
+    fl = to_lin(out)
+    flum = 0.2126 * fl[:, :, 0] + 0.7152 * fl[:, :, 1] + 0.0722 * fl[:, :, 2]
+    # Vertex-weighted bands, matching how the runtime/verifier samples.
+    pf = fit_profile(flum)
+    if pf is not None and float(wbin.sum()) > 1e-9:
+        hi_m = (idx >= NB * 0.75) & (wbin > 0)
+        lo_m = (idx < NB * 0.25) & (wbin > 0)
+        dor = float((pf[hi_m] * wbin[hi_m]).sum() / max(1e-9, wbin[hi_m].sum())) if hi_m.any() else float('nan')
+        bel = float((pf[lo_m] * wbin[lo_m]).sum() / max(1e-9, wbin[lo_m].sum())) if lo_m.any() else float('nan')
+    else:
+        dor = float(np.mean(flum[body & (tmap > 0.75)]))
+        bel = float(np.mean(flum[body & (tmap < 0.25)]))
+    print('FLATLUM up_ax=%d texels=%d prof %.4f..%.4f | dorsalLum %.4f bellyLum %.4f delta %+.4f meanLum %.4f'
+          % (up_ax, int(body.sum()), float(prof.min()), float(prof.max()),
+             dor, bel, dor - bel, float(np.mean(flum[body]))))
+
+
+if a.flatlum or a.desat > 0.0:
+    try:
+        flatten_dorsal_luminance(img_d, low, strength=1.0 if a.flatlum else 0.0,
+                                 target=a.flatlum_mean, desat=a.desat)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print('FLATLUM FAILED, keeping raw bake:', e)
 
 bake(tex_n, type='NORMAL', use_selected_to_active=True, normal_space='TANGENT')
 for img in (img_d, img_n):

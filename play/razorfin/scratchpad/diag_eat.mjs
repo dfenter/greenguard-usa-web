@@ -1,0 +1,20 @@
+import puppeteer from 'puppeteer-core';
+import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path';
+const root='/Users/lucille/greenguard-usa-web'; const port=47811;
+const server=http.createServer((rq,rs)=>{let f=decodeURIComponent(rq.url.split('?')[0]);if(f.endsWith('/'))f+='index.html';fs.readFile(path.join(root,f),(e,d)=>{if(e){rs.writeHead(404);rs.end();return;}const x=path.extname(f);rs.writeHead(200,{'content-type':x==='.js'?'text/javascript':x==='.png'?'image/png':x==='.glb'?'model/gltf-binary':'text/html'});rs.end(d);});});
+await new Promise(r=>server.listen(port,r));
+const b=await puppeteer.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',args:['--no-sandbox','--mute-audio']});
+const p=await b.newPage(); p.on('pageerror',e=>console.log('PAGEERR',e.message,'\n',(e.stack||'')));p.on('console',m=>{if(m.type()==='error')console.log('CONSOLE',m.text());});
+await p.setViewport({width:844,height:390,deviceScaleFactor:2,isMobile:true,hasTouch:true});
+const c=await p.target().createCDPSession(); await c.send('Network.setBypassServiceWorker',{bypass:true});
+await p.goto(`http://127.0.0.1:${port}/play/razorfin/?unlockall=1`,{waitUntil:'load'});
+await new Promise(r=>setTimeout(r,4500));
+console.log(JSON.stringify(await p.evaluate(()=>({hasRF:!!window.RF,gameKeys:window.RF&&window.RF.Game?Object.keys(window.RF.Game):null,worldKeys:window.RF&&window.RF.World?Object.keys(window.RF.World).slice(0,30):null}))));
+await p.evaluate(async()=>{window.RF.Game.selectLevel&&window.RF.Game.selectLevel('hawaii');window.RF.Game.startRun('reef');});
+await new Promise(r=>setTimeout(r,3000));
+console.log(JSON.stringify(await p.evaluate(()=>{const G=window.RF.Game,ctx=G.ctx;const W=window.RF.World;const ents=(W&&W.entities)||[];const p=ctx&&ctx.player;
+ return {running:G.running,hasCtx:!!ctx,player:p?{x:p.x,y:p.y,tier:p.tier,r:p.r,hp:p.hp}:null,entCount:ents.length,kinds:ents.slice(0,40).map(e=>e&&e.defId+':'+e.kind+':t'+e.tier),mouth:ctx&&ctx.mouth?{x:ctx.mouth.x,y:ctx.mouth.y,r:ctx.mouth.r}:null,level:ctx&&ctx.level};}),null,2));
+// key test
+await p.keyboard.down('KeyD'); await new Promise(r=>setTimeout(r,2000));
+console.log('after key', JSON.stringify(await p.evaluate(()=>{const p=window.RF.Game.ctx.player;return {x:p.x,y:p.y,vx:p.vx,vy:p.vy};})));
+await b.close(); server.close();
