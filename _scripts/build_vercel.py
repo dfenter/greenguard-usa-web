@@ -750,7 +750,11 @@ def main():
     # authored by the ue-port-studio mobile run 2026-08-05).
     play_src = os.path.join(REPO, 'play')
     if os.path.isdir(play_src):
-        shutil.copytree(play_src, os.path.join(OUT, 'play'))
+        # Rev 15: lane evidence / scratchpads / notes are dev-only (hundreds of MB).
+        play_ignore = shutil.ignore_patterns('evidence', 'evidence-*', 'scratchpad', 'shots*',
+                                             'review_evidence', 'heads_raw', 'NOTES-*.md',
+                                             'REVIEW-*.md', '*.log', '*.bak')
+        shutil.copytree(play_src, os.path.join(OUT, 'play'), ignore=play_ignore)
         print('  COPY  play/')
 
     # Copy FLIPSIDE papercraft Tetris (served at /flipside/; canonical source
