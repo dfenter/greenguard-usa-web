@@ -779,6 +779,23 @@ function commitRestGape(rigRoot, shark3dRestRadians = 0) {
   if (!gape?.pending || !gape.commit) return null;
   const bone = findBone(rigRoot, gape.commit.boneName);
   if (!bone) return null;
+
+  /* r15 lane JAW. The CLOSED base is captured BEFORE the hinge, and published.
+   *
+   * This used to hinge the bone and walk away, which made the open pose the
+   * bone's resting quaternion. shark3d.js then captured THAT as
+   * `baseJawQuaternion` and every frame did `copy(base); rotateX(+gape)`, so
+   * the jaw's floor was ~26 deg open and no input could ever close it - the
+   * owner's "sharks with open jaws never shut them", exactly.
+   *
+   * The hinge itself is still applied here, because face_textured.js has to
+   * author the lip line, tooth seats and cavity against the POSED mouth (see
+   * the long note at its call site). What changes is that the closed base and
+   * the rest/max angles are recorded on `rfJawAuthority` first, so a single
+   * per-frame writer can reconstruct ANY angle from the closed pose instead of
+   * accumulating on top of an already-open one. face_textured restores the
+   * bone to that base once the face is authored. */
+  const closedBase = bone.quaternion.clone();
   const applied = gape.commit.absoluteRadians - finite(shark3dRestRadians, 0);
   bone.rotateOnAxis(JAW_HINGE_AXIS, applied);
   rigRoot.updateMatrixWorld(true);
@@ -786,8 +803,57 @@ function commitRestGape(rigRoot, shark3dRestRadians = 0) {
   gape.applied = true;
   gape.netHingeDeg = Number((applied * 180 / Math.PI).toFixed(2));
   gape.shark3dRestDeg = Number((finite(shark3dRestRadians, 0) * 180 / Math.PI).toFixed(2));
+
+  /* THE GAPE AUTHORITY RECORD. One place that says, for this rig: where the
+   * jaw is when shut, which way it opens, and how far. `openRadians` is the
+   * signed FULL-open travel; the runtime scales it by a 0..1 gape signal.
+   *
+   * `restRadians` is deliberately NOT the 26 deg the old rest pose baked in.
+   * A shark at rest holds a slight gape, not a yawn - the brief asks for
+   * 12-18% of full travel. The authored 26 deg becomes the reference for
+   * FULL open, and rest sits at a fraction of it. */
+  rigRoot.userData.rfJawAuthority = {
+    boneName: gape.commit.boneName,
+    axis: [JAW_HINGE_AXIS.x, JAW_HINGE_AXIS.y, JAW_HINGE_AXIS.z],
+    closedBase: [closedBase.x, closedBase.y, closedBase.z, closedBase.w],
+    /* Signed radians from the closed base to a FULL open jaw. The authored
+     * rest gape (~26 deg) is the widest this bake was measured to open
+     * cleanly, so it is the natural full-open reference. */
+    openRadians: applied,
+    openDeg: Number((applied * 180 / Math.PI).toFixed(2)),
+    sign: gape.sign,
+  };
   return gape;
 }
 
-export { applyMorph, measureMorph, commitRestGape };
+/* THE SINGLE GAPE AUTHORITY.
+ *
+ * Writes the LowerJaw quaternion for one frame, from the CLOSED base pose plus
+ * an angle. Nothing else may touch that bone: the r15 defect was three writers
+ * (commitRestGape's bake, shark3d's build-time line, shark3d's per-frame line)
+ * composing on top of each other, which is how the rest pose ended up being
+ * the open pose and why the jaw could not shut.
+ *
+ * `gape01` is 0 (fully shut) .. 1 (fully open), where "fully open" is the
+ * angle the bake was measured to hinge to. It is absolute, not incremental,
+ * so calling this twice in a frame is harmless and calling it with 0 always
+ * produces a closed mouth regardless of what ran before.
+ *
+ * Returns the applied angle in degrees so a probe or gate can read the
+ * rendered jaw without re-deriving it from the quaternion.
+ */
+function writeJawGape(rigRoot, gape01) {
+  const authority = rigRoot?.userData?.rfJawAuthority;
+  if (!authority) return null;
+  const bone = findBone(rigRoot, authority.boneName);
+  if (!bone) return null;
+  const k = Math.min(Math.max(finite(gape01, 0), 0), 1);
+  const base = authority.closedBase;
+  bone.quaternion.set(base[0], base[1], base[2], base[3]);
+  const angle = authority.openRadians * k;
+  if (angle) bone.rotateOnAxis(JAW_HINGE_AXIS, angle);
+  return Number((angle * 180 / Math.PI).toFixed(3));
+}
+
+export { applyMorph, measureMorph, commitRestGape, writeJawGape };
 export default applyMorph;

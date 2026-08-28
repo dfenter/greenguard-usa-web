@@ -185,6 +185,37 @@ import * as THREE from 'three';
   var PANIC_JITTER = 0.9;       // rad/s perpendicular jitter rate while panicking
   var PANIC_BEND_MULT = 2;      // doubled instanced bend amp per 6.5
 
+  // Rev 15 FISH SMOOTHNESS. The owner's verdict was "fish animations are
+  // gyrating weird and not smooth". Four measured causes, all here:
+  //
+  // 1. TAIL PHASE was `entPhase(e) + t` — the shared wall clock. Every fish
+  //    beat at exactly the same fixed rate regardless of how fast it was
+  //    actually swimming, and any hitch in `t` (hit-stop consumes frame time,
+  //    the fixed-step accumulator drops a backlog) stepped the phase by a
+  //    varying amount. Measured steps ranged 0.083..0.333 rad on consecutive
+  //    frames. A tail wave must INTEGRATE dt * freq with freq driven by
+  //    speed, so it is continuous by construction and a faster fish beats
+  //    faster. st.bendPhase is that integral.
+  // 2. BEND AMPLITUDE was assigned straight from the instantaneous speed
+  //    fraction, so boids jitter in the velocity showed up as the tail
+  //    amplitude snapping frame to frame (measured 0.12 -> 0.0506 -> 0.0639
+  //    on three consecutive frames). It is now eased toward its target.
+  // 3. DISPLAY HEADING: faceAngle() smooths toward e.angle at FACE_TURN with
+  //    NO RATE LIMIT, and `clamp(FACE_TURN*dt,0,1)` at FACE_TURN 9 is a ~0.15
+  //    blend per frame — against a velocity that reverses under separation
+  //    that still yields 40-105 deg in a single frame (measured). A real fish
+  //    cannot yaw like that. TURN_MAX_RATE caps the per-second yaw.
+  // 4. BANKING (roll) is derived from the rate-limited yaw rate and is itself
+  //    eased, so a turn leans rather than twitching.
+  var BEND_FREQ_MIN = 1.6;      // Hz at an idle drift
+  var BEND_FREQ_MAX = 5.2;      // Hz at full speed
+  var BEND_AMP_EASE = 7.0;      // 1/s exponential ease toward the target amp
+  var BEND_AMP_IDLE = 0.28;     // idle-swim floor: nothing is ever frozen-stiff
+  var TURN_MAX_RATE = 6.283;    // rad/s display-yaw cap (~360 deg/s)
+  var BANK_PER_YAW = 0.30;      // rad of roll per rad/s of yaw rate
+  var BANK_MAX = 0.45;          // hard roll cap (~26 deg)
+  var BANK_EASE = 6.0;          // 1/s ease toward the banking target
+
   // Rev 6.12 PREY PANIC CUE: the lunge-captured target gets a visible cue
   // beyond movement thrash — an instance-color flash toward white/red plus a
   // small fx tracer. LUNGE_TARGET_R is deliberately tight (this identifies
@@ -233,6 +264,15 @@ import * as THREE from 'three';
                                     // below separation so slot-chasing never overrides
                                     // real-time neighbor spacing and re-clumps the school
   var SCHOOL_WANDER_W = 0.5;       // pack-level wander target weight
+  // Rev 15: the boids steer TARGET is smoothed per entity before it reaches
+  // steer(). Separation is recomputed from scratch every frame off raw
+  // neighbor positions, so two fish oscillating about their separation
+  // radius produce a force that reverses on alternating frames — measured as
+  // a 2-frame sign flip-flop in lateral velocity on 6.1% of instances, which
+  // is exactly the "gyrating" the owner saw. Smoothing the target (rather
+  // than clamping the output) keeps the flocking behaviour identical in
+  // aggregate while removing the frame-rate-coupled chatter.
+  var SCHOOL_TARGET_EASE = 9.0;    // 1/s ease on the per-entity boids target
   var SCHOOL_TURN_RATE = 2.1;      // bounded turn (steer() 'turn' param); slower than
                                     // rev 9's 3.2 so the alignment/slot blend does not
                                     // whiplash heading frame to frame as neighbor
@@ -6781,6 +6821,18 @@ import * as THREE from 'three';
     // life half-inflated from whatever it used to be.
     st.puffS = 1;
     st.faceA = undefined;
+    // Rev 15 FISH SMOOTHNESS state. Every one of these is a SMOOTHED value
+    // whose whole purpose is continuity across frames, so a recycled pool
+    // object MUST start them clean — inheriting a previous fish's tail phase,
+    // bend amplitude, bank angle or boids target is exactly the kind of
+    // one-frame discontinuity this pass exists to remove. `undefined` is the
+    // "seed me from the current value on first use" sentinel, matching faceA.
+    st.bendPhase = undefined;   // integrated tail-wave phase (rad)
+    st.bendAmp = undefined;     // eased bend amplitude
+    st.bankA = undefined;       // eased banking roll (rad)
+    st.faceRate = 0;            // rate-limited display yaw rate (rad/s)
+    st.boidX = undefined;       // eased boids steer-target offset
+    st.boidY = undefined;
     // Rev 6.5 mouth-proximity panic, distinct from the sight-based flee mode
     // above (panicT can be running while mode is still 'wander' or 'flee').
     st.panicT = 0;
@@ -7386,10 +7438,22 @@ import * as THREE from 'three';
     var alignLen = Math.sqrt(alignX * alignX + alignY * alignY);
     var alignDirX = alignLen > 1e-4 ? alignX / alignLen : 0;
     var alignDirY = alignLen > 1e-4 ? alignY / alignLen : 0;
-    schoolScratchX = e.x + sepX * SCHOOL_SEP_W * 110 + toCohX * SCHOOL_COH_W * 40 +
+    // Raw combined target for this frame...
+    var rawOffX = sepX * SCHOOL_SEP_W * 110 + toCohX * SCHOOL_COH_W * 40 +
       alignDirX * SCHOOL_ALIGN_W * 60;
-    schoolScratchY = e.y + sepY * SCHOOL_SEP_W * 110 + toCohY * SCHOOL_COH_W * 40 +
+    var rawOffY = sepY * SCHOOL_SEP_W * 110 + toCohY * SCHOOL_COH_W * 40 +
       alignDirY * SCHOOL_ALIGN_W * 60;
+    // ...eased as an OFFSET from the entity (not as a world point, which
+    // would lag behind a moving fish and pull it backwards). This is the
+    // critically-damped smoothing that kills the 2-frame separation
+    // flip-flop; the steady-state target is unchanged, so spacing,
+    // alignment and the formation read exactly as before.
+    var k = clamp(SCHOOL_TARGET_EASE * dt, 0, 1);
+    if (typeof e.st.boidX !== 'number') { e.st.boidX = rawOffX; e.st.boidY = rawOffY; }
+    e.st.boidX += (rawOffX - e.st.boidX) * k;
+    e.st.boidY += (rawOffY - e.st.boidY) * k;
+    schoolScratchX = e.x + e.st.boidX;
+    schoolScratchY = e.y + e.st.boidY;
     return true;
   }
   var schoolScratchX = 0, schoolScratchY = 0, schoolScratchN = 0;
@@ -8620,7 +8684,18 @@ import * as THREE from 'three';
     while (d > Math.PI) d -= TAU;
     while (d < -Math.PI) d += TAU;
     var k = clamp(FACE_TURN * dt, 0, 1);
-    st.faceA += d * k;
+    var step = d * k;
+    // Rev 15: RATE LIMIT. The exponential blend alone still passes a large
+    // single-frame delta through (a boids separation kick can reverse the
+    // velocity outright, and 0.15 * PI is still ~27 deg in one frame). Cap
+    // the display yaw at TURN_MAX_RATE so a fish banks through a turn
+    // instead of snapping to each frame's noisy velocity.
+    var maxStep = TURN_MAX_RATE * dt;
+    if (step > maxStep) step = maxStep;
+    else if (step < -maxStep) step = -maxStep;
+    // Yaw RATE is what the banking roll is derived from, so stash it.
+    st.faceRate = dt > 1e-6 ? step / dt : 0;
+    st.faceA += step;
     while (st.faceA > Math.PI) st.faceA -= TAU;
     while (st.faceA < -Math.PI) st.faceA += TAU;
     return st.faceA;
@@ -8664,14 +8739,24 @@ import * as THREE from 'three';
     var batch = rec && rec.instanced ? rec.batch : null;
     if (!batch || !batch.mesh) return;
     var st = e.st;
-    var fa = faceAngle(e, dtOf());
+    var dt = dtOf();
+    var fa = faceAngle(e, dt);
     var left = Math.cos(fa) < 0;
+
+    // Rev 15 BANKING: lean into the turn, off the RATE-LIMITED yaw rate
+    // faceAngle just produced, and eased on top of that so the roll itself
+    // never steps. Sign flips with `left` because the Y half-turn below
+    // mirrors the body's roll axis along with it.
+    var bankTarget = clamp(-(st.faceRate || 0) * BANK_PER_YAW, -BANK_MAX, BANK_MAX);
+    if (left) bankTarget = -bankTarget;
+    if (typeof st.bankA !== 'number') st.bankA = bankTarget;
+    st.bankA += (bankTarget - st.bankA) * clamp(BANK_EASE * dt, 0, 1);
 
     // The loft's nose points +X. A Y half-turn preserves front-face winding
     // when the fish faces left; unlike a negative scale it keeps normals and
     // instanced culling coherent. Z carries the sim heading in Three space.
     instPosScratch.set(e.x, -e.y, Z_PLAY);
-    instEulerScratch.set(0, left ? Math.PI : 0, -fa);
+    instEulerScratch.set(st.bankA, left ? Math.PI : 0, -fa);
     instQuatScratch.setFromEuler(instEulerScratch);
     var len = renderScaleFor(e.def, e.kind, rec.localLength);
     if (e.kind === 'prey') len *= chewShrinkScale(e);
@@ -8683,13 +8768,35 @@ import * as THREE from 'three';
     var maxSpd = (e.def && (e.def.speed || (e.def.stats && e.def.stats.speed))) || 160;
     var speedFrac = maxSpd > 0 ? clamp(spd / maxSpd, 0, 1.4) : 0;
     if (st.frozenT > 0) speedFrac = 0;
-    batch.phase.setX(rec.slot, entPhase(e) + t);
-    // Rev 7.5: preserve a small idle swim while retaining a hard frozen
-    // override. Panic still multiplies the resulting visual amplitude.
-    var bendAmp = INST_BEND_AMP * (0.28 + 0.72 * clamp(speedFrac, 0, 1));
-    if (st.frozenT > 0) bendAmp = 0;
-    if (st.panicT > 0) bendAmp *= PANIC_BEND_MULT;
-    batch.amp.setX(rec.slot, bendAmp);
+
+    // Rev 15 TAIL PHASE: integrate dt * freq. Seeded once from entPhase(e) so
+    // a burst-spawned school still starts out of step (the golden-ratio
+    // spread that entPhase exists for), then advanced continuously. This is
+    // C0 by construction — it cannot jump when the frame clock hitches, and
+    // the beat rate now tracks how fast the fish is actually swimming.
+    var freq = BEND_FREQ_MIN + (BEND_FREQ_MAX - BEND_FREQ_MIN) * clamp(speedFrac, 0, 1);
+    if (st.panicT > 0) freq *= 1.35;
+    if (typeof st.bendPhase !== 'number') st.bendPhase = entPhase(e);
+    if (st.frozenT <= 0) st.bendPhase += TAU * freq * dt;
+    // Keep float precision sane on a long session. The subtraction MUST be a
+    // whole number of cycles or the wrap itself becomes the one-frame phase
+    // jump this whole change exists to remove (sin() is TAU-periodic, 1e6 is
+    // not a multiple of TAU). At the 5.2 Hz cap this is ~6 hours out, but a
+    // discontinuity that rare is worse than one that shows up in testing.
+    if (st.bendPhase > TAU * 1e5) st.bendPhase -= TAU * 1e5;
+    batch.phase.setX(rec.slot, st.bendPhase);
+
+    // Rev 15 AMPLITUDE: EASED, never set. BEND_AMP_IDLE is the idle-swim
+    // floor, so a drifting fish still sculls rather than going stiff; a hard
+    // frozen override still wins outright. Panic multiplies the target, and
+    // because the ease runs on the target the thrash ramps in over a few
+    // frames instead of popping.
+    var ampTarget = INST_BEND_AMP * (BEND_AMP_IDLE + (1 - BEND_AMP_IDLE) * clamp(speedFrac, 0, 1));
+    if (st.panicT > 0) ampTarget *= PANIC_BEND_MULT;
+    if (st.frozenT > 0) ampTarget = 0;
+    if (typeof st.bendAmp !== 'number') st.bendAmp = ampTarget;
+    st.bendAmp += (ampTarget - st.bendAmp) * clamp(BEND_AMP_EASE * dt, 0, 1);
+    batch.amp.setX(rec.slot, st.frozenT > 0 ? 0 : st.bendAmp);
 
     var tint = e._tint || 0;
     if (!tint) {

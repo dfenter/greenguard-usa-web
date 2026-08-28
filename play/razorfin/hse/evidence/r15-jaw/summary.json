@@ -1,0 +1,9 @@
+{
+ "reef": {
+  "bone": "LowerJaw",
+  "samples": 224,
+  "eats": 18,
+  "min": -2.52,
+  "max": 11.51
+ }
+}

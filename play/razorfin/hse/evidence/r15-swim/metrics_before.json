@@ -1,0 +1,68 @@
+[
+  {
+    "id": "reef",
+    "base": "dogfish",
+    "tailLatPctH": 1.99,
+    "headLatPctH": 25.13,
+    "tailVertPctH": 0.05,
+    "jerkPct": 1.87,
+    "spdJerkPct": 86.47,
+    "tailVerts": 288,
+    "headVerts": 871
+  },
+  {
+    "id": "greatwhite",
+    "base": "greatwhite_cy",
+    "tailLatPctH": 1.95,
+    "headLatPctH": 19.43,
+    "tailVertPctH": 0.04,
+    "jerkPct": 1.86,
+    "spdJerkPct": 83.03,
+    "tailVerts": 559,
+    "headVerts": 1779
+  },
+  {
+    "id": "mako",
+    "base": "mako",
+    "tailLatPctH": 0.1,
+    "headLatPctH": 1.05,
+    "tailVertPctH": 4.43,
+    "jerkPct": 4.73,
+    "spdJerkPct": 118.68,
+    "tailVerts": 553,
+    "headVerts": 693
+  },
+  {
+    "id": "tiger",
+    "base": "tiger_nu",
+    "tailLatPctH": 0.24,
+    "headLatPctH": 1.82,
+    "tailVertPctH": 5.86,
+    "jerkPct": 3.47,
+    "spdJerkPct": 58.39,
+    "tailVerts": 492,
+    "headVerts": 833
+  },
+  {
+    "id": "hammerhead",
+    "base": "smoothhammer",
+    "tailLatPctH": 2.11,
+    "headLatPctH": 23.47,
+    "tailVertPctH": 0.05,
+    "jerkPct": 1.87,
+    "spdJerkPct": 111.09,
+    "tailVerts": 317,
+    "headVerts": 1102
+  },
+  {
+    "id": "leviathanrex",
+    "base": "greatwhite_cy",
+    "tailLatPctH": 1.93,
+    "headLatPctH": 19.29,
+    "tailVertPctH": 0.04,
+    "jerkPct": 1.86,
+    "spdJerkPct": 82.24,
+    "tailVerts": 559,
+    "headVerts": 1779
+  }
+]

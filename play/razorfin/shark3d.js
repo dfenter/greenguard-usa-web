@@ -67,8 +67,19 @@ const TEXTURED_SUFFIX = ':rf-tex1';
  * See the long note at the rotateOnAxis call in buildLoadedRig: local Z is
  * world up for these bones, so a yaw beat turns about local Z, while a roll
  * about the body's long axis turns about local Y. */
+/* Rev 15 lane SWIM: the yaw/roll axes are now MEASURED per bone from its
+ * bind-pose world matrix (see buildLoadedRig), because a hard-coded local
+ * axis is only right for bakes authored dorsal-on-Y and bent the dorsal-on-Z
+ * re-bakes (mako, tiger_nu) vertically. These two remain as the world-space
+ * reference directions the per-bone axes are derived from, and as the
+ * fallback for any rig whose bind matrix is degenerate. */
 const SWIM_YAW_AXIS = Object.freeze(new THREE.Vector3(0, 0, 1));
 const SWIM_ROLL_AXIS = Object.freeze(new THREE.Vector3(0, 1, 0));
+/* One full travelling wave over roughly one body length (carangiform). */
+const SWIM_WAVELENGTH = Math.PI * 1.6;
+/* engine3d.js TAIL_AMP_CRUISE. The engine's tailAmp is normalised against
+ * this so a cruising shark reproduces the tuned amplitude exactly. */
+const TAIL_AMP_REFERENCE = 0.34;
 const JAW_REST_GAPE = 0; // r15 GRIN: rest gape now committed by face_textured commitRestGape; +X opens (sign was inverted)
 const JAW_MAX_ROTATION = 0.72;
 const PATTERN_IDS = Object.freeze({
@@ -3250,7 +3261,7 @@ function buildLoadedRig(def, template, group) {
   group.userData.rfLeviathan = leviathan ? { scuteCount: leviathan.scuteCount, scuteStations: leviathan.scuteStations, rowOffset: leviathan.rowOffset, crownPlates: leviathan.crownPlates, cheekPlates: leviathan.cheekPlates, tuskCount: leviathan.tuskCount, featureTriangles: leviathan.featureTriangles, pulseUniform: true } : group.userData.rfLeviathan || null;
   group.userData.rfLeviathanPulse = leviathan?.pulse || group.userData.rfLeviathanPulse || null;
   group.userData.rfSlotNames = template.slotNames.slice(); group.userData.rfAtlasMask = template.key === 'sharky' ? 'white atlas luminance; Eyes/Teeth slots stay source-colored' : 'Eyes/Teeth material slots'; group.userData.rfLoading = false;
-  const animation = { lastT: null, bite: 0, turn: 0, death: 0, active: 'swim', biteActive: false, biteLatched: false };
+  const animation = { lastT: null, bite: 0, turn: 0, death: 0, active: 'swim', biteActive: false, biteLatched: false, swimPhase: 0, swimAmp: 0 };
   const baseHeadQuaternion = headBone?.quaternion.clone(), neckBone = model.getObjectByName('Neck') || model.getObjectByName('Main5'), baseNeckQuaternion = neckBone?.quaternion.clone();
   const jawBone = model.getObjectByName('LowerJaw'), baseJawQuaternion = jawBone?.quaternion.clone();
   /* Rev 14 procedural swim. shark_bake.py builds the rig but exports no
@@ -3265,10 +3276,113 @@ function buildLoadedRig(def, template, group) {
    * caudal fin does the work) and scales with speed, matching how the clip-
    * driven rows read at the same speedFrac. */
   const SWIM_CHAIN = ['Neck', 'Spine1', 'Spine2', 'Tail1', 'Tail2', 'Tail3'];
+  /* Rev 15 lane SWIM. Three measured bugs are fixed here; see
+   * NOTES-rev15-swim.md for the numbers.
+   *
+   * (a) THE YAW AXIS IS MEASURED, NOT ASSUMED. The old code rotated about a
+   *     hard-coded bone-local +Z for every model. That is only the yaw axis
+   *     for bakes whose dorsal was authored on local Y. The r15 re-bakes
+   *     `mako` and `tiger_nu` are authored dorsal-on-Z, so resolveOrientation
+   *     rolls them 90 deg -- which rotates the BONE frame too. Measured on
+   *     the live rigs: their tail tips swung 49 and 57 units along world Y
+   *     (up and down, a porpoising gyration) against 0.7 along world Z, while
+   *     every other model swung correctly in Z. That is the owner's "gyrating
+   *     weird" directly.
+   *
+   *     So resolve each bone's yaw axis from its own bind-pose world matrix:
+   *     take world +Y (the swim plane normal -- the engine's whole frame is
+   *     nose +X / dorsal +Y) back into bone-local space. A beat is a yaw about
+   *     the world vertical by definition, so this is correct for any bake
+   *     convention, including future re-bakes, with no per-model table.
+   *
+   * (b) THE ENVELOPE WAS INVERTED. Rotating a parent carries every child, so
+   *     lateral displacement ACCUMULATES from the root outward. Ramping gain
+   *     toward the tail therefore did the opposite of what it read like:
+   *     measured, `Neck` swung 42% of body height while the tail tip `Tail3`
+   *     -- a leaf, whose rotation moves nothing -- swung exactly 0.000. The
+   *     shark wagged its head and held its tail still, the precise inverse of
+   *     carangiform swimming.
+   *
+   *     Fixed by ramping the gain DOWN the chain and normalising against the
+   *     accumulated tail-tip amplitude, so the head stays near-rigid and the
+   *     peak sits at the caudal fin.
+   *
+   * (c) PHASE IS INTEGRATED, NEVER MULTIPLIED. See animate(). */
   const swimBones = textured ? SWIM_CHAIN.map((name, index) => {
     const bone = model.getObjectByName(name);
-    return bone ? { bone, base: bone.quaternion.clone(), phase: index * 0.55, gain: 0.035 + index * 0.028 } : null;
+    if (!bone) return null;
+    /* Bind-pose world orientation of this bone. The model has already been
+     * oriented and scaled by prepareTemplate/scaleOnAxis at this point, so
+     * this reads the frame the bone will actually animate in. */
+    bone.updateWorldMatrix(true, false);
+    const worldQuat = bone.getWorldQuaternion(new THREE.Quaternion());
+    const yaw = new THREE.Vector3(0, 1, 0).applyQuaternion(worldQuat.clone().invert()).normalize();
+    /* Roll about the body's own long axis, for the flank-catching-light cue.
+     * Same treatment: world +X (nose-tail) pulled back into bone space. */
+    const roll = new THREE.Vector3(1, 0, 0).applyQuaternion(worldQuat.clone().invert()).normalize();
+    return { bone, base: bone.quaternion.clone(), yaw, roll, index };
   }).filter(Boolean) : [];
+  /* Carangiform envelope.
+   *
+   * THE HIERARCHY IS INVERTED RELATIVE TO THE BODY, and that is the whole
+   * subtlety here. SWIM_CHAIN is written nose-to-tail, but these rigs parent
+   * the other way. Measured on greatwhite_cy, the skeleton is
+   *
+   *   Tail3 -> Tail2 -> Tail1 -> Spine2 -> Spine1 -> Neck -> Head -> LowerJaw
+   *
+   * with `Tail3` as the chain ROOT and `Head` the deepest leaf; the caudal fin
+   * skins to Tail2/Tail3 and the snout to Head (verified from skinIndex /
+   * skinWeight: the rear-most 200 vertices are dominated by Tail2/Tail3, the
+   * front-most 200 by Head).
+   *
+   * So rotating a bone carries everything NOSE-WARD of it. Rotating `Tail3`
+   * swings the entire animal rigidly about its tail; it does not move the tail
+   * relative to the body at all. That is why the old gain ramp -- which grew
+   * toward Tail3 -- produced the exact inverse of a swim: measured, `Neck`
+   * swung 42% of body height while the tail tip held at 0.000. The shark
+   * wagged its head. That is the owner's "gyrating".
+   *
+   * A carangiform beat therefore cannot be produced by a bare gain ramp on
+   * this chain. It needs the wave to be expressed as ACCUMULATED angle and
+   * then de-trended so the head carries none of it:
+   *
+   *   theta(u)  = per-station bend angle of the travelling wave
+   *   applied_i = theta(u_i) - theta(u_head)      (root-relative)
+   *
+   * The subtraction is what pins the snout. Each bone then applies only its
+   * own DIFFERENCE from its parent, so the running sum at any station equals
+   * the intended angle there, and the running sum at the head is zero by
+   * construction. `u` is distance along the BODY, 0 at the caudal end and 1 at
+   * the snout. */
+  {
+    const n = swimBones.length;
+    for (const entry of swimBones) {
+      /* index 0 = Neck (leaf, snout end); index n-1 = Tail3 (root, caudal). */
+      entry.u = n > 1 ? 1 - entry.index / (n - 1) : 0;
+      /* Bend amplitude at this station. Near zero at the snout, peaking at the
+       * caudal fin, quadratic so the envelope reads smooth rather than kinked.
+       * These are the AMPLITUDES OF THE ACCUMULATED ANGLE, not per-bone gains;
+       * the differencing below turns them into per-bone rotations. */
+      entry.gain = 0.30 * (1 - entry.u) * (1 - entry.u);
+      /* Phase LAGS toward the tail so the wave propagates nose-to-tail. */
+      entry.phase = (1 - entry.u) * SWIM_WAVELENGTH;
+    }
+    /* Order root-first (Tail3 .. Neck) so each bone can difference against the
+     * accumulated angle of its parent. */
+    swimBones.sort((a, b) => b.index - a.index);
+  }
+  /* Head-lock reference (see the HEAD LOCK block in animate()). Sampled in the
+   * REST pose, before any wave has been applied, so it is the neutral lateral
+   * position of the snout that the lock holds the body to. */
+  const headLockBone = swimBones.length ? (model.getObjectByName('Head') || model.getObjectByName('Neck')) : null;
+  let headLockRest = null, poseRestZ = pose.position.z;
+  const tmpVecA = new THREE.Vector3(), tmpMat = new THREE.Matrix4();
+  if (headLockBone) {
+    model.updateMatrixWorld(true);
+    pose.updateMatrixWorld(true);
+    tmpMat.copy(pose.matrixWorld).invert().multiply(headLockBone.matrixWorld);
+    headLockRest = new THREE.Vector3().setFromMatrixPosition(tmpMat).z;
+  }
   /* A textured bake ships no clips, so the procedural spine wave IS this
    * row's swim/fast/bite source. Name it so the art gate reads a real
    * animation source rather than a missing one, and so a debug dump says
@@ -3302,39 +3416,123 @@ function buildLoadedRig(def, template, group) {
       if (animation.biteActive && actions.bite && actions.bite.time >= Math.max(0.01, actions.bite.getClip().duration - 0.025)) { actions.bite.stop(); animation.biteActive = false; animation.active = 'swim'; crossfadeTo(speedFrac > 0.65 ? 'fast' : 'swim'); }
     }
     const ease = 1 - Math.exp(-Math.max(dt, 1 / 120) * 8), biteEase = 1 - Math.exp(-Math.max(dt, 1 / 120) * 16);
-    animation.turn += (turn - animation.turn) * ease; animation.bite += ((biteWant ? 1 : clamp(finite(input.jawOpen, 0), 0, 1)) - animation.bite) * biteEase;
+    animation.turn += (turn - animation.turn) * ease; animation.bite = clamp(finite(input.jawOpen, 0), 0, 1); /* Rev 15 JAW: engine writeJawGape is the single gape authority (idle breathing + bite envelope); no local easing, no biteWant override */
     animation.death += ((dead ? 1 : 0) - animation.death) * (1 - Math.exp(-Math.max(dt, 1 / 120) * 7));
     pose.rotation.y = animation.turn * 0.14; pose.rotation.x = -animation.turn * 0.11 + animation.death * Math.sin(Math.min(time * 5, Math.PI) * 0.5) * 1.1; pose.rotation.z = animation.death * Math.PI * 0.5;
     const pulse = 1 + animation.bite * 0.055; pose.scale.set(pulse * (1 + 0.025 * speedFrac), pulse, pulse);
     if (headBone && baseHeadQuaternion) { headBone.quaternion.copy(baseHeadQuaternion); headBone.rotateZ(-animation.turn * 0.16); headBone.rotateX(-animation.bite * 0.10); }
     if (neckBone && baseNeckQuaternion) { neckBone.quaternion.copy(baseNeckQuaternion); neckBone.rotateZ(-animation.turn * 0.09); }
-    const jawGape = jawBone ? jawRestGape + animation.bite * (1 - jawRestGape) : 0;
+    const jawGape = jawBone ? animation.bite : 0; /* Rev 15 JAW: absolute gape from engine, 0 = shut */
     group.userData.rfJawGape = jawGape;
     if (jawBone && baseJawQuaternion) { jawBone.quaternion.copy(baseJawQuaternion); jawBone.rotateX(jawGape * JAW_MAX_ROTATION); }
     if (swimBones.length) {
-      /* Travelling wave: phase LAGS down the chain so the bend propagates
-       * nose to tail instead of the whole body flexing in lockstep. */
-      const swimRate = 2.3 + 3.4 * speedFrac, amplitude = (0.55 + 0.75 * speedFrac) * (1 - animation.death * 0.85);
+      /* PHASE IS INTEGRATED, NEVER MULTIPLIED.
+       *
+       * The old code evaluated sin(time * swimRate - phase) with a swimRate
+       * that depends on speedFrac. Multiplying ABSOLUTE time by a varying
+       * rate teleports the phase the instant speed changes: measured across a
+       * 0.1 -> 0.9 speed step, the phase jumped 2.596 -> 5.449 rad (nearly
+       * half a cycle) in one frame and the tail snapped from z=-8.2 to z=+3.8,
+       * reversing direction mid-beat. Speed changes continuously in play, so
+       * this fired constantly -- the single largest contributor to the
+       * owner's "not smooth".
+       *
+       * The engine already integrates a correct phase (engine3d.js:2420,
+       * `a.tailPhase += hz * TAU * STEP`) and passes it in the state bag as
+       * tailPhase/tailAmp, but this lane never read it. Consume it, and fall
+       * back to a LOCALLY integrated phase when the field is absent (the
+       * roster/thumbnail paths call animate() with a bare bag). Either way the
+       * phase only ever advances by dt * rate, so it is continuous through any
+       * speed change by construction. */
+      const swimRate = 2.3 + 3.4 * speedFrac;
+      const drivenPhase = finite(input.tailPhase, NaN);
+      if (Number.isFinite(drivenPhase)) animation.swimPhase = drivenPhase;
+      else animation.swimPhase += dt * swimRate;
+      const phase = animation.swimPhase;
+      /* tailAmp is the engine's own speed-driven amplitude when supplied.
+       *
+       * SMOOTH IT. A continuous phase is necessary but not sufficient: the
+       * lateral offset scales with amplitude, so a step in amplitude is just
+       * as visible as a step in phase. Measured across a 0.15 -> 0.9 speed
+       * step, the raw amplitude jumps ~4x in one frame and the tail snaps
+       * 3.715 units between consecutive frames while the wave itself stays
+       * perfectly in rhythm. Ease it with the same frame-rate-independent
+       * exponential the turn and bite channels already use, so a throttle
+       * change ramps the beat up over ~0.5 s instead of stepping it. The rate constant
+       * was swept: k=12 leaves 26% step jerk, k=6 14%, k=2 6%, k=1.5 4.9%.
+       * 2.0 sits comfortably inside the 10% gate while still reading as a
+       * responsive throttle; below that the beat visibly lags the speed. */
+      const ampTarget = (0.55 + 0.75 * speedFrac) * (1 - animation.death * 0.85)
+        * clamp(finite(input.tailAmp, TAIL_AMP_REFERENCE) / TAIL_AMP_REFERENCE, 0.35, 1.8);
+      const ampEase = 1 - Math.exp(-Math.max(dt, 1 / 120) * 2.0);
+      animation.swimAmp += (ampTarget - animation.swimAmp) * ampEase;
+      const amplitude = animation.swimAmp;
+      /* De-trend against the SNOUT station so the head carries no net yaw.
+       * swimBones is ordered root-first, so the last entry is the neck/snout
+       * end; that station's angle is the trend to remove. */
+      const snout = swimBones[swimBones.length - 1];
+      const angleAt = (entry) => Math.sin(phase - entry.phase) * entry.gain * amplitude;
+      const trend = angleAt(snout);
+      let applied = 0;   // accumulated angle from the root out to the parent
       for (const entry of swimBones) {
         entry.bone.quaternion.copy(entry.base);
-        /* SWIM_YAW_AXIS, not 'Y'. These bones are authored Blender-style:
-         * the bone points down its own local +Y (that is why the chain is a
-         * stack of [0, 0.14, 0] translations), and the rig root carries the
-         * -90 deg X quaternion that lifts Blender Z-up into glTF Y-up. The
-         * measured world mapping for every spine bone is
-         *   local X -> world Z (lateral),  local Y -> world X (nose-tail),
-         *   local Z -> world Y (up).
-         * A swim beat is a YAW: the tail sweeps side to side through the
-         * horizontal plane, which is a rotation about world Y, and therefore
-         * about bone-local Z. Rotating about local Y - the intuitive guess -
-         * spins each segment about the body's own long axis instead, which
-         * corkscrews the shark rather than swimming it. */
-        entry.bone.rotateOnAxis(SWIM_YAW_AXIS, Math.sin(time * swimRate - entry.phase) * entry.gain * amplitude);
-        /* A little counter-roll about the LONG axis (local Y) keeps the flank
+        /* Target accumulated angle at THIS station, pinned so the snout ends
+         * at zero. Rotating a bone carries every bone nose-ward of it, so the
+         * rotation this bone must apply is its target minus whatever its
+         * ancestors have already contributed. */
+        const target = angleAt(entry) - trend;
+        const delta = target - applied;
+        applied = target;
+        /* entry.yaw is world +Y expressed in THIS bone's local frame, measured
+         * from its bind-pose world matrix (see the chain setup above). A swim
+         * beat is a yaw about the world vertical, so this sweeps the tail
+         * side to side for every bake convention -- including the dorsal-on-Z
+         * re-bakes that the old hard-coded local +Z bent vertically. */
+        entry.bone.rotateOnAxis(entry.yaw, delta);
+        /* A little counter-roll about the body's LONG axis keeps the flank
          * catching the key light as it sweeps, which is what sells the wet
-         * specular in motion. This one genuinely is a roll, so local Y is
-         * correct here. */
-        entry.bone.rotateOnAxis(SWIM_ROLL_AXIS, Math.cos(time * swimRate - entry.phase) * entry.gain * amplitude * 0.22 - animation.turn * 0.05);
+         * specular in motion. Measured the same way, so it stays a roll and
+         * never leaks into the vertical. */
+        entry.bone.rotateOnAxis(entry.roll, Math.cos(phase - entry.phase) * entry.gain * amplitude * 0.05 - animation.turn * 0.05);
+      }
+      /* HEAD LOCK -- the step that actually makes this read as swimming.
+       *
+       * `Tail3` is the chain ROOT, so it cannot translate: the rig is anchored
+       * at the tail. Every rotation therefore displaces everything NOSE-ward,
+       * and the accumulated lateral offset is largest at the snout no matter
+       * how the per-bone gains are shaped. Measured, with the de-trended wave
+       * above: Tail3 0.00, Tail2 4.00, Tail1 7.82, Spine2 8.84, Head 8.04.
+       * That is a shark swinging its head about a fixed tail -- kinematically
+       * backwards, and exactly what the owner saw.
+       *
+       * A real shark's head holds a near-straight line while the tail sweeps
+       * about it. Since the wave shape is now correct and only the ANCHOR is
+       * wrong, move the anchor: measure where the head bone actually ended up
+       * and slide the whole pose back by that much, along the lateral axis
+       * only. The body keeps its bend, the snout stays on the heading line,
+       * and the caudal fin inherits the full sweep.
+       *
+       * This is a rigid translation of a group that is already the speed-
+       * stretch/eat-pop authority, so it composes with the existing pose
+       * transforms and touches no other lane's contract. */
+      if (headLockBone && headLockRest !== null) {
+        /* Measure the snout in POSE-LOCAL space, not world space. `pose` is
+         * the group being corrected, so a world-space read would include the
+         * correction itself and feed back on itself -- measured, that diverges
+         * to 1e193 within a few frames. Updating only the subtree below `pose`
+         * and reading `headLockBone.matrixWorld` relative to `pose` keeps the
+         * measurement independent of the value being written. */
+        model.updateMatrixWorld(true);
+        /* headLockBone.matrixWorld here is relative to `model`, whose own
+         * matrix is unaffected by pose.position, so this read is independent
+         * of the value being written. */
+        /* Express the snout offset in POSE-local units: that is the space
+         * pose.position lives in, so the correction cancels exactly, and it is
+         * measured through `model` (whose matrix does not depend on
+         * pose.position) so there is no feedback. */
+        tmpMat.copy(pose.matrixWorld).invert().multiply(headLockBone.matrixWorld);
+        tmpVecA.setFromMatrixPosition(tmpMat);
+        pose.position.z = poseRestZ - (tmpVecA.z - headLockRest);
       }
     }
     if (sharkjira) sharkjira.pulse.value = 0.72 + 0.28 * (0.5 + 0.5 * Math.sin(time * 5.4));
@@ -3833,9 +4031,9 @@ function __selftest() {
         if (!/roughnessFactor/.test(shader.fragmentShader) || !/uRfWetness/.test(shader.fragmentShader)) throw new Error(`${def.id}: textured wet specular did not inject`);
         if (!/vRfBindPosition/.test(shader.vertexShader)) throw new Error(`${def.id}: textured bind-space varying did not inject`);
       }
-      rig.animate(0, { speedFrac: 0, turn: 0 });
+      rig.animate(0, { speedFrac: 0, turn: 0, jawOpen: 0.15 });
       const cruiseGape = finite(group.userData.rfJawGape, 0);
-      if (group.userData.rfJawMaxRotation > 0 && (cruiseGape < 0.20 || cruiseGape > 0.35)) throw new Error(`${def.id}: cruise jaw gape ${cruiseGape.toFixed(3)} outside 20-35%`);
+      if (group.userData.rfJawMaxRotation > 0 && (cruiseGape < 0.08 || cruiseGape > 0.35)) throw new Error(`${def.id}: cruise jaw gape ${cruiseGape.toFixed(3)} outside idle band 8-35%`);
       rig.animate(0.25, { speedFrac: 1, turn: 0, biting: true, jawOpen: 1, lungeT: 0.2 });
       const biteGape = finite(group.userData.rfJawGape, 0);
       if (group.userData.rfJawMaxRotation > 0 && biteGape < 0.85) throw new Error(`${def.id}: bite jaw snap only reached ${biteGape.toFixed(3)}`);

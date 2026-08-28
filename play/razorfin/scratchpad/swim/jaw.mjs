@@ -1,0 +1,13 @@
+import * as THREE from 'three';
+import fs from 'node:fs'; import vm from 'node:vm'; import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+globalThis.window=globalThis;globalThis.devicePixelRatio=3;
+vm.runInThisContext(fs.readFileSync('data.js','utf8'),{filename:'data.js'});
+const m=await import(pathToFileURL(path.resolve('shark3d.js')));
+const A=globalThis.RF.Art3D||m.Art3D; await A.preload();
+const def=globalThis.RFD.SHARKS.find(s=>s.id==='reef');
+const rec=A.buildShark(def); const g=rec.group;
+rec.animate(0,{speedFrac:0,turn:0});
+console.log('rfJawGape',g.userData.rfJawGape,'rfJawMaxRotation',g.userData.rfJawMaxRotation,'rfJawRestGape',g.userData.rfJawRestGape);
+let jb=null;g.traverse(o=>{if(o.isBone&&o.name==='LowerJaw')jb=o;});
+console.log('LowerJaw bone present?',!!jb);

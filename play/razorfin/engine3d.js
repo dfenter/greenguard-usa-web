@@ -225,6 +225,21 @@ import * as THREE from 'three';
   var PREY_NEAR_RANGE_MULT = 2.2;        // 6.2: eatable inside 2.2*mouthR
   var PREY_NEAR_REFRESH = 0.25;          // seconds between presence re-scans
   var JAW_SNAP_T = 0.12;                 // 6.5: snap-close duration on swallow
+
+  // ---- r15 lane JAW: idle + bite cycle, in NORMALIZED gape (0 shut, 1 wide).
+  // These are the brief's numbers. They are normalized rather than radians
+  // because the actual hinge travel differs per bake (measured per row by
+  // rig_morph's applyRestGape); the rig scales this 0..1 by its own travel.
+  var JAW_REST = 0.15;          // rest gape, mid of the 12-18% band
+  var JAW_BREATHE_HZ = 0.6;     // slow idle breathing
+  var JAW_BREATHE_AMP = 0.04;   // +-4%
+  var JAW_IDLE_EASE = 9;        // per-second approach back onto the idle curve
+  var JAW_BITE_OPEN = 0.35;     // snap-open target
+  var JAW_BITE_CLOSE = 0.01;    // teeth met (0-2%)
+  var JAW_T_OPEN = 0.060;       // 60 ms open
+  var JAW_T_CLOSE = 0.090;      // 90 ms close
+  var JAW_T_HOLD = 0.080;       // 80 ms shut
+  var JAW_T_BACK = 0.200;       // 200 ms back to rest
   var TOO_BIG_CD = 0.6;                  // 6.6: TOO BIG cue cooldown
 
   // The sim and the 3D shark rig share one length authority. shark3d.js
@@ -1843,6 +1858,10 @@ import * as THREE from 'three';
       hp: stat.hp, maxHp: stat.hp,
       st: { chewFxCd: 0, invulnT: 0, phaseT: 0, frozenT: 0, stunT: 0, burnT: 0, poisonT: 0,
             airborne: false, usedUndying: false, eatPopT: 0, jawSnapT: 0,
+            // r15 lane JAW: the bite cycle state machine. phase is null when
+            // idle; `from` is the gape the current segment started at, so a
+            // retrigger mid-cycle blends out of wherever the jaw actually is.
+            biteCycle: { phase: null, t: 0, from: JAW_REST, closeFrame: false, pending: null },
             // Rev 6 / 6.5 + 6.2: lunge + prey-near state bag, all numbers.
             preyNear: false, preyNearCd: 0, lungeT: 0, lungeCd: 0,
             lungeX: 0, lungeY: 0,
@@ -1886,6 +1905,8 @@ import * as THREE from 'three';
       anim: {
         tailPhase: 0, tailAmp: 0, pectPhase: 0,
         bank: 0, jaw: 0, bob: 0, bobPhase: 0,
+        // r15 lane JAW: normalized gape + idle breathing phase.
+        jawGape: JAW_REST, jawBreathe: 0,
         trailX: 0, trailY: 0, trailInit: false,
         // Handed to RF.Art3D.animate every step (SPEC3D state bag). Reused,
         // never reallocated.
@@ -2430,22 +2451,79 @@ import * as THREE from 'three';
     if (a.bank > BANK_MAX) a.bank = BANK_MAX;
     else if (a.bank < -BANK_MAX) a.bank = -BANK_MAX;
 
-    // Rev 6 / 6.5: jaw opens wide on preyNear anticipation (0.85*gape, eased
-    // dt*10), the chew bite window still wins when active (it is the bigger
-    // signal), and jawSnapT drives a fast snap-close with an 8% overshoot
-    // past zero before settling, so the bite reads with a little snap-back.
-    var jawWant = p.st.chewFxCd > 0 ? JAW_OPEN * clamp(p.st.chewFxCd / 0.12, 0, 1)
-      : (p.st.preyNear ? JAW_OPEN * JAW_ANTICIPATE : 0);
-    if (p.st.jawSnapT > 0) {
-      var snapK = clamp(p.st.jawSnapT / JAW_SNAP_T, 0, 1);
-      // Close fast (dt*24) toward a slight overshoot below zero, then the
-      // normal ease pulls it back up once jawSnapT expires.
-      a.jaw += (-JAW_OPEN * 0.08 * snapK - a.jaw) * damp(24, STEP);
+    // ---- r15 lane JAW: the bite cycle.
+    //
+    // What was here before computed `a.jaw` as an eased blend and then never
+    // published it - `st.jawOpen` was not set, so shark3d's animate() read
+    // `input.jawOpen === undefined`, took 0, and the rendered gape collapsed
+    // to the constant rest gape. Measured on the real game (see
+    // hse/evidence/r15-jaw): the reef jaw sat at EXACTLY 26.00 deg for every
+    // frame of a 15 s run, including the frames where preyNear was true. The
+    // owner's "sharks with open jaws never shut them" was that number - a
+    // frozen yawn, not an animation that failed to close.
+    //
+    // It is now an explicit envelope over normalized gape (0 shut, 1 wide),
+    // driven off the SAME eat event the feedback chain uses, so the jaw and
+    // the hit-stop/popup/flash cannot drift apart:
+    //
+    //   idle   rest gape with a slow breathing oscillation
+    //   open   snap to JAW_BITE_OPEN over JAW_T_OPEN
+    //   close  drive to JAW_BITE_CLOSE over JAW_T_CLOSE   <- the CLOSE frame
+    //   hold   stay shut for JAW_T_HOLD
+    //   back   ease to rest over JAW_T_BACK
+    //
+    // Retriggering mid-cycle restarts from the CURRENT angle rather than
+    // snapping to 0 first, so a feeding frenzy chomps continuously instead of
+    // popping. That is what `bc.from` is for.
+    // Selftest harnesses build bare players; keep the cycle optional.
+    if (!p.st.biteCycle) p.st.biteCycle = { phase: null, t: 0, from: JAW_REST, closeFrame: false, pending: null };
+    var bc = p.st.biteCycle;
+    if (typeof a.jawGape !== 'number') a.jawGape = JAW_REST;
+    if (typeof a.jawBreathe !== 'number') a.jawBreathe = 0;
+    a.jawBreathe += JAW_BREATHE_HZ * TAU * STEP;
+    if (a.jawBreathe > TAU) a.jawBreathe -= TAU;
+    var restGape = JAW_REST + Math.sin(a.jawBreathe) * JAW_BREATHE_AMP;
+
+    if (bc.phase) {
+      bc.t += STEP;
+      var seg, target;
+      if (bc.phase === 'open') { seg = JAW_T_OPEN; target = JAW_BITE_OPEN; }
+      else if (bc.phase === 'close') { seg = JAW_T_CLOSE; target = JAW_BITE_CLOSE; }
+      else if (bc.phase === 'hold') { seg = JAW_T_HOLD; target = JAW_BITE_CLOSE; }
+      else { seg = JAW_T_BACK; target = restGape; }
+      var k = seg > 0 ? clamp(bc.t / seg, 0, 1) : 1;
+      // Smoothstep inside a segment: the snap still reads as a snap because
+      // the segment is 60 ms, but the frame-to-frame delta stays bounded.
+      var ks = k * k * (3 - 2 * k);
+      a.jawGape = bc.from + (target - bc.from) * ks;
+      if (k >= 1) {
+        bc.from = a.jawGape;
+        bc.t = 0;
+        if (bc.phase === 'open') {
+          bc.phase = 'close';
+        } else if (bc.phase === 'close') {
+          bc.phase = 'hold';
+          // THE CLOSE FRAME. Everything the player reads as "I ate that" fires
+          // here, one frame, not on contact: the prey is swallowed at contact
+          // (the sim cannot defer that without desyncing the tier gate), but
+          // the FEEDBACK is deferred to the moment the teeth actually meet.
+          bc.closeFrame = true;
+          fireBiteClose(p);
+        } else if (bc.phase === 'hold') {
+          bc.phase = 'back';
+        } else {
+          bc.phase = null;
+          a.jawGape = restGape;
+        }
+      }
     } else {
-      var jawEase = p.st.preyNear ? 10 : 14;
-      a.jaw += (jawWant - a.jaw) * damp(jawEase, STEP);
+      // Idle: ease toward the breathing rest gape rather than snapping onto
+      // it, so the tail of a bite blends into the idle cycle seamlessly.
+      a.jawGape += (restGape - a.jawGape) * damp(JAW_IDLE_EASE, STEP);
     }
-    if (a.jaw < 0) a.jaw = Math.max(a.jaw, -JAW_OPEN * 0.08);
+    a.jawGape = clamp(a.jawGape, 0, 1);
+    // Legacy radian mirror kept for the 2D/fallback rig, which reads a.jaw.
+    a.jaw = a.jawGape * JAW_OPEN;
 
     if (f < IDLE_SPEED_F) {
       a.bobPhase += IDLE_BOB_HZ * TAU * STEP;
@@ -2462,6 +2540,20 @@ import * as THREE from 'three';
     st.turn = num(ctl.turnIn, 0);
     st.bitePhase = p.st.chewFxCd > 0 ? clamp(p.st.chewFxCd / 0.12, 0, 1) : 0;
     st.jawSnapT = p.st.jawSnapT;
+    // r15 lane JAW: THE gape signal, 0..1. This is the line whose absence made
+    // the jaw a frozen yawn - shark3d reads input.jawOpen and got undefined.
+    // `biting` stays false: the cycle below is the only jaw authority now, and
+    // letting shark3d's own bite latch drive the bone too would be a second
+    // writer on the same quaternion, which is the bug class this lane exists
+    // to remove.
+    st.jawOpen = a.jawGape;
+    st.jawCycle = bc.phase;
+    // The sharky toon base ships a real Swim_Bite clip and drives its jaw from
+    // the mixer, not from the LowerJaw bone this lane writes. Latching `biting`
+    // to the cycle's OPEN segment starts that clip on the SAME frame the
+    // procedural cycle starts, so the two bases chomp together instead of the
+    // clip firing off the old jawSnapT/bitePhase signals a beat later.
+    st.biting = bc.phase === 'open';
     st.boosting = !!ctl.boosting;
     st.tailPhase = a.tailPhase; st.tailAmp = a.tailAmp;
     st.pectPhase = a.pectPhase; st.bank = a.bank; st.bob = a.bob;
@@ -2655,6 +2747,69 @@ import * as THREE from 'three';
     if (e.hp <= 0) swallow(e);
   }
 
+  // ---- r15 lane JAW: bite cycle trigger + deferred close-frame feedback.
+
+  // Start (or RETRIGGER) the open-close-hold-return cycle.
+  //
+  // A retrigger inside an existing cycle does NOT reset the angle - it sets
+  // `from` to wherever the jaw currently is and restarts the open segment from
+  // there, so chomping through a school reads as continuous chewing instead of
+  // the jaw popping back to a fixed pose on every fish.
+  //
+  // The impact record is merged rather than queued: several fish swallowed
+  // inside one cycle produce ONE chomp beat, at the strongest meal's
+  // intensity. Queuing them would machine-gun hit-stop, which is the exact
+  // failure the chewFxCd cooldown exists to prevent elsewhere.
+  function triggerBite(p, impact) {
+    if (!p || !p.st) return;
+    var bc = p.st.biteCycle;
+    if (!bc) return;
+    var a = p.anim;
+    bc.from = (a && typeof a.jawGape === 'number') ? a.jawGape : JAW_REST;
+    bc.phase = 'open';
+    bc.t = 0;
+    bc.closeFrame = false;
+    var prev = bc.pending;
+    if (!prev) { bc.pending = impact; return; }
+    // Keep the biggest meal's read: it owns the hit-stop weight and the flash.
+    if (num(impact.mealT, 0) >= num(prev.mealT, 0)) {
+      prev.mealT = impact.mealT; prev.isSmallPrey = impact.isSmallPrey;
+      prev.tint = impact.tint; prev.x = impact.x; prev.y = impact.y;
+      prev.angle = impact.angle;
+    }
+    prev.chroma = Math.max(num(prev.chroma, 0), num(impact.chroma, 0));
+    prev.shockScale = Math.max(num(prev.shockScale, 0), num(impact.shockScale, 0));
+    prev.shockLife = Math.max(num(prev.shockLife, 0), num(impact.shockLife, 0));
+    prev.popup = num(prev.popup, 0) + num(impact.popup, 0);
+    prev.popupMult = prev.popupMult || impact.popupMult;
+  }
+
+  // Fired on the ONE frame the jaw finishes closing. Everything here is a
+  // "the teeth just met" beat.
+  function fireBiteClose(p) {
+    var bc = p.st.biteCycle;
+    var im = bc && bc.pending;
+    bc.pending = null;
+    if (!im) return;
+    var mealT = num(im.mealT, 0);
+    var small = !!im.isSmallPrey;
+    sfx('chomp');
+    hitStop(!small ? 45 : 15);
+    if (RF.Fx && RF.Fx.eatShockwave) {
+      EAT_SHOCKWAVE_OPT.tint = im.tint;
+      EAT_SHOCKWAVE_OPT.tier = mealT;
+      EAT_SHOCKWAVE_OPT.scale = num(im.shockScale, 1.1);
+      EAT_SHOCKWAVE_OPT.life = num(im.shockLife, 420);
+      EAT_SHOCKWAVE_OPT.chroma = num(im.chroma, 0);
+      try { RF.Fx.eatShockwave(im.x, im.y, EAT_SHOCKWAVE_OPT); } catch (err) { warnOnce('Fx.eatShockwave', err); }
+    }
+    mergeOrSpawnPopup(im.x, im.y, im.popup, !!im.popupMult, ctx.time.now);
+    triggerCamPulse(CAM_EAT_ZOOM * (0.5 + Math.min(0.5, mealT * 0.12)) * (small ? 0.5 : 1), 0.28);
+    FX_OPT.count = 6 + mealT * 2; FX_OPT.angle = num(im.angle, p.angle); FX_OPT.speed = 320;
+    FX_OPT.tint = im.tint; FX_OPT.up = false;
+    fxEmit('speedlines', im.x, im.y, FX_OPT);
+  }
+
   function swallow(e) {
     var p = ctx.player;
     var def = e.def || creatureById(e.defId) || null;
@@ -2721,37 +2876,44 @@ import * as THREE from 'three';
     // above the shark's own tier - ordinary swallows are a signature event
     // too, not just the notable ones. {tier: mealT} lets fx3d pick the
     // tier-scaled staging instead of defaulting to tier 1.
+    // r15 lane JAW: the shockwave + chroma flash are CLOSE-frame beats. They
+    // are the "the jaw shut on it" punctuation, so they are recorded on the
+    // impact and fired by fireBiteClose(). The deathBurst/motes/gib particles
+    // above stay at contact - those read as the prey coming apart, which does
+    // happen when the teeth reach it.
+    var shockScale = 1.1, shockLife = 420, chromaNotable = false;
     if (RF.Fx && RF.Fx.eatShockwave) {
-      EAT_SHOCKWAVE_OPT.tint = preyTint;
-      EAT_SHOCKWAVE_OPT.tier = mealT;
       // FEEDBACK 2026-08-24: rings/gibs scaled DOWN for small prey (a small
       // fish is now a tiny puff, not the same shockwave a big meal gets) -
       // uses the SAME isSmallPrey (mealT < p.tier) bar as hitStop/cam pulse
       // above, so "big prey" reads consistently across every lever.
-      EAT_SHOCKWAVE_OPT.scale = isSmallPrey ? 0.55 : 1.1;
-      EAT_SHOCKWAVE_OPT.life = isSmallPrey ? 260 : 420;
+      shockScale = isSmallPrey ? 0.55 : 1.1;
+      shockLife = isSmallPrey ? 260 : 420;
       // Chroma screen-flash: NOT every minnow anymore, only combo milestones
       // or a big/same-tier meal - reuses the same "notable" bar spawnBuffDrop
       // uses below (mealT >= p.tier, or landing on the combo streak this eat
       // is ABOUT to land on - ctx.run.combo hasn't incremented yet here).
-      var chromaNotable = !isSmallPrey || (FRENZY.steps || []).indexOf(ctx.run.combo + 1) >= 0;
-      EAT_SHOCKWAVE_OPT.chroma = chromaNotable ? 0.425 : 0;
-      try { RF.Fx.eatShockwave(e.x, e.y, EAT_SHOCKWAVE_OPT); } catch (err) { warnOnce('Fx.eatShockwave', err); }
+      chromaNotable = !isSmallPrey || (FRENZY.steps || []).indexOf(ctx.run.combo + 1) >= 0;
     }
-    mergeOrSpawnPopup(e.x, e.y, Math.round(score * mult), mult > 1, ctx.time.now);
+    // r15 lane JAW: TRIGGER THE BITE CYCLE, and defer the impact beats to the
+    // frame the teeth actually meet.
+    //
+    // Contact and "chomp" are not the same instant. The sim must resolve the
+    // eat at contact (the tier gate, score, combo and World.kill all have to
+    // happen now or the run desyncs), but hit-stop, the chroma flash and the
+    // score popup are the player's read of the JAW SHUTTING, and firing them
+    // at contact is why the feedback felt detached from the animation. They
+    // are recorded here and dispatched by fireBiteClose() when the cycle
+    // reaches its CLOSE frame, ~150 ms later.
+    triggerBite(p, {
+      x: e.x, y: e.y, mealT: mealT, isSmallPrey: isSmallPrey,
+      chroma: chromaNotable ? 0.425 : 0, tint: preyTint,
+      shockScale: shockScale, shockLife: shockLife,
+      popup: Math.round(score * mult), popupMult: mult > 1,
+      angle: p.angle,
+    });
     p.st.jawSnapT = JAW_SNAP_T;           // Rev 6 / 6.5: 0.12 snap-close on swallow
     p.st.eatPopT = 0.16;                 // scale pop consumed by renderPlayer
-    sfx('chomp');
-    hitStop(!isSmallPrey ? 45 : 15);
-    // Review r3 (bite signature): EVERY completed bite gets a camera impulse
-    // scaled by meal size (combo thresholds still add their own on top), and
-    // a directional streak burst along the bite heading so the chomp reads
-    // as motion, not just particles at a point. Small prey gets HALF the
-    // pulse amplitude per owner feedback (big prey/combos unaffected).
-    triggerCamPulse(CAM_EAT_ZOOM * (0.5 + Math.min(0.5, mealT * 0.12)) * (isSmallPrey ? 0.5 : 1), 0.28);
-    FX_OPT.count = 6 + mealT * 2; FX_OPT.angle = p.angle; FX_OPT.speed = 320;
-    FX_OPT.tint = preyTint; FX_OPT.up = false;
-    fxEmit('speedlines', e.x, e.y, FX_OPT);
 
     e.coins = 0;                          // suppress world.js's pickup drop
     // Rev 6.11: instant swallows (megajaw or plain tier<=p.tier-1) never run
@@ -5176,12 +5338,46 @@ import * as THREE from 'three';
       check(Math.abs(pc.anim.bank) <= BANK_MAX + 1e-9, 'bank is capped at ' + BANK_MAX + ' rad');
       pc.ctl.turnIn = 0;
 
-      pc.st.chewFxCd = 0.12;
-      for (var t5 = 0; t5 < 20; t5++) stepAnim(pc);
-      check(pc.anim.jaw > 0.05, 'jaw opens during the bite window');
-      pc.st.chewFxCd = 0;
-      for (var t6 = 0; t6 < 60; t6++) stepAnim(pc);
-      check(pc.anim.jaw < 0.02, 'jaw closes after the bite window');
+      // r15 lane JAW: the jaw contract changed. A shark at REST now holds a
+      // slight breathing gape (JAW_REST +- JAW_BREATHE_AMP) instead of a shut
+      // mouth, and a bite is an explicit open/close/hold/return cycle rather
+      // than an eased blend off chewFxCd. The old checks asserted "0 at rest",
+      // which is exactly the frozen-jaw model this pass removed.
+      pc.st.biteCycle = { phase: null, t: 0, from: JAW_REST, closeFrame: false, pending: null };
+      pc.anim.jawGape = JAW_REST;
+      for (var t5i = 0; t5i < 40; t5i++) stepAnim(pc);
+      check(pc.anim.jawGape >= JAW_REST - JAW_BREATHE_AMP - 1e-6
+        && pc.anim.jawGape <= JAW_REST + JAW_BREATHE_AMP + 1e-6,
+        'idle jaw rests inside the breathing band (' + pc.anim.jawGape.toFixed(3) + ')');
+      // The idle band must actually MOVE - a frozen jaw sitting dead centre
+      // would satisfy the range check above, which is how the original defect
+      // went unnoticed.
+      var jawLo = 1, jawHi = 0;
+      for (var t5j = 0; t5j < 130; t5j++) {
+        stepAnim(pc);
+        if (pc.anim.jawGape < jawLo) jawLo = pc.anim.jawGape;
+        if (pc.anim.jawGape > jawHi) jawHi = pc.anim.jawGape;
+      }
+      check(jawHi - jawLo > 0.02, 'idle jaw oscillates (breathing), span ' + (jawHi - jawLo).toFixed(3));
+
+      // A triggered bite must OPEN, then reach a shut jaw, then come back.
+      triggerBite(pc, { x: pc.x, y: pc.y, mealT: 1, isSmallPrey: false, chroma: 0,
+        tint: 0xffffff, popup: 10, popupMult: false, angle: 0 });
+      var peak = 0, trough = 1, sawClose = false;
+      for (var t6i = 0; t6i < 40; t6i++) {
+        stepAnim(pc);
+        if (pc.anim.jawGape > peak) peak = pc.anim.jawGape;
+        if (pc.st.biteCycle.phase === 'hold' || pc.st.biteCycle.phase === 'back') {
+          if (pc.anim.jawGape < trough) trough = pc.anim.jawGape;
+          sawClose = true;
+        }
+      }
+      check(peak >= JAW_BITE_OPEN - 0.02, 'bite snaps OPEN to ~' + JAW_BITE_OPEN + ' (' + peak.toFixed(3) + ')');
+      check(sawClose && trough <= 0.03, 'bite CLOSES to 0-2% (' + trough.toFixed(3) + ')');
+      for (var t6j = 0; t6j < 60; t6j++) stepAnim(pc);
+      check(pc.st.biteCycle.phase === null, 'bite cycle returns to idle');
+      check(Math.abs(pc.anim.jawGape - JAW_REST) <= JAW_BREATHE_AMP + 0.02,
+        'jaw returns to the rest gape after a bite (' + pc.anim.jawGape.toFixed(3) + ')');
 
       pc.vx = 0; pc.vy = 0;
       for (var t7 = 0; t7 < 40; t7++) stepAnim(pc);
@@ -5270,19 +5466,37 @@ import * as THREE from 'three';
       pc.st.jawSnapT = 0; pc.st.eatPopT = 0;
       var meal = { active: true, kind: 'prey', defId: 'minnow', tier: 0, x: pc.x, y: pc.y,
         hp: 1, coins: 2, st: {}, r: 8, def: { id: 'minnow', tier: 0, score: 5, coins: 2 } };
+      // r15 lane JAW: hit-stop, the shockwave/chroma flash and the score popup
+      // are dispatched on the CLOSE FRAME of the bite cycle, not at contact -
+      // that is the whole point of the change, so the harness has to run the
+      // cycle forward to see them. `runBiteToClose` steps stepAnim until the
+      // cycle passes its close frame (or gives up), and returns whether it
+      // actually got there.
+      function runBiteToClose(player, limit) {
+        var guard = limit || 40;
+        while (guard-- > 0) {
+          stepAnim(player);
+          if (player.st.biteCycle && player.st.biteCycle.closeFrame) return true;
+        }
+        return false;
+      }
       swallow(meal);
       check(fxSeen.indexOf('deathBurst') >= 0 && fxSeen.indexOf('motes') >= 0,
-        'eat emitted the two-stage burst');
+        'eat emitted the two-stage burst at contact');
       check(pc.st.jawSnapT > 0, 'eat set the jaw snap');
       check(pc.st.eatPopT > 0, 'eat set the scale pop');
+      check(pc.st.biteCycle.phase === 'open', 'eat triggered the bite cycle');
+      check(stops.length === 0, 'hit-stop does NOT fire at contact any more');
+      check(runBiteToClose(pc), 'the bite cycle reaches its close frame');
       check(stops.length >= 1 && (stops[0] === 15 || stops[0] === 45),
-        'eat hit-stop is 15 or 45 ms (rev11-fx: small prey tuned down from 25 to 15) (' + stops.join(',') + ')');
+        'eat hit-stop is 15 or 45 ms, fired on the CLOSE frame (' + stops.join(',') + ')');
       check(burstOpts.length >= 1 && burstOpts[0].tint === 0xffe9a8,
         'swallow() falls back to 0xffe9a8 when def.tint is absent');
       burstOpts.length = 0;
       var tintedMeal = { active: true, kind: 'prey', defId: 'minnow', tier: 0, x: pc.x, y: pc.y,
         hp: 1, coins: 2, st: {}, r: 8, def: { id: 'minnow', tier: 0, score: 5, coins: 2, tint: 0x27e0ff } };
       swallow(tintedMeal);
+      runBiteToClose(pc);
       check(burstOpts.length >= 1 && burstOpts[0].tint === 0x27e0ff,
         'swallow() uses def.tint (S3 data.js field) when present');
 
@@ -5296,6 +5510,8 @@ import * as THREE from 'three';
       var minnow2 = { active: true, kind: 'prey', defId: 'minnow', tier: 0, x: pc.x, y: pc.y,
         hp: 1, coins: 2, st: {}, r: 8, def: { id: 'minnow', tier: 0, score: 5, coins: 2 } };
       swallow(minnow2);
+      check(shockwaveCalls.length === 0, 'the shockwave waits for the close frame');
+      runBiteToClose(pc);
       check(shockwaveCalls.length === 1 && shockwaveCalls[0] && shockwaveCalls[0].tier === 0,
         'staged eatShockwave fires on an ordinary below-tier swallow too, with {tier: mealT}');
       RF.Fx = savedFxShock;

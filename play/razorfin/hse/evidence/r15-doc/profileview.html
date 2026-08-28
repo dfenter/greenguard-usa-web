@@ -122,11 +122,14 @@ globalThis.__DOC = {
   size: [size.x, size.y, size.z].map((n) => +n.toFixed(2)),
   aimX: +aim.x.toFixed(1),
   longAxis, dist: +dist.toFixed(1),
-  /* Lane ORIENT's own physical gate, re-measured on the LIVE rig: the lower
-     jaw hangs below the snout, so (jaw - head) must point -Y once the rest
-     frame is right. A positive y here means the row is belly-up or rolled. */
-  })(),
-  orient: (globalThis.RF_ART3D_ORIENT && globalThis.RF_ART3D_ORIENT[rig.group.userData.rfSourceBase]) || null,
+  /* NO JAW GATE HERE.
+     Round 2 carried a (jaw - head) probe copied from lane ORIENT. It is not
+     valid in this harness and was retired in round 2.1: after the resolver
+     rotates the whole rig group, the jaw-to-head offset stays expressed in the
+     rig's own local frame, so on the mako_r15 and tiger_nu_r15 rows it reads
+     "ROLLED 90" for rows that render in correct profile. A gate that fires on
+     good rows is worse than no gate. Orientation is judged from the rendered
+     pixels, which is what this document is for. */
 };
 document.title = 'DOC ' + ID + ' ' + SHOT;
 </script>

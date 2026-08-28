@@ -1,0 +1,27 @@
+{
+  "metrics": {
+    "tag": "after",
+    "instances": 45,
+    "frames": 90,
+    "headingDeltaMedianDeg": 0.73,
+    "headingDeltaP95Deg": 5.99,
+    "headingDeltaMaxDeg": 6.53,
+    "lateralFlipFlopInstances": 0,
+    "lateralFlipFlopPct": 0,
+    "phaseStepMedian": 0.4846,
+    "phaseStepMax": 0.7351,
+    "ampStepMax": 0.014,
+    "jerkMedianBL": 0.0005,
+    "jerkP95BL": 0.0035,
+    "frozenInstances": 0,
+    "draws": 81,
+    "tris": 109362
+  },
+  "gates": {
+    "heading change/frame median <= 12 deg": true,
+    "lateral flip-flop instances <= 5%": true,
+    "tail phase continuous (max step < 1.0 rad)": true,
+    "jerk median < 8% body length": true,
+    "no frozen instances": true
+  }
+}

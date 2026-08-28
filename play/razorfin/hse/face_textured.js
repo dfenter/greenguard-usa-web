@@ -38,7 +38,7 @@ import * as THREE from 'three';
 /* The rest gape is measured by rig_morph's applyMorph() but can only be
  * APPLIED after this module has authored the mouth against the closed jaw.
  * See the call at the end of buildTexturedFace(). */
-import { commitRestGape } from './rig_morph.js';
+import { commitRestGape, writeJawGape } from './rig_morph.js';
 
 const TAU = Math.PI * 2;
 /* Same kind ids the Rev 13 face shader branches on, so a textured face can
@@ -2234,6 +2234,34 @@ export function buildTexturedFace(rig, skinnedMesh, def, profile = null) {
   mesh.userData.rfFaceMetrics = built.metrics;
   mesh.userData.rfFaceTriangles = built.triangles;
   mesh.userData.rfTexturedFace = true;
+
+  /* r15 lane JAW: hand the jaw back CLOSED.
+   *
+   * The face batch had to be authored against the POSED (open) mouth - that
+   * is what the hinge above is for, and moving it breaks the tooth/cavity
+   * seating. But the bone must not be LEFT open, because shark3d.js captures
+   * `baseJawQuaternion` immediately after this function returns and then adds
+   * the per-frame gape on top of whatever it captured. Leaving it hinged made
+   * the open pose the resting pose: the jaw's floor was ~26 deg and no input
+   * could shut it.
+   *
+   * Restoring the closed base here means shark3d captures a CLOSED base, the
+   * runtime gape signal spans the full range, and `writeJawGape` remains the
+   * only thing that ever writes this bone. The batch keeps the vertices it
+   * authored against the open pose - they are skinned to the bone, so they
+   * follow it shut and open again correctly. */
+  try {
+    let rigRoot = body;
+    while (rigRoot && !rigRoot.userData?.rfJawAuthority) rigRoot = rigRoot.parent;
+    const authority = rigRoot?.userData?.rfJawAuthority;
+    if (authority) {
+      writeJawGape(rigRoot, 0);
+      rigRoot.updateMatrixWorld(true);
+      body.skeleton?.update();
+    }
+  } catch (error) {
+    /* Never take down a row that otherwise renders. */
+  }
 
   return mesh;
 }

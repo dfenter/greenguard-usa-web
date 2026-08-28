@@ -13,8 +13,7 @@
   "sat": 0.219,
   "pinkness": -8.5,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "epaulette",
@@ -30,8 +29,7 @@
   "sat": 0.231,
   "pinkness": -9.1,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "reef",
@@ -47,8 +45,7 @@
   "sat": 0.541,
   "pinkness": -21.1,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "blue",
@@ -57,15 +54,14 @@
   "tier": 2,
   "cls": "common",
   "model": "mako",
-  "cover": 0.0678,
-  "lum": 84.0,
-  "contrast": 20.4,
-  "countershade": -30.5,
-  "sat": 0.462,
-  "pinkness": -22.8,
+  "cover": 0.0751,
+  "lum": 63.6,
+  "contrast": -0.1,
+  "countershade": -42.1,
+  "sat": 0.508,
+  "pinkness": -17.3,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "mako",
@@ -74,15 +70,14 @@
   "tier": 2,
   "cls": "common",
   "model": "mako",
-  "cover": 0.0693,
-  "lum": 84.8,
-  "contrast": 21.1,
-  "countershade": -28.1,
-  "sat": 0.462,
-  "pinkness": -25.8,
+  "cover": 0.0766,
+  "lum": 64.7,
+  "contrast": 1.1,
+  "countershade": -41.0,
+  "sat": 0.509,
+  "pinkness": -19.9,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "hammerhead",
@@ -98,8 +93,7 @@
   "sat": 0.406,
   "pinkness": -17.8,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "sawshark",
@@ -115,8 +109,7 @@
   "sat": 0.229,
   "pinkness": -11.7,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "thresher",
@@ -132,8 +125,7 @@
   "sat": 0.493,
   "pinkness": -19.3,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "bull",
@@ -149,8 +141,7 @@
   "sat": 0.215,
   "pinkness": -10.0,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "goblin",
@@ -166,8 +157,7 @@
   "sat": 0.684,
   "pinkness": 21.8,
   "textured": false,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "tiger",
@@ -176,15 +166,14 @@
   "tier": 4,
   "cls": "common",
   "model": "tiger_nu",
-  "cover": 0.1204,
-  "lum": 26.3,
-  "contrast": -37.3,
-  "countershade": -5.1,
-  "sat": 0.31,
-  "pinkness": -5.0,
+  "cover": 0.0989,
+  "lum": 60.4,
+  "contrast": -3.2,
+  "countershade": -18.3,
+  "sat": 0.209,
+  "pinkness": -10.1,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "greatwhite",
@@ -200,8 +189,7 @@
   "sat": 0.525,
   "pinkness": -19.0,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "whaleshark",
@@ -217,8 +205,7 @@
   "sat": 0.478,
   "pinkness": -19.8,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "dunkleosteus",
@@ -234,8 +221,7 @@
   "sat": 0.25,
   "pinkness": -10.1,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "greenland",
@@ -251,8 +237,7 @@
   "sat": 0.204,
   "pinkness": -11.1,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "megalodon",
@@ -268,8 +253,7 @@
   "sat": 0.475,
   "pinkness": -19.7,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "anglerfang",
@@ -285,8 +269,7 @@
   "sat": 0.549,
   "pinkness": -17.7,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "barbhook",
@@ -302,8 +285,7 @@
   "sat": 0.507,
   "pinkness": -21.7,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "coralcrown",
@@ -319,8 +301,7 @@
   "sat": 0.213,
   "pinkness": -7.0,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "duskfin",
@@ -329,15 +310,14 @@
   "tier": 7,
   "cls": "rare",
   "model": "mako",
-  "cover": 0.0695,
-  "lum": 83.7,
-  "contrast": 20.1,
-  "countershade": -32.3,
-  "sat": 0.461,
-  "pinkness": -23.8,
+  "cover": 0.0753,
+  "lum": 64.0,
+  "contrast": 0.4,
+  "countershade": -39.4,
+  "sat": 0.508,
+  "pinkness": -18.4,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "gulperfiend",
@@ -353,8 +333,7 @@
   "sat": 0.66,
   "pinkness": -57.9,
   "textured": false,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "morayne",
@@ -370,8 +349,7 @@
   "sat": 0.302,
   "pinkness": -17.5,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "sailfin",
@@ -387,8 +365,7 @@
   "sat": 0.54,
   "pinkness": -21.4,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "snapjaw",
@@ -404,8 +381,7 @@
   "sat": 0.23,
   "pinkness": -12.7,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "stonejaw",
@@ -421,8 +397,7 @@
   "sat": 0.217,
   "pinkness": -11.4,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "thornback",
@@ -438,8 +413,7 @@
   "sat": 0.24,
   "pinkness": -9.8,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "abyssmaw",
@@ -455,8 +429,7 @@
   "sat": 0.548,
   "pinkness": -17.8,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "frostjaw",
@@ -472,8 +445,7 @@
   "sat": 0.471,
   "pinkness": -20.2,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "gloomtide",
@@ -489,8 +461,7 @@
   "sat": 0.523,
   "pinkness": -17.3,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "howler",
@@ -506,8 +477,7 @@
   "sat": 0.219,
   "pinkness": -12.1,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "magmaw",
@@ -523,8 +493,7 @@
   "sat": 0.227,
   "pinkness": -8.9,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "riftjaw",
@@ -540,8 +509,7 @@
   "sat": 0.218,
   "pinkness": -11.5,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "stormfin",
@@ -557,8 +525,7 @@
   "sat": 0.537,
   "pinkness": -19.0,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "venomspine",
@@ -567,15 +534,14 @@
   "tier": 8,
   "cls": "epic",
   "model": "mako",
-  "cover": 0.0747,
-  "lum": 84.0,
-  "contrast": 20.4,
-  "countershade": -27.0,
-  "sat": 0.464,
-  "pinkness": -26.3,
+  "cover": 0.0829,
+  "lum": 64.6,
+  "contrast": 1.0,
+  "countershade": -40.7,
+  "sat": 0.513,
+  "pinkness": -20.8,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "vex",
@@ -591,8 +557,7 @@
   "sat": 0.469,
   "pinkness": -19.9,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "wreckfang",
@@ -608,8 +573,7 @@
   "sat": 0.524,
   "pinkness": -18.3,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "bonecrown",
@@ -625,8 +589,7 @@
   "sat": 0.497,
   "pinkness": -22.6,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "cindermaw",
@@ -642,8 +605,7 @@
   "sat": 0.46,
   "pinkness": -11.3,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "glacier",
@@ -659,8 +621,7 @@
   "sat": 0.458,
   "pinkness": -19.0,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "gravewater",
@@ -676,8 +637,7 @@
   "sat": 0.451,
   "pinkness": -23.2,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "ironfin",
@@ -693,8 +653,7 @@
   "sat": 0.52,
   "pinkness": -18.1,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "maelstrom",
@@ -710,8 +669,7 @@
   "sat": 0.473,
   "pinkness": -19.6,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "mirrorscale",
@@ -727,8 +685,7 @@
   "sat": 0.302,
   "pinkness": -7.4,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "nocturne",
@@ -744,8 +701,7 @@
   "sat": 0.525,
   "pinkness": -17.5,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "plaguemaw",
@@ -761,8 +717,7 @@
   "sat": 0.262,
   "pinkness": -14.7,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "sunspine",
@@ -778,8 +733,7 @@
   "sat": 0.393,
   "pinkness": -11.0,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "tempest",
@@ -795,8 +749,7 @@
   "sat": 0.524,
   "pinkness": -19.7,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "teslafang",
@@ -812,8 +765,7 @@
   "sat": 0.436,
   "pinkness": -13.4,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "aurora",
@@ -829,8 +781,7 @@
   "sat": 0.547,
   "pinkness": -20.1,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "banshee",
@@ -846,8 +797,7 @@
   "sat": 0.454,
   "pinkness": -18.7,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "chronos",
@@ -856,15 +806,14 @@
   "tier": 10,
   "cls": "epic",
   "model": "mako",
-  "cover": 0.0747,
-  "lum": 82.8,
-  "contrast": 19.2,
-  "countershade": -27.9,
-  "sat": 0.408,
-  "pinkness": -27.2,
+  "cover": 0.0817,
+  "lum": 65.7,
+  "contrast": 2.1,
+  "countershade": -33.9,
+  "sat": 0.456,
+  "pinkness": -22.9,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "nullfin",
@@ -880,8 +829,7 @@
   "sat": 0.52,
   "pinkness": -16.2,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "seismos",
@@ -897,8 +845,7 @@
   "sat": 0.426,
   "pinkness": -12.4,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "voltaicrex",
@@ -914,8 +861,7 @@
   "sat": 0.451,
   "pinkness": -19.2,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "vortexa",
@@ -931,8 +877,7 @@
   "sat": 0.472,
   "pinkness": -19.7,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "vulkan",
@@ -948,8 +893,7 @@
   "sat": 0.431,
   "pinkness": -12.6,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "absolutezero",
@@ -965,8 +909,7 @@
   "sat": 0.335,
   "pinkness": -20.3,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "omenmaw",
@@ -982,8 +925,7 @@
   "sat": 0.304,
   "pinkness": -2.2,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "solaris",
@@ -999,8 +941,7 @@
   "sat": 0.376,
   "pinkness": -8.3,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "warbringer",
@@ -1016,8 +957,7 @@
   "sat": 0.519,
   "pinkness": -12.3,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "leviathan_rex",
@@ -1033,8 +973,7 @@
   "sat": 0.513,
   "pinkness": -25.6,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "leviathanrex",
@@ -1050,8 +989,7 @@
   "sat": 0.54,
   "pinkness": -20.7,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "aphroditelure",
@@ -1067,8 +1005,7 @@
   "sat": 0.26,
   "pinkness": -2.6,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "apollodon",
@@ -1077,15 +1014,14 @@
   "tier": 9,
   "cls": "god",
   "model": "mako",
-  "cover": 0.0769,
-  "lum": 85.3,
-  "contrast": 21.7,
-  "countershade": -28.6,
-  "sat": 0.427,
-  "pinkness": -28.7,
+  "cover": 0.0852,
+  "lum": 68.0,
+  "contrast": 4.4,
+  "countershade": -34.6,
+  "sat": 0.484,
+  "pinkness": -24.5,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "artemisstrike",
@@ -1101,8 +1037,7 @@
   "sat": 0.258,
   "pinkness": -6.3,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "dionysustide",
@@ -1118,8 +1053,7 @@
   "sat": 0.247,
   "pinkness": -8.8,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "hermesdart",
@@ -1135,8 +1069,7 @@
   "sat": 0.312,
   "pinkness": -17.2,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "poseidonrex",
@@ -1152,8 +1085,7 @@
   "sat": 0.443,
   "pinkness": -18.4,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "zeusfin",
@@ -1162,15 +1094,14 @@
   "tier": 9,
   "cls": "god",
   "model": "mako",
-  "cover": 0.0825,
-  "lum": 83.7,
-  "contrast": 20.0,
-  "countershade": -23.0,
-  "sat": 0.43,
-  "pinkness": -22.6,
+  "cover": 0.0939,
+  "lum": 65.7,
+  "contrast": 2.0,
+  "countershade": -33.6,
+  "sat": 0.481,
+  "pinkness": -18.2,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "aresrender",
@@ -1186,8 +1117,7 @@
   "sat": 0.247,
   "pinkness": -11.1,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "athenajaw",
@@ -1203,8 +1133,7 @@
   "sat": 0.336,
   "pinkness": -14.0,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "hadesmaw",
@@ -1220,8 +1149,7 @@
   "sat": 0.449,
   "pinkness": -13.2,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "hephaestusforge",
@@ -1237,8 +1165,7 @@
   "sat": 0.429,
   "pinkness": -12.7,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "heracrown",
@@ -1254,8 +1181,7 @@
   "sat": 0.443,
   "pinkness": -21.8,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "chimerashark",
@@ -1271,8 +1197,7 @@
   "sat": 0.497,
   "pinkness": -12.7,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "cyclopseye",
@@ -1288,8 +1213,7 @@
   "sat": 0.485,
   "pinkness": -13.0,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "harpyshade",
@@ -1305,8 +1229,7 @@
   "sat": 0.465,
   "pinkness": -10.5,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "lamiacoil",
@@ -1322,8 +1245,7 @@
   "sat": 0.447,
   "pinkness": -9.4,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "medusagaze",
@@ -1339,8 +1261,7 @@
   "sat": 0.555,
   "pinkness": -3.2,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "scyllarender",
@@ -1356,8 +1277,7 @@
   "sat": 0.512,
   "pinkness": -21.0,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "cerberusjaw",
@@ -1373,8 +1293,7 @@
   "sat": 0.457,
   "pinkness": -11.9,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "charybdisvoid",
@@ -1390,8 +1309,7 @@
   "sat": 0.446,
   "pinkness": -14.0,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "hydrafang",
@@ -1407,8 +1325,7 @@
   "sat": 0.506,
   "pinkness": -24.6,
   "textured": true,
-  "face": true,
-  "gate": null
+  "face": true
  },
  {
   "id": "kampechrono",
@@ -1424,8 +1341,7 @@
   "sat": 0.416,
   "pinkness": -11.8,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "minotaurram",
@@ -1441,8 +1357,7 @@
   "sat": 0.472,
   "pinkness": -16.7,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  },
  {
   "id": "typhonmaw",
@@ -1458,7 +1373,6 @@
   "sat": 0.457,
   "pinkness": -16.1,
   "textured": true,
-  "face": false,
-  "gate": null
+  "face": false
  }
 ]
