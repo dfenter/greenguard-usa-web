@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkValidate: ISA-18.2 Alarm Rationalization and Risk-Based Validation for Ignition | SparkBridge</title>
+<meta name="description" content="SparkValidate ingests your L5X/L5K program and Ignition tag and project exports, builds a risk-based document set consistent with GAMP 5 and ISA-18.2, and generates VMP, URS, FRS, DS, RA, IQ, OQ, alarm test, PQ, FAT, SAT, security RA and RTM, with executable protocols and sealed evidence. $2,495 per gateway, CLI-only Validate Desk $995. Early access.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/validate">
+<meta property="og:title" content="SparkValidate: alarm rationalization and risk-based validation for Ignition">
+<meta property="og:description" content="Ingests L5X/L5K and Ignition exports, builds a risk-based document set consistent with GAMP 5 and ISA-18.2, generates the full validation and alarm test package with sealed evidence. $2,495 per gateway. Early access.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/validate">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SparkValidate: alarm rationalization and risk-based validation for Ignition">
+<meta name="twitter:description" content="Ingests L5X/L5K and Ignition exports, builds a risk-based document set consistent with GAMP 5 and ISA-18.2, generates the full validation and alarm test package with sealed evidence. $2,495 per gateway. Early access.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Products","item":"https://mqtt.greenguard-usa.com/sparkbridge/products"},{"@type":"ListItem","position":3,"name":"SparkValidate","item":"https://mqtt.greenguard-usa.com/sparkbridge/validate"}]},{"@type":"SoftwareApplication","name":"SparkValidate","url":"https://mqtt.greenguard-usa.com/sparkbridge/validate","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","softwareVersion":"0.1.0","isPartOf":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#app"},"publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"SparkValidate ingests L5X/L5K and Ignition tag and project exports, builds a normalized system model, applies a risk assessment consistent with GAMP 5 and ISA-18.2, and generates the full validation and alarm test document set with executable protocols and sealed evidence.","offers":{"@type":"Offer","price":"2495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/PreOrder","description":"Perpetual license, per gateway. Standalone, does not require SparkBridge. Early access, v0.1"}}]}
+</script>
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/products">Products</a>
+        <a href="/sparkbridge/technology">Technology</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top">
+  <div class="wrap">
+    <div class="phead-grid">
+      <div>
+        <div class="eyebrow">SparkValidate</div>
+        <h1>The validation package writes itself from the code you already have</h1>
+        <p>An L5X export, an Ignition tag and project export, or a live gateway already contain almost everything a validation package needs: the tags, the alarms, the interlocks, the views that show them. SparkValidate reads those sources, builds one traceable system model, scores it for risk, and generates the full document and test protocol set, cross-referenced by ID, with evidence sealed as it is captured.</p>
+        <div class="pmeta"><span class="stat">Early access &middot; v0.1</span><span>Rockwell L5X / L5K first</span><span>CLI + gateway module</span></div>
+      </div>
+      <div class="artifact">
+        <div class="artifact-head"><span>System model &middot; cross-link pass</span><span class="live"><i class="dot"></i>From source, not typed</span></div>
+        <div class="artifact-body">
+<pre style="margin:0;white-space:pre-wrap">  <span class="hi">TAG</span>  Reactor1/TempPV        &lt;- OPC path
+  <span class="acc">RUNG</span> MainProgram.R014        writes it, N7:12
+  <span class="hi">ALM</span>  Reactor1_TempHH  HH=95.0  ALMD, priority 1
+  <span class="acc">VIEW</span> Reactor_Overview.perspective  displays it
+
+  URS-041 <span class="hi">-&gt;</span> FRS-118 <span class="hi">-&gt;</span> DS-118 <span class="hi">-&gt;</span> RA-118 <span class="hi">-&gt;</span> OQ-118, ALM-TEST-041
+  risk class: <span class="hi">HIGH</span>  test depth: full challenge, 94.9 / 95.0 / 95.1</pre>
+        </div>
+        <div class="artifact-foot">Every ID in the RTM points back to a rung, a tag path or a view, not to a line someone typed into a spreadsheet.</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <p class="claim">Stop writing the document. <em>Generate it from the code.</em></p>
+    <div class="twocol">
+      <div class="measure">
+        <p>Validated industries spend weeks by hand on document sets that almost entirely restate what the PLC program and the Ignition project already say: what an alarm's setpoint is, what rung writes a tag, which view shows it, what the interlock does. SparkValidate reads the L5X/L5K export, the Ignition tag and project exports, or a live gateway, and builds one normalized system model with a stable ID on every entity, so the requirements, the design spec and the test protocols can all point at the same source instead of being retyped three times.</p>
+        <p>Risk drives scope, not habit. Each function and component gets a risk assessment: severity, probability and detectability roll up to a risk class, and the class sets the test depth, full challenge test with boundary values at high risk, functional verification at medium, a documented rationale for skipping at low. Every skip is written down and defensible, because a regulator asking "why wasn't this tested" gets an answer that already exists in the RTM.</p>
+        <p>The alarm side gets the same treatment under ISA-18.2. Every alarm becomes a Master Alarm Database row: cause, consequence, operator action, allowable response time, priority from a consequence/time matrix, classification. The alarm journal gets read for the KPIs that matter, alarms per ten minutes, percent time in flood, the standing and bad-actor lists, so rationalization starts from what the plant is actually doing, not from a blank template.</p>
+      </div>
+      <div>
+        <span class="spectitle">At a glance</span>
+        <table class="spec">
+          <tr><th>What it is</th><td>Risk-based validation document and alarm rationalization generator for Ignition and PLC systems</td></tr>
+          <tr><th>What it reads</th><td>Rockwell L5X (v1) and L5K, Ignition tag export JSON, Ignition project export, or a live gateway. TI 505, CTI 2500, Siemens and Codesys next</td></tr>
+          <tr><th>What it generates</th><td>13 documents and protocols, cross-referenced by ID, plus a traceability matrix. See below</td></tr>
+          <tr><th>Frameworks</th><td>Risk approach consistent with <a href="#compliance">GAMP 5</a> (2nd edition) and <a href="#alarms">ISA-18.2</a> alarm management, with ISA-62443 security zones and a 21 CFR Part 11 audit trail path in the gateway module</td></tr>
+          <tr><th>Delivery</th><td>CLI for offline and CI use, or a gateway module that executes protocols against the running system and seals the evidence. See <a href="#pricing">pricing</a></td></tr>
+          <tr><th>State</th><td>Early access, v0.1. Rockwell first; other PLC families follow. <a href="/sparkbridge/contact">Talk to us</a> about a pilot</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="documents">
+  <div class="wrap">
+    <div class="figure"><b>13</b><span>documents and protocols, generated from one system model and cross-referenced by ID</span></div>
+    <div class="sec-head" style="margin-top:10px">
+      <h2>What It Generates</h2>
+      <p>Every doc shares numbering, a revision block, an approval signature table and cross-references by ID, so a reviewer can follow a requirement all the way to its test result and back to the source rung or tag.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Document</th><th>What it covers</th></tr></thead>
+        <tbody>
+          <tr><td><b>VMP</b><br><span class="sub">Validation Master Plan</span></td><td>Scope, system description, validation strategy, risk approach, deliverables, roles, acceptance criteria, schedule.</td></tr>
+          <tr><td><b>URS</b><br><span class="sub">User Requirements Spec</span></td><td>Seeded from the alarms, interlocks and HMI functions found in the code, plus any requirements you import from CSV or Excel.</td></tr>
+          <tr><td><b>FRS</b><br><span class="sub">Functional Requirements Spec</span></td><td>Derived per routine, AOI, view and alarm pipeline, linked back to the URS that drove it.</td></tr>
+          <tr><td><b>DS</b><br><span class="sub">Design Spec</span></td><td>Hardware facts, software architecture, tag database, the Master Alarm Database, network, security, data flow, backup.</td></tr>
+          <tr><td><b>RA</b><br><span class="sub">Risk Assessment</span></td><td>FMEA-style table plus the alarm rationalization MAD, driving test scope for everything downstream.</td></tr>
+          <tr><td><b>IQ</b><br><span class="sub">Installation Qualification</span></td><td>Installed versions, config snapshots with hashes, licensing, backups, auto-executed with screenshot and export evidence.</td></tr>
+          <tr><td><b>OQ</b><br><span class="sub">Operational Qualification</span></td><td>One test case per FRS at the risk-driven depth, with steps generated from the actual logic, not written from scratch.</td></tr>
+          <tr><td><b>Alarm Test Protocol</b><br><span class="sub">ISA-18.2 functional test</span></td><td>Annunciation, priority display, ack, shelve, pipeline delivery and journal record for every alarm, executed against sim tags or a gated PLC write.</td></tr>
+          <tr><td><b>PQ</b><br><span class="sub">Performance Qualification</span></td><td>Templated business-process runs you supply scenarios for, with evidence attached from journal and history.</td></tr>
+          <tr><td><b>FAT / SAT</b><br><span class="sub">Factory and Site Acceptance Test</span></td><td>FAT runs pre-shipment against simulated I/O; SAT re-runs the same cases against real I/O and carries open punch items to closure.</td></tr>
+          <tr><td><b>Security RA</b><br><span class="sub">ISA-62443 risk assessment</span></td><td>Zones and conduits from the network and gateway security config, roles and permissions matrix, target security level per zone.</td></tr>
+          <tr><td><b>RTM</b><br><span class="sub">Traceability Matrix</span></td><td>URS through FRS, DS, RA, IQ/OQ/PQ, alarm test and result, exported as a table, a spreadsheet and an interactive page.</td></tr>
+          <tr><td><b>Attachments</b><br><span class="sub">Supporting evidence</span></td><td>Tag database, MAD, rung listings with cross-reference, config exports, network and security matrix, deviation log.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">how it works</span>
+      <h2>Ingest to Evidence, One Pass</h2>
+      <p>Six stages, all built on the same system model, so nothing downstream is retyped from what upstream already established.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Stage</th><th>What happens</th></tr></thead>
+        <tbody>
+          <tr><td><b>1. Ingest</b></td><td>Reads the L5X/L5K program export, the Ignition tag export, the Ignition project export, or connects to a live gateway for the same facts plus runtime state, module versions and licenses.</td></tr>
+          <tr><td><b>2. System model</b></td><td>Cross-links every entity: an OPC tag path to the PLC tag it maps to, the rung that writes it, the views that show it, the alarms on it. Every entity gets a stable ID the rest of the pass points at.</td></tr>
+          <tr><td><b>3. Risk</b></td><td>Runs the GAMP-consistent risk assessment and the ISA-18.2 alarm rationalization against the model, against a risk policy you can configure in YAML to match your own QA procedure.</td></tr>
+          <tr><td><b>4. Documents and protocols</b></td><td>Generates all 13 documents and the executable test protocols from the risk-scored model, at the depth the risk class calls for.</td></tr>
+          <tr><td><b>5. Evidence</b></td><td>The gateway module executes IQ, OQ and alarm test protocols against the running system, capturing screenshots, config hashes and journal rows, sealed into a tamper-evident package with a re-auth e-signature.</td></tr>
+          <tr><td><b>6. GitHub</b></td><td>The model, requirements, MAD, protocols and RTM live as text in your repo. Regenerating on a pull request shows exactly which requirements and tests a change affects, and a check can fail the build if coverage drops.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="alarms">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">alarm management</span>
+      <h2>Rationalization Starts From What The Plant Is Doing</h2>
+      <p>ISA-18.2 sets the shape of a Master Alarm Database. SparkValidate fills it from the code and the journal instead of a blank workshop.</p>
+    </div>
+    <div class="twocol">
+      <div class="measure">
+        <p>Every alarm found in the L5X (ALMD, ALMA) or the Ignition tag config becomes a MAD row with a cause, a consequence, the operator action, the allowable response time and a priority derived from a consequence/time matrix you can configure. Setpoint basis, classification (safety, environmental, quality, production) and shelving state are captured alongside it.</p>
+        <p>The alarm journal gets read for the KPIs ISA-18.2 defines: alarms per ten minutes, percent time in flood, priority distribution against the roughly 80/15/5 target, and the standing and bad-actor lists. Chattering and stale alarms are flagged automatically from journal statistics, and duplicate alarms across tags are called out before they become two rows in a workshop meeting.</p>
+        <p>The Alarm Test Protocol then exercises every alarm in the database, not a sample: annunciation, priority display, ack, shelve, pipeline delivery and journal record, executed against sim tags or a gated PLC write with explicit permission, with the result captured as sealed evidence.</p>
+      </div>
+      <div>
+        <span class="spectitle">MAD row, per alarm</span>
+        <table class="spec">
+          <tr><th>Identity</th><td>Cause, consequence, operator action, allowable response time</td></tr>
+          <tr><th>Priority</th><td>Derived from a consequence/time matrix, checked against ISA-18.2 distribution targets</td></tr>
+          <tr><th>Classification</th><td>Safety, environmental, quality or production</td></tr>
+          <tr><th>Flags</th><td>Stale, chattering, duplicate, missing operator action, from journal statistics</td></tr>
+          <tr><th>Bad actors</th><td>Top contributors ranked from the journal, not from memory</td></tr>
+          <tr><th>Test</th><td>Full functional test against the live alarm pipeline, evidence sealed per run</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="compliance">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">how this is framed</span>
+      <h2>What The Frameworks Mean Here</h2>
+      <p>Worded carefully on purpose, because a validated site's auditor will read this page.</p>
+    </div>
+    <div class="twocol">
+      <div class="measure">
+        <p>The risk approach and document set are built <b>consistent with GAMP 5</b> (2nd edition): software category classification, a risk-based test depth, and a document set shaped like the one a GAMP-based quality system expects. SparkValidate is a tool that produces the evidence and the documents; it does not replace your quality system, your SOPs or your QA sign-off, and it does not itself certify compliance with anything.</p>
+        <p><b>21 CFR Part 11 applicability is conditional</b> on your own regulatory context and how you configure and operate the system: the gateway module provides the hooks, executed-by identity from Ignition auth, timestamps, reason-for-change capture, e-signature via re-authentication, and an audit trail written into the Ignition audit profile, but whether your deployment meets Part 11 depends on your validation of those controls in your environment, not on the module alone.</p>
+        <p><b>ISA-62443</b> is used for the security risk assessment structure: zones and conduits, roles and permissions, and a target security level per zone, extracted from your Ignition security configuration and network facts. This is a risk assessment output, not a certification against the standard.</p>
+      </div>
+      <div>
+        <span class="spectitle">In plain terms</span>
+        <table class="spec">
+          <tr><th>GAMP 5</th><td>Risk approach and document structure are consistent with it. Your QA procedure still governs</td></tr>
+          <tr><th>ISA-18.2</th><td>Alarm rationalization methodology and KPI definitions follow it directly</td></tr>
+          <tr><th>21 CFR Part 11</th><td>Hooks are provided. Applicability and compliance depend on your deployment and your own validation</td></tr>
+          <tr><th>ISA-62443</th><td>Used for the security risk assessment structure, not claimed as certification</td></tr>
+          <tr><th>Who signs off</th><td>You and your quality system. SparkValidate generates evidence and documents, it does not approve them</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">cost</span>
+      <h2>Priced Per Gateway, Or CLI Only</h2>
+      <p>Perpetual, bought once. A free tier exists so you can see what rationalization would find before buying anything.</p>
+    </div>
+    <div class="tiers">
+      <div class="tier">
+        <div class="top">
+          <h3>Free</h3>
+          <div class="price">$0<small>Alarm KPI report and rationalization gap list, from an L5X or Ignition export.</small></div>
+        </div>
+        <p class="why">See the bad-actor list and the gaps before buying anything.</p>
+      </div>
+      <div class="tier">
+        <div class="top">
+          <h3>Validate Desk</h3>
+          <div class="price">$995<small>CLI only. Generates the full document set offline, from exports, CI-friendly.</small></div>
+        </div>
+        <p class="why">No gateway module, no live execution. Documents and protocols only.</p>
+      </div>
+      <div class="tier feature">
+        <div class="top">
+          <h3>SparkValidate</h3>
+          <div class="price">$2,495<small>Gateway module, per gateway, perpetual. Adds live extraction, executed IQ/OQ/alarm protocols, sealed evidence and Part 11 hooks.</small></div>
+        </div>
+        <p class="why">Standalone. Does not require a SparkBridge license.</p>
+      </div>
+    </div>
+    <p class="note">SparkValidate is always billed separately and is never part of the central package. One CLI license (Validate Desk) or one gateway module license (SparkValidate) per gateway you validate against. See the full <a href="/sparkbridge/pricing">SparkBridge pricing</a> page for how it sits next to the rest of the suite.</p>
+  </div>
+</section>
+
+<section class="tail">
+  <div class="wrap">
+    <div class="measure">
+      <p>SparkValidate is early access, v0.1, reading Rockwell L5X and L5K first, with TI 505, CTI 2500, Siemens and Codesys next. If you are sitting on a validation package that should not take weeks to hand-write, or an alarm system nobody has rationalized since it was commissioned, this is worth a conversation. Early sites shape the roadmap and the risk-policy defaults.</p>
+    </div>
+    <div class="cta-row">
+      <a class="btn" href="mailto:admin@greenguard-usa.com?subject=SparkValidate%20early%20access">Ask about early access</a>
+      <a class="btn ghost dark" href="/sparkbridge/products">See the products</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>
