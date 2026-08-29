@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkLogix: Allen-Bradley Logix Driver for Ignition | SparkBridge</title>
+<meta name="description" content="SparkLogix is a native Allen-Bradley Logix driver for Ignition 8.1 and 8.3. Connects ControlLogix and CompactLogix over EtherNet/IP directly, no translator box. $995 per gateway, bought once, works without SparkBridge.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/logix">
+<meta property="og:title" content="SparkLogix: Allen-Bradley Logix driver for Ignition">
+<meta property="og:description" content="Native Allen-Bradley Logix driver for Ignition 8.1 and 8.3. Connects ControlLogix and CompactLogix over EtherNet/IP directly, no translator box. $995 per gateway, bought once.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/logix">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SparkLogix: Allen-Bradley Logix driver for Ignition">
+<meta name="twitter:description" content="Native Allen-Bradley Logix driver for Ignition 8.1 and 8.3. Connects ControlLogix and CompactLogix over EtherNet/IP directly, no translator box. $995 per gateway, bought once.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Native drivers","item":"https://mqtt.greenguard-usa.com/sparkbridge/drivers"},{"@type":"ListItem","position":3,"name":"SparkLogix","item":"https://mqtt.greenguard-usa.com/sparkbridge/logix"}]},{"@type":"SoftwareApplication","name":"SparkLogix Allen-Bradley Logix driver for Ignition","url":"https://mqtt.greenguard-usa.com/sparkbridge/logix","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1 and 8.3","softwareVersion":"0.2.0","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"SparkLogix connects Allen-Bradley ControlLogix and CompactLogix controllers directly to Ignition over EtherNet/IP. $995 per gateway, bought once, works without SparkBridge.","offers":{"@type":"Offer","price":"995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per gateway. Standalone, always billed separately"}}]}
+</script>
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Central</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top">
+  <div class="wrap">
+    <div class="phead-grid">
+      <div>
+        <div class="eyebrow">SparkLogix</div>
+        <h1>Talk to your Allen-Bradley controllers directly. Drop the box in between.</h1>
+        <p>Most plants running ControlLogix or CompactLogix reach Ignition through a translator box, an OPC server, or both. SparkLogix connects straight to the controller over EtherNet/IP, browses the tags live, and reads them at the pace your process actually needs, so there is one fewer thing between your equipment and your data.</p>
+        <div class="pmeta"><span class="stat">Released 0.2.0</span><span>Runs on the gateway that touches the controller</span><span>$995, always separate</span></div>
+      </div>
+      <div class="artifact">
+        <div class="artifact-head"><span>SparkLogix &middot; live gateway install</span><span class="live"><i class="dot"></i>Captured live</span></div>
+        <div class="artifact-body">
+<pre style="margin:0;white-space:pre-wrap">  Device type    <span class="hi">SparkLogix (Allen-Bradley Logix)</span>
+  Ignition 8.1.54   status  <span class="acc">CONNECTING 192.0.2.1:44818</span>
+  Ignition 8.3.8    status  <span class="acc">CONNECTING 192.0.2.1:44818</span>
+  Connections    4 connection(s), 1 request each
+  Result         clean connect/timeout cycle, zero ERROR lines</pre>
+        </div>
+        <div class="artifact-foot">Installed and started clean on both Ignition 8.1 and 8.3, in each case pointed at a controller address that was not there, and logging exactly the expected timeout with no exceptions and no stack traces.</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <p class="claim">Point it at the controller. <em>The tags are already there.</em></p>
+    <div class="twocol">
+      <div class="measure">
+        <p>SparkLogix connects to ControlLogix and CompactLogix controllers over EtherNet/IP and browses the tag database directly from the gateway, no OPC server and no translator box to license, patch or lose a reading to. Tags, including nested user-defined types, appear the moment the controller connects.</p>
+        <p>Reads are planned around what each tag actually needs rather than one setting for the whole controller: values that share a structure are read together where that is faster, and everything else is read on its own so a locked or restricted tag never holds up the rest. The connection itself is built to stay up, recovering on its own if a request goes quiet without a stalled tag ever going unnoticed.</p>
+      </div>
+      <div>
+        <span class="spectitle">At a glance</span>
+        <table class="spec">
+          <tr><th>What it is</th><td>A native Allen-Bradley Logix driver: ControlLogix, CompactLogix, over EtherNet/IP</td></tr>
+          <tr><th>Where it runs</th><td>On the gateway that touches the controller</td></tr>
+          <tr><th>Requires SparkBridge</th><td>No. Works standalone on any Ignition 8.1 or 8.3 gateway</td></tr>
+          <tr><th>Who it is for</th><td>Plants with Allen-Bradley Logix controllers they want in Ignition without an OPC server or translator box in between</td></tr>
+          <tr><th>Licensing</th><td>$995 per gateway, bought once and kept, not a subscription. Always billed separately, never part of any package. Free for development with no time limit. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="figure"><b>0</b><span>OPC servers or translator boxes needed to see a Logix tag</span></div>
+    <div class="measure">
+      <p>The tag database is browsed straight from the controller and kept warm on the gateway, so a restart comes back instantly instead of re-browsing from scratch, and a program change in Studio 5000 is picked up on its own without anyone touching the gateway.</p>
+      <p>Version 0.2.0 runs on Ignition 8.1 and 8.3 from the same codebase, with 233 tests covering the read and write planning, the tag database, and both gateway versions.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">where it earns its keep</span>
+      <h2>Four Situations This Solves</h2>
+      <p>All four are a working controller being held at arm's length by the box meant to connect it.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>The situation</th><th>What changes</th></tr></thead>
+        <tbody>
+          <tr><td><b>An OPC server sits between the controller and Ignition for no reason but habit</b><br><span class="sub">Any plant running ControlLogix or CompactLogix through a middle layer.</span></td>
+              <td>SparkLogix talks EtherNet/IP straight to the controller from the Ignition gateway. The OPC server, its license and its own point of failure come out of the path entirely.</td></tr>
+          <tr><td><b>A locked or partially restricted tag holds up everything else</b><br><span class="sub">The engineer whose scan slows to a crawl the moment one tag is access-restricted.</span></td>
+              <td>Restricted tags are read on their own so they never block a controller-wide read. Every reprobe clears what was previously learned about access, so a Studio 5000 fix or a program change is picked up cleanly rather than leaving a stale restriction in place.</td></tr>
+          <tr><td><b>A Studio 5000 program edit leaves Ignition showing the old tag structure</b><br><span class="sub">Whoever has had to manually re-browse a device after a controller change.</span></td>
+              <td>The gateway rebuilds its tag database on a background schedule and after a detected controller change, so a new or changed tag shows up without a manual re-browse.</td></tr>
+          <tr><td><b>A dropped connection needs a person to notice and reconnect it</b><br><span class="sub">Anyone who has found a device silently stalled with the wire showing connected.</span></td>
+              <td>The driver watches for requests that go quiet even when the network link still looks fine, and reconnects on its own rather than waiting for someone to notice a stalled tag.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="measure">
+      <p>If you have Allen-Bradley Logix controllers reaching Ignition through an OPC server or a translator box today, connecting them directly is usually a smaller project than it sounds, and it removes a vendor rather than adding one.</p>
+    </div>
+
+    <h2 style="margin-top:40px">For your engineers</h2>
+    <div class="measure">
+      <p>SparkLogix is a native ControlLogix / CompactLogix driver over EtherNet/IP for Ignition 8.1 and 8.3, version 0.2.0. Reads are cost-planned per tag: whole-structure coalescing for fully readable UDTs and AOIs, per-member reads for standalone scalars, bit hosts, and partially restricted structures, all deduped and packed into Multiple Service Packets sized to the negotiated connection buffer. Oversized readable tags are served with Read Tag Fragmented, assembled off the event loop. Class 3 connections use Large Forward Open with UCMM fallback, spread across a small connection pool that scales with concurrency. The tag and type database persists to disk for an instant warm start and reprobes on a background schedule, with access-restriction learning cleared on every reprobe so a Studio 5000 fix can never leave a stale denial in place. A stall watchdog force-reconnects a connection that has gone quiet even when the transport still looks alive. Writes are type-aware and batched, with bit writes coalesced as read-modify-write and marked non-retryable so a timed-out write is never silently resent; write verification is optional and off by default. On redundant gateways, only the active node holds Class 3 connections, with fail-open behavior if redundancy state is unavailable. 233 tests cover the common protocol layer, the core engine, and both the 8.1 and 8.3 gateway adapters.</p>
+    </div>
+
+    <div class="cta-row">
+      <a class="btn buy" href="/sparkbridge/contact" data-sku="sparklogix">Buy SparkLogix, $995</a>
+      <a class="btn ghost dark" href="/sparkbridge/pricing">See pricing</a>
+    </div>
+    <p class="note">Development use is free with no time limit. <a href="/sparkbridge/contact">Contact</a>.</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-buy.js"></script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

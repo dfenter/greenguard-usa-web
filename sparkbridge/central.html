@@ -52,8 +52,8 @@
       <div>
         <div class="eyebrow">SparkBridge Central</div>
         <h1>One server, in the middle, holding your whole plant network together</h1>
-        <p>Every site's Edge gateway sends its data to one place. Central is that place: it collects what every site reports, and gives your analysts, your auditors and your own team one version of what is happening, instead of forty.</p>
-        <div class="pmeta"><span class="stat">$1,995 standalone</span><span>Seven optional modules</span><span>Runs on your central gateway</span></div>
+        <p>Every site's Edge gateway sends its data to one place. Central is that place: it collects what every site reports, and gives your analysts, your auditors and your own team one version of what is happening, instead of forty. Seven modules build on top of it: Passage, SparkCalc, SparkID, Sentinel, FleetOps, SparkVault and SparkInject. Every one of them runs only on a SparkBridge Central gateway and cannot be bought or used without it.</p>
+        <div class="pmeta"><span class="stat">$1,995 standalone</span><span>Seven optional modules, Central required</span><span>Runs on your central gateway</span></div>
       </div>
       <div class="trace" role="img" aria-label="Analyzer trace showing many sites landing on one central gateway">
         <div class="trace-head">
@@ -86,7 +86,7 @@
     <div class="twocol">
       <div class="measure">
         <p>Central alone, with no modules added, already replaces the work of stitching together forty sites by hand. It collects what every Edge gateway reports, learns each site's tag structure the moment that site connects, and projects it as one live picture you can point any tool at.</p>
-        <p>It runs on one server, at one license, whether you are watching five sites or five hundred. From there, the seven modules below are how you open that data, put numbers on it, secure it, check it, run it and keep it, each one billed and installed only if you want it.</p>
+        <p>It runs on one server, at one license, whether you are watching five sites or five hundred. From there, the seven modules below are how you open that data, put numbers on it, secure it, check it, run it and keep it, each one billed and installed only if you want it. None of the seven runs on its own: every module requires a SparkBridge Central gateway underneath it.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
@@ -105,7 +105,7 @@
     <div class="sec-head">
       <div class="path">the modules</div>
       <h2>Seven Modules, Each Optional</h2>
-      <p>Every module below runs on the central gateway, is priced on its own, and is also included in the $3,995 central package further down this page.</p>
+      <p>These modules only run on a SparkBridge Central gateway. Each is priced on its own, and each is also included in the $3,995 central package further down this page.</p>
     </div>
   </div>
 </section>
@@ -120,13 +120,15 @@
       <div class="measure">
         <p>Right now, every historian, dashboard and analytics tool that wants your plant data needs its own custom connector, built and maintained by someone, forever. Adding the next tool becomes a small project every time.</p>
         <p>Passage opens your live plant data on a standard interface. Your historians, your SCADA, your analytics and test tools read it as is. Adding the next system becomes a subscription, not a build.</p>
+        <p><strong>What it replaces:</strong> the custom connector built and maintained per tool, and the small project that adding the next system used to require.</p>
+        <p><strong>What you get in the first month:</strong> your existing historian, analytics and test tools reading live plant data on a standard interface, with the next tool added as a subscription instead of a build.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
         <table class="spec">
-          <tr><th>Runs on</th><td>Central gateway only</td></tr>
+          <tr><th>Runs on</th><td>SparkBridge Central gateway only</td></tr>
           <tr><th>Price</th><td>$495, included in the central package</td></tr>
-          <tr><th>Buy</th><td><a class="btn buy" href="/sparkbridge/contact" data-sku="passage">Buy Passage for one gateway</a></td></tr>
+          <tr><th>Buy</th><td><a class="btn buy" href="/sparkbridge/contact" data-sku="passage">Buy Passage, $495</a> <a class="btn buy" href="/sparkbridge/contact" data-sku="central-package">Get it in the Central package, $3,995</a></td></tr>
           <tr><th>In the package</th><td>Yes</td></tr>
         </table>
       </div>
@@ -144,13 +146,15 @@
       <div class="measure">
         <p>Today the same formula for a rate, a total or an efficiency gets built three times: once in a PLC that is expensive to change, once in a dashboard nobody else can see, once in a spreadsheet that quietly drifts out of sync with the other two.</p>
         <p>SparkCalc computes it once, in one place, on live plant data, and every system that needs the number uses the same one. Change the formula once and every consumer picks it up.</p>
+        <p><strong>What it replaces:</strong> the same rate, total or efficiency formula built three times over, in a PLC, in a dashboard and in a spreadsheet, each one able to quietly drift out of sync with the others.</p>
+        <p><strong>What you get in the first month:</strong> a rate, a total and an efficiency number computed once against live data, timestamped correctly even when its inputs arrive at different times, with the same number showing up everywhere it is used.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
         <table class="spec">
-          <tr><th>Runs on</th><td>Central gateway only</td></tr>
+          <tr><th>Runs on</th><td>SparkBridge Central gateway only</td></tr>
           <tr><th>Price</th><td>$495, included in the central package</td></tr>
-          <tr><th>Buy</th><td><a class="btn buy" href="/sparkbridge/contact" data-sku="sparkcalc">Buy SparkCalc for one gateway</a></td></tr>
+          <tr><th>Buy</th><td><a class="btn buy" href="/sparkbridge/contact" data-sku="sparkcalc">Buy SparkCalc, $495</a> <a class="btn buy" href="/sparkbridge/contact" data-sku="central-package">Get it in the Central package, $3,995</a></td></tr>
           <tr><th>In the package</th><td>Yes</td></tr>
         </table>
       </div>
@@ -168,13 +172,15 @@
       <div class="measure">
         <p>Access rules for a plant data network are usually hand-typed, which means a wildcard written to grant read access can silently grant control as well, and nobody notices until an audit or an incident finds it. Credentials shared between two roles cannot be rotated or revoked one at a time.</p>
         <p>SparkID generates access rules from a plain statement of intent, so a permission does exactly what you meant and nothing more. Who can read, who can send commands, and safe rotation of credentials, without a human ever typing a wildcard.</p>
+        <p><strong>What it replaces:</strong> hand-typed access wildcards and shared credentials that cannot be rotated or revoked one identity at a time.</p>
+        <p><strong>What you get in the first month:</strong> your plant network's access rules regenerated from a plain statement of who should read what and who should control what, with a dry-run diff before anything changes and rotation that never drops a live session.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
         <table class="spec">
-          <tr><th>Runs on</th><td>Central gateway only</td></tr>
+          <tr><th>Runs on</th><td>SparkBridge Central gateway only</td></tr>
           <tr><th>Price</th><td>$495, included in the central package</td></tr>
-          <tr><th>Buy</th><td><a class="btn buy" href="/sparkbridge/contact" data-sku="sparkid">Buy SparkID for one gateway</a></td></tr>
+          <tr><th>Buy</th><td><a class="btn buy" href="/sparkbridge/contact" data-sku="sparkid">Buy SparkID, $495</a> <a class="btn buy" href="/sparkbridge/contact" data-sku="central-package">Get it in the Central package, $3,995</a></td></tr>
           <tr><th>In the package</th><td>Yes</td></tr>
         </table>
       </div>
@@ -192,13 +198,15 @@
       <div class="measure">
         <p>Most plants cannot answer, in a sentence, how exposed their plant data network is: who can read what, what is encrypted, which identities exist and which should not. When a buyer or an auditor asks, the answer today is screenshots and tribal knowledge, assembled by hand.</p>
         <p>Sentinel scores your plant data network, ranks the findings, and hands you the evidence and the fix for each one. It observes and changes nothing on its own. A compliance pack that turns a Sentinel run into an auditor-ready binder is a $2,495 add-on.</p>
+        <p><strong>What it replaces:</strong> posture evidence assembled by hand from screenshots and tribal knowledge whenever a buyer or an auditor asks how exposed your plant data network is.</p>
+        <p><strong>What you get in the first month:</strong> a scored report of your plant data network, ranked by severity, with the evidence behind each finding and the concrete fix, run first against your own estate with zero false criticals.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
         <table class="spec">
-          <tr><th>Runs on</th><td>Central gateway only</td></tr>
+          <tr><th>Runs on</th><td>SparkBridge Central gateway only</td></tr>
           <tr><th>Price</th><td>$495, included in the central package. Compliance pack $2,495 add-on</td></tr>
-          <tr><th>Buy</th><td><a class="btn buy" href="/sparkbridge/contact" data-sku="sentinel">Buy Sentinel for one gateway</a></td></tr>
+          <tr><th>Buy</th><td><a class="btn buy" href="/sparkbridge/contact" data-sku="sentinel">Buy Sentinel, $495</a> <a class="btn buy" href="/sparkbridge/contact" data-sku="central-package">Get it in the Central package, $3,995</a></td></tr>
           <tr><th>In the package</th><td>Yes (base module; compliance pack separate)</td></tr>
         </table>
       </div>
@@ -216,13 +224,15 @@
       <div class="measure">
         <p>Operating forty gateways today means forty separate logins, a spreadsheet to track versions and certificates, and a rotation done by hand at every site, one at a time.</p>
         <p>FleetOps gives you one view of every gateway: versions, drift from what you intended, certificate expiry, backup status. Fix a setting once, and apply it everywhere. Authorize a rotation once, and it runs fleet-wide.</p>
+        <p><strong>What it replaces:</strong> forty separate logins, a spreadsheet tracking versions and certificates, and a rotation done by hand at every site, one at a time.</p>
+        <p><strong>What you get in the first month:</strong> one inventory of every gateway you run, versions, drift from what you intended, certificate expiry and backup status all surfaced within one poll interval, plus the ability to fix a setting once and apply it fleet-wide.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
         <table class="spec">
-          <tr><th>Runs on</th><td>Central gateway only</td></tr>
+          <tr><th>Runs on</th><td>SparkBridge Central gateway only</td></tr>
           <tr><th>Price</th><td>$495, included in the central package</td></tr>
-          <tr><th>Buy</th><td><a class="btn buy" href="/sparkbridge/contact" data-sku="fleetops">Buy FleetOps for one gateway</a></td></tr>
+          <tr><th>Buy</th><td><a class="btn buy" href="/sparkbridge/contact" data-sku="fleetops">Buy FleetOps, $495</a> <a class="btn buy" href="/sparkbridge/contact" data-sku="central-package">Get it in the Central package, $3,995</a></td></tr>
           <tr><th>In the package</th><td>Yes</td></tr>
         </table>
       </div>
@@ -240,13 +250,15 @@
       <div class="measure">
         <p>Most systems record when a value arrives, not when it happened. After an outage that turns a real production curve into a flat wall of nothing, then a jump, and every report built on it is wrong.</p>
         <p>SparkVault keeps your plant's history on the plant's own clock, in an open database your existing tools can read directly, so an outage never leaves a hole and any past day can be replayed on demand.</p>
+        <p><strong>What it replaces:</strong> per-site historians and manual data exports, and the flat trend and wrong shift report that a real outage used to leave behind.</p>
+        <p><strong>What you get in the first month:</strong> your plant network's history in one place, on the time it actually happened, read directly by your own reporting and dashboard tools, with any past day available to replay on demand.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
         <table class="spec">
-          <tr><th>Runs on</th><td>Central gateway only</td></tr>
+          <tr><th>Runs on</th><td>SparkBridge Central gateway only</td></tr>
           <tr><th>Price</th><td>$995, included in the central package</td></tr>
-          <tr><th>Buy</th><td><a class="btn buy" href="/sparkbridge/contact" data-sku="sparkvault">Buy SparkVault for one gateway</a></td></tr>
+          <tr><th>Buy</th><td><a class="btn buy" href="/sparkbridge/contact" data-sku="sparkvault">Buy SparkVault, $995</a> <a class="btn buy" href="/sparkbridge/contact" data-sku="central-package">Get it in the Central package, $3,995</a></td></tr>
           <tr><th>In the package</th><td>Yes</td></tr>
         </table>
       </div>
@@ -265,17 +277,44 @@
       <div class="measure">
         <p>Getting production data into a warehouse is normally a per-row subscription and a standing worry about whether a reading was lost or counted twice during a restart.</p>
         <p>SparkInject delivers your production data into your own warehouse continuously, once, with every reading tracked so a restart or a dropped link cannot cause a gap or a duplicate. You own the account and the bill; we are never in the middle of it.</p>
+        <p><strong>What it replaces:</strong> per-row cloud connector subscriptions and nightly exports, and the standing worry about a reading lost or counted twice during a restart.</p>
+        <p><strong>What you get in the first month:</strong> a continuous feed from plant to warehouse, landing in your own Snowflake account on the time the plant recorded it, with nothing missing and nothing duplicated across a dropped link.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
         <table class="spec">
-          <tr><th>Runs on</th><td>Central gateway only</td></tr>
+          <tr><th>Runs on</th><td>SparkBridge Central gateway only</td></tr>
           <tr><th>Price</th><td>$495, included in the central package</td></tr>
-          <tr><th>Buy</th><td><a class="btn buy" href="/sparkbridge/contact" data-sku="sparkinject">Buy SparkInject for one gateway</a></td></tr>
+          <tr><th>Buy</th><td><a class="btn buy" href="/sparkbridge/contact" data-sku="sparkinject">Buy SparkInject, $495</a> <a class="btn buy" href="/sparkbridge/contact" data-sku="central-package">Get it in the Central package, $3,995</a></td></tr>
           <tr><th>In the package</th><td>Yes</td></tr>
         </table>
       </div>
       <p style="margin-top:10px"><a href="/sparkbridge/inject">Read the SparkInject deep page</a></p>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="sparkflow">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">separate license, requires Central</div>
+      <h2>Company-Wide Streaming, Past the Tag-Count Ceiling</h2>
+      <p>SparkFlow requires a SparkBridge Central gateway. It is always billed separately and is never part of the central package, at $3,995 or any other price.</p>
+    </div>
+    <div class="twocol">
+      <div class="measure">
+        <p>A plant with millions of points cannot put them all on tags at once, and eventually the estate runs into the ceiling of how many it can carry live. SparkFlow moves the backbone onto a durable, replayable transport tier so the estate can stream company-wide, with the plant's Sparkplug data model kept intact end to end.</p>
+        <p><strong>What you get in the first month:</strong> the tag-count ceiling removed for company-wide streaming, on the same certified data model your plant already runs, licensed on the central gateway.</p>
+      </div>
+      <div>
+        <span class="spectitle">At a glance</span>
+        <table class="spec">
+          <tr><th>Runs on</th><td>SparkBridge Central gateway only</td></tr>
+          <tr><th>Price</th><td>$995, always billed separately, never in the package</td></tr>
+          <tr><th>Buy</th><td><a class="btn buy" href="/sparkbridge/contact" data-sku="sparkflow">Buy SparkFlow, $995</a></td></tr>
+        </table>
+      </div>
+      <p style="margin-top:10px"><a href="/sparkbridge/flow">Read the SparkFlow page</a></p>
     </div>
   </div>
 </section>

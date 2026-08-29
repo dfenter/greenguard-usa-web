@@ -75,6 +75,16 @@
         <span class="tagno">Central</span>
         <span class="devname">One server</span>
         <span class="job">Collects every site, puts the data to work</span>
+        <span class="chips">
+          <span class="chip"><b>Passage</b></span>
+          <span class="chip"><b>SparkCalc</b></span>
+          <span class="chip"><b>SparkID</b></span>
+          <span class="chip"><b>Sentinel</b></span>
+          <span class="chip"><b>FleetOps</b></span>
+          <span class="chip"><b>SparkVault</b></span>
+          <span class="chip"><b>SparkInject</b></span>
+          <span class="chip"><b>SparkFlow</b><span>separate license</span></span>
+        </span>
       </a>
       <div class="seg s2" aria-hidden="true"></div>
       <div class="dev source">
@@ -127,50 +137,51 @@
 
       <div class="seg s1" aria-hidden="true"></div>
 
-      <a class="dev st-svc" href="/sparkbridge/drivers">
-        <span class="tagno">Connect</span>
-        <span class="devname">Drivers</span>
-        <span class="job">Connect older racks and utility equipment directly</span>
-      </a>
-
-      <div class="seg s2" aria-hidden="true"></div>
-
       <a class="dev spine st-svc" href="/sparkbridge/edge">
         <span class="tagno">Edge</span>
         <span class="devname">At each site</span>
         <span class="job">Moves plant data off the floor reliably, and holds it safely when a link drops</span>
       </a>
 
-      <div class="seg s3" aria-hidden="true"></div>
+      <div class="seg s2" aria-hidden="true"></div>
 
       <a class="dev spine st-svc" href="/sparkbridge/central">
         <span class="tagno">Central</span>
         <span class="devname">One server</span>
         <span class="job">Collects every site in one place and puts the data to work</span>
+        <span class="chips">
+          <span class="chip"><b>Passage</b></span>
+          <span class="chip"><b>SparkCalc</b></span>
+          <span class="chip"><b>SparkID</b></span>
+          <span class="chip"><b>Sentinel</b></span>
+          <span class="chip"><b>FleetOps</b></span>
+          <span class="chip"><b>SparkVault</b></span>
+          <span class="chip"><b>SparkInject</b></span>
+          <span class="chip"><b>SparkFlow</b><span>separate license</span></span>
+        </span>
       </a>
 
-      <div class="seg s4" aria-hidden="true"></div>
+      <div class="seg s3" aria-hidden="true"></div>
 
-      <div class="taps">
-        <a class="dev st-svc" href="/sparkbridge/central#passage">
-          <span class="tagno">Open</span>
-          <span class="devname">Passage</span>
-          <span class="job">Opens plant data to the tools you already own</span>
-        </a>
-        <a class="dev st-svc" href="/sparkbridge/central#sparkvault">
-          <span class="tagno">Keep</span>
-          <span class="devname">SparkVault</span>
-          <span class="job">Keeps history on the plant's own clock</span>
-        </a>
-        <a class="dev st-svc" href="/sparkbridge/central#sparkinject">
-          <span class="tagno">Deliver</span>
-          <span class="devname">SparkInject</span>
-          <span class="job">Delivers production data into your warehouse, once</span>
-        </a>
+      <div class="dev source">
+        <span class="tagno">Use</span>
+        <span class="devname">Your tools</span>
+        <span class="job">Warehouse, analysts, auditors</span>
       </div>
     </div>
 
-    <p class="note">A reading crosses this line keeping the time your equipment gave it, through a dropped link and back again. That is what makes the number defensible when a customer, an auditor or your own board asks where it came from. Edge is a site gateway, $995, standalone. Central is one server for the whole plant, $1,995, standalone, with seven optional modules. <a href="/sparkbridge/products">See every product</a> for what each one does and what it costs.</p>
+    <div class="cards" style="margin-top:22px">
+      <div class="path" style="width:100%">Works without SparkBridge</div>
+      <a class="card" href="/sparkbridge/logix"><h3>SparkLogix</h3><p>Allen-Bradley Logix driver</p></a>
+      <a class="card" href="/sparkbridge/snmp"><h3>SparkSNMP</h3><p>Network and power equipment</p></a>
+      <a class="card" href="/sparkbridge/iec104"><h3>IEC 60870-5-104</h3><p>Utility and substation driver</p></a>
+      <a class="card" href="/sparkbridge/drivers"><h3>DNP3</h3><p>Utility equipment driver</p></a>
+      <a class="card" href="/sparkbridge/drivers"><h3>TI 505 &middot; CTI 2500</h3><p>Older Siemens and CTI racks</p></a>
+      <a class="card" href="/sparkbridge/influx"><h3>SparkInflux <small>coming</small></h3><p>InfluxDB history storage</p></a>
+      <a class="card" href="/sparkbridge/validate"><h3>SparkValidate <small>coming</small></h3><p>Alarm review and validation documents</p></a>
+    </div>
+
+    <p class="note">A reading crosses this line keeping the time your equipment gave it, through a dropped link and back again. That is what makes the number defensible when a customer, an auditor or your own board asks where it came from. Edge is a site gateway, $995, standalone. Central is one server for the whole plant, $1,995, standalone, with seven modules that only run on Central. <a href="/sparkbridge/products">See every product</a> for what each one does and what it costs.</p>
   </div>
 </section>
 
@@ -178,8 +189,8 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="path">modules</div>
-      <h2>Seven Modules For Central</h2>
-      <p>Each is $495 on the central gateway (SparkVault $995), or all seven in the $3,995 central package. SparkLink is included with Edge, at no extra cost.</p>
+      <h2>Seven Modules, Central Only</h2>
+      <p>These seven modules only run on a SparkBridge Central gateway. Each is $495 (SparkVault $995), or all seven in the $3,995 central package. SparkLink is included with Edge, at no extra cost.</p>
     </div>
     <div class="cards">
       <article class="card" id="passage">
