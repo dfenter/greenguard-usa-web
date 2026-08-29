@@ -432,7 +432,7 @@
   var NODE_IDS = [
     'rfMenu', 'rfMenuRoster', 'rfMenuCoins', 'rfMenuLevel', 'rfMenuXpFill',
     'rfMenuXpText', 'rfMenuSel', 'rfMenuSelName', 'rfMenuSelBlurb', 'rfDive',
-    'rfMenuShop',
+    'rfMenuShop', 'rfCreditsBtn', 'rfCreditsOverlay', 'rfCreditsList', 'rfCreditsClose',
     'rfShop', 'rfShopList', 'rfShopCoins', 'rfShopUp', 'rfShopUpName',
     'rfShopBack', 'rfShopToast',
     'rfResults', 'rfResScore', 'rfResBest', 'rfResRows', 'rfResUnlocks',
@@ -896,6 +896,62 @@
   }
 
   // ---------------------------------------------------------------- MENU
+  // Rev 17 Step 0: CC-BY 4.0 model credits, live obligation per LICENSES.md.
+  // Names/authors/links kept in sync with that file by hand (no build step
+  // reads it at runtime) -- update both if a CC-BY source is added/removed.
+  var CREDITS_CC_BY = [
+    { model: 'White Pointer', author: '3dartstevenz', url: 'https://sketchfab.com/3d-models/white-pointer-8e429052939a4677861d0d550a0e27cd' },
+    { model: 'Tiger Shark', author: 'intervirtual', url: 'https://sketchfab.com/3d-models/tiger-shark-8a19770317984b4a9628934acd587a67' },
+    { model: 'Great White Shark 3D Model', author: 'canyutsai1', url: 'https://sketchfab.com/3d-models/great-white-shark-3d-model-7a3f7e70f7054018919ad930ca586c62' },
+    { model: 'Megalodon Rex (WIP#3) Animating', author: 'geneugene', url: 'https://sketchfab.com/3d-models/megalodon-rex-wip3-animating-495d71bf2fbc4de0a5e3e25823589f11' },
+    { model: 'Shortfin mako shark', author: 'faerbogdan99', url: 'https://sketchfab.com/3d-models/shortfin-mako-shark-0ec4d184c6ea4a6a8704f56cc2ba6e78' },
+    { model: 'Tiger Shark (Galeocerdo Cuvier)', author: 'fdehell', url: 'https://sketchfab.com/3d-models/tiger-shark-galeocerdo-cuvier-b74e252a508d406490ecef3bde602e2f' },
+    { model: 'Pelagic Thresher Shark', author: 'charliegodofsharks', url: 'https://sketchfab.com/3d-models/pelagic-thresher-shark-b193a4cd16024e8d9efb19314129bf33' },
+    { model: 'Shark', author: 'Poly by Google', url: 'https://poly.pizza/m/1mVWW4RFVHc' },
+    { model: 'Tibu (hammer_chibi)', author: 'marioba', url: 'https://poly.pizza/m/TEUntUD1wl' }
+  ];
+
+  function buildCredits() {
+    var list = N('rfCreditsList');
+    if (!list) return;
+    clear(list);
+    var intro = mk('p', null, 'Model sources under CC-BY 4.0 (attribution required). Full list in LICENSES.md.');
+    if (intro) { intro.style.margin = '0 0 12px'; intro.style.opacity = '0.85'; list.appendChild(intro); }
+    for (var i = 0; i < CREDITS_CC_BY.length; i++) {
+      var c = CREDITS_CC_BY[i];
+      var row = mk('div', null);
+      if (!row) continue;
+      row.style.marginBottom = '10px';
+      var line = mk('div', null, '"' + c.model + '" by ' + c.author);
+      if (line) row.appendChild(line);
+      var sub = mk('div', null);
+      if (sub) {
+        sub.style.fontSize = '12px';
+        sub.style.opacity = '0.75';
+        var link = document.createElement('a');
+        link.href = c.url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+        link.textContent = c.url;
+        link.style.color = '#8fd8ff';
+        var lic = document.createTextNode('CC-BY 4.0 — ');
+        sub.appendChild(lic);
+        sub.appendChild(link);
+        row.appendChild(sub);
+      }
+      list.appendChild(row);
+    }
+  }
+
+  function showCredits() {
+    buildCredits();
+    var o = N('rfCreditsOverlay');
+    if (o) { o.style.display = 'flex'; }
+  }
+
+  function hideCredits() {
+    var o = N('rfCreditsOverlay');
+    if (o) o.style.display = 'none';
+  }
+
   function buildMenu() {
     var root = N('rfMenuRoster');
     if (!root) return;
@@ -2274,6 +2330,15 @@
 
     n = N('rfShopBack');
     if (n) n.addEventListener('click', function () { showMenu(); });
+
+    n = N('rfCreditsBtn');
+    if (n) n.addEventListener('click', function () { showCredits(); });
+
+    n = N('rfCreditsClose');
+    if (n) n.addEventListener('click', function () { hideCredits(); });
+
+    n = N('rfCreditsOverlay');
+    if (n) n.addEventListener('click', function (ev) { if (ev && ev.target === n) hideCredits(); });
 
     n = N('rfResAgain');
     if (n) n.addEventListener('click', function () {

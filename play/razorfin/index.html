@@ -554,6 +554,7 @@
     <!-- HUD ONLY-LAW (fix-round 3): DEV is a menu chip only, never in-run
          chrome. ui3d.js toggles rf-on from RF.DevMode.state. -->
     <div id="rfDevChip">DEV</div>
+    <button id="rfCreditsBtn" class="rf-btn rf-btn-ghost" type="button">CREDITS</button>
     <div class="rf-spacer"></div>
     <div id="rfMenuXp">
       <div class="rf-stat"><b id="rfMenuLevel">Level 1</b></div>
@@ -572,6 +573,15 @@
     <button id="rfDive" class="rf-btn rf-btn-go" type="button">DIVE</button>
   </div>
 </section>
+
+<!-- CREDITS -->
+<div id="rfCreditsOverlay" style="display:none; position:fixed; inset:0; z-index:50; background:rgba(4,12,18,.86); align-items:center; justify-content:center;">
+  <div id="rfCreditsPanel" style="max-width:min(560px,92vw); max-height:82vh; overflow-y:auto; background:rgba(10,34,51,.96); border:1px solid var(--line); border-radius:10px; padding:20px 22px; color:#eaf6fb; font-size:14px; line-height:1.5;">
+    <h2 style="margin:0 0 12px; font-size:18px;">Credits</h2>
+    <div id="rfCreditsList"></div>
+    <button id="rfCreditsClose" class="rf-btn rf-btn-ghost" type="button" style="margin-top:14px;">CLOSE</button>
+  </div>
+</div>
 
 <!-- SHOP -->
 <section id="rfShop" class="rf-screen">

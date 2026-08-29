@@ -35,7 +35,10 @@ document.body.appendChild(renderer.domElement);
 const scene = new THREE.Scene();
 const BG = new THREE.Color(0x0d4a6e);
 scene.background = BG;
-scene.add(new THREE.HemisphereLight(0x9fd4e8, 0x06121e, 0.55));
+/* Rev 16 rig. The old hemisphere was cyan 0x9fd4e8 over 0x06121e, which tinted
+   every hide toward slate and was the single biggest cause of the "everything
+   is cyan" verdict. These are the game's own Rev 16 values. */
+scene.add(new THREE.HemisphereLight(0xdfe7ea, 0x1a2228, 0.55));
 const key = new THREE.DirectionalLight(0xffffff, 1.25); key.position.set(-1.1, 1.4, 1.6); scene.add(key);
 /* A second, dimmer light from behind-left puts a rim on the dorsal edge so the
    silhouette reads against the water even on the pale rows. */
@@ -47,6 +50,10 @@ const def = rows.find((d) => d.id === ID);
 if (!def) { document.title = 'DOC NO ROW ' + ID; throw new Error('no row ' + ID); }
 const rig = Art3D.buildShark(def);
 scene.add(rig.group);
+/* Rev 17 Step 0: buildShark leaves the jaw closed; drive the runtime rig
+ * once at gape 0 so the roster shoot shows the shut mouth, not a rest pose
+ * some rows may still carry via personality.face.gape. */
+rig.animate(0, { speedFrac: 0, turn: 0, jawOpen: 0 });
 rig.group.updateMatrixWorld(true);
 
 const body = rig.parts.body;

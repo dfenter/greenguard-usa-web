@@ -15,10 +15,16 @@ import { buildTexturedFace, checkTexturedFace } from './hse/face_textured.js';
 import { ModelBudget, TEXTURED_LRU_CAP } from './hse/model_budget.js';
 /* Lane O2 kill switch: see the note at the face mount in buildLoadedRig. */
 const RF_O2_TEXTURED_FACE = true;
+/* Rev 17 Step 4 (Sonnet S2): authored-family runtime wiring, behind a module
+ * flag. Default OFF: every path below this flag falls through to the exact
+ * behaviour shipped before this lane touched the file. Flip to true only
+ * once a family's turntable has been owner-approved and its GLB/textures are
+ * on disk (see PLAN-rev17-families.md Step 4 and NOTES-rev17-S2.md). */
+const RF_FAMILIES = false;
 
 const host = typeof window !== 'undefined' ? window : globalThis;
 const RF = host.RF = host.RF || {};
-const MODEL_FILES = Object.freeze({
+const MODEL_FILES_BASE = {
   sharky: 'sharky.glb', goblinshark: 'goblinshark.glb', anglerfish: 'anglerfish.glb', piranha: 'piranha.glb',
   whale: 'whale.glb', shark: 'shark.glb', shark_c: 'shark_c.glb', hammer_chibi: 'hammer_chibi.glb',
   manta: 'manta.glb', dolphin: 'dolphin.glb', fish_tuna: 'fish_tuna.glb', fish_blue: 'fish_blue.glb',
@@ -48,7 +54,7 @@ const MODEL_FILES = Object.freeze({
   tigershark: 'tigershark.glb',
   whaler: 'whaler.glb',
   whitepointer: 'whitepointer.glb'
-});
+};
 /* A row opts in through sil.model. Membership here is what switches the
  * material path from the Sharky white-atlas colorizer to the lit PBR path,
  * and what suppresses the toon treatments (relief wobble, pattern blocks)
@@ -58,6 +64,16 @@ const TEXTURED_KEYS = Object.freeze(new Set([
   'megalodonrex', 'scallopedhammer', 'smoothhammer', 'smoothhound', 'thresher',
   'tiger_nu', 'tigershark', 'whaler', 'whitepointer'
 ]));
+/* Rev 17 Step 4: authored-family GLBs. data.js's FAM_FILES lists only the
+ * family names that actually have a GLB on disk at generate time (gen_data.py
+ * probes assets/models/fam/<family>.glb; the browser has no filesystem to
+ * probe itself). When RF_FAMILIES is off this object is simply never merged
+ * into MODEL_FILES, so MODEL_FILES is byte-for-byte what it was before this
+ * lane touched the file. */
+const FAM_MODEL_FILES = RF_FAMILIES
+  ? Object.fromEntries((host.RFD?.FAM_FILES || RF.RFD?.FAM_FILES || []).map((fam) => [`fam/${fam}`, `fam/${fam}.glb`]))
+  : {};
+const MODEL_FILES = Object.freeze({ ...MODEL_FILES_BASE, ...FAM_MODEL_FILES });
 const MODEL_KEYS = Object.freeze(Object.keys(MODEL_FILES));
 const TAU = Math.PI * 2;
 const BASE_LENGTH = 96;
@@ -977,6 +993,18 @@ function applyVariantBoneProfile(root, template, profile) {
 }
 function rows() { return host.RFD?.SHARKS || RF.RFD?.SHARKS || RF.SHARKS || []; }
 function baseForDef(def) {
+  /* Rev 17 Step 4: when RF_FAMILIES is on, sil.family wins over sil.model,
+   * but ONLY when that family's GLB actually shipped (fam/<family> present
+   * in MODEL_FILES, i.e. it was in data.js's FAM_FILES at generate time). A
+   * family named in the data but not yet rendered falls straight through to
+   * the sil.model / head-tag routing below, exactly as if RF_FAMILIES were
+   * off, so approving families one at a time never breaks the rest of the
+   * roster. */
+  if (RF_FAMILIES) {
+    const family = String(def?.sil?.family || '');
+    const famKey = family ? `fam/${family}` : '';
+    if (famKey && MODEL_FILES[famKey]) return famKey;
+  }
   /* Rev 14: an explicit sil.model wins over the head-tag routing. Unknown
    * keys fall through to the tag rules rather than throwing, so a data row
    * naming an asset this build does not ship still renders. */
@@ -989,6 +1017,16 @@ function baseForDef(def) {
   // whale.glb is a clean silhouette but has no readable cartoon mouth. Keep
   // the new face and make whale/kaiju rows bulky in buildLoadedRig().
   return 'sharky';
+}
+/* Rev 17 Step 4: true only when RF_FAMILIES is on AND this row's family GLB
+ * has actually shipped (present in MODEL_FILES). Used to gate every runtime
+ * customization layer this lane deletes for authored-family rows: with the
+ * flag off, or before a given family's turntable is approved and its GLB
+ * lands, this is always false and every deletion switch below is a no-op. */
+function isFamilyRow(def) {
+  if (!RF_FAMILIES) return false;
+  const family = String(def?.sil?.family || '');
+  return !!(family && MODEL_FILES[`fam/${family}`]);
 }
 function patternId(def) { return PATTERN_IDS[String(def?.sil?.pattern || 'plain')] ?? 0; }
 function assetUrl(file) { return new URL(`./assets/models/${file}`, import.meta.url).href; }
@@ -2157,7 +2195,8 @@ function sourceMap(sourceMaterial) { return sourceMaterial?.map || null; }
  */
 const TEXTURED_UNIFORMS = Object.freeze([
   'uRfHueShift', 'uRfHueBlend', 'uRfSaturation', 'uRfTopColor', 'uRfBottomColor', 'uRfAccentColor',
-  'uRfCounterGain', 'uRfRimColor', 'uRfRimPower', 'uRfRimStrength', 'uRfWetness', 'uRfBindUp', 'uRfBindUpExtent'
+  'uRfCounterGain', 'uRfRimColor', 'uRfRimPower', 'uRfRimStrength', 'uRfWetness', 'uRfBindUp', 'uRfBindUpExtent',
+  'uRfIdentityBypass'
 ]);
 function texturedSkinMaterial(palette, def, sourceMaterial = null, sourceName = '', bindUp = null, bindUpExtent = 0.5) {
   const id = String(def?.id || ''), faceSlot = materialIsFace(sourceName);
@@ -2225,7 +2264,15 @@ function texturedSkinMaterial(palette, def, sourceMaterial = null, sourceName = 
     uRfRimStrength: { value: faceSlot ? 0.10 : 0.34 },
     /* Wet specular: a broad-band gloss boost concentrated on the upper body,
      * which is where a wet hide actually catches the key. */
-    uRfWetness: { value: faceSlot ? 0.20 : 0.62 }
+    uRfWetness: { value: faceSlot ? 0.20 : 0.62 },
+    /* Rev 17 Step 4: 1 skips the hue/saturation steer and the top/bottom
+     * bias mix below entirely, leaving diffuseColor exactly what the bake's
+     * own painted texel decoded to. An authored-family bake is already
+     * painted per-row (family default or applyRowSkin's per-row jpg), so
+     * retinting it here would fight the artist's own color work. Lighting
+     * (roughness/wet specular), the fresnel rim and the emissive arcs below
+     * are UNAFFECTED by this flag -- those are lighting, not identity. */
+    uRfIdentityBypass: { value: isFamilyRow(def) ? 1 : 0 }
   };
   const material = new THREE.MeshStandardMaterial({
     /* White base color: the diffuse map IS the color. Multiplying the palette
@@ -2262,6 +2309,7 @@ function texturedSkinMaterial(palette, def, sourceMaterial = null, sourceName = 
         'uniform float uRfCounterGain;', 'uniform vec3 uRfBindUp;', 'uniform float uRfBindUpExtent;',
         'uniform vec3 uRfRimColor;', 'uniform float uRfRimPower;', 'uniform float uRfRimStrength;',
         'uniform float uRfWetness;',
+        'uniform float uRfIdentityBypass;',
         'varying vec3 vRfBindPosition;',
         'vec3 rfRgbToHsv(vec3 c){vec4 K=vec4(0.0,-1.0/3.0,2.0/3.0,-1.0);vec4 p=mix(vec4(c.bg,K.wz),vec4(c.gb,K.xy),step(c.b,c.g));vec4 q=mix(vec4(p.xyw,c.r),vec4(c.r,p.yzx),step(p.x,c.r));float d=q.x-min(q.w,q.y);return vec3(abs(q.z+(q.w-q.y)/(6.0*d+1e-5)),d/(q.x+1e-5),q.x);}',
         'vec3 rfHsvToRgb(vec3 c){vec3 p=abs(fract(c.xxx+vec3(0.0,1.0/3.0,2.0/3.0))*6.0-3.0);return c.z*mix(vec3(1.0),clamp(p-1.0,0.0,1.0),c.y);}'
@@ -2269,6 +2317,7 @@ function texturedSkinMaterial(palette, def, sourceMaterial = null, sourceName = 
       /* Tint AFTER <map_fragment> so diffuseColor already holds the sampled,
        * colorspace-converted diffuse texel. */
       .replace('#include <map_fragment>', ['#include <map_fragment>',
+        'if (uRfIdentityBypass < 0.5) {',
         'vec3 rfHsv = rfRgbToHsv(diffuseColor.rgb);',
         /* Steer hue toward the authored target. The pull is strongest where
          * the baked texel is closest to neutral, which is most of a shark
@@ -2310,7 +2359,8 @@ function texturedSkinMaterial(palette, def, sourceMaterial = null, sourceName = 
          * neutral grey, and a touch of the base hue along the ridge does the
          * same for the back. */
         'diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * uRfBottomColor * 2.10, (1.0 - smoothstep(0.02, 0.38, rfUp)) * 0.34);',
-        'diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * uRfTopColor * 2.10, smoothstep(0.66, 0.99, rfUp) * 0.30);'
+        'diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * uRfTopColor * 2.10, smoothstep(0.66, 0.99, rfUp) * 0.30);',
+        '}'
       ].join('\n'))
       /* Wet look: pull roughness down along the upper body so the key light
        * lays a real specular streak down the back, which is the single
@@ -2328,7 +2378,12 @@ function texturedSkinMaterial(palette, def, sourceMaterial = null, sourceName = 
         'totalEmissiveRadiance += uRfRimColor * rfFresnel * uRfRimStrength;'
       ].join('\n'));
   };
-  applyIdentity(material, def, palette);
+  /* Rev 17 Step 4: an authored-family row (RF_FAMILIES on, family GLB
+   * present) gets its identity from the modeled/painted body plus
+   * applyRowSkin, not from this runtime hue/marking overlay -- skip it so a
+   * family's paint job is not re-tinted on top of. Every other row (flag off,
+   * or family not yet shipped) keeps applyIdentity exactly as before. */
+  if (!isFamilyRow(def)) applyIdentity(material, def, palette);
   /* A distinct cache key: this program shares nothing with the :rf-skin3
    * atlas shader and must never be reused for it. */
   material.customProgramCacheKey = () => `${id}${TEXTURED_SUFFIX}`;
@@ -3270,7 +3325,11 @@ function buildLoadedRig(def, template, group) {
     if (def?.id === SHARKJIRA_ID) mesh.frustumCulled = false;
     if (!mesh.geometry.getAttribute('rfSlot')) mesh.geometry.setAttribute('rfSlot', new THREE.Float32BufferAttribute(new Float32Array(mesh.geometry.getAttribute('position').count).fill(1), 1));
   }
-  const hseMorph = textured ? applyMorph(model, body, def, { ...profile, personality, bindUp: template.bindUp }) : null;
+  /* Rev 17 Step 4: an authored-family body already has its final modeled
+   * shape from the Blender pipeline (head/fin/accessory ops), so the runtime
+   * bone-scale personality morph is skipped for those rows -- applying it on
+   * top would fight the sculpted mesh it was never measured against. */
+  const hseMorph = (textured && !isFamilyRow(def)) ? applyMorph(model, body, def, { ...profile, personality, bindUp: template.bindUp }) : null;
   /* HSE lane F1: re-measure the dorsal axis on the BOUND rig.
    * prepareTemplate's bindUp is taken from the source mesh before the skeleton
    * is bound, and for several bakes the answer changes across that step
@@ -3303,7 +3362,13 @@ function buildLoadedRig(def, template, group) {
    * painted until the seating is genuinely fixed.
    *
    * Flip RF_O2_TEXTURED_FACE to true to re-enable; nothing else changes. */
-  const faceMesh = textured
+  /* Rev 17 Step 4: an authored-family bake models a real open mouth and
+   * teeth (the whole point of the Blender pipeline), so neither the toon
+   * face overlay nor the O2 textured-face batch has anything to add -- both
+   * are skipped for a family row. */
+  const faceMesh = isFamilyRow(def)
+    ? null
+    : textured
     ? (RF_O2_TEXTURED_FACE ? buildTexturedFace({ palette, eyeColor: eyeColorOf(def) }, body, def, { ...profile, personality, face: personality?.face }) : null)
     : makeFace(body, def, palette);
   /* 9.6: no BackSide ink shell. Smooth Standard shading supplies the edge
@@ -3316,7 +3381,10 @@ function buildLoadedRig(def, template, group) {
   mountGrin(prop, pose, body, propBone);
   fitProp(prop, body, prop?.userData?.rfPropKind);
   if (prop && !propIsMounted(body, prop)) { prop.parent?.remove(prop); prop = null; }
-  if (textured) mountTexturedFeatures({ body, def, group, palette });
+  /* Rev 17 Step 4: fused accessories (crest, foil, spines...) are modeled
+   * into the family GLB itself, so the runtime prop-mount pass is skipped
+   * for those rows. */
+  if (textured && !isFamilyRow(def)) mountTexturedFeatures({ body, def, group, palette });
   const mixer = template.isSkinned && template.clips.swim ? new THREE.AnimationMixer(model) : null;
   const actions = {};
   if (mixer) {
@@ -3492,7 +3560,7 @@ function buildLoadedRig(def, template, group) {
   group.userData.rfBiteClipName = template.clips.bite?.name || (swimBones.length ? 'Swim_Bite (procedural, jaw gape)' : null);
   group.userData.rfTextured = textured;
   group.userData.rfSwimSource = swimBones.length ? { kind: 'procedural', bones: swimBones.map((entry) => entry.bone.name) } : { kind: 'clip' };
-  const jawRestGape = jawBone ? clamp(JAW_REST_GAPE + finite(personality?.face?.gape, 0), 0.20, 0.35) : 0;
+  const jawRestGape = jawBone ? clamp(JAW_REST_GAPE + finite(personality?.face?.gape, 0), 0, 0.35) : 0;
   group.userData.rfJawRestGape = jawRestGape;
   group.userData.rfJawMaxRotation = jawBone ? JAW_MAX_ROTATION : 0;
   group.userData.rfJawGape = jawBone ? jawRestGape : 0;
@@ -3639,7 +3707,10 @@ function buildLoadedRig(def, template, group) {
     /* Slower, deeper swell than Sharkjira's fast atomic flicker. */
     if (leviathan) leviathan.pulse.value = 0.52 + 0.34 * (0.5 + 0.5 * Math.sin(time * 2.15));
   }
-  if (jawBone && baseJawQuaternion) { jawBone.quaternion.copy(baseJawQuaternion); jawBone.rotateX(jawRestGape * JAW_MAX_ROTATION); }
+  /* Rev 17 Step 0: buildShark must leave the jaw CLOSED. jawRestGape is kept
+   * (still consumed by userData/gates below) but is no longer written to the
+   * bone here; hse/rig_morph.js writeJawGape (the animate() jawGape write
+   * above, in the runtime rig) is the only runtime jaw-pose writer. */
   if (prop?.userData?.rfPropKind === 'hammer') {
     group.updateMatrixWorld(true);
     const bodyBox = new THREE.Box3().setFromObject(body), propBox = new THREE.Box3().setFromObject(prop);
@@ -3700,6 +3771,45 @@ function placeholderRig(def, base) {
   }).catch(() => {});
   return record;
 }
+/* Rev 17 Step 4: per-row texture cache. A row's skin is small (<=180 KB JPEG
+ * per the pipeline spec) and identical for every instance of that row, so it
+ * is loaded once and shared, never per-rig. Cached by skin NAME (def.sil.skin),
+ * not by row id, because two rows can share one painted variant. */
+const rowSkinCache = new Map();
+const rowSkinLoader = typeof THREE.TextureLoader === 'function' ? new THREE.TextureLoader() : null;
+function rowSkinUrl(skin) { return new URL(`./assets/textures/rows/${skin}.jpg`, import.meta.url).href; }
+/* Loads assets/textures/rows/<sil.skin>.jpg onto a CLONE of the rig's body
+ * material (never the shared template material -- cloning is what keeps two
+ * rows of the same family from fighting over one texture slot) and counts
+ * the decoded bytes against the model budget. No-op when the row has no
+ * sil.skin, or (guarded by the RF_FAMILIES flag at the call site) when the
+ * family lane is off. Synchronous texture creation, async decode: the clone
+ * starts on the body's existing map/material immediately and swaps in the
+ * row texture once TextureLoader resolves, so there is no frame where the
+ * shark renders bodyless. */
+function applyRowSkin(rig, def) {
+  const skin = String(def?.sil?.skin || '');
+  if (!skin || !rowSkinLoader) return;
+  const body = rig?.parts?.body;
+  if (!body || !body.material) return;
+  const materials = Array.isArray(body.material) ? body.material : [body.material];
+  const cloned = materials.map((material) => material?.clone ? material.clone() : material);
+  body.material = cloned.length === 1 ? cloned[0] : cloned;
+  const applyTexture = (texture) => {
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.flipY = false;
+    texture.needsUpdate = true;
+    for (const material of cloned) { if (material) { material.map = texture; material.needsUpdate = true; } }
+    modelBudget.admitRowSkin(skin, texture);
+  };
+  const cachedTexture = rowSkinCache.get(skin);
+  if (cachedTexture) { applyTexture(cachedTexture); return; }
+  rowSkinLoader.load(rowSkinUrl(skin), (texture) => {
+    rowSkinCache.set(skin, texture);
+    applyTexture(texture);
+  }, undefined, () => { /* missing row texture: keep the family/template default map */ });
+}
+
 function buildShark(def) {
   if (!def) throw new Error('RF.Art3D.buildShark requires a shark definition');
   const base = baseForDef(def); baseSelection.set(String(def.id || ''), base);
@@ -3711,7 +3821,9 @@ function buildShark(def) {
   const group = new THREE.Group(); group.name = `RF Shark ${def.id || 'unknown'}`; group.userData.rfSharkId = String(def.id || 'unknown');
   modelBudget.retain(base); if (rigHolds) rigHolds.set(group, base);
   const live = buildLoadedRig(def, template, group), record = { group, parts: { body: live.body, jaw: null, shell: live.shell, prop: live.prop }, animate: live.animate };
-  group.userData.rfArchetype = String(def?.sil?.head || 'point'); installEffects(record, live.body); return record;
+  group.userData.rfArchetype = String(def?.sil?.head || 'point'); installEffects(record, live.body);
+  if (RF_FAMILIES) applyRowSkin(record, def);
+  return record;
 }
 
 /* Small billboard helper remains because world3d uses it for guarded fallback
@@ -4326,6 +4438,29 @@ function __selftest() {
       }
     }
     /* ==== HSE lane O4 model-residency gates (end) =================== */
+
+    /* Rev 17 Step 4 (Sonnet S2): family fallback gate. Every SHARKS row now
+     * carries sil.family (see tools/gen_data.py FAMILY_BY_ROW), but no
+     * fam/<family>.glb exists on disk yet (data.js's FAM_FILES is empty until
+     * the pipeline/pilot lands an approved GLB), so isFamilyRow() must be
+     * false for every row and baseForDef() must still resolve exactly the
+     * sil.model / head-tag base it always has - this is the "flag ON, no
+     * fam/ files present, game still falls back" contract from the plan,
+     * checked directly against the real FAM_FILES data rather than assumed. */
+    {
+      const famRows = allRows.filter((def) => def?.sil?.family);
+      if (!famRows.length) throw new Error('family fallback gate: no row carries sil.family');
+      const famFiles = host.RFD?.FAM_FILES || RF.RFD?.FAM_FILES || [];
+      if (famFiles.length) throw new Error(`family fallback gate: expected FAM_FILES empty (no approved family GLBs yet), got ${famFiles.length}`);
+      for (const def of famRows) {
+        if (isFamilyRow(def)) throw new Error(`${def.id}: isFamilyRow() true with no fam/ GLBs on disk`);
+        const base = baseForDef(def);
+        if (base.startsWith('fam/')) throw new Error(`${def.id}: baseForDef() resolved a fam/ base with no fam/ GLBs on disk`);
+        const expected = (def.sil.model && MODEL_FILES[def.sil.model]) ? def.sil.model : base;
+        if (base !== expected) throw new Error(`${def.id}: baseForDef() ${base} does not match the pre-family fallback ${expected}`);
+      }
+      result.familyFallback = { checked: famRows.length, famFiles: famFiles.length };
+    }
     result.pass = true;
   } catch (error) { result.errors.push(error?.message || String(error)); result.notes.push(`FAIL ${error?.message || String(error)}`); }
   return result;

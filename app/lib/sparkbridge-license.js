@@ -26,6 +26,9 @@ const E = {
   IEC104: 'com.greenguard.drivers.iec104',
   DNP3: 'com.greenguard.drivers.dnp3',
   TI505: 'com.cti.ti505.driver',
+  INFLUX: 'com.sparkbridge.sparkinflux',
+  VALIDATE: 'io.sparkvalidate',
+  LOGIX: 'com.sparkbridge.sparklogix',
 }
 
 // Prices are list, USD cents, per gateway. Source of truth for the site's buy buttons.
@@ -48,6 +51,10 @@ const CATALOG = {
   iec104: { name: 'IEC 60870-5-104 driver', cents: 49500, entitlements: [E.IEC104], unit: 'gateway' },
   dnp3: { name: 'DNP3 driver', cents: 49500, entitlements: [E.DNP3], unit: 'gateway' },
   ti505: { name: 'TI 505 / CTI 2500 driver', cents: 49500, entitlements: [E.TI505], unit: 'gateway' },
+  sparklogix: { name: 'SparkLogix', cents: 99500, entitlements: [E.LOGIX], unit: 'gateway' },
+  sparkinflux: { name: 'SparkInflux', cents: 149500, entitlements: [E.INFLUX], unit: 'gateway' },
+  sparkvalidate: { name: 'SparkValidate', cents: 249500, entitlements: [E.VALIDATE], unit: 'gateway' },
+  'sparkvalidate-cli': { name: 'SparkValidate (command line only)', cents: 99500, entitlements: [E.VALIDATE], unit: 'workstation' },
 }
 
 function skuInfo(sku) {

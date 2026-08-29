@@ -218,6 +218,19 @@ export function disposeTemplate(template) {
  * The residency bookkeeper. shark3d.js owns the actual loading (it has the
  * GLTFLoader and prepareTemplate); this owns the decision of what may stay.
  */
+/* Rev 17 Step 4 (Sonnet S2): per-row skin textures (assets/textures/rows/
+ * <skin>.jpg, loaded by shark3d.js's applyRowSkin behind RF_FAMILIES). These
+ * are small (<=180 KB on disk per the pipeline spec) compared to a template's
+ * baked diffuse/normal pair, but they are still decoded+mipped GPU memory and
+ * the iOS canvas budget note in PLAN-rev17-families.md calls them out
+ * explicitly ("3 resident families + row textures well under 12 MB"), so they
+ * get counted rather than assumed free. */
+export function rowSkinTextureBytes(texture) {
+  const image = texture?.image;
+  if (!image) return 0;
+  return bytesForMap(image.width || 0, image.height || 0, texture.generateMipmaps !== false);
+}
+
 export class ModelBudget {
   /**
    * @param {object} options
@@ -236,6 +249,29 @@ export class ModelBudget {
     this.pending = new Map();
     this.tick = 0;
     this.stats = { loads: 0, hits: 0, evictions: 0, disposedTextures: 0, disposedGeometries: 0 };
+    /* Rev 17 Step 4: row-skin textures counted separately from the templates
+     * above (they are per-ROW, not per-template, and are never evicted by
+     * the template LRU sweep -- a row skin is small and reused across
+     * instances of the same row, so it lives for the life of the tab). */
+    this.rowSkins = new Map();
+  }
+
+  /* Admit (or refresh) a row-skin texture's byte count for budget reporting.
+   * Idempotent: calling it again with the same skin name just re-measures
+   * (a texture's decoded size never changes mid-life, but this keeps the
+   * ledger honest if a texture is reloaded). */
+  admitRowSkin(skin, texture) {
+    if (!skin) return 0;
+    const bytes = rowSkinTextureBytes(texture);
+    this.rowSkins.set(skin, bytes);
+    this.emit({ type: 'admitRowSkin', key: skin, bytes });
+    return bytes;
+  }
+
+  rowSkinBytes() {
+    let bytes = 0;
+    for (const b of this.rowSkins.values()) bytes += b;
+    return bytes;
   }
 
   emit(event) { if (this.onEvent) { try { this.onEvent(event); } catch (error) { /* trace must never break a load */ } } }
@@ -356,6 +392,8 @@ export class ModelBudget {
       resident,
       texturedCount: texturedResident.length,
       texturedBytes: texturedResident.reduce((sum, r) => sum + r.bytes, 0),
+      rowSkinCount: this.rowSkins.size,
+      rowSkinBytes: this.rowSkinBytes(),
       pending: Array.from(this.pending.keys()),
       stats: { ...this.stats }
     };

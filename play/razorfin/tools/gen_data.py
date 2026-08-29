@@ -707,6 +707,154 @@ TEXTURED_MODEL_BY_ROW = {
     "kampechrono":     "whaler",         # mid skull
 }
 
+# Rev 17 Step 4 (Sonnet S2): authored-family runtime wiring.
+#
+# FAMILIES is the manifest of authored family GLBs the Blender pipeline
+# (tools/shark_variant.py, see PLAN-rev17-families.md) produces one-per-
+# family at assets/models/fam/<family>.glb. shark3d.js only resolves a
+# fam/<family> MODEL_FILES entry when RF_FAMILIES is on AND the file for that
+# family actually exists on disk, so listing a family here before its GLB has
+# landed is harmless: the game keeps falling back to sil.model.
+#
+# Pilot five (owner-named, land first): thresher, snapjaw, aresrender,
+# artemisstrike, leviathanrex. The remaining ~17 follow the Step 3 proposal;
+# every one of the 86 SHARKS rows below is assigned to exactly one family so
+# FAMILY_BY_ROW.get(sid) is never None for a real row.
+FAMILIES = [
+    "thresher", "snapjaw", "aresrender", "artemisstrike", "leviathanrex",
+    "reef", "mako", "hammer", "saw", "tiger", "bull", "greatwhite",
+    "whale", "megalodon", "dunkleosteus", "greenland", "goblin", "angler",
+    "morayne", "thornback", "crowned_gods", "horned_gods", "horned_demons",
+    "plated_demons", "kaiju", "creatures",
+]
+
+# FAMILY_BY_ROW: every one of the 86 SHARKS ids -> one FAMILIES entry.
+FAMILY_BY_ROW = {
+    # --- pilot families, own row is its own family --------------------------
+    "thresher":        "thresher",
+    "snapjaw":         "snapjaw",
+    "aresrender":      "aresrender",
+    "artemisstrike":   "artemisstrike",
+    "leviathanrex":    "leviathanrex",
+    # --- Act 1: real sharks ---------------------------------------------------
+    "reef":            "reef",
+    "epaulette":       "reef",
+    "cookiecutter":    "reef",
+    "mako":            "mako",
+    "blue":            "mako",
+    "hammerhead":      "hammer",
+    "sawshark":        "saw",
+    "tiger":           "tiger",
+    "bull":            "bull",
+    "goblin":          "goblin",
+    "greatwhite":      "greatwhite",
+    "whaleshark":      "whale",
+    "megalodon":       "megalodon",
+    "dunkleosteus":    "dunkleosteus",
+    "greenland":       "greenland",
+    # --- Act 2: monster sharks -------------------------------------------------
+    "gulperfiend":     "angler",
+    "anglerfang":      "angler",
+    "morayne":         "morayne",
+    "sailfin":         "thresher",
+    "thornback":       "thornback",
+    "stonejaw":        "dunkleosteus",
+    "duskfin":         "mako",
+    "barbhook":        "saw",
+    "coralcrown":      "bull",
+    "vex":             "morayne",
+    "abyssmaw":        "angler",
+    "riftjaw":         "bull",
+    "venomspine":      "thresher",
+    "howler":          "tiger",
+    "magmaw":          "dunkleosteus",
+    "frostjaw":        "greatwhite",
+    "stormfin":        "mako",
+    "gloomtide":       "morayne",
+    "wreckfang":       "dunkleosteus",
+    # --- Act 3: epics and legendaries -------------------------------------------
+    "ironfin":         "dunkleosteus",
+    "cindermaw":       "mako",
+    "glacier":         "greatwhite",
+    "gravewater":      "bull",
+    "teslafang":       "mako",
+    "plaguemaw":       "tiger",
+    "sunspine":        "mako",
+    "nocturne":        "thresher",
+    "tempest":         "thresher",
+    "maelstrom":       "whale",
+    "bonecrown":       "greatwhite",
+    "mirrorscale":     "bull",
+    "aurora":          "thresher",
+    "vulkan":          "greatwhite",
+    "voltaicrex":      "greatwhite",
+    "nullfin":         "morayne",
+    "chronos":         "thresher",
+    "seismos":         "dunkleosteus",
+    "banshee":         "thresher",
+    "vortexa":         "whale",
+    "warbringer":      "dunkleosteus",
+    "omenmaw":         "angler",
+    "solaris":         "bull",
+    "absolutezero":    "tiger",
+    "leviathan_rex":   "kaiju",
+    # --- Act 4: Pantheon (crowned/horned gods) ----------------------------------
+    "zeusfin":         "crowned_gods",
+    "poseidonrex":     "whale",
+    "hadesmaw":        "horned_gods",
+    "apollodon":       "crowned_gods",
+    "athenajaw":       "hammer",
+    "hermesdart":      "mako",
+    "hephaestusforge": "dunkleosteus",
+    "dionysustide":    "bull",
+    "aphroditelure":   "angler",
+    "heracrown":       "kaiju",
+    # --- Act 5: Underworld (horned/plated demons) -------------------------------
+    "typhonmaw":       "kaiju",
+    "hydrafang":       "morayne",
+    "cerberusjaw":     "tiger",
+    "chimerashark":    "saw",
+    "medusagaze":      "angler",
+    "scyllarender":    "morayne",
+    "charybdisvoid":   "whale",
+    "minotaurram":     "plated_demons",
+    "cyclopseye":      "bull",
+    "harpyshade":      "thresher",
+    "lamiacoil":       "morayne",
+    "kampechrono":     "bull",
+}
+
+# TEXTURE_BY_ROW: rows whose PAINTED row texture (assets/textures/rows/
+# <skin>.jpg) differs from their family's default diffuse. Using the row id
+# itself as the skin name keeps this table trivial to extend as the batch
+# lands (Step 3): a row not listed here just uses its family's baked-in
+# default texture. Seeded with the pilot five plus one representative row per
+# non-pilot family so applyRowSkin has something to resolve per family once
+# tools/shark_variant.py starts writing per-row variants; harmless to widen.
+TEXTURE_BY_ROW = {
+    "thresher":        "thresher",
+    "snapjaw":         "snapjaw",
+    "aresrender":      "aresrender",
+    "artemisstrike":   "artemisstrike",
+    "leviathanrex":    "leviathanrex",
+}
+
+
+# FAM_FILES: the subset of FAMILIES that actually have a GLB on disk at
+# assets/models/fam/<family>.glb right now (checked at generate time, not at
+# game runtime -- the browser has no filesystem to probe). shark3d.js only
+# builds a MODEL_FILES['fam/<family>'] entry for a name in this list, so an
+# empty list (no fam/ files landed yet) leaves MODEL_FILES exactly as before
+# and every row keeps falling back to sil.model, matching the plan's "when a
+# file with that name exists" resolution rule.
+import os as _os
+_FAM_DIR = _os.path.join(_os.path.dirname(__file__), "..", "assets", "models", "fam")
+FAM_FILES = sorted(
+    f for f in FAMILIES
+    if _os.path.isfile(_os.path.join(_FAM_DIR, f + ".glb"))
+)
+
+
 def shark_row(t):
     (sid,name,tier,act,cost,st,pas,active,sil,npc,blurb)=t
     stats={"speed":st[0],"accel":st[1],"turn":st[2],"bite":st[3],"hp":st[4],"metab":st[5],"boost":st[6]}
@@ -724,6 +872,16 @@ def shark_row(t):
     model = model or TEXTURED_MODEL_BY_ROW.get(sid)
     if model:
         sils["model"] = model
+    # Rev 17 Step 4: sil.family/sil.skin are additive fields consumed only
+    # when shark3d.js's RF_FAMILIES flag is on. Emitted for every row that
+    # has a FAMILY_BY_ROW entry (all 86); sil.skin only when the row has a
+    # per-row texture variant, so most rows fall back to the family default.
+    family = FAMILY_BY_ROW.get(sid)
+    if family:
+        sils["family"] = family
+    skin = TEXTURE_BY_ROW.get(sid)
+    if skin:
+        sils["skin"] = skin
     row={"id":sid,"name":name,"tier":tier,"act":act,"cls":shark_cls(tier,act),"cost":cost,"stats":stats,"passives":pas,
          "active":active,"sil":sils,"npc":({"weight":npc[0],"zones":npc[1]} if npc else None),"blurb":blurb}
     return js(row)
@@ -753,6 +911,7 @@ lines.append("var MISSIONS="+js(MISSIONS)+";")
 lines.append("var GEMS="+js(GEMS)+";")
 lines.append("var SKINS="+js(SKINS)+";")
 lines.append("var SECRET_SHARKS="+js(SECRET_SHARKS)+";")
+lines.append("var FAM_FILES="+js(FAM_FILES)+";")
 lines.append("var ABILITIES="+js(ABILITIES)+";")
 lines.append("var ECONOMY="+js(ECONOMY)+";")
 lines.append("var FRENZY="+js(FRENZY)+";")
@@ -767,7 +926,7 @@ lines.append("var RELICS_BY_ZONE={};RELICS.forEach(function(r){(RELICS_BY_ZONE[r
 lines.append("var LEVEL_BY_ID={};LEVELS.forEach(function(l){LEVEL_BY_ID[l.id]=l;});")
 lines.append("return {SHARKS:SHARKS,SHARK_BY_ID:SHARK_BY_ID,CREATURES:CREATURES,HAZARDS:HAZARDS,")
 lines.append("CREATURE_BY_ID:CREATURE_BY_ID,ZONES:ZONES,LEVELS:LEVELS,LEVEL_BY_ID:LEVEL_BY_ID,MODES:MODES,PICKUPS:PICKUPS,RELICS:RELICS,RELICS_BY_ZONE:RELICS_BY_ZONE,")
-lines.append("MISSIONS:MISSIONS,GEMS:GEMS,SKINS:SKINS,SECRET_SHARKS:SECRET_SHARKS,ABILITIES:ABILITIES,ECONOMY:ECONOMY,")
+lines.append("MISSIONS:MISSIONS,GEMS:GEMS,SKINS:SKINS,SECRET_SHARKS:SECRET_SHARKS,FAM_FILES:FAM_FILES,ABILITIES:ABILITIES,ECONOMY:ECONOMY,")
 lines.append("FRENZY:FRENZY,BAL:BAL,FRENZY2:FRENZY2,FX:FX,SFX:SFX,MUSIC:MUSIC,WORLD:{w:14400,h:4800},")
 lines.append("SAVE_VERSION:3,ENTITY_BUDGET:{onscreen:32,total:120}};")
 lines.append("})();")
