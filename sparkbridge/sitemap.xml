@@ -8,6 +8,7 @@
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/drivers</loc><lastmod>2026-08-23</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/flow</loc><lastmod>2026-08-23</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/iec104</loc><lastmod>2026-08-23</lastmod></url>
+  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/influx</loc><lastmod>2026-08-29</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/inject</loc><lastmod>2026-08-23</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/pricing</loc><lastmod>2026-08-29</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/products</loc><lastmod>2026-08-29</lastmod></url>
@@ -17,4 +18,6 @@
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/technology</loc><lastmod>2026-08-23</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/use-cases</loc><lastmod>2026-08-17</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/vault</loc><lastmod>2026-08-23</lastmod></url>
+  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/edge</loc><lastmod>2026-08-29</lastmod></url>
+  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/central</loc><lastmod>2026-08-29</lastmod></url>
 </urlset>

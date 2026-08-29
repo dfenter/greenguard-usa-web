@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkInflux: InfluxDB Historian for Ignition | SparkBridge</title>
+<meta name="description" content="SparkInflux is a native InfluxDB historian module for Ignition 8.1 and 8.3. Async pipelined writes, a disk ring so an outage never loses a point, and pushed-down aggregate reads. $1,495 per gateway, bought once.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/influx">
+<meta property="og:title" content="SparkInflux: InfluxDB historian for Ignition">
+<meta property="og:description" content="Native InfluxDB historian module for Ignition 8.1 and 8.3. Async pipelined writes, gzip by default, a disk ring so an outage never loses a point, pushed-down aggregate reads. $1,495 per gateway, bought once.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/influx">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SparkInflux: InfluxDB historian for Ignition">
+<meta name="twitter:description" content="Native InfluxDB historian module for Ignition 8.1 and 8.3. Async pipelined writes, gzip by default, a disk ring so an outage never loses a point, pushed-down aggregate reads. $1,495 per gateway, bought once.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Products","item":"https://mqtt.greenguard-usa.com/sparkbridge/products"},{"@type":"ListItem","position":3,"name":"SparkInflux","item":"https://mqtt.greenguard-usa.com/sparkbridge/influx"}]},{"@type":"SoftwareApplication","name":"SparkInflux InfluxDB historian for Ignition","url":"https://mqtt.greenguard-usa.com/sparkbridge/influx","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer, Ignition 8.3.2 or newer","softwareVersion":"0.1.0","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"Native InfluxDB historian module for Ignition 8.1 and 8.3. Async pipelined writes, gzip by default, a disk ring so an outage never loses a point, and pushed-down aggregate reads. $1,495 per gateway, bought once.","offers":{"@type":"Offer","price":"1495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/PreOrder","description":"Perpetual license, per gateway. Standalone, does not require SparkBridge"}}]}
+</script>
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Central</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top">
+  <div class="wrap">
+    <div class="phead-grid">
+      <div>
+        <div class="eyebrow">SparkInflux</div>
+        <h1>InfluxDB, written from Ignition without a page cap or a silent delete</h1>
+        <p>The InfluxDB historian on Ignition today comes from a 28 MB module built on a synchronous writer, a page cap that deletes history when it overflows, and reads that materialize the whole result before your script sees a row. SparkInflux is the same InfluxDB backend, a different write and read path.</p>
+        <div class="pmeta"><span class="stat">Release pending</span><span>InfluxDB v2 and v1.8, v3 next</span><span>Ignition 8.1 and 8.3</span></div>
+      </div>
+      <div class="artifact">
+        <div class="artifact-head"><span>Load gate, real InfluxDB 2.7.11, 2026-08-29</span><span class="live"><i class="dot"></i>Measured live</span></div>
+        <div class="artifact-body">
+<pre style="margin:0;white-space:pre-wrap">  <span class="hi">Scenario A</span> sustained write        49,814 pts/s   Good
+  <span class="hi">Scenario B</span> outage buffering        0 points lost  Good
+  <span class="hi">Scenario B</span> recovery drain          1,500,000 pts in 20.7 s
+  <span class="hi">Scenario C</span> bulk write               84,203 pts/s
+  <span class="acc">Scenario C</span> streaming read heap      193 MB used, -Xmx1g cap
+  write-call p50 / p99             120 ms / 1,424 ms</pre>
+        </div>
+        <div class="artifact-foot">Every number above is pasted from a real run against a live InfluxDB 2.7.11 server, not simulated. Full run log, environment and findings in the repository as GATE.md.</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <p class="claim">Point it at the bucket. <em>Nothing waits on a page cap again.</em></p>
+    <div class="twocol">
+      <div class="measure">
+        <p>SparkInflux registers as a Tag Historian provider on 8.1 and a Historian extension point on 8.3, writing the same line-protocol schema the existing InfluxDB module uses so pointing SparkInflux at data written by that module is a config change, not a migration. Writes are gzip compressed by default and pipelined across several in-flight requests instead of one synchronous call, flushed on a size or time trigger.</p>
+        <p>If the server goes away, points are held on a disk ring instead of a page reloaded fully into heap, and nothing is deleted when the ring fills; overflow is quarantined, not discarded. When the server comes back, the ring drains on its own. Reads stream row by row instead of materializing the full result, and common aggregates push down into Influx's own query engine rather than being computed after the fact in the gateway.</p>
+      </div>
+      <div>
+        <span class="spectitle">At a glance</span>
+        <table class="spec">
+          <tr><th>What it is</th><td>A native InfluxDB historian module for Ignition</td></tr>
+          <tr><th>What it removes</th><td>The page cap that deletes history on overflow, the synchronous writer, and fully materialized reads</td></tr>
+          <tr><th>Who it is for</th><td>Plants already on InfluxDB, or moving to it, who want history that survives an outage and a query that streams</td></tr>
+          <tr><th>Schema</th><td>Kymera-compatible measurement and tag layout by default, so an existing InfluxDB deployment can be read without rewriting its data</td></tr>
+          <tr><th>Backends</th><td>InfluxDB v2 (and v1.8 compatibility) at release; v3 next</td></tr>
+          <tr><th>Licensing</th><td>$1,495 per gateway, bought once and kept, not a subscription. Bought on its own, no SparkBridge license required. One license covers the 8.1 and 8.3 builds. See <a href="/sparkbridge/pricing">pricing</a></td></tr>
+          <tr><th>Underneath</th><td>Runs on the gateway alongside the other <a href="/sparkbridge/drivers">native drivers</a>. Load figures from the release gate: 50,000 pts/s sustained write, a 1,500,000 point outage-and-recovery cycle with zero loss, and a 10,000,000 point bulk write with heap-flat streaming reads.</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="figure"><b>0</b><span>points lost or deleted across the outage-and-recovery load scenario</span></div>
+    <div class="measure">
+      <p>Scenario B pointed the write pipeline at an unreachable address for 30 seconds at 50,000 points/s, then reconnected the same disk-backed ring to the real server: 1,500,000 points held on disk during the outage, zero written early, zero quarantined, and all 1,500,000 recovered and drained on reconnect. Full numbers and the write-path investigation are in GATE.md.</p>
+      <p>Scenario C bulk-wrote 10,000,000 points, then streamed the entire range back under a real 1 GB heap cap: maximum heap used during the stream was 193 MB, confirming the read path never buffers the whole result in memory.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">where it earns its keep</span>
+      <h2>Four Situations This Solves</h2>
+      <p>All four come from the write and read path underneath the existing InfluxDB module, not from InfluxDB itself.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>The situation</th><th>What changes</th></tr></thead>
+        <tbody>
+          <tr><td><b>The historian went quiet during an outage and nobody noticed the gap</b><br><span class="sub">Any plant whose InfluxDB connection has ever dropped mid-shift.</span></td>
+              <td>Points write to a disk ring while the server is unreachable, with nothing lost and nothing silently deleted when the ring is under load. On reconnect the ring drains on its own; the outage-and-recovery load scenario measured a 1,500,000 point backlog drained in just over 20 seconds with zero loss.</td></tr>
+          <tr><td><b>A trend takes a long time to open and the gateway's heap climbs while it does</b><br><span class="sub">Anyone who has watched a Perspective trend spin on a wide date range.</span></td>
+              <td>Reads stream row by row from the query response instead of loading the full result before handing back the first point. The 10,000,000 point streaming-read gate stayed under 200 MB of used heap through the whole 1,500,000 row stream, under a real 1 GB cap.</td></tr>
+          <tr><td><b>An aggregate report is built by pulling raw rows into the gateway and averaging them there</b><br><span class="sub">Any min/max/mean/TWA report currently computed after the read, not before it.</span></td>
+              <td>Common aggregates push down into InfluxDB's own query engine instead of being computed in the gateway after a raw pull. The load gate's aggregated 1-minute-window query returned in under a second.</td></tr>
+          <tr><td><b>Moving to InfluxDB from the current historian means a data migration project</b><br><span class="sub">A team that already has InfluxDB history and does not want to touch it.</span></td>
+              <td>SparkInflux writes the same measurement, tag and field layout by default, so pointing it at an existing bucket is a configuration change. Existing history reads without a migration step.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="measure">
+      <p>If InfluxDB history has ever gone missing during an outage, or a wide trend has ever made the gateway's heap climb while it loads, this is worth a conversation. Release is pending; early sites shape the roadmap.</p>
+    </div>
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge/contact">Talk to us</a>
+      <a class="btn ghost dark" href="/sparkbridge/products">See the products</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

@@ -33,13 +33,13 @@
     <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
     <nav class="nav" id="nav" aria-label="Main">
         <a href="/sparkbridge/">Overview</a>
-        <a href="/sparkbridge/products" aria-current="page">Products</a>
-        <a href="/sparkbridge/technology">Technology</a>
-        <a href="/sparkbridge/architecture">Architecture</a>
-        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Central</a>
+        <a href="/sparkbridge/products" aria-current="page">All products</a>
         <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
         <a href="/sparkbridge/resources">Resources</a>
-        <a href="/sparkbridge/download">Download</a>
         <a href="/sparkbridge/contact">Contact</a>
     </nav>
     <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
@@ -154,6 +154,11 @@
             <td class="num">$1,495</td>
           </tr>
           <tr>
+            <td><a href="/sparkbridge/influx">SparkInflux</a></td>
+            <td>Writes InfluxDB history from Ignition with async pipelined writes, a disk ring so an outage never loses a point, and streamed, pushed-down reads. Release pending.</td>
+            <td class="num">$1,495</td>
+          </tr>
+          <tr>
             <td><a href="/sparkbridge/validate">SparkValidate</a></td>
             <td>Generates the ISA-18.2 alarm rationalization and risk-based validation package from your L5X and Ignition exports. Early access.</td>
             <td class="num">$2,495<br><span class="np">$995 CLI only</span></td>
@@ -177,7 +182,7 @@
       </table>
     </div>
 
-    <p class="note">A site gateway is SparkBridge Edge $995, standalone, with <a href="/sparkbridge/#sparklink">SparkLink</a> included and no package. A central gateway is SparkBridge Central $1,995, standalone. <a href="/sparkbridge/#features">Passage, SparkCalc, SparkID, Sentinel and FleetOps</a> and SparkInject are $495 each and SparkVault $995 on the central gateway; the <a href="/sparkbridge/pricing">$3,995 central package</a> covers Central and all seven ($5,960 a la carte). SparkFlow ($995), SparkSNMP ($1,495), SparkValidate ($2,495, or $995 CLI only) and the protocol drivers ($495 each) are always billed separately and are never part of the package.</p>
+    <p class="note">A site gateway is SparkBridge Edge $995, standalone, with <a href="/sparkbridge/#sparklink">SparkLink</a> included and no package. A central gateway is SparkBridge Central $1,995, standalone. <a href="/sparkbridge/#features">Passage, SparkCalc, SparkID, Sentinel and FleetOps</a> and SparkInject are $495 each and SparkVault $995 on the central gateway; the <a href="/sparkbridge/pricing">$3,995 central package</a> covers Central and all seven ($5,960 a la carte). SparkFlow ($995), SparkSNMP ($1,495), SparkInflux ($1,495), SparkValidate ($2,495, or $995 CLI only) and the protocol drivers ($495 each) are always billed separately and are never part of the package.</p>
   </div>
 </section>
 
@@ -363,7 +368,7 @@
 <footer>
   <div class="wrap">
     <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
-    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
   </div>
 </footer>
 
