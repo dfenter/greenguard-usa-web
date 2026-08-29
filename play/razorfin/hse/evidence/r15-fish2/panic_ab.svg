@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="634" style="background:#0d2b3e">
+<text x="8" y="21" fill="#cfe" font-family="monospace" font-size="14">Rev15.2 PANIC burst-scatter A/B - shark inside flee radius - circles are TRUE body diameter, fixed scale. Red = pair under 0.8 BL.</text>
+<rect x="0" y="34" width="298" height="298" fill="none" stroke="#1d4a63"/>
+<circle cx="155.3" cy="179.4" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="218.1" cy="238.1" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="266.4" cy="169.8" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="55.7" cy="138.6" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="90.8" cy="202.1" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="115.2" cy="102.4" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="148.6" cy="257.7" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<text x="8" y="52" fill="#ffd479" font-family="monospace" font-size="12">before step 360  minNND 2.28 BL</text>
+<line x1="12" y1="322" x2="42.0" y2="322" stroke="#7fd" stroke-width="2"/>
+<text x="48.0" y="326" fill="#7fd" font-family="monospace" font-size="10">1 BL</text>
+<rect x="300" y="34" width="298" height="298" fill="none" stroke="#1d4a63"/>
+<circle cx="453.4" cy="178.1" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="518.0" cy="247.3" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="564.0" cy="165.6" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="359.8" cy="134.7" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="391.1" cy="203.3" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="415.2" cy="92.5" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="448.4" cy="266.4" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<text x="308" y="52" fill="#ffd479" font-family="monospace" font-size="12">before step 380  minNND 2.24 BL</text>
+<line x1="312" y1="322" x2="342.0" y2="322" stroke="#7fd" stroke-width="2"/>
+<text x="348.0" y="326" fill="#7fd" font-family="monospace" font-size="10">1 BL</text>
+<rect x="600" y="34" width="298" height="298" fill="none" stroke="#1d4a63"/>
+<circle cx="752.0" cy="176.3" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="818.4" cy="256.5" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="862.7" cy="164.7" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="661.7" cy="129.6" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="691.2" cy="204.3" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="715.4" cy="82.1" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="748.7" cy="274.6" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<text x="608" y="52" fill="#ffd479" font-family="monospace" font-size="12">before step 400  minNND 2.23 BL</text>
+<line x1="612" y1="322" x2="642.0" y2="322" stroke="#7fd" stroke-width="2"/>
+<text x="648.0" y="326" fill="#7fd" font-family="monospace" font-size="10">1 BL</text>
+<rect x="900" y="34" width="298" height="298" fill="none" stroke="#1d4a63"/>
+<circle cx="1051.0" cy="175.3" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="1119.1" cy="265.5" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="1161.7" cy="162.1" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="962.3" cy="124.7" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="990.9" cy="205.8" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="1015.8" cy="72.2" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="1049.1" cy="282.5" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<text x="908" y="52" fill="#ffd479" font-family="monospace" font-size="12">before step 419  minNND 2.25 BL</text>
+<line x1="912" y1="322" x2="942.0" y2="322" stroke="#7fd" stroke-width="2"/>
+<text x="948.0" y="326" fill="#7fd" font-family="monospace" font-size="10">1 BL</text>
+<rect x="0" y="334" width="298" height="298" fill="none" stroke="#1d4a63"/>
+<circle cx="24.9" cy="523.5" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="95.5" cy="525.5" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="86.1" cy="456.0" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="170.6" cy="533.3" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="170.8" cy="423.9" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="352.1" cy="441.7" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<text x="8" y="352" fill="#ffd479" font-family="monospace" font-size="12">after step 360  minNND 2.34 BL</text>
+<line x1="12" y1="622" x2="42.0" y2="622" stroke="#7fd" stroke-width="2"/>
+<text x="48.0" y="626" fill="#7fd" font-family="monospace" font-size="10">1 BL</text>
+<rect x="300" y="334" width="298" height="298" fill="none" stroke="#1d4a63"/>
+<circle cx="313.9" cy="533.6" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="384.3" cy="536.0" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="377.2" cy="454.1" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="458.7" cy="548.0" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="469.3" cy="408.7" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="696.6" cy="423.6" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<text x="308" y="352" fill="#ffd479" font-family="monospace" font-size="12">after step 380  minNND 2.35 BL</text>
+<line x1="312" y1="622" x2="342.0" y2="622" stroke="#7fd" stroke-width="2"/>
+<text x="348.0" y="626" fill="#7fd" font-family="monospace" font-size="10">1 BL</text>
+<rect x="600" y="334" width="298" height="298" fill="none" stroke="#1d4a63"/>
+<circle cx="603.1" cy="543.3" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="673.5" cy="546.6" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="668.7" cy="451.6" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="748.4" cy="564.0" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="767.6" cy="395.1" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="1038.8" cy="403.4" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<text x="608" y="352" fill="#ffd479" font-family="monospace" font-size="12">after step 400  minNND 2.35 BL</text>
+<line x1="612" y1="622" x2="642.0" y2="622" stroke="#7fd" stroke-width="2"/>
+<text x="648.0" y="626" fill="#7fd" font-family="monospace" font-size="10">1 BL</text>
+<rect x="900" y="334" width="298" height="298" fill="none" stroke="#1d4a63"/>
+<circle cx="892.6" cy="550.6" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="962.5" cy="557.9" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="960.0" cy="450.4" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="1037.6" cy="575.9" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="1066.1" cy="382.7" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<circle cx="1381.2" cy="386.5" r="15.0" fill="#8fe3ff" fill-opacity="0.42" stroke="#8fe3ff" stroke-width="1.2"/>
+<text x="908" y="352" fill="#ffd479" font-family="monospace" font-size="12">after step 419  minNND 2.34 BL</text>
+<line x1="912" y1="622" x2="942.0" y2="622" stroke="#7fd" stroke-width="2"/>
+<text x="948.0" y="626" fill="#7fd" font-family="monospace" font-size="10">1 BL</text>
+</svg>

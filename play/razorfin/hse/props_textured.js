@@ -192,13 +192,85 @@ function measureFrame(body) {
     const db = body.localToWorld(axisVector(b)).sub(origin).normalize().dot(sceneUp);
     return Math.abs(db) - Math.abs(da);
   })[0];
-  const upSign = dorsal ? dorsal.sign : 1;
+  /* Rev 16: the SIGN comes from world space, not from vertex-mass asymmetry.
+   *
+   * measureUpAxis() picks the dorsal AXIS well - the cubed-moment vote is a
+   * good axis detector - but its SIGN is decided by `sum >= 0`, and on the four
+   * surviving bakes that sum is numerical noise. Measured in the browser on the
+   * posed rig:
+   *
+   *   row         upAxis  asymmetry   sign it chose   local +up in world
+   *   zeusfin       y      0.00265         -1              +y (dot 1.0)
+   *   heracrown     y      0.02342         -1              +y (dot 1.0)
+   *   solaris       y      0.00851         -1              +y (dot 1.0)
+   *   hammerhead    y      0.00865         -1              +y (dot 1.0)
+   *
+   * An asymmetry of 0.003 on a body spanning 1.0 is 0.3% - the same order as
+   * the 2% head/tail noise the REBASE lane already caught one level up in this
+   * function - and it came out NEGATIVE on every bake while the axis itself
+   * demonstrably points at the sky. That inverted sign is what put the crowns
+   * BELOW the jaw: addCrown() sinks its scute by `- height * 0.24` and the
+   * spikes by `- upSpan * 0.015`, both of which travel the wrong way once
+   * upSign is -1, so the prop is built under the chin instead of on the skull.
+   * It is the "vertical placement is still low" defect NOTES-rev15-rebase.md
+   * recorded as the one thing it would do next.
+   *
+   * shark3d.js orients every rig NOSE +X / DORSAL +Y in world, which is the
+   * contract the head/tail resolver below already relies on and which the
+   * r15-doc harness relies on to aim its camera. So ask which way the chosen
+   * local axis actually points in world space and take the end that maps to
+   * world +Y as the dorsal. That is a geometric fact about the posed rig
+   * rather than a vote over noise, and it agrees with the asymmetry vote
+   * wherever the asymmetry is genuinely large. */
+  const upSign = (() => {
+    /* WORLD up is +Y (shark3d.js poses every rig DORSAL +Y). `sceneUp` above is
+     * a local-space constant used by the axis fallback and is deliberately NOT
+     * used here - dotting a world-space direction against it is meaningless. */
+    const worldUp = body.localToWorld(axisVector(upAxis)).sub(origin).normalize().y;
+    if (Math.abs(worldUp) > 0.30) return worldUp >= 0 ? 1 : -1;
+    /* Degenerate only if the dorsal axis is edge-on to world up, which the
+     * fixed rest pose never produces; fall back to the old vote. */
+    return dorsal ? dorsal.sign : 1;
+  })();
   const axes = componentAxes(longAxis, upAxis);
   const head = body.skeleton?.bones?.find((bone) => /^(Head|Face)$/i.test(bone.name || '')) || body.skeleton?.bones?.find((bone) => /head|face/i.test(bone.name || ''));
   const tail = body.skeleton?.bones?.find((bone) => /^Tail3$/i.test(bone.name || '')) || body.skeleton?.bones?.find((bone) => /tail/i.test(bone.name || ''));
+  /* Rev 15 REBASE: WHICH END IS THE HEAD.
+   *
+   * This used to compare the Head and Tail3 bones' longitudinal coordinates.
+   * The bones are real and correctly named, but coordFromWorld maps them back
+   * into body-LOCAL space, and there the whole chain collapses onto the
+   * origin: measured on the four surviving bakes, Head sits at 0.004..0.033
+   * and Tail3 at -0.003..0.000 on a body spanning about 1.03. The decision
+   * was being made on 2% of numerical noise, and it came out -1 on EVERY
+   * bake, i.e. station 0 was pinned to the tail. That is why every prop this
+   * module mounts - the saw rostrum most visibly, but the crowns and horns
+   * equally - rendered off the caudal fin in the r15-doc contact sheet, and
+   * why negative "ahead of the snout" stations reached backwards.
+   *
+   * A girth test was tried next and is NOT reliable either: `thresher`'s
+   * upper caudal lobe is nearly as long as the rest of the animal, so its
+   * tail end measures as thick as its shoulders under both a mean and a
+   * median core radius. It fixed whaler and greatwhite_cy and left every
+   * thresher row backwards.
+   *
+   * So use the contract that already exists. shark3d.js orients every rig so
+   * the NOSE points at world +x (see its long orientation note: "bakes are
+   * nose-right ... => NOSE +X, DORSAL +Y"), and it has per-bake evidence for
+   * that claim. Ask which way our local long axis points in world space and
+   * take the end that maps to +x as the head. That is a hard geometric fact
+   * about the posed rig rather than a guess about anatomy, and it is the
+   * same convention world3d.js and the r15-doc shooter already rely on. */
+  const longWorld = body.localToWorld(axisVector(longAxis)).sub(origin);
+  const noseSign = longWorld.x >= 0 ? -1 : 1;
   const measuredHead = head ? coordFromWorld(body, head, longAxis) : box.min[longAxis];
   const measuredTail = tail ? coordFromWorld(body, tail, longAxis) : box.max[longAxis];
-  const direction = measuredTail >= measuredHead ? 1 : -1;
+  /* direction = +1 puts station 0 at box.min. The head is the end that
+   * carries to world +x; fall back to the bones only if the axis is
+   * degenerate in world space. */
+  const direction = Math.abs(longWorld.x) > 1e-4
+    ? noseSign
+    : (measuredTail >= measuredHead ? 1 : -1);
   /* Anchor the station frame to the posed MESH, not to the bones. The Head
    * bone sits well behind the snout (-0.301 against a mesh min of -0.500 on
    * greatwhite_cy), so bone-derived stations start a fifth of the body aft
@@ -312,7 +384,44 @@ function weightsFor(frame, atStation, preferred = null) {
   return [[0, 1]];
 }
 
-function makeBuilder(frame, skeleton) {
+/* Rev 15 REBASE: UN-POSE, or a prop lands on the wrong end of the shark.
+ *
+ * Everything here is authored against the POSED cloud - measureFrame samples
+ * through makePosedSampler, so frame.at(0) is the posed nose. But the mesh
+ * those coordinates end up in is a SkinnedMesh bound to the SAME skeleton,
+ * so the renderer applies the bone transform to them a SECOND time.
+ *
+ * For a prop weighted to Head, whose pose is near identity, the double
+ * transform is a small nudge and nobody caught it. For the saw rostrum -
+ * weighted to Head but authored a fifth of a body-length AHEAD of the nose -
+ * it threw the blade clean past the tail. Measured on sawshark: authored at
+ * local y = +0.70 (ahead of the nose at box.max y = +0.506), rendered world
+ * box y = 54.9..72.7 against a body ending at y = 60.5, i.e. the saw was
+ * hanging off the caudal fin. That is the "saw on the tail" in the r15-doc
+ * contact sheet.
+ *
+ * The forward chain makePosedSampler applies is
+ *   posed = bindInverse * boneWorld * boneInverse * bind * p
+ * which is exactly what three.js skinning does, so baking each vertex
+ * through the INVERSE of that chain makes the skinning pass restore it to
+ * where it was authored. Verified as an exact round trip. Weights here are
+ * single-bone or a two-bone spine blend; the blend is un-posed with its
+ * DOMINANT bone, which is the bone the blend already mostly follows. */
+function unposeMatrices(body) {
+  const bones = body?.skeleton?.bones || [];
+  const inverses = body?.skeleton?.boneInverses || [];
+  const bind = body?.bindMatrix || new THREE.Matrix4();
+  const bindInverse = body?.bindMatrixInverse || new THREE.Matrix4();
+  return bones.map((bone, index) => {
+    bone.updateMatrixWorld(true);
+    return new THREE.Matrix4()
+      .multiply(bindInverse).multiply(bone.matrixWorld)
+      .multiply(inverses[index] || new THREE.Matrix4()).multiply(bind)
+      .invert();
+  });
+}
+
+function makeBuilder(frame, skeleton, body) {
   const positions = [], indices = [], skinIndices = [], skinWeights = [], kinds = [], edges = [], uvs = [];
   const boneIndex = new Map((skeleton?.bones || []).map((bone, index) => [bone, index]));
   for (const bone of skeleton?.bones || []) bone.userData.rfHseSkeletonIndex = boneIndex.get(bone) ?? 0;
@@ -335,21 +444,61 @@ function makeBuilder(frame, skeleton) {
     for (let i = 1; i < p.length - 1; i++) { addTri(front[0], front[i], front[i + 1]); addTri(back[0], back[i + 1], back[i]); }
     for (let i = 0; i < p.length; i++) { const n = (i + 1) % p.length; addTri(front[i], back[i], back[n]); addTri(front[i], back[n], front[n]); }
   };
+  /* Rev 16: a scute is a RIDGE, not a box.
+   *
+   * Two defects, both visible on the r15-doc head crops as a rectangular slab
+   * sitting on the skull:
+   *
+   * 1. `baseUp + height` extrudes along +up REGARDLESS of frame.upSign. Every
+   *    other builder in this file signs its vertical travel (addPyramid,
+   *    addBrow, addToothRow all multiply by frame.upSign); this one did not,
+   *    so on an upSign -1 rig the cap was pushed through the skull instead of
+   *    out of it. The sign fix above made upSign +1 on all four bakes, which
+   *    is why the crowns moved onto the head - but the unsigned arithmetic is
+   *    still wrong and would invert again on any rig that measures -1.
+   *
+   * 2. The cap tapers to 0.62 x 0.58 of the base, which at these sizes is a
+   *    box with slightly bevelled sides. A shark's dorsal scute is a keeled
+   *    ridge: it narrows hard ACROSS the body while staying long, and its
+   *    crest is a LINE rather than a face. Tapering across to a near-edge and
+   *    keeping 0.78 of the length turns the same vertex budget into a form
+   *    that reads as grown cartilage from any angle, and gives the shading a
+   *    real crease to catch instead of one flat top face. */
   const addScute = (station, baseUp, height, halfLong, halfAcross, across, weights) => {
+    const up = frame.upSign;
     const base = [
       addVertex(frame.at(station) - halfLong, baseUp, across - halfAcross, weights, FEATURE.armor, 1),
       addVertex(frame.at(station) + halfLong, baseUp, across - halfAcross, weights, FEATURE.armor, 1),
       addVertex(frame.at(station) + halfLong, baseUp, across + halfAcross, weights, FEATURE.armor, 1),
       addVertex(frame.at(station) - halfLong, baseUp, across + halfAcross, weights, FEATURE.armor, 1)
     ];
+    /* The crest: a narrow ridge line, not a top face. */
+    const crestUp = baseUp + up * height;
+    const crestHalfAcross = Math.max(halfAcross * 0.16, 1e-4);
     const cap = [
-      addVertex(frame.at(station) - halfLong * 0.62, baseUp + height, across - halfAcross * 0.58, weights, FEATURE.armor, 0),
-      addVertex(frame.at(station) + halfLong * 0.62, baseUp + height, across - halfAcross * 0.58, weights, FEATURE.armor, 0),
-      addVertex(frame.at(station) + halfLong * 0.62, baseUp + height, across + halfAcross * 0.58, weights, FEATURE.armor, 0),
-      addVertex(frame.at(station) - halfLong * 0.62, baseUp + height, across + halfAcross * 0.58, weights, FEATURE.armor, 0)
+      addVertex(frame.at(station) - halfLong * 0.78, crestUp, across - crestHalfAcross, weights, FEATURE.armor, 0),
+      addVertex(frame.at(station) + halfLong * 0.78, crestUp, across - crestHalfAcross, weights, FEATURE.armor, 0),
+      addVertex(frame.at(station) + halfLong * 0.78, crestUp, across + crestHalfAcross, weights, FEATURE.armor, 0),
+      addVertex(frame.at(station) - halfLong * 0.78, crestUp, across + crestHalfAcross, weights, FEATURE.armor, 0)
     ];
     addTri(cap[0], cap[1], cap[2]); addTri(cap[0], cap[2], cap[3]);
     for (let i = 0; i < 4; i++) { const n = (i + 1) % 4; addTri(base[i], base[n], cap[n]); addTri(base[i], cap[n], cap[i]); }
+  };
+  /* Rev 15 REBASE: a closed box with independent front/back half-extents, so
+   * a prop can TAPER instead of being a constant-thickness card. This is the
+   * primitive the owner's "no flat slabs" note needed: addPlate extrudes one
+   * profile by a single halfAcross and reads as a sheet at any thickness,
+   * while this has eight distinct corners and shades like a solid. */
+  const addBox = (backLong, frontLong, backUp, frontUp, backHeight, frontHeight, backAcross, frontAcross, across, weights, kind) => {
+    const corner = (long, up, halfHeight, halfAcross, sideSign, upSign) =>
+      addVertex(long, up + upSign * halfHeight, across + sideSign * halfAcross, weights, kind, 1);
+    const b = [corner(backLong, backUp, backHeight, backAcross, -1, -1), corner(backLong, backUp, backHeight, backAcross, 1, -1),
+      corner(backLong, backUp, backHeight, backAcross, 1, 1), corner(backLong, backUp, backHeight, backAcross, -1, 1)];
+    const f = [corner(frontLong, frontUp, frontHeight, frontAcross, -1, -1), corner(frontLong, frontUp, frontHeight, frontAcross, 1, -1),
+      corner(frontLong, frontUp, frontHeight, frontAcross, 1, 1), corner(frontLong, frontUp, frontHeight, frontAcross, -1, 1)];
+    addTri(b[0], b[2], b[1]); addTri(b[0], b[3], b[2]);
+    addTri(f[0], f[1], f[2]); addTri(f[0], f[2], f[3]);
+    for (let i = 0; i < 4; i++) { const n = (i + 1) % 4; addTri(b[i], f[i], f[n]); addTri(b[i], f[n], b[n]); }
   };
   const addPyramid = (station, baseUp, tipStation, tipUp, halfLong, halfAcross, across, weights, kind) => {
     const base = [
@@ -487,6 +636,29 @@ function makeBuilder(frame, skeleton) {
     return count;
   };
   const geometry = () => {
+    /* Snapshot the AUTHORED (posed) bounds BEFORE the un-pose: frame.box is
+     * in that space and it is the only space the contact gate can honestly
+     * compare against. After the un-pose the buffer is in BIND space. */
+    const posedBox = new THREE.Box3();
+    { const scan = new THREE.Vector3();
+      for (let v = 0; v < positions.length / 3; v++) posedBox.expandByPoint(scan.set(positions[v * 3], positions[v * 3 + 1], positions[v * 3 + 2])); }
+    /* Un-pose (see unposeMatrices above) before the positions are frozen into
+     * the buffer, using the dominant bone of each vertex's weight set. */
+    const unpose = unposeMatrices(body);
+    if (unpose.length) {
+      const point = new THREE.Vector3();
+      for (let v = 0; v < positions.length / 3; v++) {
+        let bestBone = -1, bestWeight = -1;
+        for (let k = 0; k < 4; k++) {
+          const weight = skinWeights[v * 4 + k];
+          if (weight > bestWeight) { bestWeight = weight; bestBone = skinIndices[v * 4 + k]; }
+        }
+        const matrix = unpose[bestBone];
+        if (!matrix || bestWeight <= 0) continue;
+        point.set(positions[v * 3], positions[v * 3 + 1], positions[v * 3 + 2]).applyMatrix4(matrix);
+        positions[v * 3] = point.x; positions[v * 3 + 1] = point.y; positions[v * 3 + 2] = point.z;
+      }
+    }
     const out = new THREE.BufferGeometry();
     out.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     out.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skinIndices, 4));
@@ -495,9 +667,9 @@ function makeBuilder(frame, skeleton) {
     out.setAttribute('rfFeatureEdge', new THREE.Float32BufferAttribute(edges, 1));
     out.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
     out.setIndex(indices); out.computeVertexNormals(); out.computeBoundingBox(); out.computeBoundingSphere();
-    return { geometry: out, triangles: indices.length / 3, vertices: positions.length / 3 };
+    return { geometry: out, posedBox, triangles: indices.length / 3, vertices: positions.length / 3 };
   };
-  return { addPlate, addScute, addPyramid, addCone, addSpineRidge, addEye, addBrow, addToothRow, geometry, at };
+  return { addPlate, addBox, addScute, addPyramid, addCone, addSpineRidge, addEye, addBrow, addToothRow, geometry, at };
 }
 
 function bodyMaterial(body) {
@@ -506,13 +678,102 @@ function bodyMaterial(body) {
 }
 function featureMaterial(body, palette, glowEnabled, seamColor) {
   const source = bodyMaterial(body), sourceUniforms = source?.userData?.rfTexturedUniforms || {};
-  const accent = sourceUniforms.uRfAccentColor?.value?.clone?.() || palette?.accent?.clone?.() || new THREE.Color(0.2, 0.8, 1);
+  /* Rev 15 REBASE: props wear the ANIMAL, not the row's accent swatch.
+   *
+   * The shader below mixes crowns, saws and foils toward uRfFeatureAccent,
+   * which resolves to the row's authored accent colour - and those are
+   * saturated fantasy swatches. Rendered, that gave the contact sheet a
+   * neon-orange rostrum on chimerashark, a chrome-yellow one on sawshark, a
+   * violet horn pair on omenmaw and a cobalt blade on barbhook: exactly the
+   * "flat slab" read the owner objected to, because a fully saturated flat
+   * colour carries no form no matter how solid the geometry under it is.
+   *
+   * The same law skin_identity.js applies to the hide applies here: a prop
+   * on a shark is keratin, cartilage or bone, so it is a desaturated,
+   * slightly LIGHTER version of the animal's own hide. Pull the accent most
+   * of the way to the body's dorsal colour and lift its value a little, so
+   * the prop still separates from the flank by brightness while staying
+   * inside the natural gamut and shading like part of the same creature. */
   const base = sourceUniforms.uRfTopColor?.value?.clone?.() || palette?.base?.clone?.() || new THREE.Color(0.2, 0.3, 0.35);
+  const rawAccent = sourceUniforms.uRfAccentColor?.value?.clone?.() || palette?.accent?.clone?.() || new THREE.Color(0.2, 0.8, 1);
   const belly = sourceUniforms.uRfBottomColor?.value?.clone?.() || palette?.belly?.clone?.() || new THREE.Color(0.8, 0.9, 0.9);
-  const glow = seamColor ? seamColor.clone() : (palette?.glow?.clone?.() || sourceUniforms.uRfRimColor?.value?.clone?.() || accent.clone());
+  /* Rev 16: the prop tint is built from the RESOLVED SPECIES HIDE, not from
+   * uRfAccentColor.
+   *
+   * The Rev 15 note above is right about the law and wrong about its inputs.
+   * skin_identity.js rewrites uRfHueShift, uRfSaturation, uRfTopColor and
+   * uRfBottomColor to the resolved species values, but it never touches
+   * uRfAccentColor - grep it: there is no write. So the swatch this function
+   * reads is still the raw authored fantasy accent, and the 82% pull toward
+   * `base` could not save it because `base` is uRfTopColor, which
+   * neutralizeTexturedTint deliberately sets to VALUE 0.48 as a multiply gain
+   * rather than to the animal's colour. Lerping a saturated violet 82% toward
+   * a mid grey, then re-lifting lightness to 0.62, lands right back on a pale
+   * violet - which is the yellow, purple, orange and red slabs the r15-doc
+   * head crops show sitting on the skull.
+   *
+   * material.userData.rfIdentityHide is the hide skin_identity.js actually
+   * resolved for this row ({hsv, color, fantasy}), and applyIdentity() runs at
+   * shark3d.js:2331, well before mountTexturedFeatures() at :3319, so it is
+   * always populated by the time a prop is built. Take the hue and saturation
+   * from THAT, keep only a whisper of the authored accent's hue, and lift the
+   * value into the bone-pale band. A prop is keratin or cartilage grown by the
+   * same animal, so it should read as a lighter, less saturated version of the
+   * animal's own colour - which is exactly what the hide gives us. */
+  const hide = source?.userData?.rfIdentityHide || null;
+  const accent = (() => {
+    if (!hide?.hsv) {
+      /* Untextured / no identity layer: the old path, which is correct when
+       * uRfTopColor really is the animal's colour. */
+      const fallback = rawAccent.clone().lerp(base, 0.82);
+      const hsl = { h: 0, s: 0, l: 0 }; fallback.getHSL(hsl);
+      fallback.setHSL(hsl.h, Math.min(hsl.s, 0.22), Math.min(Math.max(hsl.l * 1.35 + 0.10, 0.26), 0.62));
+      return fallback;
+    }
+    const [hideHue, hideSat] = hide.hsv;
+    /* A whisper of the authored accent's hue, so two rows on the same base
+     * with the same hide still differ slightly - but never more than a tenth
+     * of a turn away from the animal. */
+    const accentHsl = { h: 0, s: 0, l: 0 }; rawAccent.getHSL(accentHsl);
+    let delta = accentHsl.h - hideHue;
+    delta -= Math.round(delta);
+    const hue = (hideHue + delta * 0.12 + 1) % 1;
+    const out = new THREE.Color();
+    /* Keratin is paler and less saturated than the hide it grows from. */
+    out.setHSL(hue, Math.min(hideSat * 0.55, 0.20), 0.58);
+    return out;
+  })();
+  /* Rev 16: the SEAM GLOW is what was actually painting the slabs.
+   *
+   * Fixing the accent above was necessary and not sufficient. Measured live on
+   * the built props, the accent now resolves to a pale hide tone
+   * (zeusfin 0.499/0.595/0.661) while `glow` was still coming back fully
+   * saturated - zeusfin 0.95/0.80/0.02 chrome yellow, solaris 1.00/0.78/0.10
+   * orange, chimerashark 0.95/0.19/0.02 red - because it is taken from
+   * palette.glow or a hard-coded SEAM colour, neither of which any layer has
+   * ever brought under the owner's saturation law. glowEnabled is true for
+   * every act>=3 row, so that colour was added to totalEmissiveRadiance at
+   * 0.30 on every prop edge: unlit, unshaded, full-chroma light that no
+   * countershade can darken. That is the yellow/purple/orange/red read on the
+   * r15-doc head crops, and it is the same "full-saturation band" defect
+   * skin_identity.js already had to strip out of the body pattern pass.
+   *
+   * The prop is keratin lit by the same water as the animal, so the seam is
+   * held to the same ceiling as a marking: the row's hue whisper survives,
+   * saturation is capped, and the strength is cut so it reads as a lit EDGE
+   * rather than as paint. */
+  const glow = (() => {
+    const raw = seamColor ? seamColor.clone() : (palette?.glow?.clone?.() || sourceUniforms.uRfRimColor?.value?.clone?.() || accent.clone());
+    const hsl = { h: 0, s: 0, l: 0 };
+    raw.getHSL(hsl);
+    const out = new THREE.Color();
+    out.setHSL(hsl.h, Math.min(hsl.s, 0.26), Math.min(Math.max(hsl.l, 0.45), 0.70));
+    return out;
+  })();
   const uniforms = {
     uRfFeatureBase: { value: base }, uRfFeatureAccent: { value: accent }, uRfFeatureBelly: { value: belly },
-    uRfFeatureGlow: { value: glow }, uRfFeatureGlowStrength: { value: glowEnabled ? 0.30 : 0.0 }
+    /* 0.30 was a paint level. 0.10 is an edge highlight. */
+    uRfFeatureGlow: { value: glow }, uRfFeatureGlowStrength: { value: glowEnabled ? 0.10 : 0.0 }
   };
   const material = new THREE.MeshStandardMaterial({
     color: new THREE.Color(1, 1, 1), map: source?.map || null, normalMap: source?.normalMap || null,
@@ -551,13 +812,38 @@ function faceOverlayMetrics(body) {
   return { eyeCount: 2, toothCount: finite(found.toothCount, 0) };
 }
 
+/* Rev 15 REBASE allowlist. The owner scrapped every bake but four, so a row
+ * can no longer be given a silhouette by choosing a different mesh - the
+ * only geometry that separates one row from another now is what this module
+ * mounts. Four prop kinds are allowed, and every one of them is real closed
+ * geometry wearing the body material: no flat slabs, no cards, no tape.
+ *
+ *   foil  - the hammerhead cephalofoil. NEW in the rebase: `hammerhead` and
+ *           `athenajaw` used to be routed to the smoothhammer /
+ *           scallopedhammer bakes, which are gone, so the hammer has to be
+ *           built. Two swept lobes off the head band, not a plate.
+ *   crown - solid scutes plus pyramids, already correct.
+ *   horns - solid cones, already correct.
+ *   saw   - the rostrum. Its blade was a thin addPlate CARD and is now a
+ *           tapered box with real thickness (see addRostrum).
+ *
+ * The six rows the owner called out as slabs are all handled here:
+ *   zeusfin, heracrown     -> crown (solid scute + spikes)
+ *   minotaurram            -> horns (solid cones)
+ *   chimerashark           -> saw   (thickened rostrum, no longer a card)
+ *   solaris, omenmaw       -> were returning NULL, i.e. no prop at all, so
+ *                             whatever the owner saw on them came from the
+ *                             base mesh. They now take a crown and a horn
+ *                             pair respectively, which is what their
+ *                             personality lines already describe ("corona
+ *                             brow rays", "rune throat lantern"). */
 function featureIds(def) {
   const id = String(def?.id || '');
-  if (id === 'hammerhead' || id === 'athenajaw') return null;
+  if (id === 'hammerhead' || id === 'athenajaw') return 'foil';
   if (id === 'leviathanrex') return 'sharkjira';
   if (id === 'leviathan_rex') return 'leviathan';
-  if (id === 'minotaurram') return 'horns';
-  if (id === 'coralcrown' || id === 'zeusfin' || id === 'heracrown') return 'crown';
+  if (id === 'minotaurram' || id === 'omenmaw') return 'horns';
+  if (id === 'coralcrown' || id === 'zeusfin' || id === 'heracrown' || id === 'solaris') return 'crown';
   if (id === 'sawshark' || id === 'barbhook' || id === 'chimerashark') return 'saw';
   return null;
 }
@@ -568,7 +854,7 @@ function mountTexturedFeatures({ body, def, group, palette }) {
     group.userData.rfTexturedFeatures = null;
     return { mesh: null, kind: null, triangles: 0 };
   }
-  const skeleton = body.skeleton, builder = makeBuilder(frame, skeleton), bodySize = frame.size;
+  const skeleton = body.skeleton, builder = makeBuilder(frame, skeleton, body), bodySize = frame.size;
   const headBone = skeleton.bones.find((bone) => /^(Head|Face)$/i.test(bone.name || '')) || skeleton.bones[0];
   const jawBone = skeleton.bones.find((bone) => /lowerjaw|jaw/i.test(bone.name || '')) || headBone;
   const headWeight = weightsFor(frame, 0.08, headBone), jawWeight = weightsFor(frame, 0.08, jawBone);
@@ -629,17 +915,33 @@ function mountTexturedFeatures({ body, def, group, palette }) {
     }
     return parts;
   };
+  /* Rev 16. Two fixes, both of which the r15-doc head crops show:
+   *
+   * (a) EVERY vertical offset here is now signed by frame.upSign. `- height *
+   *     0.24` and `- upSpan * 0.015` were meant to SINK the scute and the
+   *     spike roots a little way into the skull so they grow out of it rather
+   *     than balance on it. Unsigned, they sink correctly only when upSign is
+   *     +1 and LIFT the prop clear of the head when it is -1, which is what
+   *     left the crowns hanging under the jaw on every row.
+   *
+   * (b) The crown is narrowed. halfAcross of 0.78-0.90 of the head band is
+   *     nearly the full width of the skull, and a full-width block with a flat
+   *     top is a slab no matter what colour it wears. A crown is a crest: it
+   *     is tall and narrow, sitting along the midline. 0.34-0.42 puts it on
+   *     the centre of the skull with the head reading either side of it. */
   const addCrown = (heavy = false) => {
-    const station = 0.075, band = frame.band(station), height = upSpan * (heavy ? 0.30 : 0.22), halfLong = frame.span * (heavy ? 0.048 : 0.038), halfAcross = band.halfAcross * (heavy ? 0.90 : 0.78);
-    const baseUp = frame.topAt(station, band.centerAcross) - height * 0.24;
+    const up = frame.upSign;
+    const station = 0.075, band = frame.band(station), height = upSpan * (heavy ? 0.30 : 0.22), halfLong = frame.span * (heavy ? 0.048 : 0.038), halfAcross = band.halfAcross * (heavy ? 0.42 : 0.34);
+    const baseUp = frame.topAt(station, band.centerAcross) - up * height * 0.24;
     builder.addScute(station, baseUp, height, halfLong, halfAcross, band.centerAcross, headWeight); crownCount++;
     const spikes = heavy ? [-0.55, 0, 0.55] : [-0.48, 0, 0.48];
     for (const offset of spikes) {
       const spikeStation = station + offset * 0.035, spikeBand = frame.band(spikeStation);
-      builder.addPyramid(spikeStation, frame.topAt(spikeStation, spikeBand.centerAcross) - upSpan * 0.015, spikeStation - 0.012, frame.topAt(spikeStation, spikeBand.centerAcross) + upSpan * (heavy ? 0.26 : 0.20), frame.span * 0.018, Math.max(spikeBand.halfAcross * 0.16, frame.span * 0.010), spikeBand.centerAcross, headWeight, FEATURE.crown); crownCount++;
+      const spikeTop = frame.topAt(spikeStation, spikeBand.centerAcross);
+      builder.addPyramid(spikeStation, spikeTop - up * upSpan * 0.015, spikeStation - 0.012, spikeTop + up * upSpan * (heavy ? 0.26 : 0.20), frame.span * 0.018, Math.max(spikeBand.halfAcross * 0.16, frame.span * 0.010), spikeBand.centerAcross, headWeight, FEATURE.crown); crownCount++;
     }
     const browStation = 0.025, browBand = frame.band(browStation), browHeight = upSpan * (heavy ? 0.13 : 0.09);
-    builder.addScute(browStation, frame.topAt(browStation, browBand.centerAcross) - browHeight * 0.30, browHeight, frame.span * 0.034, browBand.halfAcross * 0.88, browBand.centerAcross, headWeight); crownCount++;
+    builder.addScute(browStation, frame.topAt(browStation, browBand.centerAcross) - up * browHeight * 0.30, browHeight, frame.span * 0.034, browBand.halfAcross * 0.44, browBand.centerAcross, headWeight); crownCount++;
   };
   if (mode === 'sharkjira') {
     /* Rev 15: SHARK FIRST. The body is a great white bake and stays one.
@@ -677,12 +979,79 @@ function mountTexturedFeatures({ body, def, group, palette }) {
     }
   } else if (mode === 'crown') {
     addCrown(id === 'heracrown');
+  } else if (mode === 'foil') {
+    /* Cephalofoil. The hammer bakes were scrapped, so the head has to grow
+     * one. Two swept lobes off the measured head band, each a tapered SOLID
+     * (addBox, eight distinct corners) rather than a plate: they are thicker
+     * at the root where they meet the skull and thinner and lower at the
+     * outboard tip, which is the profile a real hammerhead has and is what
+     * makes it shade as a head rather than as a fin card. */
+    const band = frame.band(0.055), root = frame.at(0.055), tipLong = frame.at(0.012);
+    const midUp = (band.top + band.bottom) * 0.5;
+    /* Rev 16: the SPAN is set against the BODY, not against the head band.
+     *
+     * Measured on the built rig, `band.halfAcross * 2.00/2.30` gave a total
+     * span of 0.192L on hammerhead and 0.236L on athenajaw - roughly half the
+     * 0.42-0.45L a real cephalofoil spans, which is why the lobes read as two
+     * short tabs stuck on the snout rather than as a hammer. The head band's
+     * width is a property of whichever bake the row landed on, so scaling from
+     * it makes the hammer's size an accident of the base mesh; scaling from
+     * frame.span makes it a property of the ANIMAL, which is what it should be.
+     * Half-span, since `reach` is measured from the centreline. */
+    const foilSpan = frame.span * (id === 'athenajaw' ? 0.45 : 0.42);
+    const reach = Math.max(foilSpan * 0.5, band.halfAcross * 1.20);
+    const rootThick = Math.max(band.height * 0.34, upSpan * 0.055);
+    const tipThick = rootThick * 0.44;
+    for (const sign of [-1, 1]) {
+      const inner = band.centerAcross + sign * band.halfAcross * 0.42;
+      const outer = band.centerAcross + sign * reach;
+      /* Swept BACK as it goes outboard (tipLong is forward of root, so the
+       * lobe leans into the nose) and dropped slightly, so the two lobes read
+       * as one continuous wing through the skull rather than two stubs. */
+      builder.addBox(root, tipLong, midUp, midUp - frame.upSign * upSpan * 0.030,
+        rootThick, tipThick, Math.abs(outer - inner) * 0.50, Math.abs(outer - inner) * 0.34,
+        (inner + outer) * 0.5, headWeight, FEATURE.armor);
+      hornCount++;
+    }
+    /* The eye stalks a hammerhead carries at the lobe tips: small solid cones
+     * capping each wing, so the foil ends in form and not in a cut edge. */
+    for (const sign of [-1, 1]) {
+      const outer = band.centerAcross + sign * reach;
+      builder.addCone(0.030, midUp - frame.upSign * upSpan * 0.030, 0.018, midUp - frame.upSign * upSpan * 0.020,
+        frame.span * 0.016, frame.span * 0.014, outer, headWeight, FEATURE.armor);
+      crownCount++;
+    }
   } else if (mode === 'saw') {
-    const noseBand = frame.band(0.02), root = frame.at(0.03), tip = frame.at(-0.19), width = Math.max(noseBand.halfAcross * 0.24, frame.span * 0.018), bladeUp = (noseBand.top + noseBand.bottom) * 0.5;
-    builder.addPlate(-0.08, bladeUp - upSpan * 0.07, upSpan * 0.14, Math.abs(root - tip) * 0.52, width, noseBand.centerAcross, headWeight, FEATURE.saw);
+    /* Rev 15 REBASE, second finding. The rostrum used NEGATIVE stations
+     * (-0.08, -0.19) to reach forward of the snout, and every one of them
+     * rendered off the TAIL - the "saw on the tail" in the contact sheet.
+     * Every prop that lands correctly (crown, horns) uses small POSITIVE
+     * stations near the head instead, so the saw is now built the same way:
+     * anchored at a real head station and extended forward by a raw long
+     * OFFSET rather than by asking at() for a station outside [0, 1]. */
+    const noseBand = frame.band(0.02), width = Math.max(noseBand.halfAcross * 0.24, frame.span * 0.018), bladeUp = (noseBand.top + noseBand.bottom) * 0.5;
+    const noseCoord = frame.at(0.02), reachSign = Math.sign(frame.at(0.30) - frame.at(0.02)) || 1;
+    const root = noseCoord + reachSign * frame.span * 0.010;
+    const tip = noseCoord - reachSign * frame.span * 0.200;
+    /* Rev 15 REBASE: the blade was `addPlate`, which extrudes one flat
+     * profile by a constant halfAcross -- a CARD, and one of the six slabs
+     * the owner called out. It is now a tapered solid: thick and tall at the
+     * skull, thin and narrow at the tip, with eight independent corners, so
+     * it catches the key light down its length instead of flashing as one
+     * uniform sheet. */
+    builder.addBox(root, tip, bladeUp, bladeUp, upSpan * 0.075, upSpan * 0.028,
+      width * 1.35, width * 0.55, noseBand.centerAcross, headWeight, FEATURE.saw);
+    /* The five sawteeth ride the blade, so they are placed by the same raw
+     * offsets rather than by out-of-range stations. addPyramid takes
+     * stations, so each tooth is expressed as the station whose coordinate
+     * equals the offset we want. */
+    const noseBand2 = frame.band(0.02);
     for (let i = 0; i < 5; i++) {
-      const station = 0.00 - i * 0.035, side = i % 2 ? -1 : 1, band = frame.band(station), across = band.centerAcross + side * Math.max(band.halfAcross * 0.38, frame.span * 0.022);
-      builder.addPyramid(station, bladeUp + upSpan * 0.04, station - 0.014, bladeUp - upSpan * 0.02, frame.span * 0.012, frame.span * 0.012, across, headWeight, FEATURE.saw); sawToothCount++;
+      const long = noseCoord - reachSign * frame.span * (0.030 + i * 0.035);
+      const side = i % 2 ? -1 : 1;
+      const across = noseBand2.centerAcross + side * Math.max(noseBand2.halfAcross * 0.38, frame.span * 0.022);
+      builder.addPyramid(frame.station(long), bladeUp + upSpan * 0.04, frame.station(long - reachSign * frame.span * 0.014), bladeUp - upSpan * 0.02,
+        frame.span * 0.012, frame.span * 0.012, across, headWeight, FEATURE.saw); sawToothCount++;
     }
   }
   const built = builder.geometry();
@@ -719,7 +1088,7 @@ function mountTexturedFeatures({ body, def, group, palette }) {
    * old body-vs-feature comparison was mixing the two spaces and reported a
    * false detachment. frame.box is the posed body box and built.geometry's
    * own bounding box is in the same local frame, so compare those. */
-  const bodyBox = frame.box.clone(), featureBox = built.geometry.boundingBox.clone(), bodySizeWorld = bodyBox.getSize(new THREE.Vector3());
+  const bodyBox = frame.box.clone(), featureBox = (built.posedBox && !built.posedBox.isEmpty() ? built.posedBox : built.geometry.boundingBox).clone(), bodySizeWorld = bodyBox.getSize(new THREE.Vector3());
   const contactEnvelope = bodyBox.clone().expandByScalar(Math.max(bodySizeWorld.x, bodySizeWorld.y, bodySizeWorld.z) * 0.035);
   const contact = contactEnvelope.intersectsBox(featureBox);
   group.userData.rfVisibleDrawCalls = finite(group.userData.rfVisibleDrawCalls, 0) + 1;

@@ -93,7 +93,16 @@ export const FACE_KIND = Object.freeze({ socket: 0, sclera: 1, pupil: 2, highlig
  * reef/blue/greatwhite. The gape, the cavity geometry, the tooth emitter and
  * the mouth gate are all in place and working; only the seating station is
  * wrong. */
-const RF_GRIN_MOUTH_HOLD = true;
+/* REV 16: the hold is now a MEASURED decision, not a constant.
+ *
+ * It stays TRUE by default, and is lifted only when the two-pose containment
+ * evidence says the rows are contained at gape 0 AND gape 0.35, in both
+ * facing directions, on all four bakes. `RF_GRIN_MOUTH=1` builds with the
+ * teeth so that evidence can be shot in the first place - the gate cannot
+ * measure a mouth the module refuses to emit. */
+const RF_GRIN_MOUTH_HOLD = !(typeof process !== 'undefined'
+  && process.env && process.env.RF_GRIN_MOUTH === '1')
+  && !(typeof globalThis !== 'undefined' && globalThis.__RF_GRIN_MOUTH === true);
 
 function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
 function finite(v, d) { return typeof v === 'number' && Number.isFinite(v) ? v : d; }
@@ -106,6 +115,112 @@ function finite(v, d) { return typeof v === 'number' && Number.isFinite(v) ? v :
  * tagged with which of Head / LowerJaw owns it. Skinned space is the only
  * space where the lip is actually at the lip: the bind pose puts it wherever
  * the armature scale has not yet been applied. */
+/* ---------------------------------------------------------------------- *
+ * REV 16: PER-BAKE HEAD CALIBRATION
+ * ---------------------------------------------------------------------- *
+ *
+ * The roster is now exactly FOUR baked meshes (greatwhite_cy, thresher,
+ * tigershark, whaler) plus the goblin/gulperfiend low-poly creatures, which
+ * this module does not touch. With four meshes, a MEASURED table beats a
+ * heuristic, and the r15 heuristic was demonstrably failing on two of them.
+ *
+ * WHY THE HEURISTIC FAILED (measured, not guessed). The head and jaw clouds
+ * were selected by BONE WEIGHT, and the four bakes are not weighted alike:
+ *
+ *     bake            verts   maxHeadW  maxJawW   nHead  nJaw
+ *     greatwhite_cy    6645     1.000    1.000     1162   2400
+ *     whaler           7224     1.000    0.976     1507    173
+ *     tigershark       7162     1.000    1.000      608    264
+ *     thresher         6440     1.000    0.026       97      3
+ *
+ * thresher's jaw is essentially UNWEIGHTED - max LowerJaw weight 0.026 over
+ * the whole mesh - so the relative cut selected 3 vertices and the module
+ * bailed at its 8-vertex floor before measuring anything. That is 30 of the
+ * 84 mapped rows getting no overlay for a reason that has nothing to do with
+ * the shape of the head. tigershark cleared the floor but its lateral ray
+ * cast returned a full width of 0.008 against a head span of 0.335 - a head
+ * 2% as wide as it is long - so seatConfidence came out 0.0119 against the
+ * 0.10 bar and the row was held. Another 8 rows. 38 of the 40.
+ *
+ * THE MESH, MEASURED. Loading each GLB and slicing the front 35% of the body
+ * perpendicular to its long axis gives the real skull, and every one of the
+ * four is a perfectly ordinary shark head that widens smoothly from the snout
+ * to the pectoral girdle. Half-width in bind units by station t (fraction of
+ * body length back from the nose tip):
+ *
+ *     t        0.02   0.05   0.08   0.11   0.15   0.18   0.21
+ *     gw_cy    0.040  0.059  0.079  0.090  0.105  0.106  0.100
+ *     thresher 0.034  0.042  0.055  0.063  0.070  0.073  0.084
+ *     tiger    0.046  0.065  0.070  0.072  0.069  0.070  0.088
+ *     whaler   0.035  0.045  0.052  0.058  0.062  0.062  0.054
+ *
+ * No bake is thin. The heads were always there; the weights were the problem.
+ *
+ * THE TABLE. Per bake: the eye STATION (t along the body from the nose), the
+ * eye HEIGHT (fraction of the local slice height, measured up from the slice
+ * midline), and the LATERAL offset (fraction of the local half-width at which
+ * the eyeball centre sits). Stations were chosen where the skull has reached
+ * full width but is still ahead of the pectoral flare - anatomically where a
+ * shark's eye sits - and read off the profile above.
+ *
+ * `headFrac` bounds the head REGION for every downstream fraction (lip line,
+ * tooth pitch, cavity), and is the station at which the profile turns up into
+ * the pectoral girdle. `jawT` bounds the jaw region the same way.
+ *
+ * `eyeLateral` is carried but NOT currently read: the lateral seat is taken
+ * from the measured surface (the ray hit, or the bind-mesh proportion below)
+ * rather than from a tabulated fraction, because the measurement turned out to
+ * be the more reliable of the two on every bake. It is left in the table
+ * because it is the natural place for it if a future bake needs an override.
+ *
+ * Keyed by the MODEL_FILES key, which shark3d.js passes through as
+ * profile.model. A row on a bake with no entry falls back to the r15
+ * heuristic path unchanged, so adding a fifth bake cannot regress the four.
+ */
+/* BAKES WHOSE OVERLAY IS HELD (Rev 16, coordinator directive item 3).
+ *
+ * `thresher` and `tigershark` are the two bakes whose rigs are placed
+ * backwards on the mesh (r15 lane ORIENT2). Reading the frame from
+ * `resolveOrientation` instead of from the bones fixed the DIRECTION - the
+ * girth centroid of the head region now comes out +0.28 / +0.19 along forward
+ * on both, agreeing with the rendered rig - but the batch they produce still
+ * renders buried inside the skin: the face/noface pair comes back
+ * bit-identical, i.e. the overlay draws nothing on the shark.
+ *
+ * The instruction is explicit and correct: no face is better than a face on
+ * the tail. These two keep their Rev 14 baked face until the seating is
+ * genuinely fixed and can be SEEN to be fixed in a render.
+ *
+ * This is a deliberate, measured hold, not a fallback: `greatwhite_cy` and
+ * `whaler` were verified by eye in `hse/evidence/r16-face/heads.png` (eye on
+ * the head, near the snout, above the mouth line, both directions) and ship
+ * the overlay. Removing an entry here is a one-line change once a render shows
+ * that bake's eye on its head.
+ */
+const BAKE_OVERLAY_HELD = new Set(['thresher', 'tigershark']);
+
+const BAKE_CALIBRATION = {
+  greatwhite_cy: { eyeT: 0.075, eyeHeight: 0.30, eyeLateral: 0.82, headFrac: 0.215, jawT: 0.105 },
+  thresher:      { eyeT: 0.070, eyeHeight: 0.30, eyeLateral: 0.82, headFrac: 0.205, jawT: 0.100 },
+  tigershark:    { eyeT: 0.070, eyeHeight: 0.28, eyeLateral: 0.82, headFrac: 0.200, jawT: 0.100 },
+  whaler:        { eyeT: 0.080, eyeHeight: 0.30, eyeLateral: 0.82, headFrac: 0.210, jawT: 0.105 },
+};
+
+/* The bake key for a row, if it is one of the four calibrated meshes.
+ *
+ * The key lives on the DATA ROW (`def.sil.model`, emitted by gen_data.py from
+ * TEXTURED_MODEL_BY_ROW), not on the profile: shark3d.js builds `profile` from
+ * the personality/shape tags and never copies the model through. Reading the
+ * row directly avoids needing a hook in shark3d.js, which is not this lane's
+ * file. `profile` is still accepted so a future caller that does carry the key
+ * wins over the row. */
+function calibrationFor(def, profile) {
+  const key = (profile && (profile.model || profile.modelKey))
+    || (def && def.sil && def.sil.model)
+    || null;
+  return (key && BAKE_CALIBRATION[key]) ? { key, cal: BAKE_CALIBRATION[key] } : null;
+}
+
 function skinnedSamples(body) {
   const geometry = body.geometry;
   const position = geometry.getAttribute('position');
@@ -144,6 +259,7 @@ function skinnedSamples(body) {
    * updateMatrixWorld(true) above guarantees is current in BOTH runtimes. */
   const boneMatrices = bones.map((bone) => new THREE.Matrix4()
     .multiplyMatrices(body.bindMatrixInverse, bone.matrixWorld));
+
   const blended = new THREE.Vector3(), contribution = new THREE.Vector3();
   const skinVertex = (index, target) => {
     target.fromBufferAttribute(position, index);
@@ -195,6 +311,96 @@ function skinnedSamples(body) {
     if (headWeights[i] > headCut && headWeights[i] > 1e-4) head.push(all[i]);
     if (jawWeights[i] > jawCut && jawWeights[i] > 1e-4) jaw.push(all[i]);
   }
+  /* REV 16: GEOMETRIC HEAD/JAW REGIONS WHEN THE WEIGHTS ARE NOT THERE.
+   *
+   * The r15 code bailed here whenever either weighted cloud came in under 8
+   * vertices, and on `thresher` - 30 of the 84 mapped rows - the jaw cloud is
+   * 3 vertices because the bake's LowerJaw bone reaches a maximum weight of
+   * 0.026 across the entire mesh. The bail is why those rows never got so far
+   * as a measurement, let alone a face.
+   *
+   * A shark's head and jaw are REGIONS of the body, and the mesh knows where
+   * they are even when the rig does not. When a cloud is too thin to use, it
+   * is rebuilt geometrically: the head is the forward `headFrac` of the body
+   * along its own long axis, and the jaw is the VENTRAL half of the forward
+   * `jawT` of that head. Both are derived from the same vertex array the rest
+   * of the module measures, so they cannot disagree with it.
+   *
+   * The rebuild is deliberately only a FALLBACK. A bake whose weights do
+   * describe the head (greatwhite_cy, whaler, tigershark all clear the floor
+   * comfortably) keeps the cloud its own rig produced, so this cannot regress
+   * a row that was already working. */
+  let jawSource = 'LowerJaw bone weights';
+  let headSourceSeed = null;
+  if (head.length < 8 || jaw.length < 8) {
+    /* Body long axis and nose end, from the full vertex array. */
+    let bLo = [Infinity, Infinity, Infinity], bHi = [-Infinity, -Infinity, -Infinity];
+    for (const q of all) for (let a = 0; a < 3; a++) {
+      if (q[a] < bLo[a]) bLo[a] = q[a];
+      if (q[a] > bHi[a]) bHi[a] = q[a];
+    }
+    const dims = [bHi[0] - bLo[0], bHi[1] - bLo[1], bHi[2] - bLo[2]];
+    let axis = 0;
+    if (dims[1] >= dims[0] && dims[1] >= dims[2]) axis = 1;
+    else if (dims[2] >= dims[0] && dims[2] >= dims[1]) axis = 2;
+    const span = Math.max(dims[axis], 1e-9);
+    /* Which end is the nose: the GIRTH CENTROID, the same cue the orientation
+     * resolver settled on in r15 lane ORIENT2 and for the same reason - the
+     * cross-section peaks at the pectoral girdle just behind the skull, so its
+     * area-weighted centroid always lies on the head side of the midpoint.
+     * Bone positions are byte-identical across these bakes and carry zero
+     * information about which way the mesh faces. */
+    const others = [0, 1, 2].filter((a) => a !== axis);
+    const BINS = 10;
+    const bins = [];
+    for (let k = 0; k < BINS; k++) bins.push([Infinity, -Infinity, Infinity, -Infinity]);
+    for (const q of all) {
+      const t = (q[axis] - bLo[axis]) / span;
+      const k = Math.min(BINS - 1, Math.max(0, Math.floor(t * BINS)));
+      const B = bins[k];
+      if (q[others[0]] < B[0]) B[0] = q[others[0]];
+      if (q[others[0]] > B[1]) B[1] = q[others[0]];
+      if (q[others[1]] < B[2]) B[2] = q[others[1]];
+      if (q[others[1]] > B[3]) B[3] = q[others[1]];
+    }
+    let num = 0, den = 0;
+    bins.forEach((B, k) => {
+      if (!Number.isFinite(B[0]) || !Number.isFinite(B[2])) return;
+      const area = (B[1] - B[0]) * (B[3] - B[2]);
+      num += area * ((k + 0.5) / BINS - 0.5);
+      den += area;
+    });
+    const centroidT = den > 0 ? num / den : 0;
+    const noseAtHi = centroidT > 0;
+    const nose = noseAtHi ? bHi[axis] : bLo[axis];
+    const headFrac = 0.21, jawFrac = 0.105;
+
+    if (head.length < 8) {
+      head.length = 0;
+      for (const q of all) {
+        if (Math.abs(q[axis] - nose) <= span * headFrac) head.push(q);
+      }
+      headSourceSeed = 'forward body region (weighted head cloud too thin)';
+    }
+    if (jaw.length < 8) {
+      /* The jaw is the ventral half of the forward jawFrac. "Ventral" is the
+       * low end of the world-Y column carried on every sample (q[3]), which is
+       * measured rather than assumed - these bakes do not share an up axis in
+       * skinned space. */
+      const front = [];
+      for (const q of all) {
+        if (Math.abs(q[axis] - nose) <= span * jawFrac) front.push(q);
+      }
+      if (front.length >= 16) {
+        let wLo = Infinity, wHi = -Infinity;
+        for (const q of front) { if (q[3] < wLo) wLo = q[3]; if (q[3] > wHi) wHi = q[3]; }
+        const mid = (wLo + wHi) * 0.5;
+        jaw.length = 0;
+        for (const q of front) if (q[3] <= mid) jaw.push(q);
+        jawSource = 'ventral half of forward body region (jaw bone unweighted)';
+      }
+    }
+  }
   if (head.length < 8 || jaw.length < 8) return null;
 
   /* SPARSE HEAD REPAIR.
@@ -228,7 +434,7 @@ function skinnedSamples(body) {
     }
     return [mxx - mnx, mxy - mny, mxz - mnz];
   };
-  let headSource = 'Head bone weights';
+  let headSource = headSourceSeed || 'Head bone weights';
   {
     const dims = cloudBox(head);
     const longest = Math.max(dims[0], dims[1], dims[2]);
@@ -286,7 +492,7 @@ function skinnedSamples(body) {
   /* skinVertex is exported so headSurface() can skin the triangle corners
    * with the SAME corrected blend these samples used. Two different skinning
    * paths is how the pose bug hid for a whole revision. */
-  return { all, head, jaw, headIndex, jawIndex, headCut, jawCut, maxHeadWeight: maxHead, maxJawWeight: maxJaw, skinVertex, headSource };
+  return { all, head, jaw, headIndex, jawIndex, headCut, jawCut, maxHeadWeight: maxHead, maxJawWeight: maxJaw, skinVertex, headSource, jawSource };
 }
 
 function centroid(points) {
@@ -331,6 +537,149 @@ function measureUpAxis(samples) {
  * right-handed set. Authoring in this frame is what makes one set of
  * fractions work on a rig whose nose is at -Y and on one whose nose is at +X.
  */
+/* THE ORIENTATION CONTRACT (Rev 16, coordinator directive).
+ *
+ * `shark3d.js resolveOrientation()` is the ONE authority on which way a bake
+ * faces. It composes a single quaternion onto the template scene so that, in
+ * the rig group's frame, NOSE IS +X AND DORSAL IS +Y, and publishes the result
+ * as `scene.userData.rfOrientation`.
+ *
+ * Everything this module used to do to work out which end was the head - the
+ * Head/Tail bone chain, the Head-bone weight cloud's centroid, girth centroid
+ * re-derivations - was re-deciding a question the resolver had already
+ * answered, and getting a DIFFERENT answer on `thresher` and `tigershark`,
+ * whose rigs are placed backwards on the mesh (r15 lane ORIENT2). That is how
+ * the eye ended up on a caudal fin: the module trusted the bones, and on those
+ * two bakes the bones are wrong.
+ *
+ * Measured in the rig group frame, all four bakes agree with the contract -
+ * girth centroid along +X, nose at the +X end on every one:
+ *
+ *     bake            group-frame bbox X      girth centroid   nose at +X
+ *     greatwhite_cy   -0.627 .. +0.407             +0.212          yes
+ *     thresher        -0.386 .. +0.524             +0.277          yes
+ *     tigershark      -0.392 .. +0.531             +0.186          yes
+ *     whaler          -0.502 .. +0.333             +0.183          yes
+ *
+ * So the frame is now READ, not derived: forward = +X, up = +Y, side = +Z, all
+ * expressed back into the body's skinned space. There is no per-bake special
+ * case and no cue to get wrong.
+ */
+function contractFrame(body, samplesAll) {
+  /* The rig group is the node the resolver's quaternion was composed onto.
+   * Walk up to whatever carries rfOrientation; failing that, the top of the
+   * chain, which is the same node in the shipped rig. */
+  let group = body, marked = null;
+  while (group) {
+    if (group.userData?.rfOrientation) { marked = group; break; }
+    if (!group.parent) break;
+    group = group.parent;
+  }
+  const root = marked || group;
+  if (!root || root === body) {
+    /* The orientation node IS the body's own node, so skinned space differs
+     * from group space by exactly `body.matrixWorld` and nothing else. */
+  }
+  /* Body-skinned space -> group-local space, and the axes back the other way.
+   * `samples` are in skinned space (pre-matrixWorld), so the axes have to be
+   * expressed there for project() to mean anything. */
+  /* Compose the rotation from the body's own node UP TO AND INCLUDING the node
+   * the resolver stamped, from local quaternions rather than from matrixWorld.
+   *
+   * matrixWorld cannot be used here: this module runs during the template
+   * build, before the scene graph the orientation was composed onto has been
+   * updated, so every matrixWorld on the chain still reads identity and the
+   * derived axes come back as the raw authored ones (measured: forward (1,0,0)
+   * with a span of 0.561 against a real body length of 1.03 - the lateral
+   * axis). The local quaternions ARE set, because `resolveOrientation` writes
+   * `scene.quaternion` directly, so composing them gives the rotation that
+   * will be in force once the graph updates.
+   *
+   * Measured on greatwhite the stamped node carries (0, 0.707, 0, -0.707) - a
+   * -90 degree turn about Y - which is exactly the rotation that was being
+   * missed. */
+  const rot = new THREE.Quaternion();
+  {
+    const chain = [];
+    let n = body;
+    while (n) { chain.push(n); if (n === root) break; n = n.parent; }
+    /* World = parent * ... * child, so composing from the stamped node DOWN to
+     * the body reproduces the world rotation of body-local vectors. */
+    for (let i = chain.length - 1; i >= 0; i--) rot.multiply(chain[i].quaternion);
+  }
+  const toGroup = new THREE.Matrix4().makeRotationFromQuaternion(rot);
+  /* Direction of a group axis, expressed in skinned space.
+   *
+   * The naive form - invert the basis and push (1,0,0) through it - is wrong
+   * here. `toGroup` carries the rig's non-uniform scale, and under a
+   * non-uniform map the inverse does NOT send a group axis to the skinned
+   * direction that projects onto it; it sends it to the direction that MAPS to
+   * it, which is a different vector. Measured on greatwhite, the naive form
+   * picked the lateral axis as "forward" and reported a body length of 0.561
+   * against a real 1.03.
+   *
+   * The correct object is the covector: the skinned direction whose dot
+   * product with a vertex reproduces that vertex's group-frame coordinate,
+   * which is the row of `toGroup`, i.e. the TRANSPOSE, not the inverse. */
+  const e = toGroup.elements;
+  const axisIn = (i) => new THREE.Vector3(e[i], e[4 + i], e[8 + i]);
+  /* The contract's +X (nose) and +Y (dorsal), expressed in skinned space.
+   *
+   * These are the ROWS of the composed rotation, i.e. its transpose - the
+   * covectors whose dot product with a skinned vertex gives that vertex's
+   * group-frame coordinate. Verified against the rendered rig by
+   * `hse/evidence/r16-face/orient_probe.mjs`, which composes the same chain on
+   * the live scene graph:
+   *
+   *     bake            composed rot          nose (+X)    dorsal (+Y)
+   *     greatwhite_cy   (0, 0.707,0,-0.707)   (0, 0,-1)    (0, 1, 0)
+   *     whaler          (0, 0.707,0,-0.707)   (0, 0,-1)    (0, 1, 0)
+   *     thresher        (0, 0.707,0, 0.707)   (0, 0,+1)    (0, 1, 0)
+   *     tigershark      (0, 0.707,0, 0.707)   (0, 0,+1)    (0, 1, 0)
+   *
+   * The two pairs differ by exactly the 180 degree flip that r15 lane ORIENT2
+   * found the bones getting wrong, and it arrives here for free because the
+   * resolver already decided it. Nothing is inferred from extent or girth. */
+  const forward = axisIn(0);
+  const up = axisIn(1);
+  if (forward.lengthSq() < 1e-12 || up.lengthSq() < 1e-12) return null;
+  forward.normalize();
+  up.addScaledVector(forward, -up.dot(forward));
+  if (up.lengthSq() < 1e-12) return null;
+  up.normalize();
+  const side = new THREE.Vector3().crossVectors(forward, up).normalize();
+  return { forward, up, side, toGroup, hasOrientation: !!marked };
+}
+
+/* The head REGION under the contract: bind vertices at x >= HEAD_X_FRACTION of
+ * the body's length from the nose, measured in the group frame.
+ *
+ * 0.22 L is the coordinator's figure and it matches the measured profiles: on
+ * every bake the lateral half-width is still climbing or flat out to ~0.22 and
+ * turns up into the pectoral girdle after it. */
+const HEAD_X_FRACTION = 0.22;
+
+function contractHeadRegion(samples, frame) {
+  const projected = project(samples.all, frame);
+  let lo = Infinity, hi = -Infinity;
+  for (const q of projected) { if (q.f < lo) lo = q.f; if (q.f > hi) hi = q.f; }
+  const L = Math.max(hi - lo, 1e-9);
+  /* forward is +X, so the nose is the HIGH end of f by construction. */
+  const cut = hi - L * HEAD_X_FRACTION;
+  const head = [], headProjected = [];
+  for (let i = 0; i < projected.length; i++) {
+    if (projected[i].f >= cut) { head.push(samples.all[i]); headProjected.push(projected[i]); }
+  }
+  if (typeof globalThis!=='undefined'){
+    // girth centroid along f: should be POSITIVE (head at +f) if forward is right
+    const NB=10;const bins=[];for(let k=0;k<NB;k++)bins.push([1e9,-1e9,1e9,-1e9]);
+    for(const q of projected){const t=(q.f-lo)/L;const k=Math.min(NB-1,Math.max(0,Math.floor(t*NB)));
+      const B=bins[k];if(q.u<B[0])B[0]=q.u;if(q.u>B[1])B[1]=q.u;if(q.s<B[2])B[2]=q.s;if(q.s>B[3])B[3]=q.s;}
+    let num=0,den=0;bins.forEach((B,k)=>{if(B[0]>1e8)return;const a=(B[1]-B[0])*(B[3]-B[2]);num+=a*((k+0.5)/NB-0.5);den+=a;});
+  }
+  return { head, headProjected, bodyLo: lo, bodyHi: hi, bodyLen: L, cut };
+}
+
 function headFrame(body, samples) {
   const bones = body.skeleton?.bones || [];
   const tailBone = ['Tail3', 'Tail2', 'Tail1'].map((n) => bones.findIndex((b) => b.name === n)).find((i) => i >= 0);
@@ -458,6 +807,121 @@ function headFrame(body, samples) {
     up.crossVectors(side, forward).normalize();
   }
 
+  /* REV 16: ROLL DISAMBIGUATION BY BILATERAL SYMMETRY.
+   *
+   * `lateralBalance` only catches an axis whose spread is ONE-SIDED. It cannot
+   * catch the failure that was holding thresher and tigershark, where `side`
+   * and `up` are swapped: both axes straddle the midline, so both score well,
+   * and the frame is rolled 90 degrees about the body. The head is then
+   * measured EDGE-ON. Projected head extents on the r15 frame:
+   *
+   *     bake            s (lateral)        u (dorsal)      bind halfW
+   *     greatwhite_cy   -0.129..+0.135     -0.120..+0.115     0.105  OK
+   *     thresher        -0.006..+0.006     -0.027..+0.049     0.070  SWAPPED
+   *     tigershark      -0.009..+0.009     -0.040..+0.047     0.070  SWAPPED
+   *
+   * thresher's "lateral" half-width of 0.006 against a real 0.070 is the
+   * entire seatConfidence failure: 0.0137 against the 0.10 bar. The eye was
+   * never seated because the frame believed the head was a blade.
+   *
+   * The cue that separates the two axes is SYMMETRY, not spread. A shark is
+   * mirror-symmetric across its lateral axis and emphatically not across its
+   * dorsal one - it has a dorsal fin on top and a flat belly underneath. So
+   * for each candidate axis, mirror the head cloud through the plane normal to
+   * it and measure how well the mirrored set matches the original. The lateral
+   * axis wins by a wide margin on every bake; there is no tuning here beyond
+   * "pick the larger score".
+   *
+   * Symmetry is scored on a coarse occupancy grid rather than by nearest
+   * neighbours: it is O(n) instead of O(n^2), and at this grid resolution the
+   * dorsal/lateral distinction is not close. */
+  let rollSwap = false;
+  {
+    const symmetryScore = (axis) => {
+      const other1 = new THREE.Vector3().crossVectors(forward, axis).normalize();
+      if (other1.lengthSq() < 1e-12) return -1;
+      const N = 12;
+      let aLo = Infinity, aHi = -Infinity, bLo = Infinity, bHi = -Infinity, cLo = Infinity, cHi = -Infinity;
+      const proj = [];
+      for (const p of samples.head) {
+        const d = new THREE.Vector3(p[0], p[1], p[2]).sub(headCentroid);
+        const a = d.dot(axis), b = d.dot(other1), c = d.dot(forward);
+        proj.push([a, b, c]);
+        if (a < aLo) aLo = a; if (a > aHi) aHi = a;
+        if (b < bLo) bLo = b; if (b > bHi) bHi = b;
+        if (c < cLo) cLo = c; if (c > cHi) cHi = c;
+      }
+      const aSpan = Math.max(aHi - aLo, 1e-9), bSpan = Math.max(bHi - bLo, 1e-9), cSpan = Math.max(cHi - cLo, 1e-9);
+      /* An axis the cloud has no extent along cannot be the lateral axis. */
+      if (aSpan < bSpan * 0.15) return -1;
+      const key = (ia, ib, ic) => (ia * N + ib) * N + ic;
+      const grid = new Set();
+      for (const [a, b, c] of proj) {
+        grid.add(key(
+          Math.min(N - 1, Math.max(0, Math.floor((a - aLo) / aSpan * N))),
+          Math.min(N - 1, Math.max(0, Math.floor((b - bLo) / bSpan * N))),
+          Math.min(N - 1, Math.max(0, Math.floor((c - cLo) / cSpan * N)))));
+      }
+      /* Mirror about the cloud's own median plane on this axis, which is where
+       * the plane of symmetry actually sits. */
+      const aMid = (aLo + aHi) * 0.5;
+      let hit = 0;
+      for (const [a, b, c] of proj) {
+        const am = 2 * aMid - a;
+        if (grid.has(key(
+          Math.min(N - 1, Math.max(0, Math.floor((am - aLo) / aSpan * N))),
+          Math.min(N - 1, Math.max(0, Math.floor((b - bLo) / bSpan * N))),
+          Math.min(N - 1, Math.max(0, Math.floor((c - cLo) / cSpan * N)))))) hit++;
+      }
+      return hit / Math.max(proj.length, 1);
+    };
+    /* PRIMARY CUE: ASPECT RATIO. A shark's head is always WIDER than it is
+     * tall - measured on the bind meshes, half-width 0.06-0.11 against slice
+     * heights that never reach the width until well behind the skull. So a
+     * frame reporting a head TALLER than it is wide is rolled, and by how much
+     * is not marginal:
+     *
+     *     bake            lateral span   dorsal span   ratio
+     *     greatwhite_cy      0.320          0.194        1.65  upright
+     *     whaler             0.144          0.157        0.92  upright
+     *     thresher           0.013          0.076        0.17  ROLLED
+     *     tigershark         0.021          0.106        0.20  ROLLED
+     *
+     * The rolled pair sit at 0.17-0.20 and the upright pair at 0.92-1.65, a
+     * gap of nearly 5x with nothing in it. Symmetry is kept only as the
+     * tiebreak for a head close enough to circular that the ratio cannot
+     * decide (nothing in the current four is), because on a near-circular
+     * cross-section the ratio is noise while symmetry still carries the fin.
+     *
+     * This replaced a symmetry-only test that got tigershark WRONG: its
+     * rolled frame scored 0.431 against 0.363 for the correct one, because
+     * mirroring a blade-thin cloud through its own long plane matches almost
+     * perfectly. Aspect ratio has no such degenerate case. */
+    const spanAlong = (axis) => {
+      let lo = Infinity, hi = -Infinity;
+      for (const p of samples.head) {
+        const v = (p[0] - headCentroid.x) * axis.x + (p[1] - headCentroid.y) * axis.y + (p[2] - headCentroid.z) * axis.z;
+        if (v < lo) lo = v; if (v > hi) hi = v;
+      }
+      return hi > lo ? hi - lo : 0;
+    };
+    const sideSpan = spanAlong(side), upSpan = spanAlong(up);
+    const ratio = sideSpan / Math.max(upSpan, 1e-9);
+    let rolled;
+    if (ratio < 0.55) rolled = true;            /* clearly taller than wide */
+    else if (ratio > 1.30) rolled = false;      /* clearly wider than tall  */
+    else rolled = symmetryScore(up) > symmetryScore(side) + 0.05;
+    /* The swap is RECORDED here and applied AFTER the world-space
+     * re-orthogonalization below, not now.
+     *
+     * Applying it here does nothing: that block recomputes
+     * `side = worldForward x worldUp`, so swapping the two vectors first has
+     * them reconstructed straight back to the pair we were trying to replace.
+     * The swap has to be the last word on the frame's roll, which is why it is
+     * deferred rather than done in place. */
+    rollSwap = rolled;
+  }
+
   /* The cross product gives a direction, but skinned space is NOT orthonormal
    * once the group's non-uniform scale is folded in (measured on reef:
    * body.matrixWorld scale 107.50, 107.50, 97.66). A unit step along `side`
@@ -483,6 +947,26 @@ function headFrame(body, samples) {
      * the space the shark is drawn in rather than only in skinned space. */
     const backUp = worldUpAxis.clone().applyMatrix3(worldToSkin);
     if (backUp.lengthSq() > 1e-12) up.copy(backUp.normalize());
+  }
+  /* APPLY THE MEASURED ROLL. See the aspect-ratio block above: on thresher and
+   * tigershark the frame arrives here rolled 90 degrees about the body, so the
+   * head is measured edge-on and no eye can be seated on it. Rotating the pair
+   * now - after the world-space orthogonalization has had its say - is what
+   * makes the swap stick. */
+  if (rollSwap) {
+    /* The lateral axis becomes the one the aspect-ratio test identified as
+     * wide; `up` is then REBUILT from the cross product rather than taken as
+     * the old lateral axis.
+     *
+     * Taking `up = -side` looked symmetric and was wrong: on these bakes the
+     * two axes are not interchangeable, because the frame was never a clean
+     * 90-degree roll of the right answer. Assigning the old lateral vector to
+     * `up` gave a head 0.086 wide and 0.018 tall - still a sheet, just lying
+     * down instead of standing up. Deriving `up` from forward x side restores
+     * a genuinely orthogonal frame around the corrected lateral axis, and the
+     * head then measures 0.086 x 0.076, which is a head. */
+    side = up.clone().normalize();
+    up = new THREE.Vector3().crossVectors(side, forward).normalize();
   }
   /* The ORIGIN must come from the bone too. The head vertex cloud is
    * one-sided, so its centroid is pushed off the skull's midline - measured on
@@ -1082,15 +1566,111 @@ const cache = new WeakMap();
 
 /* Measure a textured head and build the face geometry for it.
  * Exported separately from the mount so the gates can be run headlessly. */
-export function texturedFaceGeometry(body, def, profile = null) {
+export function texturedFaceGeometry(body, def, profile = null, lipPoses = null) {
   const samples = skinnedSamples(body);
   if (!samples) return null;
   /* Remember each sample's vertex index so the painted-eye probe can look up
    * that vertex's UV. */
   for (let i = 0; i < samples.all.length; i++) samples.all[i][4] = i;
 
-  const frame = headFrame(body, samples);
+  /* THE FRAME COMES FROM THE ORIENTATION CONTRACT FIRST.
+   *
+   * `headFrame()` derives the frame from bones and weight clouds and is wrong
+   * on the two bakes whose rigs are placed backwards. `contractFrame()` reads
+   * the frame the resolver already fixed. The derived frame is kept only as a
+   * fallback for a rig with no group to read. */
+  const contract = contractFrame(body, samples.all);
+  const frame = contract
+    ? Object.assign(contract, {
+        headCentroid: null, headCloudCentroid: null, tailCentroid: null,
+        upAxis: -1, upCorrelation: 1, frameSource: 'resolveOrientation contract (+X nose, +Y dorsal)',
+      })
+    : headFrame(body, samples);
   if (!frame) return null;
+  /* The head region is the forward 0.22 L in that frame - geometry only, no
+   * bone weights, so a backwards rig cannot move it. The centroid of that
+   * region is the frame's origin, which every fraction below is measured
+   * against. */
+  let contractRegion = null;
+  if (contract) {
+    /* project() measures relative to frame.headCentroid, so the frame needs a
+     * provisional origin before the region can be cut. The whole-body centroid
+     * is fine for that: the cut is on a RELATIVE fraction of the projected
+     * extent, so the origin cancels. The real origin is set from the region
+     * immediately after. */
+    frame.headCentroid = centroid(samples.all);
+    contractRegion = contractHeadRegion(samples, frame);
+    if (contractRegion.head.length >= 64) {
+      samples.head = contractRegion.head;
+      frame.headCentroid = centroid(contractRegion.head);
+      frame.headCloudCentroid = frame.headCentroid;
+    } else {
+      contractRegion = null;
+    }
+  }
+  if (!frame.headCentroid) frame.headCentroid = centroid(samples.head);
+
+  /* REV 16: CALIBRATED HEAD REGION.
+   *
+   * On a calibrated bake the head cloud is re-selected from the MESH, in the
+   * head frame, as the forward `headFrac` of the body - not from bone weights.
+   * This is the fix for the two bakes that were being held:
+   *
+   *   - `thresher` weights only 97 vertices to Head, and they form a sliver
+   *     0.0037 half-width against a 0.27 head span. Everything derived from it
+   *     (centroid, eye station, ray origin) was therefore noise, and the
+   *     lateral cast returned a full width of 0.0074 - which is what produced
+   *     seatConfidence 0.0137 and the hold.
+   *   - `tigershark` weights 608 vertices but they sit off the midline, so the
+   *     cast fired from outside the hull and reported 0.008.
+   *
+   * The mesh region has no such failure mode: it is every vertex within
+   * `headFrac` of the nose along the frame's own forward axis, which on all
+   * four bakes is a dense, symmetric, correctly-centred skull. Measured
+   * half-widths after the rebuild are 0.10 / 0.07 / 0.07 / 0.06 against head
+   * spans of 0.21-0.27, i.e. seatConfidence 0.25-0.33 on every bake.
+   *
+   * The jaw is likewise the ventral part of the forward `jawT`, in frame
+   * space, where "ventral" is the frame's own down direction rather than a
+   * world axis. */
+  const calibration = calibrationFor(def, profile);
+  let calHeadSource = null;
+
+  /* THE JAW REGION, ALSO FROM THE CONTRACT.
+   *
+   * The jaw cloud used to come from LowerJaw bone weights, and on `thresher`
+   * that bone reaches a maximum weight of 0.026 over the entire mesh - three
+   * vertices. rig_morph.js now repairs that weighting at template load (see
+   * its `ensureJawWeights`), but this module must not DEPEND on the repair
+   * having run: the jaw is a REGION of the head, and under the contract it is
+   * the ventral part of the forward half of the head, which needs no weights
+   * at all.
+   *
+   * `y` is dorsal by the contract, so "ventral" is simply low u. */
+  if (contractRegion) {
+    const hp = contractRegion.headProjected;
+    let uLo = Infinity, uHi = -Infinity, fLo = Infinity, fHi = -Infinity;
+    for (const q of hp) {
+      if (q.u < uLo) uLo = q.u; if (q.u > uHi) uHi = q.u;
+      if (q.f < fLo) fLo = q.f; if (q.f > fHi) fHi = q.f;
+    }
+    const uSpan = Math.max(uHi - uLo, 1e-9), fSpan = Math.max(fHi - fLo, 1e-9);
+    /* Lower 45% of head height, forward 55% of head length - the coordinator's
+     * mouth-line figures, and the same band rig_morph paints weights into. */
+    const mouthLine = uLo + uSpan * 0.45;
+    const jawBack = fHi - fSpan * 0.55;
+    const jaw = [];
+    for (let i = 0; i < hp.length; i++) {
+      if (hp[i].u <= mouthLine && hp[i].f >= jawBack) jaw.push(contractRegion.head[i]);
+    }
+    if (jaw.length >= 16) {
+      samples.jaw = jaw;
+      calHeadSource = 'orientation contract (+X nose): head 0.22 L, jaw ventral 45% x forward 55%';
+    } else {
+      calHeadSource = 'orientation contract (+X nose): head 0.22 L';
+    }
+  }
+
 
   const headProjected = project(samples.head, frame);
   const jawProjected = project(samples.jaw, frame);
@@ -1129,6 +1709,70 @@ export function texturedFaceGeometry(body, def, profile = null) {
   const painted = detectPaintedEye(body, frame, allProjected, headF, headU);
   if (painted) {
     eyeF = painted.f; eyeU = painted.u; eyeSource = 'painted diffuse';
+  }
+  /* THE EYE STATION, FROM THE CONTRACT REGION'S MEASURED PROFILE.
+   *
+   * Under the contract the nose is the +X end of the head region, so the
+   * station is simply `eyeT` of the head's own length back from it, and the
+   * height is `eyeHeight` of the local slice above its midline. Both come from
+   * BAKE_CALIBRATION; neither needs a cue that can be wrong, because the
+   * region they are measured in is fixed by the resolver.
+   *
+   * The station is then refined to the widest slice in a small window, which
+   * is the cheek - anatomically where a shark's eye sits, and the flattest
+   * part of the surface, which is what keeps the socket rim inside the
+   * silhouette. */
+  if (calibration && contractRegion) {
+    const hp = project(samples.head, frame);
+    let fLo = Infinity, fHi = -Infinity;
+    for (const q of hp) { if (q.f < fLo) fLo = q.f; if (q.f > fHi) fHi = q.f; }
+    const hSpan = Math.max(fHi - fLo, 1e-9);
+    const noseF = fHi;   /* +X is the nose, by the contract */
+    const sliceAt = (stationF) => {
+      const tolF = hSpan * 0.05;
+      let sLo = Infinity, sHi = -Infinity, uLo = Infinity, uHi = -Infinity, n = 0;
+      const us = [];
+      for (const q of hp) {
+        if (Math.abs(q.f - stationF) > tolF) continue;
+        if (q.s < sLo) sLo = q.s; if (q.s > sHi) sHi = q.s;
+        if (q.u < uLo) uLo = q.u; if (q.u > uHi) uHi = q.u;
+        us.push(q.u);
+        n++;
+      }
+      return n >= 8 ? { w: sHi - sLo, uLo, uHi, n, us } : null;
+    };
+    /* `eyeT` is a fraction of BODY length in the table; the head region is
+     * HEAD_X_FRACTION of the body, so this converts it into a head fraction. */
+    const intoHead = clamp(calibration.cal.eyeT / HEAD_X_FRACTION, 0.12, 0.70);
+    const nominal = noseF - hSpan * intoHead;
+    let bestF = nominal, bestW = -1;
+    for (let k = -5; k <= 5; k++) {
+      const f2 = nominal + hSpan * intoHead * 0.35 * (k / 5);
+      const sw = sliceAt(f2);
+      if (sw && sw.w > bestW) { bestW = sw.w; bestF = f2; }
+    }
+    eyeF = bestW > 0 ? bestF : nominal;
+    /* Never within a socket's reach of either end of the head. */
+    const margin = hSpan * 0.12;
+    eyeF = clamp(eyeF, fLo + margin, fHi - margin);
+    /* Dorsal height from the slice, with the FIN trimmed off.
+     *
+     * A slice through the head can include the leading edge of the dorsal fin
+     * on a bake whose fin starts early - on thresher the head region's dorsal
+     * extent is 0.34 against a length of 0.20, which is a fin, not a skull.
+     * Taking `uHi` raw then put the eye at u 0.063 on a skull topping out far
+     * below that, i.e. above the head in open water, and the batch rendered
+     * nothing. The 90th percentile of the slice is the skull's own crown; a
+     * fin is a thin sliver of the slice's vertices and cannot reach it. */
+    const sl = sliceAt(eyeF);
+    if (sl && sl.us && sl.us.length >= 8) {
+      const us = sl.us.slice().sort((a, b) => a - b);
+      const q = (t) => us[Math.min(us.length - 1, Math.max(0, Math.floor(us.length * t)))];
+      const uLo = q(0.05), uHi = q(0.90);
+      if (uHi > uLo) eyeU = (uLo + uHi) * 0.5 + (uHi - uLo) * calibration.cal.eyeHeight;
+    }
+
+    eyeSource = 'contract region + bake table (' + calibration.key + ')';
   }
   /* Nudge along the body by the row's tilt so a mean row's eye reads slightly
    * further forward, the same expression hook the Sharky path uses. */
@@ -1433,9 +2077,61 @@ export function texturedFaceGeometry(body, def, profile = null) {
   const hitDistances = hits.filter(Boolean).map((h) => h.distance);
   /* Half-width for SIZING is half the coherent full width when we have one,
    * which is a property of the head rather than of where the ray started. */
-  const localHalfWidth = (pair && pair.ok)
+  /* REV 16: ON A CALIBRATED BAKE, MEASURE THE SLICE INSTEAD OF CASTING.
+   *
+   * The ray cast is a good instrument on a watertight, densely-tessellated
+   * head and a poor one everywhere else: it fires from a single point, so a
+   * hole in the bake, a station past the snout, or an origin that lands
+   * outside the hull all produce a confidently wrong number rather than a
+   * miss. After the frame roll fix tigershark's cast still reported a half
+   * width of 0.023 against a slice that genuinely measures 0.070, because the
+   * origin sits in the gap between the palate and the tongue shell.
+   *
+   * With only four bakes the honest instrument is the one that matches the
+   * calibration: take the actual vertices near the eye station and read their
+   * lateral extent. That is a population statistic over hundreds of points
+   * rather than a single ray, so a hole cannot move it, and it is measured in
+   * the same frame the eye is authored in.
+   *
+   * The 5th/95th percentile is used rather than the raw min/max so a single
+   * stray vertex - these bakes have a few - cannot inflate the width. */
+  let localHalfWidth = (pair && pair.ok)
     ? pair.width * 0.5
     : (hitDistances.length ? Math.min(...hitDistances) : skinS);
+  let widthSource = (pair && pair.ok) ? 'two-sided ray cast' : 'band fallback';
+
+  /* THE HALF-WIDTH IS MEASURED AT THE EYE STATION, IN THE CONTRACT FRAME.
+   *
+   * The r16 first pass measured this on the BIND mesh, because the POSED head
+   * region was reporting a lateral extent of 0.013-0.015 on thresher and
+   * tigershark. That was never a property of the pose: it was the frame being
+   * rolled and reversed, so the "lateral" axis was reading the head edge-on.
+   * With the frame read from the resolver instead of derived, the posed head
+   * measures correctly and the bind-mesh detour is unnecessary.
+   *
+   * A percentile is used rather than min/max so a stray vertex cannot inflate
+   * the width, and the slice is taken over the head region, which the contract
+   * fixes independently of any bone weight. */
+  if (calibration && contractRegion) {
+    const hp = project(samples.head, frame);
+    const tolF = headSpan * 0.06;
+    const lateral = [];
+    for (const q of hp) {
+      if (Math.abs(q.f - eyeF) > tolF) continue;
+      lateral.push(q.s);
+    }
+    if (lateral.length >= 24) {
+      lateral.sort((a, b) => a - b);
+      const lo = lateral[Math.floor(lateral.length * 0.05)];
+      const hi = lateral[Math.min(lateral.length - 1, Math.floor(lateral.length * 0.95))];
+      const measuredHalf = (hi - lo) * 0.5;
+      if (measuredHalf > localHalfWidth) {
+        localHalfWidth = measuredHalf;
+        widthSource = 'contract-frame slice at eye station (' + calibration.key + ', n=' + lateral.length + ')';
+      }
+    }
+  }
+
 
   /* Radius: the aesthetic size, capped at 0.9 of the LOCAL half-width from the
    * cast. That cap is what stops the whitepointer family - a genuinely thin
@@ -1456,7 +2152,11 @@ export function texturedFaceGeometry(body, def, profile = null) {
    * MEASUREMENT, not a hardcoded id list, so a future re-bake that fixes the
    * geometry starts passing on its own with no code change. */
   const seatConfidence = localHalfWidth / Math.max(headSpan, 1e-9);
-  const seatable = seatConfidence >= 0.10;
+  /* A bake on the held list is unseatable BY DECISION, whatever it measures.
+   * Its overlay renders buried on the current seating, and shipping an
+   * invisible-or-misplaced face is worse than shipping the bake's painted one. */
+  const bakeHeld = !!(calibration && BAKE_OVERLAY_HELD.has(calibration.key));
+  const seatable = seatConfidence >= 0.10 && !bakeHeld;
 
   /* Rev 15 lane GRIN: the eye is sized to the BRIEF's 0.10-0.14 of head
    * length, then capped by the flank it has to sit on.
@@ -1493,6 +2193,12 @@ export function texturedFaceGeometry(body, def, profile = null) {
   const eyeRadius = Math.min(eyeRadiusWanted, localHalfWidth * 0.55);
   /* Socket is 1.34x the ball: enough rim to read as a socket at 380 px
    * without the disc spilling off the cheek. */
+  /* The socket is the widest thing the batch draws, so it is what decides
+   * containment. 0.92 of the local half-width is fine on a flat cheek and too
+   * much on a round one: the rim is seated against the half-width but has to
+   * stay inside a surface that is already curving away at that lateral
+   * offset. On a calibrated bake the width is known accurately enough to hold
+   * a tighter cap, which is what buys the containment margin back. */
   const socketRadius = Math.min(eyeRadius * 1.34, localHalfWidth * 0.92);
 
   /* Seat depths are now per-side offsets FROM THE HIT rather than absolute
@@ -1519,7 +2225,17 @@ export function texturedFaceGeometry(body, def, profile = null) {
         outward
       };
     }
-    return { skin: skinS, centre: skinS - eyeCentreInset, outward: side };
+    /* CAST MISS: fall back to the MEASURED half-width, not to `skinS`.
+     *
+     * `skinS` is the old head-band estimate and on a bake whose cast misses it
+     * is far too small: measured on thresher it seated the eye at z +-5.3 on a
+     * head reaching +-25.9, i.e. buried a fifth of the way out, so the batch
+     * rendered entirely inside the skin and the face/noface pair came back
+     * bit-identical. `localHalfWidth` is the percentile slice measured at the
+     * eye station in the contract frame, which is the surface the eye actually
+     * has to sit on. */
+    const fallbackSkin = Math.max(localHalfWidth, skinS);
+    return { skin: fallbackSkin, centre: fallbackSkin - eyeCentreInset, outward: side };
   };
   const seats = { '-1': seatSide(-1), '1': seatSide(1) };
   /* Kept for the metrics block and the socket-depth gate, which are expressed
@@ -1779,7 +2495,31 @@ export function texturedFaceGeometry(body, def, profile = null) {
      * it and the lower row rises from just below it. The teeth still RIDE the
      * LowerJaw bone (set by builder.setWeights below), so the grin still opens
      * with the bite - only the surface they are MEASURED against changes. */
-    const mouthU = upper.uMin + upper.uSpan * 0.16;
+    /* REV 16: THE LIP STATION IS THE ONE CONTAINED AT BOTH GAPES.
+     *
+     * `upper.uMin + span*0.16` is the lip with the jaw where it is right now.
+     * The upper row hangs from it and the lower row rises from just under it,
+     * and the lower row RIDES LowerJaw - so as the jaw swings, the lower row
+     * sweeps through an arc while the upper row stays put. Fitting at one pose
+     * therefore guarantees nothing at the other, which is the specific risk
+     * RF_GRIN_MOUTH_HOLD was held against.
+     *
+     * With both poses measured, the station is placed at the SHALLOWER of the
+     * two lips - the one that is inside the head at both gapes - so the rows
+     * can never cross the lip line at either end of the travel. When only one
+     * pose is available (no jaw authority on this rig) the behaviour is
+     * exactly what it was. */
+    let mouthU = upper.uMin + upper.uSpan * 0.16;
+    if (lipPoses) {
+      /* Both lips expressed as a fraction of the head's dorsal extent, so the
+       * two poses are comparable even though the head box moves between them. */
+      const lipOf = (pose) => pose.headU.lo + pose.headU.span * 0.16;
+      const a = lipOf(lipPoses.shut), b = lipOf(lipPoses.open);
+      /* Higher u is further from the chin, i.e. further INSIDE the head. */
+      const safe = Math.max(a, b);
+      const asFraction = (safe - lipPoses.shut.headU.lo) / Math.max(lipPoses.shut.headU.span, 1e-9);
+      mouthU = upper.uMin + upper.uSpan * clamp(asFraction, 0.10, 0.34);
+    }
     const lipU = mouthU;
     const jawU = mouthU - upper.uSpan * 0.04;
     /* Rev 15: the lateral seat is measured, never padded UP.
@@ -1940,6 +2680,21 @@ export function texturedFaceGeometry(body, def, profile = null) {
    * anyway, which is how the evidence renders for a held row are produced. */
   const forceUnseatable = typeof process !== 'undefined'
     && process.env && process.env.RF_FACE_FORCE === '1';
+  /* SEATING TELEMETRY. Published for every row, seatable or not, so a gate or
+   * probe can read WHY a bake was held rather than having to re-derive it.
+   * Costs one object per build and is what the r16 calibration was diagnosed
+   * with; leaving it in place keeps the next bake change cheap to diagnose. */
+  if (typeof globalThis !== 'undefined') {
+    (globalThis.__RF_SEATDIAG = globalThis.__RF_SEATDIAG || []).push({
+      bake: calibration ? calibration.key : null,
+      seatConfidence: +seatConfidence.toFixed(4), seatable, bakeHeld,
+      headSpan: +headSpan.toFixed(4), localHalfWidth: +localHalfWidth.toFixed(4),
+      widthSource, eyeSource, originSource,
+      eyeF: +eyeF.toFixed(4), eyeU: +eyeU.toFixed(4),
+      headCount: samples.head.length, jawCount: samples.jaw.length,
+      headSource: calHeadSource || samples.headSource,
+    });
+  }
   if (!seatable && !forceUnseatable) return null;
 
   const built = builder.geometry();
@@ -2091,6 +2846,13 @@ export function texturedFaceGeometry(body, def, profile = null) {
       castTriangles: surface ? surface.count : 0,
       headScale,
       eyeRadius,
+      /* The brief states the eye as 0.10-0.14 of head LENGTH across the whole
+       * eye, so this is the number that band is actually about - the radius
+       * alone is half of it and has been misread as the diameter before. */
+      eyeDiameterOverHead: (eyeRadius * 2) / Math.max(headSpan, 1e-9),
+      /* Which rows are allowed a coloured iris. Real species get a near-black
+       * shark eye; only the explicitly mythological classes keep a hue. */
+      irisMythic: def?.cls === 'god' || def?.cls === 'demon',
       socketRadius,
       socketDepth,
       socketDepthRatio: socketDepth / Math.max(socketRadius, 1e-9),
@@ -2207,9 +2969,57 @@ export function buildTexturedFace(rig, skinnedMesh, def, profile = null) {
     /* A gape failure must never take down a row that otherwise renders. */
   }
 
+  /* REV 16: TWO-POSE LIP CALIBRATION.
+   *
+   * The tooth rows and the cavity are authored ONCE but skinned to a bone that
+   * moves, so a mouth fitted at one gape can break the lip line at another.
+   * That is the risk RF_GRIN_MOUTH_HOLD was holding against, and a single-pose
+   * fit cannot answer it - which is why the measurement is taken twice.
+   *
+   * The lip line is sampled with the jaw SHUT (gape 0) and at a working bite
+   * (gape 0.35), and both are handed to the geometry builder so it can place
+   * the rows where they are contained across the range rather than at one
+   * pose. Sampling is done through `writeJawGape`, the same single authority
+   * the runtime uses, so the poses measured here are the poses that render.
+   *
+   * The bone is left at the AUTHORING pose afterwards; the caller below
+   * restores it to closed once the batch is built. */
+  let lipPoses = null;
+  try {
+    /* Only worth paying for when the teeth are actually emitted: each pose is a
+     * full skinnedSamples + headFrame pass, and under the hold the station it
+     * computes changes nothing that gets drawn. */
+    let rigRoot = RF_GRIN_MOUTH_HOLD ? null : body;
+    while (rigRoot && !rigRoot.userData?.rfJawAuthority) rigRoot = rigRoot.parent;
+    if (rigRoot?.userData?.rfJawAuthority) {
+      const samplePose = (g) => {
+        writeJawGape(rigRoot, g);
+        rigRoot.updateMatrixWorld(true);
+        body.skeleton?.update();
+        const sm = skinnedSamples(body);
+        if (!sm) return null;
+        const fr = headFrame(body, sm);
+        if (!fr) return null;
+        const hp = project(sm.head, fr), jp = project(sm.jaw, fr);
+        const hf = extent(hp, 'f'), hu = extent(hp, 'u'), jf = extent(jp, 'f');
+        return { gape: g, headF: hf, headU: hu, jawF: jf };
+      };
+      const shut = samplePose(0), open = samplePose(0.35);
+      if (shut && open) lipPoses = { shut, open };
+      /* Back to the authoring pose the rest of the build expects. */
+      const pg2 = profile?.face?.gape ?? profile?.personality?.face?.gape ?? 0;
+      const rest = Math.min(Math.max(0 + (Number.isFinite(pg2) ? pg2 : 0), 0.20), 0.35) * 0.72;
+      writeJawGape(rigRoot, Math.min(Math.max(rest, 0), 1));
+      rigRoot.updateMatrixWorld(true);
+      body.skeleton?.update();
+    }
+  } catch (error) {
+    /* Calibration is an improvement, never a precondition. */
+  }
+
   let built = null;
   try {
-    built = texturedFaceGeometry(body, def, profile);
+    built = texturedFaceGeometry(body, def, profile, lipPoses);
   } catch (error) {
     /* A bake this module cannot measure must not take the row down with it:
      * the shark still renders with the face the bake painted. */

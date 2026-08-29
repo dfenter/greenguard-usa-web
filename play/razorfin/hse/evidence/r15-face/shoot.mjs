@@ -108,6 +108,62 @@ for (const id of IDS) {
   await page.goto(`http://127.0.0.1:${port}/play/razorfin/hse/headview.html?id=${id}`, { waitUntil: 'load' });
   await new Promise((r) => setTimeout(r, 6000));
   const o2 = await page.evaluate(() => globalThis.__O2 || null);
+  if (process.env.WEIGHTS === '1') {
+    const w = await page.evaluate(() => {
+      const g = globalThis.__RF_RIG; if (!g) return 'no rig';
+      let body = null;
+      g.traverse(o => { if (o.isSkinnedMesh && !o.userData.rfTexturedFace && !body) body = o; });
+      if (!body) return 'no body';
+      const sw = body.geometry.getAttribute('skinWeight');
+      const si = body.geometry.getAttribute('skinIndex');
+      const nb = body.skeleton.bones.length;
+      let worst = 0, bad = 0, oob = 0, neg = 0;
+      for (let i = 0; i < sw.count; i++) {
+        let t = 0;
+        for (let k = 0; k < 4; k++) {
+          const v = sw.getComponent(i, k);
+          if (v < 0) neg++;
+          t += v;
+          const b = si.getComponent(i, k);
+          if (!(b >= 0 && b < nb)) oob++;
+        }
+        const err = Math.abs(t - 1);
+        if (err > worst) worst = err;
+        if (err > 1e-3) bad++;
+      }
+      return { verts: sw.count, worstSumErr: +worst.toFixed(6), notNormalized: bad, negatives: neg, boneOOB: oob };
+    });
+    console.log('   W', id, JSON.stringify(w));
+  }
+  if (process.env.JAWDIAG === '1') {
+    const j = await page.evaluate(() => {
+      const g = globalThis.__RF_RIG; if (!g) return 'no rig';
+      let rec = null, auth = null;
+      g.traverse(o => { if (o.userData?.rfL2MorphRecord && !rec) rec = o.userData.rfL2MorphRecord;
+                        if (o.userData?.rfJawAuthority && !auth) auth = o.userData.rfJawAuthority; });
+      return { repair: rec ? rec.jawRepair : null,
+               gape: rec && rec.gape ? { applied: rec.gape.applied, reason: rec.gape.reason,
+                                         travel: rec.gape.travel, sign: rec.gape.sign } : null,
+               authority: auth ? { bone: auth.boneName, openDeg: auth.openDeg } : null };
+    });
+    console.log('   JAW', id, JSON.stringify(j));
+  }
+  if (process.env.METRICS === '1') {
+    const m = await page.evaluate(() => {
+      const g = globalThis.__RF_RIG; if (!g) return null;
+      let f = null; g.traverse(o => { if (o.userData && o.userData.rfFaceMetrics) f = o; });
+      return f ? f.userData.rfFaceMetrics : null;
+    });
+    console.log('   MET', id, m ? JSON.stringify({
+      eyeD: +Number(m.eyeDiameterOverHead).toFixed(4),
+      mythic: m.irisMythic, held: m.mouthHeld,
+      conf: +Number(m.seatConfidence).toFixed(3),
+    }) : 'none');
+  }
+  if (process.env.SEATDIAG === '1') {
+    const d = await page.evaluate(() => globalThis.__RF_SEATDIAG || null);
+    console.log('   DIAG', id, JSON.stringify(d));
+  }
   if (process.env.SEAT === '1') {
     const seat = await page.evaluate(() => {
       const THREE = window.__RF_THREE; if (!THREE) return 'no THREE';

@@ -1187,6 +1187,9 @@ function mergePrimitiveSiblings(scene, key) {
  * work, no per-model special cases in the control flow.
  * ------------------------------------------------------------------------- */
 const SPIKE_DEGENERATE = 0.08;
+/* Minimum |girth centroid| for the mesh cue to outrank the rig. Measured
+ * band on the real assets is empty between -0.24 and +0.18. */
+const NOSE_CENTROID_MIN = 0.12;
 const orientationCache = new Map();
 
 /* Every hull vertex in the scene's CURRENT world frame, plus its box. */
@@ -1283,6 +1286,81 @@ function orientGirthBias(points, box, size) {
   }
   lo = loN ? lo / loN : 0; hi = hiN ? hi / hiN : 0;
   return hi - lo;
+}
+/* WHICH END IS THE HEAD - the GIRTH CENTROID.
+ *
+ * This replaces BOTH the Head/Tail bone test and the solidity test as the
+ * authority on the nose sign, because both were measured wrong on the
+ * shipped bakes and the error is visible in the rendered pixels.
+ *
+ * Why the BONES cannot be trusted here.  Every `shark_bake.py` rig carries
+ * the SAME generic skeleton - Tail3..Neck,Head,LowerJaw with Head pinned at
+ * x=+0.3 and Tail3 at x=-0.5 - regardless of which way the mesh it is bound
+ * to actually faces.  Measured across the approved bakes, the bone record is
+ * byte-identical:
+ *
+ *     greatwhite_cy  head +0.3  tail -0.5   renders CORRECTLY
+ *     whaler         head +0.3  tail -0.5   renders CORRECTLY
+ *     thresher       head +0.3  tail -0.5   renders TAIL-FIRST
+ *     tigershark     head +0.3  tail -0.5   renders TAIL-FIRST
+ *     whitepointer   head +0.3  tail -0.5   renders TAIL-FIRST
+ *
+ * A cue that returns the same answer for a correct model and a reversed one
+ * carries no information, and that is exactly why the skeleton-based gate
+ * scored 86/86 on a build the owner could see was wrong.  The skin weights
+ * agree with the bones (Head-weighted verts at +x on all five), so the whole
+ * rig - bones and binding together - is simply placed the wrong way round on
+ * three of these bakes.  Only the MESH knows which end is the head.
+ *
+ * The cue that does know.  A shark's cross-section peaks at the pectoral
+ * girdle, just BEHIND the skull, and then tapers monotonically to a thin
+ * caudal peduncle.  So the area-weighted centroid of the cross-section
+ * profile always lies on the HEAD side of the body's midpoint.  Binning the
+ * long axis into ten and taking height*depth per bin:
+ *
+ *     thresher      centroid -0.374   (head at -x)
+ *     tigershark    centroid -0.303   (head at -x)
+ *     whitepointer  centroid -0.243   (head at -x)
+ *     sharky        centroid +0.259   (head at +x)   <- Rev 9 reference
+ *     whaler        centroid +0.294   (head at +x)
+ *     greatwhite_cy centroid +0.338   (head at +x)
+ *
+ * Verified by EYE against a fixed side-on render of every one of these bakes
+ * in its resolved frame (hse/evidence/r15-orient2/bakes/): the sign of the
+ * centroid matches which end carries the snout, eye and teeth on all of them.
+ * The margin is ~0.55 wide with nothing inside it, not a coin toss.
+ *
+ * Note this is NOT the old `orientGirthBias` solidity test, which is kept
+ * below only as a tiebreak.  Solidity (depth/height per bin) is won by the
+ * pectoral fins on these bakes and named the wrong end on thresher and
+ * tigershark.  Extent-based girth is won by the caudal lobes.  The CENTROID
+ * of the profile is robust to both, because a fin perturbs one bin while the
+ * centroid integrates all ten. */
+function orientGirthCentroid(points, box, size) {
+  const BINS = 10;
+  const loY = new Float64Array(BINS).fill(Infinity), hiY = new Float64Array(BINS).fill(-Infinity);
+  const loZ = new Float64Array(BINS).fill(Infinity), hiZ = new Float64Array(BINS).fill(-Infinity);
+  const count = new Float64Array(BINS);
+  for (const p of points) {
+    let bi = Math.floor((p.x - box.min.x) / (size.x || 1) * BINS);
+    bi = Math.max(0, Math.min(BINS - 1, bi));
+    count[bi]++;
+    if (p.y < loY[bi]) loY[bi] = p.y; if (p.y > hiY[bi]) hiY[bi] = p.y;
+    if (p.z < loZ[bi]) loZ[bi] = p.z; if (p.z > hiZ[bi]) hiZ[bi] = p.z;
+  }
+  let peak = 0; const prof = new Float64Array(BINS);
+  for (let i = 0; i < BINS; i++) {
+    prof[i] = count[i] ? (hiY[i] - loY[i]) * (hiZ[i] - loZ[i]) : 0;
+    if (prof[i] > peak) peak = prof[i];
+  }
+  if (peak <= 0) return 0;
+  let wsum = 0, w = 0;
+  for (let i = 0; i < BINS; i++) {
+    const v = prof[i] / peak;
+    wsum += v * ((i + 0.5) / BINS * 2 - 1);
+    w += v;
+  }
+  return w > 1e-9 ? wsum / w : 0;
 }
 /* LATERAL AXIS, from the PECTORAL PAIR.
  *
@@ -1424,14 +1502,35 @@ function resolveOrientation(scene, meshes, key) {
   const tailBone = scene.getObjectByName('Tail3') || scene.getObjectByName('Tail2') || scene.getObjectByName('Tail1');
   const total = new THREE.Quaternion().copy(rollQuat).multiply(longQuat);
   let flip = false, noseSource = '', girthBias = 0;
+  /* THE MESH DECIDES, NOT THE RIG.
+   *
+   * The Head/Tail bone test used to run first and win.  It must not: the
+   * baked rigs all carry the same generic skeleton whichever way their mesh
+   * faces, so on thresher, tigershark and whitepointer it confidently named
+   * the tail as the head and shipped them swimming backwards - while the
+   * skeleton-based gate scored them 86/86, because the gate was reading the
+   * same broken cue as the resolver.  The girth centroid is measured on the
+   * MESH, so it is the only cue that can disagree with a mis-placed rig. */
+  const girthCentroid = orientGirthCentroid(rolled, rBox, rSize);
+  let boneFlip = null;
   if (headBone && tailBone) {
     const head = new THREE.Vector3().setFromMatrixPosition(headBone.matrixWorld).applyQuaternion(total);
     const tail = new THREE.Vector3().setFromMatrixPosition(tailBone.matrixWorld).applyQuaternion(total);
-    if (Math.abs(head.x - tail.x) > 1e-6) { flip = head.x < tail.x; noseSource = 'head/tail bones'; }
+    if (Math.abs(head.x - tail.x) > 1e-6) boneFlip = head.x < tail.x;
   }
-  if (!noseSource) {
+  /* A confident centroid (|c| >= 0.12) is authoritative.  Measured spread on
+   * the real assets is -0.37..-0.24 for reversed and +0.18..+0.43 for
+   * correct, so the band is empty in practice and the threshold only guards
+   * a genuinely shapeless mesh. */
+  if (Math.abs(girthCentroid) >= NOSE_CENTROID_MIN) {
+    flip = girthCentroid < 0;
+    noseSource = 'girth centroid';
+    if (boneFlip !== null && boneFlip !== flip) noseSource += ' (overrode head/tail bones)';
+  } else if (boneFlip !== null) {
+    flip = boneFlip; noseSource = 'head/tail bones (centroid inconclusive)';
+  } else {
     girthBias = orientGirthBias(rolled, rBox, rSize);
-    flip = girthBias < 0; noseSource = 'girth profile';
+    flip = girthBias < 0; noseSource = 'solidity (no bones, centroid inconclusive)';
   }
   /* The nose flip is a 180 spin about the DORSAL axis (world +y after the
    * roll), never about local y and never about z: spinning about anything
@@ -1443,6 +1542,7 @@ function resolveOrientation(scene, meshes, key) {
     key: cacheKey, axis: longAxis, dorsalAxis: dorsal.axis, dorsalSign: dorsal.sign, dorsalSource,
     dorsalCrossCheck, lateralAxis: lateral ? lateral.axis : null,
     roll, flip, noseSource, girthBias: +girthBias.toFixed(4),
+    girthCentroid: +girthCentroid.toFixed(4),
     spikeY: +spikeY.toFixed(4), spikeZ: +spikeZ.toFixed(4), skewY: +skewY.toFixed(4), skewZ: +skewZ.toFixed(4),
     quaternion
   };
@@ -4070,7 +4170,7 @@ function __selftest() {
      * render - bullshark is an untextured grey creature and realisticshark is
      * a degenerate mesh - so the expectations move with the validated map
      * rather than pinning rows to assets the build no longer ships. */
-    const HSE_FAMILY_EXPECT = { reef: 'dogfish', hammerhead: 'smoothhammer', greatwhite: 'greatwhite_cy', tiger: 'tiger_nu' };
+    const HSE_FAMILY_EXPECT = { reef: 'thresher', hammerhead: 'whaler', greatwhite: 'greatwhite_cy', tiger: 'tigershark' }; /* Rev 16: four approved bakes only */
     /* mako/bull/megalodon/whaleshark/thresher are intentionally NOT pinned
      * here yet: they are among the 31 rows currently HELD on the low-poly rig
      * by the rig_morph length-delta gate (hse/REQUESTS.md). Re-pin them in the

@@ -1,0 +1,22 @@
+{
+  "thresher_right": {
+    "id": "reef",
+    "model": "thresher",
+    "kind": "predator",
+    "dir": "right",
+    "angle": 0.5857241269371997,
+    "vx": 70.90954718894841,
+    "vy": 47.04001226620742,
+    "headDot": -1
+  },
+  "thresher_left": {
+    "id": "reef",
+    "model": "thresher",
+    "kind": "predator",
+    "dir": "left",
+    "angle": 1.5967418054469986,
+    "vx": -1.2407828907122695,
+    "vy": 47.81197049634573,
+    "headDot": -0.999
+  }
+}

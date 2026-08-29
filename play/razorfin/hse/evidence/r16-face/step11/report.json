@@ -1,0 +1,38 @@
+[
+  {
+    "id": "thresher",
+    "textured": true,
+    "base": "thresher",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "metrics": null,
+    "errors": []
+  },
+  {
+    "id": "tiger",
+    "textured": true,
+    "base": "tigershark",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "metrics": null,
+    "errors": []
+  },
+  {
+    "id": "greatwhite",
+    "textured": true,
+    "base": "greatwhite_cy",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "metrics": null,
+    "errors": []
+  },
+  {
+    "id": "hammerhead",
+    "textured": true,
+    "base": "whaler",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "metrics": null,
+    "errors": []
+  }
+]

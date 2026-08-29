@@ -86,189 +86,189 @@ SHARKS = [
  ("blunt",1.40,0.44,1.00,0.95,0xb56576,0xf2d7dd,0x7d4150,0xff9eb0,"coral","crown"),None,
  "Wears a living reef and heals like one."),
 ("vex","Vex",8,2,34000,(412,840,5.2,9,480,3.0,3.0),["pressureImmune","freeTurn"],"phase",
- ("void",1.30,0.36,1.30,1.10,0x3d2f5c,0xc8bce8,0x261d3d,0xa07fff,"plain","alien"),None,
+ ("void",1.30,0.423,1.30,1.10,0x3d2f5c,0xc8bce8,0x261d3d,0xa07fff,"plain","alien"),None,
  "It does not swim the way water expects. Water has complained."),
 ("abyssmaw","Abyss Maw",8,2,35000,(350,672,2.7,10,540,2.8,2.6),["pressureImmune","dreadAura"],"toxin",
- ("angler",1.60,0.50,0.85,1.00,0x1d2333,0x7a84a0,0x10141f,0x4f5f8f,"plain","abyssGlow"),None,
+ ("angler",1.60,0.65,0.85,1.00,0x1d2333,0x7a84a0,0x10141f,0x4f5f8f,"plain","abyssGlow"),None,
  "The deep sent something back up. It is still hungry."),
 ("riftjaw","Riftjaw",8,2,36000,(400,792,3.0,9,470,3.0,2.9),["lungeMega","blink"],"phase",
- ("point",1.40,0.38,1.10,1.05,0x2f4f5c,0xbcd8e0,0x1c333d,0x6fe8e0,"plain","rift"),None,
+ ("point",1.40,0.675,1.10,1.05,0x2f4f5c,0xbcd8e0,0x1c333d,0x6fe8e0,"plain","rift"),None,
  "Its lunge skips the part of space in between."),
 ("venomspine","Venomspine",8,2,34000,(375,720,3.1,8,450,2.9,2.8),["spines","toxinWake"],"toxin",
- ("point",1.38,0.36,1.05,1.05,0x3f5c33,0xcfe0c4,0x27401e,0x9bff6f,"spikes","venomDrip"),None,
+ ("point",1.38,0.2,1.05,1.05,0x3f5c33,0xcfe0c4,0x27401e,0x9bff6f,"spikes","venomDrip"),None,
  "Leaves a trail nothing sane swims through."),
 ("howler","Howler",8,2,34000,(388,744,3.0,8,460,3.0,2.8),["dreadAura"],"sonic",
- ("blunt",1.42,0.40,1.10,1.10,0x5c4a6b,0xd8cce0,0x3a2d45,0xc9a0ff,"plain","soundRings"),None,
+ ("blunt",1.42,0.59,1.10,1.10,0x5c4a6b,0xd8cce0,0x3a2d45,0xc9a0ff,"plain","soundRings"),None,
  "You hear it twice. Once now, once when it is far too late."),
 ("magmaw","Magmaw",8,2,36000,(375,720,2.8,9,500,3.0,2.7),["fireWake","fireImmune"],"pyro",
- ("rock",1.45,0.46,1.00,1.00,0x4a2f26,0xe0b89f,0x2e1b14,0xff6a29,"cracks","lavaVeins"),None,
+ ("rock",1.45,0.6,1.00,1.00,0x4a2f26,0xe0b89f,0x2e1b14,0xff6a29,"cracks","lavaVeins"),None,
  "Runs hot. The water around it never quite forgives."),
 ("frostjaw","Frostjaw",8,2,36000,(362,696,2.8,9,500,2.6,2.7),["freezeTouch"],"freeze",
- ("blunt",1.45,0.44,1.05,1.00,0x3d6b8f,0xe0f0fa,0x264a66,0x9fdcff,"plain","frost"),None,
+ ("blunt",1.45,0.385,1.05,1.00,0x3d6b8f,0xe0f0fa,0x264a66,0x9fdcff,"plain","frost"),None,
  "Everything it brushes slows, then stops, then shatters."),
 ("stormfin","Stormfin",8,2,35000,(412,816,3.2,8,460,3.0,3.0),["shockTouch"],"volt",
- ("point",1.40,0.34,1.25,1.15,0x33415c,0xcdd8ec,0x1f2a40,0xbfe0ff,"plain","arcs"),None,
+ ("point",1.40,0.509,1.25,1.15,0x33415c,0xcdd8ec,0x1f2a40,0xbfe0ff,"plain","arcs"),None,
  "A thunderhead with fins. Do not touch. It wants you to touch."),
 ("gloomtide","Gloomtide",8,2,34000,(362,696,2.9,8,470,2.8,2.7),["coinMagnet","drain"],"vortex",
- ("eel",1.70,0.30,0.85,1.20,0x2d3340,0x9aa3b5,0x1a1f29,0x6f7fa0,"plain","gloom"),None,
+ ("eel",1.70,0.18,0.85,1.20,0x2d3340,0x9aa3b5,0x1a1f29,0x6f7fa0,"plain","gloom"),None,
  "Everything of value drifts toward it. So does everything else."),
 ("wreckfang","Wreckfang",8,2,36000,(350,672,2.7,9,540,2.9,2.5),["junkEater","armored","mineHeal"],"quake",
- ("mech",1.50,0.48,0.95,0.95,0x5a5f66,0xc9cdd4,0x393d43,0xffb84a,"rivets","sparks"),None,
+ ("mech",1.50,0.235,0.95,0.95,0x5a5f66,0xc9cdd4,0x393d43,0xffb84a,"rivets","sparks"),None,
  "Eats shipwrecks for the iron. Mines are a delicacy."),
 # --- Act 3: super / legendary (25), tiers 9-12 ---
 ("ironfin","Ironfin",9,3,50000,(400,768,2.9,10,620,2.9,3.0),["armored","coinMagnet"],"volt",
- ("mech",1.55,0.44,1.15,1.05,0x6a7078,0xd4d9df,0x43484f,0x66d9ff,"panels","thrusters"),None,
+ ("mech",1.55,0.348,1.15,1.05,0x6a7078,0xd4d9df,0x43484f,0x66d9ff,"panels","thrusters"),None,
  "Somebody built a shark. Somebody should apologize."),
 ("cindermaw","Cindermaw",9,3,52000,(412,792,2.9,10,580,3.0,3.1),["fireWake","fireImmune"],"pyro",
- ("point",1.55,0.42,1.15,1.10,0x59261c,0xf0c2a0,0x38160f,0xff8a3d,"cracks","emberTrail"),None,
+ ("point",1.55,0.572,1.15,1.10,0x59261c,0xf0c2a0,0x38160f,0xff8a3d,"cracks","emberTrail"),None,
  "The sea boils politely out of its way."),
 ("glacier","Glacier",9,3,52000,(362,672,2.6,10,680,2.5,2.7),["armored","freezeTouch"],"freeze",
- ("blunt",1.65,0.50,1.05,0.95,0x6fa3c4,0xf0f8fd,0x4a7a99,0xc4ecff,"facets","iceShards"),None,
+ ("blunt",1.65,0.272,1.05,0.95,0x6fa3c4,0xf0f8fd,0x4a7a99,0xc4ecff,"facets","iceShards"),None,
  "A drifting ice age with teeth."),
 ("gravewater","Gravewater",9,3,52000,(375,696,2.8,9,560,2.7,2.8),["undying","toxinEater"],"toxin",
- ("skull",1.50,0.42,1.00,1.00,0x3d4a3a,0xb9c4b4,0x252e23,0x8fd67f,"rot","wisps"),None,
+ ("skull",1.50,0.525,1.00,1.00,0x3d4a3a,0xb9c4b4,0x252e23,0x8fd67f,"rot","wisps"),None,
  "Already died once. Found the experience overrated."),
 ("teslafang","Teslafang",9,3,52000,(425,840,3.1,9,540,3.0,3.2),["comboSpeed"],"volt",
- ("point",1.48,0.36,1.25,1.20,0x2e3a5c,0xd0dcf4,0x1b2438,0xe8f4ff,"plain","dynamo"),None,
+ ("point",1.48,0.402,1.25,1.20,0x2e3a5c,0xd0dcf4,0x1b2438,0xe8f4ff,"plain","dynamo"),None,
  "The longer it feeds, the faster it gets. It is always feeding."),
 ("plaguemaw","Plaguemaw",9,3,50000,(375,720,2.9,9,560,2.8,2.8),["infect"],"toxin",
- ("blunt",1.52,0.44,1.05,1.00,0x4a5233,0xc9cfb0,0x2e331f,0xbfd45a,"boils","spores"),None,
+ ("blunt",1.52,0.535,1.05,1.00,0x4a5233,0xc9cfb0,0x2e331f,0xbfd45a,"boils","spores"),None,
  "One bite becomes ten. Its meals do the spreading."),
 ("sunspine","Sunspine",9,3,52000,(400,768,3.0,9,550,2.9,3.0),["surfacePower","fireWake"],"pyro",
- ("point",1.50,0.38,1.20,1.10,0x8f5c1f,0xffe8b0,0x5c3a10,0xffd45a,"rays","corona"),None,
+ ("point",1.50,0.477,1.20,1.10,0x8f5c1f,0xffe8b0,0x5c3a10,0xffd45a,"rays","corona"),None,
  "Solar powered and fully charged by breakfast."),
 ("nocturne","Nocturne",9,3,52000,(400,768,3.0,9,550,2.7,3.0),["depthPower","dreadAura"],"phase",
- ("point",1.50,0.38,1.20,1.10,0x1f2340,0x8a90b8,0x12142a,0x7f8fff,"stars","moonlit"),None,
+ ("point",1.50,0.22,1.20,1.10,0x1f2340,0x8a90b8,0x12142a,0x7f8fff,"stars","moonlit"),None,
  "Stronger the deeper it goes. It goes very deep."),
 ("tempest","Tempest",9,3,52000,(438,864,3.2,9,530,3.0,3.3),["lunge"],"sonic",
- ("point",1.52,0.36,1.35,1.25,0x3a5c6b,0xd4e8f0,0x24404c,0xa0e8ff,"plain","stormcap"),None,
+ ("point",1.52,0.445,1.35,1.25,0x3a5c6b,0xd4e8f0,0x24404c,0xa0e8ff,"plain","stormcap"),None,
  "Arrives like weather. Leaves like a warning."),
 ("maelstrom","Maelstrom",9,3,52000,(362,672,2.7,10,600,2.8,2.7),["filterFeedMax"],"vortex",
- ("whale",1.75,0.52,1.00,1.00,0x2a4a5c,0xc4dce8,0x18303d,0x4fd0e8,"swirls","whirl"),None,
+ ("whale",1.75,0.174,1.00,1.00,0x2a4a5c,0xc4dce8,0x18303d,0x4fd0e8,"swirls","whirl"),None,
  "The drain at the bottom of the ocean, self-propelled."),
 ("bonecrown","Bonecrown",9,3,52000,(362,672,2.7,10,640,2.7,2.6),["undying","armored"],"quake",
- ("skull",1.58,0.46,1.00,0.95,0x8f8a7a,0xe8e4d8,0x5c584c,0xfff0c4,"bones","marrowGlow"),None,
+ ("skull",1.58,0.675,1.00,0.95,0x8f8a7a,0xe8e4d8,0x5c584c,0xfff0c4,"bones","marrowGlow"),None,
  "Wears its ancestors. They approve of the menu."),
 ("mirrorscale","Mirrorscale",9,3,52000,(388,744,3.0,9,560,2.8,2.9),["dreadAura"],"freeze",
- ("point",1.48,0.38,1.15,1.05,0x7a8a99,0xf4f8fb,0x525f6b,0xffffff,"mirror","glints"),None,
+ ("point",1.48,0.47,1.15,1.05,0x7a8a99,0xf4f8fb,0x525f6b,0xffffff,"mirror","glints"),None,
  "Prey sees itself, panics, and swims the wrong way. Toward it."),
 ("aurora","Aurora",10,3,70000,(412,792,3.0,11,720,2.7,3.1),["freezeTouch","armored"],"freeze",
- ("point",1.62,0.42,1.30,1.10,0x4a7f9e,0xf2fbff,0x2f5a75,0xa8f0d4,"ribbons","aurora"),None,
+ ("point",1.62,0.615,1.30,1.10,0x4a7f9e,0xf2fbff,0x2f5a75,0xa8f0d4,"ribbons","aurora"),None,
  "The lights in the water are beautiful. Swim away from them."),
 ("vulkan","Vulkan",10,3,72000,(400,744,2.8,12,780,2.9,2.9),["fireWake","armored","fireImmune"],"pyro",
- ("rock",1.70,0.50,1.10,1.00,0x3d1f16,0xe8b590,0x260f0a,0xff5a1f,"magma","eruption"),None,
+ ("rock",1.70,0.575,1.10,1.00,0x3d1f16,0xe8b590,0x260f0a,0xff5a1f,"magma","eruption"),None,
  "A volcano that got tired of waiting for things to fall in."),
 ("voltaicrex","Voltaic Rex",10,3,72000,(438,840,3.0,11,700,3.0,3.2),["shockTouch","comboSpeed"],"volt",
- ("point",1.65,0.42,1.30,1.20,0x24304a,0xd8e4fa,0x141d30,0xf0f8ff,"plain","stormcrown"),None,
+ ("point",1.65,0.198,1.30,1.20,0x24304a,0xd8e4fa,0x141d30,0xf0f8ff,"plain","stormcrown"),None,
  "The storm named itself king. Nothing has argued."),
 ("nullfin","Nullfin",10,3,74000,(400,768,3.1,11,680,2.8,3.0),["biteUpX","pressureImmune"],"phase",
- ("void",1.55,0.40,1.20,1.10,0x171226,0x6f5f8f,0x0c0a17,0x9f6fff,"plain","voidRipple"),None,
+ ("void",1.55,0.265,1.20,1.10,0x171226,0x6f5f8f,0x0c0a17,0x9f6fff,"plain","voidRipple"),None,
  "Where it bites, there is simply less ocean afterward."),
 ("chronos","Chronos",10,3,74000,(412,792,3.0,10,660,2.7,3.0),[],"chrono",
- ("point",1.58,0.40,1.20,1.10,0x6b5c3a,0xf0e4c4,0x453a22,0xffe08a,"rings","clockGlow"),None,
+ ("point",1.58,0.381,1.20,1.10,0x6b5c3a,0xf0e4c4,0x453a22,0xffe08a,"rings","clockGlow"),None,
  "Everything else slows down. It prefers the word savoring."),
 ("seismos","Seismos",10,3,72000,(375,696,2.6,12,800,2.8,2.7),["armored"],"quake",
- ("rock",1.75,0.55,1.00,0.90,0x4f463d,0xd0c8bc,0x322c26,0xd8a05a,"faults","tremor"),None,
+ ("rock",1.75,0.31,1.00,0.90,0x4f463d,0xd0c8bc,0x322c26,0xd8a05a,"faults","tremor"),None,
  "The seafloor flinches when it gets close."),
 ("banshee","Banshee",10,3,72000,(425,816,3.2,10,640,2.8,3.1),["undying","dreadAura"],"sonic",
- ("skull",1.55,0.38,1.20,1.15,0x5c6b7a,0xe8f0f4,0x3a4550,0xd4f0ff,"plain","wail"),None,
+ ("skull",1.55,0.636,1.20,1.15,0x5c6b7a,0xe8f0f4,0x3a4550,0xd4f0ff,"plain","wail"),None,
  "The scream arrives before it does. Both are fatal."),
 ("vortexa","Vortexa",10,3,72000,(375,696,2.7,11,700,2.7,2.8),["filterFeedMax","coinMagnet"],"vortex",
- ("whale",1.80,0.54,1.05,1.00,0x1f3d4a,0xbcd8e0,0x122630,0x39c6d6,"swirls","engine"),None,
+ ("whale",1.80,0.299,1.05,1.00,0x1f3d4a,0xbcd8e0,0x122630,0x39c6d6,"swirls","engine"),None,
  "An engine that runs on everything."),
 ("warbringer","Warbringer",11,3,95000,(412,768,2.8,13,900,2.9,3.0),["armored","spines","undying","coinMagnet"],"volt",
- ("mech",1.80,0.50,1.15,1.05,0x4a4f57,0xc9ced6,0x2e3238,0xff4a4a,"plating","warlights"),None,
+ ("mech",1.80,0.48,1.15,1.05,0x4a4f57,0xc9ced6,0x2e3238,0xff4a4a,"plating","warlights"),None,
  "Decommissioned twice. It disagreed both times."),
 ("omenmaw","Omenmaw",11,3,95000,(388,720,2.9,12,860,2.8,2.9),["dreadAuraX","pressureImmune"],"toxin",
- ("angler",1.75,0.52,1.00,1.05,0x1a1424,0x6f6486,0x0e0b15,0x8f4fff,"runes","omens"),None,
+ ("angler",1.75,0.525,1.00,1.05,0x1a1424,0x6f6486,0x0e0b15,0x8f4fff,"runes","omens"),None,
  "Prey does not flee. Prey volunteers."),
 ("solaris","Solaris",11,3,95000,(412,768,2.9,12,840,2.9,3.0),["fireWakeX","fireImmune"],"pyro",
- ("point",1.70,0.44,1.25,1.10,0x8f4a10,0xfff0c4,0x5c2f0a,0xffe45a,"corona","sunflare"),None,
+ ("point",1.70,0.39,1.25,1.10,0x8f4a10,0xfff0c4,0x5c2f0a,0xffe45a,"corona","sunflare"),None,
  "A small sun on a strict seafood diet."),
 ("absolutezero","Absolute Zero",11,3,95000,(375,696,2.7,12,880,2.5,2.8),["freezeTouch","armored","freezeField"],"freeze",
- ("blunt",1.75,0.48,1.10,1.00,0x4a7a99,0xf8fdff,0x2f5470,0xe0f8ff,"facets","iceAge"),None,
+ ("blunt",1.75,0.34,1.10,1.00,0x4a7a99,0xf8fdff,0x2f5470,0xe0f8ff,"facets","iceAge"),None,
  "The water freezes first. The rest is scheduling."),
 ("leviathanrex","Sharkjira",12,3,150000,(400,720,2.5,16,1400,2.6,3.0),["armored","pressureImmune","junkEater","biteUpX"],"atomic",
- ("kaiju",2.40,0.60,1.30,1.20,0x1b1f22,0xb8cdc4,0x2a3138,0x3fd6ff,"plates","dorsalCharge"),None,
+ ("kaiju",2.40,0.188,1.30,1.20,0x1b1f22,0xb8cdc4,0x2a3138,0x3fd6ff,"plates","dorsalCharge"),None,
  "A kaiju wearing a shark's face. Jagged dorsal plates, an atomic-blue glow "
  "in its spine and gills, and an underbite that ends arguments. The ocean "
  "has a king. The land has a warning."),
 ("leviathan_rex","Leviathan Rex",12,3,150000,(400,720,2.5,16,1400,2.6,3.0),["armored","pressureImmune","junkEater","biteUpX"],"atomic",
- ("kaiju",2.20,0.60,1.30,1.20,0x2e3d38,0xb8cdc4,0x1a2622,0x9ff7f0,"plates","dorsalCharge"),None,
+ ("kaiju",2.20,0.326,1.30,1.20,0x2e3d38,0xb8cdc4,0x1a2622,0x9ff7f0,"plates","dorsalCharge"),None,
  "The ocean has a king. The land has a warning."),
 # --- Act 4: Pantheon (12), gods, tiers 9-12 ---
 ("zeusfin","Zeusfin",9,4,160000,(420,804,3.1,10,600,2.9,3.1),["shockTouch","comboSpeed"],"volt",
- ("point",1.58,0.40,1.25,1.15,0xd8b03a,0xfff6d0,0x8a6a10,0xfff2a0,"rays","stormcrown"),None,
+ ("point",1.58,0.53,1.25,1.15,0xd8b03a,0xfff6d0,0x8a6a10,0xfff2a0,"rays","stormcrown"),None,
  "Throws the first punch as lightning. There is no second punch needed."),
 ("poseidonrex","Poseidonrex",9,4,162000,(388,720,2.7,10,660,2.7,2.9),["filterFeedMax","coinMagnet"],"vortex",
- ("whale",1.78,0.53,1.05,1.00,0x2a6f9e,0xdcf2fb,0x184a6e,0x6fe0ff,"swirls","engine"),None,
+ ("whale",1.78,0.354,1.05,1.00,0x2a6f9e,0xdcf2fb,0x184a6e,0x6fe0ff,"swirls","engine"),None,
  "Owns the current. Everything else just borrows it."),
 ("hadesmaw","Hadesmaw",10,4,180000,(400,768,3.0,11,700,2.7,3.0),["dreadAuraX","pressureImmune"],"phase",
- ("void",1.58,0.40,1.20,1.10,0x1a1626,0x7a6f9a,0x0e0b17,0xb08fff,"runes","voidRipple"),None,
+ ("void",1.58,0.65,1.20,1.10,0x1a1626,0x7a6f9a,0x0e0b17,0xb08fff,"runes","voidRipple"),None,
  "Every soul is already spoken for. It is just collecting."),
 ("apollodon","Apollodon",9,4,160000,(408,780,3.0,10,580,2.9,3.0),["fireWake","fireImmune"],"pyro",
- ("point",1.54,0.40,1.22,1.10,0xd88a1f,0xfff0c0,0x8a5610,0xffe45a,"corona","sunflare"),None,
+ ("point",1.54,0.678,1.22,1.10,0xd88a1f,0xfff0c0,0x8a5610,0xffe45a,"corona","sunflare"),None,
  "Sun god, sun bite. Neither one waits for permission."),
 ("artemisstrike","Artemis Strike",9,4,158000,(430,828,3.2,9,560,2.9,3.2),["lunge"],"freeze",
- ("point",1.50,0.36,1.28,1.15,0x5f9ec4,0xf0faff,0x3a6a8a,0xc0f0ff,"facets","iceShards"),(2,[3,4]),
+ ("point",1.50,0.625,1.28,1.15,0x5f9ec4,0xf0faff,0x3a6a8a,0xc0f0ff,"facets","iceShards"),(2,[3,4]),
  "Never misses the shot. Rarely needs a second one."),
 ("athenajaw","Athenajaw",10,4,182000,(400,768,3.0,11,680,2.8,3.0),["armored","dreadAura"],"sonic",
- ("hammer",1.58,0.40,1.15,1.05,0xb8ac8a,0xf4efe0,0x736a52,0xffe8b0,"plates","wail"),None,
+ ("hammer",1.58,0.23,1.15,1.05,0xb8ac8a,0xf4efe0,0x736a52,0xffe8b0,"plates","wail"),None,
  "Strategy first, teeth second. The teeth still work."),
 ("aresrender","Aresrender",10,4,184000,(408,768,2.9,12,720,2.9,2.9),["armored","spines"],"pyro",
- ("croc",1.62,0.46,1.05,1.00,0x8a2018,0xf0b0a0,0x581008,0xff5a29,"cracks","emberTrail"),(2,[3,4]),
+ ("croc",1.62,0.28,1.05,1.00,0x8a2018,0xf0b0a0,0x581008,0xff5a29,"cracks","emberTrail"),(2,[3,4]),
  "It does not pick fights. It is the fight."),
 ("hermesdart","Hermes Dart",9,4,159000,(450,876,3.4,9,540,3.0,3.3),["comboSpeed"],"chrono",
- ("point",1.46,0.34,1.30,1.20,0xd0d8e0,0xffffff,0x8a95a0,0xfff6c4,"rings","clockGlow"),None,
+ ("point",1.46,0.594,1.30,1.20,0xd0d8e0,0xffffff,0x8a95a0,0xfff6c4,"rings","clockGlow"),None,
  "Delivers the bad news before you finish reading the good news."),
 ("hephaestusforge","Hephaestus Forge",10,4,183000,(378,720,2.7,12,760,2.9,2.8),["armored","junkEater","mineHeal"],"quake",
- ("mech",1.62,0.50,0.98,0.95,0x8a6a2a,0xf0dca0,0x5a4318,0xffb84a,"rivets","sparks"),None,
+ ("mech",1.62,0.422,0.98,0.95,0x8a6a2a,0xf0dca0,0x5a4318,0xffb84a,"rivets","sparks"),None,
  "Built its own teeth. Kept the receipts."),
 ("dionysustide","Dionysus Tide",9,4,158000,(388,744,2.9,9,570,2.8,2.8),["infect"],"toxin",
- ("blunt",1.50,0.42,1.05,1.00,0x8a2f6b,0xe8c4e0,0x5c1f47,0xd45aff,"boils","spores"),(2,[3,4]),
+ ("blunt",1.50,0.33,1.05,1.00,0x8a2f6b,0xe8c4e0,0x5c1f47,0xd45aff,"boils","spores"),(2,[3,4]),
  "One sip and the whole reef is at the party."),
 ("aphroditelure","Aphrodite Lure",9,4,159000,(400,768,3.0,9,560,2.8,3.0),["dreadAura"],"sonic",
- ("angler",1.48,0.38,1.15,1.05,0xff9ec4,0xffe8f2,0xb0568a,0xffc4e8,"mirror","glints"),None,
+ ("angler",1.48,0.55,1.15,1.05,0xff9ec4,0xffe8f2,0xb0568a,0xffc4e8,"mirror","glints"),None,
  "Everything swims closer. Nothing swims away."),
 ("heracrown","Hera Crown",12,4,220000,(400,724,2.5,17,1440,2.6,3.0),["armored","pressureImmune","dreadAuraX"],"quake",
- ("kaiju",2.18,0.58,1.28,1.18,0xd8b84a,0xfff6da,0x8a6f20,0xfff0a0,"faults","tremor"),None,
+ ("kaiju",2.18,0.216,1.28,1.18,0xd8b84a,0xfff6da,0x8a6f20,0xfff0a0,"faults","tremor"),None,
  "The throne was never Zeus's to keep. She just let him think so."),
 # --- Act 5: Underworld (12), demons/monsters, tiers 9-12 ---
 ("typhonmaw","Typhonmaw",12,5,222000,(398,718,2.5,17,1450,2.6,3.0),["armored","pressureImmune","biteUpX"],"quake",
- ("kaiju",2.22,0.61,1.30,1.20,0x241018,0xa04f5c,0x140a0e,0xff2b4a,"faults","tremor"),None,
+ ("kaiju",2.22,0.244,1.30,1.20,0x241018,0xa04f5c,0x140a0e,0xff2b4a,"faults","tremor"),None,
  "The old gods lost this one on purpose. It remembers."),
 ("hydrafang","Hydrafang",10,5,182000,(370,700,2.8,11,700,2.7,2.8),["infect","undying"],"toxin",
- ("eel",1.85,0.30,0.80,1.25,0x2a5c3a,0xa8d69a,0x173a20,0x6fff8a,"bands","venomDrip"),(2,[3,4]),
+ ("eel",1.85,0.657,0.80,1.25,0x2a5c3a,0xa8d69a,0x173a20,0x6fff8a,"bands","venomDrip"),(2,[3,4]),
  "Cut one head off its combo. The other nine keep eating."),
 ("cerberusjaw","Cerberus Jaw",10,5,183000,(392,744,2.9,11,660,2.9,2.9),["ambush","dreadAura"],"pyro",
- ("croc",1.60,0.46,1.05,1.00,0x2a1a14,0x8a5a3a,0x150c0a,0xff5a1f,"cracks","emberTrail"),(3,[3,4]),
+ ("croc",1.60,0.22,1.05,1.00,0x2a1a14,0x8a5a3a,0x150c0a,0xff5a1f,"cracks","emberTrail"),(3,[3,4]),
  "Guards the exit. There is no exit."),
 ("chimerashark","Chimera Shark",9,5,160000,(400,772,2.9,10,580,2.9,3.0),["fireWake","wideBite"],"pyro",
- ("saw",1.52,0.42,1.05,1.05,0x4a3a1a,0xd4b56a,0x2c2210,0xff8a3d,"scales","emberTrail"),None,
+ ("saw",1.52,0.488,1.05,1.05,0x4a3a1a,0xd4b56a,0x2c2210,0xff8a3d,"scales","emberTrail"),None,
  "Three animals' worth of bad ideas, one body to carry them."),
 ("medusagaze","Medusa Gaze",9,5,159000,(360,684,2.7,10,600,2.6,2.7),["freezeTouch","dreadAura"],"freeze",
- ("angler",1.44,0.40,0.90,1.00,0x2a4a2a,0x9ac48a,0x162a16,0x9fffb0,"spots","frost"),None,
+ ("angler",1.44,0.195,0.90,1.00,0x2a4a2a,0x9ac48a,0x162a16,0x9fffb0,"spots","frost"),None,
  "Look too long and the current does the rest."),
 ("scyllarender","Scylla Render",9,5,158000,(374,716,2.9,9,560,2.8,2.7),["ambush","spines"],"vortex",
- ("eel",1.86,0.28,0.78,1.28,0x2f1f3a,0xa08fc4,0x18101f,0x8a5aff,"bands","gloom"),None,
+ ("eel",1.86,0.466,0.78,1.28,0x2f1f3a,0xa08fc4,0x18101f,0x8a5aff,"bands","gloom"),None,
  "Six mouths, one rock, zero survivors from that strait."),
 ("charybdisvoid","Charybdis Void",10,5,184000,(360,672,2.6,11,700,2.7,2.6),["filterFeedMax","coinMagnet"],"vortex",
- ("whale",1.80,0.54,1.02,0.98,0x140f24,0x5a4f80,0x0a0716,0x6a3fff,"swirls","whirl"),None,
+ ("whale",1.80,0.271,1.02,0.98,0x140f24,0x5a4f80,0x0a0716,0x6a3fff,"swirls","whirl"),None,
  "Everything eventually drains. It never fills back up."),
 ("minotaurram","Minotaur Ram",10,5,183000,(365,700,2.6,12,740,2.8,2.7),["armored","junkEater"],"quake",
- ("rock",1.55,0.52,0.92,0.90,0x3a2a1f,0x9a7a5a,0x201510,0xff6a2b,"faults","tremor"),None,
+ ("rock",1.55,0.625,0.92,0.90,0x3a2a1f,0x9a7a5a,0x201510,0xff6a2b,"faults","tremor"),None,
  "The maze was never the trap. It was."),
 ("cyclopseye","Cyclops Eye",9,5,159000,(388,748,2.9,10,600,2.9,2.8),["dreadAura"],"sonic",
- ("blunt",1.55,0.46,1.05,1.00,0x3a2f24,0xb09a70,0x22190f,0xd9c8ff,"scars","wail"),(2,[3,4]),
+ ("blunt",1.55,0.575,1.05,1.00,0x3a2f24,0xb09a70,0x22190f,0xd9c8ff,"scars","wail"),(2,[3,4]),
  "One eye is all it needs. It never once looked away."),
 ("harpyshade","Harpy Shade",9,5,158000,(415,800,3.2,9,540,2.9,3.1),["ambush","stealth"],"phase",
- ("point",1.42,0.32,1.15,1.05,0x241f30,0x6a5f80,0x120e1a,0x8a5aff,"stripes","shadow"),(3,[3,4]),
+ ("point",1.42,0.26,1.15,1.05,0x241f30,0x6a5f80,0x120e1a,0x8a5aff,"stripes","shadow"),(3,[3,4]),
  "Steals the meal before the meal knows it was served."),
 ("lamiacoil","Lamia Coil",9,5,159000,(372,712,3.0,9,560,2.8,2.7),["infect","toxinWake"],"toxin",
- ("eel",1.88,0.26,0.82,1.30,0x2a3a1a,0x8ec46a,0x172310,0xaaff5a,"bands","venomDrip"),None,
+ ("eel",1.88,0.551,0.82,1.30,0x2a3a1a,0x8ec46a,0x172310,0xaaff5a,"bands","venomDrip"),None,
  "Sings a lullaby. Nobody wakes up for the encore."),
 ("kampechrono","Kampe Chrono",10,5,185000,(400,764,2.9,11,660,2.8,3.0),["comboSpeed"],"chrono",
- ("skull",1.58,0.42,1.05,1.00,0x241a30,0x8a7a9a,0x120e1a,0xc9a0ff,"bones","clockGlow"),None,
+ ("skull",1.58,0.177,1.05,1.00,0x241a30,0x8a7a9a,0x120e1a,0xc9a0ff,"bones","clockGlow"),None,
  "Guards the gate on both sides of the hour at once."),
 ]
 
@@ -587,110 +587,124 @@ def shark_cls(tier, act):
     if act == 5: return "demon"
     raise ValueError("no class rule for tier=%r act=%r" % (tier, act))
 
-# HSE lane O1: base-family map (row id -> MODEL_FILES key).
+# Rev 15 REBASE (owner directive): only FOUR baked bodies survive.
 #
-# Every key below was render-verified in assets/bakeview before a row was
-# pointed at it (evidence: hse/FAMILY_MAP.md). Five bakes were REJECTED and
-# are deliberately absent: altimus (a fossil jaw, not a shark body),
-# bullshark (untextured grey creature), realisticshark (degenerate mesh),
-# tiger_mg (paper-thin, no volume), hammerhead_approved (a byte-duplicate of
-# scallopedhammer carrying a larger texture).
+# The owner reviewed the bake set and named the good ones: Sharkjira
+# (greatwhite_cy), thresher, snapjaw/aresrender (tigershark) and
+# artemisstrike (whaler). "All the others need to be scrapped; use the good
+# sharks as the base for all the other sharks and customize from there."
 #
-# Families: small/reef -> dogfish, smoothhound, bullhead; hammer ->
-# smoothhammer (common) / scallopedhammer (god); fast point -> mako,
-# blueshark; bulk -> whitepointer, greatwhite_cy, megalodonrex; tiger ->
-# tiger_nu, tigershark; whaler -> whaler; thresher -> thresher.
+# So this map now emits ONLY these four keys. Every other GLB
+# (dogfish, bullhead, smoothhound, mako, blueshark, smoothhammer,
+# scallopedhammer, tiger_nu, whitepointer, megalodonrex, and the five that
+# were already rejected) is unreferenced from data.js. The files stay on
+# disk; nothing loads them.
 #
-# Stylized head tags (mech/skull/void/rock/croc/angler/kaiju) have no real
-# shark counterpart, so they take a neutral body of the right mass and get
-# their identity from the props and shader lanes rather than the base mesh.
+# Choice rule, applied per row by BODY PLAN:
+#   greatwhite_cy - bulky apex / heavy blunt / kaiju / armored mass
+#   whaler        - mid-weight all-rounder, blunt-ish, and every HAMMER row
+#                   (the hammer head arrives as a textured foil prop, not as
+#                   a separate bake)
+#   thresher      - slim / fast / long-tailed / eel and ribbon bodies
+#   tigershark    - striped, barred, tiger/bull/croc-jawed rows
+#
+# Distinctness after the rebase comes from what this lane owns: the species
+# hide + countershade band and the in-surface markings in
+# hse/skin_identity.js, the sil len/girth/finScale/tailScale morph fields
+# below, and the textured props in hse/props_textured.js. NOT from the base
+# mesh, which is deliberately only four meshes wide now.
 TEXTURED_MODEL_BY_ROW = {
-    "reef":            "dogfish",           # point tiny: small houndshark bodies
-    "epaulette":       "bullhead",          # blunt small: bullhead snout
-    "cookiecutter": "smoothhound",  # was HELD (L2 length gate); relax-to-fit in rig_morph.js bounds it now
-    "mako": "mako",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "blue": "mako",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "hammerhead":      "smoothhammer",      # hammer head tag
-    "thresher": "thresher",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "sawshark": "thresher",  # was HELD (props); props_textured.js carries a textured-flagged material now
-    "tiger":           "tiger_nu",          # blunt mid: tiger body
-    "bull": "whaler",  # was HELD-L2 (rig_morph gate fixed by F1)
-    # "goblin": "greatwhite_cy"  HELD: art3d pins this row to goblinshark (its own silhouette rig)
-    "greatwhite":      "greatwhite_cy",     # point tier4-5: great white
-    "whaleshark": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "megalodon": "whitepointer",  # was HELD-L2b; rig_morph relax-to-fit bounds the morph now
-    "dunkleosteus": "bullhead",  # was HELD-L2b; rig_morph relax-to-fit bounds the morph now
-    "greenland": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "snapjaw":         "tigershark",        # croc tag: broad flat jaw reads closest
-    # "gulperfiend": "smoothhound"  HELD: art3d pins this row to anglerfish (its own silhouette rig)
-    "anglerfang":      "smoothhound",       # angler tag: stubby body, lure prop carries identity
-    "morayne": "thresher",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "sailfin": "blueshark",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "thornback":       "bullhead",          # rock tag: chunky body
-    "stonejaw":        "whaler",            # rock tag: chunky body
-    "duskfin":         "mako",              # point high tier: fast/bulk mix
-    "barbhook": "thresher",  # was HELD (props); textured-flagged prop material now
-    "coralcrown": "whaler",  # was HELD (props); textured-flagged prop material now
-    "vex": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "abyssmaw":        "smoothhound",       # angler tag: stubby body, lure prop carries identity
-    "riftjaw":         "whaler",            # point high tier: fast/bulk mix
-    "venomspine":      "mako",              # point high tier: fast/bulk mix
-    "howler":          "tigershark",        # blunt high tier: heavy bodies
-    "magmaw":          "bullhead",          # rock tag: chunky body
-    "frostjaw":        "whitepointer",      # blunt high tier: heavy bodies
-    "stormfin": "blueshark",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "gloomtide": "blueshark",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "wreckfang":       "greatwhite_cy",     # mech tag: neutral bulk, identity from props/shader
-    "ironfin":         "greatwhite_cy",     # mech tag: neutral bulk, identity from props/shader
-    "cindermaw":       "blueshark",         # point high tier: fast/bulk mix
-    "glacier":         "whitepointer",      # blunt high tier: heavy bodies
-    "gravewater":      "whitepointer",      # skull tag: neutral bulk, identity from props/shader
-    "teslafang": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "plaguemaw":       "tigershark",        # blunt high tier: heavy bodies
-    "sunspine":        "whitepointer",      # point high tier: fast/bulk mix
-    "nocturne": "blueshark",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "tempest":         "blueshark",         # point high tier: fast/bulk mix
-    "maelstrom": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "bonecrown":       "greatwhite_cy",     # skull tag: neutral bulk, identity from props/shader
-    "mirrorscale":     "whaler",            # point high tier: fast/bulk mix
-    "aurora": "blueshark",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "vulkan": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "voltaicrex": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "nullfin":         "greatwhite_cy",     # void tag: neutral bulk, identity from props/shader
-    "chronos":         "mako",              # point high tier: fast/bulk mix
-    "seismos": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "banshee":         "whitepointer",      # skull tag: neutral bulk, identity from props/shader
-    "vortexa": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "warbringer": "greatwhite_cy",  # was HELD-L2b; relax-to-fit bounds the morph now
-    "omenmaw":         "bullhead",          # angler tag: stubby body, lure prop carries identity
-    "solaris":         "whitepointer",      # point high tier: fast/bulk mix
-    "absolutezero": "tigershark",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "leviathanrex": "greatwhite_cy",  # r15 kaiju pass: textured spine ridge; NEVER megalodonrex (9th neutral_bone shifts skinning)
-    "leviathan_rex": "greatwhite_cy",  # r15 kaiju pass (see NOTES-rev15-kaiju.md HOOK 3)
-    "zeusfin": "mako",  # was HELD (props); crown feature is textured-flagged now
-    "poseidonrex": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "hadesmaw":        "whitepointer",      # void tag: neutral bulk, identity from props/shader
-    "apollodon":       "mako",              # point high tier: fast/bulk mix
-    "artemisstrike":   "whaler",            # point high tier: fast/bulk mix
-    "athenajaw":       "scallopedhammer",   # hammer head tag
-    "aresrender":      "tigershark",        # croc tag: broad flat jaw reads closest
-    "hermesdart": "whaler",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "hephaestusforge": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "dionysustide":    "whaler",            # blunt high tier: heavy bodies
-    "aphroditelure":   "bullhead",          # angler tag: stubby body, lure prop carries identity
-    "heracrown": "whitepointer",  # was HELD (props); crown feature is textured-flagged now
-    "typhonmaw": "whitepointer",  # was HELD-L2b; relax-to-fit bounds the morph now
-    "hydrafang": "blueshark",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "cerberusjaw": "tigershark",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "chimerashark": "thresher",  # was HELD (props); saw feature is textured-flagged now
-    "medusagaze":      "bullhead",          # angler tag: stubby body, lure prop carries identity
-    "scyllarender": "blueshark",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "charybdisvoid": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "minotaurram": "whitepointer",  # was HELD (props); horns feature is textured-flagged now
-    "cyclopseye":      "whaler",            # blunt high tier: heavy bodies
-    "harpyshade": "whitepointer",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "lamiacoil": "thresher",  # was HELD-L2 (rig_morph gate fixed by F1)
-    "kampechrono": "whitepointer",  # was HELD-L2b; relax-to-fit bounds the morph now
+    # --- Act 1: real sharks -----------------------------------------------
+    "reef":            "thresher",       # small slim requiem
+    "epaulette":       "whaler",         # blunt little crawler
+    "cookiecutter":    "thresher",       # tiny torpedo
+    "mako":            "thresher",       # fast point, long lobe
+    "blue":            "thresher",       # long slim indigo
+    "hammerhead":      "whaler",         # + hammer foil prop
+    "thresher":        "thresher",       # OWNER-APPROVED base, its own row
+    "sawshark":        "thresher",       # slim + saw prop
+    "tiger":           "tigershark",     # OWNER-APPROVED striped base
+    "bull":            "tigershark",     # stocky barred requiem
+    # goblin: keeps its own goblinshark GLB (approved as a creature)
+    "greatwhite":      "greatwhite_cy",  # OWNER-APPROVED apex base
+    "whaleshark":      "greatwhite_cy",  # the biggest bulk we have
+    "megalodon":       "greatwhite_cy",  # apex, scaled up
+    "dunkleosteus":    "greatwhite_cy",  # armored bulk
+    "greenland":       "greatwhite_cy",  # heavy slow bulk
+    # --- Act 2: monster sharks --------------------------------------------
+    "snapjaw":         "tigershark",     # OWNER-APPROVED croc jaw
+    # gulperfiend: keeps its own anglerfish GLB (approved as a creature)
+    "anglerfang":      "whaler",         # stubby, lure carries identity
+    "morayne":         "thresher",       # eel: longest, thinnest
+    "sailfin":         "thresher",       # tall fins on a slim body
+    "thornback":       "whaler",         # chunky rock
+    "stonejaw":        "greatwhite_cy",  # heavy rock
+    "duskfin":         "thresher",       # fast point
+    "barbhook":        "thresher",       # slim + saw prop
+    "coralcrown":      "whaler",         # mid blunt + crown prop
+    "vex":             "thresher",       # void, thin and quick
+    "abyssmaw":        "greatwhite_cy",  # big angler bulk
+    "riftjaw":         "whaler",         # mid all-rounder
+    "venomspine":      "thresher",       # spined slim
+    "howler":          "tigershark",     # barred heavy
+    "magmaw":          "whaler",         # chunky rock
+    "frostjaw":        "greatwhite_cy",  # heavy blunt
+    "stormfin":        "thresher",       # fast point
+    "gloomtide":       "thresher",       # eel
+    "wreckfang":       "greatwhite_cy",  # mech bulk
+    # --- Act 3: epics and legendaries -------------------------------------
+    "ironfin":         "greatwhite_cy",  # mech bulk
+    "cindermaw":       "thresher",       # fast point
+    "glacier":         "greatwhite_cy",  # heavy blunt
+    "gravewater":      "whaler",         # mid skull
+    "teslafang":       "thresher",       # fast point
+    "plaguemaw":       "tigershark",     # barred heavy
+    "sunspine":        "thresher",       # fast point
+    "nocturne":        "thresher",       # fast point
+    "tempest":         "thresher",       # fast point, big fins
+    "maelstrom":       "greatwhite_cy",  # whale bulk
+    "bonecrown":       "greatwhite_cy",  # skull bulk
+    "mirrorscale":     "whaler",         # mid all-rounder
+    "aurora":          "thresher",       # long elegant
+    "vulkan":          "greatwhite_cy",  # boulder
+    "voltaicrex":      "greatwhite_cy",  # storm king bulk
+    "nullfin":         "whaler",         # void mid
+    "chronos":         "thresher",       # lean precise
+    "seismos":         "greatwhite_cy",  # seafloor tank
+    "banshee":         "thresher",       # narrow skull
+    "vortexa":         "greatwhite_cy",  # wide mouth bulk
+    "warbringer":      "greatwhite_cy",  # war beast
+    "omenmaw":         "greatwhite_cy",  # towering angler
+    "solaris":         "whaler",         # compact power chest
+    "absolutezero":    "tigershark",     # blunt tank
+    "leviathanrex":    "greatwhite_cy",  # kaiju (NEVER megalodonrex)
+    "leviathan_rex":   "greatwhite_cy",  # kaiju
+    # --- Act 4: Pantheon ---------------------------------------------------
+    "zeusfin":         "thresher",       # lightning spear + crown prop
+    "poseidonrex":     "greatwhite_cy",  # whale bulk
+    "hadesmaw":        "whaler",         # void mid
+    "apollodon":       "thresher",       # lean heroic
+    "artemisstrike":   "whaler",         # OWNER-APPROVED base, its own row
+    "athenajaw":       "whaler",         # + hammer foil prop
+    "aresrender":      "tigershark",     # OWNER-APPROVED croc base
+    "hermesdart":      "thresher",       # fastest, thinnest
+    "hephaestusforge": "greatwhite_cy",  # forge bulk
+    "dionysustide":    "whaler",         # mid blunt
+    "aphroditelure":   "whaler",         # mid angler
+    "heracrown":       "greatwhite_cy",  # kaiju + crown prop
+    # --- Act 5: Underworld -------------------------------------------------
+    "typhonmaw":       "greatwhite_cy",  # kaiju
+    "hydrafang":       "thresher",       # eel
+    "cerberusjaw":     "tigershark",     # croc
+    "chimerashark":    "thresher",       # slim + saw prop
+    "medusagaze":      "whaler",         # mid angler
+    "scyllarender":    "thresher",       # eel
+    "charybdisvoid":   "greatwhite_cy",  # whale bulk
+    "minotaurram":     "greatwhite_cy",  # rock + horn props
+    "cyclopseye":      "whaler",         # mid blunt
+    "harpyshade":      "thresher",       # slim striped
+    "lamiacoil":       "thresher",       # eel
+    "kampechrono":     "whaler",         # mid skull
 }
 
 def shark_row(t):

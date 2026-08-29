@@ -1,0 +1,178 @@
+[
+  {
+    "row": "greatwhite fwd gape0",
+    "ok": true,
+    "facePx": 45,
+    "insideFrac": 1.0,
+    "axis": "h",
+    "centroidT": 0.906,
+    "headThird": true,
+    "id": "greatwhite",
+    "dir": "fwd",
+    "gape": "0"
+  },
+  {
+    "row": "greatwhite rev gape0",
+    "ok": true,
+    "facePx": 44,
+    "insideFrac": 1.0,
+    "axis": "h",
+    "centroidT": 0.094,
+    "headThird": true,
+    "id": "greatwhite",
+    "dir": "rev",
+    "gape": "0"
+  },
+  {
+    "row": "greatwhite fwd gape0.35",
+    "ok": true,
+    "facePx": 38,
+    "insideFrac": 1.0,
+    "axis": "h",
+    "centroidT": 0.907,
+    "headThird": true,
+    "id": "greatwhite",
+    "dir": "fwd",
+    "gape": "0.35"
+  },
+  {
+    "row": "greatwhite rev gape0.35",
+    "ok": true,
+    "facePx": 39,
+    "insideFrac": 1.0,
+    "axis": "h",
+    "centroidT": 0.094,
+    "headThird": true,
+    "id": "greatwhite",
+    "dir": "rev",
+    "gape": "0.35"
+  },
+  {
+    "row": "hammerhead fwd gape0",
+    "ok": true,
+    "facePx": 58,
+    "insideFrac": 1.0,
+    "axis": "h",
+    "centroidT": 0.867,
+    "headThird": true,
+    "id": "hammerhead",
+    "dir": "fwd",
+    "gape": "0"
+  },
+  {
+    "row": "hammerhead rev gape0",
+    "ok": true,
+    "facePx": 94,
+    "insideFrac": 1.0,
+    "axis": "h",
+    "centroidT": 0.133,
+    "headThird": true,
+    "id": "hammerhead",
+    "dir": "rev",
+    "gape": "0"
+  },
+  {
+    "row": "hammerhead fwd gape0.35",
+    "ok": true,
+    "facePx": 58,
+    "insideFrac": 1.0,
+    "axis": "h",
+    "centroidT": 0.867,
+    "headThird": true,
+    "id": "hammerhead",
+    "dir": "fwd",
+    "gape": "0.35"
+  },
+  {
+    "row": "hammerhead rev gape0.35",
+    "ok": true,
+    "facePx": 92,
+    "insideFrac": 1.0,
+    "axis": "h",
+    "centroidT": 0.133,
+    "headThird": true,
+    "id": "hammerhead",
+    "dir": "rev",
+    "gape": "0.35"
+  },
+  {
+    "row": "thresher fwd gape0",
+    "ok": true,
+    "held": true,
+    "facePx": 0,
+    "why": "HELD (baked face)",
+    "id": "thresher",
+    "dir": "fwd",
+    "gape": "0"
+  },
+  {
+    "row": "thresher rev gape0",
+    "ok": true,
+    "held": true,
+    "facePx": 0,
+    "why": "HELD (baked face)",
+    "id": "thresher",
+    "dir": "rev",
+    "gape": "0"
+  },
+  {
+    "row": "thresher fwd gape0.35",
+    "ok": true,
+    "held": true,
+    "facePx": 0,
+    "why": "HELD (baked face)",
+    "id": "thresher",
+    "dir": "fwd",
+    "gape": "0.35"
+  },
+  {
+    "row": "thresher rev gape0.35",
+    "ok": true,
+    "held": true,
+    "facePx": 0,
+    "why": "HELD (baked face)",
+    "id": "thresher",
+    "dir": "rev",
+    "gape": "0.35"
+  },
+  {
+    "row": "tiger fwd gape0",
+    "ok": true,
+    "held": true,
+    "facePx": 0,
+    "why": "HELD (baked face)",
+    "id": "tiger",
+    "dir": "fwd",
+    "gape": "0"
+  },
+  {
+    "row": "tiger rev gape0",
+    "ok": true,
+    "held": true,
+    "facePx": 0,
+    "why": "HELD (baked face)",
+    "id": "tiger",
+    "dir": "rev",
+    "gape": "0"
+  },
+  {
+    "row": "tiger fwd gape0.35",
+    "ok": true,
+    "held": true,
+    "facePx": 0,
+    "why": "HELD (baked face)",
+    "id": "tiger",
+    "dir": "fwd",
+    "gape": "0.35"
+  },
+  {
+    "row": "tiger rev gape0.35",
+    "ok": true,
+    "held": true,
+    "facePx": 0,
+    "why": "HELD (baked face)",
+    "id": "tiger",
+    "dir": "rev",
+    "gape": "0.35"
+  }
+]

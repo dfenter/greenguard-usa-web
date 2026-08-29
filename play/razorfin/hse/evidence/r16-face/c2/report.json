@@ -1,0 +1,11 @@
+[
+  {
+    "id": "greatwhite",
+    "textured": true,
+    "base": "greatwhite_cy",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "metrics": null,
+    "errors": []
+  }
+]

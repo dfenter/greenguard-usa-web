@@ -609,12 +609,232 @@ function applyRestGape(rigRoot, mesh, jawBone, gapeSignal) {
   return record;
 }
 
+/* JAW WEIGHT REPAIR (Rev 16, coordinator directive).
+ *
+ * Two of the four shipping bakes have a LowerJaw bone that is bound to almost
+ * nothing, so rotating it moves no skin and the mouth cannot open at all:
+ *
+ *     bake            verts   max LowerJaw weight   jaw-weighted verts
+ *     greatwhite_cy    6645         1.000                  2400
+ *     tigershark       7162         1.000                   264
+ *     whaler           7224         0.976                   173
+ *     thresher         6440         0.026                     3
+ *
+ * `commitRestGape` correctly refuses to hinge those rigs (GAPE_MIN_TRAVEL) and
+ * publishes no authority, so `writeJawGape` is a no-op on 49 of the 84 rows.
+ * That is the rig being honest about a bad bind, not a bug in the gape code.
+ *
+ * The repair paints the missing weights from GEOMETRY. The lower jaw is a
+ * region of the head - below the mouth line, forward of the hinge - and the
+ * mesh knows where that is even when the bind does not. Vertices in the head's
+ * forward part and below the mouth line get a LowerJaw weight that falls off
+ * smoothly to zero at the hinge, so the jaw swings on a hinge instead of
+ * shearing at a hard edge, and the weights are renormalised so the sum stays
+ * 1 and nothing else in the skin changes shape.
+ *
+ * Applied only when the bind is genuinely broken (max weight < 0.5), so a bake
+ * that was authored correctly is never touched.
+ */
+const JAW_REPAIR_MAX_WEIGHT = 0.5;
+/* Dominant-vertex fraction below which a jaw cannot move enough skin to read.
+ * Measured on the four shipping bakes:
+ *
+ *     greatwhite_cy  0.361  opens 30.3 deg   healthy
+ *     tigershark     0.037  opens 21.8 deg   healthy
+ *     whaler         0.024  travel 0.105 of head height, floor 0.12  TOO THIN
+ *     thresher       0.000  no jaw at all                            TOO THIN
+ *
+ * 0.030 sits between tigershark's working 0.037 and whaler's failing 0.024,
+ * and is the only boundary the four bakes actually offer. */
+const JAW_REPAIR_MIN_FRACTION = 0.030;
+
+function ensureJawWeights(skinnedMesh, upAxis) {
+  const geometry = skinnedMesh?.geometry;
+  const position = geometry?.getAttribute('position');
+  const skinIndex = geometry?.getAttribute('skinIndex');
+  const skinWeight = geometry?.getAttribute('skinWeight');
+  const bones = skinnedMesh?.skeleton?.bones || [];
+  const jawIndex = bones.findIndex((b) => b.name === 'LowerJaw');
+  if (!position || !skinIndex || !skinWeight || jawIndex < 0) return null;
+
+  /* A bind is only healthy if the jaw is both STRONGLY and WIDELY bound.
+   *
+   * Peak weight alone is not enough: `whaler` reaches 0.976, so a peak-only
+   * test called it healthy, yet only 173 of its 7224 vertices are jaw-dominant
+   * and rotating the bone moved the skin by 0.105 of head height against the
+   * 0.12 floor - a mouth that does not open. Counting the dominant vertices is
+   * what separates "has a jaw" from "has enough jaw to move".
+   *
+   * 1.5% of the mesh is well under any correctly bound bake (greatwhite_cy is
+   * at 36%) and well over the two that need repair. */
+  let maxJaw = 0, dominant = 0;
+  for (let i = 0; i < position.count; i++) {
+    let sum = 0;
+    for (let k = 0; k < 4; k++) {
+      if (skinIndex.getComponent(i, k) !== jawIndex) continue;
+      const w = skinWeight.getComponent(i, k);
+      if (w > maxJaw) maxJaw = w;
+      sum += w;
+    }
+    if (sum > 0.5) dominant++;
+  }
+  const dominantFrac = dominant / Math.max(position.count, 1);
+  if (maxJaw >= JAW_REPAIR_MAX_WEIGHT && dominantFrac >= JAW_REPAIR_MIN_FRACTION) {
+    return {
+      repaired: false, maxJawBefore: Number(maxJaw.toFixed(4)),
+      dominant, dominantFrac: Number(dominantFrac.toFixed(4)),
+      reason: 'bind already carries a jaw',
+    };
+  }
+
+  /* Body frame from the BIND geometry: long axis by extent, dorsal from the
+   * caller's measured bind-up (the same axis the countershade ramp uses). */
+  const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+  for (let i = 0; i < position.count; i++) {
+    for (let a = 0; a < 3; a++) {
+      const v = position.getComponent(i, a);
+      if (v < lo[a]) lo[a] = v;
+      if (v > hi[a]) hi[a] = v;
+    }
+  }
+  const dims = [hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]];
+  let longA = 0;
+  if (dims[1] >= dims[0] && dims[1] >= dims[2]) longA = 1;
+  else if (dims[2] >= dims[0] && dims[2] >= dims[1]) longA = 2;
+  const L = Math.max(dims[longA], 1e-9);
+  let upA = [0, 1, 2].find((a) => a !== longA);
+  if (Array.isArray(upAxis)) {
+    let best = -1;
+    for (let a = 0; a < 3; a++) {
+      if (a === longA) continue;
+      const m = Math.abs(Number(upAxis[a]) || 0);
+      if (m > best) { best = m; upA = a; }
+    }
+  }
+
+  /* Which end is the head: the girth centroid. A shark's cross-section peaks
+   * at the pectoral girdle just behind the skull and tapers to a thin
+   * peduncle, so the area-weighted centroid lies on the head side. This is the
+   * same cue the orientation resolver uses, and it needs no bones - which
+   * matters, because the bones on these two bakes are the thing that is wrong. */
+  const otherA = [0, 1, 2].filter((a) => a !== longA);
+  const NB = 10;
+  const bins = [];
+  for (let k = 0; k < NB; k++) bins.push([Infinity, -Infinity, Infinity, -Infinity]);
+  for (let i = 0; i < position.count; i++) {
+    const t = (position.getComponent(i, longA) - lo[longA]) / L;
+    const B = bins[Math.min(NB - 1, Math.max(0, Math.floor(t * NB)))];
+    const u0 = position.getComponent(i, otherA[0]), u1 = position.getComponent(i, otherA[1]);
+    if (u0 < B[0]) B[0] = u0; if (u0 > B[1]) B[1] = u0;
+    if (u1 < B[2]) B[2] = u1; if (u1 > B[3]) B[3] = u1;
+  }
+  let num = 0, den = 0;
+  bins.forEach((B, k) => {
+    if (!Number.isFinite(B[0]) || !Number.isFinite(B[2])) return;
+    const area = (B[1] - B[0]) * (B[3] - B[2]);
+    num += area * ((k + 0.5) / NB - 0.5);
+    den += area;
+  });
+  const noseAtHi = (den > 0 ? num / den : 0) > 0;
+  const nose = noseAtHi ? hi[longA] : lo[longA];
+
+  /* Head band = forward 0.22 L, matching the face module's contract region. */
+  const HEAD_FRAC = 0.22;
+  let hUlo = Infinity, hUhi = -Infinity, headCount = 0;
+  for (let i = 0; i < position.count; i++) {
+    if (Math.abs(position.getComponent(i, longA) - nose) > L * HEAD_FRAC) continue;
+    const u = position.getComponent(i, upA);
+    if (u < hUlo) hUlo = u; if (u > hUhi) hUhi = u;
+    headCount++;
+  }
+  if (headCount < 32 || !(hUhi > hUlo)) {
+    return { repaired: false, maxJawBefore: Number(maxJaw.toFixed(4)), reason: 'no measurable head band' };
+  }
+  const headHeight = hUhi - hUlo;
+  /* Mouth line at the lower 45% of head height; jaw runs from the snout back
+   * to 0.55 of the head's length, where the hinge is. */
+  const mouthLine = hUlo + headHeight * 0.45;
+  const jawBackFrac = HEAD_FRAC * 0.55;
+
+  const idxArray = skinIndex.array, wArray = skinWeight.array;
+  let painted = 0, maxAssigned = 0;
+  for (let i = 0; i < position.count; i++) {
+    const along = Math.abs(position.getComponent(i, longA) - nose) / L;
+    if (along > jawBackFrac) continue;
+    const u = position.getComponent(i, upA);
+    if (u > mouthLine) continue;
+    /* Smooth falloff toward the hinge at the back of the jaw region, and
+     * toward the mouth line at the top, so the jaw does not shear off. */
+    const tAlong = 1 - along / Math.max(jawBackFrac, 1e-9);            /* 1 at snout, 0 at hinge */
+    const tDown = (mouthLine - u) / Math.max(headHeight * 0.45, 1e-9); /* 0 at lip, 1 at chin */
+    const smooth = (x) => { const c = Math.min(Math.max(x, 0), 1); return c * c * (3 - 2 * c); };
+    /* The painted weight must be DOMINANT, not merely present.
+     *
+     * Everything downstream selects the jaw cloud with `sum > 0.5`
+     * (`weightedIndices`), so a vertex weighted 0.26 to LowerJaw is still not
+     * in the jaw as far as the gape measurement is concerned - the first cut
+     * of this repair painted 789 vertices on thresher and `applyRestGape`
+     * still reported "jaw cloud too small (0 verts)". The falloff therefore
+     * runs up to 0.98, and the renormalisation below preserves it because the
+     * other three influences are scaled down to make room rather than the jaw
+     * being scaled down to fit among them. */
+    const w = 0.30 + 0.68 * smooth(tAlong) * smooth(Math.min(tDown * 1.35, 1));
+    if (!(w > 0.34)) continue;
+    const base = i * 4;
+    /* Put the jaw in the weakest slot (or reuse its own slot if it has one). */
+    let slot = -1;
+    for (let k = 0; k < 4; k++) if (idxArray[base + k] === jawIndex) { slot = k; break; }
+    if (slot < 0) {
+      let weakestW = Infinity;
+      for (let k = 0; k < 4; k++) if (wArray[base + k] < weakestW) { weakestW = wArray[base + k]; slot = k; }
+    }
+    if (slot < 0) continue;
+    idxArray[base + slot] = jawIndex;
+    /* Scale the OTHER influences to the remaining headroom, so the jaw keeps
+     * exactly the weight asked for and the vertex still sums to 1. */
+    let others = 0;
+    for (let k = 0; k < 4; k++) if (k !== slot) others += wArray[base + k];
+    wArray[base + slot] = w;
+    const room = 1 - w;
+    if (others > 1e-6) {
+      const scale = room / others;
+      for (let k = 0; k < 4; k++) if (k !== slot) wArray[base + k] *= scale;
+    } else {
+      wArray[base + slot] = 1;
+    }
+    painted++;
+    maxAssigned = Math.max(maxAssigned, wArray[base + slot]);
+  }
+  if (!painted) {
+    return { repaired: false, maxJawBefore: Number(maxJaw.toFixed(4)), reason: 'jaw band selected no vertices' };
+  }
+  skinIndex.needsUpdate = true;
+  skinWeight.needsUpdate = true;
+  return {
+    repaired: true,
+    maxJawBefore: Number(maxJaw.toFixed(4)),
+    dominantBefore: dominant,
+    dominantFracBefore: Number(dominantFrac.toFixed(4)),
+    maxJawAfter: Number(maxAssigned.toFixed(4)),
+    painted,
+    longAxis: longA, upAxis: upA, noseAtHi,
+  };
+}
+
 function applyMorph(rigRoot, skinnedMesh, def, profile = {}) {
   if (!rigRoot || !skinnedMesh?.isSkinnedMesh) throw new Error(`${def?.id || 'unknown'}: L2 morph needs a SkinnedMesh`);
   if (rigRoot.userData?.rfL2MorphRecord) return rigRoot.userData.rfL2MorphRecord;
   const bones = Object.fromEntries(REQUIRED_BONES.map((name) => [name, findBone(rigRoot, name)]));
   const missing = REQUIRED_BONES.filter((name) => !bones[name]);
   if (missing.length) throw new Error(`${def?.id || 'unknown'}: L2 morph missing bones ${missing.join(',')}`);
+  /* Repair a missing jaw bind BEFORE anything measures the rig.
+   *
+   * It has to run here, ahead of `captureRestWorld` and the gape measurement,
+   * because `applyRestGape` decides whether the hinge moves any skin - and on
+   * an unrepaired bake it correctly decides that it does not, reverts, and
+   * publishes no gape authority. Repairing afterwards would leave that verdict
+   * standing on stale evidence. */
+  const jawRepair = ensureJawWeights(skinnedMesh, vec3(profile?.bindUp, [0, 1, 0]));
   const beforeWeights = auditWeights(skinnedMesh);
   if (beforeWeights.invalid || beforeWeights.maxIndex >= (skinnedMesh.skeleton?.bones?.length || 0)) throw new Error(`${def?.id || 'unknown'}: L2 morph refuses invalid skin weights`);
   const before = captureRestWorld(rigRoot, skinnedMesh);
@@ -623,6 +843,7 @@ function applyMorph(rigRoot, skinnedMesh, def, profile = {}) {
   const beforeAxes = bodyAxes(before.bounds, rigRoot, vec3(profile?.bindUp, [0, 1, 0]));
   const bodyLength = Math.max(before.bounds.max[beforeAxes.long] - before.bounds.min[beforeAxes.long], 1e-6);
   const basePlan = buildMorphPlan(skinnedMesh, def, profile, bodyLength), record = {
+    jawRepair,
     id: String(def?.id || ''), version: MORPH_VERSION, neutral: false, restPose: true, seamFree: true,
     roleSource: 'PERSONALITY_TABLE bulk/sculpt/face; bounded rest-pose bone morph', vertexCount: before.count,
     maxOffset: 0, maxOffsetRatio: 0, maxOffsetOutsideCrest: 0, maxOffsetOutsideCrestRatio: 0,

@@ -1,0 +1,22 @@
+[
+  {
+    "id": "thresher",
+    "textured": true,
+    "base": "thresher",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "metrics": null,
+    "errors": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ]
+  },
+  {
+    "id": "tiger",
+    "textured": true,
+    "base": "tigershark",
+    "faceMounted": false,
+    "faceTriangles": 0,
+    "metrics": null,
+    "errors": []
+  }
+]

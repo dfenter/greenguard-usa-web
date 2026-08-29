@@ -640,10 +640,15 @@ import * as THREE from 'three';
     // paints with the zone's water colour, so every unit of it is a unit of
     // cyan on the shark. It is now a floor that keeps shadow sides from going
     // black, not the main source it used to be.
-    hemiIntensity: 0.30,
+    hemiIntensity: 0.22, /* Rev 16: neutral sky fill, trimmed after body L measured 0.577 */
     // The key. Neutral daylight, and strong enough to clear the ACES shoulder
     // so a real specular hotspot forms on a roughness-0.40 hide.
-    sunIntensity: 3.10,
+    // Rev 16: RESTORED to 2.60. The 1.60 here was chasing the bleached shark,
+    // and the bisect proved the shark was almost independent of the key: at
+    // the inverted dorsal axis (see below) sun 3.10 -> 1.60 moved the body
+    // median 0.756 -> 0.756. Dropping the key bought no value and cost the
+    // specular hotspot, so it goes back up now that the real cause is fixed.
+    sunIntensity: 2.60,
     // Above and in front, camera-left. Positive Z is toward the camera, so
     // this is a classic over-the-shoulder key that rakes the dorsal surface
     // and leaves the belly to the fill.
@@ -676,7 +681,28 @@ import * as THREE from 'three';
     // ACES exposure. Lowered from 1.06 because the rig below puts far more
     // light into the scene; the shark gains contrast from the key/fill ratio
     // now, not from a hot global exposure that also blows out the water.
-    exposure: 0.92
+    //
+    // Rev 16: 0.92 -> 0.80. This is the SECOND half of the bleached-shark fix
+    // and it is only meaningful once the dorsal axis is right (skin_identity
+    // measureBindUp, see NOTES-rev16-bright.md) - on the inverted axis the
+    // exposure knob was nearly inert on the body median.
+    //
+    // Why exposure and not the light rig: measured, the belly sits at ~0.80
+    // rendered no matter what the ALBEDO band says (belly floor 0.93 -> 0.62
+    // moved the rendered belly 0.802 -> 0.792) and nearly regardless of
+    // fill/rim/env. The belly is past the ACES shoulder, where the curve is
+    // flat, so only a global multiply ahead of the curve still has authority.
+    // Measured in-game, hawaii, axis fixed:
+    // Measured in-game, hawaii, dorsal axis fixed, shark masked to the largest
+    // connected achromatic blob (scratchpad/shark_blob.py - the plain
+    // achromatic test also admits pale water and drifts with the bbox):
+    //   exposure 0.80 -> median 0.595  countershade +0.440
+    //   exposure 0.76 -> median 0.512  countershade +0.412   <-- here
+    //   exposure 0.72 -> median 0.454  countershade +0.424
+    //   exposure 0.64 -> median 0.415  (dorsal starting to crush)
+    // 0.76 sits mid-target with the belly still bright enough to read as a
+    // countershade rather than as grey.
+    exposure: 0.76
   };
 
   // Pre-allocated scratch. step() must never allocate.
@@ -885,7 +911,7 @@ import * as THREE from 'three';
     // color/intensity inside applyZoneAtmo(); it receives the references
     // through ctx.lights (read at World.init) and through the explicit
     // RF.World.setLights() setter below, whichever that lane implements.
-    hemi = new THREE.HemisphereLight(0x9fd4e8, 0x06121e, LIGHT_RIG.hemiIntensity);
+    hemi = new THREE.HemisphereLight(0xdfe7ea, 0x1a2228, LIGHT_RIG.hemiIntensity) /* Rev 16: neutral sky fill; cyan 0x9fd4e8 dragged every hide to slate */;
     scene3.add(hemi);
     sun = new THREE.DirectionalLight(LIGHT_RIG.sunColor, LIGHT_RIG.sunIntensity);
     sun.position.set(LIGHT_RIG.sunX, LIGHT_RIG.sunY, LIGHT_RIG.sunZ);
@@ -6133,7 +6159,7 @@ import * as THREE from 'three';
       var fog0 = atmoScene.fog.color.getHex(), den0 = atmoScene.fog.density;
       var bg0 = atmoScene.background.getHex();
       var hemiSaved = hemi;
-      hemi = new THREE.HemisphereLight(0x9fd4e8, 0x06121e, LIGHT_RIG.hemiIntensity);
+      hemi = new THREE.HemisphereLight(0xdfe7ea, 0x1a2228, LIGHT_RIG.hemiIntensity) /* Rev 16: neutral sky fill; cyan 0x9fd4e8 dragged every hide to slate */;
       var hcol0 = hemi.color.getHex(), hint0 = hemi.intensity;
       startRun('reef');
       ctx.player.y = 3400;              // deep water: the old code lerped hard here

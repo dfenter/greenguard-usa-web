@@ -13,6 +13,12 @@ const PAGE=(id)=>`<!doctype html><meta charset=utf-8><title>whole ${id}</title>
 <style>html,body{margin:0;background:#7fb3c4;overflow:hidden}canvas{display:block}</style>
 <script type="importmap">{"imports":{"three":"/play/_shared/three/three.module.min.js"}}</script>
 <script src="/play/razorfin/data.js"></script>
+<script>
+/* Set BEFORE any module import: RF_GRIN_MOUTH_HOLD is a module-level const in
+ * face_textured.js, evaluated once at import time, so the flag has to be on
+ * the global before that module is ever pulled in. */
+if(new URLSearchParams(location.search).get('mouth')==='1')globalThis.__RF_GRIN_MOUTH=true;
+</script>
 <script type="module">
 import * as THREE from 'three';
 import Art3D from '/play/razorfin/shark3d.js';
@@ -41,6 +47,19 @@ if(OK!==null){rig.group.traverse(o=>{
   for(let i=0;i<pos.count;i++){ if(Math.abs(k.getX(i)-want)>0.5){pos.setXYZ(i,0,0,0);} }
   pos.needsUpdate=true; g2.computeBoundingSphere();
 });}
+/* GAPE: drive the jaw through the single authority so the frame shows the
+ * mouth at a known opening. r16 needs the mouth judged at BOTH a shut jaw and
+ * a working bite, because the tooth rows and cavity are authored against one
+ * pose and have to stay contained in the other. */
+const GAPE=P.get('gape');
+if(GAPE!==null){
+  const m=await import('/play/razorfin/hse/rig_morph.js');
+  let rr=null;rig.group.traverse(o=>{if(!rr&&o.userData&&o.userData.rfJawAuthority)rr=o;});
+  if(!rr&&rig.group.userData&&rig.group.userData.rfJawAuthority)rr=rig.group;
+  if(rr){m.writeJawGape(rr,Number(GAPE));rr.updateMatrixWorld(true);
+    rig.group.traverse(o=>{if(o.isSkinnedMesh&&o.skeleton)o.skeleton.update();});}
+  globalThis.__GAPE_APPLIED=!!rr;
+}
 if(P.get('flip')==='1'){rig.group.rotation.y+=Math.PI;rig.group.updateMatrixWorld(true);}
 // frame the whole body from its true SKINNED bounds
 function skinBox(m){const g=m.geometry,pos=g.getAttribute('position'),si=g.getAttribute('skinIndex'),sw=g.getAttribute('skinWeight');
@@ -71,7 +90,7 @@ const span=Math.max(s.x,s.y,s.z);
 cam.position.set(c.x,c.y,c.z+span*2.6);cam.lookAt(c);
 renderer.render(scene,cam);
 let face=null;rig.group.traverse(o=>{if(o.userData&&o.userData.rfTexturedFace)face=o;});
-globalThis.__W={id:'${id}',faceMounted:!!face,bodyBox:[bb.min.toArray(),bb.max.toArray()]};
+globalThis.__W={id:'${id}',faceMounted:!!face,gapeApplied:globalThis.__GAPE_APPLIED===true,bodyBox:[bb.min.toArray(),bb.max.toArray()]};
 document.title='whole ${id} '+(face?'FACE':'noface');
 </script>`;
 const srv=http.createServer((req,res)=>{
@@ -112,14 +131,22 @@ for(const id of IDS){
       w.RF.Game=w.RF.Game||{};w.RF.Game.ctx=w.RF.Game.ctx||{};
       w.RF.Game.ctx.player=w.RF.Game.ctx.player||{__stub:true};
       w.RF.Meta=w.RF.Meta||{};w.RF.Meta.profile=()=>({activeShark:rowId});},id);
-    const q=variant==='noface'?'&noface=1':variant==='flip'?'&flip=1':
-            variant==='flipnoface'?'&flip=1&noface=1':
-            variant.startsWith('kind')?'&onlykind='+variant.slice(4):'';
+    /* A variant may carry a gape suffix, e.g. `face@0.35` or
+     * `flipnoface@0`. The gape is applied to the SAME bone by the same
+     * authority the runtime uses, so a face/noface pair at one gape is a
+     * valid difference image. */
+    const at=variant.indexOf('@');
+    const base=at<0?variant:variant.slice(0,at);
+    const gq=at<0?'':'&gape='+variant.slice(at+1);
+    const mq=process.env.MOUTH==='1'?'&mouth=1':'';
+    const q=(base==='noface'?'&noface=1':base==='flip'?'&flip=1':
+            base==='flipnoface'?'&flip=1&noface=1':
+            base.startsWith('kind')?'&onlykind='+base.slice(4):'')+gq+mq;
     await page.goto(`http://127.0.0.1:${port}/whole?id=${id}${q}`,{waitUntil:'load'});
     await new Promise(r=>setTimeout(r,5000));
     const w=await page.evaluate(()=>globalThis.__W||null);
     await page.screenshot({path:path.join(OUT,`${id}_${variant}.png`)});
-    console.log(id.padEnd(12),variant.padEnd(7),'face='+(w?w.faceMounted:'?'));
+    console.log(id.padEnd(12),variant.padEnd(16),'face='+(w?w.faceMounted:'?'),'gape='+(w?w.gapeApplied:'?'));
     await page.close();
     await browser.close();
   }

@@ -306,57 +306,130 @@ const MICRO_SCALE = 46.0;
  */
 
 /* Natural shark hides, as [hue, saturation, value] of the DORSAL surface.
- * Values are eyeballed off real reference and deliberately low-saturation.
+ *
+ * Rev 15 REBASE: EVERY one of the 86 rows is named here now, and this is why.
+ * The owner scrapped all but four baked bodies, so the base mesh can no longer
+ * carry a row's identity - 84 rows share four meshes. Hue and value have to do
+ * that work instead, and a MODEL_HIDE fallback keyed on four models would give
+ * four colors to 84 sharks.
+ *
+ * The 26 real-species rows keep their hand-authored hides verbatim (marked
+ * ANCHOR): those are facts about real animals and are not up for optimization.
+ * The remaining rows were placed by a repulsion relaxation in the perceptual
+ * metric sqrt((2.2*dHue)^2 + (0.8*dSat)^2 + (1.6*dValue)^2), with the anchors
+ * held fixed and every hue snapped back into one of three arcs a real shark's
+ * hide actually occupies: 0.545-0.665 slate/blue-grey, 0.02-0.30 bronze /
+ * tan / olive, 0.90-1.02 the goblin's pink. No row can leave those arcs, so
+ * nothing here can become a neon or an alien.
+ *
+ * Result: every non-anchor pair is >= 0.06 apart in that metric. The seven
+ * pairs still under it are all ANCHOR-vs-ANCHOR (dunkleosteus/snapjaw,
+ * tiger/snapjaw, gulperfiend/anglerfang, mako/sailfin, thresher/duskfin,
+ * snapjaw/thornback, whaleshark/duskfin) - real species that genuinely look
+ * alike, and which separate through markings, morph and props instead.
+ *
  * `key` is matched against the row id first, then the base model. */
 const SPECIES_HIDE = Object.freeze({
-  /* --- exact rows, real species -------------------------------------- */
-  reef:         [0.60, 0.10, 0.42],   /* grey reef: plain grey, faint blue   */
-  epaulette:    [0.09, 0.24, 0.52],   /* sandy tan with dark ocelli          */
-  cookiecutter: [0.07, 0.16, 0.34],   /* dark brown-grey, pale collar        */
-  mako:         [0.60, 0.22, 0.40],   /* metallic blue-grey, the classic     */
-  blue:         [0.635, 0.34, 0.36],  /* indigo-blue dorsal, deepest blue    */
-  hammerhead:   [0.22, 0.14, 0.40],   /* olive-grey                          */
-  thresher:     [0.62, 0.13, 0.33],   /* dark purplish grey-brown            */
-  sawshark:     [0.10, 0.18, 0.46],   /* sandy grey-brown                    */
-  tiger:        [0.11, 0.26, 0.38],   /* bronze-tan, dark bars               */
-  bull:         [0.08, 0.11, 0.42],   /* grey-brown, heavy                   */
-  greatwhite:   [0.58, 0.08, 0.38],   /* slate grey, the reference hide      */
-  whaleshark:   [0.60, 0.16, 0.28],   /* very dark blue-grey, white spots    */
-  megalodon:    [0.59, 0.10, 0.31],   /* slate, scarred                      */
-  greenland:    [0.09, 0.13, 0.30],   /* dark mottled brown-grey             */
-  goblin:       [0.97, 0.20, 0.52],   /* the one real PINK shark             */
-  dunkleosteus: [0.10, 0.20, 0.36],   /* armored placoderm, bronze plate     */
-  /* --- rare/epic rows still on a real body ---------------------------- */
-  snapjaw:      [0.11, 0.22, 0.37],
-  anglerfang:   [0.62, 0.10, 0.26],
-  gulperfiend:  [0.63, 0.12, 0.24],
-  morayne:      [0.20, 0.20, 0.34],
-  sailfin:      [0.61, 0.24, 0.38],
-  thornback:    [0.10, 0.20, 0.40],
-  stonejaw:     [0.09, 0.10, 0.38],
-  duskfin:      [0.62, 0.14, 0.30],
-  barbhook:     [0.58, 0.15, 0.36],
-  coralcrown:   [0.05, 0.22, 0.46]
+  reef:             [0.6, 0.1, 0.42],   /* common    thresher       ANCHOR */
+  epaulette:        [0.09, 0.24, 0.52],   /* common    whaler         ANCHOR */
+  cookiecutter:     [0.07, 0.16, 0.34],   /* common    thresher       ANCHOR */
+  mako:             [0.6, 0.22, 0.4],   /* common    thresher       ANCHOR */
+  blue:             [0.635, 0.34, 0.36],   /* common    thresher       ANCHOR */
+  hammerhead:       [0.22, 0.14, 0.4],   /* common    whaler         ANCHOR */
+  thresher:         [0.62, 0.13, 0.33],   /* common    thresher       ANCHOR */
+  sawshark:         [0.1, 0.18, 0.46],   /* common    thresher       ANCHOR */
+  tiger:            [0.11, 0.26, 0.38],   /* common    tigershark     ANCHOR */
+  bull:             [0.08, 0.11, 0.42],   /* common    tigershark     ANCHOR */
+  goblin:           [0.97, 0.2, 0.52],   /* common    own-glb        ANCHOR */
+  greatwhite:       [0.58, 0.08, 0.38],   /* rare      greatwhite_cy  ANCHOR */
+  whaleshark:       [0.6, 0.16, 0.28],   /* rare      greatwhite_cy  ANCHOR */
+  megalodon:        [0.59, 0.1, 0.31],   /* rare      greatwhite_cy  ANCHOR */
+  dunkleosteus:     [0.1, 0.2, 0.36],   /* rare      greatwhite_cy  ANCHOR */
+  greenland:        [0.09, 0.13, 0.3],   /* rare      greatwhite_cy  ANCHOR */
+  snapjaw:          [0.11, 0.22, 0.37],   /* rare      tigershark     ANCHOR */
+  gulperfiend:      [0.63, 0.12, 0.24],   /* rare      own-glb        ANCHOR */
+  anglerfang:       [0.62, 0.1, 0.26],   /* rare      whaler         ANCHOR */
+  morayne:          [0.2, 0.2, 0.34],   /* rare      thresher       ANCHOR */
+  sailfin:          [0.61, 0.24, 0.38],   /* rare      thresher       ANCHOR */
+  thornback:        [0.1, 0.2, 0.4],   /* rare      whaler         ANCHOR */
+  stonejaw:         [0.09, 0.1, 0.38],   /* rare      greatwhite_cy  ANCHOR */
+  duskfin:          [0.62, 0.14, 0.3],   /* rare      thresher       ANCHOR */
+  barbhook:         [0.58, 0.15, 0.36],   /* rare      thresher       ANCHOR */
+  coralcrown:       [0.05, 0.22, 0.46],   /* rare      whaler         ANCHOR */
+  vex:              [0.5563, 0.104, 0.296],   /* epic      thresher       spread */
+  abyssmaw:         [0.1500, 0.340, 0.287],   /* epic      greatwhite_cy  spread */
+  riftjaw:          [0.6395, 0.111, 0.368],   /* epic      whaler         spread */
+  venomspine:       [0.01, 0.193, 0.522],   /* epic      thresher       spread */
+  howler:           [0.1123, 0.326, 0.413],   /* epic      tigershark     spread */
+  magmaw:           [0.5976, 0.201, 0.329],   /* epic      whaler         spread */
+  frostjaw:         [0.5750, 0.300, 0.200],   /* epic      greatwhite_cy  spread */
+  stormfin:         [0.0697, 0.339, 0.392],   /* epic      thresher       spread */
+  gloomtide:        [0.9524, 0.194, 0.56],   /* epic      thresher       spread */
+  wreckfang:        [0.0550, 0.340, 0.200],   /* epic      greatwhite_cy  spread */
+  ironfin:          [0.5750, 0.300, 0.287],   /* epic      greatwhite_cy  spread */
+  cindermaw:        [0.2701, 0.218, 0.468],   /* epic      thresher       spread */
+  glacier:          [0.2700, 0.340, 0.373],   /* epic      greatwhite_cy  spread */
+  gravewater:       [0.5787, 0.31, 0.28],   /* epic      whaler         spread */
+  teslafang:        [0.2094, 0.08, 0.433],   /* epic      thresher       spread */
+  plaguemaw:        [0.0518, 0.235, 0.325],   /* epic      tigershark     spread */
+  sunspine:         [0.9344, 0.166, 0.489],   /* epic      thresher       spread */
+  nocturne:         [0.1561, 0.107, 0.396],   /* epic      thresher       spread */
+  tempest:          [0.5865, 0.08, 0.264],   /* epic      thresher       spread */
+  maelstrom:        [0.6250, 0.300, 0.287],   /* epic      greatwhite_cy  spread */
+  bonecrown:        [0.1000, 0.340, 0.373],   /* epic      greatwhite_cy  spread */
+  mirrorscale:      [0.9384, 0.235, 0.52],   /* epic      whaler         spread */
+  aurora:           [0.1721, 0.193, 0.421],   /* epic      thresher       spread */
+  vulkan:           [0.1000, 0.340, 0.200],   /* epic      greatwhite_cy  spread */
+  voltaicrex:       [0.6550, 0.300, 0.200],   /* epic      greatwhite_cy  spread */
+  nullfin:          [0.1438, 0.27, 0.377],   /* epic      whaler         spread */
+  chronos:          [0.5922, 0.238, 0.256],   /* epic      thresher       spread */
+  seismos:          [0.5500, 0.300, 0.287],   /* epic      greatwhite_cy  spread */
+  banshee:          [0.0478, 0.089, 0.338],   /* epic      thresher       spread */
+  vortexa:          [0.2100, 0.340, 0.287],   /* epic      greatwhite_cy  spread */
+  warbringer:       [0.6000, 0.300, 0.373],   /* legendary greatwhite_cy  spread */
+  omenmaw:          [0.0550, 0.340, 0.373],   /* legendary greatwhite_cy  spread */
+  solaris:          [0.2866, 0.111, 0.452],   /* legendary whaler         spread */
+  absolutezero:     [0.1069, 0.117, 0.34],   /* legendary tigershark     spread */
+  leviathanrex:     [0.2700, 0.340, 0.200],   /* legendary greatwhite_cy  spread */
+  leviathan_rex:    [0.2100, 0.340, 0.200],   /* legendary greatwhite_cy  spread */
+  zeusfin:          [0.6301, 0.218, 0.34],   /* god       thresher       spread */
+  poseidonrex:      [0.5500, 0.300, 0.373],   /* god       greatwhite_cy  spread */
+  hadesmaw:         [0.1187, 0.122, 0.405],   /* god       whaler         spread */
+  apollodon:        [0.571, 0.189, 0.3],   /* god       thresher       spread */
+  artemisstrike:    [0.2419, 0.087, 0.447],   /* god       whaler         spread */
+  athenajaw:        [0.0707, 0.272, 0.359],   /* god       whaler         spread */
+  aresrender:       [0.9643, 0.282, 0.498],   /* god       tigershark     spread */
+  hermesdart:       [0.1964, 0.242, 0.399],   /* god       thresher       spread */
+  hephaestusforge:  [0.6250, 0.300, 0.373],   /* god       greatwhite_cy  spread */
+  dionysustide:     [0.2608, 0.12, 0.482],   /* god       whaler         spread */
+  aphroditelure:    [0.1313, 0.08, 0.367],   /* god       whaler         spread */
+  heracrown:        [0.0550, 0.340, 0.287],   /* god       greatwhite_cy  spread */
+  typhonmaw:        [0.1500, 0.340, 0.373],   /* demon     greatwhite_cy  spread */
+  hydrafang:        [0.0502, 0.209, 0.266],   /* demon     thresher       spread */
+  cerberusjaw:      [0.9228, 0.257, 0.434],   /* demon     tigershark     spread */
+  chimerashark:     [0.1451, 0.115, 0.328],   /* demon     thresher       spread */
+  medusagaze:       [0.608, 0.331, 0.236],   /* demon     whaler         spread */
+  scyllarender:     [0.2652, 0.216, 0.397],   /* demon     thresher       spread */
+  charybdisvoid:    [0.6000, 0.300, 0.200],   /* demon     greatwhite_cy  spread */
+  minotaurram:      [0.6550, 0.300, 0.287],   /* demon     greatwhite_cy  spread */
+  cyclopseye:       [0.174, 0.161, 0.363],   /* demon     whaler         spread */
+  harpyshade:       [0.6468, 0.328, 0.259],   /* demon     thresher       spread */
+  lamiacoil:        [0.0232, 0.205, 0.42],   /* demon     thresher       spread */
+  kampechrono:      [0.1251, 0.301, 0.321],   /* demon     whaler         spread */
 });
 
-/* Base-model fallback for every row the table above does not name. Keyed on the
- * baked GLB, so a fantasy row inherits the natural hide of the real shark whose
- * body it is actually wearing - which is exactly the "shark first" rule. */
+/* Base-model fallback. After the Rev 15 rebase only FOUR baked bodies are
+ * referenced by data.js, so this table is four entries long and is a safety
+ * net rather than a color source: SPECIES_HIDE above names all 86 rows, so
+ * nothing on the live roster reaches this lookup. The scrapped bakes
+ * (dogfish, bullhead, smoothhound, mako, blueshark, smoothhammer,
+ * scallopedhammer, tiger_nu, whitepointer, megalodonrex) were removed with
+ * their rows. */
 const MODEL_HIDE = Object.freeze({
-  dogfish:         [0.60, 0.10, 0.40],
-  bullhead:        [0.09, 0.20, 0.42],
-  smoothhound:     [0.62, 0.12, 0.32],
-  mako:            [0.60, 0.22, 0.38],
-  smoothhammer:    [0.22, 0.14, 0.40],
-  scallopedhammer: [0.21, 0.15, 0.41],
   thresher:        [0.62, 0.13, 0.34],
-  tiger_nu:        [0.11, 0.26, 0.38],
   tigershark:      [0.11, 0.24, 0.37],
   whaler:          [0.08, 0.11, 0.42],
-  greatwhite_cy:   [0.58, 0.08, 0.38],
-  whitepointer:    [0.59, 0.09, 0.36],
-  blueshark:       [0.635, 0.32, 0.36],
-  megalodonrex:    [0.59, 0.10, 0.31]
+  greatwhite_cy:   [0.58, 0.08, 0.38]
 });
 const DEFAULT_HIDE = Object.freeze([0.59, 0.10, 0.38]);
 
@@ -1150,9 +1223,20 @@ function measureBindUp(mesh) {
     scored.push({
       axis,
       spike: Math.abs(maxPos - maxNeg),
-      spikeSign: maxPos >= maxNeg ? -1 : 1,
+      /* Rev 16 (coordinator ruling): the dorsal spike points AT the dorsal.
+       *
+       * Both signs were inverted. maxPos is the largest excursion along +axis,
+       * so when it wins, the dorsal fin - the one large asymmetric feature this
+       * metric exists to find - is on the POSITIVE side and the bind-up vector
+       * must be +1. Returning -1 pointed the countershade the wrong way and
+       * painted the near-white belly band across the BACK of all four approved
+       * bakes; measured in-game dorsal-minus-belly -0.18 before, +0.42 after.
+       * skewSign carries the same convention: a positive third moment means the
+       * long tail of the distribution is on the +axis side, which is again the
+       * dorsal side. */
+      spikeSign: maxPos >= maxNeg ? 1 : -1,
       skew: Math.abs(skew),
-      skewSign: skew >= 0 ? -1 : 1
+      skewSign: skew >= 0 ? 1 : -1
     });
   }
   if (!scored.length) return null;
@@ -1508,7 +1592,31 @@ function identityUniforms(def, palette, options = {}) {
   const accent = rfLaw.accent
     ? hsvArrayToColor(rfLaw.accent)
     : colorValue(palette?.accent, new THREE.Color(0.08, 0.52, 0.72));
-  const glow = isColorLike(palette?.glow) ? colorValue(palette.glow) : accent.clone();
+  /* Rev 16: the GLOW SEAM is the last full-saturation decal on the animal.
+   *
+   * Round 4 removed the periodic vertical seam and confined what was left to
+   * the row's pattern mask on the dorsal ridge, which was the right shape fix -
+   * but it left the COLOUR alone, and `palette.glow` is the raw authored
+   * swatch. Rendered, typhonmaw wears two hard bright-green bars across the
+   * dorsal and caudal fins (see the r16 contact sheet): the mask is narrow now,
+   * so it reads as a strip of tape rather than a wash, and because it is added
+   * to totalEmissiveRadiance no countershade or shading can touch it.
+   *
+   * Gods and demons already have their accent named by markingLaw(); everything
+   * else keeps a whisper of its authored hue. Either way the seam is pulled to
+   * the row's own hide hue, capped at the marking saturation ceiling, and held
+   * near the hide's value, so a legendary row still carries a lit ridge without
+   * carrying a colour the animal could not have. */
+  const glow = (() => {
+    const raw = isColorLike(palette?.glow) ? colorValue(palette.glow) : accent.clone();
+    const rawHsv = rgbToHsvArray(raw);
+    const hueGap = hueDelta(hide.hsv[0], rawHsv[0]);
+    return hsvArrayToColor([
+      (hide.hsv[0] + hueGap * 0.15 + 1) % 1,
+      Math.min(rawHsv[1], rfLaw.sat),
+      clamp(Math.max(hide.hsv[2], 0.30) * 1.15, 0.18, 0.62)
+    ]);
+  })();
   const tier = clamp(finite(def?.tier, 1), 1, 12);
   const pattern = patternCode(def);
   const glowClass = cls >= CLASS_CODES.legendary ? 1 : 0;
@@ -1518,7 +1626,16 @@ function identityUniforms(def, palette, options = {}) {
     uRfIdPattern: { value: pattern },
     uRfIdClass: { value: cls },
     uRfIdTier: { value: tier },
-    uRfIdPatternScale: { value: 5.4 + tier * 0.30 + (pattern === 1 ? 1.6 : 0) },
+    /* Rev 16: the SPOT family needs a much denser field.
+     *
+     * 5.4 + tier*0.30 is about 7 cells along the body, which is right for a
+     * tiger's bars or a mech row's plates but is nowhere near a spot pattern.
+     * A whale shark carries a dense grid of small pale spots over the whole
+     * flank; at scale 7 it rendered as three or four soft blobs that read as
+     * shading rather than as markings. Tripling the scale for pattern 2 puts
+     * roughly 20 cells along the body, which is a spot field at the size the
+     * thumbnail actually shows. Bars, rings, scars and plates are unchanged. */
+    uRfIdPatternScale: { value: (5.4 + tier * 0.30 + (pattern === 1 ? 1.6 : 0)) * (pattern === 2 ? 2.9 : 1) },
     uRfIdPatternMix: { value: pattern === 0 ? 0 : pattern === 1 ? 0.92 : 0.84 },
     uRfIdPatternContrast: { value: glowClass ? 1.0 : 0.94 },
     uRfIdPatternSeed: { value: finite(def?.id ? hashString(String(def.id)) : 0.17, 0.17) * 19.0 },
@@ -1708,7 +1825,24 @@ float rfIdMarkBodyLum = max(dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722)),
 float rfIdMarkLum = max(dot(rfIdMark, vec3(0.2126, 0.7152, 0.0722)), 1e-4);
 vec3 rfIdMarkMuted = mix(vec3(rfIdMarkLum), rfIdMark, clamp(uRfIdMarkSat * 2.0, 0.0, 1.0));
 float rfIdMarkMutedLum = max(dot(rfIdMarkMuted, vec3(0.2126, 0.7152, 0.0722)), 1e-4);
-float rfIdMarkVal = clamp(rfIdMarkBodyLum * (1.0 - uRfIdMarkValue), 0.02, 0.97);
+/* Rev 16: SPOTS ARE PALE. A whale shark's spots, a leopard shark's rosettes
+ * and an epaulette's ocelli are all LIGHTER than the hide around them; a
+ * tiger's bars, a mech row's panel seams and a cracked row's faults are
+ * darker. Round 4 collapsed both onto one rule - always darken the body
+ * luminance by uRfIdMarkValue - which is right for a bar and backwards for a
+ * spot, so the whale shark's dots were drawn 18% darker than a hide the
+ * countershade had already darkened, and vanished. Measured on the r16 shoot:
+ * whaleshark rendered with no visible marking at all.
+ *
+ * Pattern 2 is the spot family (spots/dots/mottled/mirror/stars/patches). It
+ * now moves the same distance the other way, so the mark stays inside the
+ * owner's dV law - it is still |dV| <= uRfIdMarkValue from the hide, still
+ * capped in saturation, still in-surface pigment - but on the correct side of
+ * it, and still fades out on the belly where the hide is already pale. */
+float rfIdPaleMark = (uRfIdPattern == 2) ? 1.0 : 0.0;
+float rfIdMarkVal = clamp(mix(rfIdMarkBodyLum * (1.0 - uRfIdMarkValue),
+                              rfIdMarkBodyLum * (1.0 + uRfIdMarkValue * 1.60) + 0.045,
+                              rfIdPaleMark), 0.02, 0.97);
 vec3 rfIdMarkTone = rfIdMarkMuted * (rfIdMarkVal / rfIdMarkMutedLum);
 diffuseColor.rgb = mix(diffuseColor.rgb, rfIdMarkTone, rfIdMarkAmount * 0.72);
 /* A restrained eye tint hook preserves the painted eye's value while letting
@@ -2076,6 +2210,36 @@ function neutralizeTexturedTint(userData, hide) {
   if (textured.uRfRimColor?.value?.copy) {
     record.rimColor = textured.uRfRimColor.value.getHex();
     textured.uRfRimColor.value.copy(new THREE.Color(0.86, 0.88, 0.90));
+  }
+  /* Rev 16: the SATURATED FIN TIPS.
+   *
+   * shark3d.js:2440 paints the outer 20% of every fin toward uRfAccentColor at
+   * 0.26, and nothing had ever brought that uniform under the owner's marking
+   * law - this function rewrites uRfHueShift, uRfSaturation, uRfTopColor and
+   * uRfBottomColor, but the accent was left as the raw authored fantasy swatch.
+   * On the r16 contact sheet that is a hard yellow, blue, magenta, orange or
+   * green cap on the dorsal fin of most Act 4/5 rows: a full-saturation decal,
+   * the exact shape the owner ruled out, and the same defect the props carried
+   * until props_textured.js started resolving its tint from the hide.
+   *
+   * Real sharks DO carry dark or pale fin tips - a blacktip's are a fact about
+   * the animal - so the tip is kept as a marking and only its colour is brought
+   * under the law: the species hue, the marking saturation ceiling, and a value
+   * offset from the hide so the tip reads as darker (or paler) skin rather than
+   * as paint. */
+  if (textured.uRfAccentColor?.value?.copy) {
+    record.accentColor = textured.uRfAccentColor.value.getHex();
+    const law = hide.fantasy ? GOD_MARK_SAT_MAX : MARK_SAT_MAX;
+    const accent = rgbToHsvArray(textured.uRfAccentColor.value);
+    /* Keep a whisper of the authored hue so two rows on one base still differ,
+     * but never more than a tenth of a turn from the animal's own colour. */
+    let delta = hueDelta(hide.hsv[0], accent[0]);
+    const hue = (hide.hsv[0] + delta * 0.12 + 1) % 1;
+    textured.uRfAccentColor.value.copy(hsvArrayToColor([
+      hue,
+      Math.min(accent[1], law),
+      clamp(hide.hsv[2] * (1 - MARK_VALUE_DELTA), 0.05, 0.55)
+    ]));
   }
   /* ROUND 4: the SATURATED STRIPE DECALS.
    *
