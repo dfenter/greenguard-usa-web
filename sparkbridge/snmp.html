@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Native drivers","item":"https://mqtt.greenguard-usa.com/sparkbridge/drivers"},{"@type":"ListItem","position":3,"name":"SparkSNMP","item":"https://mqtt.greenguard-usa.com/sparkbridge/snmp"}]},{"@type":"SoftwareApplication","name":"SparkSNMP SNMP driver for Ignition","url":"https://mqtt.greenguard-usa.com/sparkbridge/snmp","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer, Ignition 8.3","softwareVersion":"0.1.1","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"Native SNMP v1, v2c and v3 driver module for Ignition 8.1 and 8.3. Browses devices without a MIB, receives traps as tags, polls at the rate your tags ask for. $1,495 per gateway, bought once.","offers":{"@type":"Offer","price":"1495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per gateway. Standalone, does not require SparkBridge"}}]}
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Native drivers","item":"https://mqtt.greenguard-usa.com/sparkbridge/drivers"},{"@type":"ListItem","position":3,"name":"SparkSNMP","item":"https://mqtt.greenguard-usa.com/sparkbridge/snmp"}]},{"@type":"SoftwareApplication","name":"SparkSNMP SNMP driver for Ignition","url":"https://mqtt.greenguard-usa.com/sparkbridge/snmp","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer, Ignition 8.3","softwareVersion":"0.1.1","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"SparkSNMP brings network, power and server equipment into Ignition. $1,495 per gateway, bought once, always billed separately.","offers":{"@type":"Offer","price":"1495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per gateway. Standalone, always billed separately"}}]}
 </script>
 </head>
 <body>
@@ -51,9 +51,9 @@
     <div class="phead-grid">
       <div>
         <div class="eyebrow">SparkSNMP</div>
-        <h1>SNMP: every switch, UPS and server in Ignition, without a MIB in sight</h1>
-        <p>The network side of a plant is full of equipment that already answers SNMP. Getting it into Ignition has meant a third party driver that wants a MIB file for every device and polls at one rate for all of them.</p>
-        <div class="pmeta"><span class="stat">Released 0.1.1</span><span>SNMP v1, v2c, v3</span><span>Ignition 8.1 and 8.3</span></div>
+        <h1>See a failing switch or UPS before it takes down the line</h1>
+        <p>The network side of a plant is full of equipment that already reports its own health. SparkSNMP puts every switch, UPS, PDU and server next to your process data, so the alarm fires when a port starts throwing errors, not twenty minutes later when the line stops.</p>
+        <div class="pmeta"><span class="stat">Released 0.1.1</span><span>Runs on the gateway that touches the equipment</span><span>$1,495, always separate</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>OPC UA reads, live gateway 8.1.54</span><span class="live"><i class="dot"></i>Captured live</span></div>
@@ -78,23 +78,19 @@
 
 <section>
   <div class="wrap">
-    <p class="claim">Point it at the device. <em>The browse tree appears.</em></p>
+    <p class="claim">Point it at the device. <em>Every reading appears.</em></p>
     <div class="twocol">
       <div class="measure">
-        <p>SparkSNMP walks the device on connect and builds the Ignition browse tree from what the device actually reports: system, interfaces, IP, host resources, storage, and every table it finds, with the standard names already filled in. There is nothing to import before the first tag is dragged in. Vendor MIBs can be added later for the private branches, but nobody waits on them.</p>
-        <p>Polling follows the tags. A tag group at one second gets one second; a tag group at a minute gets a minute; bulk requests are packed per device so a 48 port switch is a handful of packets, not a hundred. Traps arrive as tags under the device, with a script hook if you want to act on them.</p>
-        <p>Writes are supported where the device allows them, and a diagnostics folder on every device tells you whether it is reachable, how many requests went out, and whether you have asked for more than the link can carry.</p>
+        <p>SparkSNMP connects your network gear, UPSs, PDUs and servers straight into Ignition, with nothing to hunt down and import first. System status, interfaces, storage and every table the device reports show up the moment it connects, so the first tag can be dragged in immediately instead of after a morning spent finding vendor files.</p>
+        <p>Fast readings poll fast and slow ones poll slow, instead of one rate forced on every value from a device. A linkDown or a UPS going to battery lands as an Ignition alarm the moment it happens, in the same place your process alarms already live, instead of in a separate tool nobody watches.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
         <table class="spec">
-          <tr><th>What it is</th><td>A native SNMP v1, v2c and v3 device driver for Ignition</td></tr>
-          <tr><th>What it removes</th><td>MIB hunting, a single device wide poll rate, and the third party driver license</td></tr>
+          <tr><th>What it is</th><td>Network, power and server equipment brought into Ignition</td></tr>
+          <tr><th>Where it runs</th><td>On the gateway that touches the equipment</td></tr>
           <tr><th>Who it is for</th><td>Plants with managed switches, UPSs, PDUs, servers, printers and cellular gateways to watch</td></tr>
-          <tr><th>Traps</th><td>Received as tags under the device, with an optional script hook. v1, v2c and v3 INFORM</td></tr>
-          <tr><th>Security</th><td>v3 authPriv with SHA-2 and AES, passphrases stored as gateway secrets. Independent security review before release</td></tr>
-          <tr><th>Licensing</th><td>$1,495 per gateway, bought once and kept, not a subscription. Bought on its own, no SparkBridge license required. One license covers the 8.1 and 8.3 builds. See <a href="/sparkbridge/pricing">pricing</a></td></tr>
-          <tr><th>Underneath</th><td>Runs on the gateway alongside the other <a href="/sparkbridge/drivers">native drivers</a>. Load figures from the release gate: 50 devices, 70 concurrent poll threads, 10 minute soak with a flat heap.</td></tr>
+          <tr><th>Licensing</th><td>$1,495 per gateway, bought once and kept, not a subscription. Always billed separately, never part of any package. One license covers the 8.1 and 8.3 builds. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
         </table>
       </div>
     </div>
@@ -105,7 +101,7 @@
   <div class="wrap">
     <div class="figure"><b>0</b><span>MIB files needed for the first 114 tags</span></div>
     <div class="measure">
-      <p>The standard MIB-2 tree is compiled into the driver, so a device's system, interface, IP and host resource branches are named correctly the moment it connects. Tables are walked live, so a switch shows exactly the ports it has.</p>
+      <p>Standard equipment is named correctly the moment it connects, with nothing to import first. Every reported table is walked live, so a switch shows exactly the ports it has.</p>
       <p>The release gate ran nine load scenarios plus a ten minute soak, including unreachable devices, slow devices, oversubscribed poll rates and trap floods, and every one passed before the module was signed.</p>
     </div>
   </div>
@@ -141,10 +137,17 @@
     <div class="measure">
       <p>If you have network gear, power equipment or servers you would rather see next to the process than in a separate tool, this is worth a conversation. Early sites shape the roadmap.</p>
     </div>
-    <div class="cta-row">
-      <a class="btn" href="/sparkbridge/contact">Talk to us</a>
-      <a class="btn ghost dark" href="/sparkbridge/products">See the products</a>
+
+    <h2 style="margin-top:40px">For your engineers</h2>
+    <div class="measure">
+      <p>SparkSNMP is a native SNMP v1, v2c and v3 driver module for Ignition 8.1 and 8.3. It walks each device on connect and builds the browse tree from the standard MIB-2 table already compiled into the driver: system, interfaces, IP, host resources, storage. Vendor MIBs can be added later for private branches, but nothing waits on them. Polling follows the tag groups that subscribe rather than a device-wide rate, and bulk requests are packed per device. Traps arrive as tags under the device with an optional script hook, v1, v2c and v3 INFORM. Security is v3 authPriv with SHA-2 and AES, passphrases stored as gateway secrets, with an independent security review before release. A diagnostics folder on every device reports reachability, request counts, and whether you have asked for more than the link can carry.</p>
     </div>
+
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge/contact">Try it on one site</a>
+      <a class="btn ghost dark" href="/sparkbridge/pricing">See pricing</a>
+    </div>
+    <p class="note">Development use is free with no time limit. <a href="/sparkbridge/contact">Contact</a>.</p>
   </div>
 </section>
 

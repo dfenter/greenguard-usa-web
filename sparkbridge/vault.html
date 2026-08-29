@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Products","item":"https://mqtt.greenguard-usa.com/sparkbridge/products"},{"@type":"ListItem","position":3,"name":"SparkVault","item":"https://mqtt.greenguard-usa.com/sparkbridge/vault"}]},{"@type":"SoftwareApplication","name":"SparkVault","url":"https://mqtt.greenguard-usa.com/sparkbridge/vault","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","softwareVersion":"2.5.0","isPartOf":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#app"},"publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"SparkVault is an MQTT Sparkplug historian module for Ignition. It keeps plant history on the plant's own clock so trends stay true after an outage, and replays any past day on demand. $995 per gateway.","offers":{"@type":"Offer","price":"995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per central gateway. Included in the central package"}}]}
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Central","item":"https://mqtt.greenguard-usa.com/sparkbridge/central"},{"@type":"ListItem","position":3,"name":"SparkVault","item":"https://mqtt.greenguard-usa.com/sparkbridge/vault"}]},{"@type":"SoftwareApplication","name":"SparkVault","url":"https://mqtt.greenguard-usa.com/sparkbridge/vault","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","softwareVersion":"2.5.0","isPartOf":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#app"},"publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"SparkVault keeps plant history on the plant's own clock, so an outage never leaves a hole and any past day can be replayed. $995, included in the central package.","offers":{"@type":"Offer","price":"995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per central gateway. Included in the $3,995 central package"}}]}
 </script>
 </head>
 <body>
@@ -51,9 +51,9 @@
     <div class="phead-grid">
       <div>
         <div class="eyebrow">SparkVault</div>
-        <h1>Plant history you can actually trust, from a Sparkplug historian</h1>
-        <p>Most systems record when data <em>arrived</em>. After an outage that turns a real production curve into a flat wall of values, and every trend and report built on it is wrong.</p>
-        <div class="pmeta"><span class="stat">Released</span><span>Runs on your gateway</span><span>Open storage</span></div>
+        <h1>Never lose an hour of history to an outage again</h1>
+        <p>An outage used to mean a flat line in every trend and a report you could not defend to a customer or an auditor. SparkVault keeps every reading on the time it actually happened, so the record stays true no matter what the network did.</p>
+        <div class="pmeta"><span class="stat">Released</span><span>Runs on the central gateway</span><span>$995, in the central package</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>Spike/Sine &middot; 1 s raw</span><span class="live"><i class="dot"></i>Captured live</span></div>
@@ -77,21 +77,18 @@
     <p class="claim">Your history stays true, <em>even after an outage</em>.</p>
     <div class="twocol">
       <div class="measure">
-        <p>SparkVault records every value with the timestamp the equipment gave it, not the moment it reached the server. When a link goes down and comes back, the backlog fills in where it actually belongs, so the curve your team looks at is the curve the plant ran.</p>
-        <p>It stores that history in an open database rather than a proprietary file, so your existing reporting and dashboard tools can read it directly, and you are never negotiating to get at your own data.</p>
-        <p>It also plays history back on demand. Any past day can be re-run through your systems, which means you can test a new dashboard, tune an alarm, or walk through an incident using real production data instead of a simulation.</p>
+        <p>A four hour outage used to mean a flat trend, a wrong shift report, and a record you could not defend to a customer or a regulator. SparkVault keeps every reading on the time it actually happened, so the backlog fills in exactly where it belongs when the link comes back. Nothing is lost, and nothing is quietly stamped with the wrong time.</p>
+        <p>Your own reporting and dashboard tools read it directly, with nobody standing between you and your own data. And any past day can be played back on demand, so your team can test a new dashboard, tune an alarm, or walk through an incident using real production data instead of a guess.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
         <table class="spec">
           <tr><th>What it is</th><td>History for your whole plant network, in one place</td></tr>
-          <tr><th>Where it runs</th><td>On your own gateway and your own database</td></tr>
+          <tr><th>Where it runs</th><td>On the central gateway only</td></tr>
           <tr><th>How you read it</th><td>Through the trends and reports your team already uses</td></tr>
           <tr><th>What it replaces</th><td>Per-site historians and manual data exports</td></tr>
-          <tr><th>Licensing</th><td>$995 per gateway, bought once and kept, not a subscription. Installs on the central gateway only, never at the edge. Included in the $3,995 <a href="/sparkbridge/pricing">central package</a></td></tr>
-          <tr><th>Underneath</th><td>Runs on the SparkBridge Host and Edge described on the <a href="/sparkbridge/technology#lifecycle">technology page</a>. Measured figures are in <a href="/sparkbridge/technology#numbers">Performance Quantified</a> and the <a href="/sparkbridge/technology#compare">feature comparison</a>.</td></tr>
+          <tr><th>Licensing</th><td>$995, included in the $3,995 <a href="/sparkbridge/central">central package</a>, or on its own on the central gateway. Bought once and kept, not a subscription. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
         </table>
-
       </div>
     </div>
   </div>
@@ -133,12 +130,19 @@
 <section>
   <div class="wrap">
     <div class="measure">
-      <p>SparkVault suits plants that already have data flowing and now need it kept properly: multiple sites, intermittent links, and reporting that has to hold up under scrutiny. It installs alongside what you have and changes nothing upstream. <a href="/sparkbridge/flow">SparkFlow</a>, released in SparkBridge 2.5.0, composes its own transport-tier replay with SparkVault's store-tier replay for one operator incident workflow.</p>
+      <p>SparkVault suits plants that already have data flowing and now need it kept properly: multiple sites, intermittent links, and reporting that has to hold up under scrutiny. It installs alongside what you have and changes nothing upstream.</p>
     </div>
+
+    <h2 style="margin-top:40px">For your engineers</h2>
+    <div class="measure">
+      <p>SparkVault is a Sparkplug historian module for Ignition. It records every value with the timestamp the equipment gave it, not the moment it reached the broker, and stores that history in an open database rather than a proprietary file so your existing reporting and dashboard tools can read it directly. Any past day replays on demand. SparkFlow, sold separately, composes its own transport-tier replay with SparkVault's store-tier replay for one operator incident workflow. Underneath, it runs on the SparkBridge Host and Edge described on the <a href="/sparkbridge/technology#lifecycle">technology page</a>; measured figures are in <a href="/sparkbridge/technology#numbers">Performance Quantified</a> and the <a href="/sparkbridge/technology#compare">feature comparison</a>.</p>
+    </div>
+
     <div class="cta-row">
-      <a class="btn" href="/sparkbridge/contact">Book a demo</a>
-      <a class="btn ghost dark" href="/sparkbridge/products">See the products</a>
+      <a class="btn" href="/sparkbridge/contact">Try it on one site</a>
+      <a class="btn ghost dark" href="/sparkbridge/central">See the central package</a>
     </div>
+    <p class="note">Development use is free with no time limit. <a href="/sparkbridge/contact">Contact</a>.</p>
   </div>
 </section>
 

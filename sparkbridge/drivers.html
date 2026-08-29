@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Native drivers","item":"https://mqtt.greenguard-usa.com/sparkbridge/drivers"}]},{"@type":"ItemList","name":"SparkBridge protocol drivers","itemListElement":[{"@type":"ListItem","position":1,"item":{"@type":"SoftwareApplication","name":"TI 505 and CTI 2500 driver","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","description":"Connects older Siemens and CTI equipment directly","offers":{"@type":"Offer","price":"495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing"}}},{"@type":"ListItem","position":2,"item":{"@type":"SoftwareApplication","name":"IEC 60870-5-104 driver","url":"https://mqtt.greenguard-usa.com/sparkbridge/iec104","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","description":"Connects utility and substation equipment directly","offers":{"@type":"Offer","price":"495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing"}}},{"@type":"ListItem","position":3,"item":{"@type":"SoftwareApplication","name":"DNP3 driver","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","description":"Connects utility equipment directly","offers":{"@type":"Offer","price":"495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing"}}}]}]}
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Native drivers","item":"https://mqtt.greenguard-usa.com/sparkbridge/drivers"}]},{"@type":"ItemList","name":"SparkBridge protocol drivers","itemListElement":[{"@type":"ListItem","position":1,"item":{"@type":"SoftwareApplication","name":"TI 505 and CTI 2500 driver","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","description":"Connects older Siemens and CTI equipment directly, always billed separately","offers":{"@type":"Offer","price":"495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing"}}},{"@type":"ListItem","position":2,"item":{"@type":"SoftwareApplication","name":"IEC 60870-5-104 driver","url":"https://mqtt.greenguard-usa.com/sparkbridge/iec104","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","description":"Connects utility and substation equipment directly, always billed separately","offers":{"@type":"Offer","price":"495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing"}}},{"@type":"ListItem","position":3,"item":{"@type":"SoftwareApplication","name":"DNP3 driver","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","description":"Connects utility equipment directly, always billed separately","offers":{"@type":"Offer","price":"495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing"}}}]}]}
 </script>
 </head>
 <body>
@@ -51,9 +51,9 @@
     <div class="phead-grid">
       <div>
         <div class="eyebrow">Drivers</div>
-        <h1>Native Ignition drivers for older racks and utility equipment</h1>
-        <p>Plenty of working plant equipment predates modern networking. The usual answer is a translator box per site, which is another license, another thing to maintain, and another way to lose a reading.</p>
-        <div class="pmeta"><span class="stat">Released</span><span>Runs on your gateway</span><span>Reads only</span></div>
+        <h1>Keep the equipment you have. Remove the box in between.</h1>
+        <p>Plenty of working plant equipment predates modern networking. The usual answer is a translator box per site, which is another license, another thing to maintain, and another way to lose a reading. These drivers connect it directly instead.</p>
+        <div class="pmeta"><span class="stat">Released</span><span>Runs on the gateway that touches the equipment</span><span>$495 each, always separate</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>The driver line &middot; honest status</span><span class="live"><i class="dot"></i>Captured live</span></div>
@@ -78,20 +78,18 @@
     <p class="claim">Keep the equipment. <em>Lose the middleman.</em></p>
     <div class="twocol">
       <div class="measure">
-        <p>These drivers connect your Ignition gateway straight to older PLC racks, speaking their own protocols natively. The translator hardware in between comes out, along with its license, its patching and its failure modes.</p>
-        <p>That matters for accuracy as much as cost. Readings arrive with the equipment's own timing and its own fault state, instead of whatever a middle box was still serving from its last successful poll.</p>
-        <p>The line covers Siemens and CTI 505 series racks, plus IEC 104 and DNP3 utility equipment, with the same approach and the same discipline behind each one.</p>
+        <p>Every driver in this line is proven against real equipment or the industry's own reference implementation before it goes near a customer site, and each one arrives with the evidence rather than the claim. The translator hardware in between comes out, along with its license, its patching and its failure modes.</p>
+        <p>That matters for accuracy as much as cost. Readings arrive with the equipment's own timing and its own fault state, instead of whatever a middle box was still serving from its last successful poll. The result is fewer moving parts between your plant and your data, and one fewer vendor to call when something in that path stops working.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
         <table class="spec">
           <tr><th>What it is</th><td>Direct connections to older plant equipment</td></tr>
-          <tr><th>Covered today</th><td>Siemens and CTI 505 series racks, IEC 104 and DNP3 utility equipment, and SNMP network, power and server gear via <a href="/sparkbridge/snmp">SparkSNMP</a>. InfluxDB historian via <a href="/sparkbridge/influx">SparkInflux</a>, release pending</td></tr>
-          <tr><th>What it removes</th><td>Translator hardware, its license and its maintenance</td></tr>
+          <tr><th>Where they run</th><td>On the gateway that touches the equipment</td></tr>
+          <tr><th>Covered today</th><td>Siemens and CTI 505 series racks, <a href="/sparkbridge/iec104">IEC 104</a> and DNP3 utility equipment, and SNMP network, power and server gear via <a href="/sparkbridge/snmp">SparkSNMP</a> ($1,495). InfluxDB historian via <a href="/sparkbridge/influx">SparkInflux</a> ($1,495), coming</td></tr>
           <tr><th>Safety</th><td>Reads only. No control commands, by design</td></tr>
-          <tr><th>Licensing</th><td>$495 per gateway for each driver, TI 505 / CTI 2500 and DNP3 alike, bought once and kept, not a subscription. Bought on its own, no SparkBridge license required. See <a href="/sparkbridge/pricing">pricing</a></td></tr>
+          <tr><th>Licensing</th><td>$495 per gateway for each driver, bought once and kept, not a subscription. Always billed separately, never part of any package. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
         </table>
-
       </div>
     </div>
   </div>
@@ -137,10 +135,17 @@
     <div class="measure">
       <p>If you have older racks still doing useful work and a growing need to get data off them, keeping the equipment and removing the middleman is usually the cheaper end of that decision.</p>
     </div>
-    <div class="cta-row">
-      <a class="btn" href="/sparkbridge/contact">Talk to us</a>
-      <a class="btn ghost dark" href="/sparkbridge/products">See the products</a>
+
+    <h2 style="margin-top:40px">For your engineers</h2>
+    <div class="measure">
+      <p>The TI 505 / CTI 2500 driver speaks CAMP over TCP straight from the Ignition gateway and browses the memory areas directly: V, WX, WY, X, Y, C, K, STW, TCP and TCC. The DNP3 driver removes the same translator hardware for North American utility equipment. Both are reads only, by design; nothing in this path can operate equipment.</p>
     </div>
+
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge/contact">Try it on one site</a>
+      <a class="btn ghost dark" href="/sparkbridge/pricing">See pricing</a>
+    </div>
+    <p class="note">Development use is free with no time limit. <a href="/sparkbridge/contact">Contact</a>.</p>
   </div>
 </section>
 

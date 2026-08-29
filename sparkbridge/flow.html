@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Products","item":"https://mqtt.greenguard-usa.com/sparkbridge/products"},{"@type":"ListItem","position":3,"name":"SparkFlow","item":"https://mqtt.greenguard-usa.com/sparkbridge/flow"}]},{"@type":"SoftwareApplication","name":"SparkFlow","alternateName":"Sparkplug Hyperscaled","url":"https://mqtt.greenguard-usa.com/sparkbridge/flow","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","softwareVersion":"2.5.0","isPartOf":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#app"},"publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"SparkFlow is the NATS/JetStream backbone for SparkBridge on Ignition: Sparkplug data streamed at cloud scale, millions of points, every consumer, zero loss, without replacing anything you run today. $995 per gateway.","offers":{"@type":"Offer","price":"995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per central gateway. Always billed separately, never in the central package"}}]}
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Pricing","item":"https://mqtt.greenguard-usa.com/sparkbridge/pricing"},{"@type":"ListItem","position":3,"name":"SparkFlow","item":"https://mqtt.greenguard-usa.com/sparkbridge/flow"}]},{"@type":"SoftwareApplication","name":"SparkFlow","alternateName":"Sparkplug Hyperscaled","url":"https://mqtt.greenguard-usa.com/sparkbridge/flow","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","softwareVersion":"2.5.0","isPartOf":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#app"},"publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"SparkFlow is company-wide streaming past the tag-count ceiling, on the central gateway. $995, always billed separately.","offers":{"@type":"Offer","price":"995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per central gateway. Always billed separately, never in the central package"}}]}
 </script>
 </head>
 <body>
@@ -51,10 +51,9 @@
     <div class="phead-grid">
       <div>
         <div class="eyebrow">SparkFlow</div>
-        <h1>Sparkplug Hyperscaled</h1>
-        <p><strong>NATS/JetStream under Sparkplug, on Ignition.</strong></p>
-        <p>Your plant already produces more data than your SCADA can hold. SparkFlow lifts everything SparkBridge collects onto a streaming backbone built for cloud scale, so millions of points reach every dashboard, historian, analyst and AI pipeline in your company, live and lossless, without replacing a single thing on the plant floor.</p>
-        <div class="pmeta"><span class="stat">Released</span><span>SparkBridge 2.5.0</span><span>In the release bundle</span></div>
+        <h1>Every point in the plant, available to the whole company</h1>
+        <p>Your plant already produces more data than a tag-counted system can hold. SparkFlow removes that ceiling, so millions of points reach every dashboard, historian, analyst and AI pipeline in your company, live and lossless, without replacing a single thing on the plant floor.</p>
+        <div class="pmeta"><span class="stat">Released</span><span>Runs on the central gateway</span><span>$995, always separate</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>Live gateway &middot; wire capture</span><span class="live"><i class="dot"></i>Captured live</span></div>
@@ -84,20 +83,18 @@ missing: 0   ordering violations: 0</pre>
     <p class="claim">Keep what works on the floor. <em>Unlock everything above it.</em></p>
     <div class="twocol">
       <div class="measure">
-        <p>Nothing on the floor changes. Your equipment, your broker, your Ignition gateways all keep running exactly as they do today. SparkFlow sits above them and turns what they already produce into a company-wide data stream, one that any system can tap without asking the plant for anything.</p>
-        <p>The ceiling it removes is tag count. In a conventional SCADA, every point you want to see has to become a tag, and at hundreds of thousands of points that model runs out of road. SparkFlow keeps a live, quality-stamped value for every point in the plant with no tag behind it. Your screens show what operators watch; everything else stays instantly available for history, reports and analytics. Millions of points stop being a licensing problem or a server-sizing problem. They are just there.</p>
+        <p>Nothing on the floor changes. Your equipment and your existing gateways all keep running exactly as they do today. SparkFlow sits above them and turns what they already produce into a company-wide data stream, one that any system can tap without asking the plant for anything.</p>
+        <p>The ceiling it removes is tag count. In a conventional system, every point you want to see has to become a tag, and at hundreds of thousands of points that model runs out of road. SparkFlow keeps a live, quality-stamped value for every point in the plant with no tag behind it. Your screens show what operators watch; everything else stays instantly available for history, reports and analytics. Millions of points stop being a licensing problem or a server-sizing problem. They are just there.</p>
         <p>And the stream remembers. A new dashboard can open with the last known value of everything the moment it loads. An analyst can replay yesterday's upset minute by minute. A system that was offline for an hour catches up by itself, in order, missing nothing. When something needs to change on the floor, commands travel back down the same path, locked so that only the systems you have authorized can ever issue one.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
         <table class="spec">
-          <tr><th>What it is</th><td>The streaming backbone for your SparkBridge estate</td></tr>
+          <tr><th>What it is</th><td>Company-wide streaming past the tag-count ceiling</td></tr>
+          <tr><th>Where it runs</th><td>On the central gateway only</td></tr>
           <tr><th>What changes on the floor</th><td>Nothing. It installs alongside what you run today</td></tr>
           <tr><th>Scale</th><td>Millions of points live, with no per-tag cost and no per-tag licensing</td></tr>
-          <tr><th>Delivery</th><td><a href="/sparkbridge/technology#compare">Measured at 100 percent</a>: 7.25 million messages sent, 7.25 million received</td></tr>
-          <tr><th>Control</th><td>Commands back to the floor only from systems you have authorized, every reading trusted end to end</td></tr>
-          <tr><th>State</th><td>Released 2026-08-23 in SparkBridge 2.5.0 as <span class="mono">SparkBridge-Flow.modl</span>. <a href="/sparkbridge/download">Download</a>. $995 per central gateway, perpetual - see <a href="/sparkbridge/pricing">pricing</a></td></tr>
-          <tr><th>Underneath</th><td>Runs on the SparkBridge Host and Edge described on the <a href="/sparkbridge/technology#lifecycle">technology page</a>. Measured figures are in <a href="/sparkbridge/technology#numbers">Performance Quantified</a> and the <a href="/sparkbridge/technology#compare">feature comparison</a>.</td></tr>
+          <tr><th>Licensing</th><td>$995 per central gateway, perpetual. Always billed separately, never part of the central package. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
         </table>
       </div>
     </div>
@@ -141,12 +138,19 @@ missing: 0   ordering violations: 0</pre>
 <section>
   <div class="wrap">
     <div class="measure">
-      <p>If SparkBridge moves your plant data today, SparkFlow is how it stops being plant data and becomes company data: every point, every consumer, live and lossless, for $995 per central gateway. It shipped in SparkBridge 2.5.0, measured at 100 percent delivery and hardened by an independent security review before release.</p>
+      <p>If your plant data infrastructure moves data today, SparkFlow is how it stops being plant data and becomes company data: every point, every consumer, live and lossless, for $995 per central gateway.</p>
     </div>
+
+    <h2 style="margin-top:40px">For your engineers</h2>
+    <div class="measure">
+      <p>SparkFlow is the NATS/JetStream backbone for Sparkplug on Ignition. Measured at 100 percent delivery: 7.25 million messages sent across a real network at 48,000 per second, 7.25 million received, in order, exactly once. A 60-second link cut on a remote site buffered 447 messages and reconciled all 447 on reconnect, zero lost, zero ordering violations. Hardened by an independent security review before release. Runs on the SparkBridge Host and Edge described on the <a href="/sparkbridge/technology#lifecycle">technology page</a>; measured figures are in <a href="/sparkbridge/technology#numbers">Performance Quantified</a> and the <a href="/sparkbridge/technology#compare">feature comparison</a>.</p>
+    </div>
+
     <div class="cta-row">
-      <a class="btn" href="/sparkbridge/download">Get the 2.5.0 bundle</a>
-      <a class="btn ghost dark" href="/sparkbridge/products">See the products</a>
+      <a class="btn" href="/sparkbridge/contact">Try it on one site</a>
+      <a class="btn ghost dark" href="/sparkbridge/pricing">See pricing</a>
     </div>
+    <p class="note">Development use is free with no time limit. <a href="/sparkbridge/contact">Contact</a>.</p>
   </div>
 </section>
 

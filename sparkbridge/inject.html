@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Products","item":"https://mqtt.greenguard-usa.com/sparkbridge/products"},{"@type":"ListItem","position":3,"name":"SparkInject","item":"https://mqtt.greenguard-usa.com/sparkbridge/inject"}]},{"@type":"SoftwareApplication","name":"SparkInject","url":"https://mqtt.greenguard-usa.com/sparkbridge/inject","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","softwareVersion":"2.5.0","isPartOf":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#app"},"publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"SparkInject delivers your plant data into Snowflake continuously and without duplicates, for a one-time license instead of a per-row subscription.","offers":{"@type":"Offer","price":"495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per central gateway. Included in the central package"}}]}
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Central","item":"https://mqtt.greenguard-usa.com/sparkbridge/central"},{"@type":"ListItem","position":3,"name":"SparkInject","item":"https://mqtt.greenguard-usa.com/sparkbridge/inject"}]},{"@type":"SoftwareApplication","name":"SparkInject","url":"https://mqtt.greenguard-usa.com/sparkbridge/inject","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","softwareVersion":"2.5.0","isPartOf":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#app"},"publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"SparkInject delivers production data into Snowflake continuously, once, with no per-row subscription. $495, included in the central package.","offers":{"@type":"Offer","price":"495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per central gateway. Included in the $3,995 central package"}}]}
 </script>
 </head>
 <body>
@@ -51,9 +51,9 @@
     <div class="phead-grid">
       <div>
         <div class="eyebrow">SparkInject</div>
-        <h1>Your plant data in Snowflake, without the meter running</h1>
-        <p>Getting operational data into the warehouse is normally an ongoing subscription and a persistent worry about whether anything was lost or counted twice.</p>
-        <div class="pmeta"><span class="stat">Released</span><span>Snowflake</span><span>One-time license</span></div>
+        <h1>Stop paying by the row to see your own production data</h1>
+        <p>Getting operational data into the warehouse is normally an ongoing subscription and a persistent worry about whether anything was lost or counted twice. SparkInject delivers it into your own Snowflake account continuously, once, for a license you buy a single time.</p>
+        <div class="pmeta"><span class="stat">Released</span><span>Runs on the central gateway</span><span>$495, in the central package</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>Snowflake &middot; landed row</span><span class="live"><i class="dot"></i>Captured live</span></div>
@@ -84,21 +84,18 @@
     <p class="claim">Every reading arrives <em>once</em>, and keeps its real time.</p>
     <div class="twocol">
       <div class="measure">
-        <p>SparkInject streams your plant data straight into your own Snowflake account. You own the account, the storage and the bill, and we are never in the middle of it.</p>
-        <p>Each reading is tracked individually, so a restart or a network drop cannot cause a gap or a duplicate row. Analysts stop asking whether the numbers can be trusted, and stop reconciling them by hand.</p>
-        <p>Readings keep the time the plant recorded them, so analysis of production timing, cycle times and downtime reflects what actually happened on the floor rather than when the network caught up.</p>
+        <p>SparkInject streams your plant data straight into your own Snowflake account. You own the account, the storage and the bill, and nobody sits in the middle of it. A restart or a network drop cannot cause a gap or a duplicate row, so analysts stop reconciling numbers by hand and stop asking whether they can be trusted.</p>
+        <p>Readings keep the time the plant recorded them, so analysis of production timing, cycle times and downtime reflects what actually happened on the floor rather than when the network caught up. During a four hour outage, 8,375 readings queued up and landed later with nothing missing and nothing counted twice.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
         <table class="spec">
           <tr><th>What it is</th><td>A continuous feed from plant to warehouse</td></tr>
-          <tr><th>Where it runs</th><td>On your gateway, into your Snowflake account</td></tr>
+          <tr><th>Where it runs</th><td>On the central gateway, into your Snowflake account</td></tr>
           <tr><th>Who it is for</th><td>Teams running analytics or reporting on production data</td></tr>
           <tr><th>What it replaces</th><td>Per-row cloud connector subscriptions and nightly exports</td></tr>
-          <tr><th>Licensing</th><td>$495 per gateway, bought once and kept, not a subscription. Included in the $3,995 <a href="/sparkbridge/pricing">central package</a></td></tr>
-          <tr><th>Underneath</th><td>Runs on the SparkBridge Host and Edge described on the <a href="/sparkbridge/technology#lifecycle">technology page</a>. Measured figures are in <a href="/sparkbridge/technology#numbers">Performance Quantified</a> and the <a href="/sparkbridge/technology#compare">feature comparison</a>.</td></tr>
+          <tr><th>Licensing</th><td>$495, included in the $3,995 <a href="/sparkbridge/central">central package</a>, or on its own on the central gateway. Bought once and kept, not a subscription. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
         </table>
-
       </div>
     </div>
   </div>
@@ -142,10 +139,17 @@
     <div class="measure">
       <p>SparkInject fits organizations that have standardized on Snowflake and want production data in it continuously, with predictable cost and without another vendor sitting in the data path. The same approach extends to AWS if your warehouse lives there instead.</p>
     </div>
-    <div class="cta-row">
-      <a class="btn" href="/sparkbridge/contact">Book a demo</a>
-      <a class="btn ghost dark" href="/sparkbridge/products">See the products</a>
+
+    <h2 style="margin-top:40px">For your engineers</h2>
+    <div class="measure">
+      <p>Each reading is tracked individually with its source and ingest timestamps, so a restart or a network drop cannot cause a gap or a duplicate row. It runs on the SparkBridge Host and Edge described on the <a href="/sparkbridge/technology#lifecycle">technology page</a>; measured figures are in <a href="/sparkbridge/technology#numbers">Performance Quantified</a> and the <a href="/sparkbridge/technology#compare">feature comparison</a>.</p>
     </div>
+
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge/contact">Try it on one site</a>
+      <a class="btn ghost dark" href="/sparkbridge/central">See the central package</a>
+    </div>
+    <p class="note">Development use is free with no time limit. <a href="/sparkbridge/contact">Contact</a>.</p>
   </div>
 </section>
 

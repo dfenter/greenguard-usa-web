@@ -50,7 +50,7 @@
   <div class="wrap">
     <div class="eyebrow">Use cases</div>
     <h1>Find your situation</h1>
-    <p>The same architecture serves a wellhead, a bottling line and a pump station. Almost nobody buys the whole suite on day one. Most plants buy one product for one problem, and add the next one when it shows up.</p>
+    <p>The same architecture serves a wellhead, a bottling line and a pump station. Almost nobody buys everything on day one. Most plants buy one product for one problem, and add the next one when it shows up.</p>
   </div>
 </header>
 
@@ -65,76 +65,76 @@
     </div>
     <div class="scroller">
       <table class="tbl ours-last">
-        <thead><tr><th>If this is your situation</th><th>What changes</th><th>What you need</th></tr></thead>
+        <thead><tr><th>If this is your situation</th><th>What changes for the business</th><th>What you buy</th></tr></thead>
         <tbody>
           <tr>
-            <td>A remote site on cellular or satellite. The link drops, and the data allowance costs real money.</td>
-            <td>The site sends changes rather than answers to repeated questions, buffers to disk while the link is down, and you get a per-tag list of where the megabytes went.</td>
-            <td>SparkBridge Edge <span class="num">$995</span>, with <a href="/sparkbridge/#sparklink">SparkLink</a> included free. <span class="sub">Standalone; nothing else installs at the site.</span></td>
+            <td>A remote site on cellular or satellite. The link drops, and the data bill keeps climbing.</td>
+            <td>The site reports changes instead of restating the same reading, keeps everything on disk while the link is down, and you get a plain list of what is actually spending the budget.</td>
+            <td><a href="/sparkbridge/edge">SparkBridge Edge</a> <span class="num">$995</span>, with <a href="/sparkbridge/edge#sparklink">SparkLink</a> included free. <span class="sub">Standalone; nothing else installs at the site.</span></td>
           </tr>
           <tr>
-            <td>Forty sites landing on one central server that sits at 50 to 75 percent CPU and cannot ride out a network outage.</td>
-            <td>Each site publishes on change and holds its own data during an outage. The central server carries subscribers instead of pollers, and adding a consumer does not add load at the plant.</td>
-            <td>SparkBridge Central <span class="num">$1,995</span> once, plus SparkBridge Edge <span class="num">$995</span> per site. <a href="/sparkbridge/products">See the products</a></td>
+            <td>Forty sites landing on one central server that is already stretched thin and cannot ride out a network outage.</td>
+            <td>Each site holds its own data during an outage and only reports what changed. The central server stops working harder every time someone adds a new dashboard.</td>
+            <td><a href="/sparkbridge/central">SparkBridge Central</a> <span class="num">$1,995</span> once, plus <a href="/sparkbridge/edge">SparkBridge Edge</a> <span class="num">$995</span> per site. <a href="/sparkbridge/central">See the products</a></td>
           </tr>
           <tr>
             <td>A trend that runs flat through an outage and then jumps. Nobody can defend the report built on it.</td>
-            <td>Every value is stored with the timestamp the equipment gave it, so a backlog lands where it actually belongs and the curve is the curve the plant ran.</td>
-            <td><a href="/sparkbridge/vault">SparkVault</a> <span class="num">$995</span>. <span class="sub">Central gateway only; in the central package.</span></td>
+            <td>Every reading keeps the time it actually happened, so a backlog lands where it belongs and the trend shows what the plant really did.</td>
+            <td><a href="/sparkbridge/central#sparkvault">SparkVault</a> <span class="num">$995</span>. <span class="sub">Central gateway only; in the package.</span></td>
           </tr>
           <tr>
             <td>Analysts reconciling duplicate rows in the warehouse by hand, and never quite trusting the totals.</td>
-            <td>Every reading is tracked individually into your own Snowflake account, so a restart or a network drop cannot produce a gap or a duplicate row.</td>
-            <td><a href="/sparkbridge/inject">SparkInject</a> <span class="num">$495</span>. <span class="sub">Central gateway. In the central package.</span></td>
+            <td>Every reading lands exactly once in your own warehouse, so a restart or a dropped connection can no longer leave a gap or a duplicate.</td>
+            <td><a href="/sparkbridge/central#sparkinject">SparkInject</a> <span class="num">$495</span>. <span class="sub">Central gateway. In the package.</span></td>
           </tr>
           <tr>
-            <td>A historian or SCADA package that will never speak Sparkplug, and still needs the same live data.</td>
-            <td>The same live values are presented over OPC-UA, with source timestamps and honest bad quality. Existing systems connect the way they already do, with no integration work.</td>
-            <td><a href="/sparkbridge/#passage">Passage</a> <span class="num">$495</span>. <span class="sub">Read only. It cannot write or command.</span></td>
+            <td>A historian or SCADA package that will never be replaced, and still needs the same live data.</td>
+            <td>Your existing tools connect the way they already do, with no custom connectors and no integration project.</td>
+            <td><a href="/sparkbridge/central#passage">Passage</a> <span class="num">$495</span>. <span class="sub">Read only. It cannot write or command.</span></td>
           </tr>
           <tr>
-            <td>The same efficiency calculation hand built in a PLC, a dashboard and a spreadsheet, giving three answers.</td>
-            <td>The value is computed once and published back as plant data, carrying the time of its oldest input and going bad when any input does.</td>
-            <td><a href="/sparkbridge/#sparkcalc">SparkCalc</a> <span class="num">$495</span>. <span class="sub">Runs at a site or centrally.</span></td>
+            <td>The same efficiency number, hand built in a PLC, a dashboard and a spreadsheet, giving three different answers.</td>
+            <td>The number is calculated once, in one place, and used everywhere. Everyone in the building is looking at the same figure.</td>
+            <td><a href="/sparkbridge/central#sparkcalc">SparkCalc</a> <span class="num">$495</span>. <span class="sub">Runs at a site or centrally.</span></td>
           </tr>
           <tr>
             <td>Nobody can say what the plant network is exposing, and an auditor is asking for evidence.</td>
-            <td>A scored report of what is wrong, ranked by severity, with the proof behind each finding and the specific fix. It observes and changes nothing.</td>
-            <td><a href="/sparkbridge/#sentinel">Sentinel</a> <span class="num">$495</span>, in the central package. <span class="sub">Compliance pack <span class="num">$2,495</span>.</span></td>
+            <td>A scored report of what is wrong, ranked by risk, with the evidence behind each finding and the fix for it. It only observes; it changes nothing.</td>
+            <td><a href="/sparkbridge/central#sentinel">Sentinel</a> <span class="num">$495</span>, in the package. <span class="sub">Compliance pack <span class="num">$2,495</span>.</span></td>
           </tr>
           <tr>
-            <td>One compromised site could write another site's data, or issue a command to equipment.</td>
-            <td>Permissions are generated from intent, one line per message type, scoped to one site. A read grant can no longer quietly include the commands that operate equipment.</td>
-            <td><a href="/sparkbridge/#sparkid">SparkID</a> <span class="num">$495</span>. <span class="sub">Central gateway.</span></td>
+            <td>One compromised site could write another site's data, or send a command to equipment it has no business touching.</td>
+            <td>A read permission never quietly includes the ability to control equipment. Access is scoped to one site, on purpose.</td>
+            <td><a href="/sparkbridge/central#sparkid">SparkID</a> <span class="num">$495</span>. <span class="sub">Central gateway.</span></td>
           </tr>
           <tr>
             <td>Forty gateways in the field and nobody knows which version, which drifted, or which certificate expires next month.</td>
-            <td>One list of versions, drift, certificates and backups across the estate. A rotation is authorized once and applied everywhere, and the instruction cannot be replayed.</td>
-            <td><a href="/sparkbridge/#fleetops">FleetOps</a> <span class="num">$495</span>. <span class="sub">Worth it from roughly ten sites up.</span></td>
+            <td>One view of every gateway in the estate. A fix is made once and applied everywhere, instead of forty separate visits.</td>
+            <td><a href="/sparkbridge/central#fleetops">FleetOps</a> <span class="num">$495</span>. <span class="sub">Worth it from roughly ten sites up.</span></td>
           </tr>
           <tr>
             <td>An older Siemens or CTI 505 rack sitting behind a translator box with its own license and its own patching.</td>
-            <td>The gateway speaks CAMP over TCP straight to the rack. The middle box comes out, along with its license, and readings keep the equipment's own timing and fault state.</td>
+            <td>The translator box comes out, along with its license and its patching. One less thing to fail, one less bill.</td>
             <td><a href="/sparkbridge/drivers">TI 505 / CTI 2500 driver</a> <span class="num">$495</span>. <span class="sub">No SparkBridge required.</span></td>
           </tr>
           <tr>
             <td>Substation equipment speaking IEC 104, reached today through a protocol converter.</td>
-            <td>A direct IEC 60870-5-104 session from the gateway to the equipment, proven against the reference implementation the industry uses to validate the protocol.</td>
+            <td>A direct connection from the gateway to the equipment, with the converter and its failure points removed.</td>
             <td><a href="/sparkbridge/iec104">IEC 60870-5-104 driver</a> <span class="num">$495</span>. <span class="sub">Reads only, no control path.</span></td>
           </tr>
           <tr>
             <td>Utility equipment on DNP3, with another vendor's converter in the path.</td>
-            <td>The same approach as the other drivers: a native connection from the gateway, reads only, evidence supplied with the module rather than a claim.</td>
+            <td>The same fix as the other drivers: a direct connection, reads only, one less box to maintain.</td>
             <td><a href="/sparkbridge/drivers">DNP3 driver</a> <span class="num">$495</span>. <span class="sub">No SparkBridge required.</span></td>
           </tr>
           <tr>
-            <td>A new dashboard or an ML pipeline is coming, and it must not add load at the plant.</td>
-            <td>A new consumer subscribes to what is already being published. Cost tracks process activity, not tag count and not consumer count, so the source is untouched.</td>
-            <td>SparkBridge Central <span class="num">$1,995</span>, or <a href="/sparkbridge/#passage">Passage</a> <span class="num">$495</span> for tools that speak OPC-UA.</td>
+            <td>A new dashboard or an analytics project is coming, and it must not slow down the plant.</td>
+            <td>A new consumer of the data does not add load at the source. Cost tracks what the plant is doing, not how many people are watching.</td>
+            <td><a href="/sparkbridge/central">SparkBridge Central</a> <span class="num">$1,995</span>, or <a href="/sparkbridge/central#passage">Passage</a> <span class="num">$495</span> for tools that already connect over industry standards.</td>
           </tr>
           <tr>
             <td>You already know you want most of the central modules.</td>
-            <td>The package stops the a la carte arithmetic. Central side is <span class="np">$1,995 + 6 &times; $495 + $995 = $5,960</span> separately. Site side is Edge $995 standalone; there is no site package.</td>
+            <td>The package removes the arithmetic. Bought apart, the central side is <span class="np">$1,995 + 6 &times; $495 + $995 = $5,960</span>. The site side is Edge at $995, standalone.</td>
             <td>Central package <span class="num">$3,995</span>, saves <span class="num">$1,965</span>. <a href="/sparkbridge/pricing">See pricing</a></td>
           </tr>
         </tbody>
@@ -163,7 +163,7 @@
         <p>Normal traffic tracks what the plant is doing. If the link drops, the site saves readings to disk with their original timestamps and sends them when it reconnects, so the history shows the real curve rather than a flat line and a jump. The budget becomes a measured list you can act on, and the readings you mark as critical are protected in the sending path itself, so no budget rule can quietly degrade them.</p>
       </div>
     </div>
-    <p class="note">Products in play: SparkBridge Edge, <a href="/sparkbridge/#sparklink">SparkLink</a> for the data budget, and <a href="/sparkbridge/vault">SparkVault</a> if the history has to survive the outage as well as the link.</p>
+    <p class="note">Products in play: SparkBridge Edge, <a href="/sparkbridge/edge#sparklink">SparkLink</a> for the data budget, and <a href="/sparkbridge/central#sparkvault">SparkVault</a> if the history has to survive the outage as well as the link.</p>
   </div>
 </section>
 
@@ -179,7 +179,7 @@
       <p><b>500k in under 4 GiB.</b> The measured single-host capacity, with per-metric cost flat to a million. The fleet fits with margin on every dimension.</p>
       <p><b>Cost does not grow with consumers.</b> Adding a dashboard, a historian or an ML pipeline adds a subscriber, not load at the source.</p>
       <p><b>The estate stays visible.</b> Forty gateways is forty version numbers, forty certificate expiries and forty backup schedules. On a 40-site rig, one authorized certificate rotation reached every site in 937 ms, and the same instruction captured and replayed was refused by all forty.</p>
-      <p>Products in play: SparkBridge Central and SparkBridge Edge, with <a href="/sparkbridge/#fleetops">FleetOps</a> once the site count makes a spreadsheet a liability.</p>
+      <p>Products in play: SparkBridge Central and SparkBridge Edge, with <a href="/sparkbridge/central#fleetops">FleetOps</a> once the site count makes a spreadsheet a liability.</p>
     </div>
   </div>
 </section>
@@ -193,10 +193,10 @@
     </div>
     <div class="leads">
       <p><b>The namespace populates itself.</b> Each site describes itself at birth, so a new consumer subscribes and discovers the estate rather than being configured for it.</p>
-      <p><b>Sparkplug and JSON, both.</b> The same values a second time on a readable ISA-95 style path for consumers that will never speak protobuf.</p>
+      <p><b>Readable, not just fast.</b> The same values are also published on a plain, readable path, for people and tools that were never going to read a machine format.</p>
       <p><b>One number, calculated once.</b> Efficiency, throughput and cost per unit are computed in one place and published back as plant data, each value carrying the time of its oldest input and going bad when any input does. That is what makes a reported figure defensible.</p>
-      <p><b>Everything you already own can read it.</b> The same live values are served over OPC-UA to the historian, SCADA package or analytics tool you are not going to replace, with source timestamps intact.</p>
-      <p>Products in play: <a href="/sparkbridge/#passage">Passage</a> for the systems that speak OPC-UA, <a href="/sparkbridge/#sparkcalc">SparkCalc</a> for the derived numbers, <a href="/sparkbridge/vault">SparkVault</a> for the history behind them, and <a href="/sparkbridge/inject">SparkInject</a> when the warehouse is the destination.</p>
+      <p><b>Everything you already own can read it.</b> The same live values are served to the historian, SCADA package or analytics tool you are not going to replace, with source timestamps intact.</p>
+      <p>Products in play: <a href="/sparkbridge/central#passage">Passage</a> for the systems you already own, <a href="/sparkbridge/central#sparkcalc">SparkCalc</a> for the derived numbers, <a href="/sparkbridge/central#sparkvault">SparkVault</a> for the history behind them, and <a href="/sparkbridge/central#sparkinject">SparkInject</a> when the warehouse is the destination.</p>
     </div>
   </div>
 </section>
@@ -212,17 +212,17 @@
       <table class="tbl">
         <thead><tr><th>Concern</th><th>How the architecture answers it</th></tr></thead>
         <tbody>
-          <tr><td>Inbound firewall rules</td><td>The edge connects outbound to the broker. No inbound port into the plant network is required for data to flow.</td></tr>
-          <tr><td>A compromised site publishing as another</td><td>An edge credential is bound to its own group and node; an unlisted user is denied, and the client ID is bound to the credential.</td></tr>
-          <tr><td>A compromised site issuing commands</td><td>Edge identities cannot publish NCMD, DCMD or STATE at all. Command injection is structurally unavailable rather than discouraged.</td></tr>
-          <tr><td>A compromised site forging enterprise data</td><td>On the SparkBridge broker, application topics (the UNS tree, file-transfer manifests) are authorized per identity and denied by default. On external HiveMQ the same separation is enforced by file RBAC, whose permission blocks the migration preflight generates.</td></tr>
-          <tr><td>Credentials on the box</td><td>Secrets live in a permission-restricted file, not in JVM arguments visible to any local user through <code>ps</code>.</td></tr>
-          <tr><td>Rules typed by hand</td><td>Permissions are generated from stated intent, one line per message type, and the change is shown as a difference before it is applied. A change that would lock you out of your own broker is refused.</td></tr>
+          <tr><td>Inbound firewall rules</td><td>The site connects outbound only. No inbound port into the plant network is required for data to flow.</td></tr>
+          <tr><td>A compromised site publishing as another</td><td>Each site has its own identity, bound to its own name. An unlisted identity is denied outright.</td></tr>
+          <tr><td>A compromised site issuing commands</td><td>Site identities cannot send commands at all. Command injection is structurally unavailable, not just discouraged.</td></tr>
+          <tr><td>A compromised site forging enterprise data</td><td>Every identity is authorized per data path and denied by default, whether the deployment is on our system or a third party's.</td></tr>
+          <tr><td>Credentials on the box</td><td>Secrets live in a permission-restricted file, not in a place any local user on the machine can read.</td></tr>
+          <tr><td>Rules typed by hand</td><td>Permissions are generated from stated intent, one line per action, and the change is shown as a difference before it is applied. A change that would lock you out of your own system is refused.</td></tr>
           <tr><td>Proving any of this to an auditor</td><td>A scored assessment with ranked findings, the evidence behind each one and the fix. The first run against our own estate found four genuine defects, one of them critical.</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="note">Products in play: <a href="/sparkbridge/#sparkid">SparkID</a> for the permissions, <a href="/sparkbridge/#sentinel">Sentinel</a> for the assessment and the evidence. Sentinel is $495 on its own, so it is the cheapest place to start.</p>
+    <p class="note">Products in play: <a href="/sparkbridge/central#sparkid">SparkID</a> for the permissions, <a href="/sparkbridge/central#sentinel">Sentinel</a> for the assessment and the evidence. Sentinel is $495 on its own, so it is the cheapest place to start.</p>
   </div>
 </section>
 
@@ -294,9 +294,9 @@
   <div class="wrap">
     <h2>Start With One Site</h2>
     <p>Each of these shapes is drawn out on the <a href="/sparkbridge/architecture">architecture page</a>, including the 40-site and 200-plant layouts.</p>
-    <p>Try it on the site that is giving you the most trouble and see for yourself. Development use is free with no time limit, and takes an afternoon to set up.</p>
+    <p>Try it on one site. Development use is free with no time limit.</p>
     <div class="cta-row">
-      <a class="btn" href="/sparkbridge/contact">Start an evaluation</a>
+      <a class="btn" href="/sparkbridge/contact">Contact</a>
       <a class="btn ghost" href="/sparkbridge/pricing">See pricing</a>
     </div>
   </div>

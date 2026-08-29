@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Products","item":"https://mqtt.greenguard-usa.com/sparkbridge/products"},{"@type":"ListItem","position":3,"name":"SparkValidate","item":"https://mqtt.greenguard-usa.com/sparkbridge/validate"}]},{"@type":"SoftwareApplication","name":"SparkValidate","url":"https://mqtt.greenguard-usa.com/sparkbridge/validate","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","softwareVersion":"0.1.0","isPartOf":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#app"},"publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"SparkValidate ingests L5X/L5K and Ignition tag and project exports, builds a normalized system model, applies a risk assessment consistent with GAMP 5 and ISA-18.2, and generates the full validation and alarm test document set with executable protocols and sealed evidence.","offers":{"@type":"Offer","price":"2495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/PreOrder","description":"Perpetual license, per gateway. Standalone, does not require SparkBridge. Early access, v0.1"}}]}
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Products","item":"https://mqtt.greenguard-usa.com/sparkbridge/products"},{"@type":"ListItem","position":3,"name":"SparkValidate","item":"https://mqtt.greenguard-usa.com/sparkbridge/validate"}]},{"@type":"SoftwareApplication","name":"SparkValidate","url":"https://mqtt.greenguard-usa.com/sparkbridge/validate","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","softwareVersion":"0.1.0","isPartOf":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#app"},"publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"SparkValidate generates a risk-based validation and alarm rationalization document set automatically from your existing control system exports. $2,495 per gateway, or $995 CLI early access, always billed separately.","offers":[{"@type":"Offer","name":"SparkValidate","price":"2495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/PreOrder","description":"Perpetual license, per gateway. Standalone, always billed separately. Early access"},{"@type":"Offer","name":"Validate Desk (CLI)","price":"995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/PreOrder","description":"CLI-only early access, per user, standalone"}]}]}
 </script>
 </head>
 <body>
@@ -51,9 +51,9 @@
     <div class="phead-grid">
       <div>
         <div class="eyebrow">SparkValidate</div>
-        <h1>The validation package writes itself from the code you already have</h1>
-        <p>An L5X export, an Ignition tag and project export, or a live gateway already contain almost everything a validation package needs: the tags, the alarms, the interlocks, the views that show them. SparkValidate reads those sources, builds one traceable system model, scores it for risk, and generates the full document and test protocol set, cross-referenced by ID, with evidence sealed as it is captured.</p>
-        <div class="pmeta"><span class="stat">Early access &middot; v0.1</span><span>Rockwell L5X / L5K first</span><span>CLI + gateway module</span></div>
+        <h1>Cut weeks off writing your validation package</h1>
+        <p>Validated industries spend weeks by hand on documents that mostly restate what the control system already knows. SparkValidate reads what you already have, builds one traceable model, and generates the full document and test set automatically, so your team reviews instead of writes.</p>
+        <div class="pmeta"><span class="stat">Early access</span><span>Rockwell systems first</span><span>$2,495, or $995 CLI early access</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>System model &middot; cross-link pass</span><span class="live"><i class="dot"></i>From source, not typed</span></div>
@@ -76,22 +76,21 @@
 
 <section>
   <div class="wrap">
-    <p class="claim">Stop writing the document. <em>Generate it from the code.</em></p>
+    <p class="claim">Stop writing the document. <em>Generate it from what you already have.</em></p>
     <div class="twocol">
       <div class="measure">
-        <p>Validated industries spend weeks by hand on document sets that almost entirely restate what the PLC program and the Ignition project already say: what an alarm's setpoint is, what rung writes a tag, which view shows it, what the interlock does. SparkValidate reads the L5X/L5K export, the Ignition tag and project exports, or a live gateway, and builds one normalized system model with a stable ID on every entity, so the requirements, the design spec and the test protocols can all point at the same source instead of being retyped three times.</p>
-        <p>Risk drives scope, not habit. Each function and component gets a risk assessment: severity, probability and detectability roll up to a risk class, and the class sets the test depth, full challenge test with boundary values at high risk, functional verification at medium, a documented rationale for skipping at low. Every skip is written down and defensible, because a regulator asking "why wasn't this tested" gets an answer that already exists in the RTM.</p>
-        <p>The alarm side gets the same treatment under ISA-18.2. Every alarm becomes a Master Alarm Database row: cause, consequence, operator action, allowable response time, priority from a consequence/time matrix, classification. The alarm journal gets read for the KPIs that matter, alarms per ten minutes, percent time in flood, the standing and bad-actor lists, so rationalization starts from what the plant is actually doing, not from a blank template.</p>
+        <p>A validation package is normally weeks of hand-typing what the control system already knows: what an alarm's setpoint is, what triggers it, which screen shows it, what the interlock does. SparkValidate reads your existing exports and builds one model that every document points back to, so nothing gets retyped three times and every answer traces to its source.</p>
+        <p>Risk drives how much testing each part gets, not habit. High-risk items get a full challenge test, low-risk items get a documented reason for a lighter touch, and every one of those decisions is written down and defensible. When a regulator asks why something wasn't tested, the answer already exists.</p>
+        <p>Alarm rationalization gets the same treatment. Every alarm gets a cause, a consequence, an operator action and a priority, built from what the plant's alarm journal shows it is actually doing, not from a blank workshop.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
         <table class="spec">
-          <tr><th>What it is</th><td>Risk-based validation document and alarm rationalization generator for Ignition and PLC systems</td></tr>
-          <tr><th>What it reads</th><td>Rockwell L5X (v1) and L5K, Ignition tag export JSON, Ignition project export, or a live gateway. TI 505, CTI 2500, Siemens and Codesys next</td></tr>
-          <tr><th>What it generates</th><td>13 documents and protocols, cross-referenced by ID, plus a traceability matrix. See below</td></tr>
-          <tr><th>Frameworks</th><td>Risk approach consistent with <a href="#compliance">GAMP 5</a> (2nd edition) and <a href="#alarms">ISA-18.2</a> alarm management, with ISA-62443 security zones and a 21 CFR Part 11 audit trail path in the gateway module</td></tr>
-          <tr><th>Delivery</th><td>CLI for offline and CI use, or a gateway module that executes protocols against the running system and seals the evidence. See <a href="#pricing">pricing</a></td></tr>
-          <tr><th>State</th><td>Early access, v0.1. Rockwell first; other PLC families follow. <a href="/sparkbridge/contact">Talk to us</a> about a pilot</td></tr>
+          <tr><th>What it is</th><td>Risk-based validation document and alarm rationalization generator</td></tr>
+          <tr><th>What it generates</th><td>13 documents and protocols, cross-referenced, plus a traceability matrix. See below</td></tr>
+          <tr><th>Delivery</th><td>A CLI for offline use, or a gateway module that executes tests against the running system and seals the evidence</td></tr>
+          <tr><th>Licensing</th><td>$2,495 per gateway for the full module, or $995 for CLI-only early access. Always billed separately. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
+          <tr><th>State</th><td>Early access. Rockwell systems first; other PLC families follow. <a href="/sparkbridge/contact">Talk to us</a> about a pilot</td></tr>
         </table>
       </div>
     </div>
@@ -130,6 +129,7 @@
 
 <section id="how">
   <div class="wrap">
+    <h2 style="margin-bottom:8px">For your engineers</h2>
     <div class="sec-head">
       <span class="path">how it works</span>
       <h2>Ingest to Evidence, One Pass</h2>
@@ -224,7 +224,7 @@
       <div class="tier">
         <div class="top">
           <h3>Validate Desk</h3>
-          <div class="price">$995<small>CLI only. Generates the full document set offline, from exports, CI-friendly.</small></div>
+          <div class="price">$995<small>CLI only, early access. Generates the full document set offline, from exports, CI-friendly.</small></div>
         </div>
         <p class="why">No gateway module, no live execution. Documents and protocols only.</p>
       </div>
@@ -233,22 +233,23 @@
           <h3>SparkValidate</h3>
           <div class="price">$2,495<small>Gateway module, per gateway, perpetual. Adds live extraction, executed IQ/OQ/alarm protocols, sealed evidence and Part 11 hooks.</small></div>
         </div>
-        <p class="why">Standalone. Does not require a SparkBridge license.</p>
+        <p class="why">Standalone. Always billed separately, never part of any package.</p>
       </div>
     </div>
-    <p class="note">SparkValidate is always billed separately and is never part of the central package. One CLI license (Validate Desk) or one gateway module license (SparkValidate) per gateway you validate against. See the full <a href="/sparkbridge/pricing">SparkBridge pricing</a> page for how it sits next to the rest of the suite.</p>
+    <p class="note">SparkValidate is always billed separately and is never part of the central package. One CLI license (Validate Desk) or one gateway module license (SparkValidate) per gateway you validate against. See the full <a href="/sparkbridge/pricing">pricing</a> page for how it sits next to the rest of the suite.</p>
   </div>
 </section>
 
 <section class="tail">
   <div class="wrap">
     <div class="measure">
-      <p>SparkValidate is early access, v0.1, reading Rockwell L5X and L5K first, with TI 505, CTI 2500, Siemens and Codesys next. If you are sitting on a validation package that should not take weeks to hand-write, or an alarm system nobody has rationalized since it was commissioned, this is worth a conversation. Early sites shape the roadmap and the risk-policy defaults.</p>
+      <p>SparkValidate is early access, reading Rockwell systems first, with more PLC families next. If you are sitting on a validation package that should not take weeks to hand-write, or an alarm system nobody has rationalized since it was commissioned, this is worth a conversation. Early sites shape the roadmap.</p>
     </div>
     <div class="cta-row">
-      <a class="btn" href="mailto:admin@greenguard-usa.com?subject=SparkValidate%20early%20access">Ask about early access</a>
-      <a class="btn ghost dark" href="/sparkbridge/products">See the products</a>
+      <a class="btn" href="mailto:admin@greenguard-usa.com?subject=SparkValidate%20early%20access">Try it on one site</a>
+      <a class="btn ghost dark" href="/sparkbridge/contact">Contact</a>
     </div>
+    <p class="note">Development use is free with no time limit.</p>
   </div>
 </section>
 

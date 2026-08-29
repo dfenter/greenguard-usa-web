@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Native drivers","item":"https://mqtt.greenguard-usa.com/sparkbridge/drivers"},{"@type":"ListItem","position":3,"name":"IEC 60870-5-104 driver","item":"https://mqtt.greenguard-usa.com/sparkbridge/iec104"}]},{"@type":"SoftwareApplication","name":"IEC 60870-5-104 driver for Ignition","url":"https://mqtt.greenguard-usa.com/sparkbridge/iec104","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","softwareVersion":"2.5.0","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"Native IEC 60870-5-104 (IEC 104) driver module for Ignition 8.1. Connect utility RTUs directly, removing the translator boxes between your equipment and your data. $495 per gateway, bought once.","offers":{"@type":"Offer","price":"495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per gateway. Standalone, does not require SparkBridge"}}]}
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Native drivers","item":"https://mqtt.greenguard-usa.com/sparkbridge/drivers"},{"@type":"ListItem","position":3,"name":"IEC 60870-5-104 driver","item":"https://mqtt.greenguard-usa.com/sparkbridge/iec104"}]},{"@type":"SoftwareApplication","name":"IEC 60870-5-104 driver for Ignition","url":"https://mqtt.greenguard-usa.com/sparkbridge/iec104","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","softwareVersion":"2.5.0","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"Native IEC 60870-5-104 (IEC 104) driver module for Ignition 8.1. Connect utility RTUs directly, removing the translator boxes between your equipment and your data. $495 per gateway, bought once, always billed separately.","offers":{"@type":"Offer","price":"495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per gateway. Standalone, always billed separately"}}]}
 </script>
 </head>
 <body>
@@ -51,9 +51,9 @@
     <div class="phead-grid">
       <div>
         <div class="eyebrow">IEC 60870-5-104</div>
-        <h1>IEC 104: talk to utility RTUs directly from Ignition</h1>
-        <p>Connecting substation and remote utility equipment usually means an extra translator box in the middle, with its own license, its own failure mode and its own support contract.</p>
-        <div class="pmeta"><span class="stat">Released</span><span>Utility protocol</span><span>Reads only</span></div>
+        <h1>One less vendor between your substation and your data</h1>
+        <p>Connecting substation and remote utility equipment usually means an extra translator box in the middle, with its own license, its own failure mode and its own support contract. This driver connects directly instead.</p>
+        <div class="pmeta"><span class="stat">Released</span><span>Runs on the gateway that touches the equipment</span><span>$495, always separate</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>70 s session vs lib60870</span><span class="live"><i class="dot"></i>Captured live</span></div>
@@ -81,21 +81,18 @@
     <p class="claim">One less box <em>between you and your data</em>.</p>
     <div class="twocol">
       <div class="measure">
-        <p>This driver speaks the utility standard IEC 60870-5-104 directly from your Ignition gateway to your remote equipment. There is no intermediate translator to license, patch, monitor or replace when it fails at three in the morning.</p>
-        <p>Removing that middle step also removes a place where information gets lost. Readings arrive with the time and the fault status the equipment itself reported, rather than whatever the translator decided to pass along.</p>
+        <p>There is no intermediate translator to license, patch, monitor or replace when it fails at three in the morning. Removing that middle step also removes a place where information gets lost: readings arrive with the time and the fault status the equipment itself reported, rather than whatever a translator decided to pass along.</p>
         <p>It reads only. It cannot operate a breaker or issue any control command, which keeps a data connection firmly out of the safety conversation.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
         <table class="spec">
           <tr><th>What it is</th><td>A direct connection to IEC 104 utility equipment</td></tr>
-          <tr><th>What it removes</th><td>The translator box, its license and its support contract</td></tr>
+          <tr><th>Where it runs</th><td>On the gateway that touches the equipment</td></tr>
           <tr><th>Who it is for</th><td>Utilities, substations and remote infrastructure sites</td></tr>
           <tr><th>Safety</th><td>Reads only. No control commands, by design</td></tr>
-          <tr><th>Licensing</th><td>$495 per gateway, bought once and kept, not a subscription. Bought on its own, no SparkBridge license required. See <a href="/sparkbridge/pricing">pricing</a></td></tr>
-          <tr><th>Underneath</th><td>Runs on the SparkBridge Host and Edge described on the <a href="/sparkbridge/technology#lifecycle">technology page</a>. Measured figures are in <a href="/sparkbridge/technology#numbers">Performance Quantified</a> and the <a href="/sparkbridge/technology#compare">feature comparison</a>.</td></tr>
+          <tr><th>Licensing</th><td>$495 per gateway, bought once and kept, not a subscription. Always billed separately, never part of any package. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
         </table>
-
       </div>
     </div>
   </div>
@@ -141,10 +138,17 @@
     <div class="measure">
       <p>If you run IEC 104 equipment and would rather have one less vendor in the path between your plant and your data, this is worth a conversation. Early sites shape the roadmap.</p>
     </div>
-    <div class="cta-row">
-      <a class="btn" href="/sparkbridge/contact">Talk to us</a>
-      <a class="btn ghost dark" href="/sparkbridge/products">See the products</a>
+
+    <h2 style="margin-top:40px">For your engineers</h2>
+    <div class="measure">
+      <p>This driver speaks IEC 60870-5-104 (APCI/ASDU, full session) directly from your Ignition gateway to your remote equipment. It was captured against the lib60870 cs104_server reference implementation: 162 APDUs, 43 TESTFR exchanges, zero sequence faults, clean shutdown. Full transcript in the repository as LIVEPROOF.md.</p>
     </div>
+
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge/contact">Try it on one site</a>
+      <a class="btn ghost dark" href="/sparkbridge/pricing">See pricing</a>
+    </div>
+    <p class="note">Development use is free with no time limit. <a href="/sparkbridge/contact">Contact</a>.</p>
   </div>
 </section>
 

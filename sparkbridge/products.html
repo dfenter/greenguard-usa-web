@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sparkplug Edge, Host Application and Provider Modules for Ignition | SparkBridge</title>
-<meta name="description" content="Every SparkBridge module for Ignition with its price: the Sparkplug Edge, Host application and Provider modules, SparkFlow on NATS, SparkVault historian, native drivers, and the products that carry plant data to the warehouse.">
+<title>SparkBridge Products and Pricing: Edge, Central and Modules</title>
+<meta name="description" content="Every SparkBridge product with what it does for your plant and what it costs: Edge, Central, seven modules, and the drivers that connect older equipment.">
 <link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/products">
-<meta property="og:title" content="SparkBridge products: Sparkplug Edge, Host and Provider modules for Ignition">
-<meta property="og:description" content="Every SparkBridge product with what it does and what it costs, plus the Edge, Host and Provider capability detail.">
+<meta property="og:title" content="SparkBridge products and pricing">
+<meta property="og:description" content="Every SparkBridge product with what it does for your plant and what it costs.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/products">
 <meta property="og:site_name" content="SparkBridge">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="SparkBridge products: Sparkplug Edge, Host and Provider modules for Ignition">
-<meta name="twitter:description" content="Every SparkBridge product with what it does and what it costs, plus the Edge, Host and Provider capability detail.">
+<meta name="twitter:title" content="SparkBridge products and pricing">
+<meta name="twitter:description" content="Every SparkBridge product with what it does for your plant and what it costs.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
@@ -51,13 +51,13 @@
     <div class="runhead">
       <div class="eyebrow">The product line</div>
       <h1>Plant to cloud, on one&nbsp;run.</h1>
-      <p class="lede">This is the whole line, from the equipment on your floor to the warehouse your analysts use. Each product is bought separately, so you only pay for what you need, and each is built to work with the rest. Open any one to see what it does.</p>
+      <p class="lede">This is the whole line, from the equipment on your floor to the tools your analysts already use. Each product is bought separately, so you only pay for what you need, and each is built to work with the rest. Open any one to see what it does.</p>
     </div>
 
     <div class="run" role="group" aria-label="Signal path from plant to delivery">
       <div class="dev source">
         <span class="tagno">Field</span>
-        <span class="devname">Plant</span>
+        <span class="devname">Plant equipment</span>
         <span class="job">Your existing equipment</span>
       </div>
 
@@ -65,48 +65,84 @@
 
       <a class="dev st-svc" href="/sparkbridge/drivers">
         <span class="tagno">Connect</span>
-        <span class="devname">IEC-104 &middot; TI 505 &middot; SNMP</span>
+        <span class="devname">Drivers</span>
         <span class="job">Connect older racks, utility equipment and network gear directly</span>
       </a>
 
       <div class="seg s2" aria-hidden="true"></div>
 
-      <a class="dev spine st-svc" href="/sparkbridge/">
-        <span class="tagno">Move</span>
-        <span class="devname">SparkBridge</span>
-        <span class="job">Moves your plant data reliably between sites, and holds it safely when a link drops. Passage, SparkCalc, SparkID, SparkLink, Sentinel and FleetOps are built in</span>
+      <a class="dev spine st-svc" href="/sparkbridge/edge">
+        <span class="tagno">Edge</span>
+        <span class="devname">At each site</span>
+        <span class="job">Moves your plant data reliably off the floor, and holds it safely when a link drops</span>
       </a>
 
       <div class="seg s3" aria-hidden="true"></div>
 
+      <a class="dev spine st-svc" href="/sparkbridge/central">
+        <span class="tagno">Central</span>
+        <span class="devname">One server</span>
+        <span class="job">Collects every site in one place and puts the data to work</span>
+      </a>
+
+      <div class="seg s4" aria-hidden="true"></div>
+
       <div class="taps">
-        <a class="dev st-svc" href="/sparkbridge/vault">
+        <a class="dev st-svc" href="/sparkbridge/central#passage">
+          <span class="tagno">Open</span>
+          <span class="devname">Passage</span>
+          <span class="job">Opens plant data to the tools you already own</span>
+        </a>
+        <a class="dev st-svc" href="/sparkbridge/central#sparkcalc">
+          <span class="tagno">Calculate</span>
+          <span class="devname">SparkCalc</span>
+          <span class="job">Rates, totals and efficiencies, calculated once</span>
+        </a>
+        <a class="dev st-svc" href="/sparkbridge/central#sparkid">
+          <span class="tagno">Secure</span>
+          <span class="devname">SparkID</span>
+          <span class="job">Who can read, who can change</span>
+        </a>
+        <a class="dev st-svc" href="/sparkbridge/central#sentinel">
+          <span class="tagno">Score</span>
+          <span class="devname">Sentinel</span>
+          <span class="job">A scored assessment, with the evidence and the fix</span>
+        </a>
+        <a class="dev st-svc" href="/sparkbridge/central#fleetops">
+          <span class="tagno">Operate</span>
+          <span class="devname">FleetOps</span>
+          <span class="job">One view of every gateway you run</span>
+        </a>
+        <a class="dev st-svc" href="/sparkbridge/central#sparkvault">
           <span class="tagno">Keep</span>
           <span class="devname">SparkVault</span>
-          <span class="job">Keeps your history on the plant's own clock</span>
+          <span class="job">History on the plant's own clock</span>
         </a>
-        <a class="dev st-svc" href="/sparkbridge/inject">
+        <a class="dev st-svc" href="/sparkbridge/central#sparkinject">
           <span class="tagno">Deliver</span>
           <span class="devname">SparkInject</span>
-          <span class="job">Delivers production data into your warehouse, once</span>
+          <span class="job">Production data into your warehouse, once</span>
         </a>
         <a class="dev st-svc" href="/sparkbridge/flow">
           <span class="tagno">Stream</span>
-          <span class="devname">SparkFlow</span>
-          <span class="job">Sparkplug Hyperscaled: every point in the plant, streamed to the whole company</span>
+          <span class="devname">SparkFlow<br><span class="np">separate license</span></span>
+          <span class="job">Every point in the plant, streamed company-wide</span>
         </a>
-        <a class="dev st-svc" href="/sparkbridge/validate">
-          <span class="tagno">Validate</span>
-          <span class="devname">SparkValidate</span>
-          <span class="job">Generates the validation and alarm rationalization package from the code you already have</span>
-        </a>
+      </div>
+
+      <div class="seg s5" aria-hidden="true"></div>
+
+      <div class="dev source">
+        <span class="tagno">Use</span>
+        <span class="devname">Your tools</span>
+        <span class="job">Warehouse, analysts, auditors</span>
       </div>
     </div>
 
-    <a class="clamp" href="/sparkbridge/#features">
+    <a class="clamp" href="/sparkbridge/central#modules-overview">
       <span class="tagno">Modules</span>
-      <span class="devname">Six modules, one package</span>
-      <span class="job">SparkLink included with Edge. Passage, SparkCalc, SparkID, Sentinel and FleetOps $495 each on Central, or in the $3,995 central package.</span>
+      <span class="devname">Seven modules, one package</span>
+      <span class="job">SparkLink included with Edge. The seven Central modules are $495 each (SparkVault $995), or all in the $3,995 central package.</span>
     </a>
 
   </div>
@@ -119,85 +155,131 @@
     <div class="sec-head">
       <span class="path">The line</span>
       <h2>What Each One Does, And What It Costs</h2>
-      <p>Eight released products plus SparkValidate in early access, each solving one problem properly. Most plants start with one and add the next when the need shows up. Every price is list, per gateway, bought once and kept.</p>
+      <p>Most plants start with one product and add the next when the need shows up. Every price is list, per gateway, bought once and kept.</p>
     </div>
 
     <div class="scroller">
       <table class="tbl">
         <thead>
-          <tr><th>Product</th><th>What it does for you</th><th>Price</th></tr>
+          <tr><th>Product</th><th>What it does for you</th><th>Where it runs</th><th>Price</th></tr>
         </thead>
         <tbody>
           <tr>
-            <td><a href="/sparkbridge/">SparkBridge</a></td>
-            <td>Moves plant data reliably across your sites, and keeps working through a dropped link.</td>
-            <td class="num">$995 Edge<br><span class="np">$1,995 Central</span></td>
+            <td><a href="/sparkbridge/edge">SparkBridge Edge</a></td>
+            <td>Moves plant data off the floor reliably, keeps it safe when the link drops, sends only what changed. Includes SparkLink, so a remote site stays inside its data budget.</td>
+            <td>Site</td>
+            <td class="num">$995</td>
           </tr>
           <tr>
-            <td><a href="/sparkbridge/vault">SparkVault</a></td>
-            <td>Keeps your plant history on the plant's own clock, so trends stay true after an outage.</td>
+            <td><a href="/sparkbridge/central">SparkBridge Central</a></td>
+            <td>Collects every site in one place, standalone gateway. Seven optional modules below.</td>
+            <td>Central</td>
+            <td class="num">$1,995</td>
+          </tr>
+          <tr>
+            <td><a href="/sparkbridge/central#passage">Passage</a></td>
+            <td>Opens live plant data to the tools you already own: historians, analytics, test tools. No custom connectors.</td>
+            <td>Central</td>
             <td class="num">$495</td>
           </tr>
           <tr>
-            <td><a href="/sparkbridge/inject">SparkInject</a></td>
-            <td>Delivers production data into Snowflake continuously, with no duplicates and no subscription.</td>
+            <td><a href="/sparkbridge/central#sparkcalc">SparkCalc</a></td>
+            <td>Rates, totals and efficiencies calculated once, in one place, used everywhere.</td>
+            <td>Central</td>
+            <td class="num">$495</td>
+          </tr>
+          <tr>
+            <td><a href="/sparkbridge/central#sparkid">SparkID</a></td>
+            <td>Controls who can read your data and who can change it, plus safe credential rotation. A read permission never includes control.</td>
+            <td>Central</td>
+            <td class="num">$495</td>
+          </tr>
+          <tr>
+            <td><a href="/sparkbridge/central#sentinel">Sentinel</a></td>
+            <td>A scored security and health assessment of your plant data network, with the evidence and the fix. Compliance pack $2,495 add-on.</td>
+            <td>Central</td>
+            <td class="num">$495</td>
+          </tr>
+          <tr>
+            <td><a href="/sparkbridge/central#fleetops">FleetOps</a></td>
+            <td>One view of every gateway: versions, drift, certificates, backups. Fix once, apply everywhere.</td>
+            <td>Central</td>
+            <td class="num">$495</td>
+          </tr>
+          <tr>
+            <td><a href="/sparkbridge/central#sparkvault">SparkVault</a></td>
+            <td>Keeps history on the plant's own clock, so an outage never leaves a hole and any past day can be replayed.</td>
+            <td>Central</td>
+            <td class="num">$995</td>
+          </tr>
+          <tr>
+            <td><a href="/sparkbridge/central#sparkinject">SparkInject</a></td>
+            <td>Delivers production data into Snowflake continuously, once, with no per-row subscription.</td>
+            <td>Central</td>
             <td class="num">$495</td>
           </tr>
           <tr>
             <td><a href="/sparkbridge/flow">SparkFlow</a></td>
-            <td>Sparkplug Hyperscaled: streams every point in the plant to the whole company, live and lossless, past the tag-count ceiling.</td>
+            <td>Streams every point in the plant to the whole company, past the tag-count ceiling. Always billed separately.</td>
+            <td>Central</td>
             <td class="num">$995</td>
           </tr>
           <tr>
             <td><a href="/sparkbridge/snmp">SparkSNMP</a></td>
-            <td>Watches your switches, UPSs, PDUs and servers from Ignition, browsed live with no MIB to load, traps included.</td>
+            <td>Brings network, power and server equipment into Ignition: switches, UPSs, PDUs, servers.</td>
+            <td>Central</td>
             <td class="num">$1,495</td>
           </tr>
           <tr>
-            <td><a href="/sparkbridge/influx">SparkInflux</a></td>
-            <td>Writes InfluxDB history from Ignition with async pipelined writes, a disk ring so an outage never loses a point, and streamed, pushed-down reads. Release pending.</td>
+            <td><a href="/sparkbridge/influx">SparkInflux <small>coming</small></a></td>
+            <td>Writes plant history to InfluxDB continuously, with no lost points during an outage. Release pending.</td>
+            <td>Central</td>
             <td class="num">$1,495</td>
           </tr>
           <tr>
-            <td><a href="/sparkbridge/validate">SparkValidate</a></td>
-            <td>Generates the ISA-18.2 alarm rationalization and risk-based validation package from your L5X and Ignition exports. Early access.</td>
+            <td><a href="/sparkbridge/validate">SparkValidate <small>coming</small></a></td>
+            <td>Generates the alarm and validation documentation package from the plant logic you already have. Early access.</td>
+            <td>Central</td>
             <td class="num">$2,495<br><span class="np">$995 CLI only</span></td>
           </tr>
           <tr>
             <td><a href="/sparkbridge/iec104">IEC 60870-5-104</a></td>
             <td>Connects utility and substation equipment directly, removing the translator box in between.</td>
+            <td>Gateway touching the equipment</td>
             <td class="num">$495</td>
           </tr>
           <tr>
             <td><a href="/sparkbridge/drivers">DNP3</a></td>
             <td>Connects DNP3 utility equipment directly, the standard most North American utilities run on.</td>
+            <td>Gateway touching the equipment</td>
             <td class="num">$495</td>
           </tr>
           <tr>
             <td><a href="/sparkbridge/drivers">TI 505 &middot; CTI 2500</a></td>
             <td>Connects older Siemens and CTI racks directly, so you keep the equipment and drop the middleman.</td>
+            <td>Gateway touching the equipment</td>
             <td class="num">$495</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <p class="note">A site gateway is SparkBridge Edge $995, standalone, with <a href="/sparkbridge/#sparklink">SparkLink</a> included and no package. A central gateway is SparkBridge Central $1,995, standalone. <a href="/sparkbridge/#features">Passage, SparkCalc, SparkID, Sentinel and FleetOps</a> and SparkInject are $495 each and SparkVault $995 on the central gateway; the <a href="/sparkbridge/pricing">$3,995 central package</a> covers Central and all seven ($5,960 a la carte). SparkFlow ($995), SparkSNMP ($1,495), SparkInflux ($1,495), SparkValidate ($2,495, or $995 CLI only) and the protocol drivers ($495 each) are always billed separately and are never part of the package.</p>
+    <p class="note">SparkBridge Edge is $995 per site gateway, standalone, with SparkLink included and no package. SparkBridge Central is $1,995 per central gateway, standalone. The seven modules above are $495 each (SparkVault $995) on the central gateway; the <a href="/sparkbridge/pricing">$3,995 central package</a> covers Central and all seven ($5,960 a la carte, saves $1,965). SparkFlow, SparkSNMP and the protocol drivers are always billed separately and never part of the package. Per gateway. Bought once and kept. Free for development with no time limit. Support 20%/yr, optional.</p>
   </div>
 </section>
 
 <section class="band">
   <div class="wrap">
     <div class="sec-head">
-      <span class="path">Inside SparkBridge</span>
+      <span class="path">For your engineers</span>
       <h2>Edge, Host, Provider and Flow</h2>
-      <p>SparkBridge itself is four modules for Ignition, with Flow optional. Install the ones a site needs, and each works with any conformant Sparkplug software on the other side.</p>
+      <p>SparkBridge itself is four modules, with Flow optional. Install the ones a site needs, and each works with any conformant Sparkplug software on the other side.</p>
     </div>
     <div class="cards">
       <div class="card"><span class="tag">Edge Node &middot; publisher</span><h3>Edge</h3><p>Publishes Ignition tag data as Sparkplug and keeps publishing into a disk buffer when the link drops.</p></div>
       <div class="card"><span class="tag">Host Application &middot; consumer</span><h3>Host</h3><p>Subscribes to the namespace, learns each node's model from its birth certificate, projects it into a tag provider.</p></div>
       <div class="card"><span class="tag">Broker &middot; infrastructure</span><h3>Provider</h3><p>Embedded broker for one node, or control of a HiveMQ CE companion for MQTT 5 and shared subscriptions.</p></div>
-      <div class="card"><span class="tag">Backbone &middot; optional</span><h3>Flow</h3><p>Sparkplug Hyperscaled: streams every point to the whole company, live, lossless and replayable, with commands back under your control. New in 2.5.0.</p></div>
+      <div class="card"><span class="tag">Backbone &middot; optional</span><h3>Flow</h3><p>Streams every point to the whole company, live, lossless and replayable, with commands back under your control. Separate license.</p></div>
     </div>
   </div>
 </section>
@@ -354,11 +436,12 @@
   <div class="wrap">
     <h2>Where To Start</h2>
     <p>Most plants begin by getting their data moving reliably, then keep its history, then open it to the systems and people who need it. You are not buying a platform up front.</p>
-    <p>That means most plants start with SparkBridge on its own and add a module when the need shows up. Each addition is $495 on a gateway they already own, so nothing has to be decided today that can be decided later.</p>
+    <p>That means most plants start with Edge and Central on their own and add a module when the need shows up. Each addition is $495 on a gateway they already own (SparkVault $995), so nothing has to be decided today that can be decided later.</p>
     <p>Not sure which gateway role you have? <a href="/sparkbridge/architecture#s8">Pick by what you run today</a> on the architecture page. If you only need to read older or utility equipment into Ignition, the <a href="/sparkbridge/drivers">protocol drivers</a> are sold alone and do not require SparkBridge.</p>
+    <p>Try it on one site. Development use is free with no time limit.</p>
     <div class="cta-row">
       <a class="btn" href="/sparkbridge/pricing">See pricing</a>
-      <a class="btn ghost" href="/sparkbridge/contact">Talk to us about a pilot</a>
+      <a class="btn ghost" href="/sparkbridge/contact">Contact</a>
     </div>
   </div>
 </section>
