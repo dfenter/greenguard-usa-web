@@ -80,12 +80,12 @@
           <tr>
             <td>A trend that runs flat through an outage and then jumps. Nobody can defend the report built on it.</td>
             <td>Every value is stored with the timestamp the equipment gave it, so a backlog lands where it actually belongs and the curve is the curve the plant ran.</td>
-            <td><a href="/sparkbridge/vault">SparkVault</a> <span class="num">$495</span>. <span class="sub">Central gateway only; included in the central suite.</span></td>
+            <td><a href="/sparkbridge/vault">SparkVault</a> <span class="num">$995</span>. <span class="sub">Central gateway only; in the central package.</span></td>
           </tr>
           <tr>
             <td>Analysts reconciling duplicate rows in the warehouse by hand, and never quite trusting the totals.</td>
             <td>Every reading is tracked individually into your own Snowflake account, so a restart or a network drop cannot produce a gap or a duplicate row.</td>
-            <td><a href="/sparkbridge/inject">SparkInject</a> <span class="num">$495</span>. <span class="sub">Central gateway. Included in the central suite.</span></td>
+            <td><a href="/sparkbridge/inject">SparkInject</a> <span class="num">$495</span>. <span class="sub">Central gateway. In the central package.</span></td>
           </tr>
           <tr>
             <td>A historian or SCADA package that will never speak Sparkplug, and still needs the same live data.</td>
@@ -100,7 +100,7 @@
           <tr>
             <td>Nobody can say what the plant network is exposing, and an auditor is asking for evidence.</td>
             <td>A scored report of what is wrong, ranked by severity, with the proof behind each finding and the specific fix. It observes and changes nothing.</td>
-            <td><a href="/sparkbridge/#sentinel">Sentinel</a> assessment, <span class="num">free</span>. <span class="sub">Compliance pack <span class="num">$2,495</span>.</span></td>
+            <td><a href="/sparkbridge/#sentinel">Sentinel</a> <span class="num">$495</span>, in the central package. <span class="sub">Compliance pack <span class="num">$2,495</span>.</span></td>
           </tr>
           <tr>
             <td>One compromised site could write another site's data, or issue a command to equipment.</td>
@@ -133,9 +133,9 @@
             <td>SparkBridge Central <span class="num">$1,995</span>, or <a href="/sparkbridge/#passage">Passage</a> <span class="num">$495</span> for tools that speak OPC-UA.</td>
           </tr>
           <tr>
-            <td>You already know you want three or more paid modules centrally.</td>
-            <td>The suite stops the a la carte arithmetic. Passage, SparkCalc, SparkID, Sentinel and FleetOps are included with Central, so central side is <span class="np">$1,995 + 3 &times; $495 = $3,480</span> separately. Site side is Edge $995 standalone; there is no site package.</td>
-            <td>Central server suite <span class="num">$2,995</span>, saves <span class="num">$485</span>. <a href="/sparkbridge/pricing">See pricing</a></td>
+            <td>You already know you want most of the central modules.</td>
+            <td>The package stops the a la carte arithmetic. Central side is <span class="np">$1,995 + 6 &times; $495 + $995 = $5,960</span> separately. Site side is Edge $995 standalone; there is no site package.</td>
+            <td>Central package <span class="num">$3,995</span>, saves <span class="num">$1,965</span>. <a href="/sparkbridge/pricing">See pricing</a></td>
           </tr>
         </tbody>
       </table>
@@ -222,7 +222,7 @@
         </tbody>
       </table>
     </div>
-    <p class="note">Products in play: <a href="/sparkbridge/#sparkid">SparkID</a> for the permissions, <a href="/sparkbridge/#sentinel">Sentinel</a> for the assessment and the evidence. The assessment is free, so it is the cheapest place to start.</p>
+    <p class="note">Products in play: <a href="/sparkbridge/#sparkid">SparkID</a> for the permissions, <a href="/sparkbridge/#sentinel">Sentinel</a> for the assessment and the evidence. Sentinel is $495 on its own, so it is the cheapest place to start.</p>
   </div>
 </section>
 
@@ -237,7 +237,7 @@
     <div class="twocol">
       <div class="measure">
         <p><b>One remote site on a metered link.</b> A single wellhead or pump station on cellular, where the link drops, the allowance costs money, and the history has to survive both.</p>
-        <p>That is SparkBridge Edge, <span class="mono">$995</span>, standalone; SparkLink is included. History is kept where the data lands: SparkVault runs on the central gateway, so if this site is also your only server it is that server that takes SparkVault at $495.</p>
+        <p>That is SparkBridge Edge, <span class="mono">$995</span>, standalone; SparkLink is included. History is kept where the data lands: SparkVault runs on the central gateway, so if this site is also your only server it is that server that takes SparkVault at $995.</p>
         <p>Nothing central is required. One site is a complete deployment, and development use is free while you decide.</p>
       </div>
       <div>
@@ -246,7 +246,7 @@
           <tr><th>SparkBridge Edge</th><td>$995</td></tr>
           <tr><th>SparkLink</th><td>Free, included</td></tr>
           <tr><th>At the site</th><td>$995, no package</td></tr>
-          <tr><th>SparkVault, on the central server</th><td>$495</td></tr>
+          <tr><th>SparkVault, on the central server</th><td>$995</td></tr>
         </table>
       </div>
     </div>
@@ -265,7 +265,7 @@
           <tr><th>Total</th><td>$40,800, once</td></tr>
           <tr><th>Before</th><td>Volume discount by site count</td></tr>
           <tr><th>Per tag or per client</th><td>Nothing</td></tr>
-          <tr><th>If the estate needs the full central set</th><td>Central server suite $2,995 in place of $1,995</td></tr>
+          <tr><th>If the estate needs the full central set</th><td>Central package $3,995 in place of $1,995</td></tr>
         </table>
       </div>
     </div>
@@ -273,7 +273,7 @@
     <div class="twocol" style="margin-top:44px">
       <div class="measure">
         <p><b>A utility adding two substations on IEC 104.</b> The equipment is already there and already speaks the protocol. What is in the way is a converter per site, with its own license, its own patching and its own failure mode.</p>
-        <p>The driver is standalone and always billed separately. It does not require SparkBridge and is never part of the suite, so this is the whole cost.</p>
+        <p>The driver is standalone and always billed separately. It does not require SparkBridge and is never part of the central package, so this is the whole cost.</p>
         <p>The same figure applies to a DNP3 site, or to an older Siemens or CTI 505 rack on the TI 505 driver.</p>
       </div>
       <div>
