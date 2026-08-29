@@ -1,24 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge</loc><lastmod>2026-08-23</lastmod></url>
+  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge</loc><lastmod>2026-08-29</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/architecture</loc><lastmod>2026-08-25</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/changelog</loc><lastmod>2026-08-23</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/contact</loc><lastmod>2026-08-23</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/download</loc><lastmod>2026-08-29</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/drivers</loc><lastmod>2026-08-23</lastmod></url>
-  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/fleetops</loc><lastmod>2026-08-23</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/flow</loc><lastmod>2026-08-23</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/iec104</loc><lastmod>2026-08-23</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/inject</loc><lastmod>2026-08-23</lastmod></url>
-  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/passage</loc><lastmod>2026-08-23</lastmod></url>
-  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/pricing</loc><lastmod>2026-08-23</lastmod></url>
-  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/products</loc><lastmod>2026-08-23</lastmod></url>
+  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/pricing</loc><lastmod>2026-08-29</lastmod></url>
+  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/products</loc><lastmod>2026-08-29</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/resources</loc><lastmod>2026-08-23</lastmod></url>
-  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/sentinel</loc><lastmod>2026-08-23</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/snmp</loc><lastmod>2026-08-29</lastmod></url>
-  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/sparkcalc</loc><lastmod>2026-08-23</lastmod></url>
-  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/sparkid</loc><lastmod>2026-08-23</lastmod></url>
-  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/sparklink</loc><lastmod>2026-08-23</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/tck</loc><lastmod>2026-08-23</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/technology</loc><lastmod>2026-08-23</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/use-cases</loc><lastmod>2026-08-17</lastmod></url>

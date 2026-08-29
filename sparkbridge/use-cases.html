@@ -70,7 +70,7 @@
           <tr>
             <td>A remote site on cellular or satellite. The link drops, and the data allowance costs real money.</td>
             <td>The site sends changes rather than answers to repeated questions, buffers to disk while the link is down, and you get a per-tag list of where the megabytes went.</td>
-            <td>SparkBridge Edge <span class="num">$995</span>, with <a href="/sparkbridge/sparklink">SparkLink</a> included free. <span class="sub">Or the site package with SparkVault at <span class="num">$1,295</span>.</span></td>
+            <td>SparkBridge Edge <span class="num">$995</span>, with <a href="/sparkbridge/#sparklink">SparkLink</a> included free. <span class="sub">Or the site package with SparkVault at <span class="num">$1,295</span>.</span></td>
           </tr>
           <tr>
             <td>Forty sites landing on one central server that sits at 50 to 75 percent CPU and cannot ride out a network outage.</td>
@@ -90,27 +90,27 @@
           <tr>
             <td>A historian or SCADA package that will never speak Sparkplug, and still needs the same live data.</td>
             <td>The same live values are presented over OPC-UA, with source timestamps and honest bad quality. Existing systems connect the way they already do, with no integration work.</td>
-            <td><a href="/sparkbridge/passage">Passage</a> <span class="num">$495</span>. <span class="sub">Read only. It cannot write or command.</span></td>
+            <td><a href="/sparkbridge/#passage">Passage</a> <span class="num">$495</span>. <span class="sub">Read only. It cannot write or command.</span></td>
           </tr>
           <tr>
             <td>The same efficiency calculation hand built in a PLC, a dashboard and a spreadsheet, giving three answers.</td>
             <td>The value is computed once and published back as plant data, carrying the time of its oldest input and going bad when any input does.</td>
-            <td><a href="/sparkbridge/sparkcalc">SparkCalc</a> <span class="num">$495</span>. <span class="sub">Runs at a site or centrally.</span></td>
+            <td><a href="/sparkbridge/#sparkcalc">SparkCalc</a> <span class="num">$495</span>. <span class="sub">Runs at a site or centrally.</span></td>
           </tr>
           <tr>
             <td>Nobody can say what the plant network is exposing, and an auditor is asking for evidence.</td>
             <td>A scored report of what is wrong, ranked by severity, with the proof behind each finding and the specific fix. It observes and changes nothing.</td>
-            <td><a href="/sparkbridge/sentinel">Sentinel</a> assessment, <span class="num">free</span>. <span class="sub">Compliance pack <span class="num">$2,495</span>.</span></td>
+            <td><a href="/sparkbridge/#sentinel">Sentinel</a> assessment, <span class="num">free</span>. <span class="sub">Compliance pack <span class="num">$2,495</span>.</span></td>
           </tr>
           <tr>
             <td>One compromised site could write another site's data, or issue a command to equipment.</td>
             <td>Permissions are generated from intent, one line per message type, scoped to one site. A read grant can no longer quietly include the commands that operate equipment.</td>
-            <td><a href="/sparkbridge/sparkid">SparkID</a> <span class="num">$495</span>. <span class="sub">Central gateway.</span></td>
+            <td><a href="/sparkbridge/#sparkid">SparkID</a> <span class="num">$495</span>. <span class="sub">Central gateway.</span></td>
           </tr>
           <tr>
             <td>Forty gateways in the field and nobody knows which version, which drifted, or which certificate expires next month.</td>
             <td>One list of versions, drift, certificates and backups across the estate. A rotation is authorized once and applied everywhere, and the instruction cannot be replayed.</td>
-            <td><a href="/sparkbridge/fleetops">FleetOps</a> <span class="num">$495</span>. <span class="sub">Worth it from roughly ten sites up.</span></td>
+            <td><a href="/sparkbridge/#fleetops">FleetOps</a> <span class="num">$495</span>. <span class="sub">Worth it from roughly ten sites up.</span></td>
           </tr>
           <tr>
             <td>An older Siemens or CTI 505 rack sitting behind a translator box with its own license and its own patching.</td>
@@ -130,7 +130,7 @@
           <tr>
             <td>A new dashboard or an ML pipeline is coming, and it must not add load at the plant.</td>
             <td>A new consumer subscribes to what is already being published. Cost tracks process activity, not tag count and not consumer count, so the source is untouched.</td>
-            <td>SparkBridge Central <span class="num">$1,995</span>, or <a href="/sparkbridge/passage">Passage</a> <span class="num">$495</span> for tools that speak OPC-UA.</td>
+            <td>SparkBridge Central <span class="num">$1,995</span>, or <a href="/sparkbridge/#passage">Passage</a> <span class="num">$495</span> for tools that speak OPC-UA.</td>
           </tr>
           <tr>
             <td>You already know you want SparkVault at a site, or three or more paid modules centrally.</td>
@@ -163,7 +163,7 @@
         <p>Normal traffic tracks what the plant is doing. If the link drops, the site saves readings to disk with their original timestamps and sends them when it reconnects, so the history shows the real curve rather than a flat line and a jump. The budget becomes a measured list you can act on, and the readings you mark as critical are protected in the sending path itself, so no budget rule can quietly degrade them.</p>
       </div>
     </div>
-    <p class="note">Products in play: SparkBridge Edge, <a href="/sparkbridge/sparklink">SparkLink</a> for the data budget, and <a href="/sparkbridge/vault">SparkVault</a> if the history has to survive the outage as well as the link.</p>
+    <p class="note">Products in play: SparkBridge Edge, <a href="/sparkbridge/#sparklink">SparkLink</a> for the data budget, and <a href="/sparkbridge/vault">SparkVault</a> if the history has to survive the outage as well as the link.</p>
   </div>
 </section>
 
@@ -179,7 +179,7 @@
       <p><b>500k in under 4 GiB.</b> The measured single-host capacity, with per-metric cost flat to a million. The fleet fits with margin on every dimension.</p>
       <p><b>Cost does not grow with consumers.</b> Adding a dashboard, a historian or an ML pipeline adds a subscriber, not load at the source.</p>
       <p><b>The estate stays visible.</b> Forty gateways is forty version numbers, forty certificate expiries and forty backup schedules. On a 40-site rig, one authorized certificate rotation reached every site in 937 ms, and the same instruction captured and replayed was refused by all forty.</p>
-      <p>Products in play: SparkBridge Central and SparkBridge Edge, with <a href="/sparkbridge/fleetops">FleetOps</a> once the site count makes a spreadsheet a liability.</p>
+      <p>Products in play: SparkBridge Central and SparkBridge Edge, with <a href="/sparkbridge/#fleetops">FleetOps</a> once the site count makes a spreadsheet a liability.</p>
     </div>
   </div>
 </section>
@@ -196,7 +196,7 @@
       <p><b>Sparkplug and JSON, both.</b> The same values a second time on a readable ISA-95 style path for consumers that will never speak protobuf.</p>
       <p><b>One number, calculated once.</b> Efficiency, throughput and cost per unit are computed in one place and published back as plant data, each value carrying the time of its oldest input and going bad when any input does. That is what makes a reported figure defensible.</p>
       <p><b>Everything you already own can read it.</b> The same live values are served over OPC-UA to the historian, SCADA package or analytics tool you are not going to replace, with source timestamps intact.</p>
-      <p>Products in play: <a href="/sparkbridge/passage">Passage</a> for the systems that speak OPC-UA, <a href="/sparkbridge/sparkcalc">SparkCalc</a> for the derived numbers, <a href="/sparkbridge/vault">SparkVault</a> for the history behind them, and <a href="/sparkbridge/inject">SparkInject</a> when the warehouse is the destination.</p>
+      <p>Products in play: <a href="/sparkbridge/#passage">Passage</a> for the systems that speak OPC-UA, <a href="/sparkbridge/#sparkcalc">SparkCalc</a> for the derived numbers, <a href="/sparkbridge/vault">SparkVault</a> for the history behind them, and <a href="/sparkbridge/inject">SparkInject</a> when the warehouse is the destination.</p>
     </div>
   </div>
 </section>
@@ -222,7 +222,7 @@
         </tbody>
       </table>
     </div>
-    <p class="note">Products in play: <a href="/sparkbridge/sparkid">SparkID</a> for the permissions, <a href="/sparkbridge/sentinel">Sentinel</a> for the assessment and the evidence. The assessment is free, so it is the cheapest place to start.</p>
+    <p class="note">Products in play: <a href="/sparkbridge/#sparkid">SparkID</a> for the permissions, <a href="/sparkbridge/#sentinel">Sentinel</a> for the assessment and the evidence. The assessment is free, so it is the cheapest place to start.</p>
   </div>
 </section>
 

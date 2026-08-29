@@ -284,13 +284,13 @@
             <a class="dev ign st-svc" href="/sparkbridge/"><span class="tagno">Plants</span><span class="devname">Ignition + local DB</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="ia">OPC-UA</span><span class="ia">local history</span><span class="acc">SB Edge</span></span><span class="job">Full servers, as in 02</span></a>
             <a class="dev ign st-svc" href="/sparkbridge/"><span class="tagno">Small onsite plants</span><span class="devname">Ignition Edge</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">SB Edge</span></span></a>
             <a class="dev ign st-svc" href="/sparkbridge/drivers"><span class="tagno">Utility sites</span><span class="devname">Ignition Edge</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">IEC-104</span><span class="acc">DNP3</span><span class="acc">TI 505</span><span class="acc">SB Edge</span></span></a>
-            <a class="dev ign st-svc" href="/sparkbridge/sparklink"><span class="tagno">Metered sites</span><span class="devname">Ignition Edge</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="ia">Modbus</span><span class="acc">SB Edge</span><span class="acc">SparkLink</span></span></a>
+            <a class="dev ign st-svc" href="/sparkbridge/#sparklink"><span class="tagno">Metered sites</span><span class="devname">Ignition Edge</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="ia">Modbus</span><span class="acc">SB Edge</span><span class="acc">SparkLink</span></span></a>
           </div></div>
           <div class="bus pulse two" data-l="NBIRTH · NDATA ↑ · NCMD ↓ · signed config ↓" aria-hidden="true"><span></span></div>
           <div class="arow"><div class="alab"><b>Brokers</b>data center</div><div class="acells">
             <div class="dev brk st-svc"><span class="tagno">Broker A</span><span class="devname">HiveMQ</span><span class="job">Rules from SparkID: only the host id may command, each site scoped to its own group</span></div>
             <div class="dev brk st-svc"><span class="tagno">Broker B</span><span class="devname">HiveMQ</span><span class="job">Server set with A</span></div>
-            <a class="dev box st-svc" href="/sparkbridge/sparkid"><span class="tagno">Not a gateway</span><span class="devname">SparkID</span><span class="job">Generates credentials.xml, extension config, NATS ACLs, standby bindings; rotates with overlap</span></a>
+            <a class="dev box st-svc" href="/sparkbridge/#sparkid"><span class="tagno">Not a gateway</span><span class="devname">SparkID</span><span class="job">Generates credentials.xml, extension config, NATS ACLs, standby bindings; rotates with overlap</span></a>
           </div></div>
           <div class="bus" data-l="spBv1.0/# · $share · STATE · claim" aria-hidden="true"></div>
           <div class="arow"><div class="alab"><b>Central</b>Ignition host pool</div><div class="acells">
@@ -310,7 +310,7 @@
           </div></div>
         </div>
       </div>
-      <a class="clamp" href="/sparkbridge/sentinel"><span class="tagno">Clamped across all of it</span><span class="devname">Sentinel</span><span class="job">Audits the brokers and the host from outside with read-only probes, reports what is exposed, and feeds the Compliance binder. Never in the data path.</span></a>
+      <a class="clamp" href="/sparkbridge/#sentinel"><span class="tagno">Clamped across all of it</span><span class="devname">Sentinel</span><span class="job">Audits the brokers and the host from outside with read-only probes, reports what is exposed, and feeds the Compliance binder. Never in the data path.</span></a>
       <table class="spec">
         <tr><th>Servers</th><td>Plant Ignition servers with their local databases, Ignition Edge at small onsite plants, 2 brokers, 2 central Ignition servers, a SparkID workstation, your database, NATS and warehouse</td></tr>
         <tr><th>On each plant or Edge server</th><td>SparkBridge Edge, plus our IEC-104 / DNP3 / TI 505 drivers where the rack needs them, plus SparkLink where the link is metered</td></tr>
@@ -369,7 +369,7 @@
         <tr><th>Discipline</th><td>Replayed and computed values always publish under their own group with their own sequence, so a simulation or a derived number can never be mistaken for a live measurement.</td></tr>
         <tr><th>License</th><td>SparkVault $495 and SparkFlow $995 on the central server; Passage and SparkCalc are included free with Central. SparkVault is in the $2,995 central suite, SparkFlow is not</td></tr>
       </table>
-      <p class="links"><a href="/sparkbridge/vault">SparkVault</a><a href="/sparkbridge/flow">SparkFlow</a><a href="/sparkbridge/passage">Passage</a><a href="/sparkbridge/sparkcalc">SparkCalc</a></p>
+      <p class="links"><a href="/sparkbridge/vault">SparkVault</a><a href="/sparkbridge/flow">SparkFlow</a><a href="/sparkbridge/#passage">Passage</a><a href="/sparkbridge/#sparkcalc">SparkCalc</a></p>
     </article>
   </div>
 </section>
@@ -426,7 +426,7 @@
         <tr><th>License</th><td>SparkFlow $995 per central gateway running it: three regional pools and the corporate historian. Edge $995 per plant, Central $1,995 per pool server. NATS is open source and yours.</td></tr>
       </table>
       <p class="honest">Honest limits: a single region (one NATS domain, one host pool, SparkFlow, SparkVault ingest, the leaf partition) is shipped and gated. The multi-region hub with per-region accounts is a design built on those gates; cross-domain sourcing across an account boundary is the one spike still owed before a customer install, and the hub is drawn dashed for that reason. The Perspective dispatcher is on the bench.</p>
-      <p class="links"><a href="/sparkbridge/flow">SparkFlow</a><a href="/sparkbridge/vault">SparkVault</a><a href="/sparkbridge/sparkid">SparkID</a></p>
+      <p class="links"><a href="/sparkbridge/flow">SparkFlow</a><a href="/sparkbridge/vault">SparkVault</a><a href="/sparkbridge/#sparkid">SparkID</a></p>
     </article>
   </div>
 </section>
@@ -445,9 +445,9 @@
         <p class="vh">A fleet publisher workstation holds the signing key and publishes retained, sequenced configuration envelopes to the brokers. Each site Ignition server verifies the signature, refuses replay, and applies the change live. Site state travels back inside each site's birth certificate and appears on the FleetOps grid on the central server. SparkID on the same workstation generates the broker credentials and rules. Sentinel connects to the brokers and host as an outsider and reports.</p>
         <div class="arack" role="group" aria-label="Fleet configuration, identity and audit">
           <div class="arow"><div class="alab"><b>Ops</b>workstation</div><div class="acells">
-            <a class="dev box st-svc" href="/sparkbridge/fleetops"><span class="tagno">Not a gateway</span><span class="devname">Fleet publisher</span><span class="job">P-256 signing key; site documents in git; publishes signed, sequenced, retained config</span></a>
-            <a class="dev box st-svc" href="/sparkbridge/sparkid"><span class="tagno">Not a gateway</span><span class="devname">SparkID</span><span class="job">One declaration of who may read and who may command; emits broker rules, NATS ACLs, standby bindings; dry-run diff against the live broker</span></a>
-            <a class="dev box st-svc" href="/sparkbridge/sentinel"><span class="tagno">Not a gateway</span><span class="devname">Sentinel</span><span class="job">Anonymous connect, command-topic reachability, passive capture. Reports and scores; never remediates.</span></a>
+            <a class="dev box st-svc" href="/sparkbridge/#fleetops"><span class="tagno">Not a gateway</span><span class="devname">Fleet publisher</span><span class="job">P-256 signing key; site documents in git; publishes signed, sequenced, retained config</span></a>
+            <a class="dev box st-svc" href="/sparkbridge/#sparkid"><span class="tagno">Not a gateway</span><span class="devname">SparkID</span><span class="job">One declaration of who may read and who may command; emits broker rules, NATS ACLs, standby bindings; dry-run diff against the live broker</span></a>
+            <a class="dev box st-svc" href="/sparkbridge/#sentinel"><span class="tagno">Not a gateway</span><span class="devname">Sentinel</span><span class="job">Anonymous connect, command-topic reachability, passive capture. Reports and scores; never remediates.</span></a>
           </div></div>
           <div class="bus pulse two" data-l="config ↓ · rules ↓ · probes" aria-hidden="true"><span></span></div>
           <div class="arow"><div class="alab"><b>Brokers</b></div><div class="acells">
@@ -455,8 +455,8 @@
           </div></div>
           <div class="bus two" data-l="config ↓ · Node Info in NBIRTH ↑" aria-hidden="true"></div>
           <div class="arow"><div class="alab"><b>Sites and central</b>Ignition servers</div><div class="acells">
-            <a class="dev ign st-svc" href="/sparkbridge/fleetops"><span class="tagno">Sites 01 to 40</span><span class="devname">Ignition Edge</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">SB Edge · trusted key</span></span><span class="job">Verifies, refuses replay below its sequence floor, applies without restart</span></a>
-            <a class="dev ign st-svc" href="/sparkbridge/fleetops"><span class="tagno">Central pool</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">SB Host</span><span class="acc">FleetOps console</span></span><span class="job">Module version, config version, buffered bytes and drops for every site on one grid; drift and cert expiry ledger</span></a>
+            <a class="dev ign st-svc" href="/sparkbridge/#fleetops"><span class="tagno">Sites 01 to 40</span><span class="devname">Ignition Edge</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">SB Edge · trusted key</span></span><span class="job">Verifies, refuses replay below its sequence floor, applies without restart</span></a>
+            <a class="dev ign st-svc" href="/sparkbridge/#fleetops"><span class="tagno">Central pool</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">SB Host</span><span class="acc">FleetOps console</span></span><span class="job">Module version, config version, buffered bytes and drops for every site on one grid; drift and cert expiry ledger</span></a>
           </div></div>
         </div>
       </div>
@@ -466,7 +466,7 @@
         <tr><th>Proof</th><td>A Sentinel run becomes an auditor-ready binder mapped to NERC CIP and IEC 62443 through the Compliance add-on</td></tr>
         <tr><th>License</th><td>FleetOps $495 per server, SparkID free with SparkBridge, Sentinel free, Compliance add-on $2,495</td></tr>
       </table>
-      <p class="links"><a href="/sparkbridge/fleetops">FleetOps</a><a href="/sparkbridge/sparkid">SparkID</a><a href="/sparkbridge/sentinel">Sentinel</a></p>
+      <p class="links"><a href="/sparkbridge/#fleetops">FleetOps</a><a href="/sparkbridge/#sparkid">SparkID</a><a href="/sparkbridge/#sentinel">Sentinel</a></p>
     </article>
   </div>
 </section>

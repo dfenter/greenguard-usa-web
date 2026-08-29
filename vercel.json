@@ -5,6 +5,36 @@
   "trailingSlash": false,
   "redirects": [
     {
+      "source": "/sparkbridge/fleetops",
+      "destination": "/sparkbridge/#fleetops",
+      "permanent": true
+    },
+    {
+      "source": "/sparkbridge/sentinel",
+      "destination": "/sparkbridge/#sentinel",
+      "permanent": true
+    },
+    {
+      "source": "/sparkbridge/sparklink",
+      "destination": "/sparkbridge/#sparklink",
+      "permanent": true
+    },
+    {
+      "source": "/sparkbridge/sparkid",
+      "destination": "/sparkbridge/#sparkid",
+      "permanent": true
+    },
+    {
+      "source": "/sparkbridge/sparkcalc",
+      "destination": "/sparkbridge/#sparkcalc",
+      "permanent": true
+    },
+    {
+      "source": "/sparkbridge/passage",
+      "destination": "/sparkbridge/#passage",
+      "permanent": true
+    },
+    {
       "source": "/",
       "has": [
         {
