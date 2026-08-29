@@ -46,19 +46,33 @@ function base64url(str) {
   return Buffer.from(str, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
-async function sendViaGmailApi({ to, subject, html, bcc, from, labelIds }) {
+async function sendViaGmailApi({ to, subject, html, bcc, from, labelIds, attachments }) {
   const gmail = google.gmail({ version: 'v1', auth: getGmailAuth() })
   const toList = Array.isArray(to) ? to.join(', ') : to
   const bccList = bcc ? (Array.isArray(bcc) ? bcc.join(', ') : bcc) : null
+  const files = Array.isArray(attachments) ? attachments.filter((a) => a && a.filename) : []
+  const boundary = `sb_${Date.now().toString(36)}_${Math.random().toString(36).slice(2)}`
   const headers = [
     `From: ${from}`,
     `To: ${toList}`,
     bccList ? `Bcc: ${bccList}` : null,
     `Subject: =?UTF-8?B?${Buffer.from(subject, 'utf8').toString('base64')}?=`,
     'MIME-Version: 1.0',
-    'Content-Type: text/html; charset=UTF-8',
+    files.length ? `Content-Type: multipart/mixed; boundary="${boundary}"` : 'Content-Type: text/html; charset=UTF-8',
   ].filter(Boolean).join('\r\n')
-  const raw = base64url(`${headers}\r\n\r\n${html}`)
+  let payload = html
+  if (files.length) {
+    // multipart/mixed: the HTML part first, then each attachment base64-encoded.
+    const parts = [`--${boundary}\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n${html}`]
+    for (const a of files) {
+      const buf = Buffer.isBuffer(a.content) ? a.content : Buffer.from(String(a.content), 'utf8')
+      parts.push(`--${boundary}\r\nContent-Type: ${a.contentType || 'application/octet-stream'}; name="${a.filename}"\r\n`
+        + `Content-Disposition: attachment; filename="${a.filename}"\r\nContent-Transfer-Encoding: base64\r\n\r\n`
+        + buf.toString('base64').replace(/(.{76})/g, '$1\r\n'))
+    }
+    payload = parts.join('\r\n') + `\r\n--${boundary}--`
+  }
+  const raw = base64url(`${headers}\r\n\r\n${payload}`)
   const res = await gmail.users.messages.send({ userId: 'me', requestBody: { raw } })
   // Self-addressed ops mail never reaches Gmail's filter engine (filters run on
   // inbound delivery only), so a settings filter on these silently no-ops. Label
@@ -90,14 +104,14 @@ async function sendViaGmailApi({ to, subject, html, bcc, from, labelIds }) {
 // in the admin inbox. Used directly by the local daemon, and by sendEmail()
 // below as the backup path when local isn't available or doesn't answer in
 // time — one source of truth for how an email actually goes out.
-async function sendEmailDirect({ to, subject, html, bcc, from }) {
+async function sendEmailDirect({ to, subject, html, bcc, from, attachments }) {
   const resendFrom = from || `${biz.name} <${FROM}>`
   const gmailFrom = from || `${biz.name} <${biz.email}>`
   // Try Gmail first; fall back to Resend on ANY Gmail failure so a Gmail
   // hiccup never drops the email. No labelIds here: customer mail must not
   // get the Daily Ops label (that's purchase-notify.js only).
   try {
-    return await sendViaGmailApi({ to, subject, html, bcc, from: gmailFrom })
+    return await sendViaGmailApi({ to, subject, html, bcc, from: gmailFrom, attachments })
   } catch (e) {
     // With no Resend key configured there is no backup — propagate.
     if (!process.env.RESEND_API_KEY) throw e
@@ -109,6 +123,7 @@ async function sendEmailDirect({ to, subject, html, bcc, from }) {
     subject,
     html,
     ...(bcc ? { bcc } : {}),
+    ...(attachments && attachments.length ? { attachments: attachments.map((a) => ({ filename: a.filename, content: Buffer.isBuffer(a.content) ? a.content : Buffer.from(String(a.content), 'utf8') })) } : {}),
   })
   if (!assertSendOk(r)) throw new Error(`Resend send failed or was unconfirmed: ${r?.error?.message || 'no provider id'}`)
   return r
@@ -121,7 +136,9 @@ async function sendEmailDirect({ to, subject, html, bcc, from }) {
  * pre-local-first code. The daemon uses the exact same sendEmailDirect(), so
  * there's a single source of truth for how an email actually goes out.
  */
-async function sendEmail({ to, subject, html, bcc, from }) {
+async function sendEmail({ to, subject, html, bcc, from, attachments }) {
+  // Attachments bypass the local daemon queue (it serialises to KV and does not carry files).
+  if (attachments && attachments.length) return sendEmailDirect({ to, subject, html, bcc, from, attachments })
   return notifyQueue.sendLocalFirst({ kind: 'email', to, subject, html, bcc, from }, sendEmailDirect)
 }
 

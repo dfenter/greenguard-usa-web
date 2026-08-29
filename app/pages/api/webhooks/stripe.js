@@ -3,6 +3,7 @@ const { upsertContact, addNote, findContactByEmail, updateContact } = require('.
 const { sendT0Email, markStage, clearStages } = require('../../../lib/payment-resurrection')
 const { notifyAdmin, sendCustomerReceipt, sendCheckoutReceipt } = require('../../../lib/purchase-notify')
 const { sendWelcomeEmail } = require('../../../lib/email')
+const { fulfillSparkBridgeOrder } = require('../../../lib/sparkbridge-fulfill')
 const { createMagicToken, markQuotePaid } = require('../../../lib/auth')
 const crypto = require('crypto')
 
@@ -336,6 +337,14 @@ export default async function handler(req, res) {
         // (Stripe still fires this for $0 sessions etc.).
         const session = event.data.object
         if (session.payment_status !== 'paid') break
+
+        // SparkBridge software licenses: issue signed key files and email them.
+        // Nothing else in this branch applies (no pest-control welcome, receipt or
+        // ad attribution), so it returns early after admin notification.
+        if (session.metadata?.source === 'sparkbridge') {
+          await fulfillSparkBridgeOrder({ session, stripe, notifyAdmin, addNote, findContactByEmail, upsertContact })
+          break
+        }
 
         const customerName = session.customer_details?.name || ''
         const customerEmail = session.customer_details?.email || session.customer_email || ''
