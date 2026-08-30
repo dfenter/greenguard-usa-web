@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SparkInflux: InfluxDB Historian for Ignition | SparkBridge</title>
-<meta name="description" content="SparkInflux is a native InfluxDB historian module for Ignition 8.1 and 8.3. Async pipelined writes, a disk ring so an outage never loses a point, and pushed-down aggregate reads. $1,495 per gateway, bought once.">
+<meta name="description" content="SparkInflux 0.2.0 is a native InfluxDB historian module for Ignition 8.1 and 8.3. Async pipelined writes, deadband and adaptive batching, a disk ring so an outage never loses a point, and pushed-down aggregate reads with a read cache. $1,495 per gateway, bought once.">
 <link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/influx">
 <meta property="og:title" content="SparkInflux: InfluxDB historian for Ignition">
 <meta property="og:description" content="Native InfluxDB historian module for Ignition 8.1 and 8.3. Async pipelined writes, gzip by default, a disk ring so an outage never loses a point, pushed-down aggregate reads. $1,495 per gateway, bought once.">
@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Products","item":"https://mqtt.greenguard-usa.com/sparkbridge/products"},{"@type":"ListItem","position":3,"name":"SparkInflux","item":"https://mqtt.greenguard-usa.com/sparkbridge/influx"}]},{"@type":"SoftwareApplication","name":"SparkInflux InfluxDB historian for Ignition","url":"https://mqtt.greenguard-usa.com/sparkbridge/influx","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer, Ignition 8.3.2 or newer","softwareVersion":"0.1.0","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"SparkInflux keeps InfluxDB history safe through an outage and streams reads instead of stalling on them. $1,495 per gateway, always billed separately. Coming.","offers":{"@type":"Offer","price":"1495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/PreOrder","description":"Perpetual license, per gateway. Standalone, always billed separately. Coming"}}]}
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Products","item":"https://mqtt.greenguard-usa.com/sparkbridge/products"},{"@type":"ListItem","position":3,"name":"SparkInflux","item":"https://mqtt.greenguard-usa.com/sparkbridge/influx"}]},{"@type":"SoftwareApplication","name":"SparkInflux InfluxDB historian for Ignition","url":"https://mqtt.greenguard-usa.com/sparkbridge/influx","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer, Ignition 8.3.2 or newer","softwareVersion":"0.2.0","datePublished":"2026-08-30","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"SparkInflux keeps InfluxDB history safe through an outage and streams reads instead of stalling on them. $1,495 per gateway, always billed separately.","offers":{"@type":"Offer","price":"1495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per gateway. Standalone, always billed separately."}}]}
 </script>
 </head>
 <body>
@@ -52,8 +52,8 @@
       <div>
         <div class="eyebrow">SparkInflux</div>
         <h1>Stop losing InfluxDB history when a page cap fills up</h1>
-        <p>The InfluxDB historian on Ignition today can silently delete history once it fills up, and a wide trend can make the gateway's memory climb while it loads. SparkInflux is coming to remove both problems, with an outage that never costs you a point and reads that stream instead of stall.</p>
-        <div class="pmeta"><span class="stat">Coming</span><span>InfluxDB v2 and v1.8, v3 next</span><span>$1,495, always separate</span></div>
+        <p>The InfluxDB historian on Ignition today can silently delete history once it fills up, and a wide trend can make the gateway's memory climb while it loads. SparkInflux removes both problems, with an outage that never costs you a point and reads that stream instead of stall.</p>
+        <div class="pmeta"><span class="stat">0.2.0</span><span>InfluxDB v2, v1.8 and v3</span><span>$1,495, always separate</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>Load gate, real InfluxDB 2.7.11, 2026-08-29</span><span class="live"><i class="dot"></i>Measured live</span></div>
@@ -86,7 +86,7 @@
         <table class="spec">
           <tr><th>What it is</th><td>A native InfluxDB historian module for Ignition</td></tr>
           <tr><th>Who it is for</th><td>Plants already on InfluxDB, or moving to it, who want history that survives an outage and a query that streams</td></tr>
-          <tr><th>Backends</th><td>InfluxDB v2 (and v1.8 compatibility) at release; v3 next</td></tr>
+          <tr><th>Backends</th><td>InfluxDB v2, v1.8 compatibility, and v3 with native SQL</td></tr>
           <tr><th>Licensing</th><td>$1,495 per gateway, bought once and kept, not a subscription. Always billed separately, never part of any package. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
         </table>
       </div>
@@ -132,7 +132,33 @@
 <section>
   <div class="wrap">
     <div class="measure">
-      <p>If InfluxDB history has ever gone missing during an outage, or a wide trend has ever made the gateway's memory climb while it loads, this is worth a conversation. Release is pending; early sites shape the roadmap.</p>
+      <p>If InfluxDB history has ever gone missing during an outage, or a wide trend has ever made the gateway's memory climb while it loads, this is worth a conversation.</p>
+    </div>
+
+    <h2 style="margin-top:40px">What's new in 0.2.0</h2>
+    <div class="measure">
+      <p>18 features across write, read, operations, migration, configuration, scripting, and schema, ported to both the 8.1 and 8.3 codebases. Every existing 0.1.0 provider keeps behaving exactly the same until it is re-saved through the 0.2.0 Config page.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Area</th><th>What it adds</th></tr></thead>
+        <tbody>
+          <tr><td><b>Deadband / change-only storage</b></td><td>Suppresses writes that do not represent a meaningful change, with per-tag absolute, percent and minimum-interval overrides. Measured live: a 200-point series moving 0.5 per point dropped from 200 writes to 1.</td></tr>
+          <tr><td><b>Adaptive batching</b></td><td>Grows or shrinks the write batch size from measured backend latency and throttling, instead of a fixed batch size regardless of backend conditions.</td></tr>
+          <tr><td><b>Read cache</b></td><td>Repeated Perspective trend and aggregate polls within a short window are served from an in-memory cache instead of round-tripping to InfluxDB every time, invalidated the moment a write touches those tags.</td></tr>
+          <tr><td><b>Quality-aware aggregates</b></td><td>Pushed-down aggregate reads exclude bad-quality points before reducing, matching Ignition's own historian default.</td></tr>
+          <tr><td><b>InfluxDB v3 native SQL</b></td><td>Raw reads, windowed aggregates, seek-back, extents and tag-value browsing all have SQL equivalents for InfluxDB 3.x, instead of falling back to Flux-only code paths.</td></tr>
+          <tr><td><b>Diagnostics tags + health alarms</b></td><td>Every provider gets a live tag folder refreshed every 5 seconds, plus alarms on ring-fill percentage and backend reachability through Ignition's normal alarm pipeline.</td></tr>
+          <tr><td><b>Quarantine routes</b></td><td>Rejected write batches are inspected, retried, discarded or exported through JSON routes instead of a config tab.</td></tr>
+          <tr><td><b>SQL history backfill</b></td><td>Backfills InfluxDB from an existing Ignition SQL tag history datasource through the same store-and-forward write pipeline a live scan-class write uses.</td></tr>
+          <tr><td><b>Test-and-create + schema inspector</b></td><td>Confirms a provider's backend is reachable, optionally creates its bucket if missing, and reports measurements, tag keys and cardinality with warnings.</td></tr>
+          <tr><td><b>Config as code</b></td><td>Exports and imports every provider row as JSON, for fleet-wide provisioning, with token redaction and idempotent create/update/delete.</td></tr>
+          <tr><td><b>Multi-bucket routing + downsampling</b></td><td>Routes writes, and unions reads, across more than one InfluxDB bucket per provider by tag-path prefix, plus generates scheduled downsampling tasks.</td></tr>
+          <tr><td><b>Grafana-ready schema layout</b></td><td>An alternate write and read schema shaped for Grafana's InfluxDB data source and its folder-per-measurement browsing convention, selectable per provider.</td></tr>
+          <tr><td><b>Sparkplug tags</b></td><td>Attaches group, edge and device tags to points whose tag path matches a Sparkplug or UNS pattern, under either schema layout.</td></tr>
+          <tr><td><b>system.influx Datasets</b></td><td>New history and aggregate scripting functions return wide-format Datasets matching system.tag.queryTagHistory's own shape, including aggregate kinds not otherwise exposed.</td></tr>
+        </tbody>
+      </table>
     </div>
 
     <h2 style="margin-top:40px">For your engineers</h2>
