@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Products","item":"https://mqtt.greenguard-usa.com/sparkbridge/products"},{"@type":"ListItem","position":3,"name":"SparkBridge Edge","item":"https://mqtt.greenguard-usa.com/sparkbridge/edge"}]},{"@type":"SoftwareApplication","name":"SparkBridge Edge","url":"https://mqtt.greenguard-usa.com/sparkbridge/edge","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","softwareVersion":"2.5.0","isPartOf":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#app"},"publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"SparkBridge Edge moves plant data off the floor reliably, keeps it safe when the link drops, and sends only what changed. Includes SparkLink for cost control on metered links. $995 per site gateway, standalone.","offers":{"@type":"Offer","name":"SparkBridge Edge","price":"995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per production site gateway. Standalone, no package required."}}]}
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Products","item":"https://mqtt.greenguard-usa.com/sparkbridge/products"},{"@type":"ListItem","position":3,"name":"SparkBridge Edge","item":"https://mqtt.greenguard-usa.com/sparkbridge/edge"}]},{"@type":"SoftwareApplication","name":"SparkBridge Edge","url":"https://mqtt.greenguard-usa.com/sparkbridge/edge","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","softwareVersion":"2.5.0","isPartOf":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#app"},"publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"SparkBridge Edge moves plant data off the floor reliably, keeps it safe when the link drops, and sends only what changed. Includes SparkLink for cost control on metered links. $995 per site gateway, standalone.","offers":{"@type":"Offer","name":"SparkBridge Edge","price":"995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per production site gateway. Standalone, with its own license."}}]}
 </script>
 </head>
 <body>
@@ -91,7 +91,7 @@
 
 <section>
   <div class="wrap">
-    <p class="claim">Your data leaves the site once, and it leaves <em>true</em>.</p>
+    <p class="claim">Each value leaves the site once, <em>on the timestamp your equipment gave it</em>.</p>
     <div class="twocol">
       <div class="measure">
         <p>Most sites poll. Something in the middle asks the equipment for every value, over and over, whether or not anything happened. That costs more every time you add a tag or a dashboard, and it has no good answer for a dropped link.</p>
@@ -103,7 +103,7 @@
           <tr><th>What it is</th><td>The one gateway installed at each site</td></tr>
           <tr><th>Where it runs</th><td>On your site gateway, nowhere else</td></tr>
           <tr><th>What it replaces</th><td>Polling loads and manual data exports after an outage</td></tr>
-          <tr><th>Licensing</th><td>$995 per site gateway, bought once and kept, not a subscription. Its own license, no package required.</td></tr>
+          <tr><th>Licensing</th><td>$995 per site gateway, bought once and kept, not a subscription. It carries its own license, standalone.</td></tr>
         </table>
       </div>
     </div>
@@ -114,8 +114,8 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="path">the link drops</div>
-      <h2>Nothing Is Lost, and Nothing Is Guessed</h2>
-      <p>A dropped link is not an edge case. It is Tuesday at a site on cellular or radio. GreenGuard USA built Edge around that fact instead of hoping it never happens.</p>
+      <h2>Nothing Is Lost During an Outage</h2>
+      <p>A dropped link is routine at a site on cellular or radio. GreenGuard USA built Edge around that fact instead of hoping it never happens.</p>
     </div>
     <div class="two">
       <div>
@@ -126,7 +126,7 @@
       <div>
         <div class="k good">With Edge</div>
         <h3>The backlog fills in where it belongs</h3>
-        <p>Edge keeps recording locally while the link is down. On reconnect, every reading arrives stamped with the time your equipment gave it. The curve your team looks at is the curve the plant actually ran.</p>
+        <p>Edge keeps recording locally while the link is down. On reconnect, every reading arrives stamped with the time your equipment gave it, so the trend your team sees matches what the plant actually ran.</p>
       </div>
     </div>
   </div>
@@ -137,11 +137,11 @@
     <div class="sec-head">
       <div class="path">metered sites</div>
       <h2>What SparkLink Saves You on a Metered Link</h2>
-      <p>Comes with Edge, no extra charge. For a site on cellular or satellite, this is the part that keeps the monthly bill from being a surprise.</p>
+      <p>Comes with Edge, no extra charge. For a site on cellular or satellite, it keeps the monthly bill predictable.</p>
     </div>
     <div class="twocol">
       <div class="measure">
-        <p>A remote pad, a lift station or a tank farm on a metered link pays for data by the byte. Today the only controls most sites have are settings picked by hand at commissioning: no visibility into what a site actually spends, no way to see which tag is burning the budget.</p>
+        <p>A remote pad, a lift station or a tank farm on a metered link pays for data by the byte. Today the only controls most sites have are settings picked by hand at commissioning: no visibility into what a site actually spends and no way to see which tag drives the cost.</p>
         <p>SparkLink measures what every site spends and attributes it down to the individual tag. If spend runs ahead of plan, it eases off gradually rather than all at once. Anything you mark safety-relevant is never touched, at any spend level. You get a monthly answer to "what did this site cost," and a site that stays inside its plan without you watching it.</p>
       </div>
       <div>
@@ -149,7 +149,7 @@
         <table class="spec">
           <tr><th>Included with</th><td>SparkBridge Edge, no extra charge</td></tr>
           <tr><th>What it shows</th><td>Bytes spent, by site and by tag, measured not estimated</td></tr>
-          <tr><th>What it protects</th><td>Anything you mark safety-relevant, never degraded, ever</td></tr>
+          <tr><th>What it protects</th><td>Anything you mark safety-relevant, never degraded</td></tr>
         </table>
       </div>
     </div>
@@ -161,7 +161,7 @@
     <div class="sec-head">
       <div class="path">what you need at a site</div>
       <h2>One License, and Nothing Else Installs at the Edge</h2>
-      <p>The site gateway is a short list. That's on purpose.</p>
+      <p>The site gateway needs very little, and that is deliberate.</p>
     </div>
     <div class="cards">
       <article class="card">

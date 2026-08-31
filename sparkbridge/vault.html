@@ -62,7 +62,7 @@
           <div class="striplab"><span>t &minus; 600 s</span><span>natural resolution, no interpolation</span><span>now</span></div>
           <p style="margin:14px 0 0"><span class="hi">600 rows</span> returned for a 600-second window. The engine was asked for
           natural resolution, so every stored sample came back on the timestamp the plant wrote,
-          and the curve is the curve.</p>
+          with no interpolation.</p>
         </div>
         <div class="artifact-foot">Read back through the same trend tools your team already uses.</div>
       </div>
@@ -77,8 +77,8 @@
     <p class="claim">Your history stays true, <em>even after an outage</em>.</p>
     <div class="twocol">
       <div class="measure">
-        <p>A four hour outage used to mean a flat trend, a wrong shift report, and a record you could not defend to a customer or a regulator. SparkVault keeps every reading on the time it actually happened, so the backlog fills in exactly where it belongs when the link comes back. Nothing is lost, and nothing is quietly stamped with the wrong time.</p>
-        <p>Your own reporting and dashboard tools read it directly. Nobody stands between you and your own data. Any past day can be played back on demand, so your team can test a new dashboard, tune an alarm, or walk through an incident using real production data instead of a guess.</p>
+        <p>A four hour outage used to mean a flat trend, a wrong shift report, and a record you could not defend to a customer or a regulator. SparkVault keeps every reading on the time it actually happened, so the backlog fills in exactly where it belongs when the link comes back, with nothing lost or stamped with the wrong time.</p>
+        <p>Your own reporting and dashboard tools read it directly. Any past day can be played back on demand, so your team can test a new dashboard, tune an alarm, or walk through an incident using real production data instead of a guess.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
@@ -98,8 +98,8 @@
   <div class="wrap">
     <div class="figure"><b>0</b><span>values lost in a four hour outage</span></div>
     <div class="measure">
-      <p>We disconnected a gateway for four hours and eleven minutes while production continued. When the link came back, every reading arrived and landed on the time it actually happened. Nothing was lost, and nothing was quietly stamped with the wrong time.</p>
-      <p>That is the difference between a record you can hand to a customer or a regulator, and one you have to apologize for.</p>
+      <p>We disconnected a gateway for four hours and eleven minutes while production continued. When the link came back, every reading arrived and landed on the time it actually happened, with nothing lost or stamped with the wrong time.</p>
+      <p>That record can go to a customer or a regulator without correction.</p>
     </div>
   </div>
 </section>
@@ -107,7 +107,7 @@
 <section>
   <div class="wrap">
     <div class="sec-head">
-      <span class="path">where it earns its keep</span>
+      <span class="path">where it fits</span>
       <h2>Three Situations This Solves</h2>
       <p>Three places where the history you already collect stops being usable, and what changes.</p>
     </div>
@@ -118,7 +118,7 @@
           <tr><td><b>A four hour outage in the middle of a reported shift</b><br><span class="sub">Any site whose link to the central system is not perfect.</span></td>
               <td>Most systems record when a value arrived, so the trend goes flat for the outage then jumps at reconnect. The shift report built on that curve is wrong, and you cannot defend it to a customer or a regulator. SparkVault stores every value on the timestamp the equipment gave it, so the backlog fills in where it actually belongs. In a four hour and eleven minute disconnection every reading came back on its real time and nothing was lost.</td></tr>
           <tr><td><b>History locked in a file your reporting tools cannot read</b><br><span class="sub">Plants running a separate historian per site, each in its own proprietary format.</span></td>
-              <td>Getting a number out means an export, a ticket, or a negotiation for access to your own data, and every site answers the question differently. SparkVault keeps history for the whole plant network in one open database on your own gateway, so the trends and reports your team already uses read it directly and nobody sits between you and the record.</td></tr>
+              <td>Getting a number out means an export, a ticket, or a negotiation for access to your own data, and every site answers the question differently. SparkVault keeps history for the whole plant network in one open database on your own gateway, so the trends and reports your team already uses read it directly.</td></tr>
           <tr><td><b>Tuning an alarm or walking an incident with no real data</b><br><span class="sub">Engineers reviewing what happened, or testing a dashboard before it goes live.</span></td>
               <td>A simulated signal never has the noise, the dropouts or the timing of the real plant, so a threshold tuned against it behaves differently in service. SparkVault plays any past day back on demand through your systems, at the resolution the plant wrote. You can re-run the hour an incident happened, test a new dashboard, or set an alarm against production data instead of a guess.</td></tr>
         </tbody>

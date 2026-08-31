@@ -53,7 +53,7 @@
         <div class="eyebrow">SparkInflux</div>
         <h1>Stop losing InfluxDB history when a page cap fills up</h1>
         <p>The InfluxDB historian on Ignition today can silently delete history once it fills up, and a wide trend can make the gateway's memory climb while it loads. GreenGuard USA built SparkInflux to fix both: an outage that never costs you a point, and reads that stream instead of stall.</p>
-        <div class="pmeta"><span class="stat">0.2.0</span><span>InfluxDB v2, v1.8 and v3</span><span>$1,495, always separate</span></div>
+        <div class="pmeta"><span class="stat">0.2.0</span><span>InfluxDB v2, v1.8 and v3</span><span>$1,495, its own license</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>Load gate, real InfluxDB 2.7.11, 2026-08-29</span><span class="live"><i class="dot"></i>Measured live</span></div>
@@ -75,7 +75,7 @@
 
 <section>
   <div class="wrap">
-    <p class="claim">Point it at the bucket. <em>Nothing waits on a page cap again.</em></p>
+    <p class="claim">Point it at the bucket and <em>no page cap ever deletes history.</em></p>
     <div class="twocol">
       <div class="measure">
         <p>SparkInflux writes the same data layout the existing InfluxDB module uses, so pointing it at data you already have is a configuration change, not a migration. If the server goes away, points hold safely instead of getting lost when storage fills up, and nothing is deleted on overflow. When the server comes back, everything drains on its own with nothing missing.</p>
@@ -107,7 +107,7 @@
 <section>
   <div class="wrap">
     <div class="sec-head">
-      <span class="path">where it earns its keep</span>
+      <span class="path">where it fits</span>
       <h2>Four Situations This Solves</h2>
       <p>All four come from the write and read path underneath the existing InfluxDB module, not from InfluxDB itself.</p>
     </div>

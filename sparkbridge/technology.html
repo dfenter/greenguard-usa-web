@@ -65,7 +65,7 @@
       <h2 id="lifecycle">The Life of One Connection</h2>
       <p>MQTT moves messages but says nothing about what is inside them. Sparkplug defines the
       whole life of a connection, and every guarantee it gives you comes from one specific
-      message in that life. Read it top to bottom. This is the order it happens on the wire.</p>
+      message in that life. The list below follows the order it happens on the wire.</p>
     </div>
     <ol class="lifeline">
       <li>
@@ -81,7 +81,7 @@
         <p>The edge publishes its whole model in one birth certificate: every point with its name,
         datatype, engineering units and current value, stamped <code>seq=0</code> and a session
         number that identifies this connection uniquely. Consumers learn the model from the stream
-        itself. No schema registry to fall out of date.</p></div>
+        itself, with no schema registry to fall out of date.</p></div>
       </li>
       <li>
         <span class="lc lc-birth">DBIRTH</span>
@@ -123,8 +123,7 @@
         <span class="lc lc-birth">NBIRTH</span>
         <div><h3>And the loop closes</h3>
         <p>When the site returns it simply births again with a new session number, and everything
-        above repeats. Recovery is not an add-on procedure. It is the same three messages the
-        protocol always speaks.</p></div>
+        above repeats. Recovery is the same three messages the protocol always speaks.</p></div>
       </li>
     </ol>
   </div>
@@ -156,7 +155,7 @@
     <div class="sec-head">
       <div class="path">mqtt5</div>
       <h2 id="mqtt5">MQTT 5 and Beyond</h2>
-      <p>The group that maintains Sparkplug has said where the next version is heading. Everything in the right-hand column already ships. Switch it on today.</p>
+      <p>The group that maintains Sparkplug has said where the next version is heading. Everything in the right-hand column already ships and can be switched on today.</p>
     </div>
     <div class="scroller">
       <table class="tbl">
@@ -179,7 +178,7 @@
     <div class="sec-head">
       <div class="path">uns</div>
       <h2 id="uns">The Unified Namespace, Explained</h2>
-      <p>One up-to-date picture of the plant that every system reads from. You get it as a result of publishing properly. No second project to fund.</p>
+      <p>One up-to-date picture of the plant that every system reads from. You get it as a result of publishing properly, with no second project to fund.</p>
     </div>
     <div class="two">
       <div>
@@ -202,7 +201,7 @@
     <div class="sec-head">
       <div class="path">beyond spec</div>
       <h2>Beyond the Standard</h2>
-      <p>Any conformant Sparkplug product gives you these four things. They are the floor. The real differences start above them.</p>
+      <p>Any conformant Sparkplug product gives you these four things. They are the baseline, and the real differences start above it.</p>
     </div>
 
     <div class="floor">What Sparkplug 3.0 already guarantees</div>
@@ -299,7 +298,7 @@
 <section class="tail">
   <div class="wrap">
     <h2>The Standard Is Only the Start</h2>
-    <p>Conformance is table stakes. What decides an estate's operating cost is everything the standard leaves open: buffering, scale-out, identity scoping, hot reload, observability.</p>
+    <p>Conformance is the baseline. What decides an estate's operating cost is everything the standard leaves open: buffering, scale-out, identity scoping, hot reload, observability.</p>
     <div class="cta-row">
       <a class="btn" href="/sparkbridge/products">See the products</a>
       <a class="btn ghost" href="/sparkbridge/resources">Read the documentation</a>

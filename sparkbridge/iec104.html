@@ -78,10 +78,10 @@
 
 <section>
   <div class="wrap">
-    <p class="claim">One less box <em>between you and your data</em>.</p>
+    <p class="claim">The gateway talks IEC 104 <em>directly to the equipment</em>.</p>
     <div class="twocol">
       <div class="measure">
-        <p>No intermediate translator to license, patch, monitor or replace when it fails at three in the morning. Removing that middle step also removes a place where information gets lost: readings arrive with the time and the fault status the equipment itself reported, not whatever a translator decided to pass along.</p>
+        <p>There is no intermediate translator to license, patch, monitor or replace. Removing that middle step also removes a place where information gets lost: readings arrive with the time and the fault status the equipment itself reported, not whatever a translator decided to pass along.</p>
         <p>It reads only. It cannot operate a breaker or issue any control command, so a data connection stays out of the safety conversation.</p>
       </div>
       <div>
@@ -91,7 +91,7 @@
           <tr><th>Where it runs</th><td>On the gateway that touches the equipment</td></tr>
           <tr><th>Who it is for</th><td>Utilities, substations and remote infrastructure sites</td></tr>
           <tr><th>Safety</th><td>Reads only. No control commands, by design</td></tr>
-          <tr><th>Licensing</th><td>$495 per gateway, bought once and kept, not a subscription. Its own license, independent of any package. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
+          <tr><th>Licensing</th><td>$495 per gateway, bought once and kept, not a subscription. It carries its own per-gateway license. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
         </table>
       </div>
     </div>
@@ -103,7 +103,7 @@
     <div class="figure"><b>0</b><span>errors across a full certification session</span></div>
     <div class="measure">
       <p>We tested the driver against the reference implementation the industry uses to validate this protocol. Across a full session of 162 exchanges it made no errors, handled every interruption correctly, and shut down cleanly.</p>
-      <p>Protocol correctness is not a detail here. It is the difference between a connection that quietly drops readings and one you can build an operation on.</p>
+      <p>A driver that mishandles this protocol quietly drops readings. This session shows this one does not.</p>
     </div>
   </div>
 </section>
@@ -111,20 +111,20 @@
 <section>
   <div class="wrap">
     <div class="sec-head">
-      <span class="path">where it earns its keep</span>
+      <span class="path">where it fits</span>
       <h2>Four Situations This Solves</h2>
-      <p>All four are the cost of the box in the middle, just paid in a different currency each time.</p>
+      <p>All four are costs of the translator box in the middle.</p>
     </div>
     <div class="scroller">
       <table class="tbl">
         <thead><tr><th>The situation</th><th>What changes</th></tr></thead>
         <tbody>
           <tr><td><b>A substation talks IEC 104 through a converter you also have to own</b><br><span class="sub">A utility or infrastructure operator with a translator box per site.</span></td>
-              <td>That box carries its own license, its own patching schedule, its own support contract, its own failure mode, and it fails at three in the morning like everything else. This driver speaks IEC 60870-5-104 directly from the Ignition gateway to the equipment, so the box comes out along with everything attached to it. One fewer vendor sits between the substation and your data.</td></tr>
+              <td>That box carries its own license, its own patching schedule, its own support contract and its own failure mode. This driver speaks IEC 60870-5-104 directly from the Ignition gateway to the equipment, so the box comes out along with everything attached to it. One fewer vendor sits between the substation and your data.</td></tr>
           <tr><td><b>The event sequence cannot be reconstructed after a trip</b><br><span class="sub">Whoever has to explain what happened first, and to whom.</span></td>
               <td>A converter in the middle re-stamps readings with its own clock, so the order you analyze is the order the middleman happened to forward, not the order the equipment reported. Reading the protocol directly means values arrive with the time and the fault status the equipment itself reported. We measured correctness directly: a full session against the lib60870 reference implementation, 162 APDUs and 43 TESTFR exchanges, zero sequence faults, clean shutdown.</td></tr>
           <tr><td><b>Adding sites means adding another box each time</b><br><span class="sub">A utility whose site count is growing faster than its budget.</span></td>
-              <td>Per site hardware makes every new connection a purchase, an install and another item on the maintenance list. That's what makes growth expensive, not the equipment. This driver runs on the gateway you already have and is bought once per gateway, not per subscription. No per site box to buy, rack, patch or replace.</td></tr>
+              <td>Per site hardware makes every new connection a purchase, an install and another item on the maintenance list. This driver runs on the gateway you already have and is bought once per gateway, not per subscription. No per site box to buy, rack, patch or replace.</td></tr>
           <tr><td><b>A data connection is being treated as a safety question</b><br><span class="sub">The engineer who has to get this past a substation safety review.</span></td>
               <td>Anything that can operate a breaker attracts a much longer conversation, and rightly so. This driver reads only. It cannot issue a control command of any kind, by design, so the review stays about data handling instead of operations.</td></tr>
         </tbody>

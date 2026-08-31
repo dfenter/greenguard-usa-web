@@ -53,7 +53,7 @@
         <div class="eyebrow">SparkFlow</div>
         <h1>Every point in the plant, available to the whole company</h1>
         <p>Your plant already produces more data than a tag-counted system can hold. SparkFlow removes that ceiling. Millions of points reach every dashboard, historian, analyst and AI pipeline in your company, live and lossless, without replacing a single thing on the plant floor.</p>
-        <div class="pmeta"><span class="stat">Released</span><span>Runs on the central gateway</span><span>$995, always separate</span></div>
+        <div class="pmeta"><span class="stat">Released</span><span>Runs on the central gateway</span><span>$995, its own license</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>Live gateway &middot; wire capture</span><span class="live"><i class="dot"></i>Captured live</span></div>
@@ -80,12 +80,12 @@ missing: 0   ordering violations: 0</pre>
 
 <section>
   <div class="wrap">
-    <p class="claim">Keep what works on the floor. <em>Free everything above it.</em></p>
+    <p class="claim">Nothing on the floor changes, and <em>everything above it can read the stream.</em></p>
     <div class="twocol">
       <div class="measure">
         <p>Nothing on the floor changes. Your equipment and your existing gateways keep running exactly as they do today. SparkFlow sits above them and turns what they already produce into a company-wide data stream, one that any system can tap without asking the plant for anything.</p>
-        <p>The ceiling it removes is tag count. In a conventional system, every point you want to see has to become a tag, and at hundreds of thousands of points that model runs out of road. SparkFlow keeps a live, quality-stamped value for every point in the plant with no tag behind it. Your screens show what operators watch; everything else stays instantly available for history, reports and analytics. Millions of points stop being a licensing problem or a server-sizing problem. They are just there.</p>
-        <p>The stream remembers, too. A new dashboard can open with the last known value of everything the moment it loads. An analyst can replay yesterday's upset minute by minute. A system that was offline for an hour catches up by itself, in order, missing nothing. When something needs to change on the floor, commands travel back down the same path, locked so only the systems you have authorized can ever issue one.</p>
+        <p>The ceiling it removes is tag count. In a conventional system, every point you want to see has to become a tag, and at hundreds of thousands of points that model stops scaling. SparkFlow keeps a live, quality-stamped value for every point in the plant with no tag behind it. Your screens show what operators watch; everything else stays instantly available for history, reports and analytics. Millions of points stop being a licensing or server-sizing problem.</p>
+        <p>The stream also keeps history. A new dashboard can open with the last known value of everything the moment it loads. An analyst can replay yesterday's upset minute by minute. A system that was offline for an hour catches up by itself, in order, missing nothing. When something needs to change on the floor, commands travel back down the same path, locked so only the systems you have authorized can ever issue one.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
@@ -94,7 +94,7 @@ missing: 0   ordering violations: 0</pre>
           <tr><th>Where it runs</th><td>On the central gateway only</td></tr>
           <tr><th>What changes on the floor</th><td>Nothing. It installs alongside what you run today</td></tr>
           <tr><th>Scale</th><td>Millions of points live, with no per-tag cost and no per-tag licensing</td></tr>
-          <tr><th>Licensing</th><td>$995 per central gateway, perpetual. Its own license, outside the central package. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
+          <tr><th>Licensing</th><td>$995 per central gateway, perpetual. It carries its own per-gateway license. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
         </table>
       </div>
     </div>
@@ -105,7 +105,7 @@ missing: 0   ordering violations: 0</pre>
   <div class="wrap">
     <div class="figure"><b>100%</b><span>delivery, measured: 7.25 million messages sent across a real network, 7.25 million received</span></div>
     <div class="measure">
-      <p>GreenGuard USA does not estimate reliability, we measure it. In the release benchmark, 7.25 million messages crossed a real network at 48,000 per second and every single one arrived, in order, exactly once. In a separate test we physically cut a remote site's connection for a full minute while it kept producing: every reading was held at the site and every reading reached the center when the link came back. 447 sent, 447 delivered, zero lost.</p>
+      <p>GreenGuard USA measures reliability rather than estimating it. In the release benchmark, 7.25 million messages crossed a real network at 48,000 per second and every single one arrived, in order, exactly once. In a separate test we physically cut a remote site's connection for a full minute while it kept producing: every reading was held at the site and every reading reached the center when the link came back. 447 sent, 447 delivered, zero lost.</p>
       <p>That is the standard the whole suite is built to: if your equipment said it, the number that reaches your people is the same number, with the same timestamp, no matter what the network did in between.</p>
     </div>
   </div>
@@ -114,20 +114,20 @@ missing: 0   ordering violations: 0</pre>
 <section>
   <div class="wrap">
     <div class="sec-head">
-      <span class="path">where it earns its keep</span>
+      <span class="path">where it fits</span>
       <h2>Three Situations This Solves</h2>
-      <p>Three places where the conventional model runs out of road, and what SparkFlow does about it.</p>
+      <p>Three places where the conventional model stops scaling, and what SparkFlow does about it.</p>
     </div>
     <div class="scroller">
       <table class="tbl">
         <thead><tr><th>The situation</th><th>What changes</th></tr></thead>
         <tbody>
           <tr><td><b>You have millions of points and a tag budget for thousands</b><br><span class="sub">The plant produces far more than the SCADA can hold as tags.</span></td>
-              <td>Every point in the plant gets a live, quality-stamped value with no tag behind it. Screens carry what operators actually watch; everything else is still live, still historized, still one query away. The tag ceiling stops deciding what your company gets to see.</td></tr>
+              <td>Every point in the plant gets a live, quality-stamped value with no tag behind it. Screens carry what operators actually watch; everything else is still live, historized, and one query away. Tag count no longer limits what your company can see.</td></tr>
           <tr><td><b>A new system needs yesterday, not just right now</b><br><span class="sub">A new dashboard, a recovering service, an analyst walking back through an incident.</span></td>
-              <td>The stream remembers. New consumers open with the current state of everything, offline systems catch up on their own, and any window of the past can be replayed on demand, in order, as it happened.</td></tr>
+              <td>The stream keeps history. New consumers open with the current state of everything, offline systems catch up on their own, and any window of the past can be replayed on demand, in order, as it happened.</td></tr>
           <tr><td><b>Remote sites with links that come and go</b><br><span class="sub">Cellular, satellite, or just a long way from the nearest fiber.</span></td>
-              <td>Each site keeps producing and holding its own data through an outage, then reconciles with the center automatically when the link returns. Proven with a real cut: nothing lost, nothing out of order, nobody paged.</td></tr>
+              <td>Each site keeps producing and holding its own data through an outage, then reconciles with the center automatically when the link returns. Proven with a real cut: nothing lost or out of order.</td></tr>
         </tbody>
       </table>
     </div>
@@ -138,7 +138,7 @@ missing: 0   ordering violations: 0</pre>
 <section>
   <div class="wrap">
     <div class="measure">
-      <p>If your plant data infrastructure moves data today, SparkFlow is how it stops being plant data and becomes company data: every point, every consumer, live and lossless, $995 per central gateway.</p>
+      <p>SparkFlow makes plant data available company-wide: every point, live and lossless, $995 per central gateway.</p>
     </div>
 
     <h2 style="margin-top:40px">For your engineers</h2>
