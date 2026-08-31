@@ -66,28 +66,16 @@
 
     <div class="run compact" role="group" aria-label="Signal path from plant to delivery">
       <a class="dev spine st-svc" href="/sparkbridge/edge">
-        <span class="tagno">Edge</span>
-        <span class="devname">At each site</span>
+        <span class="tagno">At each site</span>
+        <span class="devname">SparkBridge Edge</span>
         <span class="job">Moves data off the floor, holds it safely when a link drops</span>
       </a>
       <div class="seg s1" aria-hidden="true"></div>
-      <div class="stack">
-        <a class="dev spine st-svc" href="/sparkbridge/central">
-          <span class="tagno">Central</span>
-          <span class="devname">One server</span>
+      <a class="dev spine st-svc" href="/sparkbridge/central">
+          <span class="tagno">One server</span>
+          <span class="devname">SparkBridge Central</span>
           <span class="job">Collects every site, puts the data to work</span>
         </a>
-        <div class="modrack" aria-label="Modules on the Central gateway">
-          <a href="/sparkbridge/central#passage">Passage</a>
-          <a href="/sparkbridge/central#sparkcalc">SparkCalc</a>
-          <a href="/sparkbridge/central#sparkid">SparkID</a>
-          <a href="/sparkbridge/central#sentinel">Sentinel</a>
-          <a href="/sparkbridge/central#fleetops">FleetOps</a>
-          <a href="/sparkbridge/central#sparkvault">SparkVault</a>
-          <a href="/sparkbridge/central#sparkinject">SparkInject</a>
-          <a href="/sparkbridge/flow">SparkFlow<small>own license</small></a>
-        </div>
-      </div>
       <div class="seg s2" aria-hidden="true"></div>
       <div class="dev source">
         <span class="tagno">Use</span>
@@ -140,30 +128,18 @@
       <div class="seg s1" aria-hidden="true"></div>
 
       <a class="dev spine st-svc" href="/sparkbridge/edge">
-        <span class="tagno">Edge</span>
-        <span class="devname">At each site</span>
+        <span class="tagno">At each site</span>
+        <span class="devname">SparkBridge Edge</span>
         <span class="job">Moves plant data off the floor reliably, and holds it safely when a link drops</span>
       </a>
 
       <div class="seg s2" aria-hidden="true"></div>
 
-      <div class="stack">
-        <a class="dev spine st-svc" href="/sparkbridge/central">
-          <span class="tagno">Central</span>
-          <span class="devname">One server</span>
+      <a class="dev spine st-svc" href="/sparkbridge/central">
+          <span class="tagno">One server</span>
+          <span class="devname">SparkBridge Central</span>
           <span class="job">Collects every site in one place and puts the data to work</span>
         </a>
-        <div class="modrack" aria-label="Modules on the Central gateway">
-          <a href="/sparkbridge/central#passage">Passage</a>
-          <a href="/sparkbridge/central#sparkcalc">SparkCalc</a>
-          <a href="/sparkbridge/central#sparkid">SparkID</a>
-          <a href="/sparkbridge/central#sentinel">Sentinel</a>
-          <a href="/sparkbridge/central#fleetops">FleetOps</a>
-          <a href="/sparkbridge/central#sparkvault">SparkVault</a>
-          <a href="/sparkbridge/central#sparkinject">SparkInject</a>
-          <a href="/sparkbridge/flow">SparkFlow<small>own license</small></a>
-        </div>
-      </div>
 
       <div class="seg s3" aria-hidden="true"></div>
 
@@ -172,6 +148,18 @@
         <span class="devname">Your tools</span>
         <span class="job">Warehouse, analysts, auditors</span>
       </div>
+    </div>
+
+    <div class="cards rack">
+      <div class="rackhead">The Central suite &middot; modules that run on SparkBridge Central &middot; <a href="/sparkbridge/central">see the suite</a></div>
+      <a class="card" href="/sparkbridge/central#passage"><h3>Passage</h3><p>Open data access</p><p class="desc">Opens your live plant data to the historians, analytics and test tools you already own. No custom connector per system.</p></a>
+      <a class="card" href="/sparkbridge/central#sparkcalc"><h3>SparkCalc</h3><p>Calculation engine</p><p class="desc">Rates, totals and efficiencies calculated once, in one place, used everywhere.</p></a>
+      <a class="card" href="/sparkbridge/central#sparkid"><h3>SparkID</h3><p>Access control</p><p class="desc">Controls who can read your data and who can change it, with safe credential rotation. A read permission never includes control.</p></a>
+      <a class="card" href="/sparkbridge/central#sentinel"><h3>Sentinel</h3><p>Security assessment</p><p class="desc">A scored security and health assessment of your plant data network, with the evidence and the fix for each finding.</p></a>
+      <a class="card" href="/sparkbridge/central#fleetops"><h3>FleetOps</h3><p>Fleet management</p><p class="desc">One view of every gateway you run: versions, drift, certificates, backups. Fix once, apply everywhere.</p></a>
+      <a class="card" href="/sparkbridge/central#sparkvault"><h3>SparkVault</h3><p>Central history</p><p class="desc">Keeps history on the plant's own clock, so trends stay true through a dropped link and back.</p></a>
+      <a class="card" href="/sparkbridge/central#sparkinject"><h3>SparkInject</h3><p>Warehouse delivery</p><p class="desc">Delivers production data into your warehouse, once, with nothing rekeyed along the way.</p></a>
+      <a class="card" href="/sparkbridge/flow"><h3>SparkFlow <small>own license</small></h3><p>High-rate streaming</p><p class="desc">Streams every point Central decodes, well past what the tag system carries, for screens and analytics at estate scale.</p></a>
     </div>
 
     <div class="cards rack">
@@ -199,42 +187,7 @@
   </div>
 </section>
 
-<section class="band" id="features">
-  <div class="wrap">
-    <div class="sec-head">
-      <div class="path">modules</div>
-      <h2>Seven Modules, Central Only</h2>
-      <p>These seven modules only run on a SparkBridge Central gateway. Each is $495 (SparkVault $995), or all seven in the $3,995 central package. SparkLink comes with Edge, no extra cost.</p>
-    </div>
-    <div class="cards">
-      <article class="card" id="passage">
-        <h3><a href="/sparkbridge/central#passage">Passage</a></h3>
-        <p>Opens your live plant data to the historians, analytics and test tools you already own. No custom connector per system.</p>
-      </article>
-      <article class="card" id="sparkcalc">
-        <h3><a href="/sparkbridge/central#sparkcalc">SparkCalc</a></h3>
-        <p>Rates, totals and efficiencies calculated once, in one place, used everywhere.</p>
-      </article>
-      <article class="card" id="sparkid">
-        <h3><a href="/sparkbridge/central#sparkid">SparkID</a></h3>
-        <p>Controls who can read your data and who can change it, plus safe credential rotation. A read permission never includes control.</p>
-      </article>
-      <article class="card" id="sparklink">
-        <h3><a href="/sparkbridge/edge">SparkLink</a> <small>included with Edge</small></h3>
-        <p>Keeps a remote site on a cellular or satellite link inside its data budget, measured, not estimated.</p>
-      </article>
-      <article class="card" id="sentinel">
-        <h3><a href="/sparkbridge/central#sentinel">Sentinel</a></h3>
-        <p>A scored security and health assessment of your plant data network, with the evidence and the fix for each finding.</p>
-      </article>
-      <article class="card" id="fleetops">
-        <h3><a href="/sparkbridge/central#fleetops">FleetOps</a></h3>
-        <p>One view of every gateway you run: versions, drift, certificates, backups. Fix once, apply everywhere.</p>
-      </article>
-    </div>
-    <p class="note">Two more modules run on Central: <a href="/sparkbridge/central#sparkvault">SparkVault</a> keeps history on the plant's own clock, and <a href="/sparkbridge/central#sparkinject">SparkInject</a> delivers production data into your warehouse, once. <a href="/sparkbridge/products">See all seven with pricing</a>.</p>
-  </div>
-</section>
+
 
 <section id="cost-of-ownership">
   <div class="wrap">
@@ -342,7 +295,7 @@
       </div>
     </div>
 
-    <p class="note"><a href="#features">SparkLink</a> comes with Edge. <a href="#features">Passage, SparkCalc, SparkID, Sentinel and FleetOps</a> are $495 each, SparkInject $495, SparkVault $995, all on the central gateway and all in the package. SparkFlow ($995), SparkSNMP ($1,495), SparkADS, SparkS7, Spark61850 and SparkBACnet ($1,495 each, early access), SparkGantt ($495, early access), SparkNotify ($995, early access) and the protocol drivers ($495 each) each carry their own license, outside the package. Per gateway. Bought once and kept. Support 20%/yr, optional.</p>
+    <p class="note">SparkLink comes with Edge. Passage, SparkCalc, SparkID, Sentinel and FleetOps are $495 each, SparkInject $495, SparkVault $995, all on the central gateway and all in the package. SparkFlow ($995), SparkSNMP ($1,495), SparkADS, SparkS7, Spark61850 and SparkBACnet ($1,495 each, early access), SparkGantt ($495, early access), SparkNotify ($995, early access) and the protocol drivers ($495 each) each carry their own license, outside the package. Per gateway. Bought once and kept. Support 20%/yr, optional.</p>
 
     <div class="cta-row" style="margin-top:30px">
       <a class="btn" href="/sparkbridge/pricing">Full pricing and FAQ</a>
