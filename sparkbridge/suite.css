@@ -89,6 +89,16 @@ a.dev:hover{border-left-color:var(--marker)}
 .card p.desc{font-size:13px;margin-top:6px;color:var(--ink-soft)}
 .band .card p.desc,.runwrap .card p.desc{color:var(--paper-dim)}
 
+/* buy buttons in the product tables: one width, one height, stacked when paired */
+.tbl td .btn.buy{
+  display:block;width:190px;box-sizing:border-box;text-align:center;
+  padding:11px 14px;font-size:14px;white-space:nowrap;
+}
+.tbl td .btn.buy + .btn.buy{margin-top:8px}
+.tbl td .btn.buy.ghost{color:var(--ink);border-color:var(--steel);border-left-color:var(--marker)}
+.tbl td .btn.buy.ghost:hover{border-color:var(--ink)}
+@media (max-width:640px){.tbl td .btn.buy{width:100%}}
+
 /* a card that is a link reads as a plate, not a paragraph of underlines */
 a.card,a.card h3,a.card p{text-decoration:none}
 a.card:hover,a.card:focus-visible{border-left:1px solid var(--marker)}
