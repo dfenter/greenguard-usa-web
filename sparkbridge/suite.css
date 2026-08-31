@@ -55,23 +55,48 @@ a.dev:hover{border-left-color:var(--marker)}
 .dev.source{flex:0 0 118px;background:transparent;border:1px dashed var(--steel-dark);padding:12px 14px 13px}
 .dev.source .devname{font-size:15px;color:var(--paper-dim);font-weight:600}
 
-/* central + its module rack: one big rectangle, small rectangles beneath */
-.stack{display:flex;flex-direction:column;gap:8px;flex:1 1 320px;min-width:0}
+/* central + its module rack: one big rectangle, small rectangles beneath.
+   The rack stays QUIET: the run's green line is the only accent in the drawing,
+   so the tiles are plain graphite plates that light their edge on hover. */
+.stack{display:flex;flex-direction:column;gap:10px;flex:1 1 320px;min-width:0}
 .stack .dev.spine{flex:0 0 auto}
 .modrack{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:6px}
 .modrack a,.modrack span{
   display:block;background:var(--graphite-2);border:1px solid var(--steel-dark);
-  border-left:4px solid var(--marker);padding:8px 10px 9px;min-width:0;
+  border-left:3px solid var(--steel-dark);padding:8px 10px 9px;min-width:0;
   font-family:"Spline Sans Mono",monospace;font-size:11px;letter-spacing:.06em;
-  text-transform:uppercase;color:#fff;text-decoration:none;line-height:1.3;
+  text-transform:uppercase;color:var(--paper-dim);text-decoration:none;line-height:1.3;
 }
-.modrack a:hover,.modrack a:focus-visible{background:#262d35;border-color:var(--paper-dim)}
-.modrack small{display:block;font-size:9.5px;letter-spacing:.08em;color:var(--paper-dim);margin-top:2px}
+.modrack a:hover,.modrack a:focus-visible{color:#fff;border-left-color:var(--marker);background:#262d35}
+.modrack small{display:block;font-size:9.5px;letter-spacing:.08em;color:var(--paper-dim);margin-top:2px;opacity:.8}
 
-/* driver rack: centered heading, name + role + a small description per card */
-.rackhead{width:100%;text-align:center}
+/* driver rack: a centered seam heading spanning the grid, the drivers below.
+   Mono label between two hairlines, no pill - the green stays on the run. */
+.cards.rack{margin-top:46px}
+.rackhead{
+  grid-column:1/-1;display:flex;align-items:center;gap:18px;
+  font-family:"Spline Sans Mono",monospace;font-size:11.5px;font-weight:500;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);
+  text-align:center;white-space:nowrap;min-width:0;
+}
+.rackhead::before,.rackhead::after{content:"";flex:1;height:1px;background:var(--steel);min-width:24px}
+.band .rackhead,.runwrap .rackhead{color:var(--paper-dim)}
+.band .rackhead::before,.band .rackhead::after,
+.runwrap .rackhead::before,.runwrap .rackhead::after{background:var(--steel-dark)}
+.rackhead a{color:inherit;text-decoration-color:var(--marker);text-decoration-thickness:2px;text-underline-offset:3px}
+.rackhead a:hover{color:var(--marker)}
+@media (max-width:640px){.rackhead{white-space:normal}}
 .card p.desc{font-size:13px;margin-top:6px;color:var(--ink-soft)}
-.band .card p.desc{color:var(--paper-dim)}
+.band .card p.desc,.runwrap .card p.desc{color:var(--paper-dim)}
+
+/* a card that is a link reads as a plate, not a paragraph of underlines */
+a.card,a.card h3,a.card p{text-decoration:none}
+a.card:hover,a.card:focus-visible{border-left:1px solid var(--marker)}
+a.card:hover h3{color:var(--marker)}
+
+/* faceplate cards sitting on the dark run header read as dark plates too */
+.runwrap .card{background:var(--graphite-2);border-color:var(--steel-dark);border-top-color:var(--steel-dark);box-shadow:none;color:#fff}
+.runwrap .card p{color:var(--paper-dim)}
 
 /* commissioning state = fill weight, never a new colour */
 .dev.st-svc{border-left-color:var(--marker)}
