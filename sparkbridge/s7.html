@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkS7: Siemens S7-1200/1500 Symbolic Driver for Ignition | SparkBridge</title>
+<meta name="description" content="SparkS7 is a native Siemens S7-1200/1500 symbolic driver for Ignition 8.1 and 8.3, S7comm classic and S7comm-plus. Restores symbolic S7 addressing that Inductive Automation removed in 8.3. $1,495 per gateway, bought once. Early access.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/s7">
+<meta property="og:title" content="SparkS7: Siemens S7-1200/1500 Symbolic Driver for Ignition">
+<meta property="og:description" content="Native Siemens S7-1200/1500 symbolic driver for Ignition 8.1 and 8.3, S7comm classic and S7comm-plus. Restores symbolic addressing removed from Ignition 8.3. $1,495 per gateway, bought once. Early access.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/s7">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SparkS7: Siemens S7-1200/1500 Symbolic Driver for Ignition">
+<meta name="twitter:description" content="Native Siemens S7-1200/1500 symbolic driver for Ignition 8.1 and 8.3, S7comm classic and S7comm-plus. Restores symbolic addressing removed from Ignition 8.3. $1,495 per gateway, bought once. Early access.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Native drivers","item":"https://mqtt.greenguard-usa.com/sparkbridge/drivers"},{"@type":"ListItem","position":3,"name":"SparkS7","item":"https://mqtt.greenguard-usa.com/sparkbridge/s7"}]},{"@type":"SoftwareApplication","name":"SparkS7 Siemens S7-1200/1500 Symbolic Driver for Ignition","url":"https://mqtt.greenguard-usa.com/sparkbridge/s7","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer, Ignition 8.3","softwareVersion":"early access","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"Native Siemens S7-1200/1500 symbolic driver for Ignition 8.1 and 8.3, S7comm classic and S7comm-plus. Restores symbolic addressing removed from Ignition 8.3. $1,495 per gateway, bought once. Early access.","offers":{"@type":"Offer","price":"1495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/PreOrder","description":"Perpetual license, per gateway. Standalone, always billed separately. Early access"}}]}
+</script>
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Central</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top">
+  <div class="wrap">
+    <div class="phead-grid">
+      <div>
+        <div class="eyebrow">SparkS7</div>
+        <h1>Symbolic S7 addressing, restored on both Ignition lines</h1>
+        <p>Inductive Automation removed symbolic S7 addressing in Ignition 8.3, leaving plants with Siemens S7-1200/1500 controllers to fall back on raw DB offsets. SparkS7 speaks both S7comm classic and S7comm-plus and restores symbolic addressing on 8.1 and 8.3 alike.</p>
+        <div class="pmeta"><span class="stat">Early access</span><span>Runs on the gateway that touches the equipment</span><span>$1,495, always separate</span></div>
+      </div>
+      <div class="artifact">
+        <div class="artifact-head"><span>S7comm-plus symbol browse, early access build</span><span class="live"><i class="dot"></i>Early access</span></div>
+        <div class="artifact-body">
+<pre style="margin:0;white-space:pre-wrap">  <span class="hi">DB1.Motor1.Speed</span>       REAL     Good
+  DB1.Motor1.Running     BOOL     Good
+  DB2.Recipe.BatchID     DINT     Good
+  DB2.Recipe.ProductName STRING   Good
+  <span class="acc">_Diagnostics/PduSize</span>   INT      Good</pre>
+        </div>
+        <div class="artifact-foot">Symbol table read directly from the CPU over S7comm-plus with optimized-block-access DBs, no manual offset mapping. Early access build; live proof documents ship with the first release.</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <p class="claim">Point it at the target. <em>Every reading appears.</em></p>
+    <div class="twocol">
+      <div class="measure">
+        <p>Siemens S7-1200/1500 controllers brought into Ignition with symbolic tag names, S7comm classic and S7comm-plus</p>
+      </div>
+      <div>
+        <span class="spectitle">At a glance</span>
+        <table class="spec">
+          <tr><th>What it is</th><td>Siemens S7-1200/1500 controllers brought into Ignition with symbolic tag names, S7comm classic and S7comm-plus</td></tr>
+          <tr><th>Where it runs</th><td>On the gateway that touches the PLC</td></tr>
+          <tr><th>Who it is for</th><td>Plants running S7-1200/1500 on Ignition 8.3, where symbolic addressing was removed, or on 8.1 wanting it without raw DB offsets</td></tr>
+          <tr><th>Status</th><td>Early access. Downloads: release pending</td></tr>
+          <tr><th>Licensing</th><td>$1,495 per gateway, bought once and kept, not a subscription. Always billed separately, never part of any package. One license covers the 8.1 and 8.3 builds. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">where it earns its keep</span>
+      <h2>Situations This Solves</h2>
+      <p>Each one is the same shape: equipment that already speaks a real protocol, kept out of Ignition by the lack of a native driver.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>The situation</th><th>What changes</th></tr></thead>
+        <tbody>
+          <tr><td><b>Ignition 8.3 dropped symbolic S7 addressing</b><br><span class="sub">Any plant upgrading to 8.3 with S7-1200/1500 controllers on the floor.</span></td>
+              <td>SparkS7 restores symbolic tag browsing on 8.3 the same way it worked before, so an upgrade does not force a rewrite of every S7 address into a raw DB offset.</td></tr>
+          <tr><td><b>Optimized block access blocks the classic driver</b><br><span class="sub">Sites running DBs with optimized access enabled, the TIA Portal default.</span></td>
+              <td>S7comm-plus, which SparkS7 speaks alongside S7comm classic, reads optimized DBs by symbol name directly, without disabling optimization project-wide just to get a driver working.</td></tr>
+          <tr><td><b>DB.DBX offsets are hand-typed from an export</b><br><span class="sub">The integrator maintaining a spreadsheet mapping byte offsets to meaning.</span></td>
+              <td>The symbol table is read from the CPU, so tags come in named the way the TIA Portal project names them, not as an offset someone has to remember.</td></tr>
+          <tr><td><b>A PLC program change breaks every hard-coded address</b><br><span class="sub">Anyone who has re-mapped a tag sheet after a DB was restructured.</span></td>
+              <td>Symbolic addressing means a rename or reorder in the PLC program does not silently break the Ignition side; the driver follows the symbol, not the offset.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="measure">
+      <p>SparkS7 is in early access. Downloads are release pending; the fastest way to get on a build is to contact us directly. Early sites shape the roadmap.</p>
+    </div>
+
+    <h2 style="margin-top:40px">For your engineers</h2>
+    <div class="measure">
+      <p>SparkS7 is a native Siemens S7-1200/1500 driver module for Ignition 8.1 and 8.3, speaking both S7comm classic and S7comm-plus. It reads the CPU's symbol table directly, including optimized-access DBs, and exposes tags by name rather than raw offset. A diagnostics folder reports negotiated PDU size and connection status. Early access; live proof and QA documents ship with the first release build.</p>
+    </div>
+
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge/contact">Try it on one site</a>
+      <a class="btn ghost dark" href="/sparkbridge/pricing">See pricing</a>
+    </div>
+    <p class="note">Development use is free with no time limit. <a href="/sparkbridge/contact">Contact</a>.</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

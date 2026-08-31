@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkGantt: Perspective Gantt Chart Component | SparkBridge</title>
+<meta name="description" content="SparkGantt is a Perspective Gantt chart component for Ignition 8.1 and 8.3, virtualized to 500+ tasks without the browser choking. $495 per gateway, bought once. Early access.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/gantt">
+<meta property="og:title" content="SparkGantt: Perspective Gantt Chart Component">
+<meta property="og:description" content="Perspective Gantt chart component for Ignition 8.1 and 8.3, virtualized to 500+ tasks. $495 per gateway, bought once. Early access.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/gantt">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SparkGantt: Perspective Gantt Chart Component">
+<meta name="twitter:description" content="Perspective Gantt chart component for Ignition 8.1 and 8.3, virtualized to 500+ tasks. $495 per gateway, bought once. Early access.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"All products","item":"https://mqtt.greenguard-usa.com/sparkbridge/products"},{"@type":"ListItem","position":3,"name":"SparkGantt","item":"https://mqtt.greenguard-usa.com/sparkbridge/gantt"}]},{"@type":"SoftwareApplication","name":"SparkGantt Perspective Gantt Chart Component","url":"https://mqtt.greenguard-usa.com/sparkbridge/gantt","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer, Ignition 8.3","softwareVersion":"early access","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"Perspective Gantt chart component for Ignition 8.1 and 8.3, virtualized to 500+ tasks. $495 per gateway, bought once. Early access.","offers":{"@type":"Offer","price":"495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/PreOrder","description":"Perpetual license, per gateway. Standalone, always billed separately. Early access"}}]}
+</script>
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Central</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top">
+  <div class="wrap">
+    <div class="phead-grid">
+      <div>
+        <div class="eyebrow">SparkGantt</div>
+        <h1>A Gantt chart that still scrolls smoothly at 500 tasks</h1>
+        <p>Perspective has no built-in Gantt component, so schedules end up as a table nobody can scan or a custom view that bogs down past a hundred rows. SparkGantt is a virtualized Perspective component built for real production schedules: 500 or more tasks, still smooth.</p>
+        <div class="pmeta"><span class="stat">Early access</span><span>Runs on the gateway that touches the equipment</span><span>$495, always separate</span></div>
+      </div>
+      <div class="artifact">
+        <div class="artifact-head"><span>Perspective component, early access build</span><span class="live"><i class="dot"></i>Early access</span></div>
+        <div class="artifact-body">
+<pre style="margin:0;white-space:pre-wrap">  <span class="hi">Component:</span> ic.sparkgantt.Gantt
+  Tasks bound:      612
+  Rendered rows:     34   <span class="acc">(virtualized viewport)</span>
+  Scroll FPS:        60</pre>
+        </div>
+        <div class="artifact-foot">Only the rows in the visible viewport are rendered to the DOM; the rest stay in the binding until scrolled into view. Early access build; a full performance writeup ships with the first release.</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <p class="claim">Point it at the target. <em>Every reading appears.</em></p>
+    <div class="twocol">
+      <div class="measure">
+        <p>A virtualized Gantt chart component for the Perspective module, built to stay smooth past 500 tasks</p>
+      </div>
+      <div>
+        <span class="spectitle">At a glance</span>
+        <table class="spec">
+          <tr><th>What it is</th><td>A virtualized Gantt chart component for the Perspective module, built to stay smooth past 500 tasks</td></tr>
+          <tr><th>Where it runs</th><td>Perspective session, any gateway with the Perspective module</td></tr>
+          <tr><th>Who it is for</th><td>Anyone building a production or maintenance schedule view in Perspective who has watched a plain table or a naive Gantt component stall past a hundred rows</td></tr>
+          <tr><th>Status</th><td>Early access. Downloads: release pending</td></tr>
+          <tr><th>Licensing</th><td>$495 per gateway, bought once and kept, not a subscription. Always billed separately, never part of any package. One license covers the 8.1 and 8.3 builds. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">where it earns its keep</span>
+      <h2>Situations This Solves</h2>
+      <p>Each one is the same shape: equipment that already speaks a real protocol, kept out of Ignition by the lack of a native driver.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>The situation</th><th>What changes</th></tr></thead>
+        <tbody>
+          <tr><td><b>A schedule view chokes past a hundred rows</b><br><span class="sub">Any Perspective project trying to show a real production or maintenance schedule.</span></td>
+              <td>SparkGantt only renders the rows in the visible viewport to the DOM, so the component stays responsive whether it is bound to 50 tasks or 5,000.</td></tr>
+          <tr><td><b>Perspective has no native Gantt component</b><br><span class="sub">Anyone who has built one from styled divs and a repeater, then hit its limits.</span></td>
+              <td>SparkGantt drops in as a standard Perspective component with task, dependency and milestone bindings, instead of a hand-rolled layout that has to be re-debugged every time the data shape changes.</td></tr>
+          <tr><td><b>Dependencies and milestones live in a separate table</b><br><span class="sub">Schedulers cross-referencing a task table against a dependency table to understand the plan.</span></td>
+              <td>Dependency lines and milestones render directly on the chart from their own bound properties, so the relationship between tasks is visible instead of inferred.</td></tr>
+          <tr><td><b>A schedule that only makes sense zoomed out, or only zoomed in</b><br><span class="sub">Planners toggling between a shift view and a monthly view in separate screens.</span></td>
+              <td>Zoom and pan are built into the component, so the same bound data supports a tight shift view and a wide monthly view without two different screens to maintain.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="measure">
+      <p>SparkGantt is in early access. Downloads are release pending; the fastest way to get on a build is to contact us directly. Early sites shape the roadmap.</p>
+    </div>
+
+    <h2 style="margin-top:40px">For your engineers</h2>
+    <div class="measure">
+      <p>SparkGantt is a Perspective component module for Ignition 8.1 and 8.3. It virtualizes row rendering so only the visible viewport touches the DOM, keeping frame rate steady well past 500 tasks. Bindings cover tasks, dependencies and milestones, with zoom and pan built in. Early access; a full performance and QA writeup ships with the first release build.</p>
+    </div>
+
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge/contact">Try it on one site</a>
+      <a class="btn ghost dark" href="/sparkbridge/pricing">See pricing</a>
+    </div>
+    <p class="note">Development use is free with no time limit. <a href="/sparkbridge/contact">Contact</a>.</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>
