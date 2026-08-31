@@ -50,10 +50,10 @@
   <div class="wrap">
     <div class="eyebrow">Certification summary</div>
     <h1>Sparkplug TCK Results</h1>
-    <p class="lede">In plain terms: an independent test suite checked every rule the industry standard requires, and SparkBridge passed all of it with zero failures. For a buyer, that means the data you receive follows the same rules as any other conformant system, so it interoperates cleanly with your other plant equipment and software instead of needing custom fixes later.</p>
+    <p class="lede">In plain terms: an independent test suite checked every rule the industry standard requires. SparkBridge passed all of it with zero failures. That means the data you receive follows the same rules as any other conformant system. It interoperates with your other plant equipment and software instead of needing custom fixes later.</p>
     <p>One session, 2026-08-15, seed 240, produced with the officially ratified Eclipse Sparkplug
     TCK 3.0.0 binary against a complete live system: ten runs, 182 EDGE assertions passed and 52
-    HOST assertions passed, and zero FAIL lines anywhere in the session log. Everything on this
+    HOST assertions passed, zero FAIL lines anywhere in the session log. Everything on this
     page is the TCK's own output, unedited, and reproducible with the harness that ships with the
     product, now from a single command.</p>
   </div>
@@ -66,7 +66,7 @@
       <div class="path">identification</div>
       <h2>What Was Certified, Exactly</h2>
       <p>The identifiers the Sparkplug Compatible listing process requires, stated in full.</p>
-      <p>What conformance does and does not cover is explained on the <a href="/sparkbridge/technology#beyond">technology page</a>: the TCK proves the floor, and the measured figures in <a href="/sparkbridge/technology#numbers">Performance Quantified</a> are what sit above it.</p>
+      <p>What conformance does and does not cover is explained on the <a href="/sparkbridge/technology#beyond">technology page</a>. The TCK proves the floor. The measured figures in <a href="/sparkbridge/technology#numbers">Performance Quantified</a> are what sit above it.</p>
     </div>
     <div class="scroller"><table class="tbl">
       <tr><th>Field</th><th>Value</th></tr>
@@ -81,7 +81,7 @@
       <tr><td>Totals</td><td class="num">234 passed &middot; 1 MAYBE on a SHOULD-optional assertion &middot; 0 failed</td></tr>
     </table></div>
     <p class="note">Attestation: all TCK requirements were met, including the compatibility rules
-    of the Sparkplug TCK Process, and the results below are complete and unaltered.</p>
+    of the Sparkplug TCK Process. The results below are complete and unaltered.</p>
   </div>
 </section>
 
@@ -90,11 +90,11 @@
     <div class="sec-head">
       <div class="path">verdicts</div>
       <h2>Final Run Per Profile</h2>
-      <p>PASS means every listed assertion executed and passed. One entry is complete-by-pair:
-      the TCK's two SessionTermination Will assertions are protocol-conditional and provably
-      cannot both execute in one run, so the record holds one run per MQTT protocol version and
-      their union executes both and reads PASS. One assertion in the whole record returns MAYBE,
-      and the reason is documented, not hidden.</p>
+      <p>PASS means every listed assertion executed and passed. One entry is complete-by-pair.
+      The TCK's two SessionTermination Will assertions are protocol-conditional and provably
+      cannot both execute in one run. The record holds one run per MQTT protocol version, and
+      their union executes both and reads PASS. One assertion in the whole record returns MAYBE.
+      The reason is documented, not hidden.</p>
     </div>
     <div class="scroller"><table class="tbl">
       <tr><th>Profile</th><th>Overall</th><th>FAILs</th></tr>
@@ -112,10 +112,10 @@
     </table></div>
     <p class="note">The single MAYBE is tck-id-payloads-metric-datatype-not-req, a SHOULD-optional
     assertion about whether a datatype is included with metric definitions in NDATA, NCMD, DDATA
-    and DCMD, and it is the same class of result as the previous published record. Results are
-    rolled up worst-result-wins, so a FAIL could never be cleared by a later run, and there were
-    none: the session log contains zero FAIL lines. The Host MessageOrdering profile, which was
-    incomplete in the 2.2.2 record because that host required metric aliases in births, now runs
+    and DCMD. It is the same class of result as the previous published record. Results are
+    rolled up worst-result-wins, so a FAIL could never be cleared by a later run. There were
+    none: the session log contains zero FAIL lines. The Host MessageOrdering profile, incomplete
+    in the 2.2.2 record because that host required metric aliases in births, now runs
     every reordering assertion and passes.</p>
   </div>
 </section>
@@ -127,7 +127,7 @@
       <h2>The Unedited Records</h2>
       <p>The per-requirement summary generated by the TCK's own report tool for the current
       session, with the previous session's log and summary kept alongside it as history. Nothing
-      removed.</p>
+      is removed.</p>
     </div>
     <div class="cta-row">
       <a class="btn ghost dark" href="/sparkbridge/tck-summary-2026-08-15.txt">TCK report.py summary, 2026-08-15</a>
@@ -135,7 +135,7 @@
       <a class="btn ghost dark" href="/sparkbridge/tck-summary-2026-08-14.txt">TCK report.py summary, 2026-08-14</a>
     </div>
     <p class="note">Formal listing in the Eclipse Sparkplug Compatible Program is the remaining
-    administrative step: a listing request to the Working Group citing this page.</p>
+    administrative step: a listing request to the Working Group, citing this page.</p>
   </div>
 </section>
 </main>

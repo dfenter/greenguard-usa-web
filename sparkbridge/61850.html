@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Native drivers","item":"https://mqtt.greenguard-usa.com/sparkbridge/drivers"},{"@type":"ListItem","position":3,"name":"Spark61850","item":"https://mqtt.greenguard-usa.com/sparkbridge/61850"}]},{"@type":"SoftwareApplication","name":"Spark61850 IEC 61850 MMS Client Driver for Ignition","url":"https://mqtt.greenguard-usa.com/sparkbridge/61850","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer, Ignition 8.3","softwareVersion":"early access","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"Native IEC 61850 MMS client driver for Ignition 8.1 and 8.3, verified against libiec61850. $1,495 per gateway, bought once. Early access.","offers":{"@type":"Offer","price":"1495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/PreOrder","description":"Perpetual license, per gateway. Standalone, always billed separately. Early access"}}]}
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Native drivers","item":"https://mqtt.greenguard-usa.com/sparkbridge/drivers"},{"@type":"ListItem","position":3,"name":"Spark61850","item":"https://mqtt.greenguard-usa.com/sparkbridge/61850"}]},{"@type":"SoftwareApplication","name":"Spark61850 IEC 61850 MMS Client Driver for Ignition","url":"https://mqtt.greenguard-usa.com/sparkbridge/61850","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer, Ignition 8.3","softwareVersion":"early access","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"Native IEC 61850 MMS client driver for Ignition 8.1 and 8.3, verified against libiec61850. $1,495 per gateway, bought once. Early access.","offers":{"@type":"Offer","price":"1495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/PreOrder","description":"Perpetual license, per gateway. Standalone, with its own license. Early access"}}]}
 </script>
 </head>
 <body>
@@ -52,8 +52,8 @@
       <div>
         <div class="eyebrow">Spark61850</div>
         <h1>Substation IEDs, read natively over MMS</h1>
-        <p>IEC 61850 substation equipment usually reaches Ignition through a protocol gateway translating to DNP3 or Modbus, losing the data model in the process. Spark61850 speaks MMS directly to the IED and reads its logical nodes as the standard defines them.</p>
-        <div class="pmeta"><span class="stat">Early access</span><span>Runs on the gateway that touches the equipment</span><span>$1,495, always separate</span></div>
+        <p>Most 61850 substation equipment reaches Ignition through a protocol gateway translating down to DNP3 or Modbus. That flattens the data model. GreenGuard USA built Spark61850 to speak MMS directly to the IED and read its logical nodes the way the standard defines them.</p>
+        <div class="pmeta"><span class="stat">Early access</span><span>Runs on the gateway that touches the equipment</span><span>$1,495, its own license</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>MMS client read, early access build</span><span class="live"><i class="dot"></i>Early access</span></div>
@@ -63,7 +63,7 @@
   LD0/CSWI1.Pos.ctlModel  ENUM     Good
   <span class="acc">_Diagnostics/AssocState</span>  ESTABLISHED</pre>
         </div>
-        <div class="artifact-foot">Logical node data read directly over MMS from an IED, verified against the libiec61850 reference implementation. Early access build; the verification transcript ships with the first release.</div>
+        <div class="artifact-foot">Logical node data read directly over MMS from an IED, verified against the libiec61850 reference implementation. Early access build. The verification transcript ships with the first release.</div>
       </div>
     </div>
   </div>
@@ -76,7 +76,7 @@
     <p class="claim">Point it at the target. <em>Every reading appears.</em></p>
     <div class="twocol">
       <div class="measure">
-        <p>IEC 61850 substation IEDs brought into Ignition over native MMS, logical nodes read as the standard models them</p>
+        <p>IEC 61850 substation IEDs, brought into Ignition over native MMS with logical nodes read as the standard models them.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
@@ -85,7 +85,7 @@
           <tr><th>Where it runs</th><td>On the gateway that touches the substation network</td></tr>
           <tr><th>Who it is for</th><td>Utilities and industrial sites with 61850 IEDs currently reached only through a protocol-translating gateway</td></tr>
           <tr><th>Status</th><td>Early access. <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/spark61850-v0.1.1">Downloads: Spark61850 0.1.1</a></td></tr>
-          <tr><th>Licensing</th><td>$1,495 per gateway, bought once and kept, not a subscription. Always billed separately, never part of any package. One license covers the 8.1 and 8.3 builds. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
+          <tr><th>Licensing</th><td>$1,495 per gateway, bought once and kept. Not a subscription. It carries its own per-gateway license. One license covers the 8.1 and 8.3 builds. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
         </table>
       </div>
     </div>
@@ -97,20 +97,20 @@
     <div class="sec-head">
       <span class="path">where it earns its keep</span>
       <h2>Situations This Solves</h2>
-      <p>Each one is the same shape: equipment that already speaks a real protocol, kept out of Ignition by the lack of a native driver.</p>
+      <p>Each one is the same shape: equipment that already speaks a real protocol, kept out of Ignition for want of a native driver.</p>
     </div>
     <div class="scroller">
       <table class="tbl">
         <thead><tr><th>The situation</th><th>What changes</th></tr></thead>
         <tbody>
-          <tr><td><b>A protocol gateway translates 61850 down to DNP3</b><br><span class="sub">Any substation where the IED's real data model is flattened to fit a translator.</span></td>
-              <td>Spark61850 reads the IED's logical nodes directly over MMS, so the data arrives structured the way the standard defines it instead of flattened into generic DNP3 points.</td></tr>
+          <tr><td><b>A protocol gateway translates 61850 down to DNP3</b><br><span class="sub">Any substation where the IED's real data model gets flattened to fit a translator.</span></td>
+              <td>Spark61850 reads the IED's logical nodes directly over MMS. The data arrives structured the way the standard defines it, not flattened into generic DNP3 points.</td></tr>
           <tr><td><b>Nobody can verify the translator preserved fault state correctly</b><br><span class="sub">Whoever has had to trust a gateway's mapping table instead of the source.</span></td>
-              <td>MMS association state and read quality are exposed directly per logical node, so a stale or unreachable IED shows up as such instead of as a translator's last cached value.</td></tr>
+              <td>MMS association state and read quality are exposed directly per logical node. A stale or unreachable IED shows up as such, not as a translator's last cached value.</td></tr>
           <tr><td><b>Each IED vendor needs its own gateway configuration</b><br><span class="sub">Sites running mixed-vendor 61850 equipment.</span></td>
-              <td>MMS is the same client protocol regardless of IED vendor, so one driver configuration pattern covers the substation instead of a per-vendor translator profile.</td></tr>
+              <td>MMS is the same client protocol regardless of IED vendor. One driver configuration pattern covers the substation instead of a per-vendor translator profile.</td></tr>
           <tr><td><b>Adding an IED means another gateway box and license</b><br><span class="sub">The utility engineer sizing a substation expansion.</span></td>
-              <td>The driver runs on the Ignition gateway already on site; adding an IED is a client association, not another box to rack and license.</td></tr>
+              <td>The driver runs on the Ignition gateway already on site. Adding an IED is a client association, not another box to rack and license.</td></tr>
         </tbody>
       </table>
     </div>
@@ -120,19 +120,19 @@
 <section>
   <div class="wrap">
     <div class="measure">
-      <p>Spark61850 is in early access. Downloads are release pending; the fastest way to get on a build is to contact us directly. Early sites shape the roadmap.</p>
+      <p>Spark61850 is in early access. The download build is release pending; the fastest way onto a build is to contact us directly. Early sites shape the roadmap.</p>
     </div>
 
     <h2 style="margin-top:40px">For your engineers</h2>
     <div class="measure">
-      <p>Spark61850 is a native IEC 61850 MMS client driver module for Ignition 8.1 and 8.3. It establishes MMS associations to IEDs and reads logical node data directly, verified against the libiec61850 reference implementation. A diagnostics folder reports association state per IED. Early access; the verification transcript and QA documents ship with the first release build.</p>
+      <p>Spark61850 is a native IEC 61850 MMS client driver module for Ignition 8.1 and 8.3. It establishes MMS associations to IEDs and reads logical node data directly, verified against the libiec61850 reference implementation. A diagnostics folder reports association state per IED. Early access: the verification transcript and QA documents ship with the first release build.</p>
     </div>
 
     <div class="cta-row">
       <a class="btn" href="/sparkbridge/contact">Try it on one site</a>
       <a class="btn ghost dark" href="/sparkbridge/pricing">See pricing</a>
     </div>
-    <p class="note">Development use is free with no time limit. <a href="/sparkbridge/contact">Contact</a>.</p>
+    <p class="note">Development use is free with no time limit. <a href="/sparkbridge/contact">Contact us</a>.</p>
   </div>
 </section>
 

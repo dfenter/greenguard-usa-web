@@ -4,16 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SparkInject: plant data in Snowflake | SparkBridge</title>
-<meta name="description" content="SparkInject delivers your plant data into Snowflake continuously and without duplicates, for a one-time license instead of a per-row subscription.">
+<meta name="description" content="SparkInject streams plant data into Snowflake continuously, with no duplicates, for a license you buy once instead of a per-row subscription.">
 <link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/inject">
 <meta property="og:title" content="SparkInject: plant data in Snowflake">
-<meta property="og:description" content="SparkInject delivers your plant data into Snowflake continuously and without duplicates, for a one-time license instead of a per-row subscription.">
+<meta property="og:description" content="SparkInject streams plant data into Snowflake continuously, with no duplicates, for a license you buy once instead of a per-row subscription.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/inject">
 <meta property="og:site_name" content="SparkBridge">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="SparkInject: plant data in Snowflake">
-<meta name="twitter:description" content="SparkInject delivers your plant data into Snowflake continuously and without duplicates, for a one-time license instead of a per-row subscription.">
+<meta name="twitter:description" content="SparkInject streams plant data into Snowflake continuously, with no duplicates, for a license you buy once instead of a per-row subscription.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
@@ -52,7 +52,7 @@
       <div>
         <div class="eyebrow">SparkInject</div>
         <h1>Stop paying by the row to see your own production data</h1>
-        <p>Getting operational data into the warehouse is normally an ongoing subscription and a persistent worry about whether anything was lost or counted twice. SparkInject delivers it into your own Snowflake account continuously, once, for a license you buy a single time.</p>
+        <p>Getting operational data into the warehouse is usually a subscription and a nagging worry about whether anything got lost or counted twice. SparkInject streams it into your own Snowflake account continuously, once, for a license you buy a single time.</p>
         <div class="pmeta"><span class="stat">Released</span><span>Runs on the central gateway</span><span>$495, in the central package</span></div>
       </div>
       <div class="artifact">
@@ -69,7 +69,7 @@
   "is_historical": <span class="acc">true</span>,
   "offset_token": "<span class="hi">1755352087:0000000412</span>"
 }</pre>
-          <p style="margin:12px 0 0">The two times are four hours apart because this reading waited out an outage. <span class="hi">It arrived late and stayed true.</span></p>
+          <p style="margin:12px 0 0">The two times are four hours apart because this reading waited out an outage. <span class="hi">It arrived late and kept its real timestamp.</span></p>
         </div>
         <div class="artifact-foot">One reading as it landed in Snowflake. It was recorded four hours before it arrived, and it kept that time.</div>
       </div>
@@ -84,17 +84,17 @@
     <p class="claim">Every reading arrives <em>once</em>, and keeps its real time.</p>
     <div class="twocol">
       <div class="measure">
-        <p>SparkInject streams your plant data straight into your own Snowflake account. You own the account, the storage and the bill, and nobody sits in the middle of it. A restart or a network drop cannot cause a gap or a duplicate row, so analysts stop reconciling numbers by hand and stop asking whether they can be trusted.</p>
-        <p>Readings keep the time the plant recorded them, so analysis of production timing, cycle times and downtime reflects what actually happened on the floor rather than when the network caught up. During a four hour outage, 8,375 readings queued up and landed later with nothing missing and nothing counted twice.</p>
+        <p>SparkInject streams your plant data straight into your own Snowflake account. You own the account, the storage and the bill. We don't sit in the middle of it. A restart or a network drop cannot cause a gap or a duplicate row, so analysts stop reconciling numbers by hand and stop wondering if they can trust them.</p>
+        <p>Readings keep the time the plant recorded them, so analysis of production timing, cycle times and downtime reflects what actually happened on the floor, not when the network caught up. During a four hour outage, 8,375 readings queued up and landed later with nothing missing and nothing counted twice.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
         <table class="spec">
           <tr><th>What it is</th><td>A continuous feed from plant to warehouse</td></tr>
           <tr><th>Where it runs</th><td>On the central gateway, into your Snowflake account</td></tr>
-          <tr><th>Who it is for</th><td>Teams running analytics or reporting on production data</td></tr>
+          <tr><th>Who it is for</th><td>Anyone running analytics or reporting on production data</td></tr>
           <tr><th>What it replaces</th><td>Per-row cloud connector subscriptions and nightly exports</td></tr>
-          <tr><th>Licensing</th><td>$495, included in the $3,995 <a href="/sparkbridge/central">central package</a>, or on its own on the central gateway. Bought once and kept, not a subscription. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
+          <tr><th>Licensing</th><td>$495, included in the $3,995 <a href="/sparkbridge/central">central package</a>, or on its own on the central gateway. You buy it once and keep it, no subscription. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
         </table>
       </div>
     </div>
@@ -105,8 +105,8 @@
   <div class="wrap">
     <div class="figure"><b>8,375</b><span>readings recovered after a four hour outage</span></div>
     <div class="measure">
-      <p>During a four hour disconnection the plant kept producing and the data kept accumulating locally. When the connection returned, 8,375 readings were delivered into Snowflake, each on the time it was originally recorded, with no duplicates and nothing missing.</p>
-      <p>Outages become a delay in reporting rather than a permanent hole in the dataset.</p>
+      <p>During a four hour disconnection the plant kept producing and the data kept accumulating locally. When the connection returned, 8,375 readings landed in Snowflake, each on the time it was originally recorded, no duplicates, nothing missing.</p>
+      <p>An outage becomes a delay in reporting, not a permanent hole in the dataset.</p>
     </div>
   </div>
 </section>
@@ -122,12 +122,12 @@
       <table class="tbl">
         <thead><tr><th>The situation</th><th>What changes</th></tr></thead>
         <tbody>
-          <tr><td><b>An analyst reconciling duplicate rows by hand</b><br><span class="sub">Teams whose feed doubles up after every restart or replayed backlog.</span></td>
-              <td>When a connector resends a backlog it usually redelivers readings that already landed, so someone spends the morning de-duplicating before anyone can run a query on it. SparkInject tracks each reading individually, so a restart or a network drop produces neither a gap nor a duplicate row. After a four hour disconnection, 8,375 readings were delivered with nothing missing and nothing counted twice.</td></tr>
-          <tr><td><b>A nightly batch that is always a day behind the decision</b><br><span class="sub">Anyone asked about this morning's production while holding yesterday's export.</span></td>
-              <td>A batch can only answer questions about a day that has already closed, and cycle times or downtime read from it reflect when the export ran rather than when the plant ran. SparkInject streams straight into your own Snowflake account continuously, and each reading keeps the time the plant recorded it, so timing analysis matches the floor.</td></tr>
-          <tr><td><b>Paying per row to move your own data</b><br><span class="sub">Finance teams watching a connector bill grow with production volume.</span></td>
-              <td>A per-row or per-connector subscription means the more you produce, the more it costs to look at what you produced, and a vendor sits permanently in the data path. SparkInject is bought once per gateway and writes into the Snowflake account you already own and already pay for. We are never in the middle of it, and the cost does not move when the plant runs harder.</td></tr>
+          <tr><td><b>An analyst reconciling duplicate rows by hand</b><br><span class="sub">Your feed doubles up after every restart or replayed backlog.</span></td>
+              <td>When a connector resends a backlog it usually redelivers readings that already landed, so someone spends the morning de-duplicating before anyone can run a query. SparkInject tracks each reading individually, so a restart or a network drop produces neither a gap nor a duplicate row. After a four hour disconnection, 8,375 readings landed with nothing missing and nothing counted twice.</td></tr>
+          <tr><td><b>A nightly batch that is always a day behind the decision</b><br><span class="sub">You're asked about this morning's production while holding yesterday's export.</span></td>
+              <td>A batch can only answer questions about a day that has already closed, and cycle times or downtime read from it reflect when the export ran, not when the plant ran. SparkInject streams straight into your own Snowflake account continuously, and each reading keeps the time the plant recorded it, so timing analysis matches the floor.</td></tr>
+          <tr><td><b>Paying per row to move your own data</b><br><span class="sub">You watch a connector bill grow with production volume.</span></td>
+              <td>A per-row or per-connector subscription means the more you produce, the more it costs to look at what you produced, and a vendor sits permanently in the data path. SparkInject is bought once per gateway and writes into the Snowflake account you already own and already pay for. We're never in the middle of it, and the cost doesn't move when the plant runs harder.</td></tr>
         </tbody>
       </table>
     </div>
@@ -137,7 +137,7 @@
 <section>
   <div class="wrap">
     <div class="measure">
-      <p>SparkInject fits organizations that have standardized on Snowflake and want production data in it continuously, with predictable cost and without another vendor sitting in the data path. The same approach extends to AWS if your warehouse lives there instead.</p>
+      <p>SparkInject fits anyone who has standardized on Snowflake and wants production data in it continuously, at a predictable cost, without another vendor sitting in the data path. The same approach extends to AWS if your warehouse lives there instead.</p>
     </div>
 
     <h2 style="margin-top:40px">For your engineers</h2>
@@ -149,7 +149,7 @@
       <a class="btn" href="/sparkbridge/contact">Try it on one site</a>
       <a class="btn ghost dark" href="/sparkbridge/central">See the central package</a>
     </div>
-    <p class="note">Development use is free with no time limit. <a href="/sparkbridge/contact">Contact</a>.</p>
+    <p class="note">Development use is free, no time limit. <a href="/sparkbridge/contact">Contact</a>.</p>
   </div>
 </section>
 

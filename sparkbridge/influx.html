@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Products","item":"https://mqtt.greenguard-usa.com/sparkbridge/products"},{"@type":"ListItem","position":3,"name":"SparkInflux","item":"https://mqtt.greenguard-usa.com/sparkbridge/influx"}]},{"@type":"SoftwareApplication","name":"SparkInflux InfluxDB historian for Ignition","url":"https://mqtt.greenguard-usa.com/sparkbridge/influx","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer, Ignition 8.3.2 or newer","softwareVersion":"0.2.0","datePublished":"2026-08-30","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"SparkInflux keeps InfluxDB history safe through an outage and streams reads instead of stalling on them. $1,495 per gateway, always billed separately.","offers":{"@type":"Offer","price":"1495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per gateway. Standalone, always billed separately."}}]}
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Products","item":"https://mqtt.greenguard-usa.com/sparkbridge/products"},{"@type":"ListItem","position":3,"name":"SparkInflux","item":"https://mqtt.greenguard-usa.com/sparkbridge/influx"}]},{"@type":"SoftwareApplication","name":"SparkInflux InfluxDB historian for Ignition","url":"https://mqtt.greenguard-usa.com/sparkbridge/influx","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer, Ignition 8.3.2 or newer","softwareVersion":"0.2.0","datePublished":"2026-08-30","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"SparkInflux keeps InfluxDB history safe through an outage and streams reads instead of stalling on them. $1,495 per gateway, its own license.","offers":{"@type":"Offer","price":"1495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per gateway. Standalone, its own license."}}]}
 </script>
 </head>
 <body>
@@ -52,7 +52,7 @@
       <div>
         <div class="eyebrow">SparkInflux</div>
         <h1>Stop losing InfluxDB history when a page cap fills up</h1>
-        <p>The InfluxDB historian on Ignition today can silently delete history once it fills up, and a wide trend can make the gateway's memory climb while it loads. SparkInflux removes both problems, with an outage that never costs you a point and reads that stream instead of stall.</p>
+        <p>The InfluxDB historian on Ignition today can silently delete history once it fills up, and a wide trend can make the gateway's memory climb while it loads. GreenGuard USA built SparkInflux to fix both: an outage that never costs you a point, and reads that stream instead of stall.</p>
         <div class="pmeta"><span class="stat">0.2.0</span><span>InfluxDB v2, v1.8 and v3</span><span>$1,495, always separate</span></div>
       </div>
       <div class="artifact">
@@ -78,8 +78,8 @@
     <p class="claim">Point it at the bucket. <em>Nothing waits on a page cap again.</em></p>
     <div class="twocol">
       <div class="measure">
-        <p>SparkInflux writes the same data layout the existing InfluxDB module uses, so pointing it at data you already have is a configuration change, not a migration. If the server goes away, points are held safely instead of being lost when storage fills up, and nothing is deleted on overflow. When the server comes back, everything drains on its own with nothing missing.</p>
-        <p>A wide trend streams back row by row instead of loading the whole result before showing the first point, so opening a report does not make the gateway's memory climb.</p>
+        <p>SparkInflux writes the same data layout the existing InfluxDB module uses, so pointing it at data you already have is a configuration change, not a migration. If the server goes away, points hold safely instead of getting lost when storage fills up, and nothing is deleted on overflow. When the server comes back, everything drains on its own with nothing missing.</p>
+        <p>A wide trend streams back row by row instead of loading the whole result before showing the first point. Opening a report does not make the gateway's memory climb.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
@@ -87,7 +87,7 @@
           <tr><th>What it is</th><td>A native InfluxDB historian module for Ignition</td></tr>
           <tr><th>Who it is for</th><td>Plants already on InfluxDB, or moving to it, who want history that survives an outage and a query that streams</td></tr>
           <tr><th>Backends</th><td>InfluxDB v2, v1.8 compatibility, and v3 with native SQL</td></tr>
-          <tr><th>Licensing</th><td>$1,495 per gateway, bought once and kept, not a subscription. Always billed separately, never part of any package. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
+          <tr><th>Licensing</th><td>$1,495 per gateway, bought once and kept, not a subscription. Its own license, works with or without SparkBridge. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
         </table>
       </div>
     </div>
@@ -98,8 +98,8 @@
   <div class="wrap">
     <div class="figure"><b>0</b><span>points lost or deleted across the outage-and-recovery load scenario</span></div>
     <div class="measure">
-      <p>A test cut the write path off for 30 seconds at 50,000 points a second, then reconnected: 1,500,000 points held during the outage, zero lost, zero quarantined, all recovered and drained on reconnect.</p>
-      <p>A separate test streamed 10,000,000 points back under a real memory cap and never buffered the whole result at once, confirming a wide trend cannot make the gateway's memory climb.</p>
+      <p>We cut the write path off for 30 seconds at 50,000 points a second, then reconnected: 1,500,000 points held during the outage, zero lost, zero quarantined, all recovered and drained on reconnect.</p>
+      <p>A separate test streamed 10,000,000 points back under a real memory cap and never buffered the whole result at once. A wide trend cannot make the gateway's memory climb.</p>
     </div>
   </div>
 </section>
@@ -132,7 +132,7 @@
 <section>
   <div class="wrap">
     <div class="measure">
-      <p>If InfluxDB history has ever gone missing during an outage, or a wide trend has ever made the gateway's memory climb while it loads, this is worth a conversation.</p>
+      <p>If InfluxDB history has ever gone missing during an outage, or a wide trend has ever made the gateway's memory climb while it loads, talk to us.</p>
     </div>
 
     <h2 style="margin-top:40px">What's new in 0.2.0</h2>
@@ -163,7 +163,7 @@
 
     <h2 style="margin-top:40px">For your engineers</h2>
     <div class="measure">
-      <p>SparkInflux registers as a Tag Historian provider on 8.1 and a Historian extension point on 8.3, writing the same line-protocol schema the existing InfluxDB module uses. Writes are gzip compressed by default and pipelined across several in-flight requests instead of one synchronous call. Points held during an outage sit on a disk ring rather than a page reloaded fully into heap; overflow is quarantined, not discarded. Reads stream row by row, and common aggregates push down into Influx's own query engine rather than being computed after the fact in the gateway. Load gate figures: 49,814 pts/s sustained write, a 1,500,000-point outage-and-recovery cycle with zero loss, and a 10,000,000-point bulk write with heap-flat streaming reads (193 MB used, -Xmx1g cap). Full run log in the repository as GATE.md.</p>
+      <p>SparkInflux registers as a Tag Historian provider on 8.1 and a Historian extension point on 8.3, writing the same line-protocol schema the existing InfluxDB module uses. Writes are gzip compressed by default and pipelined across several in-flight requests instead of one synchronous call. Points held during an outage sit on a disk ring rather than a page reloaded fully into heap. Overflow is quarantined, not discarded. Reads stream row by row, and common aggregates push down into Influx's own query engine rather than being computed after the fact in the gateway. Load gate figures: 49,814 pts/s sustained write, a 1,500,000-point outage-and-recovery cycle with zero loss, and a 10,000,000-point bulk write with heap-flat streaming reads (193 MB used, -Xmx1g cap). Full run log in the repository as GATE.md.</p>
     </div>
 
     <div class="cta-row">

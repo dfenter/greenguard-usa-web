@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"All products","item":"https://mqtt.greenguard-usa.com/sparkbridge/products"},{"@type":"ListItem","position":3,"name":"SparkNotify","item":"https://mqtt.greenguard-usa.com/sparkbridge/notify"}]},{"@type":"SoftwareApplication","name":"SparkNotify Omnichannel Alarm Notification for Ignition","url":"https://mqtt.greenguard-usa.com/sparkbridge/notify","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer, Ignition 8.3","softwareVersion":"early access","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"Omnichannel Ignition alarm notification: Teams, Slack, WhatsApp, Telegram, Twilio SMS/voice. Ignition 8.1 and 8.3. $995 per gateway, bought once. Early access.","offers":{"@type":"Offer","price":"995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/PreOrder","description":"Perpetual license, per gateway. Standalone, always billed separately. Early access"}}]}
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"All products","item":"https://mqtt.greenguard-usa.com/sparkbridge/products"},{"@type":"ListItem","position":3,"name":"SparkNotify","item":"https://mqtt.greenguard-usa.com/sparkbridge/notify"}]},{"@type":"SoftwareApplication","name":"SparkNotify Omnichannel Alarm Notification for Ignition","url":"https://mqtt.greenguard-usa.com/sparkbridge/notify","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer, Ignition 8.3","softwareVersion":"early access","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"Omnichannel Ignition alarm notification: Teams, Slack, WhatsApp, Telegram, Twilio SMS/voice. Ignition 8.1 and 8.3. $995 per gateway, bought once. Early access.","offers":{"@type":"Offer","price":"995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/PreOrder","description":"Perpetual license, per gateway. Standalone, with its own license. Early access"}}]}
 </script>
 </head>
 <body>
@@ -52,8 +52,8 @@
       <div>
         <div class="eyebrow">SparkNotify</div>
         <h1>One alarm, every channel the on-call person actually watches</h1>
-        <p>Ignition's built-in notification options do not reach the tools most people actually watch: Teams, Slack, WhatsApp, Telegram. SparkNotify sends the same alarm to all of them and to Twilio SMS or voice, from one module, one configuration.</p>
-        <div class="pmeta"><span class="stat">Early access</span><span>Runs on the gateway that touches the equipment</span><span>$995, always separate</span></div>
+        <p>Ignition's built-in notification options do not reach the tools most people actually watch: Teams, Slack, WhatsApp, Telegram. GreenGuard USA built SparkNotify to send the same alarm to all of them, plus Twilio SMS or voice, from one module and one configuration.</p>
+        <div class="pmeta"><span class="stat">Early access</span><span>Runs on the gateway that touches the equipment</span><span>$995, its own license</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>Alarm notification, early access build</span><span class="live"><i class="dot"></i>Early access</span></div>
@@ -87,7 +87,7 @@
           <tr><th>Where it runs</th><td>Central or standalone gateway, wherever the Alarm Notification pipeline runs</td></tr>
           <tr><th>Who it is for</th><td>Plants where alarms live in Ignition but the people who need to see them live in Teams, Slack, WhatsApp or Telegram</td></tr>
           <tr><th>Status</th><td>Early access. <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/sparknotify-v0.1.1">Downloads: SparkNotify 0.1.1</a></td></tr>
-          <tr><th>Licensing</th><td>$995 per gateway, bought once and kept, not a subscription. Always billed separately, never part of any package. One license covers the 8.1 and 8.3 builds. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
+          <tr><th>Licensing</th><td>$995 per gateway, bought once and kept. Not a subscription. It carries its own per-gateway license. One license covers the 8.1 and 8.3 builds. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
         </table>
       </div>
     </div>
@@ -99,20 +99,20 @@
     <div class="sec-head">
       <span class="path">where it earns its keep</span>
       <h2>Situations This Solves</h2>
-      <p>Each one is the same shape: equipment that already speaks a real protocol, kept out of Ignition by the lack of a native driver.</p>
+      <p>Each one is the same shape: an alarm that Ignition can raise but cannot get in front of the person who needs to see it.</p>
     </div>
     <div class="scroller">
       <table class="tbl">
         <thead><tr><th>The situation</th><th>What changes</th></tr></thead>
         <tbody>
           <tr><td><b>Alarms only reach people watching an Ignition client</b><br><span class="sub">Any plant where the on-call tech is not staring at a gateway screen.</span></td>
-              <td>SparkNotify pushes the same alarm event to Teams, Slack, WhatsApp and Telegram the moment it fires, so it reaches whichever tool the person actually has open.</td></tr>
+              <td>SparkNotify pushes the same alarm event to Teams, Slack, WhatsApp and Telegram the moment it fires. It reaches whichever tool the person actually has open.</td></tr>
           <tr><td><b>Escalation means someone has to notice and forward</b><br><span class="sub">The shift lead manually texting the next person up when nobody acks in time.</span></td>
-              <td>Escalation chains are configured in the module: if an alarm goes unacknowledged, it steps up to the next channel or contact automatically, including a Twilio voice call as the last resort.</td></tr>
+              <td>Escalation chains are configured in the module. If an alarm goes unacknowledged, it steps up to the next channel or contact automatically, with a Twilio voice call as the last resort.</td></tr>
           <tr><td><b>SMS-only notification misses everyone off their desk phone plan</b><br><span class="sub">Sites that outgrew a single SMS gateway integration years ago.</span></td>
-              <td>Twilio SMS and voice are one channel among several, not the only option, so a plant is not locked into whichever carrier the original integration happened to use.</td></tr>
+              <td>Twilio SMS and voice are one channel among several, not the only option. A plant is not locked into whichever carrier the original integration happened to use.</td></tr>
           <tr><td><b>Every new channel is a custom scripting project</b><br><span class="sub">The integrator who has hand-built a webhook for Slack and another for Teams.</span></td>
-              <td>Each channel is a configured connector in the module, not a bespoke script per channel maintained separately and differently.</td></tr>
+              <td>Each channel is a configured connector in the module, not a bespoke script maintained separately per channel.</td></tr>
         </tbody>
       </table>
     </div>
@@ -122,7 +122,7 @@
 <section>
   <div class="wrap">
     <div class="measure">
-      <p>SparkNotify is in early access. Downloads are release pending; the fastest way to get on a build is to contact us directly. Early sites shape the roadmap.</p>
+      <p>SparkNotify is in early access. The download build is release pending; the fastest way onto a build is to contact us directly. Early sites shape the roadmap.</p>
     </div>
 
     <h2 style="margin-top:40px">For your engineers</h2>
@@ -134,7 +134,7 @@
       <a class="btn" href="/sparkbridge/contact">Try it on one site</a>
       <a class="btn ghost dark" href="/sparkbridge/pricing">See pricing</a>
     </div>
-    <p class="note">Development use is free with no time limit. <a href="/sparkbridge/contact">Contact</a>.</p>
+    <p class="note">Development use is free with no time limit. <a href="/sparkbridge/contact">Contact us</a>.</p>
   </div>
 </section>
 

@@ -51,8 +51,8 @@
   <div class="wrap">
     <div class="eyebrow">Technology</div>
     <h1>How it works, and how it compares</h1>
-    <p class="execsum"><b>For your executives:</b> your plant data moves off the floor without loss, even when the link drops, and every gateway is bought once. Everything below this line is the engineering detail behind that promise, written for the team that will run it.</p>
-    <p>MQTT moves data around. Sparkplug adds what the data means, which site sent it, and whether it can still be trusted. Everything the standard leaves open is where products actually differ, so this page covers the mechanism first and the comparison second.</p>
+    <p class="execsum"><b>For your executives:</b> your plant data moves off the floor without loss, even when the link drops, and every gateway is bought once. Below this line is the engineering detail behind that promise, written for the team that will run it.</p>
+    <p>MQTT moves data around. Sparkplug adds what the data means, which site sent it, and whether you can still trust it. Everything the standard leaves open is where products actually differ, so this page covers the mechanism first and the comparison second.</p>
   </div>
 </header>
 
@@ -64,15 +64,15 @@
       <div class="path">lifecycle</div>
       <h2 id="lifecycle">The Life of One Connection</h2>
       <p>MQTT moves messages but says nothing about what is inside them. Sparkplug defines the
-      whole life of a connection, and every guarantee it gives you is delivered by one specific
-      message in that life. Read it top to bottom: this is the order it happens on the wire.</p>
+      whole life of a connection, and every guarantee it gives you comes from one specific
+      message in that life. Read it top to bottom. This is the order it happens on the wire.</p>
     </div>
     <ol class="lifeline">
       <li>
         <span class="lc lc-state">STATE</span>
         <div><h3>The server speaks first</h3>
         <p>The host announces itself with a retained STATE message, so any site connecting later
-        knows the consumer is alive before it says a word. Edges gate their births on it: a host
+        knows the consumer is alive before it says a word. Edges gate their births on it. A host
         restart never triggers an estate-wide stampede of uncoordinated births.</p></div>
       </li>
       <li>
@@ -81,20 +81,20 @@
         <p>The edge publishes its whole model in one birth certificate: every point with its name,
         datatype, engineering units and current value, stamped <code>seq=0</code> and a session
         number that identifies this connection uniquely. Consumers learn the model from the stream
-        itself. There is no schema registry to fall out of date.</p></div>
+        itself. No schema registry to fall out of date.</p></div>
       </li>
       <li>
         <span class="lc lc-birth">DBIRTH</span>
         <div><h3>Equipment arrives as whole objects</h3>
-        <p>Each device under the node announces its own metrics: a pump, a loop, a skid crosses
-        the wire as an object with named members, not a bag of loose points, and can be retired
+        <p>Each device under the node announces its own metrics. A pump, a loop, a skid crosses
+        the wire as an object with named members, not a bag of loose points, and it can be retired
         later without disturbing the rest of the node.</p></div>
       </li>
       <li>
         <span class="lc lc-data">NDATA</span>
         <div><h3>Then, only what changes</h3>
-        <p>From here on, only changed values move, alias-only on the wire because the metric name
-        was paid for once at birth. Steady-state load tracks what the process actually did, not
+        <p>From here on, only changed values move, alias-only on the wire because you paid for the
+        metric name once at birth. Steady-state load tracks what the process actually did, not
         how many tags exist. That is a structural property of the protocol, not a tuning
         parameter that decays.</p></div>
       </li>
@@ -102,7 +102,7 @@
         <span class="lc lc-data">seq</span>
         <div><h3>Every message counts itself</h3>
         <p>A rolling sequence number rides every message, so a consumer can prove it missed
-        something rather than quietly carrying a hole. A gap makes the host ask for the model
+        something instead of quietly carrying a hole. A gap makes the host ask for the model
         again, rate-limited per node so one lossy link cannot amplify into a fleet-wide storm.</p></div>
       </li>
       <li>
@@ -116,14 +116,14 @@
         <span class="lc lc-death">NDEATH</span>
         <div><h3>Silence is never mistaken for health</h3>
         <p>The death certificate is registered with the broker as an MQTT Will at connect time, so
-        it is published even when the site cannot say goodbye. Every consumer knows within
+        it gets published even when the site cannot say goodbye. Every consumer knows within
         seconds, and values are marked stale instead of being left to look current.</p></div>
       </li>
       <li>
         <span class="lc lc-birth">NBIRTH</span>
         <div><h3>And the loop closes</h3>
         <p>When the site returns it simply births again with a new session number, and everything
-        above repeats. Recovery is not an add-on procedure; it is the same three messages the
+        above repeats. Recovery is not an add-on procedure. It is the same three messages the
         protocol always speaks.</p></div>
       </li>
     </ol>
@@ -156,7 +156,7 @@
     <div class="sec-head">
       <div class="path">mqtt5</div>
       <h2 id="mqtt5">MQTT 5 and Beyond</h2>
-      <p>The group that maintains Sparkplug has said where the next version is heading. Everything in the right-hand column already ships and can be switched on today.</p>
+      <p>The group that maintains Sparkplug has said where the next version is heading. Everything in the right-hand column already ships. Switch it on today.</p>
     </div>
     <div class="scroller">
       <table class="tbl">
@@ -179,18 +179,18 @@
     <div class="sec-head">
       <div class="path">uns</div>
       <h2 id="uns">The Unified Namespace, Explained</h2>
-      <p>One up-to-date picture of the plant that every system reads from. You get it as a result of publishing properly, with no second project to fund.</p>
+      <p>One up-to-date picture of the plant that every system reads from. You get it as a result of publishing properly. No second project to fund.</p>
     </div>
     <div class="two">
       <div>
         <div class="floor">What comes as standard</div>
         <h3>It builds itself</h3>
-        <p>Because each site describes itself when it connects, the picture fills in as sites come online. Anything new (a dashboard, a historian, an analytics tool) subscribes and finds what is there, rather than needing to be configured tag by tag.</p>
+        <p>Because each site describes itself when it connects, the picture fills in as sites come online. Anything new, a dashboard, a historian, an analytics tool, subscribes and finds what is there, instead of needing tag-by-tag configuration.</p>
       </div>
       <div>
         <div class="floor">What SparkBridge adds</div>
         <h3>Plain JSON as well as Sparkplug</h3>
-        <p>The Edge can also send the same values as plain JSON on a readable path, for tools that cannot read the Sparkplug format. Sparkplug for the systems that need types and connection state; JSON for the ones that just need a simple feed.</p>
+        <p>The Edge can also send the same values as plain JSON on a readable path, for tools that cannot read the Sparkplug format. Sparkplug for the systems that need types and connection state, JSON for the ones that just need a simple feed.</p>
       </div>
     </div>
     <p>For reference diagrams of where Edge, Host, Provider and Flow sit in a real estate, see the <a href="/sparkbridge/architecture">architecture page</a>.</p>
@@ -202,7 +202,7 @@
     <div class="sec-head">
       <div class="path">beyond spec</div>
       <h2>Beyond the Standard</h2>
-      <p>Any conformant Sparkplug product gives you these four things. They are the floor, and the real differences start above them.</p>
+      <p>Any conformant Sparkplug product gives you these four things. They are the floor. The real differences start above them.</p>
     </div>
 
     <div class="floor">What Sparkplug 3.0 already guarantees</div>
@@ -222,14 +222,14 @@
     <div class="sec-head">
       <div class="path">why sparkbridge</div>
       <h2 id="why">Why SparkBridge</h2>
-      <p>Eight capabilities designed to take MQTT further with greater efficiency, scalability, and future-ready architecture.</p>
+      <p>Eight capabilities built to take MQTT further, with more efficiency, more scale, and an architecture that holds up as Sparkplug moves to MQTT 5.</p>
     </div>
     <div class="leads cols">
       <p><b>Shared-subscription scale-out.</b> Four consumers share one broker stream and deliver about 20x the ingest of one. We have found no competing Ignition module that removes the single-subscriber ceiling.</p>
       <p><b>Published, measured numbers.</b> Load and endurance scenarios you can run yourself, with the hardware stated. No competing module publishes comparable figures.</p>
       <p><b>Change settings without a restart.</b> Configuration hot-reloads in about five seconds. No scheduled outage to add a site or change a deadband.</p>
       <p><b>Metadata folding.</b> Units, ranges and descriptions ride the birth certificate instead of the data stream, taking roughly a third of points out of steady-state traffic.</p>
-      <p><b>Per-site scoping as standard.</b> An edge credential is locked to its own site, cannot issue commands, and cannot write another site's data. Proven live against the broker, with the file-RBAC equivalent generated for estates on external HiveMQ.</p>
+      <p><b>Per-site scoping as standard.</b> An edge credential is locked to its own site. It cannot issue commands, and it cannot write another site's data. Proven live against the broker, with the file-RBAC equivalent generated for estates on external HiveMQ.</p>
       <p><b>No client-count tiers.</b> The broker is not licensed by how many clients connect, so there is no 50 or 250 ceiling to design around.</p>
       <p><b>Warm-standby hosts.</b> Standbys hold live state and take over by rank, measured at 244 ms across 25 nodes with no edge rebirths. The estate does not notice the handover.</p>
       <p><b>Signed fleet configuration distribution.</b> Configuration reaches every gateway as a signed bundle, so a site can prove what it was told to run and refuse anything it cannot verify.</p>
@@ -242,8 +242,8 @@
     <div class="sec-head">
       <div class="path">capability</div>
       <h2 id="compare">Feature by Feature</h2>
-      <p>Where a row says “not published”, no public figure exists for that product. Every SparkBridge number is measured and reproducible from the test suite that ships with it.</p>
-      <p>If you are weighing SparkBridge against the MQTT modules commonly used with Ignition, the Edge corresponds to a transmission-side module, the Host to an engine-side module, and the embedded broker plus HiveMQ CE companion to a distributor-side broker. The rows below compare only what is published or what we have measured. Where a competing figure is not public, the row says so rather than guessing.</p>
+      <p>Where a row says "not published", no public figure exists for that product. Every SparkBridge number is measured and reproducible from the test suite that ships with it.</p>
+      <p>If you are weighing SparkBridge against the MQTT modules commonly used with Ignition, the Edge corresponds to a transmission-side module, the Host to an engine-side module, and the embedded broker plus HiveMQ CE companion to a distributor-side broker. The rows below compare only what is published or what we have measured ourselves. Where a competing figure is not public, the row says so instead of guessing.</p>
     </div>
     <div class="scroller">
       <table class="tbl ours-last">
@@ -275,7 +275,7 @@
     <div class="sec-head">
       <div class="path">numbers</div>
       <h2 id="numbers">Performance Quantified</h2>
-      <p>Quiet-box gate, 2026-08-15, on a Linux reference rig with six cores, nothing else running, doing the full work of writing values into tags, and cross-checked on a four-core Mac. Bigger hardware goes further.</p>
+      <p>Quiet-box gate, 2026-08-15, on a Linux reference rig with six cores, nothing else running, doing the full work of writing values into tags. Cross-checked on a four-core Mac. Bigger hardware goes further.</p>
     </div>
     <div class="scroller">
       <table class="tbl ours-last">
@@ -292,14 +292,14 @@
         </tbody>
       </table>
     </div>
-    <p class="note"><b>The capacity row is a floor, not a peak.</b> It is the lowest sustained rate across the 50,000, 250,000 and 500,000 metric tiers, carried all the way through projection to a value visible on a tag, which is the only figure an operator sees. The offered ramp reached 480,000 updates per second without the run bending, so the ceiling was not found.</p>
+    <p class="note"><b>The capacity row is a floor, not a peak.</b> It is the lowest sustained rate across the 50,000, 250,000 and 500,000 metric tiers, carried all the way through projection to a value visible on a tag, which is the only figure an operator sees. The offered ramp reached 480,000 updates per second without the run bending, so we never found the ceiling.</p>
   </div>
 </section>
 
 <section class="tail">
   <div class="wrap">
     <h2>The Standard Is Only the Start</h2>
-    <p>Conformance is table stakes. What decides an estate's operating cost is everything the standard leaves open: buffering, scale-out, identity scoping, hot reload, and observability.</p>
+    <p>Conformance is table stakes. What decides an estate's operating cost is everything the standard leaves open: buffering, scale-out, identity scoping, hot reload, observability.</p>
     <div class="cta-row">
       <a class="btn" href="/sparkbridge/products">See the products</a>
       <a class="btn ghost" href="/sparkbridge/resources">Read the documentation</a>

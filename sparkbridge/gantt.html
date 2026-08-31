@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"All products","item":"https://mqtt.greenguard-usa.com/sparkbridge/products"},{"@type":"ListItem","position":3,"name":"SparkGantt","item":"https://mqtt.greenguard-usa.com/sparkbridge/gantt"}]},{"@type":"SoftwareApplication","name":"SparkGantt Perspective Gantt Chart Component","url":"https://mqtt.greenguard-usa.com/sparkbridge/gantt","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer, Ignition 8.3","softwareVersion":"early access","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"Perspective Gantt chart component for Ignition 8.1 and 8.3, virtualized to 500+ tasks. $495 per gateway, bought once. Early access.","offers":{"@type":"Offer","price":"495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/PreOrder","description":"Perpetual license, per gateway. Standalone, always billed separately. Early access"}}]}
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"All products","item":"https://mqtt.greenguard-usa.com/sparkbridge/products"},{"@type":"ListItem","position":3,"name":"SparkGantt","item":"https://mqtt.greenguard-usa.com/sparkbridge/gantt"}]},{"@type":"SoftwareApplication","name":"SparkGantt Perspective Gantt Chart Component","url":"https://mqtt.greenguard-usa.com/sparkbridge/gantt","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer, Ignition 8.3","softwareVersion":"early access","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"Perspective Gantt chart component for Ignition 8.1 and 8.3, virtualized to 500+ tasks. $495 per gateway, bought once. Early access.","offers":{"@type":"Offer","price":"495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/PreOrder","description":"Perpetual license, per gateway. Standalone, with its own license. Early access"}}]}
 </script>
 </head>
 <body>
@@ -52,8 +52,8 @@
       <div>
         <div class="eyebrow">SparkGantt</div>
         <h1>A Gantt chart that still scrolls smoothly at 500 tasks</h1>
-        <p>Perspective has no built-in Gantt component, so schedules end up as a table nobody can scan or a custom view that bogs down past a hundred rows. SparkGantt is a virtualized Perspective component built for real production schedules: 500 or more tasks, still smooth.</p>
-        <div class="pmeta"><span class="stat">Early access</span><span>Runs on the gateway that touches the equipment</span><span>$495, always separate</span></div>
+        <p>Perspective has no built-in Gantt component. Schedules end up as a table nobody can scan, or a custom view that bogs down past a hundred rows. GreenGuard USA built SparkGantt as a virtualized Perspective component for real production schedules: 500 or more tasks, still smooth.</p>
+        <div class="pmeta"><span class="stat">Early access</span><span>Runs on the gateway that touches the equipment</span><span>$495, its own license</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>Perspective component, early access build</span><span class="live"><i class="dot"></i>Early access</span></div>
@@ -85,7 +85,7 @@
           <tr><th>Where it runs</th><td>Perspective session, any gateway with the Perspective module</td></tr>
           <tr><th>Who it is for</th><td>Anyone building a production or maintenance schedule view in Perspective who has watched a plain table or a naive Gantt component stall past a hundred rows</td></tr>
           <tr><th>Status</th><td>Early access. <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/sparkgantt-v0.1.1">Downloads: SparkGantt 0.1.1</a></td></tr>
-          <tr><th>Licensing</th><td>$495 per gateway, bought once and kept, not a subscription. Always billed separately, never part of any package. One license covers the 8.1 and 8.3 builds. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
+          <tr><th>Licensing</th><td>$495 per gateway, bought once and kept. Not a subscription. It carries its own per-gateway license. One license covers the 8.1 and 8.3 builds. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
         </table>
       </div>
     </div>
@@ -97,20 +97,20 @@
     <div class="sec-head">
       <span class="path">where it earns its keep</span>
       <h2>Situations This Solves</h2>
-      <p>Each one is the same shape: equipment that already speaks a real protocol, kept out of Ignition by the lack of a native driver.</p>
+      <p>Each one is the same shape: a schedule that Perspective's default building blocks cannot render or track well once it gets real.</p>
     </div>
     <div class="scroller">
       <table class="tbl">
         <thead><tr><th>The situation</th><th>What changes</th></tr></thead>
         <tbody>
           <tr><td><b>A schedule view chokes past a hundred rows</b><br><span class="sub">Any Perspective project trying to show a real production or maintenance schedule.</span></td>
-              <td>SparkGantt only renders the rows in the visible viewport to the DOM, so the component stays responsive whether it is bound to 50 tasks or 5,000.</td></tr>
+              <td>SparkGantt only renders the rows in the visible viewport to the DOM. The component stays responsive whether it is bound to 50 tasks or 5,000.</td></tr>
           <tr><td><b>Perspective has no native Gantt component</b><br><span class="sub">Anyone who has built one from styled divs and a repeater, then hit its limits.</span></td>
-              <td>SparkGantt drops in as a standard Perspective component with task, dependency and milestone bindings, instead of a hand-rolled layout that has to be re-debugged every time the data shape changes.</td></tr>
+              <td>SparkGantt drops in as a standard Perspective component with task, dependency and milestone bindings. No hand-rolled layout to re-debug every time the data shape changes.</td></tr>
           <tr><td><b>Dependencies and milestones live in a separate table</b><br><span class="sub">Schedulers cross-referencing a task table against a dependency table to understand the plan.</span></td>
-              <td>Dependency lines and milestones render directly on the chart from their own bound properties, so the relationship between tasks is visible instead of inferred.</td></tr>
+              <td>Dependency lines and milestones render directly on the chart from their own bound properties. The relationship between tasks is visible instead of inferred.</td></tr>
           <tr><td><b>A schedule that only makes sense zoomed out, or only zoomed in</b><br><span class="sub">Planners toggling between a shift view and a monthly view in separate screens.</span></td>
-              <td>Zoom and pan are built into the component, so the same bound data supports a tight shift view and a wide monthly view without two different screens to maintain.</td></tr>
+              <td>Zoom and pan are built into the component. The same bound data supports a tight shift view and a wide monthly view without two screens to maintain.</td></tr>
         </tbody>
       </table>
     </div>
@@ -120,7 +120,7 @@
 <section>
   <div class="wrap">
     <div class="measure">
-      <p>SparkGantt is in early access. Downloads are release pending; the fastest way to get on a build is to contact us directly. Early sites shape the roadmap.</p>
+      <p>SparkGantt is in early access. The download build is release pending; the fastest way onto a build is to contact us directly. Early sites shape the roadmap.</p>
     </div>
 
     <h2 style="margin-top:40px">For your engineers</h2>
@@ -132,7 +132,7 @@
       <a class="btn" href="/sparkbridge/contact">Try it on one site</a>
       <a class="btn ghost dark" href="/sparkbridge/pricing">See pricing</a>
     </div>
-    <p class="note">Development use is free with no time limit. <a href="/sparkbridge/contact">Contact</a>.</p>
+    <p class="note">Development use is free with no time limit. <a href="/sparkbridge/contact">Contact us</a>.</p>
   </div>
 </section>
 

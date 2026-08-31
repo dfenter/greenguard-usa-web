@@ -50,8 +50,8 @@
   <div class="wrap">
     <div class="eyebrow">Changelog</div>
     <h1>Version history</h1>
-    <p>Every release, what changed, and what the change was for. The current release is 2.5.0;
-    the full customer notes ship in the release package.</p>
+    <p>Every release, what changed, and what the change was for. Current release: 2.5.0.
+    Full customer notes ship in the release package.</p>
   </div>
 </header>
 
@@ -64,21 +64,21 @@
         <span class="lc">Site<br>2026&#8209;08&#8209;29</span>
         <div>
           <h3>Site: Edge and Central pages, executive rewrite, consolidated lineup</h3>
-          <p>New <a href="/sparkbridge/edge">Edge</a> and <a href="/sparkbridge/central">Central</a> pages. The site copy was rewritten for plant leadership rather than integrators: plain words, the outcome first, then how, then proof. The product lineup across the site is now the one described on <a href="/sparkbridge/products">products</a>, with every diagram and table matching it.</p>
+          <p>New <a href="/sparkbridge/edge">Edge</a> and <a href="/sparkbridge/central">Central</a> pages. GreenGuard USA rewrote the site copy for plant leadership instead of integrators: plain words, outcome first, then how, then proof. The product lineup across the site now matches what's on <a href="/sparkbridge/products">products</a>, and every diagram and table matches it too.</p>
         </div>
       </li>
       <li>
         <span class="lc">Licensing<br>2026&#8209;08&#8209;29</span>
         <div>
           <h3>Edge and Central standalone; one central package</h3>
-          <p>SparkBridge Edge $995 and SparkBridge Central $1,995 are each standalone; SparkLink stays included with Edge. Every central module is now its own line: Passage, SparkCalc, SparkID, Sentinel, FleetOps and SparkInject $495 each, SparkVault $995. The $3,995 central package covers Central and all seven ($5,960 a la carte). SparkFlow, SparkSNMP and the protocol drivers are always billed separately and are never part of the package. A site gateway is SparkBridge Edge at $995, standalone, and that is the whole edge bill. SparkVault is a central-gateway module: it subscribes at the broker, writes to the central database and serves history back from there, so it was never installed at the edge and the $1,295 site package that bundled it no longer exists. Licensing itself also moved to a soft license: a single key file per gateway, applied with no restart, with every module running in full and showing an unlicensed banner until a key is added. See <a href="/sparkbridge/pricing">pricing</a>.</p>
+          <p>SparkBridge Edge $995 and SparkBridge Central $1,995 each stand on their own; SparkLink stays included with Edge. Every central module is now its own line: Passage, SparkCalc, SparkID, Sentinel, FleetOps and SparkInject $495 each, SparkVault $995. The $3,995 central package covers Central and all seven ($5,960 a la carte). SparkFlow, SparkSNMP and the protocol drivers are each licensed on their own, separate from the package. A site gateway is SparkBridge Edge at $995, and that's the whole edge bill. SparkVault is a central-gateway module: it subscribes at the broker, writes to the central database and serves history back from there, so it was never installed at the edge, and the $1,295 site package that bundled it no longer exists. We also moved licensing itself to a soft license: a single key file per gateway, applied with no restart. Every module runs in full and shows an unlicensed banner until a key is added. See <a href="/sparkbridge/pricing">pricing</a>.</p>
         </div>
       </li>
       <li>
         <span class="lc">Licensing<br>2026&#8209;08&#8209;27</span>
         <div>
           <h3>Four modules become features of SparkBridge</h3>
-          <p><a href="/sparkbridge/#sparklink">SparkLink</a>, <a href="/sparkbridge/#sparkcalc">SparkCalc</a>, <a href="/sparkbridge/#passage">Passage</a> and <a href="/sparkbridge/#sparkid">SparkID</a> are now included free with any SparkBridge Edge or Central license. Nothing changes in the software; they were built as free modules and stay that way. The site package is now $1,295 (Edge plus SparkVault) and the central server suite $2,995 (Central plus SparkVault, SparkInject and FleetOps). Existing quotes are honoured at the lower of the two prices. See <a href="/sparkbridge/pricing">pricing</a>.</p>
+          <p><a href="/sparkbridge/#sparklink">SparkLink</a>, <a href="/sparkbridge/#sparkcalc">SparkCalc</a>, <a href="/sparkbridge/#passage">Passage</a> and <a href="/sparkbridge/#sparkid">SparkID</a> are now free with any SparkBridge Edge or Central license. Nothing changes in the software; we built them as free modules and they stay that way. The site package is now $1,295 (Edge plus SparkVault) and the central server suite $2,995 (Central plus SparkVault, SparkInject and FleetOps). Existing quotes are honoured at the lower of the two prices. See <a href="/sparkbridge/pricing">pricing</a>.</p>
         </div>
       </li>
       <li>
@@ -94,10 +94,10 @@
           minted per BIRTH rather than the mod-256 wire sequence. A Perspective dispatcher feeds
           views from the stream, a TAGFEED subset projects onto a tag provider and hot-reloads
           from KV, and leaf-node store-and-forward survived a real 60-second partition with zero
-          acked loss. Three adversarial review rounds and a security red team ran before the
+          acked loss. We ran three adversarial review rounds and a security red team before the
           freeze. The Host now recognises and clears its own stale retained STATE after an
           unclean restart instead of demoting itself in a phantom split brain, and the release
-          bundle is version-guarded so the documents in it cannot be a release behind the
+          bundle is version-guarded so the documents in it can't be a release behind the
           modules beside them.</p>
           <p>Bundles for Ignition 8.1 and 8.3 are on the <a href="/sparkbridge/download">download page</a> and at <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/v2.5.0">the v2.5.0 GitHub release</a>.</p>
         </div>
@@ -108,14 +108,14 @@
           <h3>Standby, fleet configuration and speed</h3>
           <p>The availability release. A <a href="/sparkbridge/technology#why">warm-standby Host</a> takes over by rank when the primary
           goes away, measured at 244 ms across 25 nodes with zero rebirths and verified live in
-          a two-JVM drill on the release bench, and configuration reaches each site as a P-256 signed document, with a <a href="/sparkbridge/#fleetops">fleet
+          a two-JVM drill on the release bench. Configuration now reaches each site as a P-256 signed document, with a <a href="/sparkbridge/#fleetops">fleet
           dashboard</a>, a JSON feed and birth metrics showing what every node is running. The
           broker extension now authorizes PUBLISH and SUBSCRIBE, deferring rather than allowing
-          so file RBAC keeps authority, and the Ignition trial is enforced across all three
+          so file RBAC keeps authority. The Ignition trial is enforced across all three
           modules: they pause on expiry with store-and-forward still capturing and resume on
           Reset Trial with no restart. The async transport window is on by default, worth 7.3x
           on replay over a 15 ms link, and the Host adopts parallel decode for 2.7x to 3.9x at
-          1 to 4 KiB payloads. Per-node SLO statistics, a five-hop trace sampler that costs
+          1 to 4 KiB payloads. Also new: per-node SLO statistics, a five-hop trace sampler that costs
           nothing while disarmed, a generated 180-property config reference, and an importable
           Perspective status project.</p>
         </div>
@@ -124,8 +124,8 @@
         <span class="lc">2.3.0<br>2026&#8209;08&#8209;15</span>
         <div>
           <h3>Third-party edges welcome</h3>
-          <p>The interoperability release, driven by running the Eclipse reference implementation
-          against the suite. The Host now accepts edges that never assign metric aliases, which
+          <p>The interoperability release. We ran the Eclipse reference implementation
+          against the suite and fixed what it found. The Host now accepts edges that never assign metric aliases, which
           the specification permits and the previous Host refused, and reads UINT32 values from
           either legal wire field in metrics, dataset cells, properties and template parameters
           alike. Application-topic authorization now denies by default, version 1 client IDs are
@@ -139,7 +139,7 @@
         <span class="lc">2.2.2<br>2026&#8209;08&#8209;14</span>
         <div>
           <h3>The conformance record</h3>
-          <p>All nine profiles of the official Eclipse Sparkplug TCK 3.0.0, run against the
+          <p>We ran all nine profiles of the official Eclipse Sparkplug TCK 3.0.0 against the
           ratified binary in one session: 346 assertions executed, 346 passed, zero failed. The
           published record lives at <a href="/sparkbridge/tck">the TCK results page</a>. Pointing
           the TCK's reference edge at the Host also surfaced and fixed two interoperability
@@ -152,8 +152,8 @@
         <span class="lc">2.2.1<br>2026&#8209;08&#8209;14</span>
         <div>
           <h3>The hardening pass</h3>
-          <p>A full adversarial audit of the suite, with every confirmed finding fixed and
-          re-verified: log flood control on every per-message path, replay correctness under
+          <p>A full adversarial audit of the suite. We fixed and re-verified every confirmed
+          finding: log flood control on every per-message path, replay correctness under
           reordered session state, fail-closed handling of ambiguous client identities, and the
           installation guide rewritten against a live gateway rather than from memory. 504
           automated tests.</p>
@@ -166,7 +166,7 @@
           <p>The staged breaking change. Application-topic use without a grant is reported and
           counted rather than refused, version 2 client IDs are issued while both derivations are
           accepted, and a migration preflight sizes the work for an estate and emits ready-made
-          broker permission blocks. Everything this release warned about, 2.3.0 enforces.</p>
+          broker permission blocks. Everything this release warns about, 2.3.0 enforces.</p>
         </div>
       </li>
       <li>
@@ -174,9 +174,9 @@
         <div>
           <h3>Scale-out and MQTT 5</h3>
           <p>Full MQTT 5 client mode and shared-subscription host scale-out, measured at roughly
-          twenty times the ingest of a single consumer. HiveMQ CE becomes the recommended
-          production broker topology, with the embedded broker remaining the zero-configuration
-          default, and the broker-side authorization extension binds each credential to its
+          twenty times the ingest of a single consumer. HiveMQ CE is now the recommended
+          production broker topology; the embedded broker stays the zero-configuration
+          default. The broker-side authorization extension binds each credential to its
           derived client identity.</p>
         </div>
       </li>
@@ -188,7 +188,7 @@
           every input path, tiered fail-closed REST authentication, TLS with mandatory hostname
           verification, secrets moved out of JVM arguments, disk-backed store-and-forward with
           historical replay, device modeling, and persistent birth sequence numbers that survive
-          gateway restarts.</p>
+          a gateway restart.</p>
         </div>
       </li>
       <li>
@@ -208,7 +208,7 @@
 <section class="tail">
   <div class="wrap">
     <h2>Get the Current Release</h2>
-    <p>The release package carries the full customer notes for each version alongside the signed
+    <p>The release package carries the full customer notes for each version, plus the signed
     modules and checksums.</p>
     <div class="cta-row">
       <a class="btn" href="/sparkbridge/download">Download 2.5.0</a>

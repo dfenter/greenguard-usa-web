@@ -50,7 +50,7 @@
   <div class="wrap">
     <div class="eyebrow">Download</div>
     <h1>The release package</h1>
-    <p>Here is what you get: the full suite, the checksums to verify your download, and the documents to install from. Development use is free with no time limit. Licensing runs on a single key file per gateway, no restart required, and until you add one every module runs in full with a banner reminding you it is unlicensed. Current release 2.5.0.</p>
+    <p>Here is what you get: the full suite, the checksums to verify your download, and the documents to install from. Development use is free, no time limit. Licensing runs on a single key file per gateway, no restart required. Until you add one, every module runs in full, with a banner reminding you it is unlicensed. Current release 2.5.0.</p>
   </div>
 </header>
 
@@ -61,10 +61,10 @@
     <div class="sec-head">
       <div class="path">how to get it</div>
       <h2>Download the Build</h2>
-      <p>The bundles are public. Pick the one for your gateway line; they are not interchangeable.</p>
+      <p>The bundles are public. Pick the one for your gateway line. They are not interchangeable.</p>
     </div>
     <div class="leads">
-      <p>The modules are signed with a SparkBridge certificate rather than an Inductive Automation one, so the gateway shows a certificate acceptance page on the first module you install. Print the fingerprint from the bundled <span class="mono">sparkbridge-signing-cert.pem</span> and compare it against that page before accepting; the checksums below let you verify the download against this page rather than against the file that traveled with it. Certification through Inductive Automation's third-party module program is in progress. If you would rather have a person walk the first install with you, email us and you get exactly that, usually the same day.</p>
+      <p>The modules are signed with a SparkBridge certificate, not an Inductive Automation one, so the gateway shows a certificate acceptance page on the first module you install. Print the fingerprint from the bundled <span class="mono">sparkbridge-signing-cert.pem</span> and compare it against that page before accepting. The checksums below let you verify the download against this page rather than against the file that traveled with it. Certification through Inductive Automation's third-party module program is in progress. If you would rather have a person walk the first install with you, email us and you get exactly that, usually the same day.</p>
     </div>
     <div class="cta-row">
       <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.5.0/sparkbridge-2.5.0-ign81-bundle.zip">Download 2.5.0 for Ignition 8.1</a>
@@ -79,24 +79,24 @@
     <div class="sec-head">
       <div class="path">package contents</div>
       <h2>What Is In the Zip</h2>
-      <p>Everything needed to install, verify and configure the suite, and nothing that needs a second download.</p>
+      <p>Everything needed to install, verify and configure the suite. Nothing that needs a second download.</p>
     </div>
     <div class="plain">
       <div>
         <h3>Four signed modules</h3>
-        <p><b>SparkBridge-Provider.modl</b> owns the broker: it runs the embedded Moquette for a zero-configuration first install, or stands down and lets an external HiveMQ CE own the ports. <b>SparkBridge-Host.modl</b> decodes Sparkplug into a managed Ignition tag provider. <b>SparkBridge-Edge.modl</b> publishes a folder of gateway tags as Sparkplug. Install them in that order, because the Provider has to be running before the Host subscribes and before the Edge publishes. <b>SparkBridge-Flow.modl</b>, new in 2.5.0, is optional: it carries everything the Host decodes onto NATS/JetStream as a unified namespace, with last-known value and lifecycle in a KV bucket, a confirmed-write command path back to the edge and a Perspective dispatcher fed from the stream. Install it last, only if you run a nats-server, and read <b>docs/FLOW_MODULE.md</b> in the bundle first.</p>
+        <p><b>SparkBridge-Provider.modl</b> owns the broker. It runs the embedded Moquette for a zero-configuration first install, or stands down and lets an external HiveMQ CE own the ports. <b>SparkBridge-Host.modl</b> decodes Sparkplug into a managed Ignition tag provider. <b>SparkBridge-Edge.modl</b> publishes a folder of gateway tags as Sparkplug. Install them in that order: the Provider has to be running before the Host subscribes and before the Edge publishes. <b>SparkBridge-Flow.modl</b>, new in 2.5.0, is optional. It carries everything the Host decodes onto NATS/JetStream as a unified namespace, with last-known value and lifecycle in a KV bucket, a confirmed-write command path back to the edge and a Perspective dispatcher fed from the stream. Install it last, only if you run a nats-server, and read <b>docs/FLOW_MODULE.md</b> in the bundle first.</p>
       </div>
       <div>
         <h3>The broker authorization extension</h3>
-        <p>A HiveMQ extension, shipped as its own zip. It binds each credential to the client ID derived from its scope, so one site's credential cannot present another site's client ID and evict that session, and it refuses an unauthorized Last Will at CONNECT before a session exists. It also judges PUBLISH and SUBSCRIBE, deferring rather than allowing where it has no opinion, so file RBAC keeps the final authority. You need it only if you run external HiveMQ, and if you do run it, it upgrades in the same maintenance window as the modules.</p>
+        <p>A HiveMQ extension, shipped as its own zip. It binds each credential to the client ID derived from its scope, so one site's credential cannot present another site's client ID and evict that session. It refuses an unauthorized Last Will at CONNECT before a session exists. It also judges PUBLISH and SUBSCRIBE, deferring rather than allowing where it has no opinion, so file RBAC keeps the final authority. You need it only if you run external HiveMQ, and if you do, it upgrades in the same maintenance window as the modules.</p>
       </div>
       <div>
         <h3>The Perspective status project</h3>
-        <p><b>sparkbridge-perspective-2.5.0.zip</b> is an importable Perspective project that puts the suite's status on a screen: node health, per-node SLO statistics and the signed fleet configuration each site is running, with nothing to build by hand.</p>
+        <p><b>sparkbridge-perspective-2.5.0.zip</b> is an importable Perspective project that puts the suite's status on a screen: node health, per-node SLO statistics, and the signed fleet configuration each site is running. Nothing to build by hand.</p>
       </div>
       <div>
         <h3>Checksums and the signing certificate</h3>
-        <p><b>SHA256SUMS.txt</b> covers the modules, the extension and the Perspective project, and the same values are published on this page so you can verify the delivery against a source that did not arrive in the same email. <b>sparkbridge-signing-cert.pem</b> is the certificate the modules are signed with: print its fingerprint with keytool and compare it against the acceptance page the gateway shows you on first install.</p>
+        <p><b>SHA256SUMS.txt</b> covers the modules, the extension and the Perspective project. The same values are published on this page so you can verify the delivery against a source that did not arrive in the same email. <b>sparkbridge-signing-cert.pem</b> is the certificate the modules are signed with: print its fingerprint with keytool and compare it against the acceptance page the gateway shows you on first install.</p>
       </div>
       <div>
         <h3>The documents you install from</h3>
@@ -104,7 +104,7 @@
       </div>
       <div>
         <h3>The license</h3>
-        <p><b>license.html</b> is the end user license agreement, and it is also what the gateway displays for acceptance when the module installs. A module whose license was never accepted stays quarantined, so it is worth reading the copy in the package before you are looking at it in a dialog.</p>
+        <p><b>license.html</b> is the end user license agreement. It is also what the gateway displays for acceptance when the module installs. A module whose license was never accepted stays quarantined, so it is worth reading the copy in the package before you are looking at it in a dialog.</p>
       </div>
     </div>
     <p class="note">The bundle also carries BUNDLE-SHA256SUMS.txt, generated over every file above, so one command verifies the whole delivery rather than only the binaries. The checksum of the bundle zip itself is published in the table below as well.</p>
@@ -116,7 +116,7 @@
     <div class="sec-head">
       <div class="path">sparksnmp</div>
       <h2>Download SparkSNMP 0.1.1</h2>
-      <p>The SNMP driver ships on its own release, one bundle per gateway line, signed with the same certificate. Each bundle carries the module, its checksums, the certificate, the license and the live proof, QA matrix and security review documents. 0.1.1 adds custom MIB upload and fixes nested folders showing empty in the OPC UA browse tree on 8.1. <a href="/sparkbridge/snmp">About SparkSNMP</a>.</p>
+      <p>The SNMP driver ships on its own release, one bundle per gateway line, signed with the same certificate. Each bundle carries the module, its checksums, the certificate, the license, and the live proof, QA matrix and security review documents. 0.1.1 adds custom MIB upload and fixes nested folders showing empty in the OPC UA browse tree on 8.1. <a href="/sparkbridge/snmp">About SparkSNMP</a>.</p>
     </div>
     <div class="cta-row">
       <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparksnmp-v0.1.1/sparksnmp-0.1.1-ign81-bundle.zip">Download SparkSNMP 0.1.1 for Ignition 8.1</a>
@@ -247,10 +247,11 @@
     <div class="sec-head">
       <div class="path">sparkvalidate</div>
       <h2>Download SparkValidate 0.1.0</h2>
-      <p>Risk-based validation and alarm management for Ignition + PLC systems ships as two bundles: the gateway module for live extraction, protocol execution and evidence capture, and a CLI-only bundle for offline or CI use without a gateway install. Both are signed with the same certificate. Early access. <a href="/sparkbridge/validate">About SparkValidate</a>.</p>
+      <p>Risk-based validation and alarm management for Ignition + PLC systems ships as three bundles: the gateway module for live extraction, protocol execution and evidence capture (Ignition 8.1 and 8.3 lines), and a CLI-only bundle for offline or CI use with no gateway install. All are signed with the same certificate. Early access. <a href="/sparkbridge/validate">About SparkValidate</a>.</p>
     </div>
     <div class="cta-row">
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkvalidate-v0.1.0/sparkvalidate-0.1.0-gateway-bundle.zip">Download SparkValidate 0.1.0 gateway module</a>
+      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkvalidate-v0.1.0/sparkvalidate-0.1.0-gateway-bundle.zip">Download SparkValidate 0.1.0 gateway module for Ignition 8.1</a>
+      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkvalidate-v0.1.0/sparkvalidate-0.1.0-ign83-bundle.zip">Download SparkValidate 0.1.0 gateway module for Ignition 8.3</a>
       <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkvalidate-v0.1.0/sparkvalidate-0.1.0-cli-bundle.zip">Download SparkValidate 0.1.0 CLI only</a>
     </div>
     <div class="scroller">
@@ -259,11 +260,12 @@
         <thead><tr><th>Artifact</th><th>SHA-256</th></tr></thead>
         <tbody>
           <tr><td>sparkvalidate-0.1.0-gateway-bundle.zip</td><td class="num">59a4edcb17409b748c2dc43167de2a3b7e41032f538ccd6b011e612e87a18a5f</td></tr>
+          <tr><td>sparkvalidate-0.1.0-ign83-bundle.zip</td><td class="num">cda521b5216f7199adbfc753ce0763cfda94e411072a652b4f74f9092ce89952</td></tr>
           <tr><td>sparkvalidate-0.1.0-cli-bundle.zip</td><td class="num">04313df889db56738708bc6cbe5f1df34708401e4d3a1a7573dbdb62adee0cf5</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="note">Bundles sparkvalidate-0.1.0-gateway-bundle.zip and sparkvalidate-0.1.0-cli-bundle.zip. Gateway module $2,495 per Gateway, perpetual; CLI-only Validate Desk $995, perpetual. Free for development.</p>
+    <p class="note">Bundles sparkvalidate-0.1.0-gateway-bundle.zip (Ignition 8.1), sparkvalidate-0.1.0-ign83-bundle.zip (Ignition 8.3), and sparkvalidate-0.1.0-cli-bundle.zip. Gateway module $2,495 per Gateway, perpetual; CLI-only Validate Desk $995, perpetual. Free for development.</p>
   </div>
 </section>
 
@@ -272,7 +274,7 @@
     <div class="sec-head">
       <div class="path">verify</div>
       <h2>SHA-256, Release 2.5.0</h2>
-      <p>Published here per release, from the release build's own SHA256SUMS.txt. Check what you received against this page rather than against the file that traveled with it.</p>
+      <p>Published here per release, from the release build's own SHA256SUMS.txt. Check what you received against this page, not against the file that traveled with it.</p>
     </div>
     <div class="scroller">
       <table class="tbl">
@@ -302,8 +304,8 @@
       <p>One key file per gateway. No restart, no dongle, no separate activation dance.</p>
     </div>
     <div class="leads">
-      <p>Development use is free with no time limit. Install the modules on as many test gateways as you want and run the whole suite, no tag limit and no feature gate, for as long as you need to be sure.</p>
-      <p>When you go live, licensing is a single key file dropped on the gateway, one per gateway. It applies with no restart. Until a gateway has one, every module still runs in full, with a banner on the gateway reminding you it is unlicensed, so nothing you are testing ever pauses or degrades while you decide.</p>
+      <p>Development use is free, no time limit. Install the modules on as many test gateways as you want and run the whole suite, no tag limit, no feature gate, for as long as you need to be sure.</p>
+      <p>When you go live, licensing is a single key file dropped on the gateway, one per gateway. It applies with no restart. Until a gateway has one, every module still runs in full, with a banner on the gateway reminding you it is unlicensed. Nothing you are testing ever pauses or degrades while you decide.</p>
       <p>If you would rather have a person confirm the first key lands correctly, email us and you get exactly that, usually the same day.</p>
     </div>
   </div>
@@ -314,7 +316,7 @@
     <div class="sec-head">
       <div class="path">before you install</div>
       <h2>What It Needs</h2>
-      <p>The floor is genuinely low. The optional companion broker is the only thing with dependencies of its own.</p>
+      <p>The floor is low. The optional companion broker is the only thing with dependencies of its own.</p>
     </div>
     <div class="scroller">
       <table class="tbl">
@@ -322,21 +324,21 @@
         <tbody>
           <tr><td>Ignition 8.1.19 or newer</td><td>The floor is the first build carrying the config-page API the gateway tabs use. Runtime verification is on 8.1.38. If a config page is ever unavailable, every setting is still reachable as a system property or through the REST API.</td></tr>
           <tr><td>Java 11 or newer</td><td>Ignition bundles its own, Java 11 through 8.1.33 and Java 17 from 8.1.34. The modules target Java 11 bytecode so they load on either.</td></tr>
-          <tr><td>A gateway you can restart</td><td>System properties live in ignition.conf and are read at startup. The Edge's source folder is the exception: it is a config page setting that applies live.</td></tr>
+          <tr><td>A gateway you can restart</td><td>System properties live in ignition.conf and are read at startup. The Edge's source folder is the exception: a config page setting that applies live.</td></tr>
           <tr><td>keytool</td><td>For the TLS keystore. It ships with every JDK and with the JRE Ignition bundles.</td></tr>
           <tr><td>For external HiveMQ only</td><td>curl, unzip, python3 and a JDK 11 or newer on the broker host. The embedded broker needs none of it, which is why the first session of the quickstart uses the embedded one.</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="note">The modules are signed with a self-signed SparkBridge certificate today, so the gateway quarantines the first module and shows a certificate acceptance page. Accepting once covers all four. An Inductive Automation issued certificate installs with no prompt at all, and moving to one is a drop-in change on our side.</p>
+    <p class="note">The modules are signed with a self-signed SparkBridge certificate today, so the gateway quarantines the first module and shows a certificate acceptance page. Accepting once covers all four. An Inductive Automation issued certificate installs with no prompt at all. Moving to one is a drop-in change on our side.</p>
   </div>
 </section>
 
 <section class="tail">
   <div class="wrap">
     <h2>Grab It and Go</h2>
-    <p>Download the bundle for your gateway line, verify the checksums, and the quickstart in it takes an afternoon at most. If you would rather have company for the first install, email us your Ignition version and you get a person, not a sequence.</p>
-    <p>Try it on one site. Development use is free with no time limit.</p>
+    <p>Download the bundle for your gateway line, verify the checksums, then the quickstart in it takes an afternoon at most. If you would rather have company for the first install, email us your Ignition version and you get a person, not a sequence.</p>
+    <p>Try it on one site. Development use is free, no time limit.</p>
     <div class="cta-row">
       <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/v2.5.0">Download 2.5.0</a>
       <a class="btn ghost" href="/sparkbridge/resources">Read the documentation</a>

@@ -4,16 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reference Architectures: SparkBridge on Ignition | SparkBridge</title>
-<meta name="description" content="How SparkBridge is deployed, from one plant to a data center: site gateways running Edge, one central gateway running Central and the modules you choose, licensed once and kept.">
+<meta name="description" content="How GreenGuard USA deploys SparkBridge, from one plant to a data center: site gateways running Edge, one central gateway running Central and the modules you pick, each licensed once and kept.">
 <link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/architecture">
 <meta property="og:title" content="How SparkBridge is deployed, one plant to a data center">
-<meta property="og:description" content="Every layout runs the same two products: Edge at each site, Central at the middle, with only the modules you need.">
+<meta property="og:description" content="Every layout runs the same two products: Edge at each site, Central in the middle, plus only the modules you pick.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/architecture">
 <meta property="og:site_name" content="SparkBridge">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="How SparkBridge is deployed, one plant to a data center">
-<meta name="twitter:description" content="Every layout runs the same two products: Edge at each site, Central at the middle, with only the modules you need.">
+<meta name="twitter:description" content="Every layout runs the same two products: Edge at each site, Central in the middle, plus only the modules you pick.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
@@ -53,13 +53,13 @@
       <div>
         <div class="eyebrow">Reference architectures</div>
         <h1>How This Runs, From One Plant to the Whole Company</h1>
-        <p>Every layout below is built from the same two products: SparkBridge Edge at each site, SparkBridge Central at the middle. You add only the modules you need, and every server keeps the systems and databases you already run. Nothing is torn out to get here.</p>
+        <p>Every layout below is built from the same two products: SparkBridge Edge at each site, SparkBridge Central in the middle. Add only the modules you need. Every server keeps the systems and databases you already run. Nothing gets torn out to get here.</p>
         <div class="pmeta"><span class="stat">Eight layouts</span><span>Same two products, every time</span><span>Nothing ripped out on day one</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>How to read a drawing</span><span class="live"><i class="dot"></i>Signal order</span></div>
         <div class="artifact-body">
-          <p style="margin:0 0 10px"><span class="hi">Green-edged enclosure</span> = an Ignition server. The chips inside are the modules installed on it: <span class="acc">green chips are SparkBridge</span>, grey chips are Ignition's own.<br>
+          <p style="margin:0 0 10px"><span class="hi">Green-edged enclosure</span> is an Ignition server. The chips inside are the modules installed on it: <span class="acc">green chips are SparkBridge</span>, grey chips are Ignition's own.<br>
           <span class="hi">Double rule</span> = an MQTT broker. <span class="hi">Dashed outline</span> = something you already own.<br>
           <span class="hi">Rows</span> are tiers: field, site servers, brokers, central servers, consumers. The text on the bus between rows is what travels on it.</p>
           <div class="runkey" style="margin-top:6px;padding-top:12px">
@@ -82,7 +82,7 @@
     <div class="sec-head bandhead">
       <span class="path">01 &middot; the wire</span>
       <h2>One Machine, Watched From Anywhere</h2>
-      <p>This is the smallest deployment, and every larger one on this page is built from it. A machine on your floor becomes a number your office can see, and a change your office makes reaches the machine.</p>
+      <p>This is the smallest deployment, and every larger one on this page is built from it. A machine on your floor becomes a number your office can see. A change your office makes reaches the machine.</p>
     </div>
 
     <article class="topo" id="s1">
@@ -110,7 +110,7 @@
       </div>
       <table class="spec">
         <tr><th>What it costs</th><td>SparkBridge Edge at the site, SparkBridge Central at the office. Per gateway. Bought once and kept. Free for development with no time limit. Support 20%/yr, optional.</td></tr>
-        <tr><th>What you get</th><td>A change on the floor shows up in your office in under a millisecond, and nothing is lost if the connection between them drops.</td></tr>
+        <tr><th>What you get</th><td>A change on the floor shows up in your office in under a millisecond. Nothing is lost if the connection between them drops.</td></tr>
       </table>
       <div class="sec-head" style="margin-top:14px"><span class="path">For your engineers</span></div>
       <table class="spec">
@@ -130,7 +130,7 @@
     <div class="sec-head bandhead">
       <span class="path">02 &middot; the plant</span>
       <h2>Keep the Server You Already Paid For</h2>
-      <p>Your plant already runs its own server and its own database, with local screens and local alarms. SparkBridge does not replace any of that. It replaces the slow, fragile link that copies data to your office, and hands the plant the whole company's view in return.</p>
+      <p>Your plant already runs its own server and its own database, with local screens and local alarms. SparkBridge does not replace any of that. It replaces the slow, fragile link that copies data to your office, and hands the plant the whole company's view back.</p>
     </div>
 
     <article class="topo" id="s2">
@@ -175,8 +175,8 @@
         </div>
       </div>
       <table class="spec">
-        <tr><th>What stays</th><td>Your plant server, its screens, its alarms, its database and its local reports. Nothing is ripped out on day one.</td></tr>
-        <tr><th>What changes</th><td>The slow WAN link to your office is replaced by one reliable wire, so live data and history both arrive from the same source instead of two.</td></tr>
+        <tr><th>What stays</th><td>Your plant server, its screens, its alarms, its database and its local reports. Nothing gets ripped out on day one.</td></tr>
+        <tr><th>What changes</th><td>One reliable wire replaces the slow WAN link to your office, so live data and history arrive from the same source instead of two.</td></tr>
         <tr><th>What it costs</th><td>Per gateway. Bought once and kept. Free for development with no time limit. Support 20%/yr, optional.</td></tr>
       </table>
       <div class="sec-head" style="margin-top:14px"><span class="path">For your engineers</span></div>
@@ -184,12 +184,12 @@
         <tr><th>What stays</th><td>The plant Ignition server, its drivers, Perspective, alarms, the plant database and the local history provider. The splitter can stay too, writing only its local leg, or be swapped for a plain local provider once the remote leg is off.</td></tr>
         <tr><th>What changes</th><td>The remote leg of the history splitter and the Gateway Network remote provider are both replaced by one Sparkplug wire. Live tags and central history now come from the same stream.</td></tr>
         <tr><th>Why the wire wins</th><td>The splitter ships SQL rows: one database connection and credential per plant, rows stamped on arrival, and a central schema of sqlth_ partitions nobody wants to query directly. Edge ships values with the timestamp the PLC gave them, buffers to disk through an outage, and SparkVault writes them once into one open table. A 4 h 11 min outage replayed with zero values lost, every one on its original timestamp.</td></tr>
-        <tr><th>The plant gets more back</th><td>Install Central on the plant server as well and the rest of the estate appears there as a managed provider: sibling plants, SparkCalc results, corporate setpoints. A plant screen can show the neighbour's line without a Gateway Network link.</td></tr>
-        <tr><th>Cutover order</th><td>Install Edge, leave the splitter running both legs, let SparkVault fill in parallel for one history partition, compare, then switch the remote leg off. Nothing is ripped out on day one; the plant's own history is never at risk because it never moved.</td></tr>
+        <tr><th>The plant gets more back</th><td>Install Central on the plant server too and the rest of the estate shows up there as a managed provider: sibling plants, SparkCalc results, corporate setpoints. A plant screen can show the neighbour's line with no Gateway Network link.</td></tr>
+        <tr><th>Cutover order</th><td>Install Edge, leave the splitter running both legs, let SparkVault fill in parallel for one history partition, compare, then switch the remote leg off. Nothing is ripped out on day one; the plant's own history is never at risk because it never moves.</td></tr>
         <tr><th>Small onsite plants</th><td>A skid, a lift station, a packaging cell with no database of its own runs Ignition Edge instead. Same Edge module, same wire; its history lives at central only, with the Edge server's own disk buffer covering an outage.</td></tr>
         <tr><th>License</th><td>Edge $995 per site gateway, standalone, on the plant server. Central $1,995 per central gateway, standalone, if you also want the estate view there. On the central server: Central $1,995, plus SparkVault $995, plus SparkCalc and Passage $495 each, or the $3,995 central package with all seven modules.</td></tr>
       </table>
-      <p class="honest">Honest limits: reports written against the central sqlth_ tables have to be re-pointed at SparkVault's table or the Timescale hypertable; the plant's own reports do not change. The alarm journal stays in the plant database; alarm state travels as tags, the journal rows do not. Central on a plant server is a full Central license.</p>
+      <p class="honest">Honest limits: reports written against the central sqlth_ tables have to be re-pointed at SparkVault's table or the Timescale hypertable. The plant's own reports do not change. The alarm journal stays in the plant database; alarm state travels as tags, the journal rows do not. Central on a plant server is a full Central license.</p>
       <p class="links"><a href="/sparkbridge/central#sparkvault">SparkVault</a><a href="/sparkbridge/technology">Store and forward, measured</a></p>
     </article>
   </div>
@@ -259,7 +259,7 @@
         </div>
       </div>
       <table class="spec">
-        <tr><th>What you get</th><td>Forty plants, one screen. Add a plant and it shows up automatically, with no rework for the team watching it.</td></tr>
+        <tr><th>What you get</th><td>Forty plants, one screen. Add a plant and it shows up automatically, no rework for the team watching it.</td></tr>
         <tr><th>Uptime</th><td>If the primary central gateway fails, a standby takes over in about a quarter of a second. Nobody at any site notices.</td></tr>
         <tr><th>What it costs</th><td>Per gateway. Bought once and kept. Free for development with no time limit. Support 20%/yr, optional.</td></tr>
       </table>
@@ -272,7 +272,7 @@
         <tr><th>Sideways</th><td>Add a central server to the pool for more consumers, or partition the namespace by group across servers with ordering preserved. Both are live changes, no rebirth wave.</td></tr>
         <tr><th>License</th><td>Edge $995 per site gateway, standalone. Central $1,995 per pool gateway, standalone.</td></tr>
       </table>
-      <p class="honest">Honest limits: standby guarantees at most two writers for at most the claim-stale window, not never two. Shared consumers trade per-edge ordering for throughput; partition by group if ordering matters. Run the standby against one broker server, since convergence is per broker.</p>
+      <p class="honest">Honest limits: standby caps you at two writers for at most the claim-stale window, not zero. Shared consumers trade per-edge ordering for throughput; partition by group if ordering matters. Run the standby against one broker server, since convergence is per broker.</p>
       <p class="links"><a href="/sparkbridge/technology">Performance quantified</a><a href="/sparkbridge/technology#beyond">Standby and scale-out</a></p>
     </article>
   </div>
@@ -284,7 +284,7 @@
     <div class="sec-head bandhead">
       <span class="path">04 &middot; the whole line</span>
       <h2>Every Tool Your Company Needs, Off One Namespace</h2>
-      <p>This is the data center from section 03 with every optional module turned on: your history, your security audit, your reporting tools, your cloud warehouse, all reading the same feed instead of five separate ones.</p>
+      <p>This is the data center from section 03 with every optional module turned on: your history, your security audit, your reporting tools, your cloud warehouse, all reading the same feed instead of five.</p>
     </div>
 
     <article class="topo" id="s4">
@@ -329,7 +329,7 @@
       </div>
       <a class="clamp" href="/sparkbridge/central#sentinel"><span class="tagno">Clamped across all of it</span><span class="devname">Sentinel</span><span class="job">Audits the brokers and the host from outside with read-only probes, reports what is exposed, and feeds the Compliance binder. Never in the data path.</span></a>
       <table class="spec">
-        <tr><th>What you get</th><td>One license for every site, one office server that reports on security, cost, history and cloud delivery. No custom integration project to reach any of it.</td></tr>
+        <tr><th>What you get</th><td>One license for every site, one office server reporting on security, cost, history and cloud delivery. No custom integration project to reach any of it.</td></tr>
         <tr><th>What it costs</th><td>Per gateway. Bought once and kept. Free for development with no time limit. Support 20%/yr, optional.</td></tr>
       </table>
       <div class="sec-head" style="margin-top:14px"><span class="path">For your engineers</span></div>
@@ -338,7 +338,7 @@
         <tr><th>On each plant or Edge server</th><td>SparkBridge Edge, plus our IEC-104 / DNP3 / TI 505 drivers where the rack needs them, plus SparkLink where the link is metered</td></tr>
         <tr><th>On each central server</th><td>SparkBridge Central, SparkVault, SparkCalc, Passage, SparkInject, SparkFlow, FleetOps. All are Ignition modules on the same server; none needs a box of its own.</td></tr>
         <tr><th>Off the servers</th><td>SparkID and Sentinel are tools you run from a workstation against the estate; nothing installs on a gateway for them</td></tr>
-        <tr><th>License</th><td>Per site gateway: Edge $995 standalone, SparkLink included. Per central gateway: Central $1,995 standalone, or the $3,995 central package with Passage, SparkCalc, SparkID, Sentinel, FleetOps, SparkVault and SparkInject (a la carte $495 each, SparkVault $995, $5,960 total, package saves $1,965). SparkFlow $995, SparkSNMP $1,495 and drivers $495 each are always billed separately, never in the package. Per gateway, bought once and kept, free for development with no time limit, support 20%/yr optional.</td></tr>
+        <tr><th>License</th><td>Per site gateway: Edge $995 standalone, SparkLink included. Per central gateway: Central $1,995 standalone, or the $3,995 central package with Passage, SparkCalc, SparkID, Sentinel, FleetOps, SparkVault and SparkInject (a la carte $495 each, SparkVault $995, $5,960 total, package saves $1,965). SparkFlow $995, SparkSNMP $1,495 and drivers $495 each carry their own license, on top of the package. Per gateway, bought once and kept, free for development with no time limit, support 20%/yr optional.</td></tr>
       </table>
       <p class="links"><a href="/sparkbridge/products">The product line</a><a href="/sparkbridge/pricing">Edge and central package</a></p>
     </article>
@@ -351,7 +351,7 @@
     <div class="sec-head bandhead">
       <span class="path">05 &middot; history and the twin</span>
       <h2>Every Day, on Record and Replayable</h2>
-      <p>Both your history and your live model live on the central server, and neither one touches a site. History is kept on your own clock, so an outage never leaves a hole and any past day can be replayed. The live model is the same data, always current, for the tools that need it.</p>
+      <p>Both your history and your live model live on the central server. Neither touches a site. History is kept on your own clock, so an outage never leaves a hole and any past day can be replayed. The live model is the same data, always current, for the tools that need it.</p>
     </div>
 
     <article class="topo" id="s5">
@@ -385,7 +385,7 @@
         </div>
       </div>
       <table class="spec">
-        <tr><th>What you get</th><td>Every site's history, kept on your own clock, with any past day replayable. A live model of the plant for the tools that want one, always current.</td></tr>
+        <tr><th>What you get</th><td>Every site's history, kept on your own clock, any past day replayable. A live model of the plant for the tools that want one, always current.</td></tr>
         <tr><th>What it costs</th><td>Per gateway. Bought once and kept. Free for development with no time limit. Support 20%/yr, optional.</td></tr>
       </table>
       <div class="sec-head" style="margin-top:14px"><span class="path">For your engineers</span></div>
@@ -394,7 +394,7 @@
         <tr><th>Historian</th><td>SparkVault on the central server; each plant's own database keeps its local history exactly as before. History for every site in one open table, on the plant's clock. 40,035 updates/s replay on loopback; a 4 h 11 min outage backfilled with zero loss.</td></tr>
         <tr><th>Twin</th><td>SparkFlow's last-value and model buckets plus Passage's OPC-UA address space plus SparkVault history. Nothing is copied into a second tool; each face reads the same namespace.</td></tr>
         <tr><th>Discipline</th><td>Replayed and computed values always publish under their own group with their own sequence, so a simulation or a derived number can never be mistaken for a live measurement.</td></tr>
-        <tr><th>License</th><td>SparkVault $995 on the central server; Passage and SparkCalc $495 each, all three in the $3,995 central package. SparkFlow $995 is always billed separately, never in the package.</td></tr>
+        <tr><th>License</th><td>SparkVault $995 on the central server; Passage and SparkCalc $495 each, all three in the $3,995 central package. SparkFlow $995 carries its own license, on top of the package.</td></tr>
       </table>
       <p class="links"><a href="/sparkbridge/central#sparkvault">SparkVault</a><a href="/sparkbridge/flow">SparkFlow</a><a href="/sparkbridge/central#passage">Passage</a><a href="/sparkbridge/central#sparkcalc">SparkCalc</a></p>
     </article>
@@ -407,7 +407,7 @@
     <div class="sec-head bandhead">
       <span class="path">06 &middot; the ultra large estate</span>
       <h2>Two Hundred Plants, One Namespace, No Ceiling</h2>
-      <p>Past a certain size, no single server can hold everything. SparkFlow, sold separately from the package, is how the largest companies scale past that ceiling: each region keeps what its own operators watch, and the whole company still reads one namespace with nothing left out.</p>
+      <p>Past a certain size, no single server can hold everything. SparkFlow, its own license, is how the largest companies scale past that ceiling: each region keeps what its own operators watch, and the whole company still reads one namespace with nothing left out.</p>
     </div>
 
     <article class="topo" id="s6">
@@ -446,8 +446,8 @@
       </div>
       <table class="spec">
         <tr><th>What you get</th><td>Every plant in the company in one view, with no ceiling on how large that view can grow.</td></tr>
-        <tr><th>Measured</th><td>7.25 million messages delivered across a real network, in order, exactly once, with zero lost through a physical link cut.</td></tr>
-        <tr><th>What it costs</th><td>SparkFlow is billed separately from every other module, per gateway, bought once and kept.</td></tr>
+        <tr><th>Measured</th><td>7.25 million messages delivered across a real network, in order, exactly once, zero lost through a physical link cut.</td></tr>
+        <tr><th>What it costs</th><td>SparkFlow carries its own license, per gateway, bought once and kept.</td></tr>
       </table>
       <div class="sec-head" style="margin-top:14px"><span class="path">For your engineers</span></div>
       <table class="spec">
@@ -456,9 +456,9 @@
         <tr><th>Measured</th><td>7.25 million messages across a real network at 48,000/s, 7.25 million received, in order, exactly once. A 60 s physical link cut at a leaf: 447 held, 447 reconciled at the hub, zero lost.</td></tr>
         <tr><th>Commands</th><td>Not mirrored, routed. <span class="mono">uns.cmd.&lt;group&gt;.&lt;edge&gt;…</span> request and reply crosses the leaf link natively; only the region's bridge subscribes to its own command subtree, and only the issuers SparkID names may publish there. A region that cannot confirm a write times the requester out rather than pretending.</td></tr>
         <tr><th>Tiers, honestly</th><td>HiveMQ stays the OT tier: Sparkplug conformance, MQTT 5, shared subscriptions, TCK, all measured there. NATS sits north of it as the backbone. SparkFlow is the certified translation between the two, not a replacement for either.</td></tr>
-        <tr><th>License</th><td>SparkFlow $995 per central gateway running it: three regional pools and the corporate historian, always billed separately, never in the central package. Edge $995 per plant, Central $1,995 per pool server. NATS is open source and yours.</td></tr>
+        <tr><th>License</th><td>SparkFlow $995 per central gateway running it: three regional pools and the corporate historian, each its own license, on top of anything else on that server. Edge $995 per plant, Central $1,995 per pool server. NATS is open source and yours.</td></tr>
       </table>
-      <p class="honest">Honest limits: a single region (one NATS domain, one host pool, SparkFlow, SparkVault ingest, the leaf partition) is shipped and gated. The multi-region hub with per-region accounts is a design built on those gates; cross-domain sourcing across an account boundary is the one spike still owed before a customer install, and the hub is drawn dashed for that reason. The Perspective dispatcher is on the bench.</p>
+      <p class="honest">Honest limits: a single region, one NATS domain, one host pool, SparkFlow, SparkVault ingest, the leaf partition, is shipped and gated. The multi-region hub with per-region accounts is a design built on those gates. Cross-domain sourcing across an account boundary is the one spike we still owe before a customer install, and that's why the hub is drawn dashed. The Perspective dispatcher is on the bench.</p>
       <p class="links"><a href="/sparkbridge/flow">SparkFlow</a><a href="/sparkbridge/central#sparkvault">SparkVault</a><a href="/sparkbridge/central#sparkid">SparkID</a></p>
     </article>
   </div>
@@ -470,7 +470,7 @@
     <div class="sec-head bandhead">
       <span class="path">07 &middot; running it</span>
       <h2>Forty Sites, Run and Proven From One Chair</h2>
-      <p>This is what running the estate from section 03 looks like day to day: one team pushes a change to every site at once, access is generated instead of typed by hand, and the whole thing is checked by an outside audit on demand.</p>
+      <p>This is what running the estate from section 03 looks like day to day. One team pushes a change to every site at once. Access is generated instead of typed by hand. An outside audit checks the whole thing on demand.</p>
     </div>
 
     <article class="topo" id="s7">
@@ -515,7 +515,7 @@
     <div class="sec-head bandhead">
       <span class="path">08 &middot; the small end</span>
       <h2>One Plant, One Server, Room to Grow</h2>
-      <p>Everything above also fits on a single server for a single plant. Start here, and the day you add a second site, nothing about the shape changes: it becomes site one of the data center.</p>
+      <p>Everything above also fits on a single server for a single plant. Start here. The day you add a second site, nothing about the shape changes: it becomes site one of the data center.</p>
     </div>
 
     <article class="topo" id="s8">
@@ -537,7 +537,7 @@
         </div>
       </div>
       <table class="spec">
-        <tr><th>What you get</th><td>One server does everything a plant needs: moves the data, keeps the history, serves it out. Grows into the data center in section 03 with no rework.</td></tr>
+        <tr><th>What you get</th><td>One server does everything a plant needs: moves the data, keeps the history, serves it out. It grows into the data center in section 03 with no rework.</td></tr>
         <tr><th>What it costs</th><td>Per gateway. Bought once and kept. Free for development with no time limit. Support 20%/yr, optional.</td></tr>
       </table>
       <div class="sec-head" style="margin-top:14px"><span class="path">For your engineers</span></div>
@@ -572,14 +572,14 @@
         </tbody>
       </table>
     </div>
-    <p class="note"><b>What is not on this page.</b> No drawing mixes another vendor's Sparkplug modules with ours, because that pairing has not been run on our bench, and we do not imply compatibility we have not measured.</p>
+    <p class="note"><b>What is not on this page.</b> No drawing mixes another vendor's Sparkplug modules with ours. That pairing has never run on our bench, so we are not going to imply compatibility we have not measured.</p>
   </div>
 </section>
 
 <section class="tail">
   <div class="wrap">
     <h2>Draw Yours With Us</h2>
-    <p>Send the server list, the site count and what has to read the data. You get back one of these drawings with your server names on it. Try it on one site. Development use is free with no time limit.</p>
+    <p>Send us the server list, the site count, and what has to read the data. You get back one of these drawings with your server names on it. Try it on one site. Development use is free with no time limit.</p>
     <div class="cta-row">
       <a class="btn" href="/sparkbridge/contact">Contact</a>
       <a class="btn ghost" href="/sparkbridge/products">See the products</a>
