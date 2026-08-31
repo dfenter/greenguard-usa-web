@@ -194,7 +194,7 @@
 <section>
   <div class="wrap">
     <div class="sec-head">
-      <div class="path">provider</div>
+      <div class="path" id="provider">provider</div>
       <h2>Provider</h2>
       <p>Sparkplug leaves security to the implementation. The broker is where your security posture actually gets set.</p>
     </div>
@@ -214,6 +214,31 @@
     <p class="note">The Edge talks to any conformant host, and the Host consumes any conformant edge. Start with one module and add the others when it suits you. Full protocol detail is on the <a href="/sparkbridge/resources#sb-mqtt5">resources page</a>.</p>
   </div>
 </section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path" id="flow">flow</div>
+      <h2>Flow: the company-wide backbone</h2>
+      <p>A tag-counted system stops scaling at hundreds of thousands of points. SparkFlow keeps a live, quality-stamped value for every point Central decodes, with no tag behind it, and any system in the company can read the stream.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Capability</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr><td><b>NATS/JetStream backbone</b></td><td>Central publishes every decoded point onto a JetStream stream as a named, timestamped, quality-stamped message. Dashboards, historians, analysts and AI pipelines subscribe; the plant is asked for nothing.</td></tr>
+          <tr><td><b>No tag behind a point</b></td><td>Screens keep the tags operators watch. Every other point stays instantly available from the stream, so millions of points stop being a licensing or server-sizing problem.</td></tr>
+          <tr><td><b>Exactly once</b></td><td>Each message carries a deterministic id, so a retry after a bad link deduplicates instead of doubling. Verified on a live gateway wire capture.</td></tr>
+          <tr><td><b>Last-value cache</b></td><td>A key-value store holds the current value and quality of every point. A new dashboard opens with the last known value of everything the moment it loads.</td></tr>
+          <tr><td><b>Replay</b></td><td>The stream keeps history. An analyst can replay yesterday's upset minute by minute from the same subjects the live data uses.</td></tr>
+          <tr><td><b>Outage-proven</b></td><td>A 60-second link cut on a leaf node buffered 447 readings and reconciled 447 on the hub: zero missing, zero ordering violations.</td></tr>
+          <tr><td><b>Licensing</b></td><td>Runs on the central gateway. $995 per gateway, perpetual, its own license. Detail on the <a href="/sparkbridge/flow">SparkFlow page</a>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
 
 <section class="band">
   <div class="wrap">

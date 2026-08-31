@@ -108,6 +108,15 @@ a.card:hover h3{color:var(--marker)}
 .runwrap .card{background:var(--graphite-2);border-color:var(--steel-dark);border-top-color:var(--steel-dark);box-shadow:none;color:#fff}
 .runwrap .card p{color:var(--paper-dim)}
 
+/* the hero's compact run carries four devices in half a page: smaller plates, same drawing */
+.run.compact .dev{flex:1 1 0;padding:12px 13px 13px}
+.run.compact .dev.spine{flex:1.15 1 0;padding:14px 14px 15px}
+.run.compact .dev .devname{font-size:15px}
+.run.compact .dev.spine .devname{font-size:16.5px}
+.run.compact .dev .job{font-size:12.5px}
+.run.compact .dev.source{flex:0 1 96px;padding:10px 11px}
+.run.compact .seg{flex:0 1 16px;min-width:12px}
+
 /* commissioning state = fill weight, never a new colour */
 .dev.st-svc{border-left-color:var(--marker)}
 .dev.st-comm{border-left-color:var(--marker);border-left-style:dashed}
