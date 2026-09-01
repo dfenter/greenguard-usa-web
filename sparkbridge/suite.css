@@ -345,3 +345,7 @@ a.clamp:hover,a.clamp:focus-visible{background:rgba(255,255,255,.05);border-colo
 /* simplified cost tiers: price plate only, no dangling rule beneath */
 .tier .top:last-child{border-bottom:0;padding-bottom:0;margin-bottom:0}
 .tier.feature .price small{color:var(--paper-dim)}
+
+/* home page: six reasons and six optional capabilities sit as two even rows of three */
+#reasons .cards,#optional .cards{grid-template-columns:repeat(3,1fr)}
+@media (max-width:900px){#reasons .cards,#optional .cards{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}}
