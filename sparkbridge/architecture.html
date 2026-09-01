@@ -187,7 +187,7 @@
         <tr><th>The plant gets more back</th><td>Install Central on the plant server too and the rest of the estate shows up there as a managed provider: sibling plants, SparkCalc results, corporate setpoints. A plant screen can show the neighbour's line with no Gateway Network link.</td></tr>
         <tr><th>Cutover order</th><td>Install Edge, leave the splitter running both legs, let SparkVault fill in parallel for one history partition, compare, then switch the remote leg off. Nothing is ripped out on day one; the plant's own history is never at risk because it never moves.</td></tr>
         <tr><th>Small onsite plants</th><td>A skid, a lift station, a packaging cell with no database of its own runs Ignition Edge instead. Same Edge module, same wire; its history lives at central only, with the Edge server's own disk buffer covering an outage.</td></tr>
-        <tr><th>License</th><td>Edge $995 per site gateway, standalone, on the plant server. Central $1,995 per central gateway, standalone, if you also want the estate view there. On the central server: Central $1,995, plus SparkVault $995, plus SparkCalc and Passage $495 each, or the $3,995 central package with all seven modules.</td></tr>
+        <tr><th>License</th><td>Edge $995 per site gateway, standalone, on the plant server. Central $1,995 per central gateway, standalone, if you also want the estate view there. On the central server: Central $1,995, plus SparkVault $3,995, plus SparkCalc $495 and Passage $1,995. Central package pricing on request.</td></tr>
       </table>
       <p class="honest">Honest limits: reports written against the central sqlth_ tables have to be re-pointed at SparkVault's table or the Timescale hypertable. The plant's own reports do not change. The alarm journal stays in the plant database; alarm state travels as tags, the journal rows do not. Central on a plant server is a full Central license.</p>
       <p class="links"><a href="/sparkbridge/central#sparkvault">SparkVault</a><a href="/sparkbridge/technology">Store and forward, measured</a></p>
@@ -338,7 +338,7 @@
         <tr><th>On each plant or Edge server</th><td>SparkBridge Edge, plus our IEC-104 / DNP3 / TI 505 drivers where the rack needs them, plus SparkLink where the link is metered</td></tr>
         <tr><th>On each central server</th><td>SparkBridge Central, SparkVault, SparkCalc, Passage, SparkInject, SparkFlow, FleetOps. All are Ignition modules on the same server; none needs a box of its own.</td></tr>
         <tr><th>Off the servers</th><td>SparkID and Sentinel are tools you run from a workstation against the estate; nothing installs on a gateway for them</td></tr>
-        <tr><th>License</th><td>Per site gateway: Edge $995 standalone, SparkLink included. Per central gateway: Central $1,995 standalone, or the $3,995 central package with Passage, SparkCalc, SparkID, Sentinel, FleetOps, SparkVault and SparkInject (a la carte $495 each, SparkVault $995, $5,960 total, package saves $1,965). SparkFlow $995, SparkSNMP $1,495 and drivers $495 each carry their own license, on top of the package. Per gateway, bought once and kept, free for development with no time limit, support 20%/yr optional.</td></tr>
+        <tr><th>License</th><td>Per site gateway: Edge $995 standalone, SparkLink and Provider included. Per central gateway: Central $1,995 standalone, Provider included. Modules on Central: Passage $1,995, SparkCalc and SparkID $495 each, Sentinel and FleetOps $4,995 each, SparkInject $2,995 per connector family, SparkVault $3,995. Central package pricing on request. SparkFlow $995, SparkSNMP $1,495 and drivers $495 each carry their own license. Per gateway, bought once and kept, free for development with no time limit, support 20%/yr optional.</td></tr>
       </table>
       <p class="links"><a href="/sparkbridge/products">The product line</a><a href="/sparkbridge/pricing">Edge and central package</a></p>
     </article>
@@ -394,7 +394,7 @@
         <tr><th>Historian</th><td>SparkVault on the central server; each plant's own database keeps its local history exactly as before. History for every site in one open table, on the plant's clock. 40,035 updates/s replay on loopback; a 4 h 11 min outage backfilled with zero loss.</td></tr>
         <tr><th>Twin</th><td>SparkFlow's last-value and model buckets plus Passage's OPC-UA address space plus SparkVault history. Nothing is copied into a second tool; each face reads the same namespace.</td></tr>
         <tr><th>Discipline</th><td>Replayed and computed values always publish under their own group with their own sequence, so a simulation or a derived number can never be mistaken for a live measurement.</td></tr>
-        <tr><th>License</th><td>SparkVault $995 on the central server; Passage and SparkCalc $495 each, all three in the $3,995 central package. SparkFlow $995 carries its own license, on top of the package.</td></tr>
+        <tr><th>License</th><td>SparkVault $3,995 on the central server; Passage $1,995; SparkCalc $495. Central package pricing on request. SparkFlow $995 carries its own license.</td></tr>
       </table>
       <p class="links"><a href="/sparkbridge/central#sparkvault">SparkVault</a><a href="/sparkbridge/flow">SparkFlow</a><a href="/sparkbridge/central#passage">Passage</a><a href="/sparkbridge/central#sparkcalc">SparkCalc</a></p>
     </article>
@@ -502,7 +502,7 @@
         <tr><th>Servers</th><td>No new Ignition servers. One ops workstation runs the three tools.</td></tr>
         <tr><th>Trust</th><td>A site with no trusted key subscribes to nothing. The signing key is a root credential for the estate; it lives on the workstation, never on a gateway.</td></tr>
         <tr><th>Proof</th><td>A Sentinel run becomes an auditor-ready binder mapped to NERC CIP and IEC 62443 through the Compliance add-on</td></tr>
-        <tr><th>License</th><td>FleetOps, SparkID and Sentinel $495 each, or all three in the $3,995 central package; Sentinel compliance pack $2,495 add-on</td></tr>
+        <tr><th>License</th><td>FleetOps $4,995, SparkID $495, Sentinel $4,995; Sentinel compliance pack $2,495 add-on. Central package pricing on request.</td></tr>
       </table>
       <p class="links"><a href="/sparkbridge/central#fleetops">FleetOps</a><a href="/sparkbridge/central#sparkid">SparkID</a><a href="/sparkbridge/central#sentinel">Sentinel</a></p>
     </article>
@@ -544,7 +544,7 @@
       <table class="spec">
         <tr><th>Servers</th><td>One Ignition server</td></tr>
         <tr><th>Broker</th><td>Embedded through the Provider module for a lab; a HiveMQ service beside the server for production, which is also what makes the later move to 03 a configuration change</td></tr>
-        <tr><th>License</th><td>Edge $995 per site gateway, standalone, SparkLink included. Add Central $1,995 and SparkVault $995 on this server only if it is also acting as the central gateway with its own database.</td></tr>
+        <tr><th>License</th><td>Edge $995 per site gateway, standalone, SparkLink included. Add Central $1,995 and SparkVault $3,995 on this server only if it is also acting as the central gateway with its own database.</td></tr>
       </table>
       <p class="links"><a href="/sparkbridge/pricing">Pricing</a><a href="/sparkbridge/download">Download</a></p>
     </article>
