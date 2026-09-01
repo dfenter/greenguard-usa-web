@@ -341,3 +341,7 @@ a.clamp:hover,a.clamp:focus-visible{background:rgba(255,255,255,.05);border-colo
   .jstep .when{text-align:left}
   .jstep .when small{display:inline;margin-left:8px}
 }
+
+/* simplified cost tiers: price plate only, no dangling rule beneath */
+.tier .top:last-child{border-bottom:0;padding-bottom:0;margin-bottom:0}
+.tier.feature .price small{color:var(--paper-dim)}
