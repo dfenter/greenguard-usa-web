@@ -363,3 +363,4 @@ a.clamp:hover,a.clamp:focus-visible{background:rgba(255,255,255,.05);border-colo
 #core .tier .act{margin-top:auto;padding-top:20px}
 #terms .faq h3{margin-top:0}
 @media (max-width:640px){.price-tbl td.np{max-width:none}}
+.band .tbl .np{color:var(--paper-dim)}

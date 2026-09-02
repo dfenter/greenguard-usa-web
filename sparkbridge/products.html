@@ -128,6 +128,50 @@
 
 
 
+<section id="what-is-sparkbridge">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">Two products, then options</span>
+      <h2>SparkBridge Is Edge and Central</h2>
+      <p>The list above is long, and it is fair to ask whether the product got lost in it. It did not. SparkBridge is two modules, and they are complete on their own. Everything else on this page is one of two things: an optional module that adds a single outcome on Central, or a driver or tool that stands alone and never needs SparkBridge at all.</p>
+    </div>
+    <div class="cards">
+      <div class="card"><span class="tag">The product</span><h3>SparkBridge</h3><p>Edge at each site, Central once. Buy these two and you have the whole system: outage-proof transport, source timestamps, one namespace, no per-tag pricing. SparkLink, SparkCalc and SparkID come with them. Nothing else is required.</p></div>
+      <div class="card"><span class="tag">Optional, on Central</span><h3>Six modules</h3><p>Passage, Sentinel, FleetOps, SparkVault, SparkInject, GitOps. Each adds one outcome to a Central gateway you already own and is bought only when that outcome is needed. None changes how Edge and Central behave.</p></div>
+      <div class="card"><span class="tag">Standalone</span><h3>Drivers and tools</h3><p>SparkLogix, SparkSNMP, the protocol drivers, SparkInflux, SparkValidate, SparkGantt, SparkNotify. Each is its own product for its own job on any Ignition gateway. They share our build, test and signing pipeline with SparkBridge and nothing else.</p></div>
+    </div>
+    <p class="note">The drivers exist because plants asked us to read equipment that Ignition could not, and we already had the pipeline to build a driver well. They do not widen SparkBridge. If you never need one, the SparkBridge you buy is the same.</p>
+  </div>
+</section>
+
+<section class="band" id="wave">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">What the last release wave added</span>
+      <h2>Built Since 2.5.0</h2>
+      <p>SparkBridge 2.6.0 and 2.7.0 shipped on 2026-09-01 alongside six new standalone modules. Each item below is something no other Ignition offering we have tested does the same way, and each was proven on a live gateway before it was released.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Where</th><th>What is new</th><th>Why it matters</th></tr></thead>
+        <tbody>
+          <tr><td>Edge</td><td class="np">Zero-touch enrollment. A new site gateway bootstraps its own identity over a signed, TLS-required channel using a one-time enrollment code. Credentials are written owner-only and never typed at the site.</td><td class="np">Commissioning a site becomes one code, not a credentials file carried on a laptop.</td></tr>
+          <tr><td>Central</td><td class="np">A measured capacity route. Central reports its own ceiling from benchmark evidence and the shard count it is actually running, not from a fixed number.</td><td class="np">You size the server from what it measured, and the figure moves when the hardware does.</td></tr>
+          <tr><td>Every module</td><td class="np">Tiered route authorization. Every status and control route on every Spark product uses the same read, write and admin token policy. Loopback trust is off unless you turn it on.</td><td class="np">One policy across the whole line. A forwarded header cannot impersonate the local host.</td></tr>
+          <tr><td>Every module</td><td class="np">One signed key file per gateway, checked every thirty seconds and applied with no restart. No key runs the full product on Ignition's trial. An invalid or tampered key fails closed. Nothing is metered.</td><td class="np">Licensing you can audit from one file, and a gateway that never stops mid-shift because someone edited it.</td></tr>
+          <tr><td>SparkADS</td><td class="np">Native ADS/AMS with live TwinCAT symbol browse, verified against a real TwinCAT runtime on both Ignition lines. Certificate pinning on by default.</td><td class="np">The first commercial ADS driver for Ignition. No OPC UA bridge on the PLC side.</td></tr>
+          <tr><td>SparkS7</td><td class="np">Symbolic S7-1200/1500 addressing on 8.1 and 8.3, verified against a real S7-1500 in PLCSIM Advanced and against an independent snap7 server.</td><td class="np">Ignition 8.3 dropped symbolic S7. Plants keep their tag names instead of raw DB offsets.</td></tr>
+          <tr><td>Spark61850</td><td class="np">IEC 61850 MMS client with report control blocks, verified byte for byte against libiec61850, including buffered reports on a live gateway.</td><td class="np">Substation IEDs arrive with their logical-node model intact, not flattened through a DNP3 gateway.</td></tr>
+          <tr><td>SparkBACnet</td><td class="np">BACnet/IP browse, read and write with segmented Complex-ACK, verified against the reference bacnet-stack.</td><td class="np">Building equipment lands in the same tag tree as the process, from the same gateway.</td></tr>
+          <tr><td>SparkNotify</td><td class="np">One alarm to Teams, Slack, WhatsApp, Telegram and Twilio SMS or voice from one configuration, with acknowledgment tracked back into Ignition. Secrets are encrypted at rest on 8.3. Discord, PagerDuty and email are in the next release.</td><td class="np">The on-call person is reached where they already look.</td></tr>
+          <tr><td>SparkGantt</td><td class="np">A virtualized Perspective Gantt component, smooth at 500 or more tasks, with drag limits enforced on the gateway.</td><td class="np">Production schedules on a Perspective screen without a custom view that bogs down.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Every new module ships on both the 8.1 and 8.3 lines, signed, with its live proof and review record in the release bundle. Detail per release is on the <a href="/sparkbridge/changelog">changelog</a>.</p>
+  </div>
+</section>
+
 <section class="band">
   <div class="wrap">
     <div class="sec-head">
