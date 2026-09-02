@@ -50,7 +50,7 @@
   <div class="wrap">
     <div class="eyebrow">Changelog</div>
     <h1>Version history</h1>
-    <p>Every release, what changed, and what the change was for. Current release: 2.5.0.
+    <p>Every release, what changed, and what the change was for. Current release: 2.6.0.
     Full customer notes ship in the release package.</p>
   </div>
 </header>
@@ -79,6 +79,27 @@
         <div>
           <h3>Four modules become features of SparkBridge</h3>
           <p><a href="/sparkbridge/#sparklink">SparkLink</a>, <a href="/sparkbridge/#sparkcalc">SparkCalc</a>, <a href="/sparkbridge/#passage">Passage</a> and <a href="/sparkbridge/#sparkid">SparkID</a> are now free with any SparkBridge Edge or Central license. Nothing changes in the software; we built them as free modules and they stay that way. The site package is now $1,295 (Edge plus SparkVault) and the central server suite $2,995 (Central plus SparkVault, SparkInject and FleetOps). Existing quotes are honoured at the lower of the two prices. See <a href="/sparkbridge/pricing">pricing</a>.</p>
+        </div>
+      </li>
+      <li>
+        <span class="lc lc-birth">2.6.0<br>2026&#8209;09&#8209;01</span>
+        <div>
+          <h3>Hardening and capacity: tiered route authorization, soft licensing, measured capacity, zero-touch enrollment</h3>
+          <p>2.6.0 is a hardening and capacity release. Status routes now sit behind a tiered
+          authorization policy with READ, WRITE and ADMIN token tiers, and loopback trust is
+          opt-in rather than assumed. The Host gains a <span class="mono">/capacity</span> route
+          that reports a measured ceiling from the benchmark evidence and follows the runtime
+          projector-shard count instead of a fixed number. An Edge can now bootstrap its own
+          identity over a signed, TLS-required config channel with an enrollment code, so a new
+          site gateway needs no hand-provisioned credentials file; credentials it writes are
+          owner-only from the moment they exist. Soft licensing is wired into Edge, Host,
+          Provider and Flow through one signed key file per gateway, with entitlements for the
+          wider Spark lineup. A review-fix lane closed several correctness gaps in shared code:
+          bounded reads and a session-cardinality cap, a negative-alias BIRTH crash, a config
+          envelope size cap, correct UINT32 PropertySet decode, a UNS teardown accounting race
+          and a JSON-body read deadline. No BIRTH, topic or broker-ACL changes; from 2.5.0 this
+          is a drop-in module upgrade.</p>
+          <p>Bundles for Ignition 8.1 and 8.3 are on the <a href="/sparkbridge/download">download page</a> and at <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/v2.6.0">the v2.6.0 GitHub release</a>. Fleet Ops 0.2.0 ships alongside as its own <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/fleetops-v0.2.0">signed module release</a>.</p>
         </div>
       </li>
       <li>

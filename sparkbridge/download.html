@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Download SparkBridge 2.5.0 for Ignition: Modules, Checksums, Licensing</title>
+<title>Download SparkBridge 2.6.0 for Ignition: Modules, Checksums, Licensing</title>
 <meta name="description" content="What is in the SparkBridge release package, the SHA-256 checksums for the current release, how licensing works, and where to download the build.">
 <link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/download">
 <meta property="og:title" content="Download SparkBridge: the release package, checksums and licensing">
@@ -50,7 +50,7 @@
   <div class="wrap">
     <div class="eyebrow">Download</div>
     <h1>The release package</h1>
-    <p>Here is what you get: the full suite, the checksums to verify your download, and the documents to install from. Development use is free, no time limit. Licensing runs on a single key file per gateway, no restart required. Until you add one, every module runs in full, with a banner reminding you it is unlicensed. Current release 2.5.0.</p>
+    <p>Here is what you get: the full suite, the checksums to verify your download, and the documents to install from. Development use is free, no time limit. Licensing runs on a single key file per gateway, no restart required. Until you add one, every module runs in full, with a banner reminding you it is unlicensed. Current release 2.6.0.</p>
   </div>
 </header>
 
@@ -67,9 +67,9 @@
       <p>The modules are signed with a SparkBridge certificate, not an Inductive Automation one, so the gateway shows a certificate acceptance page on the first module you install. Print the fingerprint from the bundled <span class="mono">sparkbridge-signing-cert.pem</span> and compare it against that page before accepting. The checksums below let you verify the download against this page rather than against the file that traveled with it. Certification through Inductive Automation's third-party module program is in progress. If you would rather have a person walk the first install with you, email us and you get exactly that, usually the same day.</p>
     </div>
     <div class="cta-row">
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.5.0/sparkbridge-2.5.0-ign81-bundle.zip">Download 2.5.0 for Ignition 8.1</a>
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.5.0/sparkbridge-2.5.0-ign83-bundle.zip">Download 2.5.0 for Ignition 8.3</a>
-      <a class="btn ghost dark" href="mailto:admin@greenguard-usa.com?subject=SparkBridge%202.5.0%20install%20help&amp;body=Ignition%20version%3A%0AGateway%20OS%3A%0ANumber%20of%20sites%3A%0A">Ask for a walkthrough</a>
+      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.6.0/sparkbridge-2.6.0-ign81-bundle.zip">Download 2.6.0 for Ignition 8.1</a>
+      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.6.0/sparkbridge-2.6.0-ign83-bundle.zip">Download 2.6.0 for Ignition 8.3</a>
+      <a class="btn ghost dark" href="mailto:admin@greenguard-usa.com?subject=SparkBridge%202.6.0%20install%20help&amp;body=Ignition%20version%3A%0AGateway%20OS%3A%0ANumber%20of%20sites%3A%0A">Ask for a walkthrough</a>
     </div>
   </div>
 </section>
@@ -92,7 +92,7 @@
       </div>
       <div>
         <h3>The Perspective status project</h3>
-        <p><b>sparkbridge-perspective-2.5.0.zip</b> is an importable Perspective project that puts the suite's status on a screen: node health, per-node SLO statistics, and the signed fleet configuration each site is running, with nothing to build by hand.</p>
+        <p><b>sparkbridge-perspective-2.6.0.zip</b> is an importable Perspective project that puts the suite's status on a screen: node health, per-node SLO statistics, and the signed fleet configuration each site is running, with nothing to build by hand.</p>
       </div>
       <div>
         <h3>Checksums and the signing certificate</h3>
@@ -100,7 +100,7 @@
       </div>
       <div>
         <h3>The documents you install from</h3>
-        <p><b>QUICKSTART.md</b> is a first run in two sessions: Sparkplug flowing on one gateway with the embedded broker in about twenty minutes, then external HiveMQ with TLS, file RBAC, separate host and edge identities and the authorization extension in another thirty-five. <b>INSTALL.md</b> is the reference walkthrough, including the upgrade path and the production checklist. <b>RELEASE-NOTES-2.5.0.md</b> is what changed and what an upgrade requires of you.</p>
+        <p><b>QUICKSTART.md</b> is a first run in two sessions: Sparkplug flowing on one gateway with the embedded broker in about twenty minutes, then external HiveMQ with TLS, file RBAC, separate host and edge identities and the authorization extension in another thirty-five. <b>INSTALL.md</b> is the reference walkthrough, including the upgrade path and the production checklist. <b>RELEASE-NOTES-2.6.0.md</b> is what changed and what an upgrade requires of you.</p>
       </div>
       <div>
         <h3>The license</h3>
@@ -273,22 +273,22 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="path">verify</div>
-      <h2>SHA-256, Release 2.5.0</h2>
+      <h2>SHA-256, Release 2.6.0</h2>
       <p>Published here per release, from the release build's own SHA256SUMS.txt. Check what you received against this page, not against the file that traveled with it.</p>
     </div>
     <div class="scroller">
       <table class="tbl">
-        <caption>Suite 2.5.0, signed release build</caption>
+        <caption>Suite 2.6.0, signed release build</caption>
         <thead><tr><th>Artifact</th><th>SHA-256</th></tr></thead>
         <tbody>
-          <tr><td>SparkBridge-Host.modl</td><td class="num">829f1ed1bda1f8b3611f50bd41e8f742c5629a9196eca7a6ffbd45de726acd6b</td></tr>
-          <tr><td>SparkBridge-Edge.modl</td><td class="num">4cc4914a6a21bd38caec35c86a7dae9605aa760c3677de666682865ca1f39570</td></tr>
-          <tr><td>SparkBridge-Provider.modl</td><td class="num">64a18096166f37694bb5429ffb50f67f4f1f29d60ed626a867382d54cb06202d</td></tr>
-          <tr><td>SparkBridge-Flow.modl</td><td class="num">f8933b333a1b2c219cb7f590053957e60539b36e55bddbdb2653aaed3b9bcc0c</td></tr>
-          <tr><td>sparkbridge-broker-extension-2.5.0.zip</td><td class="num">9427653dcd366e23118e4422dae91171aa921b42f7770d3c85ae11202771b2a5</td></tr>
-          <tr><td>sparkbridge-perspective-2.5.0.zip</td><td class="num">94dc05c0561498a4e413cc79fdc4d3edff770b55b4fd05dc75ce4ccc336129b6</td></tr>
-          <tr><td>sparkbridge-2.5.0-ign81-bundle.zip</td><td class="num">6e964f580bbc038f7311d645ef6ac4947abf0f299ef2f164a72618952e0a925c</td></tr>
-          <tr><td>sparkbridge-2.5.0-ign83-bundle.zip</td><td class="num">af7e97de4cb1c598d348a5c823dc01dd7711f6a1ba95bb4fde7985c15c3052f4</td></tr>
+          <tr><td>SparkBridge-Host.modl</td><td class="num">9dfb3d0ff6662abc2ecdba439a821f54e8ad0a75c1d13dc6b2c5407652d197a0</td></tr>
+          <tr><td>SparkBridge-Edge.modl</td><td class="num">076d10b980b4c21b45c5bec17a15afa5a7ea87a7188b75230f61e5bc9ae5372d</td></tr>
+          <tr><td>SparkBridge-Provider.modl</td><td class="num">c608142f9b554bafcdd102622b045fbaa788448ee35d1db280afdf3b5f1f81c4</td></tr>
+          <tr><td>SparkBridge-Flow.modl</td><td class="num">ca3bb41d1884730f0f2ddab05b508d98ccdcfdc49c372dc4a09dee3ff532f0e4</td></tr>
+          <tr><td>sparkbridge-broker-extension-2.6.0.zip</td><td class="num">66e74115682f5c79c9d5d5cd92a33fe1d62a277780826ca38effafc5bb799120</td></tr>
+          <tr><td>sparkbridge-perspective-2.6.0.zip</td><td class="num">7a4b2fb2656136685a2a86b9efbeec0b7b9a5b723218d0fdf5a3f56996db05e7</td></tr>
+          <tr><td>sparkbridge-2.6.0-ign81-bundle.zip</td><td class="num">c5ebbc28c3ca4f7f8f476dcea3942079d56339e9be6c7cf32334b17992200f3e</td></tr>
+          <tr><td>sparkbridge-2.6.0-ign83-bundle.zip</td><td class="num">3d89707eadf9683ebc013fe50c893fe6bf16758227080a891dfadc9bae089aad</td></tr>
         </tbody>
       </table>
     </div>
@@ -340,7 +340,7 @@
     <p>Download the bundle for your gateway line, verify the checksums, then the quickstart in it takes an afternoon at most. If you would rather have help with the first install, email us your Ignition version and a person will walk it with you.</p>
     <p>Try it on one site. Development use is free, no time limit.</p>
     <div class="cta-row">
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/v2.5.0">Download 2.5.0</a>
+      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/v2.6.0">Download 2.6.0</a>
       <a class="btn ghost" href="/sparkbridge/resources">Read the documentation</a>
     </div>
   </div>
