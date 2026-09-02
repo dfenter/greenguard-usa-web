@@ -86,13 +86,21 @@
     <div class="twocol">
       <div class="measure">
         <p>Central alone, no modules added, replaces the work of stitching together forty sites by hand. It collects what every Edge gateway reports, learns each site's tag structure the moment that site connects, and projects it as one live picture you can point any tool at.</p>
-        <p>It runs on one server, at one license, whether you're watching five sites or five hundred. The modules below are how you open that data, put numbers on it, secure it, check it, run it and keep it, each one billed and installed only if you want it. None of them runs on its own: every module needs a SparkBridge Central gateway underneath it.</p>
+        <p>Nobody builds that picture. When a site comes online it announces every device and every point it has, and Central creates the matching tags on the spot, in a tree that mirrors the plant. Add a device at a site and it appears at Central. Rename one and Central follows. There is no mapping spreadsheet and no import to repeat when a site changes.</p>
+        <p>Central knows the difference between a value that is current and one that is not. Every reading carries the time the equipment recorded it, not the time it arrived, so trends stay true through a dropped link and back. If a site loses its connection, Central marks that site's points bad instead of holding the last number, and when the site returns it asks for a fresh announcement so the two are in step again. A gap in the sequence from a site triggers the same check. Nothing quietly drifts.</p>
+        <p>It is the primary host on the network. Every Edge gateway watches for it, buffers while it is away and replays in order when it is back. Central holds one shared set of credentials and certificates for the estate, and it works with any conformant Sparkplug broker, including the one you already run. Its own status, throughput and per-site health are available over a plain REST interface for the monitoring you already have.</p>
+        <p>It runs on one server, at one license, whether you're watching five sites or five hundred. Its throughput has been measured on real hardware, and the figures are published on the <a href="/sparkbridge/technology">technology page</a> rather than claimed. The modules below are how you open that data, put numbers on it, secure it, check it, run it and keep it, each one billed and installed only if you want it. None of them runs on its own: every module needs a SparkBridge Central gateway underneath it.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
         <table class="spec">
           <tr><th>What it is</th><td>The one server that collects every site's data</td></tr>
           <tr><th>Where it runs</th><td>On your central gateway, never at a site</td></tr>
+          <tr><th>Speaks</th><td>Sparkplug B and 3.0 over MQTT 3.1.1 and MQTT 5, as the primary host</td></tr>
+          <tr><th>Tag structure</th><td>Built from each site's own announcement. No mapping, no import</td></tr>
+          <tr><th>When a site drops</th><td>Its points go bad, not stale. Buffered data replays in order on return</td></tr>
+          <tr><th>Broker</th><td>Provider, or any conformant Sparkplug broker you already run</td></tr>
+          <tr><th>Ignition</th><td>8.1.19 or newer, 8.3 line too</td></tr>
           <tr><th>Licensing</th><td>$1,495 per central gateway, bought once and kept, standalone, SparkCalc and SparkID included</td></tr>
         </table>
       </div>
