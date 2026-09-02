@@ -129,7 +129,7 @@ function licenseEmailHtml({ licensee, lines, supportUntil }) {
   return `
 <p>Thank you. Your SparkBridge license ${lines.reduce((a, l) => a + l.quantity, 0) > 1 ? 'keys are' : 'key is'} attached, issued to <b>${escapeHtml(licensee)}</b>.</p>
 <ul>${items}</ul>
-<p><b>To install:</b> copy each attached file into the Ignition data directory of one gateway and name it <code>sparkbridge-license.key</code> (for example <code>&lt;ignition&gt;/data/sparkbridge-license.key</code>). No restart is needed: within 30 seconds the module's status page changes from UNLICENSED to "Licensed to ${escapeHtml(licensee)}". One file per gateway; a package key covers every module on that gateway. Command-line tools take <code>--license &lt;file&gt;</code>.</p>
+<p><b>To install:</b> copy each attached file into the Ignition data directory of one gateway and name it <code>sparkbridge-license.key</code> (for example <code>&lt;ignition&gt;/data/sparkbridge-license.key</code>). No restart is needed: within 30 seconds the module's status page changes from Trial to "Licensed to ${escapeHtml(licensee)}" and the Ignition two-hour trial clock no longer applies to it. One file per gateway; a key naming several products covers each of them on that gateway. Command-line tools take <code>--license &lt;file&gt;</code>.</p>
 <p>Support and updates are included through ${escapeHtml(supportUntil)}. The software itself is yours for good; nothing switches off after that date.</p>
 <p>Keep the files somewhere safe. If you lose one, reply to this email and we will re-issue it.</p>
 <p>Questions: reply here, or write to admin@greenguard-usa.com.</p>`
