@@ -364,3 +364,29 @@ a.clamp:hover,a.clamp:focus-visible{background:rgba(255,255,255,.05);border-colo
 #terms .faq h3{margin-top:0}
 @media (max-width:640px){.price-tbl td.np{max-width:none}}
 .band .tbl .np{color:var(--paper-dim)}
+
+/* ---- download and docs pages ---- */
+pre.code{font-family:"Spline Sans Mono",monospace;font-size:13px;line-height:1.55;background:var(--bone-2);border:1px solid var(--steel);padding:12px 14px;overflow-x:auto;margin:10px 0 14px;white-space:pre}
+.band pre.code{background:var(--graphite-2);border-color:var(--steel-dark);color:#fff}
+.dl-tbl td.act{white-space:nowrap}
+.dl-tbl a.dl{display:inline-block;padding:5px 11px;margin:2px 4px 2px 0;border:1px solid var(--ink);background:var(--ink);color:var(--paper);font-family:"Spline Sans Mono",monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;text-decoration:none}
+.dl-tbl a.dl.ghost{background:transparent;color:var(--ink);border-color:var(--steel)}
+.band .dl-tbl a.dl{background:var(--marker);border-color:var(--marker);color:var(--graphite)}
+.band .dl-tbl a.dl.ghost{background:transparent;color:#fff;border-color:var(--steel-dark)}
+.band .dl-tbl td,.band .dl-tbl td:first-child a{color:#fff}
+.dl-tbl td:first-child small{display:block;font-weight:400;font-size:12px;color:var(--ink-soft)}
+.band .dl-tbl td:first-child small{color:var(--paper-dim)}
+.tbl.sums{margin-top:22px}
+.tbl.sums caption{text-align:left;font-family:"Spline Sans Mono",monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);padding:0 0 8px}
+.band .tbl.sums caption{color:var(--paper-dim)}
+.tbl.sums td.num{font-size:12px;word-break:break-all;white-space:normal}
+.docs h3{font-size:18px;margin:26px 0 8px;letter-spacing:.03em}
+.docs ol,.docs ul{padding-left:22px;margin:0 0 12px}
+.docs li{margin:0 0 8px;font-size:15.5px;line-height:1.55;color:var(--ink)}
+.docs .band li{color:var(--paper-dim)}
+.docs section>.wrap>p,.docs section>.wrap>h3,.docs section>.wrap>ol,.docs section>.wrap>ul,.docs section>.wrap>table,.docs section>.wrap>pre{max-width:78ch}
+.docs .spec th .mono{font-size:12.5px;letter-spacing:0;text-transform:none}
+.doctoc{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:26px 40px}
+.doctoc h3{font-family:"Spline Sans Mono",monospace;font-size:12px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-soft);margin:0 0 10px}
+.doctoc a{display:block;padding:6px 0;border-bottom:1px solid var(--steel);text-decoration:none;color:var(--ink);font-size:15px}
+.doctoc a:hover{color:var(--marker)}

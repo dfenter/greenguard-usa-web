@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Download SparkBridge 2.6.0 for Ignition: Modules, Checksums, Licensing</title>
-<meta name="description" content="What is in the SparkBridge release package, the SHA-256 checksums for the current release, how licensing works, and where to download the build.">
+<meta name="description" content="Download every SparkBridge product for Ignition 8.1 and 8.3: the core modules, the modules that run on Central, the device drivers and the Ignition enhancements. Signed builds, published checksums, free for development.">
 <link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/download">
 <meta property="og:title" content="Download SparkBridge: the release package, checksums and licensing">
 <meta property="og:description" content="What is in the SparkBridge release package, the SHA-256 checksums for the current release, how licensing works, and where to download the build.">
@@ -40,6 +40,8 @@
         <a href="/sparkbridge/use-cases">Use cases</a>
         <a href="/sparkbridge/architecture">Architecture</a>
         <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download" aria-current="page">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
         <a href="/sparkbridge/contact">Contact</a>
     </nav>
     <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
@@ -49,308 +51,195 @@
 <header class="phead">
   <div class="wrap">
     <div class="eyebrow">Download</div>
-    <h1>The release package</h1>
-    <p>Here is what you get: the full suite, the checksums to verify your download, and the documents to install from. Development use is free, no time limit. Licensing runs on a single key file per gateway, no restart required. Until you add one, every module runs in full, with a banner reminding you it is unlicensed. Current release 2.6.0.</p>
+    <h1>Every product, signed, for both Ignition lines</h1>
+    <p>Pick the bundle for your gateway line. Each bundle carries the module, its checksums, the signing certificate and the license. Development use is free with no time limit. When a gateway goes live, one key file licenses it with no restart. Installation and configuration steps for every product are on the <a href="/sparkbridge/docs">docs page</a>.</p>
   </div>
 </header>
 
 <main id="main">
 
-<section>
+<section id="before">
   <div class="wrap">
     <div class="sec-head">
-      <div class="path">how to get it</div>
-      <h2>Download the Build</h2>
-      <p>The bundles are public. Pick the one for your gateway line. They are not interchangeable.</p>
+      <div class="path">before you install</div>
+      <h2>Verify, Then Accept the Certificate</h2>
     </div>
-    <div class="leads">
-      <p>The modules are signed with a SparkBridge certificate, not an Inductive Automation one, so the gateway shows a certificate acceptance page on the first module you install. Print the fingerprint from the bundled <span class="mono">sparkbridge-signing-cert.pem</span> and compare it against that page before accepting. The checksums below let you verify the download against this page rather than against the file that traveled with it. Certification through Inductive Automation's third-party module program is in progress. If you would rather have a person walk the first install with you, email us and you get exactly that, usually the same day.</p>
+    <div class="twocol">
+      <div class="measure">
+        <p>Every module is signed with the SparkBridge certificate, not an Inductive Automation one, so the gateway shows a certificate acceptance page on the first module you install. Print the fingerprint from the bundled certificate and compare it against that page before accepting. Accepting once covers every module signed with it.</p>
+        <p>Check what you received against the checksums published at the bottom of this page, not against the file that traveled with it. Bundles for 8.1 and 8.3 are not interchangeable.</p>
+      </div>
+      <div>
+        <span class="spectitle">Two commands</span>
+        <pre class="code">shasum -a 256 -c SHA256SUMS.txt
+keytool -printcert -file sparkbridge-signing-cert.pem</pre>
+        <table class="spec">
+          <tr><th>Ignition</th><td>8.1.19 or newer, or the 8.3 line. One bundle per line</td></tr>
+          <tr><th>Java</td><td>Bundled with Ignition. Modules target Java 11 bytecode</td></tr>
+          <tr><th>License</th><td>One key file per gateway at <span class="mono">&lt;data&gt;/sparkbridge-license.key</span>, re-read every 30 seconds</td></tr>
+          <tr><th>Without a key</th><td>Every module runs in full on Ignition's trial. Reset Trial restarts the clock</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band" id="core">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">1 of 4</div>
+      <h2>SparkBridge Core Modules</h2>
+      <p>One bundle per Ignition line carries all four modules: Edge, Central (the file is <span class="mono">SparkBridge-Host.modl</span>), Provider and SparkFlow, plus the HiveMQ broker authorization extension, the Perspective status project, the quickstart and the install guide. Install Provider, then Central, then Edge.</p>
     </div>
     <div class="cta-row">
       <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.6.0/sparkbridge-2.6.0-ign81-bundle.zip">Download 2.6.0 for Ignition 8.1</a>
       <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.6.0/sparkbridge-2.6.0-ign83-bundle.zip">Download 2.6.0 for Ignition 8.3</a>
-      <a class="btn ghost dark" href="mailto:admin@greenguard-usa.com?subject=SparkBridge%202.6.0%20install%20help&amp;body=Ignition%20version%3A%0AGateway%20OS%3A%0ANumber%20of%20sites%3A%0A">Ask for a walkthrough</a>
+      <a class="btn ghost" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/v2.6.0">Release notes</a>
     </div>
+    <div class="scroller"><table class="tbl dl-tbl"><thead><tr><th>Product</th><th>Version</th><th>Ignition 8.1</th><th>Ignition 8.3</th><th></th></tr></thead><tbody>
+<tr><td><a href="/sparkbridge/edge">SparkBridge Edge</a></td><td class="num">2.6.0</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.6.0/sparkbridge-2.6.0-ign81-bundle.zip">8.1 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.6.0/sparkbridge-2.6.0-ign83-bundle.zip">8.3 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#edge">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/central">SparkBridge Central</a></td><td class="num">2.6.0</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.6.0/sparkbridge-2.6.0-ign81-bundle.zip">8.1 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.6.0/sparkbridge-2.6.0-ign83-bundle.zip">8.3 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#central">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/products#provider">Provider</a></td><td class="num">2.6.0</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.6.0/sparkbridge-2.6.0-ign81-bundle.zip">8.1 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.6.0/sparkbridge-2.6.0-ign83-bundle.zip">8.3 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#provider">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/flow">SparkFlow</a> <small>own license</small></td><td class="num">2.6.0</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.6.0/sparkbridge-2.6.0-ign81-bundle.zip">8.1 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.6.0/sparkbridge-2.6.0-ign83-bundle.zip">8.3 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#flow">Docs</a></td></tr>
+</tbody></table></div>
+    <p class="note">2.7.0 moves every module onto Ignition's two-hour trial until a key file is present. It is built and documented on the <a href="/sparkbridge/changelog">changelog</a>; the public bundle is 2.6.0 until the 2.7.0 release is cut.</p>
   </div>
 </section>
 
-<section>
+<section id="modules">
   <div class="wrap">
     <div class="sec-head">
-      <div class="path">package contents</div>
-      <h2>What Is In the Zip</h2>
-      <p>Everything needed to install, verify and configure the suite, with nothing that needs a second download.</p>
+      <div class="path">2 of 4</div>
+      <h2>Additional Modules</h2>
+      <p>Each runs only on a SparkBridge Central gateway and installs as one signed module. SparkCalc and SparkID come with a Central license. Where a public build is not yet posted, <a href="/sparkbridge/contact">ask for one</a> and we send the current signed module the same day.</p>
     </div>
-    <div class="plain">
-      <div>
-        <h3>Four signed modules</h3>
-        <p><b>SparkBridge-Provider.modl</b> owns the broker. It runs the embedded Moquette for a zero-configuration first install, or stands down and lets an external HiveMQ CE own the ports. <b>SparkBridge-Host.modl</b> decodes Sparkplug into a managed Ignition tag provider. <b>SparkBridge-Edge.modl</b> publishes a folder of gateway tags as Sparkplug. Install them in that order: the Provider has to be running before the Host subscribes and before the Edge publishes. <b>SparkBridge-Flow.modl</b>, new in 2.5.0, is optional. It carries everything the Host decodes onto NATS/JetStream as a unified namespace, with last-known value and lifecycle in a KV bucket, a confirmed-write command path back to the edge and a Perspective dispatcher fed from the stream. Install it last, only if you run a nats-server, and read <b>docs/FLOW_MODULE.md</b> in the bundle first.</p>
-      </div>
-      <div>
-        <h3>The broker authorization extension</h3>
-        <p>A HiveMQ extension, shipped as its own zip. It binds each credential to the client ID derived from its scope, so one site's credential cannot present another site's client ID and evict that session. It refuses an unauthorized Last Will at CONNECT before a session exists. It also judges PUBLISH and SUBSCRIBE, deferring rather than allowing where it has no opinion, so file RBAC keeps the final authority. You need it only if you run external HiveMQ, and if you do, it upgrades in the same maintenance window as the modules.</p>
-      </div>
-      <div>
-        <h3>The Perspective status project</h3>
-        <p><b>sparkbridge-perspective-2.6.0.zip</b> is an importable Perspective project that puts the suite's status on a screen: node health, per-node SLO statistics, and the signed fleet configuration each site is running, with nothing to build by hand.</p>
-      </div>
-      <div>
-        <h3>Checksums and the signing certificate</h3>
-        <p><b>SHA256SUMS.txt</b> covers the modules, the extension and the Perspective project. The same values are published on this page so you can verify the delivery against a source that did not arrive in the same email. <b>sparkbridge-signing-cert.pem</b> is the certificate the modules are signed with: print its fingerprint with keytool and compare it against the acceptance page the gateway shows you on first install.</p>
-      </div>
-      <div>
-        <h3>The documents you install from</h3>
-        <p><b>QUICKSTART.md</b> is a first run in two sessions: Sparkplug flowing on one gateway with the embedded broker in about twenty minutes, then external HiveMQ with TLS, file RBAC, separate host and edge identities and the authorization extension in another thirty-five. <b>INSTALL.md</b> is the reference walkthrough, including the upgrade path and the production checklist. <b>RELEASE-NOTES-2.6.0.md</b> is what changed and what an upgrade requires of you.</p>
-      </div>
-      <div>
-        <h3>The license</h3>
-        <p><b>license.html</b> is the end user license agreement. It is also what the gateway displays for acceptance when the module installs. A module whose license was never accepted stays quarantined, so it is worth reading the copy in the package before you are looking at it in a dialog.</p>
-      </div>
-    </div>
-    <p class="note">The bundle also carries BUNDLE-SHA256SUMS.txt, generated over every file above, so one command verifies the whole delivery rather than only the binaries. The checksum of the bundle zip itself is published in the table below as well.</p>
+    <div class="scroller"><table class="tbl dl-tbl"><thead><tr><th>Product</th><th>Version</th><th>Ignition 8.1</th><th>Ignition 8.3</th><th></th></tr></thead><tbody>
+<tr><td><a href="/sparkbridge/central#sparkcalc">SparkCalc</a> <small>included with Central</small></td><td class="num"><span class="np">pending</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparkcalc">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/central#sparkid">SparkID</a> <small>included with Central</small></td><td class="num"><span class="np">pending</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparkid">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/central#passage">Passage</a></td><td class="num"><span class="np">pending</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#passage">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/central#sentinel">Sentinel</a></td><td class="num"><span class="np">pending</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sentinel">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/central#fleetops">FleetOps</a></td><td class="num">0.2.0</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/fleetops-v0.2.0/SparkBridge-FleetOps-0.2.0.modl">8.1 module</a></td><td class="act"><span class="np">8.3 pending</span></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#fleetops">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/vault">SparkVault</a></td><td class="num"><span class="np">pending</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparkvault">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/inject">SparkInject</a></td><td class="num"><span class="np">pending</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparkinject">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/central#gitops">GitOps / Enterprise Governance</a> <small>early access</small></td><td class="num"><span class="np">pending</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#gitops">Docs</a></td></tr>
+</tbody></table></div>
   </div>
 </section>
 
-<section>
+<section class="band" id="drivers">
   <div class="wrap">
     <div class="sec-head">
-      <div class="path">sparksnmp</div>
-      <h2>Download SparkSNMP 0.1.1</h2>
-      <p>The SNMP driver ships on its own release, one bundle per gateway line, signed with the same certificate. Each bundle carries the module, its checksums, the certificate, the license, and the live proof, QA matrix and security review documents. 0.1.1 adds custom MIB upload and fixes nested folders showing empty in the OPC UA browse tree on 8.1. <a href="/sparkbridge/snmp">About SparkSNMP</a>.</p>
+      <div class="path">3 of 4</div>
+      <h2>Device Drivers</h2>
+      <p>Each driver installs on any Ignition gateway, with or without SparkBridge, and appears as a device type under OPC UA device connections. Early access drivers are complete and signed; the label means the live proof against vendor hardware is still being widened.</p>
     </div>
-    <div class="cta-row">
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparksnmp-v0.1.1/sparksnmp-0.1.1-ign81-bundle.zip">Download SparkSNMP 0.1.1 for Ignition 8.1</a>
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparksnmp-v0.1.1/sparksnmp-0.1.1-ign83-bundle.zip">Download SparkSNMP 0.1.1 for Ignition 8.3</a>
-    </div>
-    <div class="scroller">
-      <table class="tbl">
-        <caption>SparkSNMP 0.1.1, signed release build</caption>
-        <thead><tr><th>Artifact</th><th>SHA-256</th></tr></thead>
-        <tbody>
-          <tr><td>SparkSNMP.modl (8.1)</td><td class="num">2a8514d56a83d12f1bfd84bd8d3f0c48addc0ed6b087a294ca317af31b424d07</td></tr>
-          <tr><td>SparkSNMP.modl (8.3)</td><td class="num">c05f27c28fe908d92d87e782486886ae2d524e21d697dbd53224e92a24b5ac4a</td></tr>
-          <tr><td>sparksnmp-0.1.1-ign81-bundle.zip</td><td class="num">b6a6b822f12d24809638c834362d09dacf7d094b4e2a65377266bd8f5bc809ee</td></tr>
-          <tr><td>sparksnmp-0.1.1-ign83-bundle.zip</td><td class="num">7a75dc2eb0c0dad15b2cb27f09af91cf6a1c1cb1389db32c99b9d4f6ab16d86f</td></tr>
-        </tbody>
-      </table>
-    </div>
+    <div class="scroller"><table class="tbl dl-tbl"><thead><tr><th>Product</th><th>Version</th><th>Ignition 8.1</th><th>Ignition 8.3</th><th></th></tr></thead><tbody>
+<tr><td><a href="/sparkbridge/logix">SparkLogix</a></td><td class="num"><span class="np">pending</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparklogix">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/snmp">SparkSNMP</a></td><td class="num">0.1.1</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparksnmp-v0.1.1/sparksnmp-0.1.1-ign81-bundle.zip">8.1 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparksnmp-v0.1.1/sparksnmp-0.1.1-ign83-bundle.zip">8.3 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparksnmp">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/iec104">IEC 60870-5-104</a></td><td class="num"><span class="np">pending</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#iec104">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/drivers">DNP3</a></td><td class="num"><span class="np">pending</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#dnp3">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/drivers">TI 505 &middot; CTI 2500</a></td><td class="num"><span class="np">pending</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#ti505">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/ads">SparkADS</a> <small>early access</small></td><td class="num">0.1.1</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkads-v0.1.1/sparkads-0.1.1-ign81-bundle.zip">8.1 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkads-v0.1.1/sparkads-0.1.1-ign83-bundle.zip">8.3 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparkads">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/s7">SparkS7</a> <small>early access</small></td><td class="num">0.1.1</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparks7-v0.1.1/sparks7-0.1.1-ign81-bundle.zip">8.1 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparks7-v0.1.1/sparks7-0.1.1-ign83-bundle.zip">8.3 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparks7">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/61850">Spark61850</a> <small>early access</small></td><td class="num">0.1.1</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/spark61850-v0.1.1/spark61850-0.1.1-ign81-bundle.zip">8.1 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/spark61850-v0.1.1/spark61850-0.1.1-ign83-bundle.zip">8.3 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#spark61850">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/bacnet">SparkBACnet</a> <small>early access</small></td><td class="num">0.1.1</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkbacnet-v0.1.1/sparkbacnet-0.1.1-ign81-bundle.zip">8.1 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkbacnet-v0.1.1/sparkbacnet-0.1.1-ign83-bundle.zip">8.3 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparkbacnet">Docs</a></td></tr>
+</tbody></table></div>
   </div>
 </section>
 
-<section>
+<section id="enhancements">
   <div class="wrap">
     <div class="sec-head">
-      <div class="path">sparkinflux</div>
-      <h2>Download SparkInflux 0.2.0</h2>
-      <p>The InfluxDB historian ships on its own release, one bundle per gateway line, signed with the same certificate. Each bundle carries the module, its checksums, the certificate and the license. <a href="/sparkbridge/influx">About SparkInflux</a>.</p>
+      <div class="path">4 of 4</div>
+      <h2>Ignition Enhancements</h2>
+      <p>History storage, validation, a Perspective component and alarm notification. Each installs on any Ignition gateway on its own license. SparkValidate also ships as a command-line bundle with no gateway install.</p>
     </div>
-    <div class="cta-row">
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/sparkinflux-v0.2.0">Download SparkInflux 0.2.0 for Ignition 8.1</a>
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/sparkinflux-v0.2.1">Download SparkInflux 0.2.1 for Ignition 8.3</a>
-    </div>
-    <p class="note">Bundles sparkinflux-0.2.0-ign81-bundle.zip and sparkinflux-0.2.1-ign83-bundle.zip. 0.2.1 is an 8.3-only update closing the 0.2.0 8.3 gaps (quarantine actions, backfill route, config export); the 8.1 line stays at 0.2.0.</p>
+    <div class="scroller"><table class="tbl dl-tbl"><thead><tr><th>Product</th><th>Version</th><th>Ignition 8.1</th><th>Ignition 8.3</th><th></th></tr></thead><tbody>
+<tr><td><a href="/sparkbridge/influx">SparkInflux</a></td><td class="num">0.2.0 / 0.2.1</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkinflux-v0.2.0/sparkinflux-0.2.0-ign81-bundle.zip">8.1 bundle 0.2.0</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkinflux-v0.2.1/sparkinflux-0.2.1-ign83-bundle.zip">8.3 bundle 0.2.1</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparkinflux">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/validate">SparkValidate</a> <small>early access</small></td><td class="num">0.1.0</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkvalidate-v0.1.0/sparkvalidate-0.1.0-gateway-bundle.zip">8.1 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkvalidate-v0.1.0/sparkvalidate-0.1.0-ign83-bundle.zip">8.3 bundle</a> <a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkvalidate-v0.1.0/sparkvalidate-0.1.0-cli-bundle.zip">CLI only</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparkvalidate">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/gantt">SparkGantt</a> <small>early access</small></td><td class="num">0.1.1</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkgantt-v0.1.1/sparkgantt-0.1.1-ign81-bundle.zip">8.1 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkgantt-v0.1.1/sparkgantt-0.1.1-ign83-bundle.zip">8.3 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparkgantt">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/notify">SparkNotify</a> <small>early access</small></td><td class="num">0.1.1</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparknotify-v0.1.1/sparknotify-0.1.1-ign81-bundle.zip">8.1 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparknotify-v0.1.1/sparknotify-0.1.1-ign83-bundle.zip">8.3 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparknotify">Docs</a></td></tr>
+</tbody></table></div>
   </div>
 </section>
 
-<section>
-  <div class="wrap">
-    <div class="sec-head">
-      <div class="path">sparkads</div>
-      <h2>Download SparkADS 0.1.1</h2>
-      <p>The Beckhoff ADS/AMS driver ships on its own release, one bundle per gateway line, signed with the same certificate. Each bundle carries the module, its checksums, the certificate and the license. Early access. <a href="/sparkbridge/ads">About SparkADS</a>.</p>
-    </div>
-    <div class="cta-row">
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkads-v0.1.1/sparkads-0.1.1-ign81-bundle.zip">Download SparkADS 0.1.1 for Ignition 8.1</a>
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkads-v0.1.1/sparkads-0.1.1-ign83-bundle.zip">Download SparkADS 0.1.1 for Ignition 8.3</a>
-    </div>
-    <p class="note">Bundles sparkads-0.1.1-ign81-bundle.zip and sparkads-0.1.1-ign83-bundle.zip.</p>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <div class="sec-head">
-      <div class="path">sparks7</div>
-      <h2>Download SparkS7 0.1.1</h2>
-      <p>The Siemens S7-1200/1500 symbolic driver ships on its own release, one bundle per gateway line, signed with the same certificate. Each bundle carries the module, its checksums, the certificate and the license. Early access. <a href="/sparkbridge/s7">About SparkS7</a>.</p>
-    </div>
-    <div class="cta-row">
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparks7-v0.1.1/sparks7-0.1.1-ign81-bundle.zip">Download SparkS7 0.1.1 for Ignition 8.1</a>
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparks7-v0.1.1/sparks7-0.1.1-ign83-bundle.zip">Download SparkS7 0.1.1 for Ignition 8.3</a>
-    </div>
-    <p class="note">Bundles sparks7-0.1.1-ign81-bundle.zip and sparks7-0.1.1-ign83-bundle.zip.</p>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <div class="sec-head">
-      <div class="path">sparkgantt</div>
-      <h2>Download SparkGantt 0.1.1</h2>
-      <p>The Perspective Gantt chart component ships on its own release, one bundle per gateway line, signed with the same certificate. Each bundle carries the module, its checksums, the certificate and the license. Early access. <a href="/sparkbridge/gantt">About SparkGantt</a>.</p>
-    </div>
-    <div class="cta-row">
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkgantt-v0.1.1/sparkgantt-0.1.1-ign81-bundle.zip">Download SparkGantt 0.1.1 for Ignition 8.1</a>
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkgantt-v0.1.1/sparkgantt-0.1.1-ign83-bundle.zip">Download SparkGantt 0.1.1 for Ignition 8.3</a>
-    </div>
-    <p class="note">Bundles sparkgantt-0.1.1-ign81-bundle.zip and sparkgantt-0.1.1-ign83-bundle.zip.</p>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <div class="sec-head">
-      <div class="path">sparknotify</div>
-      <h2>Download SparkNotify 0.1.1</h2>
-      <p>The omnichannel alarm notification module ships on its own release, one bundle per gateway line, signed with the same certificate. Each bundle carries the module, its checksums, the certificate and the license. Early access. <a href="/sparkbridge/notify">About SparkNotify</a>.</p>
-    </div>
-    <div class="cta-row">
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparknotify-v0.1.1/sparknotify-0.1.1-ign81-bundle.zip">Download SparkNotify 0.1.1 for Ignition 8.1</a>
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparknotify-v0.1.1/sparknotify-0.1.1-ign83-bundle.zip">Download SparkNotify 0.1.1 for Ignition 8.3</a>
-    </div>
-    <p class="note">Bundles sparknotify-0.1.1-ign81-bundle.zip and sparknotify-0.1.1-ign83-bundle.zip.</p>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <div class="sec-head">
-      <div class="path">spark61850</div>
-      <h2>Download Spark61850 0.1.1</h2>
-      <p>The IEC 61850 MMS client driver ships on its own release, one bundle per gateway line, signed with the same certificate. Each bundle carries the module, its checksums, the certificate and the license. Early access. <a href="/sparkbridge/61850">About Spark61850</a>.</p>
-    </div>
-    <div class="cta-row">
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/spark61850-v0.1.1/spark61850-0.1.1-ign81-bundle.zip">Download Spark61850 0.1.1 for Ignition 8.1</a>
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/spark61850-v0.1.1/spark61850-0.1.1-ign83-bundle.zip">Download Spark61850 0.1.1 for Ignition 8.3</a>
-    </div>
-    <p class="note">Bundles spark61850-0.1.1-ign81-bundle.zip and spark61850-0.1.1-ign83-bundle.zip.</p>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <div class="sec-head">
-      <div class="path">sparkbacnet</div>
-      <h2>Download SparkBACnet 0.1.1</h2>
-      <p>The BACnet/IP driver ships on its own release, one bundle per gateway line, signed with the same certificate. Each bundle carries the module, its checksums, the certificate and the license. Early access. <a href="/sparkbridge/bacnet">About SparkBACnet</a>.</p>
-    </div>
-    <div class="cta-row">
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkbacnet-v0.1.1/sparkbacnet-0.1.1-ign81-bundle.zip">Download SparkBACnet 0.1.1 for Ignition 8.1</a>
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkbacnet-v0.1.1/sparkbacnet-0.1.1-ign83-bundle.zip">Download SparkBACnet 0.1.1 for Ignition 8.3</a>
-    </div>
-    <p class="note">Bundles sparkbacnet-0.1.1-ign81-bundle.zip and sparkbacnet-0.1.1-ign83-bundle.zip.</p>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <div class="sec-head">
-      <div class="path">sparkvalidate</div>
-      <h2>Download SparkValidate 0.1.0</h2>
-      <p>Risk-based validation and alarm management for Ignition + PLC systems ships as three bundles: the gateway module for live extraction, protocol execution and evidence capture (Ignition 8.1 and 8.3 lines), and a CLI-only bundle for offline or CI use with no gateway install. All are signed with the same certificate. Early access. <a href="/sparkbridge/validate">About SparkValidate</a>.</p>
-    </div>
-    <div class="cta-row">
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkvalidate-v0.1.0/sparkvalidate-0.1.0-gateway-bundle.zip">Download SparkValidate 0.1.0 gateway module for Ignition 8.1</a>
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkvalidate-v0.1.0/sparkvalidate-0.1.0-ign83-bundle.zip">Download SparkValidate 0.1.0 gateway module for Ignition 8.3</a>
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkvalidate-v0.1.0/sparkvalidate-0.1.0-cli-bundle.zip">Download SparkValidate 0.1.0 CLI only</a>
-    </div>
-    <div class="scroller">
-      <table class="tbl">
-        <caption>SparkValidate 0.1.0, signed release build</caption>
-        <thead><tr><th>Artifact</th><th>SHA-256</th></tr></thead>
-        <tbody>
-          <tr><td>sparkvalidate-0.1.0-gateway-bundle.zip</td><td class="num">59a4edcb17409b748c2dc43167de2a3b7e41032f538ccd6b011e612e87a18a5f</td></tr>
-          <tr><td>sparkvalidate-0.1.0-ign83-bundle.zip</td><td class="num">6442ab10c44bb523ca31ca5520bab22f08504a6fb2bdcb71857ba5ec8d8c6b02</td></tr>
-          <tr><td>sparkvalidate-0.1.0-cli-bundle.zip</td><td class="num">04313df889db56738708bc6cbe5f1df34708401e4d3a1a7573dbdb62adee0cf5</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="note">Bundles sparkvalidate-0.1.0-gateway-bundle.zip (Ignition 8.1), sparkvalidate-0.1.0-ign83-bundle.zip (Ignition 8.3), and sparkvalidate-0.1.0-cli-bundle.zip. Gateway module $2,495 per Gateway, perpetual; CLI-only Validate Desk $995, perpetual. Free for development.</p>
-  </div>
-</section>
-
-<section class="band">
+<section class="band" id="checksums">
   <div class="wrap">
     <div class="sec-head">
       <div class="path">verify</div>
-      <h2>SHA-256, Release 2.6.0</h2>
-      <p>Published here per release, from the release build's own SHA256SUMS.txt. Check what you received against this page, not against the file that traveled with it.</p>
+      <h2>SHA-256, Every Published Build</h2>
+      <p>Computed from the files on the release server and published here so you can check a delivery against a source that did not arrive with it. Inside each core bundle, <span class="mono">SHA256SUMS.txt</span> covers the individual modules.</p>
     </div>
-    <div class="scroller">
-      <table class="tbl">
-        <caption>Suite 2.6.0, signed release build</caption>
-        <thead><tr><th>Artifact</th><th>SHA-256</th></tr></thead>
-        <tbody>
-          <tr><td>SparkBridge-Host.modl</td><td class="num">9dfb3d0ff6662abc2ecdba439a821f54e8ad0a75c1d13dc6b2c5407652d197a0</td></tr>
-          <tr><td>SparkBridge-Edge.modl</td><td class="num">076d10b980b4c21b45c5bec17a15afa5a7ea87a7188b75230f61e5bc9ae5372d</td></tr>
-          <tr><td>SparkBridge-Provider.modl</td><td class="num">c608142f9b554bafcdd102622b045fbaa788448ee35d1db280afdf3b5f1f81c4</td></tr>
-          <tr><td>SparkBridge-Flow.modl</td><td class="num">ca3bb41d1884730f0f2ddab05b508d98ccdcfdc49c372dc4a09dee3ff532f0e4</td></tr>
-          <tr><td>sparkbridge-broker-extension-2.6.0.zip</td><td class="num">66e74115682f5c79c9d5d5cd92a33fe1d62a277780826ca38effafc5bb799120</td></tr>
-          <tr><td>sparkbridge-perspective-2.6.0.zip</td><td class="num">7a4b2fb2656136685a2a86b9efbeec0b7b9a5b723218d0fdf5a3f56996db05e7</td></tr>
-          <tr><td>sparkbridge-2.6.0-ign81-bundle.zip</td><td class="num">c5ebbc28c3ca4f7f8f476dcea3942079d56339e9be6c7cf32334b17992200f3e</td></tr>
-          <tr><td>sparkbridge-2.6.0-ign83-bundle.zip</td><td class="num">3d89707eadf9683ebc013fe50c893fe6bf16758227080a891dfadc9bae089aad</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="note">Verify with <span class="mono">shasum -a 256 -c SHA256SUMS.txt</span> in the unpacked bundle. Every line must read OK. Then print the signing certificate with <span class="mono">keytool -printcert -file sparkbridge-signing-cert.pem</span> and compare that fingerprint against the one the gateway shows before you accept it. Each release publishes its own values here on the day it ships.</p>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <div class="sec-head">
-      <div class="path">licensing</div>
-      <h2>How Licensing Works</h2>
-      <p>One key file per gateway. No restart, no dongle, no separate activation step.</p>
-    </div>
-    <div class="leads">
-      <p>Development use is free, no time limit. Install the modules on as many test gateways as you want and run the whole suite, no tag limit, no feature gate, for as long as you need to be sure.</p>
-      <p>When you go live, licensing is a single key file dropped on the gateway, one per gateway. It applies with no restart. Until a gateway has one, every module still runs in full, with a banner on the gateway reminding you it is unlicensed. Nothing you are testing ever pauses or degrades while you decide.</p>
-      <p>If you would rather have a person confirm the first key lands correctly, email us and you get exactly that, usually the same day.</p>
-    </div>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <div class="sec-head">
-      <div class="path">before you install</div>
-      <h2>What It Needs</h2>
-      <p>Requirements are modest. The optional companion broker is the only thing with dependencies of its own.</p>
-    </div>
-    <div class="scroller">
-      <table class="tbl">
-        <thead><tr><th>Requirement</th><th>Detail</th></tr></thead>
-        <tbody>
-          <tr><td>Ignition 8.1.19 or newer</td><td>The floor is the first build carrying the config-page API the gateway tabs use. Runtime verification is on 8.1.38. If a config page is ever unavailable, every setting is still reachable as a system property or through the REST API.</td></tr>
-          <tr><td>Java 11 or newer</td><td>Ignition bundles its own, Java 11 through 8.1.33 and Java 17 from 8.1.34. The modules target Java 11 bytecode so they load on either.</td></tr>
-          <tr><td>A gateway you can restart</td><td>System properties live in ignition.conf and are read at startup. The Edge's source folder is the exception: a config page setting that applies live.</td></tr>
-          <tr><td>keytool</td><td>For the TLS keystore. It ships with every JDK and with the JRE Ignition bundles.</td></tr>
-          <tr><td>For external HiveMQ only</td><td>curl, unzip, python3 and a JDK 11 or newer on the broker host. The embedded broker needs none of it, which is why the first session of the quickstart uses the embedded one.</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="note">The modules are signed with a self-signed SparkBridge certificate today, so the gateway quarantines the first module and shows a certificate acceptance page. Accepting once covers all four. An Inductive Automation issued certificate installs with no prompt at all. Moving to one is a drop-in change on our side.</p>
+    <div class="scroller"><table class="tbl sums"><caption>SparkBridge 2.6.0 modules, from the bundle's SHA256SUMS.txt</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
+<tr><td>SparkBridge-Edge.modl (8.1)</td><td class='num'>076d10b980b4c21b45c5bec17a15afa5a7ea87a7188b75230f61e5bc9ae5372d</td></tr><tr><td>SparkBridge-Flow.modl (8.1)</td><td class='num'>ca3bb41d1884730f0f2ddab05b508d98ccdcfdc49c372dc4a09dee3ff532f0e4</td></tr><tr><td>SparkBridge-Host.modl (8.1)</td><td class='num'>9dfb3d0ff6662abc2ecdba439a821f54e8ad0a75c1d13dc6b2c5407652d197a0</td></tr><tr><td>SparkBridge-Provider.modl (8.1)</td><td class='num'>c608142f9b554bafcdd102622b045fbaa788448ee35d1db280afdf3b5f1f81c4</td></tr><tr><td>SparkBridge-Edge.modl (8.3)</td><td class='num'>5d64f8ef85873ceb9b8f495170f1b87005ef1b58f89c112e6ec21efd502f6105</td></tr><tr><td>SparkBridge-Flow.modl (8.3)</td><td class='num'>2fb13bfa44406c0c9867694ffa6868f6e53efe1af8653bb3e8449a4eab38f4b0</td></tr><tr><td>SparkBridge-Host.modl (8.3)</td><td class='num'>c9fe2b0f95ed238425e2f24a805db947ba862c82dc483caf1fd60ac1a47a300c</td></tr><tr><td>SparkBridge-Provider.modl (8.3)</td><td class='num'>124b5de958e4c4f46b2b9c8e25240421a60f26204d2b52bae66caa6c4e01ea9b</td></tr>
+    </tbody></table></div>
+    <div class="scroller"><table class="tbl sums"><caption>v2.6.0</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
+<tr><td>sparkbridge-2.6.0-ign81-bundle.zip</td><td class="num">c5ebbc28c3ca4f7f8f476dcea3942079d56339e9be6c7cf32334b17992200f3e</td></tr>
+<tr><td>sparkbridge-2.6.0-ign83-bundle.zip</td><td class="num">3d89707eadf9683ebc013fe50c893fe6bf16758227080a891dfadc9bae089aad</td></tr>
+</tbody></table></div>
+<div class="scroller"><table class="tbl sums"><caption>fleetops-v0.2.0</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
+<tr><td>SparkBridge-FleetOps-0.2.0.modl</td><td class="num">87846854c4991abb76a736f6c2e2568a2ffa2b8acd2862274956220a337dbacc</td></tr>
+</tbody></table></div>
+<div class="scroller"><table class="tbl sums"><caption>sparksnmp-v0.1.1</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
+<tr><td>sparksnmp-0.1.1-ign81-bundle.zip</td><td class="num">b6a6b822f12d24809638c834362d09dacf7d094b4e2a65377266bd8f5bc809ee</td></tr>
+<tr><td>sparksnmp-0.1.1-ign83-bundle.zip</td><td class="num">7a75dc2eb0c0dad15b2cb27f09af91cf6a1c1cb1389db32c99b9d4f6ab16d86f</td></tr>
+</tbody></table></div>
+<div class="scroller"><table class="tbl sums"><caption>sparkads-v0.1.1</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
+<tr><td>sparkads-0.1.1-ign81-bundle.zip</td><td class="num">8d58d424906c01088c1e9d3ca96aa337bf2961f4595adb1bf75f69be2bc5d773</td></tr>
+<tr><td>sparkads-0.1.1-ign83-bundle.zip</td><td class="num">022dfa8aa0f9f8faaadb697207b1f3c74587b15a4b1e084e369e8f34f7ea4392</td></tr>
+</tbody></table></div>
+<div class="scroller"><table class="tbl sums"><caption>sparks7-v0.1.1</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
+<tr><td>sparks7-0.1.1-ign81-bundle.zip</td><td class="num">817d0111bfc59df1fb549d7abe40256b41701c2f3cd8ba4521d3506258b5a9c7</td></tr>
+<tr><td>sparks7-0.1.1-ign83-bundle.zip</td><td class="num">a8d6b0acd7d5262558056ddf157995d5ad2a39438c6a521dca439f33360f7821</td></tr>
+</tbody></table></div>
+<div class="scroller"><table class="tbl sums"><caption>spark61850-v0.1.1</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
+<tr><td>spark61850-0.1.1-ign81-bundle.zip</td><td class="num">7ca8f49c51d16dbc1c5be3d21bdb67618fd5db1389076eca36b492d3084ee44c</td></tr>
+<tr><td>spark61850-0.1.1-ign83-bundle.zip</td><td class="num">aab0b53054f6e71330c8ea0f24d419b0a8d19b074fbbddcc7e15083f0b8105d8</td></tr>
+</tbody></table></div>
+<div class="scroller"><table class="tbl sums"><caption>sparkbacnet-v0.1.1</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
+<tr><td>sparkbacnet-0.1.1-ign81-bundle.zip</td><td class="num">d898dc24e3d29b105680eac8cfa478c09b14ca02704b1a9c4191d3625ac57a04</td></tr>
+<tr><td>sparkbacnet-0.1.1-ign83-bundle.zip</td><td class="num">967c4ca58991af80c5c5e388c17c9b7d935f8904c47f37d8650cc7c58339a82a</td></tr>
+</tbody></table></div>
+<div class="scroller"><table class="tbl sums"><caption>sparkinflux-v0.2.0</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
+<tr><td>sparkinflux-0.2.0-ign81-bundle.zip</td><td class="num">4f5d073ff7c54ebc156e15cfe55f8eb6e7d16e56427c3f8678791f2207055ae5</td></tr>
+<tr><td>sparkinflux-0.2.0-ign83-bundle.zip</td><td class="num">86557d601b7ad83af337ece796d605e4fde8f189ba294774154e3a1a252ab80c</td></tr>
+</tbody></table></div>
+<div class="scroller"><table class="tbl sums"><caption>sparkinflux-v0.2.1</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
+<tr><td>sparkinflux-0.2.1-ign83-bundle.zip</td><td class="num">729feb3766c8c18d4d3ca13fa9b14d43ecd690052fc8321fed261dd0d72cc0c0</td></tr>
+</tbody></table></div>
+<div class="scroller"><table class="tbl sums"><caption>sparkvalidate-v0.1.0</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
+<tr><td>sparkvalidate-0.1.0-cli-bundle.zip</td><td class="num">04313df889db56738708bc6cbe5f1df34708401e4d3a1a7573dbdb62adee0cf5</td></tr>
+<tr><td>sparkvalidate-0.1.0-gateway-bundle.zip</td><td class="num">59a4edcb17409b748c2dc43167de2a3b7e41032f538ccd6b011e612e87a18a5f</td></tr>
+<tr><td>sparkvalidate-0.1.0-ign83-bundle.zip</td><td class="num">6442ab10c44bb523ca31ca5520bab22f08504a6fb2bdcb71857ba5ec8d8c6b02</td></tr>
+</tbody></table></div>
+<div class="scroller"><table class="tbl sums"><caption>sparkgantt-v0.1.1</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
+<tr><td>sparkgantt-0.1.1-ign81-bundle.zip</td><td class="num">15a0f510c62f53e42520cde6b99de301ab5640ac738002ca2e79ea9fa60b1dc8</td></tr>
+<tr><td>sparkgantt-0.1.1-ign83-bundle.zip</td><td class="num">9a9f278db124fd1cef25de704606e0223ac02fbd2bcb7ff64f10c3e8684c68d6</td></tr>
+</tbody></table></div>
+<div class="scroller"><table class="tbl sums"><caption>sparknotify-v0.1.1</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
+<tr><td>sparknotify-0.1.1-ign81-bundle.zip</td><td class="num">c22fd8e14aaad5ec8fd09f933148a06691aa94afd4b6db32cbb5737bc0802db2</td></tr>
+<tr><td>sparknotify-0.1.1-ign83-bundle.zip</td><td class="num">263e68b93a9d9f4ce43ce042924b3bc069d6e251a72b0c52ade0e21ccc0106ac</td></tr>
+</tbody></table></div>
   </div>
 </section>
 
 <section class="tail">
   <div class="wrap">
-    <h2>Get the Release</h2>
-    <p>Download the bundle for your gateway line, verify the checksums, then the quickstart in it takes an afternoon at most. If you would rather have help with the first install, email us your Ignition version and a person will walk it with you.</p>
-    <p>Try it on one site. Development use is free, no time limit.</p>
+    <h2>First Install</h2>
+    <p>Download the core bundle for your line, verify it, and the quickstart inside has Sparkplug flowing on one gateway in about twenty minutes. Step-by-step configuration for every product is on the <a href="/sparkbridge/docs">docs page</a>. If you would rather have help with the first install, email your Ignition version and a person walks it with you.</p>
     <div class="cta-row">
-      <a class="btn" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/v2.6.0">Download 2.6.0</a>
-      <a class="btn ghost" href="/sparkbridge/resources">Read the documentation</a>
+      <a class="btn" href="/sparkbridge/docs">Read the docs</a>
+      <a class="btn ghost" href="mailto:admin@greenguard-usa.com?subject=SparkBridge%20install%20help&amp;body=Ignition%20version%3A%0AGateway%20OS%3A%0AProduct%3A%0A">Ask for a walkthrough</a>
     </div>
   </div>
 </section>
+
 </main>
 
 <footer>
   <div class="wrap">
     <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
-    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+    <span class="mono"><a href="/sparkbridge/download" aria-current="page">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
   </div>
 </footer>
 

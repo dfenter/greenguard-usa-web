@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Install and Configure | SparkBridge Docs</title>
+<meta name="description" content="Installation and configuration procedures for every SparkBridge product: the core modules, the modules on Central, the device drivers and the Ignition enhancements.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/docs">
+<meta property="og:title" content="Download SparkBridge: the release package, checksums and licensing">
+<meta property="og:description" content="What is in the SparkBridge release package, the SHA-256 checksums for the current release, how licensing works, and where to download the build.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/docs">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Download SparkBridge: the release package, checksums and licensing">
+<meta name="twitter:description" content="What is in the SparkBridge release package, the SHA-256 checksums for the current release, how licensing works, and where to download the build.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+</head>
+<body class="docs">
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Central</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs" aria-current="page">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead">
+  <div class="wrap">
+    <div class="eyebrow">Docs</div>
+    <h1>Install and configure every product</h1>
+    <p>One page, four groups, one procedure per product: what it needs, how to install it, what to set, how to verify it is working, and how it is licensed. Every setting named here comes from the module's own documentation. Where a detail is not yet written up, the page says so and points at the README in the bundle. Downloads are on the <a href="/sparkbridge/download">download page</a>.</p>
+  </div>
+</header>
+
+<main id="main">
+
+<section id="contents">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">contents</div>
+      <h2>Find Your Product</h2>
+    </div>
+    <div class="doctoc"><div><h3>SparkBridge Core Modules</h3><a href="#install-common">Shared install steps</a><a href="#edge">SparkBridge Edge</a><a href="#central">SparkBridge Central</a><a href="#provider">Provider</a><a href="#flow">SparkFlow</a></div><div><h3>Additional Modules</h3><a href="#sparkcalc">SparkCalc</a><a href="#sparkid">SparkID</a><a href="#passage">Passage</a><a href="#sentinel">Sentinel</a><a href="#fleetops">FleetOps</a><a href="#sparkvault">SparkVault</a><a href="#sparkinject">SparkInject</a></div><div><h3>Device Drivers</h3><a href="#sparklogix">SparkLogix</a><a href="#sparksnmp">SparkSNMP</a><a href="#iec104">IEC 60870-5-104</a><a href="#dnp3">DNP3</a><a href="#ti505">TI 505 / CTI 2500</a><a href="#sparkads">SparkADS</a><a href="#sparks7">SparkS7</a><a href="#spark61850">Spark61850</a><a href="#sparkbacnet">SparkBACnet</a></div><div><h3>Ignition Enhancements</h3><a href="#sparkinflux">SparkInflux</a><a href="#sparkvalidate">SparkValidate</a><a href="#sparkgantt">SparkGantt</a><a href="#sparknotify">SparkNotify</a></div></div>
+  </div>
+</section>
+
+<section class="band group-head" id="group-core">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">1 of 4</div>
+      <h2>SparkBridge Core Modules</h2>
+      <p>Shared install steps first, then Edge, Central, Provider and SparkFlow.</p>
+    </div>
+  </div>
+</section>
+<section id="install-common">
+<div class="wrap">
+<div class="sec-head">
+<div class="path">Installation</div>
+<h2>SparkBridge suite</h2>
+<p>Shared steps every SparkBridge module follows before its own configuration begins.</p>
+</div>
+
+<h3>What it needs</h3>
+<ul>
+<li>An Ignition 8.1.19 or newer gateway that can be restarted at will.</li>
+<li>The release package: <span class="mono">SparkBridge-Provider.modl</span>, <span class="mono">SparkBridge-Host.modl</span>, <span class="mono">SparkBridge-Edge.modl</span>, optionally <span class="mono">SparkBridge-Flow.modl</span>, plus <span class="mono">SHA256SUMS.txt</span> and <span class="mono">sparkbridge-signing-cert.pem</span>.</li>
+</ul>
+
+<h3>Install</h3>
+<ol>
+<li>Verify the download against its checksums.
+<pre class="code">cd &lt;PKGDIR&gt;
+shasum -a 256 -c SHA256SUMS.txt</pre>
+Every line must read <span class="mono">OK</span>.</li>
+<li>Print the signing certificate and keep its fingerprint visible.
+<pre class="code">keytool -printcert -file sparkbridge-signing-cert.pem</pre>
+</li>
+<li>In the gateway, go to Config &gt; Modules &gt; Install or Upgrade a Module, and upload the modules in this order: Provider, then Host, then Edge. The Provider owns the broker, so it must be running before the Host subscribes and before the Edge publishes. (Dropping all three files into <span class="mono">$IGNITION/user-lib/modules/</span> and restarting the gateway loads them in the same dependency order.)</li>
+<li>The gateway quarantines the first module and shows a certificate page with a fingerprint, a confirmation checkbox, and an install button. Compare the fingerprint against the one printed in step 2, then accept. Accepting once covers all three modules.</li>
+<li>The gateway also shows the module license (<span class="mono">license.html</span>) on install. Accept it; a module whose license was not accepted stays quarantined.</li>
+<li>Confirm the module list shows SparkBridge Host, Edge, and Provider (and Flow if installed), all Running.</li>
+</ol>
+
+<h3>License</h3>
+<table class="spec">
+<tr><th>File</th><td>Per-gateway license key at <span class="mono">&lt;data&gt;/sparkbridge-license.key</span>.</td></tr>
+<tr><th>Re-check interval</th><td>Each module re-checks the key file every 30 seconds, so installing, replacing, or removing a key takes effect with no restart.</td></tr>
+</table>
+<p>From release 2.7.0, every SparkBridge module runs on Ignition's standard two-hour module trial (the gateway's Reset Trial button restarts the clock). When the trial expires and no verified key names the product, each module pauses its data path but keeps configuration and buffers: the Edge publishes NDEATH and stops publishing while store-and-forward keeps capturing, the Host publishes a retained OFFLINE STATE and closes its sessions, the Provider's embedded broker refuses new connections while established ones are left alone, and Flow stops its dispatcher. A key dropped in after expiry lifts the pause on its own within the 30-second re-check, with no button press and no restart. A verified key overrides the trial entirely and the trial clock is then ignored.</p>
+</div>
+</section>
+
+<section class="band" id="edge">
+<div class="wrap">
+<div class="sec-head">
+<div class="path">Modules / Edge</div>
+<h2>SparkBridge Edge</h2>
+<p>Publishes gateway tags as Sparkplug B to the broker.</p>
+</div>
+
+<h3>Install</h3>
+<p>Install after Provider and Host, following the <a href="#install-common">shared install steps</a> above. See INSTALL.md in the bundle for the full module inventory.</p>
+
+<h3>Configure</h3>
+<p>Config &gt; SparkBridge Edge &gt; Settings. Set <b>source</b> to the tag folder to publish, for example <span class="mono">[default]Plant/Line1</span>. The Edge polls its settings every five seconds and rebuilds its node runtime when edge-owned settings change; no restart is required.</p>
+<table class="spec">
+<tr><th>Setting</th><td>Meaning, default</td></tr>
+<tr><th><span class="mono">sparkbridge.edge.username</span></th><td>Edge broker identity. Must be distinct from the host identity.</td></tr>
+<tr><th><span class="mono">sparkbridge.edge.password</span></th><td>Edge broker password. Belongs in the secrets file, not on the command line.</td></tr>
+<tr><th><span class="mono">sparkbridge.edge.uns</span></th><td>Turns on the UNS application-topic mirror.</td></tr>
+<tr><th><span class="mono">sparkbridge.edge.unsprefix</span></th><td>Application topic prefix used by the UNS mirror.</td></tr>
+<tr><th><span class="mono">sparkbridge.enrollment.code</span></th><td>One-time operator code for first-boot enrollment against Central. Set only for a first boot; the Edge clears it after success.</td></tr>
+</table>
+
+<h3>Verify</h3>
+<p>Check the gateway log for the startup and BIRTH lines:</p>
+<pre class="code">SparkBridge Edge: built 1 runtime(s), generation 1
+SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
+<p>A second <span class="mono">BIRTH ... (N metrics)</span> line with a changed metric count confirms a settings change was picked up.</p>
+
+<h3>License</h3>
+<p>Covered by the suite license key described in the <a href="#install-common">shared install steps</a>. On trial expiry with no verified key, the Edge publishes NDEATH and stops publishing; store-and-forward continues capturing.</p>
+</div>
+</section>
+
+<section id="central">
+<div class="wrap">
+<div class="sec-head">
+<div class="path">Modules / Central</div>
+<h2>SparkBridge Central</h2>
+<p>Decodes Sparkplug B into a managed Ignition tag provider. Module file: <span class="mono">SparkBridge-Host.modl</span>.</p>
+</div>
+
+<h3>What it needs</h3>
+<p>A running Provider (embedded broker or external HiveMQ CE) that Central can subscribe to before any Edge publishes.</p>
+
+<h3>Install</h3>
+<p>Install after Provider and before Edge, following the <a href="#install-common">shared install steps</a> above.</p>
+
+<h3>Configure</h3>
+<table class="spec">
+<tr><th>Setting</th><td>Meaning, default</td></tr>
+<tr><th><span class="mono">sparkbridge.host.id</span></th><td>Sparkplug Primary Host ID. Default <span class="mono">SparkBridge</span>.</td></tr>
+<tr><th><span class="mono">sparkbridge.host.partition</span></th><td>Namespace slice this gateway owns (group ids or full topic filters). Empty means this property decides nothing; write <span class="mono">spBv1.0/#</span> to claim the whole namespace explicitly. Hot since 2.4.0, applied within about 5 seconds with no restart.</td></tr>
+<tr><th><span class="mono">sparkbridge.host.standbyFor</span></th><td>Active host application id this gateway shadows as a warm standby. Unset is the classic single-host shape. See docs/HA.md in the bundle.</td></tr>
+<tr><th><span class="mono">sparkbridge.host.sharedgroup</span></th><td>MQTT 5 shared-subscription group name for host fan-in. Requires a <span class="mono">$share</span>-capable broker; HiveMQ CE qualifies, the embedded broker does not.</td></tr>
+<tr><th><span class="mono">sparkbridge.host.servers</span></th><td>Comma-separated MQTT servers this host holds simultaneous sessions on (Sparkplug 3.0 multi-server).</td></tr>
+<tr><th><span class="mono">sparkbridge.host.maxNodes</span></th><td>Hard fleet limit on resident edge nodes. Default <span class="mono">25000</span>.</td></tr>
+<tr><th><span class="mono">sparkbridge.host.maxMetricsPerNode</span></th><td>Max metrics one node may declare across its BIRTHs. Default <span class="mono">50000</span>.</td></tr>
+</table>
+<p>Secrets, including any broker password Central uses, go in the secrets file named by <span class="mono">sparkbridge.secrets.file</span> (default <span class="mono">data/sparkbridge-secrets.properties</span>), never as a <span class="mono">-D</span> argument.</p>
+
+<h3>Verify</h3>
+<pre class="code">SparkBridge Host: ... subscribed
+SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
+<p>Expand the managed tag provider (default name <span class="mono">SparkBridge</span>) in the Designer or gateway tag browser and confirm values update. The REST status, node inventory, and metrics routes require a bearer token; see <span class="mono">sparkbridge.rest.readToken</span> / <span class="mono">sparkbridge.rest.token</span> in docs/CONFIG.md.</p>
+
+<h3>License</h3>
+<p>Covered by the suite license key described in the <a href="#install-common">shared install steps</a>. On trial expiry with no verified key, Central publishes a retained OFFLINE STATE and closes its sessions.</p>
+</div>
+</section>
+
+<section class="band" id="provider">
+<div class="wrap">
+<div class="sec-head">
+<div class="path">Modules / Provider</div>
+<h2>SparkBridge Provider</h2>
+<p>Broker control: an embedded Moquette MQTT broker, or defers to an external HiveMQ CE broker with the SparkBridge authorization extension.</p>
+</div>
+
+<h3>What it needs</h3>
+<p>Nothing extra for the embedded broker. For external HiveMQ CE: a JDK 11 or newer on the broker host, plus the SparkBridge broker authorization extension and the HiveMQ file-RBAC extension.</p>
+
+<h3>Install</h3>
+<p>Install first, before Central and Edge, following the <a href="#install-common">shared install steps</a> above. With no <span class="mono">sparkbridge.*</span> system properties set, the Provider binds the embedded Moquette broker on <span class="mono">127.0.0.1:1883</span> and, with TLS enabled, <span class="mono">127.0.0.1:8883</span>.</p>
+
+<h3>Configure</h3>
+<p>To run against external HiveMQ CE instead of the embedded broker:</p>
+<table class="spec">
+<tr><th>Setting</th><td>Meaning, default</td></tr>
+<tr><th><span class="mono">sparkbridge.broker.impl</span></th><td>Set to <span class="mono">external</span> so the Provider does not bind 1883/8883 and HiveMQ owns the ports instead.</td></tr>
+<tr><th><span class="mono">sparkbridge.broker.tls</span></th><td>Enable TLS for broker connections.</td></tr>
+<tr><th><span class="mono">sparkbridge.broker.keystore</span></th><td>Path to the keystore Host and Edge load as their trust store.</td></tr>
+<tr><th><span class="mono">sparkbridge.broker.username</span></th><td>Host's broker identity, distinct from the edge identity.</td></tr>
+<tr><th><span class="mono">sparkbridge.broker.edgescopes</span></th><td>Required edge bindings: <span class="mono">edge-user=Group/EdgeNode,...</span>. An edge user not listed is denied.</td></tr>
+<tr><th><span class="mono">sparkbridge.broker.appprefixes</span></th><td>Application prefixes a scoped identity may use with no <span class="mono">apptopics</span> entry of its own (the shared-UNS-tree shape). On external HiveMQ this is read by the SparkBridge authorization extension, not by the Provider's own ACL, which is never constructed under <span class="mono">impl=external</span>.</td></tr>
+<tr><th><span class="mono">sparkbridge.broker.apptopics</span></th><td>Per-identity application-topic allowlist: <span class="mono">edge-user=sparkbridge/siteA|files/siteA,...</span>.</td></tr>
+<tr><th><span class="mono">sparkbridge.broker.clientauth</span></th><td>Require clients to present a certificate the broker trusts (mTLS). Default <span class="mono">false</span>.</td></tr>
+</table>
+<p>The HiveMQ file-RBAC credentials file and the SparkBridge broker authorization extension's own properties file are separate from the gateway's <span class="mono">ignition.conf</span> and must be kept consistent with it: the same host and edge identities, the same <span class="mono">edgescopes</span>, and the same <span class="mono">appprefixes</span>. Details, including generating password hashes and the extension zip layout, are in INSTALL.md in the bundle.</p>
+
+<h3>Verify</h3>
+<p>Embedded broker, gateway log:</p>
+<pre class="code">SparkBridge Provider: ... broker</pre>
+<p>External broker, gateway log:</p>
+<pre class="code">SparkBridge Provider: broker.impl='external', embedded broker disabled</pre>
+<p>Config &gt; SparkBridge Provider &gt; Settings, under Posture, shows the running values rather than the file's intent. A property that does not appear there indicates a configuration gap.</p>
+
+<h3>License</h3>
+<p>Covered by the suite license key described in the <a href="#install-common">shared install steps</a>. On trial expiry with no verified key, the embedded broker refuses new connections while established sessions are left alone.</p>
+</div>
+</section>
+
+<section id="flow">
+<div class="wrap">
+<div class="sec-head">
+<div class="path">Modules / Flow</div>
+<h2>SparkFlow</h2>
+<p>Bridges Sparkplug B to a NATS/JetStream backbone. Module file: <span class="mono">SparkBridge-Flow.modl</span>.</p>
+</div>
+
+<h3>What it needs</h3>
+<p>A reachable <span class="mono">nats-server</span> with JetStream enabled. SparkFlow is optional and is not part of the core install; install it after Central. See docs/FLOW_MODULE.md in the bundle for the full configuration and lifecycle reference.</p>
+
+<h3>Install</h3>
+<p>Install after Provider, Central, and Edge are running, following the <a href="#install-common">shared install steps</a> above.</p>
+
+<h3>Configure</h3>
+<table class="spec">
+<tr><th>Setting</th><td>Meaning, default</td></tr>
+<tr><th><span class="mono">sparkbridge.flow.enabled</span></th><td>Master on/off switch. Default <span class="mono">true</span>. When <span class="mono">false</span>, startup logs and returns without connecting to NATS or the broker.</td></tr>
+<tr><th><span class="mono">sparkbridge.flow.nats.url</span></th><td>NATS core connect URL. Default <span class="mono">nats://127.0.0.1:4222</span>.</td></tr>
+<tr><th><span class="mono">sparkbridge.flow.tagfeed</span></th><td>Comma-separated NATS-subject-style filter list (<span class="mono">*</span> = one token, <span class="mono">&gt;</span> = remainder) selecting the subset projected onto the managed tag provider. Empty means nothing projects.</td></tr>
+</table>
+<p>The <span class="mono">tagfeed</span> filter additionally hot-reloads at runtime from the <span class="mono">sparkflow-config</span> KV bucket; no other setting currently hot-reloads. See INSTALL.md in the bundle for TLS options (<span class="mono">certPath</span>/<span class="mono">keyPath</span>/<span class="mono">caPath</span>) if the NATS connection needs to be secured.</p>
+
+<h3>Verify</h3>
+<p>Confirm the Edge's Sparkplug traffic reaches NATS subjects under the <span class="mono">uns.</span> prefix, for example with a NATS CLI subscription to <span class="mono">uns.&gt;</span>. See docs/FLOW_MODULE.md in the bundle for the subject naming contract and the KV bucket layout used for last-known values.</p>
+
+<h3>License</h3>
+<p>Covered by the suite license key described in the <a href="#install-common">shared install steps</a>. On trial expiry with no verified key, Flow stops its dispatcher.</p>
+</div>
+</section>
+
+
+<section class="band group-head" id="group-modules">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">2 of 4</div>
+      <h2>Additional Modules</h2>
+      <p>Each runs on a SparkBridge Central gateway.</p>
+    </div>
+  </div>
+</section>
+<section id="sparkcalc"><div class="wrap"><div class="sec-head">
+<div class="path">modules / sparkcalc</div>
+<h2>SparkCalc</h2>
+<p>Computes declared expressions on the live Sparkplug estate and publishes results as their own identity so a derived value is never mistaken for a measured one.</p>
+</div>
+
+<h3>What it needs</h3>
+<ul>
+<li>A SparkBridge Central gateway.</li>
+<li>Java 17 to build.</li>
+<li>The <span class="mono">io.sparkbridge:common</span> artifact in mavenLocal, matching the version pinned in <span class="mono">build.gradle.kts</span>.</li>
+</ul>
+
+<h3>Install</h3>
+<ol>
+<li>If <span class="mono">io.sparkbridge:common</span> is not in mavenLocal, build it first from the SparkBridge repo: <span class="mono">./gradlew :common:publishToMavenLocal</span>.</li>
+<li>Build the module: <pre class="code">JAVA_HOME=~/.local/opt/jdk-17.0.19+10/Contents/Home ./gradlew build</pre></li>
+<li>Deploy the built module to the gateway's module directory and restart the gateway, per the standard SparkBridge module install described in the README of the SparkBridge bundle.</li>
+</ol>
+
+<h3>Configure</h3>
+<p>Declared expressions, staleness budgets, and identity settings are documented in the module's own README and in <span class="mono">docs/LIVEPROOF.md</span>. See the README in the bundle for the full property list; only what is confirmed there is listed below.</p>
+<table class="spec">
+<tr><th>Setting</th><td>Results publish under a <span class="mono">Calc-&lt;group&gt;</span> identity, with its own edge node and bdSeq lifecycle, distinct from the plant's own identity.</td></tr>
+<tr><th>Setting</th><td>Every declared input has its own staleness budget; there is no single global staleness setting.</td></tr>
+</table>
+
+<h3>Verify</h3>
+<p>Confirm published metrics appear under the <span class="mono">Calc-&lt;group&gt;</span> edge node rather than under the plant's own edge, and that the reported timestamp is the stalest contributing input's source timestamp, not the evaluation time. Full proof steps are in <span class="mono">docs/LIVEPROOF.md</span>.</p>
+
+<h3>License</h3>
+<p>Status at time of writing: on the bench, not customer ready. See the README in the bundle for current licensing terms.</p>
+</div></section>
+
+<section class="band" id="sparkid"><div class="wrap"><div class="sec-head">
+<div class="path">modules / sparkid</div>
+<h2>SparkID</h2>
+<p>Generates broker authorization from a declared statement of intent, so a Sparkplug estate's access rules are never hand-typed wildcards.</p>
+</div>
+
+<h3>What it needs</h3>
+<ul>
+<li>A SparkBridge Central gateway.</li>
+<li>Java 17.</li>
+<li><span class="mono">io.sparkbridge:common:2.5.0</span> from mavenLocal.</li>
+</ul>
+
+<h3>Install</h3>
+<ol>
+<li>If the common artifact is missing: <pre class="code">cd ../sparkbridge && ./gradlew :common:publishToMavenLocal</pre></li>
+<li>Build the jar: <pre class="code">JAVA_HOME=~/.local/opt/jdk-17.0.19+10/Contents/Home ./gradlew fatJar</pre></li>
+<li>Run <span class="mono">java -jar build/libs/sparkid-0.1.0-all.jar --help</span> to confirm the build.</li>
+</ol>
+
+<h3>Configure</h3>
+<p>Configuration is a declaration file (an <span class="mono">.intent</span> file) describing roles, scopes, and purposes, not a properties file on the gateway.</p>
+<ol>
+<li>Write the declaration, then validate it: <pre class="code">sparkid validate --intent examples/sparkbridge-dev.intent</pre></li>
+<li>Issue one secret per identity: <pre class="code">sparkid issue --intent examples/sparkbridge-dev.intent --ledger out/estate.ledger --out-dir out</pre></li>
+<li>Preview the change against the running broker's current rules: <pre class="code">sparkid diff --intent examples/sparkbridge-dev.intent --current /path/to/credentials.xml</pre></li>
+<li>Emit the artifacts: <pre class="code">sparkid generate --intent examples/sparkbridge-dev.intent --ledger out/estate.ledger --out-dir out --current /path/to/credentials.xml</pre></li>
+</ol>
+<table class="spec">
+<tr><th>Setting</th><td>HiveMQ file-RBAC is the only supported broker target for <span class="mono">credentials.xml</span>. Mosquitto dynamic-security is supported with <span class="mono">--mosquitto</span>, writing <span class="mono">dynamic-security.json</span>.</td></tr>
+<tr><th>Setting</th><td>SparkID never writes into a running broker and never opens a network connection; installing generated artifacts and restarting the broker is a separate, deliberate step.</td></tr>
+</table>
+
+<h3>Verify</h3>
+<p>Run <span class="mono">sparkid diff</span> against the broker's current <span class="mono">credentials.xml</span> and confirm the reported changes match intent. Check credential age with <span class="mono">sparkid expiry</span>. Full acceptance runs are in <span class="mono">docs/ACCEPTANCE.md</span>.</p>
+
+<h3>License</h3>
+<p>Soft-licensed; runs the same whether or not a key is present. License file lookup order: <span class="mono">--license &lt;file&gt;</span>, the <span class="mono">SPARKBRIDGE_LICENSE</span> environment variable, then <span class="mono">./sparkbridge-license.key</span> in the working directory. Run <span class="mono">sparkid license</span> for full status.</p>
+</div></section>
+
+<section id="passage"><div class="wrap"><div class="sec-head">
+<div class="path">modules / passage</div>
+<h2>Passage</h2>
+<p>Republishes the Sparkplug namespace as an OPC-UA server address space so non-Sparkplug clients can browse, subscribe, and (where allowed) write into the estate.</p>
+</div>
+
+<h3>What it needs</h3>
+<ul>
+<li>A SparkBridge Central gateway.</li>
+</ul>
+
+<h3>Install</h3>
+<p>Passage ships as a free module included with any SparkBridge Edge or Central license; it is never sold separately. Installation follows the standard SparkBridge module install: deploy the module file to the gateway and restart. See the README in the bundle for the exact package name and deployment steps.</p>
+
+<h3>Configure</h3>
+<table class="spec">
+<tr><th>Setting</th><td>The OPC-UA address space mirrors group/edge/device/metric as a browsable hierarchy; Sparkplug quality maps to OPC-UA StatusCode and the source timestamp is carried on every value.</td></tr>
+<tr><th>Setting</th><td>Writes are opt-in per namespace subtree, off by default, and translate to NCMD/DCMD through the existing command authorization posture.</td></tr>
+<tr><th>Setting</th><td>Supported security policies include anonymous, username/password, and certificate-based (Basic256Sha256).</td></tr>
+</table>
+<p>Exact property names and file paths ship with the module bundle; see the README in the bundle.</p>
+
+<h3>Verify</h3>
+<p>Connect a third-party OPC-UA client (for example UaExpert), browse the address space, subscribe to a value, and confirm it matches the Sparkplug wire within one update with the source timestamp preserved. Confirm a node goes to bad quality within the death window after an NDEATH/DDEATH.</p>
+
+<h3>License</h3>
+<p>Free. Included with any SparkBridge Edge or Central license; ships as a free module with no license tag required.</p>
+</div></section>
+
+<section class="band" id="sentinel"><div class="wrap"><div class="sec-head">
+<div class="path">modules / sentinel</div>
+<h2>Sentinel</h2>
+<p>Audits a Sparkplug estate's posture and grades it without ever touching it.</p>
+</div>
+
+<h3>What it needs</h3>
+<ul>
+<li>A SparkBridge Central gateway (for the estate being audited).</li>
+<li>Java 17 to build and run the auditor itself.</li>
+<li><span class="mono">io.sparkbridge:common:2.4.0</span> from mavenLocal.</li>
+</ul>
+
+<h3>Install</h3>
+<ol>
+<li>If the common artifact is missing: <pre class="code">cd ../sparkbridge && ./gradlew :common:publishToMavenLocal</pre></li>
+<li>Build the self-contained jar: <pre class="code">JAVA_HOME=~/.local/opt/jdk-17.0.19+10/Contents/Home ./gradlew fatJar</pre></li>
+<li>Confirm with <span class="mono">java -jar build/libs/sparkaudit-0.1.0-all.jar --help</span>.</li>
+</ol>
+
+<h3>Configure</h3>
+<p>Sentinel runs as a passive audit by default:</p>
+<pre class="code">java -jar sparkaudit-0.1.0-all.jar \
+  --broker tcp://broker.example:1883 --username auditor \
+  --password-file secrets.properties audit.password \
+  --estate "Plant 4" --window 300 --expect-groups Plant4,Utilities \
+  --out-html report.html --out-json report.json</pre>
+<table class="spec">
+<tr><th>Setting</th><td><span class="mono">--credentials-xml</span> and <span class="mono">--posture</span> add config-derived findings the wire cannot show on its own.</td></tr>
+<tr><th>Setting</th><td><span class="mono">--allow-active-probes</span> enables active probes (off by default); <span class="mono">--tls-listener</span> checks a TLS listener.</td></tr>
+<tr><th>Setting</th><td><span class="mono">--profile free</span> withholds full evidence for a pre-sales report; <span class="mono">--profile full</span> (default) includes complete evidence and remediation.</td></tr>
+</table>
+<p>The auditor never publishes to any topic; it exposes no publish method at all.</p>
+
+<h3>Verify</h3>
+<p>Run the audit and check the exit code: <span class="mono">0</span> clean, <span class="mono">1</span> findings below critical, <span class="mono">2</span> at least one critical, <span class="mono">3</span> the audit could not run. Use <span class="mono">--capture-out capture.jsonl</span> and later <span class="mono">--replay capture.jsonl</span> to re-evaluate rules offline against the same window.</p>
+
+<h3>License</h3>
+<p>Soft-licensed; runs in full whether or not licensed. License file <span class="mono">sparkbridge-license.key</span> in the working directory, or <span class="mono">--license &lt;file&gt;</span>, or the <span class="mono">SPARKBRIDGE_LICENSE</span> environment variable. Run <span class="mono">sparkaudit license</span> for full status. Buy at <span class="mono">https://mqtt.greenguard-usa.com/sparkbridge/pricing</span>.</p>
+</div></section>
+
+<section id="fleetops"><div class="wrap"><div class="sec-head">
+<div class="path">modules / fleetops</div>
+<h2>FleetOps</h2>
+<p>Operates many Ignition gateways as one fleet: an agent on each gateway reports its real state, a console holds desired state, and the difference is drift.</p>
+</div>
+
+<h3>What it needs</h3>
+<ul>
+<li>A SparkBridge Central gateway to run the console role; the agent role runs on every fleet member.</li>
+<li>Java 17 to build.</li>
+<li><span class="mono">io.sparkbridge:common:2.4.0</span> from mavenLocal.</li>
+</ul>
+
+<h3>Install</h3>
+<ol>
+<li>If the common artifact is missing: <pre class="code">cd ../sparkbridge && ./gradlew :common:publishToMavenLocal</pre></li>
+<li>Build: <pre class="code">export JAVA_HOME=~/.local/opt/jdk-17.0.19+10/Contents/Home
+./gradlew clean build</pre></li>
+<li>Deploy a dev build: <pre class="code">cp build/SparkBridge-FleetOps.unsigned.modl \
+   /usr/local/ignition/user-lib/modules/SparkBridge-FleetOps.modl
+/usr/local/ignition/gwcmd.sh -r</pre></li>
+<li>Dev builds are unsigned; the gateway must run with <span class="mono">-Dignition.allowunsignedmodules=true</span>.</li>
+</ol>
+
+<h3>Configure</h3>
+<p>A JVM system property wins; otherwise settings come from <span class="mono">&lt;dataDir&gt;/fleetops/fleetops.properties</span>. Secrets are the exception: the broker password and REST token come only from the file named by <span class="mono">fleetops.secrets.file</span>, which must be mode 600.</p>
+<table class="spec">
+<tr><th>fleetops.agent.enabled</th><td>false by default; a module dropped on a gateway must not silently join a fleet.</td></tr>
+<tr><th>fleetops.console.enabled</th><td>false by default.</td></tr>
+<tr><th>fleetops.broker.uri</th><td>default <span class="mono">tcp://127.0.0.1:1883</span>.</td></tr>
+<tr><th>fleetops.trustedkey</th><td>base64 P-256 public key. Absent means the agent reports and accepts nothing.</td></tr>
+<tr><th>fleetops.action.allowlist</th><td>comma-separated action names; empty means no action is permitted.</td></tr>
+<tr><th>fleetops.action.certReplaceEnabled</th><td>false by default; second explicit local gate for the private-key-bearing CERT_REPLACE action.</td></tr>
+<tr><th>fleetops.agent.intervalSeconds</th><td>default 60, floor of 5; this is also the drift-detection latency.</td></tr>
+</table>
+<p>Full property list is in the module README's Configuration section.</p>
+
+<h3>Verify</h3>
+<p>Use the operator CLI to publish desired state and issue a signed action, then confirm the fleet converges: <pre class="code">java -jar ... publish-desired --key fleet-signing.key --site Austin/Site12 \
+        --file desired.properties --version 2026-08-16.1 --broker tcp://host:1883
+java -jar ... watch --broker tcp://host:1883 --seconds 30 --report drift</pre>
+Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and <span class="mono">docs/rig-transcript.txt</span>.</p>
+
+<h3>License</h3>
+<p>See the README in the bundle.</p>
+</div></section>
+
+<section class="band" id="sparkvault"><div class="wrap"><div class="sec-head">
+<div class="path">modules / sparkvault</div>
+<h2>SparkVault</h2>
+<p>Estate-wide Sparkplug history for Ignition: columnar storage, trend readback through Ignition's own tag-history provider, and plant replay.</p>
+</div>
+
+<h3>What it needs</h3>
+<ul>
+<li>A SparkBridge Central gateway.</li>
+<li>A Postgres/Timescale database reachable from the gateway.</li>
+<li>Java 17 to build.</li>
+</ul>
+
+<h3>Install</h3>
+<ol>
+<li>Build the module (mirrors the sparkbridge layout: umbrella module project plus a gateway-scope code project).</li>
+<li>Deploy the <span class="mono">.unsigned.modl</span> as <span class="mono">SparkVault-Historian.modl</span> on a gateway running <span class="mono">-Dignition.allowunsignedmodules=true</span> for dev builds.</li>
+<li>Set <span class="mono">sparkvault.ingest.enabled=true</span> to activate the ingest lane; it stays inert otherwise.</li>
+</ol>
+
+<h3>Configure</h3>
+<table class="spec">
+<tr><th>sparkvault.ingest.enabled</th><td>false by default; master switch for the Sparkplug MQTT ingest lane.</td></tr>
+<tr><th>sparkvault.broker.uri</th><td>default <span class="mono">tcp://127.0.0.1:1883</span>.</td></tr>
+<tr><th>sparkvault.db.url</th><td>default <span class="mono">jdbc:postgresql://localhost:5432/sparkvault</span>.</td></tr>
+<tr><th>sparkvault.db.user</th><td>default <span class="mono">sparkvault</span>.</td></tr>
+<tr><th>sparkvault.db.schema</th><td>default <span class="mono">sparkvault</span>.</td></tr>
+<tr><th>sparkvault.jetstream.enabled</th><td>false by default; independent JetStream ingest source, stream must be bound to <span class="mono">uns.&gt;</span>.</td></tr>
+<tr><th>sparkvault.write.batch</th><td>default 500 rows per insert batch.</td></tr>
+<tr><th>sparkvault.buffer.path</th><td>default <span class="mono">data/sparkvault-history-buffer.dat</span>, the store-and-forward spill file.</td></tr>
+</table>
+<p>Schema migrations apply automatically at startup under a Postgres advisory lock. Full config key list is in the module README.</p>
+
+<h3>Verify</h3>
+<p>Check <span class="mono">GET /data/io.sparkvault.historian/status.json</span> for lane state and heartbeat age. Confirm a trend binding against the registered tag-history provider returns data matching the live Sparkplug stream.</p>
+
+<h3>License</h3>
+<p>See the README in the bundle.</p>
+</div></section>
+
+<section id="sparkinject"><div class="wrap"><div class="sec-head">
+<div class="path">modules / sparkinject</div>
+<h2>SparkInject</h2>
+<p>Perpetual-license Sparkplug-to-cloud injection for Ignition, landing estate data in Snowflake or Databricks with store-and-forward and exactly-once semantics.</p>
+</div>
+
+<h3>What it needs</h3>
+<ul>
+<li>A SparkBridge Central gateway.</li>
+<li>Java 17 to build.</li>
+<li>A Snowflake or Databricks destination, provisioned before switching off the default JSONL sink.</li>
+</ul>
+
+<h3>Install</h3>
+<ol>
+<li>Build and deploy the module following the standard SparkBridge install.</li>
+<li>Set <span class="mono">sparkinject.enabled=true</span>; it is off by default.</li>
+<li>Leave <span class="mono">sparkinject.sink=jsonl</span> (the default) to prove the pipeline end to end before provisioning a warehouse.</li>
+</ol>
+
+<h3>Configure</h3>
+<p>Before switching <span class="mono">sparkinject.sink=snowpipe</span>, run the generated DDL at <span class="mono">docs/sparkinject-schema.sql</span> to create the database, schema, and one table per mapped group, plus the role and key-pair user with <span class="mono">USAGE</span> and <span class="mono">INSERT, SELECT</span> grants. The module cannot create tables itself.</p>
+<table class="spec">
+<tr><th>sparkinject.enabled</th><td>false by default.</td></tr>
+<tr><th>sparkinject.sink</th><td><span class="mono">jsonl</span> (default) or <span class="mono">snowpipe</span>; <span class="mono">databricks</span> for that destination.</td></tr>
+<tr><th>sparkinject.mapping.file</th><td>default <span class="mono">data/sparkinject-mapping.properties</span>, group-to-table routing.</td></tr>
+<tr><th>sparkinject.mapping.requireRule</th><td>false by default; true refuses an unmapped group instead of deriving a table name.</td></tr>
+<tr><th>sparkinject.secrets.file</th><td>default <span class="mono">data/sparkinject-secrets.properties</span>, mode 600, never on the JVM command line.</td></tr>
+<tr><th>sparkinject.broker.uri</th><td>default <span class="mono">tcp://127.0.0.1:1883</span>.</td></tr>
+<tr><th>sparkinject.snowflake.privateKey</th><td>secrets-file key; PEM PKCS#8 private key for the Snowflake key-pair user.</td></tr>
+<tr><th>sparkinject.status.token</th><td>secrets-file key; bearer token for status.json, unset means loopback-only.</td></tr>
+</table>
+
+<h3>Verify</h3>
+<p>Check <span class="mono">GET /data/io.sparkinject.snowflake/status.json</span>. A lane in state <span class="mono">BLOCKED</span> always carries a non-null <span class="mono">problem</span> with pasteable remediation, for example a missing destination table. <span class="mono">inject.buffered</span> reports bytes currently held on disk and is the number to alarm on.</p>
+
+<h3>License</h3>
+<p>Perpetual license. See the README in the bundle for purchasing.</p>
+</div></section>
+
+
+<section class="band group-head" id="group-drivers">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">3 of 4</div>
+      <h2>Device Drivers</h2>
+      <p>Each installs on any Ignition gateway and appears as a device type.</p>
+    </div>
+  </div>
+</section>
+<section id="sparklogix"><div class="wrap"><div class="sec-head">
+<div class="path">Drivers / Allen-Bradley Logix</div>
+<h2>SparkLogix</h2>
+<p>Replacement driver for Allen-Bradley ControlLogix and CompactLogix, built for efficient AOI and UDT reads and writes.</p>
+</div>
+
+<h3>What it needs</h3>
+<ul>
+<li>Ignition 8.1.x (legacy driver API) or Ignition 8.3.x (managed-node API, separate module build), Java 17.</li>
+<li>A ControlLogix or CompactLogix controller reachable over EtherNet/IP, firmware v16 or later. Micro8xx and 5000-series are lower priority targets on the same CIP core.</li>
+</ul>
+
+<h3>Install</h3>
+<ol>
+<li>On the target gateway, install the <span class="mono">sparklogix-&lt;version&gt;-ign83.modl</span> artifact (8.3) or the 8.1 build of the same module.</li>
+<li>Confirm the module is active and its module ID reads <span class="mono">com.sparkbridge.sparklogix</span>.</li>
+<li>To upgrade, install the new version over the same module ID without uninstalling the old one first; existing devices and settings are retained.</li>
+</ol>
+
+<h3>Configure</h3>
+<p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; the SparkLogix Logix device type. The settings form has five categories: Communications, Timeouts, Probe Options, Redundancy, Advanced.</p>
+<table class="spec">
+<tr><th>Setting</th><td>Meaning, default</td></tr>
+<tr><th>Network Address</th><td>DNS or IP of the first hop, optional <span class="mono">:port</span>.</td></tr>
+<tr><th>Route Path</th><td>Subsequent hops, for example <span class="mono">1,0</span> for a ControlLogix backplane slot; blank for an on-board Ethernet port.</td></tr>
+<tr><th>Use Connected / Allow Batching</th><td>Class 3 connected messaging and Multiple Service Packet batching of small requests.</td></tr>
+<tr><th>Use Instance IDs</th><td>Off by default. Leave off; the instance-ID/symbolic fallback path is not independently field-verified yet.</td></tr>
+<tr><th>Enable Class 1 Cyclic</th><td>Off by default.</td></tr>
+<tr><th>Change Detection</th><td>On by default, tag-database change polling.</td></tr>
+<tr><th>Persist Tag Database</th><td>On by default.</td></tr>
+<tr><th>Verify Writes</th><td>Off by default.</td></tr>
+</table>
+
+<h3>Verify</h3>
+<ol>
+<li>Start the device and confirm it reaches CONNECTED and the first probe populates the tag database.</li>
+<li>Browse or type a tag path, for example an array member such as <span class="mono">Entity.Params[0]</span>, and confirm distinct values per element (the array sentinel regression check).</li>
+<li>Disconnect the controller network briefly and confirm the device reports no communication, then reconnects to GOOD without a gateway restart.</li>
+</ol>
+
+<h3>License</h3>
+<p>See the README in the bundle.</p>
+</div></section>
+
+<section class="band" id="sparksnmp"><div class="wrap"><div class="sec-head">
+<div class="path">Drivers / SNMP</div>
+<h2>SparkSNMP</h2>
+<p>SNMP v1/v2c/v3 driver that polls network gear, UPSes, and other SNMP-capable devices as OPC UA device connections, with no MIB compilation required.</p>
+</div>
+
+<h3>What it needs</h3>
+<ul>
+<li>Ignition 8.1.19 or newer, or the 8.3 line. One bundle per line.</li>
+<li>An SNMP agent reachable over UDP, default agent port 161. SNMPv3 USM is supported (auth MD5/SHA1/SHA224/SHA256/SHA384/SHA512; privacy DES/AES128/AES192/AES256) on the read path.</li>
+</ul>
+
+<h3>Install</h3>
+<ol>
+<li>Build with <span class="mono">./gradlew build</span> for an unsigned dev artifact at <span class="mono">build/SparkSNMP.modl</span>, or run <span class="mono">./scripts/release.sh</span> for a signed release build plus <span class="mono">SHA256SUMS.txt</span>.</li>
+<li>Install the module. Unsigned builds require the gateway to accept untrusted modules.</li>
+</ol>
+
+<h3>Configure</h3>
+<p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; the SNMP device type. Select the SNMP version (V1/V2C/V3), set Community (V1/V2C) or the USM user/auth/privacy settings (V3), and the agent host and UDP port.</p>
+<table class="spec">
+<tr><th>Setting</th><td>Meaning, default</td></tr>
+<tr><th>Community</th><td>Read community string for V1/V2C, for example <span class="mono">public</span>. A separate read-write community enables SET.</td></tr>
+<tr><th>Allow SNMP SET Writes</th><td>Must be ticked, plus a write-capable community, before OPC UA writes reach the agent.</td></tr>
+</table>
+<p>Addressing (OPC item paths):</p>
+<table class="spec">
+<tr><th>Form</th><td>Meaning</td></tr>
+<tr><th><span class="mono">1.3.6.1.2.1.1.1.0</span></th><td>Raw instance OID.</td></tr>
+<tr><th><span class="mono">sysDescr.0</span> / <span class="mono">sysDescr</span></th><td>MIB-2 scalar by name, <span class="mono">.0</span> implied.</td></tr>
+<tr><th><span class="mono">ifDescr[1]</span></th><td>Table column plus row index.</td></tr>
+<tr><th><span class="mono">Interfaces/ifTable/1/ifDescr</span></th><td>Browse-tree path.</td></tr>
+</table>
+<p>Append <span class="mono">|string</span>, <span class="mono">|hex</span>, <span class="mono">|bytes</span>, or <span class="mono">|seconds</span> to force presentation, for example <span class="mono">ifPhysAddress[1]|hex</span>.</p>
+<p>Custom vendor MIBs upload under Config &gt; SparkSNMP &gt; Custom MIBs, or via <span class="mono">POST /data/com.sparkbridge.sparksnmp/mibs?name=&lt;module&gt;</span> with the MIB text as the body.</p>
+
+<h3>Verify</h3>
+<ul>
+<li>Check <span class="mono">GET status.json</span> under the device's route group; a healthy lane reports <span class="mono">RUNNING</span>.</li>
+<li>Browse the device in an OPC UA client and confirm MIB-2 folders (sysDescr, ifTable, ipAddrTable) and any uploaded vendor subtrees appear.</li>
+</ul>
+
+<h3>License</h3>
+<p>Licensed per gateway, bought once and kept. An unlicensed gateway runs identically to a licensed one; drop a license key at <span class="mono">&lt;Ignition data dir&gt;/sparkbridge-license.key</span>.</p>
+</div></section>
+
+<section id="iec104"><div class="wrap"><div class="sec-head">
+<div class="path">Drivers / IEC 60870-5-104</div>
+<h2>IEC 60870-5-104</h2>
+<p>Client (controlling station) driver for the IEC 60870-5-104 TCP telecontrol protocol used in electricity transmission and distribution.</p>
+</div>
+
+<h3>What it needs</h3>
+<ul>
+<li>Ignition 8.1.x, Java 17. Built and tested against Ignition Module SDK 8.1.54.</li>
+<li>An RTU or substation gateway reachable over TCP, default port 2404.</li>
+</ul>
+
+<h3>Install</h3>
+<ol>
+<li>Build with <span class="mono">./gradlew build</span> to produce <span class="mono">build/IEC104-Driver.unsigned.modl</span>.</li>
+<li>Install on the gateway. The module is unsigned, so the gateway must be set to accept unsigned modules (disables signature verification gateway-wide).</li>
+</ol>
+
+<h3>Configure</h3>
+<p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; IEC 60870-5-104.</p>
+<table class="spec">
+<tr><th>Setting</th><td>Meaning, default</td></tr>
+<tr><th>Hostname/IP, Port</th><td>RTU or substation gateway; port default 2404.</td></tr>
+<tr><th>Backup Hostname/IP, Backup Port</th><td>Second server of the redundancy group; blank for a single server.</td></tr>
+<tr><th>Common Address</th><td>Common address of ASDU, default 1.</td></tr>
+<tr><th>Originator Address</th><td>Echoed on responses; 0 means unused, default 0.</td></tr>
+<tr><th>Window k / Window w</th><td>Max unacknowledged I-frames (default 12) and the acknowledgement threshold (default 8, must not exceed two thirds of k).</td></tr>
+<tr><th>t1 / t2 / t3 (s)</th><td>Ack/confirmation timeout (15), S-frame ack delay (10), keepalive idle time (20).</td></tr>
+<tr><th>Interrogate On Connect</th><td>Default true.</td></tr>
+<tr><th>Clock Sync On Connect</th><td>Default false.</td></tr>
+<tr><th>RTU Time Zone</th><td>Zone the RTU expresses CP56Time2a in, default UTC. Not optional to think about: getting it wrong silently offsets every time tag.</td></tr>
+</table>
+<p>Addressing: a bare IOA such as <span class="mono">100</span>, or structured form <span class="mono">1.2.4</span> (high.middle.low). No type suffix; the point's type is decided by the RTU. There is no browse service for undiscovered points; browse shows only IOAs already reported.</p>
+
+<h3>Verify</h3>
+<ul>
+<li>Reproduce the bundled live-proof harness: <span class="mono">java -cp common/build/libs/common-0.1.0.jar com.greenguard.iec104.tools.Iec104Probe --host &lt;ip&gt; --port 2404 --ca 1 --seconds 70 --clocksync --t3 1000</span>.</li>
+<li>Check <span class="mono">GET /data/com.greenguard.drivers.iec104/status.json</span> for lane state and data age.</li>
+</ul>
+<p>Control-direction commands (single/double/step/setpoint), counter interrogation, file transfer, parameter loading, and TLS (secure 104) are not implemented in v1.</p>
+
+<h3>License</h3>
+<p>See the README in the bundle.</p>
+</div></section>
+
+<section class="band" id="dnp3"><div class="wrap"><div class="sec-head">
+<div class="path">Drivers / DNP3</div>
+<h2>DNP3</h2>
+<p>Master (client) driver for DNP3 (IEEE 1815), the polled protocol common across North American electric distribution and water/wastewater. Reads only; it does not control.</p>
+</div>
+
+<h3>What it needs</h3>
+<ul>
+<li>Ignition 8.1.54, Java 17. TCP transport only; serial is not implemented.</li>
+<li>An outstation reachable over TCP, registered port 20000.</li>
+</ul>
+
+<h3>Install</h3>
+<ol>
+<li>Build with <span class="mono">./gradlew build</span>. Module id <span class="mono">com.greenguard.drivers.dnp3</span>.</li>
+<li>Install the module. Unsigned dev builds require the gateway to accept unsigned modules.</li>
+</ol>
+
+<h3>Configure</h3>
+<p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; DNP3.</p>
+<table class="spec">
+<tr><th>Setting</th><td>Meaning, default</td></tr>
+<tr><th>Hostname/IP</th><td>Outstation address.</td></tr>
+<tr><th>Port</th><td>TCP port, registered default 20000.</td></tr>
+<tr><th>Master Address</th><td>This driver's own DNP3 link address.</td></tr>
+<tr><th>Outstation Address</th><td>The outstation's DNP3 link address, per station.</td></tr>
+</table>
+<p>Addressing is type plus index, per type: <span class="mono">BI7</span> (binary input 7), <span class="mono">DB3</span> (double-bit binary input 3), <span class="mono">CTR0</span> (counter 0), <span class="mono">AI12</span> (analog input 12). Group-number spellings are also accepted, for example <span class="mono">G1.7</span> or <span class="mono">G30.12</span>. No type suffix is accepted; the outstation decides the data type. Addresses resolve on demand and answer <span class="mono">Bad_WaitingForInitialData</span> until first reported. Browse shows four folders (BI, DB, CTR, AI) built from the integrity poll; it is empty until the first integrity poll completes.</p>
+
+<h3>Verify</h3>
+<ul>
+<li>Run the bundled probe: <span class="mono">java -cp common/build/libs/common-0.1.0.jar com.greenguard.dnp3.tools.Dnp3Probe --host &lt;ip&gt; --port 20000 --master 1 --outstation 10 --seconds 60</span>.</li>
+<li>Confirm the device reaches READY and the status line reports a nonzero point count after the first integrity poll.</li>
+</ul>
+
+<h3>License</h3>
+<p>See the README in the bundle.</p>
+</div></section>
+
+<section id="ti505"><div class="wrap"><div class="sec-head">
+<div class="path">Drivers / TI 505 / CTI 2500</div>
+<h2>TI 505 / CTI 2500</h2>
+<p>Driver for CTI 2500-series processors and legacy Siemens/TI 505 PLCs over the CAMP protocol on TCP.</p>
+</div>
+
+<h3>What it needs</h3>
+<ul>
+<li>Ignition 8.1.54, Java 17.</li>
+<li>A CTI 2572/2500 onboard Ethernet module or compatible 505 gear reachable over TCP, default CAMP port 1505.</li>
+</ul>
+
+<h3>Install</h3>
+<ol>
+<li>Build with <span class="mono">./gradlew clean build</span> to produce <span class="mono">build/TI505-Driver.unsigned.modl</span>.</li>
+<li>Install via Config &gt; Modules &gt; Install/Upgrade a Module. The module is unsigned, so the gateway must accept unsigned modules.</li>
+</ol>
+
+<h3>Configure</h3>
+<p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; TI 505 / CTI 2500.</p>
+<table class="spec">
+<tr><th>Setting</th><td>Meaning, default</td></tr>
+<tr><th>Hostname/IP</th><td>PLC or 2572 Ethernet module.</td></tr>
+<tr><th>Port</th><td>CAMP TCP port, default 1505.</td></tr>
+<tr><th>Timeout (ms)</th><td>Socket connect/read timeout, default 3000.</td></tr>
+<tr><th>Max Read Words</th><td>Upper bound per CAMP block read, default 64.</td></tr>
+<tr><th>Browse Elements Per Area</th><td>Word/discrete elements exposed per area when browsing, default 1024.</td></tr>
+<tr><th>Loop/Alarm Browse Count</th><td>Loop/alarm numbers exposed per area when browsing, default 64.</td></tr>
+</table>
+<p>Addressing: <span class="mono">&lt;area&gt;&lt;element&gt;[.&lt;bit&gt;][:&lt;type&gt;[:&lt;len&gt;]]</span>. Discrete areas <span class="mono">X Y C</span>; word areas <span class="mono">V K WX WY STW TCP TCC</span>. Elements are 1-based; bit 1 is the MSB. Examples: <span class="mono">V100</span> (Int16), <span class="mono">V100:REAL</span>, <span class="mono">V100.3</span> (bit), <span class="mono">V100:STRING:20</span>. Loop and analog-alarm parameters address by loop/alarm number, for example <span class="mono">LERR3</span> (loop 3 error) or <span class="mono">LSP3</span> (loop 3 setpoint). Confirmed loop codes: <span class="mono">LERR</span>, <span class="mono">LERRR</span>, <span class="mono">LVF</span>, <span class="mono">LRSF</span>, <span class="mono">LACK</span>. Other loop/alarm codes (<span class="mono">LPV LSP LMN LKC LTI LTD LSPH LSPL LHA LLA APV ASP AERR AHA ALA</span>) are provisional: reads work, but writes through the driver are refused (<span class="mono">Bad_NotWritable</span>) until independently verified against live hardware.</p>
+
+<h3>Verify</h3>
+<ol>
+<li>Standalone probe: <span class="mono">java -cp gateway/build/libs/gateway-1.0.0.jar com.cti.ti505.tools.Ti505Probe &lt;host&gt; 1505 V100:REAL</span>.</li>
+<li>To confirm a provisional loop/alarm code, read it and compare against the value shown on the HMI or programming software; only promote it to verified after that match.</li>
+</ol>
+
+<h3>License</h3>
+<p>See the README in the bundle.</p>
+</div></section>
+
+<section class="band" id="sparkads"><div class="wrap"><div class="sec-head">
+<div class="path">Drivers / Beckhoff ADS</div>
+<h2>SparkADS</h2>
+<p>Beckhoff TwinCAT 2/3 ADS/AMS driver that talks ADS directly to the PLC, with no TF6100 OPC UA server license required.</p>
+</div>
+
+<h3>What it needs</h3>
+<ul>
+<li>Ignition 8.1 and 8.3.</li>
+<li>A TwinCAT 2 or 3 PLC reachable over TCP 48898 (ADS/AMS), with a static AMS route configured on the PLC pointing to the gateway's AmsNetId.</li>
+</ul>
+
+<h3>Install</h3>
+<p>Module id <span class="mono">com.sparkbridge.sparkads</span>. Install the module on Ignition 8.1 or 8.3 as an Ignition module. See the README in the bundle for build and packaging steps.</p>
+
+<h3>Configure</h3>
+<p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; the ADS device type.</p>
+<table class="spec">
+<tr><th>Setting</th><td>Meaning, default</td></tr>
+<tr><th>Hostname/IP, Port</th><td>PLC address; AMS/TCP port 48898.</td></tr>
+<tr><th>Target NetId, Target Port</th><td>The PLC's AmsNetId and AMS port. TwinCAT 3 PLC1 defaults to port 851 (801/811/821/831 are TwinCAT 2 runtimes 1-4; 851/852/853 are TwinCAT 3 runtimes 1-3).</td></tr>
+<tr><th>Local NetId</th><td>This driver's own AmsNetId, which must be added as a route on the PLC.</td></tr>
+</table>
+<p>Manual tag addressing: <span class="mono">MAIN.x</span> (symbolic), <span class="mono">%MW100:INT</span>, or <span class="mono">0x4020,0x100:DINT</span> (index group/offset).</p>
+
+<h3>Verify</h3>
+<p>See the README in the bundle.</p>
+
+<h3>License</h3>
+<p>Licensed per gateway, bought once and kept, soft-licensed (<span class="mono">io.sparkbridge.license</span>, entitlement ADS).</p>
+</div></section>
+
+<section id="sparks7"><div class="wrap"><div class="sec-head">
+<div class="path">Drivers / Siemens S7</div>
+<h2>SparkS7</h2>
+<p>Siemens S7-1200/1500 symbolic driver that browses PLC symbols by name, including optimized (non-absolute) blocks, without a TIA export.</p>
+</div>
+
+<h3>What it needs</h3>
+<ul>
+<li>Ignition 8.1 and 8.3.</li>
+<li>An S7-1200/1500 PLC reachable over classic S7comm (ISO-on-TCP, TCP port 102).</li>
+</ul>
+
+<h3>Install</h3>
+<p>Module id <span class="mono">com.sparkbridge.sparks7</span>. Install as an Ignition module. See the README in the bundle for build steps.</p>
+
+<h3>Configure</h3>
+<p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; the S7 device type.</p>
+<table class="spec">
+<tr><th>Setting</th><td>Meaning, default</td></tr>
+<tr><th>Host, Port</th><td>PLC address; ISO-on-TCP default port 102.</td></tr>
+<tr><th>Rack, Slot</th><td>CPU endpoint selection; this is protocol routing, not authentication.</td></tr>
+</table>
+
+<h3>Security notes</h3>
+<p>Classic S7comm is plaintext with no credentials, encryption, or replay protection; this is a limitation of the Siemens protocol, not an omitted driver option. Isolate TCP 102 on a dedicated VLAN or VPN and firewall it so only the Ignition gateway can reach the PLC. Do not expose the PLC on an untrusted or internet-routable network.</p>
+<p>S7comm+ transport is disabled by default because it fails against tested real hardware. It can only be enabled with the system property <span class="mono">sparks7.allowPlus=true</span> (or environment variable <span class="mono">SPARKS7_ALLOW_PLUS=true</span>), and only on a trusted test network.</p>
+
+<h3>Verify</h3>
+<p>See the README in the bundle.</p>
+
+<h3>License</h3>
+<p>Licensed per gateway, bought once and kept, soft-licensed (<span class="mono">io.sparkbridge.license</span>, entitlement <span class="mono">com.sparkbridge.sparks7</span>). A missing license key runs in permissive development/evaluation mode; a present but invalid key fails closed and blocks the device until fixed or removed.</p>
+</div></section>
+
+<section class="band" id="spark61850"><div class="wrap"><div class="sec-head">
+<div class="path">Drivers / IEC 61850</div>
+<h2>Spark61850</h2>
+<p>IEC 61850 MMS client driver for substation IEDs.</p>
+</div>
+
+<h3>What it needs</h3>
+<ul>
+<li>Ignition 8.1 and 8.3.</li>
+<li>An IED reachable over MMS on ISO (RFC1006 TPKT/COTP), TCP port 102.</li>
+</ul>
+
+<h3>Install</h3>
+<p>Module id <span class="mono">com.sparkbridge.spark61850</span>. See the README in the bundle for build and packaging steps.</p>
+
+<h3>Configure</h3>
+<p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; the 61850 device type. Addressing follows the IED/LD/LN/DO/DA model tree, browsable as folders, with functional constraint (ST/MX/CO/SP) as a leaf suffix. SCL file (.icd/.cid/.scd) import can pre-build the model; see the README in the bundle for the exact import steps.</p>
+
+<h3>Verify</h3>
+<p>The MMS/ISO wire encoding has been verified against a real libiec61850 server for Initiate, GetNameList, GetVariableAccessAttributes, Read, Write, and report-control-block (RCB) report reception. A configured Ignition device against a libiec61850 server, browsing and reading through OPC UA including buffered report reception, has passed live on both the 8.1 and 8.3 lines. Controls (SBO and direct) are documented in the README in the bundle.</p>
+
+<h3>License</h3>
+<p>Licensed per gateway, bought once and kept, soft-licensed, entitlement <span class="mono">com.sparkbridge.spark61850</span>.</p>
+</div></section>
+
+<section id="sparkbacnet"><div class="wrap"><div class="sec-head">
+<div class="path">Drivers / BACnet</div>
+<h2>SparkBACnet</h2>
+<p>BACnet/IP client driver for building automation systems.</p>
+</div>
+
+<h3>What it needs</h3>
+<ul>
+<li>Ignition 8.1 and 8.3.</li>
+<li>A BACnet/IP device reachable over UDP, port 47808.</li>
+</ul>
+
+<h3>Install</h3>
+<p>Module id <span class="mono">com.sparkbridge.sparkbacnet</span>. See the README in the bundle for build and packaging steps.</p>
+
+<h3>Configure</h3>
+<p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; the BACnet device type. Discovery uses Who-Is/I-Am. Addressing grammar: <span class="mono">dev:1234/AI:1.PV</span> (device instance, object type and instance, property). Supported services include ReadProperty, ReadPropertyMultiple, WriteProperty (priority array 1-16, relinquish via NULL), and SubscribeCOV with lifetime renewal. Supported object types: analog/binary/multistate input/output/value, device, and read-only schedule/calendar.</p>
+<p>Firewall notes: BACnet/IP uses UDP 47808 (BVLC/NPDU/APDU); ensure the gateway's UDP port is reachable to and from field devices, including broadcast for Who-Is discovery.</p>
+
+<h3>Verify</h3>
+<p>Wire encoding has been verified against a real bacnet-stack server: Who-Is/I-Am, ReadProperty, ReadPropertyMultiple, and WriteProperty with priority and relinquish all passed. SubscribeCOV notification receipt was not exercised in that run. A configured Ignition device against a real controller, browsing and reading through OPC UA, and 8.3 support are tracked separately; see the README in the bundle for current status before deploying.</p>
+
+<h3>License</h3>
+<p>Licensed per gateway, bought once and kept, soft-licensed, entitlement <span class="mono">com.sparkbridge.sparkbacnet</span>.</p>
+</div></section>
+
+
+<section class="band group-head" id="group-enhancements">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">4 of 4</div>
+      <h2>Ignition Enhancements</h2>
+      <p>History, validation, a Perspective component and alarm notification.</p>
+    </div>
+  </div>
+</section>
+<section id="sparkinflux"><div class="wrap"><div class="sec-head">
+<div class="path">historian</div>
+<h2>SparkInflux</h2>
+<p>InfluxDB tag-history provider for Ignition, covering both 8.1.19+ and 8.3.2+.</p>
+</div>
+
+<h3>What it needs</h3>
+<ul>
+<li>Ignition 8.1.19+ (uses <span class="mono">TagHistoryProvider</span>) or 8.3.2+ (uses <span class="mono">AbstractHistorian</span>, sibling repo <span class="mono">sparkinflux-83</span>).</li>
+<li>An InfluxDB server, version 1.8, 2.x, or 3.x.</li>
+</ul>
+
+<h3>Install</h3>
+<ol>
+<li>Build with <span class="mono">./gradlew build</span> (unsigned dev build, output <span class="mono">build/SparkInflux.unsigned.modl</span>) or use a signed release built with <span class="mono">-Psparkinfluxsign</span>.</li>
+<li>Install via <span class="mono">python3 scripts/dev-install-module.py</span> for a no-restart hot install, or upload the <span class="mono">.modl</span> by hand under Config &gt; Modules.</li>
+</ol>
+
+<h3>Configure</h3>
+<ol>
+<li>Config &gt; SparkInflux &gt; Providers &gt; Add. Fill in Name, InfluxDB Version (V1/V2/V3), URL, Token, Org, Bucket, then Save. The row starts its own connection, write pipeline, and store-and-forward ring immediately with no gateway restart.</li>
+<li>In Designer, open a tag's History properties, set History Provider to the provider name just created, and set a sample or scan-class rate. There is no headless gateway-web path to create or edit tag history; this step needs Designer.</li>
+</ol>
+<table class="spec">
+<tr><th>Category</th><td>Fields</td></tr>
+<tr><th>Connection</th><td>Name, Enabled, Version (V1/V2/V3), Url, Token, Org, Bucket</td></tr>
+<tr><th>Write</th><td>Measurement, Gzip, Concurrent Write Requests, Batch Size, Flush Interval, Store-and-Forward Cap, Deadband settings, Adaptive Batch settings</td></tr>
+<tr><th>Read</th><td>Max Query Rows, Browse Cache TTL, Browse Window</td></tr>
+<tr><th>Routing</th><td>Routing Rules (<span class="mono">prefix=bucket[:retentionSeconds]</span>, one per line), Downsample Rules</td></tr>
+<tr><th>Advanced</th><td>Request Timeout</td></tr>
+</table>
+<p>Changing a row restarts only that provider; other providers on the same gateway keep their ring buffer and connections untouched. There is no test-connection button on the edit form; use the status routes below instead.</p>
+
+<h3>Verify</h3>
+<ol>
+<li><span class="mono">GET /data/com.sparkbridge.sparkinflux/selftest.json?provider=&lt;name&gt;&amp;points=300</span> pushes real points through history storage and reads them back, returning a result with <span class="mono">pointsSent</span>, <span class="mono">pointsWritten</span>, <span class="mono">rowsRead</span>, and <span class="mono">ok</span>.</li>
+<li><span class="mono">GET /data/com.sparkbridge.sparkinflux/status.json</span> for product/version/license state, and <span class="mono">GET /data/com.sparkbridge.sparkinflux/providers.json</span> for per-provider read/write lane state.</li>
+</ol>
+<p>Both status routes are loopback-only unless <span class="mono">sparkinflux.rest.readToken</span> is set in the gateway's secrets file, in which case they accept <span class="mono">Authorization: Bearer &lt;token&gt;</span>.</p>
+
+<h3>License</h3>
+<p>Runs in full, unlicensed, forever, same as every SparkBridge-suite module. Drop a <span class="mono">sparkbridge-license.key</span> in the gateway's data directory to clear the label on <span class="mono">status.json</span> and the daily log reminder. Standalone paid product; never bundled into SparkBridge itself.</p>
+</div></section>
+
+<section class="band" id="sparkvalidate"><div class="wrap"><div class="sec-head">
+<div class="path">validation</div>
+<h2>SparkValidate</h2>
+<p>Risk-based validation and alarm management for Ignition and PLC systems, delivered as a gateway module and a CLI.</p>
+</div>
+
+<h3>What it needs</h3>
+<ul>
+<li>Gradle 8.10.2, Java 17 to run Gradle, Java 11 bytecode for core and the gateway module, Java 17 for the CLI.</li>
+<li>The gateway module for live gateway extraction and protocol execution; the CLI runs standalone (Validate Desk) for offline or CI use.</li>
+</ul>
+
+<h3>Install</h3>
+<ol>
+<li>Build: <span class="mono">./gradlew clean build</span>. The self-contained CLI is written to <span class="mono">cli/build/libs/cli-0.1.0-all.jar</span>.</li>
+<li>Start a validation repository: <span class="mono">java -jar cli-0.1.0-all.jar init validation/</span>, which creates <span class="mono">model/system.json</span>, <span class="mono">policy/risk.yaml</span>, <span class="mono">requirements/urs.yaml</span>, <span class="mono">rationalization/mad.yaml</span>, plus <span class="mono">docs/</span>, <span class="mono">protocols/</span>, <span class="mono">evidence/.gitattributes</span>, and <span class="mono">rtm/rtm.csv</span>.</li>
+</ol>
+
+<h3>Configure</h3>
+<pre class="code">java -jar cli/build/libs/cli-0.1.0-all.jar generate \
+  --model model.json \
+  --policy policy/risk.yaml \
+  --out out/</pre>
+<p>This writes <span class="mono">out/docs/VMP.md</span> and <span class="mono">out/docs/VMP.docx</span>. The Markdown renderer is canonical and deterministic for a given model, policy, and injected clock; the DOCX renderer uses Apache POI.</p>
+<p>Gateway module settings live under the gateway's SparkValidate config tab, including <span class="mono">enabled</span>, <span class="mono">snapshotdir</span>, <span class="mono">journalprofile</span>, <span class="mono">alarmprovider</span>, <span class="mono">simprovider</span>, <span class="mono">apitokenadminrole</span>, <span class="mono">allowsimwrites</span>, and <span class="mono">allowinsecureloopback</span>.</p>
+<p>Gateway REST routes are under <span class="mono">/data/io.sparkvalidate</span> and require gateway authentication, either a bearer token (issued via a session-cookie-authenticated <span class="mono">tokens issue</span> call) or an authenticated session cookie.</p>
+
+<h3>Verify</h3>
+<ul>
+<li>CLI: <span class="mono">sparkvalidate gateway status</span> reads gateway or module status with a bearer token.</li>
+<li>Gateway: <span class="mono">GET /data/io.sparkvalidate/status</span> reports module/gateway status including <span class="mono">enabled</span> and <span class="mono">allowInsecureLoopback</span>.</li>
+</ul>
+
+<h3>License</h3>
+<p>Gateway module: licensed per gateway, perpetual (see <span class="mono">license.html</span> at the repository root for the full EULA). Validate Desk (CLI-only) carries its own license. A free tier provides the alarm KPI report and rationalization gap list only, with no document generation or protocol execution.</p>
+</div></section>
+
+<section id="sparkgantt"><div class="wrap"><div class="sec-head">
+<div class="path">perspective component</div>
+<h2>SparkGantt</h2>
+<p>A Gantt/schedule chart component for Ignition Perspective.</p>
+</div>
+
+<h3>What it needs</h3>
+<ul>
+<li>Ignition 8.1 and 8.3 (separate build lines from one source tree).</li>
+</ul>
+
+<h3>Install</h3>
+<ol>
+<li>Build the module with Gradle (uses the <span class="mono">io.ia.sdk.modl</span> plugin); pass <span class="mono">-PsparkganttSign</span> for a signed build. Output is a <span class="mono">.modl</span> file (module id <span class="mono">com.sparkbridge.sparkgantt</span>).</li>
+<li>Install via <span class="mono">dev-install-module.py</span> for a hot install, or upload the <span class="mono">.modl</span> by hand under Config &gt; Modules.</li>
+<li>The component appears in the Designer Perspective palette after install.</li>
+</ol>
+
+<h3>Configure</h3>
+<p>Bind the component's <span class="mono">tasks</span> property to a dataset (with a column-mapping prop) or a JSON array of task objects, each with id, label, start, end, progress, group, color, dependencies, milestone flag, and tooltip. Other component properties include <span class="mono">groups</span>, <span class="mono">range</span>, <span class="mono">scale</span>, <span class="mono">rowHeight</span>, <span class="mono">showToday</span>, <span class="mono">readOnly</span>, <span class="mono">selection</span>, <span class="mono">style</span>, and <span class="mono">nowLine</span>. See the README in the bundle for the full property and event reference.</p>
+
+<h3>Verify</h3>
+<p>See the README in the bundle for a documented status route; this fragment could not confirm the exact path from the available source docs.</p>
+
+<h3>License</h3>
+<p>Soft-licensed the same way as other SparkBridge-suite modules: a missing license key only labels status surfaces and does not gate use, while a present-and-invalid or tampered key fails startup closed and the component is not registered. See the README in the bundle for pricing.</p>
+</div></section>
+
+<section class="band" id="sparknotify"><div class="wrap"><div class="sec-head">
+<div class="path">alarm notification</div>
+<h2>SparkNotify</h2>
+<p>An Ignition alarm notification profile module covering Slack, Teams, Telegram, WhatsApp, Twilio SMS and Voice, Discord, PagerDuty, Email, and generic webhooks.</p>
+</div>
+
+<h3>What it needs</h3>
+<ul>
+<li>Ignition 8.1 (this guide) or 8.3 (see the 8.3 differences below).</li>
+<li>Credentials for whichever channel or channels are being configured (webhook URLs, bot tokens, API keys, or SMTP credentials).</li>
+</ul>
+
+<h3>Install</h3>
+<ol>
+<li>Gateway web UI &gt; Config &gt; Modules &gt; Install or Upgrade a Module, upload the <span class="mono">.modl</span> file, accept the EULA.</li>
+<li>If the module is self-signed, the gateway warns about an untrusted certificate; accept or trust it to complete install.</li>
+<li>Confirm Config &gt; Modules shows SparkNotify state = Running.</li>
+</ol>
+<p>An unlicensed install runs on a 2-hour trial clock. When it expires, sends stop silently with no error shown anywhere. Reset it from the gateway home page (<span class="mono">/web/home</span> &gt; Reset Trial) or license the module for production use.</p>
+
+<h3>Configure</h3>
+<ol>
+<li>Config &gt; Alarming &gt; Notification &gt; Create New Notification Profile &gt; type SparkNotify. Create one profile per channel.</li>
+<li>Fill in the fields for the chosen channel (see table).</li>
+<li>Designer &gt; Alarm Notification &gt; Rosters: add at least one user with a Contact Info entry whose type matches a configured profile's channel. An empty roster produces a log line and nothing sends.</li>
+<li>Build an alarm pipeline: Start -&gt; Notification (profiles + roster) -&gt; Delay -&gt; loop back to Notification, with Acknowledged, Cleared, and Shelved set as dropout conditions.</li>
+<li>On the tag's Alarms tab, set Active Pipeline to the pipeline just built.</li>
+<li>For a gateway-scope tag alarm, set Config &gt; System &gt; Gateway Settings &gt; Gateway Scripting Project to the project containing the alarm pipeline, or the alarm fires but never reaches the pipeline.</li>
+</ol>
+<table class="spec">
+<tr><th>Channel</th><td>Required fields</td></tr>
+<tr><th>Slack</th><td><span class="mono">SlackWebhookUrl</span></td></tr>
+<tr><th>Teams</th><td><span class="mono">TeamsWebhookUrl</span></td></tr>
+<tr><th>Telegram</th><td><span class="mono">TelegramBotToken</span>, <span class="mono">TelegramChatId</span>, optional <span class="mono">TelegramApiBaseUrl</span></td></tr>
+<tr><th>WhatsApp</th><td><span class="mono">WhatsAppPhoneNumberId</span>, <span class="mono">WhatsAppAccessToken</span>, <span class="mono">WhatsAppToNumber</span>, <span class="mono">WhatsAppTemplateName</span>, <span class="mono">WhatsAppLanguageCode</span></td></tr>
+<tr><th>Twilio SMS / Voice</th><td><span class="mono">TwilioAccountSid</span>, <span class="mono">TwilioAuthToken</span>, <span class="mono">TwilioFromNumber</span>, <span class="mono">TwilioToNumber</span>, optional <span class="mono">TwilioApiBaseUrl</span></td></tr>
+<tr><th>Discord</th><td><span class="mono">DiscordWebhookUrl</span></td></tr>
+<tr><th>PagerDuty</th><td><span class="mono">PagerDutyRoutingKey</span></td></tr>
+<tr><th>Email (SMTP)</th><td><span class="mono">EmailSmtpHost</span>, <span class="mono">EmailSmtpPort</span>, <span class="mono">EmailSmtpUser</span>, <span class="mono">EmailSmtpPass</span>, <span class="mono">EmailUseTls</span>, <span class="mono">EmailFrom</span>, <span class="mono">EmailTo</span>, <span class="mono">EmailAllowLoopbackRelay</span>, <span class="mono">EmailAllowPrivateRelay</span></td></tr>
+<tr><th>Webhook (generic)</th><td><span class="mono">WebhookUrl</span>, optional <span class="mono">WebhookHmacSecret</span></td></tr>
+</table>
+<p>Common fields across all channels: <span class="mono">MessageTemplate</span>, <span class="mono">ThrottledMessageTemplate</span>, <span class="mono">RepeatDelayMillis</span>, <span class="mono">MaxRepeats</span>, <span class="mono">DedupeWindowMillis</span>, and <span class="mono">AckEnabled</span>, <span class="mono">AckHmacSecret</span>, <span class="mono">AckBaseUrl</span> for the acknowledge-link feature.</p>
+<p>Ignition ships only three built-in contact types, EMAIL, SMS, and PHONE. SparkNotify maps Slack and Email to EMAIL; Telegram, WhatsApp, and Twilio SMS to SMS; Teams, Webhook, and Twilio Voice to PHONE; and defines two custom types, <span class="mono">discord</span> and <span class="mono">pagerduty</span>. A roster user routes to the first profile matching one of their contact types, so fanning out to multiple channels that share a contact type needs one roster user per profile.</p>
+
+<h3>Verify</h3>
+<ol>
+<li>Force the tag past its setpoint. Gateway web UI &gt; Status &gt; Alarming &gt; Alarm Pipelines should show Active = true, Items = 1 while unacked.</li>
+<li><span class="mono">GET /data/sparknotify/status.json</span> reports per-profile status and sent counts (requires an authenticated gateway session).</li>
+<li>With <span class="mono">AckEnabled</span>, <span class="mono">AckHmacSecret</span>, and <span class="mono">AckBaseUrl</span> all set, the delivered message includes an acknowledge link at <span class="mono">&lt;AckBaseUrl&gt;/data/sparknotify/ack/link/&lt;profile&gt;?event=&lt;uuid&gt;&amp;sig=&lt;hmac&gt;</span>. Opening it returns <span class="mono">{"acknowledged":true}</span> and acks the alarm in Ignition.</li>
+</ol>
+
+<h3>License</h3>
+<p>See the README in the bundle for pricing and licensing terms.</p>
+</div></section>
+
+
+<section class="tail">
+  <div class="wrap">
+    <h2>Stuck on a Step</h2>
+    <p>Email the product name, your Ignition version and the gateway log line, and an engineer answers, usually the same day. Development use is free with no time limit.</p>
+    <div class="cta-row">
+      <a class="btn" href="mailto:admin@greenguard-usa.com?subject=SparkBridge%20install%20question&amp;body=Product%3A%0AIgnition%20version%3A%0ALog%20line%3A%0A">Ask an engineer</a>
+      <a class="btn ghost" href="/sparkbridge/download">Downloads</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download" aria-current="page">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>
