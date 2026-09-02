@@ -50,216 +50,112 @@
   <div class="wrap">
     <div class="eyebrow">Pricing</div>
     <h1>Priced per gateway, kept for good</h1>
-    <p>We price it this way so you can prove it works before anyone signs anything: free for development and testing. When you go live you buy one license per gateway and keep it. No charge per tag, per device or per connected client.</p>
+    <p>Free for development and testing, with no time limit. When a gateway goes into production you buy one license for it and keep it. Nothing is charged per tag, per device or per connected client. Support is optional at 20% per year.</p>
   </div>
 </header>
 
 <main id="main">
 
-<section>
+<section id="core">
   <div class="wrap">
-    <p class="claim">One price per gateway. Bought once, kept.</p>
+    <div class="sec-head">
+      <span class="path">The core</span>
+      <h2>Edge, Central, Provider</h2>
+      <p>Edge at each site. Central once. Provider, or any conformant broker you already run, in between.</p>
+    </div>
     <div class="tiers">
       <div class="tier">
         <div class="top">
           <h3>SparkBridge Edge</h3>
-          <div class="price">$995<small>Per site. SparkLink included.</small></div>
+          <div class="price">$995<small>Per site gateway. SparkLink included.</small></div>
         </div>
-        <p><a class="btn buy" href="/sparkbridge/contact" data-sku="edge">Buy, $995</a></p>
+        <p class="why">Moves plant data off each site and holds it safely when the link drops.</p>
+        <p class="act"><a class="btn buy" href="/sparkbridge/contact" data-sku="edge">Buy, $995</a></p>
       </div>
       <div class="tier feature">
         <div class="top">
           <h3>SparkBridge Central</h3>
-          <div class="price">$1,495<small>One server. SparkCalc and SparkID included.</small></div>
+          <div class="price">$1,495<small>Per central gateway. SparkCalc and SparkID included.</small></div>
         </div>
-        <p><a class="btn buy" href="/sparkbridge/contact" data-sku="central">Buy, $1,495</a></p>
+        <p class="why">Collects every site's data into one server. The modules below run on it.</p>
+        <p class="act"><a class="btn buy" href="/sparkbridge/contact" data-sku="central">Buy, $1,495</a></p>
       </div>
       <div class="tier">
         <div class="top">
           <h3>Provider</h3>
-          <div class="price">$1,995<small>The broker. Works with any Sparkplug host.</small></div>
+          <div class="price">$1,995<small>Per gateway. Its own license.</small></div>
         </div>
-        <p><a class="btn buy" href="/sparkbridge/contact" data-sku="provider">Buy, $1,995</a></p>
-      </div>
-    </div>
-    <p class="note">Free for development, no time limit. Support 20%/yr, optional. Nothing is metered by tag, device or client.</p>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="path">A la carte</span>
-      <h2>Buy Only What You Need</h2>
-      <p>Start with one product. Add the next one when your plant needs it.</p>
-    </div>
-    <div class="twocol">
-      <div>
-        <span class="spectitle">Edge</span>
-        <table class="spec">
-          <tr><th>SparkBridge Edge</th><td>$995 &middot; a site gateway, SparkLink included</td></tr>
-        </table>
-        <p class="note" style="margin-top:14px">These modules only run on a SparkBridge Central gateway.</p>
-        <span class="spectitle">Central and its modules</span>
-        <table class="spec">
-          <tr><th>SparkBridge Central</th><td>$1,495 &middot; the central gateway, standalone, SparkCalc and SparkID included</td></tr>
-          <tr><th>Provider</th><td>$1,995 &middot; Sparkplug-aware broker, its own license</td></tr>
-          <tr><th>Passage</th><td>$1,995 &middot; Central only</td></tr>
-          <tr><th>Sentinel, FleetOps</th><td>$4,995 each &middot; Central only</td></tr>
-          <tr><th>SparkInject</th><td>$2,995 per connector family &middot; Central only</td></tr>
-          <tr><th>SparkVault</th><td>$3,995 &middot; Central only</td></tr>
-          <tr><th>SparkFlow</th><td>$995 &middot; requires Central, its own license</td></tr>
-          <tr><th>GitOps / Enterprise Governance</th><td>$9,995 &middot; Central only &middot; early access</td></tr>
-        </table>
-        <span class="spectitle">Each with its own license, no SparkBridge required</span>
-        <table class="spec">
-          <tr><th>SparkLogix</th><td>$995 &middot; Allen-Bradley Logix driver</td></tr>
-          <tr><th>SparkSNMP</th><td>$1,495</td></tr>
-          <tr><th>Protocol driver</th><td>$495 each</td></tr>
-          <tr><th>SparkInflux</th><td>$1,495</td></tr>
-          <tr><th>SparkValidate</th><td>$2,495, or $995 command-line only &middot; early access</td></tr>
-          <tr><th>SparkADS, SparkS7, Spark61850, SparkBACnet</th><td>$1,495 each &middot; early access</td></tr>
-          <tr><th>SparkGantt</th><td>$495 &middot; early access</td></tr>
-          <tr><th>SparkNotify</th><td>$995 &middot; early access</td></tr>
-        </table>
-      </div>
-      <div class="measure">
-        <p>Edge at each site. Central once. Provider or any conformant broker in between.</p>
-        <p>Modules run on Central. Drivers and Ignition tools run on any gateway, with or without SparkBridge.</p>
-        <p>SparkInject: Snowflake is the first connector family. Databricks and BigQuery follow.</p>
+        <p class="why">The Sparkplug-aware broker. Works with Edge and Central, or with any conformant Sparkplug host.</p>
+        <p class="act"><a class="btn buy" href="/sparkbridge/contact" data-sku="provider">Buy, $1,995</a></p>
       </div>
     </div>
   </div>
 </section>
 
-<section>
+<section class="band" id="modules">
   <div class="wrap">
     <div class="sec-head">
-      <span class="path">What runs where</span>
-      <h2>Sizing A Site</h2>
-      <p>Every product, where it runs, and what it costs on its own.</p>
+      <span class="path">Central modules</span>
+      <h2>Modules on Central</h2>
+      <p>Each runs only on a SparkBridge Central gateway, on its own license. Add one when the need shows up. What each one does is on the <a href="/sparkbridge/central">Central page</a>.</p>
     </div>
-
-    <h3>Edge</h3>
     <div class="scroller">
-      <table class="tbl">
+      <table class="tbl price-tbl">
         <thead>
-          <tr><th>Module</th><th>Where it runs</th><th>Price</th></tr>
+          <tr><th>Module</th><th>What it does</th><th>Price</th><th></th></tr>
         </thead>
         <tbody>
-          <tr><td><a href="/sparkbridge/edge">SparkBridge Edge</a></td><td>Site gateway <span class="np">Moves plant data reliably and holds it safely when a link drops</span></td><td class="num">$995 <a class="buy" href="/sparkbridge/contact" data-sku="edge">Buy</a></td></tr>
-          <tr><td><a href="/sparkbridge/edge#link">SparkLink</a></td><td>Site gateway <span class="np">Keeps remote sites inside their data budget on cellular and satellite</span></td><td class="num">Free <span class="np">with Edge</span></td></tr>
-          <tr><td><a href="/sparkbridge/products#provider">Provider</a></td><td>Site or Central gateway <span class="np">The Sparkplug-aware broker. Works with Edge and Central, or with any conformant Sparkplug host</span></td><td class="num">$1,995 <a class="buy" href="/sparkbridge/contact" data-sku="provider">Buy</a></td></tr>
+          <tr><td><a href="/sparkbridge/central#sparkcalc">SparkCalc</a></td><td class="np">Rates, totals and efficiencies calculated once on live data</td><td class="num">Included</td><td></td></tr>
+          <tr><td><a href="/sparkbridge/central#sparkid">SparkID</a></td><td class="np">Who can read and who can send commands, generated from intent</td><td class="num">Included</td><td></td></tr>
+          <tr><td><a href="/sparkbridge/central#passage">Passage</a></td><td class="np">Serves live plant data over OPC-UA to the tools you already own</td><td class="num">$1,995</td><td class="act"><a class="buy" href="/sparkbridge/contact" data-sku="passage">Buy</a></td></tr>
+          <tr><td><a href="/sparkbridge/central#sparkinject">SparkInject</a></td><td class="np">Production data delivered into your warehouse, exactly once. Per connector family; Snowflake first, Databricks and BigQuery follow</td><td class="num">$2,995</td><td class="act"><a class="buy" href="/sparkbridge/contact" data-sku="sparkinject">Buy</a></td></tr>
+          <tr><td><a href="/sparkbridge/central#sparkvault">SparkVault</a></td><td class="np">History kept on the plant's own clock, in an open database</td><td class="num">$3,995</td><td class="act"><a class="buy" href="/sparkbridge/contact" data-sku="sparkvault">Buy</a></td></tr>
+          <tr><td><a href="/sparkbridge/central#fleetops">FleetOps</a></td><td class="np">Every gateway in one view: versions, drift, certificates, backups</td><td class="num">$4,995</td><td class="act"><a class="buy" href="/sparkbridge/contact" data-sku="fleetops">Buy</a></td></tr>
+          <tr><td><a href="/sparkbridge/central#sentinel">Sentinel</a></td><td class="np">Scores the plant data network, with the evidence and the fix</td><td class="num">$4,995</td><td class="act"><a class="buy" href="/sparkbridge/contact" data-sku="sentinel">Buy</a></td></tr>
+          <tr><td><a href="/sparkbridge/central#sentinel">Sentinel compliance pack</a></td><td class="np">The same findings as an auditor-ready binder. Add-on to Sentinel</td><td class="num">$2,495</td><td class="act"><a class="buy" href="/sparkbridge/contact">Contact</a></td></tr>
+          <tr><td><a href="/sparkbridge/central#gitops">GitOps / Enterprise Governance <small>early access</small></a></td><td class="np">Configuration as code for the whole estate: signed bundles, review, rollback, audit trail</td><td class="num">$9,995</td><td class="act"><a class="buy" href="/sparkbridge/contact" data-sku="gitops">Buy</a></td></tr>
+          <tr><td><a href="/sparkbridge/flow">SparkFlow</a></td><td class="np">Every point streamed to the whole company, past the tag-count ceiling. Its own license</td><td class="num">$995</td><td class="act"><a class="buy" href="/sparkbridge/contact" data-sku="sparkflow">Buy</a></td></tr>
         </tbody>
       </table>
     </div>
+  </div>
+</section>
 
-    <h3 style="margin-top:30px">Central and its modules</h3>
-    <p>These modules only run on a SparkBridge Central gateway.</p>
+<section id="standalone">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">Drivers and tools</span>
+      <h2>Each on Its Own License</h2>
+      <p>Licensed per gateway. Each works with or without SparkBridge. A site connecting one kind of equipment needs that driver and usually not the others.</p>
+    </div>
     <div class="scroller">
-      <table class="tbl">
+      <table class="tbl price-tbl">
         <thead>
-          <tr><th>Module</th><th>Where it runs</th><th>Price</th></tr>
+          <tr><th>Product</th><th>What it does</th><th>Price</th><th></th></tr>
         </thead>
         <tbody>
-          <tr><td><a href="/sparkbridge/central">SparkBridge Central</a></td><td>Central gateway <span class="np">The middle of the estate, one server for the whole plant. SparkCalc and SparkID included</span></td><td class="num">$1,495 <a class="buy" href="/sparkbridge/contact" data-sku="central">Buy</a></td></tr>
-          <tr><td><a href="/sparkbridge/central#sparkvault">SparkVault</a></td><td>Central gateway <span class="np">Keeps history on the plant's own clock, so trends stay true after an outage</span></td><td class="num">$3,995 <a class="buy" href="/sparkbridge/contact" data-sku="sparkvault">Buy</a></td></tr>
-          <tr><td><a href="/sparkbridge/central#sparkcalc">SparkCalc</a></td><td>Central gateway <span class="np">Turns raw readings into the rates, totals and efficiencies people report on</span></td><td class="num">Included <span class="np">with Central</span></td></tr>
-          <tr><td><a href="/sparkbridge/central#sparkinject">SparkInject</a></td><td>Central gateway <span class="np">Delivers production data into your warehouse continuously, exactly once</span></td><td class="num">$2,995 per connector family <a class="buy" href="/sparkbridge/contact" data-sku="sparkinject">Buy</a></td></tr>
-          <tr><td><a href="/sparkbridge/central#passage">Passage</a></td><td>Central gateway <span class="np">Opens live plant data to the tools you already own</span></td><td class="num">$1,995 <a class="buy" href="/sparkbridge/contact" data-sku="passage">Buy</a></td></tr>
-          <tr><td><a href="/sparkbridge/central#sparkid">SparkID</a></td><td>Central gateway <span class="np">Controls who can read data and who can send commands</span></td><td class="num">Included <span class="np">with Central</span></td></tr>
-          <tr><td><a href="/sparkbridge/central#fleetops">FleetOps</a></td><td>Central gateway <span class="np">Runs every gateway from one place: versions, drift, certificates, backups</span></td><td class="num">$4,995 <a class="buy" href="/sparkbridge/contact" data-sku="fleetops">Buy</a></td></tr>
-          <tr><td><a href="/sparkbridge/central#sentinel">Sentinel</a></td><td>Central gateway <span class="np">Scores what the network is exposing, with the evidence and the fix</span></td><td class="num">$4,995 <a class="buy" href="/sparkbridge/contact" data-sku="sentinel">Buy</a></td></tr>
-          <tr><td><a href="/sparkbridge/flow">SparkFlow</a></td><td>Central gateway <span class="np">Every point in the plant, streamed to the whole company. Separate license</span></td><td class="num">$995 <a class="buy" href="/sparkbridge/contact" data-sku="sparkflow">Buy</a></td></tr>
-          <tr><td><a href="/sparkbridge/central#gitops">GitOps / Enterprise Governance <small>early access</small></a></td><td>Central gateway <span class="np">Configuration as code for the whole estate: signed bundles, review and rollback, and an audit trail of who changed what</span></td><td class="num">$9,995 <a class="buy" href="/sparkbridge/contact" data-sku="gitops">Buy</a></td></tr>
+          <tr><td><a href="/sparkbridge/logix">SparkLogix</a></td><td class="np">Allen-Bradley Logix driver. Direct connect, live tag browse, no translator box</td><td class="num">$995</td><td class="act"><a class="buy" href="/sparkbridge/contact" data-sku="sparklogix">Buy</a></td></tr>
+          <tr><td><a href="/sparkbridge/snmp">SparkSNMP</a></td><td class="np">Network, power and server equipment brought into Ignition. One license covers both Ignition lines</td><td class="num">$1,495</td><td class="act"><a class="buy" href="/sparkbridge/contact" data-sku="sparksnmp">Buy</a></td></tr>
+          <tr><td><a href="/sparkbridge/iec104">IEC 60870-5-104</a></td><td class="np">Utility and substation equipment, connected directly</td><td class="num">$495</td><td class="act"><a class="buy" href="/sparkbridge/contact" data-sku="iec104">Buy</a></td></tr>
+          <tr><td><a href="/sparkbridge/drivers">DNP3</a></td><td class="np">Utility equipment, connected directly</td><td class="num">$495</td><td class="act"><a class="buy" href="/sparkbridge/contact" data-sku="dnp3">Buy</a></td></tr>
+          <tr><td><a href="/sparkbridge/drivers">TI 505 &middot; CTI 2500</a></td><td class="np">Older Siemens and CTI equipment, connected directly</td><td class="num">$495</td><td class="act"><a class="buy" href="/sparkbridge/contact" data-sku="ti505">Buy</a></td></tr>
+          <tr><td><a href="/sparkbridge/ads">SparkADS <small>early access</small></a></td><td class="np">Beckhoff ADS/AMS driver, browses TwinCAT symbols directly</td><td class="num">$1,495</td><td class="act"><a class="buy" href="/sparkbridge/contact" data-sku="sparkads">Buy</a></td></tr>
+          <tr><td><a href="/sparkbridge/s7">SparkS7 <small>early access</small></a></td><td class="np">Siemens S7-1200/1500 symbolic driver</td><td class="num">$1,495</td><td class="act"><a class="buy" href="/sparkbridge/contact" data-sku="sparks7">Buy</a></td></tr>
+          <tr><td><a href="/sparkbridge/61850">Spark61850 <small>early access</small></a></td><td class="np">IEC 61850 MMS client driver</td><td class="num">$1,495</td><td class="act"><a class="buy" href="/sparkbridge/contact" data-sku="spark61850">Buy</a></td></tr>
+          <tr><td><a href="/sparkbridge/bacnet">SparkBACnet <small>early access</small></a></td><td class="np">BACnet/IP driver</td><td class="num">$1,495</td><td class="act"><a class="buy" href="/sparkbridge/contact" data-sku="sparkbacnet">Buy</a></td></tr>
+          <tr><td><a href="/sparkbridge/influx">SparkInflux</a></td><td class="np">InfluxDB history storage for teams already standardized on it</td><td class="num">$1,495</td><td class="act"><a class="buy" href="/sparkbridge/contact" data-sku="sparkinflux">Buy</a></td></tr>
+          <tr><td><a href="/sparkbridge/validate">SparkValidate <small>early access</small></a></td><td class="np">Alarm review and a validation document set</td><td class="num">$2,495</td><td class="act"><a class="buy" href="/sparkbridge/contact" data-sku="sparkvalidate">Buy</a></td></tr>
+          <tr><td><a href="/sparkbridge/validate">SparkValidate, command line only <small>early access</small></a></td><td class="np">The same checks and documents, from the command line</td><td class="num">$995</td><td class="act"><a class="buy" href="/sparkbridge/contact" data-sku="sparkvalidate-cli">Buy</a></td></tr>
+          <tr><td><a href="/sparkbridge/notify">SparkNotify <small>early access</small></a></td><td class="np">Alarm notification to Teams, Slack, WhatsApp, Telegram and Twilio</td><td class="num">$995</td><td class="act"><a class="buy" href="/sparkbridge/contact" data-sku="sparknotify">Buy</a></td></tr>
+          <tr><td><a href="/sparkbridge/gantt">SparkGantt <small>early access</small></a></td><td class="np">Perspective Gantt chart component</td><td class="num">$495</td><td class="act"><a class="buy" href="/sparkbridge/contact" data-sku="sparkgantt">Buy</a></td></tr>
         </tbody>
       </table>
     </div>
-
-    <h3 style="margin-top:30px">Its own license, no SparkBridge required</h3>
-    <div class="scroller">
-      <table class="tbl">
-        <thead>
-          <tr><th>Module</th><th>Where it runs</th><th>Price</th></tr>
-        </thead>
-        <tbody>
-          <tr><td><a href="/sparkbridge/logix">SparkLogix</a></td><td>Any gateway, standalone <span class="np">Connects Allen-Bradley Logix controllers directly, no translator box</span></td><td class="num">$995 <a class="buy" href="/sparkbridge/contact" data-sku="sparklogix">Buy</a></td></tr>
-          <tr><td><a href="/sparkbridge/snmp">SparkSNMP</a></td><td>Any gateway, standalone <span class="np">Network, power and server equipment, brought into Ignition</span></td><td class="num">$1,495 <a class="buy" href="/sparkbridge/contact" data-sku="sparksnmp">Buy</a></td></tr>
-          <tr><td><a href="/sparkbridge/iec104">IEC 60870-5-104</a></td><td>Any gateway, standalone <span class="np">Connects utility and substation equipment directly</span></td><td class="num">$495 <a class="buy" href="/sparkbridge/contact" data-sku="iec104">Buy</a></td></tr>
-          <tr><td><a href="/sparkbridge/drivers">DNP3</a></td><td>Any gateway, standalone <span class="np">Connects utility equipment directly</span></td><td class="num">$495 <a class="buy" href="/sparkbridge/contact" data-sku="dnp3">Buy</a></td></tr>
-          <tr><td><a href="/sparkbridge/drivers">TI 505 &middot; CTI 2500</a></td><td>Any gateway, standalone <span class="np">Connects older Siemens and CTI equipment directly</span></td><td class="num">$495 <a class="buy" href="/sparkbridge/contact" data-sku="ti505">Buy</a></td></tr>
-          <tr><td><a href="/sparkbridge/influx">SparkInflux</a></td><td>Any gateway, standalone <span class="np">History storage for teams already standardized on it</span></td><td class="num">$1,495 <a class="buy" href="/sparkbridge/contact" data-sku="sparkinflux">Buy</a></td></tr>
-          <tr><td><a href="/sparkbridge/validate">SparkValidate <small>early access</small></a></td><td>Any gateway, standalone <span class="np">Alarm review and a validation document set</span></td><td class="num">$2,495 <a class="buy" href="/sparkbridge/contact" data-sku="sparkvalidate">Buy</a><br>$995 CLI only <a class="buy" href="/sparkbridge/contact" data-sku="sparkvalidate-cli">Buy</a></td></tr>
-          <tr><td><a href="/sparkbridge/ads">SparkADS <small>early access</small></a></td><td>Any gateway, standalone <span class="np">Beckhoff ADS/AMS driver, browses TwinCAT symbols directly</span></td><td class="num">$1,495 <a class="buy" href="/sparkbridge/contact" data-sku="sparkads">Buy</a></td></tr>
-          <tr><td><a href="/sparkbridge/s7">SparkS7 <small>early access</small></a></td><td>Any gateway, standalone <span class="np">Siemens S7-1200/1500 symbolic driver, S7comm classic and S7comm-plus</span></td><td class="num">$1,495 <a class="buy" href="/sparkbridge/contact" data-sku="sparks7">Buy</a></td></tr>
-          <tr><td><a href="/sparkbridge/61850">Spark61850 <small>early access</small></a></td><td>Any gateway, standalone <span class="np">IEC 61850 MMS client driver, verified against libiec61850</span></td><td class="num">$1,495 <a class="buy" href="/sparkbridge/contact" data-sku="spark61850">Buy</a></td></tr>
-          <tr><td><a href="/sparkbridge/bacnet">SparkBACnet <small>early access</small></a></td><td>Any gateway, standalone <span class="np">BACnet/IP driver, verified against the reference bacnet-stack</span></td><td class="num">$1,495 <a class="buy" href="/sparkbridge/contact" data-sku="sparkbacnet">Buy</a></td></tr>
-          <tr><td><a href="/sparkbridge/gantt">SparkGantt <small>early access</small></a></td><td>Any gateway, standalone <span class="np">Perspective Gantt chart component, virtualized to 500+ tasks</span></td><td class="num">$495 <a class="buy" href="/sparkbridge/contact" data-sku="sparkgantt">Buy</a></td></tr>
-          <tr><td><a href="/sparkbridge/notify">SparkNotify <small>early access</small></a></td><td>Any gateway, standalone <span class="np">Omnichannel alarm notification: Teams, Slack, WhatsApp, Telegram, Twilio</span></td><td class="num">$995 <a class="buy" href="/sparkbridge/contact" data-sku="sparknotify">Buy</a></td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p class="note">Every product on its own per-gateway license. Modules run on Central; drivers and tools run anywhere.</p>
+    <p class="note">Early access drivers are release pending. Contact us to get on a build.</p>
   </div>
 </section>
 
-<section class="band">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="path">The drivers</span>
-      <h2>One Protocol, One Price</h2>
-      <p>Bought individually. A site connecting one kind of equipment needs that driver and usually not the others.</p>
-    </div>
-    <div class="twocol">
-      <div>
-        <span class="spectitle">Per gateway</span>
-        <table class="spec">
-          <tr><th>SparkLogix</th><td>$995</td></tr>
-          <tr><th>TI 505 &middot; CTI 2500</th><td>$495</td></tr>
-          <tr><th>IEC 60870-5-104</th><td>$495</td></tr>
-          <tr><th>DNP3</th><td>$495</td></tr>
-          <tr><th>SparkSNMP</th><td>$1,495</td></tr>
-          <tr><th>SparkADS <small>early access</small></th><td>$1,495</td></tr>
-          <tr><th>SparkS7 <small>early access</small></th><td>$1,495</td></tr>
-          <tr><th>Spark61850 <small>early access</small></th><td>$1,495</td></tr>
-          <tr><th>SparkBACnet <small>early access</small></th><td>$1,495</td></tr>
-        </table>
-      </div>
-      <div class="measure">
-        <p>A driver removes the translator box sitting between your equipment and your data, along with its license, its patching and its support contract. That alone is usually where it pays for itself.</p>
-        <p>SparkLogix connects Allen-Bradley Logix controllers directly and browses tags live, faster and safer than polling through a translator.</p>
-        <p>We price SparkSNMP higher because it replaces a licensed third-party driver and a manual setup process, not a translator box. One license covers both current Ignition versions.</p>
-        <p>SparkADS, SparkS7, Spark61850 and SparkBACnet are in early access: native ADS/AMS, symbolic S7, IEC 61850 MMS and BACnet/IP drivers, built where there is no commercial incumbent or where Inductive Automation removed symbolic addressing. Downloads are release pending; contact us to get on a build.</p>
-        <p>Every driver carries its own license and works with or without SparkBridge. If all you want is to read older or Allen-Bradley equipment into Ignition, buy the driver alone.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section>
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="path">Sentinel</span>
-      <h2>Find Out What Your Network Is Exposing</h2>
-      <p>Sentinel is a $4,995 central module. The compliance pack is its one add-on.</p>
-    </div>
-    <div class="twocol">
-      <div>
-        <span class="spectitle">Assessment</span>
-        <table class="spec">
-          <tr><th>Scored report</th><td>Sentinel $4,995. Findings, evidence and the fix for each</td></tr>
-          <tr><th>Compliance pack</th><td>$2,495 &middot; the evidence binder an auditor asks for</td></tr>
-        </table>
-      </div>
-      <div class="measure">
-        <p>The assessment tells you what your plant network is exposing before someone else finds out. The first time we ran it against our own systems, it found four real problems.</p>
-        <p>The compliance pack is for anyone who has to produce evidence on a schedule. It turns the same findings into the document an auditor asks for.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="band">
+<section class="band" id="estate">
   <div class="wrap">
     <div class="sec-head">
       <span class="path">What an estate costs</span>
@@ -273,31 +169,39 @@
   </div>
 </section>
 
-<section>
+<section id="terms">
   <div class="wrap">
     <div class="sec-head">
-      <span class="path">Common questions</span>
-      <h2>Common Questions</h2>
+      <span class="path">How licensing works</span>
+      <h2>The Terms, Briefly</h2>
     </div>
-    <div class="faq">
-      <h3>What happens if support lapses?</h3>
-      <p>The software keeps running exactly as it did before. You stop receiving new versions and support until you renew.</p>
-      <h3>Can a license move between gateways?</h3>
-      <p>Yes. A license follows the role, not the hardware, so you can move it when you replace or rebuild a server.</p>
-      <h3>Can I add modules later?</h3>
-      <p>Yes. Buy each module as your site needs it, on its own license.</p>
-      <h3>Is development really free?</h3>
-      <p>Yes, with no time limit and nothing held back. You only buy a license once a gateway goes into production.</p>
+    <div class="twocol">
+      <div>
+        <table class="spec">
+          <tr><th>Unit</th><td>One license per production gateway, per product</td></tr>
+          <tr><th>Term</th><td>Perpetual. Bought once and kept</td></tr>
+          <tr><th>Development</th><td>Free, no time limit, nothing held back</td></tr>
+          <tr><th>Support</th><td>Optional, 20% of list per year. Covers updates and direct engineering support</td></tr>
+          <tr><th>Metering</th><td>None. Tags, devices and connected clients are never counted</td></tr>
+          <tr><th>Activation</th><td>One key file per gateway, applied with no restart</td></tr>
+          <tr><th>Moving a license</th><td>Follows the role, not the hardware. Move it when you rebuild a server</td></tr>
+          <tr><th>Volume</th><td>Every price here is list. Tell us your site count and we will run the numbers</td></tr>
+        </table>
+      </div>
+      <div class="faq">
+        <h3>What happens if support lapses?</h3>
+        <p>The software keeps running exactly as it did before. You stop receiving new versions and support until you renew.</p>
+        <h3>Can I add modules later?</h3>
+        <p>Yes. Buy each module as your site needs it, on its own license, on a Central gateway you already own.</p>
+        <h3>Is development really free?</h3>
+        <p>Yes, with no time limit. Until a gateway has a key file every module runs in full, with a banner on the gateway reminding you it is unlicensed. You buy a license once a gateway goes into production.</p>
+      </div>
     </div>
-    <p class="note">Per gateway. Bought once and kept.</p>
   </div>
 </section>
 
 <section class="tail">
   <div class="wrap">
-    <div class="measure">
-      <p>Every price here is list, per gateway, before volume discount. Tell us your site count and we will run the numbers with you.</p>
-    </div>
     <div class="cta-row">
       <a class="btn" href="/sparkbridge/contact">Try it on one site</a>
       <a class="btn ghost dark" href="/sparkbridge/central">See the products</a>

@@ -4,16 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SparkBridge Edge: Site Gateway for Ignition | SparkBridge</title>
-<meta name="description" content="SparkBridge Edge moves plant data off the floor, holds it when the link drops, and sends only what changed. $995 per site gateway, bought once and kept.">
+<meta name="description" content="SparkBridge Edge moves plant data off the floor, holds it when the link drops, and sends only what changed. Per site gateway, bought once and kept.">
 <link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/edge">
 <meta property="og:title" content="SparkBridge Edge: Site Gateway for Ignition">
-<meta property="og:description" content="Moves plant data off the floor, holds it when the link drops, and sends only what changed. $995 per site gateway.">
+<meta property="og:description" content="Moves plant data off the floor, holds it when the link drops, and sends only what changed. Per site gateway, bought once and kept.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/edge">
 <meta property="og:site_name" content="SparkBridge">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="SparkBridge Edge: Site Gateway for Ignition">
-<meta name="twitter:description" content="Moves plant data off the floor, holds it when the link drops, and sends only what changed. $995 per site gateway.">
+<meta name="twitter:description" content="Moves plant data off the floor, holds it when the link drops, and sends only what changed. Per site gateway, bought once and kept.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
@@ -52,8 +52,8 @@
       <div>
         <div class="eyebrow">SparkBridge Edge</div>
         <h1>The gateway at your site that never loses a reading</h1>
-        <p>Every link goes down sometime. Edge holds your plant's data when that happens, and gets it moving again the moment the link is back, with nothing lost and nothing sent twice.</p>
-        <div class="pmeta"><span class="stat">$995 per site</span><span>Standalone</span><span>Runs on your site gateway</span></div>
+        <p>Edge is the Ignition module installed at each site. It watches the tags you choose, sends each value once when it changes, and carries the time your equipment gave it. Every link goes down sometime. Edge holds your plant's data when that happens, and gets it moving again the moment the link is back, with nothing lost and nothing sent twice.</p>
+        <div class="pmeta"><span class="stat">One per site</span><span>Standalone</span><span>Runs on your site gateway</span></div>
       </div>
       <div class="trace" role="img" aria-label="Analyzer trace showing a session continuing through a dropped link">
         <div class="trace-head">
@@ -96,6 +96,9 @@
       <div class="measure">
         <p>Most sites poll. Something in the middle asks the equipment for every value, over and over, whether or not anything happened. That costs more every time you add a tag or a dashboard, and it has no good answer for a dropped link.</p>
         <p>Edge sends a value once, when it changes, stamped with the time your equipment gave it. If the link goes down, Edge keeps recording to a local buffer on disk. When the link comes back, the backlog arrives in order and lands on the time it actually happened, not the time it reached the server.</p>
+        <p>You point Edge at a folder of tags on the site gateway. It reads the structure of that folder, including UDTs, and announces it to Central the moment it connects, so Central builds the matching tags without a mapping file. Folders at a depth you choose become devices with their own announcements, so a new pump or a renamed skid appears at Central on its own. Units, descriptions and ranges travel with that announcement instead of with every value.</p>
+        <p>Edge watches for the primary host. While Central is away it buffers, and when Central returns it replays in order. One site gateway can run up to eight independent edge nodes, each with its own connection, tag set and buffer, so one problem stays in one place. Write-back is off by default and is allowed only for the devices and points you list.</p>
+        <p>Edge publishes to Provider or to any conformant MQTT broker you already run, such as HiveMQ or Mosquitto, with TLS and per-site credentials. It carries its own license and works on its own or with Central.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
@@ -103,8 +106,14 @@
           <tr><th>What it is</th><td>The one gateway installed at each site</td></tr>
           <tr><th>Where it runs</th><td>On your site gateway, nowhere else</td></tr>
           <tr><th>What it replaces</th><td>Polling loads and manual data exports after an outage</td></tr>
-          <tr><th>Licensing</th><td>$995 per site gateway, bought once and kept, not a subscription. It carries its own license, standalone.</td></tr>
-          <tr><th>Broker</th><td>Edge works with Provider or with any conformant MQTT broker you already run, such as HiveMQ or Mosquitto. Provider is $1,995, its own license.</td></tr>
+          <tr><th>Sends</th><td>Each value once, on change, on the equipment's timestamp</td></tr>
+          <tr><th>When the link drops</th><td>Records to a disk buffer, replays in order on return</td></tr>
+          <tr><th>Tag structure</th><td>Read from the site's own folder and announced to Central. No mapping file</td></tr>
+          <tr><th>Edge nodes</th><td>Up to eight per gateway, each independent</td></tr>
+          <tr><th>Write-back</th><td>Off by default; allowed only for listed devices and points</td></tr>
+          <tr><th>Broker</th><td>Provider, or any conformant MQTT broker you already run</td></tr>
+          <tr><th>Ignition</th><td>8.1.19 or newer, 8.3 line too</td></tr>
+          <tr><th>Licensing</th><td>Per site gateway, bought once and kept, standalone. SparkLink included. <a href="/sparkbridge/pricing">See pricing</a></td></tr>
         </table>
       </div>
     </div>
@@ -171,28 +180,10 @@
   </div>
 </section>
 
-<section id="cost">
-  <div class="wrap">
-    <div class="sec-head">
-      <div class="path">cost</div>
-      <h2>What It Costs</h2>
-    </div>
-    <div>
-      <span class="spectitle">At a glance</span>
-      <table class="spec">
-        <tr><th>SparkBridge Edge</th><td>$995 per site gateway <a class="btn buy" href="/sparkbridge/contact" data-sku="edge">Buy, $995</a></td></tr>
-        <tr><th>SparkLink</th><td>Included with Edge, no extra charge</td></tr>
-        <tr><th>Drivers</th><td>$495 each, only if the rack needs one. <a href="/sparkbridge/drivers">See drivers</a></td></tr>
-        <tr><th>Licensing</th><td>Per gateway, bought once and kept. Free for development.</td></tr>
-      </table>
-    </div>
-  </div>
-</section>
-
 <section class="tail">
   <div class="wrap">
     <h2>Try It on One Site</h2>
-    <p>Install Edge, point it at a folder of tags, watch them arrive on the other end. Development use is free with no time limit.</p>
+    <p>Install Edge, point it at a folder of tags, watch them arrive on the other end. Development use is free with no time limit. Licensed per site gateway, bought once and kept, with SparkLink included. Drivers are their own license if the rack needs one. Prices are on the <a href="/sparkbridge/pricing">pricing page</a>.</p>
     <div class="cta-row">
       <a class="btn" href="mailto:admin@greenguard-usa.com?subject=SparkBridge%20Edge%20evaluation">Start an evaluation</a>
       <a class="btn ghost" href="mailto:admin@greenguard-usa.com?subject=SparkBridge%20Edge%20technical%20questions">Ask an engineer</a>

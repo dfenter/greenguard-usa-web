@@ -133,11 +133,12 @@
     <div class="sec-head">
       <span class="path">For your engineers</span>
       <h2>Under the Hood</h2>
-      <p>Edge publishes over Sparkplug B. Central hosts the namespace and the modules. Flow is the optional company-wide backbone.</p>
+      <p>Edge publishes over Sparkplug B. Provider is the broker in between. Host hosts the namespace and the modules. Flow is the optional company-wide backbone.</p>
     </div>
     <div class="cards">
       <div class="card"><span class="tag">Edge Node &middot; publisher</span><h3>Edge</h3><p>Publishes Ignition tag data as Sparkplug and keeps publishing into a disk buffer when the link drops.</p></div>
-      <div class="card"><span class="tag">Host Application &middot; consumer</span><h3>Central</h3><p>Subscribes to the namespace, learns each node's model from its birth certificate, hosts every module.</p></div>
+      <div class="card"><span class="tag">Broker &middot; own license</span><h3>Provider</h3><p>Sparkplug-aware MQTT broker, embedded or HiveMQ CE companion. Per-site identities, deny-by-default topic permissions, no client count.</p></div>
+      <div class="card"><span class="tag">Host Application &middot; consumer</span><h3>Host</h3><p>Subscribes to the namespace, learns each node's model from its birth certificate, hosts every module.</p></div>
       <div class="card"><span class="tag">Backbone &middot; optional</span><h3>Flow</h3><p>Streams every point to the whole company, live, lossless and replayable. Its own license.</p></div>
     </div>
   </div>
@@ -171,7 +172,7 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="path">host</div>
-      <h2>Host: the Sparkplug host application</h2>
+      <h2>Host</h2>
       <p>Fleet scale depends on the Host, so that is where the engineering effort went.</p>
       <p>The Host passed all nine profiles of the Eclipse Sparkplug TCK 3.0.0, 346 of 346 assertions. The <a href="/sparkbridge/tck">conformance record</a> has the per-profile results and the unedited logs.</p>
     </div>
@@ -221,7 +222,7 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="path" id="flow">flow</div>
-      <h2>Flow: the company-wide backbone</h2>
+      <h2>Flow</h2>
       <p>A tag-counted system stops scaling at hundreds of thousands of points. SparkFlow keeps a live, quality-stamped value for every point Central decodes, with no tag behind it, and any system in the company can read the stream.</p>
     </div>
     <div class="scroller">
@@ -234,7 +235,7 @@
           <tr><td><b>Last-value cache</b></td><td>A key-value store holds the current value and quality of every point. A new dashboard opens with the last known value of everything the moment it loads.</td></tr>
           <tr><td><b>Replay</b></td><td>The stream keeps history. An analyst can replay yesterday's upset minute by minute from the same subjects the live data uses.</td></tr>
           <tr><td><b>Outage-proven</b></td><td>A 60-second link cut on a leaf node buffered 447 readings and reconciled 447 on the hub: zero missing, zero ordering violations.</td></tr>
-          <tr><td><b>Licensing</b></td><td>Runs on the central gateway. $995 per gateway, perpetual, its own license. Detail on the <a href="/sparkbridge/flow">SparkFlow page</a>.</td></tr>
+          <tr><td><b>Licensing</b></td><td>Runs on the central gateway, on its own perpetual per-gateway license. Detail on the <a href="/sparkbridge/flow">SparkFlow page</a> and the <a href="/sparkbridge/pricing">pricing page</a>.</td></tr>
         </tbody>
       </table>
     </div>

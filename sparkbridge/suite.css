@@ -349,3 +349,17 @@ a.clamp:hover,a.clamp:focus-visible{background:rgba(255,255,255,.05);border-colo
 /* home page: six reasons and six optional capabilities sit as two even rows of three */
 #reasons .cards,#optional .cards{grid-template-columns:repeat(3,1fr)}
 @media (max-width:900px){#reasons .cards,#optional .cards{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}}
+
+/* ---- pricing page tables ---- */
+.price-tbl{table-layout:auto}
+.price-tbl th:nth-child(3),.price-tbl td.num{text-align:right;white-space:nowrap}
+.price-tbl td.act{text-align:right;white-space:nowrap;width:1%}
+.price-tbl td.np{max-width:56ch}
+.price-tbl a.buy{display:inline-block;padding:4px 10px;border:1px solid var(--steel);font-family:"Spline Sans Mono",monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;text-decoration:none}
+.band .price-tbl a.buy{border-color:var(--steel-dark);color:#fff}
+.band .price-tbl td.np,.band .price-tbl td{color:var(--paper-dim)}
+.band .price-tbl td:first-child,.band .price-tbl td:first-child a,.band .price-tbl td.num{color:#fff}
+.band .price-tbl tbody tr:hover td{background:var(--graphite-2)}
+#core .tier .act{margin-top:auto;padding-top:20px}
+#terms .faq h3{margin-top:0}
+@media (max-width:640px){.price-tbl td.np{max-width:none}}
