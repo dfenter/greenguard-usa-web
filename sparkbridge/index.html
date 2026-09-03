@@ -57,34 +57,29 @@
       <div class="cta-row">
         <a class="btn" href="/sparkbridge/edge">SparkBridge Edge</a>
         <a class="btn ghost" href="/sparkbridge/central">SparkBridge Host</a>
+        <a class="btn ghost" href="/sparkbridge/products#provider">SparkBridge Provider</a>
       </div>
       <p class="hero-foot mono">Zero failures on the Sparkplug conformance suite · 820 automated tests · free for development</p>
     </div>
 
-    <div class="run compact" role="group" aria-label="Signal path from plant to delivery">
-      <a class="dev spine st-svc" href="/sparkbridge/edge">
-        <span class="tagno">At each site</span>
-        <span class="devname">SparkBridge Edge</span>
-        <span class="job">Move plant data reliably</span>
-      </a>
-      <div class="seg s1" aria-hidden="true"></div>
-      <a class="dev spine st-svc" href="/sparkbridge/products#provider">
-        <span class="tagno">Between Edge and Host</span>
-        <span class="devname">SparkBridge Provider</span>
-        <span class="job">Sparkplug-aware broker</span>
-      </a>
-      <div class="seg s2" aria-hidden="true"></div>
-      <a class="dev spine st-svc" href="/sparkbridge/central">
-        <span class="tagno">One server</span>
-        <span class="devname">SparkBridge Host</span>
-        <span class="job">Turn many sites into one system</span>
-      </a>
-      <div class="seg s3" aria-hidden="true"></div>
-      <div class="dev source">
-        <span class="tagno">Use</span>
-        <span class="devname">Your tools</span>
-        <span class="job">Perspective, historians, analysts</span>
+    <div class="hero-deployment" role="group" aria-label="Required Provider deployment shapes">
+      <div class="hero-deployment-head">
+        <span class="mono">Provider deployment</span>
+        <span class="hero-required">Required infrastructure</span>
       </div>
+      <div class="hero-deployment-grid">
+        <div class="hero-deployment-option">
+          <span class="hero-deployment-label">Single node / lab</span>
+          <strong>Embedded Moquette</strong>
+          <p>Runs in process alongside Host on one server.</p>
+        </div>
+        <div class="hero-deployment-option">
+          <span class="hero-deployment-label">Multi-site / production</span>
+          <strong>HiveMQ CE companion</strong>
+          <p>Standalone broker service for MQTT 5 and shared subscriptions.</p>
+        </div>
+      </div>
+      <p class="hero-deployment-foot mono">Every SparkBridge deployment needs a Sparkplug-aware broker.</p>
     </div>
   </div>
 </header>
@@ -111,7 +106,7 @@
       <a class="card" href="/sparkbridge/products#provider">
         <h3>SparkBridge Provider</h3>
         <p>Sparkplug-aware broker.</p>
-        <p class="desc">The Sparkplug-aware broker. Embedded or beside the server. Its own license.</p>
+        <p class="desc">Required broker infrastructure. Embedded Moquette for a single node, or a HiveMQ CE companion service for MQTT 5 and shared subscriptions. $1,995 per gateway, priced separately.</p>
       </a>
     </div>
   </div>
@@ -139,7 +134,7 @@
     <div class="sec-head">
       <div class="path">optional</div>
       <h2>Add Only What You Need</h2>
-      <p>Edge and Host are complete on their own. Each option below adds one outcome to a Host gateway you already own, on its own license, and none is required.</p>
+      <p>Edge, Provider and Host form the required SparkBridge infrastructure. The options below add history, delivery, records, protocol connections and Ignition tools, with pricing by gateway or module.</p>
     </div>
     <div class="cards">
       <a class="card" href="/sparkbridge/central#sparkvault"><h3>History</h3><p>SparkVault</p><p class="desc">Estate history on the plant's own clock, read back as an Ignition history provider.</p></a>
@@ -149,8 +144,9 @@
       <a class="card" href="/sparkbridge/central#fleetops"><h3>Fleet</h3><p>FleetOps</p><p class="desc">Every gateway in one view: versions, drift, certificates, backups.</p></a>
       <a class="card" href="/sparkbridge/central#sentinel"><h3>Security</h3><p>Sentinel, with SparkID included in Host</p><p class="desc">A scored assessment of your plant data network, and access rules generated from a plain statement of who may read and who may control.</p></a>
       <a class="card" href="/sparkbridge/flow"><h3>Hyperscale</h3><p>SparkFlow</p><p class="desc">Millions of points streamed live and lossless to every consumer in the company, on NATS/JetStream.</p></a>
+      <a class="card" href="/sparkbridge/drivers"><h3>Device Drivers</h3><p>DNP3 · IEC 104 · TI 505 · S7 and more</p><p class="desc">Direct protocol connections for utility, legacy and industrial equipment, licensed per gateway.</p></a>
+      <a class="card" href="/sparkbridge/pricing#enhancements"><h3>Ignition Enhancements</h3><p>SparkGantt · SparkNotify · SparkCalc · SparkID</p><p class="desc">Perspective schedules, alarm notifications, calculations and access control for Ignition.</p></a>
     </div>
-    <p class="note">Also available: <a href="/sparkbridge/products#provider">Provider</a>, the Sparkplug-aware broker; <a href="/sparkbridge/drivers">device drivers</a> and <a href="/sparkbridge/products">Ignition tools</a>.</p>
   </div>
 </section>
 

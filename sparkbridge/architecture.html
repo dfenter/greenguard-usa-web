@@ -340,7 +340,7 @@
         <tr><th>On each plant or Edge server</th><td>SparkBridge Edge, plus our IEC-104 / DNP3 / TI 505 drivers where the rack needs them, plus SparkLink where the link is metered</td></tr>
         <tr><th>On each central server</th><td>SparkBridge Host, SparkVault, SparkCalc, Passage, SparkInject, SparkFlow, FleetOps. All are Ignition modules on the same server; none needs a box of its own.</td></tr>
         <tr><th>Off the servers</th><td>SparkID and Sentinel are tools you run from a workstation against the estate; nothing installs on a gateway for them</td></tr>
-        <tr><th>License</th><td>Per site gateway: Edge $995 standalone, SparkLink included. Per Host gateway: Host $1,495 standalone, SparkCalc and SparkID included. Other modules on Host: Passage $1,995, Sentinel and FleetOps $4,995 each, SparkInject $2,995 per connector family, SparkVault $3,995. Provider $1,995, its own license, works with Edge and Host or with any conformant Sparkplug host. SparkFlow $995, SparkSNMP $695 and drivers $695 each carry their own license. Per gateway, bought once and kept. Every paid module runs on Ignition's two-hour trial until a key file names it; Reset Trial restarts the clock, and a key lifts the pause within thirty seconds. Support 20%/yr optional.</td></tr>
+        <tr><th>License</th><td>Per site gateway: Edge $995 standalone, SparkLink included. Per Host gateway: Host $1,495 standalone, SparkCalc and SparkID included. Other modules on Host: Passage $1,995, Sentinel and FleetOps $4,995 each, SparkInject $2,995 per connector family, SparkVault $3,995. Provider $1,995 per gateway, required broker infrastructure, works with Edge and Host or with any conformant Sparkplug host. SparkFlow $995, SparkSNMP $695 and drivers $695 each carry their own license. Per gateway, bought once and kept. Every paid module runs on Ignition's two-hour trial until a key file names it; Reset Trial restarts the clock, and a key lifts the pause within thirty seconds. Support 20%/yr optional.</td></tr>
       </table>
       <p class="links"><a href="/sparkbridge/products">The product line</a><a href="/sparkbridge/pricing">Edge and Host pricing</a></p>
     </article>
@@ -522,16 +522,27 @@
 
     <article class="topo" id="s8">
       <div class="drawing">
-        <p class="vh">PLCs connect to one Ignition server that runs Edge, Host, SparkVault, Passage and SparkCalc together, with the Provider module supplying an embedded broker or a SparkBridge Provider service beside it. Perspective, a database and OPC-UA clients hang off the same server.</p>
-        <div class="run" role="group" aria-label="One Ignition server with the whole line">
+        <p class="vh">PLCs connect to one Ignition server running Edge and local plant services. Required SparkBridge Provider supplies the embedded Moquette broker or runs as a HiveMQ CE companion service beside the server. Host on the same Ignition server consumes through Provider and runs SparkVault, Passage and SparkCalc. Perspective, a database and OPC-UA clients hang off the same server.</p>
+        <div class="run" role="group" aria-label="One Ignition server with Edge, Provider and Host">
           <div class="dev source"><span class="tagno">Field</span><span class="devname">PLCs</span></div>
           <div class="seg s1" aria-hidden="true" data-l="drivers"></div>
-          <a class="dev ign spine st-svc" href="/sparkbridge/pricing">
-            <span class="tagno">Ignition server &middot; the only one</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span>
-            <span class="chips"><span class="ia">local history</span><span class="acc">Edge</span><span class="acc">Host</span><span class="acc">Provider · embedded or external</span><span class="acc">SparkVault</span><span class="acc">Passage</span><span class="acc">SparkCalc</span><span class="ia">Perspective</span></span>
-            <span class="job">Publishes, brokers, consumes, keeps, serves and computes in one enclosure. Point it at a central broker later and it becomes site 01 of the data center.</span>
+          <a class="dev ign spine st-svc" href="/sparkbridge/edge">
+            <span class="tagno">Same Ignition server &middot; Edge</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span>
+            <span class="chips"><span class="ia">drivers</span><span class="ia">local history</span><span class="acc">Edge</span></span>
+            <span class="job">Publishes plant data to the required Provider broker. The physical server stays one enclosure.</span>
           </a>
-          <div class="seg s2" aria-hidden="true" data-l="SQL · OPC-UA"></div>
+          <div class="seg s2" aria-hidden="true" data-l="Sparkplug"></div>
+          <div class="dev brk st-svc">
+            <span class="tagno">Required broker</span><span class="devname">Provider</span>
+            <span class="job">Embedded Moquette for a single node, or a HiveMQ CE companion service for MQTT 5 and shared subscriptions.</span>
+          </div>
+          <div class="seg s3" aria-hidden="true" data-l="local Sparkplug"></div>
+          <a class="dev ign spine st-svc" href="/sparkbridge/central">
+            <span class="tagno">Same Ignition server &middot; Host</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span>
+            <span class="chips"><span class="acc">Host</span><span class="acc">SparkVault</span><span class="acc">Passage</span><span class="acc">SparkCalc</span><span class="ia">Perspective</span></span>
+            <span class="job">Consumes through Provider, keeps history, serves OPC-UA and computes in one enclosure. Point it at a central broker later and it becomes site 01 of the data center.</span>
+          </a>
+          <div class="seg s4" aria-hidden="true" data-l="SQL · OPC-UA"></div>
           <div class="taps">
             <div class="dev ext"><span class="tagno">History</span><span class="devname">TimescaleDB</span></div>
             <div class="dev ext"><span class="tagno">Other systems</span><span class="devname">OPC-UA clients</span></div>

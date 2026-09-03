@@ -363,19 +363,19 @@
 <section class="band" id="provider">
   <div class="wrap">
     <div class="sec-head">
-      <div class="path">own license</div>
+      <div class="path">required infrastructure</div>
       <h2>Provider</h2>
       <p>The broker underneath Edge and Host.</p>
     </div>
     <div class="twocol">
       <div class="measure">
-        <p>Provider is the Sparkplug-aware broker: embedded for a single node with nothing to install, or a HiveMQ CE companion for MQTT 5 and shared subscriptions. Connected clients are never counted. It works with Edge and Host, or with any conformant Sparkplug host, and carries its own license.</p>
+        <p>Provider supplies the required Sparkplug-aware broker layer. Embedded Moquette for a single node, or a HiveMQ CE companion service for MQTT 5 and shared subscriptions. Edge and Host connect through it, and any conformant Sparkplug host can use it. Provider is priced separately at $1,995 per gateway.</p>
       </div>
       <div>
         <span class="spectitle">What it does</span>
         <table class="spec">
-          <tr><th>Runs on</th><td>A SparkBridge Edge or Host gateway</td></tr>
-          <tr><th>Shapes</th><td>Embedded broker, or HiveMQ CE companion for MQTT 5</td></tr>
+          <tr><th>Runs on</th><td>Embedded in a SparkBridge Edge or Host gateway, or as a HiveMQ CE companion service beside it</td></tr>
+          <tr><th>Shapes</th><td>Embedded Moquette, or HiveMQ CE companion service for MQTT 5 and shared subscriptions</td></tr>
           <tr><th>Security</th><td>Per-site identities, deny-by-default topic permissions, TLS and mTLS</td></tr>
           <tr><th>More</th><td><a href="/sparkbridge/products#provider">Read about Provider</a></td></tr>
         </table>
