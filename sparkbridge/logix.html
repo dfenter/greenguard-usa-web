@@ -34,7 +34,7 @@
     <nav class="nav" id="nav" aria-label="Main">
         <a href="/sparkbridge/">Overview</a>
         <a href="/sparkbridge/edge">Edge</a>
-        <a href="/sparkbridge/central">Central</a>
+        <a href="/sparkbridge/central">Host</a>
         <a href="/sparkbridge/products">All products</a>
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
@@ -53,8 +53,8 @@
     <div class="phead-grid">
       <div>
         <div class="eyebrow">SparkLogix</div>
-        <h1>Talk to your Allen-Bradley controllers directly, with no box in between</h1>
-        <p>Most plants running ControlLogix or CompactLogix reach Ignition through a translator box, an OPC server, or both. SparkLogix connects straight to the controller over EtherNet/IP, browses the tags live, and reads them at the pace your process needs.</p>
+        <h1>Talk to your Allen-Bradley controllers through a direct EtherNet/IP connection</h1>
+        <p>Ignition's built-in Logix driver reads slowly and falls over on large or restricted tag sets. SparkLogix exists because that built-in driver performs badly under load: it connects straight to the controller over EtherNet/IP, browses the tags live, and plans reads per tag so the pace matches your process.</p>
         <div class="pmeta"><span class="stat">Released 0.2.0</span><span>Runs on the gateway that touches the controller</span><span>$995, its own license</span></div>
       </div>
       <div class="artifact">
@@ -79,7 +79,7 @@
     <p class="claim">Point the driver at the controller and <em>its tags show up in the tag tree.</em></p>
     <div class="twocol">
       <div class="measure">
-        <p>SparkLogix connects to ControlLogix and CompactLogix controllers over EtherNet/IP and browses the tag database directly from the gateway. There is no OPC server or translator box to license and patch. Tags, including nested user-defined types, appear the moment the controller connects.</p>
+        <p>Ignition's built-in Logix driver reads slowly and falls over on large or restricted tag sets. SparkLogix connects to ControlLogix and CompactLogix controllers over EtherNet/IP and browses the tag database directly from the gateway, with UDTs included. Tags, including nested user-defined types, appear the moment the controller connects.</p>
         <p>Reads are planned around what each tag needs, not one setting for the whole controller. Values that share a structure are read together where that's faster. Everything else is read on its own, so a locked or restricted tag never holds up the rest. The connection stays up on its own, recovering if a request goes quiet before a stalled tag goes unnoticed.</p>
       </div>
       <div>
@@ -88,7 +88,7 @@
           <tr><th>What it is</th><td>A native Allen-Bradley Logix driver: ControlLogix, CompactLogix, over EtherNet/IP</td></tr>
           <tr><th>Where it runs</th><td>On the gateway that touches the controller</td></tr>
           <tr><th>Requires SparkBridge</th><td>No. Works standalone on any Ignition 8.1 or 8.3 gateway</td></tr>
-          <tr><th>Who it is for</th><td>Plants with Allen-Bradley Logix controllers they want in Ignition without an OPC server or translator box in between</td></tr>
+          <tr><th>Who it is for</th><td>Plants where Ignition's built-in Logix driver reads slowly or falls over on a large or restricted tag set</td></tr>
           <tr><th>Licensing</th><td>$995 per gateway, bought once and kept, not a subscription. It carries its own per-gateway license. Free for development with no time limit. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
         </table>
       </div>
@@ -98,9 +98,9 @@
 
 <section class="band">
   <div class="wrap">
-    <div class="figure"><b>0</b><span>OPC servers or translator boxes needed to see a Logix tag</span></div>
+    <div class="figure"><b>Direct</b><span>EtherNet/IP connection from the gateway to the controller</span></div>
     <div class="measure">
-      <p>The tag database is browsed straight from the controller and kept warm on the gateway. A restart comes back instantly instead of re-browsing from scratch, and a program change in Studio 5000 is picked up on its own, no one touching the gateway.</p>
+      <p>Ignition's built-in Logix driver reads slowly and falls over on large or restricted tag sets. SparkLogix's tag database is browsed straight from the controller and kept warm on the gateway. A restart comes back instantly instead of re-browsing from scratch, and a program change in Studio 5000 is picked up on its own, no one touching the gateway.</p>
       <p>Version 0.2.0 runs on Ignition 8.1 and 8.3 from the same codebase, with 233 tests covering the read and write planning, the tag database, and both gateway versions.</p>
     </div>
   </div>
@@ -110,17 +110,19 @@
   <div class="wrap">
     <div class="sec-head">
       <span class="path">where it fits</span>
-      <h2>Four Situations This Solves</h2>
-      <p>All four involve a working controller reached only through a middle layer.</p>
+      <h2>Five Situations This Solves</h2>
+      <p>All five benefit from a direct controller path with reads planned around the tags in use.</p>
     </div>
     <div class="scroller">
       <table class="tbl">
         <thead><tr><th>The situation</th><th>What changes</th></tr></thead>
         <tbody>
-          <tr><td><b>An OPC server sits between the controller and Ignition for no reason but habit</b><br><span class="sub">Any plant running ControlLogix or CompactLogix through a middle layer.</span></td>
-              <td>SparkLogix talks EtherNet/IP straight to the controller from the Ignition gateway. The OPC server, its license, and its own point of failure come out of the path.</td></tr>
+          <tr><td><b>Ignition's built-in Logix driver reads slowly and falls over on large or restricted tag sets</b><br><span class="sub">Any plant running ControlLogix or CompactLogix that feels the built-in driver struggle under load.</span></td>
+              <td>SparkLogix talks EtherNet/IP straight to the controller from the Ignition gateway, plans reads per tag, and never lets one restricted tag block the rest of the read.</td></tr>
           <tr><td><b>A locked or partially restricted tag holds up everything else</b><br><span class="sub">The engineer whose scan slows to a crawl the moment one tag is access-restricted.</span></td>
               <td>Restricted tags are read on their own so they never block a controller-wide read. Every reprobe clears what was previously learned about access, so a Studio 5000 fix or a program change is picked up cleanly instead of leaving a stale restriction in place.</td></tr>
+          <tr><td><b>A middle-layer OPC path slows controller access</b><br><span class="sub">Any plant running ControlLogix or CompactLogix through an intermediary.</span></td>
+              <td>SparkLogix provides the direct EtherNet/IP path from the Ignition gateway to the controller, with one driver license and one connection to operate.</td></tr>
           <tr><td><b>A Studio 5000 program edit leaves Ignition showing the old tag structure</b><br><span class="sub">Whoever has had to manually re-browse a device after a controller change.</span></td>
               <td>The gateway rebuilds its tag database on a background schedule and after a detected controller change. A new or changed tag shows up without a manual re-browse.</td></tr>
           <tr><td><b>A dropped connection needs a person to notice and reconnect it</b><br><span class="sub">Anyone who has found a device silently stalled with the wire showing connected.</span></td>

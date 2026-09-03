@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SparkBridge Products and Pricing: Edge, Central and Modules</title>
-<meta name="description" content="Every SparkBridge product, what it does for your plant, and what it costs: Edge, Central, the Central modules, Provider, and the per-gateway device drivers that connect older equipment.">
+<title>SparkBridge Products and Pricing: Edge, Host and Modules</title>
+<meta name="description" content="Every SparkBridge product, what it does for your plant, and what it costs: Edge, Host, the Host modules, Provider, and the per-gateway device drivers that connect older equipment.">
 <link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/products">
 <meta property="og:title" content="SparkBridge products and pricing">
 <meta property="og:description" content="Every SparkBridge product with what it does for your plant and what it costs.">
@@ -34,7 +34,7 @@
     <nav class="nav" id="nav" aria-label="Main">
         <a href="/sparkbridge/">Overview</a>
         <a href="/sparkbridge/edge">Edge</a>
-        <a href="/sparkbridge/central">Central</a>
+        <a href="/sparkbridge/central">Host</a>
         <a href="/sparkbridge/products" aria-current="page">All products</a>
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
@@ -75,7 +75,7 @@
 
       <a class="dev spine st-svc" href="/sparkbridge/central">
           <span class="tagno">One server</span>
-          <span class="devname">SparkBridge Central</span>
+          <span class="devname">SparkBridge Host</span>
           <span class="job">Collects every site and puts the data to work</span>
         </a>
 
@@ -89,17 +89,17 @@
     </div>
 
     <div class="cards rack">
-      <div class="rackhead">The Central suite &middot; modules that run on SparkBridge Central &middot; <a href="/sparkbridge/central">see the suite</a></div>
-      <a class="card" href="/sparkbridge/products#provider"><h3>Provider</h3><p>Sparkplug-aware broker</p><p class="desc">The Sparkplug-aware broker. Embedded for a single node, or a HiveMQ CE companion for MQTT 5 and shared subscriptions. No per-client licensing. Works with Edge and Central, or with any conformant Sparkplug host.</p></a>
+      <div class="rackhead">The Host suite &middot; modules that run on SparkBridge Host &middot; <a href="/sparkbridge/central">see the suite</a></div>
+      <a class="card" href="/sparkbridge/products#provider"><h3>Provider</h3><p>Sparkplug-aware broker</p><p class="desc">The Sparkplug-aware broker. Embedded for a single node, or a HiveMQ CE companion for MQTT 5 and shared subscriptions. No per-client licensing. Works with Edge and Host, or with any conformant Sparkplug host.</p></a>
       <a class="card" href="/sparkbridge/central#passage"><h3>Passage</h3><p>OPC-UA server</p><p class="desc">Serves your live plant data over OPC-UA to the historians, analytics and test tools you already own. No custom connector per system.</p></a>
-      <a class="card" href="/sparkbridge/central#sparkcalc"><h3>SparkCalc <small>included with Central</small></h3><p>Calculation engine</p><p class="desc">Rates, totals and efficiencies calculated once, in one place, used everywhere.</p></a>
-      <a class="card" href="/sparkbridge/central#sparkid"><h3>SparkID <small>included with Central</small></h3><p>Access control</p><p class="desc">Controls who can read your data and who can change it, with safe credential rotation. A read permission never includes control.</p></a>
+      <a class="card" href="/sparkbridge/central#sparkcalc"><h3>SparkCalc <small>included with Host</small></h3><p>Calculation engine</p><p class="desc">Rates, totals and efficiencies calculated once, in one place, used everywhere.</p></a>
+      <a class="card" href="/sparkbridge/central#sparkid"><h3>SparkID <small>included with Host</small></h3><p>Access control</p><p class="desc">Controls who can read your data and who can change it, with safe credential rotation. A read permission never includes control.</p></a>
       <a class="card" href="/sparkbridge/central#sentinel"><h3>Sentinel</h3><p>Security assessment</p><p class="desc">A scored security and health assessment of your plant data network, with the evidence and the fix for each finding.</p></a>
       <a class="card" href="/sparkbridge/central#fleetops"><h3>FleetOps</h3><p>Fleet management</p><p class="desc">One view of every gateway you run: versions, drift, certificates, backups. Fix once, apply everywhere.</p></a>
       <a class="card" href="/sparkbridge/central#sparkvault"><h3>SparkVault</h3><p>Tag historian</p><p class="desc">Keeps history on the plant's own clock, so trends stay true through a dropped link and back.</p></a>
       <a class="card" href="/sparkbridge/central#sparkinject"><h3>SparkInject</h3><p>Warehouse delivery</p><p class="desc">Delivers production data into your warehouse, once, with nothing rekeyed along the way.</p></a>
       <a class="card" href="/sparkbridge/record"><h3>SparkRecord <small>release pending</small></h3><p>Structured record pipeline</p><p class="desc">Lands Sparkplug records, MQTT JSON events and SparkFlow events exactly once, append-only, with a SHA-256 audit chain.</p></a>
-      <a class="card" href="/sparkbridge/flow"><h3>SparkFlow <small>own license</small></h3><p>High-rate streaming</p><p class="desc">Streams every point Central decodes, well past what the tag system carries, for screens and analytics at estate scale.</p></a>
+      <a class="card" href="/sparkbridge/flow"><h3>SparkFlow <small>own license</small></h3><p>High-rate streaming</p><p class="desc">Streams every point Host decodes, well past what the tag system carries, for screens and analytics at estate scale.</p></a>
       <a class="card" href="/sparkbridge/central#gitops"><h3>GitOps / Enterprise Governance <small>early access</small></h3><p>Configuration as code</p><p class="desc">Configuration as code for the whole estate: signed bundles, review and rollback, and an audit trail of who changed what.</p></a>
     </div>
 
@@ -143,7 +143,7 @@
         <thead><tr><th>Where</th><th>What is new</th><th>Why it matters</th></tr></thead>
         <tbody>
           <tr><td>Edge</td><td class="np">Zero-touch enrollment. A new site gateway bootstraps its own identity over a signed, TLS-required channel using a one-time enrollment code. Credentials are written owner-only and never typed at the site.</td><td class="np">Commissioning a site becomes one code, not a credentials file carried on a laptop.</td></tr>
-          <tr><td>Central</td><td class="np">A measured capacity route. Central reports its own ceiling from benchmark evidence and the shard count it is actually running, not from a fixed number.</td><td class="np">You size the server from what it measured, and the figure moves when the hardware does.</td></tr>
+          <tr><td>Host</td><td class="np">A measured capacity route. Host reports its own ceiling from benchmark evidence and the shard count it is actually running, not from a fixed number.</td><td class="np">You size the server from what it measured, and the figure moves when the hardware does.</td></tr>
           <tr><td>Every module</td><td class="np">Tiered route authorization. Every status and control route on every Spark product uses the same read, write and admin token policy. Loopback trust is off unless you turn it on.</td><td class="np">One policy across the whole line. A forwarded header cannot impersonate the local host.</td></tr>
           <tr><td>Every module</td><td class="np">One signed key file per gateway, checked every thirty seconds and applied with no restart. No key runs the full product on Ignition's trial. An invalid or tampered key fails closed. Nothing is metered.</td><td class="np">Licensing you can audit from one file, and a gateway that never stops mid-shift because someone edited it.</td></tr>
           <tr><td>SparkADS</td><td class="np">Native ADS/AMS with live TwinCAT symbol browse, verified against a real TwinCAT runtime on both Ignition lines. Certificate pinning on by default.</td><td class="np">The first commercial ADS driver for Ignition. No OPC UA bridge on the PLC side.</td></tr>
@@ -254,19 +254,19 @@
     <div class="sec-head">
       <div class="path" id="flow">flow</div>
       <h2>Flow</h2>
-      <p>A tag-counted system stops scaling at hundreds of thousands of points. SparkFlow keeps a live, quality-stamped value for every point Central decodes, with no tag behind it, and any system in the company can read the stream.</p>
+      <p>A tag-counted system stops scaling at hundreds of thousands of points. SparkFlow keeps a live, quality-stamped value for every point Host decodes, with no tag behind it, and any system in the company can read the stream.</p>
     </div>
     <div class="scroller">
       <table class="tbl">
         <thead><tr><th>Capability</th><th>Detail</th></tr></thead>
         <tbody>
-          <tr><td><b>NATS/JetStream backbone</b></td><td>Central publishes every decoded point onto a JetStream stream as a named, timestamped, quality-stamped message. Dashboards, historians, analysts and AI pipelines subscribe; the plant is asked for nothing.</td></tr>
+          <tr><td><b>NATS/JetStream backbone</b></td><td>Host publishes every decoded point onto a JetStream stream as a named, timestamped, quality-stamped message. Dashboards, historians, analysts and AI pipelines subscribe; the plant is asked for nothing.</td></tr>
           <tr><td><b>No tag behind a point</b></td><td>Screens keep the tags operators watch. Every other point stays instantly available from the stream, so millions of points stop being a licensing or server-sizing problem.</td></tr>
           <tr><td><b>Exactly once</b></td><td>Each message carries a deterministic id, so a retry after a bad link deduplicates instead of doubling. Verified on a live gateway wire capture.</td></tr>
           <tr><td><b>Last-value cache</b></td><td>A key-value store holds the current value and quality of every point. A new dashboard opens with the last known value of everything the moment it loads.</td></tr>
           <tr><td><b>Replay</b></td><td>The stream keeps history. An analyst can replay yesterday's upset minute by minute from the same subjects the live data uses.</td></tr>
           <tr><td><b>Outage-proven</b></td><td>A 60-second link cut on a leaf node buffered 447 readings and reconciled 447 on the hub: zero missing, zero ordering violations.</td></tr>
-          <tr><td><b>Licensing</b></td><td>Runs on the central gateway, on its own perpetual per-gateway license. Detail on the <a href="/sparkbridge/flow">SparkFlow page</a> and the <a href="/sparkbridge/pricing">pricing page</a>.</td></tr>
+          <tr><td><b>Licensing</b></td><td>Runs on the Host gateway, on its own perpetual per-gateway license. Detail on the <a href="/sparkbridge/flow">SparkFlow page</a> and the <a href="/sparkbridge/pricing">pricing page</a>.</td></tr>
         </tbody>
       </table>
     </div>
@@ -352,7 +352,7 @@
   <div class="wrap">
     <h2>Where To Start</h2>
     <p>Most plants begin by getting their data moving reliably, then keep its history, then open it to the systems and people who need it. You are not buying a platform up front.</p>
-    <p>Most plants start with Edge and Central on their own and add a module when the need shows up on a gateway they already own, so nothing has to be decided today that can be decided later. See the <a href="/sparkbridge/pricing">pricing page</a> for what each module costs.</p>
+    <p>Most plants start with Edge and Host on their own and add a module when the need shows up on a gateway they already own, so nothing has to be decided today that can be decided later. See the <a href="/sparkbridge/pricing">pricing page</a> for what each module costs.</p>
     <p>Not sure which gateway role you have? <a href="/sparkbridge/architecture#s8">Pick by what you run today</a> on the architecture page. If you only need to read older or utility equipment into Ignition, the <a href="/sparkbridge/drivers">protocol drivers</a> are their own license and do not require SparkBridge.</p>
     <p>Try it on one site. Development use is free with no time limit.</p>
     <div class="cta-row">

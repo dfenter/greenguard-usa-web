@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Device Drivers, Licensed On Their Own | SparkBridge</title>
-<meta name="description" content="Every SparkBridge device driver carries its own per-gateway perpetual license, priced apart from SparkBridge Edge and Central. Works with or without SparkBridge. Free for development, no time limit.">
+<meta name="description" content="Every SparkBridge device driver carries its own per-gateway perpetual license, priced apart from SparkBridge Edge and Host. Works with or without SparkBridge. Free for development, no time limit.">
 <link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/drivers">
 <meta property="og:title" content="Device drivers, licensed on their own | SparkBridge">
 <meta property="og:description" content="Each SparkBridge device driver is licensed on its own, per gateway, perpetual. Works with or without SparkBridge, free for development, no time limit.">
@@ -34,7 +34,7 @@
     <nav class="nav" id="nav" aria-label="Main">
         <a href="/sparkbridge/">Overview</a>
         <a href="/sparkbridge/edge">Edge</a>
-        <a href="/sparkbridge/central">Central</a>
+        <a href="/sparkbridge/central">Host</a>
         <a href="/sparkbridge/products">All products</a>
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
@@ -66,7 +66,7 @@
                  Free for development, no time limit
 
 <span class="hi">SparkBridge Edge</span>   $995, SparkLink included
-<span class="hi">SparkBridge Central</span> $1,495, SparkCalc and SparkID included
+<span class="hi">SparkBridge Host</span> $1,495, SparkCalc and SparkID included
 <span class="hi">Provider</span>          $1,995, its own license</pre>
         </div>
         <div class="artifact-foot">Full pricing for every license and driver is on <a href="/sparkbridge/pricing">pricing</a>.</div>
@@ -86,16 +86,16 @@
     </div>
     <div class="twocol">
       <div class="measure">
-        <p><b>SparkBridge Edge ($995)</b> includes SparkLink at no extra cost. <b>SparkBridge Central ($1,495)</b> includes SparkCalc and SparkID at no extra cost. Passage, Sentinel, FleetOps, SparkVault and SparkInject each carry their own license on Central. Provider is $1,995, its own license, and works with Edge and Central or with any conformant Sparkplug host. Edge works with Provider or with any conformant MQTT broker you already run, such as HiveMQ or Mosquitto.</p>
+        <p><b>SparkBridge Edge ($995)</b> includes SparkLink at no extra cost. <b>SparkBridge Host ($1,495)</b> includes SparkCalc and SparkID at no extra cost. Passage, Sentinel, FleetOps, SparkVault and SparkInject each carry their own license on Host. Provider is $1,995, its own license, and works with Edge and Host or with any conformant Sparkplug host. Edge works with Provider or with any conformant MQTT broker you already run, such as HiveMQ or Mosquitto.</p>
         <p>Device drivers are their own product line, each with its own per-gateway price, listed below. SparkLogix, SparkSNMP, SparkADS, SparkS7, Spark61850, SparkBACnet, IEC 60870-5-104 and DNP3 each run on any gateway, with or without a SparkBridge license.</p>
       </div>
       <div>
         <span class="spectitle">Full pricing</span>
         <table class="spec">
           <tr><th>Included with Edge</th><td>SparkLink</td></tr>
-          <tr><th>Included with Central</th><td>SparkCalc, SparkID</td></tr>
-          <tr><th>Provider</th><td>$1,995, its own license. Works with Edge and Central, or with any conformant Sparkplug host</td></tr>
-          <tr><th>Central modules</th><td>Passage, Sentinel, FleetOps, SparkVault, SparkInject, each its own license</td></tr>
+          <tr><th>Included with Host</th><td>SparkCalc, SparkID</td></tr>
+          <tr><th>Provider</th><td>$1,995, its own license. Works with Edge and Host, or with any conformant Sparkplug host</td></tr>
+          <tr><th>Host modules</th><td>Passage, Sentinel, FleetOps, SparkVault, SparkInject, each its own license</td></tr>
           <tr><th>Device drivers</th><td>Priced and licensed per driver, per gateway. See the catalog below</td></tr>
         </table>
         <p class="note">Full terms and every module price on <a href="/sparkbridge/pricing">pricing</a>. Every module and driver on <a href="/sparkbridge/products">all products</a>.</p>
@@ -127,7 +127,7 @@
         <tbody>
           <tr><td><b><a href="/sparkbridge/logix">SparkLogix</a></b></td>
               <td>Allen-Bradley ControlLogix / CompactLogix, EtherNet/IP</td>
-              <td>Your controller reaches Ignition through an OPC server, and you want that middle layer gone and nested UDTs browsable directly.</td>
+              <td>Ignition's built-in Logix driver reads slowly or falls over on a large or restricted tag set, or your controller reaches Ignition through an OPC server you want gone with nested UDTs browsable directly.</td>
               <td>$995</td><td>8.1 &amp; 8.3</td></tr>
           <tr id="ti505"><td><b>TI 505 / CTI 2500</b></td>
               <td>CAMP over TCP, memory areas V, WX, WY, X, Y, C, K, STW, TCP, TCC</td>

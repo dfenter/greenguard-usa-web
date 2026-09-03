@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Install and Configure | SparkBridge Docs</title>
-<meta name="description" content="Installation and configuration procedures for every SparkBridge product: the core modules, the modules on Central, the device drivers and the Ignition enhancements.">
+<meta name="description" content="Installation and configuration procedures for every SparkBridge product: the core modules, the modules on Host, the device drivers and the Ignition enhancements.">
 <link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/docs">
 <meta property="og:title" content="Download SparkBridge: the release package, checksums and licensing">
 <meta property="og:description" content="What is in the SparkBridge release package, the SHA-256 checksums for the current release, how licensing works, and where to download the build.">
@@ -31,7 +31,7 @@
     <nav class="nav" id="nav" aria-label="Main">
         <a href="/sparkbridge/">Overview</a>
         <a href="/sparkbridge/edge">Edge</a>
-        <a href="/sparkbridge/central">Central</a>
+        <a href="/sparkbridge/central">Host</a>
         <a href="/sparkbridge/products">All products</a>
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
@@ -61,7 +61,7 @@
       <div class="path">contents</div>
       <h2>Find Your Product</h2>
     </div>
-    <div class="doctoc"><div><h3>SparkBridge Core Modules</h3><a href="#install-common">Shared install steps</a><a href="#edge">SparkBridge Edge</a><a href="#central">SparkBridge Central</a><a href="#provider">Provider</a><a href="#flow">SparkFlow</a></div><div><h3>Additional Modules</h3><a href="#sparkcalc">SparkCalc</a><a href="#sparkid">SparkID</a><a href="#passage">Passage</a><a href="#sentinel">Sentinel</a><a href="#fleetops">FleetOps</a><a href="#sparkvault">SparkVault</a><a href="#sparkinject">SparkInject</a></div><div><h3>Device Drivers</h3><a href="#sparklogix">SparkLogix</a><a href="#sparksnmp">SparkSNMP</a><a href="#iec104">IEC 60870-5-104</a><a href="#dnp3">DNP3</a><a href="#ti505">TI 505 / CTI 2500</a><a href="#sparkads">SparkADS</a><a href="#sparks7">SparkS7</a><a href="#spark61850">Spark61850</a><a href="#sparkbacnet">SparkBACnet</a></div><div><h3>Ignition Enhancements</h3><a href="#sparkinflux">SparkInflux</a><a href="#sparkvalidate">SparkValidate</a><a href="#sparkgantt">SparkGantt</a><a href="#sparknotify">SparkNotify</a></div></div>
+    <div class="doctoc"><div><h3>SparkBridge Core Modules</h3><a href="#install-common">Shared install steps</a><a href="#edge">SparkBridge Edge</a><a href="#central">SparkBridge Host</a><a href="#provider">Provider</a><a href="#flow">SparkFlow</a></div><div><h3>Additional Modules</h3><a href="#sparkcalc">SparkCalc</a><a href="#sparkid">SparkID</a><a href="#passage">Passage</a><a href="#sentinel">Sentinel</a><a href="#fleetops">FleetOps</a><a href="#sparkvault">SparkVault</a><a href="#sparkinject">SparkInject</a></div><div><h3>Device Drivers</h3><a href="#sparklogix">SparkLogix</a><a href="#sparksnmp">SparkSNMP</a><a href="#iec104">IEC 60870-5-104</a><a href="#dnp3">DNP3</a><a href="#ti505">TI 505 / CTI 2500</a><a href="#sparkads">SparkADS</a><a href="#sparks7">SparkS7</a><a href="#spark61850">Spark61850</a><a href="#sparkbacnet">SparkBACnet</a></div><div><h3>Ignition Enhancements</h3><a href="#sparkinflux">SparkInflux</a><a href="#sparkvalidate">SparkValidate</a><a href="#sparkgantt">SparkGantt</a><a href="#sparknotify">SparkNotify</a></div></div>
   </div>
 </section>
 
@@ -70,7 +70,7 @@
     <div class="sec-head">
       <div class="path">1 of 4</div>
       <h2>SparkBridge Core Modules</h2>
-      <p>Shared install steps first, then Edge, Central, Provider and SparkFlow.</p>
+      <p>Shared install steps first, then Edge, Host, Provider and SparkFlow.</p>
     </div>
   </div>
 </section>
@@ -90,18 +90,11 @@
 
 <h3>Install</h3>
 <ol>
-<li>Verify the download against its checksums.
-<pre class="code">cd &lt;PKGDIR&gt;
-shasum -a 256 -c SHA256SUMS.txt</pre>
-Every line must read <span class="mono">OK</span>.</li>
-<li>Print the signing certificate and keep its fingerprint visible.
-<pre class="code">keytool -printcert -file sparkbridge-signing-cert.pem</pre>
-</li>
-<li>In the gateway, go to Config &gt; Modules &gt; Install or Upgrade a Module, and upload the modules in this order: Provider, then Host, then Edge. The Provider owns the broker, so it must be running before the Host subscribes and before the Edge publishes. (Dropping all three files into <span class="mono">$IGNITION/user-lib/modules/</span> and restarting the gateway loads them in the same dependency order.)</li>
-<li>The gateway quarantines the first module and shows a certificate page with a fingerprint, a confirmation checkbox, and an install button. Compare the fingerprint against the one printed in step 2, then accept. Accepting once covers all three modules.</li>
-<li>The gateway also shows the module license (<span class="mono">license.html</span>) on install. Accept it; a module whose license was not accepted stays quarantined.</li>
-<li>Confirm the module list shows SparkBridge Host, Edge, and Provider (and Flow if installed), all Running.</li>
+<li>Download the bundle for your Ignition line.</li>
+<li>In the gateway, go to Config &gt; Modules &gt; Install or Upgrade a Module, and upload the modules in this order: Provider, then Host, then Edge (and Flow, if bought).</li>
+<li>Accept the certificate and license once; confirm all modules show Running.</li>
 </ol>
+<p>The gateway checks each module's signature itself against the shipped certificate on upload. The fingerprint is published on the <a href="/sparkbridge/download">download page</a> for anyone who wants to confirm it by hand.</p>
 
 <h3>License</h3>
 <table class="spec">
@@ -131,7 +124,7 @@ Every line must read <span class="mono">OK</span>.</li>
 <tr><th><span class="mono">sparkbridge.edge.password</span></th><td>Edge broker password. Belongs in the secrets file, not on the command line.</td></tr>
 <tr><th><span class="mono">sparkbridge.edge.uns</span></th><td>Turns on the UNS application-topic mirror.</td></tr>
 <tr><th><span class="mono">sparkbridge.edge.unsprefix</span></th><td>Application topic prefix used by the UNS mirror.</td></tr>
-<tr><th><span class="mono">sparkbridge.enrollment.code</span></th><td>One-time operator code for first-boot enrollment against Central. Set only for a first boot; the Edge clears it after success.</td></tr>
+<tr><th><span class="mono">sparkbridge.enrollment.code</span></th><td>One-time operator code for first-boot enrollment against Host. Set only for a first boot; the Edge clears it after success.</td></tr>
 </table>
 
 <h3>Verify</h3>
@@ -148,13 +141,13 @@ SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
 <section id="central">
 <div class="wrap">
 <div class="sec-head">
-<div class="path">Modules / Central</div>
-<h2>SparkBridge Central</h2>
+<div class="path">Modules / Host</div>
+<h2>SparkBridge Host</h2>
 <p>Decodes Sparkplug B into a managed Ignition tag provider. Module file: <span class="mono">SparkBridge-Host.modl</span>.</p>
 </div>
 
 <h3>What it needs</h3>
-<p>A running Provider (embedded broker or external HiveMQ CE) that Central can subscribe to before any Edge publishes.</p>
+<p>A running Provider (embedded broker or external HiveMQ CE) that Host can subscribe to before any Edge publishes.</p>
 
 <h3>Install</h3>
 <p>Install after Provider and before Edge, following the <a href="#install-common">shared install steps</a> above.</p>
@@ -170,7 +163,7 @@ SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
 <tr><th><span class="mono">sparkbridge.host.maxNodes</span></th><td>Hard fleet limit on resident edge nodes. Default <span class="mono">25000</span>.</td></tr>
 <tr><th><span class="mono">sparkbridge.host.maxMetricsPerNode</span></th><td>Max metrics one node may declare across its BIRTHs. Default <span class="mono">50000</span>.</td></tr>
 </table>
-<p>Secrets, including any broker password Central uses, go in the secrets file named by <span class="mono">sparkbridge.secrets.file</span> (default <span class="mono">data/sparkbridge-secrets.properties</span>), never as a <span class="mono">-D</span> argument.</p>
+<p>Secrets, including any broker password Host uses, go in the secrets file named by <span class="mono">sparkbridge.secrets.file</span> (default <span class="mono">data/sparkbridge-secrets.properties</span>), never as a <span class="mono">-D</span> argument.</p>
 
 <h3>Verify</h3>
 <pre class="code">SparkBridge Host: ... subscribed
@@ -178,7 +171,7 @@ SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
 <p>Expand the managed tag provider (default name <span class="mono">SparkBridge</span>) in the Designer or gateway tag browser and confirm values update. The REST status, node inventory, and metrics routes require a bearer token; see <span class="mono">sparkbridge.rest.readToken</span> / <span class="mono">sparkbridge.rest.token</span> in docs/CONFIG.md.</p>
 
 <h3>License</h3>
-<p>Covered by the suite license key described in the <a href="#install-common">shared install steps</a>. On trial expiry with no verified key, Central publishes a retained OFFLINE STATE and closes its sessions.</p>
+<p>Covered by the suite license key described in the <a href="#install-common">shared install steps</a>. On trial expiry with no verified key, Host publishes a retained OFFLINE STATE and closes its sessions.</p>
 </div>
 </section>
 
@@ -194,7 +187,7 @@ SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
 <p>Nothing extra for the embedded broker. For external HiveMQ CE: a JDK 11 or newer on the broker host, plus the SparkBridge broker authorization extension and the HiveMQ file-RBAC extension.</p>
 
 <h3>Install</h3>
-<p>Install first, before Central and Edge, following the <a href="#install-common">shared install steps</a> above. With no <span class="mono">sparkbridge.*</span> system properties set, the Provider binds the embedded Moquette broker on <span class="mono">127.0.0.1:1883</span> and, with TLS enabled, <span class="mono">127.0.0.1:8883</span>.</p>
+<p>Install first, before Host and Edge, following the <a href="#install-common">shared install steps</a> above. With no <span class="mono">sparkbridge.*</span> system properties set, the Provider binds the embedded Moquette broker on <span class="mono">127.0.0.1:1883</span> and, with TLS enabled, <span class="mono">127.0.0.1:8883</span>.</p>
 
 <h3>Configure</h3>
 <p>To run against external HiveMQ CE instead of the embedded broker:</p>
@@ -232,10 +225,10 @@ SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
 </div>
 
 <h3>What it needs</h3>
-<p>A reachable <span class="mono">nats-server</span> with JetStream enabled. SparkFlow is optional and is not part of the core install; install it after Central. See docs/FLOW_MODULE.md in the bundle for the full configuration and lifecycle reference.</p>
+<p>A reachable <span class="mono">nats-server</span> with JetStream enabled. SparkFlow is optional and is not part of the core install; install it after Host. See docs/FLOW_MODULE.md in the bundle for the full configuration and lifecycle reference.</p>
 
 <h3>Install</h3>
-<p>Install after Provider, Central, and Edge are running, following the <a href="#install-common">shared install steps</a> above.</p>
+<p>Install after Provider, Host, and Edge are running, following the <a href="#install-common">shared install steps</a> above.</p>
 
 <h3>Configure</h3>
 <table class="spec">
@@ -260,7 +253,7 @@ SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
     <div class="sec-head">
       <div class="path">2 of 4</div>
       <h2>Additional Modules</h2>
-      <p>Each runs on a SparkBridge Central gateway.</p>
+      <p>Each runs on a SparkBridge Host gateway.</p>
     </div>
   </div>
 </section>
@@ -272,17 +265,11 @@ SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
 
 <h3>What it needs</h3>
 <ul>
-<li>A SparkBridge Central gateway.</li>
-<li>Java 17 to build.</li>
-<li>The <span class="mono">io.sparkbridge:common</span> artifact in mavenLocal, matching the version pinned in <span class="mono">build.gradle.kts</span>.</li>
+<li>A SparkBridge Host gateway.</li>
 </ul>
 
 <h3>Install</h3>
-<ol>
-<li>If <span class="mono">io.sparkbridge:common</span> is not in mavenLocal, build it first from the SparkBridge repo: <span class="mono">./gradlew :common:publishToMavenLocal</span>.</li>
-<li>Build the module: <pre class="code">JAVA_HOME=~/.local/opt/jdk-17.0.19+10/Contents/Home ./gradlew build</pre></li>
-<li>Deploy the built module to the gateway's module directory and restart the gateway, per the standard SparkBridge module install described in the README of the SparkBridge bundle.</li>
-</ol>
+<p>SparkCalc comes with the Host license. Install it through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</p>
 
 <h3>Configure</h3>
 <p>Declared expressions, staleness budgets, and identity settings are documented in the module's own README and in <span class="mono">docs/LIVEPROOF.md</span>. See the README in the bundle for the full property list; only what is confirmed there is listed below.</p>
@@ -295,7 +282,7 @@ SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
 <p>Confirm published metrics appear under the <span class="mono">Calc-&lt;group&gt;</span> edge node rather than under the plant's own edge, and that the reported timestamp is the stalest contributing input's source timestamp, not the evaluation time. Full proof steps are in <span class="mono">docs/LIVEPROOF.md</span>.</p>
 
 <h3>License</h3>
-<p>Status at time of writing: on the bench, not customer ready. See the README in the bundle for current licensing terms.</p>
+<p>Included with SparkBridge Host.</p>
 </div></section>
 
 <section class="band" id="sparkid"><div class="wrap"><div class="sec-head">
@@ -306,17 +293,11 @@ SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
 
 <h3>What it needs</h3>
 <ul>
-<li>A SparkBridge Central gateway.</li>
-<li>Java 17.</li>
-<li><span class="mono">io.sparkbridge:common:2.5.0</span> from mavenLocal.</li>
+<li>A SparkBridge Host gateway.</li>
 </ul>
 
 <h3>Install</h3>
-<ol>
-<li>If the common artifact is missing: <pre class="code">cd ../sparkbridge && ./gradlew :common:publishToMavenLocal</pre></li>
-<li>Build the jar: <pre class="code">JAVA_HOME=~/.local/opt/jdk-17.0.19+10/Contents/Home ./gradlew fatJar</pre></li>
-<li>Run <span class="mono">java -jar build/libs/sparkid-0.1.0-all.jar --help</span> to confirm the build.</li>
-</ol>
+<p>SparkID comes with the Host license. Install the module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</p>
 
 <h3>Configure</h3>
 <p>Configuration is a declaration file (an <span class="mono">.intent</span> file) describing roles, scopes, and purposes, not a properties file on the gateway.</p>
@@ -346,11 +327,11 @@ SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
 
 <h3>What it needs</h3>
 <ul>
-<li>A SparkBridge Central gateway.</li>
+<li>A SparkBridge Host gateway.</li>
 </ul>
 
 <h3>Install</h3>
-<p>Passage ships as a free module included with any SparkBridge Edge or Central license; it is never sold separately. Installation follows the standard SparkBridge module install: deploy the module file to the gateway and restart. See the README in the bundle for the exact package name and deployment steps.</p>
+<p>Passage ships as a free module included with any SparkBridge Edge or Host license; it is never sold separately. Installation follows the standard SparkBridge module install: deploy the module file to the gateway and restart. See the README in the bundle for the exact package name and deployment steps.</p>
 
 <h3>Configure</h3>
 <table class="spec">
@@ -364,7 +345,7 @@ SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
 <p>Connect a third-party OPC-UA client (for example UaExpert), browse the address space, subscribe to a value, and confirm it matches the Sparkplug wire within one update with the source timestamp preserved. Confirm a node goes to bad quality within the death window after an NDEATH/DDEATH.</p>
 
 <h3>License</h3>
-<p>Free. Included with any SparkBridge Edge or Central license; ships as a free module with no license tag required.</p>
+<p>Free. Included with any SparkBridge Edge or Host license; ships as a free module with no license tag required.</p>
 </div></section>
 
 <section class="band" id="sentinel"><div class="wrap"><div class="sec-head">
@@ -375,17 +356,12 @@ SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
 
 <h3>What it needs</h3>
 <ul>
-<li>A SparkBridge Central gateway (for the estate being audited).</li>
-<li>Java 17 to build and run the auditor itself.</li>
-<li><span class="mono">io.sparkbridge:common:2.4.0</span> from mavenLocal.</li>
+<li>A SparkBridge Host gateway (for the estate being audited).</li>
+<li>The signed Sentinel release from the SparkBridge bundle.</li>
 </ul>
 
 <h3>Install</h3>
-<ol>
-<li>If the common artifact is missing: <pre class="code">cd ../sparkbridge && ./gradlew :common:publishToMavenLocal</pre></li>
-<li>Build the self-contained jar: <pre class="code">JAVA_HOME=~/.local/opt/jdk-17.0.19+10/Contents/Home ./gradlew fatJar</pre></li>
-<li>Confirm with <span class="mono">java -jar build/libs/sparkaudit-0.1.0-all.jar --help</span>.</li>
-</ol>
+<p>Sentinel carries its own license. Install the signed release through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</p>
 
 <h3>Configure</h3>
 <p>Sentinel runs as a passive audit by default:</p>
@@ -416,21 +392,12 @@ SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
 
 <h3>What it needs</h3>
 <ul>
-<li>A SparkBridge Central gateway to run the console role; the agent role runs on every fleet member.</li>
-<li>Java 17 to build.</li>
-<li><span class="mono">io.sparkbridge:common:2.4.0</span> from mavenLocal.</li>
+<li>A SparkBridge Host gateway to run the console role; the agent role runs on every fleet member.</li>
+<li>The signed FleetOps module from the SparkBridge bundle.</li>
 </ul>
 
 <h3>Install</h3>
-<ol>
-<li>If the common artifact is missing: <pre class="code">cd ../sparkbridge && ./gradlew :common:publishToMavenLocal</pre></li>
-<li>Build: <pre class="code">export JAVA_HOME=~/.local/opt/jdk-17.0.19+10/Contents/Home
-./gradlew clean build</pre></li>
-<li>Deploy a dev build: <pre class="code">cp build/SparkBridge-FleetOps.unsigned.modl \
-   /usr/local/ignition/user-lib/modules/SparkBridge-FleetOps.modl
-/usr/local/ignition/gwcmd.sh -r</pre></li>
-<li>Dev builds are unsigned; the gateway must run with <span class="mono">-Dignition.allowunsignedmodules=true</span>.</li>
-</ol>
+<p>FleetOps carries its own license. Install the signed module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</p>
 
 <h3>Configure</h3>
 <p>A JVM system property wins; otherwise settings come from <span class="mono">&lt;dataDir&gt;/fleetops/fleetops.properties</span>. Secrets are the exception: the broker password and REST token come only from the file named by <span class="mono">fleetops.secrets.file</span>, which must be mode 600.</p>
@@ -463,15 +430,13 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 
 <h3>What it needs</h3>
 <ul>
-<li>A SparkBridge Central gateway.</li>
+<li>A SparkBridge Host gateway.</li>
 <li>A Postgres/Timescale database reachable from the gateway.</li>
-<li>Java 17 to build.</li>
 </ul>
 
 <h3>Install</h3>
 <ol>
-<li>Build the module (mirrors the sparkbridge layout: umbrella module project plus a gateway-scope code project).</li>
-<li>Deploy the <span class="mono">.unsigned.modl</span> as <span class="mono">SparkVault-Historian.modl</span> on a gateway running <span class="mono">-Dignition.allowunsignedmodules=true</span> for dev builds.</li>
+<li>SparkVault carries its own license. Install the signed module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</li>
 <li>Set <span class="mono">sparkvault.ingest.enabled=true</span> to activate the ingest lane; it stays inert otherwise.</li>
 </ol>
 
@@ -503,14 +468,13 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 
 <h3>What it needs</h3>
 <ul>
-<li>A SparkBridge Central gateway.</li>
-<li>Java 17 to build.</li>
+<li>A SparkBridge Host gateway.</li>
 <li>A Snowflake or Databricks destination, provisioned before switching off the default JSONL sink.</li>
 </ul>
 
 <h3>Install</h3>
 <ol>
-<li>Build and deploy the module following the standard SparkBridge install.</li>
+<li>SparkInject carries its own license. Install the signed module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</li>
 <li>Set <span class="mono">sparkinject.enabled=true</span>; it is off by default.</li>
 <li>Leave <span class="mono">sparkinject.sink=jsonl</span> (the default) to prove the pipeline end to end before provisioning a warehouse.</li>
 </ol>
@@ -548,7 +512,7 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 <section id="sparklogix"><div class="wrap"><div class="sec-head">
 <div class="path">Drivers / Allen-Bradley Logix</div>
 <h2>SparkLogix</h2>
-<p>Replacement driver for Allen-Bradley ControlLogix and CompactLogix, built for efficient AOI and UDT reads and writes.</p>
+<p>Ignition's built-in Logix driver reads slowly and falls over on large or restricted tag sets. SparkLogix exists because that built-in driver performs badly under load: it connects straight to ControlLogix and CompactLogix controllers over EtherNet/IP, browses UDTs directly, plans reads per tag, and never lets a restricted tag block the rest of the read.</p>
 </div>
 
 <h3>What it needs</h3>
@@ -602,10 +566,7 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 </ul>
 
 <h3>Install</h3>
-<ol>
-<li>Build with <span class="mono">./gradlew build</span> for an unsigned dev artifact at <span class="mono">build/SparkSNMP.modl</span>, or run <span class="mono">./scripts/release.sh</span> for a signed release build plus <span class="mono">SHA256SUMS.txt</span>.</li>
-<li>Install the module. Unsigned builds require the gateway to accept untrusted modules.</li>
-</ol>
+<p>Download the signed release build and install it through Config &gt; Modules &gt; Install or Upgrade a Module, the same as the other SparkBridge modules; no build step is required.</p>
 
 <h3>Configure</h3>
 <p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; the SNMP device type. Select the SNMP version (V1/V2C/V3), set Community (V1/V2C) or the USM user/auth/privacy settings (V3), and the agent host and UDP port.</p>
@@ -643,15 +604,12 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 
 <h3>What it needs</h3>
 <ul>
-<li>Ignition 8.1.x, Java 17. Built and tested against Ignition Module SDK 8.1.54.</li>
+<li>Ignition 8.1.x. The signed release is built and tested against Ignition Module SDK 8.1.54.</li>
 <li>An RTU or substation gateway reachable over TCP, default port 2404.</li>
 </ul>
 
 <h3>Install</h3>
-<ol>
-<li>Build with <span class="mono">./gradlew build</span> to produce <span class="mono">build/IEC104-Driver.unsigned.modl</span>.</li>
-<li>Install on the gateway. The module is unsigned, so the gateway must be set to accept unsigned modules (disables signature verification gateway-wide).</li>
-</ol>
+<p>Install the signed IEC 60870-5-104 module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</p>
 
 <h3>Configure</h3>
 <p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; IEC 60870-5-104.</p>
@@ -688,15 +646,12 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 
 <h3>What it needs</h3>
 <ul>
-<li>Ignition 8.1.54, Java 17. TCP transport only; serial is not implemented.</li>
+<li>Ignition 8.1.54. TCP transport only; serial is not implemented.</li>
 <li>An outstation reachable over TCP, registered port 20000.</li>
 </ul>
 
 <h3>Install</h3>
-<ol>
-<li>Build with <span class="mono">./gradlew build</span>. Module id <span class="mono">com.greenguard.drivers.dnp3</span>.</li>
-<li>Install the module. Unsigned dev builds require the gateway to accept unsigned modules.</li>
-</ol>
+<p>Install the signed DNP3 module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required. Module id <span class="mono">com.greenguard.drivers.dnp3</span>.</p>
 
 <h3>Configure</h3>
 <p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; DNP3.</p>
@@ -727,15 +682,12 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 
 <h3>What it needs</h3>
 <ul>
-<li>Ignition 8.1.54, Java 17.</li>
+<li>Ignition 8.1.54.</li>
 <li>A CTI 2572/2500 onboard Ethernet module or compatible 505 gear reachable over TCP, default CAMP port 1505.</li>
 </ul>
 
 <h3>Install</h3>
-<ol>
-<li>Build with <span class="mono">./gradlew clean build</span> to produce <span class="mono">build/TI505-Driver.unsigned.modl</span>.</li>
-<li>Install via Config &gt; Modules &gt; Install/Upgrade a Module. The module is unsigned, so the gateway must accept unsigned modules.</li>
-</ol>
+<p>Install the signed TI 505 / CTI 2500 module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</p>
 
 <h3>Configure</h3>
 <p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; TI 505 / CTI 2500.</p>
@@ -773,7 +725,7 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 </ul>
 
 <h3>Install</h3>
-<p>Module id <span class="mono">com.sparkbridge.sparkads</span>. Install the module on Ignition 8.1 or 8.3 as an Ignition module. See the README in the bundle for build and packaging steps.</p>
+<p>Module id <span class="mono">com.sparkbridge.sparkads</span>. Install the signed module on Ignition 8.1 or 8.3 through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</p>
 
 <h3>Configure</h3>
 <p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; the ADS device type.</p>
@@ -805,7 +757,7 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 </ul>
 
 <h3>Install</h3>
-<p>Module id <span class="mono">com.sparkbridge.sparks7</span>. Install as an Ignition module. See the README in the bundle for build steps.</p>
+<p>Module id <span class="mono">com.sparkbridge.sparks7</span>. Install the signed module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</p>
 
 <h3>Configure</h3>
 <p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; the S7 device type.</p>
@@ -839,7 +791,7 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 </ul>
 
 <h3>Install</h3>
-<p>Module id <span class="mono">com.sparkbridge.spark61850</span>. See the README in the bundle for build and packaging steps.</p>
+<p>Module id <span class="mono">com.sparkbridge.spark61850</span>. Install the signed module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</p>
 
 <h3>Configure</h3>
 <p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; the 61850 device type. Addressing follows the IED/LD/LN/DO/DA model tree, browsable as folders, with functional constraint (ST/MX/CO/SP) as a leaf suffix. SCL file (.icd/.cid/.scd) import can pre-build the model; see the README in the bundle for the exact import steps.</p>
@@ -864,7 +816,7 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 </ul>
 
 <h3>Install</h3>
-<p>Module id <span class="mono">com.sparkbridge.sparkbacnet</span>. See the README in the bundle for build and packaging steps.</p>
+<p>Module id <span class="mono">com.sparkbridge.sparkbacnet</span>. Install the signed module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</p>
 
 <h3>Configure</h3>
 <p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; the BACnet device type. Discovery uses Who-Is/I-Am. Addressing grammar: <span class="mono">dev:1234/AI:1.PV</span> (device instance, object type and instance, property). Supported services include ReadProperty, ReadPropertyMultiple, WriteProperty (priority array 1-16, relinquish via NULL), and SubscribeCOV with lifetime renewal. Supported object types: analog/binary/multistate input/output/value, device, and read-only schedule/calendar.</p>
@@ -901,8 +853,7 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 
 <h3>Install</h3>
 <ol>
-<li>Build with <span class="mono">./gradlew build</span> (unsigned dev build, output <span class="mono">build/SparkInflux.unsigned.modl</span>) or use a signed release built with <span class="mono">-Psparkinfluxsign</span>.</li>
-<li>Install via <span class="mono">python3 scripts/dev-install-module.py</span> for a no-restart hot install, or upload the <span class="mono">.modl</span> by hand under Config &gt; Modules.</li>
+<li>Install the signed SparkInflux module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</li>
 </ol>
 
 <h3>Configure</h3>
@@ -939,13 +890,13 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 
 <h3>What it needs</h3>
 <ul>
-<li>Gradle 8.10.2, Java 17 to run Gradle, Java 11 bytecode for core and the gateway module, Java 17 for the CLI.</li>
+<li>An Ignition gateway for the gateway module.</li>
 <li>The gateway module for live gateway extraction and protocol execution; the CLI runs standalone (Validate Desk) for offline or CI use.</li>
 </ul>
 
 <h3>Install</h3>
 <ol>
-<li>Build: <span class="mono">./gradlew clean build</span>. The self-contained CLI is written to <span class="mono">cli/build/libs/cli-0.1.0-all.jar</span>.</li>
+<li>Install the signed SparkValidate gateway module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required. Validate Desk is supplied as its own signed CLI release.</li>
 <li>Start a validation repository: <span class="mono">java -jar cli-0.1.0-all.jar init validation/</span>, which creates <span class="mono">model/system.json</span>, <span class="mono">policy/risk.yaml</span>, <span class="mono">requirements/urs.yaml</span>, <span class="mono">rationalization/mad.yaml</span>, plus <span class="mono">docs/</span>, <span class="mono">protocols/</span>, <span class="mono">evidence/.gitattributes</span>, and <span class="mono">rtm/rtm.csv</span>.</li>
 </ol>
 
@@ -981,8 +932,7 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 
 <h3>Install</h3>
 <ol>
-<li>Build the module with Gradle (uses the <span class="mono">io.ia.sdk.modl</span> plugin); pass <span class="mono">-PsparkganttSign</span> for a signed build. Output is a <span class="mono">.modl</span> file (module id <span class="mono">com.sparkbridge.sparkgantt</span>).</li>
-<li>Install via <span class="mono">dev-install-module.py</span> for a hot install, or upload the <span class="mono">.modl</span> by hand under Config &gt; Modules.</li>
+<li>Install the signed SparkGantt module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required. Module id <span class="mono">com.sparkbridge.sparkgantt</span>.</li>
 <li>The component appears in the Designer Perspective palette after install.</li>
 </ol>
 

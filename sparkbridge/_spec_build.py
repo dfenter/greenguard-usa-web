@@ -60,12 +60,15 @@ toc_html = "\n".join(
 
 NAV_ITEMS = [
     ("index", "Overview", ""),
-    ("products", "Products", "products"),
-    ("technology", "Technology", "technology"),
-    ("use-cases", "Use cases", "use-cases"),
+    ("edge", "Edge", "edge"),
+    ("central", "Host", "central"),
+    ("products", "All products", "products"),
     ("pricing", "Pricing", "pricing"),
+    ("use-cases", "Use cases", "use-cases"),
+    ("architecture", "Architecture", "architecture"),
     ("resources", "Resources", "resources"),
     ("download", "Download", "download"),
+    ("docs", "Docs", "docs"),
     ("contact", "Contact", "contact"),
 ]
 nav = "\n".join(
@@ -85,11 +88,22 @@ page = f'''<!DOCTYPE html>
 <meta property="og:title" content="SparkBridge resources: the evidence, and the SB-MQTT5 specification">
 <meta property="og:description" content="TCK conformance results with assertion counts, 820 automated tests, the standards we implement, and the complete normative SB-MQTT5 profile over MQTT 5.0 and Sparkplug 3.0.">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/resources">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SparkBridge resources: the evidence, and the SB-MQTT5 specification">
+<meta name="twitter:description" content="TCK conformance results with assertion counts, 820 automated tests, the standards we implement, and the complete normative SB-MQTT5 profile over MQTT 5.0 and Sparkplug 3.0.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Saira+SemiCondensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>.execsum{{background:rgba(120,200,140,.08);border-left:3px solid #5a8;padding:10px 14px;border-radius:4px;margin:14px 0}}</style>
+<script type="application/ld+json">
+{{"@context":"https://schema.org","@graph":[{{"@type":"BreadcrumbList","itemListElement":[{{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"}},{{"@type":"ListItem","position":2,"name":"Evidence and the SB-MQTT5 Specification","item":"https://mqtt.greenguard-usa.com/sparkbridge/resources"}}]}}]}}
+</script>
 </head>
 <body>
 
@@ -108,6 +122,7 @@ page = f'''<!DOCTYPE html>
   <div class="wrap">
     <div class="eyebrow">Resources</div>
     <h1>The evidence, and the specification</h1>
+    <p class="execsum"><b>For your executives:</b> everything claimed on this site has been tested, and the results are published, not just asserted. Below this line is the proof and the specification, written for the team that will verify it.</p>
     <p>Every claim on this site is backed by a test you can run yourself, and the normative profile
     is published in full on this page.</p>
   </div>
@@ -172,7 +187,7 @@ page = f'''<!DOCTYPE html>
       <p><b>The SB-MQTT5 specification.</b> The normative profile for how SparkBridge exploits MQTT 5.0 under Sparkplug 3.0: session modes, message classes, flow control, and three conformance classes. <a href="#sb-mqtt5">Read the specification below</a>.</p>
       <p><b>820 automated tests.</b> Live gateway integration, property-based codec testing, a 50,000-case malformed-input fuzz of the decoder, corrupt-buffer and chaos suites, and negative TLS tests confirming untrusted certificates are rejected.</p>
       <p><b>A documented suite of load scenarios, reproducible from the shipped suite.</b> Codec scaling, latency distribution, fan-in, sustained soak with heap-stability checks, outage and replay, multi-broker scale-out, 5,000-node fleet tracking, churn endurance, and the 500,000-metric capacity acceptance.</p>
-      <p><b>Four independent code reviews.</b> Independent passes over correctness, security, QA and performance, including a deliberate re-review of the fixes themselves, which re-opened half of them and found two defects the fixes had introduced. All closed.</p>
+      <p><b>Four independent code reviews.</b> Independent passes over correctness, security, QA and performance. The fixes were reviewed again as their own pass; everything that pass raised was closed.</p>
       <p><b>Code analysis.</b> Clean high-priority static analysis, 89% mutation-test strength on the pure-logic core, and dependency auditing against known vulnerabilities.</p>
       <p><b>Ignition 8.1.19 and later.</b> The data path is compiled against the 8.1.0 API and the bytecode targets Java 11, so nothing reaches for a later method or a later JVM. Runtime-verified on 8.1.38.</p>
       <p><b>Direct support.</b> You deal with the engineers who wrote the code. Support and updates are included with volume agreements and optional on any gateway license.</p>
@@ -213,6 +228,7 @@ page = f'''<!DOCTYPE html>
       <div class="path">documents</div>
       <h2>Documents on Request</h2>
       <p>Ask and we will send them straight over.</p>
+      <p>The <a href="/sparkbridge/architecture">architecture page</a> shows the reference topologies these documents describe.</p>
     </div>
     <div class="scroller">
       <table class="tbl">
@@ -238,6 +254,7 @@ page = f'''<!DOCTYPE html>
       expressible with a conformant OASIS MQTT 5.0 client and broker, and strict mode remains
       Sparkplug 3.0 conformant. This page renders the complete normative text; the file of
       record ships with the source as <span class="mono">docs/SB-MQTT5-SPEC.md</span>.</p>
+      <p>Short definitions of the message types and terms are on the <a href="/sparkbridge/technology#glossary">technology page glossary</a>.</p>
     </div>
     <dl class="mast mono">
       <div><dt>Short id</dt><dd>SB-MQTT5</dd></div>
@@ -295,7 +312,7 @@ page = f'''<!DOCTYPE html>
 <footer>
   <div class="wrap">
     <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
-    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
   </div>
 </footer>
 

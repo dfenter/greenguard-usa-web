@@ -4,16 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Reference Architectures: SparkBridge on Ignition | SparkBridge</title>
-<meta name="description" content="How GreenGuard USA deploys SparkBridge, from one plant to a data center: site gateways running Edge, one central gateway running Central and the modules you pick, each licensed once and kept.">
+<meta name="description" content="How GreenGuard USA deploys SparkBridge, from one plant to a data center: site gateways running Edge, one Host gateway running the Host module and the modules you pick, each licensed once and kept.">
 <link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/architecture">
 <meta property="og:title" content="How SparkBridge is deployed, one plant to a data center">
-<meta property="og:description" content="Every layout runs the same two products: Edge at each site, Central in the middle, plus only the modules you pick.">
+<meta property="og:description" content="Every layout runs the same two products: Edge at each site, Host in the middle, plus only the modules you pick.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/architecture">
 <meta property="og:site_name" content="SparkBridge">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="How SparkBridge is deployed, one plant to a data center">
-<meta name="twitter:description" content="Every layout runs the same two products: Edge at each site, Central in the middle, plus only the modules you pick.">
+<meta name="twitter:description" content="Every layout runs the same two products: Edge at each site, Host in the middle, plus only the modules you pick.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
@@ -35,7 +35,7 @@
     <nav class="nav" id="nav" aria-label="Main">
         <a href="/sparkbridge/">Overview</a>
         <a href="/sparkbridge/edge">Edge</a>
-        <a href="/sparkbridge/central">Central</a>
+        <a href="/sparkbridge/central">Host</a>
         <a href="/sparkbridge/products">All products</a>
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
@@ -55,7 +55,7 @@
       <div>
         <div class="eyebrow">Reference architectures</div>
         <h1>How This Runs, From One Plant to the Whole Company</h1>
-        <p>Every layout below is built from the same two products: SparkBridge Edge at each site, SparkBridge Central in the middle. Add only the modules you need. Every server keeps the systems and databases you already run. Nothing gets torn out to get here.</p>
+        <p>Every layout below is built from the same two products: SparkBridge Edge at each site, SparkBridge Host in the middle. Add only the modules you need. Every server keeps the systems and databases you already run. Nothing gets torn out to get here.</p>
         <div class="pmeta"><span class="stat">Eight layouts</span><span>Same two products, every time</span><span>Nothing ripped out on day one</span></div>
       </div>
       <div class="artifact">
@@ -89,7 +89,7 @@
 
     <article class="topo" id="s1">
       <div class="drawing">
-        <p class="vh">A PLC connects to the plant's existing Ignition server through Ignition's own driver; that server keeps its local database. The SparkBridge Edge module on that server publishes its tag tree to an MQTT broker. A central Ignition server running the SparkBridge Host module subscribes and rebuilds the tree as a managed tag provider, which Perspective reads. A write on the central server travels back as a Sparkplug command to the site server and on to the PLC.</p>
+        <p class="vh">A PLC connects to the plant's existing Ignition server through Ignition's own driver; that server keeps its local database. The SparkBridge Edge module on that server publishes its tag tree to SparkBridge Provider. A central Ignition server running the SparkBridge Host module subscribes and rebuilds the tree as a managed tag provider, which Perspective reads. A write on the central server travels back as a Sparkplug command to the site server and on to the PLC.</p>
         <div class="run" role="group" aria-label="PLC to site Ignition server to broker to central Ignition server">
           <div class="dev source"><span class="tagno">Field</span><span class="devname">PLC</span><span class="job">Modbus, Logix, OPC-UA, or one of our drivers</span></div>
           <div class="seg s1" aria-hidden="true" data-l="driver"></div>
@@ -100,18 +100,18 @@
             <span class="job">The plant's own full server and database stay. Edge publishes the tag tree as NBIRTH and NDATA and buffers to disk when the link drops</span>
           </a>
           <div class="seg s2 two" aria-hidden="true" data-l="NDATA ↑ · NCMD ↓"></div>
-          <div class="dev brk st-svc"><span class="tagno">Broker</span><span class="devname">MQTT</span><span class="job">HiveMQ, EMQX, Mosquitto, or the embedded one for a lab</span></div>
+          <div class="dev brk st-svc"><span class="tagno">Broker</span><span class="devname">Provider</span><span class="job">SparkBridge Provider. Embedded for a lab, a service beside the server for production.</span></div>
           <div class="seg s3" aria-hidden="true" data-l="spBv1.0/#"></div>
           <a class="dev ign st-svc" href="/sparkbridge/central">
             <span class="tagno">Ignition server &middot; central</span><span class="devname">Ignition</span>
             <span class="where">SparkBridge installed here</span>
-            <span class="chips"><span class="acc">Central</span><span class="ia">Perspective</span></span>
+            <span class="chips"><span class="acc">Host</span><span class="ia">Perspective</span></span>
             <span class="job">Rebuilds the tree as a managed provider; a tag write here becomes NCMD to the site</span>
           </a>
         </div>
       </div>
       <table class="spec">
-        <tr><th>What it costs</th><td>SparkBridge Edge at the site, SparkBridge Central at the office. Per gateway. Bought once and kept. Every paid module runs on Ignition's two-hour trial until a key file names it; Reset Trial restarts the clock, and a key lifts the pause within thirty seconds. Support 20%/yr, optional.</td></tr>
+        <tr><th>What it costs</th><td>SparkBridge Edge at the site, SparkBridge Host at the office. Per gateway. Bought once and kept. Every paid module runs on Ignition's two-hour trial until a key file names it; Reset Trial restarts the clock, and a key lifts the pause within thirty seconds. Support 20%/yr, optional.</td></tr>
         <tr><th>What you get</th><td>A change on the floor shows up in your office in under a millisecond. Nothing is lost if the connection between them drops.</td></tr>
       </table>
       <div class="sec-head" style="margin-top:14px"><span class="path">For your engineers</span></div>
@@ -119,7 +119,7 @@
         <tr><th>Servers</th><td>Two Ignition servers: the plant's existing server (a full Ignition server with its own database, or Ignition Edge at a small onsite plant) and a central server</td></tr>
         <tr><th>SparkBridge</th><td>Edge module on the plant server, Host module on the central server. Nothing else, and nothing removed.</td></tr>
         <tr><th>Round trip</th><td>p50 0.44 ms, p99 0.97 ms end to end. A 4 h 11 min outage replayed with zero values lost, every one on the timestamp the PLC gave it.</td></tr>
-        <tr><th>License</th><td>SparkBridge Edge $995 per site gateway, standalone. SparkBridge Central $1,495 per central gateway, standalone. Bought once.</td></tr>
+        <tr><th>License</th><td>SparkBridge Edge $995 per site gateway, standalone. SparkBridge Host $1,495 per Host gateway, standalone. Bought once.</td></tr>
       </table>
       <p class="links"><a href="/sparkbridge/technology">The life of one connection</a><a href="/sparkbridge/download">Download</a></p>
     </article>
@@ -147,7 +147,7 @@
                 <div class="dev ext"><span class="tagno">Plant database</span><span class="devname">SQL Server · Postgres</span><span class="job">Local history, alarm journal, local reports</span></div>
               </div></div>
               <div class="bus two" data-l="SQL rows over the WAN · GAN tag provider" aria-hidden="true"></div>
-              <div class="arow"><div class="alab"><b>Central</b></div><div class="acells">
+              <div class="arow"><div class="alab"><b>Host</b></div><div class="acells">
                 <div class="dev ext"><span class="tagno">Central database</span><span class="devname">SQL · sqlth_ partitions</span><span class="job">One connection and one credential per plant. Every plant's rows land here on the central clock.</span></div>
                 <div class="dev ign"><span class="tagno">Central Ignition server</span><span class="devname">Ignition</span><span class="chips"><span>GAN remote providers</span><span>Perspective</span></span><span class="job">Reads live tags over the Gateway Network, history from the central database</span></div>
               </div></div>
@@ -157,19 +157,19 @@
         <div>
           <p class="baLabel"><b>With SparkBridge</b> &middot; one wire up, the plant keeps its database</p>
           <div class="drawing">
-            <p class="vh">With SparkBridge the plant Ignition server keeps its drivers, Perspective, alarms and local database. The history splitter's remote leg is retired: the SparkBridge Edge module publishes the plant's tag tree to the broker with store and forward, and the central Ignition server rebuilds it through the Host module while SparkVault writes central history with the plant's original timestamps. Optionally the plant server also runs the Host module and sees the rest of the estate as a local provider. No plant holds a central database credential and the Gateway Network link retires.</p>
+            <p class="vh">With SparkBridge the plant Ignition server keeps its drivers, Perspective, alarms and local database. The history splitter's remote leg is retired: the SparkBridge Edge module publishes the plant's tag tree to SparkBridge Provider with store and forward, and the central Ignition server rebuilds it through the Host module while SparkVault writes central history with the plant's original timestamps. Optionally the plant server also runs the Host module and sees the rest of the estate as a local provider. No plant holds a central database credential and the Gateway Network link retires.</p>
             <div class="arack">
               <div class="arow"><div class="alab"><b>Plant</b>one site</div><div class="acells">
-                <a class="dev ign wide st-svc" href="/sparkbridge/edge"><span class="tagno">Plant Ignition server</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="ia">drivers</span><span class="ia">Perspective</span><span class="ia">alarms</span><span class="ia">local history</span><span class="acc">Edge</span><span class="acc">Central · optional</span></span><span class="job">Same server, same screens. Edge publishes the tree; the local history provider keeps writing the plant database. Central, if installed, brings the other plants in as a local provider.</span></a>
+                <a class="dev ign wide st-svc" href="/sparkbridge/edge"><span class="tagno">Plant Ignition server</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="ia">drivers</span><span class="ia">Perspective</span><span class="ia">alarms</span><span class="ia">local history</span><span class="acc">Edge</span><span class="acc">Host · optional</span></span><span class="job">Same server, same screens. Edge publishes the tree; the local history provider keeps writing the plant database. Host, if installed, brings the other plants in as a local provider.</span></a>
                 <div class="dev ext"><span class="tagno">Plant database</span><span class="devname">Unchanged</span><span class="job">Local history, alarm journal, local reports. Still here when the WAN is not.</span></div>
               </div></div>
               <div class="bus pulse two" data-l="NBIRTH · NDATA ↑ · NCMD ↓" aria-hidden="true"><span></span></div>
               <div class="arow"><div class="alab"><b>Broker</b></div><div class="acells">
-                <div class="dev brk st-svc"><span class="tagno">Broker</span><span class="devname">HiveMQ pair</span><span class="job">One plant credential, scoped to its own group by SparkID. No database credential leaves the plant.</span></div>
+                <div class="dev brk st-svc"><span class="tagno">Broker</span><span class="devname">Provider pair</span><span class="job">SparkBridge Provider, redundant pair. One plant credential, scoped to its own group by SparkID. No database credential leaves the plant.</span></div>
               </div></div>
               <div class="bus" data-l="spBv1.0/# · SQL ↓ once" aria-hidden="true"></div>
-              <div class="arow"><div class="alab"><b>Central</b></div><div class="acells">
-                <a class="dev ign st-svc" href="/sparkbridge/central#sparkvault"><span class="tagno">Central Ignition server</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">Central</span><span class="acc">SparkVault</span><span class="ia">Perspective</span></span><span class="job">Live tree from Central; SparkVault writes central history once, on the plant's clock, and serves Perspective trends as a tag-history provider</span></a>
+              <div class="arow"><div class="alab"><b>Host</b></div><div class="acells">
+                <a class="dev ign st-svc" href="/sparkbridge/central#sparkvault"><span class="tagno">Central Ignition server</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">Host</span><span class="acc">SparkVault</span><span class="ia">Perspective</span></span><span class="job">Live tree from Host; SparkVault writes central history once, on the plant's clock, and serves Perspective trends as a tag-history provider</span></a>
                 <div class="dev ext"><span class="tagno">Central database</span><span class="devname">TimescaleDB</span><span class="job">One writer. Every plant in one open hypertable, original timestamps, <span class="mono">is_historical</span> marked on replayed rows.</span></div>
               </div></div>
             </div>
@@ -186,12 +186,12 @@
         <tr><th>What stays</th><td>The plant Ignition server, its drivers, Perspective, alarms, the plant database and the local history provider. The splitter can stay too, writing only its local leg, or be swapped for a plain local provider once the remote leg is off.</td></tr>
         <tr><th>What changes</th><td>The remote leg of the history splitter and the Gateway Network remote provider are both replaced by one Sparkplug wire. Live tags and central history now come from the same stream.</td></tr>
         <tr><th>Why the wire wins</th><td>The splitter ships SQL rows: one database connection and credential per plant, rows stamped on arrival, and a central schema of sqlth_ partitions nobody wants to query directly. Edge ships values with the timestamp the PLC gave them, buffers to disk through an outage, and SparkVault writes them once into one open table. A 4 h 11 min outage replayed with zero values lost, every one on its original timestamp.</td></tr>
-        <tr><th>The plant gets more back</th><td>Install Central on the plant server too and the rest of the estate shows up there as a managed provider: sibling plants, SparkCalc results, corporate setpoints. A plant screen can show the neighbour's line with no Gateway Network link.</td></tr>
+        <tr><th>The plant gets more back</th><td>Install Host on the plant server too and the rest of the estate shows up there as a managed provider: sibling plants, SparkCalc results, corporate setpoints. A plant screen can show the neighbour's line with no Gateway Network link.</td></tr>
         <tr><th>Cutover order</th><td>Install Edge, leave the splitter running both legs, let SparkVault fill in parallel for one history partition, compare, then switch the remote leg off. Nothing is ripped out on day one; the plant's own history is never at risk because it never moves.</td></tr>
         <tr><th>Small onsite plants</th><td>A skid, a lift station, a packaging cell with no database of its own runs Ignition Edge instead. Same Edge module, same wire; its history lives at central only, with the Edge server's own disk buffer covering an outage.</td></tr>
-        <tr><th>License</th><td>Edge $995 per site gateway, standalone, on the plant server. Central $1,495 per central gateway, standalone, if you also want the estate view there, SparkCalc included. On the central server: Central $1,495, plus SparkVault $3,995 and Passage $1,995.</td></tr>
+        <tr><th>License</th><td>Edge $995 per site gateway, standalone, on the plant server. Host $1,495 per Host gateway, standalone, if you also want the estate view there, SparkCalc included. On the Host server: Host $1,495, plus SparkVault $3,995 and Passage $1,995.</td></tr>
       </table>
-      <p class="honest">Honest limits: reports written against the central sqlth_ tables have to be re-pointed at SparkVault's table or the Timescale hypertable. The plant's own reports do not change. The alarm journal stays in the plant database; alarm state travels as tags, the journal rows do not. Central on a plant server is a full Central license.</p>
+      <p class="honest">Honest limits: reports written against the central sqlth_ tables have to be re-pointed at SparkVault's table or the Timescale hypertable. The plant's own reports do not change. The alarm journal stays in the plant database; alarm state travels as tags, the journal rows do not. Host on a plant server is a full Host license.</p>
       <p class="links"><a href="/sparkbridge/central#sparkvault">SparkVault</a><a href="/sparkbridge/technology">Store and forward, measured</a></p>
     </article>
   </div>
@@ -203,7 +203,7 @@
     <div class="sec-head bandhead">
       <span class="path">03 &middot; the data center</span>
       <h2>One View of Every Site, Not a Different Screen for Each</h2>
-      <p>Large operators run several separate servers because one cannot hold every site, and every team has to know which server owns which site. That slows down every decision and every new hire. SparkBridge turns those separate servers into one view, with one central gateway that grows as you add sites.</p>
+      <p>Large operators run several separate servers because one cannot hold every site, and every team has to know which server owns which site. That slows down every decision and every new hire. SparkBridge turns those separate servers into one view, with one Host gateway that grows as you add sites.</p>
     </div>
 
     <article class="topo" id="s3">
@@ -235,7 +235,7 @@
         <div>
           <p class="baLabel"><b>With SparkBridge</b> &middot; one namespace, a pool of hosts</p>
           <div class="drawing">
-            <p class="vh">With SparkBridge, each plant server keeps its local database, runs the Edge module and publishes to a central broker pair; SparkVault on the central pool writes central history once. A pool of central Ignition servers runs the Host module: several consumers on a shared subscription split the load, and a standby holds the same host identity. Application servers read one managed provider that contains every site.</p>
+            <p class="vh">With SparkBridge, each plant server keeps its local database, runs the Edge module and publishes to a central SparkBridge Provider pair; SparkVault on the central pool writes central history once. A pool of central Ignition servers runs the Host module: several consumers on a shared subscription split the load, and a standby holds the same host identity. Application servers read one managed provider that contains every site.</p>
             <div class="arack">
               <div class="arow"><div class="alab"><b>Plants</b>40 Ignition servers, 40 databases</div><div class="acells">
                 <a class="dev ign st-svc" href="/sparkbridge/edge"><span class="tagno">Plants 01 to 40</span><span class="devname">Ignition + local DB</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="ia">drivers</span><span class="ia">local history</span><span class="acc">Edge</span></span><span class="job">Each plant keeps its database and publishes its own group; the splitter's remote leg and the GAN link both retire</span></a>
@@ -243,13 +243,13 @@
               </div></div>
               <div class="bus pulse" data-l="NBIRTH · NDATA · QoS 1" aria-hidden="true"><span></span></div>
               <div class="arow"><div class="alab"><b>Brokers</b>data center</div><div class="acells">
-                <div class="dev brk st-svc"><span class="tagno">Broker A</span><span class="devname">HiveMQ</span><span class="job">Retains STATE and birth certificates</span></div>
-                <div class="dev brk st-svc"><span class="tagno">Broker B</span><span class="devname">HiveMQ</span><span class="job">Paho server set; edges fail over between them</span></div>
+                <div class="dev brk st-svc"><span class="tagno">Broker A</span><span class="devname">Provider</span><span class="job">SparkBridge Provider. Retains STATE and birth certificates</span></div>
+                <div class="dev brk st-svc"><span class="tagno">Broker B</span><span class="devname">Provider</span><span class="job">SparkBridge Provider, paired with A; edges fail over between them</span></div>
               </div></div>
               <div class="bus" data-l="$share/hosts/… · spBv1.0/#" aria-hidden="true"></div>
-              <div class="arow"><div class="alab"><b>Central</b>Ignition host pool</div><div class="acells">
-                <a class="dev ign st-svc" href="/sparkbridge/central#sparkvault"><span class="tagno">Central 1 &middot; primary</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">Central · 4 consumers</span><span class="acc">SparkVault</span></span><span class="job">Owns the host id; publishes STATE, sends commands. SparkVault writes central history once.</span></a>
-                <a class="dev ign st-comm" href="/sparkbridge/central"><span class="tagno">Central 2 &middot; standby</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">Central · standby</span></span><span class="job">Same state, same id, commands fenced until it claims</span></a>
+              <div class="arow"><div class="alab"><b>Host</b>Ignition host pool</div><div class="acells">
+                <a class="dev ign st-svc" href="/sparkbridge/central#sparkvault"><span class="tagno">Central 1 &middot; primary</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">Host · 4 consumers</span><span class="acc">SparkVault</span></span><span class="job">Owns the host id; publishes STATE, sends commands. SparkVault writes central history once.</span></a>
+                <a class="dev ign st-comm" href="/sparkbridge/central"><span class="tagno">Central 2 &middot; standby</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">Host · standby</span></span><span class="job">Same state, same id, commands fenced until it claims</span></a>
               </div></div>
               <div class="bus" data-l="one managed provider · every site" aria-hidden="true"></div>
               <div class="arow"><div class="alab"><b>Apps</b></div><div class="acells">
@@ -262,17 +262,17 @@
       </div>
       <table class="spec">
         <tr><th>What you get</th><td>Forty plants, one screen. Add a plant and it shows up automatically, no rework for the team watching it.</td></tr>
-        <tr><th>Uptime</th><td>If the primary central gateway fails, a standby takes over in about a quarter of a second. Nobody at any site notices.</td></tr>
+        <tr><th>Uptime</th><td>If the primary Host gateway fails, a standby takes over in about a quarter of a second. Nobody at any site notices.</td></tr>
         <tr><th>What it costs</th><td>Per gateway. Bought once and kept. Every paid module runs on Ignition's two-hour trial until a key file names it; Reset Trial restarts the clock, and a key lifts the pause within thirty seconds. Support 20%/yr, optional.</td></tr>
       </table>
       <div class="sec-head" style="margin-top:14px"><span class="path">For your engineers</span></div>
       <table class="spec">
         <tr><th>Servers</th><td>40 plant Ignition servers with their 40 databases, untouched; 2 brokers; 2 central Ignition servers in a host pool; one central database; your existing application servers</td></tr>
-        <tr><th>SparkBridge</th><td>Edge on every plant server; Central and SparkVault on every server in the central pool</td></tr>
+        <tr><th>SparkBridge</th><td>Edge on every plant server; Host and SparkVault on every server in the central pool</td></tr>
         <tr><th>Capacity</th><td>At least 340,000 updates/s sustained through to visible tags on one central server; 480,000 offered without bending. Four shared consumers ingest about 20 times what one does. 500,000 metrics resident in under 4 GiB.</td></tr>
         <tr><th>Takeover</th><td>Standby claims the host id in 244 ms end to end, 5.7 ms mechanical, with zero rebirths. The sites never notice.</td></tr>
         <tr><th>Sideways</th><td>Add a central server to the pool for more consumers, or partition the namespace by group across servers with ordering preserved. Both are live changes, no rebirth wave.</td></tr>
-        <tr><th>License</th><td>Edge $995 per site gateway, standalone. Central $1,495 per pool gateway, standalone.</td></tr>
+        <tr><th>License</th><td>Edge $995 per site gateway, standalone. Host $1,495 per pool gateway, standalone.</td></tr>
       </table>
       <p class="honest">Honest limits: standby caps you at two writers for at most the claim-stale window, not zero. Shared consumers trade per-edge ordering for throughput; partition by group if ordering matters. Run the standby against one broker server, since convergence is per broker.</p>
       <p class="links"><a href="/sparkbridge/technology">Performance quantified</a><a href="/sparkbridge/technology#beyond">Standby and scale-out</a></p>
@@ -291,7 +291,7 @@
 
     <article class="topo" id="s4">
       <div class="drawing">
-        <p class="vh">Field equipment, including legacy IEC-104, DNP3 and TI 505 racks, connects to plant Ignition servers, each with its own database, and to Ignition Edge servers at small onsite plants, running drivers, the Edge module and SparkLink. Sites publish through a broker pair whose access rules are generated by SparkID. A central Ignition host pool runs the Host module plus SparkVault, SparkCalc, Passage, SparkInject, SparkFlow and FleetOps. Downstream, a Timescale database holds history, OPC-UA clients browse the namespace through Passage, NATS carries it to the company through SparkFlow, and a cloud warehouse receives it through SparkInject. Sentinel audits the whole thing from the broker side.</p>
+        <p class="vh">Field equipment, including legacy IEC-104, DNP3 and TI 505 racks, connects to plant Ignition servers, each with its own database, and to Ignition Edge servers at small onsite plants, running drivers, the Edge module and SparkLink. Sites publish through a SparkBridge Provider pair whose access rules are generated by SparkID. A central Ignition host pool runs the Host module plus SparkVault, SparkCalc, Passage, SparkInject, SparkFlow and FleetOps. Downstream, a Timescale database holds history via SparkVault, OPC-UA clients browse the namespace through Passage, NATS carries it to the company through SparkFlow, and a cloud warehouse receives it through SparkInject. Sentinel audits the whole thing from the broker side.</p>
         <div class="arack" role="group" aria-label="Fully integrated SparkBridge estate">
           <div class="arow"><div class="alab"><b>Field</b></div><div class="acells">
             <div class="dev source narrow"><span class="tagno">Modern</span><span class="devname">PLCs</span><span class="job">Logix, Modbus, OPC-UA</span></div>
@@ -307,18 +307,18 @@
           </div></div>
           <div class="bus pulse two" data-l="NBIRTH · NDATA ↑ · NCMD ↓ · signed config ↓" aria-hidden="true"><span></span></div>
           <div class="arow"><div class="alab"><b>Brokers</b>data center</div><div class="acells">
-            <div class="dev brk st-svc"><span class="tagno">Broker A</span><span class="devname">HiveMQ</span><span class="job">Rules from SparkID: only the host id may command, each site scoped to its own group</span></div>
-            <div class="dev brk st-svc"><span class="tagno">Broker B</span><span class="devname">HiveMQ</span><span class="job">Server set with A</span></div>
+            <div class="dev brk st-svc"><span class="tagno">Broker A</span><span class="devname">Provider</span><span class="job">SparkBridge Provider. Rules from SparkID: only the host id may command, each site scoped to its own group</span></div>
+            <div class="dev brk st-svc"><span class="tagno">Broker B</span><span class="devname">Provider</span><span class="job">SparkBridge Provider, paired with A</span></div>
             <a class="dev box st-svc" href="/sparkbridge/central#sparkid"><span class="tagno">Not a gateway</span><span class="devname">SparkID</span><span class="job">Generates credentials.xml, extension config, NATS ACLs, standby bindings; rotates with overlap</span></a>
           </div></div>
           <div class="bus" data-l="spBv1.0/# · $share · STATE · claim" aria-hidden="true"></div>
-          <div class="arow"><div class="alab"><b>Central</b>Ignition host pool</div><div class="acells">
+          <div class="arow"><div class="alab"><b>Host</b>Ignition host pool</div><div class="acells">
             <a class="dev ign wide st-svc" href="/sparkbridge/products">
               <span class="tagno">Central 1 &middot; primary</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span>
-              <span class="chips"><span class="acc">Central · 4 consumers</span><span class="acc">SparkVault</span><span class="acc">SparkCalc</span><span class="acc">Passage</span><span class="acc">SparkInject</span><span class="acc">SparkFlow</span><span class="acc">FleetOps console</span><span class="ia">Perspective</span></span>
+              <span class="chips"><span class="acc">Host · 4 consumers</span><span class="acc">SparkVault</span><span class="acc">SparkCalc</span><span class="acc">Passage</span><span class="acc">SparkInject</span><span class="acc">SparkFlow</span><span class="acc">FleetOps console</span><span class="ia">Perspective</span></span>
               <span class="job">One managed provider with every site. Vault stores it, Calc derives from it under its own group, Passage serves it as OPC-UA, Inject and Flow send it out.</span>
             </a>
-            <a class="dev ign st-comm" href="/sparkbridge/central"><span class="tagno">Central 2 &middot; standby</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">Central · standby</span><span class="acc">SparkVault</span></span><span class="job">Same state; takes the id in 244 ms</span></a>
+            <a class="dev ign st-comm" href="/sparkbridge/central"><span class="tagno">Central 2 &middot; standby</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">Host · standby</span><span class="acc">SparkVault</span></span><span class="job">Same state; takes the id in 244 ms</span></a>
           </div></div>
           <div class="bus" data-l="SQL · OPC-UA · NATS · streaming" aria-hidden="true"></div>
           <div class="arow"><div class="alab"><b>Consumers</b></div><div class="acells">
@@ -338,11 +338,11 @@
       <table class="spec">
         <tr><th>Servers</th><td>Plant Ignition servers with their local databases, Ignition Edge at small onsite plants, 2 brokers, 2 central Ignition servers, a SparkID workstation, your database, NATS and warehouse</td></tr>
         <tr><th>On each plant or Edge server</th><td>SparkBridge Edge, plus our IEC-104 / DNP3 / TI 505 drivers where the rack needs them, plus SparkLink where the link is metered</td></tr>
-        <tr><th>On each central server</th><td>SparkBridge Central, SparkVault, SparkCalc, Passage, SparkInject, SparkFlow, FleetOps. All are Ignition modules on the same server; none needs a box of its own.</td></tr>
+        <tr><th>On each central server</th><td>SparkBridge Host, SparkVault, SparkCalc, Passage, SparkInject, SparkFlow, FleetOps. All are Ignition modules on the same server; none needs a box of its own.</td></tr>
         <tr><th>Off the servers</th><td>SparkID and Sentinel are tools you run from a workstation against the estate; nothing installs on a gateway for them</td></tr>
-        <tr><th>License</th><td>Per site gateway: Edge $995 standalone, SparkLink included. Per central gateway: Central $1,495 standalone, SparkCalc and SparkID included. Other modules on Central: Passage $1,995, Sentinel and FleetOps $4,995 each, SparkInject $2,995 per connector family, SparkVault $3,995. Provider $1,995, its own license, works with Edge and Central or with any conformant Sparkplug host. SparkFlow $995, SparkSNMP $1,495 and drivers $495 each carry their own license. Per gateway, bought once and kept. Every paid module runs on Ignition's two-hour trial until a key file names it; Reset Trial restarts the clock, and a key lifts the pause within thirty seconds. Support 20%/yr optional.</td></tr>
+        <tr><th>License</th><td>Per site gateway: Edge $995 standalone, SparkLink included. Per Host gateway: Host $1,495 standalone, SparkCalc and SparkID included. Other modules on Host: Passage $1,995, Sentinel and FleetOps $4,995 each, SparkInject $2,995 per connector family, SparkVault $3,995. Provider $1,995, its own license, works with Edge and Host or with any conformant Sparkplug host. SparkFlow $995, SparkSNMP $1,495 and drivers $495 each carry their own license. Per gateway, bought once and kept. Every paid module runs on Ignition's two-hour trial until a key file names it; Reset Trial restarts the clock, and a key lifts the pause within thirty seconds. Support 20%/yr optional.</td></tr>
       </table>
-      <p class="links"><a href="/sparkbridge/products">The product line</a><a href="/sparkbridge/pricing">Edge and Central pricing</a></p>
+      <p class="links"><a href="/sparkbridge/products">The product line</a><a href="/sparkbridge/pricing">Edge and Host pricing</a></p>
     </article>
   </div>
 </section>
@@ -358,17 +358,17 @@
 
     <article class="topo" id="s5">
       <div class="drawing">
-        <p class="vh">The central Ignition host pool receives the estate from the brokers. SparkVault on the central server writes every value with its original timestamp to a Timescale database and can replay any window back onto the brokers under a separate replay group. SparkFlow on the same server projects the estate onto NATS: a last-value bucket, a model bucket built from birth certificates and templates, and subjects the company subscribes to. Passage exposes the same tree over OPC-UA. Together those form the digital twin. Perspective trends read SparkVault through the ordinary tag history provider.</p>
+        <p class="vh">The central Ignition host pool receives the estate from SparkBridge Provider. SparkVault on the central server writes every value with its original timestamp to a Timescale database and can replay any window back onto SparkBridge Provider under a separate replay group. SparkFlow on the same server projects the estate onto NATS: a last-value bucket, a model bucket built from birth certificates and templates, and subjects the company subscribes to. Passage exposes the same tree over OPC-UA. Together those form the digital twin. Perspective trends read SparkVault through the ordinary tag history provider.</p>
         <div class="arack" role="group" aria-label="Historian and digital twin around the central host pool">
           <div class="arow"><div class="alab"><b>Brokers</b></div><div class="acells">
-            <div class="dev brk st-svc"><span class="tagno">Live estate</span><span class="devname">HiveMQ pair</span><span class="job">Every site's NBIRTH, NDATA and templates</span></div>
+            <div class="dev brk st-svc"><span class="tagno">Live estate</span><span class="devname">Provider pair</span><span class="job">SparkBridge Provider. Every site's NBIRTH, NDATA and templates</span></div>
             <div class="dev brk st-svc"><span class="tagno">Replay namespace</span><span class="devname">Replay/&lt;group&gt;</span><span class="job">SparkVault re-publishes history here as its own edge, never under a site's id</span></div>
           </div></div>
           <div class="bus pulse two" data-l="spBv1.0/# in · Replay/ out" aria-hidden="true"><span></span></div>
-          <div class="arow"><div class="alab"><b>Central</b>Ignition host pool</div><div class="acells">
+          <div class="arow"><div class="alab"><b>Host</b>Ignition host pool</div><div class="acells">
             <a class="dev ign wide st-svc" href="/sparkbridge/central#sparkvault">
               <span class="tagno">Central 1 &middot; primary</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span>
-              <span class="chips"><span class="acc">Central</span><span class="acc">SparkVault</span><span class="acc">SparkFlow</span><span class="acc">Passage</span><span class="acc">SparkCalc</span><span class="ia">Tag history</span><span class="ia">Perspective</span></span>
+              <span class="chips"><span class="acc">Host</span><span class="acc">SparkVault</span><span class="acc">SparkFlow</span><span class="acc">Passage</span><span class="acc">SparkCalc</span><span class="ia">Tag history</span><span class="ia">Perspective</span></span>
               <span class="job">SparkVault is also an Ignition tag-history provider, so Perspective trends read estate history with no new tooling. SparkCalc backfills derived values over that history as historical, not live.</span>
             </a>
           </div></div>
@@ -396,7 +396,7 @@
         <tr><th>Historian</th><td>SparkVault on the central server; each plant's own database keeps its local history exactly as before. History for every site in one open table, on the plant's clock. 40,035 updates/s replay on loopback; a 4 h 11 min outage backfilled with zero loss.</td></tr>
         <tr><th>Twin</th><td>SparkFlow's last-value and model buckets plus Passage's OPC-UA address space plus SparkVault history. Nothing is copied into a second tool; each face reads the same namespace.</td></tr>
         <tr><th>Discipline</th><td>Replayed and computed values always publish under their own group with their own sequence, so a simulation or a derived number can never be mistaken for a live measurement.</td></tr>
-        <tr><th>License</th><td>SparkVault $3,995 on the central server; Passage $1,995; SparkCalc included with Central. SparkFlow $995 carries its own license.</td></tr>
+        <tr><th>License</th><td>SparkVault $3,995 on the central server; Passage $1,995; SparkCalc included with Host. SparkFlow $995 carries its own license. SparkBridge Provider handles the broker layer for this drawing; any conformant Sparkplug broker also works.</td></tr>
       </table>
       <p class="links"><a href="/sparkbridge/central#sparkvault">SparkVault</a><a href="/sparkbridge/flow">SparkFlow</a><a href="/sparkbridge/central#passage">Passage</a><a href="/sparkbridge/central#sparkcalc">SparkCalc</a></p>
     </article>
@@ -414,7 +414,7 @@
 
     <article class="topo" id="s6">
       <div class="drawing">
-        <p class="vh">Two hundred plant Ignition servers, each with its own database, publish through regional HiveMQ broker pairs. Each region has a central Ignition host pool running the Host module and SparkFlow: the pool keeps a managed provider of the tags that region's operators watch, and SparkFlow publishes every decoded metric onto the region's NATS server as uns subjects with a last-value bucket and a model bucket. A NATS hub sources each region's stream, so the company namespace is the union of the regions. SparkVault at the hub ingests the JetStream stream into one Timescale history, SparkInject streams it to the warehouse, analytics and AI pipelines subscribe directly, and a Perspective dispatcher tier reads live values on demand without a tag behind them. Commands travel back as uns.cmd request and reply, authorized by broker rules generated by SparkID.</p>
+        <p class="vh">Two hundred plant Ignition servers, each with its own database, publish through regional SparkBridge Provider pairs. Each region has a central Ignition host pool running the Host module and SparkFlow: the pool keeps a managed provider of the tags that region's operators watch, and SparkFlow publishes every decoded metric onto the region's NATS server as uns subjects with a last-value bucket and a model bucket. A NATS hub sources each region's stream, so the company namespace is the union of the regions. SparkVault at the hub ingests the JetStream stream into one Timescale history, SparkInject streams it to the warehouse, analytics and AI pipelines subscribe directly, and a Perspective dispatcher tier reads live values on demand without a tag behind them. Commands travel back as uns.cmd request and reply, authorized by broker rules generated by SparkID.</p>
         <div class="arack" role="group" aria-label="SparkFlow across a very large Ignition estate">
           <div class="arow"><div class="alab"><b>Plants</b>200 Ignition servers</div><div class="acells">
             <a class="dev ign st-svc" href="/sparkbridge/edge"><span class="tagno">Region East &middot; plants 001 to 070</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="ia">drivers</span><span class="ia">local history</span><span class="acc">Edge</span></span><span class="job">Full plant servers with their own databases, as in 03</span></a>
@@ -423,15 +423,15 @@
           </div></div>
           <div class="bus pulse two" data-l="NBIRTH · NDATA ↑ · NCMD ↓ · per region" aria-hidden="true"><span></span></div>
           <div class="arow"><div class="alab"><b>Brokers</b>OT tier, per region</div><div class="acells">
-            <div class="dev brk st-svc"><span class="tagno">East</span><span class="devname">HiveMQ pair</span><span class="job">Sparkplug, MQTT 5, $share. Rules from SparkID.</span></div>
-            <div class="dev brk st-svc"><span class="tagno">Central</span><span class="devname">HiveMQ pair</span></div>
-            <div class="dev brk st-svc"><span class="tagno">West</span><span class="devname">HiveMQ pair</span></div>
+            <div class="dev brk st-svc"><span class="tagno">East</span><span class="devname">Provider pair</span><span class="job">SparkBridge Provider. Sparkplug, MQTT 5, $share. Rules from SparkID.</span></div>
+            <div class="dev brk st-svc"><span class="tagno">Host</span><span class="devname">Provider pair</span><span class="job">SparkBridge Provider. Sparkplug, MQTT 5, $share. Rules from SparkID.</span></div>
+            <div class="dev brk st-svc"><span class="tagno">West</span><span class="devname">Provider pair</span><span class="job">SparkBridge Provider. Sparkplug, MQTT 5, $share. Rules from SparkID.</span></div>
           </div></div>
           <div class="bus" data-l="$share/hosts · spBv1.0/#" aria-hidden="true"></div>
           <div class="arow"><div class="alab"><b>Regional</b>Ignition host pools</div><div class="acells">
-            <a class="dev ign st-svc" href="/sparkbridge/flow"><span class="tagno">East pool &middot; primary + standby</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">Central · 4 consumers</span><span class="acc">SparkFlow · separate license</span><span class="acc">SparkCalc</span><span class="ia">Perspective</span></span><span class="job">Tags: the ~150,000 points East operators watch. Stream: all 1.8 million points East decodes.</span></a>
-            <a class="dev ign st-svc" href="/sparkbridge/flow"><span class="tagno">Central pool</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">Central</span><span class="acc">SparkFlow · separate license</span></span><span class="job">Same shape. Namespace partitioned by group; ordering kept per edge.</span></a>
-            <a class="dev ign st-svc" href="/sparkbridge/flow"><span class="tagno">West pool</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">Central</span><span class="acc">SparkFlow · separate license</span></span></a>
+            <a class="dev ign st-svc" href="/sparkbridge/flow"><span class="tagno">East pool &middot; primary + standby</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">Host · 4 consumers</span><span class="acc">SparkFlow · separate license</span><span class="acc">SparkCalc</span><span class="ia">Perspective</span></span><span class="job">Tags: the ~150,000 points East operators watch. Stream: all 1.8 million points East decodes.</span></a>
+            <a class="dev ign st-svc" href="/sparkbridge/flow"><span class="tagno">Central pool</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">Host</span><span class="acc">SparkFlow · separate license</span></span><span class="job">Same shape. Namespace partitioned by group; ordering kept per edge.</span></a>
+            <a class="dev ign st-svc" href="/sparkbridge/flow"><span class="tagno">West pool</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">Host</span><span class="acc">SparkFlow · separate license</span></span></a>
           </div></div>
           <div class="bus pulse two" data-l="uns.<group>.<edge>.<device>.<metric> · exactly once" aria-hidden="true"><span></span></div>
           <div class="arow"><div class="alab"><b>Backbone</b>NATS, app tier</div><div class="acells">
@@ -457,8 +457,8 @@
         <tr><th>Where the ceiling goes</th><td>No Ignition server anywhere holds five million tags. Each regional pool holds the slice its operators watch as tags and streams everything it decodes. The company namespace lives in NATS: one subject per point, a last value and a model for each, no tag license behind any of it.</td></tr>
         <tr><th>Measured</th><td>7.25 million messages across a real network at 48,000/s, 7.25 million received, in order, exactly once. A 60 s physical link cut at a leaf: 447 held, 447 reconciled at the hub, zero lost.</td></tr>
         <tr><th>Commands</th><td>Routed rather than mirrored. <span class="mono">uns.cmd.&lt;group&gt;.&lt;edge&gt;…</span> request and reply crosses the leaf link natively; only the region's bridge subscribes to its own command subtree, and only the issuers SparkID names may publish there. A region that cannot confirm a write times the requester out rather than reporting success.</td></tr>
-        <tr><th>Tiers, honestly</th><td>HiveMQ stays the OT tier: Sparkplug conformance, MQTT 5, shared subscriptions, TCK, all measured there. NATS sits north of it as the backbone. SparkFlow is the certified translation between the two, not a replacement for either.</td></tr>
-        <tr><th>License</th><td>SparkFlow $995 per central gateway running it: three regional pools and the corporate historian, each its own license, on top of anything else on that server. Edge $995 per plant, Central $1,495 per pool server. NATS is open source and yours.</td></tr>
+        <tr><th>Tiers, honestly</th><td>SparkBridge Provider stays the OT tier: Sparkplug conformance, MQTT 5, shared subscriptions, TCK, all measured there; any conformant Sparkplug broker also works. NATS sits north of it as the backbone. SparkFlow is the certified translation between the two, not a replacement for either.</td></tr>
+        <tr><th>License</th><td>SparkFlow $995 per Host gateway running it: three regional pools and the corporate historian, each its own license, on top of anything else on that server. Edge $995 per plant, Host $1,495 per pool server. NATS is open source and yours.</td></tr>
       </table>
       <p class="honest">Honest limits: a single region, one NATS domain, one host pool, SparkFlow, SparkVault ingest, the leaf partition, is shipped and gated. The multi-region hub with per-region accounts is a design built on those gates. Cross-domain sourcing across an account boundary is the one spike we still owe before a customer install, and that's why the hub is drawn dashed. The Perspective dispatcher is on the bench.</p>
       <p class="links"><a href="/sparkbridge/flow">SparkFlow</a><a href="/sparkbridge/central#sparkvault">SparkVault</a><a href="/sparkbridge/central#sparkid">SparkID</a></p>
@@ -477,7 +477,7 @@
 
     <article class="topo" id="s7">
       <div class="drawing">
-        <p class="vh">A fleet publisher workstation holds the signing key and publishes retained, sequenced configuration envelopes to the brokers. Each site Ignition server verifies the signature, refuses replay, and applies the change live. Site state travels back inside each site's birth certificate and appears on the FleetOps grid on the central server. SparkID on the same workstation generates the broker credentials and rules. Sentinel connects to the brokers and host as an outsider and reports.</p>
+        <p class="vh">A fleet publisher workstation holds the signing key and publishes retained, sequenced configuration envelopes to SparkBridge Provider. Each site Ignition server verifies the signature, refuses replay, and applies the change live. Site state travels back inside each site's birth certificate and appears on the FleetOps grid on the central server. SparkID on the same workstation generates the Provider credentials and rules. Sentinel connects to SparkBridge Provider and Host as an outsider and reports.</p>
         <div class="arack" role="group" aria-label="Fleet configuration, identity and audit">
           <div class="arow"><div class="alab"><b>Ops</b>workstation</div><div class="acells">
             <a class="dev box st-svc" href="/sparkbridge/central#fleetops"><span class="tagno">Not a gateway</span><span class="devname">Fleet publisher</span><span class="job">P-256 signing key; site documents in git; publishes signed, sequenced, retained config</span></a>
@@ -486,12 +486,12 @@
           </div></div>
           <div class="bus pulse two" data-l="config ↓ · rules ↓ · probes" aria-hidden="true"><span></span></div>
           <div class="arow"><div class="alab"><b>Brokers</b></div><div class="acells">
-            <div class="dev brk st-svc"><span class="tagno">Broker pair</span><span class="devname">HiveMQ</span><span class="job">sparkbridge/config/&lt;group&gt;/&lt;edge&gt; retained; credentials and topic scoping from SparkID</span></div>
+            <div class="dev brk st-svc"><span class="tagno">Broker pair</span><span class="devname">Provider</span><span class="job">SparkBridge Provider. sparkbridge/config/&lt;group&gt;/&lt;edge&gt; retained; credentials and topic scoping from SparkID</span></div>
           </div></div>
           <div class="bus two" data-l="config ↓ · Node Info in NBIRTH ↑" aria-hidden="true"></div>
           <div class="arow"><div class="alab"><b>Sites and central</b>Ignition servers</div><div class="acells">
             <a class="dev ign st-svc" href="/sparkbridge/edge"><span class="tagno">Sites 01 to 40</span><span class="devname">Ignition Edge</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">Edge · trusted key</span></span><span class="job">Verifies, refuses replay below its sequence floor, applies without restart</span></a>
-            <a class="dev ign st-svc" href="/sparkbridge/central#fleetops"><span class="tagno">Central pool</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">Central</span><span class="acc">FleetOps console</span></span><span class="job">Module version, config version, buffered bytes and drops for every site on one grid; drift and cert expiry ledger</span></a>
+            <a class="dev ign st-svc" href="/sparkbridge/central#fleetops"><span class="tagno">Central pool</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span><span class="chips"><span class="acc">Host</span><span class="acc">FleetOps console</span></span><span class="job">Module version, config version, buffered bytes and drops for every site on one grid; drift and cert expiry ledger</span></a>
           </div></div>
         </div>
       </div>
@@ -504,7 +504,7 @@
         <tr><th>Servers</th><td>No new Ignition servers. One ops workstation runs the three tools.</td></tr>
         <tr><th>Trust</th><td>A site with no trusted key subscribes to nothing. The signing key is a root credential for the estate; it lives on the workstation, never on a gateway.</td></tr>
         <tr><th>Proof</th><td>A Sentinel run becomes an auditor-ready binder mapped to NERC CIP and IEC 62443 through the Compliance add-on</td></tr>
-        <tr><th>License</th><td>FleetOps $4,995, SparkID included with Central, Sentinel $4,995; Sentinel compliance pack $2,495 add-on.</td></tr>
+        <tr><th>License</th><td>FleetOps $4,995, SparkID included with Host, Sentinel $4,995; Sentinel compliance pack $2,495 add-on.</td></tr>
       </table>
       <p class="links"><a href="/sparkbridge/central#fleetops">FleetOps</a><a href="/sparkbridge/central#sparkid">SparkID</a><a href="/sparkbridge/central#sentinel">Sentinel</a></p>
     </article>
@@ -522,13 +522,13 @@
 
     <article class="topo" id="s8">
       <div class="drawing">
-        <p class="vh">PLCs connect to one Ignition server that runs Edge, Host, SparkVault, Passage and SparkCalc together, with the Provider module supplying an embedded broker or a HiveMQ service beside it. Perspective, a database and OPC-UA clients hang off the same server.</p>
+        <p class="vh">PLCs connect to one Ignition server that runs Edge, Host, SparkVault, Passage and SparkCalc together, with the Provider module supplying an embedded broker or a SparkBridge Provider service beside it. Perspective, a database and OPC-UA clients hang off the same server.</p>
         <div class="run" role="group" aria-label="One Ignition server with the whole line">
           <div class="dev source"><span class="tagno">Field</span><span class="devname">PLCs</span></div>
           <div class="seg s1" aria-hidden="true" data-l="drivers"></div>
           <a class="dev ign spine st-svc" href="/sparkbridge/pricing">
             <span class="tagno">Ignition server &middot; the only one</span><span class="devname">Ignition</span><span class="where">SparkBridge installed here</span>
-            <span class="chips"><span class="ia">local history</span><span class="acc">Edge</span><span class="acc">Central</span><span class="acc">Provider · embedded or external</span><span class="acc">SparkVault</span><span class="acc">Passage</span><span class="acc">SparkCalc</span><span class="ia">Perspective</span></span>
+            <span class="chips"><span class="ia">local history</span><span class="acc">Edge</span><span class="acc">Host</span><span class="acc">Provider · embedded or external</span><span class="acc">SparkVault</span><span class="acc">Passage</span><span class="acc">SparkCalc</span><span class="ia">Perspective</span></span>
             <span class="job">Publishes, brokers, consumes, keeps, serves and computes in one enclosure. Point it at a central broker later and it becomes site 01 of the data center.</span>
           </a>
           <div class="seg s2" aria-hidden="true" data-l="SQL · OPC-UA"></div>
@@ -545,8 +545,8 @@
       <div class="sec-head" style="margin-top:14px"><span class="path">For your engineers</span></div>
       <table class="spec">
         <tr><th>Servers</th><td>One Ignition server</td></tr>
-        <tr><th>Broker</th><td>Embedded through the Provider module for a lab; a HiveMQ service beside the server for production, which is also what makes the later move to 03 a configuration change</td></tr>
-        <tr><th>License</th><td>Edge $995 per site gateway, standalone, SparkLink included. Add Central $1,495 and SparkVault $3,995 on this server only if it is also acting as the central gateway with its own database.</td></tr>
+        <tr><th>Broker</th><td>Embedded through the Provider module for a lab; SparkBridge Provider as a service beside the server for production, which is also what makes the later move to 03 a configuration change. Any conformant Sparkplug broker also works.</td></tr>
+        <tr><th>License</th><td>Edge $995 per site gateway, standalone, SparkLink included. Add Host $1,495 and SparkVault $3,995 on this server only if it is also acting as the Host gateway with its own database.</td></tr>
       </table>
       <p class="links"><a href="/sparkbridge/pricing">Pricing</a><a href="/sparkbridge/download">Download</a></p>
     </article>
@@ -565,7 +565,7 @@
         <thead><tr><th>You run today</th><th>Your drawing</th><th>What changes</th></tr></thead>
         <tbody>
           <tr><td>One Ignition server, one plant</td><td><a href="#s8">08 one server</a></td><td>Install the modules; nothing else moves</td></tr>
-          <tr><td>A site server and a central server on the Gateway Network</td><td><a href="#s1">01 the wire</a></td><td>Edge on the site, Central at the center, a broker between; the GAN link retires</td></tr>
+          <tr><td>A site server and a central server on the Gateway Network</td><td><a href="#s1">01 the wire</a></td><td>Edge on the site, Host at the center, a broker between; the GAN link retires</td></tr>
           <tr><td>Full plant servers with local databases and a history splitter to a central database</td><td><a href="#s2">02 the plant</a></td><td>Plant server and database stay; the splitter's remote leg becomes the Sparkplug wire and SparkVault writes central history</td></tr>
           <tr><td>Several Ignition backends because one cannot hold every site</td><td><a href="#s3">03 the data center</a></td><td>Backends become a host pool behind one broker pair; consumers read one tree</td></tr>
           <tr><td>The above, plus a historian, an OPC-UA face or a cloud warehouse to feed</td><td><a href="#s4">04 the whole line</a> and <a href="#s5">05 the twin</a></td><td>Modules on the central pool; no new servers</td></tr>

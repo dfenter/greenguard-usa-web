@@ -35,7 +35,7 @@
     <nav class="nav" id="nav" aria-label="Main">
         <a href="/sparkbridge/">Overview</a>
         <a href="/sparkbridge/edge">Edge</a>
-        <a href="/sparkbridge/central">Central</a>
+        <a href="/sparkbridge/central">Host</a>
         <a href="/sparkbridge/products">All products</a>
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
@@ -140,7 +140,7 @@
     </div>
     <dl class="glossary">
       <dt>Edge node</dt><dd>The Sparkplug client at a site that owns one MQTT session and publishes on behalf of the devices under it. In SparkBridge this is the Edge on a site gateway.</dd>
-      <dt>Host application (Primary Host)</dt><dd>The consumer that subscribes to every edge, tracks their state and is the one place commands originate. In SparkBridge this is the Host on the central gateway.</dd>
+      <dt>Host application (Primary Host)</dt><dd>The consumer that subscribes to every edge, tracks their state and is the one place commands originate. In SparkBridge this is the Host running on the Host gateway.</dd>
       <dt>STATE</dt><dd>A retained message the host publishes to announce that it is online or offline. Edges wait for an online STATE before they birth.</dd>
       <dt>NBIRTH / DBIRTH</dt><dd>The birth certificate of a node or a device: every metric with its name, datatype, units and current value, sent at seq 0 whenever a session starts.</dd>
       <dt>NDATA / DDATA</dt><dd>Change-only updates for a node or device after birth, carried by alias rather than by name.</dd>

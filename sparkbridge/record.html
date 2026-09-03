@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Central","item":"https://mqtt.greenguard-usa.com/sparkbridge/central"},{"@type":"ListItem","position":3,"name":"SparkRecord","item":"https://mqtt.greenguard-usa.com/sparkbridge/record"}]},{"@type":"SoftwareApplication","name":"SparkRecord","url":"https://mqtt.greenguard-usa.com/sparkbridge/record","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer, Ignition 8.3","softwareVersion":"release pending","isPartOf":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#app"},"publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"SparkRecord lands Sparkplug records, MQTT JSON events and SparkFlow events exactly once, append-only, with a SHA-256 audit chain, in PostgreSQL, SQL Server, TimescaleDB, Snowflake or object storage. $7,995 perpetual per gateway, all destinations included.","offers":{"@type":"Offer","price":"7995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/PreOrder","description":"Perpetual license, per central gateway, all destinations included. Release pending"}}]}
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Central","item":"https://mqtt.greenguard-usa.com/sparkbridge/central"},{"@type":"ListItem","position":3,"name":"SparkRecord","item":"https://mqtt.greenguard-usa.com/sparkbridge/record"}]},{"@type":"SoftwareApplication","name":"SparkRecord","url":"https://mqtt.greenguard-usa.com/sparkbridge/record","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer, Ignition 8.3","softwareVersion":"release pending","isPartOf":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#app"},"publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"SparkRecord lands Sparkplug records, MQTT JSON events and SparkFlow events exactly once, append-only, with a SHA-256 audit chain, in PostgreSQL, SQL Server, TimescaleDB, Snowflake or object storage. $7,995 perpetual per gateway, all destinations included.","offers":{"@type":"Offer","price":"7995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/PreOrder","description":"Perpetual license, per Host gateway, all destinations included. Release pending"}}]}
 </script>
 </head>
 <body>
@@ -34,7 +34,7 @@
     <nav class="nav" id="nav" aria-label="Main">
         <a href="/sparkbridge/">Overview</a>
         <a href="/sparkbridge/edge">Edge</a>
-        <a href="/sparkbridge/central">Central</a>
+        <a href="/sparkbridge/central">Host</a>
         <a href="/sparkbridge/products">All products</a>
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
@@ -55,7 +55,7 @@
         <div class="eyebrow">SparkRecord</div>
         <h1>A record pipeline that starts from the record, not the row</h1>
         <p>Sparkplug B carries structured records as well as point values, and estates already publish JSON events on arbitrary topics and SparkFlow events on a NATS core alongside them. The standing answer in the Ignition market maps a record to a SQL row. SparkRecord is the structured record lane of the family: schema discovery, an exactly-once ledger and a SHA-256 audit chain, landed in the destination you already run.</p>
-        <div class="pmeta"><span class="stat">Release pending</span><span>Runs on the central gateway</span><span>$7,995, all destinations included</span></div>
+        <div class="pmeta"><span class="stat">Release pending</span><span>Runs on the Host gateway</span><span>$7,995, all destinations included</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>Audit chain &middot; verify CLI</span><span class="live"><i class="dot"></i>Release pending</span></div>
@@ -86,7 +86,7 @@ chain verified: 41,884 rows, 0 breaks</pre>
         <span class="spectitle">At a glance</span>
         <table class="spec">
           <tr><th>What it is</th><td>An append-only, exactly-once landing pipeline for structured records and events</td></tr>
-          <tr><th>Where it runs</th><td>On the central gateway</td></tr>
+          <tr><th>Where it runs</th><td>On the Host gateway</td></tr>
           <tr><th>Destinations</th><td>PostgreSQL, SQL Server, TimescaleDB, Snowflake, and S3-compatible object storage &mdash; all included</td></tr>
           <tr><th>Who it is for</th><td>Anyone whose records need to survive a rerun, a migration or a regulator's audit</td></tr>
           <tr><th>Licensing</th><td>$7,995 perpetual per gateway, standalone, all destinations included. One price, no per-destination charge. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
