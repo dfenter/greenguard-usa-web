@@ -243,7 +243,7 @@ main section:nth-of-type(even):not(.band):not(.tail){background:var(--bone-2)}
 
 /* ---- hero (index) ---- */
 .hero{background:var(--graphite);color:#fff;padding:78px 0 70px;position:relative;overflow:hidden}
-.hero-grid{display:grid;grid-template-columns:1.02fr .98fr;gap:56px;align-items:center}
+.hero-grid{display:block}
 .hero-grid>*{min-width:0}
 .hero h1{font-size:clamp(44px,6vw,84px);letter-spacing:.005em}
 .hero h1 em{font-style:normal;color:var(--marker)}
@@ -255,17 +255,6 @@ main section:nth-of-type(even):not(.band):not(.tail){background:var(--bone-2)}
 }
 .thesis li::before{content:"";position:absolute;left:0;top:.72em;width:8px;height:2px;background:var(--marker)}
 .hero-foot{margin:26px 0 0;font-size:12.5px;color:var(--paper-dim);letter-spacing:.02em}
-.hero-deployment{background:var(--graphite-2);border:1px solid var(--steel-dark);padding:18px 18px 16px;min-width:0}
-.hero-deployment-head{display:flex;justify-content:space-between;align-items:center;gap:14px;border-bottom:1px solid var(--steel-dark);padding-bottom:12px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase}
-.hero-deployment-head .mono{color:var(--paper-dim)}
-.hero-required{color:var(--marker);font-family:"Spline Sans Mono",monospace;font-size:10.5px;letter-spacing:.1em}
-.hero-deployment-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--steel-dark);margin-top:18px}
-.hero-deployment-option{background:var(--graphite-2);padding:16px 14px 15px;min-width:0}
-.hero-deployment-label{display:block;color:var(--paper-dim);font-family:"Spline Sans Mono",monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase}
-.hero-deployment-option strong{display:block;margin-top:10px;font-family:"Saira Semi Condensed",sans-serif;font-size:21px;line-height:1.05;text-transform:uppercase}
-.hero-deployment-option p{margin:8px 0 0;color:var(--paper-dim);font-size:13px;line-height:1.4}
-.hero-deployment-foot{margin:16px 0 0;color:var(--marker);font-size:11px;letter-spacing:.04em}
-@media (max-width:560px){.hero-deployment-grid{grid-template-columns:1fr}.hero-deployment-head{align-items:flex-start;flex-direction:column;gap:6px}}
 
 /* ---- the analyzer trace (hero signature) ---- */
 .trace{background:var(--graphite-2);border:1px solid var(--steel-dark);min-width:0}
@@ -316,7 +305,7 @@ footer a:hover{color:#fff}
 
 /* ---- responsive ---- */
 @media (max-width:900px){
-  .hero-grid,.two,.tck{grid-template-columns:1fr}
+  .two,.tck{grid-template-columns:1fr}
   .nav{
     display:none;position:absolute;top:56px;left:0;right:0;background:var(--graphite);
     flex-direction:column;padding:8px 16px 16px;border-bottom:3px solid var(--marker);
