@@ -52,7 +52,7 @@
   <div class="wrap">
     <div class="eyebrow">Changelog</div>
     <h1>Version history</h1>
-    <p>Every release, what changed, and what the change was for. Current release: 2.6.0.
+    <p>Every release, what changed, and what the change was for. Current release: 2.7.0.
     Full customer notes ship in the release package.</p>
   </div>
 </header>
@@ -81,6 +81,29 @@
         <div>
           <h3>Four modules become features of SparkBridge</h3>
           <p><a href="/sparkbridge/#sparklink">SparkLink</a>, <a href="/sparkbridge/#sparkcalc">SparkCalc</a>, <a href="/sparkbridge/#passage">Passage</a> and <a href="/sparkbridge/#sparkid">SparkID</a> are now free with any SparkBridge Edge or Central license. Nothing changes in the software; we built them as free modules and they stay that way. The site package is now $1,295 (Edge plus SparkVault) and the central server suite $2,995 (Central plus SparkVault, SparkInject and FleetOps). Existing quotes are honoured at the lower of the two prices. See <a href="/sparkbridge/pricing">pricing</a>.</p>
+        </div>
+      </li>
+      <li>
+        <span class="lc lc-birth">2.7.0<br>2026&#8209;09&#8209;02</span>
+        <div>
+          <h3>Licensing: every paid module runs on Ignition's two-hour trial until a key names it</h3>
+          <p>2.7.0 is a licensing release, and it changes behavior for unlicensed gateways. Every
+          paid Spark module now ships as a non-free module, so the gateway runs it on Ignition's
+          standard two-hour module trial and Reset Trial on the gateway home page restarts the
+          clock. When the trial expires and no verified key in
+          <span class="mono">data/sparkbridge-license.key</span> names the product, the module
+          pauses its data path and keeps its configuration and buffers: Edge publishes NDEATH and
+          stops publishing while store-and-forward keeps capturing, Central publishes a retained
+          OFFLINE state and closes its sessions, Provider refuses new broker connections, SparkFlow
+          stops its dispatcher, historians stop ingest but keep serving queries, and drivers
+          disconnect and mark tags out of service. A key dropped in after expiry lifts the pause
+          within about thirty seconds with no restart; removing it re-pauses in the same window.
+          Keys are bound to the gateway system name; keys issued through the shop work on any
+          gateway. Keys issued for 2.5.0 and 2.6.0 stay valid unchanged. SparkLink, SparkCalc and
+          SparkID stay free and are never paused. No BIRTH, topic, broker-ACL or configuration
+          changes. An unlicensed production gateway that upgrades will pause two hours after the
+          modules start: install the key before upgrading.</p>
+          <p>Bundles for Ignition 8.1 and 8.3 are on the <a href="/sparkbridge/download">download page</a> and at <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/v2.7.0">the v2.7.0 GitHub release</a>.</p>
         </div>
       </li>
       <li>
