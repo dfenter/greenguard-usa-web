@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkRecord: Structured Industrial Record Pipeline for Ignition | SparkBridge</title>
+<meta name="description" content="SparkRecord lands Sparkplug records, MQTT JSON events and SparkFlow events in PostgreSQL, SQL Server, TimescaleDB, Snowflake or object storage, exactly once, append-only, with a SHA-256 audit chain. $7,995 perpetual per gateway, all destinations included. Release pending.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/record">
+<meta property="og:title" content="SparkRecord: the structured record pipeline for Ignition">
+<meta property="og:description" content="Sparkplug records, MQTT JSON events and SparkFlow events, landed exactly once with a SHA-256 audit chain, in PostgreSQL, SQL Server, TimescaleDB, Snowflake or object storage. $7,995 perpetual per gateway, all destinations included.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/record">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SparkRecord: the structured record pipeline for Ignition">
+<meta name="twitter:description" content="Sparkplug records, MQTT JSON events and SparkFlow events, landed exactly once with a SHA-256 audit chain, in PostgreSQL, SQL Server, TimescaleDB, Snowflake or object storage. $7,995 perpetual per gateway, all destinations included.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Central","item":"https://mqtt.greenguard-usa.com/sparkbridge/central"},{"@type":"ListItem","position":3,"name":"SparkRecord","item":"https://mqtt.greenguard-usa.com/sparkbridge/record"}]},{"@type":"SoftwareApplication","name":"SparkRecord","url":"https://mqtt.greenguard-usa.com/sparkbridge/record","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer, Ignition 8.3","softwareVersion":"release pending","isPartOf":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#app"},"publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"SparkRecord lands Sparkplug records, MQTT JSON events and SparkFlow events exactly once, append-only, with a SHA-256 audit chain, in PostgreSQL, SQL Server, TimescaleDB, Snowflake or object storage. $7,995 perpetual per gateway, all destinations included.","offers":{"@type":"Offer","price":"7995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/PreOrder","description":"Perpetual license, per central gateway, all destinations included. Release pending"}}]}
+</script>
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Central</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top">
+  <div class="wrap">
+    <div class="phead-grid">
+      <div>
+        <div class="eyebrow">SparkRecord</div>
+        <h1>A record pipeline that starts from the record, not the row</h1>
+        <p>Sparkplug B carries structured records as well as point values, and estates already publish JSON events on arbitrary topics and SparkFlow events on a NATS core alongside them. The standing answer in the Ignition market maps a record to a SQL row. SparkRecord is the structured record lane of the family: schema discovery, an exactly-once ledger and a SHA-256 audit chain, landed in the destination you already run.</p>
+        <div class="pmeta"><span class="stat">Release pending</span><span>Runs on the central gateway</span><span>$7,995, all destinations included</span></div>
+      </div>
+      <div class="artifact">
+        <div class="artifact-head"><span>Audit chain &middot; verify CLI</span><span class="live"><i class="dot"></i>Release pending</span></div>
+        <div class="artifact-body">
+<pre style="margin:0;white-space:pre-wrap">$ sparkrecord verify --table batch_events
+row 41,882   record_id  <span class="acc">a13f...9c02</span>  prev_hash  <span class="acc">8e4b...11ff</span>  ok
+row 41,883   record_id  <span class="hi">c990...4a71</span>  prev_hash  a13f...9c02  ok
+row 41,884   record_id  7b21...0de3  prev_hash  <span class="hi">c990...4a71</span>  ok
+chain verified: 41,884 rows, 0 breaks</pre>
+        </div>
+        <div class="artifact-foot">Every record's id is a SHA-256 over its canonical JSON, chained to the one before it. No UPDATE or DELETE is ever issued by the module.</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <p class="claim">Every record lands <em>once</em>, in order, and proves it never changed.</p>
+    <div class="twocol">
+      <div class="measure">
+        <p>SparkRecord receives three record lanes: Sparkplug B records (Cirrus Transmission Record objects, DataSet and Template metrics), JSON events on arbitrary MQTT topics through topic-to-stream templates, and SparkFlow events over NATS JetStream. Schema is discovered from the payload, versioned in a registry table, and migrated additively only, never destructively; SQL is generated per dialect.</p>
+        <p>Every value is type-validated. A reject lands in a quarantine table with the reason recorded, nothing dropped silently. Delivery is exactly once: the source timestamp is preserved separately from the receipt timestamp, producer identity rides on every row, persistence is ordered per producer, deduplication is by content hash, and the ledger entry is written in the same transaction as the record.</p>
+      </div>
+      <div>
+        <span class="spectitle">At a glance</span>
+        <table class="spec">
+          <tr><th>What it is</th><td>An append-only, exactly-once landing pipeline for structured records and events</td></tr>
+          <tr><th>Where it runs</th><td>On the central gateway</td></tr>
+          <tr><th>Destinations</th><td>PostgreSQL, SQL Server, TimescaleDB, Snowflake, and S3-compatible object storage &mdash; all included</td></tr>
+          <tr><th>Who it is for</th><td>Anyone whose records need to survive a rerun, a migration or a regulator's audit</td></tr>
+          <tr><th>Licensing</th><td>$7,995 perpetual per gateway, standalone, all destinations included. One price, no per-destination charge. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="figure"><b>0</b><span>duplicate or missing rows across three record lanes in a 24 hour soak</span></div>
+    <div class="measure">
+      <p>Sparkplug records, MQTT JSON events and NATS SparkFlow events all land through the same append-only writer, ordered per producer and deduplicated by content hash. A destination outage drains to disk and replays from the last committed offset with the original timestamps intact, not the replay time.</p>
+      <p>An outage becomes a delay, not a gap and not a duplicate.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">where it fits</span>
+      <h2>Three Situations This Solves</h2>
+      <p>Three reasons a record pipeline stops being trustworthy, and what changes.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>The situation</th><th>What changes</th></tr></thead>
+        <tbody>
+          <tr><td><b>A batch mapped to a row, and nothing else kept</b><br><span class="sub">The incumbent answer treats a record as a row and stops there.</span></td>
+              <td>Mapping a record straight to a SQL row throws away the producer identity, the true source time, and any way to prove the row was never edited after landing. SparkRecord keeps the source and receipt timestamps as separate columns, stamps producer identity on every row, and computes a SHA-256 record_id chained to the row before it, so a rerun, a migration or a regulator can be answered from the table itself.</td></tr>
+          <tr><td><b>A rerun that silently doubles the dataset</b><br><span class="sub">A replayed backlog or a restarted consumer redelivers records that already landed.</span></td>
+              <td>Without content-hash deduplication and an ordered, per-producer ledger, a replay after an outage lands the same batch twice. SparkRecord's ledger is written in the same transaction as the record, so a restart or a network drop produces neither a gap nor a duplicate.</td></tr>
+          <tr><td><b>A schema change that breaks the pipeline or drops data</b><br><span class="sub">A new field or a widened type either fails the job or gets silently discarded.</span></td>
+              <td>SparkRecord discovers schema from the payload and versions it in a registry, migrating additively and never destructively. A value that fails type validation is not dropped: it lands in a quarantine table with the reason recorded, so nothing disappears without a trace.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="measure">
+      <p>SparkRecord fits any estate that already produces structured records or events and needs them to land somewhere durable, provable and destination-agnostic. All five destinations ship in the same license: PostgreSQL, SQL Server, TimescaleDB, Snowflake, and S3-compatible object storage.</p>
+    </div>
+
+    <h2 style="margin-top:40px">For your engineers</h2>
+    <div class="measure">
+      <p>The consumer core reuses <span class="mono">MqttTransport</span>, <span class="mono">PayloadCodec</span> and <span class="mono">DiskBuffer</span> from <span class="mono">io.sparkbridge:common</span> for the two MQTT lanes; SparkFlow arrives on NATS JetStream as its own consumer. The schema registry generates DDL per dialect and migrates additively and widening-only. The append-only writer commits the ledger row in the same transaction as the record: ordered per producer, deduplicated by content hash, source and receipt timestamps stored separately. A standalone verify CLI re-walks any table, checks every record_id and prev_hash, and reports the first break. It runs on the SparkBridge Host and Edge described on the <a href="/sparkbridge/technology#lifecycle">technology page</a>.</p>
+      <p>Inside the family, <a href="/sparkbridge/vault">SparkVault</a> is the tag historian: time series, trend readback, replay. SparkRecord is the structured record and event lane. <a href="/sparkbridge/inject">SparkInject</a> is the cloud lakehouse feed.</p>
+    </div>
+
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge/contact">Ask about early access</a>
+      <a class="btn ghost dark" href="/sparkbridge/central">See SparkBridge Central</a>
+    </div>
+    <p class="note">Release pending. Development use is free, no time limit. <a href="/sparkbridge/contact">Contact</a>.</p>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

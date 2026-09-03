@@ -52,7 +52,7 @@
   <div class="wrap">
     <div class="eyebrow">Download</div>
     <h1>Every product, signed, for both Ignition lines</h1>
-    <p>Pick the bundle for your gateway line. Each bundle carries the module, its checksums, the signing certificate and the license. Development use is free with no time limit. When a gateway goes live, one key file licenses it with no restart. Installation and configuration steps for every product are on the <a href="/sparkbridge/docs">docs page</a>.</p>
+    <p>Pick the bundle for your gateway line. Each bundle carries the module, its checksums, the signing certificate and the license. Every paid module runs on Ignition's two-hour module trial until a key file names it; Reset Trial restarts the clock. A key lifts the pause within thirty seconds with no restart. SparkLink, SparkCalc and SparkID never pause. Installation and configuration steps for every product are on the <a href="/sparkbridge/docs">docs page</a>.</p>
   </div>
 </header>
 
@@ -77,7 +77,7 @@ keytool -printcert -file sparkbridge-signing-cert.pem</pre>
           <tr><th>Ignition</th><td>8.1.19 or newer, or the 8.3 line. One bundle per line</td></tr>
           <tr><th>Java</td><td>Bundled with Ignition. Modules target Java 11 bytecode</td></tr>
           <tr><th>License</th><td>One key file per gateway at <span class="mono">&lt;data&gt;/sparkbridge-license.key</span>, re-read every 30 seconds</td></tr>
-          <tr><th>Without a key</th><td>Every module runs in full on Ignition's trial. Reset Trial restarts the clock</td></tr>
+          <tr><th>Without a key</th><td>Every paid module runs on Ignition's two-hour trial. Reset Trial restarts the clock; a key lifts the pause within thirty seconds with no restart</td></tr>
         </table>
       </div>
     </div>
@@ -134,15 +134,15 @@ keytool -printcert -file sparkbridge-signing-cert.pem</pre>
       <p>Each driver installs on any Ignition gateway, with or without SparkBridge, and appears as a device type under OPC UA device connections. Early access drivers are complete and signed; the label means the live proof against vendor hardware is still being widened.</p>
     </div>
     <div class="scroller"><table class="tbl dl-tbl"><thead><tr><th>Product</th><th>Version</th><th>Ignition 8.1</th><th>Ignition 8.3</th><th></th></tr></thead><tbody>
-<tr><td><a href="/sparkbridge/logix">SparkLogix</a></td><td class="num"><span class="np">pending</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparklogix">Docs</a></td></tr>
-<tr><td><a href="/sparkbridge/snmp">SparkSNMP</a></td><td class="num">0.1.1</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparksnmp-v0.1.1/sparksnmp-0.1.1-ign81-bundle.zip">8.1 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparksnmp-v0.1.1/sparksnmp-0.1.1-ign83-bundle.zip">8.3 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparksnmp">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/logix">SparkLogix</a></td><td class="num">2.7.0</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.7.0/sparkbridge-2.7.0-ign81-bundle.zip">2.7.0 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.7.0/sparkbridge-2.7.0-ign83-bundle.zip">2.7.0 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparklogix">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/snmp">SparkSNMP</a></td><td class="num">2.7.0</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.7.0/sparkbridge-2.7.0-ign81-bundle.zip">2.7.0 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.7.0/sparkbridge-2.7.0-ign83-bundle.zip">2.7.0 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparksnmp">Docs</a></td></tr>
 <tr><td><a href="/sparkbridge/iec104">IEC 60870-5-104</a></td><td class="num"><span class="np">pending</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#iec104">Docs</a></td></tr>
 <tr><td><a href="/sparkbridge/drivers">DNP3</a></td><td class="num"><span class="np">pending</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#dnp3">Docs</a></td></tr>
 <tr><td><a href="/sparkbridge/drivers">TI 505 &middot; CTI 2500</a></td><td class="num"><span class="np">pending</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><span class="np">Request a build</span></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#ti505">Docs</a></td></tr>
-<tr><td><a href="/sparkbridge/ads">SparkADS</a> <small>early access</small></td><td class="num">0.1.1</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkads-v0.1.1/sparkads-0.1.1-ign81-bundle.zip">8.1 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkads-v0.1.1/sparkads-0.1.1-ign83-bundle.zip">8.3 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparkads">Docs</a></td></tr>
-<tr><td><a href="/sparkbridge/s7">SparkS7</a> <small>early access</small></td><td class="num">0.1.1</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparks7-v0.1.1/sparks7-0.1.1-ign81-bundle.zip">8.1 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparks7-v0.1.1/sparks7-0.1.1-ign83-bundle.zip">8.3 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparks7">Docs</a></td></tr>
-<tr><td><a href="/sparkbridge/61850">Spark61850</a> <small>early access</small></td><td class="num">0.1.1</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/spark61850-v0.1.1/spark61850-0.1.1-ign81-bundle.zip">8.1 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/spark61850-v0.1.1/spark61850-0.1.1-ign83-bundle.zip">8.3 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#spark61850">Docs</a></td></tr>
-<tr><td><a href="/sparkbridge/bacnet">SparkBACnet</a> <small>early access</small></td><td class="num">0.1.1</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkbacnet-v0.1.1/sparkbacnet-0.1.1-ign81-bundle.zip">8.1 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkbacnet-v0.1.1/sparkbacnet-0.1.1-ign83-bundle.zip">8.3 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparkbacnet">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/ads">SparkADS</a></td><td class="num">2.7.0</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.7.0/sparkbridge-2.7.0-ign81-bundle.zip">2.7.0 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.7.0/sparkbridge-2.7.0-ign83-bundle.zip">2.7.0 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparkads">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/s7">SparkS7</a></td><td class="num">2.7.0</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.7.0/sparkbridge-2.7.0-ign81-bundle.zip">2.7.0 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.7.0/sparkbridge-2.7.0-ign83-bundle.zip">2.7.0 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparks7">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/61850">Spark61850</a></td><td class="num">2.7.0</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.7.0/sparkbridge-2.7.0-ign81-bundle.zip">2.7.0 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.7.0/sparkbridge-2.7.0-ign83-bundle.zip">2.7.0 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#spark61850">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/bacnet">SparkBACnet</a></td><td class="num">2.7.0</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.7.0/sparkbridge-2.7.0-ign81-bundle.zip">2.7.0 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.7.0/sparkbridge-2.7.0-ign83-bundle.zip">2.7.0 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparkbacnet">Docs</a></td></tr>
 </tbody></table></div>
   </div>
 </section>
@@ -155,10 +155,10 @@ keytool -printcert -file sparkbridge-signing-cert.pem</pre>
       <p>History storage, validation, a Perspective component and alarm notification. Each installs on any Ignition gateway on its own license. SparkValidate also ships as a command-line bundle with no gateway install.</p>
     </div>
     <div class="scroller"><table class="tbl dl-tbl"><thead><tr><th>Product</th><th>Version</th><th>Ignition 8.1</th><th>Ignition 8.3</th><th></th></tr></thead><tbody>
-<tr><td><a href="/sparkbridge/influx">SparkInflux</a></td><td class="num">0.2.0 / 0.2.1</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkinflux-v0.2.0/sparkinflux-0.2.0-ign81-bundle.zip">8.1 bundle 0.2.0</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkinflux-v0.2.1/sparkinflux-0.2.1-ign83-bundle.zip">8.3 bundle 0.2.1</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparkinflux">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/influx">SparkInflux</a></td><td class="num">2.7.0</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.7.0/sparkbridge-2.7.0-ign81-bundle.zip">2.7.0 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.7.0/sparkbridge-2.7.0-ign83-bundle.zip">2.7.0 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparkinflux">Docs</a></td></tr>
 <tr><td><a href="/sparkbridge/validate">SparkValidate</a> <small>early access</small></td><td class="num">0.1.0</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkvalidate-v0.1.0/sparkvalidate-0.1.0-gateway-bundle.zip">8.1 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkvalidate-v0.1.0/sparkvalidate-0.1.0-ign83-bundle.zip">8.3 bundle</a> <a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkvalidate-v0.1.0/sparkvalidate-0.1.0-cli-bundle.zip">CLI only</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparkvalidate">Docs</a></td></tr>
-<tr><td><a href="/sparkbridge/gantt">SparkGantt</a> <small>early access</small></td><td class="num">0.1.1</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkgantt-v0.1.1/sparkgantt-0.1.1-ign81-bundle.zip">8.1 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparkgantt-v0.1.1/sparkgantt-0.1.1-ign83-bundle.zip">8.3 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparkgantt">Docs</a></td></tr>
-<tr><td><a href="/sparkbridge/notify">SparkNotify</a> <small>early access</small></td><td class="num">0.1.1</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparknotify-v0.1.1/sparknotify-0.1.1-ign81-bundle.zip">8.1 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/sparknotify-v0.1.1/sparknotify-0.1.1-ign83-bundle.zip">8.3 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparknotify">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/gantt">SparkGantt</a></td><td class="num">2.7.0</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.7.0/sparkbridge-2.7.0-ign81-bundle.zip">2.7.0 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.7.0/sparkbridge-2.7.0-ign83-bundle.zip">2.7.0 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparkgantt">Docs</a></td></tr>
+<tr><td><a href="/sparkbridge/notify">SparkNotify</a></td><td class="num">2.7.0</td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.7.0/sparkbridge-2.7.0-ign81-bundle.zip">2.7.0 bundle</a></td><td class="act"><a class="dl" href="https://github.com/greenguard-usa/sparkbridge-releases/releases/download/v2.7.0/sparkbridge-2.7.0-ign83-bundle.zip">2.7.0 bundle</a></td><td class="act"><a class="dl ghost" href="/sparkbridge/docs#sparknotify">Docs</a></td></tr>
 </tbody></table></div>
   </div>
 </section>
@@ -177,48 +177,56 @@ keytool -printcert -file sparkbridge-signing-cert.pem</pre>
 <tr><td>sparkbridge-2.7.0-ign81-bundle.zip</td><td class="num">2df463ae446377df51255a42aeabc80b93c9dfddbeb4ede4026f8ddc4a1943cc</td></tr>
 <tr><td>sparkbridge-2.7.0-ign83-bundle.zip</td><td class="num">89f8d60ee99a417c92c48fc745d533d7c9277745ff9926ee853d3051871a7f4c</td></tr>
 </tbody></table></div>
+<div class="scroller"><table class="tbl sums"><caption>v2.7.0 modules, ign81 bundle</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
+<tr><td>DNP3-Driver.modl</td><td class="num">ebbc75904c35145c9e43f826da20095776fecc8c7418453669ef3f22a7512b8c</td></tr>
+<tr><td>IEC104-Driver.modl</td><td class="num">13664b063e162ade24a8df5637759390ecaa3052220dfb0fba15cc3b5f914100</td></tr>
+<tr><td>Spark61850.modl</td><td class="num">c2a5a6cd564a2f7d2fbfb24dfe9e1858eef0d0ee1b63eef2519dd8dd07c2b1ce</td></tr>
+<tr><td>SparkADS.modl</td><td class="num">5cfb2ad80c11cff8abfae847a6b5c28ac792eb620fd0e020d49d55184d472e65</td></tr>
+<tr><td>SparkBACnet.modl</td><td class="num">4a4d54df312568d691f0395a9f5af4928c964925525eccfa8e5ecff18d84ff9b</td></tr>
+<tr><td>SparkBridge-Edge.modl</td><td class="num">86a61c470ee040c2748450de6a1424baaacd2ff2b0a9cfa30050e98a25a9d7cf</td></tr>
+<tr><td>SparkBridge-FleetOps.modl</td><td class="num">39bf975460890d12c2c94af514add71d09ed44fb41b8c2530b60daf765f896f1</td></tr>
+<tr><td>SparkBridge-Flow.modl</td><td class="num">707dd8d3bcde4c1c506795119d16e8989a1b9c78df2c93e53f2189020a876d32</td></tr>
+<tr><td>SparkBridge-Host.modl</td><td class="num">ac876d18b12773bf9ec16174445de66c0bc6a52d1c07ddfd1b8024296914d92f</td></tr>
+<tr><td>SparkBridge-Passage.modl</td><td class="num">aab7b628b6083bd925dcdae6f750fbd677ddc8ecad851d194f83d980ad6c0bab</td></tr>
+<tr><td>SparkBridge-Provider.modl</td><td class="num">099afb869457b17a27552f1444adfa951dae0b4062e313daaf4b82552bcdba72</td></tr>
+<tr><td>SparkGantt.modl</td><td class="num">4b48b705ba097b385919962ca452a719afca9366b8c13efad1d0536051e530d2</td></tr>
+<tr><td>SparkInflux.modl</td><td class="num">0d9c3d92c68229b46a02f863c2f986d599253a5dd3e7c373075ab434affedc22</td></tr>
+<tr><td>SparkInject-ADX.modl</td><td class="num">6c46639088964141d9a960ebe2cd9a1e9590913bce305003ff509392a20cbde3</td></tr>
+<tr><td>SparkInject-BigQuery.modl</td><td class="num">6999efd40e5edb04bdfacac292aef236d742cd93f8d1bbffb04b0976ff47b2a2</td></tr>
+<tr><td>SparkInject-Databricks.modl</td><td class="num">f20f787891d7db4b993cbd8545b06b02d341f2428afd1bb6dac60712820a3e18</td></tr>
+<tr><td>SparkInject-Kafka.modl</td><td class="num">89e9e0dcc18e80a98cf6aa3874f745ada5151312e573884e620520e39d3b0444</td></tr>
+<tr><td>SparkInject-S3.modl</td><td class="num">7875f6c8418f07f85749b3d67fc75721297cc00f49dbdb67c66ff14a409b1ca7</td></tr>
+<tr><td>SparkInject-Snowflake.modl</td><td class="num">3031361f26ac42709a71dd003f74ea07f2f90969b3e3c1e188b93f759763d895</td></tr>
+<tr><td>sparklogix-0.2.0.modl</td><td class="num">e80c17560a524e330c604a4ca18f50e3993cb06794ff207eadbb150ea3b27587</td></tr>
+<tr><td>SparkNotify.modl</td><td class="num">1983a41e9b8e2e8964a8deb7bcd253e2abc12d37dbc9bfbed278f196ba0fde76</td></tr>
+<tr><td>SparkS7.modl</td><td class="num">e64da0e651c7d2a7fc56b2e19939e47e2aae940dad6c199e9102b825701c6811</td></tr>
+<tr><td>SparkSNMP.modl</td><td class="num">5318fbc7a04de805a1308f104bf9541c91e5f426cb50dbfdd9896afe4e7009f2</td></tr>
+<tr><td>SparkVault-Historian.modl</td><td class="num">190734851e8a482333baf0f2a6145def1efcad8418790837b1ba21061de71130</td></tr>
+<tr><td>TI505-Driver.modl</td><td class="num">1b31f188f8c83170498b82f825d2789c12abd68081e568356614d731a21c1511</td></tr>
+</tbody></table></div>
+<div class="scroller"><table class="tbl sums"><caption>v2.7.0 modules, ign83 bundle</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
+<tr><td>Spark61850.modl</td><td class="num">e3e84405bc307b1fb627743bd2c362e03ef074384bd03d5d690d4146189e85e2</td></tr>
+<tr><td>SparkADS.modl</td><td class="num">bd87437cbdfa3a1fdae8ba2aa816a477842cfc54ca7fe6cb8dad556b58a5d57a</td></tr>
+<tr><td>SparkBACnet.modl</td><td class="num">e3b8995d044e201c0377f2556577cb2f58bad1ba9c3f9976cd9449b7ffb4a6c0</td></tr>
+<tr><td>SparkBridge-Edge.modl</td><td class="num">a010cd00f417d7062ab9b65f7a20c7a4aa4ecf452d0d6ecd1e79690fec2023eb</td></tr>
+<tr><td>SparkBridge-Flow.modl</td><td class="num">c91fb479c6d6c09b815f0788138b18de753629670ac2fb5461e5489ef945ab46</td></tr>
+<tr><td>SparkBridge-Host.modl</td><td class="num">53a28287cf9f5392f5d02a8b766959be252f9300e789c613f6c09107244e94db</td></tr>
+<tr><td>SparkBridge-Provider.modl</td><td class="num">9892920bc29be1aac3650e876c9056da768b1e918d87e1458efb78236f370067</td></tr>
+<tr><td>SparkGantt.modl</td><td class="num">4f0c84a9ea8ea9f634cd54d17dd34572fb7a93e58f961a335789107c8fd581a4</td></tr>
+<tr><td>SparkInflux.modl</td><td class="num">3c1c2b87c04ee2d8ca4ef818a6703237303ab7baa564a8e9ccca7685b299c790</td></tr>
+<tr><td>sparklogix-0.2.0-ign83.modl</td><td class="num">f1619af5035af4f10a33d90c1f6eb192c06e258b95a957ab85656e73191fa114</td></tr>
+<tr><td>SparkNotify.modl</td><td class="num">09d0992e937fa66c9d3ff557d4d252a58fa517cd27f0568817f1121bc1ad1125</td></tr>
+<tr><td>SparkS7.modl</td><td class="num">14f74346c3ed0df17da347bfae574a1f75874eea6395808bb9a8da99dde44d02</td></tr>
+<tr><td>SparkSNMP.modl</td><td class="num">e0d27c4622d82cf3c14fad0805870bcdae6a873e75abd1e024703c427e98de6f</td></tr>
+<tr><td>SparkVault-Historian.modl</td><td class="num">a36573a0699b49c5a7ae21a3d658b70a41edf20c04f01859e49670ed26c353f1</td></tr>
+</tbody></table></div>
 <div class="scroller"><table class="tbl sums"><caption>fleetops-v0.2.0</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
 <tr><td>SparkBridge-FleetOps-0.2.0.modl</td><td class="num">87846854c4991abb76a736f6c2e2568a2ffa2b8acd2862274956220a337dbacc</td></tr>
-</tbody></table></div>
-<div class="scroller"><table class="tbl sums"><caption>sparksnmp-v0.1.1</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
-<tr><td>sparksnmp-0.1.1-ign81-bundle.zip</td><td class="num">b6a6b822f12d24809638c834362d09dacf7d094b4e2a65377266bd8f5bc809ee</td></tr>
-<tr><td>sparksnmp-0.1.1-ign83-bundle.zip</td><td class="num">7a75dc2eb0c0dad15b2cb27f09af91cf6a1c1cb1389db32c99b9d4f6ab16d86f</td></tr>
-</tbody></table></div>
-<div class="scroller"><table class="tbl sums"><caption>sparkads-v0.1.1</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
-<tr><td>sparkads-0.1.1-ign81-bundle.zip</td><td class="num">8d58d424906c01088c1e9d3ca96aa337bf2961f4595adb1bf75f69be2bc5d773</td></tr>
-<tr><td>sparkads-0.1.1-ign83-bundle.zip</td><td class="num">022dfa8aa0f9f8faaadb697207b1f3c74587b15a4b1e084e369e8f34f7ea4392</td></tr>
-</tbody></table></div>
-<div class="scroller"><table class="tbl sums"><caption>sparks7-v0.1.1</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
-<tr><td>sparks7-0.1.1-ign81-bundle.zip</td><td class="num">817d0111bfc59df1fb549d7abe40256b41701c2f3cd8ba4521d3506258b5a9c7</td></tr>
-<tr><td>sparks7-0.1.1-ign83-bundle.zip</td><td class="num">a8d6b0acd7d5262558056ddf157995d5ad2a39438c6a521dca439f33360f7821</td></tr>
-</tbody></table></div>
-<div class="scroller"><table class="tbl sums"><caption>spark61850-v0.1.1</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
-<tr><td>spark61850-0.1.1-ign81-bundle.zip</td><td class="num">7ca8f49c51d16dbc1c5be3d21bdb67618fd5db1389076eca36b492d3084ee44c</td></tr>
-<tr><td>spark61850-0.1.1-ign83-bundle.zip</td><td class="num">aab0b53054f6e71330c8ea0f24d419b0a8d19b074fbbddcc7e15083f0b8105d8</td></tr>
-</tbody></table></div>
-<div class="scroller"><table class="tbl sums"><caption>sparkbacnet-v0.1.1</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
-<tr><td>sparkbacnet-0.1.1-ign81-bundle.zip</td><td class="num">d898dc24e3d29b105680eac8cfa478c09b14ca02704b1a9c4191d3625ac57a04</td></tr>
-<tr><td>sparkbacnet-0.1.1-ign83-bundle.zip</td><td class="num">967c4ca58991af80c5c5e388c17c9b7d935f8904c47f37d8650cc7c58339a82a</td></tr>
-</tbody></table></div>
-<div class="scroller"><table class="tbl sums"><caption>sparkinflux-v0.2.0</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
-<tr><td>sparkinflux-0.2.0-ign81-bundle.zip</td><td class="num">4f5d073ff7c54ebc156e15cfe55f8eb6e7d16e56427c3f8678791f2207055ae5</td></tr>
-<tr><td>sparkinflux-0.2.0-ign83-bundle.zip</td><td class="num">86557d601b7ad83af337ece796d605e4fde8f189ba294774154e3a1a252ab80c</td></tr>
-</tbody></table></div>
-<div class="scroller"><table class="tbl sums"><caption>sparkinflux-v0.2.1</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
-<tr><td>sparkinflux-0.2.1-ign83-bundle.zip</td><td class="num">729feb3766c8c18d4d3ca13fa9b14d43ecd690052fc8321fed261dd0d72cc0c0</td></tr>
 </tbody></table></div>
 <div class="scroller"><table class="tbl sums"><caption>sparkvalidate-v0.1.0</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
 <tr><td>sparkvalidate-0.1.0-cli-bundle.zip</td><td class="num">04313df889db56738708bc6cbe5f1df34708401e4d3a1a7573dbdb62adee0cf5</td></tr>
 <tr><td>sparkvalidate-0.1.0-gateway-bundle.zip</td><td class="num">59a4edcb17409b748c2dc43167de2a3b7e41032f538ccd6b011e612e87a18a5f</td></tr>
 <tr><td>sparkvalidate-0.1.0-ign83-bundle.zip</td><td class="num">6442ab10c44bb523ca31ca5520bab22f08504a6fb2bdcb71857ba5ec8d8c6b02</td></tr>
-</tbody></table></div>
-<div class="scroller"><table class="tbl sums"><caption>sparkgantt-v0.1.1</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
-<tr><td>sparkgantt-0.1.1-ign81-bundle.zip</td><td class="num">15a0f510c62f53e42520cde6b99de301ab5640ac738002ca2e79ea9fa60b1dc8</td></tr>
-<tr><td>sparkgantt-0.1.1-ign83-bundle.zip</td><td class="num">9a9f278db124fd1cef25de704606e0223ac02fbd2bcb7ff64f10c3e8684c68d6</td></tr>
-</tbody></table></div>
-<div class="scroller"><table class="tbl sums"><caption>sparknotify-v0.1.1</caption><thead><tr><th>File</th><th>SHA-256</th></tr></thead><tbody>
-<tr><td>sparknotify-0.1.1-ign81-bundle.zip</td><td class="num">c22fd8e14aaad5ec8fd09f933148a06691aa94afd4b6db32cbb5737bc0802db2</td></tr>
-<tr><td>sparknotify-0.1.1-ign83-bundle.zip</td><td class="num">263e68b93a9d9f4ce43ce042924b3bc069d6e251a72b0c52ade0e21ccc0106ac</td></tr>
 </tbody></table></div>
   </div>
 </section>
