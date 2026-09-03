@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org","name":"GreenGuard USA","alternateName":"SparkBridge","url":"https://mqtt.greenguard-usa.com/sparkbridge/","email":"admin@greenguard-usa.com","sameAs":["https://github.com/greenguard-usa/sparkbridge-releases"],"contactPoint":{"@type":"ContactPoint","contactType":"sales","email":"admin@greenguard-usa.com","url":"https://mqtt.greenguard-usa.com/sparkbridge/contact"}},{"@type":"WebSite","@id":"https://mqtt.greenguard-usa.com/sparkbridge/#website","url":"https://mqtt.greenguard-usa.com/sparkbridge/","name":"SparkBridge","description":"Edge moves plant data reliably off each site. Central turns many sites into one system. Optional modules on Central. Priced per gateway, bought once and kept.","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"inLanguage":"en"},{"@type":"SoftwareApplication","@id":"https://mqtt.greenguard-usa.com/sparkbridge/#app","name":"SparkBridge","url":"https://mqtt.greenguard-usa.com/sparkbridge/","applicationCategory":"BusinessApplication","applicationSubCategory":"Industrial data infrastructure for Ignition","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","softwareVersion":"2.7.0","datePublished":"2026-09-02","downloadUrl":"https://mqtt.greenguard-usa.com/sparkbridge/download","releaseNotes":"https://mqtt.greenguard-usa.com/sparkbridge/changelog","description":"Edge moves plant data reliably off each site. Central turns many sites into one system. Optional modules on Central. Priced per gateway, bought once and kept.","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"offers":[{"@type":"Offer","name":"SparkBridge Edge","price":"995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per production site gateway"},{"@type":"Offer","name":"SparkBridge Central","price":"1495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per production Host gateway"},{"@type":"Offer","name":"GitOps / Enterprise Governance","price":"9995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/central#gitops","availability":"https://schema.org/InStock","description":"Configuration as code for the whole estate. Early access"},{"@type":"Offer","name":"Provider","price":"1995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/products#provider","availability":"https://schema.org/InStock","description":"Perpetual license, per gateway"},{"@type":"Offer","name":"Development and testing","price":"0","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/download","availability":"https://schema.org/InStock","description":"Free for non-production use, no time limit"}]}]}
+{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org","name":"GreenGuard USA","alternateName":"SparkBridge","url":"https://mqtt.greenguard-usa.com/sparkbridge/","email":"admin@greenguard-usa.com","sameAs":["https://github.com/greenguard-usa/sparkbridge-releases"],"contactPoint":{"@type":"ContactPoint","contactType":"sales","email":"admin@greenguard-usa.com","url":"https://mqtt.greenguard-usa.com/sparkbridge/contact"}},{"@type":"WebSite","@id":"https://mqtt.greenguard-usa.com/sparkbridge/#website","url":"https://mqtt.greenguard-usa.com/sparkbridge/","name":"SparkBridge","description":"Edge moves plant data reliably off each site. Provider carries Sparkplug traffic. Host turns many sites into one system. Optional modules on Host. Priced per gateway, bought once and kept.","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"inLanguage":"en"},{"@type":"SoftwareApplication","@id":"https://mqtt.greenguard-usa.com/sparkbridge/#app","name":"SparkBridge","url":"https://mqtt.greenguard-usa.com/sparkbridge/","applicationCategory":"BusinessApplication","applicationSubCategory":"Industrial data infrastructure for Ignition","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer","softwareVersion":"2.7.0","datePublished":"2026-09-02","downloadUrl":"https://mqtt.greenguard-usa.com/sparkbridge/download","releaseNotes":"https://mqtt.greenguard-usa.com/sparkbridge/changelog","description":"Edge moves plant data reliably off each site. Provider carries Sparkplug traffic. Host turns many sites into one system. Optional modules on Host. Priced per gateway, bought once and kept.","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"offers":[{"@type":"Offer","name":"SparkBridge Edge","price":"995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per production site gateway"},{"@type":"Offer","name":"SparkBridge Host","price":"1495","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per production Host gateway"},{"@type":"Offer","name":"GitOps / Enterprise Governance","price":"9995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/central#gitops","availability":"https://schema.org/InStock","description":"Configuration as code for the whole estate. Pilot availability"},{"@type":"Offer","name":"Provider","price":"1995","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/products#provider","availability":"https://schema.org/InStock","description":"Perpetual license, per gateway"},{"@type":"Offer","name":"Development and testing","price":"0","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/download","availability":"https://schema.org/InStock","description":"Free for non-production use, no time limit"}]}]}
 </script>
 </head>
 <body>
@@ -53,7 +53,7 @@
     <div>
       <div class="eyebrow">SparkBridge for Ignition</div>
       <h1>Scale Ignition without scaling <em>complexity</em>.</h1>
-      <p class="lede">Two modules. Edge moves plant data reliably off each site. Host turns many sites into one system. Everything else is optional.</p>
+      <p class="lede">Three core modules. Edge moves plant data reliably off each site. Provider carries the Sparkplug-aware broker layer between Edge and Host. Host turns many sites into one system. Optional modules extend the Host.</p>
       <div class="cta-row">
         <a class="btn" href="/sparkbridge/edge">SparkBridge Edge</a>
         <a class="btn ghost" href="/sparkbridge/central">SparkBridge Host</a>
@@ -68,12 +68,18 @@
         <span class="job">Move plant data reliably</span>
       </a>
       <div class="seg s1" aria-hidden="true"></div>
+      <a class="dev spine st-svc" href="/sparkbridge/products#provider">
+        <span class="tagno">Between Edge and Host</span>
+        <span class="devname">SparkBridge Provider</span>
+        <span class="job">Sparkplug-aware broker</span>
+      </a>
+      <div class="seg s2" aria-hidden="true"></div>
       <a class="dev spine st-svc" href="/sparkbridge/central">
         <span class="tagno">One server</span>
         <span class="devname">SparkBridge Host</span>
         <span class="job">Turn many sites into one system</span>
       </a>
-      <div class="seg s2" aria-hidden="true"></div>
+      <div class="seg s3" aria-hidden="true"></div>
       <div class="dev source">
         <span class="tagno">Use</span>
         <span class="devname">Your tools</span>
@@ -88,10 +94,10 @@
 <section id="core">
   <div class="wrap">
     <div class="sec-head">
-      <div class="path">the two products</div>
+      <div class="path">the core modules</div>
       <h2>Edge at Every Site. Host Once.</h2>
     </div>
-    <div class="two">
+    <div class="cards">
       <a class="card" href="/sparkbridge/edge">
         <h3>SparkBridge Edge</h3>
         <p>Move plant data reliably.</p>
@@ -101,6 +107,11 @@
         <h3>SparkBridge Host</h3>
         <p>Turn many sites into one system.</p>
         <p class="desc">Subscribes every site into one namespace, learns each site's model from its birth certificate, and hosts the optional modules.</p>
+      </a>
+      <a class="card" href="/sparkbridge/products#provider">
+        <h3>SparkBridge Provider</h3>
+        <p>Sparkplug-aware broker.</p>
+        <p class="desc">The Sparkplug-aware broker. Embedded or beside the server. Its own license.</p>
       </a>
     </div>
   </div>
@@ -155,48 +166,6 @@
       <p><b>400,000 of 400,000 readings replayed</b> after a cut link, in order, on the original timestamps.</p>
       <p>Detail on <a href="/sparkbridge/technology">technology</a> and <a href="/sparkbridge/resources">resources</a>.</p>
     </div>
-  </div>
-</section>
-
-<section id="cost">
-  <div class="wrap">
-    <div class="sec-head">
-      <div class="path">lineup</div>
-      <h2>The Lineup</h2>
-    </div>
-    <div class="tiers">
-      <div class="tier">
-        <div class="top">
-          <h3>Development</h3>
-          <small>Free. Non-production use, no time limit.</small>
-        </div>
-      </div>
-      <div class="tier">
-        <div class="top">
-          <h3>SparkBridge Edge</h3>
-          <small>Per site. SparkLink included.</small>
-        </div>
-      </div>
-      <div class="tier feature">
-        <div class="top">
-          <h3>SparkBridge Host</h3>
-          <small>One server. SparkCalc and SparkID included.</small>
-        </div>
-      </div>
-      <div class="tier">
-        <div class="top">
-          <h3>SparkBridge Provider</h3>
-          <small>The Sparkplug-aware broker. Embedded or beside the server. Its own license.</small>
-        </div>
-      </div>
-      <div class="tier">
-        <div class="top">
-          <h3>Optional modules</h3>
-          <small>Each on its own license.</small>
-        </div>
-      </div>
-    </div>
-    <p class="note">Per gateway, bought once and kept. Full price list on the <a href="/sparkbridge/pricing">pricing page</a>.</p>
   </div>
 </section>
 
