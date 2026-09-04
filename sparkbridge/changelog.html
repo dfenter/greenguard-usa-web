@@ -64,6 +64,13 @@
   <div class="wrap">
     <ul class="lifeline">
       <li>
+        <span class="lc">Host<br>2026&#8209;09&#8209;04</span>
+        <div>
+          <h3>Data lineage: wire-boundary hop, source versus arrival time, consumer hops, durable trace ring, lineage page</h3>
+          <p>Built and proven on the reference gateway; ships in the next Host release. The single-metric trace now starts in the MQTT client callback (WIRE_RECEIPT), records the source timestamp and the store-and-forward replay flag apart from arrival time, and accepts consumer hops (ACCEPTED, QUEUED, PERSISTED, LANDED, RETRIED, REJECTED) over <code>POST /trace/:id/hops</code>. The newest 1,000 completed traces persist in <code>data/sparkbridge-traces.jsonl</code> and survive a restart; <code>GET /trace</code> lists them. <code>GET /lineage?metric=</code> renders the timeline with explicit "not measured" rows for edge and broker boundaries. Reference gateway figures: wire to tag write in 942 microseconds, source to receipt 6 ms.</p>
+        </div>
+      </li>
+      <li>
         <span class="lc">Host, Provider, Broker<br>2026&#8209;09&#8209;04</span>
         <div>
           <h3>Zero-touch enrollment: the Host now answers the code</h3>
