@@ -64,6 +64,13 @@
   <div class="wrap">
     <ul class="lifeline">
       <li>
+        <span class="lc">Host, Provider, Broker<br>2026&#8209;09&#8209;04</span>
+        <div>
+          <h3>Zero-touch enrollment: the Host now answers the code</h3>
+          <p>Built and proven on the reference gateway; ships in the next release. Until now the enrollment library had no central side running in any module, and a bootstrap session could not connect to the hardened broker at all. The Host now starts an enrollment central when the fleet signing key is present, keeps a site registry, issues each site's broker identity inside the signed configuration document, and writes <code>sparkbridge-identities.properties</code> for the Provider and the HiveMQ extension to read. New routes: <code>POST /enrollment/issue</code> (admin) and <code>GET /enrollment</code> (read). Enrollment sessions (<code>sparkbridge-enrollment-*</code>) are confined to the request topic and their own response topic on both brokers; the file-RBAC template grants those two topics to the bootstrap identity.</p>
+        </div>
+      </li>
+      <li>
         <span class="lc">Host, Edge<br>2026&#8209;09&#8209;04</span>
         <div>
           <h3>Capacity intelligence: per-site buffer health, seven-day ingest trend, one expansion recommendation</h3>
