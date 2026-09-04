@@ -53,7 +53,7 @@
   <div class="wrap">
     <div class="eyebrow">Changelog</div>
     <h1>Version history</h1>
-    <p>Every release, what changed, and what the change was for. Current release: 2.7.0.
+    <p>Every release, what changed, and what the change was for. Current release: 2.8.0.
     Full customer notes ship in the release package.</p>
   </div>
 </header>
@@ -124,6 +124,41 @@
         <div>
           <h3>Four modules become features of SparkBridge</h3>
           <p><a href="/sparkbridge/#sparklink">SparkLink</a>, <a href="/sparkbridge/#sparkcalc">SparkCalc</a>, <a href="/sparkbridge/#passage">Passage</a> and <a href="/sparkbridge/#sparkid">SparkID</a> are now free with any SparkBridge Edge or Host license. Nothing changes in the software; we built them as free modules and they stay that way. The site package and central server suite moved to the current per-gateway pricing. Existing quotes are honoured at the lower of the two prices. See <a href="/sparkbridge/pricing">pricing</a>.</p>
+        </div>
+      </li>
+      <li>
+        <span class="lc lc-birth">2.8.0<br>2026&#8209;09&#8209;04</span>
+        <div>
+          <h3>Capacity, enrollment, lineage, contracts and GitOps land on Host</h3>
+          <p>2.8.0 updates the SparkBridge core modules only: Edge, Host, Provider and the
+          authorization extension for external HiveMQ. Every other Spark product stays at 2.7.0 and
+          does not need reinstalling. Upgrading from 2.7.0 is a drop-in module upgrade in the usual
+          order, Provider then Host then Edge, with no BIRTH-shape break, topic rename or
+          broker-ACL change, and keys issued for 2.5.0 through 2.7.0 stay valid.</p>
+          <p><b>Capacity intelligence.</b> <span class="mono">/capacity</span> reports measured
+          headroom and names the next expansion step, and
+          <span class="mono">/capacity/history</span> returns the retained trend. BIRTH grows by
+          two <span class="mono">Node Info/*</span> metrics carrying each edge's buffer and
+          retention state; as in 2.4.0, a fleet sized close to its BIRTH byte cap should confirm
+          headroom before upgrading.</p>
+          <p><b>Zero-touch enrollment.</b> A one-time code issued at
+          <span class="mono">/enrollment/issue</span> lets a new site bootstrap its identity over a
+          signed channel. A site becomes enrolled only once the response is durable, so a failed
+          publish leaves the code redeemable. The file-RBAC role block in the shipped credentials
+          template carries the two enrollment topics; it ships commented out, so uncomment it and
+          adapt the identity. file-RBAC denies silently, and an edge missing those grants simply
+          fails to enroll.</p>
+          <p><b>Lineage, contracts and GitOps.</b>
+          <span class="mono">/trace/:id/hops</span> and <span class="mono">/lineage</span> expose
+          the per-hop path of a sampled message over a durable ring that survives a restart.
+          <span class="mono">/contracts</span> holds each prefix to the shape adopted from its
+          first BIRTH and raises an alarm-able status tag on a violation.
+          <span class="mono">/gitops</span> reconciles the gateway against a checked-out
+          configuration bundle, with an approvals gate and an append-only audit trail; apply always
+          publishes the configured bundle and refuses a directory override.</p>
+          <p><b>Redeploy the HiveMQ extension</b> if you run an external broker: upgrading only the
+          module files leaves a stale extension behind. The extension list must report 2.8.0.</p>
+          <p>Bundles for Ignition 8.1 and 8.3 are on the <a href="/sparkbridge/download">download page</a> and at <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/v2.8.0">the v2.8.0 GitHub release</a>.</p>
         </div>
       </li>
       <li>
