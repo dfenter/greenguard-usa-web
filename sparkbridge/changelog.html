@@ -64,6 +64,13 @@
   <div class="wrap">
     <ul class="lifeline">
       <li>
+        <span class="lc">Host, Edge<br>2026&#8209;09&#8209;04</span>
+        <div>
+          <h3>Capacity intelligence: per-site buffer health, seven-day ingest trend, one expansion recommendation</h3>
+          <p>Built and proven on the reference gateway; ships in the next Host and Edge release. Each edge now declares its store-and-forward capacity and outage coverage on its BIRTH and refreshes the figures every five minutes as ordinary NDATA. The host subtracts time down while a site is away, shows a Buffer column on /fleet, and adds <code>sites[]</code>, <code>recommendation{}</code> and <code>history{}</code> to /capacity, with the full ring at /capacity/history (2,016 five-minute rows, persisted across restarts). The recommendation is one of GROW_EDGE_BUFFER, ADD_HOST_MEMORY, ADD_PROJECTOR_SHARDS, ADD_HOST_CONSUMER or NONE, with the sentence to act on and the benchmark row it rests on. Thresholds are settings (<code>sparkbridge.host.capacity.*</code>). The Perspective Overview gains a Capacity tile. See the <a href="/sparkbridge/roadmap">roadmap</a>.</p>
+        </div>
+      </li>
+      <li>
         <span class="lc">Site<br>2026&#8209;09&#8209;03</span>
         <div>
           <h3>Site: three-role framing, architecture comparison, benchmark report, roadmap, architecture review</h3>
