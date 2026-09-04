@@ -66,6 +66,13 @@
       <li>
         <span class="lc">Host<br>2026&#8209;09&#8209;04</span>
         <div>
+          <h3>GitOps: bundle as source of truth, drift, canary apply, rollback, audit</h3>
+          <p>Built in a first form and proven on the reference gateway; ships in the next Host release. A bundle is a directory with <code>bundle.properties</code> and one site document per gateway; every document goes through the same checker as the single-site publisher before anything is signed. The Host reports drift on <code>/gitops</code> between the bundle and the configuration version each site declares on its BIRTH, exposes <code>sparkbridge_gitops_drift</code>, applies to one site or all over <code>POST /gitops/apply</code> behind an approvals gate, treats an older bundle as a rollback at a newer sequence, and writes every attempt to an audit file served at <code>/gitops/audit</code>. The <code>SparkGitOps build</code> command renders and signs a bundle from the shell.</p>
+        </div>
+      </li>
+      <li>
+        <span class="lc">Host<br>2026&#8209;09&#8209;04</span>
+        <div>
           <h3>Data contracts: namespace registry, BIRTH validation, violation status tag</h3>
           <p>Built and proven on the reference gateway; ships in the next Host release. Register a prefix with an owner, the metadata every metric must carry, and a mode (strict, additive, open) over <code>POST /contracts</code>. The Host adopts each covered node's and device's metric set from its first BIRTH as version 1 and checks every later BIRTH against it: removals, type changes, suspected renames and missing metadata write the reason to <code>_contract/violation</code> beside the node's tags, count on <code>sparkbridge_contract_violations_total</code>, and show on <code>/contracts/page</code>. Additive mode accepts additions and bumps <code>_contract/version</code>.</p>
         </div>
