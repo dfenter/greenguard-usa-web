@@ -39,6 +39,7 @@
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
         <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
         <a href="/sparkbridge/resources">Resources</a>
         <a href="/sparkbridge/download">Download</a>
         <a href="/sparkbridge/docs">Docs</a>
@@ -84,10 +85,10 @@
 
 <section>
   <div class="wrap">
-    <p class="claim">One server gives you <em>one version</em> of what your plants are doing.</p>
+    <p class="claim">Publish once. <em>Add consumers when you need them.</em></p>
     <div class="twocol">
       <div class="measure">
-        <p>Host alone, no modules added, replaces the work of stitching together forty sites by hand. It collects what every Edge gateway reports, learns each site's tag structure the moment that site connects, and projects it as one live picture you can point any tool at.</p>
+        <p>One server gives you one version of what your plants are doing. Adding another consumer, a historian, a warehouse, an analytics job, changes nothing at the sites: each site publishes once and Host fans it out. Host alone, no modules added, replaces the work of stitching together forty sites by hand. It collects what every Edge gateway reports, learns each site's tag structure the moment that site connects, and projects it as one live picture you can point any tool at.</p>
         <p>Nobody builds that picture. When a site comes online it announces every device and every point it has, and Host creates the matching tags on the spot, in a tree that mirrors the plant. Add a device at a site and it appears at Host. Rename one and Host follows. There is no mapping spreadsheet and no import to repeat when a site changes.</p>
         <p>Host knows the difference between a value that is current and one that is not. Every reading carries the time the equipment recorded it, not the time it arrived, so trends stay true through a dropped link and back. If a site loses its connection, Host marks that site's points bad instead of holding the last number, and when the site returns it asks for a fresh announcement so the two are in step again. A gap in the sequence from a site triggers the same check. Nothing quietly drifts.</p>
         <p>It is the primary host on the network. Every Edge gateway watches for it, buffers while it is away and replays in order when it is back. Host holds one shared set of credentials and certificates for the estate, and it works with any conformant Sparkplug broker, including the one you already run. Its own status, throughput and per-site health are available over a plain REST interface for the monitoring you already have.</p>
@@ -263,11 +264,11 @@
     <div class="sec-head">
       <div class="path">optional module</div>
       <h2>SparkVault</h2>
-      <p>History that stays true even after an outage.</p>
+      <p>History is a consumer, not another integration project.</p>
     </div>
     <div class="twocol">
       <div class="measure">
-        <p>SparkVault keeps your plant's history in an open database your existing tools read directly, filed under the time the equipment recorded each value rather than the time it arrived. When a site loses its link and replays its buffer hours later, the readings land where they belong and the trend shows the real curve. Any past day can be replayed on demand.</p>
+        <p>SparkVault subscribes to the backbone like any other consumer, so adding history changes nothing at the sites. It keeps your plant's history in an open database your existing tools read directly, filed under the time the equipment recorded each value rather than the time it arrived. When a site loses its link and replays its buffer hours later, the readings land where they belong and the trend shows the real curve. Any past day can be replayed on demand.</p>
         <p><strong>Example.</strong> A remote compressor station loses cellular for six hours overnight. In the morning the trend is complete, the monthly report built on it is right, and nobody exports a CSV from the site to patch the hole.</p>
       </div>
       <div>
@@ -365,11 +366,11 @@
     <div class="sec-head">
       <div class="path">required infrastructure</div>
       <h2>Provider</h2>
-      <p>The broker underneath Edge and Host.</p>
+      <p>The policy and routing layer for industrial data.</p>
     </div>
     <div class="twocol">
       <div class="measure">
-        <p>Provider supplies the required Sparkplug-aware broker layer. Embedded Moquette for a single node, or a HiveMQ CE companion service for MQTT 5 and shared subscriptions. Edge and Host connect through it, and any conformant Sparkplug host can use it. Provider is priced separately at $1,995 per gateway.</p>
+        <p>Provider carries plant data between sites and consumers while enforcing identity, permission and connection boundaries: per-site identities, deny-by-default topic permissions, MQTT 5 shared subscriptions for consumer scale-out. Edge and Host connect through it, and any conformant Sparkplug host can use it. Provider is priced separately at $1,995 per gateway. Broker shapes and internals are on the <a href="/sparkbridge/products#provider">products page</a>.</p>
       </div>
       <div>
         <span class="spectitle">What it does</span>
@@ -400,7 +401,7 @@
 <footer>
   <div class="wrap">
     <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
-    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
   </div>
 </footer>
 

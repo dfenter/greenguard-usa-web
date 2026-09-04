@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkBridge Scale and Resilience Report | SparkBridge</title>
+<meta name="description" content="The canonical benchmark record for SparkBridge: environment, methodology, results and failure injection for every performance figure, with the machine each number came from and the commands that reproduce it.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/benchmarks">
+<meta property="og:title" content="SparkBridge Scale and Resilience Report">
+<meta property="og:description" content="The canonical benchmark record for SparkBridge: environment, methodology, results and failure injection for every performance figure, with the machine each number came from and the commands that reproduce it.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/benchmarks">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SparkBridge Scale and Resilience Report">
+<meta name="twitter:description" content="The canonical benchmark record for SparkBridge: environment, methodology, results and failure injection for every performance figure, with the machine each number came from and the commands that reproduce it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Benchmarks","item":"https://mqtt.greenguard-usa.com/sparkbridge/benchmarks"}]}]}
+</script>
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead">
+  <div class="wrap">
+    <div class="eyebrow">Scale and Resilience Report</div>
+    <h1>Every number, with the machine it came from</h1>
+    <p>This is the canonical record behind every performance figure on this site. Each result names its rig, its method and the command that reproduces it. Where two captures disagree, the later quiet-box gate is authoritative and the earlier one is kept for history. Publish methodology, not just numbers.</p>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">environment</div>
+      <h2>The Three Rigs</h2>
+      <p>Nothing here ran on cloud hardware. These are the actual machines. Bigger hardware moves the ceilings; the report states floors.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Rig</th><th>CPU</th><th>RAM</th><th>OS and kernel</th><th>JVM</th><th>Broker</th><th>Used for</th></tr></thead>
+        <tbody>
+          <tr><td><b>Linux reference rig</b></td><td>Intel Core i7-9700T, 6 cores, 6 threads, 2.0 GHz</td><td>8 GB</td><td>Ubuntu 26.04 LTS on WSL2, kernel 6.18</td><td>OpenJDK 17.0.20</td><td>Embedded HiveMQ CE 2026.5, 4 shared consumers</td><td>2026-08-15 quiet-box gate: capacity floor, offered ramp, latency, replay</td></tr>
+          <tr><td><b>Mac bench gateway</b></td><td>x86_64, 4 logical / 2 physical cores</td><td>not recorded</td><td>macOS 12</td><td>Temurin JDK 17</td><td>HiveMQ CE 2026.5 on loopback</td><td>Gap-closure capture (projected end-to-end, latency, store-and-forward), TCK session, standby takeover, live gateway projection on Ignition 8.1.38</td></tr>
+          <tr><td><b>Mac 8-core dev box</b></td><td>8 cores, model not recorded</td><td>not recorded</td><td>macOS</td><td>JDK 17</td><td>Embedded Moquette, all in one JVM</td><td>R3 gate 2026-08-11: codec, single-edge saturation, soak, fan-in, multi-broker</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">All-in-one-JVM runs put edge, broker and host in one process, so the numbers exclude network round trips and include GC contention between roles. The live gateway rows run the shipped modules on a real Ignition 8.1.38 gateway against a separate HiveMQ CE process.</p>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">methodology</div>
+      <h2>How the Load Is Shaped</h2>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Parameter</th><th>Setting</th></tr></thead>
+        <tbody>
+          <tr><td>Sites (edge nodes)</td><td>One edge per 50,000 wire metrics: 1, 5 and 10 edges for the 50k, 250k and 500k tiers; 20 edges on the opt-in 1M rig. One device BIRTH per edge</td></tr>
+          <tr><td>Metrics</td><td>50,000 / 250,000 / 500,000 wire metrics resident in Host state; 1,000,000 opt-in</td></tr>
+          <tr><td>Update rates</td><td>Capacity: a ramp that raises offered load step by step until delivered rate stops tracking offered, so the knee is found rather than asserted. Latency: paced at about 10,000 messages/s so the path is measured unsaturated. Fan-in: 600,000 updates/s offered throughout</td></tr>
+          <tr><td>Payload</td><td>1,000 metrics per NDATA in the capacity ramp; 50 metrics per message in the codec test; 1 metric per message in the latency test. Sparkplug B protobuf, alias-only after BIRTH</td></tr>
+          <tr><td>Projection cost</td><td>Real per-leaf tag-write cost injected at 50 microseconds per leaf so the end-to-end figure includes writing values into tags, not just decoding them</td></tr>
+          <tr><td>Duration</td><td>Warm-up phase discarded before every measurement (a cold JIT reads as latency on any code). Steady windows of 5 s per ramp step; 20 s soak for heap; node-churn soak configurable to 30 minutes or more</td></tr>
+          <tr><td>Quiet box</td><td>Nothing else running. A concurrent Gradle test JVM halves the 500k tier, which is why every published gate says quiet-box</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">results</div>
+      <h2>Results by Dimension</h2>
+      <p>The headline row per dimension is the one quoted elsewhere on the site. Earlier captures are listed so the trend is visible.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl ours-last">
+        <thead><tr><th>Dimension</th><th>Result</th><th>Rig and date</th></tr></thead>
+        <tbody>
+          <tr><td rowspan="3">Sustained capacity, projected through to visible tags</td><td class="num"><b>at least 339,527 updates/s</b>, lowest of the 50k, 250k and 500k tiers</td><td>Linux reference rig, 2026-08-15 gate</td></tr>
+          <tr><td class="num">44,769 updates/s at 250k, 4 projector shards; 19,507 at 50k, 1 shard (control)</td><td>Mac bench gateway, gap-closure capture</td></tr>
+          <tr><td class="num">341k / 340k / 340k across tiers</td><td>Linux reference rig, 2026-08-14 cross-check</td></tr>
+          <tr><td>Offered ramp absorbed without bending</td><td class="num"><b>480,000 updates/s</b>, ramp exhausted, ceiling not found</td><td>Linux reference rig, 2026-08-15</td></tr>
+          <tr><td rowspan="2">End-to-end latency, edge to broker to host, warm and paced</td><td class="num"><b>p50 0.427 ms · p99 0.933 ms</b></td><td>Linux reference rig, 2026-08-15</td></tr>
+          <tr><td class="num">p50 0.216 · p95 0.366 · p99 0.517 · p99.9 1.489 · max 3.576 ms, 40,000 samples, 0 loss</td><td>Mac bench gateway, gap-closure capture</td></tr>
+          <tr><td>Host resident state</td><td class="num"><b>500,000 wire metrics in under 4 GiB</b>; about 300 bytes per metric per consumer, flat from 250k through 1M (294 to 300 bytes)</td><td>Capacity benchmark, 4 GiB heap; 1M rig at 9 GiB heap</td></tr>
+          <tr><td>Wire ingest, no projection</td><td class="num">59,980 / 59,910 / 59,902 updates/s at 50k / 250k / 500k, 0 loss</td><td>Capacity benchmark</td></tr>
+          <tr><td>Codec throughput, single thread</td><td class="num"><b>3.9M metric-updates/s</b>, encode plus decode round trip</td><td>Mac 8-core, R3 gate 2026-08-11</td></tr>
+          <tr><td rowspan="2">Store-and-forward replay after a broker outage</td><td class="num"><b>40,035 updates/s</b>, loopback</td><td>Linux reference rig, 2026-08-15</td></tr>
+          <tr><td class="num">400,000 of 400,000 replayed in 20.33 s = 19,671 updates/s, zero loss</td><td>Mac bench gateway, gap-closure capture</td></tr>
+          <tr><td>Outage buffering, durable</td><td class="num"><b>2,697 messages/s</b> with fsync every 32 records; about 90 messages/s with fsync on every record</td><td>Mac bench gateway, gap-closure capture</td></tr>
+          <tr><td>Host scale-out with MQTT 5 shared subscriptions, ingest only</td><td class="num"><b>11,315 (1 broker x 1 consumer) to 222,000 (1 x 4) updates/s</b>, about 20x; 274,458 at 2 x 3</td><td>Capacity benchmark, 600,000 updates/s offered</td></tr>
+          <tr><td>Multi-broker scale-out, 16-edge fleet</td><td class="num">211 to 215,695 updates/s delivered across 8 brokers against 1, about 1000x</td><td>Mac 8-core, isolated capture</td></tr>
+          <tr><td>Single edge, saturated</td><td class="num">about 100,000 updates/s, 0 loss</td><td>Mac 8-core, R3 gate</td></tr>
+          <tr><td>Soak, 20 s</td><td class="num">about 215,000 updates/s, heap flat, leak-free</td><td>Mac 8-core, R3 gate</td></tr>
+          <tr><td>Warm-standby Host takeover</td><td class="num"><b>244 ms</b> from offline STATE to promoted online STATE, 25 nodes, 200 ms debounce, 5.7 ms of it mechanical; zero rebirths</td><td>Mac bench gateway, loopback</td></tr>
+          <tr><td>Live gateway projection, scalar</td><td class="num">20,000 leaves across 4 device BIRTHs ready in 1.03 s, about 20,000 leaves/s</td><td>Ignition 8.1.38 gateway, 2026-07-17</td></tr>
+          <tr><td>Live gateway projection, templates</td><td class="num">1,000 x 15 template members ready in 1.80 s, about 8,300 members/s, 22x over the 2.0 baseline; warm rebirth re-projected in 168 ms</td><td>Ignition 8.1.38 gateway, 2026-07-17</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note"><b>The capacity row is a floor, not a peak.</b> The 2026-08-15 ramp was exhausted at 480,000 updates/s without the run bending, so the ceiling on that rig is unknown and higher. Every capacity claim on this site is "at least", never "up to". The gap-closure figures are lower because that rig has 4 logical cores and the projector shards by core count.</p>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">failure injection</div>
+      <h2>What Was Broken on Purpose</h2>
+      <p>Each row is a test in the shipped suite. The first group runs in ordinary CI on every build; the second is the opt-in load suite.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Injected failure</th><th>Required behaviour</th><th>Test</th></tr></thead>
+        <tbody>
+          <tr><td>Broker killed mid-session, restored later</td><td>Edge buffers to disk, reconnects, rebirths, replays in order with source timestamps and the historical flag; zero loss</td><td>StoreForwardTest</td></tr>
+          <tr><td>Disk append and fsync failures while buffering</td><td>Counted, surfaced as degraded, recovered when the disk returns; a flush after an open failure does not clear the degraded state</td><td>DiskFullStoreForwardTest, DiskBufferPartialWriteRecoveryTest</td></tr>
+          <tr><td>Garbage payloads, malformed topics, oversized messages, skewed timestamps</td><td>Host survives and keeps bridging a legitimate edge</td><td>ChaosTest, MalformedStructuredPayloadTest</td></tr>
+          <tr><td>50,000 mutated protobuf payloads</td><td>No crash, no hang</td><td>DecoderFuzzTest</td></tr>
+          <tr><td>Untrusted TLS certificate</td><td>Connection rejected</td><td>TlsNegativeTest</td></tr>
+          <tr><td>Publish failures on the live path</td><td>Counted and retried without blocking the tag subscription</td><td>LivePublishFailureTest, PublishPipelineFlushFailureTest</td></tr>
+          <tr><td>Primary Host crash</td><td>Standby promotes after debounce; edges do not rebirth</td><td>standbyDrill harness, documented in HA.md</td></tr>
+          <tr><td>Node churn for 30 minutes or more</td><td>Heap, thread count and node inventory stay bounded; dead nodes evicted</td><td>LongSoakTest (load suite)</td></tr>
+          <tr><td>5,000 distinct edge nodes on one Host</td><td>Bounded heap</td><td>LargeFleetTest (load suite)</td></tr>
+          <tr><td>Rebirth storm from sequence gaps under fan-in</td><td>Rate-limited per node; loss at 4 edges fell from 76% to 5% after the fix this test found</td><td>LoadTest fan-in scenario</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">conformance</div>
+      <h2>Conformance Is the Baseline</h2>
+      <p>Eclipse Sparkplug TCK 3.0.0, ratified binary, 2026-08-15: 182 Edge and 52 Host assertions passed, zero FAIL lines across ten runs. Host MultipleBroker and the BROKER profile were not run, stated on the <a href="/sparkbridge/tck">conformance record</a> with the unedited logs.</p>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">reproduce</div>
+      <h2>Run It Yourself</h2>
+      <p>The suite ships in the product repository. Run it on a quiet box and compare against the tables above.</p>
+    </div>
+    <div class="artifact">
+      <div class="artifact-head"><span>Load suite</span><span class="live"><i class="dot"></i>4 to 6 minutes</span></div>
+      <div class="artifact-body">
+<pre style="margin:0;white-space:pre-wrap">./gradlew :common:loadTest --console=plain
+./gradlew :common:loadTest --tests io.sparkbridge.perf.CapacityLoadTest
+./gradlew :common:loadTest -PloadHeap=9g -Pcapacity1m --tests io.sparkbridge.perf.CapacityLoadTest
+./gradlew :common:gatewayBench -PgatewayBench        # against a live gateway
+./gradlew :common:standbyDrill                        # two-JVM takeover
+# knobs: -Pshards=N  -Dsparkbridge.host.rebirthCooldownMs  -Dsparkbridge.mqtt.maxReconnectMs</pre>
+      </div>
+      <div class="artifact-foot">Results and per-scenario notes are written to the console and to build/reports. Send us yours and we will add the rig to this page.</div>
+    </div>
+  </div>
+</section>
+
+<section class="tail">
+  <div class="wrap">
+    <h2>Size Your Estate From These Numbers</h2>
+    <p>Send site count, tags per site and update rates and we return the sizing with the ceiling it is based on.</p>
+    <div class="cta-row">
+      <a class="btn" href="/sparkbridge/architecture-review">Request an architecture review</a>
+      <a class="btn ghost" href="/sparkbridge/technology#numbers">Back to the summary table</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/benchmarks">Benchmarks</a> &middot; <a href="/sparkbridge/roadmap">Roadmap</a> &middot; <a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

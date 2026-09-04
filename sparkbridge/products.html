@@ -39,6 +39,7 @@
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
         <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
         <a href="/sparkbridge/resources">Resources</a>
         <a href="/sparkbridge/download">Download</a>
         <a href="/sparkbridge/docs">Docs</a>
@@ -73,6 +74,14 @@
 
       <div class="seg s2" aria-hidden="true"></div>
 
+      <a class="dev spine st-svc" href="/sparkbridge/products#provider">
+        <span class="tagno">In between</span>
+        <span class="devname">SparkBridge Provider</span>
+        <span class="job">Carries every site's data to every consumer under one identity and permission policy</span>
+      </a>
+
+      <div class="seg s2" aria-hidden="true"></div>
+
       <a class="dev spine st-svc" href="/sparkbridge/central">
           <span class="tagno">One server</span>
           <span class="devname">SparkBridge Host</span>
@@ -89,16 +98,19 @@
     </div>
 
     <div class="cards rack">
-      <div class="rackhead">The Host suite &middot; modules that run on SparkBridge Host &middot; <a href="/sparkbridge/central">see the suite</a></div>
-      <a class="card" href="/sparkbridge/products#provider"><h3>Provider</h3><p>Sparkplug-aware broker</p><p class="desc">Required broker infrastructure. Embedded Moquette for a single node, or a HiveMQ CE companion service for MQTT 5 and shared subscriptions. No per-client licensing. Works with Edge and Host, or with any conformant Sparkplug host.</p></a>
+      <div class="rackhead">Data outcomes &middot; consumers of the backbone, each on SparkBridge Host &middot; <a href="/sparkbridge/central">see the suite</a></div>
+      <a class="card" href="/sparkbridge/central#sparkvault"><h3>SparkVault</h3><p>Tag historian</p><p class="desc">Keeps history on the plant's own clock, so trends stay true through a dropped link and back. History is a consumer, not another integration project.</p></a>
+      <a class="card" href="/sparkbridge/record"><h3>SparkRecord <small>release pending</small></h3><p>Structured record pipeline</p><p class="desc">Lands Sparkplug records, MQTT JSON events and SparkFlow events exactly once, append-only, with a SHA-256 audit chain.</p></a>
+      <a class="card" href="/sparkbridge/central#sparkinject"><h3>SparkInject</h3><p>Warehouse delivery</p><p class="desc">Delivers production data into your warehouse, once, with nothing rekeyed along the way.</p></a>
       <a class="card" href="/sparkbridge/central#passage"><h3>Passage</h3><p>OPC-UA server</p><p class="desc">Serves your live plant data over OPC-UA to the historians, analytics and test tools you already own. No custom connector per system.</p></a>
       <a class="card" href="/sparkbridge/central#sparkcalc"><h3>SparkCalc <small>included with Host</small></h3><p>Calculation engine</p><p class="desc">Rates, totals and efficiencies calculated once, in one place, used everywhere.</p></a>
-      <a class="card" href="/sparkbridge/central#sparkid"><h3>SparkID <small>included with Host</small></h3><p>Access control</p><p class="desc">Controls who can read your data and who can change it, with safe credential rotation. A read permission never includes control.</p></a>
-      <a class="card" href="/sparkbridge/central#sentinel"><h3>Sentinel</h3><p>Security assessment</p><p class="desc">A scored security and health assessment of your plant data network, with the evidence and the fix for each finding.</p></a>
+    </div>
+
+    <div class="cards rack">
+      <div class="rackhead">Enterprise operations &middot; running the estate, each on SparkBridge Host</div>
       <a class="card" href="/sparkbridge/central#fleetops"><h3>FleetOps</h3><p>Fleet management</p><p class="desc">One view of every gateway you run: versions, drift, certificates, backups. Fix once, apply everywhere.</p></a>
-      <a class="card" href="/sparkbridge/central#sparkvault"><h3>SparkVault</h3><p>Tag historian</p><p class="desc">Keeps history on the plant's own clock, so trends stay true through a dropped link and back.</p></a>
-      <a class="card" href="/sparkbridge/central#sparkinject"><h3>SparkInject</h3><p>Warehouse delivery</p><p class="desc">Delivers production data into your warehouse, once, with nothing rekeyed along the way.</p></a>
-      <a class="card" href="/sparkbridge/record"><h3>SparkRecord <small>release pending</small></h3><p>Structured record pipeline</p><p class="desc">Lands Sparkplug records, MQTT JSON events and SparkFlow events exactly once, append-only, with a SHA-256 audit chain.</p></a>
+      <a class="card" href="/sparkbridge/central#sentinel"><h3>Sentinel</h3><p>Security assessment</p><p class="desc">A scored security and health assessment of your plant data network, with the evidence and the fix for each finding.</p></a>
+      <a class="card" href="/sparkbridge/central#sparkid"><h3>SparkID <small>included with Host</small></h3><p>Access control</p><p class="desc">Controls who can read your data and who can change it, with safe credential rotation. A read permission never includes control.</p></a>
       <a class="card" href="/sparkbridge/flow"><h3>SparkFlow <small>own license</small></h3><p>High-rate streaming</p><p class="desc">Streams every point Host decodes, well past what the tag system carries, for screens and analytics at estate scale.</p></a>
       <a class="card" href="/sparkbridge/central#gitops"><h3>GitOps / Enterprise Governance <small>pilot</small></h3><p>Configuration as code</p><p class="desc">Configuration as code for the whole estate: signed bundles, review and rollback, and an audit trail of who changed what.</p></a>
     </div>
@@ -230,7 +242,7 @@
     <div class="sec-head">
       <div class="path" id="provider">provider</div>
       <h2>Provider</h2>
-      <p>Sparkplug leaves security to the implementation. The broker is where your security posture actually gets set.</p>
+      <p>Provider is the policy and routing layer for industrial data. It carries plant data between sites and consumers while enforcing identity, permission and connection boundaries. Sparkplug leaves security to the implementation, and the broker is where your security posture actually gets set.</p>
     </div>
     <div class="scroller">
       <table class="tbl">
@@ -367,7 +379,7 @@
 <footer>
   <div class="wrap">
     <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
-    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
   </div>
 </footer>
 

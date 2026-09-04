@@ -39,6 +39,7 @@
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
         <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
         <a href="/sparkbridge/resources">Resources</a>
         <a href="/sparkbridge/download">Download</a>
         <a href="/sparkbridge/docs">Docs</a>
@@ -53,7 +54,8 @@
     <div>
       <div class="eyebrow">SparkBridge for Ignition</div>
       <h1>Scale Ignition without scaling <em>complexity</em>.</h1>
-      <p class="lede">Three core modules. Edge moves plant data reliably off each site. Provider carries the Sparkplug-aware broker layer between Edge and Host. Host turns many sites into one system. Optional modules extend the Host.</p>
+      <p class="lede">Connect every Ignition site to one reliable data backbone without multiplying backend servers, polling connections, or integration projects.</p>
+      <p class="hero-foot mono" style="margin-top:6px">EDGE moves the data &middot; PROVIDER carries the data &middot; HOST uses the data</p>
       <div class="cta-row">
         <a class="btn" href="/sparkbridge/edge">SparkBridge Edge</a>
         <a class="btn ghost" href="/sparkbridge/central">SparkBridge Host</a>
@@ -70,23 +72,24 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="path">the core modules</div>
-      <h2>Edge at Every Site. Host Once.</h2>
+      <h2>Three Roles. One Distributed Data Architecture.</h2>
+      <p>Edge moves plant data reliably. Provider carries it securely. Host turns many sites into one system. The three are separate licenses, so sites and consumers scale independently.</p>
     </div>
     <div class="cards">
       <a class="card" href="/sparkbridge/edge">
         <h3>SparkBridge Edge</h3>
-        <p>Move plant data reliably.</p>
+        <p>Move the data.</p>
         <p class="desc">Publishes your Ignition tags on change, holds them on disk through an outage, and replays them in order with the original timestamps.</p>
       </a>
       <a class="card" href="/sparkbridge/central">
         <h3>SparkBridge Host</h3>
-        <p>Turn many sites into one system.</p>
-        <p class="desc">Subscribes every site into one namespace, learns each site's model from its birth certificate, and hosts the optional modules.</p>
+        <p>Use the data.</p>
+        <p class="desc">Subscribes every site into one namespace, learns each site's model from its birth certificate, and hosts the optional modules. Publish once at the site, add consumers at Host when you need them.</p>
       </a>
       <a class="card" href="/sparkbridge/products#provider">
         <h3>SparkBridge Provider</h3>
-        <p>Sparkplug-aware broker.</p>
-        <p class="desc">Required broker infrastructure. Embedded Moquette for a single node, or a HiveMQ CE companion service for MQTT 5 and shared subscriptions. $1,995 per gateway, priced separately.</p>
+        <p>Carry the data.</p>
+        <p class="desc">The policy and routing layer between sites and consumers. Per-site identities, deny-by-default permissions, MQTT 5 shared subscriptions, no client-count licensing. $1,995 per gateway, priced separately.</p>
       </a>
     </div>
   </div>
@@ -114,18 +117,27 @@
     <div class="sec-head">
       <div class="path">optional</div>
       <h2>Add Only What You Need</h2>
-      <p>Edge, Provider and Host form the required SparkBridge infrastructure. The options below add history, delivery, records, protocol connections and Ignition tools, with pricing by gateway or module.</p>
+      <p>Edge, Provider and Host form the required SparkBridge infrastructure. Every option below is a consumer of the same backbone: adding one changes nothing at the sites. Pricing is by gateway or module.</p>
     </div>
+    <div class="path" style="margin:0 0 12px">data outcomes</div>
     <div class="cards">
       <a class="card" href="/sparkbridge/central#sparkvault"><h3>History</h3><p>SparkVault</p><p class="desc">Estate history on the plant's own clock, read back as an Ignition history provider.</p></a>
-      <a class="card" href="/sparkbridge/central#sparkinject"><h3>Cloud</h3><p>SparkInject</p><p class="desc">Production data delivered into your warehouse, once, with no per-row meter.</p></a>
       <a class="card" href="/sparkbridge/record"><h3>Records</h3><p>SparkRecord</p><p class="desc">Structured records and events, landed exactly once with a SHA-256 audit chain. Release pending.</p></a>
+      <a class="card" href="/sparkbridge/central#sparkinject"><h3>Cloud</h3><p>SparkInject</p><p class="desc">Production data delivered into your warehouse, once, with no per-row meter.</p></a>
       <a class="card" href="/sparkbridge/central#passage"><h3>OPC-UA</h3><p>Passage</p><p class="desc">Your live plant data served over OPC-UA to the tools you already own.</p></a>
+      <a class="card" href="/sparkbridge/central#sparkcalc"><h3>Calculations</h3><p>SparkCalc, included with Host</p><p class="desc">Rates, totals and efficiencies calculated once on live data and read by every consumer.</p></a>
+    </div>
+    <div class="path" style="margin:28px 0 12px">enterprise operations</div>
+    <div class="cards">
       <a class="card" href="/sparkbridge/central#fleetops"><h3>Fleet</h3><p>FleetOps</p><p class="desc">Every gateway in one view: versions, drift, certificates, backups.</p></a>
       <a class="card" href="/sparkbridge/central#sentinel"><h3>Security</h3><p>Sentinel, with SparkID included in Host</p><p class="desc">A scored assessment of your plant data network, and access rules generated from a plain statement of who may read and who may control.</p></a>
       <a class="card" href="/sparkbridge/flow"><h3>Hyperscale</h3><p>SparkFlow</p><p class="desc">Millions of points streamed live and lossless to every consumer in the company, on NATS/JetStream.</p></a>
+      <a class="card" href="/sparkbridge/central#gitops"><h3>Governance</h3><p>GitOps / Enterprise Governance, pilot</p><p class="desc">Configuration as code for the whole estate: signed bundles, review, rollback, audit trail.</p></a>
+    </div>
+    <div class="path" style="margin:28px 0 12px">at the equipment and in ignition</div>
+    <div class="cards">
       <a class="card" href="/sparkbridge/drivers"><h3>Device Drivers</h3><p>DNP3 · IEC 104 · TI 505 · S7 and more</p><p class="desc">Direct protocol connections for utility, legacy and industrial equipment, licensed per gateway.</p></a>
-      <a class="card" href="/sparkbridge/pricing#enhancements"><h3>Ignition Enhancements</h3><p>SparkGantt · SparkNotify · SparkCalc · SparkID</p><p class="desc">Perspective schedules, alarm notifications, calculations and access control for Ignition.</p></a>
+      <a class="card" href="/sparkbridge/pricing#enhancements"><h3>Ignition Enhancements</h3><p>SparkGantt · SparkNotify · SparkInflux · SparkValidate</p><p class="desc">Perspective schedules, alarm notifications, InfluxDB history and validation documents for Ignition.</p></a>
     </div>
   </div>
 </section>
@@ -140,7 +152,7 @@
       <p><b>Zero failures on the Sparkplug conformance suite</b>, run ten times. Scripted and repeatable on your own hardware.</p>
       <p><b>820 automated tests</b>, including live gateway integration, outage and load scenarios you can run yourself.</p>
       <p><b>400,000 of 400,000 readings replayed</b> after a cut link, in order, on the original timestamps.</p>
-      <p>Detail on <a href="/sparkbridge/technology">technology</a> and <a href="/sparkbridge/resources">resources</a>.</p>
+      <p>Detail on <a href="/sparkbridge/benchmarks">benchmarks</a>, <a href="/sparkbridge/technology">technology</a> and <a href="/sparkbridge/resources">resources</a>.</p>
     </div>
   </div>
 </section>
@@ -148,9 +160,10 @@
 <section class="tail">
   <div class="wrap">
     <h2>Try It on One Site</h2>
-    <p>Install Edge, point it at a folder of tags, watch them arrive on Host. Development use is free with no time limit.</p>
+    <p>Install Edge, point it at a folder of tags, watch them arrive on Host. Development use is free with no time limit. Running more than a handful of sites already? Send us the topology and we will review the architecture before you install anything.</p>
     <div class="cta-row">
       <a class="btn" href="mailto:admin@greenguard-usa.com?subject=SparkBridge%20evaluation">Start an evaluation</a>
+      <a class="btn ghost" href="/sparkbridge/architecture-review">Request an architecture review</a>
       <a class="btn ghost" href="/sparkbridge/contact">Contact</a>
     </div>
   </div>
@@ -162,7 +175,7 @@
 <footer>
   <div class="wrap">
     <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
-    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
   </div>
 </footer>
 

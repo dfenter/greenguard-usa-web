@@ -40,6 +40,7 @@
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
         <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
         <a href="/sparkbridge/resources">Resources</a>
         <a href="/sparkbridge/download">Download</a>
         <a href="/sparkbridge/docs">Docs</a>
@@ -243,8 +244,22 @@
     <div class="sec-head">
       <div class="path">capability</div>
       <h2 id="compare">Feature by Feature</h2>
-      <p>Where a row says "not published", no public figure exists for that product. Every SparkBridge number is measured and reproducible from the test suite that ships with it.</p>
-      <p>If you are weighing SparkBridge against the MQTT modules commonly used with Ignition, the Edge corresponds to a transmission-side module, the Host to an engine-side module, and the embedded broker plus HiveMQ CE companion to a distributor-side broker. The rows below compare only what is published or what we have measured ourselves. Where a competing figure is not public, the row says so instead of guessing.</p>
+      <p>MQTT is the transport. Operating the estate is the problem. The table below compares transport features because those are what is published; the <a href="/sparkbridge/compare">architecture comparison</a> covers what happens at 5, 20 and 50 sites.</p>
+      <p>If you are weighing SparkBridge against the Cirrus Link MQTT modules for Ignition, this is the product map. The rows after it compare only what is published or what we have measured ourselves. Where a competing figure is not public, the row says so instead of guessing.</p>
+    </div>
+    <div class="scroller" style="margin-bottom:28px">
+      <table class="tbl">
+        <thead><tr><th>Cirrus Link product</th><th>Core purpose</th><th>SparkBridge equivalent</th></tr></thead>
+        <tbody>
+          <tr><td>MQTT Transmission</td><td>Publish site data</td><td><a href="/sparkbridge/edge">SparkBridge Edge</a></td></tr>
+          <tr><td>MQTT Engine</td><td>Consume central data</td><td><a href="/sparkbridge/central">SparkBridge Host</a></td></tr>
+          <tr><td>MQTT Distributor</td><td>MQTT broker</td><td><a href="/sparkbridge/products#provider">SparkBridge Provider</a></td></tr>
+          <tr><td>Chariot</td><td>Enterprise broker infrastructure</td><td>Provider on HiveMQ CE, HA pair, shared subscriptions</td></tr>
+          <tr><td>MQTT Recorder</td><td>Structured record persistence</td><td><a href="/sparkbridge/record">SparkRecord</a>, release pending; telemetry history is <a href="/sparkbridge/vault">SparkVault</a></td></tr>
+          <tr><td>Cloud Injectors</td><td>Cloud delivery</td><td><a href="/sparkbridge/inject">SparkInject</a></td></tr>
+          <tr><td>No equivalent published</td><td>Fleet health, security posture, configuration lifecycle</td><td>FleetOps, Sentinel, GitOps / Enterprise Governance</td></tr>
+        </tbody>
+      </table>
     </div>
     <div class="scroller">
       <table class="tbl ours-last">
@@ -276,7 +291,7 @@
     <div class="sec-head">
       <div class="path">numbers</div>
       <h2 id="numbers">Performance Quantified</h2>
-      <p>Quiet-box gate, 2026-08-15, on a Linux reference rig with six cores, nothing else running, doing the full work of writing values into tags. Cross-checked on a four-core Mac. Bigger hardware goes further.</p>
+      <p>Quiet-box gate, 2026-08-15, on a Linux reference rig with six cores, nothing else running, doing the full work of writing values into tags. Cross-checked on a four-core Mac. Bigger hardware goes further. Environment, methodology and reproduction commands for every row are in the <a href="/sparkbridge/benchmarks">Scale and Resilience Report</a>.</p>
     </div>
     <div class="scroller">
       <table class="tbl ours-last">
@@ -312,7 +327,7 @@
 <footer>
   <div class="wrap">
     <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
-    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
   </div>
 </footer>
 

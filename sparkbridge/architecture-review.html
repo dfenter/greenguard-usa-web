@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Distributed Ignition Architecture Review | SparkBridge</title>
+<meta name="description" content="A free architecture review for distributed Ignition estates: send your site count, topology, tags, rates and WAN, and get back a diagram, scaling risks, failure domains, bottleneck analysis, recommended architecture and infrastructure sizing.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/architecture-review">
+<meta property="og:title" content="Distributed Ignition Architecture Review">
+<meta property="og:description" content="A free architecture review for distributed Ignition estates: send your site count, topology, tags, rates and WAN, and get back a diagram, scaling risks, failure domains, bottleneck analysis, recommended architecture and infrastructure sizing.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/architecture-review">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Distributed Ignition Architecture Review">
+<meta name="twitter:description" content="A free architecture review for distributed Ignition estates: send your site count, topology, tags, rates and WAN, and get back a diagram, scaling risks, failure domains, bottleneck analysis, recommended architecture and infrastructure sizing.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Architecture review","item":"https://mqtt.greenguard-usa.com/sparkbridge/architecture-review"}]}]}
+</script>
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead">
+  <div class="wrap">
+    <div class="eyebrow">Distributed Ignition Architecture Review</div>
+    <h1>Send the topology. Get the diagram, the risks and the sizing back.</h1>
+    <p>Before anyone installs a module, we review the estate as it is and as it is planned. You get an architecture diagram, the scaling risks, the failure domains, the bottlenecks and a recommended shape with its infrastructure requirements. It costs nothing, it is not a sales call, and you keep the document whether or not SparkBridge is in the answer.</p>
+    <div class="cta-row">
+      <a class="btn" href="mailto:admin@greenguard-usa.com?subject=Distributed%20Ignition%20Architecture%20Review&body=Distributed%20Ignition%20Architecture%20Review%20request%0A%0ACompany%3A%0ANumber%20of%20sites%3A%0AGateway%20topology%20today%20%28hub%2C%20backends%2C%20GAN%2C%20remote%20providers%29%3A%0ATags%20or%20metrics%20per%20site%2C%20roughly%3A%0AUpdate%20rates%3A%0AWAN%20type%20between%20sites%20and%20center%20%28fiber%2C%20cellular%2C%20satellite%2C%20radio%29%3A%0AHistory%20design%20today%3A%0AApplications%20reading%20the%20data%20%28SCADA%2C%20MES%2C%20historian%2C%20warehouse%2C%20analytics%29%3A%0AKnown%20pain%20points%3A%0AIgnition%20versions%3A%0A">Request a review</a>
+      <a class="btn ghost dark" href="/sparkbridge/compare">See the comparison first</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <div class="twocol">
+      <div>
+        <span class="spectitle">You provide</span>
+        <table class="spec">
+          <tr><th>Sites</th><td>How many today, how many planned</td></tr>
+          <tr><th>Topology</th><td>Hub and backend gateways, Gateway Network links, remote tag providers</td></tr>
+          <tr><th>Tags and metrics</th><td>Per site, roughly. A gateway backup answers this exactly if you prefer to send one</td></tr>
+          <tr><th>Update rates</th><td>Typical and worst case</td></tr>
+          <tr><th>WAN</th><td>Link type per site: fiber, cellular, satellite, radio</td></tr>
+          <tr><th>History</th><td>Where it is written today and who reads it</td></tr>
+          <tr><th>Applications</th><td>Everything that consumes the data now, and what is coming</td></tr>
+          <tr><th>Pain points</th><td>What already hurts. The overloaded box usually has a name</td></tr>
+        </table>
+      </div>
+      <div>
+        <span class="spectitle">We return</span>
+        <table class="spec">
+          <tr><th>Architecture diagram</th><td>Your estate drawn as it is and as recommended</td></tr>
+          <tr><th>Scaling risks</th><td>Which component saturates first and at what site count</td></tr>
+          <tr><th>Failure domains</th><td>What stops when each server or link fails, and what keeps going</td></tr>
+          <tr><th>Bottleneck analysis</th><td>Fan-in, projection, history writes, consumer load, with the measured ceilings they are judged against</td></tr>
+          <tr><th>Recommended architecture</th><td>Edge, Provider and Host placement, HA shape, which consumers belong where</td></tr>
+          <tr><th>Infrastructure estimate</th><td>Server count, cores, memory and buffer sizing from the <a href="/sparkbridge/benchmarks">published benchmarks</a></td></tr>
+          <tr><th>List price</th><td>For the recommended shape, per gateway, once</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="path">how it runs</div>
+      <h2>What Happens After You Send It</h2>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Step</th><th>What we do</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>We reply to confirm what you sent and ask for anything missing. Most reviews need one short call with the engineer who owns the estate.</td></tr>
+          <tr><td>2</td><td>GreenGuard USA engineers draw the current and recommended architectures and size them from the measured figures on the <a href="/sparkbridge/benchmarks">benchmark report</a>, not from a spreadsheet of guesses.</td></tr>
+          <tr><td>3</td><td>You receive the document. We walk through it once if you want. Where SparkBridge does not solve a problem you have, the document says so.</td></tr>
+          <tr><td>4</td><td>If you proceed, the review becomes the deployment plan. Development use of every module is free with no time limit, so the pilot costs nothing to start.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">We built the modules and run the benchmarks ourselves. The review is done by the same people, which is why it is free: it is the fastest way for both sides to find out whether the architecture fits.</p>
+  </div>
+</section>
+
+<section class="tail">
+  <div class="wrap">
+    <h2>Send the Topology</h2>
+    <p>The button opens an email with the intake list already in it. Fill in what you know and leave the rest.</p>
+    <div class="cta-row">
+      <a class="btn" href="mailto:admin@greenguard-usa.com?subject=Distributed%20Ignition%20Architecture%20Review&body=Distributed%20Ignition%20Architecture%20Review%20request%0A%0ACompany%3A%0ANumber%20of%20sites%3A%0AGateway%20topology%20today%20%28hub%2C%20backends%2C%20GAN%2C%20remote%20providers%29%3A%0ATags%20or%20metrics%20per%20site%2C%20roughly%3A%0AUpdate%20rates%3A%0AWAN%20type%20between%20sites%20and%20center%20%28fiber%2C%20cellular%2C%20satellite%2C%20radio%29%3A%0AHistory%20design%20today%3A%0AApplications%20reading%20the%20data%20%28SCADA%2C%20MES%2C%20historian%2C%20warehouse%2C%20analytics%29%3A%0AKnown%20pain%20points%3A%0AIgnition%20versions%3A%0A">Request a review</a>
+      <a class="btn ghost" href="/sparkbridge/pricing#estate">See what an estate costs</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/benchmarks">Benchmarks</a> &middot; <a href="/sparkbridge/roadmap">Roadmap</a> &middot; <a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

@@ -39,6 +39,7 @@
         <a href="/sparkbridge/pricing" aria-current="page">Pricing</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
         <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
         <a href="/sparkbridge/resources">Resources</a>
         <a href="/sparkbridge/download">Download</a>
         <a href="/sparkbridge/docs">Docs</a>
@@ -179,12 +180,38 @@
   <div class="wrap">
     <div class="sec-head">
       <span class="path">What an estate costs</span>
-      <h2>Forty Sites, One Number</h2>
+      <h2>Forty Sites, Two Ways</h2>
+      <p>Two real deployment shapes at list price. Required infrastructure first, optional consumers second, so the required number is visible on its own.</p>
     </div>
-    <div class="figure"><b>$40,300</b><span>a 40-site estate at list, once</span></div>
-    <div class="measure">
-      <p>Thirty-nine site gateways at $995 each, plus one Host gateway at $1,495, is $40,300. That covers every license, paid once, before any volume discount.</p>
-      <p>Nothing is charged per tag, per device or per connected client, so the number does not move when the estate gets busier. Nothing stops running if support lapses. Development and testing gateways are free and are not counted.</p>
+    <div class="twocol">
+      <div>
+        <div class="figure"><b>$40,300</b><span>40 sites on a broker you already run</span></div>
+        <div class="scroller"><table class="spec">
+          <tr><th>39 x Edge</th><td>$38,805</td></tr>
+          <tr><th>1 x Host</th><td>$1,495</td></tr>
+          <tr><th>Broker</th><td>Your existing conformant MQTT broker, $0 from us</td></tr>
+          <tr><th>Required total</th><td><b>$40,300</b>, once</td></tr>
+          <tr><th>Support, optional</th><td>$8,060 per year (20% of list)</td></tr>
+          <tr><th>Site 41</th><td>$995</td></tr>
+        </table></div>
+      </div>
+      <div>
+        <div class="figure"><b>$49,780</b><span>40 sites with Provider HA and history</span></div>
+        <div class="scroller"><table class="spec">
+          <tr><th>39 x Edge</th><td>$38,805</td></tr>
+          <tr><th>2 x Provider (HA pair)</th><td>$3,990</td></tr>
+          <tr><th>2 x Host (active and warm standby)</th><td>$2,990</td></tr>
+          <tr><th>1 x SparkVault</th><td>$3,995</td></tr>
+          <tr><th>Required total</th><td><b>$49,780</b>, once</td></tr>
+          <tr><th>Support, optional</th><td>$9,956 per year (20% of list)</td></tr>
+          <tr><th>Site 41</th><td>$995</td></tr>
+        </table></div>
+      </div>
+    </div>
+    <div class="measure" style="margin-top:26px">
+      <p>Optional consumers added to either shape, each on its own license and none of them touching the sites: FleetOps $4,995, Sentinel $4,995, SparkInject $2,995 per connector family, SparkRecord $7,995 when released, Passage $1,995.</p>
+      <p>Nothing is charged per tag, per device or per connected client, so neither number moves when the estate gets busier. Nothing stops running if support lapses. Development and testing gateways are free and are not counted. Every figure here is list, before volume pricing.</p>
+      <p>Not sure which shape fits? <a href="/sparkbridge/architecture-review">Request an architecture review</a> and we will size it from your topology.</p>
     </div>
   </div>
 </section>
@@ -235,7 +262,7 @@
 <footer>
   <div class="wrap">
     <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
-    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
   </div>
 </footer>
 

@@ -39,6 +39,7 @@
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
         <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
         <a href="/sparkbridge/resources">Resources</a>
         <a href="/sparkbridge/download">Download</a>
         <a href="/sparkbridge/docs">Docs</a>
@@ -109,6 +110,36 @@ chain verified: 41,884 rows, 0 breaks</pre>
 <section>
   <div class="wrap">
     <div class="sec-head">
+      <span class="path">vault or record</span>
+      <h2>SparkVault and SparkRecord Are Different Lanes</h2>
+      <p>SparkVault stores continuous telemetry. SparkRecord lands structured events. Most estates need the first; regulated ones usually need both.</p>
+    </div>
+    <div class="twocol">
+      <div>
+        <span class="spectitle">SparkVault: continuous telemetry</span>
+        <table class="spec">
+          <tr><th>Row shape</th><td>Timestamp, metric, value, quality, source</td></tr>
+          <tr><th>Volume</th><td>Every change of every historized point</td></tr>
+          <tr><th>Read back</th><td>Trends, reports, replay of any past window</td></tr>
+          <tr><th>Price</th><td>$3,995 on the Host gateway. <a href="/sparkbridge/vault">SparkVault page</a></td></tr>
+        </table>
+      </div>
+      <div>
+        <span class="spectitle">SparkRecord: structured events</span>
+        <table class="spec">
+          <tr><th>Row shape</th><td>One record per event: batch, run, quality result, alarm, inspection, shift summary</td></tr>
+          <tr><th>Guarantee</th><td>Exactly once, ordered per producer, SHA-256 audit chain</td></tr>
+          <tr><th>Read back</th><td>SQL, evidence export, chain verification</td></tr>
+          <tr><th>Price</th><td>$7,995 on the Host gateway, all destinations. release pending</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="sec-head">
       <span class="path">where it fits</span>
       <h2>Three Situations This Solves</h2>
       <p>Three reasons a record pipeline stops being trustworthy, and what changes.</p>
@@ -154,7 +185,7 @@ chain verified: 41,884 rows, 0 breaks</pre>
 <footer>
   <div class="wrap">
     <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
-    <span class="mono"><a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+    <span class="mono"><a href="/sparkbridge/benchmarks">Benchmarks</a> &middot; <a href="/sparkbridge/roadmap">Roadmap</a> &middot; <a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
   </div>
 </footer>
 

@@ -39,6 +39,7 @@
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
         <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
         <a href="/sparkbridge/resources">Resources</a>
         <a href="/sparkbridge/download">Download</a>
         <a href="/sparkbridge/docs">Docs</a>
@@ -98,9 +99,9 @@
       <div class="measure">
         <p>Most sites poll. Something in the middle asks the equipment for every value, over and over, whether or not anything happened. That costs more every time you add a tag or a dashboard, and it has no good answer for a dropped link.</p>
         <p>Edge sends a value once, when it changes, stamped with the time your equipment gave it. If the link goes down, Edge keeps recording to a local buffer on disk. When the link comes back, the backlog arrives in order and lands on the time it actually happened, not the time it reached the server.</p>
-        <p>You point Edge at a folder of tags on the site gateway. It reads the structure of that folder, including UDTs, and announces it to Central the moment it connects, so Central builds the matching tags without a mapping file. Folders at a depth you choose become devices with their own announcements, so a new pump or a renamed skid appears at Central on its own. Units, descriptions and ranges travel with that announcement instead of with every value.</p>
-        <p>Edge watches for the primary host. While Central is away it buffers, and when Central returns it replays in order. One site gateway can run up to eight independent edge nodes, each with its own connection, tag set and buffer, so one problem stays in one place. Write-back is off by default and is allowed only for the devices and points you list.</p>
-        <p>Edge publishes to Provider or to any conformant MQTT broker you already run, such as HiveMQ or Mosquitto, with TLS and per-site credentials. It carries its own license and works on its own or with Central.</p>
+        <p>You point Edge at a folder of tags on the site gateway. It reads the structure of that folder, including UDTs, and announces it to Host the moment it connects, so Host builds the matching tags without a mapping file. Folders at a depth you choose become devices with their own announcements, so a new pump or a renamed skid appears at Host on its own. Units, descriptions and ranges travel with that announcement instead of with every value.</p>
+        <p>Edge watches for the primary host. While Host is away it buffers, and when Host returns it replays in order. One site gateway can run up to eight independent edge nodes, each with its own connection, tag set and buffer, so one problem stays in one place. Write-back is off by default and is allowed only for the devices and points you list.</p>
+        <p>Edge publishes to Provider or to any conformant MQTT broker you already run, such as HiveMQ or Mosquitto, with TLS and per-site credentials. It carries its own license and works on its own or with Host.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
@@ -110,7 +111,7 @@
           <tr><th>What it replaces</th><td>Polling loads and manual data exports after an outage</td></tr>
           <tr><th>Sends</th><td>Each value once, on change, on the equipment's timestamp</td></tr>
           <tr><th>When the link drops</th><td>Records to a disk buffer, replays in order on return</td></tr>
-          <tr><th>Tag structure</th><td>Read from the site's own folder and announced to Central. No mapping file</td></tr>
+          <tr><th>Tag structure</th><td>Read from the site's own folder and announced to Host. No mapping file</td></tr>
           <tr><th>Edge nodes</th><td>Up to eight per gateway, each independent</td></tr>
           <tr><th>Write-back</th><td>Off by default; allowed only for listed devices and points</td></tr>
           <tr><th>Broker</th><td>Provider, or any conformant MQTT broker you already run</td></tr>
@@ -198,7 +199,7 @@
 <footer>
   <div class="wrap">
     <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
-    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
   </div>
 </footer>
 

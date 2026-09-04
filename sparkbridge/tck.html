@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sparkplug TCK Results | SparkBridge</title>
-<meta name="description" content="SparkBridge 2.4.0 against the Eclipse Sparkplug TCK 3.0.0: every conformance profile PASS with zero FAILs, with the raw report and session history.">
+<meta name="description" content="SparkBridge 2.4.0 against the Eclipse Sparkplug TCK 3.0.0: every Edge and Host profile executed reads PASS with zero FAILs. Broker profile and Host MultipleBroker not run, stated on the page, with the raw report and session history.">
 <link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/tck">
 <meta property="og:title" content="SparkBridge Sparkplug TCK results">
 <meta property="og:description" content="Final Eclipse Sparkplug TCK 3.0.0 run per profile, raw and reproducible.">
@@ -39,6 +39,7 @@
         <a href="/sparkbridge/pricing">Pricing</a>
         <a href="/sparkbridge/use-cases">Use cases</a>
         <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
         <a href="/sparkbridge/resources">Resources</a>
         <a href="/sparkbridge/download">Download</a>
         <a href="/sparkbridge/docs">Docs</a>
@@ -109,6 +110,8 @@
       <tr><td>Edge SessionTermination (MQTT 3.1.1 + 5.0 pair)</td><td class="num">PASS, complete as a pair</td><td class="num">0</td></tr>
       <tr><td>Host SessionEstablishment</td><td class="num">PASS</td><td class="num">0</td></tr>
       <tr><td>Host MessageOrdering</td><td class="num">PASS</td><td class="num">0</td></tr>
+      <tr><td>Host MultipleBroker</td><td class="num">Not run</td><td class="num">n/a</td></tr>
+      <tr><td>BROKER profile (11 assertions)</td><td class="num">Not run</td><td class="num">n/a</td></tr>
       <tr><td>EDGE assertions</td><td class="num">182 PASS, 1 MAYBE</td><td class="num">0</td></tr>
       <tr><td>HOST assertions</td><td class="num">52 PASS</td><td class="num">0</td></tr>
     </table></div>
@@ -119,6 +122,7 @@
     none: the session log contains zero FAIL lines. The Host MessageOrdering profile, incomplete
     in the 2.2.2 record because that host required metric aliases in births, now runs
     every reordering assertion and passes.</p>
+    <p class="note">Two profiles are not in the record and are stated here so the totals read correctly. Host MultipleBroker expects a host to hold simultaneous sessions on every listed server; the SparkBridge Host uses single-server-with-failover plus warm standby by design, so the profile was not run. The BROKER profile tests the broker itself; SparkBridge Provider defers to HiveMQ CE or embedded Moquette for that role and we make no broker-conformance claim of our own.</p>
   </div>
 </section>
 
@@ -144,7 +148,7 @@
 <footer>
   <div class="wrap">
     <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
-    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
   </div>
 </footer>
 

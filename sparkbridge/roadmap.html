@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkBridge Roadmap | SparkBridge</title>
+<meta name="description" content="The SparkBridge public roadmap: what ships today, what is being built, and what would make each item done. No dates. Capacity intelligence, zero-touch enrollment, data lineage, data contracts, GitOps governance.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/roadmap">
+<meta property="og:title" content="SparkBridge public roadmap">
+<meta property="og:description" content="The SparkBridge public roadmap: what ships today, what is being built, and what would make each item done. No dates. Capacity intelligence, zero-touch enrollment, data lineage, data contracts, GitOps governance.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/roadmap">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SparkBridge public roadmap">
+<meta name="twitter:description" content="The SparkBridge public roadmap: what ships today, what is being built, and what would make each item done. No dates. Capacity intelligence, zero-touch enrollment, data lineage, data contracts, GitOps governance.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Roadmap","item":"https://mqtt.greenguard-usa.com/sparkbridge/roadmap"}]}]}
+</script>
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead">
+  <div class="wrap">
+    <div class="eyebrow">Public roadmap</div>
+    <h1>What is planned, and what is already partly there</h1>
+    <p>No dates. Each item states what ships today, what is being built, and what would make it done. Product pages describe only what is released; this page is the only place planned work appears.</p>
+  </div>
+</header>
+
+<main id="main">
+
+<section>
+  <div class="wrap">
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Capability</th><th>Ships today</th><th>Planned</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td><b>Capacity intelligence</b></td><td>Host /capacity reports its own ceiling from benchmark evidence and the shard count it runs; /fleet shows capacity headroom per edge; Prometheus metrics</td><td>Per-site buffer health on the capacity page, a rolling ingest trend, and an expansion recommendation that says which layer to grow and why</td><td>In progress</td></tr>
+          <tr><td><b>Zero-touch enrollment</b></td><td>One-time enrollment code: a new site bootstraps identity over a signed, TLS-required channel; credentials written owner-only</td><td>Certificate issuance from Host, SparkID authorization emitted on enrollment, automatic FleetOps registration, enrollment code entry in the Edge settings tab</td><td>Planned</td></tr>
+          <tr><td><b>Data lineage</b></td><td>Single-metric trace inside Host: five hops from receipt to tag write, with per-stage timing, over an admin route</td><td>Edge and Provider hops, source versus receipt time, replay correlation, downstream hops through SparkVault and SparkInject, persistence, a timeline page per metric</td><td>Planned</td></tr>
+          <tr><td><b>Data contracts</b></td><td>SparkRecord validates records against a versioned schema and refuses narrowing changes</td><td>A namespace registry on Host: ownership, required metadata, schema version per path; BIRTH validation against it; breaking-change detection as a status tag and a /contracts page; a CLI check for CI</td><td>Planned</td></tr>
+          <tr><td><b>GitOps / Enterprise Governance</b></td><td>Signed configuration bundles distributed fleet-wide with anti-rollback sequencing</td><td>Git-backed desired state, drift detection and reconciliation, operator rollback, two-key approval, policy documents for authorization, namespace and retention</td><td>Pilot, in design</td></tr>
+          <tr><td><b>SparkRecord</b></td><td>Structured record pipeline with exactly-once ledger and SHA-256 audit chain, on the product page as release pending</td><td>Release after the current gate passes</td><td>Release pending</td></tr>
+          <tr><td><b>SparkInject connector families</b></td><td>Snowflake</td><td>Databricks, BigQuery</td><td>Planned</td></tr>
+          <tr><td><b>SparkNotify channels</b></td><td>Teams, Slack, WhatsApp, Telegram, Twilio SMS and voice</td><td>Discord, PagerDuty, email</td><td>Next release</td></tr>
+          <tr><td><b>Host MultipleBroker TCK profile</b></td><td>Single-server-with-failover Host plus warm standby; profile not run</td><td>Decision on simultaneous multi-server Host sessions, then the profile run</td><td>Under review</td></tr>
+          <tr><td><b>Sparkplug Compatible listing</b></td><td>TCK record published with the ratified binary</td><td>Listing request to the Eclipse Sparkplug Working Group</td><td>Administrative</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Roadmap items are not commitments to a date and are not sold. If one of them decides a purchase for you, say so and we will tell you plainly where it stands.</p>
+  </div>
+</section>
+
+<section class="tail">
+  <div class="wrap">
+    <h2>Ask About Any Row</h2>
+    <div class="cta-row">
+      <a class="btn" href="mailto:admin@greenguard-usa.com?subject=SparkBridge%20roadmap%20question">Ask an engineer</a>
+      <a class="btn ghost" href="/sparkbridge/changelog">What has already shipped</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/benchmarks">Benchmarks</a> &middot; <a href="/sparkbridge/roadmap">Roadmap</a> &middot; <a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

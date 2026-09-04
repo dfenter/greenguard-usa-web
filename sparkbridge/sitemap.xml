@@ -14,12 +14,12 @@
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/products</loc><lastmod>2026-09-03</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/resources</loc><lastmod>2026-08-23</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/snmp</loc><lastmod>2026-08-29</lastmod></url>
-  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/tck</loc><lastmod>2026-08-23</lastmod></url>
-  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/technology</loc><lastmod>2026-08-23</lastmod></url>
+  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/tck</loc><lastmod>2026-09-03</lastmod></url>
+  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/technology</loc><lastmod>2026-09-03</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/use-cases</loc><lastmod>2026-08-17</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/vault</loc><lastmod>2026-09-03</lastmod></url>
-  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/edge</loc><lastmod>2026-08-29</lastmod></url>
-  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/central</loc><lastmod>2026-08-29</lastmod></url>
+  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/edge</loc><lastmod>2026-09-03</lastmod></url>
+  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/central</loc><lastmod>2026-09-03</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/logix</loc><lastmod>2026-08-29</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/ads</loc><lastmod>2026-09-03</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/s7</loc><lastmod>2026-09-03</lastmod></url>
@@ -30,4 +30,8 @@
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/docs</loc><lastmod>2026-09-03</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/validate</loc><lastmod>2026-09-03</lastmod></url>
   <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/record</loc><lastmod>2026-09-03</lastmod></url>
+  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/compare</loc><lastmod>2026-09-03</lastmod></url>
+  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/benchmarks</loc><lastmod>2026-09-03</lastmod></url>
+  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/roadmap</loc><lastmod>2026-09-03</lastmod></url>
+  <url><loc>https://mqtt.greenguard-usa.com/sparkbridge/architecture-review</loc><lastmod>2026-09-03</lastmod></url>
 </urlset>
