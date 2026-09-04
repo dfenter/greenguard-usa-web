@@ -48,6 +48,7 @@ export async function getServerSideProps({ req, query, res }) {
         // disabled — so without this the double-billing guard was dead code.)
         calBookingUid: b.calBookingUid || null,
         appointmentNotes: b.appointmentNotes || null,
+        updated: b.updated || null,
       }))
     } catch (e) {
       gcalError = e.message || 'Google Calendar connection failed'
@@ -66,6 +67,7 @@ export async function getServerSideProps({ req, query, res }) {
         rescheduleUrl: b.rescheduleUrl || null,
         gcal_event_link: b.gcal_event_link || null,
         appointmentNotes: b.appointmentNotes || null,
+        updated: b.updated || null,
         booking_source: b.booking_source || (b.rescheduleUrl?.includes('cal.com') ? 'calcom' : b.rescheduleUrl ? 'legacy' : null),
       }))
     } catch (e) {
@@ -611,7 +613,7 @@ function ApptDetailModal({ stop, onClose, onOpenProfile }) {
   )
 }
 
-function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef, onOpenProfile, distance }) {
+function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRef, onOpenProfile, distance, getCardEl }) {
   const toast = useToast()
   const confirm = useConfirm()
   const isDone = state.status === 'done'
@@ -997,7 +999,18 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
               )
             })()}
             {!showInvoicedPanel && state.status === 'pending' && (
-              <button onClick={() => onUpdate({ status: 'active', checkIn: nowStr() })}
+              <button onClick={() => {
+                  onUpdate({ status: 'active', checkIn: nowStr() })
+                  // This button unmounts as the card expands, which drops focus
+                  // to <body> and lets the browser jump elsewhere. Re-anchor on
+                  // the card after React commits so the tech stays on this stop.
+                  requestAnimationFrame(() => {
+                    const el = getCardEl?.()
+                    if (!el) return
+                    el.focus({ preventScroll: true })
+                    el.scrollIntoView({ block: 'start', behavior: 'smooth' })
+                  })
+                }}
                 title="Mark visit started and open service entry"
                 style={{ flex: '1 1 70px', padding: '9px 8px', borderRadius: 6, justifyContent: 'center', border: '2px solid var(--text)', cursor: 'pointer', fontWeight: 900, fontSize: '0.9rem', background: 'var(--bg-alt)', color: 'var(--text)', minHeight: 36, display: 'inline-flex', alignItems: 'center', boxSizing: 'border-box' }}>
                 Finalize Visit
@@ -1432,8 +1445,8 @@ export default function Rounds({ stops, today, selectedDate, availableDates, mod
           const renderStop = (idx) => {
             const stop = mergedStop(idx)
             return (
-              <div key={`${selectedDate || 'open'}-${idx}`} ref={(el) => { stopRefs.current[idx] = el }}>
-                <RoundsStopCard stop={stop} idx={idx} state={states[idx]}
+              <div key={`${selectedDate || 'open'}-${idx}`} ref={(el) => { stopRefs.current[idx] = el }} tabIndex={-1} style={{ outline: 'none' }}>
+                <RoundsStopCard stop={stop} idx={idx} state={states[idx]} getCardEl={() => stopRefs.current[idx]}
                   onUpdate={(patch) => update(idx, patch)} fileInputRef={fileRefs.current[idx]} videoInputRef={videoRefs.current[idx]}
                   onOpenProfile={setProfileCustomer}
                   distance={distances[stop.email || stop.customerName]} />

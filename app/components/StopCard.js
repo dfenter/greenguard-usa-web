@@ -149,6 +149,10 @@ export default function StopCard({
   // Low-vision legibility comes from SIZE + WEIGHT (mixed case keeps word
   // shapes readable); uppercase is reserved for small section labels.
   const isAssessment = /assessment/i.test(stop.serviceType || '')
+  // GCal event modified in the last 48h (reschedule, note edit, etc.) gets a
+  // red outline so a late change is impossible to miss on the route.
+  const updatedMs = stop.updated ? Date.parse(stop.updated) : NaN
+  const recentlyChanged = Number.isFinite(updatedMs) && Date.now() - updatedMs < 48 * 3600 * 1000
   const card = {
     background: 'var(--bg-card)',
     border: `${isAssessment ? 4 : 2}px solid ${isAssessment ? 'var(--info)' : done ? 'var(--ok)' : active ? 'var(--warn)' : 'var(--border)'}`,
@@ -156,6 +160,7 @@ export default function StopCard({
     borderRadius: 'var(--radius)', padding: 20, marginBottom: 14,
     boxShadow: 'var(--shadow-sm)',
     opacity: preview ? 0.75 : cancelled ? 0.6 : 1,
+    ...(recentlyChanged ? { outline: '3px solid var(--danger)', outlineOffset: 3 } : {}),
   }
 
   return (

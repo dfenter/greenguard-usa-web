@@ -250,6 +250,8 @@ async function getBookingsForWeek(startISO, endISO) {
       email: parseEmailFromDescription(e.description),
       phone: parsePhoneFromDescription(e.description),
       appointmentNotes: parseAppointmentNotes(e.description),
+      // GCal last-modified stamp; rounds cards flag events changed within 48h.
+      updated: e.updated || null,
     }))
 }
 
@@ -303,6 +305,8 @@ async function getBookingsForDate(dateStr) {
           phone: parsePhoneFromDescription(desc),
           propertySize: propMatch?.[1]?.trim() || '',
           appointmentNotes: parseAppointmentNotes(desc),
+          // GCal last-modified stamp; rounds cards flag events changed within 48h.
+          updated: e.updated || null,
           booking_source: desc.includes('AcuityID') ? 'legacy' : (desc.includes('cal.com') ? 'calcom' : 'manual'),
           gcal_event_link: `https://calendar.google.com/calendar/event?eid=${Buffer.from(e.id + ' ' + CALENDAR_ID).toString('base64')}`,
         }
@@ -346,6 +350,8 @@ async function getTodaysBookings() {
         email: parseEmailFromDescription(e.description) || parseEmailFromAttendees(e.attendees),
         phone: parsePhoneFromDescription(e.description),
         appointmentNotes: parseAppointmentNotes(e.description),
+        // GCal last-modified stamp; rounds cards flag events changed within 48h.
+        updated: e.updated || null,
       }))
   })
 }
@@ -384,6 +390,8 @@ async function _fetchAllUpcomingBookings(maxResults) {
       email: parseEmailFromDescription(e.description),
       phone: parsePhoneFromDescription(e.description),
       appointmentNotes: parseAppointmentNotes(e.description),
+      // GCal last-modified stamp; rounds cards flag events changed within 48h.
+      updated: e.updated || null,
     }))
 }
 
@@ -430,6 +438,8 @@ async function getBookingsForDateRange(startISO, endISO) {
         address: e.location || parseAddressFromDescription(e.description),
         phone: parsePhoneFromDescription(e.description),
         appointmentNotes: parseAppointmentNotes(e.description),
+        // GCal last-modified stamp; rounds cards flag events changed within 48h.
+        updated: e.updated || null,
       }
     })
   })
@@ -494,6 +504,8 @@ async function getBookingsForDateRangePaginated(startISO, endISO) {
           address: e.location || parseAddressFromDescription(desc),
           phone: parsePhoneFromDescription(desc),
           appointmentNotes: parseAppointmentNotes(desc),
+          // GCal last-modified stamp; rounds cards flag events changed within 48h.
+          updated: e.updated || null,
         }
       })
   })
