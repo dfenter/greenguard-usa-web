@@ -95,6 +95,7 @@
 <li>Accept the certificate and license once; confirm all modules show Running.</li>
 </ol>
 <p>The gateway checks each module's signature itself against the shipped certificate on upload. The fingerprint is published on the <a href="/sparkbridge/download">download page</a> for anyone who wants to confirm it by hand.</p>
+<p><b>Upgrade every installed module together.</b> Host, Edge, and Provider agree on which settings key each of them owns and reads; a gateway running mixed old and new module versions can disagree on ownership for a key like <span class="mono">hostId</span> or <span class="mono">foldtarget</span> and silently misbehave. Upload all installed modules from the same release bundle in the same maintenance window.</p>
 
 <h3>License</h3>
 <table class="spec">
@@ -117,15 +118,28 @@
 <p>Install after Provider and Host, following the <a href="#install-common">shared install steps</a> above. See INSTALL.md in the bundle for the full module inventory.</p>
 
 <h3>Configure</h3>
-<p>Config &gt; SparkBridge Edge &gt; Settings. Set <b>source</b> to the tag folder to publish, for example <span class="mono">[default]Plant/Line1</span>. The Edge polls its settings every five seconds and rebuilds its node runtime when edge-owned settings change; no restart is required.</p>
+<p>Config &gt; SparkBridge Edge &gt; Settings. Set <b>source</b> to the tag folder to publish, for example <span class="mono">[default]Plant/Line1</span>. The Edge polls its settings every five seconds and rebuilds its node runtime when edge-owned settings change; no restart is required. Every key below is Edge-owned: the Edge is the only module that ever writes it, and every one hot-reloads on that five-second poll.</p>
 <table class="spec">
 <tr><th>Setting</th><td>Meaning, default</td></tr>
-<tr><th><span class="mono">sparkbridge.edge.username</span></th><td>Edge broker identity. Must be distinct from the host identity.</td></tr>
-<tr><th><span class="mono">sparkbridge.edge.password</span></th><td>Edge broker password. Belongs in the secrets file, not on the command line.</td></tr>
-<tr><th><span class="mono">sparkbridge.edge.uns</span></th><td>Turns on the UNS application-topic mirror.</td></tr>
-<tr><th><span class="mono">sparkbridge.edge.unsprefix</span></th><td>Application topic prefix used by the UNS mirror.</td></tr>
-<tr><th><span class="mono">sparkbridge.enrollment.code</span></th><td>One-time operator code for first-boot enrollment against Host. Set only for a first boot; the Edge clears it after success.</td></tr>
+<tr><th><span class="mono">source</span></th><td>Tag subscription root. Default <span class="mono">[System]Gateway/Performance</span>.</td></tr>
+<tr><th><span class="mono">nodes</span></th><td>Explicit <span class="mono">group,edge,source;…</span> runtime list, up to 8. Empty falls back to one implicit <span class="mono">Ignition/Gateway</span> runtime.</td></tr>
+<tr><th><span class="mono">batchms</span></th><td>NDATA batch window, milliseconds. Default 100.</td></tr>
+<tr><th><span class="mono">deadband</span></th><td>Publish deadband fraction. Default 0.0.</td></tr>
+<tr><th><span class="mono">uns</span></th><td>Turns on the UNS application-topic mirror. Default off.</td></tr>
+<tr><th><span class="mono">unsprefix</span></th><td>Application topic prefix used by the UNS mirror. Default <span class="mono">sparkbridge</span>.</td></tr>
+<tr><th><span class="mono">fold</span></th><td>Folds UDT property members into the published Template. Default off. Must agree with the Host tab's <b>Fold Target</b> below — an operator who changes one without the other silently loses the property mapping.</td></tr>
+<tr><th><span class="mono">foldmembers</span></th><td>Name patterns matched for folding. Default <span class="mono">Units,Description,Address*,IO_Loc*,Number,PV_L,PV_U</span>.</td></tr>
+<tr><th><span class="mono">primaryHost</span></th><td>Host application id this edge watches for STATE. Must match the Host tab's <b>Host Id</b>. Default <span class="mono">SparkBridge</span>.</td></tr>
+<tr><th><span class="mono">maxtags</span></th><td>Discovery cap on tag count. Default 250000.</td></tr>
+<tr><th><span class="mono">subchunk</span></th><td>Subscription chunk size. Default 10000.</td></tr>
+<tr><th><span class="mono">rescansec</span></th><td>Tag rescan period, seconds. Default 300.</td></tr>
+<tr><th><span class="mono">devicelevel</span></th><td>Device modeling depth, 0 disables it, max 8. Default 0.</td></tr>
+<tr><th><span class="mono">devicefolders</span></th><td>Folder markers used for device modeling. Default empty.</td></tr>
+<tr><th><span class="mono">devicewritable</span></th><td>Device ids that accept DCMD writes. Default empty.</td></tr>
+<tr><th><span class="mono">sfhours</span></th><td>Store-and-forward retention target, hours, 0-8760. Default 24.</td></tr>
+<tr><th><span class="mono">sfmax</span></th><td>Store-and-forward hard byte cap. Blank derives it from the retention target.</td></tr>
 </table>
+<p>Edge-only identity and enrollment stay as <span class="mono">-D</span> system properties, not on this page: <span class="mono">sparkbridge.edge.username</span>, <span class="mono">sparkbridge.edge.password</span> (secrets file, never the command line), and <span class="mono">sparkbridge.enrollment.code</span> (one-time first-boot code against Host; the Edge clears it after success).</p>
 
 <h3>Verify</h3>
 <p>Check the gateway log for the startup and BIRTH lines:</p>
@@ -153,17 +167,15 @@ SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
 <p>Install after Provider and before Edge, following the <a href="#install-common">shared install steps</a> above.</p>
 
 <h3>Configure</h3>
+<p>Open <span class="mono">Config &gt; SparkBridge Host &gt; Settings</span>. The page exposes the complete Host settings record. Every key on this page is Host-owned: the Host is the only module that ever writes it.</p>
 <table class="spec">
-<tr><th>Setting</th><td>Meaning, default</td></tr>
-<tr><th><span class="mono">sparkbridge.host.id</span></th><td>Sparkplug Primary Host ID. Default <span class="mono">SparkBridge</span>.</td></tr>
-<tr><th><span class="mono">sparkbridge.host.partition</span></th><td>Namespace slice this gateway owns (group ids or full topic filters). Empty means this property decides nothing; write <span class="mono">spBv1.0/#</span> to claim the whole namespace explicitly. Hot since 2.4.0, applied within about 5 seconds with no restart.</td></tr>
-<tr><th><span class="mono">sparkbridge.host.standbyFor</span></th><td>Active host application id this gateway shadows as a warm standby. Unset is the classic single-host shape. See docs/HA.md in the bundle.</td></tr>
-<tr><th><span class="mono">sparkbridge.host.sharedgroup</span></th><td>MQTT 5 shared-subscription group name for host fan-in. Requires a <span class="mono">$share</span>-capable broker; HiveMQ CE qualifies, the embedded broker does not.</td></tr>
-<tr><th><span class="mono">sparkbridge.host.servers</span></th><td>Comma-separated MQTT servers this host holds simultaneous sessions on (Sparkplug 3.0 multi-server).</td></tr>
-<tr><th><span class="mono">sparkbridge.host.maxNodes</span></th><td>Hard fleet limit on resident edge nodes. Default <span class="mono">25000</span>.</td></tr>
-<tr><th><span class="mono">sparkbridge.host.maxMetricsPerNode</span></th><td>Max metrics one node may declare across its BIRTHs. Default <span class="mono">50000</span>.</td></tr>
+<tr><th>Host Id <span class="mono">hostid</span></th><td>Sparkplug host application id, published as <span class="mono">spBv1.0/STATE/&lt;hostId&gt;</span>. Default <span class="mono">SparkBridge</span>. Read once at connect (restart to pick up a change). Must match the Edge tab's <b>primaryHost</b>.</td></tr>
+<tr><th>Fold Target <span class="mono">foldtarget</span></th><td>Template member that receives folded UDT properties on projection. Read live, applies per projection. Owned by Host even though the matching <b>fold</b>/<b>foldmembers</b> keys live on the Edge tab &mdash; they're opposite ends of the same wire format, and changing one without the other silently breaks the property mapping.</td></tr>
+<tr><th>Partition <span class="mono">partition</span></th><td>Namespace slices this gateway owns, such as <span class="mono">PlantA,PlantB</span>. Use <span class="mono">spBv1.0/#</span> to claim the whole namespace explicitly. The value is hot and applies within about 5 seconds.</td></tr>
 </table>
 <p>Secrets, including any broker password Host uses, go in the secrets file named by <span class="mono">sparkbridge.secrets.file</span> (default <span class="mono">data/sparkbridge-secrets.properties</span>), never as a <span class="mono">-D</span> argument.</p>
+<p><b>hostId precedence exception:</b> everywhere else, a saved settings-page value wins over the matching <span class="mono">-D</span> system property, which in turn wins over the historical default. <span class="mono">hostId</span> is the one deliberate exception &mdash; an explicitly set <span class="mono">-Dsparkbridge.host.id</span> outranks the settings-page value. Set the Host Id field on this page for the normal case; use the system property only when you need it to win regardless of what's saved.</p>
+<p>This page supersedes the older <span class="mono">/data/sparkbridge/config</span> HTML form, which is being trimmed to host-only keys. Prefer the Config &gt; SparkBridge Host &gt; Settings page for new deployments.</p>
 
 <h3>Verify</h3>
 <pre class="code">SparkBridge Host: ... subscribed
@@ -190,19 +202,14 @@ SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
 <p>Install first, before Host and Edge, following the <a href="#install-common">shared install steps</a> above. With no <span class="mono">sparkbridge.*</span> system properties set, the Provider binds the embedded Moquette broker on <span class="mono">127.0.0.1:1883</span> and, with TLS enabled, <span class="mono">127.0.0.1:8883</span>.</p>
 
 <h3>Configure</h3>
-<p>To run against external HiveMQ CE instead of the embedded broker:</p>
+<p>Primary path: open <span class="mono">Config &gt; SparkBridge Provider &gt; Settings</span>. Two keys on this page are editable, both Provider-owned and both read once at startup (restart to apply a change):</p>
 <table class="spec">
-<tr><th>Setting</th><td>Meaning, default</td></tr>
-<tr><th><span class="mono">sparkbridge.broker.impl</span></th><td>Set to <span class="mono">external</span> so the Provider does not bind 1883/8883 and HiveMQ owns the ports instead.</td></tr>
-<tr><th><span class="mono">sparkbridge.broker.tls</span></th><td>Enable TLS for broker connections.</td></tr>
-<tr><th><span class="mono">sparkbridge.broker.keystore</span></th><td>Path to the keystore Host and Edge load as their trust store.</td></tr>
-<tr><th><span class="mono">sparkbridge.broker.username</span></th><td>Host's broker identity, distinct from the edge identity.</td></tr>
-<tr><th><span class="mono">sparkbridge.broker.edgescopes</span></th><td>Required edge bindings: <span class="mono">edge-user=Group/EdgeNode,...</span>. An edge user not listed is denied.</td></tr>
-<tr><th><span class="mono">sparkbridge.broker.appprefixes</span></th><td>Application prefixes a scoped identity may use with no <span class="mono">apptopics</span> entry of its own (the shared-UNS-tree shape). On external HiveMQ this is read by the SparkBridge authorization extension, not by the Provider's own ACL, which is never constructed under <span class="mono">impl=external</span>.</td></tr>
-<tr><th><span class="mono">sparkbridge.broker.apptopics</span></th><td>Per-identity application-topic allowlist: <span class="mono">edge-user=sparkbridge/siteA|files/siteA,...</span>.</td></tr>
-<tr><th><span class="mono">sparkbridge.broker.clientauth</span></th><td>Require clients to present a certificate the broker trusts (mTLS). Default <span class="mono">false</span>.</td></tr>
+<tr><th><span class="mono">broker.port</span></th><td>Embedded Moquette plaintext listener port. Default 1883.</td></tr>
+<tr><th><span class="mono">broker.tlsport</span></th><td>Embedded Moquette TLS listener port. Default 8883.</td></tr>
 </table>
-<p>The HiveMQ file-RBAC credentials file and the SparkBridge broker authorization extension's own properties file are separate from the gateway's <span class="mono">ignition.conf</span> and must be kept consistent with it: the same host and edge identities, the same <span class="mono">edgescopes</span>, and the same <span class="mono">appprefixes</span>. Details, including generating password hashes and the extension zip layout, are in INSTALL.md in the bundle.</p>
+<p>Everything else on the page is a read-only audit of the broker's effective running posture &mdash; implementation, broker endpoints, bind host, TLS, plaintext, client authentication, keystore, identities, edge scopes, application topics, and secrets status. Secrets are never shown in the clear: a configured broker password renders only as a boolean, for example <span class="mono">Broker password configured: true</span>.</p>
+<h3>Broker-extension RBAC</h3>
+<p>For external HiveMQ CE, configure the separate broker-extension on the broker host. Its file-based RBAC uses <span class="mono">extensions/sparkbridge-auth/sparkbridge-auth.properties</span> for <span class="mono">sparkbridge.broker.hostuser</span>, <span class="mono">sparkbridge.broker.edgescopes</span>, <span class="mono">sparkbridge.broker.hosttopics</span>, <span class="mono">sparkbridge.broker.apptopics</span>, and <span class="mono">sparkbridge.broker.appprefixes</span>. HiveMQ's <span class="mono">credentials.xml</span> carries the broker credentials and password hashes. Keep its identities and scopes aligned with the Provider settings page.</p>
 
 <h3>Verify</h3>
 <p>Embedded broker, gateway log:</p>
@@ -300,12 +307,12 @@ SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
 <p>SparkID comes with the Host license. Install the module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</p>
 
 <h3>Configure</h3>
-<p>Configuration is a declaration file (an <span class="mono">.intent</span> file) describing roles, scopes, and purposes, not a properties file on the gateway.</p>
+<p>The <span class="mono">.intent</span> file is a declarative access policy designed for infrastructure-as-code review and diffing. Write the policy, validate it, issue identity secrets, preview the broker change, then generate the deployment artifacts:</p>
 <ol>
-<li>Write the declaration, then validate it: <pre class="code">sparkid validate --intent examples/sparkbridge-dev.intent</pre></li>
-<li>Issue one secret per identity: <pre class="code">sparkid issue --intent examples/sparkbridge-dev.intent --ledger out/estate.ledger --out-dir out</pre></li>
-<li>Preview the change against the running broker's current rules: <pre class="code">sparkid diff --intent examples/sparkbridge-dev.intent --current /path/to/credentials.xml</pre></li>
-<li>Emit the artifacts: <pre class="code">sparkid generate --intent examples/sparkbridge-dev.intent --ledger out/estate.ledger --out-dir out --current /path/to/credentials.xml</pre></li>
+<li>Validate the written declaration: <pre class="code">sparkid validate --intent examples/sparkbridge-dev.intent</pre></li>
+<li>Issue one secret per identity and record it in the ledger: <pre class="code">sparkid issue --intent examples/sparkbridge-dev.intent --ledger out/estate.ledger --out-dir out</pre></li>
+<li>Preview the change against the broker's current rules: <pre class="code">sparkid diff --intent examples/sparkbridge-dev.intent --current /path/to/credentials.xml</pre></li>
+<li>Generate the reviewed deployment artifacts: <pre class="code">sparkid generate --intent examples/sparkbridge-dev.intent --ledger out/estate.ledger --out-dir out --current /path/to/credentials.xml</pre></li>
 </ol>
 <table class="spec">
 <tr><th>Setting</th><td>HiveMQ file-RBAC is the only supported broker target for <span class="mono">credentials.xml</span>. Mosquitto dynamic-security is supported with <span class="mono">--mosquitto</span>, writing <span class="mono">dynamic-security.json</span>.</td></tr>
@@ -331,15 +338,30 @@ SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
 </ul>
 
 <h3>Install</h3>
-<p>Passage ships as a free module included with any SparkBridge Edge or Host license; it is never sold separately. Installation follows the standard SparkBridge module install: deploy the module file to the gateway and restart. See the README in the bundle for the exact package name and deployment steps.</p>
+<p>Passage ships as a free module included with any SparkBridge Edge or Host license. Install through the <a href="#install-common">shared install steps</a> above.</p>
 
 <h3>Configure</h3>
+<p>Current Passage configuration is file/property-based. Set these JVM system properties in the gateway startup configuration, then restart the gateway.</p>
 <table class="spec">
-<tr><th>Setting</th><td>The OPC-UA address space mirrors group/edge/device/metric as a browsable hierarchy; Sparkplug quality maps to OPC-UA StatusCode and the source timestamp is carried on every value.</td></tr>
-<tr><th>Setting</th><td>Writes are opt-in per namespace subtree, off by default, and translate to NCMD/DCMD through the existing command authorization posture.</td></tr>
-<tr><th>Setting</th><td>Supported security policies include anonymous, username/password, and certificate-based (Basic256Sha256).</td></tr>
+<tr><th><span class="mono">unsbridge.server.enabled</span></th><td>Enable the OPC-UA server. Default <span class="mono">true</span>.</td></tr>
+<tr><th><span class="mono">unsbridge.server.port</span></th><td>OPC-UA bind port. Default <span class="mono">62544</span>.</td></tr>
+<tr><th><span class="mono">unsbridge.server.bindAddress</span></th><td>OPC-UA bind address. Default <span class="mono">127.0.0.1</span>.</td></tr>
+<tr><th><span class="mono">unsbridge.server.hostname</span></th><td>Hostname advertised in OPC-UA endpoints. Default <span class="mono">localhost</span>.</td></tr>
+<tr><th><span class="mono">unsbridge.server.path</span></th><td>OPC-UA endpoint path. Default <span class="mono">/unsbridge</span>.</td></tr>
+<tr><th><span class="mono">unsbridge.server.securityDir</span></th><td>OPC-UA security directory. Default <span class="mono">data/unsbridge/security</span>.</td></tr>
+<tr><th><span class="mono">unsbridge.spike.enabled</span></th><td>Enable the synthetic proof node. Default <span class="mono">false</span>.</td></tr>
+<tr><th><span class="mono">unsbridge.server.allowAnonymousUnencryptedRemote</span></th><td>Explicit acknowledgement for remote anonymous unencrypted access. Default <span class="mono">false</span>.</td></tr>
+<tr><th><span class="mono">unsbridge.birthcache.enabled</span></th><td>Persist and replay the last known BIRTH set. Default <span class="mono">true</span>.</td></tr>
+<tr><th><span class="mono">unsbridge.birthcache.file</span></th><td>Birth cache path. Default <span class="mono">data/unsbridge-birthcache.txt</span>.</td></tr>
+<tr><th><span class="mono">unsbridge.birthcache.maxAgeHours</span></th><td>Maximum accepted cache age in hours. Default <span class="mono">168</span>; <span class="mono">0</span> disables the age check.</td></tr>
+<tr><th><span class="mono">unsbridge.birthcache.saveSeconds</span></th><td>Cache save interval in seconds. Default <span class="mono">60</span>; minimum <span class="mono">5</span>.</td></tr>
+<tr><th><span class="mono">unsbridge.birthcache.deviceGraceSeconds</span></th><td>Device grace period after an edge NBIRTH. Default <span class="mono">60</span>; minimum <span class="mono">1</span>.</td></tr>
+<tr><th><span class="mono">unsbridge.ingest.enabled</span></th><td>Enable Sparkplug MQTT ingest. Default <span class="mono">false</span>.</td></tr>
+<tr><th><span class="mono">unsbridge.broker.uri</span></th><td>MQTT broker URI. Default <span class="mono">tcp://127.0.0.1:1883</span>.</td></tr>
+<tr><th><span class="mono">unsbridge.broker.username</span></th><td>MQTT broker username. Default is empty.</td></tr>
+<tr><th><span class="mono">unsbridge.broker.clientid</span></th><td>MQTT client id. Default <span class="mono">sparkbridge-unsbridge</span>; use a value beginning with <span class="mono">sparkbridge-</span>.</td></tr>
 </table>
-<p>Exact property names and file paths ship with the module bundle; see the README in the bundle.</p>
+<p>Store <span class="mono">unsbridge.status.token</span> and <span class="mono">unsbridge.broker.password</span> in the file named by <span class="mono">unsbridge.secrets.file</span>, default <span class="mono">data/unsbridge-secrets.properties</span>. Passage also supports the shared <span class="mono">sparkbridge.broker.password</span> fallback for broker access.</p>
 
 <h3>Verify</h3>
 <p>Connect a third-party OPC-UA client (for example UaExpert), browse the address space, subscribe to a value, and confirm it matches the Sparkplug wire within one update with the source timestamp preserved. Confirm a node goes to bad quality within the death window after an NDEATH/DDEATH.</p>
@@ -937,10 +959,10 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 </ol>
 
 <h3>Configure</h3>
-<p>Bind the component's <span class="mono">tasks</span> property to a dataset (with a column-mapping prop) or a JSON array of task objects, each with id, label, start, end, progress, group, color, dependencies, milestone flag, and tooltip. Other component properties include <span class="mono">groups</span>, <span class="mono">range</span>, <span class="mono">scale</span>, <span class="mono">rowHeight</span>, <span class="mono">showToday</span>, <span class="mono">readOnly</span>, <span class="mono">selection</span>, <span class="mono">style</span>, and <span class="mono">nowLine</span>. See the README in the bundle for the full property and event reference.</p>
+<p>Configure SparkGantt entirely in the Ignition Designer property panel. Bind <span class="mono">tasks</span> and <span class="mono">groups</span>, map dataset columns through <span class="mono">datasetMapping</span>, and set the visible <span class="mono">range</span> and time-axis <span class="mono">scale</span>. Set <span class="mono">rowHeight</span>, <span class="mono">showToday</span>, <span class="mono">nowLine</span>, <span class="mono">readOnly</span>, <span class="mono">selection</span>, and <span class="mono">style</span> in the same panel. The task schema supports id, label, start, end, progress, group, color, dependencies, milestone, and tooltip.</p>
 
 <h3>Verify</h3>
-<p>See the README in the bundle for a documented status route; this fragment could not confirm the exact path from the available source docs.</p>
+<p>Place the component in a Perspective view and confirm the bound chart renders. The optional status route is soft, self-generating licensing telemetry and never gates chart functionality.</p>
 
 <h3>License</h3>
 <p>Soft-licensed the same way as other SparkBridge-suite modules: a missing license key only labels status surfaces and does not gate use, while a present-and-invalid or tampered key fails startup closed and the component is not registered. See the README in the bundle for pricing.</p>
