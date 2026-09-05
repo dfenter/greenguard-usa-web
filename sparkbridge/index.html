@@ -55,13 +55,45 @@
       <div class="eyebrow">SparkBridge for Ignition</div>
       <h1>Scale Ignition without scaling <em>complexity</em>.</h1>
       <p class="lede">Connect every Ignition site to one reliable data backbone without multiplying backend servers, polling connections, or integration projects.</p>
-      <p class="hero-foot mono" style="margin-top:6px">EDGE moves the data &middot; PROVIDER carries the data &middot; HOST uses the data</p>
       <div class="cta-row">
         <a class="btn" href="/sparkbridge/edge">SparkBridge Edge</a>
         <a class="btn ghost" href="/sparkbridge/central">SparkBridge Host</a>
         <a class="btn ghost" href="/sparkbridge/products#provider">SparkBridge Provider</a>
       </div>
       <p class="hero-foot mono">Zero failures on the Sparkplug conformance suite · 820 automated tests · free for development</p>
+    </div>
+  </div>
+  <div class="wrap" style="margin-top:44px">
+    <div class="run" role="group" aria-label="Signal path from plant to delivery">
+      <div class="dev source">
+        <span class="tagno">Field</span>
+        <span class="devname">Plant equipment</span>
+        <span class="job">Your existing equipment</span>
+      </div>
+      <div class="seg s1" aria-hidden="true"></div>
+      <a class="dev spine st-svc" href="/sparkbridge/edge">
+        <span class="tagno">At each site</span>
+        <span class="devname">SparkBridge Edge</span>
+        <span class="job">Moves your plant data reliably off the floor, and holds it safely when a link drops</span>
+      </a>
+      <div class="seg s2" aria-hidden="true"></div>
+      <a class="dev spine st-svc" href="/sparkbridge/products#provider">
+        <span class="tagno">In between</span>
+        <span class="devname">SparkBridge Provider</span>
+        <span class="job">Carries every site's data to every consumer under one identity and permission policy</span>
+      </a>
+      <div class="seg s2" aria-hidden="true"></div>
+      <a class="dev spine st-svc" href="/sparkbridge/central">
+        <span class="tagno">One server</span>
+        <span class="devname">SparkBridge Host</span>
+        <span class="job">Collects every site and puts the data to work</span>
+      </a>
+      <div class="seg s3" aria-hidden="true"></div>
+      <div class="dev source">
+        <span class="tagno">Use</span>
+        <span class="devname">Your tools</span>
+        <span class="job">Warehouse, analysts, auditors</span>
+      </div>
     </div>
   </div>
 </header>
@@ -119,23 +151,23 @@
       <h2>Add Only What You Need</h2>
       <p>Edge, Provider and Host form the required SparkBridge infrastructure. Every option below is a consumer of the same backbone: adding one changes nothing at the sites. Pricing is by gateway or module.</p>
     </div>
-    <div class="path" style="margin:0 0 12px">data outcomes</div>
-    <div class="cards">
+    <div class="cards rack">
+      <div class="rackhead">Data outcomes &middot; consumers of the backbone, each on SparkBridge Host &middot; <a href="/sparkbridge/central">see the suite</a></div>
       <a class="card" href="/sparkbridge/central#sparkvault"><h3>History</h3><p>SparkVault</p><p class="desc">Estate history on the plant's own clock, read back as an Ignition history provider.</p></a>
       <a class="card" href="/sparkbridge/record"><h3>Records</h3><p>SparkRecord</p><p class="desc">Structured records and events, landed exactly once with a SHA-256 audit chain. Release pending.</p></a>
       <a class="card" href="/sparkbridge/central#sparkinject"><h3>Cloud</h3><p>SparkInject</p><p class="desc">Production data delivered into your warehouse, once, with no per-row meter.</p></a>
       <a class="card" href="/sparkbridge/central#passage"><h3>OPC-UA</h3><p>Passage</p><p class="desc">Your live plant data served over OPC-UA to the tools you already own.</p></a>
       <a class="card" href="/sparkbridge/central#sparkcalc"><h3>Calculations</h3><p>SparkCalc, included with Host</p><p class="desc">Rates, totals and efficiencies calculated once on live data and read by every consumer.</p></a>
     </div>
-    <div class="path" style="margin:28px 0 12px">enterprise operations</div>
-    <div class="cards">
+    <div class="cards rack">
+      <div class="rackhead">Enterprise operations &middot; running the estate, each on SparkBridge Host</div>
       <a class="card" href="/sparkbridge/central#fleetops"><h3>Fleet</h3><p>FleetOps</p><p class="desc">Every gateway in one view: versions, drift, certificates, backups.</p></a>
       <a class="card" href="/sparkbridge/central#sentinel"><h3>Security</h3><p>Sentinel, with SparkID included in Host</p><p class="desc">A scored assessment of your plant data network, and access rules generated from a plain statement of who may read and who may control.</p></a>
       <a class="card" href="/sparkbridge/flow"><h3>Hyperscale</h3><p>SparkFlow</p><p class="desc">Millions of points streamed live and lossless to every consumer in the company, on NATS/JetStream.</p></a>
       <a class="card" href="/sparkbridge/central#gitops"><h3>Governance</h3><p>GitOps / Enterprise Governance, pilot</p><p class="desc">Configuration as code for the whole estate: signed bundles, review, rollback, audit trail.</p></a>
     </div>
-    <div class="path" style="margin:28px 0 12px">at the equipment and in ignition</div>
-    <div class="cards">
+    <div class="cards rack">
+      <div class="rackhead">At the equipment and in Ignition &middot; each licensed per gateway &middot; <a href="/sparkbridge/products">see all products</a></div>
       <a class="card" href="/sparkbridge/drivers"><h3>Device Drivers</h3><p>DNP3 · IEC 104 · TI 505 · S7 and more</p><p class="desc">Direct protocol connections for utility, legacy and industrial equipment, licensed per gateway.</p></a>
       <a class="card" href="/sparkbridge/pricing#enhancements"><h3>Ignition Enhancements</h3><p>SparkGantt · SparkNotify · SparkInflux · SparkValidate</p><p class="desc">Perspective schedules, alarm notifications, InfluxDB history and validation documents for Ignition.</p></a>
     </div>
