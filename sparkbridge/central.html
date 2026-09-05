@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SparkBridge Host: One Server in the Middle | SparkBridge</title>
+<title>SparkBridge Host: The Central Data Plane | SparkBridge</title>
 <meta name="description" content="SparkBridge Host collects every site's data, with SparkCalc and SparkID included. Optional modules open it, secure it, score it, operate it, keep it and deliver it.">
 <link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/central">
-<meta property="og:title" content="SparkBridge Host: One Server in the Middle">
+<meta property="og:title" content="SparkBridge Host: The Central Data Plane">
 <meta property="og:description" content="The server that collects every site's data. Modules open it, calculate on it, secure it, score it, operate it, keep it and deliver it.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/central">
 <meta property="og:site_name" content="SparkBridge">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="SparkBridge Host: One Server in the Middle">
+<meta name="twitter:title" content="SparkBridge Host: The Central Data Plane">
 <meta name="twitter:description" content="The server that collects every site's data. Modules open it, calculate on it, secure it, score it, operate it, keep it and deliver it.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -54,14 +54,14 @@
     <div class="phead-grid">
       <div>
         <div class="eyebrow">SparkBridge Host</div>
-        <h1>One server in the middle, holding your whole plant network together</h1>
+        <h1>At the center, holding your whole plant network together</h1>
         <p>Every site's Edge gateway sends its data to one place. Host is that place. It collects what every site reports and gives your analysts, your auditors and your own team one version of what is happening, instead of forty.</p>
-        <div class="pmeta"><span class="stat">One server</span><span>SparkCalc and SparkID included</span><span>Runs on your Host gateway</span></div>
+        <div class="pmeta"><span class="stat">Central data plane</span><span>SparkCalc and SparkID included</span><span>Runs on your Host gateway</span></div>
       </div>
       <div class="trace" role="img" aria-label="Analyzer trace showing many sites landing on one Host gateway">
         <div class="trace-head">
           <span class="live"><span class="dot"></span>ANALYZER · Host gateway</span>
-          <span>many sites, one server</span>
+          <span>many sites, one center</span>
         </div>
         <div class="trace-rows" aria-hidden="true">
           <div class="trow"><span class="lbl">SITE A</span><div class="line"><span class="tick birth" style="left:8%;animation-delay:.2s"></span><span class="tick" style="left:30%;animation-delay:1s"></span></div></div>
@@ -98,9 +98,9 @@
       </a>
       <div class="seg s2" aria-hidden="true"></div>
       <div class="dev spine st-svc" aria-current="page">
-        <span class="tagno">One server &middot; this page</span>
+        <span class="tagno">At the center</span>
         <span class="devname">SparkBridge Host</span>
-        <span class="job">Collects every site and puts the data to work</span>
+        <span class="job">Collects every site and puts the data to work. Scale from a single Host to resilient pools as the estate grows.</span>
       </div>
       <div class="seg s3" aria-hidden="true"></div>
       <div class="dev source">
@@ -119,16 +119,16 @@
     <p class="claim">Publish once. <em>Add consumers when you need them.</em></p>
     <div class="twocol">
       <div class="measure">
-        <p>One server gives you one version of what your plants are doing. Adding another consumer, a historian, a warehouse, an analytics job, changes nothing at the sites: each site publishes once and Host fans it out. Host alone, no modules added, replaces the work of stitching together forty sites by hand. It collects what every Edge gateway reports, learns each site's tag structure the moment that site connects, and projects it as one live picture you can point any tool at.</p>
+        <p>Host gives you one version of what your plants are doing. Adding another consumer, a historian, a warehouse, an analytics job, changes nothing at the sites: each site publishes once and Host fans it out. Host alone, no modules added, replaces the work of stitching together forty sites by hand. It collects what every Edge gateway reports, learns each site's tag structure the moment that site connects, and projects it as one live picture you can point any tool at.</p>
         <p>Nobody builds that picture. When a site comes online it announces every device and every point it has, and Host creates the matching tags on the spot, in a tree that mirrors the plant. Add a device at a site and it appears at Host. Rename one and Host follows. There is no mapping spreadsheet and no import to repeat when a site changes.</p>
         <p>Host knows the difference between a value that is current and one that is not. Every reading carries the time the equipment recorded it, not the time it arrived, so trends stay true through a dropped link and back. If a site loses its connection, Host marks that site's points bad instead of holding the last number, and when the site returns it asks for a fresh announcement so the two are in step again. A gap in the sequence from a site triggers the same check. Nothing quietly drifts.</p>
         <p>It is the primary host on the network. Every Edge gateway watches for it, buffers while it is away and replays in order when it is back. Host holds one shared set of credentials and certificates for the estate, and it works with any conformant Sparkplug broker, including the one you already run. Its own status, throughput and per-site health are available over a plain REST interface for the monitoring you already have.</p>
-        <p>It runs on one server, at one license, whether you're watching five sites or five hundred. Its throughput has been measured on real hardware, and the figures are published on the <a href="/sparkbridge/technology">technology page</a> rather than claimed. The modules below are how you open that data, put numbers on it, secure it, check it, run it and keep it. Each one is installed only if you want it, and each one needs a SparkBridge Host gateway underneath it.</p>
+        <p>It runs at the center, one license per Host gateway, whether you're watching five sites or five hundred, as a single Host or a resilient pool with a standby ready to take over. Its throughput has been measured on real hardware, and the figures are published on the <a href="/sparkbridge/technology">technology page</a> rather than claimed. The modules below are how you open that data, put numbers on it, secure it, check it, run it and keep it. Each one is installed only if you want it, and each one needs a SparkBridge Host gateway underneath it.</p>
       </div>
       <div>
         <span class="spectitle">At a glance</span>
         <table class="spec">
-          <tr><th>What it is</th><td>The one server that collects every site's data</td></tr>
+          <tr><th>What it is</th><td>The central data plane that collects every site's data, as one Host or a resilient pool</td></tr>
           <tr><th>Where it runs</th><td>On your Host gateway, never at a site</td></tr>
           <tr><th>Speaks</th><td>Sparkplug B and 3.0 over MQTT 3.1.1 and MQTT 5, as the primary host</td></tr>
           <tr><th>Tag structure</th><td>Built from each site's own announcement. No mapping, no import</td></tr>

@@ -79,9 +79,9 @@
       </a>
       <div class="seg s2" aria-hidden="true"></div>
       <a class="dev spine st-svc" href="/sparkbridge/central">
-        <span class="tagno">One server</span>
+        <span class="tagno">At the center</span>
         <span class="devname">SparkBridge Host</span>
-        <span class="job">Collects every site and puts the data to work</span>
+        <span class="job">Collects every site and puts the data to work. Scale from a single Host to resilient pools as the estate grows.</span>
       </a>
       <div class="seg s3" aria-hidden="true"></div>
       <div class="dev source">
@@ -144,7 +144,7 @@
     <div class="sec-head">
       <div class="path">optional</div>
       <h2>Add Only What You Need</h2>
-      <p>Edge, Provider and Host form the required SparkBridge infrastructure. Every option below is a consumer of the same backbone: adding one changes nothing at the sites. Pricing is by gateway or module.</p>
+      <p>Edge and Host form the SparkBridge data architecture. Provider adds a managed Sparkplug-aware broker and policy layer, or SparkBridge connects through compatible broker infrastructure you already operate. Every option below is a consumer of the same backbone: adding one changes nothing at the sites. Pricing is by gateway or module.</p>
     </div>
     <div class="cards rack">
       <div class="rackhead">Data outcomes &middot; consumers of the backbone, each on SparkBridge Host &middot; <a href="/sparkbridge/central">see the suite</a></div>
@@ -165,23 +165,9 @@
     </div>
 
     <div class="cards rack">
-      <div class="rackhead">Device drivers &middot; each licensed per gateway &middot; <a href="/sparkbridge/drivers">see all drivers</a></div>
-      <a class="card" href="/sparkbridge/logix"><h3>SparkLogix</h3><p>Allen-Bradley Logix driver</p><p class="desc">Connects ControlLogix and CompactLogix directly over EtherNet/IP, no translator in between.</p></a>
-      <a class="card" href="/sparkbridge/snmp"><h3>SparkSNMP</h3><p>Network and power equipment</p><p class="desc">Reads UPSs, switches and PDUs over SNMP, so the network shows up next to the process.</p></a>
-      <a class="card" href="/sparkbridge/iec104"><h3>IEC 60870-5-104</h3><p>Utility and substation driver</p><p class="desc">Connects utility and substation equipment directly, timestamps kept.</p></a>
-      <a class="card" href="/sparkbridge/drivers"><h3>DNP3</h3><p>Utility equipment driver</p><p class="desc">Talks to DNP3 outstations, with event data and source timestamps.</p></a>
-      <a class="card" href="/sparkbridge/drivers"><h3>TI 505 &middot; CTI 2500</h3><p>Older Siemens and CTI racks</p><p class="desc">Keeps older 505-series and CTI 2500 racks on the same line as everything else.</p></a>
-      <a class="card" href="/sparkbridge/influx"><h3>SparkInflux</h3><p>InfluxDB history storage</p><p class="desc">Writes tag history straight to InfluxDB and serves it back as an Ignition history provider.</p></a>
-      <a class="card" href="/sparkbridge/ads"><h3>SparkADS <small>released 2.7.0</small></h3><p>Beckhoff ADS/AMS driver</p><p class="desc">Browses TwinCAT symbols on Beckhoff controllers directly over ADS/AMS.</p></a>
-      <a class="card" href="/sparkbridge/s7"><h3>SparkS7 <small>released 2.7.0</small></h3><p>Siemens S7-1200/1500 symbolic driver</p><p class="desc">Symbolic addressing for S7-1200 and S7-1500, including what Ignition 8.3 dropped.</p></a>
-      <a class="card" href="/sparkbridge/61850"><h3>Spark61850 <small>released 2.7.0</small></h3><p>IEC 61850 MMS client driver</p><p class="desc">Reads substation IEDs over IEC 61850 MMS, verified against libiec61850.</p></a>
-      <a class="card" href="/sparkbridge/bacnet"><h3>SparkBACnet <small>released 2.7.0</small></h3><p>BACnet/IP driver</p><p class="desc">Connects building automation equipment over BACnet/IP, verified against the reference stack.</p></a>
-    </div>
-    <div class="cards rack">
-      <div class="rackhead">Ignition tools &middot; each licensed per gateway</div>
-      <a class="card" href="/sparkbridge/validate"><h3>SparkValidate <small>pilot release</small></h3><p>Alarm review and validation documents</p><p class="desc">Reads your alarm and controller configuration and produces the review and validation documents. $2,495 gateway module · $995 Validate Desk CLI.</p></a>
-      <a class="card" href="/sparkbridge/gantt"><h3>SparkGantt <small>released 2.7.0</small></h3><p>Perspective Gantt chart component</p><p class="desc">A Gantt chart for Perspective screens: schedules, batches and downtime on a timeline.</p></a>
-      <a class="card" href="/sparkbridge/notify"><h3>SparkNotify <small>released 2.7.0</small></h3><p>Omnichannel alarm notification</p><p class="desc">Routes alarms to phones, email and chat, with acknowledgment tracked back in Ignition.</p></a>
+      <div class="rackhead">Also available &middot; industrial drivers and Ignition enhancements &middot; <a href="/sparkbridge/products">see all products</a></div>
+      <a class="card" href="/sparkbridge/drivers"><h3>Device Drivers</h3><p>DNP3 · IEC 104 · TI 505 · S7 and more</p><p class="desc">Direct protocol connections for utility, legacy and industrial equipment, licensed per gateway.</p></a>
+      <a class="card" href="/sparkbridge/pricing#enhancements"><h3>Ignition Enhancements</h3><p>SparkGantt · SparkNotify · SparkInflux · SparkValidate</p><p class="desc">Perspective schedules, alarm notifications, InfluxDB history and validation documents for Ignition.</p></a>
     </div>
   </div>
 </section>
