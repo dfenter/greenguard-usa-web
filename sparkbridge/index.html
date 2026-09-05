@@ -117,7 +117,7 @@
   </div>
 </section>
 
-<section id="optional">
+<section class="band" id="optional">
   <div class="wrap">
     <div class="sec-head">
       <div class="path">optional</div>
@@ -126,28 +126,45 @@
     </div>
     <div class="cards rack">
       <div class="rackhead">Data outcomes &middot; consumers of the backbone, each on SparkBridge Host &middot; <a href="/sparkbridge/central">see the suite</a></div>
-      <a class="card" href="/sparkbridge/central#sparkvault"><h3>History</h3><p>SparkVault</p><p class="desc">Estate history on the plant's own clock, read back as an Ignition history provider.</p></a>
-      <a class="card" href="/sparkbridge/record"><h3>Records</h3><p>SparkRecord</p><p class="desc">Structured records and events, landed exactly once with a SHA-256 audit chain. Release pending.</p></a>
-      <a class="card" href="/sparkbridge/central#sparkinject"><h3>Cloud</h3><p>SparkInject</p><p class="desc">Production data delivered into your warehouse, once, with no per-row meter.</p></a>
-      <a class="card" href="/sparkbridge/central#passage"><h3>OPC-UA</h3><p>Passage</p><p class="desc">Your live plant data served over OPC-UA to the tools you already own.</p></a>
-      <a class="card" href="/sparkbridge/central#sparkcalc"><h3>Calculations</h3><p>SparkCalc, included with Host</p><p class="desc">Rates, totals and efficiencies calculated once on live data and read by every consumer.</p></a>
+      <a class="card" href="/sparkbridge/central#sparkvault"><h3>SparkVault</h3><p>Tag historian</p><p class="desc">Keeps history on the plant's own clock, so trends stay true through a dropped link and back. History is a consumer, not another integration project.</p></a>
+      <a class="card" href="/sparkbridge/record"><h3>SparkRecord <small>release pending</small></h3><p>Structured record pipeline</p><p class="desc">Lands Sparkplug records, MQTT JSON events and SparkFlow events exactly once, append-only, with a SHA-256 audit chain.</p></a>
+      <a class="card" href="/sparkbridge/central#sparkinject"><h3>SparkInject</h3><p>Warehouse delivery</p><p class="desc">Delivers production data into your warehouse, once, with nothing rekeyed along the way.</p></a>
+      <a class="card" href="/sparkbridge/central#passage"><h3>Passage</h3><p>OPC-UA server</p><p class="desc">Serves your live plant data over OPC-UA to the historians, analytics and test tools you already own. No custom connector per system.</p></a>
+      <a class="card" href="/sparkbridge/central#sparkcalc"><h3>SparkCalc <small>included with Host</small></h3><p>Calculation engine</p><p class="desc">Rates, totals and efficiencies calculated once, in one place, used everywhere.</p></a>
     </div>
+
     <div class="cards rack">
       <div class="rackhead">Enterprise operations &middot; running the estate, each on SparkBridge Host</div>
-      <a class="card" href="/sparkbridge/central#fleetops"><h3>Fleet</h3><p>FleetOps</p><p class="desc">Every gateway in one view: versions, drift, certificates, backups.</p></a>
-      <a class="card" href="/sparkbridge/central#sentinel"><h3>Security</h3><p>Sentinel, with SparkID included in Host</p><p class="desc">A scored assessment of your plant data network, and access rules generated from a plain statement of who may read and who may control.</p></a>
-      <a class="card" href="/sparkbridge/flow"><h3>Hyperscale</h3><p>SparkFlow</p><p class="desc">Millions of points streamed live and lossless to every consumer in the company, on NATS/JetStream.</p></a>
-      <a class="card" href="/sparkbridge/central#gitops"><h3>Governance</h3><p>GitOps / Enterprise Governance, pilot</p><p class="desc">Configuration as code for the whole estate: signed bundles, review, rollback, audit trail.</p></a>
+      <a class="card" href="/sparkbridge/central#fleetops"><h3>FleetOps</h3><p>Fleet management</p><p class="desc">One view of every gateway you run: versions, drift, certificates, backups. Fix once, apply everywhere.</p></a>
+      <a class="card" href="/sparkbridge/central#sentinel"><h3>Sentinel</h3><p>Security assessment</p><p class="desc">A scored security and health assessment of your plant data network, with the evidence and the fix for each finding.</p></a>
+      <a class="card" href="/sparkbridge/central#sparkid"><h3>SparkID <small>included with Host</small></h3><p>Access control</p><p class="desc">Controls who can read your data and who can change it, with safe credential rotation. A read permission never includes control.</p></a>
+      <a class="card" href="/sparkbridge/flow"><h3>SparkFlow <small>own license</small></h3><p>High-rate streaming</p><p class="desc">Streams every point Host decodes, well past what the tag system carries, for screens and analytics at estate scale.</p></a>
+      <a class="card" href="/sparkbridge/central#gitops"><h3>GitOps / Enterprise Governance <small>pilot</small></h3><p>Configuration as code</p><p class="desc">Configuration as code for the whole estate: signed bundles, review and rollback, and an audit trail of who changed what.</p></a>
+    </div>
+
+    <div class="cards rack">
+      <div class="rackhead">Device drivers &middot; each licensed per gateway &middot; <a href="/sparkbridge/drivers">see all drivers</a></div>
+      <a class="card" href="/sparkbridge/logix"><h3>SparkLogix</h3><p>Allen-Bradley Logix driver</p><p class="desc">Connects ControlLogix and CompactLogix directly over EtherNet/IP, no translator in between.</p></a>
+      <a class="card" href="/sparkbridge/snmp"><h3>SparkSNMP</h3><p>Network and power equipment</p><p class="desc">Reads UPSs, switches and PDUs over SNMP, so the network shows up next to the process.</p></a>
+      <a class="card" href="/sparkbridge/iec104"><h3>IEC 60870-5-104</h3><p>Utility and substation driver</p><p class="desc">Connects utility and substation equipment directly, timestamps kept.</p></a>
+      <a class="card" href="/sparkbridge/drivers"><h3>DNP3</h3><p>Utility equipment driver</p><p class="desc">Talks to DNP3 outstations, with event data and source timestamps.</p></a>
+      <a class="card" href="/sparkbridge/drivers"><h3>TI 505 &middot; CTI 2500</h3><p>Older Siemens and CTI racks</p><p class="desc">Keeps older 505-series and CTI 2500 racks on the same line as everything else.</p></a>
+      <a class="card" href="/sparkbridge/influx"><h3>SparkInflux</h3><p>InfluxDB history storage</p><p class="desc">Writes tag history straight to InfluxDB and serves it back as an Ignition history provider.</p></a>
+      <a class="card" href="/sparkbridge/ads"><h3>SparkADS <small>released 2.7.0</small></h3><p>Beckhoff ADS/AMS driver</p><p class="desc">Browses TwinCAT symbols on Beckhoff controllers directly over ADS/AMS.</p></a>
+      <a class="card" href="/sparkbridge/s7"><h3>SparkS7 <small>released 2.7.0</small></h3><p>Siemens S7-1200/1500 symbolic driver</p><p class="desc">Symbolic addressing for S7-1200 and S7-1500, including what Ignition 8.3 dropped.</p></a>
+      <a class="card" href="/sparkbridge/61850"><h3>Spark61850 <small>released 2.7.0</small></h3><p>IEC 61850 MMS client driver</p><p class="desc">Reads substation IEDs over IEC 61850 MMS, verified against libiec61850.</p></a>
+      <a class="card" href="/sparkbridge/bacnet"><h3>SparkBACnet <small>released 2.7.0</small></h3><p>BACnet/IP driver</p><p class="desc">Connects building automation equipment over BACnet/IP, verified against the reference stack.</p></a>
     </div>
     <div class="cards rack">
-      <div class="rackhead">At the equipment and in Ignition &middot; each licensed per gateway &middot; <a href="/sparkbridge/products">see all products</a></div>
-      <a class="card" href="/sparkbridge/drivers"><h3>Device Drivers</h3><p>DNP3 · IEC 104 · TI 505 · S7 and more</p><p class="desc">Direct protocol connections for utility, legacy and industrial equipment, licensed per gateway.</p></a>
-      <a class="card" href="/sparkbridge/pricing#enhancements"><h3>Ignition Enhancements</h3><p>SparkGantt · SparkNotify · SparkInflux · SparkValidate</p><p class="desc">Perspective schedules, alarm notifications, InfluxDB history and validation documents for Ignition.</p></a>
+      <div class="rackhead">Ignition tools &middot; each licensed per gateway</div>
+      <a class="card" href="/sparkbridge/validate"><h3>SparkValidate <small>pilot release</small></h3><p>Alarm review and validation documents</p><p class="desc">Reads your alarm and controller configuration and produces the review and validation documents. $2,495 gateway module · $995 Validate Desk CLI.</p></a>
+      <a class="card" href="/sparkbridge/gantt"><h3>SparkGantt <small>released 2.7.0</small></h3><p>Perspective Gantt chart component</p><p class="desc">A Gantt chart for Perspective screens: schedules, batches and downtime on a timeline.</p></a>
+      <a class="card" href="/sparkbridge/notify"><h3>SparkNotify <small>released 2.7.0</small></h3><p>Omnichannel alarm notification</p><p class="desc">Routes alarms to phones, email and chat, with acknowledgment tracked back in Ignition.</p></a>
     </div>
   </div>
 </section>
 
-<section class="band" id="evidence">
+<section id="evidence">
   <div class="wrap">
     <div class="sec-head">
       <div class="path">evidence</div>

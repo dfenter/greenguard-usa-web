@@ -150,19 +150,23 @@
       <p>Two capabilities come with Host. Six optional modules build on it. Each one runs only on a SparkBridge Host gateway and is described below with an example of where it earns its place. Prices are on the <a href="/sparkbridge/pricing">pricing page</a>.</p>
     </div>
     <div class="cards rack">
-      <div class="rackhead">Included with Host &middot; on every Host gateway</div>
-      <div class="card"><span class="tag">Included</span><h3>SparkCalc</h3><p>Rates, totals and efficiencies calculated once on live data.</p></div>
-      <div class="card"><span class="tag">Included</span><h3>SparkID</h3><p>Who can read and who can send commands, generated from a plain statement of intent.</p></div>
+      <div class="rackhead">Data outcomes &middot; consumers of the backbone, each on SparkBridge Host</div>
+      <a class="card" href="/sparkbridge/central#sparkvault"><h3>SparkVault</h3><p>Tag historian</p><p class="desc">Keeps history on the plant's own clock, so trends stay true through a dropped link and back. History is a consumer, not another integration project.</p></a>
+      <a class="card" href="/sparkbridge/record"><h3>SparkRecord <small>release pending</small></h3><p>Structured record pipeline</p><p class="desc">Lands Sparkplug records, MQTT JSON events and SparkFlow events exactly once, append-only, with a SHA-256 audit chain.</p></a>
+      <a class="card" href="/sparkbridge/central#sparkinject"><h3>SparkInject</h3><p>Warehouse delivery</p><p class="desc">Delivers production data into your warehouse, once, with nothing rekeyed along the way.</p></a>
+      <a class="card" href="/sparkbridge/central#passage"><h3>Passage</h3><p>OPC-UA server</p><p class="desc">Serves your live plant data over OPC-UA to the historians, analytics and test tools you already own. No custom connector per system.</p></a>
+      <a class="card" href="/sparkbridge/central#sparkcalc"><h3>SparkCalc <small>included with Host</small></h3><p>Calculation engine</p><p class="desc">Rates, totals and efficiencies calculated once, in one place, used everywhere.</p></a>
     </div>
+
     <div class="cards rack">
-      <div class="rackhead">Optional modules &middot; consumers of the backbone, each on SparkBridge Host &middot; <a href="/sparkbridge/pricing">see pricing</a></div>
-      <div class="card"><span class="tag">Optional</span><h3>Passage</h3><p>Serves live plant data over OPC-UA to the tools you already own.</p></div>
-      <div class="card"><span class="tag">Optional</span><h3>Sentinel</h3><p>Scores the plant data network and hands you the evidence and the fix.</p></div>
-      <div class="card"><span class="tag">Optional</span><h3>FleetOps</h3><p>Every gateway in one view: versions, drift, certificates, backups.</p></div>
-      <div class="card"><span class="tag">Optional</span><h3>SparkVault</h3><p>History kept on the plant's own clock, in an open database.</p></div>
-      <div class="card"><span class="tag">Optional</span><h3>SparkInject</h3><p>Production data delivered into your own warehouse, exactly once.</p></div>
-      <div class="card"><span class="tag">Optional &middot; pilot</span><h3>GitOps / Enterprise Governance</h3><p>Configuration as code for the whole estate.</p></div>
+      <div class="rackhead">Enterprise operations &middot; running the estate, each on SparkBridge Host</div>
+      <a class="card" href="/sparkbridge/central#fleetops"><h3>FleetOps</h3><p>Fleet management</p><p class="desc">One view of every gateway you run: versions, drift, certificates, backups. Fix once, apply everywhere.</p></a>
+      <a class="card" href="/sparkbridge/central#sentinel"><h3>Sentinel</h3><p>Security assessment</p><p class="desc">A scored security and health assessment of your plant data network, with the evidence and the fix for each finding.</p></a>
+      <a class="card" href="/sparkbridge/central#sparkid"><h3>SparkID <small>included with Host</small></h3><p>Access control</p><p class="desc">Controls who can read your data and who can change it, with safe credential rotation. A read permission never includes control.</p></a>
+      <a class="card" href="/sparkbridge/flow"><h3>SparkFlow <small>own license</small></h3><p>High-rate streaming</p><p class="desc">Streams every point Host decodes, well past what the tag system carries, for screens and analytics at estate scale.</p></a>
+      <a class="card" href="/sparkbridge/central#gitops"><h3>GitOps / Enterprise Governance <small>pilot</small></h3><p>Configuration as code</p><p class="desc">Configuration as code for the whole estate: signed bundles, review and rollback, and an audit trail of who changed what.</p></a>
     </div>
+
   </div>
 </section>
 
