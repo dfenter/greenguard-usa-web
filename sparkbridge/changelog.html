@@ -53,7 +53,7 @@
   <div class="wrap">
     <div class="eyebrow">Changelog</div>
     <h1>Version history</h1>
-    <p>Every release, what changed, and what the change was for. Current release: 2.8.0. SparkNotify 0.2.0.
+    <p>Every release, what changed, and what the change was for. Current release: 2.8.0. SparkNotify 0.2.0. SparkRecord 0.1.0.
     Full customer notes ship in the release package.</p>
   </div>
 </header>
@@ -63,6 +63,22 @@
 <section>
   <div class="wrap">
     <ul class="lifeline">
+      <li>
+        <span class="lc lc-birth">SparkRecord 0.1.0<br>2026&#8209;09&#8209;05</span>
+        <div>
+          <h3>SparkRecord: tamper-evident record and replay, early access</h3>
+          <p>SparkRecord 0.1.0 ships the Sparkplug B, MQTT JSON and NATS JetStream (SparkFlow) record
+          sources and the PostgreSQL, TimescaleDB, SQL Server, object store (S3 and MinIO) and Snowflake
+          sinks, behind a writer that conserves accepted records across backpressure, sink failure and
+          shutdown, with every record SHA-256 hashed and chained per stream so a gap or an edit is
+          detectable rather than silent.</p>
+          <p>Known limitations in this early access release: Parquet output is deferred to 0.2 (JSONL
+          only), the Snowflake sink is unit-tested but not verified against a live account, production
+          MQTT still auto-acknowledges behind an opt-in manual-ack seam, two residual writer paths can
+          lose a record only if the JVM cannot allocate memory mid-bookkeeping, and neither the side
+          tables nor the record identifier scheme carry a migration path yet.</p>
+        </div>
+      </li>
       <li>
         <span class="lc">Host<br>2026&#8209;09&#8209;04</span>
         <div>
