@@ -53,7 +53,7 @@
   <div class="wrap">
     <div class="eyebrow">Changelog</div>
     <h1>Version history</h1>
-    <p>Every release, what changed, and what the change was for. Current release: 2.8.0.
+    <p>Every release, what changed, and what the change was for. Current release: 2.8.0. SparkNotify 0.2.0.
     Full customer notes ship in the release package.</p>
   </div>
 </header>
@@ -124,6 +124,44 @@
         <div>
           <h3>Four modules become features of SparkBridge</h3>
           <p><a href="/sparkbridge/#sparklink">SparkLink</a>, <a href="/sparkbridge/#sparkcalc">SparkCalc</a>, <a href="/sparkbridge/#passage">Passage</a> and <a href="/sparkbridge/#sparkid">SparkID</a> are now free with any SparkBridge Edge or Host license. Nothing changes in the software; we built them as free modules and they stay that way. The site package and central server suite moved to the current per-gateway pricing. Existing quotes are honoured at the lower of the two prices. See <a href="/sparkbridge/pricing">pricing</a>.</p>
+        </div>
+      </li>
+      <li>
+        <span class="lc lc-birth">SparkNotify 0.2.0<br>2026&#8209;09&#8209;04</span>
+        <div>
+          <h3>SparkNotify: Discord and PagerDuty are finished channels</h3>
+          <p>SparkNotify 0.2.0 completes the Discord and PagerDuty channels. This release updates
+          SparkNotify only; every other Spark product stays at its own version and does not need
+          reinstalling. SparkNotify now versions independently of the SparkBridge fleet, so it moves
+          off the 2.7.0 fleet bundle onto its own release.</p>
+          <p><b>Discord.</b> Rich embeds are on by default, with per-request username, avatar and
+          thread overrides so one webhook can post under different identities or into a specific
+          thread. Role mentions are explicit and fire only on High and Critical, so a routine alarm
+          never pages a whole role. Discord rate limits are honoured on 429 with bounded attempts,
+          cleared alarms post a follow-up notice once, and webhook URLs plus thread and role
+          snowflakes are validated strictly at configuration time.</p>
+          <p><b>PagerDuty.</b> A full Events API v2 payload with dedup key, severity, source,
+          component, group, class and custom details. US and EU regions, a minimum-priority filter,
+          a configurable severity map, acknowledgement sync that mirrors an Ignition ack as a
+          PagerDuty acknowledge, and resolve on clear. A failed trigger retains its UNRESOLVED state
+          so it stays retryable, and trigger, acknowledge and resolve are applied in order per
+          dedup key.</p>
+          <p><b>Platform.</b> All channel network calls run off the alarm scheduler thread, so a
+          slow or hanging endpoint cannot stall alarm evaluation. Destination hosts are validated
+          before every connect, refusing private, loopback, link-local, cloud-metadata and CGNAT
+          targets by default.</p>
+          <p><b>Version note.</b> The 8.1 line briefly carried 0.1.2, an 8.1-only hot-upgrade fix
+          build that never shipped on 8.3. 0.2.0 re-aligns both lines on one version and includes
+          that fix.</p>
+          <p><b>Email is deprecated.</b> The Email (SMTP) channel is deprecated and scheduled for
+          removal, because Ignition ships its own email notification module. The channel still
+          works in 0.2.0. New deployments should use Ignition's built-in email notification
+          profile, and existing Email profiles should be migrated before the removal release.</p>
+          <p>Two known limitations carry into this release: an oversized numeric PagerDuty
+          <span class="mono">Retry-After</span> retries with no delay rather than clamping, bounded
+          by the attempt cap; and profile-level Discord clear idempotency has no regression test,
+          a coverage gap rather than a known defect. DNS rebinding defence remains deferred.</p>
+          <p>0.2.0 ships for both Ignition 8.1 and Ignition 8.3. Both bundles are on the <a href="/sparkbridge/download">download page</a> and at <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/sparknotify-v0.2.0">the sparknotify-v0.2.0 GitHub release</a>. The 8.3 line has no gateway on this network and ships on green suites plus packaged-module verification, as every prior 8.3 release has.</p>
         </div>
       </li>
       <li>
