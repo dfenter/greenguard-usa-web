@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IEC 60870-5-104 driver user manual | SparkBridge</title>
+<meta name="description" content="User manual for the IEC 60870-5-104 client driver for Ignition: install, license, device settings, addressing, verification and troubleshooting.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/iec104">
+<meta property="og:title" content="IEC 60870-5-104 driver user manual">
+<meta property="og:description" content="User manual for the IEC 60870-5-104 client driver for Ignition: install, license, device settings, addressing, verification and troubleshooting.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/manuals/iec104">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="IEC 60870-5-104 driver user manual">
+<meta name="twitter:description" content="User manual for the IEC 60870-5-104 client driver for Ignition: install, license, device settings, addressing, verification and troubleshooting.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+
+<body class="docs">
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>IEC 60870-5-104 driver</h1>
+  <p>This module is a client (controlling station) driver for the IEC 60870-5-104 TCP telecontrol protocol, used in electricity transmission and distribution, connecting Ignition to an RTU or substation gateway.</p>
+  <div class="pmeta"><span class="stat">Ignition Module SDK 8.1.54</span><span>Ignition 8.1.x</span><span>Runs on: any gateway that reaches the RTU network</span></div>
+</div></header>
+<main id="main">
+<section id="contents"><div class="wrap"><div class="sec-head"><h2>Contents</h2></div><ol><li><a href="#overview">1. Overview</a></li><li><a href="#requirements">2. What You Need</a></li><li><a href="#install">3. Install</a></li><li><a href="#license">4. License</a></li><li><a href="#configure">5. Configure</a></li><li><a href="#operate">6. Operate</a></li><li><a href="#verify">7. Verify</a></li><li><a href="#troubleshoot">8. Troubleshoot</a></li><li><a href="#reference">9. Reference</a></li><li><a href="#support">10. Support</a></li></ol></div></section>
+<section id="overview"><div class="wrap"><div class="sec-head"><h2>1. Overview</h2></div>
+<p>The driver is a standalone OPC UA device type; it does not require any other SparkBridge module. Control-direction commands (single/double/step/setpoint), counter interrogation, file transfer, parameter loading, and TLS (secure 104) are not implemented in v1.</p>
+</div></section>
+<section class="band" id="requirements"><div class="wrap"><div class="sec-head"><h2>2. What You Need</h2></div>
+<ul>
+<li>Ignition 8.1.x. The signed release is built and tested against Ignition Module SDK 8.1.54.</li>
+<li>An RTU or substation gateway reachable over TCP, default port 2404.</li>
+</ul>
+</div></section>
+<section id="install"><div class="wrap"><div class="sec-head"><h2>3. Install</h2></div>
+<p>Install the signed IEC 60870-5-104 module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</p>
+</div></section>
+<section class="band" id="license"><div class="wrap"><div class="sec-head"><h2>4. License</h2></div>
+<p>See the README in the bundle for licensing terms.</p>
+
+<p>From release 2.7.0, every SparkBridge module runs on Ignition's standard two-hour module trial
+(the gateway's Reset Trial button restarts the clock). A verified key overrides the trial entirely
+and the trial clock is then ignored. Drop the key at <code>&lt;data&gt;/sparkbridge-license.key</code>;
+each module re-checks the file every 30 seconds, so installing, replacing, or removing a key takes
+effect with no restart.</p>
+</div></section>
+<section id="configure"><div class="wrap"><div class="sec-head"><h2>5. Configure</h2></div>
+<p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; IEC 60870-5-104.</p>
+<table class="spec">
+<tr><th>Setting</th><td>Meaning, default</td></tr>
+<tr><th>Hostname/IP, Port</th><td>RTU or substation gateway; port default 2404.</td></tr>
+<tr><th>Backup Hostname/IP, Backup Port</th><td>Second server of the redundancy group; blank for a single server.</td></tr>
+<tr><th>Common Address</th><td>Common address of ASDU, default 1.</td></tr>
+<tr><th>Originator Address</th><td>Echoed on responses; 0 means unused, default 0.</td></tr>
+<tr><th>Window k / Window w</th><td>Max unacknowledged I-frames (default 12) and the acknowledgement threshold (default 8, must not exceed two thirds of k).</td></tr>
+<tr><th>t1 / t2 / t3 (s)</th><td>Ack/confirmation timeout (15), S-frame ack delay (10), keepalive idle time (20).</td></tr>
+<tr><th>Interrogate On Connect</th><td>Default true.</td></tr>
+<tr><th>Clock Sync On Connect</th><td>Default false.</td></tr>
+<tr><th>RTU Time Zone</th><td>Zone the RTU expresses CP56Time2a in, default UTC. Getting it wrong silently offsets every time tag.</td></tr>
+</table>
+<p>Addressing: a bare IOA such as <code>100</code>, or structured form <code>1.2.4</code> (high.middle.low). No type suffix; the point's type is decided by the RTU. There is no browse service for undiscovered points; browse shows only IOAs already reported.</p>
+</div></section>
+<section class="band" id="operate"><div class="wrap"><div class="sec-head"><h2>6. Operate</h2></div>
+<p>With Interrogate On Connect true (default), the driver requests a general interrogation each time it connects so its point set is populated without waiting for spontaneous reports. Watch the RTU Time Zone setting whenever an RTU is relocated or its clock configuration changes; a mismatch silently offsets every timestamp rather than raising an error.</p>
+</div></section>
+<section id="verify"><div class="wrap"><div class="sec-head"><h2>7. Verify</h2></div>
+<ul>
+<li>Reproduce the bundled live-proof harness: <code>java -cp common/build/libs/common-0.1.0.jar com.greenguard.iec104.tools.Iec104Probe --host &lt;ip&gt; --port 2404 --ca 1 --seconds 70 --clocksync --t3 1000</code>.</li>
+<li>Check <code>GET /data/com.greenguard.drivers.iec104/status.json</code> for lane state and data age.</li>
+</ul>
+</div></section>
+<section class="band" id="troubleshoot"><div class="wrap"><div class="sec-head"><h2>8. Troubleshoot</h2></div>
+<table class="spec">
+<tr><th>Symptom</th><td>Cause / fix</td></tr>
+<tr><th>Timestamps are off by a fixed offset</th><td>RTU Time Zone does not match the zone the RTU expresses CP56Time2a in; correct it and reconnect.</td></tr>
+<tr><th>Points never populate on connect</th><td>Confirm Interrogate On Connect is true, or issue a manual general interrogation.</td></tr>
+<tr><th>Unexpected disconnects under load</th><td>Review Window k / Window w and the t1/t2/t3 timers against the RTU's own configuration; a mismatch on these values is a common source of link resets.</td></tr>
+</table>
+</div></section>
+<section id="reference"><div class="wrap"><div class="sec-head"><h2>9. Reference</h2></div>
+<table class="spec">
+<tr><th>Module id</th><td><code>com.greenguard.drivers.iec104</code></td></tr>
+<tr><th>Default port</th><td>TCP 2404</td></tr>
+<tr><th>Status endpoint</th><td><code>GET /data/com.greenguard.drivers.iec104/status.json</code></td></tr>
+<tr><th>Not implemented in v1</th><td>Control-direction commands, counter interrogation, file transfer, parameter loading, secure 104 (TLS)</td></tr>
+</table>
+</div></section>
+<section class="band" id="support"><div class="wrap"><div class="sec-head"><h2>10. Support</h2></div>
+<p>Docs page section: <a href="/sparkbridge/docs#iec104">/sparkbridge/docs#iec104</a>.
+Contact: <a href="/sparkbridge/contact">/sparkbridge/contact</a>.
+Release downloads and checksums: <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases">GitHub releases</a>.</p>
+</div></section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download" aria-current="page">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>
+

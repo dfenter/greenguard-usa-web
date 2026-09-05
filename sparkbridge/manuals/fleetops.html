@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FleetOps user manual | SparkBridge</title>
+<meta name="description" content="User manual for FleetOps: install, license, configure, operate, verify and troubleshoot.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/fleetops">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+<body class="docs">
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>FleetOps</h1>
+  <p>FleetOps operates many Ignition gateways as one fleet: an agent on each gateway reports its real state, a console holds desired state, and the difference is drift.</p>
+  <div class="pmeta"><span class="stat">Version 0.2.0</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: Host (console) and every fleet gateway (agent)</span></div>
+</div></header>
+<main id="main">
+<section id="contents"><div class="wrap"><div class="sec-head"><h2>Contents</h2></div><ol><li><a href="#overview">1. Overview</a></li><li><a href="#requirements">2. What You Need</a></li><li><a href="#install">3. Install</a></li><li><a href="#license">4. License</a></li><li><a href="#configure">5. Configure</a></li><li><a href="#operate">6. Operate</a></li><li><a href="#verify">7. Verify</a></li><li><a href="#troubleshoot">8. Troubleshoot</a></li><li><a href="#reference">9. Reference</a></li><li><a href="#support">10. Support</a></li></ol></div></section>
+<section id="overview"><div class="wrap"><div class="sec-head"><h2>1. Overview</h2></div>
+<p>FleetOps operates many Ignition gateways as one fleet. An agent module on each gateway reports its real state (module versions, project hash, certificates, backups); a console module at the center holds what each gateway is supposed to be, as a signed desired-state document, and reports the difference as drift. A signed channel carries desired state and a closed, allowlisted set of imperative actions from console to agents.</p>
+<p>FleetOps is not a general remote-execution tool: only allowlisted actions run, and each requires a valid signature.</p>
+</div></section>
+<section class="band" id="requirements"><div class="wrap"><div class="sec-head"><h2>2. What You Need</h2></div>
+<ul>
+<li>A SparkBridge Host gateway to run the console role.</li>
+<li>The agent role installed on every gateway that is a fleet member.</li>
+<li>The signed FleetOps module from the SparkBridge bundle.</li>
+<li>A P-256 signing key pair for issuing desired state and signed actions.</li>
+</ul>
+</div></section>
+<section id="install"><div class="wrap"><div class="sec-head"><h2>3. Install</h2></div>
+<p>FleetOps carries its own license. Install the signed module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required. Install the agent role on every fleet member and the console role on the gateway that will act as the center.</p>
+</div></section>
+<section class="band" id="license"><div class="wrap"><div class="sec-head"><h2>4. License</h2></div>
+<p>See the README in the bundle for licensing detail.</p>
+</div></section>
+<section id="configure"><div class="wrap"><div class="sec-head"><h2>5. Configure</h2></div>
+<p>A JVM system property wins over the properties file; otherwise settings come from <code>&lt;dataDir&gt;/fleetops/fleetops.properties</code>. Secrets are the exception: the broker password and REST token come only from the file named by <code>fleetops.secrets.file</code>, which must be mode 600.</p>
+<table class="spec">
+<tr><th><code>fleetops.agent.enabled</code></th><td>false by default; a module dropped on a gateway must not silently join a fleet.</td></tr>
+<tr><th><code>fleetops.console.enabled</code></th><td>false by default.</td></tr>
+<tr><th><code>fleetops.broker.uri</code></th><td>default <code>tcp://127.0.0.1:1883</code>.</td></tr>
+<tr><th><code>fleetops.trustedkey</code></th><td>base64 P-256 public key. Absent means the agent reports and accepts nothing.</td></tr>
+<tr><th><code>fleetops.action.allowlist</code></th><td>comma-separated action names; empty means no action is permitted.</td></tr>
+<tr><th><code>fleetops.action.certReplaceEnabled</code></th><td>false by default; second explicit local gate for the private-key-bearing CERT_REPLACE action.</td></tr>
+<tr><th><code>fleetops.agent.intervalSeconds</code></th><td>default 60, floor of 5; this is also the drift-detection latency.</td></tr>
+</table>
+<p>Full property list is in the module README's Configuration section. Desired-state templates let the same shape be applied to many sites at once via <code>apply-template</code>, instead of hand-writing one properties document per gateway.</p>
+</div></section>
+<section class="band" id="operate"><div class="wrap"><div class="sec-head"><h2>6. Operate</h2></div>
+<p>The agent reports on <code>fleetops.agent.intervalSeconds</code>, which is also the drift-detection latency (floor 5 seconds, default 60). The console evicts fleet rows that go stale relative to when the agent actually collected them (TTL on <code>collectedAt</code>, not on receipt); use the <code>evict</code> CLI command to retract retained state for a renamed or decommissioned site by hand. Watch the drift report for module-version, configuration, certificate-expiry and backup-status differences from desired state.</p>
+</div></section>
+<section id="verify"><div class="wrap"><div class="sec-head"><h2>7. Verify</h2></div>
+<p>Use the operator CLI to publish desired state and issue a signed action, then confirm the fleet converges:</p>
+<pre class="code">java -jar ... publish-desired --key fleet-signing.key --site Austin/Site12 \
+        --file desired.properties --version 2026-08-16.1 --broker tcp://host:1883
+java -jar ... watch --broker tcp://host:1883 --seconds 30 --report drift</pre>
+<p>Full multi-site rig proof is in <code>docs/LIVEPROOF.md</code> and <code>docs/rig-transcript.txt</code> in the repo.</p>
+</div></section>
+<section class="band" id="troubleshoot"><div class="wrap"><div class="sec-head"><h2>8. Troubleshoot</h2></div>
+<div class="scroller"><table class="tbl">
+<thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>Agent reports nothing to the console</td><td><code>fleetops.trustedkey</code> not set on the agent</td><td>Set the console's public key on the agent; absent, the agent accepts nothing</td></tr>
+<tr><td>Signed action rejected</td><td>Action name not in <code>fleetops.action.allowlist</code></td><td>Add the action name to the allowlist on the target gateway</td></tr>
+<tr><td>Certificate replacement refuses to run</td><td><code>fleetops.action.certReplaceEnabled</code> is false (default)</td><td>Set it true only after accepting that the action carries a private key</td></tr>
+<tr><td>Site shows as stale in the console</td><td>Agent has not reported within the TTL window</td><td>Check the agent's <code>fleetops.agent.intervalSeconds</code> and network path to the broker; use <code>evict</code> to retract a decommissioned site</td></tr>
+</tbody>
+</table></div>
+</div></section>
+<section id="reference"><div class="wrap"><div class="sec-head"><h2>9. Reference</h2></div>
+<ul>
+<li>Agent poll floor: 5 seconds; default 60 seconds.</li>
+<li>Secrets file must be mode 600.</li>
+<li>Download: <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/fleetops-v0.2.0">FleetOps 0.2.0, signed module</a>.</li>
+</ul>
+</div></section>
+<section class="band" id="support"><div class="wrap"><div class="sec-head"><h2>10. Support</h2></div>
+<p><a href="/sparkbridge/docs#fleetops">FleetOps in the docs</a> &middot; <a href="/sparkbridge/central#fleetops">FleetOps on the Host product page</a> &middot; <a href="/sparkbridge/contact">Contact</a> &middot; <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases">GitHub releases</a></p>
+</div></section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> &middot; <a href="/sparkbridge/technology">Technology</a> &middot; <a href="/sparkbridge/benchmarks">Benchmarks</a> &middot; <a href="/sparkbridge/roadmap">Roadmap</a> &middot; <a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

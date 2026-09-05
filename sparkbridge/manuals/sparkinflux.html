@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkInflux user manual | SparkBridge</title>
+<meta name="description" content="Install, license, configure, and operate SparkInflux: an InfluxDB tag-history provider for Ignition 8.1 and 8.3 with store-and-forward and streaming reads.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/sparkinflux">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+<body class="docs">
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>SparkInflux</h1>
+  <p>An InfluxDB tag-history provider for Ignition, covering both 8.1.19+ (<span class="mono">TagHistoryProvider</span>) and 8.3.2+ (<span class="mono">AbstractHistorian</span>), with pipelined writes, disk store-and-forward, and streaming reads.</p>
+  <div class="pmeta"><span class="stat">Version 0.2.0</span><span>Ignition 8.1.19+ and 8.3.2+</span><span>Runs on: any gateway</span></div>
+</div></header>
+
+<main id="main">
+
+<section id="contents"><div class="wrap">
+<ol>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#requirements">What You Need</a></li>
+<li><a href="#install">Install</a></li>
+<li><a href="#license">License</a></li>
+<li><a href="#configure">Configure</a></li>
+<li><a href="#operate">Operate</a></li>
+<li><a href="#verify">Verify</a></li>
+<li><a href="#troubleshoot">Troubleshoot</a></li>
+<li><a href="#reference">Reference</a></li>
+<li><a href="#support">Support</a></li>
+</ol>
+</div></section>
+
+<section id="overview"><div class="wrap"><div class="sec-head">
+<h2>1. Overview</h2>
+</div>
+<p>SparkInflux is a tag-history provider that writes Ignition tag history to InfluxDB (1.8, 2.x, or 3.x) instead of Ignition's default SQL history. One codebase covers Ignition 8.1.19+ via <span class="mono">TagHistoryProvider</span> and 8.3.2+ via <span class="mono">AbstractHistorian</span> (sibling repo <span class="mono">sparkinflux-83</span>). Writes are pipelined and gzip-compressed by default, buffered to a disk ring during an InfluxDB outage instead of being dropped, and reads stream row-by-row with server-side aggregate pushdown instead of materializing the full result set in memory.</p>
+<p>A gateway can run several providers at once, each with its own connection, write pipeline, and store-and-forward ring. SparkInflux is a standalone paid product, never bundled into SparkBridge itself.</p>
+</div></section>
+
+<section class="band" id="requirements"><div class="wrap"><div class="sec-head">
+<h2>2. What You Need</h2>
+</div>
+<ul>
+<li>Ignition 8.1.19+ or 8.3.2+.</li>
+<li>An InfluxDB server: version 1.8, 2.x, or 3.x.</li>
+<li>No other SparkBridge module is required. SparkInflux is standalone with its own license.</li>
+</ul>
+</div></section>
+
+<section id="install"><div class="wrap"><div class="sec-head">
+<h2>3. Install</h2>
+</div>
+<ol>
+<li>Install the signed SparkInflux module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required for the release bundle.</li>
+<li>Signed release builds need a real certificate; a development build produces an unsigned <span class="mono">.modl</span> that prompts the same untrusted-certificate warning on install.</li>
+</ol>
+</div></section>
+
+<section class="band" id="license"><div class="wrap"><div class="sec-head">
+<h2>4. License</h2>
+</div>
+<p>Runs on Ignition's 2-hour module trial until licensed, same as every SparkBridge-suite module. Drop a <span class="mono">sparkbridge-license.key</span> in the gateway's data directory to lift the pause within 30 seconds; this clears the license label on <span class="mono">status.json</span>. Standalone paid product; never bundled into SparkBridge itself.</p>
+</div></section>
+
+<section id="configure"><div class="wrap"><div class="sec-head">
+<h2>5. Configure</h2>
+</div>
+<ol>
+<li>Config &gt; SparkInflux &gt; Providers &gt; Add. Fill in Name, InfluxDB Version (V1/V2/V3), URL, Token, Org, Bucket, then Save. The row starts its own connection, write pipeline, and store-and-forward ring immediately, no gateway restart.</li>
+<li>In Designer, open a tag's History properties, set History Provider to the provider name just created, and set a sample or scan-class rate. There is no headless gateway-web path to create or edit tag history; this step needs Designer.</li>
+</ol>
+<table class="spec">
+<tr><th>Category</th><td>Fields</td></tr>
+<tr><th>Connection</th><td>Name, Enabled, Version (V1/V2/V3), Url, Token, Org, Bucket</td></tr>
+<tr><th>Write</th><td>Measurement, Gzip, Concurrent Write Requests, Batch Size, Flush Interval, Store-and-Forward Cap, Deadband Enabled/Absolute/Percent/Min Interval/Overrides, Adaptive Batch Enabled/Target Low/Target High/Min/Max</td></tr>
+<tr><th>Read</th><td>Max Query Rows, Browse Cache TTL, Browse Window</td></tr>
+<tr><th>Routing</th><td>Routing Rules (<span class="mono">prefix=bucket[:retentionSeconds]</span>, one per line), Downsample Rules</td></tr>
+<tr><th>Advanced</th><td>Request Timeout</td></tr>
+</table>
+<p>Changing a row restarts only that provider; every other provider on the same gateway keeps its ring buffer and connections untouched. There is no test-connection button on the edit form; use <span class="mono">testcreate.json</span> or the status routes below instead.</p>
+<h3>Deadband / change-only storage</h3>
+<p>Off by default. Per tag path, a numeric value is stored if the absolute move clears Deadband Absolute, the relative move clears Deadband Percent, or Deadband Min Interval has elapsed since the last stored point. Boolean and String values are always change-only. A quality change is always stored regardless of value movement. Deadband Overrides layers per-path rules on top of the provider defaults: <span class="mono">path=abs:0.5,pct:1,min:1000;path2=abs:2</span>. Scripted writes via <span class="mono">system.influx.write()</span> deliberately bypass deadband.</p>
+<h3>Adaptive batch sizing</h3>
+<p>Off by default (fixed Batch Size otherwise). Write latency and any server <span class="mono">Retry-After</span> adjust the effective batch-flush threshold within the configured min/max bounds (default 500 to 50000 lines): low latency grows the batch, high latency or throttling shrinks it, adjusted at most once per 500 ms.</p>
+<h3>Scripting</h3>
+<pre><code>system.influx.providers()
+system.influx.write("influx", None, {"tagPath": "Line1/Temp"}, {"fVal": 72.4})
+rows = system.influx.query("influx", 'from(bucket:"ignition") |> range(start:-1h) |> filter(fn:(r) => r.tagPath == "Line1/Temp")')
+system.influx.status("influx")</code></pre>
+<p>Available from gateway-scope scripts: scan class, tag change script, or gateway event script.</p>
+<h3>Multi-bucket routing and config-as-code</h3>
+<p>A provider's Routing Rules field routes a tag path to the first matching prefix rule, else the provider's own Bucket. <span class="mono">GET /data/com.sparkbridge.sparkinflux/config.json[?includeSecrets=1]</span> returns every provider row as JSON (tokens redacted unless loopback and <span class="mono">includeSecrets=1</span>); <span class="mono">POST</span> to the same path applies the same shape idempotently by name, restarting only changed providers. Omitting <span class="mono">token</span> on an update leaves the existing credential untouched.</p>
+</div></section>
+
+<section class="band" id="operate"><div class="wrap"><div class="sec-head">
+<h2>6. Operate</h2>
+</div>
+<p>Day to day, watch <span class="mono">status.json</span> and <span class="mono">providers.json</span> for read/write lane health per provider. On an InfluxDB outage, writes buffer to a disk ring instead of being dropped, and drain back out on recovery; a full ring is quarantined rather than silently deleted. A malformed write (a 400 partial-write response) quarantines only the offending lines, not the whole batch. Reads use a per-provider in-memory cache for repeated aggregate queries (default 5 s TTL, capped at 50,000 rows and a configurable byte budget), invalidated the moment a write flush touches the same tag paths.</p>
+<p>Downsampling is managed as scheduled Flux tasks via <span class="mono">POST /data/com.sparkbridge.sparkinflux/downsample.json</span> on v1.8/v2 providers; v3 providers return a clear unsupported-operation error since InfluxDB 3.x has no Tasks API yet.</p>
+</div></section>
+
+<section id="verify"><div class="wrap"><div class="sec-head">
+<h2>7. Verify</h2>
+</div>
+<ol>
+<li><span class="mono">GET /data/com.sparkbridge.sparkinflux/selftest.json?provider=&lt;name&gt;&amp;points=300</span> pushes real points through history storage and reads them back, returning <span class="mono">pointsSent</span>, <span class="mono">pointsWritten</span>, <span class="mono">rowsRead</span>, and <span class="mono">ok</span>.</li>
+<li><span class="mono">GET /data/com.sparkbridge.sparkinflux/status.json</span> for product/version/license state, and <span class="mono">GET /data/com.sparkbridge.sparkinflux/providers.json</span> for per-provider read/write lane state.</li>
+<li><span class="mono">GET /data/com.sparkbridge.sparkinflux/schema.json?provider=&lt;name&gt;</span> lists measurements, tag keys, series-cardinality estimates, and warnings (cardinality over 100,000, un-migrated Kymera-style <span class="mono">[provider]</span> prefixes, a measurement name mismatch).</li>
+</ol>
+<p>All status/config routes are loopback-only unless <span class="mono">sparkinflux.rest.readToken</span> is set in the gateway's secrets file, in which case they accept <span class="mono">Authorization: Bearer &lt;token&gt;</span>.</p>
+</div></section>
+
+<section class="band" id="troubleshoot"><div class="wrap"><div class="sec-head">
+<h2>8. Troubleshoot</h2>
+</div>
+<div class="scroller">
+<table class="tbl">
+<tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr>
+<tr><td>No test-connection button on the provider edit form</td><td>By design; not implemented as a Wicket AJAX component</td><td>Save the row, then check <span class="mono">status.json</span> / <span class="mono">providers.json</span>, or run <span class="mono">testcreate.json</span></td></tr>
+<tr><td>Tag history not appearing under a new provider</td><td>Tag's History Provider not set, or scan/sample rate not configured</td><td>In Designer, set the tag's History Provider to the new provider name and set a rate; there is no gateway-web path for this</td></tr>
+<tr><td>Points stop writing during an Influx outage</td><td>Expected; writes buffer to the disk ring instead of being sent</td><td>No action needed; the ring drains automatically on recovery unless it hits its cap, at which point excess is quarantined, not deleted</td></tr>
+<tr><td>One bad line fails an entire write batch</td><td>Should not happen; a 400 partial-write response quarantines only the offending lines</td><td>Check <span class="mono">providers.json</span> for the quarantine count and inspect the quarantined lines</td></tr>
+<tr><td><span class="mono">status.json</span> / <span class="mono">providers.json</span> return nothing over the network</td><td>Routes are loopback-only by default</td><td>Set <span class="mono">sparkinflux.rest.readToken</span> in the gateway secrets file and pass <span class="mono">Authorization: Bearer &lt;token&gt;</span></td></tr>
+<tr><td>Downsample request fails on a V3 provider</td><td>InfluxDB 3.x has no Tasks API</td><td>Use downsampling only on v1.8/v2 providers, or downsample externally for v3</td></tr>
+<tr><td>Aggregate reads look stale immediately after a write</td><td>Should not happen; cache is invalidated on write flush for touched tag paths</td><td>Confirm the write actually flushed (check batch/flush interval settings); otherwise report as a bug</td></tr>
+<tr><td>Config.json includeSecrets returns redacted tokens</td><td>Not on loopback, even with a valid read token</td><td>Call <span class="mono">includeSecrets=1</span> from the gateway host itself; a read token only grants health polling, not credential export</td></tr>
+</table>
+</div>
+</div></section>
+
+<section id="reference"><div class="wrap"><div class="sec-head">
+<h2>9. Reference</h2>
+</div>
+<table class="spec">
+<tr><th>Item</th><td>Value</td></tr>
+<tr><th>REST base</th><td><span class="mono">/data/com.sparkbridge.sparkinflux</span></td></tr>
+<tr><th>Selftest</th><td><span class="mono">GET .../selftest.json?provider=&lt;name&gt;&amp;points=300</span></td></tr>
+<tr><th>Status</th><td><span class="mono">GET .../status.json</span>, <span class="mono">GET .../providers.json</span></td></tr>
+<tr><th>Schema inspector</th><td><span class="mono">GET .../schema.json?provider=&lt;name&gt;</span></td></tr>
+<tr><th>Test-and-create</th><td><span class="mono">GET .../testcreate.json?provider=&lt;name&gt;[&amp;createBucket=1&amp;retentionSeconds=N]</span></td></tr>
+<tr><th>Config-as-code</th><td><span class="mono">GET/POST .../config.json[?includeSecrets=1]</span></td></tr>
+<tr><th>Downsampling</th><td><span class="mono">POST .../downsample.json?provider=&amp;source=&amp;target=&amp;every=&amp;fn=[&amp;name=]</span> (v1.8/v2 only)</td></tr>
+<tr><th>Read token</th><td>Gateway secret <span class="mono">sparkinflux.rest.readToken</span>, else loopback-only</td></tr>
+<tr><th>Adaptive batch bounds</th><td>Default min 500, max 50,000 lines; adjusts at most once per 500 ms</td></tr>
+<tr><th>Read cache</th><td>Default 5 s TTL, 50,000-row cap, configurable byte budget, LRU-evicted</td></tr>
+<tr><th>Sibling repo</th><td><span class="mono">sparkinflux-83</span> for the Ignition 8.3.2+ <span class="mono">AbstractHistorian</span> line</td></tr>
+<tr><th>License key path</th><td><span class="mono">&lt;data&gt;/sparkbridge-license.key</span>, re-read within 30 s</td></tr>
+</table>
+</div></section>
+
+<section class="band" id="support"><div class="wrap"><div class="sec-head">
+<h2>10. Support</h2>
+</div>
+<p><a href="/sparkbridge/docs#sparkinflux">SparkInflux install and config reference</a> &middot; <a href="/sparkbridge/contact">Contact</a> &middot; <a href="/sparkbridge/download">Downloads and release notes</a></p>
+</div></section>
+
+<section class="tail">
+  <div class="wrap">
+    <h2>Stuck on a Step</h2>
+    <p>Email the product name, your Ignition version and the gateway log line, and an engineer answers, usually the same day. Development use is free with no time limit.</p>
+    <div class="cta-row">
+      <a class="btn" href="mailto:admin@greenguard-usa.com?subject=SparkBridge%20install%20question&amp;body=Product%3A%0AIgnition%20version%3A%0ALog%20line%3A%0A">Ask an engineer</a>
+      <a class="btn ghost" href="/sparkbridge/download">Downloads</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

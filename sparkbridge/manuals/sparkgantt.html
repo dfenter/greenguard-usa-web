@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkGantt user manual | SparkBridge</title>
+<meta name="description" content="Install, license, configure, and operate SparkGantt: a virtualized Gantt/schedule chart component for Ignition Perspective.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/sparkgantt">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+<body class="docs">
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>SparkGantt</h1>
+  <p>A Gantt/schedule chart component for Ignition Perspective, virtualized to stay smooth past 200 tasks.</p>
+  <div class="pmeta"><span class="stat">Version 2.7.0</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: any gateway (Perspective)</span></div>
+</div></header>
+
+<main id="main">
+
+<section id="contents"><div class="wrap">
+<ol>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#requirements">What You Need</a></li>
+<li><a href="#install">Install</a></li>
+<li><a href="#license">License</a></li>
+<li><a href="#configure">Configure</a></li>
+<li><a href="#operate">Operate</a></li>
+<li><a href="#verify">Verify</a></li>
+<li><a href="#troubleshoot">Troubleshoot</a></li>
+<li><a href="#reference">Reference</a></li>
+<li><a href="#support">Support</a></li>
+</ol>
+</div></section>
+
+<section id="overview"><div class="wrap"><div class="sec-head">
+<h2>1. Overview</h2>
+</div>
+<p>SparkGantt is a Perspective component that renders a Gantt/schedule chart bound to tasks, groups, and dependency data from a dataset or from bindings. It virtualizes rows, labels, and dependency-arrow rendering once a view crosses 200 tasks, so scrolling and zooming stay responsive on large schedules. One source tree builds separate lines for Ignition 8.1 and 8.3.</p>
+<p>SparkGantt is a display and interaction component, not a scheduling engine: it does not compute critical path, resource leveling, or auto-scheduling. It renders the tasks, groups, and dependencies you bind to it and reports drag/resize interactions back through its properties.</p>
+</div></section>
+
+<section class="band" id="requirements"><div class="wrap"><div class="sec-head">
+<h2>2. What You Need</h2>
+</div>
+<ul>
+<li>Ignition 8.1 or 8.3, with the Perspective module enabled (separate build lines from one source tree).</li>
+<li>No other SparkBridge module is required. SparkGantt is a standalone product with its own license.</li>
+</ul>
+</div></section>
+
+<section id="install"><div class="wrap"><div class="sec-head">
+<h2>3. Install</h2>
+</div>
+<ol>
+<li>Download the signed SparkGantt <span class="mono">.modl</span> matching your Ignition line (8.1 or 8.3).</li>
+<li>Gateway web UI &gt; Config &gt; Modules &gt; Install or Upgrade a Module, upload the file, accept the EULA (see <span class="mono">license.html</span> at the repository root). Module id <span class="mono">com.sparkbridge.sparkgantt</span>.</li>
+<li>If self-signed, accept the untrusted-certificate warning to complete install.</li>
+<li>The component appears in the Designer Perspective palette after install; no build step or restart beyond the module install itself is required.</li>
+</ol>
+</div></section>
+
+<section class="band" id="license"><div class="wrap"><div class="sec-head">
+<h2>4. License</h2>
+</div>
+<p>Soft-licensed the same way as other SparkBridge-suite modules, keyed to entitlement <span class="mono">com.sparkbridge.sparkgantt</span>. Drop <span class="mono">sparkbridge-license.key</span> in the gateway's data directory; the module re-reads it within 30 seconds. A missing license key only labels status surfaces and does not gate use. A present-but-invalid or tampered key fails startup closed and the component is not registered. Standalone paid product, sold and licensed on its own, never bundled into SparkBridge itself.</p>
+</div></section>
+
+<section id="configure"><div class="wrap"><div class="sec-head">
+<h2>5. Configure</h2>
+</div>
+<p>SparkGantt is configured entirely in the Ignition Designer property panel; there is no gateway config page.</p>
+<table class="spec">
+<tr><th>Property</th><td>Meaning</td></tr>
+<tr><th><span class="mono">tasks</span></th><td>Bound task list or dataset. Schema per task: id, label, start, end, progress (0-1), group, color, dependencies, milestone, tooltip.</td></tr>
+<tr><th><span class="mono">groups</span></th><td>Bound group list; each group needs id and label.</td></tr>
+<tr><th><span class="mono">datasetMapping</span></th><td>Maps dataset columns to the task schema fields when binding a raw dataset instead of an object array.</td></tr>
+<tr><th><span class="mono">range</span></th><td>Visible time range: start, end, auto.</td></tr>
+<tr><th><span class="mono">scale</span></th><td>Time-axis scale: auto, hour, day, week, month.</td></tr>
+<tr><th><span class="mono">rowHeight</span></th><td>Pixel row height; clamped at runtime to a bounded min/max regardless of what a binding supplies.</td></tr>
+<tr><th><span class="mono">showToday</span></th><td>Shows today's date marker.</td></tr>
+<tr><th><span class="mono">nowLine</span></th><td>Shows a live now-line. Not independently controllable from <span class="mono">showToday</span> in the current release.</td></tr>
+<tr><th><span class="mono">readOnly</span></th><td>Disables drag/resize interaction when true.</td></tr>
+<tr><th><span class="mono">selection</span></th><td>Bound selected task id.</td></tr>
+<tr><th><span class="mono">style</span></th><td>Style tokens; dark-theme aware.</td></tr>
+</table>
+<p>A malformed row (missing mapping column, invalid id, non-finite date, duplicate id) is not silently dropped: it is excluded from the chart and reported in a data-quality banner (<span class="mono">.sparkgantt-data-quality-banner</span>) showing a count with the first 20 reasons in a tooltip. An interval with <span class="mono">end</span> before <span class="mono">start</span> is rejected outright rather than clamped to zero duration.</p>
+</div></section>
+
+<section class="band" id="operate"><div class="wrap"><div class="sec-head">
+<h2>6. Operate</h2>
+</div>
+<p>Day to day, watch the data-quality banner on any view whose task binding comes from a live dataset; a nonzero issue count means some rows are not rendering. Virtualization engages automatically above 200 tasks; below that threshold every row, label, and dependency arrow renders in full. Drag and resize interactions write back through the bound task properties when <span class="mono">readOnly</span> is false.</p>
+</div></section>
+
+<section id="verify"><div class="wrap"><div class="sec-head">
+<h2>7. Verify</h2>
+</div>
+<ul>
+<li>Place the component in a Perspective view, bind <span class="mono">tasks</span> and <span class="mono">groups</span>, and confirm the chart renders with no data-quality banner.</li>
+<li>Load a 200+ task dataset and confirm scrolling stays smooth; this is the point virtualization engages.</li>
+<li>Drag a task bar (with <span class="mono">readOnly</span> false) and confirm the bound start/end update.</li>
+</ul>
+<p>An optional status route exists for licensing telemetry; it is soft and never gates chart functionality.</p>
+</div></section>
+
+<section class="band" id="troubleshoot"><div class="wrap"><div class="sec-head">
+<h2>8. Troubleshoot</h2>
+</div>
+<div class="scroller">
+<table class="tbl">
+<tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr>
+<tr><td>Data-quality banner shows dropped rows</td><td>Missing mapping column, invalid id, non-finite date, or duplicate id in the bound dataset</td><td>Open the banner tooltip for the first 20 reasons and fix the source rows; the chart still renders the valid rows</td></tr>
+<tr><td>A task with end before start never appears</td><td>Reversed interval is rejected, not clamped</td><td>Fix the source data so end is not before start</td></tr>
+<tr><td>Component not in the Designer palette after install</td><td>Wrong build line installed for the gateway's Ignition version</td><td>Reinstall the <span class="mono">.modl</span> matching 8.1 or 8.3</td></tr>
+<tr><td>Component fails to register at all</td><td>License key present but invalid or tampered</td><td>Replace <span class="mono">sparkbridge-license.key</span> with a valid key</td></tr>
+<tr><td>Scrolling is choppy on a large schedule</td><td>Dataset under the 200-task virtualization threshold but very complex bindings, or a very old build without the virtualization fixes</td><td>Upgrade to 2.7.0 or later; virtualization covers rows, labels, and dependency arrows uniformly above 200 tasks</td></tr>
+</table>
+</div>
+</div></section>
+
+<section id="reference"><div class="wrap"><div class="sec-head">
+<h2>9. Reference</h2>
+</div>
+<table class="spec">
+<tr><th>Item</th><td>Value</td></tr>
+<tr><th>Module id</th><td><span class="mono">com.sparkbridge.sparkgantt</span></td></tr>
+<tr><th>License key path</th><td><span class="mono">&lt;data&gt;/sparkbridge-license.key</span>, re-read within 30 s</td></tr>
+<tr><th>Virtualization threshold</th><td>Engages above 200 tasks (rows, labels, and dependency arrows)</td></tr>
+<tr><th>Task schema</th><td>id, label, start, end, progress, group, color, dependencies, milestone, tooltip</td></tr>
+<tr><th>Build lines</th><td>Ignition 8.1 and 8.3, one source tree</td></tr>
+</table>
+</div></section>
+
+<section class="band" id="support"><div class="wrap"><div class="sec-head">
+<h2>10. Support</h2>
+</div>
+<p><a href="/sparkbridge/docs#sparkgantt">SparkGantt install and config reference</a> &middot; <a href="/sparkbridge/contact">Contact</a> &middot; <a href="/sparkbridge/download">Downloads and release notes</a></p>
+</div></section>
+
+<section class="tail">
+  <div class="wrap">
+    <h2>Stuck on a Step</h2>
+    <p>Email the product name, your Ignition version and the gateway log line, and an engineer answers, usually the same day. Development use is free with no time limit.</p>
+    <div class="cta-row">
+      <a class="btn" href="mailto:admin@greenguard-usa.com?subject=SparkBridge%20install%20question&amp;body=Product%3A%0AIgnition%20version%3A%0ALog%20line%3A%0A">Ask an engineer</a>
+      <a class="btn ghost" href="/sparkbridge/download">Downloads</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkNotify user manual | SparkBridge</title>
+<meta name="description" content="Install, license, configure, and operate SparkNotify: omnichannel Ignition alarm notification across Slack, Teams, Telegram, WhatsApp, Twilio, Discord, PagerDuty, Email, and webhooks.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/sparknotify">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+<body class="docs">
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>SparkNotify</h1>
+  <p>An Ignition alarm notification profile module covering Slack, Teams, Telegram, WhatsApp, Twilio SMS and Voice, Discord, PagerDuty, Email, and generic webhooks.</p>
+  <div class="pmeta"><span class="stat">Version 0.2.0</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: any gateway</span></div>
+</div></header>
+
+<main id="main">
+
+<section id="contents"><div class="wrap">
+<ol>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#requirements">What You Need</a></li>
+<li><a href="#install">Install</a></li>
+<li><a href="#license">License</a></li>
+<li><a href="#configure">Configure</a></li>
+<li><a href="#operate">Operate</a></li>
+<li><a href="#verify">Verify</a></li>
+<li><a href="#troubleshoot">Troubleshoot</a></li>
+<li><a href="#reference">Reference</a></li>
+<li><a href="#support">Support</a></li>
+</ol>
+</div></section>
+
+<section id="overview"><div class="wrap"><div class="sec-head">
+<h2>1. Overview</h2>
+</div>
+<p>SparkNotify is an Ignition alarm notification profile module. It fans an alarm pipeline out to whichever combination of Slack, Teams, Telegram, WhatsApp, Twilio SMS or Voice, Discord, PagerDuty, SMTP Email, or a generic webhook a plant wants, all from the standard Ignition alarm notification pipeline mechanism. Released for both the Ignition 8.1 and 8.3 lines, built from a shared design with per-line differences noted below.</p>
+<p>SparkNotify does not create or manage alarms; it is a delivery channel invoked from an alarm pipeline's Notification block, the same as Ignition's built-in Email/SMS notification profiles.</p>
+</div></section>
+
+<section class="band" id="requirements"><div class="wrap"><div class="sec-head">
+<h2>2. What You Need</h2>
+</div>
+<ul>
+<li>Ignition 8.1 or 8.3 (separate modl per line; see 8.3 differences under Configure).</li>
+<li>Credentials for whichever channel or channels you configure: webhook URLs, bot tokens, API keys, or SMTP credentials.</li>
+<li>No other SparkBridge module is required. SparkNotify is standalone with its own license.</li>
+</ul>
+</div></section>
+
+<section id="install"><div class="wrap"><div class="sec-head">
+<h2>3. Install</h2>
+</div>
+<ol>
+<li>Gateway web UI &gt; Config &gt; Modules &gt; Install or Upgrade a Module, upload the <span class="mono">.modl</span> file matching your Ignition line, accept the EULA (see <span class="mono">license.html</span> at the repository root).</li>
+<li>If the module is self-signed, the gateway warns about an untrusted certificate; accept or trust it to complete install.</li>
+<li>Confirm Config &gt; Modules shows SparkNotify state = Running.</li>
+</ol>
+</div></section>
+
+<section class="band" id="license"><div class="wrap"><div class="sec-head">
+<h2>4. License</h2>
+</div>
+<p>An unlicensed install runs on Ignition's 2-hour module trial clock, same as every SparkBridge-suite module. When it expires, sends stop silently with no error shown anywhere. Reset it from the gateway home page (<span class="mono">/web/home</span> &gt; Reset Trial) for further trial use, or license the module for production use by dropping <span class="mono">sparkbridge-license.key</span> in the gateway's data directory (re-read within 30 seconds). See the README in the bundle for pricing.</p>
+</div></section>
+
+<section id="configure"><div class="wrap"><div class="sec-head">
+<h2>5. Configure</h2>
+</div>
+<h3>8.1</h3>
+<ol>
+<li>Config &gt; Alarming &gt; Notification &gt; Create New Notification Profile &gt; type SparkNotify. Create one profile per channel.</li>
+<li>Fill in the fields for the chosen channel (see table below).</li>
+<li>Designer &gt; Alarm Notification &gt; Rosters: add at least one user with a Contact Info entry whose type matches a configured profile's channel. An empty roster produces a log line and nothing sends.</li>
+<li>Build an alarm pipeline: Start -&gt; Notification (profiles + roster) -&gt; Delay -&gt; loop back to Notification, with Acknowledged, Cleared, and Shelved set as dropout conditions.</li>
+<li>On the tag's Alarms tab, set Active Pipeline to the pipeline just built.</li>
+<li>For a gateway-scope tag alarm, set Config &gt; System &gt; Gateway Settings &gt; Gateway Scripting Project to the project containing the alarm pipeline, or the alarm fires but never reaches the pipeline.</li>
+</ol>
+<table class="spec">
+<tr><th>Channel</th><td>Required fields</td></tr>
+<tr><th>Slack</th><td><span class="mono">SlackWebhookUrl</span></td></tr>
+<tr><th>Teams</th><td><span class="mono">TeamsWebhookUrl</span></td></tr>
+<tr><th>Telegram</th><td><span class="mono">TelegramBotToken</span>, <span class="mono">TelegramChatId</span>, optional <span class="mono">TelegramApiBaseUrl</span></td></tr>
+<tr><th>WhatsApp</th><td><span class="mono">WhatsAppPhoneNumberId</span>, <span class="mono">WhatsAppAccessToken</span>, <span class="mono">WhatsAppToNumber</span>, <span class="mono">WhatsAppTemplateName</span>, <span class="mono">WhatsAppLanguageCode</span></td></tr>
+<tr><th>Twilio SMS / Voice</th><td><span class="mono">TwilioAccountSid</span>, <span class="mono">TwilioAuthToken</span>, <span class="mono">TwilioFromNumber</span>, <span class="mono">TwilioToNumber</span>, optional <span class="mono">TwilioApiBaseUrl</span></td></tr>
+<tr><th>Discord</th><td><span class="mono">DiscordWebhookUrl</span></td></tr>
+<tr><th>PagerDuty</th><td><span class="mono">PagerDutyRoutingKey</span></td></tr>
+<tr><th>Email (SMTP)</th><td><span class="mono">EmailSmtpHost</span>, <span class="mono">EmailSmtpPort</span>, <span class="mono">EmailSmtpUser</span>, <span class="mono">EmailSmtpPass</span>, <span class="mono">EmailUseTls</span>, <span class="mono">EmailFrom</span>, <span class="mono">EmailTo</span>, <span class="mono">EmailAllowLoopbackRelay</span>, <span class="mono">EmailAllowPrivateRelay</span></td></tr>
+<tr><th>Webhook (generic)</th><td><span class="mono">WebhookUrl</span>, optional <span class="mono">WebhookHmacSecret</span></td></tr>
+</table>
+<p>Common fields across all channels: <span class="mono">MessageTemplate</span>, <span class="mono">ThrottledMessageTemplate</span>, <span class="mono">RepeatDelayMillis</span>, <span class="mono">MaxRepeats</span>, <span class="mono">DedupeWindowMillis</span>, and <span class="mono">AckEnabled</span>, <span class="mono">AckHmacSecret</span>, <span class="mono">AckBaseUrl</span> for the acknowledge-link feature.</p>
+<p>Ignition ships only three built-in contact types: EMAIL, SMS, and PHONE. SparkNotify maps Slack and Email to EMAIL; Telegram, WhatsApp, and Twilio SMS to SMS; Teams, Webhook, and Twilio Voice to PHONE; and defines two custom types, <span class="mono">discord</span> and <span class="mono">pagerduty</span>. A roster user routes to the first profile matching one of their contact types, so fanning out to multiple channels that share a contact type needs one roster user per profile.</p>
+<h3>8.3 differences</h3>
+<ul>
+<li>Notification profiles are configured through the newer resource-config (project/resource-based) UI rather than the legacy Config &gt; Alarming &gt; Notification page, depending on how the install exposes it; check both locations if the profile type does not appear where expected.</li>
+<li>Per-channel roster routing on 8.3 mirrors 8.1's channel-to-ContactType mapping exactly, including the custom <span class="mono">discord</span> and <span class="mono">pagerduty</span> types, so the multi-channel fan-out above works the same way on both lines.</li>
+<li>The seven credential fields (Telegram bot token, WhatsApp access token, Twilio auth token, webhook HMAC secret, PagerDuty routing key, SMTP password, ack HMAC secret) are Ignition <span class="mono">SecretConfig</span> values on 8.3, encrypted at rest and entered through the SECRET form field. An 8.1 profile upgraded in place has these migrated automatically; nothing needs re-entering. The three non-secret fields <span class="mono">AckBaseUrl</span>, <span class="mono">EmailAllowLoopbackRelay</span>, and <span class="mono">EmailAllowPrivateRelay</span> are also carried through the migration.</li>
+</ul>
+</div></section>
+
+<section class="band" id="operate"><div class="wrap"><div class="sec-head">
+<h2>6. Operate</h2>
+</div>
+<p>Day to day, alarms fire through their assigned pipeline and SparkNotify sends on the configured channels. Repeats continue on the pipeline's Delay loop until a dropout condition (Acknowledged, Cleared, Shelved) is met; make sure those are wired as dropout conditions or repeats never stop. Watch the per-profile status route for send failures rather than waiting for a user to report a missed alert.</p>
+</div></section>
+
+<section id="verify"><div class="wrap"><div class="sec-head">
+<h2>7. Verify</h2>
+</div>
+<ol>
+<li>Force the tag past its setpoint. Gateway web UI &gt; Status &gt; Alarming &gt; Alarm Pipelines should show Active = true, Items = 1 while unacked.</li>
+<li><span class="mono">GET /data/sparknotify/status.json</span> reports per-profile status and sent counts (requires an authenticated gateway session; returns 401 if not logged into the gateway web UI first).</li>
+<li>With <span class="mono">AckEnabled</span>, <span class="mono">AckHmacSecret</span>, and <span class="mono">AckBaseUrl</span> all set, the delivered message includes an acknowledge link at <span class="mono">&lt;AckBaseUrl&gt;/data/sparknotify/ack/link/&lt;profile&gt;?event=&lt;uuid&gt;&amp;sig=&lt;hmac&gt;</span>. Opening it returns <span class="mono">{"acknowledged":true}</span> and acks the alarm in Ignition.</li>
+</ol>
+</div></section>
+
+<section class="band" id="troubleshoot"><div class="wrap"><div class="sec-head">
+<h2>8. Troubleshoot</h2>
+</div>
+<div class="scroller">
+<table class="tbl">
+<tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr>
+<tr><td>Alarm fires but nothing sends</td><td>Roster has no user with a Contact Info entry matching a configured profile's channel</td><td>Add a roster user with a matching contact type; check the gateway log for the empty-roster line</td></tr>
+<tr><td>Gateway-scope tag alarm never reaches the pipeline</td><td>Gateway Scripting Project not set to the project containing the pipeline</td><td>Config &gt; System &gt; Gateway Settings &gt; Gateway Scripting Project</td></tr>
+<tr><td>Pipeline never executes at all</td><td>Notification block not wired into the path from Start</td><td>Check the pipeline canvas; the block must be reachable from Start, not floating disconnected</td></tr>
+<tr><td>Repeats never stop after ack</td><td>Dropout Conditions missing Acknowledged</td><td>Add Acknowledged (and Cleared/Shelved) as dropout conditions on the pipeline/Notification block</td></tr>
+<tr><td><span class="mono">status.json</span> shows a profile status that isn't Good</td><td>Bad credential, URL, or token in the profile</td><td>Check the gateway log for the channel's send error; re-verify the field against the channel table</td></tr>
+<tr><td><span class="mono">GET /data/sparknotify/status.json</span> returns 401</td><td>Not authenticated as a gateway user, or session expired</td><td>Log into the gateway web UI first; SparkNotify's status route requires an authenticated session</td></tr>
+<tr><td>Sends silently stop with no error</td><td>Module trial expired and not licensed</td><td>Reset Trial from <span class="mono">/web/home</span> or license the module</td></tr>
+<tr><td>On an 8.3 upgrade, ack link renders empty or a private-relay Email profile stops sending</td><td>An earlier 8.3 build dropped <span class="mono">AckBaseUrl</span>, <span class="mono">EmailAllowLoopbackRelay</span>, and <span class="mono">EmailAllowPrivateRelay</span> during migration</td><td>Upgrade to a build with the 2026-09-01 migration fix, or re-check those three fields on any profile upgraded before it</td></tr>
+</table>
+</div>
+</div></section>
+
+<section id="reference"><div class="wrap"><div class="sec-head">
+<h2>9. Reference</h2>
+</div>
+<table class="spec">
+<tr><th>Item</th><td>Value</td></tr>
+<tr><th>Status route</th><td><span class="mono">GET /data/sparknotify/status.json</span> (authenticated gateway session)</td></tr>
+<tr><th>Ack link route</th><td><span class="mono">GET/POST &lt;AckBaseUrl&gt;/data/sparknotify/ack/link/&lt;profile&gt;?event=&lt;uuid&gt;&amp;sig=&lt;hmac&gt;</span></td></tr>
+<tr><th>License key path</th><td><span class="mono">&lt;data&gt;/sparkbridge-license.key</span>, re-read within 30 s</td></tr>
+<tr><th>Trial behavior</th><td>2-hour clock; expiry stops sends silently; reset via gateway home &gt; Reset Trial</td></tr>
+<tr><th>Built-in Ignition contact types used</th><td>EMAIL, SMS, PHONE, plus custom <span class="mono">discord</span> and <span class="mono">pagerduty</span></td></tr>
+<tr><th>Build lines</th><td>Ignition 8.1 and 8.3, per-line modl</td></tr>
+</table>
+</div></section>
+
+<section class="band" id="support"><div class="wrap"><div class="sec-head">
+<h2>10. Support</h2>
+</div>
+<p><a href="/sparkbridge/docs#sparknotify">SparkNotify install and config reference</a> &middot; <a href="/sparkbridge/contact">Contact</a> &middot; <a href="/sparkbridge/download">Downloads and release notes</a></p>
+</div></section>
+
+<section class="tail">
+  <div class="wrap">
+    <h2>Stuck on a Step</h2>
+    <p>Email the product name, your Ignition version and the gateway log line, and an engineer answers, usually the same day. Development use is free with no time limit.</p>
+    <div class="cta-row">
+      <a class="btn" href="mailto:admin@greenguard-usa.com?subject=SparkBridge%20install%20question&amp;body=Product%3A%0AIgnition%20version%3A%0ALog%20line%3A%0A">Ask an engineer</a>
+      <a class="btn ghost" href="/sparkbridge/download">Downloads</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

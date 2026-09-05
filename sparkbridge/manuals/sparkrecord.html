@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkRecord user manual | SparkBridge</title>
+<meta name="description" content="User manual for SparkRecord: install, license, configure, operate, verify and troubleshoot.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/sparkrecord">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+<body class="docs">
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>SparkRecord</h1>
+  <p>SparkRecord takes structured records off Sparkplug, MQTT and NATS, manages their SQL schema automatically, persists them exactly once, and maintains a per-stream SHA-256 audit chain over the committed rows.</p>
+  <div class="pmeta"><span class="stat">Release pending</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: Host</span></div>
+</div></header>
+<main id="main">
+<section id="contents"><div class="wrap"><div class="sec-head"><h2>Contents</h2></div><ol><li><a href="#overview">1. Overview</a></li><li><a href="#requirements">2. What You Need</a></li><li><a href="#install">3. Install</a></li><li><a href="#license">4. License</a></li><li><a href="#configure">5. Configure</a></li><li><a href="#operate">6. Operate</a></li><li><a href="#verify">7. Verify</a></li><li><a href="#troubleshoot">8. Troubleshoot</a></li><li><a href="#reference">9. Reference</a></li><li><a href="#support">10. Support</a></li></ol></div></section>
+<section id="overview"><div class="wrap"><div class="sec-head"><h2>1. Overview</h2></div>
+<p>SparkRecord is a structured industrial record pipeline for Ignition. It receives three record lanes: Sparkplug B records (Cirrus Transmission Record objects, DataSet and Template metrics), JSON events on arbitrary MQTT topics through topic-to-stream templates, and SparkFlow events over NATS JetStream. Schema is discovered from the payload, versioned in a registry table, and migrated additively only, never destructively. Delivery is exactly once: source and receipt timestamps are stored separately, producer identity rides on every row, persistence is ordered per producer, deduplication is by content hash, and the ledger entry is written in the same transaction as the record. A value that fails type validation lands in a quarantine table with the reason recorded rather than being dropped. Every record's id is a SHA-256 hash over its canonical JSON, chained to the row before it, and a standalone verify CLI walks the chain and reports the first break.</p>
+</div></section>
+<section class="band" id="requirements"><div class="wrap"><div class="sec-head"><h2>2. What You Need</h2></div>
+<ul>
+<li>A SparkBridge Host gateway.</li>
+<li>One of the supported destinations: PostgreSQL, SQL Server, TimescaleDB, Snowflake, or S3-compatible object storage.</li>
+<li>For Sparkplug and MQTT JSON lanes: broker connectivity. For the SparkFlow lane: a NATS JetStream connection.</li>
+</ul>
+</div></section>
+<section id="install"><div class="wrap"><div class="sec-head"><h2>3. Install</h2></div>
+<p>Install the signed module through Config &gt; Modules &gt; Install or Upgrade a Module. Development use is free with no time limit; the module ships with <code>freeModule=false</code> and runs on Ignition's standard two-hour module trial until a verified license key is present.</p>
+<p>Define sources and destinations in <code>&lt;Ignition data dir&gt;/sparkrecord/config.json</code>. If this file is absent or unreadable, the module starts with zero sources rather than refusing to start; a malformed entry inside the file is skipped and logged rather than aborting the whole file.</p>
+</div></section>
+<section class="band" id="license"><div class="wrap"><div class="sec-head"><h2>4. License</h2></div>
+<p>License key file at <code>&lt;data&gt;/sparkbridge-license.key</code>, re-checked every 30 seconds so installing, replacing, or removing the key takes effect with no restart. Without a verified key, SparkRecord runs on Ignition's standard two-hour module trial (Reset Trial on the gateway restarts the clock). A verified key naming SparkRecord overrides the trial entirely.</p>
+<p><b>Release pending.</b> At the time of writing, SparkRecord is not yet generally released; development use is free with no time limit.</p>
+</div></section>
+<section id="configure"><div class="wrap"><div class="sec-head"><h2>5. Configure</h2></div>
+<table class="spec">
+<tr><th>Source and sink config file</th><td><code>&lt;Ignition data dir&gt;/sparkrecord/config.json</code>, containing a <code>sources</code> array. An unknown source <code>type</code> is logged and skipped rather than treated as a startup failure.</td></tr>
+<tr><th>Status route</th><td><code>/data/io.sparkrecord/status.json</code> (module id path).</td></tr>
+<tr><th>Supported source lanes</th><td>Sparkplug B (Cirrus Transmission Record, DataSet, Template metrics), MQTT JSON via topic-to-stream mapping, NATS JetStream (SparkFlow events).</td></tr>
+<tr><th>Supported destinations</th><td>PostgreSQL, SQL Server, TimescaleDB, Snowflake, S3-compatible object storage. All destinations ship in the same license; there is no per-destination charge.</td></tr>
+</table>
+<p>Schema is discovered from the payload and versioned in a registry table; migrations are additive and widening-only, never destructive. SQL is generated per destination dialect.</p>
+</div></section>
+<section class="band" id="operate"><div class="wrap"><div class="sec-head"><h2>6. Operate</h2></div>
+<p>Records persist through an append-only writer, ordered per producer and deduplicated by content hash. A destination outage drains to disk and replays from the last committed offset with the original source timestamps intact, so an outage becomes a delay rather than a gap or a duplicate. A value that fails type validation is quarantined with its rejection reason recorded rather than silently dropped.</p>
+</div></section>
+<section id="verify"><div class="wrap"><div class="sec-head"><h2>7. Verify</h2></div>
+<p>Use the standalone verify CLI to walk a stream's audit chain and confirm no break:</p>
+<pre class="code">$ sparkrecord verify --table batch_events
+row 41,882   record_id  a13f...9c02  prev_hash  8e4b...11ff  ok
+row 41,883   record_id  c990...4a71  prev_hash  a13f...9c02  ok
+row 41,884   record_id  7b21...0de3  prev_hash  c990...4a71  ok
+chain verified: 41,884 rows, 0 breaks</pre>
+<p>Also confirm <code>/data/io.sparkrecord/status.json</code> reports the configured sources and sinks as running.</p>
+</div></section>
+<section class="band" id="troubleshoot"><div class="wrap"><div class="sec-head"><h2>8. Troubleshoot</h2></div>
+<div class="scroller"><table class="tbl">
+<thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>Module starts with zero sources</td><td><code>sparkrecord/config.json</code> is missing, unreadable, or malformed</td><td>Check the gateway log for a parse warning; fix or create the file at <code>&lt;Ignition data dir&gt;/sparkrecord/config.json</code></td></tr>
+<tr><td>One source silently does not load, others do</td><td>That entry has an unknown <code>type</code> or a malformed shape</td><td>Check the log for a per-entry warning naming the bad source; the rest of the file still loads</td></tr>
+<tr><td>Module data path paused</td><td>Ignition's two-hour trial expired with no verified license key</td><td>Drop <code>sparkbridge-license.key</code> in the gateway's data directory, or use Reset Trial for development</td></tr>
+<tr><td>Records land in the quarantine table</td><td>A value failed type validation against the discovered schema</td><td>Check the quarantine table's recorded reason for the specific field and value</td></tr>
+</tbody>
+</table></div>
+</div></section>
+<section id="reference"><div class="wrap"><div class="sec-head"><h2>9. Reference</h2></div>
+<ul>
+<li>Status route: <code>/data/io.sparkrecord/status.json</code>.</li>
+<li>Config file: <code>&lt;Ignition data dir&gt;/sparkrecord/config.json</code>.</li>
+<li>License key: <code>&lt;data&gt;/sparkbridge-license.key</code>, 30-second re-check.</li>
+<li>Verify CLI: <code>sparkrecord verify --table &lt;name&gt;</code>.</li>
+<li>Status as of this writing: release pending; not yet generally available.</li>
+</ul>
+</div></section>
+<section class="band" id="support"><div class="wrap"><div class="sec-head"><h2>10. Support</h2></div>
+<p><a href="/sparkbridge/record">SparkRecord product page</a> &middot; <a href="/sparkbridge/contact">Contact</a> &middot; <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases">GitHub releases</a></p>
+</div></section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> &middot; <a href="/sparkbridge/technology">Technology</a> &middot; <a href="/sparkbridge/benchmarks">Benchmarks</a> &middot; <a href="/sparkbridge/roadmap">Roadmap</a> &middot; <a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

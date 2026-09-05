@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkBridge Edge user manual | SparkBridge</title>
+<meta name="description" content="User manual for SparkBridge Edge: install, license, configure, operate, verify and troubleshoot the Sparkplug B edge node module for Ignition.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/edge">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>SparkBridge Edge</h1>
+  <p>Edge is a Sparkplug B edge node module for Ignition. It subscribes to a site gateway's tag layer, applies report-by-exception with batching and deadband, publishes BIRTH/DATA/DEATH, and buffers to disk through a broken link so a lost session cannot drop data.</p>
+  <div class="pmeta"><span class="stat">Version 2.8.0</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: any Ignition gateway at the site being collected</span></div>
+</div></header>
+
+<main id="main">
+
+<section id="contents"><div class="wrap">
+<div class="sec-head"><div class="path">contents</div><h2>On this page</h2></div>
+<ol>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#requirements">What You Need</a></li>
+<li><a href="#install">Install</a></li>
+<li><a href="#license">License</a></li>
+<li><a href="#configure">Configure</a></li>
+<li><a href="#operate">Operate</a></li>
+<li><a href="#verify">Verify</a></li>
+<li><a href="#troubleshoot">Troubleshoot</a></li>
+<li><a href="#reference">Reference</a></li>
+<li><a href="#support">Support</a></li>
+</ol>
+</div></section>
+
+<section id="overview"><div class="wrap">
+<div class="sec-head"><div class="path">Overview</div><h2>1. Overview</h2></div>
+<p>Edge runs on the gateway physically closest to the equipment. It reads the gateway's own tag tree, applies report-by-exception (only publish what changed), and sends Sparkplug B BIRTH, DATA and DEATH messages to a broker managed by a SparkBridge Provider. It is not a broker and not a historian: it has no opinion about what happens to the data once published, and it does not decode anyone else's Sparkplug traffic. A durable store-and-forward buffer on disk means a broken MQTT session does not lose data; queued messages replay on reconnect.</p>
+<p>Edge is the first leg of the SparkBridge backbone: Edge publishes, Provider routes, Host decodes. Install Edge after Provider and Host are running.</p>
+</div></section>
+
+<section class="band" id="requirements"><div class="wrap">
+<div class="sec-head"><div class="path">Requirements</div><h2>2. What You Need</h2></div>
+<table class="spec">
+<tr><th>Ignition</th><td>8.1.19 or newer on the 8.1 line, or 8.3 (separate build). A gateway that can be restarted at will during install.</td></tr>
+<tr><th>Java</th><td>Compiles against the Ignition 8.1.0 API, targets Java 11 bytecode. No separate JRE install needed beyond the one Ignition ships with.</td></tr>
+<tr><th>Gateway role</th><td>Any Ignition gateway at the site whose tags need to leave the site. Not the Host gateway (Edge and Host are typically different gateways, though they can share one for a single-node setup).</td></tr>
+<tr><th>Network</th><td>Outbound reach to the Provider's broker: TCP 1883 (plaintext) or 8883 (TLS) by default.</td></tr>
+<tr><th>Other SparkBridge modules required</th><td>A running Provider (embedded or external HiveMQ CE) that Edge can publish to. A Host is not required for Edge to publish, but nothing decodes the stream without one.</td></tr>
+</table>
+</div></section>
+
+<section id="install"><div class="wrap">
+<div class="sec-head"><div class="path">Install</div><h2>3. Install</h2></div>
+<ol>
+<li>Download the release bundle for your Ignition line from the <a href="/sparkbridge/download">download page</a>: <code>SparkBridge-Provider.modl</code>, <code>SparkBridge-Host.modl</code>, <code>SparkBridge-Edge.modl</code>, plus <code>SHA256SUMS.txt</code> and <code>sparkbridge-signing-cert.pem</code>.</li>
+<li>Install order matters: Provider, then Host, then Edge. In the gateway, go to Config &gt; Modules &gt; Install or Upgrade a Module and upload <code>SparkBridge-Edge.modl</code> last.</li>
+<li>The gateway checks the module's signature against the shipped certificate on upload. Accept the certificate and license once.</li>
+<li>Confirm Config &gt; Modules shows SparkBridge Edge state = Running.</li>
+</ol>
+<p>Upgrade every installed SparkBridge module together, from the same release bundle, in the same maintenance window. Host, Edge and Provider agree on which settings key each of them owns; a gateway running mixed versions can disagree on ownership for a key like <code>hostId</code> or <code>foldtarget</code> and silently misbehave.</p>
+</div></section>
+
+<section class="band" id="license"><div class="wrap">
+<div class="sec-head"><div class="path">License</div><h2>4. License</h2></div>
+<table class="spec">
+<tr><th>File</th><td>Per-gateway license key at <code>&lt;data&gt;/sparkbridge-license.key</code>.</td></tr>
+<tr><th>Re-check interval</th><td>Edge re-checks the key file every 30 seconds. Installing, replacing or removing a key takes effect with no restart.</td></tr>
+</table>
+<p>From release 2.7.0, Edge runs on Ignition's standard two-hour module trial (the gateway's Reset Trial button restarts the clock). When the trial expires with no verified key naming the product, Edge publishes NDEATH and stops publishing, while its store-and-forward buffer keeps capturing underneath. A key dropped in after expiry lifts the pause on its own within the 30-second re-check, no button press and no restart. A verified key overrides the trial entirely.</p>
+</div></section>
+
+<section id="configure"><div class="wrap">
+<div class="sec-head"><div class="path">Configure</div><h2>5. Configure</h2></div>
+<p>Config &gt; SparkBridge Edge &gt; Settings. Set <b>source</b> to the tag folder to publish, for example <code>[default]Plant/Line1</code>. Edge polls its settings every five seconds and rebuilds its node runtime when edge-owned settings change; no restart is required. Every key below is Edge-owned: Edge is the only module that ever writes it, and every one hot-reloads on that five-second poll.</p>
+<div class="scroller"><table class="tbl">
+<thead><tr><th>Setting</th><th>Meaning, default</th></tr></thead>
+<tbody>
+<tr><td><code>source</code></td><td>Tag subscription root. Default <code>[System]Gateway/Performance</code>.</td></tr>
+<tr><td><code>nodes</code></td><td>Explicit <code>group,edge,source;…</code> runtime list, up to 8. Empty falls back to one implicit <code>Ignition/Gateway</code> runtime.</td></tr>
+<tr><td><code>batchms</code></td><td>NDATA batch window, milliseconds. Default 100.</td></tr>
+<tr><td><code>deadband</code></td><td>Publish deadband fraction. Default 0.0.</td></tr>
+<tr><td><code>uns</code></td><td>Turns on the UNS application-topic mirror. Default off.</td></tr>
+<tr><td><code>unsprefix</code></td><td>Application topic prefix used by the UNS mirror. Default <code>sparkbridge</code>.</td></tr>
+<tr><td><code>fold</code></td><td>Folds UDT property members into the published Template. Default off. Must agree with the Host tab's Fold Target setting; changing one without the other silently loses the property mapping.</td></tr>
+<tr><td><code>foldmembers</code></td><td>Name patterns matched for folding. Default <code>Units,Description,Address*,IO_Loc*,Number,PV_L,PV_U</code>.</td></tr>
+<tr><td><code>primaryHost</code></td><td>Host application id this edge watches for STATE. Must match the Host tab's Host Id. Default <code>SparkBridge</code>.</td></tr>
+<tr><td><code>maxtags</code></td><td>Discovery cap on tag count. Default 250000.</td></tr>
+<tr><td><code>subchunk</code></td><td>Subscription chunk size. Default 10000.</td></tr>
+<tr><td><code>rescansec</code></td><td>Tag rescan period, seconds. Default 300.</td></tr>
+<tr><td><code>devicelevel</code></td><td>Device modeling depth, 0 disables it, max 8. Default 0.</td></tr>
+<tr><td><code>devicefolders</code></td><td>Folder markers used for device modeling. Default empty.</td></tr>
+<tr><td><code>devicewritable</code></td><td>Device ids that accept DCMD writes. Default empty.</td></tr>
+<tr><td><code>sfhours</code></td><td>Store-and-forward retention target, hours, 0-8760. Default 24.</td></tr>
+<tr><td><code>sfmax</code></td><td>Store-and-forward hard byte cap. Blank derives it from the retention target.</td></tr>
+</tbody>
+</table></div>
+<p>Edge-only identity and enrollment stay as <code>-D</code> system properties, not on this page: <code>sparkbridge.edge.username</code>, <code>sparkbridge.edge.password</code> (secrets file, never the command line), and <code>sparkbridge.enrollment.code</code> (one-time first-boot code against Host; Edge clears it after success).</p>
+</div></section>
+
+<section class="band" id="operate"><div class="wrap">
+<div class="sec-head"><div class="path">Operate</div><h2>6. Operate</h2></div>
+<p>Day to day, Edge needs no attention once BIRTH is confirmed. Watch the gateway log for repeated NDEATH/rebirth cycles, which usually mean a flapping network link rather than a SparkBridge problem.</p>
+<p>On a link loss, Edge keeps publishing into its store-and-forward buffer on disk rather than dropping data; queued messages replay in order once the session reconnects. On gateway restart, Edge rebuilds its runtime from the last saved settings and re-publishes a fresh BIRTH with a new bdSeq.</p>
+<p>SparkLink (bundled with Edge) shapes deadbands and publish intervals against a measured byte budget on metered links, with a fixed set of metrics exempt from any degradation.</p>
+</div></section>
+
+<section id="verify"><div class="wrap">
+<div class="sec-head"><div class="path">Verify</div><h2>7. Verify</h2></div>
+<p>Check the gateway log for the startup and BIRTH lines:</p>
+<pre class="code">SparkBridge Edge: built 1 runtime(s), generation 1
+SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
+<p>A second <code>BIRTH ... (N metrics)</code> line with a changed metric count confirms a settings change was picked up. On the Host side, expand the managed tag provider in the Designer or gateway tag browser and confirm values update.</p>
+</div></section>
+
+<section class="band" id="troubleshoot"><div class="wrap">
+<div class="sec-head"><div class="path">Troubleshoot</div><h2>8. Troubleshoot</h2></div>
+<div class="scroller"><table class="tbl">
+<thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>No BIRTH in the log after install</td><td>Provider not running yet, or wrong broker address</td><td>Confirm Provider is Running and check <code>source</code> and broker connectivity before Edge</td></tr>
+<tr><td>Repeated NDEATH/rebirth</td><td>Flapping network link, not a module fault</td><td>Check link stability; store-and-forward keeps capturing meanwhile</td></tr>
+<tr><td>Fold settings appear to lose properties</td><td>Edge's <code>fold</code>/<code>foldmembers</code> disagree with Host's Fold Target</td><td>Set both ends to the same folding intent</td></tr>
+<tr><td>Data stops publishing with no error</td><td>Module trial expired, no verified key</td><td>Drop a valid <code>sparkbridge-license.key</code> in the data directory; picked up within 30 seconds</td></tr>
+<tr><td>Tags missing after a large discovery</td><td><code>maxtags</code> cap reached</td><td>Raise <code>maxtags</code> or narrow <code>source</code></td></tr>
+</tbody>
+</table></div>
+</div></section>
+
+<section id="reference"><div class="wrap">
+<div class="sec-head"><div class="path">Reference</div><h2>9. Reference</h2></div>
+<table class="spec">
+<tr><th>License file</th><td><code>&lt;data&gt;/sparkbridge-license.key</code></td></tr>
+<tr><th>Module file</th><td><code>SparkBridge-Edge.modl</code></td></tr>
+<tr><th>Default broker ports</th><td>1883 plaintext, 8883 TLS</td></tr>
+<tr><th>Settings poll</th><td>5 seconds</td></tr>
+<tr><th>License re-check</th><td>30 seconds</td></tr>
+<tr><th>Node runtime limit</th><td>8 explicit runtimes via <code>nodes</code></td></tr>
+</table>
+</div></section>
+
+<section class="band" id="support"><div class="wrap">
+<div class="sec-head"><div class="path">Support</div><h2>10. Support</h2></div>
+<p>Full install and config detail: <a href="/sparkbridge/docs#edge">SparkBridge Docs, Edge</a>. Questions: <a href="/sparkbridge/contact">Contact</a>. Release history: <a href="https://github.com/greenguard-usa/SparkBridge/releases">GitHub releases</a>.</p>
+</div></section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

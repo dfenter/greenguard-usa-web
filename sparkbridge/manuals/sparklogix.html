@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkLogix user manual | SparkBridge</title>
+<meta name="description" content="User manual for SparkLogix, the Ignition driver for Allen-Bradley ControlLogix and CompactLogix over EtherNet/IP: install, license, device settings, verification and troubleshooting.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/sparklogix">
+<meta property="og:title" content="SparkLogix user manual">
+<meta property="og:description" content="User manual for SparkLogix, the Ignition driver for Allen-Bradley ControlLogix and CompactLogix over EtherNet/IP: install, license, device settings, verification and troubleshooting.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/manuals/sparklogix">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SparkLogix user manual">
+<meta name="twitter:description" content="User manual for SparkLogix, the Ignition driver for Allen-Bradley ControlLogix and CompactLogix over EtherNet/IP: install, license, device settings, verification and troubleshooting.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+
+<body class="docs">
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>SparkLogix</h1>
+  <p>SparkLogix is an Ignition device driver that connects directly to Allen-Bradley ControlLogix and CompactLogix controllers over EtherNet/IP. It exists because Ignition's built-in Logix driver reads slowly and falls over on large or restricted tag sets: SparkLogix browses UDTs directly, plans reads per tag, and never lets a restricted tag block the rest of the read.</p>
+  <div class="pmeta"><span class="stat">Version 0.2.0 (2.7.0 bundle)</span><span>Ignition 8.1.x (legacy driver API) and Ignition 8.3.x (managed-node API, separate build)</span><span>Runs on: any gateway that reaches the controller network</span></div>
+</div></header>
+<main id="main">
+<section id="contents"><div class="wrap"><div class="sec-head"><h2>Contents</h2></div><ol><li><a href="#overview">1. Overview</a></li><li><a href="#requirements">2. What You Need</a></li><li><a href="#install">3. Install</a></li><li><a href="#license">4. License</a></li><li><a href="#configure">5. Configure</a></li><li><a href="#operate">6. Operate</a></li><li><a href="#verify">7. Verify</a></li><li><a href="#troubleshoot">8. Troubleshoot</a></li><li><a href="#reference">9. Reference</a></li><li><a href="#support">10. Support</a></li></ol></div></section>
+<section id="overview"><div class="wrap"><div class="sec-head"><h2>1. Overview</h2></div>
+<p>SparkLogix is a native Logix driver, not an add-on to Ignition's built-in one. It talks straight to the controller over EtherNet/IP; it does not need a translator box or an OPC server in front of the PLC. It is a standalone driver: it does not require any other SparkBridge module to run, though it can feed a Sparkplug B backbone through SparkBridge Edge like any other OPC UA device.</p>
+<p>Module id: <code>com.sparkbridge.sparklogix</code>.</p>
+</div></section>
+<section class="band" id="requirements"><div class="wrap"><div class="sec-head"><h2>2. What You Need</h2></div>
+<ul>
+<li>Ignition 8.1.x (legacy driver API) or Ignition 8.3.x (managed-node API); these are separate module builds.</li>
+<li>Java 17.</li>
+<li>A ControlLogix or CompactLogix controller reachable over EtherNet/IP, firmware v16 or later. Micro8xx and 5000-series controllers are lower-priority targets on the same CIP core.</li>
+<li>No other SparkBridge module is required. SparkLogix is licensed and runs standalone.</li>
+</ul>
+</div></section>
+<section id="install"><div class="wrap"><div class="sec-head"><h2>3. Install</h2></div>
+<ol>
+<li>Download the release bundle for the target Ignition line (8.1 or 8.3) from the <a href="/sparkbridge/download">download page</a> or the <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases">GitHub releases page</a>.</li>
+<li>Gateway web UI &gt; Config &gt; Modules &gt; Install or Upgrade a Module, upload <code>sparklogix-&lt;version&gt;-ign83.modl</code> (8.3) or the matching 8.1 build.</li>
+<li>Accept the certificate if the gateway warns about an untrusted signer.</li>
+<li>Confirm Config &gt; Modules shows the module active with module id <code>com.sparkbridge.sparklogix</code>.</li>
+<li>To upgrade, install the new version over the same module id without uninstalling the old one first; existing devices and settings are retained.</li>
+</ol>
+</div></section>
+<section class="band" id="license"><div class="wrap"><div class="sec-head"><h2>4. License</h2></div>
+<table class="spec">
+<tr><th>File</th><td>Per-gateway license key at <code>&lt;data&gt;/sparkbridge-license.key</code>.</td></tr>
+<tr><th>Re-check interval</th><td>Every 30 seconds; no restart needed to apply, replace, or remove a key.</td></tr>
+</table>
+
+<p>From release 2.7.0, every SparkBridge module runs on Ignition's standard two-hour module trial
+(the gateway's Reset Trial button restarts the clock). A verified key overrides the trial entirely
+and the trial clock is then ignored. Drop the key at <code>&lt;data&gt;/sparkbridge-license.key</code>;
+each module re-checks the file every 30 seconds, so installing, replacing, or removing a key takes
+effect with no restart.</p>
+</div></section>
+<section id="configure"><div class="wrap"><div class="sec-head"><h2>5. Configure</h2></div>
+<p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; the SparkLogix Logix device type.
+The settings form has five categories: Communications, Timeouts, Probe Options, Redundancy, Advanced.</p>
+<table class="spec">
+<tr><th>Setting</th><td>Meaning, default</td></tr>
+<tr><th>Network Address</th><td>DNS or IP of the first hop, optional <code>:port</code>.</td></tr>
+<tr><th>Route Path</th><td>Subsequent hops, for example <code>1,0</code> for a ControlLogix backplane slot; blank for an on-board Ethernet port.</td></tr>
+<tr><th>Use Connected / Allow Batching</th><td>Class 3 connected messaging and Multiple Service Packet batching of small requests.</td></tr>
+<tr><th>Use Instance IDs</th><td>Off by default. Leave off; the instance-ID/symbolic fallback path is not independently field-verified yet.</td></tr>
+<tr><th>Enable Class 1 Cyclic</th><td>Off by default.</td></tr>
+<tr><th>Change Detection</th><td>On by default, tag-database change polling.</td></tr>
+<tr><th>Persist Tag Database</th><td>On by default.</td></tr>
+<tr><th>Verify Writes</th><td>Off by default.</td></tr>
+</table>
+</div></section>
+<section class="band" id="operate"><div class="wrap"><div class="sec-head"><h2>6. Operate</h2></div>
+<p>Once CONNECTED, SparkLogix maintains its own tag database from browsing the controller and plans reads per tag rather than as one monolithic scan, so a restricted or faulted tag does not stall the rest of the read. With Change Detection on (default), the driver polls the controller's tag database for changes and rebuilds affected parts of its plan without a device restart.</p>
+<p>On a network drop, the device reports no communication and reconnects to GOOD on its own once the network returns; no gateway restart is required.</p>
+</div></section>
+<section id="verify"><div class="wrap"><div class="sec-head"><h2>7. Verify</h2></div>
+<ol>
+<li>Start the device and confirm it reaches CONNECTED and the first probe populates the tag database.</li>
+<li>Browse or type a tag path, for example an array member such as <code>Entity.Params[0]</code>, and confirm distinct values per element (the array sentinel regression check).</li>
+<li>Disconnect the controller network briefly and confirm the device reports no communication, then reconnects to GOOD without a gateway restart.</li>
+</ol>
+</div></section>
+<section class="band" id="troubleshoot"><div class="wrap"><div class="sec-head"><h2>8. Troubleshoot</h2></div>
+<table class="spec">
+<tr><th>Symptom</th><td>Cause / fix</td></tr>
+<tr><th>Device never reaches CONNECTED</th><td>Check Network Address and Route Path; a ControlLogix behind a backplane needs the slot in Route Path (for example <code>1,0</code>), not just the IP.</td></tr>
+<tr><th>Array elements all read the same value</th><td>This is the array sentinel regression the verify step checks for; confirm you are on the current release and re-run the array-member check above.</td></tr>
+<tr><th>Instance-ID addressing behaves oddly</th><td>Leave Use Instance IDs off; this fallback path is not yet independently field-verified.</td></tr>
+</table>
+</div></section>
+<section id="reference"><div class="wrap"><div class="sec-head"><h2>9. Reference</h2></div>
+<table class="spec">
+<tr><th>Module id</th><td><code>com.sparkbridge.sparklogix</code></td></tr>
+<tr><th>Minimum firmware</th><td>v16 or later on ControlLogix/CompactLogix</td></tr>
+<tr><th>License file</th><td><code>&lt;data&gt;/sparkbridge-license.key</code></td></tr>
+</table>
+</div></section>
+<section class="band" id="support"><div class="wrap"><div class="sec-head"><h2>10. Support</h2></div>
+<p>Docs page section: <a href="/sparkbridge/docs#sparklogix">/sparkbridge/docs#sparklogix</a>.
+Contact: <a href="/sparkbridge/contact">/sparkbridge/contact</a>.
+Release downloads and checksums: <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases">GitHub releases</a>.</p>
+</div></section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download" aria-current="page">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>
+

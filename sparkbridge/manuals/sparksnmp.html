@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkSNMP user manual | SparkBridge</title>
+<meta name="description" content="User manual for SparkSNMP, the SNMP v1/v2c/v3 device driver for Ignition: install, license, addressing, MIB uploads, verification and troubleshooting.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/sparksnmp">
+<meta property="og:title" content="SparkSNMP user manual">
+<meta property="og:description" content="User manual for SparkSNMP, the SNMP v1/v2c/v3 device driver for Ignition: install, license, addressing, MIB uploads, verification and troubleshooting.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/manuals/sparksnmp">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SparkSNMP user manual">
+<meta name="twitter:description" content="User manual for SparkSNMP, the SNMP v1/v2c/v3 device driver for Ignition: install, license, addressing, MIB uploads, verification and troubleshooting.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+
+<body class="docs">
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>SparkSNMP</h1>
+  <p>SparkSNMP is an Ignition device driver that polls network gear, UPSes, and other SNMP-capable devices as OPC UA device connections. It supports SNMP v1, v2c, and v3, and needs no MIB compilation step to browse or address a device.</p>
+  <div class="pmeta"><span class="stat">Version 2.7.0</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: any gateway</span></div>
+</div></header>
+<main id="main">
+<section id="contents"><div class="wrap"><div class="sec-head"><h2>Contents</h2></div><ol><li><a href="#overview">1. Overview</a></li><li><a href="#requirements">2. What You Need</a></li><li><a href="#install">3. Install</a></li><li><a href="#license">4. License</a></li><li><a href="#configure">5. Configure</a></li><li><a href="#operate">6. Operate</a></li><li><a href="#verify">7. Verify</a></li><li><a href="#troubleshoot">8. Troubleshoot</a></li><li><a href="#reference">9. Reference</a></li><li><a href="#support">10. Support</a></li></ol></div></section>
+<section id="overview"><div class="wrap"><div class="sec-head"><h2>1. Overview</h2></div>
+<p>SparkSNMP is a standalone device driver. It does not require any other SparkBridge module; it appears in Ignition as an OPC UA device type and is licensed separately, sold and kept per gateway.</p>
+</div></section>
+<section class="band" id="requirements"><div class="wrap"><div class="sec-head"><h2>2. What You Need</h2></div>
+<ul>
+<li>Ignition 8.1.19 or newer, or the 8.3 line. One bundle per line.</li>
+<li>An SNMP agent reachable over UDP, default agent port 161.</li>
+<li>For SNMPv3: USM auth MD5/SHA1/SHA224/SHA256/SHA384/SHA512, and privacy DES/AES128/AES192/AES256, on the read path.</li>
+</ul>
+</div></section>
+<section id="install"><div class="wrap"><div class="sec-head"><h2>3. Install</h2></div>
+<p>Download the signed release build and install it through Config &gt; Modules &gt; Install or Upgrade a Module, the same as any SparkBridge module; no build step is required.</p>
+</div></section>
+<section class="band" id="license"><div class="wrap"><div class="sec-head"><h2>4. License</h2></div>
+<p>Licensed per gateway, bought once and kept. An unlicensed gateway runs identically to a licensed one; drop a license key at <code>&lt;Ignition data dir&gt;/sparkbridge-license.key</code>.</p>
+
+<p>From release 2.7.0, every SparkBridge module runs on Ignition's standard two-hour module trial
+(the gateway's Reset Trial button restarts the clock). A verified key overrides the trial entirely
+and the trial clock is then ignored. Drop the key at <code>&lt;data&gt;/sparkbridge-license.key</code>;
+each module re-checks the file every 30 seconds, so installing, replacing, or removing a key takes
+effect with no restart.</p>
+</div></section>
+<section id="configure"><div class="wrap"><div class="sec-head"><h2>5. Configure</h2></div>
+<p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; the SNMP device type. Select the SNMP version (V1/V2C/V3), set Community (V1/V2C) or the USM user/auth/privacy settings (V3), and the agent host and UDP port.</p>
+<table class="spec">
+<tr><th>Setting</th><td>Meaning, default</td></tr>
+<tr><th>Community</th><td>Read community string for V1/V2C, for example <code>public</code>. A separate read-write community enables SET.</td></tr>
+<tr><th>Allow SNMP SET Writes</th><td>Must be ticked, plus a write-capable community, before OPC UA writes reach the agent.</td></tr>
+</table>
+<p>Addressing (OPC item paths):</p>
+<table class="spec">
+<tr><th>Form</th><td>Meaning</td></tr>
+<tr><th><code>1.3.6.1.2.1.1.1.0</code></th><td>Raw instance OID.</td></tr>
+<tr><th><code>sysDescr.0</code> / <code>sysDescr</code></th><td>MIB-2 scalar by name, <code>.0</code> implied.</td></tr>
+<tr><th><code>ifDescr[1]</code></th><td>Table column plus row index.</td></tr>
+<tr><th><code>Interfaces/ifTable/1/ifDescr</code></th><td>Browse-tree path.</td></tr>
+</table>
+<p>Append <code>|string</code>, <code>|hex</code>, <code>|bytes</code>, or <code>|seconds</code> to force presentation, for example <code>ifPhysAddress[1]|hex</code>.</p>
+<p>Custom vendor MIBs upload under Config &gt; SparkSNMP &gt; Custom MIBs, or via <code>POST /data/com.sparkbridge.sparksnmp/mibs?name=&lt;module&gt;</code> with the MIB text as the body.</p>
+</div></section>
+<section class="band" id="operate"><div class="wrap"><div class="sec-head"><h2>6. Operate</h2></div>
+<p>Day to day, SparkSNMP polls its configured OIDs and tables like any OPC UA device. Watch <code>GET status.json</code> under the device's route group for lane health, and use the OPC UA browser to confirm MIB-2 folders (sysDescr, ifTable, ipAddrTable) and any uploaded vendor subtrees are populated.</p>
+</div></section>
+<section id="verify"><div class="wrap"><div class="sec-head"><h2>7. Verify</h2></div>
+<ul>
+<li>Check <code>GET status.json</code> under the device's route group; a healthy lane reports <code>RUNNING</code>.</li>
+<li>Browse the device in an OPC UA client and confirm MIB-2 folders (sysDescr, ifTable, ipAddrTable) and any uploaded vendor subtrees appear.</li>
+</ul>
+</div></section>
+<section class="band" id="troubleshoot"><div class="wrap"><div class="sec-head"><h2>8. Troubleshoot</h2></div>
+<table class="spec">
+<tr><th>Symptom</th><td>Cause / fix</td></tr>
+<tr><th>Writes never reach the agent</th><td>Allow SNMP SET Writes must be ticked and the configured community must be write-capable.</td></tr>
+<tr><th>Custom MIB names do not resolve</th><td>Confirm the MIB was uploaded under Config &gt; SparkSNMP &gt; Custom MIBs or via the <code>/mibs</code> endpoint before addressing it by name.</td></tr>
+</table>
+</div></section>
+<section id="reference"><div class="wrap"><div class="sec-head"><h2>9. Reference</h2></div>
+<table class="spec">
+<tr><th>Module id</th><td><code>com.sparkbridge.sparksnmp</code></td></tr>
+<tr><th>Default agent port</th><td>UDP 161</td></tr>
+<tr><th>Custom MIB upload endpoint</th><td><code>POST /data/com.sparkbridge.sparksnmp/mibs?name=&lt;module&gt;</code></td></tr>
+<tr><th>License file</th><td><code>&lt;Ignition data dir&gt;/sparkbridge-license.key</code></td></tr>
+</table>
+</div></section>
+<section class="band" id="support"><div class="wrap"><div class="sec-head"><h2>10. Support</h2></div>
+<p>Docs page section: <a href="/sparkbridge/docs#sparksnmp">/sparkbridge/docs#sparksnmp</a>.
+Contact: <a href="/sparkbridge/contact">/sparkbridge/contact</a>.
+Release downloads and checksums: <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases">GitHub releases</a>.</p>
+</div></section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download" aria-current="page">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkBridge Provider user manual | SparkBridge</title>
+<meta name="description" content="User manual for SparkBridge Provider: install, license, configure, operate, verify and troubleshoot the broker control module for Ignition.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/provider">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>SparkBridge Provider</h1>
+  <p>Provider is the broker control and policy layer: an embedded Moquette MQTT broker for zero-config single-node use, or a companion configuration for an external HiveMQ CE broker with the SparkBridge authorization extension.</p>
+  <div class="pmeta"><span class="stat">Version 2.8.0</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: the gateway hosting the broker</span></div>
+</div></header>
+
+<main id="main">
+
+<section id="contents"><div class="wrap">
+<div class="sec-head"><div class="path">contents</div><h2>On this page</h2></div>
+<ol>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#requirements">What You Need</a></li>
+<li><a href="#install">Install</a></li>
+<li><a href="#license">License</a></li>
+<li><a href="#configure">Configure</a></li>
+<li><a href="#operate">Operate</a></li>
+<li><a href="#verify">Verify</a></li>
+<li><a href="#troubleshoot">Troubleshoot</a></li>
+<li><a href="#reference">Reference</a></li>
+<li><a href="#support">Support</a></li>
+</ol>
+</div></section>
+
+<section id="overview"><div class="wrap">
+<div class="sec-head"><div class="path">Overview</div><h2>1. Overview</h2></div>
+<p>Provider is the policy and routing layer for SparkBridge's Sparkplug traffic. It carries plant data between sites and consumers while enforcing identity, permission and connection boundaries; Sparkplug itself leaves security to the implementation, and the broker is where that posture actually gets set. Provider ships two broker shapes: an embedded Moquette broker on loopback for a single node with nothing to install, or a companion configuration for an external HiveMQ CE broker with the SparkBridge broker-authorization extension for MQTT 5, shared subscriptions and Sparkplug Aware certificates. Neither shape is licensed by connected-client count.</p>
+<p>Provider is not itself a tag provider or a decoder; Host does that. Install Provider first, before Host and Edge.</p>
+</div></section>
+
+<section class="band" id="requirements"><div class="wrap">
+<div class="sec-head"><div class="path">Requirements</div><h2>2. What You Need</h2></div>
+<table class="spec">
+<tr><th>Ignition</th><td>8.1.19 or newer on the 8.1 line, or 8.3 (separate build). A gateway that can be restarted at will.</td></tr>
+<tr><th>Java</th><td>Embedded broker: none beyond Ignition's own runtime. External HiveMQ CE: a JDK 11 or newer on the broker host.</td></tr>
+<tr><th>Gateway role</th><td>Any gateway that will host the embedded broker, or the gateway running alongside an external HiveMQ CE instance.</td></tr>
+<tr><th>Network</th><td>Embedded broker binds <code>127.0.0.1:1883</code> plaintext and, with TLS enabled, <code>127.0.0.1:8883</code>, with no <code>sparkbridge.*</code> system properties set.</td></tr>
+<tr><th>Other SparkBridge modules required</th><td>None for the embedded broker. For external HiveMQ CE: the SparkBridge broker authorization extension and the HiveMQ file-RBAC extension on the broker host.</td></tr>
+</table>
+</div></section>
+
+<section id="install"><div class="wrap">
+<div class="sec-head"><div class="path">Install</div><h2>3. Install</h2></div>
+<ol>
+<li>Download the release bundle for your Ignition line from the <a href="/sparkbridge/download">download page</a>: <code>SparkBridge-Provider.modl</code>, <code>SparkBridge-Host.modl</code>, <code>SparkBridge-Edge.modl</code>, plus <code>SHA256SUMS.txt</code> and <code>sparkbridge-signing-cert.pem</code>.</li>
+<li>Install order matters: Provider first, before Host and Edge. In the gateway, go to Config &gt; Modules &gt; Install or Upgrade a Module and upload <code>SparkBridge-Provider.modl</code> first.</li>
+<li>Accept the certificate and license once; confirm Config &gt; Modules shows SparkBridge Provider state = Running.</li>
+</ol>
+<p>With no <code>sparkbridge.*</code> system properties set, the Provider binds the embedded Moquette broker on <code>127.0.0.1:1883</code> and, with TLS enabled, <code>127.0.0.1:8883</code>. If pairing with an external HiveMQ CE broker, start HiveMQ before the Ignition gateway every time: both want ports 1883 and 8883, and whichever starts first takes the ports.</p>
+<p>Upgrade every installed SparkBridge module together, from the same release bundle, in the same maintenance window, to avoid mixed-version disagreement over shared settings.</p>
+</div></section>
+
+<section class="band" id="license"><div class="wrap">
+<div class="sec-head"><div class="path">License</div><h2>4. License</h2></div>
+<table class="spec">
+<tr><th>File</th><td>Per-gateway license key at <code>&lt;data&gt;/sparkbridge-license.key</code>.</td></tr>
+<tr><th>Re-check interval</th><td>Provider re-checks the key file every 30 seconds. Installing, replacing or removing a key takes effect with no restart.</td></tr>
+</table>
+<p>From release 2.7.0, Provider runs on Ignition's standard two-hour module trial (the gateway's Reset Trial button restarts the clock). When the trial expires with no verified key naming the product, the embedded broker refuses new connections while established sessions are left alone. A key dropped in after expiry lifts the pause on its own within the 30-second re-check, no button press and no restart. A verified key overrides the trial entirely.</p>
+</div></section>
+
+<section id="configure"><div class="wrap">
+<div class="sec-head"><div class="path">Configure</div><h2>5. Configure</h2></div>
+<p>Primary path: open Config &gt; SparkBridge Provider &gt; Settings. Two keys on this page are editable, both Provider-owned and both read once at startup (restart to apply a change):</p>
+<table class="spec">
+<tr><th><code>broker.port</code></th><td>Embedded Moquette plaintext listener port. Default 1883.</td></tr>
+<tr><th><code>broker.tlsport</code></th><td>Embedded Moquette TLS listener port. Default 8883.</td></tr>
+</table>
+<p>Everything else on the page is a read-only audit of the broker's effective running posture: implementation, broker endpoints, bind host, TLS, plaintext, client authentication, keystore, identities, edge scopes, application topics, and secrets status. Secrets are never shown in the clear; a configured broker password renders only as a boolean, for example <code>Broker password configured: true</code>.</p>
+<h3>Broker-extension RBAC (external HiveMQ CE only)</h3>
+<p>Configure the separate broker-extension on the broker host. Its file-based RBAC uses <code>extensions/sparkbridge-auth/sparkbridge-auth.properties</code> for <code>sparkbridge.broker.hostuser</code>, <code>sparkbridge.broker.edgescopes</code>, <code>sparkbridge.broker.hosttopics</code>, <code>sparkbridge.broker.apptopics</code>, and <code>sparkbridge.broker.appprefixes</code>. HiveMQ's <code>credentials.xml</code> carries the broker credentials and password hashes. Keep its identities and scopes aligned with the Provider settings page.</p>
+</div></section>
+
+<section class="band" id="operate"><div class="wrap">
+<div class="sec-head"><div class="path">Operate</div><h2>6. Operate</h2></div>
+<p>Provider needs no day-to-day attention once running; watch Config &gt; SparkBridge Provider &gt; Settings under Posture for the effective running values, since a property that does not appear there indicates a configuration gap.</p>
+<p>Security posture: an edge credential is bound to one group and node, an unlisted edge is denied, and edge identities cannot publish NCMD, DCMD or STATE at all (structurally unavailable, proven against the deployed ACL). On the SparkBridge broker, UNS, file-transfer and bridge application topics are authorized per identity by prefix and denied by default. TLS hostname verification is mandatory; disabling it requires an explicit development-only flag with no production use.</p>
+<p>On restart, an embedded broker rebinds its configured ports; established client sessions reconnect on their own retry logic. On link loss to an external HiveMQ broker, Provider's own audit page reflects the broker as unreachable until it reconnects.</p>
+</div></section>
+
+<section id="verify"><div class="wrap">
+<div class="sec-head"><div class="path">Verify</div><h2>7. Verify</h2></div>
+<p>Embedded broker, gateway log:</p>
+<pre class="code">SparkBridge Provider: ... broker</pre>
+<p>External broker, gateway log:</p>
+<pre class="code">SparkBridge Provider: broker.impl='external', embedded broker disabled</pre>
+<p>Config &gt; SparkBridge Provider &gt; Settings, under Posture, shows the running values rather than the file's intent.</p>
+</div></section>
+
+<section class="band" id="troubleshoot"><div class="wrap">
+<div class="sec-head"><div class="path">Troubleshoot</div><h2>8. Troubleshoot</h2></div>
+<div class="scroller"><table class="tbl">
+<thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>External HiveMQ fails to start</td><td>Ignition gateway started first and took ports 1883/8883</td><td>Start HiveMQ before the Ignition gateway, every time</td></tr>
+<tr><td>Edge cannot connect</td><td>Edge credential not bound to that group/node, or unlisted</td><td>Add the edge identity to the Provider's identity/scope configuration</td></tr>
+<tr><td>Posture page missing an expected property</td><td>Configuration gap</td><td>The absence itself is the signal; add the missing setting</td></tr>
+<tr><td>New connections refused with existing sessions unaffected</td><td>Module trial expired, no verified key</td><td>Drop a valid <code>sparkbridge-license.key</code> in the data directory</td></tr>
+<tr><td>Broker password shows only as a boolean</td><td>Expected behavior, not a bug</td><td>Confirm the value in the secrets file directly if verification is needed</td></tr>
+</tbody>
+</table></div>
+</div></section>
+
+<section id="reference"><div class="wrap">
+<div class="sec-head"><div class="path">Reference</div><h2>9. Reference</h2></div>
+<table class="spec">
+<tr><th>License file</th><td><code>&lt;data&gt;/sparkbridge-license.key</code></td></tr>
+<tr><th>Module file</th><td><code>SparkBridge-Provider.modl</code></td></tr>
+<tr><th>Embedded broker default ports</th><td>1883 plaintext, 8883 TLS</td></tr>
+<tr><th>Broker-extension config file</th><td><code>extensions/sparkbridge-auth/sparkbridge-auth.properties</code></td></tr>
+<tr><th>License re-check</th><td>30 seconds</td></tr>
+</table>
+</div></section>
+
+<section class="band" id="support"><div class="wrap">
+<div class="sec-head"><div class="path">Support</div><h2>10. Support</h2></div>
+<p>Full install and config detail: <a href="/sparkbridge/docs#provider">SparkBridge Docs, Provider</a>. Product overview: <a href="/sparkbridge/products#provider">Provider on the products page</a>. Questions: <a href="/sparkbridge/contact">Contact</a>. Release history: <a href="https://github.com/greenguard-usa/SparkBridge/releases">GitHub releases</a>.</p>
+</div></section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

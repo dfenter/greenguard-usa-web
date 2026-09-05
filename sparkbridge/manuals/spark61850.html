@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spark61850 user manual | SparkBridge</title>
+<meta name="description" content="User manual for Spark61850, the IEC 61850 MMS client driver for Ignition: install, license, device settings, verification and troubleshooting.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/spark61850">
+<meta property="og:title" content="Spark61850 user manual">
+<meta property="og:description" content="User manual for Spark61850, the IEC 61850 MMS client driver for Ignition: install, license, device settings, verification and troubleshooting.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/manuals/spark61850">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Spark61850 user manual">
+<meta name="twitter:description" content="User manual for Spark61850, the IEC 61850 MMS client driver for Ignition: install, license, device settings, verification and troubleshooting.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+
+<body class="docs">
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>Spark61850</h1>
+  <p>Spark61850 is an IEC 61850 MMS client driver for substation IEDs.</p>
+  <div class="pmeta"><span class="stat">Version 2.7.0</span><span>Ignition 8.1 and 8.3</span><span>Runs on: any gateway that reaches the substation network</span></div>
+</div></header>
+<main id="main">
+<section id="contents"><div class="wrap"><div class="sec-head"><h2>Contents</h2></div><ol><li><a href="#overview">1. Overview</a></li><li><a href="#requirements">2. What You Need</a></li><li><a href="#install">3. Install</a></li><li><a href="#license">4. License</a></li><li><a href="#configure">5. Configure</a></li><li><a href="#operate">6. Operate</a></li><li><a href="#verify">7. Verify</a></li><li><a href="#troubleshoot">8. Troubleshoot</a></li><li><a href="#reference">9. Reference</a></li><li><a href="#support">10. Support</a></li></ol></div></section>
+<section id="overview"><div class="wrap"><div class="sec-head"><h2>1. Overview</h2></div>
+<p>Spark61850 is a standalone device driver, licensed and running independently of any other SparkBridge module. Module id <code>com.sparkbridge.spark61850</code>.</p>
+</div></section>
+<section class="band" id="requirements"><div class="wrap"><div class="sec-head"><h2>2. What You Need</h2></div>
+<ul>
+<li>Ignition 8.1 and 8.3.</li>
+<li>An IED reachable over MMS on ISO (RFC1006 TPKT/COTP), TCP port 102.</li>
+</ul>
+</div></section>
+<section id="install"><div class="wrap"><div class="sec-head"><h2>3. Install</h2></div>
+<p>Install the signed module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required. Module id <code>com.sparkbridge.spark61850</code>.</p>
+</div></section>
+<section class="band" id="license"><div class="wrap"><div class="sec-head"><h2>4. License</h2></div>
+<p>Licensed per gateway, bought once and kept, soft-licensed, entitlement <code>com.sparkbridge.spark61850</code>.</p>
+
+<p>From release 2.7.0, every SparkBridge module runs on Ignition's standard two-hour module trial
+(the gateway's Reset Trial button restarts the clock). A verified key overrides the trial entirely
+and the trial clock is then ignored. Drop the key at <code>&lt;data&gt;/sparkbridge-license.key</code>;
+each module re-checks the file every 30 seconds, so installing, replacing, or removing a key takes
+effect with no restart.</p>
+</div></section>
+<section id="configure"><div class="wrap"><div class="sec-head"><h2>5. Configure</h2></div>
+<p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; the 61850 device type. Addressing follows the IED/LD/LN/DO/DA model tree, browsable as folders, with functional constraint (ST/MX/CO/SP) as a leaf suffix. SCL file (.icd/.cid/.scd) import can pre-build the model; see the README in the bundle for the exact import steps.</p>
+</div></section>
+<section class="band" id="operate"><div class="wrap"><div class="sec-head"><h2>6. Operate</h2></div>
+<p>Buffered report reception (RCB) delivers changes as they are published by the IED rather than by polling; watch report-control-block status if updates stop arriving. Controls (SBO and direct) are documented in the README in the bundle.</p>
+</div></section>
+<section id="verify"><div class="wrap"><div class="sec-head"><h2>7. Verify</h2></div>
+<p>The MMS/ISO wire encoding has been verified against a real libiec61850 server for Initiate, GetNameList, GetVariableAccessAttributes, Read, Write, and report-control-block (RCB) report reception. A configured Ignition device against a libiec61850 server, browsing and reading through OPC UA including buffered report reception, has passed live on both the 8.1 and 8.3 lines.</p>
+</div></section>
+<section class="band" id="troubleshoot"><div class="wrap"><div class="sec-head"><h2>8. Troubleshoot</h2></div>
+<table class="spec">
+<tr><th>Symptom</th><td>Cause / fix</td></tr>
+<tr><th>Model tree does not match the IED</th><td>Import the IED's SCL file (.icd/.cid/.scd) to pre-build the model rather than relying on live browse alone; see the README for import steps.</td></tr>
+<tr><th>Control operation behaves unexpectedly</th><td>Confirm whether the control is SBO or direct per the README before issuing a write.</td></tr>
+</table>
+</div></section>
+<section id="reference"><div class="wrap"><div class="sec-head"><h2>9. Reference</h2></div>
+<table class="spec">
+<tr><th>Module id</th><td><code>com.sparkbridge.spark61850</code></td></tr>
+<tr><th>Default port</th><td>TCP 102 (MMS/ISO)</td></tr>
+<tr><th>SCL import formats</th><td>.icd, .cid, .scd</td></tr>
+<tr><th>License entitlement</th><td><code>com.sparkbridge.spark61850</code></td></tr>
+</table>
+</div></section>
+<section class="band" id="support"><div class="wrap"><div class="sec-head"><h2>10. Support</h2></div>
+<p>Docs page section: <a href="/sparkbridge/docs#spark61850">/sparkbridge/docs#spark61850</a>.
+Contact: <a href="/sparkbridge/contact">/sparkbridge/contact</a>.
+Release downloads and checksums: <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases">GitHub releases</a>.</p>
+</div></section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download" aria-current="page">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>
+

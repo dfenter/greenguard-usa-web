@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkInject user manual | SparkBridge</title>
+<meta name="description" content="User manual for SparkInject: install, license, configure, operate, verify and troubleshoot.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/sparkinject">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+<body class="docs">
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>SparkInject</h1>
+  <p>SparkInject is a perpetual-license Sparkplug-to-cloud injection module, landing estate data in Snowflake or Databricks with store-and-forward and exactly-once semantics.</p>
+  <div class="pmeta"><span class="stat">Perpetual license</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: Host</span></div>
+</div></header>
+<main id="main">
+<section id="contents"><div class="wrap"><div class="sec-head"><h2>Contents</h2></div><ol><li><a href="#overview">1. Overview</a></li><li><a href="#requirements">2. What You Need</a></li><li><a href="#install">3. Install</a></li><li><a href="#license">4. License</a></li><li><a href="#configure">5. Configure</a></li><li><a href="#operate">6. Operate</a></li><li><a href="#verify">7. Verify</a></li><li><a href="#troubleshoot">8. Troubleshoot</a></li><li><a href="#reference">9. Reference</a></li><li><a href="#support">10. Support</a></li></ol></div></section>
+<section id="overview"><div class="wrap"><div class="sec-head"><h2>1. Overview</h2></div>
+<p>SparkInject is a perpetual-license Sparkplug-to-cloud injection module for Ignition. It consumes <code>spBv1.0/#</code> as an ordinary MQTT client, decodes it with the same codec the SparkBridge Host uses, and lands it in Snowflake or Databricks with store-and-forward across a cloud outage and exactly-once semantics across a restart. The default sink writes local JSONL files so the pipeline can be proved end to end before a warehouse is provisioned.</p>
+<p>The MQTT ingest thread only decodes and does non-blocking offers; a stalled cloud destination can never back-pressure the local MQTT dispatch loop. A bounded queue and disk buffer absorb the outage instead.</p>
+</div></section>
+<section class="band" id="requirements"><div class="wrap"><div class="sec-head"><h2>2. What You Need</h2></div>
+<ul>
+<li>A SparkBridge Host gateway.</li>
+<li>A Snowflake or Databricks destination, provisioned before switching off the default JSONL sink.</li>
+<li>For Snowflake: a role and a key-pair user with <code>USAGE</code> and <code>INSERT, SELECT</code> grants, created from the module's generated DDL.</li>
+</ul>
+</div></section>
+<section id="install"><div class="wrap"><div class="sec-head"><h2>3. Install</h2></div>
+<ol>
+<li>SparkInject carries its own license. Install the signed module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</li>
+<li>Set <code>sparkinject.enabled=true</code>; it is off by default.</li>
+<li>Leave <code>sparkinject.sink=jsonl</code> (the default) to prove the pipeline end to end before provisioning a warehouse.</li>
+</ol>
+</div></section>
+<section class="band" id="license"><div class="wrap"><div class="sec-head"><h2>4. License</h2></div>
+<p>Perpetual license. See the README in the bundle for purchasing. Standard suite key behavior applies: the file lives at <code>&lt;data&gt;/sparkbridge-license.key</code> and is re-checked every 30 seconds.</p>
+</div></section>
+<section id="configure"><div class="wrap"><div class="sec-head"><h2>5. Configure</h2></div>
+<p>Before switching <code>sparkinject.sink=snowpipe</code>, run the generated DDL at <code>docs/sparkinject-schema.sql</code> to create the database, schema, and one table per mapped group, plus the role and key-pair user. The module cannot create tables itself.</p>
+<table class="spec">
+<tr><th><code>sparkinject.enabled</code></th><td>false by default.</td></tr>
+<tr><th><code>sparkinject.sink</code></th><td><code>jsonl</code> (default) or <code>snowpipe</code>; <code>databricks</code> for that destination.</td></tr>
+<tr><th><code>sparkinject.mapping.file</code></th><td>default <code>data/sparkinject-mapping.properties</code>, group-to-table routing.</td></tr>
+<tr><th><code>sparkinject.mapping.requireRule</code></th><td>false by default; true refuses an unmapped group instead of deriving a table name.</td></tr>
+<tr><th><code>sparkinject.secrets.file</code></th><td>default <code>data/sparkinject-secrets.properties</code>, mode 600, never on the JVM command line.</td></tr>
+<tr><th><code>sparkinject.broker.uri</code></th><td>default <code>tcp://127.0.0.1:1883</code>.</td></tr>
+<tr><th><code>sparkinject.snowflake.privateKey</code></th><td>secrets-file key; PEM PKCS#8 private key for the Snowflake key-pair user.</td></tr>
+<tr><th><code>sparkinject.status.token</code></th><td>secrets-file key; bearer token for status.json, unset means loopback-only.</td></tr>
+</table>
+<p>The landed table shape is one narrow EAV table per Sparkplug group, with columns for node key, device, metric, source timestamp, numeric/string/boolean value, quality (192 good, or a stale/death-marker code) and the Sparkplug <code>is_historical</code> flag.</p>
+</div></section>
+<section class="band" id="operate"><div class="wrap"><div class="sec-head"><h2>6. Operate</h2></div>
+<p>SparkInject ingests passively (no STATE, no Will) and batches into the configured sink through a bounded queue. A cloud outage spills to disk via the store-and-forward buffer and replays the missed suffix on reconnect, using an offset-token discipline so Snowflake is told exactly what it has not received rather than replaying everything on disk.</p>
+</div></section>
+<section id="verify"><div class="wrap"><div class="sec-head"><h2>7. Verify</h2></div>
+<p>Check <code>GET /data/io.sparkinject.snowflake/status.json</code>. A lane in state <code>BLOCKED</code> always carries a non-null <code>problem</code> field with pasteable remediation, for example a missing destination table. <code>inject.buffered</code> reports bytes currently held on disk and is the number to alarm on.</p>
+</div></section>
+<section class="band" id="troubleshoot"><div class="wrap"><div class="sec-head"><h2>8. Troubleshoot</h2></div>
+<div class="scroller"><table class="tbl">
+<thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>No data landing</td><td><code>sparkinject.enabled</code> is false (default)</td><td>Set it to true</td></tr>
+<tr><td>Lane state <code>BLOCKED</code></td><td>Destination table or schema does not exist yet</td><td>Read <code>status.json</code>'s <code>problem</code> field and run the missing DDL from <code>docs/sparkinject-schema.sql</code></td></tr>
+<tr><td><code>inject.buffered</code> climbing steadily</td><td>Cloud destination unreachable or credentials invalid</td><td>Check Snowflake/Databricks connectivity and the key in <code>sparkinject.secrets.file</code></td></tr>
+<tr><td>Unmapped group silently gets a derived table name</td><td><code>sparkinject.mapping.requireRule</code> is false (default)</td><td>Set it to true to refuse unmapped groups instead, or add the mapping</td></tr>
+</tbody>
+</table></div>
+</div></section>
+<section id="reference"><div class="wrap"><div class="sec-head"><h2>9. Reference</h2></div>
+<ul>
+<li>Status route: <code>GET /data/io.sparkinject.snowflake/status.json</code>.</li>
+<li>Secrets file default: <code>data/sparkinject-secrets.properties</code> (must be mode 600).</li>
+<li>Mapping file default: <code>data/sparkinject-mapping.properties</code>.</li>
+<li>Generated DDL: <code>docs/sparkinject-schema.sql</code> in the module bundle.</li>
+</ul>
+</div></section>
+<section class="band" id="support"><div class="wrap"><div class="sec-head"><h2>10. Support</h2></div>
+<p><a href="/sparkbridge/docs#sparkinject">SparkInject in the docs</a> &middot; <a href="/sparkbridge/inject">SparkInject product page</a> &middot; <a href="/sparkbridge/contact">Contact</a> &middot; <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases">GitHub releases</a></p>
+</div></section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> &middot; <a href="/sparkbridge/technology">Technology</a> &middot; <a href="/sparkbridge/benchmarks">Benchmarks</a> &middot; <a href="/sparkbridge/roadmap">Roadmap</a> &middot; <a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

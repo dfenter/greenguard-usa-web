@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sentinel user manual | SparkBridge</title>
+<meta name="description" content="User manual for Sentinel: install, license, configure, operate, verify and troubleshoot.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/sentinel">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+<body class="docs">
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>Sentinel</h1>
+  <p>Sentinel audits a Sparkplug estate's broker, certificates, identities and topic permissions and grades what it finds, read-only, with evidence and a fix for every finding.</p>
+  <div class="pmeta"><span class="stat">Version 0.1.0</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: any host with broker access</span></div>
+</div></header>
+<main id="main">
+<section id="contents"><div class="wrap"><div class="sec-head"><h2>Contents</h2></div><ol><li><a href="#overview">1. Overview</a></li><li><a href="#requirements">2. What You Need</a></li><li><a href="#install">3. Install</a></li><li><a href="#license">4. License</a></li><li><a href="#configure">5. Configure</a></li><li><a href="#operate">6. Operate</a></li><li><a href="#verify">7. Verify</a></li><li><a href="#troubleshoot">8. Troubleshoot</a></li><li><a href="#reference">9. Reference</a></li><li><a href="#support">10. Support</a></li></ol></div></section>
+<section id="overview"><div class="wrap"><div class="sec-head"><h2>1. Overview</h2></div>
+<p>Sentinel audits a Sparkplug estate's posture and grades it without ever touching it. It connects to the broker, listens for a bounded window, optionally runs active probes, and produces a scored report where every finding carries the frames or config lines that prove it and a remediation that names the setting. It exposes no publish method at all; it cannot write to the estate.</p>
+<p>Sentinel is vendor-neutral: it audits any Sparkplug estate, not only one running SparkBridge.</p>
+</div></section>
+<section class="band" id="requirements"><div class="wrap"><div class="sec-head"><h2>2. What You Need</h2></div>
+<ul>
+<li>A SparkBridge Host gateway for the estate being audited.</li>
+<li>The signed Sentinel release from the SparkBridge bundle (built as <code>sparkaudit-&lt;version&gt;-all.jar</code>).</li>
+<li>Java 17 if building from source.</li>
+<li>Broker credentials for the auditor identity; optionally the broker's <code>credentials.xml</code> and a posture properties file for config-derived findings.</li>
+</ul>
+</div></section>
+<section id="install"><div class="wrap"><div class="sec-head"><h2>3. Install</h2></div>
+<p>Sentinel carries its own license. Install the signed release through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required for the packaged release.</p>
+<p>To build from source: requires Java 17 and <code>io.sparkbridge:common</code> published to mavenLocal.</p>
+<pre class="code">JAVA_HOME=~/.local/opt/jdk-17.0.19+10/Contents/Home ./gradlew fatJar
+java -jar build/libs/sparkaudit-0.1.0-all.jar --help</pre>
+</div></section>
+<section class="band" id="license"><div class="wrap"><div class="sec-head"><h2>4. License</h2></div>
+<p>Soft-licensed; Sentinel runs in full whether or not a key is present. License file lookup order: <code>--license &lt;file&gt;</code>, the <code>SPARKBRIDGE_LICENSE</code> environment variable, then <code>sparkbridge-license.key</code> in the working directory. Run <code>sparkaudit license</code> for full status.</p>
+</div></section>
+<section id="configure"><div class="wrap"><div class="sec-head"><h2>5. Configure</h2></div>
+<p>Sentinel runs as a passive audit by default:</p>
+<pre class="code">java -jar sparkaudit-0.1.0-all.jar \
+  --broker tcp://broker.example:1883 --username auditor \
+  --password-file secrets.properties audit.password \
+  --estate "Plant 4" --window 300 --expect-groups Plant4,Utilities \
+  --out-html report.html --out-json report.json</pre>
+<table class="spec">
+<tr><th><code>--credentials-xml</code>, <code>--posture</code></th><td>Add config-derived findings the wire alone cannot show.</td></tr>
+<tr><th><code>--allow-active-probes</code></th><td>Enables active probes. Off by default.</td></tr>
+<tr><th><code>--tls-listener</code></th><td>Checks a TLS listener.</td></tr>
+<tr><th><code>--profile free</code> / <code>--profile full</code></th><td><code>free</code> withholds full evidence for a pre-sales report; <code>full</code> (default) includes complete evidence and remediation.</td></tr>
+<tr><th><code>--capture-out capture.jsonl</code></th><td>Writes the raw window to disk.</td></tr>
+<tr><th><code>--replay capture.jsonl</code></th><td>Re-evaluates rules offline against a captured window, no broker involved.</td></tr>
+</table>
+<p>The four axes Sentinel scores: connection posture, and (per the module's own documentation) further axes covering broker configuration, identity and permission hygiene, and topic/namespace isolation. Active probes only run with <code>--allow-active-probes</code>; with probes off, the connection-posture axis reports that it was not exercised.</p>
+</div></section>
+<section class="band" id="operate"><div class="wrap"><div class="sec-head"><h2>6. Operate</h2></div>
+<p>Sentinel is a point-in-time audit tool, not a running service. Run it on demand or on a schedule against an estate's broker. It never publishes to any topic and exposes no publish method. Use <code>--capture-out</code> to keep a raw record of any audit window so a finding stays checkable later, or by someone who was not in the room, or so a customer can send an estate SparkBridge is not allowed to connect to.</p>
+</div></section>
+<section id="verify"><div class="wrap"><div class="sec-head"><h2>7. Verify</h2></div>
+<p>Run the audit and check the exit code: <code>0</code> clean, <code>1</code> findings below critical, <code>2</code> at least one critical finding, <code>3</code> the audit could not run. Use <code>--capture-out capture.jsonl</code> and later <code>--replay capture.jsonl</code> to confirm the same findings reproduce offline against the same window.</p>
+</div></section>
+<section class="band" id="troubleshoot"><div class="wrap"><div class="sec-head"><h2>8. Troubleshoot</h2></div>
+<div class="scroller"><table class="tbl">
+<thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>Exit code 3</td><td>The audit could not run (bad broker URI, bad credentials, or the window elapsed with no connection)</td><td>Confirm <code>--broker</code>, <code>--username</code> and the password file path are correct</td></tr>
+<tr><td>Connection-posture axis reports "not exercised"</td><td>Active probes are off by default</td><td>Add <code>--allow-active-probes</code> if authorized to probe the estate</td></tr>
+<tr><td>Missing config-derived findings</td><td><code>--credentials-xml</code> or <code>--posture</code> not supplied</td><td>Pass the broker's real <code>credentials.xml</code> and a posture properties file</td></tr>
+<tr><td><code>build/libs</code> jar missing when building from source</td><td><code>io.sparkbridge:common</code> not published to mavenLocal</td><td>Run <code>./gradlew :common:publishToMavenLocal</code> in the SparkBridge repo first</td></tr>
+</tbody>
+</table></div>
+</div></section>
+<section id="reference"><div class="wrap"><div class="sec-head"><h2>9. Reference</h2></div>
+<ul>
+<li>Exit codes: <code>0</code> clean, <code>1</code> sub-critical findings, <code>2</code> critical finding, <code>3</code> audit could not run.</li>
+<li>License file: <code>sparkbridge-license.key</code> (working directory, <code>--license</code>, or <code>SPARKBRIDGE_LICENSE</code>).</li>
+<li>Build artifact: <code>sparkaudit-0.1.0-all.jar</code>.</li>
+</ul>
+</div></section>
+<section class="band" id="support"><div class="wrap"><div class="sec-head"><h2>10. Support</h2></div>
+<p><a href="/sparkbridge/docs#sentinel">Sentinel in the docs</a> &middot; <a href="/sparkbridge/contact">Contact</a> &middot; <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases">GitHub releases</a></p>
+</div></section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> &middot; <a href="/sparkbridge/technology">Technology</a> &middot; <a href="/sparkbridge/benchmarks">Benchmarks</a> &middot; <a href="/sparkbridge/roadmap">Roadmap</a> &middot; <a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

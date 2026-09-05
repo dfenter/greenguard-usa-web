@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DNP3 driver user manual | SparkBridge</title>
+<meta name="description" content="User manual for the DNP3 (IEEE 1815) master driver for Ignition: install, license, device settings, addressing, verification and troubleshooting.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/dnp3">
+<meta property="og:title" content="DNP3 driver user manual">
+<meta property="og:description" content="User manual for the DNP3 (IEEE 1815) master driver for Ignition: install, license, device settings, addressing, verification and troubleshooting.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/manuals/dnp3">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="DNP3 driver user manual">
+<meta name="twitter:description" content="User manual for the DNP3 (IEEE 1815) master driver for Ignition: install, license, device settings, addressing, verification and troubleshooting.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+
+<body class="docs">
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>DNP3 driver</h1>
+  <p>This module is a master (client) driver for DNP3 (IEEE 1815), the polled protocol common across North American electric distribution and water/wastewater. It reads only; it does not control.</p>
+  <div class="pmeta"><span class="stat">Ignition 8.1.54</span><span>Ignition 8.1.x</span><span>Runs on: any gateway that reaches the outstation network</span></div>
+</div></header>
+<main id="main">
+<section id="contents"><div class="wrap"><div class="sec-head"><h2>Contents</h2></div><ol><li><a href="#overview">1. Overview</a></li><li><a href="#requirements">2. What You Need</a></li><li><a href="#install">3. Install</a></li><li><a href="#license">4. License</a></li><li><a href="#configure">5. Configure</a></li><li><a href="#operate">6. Operate</a></li><li><a href="#verify">7. Verify</a></li><li><a href="#troubleshoot">8. Troubleshoot</a></li><li><a href="#reference">9. Reference</a></li><li><a href="#support">10. Support</a></li></ol></div></section>
+<section id="overview"><div class="wrap"><div class="sec-head"><h2>1. Overview</h2></div>
+<p>The driver is a standalone OPC UA device type; it does not require any other SparkBridge module. TCP transport only; serial is not implemented.</p>
+</div></section>
+<section class="band" id="requirements"><div class="wrap"><div class="sec-head"><h2>2. What You Need</h2></div>
+<ul>
+<li>Ignition 8.1.54. TCP transport only.</li>
+<li>An outstation reachable over TCP, registered port 20000.</li>
+</ul>
+</div></section>
+<section id="install"><div class="wrap"><div class="sec-head"><h2>3. Install</h2></div>
+<p>Install the signed DNP3 module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required. Module id <code>com.greenguard.drivers.dnp3</code>.</p>
+</div></section>
+<section class="band" id="license"><div class="wrap"><div class="sec-head"><h2>4. License</h2></div>
+<p>See the README in the bundle for licensing terms.</p>
+
+<p>From release 2.7.0, every SparkBridge module runs on Ignition's standard two-hour module trial
+(the gateway's Reset Trial button restarts the clock). A verified key overrides the trial entirely
+and the trial clock is then ignored. Drop the key at <code>&lt;data&gt;/sparkbridge-license.key</code>;
+each module re-checks the file every 30 seconds, so installing, replacing, or removing a key takes
+effect with no restart.</p>
+</div></section>
+<section id="configure"><div class="wrap"><div class="sec-head"><h2>5. Configure</h2></div>
+<p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; DNP3.</p>
+<table class="spec">
+<tr><th>Setting</th><td>Meaning, default</td></tr>
+<tr><th>Hostname/IP</th><td>Outstation address.</td></tr>
+<tr><th>Port</th><td>TCP port, registered default 20000.</td></tr>
+<tr><th>Master Address</th><td>This driver's own DNP3 link address.</td></tr>
+<tr><th>Outstation Address</th><td>The outstation's DNP3 link address, per station.</td></tr>
+</table>
+<p>Addressing is type plus index, per type: <code>BI7</code> (binary input 7), <code>DB3</code> (double-bit binary input 3), <code>CTR0</code> (counter 0), <code>AI12</code> (analog input 12). Group-number spellings are also accepted, for example <code>G1.7</code> or <code>G30.12</code>. No type suffix is accepted; the outstation decides the data type.</p>
+</div></section>
+<section class="band" id="operate"><div class="wrap"><div class="sec-head"><h2>6. Operate</h2></div>
+<p>Addresses resolve on demand and answer <code>Bad_WaitingForInitialData</code> until first reported. Browse shows four folders (BI, DB, CTR, AI) built from the integrity poll; the browse tree is empty until the first integrity poll completes, which is expected behavior on a fresh device, not a fault.</p>
+</div></section>
+<section id="verify"><div class="wrap"><div class="sec-head"><h2>7. Verify</h2></div>
+<ul>
+<li>Run the bundled probe: <code>java -cp common/build/libs/common-0.1.0.jar com.greenguard.dnp3.tools.Dnp3Probe --host &lt;ip&gt; --port 20000 --master 1 --outstation 10 --seconds 60</code>.</li>
+<li>Confirm the device reaches READY and the status line reports a nonzero point count after the first integrity poll.</li>
+</ul>
+</div></section>
+<section class="band" id="troubleshoot"><div class="wrap"><div class="sec-head"><h2>8. Troubleshoot</h2></div>
+<table class="spec">
+<tr><th>Symptom</th><td>Cause / fix</td></tr>
+<tr><th>Browse tree is empty</th><td>Normal until the first integrity poll completes; wait for it or check that Master Address and Outstation Address match the outstation's configuration.</td></tr>
+<tr><th>Points read <code>Bad_WaitingForInitialData</code></th><td>Expected until the point is first reported by the outstation; not itself an error.</td></tr>
+<tr><th>Writes are rejected</th><td>Expected: this driver reads only and does not implement control operations.</td></tr>
+</table>
+</div></section>
+<section id="reference"><div class="wrap"><div class="sec-head"><h2>9. Reference</h2></div>
+<table class="spec">
+<tr><th>Module id</th><td><code>com.greenguard.drivers.dnp3</code></td></tr>
+<tr><th>Default port</th><td>TCP 20000</td></tr>
+<tr><th>Browse folders</th><td>BI, DB, CTR, AI</td></tr>
+<tr><th>Capability</th><td>Read only, no control</td></tr>
+</table>
+</div></section>
+<section class="band" id="support"><div class="wrap"><div class="sec-head"><h2>10. Support</h2></div>
+<p>Docs page section: <a href="/sparkbridge/docs#dnp3">/sparkbridge/docs#dnp3</a>.
+Contact: <a href="/sparkbridge/contact">/sparkbridge/contact</a>.
+Release downloads and checksums: <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases">GitHub releases</a>.</p>
+</div></section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download" aria-current="page">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>
+

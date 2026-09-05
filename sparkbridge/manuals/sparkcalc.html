@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkCalc user manual | SparkBridge</title>
+<meta name="description" content="User manual for SparkCalc: install, license, configure, operate, verify and troubleshoot.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/sparkcalc">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+<body class="docs">
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>SparkCalc</h1>
+  <p>SparkCalc computes declared expressions on the live Sparkplug estate and publishes results as their own identity, so a derived value is never mistaken for a measured one.</p>
+  <div class="pmeta"><span class="stat">On the bench</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: Host</span></div>
+</div></header>
+<main id="main">
+<section id="contents"><div class="wrap"><div class="sec-head"><h2>Contents</h2></div><ol><li><a href="#overview">1. Overview</a></li><li><a href="#requirements">2. What You Need</a></li><li><a href="#install">3. Install</a></li><li><a href="#license">4. License</a></li><li><a href="#configure">5. Configure</a></li><li><a href="#operate">6. Operate</a></li><li><a href="#verify">7. Verify</a></li><li><a href="#troubleshoot">8. Troubleshoot</a></li><li><a href="#reference">9. Reference</a></li><li><a href="#support">10. Support</a></li></ol></div></section>
+<section id="overview"><div class="wrap"><div class="sec-head"><h2>1. Overview</h2></div>
+<p>SparkCalc computes declared expressions on the live Sparkplug estate and publishes results as Sparkplug metrics under their own identity (<code>Calc-&lt;group&gt;</code>), so a derived value is never mistaken for a measured one. It is aimed at rates, totals, efficiencies, rollups and unit conversions that today live in a PLC, an Ignition expression tag, or a notebook, none of which make the derived value visible to every non-Ignition consumer of the namespace.</p>
+<p>SparkCalc is on the bench, not customer ready, per the module's own README; what is proven and what is owed is documented there.</p>
+</div></section>
+<section class="band" id="requirements"><div class="wrap"><div class="sec-head"><h2>2. What You Need</h2></div>
+<ul>
+<li>A SparkBridge Host gateway.</li>
+</ul>
+</div></section>
+<section id="install"><div class="wrap"><div class="sec-head"><h2>3. Install</h2></div>
+<p>SparkCalc comes with the Host license. Install it through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</p>
+</div></section>
+<section class="band" id="license"><div class="wrap"><div class="sec-head"><h2>4. License</h2></div>
+<p>Included with SparkBridge Host. Covered by the suite license key described in the shared install steps: file at <code>&lt;data&gt;/sparkbridge-license.key</code>, re-checked every 30 seconds.</p>
+</div></section>
+<section id="configure"><div class="wrap"><div class="sec-head"><h2>5. Configure</h2></div>
+<p>Declared expressions, staleness budgets, and identity settings are documented in the module's own README and in <code>docs/LIVEPROOF.md</code>. Only what is confirmed there is listed below; see the README in the bundle for the full property list.</p>
+<table class="spec">
+<tr><th>Result identity</th><td>Results publish under a <code>Calc-&lt;group&gt;</code> identity, with its own edge node and bdSeq lifecycle, distinct from the plant's own identity. The module refuses to produce an identity that could be the plant's.</td></tr>
+<tr><th>Staleness budgets</th><td>Every declared input has its own staleness budget; there is no single global staleness setting.</td></tr>
+<tr><th>Bad-quality behavior</th><td>If any input is stale, dead, or never seen, the metric evaluates to nothing: bad quality with no value at all, never zero, never NaN, never the last known value.</td></tr>
+<tr><th>Provenance</th><td>Every metric's NBIRTH carries <code>calc.expression</code>, <code>calc.inputs</code>, <code>calc.stalenessBudgetsMs</code>, <code>calc.definitionHash</code>, <code>calc.trigger</code> and <code>calc.engine</code>. Every NDATA carries <code>Quality</code>, <code>calc.quality</code>, <code>calc.stalestInput</code>, <code>calc.ageMs</code>, and when bad, <code>calc.reason</code>.</td></tr>
+</table>
+</div></section>
+<section class="band" id="operate"><div class="wrap"><div class="sec-head"><h2>6. Operate</h2></div>
+<p>A computed metric's timestamp is always the stalest contributing input's source timestamp, never the evaluation clock: a ratio of a flow read at 12:00:00 and a level read at 11:59:55 describes the plant as of 11:59:55. When any declared input goes stale, dead, or was never seen, the metric publishes bad quality with no value at all rather than a stale or default value. Because the calculation engine is a pure function of its inputs and its own threaded state, a derived series can be recomputed over history, not only observed forward from now.</p>
+</div></section>
+<section id="verify"><div class="wrap"><div class="sec-head"><h2>7. Verify</h2></div>
+<p>Confirm published metrics appear under the <code>Calc-&lt;group&gt;</code> edge node rather than under the plant's own edge, and that the reported timestamp is the stalest contributing input's source timestamp, not the evaluation time. Full proof steps are in <code>docs/LIVEPROOF.md</code> in the repo.</p>
+</div></section>
+<section class="band" id="troubleshoot"><div class="wrap"><div class="sec-head"><h2>8. Troubleshoot</h2></div>
+<div class="scroller"><table class="tbl">
+<thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>Metric never publishes a value</td><td>One or more declared inputs are stale, dead, or never seen</td><td>Check the input's own staleness budget and confirm it is publishing on the expected schedule; SparkCalc will not substitute a default</td></tr>
+<tr><td>Computed value appears under the wrong edge node</td><td>Should not occur: the module refuses any identity that could collide with the plant's own</td><td>If seen, file it as a defect; this is a designed invariant, not a configuration option</td></tr>
+<tr><td>Timestamp on a computed metric looks wrong</td><td>Normal: the timestamp is the stalest contributing input's timestamp, not now</td><td>Check <code>calc.stalestInput</code> and <code>calc.ageMs</code> on the metric to see which input is holding it back</td></tr>
+</tbody>
+</table></div>
+</div></section>
+<section id="reference"><div class="wrap"><div class="sec-head"><h2>9. Reference</h2></div>
+<ul>
+<li>Result identity prefix: <code>Calc-&lt;group&gt;</code>.</li>
+<li>Full config key list and expression surface: module README and <code>docs/LIVEPROOF.md</code> in the bundle.</li>
+</ul>
+</div></section>
+<section class="band" id="support"><div class="wrap"><div class="sec-head"><h2>10. Support</h2></div>
+<p><a href="/sparkbridge/docs#sparkcalc">SparkCalc in the docs</a> &middot; <a href="/sparkbridge/central#sparkcalc">SparkCalc on the Host product page</a> &middot; <a href="/sparkbridge/contact">Contact</a> &middot; <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases">GitHub releases</a></p>
+</div></section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> &middot; <a href="/sparkbridge/technology">Technology</a> &middot; <a href="/sparkbridge/benchmarks">Benchmarks</a> &middot; <a href="/sparkbridge/roadmap">Roadmap</a> &middot; <a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

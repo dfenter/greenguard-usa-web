@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkS7 user manual | SparkBridge</title>
+<meta name="description" content="User manual for SparkS7, the Siemens S7-1200/1500 symbolic driver for Ignition: install, license, device settings, security notes, verification and troubleshooting.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/sparks7">
+<meta property="og:title" content="SparkS7 user manual">
+<meta property="og:description" content="User manual for SparkS7, the Siemens S7-1200/1500 symbolic driver for Ignition: install, license, device settings, security notes, verification and troubleshooting.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mqtt.greenguard-usa.com/sparkbridge/manuals/sparks7">
+<meta property="og:site_name" content="SparkBridge">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="SparkS7 user manual">
+<meta name="twitter:description" content="User manual for SparkS7, the Siemens S7-1200/1500 symbolic driver for Ignition: install, license, device settings, security notes, verification and troubleshooting.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+
+<body class="docs">
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>SparkS7</h1>
+  <p>SparkS7 is a Siemens S7-1200/1500 symbolic driver that browses PLC symbols by name, including optimized (non-absolute) blocks, without a TIA export.</p>
+  <div class="pmeta"><span class="stat">Version 2.7.0</span><span>Ignition 8.1 and 8.3</span><span>Runs on: any gateway that reaches the PLC network</span></div>
+</div></header>
+<main id="main">
+<section id="contents"><div class="wrap"><div class="sec-head"><h2>Contents</h2></div><ol><li><a href="#overview">1. Overview</a></li><li><a href="#requirements">2. What You Need</a></li><li><a href="#install">3. Install</a></li><li><a href="#license">4. License</a></li><li><a href="#configure">5. Configure</a></li><li><a href="#operate">6. Operate</a></li><li><a href="#verify">7. Verify</a></li><li><a href="#troubleshoot">8. Troubleshoot</a></li><li><a href="#reference">9. Reference</a></li><li><a href="#support">10. Support</a></li></ol></div></section>
+<section id="overview"><div class="wrap"><div class="sec-head"><h2>1. Overview</h2></div>
+<p>SparkS7 is a standalone device driver, licensed and running independently of any other SparkBridge module. Module id <code>com.sparkbridge.sparks7</code>.</p>
+</div></section>
+<section class="band" id="requirements"><div class="wrap"><div class="sec-head"><h2>2. What You Need</h2></div>
+<ul>
+<li>Ignition 8.1 and 8.3.</li>
+<li>An S7-1200/1500 PLC reachable over classic S7comm (ISO-on-TCP, TCP port 102).</li>
+</ul>
+</div></section>
+<section id="install"><div class="wrap"><div class="sec-head"><h2>3. Install</h2></div>
+<p>Install the signed module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required. Module id <code>com.sparkbridge.sparks7</code>.</p>
+</div></section>
+<section class="band" id="license"><div class="wrap"><div class="sec-head"><h2>4. License</h2></div>
+<p>Licensed per gateway, bought once and kept, soft-licensed (<code>io.sparkbridge.license</code>, entitlement <code>com.sparkbridge.sparks7</code>). Without a verified key it runs on Ignition's two-hour module trial; a present but invalid key fails closed and blocks the device until fixed or removed.</p>
+
+<p>From release 2.7.0, every SparkBridge module runs on Ignition's standard two-hour module trial
+(the gateway's Reset Trial button restarts the clock). A verified key overrides the trial entirely
+and the trial clock is then ignored. Drop the key at <code>&lt;data&gt;/sparkbridge-license.key</code>;
+each module re-checks the file every 30 seconds, so installing, replacing, or removing a key takes
+effect with no restart.</p>
+</div></section>
+<section id="configure"><div class="wrap"><div class="sec-head"><h2>5. Configure</h2></div>
+<p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; the S7 device type.</p>
+<table class="spec">
+<tr><th>Setting</th><td>Meaning, default</td></tr>
+<tr><th>Host, Port</th><td>PLC address; ISO-on-TCP default port 102.</td></tr>
+<tr><th>Rack, Slot</th><td>CPU endpoint selection; this is protocol routing, not authentication.</td></tr>
+</table>
+<p><b>Security notes.</b> Classic S7comm is plaintext with no credentials, encryption, or replay protection; this is a limitation of the Siemens protocol, not an omitted driver option. Isolate TCP 102 on a dedicated VLAN or VPN and firewall it so only the Ignition gateway can reach the PLC. Do not expose the PLC on an untrusted or internet-routable network.</p>
+<p>S7comm+ transport is disabled by default because it fails against tested real hardware. It can only be enabled with the system property <code>sparks7.allowPlus=true</code> (or environment variable <code>SPARKS7_ALLOW_PLUS=true</code>), and only on a trusted test network.</p>
+</div></section>
+<section class="band" id="operate"><div class="wrap"><div class="sec-head"><h2>6. Operate</h2></div>
+<p>Keep <code>sparks7.allowPlus</code> off in production; it exists only for testing on a trusted network. A present but invalid license key fails the device closed rather than falling back to trial behavior, so remove or fix a bad key rather than leaving it in place.</p>
+</div></section>
+<section id="verify"><div class="wrap"><div class="sec-head"><h2>7. Verify</h2></div>
+<p>See the README in the bundle for the verification procedure.</p>
+</div></section>
+<section class="band" id="troubleshoot"><div class="wrap"><div class="sec-head"><h2>8. Troubleshoot</h2></div>
+<table class="spec">
+<tr><th>Symptom</th><td>Cause / fix</td></tr>
+<tr><th>Device blocked with a valid-looking key present</th><td>An invalid key fails closed by design; remove or replace the key file rather than expecting trial fallback.</td></tr>
+<tr><th>Connection fails against real hardware with S7comm+ enabled</th><td>Known limitation; S7comm+ is off by default for this reason. Use classic S7comm.</td></tr>
+<tr><th>Cannot reach the PLC from another VLAN</th><td>Expected if TCP 102 is isolated per the security notes; add an explicit, narrow firewall rule for the Ignition gateway only.</td></tr>
+</table>
+</div></section>
+<section id="reference"><div class="wrap"><div class="sec-head"><h2>9. Reference</h2></div>
+<table class="spec">
+<tr><th>Module id</th><td><code>com.sparkbridge.sparks7</code></td></tr>
+<tr><th>Default port</th><td>TCP 102 (ISO-on-TCP)</td></tr>
+<tr><th>S7comm+ opt-in</th><td><code>sparks7.allowPlus=true</code> or <code>SPARKS7_ALLOW_PLUS=true</code></td></tr>
+<tr><th>License entitlement</th><td><code>com.sparkbridge.sparks7</code></td></tr>
+</table>
+</div></section>
+<section class="band" id="support"><div class="wrap"><div class="sec-head"><h2>10. Support</h2></div>
+<p>Docs page section: <a href="/sparkbridge/docs#sparks7">/sparkbridge/docs#sparks7</a>.
+Contact: <a href="/sparkbridge/contact">/sparkbridge/contact</a>.
+Release downloads and checksums: <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases">GitHub releases</a>.</p>
+</div></section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download" aria-current="page">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Passage user manual | SparkBridge</title>
+<meta name="description" content="User manual for Passage: install, license, configure, operate, verify and troubleshoot.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/passage">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+<body class="docs">
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>Passage</h1>
+  <p>Passage republishes the Sparkplug namespace SparkBridge Host holds as a live OPC-UA server address space, so any OPC-UA client can browse and subscribe without polling the plant.</p>
+  <div class="pmeta"><span class="stat">Free module</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: Host</span></div>
+</div></header>
+<main id="main">
+<section id="contents"><div class="wrap"><div class="sec-head"><h2>Contents</h2></div><ol><li><a href="#overview">1. Overview</a></li><li><a href="#requirements">2. What You Need</a></li><li><a href="#install">3. Install</a></li><li><a href="#license">4. License</a></li><li><a href="#configure">5. Configure</a></li><li><a href="#operate">6. Operate</a></li><li><a href="#verify">7. Verify</a></li><li><a href="#troubleshoot">8. Troubleshoot</a></li><li><a href="#reference">9. Reference</a></li><li><a href="#support">10. Support</a></li></ol></div></section>
+<section id="overview"><div class="wrap"><div class="sec-head"><h2>1. Overview</h2><p>What Passage does</p></div>
+<p>Passage republishes the Sparkplug namespace that SparkBridge Host holds as a live OPC-UA server address space. A non-Sparkplug client (a historian, a SCADA package, an MES, an analytics tool, a test rig) connects to Passage as an ordinary OPC-UA server and browses the same tag tree Host already built, without polling the plant. Passage is not a device driver and it does not write to the field; it exposes what Host already holds.</p>
+<p>Passage ships as a free module included with any SparkBridge Edge or Host license.</p>
+</div></section>
+<section class="band" id="requirements"><div class="wrap"><div class="sec-head"><h2>2. What You Need</h2></div>
+<ul>
+<li>A SparkBridge Host gateway (Passage reads Host's tag tree).</li>
+<li>Ignition 8.1.19 or newer, or Ignition 8.3.</li>
+<li>A free TCP port for the OPC-UA endpoint (default <code>62544</code>).</li>
+<li>An OPC-UA client to consume it: a historian, SCADA package, MES, analytics tool or test rig.</li>
+</ul>
+</div></section>
+<section id="install"><div class="wrap"><div class="sec-head"><h2>3. Install</h2></div>
+<ol>
+<li>Download the SparkBridge release bundle for your Ignition line from <a href="/sparkbridge/download">the download page</a>.</li>
+<li>In the gateway, go to Config &gt; Modules &gt; Install or Upgrade a Module, and upload Provider, then Host, then Edge, in that order.</li>
+<li>Accept the certificate and license once; confirm all modules show Running. Passage is included, not a separate module upload.</li>
+<li>Upgrade every installed module together, from the same release bundle, in the same maintenance window.</li>
+</ol>
+</div></section>
+<section class="band" id="license"><div class="wrap"><div class="sec-head"><h2>4. License</h2></div>
+<p>Passage is free. It is included with any SparkBridge Edge or Host license and ships with no license tag required of its own.</p>
+<p>The suite key file, when present, lives at <code>&lt;data&gt;/sparkbridge-license.key</code> and is re-checked every 30 seconds, so installing or replacing it takes effect with no restart. From release 2.7.0, SparkBridge modules run on Ignition's two-hour module trial until a verified key names the product; Passage's own license state is not gated the same way since it carries no separate license tag.</p>
+</div></section>
+<section id="configure"><div class="wrap"><div class="sec-head"><h2>5. Configure</h2></div>
+<p>Current Passage configuration is file/property-based. Set these as JVM system properties in the gateway startup configuration, then restart the gateway.</p>
+<table class="spec">
+<tr><th><code>unsbridge.server.enabled</code></th><td>Enable the OPC-UA server. Default <code>true</code>.</td></tr>
+<tr><th><code>unsbridge.server.port</code></th><td>OPC-UA bind port. Default <code>62544</code>.</td></tr>
+<tr><th><code>unsbridge.server.bindAddress</code></th><td>OPC-UA bind address. Default <code>127.0.0.1</code>.</td></tr>
+<tr><th><code>unsbridge.server.hostname</code></th><td>Hostname advertised in OPC-UA endpoints. Default <code>localhost</code>.</td></tr>
+<tr><th><code>unsbridge.server.path</code></th><td>OPC-UA endpoint path. Default <code>/unsbridge</code>.</td></tr>
+<tr><th><code>unsbridge.server.securityDir</code></th><td>OPC-UA security directory. Default <code>data/unsbridge/security</code>.</td></tr>
+<tr><th><code>unsbridge.spike.enabled</code></th><td>Enable the synthetic proof node. Default <code>false</code>.</td></tr>
+<tr><th><code>unsbridge.server.allowAnonymousUnencryptedRemote</code></th><td>Explicit acknowledgement for remote anonymous unencrypted access. Default <code>false</code>.</td></tr>
+<tr><th><code>unsbridge.birthcache.enabled</code></th><td>Persist and replay the last known BIRTH set. Default <code>true</code>.</td></tr>
+<tr><th><code>unsbridge.birthcache.file</code></th><td>Birth cache path. Default <code>data/unsbridge-birthcache.txt</code>.</td></tr>
+<tr><th><code>unsbridge.birthcache.maxAgeHours</code></th><td>Maximum accepted cache age in hours. Default <code>168</code>; <code>0</code> disables the age check.</td></tr>
+<tr><th><code>unsbridge.birthcache.saveSeconds</code></th><td>Cache save interval in seconds. Default <code>60</code>; minimum <code>5</code>.</td></tr>
+<tr><th><code>unsbridge.birthcache.deviceGraceSeconds</code></th><td>Device grace period after an edge NBIRTH. Default <code>60</code>; minimum <code>1</code>.</td></tr>
+<tr><th><code>unsbridge.ingest.enabled</code></th><td>Enable Sparkplug MQTT ingest. Default <code>false</code>.</td></tr>
+<tr><th><code>unsbridge.broker.uri</code></th><td>MQTT broker URI. Default <code>tcp://127.0.0.1:1883</code>.</td></tr>
+<tr><th><code>unsbridge.broker.username</code></th><td>MQTT broker username. Default is empty.</td></tr>
+<tr><th><code>unsbridge.broker.clientid</code></th><td>MQTT client id. Default <code>sparkbridge-unsbridge</code>; use a value beginning with <code>sparkbridge-</code>.</td></tr>
+</table>
+<p>Store <code>unsbridge.status.token</code> and <code>unsbridge.broker.password</code> in the file named by <code>unsbridge.secrets.file</code>, default <code>data/unsbridge-secrets.properties</code>. Passage also supports the shared <code>sparkbridge.broker.password</code> fallback for broker access.</p>
+</div></section>
+<section class="band" id="operate"><div class="wrap"><div class="sec-head"><h2>6. Operate</h2></div>
+<p>Passage runs passively: it serves subscriptions and browse requests against Host's live tag tree. It polls nothing in the plant. On an edge NDEATH or DDEATH, the corresponding OPC-UA nodes go to bad quality within the configured device grace period. On gateway restart, the birth cache (when enabled) replays the last known BIRTH set so clients see a populated address space immediately rather than an empty tree while Host re-establishes its own sessions.</p>
+</div></section>
+<section id="verify"><div class="wrap"><div class="sec-head"><h2>7. Verify</h2></div>
+<p>Connect a third-party OPC-UA client (for example UaExpert) to the configured endpoint, browse the address space, and subscribe to a value. Confirm the value matches the Sparkplug wire within one update, with the source timestamp preserved. Confirm a node goes to bad quality within the death window after an NDEATH/DDEATH.</p>
+</div></section>
+<section class="band" id="troubleshoot"><div class="wrap"><div class="sec-head"><h2>8. Troubleshoot</h2></div>
+<div class="scroller"><table class="tbl">
+<thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>Client cannot connect</td><td><code>unsbridge.server.enabled</code> is false, or the port is blocked</td><td>Confirm the property is <code>true</code> and the configured port is reachable from the client</td></tr>
+<tr><td>Remote client refused with an anonymous/unencrypted error</td><td><code>unsbridge.server.allowAnonymousUnencryptedRemote</code> is false (default)</td><td>Set it to <code>true</code> only after accepting the security tradeoff, or configure a secured endpoint</td></tr>
+<tr><td>Address space empty after restart</td><td>Birth cache disabled or stale beyond <code>unsbridge.birthcache.maxAgeHours</code></td><td>Enable the birth cache, or wait for Host to re-establish live BIRTH data</td></tr>
+<tr><td>Broker-backed ingest not updating</td><td><code>unsbridge.ingest.enabled</code> is false (default)</td><td>Set it to <code>true</code> and confirm <code>unsbridge.broker.uri</code> and credentials</td></tr>
+</tbody>
+</table></div>
+</div></section>
+<section id="reference"><div class="wrap"><div class="sec-head"><h2>9. Reference</h2></div>
+<ul>
+<li>Default OPC-UA port: <code>62544</code>.</li>
+<li>Default endpoint path: <code>/unsbridge</code>.</li>
+<li>Secrets file default: <code>data/unsbridge-secrets.properties</code>.</li>
+<li>Birth cache file default: <code>data/unsbridge-birthcache.txt</code>.</li>
+</ul>
+</div></section>
+<section class="band" id="support"><div class="wrap"><div class="sec-head"><h2>10. Support</h2></div>
+<p><a href="/sparkbridge/docs#passage">Passage in the docs</a> &middot; <a href="/sparkbridge/contact">Contact</a> &middot; <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases">GitHub releases</a></p>
+</div></section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> &middot; <a href="/sparkbridge/technology">Technology</a> &middot; <a href="/sparkbridge/benchmarks">Benchmarks</a> &middot; <a href="/sparkbridge/roadmap">Roadmap</a> &middot; <a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

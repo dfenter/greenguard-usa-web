@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkFlow user manual | SparkBridge</title>
+<meta name="description" content="User manual for SparkFlow: install, license, configure, operate, verify and troubleshoot the NATS/JetStream backbone module for SparkBridge Host.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/flow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>SparkFlow</h1>
+  <p>SparkFlow bridges the Sparkplug B stream Host decodes onto a NATS/JetStream backbone, so every point stays live and available company-wide, with no tag behind it, past the point where a tag-counted system stops scaling.</p>
+  <div class="pmeta"><span class="stat">Version 2.8.0</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: the Host gateway</span></div>
+</div></header>
+
+<main id="main">
+
+<section id="contents"><div class="wrap">
+<div class="sec-head"><div class="path">contents</div><h2>On this page</h2></div>
+<ol>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#requirements">What You Need</a></li>
+<li><a href="#install">Install</a></li>
+<li><a href="#license">License</a></li>
+<li><a href="#configure">Configure</a></li>
+<li><a href="#operate">Operate</a></li>
+<li><a href="#verify">Verify</a></li>
+<li><a href="#troubleshoot">Troubleshoot</a></li>
+<li><a href="#reference">Reference</a></li>
+<li><a href="#support">Support</a></li>
+</ol>
+</div></section>
+
+<section id="overview"><div class="wrap">
+<div class="sec-head"><div class="path">Overview</div><h2>1. Overview</h2></div>
+<p>SparkFlow publishes every point Host decodes onto a NATS JetStream stream as a named, timestamped, quality-stamped message, independent of whether a tag exists for it. Dashboards, historians, analysts and AI pipelines subscribe directly; the plant is asked for nothing extra. A key-value store holds the current value and quality of every point, so a new subscriber gets the last known value of everything the moment it connects, and the stream keeps history so a window of past data can be replayed. SparkFlow also carries a command bridge: a NATS request/reply call can drive a confirmed NCMD/DCMD write back to the field.</p>
+<p>SparkFlow is optional and is not part of the core SparkBridge install. It runs on the Host gateway, on its own perpetual per-gateway license, and is installed after Provider, Host and Edge are running.</p>
+</div></section>
+
+<section class="band" id="requirements"><div class="wrap">
+<div class="sec-head"><div class="path">Requirements</div><h2>2. What You Need</h2></div>
+<table class="spec">
+<tr><th>Ignition</th><td>8.1.19 or newer on the 8.1 line, or 8.3 (separate build). A gateway that can be restarted at will.</td></tr>
+<tr><th>Java</th><td>Compiles against the Ignition 8.1.0 API, targets Java 11 bytecode.</td></tr>
+<tr><th>Gateway role</th><td>The Host gateway. SparkFlow is not installed on an Edge-only gateway.</td></tr>
+<tr><th>Network</th><td>A reachable <code>nats-server</code> with JetStream enabled, default <code>nats://127.0.0.1:4222</code>.</td></tr>
+<tr><th>Other SparkBridge modules required</th><td>Provider, Host and Edge running first. SparkFlow reads from Host's decoded stream.</td></tr>
+</table>
+</div></section>
+
+<section id="install"><div class="wrap">
+<div class="sec-head"><div class="path">Install</div><h2>3. Install</h2></div>
+<ol>
+<li>Download the release bundle for your Ignition line from the <a href="/sparkbridge/download">download page</a>, including <code>SparkBridge-Flow.modl</code> (optional add-on, bought separately from the core bundle).</li>
+<li>Install after Provider, Host and Edge are running: Config &gt; Modules &gt; Install or Upgrade a Module, upload <code>SparkBridge-Flow.modl</code>.</li>
+<li>Accept the certificate and license once; confirm Config &gt; Modules shows SparkFlow state = Running.</li>
+</ol>
+<p>See <code>docs/FLOW_MODULE.md</code> in the bundle for the full configuration and lifecycle reference.</p>
+</div></section>
+
+<section class="band" id="license"><div class="wrap">
+<div class="sec-head"><div class="path">License</div><h2>4. License</h2></div>
+<table class="spec">
+<tr><th>File</th><td>Per-gateway license key at <code>&lt;data&gt;/sparkbridge-license.key</code>. SparkFlow carries its own license, separate from the core suite key, at $995 per Host gateway.</td></tr>
+<tr><th>Re-check interval</th><td>SparkFlow re-checks the key file every 30 seconds. Installing, replacing or removing a key takes effect with no restart.</td></tr>
+</table>
+<p>From release 2.7.0, SparkFlow runs on Ignition's standard two-hour module trial (the gateway's Reset Trial button restarts the clock). When the trial expires with no verified key naming the product, SparkFlow stops its dispatcher. A key dropped in after expiry lifts the pause on its own within the 30-second re-check, no button press and no restart. A verified key overrides the trial entirely.</p>
+</div></section>
+
+<section id="configure"><div class="wrap">
+<div class="sec-head"><div class="path">Configure</div><h2>5. Configure</h2></div>
+<p>All keys are <code>-D</code> system properties, read at startup as bootstrap/defaults. The <code>tagfeed</code> filter additionally hot-reloads from the <code>sparkflow-config</code> NATS KV bucket at runtime; nothing else currently hot-reloads.</p>
+<div class="scroller"><table class="tbl">
+<thead><tr><th>Setting</th><th>Default</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td><code>sparkbridge.flow.enabled</code></td><td>true</td><td>Master on/off switch. When false, startup logs and returns without connecting to NATS or the broker.</td></tr>
+<tr><td><code>sparkbridge.flow.nats.url</code></td><td><code>nats://127.0.0.1:4222</code></td><td>NATS core connect URL.</td></tr>
+<tr><td><code>sparkbridge.flow.tagfeed</code></td><td>empty</td><td>Comma-separated NATS-subject-style filter list (<code>*</code> = one token, <code>&gt;</code> = remainder) selecting the subset projected onto the managed tag provider. Empty means nothing projects. Hot-reloads from the <code>sparkflow-config</code> KV bucket.</td></tr>
+<tr><td><code>sparkbridge.flow.allowWildcardTagfeed</code></td><td>false</td><td>Must be explicitly set to true before a tagfeed filter list may contain the whole-estate wildcard <code>uns.&gt;</code>.</td></tr>
+<tr><td><code>sparkbridge.flow.subjectprefix</code></td><td><code>uns.</code></td><td>Telemetry subject prefix. Present for future configurability; the shipped subject mapper currently hardcodes <code>uns.</code>, so changing this key alone has no effect on the wire format.</td></tr>
+<tr><td><code>sparkbridge.flow.kvbucket</code></td><td><code>uns-last</code></td><td>KV bucket holding tag-less last-known-value and lifecycle state. Created automatically if absent.</td></tr>
+<tr><td><code>sparkbridge.flow.configbucket</code></td><td><code>sparkflow-config</code></td><td>KV bucket SparkFlow watches for its own hot-reloadable config. Not created automatically; must be provisioned ahead of time. If absent at startup, SparkFlow logs an error and continues on the static bootstrap tagfeed filter with hot-reload disabled.</td></tr>
+<tr><td><code>sparkbridge.flow.twin.kvbucket</code></td><td><code>uns-model</code></td><td>Digital-twin KV bucket. Created automatically if absent, unlike the config bucket.</td></tr>
+<tr><td><code>sparkbridge.flow.commandTimeoutMs</code></td><td>5000</td><td>Timeout for the reverse (NATS request/reply to NCMD/DCMD) command path.</td></tr>
+<tr><td><code>sparkbridge.flow.commandWorkers</code></td><td>8</td><td>Threads in the command-bridge worker pool.</td></tr>
+<tr><td><code>sparkbridge.flow.commandQueue</code></td><td>64</td><td>Bounded queue in front of the command workers. When full, a new command is answered at once with <code>{"busy":true}</code> rather than queued.</td></tr>
+<tr><td><code>sparkbridge.flow.commandPerEdge</code></td><td>2</td><td>Commands allowed in flight per group/edge. A dead edge pins at most this many workers.</td></tr>
+<tr><td><code>sparkbridge.flow.nats.credentialsFile</code></td><td>none</td><td>NATS credentials file path, resolved through the secrets file in preference to a bare <code>-D</code> value.</td></tr>
+<tr><td><code>sparkbridge.flow.nats.tls.enabled</code></td><td>false</td><td>Whether the NATS connection uses TLS.</td></tr>
+<tr><td><code>sparkbridge.flow.nats.tls.certPath</code> / <code>keyPath</code> / <code>caPath</code></td><td>none</td><td>TLS cert/key/CA paths, resolved through the secrets file the same way as the credentials file.</td></tr>
+<tr><td><code>sparkbridge.flow.cmd.keysDir</code></td><td>empty</td><td>Directory of signed-command verification keys (public keys only, not routed through the secrets file).</td></tr>
+<tr><td><code>sparkbridge.flow.cmd.requireSignature</code></td><td>false</td><td>When true, an unsigned command request is rejected instead of falling back to the unsigned path.</td></tr>
+</tbody>
+</table></div>
+<p>Every subject, command subject and KV key includes a mandatory device slot: <code>uns.&lt;group&gt;.&lt;edge&gt;.&lt;device|_&gt;.&lt;metric segment&gt;[...]</code>, with a literal underscore meaning no device. Metric segment characters outside <code>[A-Za-z0-9_-]</code> are percent-style escaped as <code>=XX</code> (two hex digits); a literal <code>=</code> becomes <code>=3D</code>. This escaped form is canonical on the wire subject, the KV key, and the historian node key.</p>
+</div></section>
+
+<section class="band" id="operate"><div class="wrap">
+<div class="sec-head"><div class="path">Operate</div><h2>6. Operate</h2></div>
+<p>Confirm the Edge's Sparkplug traffic reaches NATS subjects under the <code>uns.</code> prefix, for example with a NATS CLI subscription to <code>uns.&gt;</code>. Watch for repeated <code>{"busy":true}</code> command responses, which indicate the command queue or per-edge limit is saturated rather than a dead command bridge.</p>
+<p>On a NATS link loss, SparkFlow's dispatcher stops publishing until reconnected; it does not buffer independently of what NATS/JetStream itself retains. On restart, SparkFlow reconnects to NATS and re-subscribes to Host's decoded stream; the tagfeed filter reloads from the config bucket if present.</p>
+<p>A metric segment that is permanently unmappable for an unsupported wire value type or a rejected group/edge/device identifier publishes one event to <code>uns.$events.reject</code> and is never queued for retry.</p>
+</div></section>
+
+<section id="verify"><div class="wrap">
+<div class="sec-head"><div class="path">Verify</div><h2>7. Verify</h2></div>
+<p>Confirm the Edge's Sparkplug traffic reaches NATS subjects under the <code>uns.</code> prefix, for example with a NATS CLI subscription to <code>uns.&gt;</code>. See <code>docs/FLOW_MODULE.md</code> in the bundle for the subject naming contract and the KV bucket layout used for last-known values.</p>
+</div></section>
+
+<section class="band" id="troubleshoot"><div class="wrap">
+<div class="sec-head"><div class="path">Troubleshoot</div><h2>8. Troubleshoot</h2></div>
+<div class="scroller"><table class="tbl">
+<thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>No subjects appear under <code>uns.</code></td><td><code>sparkbridge.flow.enabled</code> is false, or <code>tagfeed</code> is empty</td><td>Confirm the module is enabled and set a non-empty tagfeed filter</td></tr>
+<tr><td>Startup logs an error naming the config bucket</td><td><code>sparkflow-config</code> KV bucket was never provisioned</td><td>Provision the bucket ahead of time; SparkFlow will not create it itself</td></tr>
+<tr><td>Command calls return <code>{"busy":true}</code> repeatedly</td><td>Command queue full or per-edge limit reached on a dead/slow edge</td><td>Investigate the named edge; raise <code>commandWorkers</code>/<code>commandQueue</code> only after confirming the edge itself is healthy</td></tr>
+<tr><td>Metric with spaces or punctuation in its name fails to publish</td><td>Pre-escaping defect in an old build, or an unsupported wire value type</td><td>Confirm the module escapes metric segments as <code>=XX</code>; an unsupported value type instead routes to <code>uns.$events.reject</code></td></tr>
+<tr><td>Dispatcher stops publishing with no error</td><td>Module trial expired, no verified key</td><td>Drop a valid <code>sparkbridge-license.key</code> in the data directory</td></tr>
+</tbody>
+</table></div>
+</div></section>
+
+<section id="reference"><div class="wrap">
+<div class="sec-head"><div class="path">Reference</div><h2>9. Reference</h2></div>
+<table class="spec">
+<tr><th>License file</th><td><code>&lt;data&gt;/sparkbridge-license.key</code></td></tr>
+<tr><th>Module file</th><td><code>SparkBridge-Flow.modl</code></td></tr>
+<tr><th>Default NATS URL</th><td><code>nats://127.0.0.1:4222</code></td></tr>
+<tr><th>Last-value KV bucket</th><td><code>uns-last</code></td></tr>
+<tr><th>Config KV bucket</th><td><code>sparkflow-config</code> (not auto-created)</td></tr>
+<tr><th>Digital-twin KV bucket</th><td><code>uns-model</code></td></tr>
+<tr><th>Reject event subject</th><td><code>uns.$events.reject</code></td></tr>
+<tr><th>License re-check</th><td>30 seconds</td></tr>
+</table>
+</div></section>
+
+<section class="band" id="support"><div class="wrap">
+<div class="sec-head"><div class="path">Support</div><h2>10. Support</h2></div>
+<p>Full install and config detail: <a href="/sparkbridge/docs#flow">SparkBridge Docs, Flow</a>. Product page: <a href="/sparkbridge/flow">SparkFlow</a>. Questions: <a href="/sparkbridge/contact">Contact</a>. Release history: <a href="https://github.com/greenguard-usa/SparkBridge/releases">GitHub releases</a>.</p>
+</div></section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkBridge Host user manual | SparkBridge</title>
+<meta name="description" content="User manual for SparkBridge Host: install, license, configure, operate, verify and troubleshoot the managed Sparkplug B tag provider for Ignition.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/host">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+<body>
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>SparkBridge Host</h1>
+  <p>Host decodes the fleet's Sparkplug B stream and materializes it as a live, browsable managed Ignition tag provider, with command write-back and STATE as primary host application.</p>
+  <div class="pmeta"><span class="stat">Version 2.8.0</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: the central collection gateway</span></div>
+</div></header>
+
+<main id="main">
+
+<section id="contents"><div class="wrap">
+<div class="sec-head"><div class="path">contents</div><h2>On this page</h2></div>
+<ol>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#requirements">What You Need</a></li>
+<li><a href="#install">Install</a></li>
+<li><a href="#license">License</a></li>
+<li><a href="#configure">Configure</a></li>
+<li><a href="#operate">Operate</a></li>
+<li><a href="#verify">Verify</a></li>
+<li><a href="#troubleshoot">Troubleshoot</a></li>
+<li><a href="#reference">Reference</a></li>
+<li><a href="#support">Support</a></li>
+</ol>
+</div></section>
+
+<section id="overview"><div class="wrap">
+<div class="sec-head"><div class="path">Overview</div><h2>1. Overview</h2></div>
+<p>Host subscribes to the SparkBridge broker as the Sparkplug host application, decodes every site's Edge traffic, and exposes it as a managed Ignition tag provider that behaves like any other tag source in the Designer. It publishes the Sparkplug STATE topic for its host id and can write back to the field through NCMD/DCMD. Host is bundled with SparkCalc and SparkID; other Host modules (Passage, Sentinel, FleetOps, SparkVault, SparkInject) are optional add-ons on top of it.</p>
+<p>Host is not a broker: it needs a running Provider to subscribe to before any Edge publishes.</p>
+</div></section>
+
+<section class="band" id="requirements"><div class="wrap">
+<div class="sec-head"><div class="path">Requirements</div><h2>2. What You Need</h2></div>
+<table class="spec">
+<tr><th>Ignition</th><td>8.1.19 or newer on the 8.1 line, or 8.3 (separate build). A gateway that can be restarted at will.</td></tr>
+<tr><th>Java</th><td>Compiles against the Ignition 8.1.0 API, targets Java 11 bytecode.</td></tr>
+<tr><th>Gateway role</th><td>The central collection gateway. Typically separate from any site Edge gateway, though a single node can run both.</td></tr>
+<tr><th>Network</th><td>Reach to the Provider's broker: TCP 1883 (plaintext) or 8883 (TLS) by default.</td></tr>
+<tr><th>Other SparkBridge modules required</th><td>A running Provider (embedded broker or external HiveMQ CE) that Host can subscribe to before any Edge publishes.</td></tr>
+</table>
+</div></section>
+
+<section id="install"><div class="wrap">
+<div class="sec-head"><div class="path">Install</div><h2>3. Install</h2></div>
+<ol>
+<li>Download the release bundle for your Ignition line from the <a href="/sparkbridge/download">download page</a>: <code>SparkBridge-Provider.modl</code>, <code>SparkBridge-Host.modl</code>, <code>SparkBridge-Edge.modl</code>, plus <code>SHA256SUMS.txt</code> and <code>sparkbridge-signing-cert.pem</code>.</li>
+<li>Install order matters: Provider first, then Host, then Edge (and Flow, if bought). In the gateway, go to Config &gt; Modules &gt; Install or Upgrade a Module and upload <code>SparkBridge-Host.modl</code> after Provider.</li>
+<li>Accept the certificate and license once; confirm Config &gt; Modules shows SparkBridge Host state = Running.</li>
+</ol>
+<p>Upgrade every installed SparkBridge module together, from the same release bundle, in the same maintenance window. A gateway running mixed old and new module versions can disagree on which module owns a shared setting, such as <code>hostId</code> or <code>foldtarget</code>, and silently misbehave.</p>
+</div></section>
+
+<section class="band" id="license"><div class="wrap">
+<div class="sec-head"><div class="path">License</div><h2>4. License</h2></div>
+<table class="spec">
+<tr><th>File</th><td>Per-gateway license key at <code>&lt;data&gt;/sparkbridge-license.key</code>.</td></tr>
+<tr><th>Re-check interval</th><td>Host re-checks the key file every 30 seconds. Installing, replacing or removing a key takes effect with no restart.</td></tr>
+</table>
+<p>From release 2.7.0, Host runs on Ignition's standard two-hour module trial (the gateway's Reset Trial button restarts the clock). When the trial expires with no verified key naming the product, Host publishes a retained OFFLINE STATE and closes its sessions. A key dropped in after expiry lifts the pause on its own within the 30-second re-check, no button press and no restart. A verified key overrides the trial entirely.</p>
+</div></section>
+
+<section id="configure"><div class="wrap">
+<div class="sec-head"><div class="path">Configure</div><h2>5. Configure</h2></div>
+<p>Open Config &gt; SparkBridge Host &gt; Settings. The page exposes the complete Host settings record. Every key on it is Host-owned: Host is the only module that ever writes it.</p>
+<div class="scroller"><table class="tbl">
+<thead><tr><th>Setting</th><th>Meaning, default</th></tr></thead>
+<tbody>
+<tr><td>Host Id <code>hostid</code></td><td>Sparkplug host application id, published as <code>spBv1.0/STATE/&lt;hostId&gt;</code>. Default <code>SparkBridge</code>. Read once at connect (restart to pick up a change). Must match the Edge tab's <code>primaryHost</code>.</td></tr>
+<tr><td>Fold Target <code>foldtarget</code></td><td>Template member that receives folded UDT properties on projection. Read live, applies per projection. Owned by Host even though the matching <code>fold</code>/<code>foldmembers</code> keys live on the Edge tab; they are opposite ends of the same wire format, and changing one without the other silently breaks the property mapping.</td></tr>
+<tr><td>Partition <code>partition</code></td><td>Namespace slices this gateway owns, such as <code>PlantA,PlantB</code>. Use <code>spBv1.0/#</code> to claim the whole namespace explicitly. Hot; applies within about 5 seconds.</td></tr>
+</tbody>
+</table></div>
+<p>Secrets, including any broker password Host uses, go in the secrets file named by <code>sparkbridge.secrets.file</code> (default <code>data/sparkbridge-secrets.properties</code>), never as a <code>-D</code> argument.</p>
+<p><b>hostId precedence exception:</b> everywhere else, a saved settings-page value wins over the matching <code>-D</code> system property, which in turn wins over the historical default. <code>hostId</code> is the deliberate exception: an explicitly set <code>-Dsparkbridge.host.id</code> outranks the settings-page value. Set the Host Id field for the normal case; use the system property only when it must win regardless of what is saved.</p>
+<p>This settings page supersedes the older <code>/data/sparkbridge/config</code> HTML form, which is being trimmed to host-only keys. Prefer Config &gt; SparkBridge Host &gt; Settings for new deployments.</p>
+</div></section>
+
+<section class="band" id="operate"><div class="wrap">
+<div class="sec-head"><div class="path">Operate</div><h2>6. Operate</h2></div>
+<p>Expand the managed tag provider (default name <code>SparkBridge</code>) in the Designer or gateway tag browser to watch live values. Host writes to Ignition's tag system, so normal tag history, alarming and scripting apply to it like any other provider.</p>
+<p>On a site's Edge going offline, Host reflects the Sparkplug DEATH state on that node's tags rather than freezing stale values silently. On gateway restart, Host re-subscribes and rebuilds its provider from the current fleet BIRTH traffic.</p>
+<p>REST status, node inventory and metrics routes require a bearer token; see <code>sparkbridge.rest.readToken</code> / <code>sparkbridge.rest.token</code> in the repo's <code>docs/CONFIG.md</code>.</p>
+</div></section>
+
+<section id="verify"><div class="wrap">
+<div class="sec-head"><div class="path">Verify</div><h2>7. Verify</h2></div>
+<pre class="code">SparkBridge Host: ... subscribed
+SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
+<p>Expand the managed tag provider in the Designer or gateway tag browser and confirm values update.</p>
+</div></section>
+
+<section class="band" id="troubleshoot"><div class="wrap">
+<div class="sec-head"><div class="path">Troubleshoot</div><h2>8. Troubleshoot</h2></div>
+<div class="scroller"><table class="tbl">
+<thead><tr><th>Symptom</th><th>Likely cause</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>No subscribed line in the log</td><td>Provider not running, or Host installed before Provider</td><td>Confirm Provider is Running before starting Host</td></tr>
+<tr><td>Tags never appear from a known Edge</td><td>Mismatched Host Id / <code>primaryHost</code> between Host and Edge</td><td>Confirm both name the same host application id</td></tr>
+<tr><td>UDT property mapping missing after a fold change</td><td>Edge's <code>fold</code>/<code>foldmembers</code> disagree with Host's Fold Target</td><td>Set both ends to the same folding intent</td></tr>
+<tr><td>REST status route returns unauthorized</td><td>No bearer token configured or presented</td><td>Set <code>sparkbridge.rest.readToken</code>/<code>sparkbridge.rest.token</code> and send it as a bearer token</td></tr>
+<tr><td>STATE goes retained-OFFLINE unexpectedly</td><td>Module trial expired, no verified key</td><td>Drop a valid <code>sparkbridge-license.key</code> in the data directory</td></tr>
+</tbody>
+</table></div>
+</div></section>
+
+<section id="reference"><div class="wrap">
+<div class="sec-head"><div class="path">Reference</div><h2>9. Reference</h2></div>
+<table class="spec">
+<tr><th>License file</th><td><code>&lt;data&gt;/sparkbridge-license.key</code></td></tr>
+<tr><th>Module file</th><td><code>SparkBridge-Host.modl</code></td></tr>
+<tr><th>STATE topic</th><td><code>spBv1.0/STATE/&lt;hostId&gt;</code></td></tr>
+<tr><th>Legacy config form</th><td><code>/data/sparkbridge/config</code> (superseded, host-only keys)</td></tr>
+<tr><th>Partition hot-apply</th><td>~5 seconds</td></tr>
+<tr><th>License re-check</th><td>30 seconds</td></tr>
+<tr><th>Bundled with Host</th><td>SparkCalc, SparkID</td></tr>
+</table>
+</div></section>
+
+<section class="band" id="support"><div class="wrap">
+<div class="sec-head"><div class="path">Support</div><h2>10. Support</h2></div>
+<p>Full install and config detail: <a href="/sparkbridge/docs#central">SparkBridge Docs, Host</a>. Questions: <a href="/sparkbridge/contact">Contact</a>. Release history: <a href="https://github.com/greenguard-usa/SparkBridge/releases">GitHub releases</a>.</p>
+</div></section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

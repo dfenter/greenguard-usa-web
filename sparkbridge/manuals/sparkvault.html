@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkVault user manual | SparkBridge</title>
+<meta name="description" content="User manual for SparkVault: install, license, configure, operate, verify and troubleshoot.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/sparkvault">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+<body class="docs">
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>SparkVault</h1>
+  <p>SparkVault is estate-wide Sparkplug history for Ignition: columnar storage, trend readback through Ignition's own tag-history provider, and plant replay on the equipment's true timestamp.</p>
+  <div class="pmeta"><span class="stat">Perpetual license</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: Host</span></div>
+</div></header>
+<main id="main">
+<section id="contents"><div class="wrap"><div class="sec-head"><h2>Contents</h2></div><ol><li><a href="#overview">1. Overview</a></li><li><a href="#requirements">2. What You Need</a></li><li><a href="#install">3. Install</a></li><li><a href="#license">4. License</a></li><li><a href="#configure">5. Configure</a></li><li><a href="#operate">6. Operate</a></li><li><a href="#verify">7. Verify</a></li><li><a href="#troubleshoot">8. Troubleshoot</a></li><li><a href="#reference">9. Reference</a></li><li><a href="#support">10. Support</a></li></ol></div></section>
+<section id="overview"><div class="wrap"><div class="sec-head"><h2>1. Overview</h2></div>
+<p>SparkVault is estate-wide Sparkplug history for Ignition: columnar storage, trend readback through Ignition's own tag-history provider interface, and plant replay. It subscribes to the Sparkplug backbone like any other consumer, so adding history changes nothing at the sites. Values are filed under the equipment's own source timestamp, not the time they arrived, so a site that loses its link and replays its buffer hours later backfills the trend correctly.</p>
+<p>Three lanes make up the product: Sparkplug ingest, trend readback out of the database through Ignition's tag-history provider (so existing trend bindings work unchanged), and replay of a stored window back onto the namespace as a synthetic edge.</p>
+</div></section>
+<section class="band" id="requirements"><div class="wrap"><div class="sec-head"><h2>2. What You Need</h2></div>
+<ul>
+<li>A SparkBridge Host gateway.</li>
+<li>A Postgres/Timescale database reachable from the gateway.</li>
+<li>Ignition's Tag Historian module active and licensed on the gateway (trend readback runs through it).</li>
+</ul>
+</div></section>
+<section id="install"><div class="wrap"><div class="sec-head"><h2>3. Install</h2></div>
+<ol>
+<li>SparkVault carries its own license. Install the signed module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</li>
+<li>Set <code>sparkvault.ingest.enabled=true</code> to activate the ingest lane; it stays inert otherwise.</li>
+</ol>
+<p>Schema migrations apply automatically at startup under a Postgres advisory lock.</p>
+</div></section>
+<section class="band" id="license"><div class="wrap"><div class="sec-head"><h2>4. License</h2></div>
+<p>See the README in the bundle for licensing detail. Standard suite behavior applies: the key file lives at <code>&lt;data&gt;/sparkbridge-license.key</code> and is re-checked every 30 seconds.</p>
+</div></section>
+<section id="configure"><div class="wrap"><div class="sec-head"><h2>5. Configure</h2></div>
+<table class="spec">
+<tr><th><code>sparkvault.ingest.enabled</code></th><td>false by default; master switch for the Sparkplug MQTT ingest lane.</td></tr>
+<tr><th><code>sparkvault.broker.uri</code></th><td>default <code>tcp://127.0.0.1:1883</code>.</td></tr>
+<tr><th><code>sparkvault.db.url</code></th><td>default <code>jdbc:postgresql://localhost:5432/sparkvault</code>.</td></tr>
+<tr><th><code>sparkvault.db.user</code></th><td>default <code>sparkvault</code>.</td></tr>
+<tr><th><code>sparkvault.db.schema</code></th><td>default <code>sparkvault</code>.</td></tr>
+<tr><th><code>sparkvault.jetstream.enabled</code></th><td>false by default; independent JetStream ingest source, stream must be bound to <code>uns.&gt;</code>.</td></tr>
+<tr><th><code>sparkvault.write.batch</code></th><td>default 500 rows per insert batch.</td></tr>
+<tr><th><code>sparkvault.buffer.path</code></th><td>default <code>data/sparkvault-history-buffer.dat</code>, the store-and-forward spill file.</td></tr>
+</table>
+<p>Full config key list is in the module README.</p>
+</div></section>
+<section class="band" id="operate"><div class="wrap"><div class="sec-head"><h2>6. Operate</h2></div>
+<p>SparkVault stores every historized point on the equipment's own source timestamp, not receipt time. On a link outage, the ingest lane spills to <code>sparkvault.buffer.path</code> and replays on reconnect, so the trend backfills correctly rather than showing a gap. Any past window can be replayed on demand back onto the namespace as a synthetic edge for analysis tooling that expects live-looking data.</p>
+</div></section>
+<section id="verify"><div class="wrap"><div class="sec-head"><h2>7. Verify</h2></div>
+<p>Check <code>GET /data/io.sparkvault.historian/status.json</code> for lane state and heartbeat age. Confirm a trend binding against the registered tag-history provider returns data matching the live Sparkplug stream.</p>
+</div></section>
+<section class="band" id="troubleshoot"><div class="wrap"><div class="sec-head"><h2>8. Troubleshoot</h2></div>
+<div class="scroller"><table class="tbl">
+<thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td>No data ingesting</td><td><code>sparkvault.ingest.enabled</code> is false (default)</td><td>Set it to true and restart or wait for the property re-read</td></tr>
+<tr><td>Trend binding returns no data</td><td>Tag Historian module trial expired, or the provider is not registered</td><td>Reset the Tag Historian trial on the gateway; confirm SparkVault's provider is registered</td></tr>
+<tr><td>status.json shows lane not healthy / heartbeat stale</td><td>Broker or database connectivity lost</td><td>Check <code>sparkvault.broker.uri</code> and <code>sparkvault.db.url</code> reachability from the gateway</td></tr>
+<tr><td>Gap in history after an outage that should have replayed</td><td>Buffer file missing or not writable</td><td>Confirm <code>sparkvault.buffer.path</code> is writable and has not been cleared</td></tr>
+</tbody>
+</table></div>
+</div></section>
+<section id="reference"><div class="wrap"><div class="sec-head"><h2>9. Reference</h2></div>
+<ul>
+<li>Status route: <code>GET /data/io.sparkvault.historian/status.json</code>.</li>
+<li>Default database: <code>jdbc:postgresql://localhost:5432/sparkvault</code>, schema <code>sparkvault</code>.</li>
+<li>Buffer file default: <code>data/sparkvault-history-buffer.dat</code>.</li>
+<li>See also <a href="/sparkbridge/record">SparkRecord</a> for structured records and events rather than continuous telemetry.</li>
+</ul>
+</div></section>
+<section class="band" id="support"><div class="wrap"><div class="sec-head"><h2>10. Support</h2></div>
+<p><a href="/sparkbridge/docs#sparkvault">SparkVault in the docs</a> &middot; <a href="/sparkbridge/central#sparkvault">SparkVault on the Host product page</a> &middot; <a href="/sparkbridge/contact">Contact</a> &middot; <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases">GitHub releases</a></p>
+</div></section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> &middot; <a href="/sparkbridge/technology">Technology</a> &middot; <a href="/sparkbridge/benchmarks">Benchmarks</a> &middot; <a href="/sparkbridge/roadmap">Roadmap</a> &middot; <a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>

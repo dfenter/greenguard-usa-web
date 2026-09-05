@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SparkID user manual | SparkBridge</title>
+<meta name="description" content="User manual for SparkID: install, license, configure, operate, verify and troubleshoot.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/sparkid">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+<body class="docs">
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/resources">Resources</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>SparkID</h1>
+  <p>SparkID generates broker authorization from a declared statement of intent, so a Sparkplug estate's access rules are never hand-typed wildcards.</p>
+  <div class="pmeta"><span class="stat">Version 0.1.0</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: Host</span></div>
+</div></header>
+<main id="main">
+<section id="contents"><div class="wrap"><div class="sec-head"><h2>Contents</h2></div><ol><li><a href="#overview">1. Overview</a></li><li><a href="#requirements">2. What You Need</a></li><li><a href="#install">3. Install</a></li><li><a href="#license">4. License</a></li><li><a href="#configure">5. Configure</a></li><li><a href="#operate">6. Operate</a></li><li><a href="#verify">7. Verify</a></li><li><a href="#troubleshoot">8. Troubleshoot</a></li><li><a href="#reference">9. Reference</a></li><li><a href="#support">10. Support</a></li></ol></div></section>
+<section id="overview"><div class="wrap"><div class="sec-head"><h2>1. Overview</h2></div>
+<p>SparkID generates broker authorization for a Sparkplug estate from a declared statement of intent, so a wildcard authorization rule is never hand-typed. An estate needs one identity per edge node, host, replay writer and consumer, each with authorization rules written against the Sparkplug topic grammar; SparkID reads a <code>.intent</code> declaration, expands it against that grammar per message type and scope, and emits the broker artifacts. It never writes into a running broker and never opens a network connection; installing the generated artifacts and restarting the broker is a separate, deliberate step.</p>
+</div></section>
+<section class="band" id="requirements"><div class="wrap"><div class="sec-head"><h2>2. What You Need</h2></div>
+<ul>
+<li>A SparkBridge Host gateway.</li>
+<li>Java 17 if building or running the CLI from source.</li>
+<li>A supported broker target: HiveMQ file-RBAC (<code>credentials.xml</code>) or Mosquitto dynamic-security (<code>--mosquitto</code>, writes <code>dynamic-security.json</code>).</li>
+</ul>
+</div></section>
+<section id="install"><div class="wrap"><div class="sec-head"><h2>3. Install</h2></div>
+<p>SparkID comes with the Host license. Install the module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required for the packaged release.</p>
+<p>To build the CLI from source:</p>
+<pre class="code">JAVA_HOME=~/.local/opt/jdk-17.0.19+10/Contents/Home ./gradlew fatJar
+java -jar build/libs/sparkid-0.1.0-all.jar --help</pre>
+<p>The jar depends on <code>io.sparkbridge:common</code> from mavenLocal; publish it first if missing:</p>
+<pre class="code">cd ../sparkbridge && ./gradlew :common:publishToMavenLocal</pre>
+</div></section>
+<section class="band" id="license"><div class="wrap"><div class="sec-head"><h2>4. License</h2></div>
+<p>Soft-licensed; SparkID runs the same whether or not a key is present. License file lookup order: <code>--license &lt;file&gt;</code>, the <code>SPARKBRIDGE_LICENSE</code> environment variable, then <code>./sparkbridge-license.key</code> in the working directory. Run <code>sparkid license</code> for full status.</p>
+</div></section>
+<section id="configure"><div class="wrap"><div class="sec-head"><h2>5. Configure</h2></div>
+<p>The <code>.intent</code> file is a declarative access policy meant for infrastructure-as-code review and diffing. The workflow, start to finish:</p>
+<ol>
+<li>Validate the written declaration: <pre class="code">sparkid validate --intent examples/sparkbridge-dev.intent</pre></li>
+<li>Issue one secret per identity and record it in the ledger: <pre class="code">sparkid issue --intent examples/sparkbridge-dev.intent --ledger out/estate.ledger --out-dir out</pre></li>
+<li>Preview the change against the broker's current rules: <pre class="code">sparkid diff --intent examples/sparkbridge-dev.intent --current /path/to/credentials.xml</pre></li>
+<li>Generate the reviewed deployment artifacts: <pre class="code">sparkid generate --intent examples/sparkbridge-dev.intent --ledger out/estate.ledger --out-dir out --current /path/to/credentials.xml</pre></li>
+</ol>
+<table class="spec">
+<tr><th>Broker targets</th><td>HiveMQ file-RBAC is the only supported target for <code>credentials.xml</code>. Mosquitto dynamic-security is supported with <code>--mosquitto</code>, writing <code>dynamic-security.json</code>.</td></tr>
+<tr><th>Write behavior</th><td>SparkID never writes into a running broker and never opens a network connection; installing generated artifacts and restarting the broker is a separate, deliberate step.</td></tr>
+</table>
+</div></section>
+<section class="band" id="operate"><div class="wrap"><div class="sec-head"><h2>6. Operate</h2></div>
+<p>SparkID is a CLI workflow, not a running service: validate the intent, issue secrets, preview the diff, generate artifacts, then deploy the generated files to the broker by hand and restart it. Re-run <code>sparkid issue</code> with the same ledger to rotate credentials inside the overlap window the rotation logic supports.</p>
+</div></section>
+<section id="verify"><div class="wrap"><div class="sec-head"><h2>7. Verify</h2></div>
+<p>Run <code>sparkid diff</code> against the broker's current <code>credentials.xml</code> and confirm the reported changes match intent. Check credential age with <code>sparkid expiry</code>. Full acceptance runs are documented in <code>docs/ACCEPTANCE.md</code> in the repo.</p>
+</div></section>
+<section class="band" id="troubleshoot"><div class="wrap"><div class="sec-head"><h2>8. Troubleshoot</h2></div>
+<div class="scroller"><table class="tbl">
+<thead><tr><th>Symptom</th><th>Cause</th><th>Fix</th></tr></thead>
+<tbody>
+<tr><td><code>sparkid generate</code> refuses to run</td><td>The declared intent would lock out the primary host identity</td><td>Review the intent; SparkID refuses a generated policy that would cause host lockout</td></tr>
+<tr><td>Broker still enforcing old rules after generate</td><td>Generated artifacts were not installed and the broker was not restarted</td><td>Copy the generated <code>credentials.xml</code> or <code>dynamic-security.json</code> into place and restart the broker; SparkID never does this for you</td></tr>
+<tr><td>Build fails looking for <code>io.sparkbridge:common</code></td><td>Not published to mavenLocal</td><td>Run <code>./gradlew :common:publishToMavenLocal</code> in the SparkBridge repo</td></tr>
+</tbody>
+</table></div>
+</div></section>
+<section id="reference"><div class="wrap"><div class="sec-head"><h2>9. Reference</h2></div>
+<ul>
+<li>CLI commands: <code>validate</code>, <code>issue</code>, <code>diff</code>, <code>generate</code>, <code>expiry</code>, <code>license</code>.</li>
+<li>Broker targets: HiveMQ file-RBAC (default), Mosquitto dynamic-security (<code>--mosquitto</code>).</li>
+<li>License file: <code>sparkbridge-license.key</code> (working directory, <code>--license</code>, or <code>SPARKBRIDGE_LICENSE</code>).</li>
+</ul>
+</div></section>
+<section class="band" id="support"><div class="wrap"><div class="sec-head"><h2>10. Support</h2></div>
+<p><a href="/sparkbridge/docs#sparkid">SparkID in the docs</a> &middot; <a href="/sparkbridge/central#sparkid">SparkID on the Host product page</a> &middot; <a href="/sparkbridge/contact">Contact</a> &middot; <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases">GitHub releases</a></p>
+</div></section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+</span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> &middot; <a href="/sparkbridge/technology">Technology</a> &middot; <a href="/sparkbridge/benchmarks">Benchmarks</a> &middot; <a href="/sparkbridge/roadmap">Roadmap</a> &middot; <a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>
