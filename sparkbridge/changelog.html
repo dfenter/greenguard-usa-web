@@ -52,7 +52,7 @@
   <div class="wrap">
     <div class="eyebrow">Changelog</div>
     <h1>Version history</h1>
-    <p>Every release, what changed, and what the change was for. Current release: 2.8.0. SparkNotify 0.2.0. SparkRecord 0.1.0.
+    <p>Every release, what changed, and what the change was for. Current release: 2.9.0. SparkNotify 0.2.0. SparkRecord 0.1.0.
     Full customer notes ship in the release package.</p>
   </div>
 </header>
@@ -177,6 +177,54 @@
           by the attempt cap; and profile-level Discord clear idempotency has no regression test,
           a coverage gap rather than a known defect. DNS rebinding defence remains deferred.</p>
           <p>0.2.0 ships for both Ignition 8.1 and Ignition 8.3. Both bundles are on the <a href="/sparkbridge/download">download page</a> and at <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/sparknotify-v0.2.0">the sparknotify-v0.2.0 GitHub release</a>. The 8.3 line has no gateway on this network and ships on green suites plus packaged-module verification, as every prior 8.3 release has.</p>
+        </div>
+      </li>
+      <li>
+        <span class="lc lc-birth">2.9.0<br>2026&#8209;09&#8209;06</span>
+        <div>
+          <h3>Enrollment slice 2 and capacity slice 2 finish the Track D pair</h3>
+          <p>2.9.0 updates the SparkBridge core modules only: Edge, Host, Provider and the
+          authorization extension for external HiveMQ. Every other Spark product stays at 2.7.0 and
+          does not need reinstalling. It is a drop-in module upgrade from 2.8.0, Provider then Host
+          then Edge, and completes the two Track D items that were left in slice 1 at 2.8.0.</p>
+          <p><b>Enrollment: certificate issuance and credential delivery.</b> The Host holds a
+          signing CA and returns a signed leaf certificate for each enrolled site's CSR; the Edge
+          writes its keystore and reconnects through the existing hot-reload path. The Host also
+          writes the site's broker credential straight into the extension's identities snapshot on
+          redemption, one site at a time, so one bad legacy password never blocks another site's
+          credential. A new reissue route mints a fresh password for an already-enrolled site.
+          Enrollment now registers the site with FleetOps, including its certificate fingerprint
+          and expiry, and Config &gt; SparkBridge Edge &gt; Settings on Ignition 8.1 gains an
+          enrollment code field and a status row.</p>
+          <p><b>Capacity: buffer depth, a degraded advisory, and sparklines.</b> Two more
+          <span class="mono">Node Info/Store Forward *</span> metrics carry each edge's buffer
+          depth and a degraded flag; a new <span class="mono">BUFFER_DEGRADED</span> recommendation
+          names a site whose buffer itself is degraded, ahead of suggesting a bigger one.
+          <span class="mono">/capacity/view</span> adds inline sparklines for updates per second,
+          headroom, and queue depth. The fleet-info watermark now clamps against a wrongly clocked
+          edge instead of trusting its timestamp outright, and an estate upgrading Host before its
+          edges keeps every edge's retention figure advancing during the transition.</p>
+          <p><b>Security.</b> ADMIN and WRITE routes now fail closed: before 2.9.0, an ADMIN route
+          with no admin token configured could be satisfied by a lower-tier token. A lower tier's
+          token no longer satisfies a higher tier under any configuration.</p>
+          <p><b>New signing certificate.</b> Modules are now signed with "SparkBridge Code Signing,
+          GreenGuard USA," fingerprint
+          <span class="mono">1D:72:68:08:69:94:7B:3B:3F:28:AD:C9:0F:F6:9A:3C:6D:76:FA:2F:87:37:C5:BE:9B:E3:9B:3D:D7:5F:F8:64</span>.
+          A gateway that has not seen it is prompted once, on the first module you install; accept
+          it after checking the fingerprint against the certificate file in the release package.</p>
+          <p><b>Honest limits.</b> The broker does not yet require the client certificate at
+          connect, so certificate issuance is a second factor carried alongside the password today,
+          not yet enforced at the TLS layer. Enrollment still needs the edge name configured first,
+          since a CSR has to name a subject before the Host has assigned the site an identity; a
+          two-round exchange that removes this step is planned. There is no certificate renewal or
+          revocation yet, so a technician re-enrolls the site to replace one nearing expiry. The 8.3
+          line has no Edge settings tab, since the 8.1-only config layer it is built on was removed
+          on the 8.3 mirror at an earlier release; enrollment status on 8.3 reads from
+          <span class="mono">/status</span> instead.</p>
+          <p><b>Redeploy the HiveMQ extension</b> if you run an external broker, and copy the
+          identities file into the extension home after every enrollment batch: the extension reads
+          its own snapshot of that file, not a live view of the Host's copy.</p>
+          <p>Bundles for Ignition 8.1 and 8.3 are on the <a href="/sparkbridge/download">download page</a> and at <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/v2.9.0">the v2.9.0 GitHub release</a>.</p>
         </div>
       </li>
       <li>
