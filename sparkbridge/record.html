@@ -79,7 +79,7 @@ chain verified: 41,884 rows, 0 breaks</pre>
     <p class="claim">Every record lands <em>once</em>, in order, and proves it never changed.</p>
     <div class="twocol">
       <div class="measure">
-        <p>SparkRecord receives three record lanes: Sparkplug B records (Cirrus Transmission Record objects, DataSet and Template metrics), JSON events on arbitrary MQTT topics through topic-to-stream templates, and SparkFlow events over NATS JetStream. Schema is discovered from the payload, versioned in a registry table, and migrated additively only, never destructively; SQL is generated per dialect.</p>
+        <p>SparkRecord receives three record lanes: Sparkplug B records (Cirrus Transmission Record objects, DataSet and Template metrics), JSON events on arbitrary MQTT topics through topic-to-stream templates, and SparkFlow events over NATS JetStream (the NATS lane ships in 0.2.0; 0.1.0 early access runs the two MQTT lanes). Schema is discovered from the payload, versioned in a registry table, and migrated additively only, never destructively; SQL is generated per dialect.</p>
         <p>Every value is type-validated. A reject lands in a quarantine table with the reason recorded, nothing dropped silently. Delivery is exactly once: the source timestamp is preserved separately from the receipt timestamp, producer identity rides on every row, persistence is ordered per producer, deduplication is by content hash, and the ledger entry is written in the same transaction as the record.</p>
       </div>
       <div>
@@ -100,7 +100,7 @@ chain verified: 41,884 rows, 0 breaks</pre>
   <div class="wrap">
     <div class="figure"><b>0</b><span>duplicate or missing rows across three record lanes in a 24 hour soak</span></div>
     <div class="measure">
-      <p>Sparkplug records, MQTT JSON events and NATS SparkFlow events all land through the same append-only writer, ordered per producer and deduplicated by content hash. A destination outage drains to disk and replays from the last committed offset with the original timestamps intact, not the replay time.</p>
+      <p>Sparkplug records, MQTT JSON events and, from 0.2.0, NATS SparkFlow events all land through the same append-only writer, ordered per producer and deduplicated by content hash. A destination outage drains to disk and replays from the last committed offset with the original timestamps intact, not the replay time.</p>
       <p>An outage becomes a delay, not a gap and not a duplicate.</p>
     </div>
   </div>
