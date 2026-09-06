@@ -51,7 +51,7 @@ a.dev:hover{border-left-color:var(--marker)}
   font-size:19px;line-height:1.06;letter-spacing:.015em;
 }
 .dev .job{font-size:13.5px;color:var(--paper-dim);line-height:1.42}
-.dev.spine{flex:0 1 240px;border-left-width:10px;background:#232b33;padding:18px 18px 19px}
+.dev.spine{flex:10 1 0;min-width:0;max-width:300px;align-self:stretch;border-left-width:10px;background:#232b33;padding:18px 18px 19px}
 .dev.spine .devname{font-size:22px}
 .dev.source{flex:0 0 118px;background:transparent;border:1px dashed var(--steel-dark);padding:12px 14px 13px}
 .dev.source .devname{font-size:15px;color:var(--paper-dim);font-weight:600}
