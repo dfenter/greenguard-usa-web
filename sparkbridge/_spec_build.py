@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Generate resources.html from the normative SB-MQTT5 spec in the SparkBridge repo.
+"""Splice the evidence + normative SB-MQTT5 spec block into docs.html.
 
-resources.html is the only generated page on the site. It carries two things: the
-hand-written resources prose (TCK evidence, assurance, standards, documents), which
-lives as template text INSIDE this script and must be edited here rather than in the
-HTML, and the complete normative SB-MQTT5 text, which is rendered from the repo's
-docs/SB-MQTT5-SPEC.md and must never drift from it.
+Since 2026-09-05 the former resources page lives inside docs.html, between the
+<!-- EVIDENCE:BEGIN --> and <!-- EVIDENCE:END --> markers. Everything between those
+markers is GENERATED: the hand-written evidence prose (TCK results, assurance,
+standards, documents on request) lives as template text INSIDE this script and must
+be edited here, and the normative SB-MQTT5 text is rendered from the repo's
+docs/SB-MQTT5-SPEC.md and must never drift from it. The rest of docs.html is
+hand-edited as usual and is left untouched by this script.
 
-Anything hand-edited in resources.html will be overwritten. Re-run this after any
-spec revision, and after any change to the resources copy:  python3 _spec_build.py
+Re-run after any spec revision or evidence-copy change:  python3 _spec_build.py
 """
 import html
 import re
@@ -17,7 +18,9 @@ from pathlib import Path
 import markdown
 
 SRC = Path("/Users/lucille/Github/SparkBridge/docs/SB-MQTT5-SPEC.md")
-OUT = Path(__file__).parent / "resources.html"
+OUT = Path(__file__).parent / "docs.html"
+BEGIN = "<!-- EVIDENCE:BEGIN -->"
+END = "<!-- EVIDENCE:END -->"
 BASE = "/sparkbridge/"
 
 md = SRC.read_text()
@@ -66,7 +69,6 @@ NAV_ITEMS = [
     ("pricing", "Pricing", "pricing"),
     ("use-cases", "Use cases", "use-cases"),
     ("architecture", "Architecture", "architecture"),
-    ("resources", "Resources", "resources"),
     ("download", "Download", "download"),
     ("docs", "Docs", "docs"),
     ("contact", "Contact", "contact"),
@@ -176,7 +178,7 @@ page = f'''<!DOCTYPE html>
   </div>
 </section>
 
-<section class="band">
+<section class="band" id="how-tested">
   <div class="wrap">
     <div class="sec-head">
       <div class="path">assurance</div>
@@ -195,7 +197,7 @@ page = f'''<!DOCTYPE html>
   </div>
 </section>
 
-<section>
+<section id="standards">
   <div class="wrap">
     <div class="sec-head">
       <div class="path">standards</div>
@@ -222,7 +224,7 @@ page = f'''<!DOCTYPE html>
   </div>
 </section>
 
-<section>
+<section id="documents">
   <div class="wrap">
     <div class="sec-head">
       <div class="path">documents</div>
@@ -330,5 +332,14 @@ page = f'''<!DOCTYPE html>
 </html>
 '''
 
-OUT.write_text(page)
-print(f"wrote {OUT} ({len(page)} bytes), {len(toc)} TOC entries")
+# Only the section block is used; the head/nav/footer template above is kept so the
+# evidence prose stays editable in one place.
+start = page.index('<main id="main">\n') + len('<main id="main">\n')
+stop = page.index('\n<section class="tail">', start)
+block = page[start:stop].strip("\n")
+# Blend into the docs page rhythm: the evidence block sits after a group head.
+doc = OUT.read_text()
+a, b = doc.index(BEGIN) + len(BEGIN), doc.index(END)
+doc = doc[:a] + "\n" + block + "\n" + doc[b:]
+OUT.write_text(doc)
+print(f"spliced {len(block)} bytes into {OUT}, {len(toc)} TOC entries")

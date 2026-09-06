@@ -68,7 +68,12 @@
     },
     {
       "source": "/sparkbridge/spec",
-      "destination": "/sparkbridge/resources",
+      "destination": "/sparkbridge/docs#sb-mqtt5",
+      "permanent": true
+    },
+    {
+      "source": "/sparkbridge/resources",
+      "destination": "/sparkbridge/docs#evidence",
       "permanent": true
     },
     {
