@@ -43,7 +43,7 @@
   <div class="eyebrow">User manual</div>
   <h1>SparkRecord</h1>
   <p>SparkRecord takes structured records off Sparkplug, MQTT and NATS, manages their SQL schema automatically, persists them exactly once, and maintains a per-stream SHA-256 audit chain over the committed rows.</p>
-  <div class="pmeta"><span class="stat">Release pending</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: Host</span></div>
+  <div class="pmeta"><span class="stat">0.1.0 early access</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: Host</span></div>
 </div></header>
 <main id="main">
 <section id="contents"><div class="wrap"><div class="sec-head"><h2>Contents</h2></div><ol><li><a href="#overview">1. Overview</a></li><li><a href="#requirements">2. What You Need</a></li><li><a href="#install">3. Install</a></li><li><a href="#license">4. License</a></li><li><a href="#configure">5. Configure</a></li><li><a href="#operate">6. Operate</a></li><li><a href="#verify">7. Verify</a></li><li><a href="#troubleshoot">8. Troubleshoot</a></li><li><a href="#reference">9. Reference</a></li><li><a href="#support">10. Support</a></li></ol></div></section>
@@ -63,7 +63,7 @@
 </div></section>
 <section class="band" id="license"><div class="wrap"><div class="sec-head"><h2>4. License</h2></div>
 <p>License key file at <code>&lt;data&gt;/sparkbridge-license.key</code>, re-checked every 30 seconds so installing, replacing, or removing the key takes effect with no restart. Without a verified key, SparkRecord runs on Ignition's standard two-hour module trial (Reset Trial on the gateway restarts the clock). A verified key naming SparkRecord overrides the trial entirely.</p>
-<p><b>Release pending.</b> At the time of writing, SparkRecord is not yet generally released; development use is free with no time limit.</p>
+<p><b>Early access.</b> SparkRecord 0.1.0 shipped 2026-09-05 as an early access release; development use is free with no time limit.</p>
 </div></section>
 <section id="configure"><div class="wrap"><div class="sec-head"><h2>5. Configure</h2></div>
 <table class="spec">
@@ -103,7 +103,7 @@ chain verified: 41,884 rows, 0 breaks</pre>
 <li>Config file: <code>&lt;Ignition data dir&gt;/sparkrecord/config.json</code>.</li>
 <li>License key: <code>&lt;data&gt;/sparkbridge-license.key</code>, 30-second re-check.</li>
 <li>Verify CLI: <code>sparkrecord verify --table &lt;name&gt;</code>.</li>
-<li>Status as of this writing: release pending; not yet generally available.</li>
+<li>Status as of this writing: 0.1.0 early access.</li>
 </ul>
 </div></section>
 <section class="band" id="support"><div class="wrap"><div class="sec-head"><h2>10. Support</h2></div>

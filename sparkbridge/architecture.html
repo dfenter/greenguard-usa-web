@@ -79,6 +79,32 @@
 
 <main id="main">
 
+<section id="start">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="path">choose your starting point</span>
+      <h2>Choose Your Starting Point</h2>
+      <p>Eight drawings follow, and most readers need one. Find your situation, open that drawing, and skip the rest.</p>
+    </div>
+    <div class="scroller">
+      <table class="tbl">
+        <thead><tr><th>Your situation</th><th>Architecture</th></tr></thead>
+        <tbody>
+          <tr><td>One machine or one site, watched from somewhere else</td><td><a href="#s1">01 the wire</a></td></tr>
+          <tr><td>One plant with central operations</td><td><a href="#s2">02 the plant</a></td></tr>
+          <tr><td>10 to 50 distributed sites</td><td><a href="#s3">03 the data center</a></td></tr>
+          <tr><td>Multiple enterprise consumers off one namespace (historian, OPC-UA, cloud)</td><td><a href="#s4">04 the whole line</a></td></tr>
+          <tr><td>History and digital twin</td><td><a href="#s5">05 the twin</a></td></tr>
+          <tr><td>100 to 200+ sites</td><td><a href="#s6">06 the ultra large estate</a></td></tr>
+          <tr><td>Fleet operations: config, identity, audit for one team</td><td><a href="#s7">07 running it</a></td></tr>
+          <tr><td>One Ignition server today, no second site yet</td><td><a href="#s8">08 one server</a></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">The table at the end of the page, <a href="#today">Pick by What You Run Today</a>, maps the same drawings from what is already installed.</p>
+  </div>
+</section>
+
 <!-- ============================ 01 THE WIRE ============================ -->
 <section>
   <div class="wrap">
@@ -341,7 +367,7 @@
         <tr><th>On each plant or Edge server</th><td>SparkBridge Edge, plus our IEC-104 / DNP3 / TI 505 drivers where the rack needs them, plus SparkLink where the link is metered</td></tr>
         <tr><th>On each central server</th><td>SparkBridge Host, SparkVault, SparkCalc, Passage, SparkInject, SparkFlow, FleetOps. All are Ignition modules on the same server; none needs a box of its own.</td></tr>
         <tr><th>Off the servers</th><td>SparkID and Sentinel are tools you run from a workstation against the estate; nothing installs on a gateway for them</td></tr>
-        <tr><th>License</th><td>Per site gateway: Edge $995 standalone, SparkLink included. Per Host gateway: Host $1,495 standalone, SparkCalc and SparkID included. Other modules on Host: Passage $1,995, Sentinel and FleetOps $4,995 each, SparkInject $2,995 per connector family, SparkVault $3,995. Provider $1,995 per gateway, required broker infrastructure, works with Edge and Host or with any conformant Sparkplug host. SparkFlow $995, SparkSNMP $695 and drivers $695 each carry their own license. Per gateway, bought once and kept. Every paid module runs on Ignition's two-hour trial until a key file names it; Reset Trial restarts the clock, and a key lifts the pause within thirty seconds. Support 20%/yr optional.</td></tr>
+        <tr><th>License</th><td>Per site gateway: Edge $995 standalone, SparkLink included. Per Host gateway: Host $1,495 standalone, SparkCalc and SparkID included. Other modules on Host: Passage $1,995, Sentinel and FleetOps $4,995 each, SparkInject $2,995 per connector family, SparkVault $3,995. Provider $1,995 per gateway, managed broker and policy layer, works with Edge and Host or with any conformant Sparkplug host. SparkFlow $995, SparkSNMP $695 and drivers $695 each carry their own license. Per gateway, bought once and kept. Every paid module runs on Ignition's two-hour trial until a key file names it; Reset Trial restarts the clock, and a key lifts the pause within thirty seconds. Support 20%/yr optional.</td></tr>
       </table>
       <p class="links"><a href="/sparkbridge/products">The product line</a><a href="/sparkbridge/pricing">Edge and Host pricing</a></p>
     </article>
@@ -534,7 +560,7 @@
           </a>
           <div class="seg s2" aria-hidden="true" data-l="Sparkplug"></div>
           <div class="dev brk st-svc">
-            <span class="tagno">Required broker</span><span class="devname">Provider</span>
+            <span class="tagno">Broker layer</span><span class="devname">Provider</span>
             <span class="job">Embedded Moquette for a single node, or a HiveMQ CE companion service for MQTT 5 and shared subscriptions.</span>
           </div>
           <div class="seg s3" aria-hidden="true" data-l="local Sparkplug"></div>
@@ -566,7 +592,7 @@
 </section>
 
 <!-- ============================ CHOOSER ============================ -->
-<section>
+<section id="today">
   <div class="wrap">
     <div class="sec-head">
       <span class="path">which drawing is mine</span>
