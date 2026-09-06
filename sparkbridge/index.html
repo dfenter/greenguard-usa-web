@@ -110,7 +110,7 @@
       <a class="card" href="/sparkbridge/products#provider">
         <h3>SparkBridge Provider</h3>
         <p>Carry the data.</p>
-        <p class="desc">The policy and routing layer between sites and consumers. Per-site identities, deny-by-default permissions, MQTT 5 shared subscriptions, no client-count licensing. $1,995 per gateway, priced separately.</p>
+        <p class="desc">Managed broker and policy layer. SparkBridge's Sparkplug-aware broker for routing, identity and policy, or connect Edge and Host through compatible broker infrastructure you already operate. $1,995 per gateway, priced separately.</p>
       </a>
       <a class="card" href="/sparkbridge/central">
         <h3>SparkBridge Host</h3>
@@ -126,7 +126,7 @@
     <div class="sec-head">
       <div class="path">the operating idea</div>
       <h2>Publish Once. Add Consumers When You Need Them.</h2>
-      <p>Each site publishes its tags one time, on change, to the broker. Every consumer of that data subscribes at the Host. Adding a historian, a warehouse feed, an OPC-UA face or an auditor changes nothing at the site: no new connection, no new polling load, no visit. Sites and consumers scale on separate lines.</p>
+      <p>Each site publishes its tags one time, on change, to the broker. Every consumer of that data subscribes at the Host. Adding a historian, a warehouse feed, an OPC-UA face or an auditor changes nothing at the site: no new connection, no new polling load, no visit. Sites and consumers scale on separate lines. The plant does not need to know who will use its data next year.</p>
     </div>
     <div class="fan" role="group" aria-label="One publish at the site fans out to many consumers at the Host">
       <div class="fan-src">
@@ -175,7 +175,7 @@
     <div class="cards rack">
       <div class="rackhead">Data outcomes &middot; consumers of the backbone, each on SparkBridge Host &middot; <a href="/sparkbridge/central">see the suite</a></div>
       <a class="card" href="/sparkbridge/central#sparkvault"><h3>SparkVault</h3><p>Tag historian</p><p class="desc">Keeps history on the plant's own clock, so trends stay true through a dropped link and back. History is a consumer, not another integration project.</p></a>
-      <a class="card" href="/sparkbridge/record"><h3>SparkRecord <small>early access</small></h3><p>Structured record pipeline</p><p class="desc">Lands Sparkplug records, MQTT JSON events and SparkFlow events exactly once, append-only, with a SHA-256 audit chain.</p></a>
+      <a class="card" href="/sparkbridge/record"><h3>SparkRecord <small>early access &middot; 0.1.0</small></h3><p>Tamper-evident record historian for structured industrial events</p><p class="desc">Lands Sparkplug records, MQTT JSON events and SparkFlow events exactly once, append-only, with a SHA-256 audit chain.</p></a>
       <a class="card" href="/sparkbridge/central#sparkinject"><h3>SparkInject</h3><p>Warehouse delivery</p><p class="desc">Delivers production data into your warehouse, once, with nothing rekeyed along the way.</p></a>
       <a class="card" href="/sparkbridge/central#passage"><h3>Passage</h3><p>OPC-UA server</p><p class="desc">Serves your live plant data over OPC-UA to the historians, analytics and test tools you already own. No custom connector per system.</p></a>
       <a class="card" href="/sparkbridge/central#sparkcalc"><h3>SparkCalc <small>included with Host</small></h3><p>Calculation engine</p><p class="desc">Rates, totals and efficiencies calculated once, in one place, used everywhere.</p></a>
