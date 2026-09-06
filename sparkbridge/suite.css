@@ -24,6 +24,7 @@
 .run .seg.s1::after{animation-delay:.25s}
 .run .seg.s2::after{animation-delay:.95s}
 .run .seg.s3::after{animation-delay:1.65s}
+.run .seg.s4::after{animation-delay:2.35s}
 @keyframes travel{
   0%{left:-34%;opacity:0}
   12%{opacity:1}
@@ -135,7 +136,7 @@ a.card:hover h3{color:var(--marker)}
 .taps .dev::after{
   content:"";position:absolute;left:-34px;top:calc(50% - 1px);width:34%;height:4px;
   background:linear-gradient(90deg,transparent,var(--marker),transparent);
-  opacity:0;animation:travel .7s ease-in-out 1 forwards;animation-delay:2.35s;
+  opacity:0;animation:travel .7s ease-in-out 1 forwards;animation-delay:3.05s;
 }
 
 /* the auditor is clamped across the whole run, like a meter on the wire */
