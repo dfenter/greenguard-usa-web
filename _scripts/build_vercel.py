@@ -11,6 +11,14 @@ import os, re, shutil, json
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT  = os.path.join(REPO, 'out')
 
+# Games shipped on new.greenguard-usa.com (owner directive 2026-09-07: only Razorfin and
+# Horde Meridian; everything else was unpublished to stay under Vercel's 10 GB Deployment
+# Storage). Sources for the other games remain in the repo but never reach out/.
+PLAY_KEEP       = {'index.html', '_shared', '_shots', 'razorfin', 'horde-meridian'}
+PLAY_SHOTS_KEEP = {'razorfin.jpg', 'horde-meridian.jpg'}
+ROOT_GAME_FILES = {'marble.html', 'marble2.html', 'horde.html', 'marble-sw.js', 'marble2-sw.js',
+                   'marble-manifest.json', 'marble2-manifest.json', 'horde-manifest.json'}
+
 BASE_URL   = 'https://new.greenguard-usa.com'
 TIDIO_KEY  = '2oaqyblfyjn6xy86vutzzvr1ykg9twav'
 TIDIO_SRC  = f'https://code.tidio.co/{TIDIO_KEY}.js'
@@ -699,7 +707,7 @@ def main():
     skipped   = []
 
     for fname in sorted(os.listdir(REPO)):
-        if not fname.endswith('.html'):
+        if not fname.endswith('.html') or fname in ROOT_GAME_FILES:
             continue
 
         path     = os.path.join(REPO, fname)
@@ -727,24 +735,11 @@ def main():
     asset_exts = {'.json', '.js', '.css', '.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.pdf', '.ico', '.txt'}
     for fname in os.listdir(REPO):
         ext = os.path.splitext(fname)[1].lower()
-        if ext in asset_exts and not fname.startswith('.'):
+        if ext in asset_exts and not fname.startswith('.') and fname not in ROOT_GAME_FILES:
             src = os.path.join(REPO, fname)
             dst = os.path.join(OUT, fname)
             if os.path.isfile(src):
                 shutil.copy(src, dst)
-
-    # Copy zelda game directory (served at /zelda/)
-    zelda_src = os.path.join(REPO, 'zelda')
-    if os.path.isdir(zelda_src):
-        shutil.copytree(zelda_src, os.path.join(OUT, 'zelda'))
-        print('  COPY  zelda/')
-
-    # Copy EMBERHOLD 3D tactics game (served at /tactics3d/; canonical source
-    # is /Users/lucille/strategy-game/prototype/tactics3d.html — sync before deploy)
-    tactics3d_src = os.path.join(REPO, 'tactics3d')
-    if os.path.isdir(tactics3d_src):
-        shutil.copytree(tactics3d_src, os.path.join(OUT, 'tactics3d'))
-        print('  COPY  tactics3d/')
 
     # Copy mobile game prototypes hub (served at /play/; one dir per game,
     # authored by the ue-port-studio mobile run 2026-08-05).
@@ -757,28 +752,17 @@ def main():
                                              '*.blend', '*.blend1')
         def play_ignore(d, names):
             skip = set(_pat_ignore(d, names))
+            if os.path.samefile(d, play_src):
+                skip.update(n for n in names if n not in PLAY_KEEP)
+            elif os.path.basename(d) == '_shots' and os.path.samefile(os.path.dirname(d), play_src):
+                skip.update(n for n in names if n not in PLAY_SHOTS_KEEP)
             for n in names:  # Vercel hard limit is 100 MB per file
                 fp = os.path.join(d, n)
                 if os.path.isfile(fp) and os.path.getsize(fp) > 90 * 1024 * 1024:
                     skip.add(n)
             return skip
         shutil.copytree(play_src, os.path.join(OUT, 'play'), ignore=play_ignore)
-        print('  COPY  play/')
-
-    # Copy FLIPSIDE papercraft Tetris (served at /flipside/; canonical source
-    # is /Users/lucille/flipside — sync index.html + css/ + js/ before deploy).
-    flipside_src = os.path.join(REPO, 'flipside')
-    if os.path.isdir(flipside_src):
-        shutil.copytree(flipside_src, os.path.join(OUT, 'flipside'))
-        print('  COPY  flipside/')
-
-    # Copy Marble Mania 2 course packs + environment art (served at
-    # /marble2-assets/; marble2.html fetches them relative to its own URL).
-    # Canonical source is /Users/lucille/marble-mania-2 (export/ + preview/).
-    marble2_src = os.path.join(REPO, 'marble2-assets')
-    if os.path.isdir(marble2_src):
-        shutil.copytree(marble2_src, os.path.join(OUT, 'marble2-assets'))
-        print('  COPY  marble2-assets/')
+        print('  COPY  play/ (razorfin, horde-meridian only)')
 
     # Copy the SparkBridge product site (canonical home mqtt.greenguard-usa.com/sparkbridge;
     # index.html is the overview, one file per sub-page, shared sb.css; spec.html is generated
@@ -796,9 +780,7 @@ def main():
     # and always come from the repo root, never the overlay.
     overlay_src = os.path.join(REPO, 'redesign-dist')
     if os.path.isdir(overlay_src):
-        PROTECTED = {'zelda', 'tactics3d', 'play', 'flipside', 'marble.html',
-                     'marble2.html', 'marble2-assets', 'marble2-sw.js', 'marble2-manifest.json',
-                     'horde.html', 'horde-manifest.json', 'sparkbridge'}
+        PROTECTED = {'play', 'sparkbridge'}
         copied = 0
         for root, dirs, files in os.walk(overlay_src):
             rel = os.path.relpath(root, overlay_src)

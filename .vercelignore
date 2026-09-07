@@ -28,13 +28,37 @@ scripts
 # Redesign source project (built locally; staged output redesign-dist/ IS uploaded)
 redesign
 
-# Dev-only game lane evidence / scratch / source assets (>100MB files; Vercel per-file limit)
-play/*/scratchpad
-play/*/hse/evidence
-play/*/hse/evidence-*
-play/*/review_evidence
-play/*/shots*
-play/soulsteel/sources
+# Games: only the /play arcade with Razorfin + Horde Meridian ships (owner directive 2026-09-07,
+# Vercel 10 GB Deployment Storage limit). Everything else under play/ and the root game
+# copies stay in the repo but are NOT uploaded.
+play/*
+!play/index.html
+!play/_shared
+!play/_shots
+!play/razorfin
+!play/horde-meridian
+play/razorfin/hse
+play/razorfin/tools
+play/razorfin/scratchpad
+play/razorfin/review_evidence
+play/razorfin/shots*
+play/_shots/*
+!play/_shots/razorfin.jpg
+!play/_shots/horde-meridian.jpg
+zelda
+tactics3d
+flipside
+marble2-assets
+marble.html
+marble-sw.js
+marble-manifest.json
+marble2.html
+marble2-sw.js
+marble2-manifest.json
+horde.html
+horde-manifest.json
+review_evidence
+shotsJ5
 **/*.blend
 **/*.blend1
 **/archive.zip
