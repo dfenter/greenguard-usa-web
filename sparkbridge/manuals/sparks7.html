@@ -84,10 +84,10 @@ effect with no restart.</p>
 <tr><th>Rack, Slot</th><td>CPU endpoint selection; this is protocol routing, not authentication.</td></tr>
 </table>
 <p><b>Security notes.</b> Classic S7comm is plaintext with no credentials, encryption, or replay protection; this is a limitation of the Siemens protocol, not an omitted driver option. Isolate TCP 102 on a dedicated VLAN or VPN and firewall it so only the Ignition gateway can reach the PLC. Do not expose the PLC on an untrusted or internet-routable network.</p>
-<p>S7comm+ transport is disabled by default because it fails against tested real hardware. It can only be enabled with the system property <code>sparks7.allowPlus=true</code> (or environment variable <code>SPARKS7_ALLOW_PLUS=true</code>), and only on a trusted test network.</p>
+<p>S7comm+ (wire mode <code>auto</code> or <code>plus</code>) runs over TLS 1.3 tunneled in the S7 connection. The CPU certificate is trust-on-first-use: the driver logs its SHA-256 fingerprint on every connect until you copy it into the device's Certificate Fingerprint setting. Once pinned, a certificate that does not match fails the connection closed, and wire mode <code>auto</code> does not fall back to classic S7comm on a pin mismatch. Clear the setting to re-pin after a deliberate certificate rotation. S7comm+ is on by default since SparkS7 0.2.0; <code>sparks7.allowPlus=false</code> (or <code>SPARKS7_ALLOW_PLUS=false</code>) is the fleet-wide switch to turn it off.</p>
 </div></section>
 <section class="band" id="operate"><div class="wrap"><div class="sec-head"><h2>6. Operate</h2></div>
-<p>Keep <code>sparks7.allowPlus</code> off in production; it exists only for testing on a trusted network. A present but invalid license key fails the device closed rather than falling back to trial behavior, so remove or fix a bad key rather than leaving it in place.</p>
+<p>Pin the CPU certificate fingerprint on every S7comm+ device once it is commissioned. A present but invalid license key fails the device closed rather than falling back to trial behavior, so remove or fix a bad key rather than leaving it in place.</p>
 </div></section>
 <section id="verify"><div class="wrap"><div class="sec-head"><h2>7. Verify</h2></div>
 <p>See the README in the bundle for the verification procedure.</p>
@@ -96,7 +96,8 @@ effect with no restart.</p>
 <table class="spec">
 <tr><th>Symptom</th><td>Cause / fix</td></tr>
 <tr><th>Device blocked with a valid-looking key present</th><td>An invalid key fails closed by design; remove or replace the key file rather than expecting trial fallback.</td></tr>
-<tr><th>Connection fails against real hardware with S7comm+ enabled</th><td>Known limitation; S7comm+ is off by default for this reason. Use classic S7comm.</td></tr>
+<tr><th>Device blocked with "certificate fingerprint ... does not match the pinned fingerprint"</th><td>The CPU presented a different certificate than the one pinned. If the device certificate was rotated on purpose, clear the Certificate Fingerprint setting and let it re-pin; otherwise treat it as a possible man-in-the-middle and check the network path before reconnecting.</td></tr>
+<tr><th>Wire mode auto connects classic instead of S7comm+</th><td>The CPU refused S7comm+ (S7-300/400, or an S7-1500 with the S7comm+ server disabled). Background reconnects then stay classic until the device is restarted, which probes S7comm+ again.</td></tr>
 <tr><th>Cannot reach the PLC from another VLAN</th><td>Expected if TCP 102 is isolated per the security notes; add an explicit, narrow firewall rule for the Ignition gateway only.</td></tr>
 </table>
 </div></section>
@@ -104,7 +105,7 @@ effect with no restart.</p>
 <table class="spec">
 <tr><th>Module id</th><td><code>com.sparkbridge.sparks7</code></td></tr>
 <tr><th>Default port</th><td>TCP 102 (ISO-on-TCP)</td></tr>
-<tr><th>S7comm+ opt-in</th><td><code>sparks7.allowPlus=true</code> or <code>SPARKS7_ALLOW_PLUS=true</code></td></tr>
+<tr><th>S7comm+ kill switch</th><td><code>sparks7.allowPlus=false</code> or <code>SPARKS7_ALLOW_PLUS=false</code> (on by default since 0.2.0)</td></tr>
 <tr><th>License entitlement</th><td><code>com.sparkbridge.sparks7</code></td></tr>
 </table>
 </div></section>
