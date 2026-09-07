@@ -59,8 +59,13 @@ else:
         'https://www.googleapis.com/auth/calendar.readonly',
         'https://www.googleapis.com/auth/analytics.readonly',
         'https://www.googleapis.com/auth/business.manage',
+        # Added 2026-09-07 for the GTM site: score/approve write-back to the
+        # "SparkBridge Partner Targets" sheet. drive.file only reaches files the
+        # app opens or creates, so the sheet must be opened once via the API.
+        'https://www.googleapis.com/auth/spreadsheets',
+        'https://www.googleapis.com/auth/drive.file',
     ])
-    print('Requesting scopes: Calendar events (read+write) + Analytics + Google Business Profile')
+    print('Requesting scopes: Calendar events (read+write) + Analytics + Google Business Profile + Sheets + Drive (file)')
     print('(Run with --readonly to limit to read-only calendar access)')
 
 auth_code = None
