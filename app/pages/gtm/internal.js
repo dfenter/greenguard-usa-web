@@ -17,7 +17,7 @@ export const getServerSideProps = gtmServerSideProps(() => {
 export default function GtmInternal({ session, pages }) {
   return (
     <GtmLayout title="Internal" session={session}>
-      <Head><title>GTM Internal — GreenGuard USA</title></Head>
+      <Head><title>GTM Internal · GreenGuard USA</title></Head>
       <div style={{
         background: 'rgba(179,38,30,0.08)',
         border: '1px solid var(--danger)',

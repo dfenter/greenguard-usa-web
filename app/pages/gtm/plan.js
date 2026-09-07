@@ -21,7 +21,7 @@ export default function GtmPlan({ session, page }) {
 
   return (
     <GtmLayout title={page.title} session={session}>
-      <Head><title>GTM Plan — GreenGuard USA</title></Head>
+      <Head><title>GTM Plan · GreenGuard USA</title></Head>
       <div className="gtm-plan-layout">
         <nav className="gtm-plan-sidenav" aria-label="Plan sections">
           {sideHeadings.map((h) => (

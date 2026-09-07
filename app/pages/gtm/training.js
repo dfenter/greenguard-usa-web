@@ -55,7 +55,7 @@ export default function GtmTraining({ session, pdfs }) {
 
   return (
     <GtmLayout title="Training" session={session}>
-      <Head><title>GTM Training — GreenGuard USA</title></Head>
+      <Head><title>GTM Training · GreenGuard USA</title></Head>
       <p>SE training modules, quiz, and price cheat sheet.</p>
 
       <div style={{ border: '1px solid var(--border-gold)', borderRadius: 10, padding: 16, marginBottom: 28 }}>

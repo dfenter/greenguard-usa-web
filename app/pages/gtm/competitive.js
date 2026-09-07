@@ -52,7 +52,7 @@ export default function GtmCompetitive({ session }) {
 
   return (
     <GtmLayout title="Competitive" session={session}>
-      <Head><title>GTM Competitive — GreenGuard USA</title></Head>
+      <Head><title>GTM Competitive · GreenGuard USA</title></Head>
       <p>Living document. Honest by rule: name what each does well. Where a module-MQTT cell reads the same as ours, say so.</p>
 
       {loading ? <p>Loading...</p> : (

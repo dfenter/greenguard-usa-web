@@ -93,7 +93,7 @@ async function writeTargetCells(firm, fields) {
 }
 
 // Reads firm + approve + dan_notes from the sheet and upserts into
-// gtm_targets_state. DB is the record on conflict — this is an explicit
+// gtm_targets_state. DB is the record on conflict, so this is an explicit
 // user-triggered action, never automatic.
 async function pullApprovals() {
   const sheets = getSheets()
@@ -105,20 +105,27 @@ async function pullApprovals() {
   const notesCol = headerMap['dan_notes']
   if (!firmCol || !approveCol || !notesCol) return { ok: false, reason: 'missing columns in sheet' }
 
-  const cols = [firmCol, approveCol, notesCol].sort()
-  const res = await sheets.spreadsheets.values.batchGet({
+  // One contiguous range, indexed by column offset, so a blank interior firm
+  // cell cannot desynchronize the columns against each other. Separate ranges
+  // would each drop their own trailing blanks and misalign the rows, which
+  // would attach one firm's approval to another firm.
+  const idx = (L) => { let n = 0; for (const c of L) n = n * 26 + (c.charCodeAt(0) - 64); return n }
+  const nums = [idx(firmCol), idx(approveCol), idx(notesCol)]
+  const lo = Math.min(...nums), hi = Math.max(...nums)
+  const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    ranges: [`${sheetName}!${firmCol}2:${firmCol}10000`, `${sheetName}!${approveCol}2:${approveCol}10000`, `${sheetName}!${notesCol}2:${notesCol}10000`],
+    range: `${sheetName}!${colLetter(lo)}2:${colLetter(hi)}10000`,
   })
-  const [firmVals, approveVals, notesVals] = res.data.valueRanges.map((r) => r.values || [])
+  const rows = res.data.values || []
+  const off = (L) => idx(L) - lo
 
   let updated = 0
-  for (let i = 0; i < firmVals.length; i++) {
-    const firm = firmVals[i]?.[0]
-    if (!firm) continue
-    const approveRaw = approveVals[i]?.[0]
+  for (const row of rows) {
+    const firm = row[off(firmCol)]
+    if (!firm || !String(firm).trim()) continue
+    const approveRaw = row[off(approveCol)]
     const approved = /^(y|yes|true|1)$/i.test(String(approveRaw || '').trim())
-    const notes = notesVals[i]?.[0] || null
+    const notes = row[off(notesCol)] || null
     await q(
       `INSERT INTO gtm_targets_state (firm, approved, dan_notes, updated_at)
        VALUES ($1, $2, $3, now())

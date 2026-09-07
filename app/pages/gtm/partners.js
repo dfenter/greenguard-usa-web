@@ -12,7 +12,7 @@ export const getServerSideProps = gtmServerSideProps(() => {
 export default function GtmPartners({ session, page, pdfs }) {
   return (
     <GtmLayout title="Partner program" session={session}>
-      <Head><title>GTM Partners — GreenGuard USA</title></Head>
+      <Head><title>GTM Partners · GreenGuard USA</title></Head>
       {page ? (
         <div dangerouslySetInnerHTML={{ __html: page.html }} style={{ lineHeight: 1.6 }} />
       ) : (

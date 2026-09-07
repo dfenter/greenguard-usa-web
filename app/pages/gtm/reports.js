@@ -131,7 +131,7 @@ export default function GtmReports({ session, leadershipPage }) {
 
   return (
     <GtmLayout title="Reports" session={session}>
-      <Head><title>GTM Reports — GreenGuard USA</title></Head>
+      <Head><title>GTM Reports · GreenGuard USA</title></Head>
 
       <h2 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: 8 }}>Weekly report, week of {weekStart}</h2>
       <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: 16 }}>Send Friday to Dan. One page. Evidence, not activity.</p>

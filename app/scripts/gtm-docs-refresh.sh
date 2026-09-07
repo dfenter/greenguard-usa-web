@@ -46,7 +46,7 @@ chmod 600 "$DEST"/* 2>/dev/null || true
 # shared with the public sparkbridge chat too, so both assistants ground on
 # the same numbers.
 cat > "$SB_DEST/SITE-FACTS.md" <<'EOF'
-# SparkBridge — current facts
+# SparkBridge: current facts
 
 SparkBridge 2.9.0 released 2026-09-06, on Ignition 8.1 and 8.3.
 
@@ -79,7 +79,7 @@ Support: 20% per year, optional. Development licenses: free.
 
 ## Site
 
-mqtt.greenguard-usa.com/sparkbridge — pricing, compare, architecture, benchmarks, roadmap, partners, architecture-review pages.
+mqtt.greenguard-usa.com/sparkbridge: pricing, compare, architecture, benchmarks, roadmap, partners, architecture-review pages.
 
 ## Honest limits
 

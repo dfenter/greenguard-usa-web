@@ -103,7 +103,7 @@ export default function GtmTimeline({ session, items }) {
 
   return (
     <GtmLayout title="Timeline" session={session} progressPct={progressPct}>
-      <Head><title>GTM Timeline — GreenGuard USA</title></Head>
+      <Head><title>GTM Timeline · GreenGuard USA</title></Head>
 
       {!loading && !startDate && (
         <div style={{ border: '1px solid var(--border-gold)', borderRadius: 10, padding: 16, marginBottom: 20 }}>

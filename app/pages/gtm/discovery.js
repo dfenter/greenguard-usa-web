@@ -84,7 +84,7 @@ export default function GtmDiscovery({ session, page }) {
 
   return (
     <GtmLayout title="Discovery" session={session}>
-      <Head><title>GTM Discovery — GreenGuard USA</title></Head>
+      <Head><title>GTM Discovery · GreenGuard USA</title></Head>
 
       {page && (
         <div style={{ border: '1px solid var(--border-gold)', borderRadius: 10, padding: '16px 20px', marginBottom: 24 }}

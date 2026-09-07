@@ -73,11 +73,11 @@ export default function GtmFirmPage({ session, row }) {
 
   return (
     <GtmLayout title={row.firm} session={session}>
-      <Head><title>{row.firm} — GTM — GreenGuard USA</title></Head>
+      <Head><title>{row.firm} · GTM · GreenGuard USA</title></Head>
 
       <h2>Contacts</h2>
       {contacts.map((c, i) => (
-        <p key={i}>{c.person} — {c.title} {c.email && `(${c.email})`} {c.linkedin && <a href={c.linkedin} target="_blank" rel="noreferrer">LinkedIn</a>}</p>
+        <p key={i}>{c.person} · {c.title} {c.email && `(${c.email})`} {c.linkedin && <a href={c.linkedin} target="_blank" rel="noreferrer">LinkedIn</a>}</p>
       ))}
 
       <h2>Hook</h2>
@@ -111,13 +111,13 @@ export default function GtmFirmPage({ session, row }) {
 
       <h2>Touches</h2>
       {touches.map((t) => (
-        <p key={t.id}>{t.sent_at?.slice(0, 10)} — touch {t.touch} to {t.person} via {t.channel} {t.reply && '(replied)'}</p>
+        <p key={t.id}>{t.sent_at?.slice(0, 10)} · touch {t.touch} to {t.person} via {t.channel} {t.reply && '(replied)'}</p>
       ))}
 
       <h2>Call reports</h2>
       {callReports.length === 0 && <p style={{ color: 'var(--text-muted)' }}>No call reports yet.</p>}
       {callReports.map((c) => (
-        <p key={c.id}>{c.created_at?.slice(0, 10)} — {c.contact_email || c.email}</p>
+        <p key={c.id}>{c.created_at?.slice(0, 10)} · {c.contact_email || c.email}</p>
       ))}
     </GtmLayout>
   )

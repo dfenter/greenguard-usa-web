@@ -54,7 +54,7 @@ export default function GtmObjections({ session }) {
 
   return (
     <GtmLayout title="Objections" session={session}>
-      <Head><title>GTM Objections — GreenGuard USA</title></Head>
+      <Head><title>GTM Objections · GreenGuard USA</title></Head>
       <p>Seeded from module 11. Add every new objection in the prospect&apos;s exact words. Pattern for every answer: answer, then the caveat, then stop.</p>
 
       {loading ? <p>Loading...</p> : (

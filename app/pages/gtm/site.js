@@ -16,7 +16,7 @@ function labelFor(fileName) {
 export default function GtmSite({ session, pdfs }) {
   return (
     <GtmLayout title="Site pages" session={session}>
-      <Head><title>GTM Site pages — GreenGuard USA</title></Head>
+      <Head><title>GTM Site pages · GreenGuard USA</title></Head>
       <p>Snapshots of the live SparkBridge site pages. Always defer to the live site as source of truth.</p>
       {pdfs.length === 0 && <p>No site page PDFs found. Run scripts/build-gtm-content.js.</p>}
       {pdfs.map((f) => (

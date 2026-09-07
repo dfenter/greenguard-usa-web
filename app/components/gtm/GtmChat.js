@@ -45,8 +45,8 @@ export default function GtmChat() {
       <button onClick={() => setOpen(true)} aria-label="Open MBA assistant"
         style={{ position: 'fixed', right: 20, bottom: 88, zIndex: 95, width: 56, height: 56, borderRadius: '50%',
           background: 'var(--bg-card)', color: 'var(--gold)', border: '1px solid var(--border-gold)',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.16)', fontSize: '1.6rem', cursor: 'pointer' }}>
-        💬
+          boxShadow: '0 8px 24px rgba(0,0,0,0.16)', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.04em', cursor: 'pointer' }}>
+        MBA
       </button>
     )
   }

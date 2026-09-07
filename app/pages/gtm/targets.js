@@ -72,7 +72,7 @@ export default function GtmTargets({ session, isOwner }) {
 
   return (
     <GtmLayout title="Targets" session={session}>
-      <Head><title>GTM Targets — GreenGuard USA</title></Head>
+      <Head><title>GTM Targets · GreenGuard USA</title></Head>
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
         <select value={tierFilter} onChange={(e) => setTierFilter(e.target.value)}>
@@ -259,7 +259,7 @@ function TargetDrawer({ row, session, onClose, onSaved }) {
       <h3>Contacts</h3>
       {contacts.map((c, i) => (
         <p key={i} style={{ margin: '4px 0' }}>
-          {c.person} — {c.title || ''} {c.email && <span>({c.email})</span>}
+          {c.person} · {c.title || ''} {c.email && <span>({c.email})</span>}
         </p>
       ))}
 

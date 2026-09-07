@@ -97,7 +97,7 @@ export default function GtmDashboard({ session, items }) {
 
   return (
     <GtmLayout title="GTM Dashboard" session={session} progressPct={loading ? undefined : progressPct}>
-      <Head><title>GTM Dashboard — GreenGuard USA</title></Head>
+      <Head><title>GTM Dashboard · GreenGuard USA</title></Head>
       <p>Everything for the SparkBridge 90-day go-to-market sprint.</p>
 
       {!loading && !startDate && (

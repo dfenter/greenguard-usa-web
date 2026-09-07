@@ -38,13 +38,13 @@ export default function GtmOutreach({ session, firstEmail, sequence, targets }) 
 
   return (
     <GtmLayout title="Outreach" session={session}>
-      <Head><title>GTM Outreach — GreenGuard USA</title></Head>
+      <Head><title>GTM Outreach · GreenGuard USA</title></Head>
 
       <div style={{ border: '1px solid var(--border-gold)', borderRadius: 10, padding: 16, marginBottom: 24 }}>
         <h2 style={{ marginTop: 0 }}>Live merge preview</h2>
         <select value={firmIdx} onChange={(e) => setFirmIdx(e.target.value)} style={{ marginBottom: 10 }}>
           <option value="">Pick a firm / person</option>
-          {targets.map((t, i) => <option key={t.firm} value={i}>{t.firm} — {t.person}</option>)}
+          {targets.map((t, i) => <option key={t.firm} value={i}>{t.firm} · {t.person}</option>)}
         </select>
         {preview && (
           <>
