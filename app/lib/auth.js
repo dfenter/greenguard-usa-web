@@ -203,7 +203,7 @@ async function createMagicToken(email) {
 }
 
 async function createSessionToken(email, stripeCustomerId) {
-  const role = isOwnerEmail(email) ? 'owner' : isAdminEmail(email) ? 'tech' : stripeCustomerId ? 'customer' : 'prospect'
+  const role = isOwnerEmail(email) ? 'owner' : isAdminEmail(email) ? 'tech' : isGtmEmail(email) ? 'gtm' : stripeCustomerId ? 'customer' : 'prospect'
   return new SignJWT({ email, stripeCustomerId, role, type: 'session' })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -227,7 +227,7 @@ async function getSessionFromRequest(req, res) {
   if (!payload || payload.type !== 'session') return null
   // Backfill role for sessions issued before the role field existed
   if (!payload.role) {
-    payload.role = isOwnerEmail(payload.email) ? 'owner' : isAdminEmail(payload.email) ? 'tech' : payload.stripeCustomerId ? 'customer' : 'prospect'
+    payload.role = isOwnerEmail(payload.email) ? 'owner' : isAdminEmail(payload.email) ? 'tech' : isGtmEmail(payload.email) ? 'gtm' : payload.stripeCustomerId ? 'customer' : 'prospect'
   }
   // Sliding session — refresh cookie if it was issued more than 1 day ago
   // Keeps iOS PWA sessions alive as long as Bruce uses the app at least weekly
@@ -244,6 +244,14 @@ function isAdminEmail(email) {
   const raw = process.env.ADMIN_EMAILS || process.env.ADMIN_EMAIL || biz.ownerEmail
   const admins = raw.split(',').map((e) => e.trim().toLowerCase())
   return admins.includes(email.toLowerCase())
+}
+
+function isGtmEmail(email) {
+  if (!email) return false
+  const raw = process.env.GTM_EMAILS || ''
+  if (!raw.trim()) return false
+  const gtm = raw.split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)
+  return gtm.includes(email.toLowerCase())
 }
 
 function isOwnerEmail(email) {
@@ -265,6 +273,7 @@ async function _gate(req, res, predicate, errorStatus = 403) {
 const requireSession = (req, res) => _gate(req, res, () => true, 401)
 const requireAdmin   = (req, res) => _gate(req, res, (s) => isAdminEmail(s.email))
 const requireOwner   = (req, res) => _gate(req, res, (s) => isOwnerEmail(s.email))
+const requireGtm     = (req, res) => _gate(req, res, (s) => isGtmEmail(s.email) || isOwnerEmail(s.email))
 
 // Escape a value for Stripe's search query DSL — prevents `email:"a"+OR+x:"y"` injection
 function escapeStripeSearch(v) {
@@ -287,9 +296,11 @@ module.exports = {
   getSessionFromRequest,
   isAdminEmail,
   isOwnerEmail,
+  isGtmEmail,
   requireSession,
   requireAdmin,
   requireOwner,
+  requireGtm,
   consumeJti,
   consumeJtiStrict,
   revokeJti,
