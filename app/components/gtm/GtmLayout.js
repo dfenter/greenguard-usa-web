@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import PortalLayout from '../PortalLayout'
+import GtmChat from './GtmChat'
 
 const GTM_NAV = [
   { href: '/gtm',            label: 'Dashboard' },
@@ -63,7 +64,7 @@ export default function GtmLayout({ children, title, session, progressPct }) {
 
           {children}
 
-          {/* Wave 2: GtmChat floating assistant mounts here. */}
+          <GtmChat />
         </div>
       </div>
 
