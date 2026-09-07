@@ -103,4 +103,4 @@ async function logTankInventory(entry) {
   return sheetId
 }
 
-module.exports = { getOrCreateSheet, appendRow, ensureHeaders, logCompletedStop, logTankInventory }
+module.exports = { getSheets, getOrCreateSheet, appendRow, ensureHeaders, logCompletedStop, logTankInventory }

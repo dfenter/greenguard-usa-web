@@ -1,5 +1,5 @@
 const { stripe } = require('../../../lib/stripe')
-const { createMagicToken, isAdminEmail, escapeStripeSearch, newLoginCode, storeLoginCode } = require('../../../lib/auth')
+const { createMagicToken, isAdminEmail, isGtmEmail, escapeStripeSearch, newLoginCode, storeLoginCode } = require('../../../lib/auth')
 const { sendMagicLink } = require('../../../lib/email')
 
 // Rate limiting: the Edge middleware limits per edge-node (in-memory). This
@@ -41,9 +41,9 @@ export default async function handler(req, res) {
 
   try {
     const isAdmin = isAdminEmail(email)
-    let shouldSend = isAdmin
+    let shouldSend = isAdmin || isGtmEmail(email)
 
-    if (!isAdmin) {
+    if (!shouldSend) {
       const customers = await stripe.customers.search({ query: `email:"${escapeStripeSearch(email)}"`, limit: 1 })
       const isCustomer = customers.data.length > 0
       const guestEmails = (process.env.GUEST_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean)

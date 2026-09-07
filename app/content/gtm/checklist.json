@@ -1,0 +1,116 @@
+{
+  "items": [
+    {
+      "id": "section-27-1-to-7-learn-training-certification-competitive-messaging",
+      "section": 27,
+      "label": "Learn: training, certification, competitive, messaging: Can explain and position SparkBridge independently",
+      "dayStart": 1,
+      "dayEnd": 7
+    },
+    {
+      "id": "section-27-6-to-14-map-score-31-extend-to-50-tier",
+      "section": 27,
+      "label": "Map: score 31, extend to 50, tier: Ranked, approved target list",
+      "dayStart": 6,
+      "dayEnd": 14
+    },
+    {
+      "id": "section-27-8-to-45-discover-personalized-outreach-conversations",
+      "section": 27,
+      "label": "Discover: personalized outreach, conversations: Validated pain points, repeatable messaging",
+      "dayStart": 8,
+      "dayEnd": 45
+    },
+    {
+      "id": "section-27-31-to-60-validate-architecture-reviews-technical-validation",
+      "section": 27,
+      "label": "Validate: architecture reviews, technical validation: Real-world architecture fit",
+      "dayStart": 31,
+      "dayEnd": 60
+    },
+    {
+      "id": "section-27-45-to-75-partner-partner-discussions-production-opportunities",
+      "section": 27,
+      "label": "Partner: partner discussions, production opportunities: 2 to 3 serious partner relationships",
+      "dayStart": 45,
+      "dayEnd": 75
+    },
+    {
+      "id": "section-27-61-to-90-convert-alignment-pilot",
+      "section": 27,
+      "label": "Convert: alignment, pilot: 1 to 2 credible production opportunities",
+      "dayStart": 61,
+      "dayEnd": 90
+    },
+    {
+      "id": "section-5-days-1-to-2-sparkbridge-se-training",
+      "section": 5,
+      "label": "Days 1 to 2: SparkBridge SE training",
+      "dayStart": 1,
+      "dayEnd": 2
+    },
+    {
+      "id": "section-5-day-3-website-and-sales-asset-immersion",
+      "section": 5,
+      "label": "Day 3: website and sales asset immersion",
+      "dayStart": 3,
+      "dayEnd": 3
+    },
+    {
+      "id": "section-5-day-4-competitive-training",
+      "section": 5,
+      "label": "Day 4: competitive training",
+      "dayStart": 4,
+      "dayEnd": 4
+    },
+    {
+      "id": "section-5-day-5-messaging-certification",
+      "section": 5,
+      "label": "Day 5: messaging certification",
+      "dayStart": 5,
+      "dayEnd": 5
+    },
+    {
+      "id": "section-7-days-6-to-14-score-and-extend-the-target-list",
+      "section": 7,
+      "label": "Days 6 to 14: score and extend the target list",
+      "dayStart": 6,
+      "dayEnd": 14
+    },
+    {
+      "id": "section-9-days-8-to-30-outreach-sprint",
+      "section": 9,
+      "label": "Days 8 to 30: outreach sprint",
+      "dayStart": 8,
+      "dayEnd": 30
+    },
+    {
+      "id": "section-10-outreach-sequence",
+      "section": 10,
+      "label": "Outreach sequence",
+      "dayStart": null,
+      "dayEnd": null
+    },
+    {
+      "id": "section-15-days-31-to-60-convert-conversations-into-reviews",
+      "section": 15,
+      "label": "Days 31 to 60: convert conversations into reviews",
+      "dayStart": 31,
+      "dayEnd": 60
+    },
+    {
+      "id": "section-16-days-45-to-75-architecture-partner-conversion",
+      "section": 16,
+      "label": "Days 45 to 75: Architecture Partner conversion",
+      "dayStart": 45,
+      "dayEnd": 75
+    },
+    {
+      "id": "section-19-days-61-to-90-pipeline-conversion",
+      "section": 19,
+      "label": "Days 61 to 90: pipeline conversion",
+      "dayStart": 61,
+      "dayEnd": 90
+    }
+  ]
+}
