@@ -31,6 +31,21 @@ export default function GtmTargets({ session, isOwner }) {
   const [approvedFilter, setApprovedFilter] = useState('')
   const [sortByScore, setSortByScore] = useState(false)
   const [openFirm, setOpenFirm] = useState(null)
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState(null)
+
+  async function syncFromHubSpot() {
+    setSyncing(true)
+    setSyncResult(null)
+    try {
+      const res = await fetch('/api/gtm/hubspot-sync', { method: 'POST' })
+      const data = await res.json()
+      setSyncResult(data)
+    } catch (err) {
+      setSyncResult({ ok: false, reason: err.message })
+    }
+    setSyncing(false)
+  }
 
   async function load() {
     setLoading(true)
@@ -87,12 +102,28 @@ export default function GtmTargets({ session, isOwner }) {
         </label>
         <button
           type="button"
-          onClick={() => { window.location.href = '/api/gtm/targets/export.csv' }}
+          onClick={syncFromHubSpot}
+          disabled={syncing}
           style={{ marginLeft: 'auto', fontWeight: 700 }}
+        >
+          {syncing ? 'Syncing...' : 'Sync from HubSpot'}
+        </button>
+        <button
+          type="button"
+          onClick={() => { window.location.href = '/api/gtm/targets/export.csv' }}
+          style={{ fontWeight: 700 }}
         >
           Export CSV
         </button>
       </div>
+
+      {syncResult && (
+        <div style={{ border: '1px solid var(--border-gold)', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: '0.85rem' }}>
+          {syncResult.ok
+            ? `Synced ${syncResult.synced?.length || 0} deal(s). ${syncResult.failed?.length || 0} failed.`
+            : `Sync failed: ${syncResult.reason || 'unknown error'}`}
+        </div>
+      )}
 
       {loading && <p>Loading...</p>}
 

@@ -26,6 +26,14 @@ for (const key of [
   // pick up and actually send.
   'KV_REST_API_URL',
   'KV_REST_API_TOKEN',
+  // lib/cache.js falls back to these Upstash vars when the KV_* pair above is
+  // absent — without stripping them too, an unmocked lib/cache in any GTM/
+  // HubSpot test writes real (possibly mocked/fake) data into the shared
+  // production Redis cache under the same keys the live app reads. Found
+  // 2026-09-07 when a jest-mocked HubSpot pipeline probe result was read
+  // back by a live probe script moments later.
+  'UPSTASH_REDIS_REST_URL',
+  'UPSTASH_REDIS_REST_TOKEN',
 ]) {
   delete process.env[key]
 }

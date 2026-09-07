@@ -84,8 +84,13 @@ const TABLES = [
       payload jsonb,
       hubspot_contact_id text,
       hubspot_note_id text,
+      hubspot_deal_id text,
       created_at timestamptz default now()
     )`,
+  },
+  {
+    name: 'gtm_call_reports_add_deal_id',
+    sql: `ALTER TABLE gtm_call_reports ADD COLUMN IF NOT EXISTS hubspot_deal_id text`,
   },
   {
     name: 'gtm_library_rows',

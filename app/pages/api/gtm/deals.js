@@ -2,6 +2,7 @@
 // upserts gtm_deals. Supports the firm-page stage editor.
 const { requireGtm } = require('../../../lib/auth')
 const { q } = require('../../../lib/db')
+const { syncDeal } = require('../../../lib/gtm-hubspot')
 
 const STAGES = ['Contacted', 'Call booked', 'Review delivered', 'Partner signed', 'Pilot live', 'Production measured']
 
@@ -27,6 +28,14 @@ export default async function handler(req, res) {
        ON CONFLICT (firm) DO UPDATE SET stage = $2, next_action = $3, next_date = $4, blockers = $5, owner = $6, updated_at = now()`,
       [firm, stage, next_action || null, next_date || null, blockers || null, session.email]
     )
+
+    // Best-effort HubSpot sync — never blocks the response, never loses the DB write.
+    try {
+      await syncDeal({ firm, stage })
+    } catch (err) {
+      console.error('gtm deals HubSpot sync failed:', err.message)
+    }
+
     return res.status(200).json({ ok: true })
   }
 
