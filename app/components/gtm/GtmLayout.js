@@ -1,9 +1,15 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import { useEffect } from 'react'
 import PortalLayout from '../PortalLayout'
 import GtmChat from './GtmChat'
+import { PRODUCTS, DEFAULT_PRODUCT } from '../../lib/gtm-products'
 
-const GTM_NAV = [
+// SparkBridge's nav here includes Training/Site pages/Partners, which exist
+// as pages today but are not (yet) part of PRODUCTS.sparkbridge.nav in
+// lib/gtm-products.js. Kept as an override so SparkBridge behavior is
+// unchanged; ops uses PRODUCTS.ops.nav as-is.
+const SPARKBRIDGE_NAV = [
   { href: '/gtm',            label: 'Dashboard' },
   { href: '/gtm/plan',       label: 'Plan' },
   { href: '/gtm/timeline',   label: 'Timeline' },
@@ -19,14 +25,55 @@ const GTM_NAV = [
   { href: '/gtm/internal',   label: 'Internal' },
 ]
 
-export default function GtmLayout({ children, title, session, progressPct }) {
+const SWITCHER_OPTIONS = [
+  { key: 'sparkbridge', label: 'SparkBridge', href: '/gtm' },
+  { key: 'ops', label: 'One Person Show', href: '/gtm/ops' },
+]
+
+const STORAGE_KEY = 'gtm-product'
+
+export default function GtmLayout({ children, title, session, progressPct, product = DEFAULT_PRODUCT }) {
   const router = useRouter()
+  const nav = product === 'sparkbridge' ? SPARKBRIDGE_NAV : (PRODUCTS[product]?.nav || SPARKBRIDGE_NAV)
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, product)
+    } catch {
+      // ignore storage failures (private mode, disabled storage)
+    }
+  }, [product])
 
   return (
     <PortalLayout title={title} isAdmin={false} floatingAssistant={false} logoHref="/gtm">
       <div className="gtm-shell">
         <aside className="gtm-nav" aria-label="GTM navigation">
-          {GTM_NAV.map(({ href, label }) => {
+          <div className="gtm-switcher" role="tablist" aria-label="GTM product">
+            {SWITCHER_OPTIONS.map((opt) => (
+              <Link
+                key={opt.key}
+                href={opt.href}
+                role="tab"
+                aria-selected={product === opt.key}
+                style={{
+                  display: 'block',
+                  padding: '8px 10px',
+                  borderRadius: 8,
+                  fontSize: '0.82rem',
+                  fontWeight: product === opt.key ? 800 : 600,
+                  color: product === opt.key ? 'var(--gold)' : 'var(--text)',
+                  background: product === opt.key ? 'rgba(120,88,0,0.10)' : 'transparent',
+                  boxShadow: product === opt.key ? 'inset 0 0 0 1px var(--border-gold)' : 'none',
+                  textDecoration: 'none',
+                  textAlign: 'center',
+                }}
+              >
+                {opt.label}
+              </Link>
+            ))}
+          </div>
+          <div className="gtm-nav-sep" />
+          {nav.map(({ href, label }) => {
             const active = router.pathname === href
             return (
               <Link
@@ -85,6 +132,18 @@ export default function GtmLayout({ children, title, session, progressPct }) {
           border: 1px solid var(--border-gold);
           border-radius: 12px;
           padding: 10px;
+        }
+        .gtm-switcher {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+          margin-bottom: 4px;
+        }
+        .gtm-nav-sep {
+          height: 1px;
+          background: var(--border-gold);
+          opacity: 0.4;
+          margin: 6px 2px 8px;
         }
         .gtm-main {
           flex: 1;

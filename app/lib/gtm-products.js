@@ -44,7 +44,7 @@ const PRODUCTS = {
     key: 'ops',
     label: 'One Person Show',
     bundleDir: '/Users/lucille/Documents/GreenGuard/company-run-by-claude/gtm',
-    sheetId: null,
+    sheetId: '19e0zoteFXw_wNo9GKXW5eoQ6-m4OFntNWU6ZrFA385A',
     scoreFields: [
       ['s1', 'Recurring cadence'],
       ['s2', 'Google/Stripe fit'],

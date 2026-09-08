@@ -238,7 +238,24 @@ describe('gtm-sheets: graceful no-op when product has no sheetId', () => {
     jest.resetModules()
   })
 
+  // Every configured product now has a real sheet id, so mock the product
+  // config to exercise the unconfigured path itself rather than relying on
+  // whichever product happens to be unconfigured today.
+  function mockProductWithoutSheet() {
+    jest.doMock('../lib/gtm-products', () => {
+      const actual = jest.requireActual('../lib/gtm-products')
+      return {
+        ...actual,
+        PRODUCTS: {
+          ...actual.PRODUCTS,
+          ops: { ...actual.PRODUCTS.ops, sheetId: null },
+        },
+      }
+    })
+  }
+
   test('writeTargetCells returns ok:false without throwing for a product with sheetId null', async () => {
+    mockProductWithoutSheet()
     jest.doMock('../lib/gsheets', () => ({ getSheets: jest.fn(() => { throw new Error('should not be called') }) }))
     jest.doMock('../lib/db', () => ({ q: jest.fn() }))
     const { writeTargetCells } = require('../lib/gtm-sheets')
@@ -247,6 +264,7 @@ describe('gtm-sheets: graceful no-op when product has no sheetId', () => {
   })
 
   test('pullApprovals returns ok:false without throwing for a product with sheetId null', async () => {
+    mockProductWithoutSheet()
     jest.doMock('../lib/gsheets', () => ({ getSheets: jest.fn(() => { throw new Error('should not be called') }) }))
     jest.doMock('../lib/db', () => ({ q: jest.fn() }))
     const { pullApprovals } = require('../lib/gtm-sheets')
