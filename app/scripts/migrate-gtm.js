@@ -101,6 +101,26 @@ const TABLES = [
     sql: `CREATE UNIQUE INDEX IF NOT EXISTS gtm_targets_state_product_firm_idx ON gtm_targets_state (product, firm)`,
   },
   {
+    // The upserts already say ON CONFLICT (product, firm), but the original
+    // PRIMARY KEY (firm) would still reject a second row for the same firm
+    // under a different product, and it is the PK that raises, not the index
+    // named in the conflict target. The two target lists have no firm names in
+    // common today, so this is latent rather than live, but the OPS list grows
+    // as Dan approves rows and these are generic local-operator names.
+    name: 'gtm_targets_state_pk_widen_to_product',
+    sql: `DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'gtm_targets_state'::regclass AND contype = 'p'
+            AND pg_get_constraintdef(oid) = 'PRIMARY KEY (firm)'
+        ) THEN
+          ALTER TABLE gtm_targets_state DROP CONSTRAINT gtm_targets_state_pkey;
+          ALTER TABLE gtm_targets_state ADD CONSTRAINT gtm_targets_state_pkey PRIMARY KEY (product, firm);
+        END IF;
+      END $$`,
+  },
+  {
     name: 'gtm_scores_add_product',
     sql: `ALTER TABLE gtm_scores ADD COLUMN IF NOT EXISTS product text NOT NULL DEFAULT 'sparkbridge'`,
   },
@@ -141,6 +161,21 @@ const TABLES = [
   {
     name: 'gtm_deals_product_firm_idx',
     sql: `CREATE UNIQUE INDEX IF NOT EXISTS gtm_deals_product_firm_idx ON gtm_deals (product, firm)`,
+  },
+  {
+    // Same reasoning as gtm_targets_state_pk_widen_to_product above.
+    name: 'gtm_deals_pk_widen_to_product',
+    sql: `DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'gtm_deals'::regclass AND contype = 'p'
+            AND pg_get_constraintdef(oid) = 'PRIMARY KEY (firm)'
+        ) THEN
+          ALTER TABLE gtm_deals DROP CONSTRAINT gtm_deals_pkey;
+          ALTER TABLE gtm_deals ADD CONSTRAINT gtm_deals_pkey PRIMARY KEY (product, firm);
+        END IF;
+      END $$`,
   },
   {
     name: 'gtm_touches_add_product',
