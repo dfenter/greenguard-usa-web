@@ -221,7 +221,7 @@ pages.index = head('One Person Show', 'A company that runs itself, for the perso
 <section class="hero"><div class="wrap">
   <h1>The business kept working. <em>You went home at four.</em></h1>
   <p class="lede">One Person Show is the office half of a one-person service company. It books, routes, reminds, invoices, collects, keeps the books, runs payroll and answers the phone, the email and the chat, so the person who does the work does not also have to do the paperwork at eleven at night.</p>
-  <div class="actions"><a class="btn" href="/everything">See everything it does</a><a class="btn quiet" href="/how-it-works">How it works</a><span class="small">Runs a real service company in Austin: 86 customers, one owner, one field employee.</span></div>
+  <div class="actions"><a class="btn" href="/everything">See everything it does</a><a class="btn quiet" href="/how-it-works">How it works</a><span class="small">Runs a real service company in Austin: 96 active accounts, one owner, one field employee.</span></div>
 </div></section><hr>
 ${prose({ kicker: 'Who this is for', title: 'Built for the owner who is still doing the work.', side: 'And built to say no to the businesses it will not fit.', body: `<p>This is built for you if you run a recurring-visit service business: the same customers, on a cadence, week after week. You have zero to three people in the field, including yourself, and the company does somewhere between eighty thousand and three hundred thousand dollars a year. You already run email and calendar on Google Workspace and take payment through Stripe, and you have forty or more recurring accounts on the books, which is the point where a spreadsheet stops being enough and a real system starts paying for itself.</p>
 <p>It is not built for job shops or one-off project work, where every job is a new estimate and there is no cadence to route or remind against. It is not built for dispatch operations where the schedule is invented fresh every morning from whatever calls came in overnight; the routing and reminder logic here assumes a calendar that is mostly known a week ahead. And it is not built for a franchise running a corporate system you are required to use; this replaces that system, it does not sit next to it.</p>` })}
@@ -506,12 +506,12 @@ const PROOF_FALLBACK = {
   activeRecurring: 96,
   visits30d: 148,
   lastClose: '2026-08',
-  payrollRunsYtd: 0,
+  payrollRunsYtd: 1,
 }
 pages.proof = head('Proof · One Person Show', 'We run our own service company on this software. These are its live operating numbers, refreshed daily.', '/proof') + header('proof') + `
 <section class="hero"><div class="wrap"><span class="kicker">Proof</span><h1>We run our own company on this. <em>Here are the numbers.</em></h1><p class="lede">We are a recurring-visit service business ourselves. Everything described on this site runs our own company first, and these figures come from that same system, refreshed daily.</p></div></section><hr>
 <section class="prose full"><div class="wrap"><div class="body">
-<p>These numbers are not a demo or a projection. They are pulled from the same portal, the same calendar, the same billing account and the same books that run our own company, on the same schedule an owner using this software would see them on their own account. No customer names or personal information are shown here or anywhere on this page.</p>
+<p>These numbers are not a demo or a projection. They are pulled from the same portal, the same calendar, the same billing account and the same books that run our own company, on the same schedule an owner using this software would see them on their own account. An active recurring account means one customer currently on a repeating visit schedule, which is the same count quoted on the homepage. No customer names or personal information are shown here or anywhere on this page.</p>
 ${aside('Our own operation, live', [
   ['Active recurring accounts', `<span data-proof="activeRecurring">${PROOF_FALLBACK.activeRecurring}</span>`],
   ['Visits completed, last 30 days', `<span data-proof="visits30d">${PROOF_FALLBACK.visits30d}</span>`],

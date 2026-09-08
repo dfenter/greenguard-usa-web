@@ -17,7 +17,10 @@ jest.mock('../lib/hubspot', () => ({
 
 const mockGetBookingsForDateRange = jest.fn()
 jest.mock('../lib/gcal', () => ({
-  getBookingsForDateRange: (...args) => mockGetBookingsForDateRange(...args),
+  // The endpoint deliberately uses the PAGINATED variant so a busy month is
+  // never silently truncated. Mock that one, or this suite would be mocking a
+  // function the handler does not call.
+  getBookingsForDateRangePaginated: (...args) => mockGetBookingsForDateRange(...args),
 }))
 
 const mockListAllInvoicesSince = jest.fn()
@@ -101,8 +104,9 @@ describe('happy path', () => {
     mockQ.mockResolvedValue({ rows: [{ ym: '2026-08' }, { ym: '2026-07' }] })
 
     mockListRuns.mockResolvedValue([
-      { pay_date: '2026-01-15' },
-      { pay_date: '2025-12-15' },
+      { payDate: '2026-01-15', status: 'finalized' },
+      { payDate: '2026-02-15', status: 'voided' },   // voided runs do not count
+      { payDate: '2025-12-15', status: 'finalized' }, // prior year
     ])
 
     const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
@@ -169,5 +173,34 @@ describe('no PII', () => {
       'lastClose', 'payrollRunsYtd', 'generatedAt',
     ])
     for (const k of keys) expect(allowed.has(k)).toBe(true)
+  })
+})
+
+describe('hardening', () => {
+  test('a request with no headers object still returns 200', async () => {
+    mockCountContactsByProperty.mockResolvedValue(5)
+    mockGetBookingsForDateRange.mockResolvedValue([])
+    mockListAllInvoicesSince.mockResolvedValue([])
+    mockQ.mockResolvedValue({ rows: [] })
+    mockListRuns.mockResolvedValue([])
+
+    const req = { method: 'GET' } // no headers at all
+    const res = mockRes()
+
+    await expect(handler(req, res)).resolves.not.toThrow()
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.headers['Access-Control-Allow-Origin']).toBeUndefined()
+  })
+
+  test('when the cache layer itself throws, still 200 with only generatedAt', async () => {
+    const { cached } = require('../lib/cache')
+    cached.mockImplementationOnce(() => { throw new Error('cache exploded') })
+
+    const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
+    const res = mockRes()
+
+    await expect(handler(req, res)).resolves.not.toThrow()
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(Object.keys(res.body)).toEqual(['generatedAt'])
   })
 })

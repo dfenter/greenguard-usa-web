@@ -24,13 +24,13 @@
 </div></header>
 <section class="hero"><div class="wrap"><span class="kicker">Proof</span><h1>We run our own company on this. <em>Here are the numbers.</em></h1><p class="lede">We are a recurring-visit service business ourselves. Everything described on this site runs our own company first, and these figures come from that same system, refreshed daily.</p></div></section><hr>
 <section class="prose full"><div class="wrap"><div class="body">
-<p>These numbers are not a demo or a projection. They are pulled from the same portal, the same calendar, the same billing account and the same books that run our own company, on the same schedule an owner using this software would see them on their own account. No customer names or personal information are shown here or anywhere on this page.</p>
-<figure class="aside"><figcaption>Our own operation, live</figcaption><dl><dt>Active recurring accounts</dt><dd><span data-proof="activeRecurring">96</span></dd><dt>Visits completed, last 30 days</dt><dd><span data-proof="visits30d">148</span></dd><dt>Last monthly books close</dt><dd><span data-proof="lastClose">2026-08</span></dd><dt>Payroll runs this year</dt><dd><span data-proof="payrollRunsYtd">0</span></dd></dl></figure>
+<p>These numbers are not a demo or a projection. They are pulled from the same portal, the same calendar, the same billing account and the same books that run our own company, on the same schedule an owner using this software would see them on their own account. An active recurring account means one customer currently on a repeating visit schedule, which is the same count quoted on the homepage. No customer names or personal information are shown here or anywhere on this page.</p>
+<figure class="aside"><figcaption>Our own operation, live</figcaption><dl><dt>Active recurring accounts</dt><dd><span data-proof="activeRecurring">96</span></dd><dt>Visits completed, last 30 days</dt><dd><span data-proof="visits30d">148</span></dd><dt>Last monthly books close</dt><dd><span data-proof="lastClose">2026-08</span></dd><dt>Payroll runs this year</dt><dd><span data-proof="payrollRunsYtd">1</span></dd></dl></figure>
 <p>Two figures we would like to publish here are not on the list yet. We do not keep a per visit record of whether a reminder went out, and we will not estimate one, so the reminder rate is missing until the system records it properly. The median time from invoice to payment is left off for the same reason: the current billing window did not contain enough settled invoices to give an honest median. When each of those can be computed from the real record, it appears here.</p>
 <p class="small">Refreshed daily from the live system. If a figure does not update when the page loads, what you are seeing is the last known value read from that same system, not a number written by hand for this page.</p>
 <script>
 (function(){
-  var FALLBACK = {"activeRecurring":96,"visits30d":148,"lastClose":"2026-08","payrollRunsYtd":0};
+  var FALLBACK = {"activeRecurring":96,"visits30d":148,"lastClose":"2026-08","payrollRunsYtd":1};
   fetch('https://portal.greenguard-usa.com/api/ops/proof').then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(data){
     Object.keys(FALLBACK).forEach(function(k){
       if (data && data[k] !== undefined && data[k] !== null) {

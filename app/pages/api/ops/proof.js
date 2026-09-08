@@ -1,5 +1,5 @@
 // Public, read-only aggregate endpoint for the marketing site's /proof page.
-// Aggregates ONLY — never returns PII (no names, emails, phones, addresses,
+// Aggregates ONLY, never returns PII (no names, emails, phones, addresses,
 // no per-customer rows). Every source is independently try/caught; a figure
 // that cannot be reliably computed is OMITTED, never guessed or zeroed.
 
@@ -21,7 +21,7 @@ function median(nums) {
   return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid]
 }
 
-// Active recurring customers — honest source is the CRM, since this business
+// Active recurring customers. The honest source is the CRM, since this business
 // invoices one-time (no live Stripe subscriptions to count).
 async function computeActiveRecurring() {
   const { countContactsByProperty } = require('../../../lib/hubspot')
@@ -31,8 +31,14 @@ async function computeActiveRecurring() {
 }
 
 // Visits completed in the trailing 30 days, from GCal bookings.
+//
+// Uses the PAGINATED fetch deliberately. The plain range helper caps at a
+// single 250-event page with no pageToken loop, so a busy month would be
+// silently truncated and this page would publish a capped number as fact.
+// The paginated variant follows every page and throws past its safety cap,
+// which makes an over-large window an OMITTED key rather than a false one.
 async function computeVisits30d() {
-  const { getBookingsForDateRange } = require('../../../lib/gcal')
+  const { getBookingsForDateRangePaginated: getBookingsForDateRange } = require('../../../lib/gcal')
   const now = new Date()
   const start = new Date(now.getTime() - 30 * DAY_MS)
   const bookings = await getBookingsForDateRange(start.toISOString(), now.toISOString())
@@ -58,7 +64,7 @@ async function computeMedianDaysToPaid() {
 }
 
 // Last closed month, derived honestly from categorized bookkeeping
-// transactions — there is no explicit close-log table. Only report a month
+// transactions. There is no explicit close-log table, so only report a month
 // once it is fully in the past (complete) and has categorized rows.
 async function computeLastClose() {
   const { q } = require('../../../lib/db')
@@ -80,14 +86,17 @@ async function computeLastClose() {
   return candidate ? candidate.ym : undefined
 }
 
-// Payroll runs with a pay_date in the current calendar year.
+// Payroll runs paid in the current calendar year. listRuns returns HYDRATED
+// objects (camelCase payDate), not raw rows, so read payDate. Voided runs do
+// not count as runs that happened.
 async function computePayrollRunsYtd() {
   const { listRuns } = require('../../../lib/payroll-store')
   const runs = await listRuns({ limit: 200 })
   if (!Array.isArray(runs)) return undefined
   const year = String(new Date().getFullYear())
-  const count = runs.filter((r) => typeof r.pay_date === 'string' && r.pay_date.startsWith(year)).length
-  return count
+  return runs.filter(
+    (r) => typeof r?.payDate === 'string' && r.payDate.startsWith(year) && r.status !== 'voided'
+  ).length
 }
 
 async function computeProof() {
@@ -148,7 +157,7 @@ module.exports = async function handler(req, res) {
 
     let body
     try {
-      body = await cached('ops:proof:v1', 86400, computeProof)
+      body = await cached('ops:proof:v2', 86400, computeProof)
     } catch {
       body = { generatedAt: new Date().toISOString() }
     }
@@ -159,7 +168,7 @@ module.exports = async function handler(req, res) {
     try {
       res.status(200).json({ generatedAt: new Date().toISOString() })
     } catch {
-      // Absolute last resort — nothing more we can safely do without risking
+      // Absolute last resort. Nothing more we can safely do without risking
       // a throw from res itself.
     }
   }
