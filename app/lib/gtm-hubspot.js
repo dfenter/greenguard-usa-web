@@ -5,14 +5,22 @@
 const { Client } = require('@hubspot/api-client')
 const { cached } = require('./cache')
 const { findContactByEmail } = require('./hubspot')
+const { PRODUCTS, DEFAULT_PRODUCT, resolveProduct } = require('./gtm-products')
 
 const client = new Client({
   accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
   numberOfApiCallRetries: 3,
 })
 
-const PIPELINE_LABEL = 'SparkBridge Partners'
+// Legacy exports kept for existing callers/tests referencing SparkBridge
+// directly — value copied exactly from the prior hardcoded constant.
+const PIPELINE_LABEL = PRODUCTS[DEFAULT_PRODUCT].hubspot.pipelineLabel
 const STAGE_LABELS = ['Contacted', 'Call booked', 'Review delivered', 'Partner signed', 'Pilot live', 'Production measured']
+
+function pipelineLabelFor(product) {
+  const p = resolveProduct(product)
+  return PRODUCTS[p].hubspot.pipelineLabel
+}
 
 /**
  * PURE helper: resolve a stage id from a resolved pipeline's stage map by
@@ -28,15 +36,43 @@ function stageIdForLabel(pipeline, label) {
 }
 
 /**
- * Fetch HubSpot deal pipelines and build { pipelineId, stages: {label: id} }
- * for the SparkBridge Partners pipeline. Cached 1hr via lib/cache.js.
+ * PURE helper: translate an internal stage label through the product's
+ * HubSpot stageMap when configured, otherwise pass it through unchanged
+ * (identity — e.g. SparkBridge, whose internal labels already match its
+ * dedicated pipeline's stage labels). Case-insensitive, trims whitespace,
+ * matching stageIdForLabel's normalization. Unknown labels pass through
+ * as originally given.
  */
-async function resolvePipeline() {
-  return cached('gtm:hubspot:pipeline', 3600, async () => {
+function hubspotStageLabelFor(product, internalLabel) {
+  const p = resolveProduct(product)
+  const stageMap = PRODUCTS[p].hubspot.stageMap
+  if (!stageMap || internalLabel === null || internalLabel === undefined) return internalLabel
+  const wanted = String(internalLabel).trim().toLowerCase()
+  for (const [mapLabel, hubspotLabel] of Object.entries(stageMap)) {
+    if (String(mapLabel).trim().toLowerCase() === wanted) return hubspotLabel
+  }
+  return internalLabel
+}
+
+/**
+ * Fetch HubSpot deal pipelines and build { pipelineId, stages: {label: id} }
+ * for the given product's pipeline label. Cached 1hr via lib/cache.js,
+ * keyed per product so products never share a cached pipeline.
+ */
+async function resolvePipeline(product = DEFAULT_PRODUCT) {
+  const p = resolveProduct(product)
+  const label = pipelineLabelFor(p)
+  const configuredId = PRODUCTS[p].hubspot.pipelineId
+  return cached(`gtm:hubspot:pipeline:${p}`, 3600, async () => {
+    if (!label && !configuredId) throw new Error(`HubSpot pipeline label not configured for product: ${p}`)
     const resp = await client.crm.pipelines.pipelinesApi.getAll('deals')
     const results = resp.results || []
-    const pipeline = results.find((p) => p.label === PIPELINE_LABEL)
-    if (!pipeline) throw new Error(`HubSpot pipeline not found: ${PIPELINE_LABEL}`)
+    // Prefer a configured pipeline id (e.g. the built-in "default" Sales
+    // Pipeline) when present; fall back to matching by label otherwise.
+    const pipeline = configuredId
+      ? results.find((pl) => pl.id === configuredId)
+      : results.find((pl) => pl.label === label)
+    if (!pipeline) throw new Error(`HubSpot pipeline not found: ${configuredId || label}`)
     const stages = {}
     for (const stage of pipeline.stages || []) {
       stages[stage.label] = stage.id
@@ -46,15 +82,17 @@ async function resolvePipeline() {
 }
 
 /**
- * True by default. False only when GTM_HUBSPOT_DEALS='0', or when a live
- * pipelines probe fails. The probe result is cached 1hr so it isn't hit on
- * every request.
+ * True by default. False when GTM_HUBSPOT_DEALS='0', when the product has
+ * no resolvable pipeline label, or when a live pipelines probe fails. The
+ * probe result is cached 1hr per product so it isn't hit on every request.
  */
-async function dealsEnabled() {
+async function dealsEnabled(product = DEFAULT_PRODUCT) {
   if (process.env.GTM_HUBSPOT_DEALS === '0') return false
+  const p = resolveProduct(product)
+  if (!pipelineLabelFor(p)) return false
   try {
-    const ok = await cached('gtm:hubspot:deals-probe', 3600, async () => {
-      await resolvePipeline()
+    const ok = await cached(`gtm:hubspot:deals-probe:${p}`, 3600, async () => {
+      await resolvePipeline(p)
       return true
     })
     return Boolean(ok)
@@ -63,8 +101,10 @@ async function dealsEnabled() {
   }
 }
 
-function dealName(firm) {
-  return `${firm} · SparkBridge FAP`
+function dealName(firm, product = DEFAULT_PRODUCT) {
+  const p = resolveProduct(product)
+  const suffix = p === DEFAULT_PRODUCT ? 'SparkBridge FAP' : PRODUCTS[p].label
+  return `${firm} · ${suffix}`
 }
 
 /**
@@ -73,14 +113,16 @@ function dealName(firm) {
  * email when given. Idempotent: searches for an exact dealname match within
  * the pipeline before creating. Never throws.
  */
-async function syncDeal({ firm, stage, contactEmail }) {
+async function syncDeal({ firm, stage, contactEmail, product = DEFAULT_PRODUCT }) {
   try {
     if (!firm || !String(firm).trim()) return { ok: false, reason: 'firm required' }
-    const pipeline = await resolvePipeline()
-    const name = dealName(firm)
+    const p = resolveProduct(product)
+    const pipeline = await resolvePipeline(p)
+    const name = dealName(firm, p)
     const properties = { dealname: name, pipeline: pipeline.pipelineId }
     if (stage) {
-      const stageId = stageIdForLabel(pipeline, stage)
+      const hubspotStage = hubspotStageLabelFor(p, stage)
+      const stageId = stageIdForLabel(pipeline, hubspotStage)
       if (stageId) properties.dealstage = stageId
     }
 
@@ -139,4 +181,4 @@ async function associateNoteToDeal(noteId, dealId) {
   }
 }
 
-module.exports = { dealsEnabled, resolvePipeline, stageIdForLabel, syncDeal, associateNoteToDeal, dealName, PIPELINE_LABEL, STAGE_LABELS }
+module.exports = { dealsEnabled, resolvePipeline, pipelineLabelFor, stageIdForLabel, hubspotStageLabelFor, syncDeal, associateNoteToDeal, dealName, PIPELINE_LABEL, STAGE_LABELS }

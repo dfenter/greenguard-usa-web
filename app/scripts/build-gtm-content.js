@@ -1,24 +1,21 @@
 #!/usr/bin/env node
-// Builds app/content/gtm/{pages,checklist,targets}.json from the GTM bundle
-// and copies bundle PDFs + CSV into app/public/gtm/. Safe no-op on Vercel
-// when the bundle directory isn't present (source repo not checked out).
+// Builds app/content/gtm/<product>/{pages,checklist,targets}.json from each
+// product's GTM bundle and copies bundle PDFs + CSV into
+// app/public/gtm/<product>/. Safe no-op per product when its bundle
+// directory isn't present (e.g. source repo not checked out on Vercel).
+//
+// COMPAT: also writes the legacy sparkbridge-only outputs at
+// content/gtm/{pages,checklist,targets}.json and public/gtm/ exactly as
+// before, so existing readers keep working untouched.
 
 const fs = require('fs')
 const path = require('path')
 const MarkdownIt = require('markdown-it')
+const { PRODUCTS } = require('../lib/gtm-products')
 
-const BUNDLE_DIR = process.env.GTM_BUNDLE_DIR || '/Users/lucille/Github/SparkBridge/docs/gtm/mba-handoff'
 const APP_DIR = path.join(__dirname, '..')
-const CONTENT_DIR = path.join(APP_DIR, 'content', 'gtm')
-const PUBLIC_DIR = path.join(APP_DIR, 'public', 'gtm')
-
-if (!fs.existsSync(BUNDLE_DIR)) {
-  console.log(`GTM bundle dir not found at ${BUNDLE_DIR} — skipping content build (safe no-op).`)
-  process.exit(0)
-}
-
-fs.mkdirSync(CONTENT_DIR, { recursive: true })
-fs.mkdirSync(PUBLIC_DIR, { recursive: true })
+const CONTENT_ROOT = path.join(APP_DIR, 'content', 'gtm')
+const PUBLIC_ROOT = path.join(APP_DIR, 'public', 'gtm')
 
 const md = new MarkdownIt('default', { html: false, linkify: true, typographer: false })
 
@@ -45,21 +42,6 @@ function safeName(relPath) {
   return relPath.split(path.sep).join('__')
 }
 
-// ── Copy PDFs + CSV into public/gtm ─────────────────────────────────────
-const assetFiles = walk(BUNDLE_DIR, ['.pdf', '.csv'])
-const assetPublicPath = {} // relPath -> /gtm/<safe>
-for (const f of assetFiles) {
-  const rel = path.relative(BUNDLE_DIR, f)
-  const flat = safeName(rel)
-  fs.copyFileSync(f, path.join(PUBLIC_DIR, flat))
-  assetPublicPath[rel] = `/gtm/${flat}`
-}
-console.log(`copied ${assetFiles.length} PDF/CSV assets into public/gtm`)
-
-// ── Render markdown pages ────────────────────────────────────────────────
-const mdFiles = walk(BUNDLE_DIR, ['.md'])
-const pages = {}
-
 function injectHeadingIds(html, headings) {
   // headings: [{id, text, level}] in document order for h2/h3
   let i2 = 0
@@ -71,162 +53,191 @@ function injectHeadingIds(html, headings) {
   })
 }
 
-for (const f of mdFiles) {
-  const rel = path.relative(BUNDLE_DIR, f)
-  const relNoExt = rel.replace(/\.md$/i, '')
-  const raw = fs.readFileSync(f, 'utf8')
-  const html = md.render(raw)
+// Build one product's content into contentDir/publicDir. Returns nothing;
+// writes pages.json, checklist.json, targets.json into contentDir and
+// copies PDF/CSV assets into publicDir.
+function buildOne(bundleDir, contentDir, publicDir) {
+  fs.mkdirSync(contentDir, { recursive: true })
+  fs.mkdirSync(publicDir, { recursive: true })
 
-  // Title: first h1, else filename.
-  const h1Match = raw.match(/^#\s+(.+)$/m)
-  const title = h1Match ? h1Match[1].trim() : path.basename(relNoExt)
-
-  // Headings: h2/h3 from markdown source lines, in order.
-  const headings = []
-  const seen = {}
-  const lines = raw.split('\n')
-  for (const line of lines) {
-    const m = line.match(/^(##|###)\s+(.+)$/)
-    if (!m) continue
-    const level = m[1].length
-    const text = m[2].trim()
-    let id = slugify(text)
-    if (seen[id]) { seen[id] += 1; id = `${id}-${seen[id]}` } else { seen[id] = 1 }
-    headings.push({ id, text, level })
+  // ── Copy PDFs + CSV ─────────────────────────────────────────────────
+  const assetFiles = walk(bundleDir, ['.pdf', '.csv'])
+  for (const f of assetFiles) {
+    const rel = path.relative(bundleDir, f)
+    const flat = safeName(rel)
+    fs.copyFileSync(f, path.join(publicDir, flat))
   }
+  console.log(`copied ${assetFiles.length} PDF/CSV assets into ${publicDir}`)
 
-  const htmlWithIds = injectHeadingIds(html, headings)
+  // ── Render markdown pages ───────────────────────────────────────────
+  const mdFiles = walk(bundleDir, ['.md'])
+  const pages = {}
 
-  pages[relNoExt] = { path: relNoExt, title, html: htmlWithIds, headings }
-}
-console.log(`rendered ${mdFiles.length} markdown pages`)
+  for (const f of mdFiles) {
+    const rel = path.relative(bundleDir, f)
+    const relNoExt = rel.replace(/\.md$/i, '')
+    const raw = fs.readFileSync(f, 'utf8')
+    const html = md.render(raw)
 
-fs.writeFileSync(path.join(CONTENT_DIR, 'pages.json'), JSON.stringify({ pages }, null, 2))
+    const h1Match = raw.match(/^#\s+(.+)$/m)
+    const title = h1Match ? h1Match[1].trim() : path.basename(relNoExt)
 
-// ── Checklist from the 90-day plan ───────────────────────────────────────
-const planFile = mdFiles.find((f) => /01-plan/.test(f) && f.toLowerCase().endsWith('.md'))
-const checklistItems = []
-
-if (planFile) {
-  const raw = fs.readFileSync(planFile, 'utf8')
-  const lines = raw.split('\n')
-
-  // Locate section boundaries by "## N. Title" headings.
-  const sectionStarts = []
-  lines.forEach((line, idx) => {
-    const m = line.match(/^##\s+(\d+)\.\s+(.+)$/)
-    if (m) sectionStarts.push({ num: Number(m[1]), title: m[2].trim(), line: idx })
-  })
-  sectionStarts.push({ num: null, title: null, line: lines.length })
-
-  function sectionBody(num) {
-    const i = sectionStarts.findIndex((s) => s.num === num)
-    if (i === -1) return null
-    const start = sectionStarts[i].line
-    const end = sectionStarts[i + 1].line
-    return { title: sectionStarts[i].title, text: lines.slice(start, end).join('\n') }
-  }
-
-  // Section 27: phases table -> one item per row.
-  const s27 = sectionBody(27)
-  if (s27) {
-    const rows = s27.text.split('\n').filter((l) => l.trim().startsWith('|') && !/^\|---/.test(l.trim()))
-    // First data row after header+separator; skip header row (contains "Days").
-    for (const row of rows) {
-      const cells = row.split('|').map((c) => c.trim()).filter((c) => c.length)
-      if (cells.length < 3) continue
-      if (/^days$/i.test(cells[0])) continue
-      const dayMatch = cells[0].match(/(\d+)\s*to\s*(\d+)/i)
-      const id = slugify(`section-27-${cells[0]}-${cells[1]}`)
-      checklistItems.push({
-        id,
-        section: 27,
-        label: `${cells[1]}: ${cells[2]}`,
-        dayStart: dayMatch ? Number(dayMatch[1]) : null,
-        dayEnd: dayMatch ? Number(dayMatch[2]) : null,
-      })
+    const headings = []
+    const seen = {}
+    const lines = raw.split('\n')
+    for (const line of lines) {
+      const m = line.match(/^(##|###)\s+(.+)$/)
+      if (!m) continue
+      const level = m[1].length
+      const text = m[2].trim()
+      let id = slugify(text)
+      if (seen[id]) { seen[id] += 1; id = `${id}-${seen[id]}` } else { seen[id] = 1 }
+      headings.push({ id, text, level })
     }
-  }
 
-  // Sections 5, 7, 9, 10, 15, 16, 19: tolerant extraction.
-  // Section 5 has clean "### Days X to Y: Title" sub-headings — one item each.
-  const s5 = sectionBody(5)
-  if (s5) {
-    const subMatches = [...s5.text.matchAll(/^###\s+(.+)$/gm)]
-    for (const m of subMatches) {
-      const label = m[1].trim()
-      const dayMatch = label.match(/Days?\s+(\d+)(?:\s*to\s*(\d+))?/i)
+    const htmlWithIds = injectHeadingIds(html, headings)
+    pages[relNoExt] = { path: relNoExt, title, html: htmlWithIds, headings }
+  }
+  console.log(`rendered ${mdFiles.length} markdown pages`)
+  fs.writeFileSync(path.join(contentDir, 'pages.json'), JSON.stringify({ pages }, null, 2))
+
+  // ── Checklist from the 90-day plan ─────────────────────────────────
+  const planFile = mdFiles.find((f) => /01-plan/.test(f) && f.toLowerCase().endsWith('.md'))
+  const checklistItems = []
+
+  if (planFile) {
+    const raw = fs.readFileSync(planFile, 'utf8')
+    const lines = raw.split('\n')
+
+    const sectionStarts = []
+    lines.forEach((line, idx) => {
+      const m = line.match(/^##\s+(\d+)\.\s+(.+)$/)
+      if (m) sectionStarts.push({ num: Number(m[1]), title: m[2].trim(), line: idx })
+    })
+    sectionStarts.push({ num: null, title: null, line: lines.length })
+
+    function sectionBody(num) {
+      const i = sectionStarts.findIndex((s) => s.num === num)
+      if (i === -1) return null
+      const start = sectionStarts[i].line
+      const end = sectionStarts[i + 1].line
+      return { title: sectionStarts[i].title, text: lines.slice(start, end).join('\n') }
+    }
+
+    const s27 = sectionBody(27)
+    if (s27) {
+      const rows = s27.text.split('\n').filter((l) => l.trim().startsWith('|') && !/^\|---/.test(l.trim()))
+      for (const row of rows) {
+        const cells = row.split('|').map((c) => c.trim()).filter((c) => c.length)
+        if (cells.length < 3) continue
+        if (/^days$/i.test(cells[0])) continue
+        const dayMatch = cells[0].match(/(\d+)\s*to\s*(\d+)/i)
+        const id = slugify(`section-27-${cells[0]}-${cells[1]}`)
+        checklistItems.push({
+          id,
+          section: 27,
+          label: `${cells[1]}: ${cells[2]}`,
+          dayStart: dayMatch ? Number(dayMatch[1]) : null,
+          dayEnd: dayMatch ? Number(dayMatch[2]) : null,
+        })
+      }
+    }
+
+    const s5 = sectionBody(5)
+    if (s5) {
+      const subMatches = [...s5.text.matchAll(/^###\s+(.+)$/gm)]
+      for (const m of subMatches) {
+        const label = m[1].trim()
+        const dayMatch = label.match(/Days?\s+(\d+)(?:\s*to\s*(\d+))?/i)
+        checklistItems.push({
+          id: slugify(`section-5-${label}`),
+          section: 5,
+          label,
+          dayStart: dayMatch ? Number(dayMatch[1]) : null,
+          dayEnd: dayMatch ? Number(dayMatch[2] || dayMatch[1]) : null,
+        })
+      }
+    }
+
+    for (const num of [7, 9, 10, 15, 16, 19]) {
+      const s = sectionBody(num)
+      if (!s) continue
+      const dayMatch = s.title.match(/Days?\s+(\d+)(?:\s*to\s*(\d+))?/i)
       checklistItems.push({
-        id: slugify(`section-5-${label}`),
-        section: 5,
-        label,
+        id: slugify(`section-${num}-${s.title}`),
+        section: num,
+        label: s.title,
         dayStart: dayMatch ? Number(dayMatch[1]) : null,
         dayEnd: dayMatch ? Number(dayMatch[2] || dayMatch[1]) : null,
       })
     }
   }
 
-  // Sections 7, 9, 10, 15, 16, 19: no clean sub-items, so use the section
-  // title itself as a single checklist item (day range parsed from title).
-  for (const num of [7, 9, 10, 15, 16, 19]) {
-    const s = sectionBody(num)
-    if (!s) continue
-    const dayMatch = s.title.match(/Days?\s+(\d+)(?:\s*to\s*(\d+))?/i)
-    checklistItems.push({
-      id: slugify(`section-${num}-${s.title}`),
-      section: num,
-      label: s.title,
-      dayStart: dayMatch ? Number(dayMatch[1]) : null,
-      dayEnd: dayMatch ? Number(dayMatch[2] || dayMatch[1]) : null,
-    })
-  }
-}
+  console.log(`parsed ${checklistItems.length} checklist items`)
+  fs.writeFileSync(path.join(contentDir, 'checklist.json'), JSON.stringify({ items: checklistItems }, null, 2))
 
-console.log(`parsed ${checklistItems.length} checklist items`)
-fs.writeFileSync(path.join(CONTENT_DIR, 'checklist.json'), JSON.stringify({ items: checklistItems }, null, 2))
-
-// ── Targets CSV (hand-rolled RFC4180 parser) ─────────────────────────────
-function parseCSV(text) {
-  const rows = []
-  let row = []
-  let field = ''
-  let inQuotes = false
-  let i = 0
-  const n = text.length
-  while (i < n) {
-    const c = text[i]
-    if (inQuotes) {
-      if (c === '"') {
-        if (text[i + 1] === '"') { field += '"'; i += 2; continue }
-        inQuotes = false; i += 1; continue
+  // ── Targets CSV (hand-rolled RFC4180 parser) ───────────────────────
+  function parseCSV(text) {
+    const rows = []
+    let row = []
+    let field = ''
+    let inQuotes = false
+    let i = 0
+    const n = text.length
+    while (i < n) {
+      const c = text[i]
+      if (inQuotes) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { field += '"'; i += 2; continue }
+          inQuotes = false; i += 1; continue
+        }
+        field += c; i += 1; continue
+      } else {
+        if (c === '"') { inQuotes = true; i += 1; continue }
+        if (c === ',') { row.push(field); field = ''; i += 1; continue }
+        if (c === '\r') { i += 1; continue }
+        if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; i += 1; continue }
+        field += c; i += 1; continue
       }
-      field += c; i += 1; continue
-    } else {
-      if (c === '"') { inQuotes = true; i += 1; continue }
-      if (c === ',') { row.push(field); field = ''; i += 1; continue }
-      if (c === '\r') { i += 1; continue }
-      if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; i += 1; continue }
-      field += c; i += 1; continue
     }
+    if (field.length || row.length) { row.push(field); rows.push(row) }
+    return rows.filter((r) => r.length > 1 || (r.length === 1 && r[0] !== ''))
   }
-  if (field.length || row.length) { row.push(field); rows.push(row) }
-  return rows.filter((r) => r.length > 1 || (r.length === 1 && r[0] !== ''))
+
+  const targetsFile = walk(bundleDir, ['.csv']).find((f) => /06-targets/.test(f))
+  let targets = { columns: [], rows: [] }
+  if (targetsFile) {
+    const raw = fs.readFileSync(targetsFile, 'utf8')
+    const parsed = parseCSV(raw)
+    const columns = parsed[0] || []
+    const rows = parsed.slice(1).map((r) => {
+      const obj = {}
+      columns.forEach((col, idx) => { obj[col] = r[idx] ?? '' })
+      return obj
+    })
+    targets = { columns, rows }
+  }
+  console.log(`parsed ${targets.rows.length} target rows`)
+  fs.writeFileSync(path.join(contentDir, 'targets.json'), JSON.stringify(targets, null, 2))
 }
 
-const targetsFile = walk(BUNDLE_DIR, ['.csv']).find((f) => /06-targets/.test(f))
-let targets = { columns: [], rows: [] }
-if (targetsFile) {
-  const raw = fs.readFileSync(targetsFile, 'utf8')
-  const parsed = parseCSV(raw)
-  const columns = parsed[0] || []
-  const rows = parsed.slice(1).map((r) => {
-    const obj = {}
-    columns.forEach((col, idx) => { obj[col] = r[idx] ?? '' })
-    return obj
-  })
-  targets = { columns, rows }
+for (const product of Object.values(PRODUCTS)) {
+  const bundleDir = product.key === 'sparkbridge' ? (process.env.GTM_BUNDLE_DIR || product.bundleDir) : product.bundleDir
+
+  if (!fs.existsSync(bundleDir)) {
+    console.log(`GTM bundle dir not found for product "${product.key}" at ${bundleDir} — skipping (safe no-op).`)
+    continue
+  }
+
+  const contentDir = path.join(CONTENT_ROOT, product.key)
+  const publicDir = path.join(PUBLIC_ROOT, product.key)
+  console.log(`building GTM content for product "${product.key}" from ${bundleDir}`)
+  buildOne(bundleDir, contentDir, publicDir)
+
+  // COMPAT: sparkbridge also writes the legacy flat locations.
+  if (product.key === 'sparkbridge') {
+    buildOne(bundleDir, CONTENT_ROOT, PUBLIC_ROOT)
+  }
 }
-console.log(`parsed ${targets.rows.length} target rows`)
-fs.writeFileSync(path.join(CONTENT_DIR, 'targets.json'), JSON.stringify(targets, null, 2))
 
 console.log('gtm content build complete')

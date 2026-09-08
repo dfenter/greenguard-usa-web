@@ -3,11 +3,13 @@ const fs = require('fs')
 
 describe('gtm-mcp-server tool registry', () => {
   const EXPECTED_TOOLS = [
+    'get_ops_target',
     'get_target',
     'gtm_pipeline',
     'hubspot_contact_notes',
     'hubspot_find_contacts',
     'list_docs',
+    'list_ops_targets',
     'list_targets',
     'read_doc',
     'search_docs',

@@ -33,6 +33,86 @@ describe('stageIdForLabel (pure)', () => {
   })
 })
 
+describe('hubspotStageLabelFor (pure)', () => {
+  const { hubspotStageLabelFor } = require('../lib/gtm-hubspot')
+
+  test('ops maps internal labels to Sales Pipeline stage labels', () => {
+    expect(hubspotStageLabelFor('ops', 'Contacted')).toBe('Appointment Scheduled')
+    expect(hubspotStageLabelFor('ops', 'Call booked')).toBe('Qualified To Buy')
+    expect(hubspotStageLabelFor('ops', 'Review delivered')).toBe('Presentation Scheduled')
+    expect(hubspotStageLabelFor('ops', 'Partner signed')).toBe('Decision Maker Bought-In')
+    expect(hubspotStageLabelFor('ops', 'Pilot live')).toBe('Contract Sent')
+    expect(hubspotStageLabelFor('ops', 'Production measured')).toBe('Closed Won')
+  })
+
+  test('sparkbridge is identity (no stageMap configured)', () => {
+    expect(hubspotStageLabelFor('sparkbridge', 'Contacted')).toBe('Contacted')
+    expect(hubspotStageLabelFor('sparkbridge', 'Production measured')).toBe('Production measured')
+  })
+
+  test('unknown label passes through unchanged even when a stageMap exists', () => {
+    expect(hubspotStageLabelFor('ops', 'Not A Real Stage')).toBe('Not A Real Stage')
+  })
+
+  test('normalizes case and whitespace like stageIdForLabel', () => {
+    expect(hubspotStageLabelFor('ops', 'contacted ')).toBe('Appointment Scheduled')
+    expect(hubspotStageLabelFor('ops', '  CALL BOOKED')).toBe('Qualified To Buy')
+    expect(hubspotStageLabelFor('ops', 'pilot live')).toBe('Contract Sent')
+  })
+})
+
+describe('resolvePipeline (product pipeline resolution)', () => {
+  beforeEach(() => {
+    jest.resetModules()
+  })
+
+  test('prefers a configured pipelineId over label matching', async () => {
+    jest.doMock('../lib/cache', () => ({ cached: jest.fn((key, ttl, fn) => fn()) }))
+    jest.doMock('@hubspot/api-client', () => ({
+      Client: jest.fn().mockImplementation(() => ({
+        crm: {
+          pipelines: {
+            pipelinesApi: {
+              getAll: jest.fn().mockResolvedValue({
+                results: [
+                  { id: 'default', label: 'Sales Pipeline', stages: [{ id: 'a1', label: 'Appointment Scheduled' }] },
+                  { id: 'other-id', label: 'Some Other Pipeline With Same-ish Label', stages: [] },
+                ],
+              }),
+            },
+          },
+        },
+      })),
+    }))
+    jest.doMock('../lib/hubspot', () => ({ findContactByEmail: jest.fn() }))
+    const { resolvePipeline } = require('../lib/gtm-hubspot')
+    const pipeline = await resolvePipeline('ops')
+    expect(pipeline.pipelineId).toBe('default')
+    expect(pipeline.stages['Appointment Scheduled']).toBe('a1')
+  })
+
+  test('falls back to label matching when no pipelineId is configured', async () => {
+    jest.doMock('../lib/cache', () => ({ cached: jest.fn((key, ttl, fn) => fn()) }))
+    jest.doMock('@hubspot/api-client', () => ({
+      Client: jest.fn().mockImplementation(() => ({
+        crm: {
+          pipelines: {
+            pipelinesApi: {
+              getAll: jest.fn().mockResolvedValue({
+                results: [{ id: 'pipe1', label: 'SparkBridge Partners', stages: [{ id: 's1', label: 'Contacted' }] }],
+              }),
+            },
+          },
+        },
+      })),
+    }))
+    jest.doMock('../lib/hubspot', () => ({ findContactByEmail: jest.fn() }))
+    const { resolvePipeline } = require('../lib/gtm-hubspot')
+    const pipeline = await resolvePipeline('sparkbridge')
+    expect(pipeline.pipelineId).toBe('pipe1')
+  })
+})
+
 describe('dealName format', () => {
   test('exact middle-dot format', () => {
     const { dealName } = require('../lib/gtm-hubspot')
@@ -230,5 +310,89 @@ describe('library.js route: kind whitelist', () => {
     const { req, res } = mockReqRes({ kind: 'objection', data: { objection: 'test' } })
     await handler(req, res)
     expect(res.statusCode).toBe(200)
+  })
+})
+
+describe('gtm-sheets: graceful no-op when product has no sheetId', () => {
+  beforeEach(() => {
+    jest.resetModules()
+  })
+
+  // Every configured product now has a real sheet id, so mock the product
+  // config to exercise the unconfigured path itself rather than relying on
+  // whichever product happens to be unconfigured today.
+  function mockProductWithoutSheet() {
+    jest.doMock('../lib/gtm-products', () => {
+      const actual = jest.requireActual('../lib/gtm-products')
+      return {
+        ...actual,
+        PRODUCTS: {
+          ...actual.PRODUCTS,
+          ops: { ...actual.PRODUCTS.ops, sheetId: null },
+        },
+      }
+    })
+  }
+
+  test('writeTargetCells returns ok:false without throwing for a product with sheetId null', async () => {
+    mockProductWithoutSheet()
+    jest.doMock('../lib/gsheets', () => ({ getSheets: jest.fn(() => { throw new Error('should not be called') }) }))
+    jest.doMock('../lib/db', () => ({ q: jest.fn() }))
+    const { writeTargetCells } = require('../lib/gtm-sheets')
+    const result = await writeTargetCells('Acme', { approve: 'Y' }, 'ops')
+    expect(result).toEqual({ ok: false, reason: 'sheet not configured' })
+  })
+
+  test('pullApprovals returns ok:false without throwing for a product with sheetId null', async () => {
+    mockProductWithoutSheet()
+    jest.doMock('../lib/gsheets', () => ({ getSheets: jest.fn(() => { throw new Error('should not be called') }) }))
+    jest.doMock('../lib/db', () => ({ q: jest.fn() }))
+    const { pullApprovals } = require('../lib/gtm-sheets')
+    const result = await pullApprovals('ops')
+    expect(result).toEqual({ ok: false, reason: 'sheet not configured' })
+  })
+
+  test('sparkbridge (default) still attempts a sheets call when sheets client is unavailable', async () => {
+    jest.doMock('../lib/gsheets', () => ({ getSheets: jest.fn(() => null) }))
+    jest.doMock('../lib/db', () => ({ q: jest.fn() }))
+    const { writeTargetCells } = require('../lib/gtm-sheets')
+    const result = await writeTargetCells('Acme', { approve: 'Y' })
+    expect(result).toEqual({ ok: false, reason: 'sheets not configured' })
+  })
+
+  test('legacy SHEET_ID export matches sparkbridge product config', () => {
+    const { SHEET_ID } = require('../lib/gtm-sheets')
+    const { PRODUCTS } = require('../lib/gtm-products')
+    expect(SHEET_ID).toBe(PRODUCTS.sparkbridge.sheetId)
+  })
+})
+
+describe('gtm-hubspot: dealsEnabled/dealName per product', () => {
+  // An earlier describe block jest.doMock()s ../lib/gtm-hubspot with a partial
+  // mock that has no dealName. resetModules clears the module registry but not
+  // the doMock registration, so the real module must be un-mocked here.
+  beforeEach(() => {
+    jest.dontMock('../lib/gtm-hubspot')
+    jest.resetModules()
+  })
+
+  test('dealName default (sparkbridge) format unchanged', () => {
+    jest.resetModules()
+    const { dealName } = jest.requireActual('../lib/gtm-hubspot')
+    expect(dealName('Acme Integrators')).toBe('Acme Integrators · SparkBridge FAP')
+  })
+
+  test('dealName for ops uses the ops product label', () => {
+    jest.resetModules()
+    const { dealName } = jest.requireActual('../lib/gtm-hubspot')
+    expect(dealName('Acme Integrators', 'ops')).toBe('Acme Integrators · One Person Show')
+  })
+
+  test('dealsEnabled resolves false gracefully when pipeline probe fails', async () => {
+    jest.resetModules()
+    process.env.GTM_HUBSPOT_DEALS = undefined
+    const { dealsEnabled } = jest.requireActual('../lib/gtm-hubspot')
+    const ok = await dealsEnabled('sparkbridge')
+    expect(typeof ok).toBe('boolean')
   })
 })

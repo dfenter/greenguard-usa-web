@@ -5,6 +5,7 @@ const { requireGtm } = require('../../../lib/auth')
 const { q } = require('../../../lib/db')
 const { Client } = require('@hubspot/api-client')
 const { resolvePipeline, STAGE_LABELS, dealName } = require('../../../lib/gtm-hubspot')
+const { resolveProduct, PRODUCTS } = require('../../../lib/gtm-products')
 
 const client = new Client({
   accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
@@ -17,24 +18,35 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).end()
 
-  const { rows: firms } = await q(`SELECT firm FROM gtm_deals`)
+  const product = resolveProduct(req)
+  const { rows: firms } = await q(`SELECT firm FROM gtm_deals WHERE product = $1`, [product])
 
   let pipeline
   try {
-    pipeline = await resolvePipeline()
+    pipeline = await resolvePipeline(product)
   } catch (err) {
     return res.status(200).json({ ok: false, reason: `pipeline resolve failed: ${err.message}`, synced: [], failed: firms.map((f) => f.firm) })
   }
 
+  const stageMap = PRODUCTS[product].hubspot.stageMap
+  const internalLabelForHubspotLabel = stageMap
+    ? Object.fromEntries(Object.entries(stageMap).map(([internal, hubspotLabel]) => [hubspotLabel, internal]))
+    : null
+
   const stageLabelForId = {}
-  for (const [label, id] of Object.entries(pipeline.stages)) stageLabelForId[id] = label
+  for (const [label, id] of Object.entries(pipeline.stages)) {
+    // Pass unmapped HubSpot stages (e.g. built-in "Closed Lost", which has
+    // no internal equivalent) through unchanged rather than dropping to
+    // undefined, so the STAGE_LABELS guard below reports a truthful reason.
+    stageLabelForId[id] = internalLabelForHubspotLabel ? (internalLabelForHubspotLabel[label] || label) : label
+  }
 
   const synced = []
   const failed = []
 
   for (const { firm } of firms) {
     try {
-      const name = dealName(firm)
+      const name = dealName(firm, product)
       const search = await client.crm.deals.searchApi.doSearch({
         filterGroups: [
           {
@@ -54,12 +66,12 @@ export default async function handler(req, res) {
       const dealStageId = search.results[0].properties.dealstage
       const label = stageLabelForId[dealStageId]
       if (!label || !STAGE_LABELS.includes(label)) {
-        failed.push({ firm, reason: `unrecognized stage id ${dealStageId}` })
+        failed.push({ firm, reason: label ? `unrecognized HubSpot stage: ${label}` : `unrecognized stage id ${dealStageId}` })
         continue
       }
       await q(
-        `UPDATE gtm_deals SET stage = $1, updated_at = now() WHERE firm = $2`,
-        [label, firm]
+        `UPDATE gtm_deals SET stage = $1, updated_at = now() WHERE firm = $2 AND product = $3`,
+        [label, firm, product]
       )
       synced.push({ firm, stage: label })
     } catch (err) {

@@ -10,6 +10,7 @@
 # Run after any GTM handoff bundle or pricing update: bash app/scripts/gtm-docs-refresh.sh
 set -euo pipefail
 REPO_DOCS="/Users/lucille/Github/SparkBridge/docs/gtm/mba-handoff"
+OPS_DOCS="/Users/lucille/Documents/GreenGuard/company-run-by-claude/gtm"
 DEST="$HOME/.gtm-chat-docs"
 SB_DEST="$HOME/.sparkbridge-chat-docs"
 
@@ -18,13 +19,13 @@ chmod 700 "$DEST"
 mkdir -p "$SB_DEST"
 chmod 700 "$SB_DEST"
 
-# Wipe the copied docs and rebuild from the live bundle.
+# Wipe the copied docs and rebuild from the live bundles.
 find "$DEST" -maxdepth 1 -type f -delete 2>/dev/null || true
 
-# Every markdown file in the bundle, flattened to a safe basename. Never PDFs.
-# Never anything under a docs/internal path (the bundle's own *-INTERNAL.md
-# files at the top level of the bundle ARE part of the bundle and DO get
-# copied; only a docs/internal/ directory is excluded).
+# Every markdown file in the SparkBridge bundle, flattened to a safe basename.
+# Never PDFs. Never anything under a docs/internal path (the bundle's own
+# *-INTERNAL.md files at the top level of the bundle ARE part of the bundle
+# and DO get copied; only a docs/internal/ directory is excluded).
 while IFS= read -r -d '' f; do
   rel="${f#"$REPO_DOCS"/}"
   case "$rel" in
@@ -38,6 +39,26 @@ done < <(find "$REPO_DOCS" -name '*.md' -print0)
 CSV="$REPO_DOCS/06-targets/integrator-targets.csv"
 if [ -f "$CSV" ]; then
   cp "$CSV" "$DEST/integrator-targets.csv"
+fi
+
+# Every markdown file in the OPS (One Person Show) GTM bundle, flattened to a
+# safe basename with an ops__ prefix so it never collides with the SparkBridge
+# names above. Same docs/internal/ exclusion rule.
+if [ -d "$OPS_DOCS" ]; then
+  while IFS= read -r -d '' f; do
+    rel="${f#"$OPS_DOCS"/}"
+    case "$rel" in
+      docs/internal/*|*/docs/internal/*) continue ;;
+    esac
+    base="$(echo "$rel" | sed 's#/#__#g')"
+    cp "$f" "$DEST/ops__$base"
+  done < <(find "$OPS_DOCS" -name '*.md' -print0)
+
+  # The OPS targets CSV, renamed to a fixed ops-prefixed name the MCP server expects.
+  OPS_CSV="$OPS_DOCS/06-targets/operator-targets.csv"
+  if [ -f "$OPS_CSV" ]; then
+    cp "$OPS_CSV" "$DEST/ops__operator-targets.csv"
+  fi
 fi
 
 chmod 600 "$DEST"/* 2>/dev/null || true

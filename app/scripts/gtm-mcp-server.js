@@ -179,6 +179,22 @@ function loadTargets() {
   return parseCsv(text)
 }
 
+function loadOpsTargets() {
+  const p = path.join(DIRS.gtm, 'ops__operator-targets.csv')
+  const text = fs.readFileSync(p, 'utf8')
+  return parseCsv(text)
+}
+
+function opsTargetOut(row) {
+  return {
+    firm: row.firm, person: row.person, email: row.email, email_confidence: row.email_confidence,
+    phone: row.phone, vertical: row.vertical, size: row.size, cadence: row.cadence,
+    current_stack: row.current_stack, source: row.source, status: row.status,
+    approve: row.approve || '', dan_notes: row.dan_notes || '',
+    s1: row.s1, s2: row.s2, s3: row.s3, s4: row.s4, s5: row.s5, s6: row.s6, s7: row.s7,
+  }
+}
+
 function targetOut(row) {
   return {
     firm: row.firm, rank: row.rank, tier: row.tier, status: row.status,
@@ -211,6 +227,28 @@ tool('get_target', 'Get one target firm\'s full row from the GTM targets CSV by 
   const row = exact || rows.find((r) => (r.firm || '').toLowerCase().includes(q))
   if (!row) return { found: false }
   return { found: true, target: targetOut(row) }
+})
+
+tool('list_ops_targets', 'List One Person Show (OPS) operator target firms from the OPS targets CSV. Optional case-insensitive substring filter over firm/vertical/status/approve. Always includes the approve column.', {
+  filter: z.string().max(120).optional(),
+}, async ({ filter }) => {
+  const rows = loadOpsTargets()
+  const q = (filter || '').trim().toLowerCase()
+  const matched = q
+    ? rows.filter((r) => [r.firm, r.vertical, r.status, r.approve].some((v) => String(v || '').toLowerCase().includes(q)))
+    : rows
+  return { count: matched.length, targets: matched.map(opsTargetOut) }
+})
+
+tool('get_ops_target', 'Get one OPS (One Person Show) operator target firm\'s full row from the OPS targets CSV by firm name (exact or case-insensitive substring match).', {
+  firm: z.string().min(2).max(160),
+}, async ({ firm }) => {
+  const rows = loadOpsTargets()
+  const q = firm.trim().toLowerCase()
+  const exact = rows.find((r) => (r.firm || '').trim().toLowerCase() === q)
+  const row = exact || rows.find((r) => (r.firm || '').toLowerCase().includes(q))
+  if (!row) return { found: false }
+  return { found: true, target: opsTargetOut(row) }
 })
 
 // ── HubSpot (outreach-campaign-scoped, read only) ───────────────────────────
@@ -257,16 +295,22 @@ tool('hubspot_contact_notes', `Read the most recent HubSpot notes for a contact 
 
 // ── Pipeline (read-only, parameterized SQL) ─────────────────────────────────
 
-tool('gtm_pipeline', 'Read-only snapshot of the GTM deal pipeline: every gtm_deals row plus the latest gtm_call_reports row per firm.', {}, async () => {
+tool('gtm_pipeline', 'Read-only snapshot of the GTM deal pipeline: every gtm_deals row plus the latest gtm_call_reports row per firm. Scoped to one product; defaults to sparkbridge.', {
+  product: z.enum(['sparkbridge', 'ops']).optional().describe('Which product pipeline to read. Defaults to sparkbridge.'),
+}, async ({ product }) => {
+  const { isValidProduct, DEFAULT_PRODUCT } = require('../lib/gtm-products')
+  const p = isValidProduct(product) ? product : DEFAULT_PRODUCT
   const { q } = require('../lib/db')
-  const deals = await q('SELECT firm, stage, next_action, next_date, blockers, target_date, owner, updated_at FROM gtm_deals ORDER BY updated_at DESC', [])
+  const deals = await q('SELECT firm, stage, next_action, next_date, blockers, target_date, owner, updated_at FROM gtm_deals WHERE product = $1 ORDER BY updated_at DESC', [p])
   const reports = await q(
     `SELECT DISTINCT ON (firm) firm, email, contact_email, payload, created_at
      FROM gtm_call_reports
+     WHERE product = $1
      ORDER BY firm, created_at DESC`,
-    []
+    [p]
   )
   return {
+    product: p,
     deals: deals.rows,
     latestCallReportsByFirm: reports.rows,
   }

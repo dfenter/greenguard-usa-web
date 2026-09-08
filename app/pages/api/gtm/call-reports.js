@@ -7,6 +7,7 @@ const { requireGtm } = require('../../../lib/auth')
 const { q } = require('../../../lib/db')
 const { upsertContact, addNote } = require('../../../lib/hubspot')
 const { dealsEnabled, syncDeal, associateNoteToDeal } = require('../../../lib/gtm-hubspot')
+const { resolveProduct } = require('../../../lib/gtm-products')
 
 const OUTREACH_CAMPAIGN = 'sparkbridge-fap-2026-09'
 
@@ -57,6 +58,7 @@ function buildNoteBody(r) {
 }
 
 async function handlePost(req, res, session) {
+  const product = resolveProduct(req)
   const body = req.body || {}
   const {
     firm, contact_name, contact_email, contact_role, vertical,
@@ -65,9 +67,12 @@ async function handlePost(req, res, session) {
     fit, fit_reason,
     objections, competitive,
     next_step, next_date, next_owner,
+    kind,
   } = body
 
   if (typeof firm !== 'string' || !firm.trim()) return res.status(400).json({ error: 'firm required' })
+
+  const reportKind = kind === 'baseline' ? 'baseline' : 'call'
 
   const payload = {
     contact_name, contact_email, contact_role, vertical,
@@ -81,10 +86,10 @@ async function handlePost(req, res, session) {
   let reportId
   try {
     const { rows } = await q(
-      `INSERT INTO gtm_call_reports (firm, email, contact_email, payload)
-       VALUES ($1, $2, $3, $4::jsonb)
+      `INSERT INTO gtm_call_reports (firm, email, contact_email, payload, product, kind)
+       VALUES ($1, $2, $3, $4::jsonb, $5, $6)
        RETURNING id`,
-      [firm, session.email, contact_email || null, JSON.stringify(payload)]
+      [firm, session.email, contact_email || null, JSON.stringify(payload), product, reportKind]
     )
     reportId = rows[0].id
   } catch (err) {
@@ -97,10 +102,10 @@ async function handlePost(req, res, session) {
   if (stage) {
     try {
       await q(
-        `INSERT INTO gtm_deals (firm, stage, next_action, next_date, owner, updated_at)
-         VALUES ($1, $2, $3, $4, $5, now())
-         ON CONFLICT (firm) DO UPDATE SET stage = $2, next_action = $3, next_date = $4, owner = $5, updated_at = now()`,
-        [firm, stage, next_step || null, next_date || null, next_owner || session.email]
+        `INSERT INTO gtm_deals (firm, stage, next_action, next_date, owner, updated_at, product)
+         VALUES ($1, $2, $3, $4, $5, now(), $6)
+         ON CONFLICT (product, firm) DO UPDATE SET stage = $2, next_action = $3, next_date = $4, owner = $5, updated_at = now()`,
+        [firm, stage, next_step || null, next_date || null, next_owner || session.email, product]
       )
     } catch (err) {
       console.error('gtm call-reports deal stage update failed:', err.message)
@@ -121,6 +126,7 @@ async function handlePost(req, res, session) {
         metadata: {
           outreach_campaign: OUTREACH_CAMPAIGN,
           outreach_segment: vertical || '',
+          gtm_product: product,
         },
       })
       hubspotContactId = contact.id
@@ -128,8 +134,8 @@ async function handlePost(req, res, session) {
       const note = await addNote(hubspotContactId, buildNoteBody({ firm, ...payload }))
       hubspotNoteId = note && note.id ? note.id : null
 
-      if (await dealsEnabled()) {
-        const dealResult = await syncDeal({ firm, stage: stage || undefined, contactEmail: contact_email })
+      if (await dealsEnabled(product)) {
+        const dealResult = await syncDeal({ firm, stage: stage || undefined, contactEmail: contact_email, product })
         if (dealResult.ok) {
           hubspotDealId = dealResult.dealId
           if (hubspotNoteId) await associateNoteToDeal(hubspotNoteId, hubspotDealId)
@@ -158,6 +164,7 @@ async function handlePost(req, res, session) {
   const response = {
     ok: true,
     id: reportId,
+    kind: reportKind,
     hubspot: { contactId: hubspotContactId, noteId: hubspotNoteId, dealId: hubspotDealId },
   }
   if (warning) response.warning = warning
@@ -169,12 +176,20 @@ export default async function handler(req, res) {
   if (!session) return
 
   if (req.method === 'GET') {
-    const { firm } = req.query || {}
+    const product = resolveProduct(req)
+    const { firm, kind } = req.query || {}
     if (typeof firm !== 'string' || !firm.trim()) return res.status(400).json({ error: 'firm required' })
 
+    const params = [firm, product]
+    let kindFilter = ''
+    if (kind === 'baseline' || kind === 'call') {
+      kindFilter = ' AND kind = $3'
+      params.push(kind)
+    }
+
     const { rows } = await q(
-      `SELECT id, firm, email, contact_email, payload, hubspot_contact_id, hubspot_note_id, hubspot_deal_id, created_at FROM gtm_call_reports WHERE firm = $1 ORDER BY created_at DESC`,
-      [firm]
+      `SELECT id, firm, email, contact_email, payload, hubspot_contact_id, hubspot_note_id, hubspot_deal_id, kind, created_at FROM gtm_call_reports WHERE firm = $1 AND product = $2${kindFilter} ORDER BY created_at DESC`,
+      params
     )
     return res.status(200).json({ rows })
   }

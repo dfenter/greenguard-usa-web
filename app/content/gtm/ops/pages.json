@@ -1,0 +1,392 @@
+{
+  "pages": {
+    "00-README": {
+      "path": "00-README",
+      "title": "OPS GTM bundle, Austin Ten Operator Program",
+      "html": "<h1>OPS GTM bundle, Austin Ten Operator Program</h1>\n<p>Everything Kevin needs to run the One Person Show go to market sprint. OPS is the office layer for solo and small crew service operators: consumables, field, and vehicle businesses that run on a recurring cadence. Site: ops.greenguard-usa.com.</p>\n<h2 id=\"who-owns-what\">Who owns what</h2>\n<ul>\n<li>Kevin owns: target research review, outreach sends from his own mailbox, discovery calls, weekly check ins with the ten operators, baseline metrics capture, the objection and competitive logs, the weekly report to Dan.</li>\n<li>Claude drafts: every outreach email and sequence step, the discovery script, positioning review worksheets, the KPI rollups, the case study draft. Claude never sends.</li>\n<li>Dan approves and sends: every outreach email before it goes out, every target row before the first touch, pricing exceptions, the published case study, anything that commits the company to an operator.</li>\n<li>Dan does on site: the Mac mini or managed appliance setup at each of the ten operators, the real <code>install.sh</code> run, and any hands on network or Workspace configuration the operator cannot do themselves.</li>\n</ul>\n<h2 id=\"read-in-this-order\">Read in this order</h2>\n<ol>\n<li><code>01-plan/ops-90-day-gtm-sprint.md</code>, the playbook.</li>\n<li><code>04-program/ten-operator-program.md</code>, the offer being extended.</li>\n<li><code>05-icp-INTERNAL.md</code>, who qualifies.</li>\n<li><code>06-targets/operator-targets.csv</code>, the researched list, blank until Dan approves rows.</li>\n<li><code>07-outreach/</code>, first email and sequence.</li>\n<li><code>08-discovery-and-baseline.md</code>, the call script and the metrics form.</li>\n<li><code>09-objection-library.md</code>, <code>10-competitive-cheat-sheet.md</code>.</li>\n<li><code>11-reports/</code>, weekly report and KPI template.</li>\n<li><code>12-positioning/</code>, the reviewed copy and worksheets.</li>\n<li><code>13-implementation-playbook-INTERNAL.md</code>, filled in as each setup happens.</li>\n<li><code>15-product-calendar.md</code>, what Kevin can promise.</li>\n</ol>\n<h2 id=\"three-rules-that-override-everything-else\">Three rules that override everything else</h2>\n<ol>\n<li>Dan approves every target row before the first touch, and sends every email himself.</li>\n<li>Copy stays trade neutral: consumables, field, vehicle, never a specific trade name inside this bundle's outward facing copy.</li>\n<li>Pricing facts come from this bundle and ops.greenguard-usa.com only: Starter $99, Office $249, Crew $449, managed Mac $59 a month or $1,200 once, setup $500 or $1,500.</li>\n</ol>\n",
+      "headings": [
+        {
+          "id": "who-owns-what",
+          "text": "Who owns what",
+          "level": 2
+        },
+        {
+          "id": "read-in-this-order",
+          "text": "Read in this order",
+          "level": 2
+        },
+        {
+          "id": "three-rules-that-override-everything-else",
+          "text": "Three rules that override everything else",
+          "level": 2
+        }
+      ]
+    },
+    "01-plan/ops-90-day-gtm-sprint": {
+      "path": "01-plan/ops-90-day-gtm-sprint",
+      "title": "OPS 90-Day Go-to-Market Sprint",
+      "html": "<h1>OPS 90-Day Go-to-Market Sprint</h1>\n<h2 id=\"ten-operator-program-austin-metro-2026-09-07\">Ten Operator Program, Austin metro, 2026-09-07</h2>\n<p>Objective: place OPS with ten real Austin metro owner operators, capture baseline office hours and revenue metrics before and after, and produce the first case study that proves the office hours reduction claim.</p>\n<p>Primary owner: Kevin. Duration: 90 days.</p>\n<hr>\n<h2 id=\"1-mission\">1. Mission</h2>\n<p>The job is not to sell ten monthly subscriptions in 90 days. The job is to run a disciplined validation sprint that answers:</p>\n<ol>\n<li>Which owner operators have the office burden OPS removes?</li>\n<li>Which setup steps take real hours, and how many?</li>\n<li>What breaks in a live operator's stack that a demo never shows?</li>\n<li>What is the true cost basis for a setup fee?</li>\n<li>Does office hours per week actually drop, and by how much?</li>\n<li>Can one case study, with real numbers, carry the next fifty targets?</li>\n</ol>\n<h2 id=\"2-core-principle\">2. Core principle</h2>\n<p>Do not sell software. Sell the hours back:</p>\n<blockquote>\n<p>What would you do with ten hours a week back?</p>\n</blockquote>\n<p>Messaging: the trade stays yours, the office becomes ours. Nothing gets replaced on day one. Keep Google Workspace and Stripe. Replace the manual work between them.</p>\n<h2 id=\"3-what-success-looks-like-at-day-90\">3. What success looks like at day 90</h2>\n<p>Minimum: 3 tenants live 30 or more days, baseline metrics captured on all 10 applicants, objection log started. Target: 5 tenants live, 1 case study published, measurable office hours reduction on 3 operators. Exceptional: 8 tenants live, 2 case studies, a repeatable onboarding playbook other operators can self serve.</p>\n<h2 id=\"4-approved-targets\">4. Approved targets</h2>\n<p><code>06-targets/operator-targets.csv</code> carries 30 to 50 Austin metro owner operator candidates researched from public sources. Dan approves each row before the first touch.</p>\n<h2 id=\"5-week-one-immersion\">5. Week one: immersion</h2>\n<h3 id=\"days-1-to-3-product-and-pricing\">Days 1 to 3: product and pricing</h3>\n<p>Read <code>04-program/ten-operator-program.md</code>, <code>05-icp-INTERNAL.md</code>, and the OPS product definition. Know the three tiers cold: Starter $99, Office $249, Crew $449, managed Mac $59 a month or $1,200 once, setup $500 or $1,500.</p>\n<h3 id=\"days-4-to-7-positioning-review\">Days 4 to 7: positioning review</h3>\n<p>Read all of <code>12-positioning/</code>. Be able to explain the private office computer architecture in one sentence: the owner's Mac runs the back office on a flat subscription, nothing routes through a shared cloud seat.</p>\n<h2 id=\"6-honest-limits\">6. Honest limits</h2>\n<ul>\n<li>No published case study yet until day 60. Say so.</li>\n<li>The Ten Operator Program is invitation only and time limited; it is not the standard price.</li>\n<li>Setup is done in person or remote by Dan; Kevin schedules it.</li>\n<li>HVAC is out of scope for this sprint; recurring cadence trades only.</li>\n</ul>\n<h2 id=\"7-days-1-to-14-narrow-icp-and-build-the-front-door\">7. Days 1 to 14: narrow ICP and build the front door</h2>\n<p>Finalize the ICP in <code>05-icp-INTERNAL.md</code>. Ship the homepage &quot;Who this is for&quot; copy and the Before vs After copy (<code>12-positioning/homepage-who-this-is-for.md</code>, <code>12-positioning/before-vs-after.md</code>). Build the baseline metrics form (<code>08-discovery-and-baseline.md</code>). Draft the payroll and bookkeeping positioning review worksheets (<code>12-positioning/payroll-positioning-review.md</code>, <code>12-positioning/bookkeeping-positioning-review.md</code>) and get them reviewed before any operator sees them. Research and get Dan's approval on 30 to 50 targets. Send the first touches. Write the proof endpoint spec, a simple page or API response an operator's own site can point to that shows OPS is live and working for them.</p>\n<h2 id=\"8-score-every-target\">8. Score every target</h2>\n<table>\n<thead>\n<tr>\n<th>Criteria</th>\n<th style=\"text-align:right\">Score</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>Recurring cadence fit</td>\n<td style=\"text-align:right\">0 to 5</td>\n</tr>\n<tr>\n<td>Google Workspace and Stripe fit</td>\n<td style=\"text-align:right\">0 to 5</td>\n</tr>\n<tr>\n<td>Size band fit</td>\n<td style=\"text-align:right\">0 to 5</td>\n</tr>\n<tr>\n<td>Office pain evidence</td>\n<td style=\"text-align:right\">0 to 5</td>\n</tr>\n<tr>\n<td>Owner operated</td>\n<td style=\"text-align:right\">0 to 5</td>\n</tr>\n<tr>\n<td>Review volume</td>\n<td style=\"text-align:right\">0 to 5</td>\n</tr>\n<tr>\n<td>Reachability</td>\n<td style=\"text-align:right\">0 to 5</td>\n</tr>\n</tbody>\n</table>\n<p>Maximum 35. Tier A 25 to 35, direct outreach. Tier B 18 to 24, secondary. Tier C under 18, monitor.</p>\n<h2 id=\"9-days-1-to-14-first-touches-and-proof-endpoint\">9. Days 1 to 14: first touches and proof endpoint</h2>\n<p>The <code>06-targets/operator-targets.csv</code> list is scored and approved. Outreach begins once Dan approves rows. See <code>07-outreach/first-email.md</code> and <code>07-outreach/sequence.md</code>. In parallel, ship the proof endpoint: a live, working piece of the product an applicant can see before they commit.</p>\n<h2 id=\"10-days-1-to-14-baseline-metrics-and-reviews\">10. Days 1 to 14: baseline metrics and reviews</h2>\n<p>Every applicant that responds completes the baseline metrics form before onboarding: office hours per week, quote turnaround, close rate, days to paid, reminder coverage, missed visits per month, revenue, active accounts. The payroll and bookkeeping positioning reviews are finished and approved by day 14, not after.</p>\n<h2 id=\"11-days-15-to-90-applications-and-acceptance\">11. Days 15 to 90: applications and acceptance</h2>\n<p>Target 10 completed applications, 5 accepted into the Ten Operator Program. Acceptance criteria in <code>04-program/ten-operator-program.md</code>.</p>\n<h2 id=\"12-days-15-to-90-implementations\">12. Days 15 to 90: implementations</h2>\n<p>3 to 5 deep implementations. Each logged in <code>13-implementation-playbook-INTERNAL.md</code>: hours spent, what failed, which tasks were Dan's and which were Claude's. This log is the pricing cost basis for setup fees going forward.</p>\n<h2 id=\"13-days-15-to-90-feature-usage-log\">13. Days 15 to 90: feature usage log</h2>\n<p>Track which OPS features each live tenant actually touches weekly. Feeds the KPI rollup and tells Kevin which tiers are underused.</p>\n<h2 id=\"14-days-15-to-90-onboarding-playbook\">14. Days 15 to 90: onboarding playbook</h2>\n<p>Turn the first 3 implementations into a repeatable playbook and an intake form so the fourth and fifth onboarding take less time than the first.</p>\n<h2 id=\"15-days-1-to-14-proof-endpoint-spec\">15. Days 1 to 14: proof endpoint spec</h2>\n<p>Written spec for a small, real, verifiable piece of the product, for example a live customer portal page or a status endpoint, that a prospective operator or Dan can point to as evidence OPS runs in production today.</p>\n<h2 id=\"16-days-15-to-90-implementation-cost-capture\">16. Days 15 to 90: implementation cost capture</h2>\n<p>Every implementation records actual hours against the $500 and $1,500 setup fee tiers. If actual hours consistently exceed the fee, flag it to Dan before the next signup.</p>\n<h2 id=\"17-days-15-to-90-first-case-study\">17. Days 15 to 90: first case study</h2>\n<p>Target operator day 60: one tenant with 30 plus days live, clean before and after baseline numbers, and permission to publish. Draft in <code>13-implementation-playbook-INTERNAL.md</code> format, reviewed by Dan before anything goes out.</p>\n<h2 id=\"18-days-15-to-90-pricing-refined-from-real-hours\">18. Days 15 to 90: pricing refined from real hours</h2>\n<p>Once 3 or more implementations are logged, revisit the $500 or $1,500 setup fee split against real hours from section 16, and recommend an adjustment to Dan if the numbers say so.</p>\n<h2 id=\"19-days-15-to-90-private-office-computer-messaging\">19. Days 15 to 90: private office computer messaging</h2>\n<p>Finalize <code>12-positioning/private-office-computer.md</code> using real operator reactions from discovery calls. This message differentiates OPS from every SaaS competitor: the operator's own Mac, not a shared cloud seat, runs their back office.</p>\n<h2 id=\"20-weekly-operating-rhythm\">20. Weekly operating rhythm</h2>\n<p>Monday: pipeline review, applications, baseline captures, implementation status. Tuesday to Thursday: outreach, discovery calls, onboarding, implementation work. Friday: one page weekly report to Dan (<code>11-reports/weekly-report-template.md</code>).</p>\n<h2 id=\"21-objection-and-competitive-logs\">21. Objection and competitive logs</h2>\n<p>Build <code>09-objection-library.md</code> and <code>10-competitive-cheat-sheet.md</code> from every conversation. Review weekly with Dan.</p>\n<h2 id=\"22-kpi-dashboard\">22. KPI dashboard</h2>\n<p>Applications, accepted, baselines captured, tenants live, case study published. Template in <code>11-reports/kpi-template.md</code>.</p>\n<h2 id=\"23-what-kevin-should-not-do\">23. What Kevin should not do</h2>\n<p>Do not discount below the Ten Operator Program terms. Do not promise a feature not on the product calendar. Do not send an email Dan has not approved. Do not call OPS a CRM or a payroll provider.</p>\n<h2 id=\"24-product-calendar\">24. Product calendar</h2>\n<p>See <code>15-product-calendar.md</code> for what Kevin can promise during the sprint.</p>\n<h2 id=\"25-access-checklist-before-day-1\">25. Access checklist before day 1</h2>\n<p>Google Workspace mailbox and calendar access, the approved target sheet, this bundle, a standing weekly slot with Dan.</p>\n<h2 id=\"26-required-deliverables-at-day-90\">26. Required deliverables at day 90</h2>\n<p>Market validation report, ICP refinement, objection report, competitive intelligence, tenant pipeline status, product feedback themes, recommended next phase strategy.</p>\n<h2 id=\"27-timeline\">27. Timeline</h2>\n<table>\n<thead>\n<tr>\n<th>Days</th>\n<th>Phase</th>\n<th>Output</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>Days 1 to 3</td>\n<td>Learn the product: pricing, tiers, positioning</td>\n<td>Kevin can explain OPS unprompted</td>\n</tr>\n<tr>\n<td>Days 3 to 7</td>\n<td>Narrow ICP written</td>\n<td>ICP finalized in <code>05-icp-INTERNAL.md</code></td>\n</tr>\n<tr>\n<td>Days 5 to 10</td>\n<td>Who-this-is-for and before vs after copy drafted</td>\n<td>Homepage copy ready for review</td>\n</tr>\n<tr>\n<td>Days 7 to 14</td>\n<td>Payroll and bookkeeping positioning reviews</td>\n<td>Worksheets and disclaimers approved</td>\n</tr>\n<tr>\n<td>Days 7 to 14</td>\n<td>Baseline metrics form live</td>\n<td>Form ready to capture day 0 numbers</td>\n</tr>\n<tr>\n<td>Days 10 to 14</td>\n<td>Targets researched and Dan approved</td>\n<td>Approved rows in <code>06-targets/operator-targets.csv</code></td>\n</tr>\n<tr>\n<td>Days 12 to 14</td>\n<td>First touches sent</td>\n<td>Outreach live on approved rows</td>\n</tr>\n<tr>\n<td>Days 14 to 14</td>\n<td>Proof endpoint spec written</td>\n<td>Spec ready to build against</td>\n</tr>\n<tr>\n<td>Days 15 to 30</td>\n<td>Applications and acceptances</td>\n<td>10 applications, 5 accepted</td>\n</tr>\n<tr>\n<td>Days 20 to 45</td>\n<td>First deep implementations</td>\n<td>3 to 5 tenants onboarded</td>\n</tr>\n<tr>\n<td>Days 30 to 60</td>\n<td>Playbook and intake built</td>\n<td>Repeatable onboarding playbook and intake form</td>\n</tr>\n<tr>\n<td>Days 45 to 75</td>\n<td>Feature usage log and cost capture</td>\n<td>Usage tracked, setup hours logged against fee</td>\n</tr>\n<tr>\n<td>Days 60 to 75</td>\n<td>First case study drafted</td>\n<td>Draft with day 0 to day 60 numbers, pending Dan approval</td>\n</tr>\n<tr>\n<td>Days 75 to 90</td>\n<td>Pricing refined and architecture messaging shipped</td>\n<td>Pricing checked against real hours, private office computer messaging finalized</td>\n</tr>\n<tr>\n<td>Days 91 to 120</td>\n<td>Scale, gated on 3 tenants live 30 plus days, 1 case study, measurable office hours reduction on 3 operators: marketing scale up, vertical landing pages, referral program, implementation partner program, price move to list, widen ICP, job based verticals</td>\n<td>Scale plan approved by Dan</td>\n</tr>\n</tbody>\n</table>\n<h2 id=\"final-instruction\">Final instruction</h2>\n<p>Your job is not to prove OPS is amazing. Your job is to discover where it is genuinely valuable, capture the real numbers, and hand Dan a case study he can point to.</p>\n",
+      "headings": [
+        {
+          "id": "ten-operator-program-austin-metro-2026-09-07",
+          "text": "Ten Operator Program, Austin metro, 2026-09-07",
+          "level": 2
+        },
+        {
+          "id": "1-mission",
+          "text": "1. Mission",
+          "level": 2
+        },
+        {
+          "id": "2-core-principle",
+          "text": "2. Core principle",
+          "level": 2
+        },
+        {
+          "id": "3-what-success-looks-like-at-day-90",
+          "text": "3. What success looks like at day 90",
+          "level": 2
+        },
+        {
+          "id": "4-approved-targets",
+          "text": "4. Approved targets",
+          "level": 2
+        },
+        {
+          "id": "5-week-one-immersion",
+          "text": "5. Week one: immersion",
+          "level": 2
+        },
+        {
+          "id": "days-1-to-3-product-and-pricing",
+          "text": "Days 1 to 3: product and pricing",
+          "level": 3
+        },
+        {
+          "id": "days-4-to-7-positioning-review",
+          "text": "Days 4 to 7: positioning review",
+          "level": 3
+        },
+        {
+          "id": "6-honest-limits",
+          "text": "6. Honest limits",
+          "level": 2
+        },
+        {
+          "id": "7-days-1-to-14-narrow-icp-and-build-the-front-door",
+          "text": "7. Days 1 to 14: narrow ICP and build the front door",
+          "level": 2
+        },
+        {
+          "id": "8-score-every-target",
+          "text": "8. Score every target",
+          "level": 2
+        },
+        {
+          "id": "9-days-1-to-14-first-touches-and-proof-endpoint",
+          "text": "9. Days 1 to 14: first touches and proof endpoint",
+          "level": 2
+        },
+        {
+          "id": "10-days-1-to-14-baseline-metrics-and-reviews",
+          "text": "10. Days 1 to 14: baseline metrics and reviews",
+          "level": 2
+        },
+        {
+          "id": "11-days-15-to-90-applications-and-acceptance",
+          "text": "11. Days 15 to 90: applications and acceptance",
+          "level": 2
+        },
+        {
+          "id": "12-days-15-to-90-implementations",
+          "text": "12. Days 15 to 90: implementations",
+          "level": 2
+        },
+        {
+          "id": "13-days-15-to-90-feature-usage-log",
+          "text": "13. Days 15 to 90: feature usage log",
+          "level": 2
+        },
+        {
+          "id": "14-days-15-to-90-onboarding-playbook",
+          "text": "14. Days 15 to 90: onboarding playbook",
+          "level": 2
+        },
+        {
+          "id": "15-days-1-to-14-proof-endpoint-spec",
+          "text": "15. Days 1 to 14: proof endpoint spec",
+          "level": 2
+        },
+        {
+          "id": "16-days-15-to-90-implementation-cost-capture",
+          "text": "16. Days 15 to 90: implementation cost capture",
+          "level": 2
+        },
+        {
+          "id": "17-days-15-to-90-first-case-study",
+          "text": "17. Days 15 to 90: first case study",
+          "level": 2
+        },
+        {
+          "id": "18-days-15-to-90-pricing-refined-from-real-hours",
+          "text": "18. Days 15 to 90: pricing refined from real hours",
+          "level": 2
+        },
+        {
+          "id": "19-days-15-to-90-private-office-computer-messaging",
+          "text": "19. Days 15 to 90: private office computer messaging",
+          "level": 2
+        },
+        {
+          "id": "20-weekly-operating-rhythm",
+          "text": "20. Weekly operating rhythm",
+          "level": 2
+        },
+        {
+          "id": "21-objection-and-competitive-logs",
+          "text": "21. Objection and competitive logs",
+          "level": 2
+        },
+        {
+          "id": "22-kpi-dashboard",
+          "text": "22. KPI dashboard",
+          "level": 2
+        },
+        {
+          "id": "23-what-kevin-should-not-do",
+          "text": "23. What Kevin should not do",
+          "level": 2
+        },
+        {
+          "id": "24-product-calendar",
+          "text": "24. Product calendar",
+          "level": 2
+        },
+        {
+          "id": "25-access-checklist-before-day-1",
+          "text": "25. Access checklist before day 1",
+          "level": 2
+        },
+        {
+          "id": "26-required-deliverables-at-day-90",
+          "text": "26. Required deliverables at day 90",
+          "level": 2
+        },
+        {
+          "id": "27-timeline",
+          "text": "27. Timeline",
+          "level": 2
+        },
+        {
+          "id": "final-instruction",
+          "text": "Final instruction",
+          "level": 2
+        }
+      ]
+    },
+    "04-program/ten-operator-program": {
+      "path": "04-program/ten-operator-program",
+      "title": "Ten Operator Program",
+      "html": "<h1>Ten Operator Program</h1>\n<p>Ten Austin metro owner operators. Office tier free for 90 days, then $149 a month locked for year one. Setup fee waived.</p>\n<h2 id=\"in-exchange\">In exchange</h2>\n<ul>\n<li>A weekly 20 minute check in with Kevin.</li>\n<li>Baseline metrics captured at day 0, 30, 60, and 90.</li>\n<li>Permission to use anonymized results in a case study.</li>\n</ul>\n<h2 id=\"acceptance-criteria\">Acceptance criteria</h2>\n<p>Recurring cadence service business in the Austin metro area, solo or 1 to 3 crew, already using Google Workspace and Stripe, at least 40 recurring accounts. Application reviewed by Kevin, accepted rows approved by Dan.</p>\n<h2 id=\"what-happens-after-90-days\">What happens after 90 days</h2>\n<p>At day 90 the operator moves to the standard Office tier, $249 a month, unless Dan approves an extension. The $149 lock is for year one only from acceptance date, not from signup.</p>\n",
+      "headings": [
+        {
+          "id": "in-exchange",
+          "text": "In exchange",
+          "level": 2
+        },
+        {
+          "id": "acceptance-criteria",
+          "text": "Acceptance criteria",
+          "level": 2
+        },
+        {
+          "id": "what-happens-after-90-days",
+          "text": "What happens after 90 days",
+          "level": 2
+        }
+      ]
+    },
+    "05-icp-INTERNAL": {
+      "path": "05-icp-INTERNAL",
+      "title": "ICP, internal",
+      "html": "<h1>ICP, internal</h1>\n<p>Solo or 1 to 3 crew. Recurring cadence service business (weekly, biweekly, or monthly visits), not one off jobs. Revenue $80,000 to $300,000 a year. Already on Google Workspace and Stripe. At least 40 recurring accounts. Austin metro first.</p>\n<p>HVAC is out for now: seasonal and one off call volume does not match the recurring cadence assumption OPS is built around.</p>\n",
+      "headings": []
+    },
+    "07-outreach/first-email": {
+      "path": "07-outreach/first-email",
+      "title": "First outreach email",
+      "html": "<h1>First outreach email</h1>\n<p>Audience: the owner of one of the target operators (see <code>06-targets/operator-targets.csv</code>).\nVoice: company voice, terse, no hype, no em dashes. One ask. Sent from Kevin's mailbox only after Dan approves the row.</p>\n<h2 id=\"subject\">Subject</h2>\n<p>Ten hours a week back, for ten Austin operators</p>\n<h2 id=\"body\">Body</h2>\n<p>Hello {first name},</p>\n<p>GreenGuard USA built the office side of a recurring service business into a product: quoting, booking, reminders, invoicing, the books, and payroll, running on a flat monthly cost instead of a stack of SaaS seats.</p>\n<p>We are inviting ten Austin metro owner operators into a Ten Operator Program: the Office tier free for 90 days, then locked at $149 a month for year one, setup fee waived, in exchange for a 20 minute weekly check in and permission to use your before and after numbers, anonymized, in a case study.</p>\n<p>Would a short call make sense in the next two weeks?</p>\n<p>{Kevin's signature}\nGreenGuard USA</p>\n<h2 id=\"follow-up-seven-days-later-if-no-reply\">Follow-up, seven days later, if no reply</h2>\n<p>Subject: Re: Ten hours a week back, for ten Austin operators</p>\n<p>Hello {first name}, one line in case the first note was buried. If the office side of your business is not the bottleneck right now, a one word reply saves us both a second follow-up.</p>\n<h2 id=\"goal-of-the-conversation\">Goal of the conversation</h2>\n<p>A completed baseline metrics form and, if there is fit, an application to the Ten Operator Program.</p>\n",
+      "headings": [
+        {
+          "id": "subject",
+          "text": "Subject",
+          "level": 2
+        },
+        {
+          "id": "body",
+          "text": "Body",
+          "level": 2
+        },
+        {
+          "id": "follow-up-seven-days-later-if-no-reply",
+          "text": "Follow-up, seven days later, if no reply",
+          "level": 2
+        },
+        {
+          "id": "goal-of-the-conversation",
+          "text": "Goal of the conversation",
+          "level": 2
+        }
+      ]
+    },
+    "07-outreach/sequence": {
+      "path": "07-outreach/sequence",
+      "title": "Outreach sequence (four touches)",
+      "html": "<h1>Outreach sequence (four touches)</h1>\n<p>Rules: one named person per firm at a time, Dan has approved the row, plain text, no attachments on touch 1 or 2, log every send. Company voice, no hype, no em dashes.</p>\n<h2 id=\"touch-1-day-0-the-hours-question\">Touch 1, day 0: the hours question</h2>\n<p>Subject: Ten hours a week back, for ten Austin operators</p>\n<p>Hello {first name}, {one sentence tied to something public about their business}. We built the office side of a recurring service business into one product and are inviting ten Austin metro owner operators to try it, free for 90 days. Would a short call make sense in the next two weeks?</p>\n<h2 id=\"touch-2-day-3-to-5-the-specific-observation\">Touch 2, day 3 to 5: the specific observation</h2>\n<p>Subject: Re: Ten hours a week back, for ten Austin operators</p>\n<p>Hello {first name}, one specific thing: {an observation from their site or reviews showing recurring cadence, for example route density or review volume}. That is exactly the kind of schedule where the office work eats the most hours. Is there a good time this week?</p>\n<h2 id=\"touch-3-day-8-to-10-one-asset\">Touch 3, day 8 to 10: one asset</h2>\n<p>Pick exactly one: the homepage &quot;Who this is for&quot; page, or the Before vs After page.</p>\n<p>Subject: Re: Ten hours a week back, for ten Austin operators</p>\n<p>Hello {first name}, no pitch, one page: {link}. If it is not relevant right now, a one word reply saves us both a further note.</p>\n<h2 id=\"touch-4-only-after-relevance-is-established-the-program\">Touch 4, only after relevance is established: the program</h2>\n<p>Subject: OPS Ten Operator Program</p>\n<p>Hello {first name}, thanks for the conversation. We have a few seats left in the Ten Operator Program, free for 90 days, setup fee waived. Would you like to apply?</p>\n<h2 id=\"handling-replies\">Handling replies</h2>\n<p>Any reply: log it, respond within one business day. &quot;Not relevant&quot;: close, cancel remaining touches. &quot;Send me more&quot;: send exactly one asset. Silence after touch 4: 60 day hold.</p>\n",
+      "headings": [
+        {
+          "id": "touch-1-day-0-the-hours-question",
+          "text": "Touch 1, day 0: the hours question",
+          "level": 2
+        },
+        {
+          "id": "touch-2-day-3-to-5-the-specific-observation",
+          "text": "Touch 2, day 3 to 5: the specific observation",
+          "level": 2
+        },
+        {
+          "id": "touch-3-day-8-to-10-one-asset",
+          "text": "Touch 3, day 8 to 10: one asset",
+          "level": 2
+        },
+        {
+          "id": "touch-4-only-after-relevance-is-established-the-program",
+          "text": "Touch 4, only after relevance is established: the program",
+          "level": 2
+        },
+        {
+          "id": "handling-replies",
+          "text": "Handling replies",
+          "level": 2
+        }
+      ]
+    },
+    "08-discovery-and-baseline": {
+      "path": "08-discovery-and-baseline",
+      "title": "Discovery script and baseline metrics form",
+      "html": "<h1>Discovery script and baseline metrics form</h1>\n<h2 id=\"discovery-script\">Discovery script</h2>\n<p>Owner speaks most of the call. Open with: &quot;This is a discovery call, not a demo. I want to understand how the office side of your business runs today.&quot;</p>\n<p>Questions:</p>\n<ol>\n<li>How many hours a week go to the office side: quoting, scheduling, invoicing, follow up, books?</li>\n<li>How long does a quote take from request to sent, and from sent to accepted?</li>\n<li>What share of quotes close?</li>\n<li>How many days from invoice to paid, on average?</li>\n<li>How do you remind customers of upcoming visits today?</li>\n<li>How many missed visits a month, and why?</li>\n<li>What is annual revenue and how many active recurring accounts do you have?</li>\n</ol>\n<h2 id=\"baseline-metrics-form\">Baseline metrics form</h2>\n<p>Captured at day 0, 30, 60, and 90 for every applicant and every live tenant.</p>\n<table>\n<thead>\n<tr>\n<th>Metric</th>\n<th>Day 0</th>\n<th>Day 30</th>\n<th>Day 60</th>\n<th>Day 90</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>Office hours per week</td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>Quote turnaround (request to sent)</td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>Close rate</td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>Days to paid</td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>Reminder coverage (percent of visits reminded)</td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>Missed visits per month</td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>Revenue</td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>Active recurring accounts</td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n</tbody>\n</table>\n",
+      "headings": [
+        {
+          "id": "discovery-script",
+          "text": "Discovery script",
+          "level": 2
+        },
+        {
+          "id": "baseline-metrics-form",
+          "text": "Baseline metrics form",
+          "level": 2
+        }
+      ]
+    },
+    "09-objection-library": {
+      "path": "09-objection-library",
+      "title": "Objection library",
+      "html": "<h1>Objection library</h1>\n<p>Categories: Product, Commercial, Market, Trust. Add every new objection in the operator's exact words. Review weekly with Dan.</p>\n<table>\n<thead>\n<tr>\n<th>#</th>\n<th>Category</th>\n<th>Objection (exact words)</th>\n<th style=\"text-align:right\">Frequency</th>\n<th>Severity</th>\n<th>Response</th>\n<th>Product action</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>1</td>\n<td>Commercial</td>\n<td>&quot;What happens after the free 90 days?&quot;</td>\n<td style=\"text-align:right\"></td>\n<td></td>\n<td>Locked at $149 a month for year one, then standard Office tier pricing unless Dan approves an extension.</td>\n<td>none</td>\n</tr>\n<tr>\n<td>2</td>\n<td>Trust</td>\n<td>&quot;Is my data safe on your Mac?&quot;</td>\n<td style=\"text-align:right\"></td>\n<td></td>\n<td>The office computer is dedicated to the operator's own business, not a shared cloud account. See the private office computer positioning page.</td>\n<td>none</td>\n</tr>\n<tr>\n<td>3</td>\n<td>Market</td>\n<td>&quot;I already use a scheduling app.&quot;</td>\n<td style=\"text-align:right\"></td>\n<td></td>\n<td>OPS replaces the manual work between the apps, not necessarily the calendar itself; discovery call determines the real overlap.</td>\n<td>none</td>\n</tr>\n<tr>\n<td>4</td>\n<td>Trust</td>\n<td>&quot;Are you a payroll provider?&quot;</td>\n<td style=\"text-align:right\"></td>\n<td></td>\n<td>No. OPS prepares payroll worksheets your provider files. See the payroll positioning review.</td>\n<td>none</td>\n</tr>\n<tr>\n<td>5</td>\n<td>Trust</td>\n<td>&quot;Are you my accountant?&quot;</td>\n<td style=\"text-align:right\"></td>\n<td></td>\n<td>No. OPS prepares a close your CPA reviews. See the bookkeeping positioning review.</td>\n<td>none</td>\n</tr>\n</tbody>\n</table>\n",
+      "headings": []
+    },
+    "10-competitive-cheat-sheet": {
+      "path": "10-competitive-cheat-sheet",
+      "title": "Competitive cheat sheet (living document)",
+      "html": "<h1>Competitive cheat sheet (living document)</h1>\n<p>Honest by rule: name what each does well.</p>\n<table>\n<thead>\n<tr>\n<th>Competitor</th>\n<th>Best at</th>\n<th>Where OPS differs</th>\n<th>Do not claim</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>Jobber</td>\n<td>Scheduling and invoicing at low seat count, well known</td>\n<td>OPS includes the back office (books, payroll worksheets, customer chat) at one flat fee, no per seat charge</td>\n<td>That Jobber cannot do scheduling well</td>\n</tr>\n<tr>\n<td>Housecall Pro</td>\n<td>Similar scheduling and dispatch, strong mobile app</td>\n<td>Same office layer difference as Jobber; OPS runs on the owner's own Mac, not a shared cloud seat</td>\n<td>Anything negative about their mobile app</td>\n</tr>\n<tr>\n<td>ServiceTitan</td>\n<td>Enterprise features, large crew support</td>\n<td>OPS targets solo and 1 to 3 crew operators; not a fit at ServiceTitan's scale</td>\n<td>That OPS is a ServiceTitan replacement at scale</td>\n</tr>\n<tr>\n<td>VA services</td>\n<td>Human flexibility, can do anything asked</td>\n<td>OPS runs 24/7 without hiring, training, or turnover risk, at a flat cost</td>\n<td>That a VA cannot do the job</td>\n</tr>\n<tr>\n<td>QuickBooks Online plus a payroll stack</td>\n<td>Established, accountant familiar</td>\n<td>OPS captures the office work upstream of the books, and prepares payroll worksheets your provider files, no separate seat fees stacked on top</td>\n<td>That QBO is bad software</td>\n</tr>\n</tbody>\n</table>\n",
+      "headings": []
+    },
+    "11-reports/kpi-template": {
+      "path": "11-reports/kpi-template",
+      "title": "KPI dashboard",
+      "html": "<h1>KPI dashboard</h1>\n<table>\n<thead>\n<tr>\n<th>Week</th>\n<th>Targets researched</th>\n<th>Rows approved</th>\n<th>First touches</th>\n<th>Applications</th>\n<th>Accepted</th>\n<th>Baselines captured</th>\n<th>Tenants live</th>\n<th>Case study published</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>1</td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>2</td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>3</td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>4</td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>5</td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>6</td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>7</td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>8</td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>9</td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>10</td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>11</td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>12</td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n<tr>\n<td>13</td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n</tbody>\n</table>\n",
+      "headings": []
+    },
+    "11-reports/weekly-report-template": {
+      "path": "11-reports/weekly-report-template",
+      "title": "Weekly report, week of {date}",
+      "html": "<h1>Weekly report, week of {date}</h1>\n<p>Send Friday to Dan. One page. Evidence, not activity.</p>\n<table>\n<thead>\n<tr>\n<th>Metric</th>\n<th style=\"text-align:right\">This week</th>\n<th style=\"text-align:right\">Total to date</th>\n<th style=\"text-align:right\">Target at day 90</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>New targets researched</td>\n<td style=\"text-align:right\"></td>\n<td style=\"text-align:right\"></td>\n<td style=\"text-align:right\">50</td>\n</tr>\n<tr>\n<td>Rows approved by Dan</td>\n<td style=\"text-align:right\"></td>\n<td style=\"text-align:right\"></td>\n<td style=\"text-align:right\">30</td>\n</tr>\n<tr>\n<td>Personalized first touches</td>\n<td style=\"text-align:right\"></td>\n<td style=\"text-align:right\"></td>\n<td style=\"text-align:right\">30</td>\n</tr>\n<tr>\n<td>Applications</td>\n<td style=\"text-align:right\"></td>\n<td style=\"text-align:right\"></td>\n<td style=\"text-align:right\">10</td>\n</tr>\n<tr>\n<td>Accepted</td>\n<td style=\"text-align:right\"></td>\n<td style=\"text-align:right\"></td>\n<td style=\"text-align:right\">5</td>\n</tr>\n<tr>\n<td>Baselines captured</td>\n<td style=\"text-align:right\"></td>\n<td style=\"text-align:right\"></td>\n<td style=\"text-align:right\">10</td>\n</tr>\n<tr>\n<td>Tenants live</td>\n<td style=\"text-align:right\"></td>\n<td style=\"text-align:right\"></td>\n<td style=\"text-align:right\">5</td>\n</tr>\n<tr>\n<td>Case study published</td>\n<td style=\"text-align:right\"></td>\n<td style=\"text-align:right\"></td>\n<td style=\"text-align:right\">1</td>\n</tr>\n</tbody>\n</table>\n<p>Top objection this week (exact words):</p>\n<p>Best performing message:</p>\n<p>Implementation hours logged this week:</p>\n<p>Product gap or feature request:</p>\n<p>Recommended action for next week:</p>\n<p>Blockers needing Dan:</p>\n",
+      "headings": []
+    },
+    "12-positioning/before-vs-after": {
+      "path": "12-positioning/before-vs-after",
+      "title": "Before vs After",
+      "html": "<h1>Before vs After</h1>\n<h2 id=\"before\">Before</h2>\n<p>Quotes typed by hand, sent late. Invoices chased. Reminders sent when remembered. The books done on a weekend, months behind. Payroll worksheets built from memory. Evenings spent on the office instead of the trade or family.</p>\n<h2 id=\"after\">After</h2>\n<p>Quotes sent same day, self-serve pay and book link included. Invoices generated per visit. Reminders sent automatically. The books categorized and closed monthly, ready for your CPA. Payroll worksheets ready for your provider. Evenings back.</p>\n",
+      "headings": [
+        {
+          "id": "before",
+          "text": "Before",
+          "level": 2
+        },
+        {
+          "id": "after",
+          "text": "After",
+          "level": 2
+        }
+      ]
+    },
+    "12-positioning/bookkeeping-positioning-review": {
+      "path": "12-positioning/bookkeeping-positioning-review",
+      "title": "Bookkeeping positioning review",
+      "html": "<h1>Bookkeeping positioning review</h1>\n<p>Required disclaimer on every bookkeeping facing page and conversation: we are not a CPA firm.</p>\n<p>OPS imports bank transactions, categorizes them, and prepares a monthly close. Your CPA reviews and files. OPS does not provide tax advice and does not replace your CPA.</p>\n<h2 id=\"close-prepared-for-your-cpa\">Close prepared for your CPA</h2>\n<ul>\n<li>Categorized transaction ledger for the month.</li>\n<li>Monthly profit and loss summary.</li>\n<li>Outstanding invoices and expenses flagged for review.</li>\n</ul>\n<p>Review status: draft, needs Dan approval before use in any operator facing conversation.</p>\n",
+      "headings": [
+        {
+          "id": "close-prepared-for-your-cpa",
+          "text": "Close prepared for your CPA",
+          "level": 2
+        }
+      ]
+    },
+    "12-positioning/homepage-who-this-is-for": {
+      "path": "12-positioning/homepage-who-this-is-for",
+      "title": "Homepage: Who this is for",
+      "html": "<h1>Homepage: Who this is for</h1>\n<p>You run a recurring service business: consumables, field crews, or a vehicle on the road every week. You already do the trade well. The office is the part that eats your evenings: quoting, scheduling, reminders, invoicing, the books, payroll.</p>\n<p>OPS is the office. One private computer, one flat monthly cost, running your back office 24/7 so you can stay on the trade.</p>\n<p>This is built for owner operators with 0 to 3 crew doing $80,000 to $300,000 a year, already using Google Workspace and Stripe, with 40 or more recurring accounts.</p>\n",
+      "headings": []
+    },
+    "12-positioning/payroll-positioning-review": {
+      "path": "12-positioning/payroll-positioning-review",
+      "title": "Payroll positioning review",
+      "html": "<h1>Payroll positioning review</h1>\n<p>Required disclaimer on every payroll facing page and conversation: we are not a payroll provider.</p>\n<p>OPS prepares timesheets, overtime calculations, and 941, 940, and W-2 worksheets. Your payroll provider files them. OPS does not remit taxes, does not file on your behalf, and does not replace your provider.</p>\n<h2 id=\"worksheet-the-operators-provider-files\">Worksheet the operator's provider files</h2>\n<ul>\n<li>Employee hours by pay period, regular and overtime.</li>\n<li>Gross pay by employee.</li>\n<li>Quarterly 941 worksheet.</li>\n<li>Annual 940 worksheet.</li>\n<li>Year end W-2 worksheet.</li>\n</ul>\n<p>Review status: draft, needs Dan approval before use in any operator facing conversation.</p>\n",
+      "headings": [
+        {
+          "id": "worksheet-the-operators-provider-files",
+          "text": "Worksheet the operator's provider files",
+          "level": 2
+        }
+      ]
+    },
+    "12-positioning/private-office-computer": {
+      "path": "12-positioning/private-office-computer",
+      "title": "Private office computer",
+      "html": "<h1>Private office computer</h1>\n<p>OPS runs on a computer dedicated to the operator's own business, not a shared cloud seat. The owner's data, customer records, and back office logic stay on that machine, connected only to the operator's own Google Workspace and Stripe accounts.</p>\n<p>This is the architecture message: one private office computer per operator, running on a flat monthly cost, versus a stack of shared SaaS seats billed per feature and per employee.</p>\n",
+      "headings": []
+    },
+    "13-implementation-playbook-INTERNAL": {
+      "path": "13-implementation-playbook-INTERNAL",
+      "title": "Implementation playbook, internal",
+      "html": "<h1>Implementation playbook, internal</h1>\n<p>Fill this in as each of the 3 to 5 deep implementations happens. This is the cost basis for the $500 and $1,500 setup fee tiers.</p>\n<h2 id=\"template-per-tenant\">Template per tenant</h2>\n<ul>\n<li>Tenant name and tier (Starter, Office, Crew).</li>\n<li>Setup fee charged: $500 or $1,500.</li>\n<li>Total hours spent, broken into: Dan on site or remote hands on tasks, Claude configuration and drafting tasks.</li>\n<li>What failed during setup, and how it was resolved.</li>\n<li>Time from first session to fully live.</li>\n<li>Notes for the next tenant's onboarding, folded into the repeatable playbook and intake form.</li>\n</ul>\n<h2 id=\"log\">Log</h2>\n<table>\n<thead>\n<tr>\n<th>Tenant</th>\n<th>Tier</th>\n<th>Setup fee</th>\n<th>Total hours</th>\n<th>Dan hours</th>\n<th>Claude hours</th>\n<th>Failures</th>\n<th>Live date</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n<td></td>\n</tr>\n</tbody>\n</table>\n",
+      "headings": [
+        {
+          "id": "template-per-tenant",
+          "text": "Template per tenant",
+          "level": 2
+        },
+        {
+          "id": "log",
+          "text": "Log",
+          "level": 2
+        }
+      ]
+    },
+    "15-product-calendar": {
+      "path": "15-product-calendar",
+      "title": "Product calendar",
+      "html": "<h1>Product calendar</h1>\n<p>Releases Kevin can promise during the sprint:</p>\n<ul>\n<li>A real <code>install.sh</code> run on the operator's own Mac, proven on GreenGuard's own stack.</li>\n<li>The onboarding skill that walks through filling one business configuration file: identity, catalog, policy, integrations.</li>\n<li>The proof endpoint: a live, working piece of the product an applicant can see before they commit.</li>\n</ul>\n<p>No other dates are promised externally. Any &quot;when does X ship&quot; question is answered with &quot;I will document that requirement.&quot;</p>\n",
+      "headings": []
+    }
+  }
+}

@@ -196,3 +196,267 @@ describe('every GTM API route references requireGtm', () => {
     expect(src.includes('requireGtm')).toBe(true)
   })
 })
+
+describe('API product resolution: touches route defaults + falls back on unknown product', () => {
+  const OLD_ENV = process.env
+
+  beforeEach(() => {
+    jest.resetModules()
+    process.env = { ...OLD_ENV }
+    process.env.OWNER_EMAIL = 'admin@greenguard-usa.com'
+    process.env.GTM_EMAILS = 'mba@greenguard-usa.com'
+  })
+
+  afterEach(() => {
+    process.env = OLD_ENV
+  })
+
+  function mockReqRes({ method, query, body }) {
+    const res = {
+      statusCode: 200,
+      _json: null,
+      status(code) { this.statusCode = code; return this },
+      json(payload) { this._json = payload; return this },
+      end() { return this },
+    }
+    const req = { method, query: query || {}, body: body || {} }
+    return { req, res }
+  }
+
+  test('GET with no product param queries product=sparkbridge', async () => {
+    jest.doMock('../lib/auth', () => {
+      const actual = jest.requireActual('../lib/auth')
+      return { ...actual, requireGtm: jest.fn(async () => ({ email: 'mba@greenguard-usa.com', role: 'gtm' })) }
+    })
+    const qMock = jest.fn(async () => ({ rows: [] }))
+    jest.doMock('../lib/db', () => ({ q: qMock }))
+
+    const handler = require('../pages/api/gtm/touches').default
+    const { req, res } = mockReqRes({ method: 'GET', query: { firm: 'Acme' } })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(qMock).toHaveBeenCalledWith(expect.any(String), ['Acme', 'sparkbridge'])
+  })
+
+  test('GET with an unknown product falls back to sparkbridge, never errors', async () => {
+    jest.doMock('../lib/auth', () => {
+      const actual = jest.requireActual('../lib/auth')
+      return { ...actual, requireGtm: jest.fn(async () => ({ email: 'mba@greenguard-usa.com', role: 'gtm' })) }
+    })
+    const qMock = jest.fn(async () => ({ rows: [] }))
+    jest.doMock('../lib/db', () => ({ q: qMock }))
+
+    const handler = require('../pages/api/gtm/touches').default
+    const { req, res } = mockReqRes({ method: 'GET', query: { firm: 'Acme', product: 'totally-bogus' } })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(qMock).toHaveBeenCalledWith(expect.any(String), ['Acme', 'sparkbridge'])
+  })
+
+  test('GET with product=ops scopes the query to ops', async () => {
+    jest.doMock('../lib/auth', () => {
+      const actual = jest.requireActual('../lib/auth')
+      return { ...actual, requireGtm: jest.fn(async () => ({ email: 'mba@greenguard-usa.com', role: 'gtm' })) }
+    })
+    const qMock = jest.fn(async () => ({ rows: [] }))
+    jest.doMock('../lib/db', () => ({ q: qMock }))
+
+    const handler = require('../pages/api/gtm/touches').default
+    const { req, res } = mockReqRes({ method: 'GET', query: { firm: 'Acme', product: 'ops' } })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(qMock).toHaveBeenCalledWith(expect.any(String), ['Acme', 'ops'])
+  })
+})
+
+// Regression guard for the two upsert bugs the gate review caught: gtm_scores
+// and gtm_progress both had a primary key that omitted product, so an OPS write
+// for a firm (or checklist item id) that also exists under SparkBridge would
+// conflict onto the SparkBridge row and silently overwrite it. The conflict
+// target and the migration's PK must both carry product.
+describe('per-product upserts cannot clobber the other product', () => {
+  const fs = require('fs')
+  const path = require('path')
+  const read = (p) => fs.readFileSync(path.join(__dirname, '..', p), 'utf8')
+
+  test('score.js upsert conflicts on (product, firm, email)', () => {
+    const src = read('pages/api/gtm/targets/score.js')
+    expect(src).toMatch(/ON CONFLICT \(product, firm, email\)/)
+    expect(src).not.toMatch(/ON CONFLICT \(firm, email\)/)
+  })
+
+  test('progress.js upsert conflicts on (product, email, item_id)', () => {
+    const src = read('pages/api/gtm/progress.js')
+    expect(src).toMatch(/ON CONFLICT \(product, email, item_id\)/)
+    expect(src).not.toMatch(/ON CONFLICT \(email, item_id\)/)
+  })
+
+  test('migration widens every product-scoped primary key', () => {
+    const src = read('scripts/migrate-gtm.js')
+    expect(src).toMatch(/gtm_scores_pkey PRIMARY KEY \(product, firm, email\)/)
+    expect(src).toMatch(/gtm_progress_pkey PRIMARY KEY \(product, email, item_id\)/)
+    expect(src).toMatch(/gtm_targets_state_pkey PRIMARY KEY \(product, firm\)/)
+    expect(src).toMatch(/gtm_deals_pkey PRIMARY KEY \(product, firm\)/)
+    // Each widen is guarded so it only fires against the original narrow PK,
+    // and re-adds a PK in the same DO block. No other DROP may enter this file.
+    expect(src.match(/DROP CONSTRAINT/g) || []).toHaveLength(4)
+    expect(src).not.toMatch(/DROP TABLE|DROP COLUMN|TRUNCATE|DELETE FROM/)
+  })
+
+  test('each PK widen guard matches the CREATE TABLE PK it replaces', () => {
+    // If a guard string drifts from Postgres's normalized rendering of the
+    // original constraint, the widen silently never fires. Every guarded
+    // definition must correspond to a primary key actually declared in this
+    // file's CREATE TABLE statements.
+    const src = read('scripts/migrate-gtm.js')
+    const guards = [...src.matchAll(/pg_get_constraintdef\(oid\) = '([^']+)'/g)].map((m) => m[1])
+    expect(guards).toEqual([
+      'PRIMARY KEY (firm)',        // gtm_targets_state
+      'PRIMARY KEY (firm, email)', // gtm_scores
+      'PRIMARY KEY (firm)',        // gtm_deals
+      'PRIMARY KEY (email, item_id)', // gtm_progress
+    ])
+    for (const g of guards) {
+      const cols = g.replace('PRIMARY KEY (', '').replace(')', '')
+      expect(src).toMatch(new RegExp(`primary key \\(${cols.replace(/([()])/g, '\\$1')}\\)`, 'i'))
+    }
+  })
+
+  test('migration backs the conflict targets with unique indexes', () => {
+    const src = read('scripts/migrate-gtm.js')
+    expect(src).toMatch(/gtm_scores_product_firm_email_idx ON gtm_scores \(product, firm, email\)/)
+    expect(src).toMatch(/gtm_progress_product_email_item_idx ON gtm_progress \(product, email, item_id\)/)
+  })
+})
+
+// Behavioral counterpart to the source-string guards above: run the two
+// handlers that had the clobbering bug and assert on the SQL they actually
+// issue and the parameters they bind. This catches the failure the regexes
+// cannot, namely product being present in the conflict target while the
+// INSERT column list or the $n placeholders drift out of alignment.
+describe('score and progress upserts bind product consistently', () => {
+  const OLD_ENV = process.env
+
+  beforeEach(() => {
+    jest.resetModules()
+    process.env = { ...OLD_ENV }
+    process.env.OWNER_EMAIL = 'admin@greenguard-usa.com'
+    process.env.GTM_EMAILS = 'mba@greenguard-usa.com'
+    jest.doMock('../lib/auth', () => {
+      const actual = jest.requireActual('../lib/auth')
+      return { ...actual, requireGtm: jest.fn(async () => ({ email: 'mba@greenguard-usa.com', role: 'gtm' })) }
+    })
+    jest.doMock('../lib/gtm-sheets', () => ({
+      writeTargetCells: jest.fn(async () => ({ ok: true })),
+      pullApprovals: jest.fn(async () => ({ ok: true })),
+    }))
+  })
+
+  afterEach(() => { process.env = OLD_ENV })
+
+  function mockReqRes(body) {
+    const res = {
+      statusCode: 200,
+      _json: null,
+      status(code) { this.statusCode = code; return this },
+      json(payload) { this._json = payload; return this },
+      end() { return this },
+    }
+    return { req: { method: 'POST', query: {}, body }, res }
+  }
+
+  // The upsert must name product in the conflict target, list it as an
+  // inserted column, and bind it to the placeholder that column occupies.
+  // Split a parenthesised SQL list on top-level commas only. The VALUES list
+  // contains nested parens (CASE WHEN ... END), so a naive split misaligns the
+  // columns against their placeholders, which is the very thing being checked.
+  function splitTopLevel(body) {
+    const out = []
+    let depth = 0
+    let cur = ''
+    for (const ch of body) {
+      if (ch === '(') depth += 1
+      if (ch === ')') depth -= 1
+      if (ch === ',' && depth === 0) { out.push(cur.trim()); cur = ''; continue }
+      cur += ch
+    }
+    if (cur.trim()) out.push(cur.trim())
+    return out
+  }
+
+  function listAfter(sql, keyword) {
+    const start = sql.indexOf(keyword)
+    expect(start).toBeGreaterThan(-1)
+    const open = sql.indexOf('(', start)
+    let depth = 0
+    for (let i = open; i < sql.length; i += 1) {
+      if (sql[i] === '(') depth += 1
+      else if (sql[i] === ')') {
+        depth -= 1
+        if (depth === 0) return splitTopLevel(sql.slice(open + 1, i))
+      }
+    }
+    throw new Error(`unbalanced parens after ${keyword}`)
+  }
+
+  function assertConsistent(sql, params, conflictCols, productValue) {
+    expect(sql).toContain(`ON CONFLICT (${conflictCols})`)
+    const cols = listAfter(sql, 'INSERT INTO')
+    const idx = cols.indexOf('product')
+    expect(idx).toBeGreaterThan(-1)
+    const values = listAfter(sql, 'VALUES')
+    expect(values).toHaveLength(cols.length)
+    const n = Number(values[idx].match(/\$(\d+)/)[1])
+    expect(params[n - 1]).toBe(productValue)
+    // Every column named in the conflict target must also be inserted.
+    for (const c of conflictCols.split(',').map((s) => s.trim())) {
+      expect(cols).toContain(c)
+    }
+  }
+
+  test('score.js binds the resolved product into the upsert', async () => {
+    const qMock = jest.fn(async () => ({ rows: [] }))
+    jest.doMock('../lib/db', () => ({ q: qMock }))
+    const handler = require('../pages/api/gtm/targets/score').default
+    const scores = { s1: 1, s2: 2, s3: 3, s4: 4, s5: 5, s6: 1, s7: 2 }
+    const { req, res } = mockReqRes({ firm: 'Shared Name Co', product: 'ops', ...scores })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+    const call = qMock.mock.calls.find(([sql]) => sql.includes('INSERT INTO gtm_scores'))
+    expect(call).toBeTruthy()
+    assertConsistent(call[0], call[1], 'product, firm, email', 'ops')
+  })
+
+  test('score.js defaults to sparkbridge when no product is given', async () => {
+    const qMock = jest.fn(async () => ({ rows: [] }))
+    jest.doMock('../lib/db', () => ({ q: qMock }))
+    const handler = require('../pages/api/gtm/targets/score').default
+    const scores = { s1: 1, s2: 2, s3: 3, s4: 4, s5: 5, s6: 1, s7: 2 }
+    const { req, res } = mockReqRes({ firm: 'Shared Name Co', ...scores })
+    await handler(req, res)
+    const call = qMock.mock.calls.find(([sql]) => sql.includes('INSERT INTO gtm_scores'))
+    assertConsistent(call[0], call[1], 'product, firm, email', 'sparkbridge')
+  })
+
+  test('progress.js binds the resolved product into the upsert', async () => {
+    const qMock = jest.fn(async () => ({ rows: [] }))
+    jest.doMock('../lib/db', () => ({ q: qMock }))
+    const handler = require('../pages/api/gtm/progress').default
+    const { req, res } = mockReqRes({ item_id: 'item-5', done: true, product: 'ops' })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+    const call = qMock.mock.calls.find(([sql]) => sql.includes('INSERT INTO gtm_progress'))
+    expect(call).toBeTruthy()
+    assertConsistent(call[0], call[1], 'product, email, item_id', 'ops')
+  })
+
+  test('progress.js defaults to sparkbridge when no product is given', async () => {
+    const qMock = jest.fn(async () => ({ rows: [] }))
+    jest.doMock('../lib/db', () => ({ q: qMock }))
+    const handler = require('../pages/api/gtm/progress').default
+    const { req, res } = mockReqRes({ item_id: 'item-5', done: true })
+    await handler(req, res)
+    const call = qMock.mock.calls.find(([sql]) => sql.includes('INSERT INTO gtm_progress'))
+    assertConsistent(call[0], call[1], 'product, email, item_id', 'sparkbridge')
+  })
+})
