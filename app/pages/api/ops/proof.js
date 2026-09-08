@@ -87,15 +87,16 @@ async function computeLastClose() {
 }
 
 // Payroll runs paid in the current calendar year. listRuns returns HYDRATED
-// objects (camelCase payDate), not raw rows, so read payDate. Voided runs do
-// not count as runs that happened.
+// objects (camelCase payDate), not raw rows, so read payDate. A voided run did
+// not happen, and the status the store writes is 'void' (see voidRun), not
+// 'voided'. Drafts are not runs that were paid either.
 async function computePayrollRunsYtd() {
   const { listRuns } = require('../../../lib/payroll-store')
   const runs = await listRuns({ limit: 200 })
   if (!Array.isArray(runs)) return undefined
   const year = String(new Date().getFullYear())
   return runs.filter(
-    (r) => typeof r?.payDate === 'string' && r.payDate.startsWith(year) && r.status !== 'voided'
+    (r) => typeof r?.payDate === 'string' && r.payDate.startsWith(year) && r.status === 'finalized'
   ).length
 }
 
@@ -157,7 +158,7 @@ module.exports = async function handler(req, res) {
 
     let body
     try {
-      body = await cached('ops:proof:v2', 86400, computeProof)
+      body = await cached('ops:proof:v3', 86400, computeProof)
     } catch {
       body = { generatedAt: new Date().toISOString() }
     }

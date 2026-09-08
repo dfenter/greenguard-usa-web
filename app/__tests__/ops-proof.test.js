@@ -105,7 +105,8 @@ describe('happy path', () => {
 
     mockListRuns.mockResolvedValue([
       { payDate: '2026-01-15', status: 'finalized' },
-      { payDate: '2026-02-15', status: 'voided' },   // voided runs do not count
+      { payDate: '2026-02-15', status: 'void' },      // voided runs do not count
+      { payDate: '2026-03-15', status: 'draft' },     // an unpaid draft is not a run
       { payDate: '2025-12-15', status: 'finalized' }, // prior year
     ])
 
