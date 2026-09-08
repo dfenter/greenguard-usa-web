@@ -35,7 +35,10 @@ export default async function handler(req, res) {
 
   const stageLabelForId = {}
   for (const [label, id] of Object.entries(pipeline.stages)) {
-    stageLabelForId[id] = internalLabelForHubspotLabel ? internalLabelForHubspotLabel[label] : label
+    // Pass unmapped HubSpot stages (e.g. built-in "Closed Lost", which has
+    // no internal equivalent) through unchanged rather than dropping to
+    // undefined, so the STAGE_LABELS guard below reports a truthful reason.
+    stageLabelForId[id] = internalLabelForHubspotLabel ? (internalLabelForHubspotLabel[label] || label) : label
   }
 
   const synced = []
@@ -63,7 +66,7 @@ export default async function handler(req, res) {
       const dealStageId = search.results[0].properties.dealstage
       const label = stageLabelForId[dealStageId]
       if (!label || !STAGE_LABELS.includes(label)) {
-        failed.push({ firm, reason: `unrecognized stage id ${dealStageId}` })
+        failed.push({ firm, reason: label ? `unrecognized HubSpot stage: ${label}` : `unrecognized stage id ${dealStageId}` })
         continue
       }
       await q(

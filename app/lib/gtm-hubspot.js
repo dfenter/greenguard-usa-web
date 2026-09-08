@@ -39,13 +39,19 @@ function stageIdForLabel(pipeline, label) {
  * PURE helper: translate an internal stage label through the product's
  * HubSpot stageMap when configured, otherwise pass it through unchanged
  * (identity — e.g. SparkBridge, whose internal labels already match its
- * dedicated pipeline's stage labels). Unknown labels pass through as-is.
+ * dedicated pipeline's stage labels). Case-insensitive, trims whitespace,
+ * matching stageIdForLabel's normalization. Unknown labels pass through
+ * as originally given.
  */
 function hubspotStageLabelFor(product, internalLabel) {
   const p = resolveProduct(product)
   const stageMap = PRODUCTS[p].hubspot.stageMap
-  if (!stageMap) return internalLabel
-  return Object.prototype.hasOwnProperty.call(stageMap, internalLabel) ? stageMap[internalLabel] : internalLabel
+  if (!stageMap || internalLabel === null || internalLabel === undefined) return internalLabel
+  const wanted = String(internalLabel).trim().toLowerCase()
+  for (const [mapLabel, hubspotLabel] of Object.entries(stageMap)) {
+    if (String(mapLabel).trim().toLowerCase() === wanted) return hubspotLabel
+  }
+  return internalLabel
 }
 
 /**
@@ -56,12 +62,17 @@ function hubspotStageLabelFor(product, internalLabel) {
 async function resolvePipeline(product = DEFAULT_PRODUCT) {
   const p = resolveProduct(product)
   const label = pipelineLabelFor(p)
+  const configuredId = PRODUCTS[p].hubspot.pipelineId
   return cached(`gtm:hubspot:pipeline:${p}`, 3600, async () => {
-    if (!label) throw new Error(`HubSpot pipeline label not configured for product: ${p}`)
+    if (!label && !configuredId) throw new Error(`HubSpot pipeline label not configured for product: ${p}`)
     const resp = await client.crm.pipelines.pipelinesApi.getAll('deals')
     const results = resp.results || []
-    const pipeline = results.find((pl) => pl.label === label)
-    if (!pipeline) throw new Error(`HubSpot pipeline not found: ${label}`)
+    // Prefer a configured pipeline id (e.g. the built-in "default" Sales
+    // Pipeline) when present; fall back to matching by label otherwise.
+    const pipeline = configuredId
+      ? results.find((pl) => pl.id === configuredId)
+      : results.find((pl) => pl.label === label)
+    if (!pipeline) throw new Error(`HubSpot pipeline not found: ${configuredId || label}`)
     const stages = {}
     for (const stage of pipeline.stages || []) {
       stages[stage.label] = stage.id

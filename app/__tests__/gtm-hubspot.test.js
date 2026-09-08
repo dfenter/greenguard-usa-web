@@ -53,6 +53,64 @@ describe('hubspotStageLabelFor (pure)', () => {
   test('unknown label passes through unchanged even when a stageMap exists', () => {
     expect(hubspotStageLabelFor('ops', 'Not A Real Stage')).toBe('Not A Real Stage')
   })
+
+  test('normalizes case and whitespace like stageIdForLabel', () => {
+    expect(hubspotStageLabelFor('ops', 'contacted ')).toBe('Appointment Scheduled')
+    expect(hubspotStageLabelFor('ops', '  CALL BOOKED')).toBe('Qualified To Buy')
+    expect(hubspotStageLabelFor('ops', 'pilot live')).toBe('Contract Sent')
+  })
+})
+
+describe('resolvePipeline (product pipeline resolution)', () => {
+  beforeEach(() => {
+    jest.resetModules()
+  })
+
+  test('prefers a configured pipelineId over label matching', async () => {
+    jest.doMock('../lib/cache', () => ({ cached: jest.fn((key, ttl, fn) => fn()) }))
+    jest.doMock('@hubspot/api-client', () => ({
+      Client: jest.fn().mockImplementation(() => ({
+        crm: {
+          pipelines: {
+            pipelinesApi: {
+              getAll: jest.fn().mockResolvedValue({
+                results: [
+                  { id: 'default', label: 'Sales Pipeline', stages: [{ id: 'a1', label: 'Appointment Scheduled' }] },
+                  { id: 'other-id', label: 'Some Other Pipeline With Same-ish Label', stages: [] },
+                ],
+              }),
+            },
+          },
+        },
+      })),
+    }))
+    jest.doMock('../lib/hubspot', () => ({ findContactByEmail: jest.fn() }))
+    const { resolvePipeline } = require('../lib/gtm-hubspot')
+    const pipeline = await resolvePipeline('ops')
+    expect(pipeline.pipelineId).toBe('default')
+    expect(pipeline.stages['Appointment Scheduled']).toBe('a1')
+  })
+
+  test('falls back to label matching when no pipelineId is configured', async () => {
+    jest.doMock('../lib/cache', () => ({ cached: jest.fn((key, ttl, fn) => fn()) }))
+    jest.doMock('@hubspot/api-client', () => ({
+      Client: jest.fn().mockImplementation(() => ({
+        crm: {
+          pipelines: {
+            pipelinesApi: {
+              getAll: jest.fn().mockResolvedValue({
+                results: [{ id: 'pipe1', label: 'SparkBridge Partners', stages: [{ id: 's1', label: 'Contacted' }] }],
+              }),
+            },
+          },
+        },
+      })),
+    }))
+    jest.doMock('../lib/hubspot', () => ({ findContactByEmail: jest.fn() }))
+    const { resolvePipeline } = require('../lib/gtm-hubspot')
+    const pipeline = await resolvePipeline('sparkbridge')
+    expect(pipeline.pipelineId).toBe('pipe1')
+  })
 })
 
 describe('dealName format', () => {
