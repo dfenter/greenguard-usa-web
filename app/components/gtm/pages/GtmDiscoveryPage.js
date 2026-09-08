@@ -39,9 +39,8 @@ const FIELDS = [
   ]},
 ]
 
-// OPS-only baseline metrics form (trade-neutral). Saved separately from the
-// call report (see note below about the call-reports API not accepting a
-// `kind` field).
+// OPS-only baseline metrics form (trade-neutral). Saved via call-reports API
+// with kind: 'baseline' so it is distinguished from regular call reports.
 const BASELINE_FIELDS = [
   ['office_hours_per_week', 'Office hours per week', 'text'],
   ['quote_turnaround', 'Quote turnaround', 'text'],

@@ -213,6 +213,10 @@ const TABLES = [
     sql: `ALTER TABLE gtm_call_reports ADD COLUMN IF NOT EXISTS product text NOT NULL DEFAULT 'sparkbridge'`,
   },
   {
+    name: 'gtm_call_reports_add_kind',
+    sql: `ALTER TABLE gtm_call_reports ADD COLUMN IF NOT EXISTS kind text DEFAULT 'call'`,
+  },
+  {
     name: 'gtm_library_rows_add_product',
     sql: `ALTER TABLE gtm_library_rows ADD COLUMN IF NOT EXISTS product text NOT NULL DEFAULT 'sparkbridge'`,
   },

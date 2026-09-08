@@ -67,9 +67,12 @@ async function handlePost(req, res, session) {
     fit, fit_reason,
     objections, competitive,
     next_step, next_date, next_owner,
+    kind,
   } = body
 
   if (typeof firm !== 'string' || !firm.trim()) return res.status(400).json({ error: 'firm required' })
+
+  const reportKind = kind === 'baseline' ? 'baseline' : 'call'
 
   const payload = {
     contact_name, contact_email, contact_role, vertical,
@@ -83,10 +86,10 @@ async function handlePost(req, res, session) {
   let reportId
   try {
     const { rows } = await q(
-      `INSERT INTO gtm_call_reports (firm, email, contact_email, payload, product)
-       VALUES ($1, $2, $3, $4::jsonb, $5)
+      `INSERT INTO gtm_call_reports (firm, email, contact_email, payload, product, kind)
+       VALUES ($1, $2, $3, $4::jsonb, $5, $6)
        RETURNING id`,
-      [firm, session.email, contact_email || null, JSON.stringify(payload), product]
+      [firm, session.email, contact_email || null, JSON.stringify(payload), product, reportKind]
     )
     reportId = rows[0].id
   } catch (err) {
@@ -161,6 +164,7 @@ async function handlePost(req, res, session) {
   const response = {
     ok: true,
     id: reportId,
+    kind: reportKind,
     hubspot: { contactId: hubspotContactId, noteId: hubspotNoteId, dealId: hubspotDealId },
   }
   if (warning) response.warning = warning
@@ -173,12 +177,19 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     const product = resolveProduct(req)
-    const { firm } = req.query || {}
+    const { firm, kind } = req.query || {}
     if (typeof firm !== 'string' || !firm.trim()) return res.status(400).json({ error: 'firm required' })
 
+    const params = [firm, product]
+    let kindFilter = ''
+    if (kind === 'baseline' || kind === 'call') {
+      kindFilter = ' AND kind = $3'
+      params.push(kind)
+    }
+
     const { rows } = await q(
-      `SELECT id, firm, email, contact_email, payload, hubspot_contact_id, hubspot_note_id, hubspot_deal_id, created_at FROM gtm_call_reports WHERE firm = $1 AND product = $2 ORDER BY created_at DESC`,
-      [firm, product]
+      `SELECT id, firm, email, contact_email, payload, hubspot_contact_id, hubspot_note_id, hubspot_deal_id, kind, created_at FROM gtm_call_reports WHERE firm = $1 AND product = $2${kindFilter} ORDER BY created_at DESC`,
+      params
     )
     return res.status(200).json({ rows })
   }
