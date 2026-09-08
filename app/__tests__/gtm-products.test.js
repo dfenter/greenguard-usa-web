@@ -111,13 +111,15 @@ describe('PRODUCTS config sanity', () => {
   test('sparkbridge sheetId is the exact original value', () => {
     expect(PRODUCTS.sparkbridge.sheetId).toBe('1-Fm2-s7BJkM6HGokTDFOHnVUw4I0mbW-YqkYiuvywBI')
   })
-  test('ops targets sheet is configured; hubspot pipeline still pending Dan', () => {
-    // The OPS targets Sheet was created via Drive media upload. The HubSpot
-    // "OPS Operators" pipeline must be created in the UI by Dan, so its id
-    // stays null and lib/gtm-hubspot.js degrades gracefully until it exists.
+  test('ops targets sheet is configured; hubspot deals route to the built-in Sales Pipeline', () => {
+    // The OPS targets Sheet was created via Drive media upload. HubSpot only
+    // allows one custom deal pipeline (SparkBridge Partners), so OPS deals
+    // go to the built-in Sales Pipeline via a stageMap instead of a custom one.
     expect(typeof PRODUCTS.ops.sheetId).toBe('string')
     expect(PRODUCTS.ops.sheetId).toMatch(/^[A-Za-z0-9_-]{20,}$/)
-    expect(PRODUCTS.ops.hubspot.pipelineId).toBeNull()
+    expect(PRODUCTS.ops.hubspot.pipelineLabel).toBe('Sales Pipeline')
+    expect(PRODUCTS.ops.hubspot.pipelineId).toBe('default')
+    expect(PRODUCTS.ops.hubspot.stageMap).toBeTruthy()
   })
   test('ops nav mirrors sparkbridge nav labels, under /gtm/ops', () => {
     const sbLabels = PRODUCTS.sparkbridge.nav.map((n) => n.label)

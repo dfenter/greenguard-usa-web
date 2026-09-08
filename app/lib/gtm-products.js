@@ -57,8 +57,16 @@ const PRODUCTS = {
     tierThresholds: { a: 25, b: 18 },
     kpis: ['targetsApproved', 'firstTouches', 'replies', 'calls', 'reviews', 'partners', 'pilots'],
     hubspot: {
-      pipelineLabel: 'OPS Operators',
-      pipelineId: null,
+      pipelineLabel: 'Sales Pipeline',
+      pipelineId: 'default',
+      stageMap: {
+        'Contacted': 'Appointment Scheduled',
+        'Call booked': 'Qualified To Buy',
+        'Review delivered': 'Presentation Scheduled',
+        'Partner signed': 'Decision Maker Bought-In',
+        'Pilot live': 'Contract Sent',
+        'Production measured': 'Closed Won',
+      },
     },
     nav: [
       { href: '/gtm/ops', label: 'Dashboard' },

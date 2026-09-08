@@ -33,6 +33,28 @@ describe('stageIdForLabel (pure)', () => {
   })
 })
 
+describe('hubspotStageLabelFor (pure)', () => {
+  const { hubspotStageLabelFor } = require('../lib/gtm-hubspot')
+
+  test('ops maps internal labels to Sales Pipeline stage labels', () => {
+    expect(hubspotStageLabelFor('ops', 'Contacted')).toBe('Appointment Scheduled')
+    expect(hubspotStageLabelFor('ops', 'Call booked')).toBe('Qualified To Buy')
+    expect(hubspotStageLabelFor('ops', 'Review delivered')).toBe('Presentation Scheduled')
+    expect(hubspotStageLabelFor('ops', 'Partner signed')).toBe('Decision Maker Bought-In')
+    expect(hubspotStageLabelFor('ops', 'Pilot live')).toBe('Contract Sent')
+    expect(hubspotStageLabelFor('ops', 'Production measured')).toBe('Closed Won')
+  })
+
+  test('sparkbridge is identity (no stageMap configured)', () => {
+    expect(hubspotStageLabelFor('sparkbridge', 'Contacted')).toBe('Contacted')
+    expect(hubspotStageLabelFor('sparkbridge', 'Production measured')).toBe('Production measured')
+  })
+
+  test('unknown label passes through unchanged even when a stageMap exists', () => {
+    expect(hubspotStageLabelFor('ops', 'Not A Real Stage')).toBe('Not A Real Stage')
+  })
+})
+
 describe('dealName format', () => {
   test('exact middle-dot format', () => {
     const { dealName } = require('../lib/gtm-hubspot')

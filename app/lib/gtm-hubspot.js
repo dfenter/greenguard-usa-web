@@ -36,6 +36,19 @@ function stageIdForLabel(pipeline, label) {
 }
 
 /**
+ * PURE helper: translate an internal stage label through the product's
+ * HubSpot stageMap when configured, otherwise pass it through unchanged
+ * (identity — e.g. SparkBridge, whose internal labels already match its
+ * dedicated pipeline's stage labels). Unknown labels pass through as-is.
+ */
+function hubspotStageLabelFor(product, internalLabel) {
+  const p = resolveProduct(product)
+  const stageMap = PRODUCTS[p].hubspot.stageMap
+  if (!stageMap) return internalLabel
+  return Object.prototype.hasOwnProperty.call(stageMap, internalLabel) ? stageMap[internalLabel] : internalLabel
+}
+
+/**
  * Fetch HubSpot deal pipelines and build { pipelineId, stages: {label: id} }
  * for the given product's pipeline label. Cached 1hr via lib/cache.js,
  * keyed per product so products never share a cached pipeline.
@@ -97,7 +110,8 @@ async function syncDeal({ firm, stage, contactEmail, product = DEFAULT_PRODUCT }
     const name = dealName(firm, p)
     const properties = { dealname: name, pipeline: pipeline.pipelineId }
     if (stage) {
-      const stageId = stageIdForLabel(pipeline, stage)
+      const hubspotStage = hubspotStageLabelFor(p, stage)
+      const stageId = stageIdForLabel(pipeline, hubspotStage)
       if (stageId) properties.dealstage = stageId
     }
 
@@ -156,4 +170,4 @@ async function associateNoteToDeal(noteId, dealId) {
   }
 }
 
-module.exports = { dealsEnabled, resolvePipeline, pipelineLabelFor, stageIdForLabel, syncDeal, associateNoteToDeal, dealName, PIPELINE_LABEL, STAGE_LABELS }
+module.exports = { dealsEnabled, resolvePipeline, pipelineLabelFor, stageIdForLabel, hubspotStageLabelFor, syncDeal, associateNoteToDeal, dealName, PIPELINE_LABEL, STAGE_LABELS }

@@ -5,7 +5,7 @@ const { requireGtm } = require('../../../lib/auth')
 const { q } = require('../../../lib/db')
 const { Client } = require('@hubspot/api-client')
 const { resolvePipeline, STAGE_LABELS, dealName } = require('../../../lib/gtm-hubspot')
-const { resolveProduct } = require('../../../lib/gtm-products')
+const { resolveProduct, PRODUCTS } = require('../../../lib/gtm-products')
 
 const client = new Client({
   accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
@@ -28,8 +28,15 @@ export default async function handler(req, res) {
     return res.status(200).json({ ok: false, reason: `pipeline resolve failed: ${err.message}`, synced: [], failed: firms.map((f) => f.firm) })
   }
 
+  const stageMap = PRODUCTS[product].hubspot.stageMap
+  const internalLabelForHubspotLabel = stageMap
+    ? Object.fromEntries(Object.entries(stageMap).map(([internal, hubspotLabel]) => [hubspotLabel, internal]))
+    : null
+
   const stageLabelForId = {}
-  for (const [label, id] of Object.entries(pipeline.stages)) stageLabelForId[id] = label
+  for (const [label, id] of Object.entries(pipeline.stages)) {
+    stageLabelForId[id] = internalLabelForHubspotLabel ? internalLabelForHubspotLabel[label] : label
+  }
 
   const synced = []
   const failed = []
