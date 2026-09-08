@@ -93,6 +93,50 @@ const TABLES = [
     sql: `ALTER TABLE gtm_call_reports ADD COLUMN IF NOT EXISTS hubspot_deal_id text`,
   },
   {
+    name: 'gtm_targets_state_add_product',
+    sql: `ALTER TABLE gtm_targets_state ADD COLUMN IF NOT EXISTS product text NOT NULL DEFAULT 'sparkbridge'`,
+  },
+  {
+    name: 'gtm_targets_state_product_firm_idx',
+    sql: `CREATE UNIQUE INDEX IF NOT EXISTS gtm_targets_state_product_firm_idx ON gtm_targets_state (product, firm)`,
+  },
+  {
+    name: 'gtm_scores_add_product',
+    sql: `ALTER TABLE gtm_scores ADD COLUMN IF NOT EXISTS product text NOT NULL DEFAULT 'sparkbridge'`,
+  },
+  {
+    name: 'gtm_deals_add_product',
+    sql: `ALTER TABLE gtm_deals ADD COLUMN IF NOT EXISTS product text NOT NULL DEFAULT 'sparkbridge'`,
+  },
+  {
+    name: 'gtm_deals_product_firm_idx',
+    sql: `CREATE UNIQUE INDEX IF NOT EXISTS gtm_deals_product_firm_idx ON gtm_deals (product, firm)`,
+  },
+  {
+    name: 'gtm_touches_add_product',
+    sql: `ALTER TABLE gtm_touches ADD COLUMN IF NOT EXISTS product text NOT NULL DEFAULT 'sparkbridge'`,
+  },
+  {
+    name: 'gtm_progress_add_product',
+    sql: `ALTER TABLE gtm_progress ADD COLUMN IF NOT EXISTS product text NOT NULL DEFAULT 'sparkbridge'`,
+  },
+  {
+    name: 'gtm_call_reports_add_product',
+    sql: `ALTER TABLE gtm_call_reports ADD COLUMN IF NOT EXISTS product text NOT NULL DEFAULT 'sparkbridge'`,
+  },
+  {
+    name: 'gtm_library_rows_add_product',
+    sql: `ALTER TABLE gtm_library_rows ADD COLUMN IF NOT EXISTS product text NOT NULL DEFAULT 'sparkbridge'`,
+  },
+  {
+    name: 'gtm_weekly_reports_add_product',
+    sql: `ALTER TABLE gtm_weekly_reports ADD COLUMN IF NOT EXISTS product text NOT NULL DEFAULT 'sparkbridge'`,
+  },
+  {
+    name: 'gtm_settings_add_product',
+    sql: `ALTER TABLE gtm_settings ADD COLUMN IF NOT EXISTS product text NOT NULL DEFAULT 'sparkbridge'`,
+  },
+  {
     name: 'gtm_library_rows',
     sql: `CREATE TABLE IF NOT EXISTS gtm_library_rows (
       id serial primary key,

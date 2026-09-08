@@ -1,0 +1,165 @@
+{
+  "items": [
+    {
+      "id": "section-27-days-1-to-3-learn-the-product-pricing-tiers-positioning",
+      "section": 27,
+      "label": "Learn the product: pricing, tiers, positioning: Kevin can explain OPS unprompted",
+      "dayStart": 1,
+      "dayEnd": 3
+    },
+    {
+      "id": "section-27-days-3-to-7-narrow-icp-written",
+      "section": 27,
+      "label": "Narrow ICP written: ICP finalized in `05-icp-INTERNAL.md`",
+      "dayStart": 3,
+      "dayEnd": 7
+    },
+    {
+      "id": "section-27-days-5-to-10-who-this-is-for-and-before-vs-after-copy-drafted",
+      "section": 27,
+      "label": "Who-this-is-for and before vs after copy drafted: Homepage copy ready for review",
+      "dayStart": 5,
+      "dayEnd": 10
+    },
+    {
+      "id": "section-27-days-7-to-14-payroll-and-bookkeeping-positioning-reviews",
+      "section": 27,
+      "label": "Payroll and bookkeeping positioning reviews: Worksheets and disclaimers approved",
+      "dayStart": 7,
+      "dayEnd": 14
+    },
+    {
+      "id": "section-27-days-7-to-14-baseline-metrics-form-live",
+      "section": 27,
+      "label": "Baseline metrics form live: Form ready to capture day 0 numbers",
+      "dayStart": 7,
+      "dayEnd": 14
+    },
+    {
+      "id": "section-27-days-10-to-14-targets-researched-and-dan-approved",
+      "section": 27,
+      "label": "Targets researched and Dan approved: Approved rows in `06-targets/operator-targets.csv`",
+      "dayStart": 10,
+      "dayEnd": 14
+    },
+    {
+      "id": "section-27-days-12-to-14-first-touches-sent",
+      "section": 27,
+      "label": "First touches sent: Outreach live on approved rows",
+      "dayStart": 12,
+      "dayEnd": 14
+    },
+    {
+      "id": "section-27-days-14-to-14-proof-endpoint-spec-written",
+      "section": 27,
+      "label": "Proof endpoint spec written: Spec ready to build against",
+      "dayStart": 14,
+      "dayEnd": 14
+    },
+    {
+      "id": "section-27-days-15-to-30-applications-and-acceptances",
+      "section": 27,
+      "label": "Applications and acceptances: 10 applications, 5 accepted",
+      "dayStart": 15,
+      "dayEnd": 30
+    },
+    {
+      "id": "section-27-days-20-to-45-first-deep-implementations",
+      "section": 27,
+      "label": "First deep implementations: 3 to 5 tenants onboarded",
+      "dayStart": 20,
+      "dayEnd": 45
+    },
+    {
+      "id": "section-27-days-30-to-60-playbook-and-intake-built",
+      "section": 27,
+      "label": "Playbook and intake built: Repeatable onboarding playbook and intake form",
+      "dayStart": 30,
+      "dayEnd": 60
+    },
+    {
+      "id": "section-27-days-45-to-75-feature-usage-log-and-cost-capture",
+      "section": 27,
+      "label": "Feature usage log and cost capture: Usage tracked, setup hours logged against fee",
+      "dayStart": 45,
+      "dayEnd": 75
+    },
+    {
+      "id": "section-27-days-60-to-75-first-case-study-drafted",
+      "section": 27,
+      "label": "First case study drafted: Draft with day 0 to day 60 numbers, pending Dan approval",
+      "dayStart": 60,
+      "dayEnd": 75
+    },
+    {
+      "id": "section-27-days-75-to-90-pricing-refined-and-architecture-messaging-shipped",
+      "section": 27,
+      "label": "Pricing refined and architecture messaging shipped: Pricing checked against real hours, private office computer messaging finalized",
+      "dayStart": 75,
+      "dayEnd": 90
+    },
+    {
+      "id": "section-27-days-91-to-120-scale-gated-on-3-tenants-live-30-plus-days-1-case-study-measurable-office-hours-reduction-on-3-operators-marketing-scale-up-vertical-landing-pages-referral-program-implementation-partner-program-price-move-to-list-widen-icp-job-based-verticals",
+      "section": 27,
+      "label": "Scale, gated on 3 tenants live 30 plus days, 1 case study, measurable office hours reduction on 3 operators: marketing scale up, vertical landing pages, referral program, implementation partner program, price move to list, widen ICP, job based verticals: Scale plan approved by Dan",
+      "dayStart": 91,
+      "dayEnd": 120
+    },
+    {
+      "id": "section-5-days-1-to-3-product-and-pricing",
+      "section": 5,
+      "label": "Days 1 to 3: product and pricing",
+      "dayStart": 1,
+      "dayEnd": 3
+    },
+    {
+      "id": "section-5-days-4-to-7-positioning-review",
+      "section": 5,
+      "label": "Days 4 to 7: positioning review",
+      "dayStart": 4,
+      "dayEnd": 7
+    },
+    {
+      "id": "section-7-days-1-to-14-narrow-icp-and-build-the-front-door",
+      "section": 7,
+      "label": "Days 1 to 14: narrow ICP and build the front door",
+      "dayStart": 1,
+      "dayEnd": 14
+    },
+    {
+      "id": "section-9-days-1-to-14-first-touches-and-proof-endpoint",
+      "section": 9,
+      "label": "Days 1 to 14: first touches and proof endpoint",
+      "dayStart": 1,
+      "dayEnd": 14
+    },
+    {
+      "id": "section-10-days-1-to-14-baseline-metrics-and-reviews",
+      "section": 10,
+      "label": "Days 1 to 14: baseline metrics and reviews",
+      "dayStart": 1,
+      "dayEnd": 14
+    },
+    {
+      "id": "section-15-days-1-to-14-proof-endpoint-spec",
+      "section": 15,
+      "label": "Days 1 to 14: proof endpoint spec",
+      "dayStart": 1,
+      "dayEnd": 14
+    },
+    {
+      "id": "section-16-days-15-to-90-implementation-cost-capture",
+      "section": 16,
+      "label": "Days 15 to 90: implementation cost capture",
+      "dayStart": 15,
+      "dayEnd": 90
+    },
+    {
+      "id": "section-19-days-15-to-90-private-office-computer-messaging",
+      "section": 19,
+      "label": "Days 15 to 90: private office computer messaging",
+      "dayStart": 15,
+      "dayEnd": 90
+    }
+  ]
+}

@@ -5,6 +5,7 @@ const { requireGtm } = require('../../../lib/auth')
 const { q } = require('../../../lib/db')
 const { Client } = require('@hubspot/api-client')
 const { resolvePipeline, STAGE_LABELS, dealName } = require('../../../lib/gtm-hubspot')
+const { resolveProduct } = require('../../../lib/gtm-products')
 
 const client = new Client({
   accessToken: process.env.HUBSPOT_ACCESS_TOKEN,
@@ -17,11 +18,12 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).end()
 
-  const { rows: firms } = await q(`SELECT firm FROM gtm_deals`)
+  const product = resolveProduct(req)
+  const { rows: firms } = await q(`SELECT firm FROM gtm_deals WHERE product = $1`, [product])
 
   let pipeline
   try {
-    pipeline = await resolvePipeline()
+    pipeline = await resolvePipeline(product)
   } catch (err) {
     return res.status(200).json({ ok: false, reason: `pipeline resolve failed: ${err.message}`, synced: [], failed: firms.map((f) => f.firm) })
   }
@@ -34,7 +36,7 @@ export default async function handler(req, res) {
 
   for (const { firm } of firms) {
     try {
-      const name = dealName(firm)
+      const name = dealName(firm, product)
       const search = await client.crm.deals.searchApi.doSearch({
         filterGroups: [
           {
@@ -58,8 +60,8 @@ export default async function handler(req, res) {
         continue
       }
       await q(
-        `UPDATE gtm_deals SET stage = $1, updated_at = now() WHERE firm = $2`,
-        [label, firm]
+        `UPDATE gtm_deals SET stage = $1, updated_at = now() WHERE firm = $2 AND product = $3`,
+        [label, firm, product]
       )
       synced.push({ firm, stage: label })
     } catch (err) {

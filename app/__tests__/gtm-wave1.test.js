@@ -169,3 +169,73 @@ describe('gtm-content loader', () => {
     expect(hasFirmColumn).toBe(true)
   })
 })
+
+describe('gtm-content loader: per-product isolation + legacy fallback', () => {
+  const os = require('os')
+  const fsx = require('fs')
+  let tmpDir
+  let restoreCwd
+
+  beforeEach(() => {
+    jest.resetModules()
+    tmpDir = fsx.mkdtempSync(path.join(os.tmpdir(), 'gtm-content-test-'))
+    const contentDir = path.join(tmpDir, 'content', 'gtm')
+    fsx.mkdirSync(contentDir, { recursive: true })
+    // Legacy flat sparkbridge files (no per-product subdir).
+    fsx.writeFileSync(path.join(contentDir, 'pages.json'), JSON.stringify({ pages: { legacy: { path: 'legacy', title: 'Legacy', html: '<p>legacy</p>', headings: [] } } }))
+    fsx.writeFileSync(path.join(contentDir, 'targets.json'), JSON.stringify({ columns: ['firm'], rows: [{ firm: 'LegacyCo' }] }))
+    fsx.writeFileSync(path.join(contentDir, 'checklist.json'), JSON.stringify({ items: [{ id: 'legacy-item', label: 'Legacy item' }] }))
+    // Per-product ops files.
+    const opsDir = path.join(contentDir, 'ops')
+    fsx.mkdirSync(opsDir, { recursive: true })
+    fsx.writeFileSync(path.join(opsDir, 'targets.json'), JSON.stringify({ columns: ['firm'], rows: [{ firm: 'OpsCo' }] }))
+
+    const origCwd = process.cwd
+    restoreCwd = () => { process.cwd = origCwd }
+    process.cwd = () => tmpDir
+  })
+
+  afterEach(() => {
+    restoreCwd()
+    fsx.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  test('sparkbridge falls back to legacy flat files when no per-product dir exists', () => {
+    const content = require('../lib/gtm-content')
+    const targets = content.getTargets('sparkbridge')
+    expect(targets.rows).toEqual([{ firm: 'LegacyCo' }])
+    const page = content.getPage('legacy', 'sparkbridge')
+    expect(page.title).toBe('Legacy')
+    const checklist = content.getChecklist('sparkbridge')
+    expect(checklist[0].id).toBe('legacy-item')
+  })
+
+  test('ops reads its own per-product file, not the legacy sparkbridge one', () => {
+    const content = require('../lib/gtm-content')
+    const targets = content.getTargets('ops')
+    expect(targets.rows).toEqual([{ firm: 'OpsCo' }])
+  })
+
+  test('ops missing files return the same empty shapes as sparkbridge, never throw', () => {
+    const content = require('../lib/gtm-content')
+    expect(() => content.getChecklist('ops')).not.toThrow()
+    expect(content.getChecklist('ops')).toEqual([])
+    expect(() => content.getPage('nope', 'ops')).not.toThrow()
+    expect(content.getPage('nope', 'ops')).toBeNull()
+  })
+
+  test('unknown product falls back to default product behavior, never throws', () => {
+    const content = require('../lib/gtm-content')
+    expect(() => content.getTargets('bogus-product')).not.toThrow()
+    expect(content.getTargets('bogus-product').rows).toEqual([{ firm: 'LegacyCo' }])
+  })
+
+  test('caches are isolated per product (mutating one does not affect the other)', () => {
+    const content = require('../lib/gtm-content')
+    const sb = content.getTargets('sparkbridge')
+    const ops = content.getTargets('ops')
+    expect(sb).not.toBe(ops)
+    expect(sb.rows[0].firm).toBe('LegacyCo')
+    expect(ops.rows[0].firm).toBe('OpsCo')
+  })
+})

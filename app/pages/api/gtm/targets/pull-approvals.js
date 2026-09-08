@@ -2,6 +2,7 @@
 // gtm_targets_state. Explicit user-triggered action, never automatic.
 const { requireGtm, isOwnerEmail } = require('../../../../lib/auth')
 const { pullApprovals } = require('../../../../lib/gtm-sheets')
+const { resolveProduct } = require('../../../../lib/gtm-products')
 
 export default async function handler(req, res) {
   const session = await requireGtm(req, res)
@@ -10,8 +11,9 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).end()
 
+  const product = resolveProduct(req)
   try {
-    const result = await pullApprovals()
+    const result = await pullApprovals(product)
     return res.status(200).json(result)
   } catch (e) {
     console.error('pull-approvals failed:', e.message)

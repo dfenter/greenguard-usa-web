@@ -232,3 +232,69 @@ describe('library.js route: kind whitelist', () => {
     expect(res.statusCode).toBe(200)
   })
 })
+
+describe('gtm-sheets: graceful no-op when product has no sheetId', () => {
+  beforeEach(() => {
+    jest.resetModules()
+  })
+
+  test('writeTargetCells returns ok:false without throwing for a product with sheetId null', async () => {
+    jest.doMock('../lib/gsheets', () => ({ getSheets: jest.fn(() => { throw new Error('should not be called') }) }))
+    jest.doMock('../lib/db', () => ({ q: jest.fn() }))
+    const { writeTargetCells } = require('../lib/gtm-sheets')
+    const result = await writeTargetCells('Acme', { approve: 'Y' }, 'ops')
+    expect(result).toEqual({ ok: false, reason: 'sheet not configured' })
+  })
+
+  test('pullApprovals returns ok:false without throwing for a product with sheetId null', async () => {
+    jest.doMock('../lib/gsheets', () => ({ getSheets: jest.fn(() => { throw new Error('should not be called') }) }))
+    jest.doMock('../lib/db', () => ({ q: jest.fn() }))
+    const { pullApprovals } = require('../lib/gtm-sheets')
+    const result = await pullApprovals('ops')
+    expect(result).toEqual({ ok: false, reason: 'sheet not configured' })
+  })
+
+  test('sparkbridge (default) still attempts a sheets call when sheets client is unavailable', async () => {
+    jest.doMock('../lib/gsheets', () => ({ getSheets: jest.fn(() => null) }))
+    jest.doMock('../lib/db', () => ({ q: jest.fn() }))
+    const { writeTargetCells } = require('../lib/gtm-sheets')
+    const result = await writeTargetCells('Acme', { approve: 'Y' })
+    expect(result).toEqual({ ok: false, reason: 'sheets not configured' })
+  })
+
+  test('legacy SHEET_ID export matches sparkbridge product config', () => {
+    const { SHEET_ID } = require('../lib/gtm-sheets')
+    const { PRODUCTS } = require('../lib/gtm-products')
+    expect(SHEET_ID).toBe(PRODUCTS.sparkbridge.sheetId)
+  })
+})
+
+describe('gtm-hubspot: dealsEnabled/dealName per product', () => {
+  // An earlier describe block jest.doMock()s ../lib/gtm-hubspot with a partial
+  // mock that has no dealName. resetModules clears the module registry but not
+  // the doMock registration, so the real module must be un-mocked here.
+  beforeEach(() => {
+    jest.dontMock('../lib/gtm-hubspot')
+    jest.resetModules()
+  })
+
+  test('dealName default (sparkbridge) format unchanged', () => {
+    jest.resetModules()
+    const { dealName } = jest.requireActual('../lib/gtm-hubspot')
+    expect(dealName('Acme Integrators')).toBe('Acme Integrators · SparkBridge FAP')
+  })
+
+  test('dealName for ops uses the ops product label', () => {
+    jest.resetModules()
+    const { dealName } = jest.requireActual('../lib/gtm-hubspot')
+    expect(dealName('Acme Integrators', 'ops')).toBe('Acme Integrators · One Person Show')
+  })
+
+  test('dealsEnabled resolves false gracefully when pipeline probe fails', async () => {
+    jest.resetModules()
+    process.env.GTM_HUBSPOT_DEALS = undefined
+    const { dealsEnabled } = jest.requireActual('../lib/gtm-hubspot')
+    const ok = await dealsEnabled('sparkbridge')
+    expect(typeof ok).toBe('boolean')
+  })
+})

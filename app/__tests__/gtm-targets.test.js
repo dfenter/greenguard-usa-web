@@ -196,3 +196,75 @@ describe('every GTM API route references requireGtm', () => {
     expect(src.includes('requireGtm')).toBe(true)
   })
 })
+
+describe('API product resolution: touches route defaults + falls back on unknown product', () => {
+  const OLD_ENV = process.env
+
+  beforeEach(() => {
+    jest.resetModules()
+    process.env = { ...OLD_ENV }
+    process.env.OWNER_EMAIL = 'admin@greenguard-usa.com'
+    process.env.GTM_EMAILS = 'mba@greenguard-usa.com'
+  })
+
+  afterEach(() => {
+    process.env = OLD_ENV
+  })
+
+  function mockReqRes({ method, query, body }) {
+    const res = {
+      statusCode: 200,
+      _json: null,
+      status(code) { this.statusCode = code; return this },
+      json(payload) { this._json = payload; return this },
+      end() { return this },
+    }
+    const req = { method, query: query || {}, body: body || {} }
+    return { req, res }
+  }
+
+  test('GET with no product param queries product=sparkbridge', async () => {
+    jest.doMock('../lib/auth', () => {
+      const actual = jest.requireActual('../lib/auth')
+      return { ...actual, requireGtm: jest.fn(async () => ({ email: 'mba@greenguard-usa.com', role: 'gtm' })) }
+    })
+    const qMock = jest.fn(async () => ({ rows: [] }))
+    jest.doMock('../lib/db', () => ({ q: qMock }))
+
+    const handler = require('../pages/api/gtm/touches').default
+    const { req, res } = mockReqRes({ method: 'GET', query: { firm: 'Acme' } })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(qMock).toHaveBeenCalledWith(expect.any(String), ['Acme', 'sparkbridge'])
+  })
+
+  test('GET with an unknown product falls back to sparkbridge, never errors', async () => {
+    jest.doMock('../lib/auth', () => {
+      const actual = jest.requireActual('../lib/auth')
+      return { ...actual, requireGtm: jest.fn(async () => ({ email: 'mba@greenguard-usa.com', role: 'gtm' })) }
+    })
+    const qMock = jest.fn(async () => ({ rows: [] }))
+    jest.doMock('../lib/db', () => ({ q: qMock }))
+
+    const handler = require('../pages/api/gtm/touches').default
+    const { req, res } = mockReqRes({ method: 'GET', query: { firm: 'Acme', product: 'totally-bogus' } })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(qMock).toHaveBeenCalledWith(expect.any(String), ['Acme', 'sparkbridge'])
+  })
+
+  test('GET with product=ops scopes the query to ops', async () => {
+    jest.doMock('../lib/auth', () => {
+      const actual = jest.requireActual('../lib/auth')
+      return { ...actual, requireGtm: jest.fn(async () => ({ email: 'mba@greenguard-usa.com', role: 'gtm' })) }
+    })
+    const qMock = jest.fn(async () => ({ rows: [] }))
+    jest.doMock('../lib/db', () => ({ q: qMock }))
+
+    const handler = require('../pages/api/gtm/touches').default
+    const { req, res } = mockReqRes({ method: 'GET', query: { firm: 'Acme', product: 'ops' } })
+    await handler(req, res)
+    expect(res.statusCode).toBe(200)
+    expect(qMock).toHaveBeenCalledWith(expect.any(String), ['Acme', 'ops'])
+  })
+})

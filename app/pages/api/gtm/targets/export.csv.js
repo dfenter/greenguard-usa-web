@@ -3,6 +3,7 @@ const { requireGtm } = require('../../../../lib/auth')
 const { q } = require('../../../../lib/db')
 const { getTargets } = require('../../../../lib/gtm-content')
 const { toCsvRow } = require('../../../../lib/gtm-csv')
+const { resolveProduct } = require('../../../../lib/gtm-products')
 
 const EXTRA_COLS = ['score', 'tier', 'approve']
 
@@ -12,10 +13,11 @@ export default async function handler(req, res) {
 
   if (req.method !== 'GET') return res.status(405).end()
 
-  const { columns, rows } = getTargets()
+  const product = resolveProduct(req)
+  const { columns, rows } = getTargets(product)
   const [stateRes, scoreRes] = await Promise.all([
-    q(`SELECT firm, approved FROM gtm_targets_state`),
-    q(`SELECT firm, total, tier FROM gtm_scores WHERE email = $1`, [session.email]),
+    q(`SELECT firm, approved FROM gtm_targets_state WHERE product = $1`, [product]),
+    q(`SELECT firm, total, tier FROM gtm_scores WHERE email = $1 AND product = $2`, [session.email, product]),
   ])
   const stateByFirm = Object.fromEntries(stateRes.rows.map((r) => [r.firm, r]))
   const scoreByFirm = Object.fromEntries(scoreRes.rows.map((r) => [r.firm, r]))
