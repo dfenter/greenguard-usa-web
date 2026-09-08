@@ -105,6 +105,36 @@ const TABLES = [
     sql: `ALTER TABLE gtm_scores ADD COLUMN IF NOT EXISTS product text NOT NULL DEFAULT 'sparkbridge'`,
   },
   {
+    // gtm_scores' PK is (firm, email), which does not include product, so an
+    // OPS score for a firm name that also exists in the SparkBridge list would
+    // conflict onto the SparkBridge row and overwrite it. The score fields mean
+    // different things per product, so this index is what makes the upsert in
+    // targets/score.js able to key on (product, firm, email).
+    name: 'gtm_scores_product_firm_email_idx',
+    sql: `CREATE UNIQUE INDEX IF NOT EXISTS gtm_scores_product_firm_email_idx ON gtm_scores (product, firm, email)`,
+  },
+  {
+    // The index above is not sufficient on its own: the original PK
+    // (firm, email) still forbids a second row for the same firm under a
+    // different product, so scoring an OPS firm that shares a name with a
+    // SparkBridge one would fail outright. Widen the PK to include product.
+    // Guarded and non-destructive: it only fires when the narrow PK is still
+    // in place, and rows keep their identity because every legacy row was
+    // backfilled to product 'sparkbridge'.
+    name: 'gtm_scores_pk_widen_to_product',
+    sql: `DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'gtm_scores'::regclass AND contype = 'p'
+            AND pg_get_constraintdef(oid) = 'PRIMARY KEY (firm, email)'
+        ) THEN
+          ALTER TABLE gtm_scores DROP CONSTRAINT gtm_scores_pkey;
+          ALTER TABLE gtm_scores ADD CONSTRAINT gtm_scores_pkey PRIMARY KEY (product, firm, email);
+        END IF;
+      END $$`,
+  },
+  {
     name: 'gtm_deals_add_product',
     sql: `ALTER TABLE gtm_deals ADD COLUMN IF NOT EXISTS product text NOT NULL DEFAULT 'sparkbridge'`,
   },
@@ -119,6 +149,29 @@ const TABLES = [
   {
     name: 'gtm_progress_add_product',
     sql: `ALTER TABLE gtm_progress ADD COLUMN IF NOT EXISTS product text NOT NULL DEFAULT 'sparkbridge'`,
+  },
+  {
+    // Same shape as gtm_scores: the PK (email, item_id) has no product, and the
+    // two checklists are numbered independently, so their item ids collide by
+    // construction. Without this index a tick on an OPS item would flip the
+    // SparkBridge row with the same item id.
+    name: 'gtm_progress_product_email_item_idx',
+    sql: `CREATE UNIQUE INDEX IF NOT EXISTS gtm_progress_product_email_item_idx ON gtm_progress (product, email, item_id)`,
+  },
+  {
+    // Same reasoning as gtm_scores_pk_widen_to_product above.
+    name: 'gtm_progress_pk_widen_to_product',
+    sql: `DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'gtm_progress'::regclass AND contype = 'p'
+            AND pg_get_constraintdef(oid) = 'PRIMARY KEY (email, item_id)'
+        ) THEN
+          ALTER TABLE gtm_progress DROP CONSTRAINT gtm_progress_pkey;
+          ALTER TABLE gtm_progress ADD CONSTRAINT gtm_progress_pkey PRIMARY KEY (product, email, item_id);
+        END IF;
+      END $$`,
   },
   {
     name: 'gtm_call_reports_add_product',

@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     await q(
       `INSERT INTO gtm_progress (email, item_id, done, done_at, product)
        VALUES ($1, $2, $3, CASE WHEN $3 THEN now() ELSE NULL END, $4)
-       ON CONFLICT (email, item_id) DO UPDATE SET done = $3, done_at = CASE WHEN $3 THEN now() ELSE NULL END`,
+       ON CONFLICT (product, email, item_id) DO UPDATE SET done = $3, done_at = CASE WHEN $3 THEN now() ELSE NULL END`,
       [session.email, item_id, done, product]
     )
     return res.status(200).json({ ok: true })

@@ -268,3 +268,42 @@ describe('API product resolution: touches route defaults + falls back on unknown
     expect(qMock).toHaveBeenCalledWith(expect.any(String), ['Acme', 'ops'])
   })
 })
+
+// Regression guard for the two upsert bugs the gate review caught: gtm_scores
+// and gtm_progress both had a primary key that omitted product, so an OPS write
+// for a firm (or checklist item id) that also exists under SparkBridge would
+// conflict onto the SparkBridge row and silently overwrite it. The conflict
+// target and the migration's PK must both carry product.
+describe('per-product upserts cannot clobber the other product', () => {
+  const fs = require('fs')
+  const path = require('path')
+  const read = (p) => fs.readFileSync(path.join(__dirname, '..', p), 'utf8')
+
+  test('score.js upsert conflicts on (product, firm, email)', () => {
+    const src = read('pages/api/gtm/targets/score.js')
+    expect(src).toMatch(/ON CONFLICT \(product, firm, email\)/)
+    expect(src).not.toMatch(/ON CONFLICT \(firm, email\)/)
+  })
+
+  test('progress.js upsert conflicts on (product, email, item_id)', () => {
+    const src = read('pages/api/gtm/progress.js')
+    expect(src).toMatch(/ON CONFLICT \(product, email, item_id\)/)
+    expect(src).not.toMatch(/ON CONFLICT \(email, item_id\)/)
+  })
+
+  test('migration widens both primary keys to include product', () => {
+    const src = read('scripts/migrate-gtm.js')
+    expect(src).toMatch(/gtm_scores_pkey PRIMARY KEY \(product, firm, email\)/)
+    expect(src).toMatch(/gtm_progress_pkey PRIMARY KEY \(product, email, item_id\)/)
+    // The widen is guarded so it only fires against the original narrow PK,
+    // and it re-adds a PK immediately. No other DROP may enter this file.
+    expect(src.match(/DROP CONSTRAINT/g) || []).toHaveLength(2)
+    expect(src).not.toMatch(/DROP TABLE|DROP COLUMN|TRUNCATE|DELETE FROM/)
+  })
+
+  test('migration backs the conflict targets with unique indexes', () => {
+    const src = read('scripts/migrate-gtm.js')
+    expect(src).toMatch(/gtm_scores_product_firm_email_idx ON gtm_scores \(product, firm, email\)/)
+    expect(src).toMatch(/gtm_progress_product_email_item_idx ON gtm_progress \(product, email, item_id\)/)
+  })
+})

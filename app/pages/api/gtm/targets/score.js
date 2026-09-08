@@ -38,7 +38,7 @@ export default async function handler(req, res) {
   await q(
     `INSERT INTO gtm_scores (firm, email, s1, s2, s3, s4, s5, s6, s7, total, tier, updated_at, product)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, now(), $12)
-     ON CONFLICT (firm, email) DO UPDATE SET
+     ON CONFLICT (product, firm, email) DO UPDATE SET
        s1 = $3, s2 = $4, s3 = $5, s4 = $6, s5 = $7, s6 = $8, s7 = $9, total = $10, tier = $11, updated_at = now()`,
     [firm, session.email, s1, s2, s3, s4, s5, s6, s7, total, tier, product]
   )
