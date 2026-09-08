@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Crew · One Person Show</title>
-<meta name="description" content="Timesheets, in-house payroll with overtime and withholding, pay stubs, expense claims and quarterly filings, without a payroll provider.">
+<meta name="description" content="Timesheets, in-house payroll math with overtime and withholding, pay stubs, expense claims and 941, 940 and W-2 worksheets for your provider.">
 <link rel="canonical" href="https://ops.greenguard-usa.com/crew">
-<meta property="og:title" content="Crew · One Person Show"><meta property="og:description" content="Timesheets, in-house payroll with overtime and withholding, pay stubs, expense claims and quarterly filings, without a payroll provider."><meta property="og:type" content="website">
+<meta property="og:title" content="Crew · One Person Show"><meta property="og:description" content="Timesheets, in-house payroll math with overtime and withholding, pay stubs, expense claims and 941, 940 and W-2 worksheets for your provider."><meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/site.css">
@@ -18,10 +18,11 @@
     <div class="drop"><a href="/everything" aria-current="page">What it does</a><div class="menu"><div><a href="/customer-portal">Customer portal<small>What your customers see</small></a><a href="/office">The office<small>Owner and field app</small></a><a href="/inbox">Inbox<small>Email in your voice</small></a><a href="/day-of">Day of service<small>Route, remind, invoice</small></a><a href="/money">Money<small>Books, billing, collections</small></a><a href="/crew" aria-current="page">Crew<small>Time and payroll</small></a><a href="/growth">Growth<small>Follow-ups and marketing</small></a><a href="/everything">Everything it does<small>The complete list</small></a></div></div></div>
     <a href="/how-it-works">How it works</a>
     <a href="/pricing">Pricing</a>
+    <a href="/ten">Ten Operator Program</a>
     <a class="btn brass" href="/pricing#start" style="padding:10px 18px">Talk to us</a>
   </nav>
 </div></header>
-<section class="hero"><div class="wrap"><span class="kicker">Crew</span><h1>Clock in, clock out, get paid correctly, without a payroll company.</h1><p class="lede">The day you hire someone, One Person Show becomes their timesheet and your payroll department. Hours, overtime, withholding, employer taxes and filings are computed in the office app, and the numbers are yours to check before anyone is paid.</p></div></section><hr>
+<section class="hero"><div class="wrap"><span class="kicker">Crew</span><h1>Clock in, clock out, get the numbers right before anyone is paid.</h1><p class="lede">The day you hire someone, One Person Show becomes their timesheet and does your payroll math. Hours, overtime, withholding and employer taxes are computed in the office app, and the numbers are yours to check before anyone is paid. It prepares the worksheets; your payroll provider or accountant still files them.</p></div></section><hr>
 <section class="prose"><div class="wrap">
   <div class="side"><span class="kicker">Time</span><h2>Their hours, their view.</h2></div>
   <div class="body"><p>A field employee clocks in and out from their phone and sees their own hours, their own pay stubs, and nothing else: not another person's rate, not your tax ID, not the business's books. Every edit to a time card, by them or by you, is written to an audit trail that cannot be rewritten, with who changed it and when. Removed days can be re-entered; history cannot be erased. Time cards are kept two years and payroll records three, which is what the law asks.</p></div>
@@ -30,8 +31,8 @@
   <div class="body"><p>You approve hours weekly. Payroll computes overtime the way the Fair Labor Standards Act requires, on the blended rate across the week; federal withholding by the IRS percentage method from each person's W-4; Social Security and Medicare with the wage caps; federal and state unemployment; and mileage reimbursed tax-free at the IRS rate. Expense claims an employee paid personally ride along as non-taxable reimbursement, once. Only approved hours are payable, a finalized run freezes its stubs, and voiding a run releases the hours and reverses the book entries in the right period.</p>
 <figure class="aside"><figcaption>Week 34, one employee</figcaption><dl><dt>Hours</dt><dd>38.5 regular, 0 overtime</dd><dt>Gross</dt><dd>$770.00</dd><dt>Withheld</dt><dd>Federal, Social Security, Medicare</dd><dt>Employer</dt><dd>FICA match, FUTA, Texas SUTA</dd><dt>Stub</dt><dd>Printable, frozen on finalize</dd></dl></figure></div>
 </div></section><section class="prose"><div class="wrap">
-  <div class="side"><span class="kicker">Filings</span><h2>The forms filled in; the signing left to you.</h2></div>
-  <div class="body"><p>The filings page shows your deposit schedule and amounts, each quarter's Form 941 figures with the official PDF pre-filled for download, a Form 940 worksheet for the year, and the W-2 box values to type into the Social Security site in January. Finalizing a run emails you the exact deposit amount and its due date. Nothing is transmitted on your behalf; the portal computes, you deposit and sign. The tax tables are refreshed every January and a pay date in a year without tables is flagged rather than guessed.</p></div>
+  <div class="side"><span class="kicker">Filings</span><h2>Worksheets your provider files.</h2></div>
+  <div class="body"><p>The filings page shows your deposit schedule and amounts, each quarter's Form 941 figures with the official PDF pre-filled for download, a Form 940 worksheet for the year, and the W-2 box values to type into the Social Security site in January. Finalizing a run emails you the exact deposit amount and its due date. It prepares the 941, 940 and W-2 worksheets; your payroll provider or accountant is who deposits, files and signs. Nothing is transmitted on your behalf, and it does not remit taxes. The tax tables are refreshed every January and a pay date in a year without tables is flagged rather than guessed.</p></div>
 </div></section>
 <div class="wrap"><hr><div class="pager"><a href="/money">← Money</a><a href="/growth">Growth →</a></div></div>
 <section class="ask" id="start"><div class="wrap">
@@ -49,6 +50,6 @@
 (function(){var f=document.getElementById('waitlist'),m=document.getElementById('formMsg');if(!f)return;f.addEventListener('submit',function(e){e.preventDefault();var d=Object.fromEntries(new FormData(f).entries());m.textContent='Sending…';fetch('https://portal.greenguard-usa.com/api/leads/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:d.email,firstName:d.name,source:'ops:'+d.company+' / '+d.size})}).then(function(r){if(!r.ok)throw 0;m.textContent='Sent. A person replies within a day.';f.reset()}).catch(function(){location.href='mailto:admin@greenguard-usa.com?subject='+encodeURIComponent('One Person Show: '+d.company)+'&body='+encodeURIComponent(d.name+' / '+d.email+' / '+d.size);m.textContent='Opening your email app instead.'})})})();
 </script><footer class="site"><div class="wrap">
   <div>One Person Show is made in Austin, Texas, by the people who run a service company on it.<br><a href="mailto:admin@greenguard-usa.com">admin@greenguard-usa.com</a></div>
-  <nav><a href="/customer-portal">Customer portal</a><a href="/office">The office</a><a href="/inbox">Inbox</a><a href="/day-of">Day of service</a><a href="/money">Money</a><a href="/crew">Crew</a><a href="/growth">Growth</a><a href="/everything">Everything it does</a><a href="/how-it-works">How it works</a><a href="/pricing">Pricing</a></nav>
+  <nav><a href="/customer-portal">Customer portal</a><a href="/office">The office</a><a href="/inbox">Inbox</a><a href="/day-of">Day of service</a><a href="/money">Money</a><a href="/crew">Crew</a><a href="/growth">Growth</a><a href="/everything">Everything it does</a><a href="/how-it-works">How it works</a><a href="/pricing">Pricing</a><a href="/ten">Ten Operator Program</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav>
 </div></footer>
 </body></html>

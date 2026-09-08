@@ -162,6 +162,7 @@ function header(current) {
     <div class="drop"><a href="/everything"${NAV.some(([s]) => s === current) ? ' aria-current="page"' : ''}>What it does</a><div class="menu"><div>${items}</div></div></div>
     <a href="/how-it-works"${current === 'how-it-works' ? ' aria-current="page"' : ''}>How it works</a>
     <a href="/pricing"${current === 'pricing' ? ' aria-current="page"' : ''}>Pricing</a>
+    <a href="/ten"${current === 'ten' ? ' aria-current="page"' : ''}>Ten Operator Program</a>
     <a class="btn brass" href="/pricing#start" style="padding:10px 18px">Talk to us</a>
   </nav>
 </div></header>`
@@ -169,7 +170,7 @@ function header(current) {
 function footer() {
   return `<footer class="site"><div class="wrap">
   <div>One Person Show is made in Austin, Texas, by the people who run a service company on it.<br><a href="mailto:admin@greenguard-usa.com">admin@greenguard-usa.com</a></div>
-  <nav>${NAV.map(([s, t]) => `<a href="/${s}">${t}</a>`).join('')}<a href="/how-it-works">How it works</a><a href="/pricing">Pricing</a></nav>
+  <nav>${NAV.map(([s, t]) => `<a href="/${s}">${t}</a>`).join('')}<a href="/how-it-works">How it works</a><a href="/pricing">Pricing</a><a href="/ten">Ten Operator Program</a><a href="/terms">Terms</a><a href="/privacy">Privacy</a></nav>
 </div></footer>
 </body></html>`
 }
@@ -222,6 +223,12 @@ pages.index = head('One Person Show', 'A company that runs itself, for the perso
   <p class="lede">One Person Show is the office half of a one-person service company. It books, routes, reminds, invoices, collects, keeps the books, runs payroll and answers the phone, the email and the chat, so the person who does the work does not also have to do the paperwork at eleven at night.</p>
   <div class="actions"><a class="btn" href="/everything">See everything it does</a><a class="btn quiet" href="/how-it-works">How it works</a><span class="small">Runs a real service company in Austin: 86 customers, one owner, one field employee.</span></div>
 </div></section><hr>
+${prose({ kicker: 'Who this is for', title: 'Built for the owner who is still doing the work.', side: 'And built to say no to the businesses it will not fit.', body: `<p>This is built for you if you run a recurring-visit service business: the same customers, on a cadence, week after week. You have zero to three people in the field, including yourself, and the company does somewhere between eighty thousand and three hundred thousand dollars a year. You already run email and calendar on Google Workspace and take payment through Stripe, and you have forty or more recurring accounts on the books, which is the point where a spreadsheet stops being enough and a real system starts paying for itself.</p>
+<p>It is not built for job shops or one-off project work, where every job is a new estimate and there is no cadence to route or remind against. It is not built for dispatch operations where the schedule is invented fresh every morning from whatever calls came in overnight; the routing and reminder logic here assumes a calendar that is mostly known a week ahead. And it is not built for a franchise running a corporate system you are required to use; this replaces that system, it does not sit next to it.</p>` })}
+${prose({ kicker: 'One week, two ways', title: 'The same owner, the same customers, a different Tuesday.', tint: true, body: `<p>Before: quotes get typed by hand at night and go out a day or two late, so some of them are never answered. Invoices get chased by phone because nothing reminds anyone they are due. Reminders go out when somebody remembers to send them, which is not every time. The books get done on a weekend, usually months behind, so nobody actually knows the cash position on a given Tuesday. Payroll is built from memory and a worksheet, re-created from scratch most pay periods. The evenings that should belong to the trade, or to nothing at all, belong to the office instead.</p>
+<p>After: the same owner sends quotes the same day, each one with a link the customer can pay and book from directly. Invoices go out per visit, automatically, the day the work is done. Reminders go out on their own schedule and nobody has to remember them. The books close every month, categorized and ready for the CPA to review. Payroll worksheets are ready before the pay period ends, not reconstructed after it. The evenings are the owner's again.</p>` })}
+${prose({ kicker: 'Proof', title: 'We run our own service company on this.', body: `<p>This is not a demo built to look good. We run a recurring-visit service company in Austin on the same software described on this site, and we publish the operating numbers live at <a href="/proof">/proof</a>: how many accounts are active, how many visits ran in the last thirty days, how fast invoices get paid, when the books last closed. It is the same test any of the pages here would have to pass, applied to us first.</p>` })}
+${prose({ kicker: 'Ten Operator Program', title: 'We are onboarding ten operators this fall.', tint: true, body: `<p>If you fit the description above, and you are in the Austin metro area, we are setting up ten operators personally, at no cost for ninety days, with the price locked afterward. <a href="/ten">Read what it involves and apply</a>.</p>` })}
 ${prose({ kicker: 'A Tuesday', title: 'What a day looks like when the office is somebody else\'s problem.', side: 'This is the real schedule from the company we run on it. Names changed, times not.', body: `<div class="diary">
 <p><time>Midnight.</time> Tomorrow's eleven stops are read off the calendar and put in order, farthest from the shop first so the last one is close to home. The route goes to the vehicle's inbox with the access notes and what was done last time.</p>
 <p><time>Six.</time> Two customers whose cards expire this month get a short note asking them to update it before Friday's invoice. Nobody is surprised on Friday.</p>
@@ -299,20 +306,20 @@ pages.money = featurePage('money', 'Money', 'Invoice-based billing, failed-payme
   [
     { kicker: 'Billing', title: 'One invoice per visit, and a plan for when the card fails.', body: `<p>Every completed visit produces an invoice from your catalog, sent by email with a card link. Quotes are paid the same way: first month plus any one-time items, by card, at the end of the quote. A card that fails is retried, and the customer is emailed at day zero, two, seven and fourteen; after that service pauses and you are told. Customers whose cards are about to expire are warned a day before the monthly billing run. Nothing is ever silently dropped and nothing is ever silently charged.</p>` },
     { kicker: 'The books', title: 'Stripe, the bank, and a categorizer that learns your rules.', tint: true, body: `<p>Charges, refunds and payouts post to the ledger from Stripe every fifteen minutes. Bank and card statements from Amex, Chase, Capital One or any generic export are dropped in as files. Rows that match a rule are categorized; rows that do not are categorized by the assistant, and the rule it used is saved, so next month it is automatic. Expense receipts from the crew go through an approval queue and are booked exactly once, even when they are reimbursed through payroll. If your accountant wants QuickBooks Online, the ledger syncs to it.</p>
-<p>A morning brief arrives at seven: cash on hand, receivables and how old they are, customers who have gone quiet. On the first of the month the close runs: profit and loss, receivables aging, sales tax, mileage, emailed as one package.</p>` },
+<p>A morning brief arrives at seven: cash on hand, receivables and how old they are, customers who have gone quiet. On the first of the month the close runs: profit and loss, receivables aging, sales tax, mileage, prepared as one package for your CPA to review. It categorizes and prepares the close; it is not a CPA firm and gives no tax advice.</p>` },
     { kicker: 'Asking', title: 'Ask the books a question in English.', body: `<p>The books have a chat. Ask what you spent on fuel in June, which customers are behind, what a month looked like last year. The assistant writes a read-only query, runs it, and shows you the number with the query underneath so you can see exactly what it counted. It cannot change the ledger; that is a rule at the database, not a promise.</p>
 ${aside('Ask the books', [['You', '"Fuel spend, June?"'], ['Answer', '$412.18 across 9 transactions'], ['Also open', '3 invoices, $610, oldest 9 days'], ['June', 'Closed on July 1, package sent']])}` },
   ])
 
 // ── Crew ─────────────────────────────────────────────────────────────────────
-pages.crew = featurePage('crew', 'Crew', 'Timesheets, in-house payroll with overtime and withholding, pay stubs, expense claims and quarterly filings, without a payroll provider.',
-  'Clock in, clock out, get paid correctly, without a payroll company.',
-  'The day you hire someone, One Person Show becomes their timesheet and your payroll department. Hours, overtime, withholding, employer taxes and filings are computed in the office app, and the numbers are yours to check before anyone is paid.',
+pages.crew = featurePage('crew', 'Crew', 'Timesheets, in-house payroll math with overtime and withholding, pay stubs, expense claims and 941, 940 and W-2 worksheets for your provider.',
+  'Clock in, clock out, get the numbers right before anyone is paid.',
+  'The day you hire someone, One Person Show becomes their timesheet and does your payroll math. Hours, overtime, withholding and employer taxes are computed in the office app, and the numbers are yours to check before anyone is paid. It prepares the worksheets; your payroll provider or accountant still files them.',
   [
     { kicker: 'Time', title: 'Their hours, their view.', body: `<p>A field employee clocks in and out from their phone and sees their own hours, their own pay stubs, and nothing else: not another person's rate, not your tax ID, not the business's books. Every edit to a time card, by them or by you, is written to an audit trail that cannot be rewritten, with who changed it and when. Removed days can be re-entered; history cannot be erased. Time cards are kept two years and payroll records three, which is what the law asks.</p>` },
     { kicker: 'Payroll', title: 'Approve the week, run it, print the stubs.', tint: true, body: `<p>You approve hours weekly. Payroll computes overtime the way the Fair Labor Standards Act requires, on the blended rate across the week; federal withholding by the IRS percentage method from each person's W-4; Social Security and Medicare with the wage caps; federal and state unemployment; and mileage reimbursed tax-free at the IRS rate. Expense claims an employee paid personally ride along as non-taxable reimbursement, once. Only approved hours are payable, a finalized run freezes its stubs, and voiding a run releases the hours and reverses the book entries in the right period.</p>
 ${aside('Week 34, one employee', [['Hours', '38.5 regular, 0 overtime'], ['Gross', '$770.00'], ['Withheld', 'Federal, Social Security, Medicare'], ['Employer', 'FICA match, FUTA, Texas SUTA'], ['Stub', 'Printable, frozen on finalize']])}` },
-    { kicker: 'Filings', title: 'The forms filled in; the signing left to you.', body: `<p>The filings page shows your deposit schedule and amounts, each quarter's Form 941 figures with the official PDF pre-filled for download, a Form 940 worksheet for the year, and the W-2 box values to type into the Social Security site in January. Finalizing a run emails you the exact deposit amount and its due date. Nothing is transmitted on your behalf; the portal computes, you deposit and sign. The tax tables are refreshed every January and a pay date in a year without tables is flagged rather than guessed.</p>` },
+    { kicker: 'Filings', title: 'Worksheets your provider files.', body: `<p>The filings page shows your deposit schedule and amounts, each quarter's Form 941 figures with the official PDF pre-filled for download, a Form 940 worksheet for the year, and the W-2 box values to type into the Social Security site in January. Finalizing a run emails you the exact deposit amount and its due date. It prepares the 941, 940 and W-2 worksheets; your payroll provider or accountant is who deposits, files and signs. Nothing is transmitted on your behalf, and it does not remit taxes. The tax tables are refreshed every January and a pay date in a year without tables is flagged rather than guessed.</p>` },
   ])
 
 // ── Growth ───────────────────────────────────────────────────────────────────
@@ -379,7 +386,7 @@ const EVERYTHING = [
     ['Per-visit invoicing', 'No subscriptions; bundle pricing shared with quotes.'],
     ['Failed payments', 'Retry and email at day 0, 2, 7, 14; service paused after.'],
     ['Ledger', 'Stripe every fifteen minutes; bank and card statement imports.'],
-    ['Categorization', 'Rules first, assistant second, new rules saved.'],
+    ['Categorization', 'Rules first, assistant second, new rules saved; prepares the close for your CPA, not a substitute for one.'],
     ['Morning brief and monthly close', 'Cash, receivables, quiet customers; P&L, aging, sales tax, mileage on the first.'],
     ['Ask the books', 'Questions in English, read-only queries, shown with their SQL.'],
     ['Expenses', 'Receipt upload, approval queue, booked once, reimbursed through payroll if personal.'],
@@ -389,7 +396,7 @@ const EVERYTHING = [
     ['Timesheets', 'Clock in and out; own hours only; append-only revision history.'],
     ['Payroll', 'FLSA overtime, IRS withholding, FICA caps, FUTA and state unemployment, mileage.'],
     ['Stubs', 'Printable, frozen on finalize; void reverses correctly.'],
-    ['Filings', 'Deposit schedule, 941 pre-filled PDF, 940 worksheet, W-2 boxes; you sign.'],
+    ['Filings', 'Deposit schedule, 941 pre-filled PDF, 940 worksheet, W-2 boxes; your provider files.'],
     ['Roles', 'Owner sees all; a field employee sees only their own record.'],
   ]],
   ['Growth', [
@@ -433,8 +440,8 @@ ${ask()}` + footer()
 pages['how-it-works'] = head('How it works · One Person Show', 'A hosted portal, a Mac at your house running Claude on your own subscription, and the accounts you already have.', '/how-it-works') + header('how-it-works') + `
 <section class="hero"><div class="wrap"><span class="kicker">How it works</span><h1>A portal in the cloud, a Mac in the closet, <em>and the accounts you already have.</em></h1><p class="lede">There are three pieces. Your customers and your crew use a portal at your domain. The thinking happens on a small computer in your house. The data lives where it already lives.</p></div></section><hr>
 ${prose({ kicker: 'The portal', title: 'Hosted, at your domain.', body: `<p>The customer site and the office app are one application, hosted for you and updated without you noticing. It takes bookings and payments whether or not anything else is running. It talks to your calendar, your Stripe account and your CRM directly, and each of those remains the owner of its own data: the calendar decides when, Stripe decides how much, the CRM decides what the customer has. The portal never keeps a second copy that could drift.</p>` })}
-${prose({ kicker: 'The closet', title: 'Where the thinking happens.', tint: true, body: `<p>Every part of the system that reads, writes or judges anything runs on a Mac mini in your house: the email drafts, the job photo check, the bank categorization, the property assessment, the customer chat, the office chat. It runs Claude through the command line on your own subscription, the same flat monthly plan you would buy as a person, with no per-message bill and no shared key between you and us. A small program on that Mac listens for work from the portal over an encrypted tunnel that only opens outward; nothing on the internet can reach into your house.</p>
-<p>If the Mac is off, the portal keeps working. Bookings and payments go through. The chat says it will be back. Drafts resume when the Mac does. If you would rather not own a Mac, the appliance plan ships one configured; if you already have one, the installer takes about twenty minutes.</p>` })}
+${prose({ kicker: 'The closet', title: 'Where the thinking happens.', tint: true, body: `<p>Every part of the system that reads, writes or judges anything runs on one computer you own, at your place: the email drafts, the job photo check, the bank categorization, the property assessment, the customer chat, the office chat. It runs Claude through the command line on your own subscription, the same flat monthly plan you would buy as a person, with nothing billed per token and nothing billed per seat. Your records stay in your own Google and Stripe accounts, not on a shared cloud tenant we operate; a small program on that computer listens for work from the portal over a tunnel that only opens outward, not a shared cloud connection anyone else's traffic passes through, and nothing on the internet can reach into your house.</p>
+<p>If the computer is off, the portal keeps working. Bookings and payments go through. The chat says it will be back. The assistant catches up on drafts and categorization when the computer is back on. If you would rather not own one, the appliance plan ships one configured; if you already have one, the installer takes about twenty minutes.</p>` })}
 ${prose({ kicker: 'The rulebook', title: 'One file that everything obeys.', body: `<p>How early you will take an appointment, whether Saturdays exist, how far you will drive, in what order, which reminder goes by text, how long to chase a quote, how often you visit: these are lines in a plain file, set with you at setup and changed any time. The booking form, the router, the reminder jobs and the assistant all read the same file, so a rule is never true in one place and false in another. The assistant also reads a written operating manual for your business, the same one a human office manager would, which is how it knows that your company name is always written in full or that a thank-you must include the next visit date.</p>` })}
 ${prose({ kicker: 'What breaks, and what happens', title: 'Failure is designed in.', tint: true, body: `<p>A customer whose card declines is retried and emailed on a schedule, and their service pauses at two weeks rather than silently continuing unpaid. A booking placed outside your radius through a direct link is cancelled with a note to you. If the assistant started a change and could not finish it, it never tries again on its own; it tells you what happened. Every scheduled job reports whether it ran, and the Monday review tells you if one did not. Your data is in your Google, your Stripe and your calendar; if you cancel, there is nothing to export because nothing was moved.</p>` })}
 ${ask()}` + footer()
@@ -450,16 +457,103 @@ pages.pricing = head('Pricing · One Person Show', 'Starter $99, Office $249, Cr
 <tr><td>Inbox agent in your voice, office and customer chat, job photo check, property assessment on quotes</td><td></td><td>Included</td><td>Included</td></tr>
 <tr><td>Books: Stripe and bank imports, categorization, morning brief, monthly close, ask-the-books, expense claims, QuickBooks sync</td><td></td><td>Included</td><td>Included</td></tr>
 <tr><td>Follow-ups: quotes, failed cards, reviews, win-back; Google listing posts and replies; analytics; Monday review</td><td></td><td>Included</td><td>Included</td></tr>
-<tr><td>Field logins, timesheets with audit trail, payroll with overtime and withholding, stubs, 941 and W-2 worksheets, up to five field users</td><td></td><td></td><td>Included</td></tr>
-<tr><td>The Mac</td><td colspan="3">Office and Crew need a Mac at your place to run the assistant on your own Claude subscription. Bring one you have, or take the managed appliance: a Mac mini shipped configured, with the tunnel and updates handled, for $59 a month or $1,200 once.</td></tr>
+<tr><td>Field logins, timesheets with audit trail, payroll math with overtime and withholding, stubs, 941, 940 and W-2 worksheets for your provider, up to five field users</td><td></td><td></td><td>Included</td></tr>
+<tr><td>The Mac</td><td colspan="3">Office and Crew need one computer at your place to run the assistant on your own Claude subscription, so nothing is billed per token or per seat and your records stay in your own Google and Stripe accounts. Bring one you have, or take the managed appliance: a Mac mini shipped configured, with the tunnel and updates handled, for $59 a month or $1,200 once. If it is ever off, the portal keeps working and the assistant catches up when it is back.</td></tr>
 <tr><td>Setup</td><td>$500, done with you in an afternoon: customers imported, catalog and rules entered, domain live, a test booking and invoice.</td><td colspan="2">$1,500, done with you over a week: everything in Starter setup, plus your voice learned from five emails, the Mac brought up, the books connected, and a test reply, close and payroll run before we hand you the keys.</td></tr>
 <tr><td>You bring</td><td>Google Workspace and Stripe. Your own card fees.</td><td colspan="2">The same, plus a Claude Max subscription on your own account.</td></tr>
 </tbody></table>
-<p class="small">Pay for the year and get two months free. Cancel any month; your data was always in your own accounts. More than one business, or more than one location, on one Mac: <a href="#start">write to us</a>.</p>
+<p class="small">Pay for the year and get two months free. Cancel any month; your data was always in your own accounts. Payroll prepares your worksheets for your provider to file, and the books are categorized and closed for your CPA to review; we are not a payroll provider or a CPA firm. More than one business, or more than one location, on one Mac: <a href="#start">write to us</a>.</p>
 <h3>How this compares</h3>
 <p>The field-service apps price in three steps too. Jobber runs $39, $119 and $199 a month and adds $30 or more for each person after the first; Housecall Pro runs $79, $189 and $329 plus $35 a seat. Neither includes a customer portal that answers questions, an assistant that drafts your mail, bookkeeping, or payroll. To get those you add QuickBooks at $38 to $115, a payroll service at about $55 plus $6 a person, and an answering service from $80. A one-person operator on the middle tier of each is spending around four hundred a month across four tools that do not know about each other.</p>
 <p>Starter sits between their first and second tiers and already includes the portal and the self-serve quote. Office is priced against their top tier and replaces the bookkeeping, the answering service and most of the admin. Crew is the only plan that adds a fee for having employees, and it adds one flat fee, not one per person.</p>
 </div></div></section>
+${ask()}` + footer()
+
+// ── Ten Operator Program ─────────────────────────────────────────────────────
+pages.ten = head('Ten Operator Program · One Person Show', 'We are setting up ten Austin metro operators this fall: Office tier free for ninety days, then locked at $149 a month for year one.', '/ten') + header('ten') + `
+<section class="hero"><div class="wrap"><span class="kicker">Ten Operator Program</span><h1>We are setting up ten operators <em>ourselves, this fall.</em></h1><p class="lede">Ten Austin metro owner operators get the Office tier free for ninety days, set up personally by the two people who built this and run a company on it, and the price locked afterward.</p></div></section><hr>
+${prose({ kicker: 'What you get', title: 'Ninety days free, then locked.', body: `<p>You get the Office tier, the full front office plus the assistant that runs your email, your books and your customer chat, at no cost for ninety days. Setup, which normally runs fifteen hundred dollars, is waived. At the end of the ninety days the price locks at one hundred forty-nine dollars a month for the rest of year one, counted from your acceptance date, not from the day you sign up.</p>` })}
+${prose({ kicker: 'What we ask', title: 'Twenty minutes a week and some honesty about your numbers.', tint: true, body: `<p>In exchange we ask for a weekly twenty minute check-in, so we hear what is working and what is not while it still matters. We ask you to let us capture a baseline set of operating numbers at day zero, thirty, sixty and ninety, the same kind of numbers published on <a href="/proof">/proof</a> for our own company. And we ask permission to use the anonymized results in a case study; your name and your customers' information are never part of that.</p>` })}
+${prose({ kicker: 'Who qualifies', title: 'The same fit described on the homepage.', body: `<p>This program is for the Austin metro area specifically, because setup is done in person by us. You need a recurring-cadence service business, the same customers visited on a schedule, with anywhere from solo to three people in the field. You need to already be on Google Workspace and Stripe, since the system is built to sit on those accounts rather than replace them, and you need at least forty recurring accounts, which is roughly where the office work stops fitting in an evening.</p>` })}
+${prose({ kicker: 'At day 90', title: 'The free period ends and the locked price starts.', tint: true, body: `<p>At day ninety the free period ends and billing begins at the locked rate of one hundred forty-nine dollars a month, which holds for the rest of year one counted from your acceptance date. When that year is up you move to the standard Office tier at two hundred forty-nine dollars a month, the same price every other Office customer pays, unless we agree to extend the arrangement. There is no step-up you have not been told about in advance, and no minimum term at any point: you can stop the month after the free period as easily as any other month.</p>` })}
+<section class="prose"><div class="wrap">
+  <div class="side"><span class="kicker">Apply</span><h2>Tell us about your business.</h2><p>A person reads every application and replies within a day.</p></div>
+  <div class="body">
+  <form class="wl" id="tenapply" style="max-width:66ch">
+    <input name="company" placeholder="Company name" required>
+    <input name="name" placeholder="Your name" required autocomplete="name">
+    <input name="email" type="email" placeholder="Email" required autocomplete="email">
+    <input name="phone" placeholder="Phone" required autocomplete="tel">
+    <input name="vertical" placeholder="Trade or vertical" required>
+    <select name="size" aria-label="Team size"><option value="solo">Just me</option><option value="crew">Me plus one to three</option><option value="more">More than that</option></select>
+    <input name="city" placeholder="City" required>
+    <button class="btn brass" type="submit">Apply</button>
+    <div id="tenMsg" aria-live="polite"></div>
+  </form>
+  </div>
+</div></section>
+<script>
+(function(){var f=document.getElementById('tenapply'),m=document.getElementById('tenMsg');if(!f)return;f.addEventListener('submit',function(e){e.preventDefault();var d=Object.fromEntries(new FormData(f).entries());m.textContent='Sending…';var source='ops:ten:'+d.company+' / '+d.vertical+' / '+d.size;fetch('https://portal.greenguard-usa.com/api/leads/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:d.email,firstName:d.name,source:source})}).then(function(r){if(!r.ok)throw 0;m.textContent='Sent. A person replies within a day.';f.reset()}).catch(function(){location.href='mailto:admin@greenguard-usa.com?subject='+encodeURIComponent('Ten Operator Program: '+d.company)+'&body='+encodeURIComponent(d.name+' / '+d.email+' / '+d.phone+' / '+d.vertical+' / '+d.size+' / '+d.city);m.textContent='Opening your email app instead.'})})})();
+</script>
+` + footer()
+
+// ── Proof ─────────────────────────────────────────────────────────────────────
+// Last known values, read from the live endpoint on 2026-09-08 so the page is
+// already correct before the fetch resolves. The client overwrites any key the
+// API returns. Figures the endpoint cannot compute honestly are omitted there
+// and are not shown here either.
+const PROOF_FALLBACK = {
+  activeRecurring: 96,
+  visits30d: 148,
+  lastClose: '2026-08',
+  payrollRunsYtd: 0,
+}
+pages.proof = head('Proof · One Person Show', 'We run our own service company on this software. These are its live operating numbers, refreshed daily.', '/proof') + header('proof') + `
+<section class="hero"><div class="wrap"><span class="kicker">Proof</span><h1>We run our own company on this. <em>Here are the numbers.</em></h1><p class="lede">We are a recurring-visit service business ourselves. Everything described on this site runs our own company first, and these figures come from that same system, refreshed daily.</p></div></section><hr>
+<section class="prose full"><div class="wrap"><div class="body">
+<p>These numbers are not a demo or a projection. They are pulled from the same portal, the same calendar, the same billing account and the same books that run our own company, on the same schedule an owner using this software would see them on their own account. No customer names or personal information are shown here or anywhere on this page.</p>
+${aside('Our own operation, live', [
+  ['Active recurring accounts', `<span data-proof="activeRecurring">${PROOF_FALLBACK.activeRecurring}</span>`],
+  ['Visits completed, last 30 days', `<span data-proof="visits30d">${PROOF_FALLBACK.visits30d}</span>`],
+  ['Last monthly books close', `<span data-proof="lastClose">${PROOF_FALLBACK.lastClose}</span>`],
+  ['Payroll runs this year', `<span data-proof="payrollRunsYtd">${PROOF_FALLBACK.payrollRunsYtd}</span>`],
+])}
+<p>Two figures we would like to publish here are not on the list yet. We do not keep a per visit record of whether a reminder went out, and we will not estimate one, so the reminder rate is missing until the system records it properly. The median time from invoice to payment is left off for the same reason: the current billing window did not contain enough settled invoices to give an honest median. When each of those can be computed from the real record, it appears here.</p>
+<p class="small">Refreshed daily from the live system. If a figure does not update when the page loads, what you are seeing is the last known value read from that same system, not a number written by hand for this page.</p>
+<script>
+(function(){
+  var FALLBACK = ${JSON.stringify(PROOF_FALLBACK)};
+  fetch('https://portal.greenguard-usa.com/api/ops/proof').then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(data){
+    Object.keys(FALLBACK).forEach(function(k){
+      if (data && data[k] !== undefined && data[k] !== null) {
+        var el = document.querySelector('[data-proof="'+k+'"]');
+        if (el) el.textContent = data[k];
+      }
+    });
+  }).catch(function(){});
+})();
+</script>
+</div></div></section>
+${ask()}` + footer()
+
+// ── Terms ─────────────────────────────────────────────────────────────────────
+pages.terms = head('Terms · One Person Show', 'Plain terms for the One Person Show subscription: what it costs, what you keep, what we can see, and what law governs.', '/terms') + header('terms') + `
+<section class="hero"><div class="wrap"><span class="kicker">Terms</span><h1>The plain version of the agreement.</h1><p class="lede">This describes the terms in the way we would explain them to you in person. If you want the numbered version for a lawyer, ask and we will send one; this is the one we actually stand behind.</p></div></section><hr>
+${prose({ kicker: 'The subscription', title: 'Monthly software, a one-time setup, cancel any month.', body: `<p>One Person Show is a subscription software service billed monthly, plus a one-time setup fee charged once at the start. You can cancel any month; there is no minimum term. Canceling stops the next month's charge. We do not refund the current month once it has started, since the service has already run for that period.</p>` })}
+${prose({ kicker: 'Your data', title: 'It lives in your accounts, and it stays there.', tint: true, body: `<p>Your customer records, calendar, billing and books live in your own Google Workspace and Stripe accounts, not in a database we own. When you cancel, nothing needs to be exported, because nothing was ever moved out of your accounts in the first place. What we operate is the software that reads and writes to those accounts on your behalf, plus the computer at your location that runs the assistant.</p>` })}
+${prose({ kicker: 'What we can see', title: 'What is needed to support you, and nothing kept beyond that.', body: `<p>When you ask us for help, we can see what is needed to diagnose the problem: the same records the software itself reads, on the account you asked us to look at. We do not browse other customers' accounts, and we do not sell or share your data with anyone outside the operation of the service. Nothing you send us is used to train a model on your business or anyone else's.</p>` })}
+${prose({ kicker: 'What we are not', title: 'Not a payroll provider, not a CPA firm.', tint: true, body: `<p>The payroll feature prepares timesheets, overtime calculations, and 941, 940 and W-2 worksheets; it does not remit taxes or file on your behalf, and we are not a payroll provider. The bookkeeping feature categorizes transactions and prepares your monthly close; it does not give tax advice, and we are not a CPA firm. Both are built to hand a finished worksheet to the professional you already use.</p>` })}
+${prose({ kicker: 'Law and contact', title: 'Texas law, and a real person to write to.', body: `<p>This agreement is governed by the law of the State of Texas. If anything here is unclear, or you want the fuller written version, write to <a href="mailto:admin@greenguard-usa.com">admin@greenguard-usa.com</a> and a person will answer.</p>` })}
+${ask()}` + footer()
+
+// ── Privacy ───────────────────────────────────────────────────────────────────
+pages.privacy = head('Privacy · One Person Show', 'What we collect, what we can see, and what we never do with your data or your customers\' data.', '/privacy') + header('privacy') + `
+<section class="hero"><div class="wrap"><span class="kicker">Privacy</span><h1>What we do with your data, in plain language.</h1><p class="lede">This is a short, honest description of what we collect, what we can see, and what we do not do. It is written to be read, not skipped.</p></div></section><hr>
+${prose({ kicker: 'What we collect', title: 'Account and setup information, and what your accounts already hold.', body: `<p>To run your subscription we collect your name, business name, contact information and billing details. Beyond that, the software reads and writes to the Google Workspace, Stripe and calendar accounts you connect, so your customer records, appointments, invoices and books live in those accounts, not in a separate database we build up over time.</p>` })}
+${prose({ kicker: 'What we can see', title: 'Only what is needed to run and support the service.', tint: true, body: `<p>We can see what the software itself sees, in order to run it and to help you when something goes wrong. We do not look at your accounts beyond what supporting you requires, and we do not look at other customers' accounts at all. Your customers' personal information, including anything shown on their portal, is never displayed on any public page, including the proof numbers we publish about our own company.</p>` })}
+${prose({ kicker: 'What we never do', title: 'No sale of data, no training on your business.', body: `<p>We do not sell your data or your customers' data to anyone, for any reason. We do not use your business's information, your customers' information, or the content of your emails, books or job photos to train a model, ours or anyone else's. Nothing you or your customers type into the system becomes part of a product used for someone else's business.</p>` })}
+${prose({ kicker: 'Not a payroll provider or CPA firm', title: 'Two features, two clear limits.', tint: true, body: `<p>The payroll feature prepares worksheets and calculations for your own payroll provider or accountant to file; we are not a payroll provider and we do not remit taxes. The bookkeeping feature categorizes transactions and prepares your monthly close for your CPA to review; we are not a CPA firm and we do not give tax advice. Both are described in full on their own pages.</p>` })}
+${prose({ kicker: 'Contact', title: 'Questions go to a real inbox.', body: `<p>If you have a question about your data, or want to know exactly what is stored where, write to <a href="mailto:admin@greenguard-usa.com">admin@greenguard-usa.com</a> and a person will answer.</p>` })}
 ${ask()}` + footer()
 
 fs.writeFileSync(path.join(OUT, 'site.css'), CSS.trim() + '\n')
