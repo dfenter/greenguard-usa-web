@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="/sparkbridge/sb.css">
 <link rel="stylesheet" href="/sparkbridge/suite.css">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Native drivers","item":"https://mqtt.greenguard-usa.com/sparkbridge/drivers"},{"@type":"ListItem","position":3,"name":"SparkS7","item":"https://mqtt.greenguard-usa.com/sparkbridge/s7"}]},{"@type":"SoftwareApplication","name":"SparkS7 Siemens S7-1200/1500 Symbolic Driver for Ignition","url":"https://mqtt.greenguard-usa.com/sparkbridge/s7","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer, Ignition 8.3","softwareVersion":"0.3.0","datePublished":"2026-09-02","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"Native Siemens S7-1200/1500 symbolic driver for Ignition 8.1 and 8.3, S7comm classic and S7comm-plus. Brings back symbolic addressing dropped from Ignition 8.3. $695 per gateway, bought once.","offers":{"@type":"Offer","price":"695","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per gateway. Standalone, with its own license."}}]}
+{"@context":"https://schema.org","@graph":[{"@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"SparkBridge","item":"https://mqtt.greenguard-usa.com/sparkbridge/"},{"@type":"ListItem","position":2,"name":"Native drivers","item":"https://mqtt.greenguard-usa.com/sparkbridge/drivers"},{"@type":"ListItem","position":3,"name":"SparkS7","item":"https://mqtt.greenguard-usa.com/sparkbridge/s7"}]},{"@type":"SoftwareApplication","name":"SparkS7 Siemens S7-1200/1500 Symbolic Driver for Ignition","url":"https://mqtt.greenguard-usa.com/sparkbridge/s7","applicationCategory":"BusinessApplication","operatingSystem":"Inductive Automation Ignition 8.1.19 or newer, Ignition 8.3","softwareVersion":"0.3.0","datePublished":"2026-09-11","publisher":{"@id":"https://mqtt.greenguard-usa.com/sparkbridge/#org"},"description":"Native Siemens S7-1200/1500 symbolic driver for Ignition 8.1 and 8.3, S7comm classic and S7comm-plus. Brings back symbolic addressing dropped from Ignition 8.3. $695 per gateway, bought once.","offers":{"@type":"Offer","price":"695","priceCurrency":"USD","url":"https://mqtt.greenguard-usa.com/sparkbridge/pricing","availability":"https://schema.org/InStock","description":"Perpetual license, per gateway. Standalone, with its own license."}}]}
 </script>
 </head>
 <body>
@@ -55,7 +55,7 @@
         <div class="eyebrow">SparkS7</div>
         <h1>Symbolic S7 addressing, back on both Ignition lines</h1>
         <p>Inductive Automation dropped symbolic S7 addressing in Ignition 8.3. Plants running Siemens S7-1200/1500 controllers got stuck reading raw DB offsets. SparkS7 speaks S7comm classic and S7comm-plus and brings symbolic addressing back on 8.1 and 8.3 alike.</p>
-        <div class="pmeta"><span class="stat">0.3.0 next</span><span>Runs on the gateway that touches the equipment</span><span>$695, its own license</span></div>
+        <div class="pmeta"><span class="stat">0.3.0</span><span>Runs on the gateway that touches the equipment</span><span>$695, its own license</span></div>
       </div>
       <div class="artifact">
         <div class="artifact-head"><span>S7comm-plus symbol browse</span><span class="live"><i class="dot"></i>Live</span></div>
@@ -87,7 +87,7 @@
           <tr><th>What it is</th><td>Siemens S7-1200/1500 controllers brought into Ignition with symbolic tag names, S7comm classic and S7comm-plus</td></tr>
           <tr><th>Where it runs</th><td>On the gateway that touches the PLC</td></tr>
           <tr><th>Who it is for</th><td>Plants running S7-1200/1500 on Ignition 8.3, where symbolic addressing was removed, or on 8.1 wanting it without raw DB offsets</td></tr>
-          <tr><th>Status</th><td>0.3.0 next: module id renamed to <span class="mono">com.greenguardusa.sparks7</span>, proven on S7-1500 in PLCSIM Advanced V7, not yet against real S7-1500 hardware. Currently released: <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/v2.7.0">SparkS7 2.7.0</a></td></tr>
+          <tr><th>Status</th><td>0.3.0 released: module id is <span class="mono">com.greenguardusa.sparks7</span>, proven on S7-1500 in PLCSIM Advanced V7, not yet against real S7-1500 hardware. <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/sparks7-v0.3.0">Release notes</a></td></tr>
           <tr><th>Licensing</th><td>$695 per gateway, bought once and kept, not a subscription. It carries its own per-gateway license. One license covers the 8.1 and 8.3 builds. Full terms on <a href="/sparkbridge/pricing">pricing</a></td></tr>
         </table>
       </div>
@@ -123,12 +123,12 @@
 <section>
   <div class="wrap">
     <div class="measure">
-      <p>SparkS7 ships in the 2.7.0 bundle for both Ignition lines. <a href="/sparkbridge/download">Download it</a> or read the <a href="/sparkbridge/docs#sparks7">docs</a>.</p>
+      <p>SparkS7 0.3.0 ships for both Ignition lines. <a href="/sparkbridge/download">Download it</a> or read the <a href="/sparkbridge/docs#sparks7">docs</a>.</p>
     </div>
 
     <h2 style="margin-top:40px">For your engineers</h2>
     <div class="measure">
-      <p>SparkS7 0.3.0 (next release, not yet published) is a native Siemens S7-1200/1500 driver module for Ignition 8.1 and 8.3, speaking S7comm classic and S7comm-plus. Module id <code>com.greenguardusa.sparks7</code>. It reads the CPU's symbol table directly, optimized-access DBs included, and exposes tags by name instead of raw offset. S7comm-plus runs over TLS 1.3 with trust-on-first-use and operator certificate pinning; wire mode auto negotiates S7comm-plus first and falls back to classic S7comm only when the CPU does not speak it. A diagnostics folder reports negotiated PDU size, wire mode and connection status. Verified on S7-1500 in PLCSIM Advanced V7 with a real TIA project on 8.1 and 8.3, not yet against real S7-1500 hardware; a pilot on your own S7-1500 is part of every evaluation. $695 per gateway, standalone, unchanged from the current release.</p>
+      <p>SparkS7 0.3.0 is a native Siemens S7-1200/1500 driver module for Ignition 8.1 and 8.3, speaking S7comm classic and S7comm-plus. Module id <code>com.greenguardusa.sparks7</code>. It reads the CPU's symbol table directly, optimized-access DBs included, and exposes tags by name instead of raw offset. S7comm-plus runs over TLS 1.3 with trust-on-first-use and operator certificate pinning; wire mode auto negotiates S7comm-plus first and falls back to classic S7comm only when the CPU does not speak it. A diagnostics folder reports negotiated PDU size, wire mode and connection status. Verified on S7-1500 in PLCSIM Advanced V7 with a real TIA project on 8.1 and 8.3, not yet against real S7-1500 hardware; a pilot on your own S7-1500 is part of every evaluation. $695 per gateway, standalone.</p>
     </div>
 
     <div class="cta-row">
