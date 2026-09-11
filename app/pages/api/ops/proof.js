@@ -140,25 +140,85 @@ function computeFailedCardsRecoveredWeek(invoices, since) {
   ).length
 }
 
-// remindersSent: omitted. notify-queue.js (lib/notify-queue.js) is a
-// transient KV job queue (1h TTL on job blobs), not a durable sent-log; there
-// is no reminders table. Not reliably computable over a 7-day window.
-
 // messagesDrafted: omitted. lib/gemini.js draft helpers (used by
 // pages/api/admin/ai-draft.js) are stateless request/response — the drafted
 // text is returned to the caller and never persisted anywhere.
 
-// routesGenerated: omitted. lib/route-plan.js getLatestRoutePlan() only
-// exposes the single latest plan + its generatedAt; there is no persisted
-// history/log of optimizer runs to count over a trailing window.
+// quotesSent: omitted. Logged as HubSpot notes on individual contacts
+// (pages/api/admin/send-quote.js addNote 'QUOTE-SENT') but lib/hubspot.js
+// only exposes per-contact note reads — there is no cross-contact note
+// search/count by prefix or date range, so a 7-day total is not reliably
+// computable without an unbounded full-CRM scan.
 
-// followUpsCompleted / quotesSent: omitted. Both are logged as HubSpot notes
-// on individual contacts (pages/api/admin/send-quote.js addNote 'QUOTE-SENT',
-// pages/api/cron/quote-followup.js addNote 'QUOTE-PAID'/'QUOTE-LOST') but
-// lib/hubspot.js only exposes per-contact note reads (getContactNotes /
-// getClientNotes) — there is no cross-contact note search/count by prefix or
-// date range, so a 7-day total is not reliably computable without an
-// unbounded full-CRM scan.
+// visits: appointments in the trailing 7 days already visited, from GCal,
+// mirroring computeVisits30d exactly (just a 7-day window).
+async function computeWeekSchedule(since) {
+  const { getBookingsForDateRangePaginated: getBookingsForDateRange } = require('../../../lib/gcal')
+  const now = new Date()
+  const start = new Date(since * 1000)
+  const bookings = await getBookingsForDateRange(start.toISOString(), now.toISOString())
+  if (!Array.isArray(bookings)) return undefined
+  const visits = bookings.filter(
+    (b) => b.startTime && new Date(b.startTime).getTime() <= now.getTime()
+  ).length
+  return visits
+}
+
+// remindersSent: the two-day-out email reminder is logged in the sent
+// mailbox (subject "appointment is in 2 days"), so it is counted directly.
+// The two-hour text reminder has no reachable log, so it is assumed one per
+// visit. Omitted if the Gmail count throws.
+async function computeRemindersSentWeek(visits, since) {
+  if (visits === undefined) return undefined
+  const { countSentMessages } = require('../../../lib/gmail-count')
+  const emailReminders = await countSentMessages(
+    `in:sent after:${since} subject:"appointment is in 2 days"`
+  )
+  return emailReminders + visits
+}
+
+// followUpsCompleted: counted directly from the sent mailbox, never derived
+// from the visit count.
+async function computeFollowUpsCompletedWeek(since) {
+  const { countSentMessages } = require('../../../lib/gmail-count')
+  return countSentMessages(`in:sent after:${since} subject:"Thank you for choosing GreenGuard USA"`)
+}
+
+// routesGenerated: one per day a daily route email went out, counted from the
+// sent mailbox (subject "GreenGuard Route <dash> <day> | <n> stops | <mi> mi").
+// Two senders emit that subject for the same day: the Mac launchd job the
+// evening before and the Render backup the next morning, sometimes with
+// different stops or miles, so dedup on the day label before the first pipe.
+// The portal's own /api/cron/daily-route ("Today's route") has no scheduled
+// caller and sent nothing in the last 30 days, so it is not counted.
+// Plus 1 if the weekly optimizer plan was generated inside the window; the
+// plan store is try/caught on its own so its failure only drops the +1.
+async function computeRoutesGeneratedWeek(since) {
+  const { countDistinctSentSubjects } = require('../../../lib/gmail-count')
+  // Subject is "GreenGuard Route <dash> <day> | <n> stops | <mi> mi"; the Mac evening
+  // send and the Render morning send can differ in stops or miles, so dedup
+  // on the day label before the first pipe.
+  const emailDays = await countDistinctSentSubjects(
+    `in:sent after:${since} subject:"GreenGuard Route"`,
+    (subject) => subject.split('|')[0].trim()
+  )
+
+  let planInWindow = 0
+  try {
+    const { getLatestRoutePlan } = require('../../../lib/route-plan')
+    const nowMs = Date.now()
+    const sinceMs = since * 1000
+    const { generatedAt } = await getLatestRoutePlan()
+    if (generatedAt) {
+      const ts = Date.parse(generatedAt)
+      if (Number.isFinite(ts) && ts >= sinceMs && ts <= nowMs) planInWindow = 1
+    }
+  } catch {
+    planInWindow = 0
+  }
+
+  return emailDays + planInWindow
+}
 
 async function computeProof() {
   const out = { generatedAt: new Date().toISOString() }
@@ -180,10 +240,21 @@ async function computeProof() {
     paidInvoicesWeek = undefined
   }
 
+  let visitsWeek
+  try {
+    visitsWeek = await computeWeekSchedule(since)
+  } catch {
+    visitsWeek = undefined
+  }
+
   const weekJobs = [
     ['invoicesIssued', () => computeInvoicesIssuedWeek(since)],
     ['invoicesPaid', () => computeInvoicesPaidWeek(paidInvoicesWeek)],
     ['failedCardsRecovered', () => computeFailedCardsRecoveredWeek(paidInvoicesWeek, since)],
+    ['visits', () => visitsWeek],
+    ['remindersSent', () => computeRemindersSentWeek(visitsWeek, since)],
+    ['followUpsCompleted', () => computeFollowUpsCompletedWeek(since)],
+    ['routesGenerated', () => computeRoutesGeneratedWeek(since)],
   ]
 
   const results = await Promise.allSettled(
@@ -257,7 +328,7 @@ module.exports = async function handler(req, res) {
 
     let body
     try {
-      body = await cached('ops:proof:v4', 86400, computeProof)
+      body = await cached('ops:proof:v5', 86400, computeProof)
     } catch {
       body = { generatedAt: new Date().toISOString() }
     }

@@ -50,6 +50,18 @@ jest.mock('../lib/payroll-store', () => ({
   listRuns: (...args) => mockListRuns(...args),
 }))
 
+const mockGetLatestRoutePlan = jest.fn()
+jest.mock('../lib/route-plan', () => ({
+  getLatestRoutePlan: (...args) => mockGetLatestRoutePlan(...args),
+}))
+
+const mockCountSentMessages = jest.fn()
+const mockCountDistinctSentSubjects = jest.fn()
+jest.mock('../lib/gmail-count', () => ({
+  countSentMessages: (...args) => mockCountSentMessages(...args),
+  countDistinctSentSubjects: (...args) => mockCountDistinctSentSubjects(...args),
+}))
+
 const handler = require('../pages/api/ops/proof')
 
 function mockRes() {
@@ -129,6 +141,10 @@ describe('happy path', () => {
       { payDate: '2025-12-15', status: 'finalized' }, // prior year
     ])
 
+    mockCountSentMessages.mockResolvedValue(3)
+    mockCountDistinctSentSubjects.mockResolvedValue(2)
+    mockGetLatestRoutePlan.mockResolvedValue({ plan: {}, generatedAt: new Date().toISOString() })
+
     const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
     const res = mockRes()
     await handler(req, res)
@@ -145,11 +161,153 @@ describe('happy path', () => {
       invoicesIssued: 2, // draft excluded
       invoicesPaid: 2,
       failedCardsRecovered: 1,
+      visits: 2,
+      remindersSent: 5, // 3 sent-mailbox emails + 2 visits (one text each)
+      followUpsCompleted: 3,
+      routesGenerated: 3, // 2 distinct route-email days + 1 in-window plan
     })
     // listAllInvoicesSince is called once for the 90-day median window and
     // once (shared) for the 7-day week window — never a second time for the
     // week figures.
     expect(mockListAllInvoicesSince).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('week schedule-derived figures', () => {
+  beforeEach(() => {
+    mockCountContactsByProperty.mockResolvedValue(1)
+    mockQ.mockResolvedValue({ rows: [] })
+    mockListRuns.mockResolvedValue([])
+    mockListAllInvoicesSince.mockResolvedValue([])
+    mockInvoicesList.mockReturnValue(asyncIterableFrom([]))
+    mockCountDistinctSentSubjects.mockResolvedValue(0)
+    mockGetLatestRoutePlan.mockResolvedValue({ plan: null, generatedAt: null })
+  })
+
+  test('remindersSent and followUpsCompleted come from the sent mailbox, not just visits', async () => {
+    const now = Date.now()
+    mockGetBookingsForDateRange.mockResolvedValue([
+      { id: 'a', startTime: new Date(now - 1 * 86400000).toISOString() },
+      { id: 'b', startTime: new Date(now - 2 * 86400000).toISOString() },
+      { id: 'c', startTime: new Date(now - 3 * 86400000).toISOString() },
+    ])
+    mockCountSentMessages.mockResolvedValue(7)
+
+    const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
+    const res = mockRes()
+    await handler(req, res)
+
+    expect(res.body.week.visits).toBe(3)
+    expect(res.body.week.remindersSent).toBe(10) // 7 + 3
+    expect(res.body.week.followUpsCompleted).toBe(7)
+    expect(res.body.week.routesGenerated).toBe(0)
+    // called once for reminders query, once for follow-up query, using
+    // the epoch-seconds `after:` form (threaded from computeProof's `since`)
+    expect(mockCountSentMessages).toHaveBeenCalledWith(
+      expect.stringMatching(/^in:sent after:\d+ subject:"appointment is in 2 days"$/)
+    )
+    expect(mockCountSentMessages).toHaveBeenCalledWith(
+      expect.stringMatching(/^in:sent after:\d+ subject:"Thank you for choosing GreenGuard USA"$/)
+    )
+  })
+
+  test('remindersSent is omitted when the GCal visit fetch fails, even if Gmail succeeds', async () => {
+    mockGetBookingsForDateRange.mockRejectedValue(new Error('gcal down'))
+    mockCountSentMessages.mockResolvedValue(4)
+
+    const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
+    const res = mockRes()
+    await handler(req, res)
+
+    expect(res.body.week.visits).toBeUndefined()
+    expect(res.body.week.remindersSent).toBeUndefined()
+    // followUpsCompleted does not depend on visits, so it still comes through
+    expect(res.body.week.followUpsCompleted).toBe(4)
+  })
+
+  test('remindersSent is omitted when the Gmail count throws', async () => {
+    mockGetBookingsForDateRange.mockResolvedValue([
+      { id: 'a', startTime: new Date().toISOString() },
+    ])
+    mockCountSentMessages.mockRejectedValue(new Error('gmail down'))
+
+    const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
+    const res = mockRes()
+    await handler(req, res)
+
+    expect(res.body.week.visits).toBe(1)
+    expect(res.body.week.remindersSent).toBeUndefined()
+    expect(res.body.week.followUpsCompleted).toBeUndefined()
+  })
+
+  test('routesGenerated adds distinct route-email days plus 1 for an in-window plan', async () => {
+    mockGetBookingsForDateRange.mockResolvedValue([])
+    mockCountSentMessages.mockResolvedValue(0)
+    mockCountDistinctSentSubjects.mockResolvedValue(4)
+    mockGetLatestRoutePlan.mockResolvedValue({
+      plan: {},
+      generatedAt: new Date(Date.now() - 2 * 86400000).toISOString(),
+    })
+
+    const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
+    const res = mockRes()
+    await handler(req, res)
+
+    expect(res.body.week.routesGenerated).toBe(5) // 4 email days + 1 in-window plan
+    expect(mockCountDistinctSentSubjects).toHaveBeenCalledWith(
+      expect.stringMatching(/^in:sent after:\d+ subject:"GreenGuard Route"$/),
+      expect.any(Function)
+    )
+    // Dedup key is the day label before the first pipe, so a re-send with
+    // different stops or miles counts as the same day.
+    const keyFn = mockCountDistinctSentSubjects.mock.calls[0][1]
+    expect(keyFn('GreenGuard Route - Tue Sep 8  |  8 stops  |  92.0 mi')).toBe('GreenGuard Route - Tue Sep 8')
+    expect(keyFn('GreenGuard Route - Tue Sep 8  |  6 stops  |  91.3 mi')).toBe('GreenGuard Route - Tue Sep 8')
+  })
+
+  test('routesGenerated excludes a plan generatedAt outside the trailing 7 days', async () => {
+    mockGetBookingsForDateRange.mockResolvedValue([])
+    mockCountSentMessages.mockResolvedValue(0)
+    mockCountDistinctSentSubjects.mockResolvedValue(2)
+    mockGetLatestRoutePlan.mockResolvedValue({
+      plan: {},
+      generatedAt: new Date(Date.now() - 30 * 86400000).toISOString(),
+    })
+
+    const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
+    const res = mockRes()
+    await handler(req, res)
+
+    expect(res.body.week.routesGenerated).toBe(2)
+  })
+
+  test('routesGenerated is NOT omitted when only the plan store throws (email count still counts)', async () => {
+    mockGetBookingsForDateRange.mockResolvedValue([])
+    mockCountSentMessages.mockResolvedValue(0)
+    mockCountDistinctSentSubjects.mockResolvedValue(3)
+    mockGetLatestRoutePlan.mockRejectedValue(new Error('no plan generated yet'))
+
+    const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
+    const res = mockRes()
+    await handler(req, res)
+
+    expect(res.body.week.routesGenerated).toBe(3)
+  })
+
+  test('routesGenerated is omitted when the Gmail distinct-subject count throws', async () => {
+    mockGetBookingsForDateRange.mockResolvedValue([])
+    mockCountSentMessages.mockResolvedValue(0)
+    mockCountDistinctSentSubjects.mockRejectedValue(new Error('gmail down'))
+    mockGetLatestRoutePlan.mockResolvedValue({
+      plan: {},
+      generatedAt: new Date().toISOString(),
+    })
+
+    const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
+    const res = mockRes()
+    await handler(req, res)
+
+    expect(res.body.week.routesGenerated).toBeUndefined()
   })
 })
 
@@ -159,11 +317,18 @@ describe('week object', () => {
     mockGetBookingsForDateRange.mockResolvedValue([])
     mockQ.mockResolvedValue({ rows: [] })
     mockListRuns.mockResolvedValue([])
+    mockCountSentMessages.mockResolvedValue(0)
+    mockCountDistinctSentSubjects.mockResolvedValue(0)
+    mockGetLatestRoutePlan.mockResolvedValue({ plan: null, generatedAt: null })
   })
 
   test('week key is omitted entirely when every week source throws', async () => {
     mockListAllInvoicesSince.mockRejectedValue(new Error('stripe down'))
     mockInvoicesList.mockImplementation(() => { throw new Error('stripe list down') })
+    mockGetBookingsForDateRange.mockRejectedValue(new Error('gcal down'))
+    mockCountSentMessages.mockRejectedValue(new Error('gmail down'))
+    mockCountDistinctSentSubjects.mockRejectedValue(new Error('gmail down'))
+    mockGetLatestRoutePlan.mockRejectedValue(new Error('plan store down'))
 
     const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
     const res = mockRes()
@@ -182,7 +347,14 @@ describe('week object', () => {
     const res = mockRes()
     await handler(req, res)
 
-    expect(res.body.week).toEqual({ invoicesPaid: 1, failedCardsRecovered: 0 })
+    expect(res.body.week).toEqual({
+      invoicesPaid: 1,
+      failedCardsRecovered: 0,
+      visits: 0,
+      remindersSent: 0,
+      followUpsCompleted: 0,
+      routesGenerated: 0,
+    })
   })
 
   test('failedCardsRecovered excludes a payfail marker outside the 7-day window', async () => {
@@ -199,7 +371,15 @@ describe('week object', () => {
     const res = mockRes()
     await handler(req, res)
 
-    expect(res.body.week).toEqual({ invoicesIssued: 0, invoicesPaid: 1, failedCardsRecovered: 0 })
+    expect(res.body.week).toEqual({
+      invoicesIssued: 0,
+      invoicesPaid: 1,
+      failedCardsRecovered: 0,
+      visits: 0,
+      remindersSent: 0,
+      followUpsCompleted: 0,
+      routesGenerated: 0,
+    })
   })
 
   test('ownerOfficeHoursWeek is never present (no persisted source)', async () => {
@@ -222,6 +402,9 @@ describe('total failure resilience', () => {
     mockInvoicesList.mockImplementation(() => { throw new Error('stripe list down') })
     mockQ.mockRejectedValue(new Error('db down'))
     mockListRuns.mockRejectedValue(new Error('payroll down'))
+    mockCountSentMessages.mockRejectedValue(new Error('gmail down'))
+    mockCountDistinctSentSubjects.mockRejectedValue(new Error('gmail down'))
+    mockGetLatestRoutePlan.mockRejectedValue(new Error('plan store down'))
 
     const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
     const res = mockRes()
@@ -250,6 +433,9 @@ describe('no PII', () => {
     mockInvoicesList.mockReturnValue(asyncIterableFrom([]))
     mockQ.mockResolvedValue({ rows: [] })
     mockListRuns.mockResolvedValue([])
+    mockCountSentMessages.mockResolvedValue(0)
+    mockCountDistinctSentSubjects.mockResolvedValue(0)
+    mockGetLatestRoutePlan.mockResolvedValue({ plan: null, generatedAt: null })
 
     const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
     const res = mockRes()
@@ -268,7 +454,10 @@ describe('no PII', () => {
     ])
     for (const k of keys) expect(allowed.has(k)).toBe(true)
     if (body.week) {
-      const weekAllowed = new Set(['invoicesIssued', 'invoicesPaid', 'failedCardsRecovered'])
+      const weekAllowed = new Set([
+        'invoicesIssued', 'invoicesPaid', 'failedCardsRecovered',
+        'visits', 'remindersSent', 'followUpsCompleted', 'routesGenerated',
+      ])
       for (const k of Object.keys(body.week)) expect(weekAllowed.has(k)).toBe(true)
     }
   })

@@ -537,13 +537,17 @@ ${aside('Our own operation, live', [
 ])}
 ${(function(){
   const weekRows = [
+    ['Visits completed', 'week.visits'],
+    ['Reminders sent', 'week.remindersSent'],
     ['Invoices issued', 'week.invoicesIssued'],
     ['Invoices paid', 'week.invoicesPaid'],
     ['Failed cards recovered', 'week.failedCardsRecovered'],
+    ['Follow-ups completed', 'week.followUpsCompleted'],
+    ['Routes generated', 'week.routesGenerated'],
   ]
   return `<figure class="aside" id="week-aside"><figcaption>What ran on its own, last seven days</figcaption><dl>${weekRows.map(([k, path]) => `<dt data-proof-row="${path}">${k}</dt><dd data-proof-row="${path}"><span data-proof="${path}">n/a</span></dd>`).join('')}</dl></figure>`
 })()}
-<p>A few figures are not on either list yet, each for its own reason. Reminders sent has no durable sent-log, only a transient job queue. Messages drafted are returned to the caller and never stored anywhere. Routes generated has no history of past runs, only the latest plan. And follow-ups completed are logged as CRM notes we cannot yet total across customers. We will not estimate or guess at any of them; each appears here once the system records it properly.</p>
+<p>A few figures are not on either list yet, each for its own reason. Messages drafted are returned to the caller and never stored anywhere. Reminders sent counts the two-day-out email straight from the sent mailbox plus one text per visit, since the two-hour text has no reachable log of its own. Follow-ups completed also comes straight from the sent mailbox. Routes generated is counted from the daily route emails in the sent mailbox plus the weekly plan. We will not estimate or guess at any figure; each appears here once the system records it properly.</p>
 <p class="small">Refreshed daily from the live system. If a figure does not update when the page loads, what you are seeing is the last known value read from that same system, not a number written by hand for this page. A row that reads n/a or disappears means that figure is not reliably computable yet, not that it was zero.</p>
 <script>
 (function(){
@@ -558,7 +562,7 @@ ${(function(){
         if (el) el.textContent = data[k];
       }
     });
-    var weekKeys = ['week.invoicesIssued', 'week.invoicesPaid', 'week.failedCardsRecovered'];
+    var weekKeys = ['week.visits', 'week.remindersSent', 'week.invoicesIssued', 'week.invoicesPaid', 'week.failedCardsRecovered', 'week.followUpsCompleted', 'week.routesGenerated'];
     weekKeys.forEach(function(path){
       var val = getPath(data, path);
       if (val === undefined || val === null) {
