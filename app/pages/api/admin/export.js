@@ -45,7 +45,7 @@ export default async function handler(req, res) {
     const invoices = await listAllInvoicesSince(oneYearAgo)
     const rows = invoices.map((inv) => ({
       date: new Date(inv.created * 1000).toISOString().slice(0, 10),
-      customer: inv.customer_details?.email || '',
+      customer: inv.customer_email || inv.customer_details?.email || '',
       amount: (inv.amount_paid / 100).toFixed(2),
       status: inv.status,
       invoice_id: inv.id,

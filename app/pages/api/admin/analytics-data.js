@@ -83,7 +83,7 @@ export default async function handler(req, res) {
   const recentOrders = paidInvoices.slice(0, 20).map((inv) => ({
     id: inv.id,
     date: inv.created,
-    email: inv.customer_details?.email || '',
+    email: inv.customer_email || inv.customer_details?.email || '',
     amount: inv.amount_paid / 100,
     status: inv.status,
     hostedUrl: inv.hosted_invoice_url || null,

@@ -186,7 +186,7 @@ async function listAllActiveSubscriptions() {
 
 /**
  * Fetch all paid invoices since a Unix timestamp (admin analytics).
- * Expands customer_details for email display.
+ * Invoices carry customer_email natively; expand is not valid on invoices.
  */
 async function listAllInvoicesSince(fromTimestamp) {
   // Round to nearest 5-minute bucket so repeat analytics loads share the cache
@@ -199,7 +199,6 @@ async function listAllInvoicesSince(fromTimestamp) {
       status: 'paid',
       limit: 100,
       created: { gte: fromTimestamp },
-      expand: ['data.customer_details'],
     })) {
       all.push(inv)
     }
