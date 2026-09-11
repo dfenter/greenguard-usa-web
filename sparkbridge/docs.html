@@ -62,7 +62,7 @@
       <div class="path">contents</div>
       <h2>Find Your Product</h2>
     </div>
-    <div class="doctoc"><div><h3>SparkBridge Core Modules</h3><a href="#install-common">Shared install steps</a><a href="#edge">SparkBridge Edge</a><a href="#central">SparkBridge Host</a><a href="#provider">Provider</a><a href="#flow">SparkFlow</a></div><div><h3>Additional Modules</h3><a href="#sparkcalc">SparkCalc</a><a href="#sparkid">SparkID</a><a href="#passage">Passage</a><a href="#sentinel">Sentinel</a><a href="#fleetops">FleetOps</a><a href="#sparkvault">SparkVault</a><a href="#sparkinject">SparkInject</a></div><div><h3>Device Drivers</h3><a href="#sparklogix">SparkLogix</a><a href="#sparksnmp">SparkSNMP</a><a href="#iec104">IEC 60870-5-104</a><a href="#dnp3">DNP3</a><a href="#ti505">TI 505 / CTI 2500</a><a href="#sparkads">SparkADS</a><a href="#sparks7">SparkS7</a><a href="#spark61850">Spark61850</a><a href="#sparkbacnet">SparkBACnet</a></div><div><h3>Ignition Enhancements</h3><a href="#sparkinflux">SparkInflux</a><a href="#sparkvalidate">SparkValidate</a><a href="#sparkgantt">SparkGantt</a><a href="#sparknotify">SparkNotify</a></div><div><h3>Evidence and Specification</h3><a href="#evidence">TCK conformance results</a><a href="#how-tested">How it is tested</a><a href="#standards">The official sources</a><a href="#documents">Documents on request</a><a href="#sb-mqtt5">SB-MQTT5 specification</a></div></div>
+    <div class="doctoc"><div><h3>SparkBridge Core Modules</h3><a href="#install-common">Shared install steps</a><a href="#edge">SparkBridge Edge</a><a href="#central">SparkBridge Host</a><a href="#provider">SparkBridge Provider</a><a href="#flow">SparkFlow</a></div><div><h3>Additional Modules</h3><a href="#sparkcalc">SparkCalc</a><a href="#sparkid">SparkID</a><a href="#passage">Passage</a><a href="#sentinel">Sentinel</a><a href="#fleetops">FleetOps</a><a href="#sparkvault">SparkVault</a><a href="#sparkinject">SparkInject</a></div><div><h3>Device Drivers</h3><a href="#sparklogix">SparkLogix</a><a href="#sparksnmp">SparkSNMP</a><a href="#iec104">SparkIEC104</a><a href="#dnp3">SparkDNP3</a><a href="#ti505">SparkTI505</a><a href="#sparkads">SparkADS</a><a href="#sparks7">SparkS7</a><a href="#spark61850">Spark61850</a><a href="#sparkbacnet">SparkBACnet</a></div><div><h3>Ignition Enhancements</h3><a href="#sparkinflux">SparkInflux</a><a href="#sparkvalidate">SparkValidate</a><a href="#sparkgantt">SparkGantt</a><a href="#sparknotify">SparkNotify</a></div><div><h3>Evidence and Specification</h3><a href="#evidence">TCK conformance results</a><a href="#how-tested">How it is tested</a><a href="#standards">The official sources</a><a href="#documents">Documents on request</a><a href="#sb-mqtt5">SB-MQTT5 specification</a></div></div>
   </div>
 </section>
 
@@ -95,9 +95,9 @@
       <div class="rackhead">Device drivers</div>
       <a class="card" href="/sparkbridge/manuals/sparklogix"><h3>SparkLogix</h3><p>User manual</p><p class="desc">Install, license, configure, operate, verify and troubleshoot. Read it here; the PDF is on the download page.</p></a>
       <a class="card" href="/sparkbridge/manuals/sparksnmp"><h3>SparkSNMP</h3><p>User manual</p><p class="desc">Install, license, configure, operate, verify and troubleshoot. Read it here; the PDF is on the download page.</p></a>
-      <a class="card" href="/sparkbridge/manuals/iec104"><h3>IEC 60870-5-104</h3><p>User manual</p><p class="desc">Install, license, configure, operate, verify and troubleshoot. Read it here; the PDF is on the download page.</p></a>
-      <a class="card" href="/sparkbridge/manuals/dnp3"><h3>DNP3</h3><p>User manual</p><p class="desc">Install, license, configure, operate, verify and troubleshoot. Read it here; the PDF is on the download page.</p></a>
-      <a class="card" href="/sparkbridge/manuals/ti505"><h3>TI 505 and CTI 2500</h3><p>User manual</p><p class="desc">Install, license, configure, operate, verify and troubleshoot. Read it here; the PDF is on the download page.</p></a>
+      <a class="card" href="/sparkbridge/manuals/iec104"><h3>SparkIEC104</h3><p>User manual</p><p class="desc">Install, license, configure, operate, verify and troubleshoot. Read it here; the PDF is on the download page.</p></a>
+      <a class="card" href="/sparkbridge/manuals/dnp3"><h3>SparkDNP3</h3><p>User manual</p><p class="desc">Install, license, configure, operate, verify and troubleshoot. Read it here; the PDF is on the download page.</p></a>
+      <a class="card" href="/sparkbridge/manuals/ti505"><h3>SparkTI505</h3><p>User manual</p><p class="desc">Install, license, configure, operate, verify and troubleshoot. Read it here; the PDF is on the download page.</p></a>
       <a class="card" href="/sparkbridge/manuals/sparkads"><h3>SparkADS</h3><p>User manual</p><p class="desc">Install, license, configure, operate, verify and troubleshoot. Read it here; the PDF is on the download page.</p></a>
       <a class="card" href="/sparkbridge/manuals/sparks7"><h3>SparkS7</h3><p>User manual</p><p class="desc">Install, license, configure, operate, verify and troubleshoot. Read it here; the PDF is on the download page.</p></a>
       <a class="card" href="/sparkbridge/manuals/spark61850"><h3>Spark61850</h3><p>User manual</p><p class="desc">Install, license, configure, operate, verify and troubleshoot. Read it here; the PDF is on the download page.</p></a>
@@ -713,7 +713,7 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 
 <section class="band" id="dnp3"><div class="wrap"><div class="sec-head">
 <div class="path">Drivers / DNP3</div>
-<h2>DNP3</h2>
+<h2>SparkDNP3 <small>DNP3 driver</small></h2>
 <p>Master (client) driver for DNP3 (IEEE 1815), the polled protocol common across North American electric distribution and water/wastewater. Reads only; it does not control.</p>
 </div>
 
