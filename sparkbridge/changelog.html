@@ -52,7 +52,7 @@
   <div class="wrap">
     <div class="eyebrow">Changelog</div>
     <h1>Version history</h1>
-    <p>Every release, what changed, and what the change was for. Current release: 3.0.0, fleet rebuilt on the common 3.0.0 library. SparkS7 0.3.0. SparkNotify 0.2.0. SparkRecord 0.1.0.
+    <p>Every release, what changed, and what the change was for. Current release: 3.0.1, a corrective release on the 3.0.0 fleet rebuild. SparkS7 0.3.0. SparkNotify 0.2.0. SparkRecord 0.1.0.
     Full customer notes ship in the release package.</p>
   </div>
 </header>
@@ -62,6 +62,16 @@
 <section>
   <div class="wrap">
     <ul class="lifeline">
+      <li>
+        <span class="lc lc-birth">3.0.1<br>2026&#8209;09&#8209;11</span>
+        <div>
+          <h3>Reconnect re-announcement fix; build hardening; FleetOps module id move</h3>
+          <p>3.0.1 is a corrective release. It does not change behavior beyond four items. <b>Reconnect re-announcement (#31).</b> On 3.0.0, an edge node that reconnected without a certificate switch-over did not re-announce itself until the next restart or switch-over, so it could sit online with no metrics after a broker restart. 3.0.1 re-publishes the announcement on every reconnect. <b>FleetOps module id.</b> FleetOps moves to <span class="mono">com.greenguardusa.fleetops</span> in FleetOps 0.3.0, which embeds common 3.0.1; this is the only change to the common library. An existing license key keeps working with no reissue. <b>Build hardening (#28, #30).</b> The build now guarantees a published module archive always declares its jars, closing the defect behind the 3.0.0 artifacts replaced on 2026-09-11. <b>Enrollment retry (#32).</b> An error creating the enrollment session no longer stops retries silently; every attempt now logs its status and reason and keeps retrying on the same backoff ladder.</p>
+          <p><b>Upgrade path.</b> Same as 3.0.0: install the 3.0.1 modules alongside your existing ones, confirm each reaches Running, then uninstall the old ones. Module ids are unchanged from 3.0.0, so this upgrade uses the same ids in place.</p>
+          <p><b>Fleet coverage.</b> 3.0.1 touches only the common library and FleetOps. Every other fleet module stays on its 3.0.0 build.</p>
+          <p>Bundles for Ignition 8.1 and 8.3 are on the <a href="/sparkbridge/download">download page</a> and at <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/v3.0.1">the v3.0.1 GitHub release</a>.</p>
+        </div>
+      </li>
       <li>
         <span class="lc lc-birth">Fleet<br>2026&#8209;09&#8209;11</span>
         <div>

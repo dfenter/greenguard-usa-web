@@ -152,8 +152,9 @@
 </table>
 <p>From release 2.7.0, every SparkBridge module runs on Ignition's standard two-hour module trial (the gateway's Reset Trial button restarts the clock). When the trial expires and no verified key names the product, each module pauses its data path but keeps configuration and buffers: the Edge publishes NDEATH and stops publishing while store-and-forward keeps capturing, the Host publishes a retained OFFLINE STATE and closes its sessions, the Provider's embedded broker refuses new connections while established ones are left alone, and Flow stops its dispatcher. A key dropped in after expiry lifts the pause on its own within the 30-second re-check, with no button press and no restart. A verified key overrides the trial entirely and the trial clock is then ignored.</p>
 
-<h3>Upgrading to 3.0.0</h3>
+<h3>Upgrading to 3.0.0 or 3.0.1</h3>
 <p>3.0.0 renames every module id across the fleet to start with <span class="mono">com.greenguardusa</span>, so the gateway treats it as a new module rather than an in-place update. Install the 3.0.0 modules beside the old <span class="mono">io.sparkbridge</span> / <span class="mono">com.sparkbridge</span> ones, confirm each reaches Running, then uninstall the old ids. License keys keep working; the platform maps the old module identities onto their renamed replacements automatically, with no reissue needed. The Host REST root moves to <span class="mono">/data/com.greenguardusa.sparkbridge.host/</span>; update any monitoring probe or dashboard URL that hard-codes the old route.</p>
+<p>3.0.1 uses the same module ids as 3.0.0, so going from 3.0.0 to 3.0.1 is an in-place upgrade: install the 3.0.1 modules over the 3.0.0 ones, no old-id cleanup needed. 3.0.1 is a corrective release, fixing a reconnect re-announcement bug where an edge node could sit online with no metrics after a broker restart. If you are still on 3.0.0, follow the com.greenguardusa steps above and install 3.0.1 directly.</p>
 </div>
 </section>
 
