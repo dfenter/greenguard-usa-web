@@ -24,9 +24,21 @@ jest.mock('../lib/gcal', () => ({
 }))
 
 const mockListAllInvoicesSince = jest.fn()
+const mockInvoicesList = jest.fn()
 jest.mock('../lib/stripe', () => ({
   listAllInvoicesSince: (...args) => mockListAllInvoicesSince(...args),
+  stripe: { invoices: { list: (...args) => mockInvoicesList(...args) } },
 }))
+
+// stripe.invoices.list is used as an async iterable (for await...of) in the
+// handler, mirroring the real Stripe SDK's auto-paginating list().
+function asyncIterableFrom(items) {
+  return {
+    [Symbol.asyncIterator]: async function* () {
+      for (const item of items) yield item
+    },
+  }
+}
 
 const mockQ = jest.fn()
 jest.mock('../lib/db', () => ({
@@ -96,10 +108,17 @@ describe('happy path', () => {
       { id: 'c', startTime: new Date(now + 86400000).toISOString() }, // future, excluded
     ])
 
+    const nowIso = new Date().toISOString()
     mockListAllInvoicesSince.mockResolvedValue([
-      { status: 'paid', created: 1000, status_transitions: { paid_at: 1000 + 3 * 86400 } },
-      { status: 'paid', created: 2000, status_transitions: { paid_at: 2000 + 5 * 86400 } },
+      { status: 'paid', created: 1000, status_transitions: { paid_at: 1000 + 3 * 86400 }, metadata: {} },
+      {
+        status: 'paid', created: 2000, status_transitions: { paid_at: 2000 + 5 * 86400 },
+        metadata: { payfail_t0_at: nowIso }, // recovered failed card, in-window
+      },
     ])
+    mockInvoicesList.mockReturnValue(
+      asyncIterableFrom([{ id: 'in_1', status: 'open' }, { id: 'in_2', status: 'paid' }, { id: 'in_3', status: 'draft' }])
+    )
 
     mockQ.mockResolvedValue({ rows: [{ ym: '2026-08' }, { ym: '2026-07' }] })
 
@@ -122,6 +141,76 @@ describe('happy path', () => {
     expect(body.lastClose).toBe('2026-08')
     expect(body.payrollRunsYtd).toBe(1)
     expect(typeof body.generatedAt).toBe('string')
+    expect(body.week).toEqual({
+      invoicesIssued: 2, // draft excluded
+      invoicesPaid: 2,
+      failedCardsRecovered: 1,
+    })
+    // listAllInvoicesSince is called once for the 90-day median window and
+    // once (shared) for the 7-day week window — never a second time for the
+    // week figures.
+    expect(mockListAllInvoicesSince).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('week object', () => {
+  beforeEach(() => {
+    mockCountContactsByProperty.mockResolvedValue(1)
+    mockGetBookingsForDateRange.mockResolvedValue([])
+    mockQ.mockResolvedValue({ rows: [] })
+    mockListRuns.mockResolvedValue([])
+  })
+
+  test('week key is omitted entirely when every week source throws', async () => {
+    mockListAllInvoicesSince.mockRejectedValue(new Error('stripe down'))
+    mockInvoicesList.mockImplementation(() => { throw new Error('stripe list down') })
+
+    const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
+    const res = mockRes()
+    await handler(req, res)
+
+    expect(res.body.week).toBeUndefined()
+  })
+
+  test('week omits only the key whose source throws, keeps the rest', async () => {
+    mockListAllInvoicesSince.mockResolvedValue([
+      { status: 'paid', created: 1000, status_transitions: { paid_at: 1500 }, metadata: {} },
+    ])
+    mockInvoicesList.mockImplementation(() => { throw new Error('stripe list down') })
+
+    const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
+    const res = mockRes()
+    await handler(req, res)
+
+    expect(res.body.week).toEqual({ invoicesPaid: 1, failedCardsRecovered: 0 })
+  })
+
+  test('failedCardsRecovered excludes a payfail marker outside the 7-day window', async () => {
+    const staleIso = new Date(Date.now() - 30 * 86400000).toISOString()
+    mockListAllInvoicesSince.mockResolvedValue([
+      {
+        status: 'paid', created: 1000, status_transitions: { paid_at: 1500 },
+        metadata: { payfail_t0_at: staleIso },
+      },
+    ])
+    mockInvoicesList.mockReturnValue(asyncIterableFrom([]))
+
+    const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
+    const res = mockRes()
+    await handler(req, res)
+
+    expect(res.body.week).toEqual({ invoicesIssued: 0, invoicesPaid: 1, failedCardsRecovered: 0 })
+  })
+
+  test('ownerOfficeHoursWeek is never present (no persisted source)', async () => {
+    mockListAllInvoicesSince.mockResolvedValue([])
+    mockInvoicesList.mockReturnValue(asyncIterableFrom([]))
+
+    const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
+    const res = mockRes()
+    await handler(req, res)
+
+    expect(res.body.ownerOfficeHoursWeek).toBeUndefined()
   })
 })
 
@@ -130,6 +219,7 @@ describe('total failure resilience', () => {
     mockCountContactsByProperty.mockRejectedValue(new Error('hubspot down'))
     mockGetBookingsForDateRange.mockRejectedValue(new Error('gcal down'))
     mockListAllInvoicesSince.mockRejectedValue(new Error('stripe down'))
+    mockInvoicesList.mockImplementation(() => { throw new Error('stripe list down') })
     mockQ.mockRejectedValue(new Error('db down'))
     mockListRuns.mockRejectedValue(new Error('payroll down'))
 
@@ -145,6 +235,7 @@ describe('total failure resilience', () => {
     expect(body.medianDaysToPaid).toBeUndefined()
     expect(body.lastClose).toBeUndefined()
     expect(body.payrollRunsYtd).toBeUndefined()
+    expect(body.week).toBeUndefined()
     expect(typeof body.generatedAt).toBe('string')
   })
 })
@@ -156,6 +247,7 @@ describe('no PII', () => {
       { id: 'a', startTime: new Date().toISOString(), name: 'Should Not Leak', email: 'leak@example.com' },
     ])
     mockListAllInvoicesSince.mockResolvedValue([])
+    mockInvoicesList.mockReturnValue(asyncIterableFrom([]))
     mockQ.mockResolvedValue({ rows: [] })
     mockListRuns.mockResolvedValue([])
 
@@ -168,12 +260,17 @@ describe('no PII', () => {
     expect(json).not.toMatch(/leak@example\.com/)
     expect(json).not.toMatch(/Should Not Leak/)
     expect(body.reminderShare).toBeUndefined()
+    expect(body.ownerOfficeHoursWeek).toBeUndefined()
     const keys = Object.keys(body)
     const allowed = new Set([
       'activeRecurring', 'visits30d', 'reminderShare', 'medianDaysToPaid',
-      'lastClose', 'payrollRunsYtd', 'generatedAt',
+      'lastClose', 'payrollRunsYtd', 'generatedAt', 'week',
     ])
     for (const k of keys) expect(allowed.has(k)).toBe(true)
+    if (body.week) {
+      const weekAllowed = new Set(['invoicesIssued', 'invoicesPaid', 'failedCardsRecovered'])
+      for (const k of Object.keys(body.week)) expect(weekAllowed.has(k)).toBe(true)
+    }
   })
 })
 
@@ -182,6 +279,7 @@ describe('hardening', () => {
     mockCountContactsByProperty.mockResolvedValue(5)
     mockGetBookingsForDateRange.mockResolvedValue([])
     mockListAllInvoicesSince.mockResolvedValue([])
+    mockInvoicesList.mockReturnValue(asyncIterableFrom([]))
     mockQ.mockResolvedValue({ rows: [] })
     mockListRuns.mockResolvedValue([])
 

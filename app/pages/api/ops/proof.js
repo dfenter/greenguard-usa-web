@@ -100,6 +100,66 @@ async function computePayrollRunsYtd() {
   ).length
 }
 
+// Invoices created in the trailing 7 days, excluding drafts (open, paid,
+// uncollectible, void all count — a draft is not yet an issued invoice).
+// Source: Stripe invoices.list with a `created` floor, using the raw `stripe`
+// client exported by lib/stripe.js (no existing helper lists all statuses —
+// the module's only list helpers are paid-only / open-only / draft-only).
+async function computeInvoicesIssuedWeek(since) {
+  const { stripe } = require('../../../lib/stripe')
+  let count = 0
+  for await (const inv of stripe.invoices.list({ created: { gte: since }, limit: 100 })) {
+    if (inv.status !== 'draft') count++
+    if (count > 5000) break
+  }
+  return count > 5000 ? undefined : count
+}
+
+// Invoices paid in the trailing 7 days, from the shared paid-invoice list.
+function computeInvoicesPaidWeek(invoices) {
+  if (!Array.isArray(invoices)) return undefined
+  return invoices.length
+}
+
+// Failed-card invoices recovered (paid) in the trailing 7 days, from the same
+// shared paid-invoice list, filtered to invoices carrying a payfail_*_at
+// metadata marker (written by lib/payment-resurrection.js markStage()) whose
+// timestamp — an ISO string, per markStage — falls inside the same 7-day
+// window. A paid invoice with an in-window marker proves it failed and was
+// recovered within the window being reported.
+function computeFailedCardsRecoveredWeek(invoices, since) {
+  if (!Array.isArray(invoices)) return undefined
+  const sinceMs = since * 1000
+  const nowMs = Date.now()
+  return invoices.filter((inv) =>
+    Object.entries(inv.metadata || {}).some(([k, v]) => {
+      if (!k.startsWith('payfail_') || !v) return false
+      const ts = Date.parse(v)
+      return Number.isFinite(ts) && ts >= sinceMs && ts <= nowMs
+    })
+  ).length
+}
+
+// remindersSent: omitted. notify-queue.js (lib/notify-queue.js) is a
+// transient KV job queue (1h TTL on job blobs), not a durable sent-log; there
+// is no reminders table. Not reliably computable over a 7-day window.
+
+// messagesDrafted: omitted. lib/gemini.js draft helpers (used by
+// pages/api/admin/ai-draft.js) are stateless request/response — the drafted
+// text is returned to the caller and never persisted anywhere.
+
+// routesGenerated: omitted. lib/route-plan.js getLatestRoutePlan() only
+// exposes the single latest plan + its generatedAt; there is no persisted
+// history/log of optimizer runs to count over a trailing window.
+
+// followUpsCompleted / quotesSent: omitted. Both are logged as HubSpot notes
+// on individual contacts (pages/api/admin/send-quote.js addNote 'QUOTE-SENT',
+// pages/api/cron/quote-followup.js addNote 'QUOTE-PAID'/'QUOTE-LOST') but
+// lib/hubspot.js only exposes per-contact note reads (getContactNotes /
+// getClientNotes) — there is no cross-contact note search/count by prefix or
+// date range, so a 7-day total is not reliably computable without an
+// unbounded full-CRM scan.
+
 async function computeProof() {
   const out = { generatedAt: new Date().toISOString() }
 
@@ -109,6 +169,21 @@ async function computeProof() {
     ['medianDaysToPaid', computeMedianDaysToPaid],
     ['lastClose', computeLastClose],
     ['payrollRunsYtd', computePayrollRunsYtd],
+  ]
+
+  const since = Math.floor((Date.now() - 7 * DAY_MS) / 1000)
+  const { listAllInvoicesSince } = require('../../../lib/stripe')
+  let paidInvoicesWeek
+  try {
+    paidInvoicesWeek = await listAllInvoicesSince(since)
+  } catch {
+    paidInvoicesWeek = undefined
+  }
+
+  const weekJobs = [
+    ['invoicesIssued', () => computeInvoicesIssuedWeek(since)],
+    ['invoicesPaid', () => computeInvoicesPaidWeek(paidInvoicesWeek)],
+    ['failedCardsRecovered', () => computeFailedCardsRecoveredWeek(paidInvoicesWeek, since)],
   ]
 
   const results = await Promise.allSettled(
@@ -128,6 +203,30 @@ async function computeProof() {
       if (value !== undefined && value !== null) out[key] = value
     }
   }
+
+  const weekResults = await Promise.allSettled(
+    weekJobs.map(async ([key, fn]) => {
+      try {
+        const value = await fn()
+        return [key, value]
+      } catch {
+        return [key, undefined]
+      }
+    })
+  )
+
+  const week = {}
+  for (const r of weekResults) {
+    if (r.status === 'fulfilled' && r.value) {
+      const [key, value] = r.value
+      if (value !== undefined && value !== null) week[key] = value
+    }
+  }
+  if (Object.keys(week).length) out.week = week
+
+  // ownerOfficeHoursWeek: omitted. No persisted record of owner office-hours
+  // scheduling/attendance exists anywhere in this repo (grepped lib/ and
+  // pages/api for office-hours/owner-hours patterns, none found).
 
   // reminderShare: no reliable sent-reminder record exists (no reminders
   // table / sent-log found), so this key is intentionally always omitted.
@@ -158,7 +257,7 @@ module.exports = async function handler(req, res) {
 
     let body
     try {
-      body = await cached('ops:proof:v3', 86400, computeProof)
+      body = await cached('ops:proof:v4', 86400, computeProof)
     } catch {
       body = { generatedAt: new Date().toISOString() }
     }

@@ -221,8 +221,10 @@ pages.index = head('One Person Show', 'A company that runs itself, for the perso
 <section class="hero"><div class="wrap">
   <h1>The business kept working. <em>You went home at four.</em></h1>
   <p class="lede">One Person Show is the office half of a one-person service company. It books, routes, reminds, invoices, collects, keeps the books, runs payroll and answers the phone, the email and the chat, so the person who does the work does not also have to do the paperwork at eleven at night.</p>
-  <div class="actions"><a class="btn" href="/everything">See everything it does</a><a class="btn quiet" href="/how-it-works">How it works</a><span class="small">Runs a real service company in Austin: 96 active accounts, one owner, one field employee.</span></div>
+  <div class="actions"><a class="btn" href="/everything">See everything it does</a><a class="btn quiet" href="/how-it-works">How it works</a><span class="small">Runs a real service company in Austin: 96 active accounts, one owner, one field employee, configured for our own company first.</span></div>
 </div></section><hr>
+${prose({ kicker: 'One product, configured', title: 'One product. Configured around your business.', body: `<p>A pool company, a lawn company, a pest company: the software underneath does not change. What changes is the catalog of what you sell, the <a href="/how-it-works">rulebook</a> that decides your booking hours, your service radius, your visit cadence and which reminder goes by text, your pricing, and the operating manual the assistant follows when it acts on your behalf. That is the answer to the question of how software built around another trade can fit yours: the trade lives in a file set that sits on top of the software, and the software reads it.</p>
+<p>Each of those, the catalog, the rulebook and the operating manual, is set with you at setup, on your own business, and can be changed any time after. Nothing about your trade is guessed or hard-coded; it is written down once, in files you can read, and the same booking form, router and assistant read them for every business they run.</p>` })}
 ${prose({ kicker: 'Who this is for', title: 'Built for the owner who is still doing the work.', side: 'And built to say no to the businesses it will not fit.', body: `<p>This is built for you if you run a recurring-visit service business: the same customers, on a cadence, week after week. You have zero to three people in the field, including yourself, and the company does somewhere between eighty thousand and three hundred thousand dollars a year. You already run email and calendar on Google Workspace and take payment through Stripe, and you have forty or more recurring accounts on the books, which is the point where a spreadsheet stops being enough and a real system starts paying for itself.</p>
 <p>It is not built for job shops or one-off project work, where every job is a new estimate and there is no cadence to route or remind against. It is not built for dispatch operations where the schedule is invented fresh every morning from whatever calls came in overnight; the routing and reminder logic here assumes a calendar that is mostly known a week ahead. And it is not built for a franchise running a corporate system you are required to use; this replaces that system, it does not sit next to it.</p>` })}
 ${prose({ kicker: 'One week, two ways', title: 'The same owner, the same customers, a different Tuesday.', tint: true, body: `<p>Before: quotes get typed by hand at night and go out a day or two late, so some of them are never answered. Invoices get chased by phone because nothing reminds anyone they are due. Reminders go out when somebody remembers to send them, which is not every time. The books get done on a weekend, usually months behind, so nobody actually knows the cash position on a given Tuesday. Payroll is built from memory and a worksheet, re-created from scratch most pay periods. The evenings that should belong to the trade, or to nothing at all, belong to the office instead.</p>
@@ -443,6 +445,19 @@ ${prose({ kicker: 'The portal', title: 'Hosted, at your domain.', body: `<p>The 
 ${prose({ kicker: 'The closet', title: 'Where the thinking happens.', tint: true, body: `<p>Every part of the system that reads, writes or judges anything runs on one computer you own, at your place: the email drafts, the job photo check, the bank categorization, the property assessment, the customer chat, the office chat. It runs Claude through the command line on your own subscription, the same flat monthly plan you would buy as a person, with nothing billed per token and nothing billed per seat. Your records stay in your own Google and Stripe accounts, not on a shared cloud tenant we operate; a small program on that computer listens for work from the portal over a tunnel that only opens outward, not a shared cloud connection anyone else's traffic passes through, and nothing on the internet can reach into your house.</p>
 <p>If the computer is off, the portal keeps working. Bookings and payments go through. The chat says it will be back. The assistant catches up on drafts and categorization when the computer is back on. If you would rather not own one, the appliance plan ships one configured; if you already have one, the installer takes about twenty minutes.</p>` })}
 ${prose({ kicker: 'The rulebook', title: 'One file that everything obeys.', body: `<p>How early you will take an appointment, whether Saturdays exist, how far you will drive, in what order, which reminder goes by text, how long to chase a quote, how often you visit: these are lines in a plain file, set with you at setup and changed any time. The booking form, the router, the reminder jobs and the assistant all read the same file, so a rule is never true in one place and false in another. The assistant also reads a written operating manual for your business, the same one a human office manager would, which is how it knows that your company name is always written in full or that a thank-you must include the next visit date.</p>` })}
+${prose({ kicker: 'Setup', title: 'How your business gets encoded.', tint: true, body: `<p>Getting onto the system is the same sequence every time, whatever the trade. It starts with a business interview, where we ask what you sell, how you schedule, how you bill and how you write to customers. That interview becomes a configuration, then a catalog of your services and pricing, then the rulebook of hours, radius and cadence described above, then a written operating manual for your business, then a few of your own emails, which we use to tune how the assistant writes. From there we connect your accounts, Google Workspace, Stripe and your CRM if you use one, and validate that everything reads and writes correctly before running a test business through the whole flow end to end, a fake quote through a fake invoice. Only after that test run passes do we flip you live. Today this is done with the operator over a call, working through that same set of files together; it is not yet a form you fill out alone, but the sequence itself does not change from business to business.</p>
+<ol>
+<li>Business interview</li>
+<li>Configuration</li>
+<li>Catalog</li>
+<li>Rulebook</li>
+<li>Operating manual</li>
+<li>A few of your own emails, to tune the writing</li>
+<li>Account connections (Google Workspace, Stripe, CRM)</li>
+<li>Validation</li>
+<li>A test business run end to end</li>
+<li>Go live</li>
+</ol>` })}
 ${prose({ kicker: 'What breaks, and what happens', title: 'Failure is designed in.', tint: true, body: `<p>A customer whose card declines is retried and emailed on a schedule, and their service pauses at two weeks rather than silently continuing unpaid. A booking placed outside your radius through a direct link is cancelled with a note to you. If the assistant started a change and could not finish it, it never tries again on its own; it tells you what happened. Every scheduled job reports whether it ran, and the Monday review tells you if one did not. Your data is in your Google, your Stripe and your calendar; if you cancel, there is nothing to export because nothing was moved.</p>` })}
 ${ask()}` + footer()
 
@@ -509,7 +524,7 @@ const PROOF_FALLBACK = {
   payrollRunsYtd: 1,
 }
 pages.proof = head('Proof · One Person Show', 'We run our own service company on this software. These are its live operating numbers, refreshed daily.', '/proof') + header('proof') + `
-<section class="hero"><div class="wrap"><span class="kicker">Proof</span><h1>We run our own company on this. <em>Here are the numbers.</em></h1><p class="lede">We are a recurring-visit service business ourselves. Everything described on this site runs our own company first, and these figures come from that same system, refreshed daily.</p></div></section><hr>
+<section class="hero"><div class="wrap"><span class="kicker">Proof</span><h1>Our own company, live. <em>Here are the numbers.</em></h1><p class="lede">We are a recurring-visit service business ourselves. Everything described on this site runs our own company first, and these figures come from that same system, refreshed daily.</p></div></section><hr>
 <section class="prose full"><div class="wrap"><div class="body">
 <p>These numbers are not a demo or a projection. They are pulled from the same portal, the same calendar, the same billing account and the same books that run our own company, on the same schedule an owner using this software would see them on their own account. An active recurring account means one customer currently on a repeating visit schedule, which is the same count quoted on the homepage. No customer names or personal information are shown here or anywhere on this page.</p>
 ${aside('Our own operation, live', [
@@ -518,11 +533,22 @@ ${aside('Our own operation, live', [
   ['Last monthly books close', `<span data-proof="lastClose">${PROOF_FALLBACK.lastClose}</span>`],
   ['Payroll runs this year', `<span data-proof="payrollRunsYtd">${PROOF_FALLBACK.payrollRunsYtd}</span>`],
 ])}
-<p>Two figures we would like to publish here are not on the list yet. We do not keep a per visit record of whether a reminder went out, and we will not estimate one, so the reminder rate is missing until the system records it properly. The median time from invoice to payment is left off for the same reason: the current billing window did not contain enough settled invoices to give an honest median. When each of those can be computed from the real record, it appears here.</p>
-<p class="small">Refreshed daily from the live system. If a figure does not update when the page loads, what you are seeing is the last known value read from that same system, not a number written by hand for this page.</p>
+${(function(){
+  const weekRows = [
+    ['Invoices issued', 'week.invoicesIssued'],
+    ['Invoices paid', 'week.invoicesPaid'],
+    ['Failed cards recovered', 'week.failedCardsRecovered'],
+  ]
+  return `<figure class="aside" id="week-aside"><figcaption>What ran on its own, last seven days</figcaption><dl>${weekRows.map(([k, path]) => `<dt data-proof-row="${path}">${k}</dt><dd data-proof-row="${path}"><span data-proof="${path}">n/a</span></dd>`).join('')}</dl></figure>`
+})()}
+<p>A few figures are not on either list yet, each for its own reason. Reminders sent has no durable sent-log, only a transient job queue. Messages drafted are returned to the caller and never stored anywhere. Routes generated has no history of past runs, only the latest plan. And follow-ups completed are logged as CRM notes we cannot yet total across customers. We will not estimate or guess at any of them; each appears here once the system records it properly.</p>
+<p class="small">Refreshed daily from the live system. If a figure does not update when the page loads, what you are seeing is the last known value read from that same system, not a number written by hand for this page. A row that reads n/a or disappears means that figure is not reliably computable yet, not that it was zero.</p>
 <script>
 (function(){
   var FALLBACK = ${JSON.stringify(PROOF_FALLBACK)};
+  function getPath(obj, path){
+    return path.split('.').reduce(function(o, k){ return (o && o[k] !== undefined) ? o[k] : undefined }, obj)
+  }
   fetch('https://portal.greenguard-usa.com/api/ops/proof').then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(data){
     Object.keys(FALLBACK).forEach(function(k){
       if (data && data[k] !== undefined && data[k] !== null) {
@@ -530,7 +556,20 @@ ${aside('Our own operation, live', [
         if (el) el.textContent = data[k];
       }
     });
-  }).catch(function(){});
+    var weekKeys = ['week.invoicesIssued', 'week.invoicesPaid', 'week.failedCardsRecovered'];
+    weekKeys.forEach(function(path){
+      var val = getPath(data, path);
+      if (val === undefined || val === null) {
+        document.querySelectorAll('[data-proof-row="'+path+'"]').forEach(function(el){ el.remove() });
+      } else {
+        var el = document.querySelector('[data-proof="'+path+'"]');
+        if (el) el.textContent = val;
+      }
+    });
+  }).catch(function(){
+    var weekAside = document.getElementById('week-aside');
+    if (weekAside) weekAside.hidden = true;
+  });
 })();
 </script>
 </div></div></section>

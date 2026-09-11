@@ -22,15 +22,19 @@
     <a class="btn brass" href="/pricing#start" style="padding:10px 18px">Talk to us</a>
   </nav>
 </div></header>
-<section class="hero"><div class="wrap"><span class="kicker">Proof</span><h1>We run our own company on this. <em>Here are the numbers.</em></h1><p class="lede">We are a recurring-visit service business ourselves. Everything described on this site runs our own company first, and these figures come from that same system, refreshed daily.</p></div></section><hr>
+<section class="hero"><div class="wrap"><span class="kicker">Proof</span><h1>Our own company, live. <em>Here are the numbers.</em></h1><p class="lede">We are a recurring-visit service business ourselves. Everything described on this site runs our own company first, and these figures come from that same system, refreshed daily.</p></div></section><hr>
 <section class="prose full"><div class="wrap"><div class="body">
 <p>These numbers are not a demo or a projection. They are pulled from the same portal, the same calendar, the same billing account and the same books that run our own company, on the same schedule an owner using this software would see them on their own account. An active recurring account means one customer currently on a repeating visit schedule, which is the same count quoted on the homepage. No customer names or personal information are shown here or anywhere on this page.</p>
 <figure class="aside"><figcaption>Our own operation, live</figcaption><dl><dt>Active recurring accounts</dt><dd><span data-proof="activeRecurring">96</span></dd><dt>Visits completed, last 30 days</dt><dd><span data-proof="visits30d">148</span></dd><dt>Last monthly books close</dt><dd><span data-proof="lastClose">2026-08</span></dd><dt>Payroll runs this year</dt><dd><span data-proof="payrollRunsYtd">1</span></dd></dl></figure>
-<p>Two figures we would like to publish here are not on the list yet. We do not keep a per visit record of whether a reminder went out, and we will not estimate one, so the reminder rate is missing until the system records it properly. The median time from invoice to payment is left off for the same reason: the current billing window did not contain enough settled invoices to give an honest median. When each of those can be computed from the real record, it appears here.</p>
-<p class="small">Refreshed daily from the live system. If a figure does not update when the page loads, what you are seeing is the last known value read from that same system, not a number written by hand for this page.</p>
+<figure class="aside" id="week-aside"><figcaption>What ran on its own, last seven days</figcaption><dl><dt data-proof-row="week.invoicesIssued">Invoices issued</dt><dd data-proof-row="week.invoicesIssued"><span data-proof="week.invoicesIssued">n/a</span></dd><dt data-proof-row="week.invoicesPaid">Invoices paid</dt><dd data-proof-row="week.invoicesPaid"><span data-proof="week.invoicesPaid">n/a</span></dd><dt data-proof-row="week.failedCardsRecovered">Failed cards recovered</dt><dd data-proof-row="week.failedCardsRecovered"><span data-proof="week.failedCardsRecovered">n/a</span></dd></dl></figure>
+<p>A few figures are not on either list yet, each for its own reason. Reminders sent has no durable sent-log, only a transient job queue. Messages drafted are returned to the caller and never stored anywhere. Routes generated has no history of past runs, only the latest plan. And follow-ups completed are logged as CRM notes we cannot yet total across customers. We will not estimate or guess at any of them; each appears here once the system records it properly.</p>
+<p class="small">Refreshed daily from the live system. If a figure does not update when the page loads, what you are seeing is the last known value read from that same system, not a number written by hand for this page. A row that reads n/a or disappears means that figure is not reliably computable yet, not that it was zero.</p>
 <script>
 (function(){
   var FALLBACK = {"activeRecurring":96,"visits30d":148,"lastClose":"2026-08","payrollRunsYtd":1};
+  function getPath(obj, path){
+    return path.split('.').reduce(function(o, k){ return (o && o[k] !== undefined) ? o[k] : undefined }, obj)
+  }
   fetch('https://portal.greenguard-usa.com/api/ops/proof').then(function(r){if(!r.ok)throw 0;return r.json()}).then(function(data){
     Object.keys(FALLBACK).forEach(function(k){
       if (data && data[k] !== undefined && data[k] !== null) {
@@ -38,7 +42,20 @@
         if (el) el.textContent = data[k];
       }
     });
-  }).catch(function(){});
+    var weekKeys = ['week.invoicesIssued', 'week.invoicesPaid', 'week.failedCardsRecovered'];
+    weekKeys.forEach(function(path){
+      var val = getPath(data, path);
+      if (val === undefined || val === null) {
+        document.querySelectorAll('[data-proof-row="'+path+'"]').forEach(function(el){ el.remove() });
+      } else {
+        var el = document.querySelector('[data-proof="'+path+'"]');
+        if (el) el.textContent = val;
+      }
+    });
+  }).catch(function(){
+    var weekAside = document.getElementById('week-aside');
+    if (weekAside) weekAside.hidden = true;
+  });
 })();
 </script>
 </div></div></section>

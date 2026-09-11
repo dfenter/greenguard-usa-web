@@ -37,6 +37,22 @@
   <div class="body"><p>How early you will take an appointment, whether Saturdays exist, how far you will drive, in what order, which reminder goes by text, how long to chase a quote, how often you visit: these are lines in a plain file, set with you at setup and changed any time. The booking form, the router, the reminder jobs and the assistant all read the same file, so a rule is never true in one place and false in another. The assistant also reads a written operating manual for your business, the same one a human office manager would, which is how it knows that your company name is always written in full or that a thank-you must include the next visit date.</p></div>
 </div></section>
 <section class="prose tint"><div class="wrap">
+  <div class="side"><span class="kicker">Setup</span><h2>How your business gets encoded.</h2></div>
+  <div class="body"><p>Getting onto the system is the same sequence every time, whatever the trade. It starts with a business interview, where we ask what you sell, how you schedule, how you bill and how you write to customers. That interview becomes a configuration, then a catalog of your services and pricing, then the rulebook of hours, radius and cadence described above, then a written operating manual for your business, then a few of your own emails, which we use to tune how the assistant writes. From there we connect your accounts, Google Workspace, Stripe and your CRM if you use one, and validate that everything reads and writes correctly before running a test business through the whole flow end to end, a fake quote through a fake invoice. Only after that test run passes do we flip you live. Today this is done with the operator over a call, working through that same set of files together; it is not yet a form you fill out alone, but the sequence itself does not change from business to business.</p>
+<ol>
+<li>Business interview</li>
+<li>Configuration</li>
+<li>Catalog</li>
+<li>Rulebook</li>
+<li>Operating manual</li>
+<li>A few of your own emails, to tune the writing</li>
+<li>Account connections (Google Workspace, Stripe, CRM)</li>
+<li>Validation</li>
+<li>A test business run end to end</li>
+<li>Go live</li>
+</ol></div>
+</div></section>
+<section class="prose tint"><div class="wrap">
   <div class="side"><span class="kicker">What breaks, and what happens</span><h2>Failure is designed in.</h2></div>
   <div class="body"><p>A customer whose card declines is retried and emailed on a schedule, and their service pauses at two weeks rather than silently continuing unpaid. A booking placed outside your radius through a direct link is cancelled with a note to you. If the assistant started a change and could not finish it, it never tries again on its own; it tells you what happened. Every scheduled job reports whether it ran, and the Monday review tells you if one did not. Your data is in your Google, your Stripe and your calendar; if you cancel, there is nothing to export because nothing was moved.</p></div>
 </div></section>
