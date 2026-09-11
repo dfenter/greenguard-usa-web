@@ -62,3 +62,6 @@ shotsJ5
 **/*.blend
 **/*.blend1
 **/archive.zip
+
+# Session worktrees (untracked, must never upload)
+.worktrees
