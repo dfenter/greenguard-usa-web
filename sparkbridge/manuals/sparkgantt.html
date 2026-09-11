@@ -42,7 +42,7 @@
   <div class="eyebrow">User manual</div>
   <h1>SparkGantt</h1>
   <p>A Gantt/schedule chart component for Ignition Perspective, virtualized to stay smooth past 200 tasks.</p>
-  <div class="pmeta"><span class="stat">Version 2.7.0</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: any gateway (Perspective)</span></div>
+  <div class="pmeta"><span class="stat">Version 0.1.1</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: any gateway (Perspective)</span></div>
 </div></header>
 
 <main id="main">
@@ -83,7 +83,7 @@
 </div>
 <ol>
 <li>Download the signed SparkGantt <span class="mono">.modl</span> matching your Ignition line (8.1 or 8.3).</li>
-<li>Gateway web UI &gt; Config &gt; Modules &gt; Install or Upgrade a Module, upload the file, accept the EULA (see <span class="mono">license.html</span> at the repository root). Module id <span class="mono">com.sparkbridge.sparkgantt</span>.</li>
+<li>Gateway web UI &gt; Config &gt; Modules &gt; Install or Upgrade a Module, upload the file, accept the EULA (see <span class="mono">license.html</span> at the repository root). Module id <span class="mono">com.greenguardusa.sparkgantt</span>.</li>
 <li>If self-signed, accept the untrusted-certificate warning to complete install.</li>
 <li>The component appears in the Designer Perspective palette after install; no build step or restart beyond the module install itself is required.</li>
 </ol>
@@ -92,7 +92,7 @@
 <section class="band" id="license"><div class="wrap"><div class="sec-head">
 <h2>4. License</h2>
 </div>
-<p>Soft-licensed the same way as other SparkBridge-suite modules, keyed to entitlement <span class="mono">com.sparkbridge.sparkgantt</span>. Drop <span class="mono">sparkbridge-license.key</span> in the gateway's data directory; the module re-reads it within 30 seconds. A missing license key only labels status surfaces and does not gate use. A present-but-invalid or tampered key fails startup closed and the component is not registered. Standalone paid product, sold and licensed on its own, never bundled into SparkBridge itself.</p>
+<p>Soft-licensed the same way as other SparkBridge-suite modules, keyed to entitlement <span class="mono">com.greenguardusa.sparkgantt</span>. Drop <span class="mono">sparkbridge-license.key</span> in the gateway's data directory; the module re-reads it within 30 seconds. A missing license key only labels status surfaces and does not gate use. A present-but-invalid or tampered key fails startup closed and the component is not registered. Standalone paid product, sold and licensed on its own, never bundled into SparkBridge itself.</p>
 </div></section>
 
 <section id="configure"><div class="wrap"><div class="sec-head">
@@ -153,7 +153,7 @@
 </div>
 <table class="spec">
 <tr><th>Item</th><td>Value</td></tr>
-<tr><th>Module id</th><td><span class="mono">com.sparkbridge.sparkgantt</span></td></tr>
+<tr><th>Module id</th><td><span class="mono">com.greenguardusa.sparkgantt</span></td></tr>
 <tr><th>License key path</th><td><span class="mono">&lt;data&gt;/sparkbridge-license.key</span>, re-read within 30 s</td></tr>
 <tr><th>Virtualization threshold</th><td>Engages above 200 tasks (rows, labels, and dependency arrows)</td></tr>
 <tr><th>Task schema</th><td>id, label, start, end, progress, group, color, dependencies, milestone, tooltip</td></tr>

@@ -51,7 +51,7 @@
   <div class="eyebrow">User manual</div>
   <h1>SparkSNMP</h1>
   <p>SparkSNMP is an Ignition device driver that polls network gear, UPSes, and other SNMP-capable devices as OPC UA device connections. It supports SNMP v1, v2c, and v3, and needs no MIB compilation step to browse or address a device.</p>
-  <div class="pmeta"><span class="stat">Version 2.7.0</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: any gateway</span></div>
+  <div class="pmeta"><span class="stat">Version 0.1.2</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: any gateway</span></div>
 </div></header>
 <main id="main">
 <section id="contents"><div class="wrap"><div class="sec-head"><h2>Contents</h2></div><ol><li><a href="#overview">1. Overview</a></li><li><a href="#requirements">2. What You Need</a></li><li><a href="#install">3. Install</a></li><li><a href="#license">4. License</a></li><li><a href="#configure">5. Configure</a></li><li><a href="#operate">6. Operate</a></li><li><a href="#verify">7. Verify</a></li><li><a href="#troubleshoot">8. Troubleshoot</a></li><li><a href="#reference">9. Reference</a></li><li><a href="#support">10. Support</a></li></ol></div></section>
@@ -93,7 +93,7 @@ effect with no restart.</p>
 <tr><th><code>Interfaces/ifTable/1/ifDescr</code></th><td>Browse-tree path.</td></tr>
 </table>
 <p>Append <code>|string</code>, <code>|hex</code>, <code>|bytes</code>, or <code>|seconds</code> to force presentation, for example <code>ifPhysAddress[1]|hex</code>.</p>
-<p>Custom vendor MIBs upload under Config &gt; SparkSNMP &gt; Custom MIBs, or via <code>POST /data/com.sparkbridge.sparksnmp/mibs?name=&lt;module&gt;</code> with the MIB text as the body.</p>
+<p>Custom vendor MIBs upload under Config &gt; SparkSNMP &gt; Custom MIBs, or via <code>POST /data/com.greenguardusa.sparksnmp/mibs?name=&lt;module&gt;</code> with the MIB text as the body.</p>
 </div></section>
 <section class="band" id="operate"><div class="wrap"><div class="sec-head"><h2>6. Operate</h2></div>
 <p>Day to day, SparkSNMP polls its configured OIDs and tables like any OPC UA device. Watch <code>GET status.json</code> under the device's route group for lane health, and use the OPC UA browser to confirm MIB-2 folders (sysDescr, ifTable, ipAddrTable) and any uploaded vendor subtrees are populated.</p>
@@ -113,9 +113,9 @@ effect with no restart.</p>
 </div></section>
 <section id="reference"><div class="wrap"><div class="sec-head"><h2>9. Reference</h2></div>
 <table class="spec">
-<tr><th>Module id</th><td><code>com.sparkbridge.sparksnmp</code></td></tr>
+<tr><th>Module id</th><td><code>com.greenguardusa.sparksnmp</code></td></tr>
 <tr><th>Default agent port</th><td>UDP 161</td></tr>
-<tr><th>Custom MIB upload endpoint</th><td><code>POST /data/com.sparkbridge.sparksnmp/mibs?name=&lt;module&gt;</code></td></tr>
+<tr><th>Custom MIB upload endpoint</th><td><code>POST /data/com.greenguardusa.sparksnmp/mibs?name=&lt;module&gt;</code></td></tr>
 <tr><th>License file</th><td><code>&lt;Ignition data dir&gt;/sparkbridge-license.key</code></td></tr>
 </table>
 </div></section>

@@ -597,7 +597,7 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 <h3>Install</h3>
 <ol>
 <li>On the target gateway, install the <span class="mono">sparklogix-&lt;version&gt;-ign83.modl</span> artifact (8.3) or the 8.1 build of the same module.</li>
-<li>Confirm the module is active and its module ID reads <span class="mono">com.sparkbridge.sparklogix</span>.</li>
+<li>Confirm the module is active and its module ID reads <span class="mono">com.greenguardusa.sparklogix</span>.</li>
 <li>To upgrade, install the new version over the same module ID without uninstalling the old one first; existing devices and settings are retained.</li>
 </ol>
 
@@ -657,7 +657,7 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 <tr><th><span class="mono">Interfaces/ifTable/1/ifDescr</span></th><td>Browse-tree path.</td></tr>
 </table>
 <p>Append <span class="mono">|string</span>, <span class="mono">|hex</span>, <span class="mono">|bytes</span>, or <span class="mono">|seconds</span> to force presentation, for example <span class="mono">ifPhysAddress[1]|hex</span>.</p>
-<p>Custom vendor MIBs upload under Config &gt; SparkSNMP &gt; Custom MIBs, or via <span class="mono">POST /data/com.sparkbridge.sparksnmp/mibs?name=&lt;module&gt;</span> with the MIB text as the body.</p>
+<p>Custom vendor MIBs upload under Config &gt; SparkSNMP &gt; Custom MIBs, or via <span class="mono">POST /data/com.greenguardusa.sparksnmp/mibs?name=&lt;module&gt;</span> with the MIB text as the body.</p>
 
 <h3>Verify</h3>
 <ul>
@@ -798,7 +798,7 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 </ul>
 
 <h3>Install</h3>
-<p>Module id <span class="mono">com.sparkbridge.sparkads</span>. Install the signed module on Ignition 8.1 or 8.3 through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</p>
+<p>Module id <span class="mono">com.greenguardusa.sparkads</span>. Install the signed module on Ignition 8.1 or 8.3 through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</p>
 
 <h3>Configure</h3>
 <p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; the ADS device type.</p>
@@ -814,13 +814,13 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 <p>See the README in the bundle.</p>
 
 <h3>License</h3>
-<p>Licensed per gateway, bought once and kept, soft-licensed (<span class="mono">io.sparkbridge.license</span>, entitlement ADS).</p>
+<p>Licensed per gateway, bought once and kept, soft-licensed (<span class="mono">com.greenguardusa.license</span>, entitlement ADS).</p>
 </div></section>
 
 <section id="sparks7"><div class="wrap"><div class="sec-head">
 <div class="path">Drivers / Siemens S7</div>
-<h2>SparkS7 <small>0.3.0, next release</small></h2>
-<p>Siemens S7-1200/1500 symbolic driver that browses PLC symbols by name, including optimized (non-absolute) blocks, without a TIA export. 0.3.0 is not yet published; the artifact ships in a coming release.</p>
+<h2>SparkS7 <small>0.3.0</small></h2>
+<p>Siemens S7-1200/1500 symbolic driver that browses PLC symbols by name, including optimized (non-absolute) blocks, without a TIA export.</p>
 </div>
 
 <h3>What it needs</h3>
@@ -864,7 +864,7 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 </ul>
 
 <h3>Install</h3>
-<p>Module id <span class="mono">com.sparkbridge.spark61850</span>. Install the signed module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</p>
+<p>Module id <span class="mono">com.greenguardusa.spark61850</span>. Install the signed module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</p>
 
 <h3>Configure</h3>
 <p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; the 61850 device type. Addressing follows the IED/LD/LN/DO/DA model tree, browsable as folders, with functional constraint (ST/MX/CO/SP) as a leaf suffix. SCL file (.icd/.cid/.scd) import can pre-build the model; see the README in the bundle for the exact import steps.</p>
@@ -873,7 +873,7 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 <p>The MMS/ISO wire encoding has been verified against a real libiec61850 server for Initiate, GetNameList, GetVariableAccessAttributes, Read, Write, and report-control-block (RCB) report reception. A configured Ignition device against a libiec61850 server, browsing and reading through OPC UA including buffered report reception, has passed live on both the 8.1 and 8.3 lines. Controls (SBO and direct) are documented in the README in the bundle.</p>
 
 <h3>License</h3>
-<p>Licensed per gateway, bought once and kept, soft-licensed, entitlement <span class="mono">com.sparkbridge.spark61850</span>.</p>
+<p>Licensed per gateway, bought once and kept, soft-licensed, entitlement <span class="mono">com.greenguardusa.spark61850</span>.</p>
 </div></section>
 
 <section id="sparkbacnet"><div class="wrap"><div class="sec-head">
@@ -889,7 +889,7 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 </ul>
 
 <h3>Install</h3>
-<p>Module id <span class="mono">com.sparkbridge.sparkbacnet</span>. Install the signed module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</p>
+<p>Module id <span class="mono">com.greenguardusa.sparkbacnet</span>. Install the signed module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</p>
 
 <h3>Configure</h3>
 <p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; the BACnet device type. Discovery uses Who-Is/I-Am. Addressing grammar: <span class="mono">dev:1234/AI:1.PV</span> (device instance, object type and instance, property). Supported services include ReadProperty, ReadPropertyMultiple, WriteProperty (priority array 1-16, relinquish via NULL), and SubscribeCOV with lifetime renewal. Supported object types: analog/binary/multistate input/output/value, device, and read-only schedule/calendar.</p>
@@ -899,7 +899,7 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 <p>Wire encoding has been verified against a real bacnet-stack server: Who-Is/I-Am, ReadProperty, ReadPropertyMultiple, and WriteProperty with priority and relinquish all passed. SubscribeCOV notification receipt was not exercised in that run. A configured Ignition device against a real controller, browsing and reading through OPC UA, and 8.3 support are tracked separately; see the README in the bundle for current status before deploying.</p>
 
 <h3>License</h3>
-<p>Licensed per gateway, bought once and kept, soft-licensed, entitlement <span class="mono">com.sparkbridge.sparkbacnet</span>.</p>
+<p>Licensed per gateway, bought once and kept, soft-licensed, entitlement <span class="mono">com.greenguardusa.sparkbacnet</span>.</p>
 </div></section>
 
 
@@ -946,8 +946,8 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 
 <h3>Verify</h3>
 <ol>
-<li><span class="mono">GET /data/com.sparkbridge.sparkinflux/selftest.json?provider=&lt;name&gt;&amp;points=300</span> pushes real points through history storage and reads them back, returning a result with <span class="mono">pointsSent</span>, <span class="mono">pointsWritten</span>, <span class="mono">rowsRead</span>, and <span class="mono">ok</span>.</li>
-<li><span class="mono">GET /data/com.sparkbridge.sparkinflux/status.json</span> for product/version/license state, and <span class="mono">GET /data/com.sparkbridge.sparkinflux/providers.json</span> for per-provider read/write lane state.</li>
+<li><span class="mono">GET /data/com.greenguardusa.sparkinflux/selftest.json?provider=&lt;name&gt;&amp;points=300</span> pushes real points through history storage and reads them back, returning a result with <span class="mono">pointsSent</span>, <span class="mono">pointsWritten</span>, <span class="mono">rowsRead</span>, and <span class="mono">ok</span>.</li>
+<li><span class="mono">GET /data/com.greenguardusa.sparkinflux/status.json</span> for product/version/license state, and <span class="mono">GET /data/com.greenguardusa.sparkinflux/providers.json</span> for per-provider read/write lane state.</li>
 </ol>
 <p>Both status routes are loopback-only unless <span class="mono">sparkinflux.rest.readToken</span> is set in the gateway's secrets file, in which case they accept <span class="mono">Authorization: Bearer &lt;token&gt;</span>.</p>
 
@@ -1005,7 +1005,7 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 
 <h3>Install</h3>
 <ol>
-<li>Install the signed SparkGantt module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required. Module id <span class="mono">com.sparkbridge.sparkgantt</span>.</li>
+<li>Install the signed SparkGantt module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required. Module id <span class="mono">com.greenguardusa.sparkgantt</span>.</li>
 <li>The component appears in the Designer Perspective palette after install.</li>
 </ol>
 

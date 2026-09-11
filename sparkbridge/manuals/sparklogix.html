@@ -51,13 +51,13 @@
   <div class="eyebrow">User manual</div>
   <h1>SparkLogix</h1>
   <p>SparkLogix is an Ignition device driver that connects directly to Allen-Bradley ControlLogix and CompactLogix controllers over EtherNet/IP. It exists because Ignition's built-in Logix driver reads slowly and falls over on large or restricted tag sets: SparkLogix browses UDTs directly, plans reads per tag, and never lets a restricted tag block the rest of the read.</p>
-  <div class="pmeta"><span class="stat">Version 0.2.0 (2.7.0 bundle)</span><span>Ignition 8.1.x (legacy driver API) and Ignition 8.3.x (managed-node API, separate build)</span><span>Runs on: any gateway that reaches the controller network</span></div>
+  <div class="pmeta"><span class="stat">Version 0.2.0</span><span>Ignition 8.1.x (legacy driver API) and Ignition 8.3.x (managed-node API, separate build)</span><span>Runs on: any gateway that reaches the controller network</span></div>
 </div></header>
 <main id="main">
 <section id="contents"><div class="wrap"><div class="sec-head"><h2>Contents</h2></div><ol><li><a href="#overview">1. Overview</a></li><li><a href="#requirements">2. What You Need</a></li><li><a href="#install">3. Install</a></li><li><a href="#license">4. License</a></li><li><a href="#configure">5. Configure</a></li><li><a href="#operate">6. Operate</a></li><li><a href="#verify">7. Verify</a></li><li><a href="#troubleshoot">8. Troubleshoot</a></li><li><a href="#reference">9. Reference</a></li><li><a href="#support">10. Support</a></li></ol></div></section>
 <section id="overview"><div class="wrap"><div class="sec-head"><h2>1. Overview</h2></div>
 <p>SparkLogix is a native Logix driver, not an add-on to Ignition's built-in one. It talks straight to the controller over EtherNet/IP; it does not need a translator box or an OPC server in front of the PLC. It is a standalone driver: it does not require any other SparkBridge module to run, though it can feed a Sparkplug B backbone through SparkBridge Edge like any other OPC UA device.</p>
-<p>Module id: <code>com.sparkbridge.sparklogix</code>.</p>
+<p>Module id: <code>com.greenguardusa.sparklogix</code>.</p>
 </div></section>
 <section class="band" id="requirements"><div class="wrap"><div class="sec-head"><h2>2. What You Need</h2></div>
 <ul>
@@ -72,7 +72,7 @@
 <li>Download the release bundle for the target Ignition line (8.1 or 8.3) from the <a href="/sparkbridge/download">download page</a> or the <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases">GitHub releases page</a>.</li>
 <li>Gateway web UI &gt; Config &gt; Modules &gt; Install or Upgrade a Module, upload <code>sparklogix-&lt;version&gt;-ign83.modl</code> (8.3) or the matching 8.1 build.</li>
 <li>Accept the certificate if the gateway warns about an untrusted signer.</li>
-<li>Confirm Config &gt; Modules shows the module active with module id <code>com.sparkbridge.sparklogix</code>.</li>
+<li>Confirm Config &gt; Modules shows the module active with module id <code>com.greenguardusa.sparklogix</code>.</li>
 <li>To upgrade, install the new version over the same module id without uninstalling the old one first; existing devices and settings are retained.</li>
 </ol>
 </div></section>
@@ -124,7 +124,7 @@ The settings form has five categories: Communications, Timeouts, Probe Options, 
 </div></section>
 <section id="reference"><div class="wrap"><div class="sec-head"><h2>9. Reference</h2></div>
 <table class="spec">
-<tr><th>Module id</th><td><code>com.sparkbridge.sparklogix</code></td></tr>
+<tr><th>Module id</th><td><code>com.greenguardusa.sparklogix</code></td></tr>
 <tr><th>Minimum firmware</th><td>v16 or later on ControlLogix/CompactLogix</td></tr>
 <tr><th>License file</th><td><code>&lt;data&gt;/sparkbridge-license.key</code></td></tr>
 </table>
