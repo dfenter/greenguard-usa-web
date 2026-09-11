@@ -52,7 +52,7 @@
   <div class="wrap">
     <div class="eyebrow">Changelog</div>
     <h1>Version history</h1>
-    <p>Every release, what changed, and what the change was for. Current release: 2.9.0. SparkNotify 0.2.0. SparkRecord 0.1.0.
+    <p>Every release, what changed, and what the change was for. Current release: 3.0.0. SparkNotify 0.2.0. SparkRecord 0.1.0.
     Full customer notes ship in the release package.</p>
   </div>
 </header>
@@ -62,6 +62,20 @@
 <section>
   <div class="wrap">
     <ul class="lifeline">
+      <li>
+        <span class="lc lc-birth">3.0.0<br>2026&#8209;09&#8209;11</span>
+        <div>
+          <h3>Module ids move under com.greenguardusa; certificate enforcement, renewal and two-round enrollment; fleet on one common library</h3>
+          <p>3.0.0 is a coordinated rebuild of the whole fleet on one common 3.0.0 library. Every module we ship shares this library, with two breaking changes inside it: a new manual-acknowledgement mode for durable MQTT consumers, and a moved and narrowed outbound HTTP safety module (now DestinationPolicy). On top of that, SparkBridge gains real certificate enforcement, two-round enrollment, automatic certificate delivery and renewal, and every module id across the fleet is renamed to start with our own reverse domain, <span class="mono">com.greenguardusa</span>, to meet Inductive Automation's naming requirement.</p>
+          <p><b>Certificate renewal.</b> Renewal now runs as an explicit state machine on the edge: request a new certificate, receive the signed chain, prove it on a dedicated connection, switch the main connection over, tell the platform to promote it, then clean up. Any step can fail safely; on failure the edge retries or rolls back to its previous, still-valid certificate, verified by reading it back. Proven live end to end on our reference bench through repeated renewal cycles, including a deliberately exhausted cycle that rolls back correctly and an old certificate that is refused once a newer one has promoted.</p>
+          <p><b>Enrollment.</b> A site whose platform-side companion is not yet listening at boot now retries with increasing backoff and shows a live attempt count. Enrollment with no site name pre-configured is proven live end to end: a bare device with only a one-time code enrolls itself and receives a certificate automatically (zero-touch enrollment). When the platform's enrollment response is rejected, the reason is now surfaced and logged.</p>
+          <p><b>DiskBuffer V3 and TRACE slice 2.</b> The store-and-forward disk buffer and the lineage trace both advance to their next slice in this release; see the release notes for the full list.</p>
+          <p><b>Licensing carries forward.</b> A license key issued before this release keeps working: the platform recognizes old module identities and maps them onto their renamed replacements automatically, so existing keys are never reissued.</p>
+          <p><b>Upgrade path.</b> Install the 3.0.0 modules alongside your existing ones, confirm each reaches Running, then uninstall the old module ids. This is a side-by-side upgrade, not an in-place one; update any monitoring probe or dashboard URL that hard-codes the old REST route. Full operator checklist and breaking-change table in the release notes.</p>
+          <p><b>Line coverage.</b> Built and proven primarily on the 8.1 line. Every fleet 8.3 mirror is at 3.0 parity with its 8.1 line, gated and merged: SparkBridge, dnp3, iec104, ti505, SparkGantt, SparkAds, Spark61850, SparkVault, SparkSNMP, SparkNotify, SparkBacnet and SparkRecord. SparkS7 0.3.0 ships on both lines.</p>
+          <p>Bundles for Ignition 8.1 and 8.3 are on the <a href="/sparkbridge/download">download page</a> and at <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/v3.0.0">the v3.0.0 GitHub release</a>.</p>
+        </div>
+      </li>
       <li>
         <span class="lc lc-birth">SparkRecord 0.1.0<br>2026&#8209;09&#8209;05</span>
         <div>

@@ -151,6 +151,9 @@
 <tr><th>Re-check interval</th><td>Each module re-checks the key file every 30 seconds, so installing, replacing, or removing a key takes effect with no restart.</td></tr>
 </table>
 <p>From release 2.7.0, every SparkBridge module runs on Ignition's standard two-hour module trial (the gateway's Reset Trial button restarts the clock). When the trial expires and no verified key names the product, each module pauses its data path but keeps configuration and buffers: the Edge publishes NDEATH and stops publishing while store-and-forward keeps capturing, the Host publishes a retained OFFLINE STATE and closes its sessions, the Provider's embedded broker refuses new connections while established ones are left alone, and Flow stops its dispatcher. A key dropped in after expiry lifts the pause on its own within the 30-second re-check, with no button press and no restart. A verified key overrides the trial entirely and the trial clock is then ignored.</p>
+
+<h3>Upgrading to 3.0.0</h3>
+<p>3.0.0 renames every module id across the fleet to start with <span class="mono">com.greenguardusa</span>, so the gateway treats it as a new module rather than an in-place update. Install the 3.0.0 modules beside the old <span class="mono">io.sparkbridge</span> / <span class="mono">com.sparkbridge</span> ones, confirm each reaches Running, then uninstall the old ids. License keys keep working; the platform maps the old module identities onto their renamed replacements automatically, with no reissue needed. The Host REST root moves to <span class="mono">/data/com.greenguardusa.sparkbridge.host/</span>; update any monitoring probe or dashboard URL that hard-codes the old route.</p>
 </div>
 </section>
 
@@ -175,7 +178,7 @@
 <tr><th><span class="mono">deadband</span></th><td>Publish deadband fraction. Default 0.0.</td></tr>
 <tr><th><span class="mono">uns</span></th><td>Turns on the UNS application-topic mirror. Default off.</td></tr>
 <tr><th><span class="mono">unsprefix</span></th><td>Application topic prefix used by the UNS mirror. Default <span class="mono">sparkbridge</span>.</td></tr>
-<tr><th><span class="mono">fold</span></th><td>Folds UDT property members into the published Template. Default off. Must agree with the Host tab's <b>Fold Target</b> below — an operator who changes one without the other silently loses the property mapping.</td></tr>
+<tr><th><span class="mono">fold</span></th><td>Folds UDT property members into the published Template. Default off. Must agree with the Host tab's <b>Fold Target</b> below: an operator who changes one without the other silently loses the property mapping.</td></tr>
 <tr><th><span class="mono">foldmembers</span></th><td>Name patterns matched for folding. Default <span class="mono">Units,Description,Address*,IO_Loc*,Number,PV_L,PV_U</span>.</td></tr>
 <tr><th><span class="mono">primaryHost</span></th><td>Host application id this edge watches for STATE. Must match the Host tab's <b>Host Id</b>. Default <span class="mono">SparkBridge</span>.</td></tr>
 <tr><th><span class="mono">maxtags</span></th><td>Discovery cap on tag count. Default 250000.</td></tr>
@@ -816,8 +819,8 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 
 <section id="sparks7"><div class="wrap"><div class="sec-head">
 <div class="path">Drivers / Siemens S7</div>
-<h2>SparkS7</h2>
-<p>Siemens S7-1200/1500 symbolic driver that browses PLC symbols by name, including optimized (non-absolute) blocks, without a TIA export.</p>
+<h2>SparkS7 <small>0.3.0, next release</small></h2>
+<p>Siemens S7-1200/1500 symbolic driver that browses PLC symbols by name, including optimized (non-absolute) blocks, without a TIA export. 0.3.0 is not yet published; the artifact ships in a coming release.</p>
 </div>
 
 <h3>What it needs</h3>
@@ -827,7 +830,7 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 </ul>
 
 <h3>Install</h3>
-<p>Module id <span class="mono">com.sparkbridge.sparks7</span>. Install the signed module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</p>
+<p>Module id <span class="mono">com.greenguardusa.sparks7</span>. Install the signed module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required.</p>
 
 <h3>Configure</h3>
 <p>Config &gt; OPC UA &gt; Device Connections &gt; Create new Device &gt; the S7 device type.</p>
@@ -839,13 +842,13 @@ Full multi-site rig proof is in <span class="mono">docs/LIVEPROOF.md</span> and 
 
 <h3>Security notes</h3>
 <p>Classic S7comm is plaintext with no credentials, encryption, or replay protection; this is a limitation of the Siemens protocol, not an omitted driver option. Isolate TCP 102 on a dedicated VLAN or VPN and firewall it so only the Ignition gateway can reach the PLC. Do not expose the PLC on an untrusted or internet-routable network.</p>
-<p>S7comm+ transport is disabled by default because it fails against tested real hardware. It can only be enabled with the system property <span class="mono">sparks7.allowPlus=true</span> (or environment variable <span class="mono">SPARKS7_ALLOW_PLUS=true</span>), and only on a trusted test network.</p>
+<p>S7comm+ (wire mode <span class="mono">auto</span> or <span class="mono">plus</span>) runs over TLS 1.3 with trust-on-first-use certificate pinning and is on by default since 0.2.0. Set the system property <span class="mono">sparks7.allowPlus=false</span> (or environment variable <span class="mono">SPARKS7_ALLOW_PLUS=false</span>) to turn it off fleet-wide. Verified against PLCSIM Advanced V7 on both gateways; not yet proven against real S7-1500 hardware.</p>
 
 <h3>Verify</h3>
 <p>See the README in the bundle.</p>
 
 <h3>License</h3>
-<p>Licensed per gateway, bought once and kept, soft-licensed (<span class="mono">io.sparkbridge.license</span>, entitlement <span class="mono">com.sparkbridge.sparks7</span>). Without a verified key it runs on Ignition's two-hour module trial; a present but invalid key fails closed and blocks the device until fixed or removed.</p>
+<p>Licensed per gateway, bought once and kept, soft-licensed (<span class="mono">com.greenguardusa.sparkbridge.license</span>, entitlement <span class="mono">com.greenguardusa.sparks7</span>). Without a verified key it runs on Ignition's two-hour module trial; a present but invalid key fails closed and blocks the device until fixed or removed. $695 per gateway, standalone, unchanged.</p>
 </div></section>
 
 <section class="band" id="spark61850"><div class="wrap"><div class="sec-head">
