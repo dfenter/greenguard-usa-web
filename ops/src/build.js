@@ -522,6 +522,7 @@ const PROOF_FALLBACK = {
   visits30d: 148,
   lastClose: '2026-08',
   payrollRunsYtd: 1,
+  medianDaysToPaid: 4.4,
 }
 pages.proof = head('Proof · One Person Show', 'We run our own service company on this software. These are its live operating numbers, refreshed daily.', '/proof') + header('proof') + `
 <section class="hero"><div class="wrap"><span class="kicker">Proof</span><h1>Our own company, live. <em>Here are the numbers.</em></h1><p class="lede">We are a recurring-visit service business ourselves. Everything described on this site runs our own company first, and these figures come from that same system, refreshed daily.</p></div></section><hr>
@@ -532,6 +533,7 @@ ${aside('Our own operation, live', [
   ['Visits completed, last 30 days', `<span data-proof="visits30d">${PROOF_FALLBACK.visits30d}</span>`],
   ['Last monthly books close', `<span data-proof="lastClose">${PROOF_FALLBACK.lastClose}</span>`],
   ['Payroll runs this year', `<span data-proof="payrollRunsYtd">${PROOF_FALLBACK.payrollRunsYtd}</span>`],
+  ['Median days from invoice to payment, last 90 days', `<span data-proof="medianDaysToPaid">${PROOF_FALLBACK.medianDaysToPaid}</span>`],
 ])}
 ${(function(){
   const weekRows = [
