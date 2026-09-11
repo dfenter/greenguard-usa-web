@@ -118,9 +118,9 @@
       <div class="rackhead">Device drivers &middot; each licensed per gateway &middot; <a href="/sparkbridge/drivers">see all drivers</a></div>
       <a class="card" href="/sparkbridge/logix"><h3>SparkLogix</h3><p>Allen-Bradley Logix driver</p><p class="desc">Connects ControlLogix and CompactLogix directly over EtherNet/IP, no translator in between.</p></a>
       <a class="card" href="/sparkbridge/snmp"><h3>SparkSNMP</h3><p>Network and power equipment</p><p class="desc">Reads UPSs, switches and PDUs over SNMP, so the network shows up next to the process.</p></a>
-      <a class="card" href="/sparkbridge/iec104"><h3>IEC 60870-5-104</h3><p>Utility and substation driver</p><p class="desc">Connects utility and substation equipment directly, timestamps kept.</p></a>
-      <a class="card" href="/sparkbridge/drivers"><h3>DNP3</h3><p>Utility equipment driver</p><p class="desc">Talks to DNP3 outstations, with event data and source timestamps.</p></a>
-      <a class="card" href="/sparkbridge/drivers"><h3>TI 505 &middot; CTI 2500</h3><p>Older Siemens and CTI racks</p><p class="desc">Keeps older 505-series and CTI 2500 racks on the same line as everything else.</p></a>
+      <a class="card" href="/sparkbridge/iec104"><h3>SparkIEC104 (IEC 60870-5-104)</h3><p>Utility and substation driver</p><p class="desc">Connects utility and substation equipment directly, timestamps kept.</p></a>
+      <a class="card" href="/sparkbridge/drivers"><h3>SparkDNP3</h3><p>Utility equipment driver</p><p class="desc">Talks to DNP3 outstations, with event data and source timestamps.</p></a>
+      <a class="card" href="/sparkbridge/drivers"><h3>SparkTI505 (CTI 2500)</h3><p>Older Siemens and CTI racks</p><p class="desc">Keeps older 505-series and CTI 2500 racks on the same line as everything else.</p></a>
       <a class="card" href="/sparkbridge/influx"><h3>SparkInflux</h3><p>InfluxDB history storage</p><p class="desc">Writes tag history straight to InfluxDB and serves it back as an Ignition history provider.</p></a>
       <a class="card" href="/sparkbridge/ads"><h3>SparkADS <small>0.1.1</small></h3><p>Beckhoff ADS/AMS driver</p><p class="desc">Browses TwinCAT symbols on Beckhoff controllers directly over ADS/AMS.</p></a>
       <a class="card" href="/sparkbridge/s7"><h3>SparkS7 <small>0.3.0</small></h3><p>Siemens S7-1200/1500 symbolic driver</p><p class="desc">Symbolic addressing for S7-1200 and S7-1500, including what Ignition 8.3 dropped.</p></a>
@@ -179,7 +179,7 @@
     </div>
     <div class="cards">
       <div class="card"><span class="tag">Edge Node &middot; publisher</span><h3>Edge</h3><p>Publishes Ignition tag data as Sparkplug and keeps publishing into a disk buffer when the link drops.</p></div>
-      <div class="card"><span class="tag">Managed broker and policy layer</span><h3>Provider</h3><p>SparkBridge's Sparkplug-aware broker for routing, identity and policy: embedded Moquette or HiveMQ CE companion service, per-site identities, deny-by-default topic permissions, no client count. Or connect Edge and Host through compatible broker infrastructure you already operate. $1,995 per gateway, priced separately.</p></div>
+      <div class="card"><span class="tag">Managed broker and policy layer</span><h3>SparkBridge Provider</h3><p>SparkBridge's Sparkplug-aware broker for routing, identity and policy: embedded Moquette or HiveMQ CE companion service, per-site identities, deny-by-default topic permissions, no client count. Or connect Edge and Host through compatible broker infrastructure you already operate. $1,995 per gateway, priced separately.</p></div>
       <div class="card"><span class="tag">Host Application &middot; consumer</span><h3>Host</h3><p>Subscribes to the namespace, learns each node's model from its birth certificate, hosts every module.</p></div>
       <div class="card"><span class="tag">Backbone &middot; optional</span><h3>Flow</h3><p>Streams every point to the whole company, live, lossless and replayable. Its own license.</p></div>
     </div>
@@ -240,7 +240,7 @@
   <div class="wrap">
     <div class="sec-head">
       <div class="path" id="provider">provider</div>
-      <h2>Provider</h2>
+      <h2>SparkBridge Provider</h2>
       <p>Provider is the policy and routing layer for industrial data. It carries plant data between sites and consumers while enforcing identity, permission and connection boundaries. Sparkplug leaves security to the implementation, and the broker is where your security posture actually gets set.</p>
     </div>
     <div class="scroller">
