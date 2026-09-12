@@ -52,7 +52,7 @@
   <div class="wrap">
     <div class="eyebrow">Changelog</div>
     <h1>Version history</h1>
-    <p>Every release, what changed, and what the change was for. Current release: 3.0.1, a corrective release on the 3.0.0 fleet rebuild. SparkS7 0.3.0. SparkNotify 0.2.0. SparkRecord 0.1.0.
+    <p>Every release, what changed, and what the change was for. Current release: 3.0.2, a corrective release on the 3.0.0 fleet rebuild. SparkS7 0.3.0. SparkNotify 0.2.0. SparkRecord 0.1.0.
     Full customer notes ship in the release package.</p>
   </div>
 </header>
@@ -62,6 +62,15 @@
 <section>
   <div class="wrap">
     <ul class="lifeline">
+      <li>
+        <span class="lc lc-birth">3.0.2<br>2026&#8209;09&#8209;12</span>
+        <div>
+          <h3>Certificate renewal, reconnect and enrollment fixes</h3>
+          <p>3.0.2 is a corrective release on 3.0.1. <b>Enrolled edge connects with its issued credential (#36).</b> A zero-touch gateway could finish enrollment and then loop on Not authorized, because the issued broker password never replaced the bootstrap password in the secrets file. Enrollment now writes the issued password into the secrets file as it applies the configuration, before anything tries to connect on the new identity. <b>Certificate renewal survives clock skew (#37).</b> A small clock difference between host and edge could make a freshly issued certificate look not yet valid, so the edge discarded it and the host abandoned the renewal. All three issue paths now backdate notBefore by a five-minute allowance, and a chain refused only for that reason is re-checked on a bounded ladder instead of discarded. <b>Certificate renewal completes reliably (#41, #44).</b> The renewal continuation, including the secrets read for its proof connection, ran on the MQTT client library's own delivery thread, which the library interrupts during connect and disconnect; an interrupted read closed its own channel and failed, and the keystore rollback meant to make that safe failed the same way. Renewal delivery now runs on SparkBridge's own renewal executor, off that thread. A secrets read that is interrupted anyway is retried once on a fresh handle. <b>Secrets reads tolerate interrupts, and report why they fail (#41, #44).</b> Reads and writes now share a lock with a ten-second bound, and a failed read names its cause, error and path instead of one generic message. <b>Reconnect presents a fresh Will with the advanced bdSeq (#33).</b> Reconnect is no longer left to the MQTT client library, which replayed the original death certificate's bdSeq against a new announcement; SparkBridge now performs the reconnect itself so the death certificate and the announcement agree, and a bounce produces one announcement, not two. <b>Broker role carries the UNS publish grant (#43).</b> An enrolled site with UNS mirroring, the default, was disconnected and reconnected roughly every five seconds because its role lacked publish access to its own assigned subtree; the grant is now issued with the rest of the site's permissions. <b>Module shutdown budget.</b> Closing an MQTT connection no longer pays a fixed ~7 second cost when there is nothing left to close (#8). <b>A failed renewal can no longer take down MQTT delivery (#42).</b> Every point where a renewal cycle can be entered from a connection callback now contains its own failures and settles the cycle cleanly. <b>Static bootstrap identity survives regeneration (#38).</b> The credential emitter no longer overwrites a hand-provisioned bootstrap password in credentials.xml on enrollment.</p>
+          <p><b>Upgrade path.</b> Same as 3.0.1: install the 3.0.2 modules alongside your existing ones, confirm each reaches Running, then uninstall the old ones. Module ids are unchanged, so this upgrade uses the same ids in place.</p>
+          <p>Bundles for Ignition 8.1 and 8.3 are on the <a href="/sparkbridge/download">download page</a> and at <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/v3.0.2">the v3.0.2 GitHub release</a>.</p>
+        </div>
+      </li>
       <li>
         <span class="lc lc-birth">3.0.1<br>2026&#8209;09&#8209;11</span>
         <div>
