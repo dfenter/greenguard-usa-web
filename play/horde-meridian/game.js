@@ -918,14 +918,14 @@
       var head = 31 + SAFE.top;
       neonText(this, w / 2, head, 'HANGAR', TYPE.head, '#c9ffe9');
       this.balanceText = neonText(this, w / 2, head + 27, '', TYPE.sub, '#ffd67a');
-      this.noticeText = bodyText(this, w / 2, head + 48, '75% of run gems bank here. Cosmetics are visual only.', TYPE.micro, '#7fa3b5');
+      this.noticeText = bodyText(this, w / 2, head + 48, '', TYPE.micro, '#7fa3b5');
       this.refreshBalance = function () {
         setTextIfChanged(scene.balanceText, Math.floor(hangarBalance()) + ' GEMS BANKED');
       };
       this.refreshBalance();
 
       var tabs = [
-        ['MODULES', 'modules'], ['LOADOUT', 'loadout'], ['CODEX', 'codex'],
+        ['MODS', 'modules'], ['GUNS', 'loadout'], ['CODEX', 'codex'],
         ['STYLE', 'style'], ['CORE', 'core']
       ];
       var tabW = Math.min(83, (w - 20) / tabs.length);
@@ -1063,8 +1063,13 @@
           nm.setOrigin(0, 0.5);
           var nmMax = cardW - 48 - 54;
           if (nm.width > nmMax) nm.setScale(nmMax / nm.width);
+          var blMaxW = cardW - 58;
           var bl = bodyText(this, x - cardW / 2 + 48, y - 4, t.blurb, TYPE.micro, '#8fb3c4');
-          bl.setOrigin(0, 0.5).setScale(Math.min(0.88, (cardW - 58) / bl.width));
+          bl.setOrigin(0, 0.5).setScale(0.88);
+          if (bl.width * 0.88 > blMaxW) {
+            bl.setWordWrapWidth(blMaxW / 0.85, true).setLineSpacing(-2).setScale(0.85);
+            bl.setY(y);
+          }
           var pips = [];
           for (var p = 0; p < t.max; p++) pips.push(this.add.rectangle(x - cardW / 2 + 49 + p * 9, y + 16, 7, 4, p < lv ? t.color : 0x2b4756));
           var price = maxed ? 'MAXED' : String(t.cost(lv));
@@ -1077,7 +1082,7 @@
             bg.on('pointerdown', function (trackKey) { return function () { scene.buyTrack(trackKey); }; }(t.key));
           }
         }
-        this.setNotice('Each tier is a permanent 4 to 7% class step.', '#7fa3b5');
+        this.setNotice('', '#7fa3b5');
       } else if (this.page === 'loadout') {
         // Gun-deck loadout. Three slot chips pick the target slot, the grid
         // below assigns any unlocked weapon into it. Slots past the gun-deck
@@ -1150,7 +1155,6 @@
       } else if (this.page === 'codex') {
         var found = weaponsFoundCount();
         g.add(bodyText(this, w / 2, top - 20, 'ARSENAL CODEX  ' + found + ' / ' + WEAPONS.length, TYPE.label, '#8effd8'));
-        g.add(bodyText(this, w / 2, top - 2, 'EVERY WEAPON YOU FIND IS RECORDED HERE.', TYPE.micro, '#7fa3b5'));
         var barW = Math.min(300, w - 40);
         g.add(this.add.rectangle(w / 2, top + 12, barW, 5, 0x1f3a48));
         g.add(this.add.rectangle(w / 2 - barW / 2, top + 12, barW * (found / WEAPONS.length), 5, 0x8effd8)
@@ -1181,7 +1185,6 @@
           : (WEAPONS.length - found) + ' WEAPONS STILL UNRECOVERED.', found >= WEAPONS.length ? '#8effd8' : '#7fa3b5');
       } else if (this.page === 'style') {
         g.add(bodyText(this, w / 2, top - 20, 'SHIP CUSTOMIZE', TYPE.label, '#8effd8'));
-        g.add(bodyText(this, w / 2, top - 2, 'PAINT, TRIM, AND FRAME ARE COSMETIC ONLY.', TYPE.micro, '#7fa3b5'));
         var paintW = (w - 32) / 3;
         for (var pi = 0; pi < HULL_PAINTS.length; pi++) {
           var paint = HULL_PAINTS[pi], pc = pi % 3, prr = Math.floor(pi / 3);
@@ -1208,18 +1211,18 @@
         for (var fi = 0; fi < HULL_FRAMES.length; fi++) {
           var frame = HULL_FRAMES[fi], fx = 18 + fw / 2 + fi * (fw + 1), fy = top + 274;
           var fbg = this.cardBase(g, fx, fy, fw - 5, 58, profile.hangar.frame === frame.key);
-          var fs = this.add.image(fx - 25, fy, 'atlas', frame.idle).setScale(0.43).setTint((PAINT_BY_KEY[profile.hangar.paint] || HULL_PAINTS[0]).tint);
-          var fn = neonText(this, fx + 18, fy, frame.name.toUpperCase(), TYPE.micro,
+          var fs = this.add.image(fx, fy - 12, 'atlas', frame.idle).setScale(0.4).setTint((PAINT_BY_KEY[profile.hangar.paint] || HULL_PAINTS[0]).tint);
+          var fn = neonText(this, fx, fy + 18, frame.name.toUpperCase(), TYPE.micro,
             profile.hangar.frame === frame.key ? '#8effd8' : '#b9d6e2');
-          fn.setOrigin(0, 0.5).setScale(0.82);
+          var fnMax = fw - 12;
+          if (fn.width > fnMax) fn.setScale(Math.max(0.85, fnMax / fn.width));
           fbg.setInteractive({ useHandCursor: true });
           fbg.on('pointerdown', function (frameKey) { return function () { scene.selectFrame(frameKey); }; }(frame.key));
           g.add([fs, fn]);
         }
-        this.setNotice('STYLE  ·  PAINT, TRIM, AND FRAME NEVER BUY POWER.', '#7fa3b5');
+        this.setNotice('', '#7fa3b5');
       } else {
         g.add(bodyText(this, w / 2, top - 20, 'CORE SYSTEMS', TYPE.label, '#8effd8'));
-        g.add(bodyText(this, w / 2, top - 2, 'THE ORIGINAL SIX META MODULES REMAIN ONLINE.', TYPE.micro, '#7fa3b5'));
         var mgap = 8, mw = (w - 28 - mgap) / 2, mh = Math.min(70, (h - top - 124) / 3);
         for (var mi2 = 0; mi2 < META.length; mi2++) {
           var m = META[mi2], mc = mi2 % 2, mr = Math.floor(mi2 / 2);
@@ -1231,8 +1234,13 @@
           mn.setOrigin(0, 0.5);
           var mnMax = mw - 46 - 54;
           if (mn.width > mnMax) mn.setScale(mnMax / mn.width);
+          var mblMaxW = mw - 54;
           var mbl = bodyText(this, mx - mw / 2 + 46, my - 2, m.blurb, TYPE.micro, '#8fb3c4');
-          mbl.setOrigin(0, 0.5).setScale(Math.min(0.78, (mw - 54) / mbl.width));
+          mbl.setOrigin(0, 0.5).setScale(0.88);
+          if (mbl.width * 0.88 > mblMaxW) {
+            mbl.setWordWrapWidth(mblMaxW / 0.85, true).setLineSpacing(-2).setScale(0.85);
+            mbl.setY(my + 4);
+          }
           var mpips = [];
           for (var mp = 0; mp < m.max; mp++) mpips.push(this.add.rectangle(mx - mw / 2 + 47 + mp * 9, my + 18, 7, 4, mp < mlv ? 0x8effd8 : 0x2b4756));
           var mprice = neonText(this, mx + mw / 2 - 9, my - 17, mmax ? 'MAXED' : String(m.cost(mlv)), TYPE.micro, mmax ? '#8effd8' : '#ffd67a');
@@ -1243,7 +1251,7 @@
             mbg.on('pointerdown', function (metaKey) { return function () { scene.buyMeta(metaKey); }; }(m.key));
           }
         }
-        this.setNotice('CORE  ·  LEGACY META PROGRESSION PRESERVED.', '#7fa3b5');
+        this.setNotice('', '#7fa3b5');
       }
     },
 
@@ -2443,8 +2451,7 @@
       this.minimap.add(this.radarPlayer);
       this.radarLabel = bodyText(this, 0, 44, 'RADAR', TYPE.micro, '#6f93a5');
       this.radarRegion = neonText(this, 0, -43, 'MVR', TYPE.micro, '#8effd8');
-      this.radarMode = bodyText(this, 0, 54, 'REGION RING', TYPE.micro, '#6f93a5');
-      this.minimap.add([this.radarLabel, this.radarRegion, this.radarMode]);
+      this.minimap.add([this.radarLabel, this.radarRegion]);
       this.lockToScreen(this.minimap);
 
       var pauseBtn = this.add.container(R - 22, bandH + 20).setScrollFactor(0).setDepth(230);
@@ -7875,9 +7882,11 @@
       ov.add(bodyText(this, w / 2, h * 0.28 + 32,
         'Score ' + this.run.score + '   ·   ' + Math.floor(this.run.gems) + ' gems this run',
         TYPE.micro, '#6f93a5'));
-      ov.add(bodyText(this, w / 2, h - 18 - SAFE.bottom,
-        'WATCHDOG MAX STEP ' + this.watchdog.maxStepMs.toFixed(2) + 'MS',
-        TYPE.micro, '#526b7a'));
+      if (/[?&]debug\b/.test(location.search || '')) {
+        ov.add(bodyText(this, w / 2, h - 18 - SAFE.bottom,
+          'WATCHDOG MAX STEP ' + this.watchdog.maxStepMs.toFixed(2) + 'MS',
+          TYPE.micro, '#526b7a'));
+      }
 
       function close() {
         scene.closeOverlay();
@@ -8109,11 +8118,24 @@
       this.registerUiObject(box);
       this.registerUiObject(this.tutHand);
       this.tutTarget = null;
-      this.setTutorial('MOVE', 'Drag anywhere on the screen to fly. Try it now.');
+      this.queueTutorial('MOVE', 'Drag anywhere on the screen to fly. Try it now.');
       this.tweens.add({ targets: this.tutHand, alpha: 0.55, duration: 700,
         yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
       this.tutHand.setAlpha(0.3);
       this.tutPointAt({ x: 0, y: 0, screen: true });
+    },
+
+    // Owner complaint 2026-09-13: the opening banner ("WARDEN WING ON
+    // STATION" etc) and the tutorial coach mark both land at mid-screen and
+    // overlapped. Callouts queue behind an active banner and play once it
+    // clears instead of drawing on top of it.
+    queueTutorial: function (title, body) {
+      var scene = this;
+      if (this.bannerActive) {
+        this.after0(50, function () { scene.queueTutorial(title, body); });
+        return;
+      }
+      this.setTutorial(title, body);
     },
 
     tutPointAt: function (target) {
@@ -8149,16 +8171,16 @@
           clamp(this.p.x + Math.cos(ang) * 230, -EDGE, EDGE),
           clamp(this.p.y + Math.sin(ang) * 230, -EDGE, EDGE));
         this.tutPointAt(mark || null);
-        this.setTutorial('AUTO-FIRE', 'Your Bolt Lance fires by itself. Aim by moving. Break that one.');
+        this.queueTutorial('AUTO-FIRE', 'Your Bolt Lance fires by itself. Aim by moving. Break that one.');
       } else if (t.step === 2) {
-        this.setTutorial('COLLECT', 'Gems drop from kills. Fly over one to absorb it.');
+        this.queueTutorial('COLLECT', 'Gems drop from kills. Fly over one to absorb it.');
         this.tutPointAt(this.nearestGem());
       } else if (t.step === 3) {
         this.tutPointAt(null);
-        this.setTutorial('LEVEL UP', 'Each level you draft one of three upgrades. Take one.');
+        this.queueTutorial('LEVEL UP', 'Each level you draft one of three upgrades. Take one.');
       } else if (t.step === 4) {
         this.tutPointAt({ x: 0, y: 0 });     // the Meridian mount at origin
-        this.setTutorial('THE CORE', 'The Core descends onto that mount at 10:00. Survive to the first wave.');
+        this.queueTutorial('THE CORE', 'The Core descends onto that mount at 10:00. Survive to the first wave.');
       } else {
         var scene = this;
         this.tweens.add({

@@ -490,12 +490,12 @@
   };
 
   var META = [
-    { key: 'power',   name: 'Core Tuning',    icon: 'ic_damage',   max: 5, cost: function (l) { return 60 + l * 90; },  blurb: 'Start each run with +8% weapon damage per rank.' },
-    { key: 'vigor',   name: 'Reinforcement',  icon: 'ic_vitality', max: 5, cost: function (l) { return 50 + l * 80; },  blurb: 'Start with +15 max integrity per rank.' },
-    { key: 'haste',   name: 'Drive Coils',    icon: 'ic_speed',    max: 4, cost: function (l) { return 70 + l * 100; }, blurb: 'Start with +5% move speed per rank.' },
-    { key: 'draw',    name: 'Field Magnet',   icon: 'ic_magnet',   max: 4, cost: function (l) { return 55 + l * 75; },  blurb: 'Start with +25 gem pickup radius per rank.' },
-    { key: 'fortune', name: 'Gem Refinery',   icon: 'ic_greed',    max: 4, cost: function (l) { return 80 + l * 120; }, blurb: 'Gems are worth +10% experience per rank.' },
-    { key: 'second',  name: 'Failsafe',       icon: 'ic_armor',    max: 1, cost: function () { return 450; },           blurb: 'Survive one lethal hit per run at 35% integrity.' }
+    { key: 'power',   name: 'Core Tuning',    icon: 'ic_damage',   max: 5, cost: function (l) { return 60 + l * 90; },  blurb: '+8% DAMAGE PER RANK' },
+    { key: 'vigor',   name: 'Reinforcement',  icon: 'ic_vitality', max: 5, cost: function (l) { return 50 + l * 80; },  blurb: '+15 HULL PER RANK' },
+    { key: 'haste',   name: 'Drive Coils',    icon: 'ic_speed',    max: 4, cost: function (l) { return 70 + l * 100; }, blurb: '+5% SPEED PER RANK' },
+    { key: 'draw',    name: 'Field Magnet',   icon: 'ic_magnet',   max: 4, cost: function (l) { return 55 + l * 75; },  blurb: '+25 PICKUP RADIUS' },
+    { key: 'fortune', name: 'Gem Refinery',   icon: 'ic_greed',    max: 4, cost: function (l) { return 80 + l * 120; }, blurb: '+10% XP PER RANK' },
+    { key: 'second',  name: 'Failsafe',       icon: 'ic_armor',    max: 1, cost: function () { return 450; },           blurb: 'SURVIVE ONE LETHAL HIT' }
   ];
   var META_BY_KEY = {};
   for (var mi = 0; mi < META.length; mi++) META_BY_KEY[META[mi].key] = META[mi];
@@ -505,25 +505,25 @@
   var HANGAR_TRACKS = [
     { key: 'hull', name: 'Hull', icon: 'ic_vitality', max: 5, color: 0xff8f7a,
       cost: function (l) { return Math.round(45 * Math.pow(1.62, l)); },
-      blurb: '+6% max integrity per tier.' },
+      blurb: '+6% HULL PER TIER' },
     { key: 'reactor', name: 'Reactor', icon: 'ic_damage', max: 5, color: 0xffd67a,
       cost: function (l) { return Math.round(45 * Math.pow(1.62, l)); },
-      blurb: '+5% primary cycle speed per tier.' },
+      blurb: '+5% FIRE RATE PER TIER' },
     { key: 'thrusters', name: 'Thrusters', icon: 'ic_speed', max: 5, color: 0x6df0bf,
       cost: function (l) { return Math.round(45 * Math.pow(1.62, l)); },
-      blurb: '+5% travel speed per tier.' },
+      blurb: '+5% SPEED PER TIER' },
     { key: 'magnet', name: 'Magnet', icon: 'ic_magnet', max: 5, color: 0x7ad8ff,
       cost: function (l) { return Math.round(45 * Math.pow(1.62, l)); },
-      blurb: '+6% pickup radius per tier.' },
+      blurb: '+6% PICKUP RADIUS' },
     { key: 'wingBay', name: 'Wing Bay', icon: 'wingman', max: 5, color: 0x8effd8,
       cost: function (l) { return Math.round(45 * Math.pow(1.62, l)); },
-      blurb: 'Tier 1 starts a wing, later tiers raise the cap.' },
+      blurb: 'STARTS A WING' },
     { key: 'fortune', name: 'Fortune', icon: 'ic_greed', max: 5, color: 0xffc361,
       cost: function (l) { return Math.round(45 * Math.pow(1.62, l)); },
-      blurb: '+6% gem value and +7% drop luck per tier.' },
+      blurb: '+6% GEMS +7% DROP LUCK' },
     { key: 'gunDeck', name: 'Gun Deck', icon: 'ic_lance', max: 2, color: 0xffe7a6,
       cost: function (l) { return l === 0 ? 140 : 320; },
-      blurb: 'Tier 1 starts secondary fire. Tier 2 starts tertiary fire.' }
+      blurb: 'MORE GUN SLOTS' }
   ];
   var HANGAR_BY_KEY = {};
   for (var hti = 0; hti < HANGAR_TRACKS.length; hti++) HANGAR_BY_KEY[HANGAR_TRACKS[hti].key] = HANGAR_TRACKS[hti];

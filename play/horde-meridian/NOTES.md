@@ -1415,3 +1415,47 @@ spectacle bonuses.
   updated to 13 levels - same 2 known draft-freeze artifacts as ship
   baseline, rest green (local SW-scope console error is the static-server
   artifact, not a defect).
+
+## 2026-09-13 menu text cleanup (overlaps, shorter copy)
+
+Owner complaint: menu text overlapping, too much text overall. Files touched:
+game.js, hm_campaign_ui.js, hm_data.js.
+
+- Mission select header: "TOTAL STARS 0/27" -> "STARS 0/27" (micro size),
+  subtitle "MERIDIAN CAMPAIGN // 13 MISSIONS" -> "13 MISSIONS". No more
+  baseline collision at 390px.
+- Locked mission cards: star pips, RUN time, and BEST time are now gated on
+  level.unlocked; only the LOCKED // CLEAR <NAME> line shows on locked
+  cards. Existing listMask (viewTop/viewBottom clip) already bounds the
+  scroll list above the LAUNCH MISSION button - confirmed no card text runs
+  under it.
+- Hangar MODULES + CORE card blurbs rewritten in hm_data.js to short caps
+  strings (<=22 chars). Card render no longer force-shrinks below 0.85x:
+  blurb renders at 0.88x and only drops to 0.85x + word-wraps to a second
+  line if it still doesn't fit the card width.
+- Hangar tabs: MODULES/LOADOUT/CODEX/STYLE/CORE -> MODS/GUNS/CODEX/STYLE/
+  CORE (keys unchanged: modules/loadout/codex/style/core).
+- Hangar header decluttered: removed the static per-tab tagline under the
+  gems line (noticeText now starts empty, still used for transient buy
+  feedback) and the page tagline under each page title (codex "EVERY
+  WEAPON...", style "PAINT, TRIM...", core "THE ORIGINAL SIX...", modules
+  "Each tier is..."). Loadout's "SLOT N SELECTED..." hint stays - it's the
+  only tagline on that page.
+- Style tab HULL FRAME cards: label moved from beside-icon (clipped by card
+  edge) to centered under the icon, with an auto-shrink-to-fit fallback.
+- Play HUD: opening banner vs tutorial coach mark collision - tutorial
+  calls now go through a new `queueTutorial()` that defers `setTutorial()`
+  while `this.bannerActive` is true (50ms poll via existing `after0`
+  helper), so the "DRAG ANYWHERE..." callout no longer draws under
+  "WARDEN WING ON STATION".
+- Pause screen: "WATCHDOG MAX STEP x.xxMS" debug line now only renders when
+  `location.search` matches `?debug` (or `&debug`).
+- Radar widget: removed the redundant "REGION RING" label under "RADAR".
+
+Verify: node --check on all three files passes. Re-screenshotted all menu
+states at 390x844 dpr2 via puppeteer-core against `python3 -m http.server
+8791`, saved to review_evidence/menus-after/. Zero pageerrors; the one
+console message is the pre-existing local dev SW-scope warning (documented
+above as a static-server artifact, not present on the deployed site).
+Visual check of every PNG: no overlapping text, hull frame labels legible,
+module/core blurbs wrap cleanly with no smear.
