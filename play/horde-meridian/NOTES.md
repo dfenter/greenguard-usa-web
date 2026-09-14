@@ -1733,3 +1733,156 @@ classic families (drifter/sprinter/bulwark/sapper/lancer/weaver).
 - damage()'s shield-aura scan reused the shared `query()`/`scratch` array
   that AoE callers were mid-iterating, truncating their hit lists; added
   `queryAux()`/`scratchAux` for the aura scan so it no longer aliases them.
+## 2026-09-13 CO-OP v1
+
+Online 2-player co-op, host-authoritative over WebRTC DataChannel, classic
+run only. New file play/_shared/ggnet.js; signaling relay is the standalone
+hm-signal service (https://hm-signal.onrender.com, source ~/Github/hm-signal).
+
+### Architecture
+
+- GGNet (ggnet.js) wraps the signaling handshake and RTCPeerConnection setup
+  behind `GGNet.host({...})` / `GGNet.join({...})`, returning a `conn` with
+  `sendState` (unreliable/unordered, host to guest snapshots), `sendEvent`
+  (reliable/ordered, both directions), `sendInput` (unreliable/unordered,
+  guest to host), and `close`. It wakes the relay with `GET /health` before
+  opening the WebSocket, since a cold Render instance can take 30s+.
+- CoopScene (game.js, key 'coop') is the HOST/JOIN panel reached from the new
+  TITLE screen CO-OP button. HOST shows the room code big once the relay
+  assigns one; JOIN uses a `window.prompt` for the 4-char code (a Phaser
+  on-screen keyboard was scoped but dropped for v1 given the time budget --
+  see Deferred). A status line reports RELAY WAKING / WAITING FOR PILOT 2 /
+  CONNECTED / PEER LEFT. On connect it hands off to the 'play' scene with
+  `window.__HM_COOP = { role, conn }`.
+- PlayScene is NOT rewritten. A single patch block near the bottom of
+  game.js (search "Co-op v1 patch") wraps `create`, `update`, `hurt`,
+  `endRun`, `openDraft`, `pickUpgrade`, and `tryCallAirstrike` on the
+  PlayScene prototype, calling through to the original solo implementation
+  whenever `window.__HM_COOP` was absent at scene creation. Solo play runs
+  the exact original code path.
+- Host: builds a second pilot state `this.p2` (position, angle, hp, downed)
+  rendered with the `wingman` atlas frame (`this.p2Sprite`/`this.p2Halo`).
+  Guest input (stick vector at 30Hz over the unreliable input channel) drives
+  p2 movement; p2 auto-fires its own equipped slot-0 weapon (default bolt)
+  at the nearest enemy through the existing `fireShot('wing', ...)` path.
+  Enemy targeting (`stepEnemies`) now aims at whichever pilot is nearer
+  before the existing per-behavior movement code runs. Melee contact damage
+  (the wing/aegis/sapper block around `hurt(e.dmg, e)`) now tests proximity
+  to both p1 and p2 and routes the hit to the correct hull.
+- Shared XP/gems/airstrike charges: p2 does not have its own run/economy
+  object -- it reads/writes the same `this.run` as p1, so XP, gems, and
+  strike charges are naturally shared. The guest's airstrike button sends a
+  `{t:'strike'}` event instead of calling `tryCallAirstrike` locally.
+- Draft: `openDraft` (host) sends `{t:'draftoptions', opts:[{key,name,rarity,
+  type,weapon}]}` once the three cards are rolled, and keeps the full option
+  objects host-side on `this.coop.guestDraftOptions` (the wire copy sent to
+  the guest is display-only). The guest's `pickUpgrade` is patched to send
+  `{t:'draftpick', idx}` back instead of applying the choice, and releases
+  its own draft-frozen state immediately (does not block the host's existing
+  draft freeze any longer than solo would). `coopHostDraftPick` looks the
+  index up in `guestDraftOptions` and applies it to `this.p2`, which now
+  carries its own `ranks` table separate from p1's: weapon picks set
+  `p2.weaponKey`, `damage`/`projDamage` scale `p2.damage`, `fireRate` scales
+  `p2.fireRateMul` (read by `coopHostStep`'s fire-rate calc), `pierce` sets
+  `p2.pierce` (passed into p2's `fireShot` call). Stat keys with no meaning
+  for an AI-aimed wingman (magnet/crit/regen/armor/etc.) are silently
+  no-ops for p2 -- the guest still sees its rank pips increment on its own
+  overlay copy of `draftCards`, matching solo's visual feedback, even though
+  those specific keys do nothing to p2's behavior.
+- Revive: a downed hull (hp hits 0) does not end the run while the partner
+  still stands. `p.hp<=0` with `p2` alive sets `this.p1CoopDowned` (p1 frozen
+  in `stepInput`, no further damage in `hurt`); the symmetric case sets
+  `p2.downed` in `coopHostHurtP2`. Either downed hull revives to 50% hp after
+  the partner holds within 60px for 3 continuous seconds, banner "PILOT
+  REVIVED". The run only truly ends when both hulls are down at once.
+- Snapshot broadcast (host, 20Hz via `coopHostBroadcast`): `{t, p1:[x,y,ang,
+  hp,0], p2:[x,y,ang,hp,downed], en:[[id,keyIdx,x,y,hpPct0-15,elite],...],
+  pk:[[idx,kind,x,y],...]}`. Enemy keys are interned into a table sent once
+  via `{t:'keytable', keys:[...]}` and resent (append-only) whenever a new
+  key appears, so the per-snapshot payload only carries small integers.
+  Positions are rounded to whole pixels; hp is quantized to 0..15.
+- Guest (`coopGuestStep`, called every render frame from the patched
+  `update`): buffers the last 6 snapshots, interpolates p1/p2 position and
+  angle 100ms behind the two bracketing snapshots, and re-skins the local
+  enemy pool purely for drawing (texture + position only, no hp bars beyond
+  the quantized pct, no collision, no damage). The guest's own `simStep`
+  never runs -- `update` short-circuits straight to `renderStep` after the
+  interpolation pass, so `stepWaves`/spawn/damage/collision are all disabled
+  on the guest as specified.
+- Peer-left: `conn.onClose` on the host banner-only reverts to solo (the
+  existing single-player sim keeps running with p2 frozen in place); on the
+  guest it shows PEER LEFT and returns to title after ~1.8s.
+- Co-op results never call `evalCampaignStars`/`recordCampaignResult`: the
+  patched `endRun` clears `this.level` before `finishRun` reads it, and
+  co-op is only reachable from CLASSIC RUN (not the campaign flow) in v1
+  regardless. Gems bank normally through the existing `finishRun` path on
+  the host only -- the guest never calls `finishRun` (game over there is a
+  banner off the `{t:'over'}` event, not a local `endRun`).
+- Save format: `PROFILE_VERSION` unchanged (3). No new save fields were
+  added by co-op v1.
+
+### Known limits (v1)
+
+- JOIN uses `window.prompt` for the code on every device, not a Phaser
+  on-screen 32-char keyboard grid -- scoped out to protect the harder netcode
+  and revive/draft work inside the time budget.
+- Projectiles are cosmetic-only on the guest by design (per spec) -- the
+  guest does not fire visible shots toward enemies yet (`coopGuestStep` does
+  not spawn cosmetic shot sprites); it only renders interpolated pilots and
+  enemies. Visually this reads as p2 auto-firing invisibly from the guest's
+  own screen; the host-side p2 wing bolt IS visible to both sides since it
+  is a real host-simulated projectile.
+- Wingman formation slots (`this.wings`) are unrelated to p2 and unaffected;
+  a solo wingman and the co-op p2 can coexist.
+- No reconnect-after-drop: a peer that leaves cannot rejoin the same run.
+
+### Message shapes (see ggnet.js header for the signaling protocol)
+
+- input (guest -> host, unreliable): `{t:'input', dx, dy}`
+- event strike (guest -> host, reliable): `{t:'strike'}`
+- event draftpick (guest -> host, reliable): `{t:'draftpick', idx}`
+- event keytable (host -> guest, reliable): `{t:'keytable', keys:[...]}`
+- event draftoptions (host -> guest, reliable): `{t:'draftoptions', opts:[{key,name,rarity,type,weapon}]}`
+- event over (host -> guest, reliable): `{t:'over', score}`
+- event banner (host -> guest, reliable): `{t:'banner', title, sub}` (not yet emitted by the host in v1; guest listener exists for future use)
+- state (host -> guest, unreliable, 20Hz): see snapshot shape above
+
+### Verification
+
+- `node --check game.js` and `node --check ggnet.js` pass.
+- Rebased onto main (hot start / apex tier / gate fixes, commits 91e5efc7..
+  f6a388ab) with no functional loss on either side; only NOTES.md needed a
+  manual conflict resolution (two independent dated sections, kept both).
+- hm_coop_probe.mjs (aaa/harness/) drives two puppeteer-core pages against
+  the live relay (https://hm-signal.onrender.com): ALL PASS (9/9) --
+  boot clean on both pages, room code received, both peers CONNECTED, a
+  forced host-side spawn of 30 shows up on the guest's enemy count within
+  500ms, guest stick input moves p2 on the host within 300ms, closing the
+  host produces PEER LEFT on the guest within 5s, zero pageerrors on either
+  page. (The probe's stick-drive fix: driving `conn.sendInput` directly
+  from the test doesn't work, since the guest's own ~30Hz input loop
+  re-sends its live stick state every frame and clobbers a one-shot
+  injected packet almost immediately -- the probe now sets
+  `scene.stick.active/dx/dy` instead, mirroring a real held drag.)
+- hm_hotstart_gate.mjs (informational, no coop code path involved),
+  hm_arsenal_probe.mjs (17/17 PASS), and hm_apex_probe.mjs (15/15 PASS)
+  were re-run against this worktree post-rebase to confirm solo play is
+  unaffected by the patch block.
+- Screenshots at review_evidence/coop/: host_code_screen.png (CO-OP host
+  panel showing the room code and WAITING FOR PILOT 2) and
+  guest_midrun_both_ships.png (guest's live view mid-run with both the
+  host's ship and the p2 wingman visible together, CONNECTED banner still
+  fading).
+
+### Final state
+
+CO-OP v1 is feature-complete for this pass: host-authoritative WebRTC over
+GGNet, host/guest role split fully gates the guest out of `stepWaves`/
+spawn/`seedHotStart`/`seedSecondWave`/collision (render + input only), p2
+has its own draft/ranks track so a guest's upgrade pick has a real
+gameplay effect on p2's damage/fire-rate/pierce/weapon, revive works both
+directions, and the full probe suite plus solo regression gates are green
+against the live relay. Remaining known limits are listed above (JOIN
+code entry via `window.prompt`, guest-side shots are cosmetic-only,
+no reconnect-after-drop) -- none of them block a v1 ship, all are
+explicitly scoped out rather than accidental gaps.

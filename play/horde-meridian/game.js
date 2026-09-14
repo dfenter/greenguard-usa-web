@@ -862,10 +862,13 @@
       makeButton(this, w / 2, by + 62, bw, 46, 'CLASSIC RUN', function () {
         Game.pendingLevel = null; scene.scene.start('play');
       }, null, 'ic_beam');
-      makeButton(this, w / 2, by + 116, bw, 44, 'HANGAR', function () {
+      makeButton(this, w / 2, by + 116, bw, 44, 'CO-OP', function () {
+        scene.scene.start('coop');
+      }, null, 'ic_speed');
+      makeButton(this, w / 2, by + 168, bw, 44, 'HANGAR', function () {
         scene.scene.start('shop');
       }, null, 'ic_speed');
-      makeButton(this, w / 2, by + 168, bw, 44, 'SETTINGS', openSettings, null, 'ic_regen');
+      makeButton(this, w / 2, by + 220, bw, 40, 'SETTINGS', openSettings, null, 'ic_regen');
 
       var stats = 'BEST ' + profile.best + '   ·   ' + Math.floor(hangarBalance()) + ' GEMS BANKED';
       if (HM_DIAG) {
@@ -903,6 +906,135 @@
         window.__HM_CAMPAIGN.start(fmId);
       }
     }
+  };
+
+  var HM_SIGNAL_URL = 'https://hm-signal.onrender.com';
+  var COOP_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'.split('');
+
+  // Co-op v1 (2026-09-13): host-authoritative WebRTC over the hm-signal
+  // relay via GGNet (play/_shared/ggnet.js). This scene only negotiates the
+  // connection; PlayScene's coop hooks (below, patched onto its prototype)
+  // do the actual host/guest simulation split. window.__HM_COOP carries the
+  // live GGNet connection plus role across the scene handoff into 'play'.
+  var CoopScene = {
+    key: 'coop',
+    create: function () {
+      var scene = this;
+      var w = this.scale.width / DPR, h = this.scale.height / DPR;
+      menuBackdrop(this);
+      neonText(this, w / 2, 40 + SAFE.top, 'CO-OP', TYPE.head, '#c9ffe9');
+      this.statusText = bodyText(this, w / 2, 68 + SAFE.top, 'CHOOSE A ROLE', TYPE.label, '#8fb6c8');
+      this.codeText = neonText(this, w / 2, h * 0.42, '', TYPE.hero, '#7ad8ff');
+      this.codeText.setVisible(false);
+
+      this.mode = null;
+      this.conn = null;
+
+      var by = h * 0.62;
+      var bw = Math.min(268, w * 0.74);
+
+      this.hostBtn = makeButton(this, w / 2, by, bw, 50, 'HOST', function () {
+        scene.startHost();
+      }, 'primary', 'ic_lance');
+
+      this.joinBtn = makeButton(this, w / 2, by + 62, bw, 50, 'JOIN', function () {
+        scene.startJoin();
+      }, null, 'ic_beam');
+
+      makeButton(this, w / 2, h - 40 - SAFE.bottom, Math.min(140, w * 0.4), 40, 'BACK', function () {
+        scene.teardown();
+        scene.scene.start('title');
+      }, null);
+
+      this.input.keyboard.on('keydown-ESC', function () {
+        scene.teardown();
+        scene.scene.start('title');
+      });
+    },
+
+    setStatus: function (msg) { setTextIfChanged(this.statusText, msg); },
+
+    teardown: function () {
+      if (this.conn) { try { this.conn.close(); } catch (e) {} this.conn = null; }
+      window.__HM_COOP = null;
+    },
+
+    startHost: function () {
+      var scene = this;
+      if (this.conn) return;
+      this.mode = 'host';
+      this.hostBtn.setVisible(false); this.joinBtn.setVisible(false);
+      this.setStatus('RELAY WAKING');
+      var buf = { events: [], inputs: [] };
+      this.conn = GGNet.host({
+        signalUrl: HM_SIGNAL_URL,
+        onCode: function (code) {
+          scene.codeText.setText(code).setVisible(true);
+          scene.setStatus('WAITING FOR PILOT 2');
+        },
+        onPeer: function () {
+          scene.setStatus('CONNECTED');
+          window.__HM_COOP = { role: 'host', conn: scene.conn };
+          // setTimeout, not scene.time.delayedCall: a background/unfocused
+          // tab can have its Phaser scene clock (rAF-driven) throttled to a
+          // near-stop by the browser, which would silently strand the host
+          // in the co-op panel forever. A real timer always fires.
+          setTimeout(function () {
+            Game.pendingLevel = null;
+            scene.scene.start('play');
+          }, 400);
+        },
+        onEvent: function (obj) { buf.events.push(obj); },
+        onInput: function (obj) { buf.inputs.push(obj); },
+        onClose: function (reason) {
+          if (scene.scene.isActive('coop')) scene.setStatus('PEER LEFT');
+        }
+      });
+      window.__HM_COOP = { role: 'host', conn: this.conn, pendingEvents: buf.events, pendingInputs: buf.inputs };
+    },
+
+    startJoin: function () {
+      var scene = this;
+      if (this.conn) return;
+      var code = null;
+      try { code = window.prompt('Enter the 4-character room code'); } catch (e) {}
+      if (!code) return;
+      code = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      this.mode = 'guest';
+      this.hostBtn.setVisible(false); this.joinBtn.setVisible(false);
+      this.setStatus('RELAY WAKING');
+      var buf = { states: [], events: [] };
+      this.conn = GGNet.join({
+        signalUrl: HM_SIGNAL_URL,
+        code: code,
+        onState: function (obj) { buf.states.push(obj); if (buf.states.length > 4) buf.states.shift(); },
+        onEvent: function (obj) { buf.events.push(obj); },
+        onClose: function (reason) {
+          if (scene.scene.isActive('coop')) scene.setStatus('PEER LEFT');
+          else if (window.__HM_COOP) window.__HM_COOP.closed = reason || 'closed';
+        }
+      });
+      window.__HM_COOP = { role: 'guest', conn: this.conn, pendingStates: buf.states, pendingEvents: buf.events };
+      // Guest transitions to 'play' once the DataChannels open (mirrors host
+      // via the same onPeer-shaped signal: the event channel opening implies
+      // all three channels are up, since GGNet only fires onPeer after all
+      // three, but the guest side has no onPeer hook — poll the conn state).
+      // setInterval, not scene.time: an unfocused/background tab can throttle
+      // the Phaser scene clock (rAF-driven) to a near-stop, which would
+      // silently strand the guest in the co-op panel forever.
+      var checkId = setInterval(function () {
+        if (scene.conn && scene.conn.stateChan && scene.conn.stateChan.readyState === 'open') {
+          clearInterval(checkId);
+          scene.setStatus('CONNECTED');
+          setTimeout(function () {
+            Game.pendingLevel = null;
+            scene.scene.start('play');
+          }, 300);
+        }
+      }, 150);
+    },
+
+    update: function () {}
   };
 
   var ShopScene = {
@@ -5505,6 +5637,7 @@
     },
 
     stepInput: function (dt) {
+      if (this.p1CoopDowned) { this.p.vx = 0; this.p.vy = 0; return; }
       var p = this.p, kx = 0, ky = 0, k = this.keys;
       if (k.left.isDown || k.aleft.isDown) kx -= 1;
       if (k.right.isDown || k.aright.isDown) kx += 1;
@@ -7156,8 +7289,13 @@
         e.cd -= dt * enemyClock;
 
         var phaseHidden = run.buffs.cloak > 0;
-        var targetX = phaseHidden ? e.x : (run.buffs.decoy > 0 ? this.decoyX : p.x);
-        var targetY = phaseHidden ? e.y : (run.buffs.decoy > 0 ? this.decoyY : p.y);
+        var aimX = p.x, aimY = p.y;
+        if (this.coop && this.coop.role === 'host' && this.p2 && !this.p2.downed) {
+          var d2x = this.p2.x - e.x, d2y = this.p2.y - e.y, d1x = p.x - e.x, d1y = p.y - e.y;
+          if ((d2x * d2x + d2y * d2y) < (d1x * d1x + d1y * d1y)) { aimX = this.p2.x; aimY = this.p2.y; }
+        }
+        var targetX = phaseHidden ? e.x : (run.buffs.decoy > 0 ? this.decoyX : aimX);
+        var targetY = phaseHidden ? e.y : (run.buffs.decoy > 0 ? this.decoyY : aimY);
         var dx = targetX - e.x, dy = targetY - e.y;
         var dist = Math.sqrt(dx * dx + dy * dy) || 1;
         var sp = e.speed * enemyClock;
@@ -7387,7 +7525,14 @@
         return;
       }
       var rr = p.r + e.r * 0.72;
-      if (dx * dx + dy * dy > rr * rr) return;
+      var hitP1 = (dx * dx + dy * dy) <= rr * rr;
+      var hitP2 = false, p2dx = 0, p2dy = 0;
+      if (this.coop && this.coop.role === 'host' && this.p2 && !this.p2.downed) {
+        p2dx = this.p2.x - e.x; p2dy = this.p2.y - e.y;
+        var rr2 = this.p2.r + e.r * 0.72;
+        hitP2 = (p2dx * p2dx + p2dy * p2dy) <= rr2 * rr2;
+      }
+      if (!hitP1 && !hitP2) return;
       if (this.run.buffs.aegis > 0) {
         if (e.boss) {
           if (e.cd <= 0) {
@@ -7403,7 +7548,8 @@
       }
       if (e.cd > 0) return;
       e.cd = e.boss ? 0.5 : 0.7;
-      this.hurt(e.dmg, e);
+      if (hitP1) this.hurt(e.dmg, e);
+      else if (hitP2) this.coopHostHurtP2(e.dmg);
     },
 
     fireEbolt: function (e, nx, ny, dmg) {
@@ -9791,6 +9937,432 @@
     }
   }
 
+  // --- Co-op v1 patch (2026-09-13) --------------------------------------
+  // Host-authoritative WebRTC co-op layered onto PlayScene without
+  // rewriting the solo sim. window.__HM_COOP (set by CoopScene) carries the
+  // live GGNet connection + role into this scene. When absent, every hook
+  // below is a no-op and solo play is untouched.
+  (function () {
+    var PS = PlayScene;
+    var origCreate = PS.create, origUpdate = PS.update, origSimStep = PS.simStep,
+        origHurt = PS.hurt, origEndRun = PS.endRun, origOpenDraft = PS.openDraft,
+        origPickUpgrade = PS.pickUpgrade, origFinishRun = PS.finishRun;
+
+    var COOP_STATE_HZ = 1 / 20, COOP_INPUT_HZ = 1 / 30, COOP_INTERP_DELAY = 0.1;
+
+    PS.create = function () {
+      origCreate.apply(this, arguments);
+      var coop = window.__HM_COOP;
+      this.coop = null;
+      if (!coop || !coop.conn || !coop.role) return;
+      this._coopCreateInner(coop);
+    };
+    PS._coopCreateInner = function (coop) {
+
+      var scene = this;
+      var c = {
+        role: coop.role, conn: coop.conn, active: true,
+        stateT: 0, inputT: 0,
+        keyTable: [], keyIndex: {},
+        snapshots: [],           // guest: buffered {t, ...}
+        localClock: 0,
+        p2Input: { dx: 0, dy: 0, strike: false, swap: -1 },
+        soloAfterPeerLeft: false,
+        p2DownedT: 0
+      };
+      this.coop = c;
+
+      // p2 pilot state + sprite, reusing the wingman art per the owner spec.
+      this.p2 = {
+        x: this.p.x - 60, y: this.p.y + 40, vx: 0, vy: 0, r: 15,
+        hp: this.p.maxHp, maxHp: this.p.maxHp, face: 0,
+        downed: false, downedT: 0, weaponKey: 'bolt', fireCd: 0,
+        ranks: {}, damage: this.p.damageBase, fireRateMul: 1, pierce: 0
+      };
+      this.p2Sprite = this.add.image(this.p2.x, this.p2.y, 'atlas', 'wingman').setDepth(49);
+      this.p2Halo = this.add.image(this.p2.x, this.p2.y, 'disc').setDepth(46)
+        .setTint(0xffb26d).setAlpha(0.20).setDisplaySize(80, 80)
+        .setBlendMode(Phaser.BlendModes.ADD);
+
+      this.coopStatusText = bodyText(this, this.scale.width / DPR / 2, 14 + SAFE.top,
+        'CONNECTED', TYPE.micro, '#8effd8').setDepth(90).setScrollFactor(0);
+      this.time.delayedCall(1600, function () {
+        if (scene.coopStatusText) scene.coopStatusText.setVisible(false);
+      });
+
+      var reliable = coop.conn.opts || {};
+      // Wire onEvent/onInput/onState/onClose freshly for the PLAY phase; the
+      // CoopScene handlers only needed to detect the peer connecting.
+      coop.conn.opts.onClose = function (reason) {
+        c.active = false;
+        if (c.role === 'host') {
+          scene.coopBanner('PEER LEFT', 'FLYING SOLO');
+        } else {
+          scene.coopBanner('PEER LEFT', 'RETURNING TO TITLE');
+          scene.time.delayedCall(1800, function () {
+            scene.scene.start('title');
+          });
+        }
+      };
+
+      if (c.role === 'host') {
+        coop.conn.opts.onInput = function (obj) {
+          if (!obj) return;
+          if (obj.t === 'input') {
+            c.p2Input.dx = obj.dx || 0; c.p2Input.dy = obj.dy || 0;
+          }
+        };
+        coop.conn.opts.onEvent = function (obj) {
+          if (!obj) return;
+          if (obj.t === 'strike') scene.coopHostStrike();
+          else if (obj.t === 'swap') c.p2Input.swap = obj.slot;
+          else if (obj.t === 'draftpick') scene.coopHostDraftPick(obj.idx);
+        };
+      } else {
+        coop.conn.opts.onState = function (snap) {
+          c.snapshots.push(snap);
+          if (c.snapshots.length > 6) c.snapshots.shift();
+        };
+        coop.conn.opts.onEvent = function (obj) {
+          if (!obj) return;
+          if (obj.t === 'banner') scene.showBanner(obj.title, obj.sub);
+          else if (obj.t === 'keytable') c.keyTable = obj.keys;
+          else if (obj.t === 'draftoptions') scene.coopGuestDraft(obj.opts);
+          else if (obj.t === 'over') scene.coopGuestGameOver(obj);
+        };
+        // Guest never runs the authoritative sim.
+        this.state = 'playing';
+      }
+    };
+
+    PS.coopBanner = function (title, sub) {
+      try { this.showBanner(title, sub); } catch (e) {}
+      if (this.coopStatusText) { this.coopStatusText.setVisible(true); setTextIfChanged(this.coopStatusText, title); }
+    };
+
+    // Host: apply the guest's stick vector + queued strike/swap at ~30Hz,
+    // move p2 with the same speed rules as p1, handle revive proximity.
+    PS.coopHostStep = function (dt) {
+      var c = this.coop, p2 = this.p2, p = this.p;
+      if (!c || c.role !== 'host') return;
+      c.inputT += dt;
+      var input = c.p2Input;
+
+      // p1 downed (hull hit 0 while p2 still stands): freeze p1 in place
+      // and require p2 to hold within 60px for 3s to revive, mirroring the
+      // p2 revive rule below.
+      if (this.p1CoopDowned) {
+        var r1dx = p2.x - p.x, r1dy = p2.y - p.y;
+        if ((r1dx * r1dx + r1dy * r1dy) < 3600 && !p2.downed) {
+          c.p1DownedT = (c.p1DownedT || 0) + dt;
+          if (c.p1DownedT >= 3) {
+            this.p1CoopDowned = false; c.p1DownedT = 0;
+            p.hp = p.maxHp * 0.5; p.iframes = 1.5;
+            this.coopBanner('PILOT REVIVED', '');
+          }
+        } else {
+          c.p1DownedT = 0;
+        }
+      }
+
+      if (!p2.downed) {
+        var dx = input.dx || 0, dy = input.dy || 0;
+        var len = Math.sqrt(dx * dx + dy * dy);
+        if (len > 0.03) {
+          var sp = this.p.speed * Math.min(1, len);
+          p2.vx = dx / len * sp; p2.vy = dy / len * sp;
+          p2.x = clamp(p2.x + p2.vx * dt, -EDGE, EDGE);
+          p2.y = clamp(p2.y + p2.vy * dt, -EDGE, EDGE);
+          p2.face = Math.atan2(dy, dx);
+        }
+        if (input.swap >= 0 && input.swap <= 2) {
+          var slotKey = this.run.weaponSlots[input.swap];
+          if (slotKey) p2.weaponKey = slotKey;
+          input.swap = -1;
+        }
+        p2.fireCd -= dt;
+        if (p2.fireCd <= 0) {
+          var target = this.nearestEnemy(p2.x, p2.y, 900);
+          if (target) {
+            var ang = Math.atan2(target.y - p2.y, target.x - p2.x);
+            var p2Dmg = (p2.damage || this.p.damageBase) * 0.85;
+            this.fireShot('wing', p2.x + Math.cos(ang) * 13, p2.y + Math.sin(ang) * 13,
+              Math.cos(ang) * 560, Math.sin(ang) * 560, p2Dmg, 4, p2.pierce || 0, p2.weaponKey, true);
+          }
+          p2.fireCd = 0.30 * (p2.fireRateMul || 1);
+        }
+      } else {
+        p2.downedT -= dt;
+        var rdx = this.p.x - p2.x, rdy = this.p.y - p2.y;
+        if ((rdx * rdx + rdy * rdy) < 3600) {
+          c.p2DownedT += dt;
+          if (c.p2DownedT >= 3) {
+            p2.downed = false; p2.hp = p2.maxHp * 0.5; c.p2DownedT = 0;
+            this.coopBanner('PILOT REVIVED', '');
+          }
+        } else {
+          c.p2DownedT = 0;
+        }
+      }
+      this.p2Sprite.setPosition(p2.x, p2.y).setRotation(p2.face)
+        .setAlpha(p2.downed ? 0.35 : 1).setTint(p2.downed ? 0x556677 : 0xffffff);
+      this.p2Halo.setPosition(p2.x, p2.y);
+    };
+
+    PS.coopHostHurtP2 = function (amount) {
+      var p2 = this.p2;
+      if (!p2 || p2.downed) return;
+      p2.hp -= amount;
+      if (p2.hp <= 0) { p2.hp = 0; p2.downed = true; p2.downedT = 0; this.coop.p2DownedT = 0; }
+    };
+
+    PS.coopHostStrike = function () {
+      if (this.state === 'playing') { try { this.tryCallAirstrike(); } catch (e) {} }
+    };
+    // Apply the guest's chosen upgrade to p2 directly, mirroring the subset
+    // of pickUpgrade's stat branches that matter for p2's own fire loop
+    // (damage/fireRate/pierce/weapon); p2 has no HUD-facing stats like
+    // magnet/crit/regen so those keys are no-ops for it. p2 tracks its own
+    // `ranks` table, separate from p1's, per pilot.
+    PS.coopHostDraftPick = function (idx) {
+      var c = this.coop, p2 = this.p2;
+      if (!c || c.role !== 'host' || !p2) return;
+      var opts = c.guestDraftOptions;
+      if (!opts || !opts[idx]) return;
+      var u = opts[idx];
+      p2.ranks[u.key] = (p2.ranks[u.key] || 0) + 1;
+      var r = p2.ranks[u.key];
+
+      if (u.type === 'weapon') p2.weaponKey = u.weapon;
+      else if (u.key === 'damage') p2.damage = this.p.damageBase * (1 + 0.16 * r);
+      else if (u.key === 'fireRate') p2.fireRateMul = Math.max(0.35, 1 - r * 0.08);
+      else if (u.key === 'pierce') p2.pierce = r;
+      else if (u.key === 'projDamage') p2.damage = (p2.damage || this.p.damageBase) * (1 + r * 0.12);
+
+      c.guestDraftOptions = null;
+      this.coopBanner('P2 UPGRADED', u.name || '');
+    };
+
+    // Broadcast a compact snapshot at 20Hz. Positions rounded to ints;
+    // enemies referenced by index into a key table sent once (and resent on
+    // change) so the payload stays small.
+    PS.coopHostBroadcast = function (dt) {
+      var c = this.coop;
+      if (!c || c.role !== 'host' || !c.active) return;
+      c.stateT += dt;
+      if (c.stateT < COOP_STATE_HZ) return;
+      c.stateT = 0;
+
+      var keys = [], keyIndex = c.keyIndex, changed = false;
+      var en = [];
+      for (var i = 0; i < this.enemies.length; i++) {
+        var e = this.enemies[i];
+        if (!e.alive) continue;
+        if (keyIndex[e.key] == null) {
+          keyIndex[e.key] = c.keyTable.length + keys.length;
+          keys.push(e.key);
+          changed = true;
+        }
+        en.push([e.id != null ? e.id : i, keyIndex[e.key], Math.round(e.x), Math.round(e.y),
+          Math.max(0, Math.min(15, Math.round((e.hp / (e.maxHp || 1)) * 15))), e.elite ? 1 : 0]);
+      }
+      if (changed) {
+        c.keyTable = c.keyTable.concat(keys);
+        c.conn.sendEvent({ t: 'keytable', keys: c.keyTable });
+      }
+
+      var pk = [], i2;
+      for (i2 = 0; i2 < this.bonuses.length; i2++) {
+        var b = this.bonuses[i2];
+        if (b.alive) pk.push([i2, b.kind || '', Math.round(b.x), Math.round(b.y)]);
+      }
+
+      var snap = {
+        t: Math.round((this.run ? this.run.time : 0) * 10) / 10,
+        p1: [Math.round(this.p.x), Math.round(this.p.y), Math.round((this.playerHeading || 0) * 100) / 100,
+             Math.round(this.p.hp), 0],
+        p2: [Math.round(this.p2.x), Math.round(this.p2.y), Math.round((this.p2.face || 0) * 100) / 100,
+             Math.round(this.p2.hp), this.p2.downed ? 1 : 0],
+        en: en, pk: pk
+      };
+      c.conn.sendState(snap);
+    };
+
+    // Guest: interpolate 100ms behind the two most recent snapshots and
+    // update the render-only p/p2/enemies/pickups. No sim, no collisions.
+    PS.coopGuestStep = function () {
+      var c = this.coop;
+      if (!c || c.role !== 'guest') return;
+      var snaps = c.snapshots;
+      if (snaps.length < 1) return;
+      var latest = snaps[snaps.length - 1];
+      var renderT = latest.t - COOP_INTERP_DELAY;
+      var a = snaps[0], b = latest;
+      for (var i = 0; i < snaps.length - 1; i++) {
+        if (snaps[i].t <= renderT && snaps[i + 1].t >= renderT) { a = snaps[i]; b = snaps[i + 1]; break; }
+      }
+      var span = Math.max(0.0001, b.t - a.t);
+      var f = clamp((renderT - a.t) / span, 0, 1);
+
+      function lerp(u, v, k) { return u + (v - u) * k; }
+
+      this.p.x = lerp(a.p1[0], b.p1[0], f); this.p.y = lerp(a.p1[1], b.p1[1], f);
+      this.p.hp = b.p1[3];
+      this.playerHeading = b.p1[2];
+
+      if (!this.p2) return;
+      this.p2.x = lerp(a.p2[0], b.p2[0], f); this.p2.y = lerp(a.p2[1], b.p2[1], f);
+      this.p2.face = b.p2[2]; this.p2.hp = b.p2[3]; this.p2.downed = !!b.p2[4];
+      this.p2Sprite.setPosition(this.p2.x, this.p2.y).setRotation(this.p2.face)
+        .setAlpha(this.p2.downed ? 0.35 : 1);
+      this.p2Halo.setPosition(this.p2.x, this.p2.y);
+
+      // Cosmetic-only enemy render: reuse the enemy pool purely for drawing,
+      // no damage/collision applied on the guest.
+      var used = 0, en = b.en || [];
+      for (var j = 0; j < en.length && used < this.enemies.length; j++) {
+        var rec = en[j], slot = this.enemies[used++];
+        var key = c.keyTable[rec[1]] || 'drifter';
+        if (!slot.alive || slot.key !== key) {
+          slot.key = key;
+          try { slot.spr.setTexture('atlas', (ENEMY_BY_KEY[key] || {}).frame || 'e_drifter'); } catch (e) {}
+        }
+        slot.alive = true; slot.x = rec[2]; slot.y = rec[3];
+        slot.hp = rec[4]; slot.maxHp = 15; slot.elite = !!rec[5];
+        slot.spr.setPosition(slot.x, slot.y).setVisible(true);
+      }
+      for (; used < this.enemies.length; used++) {
+        if (this.enemies[used].alive) { this.enemies[used].alive = false; this.enemies[used].spr.setVisible(false); }
+      }
+    };
+
+    PS.coopGuestDraft = function (opts) {
+      var scene = this;
+      this.draftCards = opts;
+      var ov = this.buildDraftUI();
+      ov.setVisible(true);
+      this.state = 'draft';
+      // Guest picks reuse the same card UI; pickUpgrade is patched below to
+      // send the choice back to the host instead of applying it locally.
+    };
+
+    PS.coopGuestGameOver = function (obj) {
+      this.coopBanner('RUN OVER', 'SCORE ' + (obj.score || 0));
+      this.time.delayedCall(2200, function () {
+        try { window.__HM_COOP.conn.close(); } catch (e) {}
+        window.__HM_COOP = null;
+      });
+    };
+
+    PS.update = function (now) {
+      var c = this.coop;
+      if (c && c.role === 'guest') {
+        // Render-only path: skip the authoritative sim entirely, but still
+        // run Phaser's render/HUD pass every frame.
+        this.coopGuestStep();
+        var dtReal = Math.min(0.1, (now - (this.lastNow || now)) / 1000);
+        this.lastNow = now;
+        c.inputT += dtReal;
+        if (c.active && c.inputT >= COOP_INPUT_HZ) {
+          c.inputT = 0;
+          var kx = 0, ky = 0, k = this.keys;
+          if (k) {
+            if (k.left.isDown || k.aleft.isDown) kx -= 1;
+            if (k.right.isDown || k.aright.isDown) kx += 1;
+            if (k.up.isDown || k.aup.isDown) ky -= 1;
+            if (k.down.isDown || k.adown.isDown) ky += 1;
+          }
+          var idx = kx, idy = ky;
+          if (this.stick && this.stick.active) { idx += this.stick.dx; idy += this.stick.dy; }
+          c.conn.sendInput({ t: 'input', dx: idx, dy: idy });
+        }
+        var j = kit.juice.frame();
+        this.renderStep(dtReal, j);
+        this.watchdogLastFrameAt = performance.now();
+        return;
+      }
+      origUpdate.call(this, now);
+      if (c && c.role === 'host' && this.state === 'playing') {
+        this.coopHostStep(1 / 60);
+        this.coopHostBroadcast(1 / 60);
+      }
+    };
+
+    PS.hurt = function (amount, source) {
+      // Host-authoritative: guest's own sim never runs, so this only fires
+      // on solo play or on the host (for p1). Co-op rule: the run only ends
+      // when BOTH hulls are down; if p2 is still standing, p1 goes to a
+      // downed state instead of ending the run.
+      var c = this.coop, p = this.p;
+      if (!c || c.role !== 'host' || !this.p2) return origHurt.call(this, amount, source);
+      if (this.p1CoopDowned) return;
+
+      if (this.state !== 'playing' || p.iframes > 0 || this.run.buffs.aegis > 0) return;
+      var amt = amount * (1 - p.armor);
+      p.hp -= amt; p.iframes = 0.45; p.hurtT = 0.35;
+      kit.juice.shake(9, 240); sfx('hurt', { volume: 0.5 });
+      if (p.hp <= 0) {
+        p.hp = 0;
+        if (!this.p2.downed) { this.p1CoopDowned = true; return; }
+        this.endRun(false);
+      }
+    };
+
+    PS.endRun = function (won, abandoned) {
+      var c = this.coop;
+      origEndRun.call(this, won, abandoned);
+      if (c && c.role === 'host' && c.active) {
+        c.conn.sendEvent({ t: 'over', score: this.run ? Math.floor(this.run.score || 0) : 0 });
+      }
+      // Co-op results never write campaign stars/best time (checklist item
+      // 4); guard by clearing the level reference before finishRun banks
+      // gems, so evalCampaignStars/recordCampaignResult are skipped.
+      if (c && this.level) this.level = null;
+    };
+
+    PS.openDraft = function () {
+      var c = this.coop;
+      origOpenDraft.apply(this, arguments);
+      if (c && c.role === 'host' && c.active && this.draftCards) {
+        var opts = [];
+        for (var i = 0; i < this.draftCards.length; i++) {
+          var u = this.draftCards[i];
+          opts.push({ key: u.key, name: u.name, rarity: u.rarity, type: u.type, weapon: u.weapon });
+        }
+        // Kept host-side (full objects, incl. type/weapon) so
+        // coopHostDraftPick can apply the pick to p2 by index; the wire
+        // copy sent to the guest is display-only.
+        c.guestDraftOptions = opts;
+        c.conn.sendEvent({ t: 'draftoptions', opts: opts });
+        // Host does not block on the guest's pick beyond the existing draft
+        // freeze; if no reply arrives before the freeze lifts naturally,
+        // the guest simply keeps its prior loadout for that level-up.
+      }
+    };
+
+    var origTryCallAirstrike = PS.tryCallAirstrike;
+    PS.tryCallAirstrike = function () {
+      var c = this.coop;
+      if (c && c.role === 'guest') {
+        if (c.active) c.conn.sendEvent({ t: 'strike' });
+        return;
+      }
+      origTryCallAirstrike.call(this);
+    };
+
+    PS.pickUpgrade = function (idx) {
+      var c = this.coop;
+      if (c && c.role === 'guest') {
+        c.conn.sendEvent({ t: 'draftpick', idx: idx });
+        this.draftCards = null;
+        if (this.overlay === this.draftUI) this.overlay.setVisible(false);
+        this.state = 'playing';
+        return;
+      }
+      origPickUpgrade.call(this, idx);
+    };
+  }());
+
   readSafeArea();
 
   var view = cssViewport();
@@ -9807,7 +10379,7 @@
     render: Object.assign({}, GGKit.renderDefaults),
     fps: { target: 60, min: 30 },
     scene: (function () {
-      var list = [toScene(BootScene), toScene(TitleScene), toScene(ShopScene), toScene(PlayScene)];
+      var list = [toScene(BootScene), toScene(TitleScene), toScene(ShopScene), toScene(CoopScene), toScene(PlayScene)];
       var ui = window.__HM_CAMPAIGN_UI;
       if (ui && typeof ui === 'object' && ui.key === 'missions' && typeof ui.create === 'function') {
         list.push(toScene(ui));
