@@ -30,7 +30,7 @@
     mods: {
       enemyHp: 1.3,
       enemyDmg: 1.15,
-      spawnRate: 1.15
+      spawnRate: 1.35
     },
     finalBoss: {
       type: 'core',

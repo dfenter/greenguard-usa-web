@@ -24,7 +24,7 @@
       { at: 312, rate: 0.43, pack: 4, pool: ['cinder-kamikaze', 'ash-wraith', 'refracting-shard-drone', 'glasswing-drone', 'blink-stalker', 'null-leech', 'derelict-guard-hulk'] },
       { at: 370, rate: 0.38, pack: 4, pool: ['cinder-kamikaze', 'ember-scarab', 'refracting-shard-drone', 'glasswing-drone', 'null-leech', 'derelict-guard-hulk', 'salvage-swarm', 'scrap-ripper'] }
     ],
-    mods: { enemyHp: 1.2, spawnRate: 1.2 },
+    mods: { enemyHp: 1.2, spawnRate: 1.4 },
     bases: [
       { at: 30, type: 'hive', x: 3000, y: -900 },
       { at: 95, type: 'relay', x: 650, y: 1300 },

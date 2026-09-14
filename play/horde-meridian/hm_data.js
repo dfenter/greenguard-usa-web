@@ -165,18 +165,19 @@
   };
 
   var WAVES = [
-    { at: 0,   rate: 1.15, pack: 1, pool: ['drifter'] },
-    { at: 18,  rate: 0.92, pack: 1, pool: ['drifter', 'drifter', 'sprinter'] },
-    { at: 48,  rate: 0.82, pack: 1, pool: ['drifter', 'sprinter', 'sprinter'] },
-    { at: 82,  rate: 0.76, pack: 2, pool: ['drifter', 'sprinter', 'bulwark'] },
-    { at: 125, rate: 0.70, pack: 2, pool: ['drifter', 'sprinter', 'bulwark', 'sapper'] },
-    { at: 168, rate: 0.64, pack: 2, pool: ['sprinter', 'bulwark', 'sapper', 'weaver'] },
-    { at: 220, rate: 0.58, pack: 2, pool: ['drifter', 'sprinter', 'sapper', 'weaver', 'lancer'] },
-    { at: 275, rate: 0.51, pack: 3, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] },
-    { at: 345, rate: 0.45, pack: 3, pool: ['sprinter', 'bulwark', 'weaver', 'lancer', 'sapper'] },
-    { at: 415, rate: 0.39, pack: 3, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] },
-    { at: 490, rate: 0.34, pack: 4, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] },
-    { at: 550, rate: 0.30, pack: 4, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] }
+    { at: 0,   rate: 0.42, pack: 3, pool: ['drifter', 'sprinter', 'bulwark', 'sapper', 'lancer', 'weaver'] },
+    { at: 15,  rate: 0.45, pack: 3, pool: ['drifter', 'sprinter', 'bulwark', 'sapper', 'lancer', 'weaver'] },
+    { at: 30,  rate: 0.45, pack: 3, pool: ['drifter', 'sprinter', 'bulwark', 'sapper', 'lancer', 'weaver'] },
+    { at: 45,  rate: 0.45, pack: 3, pool: ['drifter', 'sprinter', 'bulwark', 'sapper', 'lancer', 'weaver'] },
+    { at: 70,  rate: 0.42, pack: 3, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] },
+    { at: 100, rate: 0.39, pack: 3, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] },
+    { at: 135, rate: 0.36, pack: 3, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] },
+    { at: 180, rate: 0.30, pack: 4, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] },
+    { at: 250, rate: 0.30, pack: 4, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] },
+    { at: 330, rate: 0.28, pack: 4, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] },
+    { at: 420, rate: 0.26, pack: 5, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] },
+    { at: 480, rate: 0.25, pack: 5, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] },
+    { at: 540, rate: 0.24, pack: 5, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] }
   ];
 
   var BONUS = [
@@ -623,7 +624,8 @@
     spacing: 4, cap: 44, floorTime: 12, floorKills: 1, fieldCap: 16,
     landmarkGemCount: 7, landmarkGemValue: 2
   };
-  var OPENING_BEATS = { firstEnemy: 1.8, firstDrop: 10.5, airstrike: 5.0 };
+  var OPENING_BEATS = { firstEnemy: 0, firstDrop: 4, airstrike: 2.5 };
+  var HOT_START = { count: 80, ringMin: 480, ringMax: 900, elitePct: 0.02, secondWave: 30, secondWaveDelay: 1.5 };
   var ARSENAL_III = {
     damage: [1, 0.55, 0.35], cadence: [1, 0.90, 0.84],
     unlockWave: [0, 3, 6], bossKills: [0, 1, 2], maxSlots: 3
@@ -687,6 +689,7 @@
     REGION_BOSS_SCHEDULE: REGION_BOSS_SCHEDULE,
     DROP_TUNING: DROP_TUNING,
     OPENING_BEATS: OPENING_BEATS,
+    HOT_START: HOT_START,
     ARSENAL_III: ARSENAL_III,
     ATLAS_FRAME_MAP: ATLAS_FRAME_MAP
   };

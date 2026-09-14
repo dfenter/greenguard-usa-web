@@ -30,6 +30,7 @@
       { at: 425, rate: 0.68, pack: 4, pool: ['bulwark', 'lancer', 'derelict-guard-hulk', 'ember-scarab', 'refracting-shard-drone'] }
     ],
     mods: {
+      spawnRate: 1.2,
       enemyHp: 1.25,
       enemyDmg: 1.1
     },

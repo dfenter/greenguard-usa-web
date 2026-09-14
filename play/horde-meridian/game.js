@@ -28,7 +28,7 @@
   var STEP = 1 / 60;             // fixed sim step
   var MAX_STEPS = 4;             // hard catch-up cap; covers ~15fps devices without backlog
   var RUN_SECONDS = 600;         // 10 minutes -> boss
-  var MAX_ENEMIES = 260;
+  var MAX_ENEMIES = 320;
   var MAX_GEMS = 220;            // GEM GROWTH CAP: hard ceiling on live gems
   var MAX_BONUS_PICKUPS = HM_DATA.DROP_TUNING.fieldCap;
   var MAX_WEAPON_DROPS = 5;      // weapon drops use their own framed pickup lane
@@ -96,6 +96,7 @@
   var REGION_BOSS_SCHEDULE = HM_DATA.REGION_BOSS_SCHEDULE;
   var DROP_TUNING = HM_DATA.DROP_TUNING;
   var OPENING_BEATS = HM_DATA.OPENING_BEATS;
+  var HOT_START = HM_DATA.HOT_START;
   var ARSENAL_III = HM_DATA.ARSENAL_III;
   var ATLAS_FRAME_MAP = HM_DATA.ATLAS_FRAME_MAP;
   function makeDefaultHangar() {
@@ -2860,6 +2861,7 @@
         enemySpeed: (lm && lm.enemySpeed) || 1, spawnRate: (lm && lm.spawnRate) || 1,
         xp: (lm && lm.xp) || 1
       };
+      this.hotStartPending = true;
 
       this.p = {
         x: 0, y: 0, vx: 0, vy: 0, r: 15,
@@ -2990,6 +2992,53 @@
         this.showBanner('MERIDIAN VERGE', 'STABLE GRID // THE CORE DESCENDS AT 10:00');
       }
       this.updateCampaignObjText();
+      this.seedHotStart();
+    },
+
+    seedSecondWave: function () {
+      var region = regionAtX(this.p.x);
+      var pool = (this.activeWaves[this.run.waveIdx] && this.activeWaves[this.run.waveIdx].pool) ?
+        this.activeWaves[this.run.waveIdx].pool.slice() : ['drifter', 'sprinter', 'bulwark', 'sapper', 'lancer', 'weaver'];
+      var regionKeys = REGION_ENEMIES[region.key];
+      if (regionKeys) {
+        for (var rk = 0; rk < regionKeys.length; rk++) {
+          if (pool.indexOf(regionKeys[rk].key) < 0) pool.push(regionKeys[rk].key);
+        }
+      }
+      for (var i = 0; i < HOT_START.secondWave; i++) {
+        var a = srand() * TAU;
+        var rad = HOT_START.ringMin + srand() * (HOT_START.ringMax - HOT_START.ringMin);
+        var x = clamp(this.p.x + Math.cos(a) * rad, -EDGE, EDGE);
+        var y = clamp(this.p.y + Math.sin(a) * rad, -EDGE, EDGE);
+        var fam = this.regionEnemyFor(pool[Math.floor(srand() * pool.length)]);
+        var elite = srand() < HOT_START.elitePct;
+        this.spawn(fam, elite, x, y, true);
+      }
+    },
+
+    seedHotStart: function () {
+      this.hotStartPending = false;
+      var count = this.level ?
+        Math.round(HOT_START.count * Math.max(0.65, this.levelMods.spawnRate)) :
+        HOT_START.count;
+      var region = regionAtX(this.p.x);
+      var pool = (this.activeWaves[0] && this.activeWaves[0].pool) ?
+        this.activeWaves[0].pool.slice() : ['drifter', 'sprinter', 'bulwark', 'sapper', 'lancer', 'weaver'];
+      var regionKeys = REGION_ENEMIES[region.key];
+      if (regionKeys) {
+        for (var rk = 0; rk < regionKeys.length; rk++) {
+          if (pool.indexOf(regionKeys[rk].key) < 0) pool.push(regionKeys[rk].key);
+        }
+      }
+      for (var i = 0; i < count; i++) {
+        var a = srand() * TAU;
+        var rad = HOT_START.ringMin + srand() * (HOT_START.ringMax - HOT_START.ringMin);
+        var x = clamp(this.p.x + Math.cos(a) * rad, -EDGE, EDGE);
+        var y = clamp(this.p.y + Math.sin(a) * rad, -EDGE, EDGE);
+        var fam = this.regionEnemyFor(pool[Math.floor(srand() * pool.length)]);
+        var elite = srand() < HOT_START.elitePct;
+        this.spawn(fam, elite, x, y, true);
+      }
     },
 
     park: function (obj) {
@@ -5832,8 +5881,14 @@
       if (!run.openingAirstrikeDone && run.time >= OPENING_BEATS.airstrike) {
         run.openingAirstrikeDone = true;
         run.strikeCharges = Math.max(0, run.strikeCharges - 1);
-        this.showBanner('WARDEN WING ON STATION', 'FREE OPENING STRIKE // BOARD CLEAR');
+        this.showBanner('WARDEN WING ON STATION', 'OPENING STRIKE // BOARD CLEAR');
         this.startOpeningAirstrike();
+        var scene = this, token = this.runToken;
+        this.after(HOT_START.secondWaveDelay, function () {
+          if (scene.runToken !== token || scene.state !== 'playing') return;
+          scene.seedSecondWave();
+          scene.showBanner('THEY KEEP COMING', 'HOLD THE LINE');
+        }, 'hotstart-second-wave');
       }
       if (this.debugState && this.debugState.forceSpectacle && this.state === 'playing') {
         this.debugState.forceSpectacle = false;
@@ -5906,15 +5961,15 @@
         for (var i = 0; i < n; i++) this.spawn(this.regionEnemyFor(row.pool[Math.floor(srand() * row.pool.length)]), false);
       }
 
-      var minute = Math.floor(run.time / 60);
-      if (minute > run.eliteMin && minute < 10) {
-        run.eliteMin = minute;
+      var eliteTick = run.time >= 30 ? Math.floor((run.time - 30) / 45) + 1 : 0;
+      if (eliteTick > run.eliteMin && run.time < 600) {
+        run.eliteMin = eliteTick;
         var pool = row.pool;
         var fam = this.regionEnemyFor(pool[Math.floor(srand() * pool.length)]);
         this.spawn(fam, true);
-        if (minute >= 4) this.spawn(this.regionEnemyFor(pool[Math.floor(srand() * pool.length)]), true);
-        this.burst(2 + Math.min(6, minute));
-        this.showBanner('ELITE SPIKE', 'MINUTE ' + minute);
+        if (eliteTick >= 3) this.spawn(this.regionEnemyFor(pool[Math.floor(srand() * pool.length)]), true);
+        this.burst(2 + Math.min(6, eliteTick));
+        this.showBanner('ELITE SPIKE', 'T+' + Math.floor(run.time) + 's');
         sfx('telegraph');
         kit.juice.shake(7, 260);
       }
@@ -5982,7 +6037,7 @@
       var base = bossData || variantData || FAMILY[fam] || FAMILY.drifter;
       var spawnRegion = regionAtX(atX != null ? atX : this.p.x);
       var isRegionBoss = !!bossData;
-      var diff = 1 + this.run.time / 460;         // difficulty ramp multiplier
+      var diff = 1.35 + this.run.time / 380;      // difficulty ramp multiplier
       var ef = elite && !isRegionBoss ? 3.2 : 1;
 
       if (atX != null) { e.x = atX; e.y = atY; }

@@ -29,7 +29,7 @@
     mods: {
       enemyHp: 1.5,
       enemyDmg: 1.25,
-      spawnRate: 1.25
+      spawnRate: 1.45
     },
     bases: [
       { at: 40,  type: 'relay',   x: -900,  y: -1400 },

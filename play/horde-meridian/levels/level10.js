@@ -26,7 +26,7 @@
     mods: {
       enemyHp: 1.35,
       enemyDmg: 1.2,
-      spawnRate: 1.2
+      spawnRate: 1.4
     },
     bases: [
       { at: 20,  type: 'hive',    x: 2400,  y: -1200 },

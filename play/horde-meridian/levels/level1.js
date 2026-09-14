@@ -7,8 +7,8 @@
     name: 'FIRST CONTACT',
     tagline: 'HOLD THE VERGE',
     briefing: [
-      'WELCOME TO THE LINE, ROOKIE WARDEN.',
-      'AUTO-FIRE IS ONLINE. DRAG-MOVE TO EVADE.',
+      'THE VERGE IS ALREADY OVERRUN.',
+      'YOUR OPENING STRIKE BUYS SECONDS.',
       'HOLD FOR 180 SECONDS.'
     ],
     region: 'meridian-verge',
@@ -21,7 +21,7 @@
       { at: 140, rate: 0.62, pack: 2, pool: ['drifter', 'sprinter', 'bulwark'] }
     ],
     mods: {
-      spawnRate: 0.60
+      spawnRate: 1.0
     },
     bases: [],
     regionBosses: [],

@@ -1,0 +1,3 @@
+[
+  "console: The path of the provided scope ('/play/horde-meridian') is not under the max scope allowed ('/play/horde-meridian/'). Adjust the scope, move the Service Worker script, or use the Service-Worker-Allowed HTTP header to allow the scope."
+]

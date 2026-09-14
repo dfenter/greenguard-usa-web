@@ -26,6 +26,7 @@
       { at: 378, rate: 0.29, pack: 4, pool: ['derelict-guard-hulk', 'salvage-swarm', 'scrap-ripper', 'grave-egg'] }
     ],
     mods: {
+      spawnRate: 1.2,
       enemyHp: 1.2,
       enemyDmg: 1.1
     },

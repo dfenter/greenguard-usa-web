@@ -27,7 +27,7 @@
     mods: {
       enemyHp: 1.4,
       enemyDmg: 1.2,
-      spawnRate: 1.2
+      spawnRate: 1.4
     },
     bases: [
       { at: 18,  type: 'bastion', x: -5600, y: -1500 },

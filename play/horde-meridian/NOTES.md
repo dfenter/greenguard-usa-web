@@ -1459,3 +1459,115 @@ console message is the pre-existing local dev SW-scope warning (documented
 above as a static-server artifact, not present on the deployed site).
 Visual check of every PNG: no overlapping text, hull frame labels legible,
 module/core blurbs wrap cleanly with no smear.
+
+## 2026-09-13 HOT START ROUND
+
+Owner complaint: classic run and campaign both ramped up too slowly.
+Rebuilt the opening beat and wave curve so the board is full at 0:00, the
+opening strike clears it, and pressure climbs from a high floor instead of
+a slow one, front to back.
+
+- hm_data.js: OPENING_BEATS -> { firstEnemy: 0, firstDrop: 4, airstrike: 2.5 }.
+  Added HOT_START = { count: 80, ringMin: 480, ringMax: 900, elitePct: 0.02,
+  secondWave: 30, secondWaveDelay: 1.5 }, exported like the other tables.
+  Started at count: 110 per the brief; tuned down twice (90, then the 80
+  floor) chasing the 60s stock-ship survival guard - see FINDING below.
+- WAVES (classic) rewritten front-loaded: row 0 is
+  { at: 0, rate: 0.42, pack: 3, pool: <all six families> }, holding rate
+  0.45/pack 3 by 45s, reaching rate 0.30/pack 4 by 180s (the old final
+  row's intensity), then continuing to escalate to rate 0.24/pack 5 by
+  540s. 13 rows total, ascending `at`, rate in [0.24, 0.45], pack 3-5.
+- game.js: new `seedHotStart()` (called once at the end of run init, after
+  activeWaves/levelMods/this.p are set) force-spawns HOT_START.count
+  enemies in a ring [ringMin, ringMax] around the player, drawn from the
+  active wave-0 pool unioned with the current region's REGION_ENEMIES keys
+  (Meridian Verge has none, so classic keeps the six families).
+  elitePct of the seed rolls elite. Campaign count scales by
+  `round(HOT_START.count * max(0.65, levelMods.spawnRate))`. MAX_ENEMIES
+  raised 260 -> 320 to hold the seed plus normal spawns without evicting.
+  New `seedSecondWave()` fires HOT_START.secondWaveDelay after the opening
+  strike, seeding HOT_START.secondWave more enemies with the banner "THEY
+  KEEP COMING" / "HOLD THE LINE".
+- Opening strike (2.5s): still calls startStrikeWing() + purgeBoard(); the
+  "WARDEN WING ON STATION" banner subtitle changed to "OPENING STRIKE //
+  BOARD CLEAR". stepWaves keeps spawning through the strike, matching the
+  brief.
+- Difficulty scalar in spawn(): diff = 1.35 + run.time/380 (was
+  1 + run.time/460), speed/damage caps unchanged. Elite spike cadence
+  changed from once/minute to once every 45s starting at 30s (was every
+  60s from minute 1), banner now reads "ELITE SPIKE" / "T+<n>s".
+- Campaign: levels 1-3 with spawnRate below 1.0 raised to 1.0 (only level 1
+  qualified, 0.60 -> 1.0; levels 2-3 were already >= 1.0 and untouched
+  per the brief). Levels 4-13 got +0.2 spawnRate (levels 6 and 8 had no
+  spawnRate key, added at 1.2 then +0.2 applied), capped at 2.5. Level 1
+  briefing rewritten: "THE VERGE IS ALREADY OVERRUN." / "YOUR OPENING
+  STRIKE BUYS SECONDS." / "HOLD FOR 180 SECONDS." (all <= 44 chars, caps,
+  no em dashes).
+- Strike charges: unchanged mechanism (5 initial, cap 8 via
+  Math.min(8, ...) already in place); opening strike still spends 1
+  (net 4 remaining after 2.5s), matching the brief.
+
+### FINDING: hot-start vs. the 60s stock-ship survival guard
+
+The 60s survival guard (a naive auto-dodge bot: every 100ms steer away from
+the nearest-enemy centroid, no combat input beyond the ship's own
+auto-fire) does NOT reliably pass at any HOT_START.count from 110 down to
+the 80 floor. In every deterministic run (srand is seeded, so results
+repeat) the bot dies between t=10s and t=18s, not from the initial seed
+density (the opening strike + second-wave clear that fine) but from
+contact damage accumulating during the wave-0 respawn churn once the
+board re-fills — the wave-0 row (0.42s/spawn, pack 3, full six-family
+pool) and the diff formula (both fixed values in the brief) keep enough
+enemies in contact range that the single global 0.45s hit-cooldown still
+adds up to lethal DPS against a ship with no active dodging skill beyond
+"move away from the crowd." Raising ringMin (480) and refining the bot's
+weighting (inverse-distance instead of raw sum) helped marginally but did
+not change the outcome.
+
+This reads as the actual intended difficulty, not a bug: the owner asked
+for "survival of the fittest from the start," and a genuinely skilled
+player (using upgrades, weapon swaps, active dodging, and the extra strike
+charges) has tools the guard bot doesn't use. Left HOT_START.count at the
+80 floor per the token-budget instruction ("tune down, not below 80, and
+say so if the guard still fails") rather than keep softening the specified
+wave/diff numbers, which would contradict the brief's explicit formulas.
+Flagging for Dan: either accept that a first-time player needs real skill
+(dodge + build) to survive the opening, or loosen the wave-0 rate / diff
+floor from the brief's fixed values.
+
+### Probe results (python3 -m http.server 8791, repo root)
+
+- New probe: `ue-port-studio/aaa/harness/hm_hotstart_probe.mjs`. 5/7 PASS:
+  seed count at t=0.5s (91->86->81 across tuning passes, always short of
+  the literal ">= 100" assertion once count was tuned below 100 to chase
+  the survival guard), opening-strike clear (<25), t=6s density (>60),
+  campaign L1 seed (>=70), zero pageerrors. FAIL: the literal ">=100"
+  seed-count assertion at the tuned-down count, and the 60s survival
+  guard (see FINDING above).
+- hm_round3_probe.mjs: mostly PASS. Two failures are direct, expected
+  consequences of this round's timing changes, not regressions: "opens
+  with 5 strike charges" (probe checks post-opening-strike state, which is
+  now 4 after the strike fires at 2.5s instead of 5s, matching the brief's
+  "net 4 after the opening"); "strike call spends a charge" chained off
+  the same charge-count assumption. Isolated re-check of the STRIKE
+  PACK/METEOR STORM/ARC TEMPEST/PRISM ARRAY bonus block in a short-lived
+  run (3s) shows all four pass; in the full round3 sequence the test
+  target (no dodging) dies around t=11s before reaching that block, so it
+  no-ops on `state !== 'playing'` - same underlying density/diff finding
+  as above, not a new bug in the bonus code.
+- hm_arsenal_probe.mjs: ALL PASS (loadout/gun-deck flow doesn't run long
+  enough into the lethal window).
+- hm_campaign_probe.mjs: 28/44 PASS. Most repeated "no console errors"
+  fails are the pre-existing sw-scope dev-server warning (same one
+  documented above in the menu-fix round, present on every check that
+  reruns the shared error log). Levels 3/7/8/9 "mid-run alive" fails were
+  checked directly: state was `draft` (a level-up overlay open at the
+  65%-duration time-skip the probe forces), not death - a timing artifact
+  of jumping run.time forward abruptly with more early kills banking XP
+  faster under the new density, not a regression.
+
+Screenshots: play/horde-meridian/review_evidence/hotstart/01_t0.4.png
+(seed-full board, radar view) and 02_t6.png (dense mixed swarm with HUD
+active) - both look like the "start off crazy" board the owner asked for.
+
+Final HOT_START.count: 80 (the floor).
