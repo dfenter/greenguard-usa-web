@@ -1697,8 +1697,10 @@ tables past their halfway points.
   levels lean warden-titan/hive-splitter/dread-lancer, void-rift/
   crystal-shoals levels lean phase-reaver/void-artillery). All keys exist
   in `REGION_ENEMY_BY_KEY` post-merge; `node --check` passes on all four
-  files and the boot-time level validator excludes nothing (verified live,
-  zero console warnings).
+  files. Correction (2026-09-13): the boot-time level validator does cap
+  wave pools at 8 entries (`validateLevel`, game.js ~366) and level 13's
+  520s row shipped with 10, which got level 13 rejected at boot - see the
+  2026-09-13 gate fixes note below.
 
 **Probe (`ue-port-studio/aaa/harness/hm_apex_probe.mjs`, modeled on
 hm_hotstart_probe.mjs): 15/15 PASS.** Notable fix while writing it: enemy
@@ -1724,3 +1726,10 @@ classic families (drifter/sprinter/bulwark/sapper/lancer/weaver).
   points don't touch the sub-60s opening window the gate measures, so
   this is expected same-ballpark noise from the gate's own bot AI, not a
   regression the apex changes caused.
+
+## 2026-09-13 gate fixes
+- level13.js 520s wave pool had 10 entries against the validator's 8-entry
+  cap, rejecting the level at boot; trimmed to 8, keeping both apex keys.
+- damage()'s shield-aura scan reused the shared `query()`/`scratch` array
+  that AoE callers were mid-iterating, truncating their hit lists; added
+  `queryAux()`/`scratchAux` for the aura scan so it no longer aliases them.

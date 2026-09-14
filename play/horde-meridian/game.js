@@ -2106,6 +2106,7 @@
 
       this.hash = new Map();
       this.scratch = [];
+      this.scratchAux = [];
     },
 
     contactRing: function (x, y, from, to, dur, tint, alpha) {
@@ -6236,6 +6237,21 @@
       return out;
     },
 
+    queryAux: function (x, y, radius) {
+      var out = this.scratchAux;
+      out.length = 0;
+      var cx0 = Math.floor((x - radius) / CELL), cx1 = Math.floor((x + radius) / CELL);
+      var cy0 = Math.floor((y - radius) / CELL), cy1 = Math.floor((y + radius) / CELL);
+      for (var cx = cx0; cx <= cx1; cx++) {
+        for (var cy = cy0; cy <= cy1; cy++) {
+          var b = this.hash.get(((cx & 0xffff) << 16) | (cy & 0xffff));
+          if (!b) continue;
+          for (var i = 0; i < b.length; i++) out.push(b[i]);
+        }
+      }
+      return out;
+    },
+
     nearestEnemy: function (x, y, maxDist) {
       var best = null, bestD = maxDist * maxDist;
       var list = this.query(x, y, maxDist);
@@ -7497,7 +7513,7 @@
       }
       var amt = amount * this.tideDamageMultiplier();
       if (!e.boss && e.behavior !== 'shield-aura') {
-        var auraList = this.query(e.x, e.y, 160);
+        var auraList = this.queryAux(e.x, e.y, 160);
         for (var wai = 0; wai < auraList.length; wai++) {
           var warden = auraList[wai];
           if (warden.alive && warden.behavior === 'shield-aura' && warden !== e) { amt *= 0.7; break; }
