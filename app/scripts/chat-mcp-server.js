@@ -48,8 +48,8 @@ try { CONTEXT = JSON.parse(process.env.GG_CHAT_CONTEXT_JSON || '{}') } catch {}
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@greenguard-usa.com'
 const PORTAL_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-usa.com').replace(/\/$/, '')
-// Bruce + Zeke — the "GreenGuard USA" group thread participants alongside the customer.
-const STAFF_PHONES = (process.env.STAFF_PHONES || '5127973348,5127873263').split(',').map((s) => s.trim()).filter(Boolean)
+// Bruce, the "GreenGuard USA" group thread participant alongside the customer.
+const STAFF_PHONES = (process.env.STAFF_PHONES || '5127973348').split(',').map((s) => s.trim()).filter(Boolean)
 
 // Tools with side effects. Their invocation is recorded to the actions file
 // BEFORE the effect runs, so a process kill mid-mutation still leaves a
