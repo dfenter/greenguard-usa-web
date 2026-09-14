@@ -42,7 +42,7 @@
   <div class="eyebrow">User manual</div>
   <h1>SparkValidate</h1>
   <p>Risk-based validation and alarm rationalization for Ignition and PLC systems, delivered as an Ignition gateway module plus a standalone CLI (Validate Desk).</p>
-  <div class="pmeta"><span class="stat">Version 0.1.0</span><span>Ignition 8.1.19+</span><span>Runs on: any gateway, or CLI-only offline</span></div>
+  <div class="pmeta"><span class="stat">Gateway module 0.1.1</span><span>Ignition 8.1.33+</span><span>Runs on: any gateway, or CLI-only offline</span></div>
 </div></header>
 
 <main id="main">
@@ -74,8 +74,8 @@
 <h2>2. What You Need</h2>
 </div>
 <ul>
-<li>An Ignition gateway for the gateway module (live extraction, protocol execution, gateway REST routes).</li>
-<li>Java 17 to build or run the CLI jar; the gateway module targets Java 11 bytecode. The CLI ships as a self-contained jar (<span class="mono">cli-0.1.0-all.jar</span>) so an end user only needs a Java 17 runtime, not the Gradle toolchain.</li>
+<li>Ignition 8.1.33 or newer for the gateway module (live extraction, protocol execution, gateway REST routes).</li>
+<li>Java 17 to build or run the CLI jar. The gateway module ships a dependency that requires a Java 17 runtime, so it needs Ignition 8.1.33 or newer; 8.1 releases below that run Java 11. The CLI ships as a self-contained jar (<span class="mono">cli-0.1.0-all.jar</span>) so an end user only needs a Java 17 runtime, not the Gradle toolchain.</li>
 <li>No other SparkBridge module is required. The gateway module and Validate Desk CLI are licensed and sold separately.</li>
 </ul>
 </div></section>
@@ -196,7 +196,7 @@
 
 <footer>
   <div class="wrap">
-    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+ core, 8.1.33+ drivers and add-ons, 8.3 line</span>
     <span class="mono"><a href="/sparkbridge/download">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/partners">Partners</a> · <a href="/sparkbridge/contact">Contact</a></span>
   </div>
 </footer>

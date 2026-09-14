@@ -51,7 +51,7 @@
   <div class="eyebrow">User manual</div>
   <h1>SparkLogix</h1>
   <p>SparkLogix is an Ignition device driver that connects directly to Allen-Bradley ControlLogix and CompactLogix controllers over EtherNet/IP. It exists because Ignition's built-in Logix driver reads slowly and falls over on large or restricted tag sets: SparkLogix browses UDTs directly, plans reads per tag, and never lets a restricted tag block the rest of the read.</p>
-  <div class="pmeta"><span class="stat">Version 0.2.0</span><span>Ignition 8.1.x (legacy driver API) and Ignition 8.3.x (managed-node API, separate build)</span><span>Runs on: any gateway that reaches the controller network</span></div>
+  <div class="pmeta"><span class="stat">Version 0.2.0</span><span>Ignition 8.1.19+ (legacy driver API) and Ignition 8.3.x (managed-node API, separate build)</span><span>Runs on: any gateway that reaches the controller network</span></div>
 </div></header>
 <main id="main">
 <section id="contents"><div class="wrap"><div class="sec-head"><h2>Contents</h2></div><ol><li><a href="#overview">1. Overview</a></li><li><a href="#requirements">2. What You Need</a></li><li><a href="#install">3. Install</a></li><li><a href="#license">4. License</a></li><li><a href="#configure">5. Configure</a></li><li><a href="#operate">6. Operate</a></li><li><a href="#verify">7. Verify</a></li><li><a href="#troubleshoot">8. Troubleshoot</a></li><li><a href="#reference">9. Reference</a></li><li><a href="#support">10. Support</a></li></ol></div></section>
@@ -61,7 +61,7 @@
 </div></section>
 <section class="band" id="requirements"><div class="wrap"><div class="sec-head"><h2>2. What You Need</h2></div>
 <ul>
-<li>Ignition 8.1.x (legacy driver API) or Ignition 8.3.x (managed-node API); these are separate module builds.</li>
+<li>Ignition 8.1.19 or newer (legacy driver API), or the 8.3 line (managed-node API); these are separate module builds.</li>
 <li>Java 17.</li>
 <li>A ControlLogix or CompactLogix controller reachable over EtherNet/IP, firmware v16 or later. Micro8xx and 5000-series controllers are lower-priority targets on the same CIP core.</li>
 <li>No other SparkBridge module is required. SparkLogix is licensed and runs standalone.</li>
@@ -138,7 +138,7 @@ Release downloads and checksums: <a href="https://github.com/greenguard-usa/spar
 
 <footer>
   <div class="wrap">
-    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+</span>
+    <span class="mono">SparkBridge · Sparkplug B / 3.0 · MQTT 3.1.1 and MQTT 5 · Ignition 8.1.19+ core, 8.1.33+ drivers and add-ons, 8.3 line</span>
     <span class="mono"><a href="/sparkbridge/download" aria-current="page">Download</a> · <a href="/sparkbridge/technology">Technology</a> · <a href="/sparkbridge/benchmarks">Benchmarks</a> · <a href="/sparkbridge/roadmap">Roadmap</a> · <a href="/sparkbridge/changelog">Changelog</a> · <a href="/sparkbridge/pricing">Pricing</a> · <a href="/sparkbridge/partners">Partners</a> · <a href="/sparkbridge/contact">Contact</a></span>
   </div>
 </footer>
