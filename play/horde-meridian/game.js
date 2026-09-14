@@ -2997,11 +2997,12 @@
       var region = regionAtX(this.p.x);
       var pool = (this.activeWaves[this.run.waveIdx] && this.activeWaves[this.run.waveIdx].pool) ?
         this.activeWaves[this.run.waveIdx].pool.slice() : ['drifter', 'sprinter', 'bulwark', 'sapper', 'lancer', 'weaver'];
+      pool = pool.filter(function (k) { var v = REGION_ENEMY_BY_KEY[k]; return !v || !v.apex; });
       var regionKeys = REGION_ENEMIES[region.key];
       if (regionKeys) {
         for (var rk = 0; rk < regionKeys.length; rk++) {
           var rkEntry = regionKeys[rk];
-          if (rkEntry.ranged || rkEntry.base === 'lancer' || rkEntry.base === 'sapper') continue;
+          if (rkEntry.ranged || rkEntry.base === 'lancer' || rkEntry.base === 'sapper' || rkEntry.apex) continue;
           if (pool.indexOf(rkEntry.key) < 0) pool.push(rkEntry.key);
         }
       }
@@ -3027,11 +3028,12 @@
       var region = regionAtX(this.p.x);
       var pool = (this.activeWaves[0] && this.activeWaves[0].pool) ?
         this.activeWaves[0].pool.slice() : ['drifter', 'sprinter', 'bulwark'];
+      pool = pool.filter(function (k) { var v = REGION_ENEMY_BY_KEY[k]; return !v || !v.apex; });
       var regionKeys = REGION_ENEMIES[region.key];
       if (regionKeys) {
         for (var rk2 = 0; rk2 < regionKeys.length; rk2++) {
           var rkEntry2 = regionKeys[rk2];
-          if (rkEntry2.ranged || rkEntry2.base === 'lancer' || rkEntry2.base === 'sapper') continue;
+          if (rkEntry2.ranged || rkEntry2.base === 'lancer' || rkEntry2.base === 'sapper' || rkEntry2.apex) continue;
           if (pool.indexOf(rkEntry2.key) < 0) pool.push(rkEntry2.key);
         }
       }
@@ -7174,6 +7176,20 @@
           }
           this.clampEnemy(e);
           continue;
+        } else if (e.behavior === 'artillery') {
+          var artWant = 520;
+          if (dist > artWant + 40) { e.x += dx / dist * sp * dt; e.y += dy / dist * sp * dt; }
+          else if (dist < artWant - 80) { e.x -= dx / dist * sp * dt; e.y -= dy / dist * sp * dt; }
+          if (e.cd <= 0 && !phaseHidden) {
+            e.cd = 4;
+            var artBase = Math.atan2(dy, dx);
+            for (var artI = -1; artI <= 1; artI++) {
+              var artA = artBase + artI * 0.22;
+              this.fireEbolt(e, Math.cos(artA), Math.sin(artA), e.dmg * 0.5);
+            }
+          }
+          this.clampEnemy(e);
+          continue;
         }
 
         if (e.behavior === 'wraith' || e.behavior === 'glasswing' || e.behavior === 'salvage' || e.behavior === 'null-leech') {
@@ -7192,13 +7208,19 @@
           this.clampEnemy(e);
           this.enemyContact(e, dt);
           continue;
-        } else if (e.fam === 'lancer') {
+        } else if (e.fam === 'lancer' || e.behavior === 'lancer-heavy') {
           var want = 250;
           if (dist > want + 30) { e.x += dx / dist * sp * dt; e.y += dy / dist * sp * dt; }
           else if (dist < want - 60) { e.x -= dx / dist * sp * dt; e.y -= dy / dist * sp * dt; }
           if (e.cd <= 0 && !phaseHidden) {
             e.cd = 2.1;
-            this.fireEbolt(e, dx / dist, dy / dist, e.dmg * 0.7);
+            if (e.behavior === 'lancer-heavy') {
+              this.fireEbolt(e, dx / dist, dy / dist, e.dmg * 0.7);
+              var hlA = Math.atan2(dy, dx) + 0.16;
+              this.fireEbolt(e, Math.cos(hlA), Math.sin(hlA), e.dmg * 0.7);
+            } else {
+              this.fireEbolt(e, dx / dist, dy / dist, e.dmg * 0.7);
+            }
           }
           this.clampEnemy(e);
           continue;
@@ -7474,6 +7496,13 @@
         return;
       }
       var amt = amount * this.tideDamageMultiplier();
+      if (!e.boss && e.behavior !== 'shield-aura') {
+        var auraList = this.query(e.x, e.y, 160);
+        for (var wai = 0; wai < auraList.length; wai++) {
+          var warden = auraList[wai];
+          if (warden.alive && warden.behavior === 'shield-aura' && warden !== e) { amt *= 0.7; break; }
+        }
+      }
       var crit = !noCrit && this.p.crit > 0 && Math.random() < this.p.crit;
       if (crit) amt *= 3;
       e.hp -= amt;
@@ -7562,6 +7591,16 @@
           this.checkCampaignWin();
         } else this.endRun(true);
         return;
+      }
+      if (e.behavior === 'splitter' && !this.suppressBonusDrops) {
+        var splitFree = Math.max(0, MAX_ENEMIES - this.enemyCount);
+        var splitCount = Math.min(4, splitFree);
+        for (var spI = 0; spI < splitCount; spI++) {
+          var spA = spI * TAU / 4 + (e.phase || 0);
+          var spX = clamp(e.x + Math.cos(spA) * 30, -EDGE, EDGE);
+          var spY = clamp(e.y + Math.sin(spA) * 30, -EDGE, EDGE);
+          this.spawn('sprinter', false, spX, spY, false);
+        }
       }
       run.kills++;
       run.combo++;
@@ -9007,6 +9046,12 @@
           e.aura.setPosition(e.x, e.y)
             .setRotation(e.aura.rotation + dt * (e.boss ? 0.5 : 1.1))
             .setAlpha(0.5 + Math.sin(run.time * 4 + e.phase) * 0.2);
+        } else if (e.behavior === 'shield-aura') {
+          this.unpark(e.aura);
+          e.aura.setPosition(e.x, e.y)
+            .setDisplaySize(320, 320)
+            .setRotation(e.aura.rotation + dt * 0.3)
+            .setAlpha(0.22 + Math.sin(run.time * 2.5 + e.phase) * 0.06);
         }
       }
 

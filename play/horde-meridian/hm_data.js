@@ -173,11 +173,14 @@
     { at: 100, rate: 0.39, pack: 3, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] },
     { at: 135, rate: 0.36, pack: 3, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] },
     { at: 180, rate: 0.30, pack: 4, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] },
-    { at: 250, rate: 0.30, pack: 4, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] },
-    { at: 330, rate: 0.28, pack: 4, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] },
-    { at: 420, rate: 0.26, pack: 5, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] },
-    { at: 480, rate: 0.25, pack: 5, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] },
-    { at: 540, rate: 0.24, pack: 5, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] }
+    { at: 210, rate: 0.30, pack: 4, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer', 'warden-titan', 'hive-splitter'] },
+    { at: 250, rate: 0.30, pack: 4, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer', 'warden-titan', 'hive-splitter'] },
+    { at: 300, rate: 0.29, pack: 4, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer', 'warden-titan', 'hive-splitter', 'aegis-warden', 'dread-lancer'] },
+    { at: 330, rate: 0.28, pack: 4, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer', 'aegis-warden', 'dread-lancer'] },
+    { at: 390, rate: 0.27, pack: 5, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer', 'aegis-warden', 'dread-lancer', 'void-artillery', 'phase-reaver'] },
+    { at: 420, rate: 0.26, pack: 5, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer', 'void-artillery', 'phase-reaver'] },
+    { at: 480, rate: 0.25, pack: 5, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer', 'void-artillery', 'phase-reaver'] },
+    { at: 540, rate: 0.24, pack: 5, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer', 'warden-titan', 'hive-splitter', 'aegis-warden', 'dread-lancer', 'void-artillery', 'phase-reaver'] }
   ];
 
   var BONUS = [
@@ -591,6 +594,23 @@
     }
   }
 
+  // High-tier apex roster. Reuses classic bodies/frames at larger radius and
+  // distinct tints; no new atlas assets. apex: true keeps them out of the
+  // hot-start seed filter alongside the existing ranged/sapper exclusion.
+  var APEX_ENEMIES = [
+    { key: 'warden-titan', frame: 'bulwark', base: 'bulwark', behavior: 'hulk', r: 30, hp: 300, speed: 20, dmg: 40, xp: 12, tint: 0xff4f4f, scale: 1.3, apex: true },
+    { key: 'void-artillery', frame: 'lancer', base: 'lancer', behavior: 'artillery', r: 26, hp: 160, speed: 30, dmg: 22, xp: 10, tint: 0x5a2fd9, scale: 1.24, ranged: true, apex: true },
+    { key: 'hive-splitter', frame: 'weaver', base: 'weaver', behavior: 'splitter', r: 25, hp: 120, speed: 44, dmg: 18, xp: 10, tint: 0x3fd98a, scale: 1.22, apex: true },
+    { key: 'aegis-warden', frame: 'shard', base: 'bulwark', behavior: 'shield-aura', r: 27, hp: 200, speed: 28, dmg: 20, xp: 11, tint: 0xf2f2a0, scale: 1.24, apex: true },
+    { key: 'phase-reaver', frame: 'wisp', base: 'sprinter', behavior: 'blink', r: 24, hp: 90, speed: 100, dmg: 28, xp: 9, tint: 0xff8ef0, scale: 1.2, apex: true },
+    { key: 'dread-lancer', frame: 'sapper', base: 'lancer', behavior: 'lancer-heavy', r: 25, hp: 140, speed: 30, dmg: 16, xp: 8, tint: 0x2fb8d9, scale: 1.22, ranged: true, apex: true }
+  ];
+  var APEX_BY_KEY = {};
+  for (var axi = 0; axi < APEX_ENEMIES.length; axi++) {
+    APEX_BY_KEY[APEX_ENEMIES[axi].key] = APEX_ENEMIES[axi];
+    REGION_ENEMY_BY_KEY[APEX_ENEMIES[axi].key] = APEX_ENEMIES[axi];
+  }
+
   var REGION_BOSSES = {
     'meridian-verge': { key: 'proboscis-prime', frame: 'boss', name: 'PROBOSCIS PRIME', title: 'CLASSIC HUNTER // HULL DRAIN LATCH', region: 'meridian-verge', hp: 1540, r: 72, speed: 34, dmg: 30, tint: 0x8effd8, behavior: 'latch', weaponKeys: ['lance-array-mk2', 'rail-storm'] },
     'ember-drift': { key: 'cinder-haematarch', frame: 'boss', name: 'CINDER HAEMATARCH', title: 'EMBER TRAIL // STRIP IGNITION', region: 'ember-drift', hp: 1680, r: 76, speed: 38, dmg: 34, tint: 0xff756a, behavior: 'dive', weaponKeys: ['nova-scatter', 'mortar-cascade'] },
@@ -682,6 +702,8 @@
     BANK_RATE: BANK_RATE,
     REGION_ENEMIES: REGION_ENEMIES,
     REGION_ENEMY_BY_KEY: REGION_ENEMY_BY_KEY,
+    APEX_ENEMIES: APEX_ENEMIES,
+    APEX_BY_KEY: APEX_BY_KEY,
     REGION_BOSSES: REGION_BOSSES,
     REGION_BOSS_BY_KEY: REGION_BOSS_BY_KEY,
     REGION_BOSS_BY_BOSS_KEY: REGION_BOSS_BY_BOSS_KEY,

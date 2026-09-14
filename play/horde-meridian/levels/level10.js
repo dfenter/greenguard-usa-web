@@ -19,9 +19,9 @@
       { at: 78,  rate: 0.74, pack: 2, pool: ['cinder-kamikaze', 'ash-wraith', 'ember-scarab', 'sapper'] },
       { at: 130, rate: 0.64, pack: 3, pool: ['sprinter', 'cinder-kamikaze', 'ember-scarab', 'lancer'] },
       { at: 190, rate: 0.55, pack: 3, pool: ['ash-wraith', 'ember-scarab', 'sapper', 'weaver', 'cinder-kamikaze'] },
-      { at: 255, rate: 0.47, pack: 4, pool: ['cinder-kamikaze', 'ash-wraith', 'ember-scarab', 'bulwark', 'lancer'] },
-      { at: 320, rate: 0.4,  pack: 4, pool: ['sprinter', 'cinder-kamikaze', 'ash-wraith', 'ember-scarab', 'sapper', 'weaver'] },
-      { at: 380, rate: 0.34, pack: 5, pool: ['cinder-kamikaze', 'ash-wraith', 'ember-scarab', 'bulwark', 'lancer', 'sapper'] }
+      { at: 255, rate: 0.47, pack: 4, pool: ['cinder-kamikaze', 'ash-wraith', 'ember-scarab', 'bulwark', 'lancer', 'warden-titan'] },
+      { at: 320, rate: 0.4,  pack: 4, pool: ['sprinter', 'cinder-kamikaze', 'ash-wraith', 'ember-scarab', 'sapper', 'weaver', 'hive-splitter'] },
+      { at: 380, rate: 0.34, pack: 5, pool: ['cinder-kamikaze', 'ash-wraith', 'ember-scarab', 'bulwark', 'lancer', 'sapper', 'warden-titan', 'dread-lancer'] }
     ],
     mods: {
       enemyHp: 1.35,

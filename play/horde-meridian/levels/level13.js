@@ -21,10 +21,10 @@
       { at: 165, rate: 0.55, pack: 3, pool: ['ember-scarab', 'null-leech', 'refracting-shard-drone', 'bulwark', 'lancer'] },
       { at: 220, rate: 0.48, pack: 4, pool: ['cinder-kamikaze', 'blink-stalker', 'derelict-guard-hulk', 'weaver', 'sapper'] },
       { at: 280, rate: 0.42, pack: 4, pool: ['ash-wraith', 'ember-scarab', 'null-leech', 'glasswing-drone', 'scrap-ripper', 'lancer'] },
-      { at: 340, rate: 0.36, pack: 5, pool: ['cinder-kamikaze', 'blink-stalker', 'derelict-guard-hulk', 'grave-egg', 'bulwark', 'sapper'] },
-      { at: 400, rate: 0.31, pack: 5, pool: ['ember-scarab', 'ash-wraith', 'null-leech', 'refracting-shard-drone', 'salvage-swarm', 'weaver'] },
-      { at: 460, rate: 0.27, pack: 5, pool: ['cinder-kamikaze', 'blink-stalker', 'derelict-guard-hulk', 'ember-scarab', 'null-leech', 'lancer'] },
-      { at: 520, rate: 0.24, pack: 5, pool: ['sprinter', 'cinder-kamikaze', 'ash-wraith', 'glasswing-drone', 'gravity-mite', 'salvage-swarm', 'scrap-ripper', 'shard-larva'] }
+      { at: 340, rate: 0.36, pack: 5, pool: ['cinder-kamikaze', 'blink-stalker', 'derelict-guard-hulk', 'grave-egg', 'bulwark', 'sapper', 'warden-titan'] },
+      { at: 400, rate: 0.31, pack: 5, pool: ['ember-scarab', 'ash-wraith', 'null-leech', 'refracting-shard-drone', 'salvage-swarm', 'weaver', 'aegis-warden', 'hive-splitter'] },
+      { at: 460, rate: 0.27, pack: 5, pool: ['cinder-kamikaze', 'blink-stalker', 'derelict-guard-hulk', 'ember-scarab', 'null-leech', 'lancer', 'void-artillery', 'phase-reaver'] },
+      { at: 520, rate: 0.24, pack: 5, pool: ['sprinter', 'cinder-kamikaze', 'ash-wraith', 'glasswing-drone', 'gravity-mite', 'salvage-swarm', 'scrap-ripper', 'shard-larva', 'warden-titan', 'dread-lancer'] }
     ],
     mods: {
       enemyHp: 1.5,

@@ -1642,3 +1642,85 @@ requirement.
   melee-first pool - left as an accurate FAIL rather than papering over it,
   since the gate's stronger bot is the actual playability signal and it
   clears 77-85s under the same config. 6/7 assertions PASS.
+
+## 2026-09-13 APEX TIER
+
+Owner ask: "add more high level enemies." Added a six-key APEX roster,
+three new behaviors, and worked them into the classic and campaign wave
+tables past their halfway points.
+
+| Key | Behavior | HP | Speed | Dmg | XP | Notes |
+|---|---|---|---|---|---|---|
+| warden-titan | hulk (existing) | 300 | 20 | 40 | 12 | big melee tank, bulwark body scaled up |
+| void-artillery | artillery (new) | 160 | 30 | 22 | 10 | ranged; holds ~520px, 3-shot spread every 4s |
+| hive-splitter | splitter (new) | 120 | 44 | 18 | 10 | on death spawns 4 sprinters at its position |
+| aegis-warden | shield-aura (new) | 200 | 28 | 20 | 11 | non-boss enemies within 160px take 30% less damage; faint ring drawn |
+| phase-reaver | blink (existing) | 90 | 100 | 28 | 9 | fast blink-harasser, sprinter body |
+| dread-lancer | lancer-heavy (new) | 140 | 30 | 16 | 8 | two-bolt volley instead of one |
+
+- hm_data.js: new `APEX_ENEMIES` array, each entry `apex: true` with a
+  distinct atlas frame + tint (reusing existing frames: bulwark, lancer,
+  weaver, shard, wisp, sapper; no new assets), merged into
+  `REGION_ENEMY_BY_KEY` so `spawn()` resolves apex keys the same way as
+  region variants, plus an `APEX_BY_KEY` export. Elite promotion (hp x3.2,
+  r x1.22, dmg x1.3, xp x5) applies to apex keys for free since it's
+  computed generically in `spawn()`.
+- game.js: three new behavior branches in the enemy AI if-chain (movement
+  ~line 7179 for `artillery`, `lancer-heavy` folded into the existing
+  lancer branch for the two-bolt volley). `splitter` death handling added
+  in `defeat()` just before the standard kill bookkeeping, gated on
+  `!this.suppressBonusDrops` (the flag `purgeBoard()` sets around its
+  kill loop) so the opening strike / any future purge never chains
+  splitters, and capped by `MAX_ENEMIES - enemyCount` so it never forces
+  an evict. `shield-aura` damage reduction added at the top of `damage()`:
+  a 160px `query()` scan for a living `shield-aura` warden multiplies
+  incoming damage by 0.7 before crit/hp math; a faint ring (existing
+  `elite_aura` pooled sprite, reused via the per-enemy `e.aura` object
+  every enemy already carries) renders at 320px while a shield-aura enemy
+  is alive. No enemy-intel/codex table exists for enemies (only the
+  weapon codex does), so that sub-item was skipped.
+- Hot-start seed filter (`seedHotStart`/`seedSecondWave` in game.js):
+  added an explicit `apex` exclusion on top of the existing
+  ranged/lancer/sapper exclusion, both on the wave-pool copy and the
+  region-variant merge, so apex keys can never enter the t=0 seed ring
+  even if a future wave-0 row picks one up.
+- Classic WAVES (hm_data.js): apex keys phase in starting at 210s
+  (warden-titan, hive-splitter), 300s (aegis-warden, dread-lancer), 390s
+  (void-artillery, phase-reaver), each row weighted at roughly 1 apex key
+  per 5 pool entries, rising to all six apex keys alongside the full
+  classic roster by the 540s row.
+- Campaign levels 10-13 (`levels/level10.js` .. `level13.js`, waves pools
+  only): added 1-2 apex keys per row after each level's halfway `at`
+  (level10 half=210s: rows 255/320/380; level11 half=235s: rows
+  240/305/370/430; level12 half=240s: rows 298/365/435; level13 half=280s:
+  rows 340/400/460/520), matched to each level's region flavor (ember-drift
+  levels lean warden-titan/hive-splitter/dread-lancer, void-rift/
+  crystal-shoals levels lean phase-reaver/void-artillery). All keys exist
+  in `REGION_ENEMY_BY_KEY` post-merge; `node --check` passes on all four
+  files and the boot-time level validator excludes nothing (verified live,
+  zero console warnings).
+
+**Probe (`ue-port-studio/aaa/harness/hm_apex_probe.mjs`, modeled on
+hm_hotstart_probe.mjs): 15/15 PASS.** Notable fix while writing it: enemy
+hp is scaled by the run's difficulty ramp (`diff = 1.15 + run.time/380`)
+at spawn time for every non-boss enemy, apex included, so the probe checks
+`hp / diff` against the base table value rather than raw hp - not a bug,
+just an artifact of reusing the same `spawn()` scaling every family gets.
+Splitter and shield-aura assertions wait 250ms after spawning before
+checking (spatial-hash-dependent, per the brief); artillery/dread-lancer
+assertions poll every 500ms up to 5s to avoid racing the ~3.4s ebolt
+lifespan against a fixed single check.
+
+**Screenshot:** `review_evidence/apex/01_apex_pair.png` - warden-titan
+(green, oversized) and hive-splitter (red) on screen together during a
+classic run; both read as larger and visually distinct from the six
+classic families (drifter/sprinter/bulwark/sapper/lancer/weaver).
+
+**Regression re-checks:**
+- `hm_arsenal_probe.mjs`: 17/17 PASS, no regressions from the apex work.
+- `hm_hotstart_gate.mjs` (classic, 3 runs, seed 81): deaths at 80s, 74s,
+  53s - median 74s, still clears the >=60s median target from the prior
+  round (was 78s median / 77-85s range). The apex tier's 210s+ entry
+  points don't touch the sub-60s opening window the gate measures, so
+  this is expected same-ballpark noise from the gate's own bot AI, not a
+  regression the apex changes caused.

@@ -20,9 +20,9 @@
       { at: 115, rate: 0.58, pack: 3, pool: ['null-leech', 'blink-stalker', 'shard-larva', 'glasswing-drone'] },
       { at: 170, rate: 0.5,  pack: 3, pool: ['blink-stalker', 'glasswing-drone', 'refracting-shard-drone', 'sapper'] },
       { at: 232, rate: 0.43, pack: 4, pool: ['null-leech', 'blink-stalker', 'gravity-mite', 'cinder-kamikaze', 'lancer'] },
-      { at: 298, rate: 0.37, pack: 4, pool: ['blink-stalker', 'null-leech', 'glasswing-drone', 'ash-wraith', 'bulwark'] },
-      { at: 365, rate: 0.31, pack: 5, pool: ['null-leech', 'blink-stalker', 'gravity-mite', 'refracting-shard-drone', 'sapper', 'weaver'] },
-      { at: 435, rate: 0.26, pack: 5, pool: ['blink-stalker', 'null-leech', 'cinder-kamikaze', 'ash-wraith', 'glasswing-drone', 'lancer'] }
+      { at: 298, rate: 0.37, pack: 4, pool: ['blink-stalker', 'null-leech', 'glasswing-drone', 'ash-wraith', 'bulwark', 'phase-reaver'] },
+      { at: 365, rate: 0.31, pack: 5, pool: ['null-leech', 'blink-stalker', 'gravity-mite', 'refracting-shard-drone', 'sapper', 'weaver', 'void-artillery'] },
+      { at: 435, rate: 0.26, pack: 5, pool: ['blink-stalker', 'null-leech', 'cinder-kamikaze', 'ash-wraith', 'glasswing-drone', 'lancer', 'phase-reaver', 'void-artillery'] }
     ],
     mods: {
       enemyHp: 1.45,

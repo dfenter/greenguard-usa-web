@@ -19,10 +19,10 @@
       { at: 72,  rate: 0.7,  pack: 2, pool: ['scrap-ripper', 'salvage-swarm', 'derelict-guard-hulk'] },
       { at: 120, rate: 0.6,  pack: 3, pool: ['salvage-swarm', 'scrap-ripper', 'grave-egg', 'sapper'] },
       { at: 178, rate: 0.52, pack: 3, pool: ['derelict-guard-hulk', 'scrap-ripper', 'lancer', 'weaver'] },
-      { at: 240, rate: 0.45, pack: 4, pool: ['salvage-swarm', 'derelict-guard-hulk', 'grave-egg', 'bulwark', 'sapper'] },
-      { at: 305, rate: 0.39, pack: 4, pool: ['scrap-ripper', 'salvage-swarm', 'derelict-guard-hulk', 'lancer', 'weaver'] },
-      { at: 370, rate: 0.33, pack: 5, pool: ['derelict-guard-hulk', 'scrap-ripper', 'salvage-swarm', 'grave-egg', 'bulwark', 'sapper'] },
-      { at: 430, rate: 0.28, pack: 5, pool: ['salvage-swarm', 'scrap-ripper', 'derelict-guard-hulk', 'lancer', 'weaver', 'sprinter'] }
+      { at: 240, rate: 0.45, pack: 4, pool: ['salvage-swarm', 'derelict-guard-hulk', 'grave-egg', 'bulwark', 'sapper', 'warden-titan'] },
+      { at: 305, rate: 0.39, pack: 4, pool: ['scrap-ripper', 'salvage-swarm', 'derelict-guard-hulk', 'lancer', 'weaver', 'hive-splitter'] },
+      { at: 370, rate: 0.33, pack: 5, pool: ['derelict-guard-hulk', 'scrap-ripper', 'salvage-swarm', 'grave-egg', 'bulwark', 'sapper', 'aegis-warden'] },
+      { at: 430, rate: 0.28, pack: 5, pool: ['salvage-swarm', 'scrap-ripper', 'derelict-guard-hulk', 'lancer', 'weaver', 'sprinter', 'warden-titan', 'dread-lancer'] }
     ],
     mods: {
       enemyHp: 1.4,
