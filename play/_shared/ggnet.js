@@ -98,7 +98,13 @@
     };
     pc.onconnectionstatechange = function () {
       if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
-        self._teardown('error');
+        self._teardown('peer-left');
+      }
+    };
+    pc.oniceconnectionstatechange = function () {
+      var st = pc.iceConnectionState;
+      if (st === 'disconnected' || st === 'failed') {
+        self._teardown('peer-left');
       }
     };
     return pc;
@@ -157,7 +163,7 @@
     this._teardown('closed');
   };
 
-  function connectSocket(signalUrl, onOpen, onMessage, onErr) {
+  function connectSocket(signalUrl, onOpen, onMessage, onErr, isChansOpen) {
     var ws = new WebSocket(wsUrlFor(signalUrl));
     ws.onopen = onOpen;
     ws.onmessage = function (ev) {
@@ -166,7 +172,16 @@
       onMessage(obj);
     };
     ws.onerror = onErr;
-    ws.onclose = function () { onErr('ws-closed'); };
+    // Once all three DataChannels are open, signaling is done: the relay
+    // may legitimately drop this socket (its own TTL sweep, a Render
+    // idle-recycle, etc.) while the run keeps going entirely over the
+    // DataChannels. Only treat a socket close as fatal before that point;
+    // peer-left after connect is detected from the DataChannels themselves
+    // (see _wireDataChannel's onclose / RTCPeerConnection connectionState).
+    ws.onclose = function () {
+      if (isChansOpen && isChansOpen()) return;
+      onErr('ws-closed');
+    };
     return ws;
   }
 
@@ -212,7 +227,7 @@
         }
       }, function () {
         if (!conn.closed) conn._teardown('error');
-      });
+      }, function () { return conn._chansOpen >= 3; });
     });
 
     return conn;
@@ -260,7 +275,7 @@
         }
       }, function () {
         if (!conn.closed) conn._teardown('error');
-      });
+      }, function () { return conn._chansOpen >= 3; });
     });
 
     return conn;

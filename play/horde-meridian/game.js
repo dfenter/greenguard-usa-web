@@ -859,16 +859,19 @@
         neonText(this, w / 2, by - 26, 'CAMPAIGN ' + cgStars + '/27 STARS', TYPE.micro, '#ffd67a');
       }
 
-      makeButton(this, w / 2, by + 62, bw, 46, 'CLASSIC RUN', function () {
+      // Five-button stack (gate finding 4): tightened to 48px steps so
+      // SETTINGS clears the BEST/GEMS stats line at 390x844 instead of
+      // pushing into it (see review_evidence/gate-coop/title_390x844.png).
+      makeButton(this, w / 2, by + 58, bw, 46, 'CLASSIC RUN', function () {
         Game.pendingLevel = null; scene.scene.start('play');
       }, null, 'ic_beam');
-      makeButton(this, w / 2, by + 116, bw, 44, 'CO-OP', function () {
+      makeButton(this, w / 2, by + 106, bw, 42, 'CO-OP', function () {
         scene.scene.start('coop');
       }, null, 'ic_speed');
-      makeButton(this, w / 2, by + 168, bw, 44, 'HANGAR', function () {
+      makeButton(this, w / 2, by + 154, bw, 40, 'HANGAR', function () {
         scene.scene.start('shop');
       }, null, 'ic_speed');
-      makeButton(this, w / 2, by + 220, bw, 40, 'SETTINGS', openSettings, null, 'ic_regen');
+      makeButton(this, w / 2, by + 202, bw, 36, 'SETTINGS', openSettings, null, 'ic_regen');
 
       var stats = 'BEST ' + profile.best + '   ·   ' + Math.floor(hangarBalance()) + ' GEMS BANKED';
       if (HM_DIAG) {
@@ -909,7 +912,6 @@
   };
 
   var HM_SIGNAL_URL = 'https://hm-signal.onrender.com';
-  var COOP_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'.split('');
 
   // Co-op v1 (2026-09-13): host-authoritative WebRTC over the hm-signal
   // relay via GGNet (play/_shared/ggnet.js). This scene only negotiates the
@@ -9944,11 +9946,24 @@
   // below is a no-op and solo play is untouched.
   (function () {
     var PS = PlayScene;
-    var origCreate = PS.create, origUpdate = PS.update, origSimStep = PS.simStep,
+    var origCreate = PS.create, origUpdate = PS.update,
         origHurt = PS.hurt, origEndRun = PS.endRun, origOpenDraft = PS.openDraft,
-        origPickUpgrade = PS.pickUpgrade, origFinishRun = PS.finishRun;
+        origPickUpgrade = PS.pickUpgrade;
 
-    var COOP_STATE_HZ = 1 / 20, COOP_INPUT_HZ = 1 / 30, COOP_INTERP_DELAY = 0.1;
+    // 15Hz, not 20: even with the enemy/pickup culling below, a fully
+    // packed 320-enemy horde measured ~4.9 KB/snapshot culled at 20Hz,
+    // over the 3KB budget (see NOTES.md CO-OP v1 for the measured bytes at
+    // both rates). Dropping to 15Hz was the explicitly authorized fallback
+    // once culling alone wasn't enough.
+    var COOP_STATE_HZ = 1 / 15, COOP_INPUT_HZ = 1 / 30, COOP_INTERP_DELAY = 0.13;
+    // Bandwidth budget (gate finding 1): keep each snapshot <= 3 KB at 320
+    // live enemies. Enemies cull to a 1600x1600 box around the midpoint of
+    // the two ships (the guest never needs an off-screen enemy) and pickups
+    // (gems only -- the rare power-up bonuses aren't worth the bytes) cull
+    // to a tighter 1400x1400 box around the host ship. If a future content
+    // change pushes a still-culled snapshot over budget at 320 enemies,
+    // drop COOP_STATE_HZ to 1/15 rather than cutting the cull boxes further.
+    var COOP_ENEMY_CULL_HALF = 800, COOP_PICKUP_CULL_HALF = 700;
 
     PS.create = function () {
       origCreate.apply(this, arguments);
@@ -9990,7 +10005,6 @@
         if (scene.coopStatusText) scene.coopStatusText.setVisible(false);
       });
 
-      var reliable = coop.conn.opts || {};
       // Wire onEvent/onInput/onState/onClose freshly for the PLAY phase; the
       // CoopScene handlers only needed to detect the peer connecting.
       coop.conn.opts.onClose = function (reason) {
@@ -10009,7 +10023,11 @@
         coop.conn.opts.onInput = function (obj) {
           if (!obj) return;
           if (obj.t === 'input') {
-            c.p2Input.dx = obj.dx || 0; c.p2Input.dy = obj.dy || 0;
+            // Guard against a non-finite or out-of-range stick vector from
+            // a malformed/hostile peer message reaching p2's movement math.
+            var dx = obj.dx, dy = obj.dy;
+            c.p2Input.dx = (typeof dx === 'number' && isFinite(dx)) ? clamp(dx, -1, 1) : 0;
+            c.p2Input.dy = (typeof dy === 'number' && isFinite(dy)) ? clamp(dy, -1, 1) : 0;
           }
         };
         coop.conn.opts.onEvent = function (obj) {
@@ -10137,7 +10155,11 @@
       else if (u.key === 'damage') p2.damage = this.p.damageBase * (1 + 0.16 * r);
       else if (u.key === 'fireRate') p2.fireRateMul = Math.max(0.35, 1 - r * 0.08);
       else if (u.key === 'pierce') p2.pierce = r;
-      else if (u.key === 'projDamage') p2.damage = (p2.damage || this.p.damageBase) * (1 + r * 0.12);
+      // Recompute absolutely from base, like p1's projectileDamage (a
+      // 1 + r*0.12 multiplier off damageBase), instead of compounding onto
+      // whatever p2.damage already holds -- the old form multiplied its own
+      // previous result on every subsequent pick of this same upgrade.
+      else if (u.key === 'projDamage') p2.damage = this.p.damageBase * (1 + r * 0.12);
 
       c.guestDraftOptions = null;
       this.coopBanner('P2 UPGRADED', u.name || '');
@@ -10146,6 +10168,12 @@
     // Broadcast a compact snapshot at 20Hz. Positions rounded to ints;
     // enemies referenced by index into a key table sent once (and resent on
     // change) so the payload stays small.
+    // Broadcast a compact snapshot at 20Hz. Enemies are one flat numeric
+    // array [id,keyIdx,x,y,hpBucket,elite, id,keyIdx,...] -- no nested
+    // arrays or objects per enemy, which is most of the byte savings over
+    // the old array-of-arrays shape. Enemies are culled to a box around the
+    // midpoint of the two ships and pickups (gems only) to a tighter box
+    // around the host ship; the guest never needs an off-screen entity.
     PS.coopHostBroadcast = function (dt) {
       var c = this.coop;
       if (!c || c.role !== 'host' || !c.active) return;
@@ -10153,28 +10181,35 @@
       if (c.stateT < COOP_STATE_HZ) return;
       c.stateT = 0;
 
+      var midX = (this.p.x + this.p2.x) / 2, midY = (this.p.y + this.p2.y) / 2;
+      var eh = COOP_ENEMY_CULL_HALF;
+
       var keys = [], keyIndex = c.keyIndex, changed = false;
       var en = [];
       for (var i = 0; i < this.enemies.length; i++) {
         var e = this.enemies[i];
         if (!e.alive) continue;
+        if (Math.abs(e.x - midX) > eh || Math.abs(e.y - midY) > eh) continue;
         if (keyIndex[e.key] == null) {
           keyIndex[e.key] = c.keyTable.length + keys.length;
           keys.push(e.key);
           changed = true;
         }
-        en.push([e.id != null ? e.id : i, keyIndex[e.key], Math.round(e.x), Math.round(e.y),
-          Math.max(0, Math.min(15, Math.round((e.hp / (e.maxHp || 1)) * 15))), e.elite ? 1 : 0]);
+        en.push(e.id != null ? e.id : i, keyIndex[e.key], Math.round(e.x), Math.round(e.y),
+          Math.max(0, Math.min(15, Math.round((e.hp / (e.maxHp || 1)) * 15))), e.elite ? 1 : 0);
       }
       if (changed) {
         c.keyTable = c.keyTable.concat(keys);
         c.conn.sendEvent({ t: 'keytable', keys: c.keyTable });
       }
 
-      var pk = [], i2;
-      for (i2 = 0; i2 < this.bonuses.length; i2++) {
-        var b = this.bonuses[i2];
-        if (b.alive) pk.push([i2, b.kind || '', Math.round(b.x), Math.round(b.y)]);
+      var ph = COOP_PICKUP_CULL_HALF;
+      var pk = [];
+      for (var i2 = 0; i2 < this.gems.length; i2++) {
+        var g = this.gems[i2];
+        if (!g.alive) continue;
+        if (Math.abs(g.x - this.p.x) > ph || Math.abs(g.y - this.p.y) > ph) continue;
+        pk.push(Math.round(g.x), Math.round(g.y), g.tier | 0);
       }
 
       var snap = {
@@ -10188,11 +10223,35 @@
       c.conn.sendState(snap);
     };
 
+    // Guest-only cosmetic render pools, kept entirely separate from the
+    // solo/host pooled `this.enemies` and `this.gems` arrays (gate finding
+    // 3: the guest render path must never write into the shared pool used
+    // by a later solo run in the same page).
+    PS._coopEnsureGuestPools = function () {
+      if (this._coopEnemySprites) return;
+      this._coopEnemySprites = [];
+      this._coopGemSprites = [];
+      for (var i = 0; i < MAX_ENEMIES; i++) {
+        this._coopEnemySprites.push({
+          alive: false, key: '',
+          spr: this.add.image(0, 0, 'atlas', 'drifter').setDepth(40).setVisible(false)
+        });
+      }
+      for (var j = 0; j < MAX_GEMS; j++) {
+        this._coopGemSprites.push({
+          alive: false,
+          spr: this.add.image(0, 0, 'atlas', 'gem0').setDepth(20).setVisible(false)
+            .setBlendMode(Phaser.BlendModes.ADD)
+        });
+      }
+    };
+
     // Guest: interpolate 100ms behind the two most recent snapshots and
     // update the render-only p/p2/enemies/pickups. No sim, no collisions.
     PS.coopGuestStep = function () {
       var c = this.coop;
       if (!c || c.role !== 'guest') return;
+      this._coopEnsureGuestPools();
       var snaps = c.snapshots;
       if (snaps.length < 1) return;
       var latest = snaps[snaps.length - 1];
@@ -10217,22 +10276,40 @@
         .setAlpha(this.p2.downed ? 0.35 : 1);
       this.p2Halo.setPosition(this.p2.x, this.p2.y);
 
-      // Cosmetic-only enemy render: reuse the enemy pool purely for drawing,
-      // no damage/collision applied on the guest.
+      // Cosmetic-only enemy render: flat int array
+      // [id,keyIdx,x,y,hpBucket,elite, id,keyIdx,...], 6 ints per enemy,
+      // decoded into the guest-only sprite pool above -- never the shared
+      // `this.enemies` pool.
+      var pool = this._coopEnemySprites;
       var used = 0, en = b.en || [];
-      for (var j = 0; j < en.length && used < this.enemies.length; j++) {
-        var rec = en[j], slot = this.enemies[used++];
-        var key = c.keyTable[rec[1]] || 'drifter';
+      for (var j2 = 0; j2 + 5 < en.length && used < pool.length; j2 += 6) {
+        var slot = pool[used++];
+        var key = c.keyTable[en[j2 + 1]] || 'drifter';
         if (!slot.alive || slot.key !== key) {
           slot.key = key;
-          try { slot.spr.setTexture('atlas', (ENEMY_BY_KEY[key] || {}).frame || 'e_drifter'); } catch (e) {}
+          var frame = (FAMILY[key] || REGION_ENEMY_BY_KEY[key] || {}).frame || 'e_drifter';
+          try { slot.spr.setTexture('atlas', frame); } catch (e) {}
         }
-        slot.alive = true; slot.x = rec[2]; slot.y = rec[3];
-        slot.hp = rec[4]; slot.maxHp = 15; slot.elite = !!rec[5];
-        slot.spr.setPosition(slot.x, slot.y).setVisible(true);
+        slot.alive = true;
+        slot.spr.setPosition(en[j2 + 2], en[j2 + 3]).setVisible(true)
+          .setTint(en[j2 + 5] ? 0xfff0c6 : 0xffffff);
       }
-      for (; used < this.enemies.length; used++) {
-        if (this.enemies[used].alive) { this.enemies[used].alive = false; this.enemies[used].spr.setVisible(false); }
+      for (; used < pool.length; used++) {
+        if (pool[used].alive) { pool[used].alive = false; pool[used].spr.setVisible(false); }
+      }
+
+      // Cosmetic-only gem render, same guest-only-pool treatment.
+      var gpool = this._coopGemSprites;
+      var gused = 0, pk = b.pk || [];
+      for (var k2 = 0; k2 + 2 < pk.length; k2 += 3) {
+        if (gused >= gpool.length) break;
+        var gslot = gpool[gused++];
+        gslot.alive = true;
+        gslot.spr.setTexture('atlas', 'gem' + (pk[k2 + 2] | 0))
+          .setPosition(pk[k2], pk[k2 + 1]).setVisible(true);
+      }
+      for (; gused < gpool.length; gused++) {
+        if (gpool[gused].alive) { gpool[gused].alive = false; gpool[gused].spr.setVisible(false); }
       }
     };
 

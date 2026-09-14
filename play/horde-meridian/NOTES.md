@@ -1886,3 +1886,68 @@ against the live relay. Remaining known limits are listed above (JOIN
 code entry via `window.prompt`, guest-side shots are cosmetic-only,
 no reconnect-after-drop) -- none of them block a v1 ship, all are
 explicitly scoped out rather than accidental gaps.
+
+### 2026-09-13 gate round: co-op fixes
+
+Five findings from the gate review, all fixed and re-verified:
+
+1. **Snapshot bandwidth.** `coopHostBroadcast` now emits enemies as one
+   flat numeric array (`[id,keyIdx,x,y,hpBucket,elite, id,keyIdx,...]`,
+   6 ints/enemy) instead of an array of arrays, culls enemies to a
+   1600x1600 box around the midpoint of the two ships, and culls pickups
+   to gems only (bonuses dropped -- they were being sent but never even
+   rendered on the guest) inside a 1400x1400 box around the host ship.
+   **Measured:** at 111 live enemies (culled from a forced-spawn batch)
+   the snapshot is 1958 B. At a full 320-enemy horde the culled box still
+   holds ~266 enemies in range, which came out to **4869 B** even after
+   the flat-array + cull changes -- over the 3 KB target. Per the gate's
+   explicit fallback, `COOP_STATE_HZ` dropped from 20Hz to **15Hz**
+   (`COOP_INTERP_DELAY` bumped 0.10 -> 0.13 to keep ~2 ticks of interp
+   buffer at the new rate). 15Hz x 4869 B ~= 73 KB/s at worst case, down
+   from 144 KB/s at 20Hz uncompacted. The guest decoder (`coopGuestStep`)
+   and its interpolation were updated to match the flat layout.
+2. **Relay TTL.** `hm-signal/server.js`'s room-expiry timer no longer
+   sends `peer-left` once a room is paired (guest joined) -- it just drops
+   the bookkeeping silently, since the DataChannels carry the run past
+   signaling. Unpaired rooms (host still waiting) still notify. New tests
+   cover both paths directly via an exported `expireRoom(code)` instead of
+   waiting out the real 10-minute TTL.
+   `ggnet.js`'s `connectSocket` now ignores a WebSocket `onclose` once all
+   three DataChannels are open (`isChansOpen` predicate passed from both
+   `host()` and `join()`); peer-left detection after connect comes from
+   `RTCPeerConnection.oniceconnectionstatechange` (`disconnected`/`failed`)
+   and `connectionstatechange` (`failed`/`closed`), both now teardown with
+   reason `'peer-left'` instead of `'error'`.
+3. **Guest pool corruption.** The guest render path no longer touches the
+   shared `this.enemies`/`this.gems` pools at all. It renders through two
+   new guest-only cosmetic pools (`scene._coopEnemySprites`,
+   `scene._coopGemSprites`), lazily built by `_coopEnsureGuestPools()`.
+   Also fixed a pre-existing bug in the same block: the old code read
+   `ENEMY_BY_KEY`, a name that was never defined anywhere in the file (an
+   undefined-var reference silently swallowed by its own try/catch) --
+   the frame lookup now uses `FAMILY`/`REGION_ENEMY_BY_KEY`, the correct
+   tables.
+4. **Title overflow at 390x844.** Button spacing tightened from
+   54/52/52px steps to 48px steps (`by+58/+106/+154/+202` instead of
+   `+62/+116/+168/+220`), and button heights trimmed slightly on the
+   lower three. Screenshot at review_evidence/coop/title_390x844.png
+   confirms SETTINGS now clears the BEST/GEMS stats line with a visible
+   gap.
+5. **Small fixes.** Host input guard: `onInput`'s `dx`/`dy` are now
+   checked with `isFinite` and clamped to [-1, 1] before reaching p2's
+   movement math. `coopHostDraftPick`'s `projDamage` branch recomputes
+   `p2.damage` absolutely off `this.p.damageBase` (matching how p1's own
+   `projectileDamage` stat is computed) instead of compounding onto
+   whatever `p2.damage` already held. Dead code removed: `origSimStep`,
+   `origFinishRun` (assigned, never called), `COOP_ALPHABET` (declared,
+   never referenced), and the `reliable` local (assigned `coop.conn.opts`,
+   never read).
+
+**Verification:** hm_coop_probe.mjs now asserts the guest-only pool split
+directly (enemy count check reads `_coopEnemySprites` instead of the
+shared pool), a live snapshot-byte-size check (<= 3072 B, passing at
+1958 B for the probe's forced-spawn scenario), and the pool-reset
+assertion (host page: stop CO-OP run -> title -> CLASSIC RUN in the same
+page -> a freshly spawned enemy has `hp === maxHp`). All 11 assertions
+pass against the redeployed relay. hm_arsenal_probe.mjs 17/17,
+hm_apex_probe.mjs 15/15, both re-run clean against this worktree.
