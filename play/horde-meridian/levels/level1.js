@@ -14,7 +14,8 @@
     region: 'meridian-verge',
     duration: 180,
     waves: [
-      { at: 0, rate: 1.25, pack: 1, pool: ['drifter'] },
+      { at: 0, rate: 0.7, pack: 2, pool: ['drifter', 'sprinter'] },
+      { at: 20, rate: 0.62, pack: 2, pool: ['drifter', 'sprinter', 'bulwark'] },
       { at: 36, rate: 1.08, pack: 1, pool: ['drifter', 'sprinter'] },
       { at: 78, rate: 0.94, pack: 1, pool: ['drifter', 'sprinter'] },
       { at: 110, rate: 0.80, pack: 2, pool: ['drifter', 'sprinter', 'bulwark'] },

@@ -2861,8 +2861,6 @@
         enemySpeed: (lm && lm.enemySpeed) || 1, spawnRate: (lm && lm.spawnRate) || 1,
         xp: (lm && lm.xp) || 1
       };
-      this.hotStartPending = true;
-
       this.p = {
         x: 0, y: 0, vx: 0, vy: 0, r: 15,
         hp: Math.round((100 + mVigor * 15) * (1 + hHull * 0.06)),
@@ -3002,14 +3000,20 @@
       var regionKeys = REGION_ENEMIES[region.key];
       if (regionKeys) {
         for (var rk = 0; rk < regionKeys.length; rk++) {
-          if (pool.indexOf(regionKeys[rk].key) < 0) pool.push(regionKeys[rk].key);
+          var rkEntry = regionKeys[rk];
+          if (rkEntry.ranged || rkEntry.base === 'lancer' || rkEntry.base === 'sapper') continue;
+          if (pool.indexOf(rkEntry.key) < 0) pool.push(rkEntry.key);
         }
       }
       for (var i = 0; i < HOT_START.secondWave; i++) {
         var a = srand() * TAU;
-        var rad = HOT_START.ringMin + srand() * (HOT_START.ringMax - HOT_START.ringMin);
-        var x = clamp(this.p.x + Math.cos(a) * rad, -EDGE, EDGE);
-        var y = clamp(this.p.y + Math.sin(a) * rad, -EDGE, EDGE);
+        var rad, x, y, seedTries = 0;
+        do {
+          rad = HOT_START.ringMin + srand() * (HOT_START.ringMax - HOT_START.ringMin);
+          x = clamp(this.p.x + Math.cos(a) * rad, -EDGE, EDGE);
+          y = clamp(this.p.y + Math.sin(a) * rad, -EDGE, EDGE);
+          seedTries++;
+        } while (Math.hypot(x - this.p.x, y - this.p.y) < 260 && seedTries < 8);
         var fam = this.regionEnemyFor(pool[Math.floor(srand() * pool.length)]);
         var elite = srand() < HOT_START.elitePct;
         this.spawn(fam, elite, x, y, true);
@@ -3017,24 +3021,29 @@
     },
 
     seedHotStart: function () {
-      this.hotStartPending = false;
       var count = this.level ?
         Math.round(HOT_START.count * Math.max(0.65, this.levelMods.spawnRate)) :
         HOT_START.count;
       var region = regionAtX(this.p.x);
       var pool = (this.activeWaves[0] && this.activeWaves[0].pool) ?
-        this.activeWaves[0].pool.slice() : ['drifter', 'sprinter', 'bulwark', 'sapper', 'lancer', 'weaver'];
+        this.activeWaves[0].pool.slice() : ['drifter', 'sprinter', 'bulwark'];
       var regionKeys = REGION_ENEMIES[region.key];
       if (regionKeys) {
-        for (var rk = 0; rk < regionKeys.length; rk++) {
-          if (pool.indexOf(regionKeys[rk].key) < 0) pool.push(regionKeys[rk].key);
+        for (var rk2 = 0; rk2 < regionKeys.length; rk2++) {
+          var rkEntry2 = regionKeys[rk2];
+          if (rkEntry2.ranged || rkEntry2.base === 'lancer' || rkEntry2.base === 'sapper') continue;
+          if (pool.indexOf(rkEntry2.key) < 0) pool.push(rkEntry2.key);
         }
       }
       for (var i = 0; i < count; i++) {
         var a = srand() * TAU;
-        var rad = HOT_START.ringMin + srand() * (HOT_START.ringMax - HOT_START.ringMin);
-        var x = clamp(this.p.x + Math.cos(a) * rad, -EDGE, EDGE);
-        var y = clamp(this.p.y + Math.sin(a) * rad, -EDGE, EDGE);
+        var rad, x, y, seedTries = 0;
+        do {
+          rad = HOT_START.ringMin + srand() * (HOT_START.ringMax - HOT_START.ringMin);
+          x = clamp(this.p.x + Math.cos(a) * rad, -EDGE, EDGE);
+          y = clamp(this.p.y + Math.sin(a) * rad, -EDGE, EDGE);
+          seedTries++;
+        } while (Math.hypot(x - this.p.x, y - this.p.y) < 260 && seedTries < 8);
         var fam = this.regionEnemyFor(pool[Math.floor(srand() * pool.length)]);
         var elite = srand() < HOT_START.elitePct;
         this.spawn(fam, elite, x, y, true);
@@ -6037,7 +6046,7 @@
       var base = bossData || variantData || FAMILY[fam] || FAMILY.drifter;
       var spawnRegion = regionAtX(atX != null ? atX : this.p.x);
       var isRegionBoss = !!bossData;
-      var diff = 1.35 + this.run.time / 380;      // difficulty ramp multiplier
+      var diff = 1.15 + this.run.time / 380;      // difficulty ramp multiplier
       var ef = elite && !isRegionBoss ? 3.2 : 1;
 
       if (atX != null) { e.x = atX; e.y = atY; }

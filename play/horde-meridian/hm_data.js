@@ -165,10 +165,10 @@
   };
 
   var WAVES = [
-    { at: 0,   rate: 0.42, pack: 3, pool: ['drifter', 'sprinter', 'bulwark', 'sapper', 'lancer', 'weaver'] },
-    { at: 15,  rate: 0.45, pack: 3, pool: ['drifter', 'sprinter', 'bulwark', 'sapper', 'lancer', 'weaver'] },
-    { at: 30,  rate: 0.45, pack: 3, pool: ['drifter', 'sprinter', 'bulwark', 'sapper', 'lancer', 'weaver'] },
-    { at: 45,  rate: 0.45, pack: 3, pool: ['drifter', 'sprinter', 'bulwark', 'sapper', 'lancer', 'weaver'] },
+    { at: 0,   rate: 0.65, pack: 3, pool: ['drifter', 'sprinter', 'bulwark'] },
+    { at: 15,  rate: 0.45, pack: 3, pool: ['drifter', 'sprinter', 'bulwark'] },
+    { at: 30,  rate: 0.45, pack: 3, pool: ['drifter', 'sprinter', 'bulwark', 'sapper', 'weaver'] },
+    { at: 45,  rate: 0.45, pack: 3, pool: ['drifter', 'sprinter', 'bulwark', 'sapper', 'weaver'] },
     { at: 70,  rate: 0.42, pack: 3, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] },
     { at: 100, rate: 0.39, pack: 3, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] },
     { at: 135, rate: 0.36, pack: 3, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'lancer'] },
