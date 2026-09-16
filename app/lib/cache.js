@@ -143,4 +143,23 @@ async function invalidate(key) {
   if (redis) { try { await redis.del(key) } catch {} }
 }
 
-module.exports = { cached, invalidate }
+// Invalidate every key starting with `prefix` — for cache families keyed by
+// caller-supplied values (e.g. gcal:bookings:v2:range:<start>:<end>) where
+// the exact key can't be reconstructed from a mutation. Mem tier is a
+// simple Map scan; Redis tier uses SCAN (non-blocking) since Upstash's
+// REST client has no pattern DEL.
+async function invalidatePrefix(prefix) {
+  for (const k of memCache.keys()) if (k.startsWith(prefix)) memCache.delete(k)
+  const redis = getRedis()
+  if (!redis) return
+  try {
+    let cursor = '0'
+    do {
+      const [next, keys] = await redis.scan(cursor, { match: `${prefix}*`, count: 100 })
+      cursor = next
+      if (keys.length) await Promise.all(keys.map((k) => redis.del(k).catch(() => {})))
+    } while (cursor !== '0')
+  } catch {}
+}
+
+module.exports = { cached, invalidate, invalidatePrefix }

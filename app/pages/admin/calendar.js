@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
+import { DndContext, DragOverlay, PointerSensor, TouchSensor, useSensor, useSensors, useDraggable, useDroppable, MeasuringStrategy } from '@dnd-kit/core'
 import DetailDock from '../../components/AppointmentDetailDock'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
@@ -164,6 +165,54 @@ function buildMonthGrid(dateStr) {
 // calendar / home / tech / rounds / tank-calendar all count the same way.
 function tanksFor(ev) {
   return bookingTanks(ev?.hubspotTanks, ev?.title)
+}
+
+// Cal.com bookings expose their uid in rescheduleUrl (…/reschedule/<uid>).
+// When absent, rescheduleAppointment falls back to a direct GCal patch.
+function bookingUidFor(ev) {
+  const m = /\/reschedule\/([^/?#]+)/.exec(ev?.rescheduleUrl || '')
+  return m ? m[1] : null
+}
+
+function durationMinFor(ev) {
+  if (!ev?.startTime || !ev?.endTime) return null
+  const ms = new Date(ev.endTime) - new Date(ev.startTime)
+  return ms > 0 ? Math.round(ms / 60000) : null
+}
+
+// Snap a Date to the nearest 30-minute boundary (backend requires it).
+function snapTo30(d) {
+  const snapped = new Date(d)
+  const mins = snapped.getMinutes()
+  snapped.setMinutes(Math.round(mins / 30) * 30, 0, 0)
+  return snapped
+}
+
+// Draggable wrapper — keeps the existing onClick (tap-to-open dock) working
+// by only treating the gesture as a drag once PointerSensor/TouchSensor
+// activation constraints (distance/delay) are met; a plain tap still fires
+// the child's onClick.
+function DraggableEvent({ id, disabled, children, style, className, title, onClick }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id, disabled })
+  return (
+    <div ref={setNodeRef} {...attributes} {...listeners}
+      className={className}
+      title={title}
+      onClick={onClick}
+      style={{ ...style, opacity: isDragging ? 0.35 : 1, cursor: disabled ? 'pointer' : 'grab' }}>
+      {children}
+    </div>
+  )
+}
+
+function DroppableCell({ id, children, style, className, onClick, highlight }) {
+  const { setNodeRef, isOver } = useDroppable({ id })
+  return (
+    <div ref={setNodeRef} className={className} onClick={onClick}
+      style={{ ...style, ...(isOver ? { outline: '2px solid var(--gold)', outlineOffset: -2 } : {}) }}>
+      {children}
+    </div>
+  )
 }
 
 export default function CalendarPage({ today, initialBookings, gcalError = null }) {
@@ -336,6 +385,98 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
     }, () => setMyDistLoading(false), { enableHighAccuracy: true, timeout: 10000 })
   }
 
+  // ── Drag-and-drop reschedule ──────────────────────────────────────────────
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } })
+  )
+  const [dragEvent, setDragEvent] = useState(null) // the booking object being dragged
+  const [dragError, setDragError] = useState(null)
+  const dragErrorTimer = useRef(null)
+
+  function showDragError(msg) {
+    setDragError(msg)
+    if (dragErrorTimer.current) clearTimeout(dragErrorTimer.current)
+    dragErrorTimer.current = setTimeout(() => setDragError(null), 5000)
+  }
+
+  function findBookingById(id) {
+    return bookings.find((b) => b.id === id) || Object.values(rangeBookings).flat().find((b) => b.id === id)
+  }
+
+  function handleDragStart(e) {
+    setDragError(null)
+    setDragEvent(findBookingById(e.active.id))
+  }
+
+  async function moveBooking(ev, newStart) {
+    if (isWeekend(newStart.toLocaleDateString('en-CA'))) {
+      showDragError('Refused: appointments cannot be scheduled on a weekend.')
+      return
+    }
+    const newStartIso = newStart.toISOString()
+    const oldDay = ev.startTime ? new Date(ev.startTime).toLocaleDateString('en-CA', { timeZone: TZ }) : null
+    const newDay = newStart.toLocaleDateString('en-CA')
+    const durationMin = durationMinFor(ev)
+
+    // Optimistic move
+    const applyMove = (list) => list.map((b) => b.id === ev.id ? { ...b, startTime: newStartIso, endTime: durationMin ? new Date(newStart.getTime() + durationMin * 60000).toISOString() : b.endTime } : b)
+    const prevBookings = bookings
+    const prevRange = rangeBookings
+    setBookings((list) => applyMove(list))
+    setRangeBookings((map) => {
+      const next = { ...map }
+      if (oldDay && next[oldDay]) next[oldDay] = next[oldDay].filter((b) => b.id !== ev.id)
+      const moved = { ...ev, startTime: newStartIso, endTime: durationMin ? new Date(newStart.getTime() + durationMin * 60000).toISOString() : ev.endTime }
+      next[newDay] = [...(next[newDay] || []), moved]
+      return next
+    })
+
+    try {
+      const res = await fetch('/api/admin/reschedule', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ eventId: ev.id, bookingUid: bookingUidFor(ev), newStartIso, durationMin: durationMin || undefined }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.ok) {
+        setBookings(prevBookings)
+        setRangeBookings(prevRange)
+        showDragError(data.error || 'Failed to reschedule appointment.')
+        return
+      }
+      // Confirmed — refetch to pick up canonical server state.
+      setRetryNonce((n) => n + 1)
+    } catch (err) {
+      setBookings(prevBookings)
+      setRangeBookings(prevRange)
+      showDragError(err.message || 'Failed to reschedule appointment.')
+    }
+  }
+
+  function handleDragEnd(e) {
+    const ev = dragEvent
+    setDragEvent(null)
+    if (!ev || !e.over) return
+    const dropId = String(e.over.id)
+    // Day-grid drop target: "slot:<dateStr>:<minutesFromDayStart>"
+    if (dropId.startsWith('slot:')) {
+      const [, dayStr, minStr] = dropId.split(':')
+      const minutesFromStart = parseInt(minStr, 10)
+      const hour = DAY_START_HOUR + Math.floor(minutesFromStart / 60)
+      const minute = minutesFromStart % 60
+      const local = new Date(`${dayStr}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`)
+      moveBooking(ev, snapTo30(local))
+      return
+    }
+    // Week/month day-cell drop target: "day:<dateStr>" — keep original time of day.
+    if (dropId.startsWith('day:')) {
+      const dayStr = dropId.slice(4)
+      const { h, m } = toLocalHM(ev.startTime)
+      const local = new Date(`${dayStr}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`)
+      moveBooking(ev, local)
+    }
+  }
+
   const totalMin = (DAY_END_HOUR - DAY_START_HOUR) * 60
   const gridHeight = totalMin * PX_PER_MIN
   const hours = Array.from({ length: DAY_END_HOUR - DAY_START_HOUR }, (_, i) => DAY_START_HOUR + i)
@@ -345,6 +486,8 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
     <>
       <Head><title>Calendar · GreenGuard Admin</title></Head>
       <PortalLayout isAdmin topPadding="12px">
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}
+        measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}>
         <style jsx>{`
           .hdr-month { display:flex; align-items:center; gap:6px; font-size:1.4rem; font-weight:900; cursor:pointer; color:var(--text-muted); }
           /* Selection area stays pinned below the sticky top nav (76px tall) while
@@ -543,6 +686,10 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
             <div className="event-area" onClick={handleGridClick}
                  style={{ position:'absolute', left:0, right:0, top:0, bottom:0, cursor:'crosshair', background: isWeekend(date) ? 'rgba(0,0,0,0.08)' : 'transparent' }}
                  title="Click an empty time slot to start a new booking">
+              {Array.from({ length: totalMin / 30 }, (_, i) => i * 30).map((minutesFromStart) => (
+                <DroppableCell key={minutesFromStart} id={`slot:${date}:${minutesFromStart}`}
+                  style={{ position:'absolute', left:0, right:0, top: minutesFromStart * PX_PER_MIN, height: 30 * PX_PER_MIN }} />
+              ))}
               {positioned.map((ev) => {
                 const top = (ev.startMin - DAY_START_HOUR * 60) * PX_PER_MIN
                 const height = Math.max(28, (ev.endMin - ev.startMin) * PX_PER_MIN - 2)
@@ -550,7 +697,7 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
                 const left = `calc((${colWidth} + 4px) * ${ev._col})`
                 const tanks = tanksFor(ev)
                 return (
-                  <div key={ev.id} className="event"
+                  <DraggableEvent key={ev.id} id={ev.id} className="event"
                     style={{ top, left, width: colWidth, height, ...(selectedEventId === ev.id ? { outline: '2px solid var(--gold)', outlineOffset: 1 } : {}) }}
                     title={`${ev.customerName} · ${ev.title}\n${fmtTime(ev.startTime)}–${fmtTime(ev.endTime)}\n${ev.address || ''}`}
                     onClick={() => setSelectedEventId(ev.id)}>
@@ -560,7 +707,7 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
                     </div>
                     <div className="event-title">{ev.title}</div>
                     <div className="event-time">{fmtTime(ev.startTime)}–{fmtTime(ev.endTime)}</div>
-                  </div>
+                  </DraggableEvent>
                 )
               })}
             </div>
@@ -576,7 +723,7 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
               const dayTanks = dayBookings.reduce((s, ev) => s + (tanksFor(ev) || 0), 0)
               const isToday = d === today_
               return (
-                <div key={d} style={{ minHeight: 200, padding: 8, borderRadius: 8, background: isWeekend(d) ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.02)', border: `1px solid ${isToday ? 'rgba(var(--green-rgb),0.4)' : 'rgba(var(--border-rgb),0.12)'}`, display: 'flex', flexDirection: 'column', gap: 4, opacity: isWeekend(d) ? 0.5 : 1 }}>
+                <DroppableCell key={d} id={`day:${d}`} style={{ minHeight: 200, padding: 8, borderRadius: 8, background: isWeekend(d) ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.02)', border: `1px solid ${isToday ? 'rgba(var(--green-rgb),0.4)' : 'rgba(var(--border-rgb),0.12)'}`, display: 'flex', flexDirection: 'column', gap: 4, opacity: isWeekend(d) ? 0.5 : 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <div style={{ fontSize: '0.72rem', fontWeight: 800, color: isToday ? 'var(--green)' : 'rgba(var(--text-rgb),0.55)' }}>
                       {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dd.getDay()]} {dd.getDate()}
@@ -587,16 +734,16 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
                   {dayBookings.map((ev) => {
                     const tanks = tanksFor(ev)
                     return (
-                      <div key={ev.id} onClick={() => setSelectedEventId(ev.id)}
+                      <DraggableEvent key={ev.id} id={ev.id} onClick={() => setSelectedEventId(ev.id)}
                         style={{ padding: '4px 6px', borderRadius: 4, background: 'rgba(var(--info-rgb),0.16)', border: '1px solid rgba(var(--info-rgb),0.3)', color: 'var(--text)', fontSize: '0.7rem', cursor: 'pointer', lineHeight: 1.3 }}>
                         <div style={{ fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {fmtTime(ev.startTime)} {ev.customerName?.split(' ')[0] || '?'}
                           {tanks != null && <span style={{ marginLeft: 4, color: '#848b94' }}>🛢️{tanks}</span>}
                         </div>
-                      </div>
+                      </DraggableEvent>
                     )
                   })}
-                </div>
+                </DroppableCell>
               )
             })}
           </div>
@@ -617,7 +764,7 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
                 const dayBookings = rangeBookings[d] || []
                 const dayTanks = dayBookings.reduce((s, ev) => s + (tanksFor(ev) || 0), 0)
                 return (
-                  <div key={d} onClick={() => { setDate(d); setViewMode('day') }}
+                  <DroppableCell key={d} id={`day:${d}`} onClick={() => { setDate(d); setViewMode('day') }}
                     style={{ minHeight: 52, padding: '5px 4px 4px', borderRadius: 6, background: weekend ? 'rgba(0,0,0,0.1)' : inMonth ? 'rgba(0,0,0,0.025)' : 'transparent', border: `1px solid ${isToday ? 'rgba(var(--green-rgb),0.5)' : 'rgba(var(--border-rgb),0.15)'}`, cursor: 'pointer', opacity: inMonth ? (weekend ? 0.45 : 1) : 0.25, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
                     <div style={{ width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isToday ? 'var(--green)' : 'transparent', flexShrink: 0 }}>
                       <span style={{ fontSize: '0.72rem', fontWeight: isToday ? 900 : 600, color: isToday ? 'var(--text-on-accent)' : 'var(--text-muted)', lineHeight: 1 }}>{dd.getDate()}</span>
@@ -627,7 +774,7 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
                         {dayBookings.length}V{dayTanks > 0 ? ` ${dayTanks}T` : ''}
                       </div>
                     )}
-                  </div>
+                  </DroppableCell>
                 )
               })}
             </div>
@@ -642,6 +789,19 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
           <DetailDock details={details} loading={detailsLoading}
             onClose={() => setSelectedEventId(null)} />
         )}
+        {dragError && (
+          <div style={{ position:'fixed', left:'50%', bottom:24, transform:'translateX(-50%)', zIndex:60, padding:'10px 16px', borderRadius:8, background:'var(--danger)', color:'#fff', fontSize:'0.82rem', fontWeight:700, boxShadow:'0 6px 20px rgba(0,0,0,0.4)', maxWidth:'90vw', textAlign:'center' }}>
+            {dragError}
+          </div>
+        )}
+        <DragOverlay>
+          {dragEvent && (
+            <div style={{ padding:'8px 12px', borderRadius:10, background:'rgba(var(--info-rgb),0.9)', border:'1px solid var(--info)', color:'#fff', fontSize:'0.8rem', fontWeight:800, boxShadow:'0 8px 24px rgba(0,0,0,0.35)', cursor:'grabbing' }}>
+              {dragEvent.customerName || 'Customer'} · {fmtTime(dragEvent.startTime)}
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
       </PortalLayout>
     </>
   )
