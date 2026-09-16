@@ -40,7 +40,7 @@ async function invalidateBookingCaches(dates) {
   for (const k of keys) await invalidate(k).catch(() => {})
   // Week/month calendar views cache by arbitrary caller-supplied start/end
   // (gcal:bookings:v2:range:<start>:<end>), so the exact key can't be
-  // reconstructed here — drop the whole family instead.
+  // reconstructed here - drop the whole family instead.
   await invalidatePrefix('gcal:bookings:v2:range:').catch(() => {})
 }
 
