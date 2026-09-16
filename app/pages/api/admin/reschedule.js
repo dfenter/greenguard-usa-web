@@ -1,4 +1,4 @@
-// POST /api/admin/reschedule — drag-and-drop move from /admin/calendar.
+// POST /api/admin/reschedule - drag-and-drop move from /admin/calendar.
 // Body: { eventId, bookingUid?, newStartIso, durationMin? }
 // Thin wrapper over booking-actions.rescheduleAppointment (same validation,
 // conflict check, Cal.com-first-then-GCal-patch, sendUpdates:'none', and

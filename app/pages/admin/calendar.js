@@ -159,7 +159,7 @@ function buildMonthGrid(dateStr) {
   })
 }
 
-// Canonical tank count for a booking — prefers HubSpot tank_count (same
+// Canonical tank count for a booking - prefers HubSpot tank_count (same
 // source rounds uses via tanksForCustomer), falls back to the title regex
 // only when the booking has no HubSpot match. Lives in lib/tank-count.js so
 // calendar / home / tech / rounds / tank-calendar all count the same way.
@@ -188,7 +188,29 @@ function snapTo30(d) {
   return snapped
 }
 
-// Draggable wrapper — keeps the existing onClick (tap-to-open dock) working
+// Build the UTC instant for a given America/Chicago wall-clock date/time.
+// `new Date(dayStr + 'T' + hh + ':' + mm)` parses in the browser's local
+// timezone, not CT, so it silently misbooks from any non-CT browser and is
+// unsafe across DST transitions. CT only ever runs at UTC-05:00 (CDT) or
+// UTC-06:00 (CST), so try both and keep whichever one's CT-rendered
+// wall-clock actually matches the requested day/hour/minute.
+function ctWallTimeToUTC(dayStr, hour, minute) {
+  const hh = String(hour).padStart(2, '0')
+  const mm = String(minute).padStart(2, '0')
+  for (const offset of ['-05:00', '-06:00']) {
+    const candidate = new Date(`${dayStr}T${hh}:${mm}:00${offset}`)
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
+    }).formatToParts(candidate)
+    const get = (t) => parts.find((p) => p.type === t).value
+    const rendered = `${get('year')}-${get('month')}-${get('day')}T${get('hour') === '24' ? '00' : get('hour')}:${get('minute')}`
+    if (rendered === `${dayStr}T${hh}:${mm}`) return candidate
+  }
+  // Fallback (should be unreachable for valid CT wall-clock times): CDT.
+  return new Date(`${dayStr}T${hh}:${mm}:00-05:00`)
+}
+
+// Draggable wrapper - keeps the existing onClick (tap-to-open dock) working
 // by only treating the gesture as a drag once PointerSensor/TouchSensor
 // activation constraints (distance/delay) are met; a plain tap still fires
 // the child's onClick.
@@ -317,7 +339,7 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
 
   const positioned = useMemo(() => layoutEvents(bookings), [bookings])
 
-  // Chronologically ordered stops for the day — shared by the agenda render
+  // Chronologically ordered stops for the day - shared by the agenda render
   // and the travel-time calculation so both use the same sequence.
   const sortedBookings = useMemo(
     () => [...bookings].sort((a, b) => new Date(a.startTime) - new Date(b.startTime)),
@@ -421,8 +443,6 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
 
     // Optimistic move
     const applyMove = (list) => list.map((b) => b.id === ev.id ? { ...b, startTime: newStartIso, endTime: durationMin ? new Date(newStart.getTime() + durationMin * 60000).toISOString() : b.endTime } : b)
-    const prevBookings = bookings
-    const prevRange = rangeBookings
     setBookings((list) => applyMove(list))
     setRangeBookings((map) => {
       const next = { ...map }
@@ -439,16 +459,16 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok || !data.ok) {
-        setBookings(prevBookings)
-        setRangeBookings(prevRange)
+        // Refetch instead of restoring the pre-POST snapshot: a concurrent
+        // 30s auto-refresh may have changed state while the POST was in flight.
+        setRetryNonce((n) => n + 1)
         showDragError(data.error || 'Failed to reschedule appointment.')
         return
       }
-      // Confirmed — refetch to pick up canonical server state.
+      // Confirmed - refetch to pick up canonical server state.
       setRetryNonce((n) => n + 1)
     } catch (err) {
-      setBookings(prevBookings)
-      setRangeBookings(prevRange)
+      setRetryNonce((n) => n + 1)
       showDragError(err.message || 'Failed to reschedule appointment.')
     }
   }
@@ -464,15 +484,15 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
       const minutesFromStart = parseInt(minStr, 10)
       const hour = DAY_START_HOUR + Math.floor(minutesFromStart / 60)
       const minute = minutesFromStart % 60
-      const local = new Date(`${dayStr}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`)
+      const local = ctWallTimeToUTC(dayStr, hour, minute)
       moveBooking(ev, snapTo30(local))
       return
     }
-    // Week/month day-cell drop target: "day:<dateStr>" — keep original time of day.
+    // Week/month day-cell drop target: "day:<dateStr>" - keep original time of day.
     if (dropId.startsWith('day:')) {
       const dayStr = dropId.slice(4)
       const { h, m } = toLocalHM(ev.startTime)
-      const local = new Date(`${dayStr}T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`)
+      const local = ctWallTimeToUTC(dayStr, h, m)
       moveBooking(ev, local)
     }
   }
@@ -527,6 +547,11 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
           .view-btn { background:transparent; color:rgba(var(--text-rgb),0.6); border:none; border-left:1px solid rgba(var(--border-rgb),0.25); padding:6px 10px; font-weight:800; font-size:0.78rem; cursor:pointer; font-family:inherit; text-transform:capitalize; }
           .view-btn:first-child { border-left:none; }
           .view-btn.active { background:var(--green); color: var(--text-on-accent); }
+          .month-chips { display:none; }
+          @media (min-width:431px) {
+            .month-count-badge { display:none; }
+            .month-chips { display:flex; }
+          }
           @media (max-width:430px) {
             .ctrl-right { gap:3px; }
             .view-btn { padding:6px 6px; font-size:0.72rem; }
@@ -593,7 +618,7 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
 
         {calendarError && (
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, marginTop:10, padding:'10px 14px', borderRadius:8, background:'rgba(var(--danger-rgb),0.08)', border:'1px solid rgba(var(--danger-rgb),0.28)', color:'var(--danger)', fontSize:'0.82rem', fontWeight:700 }}>
-            <span>⚠️ Google Calendar unavailable — appointments may be incomplete.</span>
+            <span>⚠️ Google Calendar unavailable: appointments may be incomplete.</span>
             <button onClick={() => setRetryNonce((n) => n + 1)} disabled={loading} style={{ padding:'6px 12px', borderRadius:6, border:'1px solid rgba(var(--danger-rgb),0.35)', background:'transparent', color:'var(--danger)', fontWeight:800, cursor:loading ? 'wait' : 'pointer', whiteSpace:'nowrap' }}>
               {loading ? 'Retrying…' : 'Retry'}
             </button>
@@ -769,9 +794,22 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
                     <div style={{ width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isToday ? 'var(--green)' : 'transparent', flexShrink: 0 }}>
                       <span style={{ fontSize: '0.72rem', fontWeight: isToday ? 900 : 600, color: isToday ? 'var(--text-on-accent)' : 'var(--text-muted)', lineHeight: 1 }}>{dd.getDate()}</span>
                     </div>
+                    {/* ≤430px: count badge only, space is too tight for chips. */}
                     {dayBookings.length > 0 && (
-                      <div style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--green)', lineHeight: 1.3, textAlign: 'center' }}>
+                      <div className="month-count-badge" style={{ fontSize: '0.62rem', fontWeight: 800, color: 'var(--green)', lineHeight: 1.3, textAlign: 'center' }}>
                         {dayBookings.length}V{dayTanks > 0 ? ` ${dayTanks}T` : ''}
+                      </div>
+                    )}
+                    {/* >430px: compact draggable chips, first name only. */}
+                    {dayBookings.length > 0 && (
+                      <div className="month-chips" style={{ flexDirection: 'column', gap: 2, width: '100%' }}>
+                        {dayBookings.slice().sort((a, b) => new Date(a.startTime) - new Date(b.startTime)).map((ev) => (
+                          <DraggableEvent key={ev.id} id={ev.id}
+                            onClick={(e) => { e.stopPropagation(); setSelectedEventId(ev.id) }}
+                            style={{ padding: '1px 4px', borderRadius: 3, background: 'rgba(var(--info-rgb),0.18)', border: '1px solid rgba(var(--info-rgb),0.35)', color: 'var(--text)', fontSize: '0.6rem', fontWeight: 700, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', boxSizing: 'border-box' }}>
+                            {ev.customerName?.split(' ')[0] || '?'}
+                          </DraggableEvent>
+                        ))}
                       </div>
                     )}
                   </DroppableCell>
