@@ -1,0 +1,170 @@
+[
+  {
+    "id": "greatwhite",
+    "errors": [],
+    "jawTrace": [
+      {
+        "phase": "idle",
+        "k": 0,
+        "deg": 1.86,
+        "gape": 0.15,
+        "hasJawBone": true
+      },
+      {
+        "phase": "open",
+        "k": 0.5,
+        "deg": 5.99,
+        "gape": 0.25,
+        "hasJawBone": true
+      },
+      {
+        "phase": "open",
+        "k": 1,
+        "deg": 10.11,
+        "gape": 0.35,
+        "hasJawBone": true
+      },
+      {
+        "phase": "close",
+        "k": 0.5,
+        "deg": 3.1,
+        "gape": 0.18,
+        "hasJawBone": true
+      },
+      {
+        "phase": "close",
+        "k": 1,
+        "deg": -3.91,
+        "gape": 0.01,
+        "hasJawBone": true
+      }
+    ],
+    "started": "ok"
+  },
+  {
+    "id": "thresher",
+    "errors": [],
+    "jawTrace": [
+      {
+        "phase": "idle",
+        "k": 0,
+        "deg": 23.87,
+        "gape": 0.15,
+        "hasJawBone": true
+      },
+      {
+        "phase": "open",
+        "k": 0.5,
+        "deg": 28,
+        "gape": 0.25,
+        "hasJawBone": true
+      },
+      {
+        "phase": "open",
+        "k": 1,
+        "deg": 32.12,
+        "gape": 0.35,
+        "hasJawBone": true
+      },
+      {
+        "phase": "close",
+        "k": 0.5,
+        "deg": 25.11,
+        "gape": 0.18,
+        "hasJawBone": true
+      },
+      {
+        "phase": "close",
+        "k": 1,
+        "deg": 18.1,
+        "gape": 0.01,
+        "hasJawBone": true
+      }
+    ],
+    "started": "ok"
+  },
+  {
+    "id": "tiger",
+    "errors": [],
+    "jawTrace": [
+      {
+        "phase": "idle",
+        "k": 0,
+        "deg": 24.27,
+        "gape": 0.15,
+        "hasJawBone": true
+      },
+      {
+        "phase": "open",
+        "k": 0.5,
+        "deg": 28.4,
+        "gape": 0.25,
+        "hasJawBone": true
+      },
+      {
+        "phase": "open",
+        "k": 1,
+        "deg": 32.52,
+        "gape": 0.35,
+        "hasJawBone": true
+      },
+      {
+        "phase": "close",
+        "k": 0.5,
+        "deg": 25.51,
+        "gape": 0.18,
+        "hasJawBone": true
+      },
+      {
+        "phase": "close",
+        "k": 1,
+        "deg": 18.5,
+        "gape": 0.01,
+        "hasJawBone": true
+      }
+    ],
+    "started": "ok"
+  },
+  {
+    "id": "whaleshark",
+    "errors": [],
+    "jawTrace": [
+      {
+        "phase": "idle",
+        "k": 0,
+        "deg": 1.86,
+        "gape": 0.15,
+        "hasJawBone": true
+      },
+      {
+        "phase": "open",
+        "k": 0.5,
+        "deg": 5.99,
+        "gape": 0.25,
+        "hasJawBone": true
+      },
+      {
+        "phase": "open",
+        "k": 1,
+        "deg": 10.11,
+        "gape": 0.35,
+        "hasJawBone": true
+      },
+      {
+        "phase": "close",
+        "k": 0.5,
+        "deg": 3.1,
+        "gape": 0.18,
+        "hasJawBone": true
+      },
+      {
+        "phase": "close",
+        "k": 1,
+        "deg": -3.91,
+        "gape": 0.01,
+        "hasJawBone": true
+      }
+    ],
+    "started": "ok"
+  }
+]

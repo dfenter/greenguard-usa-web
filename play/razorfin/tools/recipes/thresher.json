@@ -1,0 +1,49 @@
+{
+  "family": "thresher",
+  "base": "thresher",
+  "rows": [
+    {
+      "id": "thresher"
+    }
+  ],
+  "budget": {
+    "tris": 9000,
+    "glb_bytes": 1048576,
+    "texture_bytes": 184320
+  },
+  "mouth": {
+    "style": "standard",
+    "gape_degrees": 25,
+    "teeth": "upper_lower"
+  },
+  "head": {
+    "mode": "pointed"
+  },
+  "fins": {
+    "whip_tip": {
+      "enabled": true,
+      "fraction": 0.28,
+      "scale": 2.2,
+      "taper": 0.38
+    }
+  },
+  "accessories": [],
+  "paint": {
+    "resolution": 384,
+    "species_hsv": [
+      0.6,
+      0.16,
+      0.3
+    ],
+    "belly": "#8ea0a8",
+    "softness": 0.16,
+    "keep_photo": true
+  },
+  "variants": [],
+  "turntable": {
+    "resolution": 512,
+    "texture_resolution": 384,
+    "lens": 54,
+    "close_lens": 70
+  }
+}

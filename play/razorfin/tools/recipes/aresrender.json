@@ -1,0 +1,57 @@
+{
+  "family": "aresrender",
+  "base": "tigershark",
+  "rows": [
+    {
+      "id": "aresrender"
+    }
+  ],
+  "budget": {
+    "tris": 9000,
+    "glb_bytes": 1048576,
+    "texture_bytes": 184320
+  },
+  "mouth": {
+    "style": "standard",
+    "gape_degrees": 25,
+    "teeth": "upper_lower"
+  },
+  "head": {
+    "mode": "pointed",
+    "length_scale": 1.04
+  },
+  "fins": {},
+  "accessories": [
+    {
+      "kit": "armor_collar.glb",
+      "placement": "neck",
+      "fused": true,
+      "scale": 0.7
+    }
+  ],
+  "paint": {
+    "resolution": 384,
+    "species_hsv": [
+      0.062,
+      0.32,
+      0.34
+    ],
+    "belly": "#bcc4c0",
+    "softness": 0.16,
+    "keep_photo": true,
+    "saddles": {
+      "count": 4,
+      "width": 0.19,
+      "colour": "#262a2b",
+      "seed": 41,
+      "strength": 0.38
+    }
+  },
+  "variants": [],
+  "turntable": {
+    "resolution": 512,
+    "texture_resolution": 384,
+    "lens": 54,
+    "close_lens": 70
+  }
+}

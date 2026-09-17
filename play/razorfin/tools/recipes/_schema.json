@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Razorfin Rev 17 authored family recipe",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["family", "base", "rows", "budget", "mouth", "head", "fins", "accessories", "paint", "variants", "turntable"],
+  "properties": {
+    "family": {"type": "string", "minLength": 1},
+    "base": {"type": "string", "minLength": 1},
+    "rows": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {"type": "string", "minLength": 1},
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id"],
+            "properties": {
+              "id": {"type": "string", "minLength": 1},
+              "paint": {"type": "object"}
+            }
+          }
+        ]
+      }
+    },
+    "budget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tris", "glb_bytes", "texture_bytes"],
+      "properties": {
+        "tris": {"type": "integer", "minimum": 1},
+        "glb_bytes": {"type": "integer", "minimum": 1},
+        "texture_bytes": {"type": "integer", "minimum": 1}
+      }
+    },
+    "mouth": {"type": "object"},
+    "head": {"type": "object"},
+    "fins": {
+      "type": "object",
+      "description": "Authored fin edits. A whip tip's final length is fraction * scale * measured body L, clamped to <=0.60L; the family bbox must remain <=1.60L.",
+      "properties": {
+        "whip_tip": {
+          "type": "object",
+          "description": "Thresher whip length mapping; scale is a dimensionless artistic multiplier, not a body-length value.",
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "group": {"type": "string"},
+            "fraction": {"type": "number", "minimum": 0, "maximum": 1},
+            "scale": {"type": "number", "minimum": 0},
+            "taper": {"type": "number", "minimum": 0, "maximum": 1},
+            "tip_fraction": {"type": "number", "minimum": 0, "maximum": 1}
+          }
+        },
+        "dorsal": {"type": "object"}
+      }
+    },
+    "accessories": {"type": "array", "items": {"type": "object"}},
+    "paint": {"type": "object"},
+    "variants": {"type": "array", "items": {"type": "object"}},
+    "turntable": {"type": "object"}
+  }
+}

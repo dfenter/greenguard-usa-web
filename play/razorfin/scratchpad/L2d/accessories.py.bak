@@ -1,0 +1,937 @@
+"""Real fused accessory operations for Razorfin Rev 17."""
+
+from __future__ import annotations
+
+import argparse
+import math
+import os
+import sys
+
+import bpy
+import bmesh
+from mathutils import Vector, kdtree
+
+
+try:
+    from .head import measure
+except Exception:  # direct execution from tools/sharklib
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+    from sharklib.head import measure
+
+
+def _params(params):
+    if params is None:
+        return {}
+    if isinstance(params, str):
+        return {"kit": params}
+    return dict(params)
+
+
+def _set_active(obj):
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+
+
+def _triangles(obj):
+    obj.data.calc_loop_triangles()
+    return len(obj.data.loop_triangles)
+
+
+def loose_part_count(obj):
+    """Count connected face components, including isolated vertices."""
+    if not obj or obj.type != "MESH":
+        return 0
+    vertices = obj.data.vertices
+    polygons = obj.data.polygons
+    if not vertices:
+        return 0
+    adjacency = {v.index: set() for v in vertices}
+    for polygon in polygons:
+        ids = list(polygon.vertices)
+        for index in ids:
+            adjacency[index].update(other for other in ids if other != index)
+    unseen = set(adjacency)
+    components = 0
+    while unseen:
+        components += 1
+        stack = [unseen.pop()]
+        while stack:
+            index = stack.pop()
+            for other in adjacency[index]:
+                if other in unseen:
+                    unseen.remove(other)
+                    stack.append(other)
+    return components
+
+
+def _mesh_extent_box(obj):
+    """Return (xmin, ymin, zmin, xmax, ymax, zmax) of the mesh in local space."""
+    points = [v.co for v in obj.data.vertices]
+    if not points:
+        return (0.0,) * 6
+    return (
+        min(p.x for p in points), min(p.y for p in points), min(p.z for p in points),
+        max(p.x for p in points), max(p.y for p in points), max(p.z for p in points),
+    )
+
+
+def _retain_largest_component(obj):
+    """Remove tiny detached islands left by a scan boolean/remesh.
+
+    Photogrammetry shells often contain hundreds of face islands before the
+    voxel pass.  The fuse contract is one authored solid, so after the single
+    post-fuse remesh we retain the largest connected surface component.  This
+    is intentionally based on polygon count rather than object count; an
+    imported GLB with several loose objects is already joined by the caller.
+    """
+    polygons = list(obj.data.polygons)
+    if not polygons:
+        return obj
+    by_vertex = {}
+    for pi, polygon in enumerate(polygons):
+        for vertex in polygon.vertices:
+            by_vertex.setdefault(vertex, []).append(pi)
+    unseen = set(range(len(polygons)))
+    components = []
+    while unseen:
+        seed = unseen.pop()
+        stack = [seed]
+        found = {seed}
+        while stack:
+            pi = stack.pop()
+            for vertex in polygons[pi].vertices:
+                for other in by_vertex.get(vertex, ()):
+                    if other in unseen:
+                        unseen.remove(other)
+                        found.add(other)
+                        stack.append(other)
+        components.append(found)
+    if len(components) <= 1:
+        return obj
+    keep = max(components, key=len)
+    vertices = []
+    faces = []
+    materials = list(obj.data.materials)
+    mapping = {}
+    for pi in keep:
+        polygon = polygons[pi]
+        face = []
+        for index in polygon.vertices:
+            if index not in mapping:
+                mapping[index] = len(vertices)
+                vertices.append(tuple(obj.data.vertices[index].co))
+            face.append(mapping[index])
+        faces.append(tuple(face))
+    mesh = bpy.data.meshes.new(obj.data.name + " fused solid")
+    mesh.from_pydata(vertices, [], faces)
+    mesh.materials.clear()
+    for material in materials:
+        mesh.materials.append(material)
+    mesh.update()
+    obj.data = mesh
+    for polygon in mesh.polygons:
+        polygon.use_smooth = True
+    return obj
+
+
+def _kit_path(name):
+    if os.path.isabs(name):
+        return name
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    return os.path.join(root, "assets", "kit", name)
+
+
+def _import_kit(name):
+    path = _kit_path(name)
+    if not os.path.exists(path):
+        raise FileNotFoundError(path)
+    before = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=path)
+    meshes = [o for o in bpy.data.objects if o not in before and o.type == "MESH"]
+    if not meshes:
+        raise RuntimeError("kit contains no mesh: %s" % path)
+    if len(meshes) == 1:
+        return meshes[0]
+    _set_active(meshes[0])
+    for part in meshes:
+        part.select_set(True)
+    bpy.ops.object.join()
+    return meshes[0]
+
+
+def _duplicate_object(obj, name):
+    copy = obj.copy()
+    copy.data = obj.data.copy()
+    copy.name = name
+    if obj.users_collection:
+        obj.users_collection[0].objects.link(copy)
+    else:
+        bpy.context.scene.collection.objects.link(copy)
+    return copy
+
+
+def _target_axes(m):
+    long_dir = Vector((0.0, 0.0, 0.0))
+    long_dir[m.long_axis] = m.landmarks["head_sign"]
+    up_axis = 2 if 2 != m.long_axis else next(i for i in range(3) if i != m.long_axis)
+    across_axis = next(i for i in range(3) if i not in (m.long_axis, up_axis))
+    across_dir = Vector((0.0, 0.0, 0.0))
+    across_dir[across_axis] = 1.0
+    up_dir = Vector((0.0, 0.0, 0.0))
+    up_dir[up_axis] = 1.0
+    return long_dir, across_dir, up_dir
+
+
+def _median(values):
+    values = sorted(values)
+    if not values:
+        return 0.0
+    return values[(len(values) - 1) // 2]
+
+
+def _percentile(values, fraction):
+    values = sorted(values)
+    if not values:
+        return 0.0
+    at = (len(values) - 1) * max(0.0, min(1.0, fraction))
+    lo, hi = int(math.floor(at)), int(math.ceil(at))
+    return values[lo] + (values[hi] - values[lo]) * (at - lo)
+
+
+def _axis_ids(m):
+    axis = m.long_axis
+    up_axis = 2 if axis != 2 else next(i for i in range(3) if i != axis)
+    across_axis = next(i for i in range(3) if i not in (axis, up_axis))
+    return axis, across_axis, up_axis
+
+
+def _station(point, m):
+    """The io contract's station: tail=0, nose=1."""
+    axis, _, _ = _axis_ids(m)
+    lo = float(m.landmarks.get("long_min", 0.0))
+    hi = float(m.landmarks.get("long_max", lo + m.L))
+    if m.landmarks.get("head_sign", 1) > 0:
+        return (point[axis] - lo) / max(m.L, 1.0e-9)
+    return (hi - point[axis]) / max(m.L, 1.0e-9)
+
+
+def _long_at(t, m):
+    axis, _, _ = _axis_ids(m)
+    lo = float(m.landmarks.get("long_min", 0.0))
+    hi = float(m.landmarks.get("long_max", lo + m.L))
+    return lo + float(t) * m.L if m.landmarks.get("head_sign", 1) > 0 else hi - float(t) * m.L
+
+
+def _fin_indices(m):
+    indices = set()
+    for values in m.fin_groups.values():
+        indices.update(values)
+    return indices
+
+
+def _section(obj, m, t, slab=0.035, exclude_fins=True):
+    excluded = _fin_indices(m) if exclude_fins else set()
+    points = [v.co.copy() for v in obj.data.vertices
+              if abs(_station(v.co, m) - float(t)) <= slab and v.index not in excluded]
+    if len(points) < 8 and exclude_fins:
+        points = [v.co.copy() for v in obj.data.vertices
+                  if abs(_station(v.co, m) - float(t)) <= slab]
+    return points
+
+
+def _section_stats(obj, m, t):
+    axis, across_axis, up_axis = _axis_ids(m)
+    points = _section(obj, m, t)
+    if not points:
+        points = [v.co.copy() for v in obj.data.vertices]
+    across = [p[across_axis] for p in points]
+    up = [p[up_axis] for p in points]
+    across_center = _median(across)
+    up_center = _median(up)
+    radii = [math.hypot(p[across_axis] - across_center, p[up_axis] - up_center) for p in points]
+    width = max(across) - min(across)
+    height = max(up) - min(up)
+    radius = max(_percentile(radii, 0.82), 1.0e-5)
+    # Some approved bases (tigershark) are nearly flat in the across axis at
+    # the head stations, so the raw width collapses to ~0.007 and any kit
+    # sized from it renders invisible.  ``girth`` is the degenerate-proof
+    # cross-section scale head-anchored kits size from: never smaller than the
+    # section radius or a small fraction of body length.
+    girth = max(width, radius * 1.6, m.L * 0.06)
+    return {
+        "points": points,
+        "across_center": across_center,
+        "up_center": up_center,
+        "width": width,
+        "height": height,
+        "girth": girth,
+        "radius": radius,
+        "axis": axis,
+        "across_axis": across_axis,
+        "up_axis": up_axis,
+    }
+
+
+def _dorsal_ridge(obj, m, t):
+    """Return the skin ridge, excluding measured dorsal/side fins."""
+    stats = _section_stats(obj, m, t)
+    axis, across_axis, up_axis = _axis_ids(m)
+    points = [p for p in stats["points"]
+              if abs(p[across_axis] - stats["across_center"]) <= max(stats["width"] * 0.46, m.L * 0.025)]
+    if not points:
+        points = stats["points"]
+    return max(p[up_axis] for p in points)
+
+
+def _dorsal_height(obj, m):
+    dorsal = set(m.fin_groups.get("dorsal", set()))
+    if not dorsal:
+        return max(m.H * 0.10, m.L * 0.01)
+    values = []
+    for index in dorsal:
+        vertex = obj.data.vertices[index]
+        t = _station(vertex.co, m)
+        if 0.30 <= t <= 0.78:
+            values.append(vertex.co[_axis_ids(m)[2]] - _dorsal_ridge(obj, m, t))
+    return max(max(values) if values else m.H * 0.10, m.L * 0.01)
+
+
+def _bounds(kit):
+    points = [v.co for v in kit.data.vertices]
+    if not points:
+        return {"xmin": 0.0, "xmax": 1.0, "ymin": 0.0, "ymax": 1.0, "zmin": 0.0, "zmax": 1.0}
+    return {
+        "xmin": min(p.x for p in points), "xmax": max(p.x for p in points),
+        "ymin": min(p.y for p in points), "ymax": max(p.y for p in points),
+        "zmin": min(p.z for p in points), "zmax": max(p.z for p in points),
+    }
+
+
+def _scale_multipliers(params):
+    value = params.get("scale", 1.0)
+    if isinstance(value, (tuple, list)):
+        values = tuple(float(v) for v in value)
+        if len(values) == 1:
+            return values * 3
+        if len(values) == 2:
+            return (values[0], values[1], values[1])
+        return values[:3]
+    return (float(value),) * 3
+
+
+def _placement_name(kit, params):
+    name = os.path.splitext(os.path.basename(str(params.get("kit", kit.name))))[0].lower()
+    placement = str(params.get("landmark", params.get("placement", ""))).lower()
+    if name == "armor_collar" or placement in ("collar", "neck"):
+        return "armor_collar"
+    if name in ("plate_row", "spine_row") or placement in ("dorsal", "back", "dorsal_base"):
+        return name if name in ("plate_row", "spine_row") else "plate_row"
+    if name in ("crown_a", "horns_pair") or placement in ("head_top", "crown", "horns"):
+        return name if name in ("crown_a", "horns_pair") else "crown_a"
+    if name == "hammer_foil" or placement in ("hammer", "snout"):
+        return "hammer_foil"
+    if name == "whale_hood" or placement in ("hood", "head"):
+        return "whale_hood"
+    if name == "saw_rostrum" or placement in ("saw", "rostrum"):
+        return "saw_rostrum"
+    return name
+
+
+def _offset_vector(params, long_dir, across_dir, up_dir):
+    offset = params.get("offset", (0.0, 0.0, 0.0))
+    if isinstance(offset, dict):
+        offset = (offset.get("x", 0.0), offset.get("y", 0.0), offset.get("z", 0.0))
+    values = Vector(offset)
+    return across_dir * values.x + long_dir * values.y + up_dir * values.z
+
+
+def _finish_placement(obj, kit, m, kind, metrics):
+    kit.matrix_world = obj.matrix_world.copy()
+    kit.location = (0.0, 0.0, 0.0)
+    kit.rotation_euler = (0.0, 0.0, 0.0)
+    kit.scale = (1.0, 1.0, 1.0)
+    kit.data.update()
+    for key, value in metrics.items():
+        if isinstance(value, (int, float)):
+            kit["rf_" + key] = float(value)
+    kit["rf_placement_kind"] = kind
+    obj["_rf_last_kit"] = kit.name
+    obj["rf_last_accessory_kind"] = kind
+    obj["rf_last_accessory_max_surface_distance"] = float(metrics.get("max_surface_distance", 0.0))
+    for key in ("collar_ratio", "collar_station", "plate_top_z", "plate_top_allowed_z",
+                "plate_top_margin", "dorsal_height", "ornament_width", "width_ratio"):
+        if key in metrics:
+            obj["rf_last_accessory_" + key] = float(metrics[key])
+    obj["rf_last_accessory_metrics"] = repr(metrics)
+    return kit
+
+
+def _max_surface_distance(obj, kit):
+    """Farthest distance from any kit vertex to the nearest body vertex.
+
+    Uses a KD-tree; the naive form is O(kit x body) in Python and dominated
+    the placement cost once kits are solidified.
+    """
+    body_points = [v.co.copy() for v in obj.data.vertices]
+    if not body_points:
+        return 0.0
+    tree = kdtree.KDTree(len(body_points))
+    for index, point in enumerate(body_points):
+        tree.insert(point, index)
+    tree.balance()
+    maximum = 0.0
+    for vertex in kit.data.vertices:
+        _, _, distance = tree.find(vertex.co)
+        maximum = max(maximum, distance)
+    return maximum
+
+
+def _pectoral_station(obj, m):
+    """Station of the pectoral girdle, measured from the body every time.
+
+    The collar must sit at the neck/shoulder on any base.  A fixed t=.72 is
+    not anatomically equivalent across bases, and the ``pectoral_left``
+    landmark alone is not trustworthy either: it is derived from a fixed
+    station window, so it degrades on a base whose proportions differ.  The
+    girdle is found here as the station where the measured lateral width
+    peaks over the forward half of the body -- that is the widest part of the
+    trunk, just behind the head -- and the landmark is only used to break a
+    tie.  The result is clamped to a plausible neck band.
+    """
+    best_t, best_width = None, -1.0
+    t = 0.55
+    while t <= 0.86 + 1.0e-9:
+        width = _section_stats(obj, m, t)["width"]
+        if width > best_width:
+            best_width, best_t = width, t
+        t += 0.01
+    candidates = []
+    if best_t is not None:
+        candidates.append(best_t)
+    pectoral = m.landmarks.get("pectoral_left")
+    if pectoral is not None:
+        station = _station(pectoral, m)
+        if 0.55 <= station <= 0.86:
+            candidates.append(station)
+    if not candidates:
+        return 0.72
+    # Sit just forward of the girdle so the ring lands on the neck rather
+    # than on the fin roots themselves.
+    return max(0.58, min(0.84, sum(candidates) / len(candidates) + 0.04))
+
+
+def _place_kit_object(obj, kit, params):
+    """Place a kit from measured body dimensions at its authored landmark.
+
+    ``scale`` is a multiplier on the measured rule for the selected kit; it is
+    never an absolute ``scale * L`` transform.  The returned object remains the
+    imported kit so callers can preserve its authored materials in ``hi``.
+    """
+    params = _params(params)
+    m = measure(obj)
+    kind = _placement_name(kit, params)
+    sx, sy, sz = _scale_multipliers(params)
+    long_dir, across_dir, up_dir = _target_axes(m)
+    axis, across_axis, up_axis = _axis_ids(m)
+    bounds = _bounds(kit)
+    metrics = {"kind": kind, "scale": sx, "body_L": m.L}
+    offset = _offset_vector(params, long_dir, across_dir, up_dir)
+    points = list(kit.data.vertices)
+
+    if kind == "armor_collar":
+        # The contract station t=.72 is NOT anatomically equivalent across the
+        # approved bases: it lands on greatwhite's pectorals (long .2216 vs
+        # pectoral .2085) but well forward of tigershark's shoulder (pectoral
+        # .0819), which put the ring out past the flank.  Anchor the collar
+        # just behind the measured pectoral girdle instead, falling back to
+        # t=.72 only when that landmark is missing.
+        collar_t = _pectoral_station(obj, m)
+        stats = _section_stats(obj, m, collar_t)
+        target = Vector((0.0, 0.0, 0.0))
+        target[axis] = _long_at(collar_t, m)
+        target[across_axis] = stats["across_center"]
+        target[up_axis] = stats["up_center"]
+        metrics["collar_station"] = collar_t
+        # The authored armor_collar ring lies in its local XY plane (radius
+        # 0.19..0.27) and is only 0.08 thick in Z.  Measuring the radius about
+        # XZ collapses the inner radius to zero and unwraps the ring into a
+        # flat blade, so the ring plane is XY and Z is the axial thickness.
+        canonical_x = (bounds["xmin"] + bounds["xmax"]) * 0.5
+        canonical_y = (bounds["ymin"] + bounds["ymax"]) * 0.5
+        radii = [math.hypot(p.co.x - canonical_x, p.co.y - canonical_y) for p in points]
+        inner = min(radii) if radii else 0.1
+        radial_span = max(max(radii) - inner, 1.0e-6) if radii else 0.1
+        body_radius = stats["radius"]
+        target_inner = body_radius * 1.05 * sx
+        axial_span = 0.04 * m.L * sy
+        yaw = float(params.get("yaw", 0.0))
+        zspan = max(bounds["zmax"] - bounds["zmin"], 1.0e-6)
+        for vertex, radius in zip(points, radii):
+            p = vertex.co.copy()
+            angle = math.atan2(p.y - canonical_y, p.x - canonical_x) + yaw
+            new_radius = target_inner + (radius - inner) / radial_span * (0.04 * m.L * sx)
+            axial = (p.z - (bounds["zmin"] + bounds["zmax"]) * 0.5) / zspan
+            vertex.co = target + across_dir * math.cos(angle) * new_radius
+            vertex.co += up_dir * math.sin(angle) * new_radius
+            vertex.co += long_dir * axial * axial_span
+            vertex.co += offset
+        metrics.update({"body_radius": body_radius, "collar_inner_radius": target_inner,
+                        "collar_ratio": target_inner / max(body_radius, 1.0e-9)})
+
+    elif kind in ("plate_row", "spine_row"):
+        plate = kind == "plate_row"
+        dorsal_height = _dorsal_height(obj, m)
+        max_height = (0.55 if plate else 0.25) * dorsal_height * sz
+        t0, t1 = 0.35, 0.75
+        y0, y1 = bounds["ymin"], bounds["ymax"]
+        yspan = max(y1 - y0, 1.0e-6)
+        step = 0.10
+        max_x = max(abs(v.co.x) for v in points) if points else 0.1
+        top_limit = -1.0e18
+        top_allowed = -1.0e18
+        for vertex in points:
+            p = vertex.co.copy()
+            u = max(0.0, min(1.0, (p.y - y0) / yspan))
+            t = t0 + (t1 - t0) * u
+            stats = _section_stats(obj, m, t)
+            ridge = _dorsal_ridge(obj, m, t)
+            if plate:
+                index = int(round((p.y - y0) / step))
+                factor = max(0.35, 1.0 - 0.105 * index)
+                base_c, top_c = -0.055 * factor, 0.25 * factor
+            else:
+                index = int(round((p.y - y0) / step))
+                factor = max(0.45, 1.0 - 0.09 * index)
+                base_c, top_c = 0.0, 0.20 * factor
+            local_u = max(0.0, min(1.0, (p.z - base_c) / max(top_c - base_c, 1.0e-6)))
+            taper = 0.55 + 0.45 * max(0.0, 1.0 - abs(t - 0.55) / 0.20)
+            height = max_height * taper
+            half_width = max(stats["width"] * 0.33, m.L * 0.012) * sx
+            vertex.co = Vector((0.0, 0.0, 0.0))
+            vertex.co[axis] = _long_at(t, m)
+            vertex.co[across_axis] = stats["across_center"] + (p.x / max(max_x, 1.0e-6)) * half_width
+            vertex.co[up_axis] = ridge - 0.01 * m.L + local_u * height
+            vertex.co += offset
+            top_limit = max(top_limit, vertex.co[up_axis])
+            top_allowed = max(top_allowed, ridge + 0.55 * dorsal_height)
+        metrics.update({"dorsal_height": dorsal_height, "plate_top_z": top_limit,
+                        "plate_top_allowed_z": top_allowed, "plate_top_margin": top_limit - top_allowed})
+
+    elif kind in ("crown_a", "horns_pair"):
+        head_top = m.landmarks.get("head_top", m.landmarks.get("head", Vector((0.0, 0.0, 0.0))))
+        t = max(0.80, min(0.99, _station(head_top, m)))
+        stats = _section_stats(obj, m, t)
+        # head_top is a single landmark vertex and can sit well below the
+        # actual skin ridge at the crown station (on tigershark it is 0.031
+        # against a 0.147 body top), which built the crown down inside the
+        # head where the voxel remesh melted the prongs away.  Seat the crown
+        # on the MEASURED ridge at its own station instead.
+        ridge = _dorsal_ridge(obj, m, t)
+        head_top = head_top.copy()
+        head_top[up_axis] = max(head_top[up_axis], ridge)
+        # The crown must OVERLAP the skin, not rest on it.  head_top is the
+        # topmost skin vertex, so lifting the base clear of it (the old
+        # +0.008L) left the ornament touching the body along a single ridge
+        # line at best.  The voxel remesh could not bridge that gap, the union
+        # stayed a separate shell, and _retain_largest_component then deleted
+        # the crown while keeping the body -- which is why the fuse reported
+        # every gate green with no crown in the render.  Seating the base
+        # 0.02L below the skin gives the remesh real interpenetration to weld.
+        center = head_top - up_dir * (0.02 * m.L) + offset
+        # The crown must clear the skin enough to read as an ornament at
+        # review resolution: girth*0.70 put a greatwhite crown only ~0.09
+        # above a 0.99-long body, which renders as a bare head.  The head
+        # girth is the width rule; the height is taken against body length so
+        # a slim head still gets a visible crown.
+        width = stats["girth"] * 1.20 * sx
+        # The crown has to clear the WHOLE silhouette, not just the local head
+        # station.  On a base whose head sits well below the dorsal line
+        # (tigershark: head_top 0.031 against a 0.147 body top) a height taken
+        # only from the local girth leaves the prongs under the back line, so
+        # the ornament reads as a lump.  The deficit to the body top is added
+        # in, then the authored clearance on top of that.
+        body_top = max((v.co[up_axis] for v in obj.data.vertices), default=head_top[up_axis])
+        deficit = max(0.0, body_top - head_top[up_axis])
+        height = (max(stats["girth"] * 0.70, 0.11 * m.L) + deficit) * sz
+        depth = min(stats["girth"] * 0.65, 0.12 * m.L) * sy
+        cx = max(max(abs(v.co.x) for v in points), 1.0e-6)
+        cy = max(bounds["ymax"] - bounds["ymin"], 1.0e-6) * 0.5
+        zspan = max(bounds["zmax"] - bounds["zmin"], 1.0e-6)
+        for vertex in points:
+            p = vertex.co.copy()
+            vertex.co = center + across_dir * (p.x / cx) * width * 0.5
+            vertex.co += long_dir * ((p.y - (bounds["ymin"] + bounds["ymax"]) * 0.5) / cy) * depth * 0.5
+            # Height is measured from the seated base, so the sink depth is
+            # added back to keep the visible crown at the intended height.
+            vertex.co += up_dir * ((p.z - bounds["zmin"]) / zspan) * (height + 0.02 * m.L)
+        metrics.update({"head_width": stats["girth"], "ornament_width": width,
+                        "width_ratio": width / max(stats["girth"], 1.0e-9)})
+
+    elif kind in ("hammer_foil", "whale_hood"):
+        t = 0.90
+        stats = _section_stats(obj, m, t)
+        center = Vector((0.0, 0.0, 0.0))
+        center[axis] = _long_at(t, m)
+        center[across_axis] = stats["across_center"]
+        center[up_axis] = stats["up_center"] + 0.015 * m.L
+        center += offset
+        width_factor = 1.60 if kind == "hammer_foil" else 1.50
+        width = stats["girth"] * width_factor * sx
+        depth = min(stats["girth"] * (0.70 if kind == "hammer_foil" else 0.85), 0.16 * m.L) * sy
+        height = min(stats["girth"] * (0.55 if kind == "hammer_foil" else 0.65), 0.14 * m.L) * sz
+        cx = max(max(abs(v.co.x) for v in points), 1.0e-6)
+        cy = max(bounds["ymax"] - bounds["ymin"], 1.0e-6) * 0.5
+        zspan = max(bounds["zmax"] - bounds["zmin"], 1.0e-6)
+        for vertex in points:
+            p = vertex.co.copy()
+            vertex.co = center + across_dir * (p.x / cx) * width * 0.5
+            vertex.co += long_dir * ((p.y - (bounds["ymin"] + bounds["ymax"]) * 0.5) / cy) * depth * 0.5
+            vertex.co += up_dir * ((p.z - (bounds["zmin"] + bounds["zmax"]) * 0.5) / zspan) * height
+        metrics.update({"head_width": stats["girth"], "ornament_width": width,
+                        "width_ratio": width / max(stats["girth"], 1.0e-9)})
+
+    elif kind == "saw_rostrum":
+        head_top = m.landmarks.get("head_top", m.landmarks.get("nose"))
+        stats = _section_stats(obj, m, 0.90)
+        nose = m.landmarks.get("nose", head_top).copy()
+        nose[across_axis] = stats["across_center"]
+        length = 0.22 * m.L * sy
+        width = stats["girth"] * 0.35 * sx
+        zspan = min(stats["girth"] * 0.30, 0.08 * m.L) * sz
+        yspan = max(bounds["ymax"] - bounds["ymin"], 1.0e-6)
+        xspan = max(max(abs(v.co.x) for v in points), 1.0e-6)
+        pz = (bounds["zmin"] + bounds["zmax"]) * 0.5
+        for vertex in points:
+            p = vertex.co.copy()
+            vertex.co = nose + long_dir * ((p.y - bounds["ymin"]) / yspan) * length
+            vertex.co += across_dir * (p.x / xspan) * width * 0.5
+            vertex.co += up_dir * ((p.z - pz) / max(bounds["zmax"] - bounds["zmin"], 1.0e-6)) * zspan
+            vertex.co += offset
+        metrics.update({"rostrum_length": length, "rostrum_width": width})
+
+    else:
+        landmark = str(params.get("landmark", "dorsal_base"))
+        target = m.landmarks.get(landmark, m.landmarks["dorsal_base"]).copy() + offset
+        stats = _section_stats(obj, m, max(0.0, min(1.0, _station(target, m))))
+        width = max(stats["width"] * sx, m.L * 0.02)
+        depth = max(stats["width"] * sy, m.L * 0.02)
+        height = max(stats["height"] * sz, m.L * 0.02)
+        xspan = max(bounds["xmax"] - bounds["xmin"], 1.0e-6)
+        yspan = max(bounds["ymax"] - bounds["ymin"], 1.0e-6)
+        zspan = max(bounds["zmax"] - bounds["zmin"], 1.0e-6)
+        for vertex in points:
+            p = vertex.co.copy()
+            vertex.co = target + across_dir * ((p.x - (bounds["xmin"] + bounds["xmax"]) * 0.5) / xspan) * width
+            vertex.co += long_dir * ((p.y - (bounds["ymin"] + bounds["ymax"]) * 0.5) / yspan) * depth
+            vertex.co += up_dir * ((p.z - (bounds["zmin"] + bounds["zmax"]) * 0.5) / zspan) * height
+
+    metrics["max_surface_distance"] = _max_surface_distance(obj, kit)
+    return _finish_placement(obj, kit, m, kind, metrics)
+
+
+def place_kit(obj, params=None):
+    """Place one canonical kit in the object's local space and return obj.
+
+    ``params``: ``kit``, ``landmark``, ``offset`` (local x/y/z), ``scale``
+    (scalar or xyz), and ``yaw`` in radians.  Normal recipe callers should use
+    ``apply_accessories`` when they also need boolean fusion and the hi copy.
+    """
+    params = _params(params)
+    kit = _import_kit(params.get("kit", "crown_a.glb"))
+    _place_kit_object(obj, kit, params)
+    return obj
+
+
+def _clean_for_boolean(obj):
+    bm = bmesh.new()
+    try:
+        bm.from_mesh(obj.data)
+        if bm.verts:
+            bmesh.ops.remove_doubles(bm, verts=list(bm.verts), dist=1.0e-6)
+            boundary = [edge for edge in bm.edges if edge.is_boundary]
+            if boundary and len(boundary) < 4096:
+                try:
+                    bmesh.ops.holes_fill(bm, edges=boundary, sides=0)
+                except Exception:
+                    pass
+            bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
+        bm.to_mesh(obj.data)
+        obj.data.update()
+    finally:
+        bm.free()
+
+
+def _apply_modifier(obj, modifier):
+    _set_active(obj)
+    bpy.ops.object.modifier_apply(modifier=modifier.name)
+
+
+def _ensure_solid(kit, thickness):
+    """Give a flat/open kit real thickness before it is used as a boolean operand.
+
+    ``hammer_foil`` is authored as a two-lobe sheet with no enclosed volume.
+    A UNION against a zero-volume shell is degenerate: the EXACT solver can
+    return "success" while emitting only the operand, which silently deletes
+    the shark.  Solidifying first gives the union a real interior, so the
+    normal EXACT path succeeds and no fallback is needed.
+    """
+    points = [v.co for v in kit.data.vertices]
+    if not points:
+        return kit
+    spans = sorted(max(p[i] for p in points) - min(p[i] for p in points) for i in range(3))
+    if spans[0] > thickness * 0.9:
+        return kit
+    modifier = kit.modifiers.new("L2 kit solidify", "SOLIDIFY")
+    modifier.thickness = max(float(thickness), 1.0e-5)
+    modifier.offset = 0.0
+    modifier.use_even_offset = False
+    try:
+        _apply_modifier(kit, modifier)
+    except Exception:
+        if modifier.name in kit.modifiers:
+            kit.modifiers.remove(modifier)
+    kit.data.update()
+    return kit
+
+
+def _voxel_remesh(obj, voxel_size):
+    modifier = obj.modifiers.new("L2 accessory voxel fuse", "REMESH")
+    modifier.mode = "VOXEL"
+    modifier.voxel_size = max(float(voxel_size), 1.0e-5)
+    modifier.adaptivity = 0.0
+    try:
+        _apply_modifier(obj, modifier)
+    except Exception:
+        if modifier.name in obj.modifiers:
+            obj.modifiers.remove(modifier)
+    for polygon in obj.data.polygons:
+        polygon.use_smooth = True
+    obj.data.update()
+
+
+def _long_extent(obj, m):
+    """Extent of the mesh along the measured long axis."""
+    axis, _, _ = _axis_ids(m)
+    values = [v.co[axis] for v in obj.data.vertices]
+    return (max(values) - min(values)) if values else 0.0
+
+
+def _kit_extent_present(obj, kit, up_axis, tolerance):
+    """True if the union actually brought the kit's silhouette into ``obj``.
+
+    A UNION against a shredded photogrammetry shell (tigershark's base carries
+    842 loose components) can report success while quietly emitting only the
+    body: the kit is dropped, no error is raised, and every downstream gate --
+    component count, body preservation, triangle budget -- still reports
+    green.  The kit's own extreme is therefore checked against the result.
+    """
+    kit_points = [v.co[up_axis] for v in kit.data.vertices]
+    body_points = [v.co[up_axis] for v in obj.data.vertices]
+    if not kit_points or not body_points:
+        return True
+    kit_top = max(kit_points)
+    body_top = max(body_points)
+    # Only meaningful when the kit stands proud of the body in the first place.
+    if kit_top <= body_top:
+        return True
+    return body_top >= kit_top - tolerance
+
+
+def _boolean_union(obj, kit, solver):
+    """Union ``kit`` into ``obj``, rolling back a destructive result.
+
+    An open, non-manifold kit (hammer_foil is a flat two-lobe sheet) has no
+    valid interior, so the EXACT solver can "succeed" while collapsing the
+    result to the kit alone -- the body is silently deleted and the later
+    largest-component pass then keeps the ornament instead of the shark.  The
+    mesh is snapshotted first and restored whenever the union loses most of
+    the body's long-axis extent, so the caller falls through to FAST and then
+    to the non-destructive join.
+    """
+    m = measure(obj)
+    before_extent = _long_extent(obj, m)
+    backup = obj.data.copy()
+    _set_active(obj)
+    modifier = obj.modifiers.new("L2 accessory union %s" % solver.lower(), "BOOLEAN")
+    modifier.operation = "UNION"
+    modifier.solver = solver
+    modifier.object = kit
+    try:
+        _apply_modifier(obj, modifier)
+    except Exception:
+        if modifier.name in obj.modifiers:
+            obj.modifiers.remove(modifier)
+        bpy.data.meshes.remove(backup)
+        return False
+    after_extent = _long_extent(obj, measure(obj))
+    _, _, up_axis = _axis_ids(m)
+    kit_landed = _kit_extent_present(obj, kit, up_axis, m.L * 0.03)
+    if not obj.data.polygons or after_extent < before_extent * 0.75 or not kit_landed:
+        destroyed = obj.data
+        obj.data = backup
+        bpy.data.meshes.remove(destroyed)
+        return False
+    bpy.data.meshes.remove(backup)
+    return True
+
+
+def _join(obj, other):
+    _set_active(obj)
+    other.select_set(True)
+    bpy.ops.object.join()
+    return obj
+
+
+def _gentle_decimate(obj, tri_budget):
+    tri_budget = max(12, int(tri_budget))
+    pass_index = 0
+    while _triangles(obj) > tri_budget and pass_index < 24:
+        before = _triangles(obj)
+        modifier = obj.modifiers.new("L2 gentle decimate %02d" % pass_index, "DECIMATE")
+        modifier.decimate_type = "COLLAPSE"
+        modifier.use_collapse_triangulate = True
+        modifier.ratio = max(0.08, min(0.96, (tri_budget * 0.985) / max(1, before)))
+        try:
+            _apply_modifier(obj, modifier)
+        except Exception:
+            if modifier.name in obj.modifiers:
+                obj.modifiers.remove(modifier)
+            break
+        pass_index += 1
+    if _triangles(obj) > tri_budget:
+        modifier = obj.modifiers.new("L2 final gentle decimate", "DECIMATE")
+        modifier.decimate_type = "COLLAPSE"
+        modifier.use_collapse_triangulate = True
+        modifier.ratio = max(0.05, min(0.96, (tri_budget * 0.995) / max(1, _triangles(obj))))
+        try:
+            _apply_modifier(obj, modifier)
+        except Exception:
+            if modifier.name in obj.modifiers:
+                obj.modifiers.remove(modifier)
+    return obj
+
+
+def _remove_object(obj):
+    if obj and obj.name in bpy.data.objects:
+        bpy.data.objects.remove(obj, do_unlink=True)
+
+
+def apply_accessories(obj, params=None):
+    """Place and fuse kit GLBs, then return ``(low, hi)``.
+
+    ``hi`` is a separate pre-op reference containing the original photo
+    material plus the placed kit materials/vertex colours.  ``low`` receives
+    EXACT -> FAST -> remesh-only boolean handling, one voxel remesh if a fuse
+    was attempted, and the shark_bake gentle-pass triangle reducer.
+    """
+    params = _params(params)
+    kits = params.get("kits")
+    if kits is None:
+        kits = [params] if params.get("kit") else []
+    if isinstance(kits, dict):
+        kits = [kits]
+    kits = [dict(item) for item in kits]
+    budget = max(1, int(params.get("tri_budget", params.get("tris", 9000))))
+    before = _triangles(obj)
+    named_mouth_names = {"cavity", "upperteeth", "lowerteeth"}
+    other_objects = [candidate for candidate in bpy.context.scene.objects
+                     if candidate is not obj and candidate.type == "MESH"
+                     and (candidate.name.lower() in named_mouth_names
+                          or any(candidate.name.lower().startswith(name) for name in named_mouth_names))]
+    other_triangles = sum(_triangles(candidate) for candidate in other_objects)
+    added_budget = min(1500, max(0, budget - before - other_triangles))
+    hi = _duplicate_object(obj, "hi")
+    hi["rf_role"] = "hi"
+    any_fuse = False
+    solver_names = []
+
+    placement_records = []
+    for item in kits:
+        # Place one copy for the high reference, and a separate copy for the
+        # low boolean so joining cannot erase the photo source materials.
+        placed_hi = _place_kit_object(hi, _import_kit(item.get("kit", "crown_a.glb")), item)
+        _join(hi, placed_hi)
+        placed_low = _place_kit_object(obj, _import_kit(item.get("kit", "crown_a.glb")), item)
+        placement_records.append({
+            "kit": str(item.get("kit", "crown_a.glb")),
+            "kind": placed_low.get("rf_placement_kind", ""),
+            "max_surface_distance": float(placed_low.get("rf_max_surface_distance", 0.0)),
+            "collar_ratio": float(placed_low.get("rf_collar_ratio", 0.0)),
+            "plate_top_z": float(placed_low.get("rf_plate_top_z", 0.0)),
+            "plate_top_allowed_z": float(placed_low.get("rf_plate_top_allowed_z", 0.0)),
+            "plate_top_margin": float(placed_low.get("rf_plate_top_margin", 0.0)),
+        })
+        _ensure_solid(placed_low, measure(obj).L * 0.02)
+        _clean_for_boolean(obj)
+        _clean_for_boolean(placed_low)
+        used = None
+        for solver in ("EXACT", "FAST"):
+            if _boolean_union(obj, placed_low, solver):
+                used = solver
+                any_fuse = True
+                _remove_object(placed_low)
+                break
+        if used is None:
+            _join(obj, placed_low)
+            used = "REMESH_ONLY"
+            any_fuse = True
+        solver_names.append(used)
+
+    if any_fuse:
+        _voxel_remesh(obj, measure(obj).L / 220.0)
+        # _retain_largest_component keeps the body and throws away every other
+        # island.  If a kit failed to weld it is one of those islands, so the
+        # ornament is silently deleted while every gate still reports green
+        # (component count 1, body preserved, tris in budget).  The bbox is
+        # snapshotted so that loss is detected and reported rather than hidden.
+        before_extent_box = _mesh_extent_box(obj)
+        _retain_largest_component(obj)
+        after_extent_box = _mesh_extent_box(obj)
+        obj["rf_accessory_extent_lost"] = float(
+            max(before_extent_box[i + 3] - after_extent_box[i + 3] for i in range(3)))
+    # The accessory allowance is measured after reserving the current mesh and
+    # any named mouth/teeth objects.  This keeps a 6.8k base + <=700 mouth +
+    # <=1.5k accessory result inside the 9k family budget.
+    _gentle_decimate(obj, before + added_budget)
+    after = _triangles(obj)
+    obj["rf_accessory_solvers"] = ",".join(solver_names) or "NONE"
+    obj["rf_accessory_fused"] = bool(any_fuse)
+    obj["rf_accessory_tri_before"] = before
+    obj["rf_accessory_tri_after"] = after
+    obj["rf_accessory_added_triangles"] = max(0, after - before)
+    obj["rf_accessory_tri_budget"] = budget
+    obj["rf_accessory_other_triangles"] = other_triangles
+    obj["rf_accessory_added_budget"] = added_budget
+    obj["rf_accessory_placement_records"] = repr(placement_records)
+    obj["rf_accessory_loose_parts"] = loose_part_count(obj)
+    hi["rf_hi_triangles"] = _triangles(hi)
+    return obj, hi
+
+
+def fuse(obj, params=None):
+    """Recipe-friendly name for ``apply_accessories``."""
+    return apply_accessories(obj, params)
+
+
+def _cli():
+    argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
+    parser = argparse.ArgumentParser(description="Fuse one accessory kit headlessly")
+    parser.add_argument("--in", dest="inp", required=True)
+    parser.add_argument("--out")
+    parser.add_argument("--kit", default="crown_a.glb")
+    parser.add_argument("--tri-budget", type=int, default=9000)
+    args = parser.parse_args(argv)
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    bpy.ops.import_scene.gltf(filepath=args.inp)
+    meshes = [o for o in bpy.data.objects if o.type == "MESH"]
+    obj = max(meshes, key=lambda o: len(o.data.polygons))
+    low, hi = apply_accessories(obj, {"kits": [{"kit": args.kit, "landmark": "dorsal_base"}], "tri_budget": args.tri_budget})
+    print("ACCESSORIES", args.kit, "before", low.get("rf_accessory_tri_before"), "after", _triangles(low), "loose", loose_part_count(low), "hi", _triangles(hi))
+    if args.out:
+        _set_active(low)
+        bpy.ops.export_scene.gltf(filepath=args.out, export_format="GLB", use_selection=True, export_apply=True)
+
+
+if __name__ == "__main__":
+    _cli()

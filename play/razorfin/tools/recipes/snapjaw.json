@@ -1,0 +1,54 @@
+{
+  "family": "snapjaw",
+  "base": "tigershark",
+  "rows": [
+    {
+      "id": "snapjaw"
+    }
+  ],
+  "budget": {
+    "tris": 9000,
+    "glb_bytes": 1048576,
+    "texture_bytes": 184320
+  },
+  "mouth": {
+    "style": "standard",
+    "gape_degrees": 25,
+    "teeth": "upper_lower",
+    "blunt": true
+  },
+  "head": {
+    "mode": "blunt",
+    "length_scale": 1.08
+  },
+  "fins": {},
+  "accessories": [],
+  "paint": {
+    "resolution": 384,
+    "species_hsv": [
+      0.11,
+      0.22,
+      0.37
+    ],
+    "belly": "#b3bcb9",
+    "softness": 0.17,
+    "keep_photo": true,
+    "stripes": {
+      "axis": "length",
+      "count": 7,
+      "width": 0.14,
+      "colour": "#172025",
+      "region": "side",
+      "noise": 0.08,
+      "seed": 17,
+      "strength": 0.34
+    }
+  },
+  "variants": [],
+  "turntable": {
+    "resolution": 512,
+    "texture_resolution": 384,
+    "lens": 54,
+    "close_lens": 70
+  }
+}

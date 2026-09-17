@@ -1,0 +1,52 @@
+{
+  "family": "artemisstrike",
+  "base": "whaler",
+  "rows": [
+    {
+      "id": "artemisstrike"
+    }
+  ],
+  "budget": {
+    "tris": 9000,
+    "glb_bytes": 1048576,
+    "texture_bytes": 184320
+  },
+  "mouth": {
+    "style": "standard",
+    "gape_degrees": 25,
+    "teeth": "upper_lower"
+  },
+  "head": {
+    "mode": "pointed"
+  },
+  "fins": {
+    "dorsal": {
+      "mode": "sail",
+      "scale": 1.35
+    }
+  },
+  "accessories": [],
+  "paint": {
+    "resolution": 384,
+    "species_hsv": [
+      0.28,
+      0.1,
+      0.34
+    ],
+    "belly": "#9fb0b4",
+    "softness": 0.15,
+    "keep_photo": true,
+    "fin_tips": {
+      "fraction": 0.3,
+      "colour": "#dce4e5",
+      "strength": 0.42
+    }
+  },
+  "variants": [],
+  "turntable": {
+    "resolution": 512,
+    "texture_resolution": 384,
+    "lens": 54,
+    "close_lens": 70
+  }
+}

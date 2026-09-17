@@ -1,0 +1,1524 @@
+01:04:06 | INFO: Draco mesh compression is available, use library at /Applications/Blender.app/Contents/Resources/3.6/python/lib/python3.10/site-packages/libextern_draco.dylib
+01:04:07 | INFO: Starting glTF 2.0 export
+01:04:07 | INFO: Extracting primitive: Sphere
+01:04:07 | INFO: Primitives created: 1
+01:04:07 | INFO: Finished glTF 2.0 export in 0.021722793579101562 s
+
+01:04:07 | INFO: Draco mesh compression is available, use library at /Applications/Blender.app/Contents/Resources/3.6/python/lib/python3.10/site-packages/libextern_draco.dylib
+01:04:07 | INFO: Starting glTF 2.0 export
+01:04:07 | INFO: Extracting primitive: Cone.003
+01:04:07 | INFO: Primitives created: 1
+01:04:07 | INFO: Finished glTF 2.0 export in 0.009557008743286133 s
+
+01:04:07 | INFO: Draco mesh compression is available, use library at /Applications/Blender.app/Contents/Resources/3.6/python/lib/python3.10/site-packages/libextern_draco.dylib
+01:04:07 | INFO: Starting glTF 2.0 export
+01:04:07 | INFO: Extracting primitive: Cube
+01:04:07 | INFO: Primitives created: 2
+01:04:07 | INFO: Finished glTF 2.0 export in 0.14449310302734375 s
+
+01:04:07 | INFO: Draco mesh compression is available, use library at /Applications/Blender.app/Contents/Resources/3.6/python/lib/python3.10/site-packages/libextern_draco.dylib
+01:04:07 | INFO: Starting glTF 2.0 export
+01:04:07 | INFO: Extracting primitive: Cone.011
+01:04:07 | INFO: Primitives created: 1
+01:04:07 | INFO: Finished glTF 2.0 export in 0.06955313682556152 s
+
+01:04:07 | INFO: Draco mesh compression is available, use library at /Applications/Blender.app/Contents/Resources/3.6/python/lib/python3.10/site-packages/libextern_draco.dylib
+01:04:07 | INFO: Starting glTF 2.0 export
+01:04:07 | INFO: Extracting primitive: maple plate 00 mesh
+01:04:07 | INFO: Primitives created: 1
+01:04:07 | INFO: Finished glTF 2.0 export in 0.023047924041748047 s
+
+01:04:07 | INFO: Draco mesh compression is available, use library at /Applications/Blender.app/Contents/Resources/3.6/python/lib/python3.10/site-packages/libextern_draco.dylib
+01:04:07 | INFO: Starting glTF 2.0 export
+01:04:07 | INFO: Extracting primitive: Torus
+01:04:07 | INFO: Primitives created: 1
+01:04:07 | INFO: Finished glTF 2.0 export in 0.009239673614501953 s
+
+01:04:07 | INFO: Draco mesh compression is available, use library at /Applications/Blender.app/Contents/Resources/3.6/python/lib/python3.10/site-packages/libextern_draco.dylib
+01:04:07 | INFO: Starting glTF 2.0 export
+01:04:07 | INFO: Extracting primitive: Sphere.001
+01:04:07 | INFO: Primitives created: 2
+01:04:07 | INFO: Finished glTF 2.0 export in 0.029963970184326172 s
+
+01:04:07 | INFO: Draco mesh compression is available, use library at /Applications/Blender.app/Contents/Resources/3.6/python/lib/python3.10/site-packages/libextern_draco.dylib
+01:04:07 | INFO: Starting glTF 2.0 export
+01:04:07 | INFO: Extracting primitive: Sphere.006
+01:04:07 | INFO: Primitives created: 1
+01:04:07 | INFO: Finished glTF 2.0 export in 0.011029720306396484 s
+
+KIT_BUDGET [{'kit': 'crown_a', 'path': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/kit/crown_a.glb', 'triangles': 108}, {'kit': 'horns_pair', 'path': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/kit/horns_pair.glb', 'triangles': 48}, {'kit': 'saw_rostrum', 'path': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/kit/saw_rostrum.glb', 'triangles': 140}, {'kit': 'spine_row', 'path': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/kit/spine_row.glb', 'triangles': 112}, {'kit': 'plate_row', 'path': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/kit/plate_row.glb', 'triangles': 196}, {'kit': 'armor_collar', 'path': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/kit/armor_collar.glb', 'triangles': 96}, {'kit': 'hammer_foil', 'path': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/kit/hammer_foil.glb', 'triangles': 192}, {'kit': 'whale_hood', 'path': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/kit/whale_hood.glb', 'triangles': 96}]
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.09s
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.00s
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.00s
+L2_RENDER engine=CYCLES samples=8 device=CPU
+Blender 3.6.19 (hash 56679ff9b2b2 built 2024-12-17 01:31:53)
+Fra:1 Mem:16.50M (Peak 16.50M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | greatwhite_cy
+Fra:1 Mem:16.87M (Peak 16.87M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:16.86M (Peak 16.87M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_normal
+Fra:1 Mem:16.86M (Peak 16.87M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_diffuse
+Fra:1 Mem:24.51M (Peak 32.89M) | Time:00:00.07 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:24.52M (Peak 32.89M) | Time:00:00.08 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:24.52M (Peak 32.89M) | Time:00:00.08 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:24.52M (Peak 32.89M) | Time:00:00.08 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:24.52M (Peak 32.89M) | Time:00:00.08 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:24.52M (Peak 32.89M) | Time:00:00.08 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:24.52M (Peak 32.89M) | Time:00:00.08 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:24.52M (Peak 32.89M) | Time:00:00.08 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:24.52M (Peak 32.89M) | Time:00:00.08 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:24.52M (Peak 32.89M) | Time:00:00.08 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:24.52M (Peak 32.89M) | Time:00:00.08 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:24.52M (Peak 32.89M) | Time:00:00.08 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:24.52M (Peak 32.89M) | Time:00:00.08 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:24.52M (Peak 32.89M) | Time:00:00.08 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:24.64M (Peak 32.89M) | Time:00:00.08 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:24.69M (Peak 32.89M) | Time:00:00.08 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:24.69M (Peak 32.89M) | Time:00:00.08 | Mem:8.05M, Peak:8.05M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:24.69M (Peak 32.89M) | Time:00:00.08 | Mem:8.05M, Peak:8.05M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:24.69M (Peak 32.89M) | Time:00:00.08 | Mem:8.30M, Peak:8.30M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:24.69M (Peak 32.89M) | Time:00:00.09 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:24.69M (Peak 32.89M) | Time:00:00.09 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:24.98M (Peak 32.89M) | Time:00:00.09 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:24.98M (Peak 32.89M) | Time:00:00.09 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:24.98M (Peak 32.89M) | Time:00:00.09 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:24.98M (Peak 32.89M) | Time:00:00.09 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:24.98M (Peak 32.89M) | Time:00:00.09 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:24.98M (Peak 32.89M) | Time:00:00.09 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:24.98M (Peak 32.89M) | Time:00:00.09 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:24.98M (Peak 32.89M) | Time:00:00.09 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:24.98M (Peak 32.89M) | Time:00:00.09 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:24.98M (Peak 32.89M) | Time:00:00.09 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:25.98M (Peak 32.89M) | Time:00:00.09 | Mem:9.88M, Peak:9.88M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:25.98M (Peak 32.89M) | Time:00:00.09 | Mem:9.88M, Peak:9.88M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:25.98M (Peak 32.89M) | Time:00:00.09 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:25.98M (Peak 32.89M) | Time:00:00.09 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:25.98M (Peak 32.89M) | Time:00:00.09 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:42.69M (Peak 42.69M) | Time:00:00.14 | Remaining:00:00.40 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:49.73M (Peak 60.27M) | Time:00:01.93 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:49.73M (Peak 60.27M) | Time:00:01.93 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_armor_collar_greatwhite_cy.png.side.png'
+ Time: 00:02.21 (Saving: 00:00.26)
+
+Fra:1 Mem:16.50M (Peak 16.50M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | greatwhite_cy
+Fra:1 Mem:16.87M (Peak 16.87M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:16.86M (Peak 16.87M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_diffuse
+Fra:1 Mem:16.86M (Peak 16.87M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_normal
+Fra:1 Mem:24.51M (Peak 40.88M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:24.64M (Peak 40.88M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:24.69M (Peak 40.88M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:24.69M (Peak 40.88M) | Time:00:00.02 | Mem:8.05M, Peak:8.05M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:24.69M (Peak 40.88M) | Time:00:00.02 | Mem:8.05M, Peak:8.05M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:24.69M (Peak 40.88M) | Time:00:00.02 | Mem:8.30M, Peak:8.30M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:24.69M (Peak 40.88M) | Time:00:00.02 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:24.69M (Peak 40.88M) | Time:00:00.02 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:24.98M (Peak 40.88M) | Time:00:00.02 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:24.98M (Peak 40.88M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:24.98M (Peak 40.88M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:24.98M (Peak 40.88M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:24.98M (Peak 40.88M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:24.98M (Peak 40.88M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:24.98M (Peak 40.88M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:24.98M (Peak 40.88M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:24.98M (Peak 40.88M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:24.98M (Peak 40.88M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:25.98M (Peak 40.88M) | Time:00:00.02 | Mem:9.88M, Peak:9.88M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:25.98M (Peak 40.88M) | Time:00:00.02 | Mem:9.88M, Peak:9.88M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:25.98M (Peak 40.88M) | Time:00:00.02 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:25.98M (Peak 40.88M) | Time:00:00.02 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:25.98M (Peak 40.88M) | Time:00:00.02 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:42.69M (Peak 42.69M) | Time:00:00.07 | Remaining:00:00.35 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:49.73M (Peak 60.27M) | Time:00:01.84 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:49.73M (Peak 60.27M) | Time:00:01.84 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_armor_collar_greatwhite_cy.png.top.png'
+ Time: 00:01.91 (Saving: 00:00.04)
+
+Fra:1 Mem:16.50M (Peak 16.50M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | greatwhite_cy
+Fra:1 Mem:16.87M (Peak 16.87M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:16.86M (Peak 16.87M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_normal
+Fra:1 Mem:20.87M (Peak 20.87M) | Time:00:00.01 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_diffuse
+Fra:1 Mem:24.51M (Peak 40.88M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:24.52M (Peak 40.88M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:24.64M (Peak 40.88M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:24.69M (Peak 40.88M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:24.69M (Peak 40.88M) | Time:00:00.03 | Mem:8.05M, Peak:8.05M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:24.69M (Peak 40.88M) | Time:00:00.03 | Mem:8.05M, Peak:8.05M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:24.69M (Peak 40.88M) | Time:00:00.03 | Mem:8.30M, Peak:8.30M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:24.69M (Peak 40.88M) | Time:00:00.04 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:24.69M (Peak 40.88M) | Time:00:00.04 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:24.98M (Peak 40.88M) | Time:00:00.04 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:24.98M (Peak 40.88M) | Time:00:00.04 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:24.98M (Peak 40.88M) | Time:00:00.04 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:24.98M (Peak 40.88M) | Time:00:00.04 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:24.98M (Peak 40.88M) | Time:00:00.04 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:24.98M (Peak 40.88M) | Time:00:00.04 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:24.98M (Peak 40.88M) | Time:00:00.04 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:24.98M (Peak 40.88M) | Time:00:00.04 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:24.98M (Peak 40.88M) | Time:00:00.04 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:24.98M (Peak 40.88M) | Time:00:00.04 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:25.98M (Peak 40.88M) | Time:00:00.04 | Mem:9.88M, Peak:9.88M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:25.98M (Peak 40.88M) | Time:00:00.04 | Mem:9.88M, Peak:9.88M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:25.98M (Peak 40.88M) | Time:00:00.04 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:25.98M (Peak 40.88M) | Time:00:00.04 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:25.98M (Peak 40.88M) | Time:00:00.04 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:42.69M (Peak 42.69M) | Time:00:00.11 | Remaining:00:00.47 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:49.73M (Peak 60.27M) | Time:00:02.83 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:49.73M (Peak 60.27M) | Time:00:02.83 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_armor_collar_greatwhite_cy.png.three.png'
+ Time: 00:02.91 (Saving: 00:00.04)
+
+L2_GATE greatwhite_cy armor_collar {'body_preserved': True, 'fused_components': True, 'added_tris': True, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': False, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': False, 'crown_visible': True} FAIL
+L2_VERIFY {'op': 'armor_collar', 'base': 'greatwhite_cy', 'before': 6784, 'after': 8159, 'added_tris': 1375, 'tri_budget': 9000, 'other_triangles': 0, 'loose_after': 1, 'surface_distance': 0.04713428020477295, 'body_L': [0.9927863478660583, 0.9915565550327301], 'collar_ratio': 1.05, 'plate_top_margin': 0.0, 'collar_max_gap': 0.04713428020477295, 'collar_overhang': [0.026395902037620544, 0.0], 'plate_max_height': 0.0, 'collar_station': 0.7233867076812461, 'pectoral_station': 0.7233867076812461, 'crown_top_z': 0.16260197758674622, 'head_top_z': 0.08177677541971207, 'body_top_z': 0.16596576571464539, 'extent_lost': 0.0, 'head_kept': 0.9873096446700508, 'head_protected': True, 'dorsal_height': 0.0, 'plate_top_z': 0.0, 'head_width': [0.0, 0.0], 'head_height': [0.0, 0.0], 'gates': {'body_preserved': True, 'fused_components': True, 'added_tris': True, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': False, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': False, 'crown_visible': True}, 'pass': False, 'render': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_armor_collar_greatwhite_cy.png'}
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.06s
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.00s
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.00s
+L2_RENDER engine=CYCLES samples=8 device=CPU
+Fra:1 Mem:16.05M (Peak 16.05M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | greatwhite_cy
+Fra:1 Mem:16.42M (Peak 16.42M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:16.42M (Peak 16.42M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_normal
+Fra:1 Mem:16.42M (Peak 16.42M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_diffuse
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:24.19M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:24.24M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:24.24M (Peak 40.43M) | Time:00:00.02 | Mem:8.05M, Peak:8.05M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:24.24M (Peak 40.43M) | Time:00:00.02 | Mem:8.05M, Peak:8.05M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:24.24M (Peak 40.43M) | Time:00:00.02 | Mem:8.30M, Peak:8.30M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:24.24M (Peak 40.43M) | Time:00:00.02 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:24.24M (Peak 40.43M) | Time:00:00.02 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:24.53M (Peak 40.43M) | Time:00:00.02 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:24.53M (Peak 40.43M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:24.53M (Peak 40.43M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:24.53M (Peak 40.43M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:24.53M (Peak 40.43M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:24.53M (Peak 40.43M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:24.53M (Peak 40.43M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:24.53M (Peak 40.43M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:24.53M (Peak 40.43M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:24.53M (Peak 40.43M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:25.53M (Peak 40.43M) | Time:00:00.02 | Mem:9.88M, Peak:9.88M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:25.53M (Peak 40.43M) | Time:00:00.02 | Mem:9.88M, Peak:9.88M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:25.53M (Peak 40.43M) | Time:00:00.02 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:25.53M (Peak 40.43M) | Time:00:00.02 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:25.53M (Peak 40.43M) | Time:00:00.02 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:42.25M (Peak 42.25M) | Time:00:00.06 | Remaining:00:00.32 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:49.28M (Peak 59.83M) | Time:00:01.82 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:49.28M (Peak 59.83M) | Time:00:01.82 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_plate_row_greatwhite_cy.png.side.png'
+ Time: 00:01.87 (Saving: 00:00.03)
+
+Fra:1 Mem:16.05M (Peak 16.05M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | greatwhite_cy
+Fra:1 Mem:16.42M (Peak 16.42M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:16.42M (Peak 16.42M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_normal
+Fra:1 Mem:16.42M (Peak 16.42M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_diffuse
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:24.07M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:24.19M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:24.24M (Peak 40.43M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:24.24M (Peak 40.43M) | Time:00:00.02 | Mem:8.05M, Peak:8.05M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:24.24M (Peak 40.43M) | Time:00:00.02 | Mem:8.05M, Peak:8.05M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:24.24M (Peak 40.43M) | Time:00:00.02 | Mem:8.30M, Peak:8.30M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:24.24M (Peak 40.43M) | Time:00:00.02 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:24.24M (Peak 40.43M) | Time:00:00.02 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:24.53M (Peak 40.43M) | Time:00:00.02 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:24.53M (Peak 40.43M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:24.53M (Peak 40.43M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:24.53M (Peak 40.43M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:24.53M (Peak 40.43M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:24.53M (Peak 40.43M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:24.53M (Peak 40.43M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:24.53M (Peak 40.43M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:24.53M (Peak 40.43M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:24.53M (Peak 40.43M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:25.53M (Peak 40.43M) | Time:00:00.02 | Mem:9.88M, Peak:9.88M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:25.53M (Peak 40.43M) | Time:00:00.02 | Mem:9.88M, Peak:9.88M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:25.53M (Peak 40.43M) | Time:00:00.02 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:25.53M (Peak 40.43M) | Time:00:00.02 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:25.53M (Peak 40.43M) | Time:00:00.02 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:42.25M (Peak 42.25M) | Time:00:00.07 | Remaining:00:00.34 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:49.28M (Peak 59.83M) | Time:00:01.64 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:49.28M (Peak 59.83M) | Time:00:01.64 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_plate_row_greatwhite_cy.png.top.png'
+ Time: 00:01.69 (Saving: 00:00.03)
+
+Fra:1 Mem:16.05M (Peak 16.05M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | greatwhite_cy
+Fra:1 Mem:16.42M (Peak 16.42M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:16.42M (Peak 16.42M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_normal
+Fra:1 Mem:16.42M (Peak 16.42M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_diffuse
+Fra:1 Mem:24.07M (Peak 40.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:24.07M (Peak 40.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:24.07M (Peak 40.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:24.07M (Peak 40.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:24.07M (Peak 40.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:24.07M (Peak 40.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:24.07M (Peak 40.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:24.07M (Peak 40.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:24.07M (Peak 40.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:24.07M (Peak 40.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:24.07M (Peak 40.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:24.07M (Peak 40.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:24.07M (Peak 40.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:24.07M (Peak 40.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:24.19M (Peak 40.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:24.24M (Peak 40.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:24.24M (Peak 40.44M) | Time:00:00.01 | Mem:8.05M, Peak:8.05M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:24.24M (Peak 40.44M) | Time:00:00.01 | Mem:8.05M, Peak:8.05M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:24.24M (Peak 40.44M) | Time:00:00.02 | Mem:8.30M, Peak:8.30M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:24.24M (Peak 40.44M) | Time:00:00.02 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:24.24M (Peak 40.44M) | Time:00:00.02 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:24.53M (Peak 40.44M) | Time:00:00.02 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:24.53M (Peak 40.44M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:24.53M (Peak 40.44M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:24.53M (Peak 40.44M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:24.53M (Peak 40.44M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:24.53M (Peak 40.44M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:24.53M (Peak 40.44M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:24.53M (Peak 40.44M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:24.53M (Peak 40.44M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:24.53M (Peak 40.44M) | Time:00:00.02 | Mem:8.88M, Peak:8.88M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:25.53M (Peak 40.44M) | Time:00:00.02 | Mem:9.88M, Peak:9.88M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:25.53M (Peak 40.44M) | Time:00:00.02 | Mem:9.88M, Peak:9.88M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:25.53M (Peak 40.44M) | Time:00:00.02 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:25.53M (Peak 40.44M) | Time:00:00.02 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:25.53M (Peak 40.44M) | Time:00:00.02 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:42.25M (Peak 42.25M) | Time:00:00.07 | Remaining:00:00.33 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:49.28M (Peak 59.83M) | Time:00:01.62 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:49.28M (Peak 59.83M) | Time:00:01.62 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_plate_row_greatwhite_cy.png.three.png'
+ Time: 00:01.67 (Saving: 00:00.03)
+
+L2_GATE greatwhite_cy plate_row {'body_preserved': True, 'fused_components': True, 'added_tris': True, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': False, 'crown_visible': True} FAIL
+L2_VERIFY {'op': 'plate_row', 'base': 'greatwhite_cy', 'before': 6784, 'after': 8159, 'added_tris': 1375, 'tri_budget': 9000, 'other_triangles': 0, 'loose_after': 1, 'surface_distance': 0.04830535873770714, 'body_L': [0.9927863478660583, 0.9915765523910522], 'collar_ratio': 0.0, 'plate_top_margin': -0.0005701500922441483, 'collar_max_gap': 0.0, 'collar_overhang': [0.0, 0.0], 'plate_max_height': 0.04743316024541855, 'collar_station': -1.0, 'pectoral_station': 0.7233867076812461, 'crown_top_z': 0.1629611849784851, 'head_top_z': 0.08177677541971207, 'body_top_z': 0.16596576571464539, 'extent_lost': 0.0, 'head_kept': 0.9873096446700508, 'head_protected': True, 'dorsal_height': 0.08727874606847763, 'plate_top_z': 0.1261201798915863, 'head_width': [0.0, 0.0], 'head_height': [0.0, 0.0], 'gates': {'body_preserved': True, 'fused_components': True, 'added_tris': True, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': False, 'crown_visible': True}, 'pass': False, 'render': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_plate_row_greatwhite_cy.png'}
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.08s
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.00s
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.00s
+L2_RENDER engine=CYCLES samples=8 device=CPU
+Fra:1 Mem:16.56M (Peak 16.95M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | greatwhite_cy
+Fra:1 Mem:17.85M (Peak 23.65M) | Time:00:00.04 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:17.85M (Peak 23.65M) | Time:00:00.04 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_normal
+Fra:1 Mem:17.85M (Peak 23.65M) | Time:00:00.04 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_diffuse
+Fra:1 Mem:24.01M (Peak 41.86M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:24.51M (Peak 41.86M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:24.70M (Peak 41.86M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:24.70M (Peak 41.86M) | Time:00:00.06 | Mem:8.19M, Peak:8.19M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:24.70M (Peak 41.86M) | Time:00:00.06 | Mem:8.19M, Peak:8.19M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:24.70M (Peak 41.86M) | Time:00:00.06 | Mem:9.18M, Peak:9.18M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:24.70M (Peak 41.86M) | Time:00:00.06 | Mem:10.26M, Peak:11.25M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:24.70M (Peak 41.86M) | Time:00:00.06 | Mem:10.26M, Peak:11.25M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:10.26M, Peak:11.25M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:26.83M (Peak 41.86M) | Time:00:00.06 | Mem:12.39M, Peak:12.39M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:26.84M (Peak 41.86M) | Time:00:00.06 | Mem:12.39M, Peak:12.39M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:26.84M (Peak 41.86M) | Time:00:00.06 | Mem:12.40M, Peak:12.40M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:26.84M (Peak 41.86M) | Time:00:00.06 | Mem:12.40M, Peak:12.40M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:26.84M (Peak 41.86M) | Time:00:00.06 | Mem:12.40M, Peak:12.40M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:43.55M (Peak 43.55M) | Time:00:00.12 | Remaining:00:00.39 | Mem:29.11M, Peak:29.11M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:50.58M (Peak 61.13M) | Time:00:01.79 | Mem:29.11M, Peak:29.11M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:50.58M (Peak 61.13M) | Time:00:01.79 | Mem:29.11M, Peak:29.11M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_crown_a_greatwhite_cy.png.side.png'
+ Time: 00:01.85 (Saving: 00:00.03)
+
+Fra:1 Mem:16.56M (Peak 16.56M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | greatwhite_cy
+Fra:1 Mem:17.85M (Peak 23.65M) | Time:00:00.04 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:17.85M (Peak 23.65M) | Time:00:00.04 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_normal
+Fra:1 Mem:17.85M (Peak 23.65M) | Time:00:00.04 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_diffuse
+Fra:1 Mem:24.01M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:24.51M (Peak 41.86M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:24.70M (Peak 41.86M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:24.70M (Peak 41.86M) | Time:00:00.06 | Mem:8.19M, Peak:8.19M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:24.70M (Peak 41.86M) | Time:00:00.06 | Mem:8.19M, Peak:8.19M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:24.70M (Peak 41.86M) | Time:00:00.06 | Mem:9.18M, Peak:9.18M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:24.70M (Peak 41.86M) | Time:00:00.06 | Mem:10.26M, Peak:11.25M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:24.70M (Peak 41.86M) | Time:00:00.06 | Mem:10.26M, Peak:11.25M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:10.26M, Peak:11.25M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:26.83M (Peak 41.86M) | Time:00:00.06 | Mem:12.39M, Peak:12.39M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:26.84M (Peak 41.86M) | Time:00:00.06 | Mem:12.39M, Peak:12.39M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:26.84M (Peak 41.86M) | Time:00:00.06 | Mem:12.40M, Peak:12.40M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:26.84M (Peak 41.86M) | Time:00:00.06 | Mem:12.40M, Peak:12.40M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:26.84M (Peak 41.86M) | Time:00:00.06 | Mem:12.40M, Peak:12.40M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:43.55M (Peak 43.55M) | Time:00:00.12 | Remaining:00:00.40 | Mem:29.11M, Peak:29.11M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:50.58M (Peak 61.13M) | Time:00:01.72 | Mem:29.11M, Peak:29.11M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:50.58M (Peak 61.13M) | Time:00:01.72 | Mem:29.11M, Peak:29.11M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_crown_a_greatwhite_cy.png.top.png'
+ Time: 00:01.79 (Saving: 00:00.04)
+
+Fra:1 Mem:16.56M (Peak 17.32M) | Time:00:00.01 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | greatwhite_cy
+Fra:1 Mem:17.85M (Peak 23.65M) | Time:00:00.03 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:17.85M (Peak 23.65M) | Time:00:00.03 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_normal
+Fra:1 Mem:17.85M (Peak 23.65M) | Time:00:00.03 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_diffuse
+Fra:1 Mem:24.01M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:24.02M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:24.51M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:24.70M (Peak 41.86M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:24.70M (Peak 41.86M) | Time:00:00.05 | Mem:8.19M, Peak:8.19M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:24.70M (Peak 41.86M) | Time:00:00.05 | Mem:8.19M, Peak:8.19M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:24.70M (Peak 41.86M) | Time:00:00.05 | Mem:9.18M, Peak:9.18M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:24.70M (Peak 41.86M) | Time:00:00.06 | Mem:10.26M, Peak:11.25M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:24.70M (Peak 41.86M) | Time:00:00.06 | Mem:10.26M, Peak:11.25M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:10.26M, Peak:11.25M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:25.83M (Peak 41.86M) | Time:00:00.06 | Mem:11.39M, Peak:11.39M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:26.83M (Peak 41.86M) | Time:00:00.06 | Mem:12.39M, Peak:12.39M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:26.84M (Peak 41.86M) | Time:00:00.06 | Mem:12.39M, Peak:12.39M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:26.84M (Peak 41.86M) | Time:00:00.06 | Mem:12.40M, Peak:12.40M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:26.84M (Peak 41.86M) | Time:00:00.06 | Mem:12.40M, Peak:12.40M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:26.84M (Peak 41.86M) | Time:00:00.06 | Mem:12.40M, Peak:12.40M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:43.55M (Peak 43.55M) | Time:00:00.12 | Remaining:00:00.37 | Mem:29.11M, Peak:29.11M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:50.58M (Peak 61.13M) | Time:00:02.14 | Mem:29.11M, Peak:29.11M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:50.58M (Peak 61.13M) | Time:00:02.14 | Mem:29.11M, Peak:29.11M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_crown_a_greatwhite_cy.png.three.png'
+ Time: 00:02.22 (Saving: 00:00.05)
+
+L2_GATE greatwhite_cy crown_a {'body_preserved': False, 'fused_components': True, 'added_tris': False, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True} FAIL
+L2_VERIFY {'op': 'crown_a', 'base': 'greatwhite_cy', 'before': 6784, 'after': 32456, 'added_tris': 25672, 'tri_budget': 9000, 'other_triangles': 0, 'loose_after': 1, 'surface_distance': 0.19372884929180145, 'body_L': [0.9927863478660583, 0.6019548997282982], 'collar_ratio': 0.0, 'plate_top_margin': 0.0, 'collar_max_gap': 0.0, 'collar_overhang': [0.0, 0.0], 'plate_max_height': 0.0, 'collar_station': -1.0, 'pectoral_station': 0.7233867076812461, 'crown_top_z': 0.2743808627128601, 'head_top_z': 0.08177677541971207, 'body_top_z': 0.16596576571464539, 'extent_lost': 0.0, 'head_kept': 0.0, 'head_protected': False, 'dorsal_height': 0.0, 'plate_top_z': 0.0, 'head_width': [0.0, 0.0], 'head_height': [0.0, 0.0], 'gates': {'body_preserved': False, 'fused_components': True, 'added_tris': False, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True}, 'pass': False, 'render': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_crown_a_greatwhite_cy.png'}
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.11s
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.00s
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.01s
+L2_RENDER engine=CYCLES samples=8 device=CPU
+Fra:1 Mem:17.37M (Peak 17.37M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | greatwhite_cy
+Fra:1 Mem:18.99M (Peak 18.99M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:18.98M (Peak 18.99M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_normal
+Fra:1 Mem:25.99M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:25.99M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:25.99M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:25.99M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:26.55M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:26.75M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:26.75M (Peak 43.00M) | Time:00:00.02 | Mem:8.21M, Peak:8.21M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:26.75M (Peak 43.00M) | Time:00:00.02 | Mem:8.21M, Peak:8.21M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:26.75M (Peak 43.00M) | Time:00:00.02 | Mem:9.31M, Peak:9.31M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:26.75M (Peak 43.00M) | Time:00:00.03 | Mem:10.51M, Peak:11.62M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:26.75M (Peak 43.00M) | Time:00:00.03 | Mem:10.51M, Peak:11.62M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.03 | Mem:10.51M, Peak:11.62M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.03 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.03 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.03 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.03 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.03 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.03 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.03 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.03 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.03 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:28.99M (Peak 43.00M) | Time:00:00.03 | Mem:12.75M, Peak:12.75M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:29.00M (Peak 43.00M) | Time:00:00.03 | Mem:12.75M, Peak:12.75M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:29.00M (Peak 43.00M) | Time:00:00.03 | Mem:12.76M, Peak:12.76M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:29.00M (Peak 43.00M) | Time:00:00.03 | Mem:12.76M, Peak:12.76M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:29.00M (Peak 43.00M) | Time:00:00.03 | Mem:12.76M, Peak:12.76M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:45.71M (Peak 45.71M) | Time:00:00.10 | Remaining:00:00.50 | Mem:29.47M, Peak:29.47M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:52.74M (Peak 63.29M) | Time:00:03.11 | Mem:29.47M, Peak:29.47M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:52.74M (Peak 63.29M) | Time:00:03.11 | Mem:29.47M, Peak:29.47M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_hammer_foil_greatwhite_cy.png.side.png'
+ Time: 00:03.18 (Saving: 00:00.03)
+
+Fra:1 Mem:17.37M (Peak 17.37M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | greatwhite_cy
+Fra:1 Mem:18.99M (Peak 18.99M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:18.98M (Peak 18.99M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_normal
+Fra:1 Mem:18.98M (Peak 18.99M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_diffuse
+Fra:1 Mem:25.99M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:25.99M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:25.99M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:25.99M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:26.55M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:26.75M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:26.75M (Peak 43.00M) | Time:00:00.02 | Mem:8.21M, Peak:8.21M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:26.75M (Peak 43.00M) | Time:00:00.02 | Mem:8.21M, Peak:8.21M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:26.75M (Peak 43.00M) | Time:00:00.02 | Mem:9.31M, Peak:9.31M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:26.75M (Peak 43.00M) | Time:00:00.03 | Mem:10.51M, Peak:11.62M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:26.75M (Peak 43.00M) | Time:00:00.03 | Mem:10.51M, Peak:11.62M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.03 | Mem:10.51M, Peak:11.62M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.03 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.03 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.03 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.03 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.03 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.03 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.03 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.03 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.03 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:28.99M (Peak 43.00M) | Time:00:00.03 | Mem:12.75M, Peak:12.75M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:29.00M (Peak 43.00M) | Time:00:00.03 | Mem:12.75M, Peak:12.75M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:29.00M (Peak 43.00M) | Time:00:00.03 | Mem:12.76M, Peak:12.76M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:29.00M (Peak 43.00M) | Time:00:00.03 | Mem:12.76M, Peak:12.76M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:29.00M (Peak 43.00M) | Time:00:00.03 | Mem:12.76M, Peak:12.76M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:45.71M (Peak 45.71M) | Time:00:00.12 | Remaining:00:00.61 | Mem:29.47M, Peak:29.47M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:52.74M (Peak 63.29M) | Time:00:02.75 | Mem:29.47M, Peak:29.47M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:52.74M (Peak 63.29M) | Time:00:02.75 | Mem:29.47M, Peak:29.47M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_hammer_foil_greatwhite_cy.png.top.png'
+ Time: 00:02.81 (Saving: 00:00.03)
+
+Fra:1 Mem:17.37M (Peak 17.37M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | greatwhite_cy
+Fra:1 Mem:18.99M (Peak 18.99M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:18.98M (Peak 18.99M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_normal
+Fra:1 Mem:18.98M (Peak 18.99M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_diffuse
+Fra:1 Mem:25.99M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:25.99M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:25.99M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:25.99M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:26.00M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:26.55M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:26.75M (Peak 43.00M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:26.75M (Peak 43.00M) | Time:00:00.02 | Mem:8.21M, Peak:8.21M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:26.75M (Peak 43.00M) | Time:00:00.02 | Mem:8.21M, Peak:8.21M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:26.75M (Peak 43.00M) | Time:00:00.02 | Mem:9.31M, Peak:9.31M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:26.75M (Peak 43.00M) | Time:00:00.02 | Mem:10.51M, Peak:11.62M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:26.75M (Peak 43.00M) | Time:00:00.02 | Mem:10.51M, Peak:11.62M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.02 | Mem:10.51M, Peak:11.62M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.02 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.02 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.02 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.02 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.02 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.02 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.02 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.02 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:27.99M (Peak 43.00M) | Time:00:00.02 | Mem:11.75M, Peak:11.75M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:28.99M (Peak 43.00M) | Time:00:00.03 | Mem:12.75M, Peak:12.75M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:29.00M (Peak 43.00M) | Time:00:00.03 | Mem:12.75M, Peak:12.75M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:29.00M (Peak 43.00M) | Time:00:00.03 | Mem:12.76M, Peak:12.76M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:29.00M (Peak 43.00M) | Time:00:00.03 | Mem:12.76M, Peak:12.76M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:29.00M (Peak 43.00M) | Time:00:00.03 | Mem:12.76M, Peak:12.76M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:45.71M (Peak 45.71M) | Time:00:00.09 | Remaining:00:00.45 | Mem:29.47M, Peak:29.47M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:52.74M (Peak 63.29M) | Time:00:02.18 | Mem:29.47M, Peak:29.47M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:52.74M (Peak 63.29M) | Time:00:02.18 | Mem:29.47M, Peak:29.47M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_hammer_foil_greatwhite_cy.png.three.png'
+ Time: 00:02.23 (Saving: 00:00.03)
+
+L2_GATE greatwhite_cy hammer_foil {'body_preserved': False, 'fused_components': True, 'added_tris': False, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True} FAIL
+L2_VERIFY {'op': 'hammer_foil', 'base': 'greatwhite_cy', 'before': 6784, 'after': 36120, 'added_tris': 29336, 'tri_budget': 9000, 'other_triangles': 0, 'loose_after': 1, 'surface_distance': 0.09121053665876389, 'body_L': [0.9927863478660583, 0.6028202027082443], 'collar_ratio': 0.0, 'plate_top_margin': 0.0, 'collar_max_gap': 0.0, 'collar_overhang': [0.0, 0.0], 'plate_max_height': 0.0, 'collar_station': -1.0, 'pectoral_station': 0.7233867076812461, 'crown_top_z': 0.08152636140584946, 'head_top_z': 0.08177677541971207, 'body_top_z': 0.16596576571464539, 'extent_lost': 0.0, 'head_kept': 0.0, 'head_protected': False, 'dorsal_height': 0.0, 'plate_top_z': 0.0, 'head_width': [0.0, 0.0], 'head_height': [0.0, 0.0], 'gates': {'body_preserved': False, 'fused_components': True, 'added_tris': False, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True}, 'pass': False, 'render': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_hammer_foil_greatwhite_cy.png'}
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.07s
+HEAD_SHAPE preset=bulbous scale=1.400 width=0.212638->0.301945 height=0.251811->0.350521
+L2_RENDER engine=CYCLES samples=8 device=CPU
+Fra:1 Mem:11.27M (Peak 11.27M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | greatwhite_cy
+Fra:1 Mem:12.26M (Peak 13.51M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:12.25M (Peak 13.51M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_normal
+Fra:1 Mem:12.25M (Peak 13.51M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_diffuse
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:19.82M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:20.36M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:20.36M (Peak 36.27M) | Time:00:00.04 | Mem:8.55M, Peak:8.55M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:20.36M (Peak 36.27M) | Time:00:00.04 | Mem:8.55M, Peak:8.55M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:20.36M (Peak 36.27M) | Time:00:00.04 | Mem:8.75M, Peak:8.75M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:20.36M (Peak 36.27M) | Time:00:00.04 | Mem:9.01M, Peak:9.21M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:20.36M (Peak 36.27M) | Time:00:00.04 | Mem:9.01M, Peak:9.21M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.04 | Mem:9.01M, Peak:9.21M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.04 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.04 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.04 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.04 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.04 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.04 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.04 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.04 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.04 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:21.70M (Peak 36.27M) | Time:00:00.04 | Mem:10.35M, Peak:10.35M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:21.71M (Peak 36.27M) | Time:00:00.04 | Mem:10.35M, Peak:10.35M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:21.71M (Peak 36.27M) | Time:00:00.04 | Mem:10.35M, Peak:10.35M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:21.71M (Peak 36.27M) | Time:00:00.04 | Mem:10.35M, Peak:10.35M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:21.71M (Peak 36.27M) | Time:00:00.04 | Mem:10.35M, Peak:10.35M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:38.42M (Peak 38.42M) | Time:00:00.11 | Remaining:00:00.43 | Mem:27.06M, Peak:27.06M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:45.45M (Peak 56.00M) | Time:00:02.29 | Mem:27.06M, Peak:27.06M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:45.45M (Peak 56.00M) | Time:00:02.29 | Mem:27.06M, Peak:27.06M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_head_bulbous_1.4_greatwhite_cy.png.side.png'
+ Time: 00:02.35 (Saving: 00:00.03)
+
+Fra:1 Mem:11.29M (Peak 12.10M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | greatwhite_cy
+Fra:1 Mem:12.26M (Peak 13.51M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:12.25M (Peak 13.51M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_normal
+Fra:1 Mem:12.25M (Peak 13.51M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_diffuse
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:19.82M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:20.36M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:20.36M (Peak 36.27M) | Time:00:00.04 | Mem:8.55M, Peak:8.55M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:20.36M (Peak 36.27M) | Time:00:00.04 | Mem:8.55M, Peak:8.55M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:20.36M (Peak 36.27M) | Time:00:00.04 | Mem:8.75M, Peak:8.75M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:20.36M (Peak 36.27M) | Time:00:00.05 | Mem:9.01M, Peak:9.21M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:20.36M (Peak 36.27M) | Time:00:00.05 | Mem:9.01M, Peak:9.21M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.05 | Mem:9.01M, Peak:9.21M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.05 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.05 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.05 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.05 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.05 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.05 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.05 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.05 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.05 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:21.70M (Peak 36.27M) | Time:00:00.05 | Mem:10.35M, Peak:10.35M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:21.71M (Peak 36.27M) | Time:00:00.05 | Mem:10.35M, Peak:10.35M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:21.71M (Peak 36.27M) | Time:00:00.05 | Mem:10.35M, Peak:10.35M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:21.71M (Peak 36.27M) | Time:00:00.05 | Mem:10.35M, Peak:10.35M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:21.71M (Peak 36.27M) | Time:00:00.05 | Mem:10.35M, Peak:10.35M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:38.42M (Peak 38.42M) | Time:00:00.11 | Remaining:00:00.44 | Mem:27.06M, Peak:27.06M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:45.45M (Peak 56.00M) | Time:00:02.07 | Mem:27.06M, Peak:27.06M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:45.45M (Peak 56.00M) | Time:00:02.07 | Mem:27.06M, Peak:27.06M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_head_bulbous_1.4_greatwhite_cy.png.top.png'
+ Time: 00:02.13 (Saving: 00:00.03)
+
+Fra:1 Mem:11.29M (Peak 11.29M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | greatwhite_cy
+Fra:1 Mem:12.26M (Peak 13.50M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:12.25M (Peak 13.50M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_normal
+Fra:1 Mem:12.26M (Peak 13.50M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading greatwhite_cy_diffuse
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:19.71M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:19.82M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:20.36M (Peak 36.27M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:20.36M (Peak 36.27M) | Time:00:00.04 | Mem:8.55M, Peak:8.55M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:20.36M (Peak 36.27M) | Time:00:00.04 | Mem:8.55M, Peak:8.55M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:20.36M (Peak 36.27M) | Time:00:00.04 | Mem:8.75M, Peak:8.75M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:20.36M (Peak 36.27M) | Time:00:00.05 | Mem:9.01M, Peak:9.21M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:20.36M (Peak 36.27M) | Time:00:00.05 | Mem:9.01M, Peak:9.21M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.05 | Mem:9.01M, Peak:9.21M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.05 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.05 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.05 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.05 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.05 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.05 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.05 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.05 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:20.70M (Peak 36.27M) | Time:00:00.05 | Mem:9.35M, Peak:9.35M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:21.70M (Peak 36.27M) | Time:00:00.05 | Mem:10.35M, Peak:10.35M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:21.71M (Peak 36.27M) | Time:00:00.05 | Mem:10.35M, Peak:10.35M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:21.71M (Peak 36.27M) | Time:00:00.05 | Mem:10.35M, Peak:10.35M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:21.71M (Peak 36.27M) | Time:00:00.05 | Mem:10.35M, Peak:10.35M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:21.71M (Peak 36.27M) | Time:00:00.05 | Mem:10.35M, Peak:10.35M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:38.42M (Peak 38.42M) | Time:00:00.11 | Remaining:00:00.41 | Mem:27.06M, Peak:27.06M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:45.45M (Peak 56.00M) | Time:00:02.11 | Mem:27.06M, Peak:27.06M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:45.45M (Peak 56.00M) | Time:00:02.11 | Mem:27.06M, Peak:27.06M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_head_bulbous_1.4_greatwhite_cy.png.three.png'
+ Time: 00:02.18 (Saving: 00:00.04)
+
+L2_GATE greatwhite_cy head_bulbous_1.4 {'body_preserved': True, 'fused_components': True, 'added_tris': True, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True} PASS
+L2_VERIFY {'op': 'head_bulbous_1.4', 'base': 'greatwhite_cy', 'before': 6784, 'after': 6784, 'added_tris': 0, 'tri_budget': 9000, 'other_triangles': 0, 'loose_after': 684, 'surface_distance': 0.0, 'body_L': [0.9927863478660583, 0.9927863478660583], 'collar_ratio': 0.0, 'plate_top_margin': 0.0, 'collar_max_gap': 0.0, 'collar_overhang': [0.0, 0.0], 'plate_max_height': 0.0, 'collar_station': -1.0, 'pectoral_station': 0.7233867076812461, 'crown_top_z': 0.16596576571464539, 'head_top_z': 0.08177677541971207, 'body_top_z': 0.16596576571464539, 'extent_lost': 0.0, 'head_kept': 1.0, 'head_protected': False, 'dorsal_height': 0.0, 'plate_top_z': 0.0, 'head_width': [0.21263755857944489, 0.3019453287124634], 'head_height': [0.25181110948324203, 0.3505210727453232], 'gates': {'body_preserved': True, 'fused_components': True, 'added_tris': True, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True}, 'pass': True, 'render': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_head_bulbous_1.4_greatwhite_cy.png'}
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.11s
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.00s
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.01s
+L2_RENDER engine=CYCLES samples=8 device=CPU
+Fra:1 Mem:13.19M (Peak 13.61M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | tigershark
+Fra:1 Mem:14.30M (Peak 15.41M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:14.29M (Peak 15.41M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_diffuse
+Fra:1 Mem:14.29M (Peak 15.41M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_normal
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:21.84M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:22.48M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:22.48M (Peak 38.31M) | Time:00:00.04 | Mem:8.65M, Peak:8.65M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:22.48M (Peak 38.31M) | Time:00:00.04 | Mem:8.65M, Peak:8.65M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:22.48M (Peak 38.31M) | Time:00:00.04 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:22.48M (Peak 38.31M) | Time:00:00.04 | Mem:9.20M, Peak:9.45M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:22.48M (Peak 38.31M) | Time:00:00.04 | Mem:9.20M, Peak:9.45M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.20M, Peak:9.45M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:23.86M (Peak 38.31M) | Time:00:00.04 | Mem:10.57M, Peak:10.57M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:23.86M (Peak 38.31M) | Time:00:00.04 | Mem:10.57M, Peak:10.57M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:23.86M (Peak 38.31M) | Time:00:00.04 | Mem:10.58M, Peak:10.58M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:23.86M (Peak 38.31M) | Time:00:00.04 | Mem:10.58M, Peak:10.58M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:23.86M (Peak 38.31M) | Time:00:00.04 | Mem:10.58M, Peak:10.58M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:40.58M (Peak 40.58M) | Time:00:00.09 | Remaining:00:00.32 | Mem:27.29M, Peak:27.29M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:47.61M (Peak 58.16M) | Time:00:01.50 | Mem:27.29M, Peak:27.29M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:47.61M (Peak 58.16M) | Time:00:01.50 | Mem:27.29M, Peak:27.29M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_armor_collar_tigershark.png.side.png'
+ Time: 00:01.55 (Saving: 00:00.03)
+
+Fra:1 Mem:13.19M (Peak 13.85M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | tigershark
+Fra:1 Mem:14.30M (Peak 15.41M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:14.29M (Peak 15.41M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_normal
+Fra:1 Mem:14.29M (Peak 15.41M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_diffuse
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:21.84M (Peak 38.31M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:22.48M (Peak 38.31M) | Time:00:00.03 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:22.48M (Peak 38.31M) | Time:00:00.03 | Mem:8.65M, Peak:8.65M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:22.48M (Peak 38.31M) | Time:00:00.03 | Mem:8.65M, Peak:8.65M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:22.48M (Peak 38.31M) | Time:00:00.03 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:22.48M (Peak 38.31M) | Time:00:00.04 | Mem:9.20M, Peak:9.45M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:22.48M (Peak 38.31M) | Time:00:00.04 | Mem:9.20M, Peak:9.45M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.20M, Peak:9.45M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:23.86M (Peak 38.31M) | Time:00:00.04 | Mem:10.57M, Peak:10.57M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:23.86M (Peak 38.31M) | Time:00:00.04 | Mem:10.57M, Peak:10.57M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:23.86M (Peak 38.31M) | Time:00:00.04 | Mem:10.58M, Peak:10.58M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:23.86M (Peak 38.31M) | Time:00:00.04 | Mem:10.58M, Peak:10.58M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:23.86M (Peak 38.31M) | Time:00:00.04 | Mem:10.58M, Peak:10.58M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:40.58M (Peak 40.58M) | Time:00:00.08 | Remaining:00:00.29 | Mem:27.29M, Peak:27.29M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:47.61M (Peak 58.16M) | Time:00:01.46 | Mem:27.29M, Peak:27.29M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:47.61M (Peak 58.16M) | Time:00:01.46 | Mem:27.29M, Peak:27.29M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_armor_collar_tigershark.png.top.png'
+ Time: 00:01.50 (Saving: 00:00.03)
+
+Fra:1 Mem:13.19M (Peak 13.85M) | Time:00:00.01 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | tigershark
+Fra:1 Mem:14.30M (Peak 15.41M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:14.29M (Peak 15.41M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_normal
+Fra:1 Mem:14.29M (Peak 15.41M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_diffuse
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:21.71M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:21.84M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:22.48M (Peak 38.31M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:22.48M (Peak 38.31M) | Time:00:00.04 | Mem:8.65M, Peak:8.65M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:22.48M (Peak 38.31M) | Time:00:00.04 | Mem:8.65M, Peak:8.65M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:22.48M (Peak 38.31M) | Time:00:00.04 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:22.48M (Peak 38.31M) | Time:00:00.04 | Mem:9.20M, Peak:9.45M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:22.48M (Peak 38.31M) | Time:00:00.04 | Mem:9.20M, Peak:9.45M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.20M, Peak:9.45M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:22.86M (Peak 38.31M) | Time:00:00.04 | Mem:9.57M, Peak:9.57M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:23.86M (Peak 38.31M) | Time:00:00.04 | Mem:10.57M, Peak:10.57M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:23.86M (Peak 38.31M) | Time:00:00.04 | Mem:10.57M, Peak:10.57M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:23.86M (Peak 38.31M) | Time:00:00.04 | Mem:10.58M, Peak:10.58M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:23.86M (Peak 38.31M) | Time:00:00.04 | Mem:10.58M, Peak:10.58M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:23.86M (Peak 38.31M) | Time:00:00.04 | Mem:10.58M, Peak:10.58M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:40.58M (Peak 40.58M) | Time:00:00.09 | Remaining:00:00.31 | Mem:27.29M, Peak:27.29M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:47.61M (Peak 58.16M) | Time:00:02.04 | Mem:27.29M, Peak:27.29M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:47.61M (Peak 58.16M) | Time:00:02.05 | Mem:27.29M, Peak:27.29M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_armor_collar_tigershark.png.three.png'
+ Time: 00:02.09 (Saving: 00:00.03)
+
+L2_GATE tigershark armor_collar {'body_preserved': True, 'fused_components': True, 'added_tris': True, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': False, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True} FAIL
+L2_VERIFY {'op': 'armor_collar', 'base': 'tigershark', 'before': 6790, 'after': 8165, 'added_tris': 1375, 'tri_budget': 9000, 'other_triangles': 0, 'loose_after': 1, 'surface_distance': 0.20851880311965942, 'body_L': [0.9979488551616669, 0.9946346282958984], 'collar_ratio': 1.05, 'plate_top_margin': 0.0, 'collar_max_gap': 0.20851880311965942, 'collar_overhang': [0.13313549757003784, 0.03145195543766022], 'plate_max_height': 0.0, 'collar_station': 0.7328122993260957, 'pectoral_station': 0.7328122993260957, 'crown_top_z': 0.14594319462776184, 'head_top_z': 0.03140470013022423, 'body_top_z': 0.1472829282283783, 'extent_lost': 0.0, 'head_kept': 0.9978798586572438, 'head_protected': True, 'dorsal_height': 0.0, 'plate_top_z': 0.0, 'head_width': [0.0, 0.0], 'head_height': [0.0, 0.0], 'gates': {'body_preserved': True, 'fused_components': True, 'added_tris': True, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': False, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True}, 'pass': False, 'render': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_armor_collar_tigershark.png'}
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.07s
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.00s
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.00s
+L2_RENDER engine=CYCLES samples=8 device=CPU
+Fra:1 Mem:15.05M (Peak 15.05M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | tigershark
+Fra:1 Mem:15.43M (Peak 15.43M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:15.42M (Peak 15.43M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_normal
+Fra:1 Mem:15.42M (Peak 15.43M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_diffuse
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:23.20M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:23.24M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:23.24M (Peak 39.44M) | Time:00:00.01 | Mem:8.05M, Peak:8.05M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:23.24M (Peak 39.44M) | Time:00:00.01 | Mem:8.05M, Peak:8.05M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:23.24M (Peak 39.44M) | Time:00:00.01 | Mem:8.30M, Peak:8.30M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:23.24M (Peak 39.44M) | Time:00:00.01 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:23.24M (Peak 39.44M) | Time:00:00.01 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:23.53M (Peak 39.44M) | Time:00:00.01 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:23.53M (Peak 39.44M) | Time:00:00.01 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:23.53M (Peak 39.44M) | Time:00:00.01 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:23.53M (Peak 39.44M) | Time:00:00.01 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:23.53M (Peak 39.44M) | Time:00:00.01 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:23.53M (Peak 39.44M) | Time:00:00.01 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:23.53M (Peak 39.44M) | Time:00:00.01 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:23.53M (Peak 39.44M) | Time:00:00.01 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:23.53M (Peak 39.44M) | Time:00:00.01 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:23.53M (Peak 39.44M) | Time:00:00.01 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:24.53M (Peak 39.44M) | Time:00:00.01 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:24.53M (Peak 39.44M) | Time:00:00.01 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:24.53M (Peak 39.44M) | Time:00:00.01 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:24.53M (Peak 39.44M) | Time:00:00.01 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:24.53M (Peak 39.44M) | Time:00:00.01 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:41.25M (Peak 41.25M) | Time:00:00.06 | Remaining:00:00.29 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:48.28M (Peak 58.83M) | Time:00:01.53 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:48.28M (Peak 58.83M) | Time:00:01.53 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_plate_row_tigershark.png.side.png'
+ Time: 00:01.58 (Saving: 00:00.03)
+
+Fra:1 Mem:15.05M (Peak 15.05M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | tigershark
+Fra:1 Mem:15.43M (Peak 15.43M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:15.42M (Peak 15.43M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_normal
+Fra:1 Mem:19.42M (Peak 19.42M) | Time:00:00.01 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_diffuse
+Fra:1 Mem:23.07M (Peak 31.44M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:23.07M (Peak 31.44M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:23.07M (Peak 31.44M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:23.07M (Peak 31.44M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:23.07M (Peak 31.44M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:23.07M (Peak 31.44M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:23.07M (Peak 31.44M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:23.07M (Peak 31.44M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:23.07M (Peak 31.44M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:23.07M (Peak 31.44M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:23.07M (Peak 31.44M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:23.07M (Peak 31.44M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:23.07M (Peak 31.44M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:23.07M (Peak 31.44M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:23.20M (Peak 31.44M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:23.24M (Peak 31.44M) | Time:00:00.02 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:23.24M (Peak 31.44M) | Time:00:00.02 | Mem:8.05M, Peak:8.05M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:23.24M (Peak 31.44M) | Time:00:00.02 | Mem:8.05M, Peak:8.05M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:23.24M (Peak 31.44M) | Time:00:00.02 | Mem:8.30M, Peak:8.30M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:23.24M (Peak 31.44M) | Time:00:00.02 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:23.24M (Peak 31.44M) | Time:00:00.02 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:23.53M (Peak 31.44M) | Time:00:00.02 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:23.53M (Peak 31.44M) | Time:00:00.02 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:23.53M (Peak 31.44M) | Time:00:00.02 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:23.53M (Peak 31.44M) | Time:00:00.02 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:23.53M (Peak 31.44M) | Time:00:00.02 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:23.53M (Peak 31.44M) | Time:00:00.02 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:23.53M (Peak 31.44M) | Time:00:00.02 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:23.53M (Peak 31.44M) | Time:00:00.02 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:23.53M (Peak 31.44M) | Time:00:00.02 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:23.53M (Peak 31.44M) | Time:00:00.02 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:24.53M (Peak 31.44M) | Time:00:00.02 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:24.53M (Peak 31.44M) | Time:00:00.02 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:24.53M (Peak 31.44M) | Time:00:00.02 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:24.53M (Peak 31.44M) | Time:00:00.02 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:24.53M (Peak 31.44M) | Time:00:00.02 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:41.25M (Peak 41.25M) | Time:00:00.06 | Remaining:00:00.28 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:48.28M (Peak 58.83M) | Time:00:01.61 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:48.28M (Peak 58.83M) | Time:00:01.61 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_plate_row_tigershark.png.top.png'
+ Time: 00:01.66 (Saving: 00:00.03)
+
+Fra:1 Mem:15.05M (Peak 15.05M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | tigershark
+Fra:1 Mem:15.43M (Peak 15.43M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:15.42M (Peak 15.43M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_normal
+Fra:1 Mem:15.42M (Peak 15.43M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_diffuse
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:23.07M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:23.20M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:23.24M (Peak 39.44M) | Time:00:00.01 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:23.24M (Peak 39.44M) | Time:00:00.01 | Mem:8.05M, Peak:8.05M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:23.24M (Peak 39.44M) | Time:00:00.01 | Mem:8.05M, Peak:8.05M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:23.24M (Peak 39.44M) | Time:00:00.01 | Mem:8.30M, Peak:8.30M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:23.24M (Peak 39.44M) | Time:00:00.01 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:23.24M (Peak 39.44M) | Time:00:00.01 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:23.53M (Peak 39.44M) | Time:00:00.01 | Mem:8.60M, Peak:8.85M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:23.53M (Peak 39.44M) | Time:00:00.01 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:23.53M (Peak 39.44M) | Time:00:00.01 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:23.53M (Peak 39.44M) | Time:00:00.01 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:23.53M (Peak 39.44M) | Time:00:00.01 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:23.53M (Peak 39.44M) | Time:00:00.01 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:23.53M (Peak 39.44M) | Time:00:00.01 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:23.53M (Peak 39.44M) | Time:00:00.01 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:23.53M (Peak 39.44M) | Time:00:00.01 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:23.53M (Peak 39.44M) | Time:00:00.01 | Mem:8.89M, Peak:8.89M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:24.53M (Peak 39.44M) | Time:00:00.01 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:24.53M (Peak 39.44M) | Time:00:00.01 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:24.53M (Peak 39.44M) | Time:00:00.01 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:24.53M (Peak 39.44M) | Time:00:00.01 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:24.53M (Peak 39.44M) | Time:00:00.01 | Mem:9.89M, Peak:9.89M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:41.25M (Peak 41.25M) | Time:00:00.05 | Remaining:00:00.27 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:48.28M (Peak 58.83M) | Time:00:01.60 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:48.28M (Peak 58.83M) | Time:00:01.60 | Mem:26.60M, Peak:26.60M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_plate_row_tigershark.png.three.png'
+ Time: 00:01.66 (Saving: 00:00.04)
+
+L2_GATE tigershark plate_row {'body_preserved': True, 'fused_components': True, 'added_tris': True, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True} PASS
+L2_VERIFY {'op': 'plate_row', 'base': 'tigershark', 'before': 6790, 'after': 8164, 'added_tris': 1374, 'tri_budget': 9000, 'other_triangles': 0, 'loose_after': 1, 'surface_distance': 0.043976034969091415, 'body_L': [0.9979488551616669, 0.9946346282958984], 'collar_ratio': 0.0, 'plate_top_margin': -0.008958015963435179, 'collar_max_gap': 0.0, 'collar_overhang': [0.0, 0.0], 'plate_max_height': 0.03158983588218689, 'collar_station': -1.0, 'pectoral_station': 0.7328122993260957, 'crown_top_z': 0.14594319462776184, 'head_top_z': 0.03140470013022423, 'body_top_z': 0.1472829282283783, 'extent_lost': 0.0, 'head_kept': 0.9978798586572438, 'head_protected': True, 'dorsal_height': 0.058126457035541534, 'plate_top_z': 0.12713411450386047, 'head_width': [0.0, 0.0], 'head_height': [0.0, 0.0], 'gates': {'body_preserved': True, 'fused_components': True, 'added_tris': True, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True}, 'pass': True, 'render': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_plate_row_tigershark.png'}
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.08s
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.00s
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.00s
+L2_RENDER engine=CYCLES samples=8 device=CPU
+Fra:1 Mem:15.41M (Peak 16.01M) | Time:00:00.01 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | tigershark
+Fra:1 Mem:16.45M (Peak 21.25M) | Time:00:00.03 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:16.44M (Peak 21.25M) | Time:00:00.03 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_normal
+Fra:1 Mem:16.44M (Peak 21.25M) | Time:00:00.03 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_diffuse
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:23.37M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:23.53M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:23.53M (Peak 40.46M) | Time:00:00.05 | Mem:8.16M, Peak:8.16M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:23.53M (Peak 40.46M) | Time:00:00.05 | Mem:8.16M, Peak:8.16M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:23.53M (Peak 40.46M) | Time:00:00.05 | Mem:8.93M, Peak:8.93M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:23.53M (Peak 40.46M) | Time:00:00.06 | Mem:9.77M, Peak:10.55M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:23.53M (Peak 40.46M) | Time:00:00.06 | Mem:9.77M, Peak:10.55M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.06 | Mem:9.77M, Peak:10.55M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.06 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.06 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.06 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.06 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.06 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.06 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.06 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.06 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.06 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:25.43M (Peak 40.46M) | Time:00:00.06 | Mem:11.68M, Peak:11.68M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:25.43M (Peak 40.46M) | Time:00:00.06 | Mem:11.68M, Peak:11.68M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:25.43M (Peak 40.46M) | Time:00:00.06 | Mem:11.68M, Peak:11.68M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:25.43M (Peak 40.46M) | Time:00:00.06 | Mem:11.68M, Peak:11.68M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:25.43M (Peak 40.46M) | Time:00:00.06 | Mem:11.68M, Peak:11.68M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:42.14M (Peak 42.14M) | Time:00:00.11 | Remaining:00:00.38 | Mem:28.39M, Peak:28.39M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:49.18M (Peak 59.72M) | Time:00:02.00 | Mem:28.39M, Peak:28.39M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:49.18M (Peak 59.72M) | Time:00:02.00 | Mem:28.39M, Peak:28.39M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_crown_a_tigershark.png.side.png'
+ Time: 00:02.06 (Saving: 00:00.04)
+
+Fra:1 Mem:15.41M (Peak 15.41M) | Time:00:00.01 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | tigershark
+Fra:1 Mem:16.45M (Peak 21.25M) | Time:00:00.04 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:16.44M (Peak 21.25M) | Time:00:00.04 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_normal
+Fra:1 Mem:16.44M (Peak 21.25M) | Time:00:00.04 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_diffuse
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:23.37M (Peak 40.46M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:23.53M (Peak 40.46M) | Time:00:00.06 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:23.53M (Peak 40.46M) | Time:00:00.06 | Mem:8.16M, Peak:8.16M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:23.53M (Peak 40.46M) | Time:00:00.06 | Mem:8.16M, Peak:8.16M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:23.53M (Peak 40.46M) | Time:00:00.06 | Mem:8.93M, Peak:8.93M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:23.53M (Peak 40.46M) | Time:00:00.07 | Mem:9.77M, Peak:10.55M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:23.53M (Peak 40.46M) | Time:00:00.07 | Mem:9.77M, Peak:10.55M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.07 | Mem:9.77M, Peak:10.55M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.07 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.07 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.07 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.07 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.07 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.07 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.07 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.07 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.07 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:25.43M (Peak 40.46M) | Time:00:00.07 | Mem:11.68M, Peak:11.68M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:25.43M (Peak 40.46M) | Time:00:00.07 | Mem:11.68M, Peak:11.68M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:25.43M (Peak 40.46M) | Time:00:00.07 | Mem:11.68M, Peak:11.68M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:25.43M (Peak 40.46M) | Time:00:00.07 | Mem:11.68M, Peak:11.68M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:25.43M (Peak 40.46M) | Time:00:00.07 | Mem:11.68M, Peak:11.68M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:42.14M (Peak 42.14M) | Time:00:00.14 | Remaining:00:00.48 | Mem:28.39M, Peak:28.39M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:49.18M (Peak 59.72M) | Time:00:02.28 | Mem:28.39M, Peak:28.39M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:49.18M (Peak 59.72M) | Time:00:02.28 | Mem:28.39M, Peak:28.39M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_crown_a_tigershark.png.top.png'
+ Time: 00:02.33 (Saving: 00:00.03)
+
+Fra:1 Mem:15.41M (Peak 15.41M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | tigershark
+Fra:1 Mem:16.45M (Peak 21.25M) | Time:00:00.03 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:16.44M (Peak 21.25M) | Time:00:00.03 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_normal
+Fra:1 Mem:16.44M (Peak 21.25M) | Time:00:00.03 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_diffuse
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:22.98M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:23.37M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:23.53M (Peak 40.46M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:23.53M (Peak 40.46M) | Time:00:00.05 | Mem:8.16M, Peak:8.16M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:23.53M (Peak 40.46M) | Time:00:00.05 | Mem:8.16M, Peak:8.16M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:23.53M (Peak 40.46M) | Time:00:00.05 | Mem:8.93M, Peak:8.93M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:23.53M (Peak 40.46M) | Time:00:00.06 | Mem:9.77M, Peak:10.55M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:23.53M (Peak 40.46M) | Time:00:00.06 | Mem:9.77M, Peak:10.55M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.06 | Mem:9.77M, Peak:10.55M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.06 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.06 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.06 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.06 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.06 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.06 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.06 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.06 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:24.43M (Peak 40.46M) | Time:00:00.06 | Mem:10.68M, Peak:10.68M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:25.43M (Peak 40.46M) | Time:00:00.06 | Mem:11.68M, Peak:11.68M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:25.43M (Peak 40.46M) | Time:00:00.06 | Mem:11.68M, Peak:11.68M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:25.43M (Peak 40.46M) | Time:00:00.06 | Mem:11.68M, Peak:11.68M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:25.43M (Peak 40.46M) | Time:00:00.06 | Mem:11.68M, Peak:11.68M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:25.43M (Peak 40.46M) | Time:00:00.06 | Mem:11.68M, Peak:11.68M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:42.14M (Peak 42.14M) | Time:00:00.12 | Remaining:00:00.37 | Mem:28.39M, Peak:28.39M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:49.18M (Peak 59.72M) | Time:00:02.16 | Mem:28.39M, Peak:28.39M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:49.18M (Peak 59.72M) | Time:00:02.16 | Mem:28.39M, Peak:28.39M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_crown_a_tigershark.png.three.png'
+ Time: 00:02.21 (Saving: 00:00.03)
+
+L2_GATE tigershark crown_a {'body_preserved': False, 'fused_components': True, 'added_tris': False, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True} FAIL
+L2_VERIFY {'op': 'crown_a', 'base': 'tigershark', 'before': 6790, 'after': 25318, 'added_tris': 18528, 'tri_budget': 9000, 'other_triangles': 0, 'loose_after': 1, 'surface_distance': 0.21864169836044312, 'body_L': [0.9979488551616669, 0.5538813285529613], 'collar_ratio': 0.0, 'plate_top_margin': 0.0, 'collar_max_gap': 0.0, 'collar_overhang': [0.0, 0.0], 'plate_max_height': 0.0, 'collar_station': -1.0, 'pectoral_station': 0.7328122993260957, 'crown_top_z': 0.2562754154205322, 'head_top_z': 0.03140470013022423, 'body_top_z': 0.1472829282283783, 'extent_lost': 0.0, 'head_kept': 0.0, 'head_protected': False, 'dorsal_height': 0.0, 'plate_top_z': 0.0, 'head_width': [0.0, 0.0], 'head_height': [0.0, 0.0], 'gates': {'body_preserved': False, 'fused_components': True, 'added_tris': False, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True}, 'pass': False, 'render': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_crown_a_tigershark.png'}
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.06s
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.00s
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.00s
+L2_RENDER engine=CYCLES samples=8 device=CPU
+Fra:1 Mem:14.54M (Peak 14.54M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | tigershark
+Fra:1 Mem:15.28M (Peak 18.24M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:15.27M (Peak 18.24M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_normal
+Fra:1 Mem:19.27M (Peak 19.27M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_diffuse
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:22.35M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:22.46M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:22.46M (Peak 39.29M) | Time:00:00.04 | Mem:8.11M, Peak:8.11M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:22.46M (Peak 39.29M) | Time:00:00.04 | Mem:8.11M, Peak:8.11M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:22.46M (Peak 39.29M) | Time:00:00.04 | Mem:8.68M, Peak:8.68M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:22.46M (Peak 39.29M) | Time:00:00.05 | Mem:9.29M, Peak:9.86M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:22.46M (Peak 39.29M) | Time:00:00.05 | Mem:9.29M, Peak:9.86M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.29M, Peak:9.86M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:24.11M (Peak 39.29M) | Time:00:00.05 | Mem:10.94M, Peak:10.94M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:24.12M (Peak 39.29M) | Time:00:00.05 | Mem:10.94M, Peak:10.94M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:24.12M (Peak 39.29M) | Time:00:00.05 | Mem:10.95M, Peak:10.95M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:24.12M (Peak 39.29M) | Time:00:00.05 | Mem:10.95M, Peak:10.95M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:24.12M (Peak 39.29M) | Time:00:00.05 | Mem:10.95M, Peak:10.95M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:40.83M (Peak 40.83M) | Time:00:00.11 | Remaining:00:00.45 | Mem:27.66M, Peak:27.66M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:47.86M (Peak 58.41M) | Time:00:02.31 | Mem:27.66M, Peak:27.66M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:47.86M (Peak 58.41M) | Time:00:02.31 | Mem:27.66M, Peak:27.66M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_hammer_foil_tigershark.png.side.png'
+ Time: 00:02.36 (Saving: 00:00.03)
+
+Fra:1 Mem:14.54M (Peak 14.55M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | tigershark
+Fra:1 Mem:15.28M (Peak 18.24M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:15.27M (Peak 18.24M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_normal
+Fra:1 Mem:15.27M (Peak 18.24M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_diffuse
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:22.35M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:22.46M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:22.46M (Peak 39.29M) | Time:00:00.04 | Mem:8.11M, Peak:8.11M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:22.46M (Peak 39.29M) | Time:00:00.04 | Mem:8.11M, Peak:8.11M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:22.46M (Peak 39.29M) | Time:00:00.04 | Mem:8.68M, Peak:8.68M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:22.46M (Peak 39.29M) | Time:00:00.05 | Mem:9.29M, Peak:9.86M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:22.46M (Peak 39.29M) | Time:00:00.05 | Mem:9.29M, Peak:9.86M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.29M, Peak:9.86M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:24.11M (Peak 39.29M) | Time:00:00.05 | Mem:10.94M, Peak:10.94M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:24.12M (Peak 39.29M) | Time:00:00.05 | Mem:10.94M, Peak:10.94M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:24.12M (Peak 39.29M) | Time:00:00.05 | Mem:10.95M, Peak:10.95M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:24.12M (Peak 39.29M) | Time:00:00.05 | Mem:10.95M, Peak:10.95M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:24.12M (Peak 39.29M) | Time:00:00.05 | Mem:10.95M, Peak:10.95M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:40.83M (Peak 40.83M) | Time:00:00.12 | Remaining:00:00.54 | Mem:27.66M, Peak:27.66M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:47.86M (Peak 58.41M) | Time:00:02.16 | Mem:27.66M, Peak:27.66M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:47.86M (Peak 58.41M) | Time:00:02.16 | Mem:27.66M, Peak:27.66M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_hammer_foil_tigershark.png.top.png'
+ Time: 00:02.21 (Saving: 00:00.03)
+
+Fra:1 Mem:14.54M (Peak 14.54M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | tigershark
+Fra:1 Mem:15.28M (Peak 18.24M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:15.27M (Peak 18.24M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_normal
+Fra:1 Mem:15.27M (Peak 18.24M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_diffuse
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:22.07M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:22.35M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:22.46M (Peak 39.29M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:22.46M (Peak 39.29M) | Time:00:00.04 | Mem:8.11M, Peak:8.11M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:22.46M (Peak 39.29M) | Time:00:00.04 | Mem:8.11M, Peak:8.11M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:22.46M (Peak 39.29M) | Time:00:00.04 | Mem:8.68M, Peak:8.68M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:22.46M (Peak 39.29M) | Time:00:00.05 | Mem:9.29M, Peak:9.86M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:22.46M (Peak 39.29M) | Time:00:00.05 | Mem:9.29M, Peak:9.86M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.29M, Peak:9.86M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:23.11M (Peak 39.29M) | Time:00:00.05 | Mem:9.94M, Peak:9.94M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:24.11M (Peak 39.29M) | Time:00:00.05 | Mem:10.94M, Peak:10.94M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:24.12M (Peak 39.29M) | Time:00:00.05 | Mem:10.94M, Peak:10.94M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:24.12M (Peak 39.29M) | Time:00:00.05 | Mem:10.95M, Peak:10.95M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:24.12M (Peak 39.29M) | Time:00:00.05 | Mem:10.95M, Peak:10.95M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:24.12M (Peak 39.29M) | Time:00:00.05 | Mem:10.95M, Peak:10.95M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:40.83M (Peak 40.83M) | Time:00:00.12 | Remaining:00:00.47 | Mem:27.66M, Peak:27.66M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:47.86M (Peak 58.41M) | Time:00:02.06 | Mem:27.66M, Peak:27.66M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:47.86M (Peak 58.41M) | Time:00:02.06 | Mem:27.66M, Peak:27.66M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_hammer_foil_tigershark.png.three.png'
+ Time: 00:02.10 (Saving: 00:00.03)
+
+L2_GATE tigershark hammer_foil {'body_preserved': False, 'fused_components': True, 'added_tris': False, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True} FAIL
+L2_VERIFY {'op': 'hammer_foil', 'base': 'tigershark', 'before': 6790, 'after': 18442, 'added_tris': 11652, 'tri_budget': 9000, 'other_triangles': 0, 'loose_after': 1, 'surface_distance': 0.04365309700369835, 'body_L': [0.9979488551616669, 0.5538813285529613], 'collar_ratio': 0.0, 'plate_top_margin': 0.0, 'collar_max_gap': 0.0, 'collar_overhang': [0.0, 0.0], 'plate_max_height': 0.0, 'collar_station': -1.0, 'pectoral_station': 0.7328122993260957, 'crown_top_z': 0.06564720720052719, 'head_top_z': 0.03140470013022423, 'body_top_z': 0.1472829282283783, 'extent_lost': 0.0, 'head_kept': 0.0, 'head_protected': False, 'dorsal_height': 0.0, 'plate_top_z': 0.0, 'head_width': [0.0, 0.0], 'head_height': [0.0, 0.0], 'gates': {'body_preserved': False, 'fused_components': True, 'added_tris': False, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True}, 'pass': False, 'render': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_hammer_foil_tigershark.png'}
+Data are loaded, start creating Blender stuff
+glTF import finished in 0.06s
+HEAD_SHAPE preset=bulbous scale=1.400 width=0.145110->0.206057 height=0.111324->0.154963
+L2_RENDER engine=CYCLES samples=8 device=CPU
+Fra:1 Mem:11.30M (Peak 11.84M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | tigershark
+Fra:1 Mem:12.32M (Peak 13.37M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:12.31M (Peak 13.37M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_normal
+Fra:1 Mem:12.31M (Peak 13.37M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_diffuse
+Fra:1 Mem:19.76M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:19.76M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:19.76M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:19.76M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:19.87M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:20.42M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:20.42M (Peak 36.33M) | Time:00:00.04 | Mem:8.55M, Peak:8.55M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:20.42M (Peak 36.33M) | Time:00:00.04 | Mem:8.55M, Peak:8.55M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:20.42M (Peak 36.33M) | Time:00:00.04 | Mem:8.76M, Peak:8.76M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:20.42M (Peak 36.33M) | Time:00:00.04 | Mem:9.01M, Peak:9.22M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:20.42M (Peak 36.33M) | Time:00:00.04 | Mem:9.01M, Peak:9.22M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.04 | Mem:9.01M, Peak:9.22M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.04 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.04 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.04 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.04 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.04 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.04 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.04 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.04 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.04 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:21.78M (Peak 36.33M) | Time:00:00.04 | Mem:10.37M, Peak:10.37M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:21.79M (Peak 36.33M) | Time:00:00.04 | Mem:10.37M, Peak:10.37M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:21.79M (Peak 36.33M) | Time:00:00.04 | Mem:10.38M, Peak:10.38M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:21.79M (Peak 36.33M) | Time:00:00.04 | Mem:10.38M, Peak:10.38M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:21.79M (Peak 36.33M) | Time:00:00.04 | Mem:10.38M, Peak:10.38M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:38.50M (Peak 38.50M) | Time:00:00.09 | Remaining:00:00.34 | Mem:27.09M, Peak:27.09M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:45.53M (Peak 56.08M) | Time:00:02.01 | Mem:27.09M, Peak:27.09M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:45.53M (Peak 56.08M) | Time:00:02.01 | Mem:27.09M, Peak:27.09M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_head_bulbous_1.4_tigershark.png.side.png'
+ Time: 00:02.06 (Saving: 00:00.03)
+
+Fra:1 Mem:11.32M (Peak 11.95M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | tigershark
+Fra:1 Mem:12.32M (Peak 13.40M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:12.31M (Peak 13.40M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_normal
+Fra:1 Mem:12.31M (Peak 13.40M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_diffuse
+Fra:1 Mem:19.76M (Peak 36.33M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:19.76M (Peak 36.33M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:19.76M (Peak 36.33M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:19.76M (Peak 36.33M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:19.87M (Peak 36.33M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:20.42M (Peak 36.33M) | Time:00:00.05 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:20.42M (Peak 36.33M) | Time:00:00.05 | Mem:8.55M, Peak:8.55M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:20.42M (Peak 36.33M) | Time:00:00.05 | Mem:8.55M, Peak:8.55M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:20.42M (Peak 36.33M) | Time:00:00.05 | Mem:8.76M, Peak:8.76M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:20.42M (Peak 36.33M) | Time:00:00.05 | Mem:9.01M, Peak:9.22M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:20.42M (Peak 36.33M) | Time:00:00.05 | Mem:9.01M, Peak:9.22M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.05 | Mem:9.01M, Peak:9.22M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.05 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.05 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.05 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.05 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.05 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.05 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.05 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.05 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.05 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:21.78M (Peak 36.33M) | Time:00:00.05 | Mem:10.37M, Peak:10.37M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:21.79M (Peak 36.33M) | Time:00:00.05 | Mem:10.37M, Peak:10.37M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:21.79M (Peak 36.33M) | Time:00:00.05 | Mem:10.38M, Peak:10.38M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:21.79M (Peak 36.33M) | Time:00:00.05 | Mem:10.38M, Peak:10.38M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:21.79M (Peak 36.33M) | Time:00:00.05 | Mem:10.38M, Peak:10.38M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:38.50M (Peak 38.50M) | Time:00:00.10 | Remaining:00:00.36 | Mem:27.09M, Peak:27.09M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:45.53M (Peak 56.08M) | Time:00:01.86 | Mem:27.09M, Peak:27.09M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:45.53M (Peak 56.08M) | Time:00:01.86 | Mem:27.09M, Peak:27.09M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_head_bulbous_1.4_tigershark.png.top.png'
+ Time: 00:01.91 (Saving: 00:00.03)
+
+Fra:1 Mem:11.32M (Peak 11.95M) | Time:00:00.00 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Synchronizing object | tigershark
+Fra:1 Mem:12.32M (Peak 13.40M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Initializing
+Fra:1 Mem:12.31M (Peak 13.40M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_diffuse
+Fra:1 Mem:16.32M (Peak 16.32M) | Time:00:00.02 | Mem:0.00M, Peak:0.00M | Scene, ViewLayer | Updating Images | Loading tigershark_normal
+Fra:1 Mem:19.76M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Waiting for render to start
+Fra:1 Mem:19.76M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Loading render kernels (may take a few minutes the first time)
+Fra:1 Mem:19.76M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Scene
+Fra:1 Mem:19.76M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Shaders
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Procedurals
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Background
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Camera
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes Flags
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Copying Transformations to device
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Objects | Applying Static Transformations
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Particle Systems | Copying Particles to device
+Fra:1 Mem:19.77M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Meshes
+Fra:1 Mem:19.87M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Computing attributes
+Fra:1 Mem:20.42M (Peak 36.33M) | Time:00:00.04 | Mem:8.00M, Peak:8.00M | Scene, ViewLayer | Updating Mesh | Copying Attributes to device
+Fra:1 Mem:20.42M (Peak 36.33M) | Time:00:00.04 | Mem:8.55M, Peak:8.55M | Scene, ViewLayer | Updating Scene BVH | Building
+Fra:1 Mem:20.42M (Peak 36.33M) | Time:00:00.04 | Mem:8.55M, Peak:8.55M | Scene, ViewLayer | Updating Scene BVH | Building BVH
+Fra:1 Mem:20.42M (Peak 36.33M) | Time:00:00.04 | Mem:8.76M, Peak:8.76M | Scene, ViewLayer | Updating Scene BVH | Building BVH 0%
+Fra:1 Mem:20.42M (Peak 36.33M) | Time:00:00.04 | Mem:9.01M, Peak:9.22M | Scene, ViewLayer | Updating Scene BVH | Copying BVH to device
+Fra:1 Mem:20.42M (Peak 36.33M) | Time:00:00.04 | Mem:9.01M, Peak:9.22M | Scene, ViewLayer | Updating Mesh | Computing normals
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.04 | Mem:9.01M, Peak:9.22M | Scene, ViewLayer | Updating Mesh | Copying Mesh to device
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.04 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Objects Flags
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.04 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Primitive Offsets
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.04 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Images
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.04 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Camera Volume
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.04 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.04 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Lights
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.04 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Lights | Computing distribution
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.04 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Lights | Computing tree
+Fra:1 Mem:20.78M (Peak 36.33M) | Time:00:00.04 | Mem:9.37M, Peak:9.37M | Scene, ViewLayer | Updating Integrator
+Fra:1 Mem:21.78M (Peak 36.33M) | Time:00:00.04 | Mem:10.37M, Peak:10.37M | Scene, ViewLayer | Updating Film
+Fra:1 Mem:21.79M (Peak 36.33M) | Time:00:00.05 | Mem:10.37M, Peak:10.37M | Scene, ViewLayer | Updating Lookup Tables
+Fra:1 Mem:21.79M (Peak 36.33M) | Time:00:00.05 | Mem:10.38M, Peak:10.38M | Scene, ViewLayer | Updating Baking
+Fra:1 Mem:21.79M (Peak 36.33M) | Time:00:00.05 | Mem:10.38M, Peak:10.38M | Scene, ViewLayer | Updating Device | Writing constant memory
+Fra:1 Mem:21.79M (Peak 36.33M) | Time:00:00.05 | Mem:10.38M, Peak:10.38M | Scene, ViewLayer | Sample 0/8
+Fra:1 Mem:38.50M (Peak 38.50M) | Time:00:00.10 | Remaining:00:00.35 | Mem:27.09M, Peak:27.09M | Scene, ViewLayer | Sample 1/8
+Fra:1 Mem:45.53M (Peak 56.08M) | Time:00:01.85 | Mem:27.09M, Peak:27.09M | Scene, ViewLayer | Sample 8/8
+Fra:1 Mem:45.53M (Peak 56.08M) | Time:00:01.85 | Mem:27.09M, Peak:27.09M | Scene, ViewLayer | Finished
+Saved: '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_head_bulbous_1.4_tigershark.png.three.png'
+ Time: 00:01.90 (Saving: 00:00.03)
+
+L2_GATE tigershark head_bulbous_1.4 {'body_preserved': True, 'fused_components': True, 'added_tris': True, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True} PASS
+L2_VERIFY {'op': 'head_bulbous_1.4', 'base': 'tigershark', 'before': 6790, 'after': 6790, 'added_tris': 0, 'tri_budget': 9000, 'other_triangles': 0, 'loose_after': 842, 'surface_distance': 0.0, 'body_L': [0.9979488551616669, 0.9979488551616669], 'collar_ratio': 0.0, 'plate_top_margin': 0.0, 'collar_max_gap': 0.0, 'collar_overhang': [0.0, 0.0], 'plate_max_height': 0.0, 'collar_station': -1.0, 'pectoral_station': 0.7328122993260957, 'crown_top_z': 0.1472829282283783, 'head_top_z': 0.03140470013022423, 'body_top_z': 0.1472829282283783, 'extent_lost': 0.0, 'head_kept': 1.0, 'head_protected': False, 'dorsal_height': 0.0, 'plate_top_z': 0.0, 'head_width': [0.14511045813560486, 0.2060568481683731], 'head_height': [0.11132369935512543, 0.15496259182691574], 'gates': {'body_preserved': True, 'fused_components': True, 'added_tris': True, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True}, 'pass': True, 'render': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_head_bulbous_1.4_tigershark.png'}
+L2_VERIFY_JSON [{'op': 'armor_collar', 'base': 'greatwhite_cy', 'before': 6784, 'after': 8159, 'added_tris': 1375, 'tri_budget': 9000, 'other_triangles': 0, 'loose_after': 1, 'surface_distance': 0.04713428020477295, 'body_L': [0.9927863478660583, 0.9915565550327301], 'collar_ratio': 1.05, 'plate_top_margin': 0.0, 'collar_max_gap': 0.04713428020477295, 'collar_overhang': [0.026395902037620544, 0.0], 'plate_max_height': 0.0, 'collar_station': 0.7233867076812461, 'pectoral_station': 0.7233867076812461, 'crown_top_z': 0.16260197758674622, 'head_top_z': 0.08177677541971207, 'body_top_z': 0.16596576571464539, 'extent_lost': 0.0, 'head_kept': 0.9873096446700508, 'head_protected': True, 'dorsal_height': 0.0, 'plate_top_z': 0.0, 'head_width': [0.0, 0.0], 'head_height': [0.0, 0.0], 'gates': {'body_preserved': True, 'fused_components': True, 'added_tris': True, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': False, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': False, 'crown_visible': True}, 'pass': False, 'render': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_armor_collar_greatwhite_cy.png'}, {'op': 'plate_row', 'base': 'greatwhite_cy', 'before': 6784, 'after': 8159, 'added_tris': 1375, 'tri_budget': 9000, 'other_triangles': 0, 'loose_after': 1, 'surface_distance': 0.04830535873770714, 'body_L': [0.9927863478660583, 0.9915765523910522], 'collar_ratio': 0.0, 'plate_top_margin': -0.0005701500922441483, 'collar_max_gap': 0.0, 'collar_overhang': [0.0, 0.0], 'plate_max_height': 0.04743316024541855, 'collar_station': -1.0, 'pectoral_station': 0.7233867076812461, 'crown_top_z': 0.1629611849784851, 'head_top_z': 0.08177677541971207, 'body_top_z': 0.16596576571464539, 'extent_lost': 0.0, 'head_kept': 0.9873096446700508, 'head_protected': True, 'dorsal_height': 0.08727874606847763, 'plate_top_z': 0.1261201798915863, 'head_width': [0.0, 0.0], 'head_height': [0.0, 0.0], 'gates': {'body_preserved': True, 'fused_components': True, 'added_tris': True, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': False, 'crown_visible': True}, 'pass': False, 'render': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_plate_row_greatwhite_cy.png'}, {'op': 'crown_a', 'base': 'greatwhite_cy', 'before': 6784, 'after': 32456, 'added_tris': 25672, 'tri_budget': 9000, 'other_triangles': 0, 'loose_after': 1, 'surface_distance': 0.19372884929180145, 'body_L': [0.9927863478660583, 0.6019548997282982], 'collar_ratio': 0.0, 'plate_top_margin': 0.0, 'collar_max_gap': 0.0, 'collar_overhang': [0.0, 0.0], 'plate_max_height': 0.0, 'collar_station': -1.0, 'pectoral_station': 0.7233867076812461, 'crown_top_z': 0.2743808627128601, 'head_top_z': 0.08177677541971207, 'body_top_z': 0.16596576571464539, 'extent_lost': 0.0, 'head_kept': 0.0, 'head_protected': False, 'dorsal_height': 0.0, 'plate_top_z': 0.0, 'head_width': [0.0, 0.0], 'head_height': [0.0, 0.0], 'gates': {'body_preserved': False, 'fused_components': True, 'added_tris': False, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True}, 'pass': False, 'render': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_crown_a_greatwhite_cy.png'}, {'op': 'hammer_foil', 'base': 'greatwhite_cy', 'before': 6784, 'after': 36120, 'added_tris': 29336, 'tri_budget': 9000, 'other_triangles': 0, 'loose_after': 1, 'surface_distance': 0.09121053665876389, 'body_L': [0.9927863478660583, 0.6028202027082443], 'collar_ratio': 0.0, 'plate_top_margin': 0.0, 'collar_max_gap': 0.0, 'collar_overhang': [0.0, 0.0], 'plate_max_height': 0.0, 'collar_station': -1.0, 'pectoral_station': 0.7233867076812461, 'crown_top_z': 0.08152636140584946, 'head_top_z': 0.08177677541971207, 'body_top_z': 0.16596576571464539, 'extent_lost': 0.0, 'head_kept': 0.0, 'head_protected': False, 'dorsal_height': 0.0, 'plate_top_z': 0.0, 'head_width': [0.0, 0.0], 'head_height': [0.0, 0.0], 'gates': {'body_preserved': False, 'fused_components': True, 'added_tris': False, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True}, 'pass': False, 'render': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_hammer_foil_greatwhite_cy.png'}, {'op': 'head_bulbous_1.4', 'base': 'greatwhite_cy', 'before': 6784, 'after': 6784, 'added_tris': 0, 'tri_budget': 9000, 'other_triangles': 0, 'loose_after': 684, 'surface_distance': 0.0, 'body_L': [0.9927863478660583, 0.9927863478660583], 'collar_ratio': 0.0, 'plate_top_margin': 0.0, 'collar_max_gap': 0.0, 'collar_overhang': [0.0, 0.0], 'plate_max_height': 0.0, 'collar_station': -1.0, 'pectoral_station': 0.7233867076812461, 'crown_top_z': 0.16596576571464539, 'head_top_z': 0.08177677541971207, 'body_top_z': 0.16596576571464539, 'extent_lost': 0.0, 'head_kept': 1.0, 'head_protected': False, 'dorsal_height': 0.0, 'plate_top_z': 0.0, 'head_width': [0.21263755857944489, 0.3019453287124634], 'head_height': [0.25181110948324203, 0.3505210727453232], 'gates': {'body_preserved': True, 'fused_components': True, 'added_tris': True, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True}, 'pass': True, 'render': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_head_bulbous_1.4_greatwhite_cy.png'}, {'op': 'armor_collar', 'base': 'tigershark', 'before': 6790, 'after': 8165, 'added_tris': 1375, 'tri_budget': 9000, 'other_triangles': 0, 'loose_after': 1, 'surface_distance': 0.20851880311965942, 'body_L': [0.9979488551616669, 0.9946346282958984], 'collar_ratio': 1.05, 'plate_top_margin': 0.0, 'collar_max_gap': 0.20851880311965942, 'collar_overhang': [0.13313549757003784, 0.03145195543766022], 'plate_max_height': 0.0, 'collar_station': 0.7328122993260957, 'pectoral_station': 0.7328122993260957, 'crown_top_z': 0.14594319462776184, 'head_top_z': 0.03140470013022423, 'body_top_z': 0.1472829282283783, 'extent_lost': 0.0, 'head_kept': 0.9978798586572438, 'head_protected': True, 'dorsal_height': 0.0, 'plate_top_z': 0.0, 'head_width': [0.0, 0.0], 'head_height': [0.0, 0.0], 'gates': {'body_preserved': True, 'fused_components': True, 'added_tris': True, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': False, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True}, 'pass': False, 'render': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_armor_collar_tigershark.png'}, {'op': 'plate_row', 'base': 'tigershark', 'before': 6790, 'after': 8164, 'added_tris': 1374, 'tri_budget': 9000, 'other_triangles': 0, 'loose_after': 1, 'surface_distance': 0.043976034969091415, 'body_L': [0.9979488551616669, 0.9946346282958984], 'collar_ratio': 0.0, 'plate_top_margin': -0.008958015963435179, 'collar_max_gap': 0.0, 'collar_overhang': [0.0, 0.0], 'plate_max_height': 0.03158983588218689, 'collar_station': -1.0, 'pectoral_station': 0.7328122993260957, 'crown_top_z': 0.14594319462776184, 'head_top_z': 0.03140470013022423, 'body_top_z': 0.1472829282283783, 'extent_lost': 0.0, 'head_kept': 0.9978798586572438, 'head_protected': True, 'dorsal_height': 0.058126457035541534, 'plate_top_z': 0.12713411450386047, 'head_width': [0.0, 0.0], 'head_height': [0.0, 0.0], 'gates': {'body_preserved': True, 'fused_components': True, 'added_tris': True, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True}, 'pass': True, 'render': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_plate_row_tigershark.png'}, {'op': 'crown_a', 'base': 'tigershark', 'before': 6790, 'after': 25318, 'added_tris': 18528, 'tri_budget': 9000, 'other_triangles': 0, 'loose_after': 1, 'surface_distance': 0.21864169836044312, 'body_L': [0.9979488551616669, 0.5538813285529613], 'collar_ratio': 0.0, 'plate_top_margin': 0.0, 'collar_max_gap': 0.0, 'collar_overhang': [0.0, 0.0], 'plate_max_height': 0.0, 'collar_station': -1.0, 'pectoral_station': 0.7328122993260957, 'crown_top_z': 0.2562754154205322, 'head_top_z': 0.03140470013022423, 'body_top_z': 0.1472829282283783, 'extent_lost': 0.0, 'head_kept': 0.0, 'head_protected': False, 'dorsal_height': 0.0, 'plate_top_z': 0.0, 'head_width': [0.0, 0.0], 'head_height': [0.0, 0.0], 'gates': {'body_preserved': False, 'fused_components': True, 'added_tris': False, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True}, 'pass': False, 'render': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_crown_a_tigershark.png'}, {'op': 'hammer_foil', 'base': 'tigershark', 'before': 6790, 'after': 18442, 'added_tris': 11652, 'tri_budget': 9000, 'other_triangles': 0, 'loose_after': 1, 'surface_distance': 0.04365309700369835, 'body_L': [0.9979488551616669, 0.5538813285529613], 'collar_ratio': 0.0, 'plate_top_margin': 0.0, 'collar_max_gap': 0.0, 'collar_overhang': [0.0, 0.0], 'plate_max_height': 0.0, 'collar_station': -1.0, 'pectoral_station': 0.7328122993260957, 'crown_top_z': 0.06564720720052719, 'head_top_z': 0.03140470013022423, 'body_top_z': 0.1472829282283783, 'extent_lost': 0.0, 'head_kept': 0.0, 'head_protected': False, 'dorsal_height': 0.0, 'plate_top_z': 0.0, 'head_width': [0.0, 0.0], 'head_height': [0.0, 0.0], 'gates': {'body_preserved': False, 'fused_components': True, 'added_tris': False, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True}, 'pass': False, 'render': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_hammer_foil_tigershark.png'}, {'op': 'head_bulbous_1.4', 'base': 'tigershark', 'before': 6790, 'after': 6790, 'added_tris': 0, 'tri_budget': 9000, 'other_triangles': 0, 'loose_after': 842, 'surface_distance': 0.0, 'body_L': [0.9979488551616669, 0.9979488551616669], 'collar_ratio': 0.0, 'plate_top_margin': 0.0, 'collar_max_gap': 0.0, 'collar_overhang': [0.0, 0.0], 'plate_max_height': 0.0, 'collar_station': -1.0, 'pectoral_station': 0.7328122993260957, 'crown_top_z': 0.1472829282283783, 'head_top_z': 0.03140470013022423, 'body_top_z': 0.1472829282283783, 'extent_lost': 0.0, 'head_kept': 1.0, 'head_protected': False, 'dorsal_height': 0.0, 'plate_top_z': 0.0, 'head_width': [0.14511045813560486, 0.2060568481683731], 'head_height': [0.11132369935512543, 0.15496259182691574], 'gates': {'body_preserved': True, 'fused_components': True, 'added_tris': True, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True}, 'pass': True, 'render': '/Users/lucille/greenguard-usa-web/play/razorfin/assets/review/L2_head_bulbous_1.4_tigershark.png'}]Error: Python: Traceback (most recent call last):
+  File "/Users/lucille/greenguard-usa-web/play/razorfin/tools/kit_gen.py", line 626, in <module>
+    _cli()
+  File "/Users/lucille/greenguard-usa-web/play/razorfin/tools/kit_gen.py", line 622, in _cli
+    verify_all(args.base_dir, args.review_dir, render=not args.no_render, base_names=args.bases)
+  File "/Users/lucille/greenguard-usa-web/play/razorfin/tools/kit_gen.py", line 605, in verify_all
+    raise RuntimeError("L2 acceptance failures: %s" % failures)
+RuntimeError: L2 acceptance failures: [('greatwhite_cy', 'armor_collar', {'body_preserved': True, 'fused_components': True, 'added_tris': True, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': False, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': False, 'crown_visible': True}), ('greatwhite_cy', 'plate_row', {'body_preserved': True, 'fused_components': True, 'added_tris': True, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': False, 'crown_visible': True}), ('greatwhite_cy', 'crown_a', {'body_preserved': False, 'fused_components': True, 'added_tris': False, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True}), ('greatwhite_cy', 'hammer_foil', {'body_preserved': False, 'fused_components': True, 'added_tris': False, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True}), ('tigershark', 'armor_collar', {'body_preserved': True, 'fused_components': True, 'added_tris': True, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': False, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True}), ('tigershark', 'crown_a', {'body_preserved': False, 'fused_components': True, 'added_tris': False, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True}), ('tigershark', 'hammer_foil', {'body_preserved': False, 'fused_components': True, 'added_tris': False, 'surface_distance': True, 'collar_ratio': True, 'plate_top': True, 'collar_hugs': True, 'plate_height': True, 'bulbous_width': True, 'bulbous_height': True, 'collar_at_neck': True, 'head_preserved': True, 'crown_visible': True})]
+
+
+Blender quit
