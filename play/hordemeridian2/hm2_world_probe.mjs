@@ -283,6 +283,77 @@ async function main() {
     fail(report, 'all region luminance measurements are identical, this indicates the probe is not actually sampling per-region pixels (investigate the probe, not the game).');
   }
 
+  // Region identity assertion (M2 gate BLOCKER 1): a constant-stub regionAt
+  // still passes the byte-hash/luminance checks above since those are only
+  // driven by ship position and HUD, not by which region key comes back.
+  // Query regionAt directly at each region's OWN centre (from the live
+  // HM2_WORLD.REGIONS table, never hardcoded) and require the expected key.
+  const regionIdentity = await page.evaluate(() => {
+    const w = window.HM2_WORLD;
+    if (!w || !w.REGIONS || typeof w.regionAt !== 'function') return { available: false };
+    const rows = w.REGIONS.map((r) => ({ key: r.key, cx: r.cx, cy: r.cy, got: w.regionAt(r.cx, r.cy) }));
+    return { available: true, rows: rows };
+  });
+  report.regionIdentity = regionIdentity;
+  if (!regionIdentity.available) {
+    fail(report, 'window.HM2_WORLD.regionAt/REGIONS not available, cannot verify region identity.');
+  } else {
+    for (const row of regionIdentity.rows) {
+      if (row.got !== row.key) {
+        fail(report, `regionAt(${row.cx}, ${row.cy}) returned '${row.got}', expected '${row.key}' (its own centre). Region identity is not driving regionAt.`);
+      }
+    }
+  }
+
+  // Strengthen the rendering-side check above: distinct byte hashes alone
+  // can happen from ship position/HUD alone even with a constant palette.
+  // Require at least 3 distinct luminance values (rounded to 3dp) across
+  // the sampled regions, so a constant-palette stub collapses this too.
+  const roundedLums = Array.from(new Set(lumValues.map((v) => v.toFixed(3))));
+  report.distinctRoundedLuminanceCount = roundedLums.length;
+  if (lumValues.length > 1 && roundedLums.length < 3) {
+    fail(report, `only ${roundedLums.length} distinct region luminance value(s) at 3dp (${roundedLums.join(', ')}); expected at least 3, indicating region palette is not actually varying rendering.`);
+  }
+
+  // Boundary-push assertion (M2 gate BLOCKER 2): the plan's core M2
+  // acceptance line is "Player clamp = SDF", but teleporting to region
+  // centres never exercises the field boundary. Drive the ship far outside
+  // the field from several angles and confirm it ends up back inside after
+  // a few frames, via the same clampField path stepInput runs every tick.
+  const boundaryPush = await page.evaluate(async () => {
+    const w = window.HM2_WORLD;
+    const s = window.__HORDE.game.scene;
+    if (!w || typeof w.sdf !== 'function' || !s || !s.p) return { available: false };
+    const WORLD = w.WORLD || 12600;
+    const angles = [0, 60, 120, 180, 240, 300, 45, 200];
+    const results = [];
+    for (const deg of angles) {
+      const rad = deg * Math.PI / 180;
+      s.p.x = Math.cos(rad) * WORLD * 3;
+      s.p.y = Math.sin(rad) * WORLD * 3;
+      s.p.vx = 0; s.p.vy = 0;
+      // let the player update path (stepInput -> clampField) run a few frames
+      await new Promise((resolve) => {
+        let n = 0;
+        const tick = () => { n++; if (n >= 6) resolve(); else requestAnimationFrame(tick); };
+        requestAnimationFrame(tick);
+      });
+      const d = w.sdf(s.p.x, s.p.y);
+      results.push({ angleDeg: deg, x: s.p.x, y: s.p.y, sdf: d, inside: d <= 4 });
+    }
+    return { available: true, results: results };
+  });
+  report.boundaryPush = boundaryPush;
+  if (!boundaryPush.available) {
+    fail(report, 'could not run boundary push test: window.HM2_WORLD.sdf or scene.p unavailable.');
+  } else {
+    for (const r of boundaryPush.results) {
+      if (!r.inside) {
+        fail(report, `boundary push at angle ${r.angleDeg} deg: ship at (${r.x.toFixed(1)}, ${r.y.toFixed(1)}) has sdf=${r.sdf.toFixed(2)} > 0, not clamped inside the field. Player clamp = SDF is not holding.`);
+      }
+    }
+  }
+
   // fps watchdog under ?perf. Mobile profile floor is 50 fps.
   await page.waitForTimeout(1200);
   const fpsInfo = await page.evaluate(() => {
