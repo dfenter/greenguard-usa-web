@@ -14,9 +14,20 @@
  * where L is the model's long-axis (bounding box) extent, and prints
  * per-GLB pass/fail with the measured numbers.
  *
- * REST_RAD defaults to 0 (rev17 build-time jaw write was removed in Step 0;
- * writeJawGape is the only writer now). OPEN_RAD defaults to 0.72 per the
- * brief.
+ * REST_RAD / OPEN_RAD are angles RELATIVE TO THE BONE'S AUTHORED REST POSE,
+ * applied about the local hinge axis exactly as rig_morph.writeJawGape does at
+ * runtime (restore closedBase, then rotateOnAxis).
+ *
+ * Rev 18, residual A root cause: this probe used to assign
+ * `jawBone.rotation.x = REST_RAD` ABSOLUTELY. Every family GLB exports its
+ * LowerJaw with a rest rotation near 3.07 rad (~176 deg), so `rotation.x = 0`
+ * did not mean "closed", it swung the jaw through 176 degrees into an
+ * anatomically impossible pose before measuring. Edges in that crushed pose
+ * are up to 9x shorter than the real geometry (thresher: a genuine 1.85e-3
+ * edge measured 2.00e-4), and dividing the opened length by that bogus rest
+ * length reported 4.0x "skin tearing" on healthy meshes. That is why the
+ * number was bit-identical across five different rebakes with different vertex
+ * counts: it was never a property of the mesh.
  *
  * Usage:
  *   node hse/probe_jaw.mjs assets/models/greatwhite_cy.glb assets/models/thresher.glb ...
@@ -99,9 +110,20 @@ async function probeOne(file) {
   const L = Math.max(size.x, size.y, size.z);
   if (!(L > 0)) return { name, ok: false, error: 'degenerate bounding box' };
 
+  // The authored rest orientation of the hinge. Runtime (rig_morph
+  // writeJawGape) restores exactly this and then rotates about the local
+  // hinge axis, so the probe must pose the same way or it measures a pose the
+  // game can never produce.
+  const jawBase = jawBone.quaternion.clone();
+  const HINGE_AXIS = new THREE.Vector3(1, 0, 0);
+  const poseJaw = (rad) => {
+    jawBone.quaternion.copy(jawBase);
+    if (rad) jawBone.rotateOnAxis(HINGE_AXIS, rad);
+    jawBone.updateMatrixWorld(true);
+  };
+
   // rest pose
-  jawBone.rotation.x = REST_RAD;
-  jawBone.updateMatrixWorld(true);
+  poseJaw(REST_RAD);
   const restPos = bakedPositions(mesh);
 
   // classify vertices relative to the jaw hinge (jaw bone's own position,
@@ -174,8 +196,7 @@ async function probeOne(file) {
   }
 
   // open pose
-  jawBone.rotation.x = OPEN_RAD;
-  jawBone.updateMatrixWorld(true);
+  poseJaw(OPEN_RAD);
   const openPos = bakedPositions(mesh);
 
   const dist = (i) => Math.hypot(

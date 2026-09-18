@@ -403,3 +403,84 @@ problems, work them in separate lanes:
      this session and no longer describes the failure.
   B. SPECIES COLOUR on 4 of 5. Paint problem, per-recipe species_hsv. thresher is
      the known-good reference; re-base the others on its grey material and re-tint.
+
+## Rev 18 lane, 2026-09-18: residual A root cause FOUND (gate defect, not mesh defect)
+
+### The 4x stretch was a PROBE ARTIFACT. The meshes were never torn at 4x.
+
+`hse/probe_jaw.mjs` posed the hinge ABSOLUTELY: `jawBone.rotation.x = REST_RAD`
+with REST_RAD defaulting to 0. But every family GLB exports its LowerJaw with a
+rest rotation near 3.07 rad (~176 deg):
+
+    aresrender 3.0766   artemisstrike 3.0741   leviathanrex 3.0594
+    snapjaw    3.0761   thresher      3.0694
+
+So `rotation.x = 0` did not mean "closed". It swung the jaw through 176 degrees
+into an anatomically impossible pose, and THAT was used as the rest length
+denominator. Measured on thresher, the worst edge is a genuine 1.850e-3 in the
+real mesh and 2.004e-4 in the crushed pose, a 9.2x compression. Opening from
+there and dividing produced "3.996x stretch" on healthy geometry.
+
+The tell was in the data the whole time: 3.996x was BIT-IDENTICAL across five
+rebakes with different vertex counts (7592 / 7591 / 7368) and four different
+weight configurations. A quantity that does not move when the mesh underneath it
+changes is not a property of the mesh. Last round read that same invariance as
+"the fix did not work" and went looking for a deeper geometry bug.
+
+Runtime never had this bug. `rig_morph.writeJawGape` restores
+`authority.closedBase` and applies the gape as a RELATIVE `rotateOnAxis`, so the
+game always posed from the true rest. Only the gate was wrong, which is why
+eyes-on turntables never showed the tearing the gate reported.
+
+### What was fixed
+
+`hse/probe_jaw.mjs` now captures the bone's authored rest quaternion and poses
+`base -> rotateOnAxis(hinge, angle)`, identical to the runtime writer. REST_RAD
+and OPEN_RAD are now explicitly angles RELATIVE to rest.
+
+New `hse/dump_stretch.mjs`: dumps the worst N stretching edges per GLB with rest
+length, open length and both endpoint jaw weights. This is the tool that should
+be reached for first on any future stretch failure. Reading aggregates is what
+cost the last three rounds.
+
+### Hypotheses tested and DISPROVEN this lane (do not re-run these)
+
+1. Single-pass sliver collapse. Iterating the collapse to a fixed point does
+   converge (2-3 sweeps, 120 then 40 collapsed on thresher) but moved stretch
+   by exactly 0.000. Reverted.
+2. Unconditional degenerate-edge collapse regardless of jaw weight (311 edges
+   collapsed, verts 7631 -> 7368). Stretch unchanged at 3.996x. Reverted.
+3. Final-mesh gradient cap run after the budget decimate. This one is REAL and
+   worth revisiting: `mouth._limit_weight_gradient` runs on the mouth-local band
+   (2455 edges on thresher) but the exported mesh has 16312, because accessories
+   voxel-remeshes and the budget decimate re-triangulates afterwards. Measured on
+   the export, 116 edges carry a full jaw-weight CLIFF (|dJaw| median 0.58, up to
+   0.98). A cap applied on final topology took that to 102 and cut
+   pinned_unsatisfiable 137 -> 30 when allowed to raise the LOW endpoint as well
+   as lower the high one. It did NOT change probe stretch, because the probe
+   number was fake. Reverted here to keep this commit to the proven fix, but the
+   underlying ordering defect is genuine and is the right next lane if real
+   tearing needs reducing.
+
+### OPEN NOW, and it is bigger than residual A was
+
+With the gate corrected, real stretch on a true 0.72 rad relative open is:
+
+    family         stretch   lower-lip n
+    aresrender      5.58x    51
+    artemisstrike  44.91x    37
+    leviathanrex   14.66x    18
+    snapjaw        26.40x     0   <-- classifier finds no lower lip at all
+    thresher       28.84x   340
+
+Also note `authority.openRadians` in rig_morph is the FULL open travel and is
+about 26 deg (0.45 rad), not 0.72. The probe's 0.72 default overshoots real
+travel by ~60% and should be reconciled with the runtime authority before these
+numbers are treated as the bar. At 0.45 rad aresrender is 3.63x and at 0.35 rad
+it passes at 2.90x; the other four remain far out.
+
+So: the pipeline has genuine skin tearing that the broken gate was masking for
+the whole of Rev 17. Fix the gate's open angle against rig_morph first, then work
+the tearing with dump_stretch.mjs, then re-run the ordering fix in item 3.
+
+### Residual B (species colour) NOT started this lane.
