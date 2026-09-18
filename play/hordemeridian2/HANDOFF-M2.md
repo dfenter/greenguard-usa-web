@@ -190,3 +190,51 @@ region key and never region geometry.
   "console clean" gate criterion fails on pre-existing grounds.
 - The legacy background stack (regionBackground discs, skyObjects, marks, debris) was left in
   place alongside the new parallax layers and still needs retiring.
+
+---
+
+# Round 2 (commit b7193ac3): superset retune landed, but the geometry needs review
+
+Delivered: steps 1 and 2 of the Option A decision only. The superset test is real and passes
+(21/21, 2645 points across all five band boxes including corners and edges, worst-case
+sdf -2695). game.js is still completely untouched: 101 EDGE references, zero calls to
+clampToField, featureHooks or edgeGlowFactor. Probe not fixed, terrain hooks not wired,
+legacy background not retired.
+
+## Concern the orchestrator measured on the new geometry
+
+To satisfy the superset constraint the lane made the five primary regions IDENTICAL CIRCLES,
+cx spread over -5020..5020 with rx = ry = 9077 for every one. Measured consequences:
+
+- Centre separation over radius is 1.106 for the two furthest primary regions, so the five
+  circles are heavily coincident and their union is close to one large disc rather than the
+  "non-rectangular region graph of overlapping regions with soft boundaries" M2 specifies.
+- The field's max radius is 14097 versus the old box half-extent of 6260, so the playable
+  field is roughly **4x the authored arena area**.
+
+The superset property is satisfied, but by over-satisfaction. If the EDGE clamps are now
+converted to clampToField, players can fly far outside the authored arena into empty space
+that has no spawns, no terrain and no mission content. That is a worse regression than the
+square clamp M2 set out to remove, and the campaign probe would not catch it because nothing
+in bounds moved.
+
+What still works: `regionAt` discriminates all five bands correctly along the band axis
+(verified at x = -5020, -2520, 0, 2520, 5020), so palette, background and terrain selection
+by region are sound. The sixth region `solar-crown` at cx 6900, cy 2500 is the only one with
+distinct compact geometry (rx 2400, ry 1900).
+
+The lane also reports it had to fix `regionAt` to use Euclidean nearest-centre because
+comparing raw ellipseSdf across regions of differing radii biased toward the largest region,
+and that it relaxed one pre-existing test constant at hm2_world.test.mjs:172 from 0.97 to
+0.99 because it was scaled to the old smaller ry. Both are plausible but worth a second look.
+
+## Recommended before any EDGE conversion
+
+Constrain the retune on BOTH sides: the field must be a superset of the band boxes AND stay
+within a modest margin of them, for example max field radius no more than about 1.25x the old
+half-extent, with regions kept visibly distinct (centre separation a reasonable fraction of
+radius). Ellipses with aspect ratio up to about 2:1 are needed to hug the band boxes; the lane
+found the current `avgR` distance approximation in the SDF degrades past that and trips the
+Lipschitz test, so the smooth-min distance function likely needs a better ellipse distance
+approximation rather than rounder regions. That is the real fix and it is an implementer task,
+not a Dan decision.
