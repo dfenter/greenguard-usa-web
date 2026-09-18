@@ -369,6 +369,7 @@ def solve(P, F, wj, wh, hinge, axis, theta=THETA, budget=BUDGET,
 
         # --- step 1 COLLAPSE ------------------------------------------------
         merged_this_round = 0
+        isolated_cleared = 0
         if E.shape[0]:
             rest = _rest_lengths(Pw, E)
             arm_v = _arms(Pw, hinge, axis, L)
@@ -400,8 +401,26 @@ def solve(P, F, wj, wh, hinge, axis, theta=THETA, budget=BUDGET,
                               | (Fw[:, 2] == Fw[:, 0]))
                 Fw = Fw[~degenerate]
 
-        # --- step 2 CAP -----------------------------------------------------
+        # --- step 1b ISOLATED JAW WEIGHT (I6) --------------------------------
+        # A vertex carrying jaw weight with no jaw-weighted edge neighbour is a
+        # vertex that swings alone: exactly the upper-head bleed the probe's
+        # re-pointed gate catches (A4 lowered the body protection threshold to
+        # 1e-4 and removed the only stray-weight cleanup).  It cannot be fixed
+        # by the cap, whose allowance is per-edge, so clear the stray weight
+        # here and let the cap re-smooth whatever that exposes.  Done before
+        # the cap so the two reach a joint fixed point in the same round.
         E = _edges_of(Fw)
+        if E.shape[0]:
+            live = wjw > EPS_W
+            has_nbr = np.zeros(len(wjw), dtype=bool)
+            np.logical_or.at(has_nbr, E[:, 0], live[E[:, 1]])
+            np.logical_or.at(has_nbr, E[:, 1], live[E[:, 0]])
+            isolated = np.flatnonzero(live & ~has_nbr & alive)
+            if isolated.size:
+                wjw[isolated] = 0.0
+                isolated_cleared = int(isolated.size)
+
+        # --- step 2 CAP -----------------------------------------------------
         before_w = wjw.copy()
         if E.shape[0]:
             rest = _rest_lengths(Pw, E)
@@ -413,6 +432,8 @@ def solve(P, F, wj, wh, hinge, axis, theta=THETA, budget=BUDGET,
 
         # --- step 3 STOP ----------------------------------------------------
         weight_moved = float(np.abs(wjw - before_w).max()) if len(wjw) else 0.0
+        if isolated_cleared:
+            weight_moved = max(weight_moved, 1.0)
         if merged_this_round == 0 and weight_moved <= 1.0e-6:
             break
     else:
