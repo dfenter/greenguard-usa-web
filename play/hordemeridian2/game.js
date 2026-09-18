@@ -7563,6 +7563,13 @@
         var e = this.enemies[i];
         if (!e.alive) continue;
         if (e.flash > 0) e.flash -= dt;
+        // M3 gate fix: give e.setpiece a lifetime, mirroring the
+        // run.setpieceWell tick above, so a stale phase-0 descriptor cannot
+        // sit on a boss forever and fake later-phase set-piece coverage.
+        if (e.setpiece) {
+          e.setpieceT -= dt;
+          if (e.setpieceT <= 0) { e.setpiece = null; e.setpieceT = 0; }
+        }
         if (e.dotT > 0) {
           e.dotT -= dt;
           this.damage(e, (e.dotDps || 0) * dt, e.x, e.y, false);
@@ -8210,6 +8217,8 @@
       }
       if (e.regionBoss) {
         run.setpieceWell = null;
+        e.setpiece = null;
+        e.setpieceT = 0;
         var regionDef = REGION_BOSS_BY_BOSS_KEY[e.bossKey];
         this.contactRing(e.x, e.y, 118, 840, 0.86, regionDef ? regionDef.tint : e.tint, 1);
         this.contactRing(e.x, e.y, 58, 480, 0.48, 0xffffff, 0.88);
@@ -8241,6 +8250,8 @@
       }
       if (e.boss) {
         run.setpieceWell = null;
+        e.setpiece = null;
+        e.setpieceT = 0;
         this.contactRing(e.x, e.y, 100, 900, 0.9, 0xe6bbff, 1);
         this.contactRing(e.x, e.y, 60, 520, 0.55, 0xffffff, 0.9);
         this.fx.death.setParticleTint(0xe6bbff);

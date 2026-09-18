@@ -174,14 +174,28 @@ async function runBoss(bossKey, mutation) {
   let died = false;
   let telegraphFired = false;
   const budgetMs = 180000; // 3 minutes
+  // Ruling 3 gate residual: run.setpieceWell (the gravity-well set-piece)
+  // was never asserted anywhere in the committed suite. Track its real
+  // lifecycle: it must appear with finite x/y/strength during the
+  // gravity_well phase, and it must be cleared (null) again once its
+  // lifetime (e.setpieceT) has expired.
+  let wellSeenNonNull = false;
+  let wellFiniteValid = false;
+  let wellClearedAfterExpiry = false;
+  let wellSeenThenNull = false;
 
   // Poll fast (every 400ms) with a small deterministic hp tick, so phase 0
   // is actually observed before the boss drops into phase 1/2, rather than
   // skipping straight past it between polls. Ticks land on the real
   // damage()/bossPhaseChange() path (same call the player's weapons use),
   // never a stub.
+  // M3 gate fix: e.setpiece now expires (~0.9-1.5s lifetime). At the old
+  // 400ms/4.5% cadence a region boss could blow through an entire phase in
+  // 1-2 polls, so a fresh set-piece could already be gone by the next
+  // sample. 200ms/2% keeps several samples inside every phase window while
+  // still finishing well inside the 3-minute budget.
   while (Date.now() - startWall < budgetMs) {
-    await wait(400);
+    await wait(200);
     const s = await page.evaluate((mut) => {
       const sc = window.__HORDE.game.scene;
       const b = sc.bossRef;
@@ -190,10 +204,18 @@ async function runBoss(bossKey, mutation) {
       const phase = b.phaseStage || 0;
       const hpFrac = b.hp / b.maxHp;
       const setpiece = b.setpiece ? { type: b.setpiece.type, pointCount: (b.setpiece.points || []).length, well: !!b.setpiece.well } : null;
+      var w = sc.run.setpieceWell;
+      var well = w ? { x: w.x, y: w.y, strength: w.strength, t: w.t } : null;
       if (!mut || mut !== 'no-damage') {
-        sc.damage(b, b.maxHp * 0.045, b.x, b.y, true);
+        // M3 gate fix: e.setpiece now has a real lifetime (~0.9-1.5s,
+        // game.js triggerBossSetpiece) instead of sitting stale forever.
+        // A 4.5%-per-400ms tick blew a region boss through an entire phase
+        // in 1-2 polls, so the fresh set-piece could already be expired (or
+        // never sampled) by the next poll. 0.02 gives several 400ms samples
+        // inside each phase, comfortably inside the set-piece lifetime.
+        sc.damage(b, b.maxHp * 0.02, b.x, b.y, true);
       }
-      return { alive: true, phase, hpFrac, setpiece, hp: b.hp, maxHp: b.maxHp };
+      return { alive: true, phase, hpFrac, setpiece, well, hp: b.hp, maxHp: b.maxHp };
     }, mutation);
     if (!s.alive) { died = true; break; }
     phasesSeen.add(s.phase);
@@ -206,6 +228,16 @@ async function runBoss(bossKey, mutation) {
       // to pass on setpiecesSeen.slice(0,3), which was the first 3 POLL
       // TICKS 400ms apart, i.e. all still phase 0, never one per phase).
       if (!(s.phase in setpieceByPhase)) setpieceByPhase[s.phase] = s.setpiece.type;
+    }
+    if (s.well) {
+      wellSeenNonNull = true;
+      if (Number.isFinite(s.well.x) && Number.isFinite(s.well.y) && Number.isFinite(s.well.strength)) {
+        wellFiniteValid = true;
+      }
+    } else if (wellSeenNonNull && !wellSeenThenNull) {
+      // We previously saw a real well and now it is gone: expiry cleared it.
+      wellSeenThenNull = true;
+      wellClearedAfterExpiry = true;
     }
   }
   const elapsedS = Math.round((Date.now() - startWall) / 1000);
@@ -225,6 +257,16 @@ async function runBoss(bossKey, mutation) {
     const coreDistinct = coreAllPhases && distinctTypes.size === 3;
     step(`${bossKey}: Meridian Core yields 3 distinct set-piece types across phases 0,1,2`,
       coreDistinct, JSON.stringify(setpieceByPhase));
+  }
+  // Ruling 3 residual close-out: only assert well behavior for bosses that
+  // actually reach the gravity_well phase (phase 1 in setpieceByPhase for
+  // every boss per hm2_bosses.js), so a boss killed before phase 1 does not
+  // produce a false failure.
+  if (1 in setpieceByPhase && setpieceByPhase[1] === 'gravity_well') {
+    step(`${bossKey}: run.setpieceWell becomes real with finite x/y/strength`,
+      wellSeenNonNull && wellFiniteValid, JSON.stringify({ wellSeenNonNull, wellFiniteValid }));
+    step(`${bossKey}: run.setpieceWell is cleared again after its lifetime expires`,
+      wellClearedAfterExpiry, JSON.stringify({ wellSeenThenNull, wellClearedAfterExpiry }));
   }
   const realErrs = errs.filter((e) => !/scope/.test(e) && !/Service Worker/i.test(e));
   step(`${bossKey}: no new console errors`, realErrs.length === 0, realErrs.join(' | '));
