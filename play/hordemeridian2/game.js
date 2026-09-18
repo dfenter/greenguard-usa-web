@@ -8071,12 +8071,45 @@
       this.fx.smoke.emitParticleAt(e.x, e.y, quiet ? 2 : (phase === 1 ? 8 : 12));
       this.triggerBuffGlow(color);
       var bossLabel = e.regionBoss && REGION_BOSS_BY_BOSS_KEY[e.bossKey] ? REGION_BOSS_BY_BOSS_KEY[e.bossKey].name : 'CORE';
-      var phaseSub = e.regionBoss ? (phase === 1 ? 'APEX HUNTER // SECOND PATTERN' : 'APEX HUNTER // DEATH PATTERN') :
-        (phase === 1 ? 'OUTER SHELL FRACTURED' : 'MERIDIAN HEART EXPOSED');
+      var bossMetaKey = e.regionBoss ? e.bossKey : 'boss';
+      var bossMeta = (window.HM2_BOSSES && window.HM2_BOSSES.metaFor) ? window.HM2_BOSSES.metaFor(bossMetaKey) : null;
+      var phaseSub = (bossMeta && bossMeta.phaseNames && bossMeta.phaseNames[phase]) ||
+        (e.regionBoss ? 'APEX HUNTER // SECOND PATTERN' : 'MERIDIAN HEART EXPOSED');
       this.showBanner(bossLabel + ' PHASE ' + (phase + 1), phaseSub, false, true);
       if (this.bossBarTitle) this.bossBarTitle.setText(bossLabel);
       sfx('telegraph', { volume: 0.72, rate: phase === 1 ? 0.82 : 0.66 });
       kit.juice.shake(12 + phase * 3, 360);
+      this.triggerBossSetpiece(e, bossMetaKey, phase);
+    },
+
+    // Arena set-piece: fires an existing hm2_world.js terrain hook, scaled by
+    // phase, at each boss phase transition. Additive to bossPhaseChange; a
+    // missing HM2_BOSSES/HM2_WORLD module is a silent no-op, never a throw.
+    triggerBossSetpiece: function (e, bossMetaKey, phase) {
+      if (!window.HM2_BOSSES || !window.HM2_BOSSES.setpieceFor) return;
+      var ctx = { x: e.x, y: e.y, dx: 0, dy: 0, rand: srand };
+      var piece = window.HM2_BOSSES.setpieceFor(bossMetaKey, phase, ctx);
+      if (!piece) return;
+      e.setpiece = piece;
+      e.setpieceT = 0.9 + phase * 0.3;
+      if (piece.type === 'asteroid_field') {
+        for (var i = 0; i < piece.points.length; i++) {
+          var pt = piece.points[i];
+          this.contactRing(e.x + pt.x, e.y + pt.y, 10, 60 * (pt.scale || 1), 0.4, 0x9a5b55, 0.7);
+        }
+        this.showBanner('ASTEROID RING COLLAPSE', 'DEBRIS CLOSING IN', false, false);
+      } else if (piece.type === 'gravity_well' && piece.well) {
+        this.run.setpieceWell = { x: e.x + piece.well.x, y: e.y + piece.well.y,
+          strength: piece.well.strength, flip: !!piece.well.flip, t: e.setpieceT };
+        this.showBanner('GRAVITY WELL ' + (piece.well.flip ? 'FLIP' : 'SURGE'), 'PROJECTILES BENDING', false, false);
+        this.contactRing(e.x, e.y, 20, 300, 0.5, 0xc480ff, 0.75);
+      } else if (piece.type === 'solar_flare') {
+        for (var j = 0; j < piece.points.length; j++) {
+          var lane = piece.points[j];
+          this.contactRing(e.x + lane.x, e.y + lane.y, 8, lane.width || 260, 0.35, 0xff9a4a, 0.7);
+        }
+        this.showBanner('FLARE BARRAGE', 'HOLD OUTSIDE THE LANES', false, false);
+      }
     },
 
     damage: function (e, amount, hx, hy, noCrit) {
@@ -8113,8 +8146,10 @@
       this.fx.impact.setParticleTint(e.boss ? 0xe6bbff : (e.elite ? 0xffd67a : 0xe5fff7));
       this.fx.impact.emitParticleAt(hx, hy, e.boss ? 7 : (e.elite ? 5 : 2));
       if (e.boss && e.hp > 0) {
-        var nextPhase = e.regionBoss ? (e.hp <= e.maxHp * 0.5 ? 1 : 0) :
-          (e.hp <= e.maxHp * 0.34 ? 2 : (e.hp <= e.maxHp * 0.67 ? 1 : 0));
+        var hpFrac = e.hp / e.maxHp;
+        var nextPhase = (window.HM2_BOSSES && window.HM2_BOSSES.phaseForHpFrac) ?
+          window.HM2_BOSSES.phaseForHpFrac(hpFrac, e.phaseStage) :
+          (e.regionBoss ? (hpFrac <= 0.5 ? 1 : 0) : (hpFrac <= 0.34 ? 2 : (hpFrac <= 0.67 ? 1 : 0)));
         if (nextPhase > (e.phaseStage || 0)) this.bossPhaseChange(e, nextPhase);
       }
       if (crit) this.floatText(hx, hy, Math.round(amt), '#fff36a', TYPE.sub);
