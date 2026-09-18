@@ -14,18 +14,21 @@ cues already listed below, so the existing file-level provenance remains
 complete.
 
 **Summary: every image and audio file is original work; the two typefaces are
-third-party CC0.** All images and all audio were authored for Horde Meridian by
+third-party OFL.** All images and all audio were authored for Horde Meridian by
 GreenGuard USA and released under **CC0 1.0 Universal (public domain
-dedication)**. The two shipped `woff2` faces are ASCII subsets of **Kenney
-Future** and **Kenney Future Narrow**, taken from the harvested **Kenney
-ui-pack** and also CC0. Nothing here is CC-BY, so no attribution is owed and
-none appears in the in-game credits beyond authorship.
+dedication)**. Horde Meridian 2 replaced the inherited Kenney faces: the two
+shipped `woff2` faces are now subsets of **Chakra Petch Bold** (display) and
+**Inter Regular** (body), both under the **SIL Open Font License 1.1**. The OFL
+requires the license to travel with the fonts, so the full text ships at
+`assets/OFL-ChakraPetch.txt` and `assets/OFL-Inter.txt`. No attribution is
+required in the UI, and the reserved-name and no-sale clauses are respected:
+the faces ship embedded in the game, not sold on their own.
 
 Ledger cross-reference (`/play/_assets/LEDGER.md`):
 
 | Ledger row | What this game takes from it |
 |---|---|
-| `Kenney ui-pack` (`web2d/ui-pack`, CC0) | `Font/Kenney Future.ttf` and `Font/Kenney Future Narrow.ttf`, subset to `assets/hm_display.woff2` and `assets/hm_body.woff2`. No sprite, panel or sound from this pack ships. |
+| `Kenney ui-pack` (`web2d/ui-pack`, CC0) | Nothing. Horde Meridian 2 dropped the two Kenney faces it inherited from Horde Meridian; no sprite, panel, sound or font from this pack ships. |
 
 No other ledger row is used. The row for `music (mixed harvest)` is
 deliberately **not** used: the shared music harvest returned nothing usable for
@@ -123,33 +126,50 @@ sound, not a pitch-shift of another.
 ## Fonts (2 files)
 
 Two font files **do** ship. They are the only third-party assets in the game.
-Both are ASCII subsets of CC0 Kenney faces from the harvested `Kenney ui-pack`
-(ledger row `Kenney ui-pack`, archive `web2d/ui-pack`, evidence
-`kenney.nl/assets/ui-pack`). Kenney releases the pack, fonts included, under
-CC0 1.0, so no attribution is owed; it is recorded here for traceability.
+Both are subsets of Google Fonts families under the **SIL Open Font License
+1.1**, downloaded from the upstream `google/fonts` repository. The OFL is a
+copyleft-style license for the font only: it requires the license text to be
+distributed with the font (done, see below), forbids selling the font by
+itself (we do not), and reserves the family names. It places no requirement on
+the game that uses the font, and no attribution is owed in the UI.
 
 | File | Bytes | sha256:12 | Upstream file | Role | License |
 |---|---|---|---|---|---|
-| `assets/hm_display.woff2` | 1388 | `8b3e03b34101` | `web2d/ui-pack/Font/Kenney Future.ttf` | `HM Display` - titles, numerals, HUD, buttons, anything read under pressure | CC0 |
-| `assets/hm_body.woff2` | 1392 | `968963db8e70` | `web2d/ui-pack/Font/Kenney Future Narrow.ttf` | `HM Body` - prose, card descriptions, helper copy | CC0 |
+| `assets/hm_display.woff2` | 3676 | `9bc39907fed1` | `google/fonts:ofl/chakrapetch/ChakraPetch-Bold.ttf` | `HM Display` - titles, numerals, HUD, buttons, anything read under pressure | OFL 1.1 |
+| `assets/hm_body.woff2` | 11668 | `e258dce8b0da` | `google/fonts:ofl/inter/Inter[opsz,wght].ttf` instanced to `wght=400` | `HM Body` - prose, card descriptions, helper copy | OFL 1.1 |
+| `assets/OFL-ChakraPetch.txt` | 4396 | - | `google/fonts:ofl/chakrapetch/OFL.txt` | License text shipped with the display face, as the OFL requires | OFL 1.1 |
+| `assets/OFL-Inter.txt` | 4377 | - | `google/fonts:ofl/inter/OFL.txt` | License text shipped with the body face, as the OFL requires | OFL 1.1 |
 
-Reproducible from the archive with `fontTools` (no other tool involved):
+Why these two: the inherited Kenney Future display face is a squared pixel
+font whose `X` reads as `H` at 13px, which made the hangar CODEX tab read
+CODEH, and whose body copy needed shrinking below 11px to fit a card. Chakra
+Petch was chosen over Rajdhani and Exo 2 on a 13px glyph plate because it has
+the largest x-height and the only digit `1` with a base serif, so `Il1|` stays
+separable where gem costs and tier counts are set. Inter is a UI face with a
+matching x-height that stays even in colour from 12px to 15px. The comparison
+shots and the full rationale are in `review_evidence/m0/fonts/`.
 
-    python3 -m fontTools.subset \
-      "<archive>/web2d/ui-pack/Font/Kenney Future.ttf" \
-      --unicodes="U+0020-007E,U+00B7,U+00D7,U+2014" \
-      --flavor=woff2 --no-hinting --desubroutinize \
-      --output-file=assets/hm_display.woff2
+Reproducible with `fontTools` (Inter is variable, so it is instanced first):
 
-and the same command against `Kenney Future Narrow.ttf` for `hm_body.woff2`.
+    python3 -m fontTools.varLib.instancer \
+      Inter[opsz,wght].ttf wght=400 -o Inter-Regular.ttf
+
+    python3 -m fontTools.subset <input.ttf> \
+      --output-file=assets/hm_display.woff2 --flavor=woff2 \
+      --layout-features='' --desubroutinize --name-IDs='' --notdef-outline \
+      --unicodes="U+0020-007E,U+00B7,U+2018-201D,U+2022,U+2026,U+00A0,U+2190-2193,U+25A0-25CF"
+
 The subset is printable ASCII plus the middle dot the UI uses as a separator,
-the multiplication sign, and an em dash carried only so the face has no
-notdef hole (no user-facing string in this game contains one).
+curly quotes, the bullet, the ellipsis used by the layout engine's truncation,
+and a few arrows and geometric shapes. No em dash is included: no user-facing
+string in this game contains one.
 
-Verified 2026-08-07: each shipped face reports 99 glyphs / 98 mapped
-codepoints, the same `unitsPerEm` (1024) as its upstream TTF, and identical
-advance widths on all 98 shared codepoints, so the shipped files are subsets of
-the archived Kenney faces and not a lookalike.
+Verified 2026-09-17 in the running game: `document.fonts` reports both
+`HM Display` and `HM Body` as `loaded`, `document.fonts.check` passes for both,
+and each face measures a different advance width from its fallback (display
+168.29px vs Verdana 202.41px on `CODEX 100` at 32px; body 95.50px vs 113.99px
+on `Pickup radius` at 15px). The shipped woff2 files are therefore the faces
+actually rasterised, not a silent fallback.
 
 ## Code
 
