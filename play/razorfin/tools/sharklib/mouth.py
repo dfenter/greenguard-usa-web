@@ -753,6 +753,61 @@ def _load_teeth(path, name, target, lower, cavity_state, measurement):
     return teeth, mapping
 
 
+# --- JW-3: ramp width floor (hse/JAW-WEIGHT-SPEC.md) -------------------------
+#
+# A smoothstep of width d contributes at most 1.5 * e / d to |dW| across an
+# edge of length e, since max|smoothstep'| = 1.5.  JW-1 allows
+# |dW| <= 2 * e / (arm * theta), so every ramp must satisfy
+#
+#     d  >=  0.75 * arm * theta
+#
+# independent of e: the edge length cancels, which is why this is a property of
+# the SHAPE and not of the tessellation.  theta is the real open travel,
+# 25 deg = 0.4363 rad (hse/jaw_gate_config.mjs).
+#
+# BUT a ramp also has to FIT.  Lane 4 first shipped this as one constant sized
+# for the worst arm (aresrender p90 0.209 L -> 0.068 L) and that silently
+# destroyed two families: the weighted band is only ~0.03 L deep in z, so a
+# 0.068 L z-ramp never saturates, every value landed under JAW_WEIGHT_FLOOR,
+# and artemisstrike + leviathanrex exported with NO jaw weight at all.  Their
+# stretch read a perfect 1.000x because the jaw had stopped moving -- the exact
+# shape of false pass this pipeline has been bitten by before.
+#
+# So the floor is a REQUEST, clamped to the space the ramp actually has:
+# widening past roughly a third of the band trades the cliff for a band that
+# cannot saturate, which the lower-lip classifier reads as "no lower lip".
+# Where the clamp binds, the residual cliff is handled downstream by
+# _limit_weight_gradient rather than by pretending the ramp fits.
+#
+# JW-4: a function of geometry and travel only.  Never scaled by
+# gape_degrees / half_gape / lower_gape.
+# NOT derived at runtime from arm/theta, which is a known weakness: it is a
+# literal sized from one family's measured arm.  Lane 4's gate flagged this and
+# it is honest to say so here -- see hse/JAW-WEIGHT-SPEC.md section 6, which
+# also records that the arms this was sized from were themselves measured with
+# a bad hinge.  Treat as provisional; the real fix is decimator-side.
+JAW_RAMP_REQUEST_L = .068
+# Fraction of the available opening a ramp may occupy.  A ramp must SATURATE
+# inside its band or every value falls under JAW_WEIGHT_FLOOR and the jaw stops
+# moving (lane 4 attempt 1 did exactly this to two families, and their stretch
+# then read a perfect 1.000x because nothing moved).  A third leaves room for
+# the plateau the lower-lip classifier needs; it is not otherwise derived.
+JAW_RAMP_BAND_FRACTION = .34
+
+
+def _ramp_width(length, height, fraction_of_height, available=None):
+    """Smoothstep width honouring the JW-3 floor, clamped to available space.
+
+    ``available`` is the extent (in scene units) the ramp has to work with; the
+    width is never allowed past ``JAW_RAMP_BAND_FRACTION`` of it, so the ramp
+    always saturates inside its own band.
+    """
+    want = max(JAW_RAMP_REQUEST_L * length, fraction_of_height * height)
+    if available is not None and available > EPS:
+        want = min(want, JAW_RAMP_BAND_FRACTION * available)
+    return max(want, fraction_of_height * height * .5, EPS)
+
+
 def _jaw_weight_field(co, measurement, lip_band, cavity_state):
     """LowerJaw weight for ONE point, as a pure function of position.
 
@@ -776,11 +831,14 @@ def _jaw_weight_field(co, measurement, lip_band, cavity_state):
     hinge_t = float(cavity_state["hinge_t"])
     t = (co.y - ymin) / length
 
-    # Everything aft of the hinge is skull and never moves.  One anchor, taken
-    # from the hinge the cut actually used, instead of the old .78/.72 literals
-    # that only described one base's scan.
-    if t <= hinge_t - .10:
-        return 0.0
+    # JW-2: everything aft of the hinge is skull and never moves, but that is
+    # expressed by the `forward` and `hinge` ramps below, which already reach
+    # exactly 0 there.  Rev 18 lane 4 removed a `return 0.0` branch that sat
+    # here: a hard step of |dW| = 1.0 across whichever edge crossed it.
+    # Measured, it suppressed no weight on any pilot (both ramps were already
+    # 0 wherever it fired), so removing it is a no-op on today's geometry --
+    # but it was one ramp-position change away from becoming a live cliff that
+    # no downstream cap could see.  The field now has no branches at all.
 
     lower_plane = _plane_z(co.y, cavity_state["hinge_y"], jaw_z,
                            cavity_state["lower_gape"], -1.0)
@@ -801,8 +859,12 @@ def _jaw_weight_field(co, measurement, lip_band, cavity_state):
     # 3's first pass moved snapjaw least.  Widening the ramp gives the
     # transition several edges to live on, so both the projection and the
     # gradient cap have something real to work with.
+    # Space available to the z-ramps: the opening between the two lip planes at
+    # this y, which is what both ramps have to live inside.
+    opening = max(upper_plane - lower_plane, .02 * height)
+
     below = _smoothstep((lower_plane + max(.030 * length, lip_band * height) - co.z) /
-                        max(.060 * height, EPS))
+                        _ramp_width(length, height, .060, opening))
 
     # Forward of the hinge -> jaw, with the ramp scaled into the space that
     # actually exists ahead of the hinge so it always saturates before the
@@ -818,10 +880,13 @@ def _jaw_weight_field(co, measurement, lip_band, cavity_state):
 
     # Under the upper lip plane -> inside the opening.  Always a ramp, never a
     # hard cutoff: a step here would put full-weight and zero-weight vertices
-    # on opposite ends of one edge.  Since weights are now projected rather
-    # than resampled, the ramp width is a shape decision only.
+    # on opposite ends of one edge.  Rev 18 lane 4 measured this as THE
+    # stepping term on snapjaw (per-term delta 0.265 across a 0.004 L pair,
+    # against 0.073 for every other term), which is why lane 3's widening of
+    # `below` alone left snapjaw's histogram bimodal.  The width is not a free
+    # shape decision: JW-3 floors it.
     in_opening_band = _smoothstep((upper_plane + .02 * height - co.z) /
-                                  max(.05 * height, EPS))
+                                  _ramp_width(length, height, .05, opening))
 
     # Soften towards the corners of the mouth so the commissure does not tear.
     commissure = _smoothstep((abs(co.x - cavity_state["centre_x"]) /
@@ -830,6 +895,51 @@ def _jaw_weight_field(co, measurement, lip_band, cavity_state):
     weight = below * forward * hinge * in_opening_band
     weight *= 1.0 - .5 * commissure
     return min(1.0, max(0.0, weight))
+
+
+def _jaw_weight_terms(co, measurement, lip_band, cavity_state):
+    """Every factor of :func:`_jaw_weight_field`, separately, for diagnosis."""
+    ymin, length, height = measurement["ymin"], measurement["L"], measurement["H"]
+    jaw_z = measurement["jaw_line"]["z"]
+    hinge_t = float(cavity_state["hinge_t"])
+    t = (co.y - ymin) / length
+    lower_plane = _plane_z(co.y, cavity_state["hinge_y"], jaw_z,
+                           cavity_state["lower_gape"], -1.0)
+    upper_plane = _plane_z(co.y, cavity_state["hinge_y"], jaw_z,
+                           cavity_state["half_gape"], 1.0)
+    span = max(.04, 1.0 - hinge_t)
+    return {
+        "t": t,
+        "below": _smoothstep((lower_plane + max(.030 * length, lip_band * height) - co.z) /
+                             _ramp_width(length, height, .060, max(upper_plane - lower_plane, .02 * height))),
+        "forward": _smoothstep((t - (hinge_t + .010)) / (.30 * span)),
+        "hinge": _smoothstep((t - (hinge_t + .004)) / (.18 * span)),
+        "in_opening_band": _smoothstep((upper_plane + .02 * height - co.z) /
+                                       _ramp_width(length, height, .05, max(upper_plane - lower_plane, .02 * height))),
+        "commissure": _smoothstep((abs(co.x - cavity_state["centre_x"]) /
+                                   max(.001, cavity_state["x_max"] - cavity_state["x_min"])
+                                   * 2.0 - .70) / .30),
+    }
+
+
+def _dump_jaw_terms(points, source_weights, measurement, lip_band, cavity_state):
+    """Write every source point's per-term factor values as CSV.
+
+    Diagnosis only, enabled by RAZORFIN_JAW_TERM_DUMP=<path>.  Lets a lane see
+    WHICH factor steps across a short edge instead of guessing at ramp widths.
+    """
+    target = os.environ.get("RAZORFIN_JAW_TERM_DUMP")
+    if not target or target == "1":
+        target = "/tmp/rf_jaw_terms.csv"
+    keys = ("t", "below", "forward", "hinge", "in_opening_band", "commissure")
+    with open(target, "w") as handle:
+        handle.write("i,x,y,z,w," + ",".join(keys) + "\n")
+        for index, point in enumerate(points):
+            terms = _jaw_weight_terms(point, measurement, lip_band, cavity_state)
+            handle.write("%d,%.6f,%.6f,%.6f,%.6f," % (
+                index, point.x, point.y, point.z, source_weights[index]))
+            handle.write(",".join("%.6f" % terms[key] for key in keys) + "\n")
+    print("MOUTH jaw term dump -> %s (%d points)" % (target, len(points)))
 
 
 def snapshot_jaw_field(obj):
@@ -999,6 +1109,9 @@ def _project_jaw_weights(obj, snapshot, measurement, lip_band, cavity_state):
 
     source_weights = [_jaw_weight_field(point, measurement, lip_band, cavity_state)
                       for point in points]
+
+    if os.environ.get("RAZORFIN_JAW_TERM_DUMP"):
+        _dump_jaw_terms(points, source_weights, measurement, lip_band, cavity_state)
 
     tris = (snapshot or {}).get("tris") or []
     if tris:

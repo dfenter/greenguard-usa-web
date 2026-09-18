@@ -14,8 +14,7 @@
   "mouth": {
     "style": "standard",
     "gape_degrees": 25,
-    "teeth": "upper_lower",
-    "blunt": true
+    "teeth": "upper_lower"
   },
   "head": {
     "mode": "blunt",
