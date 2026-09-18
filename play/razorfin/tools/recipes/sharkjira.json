@@ -31,9 +31,9 @@
   "paint": {
     "resolution": 384,
     "species_hsv": [
-      0.3,
-      0.16,
-      0.24
+      0.6,
+      0.14,
+      0.27
     ],
     "belly": "#93a2a8",
     "softness": 0.18,

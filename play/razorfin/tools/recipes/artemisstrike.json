@@ -29,9 +29,9 @@
   "paint": {
     "resolution": 384,
     "species_hsv": [
-      0.28,
-      0.1,
-      0.34
+      0.6,
+      0.12,
+      0.33
     ],
     "belly": "#9fb0b4",
     "softness": 0.15,
