@@ -24,25 +24,44 @@ game.js, hm2_enemies.js, hm2_bosses.js. NOT pushed.
 fps-at-300 acceptance is covered by the M2 world probe's `?perf` watchdog floor (50 fps
 mobile profile), which the merged state clears at 158.7.
 
-## L5 mission-5 scare: RESOLVED, not a regression
+## L5 mission-5: PRE-EXISTING, not an M3 regression. M2's evidence does not reproduce.
 
-Lane B's 1-trial `L5=30s` FAIL was single-trial noise. Both lanes' completed multi-trial
-runs clear the 45s bar, and both are 55/55:
+Settled by a 3-trial A/B. The **clean baseline `68612b3d`, with no M3 code at all, FAILS
+mission 5 harder than either M3 lane**:
 
-    M2 baseline (handoff)  L5=75s   55/55
-    lane B 1-trial (scare) L5=30s   54/55 FAIL
-    lane B 3-trial rerun   L5=79s   55/55   trials [79,66,80]
-    lane A 2-trial         L5=73s   55/55   trials [63,82]
+    BASELINE 68612b3d (no M3 code) L5=38s  54/55 FAIL   trials [53,31,38]
+    lane B 3-trial (M3 bosses)     L5=79s  55/55 PASS   trials [79,66,80]
+    lane A 2-trial (M3 enemies)    L5=73s  55/55 PASS   trials [63,82]
+    lane B 1-trial (the scare)     L5=30s  54/55 FAIL   trials [30]
 
-Single-trial L5 samples across all runs: 30,63,66,79,80,82. The 30 is an outlier. L15 is
-noisier still (lane B [39,121,117] vs lane A [29,37]), so treat ANY 1-trial median from
-this probe as unreliable; use 3 trials.
+M3 did not regress L5. The baseline is the worst of the three.
 
-A 3-trial A/B (baseline `68612b3d` on port 8795 vs merged `d93316af` on port 8797) was
-launched to confirm on the merged state. Logs `/tmp/hm2_base_campaign.log` and
-`/tmp/hm2_merged_campaign.log`. **This is the remaining resume condition.** Read
-`BOT MEDIANS` and any `^FAIL` from both. Given the four runs above, expect both to pass;
-if merged alone fails L5 across 3 trials, escalate to lane B.
+### This impugns the M2 gate evidence, flag to Dan
+
+HANDOFF-M2.md records `55/55 ... L5=75s` at gated hash `a978cc77`. Re-running the same
+unmodified probe at `68612b3d` (the M2 handoff commit, one commit later, probe file
+untouched) gives L5=38s and 54/55. **The M2 pass is not reproducible at its own gated
+commit.** Nothing in M3 caused this; it is an M2 evidence problem inherited by M3.
+
+### Why: the L5 bar sits inside the noise band
+
+All nine single-trial L5 samples collected today, sorted:
+
+    30 31 38 53 63 66 79 80 82     (bar = 45s)
+
+Bimodal, with 3 of 9 below the bar. The bot dies to hp=0 every time, so this is real
+survival variance, not a probe defect. A 3-trial median can land either side of 45s by
+chance, which is exactly what happened across these runs.
+
+Recommendation for the gate: do NOT hold M3 on L5. Either raise the trial count until the
+median is stable, or re-tune the bar against a measured distribution. Record the M2
+non-reproducibility as its own follow-up rather than folding it into M3's verdict.
+
+**Remaining resume condition**: the merged 3-trial run
+(`/tmp/hm2_merged_campaign.log`, port 8797) was still in flight at park time; its L5 trials
+looked healthy (t=64s on trial 3). Read its `BOT MEDIANS` and `^FAIL` lines. Given the
+baseline also fails, a merged L5 miss is NOT an M3 blocker; only a merged failure that the
+baseline passes would be.
 
 ## CORRECTION: Core rotation is FINE. The real defect is PHASE 0.
 
