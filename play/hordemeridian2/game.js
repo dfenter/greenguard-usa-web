@@ -72,6 +72,8 @@
   var TIDE_HUD = HM_DATA.TIDE_HUD;
   var WEAPONS = HM_DATA.WEAPONS;
   var WEAPON_BY_KEY = HM_DATA.WEAPON_BY_KEY;
+  var WEAPON_MODS = HM_DATA.WEAPON_MODS || [];
+  var EVOLUTIONS_BY_BASE = HM_DATA.EVOLUTIONS_BY_BASE || {};
   var UPGRADES = HM_DATA.UPGRADES;
   var UPGRADE_BY_KEY = HM_DATA.UPGRADE_BY_KEY;
   var RARITY_STYLE = HM_DATA.RARITY_STYLE;
@@ -103,9 +105,9 @@
     var tiers = {};
     for (var i = 0; i < HANGAR_TRACKS.length; i++) tiers[HANGAR_TRACKS[i].key] = 0;
     return {
-      balance: 0, tiers: tiers, equippedWeapon: 'bolt-lance',
-      loadout: ['bolt-lance', '', ''],
-      weaponsSeen: { 'bolt-lance': true }, paint: 'teal', trim: 'mint', frame: 'classic'
+      balance: 0, tiers: tiers, equippedWeapon: 'lance',
+      loadout: ['lance', '', ''],
+      weaponsSeen: { 'lance': true }, paint: 'teal', trim: 'mint', frame: 'classic'
     };
   }
   function makeDefaultCampaign() {
@@ -286,9 +288,9 @@
   if (typeof profile.tutorialDone !== 'boolean') profile.tutorialDone = false;
   if (!profile.hangar) profile.hangar = makeDefaultHangar();
   if (profile.hangar.tiers.gunDeck == null) { profile.hangar.tiers.gunDeck = 0; didMigrate = true; }
-  if (!profile.hangar.weaponsSeen['bolt-lance']) profile.hangar.weaponsSeen['bolt-lance'] = true;
+  if (!profile.hangar.weaponsSeen['lance']) profile.hangar.weaponsSeen['lance'] = true;
   if (!profile.hangar.equippedWeapon || !profile.hangar.weaponsSeen[profile.hangar.equippedWeapon]) {
-    profile.hangar.equippedWeapon = 'bolt-lance';
+    profile.hangar.equippedWeapon = 'lance';
   }
   // Gun-deck loadout: up to three starting weapons, one per gun-deck slot.
   // Slot 0 is always live; slots 1 and 2 come online from the gunDeck hangar
@@ -297,7 +299,7 @@
   // readers (debug state, save validator) keep working.
   function sanitizeLoadout() {
     var h = profile.hangar, changed = false;
-    if (!Array.isArray(h.loadout)) { h.loadout = [h.equippedWeapon || 'bolt-lance', '', '']; changed = true; }
+    if (!Array.isArray(h.loadout)) { h.loadout = [h.equippedWeapon || 'lance', '', '']; changed = true; }
     while (h.loadout.length < 3) { h.loadout.push(''); changed = true; }
     if (h.loadout.length > 3) { h.loadout.length = 3; changed = true; }
     var used = {};
@@ -307,7 +309,7 @@
       if (k) used[k] = true;
     }
     if (!h.loadout[0]) {
-      h.loadout[0] = h.weaponsSeen[h.equippedWeapon] ? h.equippedWeapon : 'bolt-lance';
+      h.loadout[0] = h.weaponsSeen[h.equippedWeapon] ? h.equippedWeapon : 'lance';
       changed = true;
     }
     if (h.equippedWeapon !== h.loadout[0]) { h.equippedWeapon = h.loadout[0]; changed = true; }
@@ -557,11 +559,11 @@
   });
 
   var HM_DEBUG_STATE = {
-    currentWave: 0, activeBuffs: {}, wingCount: 0, equippedWeapon: 'bolt-lance',
+    currentWave: 0, activeBuffs: {}, wingCount: 0, equippedWeapon: 'lance',
     weaponsSeen: 1, draftOptions: [], livePickups: [], bases: [],
     region: 'meridian-verge', regionsSeen: 1,
-    regionEnemiesSeen: {}, regionBossActive: '', weaponSlots: ['bolt-lance', '', ''], slotsUnlocked: 1,
-    arsenal: [], loadout: ['bolt-lance', '', ''], weaponsFound: 1,
+    regionEnemiesSeen: {}, regionBossActive: '', weaponSlots: ['lance', '', ''], slotsUnlocked: 1,
+    arsenal: [], loadout: ['lance', '', ''], weaponsFound: 1,
     forceGenerousDrops: false, forceWingDrop: false, forceWeaponDrop: false,
     forceTideDrop: false, forceSpectacle: false, tideOdds: 0, lastTideTurner: '',
     forceDraft: false, forceGrantGems: false, forceRegionTour: false, forceRegionBoss: false,
@@ -572,7 +574,7 @@
       { id: '', type: '', progress: 0, count: 0, done: false },
       { id: '', type: '', progress: 0, count: 0, done: false }
     ], objectiveCount: 0 },
-    hangar: { balance: 0, tiers: {}, equippedWeapon: 'bolt-lance', paint: 'teal' },
+    hangar: { balance: 0, tiers: {}, equippedWeapon: 'lance', paint: 'teal' },
     watchdog: {
       maxStepMs: 0,
       lastBeatAgoMs: 0,
@@ -588,7 +590,7 @@
   function updateHangarDebugState(st) {
     if (!st) return;
     var h = profile.hangar;
-    if (!st.hangar) st.hangar = { balance: 0, tiers: {}, equippedWeapon: 'bolt-lance', paint: 'teal' };
+    if (!st.hangar) st.hangar = { balance: 0, tiers: {}, equippedWeapon: 'lance', paint: 'teal' };
     st.hangar.balance = Math.floor(h.balance);
     st.hangar.equippedWeapon = h.equippedWeapon;
     st.hangar.paint = h.paint;
@@ -1304,8 +1306,7 @@
             wsBadge.setOrigin(0, 0.5);
             g.add(wsBadge);
           }
-          if (weapon.tier === 'legendary' && seen) wbg.setTint(0xff7ae0);
-          else if (weapon.tier === 'upgraded' && seen) wbg.setTint(0xffd67a);
+          if (weapon.tier === 'evolution' && seen) wbg.setTint(0xffd67a);
           if (seen) {
             wbg.setInteractive({ useHandCursor: true });
             wbg.on('pointerdown', function (weaponKey) { return function () { scene.selectWeapon(weaponKey); }; }(weapon.key));
@@ -1329,17 +1330,27 @@
           var cx = 14 + cxW / 2 + cc * (cxW + cxGap), cy = cxTop + cr * (cxH + 4) + cxH / 2;
           var cBg = this.cardBase(g, cx, cy, cxW, cxH, false);
           cBg.setAlpha(cSeen ? 1 : 0.55);
-          if (cSeen && cwp.tier === 'legendary') cBg.setTint(0xff7ae0);
-          else if (cSeen && cwp.tier === 'upgraded') cBg.setTint(0xffd67a);
+          if (cSeen && cwp.tier === 'evolution') cBg.setTint(0xffd67a);
           var cIcon = this.add.image(cx - cxW / 2 + 14, cy, 'atlas', cSeen ? cwp.glyph : 'ic_lock')
             .setScale(Math.min(0.38, cxH / 64)).setTint(cSeen ? cwp.color : 0x44586a).setAlpha(cSeen ? 1 : 0.75);
           var cNameMax = cxW - 31;
           var cNameStr = cSeen ? cwp.shortName : '???';
           if (window.__HM2_UI) cNameStr = window.__HM2_UI.wrapText(this, cNameStr, { fontFamily: FONT_DISPLAY, fontSize: TYPE.micro, fontStyle: 'bold' }, cNameMax, 1)[0] || '';
-          var cName = neonText(this, cx - cxW / 2 + 26, cy,
+          var cName = neonText(this, cx - cxW / 2 + 26, cwp.recipeText ? cy - 7 : cy,
             cNameStr, TYPE.micro, cSeen ? '#d8f5ff' : '#6d8593');
           cName.setOrigin(0, 0.5);
           g.add([cIcon, cName]);
+          // The recipe shows even while the weapon is still a silhouette: the
+          // whole point of the codex is telling the player how to get there.
+          if (cwp.recipeText) {
+            var cRecipeMax = cxW - 31;
+            var cRecipeStr = cwp.recipeText;
+            if (window.__HM2_UI) cRecipeStr = window.__HM2_UI.wrapText(this, cRecipeStr, { fontFamily: FONT_BODY, fontSize: TYPE.micro }, cRecipeMax, 1)[0] || '';
+            var cRecipe = bodyText(this, cx - cxW / 2 + 26, cy + 9, cRecipeStr, TYPE.micro,
+              cSeen ? '#ffd67a' : '#8a7a4e');
+            cRecipe.setOrigin(0, 0.5);
+            g.add(cRecipe);
+          }
         }
         this.setNotice(found >= WEAPONS.length
           ? 'CODEX COMPLETE  ·  EVERY WEAPON RECOVERED.'
@@ -1483,13 +1494,13 @@
       if (held === slot) {
         // Tapping the weapon already in the selected slot clears it. Slot 0
         // always carries a primary, so it falls back to the Bolt Lance.
-        loadout[slot] = slot === 0 ? 'bolt-lance' : '';
+        loadout[slot] = slot === 0 ? 'lance' : '';
         notice = slot === 0 ? 'PRIMARY RESET TO BOLT LANCE.' : 'SLOT ' + (slot + 1) + ' CLEARED.';
         noticeColor = '#7fa3b5';
       } else {
         if (held >= 0) loadout[held] = loadout[slot];   // straight swap, never a duplicate
         loadout[slot] = key;
-        if (!loadout[0]) loadout[0] = 'bolt-lance';
+        if (!loadout[0]) loadout[0] = 'lance';
         notice = WEAPON_BY_KEY[key].name.toUpperCase() + ' ARMED IN SLOT ' + (slot + 1) + '.';
       }
       profile.hangar.equippedWeapon = loadout[0];
@@ -1939,7 +1950,7 @@
       this.weaponDrops = [];
       for (i = 0; i < MAX_WEAPON_DROPS; i++) {
         this.weaponDrops.push({
-          alive: false, weapon: 'bolt-lance', tier: 'base', x: 0, y: 0, vx: 0, vy: 0, life: 0, born: 0,
+          alive: false, weapon: 'lance', tier: 'base', x: 0, y: 0, vx: 0, vy: 0, life: 0, born: 0,
           spr: this.add.image(0, 0, 'atlas', 'ic_lance').setDepth(27)
             .setBlendMode(Phaser.BlendModes.ADD).setVisible(false),
           ring: this.add.image(0, 0, 'atlas', 'ring_thick').setDepth(26)
@@ -2052,6 +2063,14 @@
             .setBlendMode(Phaser.BlendModes.ADD).setVisible(false)
         });
       }
+
+      // M1 (2026-09-17): lightweight non-sprite-pooled state for the new
+      // GAP 3 fire modes. These reuse existing pulse/ring/particle helpers
+      // for visuals each tick rather than adding dedicated sprite pools.
+      this.hazards = []; // {kind:'rift'|'wall'|'tether', x,y,x2,y2,r,dps,pull,t,dur}
+      this.drones = []; // {x,y,angle,orbitR,weaponKey,fireT}
+      this.weaponCharge = {}; // key -> {t, charging}
+      this.auraT = {}; // key -> next-tick timer
       this.purgeRings = [];
       for (i = 0; i < 3; i++) {
         this.purgeRings.push({
@@ -3002,7 +3021,7 @@
       var hGunDeck = hangarLevel('gunDeck');
       sanitizeLoadout();
       var startingWeapon = profile.hangar.loadout[0] || profile.hangar.equippedWeapon;
-      if (!WEAPON_BY_KEY[startingWeapon] || !profile.hangar.weaponsSeen[startingWeapon]) startingWeapon = 'bolt-lance';
+      if (!WEAPON_BY_KEY[startingWeapon] || !profile.hangar.weaponsSeen[startingWeapon]) startingWeapon = 'lance';
       // The loadout picks for slots that are not open yet ride along in the run
       // arsenal and auto-arm the moment their slot comes online.
       var startSlotCount = hGunDeck > 1 ? 3 : (hGunDeck > 0 ? 2 : 1);
@@ -3080,6 +3099,7 @@
         strikeCharges: 5, openingAirstrikeDone: false, openingDropDone: false, openingEnemyDone: false,
         equippedWeapon: startingWeapon, weaponSlots: startSlots,
         arsenal: startArsenal, pendingLoadout: pendingLoadout,
+        weaponLevel: {}, weaponMods: {},
         slotsUnlocked: startSlotCount,
         weaponSeen: seenWeapons, weaponsSeen: seenCount,
         weaponDrops: 0, weaponLastDrop: -99, weaponDropCursor: 1, weaponSerial: 0, weaponGuaranteeDone: false, weaponGuarantee2Done: false,
@@ -3117,6 +3137,8 @@
       this.minimapT = 0;
       this.purgePre = 0;
       this.decoyX = 0; this.decoyY = 0;
+      this.evolveFx = null;
+      this.hazards = []; this.drones = []; this.weaponCharge = {}; this.auraT = {};
       if (!this.hullHistoryHp) {
         this.hullHistoryHp = new Array(600);
         this.hullHistoryTime = new Array(600);
@@ -3483,6 +3505,9 @@
       var stepStart = performance.now();
       this.watchdogPhase = 'sim';
       this.inSim = true;
+      var realDt = dt;
+      this.stepEvolveFx(realDt);
+      if (this.evolveFx && this.evolveFx.active && this.evolveFx.t < 0.3) dt *= 0.3;
       run.time += dt;
       this.recordHull(dt);
 
@@ -3518,7 +3543,11 @@
       this.stepWaves(dt);
       this.buildHash();
       this.stepWeapons(dt);
+      this.stepCharges(dt);
       this.stepShots(dt);
+      this.stepHazards(dt);
+      this.stepDrones(dt);
+      this.stepAuras(dt);
       this.watchdogPhase = 'enemies';
       this.stepEnemies(dt);
       this.buildHash();
@@ -3701,113 +3730,14 @@
       var angle = Math.atan2(target.y - g.y, target.x - g.x);
       var arsenal = run.buffs.arsenal > 0;
       var base = 9 * p.damage * p.projectileDamage * (dmgScale || 0.40) * (arsenal ? 1.45 : 1) * (1 + mastery * 0.18);
-      var speed = p.projectileSpeed, i, spread, sa;
-      if (data.key === 'bolt-lance') {
-        this.fireShot('bolt', g.x, g.y, Math.cos(angle) * 560 * speed, Math.sin(angle) * 560 * speed,
-          base, 5 * p.projectileSize, p.pierce, data.key, true);
-      } else if (data.key === 'scatter-volley') {
-        spread = 0.72;
-        for (i = 0; i < 3; i++) {
-          sa = angle + (i - 1) * spread / 2;
-          this.fireShot('scatter', g.x, g.y, Math.cos(sa) * 450 * speed, Math.sin(sa) * 450 * speed,
-            base * 0.56, 5 * p.projectileSize, p.pierce, data.key, true);
-        }
-      } else if (data.key === 'rail-piercer') {
-        this.fireShot('rail', g.x, g.y, Math.cos(angle) * 760 * speed, Math.sin(angle) * 760 * speed,
-          base * 1.75, 7 * p.projectileSize, 3 + p.pierce, data.key, true);
-      } else if (data.key === 'seeker-swarm') {
-        for (i = 0; i < 2; i++) {
-          sa = angle + (i - 0.5) * 0.42;
-          this.fireShot('seeker', g.x, g.y, Math.cos(sa) * 240 * speed, Math.sin(sa) * 240 * speed,
-            base * 0.72, 8 * p.projectileSize, p.pierce, data.key, true);
-        }
-      } else if (data.key === 'plasma-mortar') {
-        this.fireShot('mortar', g.x, g.y, Math.cos(angle) * 360 * speed, Math.sin(angle) * 360 * speed - 230,
-          base * 1.45, 12 * p.projectileSize, p.pierce, data.key, true);
-      } else if (data.key === 'sweep-beam') {
-        this.fireBeam(angle, base * 1.14, 430 + mastery * 25, 24 + mastery * 4,
-          data.key, p.pierce, g.x, g.y, true);
-      } else if (data.key === 'glaive-return') {
-        this.fireShot('glaive', g.x, g.y, Math.cos(angle) * 500 * speed, Math.sin(angle) * 500 * speed,
-          base * 1.24, 10 * p.projectileSize, 2 + p.pierce, data.key, true);
-      } else if (data.key === 'mine-layer') {
-        this.dropMine(base * 1.18, 100 + mastery * 8, g.x, g.y, data.key, true);
-      } else if (data.key === 'ricochet-shard') {
-        this.fireShot('ricochet', g.x, g.y, Math.cos(angle) * 520 * speed, Math.sin(angle) * 520 * speed,
-          base * 0.96, 7 * p.projectileSize, 1 + p.pierce, data.key, true);
-      } else if (data.key === 'twin-phase') {
-        for (i = -1; i <= 1; i += 2) {
-          sa = angle + i * 0.09;
-          this.fireShot('twin', g.x, g.y, Math.cos(sa) * 610 * speed, Math.sin(sa) * 610 * speed,
-            base * 0.76, 5 * p.projectileSize, p.pierce, data.key, true);
-        }
-      } else if (data.key === 'storm-coil') {
-        this.fireShot('coil', g.x, g.y, Math.cos(angle) * 500 * speed, Math.sin(angle) * 500 * speed,
-          base * 1.05, 7 * p.projectileSize, p.pierce, data.key, true);
-      } else if (data.key === 'lance-array-mk2') {
-        var mirrorElite = this.nearestElite(g.x, g.y, 980), mirrorAngle = mirrorElite ?
-          Math.atan2(mirrorElite.y - g.y, mirrorElite.x - g.x) : angle;
-        for (i = -1; i <= 1; i++) {
-          sa = mirrorAngle + i * 0.16;
-          var mirrorLance = this.fireShot('lance-array', g.x, g.y, Math.cos(sa) * 620 * speed,
-            Math.sin(sa) * 620 * speed, base * 0.52, 6 * p.projectileSize, 1 + p.pierce, data.key, true);
-          if (mirrorLance) mirrorLance.targetRef = mirrorElite;
-        }
-      } else if (data.key === 'nova-scatter') {
-        for (i = 0; i < 5; i++) {
-          sa = angle + (i - 2) * 0.20;
-          var mirrorNova = this.fireShot('nova-scatter', g.x, g.y, Math.cos(sa) * 480 * speed,
-            Math.sin(sa) * 480 * speed, base * 0.34, 5 * p.projectileSize, p.pierce, data.key, true);
-          if (mirrorNova) { mirrorNova.rangeBurst = true; mirrorNova.burstRadius = 96; mirrorNova.burstDmg = base * 0.14; }
-        }
-      } else if (data.key === 'rail-storm') {
-        this.fireShot('rail-storm', g.x, g.y, Math.cos(angle) * 820 * speed, Math.sin(angle) * 820 * speed,
-          base * 1.86, 8 * p.projectileSize, 4 + p.pierce, data.key, true);
-      } else if (data.key === 'swarm-matrix') {
-        for (i = 0; i < 2; i++) {
-          sa = angle + (i - 0.5) * 0.34;
-          this.fireShot('swarm-dart', g.x, g.y, Math.cos(sa) * 285 * speed, Math.sin(sa) * 285 * speed,
-            base * 0.62, 8 * p.projectileSize, p.pierce, data.key, true);
-        }
-      } else if (data.key === 'mortar-cascade') {
-        for (i = -1; i <= 1; i++) {
-          sa = angle + i * 0.28;
-          this.fireShot('mortar-cascade', g.x, g.y, Math.cos(sa) * 390 * speed,
-            Math.sin(sa) * 390 * speed - 250, base * 0.42, 12 * p.projectileSize,
-            p.pierce, data.key, true);
-        }
-      } else if (data.key === 'prism-beam') {
-        this.fireBeam(angle, base * 1.28, 560 + mastery * 28, 30 + mastery * 4,
-          data.key, 1 + p.pierce, g.x, g.y, true);
-      } else if (data.key === 'glaive-cyclone') {
-        for (i = 0; i < 2; i++) {
-          var mirrorGlaive = this.fireShot('cyclone-glaive', g.x, g.y, 0, 0, base * 0.86,
-            10 * p.projectileSize, 2 + p.pierce, data.key, true, i);
-          if (mirrorGlaive) {
-            mirrorGlaive.orbitAngle = angle + i * Math.PI;
-            mirrorGlaive.orbitRadius = 28; mirrorGlaive.orbitDir = i ? -1 : 1;
-            mirrorGlaive.ox = g.x; mirrorGlaive.oy = g.y;
-          }
-        }
-      } else if (data.key === 'minefield-web') {
-        var mirrorWeb = ++run.weaponSerial;
-        for (i = -1; i <= 1; i++) {
-          var webAngle = angle + Math.PI + i * 0.42;
-          this.dropMine(base * 0.45, 116 + mastery * 8,
-            g.x - Math.cos(webAngle) * (38 + (i + 1) * 22), g.y - Math.sin(webAngle) * (38 + (i + 1) * 22),
-            data.key, true, mirrorWeb, i + 1);
-        }
-      } else if (data.key === 'ricochet-prism') {
-        this.fireShot('prism-ricochet', g.x, g.y, Math.cos(angle) * 560 * speed,
-          Math.sin(angle) * 560 * speed, base * 1.25, 8 * p.projectileSize,
-          3 + p.pierce, data.key, true);
-      } else if (data.key === 'coil-tempest') {
-        this.fireShot('coil-tempest', g.x, g.y, Math.cos(angle) * 720 * speed, Math.sin(angle) * 720 * speed,
-          base * 1.34, 7 * p.projectileSize, 1 + p.pierce, data.key, true);
-        this.arcLine(g.x, g.y, target.x, target.y, data.color, 0.16);
-      } else if (data.spec) {
-        this.fireSpecWeapon(data, g.x, g.y, angle, base, 0, true);
-      }
+
+      // M1 (2026-09-17): every weapon carries a spec, so the mirror squadron
+      // always fires through the same data-driven interpreter as the pilot.
+      var mirrorKey = weaponKey || run.equippedWeapon;
+      var mirrorEffSpec = window.HM2_WEAPONS && data.spec ?
+        window.HM2_WEAPONS.effectiveSpec(data, (run.weaponLevel[mirrorKey] || 1) - 1) : data.spec;
+      if (data.spec) this.fireSpecWeapon(data, g.x, g.y, angle, base, 0, true, mirrorEffSpec);
+
       if (!silent) weaponSfx(data.cue, { volume: 0.09, rate: data.rate });
     },
 
@@ -3921,9 +3851,7 @@
         var wLive = 0;
         for (var wdi = 0; wdi < this.weaponDrops.length; wdi++) if (this.weaponDrops[wdi].alive) wLive++;
         if (wLive < 3) {
-          var wTier = wrun.wave >= 5 && srand() < 0.10 ? 'legendary' :
-            (wrun.wave >= 3 && srand() < 0.32 ? 'upgraded' : 'base');
-          this.spawnWeaponDrop(this.nextWeaponDrop(null, wTier),
+          this.spawnWeaponDrop(this.nextWeaponDrop(null, 'base'),
             this.p.x + (srand() - 0.5) * 320, this.p.y + (srand() - 0.5) * 320);
         }
       }
@@ -4348,7 +4276,7 @@
           var baseAng = run.time * 1.9;
           for (var pa = 0; pa < 3; pa++) {
             this.fireBeam(baseAng + pa * TAU / 3, 13 * p.damage, 360, 20,
-              'prism-beam', 1, null, null, true);
+              'beam', 1, null, null, false, true);
           }
           sfx('pulse', { volume: 0.08, rate: 1.15 });
         }
@@ -4599,6 +4527,55 @@
       return -1;
     },
 
+    // GAP 4: fires when a base weapon hits in-run level 5. Requires the gated
+    // hangar module at rank 1+ (a meta-progression gate, not something a
+    // single run can bypass) and an evolvesTo target on the weapon data.
+    stepEvolveFx: function (dt) {
+      if (!this.evolveFx || !this.evolveFx.active) return;
+      this.evolveFx.t += dt;
+      if (this.evolveFx.t >= this.evolveFx.dur) this.evolveFx.active = false;
+    },
+
+    // Sweep every weapon the run is carrying and evolve any that now satisfy
+    // their recipe (level 5 plus the module at rank 1). Safe to call often:
+    // tryEvolveWeapon is a no-op unless the recipe is actually met.
+    retryEvolutions: function () {
+      var run = this.run;
+      if (!run || !run.weaponLevel) return;
+      var keys = [], seen = {}, i, k;
+      for (i = 0; i < run.weaponSlots.length; i++) {
+        k = run.weaponSlots[i];
+        if (k && !seen[k]) { seen[k] = 1; keys.push(k); }
+      }
+      for (i = 0; i < run.arsenal.length; i++) {
+        k = run.arsenal[i];
+        if (k && !seen[k]) { seen[k] = 1; keys.push(k); }
+      }
+      for (i = 0; i < keys.length; i++) {
+        if (run.weaponLevel[keys[i]] >= 5) this.tryEvolveWeapon(keys[i]);
+      }
+    },
+
+    tryEvolveWeapon: function (fromKey) {
+      var data = WEAPON_BY_KEY[fromKey];
+      if (!data || !data.evolvesTo) return false;
+      var toKey = data.evolvesTo, evolvedData = WEAPON_BY_KEY[toKey];
+      if (!evolvedData) return false;
+      if (!evolvedData.recipeModule || hangarLevel(evolvedData.recipeModule) < 1) return false;
+      var run = this.run;
+      var slot = this.slotOfWeapon(fromKey);
+      if (slot >= 0) run.weaponSlots[slot] = toKey;
+      if (run.equippedWeapon === fromKey) run.equippedWeapon = toKey;
+      var ai = run.arsenal.indexOf(fromKey);
+      if (ai >= 0) run.arsenal[ai] = toKey; else run.arsenal.push(toKey);
+      run.weaponLevel[toKey] = 1;
+      if (!run.weaponSeen[toKey]) { run.weaponSeen[toKey] = true; run.weaponsSeen++; }
+      markWeaponSeen(toKey);
+      this.queueSpectacleBeat(evolvedData.name.toUpperCase(), 0xffd67a, 1.3, false);
+      this.evolveFx = { active: true, t: 0, dur: 1.5, title: evolvedData.name.toUpperCase() };
+      return true;
+    },
+
     bonusWeight: function (data) {
       if (data.key === 'strike-wing' || data.key === 'cluster-barrage') {
         return data.weight * (1 + clamp(this.run.tideWeight, 0, 1) * 0.28);
@@ -4687,8 +4664,7 @@
       run.equippedWeapon = run.weaponSlots[0] || weaponKey;
       if (source) this.floatText(this.p.x, this.p.y - 28, data.name.toUpperCase(), '#e7fff7', TYPE.body);
       this.showBanner(slot === 0 ? 'PRIMARY EQUIPPED' : (slot === 1 ? 'SECONDARY ONLINE' : 'TERTIARY ONLINE'),
-        data.tier === 'legendary' ? data.name.toUpperCase() + ' // LEGENDARY' :
-        (data.tier === 'upgraded' ? data.name.toUpperCase() + ' // UPGRADED' : data.name.toUpperCase()));
+        data.tier === 'evolution' ? data.name.toUpperCase() + ' // EVOLVED' : data.name.toUpperCase());
       this.updateHud();
       return true;
     },
@@ -4702,7 +4678,7 @@
       var first = held.shift();
       held.push(first);
       for (var j = 0; j < run.slotsUnlocked; j++) run.weaponSlots[j] = j < held.length ? held[j] : '';
-      run.equippedWeapon = run.weaponSlots[0] || 'bolt-lance';
+      run.equippedWeapon = run.weaponSlots[0] || 'lance';
       this.showBanner('PRIMARY PROMOTED', (WEAPON_BY_KEY[run.equippedWeapon] || WEAPONS[0]).name.toUpperCase());
       this.updateHud();
     },
@@ -4803,8 +4779,7 @@
           var inSlot = this.slotOfWeapon(key);
           var isTarget = inSlot === this.arsenalSlot;
           var cBg = this.add.image(cx, cy, 'atlas', isTarget ? 'card_hot' : 'card').setDisplaySize(cellW, cellH);
-          if (data.tier === 'legendary') cBg.setTint(0xff7ae0);
-          else if (data.tier === 'upgraded') cBg.setTint(0xffd67a);
+          if (data.tier === 'evolution') cBg.setTint(0xffd67a);
           var cIcon = this.add.image(cx - cellW / 2 + (cols === 3 ? 14 : 20), cy, 'atlas', data.glyph)
             .setScale(cols === 3 ? 0.34 : 0.42).setTint(data.color);
           var cNameMax = cellW - 44;
@@ -4863,17 +4838,6 @@
       if (key && WEAPON_BY_KEY[key]) {
         if (run.arsenal.indexOf(key) < 0) return key;
       }
-      if (!requested && tier === 'upgraded') {
-        var regionalKeys = REGION_WEAPON_KEYS[this.run.regionKey] || [];
-        for (var rwi = 0; rwi < regionalKeys.length; rwi++) {
-          var regionalKey = regionalKeys[(this.run.weaponDropCursor + rwi) % regionalKeys.length];
-          if (run.arsenal.indexOf(regionalKey) < 0 && !this.run.weaponSeen[regionalKey]) return regionalKey;
-        }
-        for (var rwi2 = 0; rwi2 < regionalKeys.length; rwi2++) {
-          var fallbackRegional = regionalKeys[rwi2];
-          if (run.arsenal.indexOf(fallbackRegional) < 0) return fallbackRegional;
-        }
-      }
       var start = run.weaponDropCursor || 0;
       for (var pass = 0; pass < 2; pass++) {
         for (var i = 0; i < WEAPONS.length; i++) {
@@ -4889,7 +4853,7 @@
       for (var fi = 0; fi < WEAPONS.length; fi++) {
         if (!tier || (WEAPONS[fi].tier || 'base') === tier) return WEAPONS[fi].key;
       }
-      return run.equippedWeapon === 'bolt-lance' ? 'scatter-volley' : 'bolt-lance';
+      return run.equippedWeapon === 'lance' ? 'scatter' : 'lance';
     },
 
     spawnWeaponDrop: function (weaponKey, atX, atY) {
@@ -4919,23 +4883,32 @@
       drop.life = 30;
       drop.born = run.time;
       this.unpark(drop.spr); this.unpark(drop.ring); this.unpark(drop.beacon);
-      var upgraded = data.tier === 'upgraded';
-      var legendary = data.tier === 'legendary';
-      var dropTint = legendary ? 0xff7ae0 : (upgraded ? 0xffd67a : data.color);
+      var evolved = data.tier === 'evolution';
+      var dropTint = evolved ? 0xffd67a : data.color;
       drop.spr.setTexture('atlas', data.glyph).setPosition(drop.x, drop.y)
-        .setTint(legendary ? 0xffe0ff : (upgraded ? 0xfff0b0 : data.color)).setAlpha(1)
-        .setScale(legendary ? 1.14 : (upgraded ? 1.02 : 0.9)).setRotation(0);
+        .setTint(evolved ? 0xfff0b0 : data.color).setAlpha(1)
+        .setScale(evolved ? 1.02 : 0.9).setRotation(0);
       drop.ring.setPosition(drop.x, drop.y).setTint(dropTint)
-        .setAlpha(legendary ? 0.95 : (upgraded ? 0.84 : 0.55))
-        .setDisplaySize(legendary ? 122 : (upgraded ? 104 : 86), legendary ? 122 : (upgraded ? 104 : 86));
-      drop.beacon.setPosition(drop.x, drop.y - 54).setDisplaySize(legendary ? 12 : 9, legendary ? 136 : 118)
-        .setTint(dropTint).setAlpha(legendary ? 0.8 : (upgraded ? 0.68 : 0.48)).setRotation(0);
+        .setAlpha(evolved ? 0.84 : 0.55)
+        .setDisplaySize(evolved ? 104 : 86, evolved ? 104 : 86);
+      drop.beacon.setPosition(drop.x, drop.y - 54).setDisplaySize(evolved ? 9 : 9, evolved ? 118 : 118)
+        .setTint(dropTint).setAlpha(evolved ? 0.68 : 0.48).setRotation(0);
       run.weaponDrops++;
       run.weaponLastDrop = run.time;
       return drop;
     },
 
     activateWeaponDrop: function (weaponKey) {
+      if (typeof weaponKey === 'string' && weaponKey.indexOf('mod:') === 0) {
+        for (var mi = 0; mi < this.weaponDrops.length; mi++) {
+          if (this.weaponDrops[mi].alive && this.weaponDrops[mi].weapon === weaponKey) {
+            this.killSprite(this.weaponDrops[mi]);
+            break;
+          }
+        }
+        this.activateModDrop(weaponKey.slice(4));
+        return;
+      }
       var data = WEAPON_BY_KEY[weaponKey];
       if (!data || this.state !== 'playing') return;
       for (var i = 0; i < this.weaponDrops.length; i++) {
@@ -4947,15 +4920,11 @@
       if (!this.equipWeapon(weaponKey, true)) return;
       weaponSfx(data.cue, { volume: 0.52, rate: data.rate });
       this.triggerBuffGlow(data.color);
-      var revealTitle = data.tier === 'legendary' ? 'LEGENDARY // ' + data.name.toUpperCase() :
-        (data.tier === 'upgraded' ? 'UPGRADED // ' + data.name.toUpperCase() : data.name.toUpperCase());
-      this.queueSpectacleBeat(revealTitle,
-        data.tier === 'legendary' ? 0xff7ae0 : (data.tier === 'upgraded' ? 0xffd67a : data.color),
-        data.tier === 'legendary' ? 1.3 : (data.tier === 'upgraded' ? 1.18 : 1.0), false);
-      this.showBanner(data.tier === 'legendary' ? 'LEGENDARY PRIMARY' :
-        (data.tier === 'upgraded' ? 'UPGRADED PRIMARY' : data.name.toUpperCase()),
-        data.tier === 'legendary' ? data.name.toUpperCase() + ' // ONE OF TEN' :
-        (data.tier === 'upgraded' ? data.name.toUpperCase() + ' // LATE-RUN PRIZE' : 'ARSENAL PRIMARY EQUIPPED'), false, true);
+      var revealTitle = data.tier === 'evolution' ? 'EVOLVED // ' + data.name.toUpperCase() : data.name.toUpperCase();
+      this.queueSpectacleBeat(revealTitle, data.tier === 'evolution' ? 0xffd67a : data.color,
+        data.tier === 'evolution' ? 1.18 : 1.0, false);
+      this.showBanner(data.tier === 'evolution' ? 'EVOLVED PRIMARY' : data.name.toUpperCase(),
+        data.tier === 'evolution' ? data.name.toUpperCase() + ' // EVOLVED WEAPON' : 'ARSENAL PRIMARY EQUIPPED', false, true);
     },
 
     tryDropWeapon: function (e) {
@@ -4967,7 +4936,7 @@
       if (forced || (run.time >= 30 && run.weaponsSeen < 2 && !run.weaponGuaranteeDone) ||
           (run.time >= 90 && run.weaponsSeen < 3 && !run.weaponGuarantee2Done)) {
         var wanted = typeof forced === 'string' && WEAPON_BY_KEY[forced] ? forced : null;
-        var forcedTier = forced === 'upgraded' ? 'upgraded' : (forced === 'base' ? 'base' : null);
+        var forcedTier = forced === 'base' ? 'base' : null;
         var key = this.nextWeaponDrop(wanted, forcedTier);
         var drop = this.spawnWeaponDrop(key, e.x, e.y);
         if (drop) { if (run.weaponGuaranteeDone) run.weaponGuarantee2Done = true; run.weaponGuaranteeDone = true; }
@@ -4980,9 +4949,70 @@
       if (this.p.ranks.dropLuck) chance *= 1 + this.p.ranks.dropLuck * 0.11;
       chance *= 1 + (this.p.hangarDropLuck || 0);
       if (srand() > chance) return false;
-      var normalTier = run.wave >= 5 && srand() < 0.09 ? 'legendary' :
-        (run.wave >= 3 && srand() < 0.32 ? 'upgraded' : 'base');
-      return !!this.spawnWeaponDrop(this.nextWeaponDrop(null, normalTier), e.x, e.y);
+      // Mod pickups (2026-09-17) replace the old "upgraded" drop tier: a
+      // separate low-frequency roll drops a stackable primary-weapon mod
+      // instead of a new gun.
+      if (run.wave >= 2 && srand() < 0.18) {
+        return !!this.spawnModDrop(e.x, e.y);
+      }
+      return !!this.spawnWeaponDrop(this.nextWeaponDrop(null, 'base'), e.x, e.y);
+    },
+
+    // WEAPON_MODS pickup: a small stackable stat bump for the equipped
+    // primary. Reuses the weapon-drop pool/effects (as 'mod:<key>') rather
+    // than adding a whole new pickup system.
+    spawnModDrop: function (atX, atY) {
+      var mods = WEAPON_MODS, run = this.run;
+      if (!mods || !mods.length || run.weaponDrops >= WEAPON_DROP_CAP) return null;
+      var mod = mods[Math.floor(srand() * mods.length) % mods.length];
+      var pseudoKey = 'mod:' + mod.key;
+      for (var q = 0; q < this.weaponDrops.length; q++) {
+        if (this.weaponDrops[q].alive && this.weaponDrops[q].weapon === pseudoKey) return null;
+      }
+      var drop = null;
+      for (var i = 0; i < this.weaponDrops.length; i++) {
+        if (!this.weaponDrops[i].alive) { drop = this.weaponDrops[i]; break; }
+      }
+      if (!drop) return null;
+      if (atX == null || atY == null) {
+        var a = srand() * TAU;
+        atX = clamp(this.p.x + Math.cos(a) * 260, -EDGE + 30, EDGE - 30);
+        atY = clamp(this.p.y + Math.sin(a) * 260, -EDGE + 30, EDGE - 30);
+      }
+      drop.alive = true;
+      drop.weapon = pseudoKey;
+      drop.tier = 'mod';
+      drop.x = clamp(atX, -EDGE + 22, EDGE - 22);
+      drop.y = clamp(atY, -EDGE + 22, EDGE - 22);
+      drop.vx = (srand() - 0.5) * 80;
+      drop.vy = (srand() - 0.5) * 80;
+      drop.life = 30;
+      drop.born = run.time;
+      this.unpark(drop.spr); this.unpark(drop.ring); this.unpark(drop.beacon);
+      drop.spr.setTexture('atlas', mod.glyph || 'ic_damage').setPosition(drop.x, drop.y)
+        .setTint(0xffd67a).setAlpha(1).setScale(0.86).setRotation(0);
+      drop.ring.setPosition(drop.x, drop.y).setTint(0xffd67a).setAlpha(0.5).setDisplaySize(80, 80);
+      drop.beacon.setPosition(drop.x, drop.y - 54).setDisplaySize(8, 108).setTint(0xffd67a).setAlpha(0.4).setRotation(0);
+      run.weaponDrops++;
+      run.weaponLastDrop = run.time;
+      return drop;
+    },
+
+    activateModDrop: function (modKey) {
+      var mods = WEAPON_MODS, mod = null;
+      for (var i = 0; i < mods.length; i++) if (mods[i].key === modKey) { mod = mods[i]; break; }
+      if (!mod || this.state !== 'playing') return;
+      var p = this.p, run = this.run;
+      run.weaponMods = run.weaponMods || {};
+      run.weaponMods[mod.key] = (run.weaponMods[mod.key] || 0) + 1;
+      if (mod.stat === 'rate') p.weaponRate = (p.weaponRate || 0) + mod.amount;
+      else if (mod.stat === 'size') p.projectileSize = (p.projectileSize || 1) + mod.amount;
+      else if (mod.stat === 'pierce') p.pierce = (p.pierce || 0) + mod.amount;
+      else if (mod.stat === 'crit') p.primaryCrit = Math.min(0.6, (p.primaryCrit || 0) + mod.amount);
+      this.triggerBuffGlow(0xffd67a);
+      this.showBanner('MOD ACQUIRED', mod.name.toUpperCase() + ' // ' + mod.desc.toUpperCase(), false, true);
+      sfx('unlock', { volume: 0.4, rate: 1.2 });
+      this.updateHud();
     },
 
     spawnBonus: function (kind, atX, atY) {
@@ -6152,12 +6182,15 @@
           if (this.weaponDrops[wfi].alive) { hasWeaponDrop = true; break; }
         }
         if (!hasWeaponDrop) {
-          var forcedWeapon = typeof this.debugState.forceWeaponDrop === 'string' &&
-            WEAPON_BY_KEY[this.debugState.forceWeaponDrop] ? this.debugState.forceWeaponDrop : null;
-          var forcedTier = this.debugState.forceWeaponDrop === 'upgraded' ? 'upgraded' :
-            (this.debugState.forceWeaponDrop === 'base' ? 'base' : null);
-          this.spawnWeaponDrop(this.nextWeaponDrop(forcedWeapon, forcedTier),
-            clamp(this.p.x + 120, -EDGE + 30, EDGE - 30), this.p.y);
+          if (this.debugState.forceWeaponDrop === 'upgraded') {
+            this.spawnModDrop(clamp(this.p.x + 120, -EDGE + 30, EDGE - 30), this.p.y);
+          } else {
+            var forcedWeapon = typeof this.debugState.forceWeaponDrop === 'string' &&
+              WEAPON_BY_KEY[this.debugState.forceWeaponDrop] ? this.debugState.forceWeaponDrop : null;
+            var forcedTier = this.debugState.forceWeaponDrop === 'base' ? 'base' : null;
+            this.spawnWeaponDrop(this.nextWeaponDrop(forcedWeapon, forcedTier),
+              clamp(this.p.x + 120, -EDGE + 30, EDGE - 30), this.p.y);
+          }
         }
       }
       if (this.debugState && this.debugState.forceTideDrop &&
@@ -6508,156 +6541,25 @@
       if (!target) { c.primarySlots[slotIndex] = 0.08; return; }
       var ang = Math.atan2(target.y - p.y, target.x - p.x);
       var base = 9 * p.damage * p.projectileDamage * slotDamage * (arsenal ? 1.45 : 1) * (1 + mastery * 0.18);
-      var speed = p.projectileSpeed;
       var multi = p.multishot + (arsenal ? 1 : 0);
       var fired = false;
-      var i, n, sa, spread, shell, shot, pattern;
 
-      if (data.key === 'bolt-lance') {
-        n = Math.min(7, 1 + Math.floor((mastery - 1) / 3) + multi);
-        spread = arsenal ? 0.20 : 0.14;
-        pattern = SHOT_PATTERNS[n].centered;
-        for (i = 0; i < n; i++) {
-          sa = ang + pattern[i] * spread;
-          fired = !!this.fireShot('bolt', p.x, p.y, Math.cos(sa) * 560 * speed, Math.sin(sa) * 560 * speed,
-            base, 5 * p.projectileSize, p.pierce, data.key) || fired;
-        }
-      } else if (data.key === 'scatter-volley') {
-        n = Math.min(9, 5 + mastery % 3 + multi + (arsenal ? 1 : 0));
-        spread = 0.72 + (arsenal ? 0.12 : 0);
-        pattern = SHOT_PATTERNS[n].normalized;
-        for (i = 0; i < n; i++) {
-          sa = ang + pattern[i] * spread;
-          fired = !!this.fireShot('scatter', p.x, p.y, Math.cos(sa) * 450 * speed, Math.sin(sa) * 450 * speed,
-            base * 0.56, 5 * p.projectileSize, p.pierce, data.key) || fired;
-        }
-      } else if (data.key === 'rail-piercer') {
-        fired = !!this.fireShot('rail', p.x, p.y, Math.cos(ang) * 760 * speed, Math.sin(ang) * 760 * speed,
-          base * 1.75, 7 * p.projectileSize, 3 + p.pierce, data.key);
-      } else if (data.key === 'seeker-swarm') {
-        n = Math.min(7, 3 + Math.floor(mastery / 3) + multi);
-        pattern = SHOT_PATTERNS[n].centered;
-        for (i = 0; i < n; i++) {
-          sa = ang + pattern[i] * 0.42;
-          fired = !!this.fireShot('seeker', p.x + Math.cos(sa) * 18, p.y + Math.sin(sa) * 18,
-            Math.cos(sa) * 240 * speed, Math.sin(sa) * 240 * speed, base * 0.72, 8 * p.projectileSize,
-            p.pierce, data.key) || fired;
-        }
-      } else if (data.key === 'plasma-mortar') {
-        shell = this.fireShot('mortar', p.x, p.y, Math.cos(ang) * 360 * speed, Math.sin(ang) * 360 * speed - 230,
-          base * 1.45, 12 * p.projectileSize, p.pierce, data.key);
-        fired = !!shell;
-      } else if (data.key === 'sweep-beam') {
-        var sweepAng = run.time * 2.25 + Math.sin(run.time * 0.8) * 0.32;
-        fired = !!this.fireBeam(sweepAng, base * 1.14, 430 + mastery * 25, 24 + mastery * 4, data.key, p.pierce);
-      } else if (data.key === 'glaive-return') {
-        fired = !!this.fireShot('glaive', p.x, p.y, Math.cos(ang) * 500 * speed, Math.sin(ang) * 500 * speed,
-          base * 1.24, 10 * p.projectileSize, 2 + p.pierce, data.key);
-      } else if (data.key === 'mine-layer') {
-        n = Math.min(4, 1 + Math.floor(mastery / 3) + Math.floor(multi / 2));
-        for (i = 0; i < n; i++) {
-          var ma = p.face + Math.PI + (i - (n - 1) / 2) * 0.38;
-          fired = !!this.dropMine(base * 1.18, 100 + mastery * 8,
-            p.x - Math.cos(ma) * (28 + i * 18), p.y - Math.sin(ma) * (28 + i * 18), data.key) || fired;
-        }
-      } else if (data.key === 'ricochet-shard') {
-        fired = !!this.fireShot('ricochet', p.x, p.y, Math.cos(ang) * 520 * speed, Math.sin(ang) * 520 * speed,
-          base * 0.96, 7 * p.projectileSize, 1 + p.pierce, data.key);
-      } else if (data.key === 'twin-phase') {
-        for (i = -1; i <= 1; i += 2) {
-          sa = ang + i * 0.09;
-          fired = !!this.fireShot('twin', p.x + Math.cos(sa) * 8, p.y + Math.sin(sa) * 8,
-            Math.cos(sa) * 610 * speed, Math.sin(sa) * 610 * speed, base * 0.76, 5 * p.projectileSize,
-            p.pierce, data.key) || fired;
-        }
-      } else if (data.key === 'storm-coil') {
-        fired = !!this.fireShot('coil', p.x, p.y, Math.cos(ang) * 500 * speed, Math.sin(ang) * 500 * speed,
-          base * 1.05, 7 * p.projectileSize, p.pierce, data.key);
-      } else if (data.key === 'lance-array-mk2') {
-        var eliteTarget = this.nearestElite(p.x, p.y, 980);
-        var eliteAng = eliteTarget ? Math.atan2(eliteTarget.y - p.y, eliteTarget.x - p.x) : ang;
-        n = 3 + Math.min(2, multi);
-        pattern = SHOT_PATTERNS[n].centered;
-        for (i = 0; i < n; i++) {
-          sa = eliteAng + pattern[i] * 0.16;
-          shot = this.fireShot('lance-array', p.x, p.y, Math.cos(sa) * 620 * speed, Math.sin(sa) * 620 * speed,
-            base * 0.52, 6 * p.projectileSize, 1 + p.pierce, data.key);
-          if (shot) { shot.targetRef = eliteTarget; fired = true; }
-        }
-      } else if (data.key === 'nova-scatter') {
-        n = Math.min(12, 9 + multi + (arsenal ? 1 : 0));
-        spread = 0.92 + (arsenal ? 0.12 : 0);
-        pattern = SHOT_PATTERNS[n].normalized;
-        for (i = 0; i < n; i++) {
-          sa = ang + pattern[i] * spread;
-          shot = this.fireShot('nova-scatter', p.x, p.y, Math.cos(sa) * 480 * speed, Math.sin(sa) * 480 * speed,
-            base * 0.34, 5 * p.projectileSize, p.pierce, data.key);
-          if (shot) { shot.rangeBurst = true; shot.burstRadius = 96; shot.burstDmg = base * 0.14; fired = true; }
-        }
-      } else if (data.key === 'rail-storm') {
-        fired = !!this.fireShot('rail-storm', p.x, p.y, Math.cos(ang) * 820 * speed, Math.sin(ang) * 820 * speed,
-          base * 1.86, 8 * p.projectileSize, 4 + p.pierce, data.key);
-      } else if (data.key === 'swarm-matrix') {
-        n = Math.min(8, 4 + Math.floor(multi * 1.2));
-        pattern = SHOT_PATTERNS[n].centered;
-        for (i = 0; i < n; i++) {
-          sa = ang + pattern[i] * 0.34;
-          fired = !!this.fireShot('swarm-dart', p.x + Math.cos(sa) * 18, p.y + Math.sin(sa) * 18,
-            Math.cos(sa) * 285 * speed, Math.sin(sa) * 285 * speed, base * 0.62,
-            8 * p.projectileSize, p.pierce, data.key) || fired;
-        }
-      } else if (data.key === 'mortar-cascade') {
-        n = 3 + Math.min(1, multi);
-        pattern = SHOT_PATTERNS[n].centered;
-        for (i = 0; i < n; i++) {
-          sa = ang + pattern[i] * 0.28;
-          fired = !!this.fireShot('mortar-cascade', p.x, p.y, Math.cos(sa) * 390 * speed,
-            Math.sin(sa) * 390 * speed - 250 - i * 10, base * 0.42,
-            12 * p.projectileSize, p.pierce, data.key) || fired;
-        }
-      } else if (data.key === 'prism-beam') {
-        var prismAng = run.time * 2.6 + Math.sin(run.time * 0.9) * 0.38;
-        fired = !!this.fireBeam(prismAng, base * 1.28, 560 + mastery * 28, 30 + mastery * 4,
-          data.key, 1 + p.pierce);
-      } else if (data.key === 'glaive-cyclone') {
-        for (i = 0; i < 2 + Math.min(1, multi); i++) {
-          shot = this.fireShot('cyclone-glaive', p.x, p.y, 0, 0, base * 0.86,
-            10 * p.projectileSize, 2 + p.pierce, data.key, false, i);
-          if (shot) {
-            shot.orbitAngle = ang + i * TAU / (2 + Math.min(1, multi));
-            shot.orbitRadius = 28;
-            shot.orbitDir = i % 2 === 0 ? 1 : -1;
-            shot.ox = p.x; shot.oy = p.y;
-            fired = true;
-          }
-        }
-      } else if (data.key === 'minefield-web') {
-        var webId = ++run.weaponSerial;
-        n = 3 + Math.min(1, multi);
-        for (i = 0; i < n; i++) {
-          var webAng = p.face + Math.PI + (i - (n - 1) / 2) * 0.42;
-          var webMine = this.dropMine(base * 0.45, 116 + mastery * 8,
-            p.x - Math.cos(webAng) * (38 + i * 22), p.y - Math.sin(webAng) * (38 + i * 22),
-            data.key, false, webId, i);
-          fired = !!webMine || fired;
-        }
-      } else if (data.key === 'ricochet-prism') {
-        fired = !!this.fireShot('prism-ricochet', p.x, p.y, Math.cos(ang) * 560 * speed,
-          Math.sin(ang) * 560 * speed, base * 1.25, 8 * p.projectileSize,
-          3 + p.pierce, data.key);
-      } else if (data.key === 'coil-tempest') {
-        fired = this.fireCoilTempest(base * 1.34, data);
-      } else if (data.spec) {
-        fired = this.fireSpecWeapon(data, p.x, p.y, ang, base, multi, false);
-      }
+      // M1 (2026-09-17): every weapon is now data-driven through the spec
+      // interpreter below. The old ~20-branch hardcoded dispatch was removed;
+      // fireSpecWeapon reads data.spec (present on every WEAPONS entry).
+      var effSpec = window.HM2_WEAPONS && data.spec ?
+        window.HM2_WEAPONS.effectiveSpec(data, (run.weaponLevel[weaponKey] || 1) - 1) : data.spec;
+      if (data.spec) fired = this.fireSpecWeapon(data, p.x, p.y, ang, base, multi, false, effSpec);
+      if (effSpec && effSpec.rateMul) interval /= (effSpec.rateMul || 1);
+
       if (fired) {
         if (slotIndex === 0) this.fireWingVolley(ang, base * p.wingDamage);
         this.fx.impact.setParticleTint(data.muzzle || data.color);
         this.fx.impact.emitParticleAt(p.x + Math.cos(ang) * 16, p.y + Math.sin(ang) * 16,
-          data.tier === 'legendary' ? 7 : (data.tier === 'upgraded' ? 5 : 2));
-        if (data.tier === 'upgraded' || data.tier === 'legendary') {
+          data.tier === 'evolution' ? 5 : 2);
+        if (data.tier === 'evolution') {
           this.contactRing(p.x + Math.cos(ang) * 16, p.y + Math.sin(ang) * 16,
-            8, data.tier === 'legendary' ? 34 : 28, 0.16, data.muzzle || data.color, 0.58);
+            8, 28, 0.16, data.muzzle || data.color, 0.58);
         }
         weaponSfx(data.cue, { volume: slotIndex === 0 ? 0.22 : (slotIndex === 1 ? 0.14 : 0.10), rate: data.rate });
       }
@@ -6668,10 +6570,15 @@
     // arsenal). Composes the existing shot kinds and their update behaviors
     // from a declarative spec on the weapon definition; every new weapon and
     // all ten legendaries fire through this one path.
-    fireSpecWeapon: function (data, x, y, ang, base, multi, mirror) {
-      var spec = data.spec, p = this.p, fired = false, i, sa, shot, n;
+    fireSpecWeapon: function (data, x, y, ang, base, multi, mirror, effSpecOverride) {
+      // Mod pickups (mod-rate/size/pierce/crit) are already applied as global
+      // player stat bumps in activateModDrop (p.weaponRate/projectileSize/
+      // pierce/primaryCrit), which every fire path below already reads
+      // (spec.pierce + p.pierce, spec.size * p.projectileSize, etc), so no
+      // separate per-spec mod application is needed here.
+      var spec = effSpecOverride || data.spec, p = this.p, fired = false, i, sa, shot, n;
       var speed = p.projectileSpeed;
-      if (spec.mode === 'beam') {
+      if (spec.mode === 'beam' || spec.mode === 'lockbeam') {
         var bm = spec.beam;
         var bAng = bm.sweep ? this.run.time * 2.4 + Math.sin(this.run.time * 0.85) * 0.36 : ang;
         fired = !!this.fireBeam(bAng, base * spec.dmg, bm.len, bm.wid, data.key,
@@ -6680,22 +6587,51 @@
           this.fireBeam(bAng + Math.PI, base * spec.dmg * 0.7, bm.len * 0.8, bm.wid * 0.8,
             data.key, p.pierce, mirror ? x : null, mirror ? y : null, true);
         }
-      } else if (spec.mode === 'mine') {
+      } else if (spec.mode === 'mine' || spec.mode === 'tether-mine') {
         var mn = spec.mine;
         var webId = mn.web ? ++this.run.weaponSerial : 0;
         n = mirror ? Math.max(2, Math.ceil(mn.count / 2)) : mn.count;
+        var droppedMines = [];
         for (i = 0; i < n; i++) {
           var ma = p.face + Math.PI + (i - (n - 1) / 2) * 0.4;
-          fired = !!this.dropMine(base * spec.dmg, mn.radius,
+          var placedMine = this.dropMine(base * spec.dmg, mn.radius,
             x - Math.cos(ma) * (34 + i * 20), y - Math.sin(ma) * (34 + i * 20),
-            data.key, mirror, webId, i) || fired;
+            data.key, mirror, webId, i);
+          if (placedMine) { fired = true; droppedMines.push(placedMine); }
         }
+        if (spec.mode === 'tether-mine' && spec.tetherDps && droppedMines.length > 1) {
+          for (i = 1; i < droppedMines.length; i++) {
+            this.spawnHazard('tether', droppedMines[i - 1].x, droppedMines[i - 1].y, {
+              x2: droppedMines[i].x, y2: droppedMines[i].y,
+              dps: base * spec.tetherDps, dur: 2.6, color: data.color });
+          }
+        }
+      } else if (spec.mode === 'aura') {
+        // No projectile; continuous effect resolved in stepAuras every frame
+        // for every arsenal weapon whose spec.mode === 'aura'. Nothing to do
+        // on the fire-cadence tick itself.
+        fired = true;
+      } else if (spec.mode === 'drone' || spec.mode === 'drone-replicate') {
+        this.topUpDrones(data.key, spec);
+        fired = true;
+      } else if (spec.mode === 'charge' || spec.mode === 'charge-rift') {
+        var chargeState = this.weaponCharge[data.key] || (this.weaponCharge[data.key] = { t: 0, charging: false });
+        if (!chargeState.charging) {
+          chargeState.charging = true;
+          chargeState.t = spec.chargeTime || 0.4;
+          chargeState.ang = ang; chargeState.base = base; chargeState.data = data; chargeState.spec = spec;
+          chargeState.mirror = mirror; chargeState.x = x; chargeState.y = y;
+        }
+        fired = false;
       } else {
-        var eliteTarget = spec.elite ? this.nearestElite(x, y, 980) : null;
+        var eliteTarget = (spec.elite || spec.retarget) ? this.nearestElite(x, y, 980) : null;
         if (eliteTarget) ang = Math.atan2(eliteTarget.y - y, eliteTarget.x - x);
-        n = spec.count + (spec.addMulti && !mirror ? multi : 0);
+        n = (spec.count || 0) + (spec.addMulti && !mirror ? multi : 0);
         if (mirror) n = Math.max(1, Math.ceil(n * 0.5));
-        n = Math.min(12, n);
+        // Clamp into the pattern table. A spec with no count (a beam or aura
+        // mode that fell through to the projectile path) would otherwise index
+        // SHOT_PATTERNS at NaN and take the whole run down.
+        n = Math.max(1, Math.min(12, n | 0));
         var pattern = SHOT_PATTERNS[n].normalized;
         var orbitStep = 0;
         for (i = 0; i < n; i++) {
@@ -6707,6 +6643,12 @@
             (spec.pierce || 0) + p.pierce, data.key, mirror, i);
           if (!shot) continue;
           fired = true;
+          if (spec.replicateOnKill) shot.replicateOnKill = true;
+          if (spec.curve) shot.curveRate = spec.curve;
+          if (spec.mode === 'retarget-burn' && spec.burnDot) {
+            shot.burnDps = base * (spec.burnDot.dps || 0.35); shot.burnDur = spec.burnDot.dur || 1.5;
+          }
+          if (spec.mode === 'proximity' || spec.mode === 'proximity-wall') { shot.fuseRadius = spec.fuseRadius || 60; shot.burstSpec = spec; }
           if (spec.kind === 'cyclone-glaive') {
             shot.orbitAngle = ang + orbitStep * TAU / n;
             shot.orbitRadius = 28;
@@ -6748,22 +6690,6 @@
           data.muzzle || data.color, 0.62);
       }
       return fired;
-    },
-
-    fireCoilTempest: function (damage, data) {
-      var p = this.p, target = this.nearestEnemy(p.x, p.y, 360);
-      if (!target) return false;
-      var dx = target.x - p.x, dy = target.y - p.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
-      var shot = this.fireShot('coil-tempest', p.x, p.y, dx / d * 720 * p.projectileSpeed,
-        dy / d * 720 * p.projectileSpeed, damage, 7 * p.projectileSize, 1 + p.pierce, data.key);
-      if (!shot) return false;
-      this.arcLine(p.x, p.y, target.x, target.y, data.color, 0.18);
-      var second = this.chainTarget(target.x, target.y, 190, target, null, null);
-      if (second) {
-        this.arcLine(target.x, target.y, second.x, second.y, data.impact, 0.18);
-        this.damage(second, damage * 0.46, second.x, second.y, true);
-      }
-      return true;
     },
 
     stepWeapons: function (dt) {
@@ -6888,7 +6814,6 @@
         var style = weaponKey && WEAPON_BY_KEY[weaponKey] ? WEAPON_BY_KEY[weaponKey] : null;
         s.alive = true; this.liveShots++; s.kind = kind; s.weapon = weaponKey || ''; s.x = x; s.y = y; s.vx = vx; s.vy = vy;
         s.r = r; s.dmg = dmg; s.pierce = pierce; s.age = 0; s.gravity = kind === 'mortar' ? 460 : 0;
-        if (kind === 'mortar-cascade') s.gravity = 460;
         s.bounces = kind === 'ricochet' || kind === 'prism-ricochet' ? 3 + pierce : 0; s.returning = false;
         s.lastHitId = -1; s.lastHitT = -1;
         s.targetRef = null; s.targetRetargetT = 0; s.ox = x; s.oy = y; s.orbitRadius = 0; s.orbitAngle = 0; s.orbitDir = 1;
@@ -6896,14 +6821,14 @@
         s.burstRadius = 0; s.burstDmg = 0; s.variant = variant || 0;
         s.life = kind === 'seeker' || kind === 'swarm-dart' || kind === 'drone' || kind === 'wisp' ? 3.6 :
           (kind === 'glaive' || kind === 'cyclone-glaive' ? 2.8 :
-            (kind === 'mortar' || kind === 'mortar-cascade' ? 2.4 : (kind === 'coil-tempest' ? 1.0 : 1.7)));
+            (kind === 'mortar' ? 2.4 : (kind === 'coil-tempest' ? 1.0 : 1.7)));
         s.boosted = this.run.buffs.arsenal > 0;
         s.forceCrit = !!(!mirror && this.run.overcharge > 0 && kind !== 'drone' && weaponKey);
         if (s.forceCrit) this.run.overcharge--;
         var frame = style ? style.frame : (kind === 'seeker' || kind === 'swarm-dart' || kind === 'wisp' ? 'wisp' :
-          (kind === 'mortar' || kind === 'mortar-cascade' ? 'ic_pulse' : (kind === 'wing' ? 'bolt' : 'bolt')));
+          (kind === 'mortar' ? 'ic_pulse' : (kind === 'wing' ? 'bolt' : 'bolt')));
         var tint = s.boosted ? 0xffd67a : (style ? style.color : (kind === 'wing' ? 0x8effd8 : 0xffffff));
-        s.visualScale = (style ? (s.boosted ? 1.18 : (style.tier === 'legendary' ? 1.14 : (style.tier === 'upgraded' ? 1.08 : 1.0))) :
+        s.visualScale = (style ? (s.boosted ? 1.18 : (style.tier === 'evolution' ? 1.12 : 1.0)) :
           (kind === 'wing' ? 0.94 : 1.1)) * (r / 5);
         this.unpark(s.spr);
         s.spr.setTexture('atlas', frame)
@@ -6932,6 +6857,208 @@
         return q;
       }
       return null;
+    },
+
+    // ---------------------------------------------------------------------
+    // M1 (2026-09-17) GAP 3: hazard-zone system. One generic array/step
+    // function shared by charge-rift pull zones, proximity-wall DoT, and
+    // oblivion-web tethers, so the three effects do not each need their own
+    // bespoke per-frame loop.
+    spawnHazard: function (kind, x, y, opts) {
+      var hz = { kind: kind, x: x, y: y, x2: (opts && opts.x2) || x, y2: (opts && opts.y2) || y,
+        r: (opts && opts.r) || 60, dps: (opts && opts.dps) || 0, pull: (opts && opts.pull) || 0,
+        color: (opts && opts.color) || 0xffffff, t: 0, dur: (opts && opts.dur) || 1 };
+      this.hazards.push(hz);
+      return hz;
+    },
+
+    // 'charge'/'charge-rift' (rail/event-horizon): the primary fire-cadence
+    // tick only starts a charge (see fireSpecWeapon above); this advances the
+    // timer every frame and fires the single piercing shot on completion.
+    stepCharges: function (dt) {
+      for (var key in this.weaponCharge) {
+        if (!this.weaponCharge.hasOwnProperty(key)) continue;
+        var cs = this.weaponCharge[key];
+        if (!cs.charging) continue;
+        cs.t -= dt;
+        if (cs.t > 0) continue;
+        cs.charging = false;
+        var data = cs.data, spec = cs.spec || (data && data.spec);
+        if (!data || !spec) continue;
+        var p = this.p;
+        var vx = Math.cos(cs.ang) * spec.speed * p.projectileSpeed;
+        var vy = Math.sin(cs.ang) * spec.speed * p.projectileSpeed;
+        var shot = this.fireShot(spec.kind, cs.x, cs.y, vx, vy, cs.base * spec.dmg,
+          spec.size * p.projectileSize, (spec.pierce || 0) + p.pierce, data.key, cs.mirror, 0);
+        if (shot && spec.mode === 'charge-rift') {
+          shot.riftRadius = spec.riftRadius || 0;
+          shot.riftDur = spec.riftDur || 0;
+          shot.riftPull = spec.riftPull || 0;
+        }
+      }
+    },
+
+    stepHazards: function (dt) {
+      for (var i = this.hazards.length - 1; i >= 0; i--) {
+        var hz = this.hazards[i];
+        hz.t += dt;
+        if (hz.t >= hz.dur) { this.hazards.splice(i, 1); continue; }
+        if (hz.kind === 'rift') {
+          var list = this.query(hz.x, hz.y, hz.r);
+          for (var a = 0; a < list.length; a++) {
+            var e = list[a];
+            if (!e.alive) continue;
+            var dx = hz.x - e.x, dy = hz.y - e.y, d = Math.sqrt(dx * dx + dy * dy) || 1;
+            if (d > hz.r) continue;
+            var f = (hz.pull || 0) * dt / d;
+            e.x += dx * f; e.y += dy * f;
+          }
+        } else if (hz.kind === 'wall') {
+          var wlist = this.query(hz.x, hz.y, hz.r);
+          for (var b = 0; b < wlist.length; b++) {
+            var w = wlist[b];
+            if (!w.alive) continue;
+            var wdx = w.x - hz.x, wdy = w.y - hz.y;
+            if (wdx * wdx + wdy * wdy > hz.r * hz.r) continue;
+            this.damage(w, (hz.dps || 0) * dt, w.x, w.y, false);
+          }
+        } else if (hz.kind === 'tether') {
+          var tlist = this.query((hz.x + hz.x2) / 2, (hz.y + hz.y2) / 2,
+            Math.abs(hz.x2 - hz.x) + Math.abs(hz.y2 - hz.y) + 40);
+          var lx = hz.x2 - hz.x, ly = hz.y2 - hz.y, ll = lx * lx + ly * ly || 1;
+          for (var c = 0; c < tlist.length; c++) {
+            var t = tlist[c];
+            if (!t.alive) continue;
+            var px = t.x - hz.x, py = t.y - hz.y;
+            var u = clamp((px * lx + py * ly) / ll, 0, 1);
+            var cx = hz.x + lx * u, cy = hz.y + ly * u;
+            var ddx = t.x - cx, ddy = t.y - cy;
+            if (ddx * ddx + ddy * ddy < 14 * 14) {
+              this.damage(t, (hz.dps || 0) * dt, t.x, t.y, false);
+            }
+          }
+        }
+      }
+    },
+
+    // 'drone'/'drone-replicate' (dronebay/swarm-carrier): persistent orbiting
+    // entities that independently fire at the nearest enemy. Non-projectile;
+    // stepped once per frame alongside stepShots.
+    topUpDrones: function (weaponKey, spec) {
+      var count = 0;
+      for (var i = 0; i < this.drones.length; i++) if (this.drones[i].weapon === weaponKey) count++;
+      var cap = spec.mode === 'drone-replicate' ? (spec.droneCap || spec.droneCount) : spec.droneCount;
+      while (count < (spec.droneCount || 0) && this.drones.length < cap) {
+        this.drones.push({ weapon: weaponKey, angle: Math.random() * TAU, fireT: Math.random() * (spec.droneFireRate || 1) });
+        count++;
+      }
+    },
+
+    stepDrones: function (dt) {
+      var run = this.run;
+      for (var i = 0; i < this.drones.length; i++) {
+        var d = this.drones[i];
+        var data = WEAPON_BY_KEY[d.weapon];
+        if (!data || !data.spec) continue;
+        var spec = window.HM2_WEAPONS ?
+          window.HM2_WEAPONS.effectiveSpec(data, (run.weaponLevel[d.weapon] || 1) - 1) : data.spec;
+        d.angle += dt * 1.4;
+        var orbitR = spec.droneOrbitR || 70;
+        d.x = this.p.x + Math.cos(d.angle) * orbitR;
+        d.y = this.p.y + Math.sin(d.angle) * orbitR;
+        d.fireT -= dt;
+        if (d.fireT <= 0) {
+          d.fireT = spec.droneFireRate || 1;
+          var target = this.nearestEnemy(d.x, d.y, 420);
+          if (target) {
+            var dx = target.x - d.x, dy = target.y - d.y, dl = Math.sqrt(dx * dx + dy * dy) || 1;
+            var bolt = this.fireShot('bolt', d.x, d.y, dx / dl * 520, dy / dl * 520,
+              this.p.damage * (spec.dmg || 0.5), 5, 0, d.weapon);
+            if (bolt) { bolt.droneOwner = true; bolt.droneReplicate = spec.mode === 'drone-replicate'; }
+          }
+        }
+      }
+    },
+
+    droneKillHook: function (shot) {
+      if (!shot.droneOwner || !shot.droneReplicate) return;
+      var data = WEAPON_BY_KEY[shot.weapon];
+      if (!data || !data.spec) return;
+      var cap = data.spec.droneCap || data.spec.droneCount;
+      if (this.drones.length >= cap) return;
+      this.drones.push({ weapon: shot.weapon, angle: Math.random() * TAU, fireT: 0.2 });
+    },
+
+    // 'aura' (tesla-crown): continuous effect with no projectile. Reuses
+    // chainArc-style chaining resolved inline (same pattern as arccoil's
+    // spec.arc chain resolution in fireSpecWeapon).
+    stepAuras: function (dt) {
+      var run = this.run;
+      for (var wi = 0; wi < run.arsenal.length; wi++) {
+        var key = run.arsenal[wi];
+        var data = WEAPON_BY_KEY[key];
+        if (!data || !data.spec || data.spec.mode !== 'aura') continue;
+        this.auraT[key] = (this.auraT[key] || 0) - dt;
+        if (this.auraT[key] > 0) continue;
+        var spec = window.HM2_WEAPONS ?
+          window.HM2_WEAPONS.effectiveSpec(data, (run.weaponLevel[key] || 1) - 1) : data.spec;
+        this.auraT[key] = spec.auraTick || 0.4;
+        var list = this.query(this.p.x, this.p.y, spec.auraRadius || 180);
+        var dmg = this.p.damage * (spec.dmg || 0.5);
+        for (var i = 0; i < list.length; i++) {
+          var e = list[i];
+          if (!e.alive) continue;
+          var dx = e.x - this.p.x, dy = e.y - this.p.y;
+          if (dx * dx + dy * dy > (spec.auraRadius || 180) * (spec.auraRadius || 180)) continue;
+          this.damage(e, dmg, e.x, e.y, false);
+          if (spec.auraChain) this.chainArc(e, dmg * 0.5);
+        }
+      }
+    },
+
+    clusterSplit: function (x, y, spec) {
+      var count = (spec && spec.clusterCount) || 0;
+      if (!count) return;
+      var dmg = spec.clusterDmg || 0, radius = spec.clusterRadius || 60;
+      for (var i = 0; i < count; i++) {
+        var a = (i / count) * TAU + Math.random() * 0.6;
+        var dist = 24 + Math.random() * 46;
+        var cx = x + Math.cos(a) * dist, cy = y + Math.sin(a) * dist;
+        this.firePulse(radius, dmg, cx, cy, 0xffc8a0, 'normal');
+      }
+    },
+
+    // 'proximity'/'proximity-wall' (flak/nova-curtain): early detonation when
+    // a shot gets within spec.fuseRadius of an enemy, reusing the existing
+    // burst-radius/dmg pattern already used by mortar-style shots.
+    detonateProximity: function (shot, spec) {
+      if (shot.fuseSpent) return;
+      shot.fuseSpent = true;
+      var data = WEAPON_BY_KEY[shot.weapon] || WEAPONS[0];
+      var burstRadius = (spec.burst && spec.burst.radius) || 70;
+      var burstDmg = shot.dmg * ((spec.burst && spec.burst.dmg) || 0.5);
+      this.firePulse(burstRadius, burstDmg, shot.x, shot.y, data.impact || data.color, 'normal');
+      this.contactRing(shot.x, shot.y, 14, burstRadius, 0.26, data.impact || data.color, 0.8);
+      this.fx.death.setParticleTint(data.impact || data.color);
+      this.fx.death.emitParticleAt(shot.x, shot.y, kit.juice.enabled ? 8 : 3);
+      if (spec.mode === 'proximity-wall' && spec.wallDur) {
+        var wallDpsScale = shot.wallDpsScale || spec.wallDps || 0.2;
+        this.spawnHazard('wall', shot.x, shot.y, {
+          r: spec.wallRadius || 80, dps: this.p.damage * wallDpsScale,
+          dur: spec.wallDur, color: data.impact || data.color });
+      }
+      this.killSprite(shot);
+    },
+
+    // 'homing-respawn' (hornet-cathedral): on a kill, spawn one fresh homing
+    // shot with the same stats targeting a new nearest enemy.
+    respawnHomingShot: function (shot) {
+      var target = this.nearestEnemy(shot.x, shot.y, 520);
+      if (!target) return;
+      var dx = target.x - shot.x, dy = target.y - shot.y, dl = Math.sqrt(dx * dx + dy * dy) || 1;
+      var fresh = this.fireShot(shot.kind, shot.x, shot.y,
+        dx / dl * 240, dy / dl * 240, shot.dmg, shot.r, shot.pierce, shot.weapon, false, shot.variant);
+      if (fresh) fresh.replicateOnKill = true;
     },
 
     burstShot: function (shot) {
@@ -6991,14 +7118,14 @@
       this.fx.impact.emitParticleAt(shot.x, shot.y, 5);
     },
 
-    fireBeam: function (ang, dmg, len, wid, weaponKey, pierce, originX, originY, mirror) {
+    fireBeam: function (ang, dmg, len, wid, weaponKey, pierce, originX, originY, mirror, forceRefract) {
       for (var i = 0; i < this.beams.length; i++) {
         var b = this.beams[i];
         if (b.alive) continue;
         var beamStyle = weaponKey && WEAPON_BY_KEY[weaponKey] ? WEAPON_BY_KEY[weaponKey] : null;
         var ox = originX == null ? this.p.x : originX, oy = originY == null ? this.p.y : originY;
         b.alive = true; b.x = ox; b.y = oy; b.ang = ang; b.dmg = dmg; b.len = len; b.wid = wid; b.life = 0.34;
-        b.refract = !!(beamStyle && beamStyle.key === 'prism-beam' && !mirror);
+        b.refract = !!(forceRefract && !mirror);
         b.forceCrit = !!(!mirror && this.run.overcharge > 0 && weaponKey);
         if (b.forceCrit) this.run.overcharge--;
         this.unpark(b.spr);
@@ -7020,7 +7147,7 @@
           if (lx > -e.r && lx < len && Math.abs(ly) < wid / 2 + e.r) {
             this.damage(e, dmg * (b.forceCrit ? 3 : 1), e.x, e.y, b.forceCrit);
             this.fx.impact.setParticleTint(beamStyle ? (beamStyle.impact || beamStyle.color) : 0xff8fd0);
-            this.fx.impact.emitParticleAt(e.x, e.y, beamStyle && beamStyle.tier === 'upgraded' ? 5 : 2);
+            this.fx.impact.emitParticleAt(e.x, e.y, beamStyle && beamStyle.tier === 'evolution' ? 5 : 2);
             if (b.refract && prismHits < 2) {
               this.fireBeam(ang + (prismHits === 0 ? 0.42 : -0.42), dmg * 0.10, len * 0.58,
                 wid * 0.72, weaponKey, Math.max(0, pierce - 1), e.x, e.y, true);
@@ -7058,7 +7185,7 @@
         this.unpark(m.spr);
         m.spr.setPosition(m.x, m.y).setScale(0.45).setAlpha(0.9)
           .setTint(this.run.buffs.arsenal > 0 ? 0xffd67a :
-            (weaponKey === 'minefield-web' ? 0xffc68a : (weaponKey === 'mine-layer' ? 0xffb45a : 0xff9a5a)));
+            (webId ? 0xffc68a : (weaponKey === 'mine-layer' ? 0xffb45a : 0xff9a5a)));
         return m;
       }
       return null;
@@ -7091,14 +7218,37 @@
             s.vy += (dy / l * 260 - s.vy) * f;
           }
         }
+        if (s.curveRate) {
+          var curveTarget = this.nearestEnemy(s.x, s.y, 460);
+          if (curveTarget) {
+            var csp = Math.sqrt(s.vx * s.vx + s.vy * s.vy) || 1;
+            var curAng = Math.atan2(s.vy, s.vx);
+            var wantAng = Math.atan2(curveTarget.y - s.y, curveTarget.x - s.x);
+            var diffAng = wantAng - curAng;
+            while (diffAng > Math.PI) diffAng -= TAU;
+            while (diffAng < -Math.PI) diffAng += TAU;
+            var maxTurn = s.curveRate * dt;
+            diffAng = clamp(diffAng, -maxTurn, maxTurn);
+            var newAng = curAng + diffAng;
+            s.vx = Math.cos(newAng) * csp; s.vy = Math.sin(newAng) * csp;
+          }
+        }
+        if (s.fuseRadius && s.burstSpec) {
+          var fuseT = this.nearestEnemy(s.x, s.y, s.fuseRadius);
+          if (fuseT) this.detonateProximity(s, s.burstSpec);
+        }
         if (s.gravity) s.vy += s.gravity * dt;
         if (s.kind === 'cyclone-glaive') {
-          s.orbitRadius += dt * 168;
-          s.orbitAngle += s.orbitDir * dt * 5.4;
+          var cgData = WEAPON_BY_KEY[s.weapon];
+          var cgGrow = (cgData && cgData.spec && cgData.spec.orbitGrow) || 22;
+          var cgSpeed = (cgData && cgData.spec && cgData.spec.orbitSpeed) || 4.2;
+          s.orbitRadius = Math.min(400, s.orbitRadius + dt * cgGrow);
+          s.orbitAngle += s.orbitDir * dt * cgSpeed;
           s.x = s.ox + Math.cos(s.orbitAngle) * s.orbitRadius;
           s.y = s.oy + Math.sin(s.orbitAngle) * s.orbitRadius;
-          s.vx = -Math.sin(s.orbitAngle) * s.orbitDir * 168;
-          s.vy = Math.cos(s.orbitAngle) * s.orbitDir * 168;
+          s.vx = -Math.sin(s.orbitAngle) * s.orbitDir * cgSpeed * s.orbitRadius;
+          s.vy = Math.cos(s.orbitAngle) * s.orbitDir * cgSpeed * s.orbitRadius;
+          s.ox = this.p.x; s.oy = this.p.y;
         } else if (s.kind === 'glaive') {
           if (!s.returning && s.age > 0.46) s.returning = true;
           if (s.returning) {
@@ -7124,14 +7274,16 @@
           if (s.bounces < 0) { this.killSprite(s); continue; }
         }
 
-        if ((s.kind === 'mortar' || s.kind === 'mortar-cascade') && s.life <= 0) {
+        if (s.kind === 'mortar' && s.life <= 0) {
           var mortarData = WEAPON_BY_KEY[s.weapon] || WEAPONS[0];
+          var isCluster = !!(mortarData.spec && mortarData.spec.clusterCount);
           this.firePulse(122 + this.p.ranks.lance * 8, s.dmg * 0.72, s.x, s.y,
-            mortarData.impact || 0xff8f6b, s.kind === 'mortar-cascade' ? 'rolling' : 'normal');
-          this.contactRing(s.x, s.y, 22, s.kind === 'mortar-cascade' ? 178 : 150, 0.28,
+            mortarData.impact || 0xff8f6b, isCluster ? 'rolling' : 'normal');
+          this.contactRing(s.x, s.y, 22, isCluster ? 178 : 150, 0.28,
             mortarData.impact || 0xff8f6b, 0.8);
           this.fx.death.setParticleTint(mortarData.impact || 0xff8f6b);
-          this.fx.death.emitParticleAt(s.x, s.y, s.kind === 'mortar-cascade' ? 12 : 7);
+          this.fx.death.emitParticleAt(s.x, s.y, isCluster ? 12 : 7);
+          if (isCluster) this.clusterSplit(s.x, s.y, mortarData.spec);
           this.killSprite(s);
           continue;
         }
@@ -7151,21 +7303,32 @@
             var shotCrit = s.forceCrit || (s.weapon && this.p.primaryCrit > 0 && Math.random() < this.p.primaryCrit);
             this.damage(e, s.dmg * (shotCrit ? 3 : 1), s.x, s.y, shotCrit);
             s.lastHitId = e.id; s.lastHitT = this.run.time;
+            if (e.alive && s.burnDps) { e.dotDps = s.burnDps; e.dotT = s.burnDur || 1.5; }
+            if (e.alive && s.fuseRadius) {
+              var fdx = e.x - s.x, fdy = e.y - s.y;
+              if (fdx * fdx + fdy * fdy < s.fuseRadius * s.fuseRadius && s.burstSpec) {
+                this.detonateProximity(s, s.burstSpec);
+              }
+            }
             if (!e.alive && s.kind === 'rail-storm') this.forkRail(s, e);
             if (!e.alive && s.kind === 'swarm-dart') this.respawnSwarmDart(s, e);
+            if (!e.alive && s.droneOwner) this.droneKillHook(s);
+            if (!e.alive && s.kind === 'seeker' && s.replicateOnKill) this.respawnHomingShot(s);
             if (this.run.buffs.chain > 0 && s.kind !== 'wing') this.chainArc(e, s.dmg * 0.42);
             if (s.kind === 'coil') this.chainArc(e, s.dmg * 0.68);
-            if (s.kind === 'mortar' || s.kind === 'mortar-cascade') {
+            if (s.kind === 'mortar') {
               var hitMortarData = WEAPON_BY_KEY[s.weapon] || WEAPONS[0];
+              var hitIsCluster = !!(hitMortarData.spec && hitMortarData.spec.clusterCount);
               this.firePulse(122 + this.p.ranks.lance * 8, s.dmg * 0.72, s.x, s.y,
-                hitMortarData.impact || 0xff8f6b, s.kind === 'mortar-cascade' ? 'rolling' : 'normal');
+                hitMortarData.impact || 0xff8f6b, hitIsCluster ? 'rolling' : 'normal');
+              if (hitIsCluster) this.clusterSplit(s.x, s.y, hitMortarData.spec);
               hit = true;
             }
             var shotData = s.weapon && WEAPON_BY_KEY[s.weapon] ? WEAPON_BY_KEY[s.weapon] : null;
             this.fx.impact.setParticleTint(shotData ? (shotData.impact || shotData.color) :
               (s.kind === 'seeker' || s.kind === 'swarm-dart' || s.kind === 'drone' || s.kind === 'wisp' ? 0xbd8dff :
                 (s.kind === 'wing' ? 0x8effd8 : 0xe5fff7)));
-            this.fx.impact.emitParticleAt(s.x, s.y, shotData && shotData.tier === 'upgraded' ? 6 : 3);
+            this.fx.impact.emitParticleAt(s.x, s.y, shotData && shotData.tier === 'evolution' ? 6 : 3);
             if (s.pierce > 0) { s.pierce--; } else { hit = true; }
             break;
           }
@@ -7182,15 +7345,19 @@
               if (!base.alive && s.kind === 'rail-storm') this.forkRail(s, base);
               var baseShotData = s.weapon && WEAPON_BY_KEY[s.weapon] ? WEAPON_BY_KEY[s.weapon] : null;
               this.fx.impact.setParticleTint(baseShotData ? (baseShotData.impact || baseShotData.color) : 0xffd67a);
-              this.fx.impact.emitParticleAt(s.x, s.y, baseShotData && baseShotData.tier === 'upgraded' ? 7 : 4);
+              this.fx.impact.emitParticleAt(s.x, s.y, baseShotData && baseShotData.tier === 'evolution' ? 7 : 4);
               if (s.pierce > 0) s.pierce--; else hit = true;
               break;
             }
           }
         }
-        if (hit || s.life <= 0 ||
-            ((s.kind !== 'ricochet' && s.kind !== 'prism-ricochet') && Math.abs(s.x - this.p.x) > 900) ||
-            ((s.kind !== 'ricochet' && s.kind !== 'prism-ricochet') && Math.abs(s.y - this.p.y) > 900)) {
+        if (hit ||
+            (s.kind !== 'cyclone-glaive' && s.life <= 0) ||
+            ((s.kind !== 'ricochet' && s.kind !== 'prism-ricochet' && s.kind !== 'cyclone-glaive') && Math.abs(s.x - this.p.x) > 900) ||
+            ((s.kind !== 'ricochet' && s.kind !== 'prism-ricochet' && s.kind !== 'cyclone-glaive') && Math.abs(s.y - this.p.y) > 900)) {
+          if (s.riftRadius) {
+            this.spawnHazard('rift', s.x, s.y, { r: s.riftRadius, pull: s.riftPull, dur: s.riftDur || 1 });
+          }
           this.killSprite(s);
         }
       }
@@ -7332,6 +7499,11 @@
         var e = this.enemies[i];
         if (!e.alive) continue;
         if (e.flash > 0) e.flash -= dt;
+        if (e.dotT > 0) {
+          e.dotT -= dt;
+          this.damage(e, (e.dotDps || 0) * dt, e.x, e.y, false);
+          if (!e.alive) continue;
+        }
         var enemyClock = run.buffs.freeze > 0 ? 0.20 : (run.buffs.dilation > 0 ? 0.56 : 1);
         if (e.egg) {
           e.hatchT -= dt * enemyClock;
@@ -8152,7 +8324,12 @@
       p.ranks[u.key] = (p.ranks[u.key] || 0) + 1;
       var r = p.ranks[u.key];
 
-      if (u.type === 'weapon') this.equipWeapon(u.weapon, false);
+      if (u.type === 'weapon') {
+        var run0 = this.run;
+        if (r === 1) this.equipWeapon(u.weapon, false);
+        run0.weaponLevel = run0.weaponLevel || {};
+        run0.weaponLevel[u.weapon] = Math.min(5, (run0.weaponLevel[u.weapon] || 0) + 1);
+      }
       else if (u.key === 'damage') p.damage = p.damageBase * (1 + 0.16 * r);
       else if (u.key === 'speed') p.speed = p.speedBase * (1 + 0.11 * r);
       else if (u.key === 'magnet') p.magnet += 46;
@@ -8172,6 +8349,13 @@
       else if (u.key === 'wingRevive') p.wingRevive = r;
       else if (u.key === 'gemValue') p.gemBonus = 1 + metaLevel('fortune') * 0.10 + hangarLevel('fortune') * 0.06;
       else if (u.key === 'drift') p.drift = r;
+
+      // Evolution is re-checked across the whole arsenal on EVERY level-up, not
+      // only on the pick that reaches level 5. A weapon can sit at 5 while the
+      // recipe module is still unowned, and a level-5 weapon drops out of the
+      // draft pool entirely, so a one-shot check at the transition would strand
+      // it for the rest of the run.
+      this.retryEvolutions();
 
       this.closeOverlay();
       this.draftCards = null;
@@ -8974,6 +9158,19 @@
       var cam = this.cameras.main;
       var w = this.scale.width / DPR, h = this.scale.height / DPR;
 
+      // GAP 4: evolution title overlay. Lazily created, layered on top of
+      // the HUD (not a HUD replacement) while this.evolveFx.active.
+      if (!this.evolveText) {
+        this.evolveText = this.add.text(0, 0, '', { fontFamily: FONT_DISPLAY, fontSize: '38px',
+          color: '#ffd67a', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(500).setVisible(false);
+      }
+      if (this.evolveFx && this.evolveFx.active) {
+        this.evolveText.setText(this.evolveFx.title)
+          .setPosition(w / 2, h * 0.4).setVisible(true).setAlpha(1);
+      } else {
+        this.evolveText.setVisible(false);
+      }
+
       // Mobile plays zoomed out 25% (owner directive 2026-08-08): phones need
       // more situational awareness in the big arena; the punch-zoom beats ride
       // on top of the base zoom.
@@ -9392,7 +9589,7 @@
         } else if (sh.kind === 'coil-tempest') {
           sh.spr.setRotation(Math.atan2(sh.vy, sh.vx))
             .setScale(sh.visualScale * (1.15 + Math.sin(run.time * 24) * 0.18));
-        } else if (sh.kind === 'nova-scatter' || sh.kind === 'prism-ricochet') {
+        } else if (sh.kind === 'prism-ricochet') {
           sh.spr.setRotation(Math.atan2(sh.vy, sh.vx))
             .setScale(sh.visualScale * (1 + Math.sin(run.time * 18 + sh.x * 0.01) * 0.12));
         } else sh.spr.setRotation(Math.atan2(sh.vy, sh.vx));
@@ -9510,20 +9707,21 @@
         }
         this.unpark(wd.spr); this.unpark(wd.ring); this.unpark(wd.beacon);
         var wdata = WEAPON_BY_KEY[wd.weapon];
-        var goldDrop = wdata.tier === 'upgraded' || wdata.tier === 'legendary';
+        var wdColor = wdata ? wdata.color : 0xffd67a;
+        var goldDrop = (wdata && wdata.tier === 'evolution') || wd.tier === 'mod';
         var wblink = wd.life < 4 && Math.floor(run.time * 12) % 2;
         var wbob = 1 + Math.sin(run.time * 5.6 + wd.born) * 0.10;
         wd.spr.setPosition(wd.x, wd.y).setScale((goldDrop ? 1.02 : 0.9) * wbob)
           .setRotation(-run.time * 0.7 + wd.born * 0.18)
-          .setTint(goldDrop ? 0xfff0b0 : wdata.color).setAlpha(wblink ? 0.24 : 1);
+          .setTint(goldDrop ? 0xfff0b0 : wdColor).setAlpha(wblink ? 0.24 : 1);
         wd.ring.setPosition(wd.x, wd.y)
           .setDisplaySize((goldDrop ? 98 : 78) + Math.sin(run.time * 7 + wd.born) * (goldDrop ? 11 : 9),
             (goldDrop ? 98 : 78) + Math.sin(run.time * 7 + wd.born) * (goldDrop ? 11 : 9))
-          .setTint(goldDrop ? 0xffd67a : wdata.color).setAlpha(wblink ? 0.10 : (goldDrop ? 0.74 : 0.42) + Math.sin(run.time * 4.5 + wd.born) * 0.08)
+          .setTint(goldDrop ? 0xffd67a : wdColor).setAlpha(wblink ? 0.10 : (goldDrop ? 0.74 : 0.42) + Math.sin(run.time * 4.5 + wd.born) * 0.08)
           .setRotation(run.time * 0.38);
         wd.beacon.setPosition(wd.x, wd.y - 58)
           .setDisplaySize(9 + Math.sin(run.time * 8 + wd.born) * 2, 118 + Math.sin(run.time * 5 + wd.born) * 14)
-          .setTint(goldDrop ? 0xffd67a : wdata.color).setAlpha(wblink ? 0.08 : (goldDrop ? 0.62 : 0.42) + Math.sin(run.time * 7 + wd.born) * 0.08);
+          .setTint(goldDrop ? 0xffd67a : wdColor).setAlpha(wblink ? 0.08 : (goldDrop ? 0.62 : 0.42) + Math.sin(run.time * 7 + wd.born) * 0.08);
       }
       for (k = 0; k < this.texts.length; k++) {
         var tx = this.texts[k];
@@ -9867,9 +10065,9 @@
         if (wdata) {
           if (wslot.icon.frame.name !== wdata.glyph) wslot.icon.setTexture('atlas', wdata.glyph);
           wslot.icon.setTint(wdata.color).setAlpha(1);
-          var trimTier = wdata.tier === 'upgraded' || wdata.tier === 'legendary';
+          var trimTier = wdata.tier === 'evolution';
           wslot.trim.setVisible(trimTier).setAlpha(trimTier ? 0.92 : 0)
-            .setTint(wdata.tier === 'legendary' ? 0xff7ae0 : 0xffd67a);
+            .setTint(0xffd67a);
         } else {
           var emptyFrame = unlocked ? 'ic_orbit' : 'ic_lock';
           if (wslot.icon.frame.name !== emptyFrame) wslot.icon.setTexture('atlas', emptyFrame);
