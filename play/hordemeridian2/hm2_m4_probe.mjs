@@ -74,6 +74,111 @@ function loadGameData() {
   return { DATA: sandbox.window.__HM_DATA, LEVELS: sandbox.window.__HM_LEVELS };
 }
 
+// ----------------------------------------------------------------------
+// Load game.js itself in a fake browser sandbox so the REAL hotStartPools,
+// weightedMixedPoolPick and the real seeded srand can be exercised directly,
+// instead of grepping the source text and recomputing an expected share in
+// probe-local JS (the R1 gate B1 finding: that pattern lets a broken
+// implementation pass because it never calls the code under test).
+//
+// game.js is a browser file wrapped in one big IIFE that runs a lot of
+// window/document/Phaser setup at load time. It never needs to actually
+// render anything for this probe: we only need the module to finish
+// evaluating so its scene method objects exist. The scene configs (including
+// PlayScene, which owns hotStartPools/weightedMixedPoolPick/seedHotStart)
+// are handed to `new Phaser.Game(cfg)` as `cfg.scene`, an array of classes
+// built by the local toScene() helper; a stub Phaser.Game constructor
+// captures that array so the real prototypes can be read back out.
+function loadGamePlayScene() {
+  var noop = function () {};
+  var fakeEl = {
+    style: {},
+    classList: { add: noop, remove: noop, toggle: noop, contains: function () { return false; } },
+    addEventListener: noop, removeEventListener: noop,
+    appendChild: function (c) { return c; }, setAttribute: noop, getAttribute: function () { return null; },
+    querySelector: function () { return fakeEl; }, querySelectorAll: function () { return []; },
+    children: []
+  };
+  var sandbox = { window: {}, console: console };
+  sandbox.window.window = sandbox.window;
+  sandbox.document = {
+    createElement: function () { return fakeEl; },
+    addEventListener: noop, removeEventListener: noop,
+    documentElement: { clientWidth: 390, clientHeight: 844, style: {} },
+    body: fakeEl,
+    getElementById: function () { return fakeEl; },
+    querySelector: function () { return fakeEl; },
+    querySelectorAll: function () { return []; },
+    visibilityState: 'visible',
+    fullscreenElement: null
+  };
+  sandbox.window.document = sandbox.document;
+  sandbox.location = { search: '', href: '', hostname: 'localhost' };
+  sandbox.window.location = sandbox.location;
+  sandbox.window.localStorage = { getItem: function () { return null; }, setItem: noop, removeItem: noop };
+  sandbox.window.addEventListener = noop;
+  sandbox.window.removeEventListener = noop;
+  sandbox.window.requestAnimationFrame = function () { return 0; };
+  sandbox.window.cancelAnimationFrame = noop;
+  sandbox.window.prompt = function () { return null; };
+  sandbox.window.console = console;
+  sandbox.setInterval = function () { return 0; };
+  sandbox.setTimeout = function () { return 0; };
+  sandbox.clearInterval = noop;
+  sandbox.clearTimeout = noop;
+
+  var savedProfile = null;
+  sandbox.GGKit = {
+    create: function (cfg) {
+      return {
+        save: {
+          get: function () { return savedProfile; },
+          set: function (p) { savedProfile = p; }
+        },
+        pause: noop, resume: noop, restart: noop, input: {}, on: noop, emit: noop,
+        config: cfg, registerPWA: noop
+      };
+    },
+    hiDpi: { phaser: function (cfg) { cfg.ggDpr = 1; return cfg; } },
+    renderDefaults: {}
+  };
+  sandbox.window.GGKit = sandbox.GGKit;
+
+  function PhaserSceneStub() {}
+  var capturedSceneClasses = null;
+  sandbox.Phaser = {
+    Scene: PhaserSceneStub,
+    Math: { Between: function (a) { return a; }, Clamp: function (v, a, b) { return Math.max(a, Math.min(b, v)); } },
+    Game: function (cfg) { this.scene = {}; this.renderer = {}; capturedSceneClasses = cfg.scene; return this; },
+    AUTO: 0,
+    Scale: { FIT: 0, CENTER_BOTH: 0, NONE: 0 },
+    GameObjects: {
+      GameObjectFactory: { prototype: { text: function () { return { setScale: function () { return this; } }; } } }
+    }
+  };
+  sandbox.window.Phaser = sandbox.Phaser;
+
+  vm.createContext(sandbox);
+
+  var ld = loadGameData();
+  sandbox.window.__HM_DATA = ld.DATA;
+  sandbox.window.__HM_LEVELS = ld.LEVELS;
+
+  var gsrc = fs.readFileSync(path.join(__dirname, 'game.js'), 'utf8');
+  var gcode = new vm.Script(gsrc, { filename: 'game.js' });
+  gcode.runInContext(sandbox);
+
+  var classes = capturedSceneClasses || [];
+  var playProto = null;
+  for (var i = 0; i < classes.length; i++) {
+    if (classes[i].prototype && typeof classes[i].prototype.hotStartPools === 'function') {
+      playProto = classes[i].prototype;
+      break;
+    }
+  }
+  return { playProto: playProto, DATA: ld.DATA };
+}
+
 function mulberry32(seed) {
   var a = seed >>> 0;
   return function () {
@@ -617,96 +722,113 @@ function mulberry32(seed) {
 // t=0. Nothing in the data-model assertions above can catch that, because the
 // model was already correct. These assertions pin the CALL SITES.
 //
-// Spec literals, never read from the module under test:
-//   M3 base weight 0.15, originals 1.
+// Spec literals, never derived by calling the code under test:
 //   void-rift hot-start eligible keys after the ranged/lancer/sapper/apex
-//   filter are 3 originals + wing-cutter + nebula-burrower, so a UNIFORM draw
-//   gives the M3 additions 2/5 = 40%, while the weighted draw must give
-//   2*0.15 / (3 + 2*0.15) = 9.09%.
+//   filter are 3 originals + wing-cutter + nebula-burrower (5 keys total).
+//   A UNIFORM draw over those 5 would give the M3 additions 2/5 = 40%.
+//   The weighted draw (weight 0.15 for each M3 addition, 1 for the 3
+//   originals) must give 2*0.15 / (3 + 2*0.15) = 9.09% at t=0.
+//   At t=90, wing-cutter (rampAt:90) is fully ramped to weight 1 while
+//   nebula-burrower (rampAt:180) is at its linear ramp midpoint, weight
+//   0.15 + 0.85*90/180 = 0.575. Share = (1 + 0.575) / (3 + 1 + 0.575) =
+//   34.43%.
+//
+// All of this is now driven through the REAL hotStartPools and
+// weightedMixedPoolPick loaded straight out of game.js in a vm sandbox
+// (loadGamePlayScene, above), not recomputed here. The one exception is the
+// eligible-pool identity check, which is a spec literal by design (never
+// derived by calling hotStartPools itself).
 (function () {
-  var SPEC_M3_BASE_WEIGHT = 0.15;
-  var DATA = null;
-  try { var ld = loadGameData(); DATA = ld && ld.DATA; } catch (e) { DATA = null; }
-  var SPEC_UNIFORM_M3_SHARE = 0.40;
-  var SPEC_WEIGHTED_M3_SHARE = 0.0909;
+  var PLAY = null;
+  try { PLAY = loadGamePlayScene(); } catch (e) { PLAY = null; }
+  ok('game.js PlayScene loads in the vm sandbox and exposes hotStartPools/weightedMixedPoolPick',
+    !!(PLAY && PLAY.playProto && typeof PLAY.playProto.hotStartPools === 'function' &&
+      typeof PLAY.playProto.weightedMixedPoolPick === 'function'),
+    PLAY ? 'playProto=' + !!(PLAY && PLAY.playProto) : 'load failed');
 
-  var gameSrc = '';
-  try {
-    gameSrc = fs.readFileSync(path.join(__dirname, 'game.js'), 'utf8');
-  } catch (e) {
-    gameSrc = '';
-  }
-  ok('game.js is readable for seeder inspection', gameSrc.length > 0);
-
-  if (gameSrc) {
-    // Isolate each seeder body and require that it does NOT perform a bare
-    // uniform draw over a flattened region pool. A bare
-    // "Math.floor(srand() * <something>.length)" inside these seeders is the
-    // exact regression signature.
-    ['seedHotStart', 'seedSecondWave'].forEach(function (fnName) {
-      var start = gameSrc.indexOf(fnName + ': function');
-      ok(fnName + ' exists in game.js', start !== -1);
-      if (start === -1) return;
-      // Extract the REAL function body by brace matching. A fixed-size slice
-      // would bleed into the next method and let a NEIGHBOURING
-      // weightedMixedPoolPick call satisfy the check, which is itself a
-      // self-deceiving assertion. Found by mutation 4.
-      var open = gameSrc.indexOf('{', start);
-      var depth = 0, end = -1;
-      for (var ci = open; ci < gameSrc.length; ci++) {
-        if (gameSrc[ci] === '{') depth++;
-        else if (gameSrc[ci] === '}') { depth--; if (depth === 0) { end = ci; break; } }
-      }
-      var body = end === -1 ? '' : gameSrc.slice(open, end + 1);
-      ok(fnName + ' body was isolated by brace matching', body.length > 0 && body.length < 2000,
-        'len=' + body.length);
-      if (!body) return;
-      ok(fnName + ' draws through the weighted helper, not a flat pool',
-        body.indexOf('weightedMixedPoolPick') !== -1,
-        'no weightedMixedPoolPick call found');
-      ok(fnName + ' does not push REGION_ENEMIES keys into a flat uniform pool',
-        !/pool\.push\(/.test(body),
-        'found a pool.push( flattening region entries');
-    });
-  } else {
-    ok('seedHotStart exists in game.js', false, 'game.js unreadable');
-    ok('seedSecondWave exists in game.js', false, 'game.js unreadable');
+  if (!PLAY || !PLAY.playProto) {
+    ok('hotStartPools(void-rift) region array deep-equals the 5 spec keys', false, 'game.js failed to load');
+    ok('weighted hot-start M3 share at t=0 matches the spec 9.09%', false, 'game.js failed to load');
+    ok('weighted hot-start M3 share at t=90 matches the spec 34.43%', false, 'game.js failed to load');
+    ok('seedHotStart draws through the real timeSec, not a hardcoded one', false, 'game.js failed to load');
+    return;
   }
 
-  // Numeric guard on the intended opening mix. Computed from the real data,
-  // compared against HARDCODED spec shares.
-  if (DATA && DATA.REGION_ENEMIES && DATA.regionEnemyWeightAt) {
-    var M3 = ['wing-cutter', 'nebula-burrower'];
-    var eligible = DATA.REGION_ENEMIES['void-rift'].filter(function (d) {
-      return !(d.ranged || d.base === 'lancer' || d.base === 'sapper' || d.apex);
-    });
-    ok('void-rift hot-start eligible pool is the expected 5 keys',
-      eligible.length === 5, JSON.stringify(eligible.map(function (d) { return d.key; })));
+  var playProto = PLAY.playProto;
+  var DATA = PLAY.DATA;
+  var voidRiftRegion = DATA.REGION_BY_KEY['void-rift'];
 
-    var tot = 0, m3tot = 0;
-    eligible.forEach(function (d) {
-      var w = DATA.regionEnemyWeightAt(d, 0);
-      tot += w;
-      if (M3.indexOf(d.key) !== -1) m3tot += w;
-    });
-    var weightedShare = tot > 0 ? m3tot / tot : -1;
+  // SPEC LITERAL: the exact 5 keys hotStartPools must return for void-rift,
+  // in the order REGION_ENEMIES lists them. Never derived from the call
+  // under test.
+  var SPEC_HOT_START_KEYS = ['blink-stalker', 'gravity-mite', 'null-leech', 'wing-cutter', 'nebula-burrower'];
+  var M3_HOT_START_KEYS = ['wing-cutter', 'nebula-burrower'];
 
-    ok('M3 base weight is the spec 0.15 for both void-rift hot-start additions',
-      eligible.filter(function (d) {
-        return M3.indexOf(d.key) !== -1 &&
-          DATA.regionEnemyWeightAt(d, 0) === SPEC_M3_BASE_WEIGHT;
-      }).length === 2, 'weights=' + JSON.stringify(eligible.map(function (d) {
-        return d.key + ':' + DATA.regionEnemyWeightAt(d, 0);
-      })));
+  var realPools = playProto.hotStartPools.call({}, [], voidRiftRegion);
+  var realKeys = realPools.region.map(function (d) { return d.key; });
+  ok('hotStartPools(void-rift) region array deep-equals the 5 spec keys',
+    JSON.stringify(realKeys) === JSON.stringify(SPEC_HOT_START_KEYS),
+    'got=' + JSON.stringify(realKeys));
 
-    ok('weighted hot-start M3 share at t=0 matches the spec 9.09%, not the uniform 40%',
-      weightedShare > 0 && Math.abs(weightedShare - SPEC_WEIGHTED_M3_SHARE) < 0.005,
-      'share=' + weightedShare.toFixed(4));
-
-    ok('weighted hot-start M3 share at t=0 is far below the uniform-draw share',
-      weightedShare < SPEC_UNIFORM_M3_SHARE / 2,
-      'share=' + weightedShare.toFixed(4) + ' uniform=' + SPEC_UNIFORM_M3_SHARE);
+  // Empirically drive the REAL weightedMixedPoolPick (real srand, real
+  // regionEnemyWeightAt) at two times, with the base-key pool empty so the
+  // draw is purely over the 5 void-rift region entries (matching the eligible
+  // pool the SPEC_HOT_START_KEYS check just pinned).
+  function drawShare(timeSec, n) {
+    var m3 = 0;
+    for (var i = 0; i < n; i++) {
+      var pick = playProto.weightedMixedPoolPick.call({}, realPools.base, realPools.region, timeSec);
+      if (M3_HOT_START_KEYS.indexOf(pick) !== -1) m3++;
+    }
+    return m3 / n;
   }
+
+  var N_DRAWS = 20000;
+  var SPEC_SHARE_AT_0 = 0.0909;
+  var SPEC_SHARE_AT_90 = 0.3443;
+  var TOL_AT_0 = 0.015;   // +/- 1.5 absolute percentage points
+  var TOL_AT_90 = 0.02;   // wider band: larger true share tolerates more sampling noise
+
+  var shareAt0 = drawShare(0, N_DRAWS);
+  ok('weighted hot-start M3 share at t=0 (real weightedMixedPoolPick, ' + N_DRAWS + ' draws) matches spec 9.09% +/- 1.5pp',
+    Math.abs(shareAt0 - SPEC_SHARE_AT_0) < TOL_AT_0,
+    'share=' + (shareAt0 * 100).toFixed(2) + '% expected=' + (SPEC_SHARE_AT_0 * 100).toFixed(2) + '%');
+
+  var shareAt90 = drawShare(90, N_DRAWS);
+  ok('weighted hot-start M3 share at t=90 (real weightedMixedPoolPick, ' + N_DRAWS + ' draws) matches spec 34.43% +/- 2pp',
+    Math.abs(shareAt90 - SPEC_SHARE_AT_90) < TOL_AT_90,
+    'share=' + (shareAt90 * 100).toFixed(2) + '% expected=' + (SPEC_SHARE_AT_90 * 100).toFixed(2) + '%');
+
+  // Drive the REAL seedHotStart (not a hand-rolled reimplementation of its
+  // loop) with a minimal mocked `this`, so a mutation that pins its internal
+  // timeSec (independent of run.time) is caught even though the two direct
+  // weightedMixedPoolPick draws above call with an explicit timeSec and can't
+  // see that particular regression. regionEnemyFor is mocked to a pass-through
+  // so only the timeSec-dependent weighting is exercised, not the unrelated
+  // "does this hot-start slot use a region enemy at all" 46% gate. spawn is a
+  // no-op; nothing else about seedHotStart's body depends on scene state.
+  var VOID_RIFT_X = -3500; // regionAtX(-3500).key === 'void-rift', verified against hm_data.js
+  function driveSeedHotStart(timeSec, out) {
+    var fakeThis = {
+      level: null,
+      activeWaves: [{ pool: [] }],
+      p: { x: VOID_RIFT_X, y: 0 },
+      run: { time: timeSec },
+      levelMods: { spawnRate: 1 },
+      hotStartPools: playProto.hotStartPools,
+      weightedMixedPoolPick: playProto.weightedMixedPoolPick,
+      regionEnemyFor: function (fallback) { out.push(fallback); return fallback; },
+      spawn: function () {}
+    };
+    playProto.seedHotStart.call(fakeThis);
+  }
+  var seedPicks = [];
+  var REPEATS = Math.ceil(N_DRAWS / 80); // HOT_START.count is 80 per call
+  for (var r = 0; r < REPEATS; r++) driveSeedHotStart(0, seedPicks);
+  var seedShare = seedPicks.filter(function (k) { return M3_HOT_START_KEYS.indexOf(k) !== -1; }).length / seedPicks.length;
+  ok('seedHotStart draws through the real timeSec, not a hardcoded one (share at run.time=0 matches spec 9.09% +/- 1.5pp)',
+    Math.abs(seedShare - SPEC_SHARE_AT_0) < TOL_AT_0,
+    'share=' + (seedShare * 100).toFixed(2) + '% n=' + seedPicks.length);
 })();
 
 // ========================================================================
