@@ -101,14 +101,35 @@
   var HOT_START = HM_DATA.HOT_START;
   var ARSENAL_III = HM_DATA.ARSENAL_III;
   var ATLAS_FRAME_MAP = HM_DATA.ATLAS_FRAME_MAP;
+  var ENGINE_TRAILS = HM_DATA.ENGINE_TRAILS;
+  var TRAIL_BY_KEY = HM_DATA.TRAIL_BY_KEY;
+  var SHOT_COLORS = HM_DATA.SHOT_COLORS;
+  var SHOT_COLOR_BY_KEY = HM_DATA.SHOT_COLOR_BY_KEY;
+  var DECALS = HM_DATA.DECALS;
+  var DECAL_BY_KEY = HM_DATA.DECAL_BY_KEY;
   function makeDefaultHangar() {
     var tiers = {};
     for (var i = 0; i < HANGAR_TRACKS.length; i++) tiers[HANGAR_TRACKS[i].key] = 0;
     return {
       balance: 0, tiers: tiers, equippedWeapon: 'lance',
       loadout: ['lance', '', ''],
-      weaponsSeen: { 'lance': true }, paint: 'teal', trim: 'mint', frame: 'classic'
+      weaponsSeen: { 'lance': true }, paint: 'teal', trim: 'mint', frame: 'classic',
+      // M5-STYLE additions: engine trail, shot colour, decal. Additive to the
+      // existing hangar profile shape; sensible defaults for old saves below.
+      engineTrail: 'stream', shotColor: 'default', decal: 'none'
     };
+  }
+  // Real achievement state a decal gate can check. Built fresh each call
+  // (cheap) so decals always reflect live profile progress, not a cached
+  // snapshot the save could drift from.
+  function decalUnlockCtx() {
+    return { weaponsFound: weaponsFoundCount() };
+  }
+  function decalUnlocked(key) {
+    var d = DECAL_BY_KEY[key];
+    if (!d) return false;
+    if (!d.gate) return true;
+    return !!d.gate(profile, decalUnlockCtx());
   }
   function makeDefaultCampaign() {
     return { unlocked: 1, stars: {}, bestTimes: {} };
@@ -251,6 +272,11 @@
         }
       }
       if (!PAINT_BY_KEY[h.paint] || !TRIM_BY_KEY[h.trim] || !FRAME_BY_KEY[h.frame]) return false;
+      // M5-STYLE: engine trail / shot colour / decal are optional (older
+      // saves lack them); when present they must be a known key.
+      if (h.engineTrail != null && !TRAIL_BY_KEY[h.engineTrail]) return false;
+      if (h.shotColor != null && !SHOT_COLOR_BY_KEY[h.shotColor]) return false;
+      if (h.decal != null && !DECAL_BY_KEY[h.decal]) return false;
       if (o.campaign != null) {
         var cg = o.campaign;
         if (typeof cg !== 'object' || Array.isArray(cg)) return false;
@@ -300,6 +326,11 @@
   if (!profile.hangar) profile.hangar = makeDefaultHangar();
   if (profile.hangar.tiers.gunDeck == null) { profile.hangar.tiers.gunDeck = 0; didMigrate = true; }
   if (!profile.hangar.weaponsSeen['lance']) profile.hangar.weaponsSeen['lance'] = true;
+  // M5-STYLE migration: backfill trail/shot/decal for saves written before
+  // this lane shipped.
+  if (!TRAIL_BY_KEY[profile.hangar.engineTrail]) { profile.hangar.engineTrail = 'stream'; didMigrate = true; }
+  if (!SHOT_COLOR_BY_KEY[profile.hangar.shotColor]) { profile.hangar.shotColor = 'default'; didMigrate = true; }
+  if (!DECAL_BY_KEY[profile.hangar.decal]) { profile.hangar.decal = 'none'; didMigrate = true; }
   if (!profile.hangar.equippedWeapon || !profile.hangar.weaponsSeen[profile.hangar.equippedWeapon]) {
     profile.hangar.equippedWeapon = 'lance';
   }
@@ -592,7 +623,8 @@
       { id: '', type: '', progress: 0, count: 0, done: false },
       { id: '', type: '', progress: 0, count: 0, done: false }
     ], objectiveCount: 0 },
-    hangar: { balance: 0, tiers: {}, equippedWeapon: 'lance', paint: 'teal' },
+    hangar: { balance: 0, tiers: {}, equippedWeapon: 'lance', paint: 'teal', trim: 'mint',
+      engineTrail: 'stream', shotColor: 'default', decal: 'none' },
     watchdog: {
       maxStepMs: 0,
       lastBeatAgoMs: 0,
@@ -612,6 +644,10 @@
     st.hangar.balance = Math.floor(h.balance);
     st.hangar.equippedWeapon = h.equippedWeapon;
     st.hangar.paint = h.paint;
+    st.hangar.trim = h.trim;
+    st.hangar.engineTrail = h.engineTrail;
+    st.hangar.shotColor = h.shotColor;
+    st.hangar.decal = h.decal;
     for (var i = 0; i < HANGAR_TRACKS.length; i++) {
       var key = HANGAR_TRACKS[i].key;
       st.hangar.tiers[key] = h.tiers[key] || 0;
@@ -1117,8 +1153,19 @@
         .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.55);
       this.previewTrim = this.add.image(0, 0, 'atlas', 'ring').setScale(1.15)
         .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.2);
+      // M5-STYLE: decal preview mark + live engine-trail particles + a
+      // looping shot-colour puff, so tapping STYLE options shows immediately
+      // instead of only changing the equipped state.
+      this.previewDecal = this.add.image(0, 8, 'atlas', 'hi_kill').setScale(0.5).setVisible(false);
+      this.previewShotPuff = this.add.image(0, -46, 'p_flare').setScale(0.55)
+        .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
       this.preview.add([this.previewGlow, this.previewTrim, this.previewMarker,
-        this.previewEngine, this.previewShip]);
+        this.previewEngine, this.previewShip, this.previewDecal, this.previewShotPuff]);
+      this.previewTrailParticles = this.add.particles(0, 0, 'p_flare', {
+        lifespan: 340, speed: { min: 6, max: 34 }, scale: { start: 0.2, end: 0 },
+        alpha: { start: 0.55, end: 0 }, blendMode: 'ADD', emitting: false, quantity: 1
+      }).setDepth(this.preview.depth);
+      this.previewShotPuffT = 0;
       this.previewHit = this.add.rectangle(w / 2, 178, 150, 108, 0x000000, 0.001)
         .setInteractive({ useHandCursor: true });
       this.previewHit.on('pointerover', function () { scene.thrustHeld = true; });
@@ -1165,6 +1212,31 @@
         .setAlpha(0.38 + this.thrustT * 0.52).setScale(0.82 + this.thrustT * 0.72);
       this.previewTrim.setPosition(push * 0.3, bob - push * 0.18)
         .setRotation(this.hangarClock * 0.4);
+      this.previewDecal.setPosition(push * 0.3, bob - push * 0.18 + 8)
+        .setRotation(reduced ? 0 : Math.sin(this.hangarClock * 1.1) * 0.035 - this.thrustT * 0.045);
+      // M5-STYLE: engine trail particles emit in world space at the ship's
+      // container-relative world position, using the equipped trail's own
+      // scale/lifespan/frequency, exactly like the in-run emitter.
+      var trailDef = TRAIL_BY_KEY[profile.hangar.engineTrail] || ENGINE_TRAILS[0];
+      var shipWX = this.preview.x + push * 0.3, shipWY = this.preview.y + bob - push * 0.18;
+      this.previewTrailT = (this.previewTrailT || 0) - dt;
+      if (this.previewTrailT <= 0) {
+        this.previewTrailT = trailDef.freq;
+        this.previewTrailParticles.setParticleTint(trailDef.color);
+        this.previewTrailParticles.setParticleLifespan(trailDef.lifespan);
+        this.previewTrailParticles.setScale(0.9 * trailDef.scale);
+        this.previewTrailParticles.emitParticleAt(shipWX - 20, shipWY + 27);
+      }
+      // Looping shot-colour puff so the pick is visible without a real gun.
+      this.previewShotPuffT = (this.previewShotPuffT || 0) - dt;
+      if (this.previewShotPuffT <= 0) {
+        this.previewShotPuffT = 0.6;
+        this.previewShotPuff.setAlpha(0.9).setScale(0.3);
+      }
+      if (this.previewShotPuff.alpha > 0) {
+        this.previewShotPuff.setAlpha(Math.max(0, this.previewShotPuff.alpha - dt * 1.4));
+        this.previewShotPuff.setScale(this.previewShotPuff.scale + dt * 0.9);
+      }
     },
 
     setPage: function (page) {
@@ -1191,11 +1263,19 @@
       var paint = PAINT_BY_KEY[h.paint] || HULL_PAINTS[0];
       var trim = TRIM_BY_KEY[h.trim] || TRIMS[0];
       var frame = FRAME_BY_KEY[h.frame] || HULL_FRAMES[0];
+      var shotColor = SHOT_COLOR_BY_KEY[h.shotColor] || SHOT_COLORS[0];
+      var decal = DECAL_BY_KEY[h.decal];
       this.previewShip.setTexture('atlas', frame.idle).setTint(paint.tint);
       this.previewGlow.setTint(trim.color);
       this.previewTrim.setTint(trim.color);
       this.previewMarker.setTint(trim.color);
       this.previewEngine.setTint(trim.color);
+      this.previewShotPuff.setTint(shotColor.key === 'default' ? 0xffffff : shotColor.color);
+      if (decal && decal.key !== 'none' && decal.frame && decalUnlocked(h.decal)) {
+        this.previewDecal.setTexture('atlas', decal.frame).setVisible(true);
+      } else {
+        this.previewDecal.setVisible(false);
+      }
       setTextIfChanged(this.previewLabel, frame.name.toUpperCase() + ' HULL  ·  ' + paint.name.toUpperCase() + ' PAINT');
     },
 
@@ -1378,32 +1458,124 @@
           ? 'CODEX COMPLETE  ·  EVERY WEAPON RECOVERED.'
           : (WEAPONS.length - found) + ' WEAPONS STILL UNRECOVERED.', found >= WEAPONS.length ? '#8effd8' : '#7fa3b5');
       } else if (this.page === 'style') {
-        g.add(bodyText(this, w / 2, top - 20, 'SHIP CUSTOMIZE', TYPE.label, '#8effd8'));
-        var paintW = (w - 32) / 3;
+        // M5-STYLE: dense swatch-grid layout (8 paints, 6 trims, 4 trails,
+        // 4 shot colours, decals + hull frame) sized to stay legible and
+        // tappable at 390px. Small square swatches instead of text cards for
+        // every row except hull frame and decals, which need an icon.
+        var sy = top - 20;
+        g.add(bodyText(this, w / 2, sy, 'SHIP CUSTOMIZE', TYPE.label, '#8effd8'));
+        sy += 20;
+
+        // HULL PAINT: 4 cols x 2 rows of small colour swatches.
+        g.add(bodyText(this, 16, sy, 'HULL PAINT', TYPE.micro, '#8fb3c4').setOrigin(0, 0.5));
+        sy += 16;
+        var pCols = 4, pGap = 6, pSize = Math.min(40, (w - 28 - (pCols - 1) * pGap) / pCols);
+        var pRowY = sy + pSize / 2;
         for (var pi = 0; pi < HULL_PAINTS.length; pi++) {
-          var paint = HULL_PAINTS[pi], pc = pi % 3, prr = Math.floor(pi / 3);
-          var px = 8 + paintW / 2 + pc * paintW, py = top + 34 + prr * 63;
-          var pbg = this.cardBase(g, px, py, paintW - 6, 54, profile.hangar.paint === paint.key);
-          var sw = this.add.rectangle(px, py - 8, 28, 28, paint.tint, 1).setStrokeStyle(2, 0xe7fff7, 0.45);
-          var pn = neonText(this, px, py + 15, paint.name.toUpperCase(), TYPE.micro,
-            profile.hangar.paint === paint.key ? '#8effd8' : '#b9d6e2');
-          g.add([sw, pn]);
-          pbg.setInteractive({ useHandCursor: true });
-          pbg.on('pointerdown', function (paintKey) { return function () { scene.selectPaint(paintKey); }; }(paint.key));
+          var paint = HULL_PAINTS[pi], pc = pi % pCols, prr = Math.floor(pi / pCols);
+          var px = 14 + pSize / 2 + pc * (pSize + pGap), py = pRowY + prr * (pSize + pGap);
+          var hot = profile.hangar.paint === paint.key;
+          var sw = this.add.rectangle(px, py, pSize, pSize, paint.tint, 1)
+            .setStrokeStyle(hot ? 3 : 1, 0xe7fff7, hot ? 0.95 : 0.35);
+          sw.setInteractive({ useHandCursor: true });
+          sw.on('pointerdown', function (paintKey) { return function () { scene.selectPaint(paintKey); }; }(paint.key));
+          g.add(sw);
         }
-        g.add(bodyText(this, w / 2, top + 165, 'ENGINE TRIM', TYPE.label, '#8effd8'));
+        var pRows = Math.ceil(HULL_PAINTS.length / pCols);
+        sy = pRowY + (pRows - 1) * (pSize + pGap) + pSize / 2 + 14;
+
+        // ENGINE TRIM: single row of colour dots (6).
+        g.add(bodyText(this, 16, sy, 'ENGINE TRIM', TYPE.micro, '#8fb3c4').setOrigin(0, 0.5));
+        sy += 18;
+        var tGap = (w - 32) / TRIMS.length;
         for (var ti = 0; ti < TRIMS.length; ti++) {
-          var trim = TRIMS[ti], tx = 34 + ti * ((w - 68) / 4), ty = top + 193;
-          if (ti === 4) tx = w - 34;
-          var trimDot = this.add.circle(tx, ty, 15, trim.color, 1).setStrokeStyle(2, 0xe7fff7, profile.hangar.trim === trim.key ? 0.9 : 0.25);
+          var trim = TRIMS[ti], tx = 16 + tGap / 2 + ti * tGap;
+          var trimDot = this.add.circle(tx, sy, 13, trim.color, 1)
+            .setStrokeStyle(2, 0xe7fff7, profile.hangar.trim === trim.key ? 0.95 : 0.25);
           trimDot.setInteractive({ useHandCursor: true });
           trimDot.on('pointerdown', function (trimKey) { return function () { scene.selectTrim(trimKey); }; }(trim.key));
           g.add(trimDot);
         }
-        g.add(bodyText(this, w / 2, top + 235, 'HULL FRAME', TYPE.label, '#8effd8'));
+        sy += 26;
+
+        // ENGINE TRAIL: 4 small swatches with a name tag underneath.
+        g.add(bodyText(this, 16, sy, 'ENGINE TRAIL', TYPE.micro, '#8fb3c4').setOrigin(0, 0.5));
+        sy += 16;
+        var trCols = ENGINE_TRAILS.length, trGap = 6;
+        var trW = (w - 28 - (trCols - 1) * trGap) / trCols;
+        var trY = sy + 16;
+        for (var tri = 0; tri < ENGINE_TRAILS.length; tri++) {
+          var trail = ENGINE_TRAILS[tri], trX = 14 + trW / 2 + tri * (trW + trGap);
+          var trHot = profile.hangar.engineTrail === trail.key;
+          var trBg = this.cardBase(g, trX, trY, trW - 3, 40, trHot);
+          var trDot = this.add.circle(trX, trY - 6, 9, trail.color, 1).setStrokeStyle(1, 0xe7fff7, 0.4);
+          var trNameStr = trail.name.toUpperCase();
+          if (window.__HM2_UI) trNameStr = window.__HM2_UI.wrapText(this, trNameStr, { fontFamily: FONT_DISPLAY, fontSize: TYPE.micro, fontStyle: 'bold' }, trW - 4, 1)[0] || '';
+          var trName = neonText(this, trX, trY + 12, trNameStr, TYPE.micro, trHot ? '#8effd8' : '#b9d6e2');
+          trBg.setInteractive({ useHandCursor: true });
+          trBg.on('pointerdown', function (trailKey) { return function () { scene.selectTrail(trailKey); }; }(trail.key));
+          g.add([trDot, trName]);
+        }
+        sy = trY + 34;
+
+        // SHOT COLOUR: 4 small swatches with a name tag underneath.
+        g.add(bodyText(this, 16, sy, 'SHOT COLOUR', TYPE.micro, '#8fb3c4').setOrigin(0, 0.5));
+        sy += 16;
+        var scCols = SHOT_COLORS.length, scGap = 6;
+        var scW = (w - 28 - (scCols - 1) * scGap) / scCols;
+        var scY = sy + 16;
+        for (var sci2 = 0; sci2 < SHOT_COLORS.length; sci2++) {
+          var shotC = SHOT_COLORS[sci2], scX = 14 + scW / 2 + sci2 * (scW + scGap);
+          var scHot = profile.hangar.shotColor === shotC.key;
+          var scBg = this.cardBase(g, scX, scY, scW - 3, 40, scHot);
+          var scDot = this.add.circle(scX, scY - 6, 9, shotC.key === 'default' ? 0xffffff : shotC.color, 1)
+            .setStrokeStyle(1, 0xe7fff7, 0.4);
+          var scNameStr = shotC.name.toUpperCase();
+          if (window.__HM2_UI) scNameStr = window.__HM2_UI.wrapText(this, scNameStr, { fontFamily: FONT_DISPLAY, fontSize: TYPE.micro, fontStyle: 'bold' }, scW - 4, 1)[0] || '';
+          var scName = neonText(this, scX, scY + 12, scNameStr, TYPE.micro, scHot ? '#8effd8' : '#b9d6e2');
+          scBg.setInteractive({ useHandCursor: true });
+          scBg.on('pointerdown', function (shotKey) { return function () { scene.selectShotColor(shotKey); }; }(shotC.key));
+          g.add([scDot, scName]);
+        }
+        sy = scY + 34;
+
+        // DECALS: icon badges; locked ones show visibly greyed with a lock
+        // icon and their unlock reason, not hidden, per acceptance criteria.
+        g.add(bodyText(this, 16, sy, 'DECALS', TYPE.micro, '#8fb3c4').setOrigin(0, 0.5));
+        sy += 16;
+        var dCols = DECALS.length, dGap = 5;
+        var dW = (w - 28 - (dCols - 1) * dGap) / dCols;
+        var dY = sy + 20;
+        for (var di = 0; di < DECALS.length; di++) {
+          var decal = DECALS[di], dX = 14 + dW / 2 + di * (dW + dGap);
+          var dUnlocked = decalUnlocked(decal.key);
+          var dHot = profile.hangar.decal === decal.key;
+          var dBg = this.cardBase(g, dX, dY, dW - 3, 56, dHot);
+          dBg.setAlpha(dUnlocked ? 1 : 0.5);
+          var dIcon = this.add.image(dX, dY - 12, 'atlas', decal.frame && dUnlocked ? decal.frame : 'ic_lock')
+            .setScale(0.34).setTint(dUnlocked ? 0xd8f5ff : 0x6d8593);
+          var dNameStr = decal.name.toUpperCase();
+          if (window.__HM2_UI) dNameStr = window.__HM2_UI.wrapText(this, dNameStr, { fontFamily: FONT_DISPLAY, fontSize: TYPE.micro, fontStyle: 'bold' }, dW - 4, 1)[0] || '';
+          var dName = neonText(this, dX, dY + 12, dNameStr, TYPE.micro, dUnlocked ? (dHot ? '#8effd8' : '#b9d6e2') : '#6d8593');
+          g.add([dIcon, dName]);
+          if (!dUnlocked) {
+            var dReasonStr = decal.desc || '';
+            if (window.__HM2_UI) dReasonStr = window.__HM2_UI.wrapText(this, dReasonStr, { fontFamily: FONT_BODY, fontSize: TYPE.micro }, dW - 4, 1)[0] || '';
+            var dReason = bodyText(this, dX, dY + 24, dReasonStr, TYPE.micro, '#8a7a4e');
+            g.add(dReason);
+          }
+          dBg.setInteractive({ useHandCursor: true });
+          dBg.on('pointerdown', function (decalKey) { return function () { scene.selectDecal(decalKey); }; }(decal.key));
+        }
+        sy = dY + 40;
+
+        // HULL FRAME: kept from the pre-existing layout, moved below decals.
+        g.add(bodyText(this, 16, sy, 'HULL FRAME', TYPE.micro, '#8fb3c4').setOrigin(0, 0.5));
+        sy += 16;
         var fw = Math.min(112, (w - 36) / 3);
+        var fy = sy + 30;
         for (var fi = 0; fi < HULL_FRAMES.length; fi++) {
-          var frame = HULL_FRAMES[fi], fx = 18 + fw / 2 + fi * (fw + 1), fy = top + 274;
+          var frame = HULL_FRAMES[fi], fx = 18 + fw / 2 + fi * (fw + 1);
           var fbg = this.cardBase(g, fx, fy, fw - 5, 58, profile.hangar.frame === frame.key);
           var fs = this.add.image(fx, fy - 12, 'atlas', frame.idle).setScale(0.4).setTint((PAINT_BY_KEY[profile.hangar.paint] || HULL_PAINTS[0]).tint);
           var fnMax = fw - 12;
@@ -1415,7 +1587,7 @@
           fbg.on('pointerdown', function (frameKey) { return function () { scene.selectFrame(frameKey); }; }(frame.key));
           g.add([fs, fn]);
         }
-        this.setNotice('', '#7fa3b5');
+        this.setNotice('TAP A LOCKED DECAL TO SEE HOW TO UNLOCK IT.', '#7fa3b5');
       } else {
         g.add(bodyText(this, w / 2, top - 20, 'CORE SYSTEMS', TYPE.label, '#8effd8'));
         var mgap = 8, mw = (w - 28 - mgap) / 2, mh = Math.min(70, (h - top - 124) / 3);
@@ -1563,6 +1735,36 @@
       this.renderPreview();
       this.renderPage();
       sfx('select', { rate: 0.92 });
+    },
+
+    selectTrail: function (key) {
+      if (!TRAIL_BY_KEY[key]) return;
+      profile.hangar.engineTrail = key;
+      saveProfile();
+      updateHangarDebugState(HM_DEBUG_STATE);
+      this.renderPreview();
+      this.renderPage();
+      sfx('select', { rate: 1.02 });
+    },
+
+    selectShotColor: function (key) {
+      if (!SHOT_COLOR_BY_KEY[key]) return;
+      profile.hangar.shotColor = key;
+      saveProfile();
+      updateHangarDebugState(HM_DEBUG_STATE);
+      this.renderPreview();
+      this.renderPage();
+      sfx('select', { rate: 1.2 });
+    },
+
+    selectDecal: function (key) {
+      if (!DECAL_BY_KEY[key] || !decalUnlocked(key)) return;
+      profile.hangar.decal = key;
+      saveProfile();
+      updateHangarDebugState(HM_DEBUG_STATE);
+      this.renderPreview();
+      this.renderPage();
+      sfx('select', { rate: 1.0 });
     }
   };
 
@@ -1737,6 +1939,10 @@
       this.playerMark = this.add.image(0, 0, 'atlas', 'hero_marker').setDepth(48)
         .setAlpha(0.9).setScale(0.82);
       this.player = this.add.image(0, 0, 'atlas', 'hero_idle').setDepth(50);
+      // M5-STYLE: small decal mark riding on the hull, above the ship sprite.
+      // Frame/visibility driven by applyDecalToPlayer() on run reset.
+      this.playerDecal = this.add.image(0, 0, 'atlas', 'hi_kill').setDepth(51)
+        .setScale(0.42).setVisible(false);
       this.playerHeading = 0;
       this.playerBank = 0;
       this.playerGlow = this.add.image(0, 0, 'disc').setDepth(47)
@@ -3094,6 +3300,15 @@
         .setPosition(this.p.x, this.p.y).setAngle(0).clearTint();
       this.player.setTint((PAINT_BY_KEY[profile.hangar.paint] || HULL_PAINTS[0]).tint);
       this.fx.trail.setParticleTint((TRIM_BY_KEY[profile.hangar.trim] || TRIMS[0]).color);
+      // M5-STYLE: engine trail profile drives the trail emitter's own scale/
+      // lifespan/frequency (not just colour) so the four trails are visually
+      // distinct in motion, not four recolors. trailFreq consumed by stepPlayer.
+      var trailDef = TRAIL_BY_KEY[profile.hangar.engineTrail] || ENGINE_TRAILS[0];
+      this.fx.trail.setParticleTint(trailDef.color);
+      this.fx.trail.setParticleLifespan(trailDef.lifespan);
+      this.trailFreq = trailDef.freq;
+      this.trailScaleMul = trailDef.scale;
+      this.applyDecalToPlayer();
       if (hWingBay > 0) this.addWing();
       this.cameras.main.centerOn(this.p.x, this.p.y);
       this.bossBar.setVisible(false);
@@ -5395,6 +5610,20 @@
       this.run.wings = next;
     },
 
+    // M5-STYLE: mirrors the equipped decal onto the live playerDecal sprite.
+    // 'none' or a locked/unknown key simply hides it; unlock is re-checked
+    // live via decalUnlocked() rather than trusting the stored key blindly.
+    applyDecalToPlayer: function () {
+      if (!this.playerDecal) return;
+      var key = profile.hangar.decal;
+      var d = DECAL_BY_KEY[key];
+      if (!d || d.key === 'none' || !d.frame || !decalUnlocked(key)) {
+        this.playerDecal.setVisible(false);
+        return;
+      }
+      this.playerDecal.setTexture('atlas', d.frame).setVisible(true);
+    },
+
     addWing: function () {
       if (this.run.wings >= this.wingCapacity()) return null;
       var w = null;
@@ -6969,7 +7198,13 @@
         if (s.forceCrit) this.run.overcharge--;
         var frame = style ? style.frame : (kind === 'seeker' || kind === 'swarm-dart' || kind === 'wisp' ? 'wisp' :
           (kind === 'mortar' ? 'ic_pulse' : (kind === 'wing' ? 'bolt' : 'bolt')));
-        var tint = s.boosted ? 0xffd67a : (style ? style.color : (kind === 'wing' ? 0x8effd8 : 0xffffff));
+        // M5-STYLE: equipped shot colour tints player projectiles (fireShot is
+        // the player-only shot path; enemy bolts use a separate system and
+        // are untouched). Boosted/arsenal tint still wins so buffs stay legible.
+        var shotColorDef = SHOT_COLOR_BY_KEY[profile.hangar.shotColor];
+        var baseTint = style ? style.color : (kind === 'wing' ? 0x8effd8 : 0xffffff);
+        if (shotColorDef && shotColorDef.key !== 'default') baseTint = shotColorDef.color;
+        var tint = s.boosted ? 0xffd67a : baseTint;
         s.visualScale = (style ? (s.boosted ? 1.18 : (style.tier === 'evolution' ? 1.12 : 1.0)) :
           (kind === 'wing' ? 0.94 : 1.1)) * (r / 5);
         this.unpark(s.spr);
@@ -9658,6 +9893,10 @@
         this.playerBank += (0 - this.playerBank) * Math.min(1, dt * 8);
       }
       this.player.setRotation(this.playerHeading + this.playerBank);
+      // M5-STYLE: decal rides the hull, same heading/bank as the ship.
+      if (this.playerDecal && this.playerDecal.visible) {
+        this.playerDecal.setPosition(p.x, p.y).setRotation(this.playerHeading + this.playerBank);
+      }
       var paint = PAINT_BY_KEY[profile.hangar.paint] || HULL_PAINTS[0];
       if (lowIntegrity && p.hurtT <= 0) this.player.setTint(paint.lowTint);
       else this.player.setTint(paint.tint);
@@ -9723,11 +9962,15 @@
         this.park(this.aegisShell); this.park(this.aegisTimerRing);
       }
 
-      this.fx.trail.setScale(0.72 + thrust * 0.9 + (run.buffs.overdrive > 0 ? 0.48 : 0));
+      // M5-STYLE: trailScaleMul is the equipped engine trail's own scale
+      // property, layered on top of the existing thrust/overdrive scale-up.
+      var trailScaleMul = this.trailScaleMul || 1;
+      this.fx.trail.setScale((0.72 + thrust * 0.9 + (run.buffs.overdrive > 0 ? 0.48 : 0)) * trailScaleMul);
       if (p.moving && this.state === 'playing') {
         this.trailT = (this.trailT || 0) - dt;
         if (this.trailT <= 0) {
-          this.trailT = (run.buffs.overdrive > 0 ? 0.045 : 0.07) - thrust * 0.02;
+          var trailFreqBase = this.trailFreq != null ? this.trailFreq : 0.07;
+          this.trailT = (run.buffs.overdrive > 0 ? trailFreqBase * 0.64 : trailFreqBase) - thrust * 0.02;
           this.fx.trail.emitParticleAt(p.x - Math.cos(p.face) * 16, p.y - Math.sin(p.face) * 16, 1);
         }
       }
