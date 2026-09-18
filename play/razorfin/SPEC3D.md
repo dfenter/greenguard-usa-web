@@ -1164,10 +1164,21 @@ manta.glb, dolphin.glb, fish_tuna/fish_blue/fish_clown.glb (8/6-bone).
 - Species map: 16 prey defs -> 5 bases x tints/scale (document in fish3d).
 
 ### 9.4 Clarity ("way too many random fish")
-- ENTITY_BUDGET onscreen 110 -> 48, total 220 -> 120. Each zone spawn table
-  lists at most 3 prey species + hazards; schools are cohesive (6-10, tight
-  spacing) rather than scattered singles. Decor must not resemble fish.
+- ENTITY_BUDGET onscreen 110 -> 32, total 220 -> 120 (source of truth:
+  `data.js:145`, `ENTITY_BUDGET:{onscreen:32,total:120}`, verified by the
+  2026-09-17 QA gate). Each zone spawn table lists at most 3 prey species +
+  hazards; schools are cohesive (6-10, tight spacing) rather than scattered
+  singles. Decor must not resemble fish.
 - Larger, fewer, readable targets; the eat gate/mouth contract is unchanged.
+- Pack/school sizes are per-creature, not a single constant. Actual values
+  from `data.js` `CREATURES` (`packMin`-`packMax`): minnow, reeffish,
+  mackerel, squidling, anglerprey 4-7; parrot, tuna 2-6/2-5/2-4 (parrot 2-5,
+  tuna 2-6, dolphinfish 2-4); seal 1-3, grouper 1-3; sealion, ray, turtle,
+  swordfish, abyssal 1-2; orca, marlin, giantsquid, leviathanprey 1-1
+  (solitary). The non-interactive decorative minnow background school
+  (`world3d.js`, section "Fallback, background schools, and teardown" above)
+  is separately fixed at 32 instances and is outside `ENTITY_BUDGET` (it never
+  enters the entity pool or spatial hash).
 
 ### 8.2a Amendment (Rev 9, 2026-08-23): seek anchor = BODY CENTER
 Owner: "cannot dive down." Root cause: nose-anchored distance + close tier
