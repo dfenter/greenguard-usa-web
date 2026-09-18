@@ -216,7 +216,7 @@
     { key: 'oblivion-web', name: 'Oblivion Web', kind: 'mine', mode: 'tether-mine', glyph: 'ic_mine', frame: 'ic_mine',
       color: 0xff9ac0, impact: 0xffc8dc, muzzle: 0xff7f9b, cue: 'select', tier: 'evolution',
       desc: 'Mines tether to each other with damaging lines between them.',
-      recipeModule: 'gunDeck', recipeText: 'LVL5 + GUNDECK',
+      recipeModule: 'gunDeck', recipeText: 'LVL5 + GUNS',
       levels: [ { rate: 1.08, dmg: 0.7, count: 5, spread: 0, speed: 0, size: 0, pierce: 0, radius: 130,
         tether: 1, tetherDps: 0.4 } ],
       spec: { mode: 'tether-mine', dmg: 0.7, mine: { radius: 130, count: 5, web: true }, tetherDps: 0.4 } },
