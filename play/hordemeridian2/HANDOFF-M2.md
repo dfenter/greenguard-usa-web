@@ -35,7 +35,7 @@ centre; always finite. All four terrain hooks are pure functions taking a single
 
 ### hm2_world.test.mjs
 `node play/hordemeridian2/hm2_world.test.mjs` -> 20 cases, 0 failures, exit 0. Re-verified by the
-orchestrator after both lanes committed. Covers SDF continuity and finiteness, union connectivity,
+orchestrator after its own two Sonnet implementer lanes (world, background) committed. M4a and M1 had NOT committed at that point and no HANDOFF-M4a.md or HANDOFF-M1.md existed. Covers SDF continuity and finiteness, union connectivity,
 clampToField never leaving the field over 5000 random points including far-outside inputs,
 edgeGlowFactor range, and finite returns from every terrain hook in every region.
 
