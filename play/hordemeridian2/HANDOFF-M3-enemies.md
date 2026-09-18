@@ -74,7 +74,7 @@ and not generically satisfied by the old fallthrough chain. File restored
 from `/tmp/hm2_enemies.js.bak` after each mutation; working tree is clean
 (verified `diff` against the backup was empty before commit).
 
-## Campaign probe — STILL RUNNING at context cutoff, not yet read
+## Campaign probe — COMPLETED after initial handoff, PASS
 
 Command (copied unmodified from
 `/Users/lucille/ue-port-studio/aaa/harness/hm2_campaign_probe.mjs` into
@@ -85,26 +85,28 @@ cd play/hordemeridian2
 node hm2_campaign_probe.mjs http://127.0.0.1:8793/play/hordemeridian2/ /tmp/hm2_m3_campaign_shots 2
 ```
 
-Log path: `/tmp/hm2_m3_campaign.log` (background PID 59296, launched
-against the `python3 -m http.server 8793` above; server may need
-restarting if that shell has since exited).
+Log path: `/tmp/hm2_m3_campaign.log`. Result, delivered via background
+Monitor notification after the enemies handoff was already written and
+committed (`5302f827`): **55/55 assertions passed**, exit 0.
 
-Last observed progress before cutoff: registry checks all PASS (15
-levels), L1 through L11 all PASS boot + mid-run alive + no console
-errors, L12 boot PASS, then cut off mid-run. **No failures seen yet.**
-Since M3 enemies are not in any `REGION_ENEMIES` wave pool, this run
-should be unaffected by M3's changes either way (a regression here would
-point to the `stepEnemies` lookup insertion itself, e.g. a thrown
-exception in `HM2_ENEMIES.BEHAVIORS` lookup on an unrelated behavior
-string) — read `/tmp/hm2_m3_campaign.log` in full and re-run if stale:
+- Registry: all 15 levels defined and validate, names/durations sane,
+  campaign UI present, no boot console errors.
+- L1 through L15: every level boots into `playing` at its own id/region,
+  stays alive to a healthy state (`playing` or `draft` mid-draft) at 70%
+  duration, zero new console errors per level.
+- Sector-bot survival medians: L1 112s (>=60s gate), L5 73s (>=45s gate),
+  L10 54s and L15 33s (both >=25s gate). All three gate assertions PASS.
 
-```
-node hm2_campaign_probe.mjs http://127.0.0.1:8793/play/hordemeridian2/ /tmp/hm2_m3_campaign_shots2 2 > /tmp/hm2_m3_campaign_v2.log 2>&1
-```
+No regression from the M3 `stepEnemies` lookup insertion or the
+`damage()` shield-wall hook: M3 enemies are not in any `REGION_ENEMIES`
+wave pool, so ordinary campaign play never reaches
+`HM2_ENEMIES.BEHAVIORS`, and the added lookup/hook did not throw or alter
+any existing mission's outcome. **M3 enemies acceptance criterion "all 15
+missions still complete with the fixed campaign bot" is now CONFIRMED.**
 
 ## Residuals / not done
 
-- 15-mission regression confirmation (see above, re-run and read the log).
+- 15-mission regression: CONFIRMED (see Campaign probe section above).
 - 60fps-at-300-enemies acceptance criterion not measured this session.
 - M3_ENEMIES are not yet wired into any `REGION_ENEMIES` wave pool or
   `WAVES` table, so they are reachable (spawn-by-key, per Scope) but will
