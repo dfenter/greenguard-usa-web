@@ -8,16 +8,17 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<base href="/play/horde-meridian-2/">
+<base href="/play/hordemeridian2/">
 <title>Horde Meridian 2</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
 <style>
-  /* Authored type system. Two CC0 faces ship with the game (see LICENSES.md);
+  /* Authored type system. Two OFL 1.1 faces ship with the game (see LICENSES.md);
      nothing is fetched from a CDN and no system font is relied on for the
-     game's voice. Display carries titles, numerals and controls; Body carries
-     prose. Both are ASCII subsets, ~1.4 KB each. */
+     game's voice. Display carries titles, numerals and controls (Chakra Petch
+     Bold); Body carries prose (Inter Regular). Both are ASCII subsets, ~1.4 KB
+     each. */
   @font-face {
     font-family: 'HM Display';
     src: url('assets/hm_display.woff2') format('woff2');
@@ -62,6 +63,7 @@
 <script src="levels/level12.js"></script>
 <script src="levels/level13.js"></script>
 <script src="hm_campaign_ui.js"></script>
+<script src="hm2_ui.js"></script>
 <script>
   /* Boot only once the two authored faces are resolved. Phaser rasterises a
      Text object's canvas at construction time, so booting before the woff2

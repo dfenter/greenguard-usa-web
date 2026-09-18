@@ -37,7 +37,7 @@ play/*
 !play/_shots
 !play/razorfin
 !play/horde-meridian
-!play/horde-meridian-2
+!play/hordemeridian2
 play/razorfin/hse
 play/razorfin/tools
 play/razorfin/scratchpad
@@ -46,7 +46,7 @@ play/razorfin/shots*
 play/_shots/*
 !play/_shots/razorfin.jpg
 !play/_shots/horde-meridian.jpg
-!play/_shots/horde-meridian-2.jpg
+!play/_shots/hordemeridian2.jpg
 zelda
 tactics3d
 flipside

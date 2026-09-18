@@ -129,12 +129,12 @@
     return v - Math.floor(v);
   }
 
-  var FONT_DISPLAY = '"HM Display", "Trebuchet MS", Verdana, system-ui, sans-serif';
-  var FONT_BODY = '"HM Body", "Trebuchet MS", Verdana, system-ui, sans-serif';
+  var FONT_DISPLAY = '"HM Display", "Chakra Petch", "Trebuchet MS", system-ui, sans-serif';
+  var FONT_BODY = '"HM Body", "Inter", system-ui, sans-serif';
   var TYPE = {
-    hero: 46, title: 30, head: 22, sub: 17, body: 14, label: 12.5, micro: 11
+    hero: 44, title: 32, head: 24, sub: 18, body: 15, label: 13, micro: 12
   };
-  var LINE = 1.35;               // line-height multiplier for wrapped copy
+  var LINE = 1.3;               // line-height multiplier for wrapped copy
 
   var SAFE = { top: 0, right: 0, bottom: 0, left: 0 };
   function readSafeArea() {

@@ -56,15 +56,22 @@
 
   function addText(scene, group, x, y, value, size, color, face, originX, maxWidth) {
     var px = Math.max(SIZE.micro, size || SIZE.body);
-    var text = scene.add.text(x, y, clean(value), {
+    var str = clean(value);
+    var style = {
       fontFamily: face === 'body' ? FONT_BODY : FONT_DISPLAY,
+      fontSize: px, fontStyle: face === 'body' ? 'normal' : 'bold'
+    };
+    if (maxWidth && window.__HM2_UI) {
+      str = window.__HM2_UI.wrapText(scene, str, style, maxWidth, 1)[0] || str;
+    }
+    var text = scene.add.text(x, y, str, {
+      fontFamily: style.fontFamily,
       fontSize: px + 'px',
       color: color || '#e7fff7',
-      fontStyle: face === 'body' ? 'normal' : 'bold',
+      fontStyle: style.fontStyle,
       align: 'left',
       lineSpacing: Math.round(px * 0.35)
     }).setOrigin(originX == null ? 0 : originX, 0.5);
-    if (maxWidth && text.width > maxWidth) text.setScale(maxWidth / text.width);
     group.add(text);
     return text;
   }

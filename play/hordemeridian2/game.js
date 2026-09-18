@@ -159,8 +159,8 @@
 
   (function sanitizePrefs() {
     var specs = [
-      ['gg-horde-meridian-audio', { mute: 'boolean', music: 'unit', sfx: 'unit' }],
-      ['gg-horde-meridian-ui', { juice: 'boolean' }]
+      ['gg-hordemeridian2-audio', { mute: 'boolean', music: 'unit', sfx: 'unit' }],
+      ['gg-hordemeridian2-ui', { juice: 'boolean' }]
     ];
     for (var i = 0; i < specs.length; i++) {
       var key = specs[i][0], shape = specs[i][1], raw = null;
@@ -182,7 +182,7 @@
   }());
 
   var kit = GGKit.create({
-    slug: 'horde-meridian',
+    slug: 'hordemeridian2',
     orientation: 'portrait',
     validateSave: function (o) {
       function counter(v, max) {
@@ -520,18 +520,18 @@
   // were rendering for EVERYONE: a player who backgrounded the app mid-run
   // came back to a red "LAST RUN DIED" strip across the menu. Keep every one
   // of them, keep them exactly as useful, and show them only on request.
-  //   enable: ?diag=1  in the url, or localStorage hm_diag = '1'
+  //   enable: ?diag=1  in the url, or localStorage hm2_diag = '1'
   var HM_DIAG = (function () {
     try {
       if (/[?&]diag=1/.test(window.location.search || '')) {
-        try { window.localStorage.setItem('hm_diag', '1'); } catch (e) {}
+        try { window.localStorage.setItem('hm2_diag', '1'); } catch (e) {}
         return true;
       }
       if (/[?&]diag=0/.test(window.location.search || '')) {
-        try { window.localStorage.removeItem('hm_diag'); } catch (e) {}
+        try { window.localStorage.removeItem('hm2_diag'); } catch (e) {}
         return false;
       }
-      return window.localStorage.getItem('hm_diag') === '1';
+      return window.localStorage.getItem('hm2_diag') === '1';
     } catch (e) { return false; }
   })();
 
@@ -542,10 +542,10 @@
   // record on the way out so only a genuine mid-run failure stays unclean.
   function hmSealBlackBox() {
     try {
-      var raw = window.localStorage.getItem('hm_blackbox');
+      var raw = window.localStorage.getItem('hm2_blackbox');
       if (!raw) return;
       var bb = JSON.parse(raw);
-      if (bb && !bb.clean) { bb.clean = true; bb.sealedOnExit = true; window.localStorage.setItem('hm_blackbox', JSON.stringify(bb)); }
+      if (bb && !bb.clean) { bb.clean = true; bb.sealedOnExit = true; window.localStorage.setItem('hm2_blackbox', JSON.stringify(bb)); }
     } catch (e) {}
   }
   window.addEventListener('pagehide', hmSealBlackBox);
@@ -829,17 +829,17 @@
       var warden = this.add.image(w / 2, h * 0.27, 'atlas', 'hero_idle').setScale(1.5);
       this.tweens.add({ targets: warden, y: h * 0.27 - 8, duration: 2000, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
 
-      var t1 = neonText(this, w / 2, h * 0.46, 'HORDE', TYPE.hero, '#c9ffe9');
-      var t2 = neonText(this, w / 2, h * 0.46 + 42, 'MERIDIAN', TYPE.title + 4, '#7ad8ff');
-      var rule = this.add.image(w / 2, h * 0.46 + 66, 'edge')
+      var t1 = neonText(this, w / 2, h * 0.44, 'HORDE', TYPE.hero, '#c9ffe9');
+      var t2 = neonText(this, w / 2, h * 0.44 + 38, 'MERIDIAN 2', TYPE.title, '#7ad8ff');
+      var rule = this.add.image(w / 2, h * 0.44 + 62, 'edge')
         .setDisplaySize(Math.min(230, w * 0.62), 3).setTint(0x7ad8ff).setAlpha(0)
         .setBlendMode(Phaser.BlendModes.ADD);
-      var rule2 = this.add.image(w / 2, h * 0.46 + 66, 'edge')
+      var rule2 = this.add.image(w / 2, h * 0.44 + 62, 'edge')
         .setDisplaySize(Math.min(230, w * 0.62), 3).setTint(0x7ad8ff).setAlpha(0)
         .setFlipX(true).setBlendMode(Phaser.BlendModes.ADD);
       t1.setAlpha(0); t2.setAlpha(0);
-      this.tweens.add({ targets: t1, alpha: 1, y: h * 0.46 - 4, duration: 620, ease: 'Cubic.easeOut' });
-      this.tweens.add({ targets: t2, alpha: 1, y: h * 0.46 + 38, duration: 620, delay: 120, ease: 'Cubic.easeOut' });
+      this.tweens.add({ targets: t1, alpha: 1, y: h * 0.44 - 4, duration: 620, ease: 'Cubic.easeOut' });
+      this.tweens.add({ targets: t2, alpha: 1, y: h * 0.44 + 34, duration: 620, delay: 120, ease: 'Cubic.easeOut' });
       this.tweens.add({ targets: [rule, rule2], alpha: 0.75, duration: 500, delay: 320 });
 
       bodyText(this, w / 2, h * 0.585, 'Survive ten minutes. Break the Core.', TYPE.label, '#8fb6c8');
@@ -876,7 +876,7 @@
       var stats = 'BEST ' + profile.best + '   ·   ' + Math.floor(hangarBalance()) + ' GEMS BANKED';
       if (HM_DIAG) {
         try {
-          var bb = JSON.parse(localStorage.getItem('hm_blackbox') || 'null');
+          var bb = JSON.parse(localStorage.getItem('hm2_blackbox') || 'null');
           if (bb && !bb.clean) {
             // Above the stats line and safe-area aware. It used to sit at a
             // raw h - 64, which on a notched phone landed on top of the
@@ -1039,6 +1039,14 @@
     update: function () {}
   };
 
+  // Single data array driving both the hangar tab bar and the page dispatch.
+  // 'ships' routes to the same content 'core' rendered previously (core
+  // systems / meta upgrades) - only the label and key moved.
+  var HANGAR_TABS = [
+    ['MODS', 'modules'], ['GUNS', 'loadout'], ['CODEX', 'codex'],
+    ['STYLE', 'style'], ['SHIPS', 'ships']
+  ];
+
   var ShopScene = {
     key: 'shop',
     create: function () {
@@ -1049,6 +1057,9 @@
       this.thrustT = 0;
       this.thrustHeld = false;
       this.page = 'modules';
+      if (window.__HM2_FORCE_TAB && HANGAR_TABS.some(function (t) { return t[1] === window.__HM2_FORCE_TAB; })) {
+        this.page = window.__HM2_FORCE_TAB;
+      }
 
       var head = 31 + SAFE.top;
       neonText(this, w / 2, head, 'HANGAR', TYPE.head, '#c9ffe9');
@@ -1059,17 +1070,17 @@
       };
       this.refreshBalance();
 
-      var tabs = [
-        ['MODS', 'modules'], ['GUNS', 'loadout'], ['CODEX', 'codex'],
-        ['STYLE', 'style'], ['CORE', 'core']
-      ];
+      var tabs = HANGAR_TABS;
       var tabW = Math.min(83, (w - 20) / tabs.length);
+      var tabLabelStyle = { fontFamily: FONT_DISPLAY, fontSize: TYPE.micro, fontStyle: 'bold' };
       tabs.forEach(function (tab, i) {
         var x = 10 + tabW / 2 + i * tabW;
         var bg = scene.add.image(x, head + 75, 'atlas', 'btn').setDisplaySize(tabW - 3, 34);
-        var txt = neonText(scene, x, head + 75, tab[0], TYPE.micro,
+        var label = window.__HM2_UI
+          ? (window.__HM2_UI.wrapText(scene, tab[0], tabLabelStyle, tabW - 9, 1)[0] || tab[0])
+          : tab[0];
+        var txt = neonText(scene, x, head + 75, label, TYPE.micro,
           scene.page === tab[1] ? '#8effd8' : '#8fb3c4');
-        if (txt.width > tabW - 9) txt.setScale((tabW - 9) / txt.width);
         bg.setDepth(30); txt.setDepth(31);
         bg.setInteractive({ useHandCursor: true });
         bg.on('pointerdown', function () { scene.setPage(tab[1]); });
@@ -1139,7 +1150,7 @@
     setPage: function (page) {
       if (this.page === page && this.pageGroup) return;
       this.page = page;
-      var names = ['modules', 'loadout', 'codex', 'style', 'core'];
+      var names = HANGAR_TABS.map(function (t) { return t[1]; });
       for (var i = 0; i < names.length; i++) {
         var tab = this['tab_' + names[i]];
         if (!tab) continue;
@@ -1194,17 +1205,19 @@
           var lv = hangarLevel(t.key), maxed = lv >= t.max;
           var bg = this.cardBase(g, x, y, cardW, cardH, false);
           var ic = this.add.image(x - cardW / 2 + 24, y - 8, 'atlas', t.icon).setScale(0.48).setTint(t.color);
-          var nm = neonText(this, x - cardW / 2 + 48, y - 20, t.name.toUpperCase(), TYPE.micro, '#d8f5ff');
-          nm.setOrigin(0, 0.5);
           var nmMax = cardW - 48 - 54;
-          if (nm.width > nmMax) nm.setScale(nmMax / nm.width);
+          var nmStr = window.__HM2_UI
+            ? window.__HM2_UI.wrapText(this, t.name.toUpperCase(), { fontFamily: FONT_DISPLAY, fontSize: TYPE.micro, fontStyle: 'bold' }, nmMax, 1)[0] || ''
+            : t.name.toUpperCase();
+          var nm = neonText(this, x - cardW / 2 + 48, y - 20, nmStr, TYPE.micro, '#d8f5ff');
+          nm.setOrigin(0, 0.5);
           var blMaxW = cardW - 58;
-          var bl = bodyText(this, x - cardW / 2 + 48, y - 4, t.blurb, TYPE.micro, '#8fb3c4');
-          bl.setOrigin(0, 0.5).setScale(0.88);
-          if (bl.width * 0.88 > blMaxW) {
-            bl.setWordWrapWidth(blMaxW / 0.85, true).setLineSpacing(-2).setScale(0.85);
-            bl.setY(y);
-          }
+          var blLines = window.__HM2_UI
+            ? window.__HM2_UI.wrapText(this, t.blurb, { fontFamily: FONT_BODY, fontSize: TYPE.micro }, blMaxW, 2)
+            : [t.blurb];
+          var bl = bodyText(this, x - cardW / 2 + 48, y - 4, blLines.join('\n'), TYPE.micro, '#8fb3c4');
+          bl.setOrigin(0, 0.5).setLineSpacing(-2);
+          if (blLines.length > 1) bl.setY(y);
           var pips = [];
           for (var p = 0; p < t.max; p++) pips.push(this.add.rectangle(x - cardW / 2 + 49 + p * 9, y + 16, 7, 4, p < lv ? t.color : 0x2b4756));
           var price = maxed ? 'MAXED' : String(t.cost(lv));
@@ -1236,14 +1249,18 @@
           var lsBg = this.cardBase(g, lsx, slotY, slotW, 40, lsActive);
           var lsIcon = this.add.image(lsx - slotW / 2 + 17, slotY, 'atlas', lsData ? lsData.glyph : (lsLive ? 'ic_orbit' : 'ic_lock'))
             .setScale(0.38).setTint(lsData ? lsData.color : 0x526572).setAlpha(lsData ? 1 : 0.7);
+          var lsNameMax = slotW - 38;
+          var lsNameStr = lsData ? lsData.shortName : 'EMPTY';
+          if (window.__HM2_UI) lsNameStr = window.__HM2_UI.wrapText(this, lsNameStr, { fontFamily: FONT_DISPLAY, fontSize: TYPE.micro, fontStyle: 'bold' }, lsNameMax, 1)[0] || '';
           var lsName = neonText(this, lsx - slotW / 2 + 32, slotY - 7,
-            lsData ? lsData.shortName : 'EMPTY', TYPE.micro, lsData ? '#d8f5ff' : '#718897');
+            lsNameStr, TYPE.micro, lsData ? '#d8f5ff' : '#718897');
           lsName.setOrigin(0, 0.5);
-          if (lsName.width > slotW - 38) lsName.setScale((slotW - 38) / lsName.width);
+          var lsTagMax = slotW - 38;
+          var lsTagStr = lsi === 0 ? 'PRIMARY' : (lsLive ? (lsi === 1 ? 'SECONDARY' : 'TERTIARY') : 'OPENS IN RUN');
+          if (window.__HM2_UI) lsTagStr = window.__HM2_UI.wrapText(this, lsTagStr, { fontFamily: FONT_BODY, fontSize: TYPE.micro }, lsTagMax, 1)[0] || '';
           var lsTag = bodyText(this, lsx - slotW / 2 + 32, slotY + 9,
-            lsi === 0 ? 'PRIMARY' : (lsLive ? (lsi === 1 ? 'SECONDARY' : 'TERTIARY') : 'OPENS IN RUN'),
-            TYPE.micro, lsActive ? '#8effd8' : (lsLive ? '#7fa3b5' : '#6a8494'));
-          lsTag.setOrigin(0, 0.5).setScale(0.78);
+            lsTagStr, TYPE.micro, lsActive ? '#8effd8' : (lsLive ? '#7fa3b5' : '#6a8494'));
+          lsTag.setOrigin(0, 0.5);
           g.add([lsIcon, lsName, lsTag]);
           lsBg.setInteractive({ useHandCursor: true });
           lsBg.on('pointerdown', function (slotIndex) { return function () { scene.selectLoadoutSlot(slotIndex); }; }(lsi));
@@ -1265,18 +1282,22 @@
           var wbg = this.cardBase(g, wx, wy, cw, ch, selected);
           var wic = this.add.image(wx - cw / 2 + 15, wy, 'atlas', seen ? weapon.glyph : 'ic_lock')
             .setScale(Math.min(0.4, ch / 62)).setTint(seen ? weapon.color : 0x526572).setAlpha(seen ? 1 : 0.7);
+          var weaponNameMax = cw - 32;
+          var wnStr = seen ? weapon.shortName : '???';
+          if (window.__HM2_UI) wnStr = window.__HM2_UI.wrapText(this, wnStr, { fontFamily: FONT_DISPLAY, fontSize: TYPE.micro, fontStyle: 'bold' }, weaponNameMax, 1)[0] || '';
           var wn = neonText(this, wx - cw / 2 + 27, wy - (inSlot >= 0 ? 5 : 0),
-            seen ? weapon.shortName : '???', TYPE.micro,
+            wnStr, TYPE.micro,
             seen ? '#d8f5ff' : '#718897');
           wn.setOrigin(0, 0.5);
-          var weaponNameMax = cw - 32;
-          wn.setScale(Math.min(0.86, wn.width > weaponNameMax ? weaponNameMax / wn.width : 0.86));
           g.add([wic, wn]);
           if (inSlot >= 0) {
+            var wsBadgeMax = cw - 32;
+            var wsBadgeStr = inSlot === 0 ? 'PRIMARY' : (inSlot === 1 ? 'SECOND' : 'THIRD');
+            if (window.__HM2_UI) wsBadgeStr = window.__HM2_UI.wrapText(this, wsBadgeStr, { fontFamily: FONT_BODY, fontSize: TYPE.micro }, wsBadgeMax, 1)[0] || '';
             var wsBadge = bodyText(this, wx - cw / 2 + 27, wy + 8,
-              inSlot === 0 ? 'PRIMARY' : (inSlot === 1 ? 'SECOND' : 'THIRD'),
+              wsBadgeStr,
               TYPE.micro, '#8effd8');
-            wsBadge.setOrigin(0, 0.5).setScale(0.62);
+            wsBadge.setOrigin(0, 0.5);
             g.add(wsBadge);
           }
           if (weapon.tier === 'legendary' && seen) wbg.setTint(0xff7ae0);
@@ -1308,11 +1329,12 @@
           else if (cSeen && cwp.tier === 'upgraded') cBg.setTint(0xffd67a);
           var cIcon = this.add.image(cx - cxW / 2 + 14, cy, 'atlas', cSeen ? cwp.glyph : 'ic_lock')
             .setScale(Math.min(0.38, cxH / 64)).setTint(cSeen ? cwp.color : 0x44586a).setAlpha(cSeen ? 1 : 0.75);
-          var cName = neonText(this, cx - cxW / 2 + 26, cy,
-            cSeen ? cwp.shortName : '???', TYPE.micro, cSeen ? '#d8f5ff' : '#6d8593');
-          cName.setOrigin(0, 0.5);
           var cNameMax = cxW - 31;
-          cName.setScale(Math.min(0.86, cName.width > cNameMax ? cNameMax / cName.width : 0.86));
+          var cNameStr = cSeen ? cwp.shortName : '???';
+          if (window.__HM2_UI) cNameStr = window.__HM2_UI.wrapText(this, cNameStr, { fontFamily: FONT_DISPLAY, fontSize: TYPE.micro, fontStyle: 'bold' }, cNameMax, 1)[0] || '';
+          var cName = neonText(this, cx - cxW / 2 + 26, cy,
+            cNameStr, TYPE.micro, cSeen ? '#d8f5ff' : '#6d8593');
+          cName.setOrigin(0, 0.5);
           g.add([cIcon, cName]);
         }
         this.setNotice(found >= WEAPONS.length
@@ -1347,10 +1369,11 @@
           var frame = HULL_FRAMES[fi], fx = 18 + fw / 2 + fi * (fw + 1), fy = top + 274;
           var fbg = this.cardBase(g, fx, fy, fw - 5, 58, profile.hangar.frame === frame.key);
           var fs = this.add.image(fx, fy - 12, 'atlas', frame.idle).setScale(0.4).setTint((PAINT_BY_KEY[profile.hangar.paint] || HULL_PAINTS[0]).tint);
-          var fn = neonText(this, fx, fy + 18, frame.name.toUpperCase(), TYPE.micro,
-            profile.hangar.frame === frame.key ? '#8effd8' : '#b9d6e2');
           var fnMax = fw - 12;
-          if (fn.width > fnMax) fn.setScale(Math.max(0.85, fnMax / fn.width));
+          var fnStr = frame.name.toUpperCase();
+          if (window.__HM2_UI) fnStr = window.__HM2_UI.wrapText(this, fnStr, { fontFamily: FONT_DISPLAY, fontSize: TYPE.micro, fontStyle: 'bold' }, fnMax, 1)[0] || '';
+          var fn = neonText(this, fx, fy + 18, fnStr, TYPE.micro,
+            profile.hangar.frame === frame.key ? '#8effd8' : '#b9d6e2');
           fbg.setInteractive({ useHandCursor: true });
           fbg.on('pointerdown', function (frameKey) { return function () { scene.selectFrame(frameKey); }; }(frame.key));
           g.add([fs, fn]);
@@ -1365,17 +1388,19 @@
           var mlv = metaLevel(m.key), mmax = mlv >= m.max;
           var mbg = this.cardBase(g, mx, my, mw, mh, false);
           var mic = this.add.image(mx - mw / 2 + 23, my - 8, 'atlas', m.icon).setScale(0.46);
-          var mn = neonText(this, mx - mw / 2 + 46, my - 18, m.name.toUpperCase(), TYPE.micro, '#d8f5ff');
-          mn.setOrigin(0, 0.5);
           var mnMax = mw - 46 - 54;
-          if (mn.width > mnMax) mn.setScale(mnMax / mn.width);
+          var mnStr = window.__HM2_UI
+            ? window.__HM2_UI.wrapText(this, m.name.toUpperCase(), { fontFamily: FONT_DISPLAY, fontSize: TYPE.micro, fontStyle: 'bold' }, mnMax, 1)[0] || ''
+            : m.name.toUpperCase();
+          var mn = neonText(this, mx - mw / 2 + 46, my - 18, mnStr, TYPE.micro, '#d8f5ff');
+          mn.setOrigin(0, 0.5);
           var mblMaxW = mw - 54;
-          var mbl = bodyText(this, mx - mw / 2 + 46, my - 2, m.blurb, TYPE.micro, '#8fb3c4');
-          mbl.setOrigin(0, 0.5).setScale(0.88);
-          if (mbl.width * 0.88 > mblMaxW) {
-            mbl.setWordWrapWidth(mblMaxW / 0.85, true).setLineSpacing(-2).setScale(0.85);
-            mbl.setY(my + 4);
-          }
+          var mblLines = window.__HM2_UI
+            ? window.__HM2_UI.wrapText(this, m.blurb, { fontFamily: FONT_BODY, fontSize: TYPE.micro }, mblMaxW, 2)
+            : [m.blurb];
+          var mbl = bodyText(this, mx - mw / 2 + 46, my - 2, mblLines.join('\n'), TYPE.micro, '#8fb3c4');
+          mbl.setOrigin(0, 0.5).setLineSpacing(-2);
+          if (mblLines.length > 1) mbl.setY(my + 4);
           var mpips = [];
           for (var mp = 0; mp < m.max; mp++) mpips.push(this.add.rectangle(mx - mw / 2 + 47 + mp * 9, my + 18, 7, 4, mp < mlv ? 0x8effd8 : 0x2b4756));
           var mprice = neonText(this, mx + mw / 2 - 9, my - 17, mmax ? 'MAXED' : String(m.cost(mlv)), TYPE.micro, mmax ? '#8effd8' : '#ffd67a');
@@ -1510,6 +1535,8 @@
       this.runToken = 0;
       this.pendingEnd = null;
       this.inSim = false;
+      this._hm2Forced = false;
+      this._hm2ForceWaitFrames = 0;
       this.watchdog = HM_DEBUG_STATE.watchdog;
       this.watchdog.maxStepMs = 0;
       this.watchdog.lastBeatAgoMs = 0;
@@ -3285,6 +3312,27 @@
     },
 
     update: function (now) {
+      // Debug-only screenshot hooks (harmless/no-op when unset): the capture
+      // harness cannot reach the pause menu or game-over screen by tapping,
+      // so it forces them via these window flags. Fires once per flag.
+      if ((window.__HM2_FORCE_PAUSE || window.__HM2_FORCE_GAMEOVER) && !this._hm2Forced) {
+        this._hm2ForceWaitFrames = (this._hm2ForceWaitFrames || 0) + 1;
+        // Banners retrigger constantly during a busy run (pickups, wing
+        // events, etc), so waiting for bannerActive to clear can starve
+        // forever. Give it a short grace window, then force through
+        // regardless - this hook only exists for the debug capture harness.
+        var bannerClear = !this.bannerActive || this._hm2ForceWaitFrames > 20;
+        if (bannerClear && (this.state === 'playing' || this.state === 'draft')) {
+          this._hm2Forced = true;
+          this.bannerActive = false;
+          if (this.banner) this.banner.setAlpha(0);
+          if (this.state === 'draft') { this.closeOverlay(); this.state = 'playing'; }
+          if (this.tutBox) { this.tutBox.setVisible(false); }
+          if (this.tutHand) { this.tutHand.setVisible(false); }
+          if (window.__HM2_FORCE_GAMEOVER) this.endRun(false, false);
+          else this.openPause();
+        }
+      }
       this.refreshWatchdogAge(now);
       consumeForceGrantGems(this.debugState || HM_DEBUG_STATE);
       var j = kit.juice.frame();
@@ -3357,7 +3405,7 @@
           (!this._bbAt || now - this._bbAt > 500)) {
         this._bbAt = now;
         try {
-          localStorage.setItem('hm_blackbox', JSON.stringify({
+          localStorage.setItem('hm2_blackbox', JSON.stringify({
             t: Math.floor(this.run ? this.run.time : 0),
             phase: this.watchdogPhase || '?',
             region: HM_DEBUG_STATE.region || '?',
@@ -4695,15 +4743,20 @@
         var sBg = this.add.image(sx, slotY, 'atlas', sActive ? 'card_hot' : 'card').setDisplaySize(slotW, 46);
         var sIcon = this.add.image(sx - slotW / 2 + 18, slotY, 'atlas', sData ? sData.glyph : (sLive ? 'ic_orbit' : 'ic_lock'))
           .setScale(0.4).setTint(sData ? sData.color : 0x526572).setAlpha(sData ? 1 : 0.7);
+        var sTagMax = slotW - 40;
+        var sTagStr = si === 0 ? 'PRIMARY' : (si === 1 ? 'SECONDARY' : 'TERTIARY');
+        if (window.__HM2_UI) sTagStr = window.__HM2_UI.wrapText(this, sTagStr, { fontFamily: FONT_BODY, fontSize: TYPE.micro }, sTagMax, 1)[0] || '';
         var sTag = bodyText(this, sx - slotW / 2 + 33, slotY - 10,
-          si === 0 ? 'PRIMARY' : (si === 1 ? 'SECONDARY' : 'TERTIARY'), TYPE.micro,
+          sTagStr, TYPE.micro,
           sActive ? '#8effd8' : '#7fa3b5');
-        sTag.setOrigin(0, 0.5).setScale(0.78);
+        sTag.setOrigin(0, 0.5);
+        var sNameMax = slotW - 40;
+        var sNameStr = sData ? sData.shortName : (sLive ? 'EMPTY' : 'LOCKED');
+        if (window.__HM2_UI) sNameStr = window.__HM2_UI.wrapText(this, sNameStr, { fontFamily: FONT_DISPLAY, fontSize: TYPE.micro, fontStyle: 'bold' }, sNameMax, 1)[0] || '';
         var sName = neonText(this, sx - slotW / 2 + 33, slotY + 8,
-          sData ? sData.shortName : (sLive ? 'EMPTY' : 'LOCKED'), TYPE.micro,
+          sNameStr, TYPE.micro,
           sData ? '#d8f5ff' : '#718897');
         sName.setOrigin(0, 0.5);
-        if (sName.width > slotW - 40) sName.setScale((slotW - 40) / sName.width);
         ov.add([sBg, sIcon, sTag, sName]);
         if (sLive) {
           sBg.setInteractive({ useHandCursor: true });
@@ -4740,16 +4793,20 @@
           else if (data.tier === 'upgraded') cBg.setTint(0xffd67a);
           var cIcon = this.add.image(cx - cellW / 2 + (cols === 3 ? 14 : 20), cy, 'atlas', data.glyph)
             .setScale(cols === 3 ? 0.34 : 0.42).setTint(data.color);
+          var cNameMax = cellW - 44;
+          var cNameStr = cols === 3 ? data.shortName : data.name.toUpperCase();
+          if (window.__HM2_UI) cNameStr = window.__HM2_UI.wrapText(this, cNameStr, { fontFamily: FONT_DISPLAY, fontSize: TYPE.micro, fontStyle: 'bold' }, cNameMax, 1)[0] || '';
           var cName = neonText(this, cx - cellW / 2 + (cols === 3 ? 26 : 38), cy - 8,
-            cols === 3 ? data.shortName : data.name.toUpperCase(), TYPE.micro,
+            cNameStr, TYPE.micro,
             isTarget ? '#8effd8' : '#d8f5ff');
           cName.setOrigin(0, 0.5);
-          if (cName.width > cellW - 44) cName.setScale((cellW - 44) / cName.width);
           var stateLabel = isTarget ? 'IN THIS SLOT'
-            : (inSlot >= 0 ? 'SLOT ' + (inSlot + 1) + '  ·  TAP TO SWAP' : 'TAP TO ARM');
+            : (inSlot >= 0 ? 'SLOT ' + (inSlot + 1) + '  ·  SWAP' : 'TAP TO ARM');
+          var cSubMax = cellW - 44;
+          if (window.__HM2_UI) stateLabel = window.__HM2_UI.wrapText(this, stateLabel, { fontFamily: FONT_BODY, fontSize: TYPE.micro }, cSubMax, 1)[0] || '';
           var cSub = bodyText(this, cx - cellW / 2 + (cols === 3 ? 26 : 38), cy + 9, stateLabel, TYPE.micro,
             inSlot >= 0 ? '#8effd8' : '#7fa3b5');
-          cSub.setOrigin(0, 0.5).setScale(cols === 3 ? 0.6 : 0.76);
+          cSub.setOrigin(0, 0.5);
           ov.add([cBg, cIcon, cName, cSub]);
           if (!isTarget) {
             cBg.setInteractive({ useHandCursor: true });
@@ -8189,7 +8246,7 @@
     },
 
     finishRun: function () {
-      try { var bb = JSON.parse(localStorage.getItem('hm_blackbox') || 'null'); if (bb) { bb.clean = true; localStorage.setItem('hm_blackbox', JSON.stringify(bb)); } } catch (e) {}
+      try { var bb = JSON.parse(localStorage.getItem('hm2_blackbox') || 'null'); if (bb) { bb.clean = true; localStorage.setItem('hm2_blackbox', JSON.stringify(bb)); } } catch (e) {}
       var end = this.pendingEnd;
       if (!end) return;
       this.pendingEnd = null;

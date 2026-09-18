@@ -14,8 +14,8 @@ OUT  = os.path.join(REPO, 'out')
 # Games shipped on new.greenguard-usa.com (owner directive 2026-09-07: only Razorfin and
 # Horde Meridian; everything else was unpublished to stay under Vercel's 10 GB Deployment
 # Storage). Sources for the other games remain in the repo but never reach out/.
-PLAY_KEEP       = {'index.html', '_shared', '_shots', 'razorfin', 'horde-meridian', 'horde-meridian-2'}
-PLAY_SHOTS_KEEP = {'razorfin.jpg', 'horde-meridian.jpg', 'horde-meridian-2.jpg'}
+PLAY_KEEP       = {'index.html', '_shared', '_shots', 'razorfin', 'horde-meridian', 'hordemeridian2'}
+PLAY_SHOTS_KEEP = {'razorfin.jpg', 'horde-meridian.jpg', 'hordemeridian2.jpg'}
 ROOT_GAME_FILES = {'marble.html', 'marble2.html', 'horde.html', 'marble-sw.js', 'marble2-sw.js',
                    'marble-manifest.json', 'marble2-manifest.json', 'horde-manifest.json'}
 
