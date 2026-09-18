@@ -24,61 +24,72 @@ game.js, hm2_enemies.js, hm2_bosses.js. NOT pushed.
 fps-at-300 acceptance is covered by the M2 world probe's `?perf` watchdog floor (50 fps
 mobile profile), which the merged state clears at 158.7.
 
-## RESUME CONDITION: two campaign probes
+## L5 mission-5 scare: RESOLVED, not a regression
 
-1. **Baseline** `68612b3d`, 3 trials, worktree `scratchpad/m3-base`, server port 8795,
-   log `/tmp/hm2_base_campaign.log`.
-2. **Merged** `d93316af`, 3 trials, server port 8797, log `/tmp/hm2_merged_campaign.log`.
+Lane B's 1-trial `L5=30s` FAIL was single-trial noise. Both lanes' completed multi-trial
+runs clear the 45s bar, and both are 55/55:
 
-Read `BOT MEDIANS` and any `^FAIL` from both, then compare. Both servers are
-`python3 -m http.server` already running; restart if the shell died.
+    M2 baseline (handoff)  L5=75s   55/55
+    lane B 1-trial (scare) L5=30s   54/55 FAIL
+    lane B 3-trial rerun   L5=79s   55/55   trials [79,66,80]
+    lane A 2-trial         L5=73s   55/55   trials [63,82]
 
-### Why this A/B is running
+Single-trial L5 samples across all runs: 30,63,66,79,80,82. The 30 is an outlier. L15 is
+noisier still (lane B [39,121,117] vs lane A [29,37]), so treat ANY 1-trial median from
+this probe as unreliable; use 3 trials.
 
-Lane B's single-trial campaign run (`/tmp/campaign_probe.log`) reported
-**54/55, FAIL "bot: mission 5 survival median >= 45s :: 30s"**, against an M2 baseline of
-L5=75s. Full comparison, M2 handoff vs that run:
+A 3-trial A/B (baseline `68612b3d` on port 8795 vs merged `d93316af` on port 8797) was
+launched to confirm on the merged state. Logs `/tmp/hm2_base_campaign.log` and
+`/tmp/hm2_merged_campaign.log`. **This is the remaining resume condition.** Read
+`BOT MEDIANS` and any `^FAIL` from both. Given the four runs above, expect both to pass;
+if merged alone fails L5 across 3 trials, escalate to lane B.
 
-    L1 134s -> 65s, L5 75s -> 30s (FAIL), L10 54s -> 55s, L15 42s -> 47s
+## CORRECTION: Core rotation is FINE. The real defect is PHASE 0.
 
-Do NOT treat that as a confirmed regression yet:
-- It is **1 trial per mission**, so "median" is a single sample. The M2 baseline numbers
-  may themselves have been multi-trial. The A/B above is 3 trials on both sides to settle it.
-- Attribution is **lane B only**: that run's server log `/tmp/hm2_http.log` never requests
-  `hm2_enemies.js` (grep count 0), only `hm2_bosses.js`. Lane A's code was not loaded.
-- Mechanism is **not obvious**: mission 5's region boss spawns at `at: 86` (level5.js) but
-  the bot died at t=30s, so lane B's boss phase/setpiece code never ran in that trial.
-  Lane B's game.js edits are confined to `damage()`, `bossPhaseChange()` and the new
-  `triggerBossSetpiece()`, all boss-gated. A pre-boss L5 death is hard to pin on them.
-- `errs=1` per trial is the **pre-existing service worker scope error**, documented in
-  HANDOFF-M2.md, not a new defect. The probe filters it for the real assertion.
+My round-2 note claimed the Meridian Core's set-piece rotation was broken. **That was
+wrong**, and the error was mine: `hm2_boss_probe.mjs:204` prints
+`setpiecesSeen.slice(0, 3)`, which is the first 3 **poll ticks** (400ms apart, all still
+phase 0), not one sample per phase. I misread a display slice as the full record.
 
-If the 3-trial A/B shows baseline L5 also below 45s, this is flaky/pre-existing and NOT an
-M3 blocker; record it and proceed. If baseline L5 is comfortably above 45s and merged is
-not, it IS a real regression and lane B must fix it before the gate.
+A diagnostic patch recording set-piece type keyed by `b.phaseStage` (since reverted, the
+probe file is back to lane B's committed version) shows the Core rotating correctly:
 
-Two 52-PASS logs (`/tmp/campaign_probe2.log`, `/tmp/hm2_m3_campaign.log`) are TRUNCATED
-mid-run, not clean passes: they stop before the bot-survival section and have no
-`BOT MEDIANS` line. Do not cite them as evidence.
+    boss (Core): {"1":"gravity_well","2":"solar_flare"}
 
-## DEFECT FOUND, must go to the gate or back to lane B
+which matches `setpieceByPhase: ['asteroid_field','gravity_well','solar_flare']`.
+`hm2_bosses.js` logic is sound in isolation too: phaseForHpFrac 0.9->0, 0.5->1, 0.2->2.
 
-**The Meridian Core's set-piece rotation does not work, and the boss probe cannot see it.**
+### The real defect: no boss ever fires its phase-0 set-piece
 
-- `hm2_bosses.js:44` gives the Core `setpieceByPhase: ['asteroid_field','gravity_well','solar_flare']`
-  and `setpieceType()` (line 66) indexes it by phase, so the intent is one hook per phase.
-- Merged boss probe evidence for the Core: `[gravity_well, gravity_well, gravity_well]`.
-  Lane B's handoff claims "gravity_well -> solar_flare rotation observed for the Core
-  across its phases". That rotation was NOT observed in this run.
-- Root cause of the blind spot: `hm2_boss_probe.mjs:204` asserts only
-  `arena set-piece fired at least once` and prints `setpiecesSeen.slice(0, 3)`, which is
-  the first 3 **poll ticks** (all still phase 0), not one sample per phase. A Core stuck
-  on a single hook type passes.
-- Fix wanted: record the set-piece type **per phase stage** (keyed off `b.phaseStage`) and
-  assert the Core's three phases yield three distinct hook types. Then re-check whether
-  the Core genuinely rotates; if it does not, the bug is in the game/module, not the probe.
+Same diagnostic, all six bosses:
 
-This is exactly the M2 lesson repeating: the probe passes without exercising the feature.
+    proboscis-prime   {"1":"asteroid_field","2":"asteroid_field"}
+    cinder-haematarch {"1":"solar_flare","2":"solar_flare"}
+    glasswing-tyrant  {"1":"gravity_well","2":"gravity_well"}
+    null-proboscis    {"1":"gravity_well","2":"gravity_well"}
+    carrion-queen     {"1":"asteroid_field","2":"asteroid_field"}
+    boss (Core)       {"1":"gravity_well","2":"solar_flare"}
+
+Phase 0 is absent for every boss. Cause, `game.js:8153`:
+
+    if (nextPhase > (e.phaseStage || 0)) this.bossPhaseChange(e, nextPhase);
+
+Set-pieces fire only from `bossPhaseChange`, which only runs on a phase *transition*.
+A boss spawns already in phase 0, so phase 0 never transitions and its set-piece never
+plays. For the Core this means its declared `asteroid_field` opener never appears in game.
+
+Severity: the plan asks for "an arena set-piece" per boss and every boss does get one from
+phase 1 onward, so this is a partial miss, not a total one. But the Core's first declared
+hook is dead data. Decide: fire the phase-0 set-piece on boss spawn, or drop phase 0 from
+`setpieceByPhase` and document that set-pieces are transition-only.
+
+### Probe gap to close either way
+
+`hm2_boss_probe.mjs:204` asserts only `arena set-piece fired at least once`. That passes a
+boss stuck on one hook type for all phases, and it hid the phase-0 gap. It needs a
+per-phase assertion (record `setpiece.type` keyed by `phaseStage`, assert the Core yields
+distinct types across its phases, and assert whatever phase-0 behavior gets ruled above).
+This is the M2 lesson again: the probe passed without exercising the feature.
 
 ## Second observation, lower severity
 
