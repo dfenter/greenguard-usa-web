@@ -1951,3 +1951,53 @@ assertion (host page: stop CO-OP run -> title -> CLASSIC RUN in the same
 page -> a freshly spawned enemy has `hp === maxHp`). All 11 assertions
 pass against the redeployed relay. hm_arsenal_probe.mjs 17/17,
 hm_apex_probe.mjs 15/15, both re-run clean against this worktree.
+
+---
+
+## M4a: Campaign Rev 2, 15 new missions (2026-09-17)
+
+Dan's note was that the HM2 campaign was the HM1 campaign. It now is not.
+All 13 old missions were replaced with 15 new ones: new names, taglines,
+briefings, wave tables, events, star conditions, and a region order that runs
+outward from the Aurelion Graveyard rather than starting at the Verge.
+
+`CAMPAIGN_MAX_LEVELS` in game.js went 13 to 15. That is the only game.js edit
+in this milestone; the registry hard-capped the mission count below 15.
+
+### The two findings worth remembering
+
+**1. The authored row-0 wave pool does not control the hot-start seed.**
+`seedHotStart` (game.js) takes the level's `waves[0].pool`, then unconditionally
+appends every region variant that is not ranged, not lancer/sapper-based and not
+apex. On a Graveyard mission that injects `derelict-guard-hulk` (58 hp, 24 dmg)
+and `grave-egg`; on Ember Drift it injects `cinder-kamikaze` (speed 126). So
+editing a row-0 pool to be gentler is close to a no-op, and the old "row-0 pools
+are melee only" rule is necessary but nowhere near sufficient. The seed count is
+also `round(80 * max(0.65, spawnRate))`, so a level's `spawnRate` mod sets how
+many bodies are on the board at 0:00. Tuning the opening of a mission means
+tuning `mods`, not the row-0 pool. Missions 1 to 5 were retuned on that basis.
+
+**2. The gate bot was measuring itself, not the levels.**
+The sector-steering bot ported from hm_hotstart_gate.mjs set `scene.input.vx/vy`
+and assigned `p.vx/p.vy` directly. Neither is the real input path: game.js reads
+`this.stick` (`active`, `dx`, `dy`) in the movement integrator and overwrites
+velocity from it every frame. The bot was therefore barely steering, and died in
+roughly 20 seconds on any level regardless of difficulty. The tell was that
+making mission 1 strictly easier made the measured median strictly worse, and
+that the same unmodified mission 1 scored 66s and then 28s on consecutive runs.
+Driving `stick` instead took mission 1 from about 20s to a 75s median.
+`hm_hotstart_gate.mjs` itself still has the original inert-input bug; its
+historical numbers should be read with that in mind.
+
+Trial-to-trial variance stays wide even with the fix, so medians are taken over
+5 trials and a `t=0` result (page never started) is discarded rather than
+recorded, since a zero would otherwise poison the median.
+
+### Gate
+`/Users/lucille/ue-port-studio/aaa/harness/hm2_campaign_probe.mjs`: asserts all
+15 levels validate with none dropped, boots each and fast-forwards its arc, then
+runs the bot on missions 1, 5, 10 and 15.
+
+Also in this pass: a stacked-strip fade at the bottom of the mission list scroll
+area in hm_campaign_ui.js, so the last visible card no longer clips mid-text on
+the mask edge above LAUNCH at 390x844.

@@ -415,6 +415,21 @@
 
     renderCards();
 
+    // Soft fade at the bottom of the scroll area. The list is geometry-masked
+    // at viewBottom, so without this the last visible card clips mid-text on a
+    // hard edge just above LAUNCH. Stacked strips approximate a gradient with
+    // plain Phaser images (no new assets, no DOM).
+    var fadeHeight = 34;
+    var fadeSteps = 10;
+    for (var fi = 0; fi < fadeSteps; fi++) {
+      var ft = fi / (fadeSteps - 1);
+      scene.add.image(center, viewBottom - fadeHeight + (ft * fadeHeight), 'edge')
+        .setDisplaySize(viewWidth, fadeHeight / fadeSteps + 1)
+        .setTint(0x0d0c18)
+        .setAlpha(0.12 + ft * 0.78)
+        .setDepth(6);
+    }
+
     launchButton = makeButton(scene, campaign, center, launchY,
       Math.min(286, width - safeLeft - safeRight - 36), 46, 'LAUNCH MISSION', true,
       function () {

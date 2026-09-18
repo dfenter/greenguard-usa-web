@@ -3,64 +3,89 @@
   window.__HM_LEVELS = window.__HM_LEVELS || {};
   window.__HM_LEVELS[12] = {
     id: 12,
-    key: 'rift-storm',
-    name: 'RIFT STORM',
-    tagline: 'THREE LORDS RIDE THE TEAR',
+    key: 'iron-vigil',
+    name: 'IRON VIGIL',
+    tagline: 'HOLD WHILE THE FLEET RUNS',
     briefing: [
-      'The rift is spitting out Swarm Lords.',
-      'Three crowns, three signals, one storm.',
-      'Hunt them down before the tear closes.'
+      'THE LAST TRANSPORTS ARE LOADING.',
+      'HOLD THE GRAVEYARD CHOKE.',
+      'BREAK THE BASTIONS. DROP THE QUEEN.'
     ],
-    region: 'void-rift',
-    duration: 480,
+    region: 'aurelion-graveyard',
+    duration: 380,
     waves: [
-      { at: 0,   rate: 0.94, pack: 1, pool: ['drifter', 'gravity-mite'] },
-      { at: 28,  rate: 0.8,  pack: 2, pool: ['blink-stalker', 'gravity-mite', 'sprinter'] },
-      { at: 68,  rate: 0.68, pack: 2, pool: ['blink-stalker', 'null-leech', 'gravity-mite'] },
-      { at: 115, rate: 0.58, pack: 3, pool: ['null-leech', 'blink-stalker', 'shard-larva', 'glasswing-drone'] },
-      { at: 170, rate: 0.5,  pack: 3, pool: ['blink-stalker', 'glasswing-drone', 'refracting-shard-drone', 'sapper'] },
-      { at: 232, rate: 0.43, pack: 4, pool: ['null-leech', 'blink-stalker', 'gravity-mite', 'cinder-kamikaze', 'lancer'] },
-      { at: 298, rate: 0.37, pack: 4, pool: ['blink-stalker', 'null-leech', 'glasswing-drone', 'ash-wraith', 'bulwark', 'phase-reaver'] },
-      { at: 365, rate: 0.31, pack: 5, pool: ['null-leech', 'blink-stalker', 'gravity-mite', 'refracting-shard-drone', 'sapper', 'weaver', 'void-artillery'] },
-      { at: 435, rate: 0.26, pack: 5, pool: ['blink-stalker', 'null-leech', 'cinder-kamikaze', 'ash-wraith', 'glasswing-drone', 'lancer', 'phase-reaver', 'void-artillery'] }
+      { at: 0,   rate: 0.86, pack: 2, pool: ['drifter', 'sprinter', 'salvage-swarm'] },
+      { at: 26,  rate: 0.74, pack: 2, pool: ['salvage-swarm', 'scrap-ripper', 'sprinter'] },
+      { at: 60,  rate: 0.64, pack: 2, pool: ['scrap-ripper', 'salvage-swarm', 'derelict-guard-hulk'] },
+      { at: 98,  rate: 0.56, pack: 3, pool: ['scrap-ripper', 'grave-egg', 'salvage-swarm', 'sapper'] },
+      { at: 140, rate: 0.5,  pack: 3, pool: ['derelict-guard-hulk', 'scrap-ripper', 'grave-egg', 'lancer'] },
+      { at: 186, rate: 0.44, pack: 3, pool: ['salvage-swarm', 'scrap-ripper', 'grave-egg', 'weaver', 'bulwark'] },
+      { at: 236, rate: 0.4,  pack: 4, pool: ['derelict-guard-hulk', 'grave-egg', 'scrap-ripper', 'sapper', 'lancer'] },
+      { at: 290, rate: 0.36, pack: 4, pool: ['salvage-swarm', 'scrap-ripper', 'grave-egg', 'derelict-guard-hulk', 'weaver'] },
+      { at: 340, rate: 0.32, pack: 4, pool: ['derelict-guard-hulk', 'grave-egg', 'scrap-ripper', 'sapper', 'lancer', 'bulwark'] }
     ],
     mods: {
-      enemyHp: 1.45,
-      enemyDmg: 1.25,
-      spawnRate: 1.45
+      spawnRate: 1.55,
+      enemyHp: 1.6,
+      enemyDmg: 1.3
     },
     bases: [
-      { at: 60,  type: 'relay',   x: -3400, y: -1500 },
-      { at: 210, type: 'bastion', x: -2400, y: 1600 }
+      { at: 70,  type: 'bastion', x: -5260, y: 1160 },
+      { at: 220, type: 'bastion', x: 3040,  y: -1080 }
     ],
     regionBosses: [
-      { at: 70,  region: 'void-rift',      x: -3000, y: 800,   hpMul: 1.1,  dmgMul: 1.1 },
-      { at: 210, region: 'crystal-shoals', x: -2200, y: -1200, hpMul: 1.2,  dmgMul: 1.1 },
-      { at: 350, region: 'ember-drift',    x: -3600, y: 200,   hpMul: 1.3,  dmgMul: 1.15 }
+      { at: 300, region: 'aurelion-graveyard', x: -5260, y: 1160, hpMul: 1.1 }
     ],
     finalBoss: null,
     objectives: [
-      { id: 'crowns', type: 'boss', label: 'KILL THREE SWARM LORDS', count: 3 },
-      { id: 'jammers', type: 'bases', label: 'DROP BOTH RIFT BASES', count: 2 },
-      { id: 'survive', type: 'survive', label: 'OUTLAST THE STORM' }
+      { id: 'bastions', type: 'bases', label: 'SILENCE THE TWIN GUNS', count: 2 },
+      { id: 'queen', type: 'boss', label: 'END THE BROOD MOTHER', count: 1 },
+      { id: 'survive', type: 'survive', label: 'HOLD THE CHOKE' }
     ],
     stars: [
       { type: 'win', label: 'MISSION COMPLETE' },
-      { type: 'hull', pct: 45, label: '45 PERCENT HULL REMAINING' },
-      { type: 'level', atLeast: 24, label: 'REACH SHIP LEVEL 24' }
+      { type: 'level', atLeast: 23, label: 'VIGIL RANK 23' },
+      { type: 'hull', pct: 35, label: '35 PERCENT HULL REMAINING' }
     ],
     events: [
-      { at: 12, banner: ['RIFT STORM', 'LIGHTNING ON THE SCANNER'], callout: 'three lords will ride the tear // watch the beacon' },
-      { at: 45, gems: { count: 5, value: 2 } },
-      { at: 68, banner: ['FIRST CROWN', 'NULL PROBOSCIS BREACHES'] },
-      { at: 120, grantBonus: 'prism-array', callout: 'prism array live // beams sweep from your hull' },
-      { at: 160, gems: { count: 6, value: 2 } },
-      { at: 208, banner: ['SECOND CROWN', 'GLASSWING TYRANT CROSSES OVER'], heat: true },
-      { at: 262, grantBonus: 'strike-pack', callout: 'strike pack down // spend it on the tyrant' },
-      { at: 300, spawnPack: { key: 'blink-stalker', count: 6, elite: true }, banner: ['BLINK PACK', 'STALKERS HUNT IN ECHO'] },
-      { at: 348, banner: ['THIRD CROWN', 'THE HAEMATARCH RIDES THE TEAR'] },
-      { at: 400, grantBonus: 'tempest', callout: 'arc tempest online // answer the storm in kind' },
-      { at: 445, gems: { count: 8, value: 2 } }
-    ]
+      {
+        at: 0,
+        banner: ['FLEET LOADS', 'HOLD THE LINE']
+      },
+      {
+        at: 35,
+        banner: ['HULK STIRS', 'CONTACTS RISING'],
+        spawnPack: { key: 'salvage-swarm', count: 5 }
+      },
+      {
+        at: 70,
+        banner: ['FIRST BASTION', 'GUNS ONLINE']
+      },
+      {
+        at: 110,
+        banner: ['GEM VEIN', 'CRACKED PLATING'],
+        gems: { count: 9, value: 2 }
+      },
+      {
+        at: 160,
+        banner: ['AEGIS CACHE', 'PLATING FOUND'],
+        grantBonus: 'aegis'
+      },
+      {
+        at: 220,
+        banner: ['SECOND BASTION', 'BATTERIES HOT']
+      },
+      {
+        at: 260,
+        banner: ['HULK SWARM', 'MASS CONTACT'],
+        spawnPack: { key: 'derelict-guard-hulk', count: 4, elite: true }
+      },
+      {
+        at: 300,
+        banner: ['QUEEN WAKES', 'CARRION QUEEN RISES'],
+        heat: true
+      }
+    ],
+    music: 'heat'
   };
 }());

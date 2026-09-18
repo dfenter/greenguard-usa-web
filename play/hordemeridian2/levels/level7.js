@@ -3,63 +3,58 @@
   window.__HM_LEVELS = window.__HM_LEVELS || {};
   window.__HM_LEVELS[7] = {
     id: 7,
-    key: 'siege-line',
-    name: 'SIEGE LINE',
-    tagline: 'BREAK THE NETWORK PIECE BY PIECE',
+    key: 'prism-siege',
+    name: 'PRISM SIEGE',
+    tagline: 'THREE RELAYS. ONE PASS.',
     briefing: [
-      'FIVE SECTORS. ONE ROLLING OFFENSIVE.',
-      'BREAK EACH BASE. KEEP MOVING.',
-      'TAKE THE WARDEN LINE APART PIECE BY PIECE.'
+      'THREE RELAY FORTRESSES LIGHT THE SHOALS.',
+      'DROP ALL THREE IN A SINGLE PASS.',
+      'THE TYRANT WATCHES FROM THE DEEP GLASS.'
     ],
-    region: 'ember-drift',
-    duration: 420,
+    region: 'crystal-shoals',
+    duration: 290,
     waves: [
-      { at: 0, rate: 1.10, pack: 1, pool: ['drifter', 'cinder-kamikaze'] },
-      { at: 30, rate: 0.96, pack: 1, pool: ['drifter', 'sprinter', 'cinder-kamikaze', 'ash-wraith'] },
-      { at: 66, rate: 0.84, pack: 2, pool: ['sprinter', 'cinder-kamikaze', 'ash-wraith', 'ember-scarab'] },
-      { at: 108, rate: 0.74, pack: 2, pool: ['cinder-kamikaze', 'ash-wraith', 'ember-scarab', 'refracting-shard-drone'] },
-      { at: 150, rate: 0.65, pack: 2, pool: ['sprinter', 'cinder-kamikaze', 'ember-scarab', 'refracting-shard-drone', 'glasswing-drone'] },
-      { at: 198, rate: 0.57, pack: 3, pool: ['cinder-kamikaze', 'ash-wraith', 'ember-scarab', 'blink-stalker', 'gravity-mite', 'shard-larva'] },
-      { at: 252, rate: 0.49, pack: 3, pool: ['sprinter', 'ember-scarab', 'refracting-shard-drone', 'glasswing-drone', 'blink-stalker', 'null-leech'] },
-      { at: 312, rate: 0.43, pack: 4, pool: ['cinder-kamikaze', 'ash-wraith', 'refracting-shard-drone', 'glasswing-drone', 'blink-stalker', 'null-leech', 'derelict-guard-hulk'] },
-      { at: 370, rate: 0.38, pack: 4, pool: ['cinder-kamikaze', 'ember-scarab', 'refracting-shard-drone', 'glasswing-drone', 'null-leech', 'derelict-guard-hulk', 'salvage-swarm', 'scrap-ripper'] }
+      { at: 0,   rate: 0.86, pack: 2, pool: ['shard-larva', 'sprinter'] },
+      { at: 26,  rate: 0.76, pack: 2, pool: ['shard-larva', 'glasswing-drone', 'bulwark'] },
+      { at: 58,  rate: 0.68, pack: 2, pool: ['glasswing-drone', 'refracting-shard-drone', 'shard-larva'] },
+      { at: 94,  rate: 0.62, pack: 3, pool: ['glasswing-drone', 'refracting-shard-drone', 'lancer'] },
+      { at: 132, rate: 0.56, pack: 3, pool: ['glasswing-drone', 'refracting-shard-drone', 'lancer', 'weaver'] },
+      { at: 170, rate: 0.50, pack: 3, pool: ['refracting-shard-drone', 'lancer', 'weaver', 'sapper'] },
+      { at: 210, rate: 0.44, pack: 4, pool: ['refracting-shard-drone', 'lancer', 'weaver', 'sapper', 'bulwark'] },
+      { at: 250, rate: 0.38, pack: 4, pool: ['refracting-shard-drone', 'lancer', 'sapper', 'bulwark'] }
     ],
-    mods: { enemyHp: 1.2, spawnRate: 1.4 },
+    mods: {
+      enemyHp: 1.18,
+      enemyDmg: 1.12,
+      spawnRate: 1.2
+    },
     bases: [
-      { at: 30, type: 'hive', x: 3000, y: -900 },
-      { at: 95, type: 'relay', x: 650, y: 1300 },
-      { at: 160, type: 'bastion', x: -3000, y: -1100 },
-      { at: 230, type: 'hive', x: 4800, y: 900 },
-      { at: 300, type: 'bastion', x: -5200, y: -1300 }
+      { at: 40,  type: 'relay', x: 4320, y: -1020 },
+      { at: 120, type: 'relay', x: 5640, y: 1180 },
+      { at: 200, type: 'relay', x: 4980, y: -1580 }
     ],
-    regionBosses: [
-      { at: 150, region: 'ember-drift', x: 3000, y: -750, hpMul: 1.0 },
-      { at: 330, region: 'crystal-shoals', x: 4800, y: 750, hpMul: 1.0 }
-    ],
+    regionBosses: [],
     finalBoss: null,
     objectives: [
-      { id: 'survive-line', type: 'survive', label: 'HOLD THE LINE FOR 07:00' },
-      { id: 'break-bases', type: 'bases', label: 'BREAK ALL FIVE BASES', count: 5 },
-      { id: 'drop-lords', type: 'boss', label: 'DROP BOTH SWARM LORDS', count: 2 }
+      { id: 'survive-siege', type: 'survive', label: 'SURVIVE THE SIEGE' },
+      { id: 'break-relays', type: 'bases', label: 'BREAK ALL THREE RELAYS', count: 3 }
     ],
     stars: [
       { type: 'win', label: 'MISSION COMPLETE' },
-      { type: 'time', under: 400, label: 'CLEAR BEFORE 06:40' },
-      { type: 'kills', atLeast: 400, label: '400 KILLS // BREAK THE LINE' }
+      { type: 'level', atLeast: 16, label: 'REACH LEVEL 16' },
+      { type: 'noWingLost', label: 'NO WINGMAN LOST' }
     ],
     events: [
-      { at: 0, banner: ['SIEGE ORDER', 'TAKE THE NETWORK APART'] },
-      { at: 60, callout: 'next sector: meridian verge. break the relay.' },
-      { at: 100, grantBonus: 'arsenal' },
-      { at: 125, callout: 'next sector: void rift. strip the bastion.' },
-      { at: 140, heat: true },
-      { at: 188, callout: 'next sector: crystal shoals. keep the assault moving.' },
-      { at: 200, heat: false },
-      { at: 255, callout: 'next sector: aurelion graveyard. crack the hulk.' },
-      { at: 270, grantBonus: 'strike-wing' },
-      { at: 320, heat: true },
-      { at: 326, callout: 'next sector: ember drift. close the circle.' },
-      { at: 385, heat: false }
+      { at: 0, banner: ['PRISM SIEGE', 'THREE RELAYS DETECTED'] },
+      { at: 40, banner: ['RELAY ONE', 'SIGNAL LOCKED'] },
+      { at: 70, grantBonus: 'aegis' },
+      { at: 108, spawnPack: { key: 'refracting-shard-drone', count: 5, elite: true } },
+      { at: 120, banner: ['RELAY TWO', 'SIGNAL LOCKED'] },
+      { at: 150, gems: { count: 7, value: 2 } },
+      { at: 180, spawnPack: { key: 'glasswing-drone', count: 7, elite: true } },
+      { at: 200, banner: ['RELAY THREE', 'SIGNAL LOCKED'] },
+      { at: 230, grantBonus: 'chain' },
+      { at: 260, banner: ['FINAL PASS', 'CLOSE THE SIGNAL'], spawnPack: { key: 'lancer', count: 5, elite: true }, heat: true }
     ],
     music: 'base'
   };

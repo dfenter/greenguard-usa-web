@@ -3,65 +3,71 @@
   window.__HM_LEVELS = window.__HM_LEVELS || {};
   window.__HM_LEVELS[1] = {
     id: 1,
-    key: 'first-contact',
-    name: 'FIRST CONTACT',
-    tagline: 'HOLD THE VERGE',
+    key: 'salvage-run',
+    name: 'SALVAGE RUN',
+    tagline: 'SCRAP THE DEAD FLEET',
     briefing: [
-      'THE VERGE IS ALREADY OVERRUN.',
-      'YOUR OPENING STRIKE BUYS SECONDS.',
-      'HOLD FOR 180 SECONDS.'
+      'THE WARDEN FLEET IS GONE.',
+      'YOU ARE SALVAGE CREW NOW.',
+      'STRIP THE HULKS. STAY ALIVE.'
     ],
-    region: 'meridian-verge',
-    duration: 180,
+    region: 'aurelion-graveyard',
+    duration: 150,
     waves: [
-      { at: 0, rate: 0.7, pack: 2, pool: ['drifter', 'sprinter'] },
-      { at: 20, rate: 0.62, pack: 2, pool: ['drifter', 'sprinter', 'bulwark'] },
-      { at: 36, rate: 1.08, pack: 1, pool: ['drifter', 'sprinter'] },
-      { at: 78, rate: 0.94, pack: 1, pool: ['drifter', 'sprinter'] },
-      { at: 110, rate: 0.80, pack: 2, pool: ['drifter', 'sprinter', 'bulwark'] },
-      { at: 140, rate: 0.62, pack: 2, pool: ['drifter', 'sprinter', 'bulwark'] }
+      { at: 0, rate: 0.68, pack: 2, pool: ['drifter', 'sprinter'] },
+      { at: 18, rate: 0.6, pack: 2, pool: ['drifter', 'sprinter', 'salvage-swarm'] },
+      { at: 40, rate: 0.55, pack: 2, pool: ['drifter', 'sprinter', 'salvage-swarm', 'bulwark'] },
+      { at: 66, rate: 0.5, pack: 2, pool: ['sprinter', 'salvage-swarm', 'scrap-ripper'] },
+      { at: 96, rate: 0.46, pack: 2, pool: ['sprinter', 'salvage-swarm', 'scrap-ripper', 'bulwark'] },
+      { at: 122, rate: 0.42, pack: 3, pool: ['sprinter', 'salvage-swarm', 'scrap-ripper'] }
     ],
     mods: {
-      spawnRate: 1.0
+      spawnRate: 0.65,
+      enemyHp: 0.8,
+      enemyDmg: 0.85
     },
     bases: [],
     regionBosses: [],
     finalBoss: null,
     objectives: [
-      { id: 'survive-picket', type: 'survive', label: 'SURVIVE THE PICKET' }
+      { id: 'survive-scrapfield', type: 'survive', label: 'HOLD THE SCRAPFIELD' }
     ],
     stars: [
       { type: 'win', label: 'MISSION COMPLETE' },
-      { type: 'hull', pct: 70, label: 'HULL 70% OR BETTER' },
-      { type: 'kills', atLeast: 90, label: '90 HOSTILES CLEARED' }
+      { type: 'hull', pct: 60, label: 'HULL 60% OR BETTER' },
+      { type: 'kills', atLeast: 70, label: '70 HOSTILES CLEARED' }
     ],
     events: [
       {
         at: 0,
-        banner: ['PICKET LINE ACTIVE', 'WELCOME TO THE LINE, ROOKIE WARDEN'],
-        callout: 'drag-move online // keep the line'
+        banner: ['HULKS AHEAD', 'DEAD FLEET DRIFTING'],
+        callout: 'salvage crew online // strip the wrecks'
       },
       {
-        at: 26,
-        banner: ['FIRST AMBUSH', 'CONTACTS ON THE PICKET EDGE'],
-        spawnPack: { key: 'sprinter', count: 4 }
+        at: 22,
+        banner: ['SCRAP STIRS', 'SOMETHING MOVES INSIDE'],
+        spawnPack: { key: 'salvage-swarm', count: 4 }
       },
       {
-        at: 92,
-        banner: ['AEGIS SUPPLY DROP', 'ARMOR INBOUND // TAKE THE PICKUP'],
+        at: 60,
+        banner: ['GEM VEIN', 'CRACK THE PLATING'],
+        gems: { count: 7, value: 1 }
+      },
+      {
+        at: 88,
+        banner: ['ARMOR CACHE', 'AEGIS PLATING FOUND'],
         grantBonus: 'aegis'
       },
       {
-        at: 118,
-        banner: ['GEM CACHE', 'BLUE SIGNALS INBOUND'],
-        gems: { count: 8, value: 1 }
+        at: 110,
+        banner: ['DEEP GEM VEIN', 'RICH SIGNAL BELOW'],
+        gems: { count: 9, value: 2 }
       },
       {
-        at: 140,
-        banner: ['ALL SIGNALS HOT', 'FINAL MINUTE // HOLD THE VERGE'],
-        spawnPack: { key: 'sprinter', count: 6, elite: true },
-        heat: true,
-        callout: 'final minute // line integrity required'
+        at: 130,
+        banner: ['LAST HAUL', 'CLEAR TO EXTRACTION'],
+        spawnPack: { key: 'scrap-ripper', count: 5 },
+        callout: 'final run // hold the line'
       }
     ],
     music: 'base'

@@ -1,7 +1,7 @@
-# Horde Meridian — Campaign Level Contract (Rev 1)
+# Horde Meridian 2 - Campaign Level Contract (Rev 2)
 
 This is the binding contract between the campaign framework (in `game.js`) and
-the nine level definition files (`levels/level1.js` … `levels/level9.js`) plus
+the fifteen level definition files (`levels/level1.js` to `levels/level15.js`) plus
 the mission-select UI (`hm_campaign_ui.js`). Level files are FULLY DECLARATIVE:
 plain data and timed event rows. No functions, no scene access, no DOM access,
 no timers. The framework validates every definition at boot and excludes any
@@ -14,7 +14,7 @@ malformed level with a console warning.
   'use strict';
   window.__HM_LEVELS = window.__HM_LEVELS || {};
   window.__HM_LEVELS[N] = {
-    id: N,                    // integer 1..9, must equal the registry key
+    id: N,                    // integer 1..15, must equal the registry key
     key: 'first-contact',     // kebab-case slug, unique
     name: 'FIRST CONTACT',    // display name, UPPERCASE, <= 18 chars
     tagline: 'HOLD THE VERGE',// UPPERCASE, <= 34 chars
@@ -90,13 +90,13 @@ complete.
 
 1..4 rows. The mission is WON when ALL objectives are complete (and any
 finalBoss is dead). Types:
-- `{ id, type: 'survive', label }` — completes when the clock reaches `duration`,
+- `{ id, type: 'survive', label }` - completes when the clock reaches `duration`,
   OR earlier the moment every other objective (including any finalBoss kill) is
   complete: the duration is a ceiling, not a sentence. A level whose ONLY
   objective is survive always runs the full duration.
-- `{ id, type: 'boss', label, count: <1..6> }` — Swarm Lord / Core kills.
-- `{ id, type: 'bases', label, count: <1..6> }` — bases destroyed.
-- `{ id, type: 'kills', label, count: <20..900> }` — total kills.
+- `{ id, type: 'boss', label, count: <1..6> }` - Swarm Lord / Core kills.
+- `{ id, type: 'bases', label, count: <1..6> }` - bases destroyed.
+- `{ id, type: 'kills', label, count: <20..900> }` - total kills.
 `id` unique per level, kebab-case. `label` UPPERCASE <= 30 chars, shown in the
 HUD objective rotation and on the mission-select card.
 A level with a finalBoss MUST include a `boss` objective covering it.
@@ -105,11 +105,11 @@ A level with a finalBoss MUST include a `boss` objective covering it.
 
 Row 1 must be `{ type: 'win', label: 'MISSION COMPLETE' }`.
 Rows 2 and 3, pick from:
-- `{ type: 'hull', pct: <10..90>, label }` — finish at or above pct% hull.
-- `{ type: 'time', under: <sec>, label }` — win strictly before this clock time.
+- `{ type: 'hull', pct: <10..90>, label }` - finish at or above pct% hull.
+- `{ type: 'time', under: <sec>, label }` - win strictly before this clock time.
 - `{ type: 'kills', atLeast: <n>, label }`
-- `{ type: 'noWingLost', label }` — no wingman lost after the first join.
-- `{ type: 'level', atLeast: <n>, label }` — reach in-run level n.
+- `{ type: 'noWingLost', label }` - no wingman lost after the first join.
+- `{ type: 'level', atLeast: <n>, label }` - reach in-run level n.
 Labels UPPERCASE <= 34 chars. Make row 2 achievable on a solid first clear and
 row 3 a real challenge.
 
@@ -126,15 +126,15 @@ row 3 a real challenge.
 - `heat` switches the music stem.
 - `callout` is a short lowercase-ok tutorial-style line, <= 60 chars.
 Use events to author the mission's texture: reinforcement warnings, ambushes,
-supply drops, story beats. 6+ events expected on levels 2..9.
+supply drops, story beats. 6+ events expected on levels 2..15.
 
 ## Difficulty and identity guardrails
 
-- The campaign difficulty curve across levels 1..9 must rise steadily; your
+- The campaign difficulty curve across levels 1..15 must rise steadily; your
   brief states your level's target intensity relative to the classic run.
 - Use your assigned region's variant enemies as the backbone of the pool from
   level 2 on; classic families fill the low end. Exception: Meridian Verge has
-  no variant table — Verge missions keep the classic roster (and finale
+  no variant table - Verge missions keep the classic roster (and finale
   missions may mix variants from every region).
 - The player may arrive with hangar upgrades; do not assume them. Level 1..3
   must be clearable with a stock ship by a competent player.
@@ -174,3 +174,42 @@ assets/atlas.json plus 'disc' and 'edge'. All taps route through
   index.html, sw.js, another level, or anything in /play/_shared/.
 - No new asset files, no network fetches, no localStorage access.
 - Your file must be inert if the framework is absent (pure registration).
+
+
+## Rev 2 notes (M4a, 2026-09-17)
+
+The HM2 campaign is 15 missions, not 13. `CAMPAIGN_MAX_LEVELS` in game.js was
+raised from 13 to 15 (the only game.js change in this milestone); `levels/`
+holds level1.js through level15.js and index.html loads all fifteen.
+
+Content rules added in Rev 2, on top of everything above:
+
+- **Row-0 pools are melee only.** The hot start seeds roughly 80 enemies on the
+  board at t=0 in every level. Any ranged or sapper key in an `at: 0` pool
+  (lancer, sapper, weaver, refracting-shard-drone, and every apex key) is
+  unavoidable damage before the player can move. This was the original HM1 gate
+  lesson. Rev 2 adds a corollary found by the M4a probe: a row-0 pool that is
+  majority high-speed kamikaze (cinder-kamikaze at speed 126) at `pack >= 3` is
+  the same failure in a different costume. Mission 5 had a 10 second survival
+  median until its row-0 pool was softened to pack 2 with a slower mix.
+- **Early mods interact with the hot start.** Aggressive `spawnRate` / `enemyHp`
+  / `enemyDmg` apply to the seeded board too, so a finale-grade mods block is
+  felt at 0:00 rather than at the finale. Mission 15 went from a 20 second
+  median to a healthy one purely by easing mods, with its wave table unchanged.
+- **Banners are at most 3 words per line.** Dan asked for less on-screen text.
+  The spec caps banner length in characters; Rev 2 caps it in words as well.
+- **Callouts are for the on-ramp only.** Missions 1 to 3 may use at most two
+  each; missions 4 and up use none.
+- **Apex tier is late game.** No apex key before mission 9, and from mission 9
+  on only in wave rows at or after 40% of the mission duration, or in events.
+- **Region order runs outward, not Verge first.** Graveyard, Ember Drift,
+  Crystal Shoals, Void Rift, then back to the Verge for missions 14 and 15.
+  This is deliberately the inverse of the HM1 ordering.
+- **Star pairs are distinct.** Rows 2 and 3 of `stars` must not repeat the same
+  (type, value) pair as a neighbouring mission.
+
+Gate for this milestone: `hm2_campaign_probe.mjs` in
+/Users/lucille/ue-port-studio/aaa/harness/. It asserts all 15 levels validate
+with none dropped, boots each one and fast-forwards through its arc, then runs
+the sector-steering bot on missions 1, 5, 10 and 15 and reports survival
+medians.

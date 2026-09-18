@@ -3,61 +3,81 @@
   window.__HM_LEVELS = window.__HM_LEVELS || {};
   window.__HM_LEVELS[3] = {
     id: 3,
-    key: 'ember-gauntlet',
-    name: 'EMBER GAUNTLET',
-    tagline: 'HOLD THE BURN LINE',
+    key: 'rimlight',
+    name: 'RIMLIGHT',
+    tagline: 'FIRST GUN ON THE RIM',
     briefing: [
-      'RED NEBULA CROSSING. DRIFT HAZARDS ACTIVE.',
-      'SILENCE BOTH HIVES BEFORE THE LINE CLOSES.',
-      'HAEMATARCH DESCENDS AT 04:00.'
+      'EMBER DRIFT SECTOR AHEAD.',
+      'A WARDEN HIVE STILL BURNS HOT.',
+      'SILENCE IT AND HOLD THE RIM.'
     ],
     region: 'ember-drift',
-    duration: 300,
+    duration: 210,
     waves: [
-      { at: 0,   rate: 1.18, pack: 1, pool: ['drifter'] },
-      { at: 26,  rate: 0.98, pack: 1, pool: ['drifter', 'cinder-kamikaze', 'ash-wraith', 'ember-scarab'] },
-      { at: 62,  rate: 0.86, pack: 2, pool: ['drifter', 'sprinter', 'cinder-kamikaze', 'ash-wraith', 'ember-scarab', 'cinder-kamikaze'] },
-      { at: 102, rate: 0.76, pack: 2, pool: ['drifter', 'sapper', 'cinder-kamikaze', 'ash-wraith', 'ember-scarab', 'ash-wraith'] },
-      { at: 144, rate: 0.68, pack: 2, pool: ['sprinter', 'bulwark', 'cinder-kamikaze', 'ash-wraith', 'ember-scarab', 'cinder-kamikaze'] },
-      { at: 184, rate: 0.60, pack: 3, pool: ['sprinter', 'sapper', 'weaver', 'cinder-kamikaze', 'ash-wraith', 'ember-scarab', 'cinder-kamikaze'] },
-      { at: 224, rate: 0.54, pack: 3, pool: ['drifter', 'bulwark', 'lancer', 'cinder-kamikaze', 'ash-wraith', 'ember-scarab', 'ash-wraith'] },
-      { at: 262, rate: 0.48, pack: 4, pool: ['sprinter', 'bulwark', 'sapper', 'weaver', 'cinder-kamikaze', 'ash-wraith', 'ember-scarab', 'cinder-kamikaze'] },
-      { at: 288, rate: 0.43, pack: 4, pool: ['sprinter', 'bulwark', 'sapper', 'lancer', 'weaver', 'cinder-kamikaze', 'ash-wraith', 'ember-scarab'] }
+      { at: 0, rate: 0.6, pack: 2, pool: ['drifter', 'sprinter', 'cinder-kamikaze'] },
+      { at: 18, rate: 0.55, pack: 2, pool: ['sprinter', 'cinder-kamikaze', 'ember-scarab'] },
+      { at: 40, rate: 0.5, pack: 3, pool: ['sprinter', 'cinder-kamikaze', 'ember-scarab'] },
+      { at: 68, rate: 0.46, pack: 3, pool: ['cinder-kamikaze', 'ember-scarab', 'ash-wraith'] },
+      { at: 98, rate: 0.42, pack: 3, pool: ['cinder-kamikaze', 'ember-scarab', 'ash-wraith'] },
+      { at: 130, rate: 0.4, pack: 3, pool: ['cinder-kamikaze', 'ember-scarab', 'ash-wraith', 'bulwark'] },
+      { at: 164, rate: 0.36, pack: 4, pool: ['cinder-kamikaze', 'ember-scarab', 'ash-wraith'] },
+      { at: 190, rate: 0.34, pack: 4, pool: ['cinder-kamikaze', 'ember-scarab', 'ash-wraith', 'bulwark'] }
     ],
     mods: {
-      enemyHp: 1.05,
-      spawnRate: 1.05
+      spawnRate: 0.85,
+      enemyHp: 0.95,
+      enemyDmg: 0.95
     },
     bases: [
-      { at: 52,  type: 'hive', x: 2800, y: -1020 },
-      { at: 146, type: 'hive', x: 3600, y: 1240 }
+      { at: 60, type: 'hive', x: 3040, y: -1080 }
     ],
     regionBosses: [],
-    finalBoss: {
-      type: 'region',
-      region: 'ember-drift',
-      at: 240
-    },
+    finalBoss: null,
     objectives: [
-      { id: 'survive-drift', type: 'survive', label: 'SURVIVE THE EMBER DRIFT' },
-      { id: 'silence-hives', type: 'bases', label: 'SILENCE BOTH HIVES', count: 2 },
-      { id: 'haematarch-down', type: 'boss', label: 'DROP THE HAEMATARCH', count: 1 }
+      { id: 'survive-rim', type: 'survive', label: 'HOLD THE RIM' },
+      { id: 'bases-hive', type: 'bases', label: 'SILENCE THE HIVE', count: 1 }
     ],
     stars: [
       { type: 'win', label: 'MISSION COMPLETE' },
-      { type: 'kills', atLeast: 220, label: '220 KILLS IN THE DRIFT' },
-      { type: 'hull', pct: 45, label: '45 PERCENT HULL REMAINING' }
+      { type: 'hull', pct: 55, label: 'HULL 55% OR BETTER' },
+      { type: 'level', atLeast: 4, label: 'REACH LEVEL 4' }
     ],
     events: [
-      { at: 0, banner: ['RED NEBULA', 'DRIFT HAZARDS ACTIVE'] },
-      { at: 38, callout: 'HIVE ALARM // WEST LINE BREACHED' },
-      { at: 72, spawnPack: { key: 'cinder-kamikaze', count: 5, elite: true }, callout: 'KAMIKAZE AMBUSH // BREAK THE PACK' },
-      { at: 116, grantBonus: 'overdrive', callout: 'OVERDRIVE DROP // TAKE THE BURN' },
-      { at: 150, callout: 'HIVE ALARM // EAST LINE BREACHED' },
-      { at: 166, banner: ['BURN LINE WARNING', 'DRIFT HAZARD CROSSING'] },
-      { at: 198, spawnPack: { key: 'cinder-kamikaze', count: 7, elite: true }, callout: 'KAMIKAZE AMBUSH // CUT THROUGH' },
-      { at: 224, spawnPack: { key: 'cinder-kamikaze', count: 8 }, callout: 'FIRE DRIFT // BURN LINE CLOSING' },
-      { at: 240, banner: ['HAEMATARCH DESCENDS', 'BURN LINES ACTIVE // KEEP MOVING'], heat: true, callout: 'HEAT SPIKE // DO NOT CROSS THE BURN LINE' }
+      {
+        at: 0,
+        banner: ['RIMLIGHT', 'FIRST GUN, RIM'],
+        callout: 'hive signal hot // close and silence it'
+      },
+      {
+        at: 24,
+        banner: ['HEAT SPIKE', 'CINDER SWARM INBOUND'],
+        spawnPack: { key: 'cinder-kamikaze', count: 5 }
+      },
+      {
+        at: 60,
+        banner: ['HIVE LIVE', 'GUARD ROSTER DEPLOYED'],
+        callout: 'hive guards active // break the shell'
+      },
+      {
+        at: 84,
+        banner: ['GEM CACHE', 'RIM SIGNAL FOUND'],
+        gems: { count: 8, value: 1 }
+      },
+      {
+        at: 112,
+        banner: ['SCARAB PACK', 'HARD SHELLS CLOSING'],
+        spawnPack: { key: 'ember-scarab', count: 4, elite: true }
+      },
+      {
+        at: 150,
+        banner: ['AEGIS DROP', 'ARMOR FOUND'],
+        grantBonus: 'aegis'
+      },
+      {
+        at: 188,
+        banner: ['FINAL HEAT', 'HOLD THE RIM'],
+        heat: true
+      }
     ],
     music: 'base'
   };

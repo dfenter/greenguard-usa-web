@@ -3,63 +3,57 @@
   window.__HM_LEVELS = window.__HM_LEVELS || {};
   window.__HM_LEVELS[10] = {
     id: 10,
-    key: 'ashfall-hunt',
-    name: 'ASHFALL HUNT',
-    tagline: 'FOLLOW THE BEACON THROUGH ASH',
+    key: 'null-harvest',
+    name: 'NULL HARVEST',
+    tagline: 'THE RIFT EATS ITS OWN',
     briefing: [
-      'Warden forges relit across the drift.',
-      'Four bases feed the new swarm.',
-      'Chase the beacon. Burn each one down.'
+      'THE RIFT IS DEVOURING ITS OWN DEBRIS.',
+      'ENDURE THE FULL HARVEST CYCLE.',
+      'APEX SIGNATURES CONFIRMED LATE RUN.'
     ],
-    region: 'ember-drift',
-    duration: 420,
+    region: 'void-rift',
+    duration: 330,
     waves: [
-      { at: 0,   rate: 1.0,  pack: 1, pool: ['drifter', 'sprinter', 'cinder-kamikaze'] },
-      { at: 34,  rate: 0.86, pack: 2, pool: ['sprinter', 'cinder-kamikaze', 'ash-wraith'] },
-      { at: 78,  rate: 0.74, pack: 2, pool: ['cinder-kamikaze', 'ash-wraith', 'ember-scarab', 'sapper'] },
-      { at: 130, rate: 0.64, pack: 3, pool: ['sprinter', 'cinder-kamikaze', 'ember-scarab', 'lancer'] },
-      { at: 190, rate: 0.55, pack: 3, pool: ['ash-wraith', 'ember-scarab', 'sapper', 'weaver', 'cinder-kamikaze'] },
-      { at: 255, rate: 0.47, pack: 4, pool: ['cinder-kamikaze', 'ash-wraith', 'ember-scarab', 'bulwark', 'lancer', 'warden-titan'] },
-      { at: 320, rate: 0.4,  pack: 4, pool: ['sprinter', 'cinder-kamikaze', 'ash-wraith', 'ember-scarab', 'sapper', 'weaver', 'hive-splitter'] },
-      { at: 380, rate: 0.34, pack: 5, pool: ['cinder-kamikaze', 'ash-wraith', 'ember-scarab', 'bulwark', 'lancer', 'sapper', 'warden-titan', 'dread-lancer'] }
+      { at: 0,   rate: 0.74, pack: 2, pool: ['blink-stalker', 'gravity-mite'] },
+      { at: 22,  rate: 0.66, pack: 2, pool: ['blink-stalker', 'gravity-mite', 'null-leech'] },
+      { at: 50,  rate: 0.60, pack: 2, pool: ['blink-stalker', 'gravity-mite', 'null-leech', 'sprinter'] },
+      { at: 84,  rate: 0.54, pack: 3, pool: ['gravity-mite', 'null-leech', 'lancer'] },
+      { at: 118, rate: 0.48, pack: 3, pool: ['gravity-mite', 'null-leech', 'lancer', 'weaver'] },
+      { at: 138, rate: 0.44, pack: 3, pool: ['null-leech', 'lancer', 'weaver', 'dread-lancer'] },
+      { at: 154, rate: 0.42, pack: 3, pool: ['null-leech', 'lancer', 'weaver', 'sapper'] },
+      { at: 190, rate: 0.37, pack: 4, pool: ['null-leech', 'lancer', 'sapper', 'bulwark'] },
+      { at: 230, rate: 0.32, pack: 4, pool: ['null-leech', 'lancer', 'sapper', 'dread-lancer', 'warden-titan'] },
+      { at: 270, rate: 0.28, pack: 4, pool: ['null-leech', 'sapper', 'dread-lancer', 'warden-titan'] },
+      { at: 305, rate: 0.24, pack: 5, pool: ['null-leech', 'dread-lancer', 'warden-titan'] }
     ],
     mods: {
       enemyHp: 1.35,
-      enemyDmg: 1.2,
-      spawnRate: 1.4
+      enemyDmg: 1.25,
+      spawnRate: 1.3
     },
-    bases: [
-      { at: 20,  type: 'hive',    x: 2400,  y: -1200 },
-      { at: 95,  type: 'bastion', x: 3600,  y: 1400 },
-      { at: 190, type: 'relay',   x: 4600,  y: -1700 },
-      { at: 285, type: 'hive',    x: 5400,  y: 900 }
-    ],
-    regionBosses: [
-      { at: 350, region: 'ember-drift', x: 5000, y: -400, hpMul: 1.2, dmgMul: 1.1 }
-    ],
+    bases: [],
+    regionBosses: [],
     finalBoss: null,
     objectives: [
-      { id: 'forges', type: 'bases', label: 'BURN FOUR FORGE BASES', count: 4 },
-      { id: 'lord', type: 'boss', label: 'KILL THE HAEMATARCH', count: 1 },
-      { id: 'survive', type: 'survive', label: 'SURVIVE THE ASHFALL' }
+      { id: 'endure-harvest', type: 'survive', label: 'ENDURE THE HARVEST' },
+      { id: 'harvest-kills', type: 'kills', label: 'BREAK 360 HOSTILES', count: 360 }
     ],
     stars: [
       { type: 'win', label: 'MISSION COMPLETE' },
-      { type: 'hull', pct: 40, label: '40 PERCENT HULL REMAINING' },
-      { type: 'time', under: 400, label: 'WIN BEFORE 6:40' }
+      { type: 'time', under: 320, label: 'CLEAR BEFORE 5:20' },
+      { type: 'level', atLeast: 18, label: 'REACH LEVEL 18' }
     ],
     events: [
-      { at: 12, banner: ['FORGE SIGNAL', 'FIRST BASE ON THE BEACON'], callout: 'follow the beacon arrow to the enemy base' },
-      { at: 55, gems: { count: 5, value: 2 } },
-      { at: 90, banner: ['SECOND SIGNAL', 'BASTION GUNS SPINNING UP'] },
-      { at: 132, spawnPack: { key: 'cinder-kamikaze', count: 6, elite: true }, banner: ['ASH SQUALL', 'KAMIKAZE WING INBOUND'] },
-      { at: 170, grantBonus: 'strike-pack', callout: 'strike pack down // bank two airstrikes' },
-      { at: 196, banner: ['THIRD SIGNAL', 'RELAY FORTRESS ON GRID'] },
-      { at: 240, gems: { count: 6, value: 2 } },
-      { at: 288, banner: ['LAST FORGE', 'THE HIVE HIDES DEEP IN THE DRIFT'] },
-      { at: 315, grantBonus: 'meteor', callout: 'meteor storm armed // clear the approach' },
-      { at: 348, banner: ['HAEMATARCH', 'THE EMBER LORD ANSWERS'], heat: true },
-      { at: 386, gems: { count: 7, value: 2 } }
-    ]
+      { at: 0, banner: ['NULL HARVEST', 'CYCLE BEGINS'] },
+      { at: 32, spawnPack: { key: 'null-leech', count: 7 } },
+      { at: 68, banner: ['HARVEST SPIKE', 'DEBRIS CONSUMED'], spawnPack: { key: 'gravity-mite', count: 7, elite: true } },
+      { at: 105, grantBonus: 'overdrive' },
+      { at: 140, banner: ['APEX SIGNATURE', 'DREAD LANCER CONFIRMED'], spawnPack: { key: 'dread-lancer', count: 2, elite: true } },
+      { at: 175, gems: { count: 8, value: 2 } },
+      { at: 210, banner: ['TITAN BLOOM', 'WARDEN TITAN CONFIRMED'], spawnPack: { key: 'warden-titan', count: 2, elite: true } },
+      { at: 250, grantBonus: 'reflector' },
+      { at: 290, banner: ['FINAL CYCLE', 'HOLD THE LINE'], spawnPack: { key: 'warden-titan', count: 3, elite: true }, heat: true }
+    ],
+    music: 'heat'
   };
 }());

@@ -3,107 +3,83 @@
   window.__HM_LEVELS = window.__HM_LEVELS || {};
   window.__HM_LEVELS[5] = {
     id: 5,
-    key: 'rift-passage',
-    name: 'RIFT PASSAGE',
-    tagline: 'CROSS THE VISION POCKETS',
+    key: 'cinder-crown',
+    name: 'CINDER CROWN',
+    tagline: 'ONE LORD RULES THE DRIFT',
     briefing: [
-      'Void static is cutting the lane apart.',
-      'Cross the passage before it closes.'
+      'THE CINDER HAEMATARCH HOLDS COURT.',
+      'DRIFT SWARMS SHIELD ITS THRONE.',
+      'BREAK THE CROWN. END THE DRIFT.'
     ],
-    region: 'void-rift',
-    duration: 360,
+    region: 'ember-drift',
+    duration: 225,
     waves: [
-      { at: 0,   rate: 1.08, pack: 1, pool: ['drifter', 'blink-stalker'] },
-      { at: 24,  rate: 0.92, pack: 1, pool: ['drifter', 'blink-stalker', 'gravity-mite'] },
-      { at: 54,  rate: 0.82, pack: 1, pool: ['sprinter', 'blink-stalker', 'gravity-mite'] },
-      { at: 90,  rate: 0.74, pack: 2, pool: ['blink-stalker', 'gravity-mite', 'null-leech', 'drifter'] },
-      { at: 128, rate: 0.68, pack: 2, pool: ['blink-stalker', 'gravity-mite', 'null-leech', 'bulwark'] },
-      { at: 164, rate: 0.58, pack: 2, pool: ['blink-stalker', 'gravity-mite', 'null-leech'] },
-      { at: 180, rate: 0.48, pack: 3, pool: ['blink-stalker', 'gravity-mite', 'null-leech'] },
-      { at: 220, rate: 0.44, pack: 3, pool: ['blink-stalker', 'gravity-mite', 'null-leech', 'sapper'] },
-      { at: 260, rate: 0.39, pack: 3, pool: ['blink-stalker', 'gravity-mite', 'null-leech', 'weaver'] },
-      { at: 300, rate: 0.34, pack: 4, pool: ['blink-stalker', 'gravity-mite', 'null-leech', 'lancer'] },
-      { at: 338, rate: 0.30, pack: 4, pool: ['blink-stalker', 'gravity-mite', 'null-leech', 'bulwark'] }
+      { at: 0, rate: 0.7, pack: 2, pool: ['sprinter', 'ember-scarab', 'drifter'] },
+      { at: 20, rate: 0.56, pack: 3, pool: ['cinder-kamikaze', 'ember-scarab', 'ash-wraith'] },
+      { at: 46, rate: 0.46, pack: 3, pool: ['cinder-kamikaze', 'ember-scarab', 'ash-wraith', 'lancer'] },
+      { at: 76, rate: 0.42, pack: 4, pool: ['cinder-kamikaze', 'ember-scarab', 'ash-wraith', 'lancer'] },
+      { at: 110, rate: 0.38, pack: 4, pool: ['cinder-kamikaze', 'ember-scarab', 'ash-wraith', 'sapper'] },
+      { at: 146, rate: 0.36, pack: 4, pool: ['cinder-kamikaze', 'ember-scarab', 'ash-wraith', 'lancer', 'sapper'] },
+      { at: 182, rate: 0.32, pack: 4, pool: ['cinder-kamikaze', 'ember-scarab', 'ash-wraith', 'lancer'] }
     ],
     mods: {
-      enemyHp: 1.15,
-      enemyDmg: 1.05,
-      spawnRate: 1.3
+      spawnRate: 0.8,
+      enemyHp: 1.05,
+      enemyDmg: 0.95
     },
-    bases: [
-      { at: 112, type: 'bastion', x: -3600, y: -900 },
-      { at: 236, type: 'bastion', x: -2720, y: 1160 }
+    bases: [],
+    regionBosses: [
+      { at: 86, region: 'ember-drift', x: 3040, y: -1080, hpMul: 1.0, dmgMul: 1.0 }
     ],
-    finalBoss: {
-      type: 'region',
-      region: 'void-rift',
-      at: 300,
-      hpMul: 1.15
-    },
+    finalBoss: null,
     objectives: [
-      { id: 'survive', type: 'survive', label: 'SURVIVE THE RIFT' },
-      { id: 'bastions', type: 'bases', label: 'BREAK BOTH BASTIONS', count: 2 },
-      { id: 'null-proboscis', type: 'boss', label: 'DEFEAT NULL PROBOSCIS', count: 1 }
+      { id: 'boss-haematarch', type: 'boss', label: 'BREAK THE CINDER CROWN', count: 1 },
+      { id: 'survive-court', type: 'survive', label: 'HOLD THE DRIFT COURT' }
     ],
     stars: [
       { type: 'win', label: 'MISSION COMPLETE' },
-      { type: 'hull', pct: 40, label: '40% HULL REMAINING' },
-      { type: 'level', atLeast: 14, label: 'REACH LEVEL 14' }
+      { type: 'time', under: 200, label: 'CLEAR UNDER 200 SECONDS' },
+      { type: 'hull', pct: 45, label: 'HULL 45% OR BETTER' }
     ],
     events: [
       {
         at: 0,
-        banner: ['LIGHTNING TEAR', 'VOID STATIC // VISION POCKETS']
+        banner: ['CINDER CROWN', 'LORD OF DRIFT']
       },
       {
-        at: 48,
-        callout: 'blink signature in the static'
+        at: 24,
+        banner: ['COURT GUARD', 'SCARABS FORM RANKS'],
+        spawnPack: { key: 'ember-scarab', count: 5 }
       },
       {
-        at: 92,
-        banner: ['BLINK SIGNATURE', 'CONTACTS IN THE VISION POCKET'],
-        spawnPack: { key: 'blink-stalker', count: 6, elite: true },
-        callout: 'blink signatures on your six'
+        at: 50,
+        banner: ['GEM CACHE', 'DRIFT SIGNAL FOUND'],
+        gems: { count: 7, value: 1 }
       },
       {
-        at: 136,
-        banner: ['GRAVITY AMBUSH', 'VECTOR FOLD // HOLD COURSE'],
-        spawnPack: { key: 'gravity-mite', count: 8, elite: true },
-        callout: 'gravity is folding the lane'
+        at: 70,
+        banner: ['LORD STIRS', 'THRONE POWERING UP']
       },
       {
-        at: 164,
-        grantBonus: 'cloak',
-        callout: 'phase cloak drop in the pocket'
+        at: 86,
+        banner: ['LORD ARRIVES', 'CINDER HAEMATARCH LIVE'],
+        heat: true
       },
       {
-        at: 198,
-        spawnPack: { key: 'gravity-mite', count: 10, elite: true },
-        callout: 'second gravity bloom incoming'
+        at: 120,
+        banner: ['EMBER CACHE', 'ORDNANCE RECOVERED'],
+        grantBonus: 'arsenal'
       },
       {
-        at: 228,
-        grantBonus: 'dilation',
-        callout: 'dilation drop at the breach'
+        at: 160,
+        banner: ['ASH SURGE', 'WRAITHS FLANK THRONE'],
+        spawnPack: { key: 'ash-wraith', count: 5, elite: true }
       },
       {
-        at: 240,
-        banner: ['PASSAGE HEAT', 'IT DOES NOT WANT TO BE CROSSED'],
-        heat: true,
-        callout: 'the passage rejects your crossing'
-      },
-      {
-        at: 276,
-        banner: ['NULL STATIC', 'VISION POCKETS CLOSING'],
-        spawnPack: { key: 'null-leech', count: 8, elite: true },
-        callout: 'null leeches in the dark'
-      },
-      {
-        at: 300,
-        banner: ['NULL PROBOSCIS', 'DO NOT LET IT CLOSE THE RIFT'],
-        callout: 'null proboscis has found the passage'
+        at: 200,
+        banner: ['CROWN BREAKING', 'FINISH THE LORD']
       }
     ],
-    music: 'base'
+    music: 'heat'
   };
 }());
