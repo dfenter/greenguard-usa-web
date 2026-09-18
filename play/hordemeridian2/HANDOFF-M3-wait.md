@@ -297,3 +297,88 @@ call sites (game.js:5738 and 7947). Consistent with precedent, not a new defect.
 Round cap per feedback_gate_round_cap.md: two HOLDs on the same file means rule on the MODEL before
 another point fix; cap point-fix rounds at ~3; report the round count to Dan past ~5. This is
 round 1. Dispatch a fresh Sonnet fix lane, never the gate reviewer, and never an original implementer.
+
+---
+
+# ROUND 5 (orchestrator parked 2026-09-18 at ~170K context): GATE HOLD, fix lane in flight
+
+## Gate round 1: HOLD, 1 blocker. Report at play/hordemeridian2/HANDOFF-M3-gate.md (553c02c2)
+
+**Blocker: the per-phase set-piece assertion is VACUOUS for 5 of the 6 bosses.**
+
+`e.setpiece` (game.js:8133) is written and NEVER cleared. `e.setpieceT` (game.js:8134) is set but
+never ticked down and never read. When the probe samples phases 1 and 2 it sees a STALE phase-0
+descriptor, so `set-piece fired in every phase reached` (hm2_boss_probe.mjs:216) passes for a boss
+that fires nothing after spawn.
+
+Gate's proof: injecting `if (phase > 0) return;` at the top of `triggerBossSetpiece` leaves
+**carrion-queen at 8/8 exit 0**. Only the Core is caught, and only by its separate distinct-types
+assertion. Ruling 2's mutation test used the Core, which is why this slipped through.
+
+**The orchestrator's round-4 verification was wrong on this point.** I read
+`{0:asteroid_field, 1:..., 2:...}` as proof of per-phase firing; it was one stale descriptor read
+three times. The same vacuity class as the M2 HOLD. Do not repeat my mistake: a per-phase reading
+only means something once `e.setpiece` has a lifetime.
+
+## Fix lane: DISPATCHED (sonnet, background, branch hm2-m3 at 553c02c2)
+
+Ruled in the MODEL per the gate, not in the assertion:
+1. Tick `e.setpieceT` down and null `e.setpiece` on expiry, mirroring the `run.setpieceWell` tick
+   at game.js:7554. Clear on boss death like setpieceWell at game.js:8212 and 8243. Fold into an
+   existing per-frame pass, no new loop. Keep all module-absence guards.
+2. Add a probe assertion referencing `run.setpieceWell` so ruling 3 is covered by the COMMITTED
+   suite (the gate's verification of it was ad-hoc and not retained).
+3. Mandatory: re-run the gate's exact mutation and confirm **carrion-queen now FAILS**, then revert
+   and confirm clean. Mutate the new setpieceWell assertion too. Restore all files.
+
+Writes play/hordemeridian2/HANDOFF-M3-blocker1.md.
+
+## Gate rulings ACCEPTED (do not re-litigate, both are follow-ups for Dan, not blockers)
+
+- **Region-boss 3-phase shift**: documented follow-up. The 5 pre-existing region bosses moved from
+  a 2-phase model (single 0.5 threshold, base game.js:8099) to the shared 3-phase 0.66/0.33 model.
+  **Tell Dan the numbers changed.**
+- **Mimic stall**: residual, no live trigger (the 7 M3 enemies are not in wave pools).
+
+## Verified by the gate and holding (re-confirmed independently)
+
+    boss probe seed 999   48/48 exit 0, Core rotates 3 distinct types incl. phase 0 (ruling 1 landed)
+    bestiary seed 42      50/50 exit 0
+    hm2_world.test.mjs    24/24
+    world probe           PASS, fps 121.9-238 across runs, floor 50 (run-to-run variance, all clear)
+    old if/else chain     UNALTERED; only 4 removed lines in game.js across the whole range,
+                          all in boss phase/banner code. M3 enemy dispatch is a pure pre-chain insert.
+    angle randomisation   REAL, seeded, logged (hm2_bestiary_probe.mjs:130). M2's 8-fixed-angle
+                          defect NOT repeated.
+    applySetpieceWell     runtime-verified clean: real 15.1px pull, NaN x/y/strength and zero-distance
+                          all stay finite, expiry nulls it, cleared on both defeat paths, no new loop.
+
+A 3-trial campaign run on the pre-blocker1 state (`/tmp/hm2_final_campaign.log`, port 8797) was into
+its bot-survival trials at park time; the fix lane runs its own, so that log is superseded.
+
+## Resume condition and next steps
+
+Fix lane reports (or caps out with HANDOFF-M3-blocker1.md). Then:
+
+1. Read HANDOFF-M3-blocker1.md. **Verify the carrion-queen mutation now EXITS 1.** That is the
+   whole point of this round; do not accept a clean-run pass as evidence on its own.
+2. Re-run the suite yourself: boss probe, bestiary (50/50), world.test (24/24), world probe (PORT
+   not URL, fps floor 50), campaign 3 TRIALS (55/55, 15 missions). Never trust a 1-trial median.
+3. Spawn **gate round 2**: fresh Opus, never an implementer, never the round-1 reviewer. Attach the
+   round-1 findings and this blocker. Round cap per feedback_gate_round_cap.md: this will be round 2;
+   two HOLDs on the same file means rule on the MODEL before another point fix; cap point fixes at
+   ~3; report the count to Dan past ~5.
+4. **On PASS**: push `hm2-m3` (the ONLY push authorised; still NO merge to main, NO deploy), commit
+   HANDOFF-M3.md, and update the status line in
+   ~/.claude/projects/-Users-lucille/memory/project_horde_meridian_2.md with a dated entry.
+
+## HANDOFF-M3.md must record these follow-ups for Dan
+
+1. Region-boss 2-phase to 3-phase balance shift (numbers changed on shipped content).
+2. Mimic stall risk (residual, no live trigger).
+3. The 7 M3 enemies are deliberately NOT in wave pools; deferred to M4.
+4. **M2 gate evidence is unreliable**: HANDOFF-M2.md claims 55/55 with L5=75s at gated hash
+   a978cc77, but the same unmodified probe at 68612b3d gives 54/55 with L5=38s. The M2 pass does
+   not reproduce at its own gated commit. L5 samples span 30-82 against a 45s bar (bimodal).
+   Pre-existing and NOT an M3 blocker, but the bar needs re-tuning or more trials.
+5. The merged M3 state measures BETTER than its own base: 55/55 vs the baseline's 54/55.
