@@ -31,7 +31,17 @@
  *
  * Usage:
  *   node hse/probe_jaw.mjs assets/models/greatwhite_cy.glb assets/models/thresher.glb ...
- *   REST_RAD=0 OPEN_RAD=0.72 node hse/probe_jaw.mjs <glb...>
+ *   REST_RAD=0 node hse/probe_jaw.mjs <glb...>
+ *
+ * Rev 18, router decision 1: the open angle is NO LONGER a hardcoded 0.72.
+ * It comes from hse/jaw_gate_config.mjs, which derives it from the same place
+ * the runtime does -- the recipe's `mouth.gape_degrees` (25 deg on all five
+ * pilots), bracketed by rig_morph's exported GAPE_MIN_RAD/GAPE_MAX_RAD band.
+ * 0.72 rad is 41.3 deg: 65% more travel than the rig is ever asked for, and
+ * because stretch blows up superlinearly on near-coincident edges, measuring
+ * there turned honest ~3x edges into 15-45x and made the gate table noise.
+ * Setting OPEN_RAD still overrides, but the probe now prints which source it
+ * used so an off-brief angle can never again be mistaken for real travel.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -45,7 +55,8 @@ const THREE = await import('three');
 const { GLTFLoader } = await import(path.join(HERE, '../../_shared/three/GLTFLoader.js'));
 
 const REST_RAD = Number(process.env.REST_RAD ?? 0);
-const OPEN_RAD = Number(process.env.OPEN_RAD ?? 0.72);
+const { resolveOpenRadians, loadRecipeForFamily } = await import(path.join(HERE, 'jaw_gate_config.mjs'));
+const ROOT_DIR = path.join(HERE, '..');
 const UPPER_MAX_FRAC = 0.002;   // no upper-head vertex moves more than this * L
 const LOWER_MIN_FRAC = 0.03;    // lower-lip vertices must move at least this * L
 const STRETCH_MAX = 3.0;        // no triangle edge may stretch more than this factor
@@ -90,6 +101,12 @@ function skinWeightOnBone(mesh, boneIdx, vertIdx) {
 
 async function probeOne(file) {
   const name = path.basename(file);
+  /* Rev 18: the open angle is a property of THIS family's recipe, resolved
+   * from the same constant the bake and the runtime use. */
+  const family = name.replace(/\.glb$/i, '');
+  const recipe = await loadRecipeForFamily(family, { fs, path, rootDir: ROOT_DIR });
+  const open = resolveOpenRadians(process.env, recipe);
+  const OPEN_RAD = open.radians;
   let gltf;
   try { gltf = await loadGlb(file); }
   catch (e) { return { name, ok: false, error: 'load failed: ' + e.message }; }
@@ -239,6 +256,7 @@ async function probeOne(file) {
 
   return {
     name, ok, L: +L.toFixed(4),
+    openRad: +OPEN_RAD.toFixed(4), openDeg: +open.degrees.toFixed(2), openSrc: open.source,
     upperVerts: upperHeadVerts.length, maxUpperMove: +maxUpperMove.toFixed(5), upperLimit: +(UPPER_MAX_FRAC * L).toFixed(5), upperOk,
     lowerVerts: lowerLipVerts.length, minLowerMove: lowerLipVerts.length ? +minLowerMove.toFixed(5) : null, maxLowerMove: +maxLowerMove.toFixed(5), lowerLimit: +(LOWER_MIN_FRAC * L).toFixed(5), lowerOk,
     maxStretch: +maxStretch.toFixed(3), stretchOk,
@@ -252,13 +270,13 @@ if (!files.length) {
 }
 
 let anyFail = false;
-console.log(`REST_RAD=${REST_RAD} OPEN_RAD=${OPEN_RAD}`);
+console.log(`REST_RAD=${REST_RAD}  open angle: per-recipe (hse/jaw_gate_config.mjs)${process.env.OPEN_RAD ? `  OVERRIDDEN by OPEN_RAD=${process.env.OPEN_RAD}` : ''}`);
 for (const f of files) {
   const r = await probeOne(f);
   if (r.error) { anyFail = true; console.log(`${r.name.padEnd(28)} ERROR ${r.error}`); continue; }
   if (!r.ok) anyFail = true;
   console.log(
-    `${r.name.padEnd(28)} L=${r.L}  ` +
+    `${r.name.padEnd(28)} L=${r.L} open=${r.openDeg}deg(${r.openRad},${r.openSrc})  ` +
     `upper(n=${r.upperVerts}) move<=${r.maxUpperMove} limit=${r.upperLimit} ${r.upperOk ? 'OK' : 'FAIL'}  ` +
     `lower(n=${r.lowerVerts}) min=${r.minLowerMove} max=${r.maxLowerMove} limit>=${r.lowerLimit} ${r.lowerOk ? 'OK' : 'FAIL'}  ` +
     `stretch=${r.maxStretch}x limit<=${STRETCH_MAX} ${r.stretchOk ? 'OK' : 'FAIL'}  ` +

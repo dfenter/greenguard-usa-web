@@ -1076,5 +1076,9 @@ function writeJawGape(rigRoot, gape01) {
   return Number((angle * 180 / Math.PI).toFixed(3));
 }
 
+/* Rev 18: the gape band is the runtime's authority on how far a jaw opens.
+ * Exported so offline gates (hse/jaw_gate_config.mjs) can derive the same
+ * full-open travel instead of hardcoding one. See that file's header. */
+export { GAPE_MIN_RAD, GAPE_MAX_RAD };
 export { applyMorph, measureMorph, commitRestGape, writeJawGape };
 export default applyMorph;

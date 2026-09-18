@@ -484,3 +484,117 @@ the whole of Rev 17. Fix the gate's open angle against rig_morph first, then wor
 the tearing with dump_stretch.mjs, then re-run the ordering fix in item 3.
 
 ### Residual B (species colour) NOT started this lane.
+
+---
+
+# Rev 18 lane 2 (2026-09-18)
+
+## 1. Jaw gate reconciled to the real travel (DONE)
+
+The probe defaulted `OPEN_RAD` to 0.72 rad (41.3 deg). Nothing in the pipeline
+ever opens a jaw that far. Two independent sources agree on the real number:
+
+- `rig_morph.applyRestGape` targets `GAPE_MIN_RAD + (GAPE_MAX_RAD-GAPE_MIN_RAD)*t`,
+  i.e. the 22-30 deg band, and `commitRestGape` publishes that as
+  `rfJawAuthority.openRadians` for `writeJawGape` to scale.
+- every pilot recipe carries `mouth.gape_degrees: 25`, which
+  `shark_variant._cut_mouth` cuts the mouth planes to.
+
+So full open is 25 deg = 0.4363 rad. New `hse/jaw_gate_config.mjs` is the one
+place that resolves it; `rig_morph.js` now EXPORTS `GAPE_MIN_RAD/GAPE_MAX_RAD`
+so the config cannot drift from the runtime, and `probe_jaw.mjs` /
+`dump_stretch.mjs` both import it instead of hardcoding. The probe prints the
+angle and its source on every row, so an off-brief angle can never again be
+mistaken for real travel. `dump_stretch.mjs` also still had the residual-A
+absolute-pose bug (`jaw.rotation.x = ...`); fixed to closedBase + rotateOnAxis.
+
+Stretch at 0.72 -> at 0.4363 (same GLBs, gate change only):
+
+    aresrender      5.581x -> 3.527x
+    artemisstrike  44.913x -> 27.507x
+    leviathanrex   14.664x ->  9.399x
+    snapjaw        26.395x -> 16.313x
+    thresher       11.350x ->  6.714x
+
+Still above the 3x bar, but these are the first honest numbers this pipeline
+has produced. NOTE the 0.72 reading is not merely inflated: stretch grows
+superlinearly on near-coincident edges, so it also reorders which family looks
+worst.
+
+## 2. Ordering fix on the gradient cap: TRIED, MEASURED WORSE, REVERTED
+
+The defect described in Rev 17 note 4 is real and confirmed: the cap runs in
+`mouth.cut_mouth` on 2455 mouth-local edges, while the exported mesh carries
+~16k, because the accessory voxel remesh and the budget decimate both run
+later. Measured cliff edges on the shipped GLBs (new `hse/count_cliffs.mjs`,
+which restates the cap's OWN budget on the exported mesh):
+
+    aresrender 472, artemisstrike 30, leviathanrex 17, snapjaw 28, thresher 142
+
+A `_limit_weight_gradient_on_export` pass in finish.py, running on final
+topology right before export, was implemented and tested on thresher. It did
+NOT work and is reverted. Three things were measured, in order:
+
+- cap AFTER the sliver collapse: stretch 6.714x -> 23.332x, cliffs 142 -> 193.
+  The cap RELAXES weights (0.979 -> 0.597), which manufactures new
+  part-weighted short-edge pairs, i.e. exactly the sliver population the
+  collapse had just cleaned, with nothing left to clean them. Worst surviving
+  edge 0.111/0.076 over 4.6e-5 L: a pure sliver the cap had created.
+- cap BEFORE the collapse: 13.580x, still far worse than the 6.714x control.
+- suspected `vertex_groups.add(..., "REPLACE")` no-op on non-members (every
+  cliff has a low end at exactly 0.0, so REPLACE would silently discard the
+  raises). Switched to "ADD" for absent vertices: numbers BIT-IDENTICAL, so
+  this was not the blocker.
+
+The readback instrumentation settled it: `weight_mismatch=0` (the writes land
+in the mesh exactly as computed) but `READBACK cliffs=107` against the sweep's
+own `cliffs 140 -> 75`. The relaxation does not converge on export topology --
+24 sweeps, residual 0.31 -- because capping one edge breaks a neighbour on a
+mesh with ~8x the edge count the rule was designed for. It is chasing a moving
+target. Per the two-iteration cap the whole pass was reverted rather than
+tuned further.
+
+A control bake with `RAZORFIN_NO_EXPORT_GRADIENT_CAP=1` reproduced 6.714x /
+142 cliffs exactly, confirming the regression was the cap and not bake noise.
+
+WHAT THE EDGE DUMP ACTUALLY SHOWS, and where the next lane should start: only
+13-37 edges per family exceed 3x, and they are of two distinct kinds.
+
+    thresher worst:  jawW=0.000/0.573 over restL 3.1e-3 L   <- weight cliff
+    thresher next:   jawW=0.682/0.754 over restL 4.9e-4 L   <- sliver
+
+The cliffs are `X/0.000`: a fully jaw-driven vertex adjacent to a fully
+body-driven one, produced by the remesh. Relaxation cannot fix them on final
+topology (proven above). The likely correct fix is upstream, in the KDTree
+weight PROJECTION after the remesh (make it interpolate across the seam rather
+than nearest-neighbour snap), not in a post-hoc cap. That is a `mouth.py` /
+`shark_variant.py` change and it needs its own lane.
+
+## 3. Species colour (residual B): FIXED and measured
+
+4 of 5 recipes were off the art law. Measured mean hue/sat of the rendered
+flank, background masked (the turntable backdrop is (58,64,70) = hue .583,
+itself a plausible shark grey -- an unmasked sample returns the BACKGROUND on
+every family and reports all five identical; the first version of the script
+did exactly that, do not repeat it).
+
+    family          before (hue/sat)      after (hue/sat)     reading
+    aresrender      0.063 / 0.297    ->   0.083 / 0.218       salmon -> tiger bronze
+    artemisstrike   0.272 / 0.114    ->   0.568 / 0.125       sage   -> slate blue-grey
+    leviathanrex    0.309 / 0.174    ->   0.595 / 0.122       moss   -> slate
+    snapjaw         0.120 / 0.199    ->   0.075 / 0.161       sand   -> bull grey-brown
+    thresher        0.602 / 0.142    ->   unchanged           reference, already correct
+
+All saturations now <= 0.218, well under the art law's 0.35 dorsal ceiling, and
+no hue sits in the green family any more. Script:
+`scratchpad/measure_flank.py`.
+
+## Open
+
+- stretch fails 5/5 on the honest gate; see the ordering note above for where
+  to go next. The bar itself may also deserve a look: 3x was set when the gate
+  was measuring a pose the game cannot reach.
+- lower-lip travel fails 4/5, and `snapjaw` still classifies n=0 lower-lip
+  verts (unchanged from Rev 17, separate defect).
+- turntables render translucent/washed; pre-existing, visible in the Rev 17
+  committed frames too, not caused by the colour change.

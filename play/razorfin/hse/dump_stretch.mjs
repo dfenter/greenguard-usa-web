@@ -7,7 +7,10 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const THREE = await import('three');
 const { GLTFLoader } = await import(path.join(HERE, '../../_shared/three/GLTFLoader.js'));
 const REST_RAD = Number(process.env.REST_RAD ?? 0);
-const OPEN_RAD = Number(process.env.OPEN_RAD ?? 0.72);
+/* Rev 18: same reconciliation as probe_jaw -- angle from the recipe, not a
+ * hardcoded 0.72. See hse/jaw_gate_config.mjs. */
+const { resolveOpenRadians, loadRecipeForFamily } = await import(path.join(HERE, 'jaw_gate_config.mjs'));
+const ROOT_DIR = path.join(HERE, '..');
 const loadGlb = (f) => new Promise((res, rej) => { const b = fs.readFileSync(f); new GLTFLoader().parse(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength), '', res, rej); });
 function baked(mesh) { mesh.updateMatrixWorld(true); const p = mesh.geometry.getAttribute('position'); const o = new Float32Array(p.count*3); const v = new THREE.Vector3();
   for (let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); mesh.applyBoneTransform(i,v); o[i*3]=v.x;o[i*3+1]=v.y;o[i*3+2]=v.z; } return o; }
@@ -17,8 +20,19 @@ for (const file of process.argv.slice(2)) {
   const bones = mesh.skeleton.bones; const jawIdx = bones.findIndex(b=>b.name==='LowerJaw'); const jaw=bones[jawIdx];
   mesh.geometry.computeBoundingBox(); const sz=new THREE.Vector3(); mesh.geometry.boundingBox.getSize(sz);
   const L = Math.max(sz.x,sz.y,sz.z);
-  jaw.rotation.x = REST_RAD; jaw.updateMatrixWorld(true); const R = baked(mesh);
-  jaw.rotation.x = OPEN_RAD; jaw.updateMatrixWorld(true); const O = baked(mesh);
+  /* Rev 18 residual A, same defect probe_jaw had: posing `rotation.x`
+   * ABSOLUTELY ignores the ~3.07 rad rest rotation every family GLB exports,
+   * which crushes edges and fabricates stretch. Pose from the authored base
+   * and rotate about the hinge axis, exactly as rig_morph.writeJawGape does. */
+  const family = path.basename(file).replace(/\.glb$/i, '');
+  const recipe = await loadRecipeForFamily(family, { fs, path, rootDir: ROOT_DIR });
+  const open = resolveOpenRadians(process.env, recipe);
+  const OPEN_RAD = open.radians;
+  const HINGE = new THREE.Vector3(1, 0, 0);
+  const jawBase = jaw.quaternion.clone();
+  const pose = (rad) => { jaw.quaternion.copy(jawBase); if (rad) jaw.rotateOnAxis(HINGE, rad); jaw.updateMatrixWorld(true); };
+  pose(REST_RAD); const R = baked(mesh);
+  pose(OPEN_RAD); const O = baked(mesh);
   const idx = mesh.geometry.getIndex().array;
   const el=(A,a,b)=>Math.hypot(A[a*3]-A[b*3],A[a*3+1]-A[b*3+1],A[a*3+2]-A[b*3+2]);
   const rows=[]; const seen=new Set();
