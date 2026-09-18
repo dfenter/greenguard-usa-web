@@ -338,7 +338,7 @@
   // levels/ (see LEVELS_SPEC.md, the binding contract). Each is validated here
   // at boot; a malformed level is excluded with a console warning rather than
   // shipped broken.
-  var CAMPAIGN_MAX_LEVELS = 13;
+  var CAMPAIGN_MAX_LEVELS = 15;
   function validEnemyKey(k) {
     return (Object.prototype.hasOwnProperty.call(FAMILY, k) && k !== 'boss') ||
       Object.prototype.hasOwnProperty.call(REGION_ENEMY_BY_KEY, k);
@@ -1216,10 +1216,11 @@
             ? window.__HM2_UI.wrapText(this, t.blurb, { fontFamily: FONT_BODY, fontSize: TYPE.micro }, blMaxW, 2)
             : [t.blurb];
           var bl = bodyText(this, x - cardW / 2 + 48, y - 4, blLines.join('\n'), TYPE.micro, '#8fb3c4');
-          bl.setOrigin(0, 0.5).setLineSpacing(-2);
+          bl.setOrigin(0, 0.5).setLineSpacing(-2).setAlign('left');
           if (blLines.length > 1) bl.setY(y);
           var pips = [];
-          for (var p = 0; p < t.max; p++) pips.push(this.add.rectangle(x - cardW / 2 + 49 + p * 9, y + 16, 7, 4, p < lv ? t.color : 0x2b4756));
+          var pipY = y + (blLines.length > 1 ? 25 : 16);
+          for (var p = 0; p < t.max; p++) pips.push(this.add.rectangle(x - cardW / 2 + 49 + p * 9, pipY, 7, 4, p < lv ? t.color : 0x2b4756));
           var price = maxed ? 'MAXED' : String(t.cost(lv));
           var pr = neonText(this, x + cardW / 2 - 9, y - 17, price, TYPE.micro, maxed ? '#8effd8' : '#ffd67a');
           pr.setOrigin(1, 0.5);
@@ -1411,10 +1412,11 @@
             ? window.__HM2_UI.wrapText(this, m.blurb, { fontFamily: FONT_BODY, fontSize: TYPE.micro }, mblMaxW, 2)
             : [m.blurb];
           var mbl = bodyText(this, mx - mw / 2 + 46, my - 2, mblLines.join('\n'), TYPE.micro, '#8fb3c4');
-          mbl.setOrigin(0, 0.5).setLineSpacing(-2);
+          mbl.setOrigin(0, 0.5).setLineSpacing(-2).setAlign('left');
           if (mblLines.length > 1) mbl.setY(my + 4);
           var mpips = [];
-          for (var mp = 0; mp < m.max; mp++) mpips.push(this.add.rectangle(mx - mw / 2 + 47 + mp * 9, my + 18, 7, 4, mp < mlv ? 0x8effd8 : 0x2b4756));
+          var mpipY = my + (mblLines.length > 1 ? 26 : 18);
+          for (var mp = 0; mp < m.max; mp++) mpips.push(this.add.rectangle(mx - mw / 2 + 47 + mp * 9, mpipY, 7, 4, mp < mlv ? 0x8effd8 : 0x2b4756));
           var mprice = neonText(this, mx + mw / 2 - 9, my - 17, mmax ? 'MAXED' : String(m.cost(mlv)), TYPE.micro, mmax ? '#8effd8' : '#ffd67a');
           mprice.setOrigin(1, 0.5);
           g.add([mic, mn, mbl].concat(mpips).concat([mprice]));
