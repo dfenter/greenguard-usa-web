@@ -428,6 +428,20 @@
   // ranged enemies, even though neither is itself ranged (mine-bomber lays
   // hazards at range, gem-mimic's speed-0/high-contact-dmg ambush is just as
   // unfair as unavoidable ranged fire before the player can move).
+  //
+  // M4 gate fix (R1): a region pool is picked from UNIFORMLY by
+  // pickRegionEnemy, so the number of keys in a pool is itself a difficulty
+  // dial. void-rift grew 3 -> 6 while the other regions grew by ~1, so
+  // roughly half of ALL void-rift ambient spawns became new, harder M3
+  // enemies from t=0, which is what broke levels 9/10/11/13. The fix is
+  // WEIGHTED pools, applied uniformly to all four regions, not a
+  // void-rift-only patch: every entry below carries a baseline `weight`
+  // (default 1 when omitted) and the 7 M3 additions also carry `rampAt`
+  // (seconds) plus `rampWeight` (their weight once fully ramped in). Before
+  // `rampAt` they roll at a low weight (0.15), climbing linearly to
+  // `rampWeight` (parity, 1) at `rampAt` and holding there. Original
+  // (pre-M4) roster entries are unweighted (full weight from t=0). See
+  // regionEnemyWeightAt below and LEVELS_SPEC.md.
   var REGION_ENEMIES = {
     'ember-drift': [
       { key: 'cinder-kamikaze', frame: 'sprinter', base: 'sprinter', behavior: 'kamikaze', r: 13, hp: 11, speed: 126, dmg: 18, xp: 2, tint: 0xff6b4f, scale: 1.08 },
@@ -436,7 +450,8 @@
       // mine-bomber: lays hazard mines, fits the Ember Drift's ordnance/hazard
       // fiction (deco_hazard landmarks). dmg 0 direct contact by design (the
       // mine itself does the damage), flagged sapper so it never rolls at:0.
-      { key: 'mine-bomber', frame: 'drifter', base: 'drifter', behavior: 'bomber', r: 16, hp: 18, speed: 54, dmg: 0, xp: 3, tint: 0xff9a5a, scale: 1.05, sapper: true }
+      // M4 gate fix: ramps in over the first 90s instead of full weight at t=0.
+      { key: 'mine-bomber', frame: 'drifter', base: 'drifter', behavior: 'bomber', r: 16, hp: 18, speed: 54, dmg: 0, xp: 3, tint: 0xff9a5a, scale: 1.05, sapper: true, weight: 0.15, rampAt: 90, rampWeight: 1 }
     ],
     'crystal-shoals': [
       { key: 'refracting-shard-drone', frame: 'wisp', base: 'lancer', behavior: 'refract-drone', r: 15, hp: 18, speed: 58, dmg: 13, xp: 3, tint: 0xa7f3ff, scale: 1.06, ranged: true },
@@ -445,7 +460,8 @@
       // gem-mimic: dormant "gem" that wakes and lunges, fits Crystal Shoals'
       // dense-gem fiction directly. Sapper-flagged for the same hot-start
       // reason as mine-bomber (ambush dmg is unavoidable at row 0).
-      { key: 'gem-mimic', frame: 'deco_core', base: 'drifter', behavior: 'mimic', r: 12, hp: 16, speed: 0, dmg: 22, xp: 3, tint: 0xa7ffe0, scale: 0.7, sapper: true }
+      // M4 gate fix: ramps in over the first 90s instead of full weight at t=0.
+      { key: 'gem-mimic', frame: 'deco_core', base: 'drifter', behavior: 'mimic', r: 12, hp: 16, speed: 0, dmg: 22, xp: 3, tint: 0xa7ffe0, scale: 0.7, sapper: true, weight: 0.15, rampAt: 90, rampWeight: 1 }
     ],
     'void-rift': [
       { key: 'blink-stalker', frame: 'sprinter', base: 'sprinter', behavior: 'blink', r: 12, hp: 14, speed: 98, dmg: 15, xp: 2, tint: 0x9b8cff, scale: 1.06 },
@@ -453,13 +469,17 @@
       { key: 'null-leech', frame: 'wisp', base: 'weaver', behavior: 'null-leech', r: 16, hp: 21, speed: 64, dmg: 18, xp: 3, tint: 0xd0c8ff, scale: 1.08 },
       // wing-cutter: paired V-wing dive/split, fits Void Rift's "vision
       // pockets" ambush fiction (pairs appear from cover and split on you).
-      { key: 'wing-cutter', frame: 'sprinter', base: 'sprinter', behavior: 'formation', r: 12, hp: 10, speed: 96, dmg: 12, xp: 2, tint: 0xffd67a, scale: 1.0 },
+      // M4 gate fix: ramps in over the first 90s instead of full weight at t=0.
+      { key: 'wing-cutter', frame: 'sprinter', base: 'sprinter', behavior: 'formation', r: 12, hp: 10, speed: 96, dmg: 12, xp: 2, tint: 0xffd67a, scale: 1.0, weight: 0.15, rampAt: 90, rampWeight: 1 },
       // rift-strafer: orbits at range and fires, the region's namesake
       // "rift" ranged threat. ranged: true keeps it out of at:0 pools.
-      { key: 'rift-strafer', frame: 'lancer', base: 'lancer', behavior: 'strafer', r: 15, hp: 20, speed: 60, dmg: 14, xp: 3, tint: 0x7ac8ff, scale: 1.02, ranged: true },
+      // M4 gate fix: also the hardest hitter added, so it ramps in slower
+      // (over 150s) than the other M3 additions.
+      { key: 'rift-strafer', frame: 'lancer', base: 'lancer', behavior: 'strafer', r: 15, hp: 20, speed: 60, dmg: 14, xp: 3, tint: 0x7ac8ff, scale: 1.02, ranged: true, weight: 0.15, rampAt: 150, rampWeight: 1 },
       // nebula-burrower: phases in/out of visibility, fits the "vision
       // pockets" mechanic (nebula cover) better than any other region.
-      { key: 'nebula-burrower', frame: 'weaver', base: 'weaver', behavior: 'burrower', r: 15, hp: 24, speed: 66, dmg: 20, xp: 3, tint: 0x9b8cff, scale: 1.02 }
+      // M4 gate fix: highest dmg (20) in the pool, ramps in slowest (180s).
+      { key: 'nebula-burrower', frame: 'weaver', base: 'weaver', behavior: 'burrower', r: 15, hp: 24, speed: 66, dmg: 20, xp: 3, tint: 0x9b8cff, scale: 1.02, weight: 0.15, rampAt: 180, rampWeight: 1 }
     ],
     'aurelion-graveyard': [
       { key: 'derelict-guard-hulk', frame: 'bulwark', base: 'bulwark', behavior: 'hulk', r: 27, hp: 58, speed: 22, dmg: 24, xp: 4, tint: 0xc07d62, scale: 1.12 },
@@ -469,12 +489,32 @@
       // wall-warden: frontal-armored hulk that forces flanking, fits the
       // Graveyard's derelict-hulk cover fiction (armor plating to hide
       // behind / shoot around).
-      { key: 'wall-warden', frame: 'bulwark', base: 'bulwark', behavior: 'shield-wall', r: 22, hp: 40, speed: 24, dmg: 17, xp: 3, tint: 0xa8a8e8, scale: 1.05 },
+      // M4 gate fix: ramps in over the first 90s instead of full weight at t=0.
+      { key: 'wall-warden', frame: 'bulwark', base: 'bulwark', behavior: 'shield-wall', r: 22, hp: 40, speed: 24, dmg: 17, xp: 3, tint: 0xa8a8e8, scale: 1.05, weight: 0.15, rampAt: 90, rampWeight: 1 },
       // xp-leech: drains dropped gems, fits the Graveyard's salvage/scavenger
       // fiction (it's a rival scavenger, not just a hostile).
-      { key: 'xp-leech', frame: 'wisp', base: 'weaver', behavior: 'leech', r: 14, hp: 14, speed: 74, dmg: 8, xp: 2, tint: 0xffb4e6, scale: 1.0 }
+      // M4 gate fix: ramps in over the first 90s instead of full weight at t=0.
+      { key: 'xp-leech', frame: 'wisp', base: 'weaver', behavior: 'leech', r: 14, hp: 14, speed: 74, dmg: 8, xp: 2, tint: 0xffb4e6, scale: 1.0, weight: 0.15, rampAt: 90, rampWeight: 1 }
     ]
   };
+
+  // Pure, exported: returns the effective spawn weight of a REGION_ENEMIES
+  // entry at a given run time in seconds. Entries with no weight/rampAt
+  // fields (the original pre-M4 roster) are always full weight (1). Entries
+  // with weight + rampAt ramp linearly from `weight` at t=0 to `rampWeight`
+  // (default 1) at t=rampAt, then hold at rampWeight. Never returns 0 so
+  // every key stays reachable at every time.
+  function regionEnemyWeightAt(def, timeSec) {
+    if (!def) return 0;
+    var base = def.weight == null ? 1 : def.weight;
+    if (def.rampAt == null || def.rampAt <= 0) return base;
+    var target = def.rampWeight == null ? 1 : def.rampWeight;
+    var t = timeSec == null ? 0 : timeSec;
+    if (t <= 0) return base;
+    if (t >= def.rampAt) return target;
+    var frac = t / def.rampAt;
+    return base + (target - base) * frac;
+  }
   var REGION_ENEMY_BY_KEY = {};
   for (var rek in REGION_ENEMIES) {
     for (var rei = 0; rei < REGION_ENEMIES[rek].length; rei++) {
@@ -593,6 +633,7 @@
     BANK_RATE: BANK_RATE,
     REGION_ENEMIES: REGION_ENEMIES,
     REGION_ENEMY_BY_KEY: REGION_ENEMY_BY_KEY,
+    regionEnemyWeightAt: regionEnemyWeightAt,
     APEX_ENEMIES: APEX_ENEMIES,
     APEX_BY_KEY: APEX_BY_KEY,
     REGION_BOSSES: REGION_BOSSES,

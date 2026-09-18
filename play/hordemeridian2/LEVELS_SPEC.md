@@ -59,6 +59,38 @@ Same row shape as the base game's `WAVES` table:
   them.
 - After the last row the framework keeps using it until the run ends.
 
+### Ambient region spawns are WEIGHTED, not uniform (M4 gate fix, R1)
+
+`regionEnemyFor` (game.js) routes roughly 46% of ambient (non-wave-row)
+spawns through `pickRegionEnemy`, which draws from the level's region entry
+in `REGION_ENEMIES`. Before this fix that draw was uniform over the pool, so
+**the number of keys in a region's `REGION_ENEMIES` pool was itself a hidden
+difficulty dial**: void-rift growing from 3 to 6 entries while the other
+regions grew by about 1 silently doubled the odds of an ambient spawn being
+one of the newer, harder M3 additions, from t=0 of the run. That broke
+levels 9, 10, 11 and 13 (see HANDOFF-M4.md R1).
+
+The fix, applied uniformly to all four regions (not a void-rift-only patch):
+each `REGION_ENEMIES` entry may carry `weight` (baseline, default 1),
+`rampAt` (seconds until it reaches full weight, omitted = no ramp), and
+`rampWeight` (the weight once ramped, default 1). `regionEnemyWeightAt(def,
+timeSec)`, exported from hm_data.js on `window.__HM_DATA`, is a pure
+function that returns a def's effective weight at a given run time: entries
+with no `weight`/`rampAt` (the original pre-M4 roster) are always full
+weight; the 7 M3 additions start at `weight: 0.15` and climb linearly to
+`rampWeight: 1` by `rampAt` (90s for most, 150s for `rift-strafer` and 180s
+for `nebula-burrower`, since those two are the pool's ranged threat and its
+highest-damage entry respectively). `pickRegionEnemy` (game.js) does a
+weighted draw over the current region's pool using these weights and the
+run's elapsed time, still via `srand()` so seeded determinism holds. Every
+entry keeps weight > 0 at every time, so no key is ever unreachable.
+
+When adding a new region-variant enemy, prefer giving it a `weight`/`rampAt`
+ramp over relying on pool size alone to gate its difficulty. Adding an
+unweighted (full-weight, no ramp) entry to a pool still raises that region's
+early difficulty for every other entry in the pool, exactly like the R1
+regression.
+
 ## mods (all optional, defaults 1.0)
 
 `{ enemyHp, enemyDmg, enemySpeed, spawnRate, xp }`

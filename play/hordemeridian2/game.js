@@ -91,6 +91,7 @@
   var BANK_RATE = HM_DATA.BANK_RATE;
   var REGION_ENEMIES = HM_DATA.REGION_ENEMIES;
   var REGION_ENEMY_BY_KEY = HM_DATA.REGION_ENEMY_BY_KEY;
+  var regionEnemyWeightAt = HM_DATA.regionEnemyWeightAt;
   var REGION_BOSSES = HM_DATA.REGION_BOSSES;
   var REGION_BOSS_BY_KEY = HM_DATA.REGION_BOSS_BY_KEY;
   var REGION_BOSS_BY_BOSS_KEY = HM_DATA.REGION_BOSS_BY_BOSS_KEY;
@@ -5838,10 +5839,37 @@
       p.y = pPos.y;
     },
 
+    // M4 gate fix (R1): weighted pick instead of uniform. A region pool's
+    // key COUNT used to be a hidden difficulty dial (uniform pick over N
+    // choices), which is how void-rift growing 3 -> 6 quietly doubled the
+    // odds of drawing a new, harder M3 enemy from t=0. Weights come from
+    // regionEnemyWeightAt (hm_data.js), which ramps the 7 M3 additions in
+    // over run time so early spawns still favor the original roster. Still
+    // uses srand() for seeded determinism.
     pickRegionEnemy: function (fallback, regionKey) {
       var choices = REGION_ENEMIES[regionKey];
       if (!choices || !choices.length) return fallback;
-      var pick = choices[Math.floor(srand() * choices.length)];
+      var timeSec = this.run ? this.run.time : 0;
+      var total = 0;
+      var i, w, weights = [];
+      for (i = 0; i < choices.length; i++) {
+        w = regionEnemyWeightAt(choices[i], timeSec);
+        if (w < 0) w = 0;
+        weights.push(w);
+        total += w;
+      }
+      var pick;
+      if (total <= 0) {
+        pick = choices[Math.floor(srand() * choices.length)];
+      } else {
+        var roll = srand() * total;
+        var acc = 0;
+        pick = choices[choices.length - 1];
+        for (i = 0; i < choices.length; i++) {
+          acc += weights[i];
+          if (roll < acc) { pick = choices[i]; break; }
+        }
+      }
       if (this.run && this.run.regionEnemiesSeen) this.run.regionEnemiesSeen[pick.key] = true;
       return pick.key;
     },
