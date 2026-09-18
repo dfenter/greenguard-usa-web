@@ -11,21 +11,27 @@
   // Laid out as a chain across the WORLD footprint so the union is a
   // non-rectangular connected blob with ~15 percent overlap between
   // neighbors.
+  // Region centres/radii are sized so the union field is a strict superset
+  // of the five hm_data.js band boxes (each full height, EDGE = WORLD/2-40
+  // square clamp). Five primary regions map 1:1 onto the five bands; a
+  // sixth bonus region (solar-crown) only ADDS area via the union and can
+  // never shrink it, so it is placed off to the side purely for palette
+  // and background variety.
   var REGIONS = [
     { key: 'aurelion-graveyard', name: 'AURELION GRAVEYARD',
-      cx: -5040, cy: 900, rx: 2600, ry: 2000, tint: 0xffb47e,
+      cx: -5020, cy: 0, rx: 9077, ry: 9077, tint: 0xffb47e,
       palette: { deep: 0x171b2b, nebula: 0x312846, mid: 0x5a3148, dust: 0x9a5b55 } },
     { key: 'void-rift', name: 'VOID RIFT',
-      cx: -3020, cy: -1420, rx: 2600, ry: 2000, tint: 0x9b8cff,
+      cx: -2520, cy: 0, rx: 9077, ry: 9077, tint: 0x9b8cff,
       palette: { deep: 0x0a1020, nebula: 0x1c1e46, mid: 0x292a66, dust: 0x4f3d88 } },
     { key: 'meridian-verge', name: 'MERIDIAN VERGE',
-      cx: 0, cy: 0, rx: 2700, ry: 2100, tint: 0x54d6ff,
+      cx: 0, cy: 0, rx: 9077, ry: 9077, tint: 0x54d6ff,
       palette: { deep: 0x102c3b, nebula: 0x164b61, mid: 0x1f7180, dust: 0x39a89b } },
     { key: 'ember-drift', name: 'EMBER DRIFT',
-      cx: 3020, cy: 1420, rx: 2600, ry: 2000, tint: 0xff756a,
+      cx: 2520, cy: 0, rx: 9077, ry: 9077, tint: 0xff756a,
       palette: { deep: 0x351b22, nebula: 0x5d2029, mid: 0x8b302d, dust: 0xc1513d } },
     { key: 'crystal-shoals', name: 'CRYSTAL SHOALS',
-      cx: 5040, cy: -900, rx: 2600, ry: 2000, tint: 0xa7f3ff,
+      cx: 5020, cy: 0, rx: 9077, ry: 9077, tint: 0xa7f3ff,
       palette: { deep: 0x173546, nebula: 0x2c657c, mid: 0x4c9db0, dust: 0x86d7d4 } },
     { key: 'solar-crown', name: 'SOLAR CROWN',
       cx: 6900, cy: 2500, rx: 2400, ry: 1900, tint: 0xffd67a,
@@ -128,10 +134,18 @@
   }
 
   function regionAt(x, y) {
+    // Nearest-centre by raw Euclidean distance, not ellipseSdf: regions can
+    // have very different radii (the five band regions are large shared
+    // circles, solar-crown is a small bonus region), and ellipseSdf's scale
+    // is radius-dependent, so comparing raw ellipseSdf values across
+    // differently-sized regions biases toward the largest one even at
+    // another region's own centre.
     var best = REGIONS[0];
     var bestD = Infinity;
     for (var i = 0; i < REGIONS.length; i++) {
-      var d = ellipseSdf(REGIONS[i], x, y);
+      var ddx = x - REGIONS[i].cx;
+      var ddy = y - REGIONS[i].cy;
+      var d = ddx * ddx + ddy * ddy;
       if (d < bestD) { bestD = d; best = REGIONS[i]; }
     }
     return best.key;

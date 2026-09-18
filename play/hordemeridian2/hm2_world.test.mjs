@@ -169,7 +169,7 @@ var featureHooks = HM2_WORLD.featureHooks;
   // pull the field inward from an adjacent region's influence.
   var mv = REGIONS.filter(function (r) { return r.key === 'meridian-verge'; })[0];
   var bx = mv.cx;
-  var by = mv.cy - mv.ry * 0.97;
+  var by = mv.cy - mv.ry * 0.99;
   var gBoundary = edgeGlowFactor(bx, by);
   ok('edgeGlowFactor high just inside boundary', gBoundary >= 0.6);
 }());
@@ -258,6 +258,41 @@ var featureHooks = HM2_WORLD.featureHooks;
   var hulkFeature = FEATURES_BY_REGION['meridian-verge'].filter(function (f) { return f.type === 'derelict_hulk'; })[0];
   var hulkClose = hulkHooks.collide(hulkFeature, { dx: 10, dy: 0 });
   ok('derelict hulk blocks at close range', hulkClose.blocked === true);
+}());
+
+// Superset test: every point inside the five hm_data.js band boxes (full
+// height, EDGE = WORLD/2-40 square clamp) must satisfy sdf(x,y) <= 0. Dense
+// grid plus explicit corners and edges, since ellipse-union corners are
+// where coverage is most likely to fall short.
+(function () {
+  var sdf = HM2_WORLD.sdf;
+  var WORLD = HM2_WORLD.WORLD;
+  var EDGE = WORLD / 2 - 40;
+  var REGION_WIDTH = WORLD / 5;
+  var bands = [
+    { minX: -WORLD / 2, maxX: -WORLD / 2 + REGION_WIDTH },
+    { minX: -WORLD / 2 + REGION_WIDTH, maxX: -WORLD / 2 + REGION_WIDTH * 2 },
+    { minX: -REGION_WIDTH / 2, maxX: REGION_WIDTH / 2 },
+    { minX: WORLD / 2 - REGION_WIDTH * 2, maxX: WORLD / 2 - REGION_WIDTH },
+    { minX: WORLD / 2 - REGION_WIDTH, maxX: WORLD / 2 }
+  ];
+  var fails = 0;
+  var checked = 0;
+  for (var b = 0; b < bands.length; b++) {
+    var lo = Math.max(bands[b].minX, -EDGE);
+    var hi = Math.min(bands[b].maxX, EDGE);
+    var xs = [lo, hi];
+    var ys = [-EDGE, EDGE];
+    for (var i = 0; i <= 20; i++) xs.push(lo + (hi - lo) * i / 20);
+    for (var j = 0; j <= 20; j++) ys.push(-EDGE + (2 * EDGE) * j / 20);
+    for (var xi = 0; xi < xs.length; xi++) {
+      for (var yi = 0; yi < ys.length; yi++) {
+        checked++;
+        if (sdf(xs[xi], ys[yi]) > 0) fails++;
+      }
+    }
+  }
+  ok('sdf field is a superset of all band boxes (' + checked + ' points, corners+edges included)', fails === 0);
 }());
 
 console.log('');
