@@ -14,13 +14,36 @@
  * where L is the model's long-axis (bounding box) extent, and prints
  * per-GLB pass/fail with the measured numbers.
  *
- * REST_RAD defaults to 0 (rev17 build-time jaw write was removed in Step 0;
- * writeJawGape is the only writer now). OPEN_RAD defaults to 0.72 per the
- * brief.
+ * REST POSE (lane A3, 2026-09-17 - corrected).
+ * The rest pose is the LowerJaw BIND QUATERNION exactly as authored in the
+ * GLB, and the open pose is `bindQuat` then `rotateOnAxis(JAW_HINGE_AXIS,
+ * OPEN_RAD)`. That is `hse/rig_morph.js writeJawGape` verbatim: it restores
+ * `authority.closedBase` (the bind quaternion, captured at rig_morph.js:1019)
+ * and rotates about the hinge axis. The probe's rest pose is now the pose the
+ * game actually renders.
+ *
+ * It previously forced `jawBone.rotation.x = 0` as "rest". Every family bake
+ * carries a LowerJaw bind rotation of ~pi (3.059 to 3.077), so that forced
+ * pose flung the jaw a further ~3.07 rad from where the asset sits, squashed
+ * vertex pairs together, and then divided a 0.72 rad opening by the
+ * artificially tiny rest length. Validated synthetically (scratchpad
+ * synth3.mjs): on a rig with a ~pi bind and perfectly rigid binary weights the
+ * old basis reports 10.8x tearing that does not exist while this basis
+ * correctly reports 1.000x; on a genuine weight-gradient edge this basis
+ * reports 1.171x while the old basis misses it entirely at 1.000x. The old
+ * number was measuring the bind rotation, not skin deformation.
+ *
+ * JAW_HINGE_AXIS (local +X) was re-derived empirically per bake rather than
+ * assumed: searching the unit sphere for the axis maximising lip travel along
+ * the head-to-jaw direction lands within 4-12 degrees of +X on all five
+ * families, with +X within 2% of the optimum's travel. The axis was correct;
+ * the rest pose was not.
+ *
+ * OPEN_RAD defaults to 0.72 per the brief.
  *
  * Usage:
  *   node hse/probe_jaw.mjs assets/models/greatwhite_cy.glb assets/models/thresher.glb ...
- *   REST_RAD=0 OPEN_RAD=0.72 node hse/probe_jaw.mjs <glb...>
+ *   OPEN_RAD=0.72 node hse/probe_jaw.mjs <glb...>
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -33,11 +56,13 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const THREE = await import('three');
 const { GLTFLoader } = await import(path.join(HERE, '../../_shared/three/GLTFLoader.js'));
 
-const REST_RAD = Number(process.env.REST_RAD ?? 0);
 const OPEN_RAD = Number(process.env.OPEN_RAD ?? 0.72);
 const UPPER_MAX_FRAC = 0.002;   // no upper-head vertex moves more than this * L
 const LOWER_MIN_FRAC = 0.03;    // lower-lip vertices must move at least this * L
 const STRETCH_MAX = 3.0;        // no triangle edge may stretch more than this factor
+/* Mirrors JAW_HINGE_AXIS in hse/rig_morph.js:63. Confirmed empirically per
+ * bake (see the rest-pose note above), not assumed. */
+const JAW_HINGE_AXIS = Object.freeze(new THREE.Vector3(1, 0, 0));
 
 function loadGlb(file) {
   return new Promise((resolve, reject) => {
@@ -99,8 +124,10 @@ async function probeOne(file) {
   const L = Math.max(size.x, size.y, size.z);
   if (!(L > 0)) return { name, ok: false, error: 'degenerate bounding box' };
 
-  // rest pose
-  jawBone.rotation.x = REST_RAD;
+  // rest pose = the LowerJaw bind quaternion as authored in the GLB, which is
+  // what writeJawGape restores as `authority.closedBase` before every open.
+  const bindQuat = jawBone.quaternion.clone();
+  jawBone.quaternion.copy(bindQuat);
   jawBone.updateMatrixWorld(true);
   const restPos = bakedPositions(mesh);
 
@@ -173,8 +200,11 @@ async function probeOne(file) {
     if (jw < 0.05 && skinWeightOnBone(mesh, headIdx, i) > 0.3) upperHeadVerts.push(i);
   }
 
-  // open pose
-  jawBone.rotation.x = OPEN_RAD;
+  // open pose = bind quaternion, then hinge about the measured axis. This is
+  // rig_morph.writeJawGape's `quaternion.set(closedBase)` +
+  // `rotateOnAxis(JAW_HINGE_AXIS, angle)`, not a rotation.x write.
+  jawBone.quaternion.copy(bindQuat);
+  jawBone.rotateOnAxis(JAW_HINGE_AXIS, OPEN_RAD);
   jawBone.updateMatrixWorld(true);
   const openPos = bakedPositions(mesh);
 
@@ -226,12 +256,12 @@ async function probeOne(file) {
 
 const files = process.argv.slice(2);
 if (!files.length) {
-  console.log('usage: node hse/probe_jaw.mjs <glb...>   (REST_RAD, OPEN_RAD env optional)');
+  console.log('usage: node hse/probe_jaw.mjs <glb...>   (OPEN_RAD env optional)');
   process.exit(2);
 }
 
 let anyFail = false;
-console.log(`REST_RAD=${REST_RAD} OPEN_RAD=${OPEN_RAD}`);
+console.log(`rest=LowerJaw bind quaternion  open=bind + rotateOnAxis(+X, ${OPEN_RAD})`);
 for (const f of files) {
   const r = await probeOne(f);
   if (r.error) { anyFail = true; console.log(`${r.name.padEnd(28)} ERROR ${r.error}`); continue; }
