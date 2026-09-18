@@ -177,7 +177,12 @@ for (const b of BEHAVIORS) {
     // background tick doesn't get misread as this behavior's own damage.
     if (!s.__m3ProbeRealCurrentRegionFeatures) s.__m3ProbeRealCurrentRegionFeatures = s.currentRegionFeatures;
     s.currentRegionFeatures = function () { return null; };
-    const hpBefore = p.hp;
+    // Measure EFFECTIVE hp (hp + shield absorb pool), not hp alone. M5 gave
+    // the Warden class a shield that soaks damage before hp, and Warden is the
+    // default class, so a plain p.hp delta reads 0.00 for every enemy whose
+    // 3s chip damage fits inside the pool. That silently turned this whole
+    // assertion into a no-op rather than failing loudly.
+    const hpBefore = p.hp + (p.shield || 0);
     const xpBefore = s.run.xp;
     const enemyHpBefore = e.hp;
     const positions = [{ x: e.x, y: e.y }];
@@ -254,7 +259,7 @@ for (const b of BEHAVIORS) {
       totalFrames: positions.length - 1,
       totalDist: totalDist,
       hpBefore: hpBefore,
-      hpAfter: p.hp,
+      hpAfter: p.hp + (p.shield || 0),
       xpBefore: xpBefore,
       xpAfter: s.run.xp,
       enemyHpBefore: enemyHpBefore,
