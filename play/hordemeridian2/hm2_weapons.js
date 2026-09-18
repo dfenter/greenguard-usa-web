@@ -99,13 +99,13 @@
       desc: 'Charges up, then releases a piercing line.',
       evolvesTo: 'event-horizon',
       levels: [
-        { rate: 1.00, dmg: 1.75, count: 1, spread: 0, speed: 760, size: 7, pierce: 3, chargeTime: 0.42 },
+        { rate: 1.00, dmg: 1.75, count: 1, spread: 0, speed: 760, size: 7, pierce: 3, chargeTime: 0.24 },
         { rate: 1.02, dmg: 1.90, count: 1, spread: 0, speed: 780, size: 7, pierce: 4, chargeTime: 0.40 },
         { rate: 1.04, dmg: 2.10, count: 1, spread: 0, speed: 800, size: 8, pierce: 5, chargeTime: 0.37 },
         { rate: 1.06, dmg: 2.35, count: 1, spread: 0, speed: 820, size: 8, pierce: 6, chargeTime: 0.34 },
         { rate: 1.08, dmg: 2.65, count: 1, spread: 0, speed: 840, size: 9, pierce: 8, chargeTime: 0.30 }
       ],
-      spec: { mode: 'charge', kind: 'rail', count: 1, spread: 0, speed: 760, dmg: 1.75, size: 7, pierce: 3, chargeTime: 0.42 } },
+      spec: { mode: 'charge', kind: 'rail', count: 1, spread: 0, speed: 760, dmg: 1.75, size: 7, pierce: 3, chargeTime: 0.24 } },
     { key: 'event-horizon', name: 'Event Horizon', kind: 'rail', mode: 'charge-rift', glyph: 'ic_beam', frame: 'bolt',
       color: 0x9b8cff, impact: 0xd0c8ff, muzzle: 0x6e8bff, cue: 'pulse', tier: 'evolution',
       desc: 'The charged line leaves a collapsing rift that pulls the horde in.',
@@ -169,7 +169,7 @@
         { rate: 1.06, dmg: 1.38, count: 1, spread: 0, speed: 0, size: 27, pierce: 99, beamLen: 475, beamWid: 28 },
         { rate: 1.08, dmg: 1.50, count: 1, spread: 0, speed: 0, size: 28, pierce: 99, beamLen: 490, beamWid: 30 }
       ],
-      spec: { mode: 'beam', dmg: 1.14, beam: { len: 430, wid: 24, sweep: true } } },
+      spec: { mode: 'beam', dmg: 1.85, beam: { len: 430, wid: 24, sweep: true } } },
     { key: 'solar-lance', name: 'Solar Lance', kind: 'beam', mode: 'lockbeam', glyph: 'ic_beam', frame: 'bolt',
       color: 0xffd67a, impact: 0xfff3bf, muzzle: 0xffb45a, cue: 'click', tier: 'evolution',
       desc: 'Locks straight ahead and burns a lasting lane into the ground.',
@@ -293,13 +293,13 @@
       desc: 'Launches autonomous gun drones that orbit and fire on their own.',
       evolvesTo: 'swarm-carrier',
       levels: [
-        { rate: 1.00, dmg: 0.5, count: 1, spread: 0, speed: 0, size: 8, pierce: 0, droneCount: 1, droneFireRate: 0.9, droneOrbitR: 70 },
+        { rate: 1.00, dmg: 0.5, count: 1, spread: 0, speed: 0, size: 8, pierce: 0, droneCount: 1, droneFireRate: 0.55, droneOrbitR: 70 },
         { rate: 1.00, dmg: 0.55, count: 1, spread: 0, speed: 0, size: 8, pierce: 0, droneCount: 1, droneFireRate: 0.95, droneOrbitR: 72 },
         { rate: 1.00, dmg: 0.6, count: 1, spread: 0, speed: 0, size: 9, pierce: 0, droneCount: 2, droneFireRate: 1.0, droneOrbitR: 74 },
         { rate: 1.00, dmg: 0.68, count: 1, spread: 0, speed: 0, size: 9, pierce: 0, droneCount: 2, droneFireRate: 1.05, droneOrbitR: 76 },
         { rate: 1.00, dmg: 0.76, count: 1, spread: 0, speed: 0, size: 10, pierce: 0, droneCount: 3, droneFireRate: 1.1, droneOrbitR: 78 }
       ],
-      spec: { mode: 'drone', dmg: 0.5, droneCount: 1, droneFireRate: 0.9, droneOrbitR: 70, size: 8 } },
+      spec: { mode: 'drone', dmg: 0.5, droneCount: 1, droneFireRate: 0.55, droneOrbitR: 70, size: 8 } },
     { key: 'swarm-carrier', name: 'Swarm Carrier', kind: 'dronebay', mode: 'drone-replicate', glyph: 'ic_wisp', frame: 'wisp',
       color: 0xa8d8ff, impact: 0xd4ecff, muzzle: 0x6e8bff, cue: 'telegraph', tier: 'evolution',
       desc: 'Drones self-replicate on scoring a kill, up to a hard cap.',
