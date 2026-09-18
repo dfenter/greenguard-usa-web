@@ -87,6 +87,8 @@
   var TRIM_BY_KEY = HM_DATA.TRIM_BY_KEY;
   var HULL_FRAMES = HM_DATA.HULL_FRAMES;
   var FRAME_BY_KEY = HM_DATA.FRAME_BY_KEY;
+  var SHIP_CLASSES = HM_DATA.SHIP_CLASSES;
+  var SHIP_CLASS_BY_KEY = HM_DATA.SHIP_CLASS_BY_KEY;
   var PROFILE_VERSION = HM_DATA.PROFILE_VERSION;
   var BANK_RATE = HM_DATA.BANK_RATE;
   var REGION_ENEMIES = HM_DATA.REGION_ENEMIES;
@@ -107,8 +109,40 @@
     return {
       balance: 0, tiers: tiers, equippedWeapon: 'lance',
       loadout: ['lance', '', ''],
-      weaponsSeen: { 'lance': true }, paint: 'teal', trim: 'mint', frame: 'classic'
+      weaponsSeen: { 'lance': true }, paint: 'teal', trim: 'mint', frame: 'classic',
+      // M5 ship classes: selected class + owned Mk tier per class. Warden
+      // starts owned at Mk I (starter ship); recon/vector start unowned (0).
+      shipClass: 'warden',
+      shipTiers: { warden: 1, recon: 0, vector: 0 }
     };
+  }
+  // Ship helpers: shared by hangar mutation, player stat composition and
+  // the SHIPS shop tab.
+  function ownedShipTier(classKey) {
+    var h = profile.hangar;
+    if (!h.shipTiers) return classKey === 'warden' ? 1 : 0;
+    return h.shipTiers[classKey] || 0;
+  }
+  function activeShipClass() {
+    var key = profile.hangar.shipClass || 'warden';
+    return SHIP_CLASS_BY_KEY[key] ? key : 'warden';
+  }
+  function activeShipTierData() {
+    var cls = SHIP_CLASS_BY_KEY[activeShipClass()];
+    var owned = Math.max(1, ownedShipTier(activeShipClass()));
+    var idx = Math.min(cls.tiers.length, owned) - 1;
+    return cls.tiers[Math.max(0, idx)];
+  }
+  // safeFrameName: never let a missing atlas frame (sibling art lane may not
+  // have produced hull_<class>_mkN yet) crash texture lookups. Falls back to
+  // the classic hero_idle/hero_move pair.
+  function safeFrameName(frameKey, fallback) {
+    fallback = fallback || 'hero_idle';
+    try {
+      var tex = Game.scene && Game.scene.textures ? Game.scene.textures.get('atlas') : null;
+      if (tex && tex.has && tex.has(frameKey)) return frameKey;
+    } catch (e) {}
+    return fallback;
   }
   function makeDefaultCampaign() {
     return { unlocked: 1, stars: {}, bestTimes: {} };
@@ -206,7 +240,7 @@
       if (o.version == null) {
         if (!counter(o.gems, 1e9)) return false;
         if (!counter(o.best, 1e9)) return false;
-      } else if (o.version !== PROFILE_VERSION && o.version !== 2) return false;
+      } else if (o.version !== PROFILE_VERSION && o.version !== 2 && o.version !== 3) return false;
       if (!counter(o.best, 1e9)) return false;
       if (!o.meta || typeof o.meta !== 'object' || Array.isArray(o.meta)) return false;
       var keys = Object.getOwnPropertyNames(o.meta);
@@ -251,6 +285,19 @@
         }
       }
       if (!PAINT_BY_KEY[h.paint] || !TRIM_BY_KEY[h.trim] || !FRAME_BY_KEY[h.frame]) return false;
+      // Ship classes (M5): optional on older saves pre-migration, validated
+      // when present.
+      if (h.shipClass != null && !SHIP_CLASS_BY_KEY[h.shipClass]) return false;
+      if (h.shipTiers != null) {
+        if (typeof h.shipTiers !== 'object' || Array.isArray(h.shipTiers)) return false;
+        var stKeys = Object.getOwnPropertyNames(h.shipTiers);
+        for (var sti = 0; sti < stKeys.length; sti++) {
+          var stk = stKeys[sti];
+          if (!SHIP_CLASS_BY_KEY[stk]) return false;
+          if (!counter(h.shipTiers[stk], SHIP_CLASS_BY_KEY[stk].tiers.length)) return false;
+        }
+      }
+      if (o.hm1ImportDone != null && typeof o.hm1ImportDone !== 'boolean') return false;
       if (o.campaign != null) {
         var cg = o.campaign;
         if (typeof cg !== 'object' || Array.isArray(cg)) return false;
@@ -290,11 +337,42 @@
     didMigrate = true;
   }
   if (profile.version === 2) {
-    profile.version = PROFILE_VERSION;
+    profile.version = 3;
     profile.campaign = makeDefaultCampaign();
     didMigrate = true;
   }
+  if (profile.version === 3) {
+    // v3 -> v4: grant the starter ship class losslessly and, once only,
+    // import a fraction of any HM1 (Horde Meridian classic) gem balance
+    // found in localStorage. balance/tiers/loadout/paint/trim/frame/campaign
+    // are all left untouched by this block, only new fields are added.
+    profile.version = 4;
+    if (!profile.hangar.shipTiers) profile.hangar.shipTiers = { warden: 1, recon: 0, vector: 0 };
+    if (!profile.hangar.shipClass) profile.hangar.shipClass = 'warden';
+    if (!profile.hm1ImportDone) {
+      var hm1Bonus = 0;
+      try {
+        var hm1Raw = window.localStorage ? window.localStorage.getItem('gg-horde-meridian') : null;
+        if (hm1Raw) {
+          var hm1Data = JSON.parse(hm1Raw);
+          var hm1Bal = hm1Data && hm1Data.hangar ? hm1Data.hangar.balance : null;
+          if (typeof hm1Bal === 'number' && isFinite(hm1Bal) && hm1Bal > 0) {
+            // One-time import: 25% of HM1's gem balance, capped at 500 gems,
+            // so a heavily-progressed HM1 save can't hand HM2 a runaway
+            // head start.
+            hm1Bonus = Math.min(500, Math.round(hm1Bal * 0.25));
+          }
+        }
+      } catch (e) { hm1Bonus = 0; }
+      if (hm1Bonus > 0) profile.hangar.balance = (profile.hangar.balance || 0) + hm1Bonus;
+      profile.hm1ImportDone = true;
+    }
+    didMigrate = true;
+  }
+  if (typeof profile.hm1ImportDone !== 'boolean') profile.hm1ImportDone = true;
   if (!profile.campaign) { profile.campaign = makeDefaultCampaign(); didMigrate = true; }
+  if (!profile.hangar.shipTiers) { profile.hangar.shipTiers = { warden: 1, recon: 0, vector: 0 }; didMigrate = true; }
+  if (!profile.hangar.shipClass) { profile.hangar.shipClass = 'warden'; didMigrate = true; }
   if (typeof profile.runs !== 'number') profile.runs = 0;
   if (typeof profile.tutorialDone !== 'boolean') profile.tutorialDone = false;
   if (!profile.hangar) profile.hangar = makeDefaultHangar();
@@ -329,7 +407,23 @@
   if (sanitizeLoadout()) didMigrate = true;
   function loadoutSlotsAvailable() {
     var deck = hangarLevel('gunDeck');
-    return deck > 1 ? 3 : (deck > 0 ? 2 : 1);
+    var deckSlots = deck > 1 ? 3 : (deck > 0 ? 2 : 1);
+    // M5: module slots combine with the gunDeck-derived count via MAX, not
+    // SUM. Rationale: a slot represents one physical gun mount, and both
+    // gunDeck tiers and ship Mk tiers independently claim to unlock "up to
+    // N mounts" on the same hull, so summing them would double count mounts
+    // that either upgrade path alone already unlocks. MAX keeps gunDeck
+    // purchases meaningful for players on a low-tier ship (it's still the
+    // fastest way to more slots) while a high-tier ship no longer requires
+    // grinding gunDeck separately once its own moduleSlots exceed it.
+    var shipSlots = 1;
+    var cls = SHIP_CLASS_BY_KEY[activeShipClass()];
+    if (cls) {
+      var owned = Math.max(1, ownedShipTier(activeShipClass()));
+      var idx = Math.max(0, Math.min(cls.tiers.length, owned) - 1);
+      shipSlots = cls.tiers[idx].moduleSlots || 1;
+    }
+    return Math.max(deckSlots, shipSlots);
   }
   function weaponsFoundCount() {
     var n = 0;
@@ -612,6 +706,10 @@
     st.hangar.balance = Math.floor(h.balance);
     st.hangar.equippedWeapon = h.equippedWeapon;
     st.hangar.paint = h.paint;
+    st.hangar.shipClass = h.shipClass || 'warden';
+    st.hangar.shipTiers = h.shipTiers ? {
+      warden: h.shipTiers.warden || 0, recon: h.shipTiers.recon || 0, vector: h.shipTiers.vector || 0
+    } : { warden: 1, recon: 0, vector: 0 };
     for (var i = 0; i < HANGAR_TRACKS.length; i++) {
       var key = HANGAR_TRACKS[i].key;
       st.hangar.tiers[key] = h.tiers[key] || 0;
@@ -1060,8 +1158,9 @@
   };
 
   // Single data array driving both the hangar tab bar and the page dispatch.
-  // 'ships' routes to the same content 'core' rendered previously (core
-  // systems / meta upgrades) - only the label and key moved.
+  // 'ships' now renders the real SHIP_CLASSES tab (M5): class blurbs, owned
+  // Mk tiers, buy/select. 'core' (unlabelled fallback page key) still shows
+  // the META core-systems upgrades.
   var HANGAR_TABS = [
     ['MODS', 'modules'], ['GUNS', 'loadout'], ['CODEX', 'codex'],
     ['STYLE', 'style'], ['SHIPS', 'ships']
@@ -1416,6 +1515,47 @@
           g.add([fs, fn]);
         }
         this.setNotice('', '#7fa3b5');
+      } else if (this.page === 'ships') {
+        g.add(bodyText(this, w / 2, top - 20, 'SHIP CLASSES', TYPE.label, '#8effd8'));
+        var shipCardH = Math.min(112, (h - top - 124) / SHIP_CLASSES.length);
+        for (var sci2 = 0; sci2 < SHIP_CLASSES.length; sci2++) {
+          var scls = SHIP_CLASSES[sci2];
+          var sy = top + 16 + sci2 * (shipCardH + 7) + shipCardH / 2;
+          var sOwned = (profile.hangar.shipTiers && profile.hangar.shipTiers[scls.key]) || 0;
+          var sActive = activeShipClass() === scls.key;
+          var sbg = this.cardBase(g, w / 2, sy, w - 24, shipCardH, sActive);
+          var sTitleStr = scls.name.toUpperCase() + (sOwned > 0 ? ' // ' + (scls.tiers[sOwned - 1] || scls.tiers[0]).name.toUpperCase() : ' // LOCKED');
+          var sTitle = neonText(this, 20, sy - shipCardH / 2 + 14, sTitleStr, TYPE.micro, sActive ? '#8effd8' : '#d8f5ff');
+          sTitle.setOrigin(0, 0.5);
+          var sBlurbLines = window.__HM2_UI
+            ? window.__HM2_UI.wrapText(this, scls.blurb, { fontFamily: FONT_BODY, fontSize: TYPE.micro }, w - 44, 2)
+            : [scls.blurb];
+          var sBlurb = bodyText(this, 20, sy - shipCardH / 2 + 32, sBlurbLines.join('\n'), TYPE.micro, '#8fb3c4');
+          sBlurb.setOrigin(0, 0.5).setLineSpacing(-2).setAlign('left');
+          g.add([sTitle, sBlurb]);
+          var sNextIdx = sOwned; // 0-based index of the next tier to buy
+          var sMaxed = sNextIdx >= scls.tiers.length;
+          var sBtnY = sy + shipCardH / 2 - 16;
+          if (sMaxed) {
+            var selLabel = sActive ? 'ACTIVE' : 'SELECT';
+            var selBtn = this.cardBase(g, w / 2, sBtnY, w - 44, 26, sActive);
+            var selTxt = neonText(this, w / 2, sBtnY, selLabel, TYPE.micro, sActive ? '#8effd8' : '#d8f5ff');
+            g.add(selTxt);
+            if (!sActive) {
+              selBtn.setInteractive({ useHandCursor: true });
+              selBtn.on('pointerdown', function (ck) { return function () { scene.selectShipClass(ck); }; }(scls.key));
+            }
+          } else {
+            var sNext = scls.tiers[sNextIdx];
+            var sCostLabel = sNext.cost === 0 ? 'OWNED FREE' : String(sNext.cost) + ' GEMS';
+            var buyBtn = this.cardBase(g, w / 2, sBtnY, w - 44, 26, false);
+            var buyTxt = neonText(this, w / 2, sBtnY, 'UNLOCK ' + sNext.name.toUpperCase() + ' // ' + sCostLabel, TYPE.micro, '#ffd67a');
+            g.add(buyTxt);
+            buyBtn.setInteractive({ useHandCursor: true });
+            buyBtn.on('pointerdown', function (ck) { return function () { scene.buyShipTier(ck); }; }(scls.key));
+          }
+        }
+        this.setNotice('', '#7fa3b5');
       } else {
         g.add(bodyText(this, w / 2, top - 20, 'CORE SYSTEMS', TYPE.label, '#8effd8'));
         var mgap = 8, mw = (w - 28 - mgap) / 2, mh = Math.min(70, (h - top - 124) / 3);
@@ -1561,6 +1701,44 @@
       saveProfile();
       updateHangarDebugState(HM_DEBUG_STATE);
       this.renderPreview();
+      this.renderPage();
+      sfx('select', { rate: 0.92 });
+    },
+
+    // M5 SHIPS tab: buy the next Mk tier for a class (must own previous
+    // tier), following the same save/debug/render/sfx pattern as buyTrack.
+    buyShipTier: function (classKey) {
+      var cls = SHIP_CLASS_BY_KEY[classKey];
+      if (!cls) return;
+      if (!profile.hangar.shipTiers) profile.hangar.shipTiers = { warden: 1, recon: 0, vector: 0 };
+      var owned = profile.hangar.shipTiers[classKey] || 0;
+      if (owned >= cls.tiers.length) { sfx('click', { rate: 0.7 }); return; }
+      var nextTier = cls.tiers[owned];
+      var cost = nextTier.cost;
+      if (hangarBalance() < cost) {
+        this.setNotice('NEED ' + cost + ' GEMS FOR ' + nextTier.name.toUpperCase() + '.', '#ff9a8f');
+        sfx('click', { rate: 0.6 });
+        return;
+      }
+      profile.hangar.balance -= cost;
+      profile.hangar.shipTiers[classKey] = owned + 1;
+      saveProfile();
+      updateHangarDebugState(HM_DEBUG_STATE);
+      this.refreshBalance();
+      this.renderPage();
+      sfx('unlock');
+      kit.juice.shake(4, 140);
+      this.setNotice(cls.name.toUpperCase() + ' ' + nextTier.name.toUpperCase() + ' ONLINE.', '#8effd8');
+    },
+
+    selectShipClass: function (classKey) {
+      var cls = SHIP_CLASS_BY_KEY[classKey];
+      if (!cls) return;
+      var owned = (profile.hangar.shipTiers && profile.hangar.shipTiers[classKey]) || 0;
+      if (owned < 1) { sfx('click', { rate: 0.7 }); return; }
+      profile.hangar.shipClass = classKey;
+      saveProfile();
+      updateHangarDebugState(HM_DEBUG_STATE);
       this.renderPage();
       sfx('select', { rate: 0.92 });
     }
@@ -2965,14 +3143,25 @@
         enemySpeed: (lm && lm.enemySpeed) || 1, spawnRate: (lm && lm.spawnRate) || 1,
         xp: (lm && lm.xp) || 1
       };
+      // M5 ship class: multipliers apply ON TOP of the meta/hangar
+      // composition below, they never replace it.
+      var shipCls = SHIP_CLASS_BY_KEY[activeShipClass()] || SHIP_CLASS_BY_KEY.warden;
+      var shipTierData = activeShipTierData();
+      var shipHpMult = shipTierData.hpMult || 1;
+      var shipSpeedMult = shipTierData.speedMult || 1;
+      var shipDmgMult = shipTierData.dmgMult || 1;
+      var shipCritBonus = shipTierData.critBonus || 0;
+      var isWarden = shipCls.key === 'warden';
+      var isRecon = shipCls.key === 'recon';
+
       this.p = {
         x: 0, y: 0, vx: 0, vy: 0, r: 15,
-        hp: Math.round((100 + mVigor * 15) * (1 + hHull * 0.06)),
-        maxHp: Math.round((100 + mVigor * 15) * (1 + hHull * 0.06)),
-        speed: 196 * (1 + mHaste * 0.05) * (1 + hThrusters * 0.05),
+        hp: Math.round((100 + mVigor * 15) * (1 + hHull * 0.06) * shipHpMult),
+        maxHp: Math.round((100 + mVigor * 15) * (1 + hHull * 0.06) * shipHpMult),
+        speed: 196 * (1 + mHaste * 0.05) * (1 + hThrusters * 0.05) * shipSpeedMult,
         magnet: (96 + mDraw * 25) * (1 + hMagnet * 0.06),
-        damage: 1 * (1 + mPower * 0.08),
-        armor: 0, crit: 0, regen: 0, weaponRate: 0, hangarRate: hReactor * 0.05, multishot: 0,
+        damage: 1 * (1 + mPower * 0.08) * shipDmgMult,
+        armor: 0, crit: Math.min(0.5, shipCritBonus), critShipBonus: shipCritBonus, regen: 0, weaponRate: 0, hangarRate: hReactor * 0.05, multishot: 0,
         projectileDamage: 1, projectileSpeed: 1, projectileSize: 1, pierce: 0,
         primaryCrit: 0, wingDamage: 0.56, wingRevive: 0, wingReviveUsed: false,
         drift: 0,
@@ -2981,8 +3170,23 @@
         hangarWingBay: hWingBay,
         hangarGunDeck: hGunDeck,
         face: 0, iframes: 0, failsafe: metaLevel('second') > 0,
-        ranks: {}, hurtT: 0
+        ranks: {}, hurtT: 0,
+        // Warden signature passive: a regenerating absorb pool. Zero for
+        // other classes (shieldMax 0 means the absorb step below is a no-op).
+        shieldMax: isWarden ? Math.round((100 + mVigor * 15) * (1 + hHull * 0.06) * 0.35) : 0,
+        shield: 0,
+        shieldRegen: isWarden ? 14 : 0,
+        shieldRegenDelay: 3,
+        lastHitAt: 0,
+        // Recon signature passive: automatic dash burst on a cooldown while
+        // moving. See update loop for the trigger/consume logic.
+        dashSpeedMult: isRecon ? 2.1 : 1,
+        dashDuration: isRecon ? 0.22 : 0,
+        dashCooldown: isRecon ? 3.2 : 0,
+        dashT: 0,
+        dashCdT: 0
       };
+      this.p.shield = this.p.shieldMax;
       this.p.damageBase = this.p.damage;
       this.p.speedBase = this.p.speed;
       for (i = 0; i < UPGRADES.length; i++) this.p.ranks[UPGRADES[i].key] = 0;
@@ -3090,7 +3294,11 @@
         }
         if (L.music === 'heat') { kit.audio.music('musicHeat', 900); this.run.musicHeat = true; }
       }
-      this.player.setTexture('atlas', (FRAME_BY_KEY[profile.hangar.frame] || HULL_FRAMES[0]).idle)
+      // Ship class frame takes priority over the cosmetic HULL_FRAMES pick
+      // when its atlas frame exists (sibling art lane); otherwise fall back
+      // to the cosmetic frame set exactly as before.
+      var idleFrame = safeFrameName(shipTierData.frame, (FRAME_BY_KEY[profile.hangar.frame] || HULL_FRAMES[0]).idle);
+      this.player.setTexture('atlas', idleFrame)
         .setPosition(this.p.x, this.p.y).setAngle(0).clearTint();
       this.player.setTint((PAINT_BY_KEY[profile.hangar.paint] || HULL_PAINTS[0]).tint);
       this.fx.trail.setParticleTint((TRIM_BY_KEY[profile.hangar.trim] || TRIMS[0]).color);
@@ -3492,6 +3700,25 @@
       if (p.iframes > 0) p.iframes -= dt;
       if (p.hurtT > 0) p.hurtT -= dt;
       if (p.regen > 0 && p.hp < p.maxHp) p.hp = Math.min(p.maxHp, p.hp + p.regen * dt);
+      // Warden shield regen: after shieldRegenDelay seconds without a hit,
+      // the absorb pool ticks back up toward shieldMax.
+      if (p.shieldMax > 0 && p.shield < p.shieldMax && (run.time - p.lastHitAt) >= p.shieldRegenDelay) {
+        p.shield = Math.min(p.shieldMax, p.shield + p.shieldRegen * dt);
+      }
+      // Recon dash: automatic burst on a cooldown while moving (no free
+      // input slot to bind to, so this is auto-trigger rather than
+      // player-input-wired). Multiplies p.speed for dashDuration seconds
+      // once dashCdT reaches 0, then resets the cooldown.
+      if (p.dashCooldown > 0) {
+        if (p.dashT > 0) {
+          p.dashT -= dt;
+        } else if (p.dashCdT > 0) {
+          p.dashCdT -= dt;
+        } else if ((p.vx || p.vy) && (Math.abs(p.vx) > 1 || Math.abs(p.vy) > 1)) {
+          p.dashT = p.dashDuration;
+          p.dashCdT = p.dashCooldown;
+        }
+      }
       if (run.comboT > 0) {
         run.comboT -= dt;
         if (run.comboT <= 0) run.combo = 0;
@@ -5802,6 +6029,7 @@
       var len = Math.sqrt(dx * dx + dy * dy);
       if (len > 0.03) {
         var boostSpeed = this.run.buffs.overdrive > 0 ? 1.42 : 1;
+        if (p.dashT > 0) boostSpeed *= (p.dashSpeedMult || 1);
         var sp = p.speed * boostSpeed * Math.min(1, len);
         var tx = dx / len * sp, ty = dy / len * sp;
         if (this.run.buffs.overdrive > 0) {
@@ -8459,6 +8687,14 @@
       }
       var resist = this.run.tides['last-stand'] > 0 ? Math.min(0.70, this.run.lastStandResist || 0) : 0;
       var amt = amount * (1 - p.armor) * (1 - resist);
+      // Warden shield: absorbs damage before hp. Any remainder after the
+      // shield pool is exhausted carries through to hp.
+      if (p.shieldMax > 0 && p.shield > 0) {
+        var absorbed = Math.min(p.shield, amt);
+        p.shield -= absorbed;
+        amt -= absorbed;
+      }
+      p.lastHitAt = this.run.time;
       p.hp -= amt;
       p.iframes = 0.45;
       p.hurtT = 0.35;
@@ -8732,7 +8968,7 @@
       else if (u.key === 'magnet') p.magnet += 46;
       else if (u.key === 'armor') p.armor = Math.min(0.62, 1 - Math.pow(0.88, r));
       else if (u.key === 'vitality') { p.maxHp += 22; p.hp = Math.min(p.maxHp, p.hp + 22); }
-      else if (u.key === 'crit') p.crit = Math.min(0.5, r * 0.08);
+      else if (u.key === 'crit') p.crit = Math.min(0.5, r * 0.08 + (p.critShipBonus || 0));
       else if (u.key === 'regen') p.regen = r * 1.6;
       else if (u.key === 'fireRate') p.weaponRate = r;
       else if (u.key === 'multishot') p.multishot = r;
@@ -11049,6 +11285,12 @@
 
       if (this.state !== 'playing' || p.iframes > 0 || this.run.buffs.aegis > 0) return;
       var amt = amount * (1 - p.armor);
+      if (p.shieldMax > 0 && p.shield > 0) {
+        var absorbed = Math.min(p.shield, amt);
+        p.shield -= absorbed;
+        amt -= absorbed;
+      }
+      p.lastHitAt = this.run.time;
       p.hp -= amt; p.iframes = 0.45; p.hurtT = 0.35;
       kit.juice.shake(9, 240); sfx('hurt', { volume: 0.5 });
       if (p.hp <= 0) {
