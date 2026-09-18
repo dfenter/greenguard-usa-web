@@ -19,9 +19,9 @@
       { at: 60,  rate: 0.64, pack: 2, pool: ['scrap-ripper', 'salvage-swarm', 'derelict-guard-hulk'] },
       { at: 98,  rate: 0.56, pack: 3, pool: ['scrap-ripper', 'grave-egg', 'salvage-swarm', 'sapper'] },
       { at: 140, rate: 0.5,  pack: 3, pool: ['derelict-guard-hulk', 'scrap-ripper', 'grave-egg', 'lancer'] },
-      { at: 186, rate: 0.44, pack: 3, pool: ['salvage-swarm', 'scrap-ripper', 'grave-egg', 'weaver', 'bulwark'] },
+      { at: 186, rate: 0.44, pack: 3, pool: ['salvage-swarm', 'scrap-ripper', 'grave-egg', 'weaver', 'bulwark', 'wall-warden', 'xp-leech'] },
       { at: 236, rate: 0.4,  pack: 4, pool: ['derelict-guard-hulk', 'grave-egg', 'scrap-ripper', 'sapper', 'lancer'] },
-      { at: 290, rate: 0.36, pack: 4, pool: ['salvage-swarm', 'scrap-ripper', 'grave-egg', 'derelict-guard-hulk', 'weaver'] },
+      { at: 290, rate: 0.36, pack: 4, pool: ['salvage-swarm', 'scrap-ripper', 'grave-egg', 'derelict-guard-hulk', 'weaver', 'wall-warden', 'xp-leech'] },
       { at: 340, rate: 0.32, pack: 4, pool: ['derelict-guard-hulk', 'grave-egg', 'scrap-ripper', 'sapper', 'lancer', 'bulwark'] }
     ],
     mods: {

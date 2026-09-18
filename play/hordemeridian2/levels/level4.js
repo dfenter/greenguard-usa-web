@@ -18,7 +18,7 @@
       { at: 20, rate: 0.5, pack: 3, pool: ['cinder-kamikaze', 'ember-scarab', 'ash-wraith'] },
       { at: 44, rate: 0.46, pack: 3, pool: ['cinder-kamikaze', 'ember-scarab', 'ash-wraith', 'lancer'] },
       { at: 72, rate: 0.42, pack: 3, pool: ['cinder-kamikaze', 'ember-scarab', 'ash-wraith', 'lancer'] },
-      { at: 102, rate: 0.4, pack: 4, pool: ['cinder-kamikaze', 'ember-scarab', 'ash-wraith', 'lancer', 'sapper'] },
+      { at: 102, rate: 0.4, pack: 4, pool: ['cinder-kamikaze', 'ember-scarab', 'ash-wraith', 'lancer', 'sapper', 'mine-bomber'] },
       { at: 136, rate: 0.36, pack: 4, pool: ['cinder-kamikaze', 'ember-scarab', 'ash-wraith', 'lancer', 'sapper'] },
       { at: 170, rate: 0.34, pack: 4, pool: ['cinder-kamikaze', 'ember-scarab', 'ash-wraith', 'sapper'] },
       { at: 204, rate: 0.3, pack: 4, pool: ['cinder-kamikaze', 'ember-scarab', 'ash-wraith', 'lancer', 'sapper'] }

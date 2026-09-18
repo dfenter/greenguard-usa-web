@@ -18,9 +18,9 @@
       { at: 26,  rate: 0.7,  pack: 2, pool: ['drifter', 'sprinter', 'cinder-kamikaze', 'blink-stalker'] },
       { at: 60,  rate: 0.6,  pack: 3, pool: ['shard-larva', 'salvage-swarm', 'gravity-mite', 'sapper'] },
       { at: 100, rate: 0.52, pack: 3, pool: ['ash-wraith', 'glasswing-drone', 'scrap-ripper', 'lancer'] },
-      { at: 144, rate: 0.46, pack: 3, pool: ['blink-stalker', 'ember-scarab', 'null-leech', 'weaver'] },
+      { at: 144, rate: 0.46, pack: 3, pool: ['blink-stalker', 'ember-scarab', 'null-leech', 'weaver', 'wall-warden', 'xp-leech'] },
       { at: 192, rate: 0.4,  pack: 4, pool: ['derelict-guard-hulk', 'refracting-shard-drone', 'grave-egg', 'warden-titan'] },
-      { at: 244, rate: 0.36, pack: 4, pool: ['ember-scarab', 'null-leech', 'aegis-warden', 'void-artillery'] },
+      { at: 244, rate: 0.36, pack: 4, pool: ['ember-scarab', 'null-leech', 'aegis-warden', 'void-artillery', 'rift-strafer', 'mine-bomber'] },
       { at: 300, rate: 0.32, pack: 4, pool: ['blink-stalker', 'grave-egg', 'hive-splitter', 'phase-reaver'] },
       { at: 360, rate: 0.3,  pack: 5, pool: ['ember-scarab', 'derelict-guard-hulk', 'warden-titan', 'dread-lancer'] },
       { at: 420, rate: 0.26, pack: 5, pool: ['null-leech', 'aegis-warden', 'hive-splitter', 'void-artillery', 'warden-titan'] }

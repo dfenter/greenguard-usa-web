@@ -19,9 +19,9 @@
       { at: 54,  rate: 0.64, pack: 2, pool: ['glasswing-drone', 'refracting-shard-drone', 'shard-larva'] },
       { at: 88,  rate: 0.58, pack: 3, pool: ['glasswing-drone', 'refracting-shard-drone', 'lancer'] },
       { at: 124, rate: 0.52, pack: 3, pool: ['refracting-shard-drone', 'lancer', 'weaver', 'sapper'] },
-      { at: 160, rate: 0.46, pack: 3, pool: ['refracting-shard-drone', 'lancer', 'weaver', 'sapper', 'bulwark'] },
+      { at: 160, rate: 0.46, pack: 3, pool: ['refracting-shard-drone', 'lancer', 'weaver', 'sapper', 'bulwark', 'gem-mimic'] },
       { at: 200, rate: 0.40, pack: 4, pool: ['refracting-shard-drone', 'lancer', 'sapper', 'bulwark'] },
-      { at: 236, rate: 0.34, pack: 4, pool: ['refracting-shard-drone', 'lancer', 'sapper', 'bulwark', 'weaver'] }
+      { at: 236, rate: 0.34, pack: 4, pool: ['refracting-shard-drone', 'lancer', 'sapper', 'bulwark', 'weaver', 'gem-mimic'] }
     ],
     mods: {
       enemyHp: 1.25,
