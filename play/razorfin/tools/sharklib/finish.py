@@ -18,6 +18,11 @@ try:
 except ImportError:  # pragma: no cover
     np = None
 
+# Sweep guard for the iterated jaw-sliver collapse.  Each sweep strictly
+# reduces the vertex count, so the loop terminates; this is a runaway guard,
+# not a tuning knob.
+SLIVER_MAX_SWEEPS = 12
+
 try:
     import bpy
     import mathutils
@@ -548,30 +553,48 @@ def _collapse_post_decimate_slivers(low, label="post-decimate"):
     try:
         import bmesh
 
-        jaw_weight = {}
-        for vertex in low.data.vertices:
-            jaw_weight[vertex.index] = next(
-                (float(item.weight) for item in vertex.groups
-                 if item.group == jaw_group.index), 0.0)
         mesh = bmesh.new()
         mesh.from_mesh(low.data)
         mesh.verts.ensure_lookup_table()
-        targets = []
-        for edge in mesh.edges:
-            if edge.calc_length() >= limit:
-                continue
-            a = jaw_weight.get(edge.verts[0].index, 0.0)
-            b = jaw_weight.get(edge.verts[1].index, 0.0)
-            if max(a, b) > 0.05:
-                targets.append(edge)
-        collapsed = len(targets)
-        if targets:
-            before = len(low.data.vertices)
+        deform = mesh.verts.layers.deform.active
+        if deform is None:
+            deform = mesh.verts.layers.deform.verify()
+        jaw_index = jaw_group.index
+
+        # ITERATE.  ``bmesh.ops.collapse`` is single shot: it merges each
+        # target edge's endpoints in one go, and when several short edges
+        # share vertices the survivors it leaves behind are themselves
+        # near-coincident.  A single sweep therefore MANUFACTURES the exact
+        # defect it removes, which is why thresher shipped a 2.0e-4 L edge
+        # after a sweep that collapsed 41 edges under a 7.4e-4 limit.  Re-run
+        # until a sweep finds nothing, reading edge lengths and jaw weights
+        # off the bmesh (which survives collapse) rather than off a stale
+        # index-keyed snapshot of low.data.
+        before = len(low.data.vertices)
+        collapsed = 0
+        for _sweep in range(SLIVER_MAX_SWEEPS):
+            mesh.verts.ensure_lookup_table()
+            targets = []
+            for edge in mesh.edges:
+                if edge.calc_length() >= limit:
+                    continue
+                a = float(edge.verts[0][deform].get(jaw_index, 0.0))
+                b = float(edge.verts[1][deform].get(jaw_index, 0.0))
+                if max(a, b) > 0.05:
+                    targets.append(edge)
+            if not targets:
+                break
+            collapsed += len(targets)
             bmesh.ops.collapse(mesh, edges=targets, uvs=True)
+        else:
+            print("FINISH WARN %s sliver collapse hit the %d-sweep guard"
+                  % (label, SLIVER_MAX_SWEEPS), flush=True)
+        if collapsed:
             mesh.to_mesh(low.data)
             low.data.update()
-            print("FINISH %s collapsed %d jaw slivers (<%.6f) verts %d -> %d"
-                  % (label, collapsed, limit, before, len(low.data.vertices)), flush=True)
+            print("FINISH %s collapsed %d jaw slivers (<%.6f) in %d sweeps verts %d -> %d"
+                  % (label, collapsed, limit, _sweep + 1, before,
+                     len(low.data.vertices)), flush=True)
         else:
             print("FINISH %s no jaw slivers under %.6f" % (label, limit), flush=True)
         mesh.free()
