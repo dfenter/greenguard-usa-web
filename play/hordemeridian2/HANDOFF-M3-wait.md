@@ -57,11 +57,13 @@ Recommendation for the gate: do NOT hold M3 on L5. Either raise the trial count 
 median is stable, or re-tune the bar against a measured distribution. Record the M2
 non-reproducibility as its own follow-up rather than folding it into M3's verdict.
 
-**Remaining resume condition**: the merged 3-trial run
-(`/tmp/hm2_merged_campaign.log`, port 8797) was still in flight at park time; its L5 trials
-looked healthy (t=64s on trial 3). Read its `BOT MEDIANS` and `^FAIL` lines. Given the
-baseline also fails, a merged L5 miss is NOT an M3 blocker; only a merged failure that the
-baseline passes would be.
+**A/B COMPLETE.** The merged state passes where the clean baseline fails:
+
+    BASELINE 68612b3d  54/55 FAIL   L1=150  L5=38 (FAIL)  L10=55  L15=42
+    MERGED   d93316af  55/55 PASS   L1=148  L5=83         L10=54  L15=37
+
+All 15 missions boot on merged, 0 console errors. M3 did not regress the campaign; it
+measures better than its own base. L5 is closed as pre-existing noise.
 
 ## CORRECTION: Core rotation is FINE. The real defect is PHASE 0.
 
