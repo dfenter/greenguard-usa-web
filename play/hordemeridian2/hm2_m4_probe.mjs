@@ -439,9 +439,104 @@ function mulberry32(seed) {
     }
     var missingFromPools = M3_KEYS.filter(function (k) { return !poolKeys[k]; });
     ok('all 7 M3 keys appear in at least one REGION_ENEMIES pool', missingFromPools.length === 0, 'missing=' + JSON.stringify(missingFromPools));
+
+    // ---- weighted-pool ramp coverage (R1 gate fix) ----
+    // Hardcoded spec literal, not read from the module: this is what pins
+    // the actual regression. If the module's def.weight silently drifts
+    // (e.g. someone bumps it back to 1) these assertions must fail even
+    // though def.weight === def.weight would still trivially pass.
+    var M3_SPEC_WEIGHT = 0.15;
+    var M3_SPEC_RAMP_WEIGHT = 1;
+
+    // 1) each M3 addition's effective weight at t=0 is strictly below the
+    //    original roster's weight, pinned to the hardcoded spec literal.
+    var m3EarlyBad = [];
+    M3_KEYS.forEach(function (k) {
+      var def = DATA.REGION_ENEMY_BY_KEY[k];
+      if (!def) { m3EarlyBad.push(k + ':missing'); return; }
+      var w0 = DATA.regionEnemyWeightAt(def, 0);
+      if (w0 !== M3_SPEC_WEIGHT) m3EarlyBad.push(k + ':w0=' + w0 + ' expected ' + M3_SPEC_WEIGHT);
+    });
+    ok('each of the 7 M3 additions has regionEnemyWeightAt(def, 0) === 0.15 (hardcoded spec literal)',
+      m3EarlyBad.length === 0, JSON.stringify(m3EarlyBad));
+
+    // 2) original (pre-M4) region enemies are full weight (1) at t=0.
+    var ORIGINAL_KEYS = ['cinder-kamikaze', 'ash-wraith', 'ember-scarab',
+      'refracting-shard-drone', 'glasswing-drone', 'shard-larva',
+      'blink-stalker', 'gravity-mite', 'null-leech',
+      'derelict-guard-hulk', 'salvage-swarm', 'scrap-ripper', 'grave-egg'];
+    var origBad = [];
+    ORIGINAL_KEYS.forEach(function (k) {
+      var def = DATA.REGION_ENEMY_BY_KEY[k];
+      if (!def) { origBad.push(k + ':missing'); return; }
+      var w0 = DATA.regionEnemyWeightAt(def, 0);
+      if (w0 !== 1) origBad.push(k + ':w0=' + w0);
+    });
+    ok('every pre-M4 (original) region enemy has regionEnemyWeightAt(def, 0) === 1',
+      origBad.length === 0, JSON.stringify(origBad));
+
+    // 3) ramp is monotonic non-decreasing and reaches parity (1) at rampAt;
+    //    midpoint sits strictly between 0.15 and 1.
+    var rampBad = [];
+    M3_KEYS.forEach(function (k) {
+      var def = DATA.REGION_ENEMY_BY_KEY[k];
+      if (!def || def.rampAt == null) { rampBad.push(k + ':no-rampAt'); return; }
+      var wStart = DATA.regionEnemyWeightAt(def, 0);
+      var wMid = DATA.regionEnemyWeightAt(def, def.rampAt / 2);
+      var wEnd = DATA.regionEnemyWeightAt(def, def.rampAt);
+      var wPast = DATA.regionEnemyWeightAt(def, def.rampAt + 30);
+      if (!(wStart <= wMid && wMid <= wEnd)) rampBad.push(k + ':not-monotonic ' + wStart + '/' + wMid + '/' + wEnd);
+      if (wEnd !== M3_SPEC_RAMP_WEIGHT) rampBad.push(k + ':wEnd=' + wEnd + ' expected ' + M3_SPEC_RAMP_WEIGHT);
+      if (!(wMid > M3_SPEC_WEIGHT && wMid < M3_SPEC_RAMP_WEIGHT)) rampBad.push(k + ':wMid=' + wMid + ' not strictly between 0.15 and 1');
+      if (wPast !== M3_SPEC_RAMP_WEIGHT) rampBad.push(k + ':holds-past-rampAt wPast=' + wPast);
+    });
+    ok('each M3 addition ramps monotonically from 0.15 at t=0 to 1 at rampAt, holding after, with a strictly-between midpoint',
+      rampBad.length === 0, JSON.stringify(rampBad));
+
+    // 4) AGGREGATE: void-rift M3 additions are a small minority of the pool
+    //    weight at t=0 (this is the assertion that would have caught the
+    //    original R1 regression) and their share rises substantially by
+    //    t=180 (all void-rift M3 entries fully ramped by then).
+    var VOID_RIFT_M3_KEYS = ['wing-cutter', 'rift-strafer', 'nebula-burrower'];
+    var voidRiftPool = DATA.REGION_ENEMIES['void-rift'];
+    function poolShareAt(t) {
+      var total = 0, m3total = 0;
+      voidRiftPool.forEach(function (def) {
+        var w = DATA.regionEnemyWeightAt(def, t);
+        total += w;
+        if (VOID_RIFT_M3_KEYS.indexOf(def.key) !== -1) m3total += w;
+      });
+      return total > 0 ? m3total / total : -1;
+    }
+    var shareAt0 = poolShareAt(0);
+    var shareAt180 = poolShareAt(180);
+    ok('void-rift M3 additions are under 15% of pool weight at t=0 (would catch the original R1 regression)',
+      shareAt0 >= 0 && shareAt0 < 0.15, 'shareAt0=' + shareAt0);
+    ok('void-rift M3 additions share of pool weight rises by t=180 versus t=0',
+      shareAt180 > shareAt0, 'shareAt0=' + shareAt0 + ' shareAt180=' + shareAt180);
+
+    // 5) every key stays reachable: weight > 0 at all sampled times.
+    var unreachable = [];
+    var sampleTimes = [0, 1, 45, 90, 91, 150, 151, 180, 181, 600];
+    for (var regionKey in DATA.REGION_ENEMIES) {
+      DATA.REGION_ENEMIES[regionKey].forEach(function (def) {
+        sampleTimes.forEach(function (t) {
+          var w = DATA.regionEnemyWeightAt(def, t);
+          if (!(w > 0)) unreachable.push(def.key + '@t=' + t + ' w=' + w);
+        });
+      });
+    }
+    ok('every REGION_ENEMIES entry has weight > 0 at every sampled time (always reachable)',
+      unreachable.length === 0, JSON.stringify(unreachable));
   } else {
     ok('all 7 M3 keys resolve in REGION_ENEMY_BY_KEY', false, 'data failed to load');
     ok('all 7 M3 keys appear in at least one REGION_ENEMIES pool', false, 'data failed to load');
+    ok('each of the 7 M3 additions has regionEnemyWeightAt(def, 0) === 0.15 (hardcoded spec literal)', false, 'data failed to load');
+    ok('every pre-M4 (original) region enemy has regionEnemyWeightAt(def, 0) === 1', false, 'data failed to load');
+    ok('each M3 addition ramps monotonically from 0.15 at t=0 to 1 at rampAt, holding after, with a strictly-between midpoint', false, 'data failed to load');
+    ok('void-rift M3 additions are under 15% of pool weight at t=0 (would catch the original R1 regression)', false, 'data failed to load');
+    ok('void-rift M3 additions share of pool weight rises by t=180 versus t=0', false, 'data failed to load');
+    ok('every REGION_ENEMIES entry has weight > 0 at every sampled time (always reachable)', false, 'data failed to load');
   }
 
   if (LEVELS) {
