@@ -17,41 +17,70 @@
   // sixth bonus region (solar-crown) only ADDS area via the union and can
   // never shrink it, so it is placed off to the side purely for palette
   // and background variety.
+  // Region radii below were solved numerically (see scratch tuner used for
+  // M2 task 1, not checked in) against three constraints at once: the union
+  // stays a strict superset of the five hm_data.js band boxes, the field's
+  // max extent stays under 1.25x the old half-extent (7825) on BOTH axes
+  // (checked via a full angular sweep, not just the four cardinal rays,
+  // since the outer regions plus the smin blend bulge out furthest
+  // off-axis), and adjacent primary regions keep a centre-separation to
+  // mean-rx ratio of at least 1.4 so they read as distinct blobs, not one
+  // disc. The outer two regions need a bigger rx than the inner three
+  // because they alone must cover their band's far outside corner (no
+  // neighbor sits further out to help via the smin union); the inner three
+  // lean on a moderate smin blend from their neighbors, tuned down from an
+  // earlier pass that over-relied on a very large SMIN_K and pushed the
+  // off-axis max |y| past the cap.
   var REGIONS = [
     { key: 'aurelion-graveyard', name: 'AURELION GRAVEYARD',
-      cx: -5020, cy: 0, rx: 9077, ry: 9077, tint: 0xffb47e,
+      cx: -5020, cy: 0, rx: 2200, ry: 7600, tint: 0xffb47e,
       palette: { deep: 0x171b2b, nebula: 0x312846, mid: 0x5a3148, dust: 0x9a5b55 } },
     { key: 'void-rift', name: 'VOID RIFT',
-      cx: -2520, cy: 0, rx: 9077, ry: 9077, tint: 0x9b8cff,
+      cx: -2510, cy: 0, rx: 1375, ry: 7600, tint: 0x9b8cff,
       palette: { deep: 0x0a1020, nebula: 0x1c1e46, mid: 0x292a66, dust: 0x4f3d88 } },
     { key: 'meridian-verge', name: 'MERIDIAN VERGE',
-      cx: 0, cy: 0, rx: 9077, ry: 9077, tint: 0x54d6ff,
+      cx: 0, cy: 0, rx: 1375, ry: 7600, tint: 0x54d6ff,
       palette: { deep: 0x102c3b, nebula: 0x164b61, mid: 0x1f7180, dust: 0x39a89b } },
     { key: 'ember-drift', name: 'EMBER DRIFT',
-      cx: 2520, cy: 0, rx: 9077, ry: 9077, tint: 0xff756a,
+      cx: 2510, cy: 0, rx: 1375, ry: 7600, tint: 0xff756a,
       palette: { deep: 0x351b22, nebula: 0x5d2029, mid: 0x8b302d, dust: 0xc1513d } },
     { key: 'crystal-shoals', name: 'CRYSTAL SHOALS',
-      cx: 5020, cy: 0, rx: 9077, ry: 9077, tint: 0xa7f3ff,
+      cx: 5020, cy: 0, rx: 2200, ry: 7600, tint: 0xa7f3ff,
       palette: { deep: 0x173546, nebula: 0x2c657c, mid: 0x4c9db0, dust: 0x86d7d4 } },
     { key: 'solar-crown', name: 'SOLAR CROWN',
-      cx: 6900, cy: 2500, rx: 2400, ry: 1900, tint: 0xffd67a,
+      cx: 6300, cy: 1000, rx: 800, ry: 600, tint: 0xffd67a,
       palette: { deep: 0x2b1c0a, nebula: 0x4d3013, mid: 0x7a4d1a, dust: 0xc98a34 } }
   ];
 
-  var SMIN_K = 420; // smooth-min blend radius, tunable
+  // smin blend radius: 1340. Higher than the original 420 so the smooth-min
+  // union still bulges out enough to cover each inner band's corners with a
+  // smaller-than-self-sufficient rx, but much lower than an earlier pass's
+  // 1800, which inflated the field enough to push its off-axis max |y| over
+  // the 1.25x cap. This value was solved as roughly 1.06x the minimum K that
+  // still keeps the union a strict superset of the band boxes at the rx/ry
+  // above, leaving a small safety margin.
+  var SMIN_K = 1340;
 
-  // ellipseSdf returns an approximate signed distance from (x, y) to the
+  // ellipseSdf returns a conservative signed distance from (x, y) to the
   // boundary of an ellipse centered at (region.cx, region.cy) with radii
   // (region.rx, region.ry). Negative inside, positive outside.
+  //
+  // q = ((x-cx)/rx, (y-cy)/ry), k = length(q), d = (k - 1) * min(rx, ry).
+  // This under-estimates true outside distance and over-estimates inside
+  // magnitude, which is fine for a union field (conservative, not exact).
+  // It is Lipschitz-1 (gradient magnitude never exceeds 1) because the
+  // scale factor min(rx, ry) is at most either radius, unlike the old
+  // (rx+ry)*0.5 average which stretched past Lipschitz-1 for aspect ratios
+  // beyond about 2:1 and broke the Lipschitz sanity test.
   function ellipseSdf(region, x, y) {
     var dx = x - region.cx;
     var dy = y - region.cy;
     var rx = region.rx > 1 ? region.rx : 1;
     var ry = region.ry > 1 ? region.ry : 1;
-    var k = Math.sqrt((dx * dx) / (rx * rx) + (dy * dy) / (ry * ry));
-    // scale to approximate physical distance near the boundary
-    var avgR = (rx + ry) * 0.5;
-    return (k - 1) * avgR;
+    var qx = dx / rx;
+    var qy = dy / ry;
+    var k = Math.sqrt(qx * qx + qy * qy);
+    return (k - 1) * Math.min(rx, ry);
   }
 
   // smooth-min (polynomial) blend of two signed distances.
@@ -88,7 +117,13 @@
     var px = (typeof x === 'number' && isFinite(x)) ? x : 0;
     var py = (typeof y === 'number' && isFinite(y)) ? y : 0;
     var clamped = false;
-    for (var i = 0; i < 24; i++) {
+    // 24 iterations sufficed for the old, mostly-circular regions. The
+    // retuned ellipses have a much smaller min(rx, ry) on the outer two
+    // regions, which lowers the field's local Lipschitz constant along a
+    // descent path from far outside, so convergence is geometric rather
+    // than in one step. Raised to 64 so worst-case far-outside starts
+    // (WORLD * 5 in the test suite) still settle inside the target radius.
+    for (var i = 0; i < 64; i++) {
       var d = sdf(px, py);
       var target = -r;
       if (d <= target) break;
@@ -134,12 +169,16 @@
   }
 
   function regionAt(x, y) {
-    // Nearest-centre by raw Euclidean distance, not ellipseSdf: regions can
-    // have very different radii (the five band regions are large shared
-    // circles, solar-crown is a small bonus region), and ellipseSdf's scale
-    // is radius-dependent, so comparing raw ellipseSdf values across
-    // differently-sized regions biases toward the largest one even at
-    // another region's own centre.
+    // Nearest-centre by raw Euclidean distance, not ellipseSdf. Re-checked
+    // for M2 task 1 now that ellipseSdf uses a proper Lipschitz-1 scale
+    // (min(rx, ry)) instead of the old radius-biased average: nearest-centre
+    // still discriminates all five band regions correctly (verified by
+    // sampling regionAt at each band's own centre and at the midpoint x
+    // between adjacent centres) and solar-crown, being small and off to the
+    // side, never leaks into the primary chain. Kept as-is; it is also
+    // simpler than comparing ellipseSdf across regions whose rx/ry now
+    // differ a lot (outer regions vs inner regions), which would still need
+    // some form of normalization to be fair across region shapes.
     var best = REGIONS[0];
     var bestD = Infinity;
     for (var i = 0; i < REGIONS.length; i++) {

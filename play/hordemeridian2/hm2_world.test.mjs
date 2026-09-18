@@ -169,7 +169,7 @@ var featureHooks = HM2_WORLD.featureHooks;
   // pull the field inward from an adjacent region's influence.
   var mv = REGIONS.filter(function (r) { return r.key === 'meridian-verge'; })[0];
   var bx = mv.cx;
-  var by = mv.cy - mv.ry * 0.99;
+  var by = mv.cy - mv.ry * 0.97;
   var gBoundary = edgeGlowFactor(bx, by);
   ok('edgeGlowFactor high just inside boundary', gBoundary >= 0.6);
 }());
@@ -293,6 +293,77 @@ var featureHooks = HM2_WORLD.featureHooks;
     }
   }
   ok('sdf field is a superset of all band boxes (' + checked + ' points, corners+edges included)', fails === 0);
+}());
+
+// Max extent test: the field must not balloon past 1.25x the old arena
+// half-extent (EDGE = 6260, so cap = 7825) on either axis. A 4-axis march
+// (0/90/180/270 degrees only) is NOT sufficient: the outer regions plus the
+// smooth-min blend can bulge the boundary out furthest along an off-axis
+// ray, and a cardinal-only check would silently miss that. Sweep the full
+// circle at 0.25 degree resolution (1440+ directions), binary-search each
+// ray for its boundary point, and take the max |x| and max |y| over every
+// sampled boundary point (not just the on-axis ray lengths).
+(function () {
+  var sdf = HM2_WORLD.sdf;
+  var WORLD = HM2_WORLD.WORLD;
+  var EDGE = WORLD / 2 - 40;
+  var CAP = 1.25 * EDGE;
+
+  function marchTo(dirX, dirY) {
+    var lo = 0;
+    var hi = WORLD * 3;
+    for (var i = 0; i < 40; i++) {
+      var mid = (lo + hi) / 2;
+      if (sdf(dirX * mid, dirY * mid) <= 0) {
+        lo = mid;
+      } else {
+        hi = mid;
+      }
+    }
+    return lo;
+  }
+
+  var STEPS = 1440; // every 0.25 degrees around the full circle
+  var maxAbsX = 0;
+  var maxAbsY = 0;
+  for (var i = 0; i < STEPS; i++) {
+    var theta = (i / STEPS) * Math.PI * 2;
+    var dirX = Math.cos(theta);
+    var dirY = Math.sin(theta);
+    var dist = marchTo(dirX, dirY);
+    var bx = Math.abs(dirX * dist);
+    var by = Math.abs(dirY * dist);
+    if (bx > maxAbsX) maxAbsX = bx;
+    if (by > maxAbsY) maxAbsY = by;
+  }
+
+  ok('field max |x| over full angular sweep <= 1.25x old half-extent (' +
+    maxAbsX.toFixed(1) + ' <= ' + CAP.toFixed(1) + ')', maxAbsX <= CAP);
+  ok('field max |y| over full angular sweep <= 1.25x old half-extent (' +
+    maxAbsY.toFixed(1) + ' <= ' + CAP.toFixed(1) + ')', maxAbsY <= CAP);
+}());
+
+// Adjacent-pair separation test: the five primary regions (all REGIONS
+// except solar-crown, which is a bonus sixth region off to the side and
+// exempt) must read as visibly distinct blobs, not one big disc. For each
+// adjacent pair along the band axis, require centre separation / mean rx
+// >= 1.4. rx (not ry) is used for "mean radius" here because separation is
+// along the x axis and these are tall, narrow ellipses (ry >> rx) hugging
+// full-height bands; ry does not bear on how distinct two regions look
+// along the axis they're actually spread across.
+(function () {
+  var primaries = REGIONS.filter(function (r) { return r.key !== 'solar-crown'; });
+  var minRatio = Infinity;
+  for (var i = 0; i < primaries.length - 1; i++) {
+    var a = primaries[i];
+    var b = primaries[i + 1];
+    var sep = Math.abs(b.cx - a.cx);
+    var meanRx = (a.rx + b.rx) / 2;
+    var ratio = sep / meanRx;
+    if (ratio < minRatio) minRatio = ratio;
+  }
+  ok('adjacent primary regions are visibly distinct (min separation/meanRx ratio ' +
+    minRatio.toFixed(3) + ' >= 1.4)', minRatio >= 1.4);
 }());
 
 console.log('');
