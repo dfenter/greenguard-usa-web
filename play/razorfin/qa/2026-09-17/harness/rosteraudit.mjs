@@ -5,7 +5,7 @@
 // Result 2026-09-17: 32 baked, 54 withheld, 0 loading, 0 error.
 import puppeteer from 'puppeteer-core';
 import http from 'node:http'; import fs from 'node:fs'; import path from 'node:path';
-const WT = process.argv[2] || '/Users/lucille/.claude/tmp/claude-501/-Users-lucille/4ca21896-c003-474c-ae2d-28610a6a27d6/scratchpad/razorfin-qa';
+const WT = process.argv[2] || '/Users/lucille/.claude/tmp/claude-501/-Users-lucille/4ca21896-c003-474c-ae2d-28610a6a27d6/scratchpad/razorfin-qa-fixes';
 // IMPORTANT: serve the WORKTREE ROOT and request /play/razorfin/.
 // index.html declares <base href="/play/razorfin/">, so any other rooting 404s every asset.
 const mime={'.html':'text/html','.js':'application/javascript','.json':'application/json','.png':'image/png','.jpg':'image/jpeg','.glb':'model/gltf-binary','.bin':'application/octet-stream','.css':'text/css'};
