@@ -1320,7 +1320,9 @@
         g.add(this.add.rectangle(w / 2, top + 12, barW, 5, 0x1f3a48));
         g.add(this.add.rectangle(w / 2 - barW / 2, top + 12, barW * (found / WEAPONS.length), 5, 0x8effd8)
           .setOrigin(0, 0.5));
-        var cxGap = 5, cxCols = 4, cxRows = Math.ceil(WEAPONS.length / cxCols);
+        // 4 columns leaves about 60px of text per card at 390px, too narrow for
+        // the recipe line, so narrow viewports drop to 3 columns.
+        var cxGap = 5, cxCols = w < 520 ? 3 : 4, cxRows = Math.ceil(WEAPONS.length / cxCols);
         var cxTop = top + 26, cxBottom = h - 112;
         var cxW = (w - 28 - cxGap * (cxCols - 1)) / cxCols;
         var cxH = clamp((cxBottom - cxTop - (cxRows - 1) * 4) / cxRows, 24, 50);
