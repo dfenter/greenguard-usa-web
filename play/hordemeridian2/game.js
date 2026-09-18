@@ -3015,6 +3015,10 @@
           vampire: 0, reflector: 0, gravity: 0, cloak: 0, tempest: 0,
           'prism-array': 0 }
       };
+      // M4 risk events: separate run-level system, inert if hm2_events.js
+      // did not load. See stepRiskEvents for the per-tick hook.
+      this.riskEvents = window.HM2_EVENTS ? window.HM2_EVENTS.resetEvents() : null;
+      this.riskEventMarker = null;
       this.state = 'playing';
       this.activeRegionKey = '';
       this.regionTourActive = false;
@@ -6230,7 +6234,11 @@
         }
       }
 
-      run.spawnT -= dt;
+      // M4 risk events: an accepted overclock offer multiplies the spawn
+      // cadence (more frequent ticks) instead of duplicating spawn code.
+      var riskSpawnMult = (window.HM2_EVENTS && this.riskEvents) ?
+        window.HM2_EVENTS.overclockMultiplier(this.riskEvents, run.time) : 1;
+      run.spawnT -= dt * riskSpawnMult;
       if (run.spawnT <= 0 && !run.bossUp && !run.bossPending && !run.regionBossActive) {
         run.spawnT = row.rate * (0.75 + srand() * 0.5) /
           (1 + Math.min(0.7, run.basePressure * 0.28)) / this.levelMods.spawnRate;
@@ -6252,6 +6260,69 @@
       }
 
       if (!this.level && run.time >= RUN_SECONDS && !run.bossUp && !run.bossPending && !run.regionBossActive) this.spawnBoss();
+
+      this.stepRiskEvents(dt);
+    },
+
+    // M4 risk events (classic + campaign, run-level system, separate from
+    // the declarative level `events` rows). One offer every 90s; accept by
+    // flying into the marker, decline by letting the window expire. Inert
+    // no-op if hm2_events.js did not load.
+    stepRiskEvents: function (dt) {
+      var HE = window.HM2_EVENTS;
+      if (!HE || !this.riskEvents) return;
+      var re = this.riskEvents, run = this.run;
+      re.now = run.time;
+
+      HE.scheduleNext(re, run.time);
+
+      if (re.offer && re.offer.active && !this.riskEventMarker) {
+        var mp = clampField(this.p.x + (srand() < 0.5 ? -260 : 260), this.p.y - 160, 0);
+        re.offer.x = mp.x;
+        re.offer.y = mp.y;
+        this.riskEventMarker = { x: mp.x, y: mp.y, type: re.offer.type };
+        var label = re.offer.type === 'overclock' ? 'SIGNAL // OVERCLOCK CACHE' :
+          re.offer.type === 'distress-beacon' ? 'SIGNAL // DISTRESS BEACON' :
+          'SIGNAL // RIVAL ACE INBOUND';
+        this.showBanner(label, 'FLY IN TO ACCEPT');
+        sfx('telegraph', { volume: 0.5, rate: 0.9 });
+      }
+
+      if (re.offer && re.offer.active) {
+        var outcome = HE.stepOffer(re, { playerX: this.p.x, playerY: this.p.y, now: run.time }, dt);
+        if (outcome === 'accepted') {
+          HE.resolveEvent(re, re.offer.type, 'accepted');
+          this.resolveRiskEventSpawn(re);
+          this.riskEventMarker = null;
+        } else if (outcome === 'declined') {
+          this.riskEventMarker = null;
+        }
+      }
+    },
+
+    resolveRiskEventSpawn: function (re) {
+      var ps = re.pendingSpawn;
+      re.pendingSpawn = null;
+      if (!ps) return;
+      var mp = this.riskEventMarker || { x: this.p.x, y: this.p.y };
+      if (ps.kind === 'overclock-start') {
+        this.showBanner('OVERCLOCK ONLINE', '30S // DOUBLE SPAWN, DOUBLE GEMS');
+        sfx('unlock', { volume: 0.4, rate: 1.3 });
+      } else if (ps.kind === 'distress-beacon') {
+        for (var i = 0; i < ps.guards; i++) {
+          var a = i * TAU / ps.guards;
+          var gp = clampField(mp.x + Math.cos(a) * 80, mp.y + Math.sin(a) * 80, 0);
+          this.spawn('lancer', false, gp.x, gp.y, true);
+        }
+        this.spawnBonus('arsenal', mp.x, mp.y);
+        this.showBanner('CACHE CRACKED', 'GUARDS INBOUND');
+        sfx('unlock', { volume: 0.4, rate: 1.0 });
+      } else if (ps.kind === 'rival-ace') {
+        var hunter = this.spawn('lancer', true, mp.x, mp.y, true);
+        if (hunter) { hunter.hp *= 1.6; hunter.maxHp = hunter.hp; hunter.rivalAceBlueprint = true; }
+        this.showBanner('RIVAL ACE', 'HUNTING YOU');
+        sfx('telegraph', { volume: 0.5, rate: 0.7 });
+      }
     },
 
     burst: function (n) {
@@ -8285,6 +8356,11 @@
         }
       }
       run.kills++;
+      if (e.rivalAceBlueprint) {
+        e.rivalAceBlueprint = false;
+        this.spawnWeaponDrop(this.nextWeaponDrop(null, null), e.x, e.y);
+        this.showBanner('BLUEPRINT RECOVERED', 'RIVAL ACE DOWN');
+      }
       run.combo++;
       run.comboT = 2.6;
       if (run.combo === 10 || run.combo === 25 || run.combo === 50) this.comboMilestone(run.combo);
@@ -8388,8 +8464,11 @@
         g.y = e.y + (srand() - 0.5) * 18;
         g.vx = (srand() - 0.5) * 70;
         g.vy = (srand() - 0.5) * 70;
+        var riskGemMult = (window.HM2_EVENTS && this.riskEvents && this.riskEvents.effects &&
+          window.HM2_EVENTS.isOverclockActive(this.riskEvents, this.run.time)) ?
+          this.riskEvents.effects.overclockGemMult || 1 : 1;
         g.value = (e.elite ? 5 : e.xp) * this.p.gemBonus * (1 + (this.p.ranks.gemValue || 0) * 0.10)
-          * (this.run.buffs.doubler > 0 ? 2 : 1);
+          * (this.run.buffs.doubler > 0 ? 2 : 1) * riskGemMult;
         g.tier = tier;
         g.born = this.run.time;
         this.unpark(g.spr);
