@@ -70,6 +70,24 @@
         callout: 'final run // hold the line'
       }
     ],
-    music: 'base'
+    music: 'base',
+    cutscenes: {
+      intro: {
+        id: 'salvage-run-intro',
+        beats: [
+          { kind: 'pan', dur: 2, toX: 0, toY: 0 },
+          { kind: 'flyin', dur: 2 },
+          { kind: 'line', dur: 3, speaker: 'COMMAND', text: 'THE FLEET IS GONE. SALVAGE WHAT YOU CAN.' },
+          { kind: 'burst', dur: 1.5, color: 0x8effd8 }
+        ]
+      },
+      outro: {
+        id: 'salvage-run-outro',
+        beats: [
+          { kind: 'line', dur: 3, speaker: 'COMMAND', text: 'SCRAPFIELD SECURE. GOOD HAUL.' },
+          { kind: 'burst', dur: 2, color: 0x8effd8 }
+        ]
+      }
+    }
   };
 }());

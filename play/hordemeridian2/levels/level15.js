@@ -99,6 +99,25 @@
         banner: ['CORE DESCENDS', 'KILL IT NOW']
       }
     ],
-    music: 'heat'
+    music: 'heat',
+    cutscenes: {
+      intro: {
+        id: 'meridian-falls-intro',
+        beats: [
+          { kind: 'pan', dur: 3, toX: 200, toY: -100 },
+          { kind: 'zoom', dur: 2, to: 1.15 },
+          { kind: 'flyin', dur: 2 },
+          { kind: 'line', dur: 4, speaker: 'COMMAND', text: 'THE MERIDIAN CORE WAKES. END IT HERE.' },
+          { kind: 'burst', dur: 1, color: 0xff9a8f }
+        ]
+      },
+      outro: {
+        id: 'meridian-falls-outro',
+        beats: [
+          { kind: 'line', dur: 4, speaker: 'COMMAND', text: 'THE CORE IS DOWN. THE VERGE IS OURS.' },
+          { kind: 'burst', dur: 3, color: 0xffd67a }
+        ]
+      }
+    }
   };
 }());

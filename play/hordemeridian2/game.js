@@ -464,6 +464,13 @@
       if (ev.callout && !upperStr(ev.callout, 60)) return bad('event callout ' + vi);
     }
     if (def.music != null && def.music !== 'base' && def.music !== 'heat') return bad('music');
+    if (def.cutscenes != null) {
+      if (!window.HM2_CUTSCENE || typeof window.HM2_CUTSCENE.validateCutscene !== 'function') {
+        return bad('cutscenes validator missing');
+      }
+      var csv = window.HM2_CUTSCENE.validateCutscene(def.cutscenes);
+      if (!csv.ok) return bad('cutscenes: ' + csv.err);
+    }
     return def;
   }
   var CAMPAIGN_LEVELS = {};
@@ -3016,6 +3023,17 @@
           'prism-array': 0 }
       };
       this.state = 'playing';
+      this._hm2CutsceneOutroDone = false;
+      // M4 cutscenes: an authored intro holds the sim (state stays off
+      // 'playing' so stepCampaign/simStep never run) until it finishes or is
+      // skipped. No-op for the other 14 levels, which have no cutscenes key.
+      if (L && L.cutscenes && L.cutscenes.intro && window.HM2_CUTSCENE) {
+        this.state = 'cutscene-intro';
+        var introScene = this;
+        window.HM2_CUTSCENE.playCutscene(this, L.cutscenes, 'intro', L.id, function () {
+          if (introScene.state === 'cutscene-intro') introScene.state = 'playing';
+        });
+      }
       this.activeRegionKey = '';
       this.regionTourActive = false;
       this.regionTourStep = 0;
@@ -8713,6 +8731,18 @@
 
     endRun: function (won, abandoned) {
       if (this.state === 'over' || this.pendingEnd) return;
+      // M4 cutscenes: a win with an authored outro plays it first, then
+      // re-enters endRun to finish for real. No-op (falls through) when the
+      // level has no cutscenes.outro, so the other 14 levels are unaffected.
+      if (won && !abandoned && !this._hm2CutsceneOutroDone && this.level && this.level.cutscenes &&
+          this.level.cutscenes.outro && window.HM2_CUTSCENE) {
+        this._hm2CutsceneOutroDone = true;
+        var scene = this;
+        window.HM2_CUTSCENE.playCutscene(this, this.level.cutscenes, 'outro', this.level.id, function () {
+          scene.endRun(won, abandoned);
+        });
+        return;
+      }
       this.pendingEnd = { won: !!won, abandoned: !!abandoned };
       this.state = 'over';
       if (!this.inSim) this.finishRun();
