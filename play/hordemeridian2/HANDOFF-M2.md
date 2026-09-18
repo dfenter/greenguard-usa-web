@@ -1,6 +1,8 @@
 # HANDOFF M2: open arena + background (2026-09-17)
 
-Status: **Phase A DONE and committed. Phase B NOT STARTED, blocked on the lane gate.**
+Status: **HOLD. Phase A done. Phase B only partially landed and its gate FAILED.**
+About 25 percent of M2 is real. See "Gate verdict" at the end, which supersedes the
+optimistic Phase B numbers reported by the implementer.
 
 ## Phase A (done)
 
@@ -118,3 +120,73 @@ Remaining Phase B work, unchanged from the brief:
 - No Co-Authored-By trailers on either commit.
 - Nothing deployed and nothing pushed by this lane.
 - The tree carries unrelated dirty razorfin and redesign files. Never `git add -A`.
+
+---
+
+# Gate verdict (independent Opus gate, supersedes the Phase B self-report)
+
+**HOLD. Roughly 25 percent of M2 is real.**
+
+Phase B commit `107a779d` is additive only (+208 / -0). Verified by the orchestrator:
+`clampToField`, `edgeGlowFactor` and `featureHooks` are called nowhere in game.js, and all
+EDGE references remain. So the SDF clamp, the energy edge boundary and the terrain hooks,
+which are the substance of M2, did NOT land. What landed is the background wiring, the
+`?perf` watchdog and the debug hooks.
+
+## The probe pass was false
+
+`hm2_world_probe.mjs` reported exit 0, all 6 regions at delta 0.2075, fps fine. That result
+is void:
+
+1. The probe iterates `REGION_KEYS = ['r0'...'r5']` (hm2_world_probe.mjs:31). The real keys
+   are `aurelion-graveyard, void-rift, meridian-verge, ember-drift, crystal-shoals` and
+   `solar-crown`. `teleportToRegion` does `REGION_BY_KEY[key]` and returns false for every
+   `r0..r5` (game.js:10769-10772). The probe never reads the return value and records
+   `teleported = true` regardless. No teleport ever happened.
+2. All 6 screenshots were byte-identical, and showed the "Rotate your device to portrait to
+   play" overlay, not the game. The probe sets a portrait viewport but never defeats the
+   game's own orientation gate, and never starts a run.
+3. The measured 0.0608 luminance is therefore the luminance of that overlay, and the 0.2075
+   delta is the same subtraction done six times. Identical per-region numbers were the tell.
+4. `samplePngAverage` does read real pixels, so the mechanism is sound; the inputs were
+   wrong. `getBackdropSample()` is dead code the probe never calls.
+
+The readability gate required by reference_track_readability has therefore NEVER been
+measured against rendered regions. Treat region palettes as unvalidated.
+
+Campaign probe 55/55 and `hm2_world.test.mjs` 20/20 are both genuine, but the campaign
+result holds precisely because the sim was never touched.
+
+## The architectural blocker is real
+
+game.js and hm_data.js use a 1D linear band model: `regionAtX`, `minX`/`maxX` per region,
+and a square `EDGE` clamp. hm2_world.js is a 2D ellipse-cluster SDF. Converting the ~15 real
+EDGE clamp sites changes what "inside the arena" means for all 15 campaign missions that M4a
+tuned against the band layout. Stopping to escalate was correct. Reporting a green probe that
+was never validated was not.
+
+## Before M2 can be called done
+
+Implementer tasks:
+- Fix the probe: defeat the orientation gate so the game actually renders, use real region
+  keys, assert `teleportToRegion` returns true, and fail when consecutive screenshots are
+  identical. Then re-measure luminance per region and re-tune palettes if any region fails.
+- Then wire the SDF clamp, the energy edge and the terrain hooks per the chosen model below.
+
+Dan decision, needed first because it changes traversal and mission tuning:
+- **Option A**: migrate gameplay to the true 2D SDF field (`regionAtX` becomes
+  `regionAt(x,y)`, EDGE clamps become `clampToField`), and accept a retune plus re-validation
+  of all 15 M4a missions and the HOT_START ring math.
+- **Option B**: keep the linear band model for gameplay containment and scope the SDF to
+  cosmetic and hazard use (background plus terrain effects only), which conflicts with the
+  plan's "Player clamp = SDF" line and should be recorded as a plan amendment.
+
+The background swap already landed is compatible with either option, since it reads only the
+region key and never region geometry.
+
+## Residual defects, not introduced by M2
+- `__MISSING` atlas warnings (deco_plate, gem0, ic_armor, ring_thick, elite_crown) and a
+  service worker scope error, both confirmed pre-existing. Console is not clean, so the
+  "console clean" gate criterion fails on pre-existing grounds.
+- The legacy background stack (regionBackground discs, skyObjects, marks, debris) was left in
+  place alongside the new parallax layers and still needs retiring.
