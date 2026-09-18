@@ -5,8 +5,9 @@
  * in assets/models/fam/*.glb have no row def yet) with the project's own
  * three.js + GLTFLoader (play/_shared/three), poses LowerJaw at two angles
  * and asserts, per GLB:
- *   1. no vertex ABOVE the jaw hinge plane moves more than 0.002 * L when the
- *      jaw opens (upper head must stay put),
+ *   1. no UPPER-HEAD vertex (upper 50% of head height, Head-weighted) moves
+ *      more than 0.002 * L when the jaw opens, i.e. jaw weight must not bleed
+ *      up into the skull (re-pointed lane A4; see the gate comment below),
  *   2. lower-lip vertices (lowest 15% of head height, front 55% of head)
  *      move at least 0.03 * L,
  *   3. no triangle edge on the mesh stretches more than 3x between rest and
@@ -190,14 +191,12 @@ async function probeOne(file) {
   // lower-lip region: lowest 15% of head height AND front 55% of head length,
   // among vertices with meaningful jaw weight.
   const lowerLipVerts = [];
-  const upperHeadVerts = []; // head-weighted verts with near-zero jaw weight = "above the hinge"
   for (let i = 0; i < n; i++) {
     const jw = skinWeightOnBone(mesh, jawIdx, i);
     const u = restPos[i * 3 + uI], f = restPos[i * 3 + fI];
     const uFrac = (u - headMinU) / headHeight;     // 0 = bottom, 1 = top
     const fFrac = (f - headMinF) / headLength;      // 0..1 along head length (axis sign not guaranteed nose-first, but front/back symmetric-ish gate below)
     if (jw > 0.4 && uFrac <= 0.15 && (fFrac <= 0.55 || fFrac >= 0.45)) lowerLipVerts.push(i);
-    if (jw < 0.05 && skinWeightOnBone(mesh, headIdx, i) > 0.3) upperHeadVerts.push(i);
   }
 
   // open pose = bind quaternion, then hinge about the measured axis. This is
@@ -214,8 +213,30 @@ async function probeOne(file) {
     openPos[i * 3 + 2] - restPos[i * 3 + 2]
   );
 
+  /* UPPER-HEAD GATE (lane A4, 2026-09-17 - re-pointed; it was vacuous).
+   *
+   * This used to measure displacement of vertices selected by `jw < 0.05`
+   * while posing ONLY LowerJaw. LowerJaw is a LEAF bone, so a vertex with
+   * (almost) no LowerJaw weight cannot move by construction: the gate read
+   * exactly 0.0 for every family and every candidate hinge axis, and had been
+   * reporting OK for its whole life without testing anything (lane A3, s1).
+   *
+   * Re-pointed at the property it was always meant to protect: jaw weight must
+   * not BLEED up into the upper head, because that is what makes the skull
+   * swing when the mouth opens. Measure the actual swing of vertices that are
+   * anatomically upper-head - above the jaw seam and predominantly Head-driven
+   * - rather than pre-filtering them by the very weight that would move them.
+   * A bleeding rig now fails here instead of passing silently.
+   *
+   * Region is geometric: upper 50% of head height (well clear of the lip band
+   * at <=15%) and meaningfully Head-weighted. The limit stays 0.002 * L. */
+  const upperRegionVerts = [];
+  for (let i = 0; i < n; i++) {
+    const uFrac = (restPos[i * 3 + uI] - headMinU) / headHeight;
+    if (uFrac >= 0.5 && skinWeightOnBone(mesh, headIdx, i) > 0.3) upperRegionVerts.push(i);
+  }
   let maxUpperMove = 0;
-  for (const i of upperHeadVerts) maxUpperMove = Math.max(maxUpperMove, dist(i));
+  for (const i of upperRegionVerts) maxUpperMove = Math.max(maxUpperMove, dist(i));
   let minLowerMove = lowerLipVerts.length ? Infinity : 0;
   let maxLowerMove = 0;
   for (const i of lowerLipVerts) { const d = dist(i); minLowerMove = Math.min(minLowerMove, d); maxLowerMove = Math.max(maxLowerMove, d); }
@@ -248,7 +269,7 @@ async function probeOne(file) {
 
   return {
     name, ok, L: +L.toFixed(4),
-    upperVerts: upperHeadVerts.length, maxUpperMove: +maxUpperMove.toFixed(5), upperLimit: +(UPPER_MAX_FRAC * L).toFixed(5), upperOk,
+    upperVerts: upperRegionVerts.length, maxUpperMove: +maxUpperMove.toFixed(5), upperLimit: +(UPPER_MAX_FRAC * L).toFixed(5), upperOk,
     lowerVerts: lowerLipVerts.length, minLowerMove: lowerLipVerts.length ? +minLowerMove.toFixed(5) : null, maxLowerMove: +maxLowerMove.toFixed(5), lowerLimit: +(LOWER_MIN_FRAC * L).toFixed(5), lowerOk,
     maxStretch: +maxStretch.toFixed(3), stretchOk,
   };

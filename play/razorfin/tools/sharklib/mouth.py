@@ -876,20 +876,80 @@ def _project_jaw_weights(obj, snapshot, measurement, lip_band, cavity_state):
 
     dense = _limit_weight_gradient(obj, dense, measurement, cavity_state)
 
-    weights = {}
-    for index, value in enumerate(dense):
-        # Same floor as before: a vertex carrying a few percent of LowerJaw
-        # still visibly swings at a 0.72 rad gape while reading as "upper head"
-        # to any consumer that thresholds jaw weight low (probe_jaw uses 0.05).
-        if value > JAW_WEIGHT_FLOOR:
-            weights[index] = value
+    return _emit_capped_weights(obj, dense)
+
+
+def _emit_capped_weights(obj, dense):
+    """Turn the capped dense field into the rig payload WITHOUT re-tearing it.
+
+    The floor exists because a vertex carrying a few percent of LowerJaw still
+    visibly swings at a 0.72 rad gape while reading as "upper head" to any
+    consumer that thresholds jaw weight low (probe_jaw uses 0.05).  That reason
+    is still good, but a plain ``value > FLOOR`` filter silently UNDOES the
+    gradient cap, which is the whole jaw-stretch defect:
+
+    ``rig._apply_external_weights`` only writes the vertices present in this
+    map.  A vertex the cap deliberately relaxed down to the ramp's tail (say
+    .04) is below the floor, so it is dropped, so the rig never assigns it and
+    it keeps weight 0.0 -- sitting next to a neighbour the cap left at .57.
+    The cap had just built a smooth ramp there; the floor replaced it with a
+    cliff steeper than the one the cap was called to remove.  Measured
+    2026-09-17 on all five pilots: 100% of the >3x edges violated the cap by
+    10-25x, and the worst edge on thresher / artemisstrike / leviathanrex was
+    literally ``0.000 || 0.57-0.94`` -- a dropped ramp tail, every time.
+
+    So a vertex is emitted when it is above the floor OR when any mesh
+    neighbour is, which is exactly the set the cap needs written to keep each
+    edge inside its bound.  Sub-floor interior vertices with no meaningful
+    neighbour are still dropped, preserving the floor's original intent.
+    """
+    if not dense:
+        return {}
+    keep = [value > JAW_WEIGHT_FLOOR for value in dense]
+    # One-ring dilation: the ramp's tail is load bearing, not noise.
+    for edge in obj.data.edges:
+        a, b = edge.vertices
+        if a >= len(dense) or b >= len(dense):
+            continue
+        if keep[a] and not keep[b] and dense[b] > 0.0:
+            keep[b] = True
+        elif keep[b] and not keep[a] and dense[a] > 0.0:
+            keep[a] = True
+
+    weights = {index: dense[index] for index, flag in enumerate(keep) if flag}
+    tails = sum(1 for index in weights if dense[index] <= JAW_WEIGHT_FLOOR)
+    print("MOUTH payload verts=%d (incl %d sub-floor ramp tails kept so the "
+          "gradient cap survives into the rig)" % (len(weights), tails),
+          flush=True)
     return weights
 
 
 # How far a point may travel, as a fraction of an edge's own rest length,
-# before that edge reads as torn.  probe_jaw fails an edge above 3.0x; the
-# budget below is deliberately well under that so the projected band still has
-# room to round off without touching the gate.
+# before that edge reads as torn.
+#
+# DERIVED, not searched (2026-09-17).  Under linear-blend skinning the two
+# endpoints of an edge follow the jaw by w_a and w_b, so their extra
+# separation is at most  |w_a - w_b| * |R.p - p|  and, for a hinge rotation of
+# theta at lever arm `arm`,  |R.p - p| = 2*sin(theta/2) * arm.  The cap below
+# allows  dW <= BUDGET * rest / arm,  hence
+#
+#     stretch <= 1 + dW * 2*sin(theta/2) * arm / rest
+#             <= 1 + BUDGET * 2*sin(theta/2)
+#
+# The arm and the rest length cancel exactly, which is why this one constant
+# works on every base and needs no per-family tuning.  At the game's gape
+# (OPEN_RAD 0.72) the chord factor is 0.7045, so BUDGET = (S - 1) / 0.7045:
+# the probe's STRETCH_MAX 3.0 would permit 2.84, and 1.6 yields a bound of
+# 2.13x -- about 29% inside the gate.
+#
+# 1.6 is therefore KEPT.  Lane A3 expected this constant to be the defect
+# ("the principled value is near 3.0, not 1.6"), but the algebra says 1.6 was
+# always sufficient, and measurement agreed: every failing edge violated the
+# cap by 10-25x rather than sitting between 2.13x and 3.0x, which is the
+# signature of a cap that was not applied rather than one set too loose.  The
+# real defect was the payload floor discarding the cap's output; see
+# _emit_capped_weights.  Raising the budget here would have loosened a bound
+# that was already correct and buried the actual bug.
 EDGE_STRETCH_BUDGET = 1.6
 
 # A vertex at or above this weight is band INTERIOR, not flank: it is already

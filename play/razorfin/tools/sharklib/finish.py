@@ -650,11 +650,35 @@ def _normalize_joined_mouth_skin(low, authored_base=None, island_weights=None):
     # information.  Anything already carrying real LowerJaw weight on the body
     # is the authored lower lip and must be preserved -- that band is exactly
     # what the S3 probe measures on the body primitive.
+    # PROTECTION THRESHOLD (lane A4, 2026-09-17).
+    #
+    # This was `> 0.05`, which silently destroyed the mouth gradient cap's
+    # output and is the real jaw-stretch defect.
+    #
+    # mouth._limit_weight_gradient deliberately relaxes the flank of the lip
+    # band down to a gentle ramp that reaches zero, and _emit_capped_weights
+    # now keeps those sub-floor tails in the payload so the ramp survives into
+    # the rig.  A tail vertex sitting at, say, .04 then failed this `> 0.05`
+    # test, so it was not "protected", fell through to the stray-weight branch
+    # below, and had its jaw weight REMOVED outright - landing at exactly 0.0
+    # right next to a protected neighbour the cap had left at .57.  That is a
+    # cliff far steeper than the one the cap was called in to remove, and it is
+    # precisely the worst edge measured on every pilot (`0.000 || 0.57-0.94`,
+    # 100% of >3x edges violating the cap by 10-25x, unchanged across two
+    # rebakes because the cap's work was being undone here, after it ran).
+    #
+    # The stray weight this branch exists to clean up is legacy bone-heat
+    # bleed, which is unrelated to the authored band.  Distinguish the two by
+    # the cap's own floor rather than by a magnitude that cuts through the
+    # middle of a ramp the pipeline intentionally authored: anything carrying
+    # ANY real jaw weight on the body is authored band (mouth.py only emits
+    # vertices it chose), so the threshold drops to a numeric-noise epsilon.
+    JAW_AUTHORED_EPS = 1.0e-4
     protected = set()
     protected_weights = {}
     for vertex in low.data.vertices:
         for item in vertex.groups:
-            if item.group == jaw.index and item.weight > 0.05:
+            if item.group == jaw.index and item.weight > JAW_AUTHORED_EPS:
                 protected.add(vertex.index)
                 # Only the SCAN vertices form the body lip band the probe
                 # measures on the body primitive.  The authored zz_* islands
