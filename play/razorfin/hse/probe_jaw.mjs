@@ -34,11 +34,15 @@
  * reports 1.171x while the old basis misses it entirely at 1.000x. The old
  * number was measuring the bind rotation, not skin deformation.
  *
- * JAW_HINGE_AXIS (local +X) was re-derived empirically per bake rather than
+ * JAW_HINGE_AXIS (local X) was re-derived empirically per bake rather than
  * assumed: searching the unit sphere for the axis maximising lip travel along
- * the head-to-jaw direction lands within 4-12 degrees of +X on all five
- * families, with +X within 2% of the optimum's travel. The axis was correct;
+ * the head-to-jaw direction lands within 4-12 degrees of X on all five
+ * families, with X within 2% of the optimum's travel. The axis was correct;
  * the rest pose was not.
+ *
+ * HINGE SIGN (lane A6, 2026-09-17). The AXIS is X, but which SIGN of X opens
+ * the jaw depends on the bind roll the rig baked, so it is measured per GLB
+ * rather than fixed at +X. See the note at `openSign` below.
  *
  * OPEN_RAD defaults to 0.72 per the brief.
  *
@@ -95,6 +99,10 @@ function bakedPositions(mesh) {
   return out;
 }
 
+function posAttrCount(mesh) {
+  return mesh.geometry.getAttribute('position').count;
+}
+
 function skinWeightOnBone(mesh, boneIdx, vertIdx) {
   const si = mesh.geometry.getAttribute('skinIndex');
   const sw = mesh.geometry.getAttribute('skinWeight');
@@ -131,6 +139,48 @@ async function probeOne(file) {
   jawBone.quaternion.copy(bindQuat);
   jawBone.updateMatrixWorld(true);
   const restPos = bakedPositions(mesh);
+
+  /* HINGE SIGN (lane A6, 2026-09-17). Which way local X opens the jaw is a
+   * property of the bind roll the rig baked, not a constant. It was +X while
+   * tools/sharklib/rig.py applied `jaw.roll = pi`; with that roll removed the
+   * ventral direction is -X. rig_morph.js already measures this rather than
+   * assuming it, so the probe does too and stays correct across the change.
+   *
+   * Measured the same way rig_morph does: hinge both ways and keep whichever
+   * moves the jaw-weighted cloud further from the skull, using the Head
+   * centroid as the reference so no anatomy axis has to be named first. */
+  const openSign = (() => {
+    const jawIdxAll = [];
+    for (let i = 0; i < posAttrCount(mesh); i++) {
+      if (skinWeightOnBone(mesh, jawIdx, i) > 0.5) jawIdxAll.push(i);
+    }
+    if (!jawIdxAll.length) return 1;
+    const headIdxAll = [];
+    for (let i = 0; i < posAttrCount(mesh); i++) {
+      if (skinWeightOnBone(mesh, jawIdx, i) <= 0.5
+        && skinWeightOnBone(mesh, headIdx, i) > 0.1) headIdxAll.push(i);
+    }
+    const mean = (list, src) => {
+      const c = [0, 0, 0];
+      for (const i of list) { c[0] += src[3 * i]; c[1] += src[3 * i + 1]; c[2] += src[3 * i + 2]; }
+      return c.map((v) => v / Math.max(1, list.length));
+    };
+    const skull = mean(headIdxAll.length ? headIdxAll : jawIdxAll, restPos);
+    let best = { sign: 1, away: -Infinity };
+    for (const sign of [1, -1]) {
+      jawBone.quaternion.copy(bindQuat);
+      jawBone.rotateOnAxis(JAW_HINGE_AXIS, sign * OPEN_RAD);
+      jawBone.updateMatrixWorld(true);
+      const posed = bakedPositions(mesh);
+      const c = mean(jawIdxAll, posed);
+      const away = Math.hypot(c[0] - skull[0], c[1] - skull[1], c[2] - skull[2]);
+      if (away > best.away) best = { sign, away };
+    }
+    jawBone.quaternion.copy(bindQuat);
+    jawBone.updateMatrixWorld(true);
+    return best.sign;
+  })();
+  const OPEN_ANGLE = openSign * OPEN_RAD;
 
   // classify vertices relative to the jaw hinge (jaw bone's own position,
   // in the mesh's skinned local space) and the head extent, using REST pose.
@@ -190,7 +240,7 @@ async function probeOne(file) {
    * non-forward candidates by jaw travel, and only fall back to the centroid
    * rule if that travel is degenerate. */
   const upProbeQuat = jawBone.quaternion.clone();
-  jawBone.rotateOnAxis(JAW_HINGE_AXIS, OPEN_RAD);
+  jawBone.rotateOnAxis(JAW_HINGE_AXIS, OPEN_ANGLE);
   jawBone.updateMatrixWorld(true);
   const upProbePos = bakedPositions(mesh);
   jawBone.quaternion.copy(upProbeQuat);
@@ -286,7 +336,7 @@ async function probeOne(file) {
   // rig_morph.writeJawGape's `quaternion.set(closedBase)` +
   // `rotateOnAxis(JAW_HINGE_AXIS, angle)`, not a rotation.x write.
   jawBone.quaternion.copy(bindQuat);
-  jawBone.rotateOnAxis(JAW_HINGE_AXIS, OPEN_RAD);
+  jawBone.rotateOnAxis(JAW_HINGE_AXIS, OPEN_ANGLE);
   jawBone.updateMatrixWorld(true);
   const openPos = bakedPositions(mesh);
 

@@ -136,11 +136,28 @@ def build_rig(low, name, lower_jaw_weights=None, measurement=None):
     jaw.head = (0, ymin + L * .80, zc - H * .18)
     jaw.tail = (0, ymin + L * .98, zc - H * .22)
     jaw.parent = armature.edit_bones["Head"]
-    # The legacy default bone roll is retained for parity. Mouth-authored
-    # rigs use a 180-degree roll so Blender/glTF local +X rotates the jaw
-    # ventrally (decreasing +Z), matching hse/rig_morph.js::writeJawGape.
-    if lower_jaw_weights is not None:
-        jaw.roll = 3.141592653589793
+    # JAW BIND ROLL: none, on every path (lane A6, 2026-09-17).
+    #
+    # Mouth-authored rigs used to take `jaw.roll = pi` so that glTF local +X
+    # rotated the jaw ventrally, letting shark3d.js hinge with a hardcoded
+    # `+rotateX`. It works, but it makes the LowerJaw the ONE bone in the
+    # chain whose bind rotation is not near-identity: measured on the shipped
+    # bakes, every other bone exports (0,0,0,1) while LowerJaw exports
+    # ~(0,-0.999,0.036,0), a ~pi rotation.
+    #
+    # That is the root cause of the thresher jaw-stretch defect. The gate and
+    # the game measure rest with the jaw at its BIND quaternion, and posing a
+    # ~pi rotation collapses vertex pairs straddling the jaw seam - 1074 of
+    # them on thresher against 91-435 elsewhere. Blender's bind pose has the
+    # jaw at identity, so the pipeline literally could not see the lengths the
+    # gate measures, and three lanes of cap work could not reach them.
+    #
+    # With roll 0 the bind is (-0.033,0,0,0.999), near-identity like the rest
+    # of the chain, the two bases agree, and rest lengths measured in Blender
+    # are the rest lengths the gate reads. The ventral direction simply moves
+    # from local +X to local -X, which shark3d.js compensates for with
+    # JAW_HINGE_SIGN; hse/rig_morph.js needs no change because it already
+    # MEASURES which sign opens the jaw rather than assuming one.
     bpy.ops.object.mode_set(mode="OBJECT")
     low.vertex_groups.clear()
     for modifier in list(low.modifiers):

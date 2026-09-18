@@ -98,6 +98,20 @@ const SWIM_WAVELENGTH = Math.PI * 1.6;
 const TAIL_AMP_REFERENCE = 0.34;
 const JAW_REST_GAPE = 0; // r15 GRIN: rest gape now committed by face_textured commitRestGape; +X opens (sign was inverted)
 const JAW_MAX_ROTATION = 0.72;
+/* Which way local X opens the jaw, given the bind roll the rig bakes.
+ *
+ * Lane A6 (2026-09-17) removed the `jaw.roll = pi` that tools/sharklib/rig.py
+ * applied to mouth-authored rigs, because it made LowerJaw the only bone in
+ * the chain with a non-identity bind (~pi) and that is what hid the jaw-seam
+ * rest lengths from the bake pipeline. Dropping the roll rotates the bone's
+ * local frame by pi about its own axis, so the ventral direction moves from
+ * +X to -X; this sign restores the rendered pose exactly.
+ *
+ * hse/rig_morph.js does NOT need a matching constant: it measures the opening
+ * sign per bake (see the two-sign search at its GAPE_MIN_TRAVEL check) rather
+ * than assuming one, so it follows the bind automatically. This line is the
+ * only place in the runtime that hardcodes the direction. */
+const JAW_HINGE_SIGN = -1;
 const PATTERN_IDS = Object.freeze({
   plain: 0, stripes: 1, spots: 2, dots: 2, mottled: 2, mirror: 2, boils: 2,
   bands: 3, rings: 3, ribbons: 3, swirls: 3, collar: 3, rays: 3, corona: 3,
@@ -3609,7 +3623,7 @@ function buildLoadedRig(def, template, group) {
     if (neckBone && baseNeckQuaternion) { neckBone.quaternion.copy(baseNeckQuaternion); neckBone.rotateZ(-animation.turn * 0.09); }
     const jawGape = jawBone ? animation.bite : 0; /* Rev 15 JAW: absolute gape from engine, 0 = shut */
     group.userData.rfJawGape = jawGape;
-    if (jawBone && baseJawQuaternion) { jawBone.quaternion.copy(baseJawQuaternion); jawBone.rotateX(jawGape * JAW_MAX_ROTATION); }
+    if (jawBone && baseJawQuaternion) { jawBone.quaternion.copy(baseJawQuaternion); jawBone.rotateX(JAW_HINGE_SIGN * jawGape * JAW_MAX_ROTATION); }
     if (swimBones.length) {
       /* PHASE IS INTEGRATED, NEVER MULTIPLIED.
        *
