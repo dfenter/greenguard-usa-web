@@ -32,6 +32,8 @@ except ImportError:  # pragma: no cover
     mathutils = None
     Vector = None
 
+from . import mouth as mouth_module
+
 
 BONE_NAMES = ("Tail3", "Tail2", "Tail1", "Spine2", "Spine1", "Neck", "Head", "LowerJaw")
 
@@ -508,7 +510,73 @@ def _join_mouth_objects(low, extras):
     return low, names
 
 
-def _collapse_post_decimate_slivers(low, label="post-decimate"):
+def _unsatisfiable_cap_edges(low, rig):
+    """Edges the gradient cap provably cannot bring inside the stretch gate.
+
+    The cap allows ``dW <= BUDGET * (rest / L) / arm``.  That allowance shrinks
+    with rest length, so below some length an edge cannot be satisfied by any
+    weight assignment that keeps the band intact - the geometry itself is the
+    defect and the only remedy is to remove it.  Rather than guessing a length
+    threshold (a blunt fraction of body size is what tore aresrender's head
+    open at 0.005 L), evaluate the real predicate per edge, on the real
+    weights, and return exactly the offenders.
+
+    Returned as a set of frozenset vertex-index pairs so the caller can match
+    them on the bmesh regardless of index churn.
+    """
+    out = set()
+    if not low or low.type != "MESH" or np is None:
+        return out
+    jaw = low.vertex_groups.get("LowerJaw")
+    if jaw is None or not low.data.edges:
+        return out
+    dense = {}
+    for vertex in low.data.vertices:
+        for item in vertex.groups:
+            if item.group == jaw.index:
+                dense[vertex.index] = float(item.weight)
+                break
+    coords = _bind_pose_coords(low, rig)
+    if coords is None:
+        coords = np.asarray([[float(v.co.x), float(v.co.y), float(v.co.z)]
+                             for v in low.data.vertices], dtype=np.float64)
+    length = float(max(coords.max(axis=0) - coords.min(axis=0)))
+    if length <= 0.0:
+        return out
+    hinge = None
+    if rig is not None and rig.type == "ARMATURE":
+        bone = rig.data.bones.get("LowerJaw")
+        if bone is not None:
+            hinge = low.matrix_world.inverted() @ (rig.matrix_world @ bone.head_local)
+    if hinge is None:
+        return out
+    for edge in low.data.edges:
+        a, b = edge.vertices
+        wa, wb = dense.get(a, 0.0), dense.get(b, 0.0)
+        if wa <= 0.0 and wb <= 0.0:
+            continue
+        ca, cb = Vector(tuple(coords[a])), Vector(tuple(coords[b]))
+        rest = (ca - cb).length
+        if rest < 1.0e-9:
+            out.add(frozenset((a, b)))
+            continue
+        arm = max(math.hypot(ca.y - hinge.y, ca.z - hinge.z),
+                  math.hypot(cb.y - hinge.y, cb.z - hinge.z)) / length
+        if arm < 1.0e-7:
+            continue
+        allowed = min(1.0, mouth_module.EDGE_STRETCH_BUDGET * (rest / length) / arm)
+        # An edge is unsatisfiable when even a fully-relaxed pair cannot get
+        # inside the allowance: that happens when the allowance is smaller than
+        # the weight quantum the exporter can represent (glTF stores skin
+        # weights at 8-bit or 16-bit precision, so ~1/255 is the floor below
+        # which "equal weights" is the best achievable and still may not be
+        # equal after quantisation).
+        if allowed < (1.0 / 255.0):
+            out.add(frozenset((a, b)))
+    return out
+
+
+def _collapse_post_decimate_slivers(low, label="post-decimate", extra_edges=None):
     """Collapse jaw-seam slivers created AFTER the join-time sliver pass.
 
     The join-time pass in ``_join_mouth_objects`` cleans the mesh as it is at
@@ -575,12 +643,21 @@ def _collapse_post_decimate_slivers(low, label="post-decimate"):
         for _sweep in range(SLIVER_MAX_SWEEPS):
             mesh.verts.ensure_lookup_table()
             targets = []
+            _extra = extra_edges or set()
             for edge in mesh.edges:
-                if edge.calc_length() >= limit:
-                    continue
                 a = float(edge.verts[0][deform].get(jaw_index, 0.0))
                 b = float(edge.verts[1][deform].get(jaw_index, 0.0))
-                if max(a, b) > 0.05:
+                if max(a, b) <= 0.05:
+                    continue
+                # Either a sliver by the percentile rule, or an edge the cap
+                # has proven it cannot satisfy (lane A5). The second set is
+                # computed from the cap's own predicate on the first sweep, so
+                # it targets exactly the offenders instead of widening the
+                # length threshold and eating healthy geometry with it.
+                if edge.calc_length() < limit:
+                    targets.append(edge)
+                elif _sweep == 0 and frozenset(
+                        (edge.verts[0].index, edge.verts[1].index)) in _extra:
                     targets.append(edge)
             if not targets:
                 break
@@ -805,6 +882,197 @@ def _normalize_joined_mouth_skin(low, authored_base=None, island_weights=None):
     print("FINISH normalized mouth skin mouth=%d body_jaw_removed=%d z_drop=%.5f" %
           (len(mouth_vertices), body_jaw_removed, z_drop), flush=True)
     return {"mouth": len(mouth_vertices), "body_jaw_removed": body_jaw_removed, "z_drop": z_drop}
+
+
+# Final-mesh jaw gradient cap (lane A5, 2026-09-17).
+#
+# mouth._limit_weight_gradient is correct and converges, but it runs on the
+# PRE-JOIN body mesh, and three later stages rewrite both weights and topology
+# behind it: _join_mouth_objects concatenates the authored mouth islands,
+# _normalize_joined_mouth_skin re-authors every island vertex from the payload
+# map (and rescales the body band by a gain), and the budget COLLAPSE decimate
+# re-triangulates the result.  Whatever the early cap guaranteed is therefore
+# not a property of the exported mesh, which is the only mesh the gate reads.
+#
+# Measured on the five pilots, the >3x edges are ORDINARY body edges - median
+# rest length 1.8e-2 to 8.1e-2 of L, at or above the mesh median, and all in
+# one connected component once UV-split vertices are welded.  They are neither
+# slivers (disproven in round 2) nor detached cavity islands (the theory this
+# lane inherited): they are body-to-island seam edges and island cheek walls
+# that the early cap never saw, carrying dW 0.27-0.94.
+#
+# So run the same rule once more here, on the final topology and final weights,
+# immediately before export.  Same budget, same algebra, no per-family
+# constants: dW across an edge may be at most
+# EDGE_STRETCH_BUDGET * (rest / L) / arm, which bounds stretch by
+# 1 + BUDGET * 2*sin(theta/2) = 2.13x at the game's 0.72 rad gape.  Hinge and
+# arm come from the LowerJaw bone head rather than cavity_state, which does not
+# exist at this point in the pipeline.
+#
+# Unlike the mouth-stage cap this one does NOT pin the band interior.  The pin
+# exists there to stop relaxation diffusing inward and dragging the lip below
+# the probe's jw>.4 lip classifier; here the band has already been normalised
+# to peak 1.0 and the only thing left to fix is the seam, so a pin would make
+# exactly the seam edges unsatisfiable.  Lip travel is re-checked by the probe.
+def _bind_pose_coords(low, rig):
+    """Vertex positions as the renderer sees them at the jaw's BIND pose.
+
+    This is the exact basis hse/probe_jaw.mjs measures rest lengths in: each
+    vertex transformed by the linear blend of its bones' (pose * bind_inverse)
+    matrices, with the jaw left at its authored bind rotation. Returns an
+    (N, 3) array, or None if the mesh is not skinned in a way we can evaluate.
+    """
+    if rig is None or rig.type != "ARMATURE" or np is None:
+        return None
+    try:
+        names = {group.index: group.name for group in low.vertex_groups}
+        bones = rig.pose.bones
+        basis = {}
+        for index, name in names.items():
+            bone = bones.get(name)
+            if bone is None:
+                continue
+            basis[index] = bone.matrix @ bone.bone.matrix_local.inverted()
+        if not basis:
+            return None
+        out = np.zeros((len(low.data.vertices), 3), dtype=np.float64)
+        for vertex in low.data.vertices:
+            acc = Vector((0.0, 0.0, 0.0))
+            total = 0.0
+            for item in vertex.groups:
+                matrix = basis.get(item.group)
+                weight = float(item.weight)
+                if matrix is None or weight <= 0.0:
+                    continue
+                acc += (matrix @ vertex.co) * weight
+                total += weight
+            if total > 1.0e-9:
+                acc /= total
+            else:
+                acc = vertex.co.copy()
+            out[vertex.index] = (acc.x, acc.y, acc.z)
+        return out
+    except Exception as exc:
+        print("FINISH WARN bind-pose coords unavailable: %s" % exc, flush=True)
+        return None
+
+
+def _cap_final_jaw_gradient(low, rig):
+    """Cap LowerJaw weight change per edge on the FINAL exported topology."""
+    if not low or low.type != "MESH" or np is None:
+        return {"edges": 0, "changed": 0}
+    jaw = low.vertex_groups.get("LowerJaw")
+    head = low.vertex_groups.get("Head")
+    if jaw is None or head is None or not low.data.edges:
+        return {"edges": 0, "changed": 0}
+
+    count = len(low.data.vertices)
+    dense = np.zeros(count, dtype=np.float64)
+    for vertex in low.data.vertices:
+        for item in vertex.groups:
+            if item.group == jaw.index:
+                dense[vertex.index] = float(item.weight)
+                break
+
+    # REST LENGTH MUST BE MEASURED IN THE SKINNED BIND POSE (lane A5).
+    #
+    # The gate poses the mesh through the armature and divides the OPEN length
+    # by the BIND-POSE SKINNED length. Those are not the same as the raw mesh
+    # coordinates: the bind pose applies each bone's bind matrix, and where two
+    # vertices sit on opposite sides of a seam their skinned separation can be
+    # far smaller than their authored separation. Measured on thresher's worst
+    # edge, the authored distance is 2.54e-3 while the skinned bind distance is
+    # 3.71e-4 - the vertices are pulled 6.8x closer together by skinning. The
+    # cap was reading the authored length, so its allowance was 6.8x too loose
+    # on exactly the edges that matter, which is why it reported converged and
+    # the gate still measured 11.8x.
+    #
+    # Evaluate the same quantity the gate does: skin every vertex by its own
+    # weights into the bind pose and take lengths there.
+    _rest = _bind_pose_coords(low, rig)
+    coords = np.asarray([[float(v.co.x), float(v.co.y), float(v.co.z)]
+                         for v in low.data.vertices], dtype=np.float64)
+    if _rest is not None:
+        coords = _rest
+    length = float(max(coords.max(axis=0) - coords.min(axis=0)))
+    if length <= 0.0:
+        return {"edges": 0, "changed": 0}
+
+    # Hinge = LowerJaw bone head in the mesh's local space.
+    hinge = None
+    if rig is not None and rig.type == "ARMATURE":
+        bone = rig.data.bones.get("LowerJaw")
+        if bone is not None:
+            world = rig.matrix_world @ bone.head_local
+            hinge = low.matrix_world.inverted() @ world
+    if hinge is None:
+        weighted = coords[dense > 0.5]
+        if not len(weighted):
+            return {"edges": 0, "changed": 0}
+        hinge = Vector(tuple(weighted.mean(axis=0)))
+
+    edges = []
+    for edge in low.data.edges:
+        a, b = edge.vertices
+        ca, cb = Vector(tuple(coords[a])), Vector(tuple(coords[b]))
+        rest = (ca - cb).length
+        if rest < 1.0e-9:
+            continue
+        if dense[a] <= 0.0 and dense[b] <= 0.0:
+            continue
+        # ARM = the LARGER of the two endpoint arms, not the midpoint arm
+        # (lane A5).  The stretch bound is dW * |R.p - p| where p is the point
+        # that actually swings, so the conservative lever is the endpoint
+        # furthest from the hinge; the midpoint underestimates it and leaves
+        # the allowance too loose by exactly that ratio.  Measured after the
+        # first A5 round, the residual >3x edges implied levers of 0.10-0.49 L
+        # against midpoint arms the cap had used, which is why they converged
+        # and still failed the gate.
+        # y/z only is correct and deliberate: the jaw hinges about local +X
+        # (JAW_HINGE_AXIS, mirrored from rig_morph.js), so the lever is the
+        # perpendicular distance from that axis, which has no x component.
+        arm_a = math.hypot(ca.y - hinge.y, ca.z - hinge.z) / length
+        arm_b = math.hypot(cb.y - hinge.y, cb.z - hinge.z) / length
+        arm = max(arm_a, arm_b)
+        if arm < 1.0e-7:
+            continue
+        allowed = mouth_module.EDGE_STRETCH_BUDGET * (rest / length) / arm
+        edges.append((a, b, min(1.0, allowed)))
+
+    if not edges:
+        return {"edges": 0, "changed": 0}
+
+    before = dense.copy()
+    sweeps, worst = 0, 0.0
+    for sweeps in range(1, 65):
+        worst = 0.0
+        for a, b, allowed in edges:
+            delta = dense[a] - dense[b]
+            excess = abs(delta) - allowed
+            if excess <= 0.0:
+                continue
+            worst = max(worst, excess)
+            if delta > 0.0:
+                dense[a] = dense[b] + allowed
+            else:
+                dense[b] = dense[a] + allowed
+        if worst <= 1.0e-4:
+            break
+
+    changed = 0
+    for index in range(count):
+        if abs(dense[index] - before[index]) <= 1.0e-6:
+            continue
+        value = float(max(0.0, min(1.0, dense[index])))
+        jaw.add([index], value, "REPLACE")
+        head.add([index], 1.0 - value, "REPLACE")
+        changed += 1
+    print("FINISH final jaw cap edges=%d sweeps=%d residual=%.6f converged=%s "
+          "changed=%d peak %.3f -> %.3f"
+          % (len(edges), sweeps, worst, worst <= 1.0e-4, changed,
+             float(before.max()), float(dense.max())), flush=True)
+    return {"edges": len(edges), "changed": changed,
+            "converged": bool(worst <= 1.0e-4), "sweeps": sweeps}
 
 
 def _world_frame(obj):
@@ -1138,6 +1406,37 @@ def finish_family(ctx):
     # that exists whether or not a decimate ran.  One call here covers both
     # cases and cannot double-run on a family that DID decimate.
     _collapse_post_decimate_slivers(low)
+
+    # LAST weight edit before export: the gate reads the exported topology, so
+    # the gradient cap has to be the final word on it.  See the long note on
+    # _cap_final_jaw_gradient for why the mouth-stage cap cannot cover this.
+    #
+    # Cap and sliver-collapse are mutually recursive and must be driven to a
+    # JOINT fixed point, not run once each.  The cap's allowance is
+    # proportional to rest length, so on a sliver it is ~0 and the edge is
+    # unsatisfiable by weights alone - only removing the geometry fixes it.
+    # Conversely bmesh.ops.collapse manufactures new near-coincident survivors
+    # and re-authors the weights around them, which can re-open a gradient the
+    # cap had already closed.  Measured after the first single-pass round:
+    # four families fell from 11-45x to 3.1-3.6x, but the residual edges were
+    # all slivers (thresher's worst at 1.9e-3 of L against a mesh median of
+    # 3.5e-2, carrying dW 0.08) that the percentile-relative collapse limit had
+    # stopped short of, because that limit rises as slivers are removed.
+    #
+    # Alternate the two until a full round changes nothing. Each collapse
+    # strictly reduces the vertex count and each cap sweep is monotonically
+    # decreasing, so the loop terminates; the bound is a runaway guard.
+    for _round in range(6):
+        _capped = _cap_final_jaw_gradient(low, rig)
+        _unsat = _unsatisfiable_cap_edges(low, rig)
+        if _unsat:
+            print("FINISH %d edges unsatisfiable by the cap, collapsing them"
+                  % len(_unsat), flush=True)
+        _removed = _collapse_post_decimate_slivers(
+            low, label="final-round%d" % (_round + 1), extra_edges=_unsat)
+        if not _capped.get("changed") and not _removed:
+            break
+    print("FINISH cap/collapse fixed point after %d rounds" % (_round + 1), flush=True)
 
     output = _root / "assets" / "models" / "fam" / (family + ".glb")
     glb_bytes = _export(low, rig, output, ctx.get("extras"))

@@ -166,9 +166,84 @@ async function probeOne(file) {
   const cj = centroid(jawWeighted), ch = centroid(headWeighted);
   const cand = axes.slice(1).map(([a]) => a);
   const idx0 = { x: 0, y: 1, z: 2 };
-  const upAxis = cand.sort((a, b) => Math.abs(cj[idx0[b]] - ch[idx0[b]]) - Math.abs(cj[idx0[a]] - ch[idx0[a]]))[0];
+
+  /* UP AXIS (lane A5, 2026-09-17). This is the true cause of snapjaw's n = 0
+   * lower-lip classification, and it is a probe bug, not an asset defect.
+   *
+   * The jaw-vs-head centroid rule assumes the jaw hangs measurably BELOW the
+   * head centroid. On snapjaw those two centroids are vertically coincident to
+   * 1e-4 (cj.y 0.1208 vs ch.y 0.1206, a separation of 0.0001 against a body
+   * extent of 1.0), because its authored jaw wraps the snout symmetrically
+   * rather than hanging under it. At that magnitude the rule is reading
+   * floating-point noise, and it picked X - the shark's WIDTH - as "up". The
+   * lip test then measured a slab down one FLANK, where no jaw-weighted vertex
+   * lives, so n = 0. Same rule, same failure mode as the "second-largest
+   * extent picks width" bug it was introduced to fix.
+   *
+   * Use the signal that is unambiguous on every family instead: the direction
+   * the jaw vertices ACTUALLY TRAVEL when the bone opens. A jaw opens downward
+   * by definition, so that vector IS local "down", it is measured rather than
+   * assumed, and it needs no anatomy heuristic. Measured across all five
+   * pilots it names the same axis every time (z, the forward axis here, which
+   * is exactly why the candidate list still excludes forward - the jaw swings
+   * forward-and-down and the forward component dominates). Rank the two
+   * non-forward candidates by jaw travel, and only fall back to the centroid
+   * rule if that travel is degenerate. */
+  const upProbeQuat = jawBone.quaternion.clone();
+  jawBone.rotateOnAxis(JAW_HINGE_AXIS, OPEN_RAD);
+  jawBone.updateMatrixWorld(true);
+  const upProbePos = bakedPositions(mesh);
+  jawBone.quaternion.copy(upProbeQuat);
+  jawBone.updateMatrixWorld(true);
+  const jawTravel = [0, 0, 0];
+  for (const i of jawWeighted) {
+    jawTravel[0] += upProbePos[3 * i] - restPos[3 * i];
+    jawTravel[1] += upProbePos[3 * i + 1] - restPos[3 * i + 1];
+    jawTravel[2] += upProbePos[3 * i + 2] - restPos[3 * i + 2];
+  }
+  for (let k = 0; k < 3; k++) jawTravel[k] /= Math.max(1, jawWeighted.length);
+  const travelOn = (a) => Math.abs(jawTravel[idx0[a]]);
+  const bestTravel = Math.max(...cand.map(travelOn));
+  const upAxis = bestTravel > 1e-6
+    ? cand.slice().sort((a, b) => travelOn(b) - travelOn(a))[0]
+    : cand.slice().sort((a, b) => Math.abs(cj[idx0[b]] - ch[idx0[b]]) - Math.abs(cj[idx0[a]] - ch[idx0[a]]))[0];
   const axisIdx = { x: 0, y: 1, z: 2 };
   const fI = axisIdx[fwdAxis], uI = axisIdx[upAxis];
+
+  /* HEAD REGION (lane A5, 2026-09-17 - this is why snapjaw classified 0 lip
+   * vertices, and it is a probe bug, not an asset defect).
+   *
+   * `headWeighted` is every vertex with Head weight > 0.1. After
+   * finish._normalize_joined_mouth_skin runs, EVERY body vertex that is not
+   * jaw-weighted is given Head = 1.0, so that set spans nose to TAIL TIP. The
+   * "head height" measured from it was really the whole body's vertical
+   * extent, which on a shark is dominated by the dorsal fin and the caudal
+   * lobe, both far from the mouth. `uFrac <= 0.15` then selects a slab near
+   * the belly/lower caudal rather than the lower lip, and on snapjaw (the
+   * deepest-bodied pilot, head extent 0.117 against a body extent of 0.200)
+   * not one jaw-weighted vertex fell inside it: n = 0.
+   *
+   * Scope the extent to the actual head before taking fractions. The jaw
+   * region is by definition part of the head, so its forward extent gives a
+   * reliable head span: take the jaw-weighted verts' bounding interval along
+   * forward, grow it to the fuller head length, and keep only head-weighted
+   * verts inside it. Falls back to the old behaviour if that window is empty,
+   * so no family can regress to a worse basis than before. */
+  const jawF = jawWeighted.map((i) => restPos[3 * i + fI]);
+  const jawFMin = Math.min(...jawF), jawFMax = Math.max(...jawF);
+  // The head extends back from the jaw by roughly the jaw's own length again;
+  // 2x the jaw span, centred on the jaw, comfortably covers skull and snout
+  // while excluding trunk, dorsal fin and tail.
+  const jawSpan = Math.max(jawFMax - jawFMin, 1e-6);
+  const headLo = jawFMin - jawSpan, headHi = jawFMax + jawSpan;
+  const headRegion = headWeighted.filter((i) => {
+    const f = restPos[3 * i + fI];
+    return f >= headLo && f <= headHi;
+  });
+  if (headRegion.length) {
+    headWeighted.length = 0;
+    for (const i of headRegion) headWeighted.push(i);
+  }
 
   // head height range (from head-weighted verts) along the "up" axis, and
   // front/back range along "forward" axis, both from rest positions.
@@ -196,7 +271,15 @@ async function probeOne(file) {
     const u = restPos[i * 3 + uI], f = restPos[i * 3 + fI];
     const uFrac = (u - headMinU) / headHeight;     // 0 = bottom, 1 = top
     const fFrac = (f - headMinF) / headLength;      // 0..1 along head length (axis sign not guaranteed nose-first, but front/back symmetric-ish gate below)
-    if (jw > 0.4 && uFrac <= 0.15 && (fFrac <= 0.55 || fFrac >= 0.45)) lowerLipVerts.push(i);
+    /* `(fFrac <= 0.55 || fFrac >= 0.45)` was a tautology - it is true for
+     * every fFrac in 0..1, so the forward filter never filtered. Left as a
+     * no-op deliberately: the axis SIGN is not guaranteed nose-first on these
+     * bakes (io.measure assumes nose +Y but tigershark is nose -Y), so a real
+     * front/back gate would cut the lip off on half the families. The vertical
+     * gate plus jw > 0.4 is the honest classifier; `fFrac` is kept only so the
+     * head-length basis above stays exercised and visible. */
+    void fFrac;
+    if (jw > 0.4 && uFrac <= 0.15) lowerLipVerts.push(i);
   }
 
   // open pose = bind quaternion, then hinge about the measured axis. This is
