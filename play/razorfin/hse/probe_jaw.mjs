@@ -313,7 +313,63 @@ async function probeOne(file) {
   const headHeight = headMaxU - headMinU || 1e-6;
   const headLength = headMaxF - headMinF || 1e-6;
 
-  // lower-lip region: lowest 15% of head height AND front 55% of head length,
+  /* LIP BAND BASIS (lane rev17-jawseam, 2026-09-17) - the third and final
+   * instance of the bug lane A5 fixed twice, and the reason a healthy seam
+   * could not read PASS.
+   *
+   * A5 scoped the head window along FORWARD only and left the UP extent
+   * unbounded, so `headMinU` was still set by whatever Head-weighted geometry
+   * hangs lowest inside that forward window. After
+   * finish._normalize_joined_mouth_skin that is the THROAT and gill floor,
+   * which sits well below the entire jaw: measured on the three rebaked GLBs
+   * the head-region floor is u = 0.0285 / 0.0279 / 0.0288 while the LOWEST
+   * jaw-weighted vertex is u = 0.0540 / 0.0539 / 0.0540. The "lowest 15% of
+   * head height" slab therefore ends BELOW the mouth entirely and no jaw
+   * vertex can fall inside it, whatever the weights are: n = 0 on thresher,
+   * snapjaw and aresrender. artemisstrike and leviathanrex only escaped
+   * because their jw > 0.5 set is 4 and 2 vertices, which collapses the
+   * forward window enough to exclude the throat by accident.
+   *
+   * The deeper defect is that "lowest N% of an extent" was never the right
+   * predicate. The hinge on these rigs sits at u = 0, BELOW the whole jaw
+   * band (band u 0.054-0.153), so travel under the hinge rotation GROWS
+   * toward the TOP of the band: thresher's largest-travelling lip vertex sits
+   * at u = 0.0997, the band's ceiling, and an "up fraction" ranks the band
+   * exactly backwards. Any threshold on it is measuring the wrong end.
+   *
+   * Rank by the quantity the gate is actually about instead: perpendicular
+   * LEVER ARM from the hinge axis, which is what sets how far a vertex
+   * travels for a given gape (travel = 2 sin(theta/2) * arm * weight). The
+   * lower lip is the far end of that lever by definition. This is measured
+   * from the rig, not inferred from an anatomy heuristic, it is invariant to
+   * which way the model's axes point, and it needs no new tuned constant: the
+   * band is the top 15% of the arm range, mirroring the old 15% fraction.
+   * Falls back to the previous head-height basis if the arm range is
+   * degenerate, so no family can regress to a worse basis than before. */
+  const jawHingeMesh = (() => {
+    mesh.updateMatrixWorld(true);
+    const hw = new THREE.Vector3().setFromMatrixPosition(jawBone.matrixWorld);
+    return hw.applyMatrix4(new THREE.Matrix4().copy(mesh.matrixWorld).invert());
+  })();
+  const jawHingeDir = new THREE.Vector3(1, 0, 0)
+    .transformDirection(jawBone.matrixWorld).normalize();
+  const leverArm = (i) => {
+    const d = new THREE.Vector3(
+      restPos[i * 3] - jawHingeMesh.x,
+      restPos[i * 3 + 1] - jawHingeMesh.y,
+      restPos[i * 3 + 2] - jawHingeMesh.z);
+    return d.sub(jawHingeDir.clone().multiplyScalar(d.dot(jawHingeDir))).length();
+  };
+  const lipBandVerts = [];
+  for (let i = 0; i < n; i++) {
+    if (skinWeightOnBone(mesh, jawIdx, i) > 0.4) lipBandVerts.push(i);
+  }
+  let armMax = 0;
+  for (const i of lipBandVerts) armMax = Math.max(armMax, leverArm(i));
+  const bandOk = lipBandVerts.length >= 6 && armMax > 1e-6;
+  const LIP_ARM_FRAC = 0.85;   // top 15% of the lever range, was "lowest 15%"
+
+  // lower-lip region: lowest 15% of the jaw band AND front 55% of head length,
   // among vertices with meaningful jaw weight.
   const lowerLipVerts = [];
   for (let i = 0; i < n; i++) {
@@ -329,7 +385,11 @@ async function probeOne(file) {
      * gate plus jw > 0.4 is the honest classifier; `fFrac` is kept only so the
      * head-length basis above stays exercised and visible. */
     void fFrac;
-    if (jw > 0.4 && uFrac <= 0.15) lowerLipVerts.push(i);
+    void uFrac;
+    if (jw <= 0.4) continue;
+    if (bandOk ? (leverArm(i) >= LIP_ARM_FRAC * armMax) : (uFrac <= 0.15)) {
+      lowerLipVerts.push(i);
+    }
   }
 
   // open pose = bind quaternion, then hinge about the measured axis. This is
@@ -363,6 +423,13 @@ async function probeOne(file) {
    *
    * Region is geometric: upper 50% of head height (well clear of the lip band
    * at <=15%) and meaningfully Head-weighted. The limit stays 0.002 * L. */
+  /* The upper-head region is scoped the same way and for the same reason: its
+   * `uFrac >= 0.5` was taken against the head-plus-throat extent, so on these
+   * bakes it swept in the whole dorsal surface of the body inside the forward
+   * window (1460-5300 vertices) rather than the skull above the mouth. Anchor
+   * it to the jaw band too: upper head is everything Head-driven that sits
+   * clear ABOVE the jaw band's top, which is the only geometry whose motion
+   * the "jaw weight must not bleed into the skull" property is about. */
   const upperRegionVerts = [];
   for (let i = 0; i < n; i++) {
     const uFrac = (restPos[i * 3 + uI] - headMinU) / headHeight;
