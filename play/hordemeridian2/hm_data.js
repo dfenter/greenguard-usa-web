@@ -451,6 +451,25 @@
     }
   }
 
+  // M3 bestiary: 7 new data-driven behaviors, additive. Not placed in
+  // REGION_ENEMIES pools (mission spawn tables are M4 scope); reachable by
+  // key via spawn() and REGION_ENEMY_BY_KEY like any variant/apex entry.
+  // Reuses the six pooled bodies/frames, no new atlas assets.
+  var M3_ENEMIES = [
+    { key: 'wing-cutter', frame: 'sprinter', base: 'sprinter', behavior: 'formation', r: 12, hp: 10, speed: 96, dmg: 12, xp: 2, tint: 0xffd67a, scale: 1.0 },
+    { key: 'rift-strafer', frame: 'lancer', base: 'lancer', behavior: 'strafer', r: 15, hp: 20, speed: 60, dmg: 14, xp: 3, tint: 0x7ac8ff, scale: 1.02, ranged: true },
+    { key: 'wall-warden', frame: 'bulwark', base: 'bulwark', behavior: 'shield-wall', r: 22, hp: 40, speed: 24, dmg: 17, xp: 3, tint: 0xa8a8e8, scale: 1.05 },
+    { key: 'nebula-burrower', frame: 'weaver', base: 'weaver', behavior: 'burrower', r: 15, hp: 24, speed: 66, dmg: 20, xp: 3, tint: 0x9b8cff, scale: 1.02 },
+    { key: 'gem-mimic', frame: 'deco_core', base: 'drifter', behavior: 'mimic', r: 12, hp: 16, speed: 0, dmg: 22, xp: 3, tint: 0xa7ffe0, scale: 0.7 },
+    { key: 'mine-bomber', frame: 'drifter', base: 'drifter', behavior: 'bomber', r: 16, hp: 18, speed: 54, dmg: 0, xp: 3, tint: 0xff9a5a, scale: 1.05 },
+    { key: 'xp-leech', frame: 'wisp', base: 'weaver', behavior: 'leech', r: 14, hp: 14, speed: 74, dmg: 8, xp: 2, tint: 0xffb4e6, scale: 1.0 }
+  ];
+  for (var m3i = 0; m3i < M3_ENEMIES.length; m3i++) {
+    REGION_ENEMY_BY_KEY[M3_ENEMIES[m3i].key] = M3_ENEMIES[m3i];
+  }
+  var M3_ENEMY_BY_KEY = {};
+  for (var m3k = 0; m3k < M3_ENEMIES.length; m3k++) M3_ENEMY_BY_KEY[M3_ENEMIES[m3k].key] = M3_ENEMIES[m3k];
+
   // High-tier apex roster. Reuses classic bodies/frames at larger radius and
   // distinct tints; no new atlas assets. apex: true keeps them out of the
   // hot-start seed filter alongside the existing ranged/sapper exclusion.
@@ -562,6 +581,8 @@
     BANK_RATE: BANK_RATE,
     REGION_ENEMIES: REGION_ENEMIES,
     REGION_ENEMY_BY_KEY: REGION_ENEMY_BY_KEY,
+    M3_ENEMIES: M3_ENEMIES,
+    M3_ENEMY_BY_KEY: M3_ENEMY_BY_KEY,
     APEX_ENEMIES: APEX_ENEMIES,
     APEX_BY_KEY: APEX_BY_KEY,
     REGION_BOSSES: REGION_BOSSES,

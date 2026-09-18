@@ -7604,6 +7604,20 @@
           continue;
         }
 
+        // M3 bestiary lookup: data-driven behaviors added by hm2_enemies.js.
+        // Falls through to the existing if/else chain untouched when the
+        // behavior key is not one of the new ones (window.HM2_ENEMIES may
+        // also be absent entirely, e.g. an older cached page).
+        if (window.HM2_ENEMIES && window.HM2_ENEMIES.BEHAVIORS[e.behavior]) {
+          var m3ctx = {
+            dt: dt, enemyClock: enemyClock, phaseHidden: phaseHidden,
+            targetX: targetX, targetY: targetY, dx: dx, dy: dy, dist: dist,
+            sp: sp, srand: srand, clampField: clampField, TAU: TAU
+          };
+          var m3Handled = window.HM2_ENEMIES.BEHAVIORS[e.behavior](this, e, m3ctx);
+          if (m3Handled) continue;
+        }
+
         if (e.behavior === 'blink') {
           if (e.cd <= 0 && !phaseHidden) {
             e.cd = 2.8;
@@ -8072,6 +8086,9 @@
         return;
       }
       var amt = amount * this.tideDamageMultiplier();
+      if (e.behavior === 'shield-wall' && window.HM2_ENEMIES) {
+        amt *= window.HM2_ENEMIES.wallDamageMultiplier(this, e, hx, hy);
+      }
       if (!e.boss && e.behavior !== 'shield-aura') {
         var auraList = this.queryAux(e.x, e.y, 160);
         for (var wai = 0; wai < auraList.length; wai++) {
