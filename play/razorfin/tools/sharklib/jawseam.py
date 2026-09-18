@@ -223,7 +223,14 @@ def check(P, F, wj, wh, hinge, axis, theta=THETA, budget_tris=9000,
     # I7 normalisation + coincident-duplicate weight agreement
     total = wj + wh + wr
     bad_sum = np.flatnonzero(np.abs(total - 1.0) > QUANTUM + 1.0e-9)
-    bad_rng = np.flatnonzero((wj < -1.0e-9) | (wj > 1.0 - wr + 1.0e-9))
+    # The range test gets the same slack as the sum test above.  wj, wh and wr
+    # come back from a float32 POSITION/WEIGHTS_0 round trip, so a vertex whose
+    # authored weights satisfy wj == 1 - wr exactly can read wj > 1 - wr by
+    # ~1e-7 on export.  A 1e-9 epsilon turned that float32 quantum into 3-24
+    # I7 "violations" per family on meshes whose weight sums are correct to
+    # 1.1e-7; the invariant is about weights that genuinely exceed their
+    # budget, so it is stated at the quantum I7 already allows.
+    bad_rng = np.flatnonzero((wj < -QUANTUM) | (wj > 1.0 - wr + QUANTUM))
     dup_bad = []
     if E.shape[0] and L > 0:
         coincident = np.flatnonzero(rest < EPS_ZERO * L)

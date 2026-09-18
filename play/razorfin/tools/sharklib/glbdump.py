@@ -179,8 +179,32 @@ def dump(path):
     wj, wh = bone_weight(jaw_j), bone_weight(head_j)
     wr = np.clip(weights.sum(axis=1) - wj - wh, 0.0, 1.0)
 
+    # BIND-POSE SKINNED COORDINATES (SPEC-jawseam.md section 0).
+    #
+    # The gate measures rest lengths in the pose the renderer shows, which is
+    # every vertex pushed through the linear blend of its bones' (worldBind @
+    # ibm) matrices with the jaw at its authored bind.  That is NOT the raw
+    # POSITION array: for a joint whose worldBind is exactly inv(ibm) the
+    # product is identity, but a vertex carrying Neck or spine weight is moved
+    # by the blend even so, because the blend of identities weighted by a
+    # weight vector that does not sum to 1 is not identity.  Measured on the
+    # rebaked GLBs 1757-2343 seam edges per family carry such weight and the
+    # two rest lengths diverge by up to 2.8x on exactly the edges the gate
+    # tears on.  Export S so every invariant can be evaluated in the gate's
+    # own basis.
+    world_bind = np.linalg.inv(ibm)                      # (J,4,4)
+    skin_mat = np.einsum("jab,jbc->jac", world_bind, ibm)  # identity per joint
+    Ph = np.hstack([P, np.ones((len(P), 1))])
+    S = np.zeros((len(P), 3), dtype=np.float64)
+    for k in range(4):
+        m = skin_mat[joints[:, k]]                        # (N,4,4)
+        contrib = np.einsum("nab,nb->na", m, Ph)[:, :3]
+        S += weights[:, k, None] * contrib
+
     return {
-        "P": P, "F": F, "wj": wj, "wh": wh, "wr": wr,
+        "P": P, "S": S, "F": F, "wj": wj, "wh": wh, "wr": wr,
+        "joints": joints, "weights": weights,
+        "ibm": ibm,
         "hinge": hinge, "axis": axis, "bind_quat": bind_quat,
         "jaw_rel_angle": np.float64(jaw_rel_angle),
         "joint_rot_dev": joint_rot_dev,

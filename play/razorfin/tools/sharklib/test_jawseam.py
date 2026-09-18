@@ -325,3 +325,71 @@ def test_glb_invariants(family):
         s = js.analytic_stretch(d["P"], out["edges"], d["wj"], d["hinge"],
                                 d["axis"], sign=sign)
         assert float(s.max()) < js.STRETCH_SPEC, (family, sign, float(s.max()))
+
+
+def test_third_bone_at_bind_does_not_move_rest_lengths():
+    """A third bone carrying seam weight must not change rest(e).
+
+    This is the case the previous lane could not distinguish and wrongly
+    blamed on the spec.  It measured the probe's rest pose disagreeing with
+    the exported positions by up to 100x on seam edges, saw that 1757-2343
+    seam edges per family carry Neck/spine weight, and concluded that rest(e)
+    had to be evaluated on bind-pose SKINNED coordinates rather than the raw
+    ones SPEC-jawseam.md section 0 defines.
+
+    It does not.  Linear blend skinning at the bind pose is the identity map
+    whenever every joint's skinning matrix (worldBind @ inverseBind) is
+    identity and the weights sum to 1, and both hold on all five families
+    (measured: skinning matrices identity to 8e-8, weight sums to 1.1e-7).
+    Residual weight on a third bone is therefore irrelevant to rest lengths,
+    however much of it there is.  The real defect was that probe_jaw refreshed
+    world matrices from the SkinnedMesh, which does not reach bones parented
+    under a sibling Object3D, so it skinned by a stale identity bone matrix
+    and measured boneInverse instead of the bind pose.
+
+    Assert the algebra directly, so a future lane cannot re-derive the wrong
+    conclusion from the same observation: give the seam vertices a large
+    random third-bone weight, skin at the bind, and require every rest length
+    to be unchanged.
+    """
+    rng = np.random.default_rng(1704)
+    P, F, wj, wh, _wr0, hinge, axis = _tube(rng)
+
+    E = js._edges_of(F)
+    seam = np.unique(E[np.abs(wj[E[:, 0]] - wj[E[:, 1]]) > 1e-6])
+    assert seam.size > 0
+
+    # A third bone (Neck) takes a large, random share on the seam vertices,
+    # exactly the distribution the previous lane measured (mean wr 0.22-0.35,
+    # max 1.0), with the jaw/head split renormalised to leave room for it.
+    base = wj + wh
+    base = np.where(base > 1e-12, base, 1.0)
+    wr = np.zeros_like(wj)
+    wr[seam] = rng.uniform(0.0, 1.0, size=seam.size)
+    scale = (1.0 - wr) / base
+    wj_n, wh_n = wj * scale, wh * scale
+    assert np.abs(wj_n + wh_n + wr - 1.0).max() < 1e-12
+
+    # Skin at the bind pose: every joint's skinning matrix is identity, which
+    # is what the exported GLBs carry, so the blend is sum(w_k * I * p) = p
+    # for any weight vector that sums to 1 -- third bone or not.
+    ident = np.eye(4)
+    skinned = np.zeros_like(P)
+    for w in (wj_n, wh_n, wr):
+        homo = np.hstack([P, np.ones((len(P), 1))])
+        skinned += w[:, None] * (homo @ ident.T)[:, :3]
+
+    assert np.abs(skinned - P).max() < 1e-12, "bind skinning moved a vertex"
+
+    rest_raw = js._rest_lengths(P, E)
+    rest_skinned = js._rest_lengths(skinned, E)
+    assert np.abs(rest_raw - rest_skinned).max() < 1e-12, (
+        "third-bone weight changed a rest length; rest(e) is basis-independent "
+        "at the bind pose and SPEC-jawseam.md section 0 is correct as written")
+
+    # And the invariants the solver drives are therefore identical in either
+    # basis, which is the property the gate depends on.
+    out_raw = js.check(P, F, wj_n, wh_n, hinge, axis, wr=wr)
+    out_skin = js.check(skinned, F, wj_n, wh_n, hinge, axis, wr=wr)
+    assert out_raw["violations"] == out_skin["violations"]
+    assert abs(out_raw["I5"]["worst"] - out_skin["I5"]["worst"]) < 1e-12
