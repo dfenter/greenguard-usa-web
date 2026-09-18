@@ -86,7 +86,6 @@ function findSkinnedMesh(root) {
 /* Bake the CURRENT (posed) world position of every vertex, honouring
  * skinning, without mutating the geometry. */
 function bakedPositions(mesh) {
-  mesh.updateMatrixWorld(true);
   const geo = mesh.geometry;
   const pos = geo.getAttribute('position');
   const out = new Float32Array(pos.count * 3);
@@ -119,6 +118,33 @@ async function probeOne(file) {
 
   const mesh = findSkinnedMesh(gltf.scene);
   if (!mesh) return { name, ok: false, error: 'no SkinnedMesh found' };
+
+  /* SCENE-ROOT MATRIX UPDATE (lane rev17-jawseam, 2026-09-17).
+   *
+   * THIS is why every family failed, and it is entirely a probe defect.
+   *
+   * The probe used to refresh world matrices with `mesh.updateMatrixWorld()`
+   * and `jawBone.updateMatrixWorld()`. Neither reaches the skeleton correctly:
+   * the exporter parents the bones under a SIBLING `low_rig` Object3D, not
+   * under the SkinnedMesh, so updating from the mesh never touches a bone at
+   * all, and updating from `jawBone` recomputes it against a STALE parent
+   * chain. Every bone therefore kept its constructed identity `matrixWorld`,
+   * and `Skeleton.update()` computed boneMatrix = identity * boneInverse =
+   * boneInverse - a 90 degree rotation with a -0.3 offset on these rigs, not
+   * the identity the bind pose must be.
+   *
+   * The consequence is that the probe's "rest pose" was not the bind pose but
+   * an arbitrary per-bone distortion, which is why its rest edge lengths
+   * disagreed with the exported arrays by up to 100x and why a seam that
+   * satisfies every invariant offline still measured as torn. Updating from
+   * the SCENE ROOT instead, the bind-pose baked positions equal the raw
+   * POSITION accessor to 3.4e-8 on all five families, which is exactly the
+   * basis SPEC-jawseam.md evaluates rest(e), arm(e) and the open pose in.
+   *
+   * `refresh()` is called wherever the old code updated a matrix, so the
+   * skeleton is always posed from the root before any position is baked. */
+  const sceneRoot = gltf.scene;
+  const refresh = () => { sceneRoot.updateMatrixWorld(true); };
   const bones = mesh.skeleton.bones;
   const jawIdx = bones.findIndex((b) => b.name === 'LowerJaw');
   const headIdx = bones.findIndex((b) => b.name === 'Head');
@@ -137,7 +163,7 @@ async function probeOne(file) {
   // what writeJawGape restores as `authority.closedBase` before every open.
   const bindQuat = jawBone.quaternion.clone();
   jawBone.quaternion.copy(bindQuat);
-  jawBone.updateMatrixWorld(true);
+  refresh();
   const restPos = bakedPositions(mesh);
 
   /* HINGE SIGN (lane A6, 2026-09-17). Which way local X opens the jaw is a
@@ -170,14 +196,14 @@ async function probeOne(file) {
     for (const sign of [1, -1]) {
       jawBone.quaternion.copy(bindQuat);
       jawBone.rotateOnAxis(JAW_HINGE_AXIS, sign * OPEN_RAD);
-      jawBone.updateMatrixWorld(true);
+      refresh();
       const posed = bakedPositions(mesh);
       const c = mean(jawIdxAll, posed);
       const away = Math.hypot(c[0] - skull[0], c[1] - skull[1], c[2] - skull[2]);
       if (away > best.away) best = { sign, away };
     }
     jawBone.quaternion.copy(bindQuat);
-    jawBone.updateMatrixWorld(true);
+    refresh();
     return best.sign;
   })();
   const OPEN_ANGLE = openSign * OPEN_RAD;
@@ -241,10 +267,10 @@ async function probeOne(file) {
    * rule if that travel is degenerate. */
   const upProbeQuat = jawBone.quaternion.clone();
   jawBone.rotateOnAxis(JAW_HINGE_AXIS, OPEN_ANGLE);
-  jawBone.updateMatrixWorld(true);
+  refresh();
   const upProbePos = bakedPositions(mesh);
   jawBone.quaternion.copy(upProbeQuat);
-  jawBone.updateMatrixWorld(true);
+  refresh();
   const jawTravel = [0, 0, 0];
   for (const i of jawWeighted) {
     jawTravel[0] += upProbePos[3 * i] - restPos[3 * i];
@@ -347,7 +373,7 @@ async function probeOne(file) {
    * Falls back to the previous head-height basis if the arm range is
    * degenerate, so no family can regress to a worse basis than before. */
   const jawHingeMesh = (() => {
-    mesh.updateMatrixWorld(true);
+    refresh();
     const hw = new THREE.Vector3().setFromMatrixPosition(jawBone.matrixWorld);
     return hw.applyMatrix4(new THREE.Matrix4().copy(mesh.matrixWorld).invert());
   })();
@@ -397,7 +423,7 @@ async function probeOne(file) {
   // `rotateOnAxis(JAW_HINGE_AXIS, angle)`, not a rotation.x write.
   jawBone.quaternion.copy(bindQuat);
   jawBone.rotateOnAxis(JAW_HINGE_AXIS, OPEN_ANGLE);
-  jawBone.updateMatrixWorld(true);
+  refresh();
   const openPos = bakedPositions(mesh);
 
   const dist = (i) => Math.hypot(
