@@ -293,6 +293,51 @@ def _ensure_group(obj, name, indices):
     return group
 
 
+def _nose_sign(vertices, lo, hi):
+    """Derive which end of +/-Y is the nose, without assuming the bake contract.
+
+    ``orient()`` decides this with a girth comparison (the snout half of the
+    body carries more mean radial mass than the caudal-peduncle/fin half) and
+    flips the mesh so the nose lands on +Y. That flip is the source of truth,
+    but ``measure`` must also be correct when it is handed a mesh that was
+    never routed through ``orient`` (some callers measure a raw import).
+    Reuse the identical girth signal here, sampling the same +Y/-Y halves
+    ``orient`` uses, so a pre-oriented mesh (already nose at +Y) is confirmed
+    and an unoriented one (nose at -Y, e.g. tigershark/thresher source GLBs)
+    is detected rather than silently mirrored.
+    """
+    ymin, ymax = lo.y, hi.y
+    span = max(ymax - ymin, 1e-9)
+    mid = (ymin + ymax) / 2.0
+    front = [v.co for v in vertices if v.co.y > mid]
+    back = [v.co for v in vertices if v.co.y <= mid]
+
+    def girth(points):
+        if not points:
+            return 0.0
+        return sum(math.hypot(p.x, p.z) for p in points) / len(points)
+
+    front_girth, back_girth = girth(front), girth(back)
+
+    # Tie-break with tip taper/solidity: the nose end is blunter (wider
+    # relative to its local height) than the tail end, which narrows into
+    # forked caudal lobes. Matches the solidity/taper signal documented for
+    # dorsal/roll detection, applied here to the fore/aft axis instead.
+    def tip_solidity(high):
+        band = [p for p in (front if high else back)
+                 if ((p.y - mid) / span >= 0.32 if high else (mid - p.y) / span >= 0.32)]
+        if not band:
+            return 0.0
+        width = max(p.x for p in band) - min(p.x for p in band)
+        height = max(p.z for p in band) - min(p.z for p in band)
+        return width * height / max(span * span, 1e-9)
+
+    girth_vote = 1 if front_girth >= back_girth else -1
+    solidity_vote = 1 if tip_solidity(True) >= tip_solidity(False) else -1
+    sign = girth_vote if girth_vote == solidity_vote else girth_vote
+    return sign, front_girth, back_girth
+
+
 def measure(obj, create_groups=True):
     """Measure the oriented shark and derive mouth/fin landmark masks.
 
@@ -303,6 +348,14 @@ def measure(obj, create_groups=True):
     Landmark values are local-space ``Vector`` instances. Fin masks are vertex
     index lists and, when ``create_groups`` is true, matching named Blender
     vertex groups are installed on the object.
+
+    Nose polarity is MEASURED, not assumed: some bases (tigershark, thresher)
+    ship nose-at--Y and are only flipped to +Y by ``orient()``. ``measure``
+    reuses ``orient``'s girth signal (mean radial mass of the +Y half vs the
+    -Y half) plus a nose/tail solidity term so it is correct even when called
+    on a mesh that has not been routed through ``orient`` first. When the mesh
+    is already nose-at-+Y (the normal, oriented case) this is a no-op: the
+    detected sign is +1 and nothing below changes.
     """
     vertices = list(obj.data.vertices)
     if not vertices:
@@ -311,10 +364,21 @@ def measure(obj, create_groups=True):
     hi = mathutils.Vector((max(v.co.x for v in vertices), max(v.co.y for v in vertices), max(v.co.z for v in vertices)))
     extent = hi - lo
     long_axis = max(range(3), key=lambda axis: extent[axis])
+    nose_sign, nose_front_girth, nose_back_girth = _nose_sign(vertices, lo, hi)
+    if nose_sign < 0:
+        print("MEASURE nose-axis flip: -Y girth=%.4f > +Y girth=%.4f (unoriented mesh, "
+              "measuring tail-first end as -Y)" % (nose_back_girth, nose_front_girth))
     ymin, ymax = lo.y, hi.y
     L = max(ymax - ymin, 1e-9)
     zc = (lo.z + hi.z) / 2.0
     H = max(hi.z - lo.z, 1e-9)
+
+    # t=0 at the tail, t=1 at the nose, regardless of which raw Y end the
+    # nose is actually on: nose_sign flips the station formula so every
+    # downstream nose/tail-relative band (jaw range, head band, fin bands)
+    # lands on the correct anatomy for bases authored nose-at--Y.
+    def t_of(v):
+        return (v.co.y - ymin) / L if nose_sign > 0 else (ymax - v.co.y) / L
 
     # Lower contour sampled along the authored jaw range. The median of the
     # lowest 12% avoids one stray scan spike while retaining the jaw silhouette.
@@ -324,7 +388,7 @@ def measure(obj, create_groups=True):
         t0 = 0.80 + 0.18 * bin_index / bins
         t1 = 0.80 + 0.18 * (bin_index + 1) / bins
         below = [v.co.z for v in vertices
-                 if t0 <= (v.co.y - ymin) / L < t1 and v.co.z < zc]
+                 if t0 <= t_of(v) < t1 and v.co.z < zc]
         samples.append(_percentile(below, 0.10) if below else None)
     usable = [(i, z) for i, z in enumerate(samples) if z is not None]
     jaw_z = zc - 0.06 * H
@@ -350,17 +414,17 @@ def measure(obj, create_groups=True):
             jaw_t = 0.80 + 0.18 * usable[selected][0] / max(1, bins - 1)
             jaw_method = "lower contour curvature flip"
 
-    def t_of(v):
-        return (v.co.y - ymin) / L
-
     head_vertices = [v for v in vertices if t_of(v) >= 0.72]
     if not head_vertices:
         head_vertices = vertices
     head_top = max(head_vertices, key=lambda v: v.co.z).co.copy()
-    nose = max(vertices, key=lambda v: v.co.y).co.copy()
+    nose = (max(vertices, key=lambda v: v.co.y) if nose_sign > 0
+            else min(vertices, key=lambda v: v.co.y)).co.copy()
     tail_base_candidates = [v for v in vertices if 0.17 <= t_of(v) <= 0.27]
+    tail_fallback = (min(vertices, key=lambda v: v.co.y) if nose_sign > 0
+                      else max(vertices, key=lambda v: v.co.y)).co.copy()
     tail_base = (sum((v.co for v in tail_base_candidates), mathutils.Vector()) /
-                 max(1, len(tail_base_candidates))) if tail_base_candidates else min(vertices, key=lambda v: v.co.y).co.copy()
+                 max(1, len(tail_base_candidates))) if tail_base_candidates else tail_fallback
     back_candidates = [v for v in vertices if 0.42 <= t_of(v) <= 0.58]
     back_mid = (sum((v.co for v in back_candidates), mathutils.Vector()) /
                 max(1, len(back_candidates))) if back_candidates else mathutils.Vector((0, ymin + .5 * L, zc))
@@ -415,9 +479,11 @@ def measure(obj, create_groups=True):
         "long_axis_name": "XYZ"[long_axis],
         "ymin": float(ymin), "ymax": float(ymax), "L": float(L),
         "zc": float(zc), "H": float(H),
+        "nose_sign": nose_sign,
         "jaw_line": {"t": float(jaw_t), "z": float(jaw_z), "method": jaw_method,
                       "fallback": jaw_method == "zc-0.06H fallback"},
-        "neck_plane": {"t": 0.72, "y": float(ymin + .72 * L)},
+        "neck_plane": {"t": 0.72,
+                       "y": float(ymin + 0.72 * L) if nose_sign > 0 else float(ymax - 0.72 * L)},
         "landmarks": {"nose": nose, "head_top": head_top, "back_mid": back_mid,
                       "flank_l": left, "flank_r": right, "tail_base": tail_base},
         "fin_groups": fin_groups,

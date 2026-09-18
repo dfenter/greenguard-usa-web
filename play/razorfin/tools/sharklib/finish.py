@@ -503,6 +503,84 @@ def _join_mouth_objects(low, extras):
     return low, names
 
 
+def _collapse_post_decimate_slivers(low, label="post-decimate"):
+    """Collapse jaw-seam slivers created AFTER the join-time sliver pass.
+
+    The join-time pass in ``_join_mouth_objects`` cleans the mesh as it is at
+    that moment, but the budget COLLAPSE decimate runs much later, on the
+    joined and already-skinned mesh, and a collapse decimate MAKES new
+    degenerate edges: it merges vertex pairs and leaves behind near-coincident
+    survivors straddling the jaw seam.  Nothing ran after it, so those slivers
+    reached the GLB.
+
+    They are not a weighting defect and no weight rule can fix them.  Measured
+    on the worst edges of aresrender / snapjaw / thresher, both endpoints carry
+    essentially the SAME jaw weight (0.774/0.721, 0.483/0.483, 0.480/0.480)
+    over rest lengths of 1e-4 to 1e-3 of L.  With no weight difference there is
+    no gradient to cap; the two ends simply start almost coincident and ride
+    the jaw, so tiny differences blow up ``openLen / restLen``.  The fix is to
+    remove the degenerate geometry, which is what this does.
+
+    Same weight predicate as the join-time pass (both ends must move, at least
+    one must be part-weighted), and the same percentile-relative length limit,
+    so it cannot run away on dense scan topology.
+    """
+    jaw_group = low.vertex_groups.get("LowerJaw")
+    if jaw_group is None or not low.data.edges:
+        return 0
+    if os.environ.get("RAZORFIN_NO_COLLAPSE") == "1":
+        return 0
+    dims = [float(value) for value in low.dimensions]
+    if max(dims) <= 0:
+        return 0
+    try:
+        lengths = np.asarray([
+            (low.data.vertices[e.vertices[0]].co - low.data.vertices[e.vertices[1]].co).length
+            for e in low.data.edges], dtype=np.float32)
+        if not lengths.size:
+            return 0
+        limit = min(max(dims) * 0.005, float(np.percentile(lengths, 3.0)))
+    except Exception as exc:
+        print("FINISH WARN %s sliver limit unavailable: %s" % (label, exc), flush=True)
+        return 0
+    if limit <= 0.0:
+        return 0
+    try:
+        import bmesh
+
+        jaw_weight = {}
+        for vertex in low.data.vertices:
+            jaw_weight[vertex.index] = next(
+                (float(item.weight) for item in vertex.groups
+                 if item.group == jaw_group.index), 0.0)
+        mesh = bmesh.new()
+        mesh.from_mesh(low.data)
+        mesh.verts.ensure_lookup_table()
+        targets = []
+        for edge in mesh.edges:
+            if edge.calc_length() >= limit:
+                continue
+            a = jaw_weight.get(edge.verts[0].index, 0.0)
+            b = jaw_weight.get(edge.verts[1].index, 0.0)
+            if max(a, b) > 0.05:
+                targets.append(edge)
+        collapsed = len(targets)
+        if targets:
+            before = len(low.data.vertices)
+            bmesh.ops.collapse(mesh, edges=targets, uvs=True)
+            mesh.to_mesh(low.data)
+            low.data.update()
+            print("FINISH %s collapsed %d jaw slivers (<%.6f) verts %d -> %d"
+                  % (label, collapsed, limit, before, len(low.data.vertices)), flush=True)
+        else:
+            print("FINISH %s no jaw slivers under %.6f" % (label, limit), flush=True)
+        mesh.free()
+        return collapsed
+    except Exception as exc:
+        print("FINISH WARN %s sliver collapse skipped: %s" % (label, exc), flush=True)
+        return 0
+
+
 def _normalize_joined_mouth_skin(low, authored_base=None, island_weights=None):
     """Make the joined mouth a rigid jaw island, KEEPING the authored body lip.
 
@@ -1000,6 +1078,19 @@ def finish_family(ctx):
         finally:
             if previous and previous.name in bpy.data.objects:
                 bpy.context.view_layer.objects.active = previous
+
+    # Sliver collapse on the FINAL topology, deliberately OUTSIDE the decimate
+    # branch above.  The collapse decimate makes degenerate jaw-seam edges, so
+    # it must run after that, but it is not the only source: measured this
+    # round, aresrender / snapjaw / thresher all baked under the 9000 budget
+    # (8531 / 8047 / 8442 tris), so the decimate never fired, this pass never
+    # ran while it lived inside the branch, and their stretch came back
+    # byte-identical to the pre-fix table because the code under test never
+    # executed.  The worst edges on those families carry near-identical jaw
+    # weight (0.483/0.483) over rest lengths of 1e-4 to 1e-3 of L: geometry
+    # that exists whether or not a decimate ran.  One call here covers both
+    # cases and cannot double-run on a family that DID decimate.
+    _collapse_post_decimate_slivers(low)
 
     output = _root / "assets" / "models" / "fam" / (family + ".glb")
     glb_bytes = _export(low, rig, output, ctx.get("extras"))

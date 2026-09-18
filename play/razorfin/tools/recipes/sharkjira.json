@@ -37,12 +37,7 @@
     ],
     "belly": "#93a2a8",
     "softness": 0.18,
-    "keep_photo": true,
-    "glow_seams": {
-      "width": 0.012,
-      "colour": "#7fd0e8",
-      "strength": 0.18
-    }
+    "keep_photo": true
   },
   "variants": [],
   "turntable": {

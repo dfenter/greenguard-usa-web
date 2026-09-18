@@ -12,6 +12,7 @@ import os
 import bpy
 import bmesh
 import mathutils
+import mathutils.kdtree
 
 from . import io
 
@@ -100,6 +101,13 @@ def _attach_skin(obj, armature, jaw_weight_fn=None, head_weight_fn=None):
     modifier = obj.modifiers.new("Jaw authored skin", "ARMATURE")
     modifier.object = armature
     obj.parent = armature
+    # Parenting via assignment (rather than bpy.ops.object.parent_set) leaves
+    # matrix_parent_inverse at whatever it was before -- usually identity for
+    # a freshly created object, but if the armature is not at world origin
+    # that silently double-transforms every mouth object away from the mesh
+    # it was seated against.  Set it explicitly so seating is never at the
+    # mercy of the armature's own transform.
+    obj.matrix_parent_inverse = armature.matrix_world.inverted()
     for bone_name in ("Head", "LowerJaw"):
         group = obj.vertex_groups.get(bone_name) or obj.vertex_groups.new(name=bone_name)
         group.add(list(range(len(obj.data.vertices))), 0.0, "REPLACE")
@@ -662,8 +670,19 @@ def _load_teeth(path, name, target, lower, cavity_state, measurement):
     # gate's .01L so cones cannot peek around the snout in three-quarter view.
     target_width = max(.012 * measurement["L"], loop_width - .020 * measurement["L"])
     sx = target_width / max(strip_width, EPS)
-    sy = .32
-    sz = .18
+    # sy/sz were fixed constants (.32/.18) independent of body scale.  The kit
+    # strip is authored in its own absolute units (strip_width ~= .38); sx
+    # compresses that down to the measured mouth width in body-length units,
+    # but a fixed sy/sz left the crown-height and arc-bulge axes uncompressed
+    # by the same ratio, so on a normalized (L=1) body the strip's own local Y
+    # bulge and Z crown height overshot the cavity rim by several times the
+    # seating gate -- the floating tooth-strip defect (present on every
+    # family, confirmed on snapjaw and artemisstrike: bind-pose LowerTeeth sat
+    # ~0.02L above the lower lip band instead of tucked against it). Scale Y
+    # and Z proportionally to sx so the strip keeps its authored shape but is
+    # sized consistently with how much X was compressed to fit the mouth.
+    sy = sx
+    sz = sx
     max_y_offset = max(local_y) * sy
     rim = cavity_state.get("rim_lower" if lower else "rim_upper") or []
     fallback_y = cavity_state["front_y"]
@@ -734,87 +753,279 @@ def _load_teeth(path, name, target, lower, cavity_state, measurement):
     return teeth, mapping
 
 
-def _jaw_weight_map(obj, measurement, lip_band, cavity_state):
-    """Smoothstep base map with only the lower forward lip band moving."""
+def _jaw_weight_field(co, measurement, lip_band, cavity_state):
+    """LowerJaw weight for ONE point, as a pure function of position.
+
+    This is a continuous scalar field over the oriented local frame.  It knows
+    nothing about topology: no vertex indices, no edge lengths, no per-base
+    branches.  Everything it needs comes from the measured landmarks
+    (``measurement``) and the cut geometry (``cavity_state``), both of which are
+    derived from the shape of the animal rather than from how densely the scan
+    happens to be tessellated there.
+
+    Sampling this field directly on a post-remesh mesh is what Rev 17 did, and
+    it is the defect: the field has a steep gradient across the lip seam, so a
+    remesh that changes edge density inside that gradient puts very different
+    weights on the two ends of a physically tiny edge and the skinning gate
+    reads it as extreme stretch.  The field is therefore evaluated ONCE on the
+    pristine pre-accessory mesh and projected forward; see
+    :func:`snapshot_jaw_field` and :func:`_project_jaw_weights`.
+    """
     ymin, length, height = measurement["ymin"], measurement["L"], measurement["H"]
     jaw_z = measurement["jaw_line"]["z"]
     hinge_t = float(cavity_state["hinge_t"])
-    clamped = bool(cavity_state.get("hinge_clamped"))
-    cutoff = (hinge_t - .08) if clamped else .78
-    weights = {}
+    t = (co.y - ymin) / length
+
+    # Everything aft of the hinge is skull and never moves.  One anchor, taken
+    # from the hinge the cut actually used, instead of the old .78/.72 literals
+    # that only described one base's scan.
+    if t <= hinge_t - .10:
+        return 0.0
+
+    lower_plane = _plane_z(co.y, cavity_state["hinge_y"], jaw_z,
+                           cavity_state["lower_gape"], -1.0)
+    upper_plane = _plane_z(co.y, cavity_state["hinge_y"], jaw_z,
+                           cavity_state["half_gape"], 1.0)
+
+    # Below the lower lip plane -> jaw.  Saturates quickly: a vertex clearly
+    # under the cut is fully jaw-driven, the ramp only spans the seam itself.
+    # The band has to be thick enough that the probe's lower-lip classifier
+    # (jaw weight > .4, lowest 15% of head height) finds its required minimum
+    # of 6 vertices on every base; a hairline band reads as "no lower lip".
+    below = _smoothstep((lower_plane + max(.030 * length, lip_band * height) - co.z) /
+                        max(.016 * height, EPS))
+
+    # Forward of the hinge -> jaw, with the ramp scaled into the space that
+    # actually exists ahead of the hinge so it always saturates before the
+    # snout tip regardless of where the detector put the hinge.  Both ramps
+    # start FORWARD of the pivot so every weighted vertex has a real moment
+    # arm; a band sitting on the hinge itself has lever arm ~0 and produces no
+    # travel no matter how high its weight is.  They also have to SATURATE
+    # early enough to leave a plateau of fully jaw-driven vertices rather than
+    # a single peak, for the same >=6 vertex reason.
+    span = max(.04, 1.0 - hinge_t)
+    forward = _smoothstep((t - (hinge_t + .010)) / (.30 * span))
+    hinge = _smoothstep((t - (hinge_t + .004)) / (.18 * span))
+
+    # Under the upper lip plane -> inside the opening.  Always a ramp, never a
+    # hard cutoff: a step here would put full-weight and zero-weight vertices
+    # on opposite ends of one edge.  Since weights are now projected rather
+    # than resampled, the ramp width is a shape decision only.
+    in_opening_band = _smoothstep((upper_plane + .02 * height - co.z) /
+                                  max(.05 * height, EPS))
+
+    # Soften towards the corners of the mouth so the commissure does not tear.
+    commissure = _smoothstep((abs(co.x - cavity_state["centre_x"]) /
+                              max(.001, cavity_state["x_max"] - cavity_state["x_min"]) * 2.0 - .70) / .30)
+
+    weight = below * forward * hinge * in_opening_band
+    weight *= 1.0 - .5 * commissure
+    return min(1.0, max(0.0, weight))
+
+
+def snapshot_jaw_field(obj):
+    """Record the body's PRE-accessory, PRE-lattice vertex positions.
+
+    Returned dict is opaque to callers; hand it back to :func:`cut_mouth` as
+    ``field_snapshot``.  Taking it costs one coordinate copy and is the whole
+    mechanism that decouples jaw weights from later topology edits.
+    """
+    if not obj or obj.type != "MESH":
+        return None
+    return {
+        "points": [vertex.co.copy() for vertex in obj.data.vertices],
+        "source": obj.name,
+    }
+
+
+def _project_jaw_weights(obj, snapshot, measurement, lip_band, cavity_state):
+    """Weights for the CURRENT mesh, projected from the pre-op mesh.
+
+    The field is evaluated on the snapshot's vertices -- the topology it was
+    authored against -- and every current vertex then inherits the weight of
+    its nearest snapshot vertex through a KDTree lookup.  Because neighbouring
+    current vertices resolve to the same or adjacent snapshot vertices, the
+    weight difference across any edge is bounded by the field's variation over
+    the PRE-remesh edge length, not over the post-remesh one.  A remesh that
+    subdivides inside the seam therefore no longer manufactures a weight jump
+    on a near-zero-length edge, which is the leviathanrex 5.68x stretch.
+
+    Falls back to direct evaluation when no snapshot is available (the
+    standalone shark_bake path, where nothing edits topology before the cut).
+    """
+    points = (snapshot or {}).get("points") or []
+    if not points:
+        return {vertex.index: value
+                for vertex in obj.data.vertices
+                for value in (_jaw_weight_field(vertex.co, measurement, lip_band, cavity_state),)
+                if value > JAW_WEIGHT_FLOOR}
+
+    tree = mathutils.kdtree.KDTree(len(points))
+    for index, point in enumerate(points):
+        tree.insert(point, index)
+    tree.balance()
+
+    source_weights = [_jaw_weight_field(point, measurement, lip_band, cavity_state)
+                      for point in points]
+
+    dense = [0.0] * len(obj.data.vertices)
     for vertex in obj.data.vertices:
-        t = (vertex.co.y - ymin) / length
-        if t <= cutoff:
-            continue
-        lower_plane = _plane_z(vertex.co.y, cavity_state["hinge_y"], jaw_z,
-                               cavity_state["lower_gape"], -1.0)
-        upper_plane = _plane_z(vertex.co.y, cavity_state["hinge_y"], jaw_z,
-                               cavity_state["half_gape"], 1.0)
-        # Keep the scan's lower lip attached only below the lower cut plane;
-        # the upper head stays Head-weighted and therefore does not drift.
-        # Saturate rather than taper.  A lip vertex clearly below the lower
-        # cut plane should be fully jaw-driven, otherwise the lip is mostly
-        # Head-weighted and hardly travels when the jaw opens.  The falloff
-        # only has to cover the thin transition band at the plane itself.
-        below = _smoothstep((lower_plane + max(.018 * length, lip_band * height) - vertex.co.z) /
-                            max(.016 * height, EPS))
-        # Anchored to the clamped hinge, but the ramps must SATURATE before
-        # the snout tip (t=1.0) or a far-forward hinge leaves every lip vertex
-        # below the JAW_WEIGHT_FLOOR and the jaw ends up with no weights at
-        # all (thresher, hinge_t=.91, failed exactly this way).  Scale the
-        # ramp lengths into the space that is actually left ahead of the
-        # hinge.
-        # Only bases whose hinge actually had to be clamped forward get the
-        # rescaled ramps.  On every other base the L1b geometry was reviewed
-        # as correct, and re-anchoring its ramps measurably regressed it
-        # (thresher's cavity pushed out through the snout), so those bases keep
-        # the original fixed .78/.72 anchors byte-for-byte.
-        if clamped:
-            span = max(.04, 1.0 - hinge_t)
-            # L1d: anchor the band FORWARD of the hinge.  L1c started the
-            # `hinge` ramp at hinge_t-.05, i.e. BEHIND the pivot, so the
-            # lowest-weight band vertices sat essentially on the hinge where
-            # the lever arm is ~0 and contributed almost no travel.  That is
-            # the whaler/artemisstrike 0.0278L-vs-.03L shortfall.  Starting
-            # both ramps ahead of the hinge gives every weighted vertex a real
-            # moment arm; the ramp still saturates before the snout tip.
-            forward = _smoothstep((t - (hinge_t + .010)) / (.42 * span))
-            hinge = _smoothstep((t - (hinge_t + .004)) / (.30 * span))
-        else:
-            forward = _smoothstep((t - .78) / .12)
-            hinge = _smoothstep((t - .72) / .08)
-        # A hard 0/1 cutoff here puts full-weight and zero-weight vertices on
-        # opposite ends of a single edge, which the probe measures as extreme
-        # per-edge stretch (tigershark hit 4.85x).  Ramp it instead.
-        # Width of this ramp is a real trade-off, measured on all four bases:
-        # a hard cutoff (or a very narrow ramp) puts full- and zero-weight
-        # vertices on the same edge and the probe reads 12x stretch on
-        # whaler/tigershark; too wide a ramp lifts vertices ABOVE the upper lip
-        # plane into the jaw and drags thresher's cavity out through its
-        # tapering snout as a brown box.  .05H is the value where all four
-        # bases pass stretch AND no cavity breaks the silhouette.
-        if clamped:
-            in_opening_band = _smoothstep((upper_plane + .02 * height - vertex.co.z) /
-                                          max(.05 * height, EPS))
-        else:
-            in_opening_band = 1.0 if vertex.co.z <= upper_plane + .02 * height else .0
-        commissure = _smoothstep((abs(vertex.co.x - cavity_state["centre_x"]) /
-                                  max(.001, cavity_state["x_max"] - cavity_state["x_min"]) * 2.0 - .70) / .30)
-        weight = 1.0 * below * forward * hinge * in_opening_band
-        weight *= 1.0 - .5 * commissure
-        # Drop the faint tail of the smoothstep instead of emitting it.  A
-        # vertex carrying a few percent of LowerJaw still visibly swings at a
-        # 0.72 rad gape while reading as "upper head" to any consumer that
-        # thresholds jaw weight low (hse/probe_jaw.mjs uses 0.05).  Below the
-        # floor the vertex stays fully Head-weighted, which is what the
-        # silhouette wants anyway.
-        if weight > JAW_WEIGHT_FLOOR:
-            weights[vertex.index] = min(1.0, weight)
+        _, nearest, _ = tree.find(vertex.co)
+        if nearest is not None:
+            dense[vertex.index] = source_weights[nearest]
+
+    dense = _limit_weight_gradient(obj, dense, measurement, cavity_state)
+
+    weights = {}
+    for index, value in enumerate(dense):
+        # Same floor as before: a vertex carrying a few percent of LowerJaw
+        # still visibly swings at a 0.72 rad gape while reading as "upper head"
+        # to any consumer that thresholds jaw weight low (probe_jaw uses 0.05).
+        if value > JAW_WEIGHT_FLOOR:
+            weights[index] = value
     return weights
 
 
-def cut_mouth(obj, gape_deg=25.0, cavity_depth=.12, lip_band=.06, teeth="strip"):
+# How far a point may travel, as a fraction of an edge's own rest length,
+# before that edge reads as torn.  probe_jaw fails an edge above 3.0x; the
+# budget below is deliberately well under that so the projected band still has
+# room to round off without touching the gate.
+EDGE_STRETCH_BUDGET = 1.6
+
+# A vertex at or above this weight is band INTERIOR, not flank: it is already
+# essentially fully jaw-driven, so there is no gradient at it to round off and
+# the relaxation must not pull it down.  Sits above the probe's jw>.4 lower-lip
+# classifier so a pinned vertex always still counts as lower lip.
+JAW_INTERIOR_PIN = .55
+
+
+def _limit_weight_gradient(obj, dense, measurement, cavity_state):
+    """Cap how much LowerJaw weight may change across any ONE mesh edge.
+
+    Stretch is a per-edge quantity: the probe divides an edge's posed length by
+    its rest length.  A large weight difference across a PHYSICALLY SHORT edge
+    is what produces an extreme ratio, because the two endpoints follow the jaw
+    by very different amounts while starting almost on top of each other.  That
+    is the defect the whole escalation is about, and no distance-based band
+    rule can see it: band width is measured in body lengths, stretch is
+    measured in edge lengths, and a remesh changes the second without changing
+    the first.
+
+    So bound it directly and on the mesh the gate actually measures.  For each
+    edge, the endpoints' weight difference is allowed to be at most
+    ``EDGE_STRETCH_BUDGET * (rest_length / L) / arm``, where ``arm`` is the
+    hinge-to-midpoint distance normalised by ``L`` (the lever through which a
+    unit of weight becomes travel).  Both terms are dimensionless.  A short
+    edge, or one far out on the jaw, therefore gets a tighter cap than a long
+    edge near the pivot, automatically and on every base.  Weights are relaxed
+    downward only, so the band keeps its shape and its peak stays where
+    ``_jaw_weight_field`` put it; only the steep flank is rounded off.
+
+    One rule, no per-base constants: replaces the L1b-L1e stack rather than
+    re-creating it in another form.
+    """
+    mesh = obj.data
+    if not mesh.edges or not dense:
+        return dense
+    hinge_y = float(cavity_state["hinge_y"])
+    jaw_z = float(cavity_state["jaw_z"])
+    length = max(measurement["L"], EPS)
+
+    edges = []
+    for edge in mesh.edges:
+        a, b = edge.vertices
+        if a >= len(dense) or b >= len(dense):
+            continue
+        ca, cb = mesh.vertices[a].co, mesh.vertices[b].co
+        rest = (ca - cb).length
+        if rest < EPS:
+            continue
+        # Lever arm at the edge midpoint, normalised by body length so the cap
+        # is scale free.
+        mid_y = .5 * (ca.y + cb.y)
+        mid_z = .5 * (ca.z + cb.z)
+        arm = math.hypot(mid_y - hinge_y, mid_z - jaw_z) / length
+        if arm < EPS:
+            continue
+        # Only edges that touch the band can be the steep ones; an edge with
+        # two zero-weight endpoints has nothing to relax and never will, since
+        # relaxation is downward-only.  Skipping them keeps this pass
+        # proportional to the mouth rather than to the whole body.
+        if dense[a] <= 0.0 and dense[b] <= 0.0:
+            continue
+        allowed = EDGE_STRETCH_BUDGET * (rest / length) / arm
+        edges.append((a, b, min(1.0, allowed)))
+
+    # Relax until every edge is inside its cap.  Each sweep pulls the HIGHER
+    # endpoint down to the cap, so the sequence is monotonically decreasing and
+    # bounded below by zero: it converges.  The iteration limit is a guard, not
+    # a tuning knob; these meshes settle in a handful of sweeps.
+    # PIN the interior of the band.  Relaxation is a diffusion: left free, it
+    # propagates inward from the band's outer flank and drags the whole band
+    # down to a low plateau.  Measured on leviathanrex, that put every band
+    # vertex at .376-.423, just under the probe's jw>.4 lower-lip classifier,
+    # so a band of 36 real vertices was scored as 4.  The steep flank is the
+    # only part that needs rounding; a vertex that is already essentially
+    # fully jaw-driven is not on a gradient and must keep its weight, or the
+    # lip stops being a lip.
+    pinned = [value >= JAW_INTERIOR_PIN for value in dense]
+
+    # Relaxation only ever lowers the HIGHER endpoint, so an edge whose higher
+    # endpoint is pinned can never be brought inside its cap, no matter how
+    # many sweeps run.  Such an edge is a consequence of the pin decision, not
+    # a failure of the relaxation, and counting its excess into the residual
+    # made the loop burn all 24 sweeps and report converged=False even when
+    # every SATISFIABLE edge had settled to zero.  Measured 2026-09-17 on the
+    # rebaked families: thresher 547 of 2455 edges structurally unsatisfiable
+    # (374 with BOTH ends pinned), snapjaw 365 of 959 (289 both) - and with
+    # those excluded the residual over the satisfiable edges was exactly
+    # 0.000000 on both.  The reported non-convergence was entirely pinned
+    # edges.  So the convergence test now runs over satisfiable edges only,
+    # everything that can be capped still is, and the unsatisfiable count is
+    # reported separately rather than being hidden inside the residual.
+    #
+    # Note the predicate is "higher endpoint pinned", which is strictly wider
+    # than "both endpoints pinned": if only the LOWER end is pinned the higher
+    # end is still free to come down, so that edge is satisfiable.
+    sweeps, worst, unsatisfiable = 0, 0.0, 0
+    for sweeps in range(1, 25):
+        worst = 0.0
+        unsatisfiable = 0
+        for a, b, allowed in edges:
+            delta = dense[a] - dense[b]
+            excess = abs(delta) - allowed
+            if excess <= 0.0:
+                continue
+            if delta > 0.0:
+                if pinned[a]:
+                    unsatisfiable += 1
+                    continue
+                worst = max(worst, excess)
+                dense[a] = dense[b] + allowed
+            else:
+                if pinned[b]:
+                    unsatisfiable += 1
+                    continue
+                worst = max(worst, excess)
+                dense[b] = dense[a] + allowed
+        if worst <= 1.0e-4:
+            break
+    print("MOUTH gradient cap edges=%d sweeps=%d residual=%.6f converged=%s "
+          "pinned_unsatisfiable=%d"
+          % (len(edges), sweeps, worst, worst <= 1.0e-4, unsatisfiable),
+          flush=True)
+    return dense
+
+
+def cut_mouth(obj, gape_deg=25.0, cavity_depth=.12, lip_band=.06, teeth="strip",
+              field_snapshot=None):
     """Cut and author a hinged mouth payload on *obj*.
+
+    ``field_snapshot`` is the value returned by :func:`snapshot_jaw_field` on
+    this body BEFORE any accessory fuse / remesh / lattice ran.  When given,
+    LowerJaw weights are projected from it rather than resampled on the final
+    topology; see :func:`_project_jaw_weights`.  Omit it only when nothing
+    edits topology between measure and cut.
 
     ``teeth='filter'`` uses a wide low 12-degree opening and intentionally
     emits no tooth strips.  For ordinary strip mouths the returned payload is
@@ -837,7 +1048,8 @@ def cut_mouth(obj, gape_deg=25.0, cavity_depth=.12, lip_band=.06, teeth="strip")
                        mathutils.Vector((0.0, math.tan(cavity_state["lower_gape"]), 1.0))),
         },
         "commissure": {"Head": .5, "LowerJaw": .5},
-        "base": _jaw_weight_map(obj, measurement, lip_band, cavity_state),
+        "base": _project_jaw_weights(obj, field_snapshot, measurement,
+                                    lip_band, cavity_state),
         "objects": {},
         "cut": {
             "wedge_faces": cavity_state["wedge_faces"],

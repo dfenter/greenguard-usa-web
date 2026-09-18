@@ -253,6 +253,9 @@ def _cut_mouth(modules, recipe, ctx):
     try:
         payload = modules["mouth"].cut_mouth(low, teeth=teeth, **{
             "gape_deg": float(gape),
+            # Jaw weights are projected from the body as it was BEFORE
+            # head.lattice / fins / the accessory voxel remesh touched it.
+            "field_snapshot": ctx.get("jaw_field_snapshot"),
             **{key: mouth_cfg[key] for key in ("cavity_depth", "lip_band") if key in mouth_cfg}
         })
     except Exception as exc:
@@ -314,6 +317,19 @@ def _run_recipe(recipe, recipe_path, turntable_only=False):
             _log("WARN sharklib.io.measure failed: %s" % exc)
     else:
         _log("STUB sharklib.io.measure: module missing")
+
+    # JAW WEIGHT SNAPSHOT.  Taken here, on the pristine oriented base, because
+    # everything below this line (head.lattice, fins.extrude_tip/sail, the
+    # accessory boolean + voxel remesh, and the export-time budget decimate)
+    # edits body topology.  mouth.cut_mouth runs LAST and must not resample its
+    # weight gradient on that rebuilt topology; it projects from this snapshot
+    # instead.  See sharklib.mouth._project_jaw_weights.
+    if modules["mouth"] is not None and callable(getattr(modules["mouth"], "snapshot_jaw_field", None)):
+        ctx["jaw_field_snapshot"] = modules["mouth"].snapshot_jaw_field(low)
+        _log("mouth.snapshot_jaw_field verts=%d"
+             % len((ctx.get("jaw_field_snapshot") or {}).get("points") or []))
+    else:
+        _log("STUB sharklib.mouth.snapshot_jaw_field: module missing")
 
     head_cfg = recipe["head"]
     # An EMPTY head block means "leave the head alone".  head.lattice defaults
