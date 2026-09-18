@@ -598,3 +598,95 @@ no hue sits in the green family any more. Script:
   verts (unchanged from Rev 17, separate defect).
 - turntables render translucent/washed; pre-existing, visible in the Rev 17
   committed frames too, not caused by the colour change.
+
+## Rev 18 lane 3 (2026-09-18): interpolated weight projection
+
+Lane 2 ruled that the jaw cliffs had to be fixed upstream, in the weight
+PROJECTION, because a post-hoc gradient cap provably cannot repair them. Done.
+
+### What was wrong with the nearest-neighbour snap
+
+`_project_jaw_weights` snapped each post-remesh vertex to its nearest SNAPSHOT
+VERTEX and copied that weight verbatim. The snapshot field is continuous, but a
+nearest-vertex lookup samples it through a Voronoi partition, so the projected
+field is piecewise CONSTANT with discontinuities on the cell boundaries. Two
+current vertices a few 1e-3 L apart that straddle a boundary inherit weights
+from two different source vertices, and across the jaw seam -- where the field
+varies steeply by design -- that edge carries the entire difference. That is
+precisely the 0.000/0.936 and 0.992/0.344 pairs the dumps kept finding. They
+were never remesh noise; they were the snap quantising a smooth field.
+
+### The fix
+
+`snapshot_jaw_field` now also records the source TRIANGLES (fan-triangulated).
+New `_interpolate_from_tris` builds a KDTree over triangle centroids, tests the
+8 nearest candidates per target vertex with `_closest_on_tri` (full Ericson
+region test, so a query point off the side of a triangle resolves onto the
+correct EDGE rather than collapsing to a corner), and blends the three corner
+weights by the barycentric coordinates of the closest point. The projected
+field is now C0 across the whole source surface: the weight difference over a
+current edge is bounded by the field's variation over that edge's own length,
+not over a Voronoi cell's worth of it. Seam awareness is inherent -- a triangle
+spanning the seam interpolates across it instead of picking a side.
+
+JAW_INTERIOR_PIN semantics are preserved: interpolation is a convex
+combination, so a point inside a fully jaw-weighted region still reads 1.0 and
+stays above the pin. Only the flank, where source corners disagree, is smoothed.
+A legacy snapshot with no `tris` falls back to the old snap.
+
+### Second finding: a ramp narrower than the mesh can resolve
+
+After the projection landed, snapjaw had moved least. Its jaw-weight histogram
+explained why, and this is the transferable part: 7695 verts at ~0, 143 at
+~0.9-1.0, and almost nothing between (2-4 per bucket from 0.4-0.8). A BIMODAL
+weight histogram means there is no transition zone at all. The `below` ramp in
+`_jaw_weight_field` divided by `.016 * height`, a ramp 1.6% of body height
+wide, which on these densities completes INSIDE A SINGLE EDGE. The field was
+continuous in theory and a step in practice, and no projection can recover a
+gradient the source never resolved. Widened to `.060 * height`.
+
+Net effect of the widening: artemisstrike edges>3x 14 -> 5, thresher 7 -> 5,
+leviathanrex 12 -> 13, aresrender 1 -> 1, snapjaw 25 -> 28. Kept: positive on
+four of five. leviathanrex also started PASSING lower-lip travel.
+
+### Numbers, real gape 25 deg (0.4363 rad)
+
+    family          maxStretch          edges>3x      cliffEdges
+    aresrender      3.527 -> 3.142       3 -> 1        472 -> 490
+    artemisstrike  27.507 -> 8.968      17 -> 5         30 -> 16
+    leviathanrex    9.399 -> 4.215      20 -> 13        17 -> 15
+    snapjaw        16.313 -> 16.213     35 -> 28        28 -> 24
+    thresher        6.714 -> 5.904      13 -> 5        142 -> 81
+
+Cliff |dJaw| max fell everywhere (was up to 0.98, now 0.62-0.84). Upper-move
+gate 5/5 OK. verify_families 5/5 PASS, tri and texture budgets clean.
+
+Still 0/5 under the 3x bar, so NOTHING SHIPS. aresrender is within 5% of it.
+
+### Where snapjaw actually is, and why I stopped
+
+snapjaw is the one family the projection barely helped, and after the ramp
+widening its histogram is STILL bimodal (7744 at ~0, 144 at ~0.9-1.0). That
+proves its cliff does not come from the `below` term -- widening `below` did
+not touch it -- but from one of the other factors in the product
+(`forward` / `hinge` / `in_opening_band`), which multiply to a near-binary
+result on this base. Its worst edge is a cliff, not a sliver:
+stretch=16.2 restL=2.38e-3L jawW=0.263/0.996.
+
+That is two iterations on this cause, so per the round cap I stopped rather
+than tune a third time. NEXT LANE: dump snapjaw's per-term factor values along
+its worst edge and find WHICH factor steps. Do not widen ramps blind; the
+histogram is the instrument -- a bimodal jaw-weight histogram is the signature
+of an under-resolved ramp, and it localises the defect in one read.
+
+Also note snapjaw is the only recipe carrying `"blunt": true`, and `blunt` is
+read NOWHERE in mouth.py. Either it is dead config or it is silently not doing
+what the recipe author intended. Worth one grep before the next geometry guess.
+
+### Pre-existing, NOT fixed
+
+The turntables still render translucent/washed. Unchanged by this lane and
+visible in the Rev 17 committed frames too. The cause is not a one-liner (it is
+in the review render's material/alpha setup, not in the bake), so per the brief
+it was left alone. Contact sheet regenerated from the new turntables at
+assets/review/rev18_pilot_contact.png, still labelled NOT APPROVED.

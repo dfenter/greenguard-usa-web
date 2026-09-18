@@ -792,8 +792,17 @@ def _jaw_weight_field(co, measurement, lip_band, cavity_state):
     # The band has to be thick enough that the probe's lower-lip classifier
     # (jaw weight > .4, lowest 15% of head height) finds its required minimum
     # of 6 vertices on every base; a hairline band reads as "no lower lip".
+    # Rev 18 lane 3: the ramp WIDTH must be resolvable by the mesh.  At
+    # .016*H this smoothstep completed inside a single edge on the denser
+    # bases -- snapjaw's jaw-weight histogram was bimodal (7695 verts at ~0,
+    # 143 at ~1, almost nothing between), so the field was continuous in
+    # theory and a step in practice.  An interpolated projection cannot
+    # recover a gradient the source field never resolved, which is why lane
+    # 3's first pass moved snapjaw least.  Widening the ramp gives the
+    # transition several edges to live on, so both the projection and the
+    # gradient cap have something real to work with.
     below = _smoothstep((lower_plane + max(.030 * length, lip_band * height) - co.z) /
-                        max(.016 * height, EPS))
+                        max(.060 * height, EPS))
 
     # Forward of the hinge -> jaw, with the ramp scaled into the space that
     # actually exists ahead of the hinge so it always saturates before the
@@ -832,23 +841,151 @@ def snapshot_jaw_field(obj):
     """
     if not obj or obj.type != "MESH":
         return None
+    # Rev 18 lane 3: the snapshot now carries TRIANGLES as well as points.
+    # Nearest-point-on-triangle with barycentric blending needs the source
+    # connectivity; a point cloud can only ever answer "which vertex", which is
+    # the snap that manufactured the cliffs.  Polygons are triangulated by fan
+    # here rather than at lookup time so the hot loop stays flat.
+    tris = []
+    for poly in obj.data.polygons:
+        loop = list(poly.vertices)
+        for k in range(1, len(loop) - 1):
+            tris.append((loop[0], loop[k], loop[k + 1]))
     return {
         "points": [vertex.co.copy() for vertex in obj.data.vertices],
+        "tris": tris,
         "source": obj.name,
     }
+
+
+# How many candidate source triangles to test per target vertex.  The KDTree is
+# built over centroids, so the true closest triangle is not always the closest
+# centroid -- a long thin triangle can have a far centroid and a near edge.
+# Eight is comfortably past the point where the winner stops changing on these
+# meshes and still costs about one second per family.
+_PROJECT_CANDIDATES = 8
+
+
+def _closest_on_tri(p, a, b, c):
+    """Closest point to ``p`` on triangle ``abc``, as barycentric coords.
+
+    Returns ``(u, v, w, dist_sq)`` with ``u + v + w == 1``, all non-negative:
+    the standard Ericson region test, including the three vertex regions and
+    the three edge regions, so a query point off the side of the triangle
+    resolves onto the correct edge rather than collapsing to a corner.
+    """
+    ab = b - a
+    ac = c - a
+    ap = p - a
+    d1 = ab.dot(ap)
+    d2 = ac.dot(ap)
+    if d1 <= 0.0 and d2 <= 0.0:
+        return 1.0, 0.0, 0.0, (p - a).length_squared
+    bp = p - b
+    d3 = ab.dot(bp)
+    d4 = ac.dot(bp)
+    if d3 >= 0.0 and d4 <= d3:
+        return 0.0, 1.0, 0.0, (p - b).length_squared
+    vc = d1 * d4 - d3 * d2
+    if vc <= 0.0 and d1 >= 0.0 and d3 <= 0.0:
+        denom = d1 - d3
+        v = d1 / denom if abs(denom) > EPS else 0.0
+        q = a + ab * v
+        return 1.0 - v, v, 0.0, (p - q).length_squared
+    cp = p - c
+    d5 = ab.dot(cp)
+    d6 = ac.dot(cp)
+    if d6 >= 0.0 and d5 <= d6:
+        return 0.0, 0.0, 1.0, (p - c).length_squared
+    vb = d5 * d2 - d1 * d6
+    if vb <= 0.0 and d2 >= 0.0 and d6 <= 0.0:
+        denom = d2 - d6
+        w = d2 / denom if abs(denom) > EPS else 0.0
+        q = a + ac * w
+        return 1.0 - w, 0.0, w, (p - q).length_squared
+    va = d3 * d6 - d5 * d4
+    if va <= 0.0 and (d4 - d3) >= 0.0 and (d5 - d6) >= 0.0:
+        denom = (d4 - d3) + (d5 - d6)
+        w = (d4 - d3) / denom if abs(denom) > EPS else 0.0
+        q = b + (c - b) * w
+        return 0.0, 1.0 - w, w, (p - q).length_squared
+    denom = va + vb + vc
+    if abs(denom) <= EPS:
+        return 1.0, 0.0, 0.0, (p - a).length_squared
+    v = vb / denom
+    w = vc / denom
+    q = a + ab * v + ac * w
+    return 1.0 - v - w, v, w, (p - q).length_squared
+
+
+def _interpolate_from_tris(obj, points, tris, source_weights):
+    """Project the snapshot weight field onto the current mesh, smoothly.
+
+    THE DEFECT THIS REPLACES.  The previous projection snapped each current
+    vertex to its nearest SNAPSHOT VERTEX and copied that vertex's weight
+    verbatim.  The snapshot field is continuous, but a nearest-vertex lookup
+    samples it through a Voronoi partition, so the projected field is piecewise
+    CONSTANT with discontinuities on the Voronoi boundaries.  Two current
+    vertices a few 1e-3 L apart that happen to fall either side of such a
+    boundary inherit weights from two different source vertices, and if the
+    field varies steeply between them -- which it does by design, that is the
+    jaw seam -- the edge between them carries the full difference.  That is
+    exactly the 0.000/0.936 and 0.992/0.344 pairs the dumps kept finding: not
+    remesh noise, but the snap quantising a smooth field onto a coarse cell
+    structure.  No post-hoc gradient cap can repair it, because by the time the
+    cap runs the information needed to interpolate has already been thrown
+    away; lane 2 proved that empirically.
+
+    The fix is to sample the source field where it is actually defined: on the
+    source SURFACE, not at its vertices.  For each current vertex, find the
+    closest point on the nearest source triangles and blend the three corner
+    weights by that point's barycentric coordinates.  The result is C0
+    continuous across the whole source surface, so the weight difference across
+    a current edge is now bounded by the field's variation over that edge's own
+    (short) length rather than by a Voronoi cell's worth of it.  Seam awareness
+    is inherent: a triangle spanning the seam interpolates across it instead of
+    picking a side.
+
+    JAW_INTERIOR_PIN semantics are preserved: interpolation is a convex
+    combination, so a point inside a fully jaw-weighted region still reads 1.0
+    and stays above the pin; only the flank, where the source corners disagree,
+    is smoothed -- which is the intent.
+    """
+    tree = mathutils.kdtree.KDTree(len(tris))
+    centroid_third = 1.0 / 3.0
+    for index, (ia, ib, ic) in enumerate(tris):
+        centroid = (points[ia] + points[ib] + points[ic]) * centroid_third
+        tree.insert(centroid, index)
+    tree.balance()
+
+    dense = [0.0] * len(obj.data.vertices)
+    for vertex in obj.data.vertices:
+        co = vertex.co
+        best_d2 = None
+        best_value = 0.0
+        for _, tri_index, _ in tree.find_n(co, _PROJECT_CANDIDATES):
+            ia, ib, ic = tris[tri_index]
+            u, v, w, d2 = _closest_on_tri(co, points[ia], points[ib], points[ic])
+            if best_d2 is None or d2 < best_d2:
+                best_d2 = d2
+                best_value = (u * source_weights[ia]
+                              + v * source_weights[ib]
+                              + w * source_weights[ic])
+        dense[vertex.index] = min(1.0, max(0.0, best_value))
+    return dense
 
 
 def _project_jaw_weights(obj, snapshot, measurement, lip_band, cavity_state):
     """Weights for the CURRENT mesh, projected from the pre-op mesh.
 
     The field is evaluated on the snapshot's vertices -- the topology it was
-    authored against -- and every current vertex then inherits the weight of
-    its nearest snapshot vertex through a KDTree lookup.  Because neighbouring
-    current vertices resolve to the same or adjacent snapshot vertices, the
-    weight difference across any edge is bounded by the field's variation over
-    the PRE-remesh edge length, not over the post-remesh one.  A remesh that
-    subdivides inside the seam therefore no longer manufactures a weight jump
-    on a near-zero-length edge, which is the leviathanrex 5.68x stretch.
+    authored against -- and every current vertex then samples that field on the
+    snapshot SURFACE, by barycentric interpolation at the closest point of the
+    nearest source triangle (see :func:`_interpolate_from_tris`).  Sampling a
+    surface rather than a point cloud is what makes the projected field
+    continuous; the older nearest-VERTEX snap quantised it onto Voronoi cells
+    and so put a full weight cliff on whichever current edge happened to cross
+    a cell boundary.
 
     Falls back to direct evaluation when no snapshot is available (the
     standalone shark_bake path, where nothing edits topology before the cut).
@@ -860,19 +997,23 @@ def _project_jaw_weights(obj, snapshot, measurement, lip_band, cavity_state):
                 for value in (_jaw_weight_field(vertex.co, measurement, lip_band, cavity_state),)
                 if value > JAW_WEIGHT_FLOOR}
 
-    tree = mathutils.kdtree.KDTree(len(points))
-    for index, point in enumerate(points):
-        tree.insert(point, index)
-    tree.balance()
-
     source_weights = [_jaw_weight_field(point, measurement, lip_band, cavity_state)
                       for point in points]
 
-    dense = [0.0] * len(obj.data.vertices)
-    for vertex in obj.data.vertices:
-        _, nearest, _ = tree.find(vertex.co)
-        if nearest is not None:
-            dense[vertex.index] = source_weights[nearest]
+    tris = (snapshot or {}).get("tris") or []
+    if tris:
+        dense = _interpolate_from_tris(obj, points, tris, source_weights)
+    else:
+        # Legacy snapshot with no connectivity: fall back to the old snap.
+        tree = mathutils.kdtree.KDTree(len(points))
+        for index, point in enumerate(points):
+            tree.insert(point, index)
+        tree.balance()
+        dense = [0.0] * len(obj.data.vertices)
+        for vertex in obj.data.vertices:
+            _, nearest, _ = tree.find(vertex.co)
+            if nearest is not None:
+                dense[vertex.index] = source_weights[nearest]
 
     dense = _limit_weight_gradient(obj, dense, measurement, cavity_state)
 
