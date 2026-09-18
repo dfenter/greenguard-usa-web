@@ -95,3 +95,82 @@ math. No edits were made to `shark_variant.py`, `sharklib/**`,
 `recipes/**`, `assets/models/fam/**`, `assets/review/**`, `shark3d.js`,
 `selftest.mjs`, `gen_data.py`, `data.js`, `NOTES-rev17-*`, or anything
 outside this worktree.
+
+## Follow-up: gate finding on tautological assertions (2026-09-17)
+
+An Opus gate issued a soft HOLD on test integrity for commit b9d8734b. The
+shipped runtime behavior was found correct; the hold was narrowly about two
+of the four new `__selftest` checks being tautologies:
+
+- `check(clampedDeep <= unsafeTop, ...)` where `clampedDeep` was computed as
+  `Math.min(deepInStrip, unsafeTop)` inline in the test. `Math.min(a, b) <= b`
+  is true for any `a`, `b`, so this could never fail.
+- `check(clampedShallow === justOutsideStrip, ...)` where `clampedShallow`
+  was `Math.min(justOutsideStrip, unsafeTop)` and `justOutsideStrip` was
+  defined as `unsafeTop - 1`. `Math.min(x, x+1) === x` is likewise always
+  true.
+
+Neither assertion actually called `safeAnchorY`. They recomputed the clamp
+inline with `Math.min` and then asserted a property of `Math.min` itself, so
+the nonzero-inset case (the entire point of the fix) had no real coverage.
+Headless `getComputedStyle` yields an inset of 0, which is why the lane
+wrote it that way rather than exercising the function directly. The other
+two checks (`ctl.py === deepInStrip`, the finger-point-untouched check, and
+the zero-inset floor check) were already genuine and are unchanged.
+
+### Fix
+
+`safeAnchorY(y)` gained an optional second parameter: `safeAnchorY(y, inset)`,
+defaulting to `safeAreaBottomInset()` when omitted, so both existing call
+sites (`plantStick`'s `ctl.ay = safeAnchorY(dy)` and `dragStick`'s recenter
+branch) are untouched and behave exactly as before. The two tautological
+checks now call the real function with an explicit nonzero inset (34, the
+same simulated iOS home-indicator value already used elsewhere in this
+block):
+
+```js
+var clampedDeep = safeAnchorY(deepInStrip, simInset);
+var clampedShallow = safeAnchorY(justOutsideStrip, simInset);
+check(clampedDeep === unsafeTop, 'an anchor requested inside the unsafe strip is rejected (clamped to the inset boundary)');
+check(clampedShallow === justOutsideStrip, 'an anchor requested just outside the unsafe strip is accepted unchanged');
+```
+
+The first assertion was tightened from `<=` to `===` since `deepInStrip`
+(`simH - 5`) is always greater than `unsafeTop`, so the correct, checkable
+behavior is that `safeAnchorY` clamps it to exactly `unsafeTop`, not merely
+"no greater than."
+
+### Deliberate-break evidence
+
+To confirm the assertion is now load-bearing, the first check's comparison
+was temporarily inverted (`===` to `!==`) and the game suite re-run:
+
+```
+node --import ./tools/reg.mjs tools/selftest.mjs game
+```
+
+Output went red:
+
+```
+  FAIL an anchor requested inside the unsafe strip is rejected (clamped to the inset boundary)
+game: pass=false ok=397 fail=1
+```
+
+The comparison was then restored to `===` and the suite re-run to confirm
+green: `game: pass=true ok=398 fail=0`. This confirms the check now fails if
+`safeAnchorY` were deleted or its comparison inverted, closing the gate
+finding.
+
+### Full re-verify after the fix
+
+```
+node --import ./tools/reg.mjs tools/selftest.mjs world game art3d fish fx ui meta abilities
+```
+
+`world 380/0`, `game 398/0`, `art3d 31/0`, `fish 8/0`, `fx 26/0`, `ui 239/0`,
+`meta 192/0`, `abilities 0/0`. `game` count is unchanged at 398 since the
+seam (optional param) added no new checks, only made two existing ones real.
+No runtime behavior changed: the clamp is still one-sided on `ctl.ay` only,
+`ctl.px/py` are never clamped, and the `(px > 0) ? px : 0` NaN guard in
+`safeAreaBottomInset()` is untouched. Only `engine3d.js` was edited for this
+follow-up.

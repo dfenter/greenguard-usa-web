@@ -216,9 +216,10 @@ import * as THREE from 'three';
     var px = parseFloat(raw);
     return (px > 0) ? px : 0; // headless/no-notch: env() resolves to 0, parseFloat -> NaN -> 0
   }
-  function safeAnchorY(y) {
+  function safeAnchorY(y, inset) {
     var h = root.innerHeight || CSS_H;
-    var unsafeTop = h - safeAreaBottomInset() - CTL_STICK_RADIUS;
+    var useInset = (inset === undefined) ? safeAreaBottomInset() : inset;
+    var unsafeTop = h - useInset - CTL_STICK_RADIUS;
     return (y > unsafeTop) ? unsafeTop : y;
   }
 
@@ -5304,9 +5305,9 @@ import * as THREE from 'three';
       var deepInStrip = simH - 5; // 5px above the bottom edge: inside the strip
       var justOutsideStrip = simH - simInset - CTL_STICK_RADIUS - 1;
       var unsafeTop = simH - simInset - CTL_STICK_RADIUS;
-      var clampedDeep = Math.min(deepInStrip, unsafeTop);
-      var clampedShallow = Math.min(justOutsideStrip, unsafeTop);
-      check(clampedDeep <= unsafeTop, 'an anchor requested inside the unsafe strip is rejected (clamped to the inset boundary)');
+      var clampedDeep = safeAnchorY(deepInStrip, simInset);
+      var clampedShallow = safeAnchorY(justOutsideStrip, simInset);
+      check(clampedDeep === unsafeTop, 'an anchor requested inside the unsafe strip is rejected (clamped to the inset boundary)');
       check(clampedShallow === justOutsideStrip, 'an anchor requested just outside the unsafe strip is accepted unchanged');
       plantStick(400, deepInStrip);
       check(pc.ctl.py === deepInStrip, 'the finger point itself is never clamped, only the anchor');
