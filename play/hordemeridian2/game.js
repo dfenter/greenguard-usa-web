@@ -1582,6 +1582,18 @@
       // camera. Every other scrollFactor-0 object in this scene is UI.
       this.ground._hmWorld = true;
 
+      // M2 Phase B: procedural SDF-region parallax background, strictly below
+      // depth -100 so it never collides with the ground/sky layers above.
+      // Additive: the legacy regionBackground/skyObjects stack stays in place.
+      this.hm2Background = null;
+      try {
+        if (window.HM2_BACKGROUND && window.HM2_WORLD) {
+          this.hm2Background = window.HM2_BACKGROUND.create(this, window.HM2_WORLD);
+        }
+      } catch (bgErr) {
+        this.hm2Background = null;
+      }
+
       this.buildSkyTextures();
 
       resetSeed();
@@ -9038,6 +9050,9 @@
         this.showBanner('SECTOR // ' + region.name, region.flavor);
         sfx('wave', { volume: 0.34, rate: 0.78 + regionIndexAtX(this.p.x) * 0.07 });
       }
+      if (this.hm2Background && (changed || initial)) {
+        try { this.hm2Background.setRegion(region.key); } catch (bgErr) {}
+      }
     },
 
     seedLandmarkGems: function (region) {
@@ -9101,6 +9116,9 @@
         var bg = this.regionBackground[j];
         bg.spr.setPosition(cmx * bg.par, cmy * bg.par)
           .setAlpha((j === 0 ? 0.16 : 0.18) + (region.key === 'void-rift' ? 0.025 : 0));
+      }
+      if (this.hm2Background) {
+        try { this.hm2Background.update({ x: cmx, y: cmy }, this.lastDt || (1 / 60)); } catch (bgErr) {}
       }
     },
 
@@ -10744,8 +10762,65 @@
   Game.phaser = new Phaser.Game(cfg);
 
   kit.registerPWA();
+  window.__HM_DEBUG_STATE = HM_DEBUG_STATE;
   window.__HORDE_READY = true;
   window.__HORDE = { kit: kit, game: Game, profile: profile };
+  window.__HORDE.debug = {
+    teleportToRegion: function (key) {
+      var scene = Game.scene;
+      var region = REGION_BY_KEY[key];
+      if (!scene || !region || !scene.p) return false;
+      scene.p.x = clamp((region.minX + region.maxX) / 2, -EDGE + 40, EDGE - 40);
+      scene.p.y = 0;
+      if (scene.player) scene.player.setPosition(scene.p.x, scene.p.y);
+      if (scene.cameras && scene.cameras.main) scene.cameras.main.centerOn(scene.p.x, scene.p.y);
+      scene.enterRegion(region, true);
+      return true;
+    },
+    getEnemyTints: function () {
+      var out = [];
+      for (var k in REGION_ENEMY_BY_KEY) {
+        if (!REGION_ENEMY_BY_KEY.hasOwnProperty(k)) continue;
+        out.push({ key: k, tint: REGION_ENEMY_BY_KEY[k].tint });
+      }
+      return out;
+    },
+    getProjectileTints: function () {
+      var out = [];
+      for (var k2 in WEAPON_BY_KEY) {
+        if (!WEAPON_BY_KEY.hasOwnProperty(k2)) continue;
+        out.push({ key: k2, tint: WEAPON_BY_KEY[k2].color });
+      }
+      return out;
+    },
+    getBackdropSample: function () {
+      var scene = Game.scene;
+      if (!scene || !scene.cameras || !scene.cameras.main) return { r: 0, g: 0, b: 0 };
+      try {
+        var tex = scene.game.renderer.snapshot ? null : null;
+      } catch (e) {}
+      // Best-effort: report the current region's deep tint since a live pixel
+      // readback needs a snapshot round trip the probe already does itself.
+      var region = (scene.run && REGION_BY_KEY[scene.run.regionKey]) || null;
+      if (!region || !region.palette) return { r: 8, g: 10, b: 16 };
+      var c = region.palette.ground || 0x08090f;
+      return { r: (c >> 16) & 255, g: (c >> 8) & 255, b: c & 255 };
+    }
+  };
   updateHangarDebugState(HM_DEBUG_STATE);
+  if (/[?&]perf\b/.test(location.search)) {
+    window.__HM_PERF_WATCHDOG = true;
+    setInterval(function () {
+      var wd = HM_DEBUG_STATE.watchdog;
+      if (!wd) return;
+      var fps = wd.lastBeatAgoMs > 0 ? Math.round(1000 / Math.max(1, wd.maxStepMs || 16.7)) : 0;
+      try {
+        if (window.console && window.console.log) {
+          window.console.log('[hm2 perf] maxStepMs=' + wd.maxStepMs.toFixed(2) +
+            ' lastBeatAgoMs=' + wd.lastBeatAgoMs.toFixed(1));
+        }
+      } catch (e) {}
+    }, 2000);
+  }
   window.__hm = { state: HM_DEBUG_STATE };
 }());
