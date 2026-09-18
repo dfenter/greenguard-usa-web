@@ -1256,7 +1256,10 @@
             lsNameStr, TYPE.micro, lsData ? '#d8f5ff' : '#718897');
           lsName.setOrigin(0, 0.5);
           var lsTagMax = slotW - 38;
-          var lsTagStr = lsi === 0 ? 'PRIMARY' : (lsLive ? (lsi === 1 ? 'SECONDARY' : 'TERTIARY') : 'OPENS IN RUN');
+          // "OPENS IN RUN" does not fit a locked slot at 390px and truncated to
+          // "OPENS IN", which reads as an unfinished sentence. "IN RUN" carries
+          // the same meaning (the slot unlocks during a run) and fits whole.
+          var lsTagStr = lsi === 0 ? 'PRIMARY' : (lsLive ? (lsi === 1 ? 'SECONDARY' : 'TERTIARY') : 'IN RUN');
           if (window.__HM2_UI) lsTagStr = window.__HM2_UI.wrapText(this, lsTagStr, { fontFamily: FONT_BODY, fontSize: TYPE.micro }, lsTagMax, 1)[0] || '';
           var lsTag = bodyText(this, lsx - slotW / 2 + 32, slotY + 9,
             lsTagStr, TYPE.micro, lsActive ? '#8effd8' : (lsLive ? '#7fa3b5' : '#6a8494'));
@@ -1388,7 +1391,16 @@
           var mlv = metaLevel(m.key), mmax = mlv >= m.max;
           var mbg = this.cardBase(g, mx, my, mw, mh, false);
           var mic = this.add.image(mx - mw / 2 + 23, my - 8, 'atlas', m.icon).setScale(0.46);
-          var mnMax = mw - 46 - 54;
+          // Reserve only what the price column actually needs (a short gem
+          // count, or "MAXED") plus a gutter, instead of a flat 54px. At 390px
+          // the flat reserve left ~74px for the name, which truncated
+          // "GEM REFINERY" to "GEM" and "FIELD MAGNET" to "FIELD": two
+          // different systems reduced to labels that read as complete.
+          var mPriceStr = mmax ? 'MAXED' : String(m.cost(mlv));
+          var mPriceW = window.__HM2_UI
+            ? window.__HM2_UI.measureWidth(this, mPriceStr, { fontFamily: FONT_DISPLAY, fontSize: TYPE.micro, fontStyle: 'bold' })
+            : 46;
+          var mnMax = mw - 46 - (mPriceW + 14);
           var mnStr = window.__HM2_UI
             ? window.__HM2_UI.wrapText(this, m.name.toUpperCase(), { fontFamily: FONT_DISPLAY, fontSize: TYPE.micro, fontStyle: 'bold' }, mnMax, 1)[0] || ''
             : m.name.toUpperCase();

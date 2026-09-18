@@ -76,6 +76,26 @@
     return s + '…';
   }
 
+  // Wrap `str` to at most `maxLines` lines of `maxWidth`. If the content does
+  // not fit, the LAST line is ellipsised so the truncation is visible.
+  //
+  // The overflow flag is tracked explicitly as words are consumed rather than
+  // inferred by comparing character counts afterwards. The character-count
+  // heuristic silently dropped trailing words whenever the placed text was
+  // coincidentally as long as the source: "GEM REFINERY" rendered as "GEM" and
+  // "FIELD MAGNET" as "FIELD", which is worse than clipping because the label
+  // still looks like a real, and wrong, name.
+  // Always append the ellipsis, trimming characters until it fits. Used when we
+  // KNOW content was dropped, where plain ellipsise() would be a no-op because
+  // the surviving line already fits on its own.
+  function forceEllipsise(scene, str, style, maxWidth) {
+    var s = str;
+    while (s.length > 0 && measureWidth(scene, s + '…', style) > maxWidth) {
+      s = s.slice(0, -1);
+    }
+    return s.replace(/\s+$/, '') + '…';
+  }
+
   function wrapText(scene, str, style, maxWidth, maxLines) {
     if (str == null) return [];
     str = String(str);
@@ -89,50 +109,55 @@
 
     var lines = [];
     var cur = '';
+    var consumed = 0;          // words fully placed
+    var truncated = false;     // a hard-broken word lost part of itself
+
     for (var i = 0; i < words.length; i++) {
       var word = words[i];
       var candidate = cur.length ? (cur + ' ' + word) : word;
       if (measureWidth(scene, candidate, style) <= maxWidth) {
         cur = candidate;
+        consumed = i + 1;
         continue;
       }
-      // candidate too wide.
+      // The candidate is too wide, so the current line is finished.
       if (cur.length) {
         lines.push(cur);
         cur = '';
         if (lines.length >= maxLines) break;
       }
-      // Does the bare word fit on its own line?
       if (measureWidth(scene, word, style) <= maxWidth) {
         cur = word;
-      } else {
-        var chunks = hardBreakWord(scene, word, style, maxWidth);
-        for (var c = 0; c < chunks.length; c++) {
-          if (cur.length) {
-            lines.push(cur);
-            cur = '';
-            if (lines.length >= maxLines) break;
-          }
-          cur = chunks[c];
+        consumed = i + 1;
+        continue;
+      }
+      // A single word wider than the line: break it across the remaining lines.
+      var chunks = hardBreakWord(scene, word, style, maxWidth);
+      var ci = 0;
+      for (; ci < chunks.length; ci++) {
+        if (cur.length) {
+          lines.push(cur);
+          cur = '';
+          if (lines.length >= maxLines) break;
         }
-        if (lines.length >= maxLines) break;
+        cur = chunks[ci];
+      }
+      if (ci < chunks.length - 1 || lines.length >= maxLines) {
+        // Some chunks of this word never made it onto a line.
+        if (ci < chunks.length - 1) truncated = true;
       }
       if (lines.length >= maxLines) break;
+      consumed = i + 1;
     }
     if (lines.length < maxLines && cur.length) lines.push(cur);
 
-    // Did we consume everything?
-    var consumedWords = lines.join(' ').split(/\s+/).length;
-    var overflow = lines.length >= maxLines && (consumedWords < words.length || measureWidth(scene, cur, style) > 0 && lines[lines.length - 1] !== cur && cur.length);
-
-    // Simple overflow re-check: reconstruct what we've placed vs full string.
-    var placed = lines.slice(0, maxLines).join(' ');
-    var isOverflow = placed.length < str.replace(/\s+/g, ' ').trim().length;
-
     lines = lines.slice(0, maxLines);
-    if (isOverflow && lines.length) {
+    if (!lines.length) return [];
+
+    var overflow = truncated || consumed < words.length;
+    if (overflow) {
       var lastIdx = lines.length - 1;
-      lines[lastIdx] = ellipsise(scene, lines[lastIdx], style, maxWidth);
+      lines[lastIdx] = forceEllipsise(scene, lines[lastIdx], style, maxWidth);
     }
     return lines;
   }
@@ -317,6 +342,8 @@
     layoutColumn: layoutColumn,
     card: card,
     tabBar: tabBar,
+    // Callers sizing a column against real glyph widths need this.
+    measureWidth: measureWidth,
     _measureWidth: measureWidth
   };
 }());
