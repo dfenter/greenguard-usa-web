@@ -1345,10 +1345,12 @@
           // The recipe shows even while the weapon is still a silhouette: the
           // whole point of the codex is telling the player how to get there.
           if (cwp.recipeText) {
-            var cRecipeMax = cxW - 31;
+            // The recipe sits below the icon's centre line, so it can start at
+            // the card padding instead of clearing the icon like the name does.
+            var cRecipeMax = cxW - 16;
             var cRecipeStr = cwp.recipeText;
             if (window.__HM2_UI) cRecipeStr = window.__HM2_UI.wrapText(this, cRecipeStr, { fontFamily: FONT_BODY, fontSize: TYPE.micro }, cRecipeMax, 1)[0] || '';
-            var cRecipe = bodyText(this, cx - cxW / 2 + 26, cy + 9, cRecipeStr, TYPE.micro,
+            var cRecipe = bodyText(this, cx - cxW / 2 + 8, cy + 9, cRecipeStr, TYPE.micro,
               cSeen ? '#ffd67a' : '#8a7a4e');
             cRecipe.setOrigin(0, 0.5);
             g.add(cRecipe);
