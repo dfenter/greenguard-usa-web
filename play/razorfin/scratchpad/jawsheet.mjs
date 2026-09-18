@@ -19,8 +19,14 @@ const loadGlb = (f) => new Promise((res, rej) => {
   const b = fs.readFileSync(f);
   new GLTFLoader().parse(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength), '', res, rej);
 });
-function baked(mesh) {
-  mesh.updateMatrixWorld(true);
+/* Pose from the SCENE ROOT, never from the mesh or the bone: the exporter
+ * parents the bones under a sibling low_rig Object3D, so mesh.updateMatrixWorld
+ * never reaches a bone and jawBone.updateMatrixWorld recomputes against a stale
+ * parent chain. Either way Skeleton.update() reads an identity bone matrixWorld
+ * and produces boneMatrix = boneInverse instead of the bind pose, which is the
+ * probe_jaw defect this sheet shared. See the note in hse/probe_jaw.mjs. */
+function baked(mesh, root) {
+  root.updateMatrixWorld(true);
   const p = mesh.geometry.getAttribute('position'), out = new Float32Array(p.count*3), v = new THREE.Vector3();
   for (let i=0;i<p.count;i++){ v.fromBufferAttribute(p,i); mesh.applyBoneTransform(i,v); out[3*i]=v.x;out[3*i+1]=v.y;out[3*i+2]=v.z; }
   return out;
@@ -65,10 +71,10 @@ for (const file of files) {
   const jawBone = mesh.skeleton.bones.find(b => b.name === 'LowerJaw');
   const bindQuat = jawBone.quaternion.clone();
 
-  jawBone.quaternion.copy(bindQuat); jawBone.updateMatrixWorld(true);
-  const rest = baked(mesh);
-  jawBone.quaternion.copy(bindQuat); jawBone.rotateOnAxis(AXIS, OPEN_RAD); jawBone.updateMatrixWorld(true);
-  const open = baked(mesh);
+  jawBone.quaternion.copy(bindQuat);
+  const rest = baked(mesh, gltf.scene);
+  jawBone.quaternion.copy(bindQuat); jawBone.rotateOnAxis(AXIS, OPEN_RAD);
+  const open = baked(mesh, gltf.scene);
 
   // per-vertex LowerJaw weight, to restrict drawing to the mouth region
   const jawI = mesh.skeleton.bones.findIndex(b=>b.name==='LowerJaw');
