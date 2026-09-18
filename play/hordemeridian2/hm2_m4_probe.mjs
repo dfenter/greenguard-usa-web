@@ -608,6 +608,108 @@ function mulberry32(seed) {
 })();
 
 // ========================================================================
+// HOT-START / SECOND-WAVE SEEDERS MUST RESPECT THE WEIGHTING
+//
+// R1 was first "fixed" by weighting pickRegionEnemy, but the campaign L10
+// median did not move (18s against a 54s baseline) because seedHotStart and
+// seedSecondWave are SEPARATE spawn paths: each flattened REGION_ENEMIES into
+// a plain key array and drew uniformly, so the M3 additions kept full odds at
+// t=0. Nothing in the data-model assertions above can catch that, because the
+// model was already correct. These assertions pin the CALL SITES.
+//
+// Spec literals, never read from the module under test:
+//   M3 base weight 0.15, originals 1.
+//   void-rift hot-start eligible keys after the ranged/lancer/sapper/apex
+//   filter are 3 originals + wing-cutter + nebula-burrower, so a UNIFORM draw
+//   gives the M3 additions 2/5 = 40%, while the weighted draw must give
+//   2*0.15 / (3 + 2*0.15) = 9.09%.
+(function () {
+  var SPEC_M3_BASE_WEIGHT = 0.15;
+  var DATA = null;
+  try { var ld = loadGameData(); DATA = ld && ld.DATA; } catch (e) { DATA = null; }
+  var SPEC_UNIFORM_M3_SHARE = 0.40;
+  var SPEC_WEIGHTED_M3_SHARE = 0.0909;
+
+  var gameSrc = '';
+  try {
+    gameSrc = fs.readFileSync(path.join(__dirname, 'game.js'), 'utf8');
+  } catch (e) {
+    gameSrc = '';
+  }
+  ok('game.js is readable for seeder inspection', gameSrc.length > 0);
+
+  if (gameSrc) {
+    // Isolate each seeder body and require that it does NOT perform a bare
+    // uniform draw over a flattened region pool. A bare
+    // "Math.floor(srand() * <something>.length)" inside these seeders is the
+    // exact regression signature.
+    ['seedHotStart', 'seedSecondWave'].forEach(function (fnName) {
+      var start = gameSrc.indexOf(fnName + ': function');
+      ok(fnName + ' exists in game.js', start !== -1);
+      if (start === -1) return;
+      // Extract the REAL function body by brace matching. A fixed-size slice
+      // would bleed into the next method and let a NEIGHBOURING
+      // weightedMixedPoolPick call satisfy the check, which is itself a
+      // self-deceiving assertion. Found by mutation 4.
+      var open = gameSrc.indexOf('{', start);
+      var depth = 0, end = -1;
+      for (var ci = open; ci < gameSrc.length; ci++) {
+        if (gameSrc[ci] === '{') depth++;
+        else if (gameSrc[ci] === '}') { depth--; if (depth === 0) { end = ci; break; } }
+      }
+      var body = end === -1 ? '' : gameSrc.slice(open, end + 1);
+      ok(fnName + ' body was isolated by brace matching', body.length > 0 && body.length < 2000,
+        'len=' + body.length);
+      if (!body) return;
+      ok(fnName + ' draws through the weighted helper, not a flat pool',
+        body.indexOf('weightedMixedPoolPick') !== -1,
+        'no weightedMixedPoolPick call found');
+      ok(fnName + ' does not push REGION_ENEMIES keys into a flat uniform pool',
+        !/pool\.push\(/.test(body),
+        'found a pool.push( flattening region entries');
+    });
+  } else {
+    ok('seedHotStart exists in game.js', false, 'game.js unreadable');
+    ok('seedSecondWave exists in game.js', false, 'game.js unreadable');
+  }
+
+  // Numeric guard on the intended opening mix. Computed from the real data,
+  // compared against HARDCODED spec shares.
+  if (DATA && DATA.REGION_ENEMIES && DATA.regionEnemyWeightAt) {
+    var M3 = ['wing-cutter', 'nebula-burrower'];
+    var eligible = DATA.REGION_ENEMIES['void-rift'].filter(function (d) {
+      return !(d.ranged || d.base === 'lancer' || d.base === 'sapper' || d.apex);
+    });
+    ok('void-rift hot-start eligible pool is the expected 5 keys',
+      eligible.length === 5, JSON.stringify(eligible.map(function (d) { return d.key; })));
+
+    var tot = 0, m3tot = 0;
+    eligible.forEach(function (d) {
+      var w = DATA.regionEnemyWeightAt(d, 0);
+      tot += w;
+      if (M3.indexOf(d.key) !== -1) m3tot += w;
+    });
+    var weightedShare = tot > 0 ? m3tot / tot : -1;
+
+    ok('M3 base weight is the spec 0.15 for both void-rift hot-start additions',
+      eligible.filter(function (d) {
+        return M3.indexOf(d.key) !== -1 &&
+          DATA.regionEnemyWeightAt(d, 0) === SPEC_M3_BASE_WEIGHT;
+      }).length === 2, 'weights=' + JSON.stringify(eligible.map(function (d) {
+        return d.key + ':' + DATA.regionEnemyWeightAt(d, 0);
+      })));
+
+    ok('weighted hot-start M3 share at t=0 matches the spec 9.09%, not the uniform 40%',
+      weightedShare > 0 && Math.abs(weightedShare - SPEC_WEIGHTED_M3_SHARE) < 0.005,
+      'share=' + weightedShare.toFixed(4));
+
+    ok('weighted hot-start M3 share at t=0 is far below the uniform-draw share',
+      weightedShare < SPEC_UNIFORM_M3_SHARE / 2,
+      'share=' + weightedShare.toFixed(4) + ' uniform=' + SPEC_UNIFORM_M3_SHARE);
+  }
+})();
+
+// ========================================================================
 console.log('');
 console.log(cases + ' assertions, ' + failures + ' failed');
 process.exit(failures > 0 ? 1 : 0);
