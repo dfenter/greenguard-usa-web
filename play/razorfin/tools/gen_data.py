@@ -840,6 +840,16 @@ TEXTURE_BY_ROW = {
 }
 
 
+# REGENERATION TRAP (2026-09-17 QA): this is a DISK SCAN, so the value of
+# FAM_FILES depends on what happens to be sitting in assets/models/fam/ at the
+# moment you run this script. While the Rev 17 art lane has in-progress family
+# GLBs staged there, a regeneration silently flips FAM_FILES from [] to those
+# names, and art3d's family fallback gate (shark3d.js, "family fallback gate:
+# expected FAM_FILES empty") then fails. The failure message talks about
+# approved GLBs and does NOT point at the regeneration as the cause, which is
+# what makes it expensive to debug. If you regenerate data.js and art3d goes
+# red on that gate, check this list before anything else.
+#
 # FAM_FILES: the subset of FAMILIES that actually have a GLB on disk at
 # assets/models/fam/<family>.glb right now (checked at generate time, not at
 # game runtime -- the browser has no filesystem to probe). shark3d.js only
