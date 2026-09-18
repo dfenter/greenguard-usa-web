@@ -217,10 +217,11 @@
       SIZE.head, '#c9ffe9');
     title.setOrigin(0, 0.5);
     title.setDepth(2);
+    var starCap = levels.length * 3;
     var total = 0;
     try { total = Math.floor(Number(campaign.totalStars()) || 0); } catch (e2) { total = 0; }
-    total = clamp(total, 0, 27);
-    var totalText = scene.add.text(headerRight, headerTop + 53, 'STARS ' + total + '/27', {
+    total = clamp(total, 0, starCap);
+    var totalText = scene.add.text(headerRight, headerTop + 53, 'STARS ' + total + '/' + starCap, {
       fontFamily: FONT_DISPLAY,
       fontSize: SIZE.micro + 'px',
       color: '#ffd67a',
@@ -228,7 +229,7 @@
       align: 'right'
     }).setOrigin(1, 0.5).setDepth(2);
     var subtitle = addCenteredText(scene, safeLeft + 24, headerTop + 53,
-      '13 MISSIONS', SIZE.micro, '#7fa3b5', 'body');
+      levels.length + ' MISSIONS', SIZE.micro, '#7fa3b5', 'body');
     subtitle.setOrigin(0, 0.5);
     subtitle.setDepth(2);
 
