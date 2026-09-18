@@ -421,27 +421,58 @@
   // Region combat data. Variants deliberately reuse the six pooled enemy
   // bodies and their existing movement primitives; only this definition table
   // changes the hostile language by sector.
+  // M4 follow-up: the 7 M3 behaviors are folded directly into their region's
+  // pool below (each entry commented with the fit + any tuning delta versus
+  // its region neighbours). mine-bomber and gem-mimic are marked sapper:
+  // true so they get the same hot-start / row-0 exclusion as lancer-class
+  // ranged enemies, even though neither is itself ranged (mine-bomber lays
+  // hazards at range, gem-mimic's speed-0/high-contact-dmg ambush is just as
+  // unfair as unavoidable ranged fire before the player can move).
   var REGION_ENEMIES = {
     'ember-drift': [
       { key: 'cinder-kamikaze', frame: 'sprinter', base: 'sprinter', behavior: 'kamikaze', r: 13, hp: 11, speed: 126, dmg: 18, xp: 2, tint: 0xff6b4f, scale: 1.08 },
       { key: 'ash-wraith', frame: 'wisp', base: 'weaver', behavior: 'wraith', r: 15, hp: 15, speed: 78, dmg: 14, xp: 2, tint: 0xff9a5a, scale: 1.08 },
-      { key: 'ember-scarab', frame: 'bulwark', base: 'bulwark', behavior: 'scarab', r: 20, hp: 46, speed: 32, dmg: 19, xp: 3, tint: 0xffc361, scale: 1.06 }
+      { key: 'ember-scarab', frame: 'bulwark', base: 'bulwark', behavior: 'scarab', r: 20, hp: 46, speed: 32, dmg: 19, xp: 3, tint: 0xffc361, scale: 1.06 },
+      // mine-bomber: lays hazard mines, fits the Ember Drift's ordnance/hazard
+      // fiction (deco_hazard landmarks). dmg 0 direct contact by design (the
+      // mine itself does the damage), flagged sapper so it never rolls at:0.
+      { key: 'mine-bomber', frame: 'drifter', base: 'drifter', behavior: 'bomber', r: 16, hp: 18, speed: 54, dmg: 0, xp: 3, tint: 0xff9a5a, scale: 1.05, sapper: true }
     ],
     'crystal-shoals': [
       { key: 'refracting-shard-drone', frame: 'wisp', base: 'lancer', behavior: 'refract-drone', r: 15, hp: 18, speed: 58, dmg: 13, xp: 3, tint: 0xa7f3ff, scale: 1.06, ranged: true },
       { key: 'glasswing-drone', frame: 'shard', base: 'weaver', behavior: 'glasswing', r: 15, hp: 14, speed: 82, dmg: 13, xp: 2, tint: 0xd4c9ff, scale: 1.02 },
-      { key: 'shard-larva', frame: 'sprinter', base: 'sprinter', behavior: 'larva', r: 10, hp: 7, speed: 112, dmg: 10, xp: 1, tint: 0x8fe7ff, scale: 0.82 }
+      { key: 'shard-larva', frame: 'sprinter', base: 'sprinter', behavior: 'larva', r: 10, hp: 7, speed: 112, dmg: 10, xp: 1, tint: 0x8fe7ff, scale: 0.82 },
+      // gem-mimic: dormant "gem" that wakes and lunges, fits Crystal Shoals'
+      // dense-gem fiction directly. Sapper-flagged for the same hot-start
+      // reason as mine-bomber (ambush dmg is unavoidable at row 0).
+      { key: 'gem-mimic', frame: 'deco_core', base: 'drifter', behavior: 'mimic', r: 12, hp: 16, speed: 0, dmg: 22, xp: 3, tint: 0xa7ffe0, scale: 0.7, sapper: true }
     ],
     'void-rift': [
       { key: 'blink-stalker', frame: 'sprinter', base: 'sprinter', behavior: 'blink', r: 12, hp: 14, speed: 98, dmg: 15, xp: 2, tint: 0x9b8cff, scale: 1.06 },
       { key: 'gravity-mite', frame: 'drifter', base: 'drifter', behavior: 'gravity-mite', r: 12, hp: 12, speed: 48, dmg: 12, xp: 2, tint: 0x6e8bff, scale: 0.86 },
-      { key: 'null-leech', frame: 'wisp', base: 'weaver', behavior: 'null-leech', r: 16, hp: 21, speed: 64, dmg: 18, xp: 3, tint: 0xd0c8ff, scale: 1.08 }
+      { key: 'null-leech', frame: 'wisp', base: 'weaver', behavior: 'null-leech', r: 16, hp: 21, speed: 64, dmg: 18, xp: 3, tint: 0xd0c8ff, scale: 1.08 },
+      // wing-cutter: paired V-wing dive/split, fits Void Rift's "vision
+      // pockets" ambush fiction (pairs appear from cover and split on you).
+      { key: 'wing-cutter', frame: 'sprinter', base: 'sprinter', behavior: 'formation', r: 12, hp: 10, speed: 96, dmg: 12, xp: 2, tint: 0xffd67a, scale: 1.0 },
+      // rift-strafer: orbits at range and fires, the region's namesake
+      // "rift" ranged threat. ranged: true keeps it out of at:0 pools.
+      { key: 'rift-strafer', frame: 'lancer', base: 'lancer', behavior: 'strafer', r: 15, hp: 20, speed: 60, dmg: 14, xp: 3, tint: 0x7ac8ff, scale: 1.02, ranged: true },
+      // nebula-burrower: phases in/out of visibility, fits the "vision
+      // pockets" mechanic (nebula cover) better than any other region.
+      { key: 'nebula-burrower', frame: 'weaver', base: 'weaver', behavior: 'burrower', r: 15, hp: 24, speed: 66, dmg: 20, xp: 3, tint: 0x9b8cff, scale: 1.02 }
     ],
     'aurelion-graveyard': [
       { key: 'derelict-guard-hulk', frame: 'bulwark', base: 'bulwark', behavior: 'hulk', r: 27, hp: 58, speed: 22, dmg: 24, xp: 4, tint: 0xc07d62, scale: 1.12 },
       { key: 'salvage-swarm', frame: 'weaver', base: 'weaver', behavior: 'salvage', r: 13, hp: 10, speed: 88, dmg: 13, xp: 2, tint: 0xffb47e, scale: 0.94 },
       { key: 'scrap-ripper', frame: 'sprinter', base: 'sprinter', behavior: 'salvage-dash', r: 13, hp: 16, speed: 104, dmg: 17, xp: 2, tint: 0x9a5b55, scale: 1.04 },
-      { key: 'grave-egg', frame: 'deco_core', base: 'drifter', behavior: 'egg', r: 22, hp: 42, speed: 0, dmg: 0, xp: 4, tint: 0xffd09a, scale: 0.76, egg: true }
+      { key: 'grave-egg', frame: 'deco_core', base: 'drifter', behavior: 'egg', r: 22, hp: 42, speed: 0, dmg: 0, xp: 4, tint: 0xffd09a, scale: 0.76, egg: true },
+      // wall-warden: frontal-armored hulk that forces flanking, fits the
+      // Graveyard's derelict-hulk cover fiction (armor plating to hide
+      // behind / shoot around).
+      { key: 'wall-warden', frame: 'bulwark', base: 'bulwark', behavior: 'shield-wall', r: 22, hp: 40, speed: 24, dmg: 17, xp: 3, tint: 0xa8a8e8, scale: 1.05 },
+      // xp-leech: drains dropped gems, fits the Graveyard's salvage/scavenger
+      // fiction (it's a rival scavenger, not just a hostile).
+      { key: 'xp-leech', frame: 'wisp', base: 'weaver', behavior: 'leech', r: 14, hp: 14, speed: 74, dmg: 8, xp: 2, tint: 0xffb4e6, scale: 1.0 }
     ]
   };
   var REGION_ENEMY_BY_KEY = {};
@@ -450,25 +481,6 @@
       REGION_ENEMY_BY_KEY[REGION_ENEMIES[rek][rei].key] = REGION_ENEMIES[rek][rei];
     }
   }
-
-  // M3 bestiary: 7 new data-driven behaviors, additive. Not placed in
-  // REGION_ENEMIES pools (mission spawn tables are M4 scope); reachable by
-  // key via spawn() and REGION_ENEMY_BY_KEY like any variant/apex entry.
-  // Reuses the six pooled bodies/frames, no new atlas assets.
-  var M3_ENEMIES = [
-    { key: 'wing-cutter', frame: 'sprinter', base: 'sprinter', behavior: 'formation', r: 12, hp: 10, speed: 96, dmg: 12, xp: 2, tint: 0xffd67a, scale: 1.0 },
-    { key: 'rift-strafer', frame: 'lancer', base: 'lancer', behavior: 'strafer', r: 15, hp: 20, speed: 60, dmg: 14, xp: 3, tint: 0x7ac8ff, scale: 1.02, ranged: true },
-    { key: 'wall-warden', frame: 'bulwark', base: 'bulwark', behavior: 'shield-wall', r: 22, hp: 40, speed: 24, dmg: 17, xp: 3, tint: 0xa8a8e8, scale: 1.05 },
-    { key: 'nebula-burrower', frame: 'weaver', base: 'weaver', behavior: 'burrower', r: 15, hp: 24, speed: 66, dmg: 20, xp: 3, tint: 0x9b8cff, scale: 1.02 },
-    { key: 'gem-mimic', frame: 'deco_core', base: 'drifter', behavior: 'mimic', r: 12, hp: 16, speed: 0, dmg: 22, xp: 3, tint: 0xa7ffe0, scale: 0.7 },
-    { key: 'mine-bomber', frame: 'drifter', base: 'drifter', behavior: 'bomber', r: 16, hp: 18, speed: 54, dmg: 0, xp: 3, tint: 0xff9a5a, scale: 1.05 },
-    { key: 'xp-leech', frame: 'wisp', base: 'weaver', behavior: 'leech', r: 14, hp: 14, speed: 74, dmg: 8, xp: 2, tint: 0xffb4e6, scale: 1.0 }
-  ];
-  for (var m3i = 0; m3i < M3_ENEMIES.length; m3i++) {
-    REGION_ENEMY_BY_KEY[M3_ENEMIES[m3i].key] = M3_ENEMIES[m3i];
-  }
-  var M3_ENEMY_BY_KEY = {};
-  for (var m3k = 0; m3k < M3_ENEMIES.length; m3k++) M3_ENEMY_BY_KEY[M3_ENEMIES[m3k].key] = M3_ENEMIES[m3k];
 
   // High-tier apex roster. Reuses classic bodies/frames at larger radius and
   // distinct tints; no new atlas assets. apex: true keeps them out of the
@@ -581,8 +593,6 @@
     BANK_RATE: BANK_RATE,
     REGION_ENEMIES: REGION_ENEMIES,
     REGION_ENEMY_BY_KEY: REGION_ENEMY_BY_KEY,
-    M3_ENEMIES: M3_ENEMIES,
-    M3_ENEMY_BY_KEY: M3_ENEMY_BY_KEY,
     APEX_ENEMIES: APEX_ENEMIES,
     APEX_BY_KEY: APEX_BY_KEY,
     REGION_BOSSES: REGION_BOSSES,

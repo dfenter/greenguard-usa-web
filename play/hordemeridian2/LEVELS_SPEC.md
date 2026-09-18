@@ -51,6 +51,12 @@ Same row shape as the base game's `WAVES` table:
   `bulwark`, `sapper`, `lancer`, `weaver`) AND/OR region-variant keys from
   `REGION_ENEMIES` in hm_data.js (e.g. `cinder-kamikaze`, `blink-stalker`,
   `derelict-guard-hulk`). Never `boss` and never a key that does not exist.
+- The 7 M3 bestiary keys are now valid pool entries, folded into
+  `REGION_ENEMIES` alongside the classic variants: `mine-bomber` and
+  `gem-mimic` (ember-drift / crystal-shoals), `wing-cutter`, `rift-strafer`,
+  `nebula-burrower` (void-rift), `wall-warden`, `xp-leech`
+  (aurelion-graveyard). Meridian Verge has no variant table and keeps none of
+  them.
 - After the last row the framework keeps using it until the run ends.
 
 ## mods (all optional, defaults 1.0)
@@ -192,6 +198,12 @@ Content rules added in Rev 2, on top of everything above:
   majority high-speed kamikaze (cinder-kamikaze at speed 126) at `pack >= 3` is
   the same failure in a different costume. Mission 5 had a 10 second survival
   median until its row-0 pool was softened to pack 2 with a slower mix.
+  This also applies to the M3 bestiary keys: `rift-strafer` is `ranged: true`
+  and must never appear in an `at: 0` pool. `mine-bomber` and `gem-mimic` are
+  marked `sapper: true` in hm_data.js (mine-bomber lays hazards at range,
+  gem-mimic is a speed-0 ambush with 22 contact damage) so they carry the same
+  hot-start exclusion even though neither is itself `ranged`. Keep all three
+  out of every `at: 0` row.
 - **Early mods interact with the hot start.** Aggressive `spawnRate` / `enemyHp`
   / `enemyDmg` apply to the seeded board too, so a finale-grade mods block is
   felt at 0:00 rather than at the finale. Mission 15 went from a 20 second
