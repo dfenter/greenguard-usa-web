@@ -133,6 +133,20 @@ for (let id = 1; id <= 15; id++) {
   const before = errs.length;
   await page.evaluate((lid) => window.__HM_CAMPAIGN.start(lid), id);
   await wait(2200);
+  // M4 added authored intro cutscenes to levels 1 and 15. They hold the sim
+  // (state stays 'cutscene-intro', so stepCampaign never runs) until skipped.
+  // This probe predates M4 and asserted state === 'playing' immediately, so
+  // those two levels failed on every run. Dismiss via the REAL skip path the
+  // player uses (a pointerdown the cutscene listens for once) rather than
+  // forcing scene.state, so a broken skip still fails this probe.
+  const inCutscene = await page.evaluate(() => {
+    const s = window.__HORDE.game.scene;
+    return typeof s.state === 'string' && s.state.indexOf('cutscene') === 0;
+  });
+  if (inCutscene) {
+    await page.mouse.click(W / 2, H / 2);
+    await wait(1200);
+  }
   const sa = await page.evaluate(() => {
     const s = window.__HORDE.game.scene;
     return { state: s.state, level: s.level ? s.level.id : 0, region: window.__hm.state.region, secs: s.activeRunSeconds };
