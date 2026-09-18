@@ -52,7 +52,7 @@
   <div class="wrap">
     <div class="eyebrow">Changelog</div>
     <h1>Version history</h1>
-    <p>Every release, what changed, and what the change was for. Current release: 3.0.2, a corrective release on the 3.0.0 fleet rebuild. Drivers and add-on modules on the Ignition 8.1 line require 8.1.33 or newer as of 2026-09-17.
+    <p>Every release, what changed, and what the change was for. Current release: 3.0.3, a corrective release on 3.0.2. Drivers and add-on modules on the Ignition 8.1 line require 8.1.33 or newer as of 2026-09-17.
     Full customer notes ship in the release package.</p>
   </div>
 </header>
@@ -68,6 +68,15 @@
           <h3>Drivers and add-on modules declare the Ignition 8.1.33 floor</h3>
           <p>The twelve drivers and add-on modules on the Ignition 8.1 line are compiled for Java 17, which Ignition first shipped in 8.1.33. Until now they declared a lower minimum, so a gateway below 8.1.33 could install a module and then fail at runtime. Each module now declares <span class="mono">requiredIgnitionVersion</span> 8.1.33, so an older gateway refuses the install with a clear message instead. The module code is otherwise unchanged. New versions: SparkS7 0.3.1, SparkSNMP 0.1.3, SparkBACnet 0.1.2, SparkADS 0.1.2, Spark61850 0.1.2, SparkGantt 0.1.2, SparkInflux 0.2.2, SparkNotify 0.2.1, FleetOps 0.3.1, DNP3 0.1.1, IEC 60870-5-104 0.1.1, TI 505 1.0.1.</p>
           <p><b>Ignition 8.3.</b> These releases are for the 8.1 line only. The 8.3 column on the <a href="/sparkbridge/download">download page</a> continues to serve the previous build of each product, which is unchanged and still supported. Core modules keep their 8.1.19 floor.</p>
+        </div>
+      </li>
+      <li>
+        <span class="lc lc-birth">3.0.3<br>2026&#8209;09&#8209;18</span>
+        <div>
+          <h3>Enrollment accuracy, pin-preserving reissue, and edge-scope precedence</h3>
+          <p>3.0.3 is a corrective release on 3.0.2. <b>A site that cannot connect is no longer reported as ENROLLED (#45).</b> Enrollment state was inferred in a way that let a site which had only been issued credentials, and had never confirmed them, appear fully enrolled; such a site now reports CREDENTIALS_ISSUED_UNCONFIRMED until it actually confirms. <b>Reissue preserves the certificate pin by default (#46).</b> Reissuing a site's credentials no longer clears its pinned certificate as a side effect. Clearing the pin is now an explicit opt-in, so a routine credential rotation cannot silently unpin a site. <b>The registry and the identities artifact stay coherent (#47).</b> The site registry and the enrollment identities artifact are written by one path, inside the same operation and under the same lock, so a change reaches both or neither and the two cannot drift apart. <b>An operator's pinned edge scope is no longer silently overridden.</b> An explicit <span class="mono">sparkbridge.broker.edgescopes</span> entry is documented to win over the enrollment artifact's entry for the same user, but the artifact was parsed last and quietly overwrote it. Precedence now holds everywhere it is evaluated: at startup, on every hot reload, and on both the embedded broker and the HiveMQ broker extension. <b>A failed pending-serial expiry no longer half-applies.</b> When persisting an expiry fails, the in-memory clear is rolled back, so a restart cannot resurrect a state that was never written to disk.</p>
+          <p><b>Upgrade path.</b> Install the 3.0.3 modules alongside your existing ones, confirm each reaches Running, then uninstall the old ones. Module ids are unchanged, so this upgrade uses the same ids in place, and an existing key keeps working without reissue.</p>
+          <p>Bundles for Ignition 8.1 and 8.3 are on the <a href="/sparkbridge/download">download page</a> and at <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/v3.0.3">the v3.0.3 GitHub release</a>.</p>
         </div>
       </li>
       <li>

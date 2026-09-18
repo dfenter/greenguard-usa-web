@@ -67,3 +67,4 @@ shotsJ5
 
 # Session worktrees (untracked, must never upload)
 .worktrees
+.claude/worktrees
