@@ -325,12 +325,22 @@ async function main() {
     const s = window.__HORDE.game.scene;
     if (!w || typeof w.sdf !== 'function' || !s || !s.p) return { available: false };
     const WORLD = w.WORLD || 12600;
+    const EDGE_BAND = w.EDGE_BAND;
+    // Field centre for direction-retention: mean of REGIONS centres (not the
+    // origin), since the region row is off-centre toward +x/+y (solar-crown
+    // sits at 6300,1000) and using the true centroid keeps the "which
+    // hemisphere did this land in" check honest for every push angle.
+    const regions = w.REGIONS || [];
+    let cx = 0, cy = 0;
+    for (const rgn of regions) { cx += rgn.cx; cy += rgn.cy; }
+    if (regions.length) { cx /= regions.length; cy /= regions.length; }
     const angles = [0, 60, 120, 180, 240, 300, 45, 200];
     const results = [];
     for (const deg of angles) {
       const rad = deg * Math.PI / 180;
-      s.p.x = Math.cos(rad) * WORLD * 3;
-      s.p.y = Math.sin(rad) * WORLD * 3;
+      const pushDir = { x: Math.cos(rad), y: Math.sin(rad) };
+      s.p.x = pushDir.x * WORLD * 3;
+      s.p.y = pushDir.y * WORLD * 3;
       s.p.vx = 0; s.p.vy = 0;
       // let the player update path (stepInput -> clampField) run a few frames
       await new Promise((resolve) => {
@@ -339,9 +349,21 @@ async function main() {
         requestAnimationFrame(tick);
       });
       const d = w.sdf(s.p.x, s.p.y);
-      results.push({ angleDeg: deg, x: s.p.x, y: s.p.y, sdf: d, inside: d <= 4 });
+      // Direction retention: the vector from field centre to the clamped
+      // point should still point roughly the way it was pushed. A clamp
+      // that teleports to some fixed point (e.g. always REGIONS[0]) instead
+      // of resolving along the push direction will fail this for most angles.
+      const rx = s.p.x - cx, ry = s.p.y - cy;
+      const rlen = Math.sqrt(rx * rx + ry * ry);
+      const dot = rlen > 1e-6 ? (rx / rlen) * pushDir.x + (ry / rlen) * pushDir.y : 0;
+      results.push({
+        angleDeg: deg, x: s.p.x, y: s.p.y, sdf: d,
+        inside: d <= 4,
+        inEdgeBand: typeof EDGE_BAND === 'number' ? d >= -EDGE_BAND : null,
+        dot: dot
+      });
     }
-    return { available: true, results: results };
+    return { available: true, results: results, edgeBand: EDGE_BAND, fieldCentre: { x: cx, y: cy } };
   });
   report.boundaryPush = boundaryPush;
   if (!boundaryPush.available) {
@@ -351,6 +373,19 @@ async function main() {
       if (!r.inside) {
         fail(report, `boundary push at angle ${r.angleDeg} deg: ship at (${r.x.toFixed(1)}, ${r.y.toFixed(1)}) has sdf=${r.sdf.toFixed(2)} > 0, not clamped inside the field. Player clamp = SDF is not holding.`);
       }
+      if (typeof boundaryPush.edgeBand === 'number' && r.inEdgeBand === false) {
+        fail(report, `boundary push at angle ${r.angleDeg} deg: clamp landed at sdf=${r.sdf.toFixed(2)}, deeper than -EDGE_BAND (${(-boundaryPush.edgeBand).toFixed(2)}); a clamp should settle near the boundary band, not teleport deep into the field.`);
+      }
+      if (r.dot <= 0) {
+        fail(report, `boundary push at angle ${r.angleDeg} deg: clamped point (${r.x.toFixed(1)}, ${r.y.toFixed(1)}) has dot=${r.dot.toFixed(3)} <= 0 against its push direction; the clamp is not retaining the push direction (result is on the wrong side of the field centre).`);
+      }
+    }
+    // Distinctness: 8 different push angles must not all collapse to the
+    // same clamped point (the direction-blind teleport-to-REGIONS[0] bug).
+    const uniquePoints = new Set(boundaryPush.results.map((r) => r.x.toFixed(1) + ',' + r.y.toFixed(1)));
+    report.boundaryPush.distinctPointCount = uniquePoints.size;
+    if (uniquePoints.size < boundaryPush.results.length) {
+      fail(report, `boundary push results are not distinct: only ${uniquePoints.size}/${boundaryPush.results.length} unique clamped points across 8 push angles; pushes from different directions are collapsing to the same point.`);
     }
   }
 
