@@ -1018,6 +1018,23 @@ function baseForDef(def) {
   // the new face and make whale/kaiju rows bulky in buildLoadedRig().
   return 'sharky';
 }
+/* QA-REPORT 2026-09-17 finding 1: the untextured counterpart of baseForDef.
+ * Runs the same head-tag routing but never returns a TEXTURED_KEYS or
+ * fam/ entry, so the result is always one of BASE_KEYS -- the low-poly set
+ * that is resident at boot and costs no texture budget. Used by
+ * placeholderRig() to bake a real (untextured) silhouette for a roster card
+ * whose real base is withheld at the menu, instead of leaving it blank for
+ * the monogram fallback. Palette, personality sculpt and variant profile in
+ * buildLoadedRig() still apply on top of this shared mesh, which is what
+ * keeps two different textured sharks visually distinct even off the same
+ * low-poly base. */
+function untexturedBaseForDef(def) {
+  const head = String(def?.sil?.head || '');
+  if (head === 'goblin' || String(def?.id || '') === 'goblin') return 'goblinshark';
+  if (head === 'angler') return 'anglerfish';
+  if (head === 'piranha') return 'piranha';
+  return 'sharky';
+}
 /* Rev 17 Step 4: true only when RF_FAMILIES is on AND this row's family GLB
  * has actually shipped (present in MODEL_FILES). Used to gate every runtime
  * customization layer this lane deletes for authored-family rows: with the
@@ -3750,14 +3767,32 @@ function placeholderRig(def, base) {
   /* HSE lane O4: distinguish "loading" from "deliberately not loaded".
    *
    * requestTemplate() returns null for a textured base withheld at the menu.
-   * In that case there is no swap coming, and leaving the grey capsule visible
-   * makes ui3d.bakeThumb() render IT into the roster card - measured: the
-   * Epaulette Shark card baked a yellow box. ui3d only falls back to the
-   * card's monogram when the bake produces nothing, so hide the placeholder
-   * and let the bake come back empty. In-run placeholders (a load that IS
-   * coming) keep the capsule so the shark stays visible while it arrives. */
+   * In that case there is no swap coming for the real base. QA-REPORT
+   * 2026-09-17 finding 1 (graded FAIL): leaving the grey capsule hidden here
+   * made ui3d.bakeThumb() come back empty and every one of these 54 rows
+   * showed a two-letter monogram in the roster instead of shark art, even
+   * though the low-poly base set (BASE_KEYS) is already resident at boot and
+   * costs no texture budget. Build THAT rig instead -- untexturedBaseForDef()
+   * routes to the same head-tag family (goblinshark/anglerfish/piranha/
+   * sharky) baseForDef would have picked absent the textured override, so
+   * palette + personality sculpt + variant profile still make the card read
+   * as the right shark. Only fall back to the monogram (rfWithheld) if even
+   * the untextured base has no template, which should not happen since
+   * BASE_KEYS is loaded eagerly at boot. */
   let pending = requestTemplate(base);
   if (!pending && TEXTURED_KEYS.has(base) && !isNodeRuntime()) {
+    const untexturedBase = untexturedBaseForDef(def);
+    const untexturedTemplate = modelBudget.get(untexturedBase) || modelCache.get(untexturedBase);
+    if (untexturedTemplate) {
+      modelBudget.retain(untexturedBase); if (rigHolds) rigHolds.set(group, untexturedBase);
+      live = buildLoadedRig(def, untexturedTemplate, group);
+      record.parts = { body: live.body, jaw: null, shell: live.shell, prop: live.prop };
+      group.userData.rfLoading = false;
+      group.userData.rfWithheldThumb = true;
+      if (placeholder.parent) placeholder.parent.remove(placeholder);
+      installEffects(record, live.body);
+      return record;
+    }
     placeholder.visible = false;
     group.userData.rfWithheld = true;
     return record;
