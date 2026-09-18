@@ -356,6 +356,9 @@ async function runClassTrial(classKey, seconds) {
         // chip damage a bot trial produces before hp ever moves.
         effHp: Math.round(sc.p.hp + (sc.p.shield || 0)),
         shield: Math.round(sc.p.shield || 0), shieldMax: Math.round(sc.p.shieldMax || 0),
+        // Monotonic: never decreases, so it cannot be missed between polls
+        // the way a regenerating hp/shield read can be.
+        damageTaken: Math.round((sc.p.damageTaken || 0) * 100) / 100,
         t: Math.round(sc.run.time), st: sc.state,
         kills: sc.run.kills || 0
       };
@@ -386,9 +389,12 @@ for (const cls of ['warden', 'recon', 'vector']) {
   const r = classResults[cls];
   ok(`class ${cls}: no console/page errors during trial`, r.errs.length === 0, r.errs.join(' | '));
   ok(`class ${cls}: survives a reasonable window (t >= 20s)`, r.final.t >= 20, 't=' + r.final.t);
-  ok(`class ${cls}: took damage (min effective HP over trial < peak)`,
-    r.minEffHp < r.maxEffHp,
-    'minEffHp=' + r.minEffHp + ' maxEffHp=' + r.maxEffHp + ' minHp=' + r.minHp + ' maxHp=' + r.final.maxHp);
+  // Use the monotonic damageTaken counter, not an hp/shield sample. The
+  // Warden pool (35) refills at 14/s after a 3s delay, so it can fully
+  // recover inside the 2s sampling gap and hide every hit that landed.
+  ok(`class ${cls}: took damage (cumulative damageTaken > 0)`,
+    r.final.damageTaken > 0,
+    'damageTaken=' + r.final.damageTaken + ' minEffHp=' + r.minEffHp + ' maxEffHp=' + r.maxEffHp);
   ok(`class ${cls}: dealt damage (kills > 0)`, r.final.kills > 0, JSON.stringify(r.final));
 }
 

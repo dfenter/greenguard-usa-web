@@ -3384,6 +3384,7 @@
         shieldRegen: isWarden ? 14 : 0,
         shieldRegenDelay: 3,
         lastHitAt: 0,
+        damageTaken: 0,
         // Recon signature passive: automatic dash burst on a cooldown while
         // moving. See update loop for the trigger/consume logic.
         dashSpeedMult: isRecon ? 2.1 : 1,
@@ -8922,6 +8923,12 @@
       }
       var resist = this.run.tides['last-stand'] > 0 ? Math.min(0.70, this.run.lastStandResist || 0) : 0;
       var amt = amount * (1 - p.armor) * (1 - resist);
+      // Monotonic total of damage that actually landed, counted BEFORE the
+      // shield absorbs any of it. hp and shield both recover (regen, and the
+      // shield refills its 35 pool at 14/s), so any sampled read of them can
+      // miss a hit entirely between polls. This counter never decreases, so
+      // "did this class take damage" is answerable without racing the regen.
+      p.damageTaken = (p.damageTaken || 0) + amt;
       // Warden shield: absorbs damage before hp. Any remainder after the
       // shield pool is exhausted carries through to hp.
       if (p.shieldMax > 0 && p.shield > 0) {
@@ -11528,6 +11535,8 @@
 
       if (this.state !== 'playing' || p.iframes > 0 || this.run.buffs.aegis > 0) return;
       var amt = amount * (1 - p.armor);
+      // Same monotonic counter as the solo damage path above.
+      p.damageTaken = (p.damageTaken || 0) + amt;
       if (p.shieldMax > 0 && p.shield > 0) {
         var absorbed = Math.min(p.shield, amt);
         p.shield -= absorbed;
