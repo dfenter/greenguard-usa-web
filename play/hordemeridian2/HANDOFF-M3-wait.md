@@ -225,3 +225,75 @@ Fix lane reports (or caps out with HANDOFF-M3-fixes.md). Then:
     world probe           PASS, estimatedFps 158.7
     campaign 3-trial      55/55 PASS, L1=148 L5=83 L10=54 L15=37, 15/15 missions boot
     baseline 68612b3d     54/55 FAIL, L5=38  (merged beats its own base)
+
+---
+
+# ROUND 4 (orchestrator parked 2026-09-18): fixes verified, GATE IN FLIGHT
+
+## Fix lane: DONE and INDEPENDENTLY VERIFIED
+
+Commits `3ab0718a` (fixes) + `6468a6e6` (handoff evidence) on `hm2-m3`, on top of `8bd483df`.
+Worktree clean. The fix lane has stood down.
+
+All three rulings verified by the orchestrator re-running the evidence, not by trusting the report:
+
+| ruling | verification |
+| --- | --- |
+| 1 phase-0 on spawn | `triggerBossSetpiece(...,0)` added in BOTH spawn paths (spawnRegionBoss + spawnBoss landing). Boss probe shows phase 0 firing for all 6 bosses. |
+| 2 per-phase probe assertion | boss probe 48/48; Core asserted to yield 3 DISTINCT types `{0:asteroid_field, 1:gravity_well, 2:solar_flare}`. Fix lane's mutation (force one hook type) gave 7/8 exit 1. |
+| 3 gravity well real effect | `setpieceWell` went from 1 reference (dead write) to 11. New `applySetpieceWell` (game.js ~7890) pulls player AND enemies, `flip` inverts to push, time-bound via `run.setpieceWell.t`, cleared on expiry and on both `defeat()` paths. |
+
+Gate findings 1 and 3 also folded in: `isFinite` validation added to the gravity_well and
+solar_flare branches of `hm2_bosses.js setpieceFor`; `damage()` shield-wall guard made consistent
+with the stepEnemies call site.
+
+**Cleared, do not re-raise**: `applySetpieceWell` multiplies by `dt` inside `pullAccel` and again on
+the position update. That looks like a dt-squared bug but it MATCHES the two pre-existing M2 gravity
+call sites (game.js:5738 and 7947). Consistent with precedent, not a new defect.
+
+## Orchestrator's own re-verification on 6468a6e6
+
+    boss probe seed 999    48/48, exit 0, phase 0 fires for all 6, Core rotates 3 distinct types
+    bestiary seed 42       50/50, exit 0
+    hm2_world.test.mjs     24/24
+    world probe (port)     PASS, estimatedFps 238.1 (floor 50; was 158.7 pre-fix, so no regression)
+
+## Resume condition: TWO things in flight
+
+1. **Opus gate round 1** on HEAD 6468a6e6. It has the rulings, the out-of-scope list, and the two
+   open items below. It writes HANDOFF-M3-gate.md.
+2. **Campaign probe 3-trial** on the fixed state, log `/tmp/hm2_final_campaign.log`, port 8797.
+   Was at L8 at park time. Expect 55/55 and 15/15 missions; the fix lane already saw 55/55 with
+   L5 median 78s on its own run.
+
+## Open items the gate must rule on
+
+1. **Region-boss balance shift.** `phaseForHpFrac` ignores `e.regionBoss`, so the 5 pre-existing
+   region bosses moved from a 2-phase model (single 0.5 threshold, base game.js:8099) to the shared
+   3-phase 0.66/0.33 model. A real balance change to shipped content, not purely additive.
+   Blocker, or documented follow-up for Dan?
+2. **Mimic stall risk.** `hm2_enemies.js mimicStep` permanently sets `e.speed = e.baseSpeed = 140`
+   on wake and the data ships `speed: 0`, so a mimic that never wakes is a permanently stationary
+   enemy that could stall a wave-clear condition. Blocker or residual?
+
+## On PASS
+
+1. Push `hm2-m3` (this is the only push authorised; still NO merge to main, NO deploy).
+2. Commit `HANDOFF-M3.md` covering: the 7 behaviors, the 6 bosses, all probe evidence with seeds,
+   the three rulings, and these follow-ups for Dan:
+   - region-boss 2-phase to 3-phase balance shift (item 1 above)
+   - mimic stall risk (item 2 above)
+   - M3 enemies deliberately not in wave pools, deferred to M4
+   - **L5 / M2 evidence**: HANDOFF-M2.md claims 55/55 with L5=75s at gated hash a978cc77, but the
+     same unmodified probe at 68612b3d gives 54/55 with L5=38s. The M2 pass does not reproduce at
+     its own gated commit. L5 samples span 30-82 against a 45s bar (bimodal). Pre-existing, NOT an
+     M3 blocker, but it means the M2 gate evidence is unreliable and the bar needs re-tuning or
+     more trials.
+3. Update the status line in ~/.claude/projects/-Users-lucille/memory/project_horde_meridian_2.md
+   with a dated entry.
+
+## On HOLD
+
+Round cap per feedback_gate_round_cap.md: two HOLDs on the same file means rule on the MODEL before
+another point fix; cap point-fix rounds at ~3; report the round count to Dan past ~5. This is
+round 1. Dispatch a fresh Sonnet fix lane, never the gate reviewer, and never an original implementer.
