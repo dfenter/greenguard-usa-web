@@ -79,7 +79,7 @@ selftest-isolation cleanup paths, not the real menu-to-run transition.
 This is a real defect, not a throttle/SwiftShader artifact: the mechanism
 (a synchronous per-item idle-callback task queue that outlives the screen
 that queued it) is throttle-amplified but not throttle-created, and it
-transfers directly to a real phone — any device slow enough that a 150-300ms
+transfers directly to a real phone: any device slow enough that a 150-300ms
 main-thread task is possible will show the same stutter mid-run, worse on
 low-end hardware where the un-throttled per-bake cost is already non-trivial.
 It also is not gated purely behind `?unlockall=1`: any player with multiple

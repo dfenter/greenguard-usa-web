@@ -30,7 +30,7 @@ Two additions, both scoped to the anchor's Y coordinate only:
 finger point the nub draws at) stay exactly where the finger went down.
 `dragStick`'s recenter branch applies the same clamp to the recenter target.
 
-Touch anywhere in the legal area still anchors the stick exactly there — the
+Touch anywhere in the legal area still anchors the stick exactly there, the
 clamp only engages once the requested anchor Y would put the ring inside the
 inset strip, and only moves it up to the boundary, never further. The play
 area was not resized and the HUD panels were not touched.
@@ -42,7 +42,7 @@ indicator height (commonly 34 css px in portrait, 21 in landscape on
 notched models) and `--pad-b` picks that up automatically since it is
 already computed once at `:root`. `safeAreaBottomInset()` just reads that
 same live value back into JS via `getComputedStyle`, so it always matches
-what the HUD is already excluding — no separate constant to keep in sync.
+what the HUD is already excluding, no separate constant to keep in sync.
 
 Headless (selftest, CDP screenshot harness), there is no notch and no UA
 safe-area support, so `env()` resolves to `0px`; `getComputedStyle` returns
@@ -76,7 +76,7 @@ node --import ./tools/reg.mjs tools/selftest.mjs world game art3d fish fx ui met
 ```
 
 Result: `world 380/0`, `game 398/0` (394 baseline + 4 new safe-area checks,
-all passing), `fish 8/0`, `ui 239/0`, `meta 192/0`, `abilities 0/0` — all
+all passing), `fish 8/0`, `ui 239/0`, `meta 192/0`, `abilities 0/0`, all
 match or exceed the required baseline with zero regressions. `fx` printed
 `26/0` (the nested-result unwrap fix from another lane landed during this
 pass; previously reported as the known `ok=0` runner bug, safe to ignore

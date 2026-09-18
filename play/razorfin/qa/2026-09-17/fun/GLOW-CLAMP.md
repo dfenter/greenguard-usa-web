@@ -52,7 +52,7 @@ byte-identical before/after).
 `node --import ./tools/reg.mjs tools/selftest.mjs world game art3d fish fx ui meta abilities`
 
 world 380/380, game 398/398, fish 8/8, ui 239/239, meta 192/192,
-abilities 0/0 — all fail=0, no regressions vs baseline (world 380, game 394,
+abilities 0/0, all fail=0, no regressions vs baseline (world 380, game 394,
 fish 8, ui 239, meta 192, abilities 0). game's ok count rose from 394 to 398
 and fx now reports 26/26 (baseline noted fx ok=0 as a known runner bug being
 fixed by another lane) -- both from unrelated concurrent work in
