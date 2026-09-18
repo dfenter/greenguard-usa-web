@@ -32,19 +32,19 @@
   "paint": {
     "resolution": 384,
     "species_hsv": [
-      0.56,
-      0.14,
-      0.32
+      0.08,
+      0.24,
+      0.34
     ],
     "belly": "#bcc4c0",
     "softness": 0.16,
     "keep_photo": true,
     "saddles": {
       "count": 4,
-      "width": 0.19,
-      "colour": "#262a2b",
+      "width": 0.22,
+      "colour": "#1c1f20",
       "seed": 41,
-      "strength": 0.38
+      "strength": 0.40
     }
   },
   "variants": [],

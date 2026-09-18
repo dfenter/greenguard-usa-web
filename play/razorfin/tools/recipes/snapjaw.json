@@ -26,9 +26,9 @@
   "paint": {
     "resolution": 384,
     "species_hsv": [
-      0.57,
-      0.15,
-      0.35
+      0.09,
+      0.22,
+      0.36
     ],
     "belly": "#b3bcb9",
     "softness": 0.17,
@@ -36,12 +36,12 @@
     "stripes": {
       "axis": "length",
       "count": 7,
-      "width": 0.14,
-      "colour": "#172025",
+      "width": 0.16,
+      "colour": "#10171b",
       "region": "side",
       "noise": 0.08,
       "seed": 17,
-      "strength": 0.34
+      "strength": 0.42
     }
   },
   "variants": [],
