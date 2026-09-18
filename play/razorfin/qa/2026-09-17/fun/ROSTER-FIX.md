@@ -61,22 +61,78 @@ drains) and again after a dive is started and NPCs have had time to spawn.
 labeled with shark name, baked through the real `RF.UI` menu/bake path (not
 a synthetic loop). Legible at 10-column grid, 112x90 thumb per cell.
 
-### 3. Memory, measured with memprobe.mjs
+### 3. Memory, measured with memprobe.mjs (corrected, this gate)
+
+**Correction note.** The first version of `memprobe.mjs` did not actually
+measure an in-run state: it called `RF.UI.onDive()` with no argument, which
+is a callback *registrar* (`ui3d.js:2970`), not a trigger -- called bare it
+sets `CB.dive = null`, unregistering the handler instead of starting a run.
+`mayLoadTextured()` gates on `runIsLive()` -> `RF.Game.ctx.player`
+(`shark3d.js:3988`), and no player was ever created, so the "IN-RUN" sample
+was just a second MENU sample (both printed 6.67MB, byte-identical
+residency). That version also summed only `texturedBytes + rowSkinBytes`,
+which excludes the ~5.3MB untextured base set and every live GPU
+texture/canvas byte by construction, and printed 35/40MB "caps" that do not
+exist anywhere in the codebase -- the real `ModelBudget.cap`
+(`hse/model_budget.js:62`, `TEXTURED_LRU_CAP = 3`) is a COUNT of resident
+textured templates, not a byte budget. Corrected below.
+
+The rebuilt probe enters a run through `RF.Game.startRun('reef')`
+(`engine3d.js:3832`), the same function the UI's `onDive` callback chain
+ultimately calls and which sets `ctx.player` (`engine3d.js:1974`). It
+asserts `RF.Game.ctx.player` is truthy before taking the in-run sample and
+fails loudly (non-zero exit, no number printed) if the run did not start.
+
 ```
-MENU:   texturedBytes=6.67MB (1 model resident: thresher) rowSkinBytes=0.00MB total=6.67MB
-IN-RUN: texturedBytes=6.67MB (1 model resident: thresher) rowSkinBytes=0.00MB total=6.67MB
-menu total: 6.67 MB   (cap 35 MB, baseline 29.8 MB)  -> OK, well under
-in-run total: 6.67 MB (cap 40 MB, baseline 33.7 MB)  -> OK, well under
+MENU:   hasPlayer=false
+MENU base(untextured, fixed-est)=5.30MB
+MENU texturedBytes=6.67MB (1 models, count-cap=3) rowSkinBytes=0.00MB
+MENU bakedThumbs=86/86 (mono=0) estBytes=3.31MB (worst-case 40320B/thumb)
+MENU gpu: geometries=10 textures=140
+MENU JS heap used=41.86MB
+MENU TOTAL (base+modelBudget+bakedThumbsEst)=15.27MB
+
+IN-RUN: hasPlayer=true
+IN-RUN base(untextured, fixed-est)=5.30MB
+IN-RUN texturedBytes=6.67MB (1 models, count-cap=3) rowSkinBytes=0.00MB
+IN-RUN bakedThumbs=86/86 (mono=0) estBytes=3.31MB (worst-case 40320B/thumb)
+IN-RUN gpu: geometries=74 textures=154
+IN-RUN JS heap used=76.59MB
+IN-RUN TOTAL (base+modelBudget+bakedThumbsEst)=15.27MB
 ```
+Reproduced across two consecutive runs, identical figures both times.
+
+`hasPlayer` flips false -> true and GPU geometries (10 -> 74), GPU texture
+handles (140 -> 154), and JS heap (41.86MB -> 76.59MB) all move between the
+two samples, confirming the in-run sample is now a genuinely different
+engine state, not a second menu sample.
+
 Resident low-poly set at both samples: sharky, anglerfish, thresher (the
 boot-selected textured model), goblinshark, shark_b, fish_clown, fish_blue,
 fish_tuna, dolphin, manta, hammer_chibi, shark_c, shark, whale, piranha.
-Only `thresher` counts against the textured budget; every withheld card's
-thumbnail now comes from `sharky` / `goblinshark` / `anglerfish` / `piranha`,
-none of which count against `texturedBytes` (base-set templates are admitted
-with `textured: false`, `bytes: 0` in `ModelBudget`). The fix adds zero
-texture decode over the pre-fix baseline -- it only changes which
-already-loaded geometry a card's bake reads from.
+Only `thresher` counts against the textured budget (1 of `TEXTURED_LRU_CAP`
+= 3 resident slots, a COUNT cap, not a byte cap) at both menu and in-run;
+every withheld card's thumbnail now comes from `sharky` / `goblinshark` /
+`anglerfish` / `piranha`, none of which count against `texturedBytes`
+(base-set templates are admitted with `textured: false`, `bytes: 0` in
+`ModelBudget`). All 86 roster thumbnails baked (0 monograms), well under
+`ui3d.js`'s 8MB `BAKE_BYTE_CAP`.
+
+**No byte budget exists in code** for the menu/in-run totals above -- there
+is no byte threshold anywhere in the codebase to compare them against, so no
+pass/fail line is printed. The previously-quoted 29.8MB / 33.7MB historical
+baseline is not reused as a pass/fail line either: it was measured a
+different way (unknown methodology, predates this component breakdown), so
+it is not an apples-to-apples comparison against the totals above.
+
+**Regression verdict: no.** Textured template residency held at 1 of a
+3-slot count cap in both the menu and in-run states, matching the structural
+argument that `untexturedBaseForDef` provably cannot return a textured key
+(the fix routes withheld cards to the low-poly base set only). The +2.2MB
+`bakedThumbBytesEst` component (86 baked thumbs) is the actual cost Wave 1
+adds, and it is a canvas/DOM cost, not a texture-decode cost -- it does not
+touch `ModelBudget` or the textured LRU at all, and it is bounded by the
+existing 8MB bake cap that was already in place before this change.
 
 ### 4. Selftest, from `<worktree>/play/razorfin`
 ```
