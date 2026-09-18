@@ -133,6 +133,20 @@ for (let id = 1; id <= 15; id++) {
   const before = errs.length;
   await page.evaluate((lid) => window.__HM_CAMPAIGN.start(lid), id);
   await wait(2200);
+  // M4: a level with an authored intro cutscene holds state at 'cutscene-intro'
+  // until the cutscene ends or the player skips it. The intro is driven by the
+  // real scene clock (scene.time.now), NOT by run.time, so fast-forwarding
+  // run.time below will never end it. Skip it the same way a player taps to
+  // skip, then wait for 'playing'. No-op on the 13 levels without cutscenes.
+  await page.evaluate(() => {
+    const s = window.__HORDE.game.scene;
+    if (s.state === 'cutscene-intro' && s.input) s.input.emit('pointerdown');
+  });
+  await page.waitForFunction(
+    () => window.__HORDE.game.scene.state !== 'cutscene-intro',
+    { timeout: 20000 }
+  ).catch(() => {});
+  await wait(300);
   const sa = await page.evaluate(() => {
     const s = window.__HORDE.game.scene;
     return { state: s.state, level: s.level ? s.level.id : 0, region: window.__hm.state.region, secs: s.activeRunSeconds };
