@@ -97,7 +97,7 @@
       // Gravity well flip: spawn the well point, then invert its pull sign
       // on odd phases via the strength field (game.js applies the sign).
       var well = hooks.spawn({ strength: 240 * strength }, ctx);
-      if (well) {
+      if (well && isFinite(well.x) && isFinite(well.y) && isFinite(well.strength)) {
         well.flip = (phaseStage % 2) === 1;
         result.well = well;
       }
@@ -107,7 +107,7 @@
       var laneCount = 2 + (phaseStage || 0);
       for (var j = 0; j < laneCount; j++) {
         var lane = hooks.spawn({ width: 260 * strength, period: 6 }, ctx);
-        if (lane) result.points.push(lane);
+        if (lane && isFinite(lane.x) && isFinite(lane.y)) result.points.push(lane);
       }
     }
     return result;

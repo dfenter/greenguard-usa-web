@@ -170,6 +170,7 @@ async function runBoss(bossKey, mutation) {
   const startWall = Date.now();
   const phasesSeen = new Set();
   const setpiecesSeen = [];
+  const setpieceByPhase = {}; // one sample per phaseStage, keyed by phase
   let died = false;
   let telegraphFired = false;
   const budgetMs = 180000; // 3 minutes
@@ -196,12 +197,35 @@ async function runBoss(bossKey, mutation) {
     }, mutation);
     if (!s.alive) { died = true; break; }
     phasesSeen.add(s.phase);
-    if (s.setpiece) { telegraphFired = true; setpiecesSeen.push(s.setpiece); }
+    if (s.setpiece) {
+      telegraphFired = true;
+      setpiecesSeen.push(s.setpiece);
+      // Real per-phase assertion (M3 fix, ruling 2): keep only the FIRST
+      // sample seen for each phaseStage, so a boss stuck on one hook type
+      // across phases cannot hide behind "fired at least once" (that used
+      // to pass on setpiecesSeen.slice(0,3), which was the first 3 POLL
+      // TICKS 400ms apart, i.e. all still phase 0, never one per phase).
+      if (!(s.phase in setpieceByPhase)) setpieceByPhase[s.phase] = s.setpiece.type;
+    }
   }
   const elapsedS = Math.round((Date.now() - startWall) / 1000);
   step(`${bossKey}: dies within 3 minutes`, died, elapsedS + 's');
   step(`${bossKey}: all 3 phases observed (0,1,2)`, [0, 1, 2].every((ph) => phasesSeen.has(ph)), JSON.stringify([...phasesSeen]));
   step(`${bossKey}: arena set-piece fired at least once`, telegraphFired, JSON.stringify(setpiecesSeen.slice(0, 3)));
+  // Per-phase assertion: every phase the boss actually reached must have
+  // fired its own set-piece sample, not just phase 0 or a lucky poll.
+  const phasesReached = [...phasesSeen];
+  const setpieceEveryPhase = phasesReached.every((ph) => ph in setpieceByPhase);
+  step(`${bossKey}: set-piece fired in every phase reached`, setpieceEveryPhase, JSON.stringify(setpieceByPhase));
+  if (bossKey === 'boss') {
+    // The Meridian Core must rotate through 3 DISTINCT set-piece types
+    // across phases 0,1,2, matching setpieceByPhase in hm2_bosses.js.
+    const distinctTypes = new Set(Object.values(setpieceByPhase));
+    const coreAllPhases = [0, 1, 2].every((ph) => ph in setpieceByPhase);
+    const coreDistinct = coreAllPhases && distinctTypes.size === 3;
+    step(`${bossKey}: Meridian Core yields 3 distinct set-piece types across phases 0,1,2`,
+      coreDistinct, JSON.stringify(setpieceByPhase));
+  }
   const realErrs = errs.filter((e) => !/scope/.test(e) && !/Service Worker/i.test(e));
   step(`${bossKey}: no new console errors`, realErrs.length === 0, realErrs.join(' | '));
   await page.close();

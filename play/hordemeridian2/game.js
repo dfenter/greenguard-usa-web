@@ -5721,6 +5721,7 @@
     applyWorldFeaturesToPlayer: function (dt) {
       var worldApi = window.HM2_WORLD;
       if (!worldApi) return;
+      if (this.run.setpieceWell) this.applySetpieceWell(this.p, worldApi, dt);
       var features = this.currentRegionFeatures();
       if (!features) return;
       var p = this.p;
@@ -5856,6 +5857,10 @@
       this.contactRing(boss.x, boss.y, 80, 560, 0.66, def.tint, 0.92);
       this.fx.smoke.emitParticleAt(boss.x, boss.y, kit.juice.enabled ? 12 : 3);
       kit.juice.shake(13, 420);
+      // Ruling 1 (M3 fix): fire the phase-0 set-piece as a telegraphed opener
+      // on spawn, since bossPhaseChange only fires on a phase TRANSITION and
+      // a boss spawns already in phase 0 (see triggerBossSetpiece).
+      this.triggerBossSetpiece(boss, def.key, 0);
       return boss;
     },
 
@@ -6463,6 +6468,8 @@
         scene.contactRing(b.x, b.y, 90, 620, 0.75, 0xd6a4ff, 0.95);
         scene.fx.smoke.emitParticleAt(b.x, b.y, 18);
         scene.burst(10);
+        // Ruling 1 (M3 fix): telegraphed phase-0 opener, see spawnRegionBoss.
+        scene.triggerBossSetpiece(b, 'boss', 0);
       }, 'boss-approach');
 
       kit.audio.music('musicHeat', 1200);
@@ -7542,6 +7549,12 @@
     stepEnemies: function (dt) {
       var p = this.p, run = this.run;
       this.stepHatchQueue();
+      // Ruling 3 (M3 fix): tick down the boss gravity-well set-piece and
+      // clear it on expiry, so it never becomes a permanent field.
+      if (run.setpieceWell) {
+        run.setpieceWell.t -= dt;
+        if (run.setpieceWell.t <= 0) run.setpieceWell = null;
+      }
       // M2 SUBTASK C: resolve the current region's terrain features once for
       // the whole enemy pass rather than per-entity.
       var worldApi = window.HM2_WORLD;
@@ -7867,6 +7880,32 @@
       return result;
     },
 
+    // applySetpieceWell (M3 fix, ruling 3): gives the boss gravity_well
+    // set-piece (this.run.setpieceWell) a real gameplay pull on the given
+    // target (player or enemy), reusing the same gravity_well collide hook
+    // and pull math as the region terrain feature above rather than a new
+    // system. flip inverts the pull into a push. Time-bound by the caller
+    // ticking run.setpieceWell.t down in stepEnemies; this only applies the
+    // force while it is still active. No-op if HM2_WORLD is unavailable.
+    applySetpieceWell: function (target, worldApi, dt) {
+      var well = this.run.setpieceWell;
+      if (!well || !worldApi) return;
+      var hooks = worldApi.featureHooks('gravity_well');
+      if (!hooks) return;
+      var wdx = target.x - well.x, wdy = target.y - well.y;
+      var wdist = Math.sqrt(wdx * wdx + wdy * wdy);
+      if (!isFinite(wdist) || wdist < 1e-6) return;
+      var pullRadius = 520;
+      if (wdist >= pullRadius) return;
+      var wres = hooks.collide({ pullRadius: pullRadius }, { dx: wdx, dy: wdy, rand: srand });
+      if (!wres || !isFinite(wres.nx) || !isFinite(wres.ny)) return;
+      var sign = well.flip ? -1 : 1;
+      var pullT = 1 - wdist / pullRadius;
+      var pullAccel = (well.strength || 240) * pullT * dt * sign;
+      target.x += wres.nx * pullAccel * dt;
+      target.y += wres.ny * pullAccel * dt;
+    },
+
     // applyTerrainToEnemy (M2 SUBTASK C): wires the five terrain feature
     // hooks into per-enemy update. features is the current region's list
     // (resolved once per frame by the caller), worldApi is window.HM2_WORLD.
@@ -7911,6 +7950,7 @@
           }
         }
       }
+      if (this.run.setpieceWell) this.applySetpieceWell(e, worldApi, dt);
       var nebula = this.featureOfType(features, 'nebula');
       if (nebula && e.spr) {
         var nHooks = worldApi.featureHooks('nebula');
@@ -8119,7 +8159,7 @@
         return;
       }
       var amt = amount * this.tideDamageMultiplier();
-      if (e.behavior === 'shield-wall' && window.HM2_ENEMIES) {
+      if (e.behavior === 'shield-wall' && window.HM2_ENEMIES && window.HM2_ENEMIES.wallDamageMultiplier) {
         amt *= window.HM2_ENEMIES.wallDamageMultiplier(this, e, hx, hy);
       }
       if (!e.boss && e.behavior !== 'shield-aura') {
@@ -8169,6 +8209,7 @@
         return;
       }
       if (e.regionBoss) {
+        run.setpieceWell = null;
         var regionDef = REGION_BOSS_BY_BOSS_KEY[e.bossKey];
         this.contactRing(e.x, e.y, 118, 840, 0.86, regionDef ? regionDef.tint : e.tint, 1);
         this.contactRing(e.x, e.y, 58, 480, 0.48, 0xffffff, 0.88);
@@ -8199,6 +8240,7 @@
         return;
       }
       if (e.boss) {
+        run.setpieceWell = null;
         this.contactRing(e.x, e.y, 100, 900, 0.9, 0xe6bbff, 1);
         this.contactRing(e.x, e.y, 60, 520, 0.55, 0xffffff, 0.9);
         this.fx.death.setParticleTint(0xe6bbff);
