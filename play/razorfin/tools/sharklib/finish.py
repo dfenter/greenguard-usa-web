@@ -1191,17 +1191,44 @@ def _apply_jawseam(low, rig, budget_tris=9000):
         mesh = bmesh.new()
         mesh.from_mesh(low.data)
         mesh.verts.ensure_lookup_table()
+        # Snapshot a STABLE reference per original index BEFORE any merge.
+        # bmesh.ops.pointmerge deletes a vertex and renumbers the sequence, so
+        # `mesh.verts[i]` means a different vertex after the first call: the
+        # first version of this adapter re-indexed inside the loop and
+        # therefore merged arbitrary unrelated pairs, which is why the solver
+        # reported a clean 2.08x mesh while the re-gathered mesh measured 44x.
+        # BMVert references stay valid across the op, so hold them instead.
+        handles = list(mesh.verts)
+        # Track survivors: when a vertex has already been merged away, its
+        # merges must be redirected onto the vertex that absorbed it.
+        owner = list(range(len(handles)))
+
+        def _root(i):
+            while owner[i] != i:
+                owner[i] = owner[owner[i]]
+                i = owner[i]
+            return i
+
         applied = 0
         for keep, drop, co in result.merges:
-            mesh.verts.ensure_lookup_table()
-            vk = mesh.verts[keep] if keep < len(mesh.verts) else None
-            vd = mesh.verts[drop] if drop < len(mesh.verts) else None
-            if vk is None or vd is None or not vk.is_valid or not vd.is_valid:
+            if keep >= len(handles) or drop >= len(handles):
+                continue
+            rk, rd = _root(keep), _root(drop)
+            if rk == rd:
+                continue
+            vk, vd = handles[rk], handles[rd]
+            if not vk.is_valid or not vd.is_valid:
                 continue
             bmesh.ops.pointmerge(mesh, verts=[vk, vd],
                                  merge_co=Vector((float(co[0]), float(co[1]),
                                                   float(co[2]))))
+            # pointmerge keeps one of the two; find which survived.
+            owner[rd] = rk if vk.is_valid else rd
+            if not vk.is_valid and vd.is_valid:
+                handles[rk] = vd
+                owner[rd] = rk
             applied += 1
+        bmesh.ops.dissolve_degenerate(mesh, dist=1.0e-9, edges=mesh.edges)
         mesh.to_mesh(low.data)
         low.data.update()
         mesh.free()
