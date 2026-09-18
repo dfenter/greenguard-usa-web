@@ -161,8 +161,10 @@ node --import ./tools/reg.mjs hse/jaw_weight_test.mjs assets/models/fam/*.glb
   motion is possible) and edges of zero rest length.
 - Resolves `theta` per family through `hse/jaw_gate_config.mjs`, so it cannot
   drift from the runtime authority.
-- Derives the hinge the same way `count_cliffs.mjs` does (5th pct of the jaw
-  cloud along y, 95th along z) so the two instruments agree.
+- Derives the hinge from the real `LowerJaw` bone origin (`jaw.matrixWorld`).
+  It originally copied `count_cliffs.mjs`'s percentile estimate; see 6.1.
+  Lane 5 fixed `count_cliffs.mjs` to use the bone origin too, so the two
+  instruments agree again -- on the correct arm this time.
 - **Fails** if any edge has `|dW| > B(p, q)`, printing the worst offenders
   with their weights, rest length and arm.
 - Exit code 0 = pass, 1 = fail. No thresholds read from env; the bar is in
@@ -202,8 +204,19 @@ The estimate understates the moment arm by an order of magnitude. Consequences:
   gate stayed red.
 
 Fixed: the test now poses from `jaw.matrixWorld` and uses the bone origin.
-`count_cliffs.mjs` still uses the percentile estimate and is therefore also
-wrong; it was left alone this lane but should not be trusted.
+`count_cliffs.mjs` was left on the percentile estimate by lane 4 and **was
+fixed by lane 5** to use the bone origin. Correcting it tightened every count,
+because the understated arm had made the allowance ~9x too generous:
+
+| family | cliffEdges, bad arm | cliffEdges, bone origin |
+|---|---|---|
+| aresrender | 472 | 1245 of 6643 jaw-touching |
+| artemisstrike | 30 | 264 of 295 |
+| leviathanrex | 17 | 122 of 151 |
+| snapjaw | 28 | 533 of 801 |
+| thresher | 142 | 1732 of 2021 |
+
+Every cliff number printed by any lane before Rev 18 lane 5 is understated.
 
 ### 6.2 The linear stretch model breaks on near-coincident edges
 
@@ -251,7 +264,14 @@ failure is not a z-ramp problem in the first place.
 authored on the SOURCE mesh and the short edges are manufactured by
 remesh/decimate afterwards. No purely field-side fix can satisfy it.**
 
-### 6.4 The lever nobody has pulled
+### 6.4 The lever nobody has pulled -- PULLED AND DISPROVEN (lane 5)
+
+**Read 6.4.1 below before acting on this section. The recommendation that
+follows was wrong, and it was wrong for a reason this very file already
+contained.**
+
+### 6.4.0 The original recommendation, kept for the record
+
 
 `restLen` is in the NUMERATOR of the JW-1 bound and is set by the decimator,
 after the field is authored. Constraining the decimator to refuse collapses
@@ -270,3 +290,63 @@ also a hard branch -- a vertex at 0.079 exports as exactly 0 -- and it sits
 just outside the rule's stated scope. `jaw_weight_test` skips edges with two
 zero-weight ends and is therefore structurally blind to it. Either widen JW-2
 to cover the floor, or make the floor a ramp.
+
+
+### 6.4.1 Why the decimator constraint is disproven (lane 5, measured)
+
+**1. The budget decimator never fires on the failing families.**
+`finish.py` guards it with `current_tris > tri_budget` at a 9000 budget.
+Measured control bakes: thresher exports 8138 tris, snapjaw 8012. No
+`FINISH budget decimate` line appears in either log. There is no collapse in
+the jaw band for a minimum-length rule to constrain. The comment block at
+`finish.py:1082` already recorded this ("aresrender / snapjaw / thresher all
+baked under the 9000 budget ... the decimate never fired"); 6.4 recommended
+constraining it anyway. **A recommendation that contradicts a measured comment
+elsewhere in the same repo is the cheapest class of error to catch and this
+one survived a lane and a gate.**
+
+**2. The strongest possible form of the constraint is still insufficient.**
+A minimum edge length only ever *forbids* collapses, so its supremum is
+forbidding all of them. Measured with `RAZORFIN_NO_COLLAPSE=1` on thresher:
+stretch 5.904 -> 4.414x, still failing the 3x bar, at 8574 tris. No finite
+`L_min` can beat `L_min = infinity`, so the whole family of constraints is
+dominated and fails.
+
+**3. It is not even monotonic.** Disabling collapses *raised* thresher's band
+edge count 1999 -> 2393 and its JW-1 violators 1192 -> 1401, because preserving
+slivers preserves short edges that are themselves violations.
+
+**4. The violating edges are not short.** `hse/band_edge_hist.mjs` (new this
+lane) reports, per edge, the length JW-1 demands of it. On the committed bakes
+4 of 5 families have NO band edge under 1e-4 L, and median band edge is
+5.8e-3 .. 1.8e-2 L. Several worst edges are ABOVE the median length:
+leviathanrex's top five sit at 8.06e-3 .. 1.40e-2 L against a 7.86e-3 median.
+They fail on `|dW|` (0.45 .. 0.75), not on length. Median shortfall across
+violators is 1.47x .. 2.13x and worst is 26.8x, so closing JW-1 by length
+alone would require the mouth band to become a handful of enormous triangles,
+destroying the silhouette.
+
+**Both levers in JW-1 are now exhausted.** Lane 4 proved `|dW|` cannot be
+reduced field-side (ramps cannot saturate inside the opening without dropping
+under the floor and killing jaw motion -- the 1.000x false pass). Lane 5 proves
+`restLen` cannot be raised geometrically. The inequality has two terms and
+neither can move.
+
+### 6.4.2 What is actually left
+
+- **The 3x bar has never been validated.** It was set when the gate measured an
+  unreachable 0.72 rad pose, and 6.2 shows the linear model over-predicts
+  badly. `S = 2.0` is derived FROM the bar, so the test and the bar are not
+  independent evidence. Validate the bar against what reads as torn on a
+  rendered turntable at the real 25 deg travel -- as its own lane, with a
+  designer-free proof. Do NOT fold a bar change into a failing lane; that is
+  how the 1.000x false pass class of error gets shipped.
+- **Band TOPOLOGY, the one untested hypothesis.** The gradient currently runs
+  ACROSS a remeshed seam. A proper lip loop would lay it out ALONG a ring of
+  edges, giving the field many edges to spend `|dW|` over instead of a few.
+  This is a `mouth.py` / remesh authoring change, consistent with 6.3's
+  finding that the short edges are manufactured after the field is authored.
+- **`JAW_WEIGHT_FLOOR` (6.5) is still open** and is implicated in the family
+  closest to passing: aresrender's worst edge, 3.740x, is exactly a floor edge
+  at jawW 0.000/0.110, and leviathanrex has floor edges at 3.581x / 3.437x.
+  It is a separate cause and deserves its own proof, not a ride-along.

@@ -52,15 +52,17 @@ for (const file of process.argv.slice(2)) {
   const w = new Float64Array(n);
   for (let i = 0; i < n; i++) w[i] = jawW(mesh, jawIdx, i);
 
-  /* Hinge derived the same way the export-time cap derives it: 5th pct of the
-   * jaw cloud along y, 95th along z, in the mesh's own local frame. */
+  /* Hinge = the ACTUAL LowerJaw bone origin.  Lane 4 (JAW-WEIGHT-SPEC 6.1)
+   * measured the old percentile estimate (5th pct y, 95th pct z of the jaw
+   * weight cloud) at z=-0.384 on snapjaw against a true bone origin of
+   * z=-0.053: an ~8.6x error in the moment arm, in the LOOSE direction.  The
+   * mesh is posed about the bone, not about a percentile of a point cloud.
+   * Never estimate a quantity the file already contains exactly. */
   const ids = []; for (let i = 0; i < n; i++) if (w[i] > 0.05) ids.push(i);
   if (ids.length < 8) { console.log(path.basename(file), 'jaw cloud too small'); continue; }
-  const pct = (arr, p) => { const a = arr.slice().sort((x, y) => x - y); return a[Math.min(a.length - 1, Math.floor(a.length * p))]; };
-  const v = new THREE.Vector3();
-  const ys = ids.map((i) => { v.fromBufferAttribute(pos, i); return v.y; });
-  const zs = ids.map((i) => { v.fromBufferAttribute(pos, i); return v.z; });
-  const hingeY = pct(ys, 0.05), jawZ = pct(zs, 0.95);
+  mesh.updateMatrixWorld(true);
+  const jawOrigin = new THREE.Vector3().setFromMatrixPosition(bones[jawIdx].matrixWorld);
+  const hingeY = jawOrigin.y, jawZ = jawOrigin.z;
 
   const idx = mesh.geometry.getIndex().array;
   const a = new THREE.Vector3(), b = new THREE.Vector3();
