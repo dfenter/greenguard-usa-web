@@ -361,7 +361,7 @@
   var META_BY_KEY = {};
   for (var mi = 0; mi < META.length; mi++) META_BY_KEY[META[mi].key] = META[mi];
 
-  var PROFILE_VERSION = 3;
+  var PROFILE_VERSION = 4;
   var BANK_RATE = 0.75;
   var HANGAR_TRACKS = [
     { key: 'hull', name: 'Hull', icon: 'ic_vitality', max: 5, color: 0xff8f7a,
@@ -417,6 +417,44 @@
   ];
   var FRAME_BY_KEY = {};
   for (var hfi = 0; hfi < HULL_FRAMES.length; hfi++) FRAME_BY_KEY[HULL_FRAMES[hfi].key] = HULL_FRAMES[hfi];
+
+  // SHIP_CLASSES: the M5 promotion of cosmetic hulls into a real class/tier
+  // system. Each class has three tiers (Mk I/II/III). Costs scale on the
+  // same curve as HANGAR_TRACKS (Math.round(45*Math.pow(1.62,l))) so gems
+  // feel comparable across the hangar and ships economies. moduleSlots rises
+  // per tier and feeds loadoutSlotsAvailable() in game.js. Sprite frame
+  // names (hull_<class>_mkN) may not exist yet in this worktree's atlas;
+  // game.js resolves them through a safe frame-lookup helper that falls
+  // back to hero_idle/hero_move so a missing atlas frame never crashes.
+  function hangarCostCurve(l) { return Math.round(45 * Math.pow(1.62, l)); }
+  var SHIP_CLASSES = [
+    {
+      key: 'warden', name: 'Warden', blurb: 'Tank hull. Shield absorbs hits, regenerates when clear.',
+      tiers: [
+        { mk: 1, name: 'Mk I', cost: 0, moduleSlots: 1, hpMult: 1.30, speedMult: 0.90, dmgMult: 1.0, frame: 'hull_warden_mk1' },
+        { mk: 2, name: 'Mk II', cost: hangarCostCurve(9), moduleSlots: 2, hpMult: 1.40, speedMult: 0.88, dmgMult: 1.0, frame: 'hull_warden_mk2' },
+        { mk: 3, name: 'Mk III', cost: hangarCostCurve(13), moduleSlots: 3, hpMult: 1.50, speedMult: 0.85, dmgMult: 1.0, frame: 'hull_warden_mk3' }
+      ]
+    },
+    {
+      key: 'recon', name: 'Recon', blurb: 'Fast hull. Auto-dash burst on a cooldown while moving.',
+      tiers: [
+        { mk: 1, name: 'Mk I', cost: hangarCostCurve(6), moduleSlots: 1, hpMult: 0.85, speedMult: 1.25, dmgMult: 1.0, frame: 'hull_recon_mk1' },
+        { mk: 2, name: 'Mk II', cost: hangarCostCurve(9), moduleSlots: 2, hpMult: 0.80, speedMult: 1.32, dmgMult: 1.0, frame: 'hull_recon_mk2' },
+        { mk: 3, name: 'Mk III', cost: hangarCostCurve(13), moduleSlots: 3, hpMult: 0.75, speedMult: 1.40, dmgMult: 1.0, frame: 'hull_recon_mk3' }
+      ]
+    },
+    {
+      key: 'vector', name: 'Vector', blurb: 'Glass cannon. Flat crit bonus stacks with core tuning.',
+      tiers: [
+        { mk: 1, name: 'Mk I', cost: hangarCostCurve(6), moduleSlots: 1, hpMult: 0.75, speedMult: 1.0, dmgMult: 1.30, critBonus: 0.08, frame: 'hull_vector_mk1' },
+        { mk: 2, name: 'Mk II', cost: hangarCostCurve(9), moduleSlots: 2, hpMult: 0.70, speedMult: 1.0, dmgMult: 1.40, critBonus: 0.11, frame: 'hull_vector_mk2' },
+        { mk: 3, name: 'Mk III', cost: hangarCostCurve(13), moduleSlots: 3, hpMult: 0.65, speedMult: 1.0, dmgMult: 1.50, critBonus: 0.14, frame: 'hull_vector_mk3' }
+      ]
+    }
+  ];
+  var SHIP_CLASS_BY_KEY = {};
+  for (var sci = 0; sci < SHIP_CLASSES.length; sci++) SHIP_CLASS_BY_KEY[SHIP_CLASSES[sci].key] = SHIP_CLASSES[sci];
 
   // Region combat data. Variants deliberately reuse the six pooled enemy
   // bodies and their existing movement primitives; only this definition table
@@ -589,6 +627,8 @@
     TRIM_BY_KEY: TRIM_BY_KEY,
     HULL_FRAMES: HULL_FRAMES,
     FRAME_BY_KEY: FRAME_BY_KEY,
+    SHIP_CLASSES: SHIP_CLASSES,
+    SHIP_CLASS_BY_KEY: SHIP_CLASS_BY_KEY,
     PROFILE_VERSION: PROFILE_VERSION,
     BANK_RATE: BANK_RATE,
     REGION_ENEMIES: REGION_ENEMIES,
