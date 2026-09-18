@@ -157,3 +157,71 @@ implies it should affect play. Worth a ruling: acceptable for M3, or a gap to cl
     node hm2_world.test.mjs
     node /Users/lucille/ue-port-studio/aaa/harness/hm2_campaign_probe.mjs \
       http://127.0.0.1:8797/play/hordemeridian2/ /tmp/hm2_merged_shots 3
+
+---
+
+# ROUND 3 (orchestrator parked 2026-09-18, after coordinator rulings)
+
+## Coordinator rulings received
+
+1. **Phase-0 set-piece**: fire it ON BOSS SPAWN as the telegraphed opener. Dan wants the effects.
+2. **Boss probe**: replace "fired at least once" with a per-phase assertion (3 distinct set-pieces
+   for the Core keyed on phaseStage), mutation-tested against a boss stuck on one hook.
+3. **Gravity well**: `setpieceWell` must have a REAL gameplay effect (pull on player and enemies
+   during that phase), minimal and surgical. No effect-free set-pieces.
+4. **Wave pools**: the 7 M3 enemies stay OUT of REGION_ENEMIES, deferred to M4. Note in handoff.
+5. **Lane A commit a4f5e544**: RECONCILED, no action needed. It is a HANDOFF-M3-enemies.md doc-only
+   commit and is already an ancestor of HEAD (`git merge-base --is-ancestor` confirms).
+
+Also ruled: do NOT hold M3 on L5; record the M2 non-reproducible L5 as a follow-up in HANDOFF-M3.md.
+
+## Status
+
+Fix lane DISPATCHED (sonnet, background, worktree scratchpad/m3-enemies, branch hm2-m3 at 8bd483df)
+implementing rulings 1-3. It writes play/hordemeridian2/HANDOFF-M3-fixes.md.
+
+The first Opus gate was spawned and then STOOD DOWN before it could reach a verdict, because
+rulings 1-3 change the code underneath it. It made no edits; worktree was left clean. Its partial
+findings are below and were forwarded to the fix lane.
+
+## Gate reviewer's partial findings (all four verified by the orchestrator against the code)
+
+1. **Unvalidated hook returns, now safety-critical.** `hm2_bosses.js setpieceFor` checks
+   `isFinite` ONLY in the asteroid_field branch (~line 94). The gravity_well (~99) and solar_flare
+   (~109) branches trust `hooks.spawn` unvalidated. Under ruling 3 the well drives real movement
+   integration, so a NaN would corrupt player/enemy positions. SENT TO FIX LANE as a required fix.
+2. **Region bosses silently rebalanced.** `phaseForHpFrac` ignores `e.regionBoss`, so the 5 region
+   bosses moved from a 2-phase model (single 0.5 threshold, base game.js:8099) to the shared
+   3-phase 0.66/0.33 model. A real balance change to pre-existing bosses, not purely additive.
+   **NEEDS DAN'S RULING.** Fix lane told to report, not revert.
+3. **Inconsistent guard.** game.js ~8122 calls `wallDamageMultiplier` guarded only by
+   `window.HM2_ENEMIES`, not by the `BEHAVIORS[e.behavior]` existence check used at the stepEnemies
+   call site. Sent to fix lane as a cheap consistency fix.
+4. **Mimic can stall waves.** `hm2_enemies.js mimicStep` permanently sets `e.speed = e.baseSpeed =
+   140` on wake, and the data ships `speed: 0`, so a mimic that never wakes is a permanently
+   stationary enemy that could stall a wave-clear condition. Residual, report only.
+
+## Resume condition
+
+Fix lane reports (or caps out with HANDOFF-M3-fixes.md). Then:
+
+1. Read HANDOFF-M3-fixes.md. Verify rulings 1-3 landed and that the ruling-2 mutation exits non-zero.
+2. Re-run the full merged suite yourself: bestiary (expect 50/50), boss probe (all 6 bosses, new
+   per-phase assertion), hm2_world.test.mjs (24/24), world probe (PORT not URL, check fps has not
+   regressed from 158.7), campaign probe 3 TRIALS (expect 55/55; never trust a 1-trial median).
+3. Spawn ONE fresh Opus gate reviewer, never an implementer, on the updated state. Round cap per
+   feedback_gate_round_cap.md. Give it the four findings above and the rulings, and require
+   mutation testing against M3's OWN functions.
+4. On PASS: push `hm2-m3`, commit HANDOFF-M3.md (including the L5/M2 follow-up and the ruling-2
+   balance question), update the status line in
+   ~/.claude/projects/-Users-lucille/memory/project_horde_meridian_2.md with a dated entry.
+5. No merge to main, no deploy.
+
+## Evidence so far on merged d93316af (pre-fix)
+
+    bestiary seed 42      50/50
+    boss probe seed 999   41/41, 6 bosses
+    hm2_world.test.mjs    24/24
+    world probe           PASS, estimatedFps 158.7
+    campaign 3-trial      55/55 PASS, L1=148 L5=83 L10=54 L15=37, 15/15 missions boot
+    baseline 68612b3d     54/55 FAIL, L5=38  (merged beats its own base)
