@@ -119,6 +119,17 @@
   }
 
   function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  // clampField: containment clamp against the SDF world field (HM2_WORLD),
+  // replacing the old square EDGE clamp. r is a radius margin to keep
+  // inside the boundary. Falls back to the square clamp if the world
+  // module failed to load, so the game never throws.
+  function clampField(x, y, r) {
+    if (window.HM2_WORLD && window.HM2_WORLD.clampToField) {
+      return window.HM2_WORLD.clampToField(x, y, r || 0);
+    }
+    var m = r || 0;
+    return { x: clamp(x, -EDGE + m, EDGE - m), y: clamp(y, -EDGE + m, EDGE - m) };
+  }
   function mixColor(a, b, t) {
     var ar = (a >> 16) & 255, ag = (a >> 8) & 255, ab = a & 255;
     var br = (b >> 16) & 255, bg = (b >> 8) & 255, bb = b & 255;
@@ -1582,9 +1593,11 @@
       // camera. Every other scrollFactor-0 object in this scene is UI.
       this.ground._hmWorld = true;
 
-      // M2 Phase B: procedural SDF-region parallax background, strictly below
-      // depth -100 so it never collides with the ground/sky layers above.
-      // Additive: the legacy regionBackground/skyObjects stack stays in place.
+      // M2 task 2 SUBTASK E: procedural SDF-region parallax background,
+      // strictly below depth -100 so it never collides with the ground/UI
+      // layers above. The legacy regionBackground/skyObjects/marks stack has
+      // been retired in favor of this (see below); ground, landmarks, debris
+      // and comets have no equivalent here and stay.
       this.hm2Background = null;
       try {
         if (window.HM2_BACKGROUND && window.HM2_WORLD) {
@@ -1593,8 +1606,6 @@
       } catch (bgErr) {
         this.hm2Background = null;
       }
-
-      this.buildSkyTextures();
 
       resetSeed();
 
@@ -1620,36 +1631,11 @@
         this.park(landmarkSpr);
       }
 
-      this.regionBackground = [
-        { par: 0.72, spr: this.add.image(0, 0, 'disc').setDepth(-99).setDisplaySize(7600, 9800)
-          .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.16) },
-        { par: 0.84, spr: this.add.image(0, 0, 'disc').setDepth(-98).setDisplaySize(5200, 7200)
-          .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.18) },
-        { par: 0.94, spr: this.add.image(0, 0, 'disc').setDepth(-97).setDisplaySize(3300, 5200)
-          .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.18) }
-      ];
-      for (var rbp = 0; rbp < this.regionBackground.length; rbp++) this.park(this.regionBackground[rbp].spr);
+      // regionBackground (3 parallax discs) and skyObjects (galaxy, nebula
+      // banks, planet, moon) are retired here: hm2Background (created above)
+      // is a full 4-layer parallax replacement (deep galaxy, nebula, mid
+      // asteroid silhouette, near dust), tinted per region via setRegion.
       this.activeRegionKey = '';
-
-      // DEEP SKY (2026-08-19): every sector now hangs real astronomy behind
-      // the grid - a shaded planet, a moon, a spiral galaxy and layered
-      // nebula banks, all procedural textures tinted from the region
-      // palette. Anchored per region and re-laid-out on region entry.
-      this.skyObjects = [
-        { role: 'galaxy', par: 0.16, depth: -96.5, spr: this.add.image(0, 0, 'hm_galaxy')
-          .setDepth(-96).setBlendMode(Phaser.BlendModes.ADD) },
-        { role: 'nebula0', par: 0.2, depth: -96, spr: this.add.image(0, 0, 'hm_nebula0')
-          .setDepth(-96).setBlendMode(Phaser.BlendModes.ADD) },
-        { role: 'nebula1', par: 0.26, depth: -96, spr: this.add.image(0, 0, 'hm_nebula1')
-          .setDepth(-96).setBlendMode(Phaser.BlendModes.ADD) },
-        { role: 'nebula2', par: 0.34, depth: -96, spr: this.add.image(0, 0, 'hm_nebula0')
-          .setDepth(-96).setBlendMode(Phaser.BlendModes.ADD) },
-        { role: 'planet', par: 0.3, depth: -95.5, spr: this.add.image(0, 0, 'hm_planet0')
-          .setDepth(-95) },
-        { role: 'moon', par: 0.4, depth: -95, spr: this.add.image(0, 0, 'hm_planet1')
-          .setDepth(-95) }
-      ];
-      for (var sko = 0; sko < this.skyObjects.length; sko++) this.park(this.skyObjects[sko].spr);
 
       // Shooting stars: brief streaks that cross the deep sky.
       this.comets = [];
@@ -1666,20 +1652,10 @@
       this.coreMount.wx = 0; this.coreMount.wy = 0;
       this.park(this.coreMount);
 
+      // this.marks (the 210-star speckle field) is retired: hm2Background's
+      // near-dust layer (tinted per region) covers the same near-field star
+      // speckle role as a tileable texture instead of 210 pooled sprites.
       this.marks = [];
-      for (var i = 0; i < 210; i++) {
-        var m = this.add.image(0, 0, 'p_flare')
-          .setBlendMode(Phaser.BlendModes.ADD).setDepth(-90)
-          .setTint(0x54d6ff);
-        m.wx = (srand() - 0.5) * REGION_WIDTH;
-        m.wy = (srand() - 0.5) * EDGE * 1.5;
-        m.layer = i % 3;
-        m.par = [0.28, 0.54, 0.82][m.layer];
-        m.baseScale = [0.08, 0.16, 0.28][m.layer] + srand() * [0.12, 0.22, 0.38][m.layer];
-        m.setScale(m.baseScale).setAlpha([0.16, 0.22, 0.3][m.layer] + srand() * 0.18);
-        m.phase = srand() * TAU;
-        this.marks.push(m);
-      }
 
       this.debris = [];
       for (var di0 = 0; di0 < 36; di0++) {
@@ -1698,40 +1674,34 @@
         this.park(debris);
       }
 
+      // SDF energy edge (M2 SUBTASK B): the field is static, so trace its
+      // boundary once here by marching a ring of angles from the origin and
+      // binary-searching the boundary radius along each with HM2_WORLD.sdf.
+      // Replaces the old square boundary rect/strokeRect/corner-bracket draw
+      // and deletes the regionWalls vertical band walls entirely (they
+      // encoded the old rectangular band-box model, not the SDF field).
       this.boundary = this.add.graphics().setDepth(-80);
-      this.boundary.fillStyle(0x2f8fa8, 0.10);
-      this.boundary.fillRect(-EDGE - 90, -EDGE - 90, EDGE * 2 + 180, 90);
-      this.boundary.fillRect(-EDGE - 90, EDGE, EDGE * 2 + 180, 90);
-      this.boundary.fillRect(-EDGE - 90, -EDGE, 90, EDGE * 2);
-      this.boundary.fillRect(EDGE, -EDGE, 90, EDGE * 2);
-      this.boundary.lineStyle(4, 0x54d6ff, 0.6);
-      this.boundary.strokeRect(-EDGE, -EDGE, EDGE * 2, EDGE * 2);
-      this.boundary.lineStyle(1, 0x8fe7ff, 0.35);
-      this.boundary.strokeRect(-EDGE - 8, -EDGE - 8, EDGE * 2 + 16, EDGE * 2 + 16);
-      for (var cq = 0; cq < 4; cq++) {
-        var sx = cq % 2 ? 1 : -1, sy = cq < 2 ? -1 : 1;
-        this.boundary.lineStyle(5, 0x8effd8, 0.8);
-        this.boundary.beginPath();
-        this.boundary.moveTo(sx * EDGE - sx * 70, sy * EDGE);
-        this.boundary.lineTo(sx * EDGE, sy * EDGE);
-        this.boundary.lineTo(sx * EDGE, sy * EDGE - sy * 70);
-        this.boundary.strokePath();
-      }
-
-      this.regionWalls = this.add.graphics().setDepth(-79);
-      for (var rw = 0; rw < REGIONS.length - 1; rw++) {
-        var wallX = REGIONS[rw].maxX;
-        for (var wb = 0; wb < 3; wb++) {
-          var half = 120 - wb * 34;
-          this.regionWalls.fillStyle(REGIONS[rw + 1].palette.border, 0.045 + wb * 0.025);
-          this.regionWalls.fillRect(wallX - half, -EDGE, half * 2, WORLD);
+      this.fieldBoundaryPoly = null;
+      if (window.HM2_WORLD) {
+        var worldApi = window.HM2_WORLD;
+        var traceSteps = 96;
+        var poly = [];
+        for (var ta = 0; ta < traceSteps; ta++) {
+          var ang = (ta / traceSteps) * TAU;
+          var ca = Math.cos(ang), sa = Math.sin(ang);
+          var lo = 0, hi = worldApi.WORLD;
+          // binary search along the ray for sdf(x,y) == 0 (the boundary)
+          for (var bs = 0; bs < 28; bs++) {
+            var mid = (lo + hi) * 0.5;
+            var d = worldApi.sdf(ca * mid, sa * mid);
+            if (d < 0) lo = mid; else hi = mid;
+          }
+          var br = (lo + hi) * 0.5;
+          poly.push({ x: ca * br, y: sa * br });
         }
-        this.regionWalls.lineStyle(3, REGIONS[rw + 1].palette.border, 0.52);
-        this.regionWalls.lineBetween(wallX, -EDGE, wallX, EDGE);
-        this.regionWalls.lineStyle(1, REGIONS[rw].palette.border, 0.25);
-        this.regionWalls.lineBetween(wallX - 104, -EDGE, wallX - 104, EDGE);
-        this.regionWalls.lineBetween(wallX + 104, -EDGE, wallX + 104, EDGE);
+        this.fieldBoundaryPoly = poly;
       }
+      this.regionWalls = null;
 
       this.initPools();
 
@@ -2697,107 +2667,13 @@
       this.hud.add([bar, barEdge]);
     },
 
-    buildSkyTextures: function () {
-      // Procedural deep-sky set, generated once, grayscale so region
-      // palettes tint them. No new asset files, a few KB of texture memory.
-      if (this.textures.exists('hm_planet0')) return;
-      var g = this.make.graphics({ add: false }), i, t, a, r;
-      // Gas giant with cloud bands, terminator shadow and a ring.
-      g.clear();
-      g.lineStyle(5, 0xffffff, 0.34);
-      g.strokeEllipse(88, 88, 150, 42);
-      g.fillStyle(0xffffff, 1); g.fillCircle(88, 88, 56);
-      g.fillStyle(0xb8b8b8, 0.55); g.fillEllipse(88, 66, 100, 13);
-      g.fillStyle(0xa8a8a8, 0.5); g.fillEllipse(88, 90, 110, 16);
-      g.fillStyle(0xcfcfcf, 0.45); g.fillEllipse(88, 112, 88, 11);
-      g.fillStyle(0x000000, 0.38);
-      g.slice(88, 88, 56, -0.95, 0.95, false); g.fillPath();
-      g.fillStyle(0xffffff, 0.4); g.fillCircle(68, 68, 15);
-      g.lineStyle(5, 0xffffff, 0.55);
-      g.beginPath(); g.arc(88, 88, 74, 2.5, 3.9); g.strokePath();
-      g.generateTexture('hm_planet0', 176, 176);
-      // Cratered moon.
-      g.clear();
-      g.fillStyle(0xffffff, 1); g.fillCircle(48, 48, 34);
-      g.fillStyle(0x9a9a9a, 0.6);
-      g.fillCircle(38, 40, 7); g.fillCircle(58, 56, 5); g.fillCircle(52, 32, 4);
-      g.fillCircle(34, 60, 4); g.fillCircle(62, 42, 3);
-      g.fillStyle(0x000000, 0.34);
-      g.slice(48, 48, 34, -1.05, 1.05, false); g.fillPath();
-      g.generateTexture('hm_planet1', 96, 96);
-      // Spiral galaxy: two dotted arms around a bright core.
-      g.clear();
-      for (i = 0; i < 9; i++) {
-        g.fillStyle(0xffffff, 0.05 + (8 - i) * 0.03);
-        g.fillCircle(112, 112, 8 + i * 3.4);
-      }
-      for (i = 0; i < 230; i++) {
-        t = i / 230;
-        a = t * 4.4 * Math.PI + (i % 2) * Math.PI;
-        r = 10 + t * 92;
-        g.fillStyle(0xffffff, (1 - t) * 0.34 + 0.05);
-        g.fillCircle(112 + Math.cos(a) * r, 112 + Math.sin(a) * r * 0.52,
-          1.2 + noise01(i * 7 + 3) * 2.2);
-      }
-      g.generateTexture('hm_galaxy', 224, 224);
-      // Two nebula banks: layered soft blobs.
-      for (var v = 0; v < 2; v++) {
-        g.clear();
-        for (i = 0; i < 13; i++) {
-          var bx = 40 + noise01(v * 997 + i * 31 + 1) * 176;
-          var by = 40 + noise01(v * 1409 + i * 47 + 2) * 176;
-          var br = 26 + noise01(v * 2003 + i * 59 + 3) * 52;
-          for (var q = 5; q >= 1; q--) {
-            g.fillStyle(0xffffff, 0.028 + (5 - q) * 0.008);
-            g.fillCircle(bx, by, br * q / 5);
-          }
-        }
-        g.generateTexture('hm_nebula' + v, 256, 256);
-      }
-      g.destroy();
-    },
 
-    layoutSkyObjects: function (region) {
-      var ri = regionIndexAtX((region.minX + region.maxX) / 2);
-      var span = region.maxX - region.minX;
-      for (var i = 0; i < this.skyObjects.length; i++) {
-        var so = this.skyObjects[i];
-        var n1 = noise01(ri * 419 + i * 73 + 11), n2 = noise01(ri * 811 + i * 97 + 17);
-        so.wx = region.minX + (0.12 + n1 * 0.76) * span;
-        so.wy = (n2 - 0.5) * EDGE * 2.1;
-        var pal = region.palette;
-        if (so.role === 'galaxy') {
-          so.spr.setTint(pal.stars[0]);
-          so.baseScale = 1.7 + n1 * 0.9; so.baseAlpha = 0.62;
-        } else if (so.role === 'planet') {
-          so.spr.setTint(pal.near);
-          so.baseScale = 1.35 + n2 * 0.75; so.baseAlpha = 0.92;
-        } else if (so.role === 'moon') {
-          so.spr.setTint(pal.stars[(ri + 1) % pal.stars.length]);
-          so.baseScale = 0.8 + n1 * 0.5; so.baseAlpha = 0.85;
-        } else {
-          so.spr.setTint(i % 2 ? pal.mid : pal.near);
-          so.baseScale = 2.6 + n1 * 1.8; so.baseAlpha = 0.4 + n2 * 0.22;
-        }
-        so.spr.setScale(so.baseScale).setAlpha(so.baseAlpha);
-      }
-    },
 
+    // renderDeepSky now only drives the shooting-star comets; the skyObjects
+    // rendering loop (galaxy/nebula/planet/moon parallax discs) was retired
+    // in SUBTASK E, superseded by hm2Background's deep/nebula parallax layers.
     renderDeepSky: function (dt, cmx, cmy, cullX, cullY) {
       var run = this.run, i;
-      for (i = 0; i < this.skyObjects.length; i++) {
-        var so = this.skyObjects[i];
-        if (so.wx == null) continue;
-        var sx = so.wx * so.par + cmx * (1 - so.par);
-        var sy = so.wy * so.par + cmy * (1 - so.par);
-        var half = 128 * so.baseScale;
-        if (Math.abs(sx - cmx) > cullX + half || Math.abs(sy - cmy) > cullY + half) {
-          this.park(so.spr); continue;
-        }
-        this.unpark(so.spr);
-        so.spr.setPosition(sx, sy);
-        if (so.role === 'galaxy') so.spr.rotation += dt * 0.012;
-      }
       // Shooting stars.
       this.cometT -= dt;
       if (this.cometT <= 0) {
@@ -3166,8 +3042,12 @@
 
       if (L) {
         var startRegion = REGION_BY_KEY[L.region];
-        this.p.x = clamp((startRegion.minX + startRegion.maxX) / 2, -EDGE + 220, EDGE - 220);
-        this.p.y = 0;
+        // Gameplay start position keeps the hm_data.js band centre (SUBTASK D:
+        // regionAtX/REGION_BY_KEY drive mission identity, not HM2_WORLD.regionAt),
+        // then clampToField only pulls it inside the SDF field boundary.
+        var startPos = clampField((startRegion.minX + startRegion.maxX) / 2, 0, 220);
+        this.p.x = startPos.x;
+        this.p.y = startPos.y;
         for (i = 0; i < L.objectives.length; i++) {
           var objDef = L.objectives[i];
           this.run.campaignObjs.push({
@@ -3225,8 +3105,9 @@
         var rad, x, y, seedTries = 0;
         do {
           rad = HOT_START.ringMin + srand() * (HOT_START.ringMax - HOT_START.ringMin);
-          x = clamp(this.p.x + Math.cos(a) * rad, -EDGE, EDGE);
-          y = clamp(this.p.y + Math.sin(a) * rad, -EDGE, EDGE);
+          var ringSeedPos = clampField(this.p.x + Math.cos(a) * rad, this.p.y + Math.sin(a) * rad, 0);
+          x = ringSeedPos.x;
+          y = ringSeedPos.y;
           seedTries++;
         } while (Math.hypot(x - this.p.x, y - this.p.y) < 260 && seedTries < 8);
         var fam = this.regionEnemyFor(pool[Math.floor(srand() * pool.length)]);
@@ -3256,8 +3137,9 @@
         var rad, x, y, seedTries = 0;
         do {
           rad = HOT_START.ringMin + srand() * (HOT_START.ringMax - HOT_START.ringMin);
-          x = clamp(this.p.x + Math.cos(a) * rad, -EDGE, EDGE);
-          y = clamp(this.p.y + Math.sin(a) * rad, -EDGE, EDGE);
+          var ringSeedPos = clampField(this.p.x + Math.cos(a) * rad, this.p.y + Math.sin(a) * rad, 0);
+          x = ringSeedPos.x;
+          y = ringSeedPos.y;
           seedTries++;
         } while (Math.hypot(x - this.p.x, y - this.p.y) < 260 && seedTries < 8);
         var fam = this.regionEnemyFor(pool[Math.floor(srand() * pool.length)]);
@@ -3887,8 +3769,9 @@
       this.stepSpectacleBuffs(dt);
 
       if (buffs.decoy > 0) {
-        this.decoyX = clamp(p.x + Math.cos(run.time * 1.35) * 150, -EDGE + 28, EDGE - 28);
-        this.decoyY = clamp(p.y + Math.sin(run.time * 1.35) * 150, -EDGE + 28, EDGE - 28);
+        var decoyPos1 = clampField(p.x + Math.cos(run.time * 1.35) * 150, p.y + Math.sin(run.time * 1.35) * 150, 28);
+        this.decoyX = decoyPos1.x;
+        this.decoyY = decoyPos1.y;
       }
       if (buffs.drone > 0) {
         this.drone.active = true;
@@ -4232,8 +4115,9 @@
       for (var i = 0; i < this.clusterSites.length; i++) {
         var a = i * TAU / this.clusterSites.length + this.run.time * 0.22;
         var r = i === 0 ? 0 : 48 + (i % 3) * 54;
-        this.clusterSites[i].x = clamp(c.x + Math.cos(a) * r, -EDGE + 36, EDGE - 36);
-        this.clusterSites[i].y = clamp(c.y + Math.sin(a) * r, -EDGE + 36, EDGE - 36);
+        var clusterPos = clampField(c.x + Math.cos(a) * r, c.y + Math.sin(a) * r, 36);
+        this.clusterSites[i].x = clusterPos.x;
+        this.clusterSites[i].y = clusterPos.y;
         this.clusterSites[i].delay = i * 0.11;
       }
       sfx('telegraph', { volume: 0.68, rate: 0.62 });
@@ -4247,8 +4131,9 @@
       var p = this.p;
       for (var i = 0; i < 16; i++) {
         var a = srand() * TAU, r = i === 0 ? 0 : 70 + srand() * 320;
-        var mx = clamp(p.x + Math.cos(a) * r, -EDGE + 36, EDGE - 36);
-        var my = clamp(p.y + Math.sin(a) * r, -EDGE + 36, EDGE - 36);
+        var mPos = clampField(p.x + Math.cos(a) * r, p.y + Math.sin(a) * r, 36);
+        var mx = mPos.x;
+        var my = mPos.y;
         this.spawnAirBomb(mx, my, 40 * p.damage * p.projectileDamage, 118,
           0.22 + i * 0.09);
       }
@@ -4347,6 +4232,33 @@
         nb.color = 0x54d6ff; nb.label = 'SIGNAL';
         return;
       }
+    },
+
+    // renderFieldBoundary (M2 SUBTASK B): redraws the cached SDF boundary
+    // polygon (traced once at scene create into this.fieldBoundaryPoly) as
+    // an additive glow whose alpha scales with HM2_WORLD.edgeGlowFactor at
+    // the player position, so the edge only lights up as the ship nears it.
+    // No per-frame geometry work, only a stroke redraw and a color/alpha
+    // computation, since the field itself is static.
+    renderFieldBoundary: function () {
+      var g = this.boundary;
+      if (!g || !this.fieldBoundaryPoly || !window.HM2_WORLD) return;
+      var glow = window.HM2_WORLD.edgeGlowFactor(this.p.x, this.p.y);
+      g.clear();
+      if (glow <= 0.001) return;
+      var poly = this.fieldBoundaryPoly;
+      g.lineStyle(2, 0x8fe7ff, 0.25 + glow * 0.35);
+      g.beginPath();
+      g.moveTo(poly[0].x, poly[0].y);
+      for (var i = 1; i < poly.length; i++) g.lineTo(poly[i].x, poly[i].y);
+      g.closePath();
+      g.strokePath();
+      g.lineStyle(6, 0x54d6ff, glow * 0.55);
+      g.beginPath();
+      g.moveTo(poly[0].x, poly[0].y);
+      for (var j = 1; j < poly.length; j++) g.lineTo(poly[j].x, poly[j].y);
+      g.closePath();
+      g.strokePath();
     },
 
     renderNavBeacon: function (dt) {
@@ -4886,14 +4798,16 @@
       if (!drop) return null;
       if (atX == null || atY == null) {
         var a = srand() * TAU;
-        atX = clamp(this.p.x + Math.cos(a) * 260, -EDGE + 30, EDGE - 30);
-        atY = clamp(this.p.y + Math.sin(a) * 260, -EDGE + 30, EDGE - 30);
+        var atPos = clampField(this.p.x + Math.cos(a) * 260, this.p.y + Math.sin(a) * 260, 30);
+        atX = atPos.x;
+        atY = atPos.y;
       }
       drop.alive = true;
       drop.weapon = weaponKey;
       drop.tier = data.tier || 'base';
-      drop.x = clamp(atX, -EDGE + 22, EDGE - 22);
-      drop.y = clamp(atY, -EDGE + 22, EDGE - 22);
+      var dropPosF = clampField(atX, atY, 22);
+      drop.x = dropPosF.x;
+      drop.y = dropPosF.y;
       drop.vx = (srand() - 0.5) * 80;
       drop.vy = (srand() - 0.5) * 80;
       drop.life = 30;
@@ -4992,14 +4906,16 @@
       if (!drop) return null;
       if (atX == null || atY == null) {
         var a = srand() * TAU;
-        atX = clamp(this.p.x + Math.cos(a) * 260, -EDGE + 30, EDGE - 30);
-        atY = clamp(this.p.y + Math.sin(a) * 260, -EDGE + 30, EDGE - 30);
+        var atPos = clampField(this.p.x + Math.cos(a) * 260, this.p.y + Math.sin(a) * 260, 30);
+        atX = atPos.x;
+        atY = atPos.y;
       }
       drop.alive = true;
       drop.weapon = pseudoKey;
       drop.tier = 'mod';
-      drop.x = clamp(atX, -EDGE + 22, EDGE - 22);
-      drop.y = clamp(atY, -EDGE + 22, EDGE - 22);
+      var dropPosF = clampField(atX, atY, 22);
+      drop.x = dropPosF.x;
+      drop.y = dropPosF.y;
       drop.vx = (srand() - 0.5) * 80;
       drop.vy = (srand() - 0.5) * 80;
       drop.life = 30;
@@ -5045,14 +4961,16 @@
       if (!b) return null;
       if (atX == null || atY == null) {
         var a = srand() * TAU;
-        atX = clamp(this.p.x + Math.cos(a) * 260, -EDGE + 30, EDGE - 30);
-        atY = clamp(this.p.y + Math.sin(a) * 260, -EDGE + 30, EDGE - 30);
+        var atPos = clampField(this.p.x + Math.cos(a) * 260, this.p.y + Math.sin(a) * 260, 30);
+        atX = atPos.x;
+        atY = atPos.y;
       }
       b.alive = true;
       b.kind = kind;
       b.tide = false;
-      b.x = clamp(atX, -EDGE + 22, EDGE - 22);
-      b.y = clamp(atY, -EDGE + 22, EDGE - 22);
+      var bPosF = clampField(atX, atY, 22);
+      b.x = bPosF.x;
+      b.y = bPosF.y;
       b.vx = (srand() - 0.5) * 80;
       b.vy = (srand() - 0.5) * 80;
       b.life = 30;
@@ -5110,12 +5028,14 @@
       if (!b) return null;
       if (atX == null || atY == null) {
         var a = srand() * TAU;
-        atX = clamp(this.p.x + Math.cos(a) * 260, -EDGE + 30, EDGE - 30);
-        atY = clamp(this.p.y + Math.sin(a) * 260, -EDGE + 30, EDGE - 30);
+        var atPos = clampField(this.p.x + Math.cos(a) * 260, this.p.y + Math.sin(a) * 260, 30);
+        atX = atPos.x;
+        atY = atPos.y;
       }
       b.alive = true; b.tide = true; b.kind = kind;
-      b.x = clamp(atX, -EDGE + 24, EDGE - 24);
-      b.y = clamp(atY, -EDGE + 24, EDGE - 24);
+      var bPosF = clampField(atX, atY, 24);
+      b.x = bPosF.x;
+      b.y = bPosF.y;
       b.vx = (srand() - 0.5) * 70; b.vy = (srand() - 0.5) * 70;
       b.life = 36; b.born = run.time;
       this.unpark(b.spr); this.unpark(b.halo); this.unpark(b.beacon);
@@ -5286,8 +5206,9 @@
       this.floatText(this.p.x, this.p.y - 26, data.name, '#a7ffe0', TYPE.body);
       if (kind === 'arsenal') this.arsenalFlashT = 0.45;
       if (kind === 'decoy') {
-        this.decoyX = clamp(this.p.x + Math.cos(this.p.face) * 150, -EDGE + 28, EDGE - 28);
-        this.decoyY = clamp(this.p.y + Math.sin(this.p.face) * 150, -EDGE + 28, EDGE - 28);
+        var decoyPos2 = clampField(this.p.x + Math.cos(this.p.face) * 150, this.p.y + Math.sin(this.p.face) * 150, 28);
+        this.decoyX = decoyPos2.x;
+        this.decoyY = decoyPos2.y;
       }
     },
 
@@ -5451,8 +5372,9 @@
       w.alive = true;
       this.repackWings();
       var cs = Math.cos(this.p.face), sn = Math.sin(this.p.face);
-      w.joinX = clamp(this.p.x - cs * 760, -EDGE - 40, EDGE + 40);
-      w.joinY = clamp(this.p.y - sn * 760, -EDGE - 40, EDGE + 40);
+      var joinPos = clampField(this.p.x - cs * 760, this.p.y - sn * 760, -40);
+      w.joinX = joinPos.x;
+      w.joinY = joinPos.y;
       w.joinT = w.joinDur;
       this.formationTarget(w);
       w.x = w.joinX; w.y = w.joinY;
@@ -5520,8 +5442,9 @@
       b.alive = true;
       b.destroying = false;
       b.type = spec.type;
-      b.x = clamp(spec.x, -EDGE + 100, EDGE - 100);
-      b.y = clamp(spec.y, -EDGE + 100, EDGE - 100);
+      var bossPos = clampField(spec.x, spec.y, 100);
+      b.x = bossPos.x;
+      b.y = bossPos.y;
       b.maxHp = data.hp * (1 + this.run.time / this.activeRunSeconds * 0.18);
       b.hp = b.maxHp;
       b.r = data.r;
@@ -5547,8 +5470,9 @@
 
       for (var g = 0; g < 6; g++) {
         var ga = g * TAU / 6 + (index + 1) * 0.7;
-        var gx = clamp(b.x + Math.cos(ga) * 152, -EDGE, EDGE);
-        var gy = clamp(b.y + Math.sin(ga) * 152, -EDGE, EDGE);
+        var guardPos = clampField(b.x + Math.cos(ga) * 152, b.y + Math.sin(ga) * 152, 0);
+        var gx = guardPos.x;
+        var gy = guardPos.y;
         this.spawn(this.regionEnemyFor(data.guard[g % data.guard.length], b.x), g === 0 && index > 0, gx, gy, false);
       }
       this.run.baseSpawned[index] = true;
@@ -5629,9 +5553,9 @@
             var data = BASE_TYPES.hive;
             for (var hs = 0; hs < 2; hs++) {
               var ha = run.time * 0.7 + hs * Math.PI;
+              var hivePos = clampField(b.x + Math.cos(ha) * 92, b.y + Math.sin(ha) * 92, 0);
               this.spawn(this.regionEnemyFor(data.guard[(Math.floor(run.time) + hs) % data.guard.length], b.x), false,
-                clamp(b.x + Math.cos(ha) * 92, -EDGE, EDGE),
-                clamp(b.y + Math.sin(ha) * 92, -EDGE, EDGE), false);
+                hivePos.x, hivePos.y, false);
             }
           }
         } else if (b.type === 'bastion') {
@@ -5711,7 +5635,11 @@
         var convoy = (run.ambientKind++ % 2) === 0;
         var skirmish = !!nearBase && run.ambientKind % 3 === 0;
         var count = convoy || skirmish ? 3 : 1;
-        var startX = this.p.x - 720, startY = clamp(this.p.y - 260 + srand() * 520, -EDGE, EDGE);
+        // startX is deliberately off-field (event streaks in from outside view), so
+        // only startY needs field containment; clamp y alone against the field's
+        // vertical extent near the player rather than a full 2D clampToField call
+        // that would also perturb startX.
+        var startX = this.p.x - 720, startY = clamp(this.p.y - 260 + srand() * 520, -7662, 7662);
         if (skirmish) { startX = nearBase.x - 180; startY = nearBase.y; }
         var eventKind = skirmish ? 'skirmish' : (convoy ? 'convoy' : 'meteor');
         if (!convoy && !skirmish && region.key === 'void-rift') eventKind = 'rift';
@@ -5748,9 +5676,82 @@
         if (!e.alive) continue;
         e.life -= dt;
         e.x += e.vx * dt; e.y += e.vy * dt;
-        if (e.life <= 0 || e.x > EDGE + 800 || e.x < -EDGE - 800 ||
-            e.y > EDGE + 500 || e.y < -EDGE - 500) {
+        // Far-outside despawn, not containment: use the sdf directly rather than
+        // clampToField (which would push the position back inward). 800 is a
+        // generous margin past the boundary so the streak clears the screen first.
+        if (e.life <= 0 || (window.HM2_WORLD ? window.HM2_WORLD.sdf(e.x, e.y) > 800 :
+            (e.x > EDGE + 800 || e.x < -EDGE - 800 || e.y > EDGE + 500 || e.y < -EDGE - 500))) {
           e.alive = false; this.park(e.spr);
+        }
+      }
+    },
+
+    // currentRegionFeatures (M2 SUBTASK C): resolves the terrain feature list
+    // for the CURRENT region once per frame and caches it on this.run, so
+    // enemy/projectile/player update all share one lookup instead of each
+    // entity re-deriving it. Region here is HM2_WORLD.regionAt (palette and
+    // terrain), never regionAtX (that stays reserved for mission identity,
+    // SUBTASK D).
+    currentRegionFeatures: function () {
+      if (!window.HM2_WORLD) return null;
+      var run = this.run;
+      var frame = this.run.time;
+      if (run._featFrame === frame && run._featList !== undefined) return run._featList;
+      run._featFrame = frame;
+      var key = window.HM2_WORLD.regionAt(this.p.x, this.p.y);
+      run._featList = window.HM2_WORLD.FEATURES_BY_REGION[key] || null;
+      return run._featList;
+    },
+
+    // featureByType: helper to pull one feature of a given terrain type out
+    // of the current region's feature list (one instance of each type per
+    // region, per hm2_world.js).
+    featureOfType: function (features, type) {
+      if (!features) return null;
+      for (var i = 0; i < features.length; i++) {
+        if (features[i].type === type) return features[i];
+      }
+      return null;
+    },
+
+    // applyWorldFeaturesToPlayer (M2 SUBTASK C): gravity_well pulls the
+    // player, solar_flare damages the player when standing in its active
+    // lane. Cheap: resolves the feature list once (cached above) and only
+    // touches the two feature types that affect player movement/health.
+    applyWorldFeaturesToPlayer: function (dt) {
+      var worldApi = window.HM2_WORLD;
+      if (!worldApi) return;
+      var features = this.currentRegionFeatures();
+      if (!features) return;
+      var p = this.p;
+      var gravity = this.featureOfType(features, 'gravity_well');
+      if (gravity) {
+        var hooks = worldApi.featureHooks('gravity_well');
+        if (hooks) {
+          var gdx = p.x - gravity.x, gdy = p.y - gravity.y;
+          var res = hooks.collide(gravity, { x: gravity.x, y: gravity.y, dx: gdx, dy: gdy, rand: srand });
+          var pullRadius = gravity.pullRadius || 520;
+          var gdist = Math.sqrt(gdx * gdx + gdy * gdy);
+          if (gdist < pullRadius) {
+            var pullT = 1 - gdist / pullRadius;
+            var pullAccel = (gravity.strength || 240) * pullT * dt;
+            p.x += res.nx * pullAccel * dt;
+            p.y += res.ny * pullAccel * dt;
+          }
+        }
+      }
+      var flare = this.featureOfType(features, 'solar_flare');
+      if (flare) {
+        var hooks2 = worldApi.featureHooks('solar_flare');
+        if (hooks2) {
+          var laneWidth = flare.width || 260;
+          var period = flare.period || 6;
+          var delay = flare.delay || 0;
+          var phase = (this.run.time + delay) % period;
+          var active = phase < period * 0.35;
+          var inLane = Math.abs(p.x - flare.x) < laneWidth * 0.5;
+          var flareRes = hooks2.collide(flare, { inLane: inLane, active: active, rand: srand });
+          if (flareRes.damage > 0) this.hurt(flareRes.damage * dt);
         }
       }
     },
@@ -5797,8 +5798,10 @@
         }
         p.moving = false;
       }
-      p.x = clamp(p.x, -EDGE, EDGE);
-      p.y = clamp(p.y, -EDGE, EDGE);
+      this.applyWorldFeaturesToPlayer(dt);
+      var pPos = clampField(p.x, p.y, p.r);
+      p.x = pPos.x;
+      p.y = pPos.y;
     },
 
     pickRegionEnemy: function (fallback, regionKey) {
@@ -5878,9 +5881,9 @@
     // star scoring. Everything runs off the simulation clock.
     campaignBossPoint: function (x, y) {
       var dx = x - this.p.x, dy = y - this.p.y, d = Math.sqrt(dx * dx + dy * dy);
-      if (d <= 760) return { x: clamp(x, -EDGE, EDGE), y: clamp(y, -EDGE, EDGE) };
+      if (d <= 760) return clampField(x, y, 0);
       var s = 620 / d;
-      return { x: clamp(this.p.x + dx * s, -EDGE, EDGE), y: clamp(this.p.y + dy * s, -EDGE, EDGE) };
+      return clampField(this.p.x + dx * s, this.p.y + dy * s, 0);
     },
 
     fireCampaignEvent: function (ev) {
@@ -5898,13 +5901,14 @@
         this.spawnBase(this.activeBases.length - 1);
       }
       if (ev.grantBonus) {
-        this.spawnBonus(ev.grantBonus, clamp(this.p.x + 120, -EDGE + 30, EDGE - 30), this.p.y);
+        var grantPos = clampField(this.p.x + 120, this.p.y, 30);
+        this.spawnBonus(ev.grantBonus, grantPos.x, grantPos.y);
       }
       if (ev.gems) {
         for (i = 0; i < ev.gems.count; i++) {
           var ga = i * TAU / ev.gems.count;
-          this.dropGem({ x: clamp(this.p.x + Math.cos(ga) * 140, -EDGE, EDGE),
-            y: clamp(this.p.y + Math.sin(ga) * 140, -EDGE, EDGE), elite: false, xp: ev.gems.value });
+          var gemPos = clampField(this.p.x + Math.cos(ga) * 140, this.p.y + Math.sin(ga) * 140, 0);
+          this.dropGem({ x: gemPos.x, y: gemPos.y, elite: false, xp: ev.gems.value });
         }
       }
       if (ev.heat === true && !run.musicHeat) { kit.audio.music('musicHeat', 900); run.musicHeat = true; }
@@ -5915,8 +5919,9 @@
       var def = REGION_BOSS_BY_KEY[regionKey];
       if (!def) return null;
       var run = this.run;
-      var ex = clamp(this.p.x + (srand() < 0.5 ? -340 : 340), -EDGE, EDGE);
-      var ey = clamp(this.p.y - 200, -EDGE, EDGE);
+      var escortPos = clampField(this.p.x + (srand() < 0.5 ? -340 : 340), this.p.y - 200, 0);
+      var ex = escortPos.x;
+      var ey = escortPos.y;
       var e = this.spawn(def.key, false, ex, ey, true);
       if (!e) return null;
       e.maxHp *= 0.6 * ((fb && fb.hpMul) || 1);
@@ -5977,8 +5982,8 @@
           run.campaignFinalSpawned = true;
           if (fb.type === 'core') this.spawnBoss();
           else {
-            var fboss = this.spawnRegionBoss(fb.region,
-              clamp(this.p.x + 320, -EDGE, EDGE), clamp(this.p.y - 160, -EDGE, EDGE));
+            var fbossPos = clampField(this.p.x + 320, this.p.y - 160, 0);
+            var fboss = this.spawnRegionBoss(fb.region, fbossPos.x, fbossPos.y);
             if (fboss) {
               if (fb.hpMul) { fboss.maxHp *= fb.hpMul; fboss.hp = fboss.maxHp; }
               if (fb.dmgMul) { fboss.dmg *= fb.dmgMul; fboss.baseDmg = fboss.dmg; }
@@ -6133,11 +6138,11 @@
       if (!run.openingEnemyDone && run.time >= OPENING_BEATS.firstEnemy) {
         run.openingEnemyDone = true;
         this.spawn(this.regionEnemyFor('drifter', this.p.x, true), false,
-          clamp(this.p.x + 300, -EDGE + 30, EDGE - 30), this.p.y, true);
+          clampField(this.p.x + 300, this.p.y, 30).x, clampField(this.p.x + 300, this.p.y, 30).y, true);
       }
       if (!run.openingDropDone && run.time >= OPENING_BEATS.firstDrop) {
         run.openingDropDone = true;
-        if (this.spawnBonus('overdrive', clamp(this.p.x + 116, -EDGE + 30, EDGE - 30), this.p.y)) {
+        if (this.spawnBonus('overdrive', clampField(this.p.x + 116, this.p.y, 30).x, clampField(this.p.x + 116, this.p.y, 30).y)) {
           this.showBanner('OPENING CACHE', 'OVERDRIVE // KEEP THE BOARD MOVING');
           sfx('unlock', { volume: 0.38, rate: 1.24 });
         }
@@ -6177,15 +6182,15 @@
       var row = this.activeWaves[run.waveIdx];
 
       if (this.debugState && this.debugState.forceGenerousDrops && run.wings === 0 && !run.wingGuaranteeDone) {
-        this.ensureWingDrop(clamp(this.p.x + 120, -EDGE + 30, EDGE - 30), this.p.y,
+        this.ensureWingDrop(clampField(this.p.x + 120, this.p.y, 30).x, clampField(this.p.x + 120, this.p.y, 30).y,
           'FORCED-GENEROUS FORMATION TEST');
       }
       if (run.wings === 0 && run.time >= 50 && !run.wingGuaranteeDone) {
-        this.ensureWingDrop(clamp(this.p.x + 120, -EDGE + 30, EDGE - 30), this.p.y,
+        this.ensureWingDrop(clampField(this.p.x + 120, this.p.y, 30).x, clampField(this.p.x + 120, this.p.y, 30).y,
           'FIRST WING BY WAVE 2');
       }
       if (run.wingRecoveryDue > 0 && run.time >= run.wingRecoveryDue && run.wings === 0) {
-        this.ensureWingDrop(clamp(this.p.x + 220, -EDGE + 30, EDGE - 30), this.p.y,
+        this.ensureWingDrop(clampField(this.p.x + 220, this.p.y, 30).x, clampField(this.p.x + 220, this.p.y, 30).y,
           'WING RECOVERY SIGNAL');
       }
       if (this.debugState && this.debugState.forceWeaponDrop && run.slotsUnlocked >= 3 &&
@@ -6199,13 +6204,13 @@
         }
         if (!hasWeaponDrop) {
           if (this.debugState.forceWeaponDrop === 'upgraded') {
-            this.spawnModDrop(clamp(this.p.x + 120, -EDGE + 30, EDGE - 30), this.p.y);
+            this.spawnModDrop(clampField(this.p.x + 120, this.p.y, 30).x, clampField(this.p.x + 120, this.p.y, 30).y);
           } else {
             var forcedWeapon = typeof this.debugState.forceWeaponDrop === 'string' &&
               WEAPON_BY_KEY[this.debugState.forceWeaponDrop] ? this.debugState.forceWeaponDrop : null;
             var forcedTier = this.debugState.forceWeaponDrop === 'base' ? 'base' : null;
             this.spawnWeaponDrop(this.nextWeaponDrop(forcedWeapon, forcedTier),
-              clamp(this.p.x + 120, -EDGE + 30, EDGE - 30), this.p.y);
+              clampField(this.p.x + 120, this.p.y, 30).x, clampField(this.p.x + 120, this.p.y, 30).y);
           }
         }
       }
@@ -6214,7 +6219,7 @@
         var forcedTide = typeof this.debugState.forceTideDrop === 'string' &&
           TIDE_BY_KEY[this.debugState.forceTideDrop] ? this.debugState.forceTideDrop : this.chooseTideKind();
         if (forcedTide) this.spawnTideDrop(forcedTide,
-          clamp(this.p.x + 120, -EDGE + 30, EDGE - 30), this.p.y);
+          clampField(this.p.x + 120, this.p.y, 30).x, clampField(this.p.x + 120, this.p.y, 30).y);
         if (this.debugState.forceTideDrop && this.run.lastTideDrop === run.time) {
           this.debugState.forceTideDrop = false;
         }
@@ -6314,16 +6319,16 @@
         for (var tries = 0; tries < 8 && !ok; tries++) {
           var a = srand() * TAU;
           var rad = base.boss ? 420 : 400 + srand() * 260;
-          e.x = clamp(this.p.x + Math.cos(a) * rad, -EDGE, EDGE);
-          e.y = clamp(this.p.y + Math.sin(a) * rad, -EDGE, EDGE);
+          var ringPos = clampField(this.p.x + Math.cos(a) * rad, this.p.y + Math.sin(a) * rad, 0);
+          e.x = ringPos.x; e.y = ringPos.y;
           var ddx = e.x - this.p.x, ddy = e.y - this.p.y;
           ok = ddx * ddx + ddy * ddy >= minD * minD;
         }
         if (!ok) {
           var il = Math.sqrt(this.p.x * this.p.x + this.p.y * this.p.y);
           var nx = il > 1 ? -this.p.x / il : 1, ny = il > 1 ? -this.p.y / il : 0;
-          e.x = clamp(this.p.x + nx * minD * 1.4, -EDGE, EDGE);
-          e.y = clamp(this.p.y + ny * minD * 1.4, -EDGE, EDGE);
+          var fallbackPos = clampField(this.p.x + nx * minD * 1.4, this.p.y + ny * minD * 1.4, 0);
+          e.x = fallbackPos.x; e.y = fallbackPos.y;
         }
       }
       e.alive = true;
@@ -7208,6 +7213,10 @@
     },
 
     stepShots: function (dt) {
+      // M2 SUBTASK C: resolve the current region's terrain features once
+      // for the whole shot pass, same pattern as stepEnemies.
+      var shotWorldApi = window.HM2_WORLD;
+      var shotFeatures = this.currentRegionFeatures();
       for (var i = 0; i < this.shots.length; i++) {
         var s = this.shots[i];
         if (!s.alive) continue;
@@ -7279,11 +7288,33 @@
           s.y += s.vy * dt;
         }
 
-        if ((s.kind === 'ricochet' || s.kind === 'prism-ricochet') &&
-            (s.x < -EDGE || s.x > EDGE || s.y < -EDGE || s.y > EDGE)) {
-          if (s.x < -EDGE || s.x > EDGE) s.vx *= -1;
-          if (s.y < -EDGE || s.y > EDGE) s.vy *= -1;
-          s.x = clamp(s.x, -EDGE, EDGE); s.y = clamp(s.y, -EDGE, EDGE);
+        if (shotFeatures) {
+          var terrainRes = this.applyTerrainToProjectile(s, shotFeatures, shotWorldApi);
+          if (terrainRes && terrainRes.absorbed) { this.killSprite(s); continue; }
+        }
+
+        // Wall bounce for ricochet shots: reflect the velocity off the SDF
+        // boundary normal (window.HM2_WORLD.sdf/clampToField) rather than the
+        // old axis-aligned square-wall flip, so shots bounce correctly off the
+        // now-elliptical field edge and never escape it. Falls back to the old
+        // axis flip if the world module is unavailable.
+        var wallHit = window.HM2_WORLD ? window.HM2_WORLD.sdf(s.x, s.y) > 0 :
+          (s.x < -EDGE || s.x > EDGE || s.y < -EDGE || s.y > EDGE);
+        if ((s.kind === 'ricochet' || s.kind === 'prism-ricochet') && wallHit) {
+          if (window.HM2_WORLD) {
+            var wallPos = window.HM2_WORLD.clampToField(s.x, s.y, 0);
+            var nx2 = s.x - wallPos.x, ny2 = s.y - wallPos.y;
+            var nlen2 = Math.sqrt(nx2 * nx2 + ny2 * ny2) || 1;
+            nx2 /= nlen2; ny2 /= nlen2;
+            var vdotn = s.vx * nx2 + s.vy * ny2;
+            s.vx -= 2 * vdotn * nx2;
+            s.vy -= 2 * vdotn * ny2;
+            s.x = wallPos.x; s.y = wallPos.y;
+          } else {
+            if (s.x < -EDGE || s.x > EDGE) s.vx *= -1;
+            if (s.y < -EDGE || s.y > EDGE) s.vy *= -1;
+            s.x = clamp(s.x, -EDGE, EDGE); s.y = clamp(s.y, -EDGE, EDGE);
+          }
           s.bounces--;
           sfx('hit', { volume: 0.12, rate: 1.5 });
           if (s.kind === 'prism-ricochet') this.splitPrism(s);
@@ -7511,6 +7542,10 @@
     stepEnemies: function (dt) {
       var p = this.p, run = this.run;
       this.stepHatchQueue();
+      // M2 SUBTASK C: resolve the current region's terrain features once for
+      // the whole enemy pass rather than per-entity.
+      var worldApi = window.HM2_WORLD;
+      var terrainFeatures = this.currentRegionFeatures();
       for (var i = 0; i < this.enemies.length; i++) {
         var e = this.enemies[i];
         if (!e.alive) continue;
@@ -7520,6 +7555,8 @@
           this.damage(e, (e.dotDps || 0) * dt, e.x, e.y, false);
           if (!e.alive) continue;
         }
+        if (terrainFeatures) this.applyTerrainToEnemy(e, terrainFeatures, worldApi, dt);
+        if (!e.alive) continue;
         var enemyClock = run.buffs.freeze > 0 ? 0.20 : (run.buffs.dilation > 0 ? 0.56 : 1);
         if (e.egg) {
           e.hatchT -= dt * enemyClock;
@@ -7571,8 +7608,10 @@
           if (e.cd <= 0 && !phaseHidden) {
             e.cd = 2.8;
             var blinkA = Math.atan2(targetY - e.y, targetX - e.x) + Math.PI + (srand() - 0.5) * 0.7;
-            e.x = clamp(p.x + Math.cos(blinkA) * (250 + srand() * 110), -EDGE + 50, EDGE - 50);
-            e.y = clamp(p.y + Math.sin(blinkA) * (250 + srand() * 110), -EDGE + 50, EDGE - 50);
+            var blinkRad = 250 + srand() * 110;
+            var blinkPos = clampField(p.x + Math.cos(blinkA) * blinkRad, p.y + Math.sin(blinkA) * blinkRad, 50);
+            e.x = blinkPos.x;
+            e.y = blinkPos.y;
             this.contactRing(e.x, e.y, 12, 72, 0.18, e.tint, 0.58);
           }
           sp *= 0.62;
@@ -7744,8 +7783,9 @@
           scene.run.drainMarkX = scene.p.x;
           scene.run.drainMarkY = scene.p.y;
           var a = Math.atan2(scene.p.y - e.y, scene.p.x - e.x) + Math.PI;
-          e.x = clamp(scene.p.x + Math.cos(a) * 300, -EDGE + 80, EDGE - 80);
-          e.y = clamp(scene.p.y + Math.sin(a) * 300, -EDGE + 80, EDGE - 80);
+          var markPos = clampField(scene.p.x + Math.cos(a) * 300, scene.p.y + Math.sin(a) * 300, 80);
+          e.x = markPos.x;
+          e.y = markPos.y;
           scene.showBanner('NULL MARK', 'OUTRUN THE DRAIN VECTOR');
           scene.contactRing(e.x, e.y, 30, 180, 0.3, 0xc480ff, 0.86);
         }, 'boss-approach');
@@ -7763,8 +7803,121 @@
     },
 
     clampEnemy: function (e) {
-      e.x = clamp(e.x, -EDGE - 60, EDGE + 60);
-      e.y = clamp(e.y, -EDGE - 60, EDGE + 60);
+      var enemyPos = clampField(e.x, e.y, -60);
+      e.x = enemyPos.x;
+      e.y = enemyPos.y;
+    },
+
+    // applyTerrainToProjectile (M2 SUBTASK C): wires the projectile hook for
+    // gravity_well (bends the shot's velocity), asteroid_field (shatters or
+    // passes through per shatterChance), and derelict_hulk (blocks ranged
+    // shots outright). Returns the projectile hook's last result so the
+    // caller can kill the shot when absorbed. solar_flare's timed damage
+    // lane only affects the player (applyWorldFeaturesToPlayer), not shots,
+    // per hm2_world.js's solar_flare.projectile being a pass-through.
+    applyTerrainToProjectile: function (s, features, worldApi) {
+      if (!worldApi) return null;
+      var result = null;
+      var gravity = this.featureOfType(features, 'gravity_well');
+      if (gravity) {
+        var gHooks = worldApi.featureHooks('gravity_well');
+        if (gHooks) {
+          var gdx = s.x - gravity.x, gdy = s.y - gravity.y;
+          result = gHooks.projectile(gravity, { dx: gdx, dy: gdy, vx: s.vx, vy: s.vy, rand: srand });
+          s.vx = result.vx; s.vy = result.vy;
+        }
+      }
+      var asteroid = this.featureOfType(features, 'asteroid_field');
+      if (asteroid) {
+        var aHooks = worldApi.featureHooks('asteroid_field');
+        if (aHooks) {
+          var adx = s.x - asteroid.x, ady = s.y - asteroid.y;
+          var adist = Math.sqrt(adx * adx + ady * ady);
+          if (adist < (asteroid.radius || 60) * 1.5) {
+            result = aHooks.projectile(asteroid, { vx: s.vx, vy: s.vy, rand: srand });
+            if (result.absorbed) return result;
+            s.vx = result.vx; s.vy = result.vy;
+          }
+        }
+      }
+      var hulk = this.featureOfType(features, 'derelict_hulk');
+      if (hulk) {
+        var hHooks = worldApi.featureHooks('derelict_hulk');
+        if (hHooks) {
+          var hdx = s.x - hulk.x, hdy = s.y - hulk.y;
+          result = hHooks.projectile(hulk, { dx: hdx, dy: hdy, vx: s.vx, vy: s.vy, rand: srand });
+          if (result.absorbed) return result;
+          s.vx = result.vx; s.vy = result.vy;
+        }
+      }
+      return result;
+    },
+
+    // applyTerrainToEnemy (M2 SUBTASK C): wires the five terrain feature
+    // hooks into per-enemy update. features is the current region's list
+    // (resolved once per frame by the caller), worldApi is window.HM2_WORLD.
+    // asteroid_field: contact damage + push-back (collide hook).
+    // gravity_well: pulls the enemy toward the well (collide hook returns
+    //   the pull normal; reuses the same hook contract as the player).
+    // nebula: hides the enemy sprite until the player is within its reveal
+    //   radius (visibility hook).
+    // derelict_hulk: blocks movement, holding the enemy at its collision
+    //   radius (collide hook).
+    // solar_flare has no enemy-facing behavior in hm2_world.js (it only
+    // damages the player/projectiles), so it is intentionally skipped here.
+    applyTerrainToEnemy: function (e, features, worldApi, dt) {
+      var p = this.p;
+      var asteroid = this.featureOfType(features, 'asteroid_field');
+      if (asteroid) {
+        var hooks = worldApi.featureHooks('asteroid_field');
+        if (hooks) {
+          var adx = e.x - asteroid.x, ady = e.y - asteroid.y;
+          if (asteroid.x == null) { adx = 0; ady = 0; }
+          var ares = hooks.collide(asteroid, { dx: adx, dy: ady, rand: srand });
+          if (ares.blocked) {
+            e.x += ares.nx * 40 * dt;
+            e.y += ares.ny * 40 * dt;
+            if (ares.damage > 0) this.damage(e, ares.damage * dt, e.x, e.y, false);
+          }
+        }
+      }
+      var gravity = this.featureOfType(features, 'gravity_well');
+      if (gravity) {
+        var gHooks = worldApi.featureHooks('gravity_well');
+        if (gHooks) {
+          var gdx = e.x - gravity.x, gdy = e.y - gravity.y;
+          var gdist = Math.sqrt(gdx * gdx + gdy * gdy);
+          var pullRadius = gravity.pullRadius || 520;
+          if (gdist < pullRadius) {
+            var gres = gHooks.collide(gravity, { dx: gdx, dy: gdy, rand: srand });
+            var pullT = 1 - gdist / pullRadius;
+            var pullAccel = (gravity.strength || 240) * pullT * dt;
+            e.x += gres.nx * pullAccel * dt;
+            e.y += gres.ny * pullAccel * dt;
+          }
+        }
+      }
+      var nebula = this.featureOfType(features, 'nebula');
+      if (nebula && e.spr) {
+        var nHooks = worldApi.featureHooks('nebula');
+        if (nHooks) {
+          var ndx = p.x - e.x, ndy = p.y - e.y;
+          var nres = nHooks.visibility(nebula, { dx: ndx, dy: ndy, rand: srand });
+          e.spr.setAlpha(nres.alpha);
+        }
+      }
+      var hulk = this.featureOfType(features, 'derelict_hulk');
+      if (hulk) {
+        var hHooks = worldApi.featureHooks('derelict_hulk');
+        if (hHooks) {
+          var hdx = e.x - hulk.x, hdy = e.y - hulk.y;
+          var hres = hHooks.collide(hulk, { dx: hdx, dy: hdy, rand: srand });
+          if (hres.blocked) {
+            e.x += hres.nx * 60 * dt;
+            e.y += hres.ny * 60 * dt;
+          }
+        }
+      }
     },
 
     enemyContact: function (e, dt) {
@@ -8020,8 +8173,9 @@
         var splitCount = Math.min(4, splitFree);
         for (var spI = 0; spI < splitCount; spI++) {
           var spA = spI * TAU / 4 + (e.phase || 0);
-          var spX = clamp(e.x + Math.cos(spA) * 30, -EDGE, EDGE);
-          var spY = clamp(e.y + Math.sin(spA) * 30, -EDGE, EDGE);
+          var splitPos = clampField(e.x + Math.cos(spA) * 30, e.y + Math.sin(spA) * 30, 0);
+          var spX = splitPos.x;
+          var spY = splitPos.y;
           this.spawn('sprinter', false, spX, spY, false);
         }
       }
@@ -8705,9 +8859,8 @@
       t.lvl0 = this.run.level;
       if (t.step === 1) {
         var ang = this.p.face || 0;
-        var mark = this.spawn('drifter', false,
-          clamp(this.p.x + Math.cos(ang) * 230, -EDGE, EDGE),
-          clamp(this.p.y + Math.sin(ang) * 230, -EDGE, EDGE));
+        var tutMarkPos = clampField(this.p.x + Math.cos(ang) * 230, this.p.y + Math.sin(ang) * 230, 0);
+        var mark = this.spawn('drifter', false, tutMarkPos.x, tutMarkPos.y);
         this.tutPointAt(mark || null);
         this.queueTutorial('AUTO-FIRE', 'Your Bolt Lance fires by itself. Aim by moving. Break that one.');
       } else if (t.step === 2) {
@@ -9101,22 +9254,10 @@
       if (this.activeRegionKey !== region.key) {
         this.activeRegionKey = region.key;
         this.ground.setTint(region.palette.ground);
-        for (var i = 0; i < this.regionBackground.length; i++) {
-          var layer = this.regionBackground[i];
-          layer.spr.setTint(i === 0 ? region.palette.far : (i === 1 ? region.palette.mid : region.palette.near));
-          layer.spr.setAlpha(i === 0 ? 0.16 : 0.18);
-          this.unpark(layer.spr);
-        }
         this.reseedRegionField(region);
-        this.layoutSkyObjects(region);
         if (this.frameVig) this.frameVig.setAlpha(region.key === 'void-rift' ? 0.14 : 0);
       }
       this.stepRegionFieldReseed();
-      for (var j = 0; j < this.regionBackground.length; j++) {
-        var bg = this.regionBackground[j];
-        bg.spr.setPosition(cmx * bg.par, cmy * bg.par)
-          .setAlpha((j === 0 ? 0.16 : 0.18) + (region.key === 'void-rift' ? 0.025 : 0));
-      }
       if (this.hm2Background) {
         try { this.hm2Background.update({ x: cmx, y: cmy }, this.lastDt || (1 / 60)); } catch (bgErr) {}
       }
@@ -9212,6 +9353,7 @@
       var region = REGION_BY_KEY[run.regionKey] || regionAtX(p.x);
       this.updateRegionPresentation(region, cmx, cmy);
       this.renderNavBeacon(dt);
+      this.renderFieldBoundary();
 
       this.ground.tilePositionX = cam.scrollX * 0.92;
       this.ground.tilePositionY = cam.scrollY * 0.92;
@@ -10380,8 +10522,9 @@
         if (len > 0.03) {
           var sp = this.p.speed * Math.min(1, len);
           p2.vx = dx / len * sp; p2.vy = dy / len * sp;
-          p2.x = clamp(p2.x + p2.vx * dt, -EDGE, EDGE);
-          p2.y = clamp(p2.y + p2.vy * dt, -EDGE, EDGE);
+          var p2Pos = clampField(p2.x + p2.vx * dt, p2.y + p2.vy * dt, p2.r);
+          p2.x = p2Pos.x;
+          p2.y = p2Pos.y;
           p2.face = Math.atan2(dy, dx);
         }
         if (input.swap >= 0 && input.swap <= 2) {
@@ -10770,8 +10913,11 @@
       var scene = Game.scene;
       var region = REGION_BY_KEY[key];
       if (!scene || !region || !scene.p) return false;
-      scene.p.x = clamp((region.minX + region.maxX) / 2, -EDGE + 40, EDGE - 40);
-      scene.p.y = 0;
+      // Debug teleport keeps the hm_data.js band centre for mission/region
+      // identity (SUBTASK D), then clampToField pulls it inside the SDF field.
+      var teleportPos = clampField((region.minX + region.maxX) / 2, 0, 40);
+      scene.p.x = teleportPos.x;
+      scene.p.y = teleportPos.y;
       if (scene.player) scene.player.setPosition(scene.p.x, scene.p.y);
       if (scene.cameras && scene.cameras.main) scene.cameras.main.centerOn(scene.p.x, scene.p.y);
       scene.enterRegion(region, true);
