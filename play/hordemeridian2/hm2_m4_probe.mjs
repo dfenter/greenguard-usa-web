@@ -307,6 +307,16 @@ function mulberry32(seed) {
 
   // ---- stepOffer accepted/declined + accept boundary just inside/outside radius ----
   (function () {
+    // Hardcode the spec values (46 / 14) rather than only reading the module's
+    // own constants: the boundary assertions below place the player relative
+    // to ACCEPT_RADIUS, so on their own they self-adjust to a regressed
+    // constant and would still pass. Pin the spec here so a changed radius or
+    // window fails loudly.
+    var SPEC_ACCEPT_RADIUS = 46;
+    var SPEC_OFFER_WINDOW = 14;
+    ok('ACCEPT_RADIUS constant is the spec value of 46', ACCEPT_RADIUS === SPEC_ACCEPT_RADIUS, 'got=' + ACCEPT_RADIUS);
+    ok('OFFER_WINDOW constant is the spec value of 14', OFFER_WINDOW === SPEC_OFFER_WINDOW, 'got=' + OFFER_WINDOW);
+
     var state = resetEvents();
     state.offer = { type: 'overclock', active: true, startedAt: 0, expiresAt: OFFER_WINDOW, x: 0, y: 0 };
     var justInside = stepOffer(state, { playerX: ACCEPT_RADIUS - 0.5, playerY: 0, now: 1 }, 1);
@@ -400,6 +410,27 @@ function mulberry32(seed) {
   } else {
     ok('all 7 M3 keys resolve in REGION_ENEMY_BY_KEY', false, 'data failed to load');
     ok('all 7 M3 keys appear in at least one REGION_ENEMIES pool', false, 'data failed to load');
+  }
+
+  if (LEVELS) {
+    // Fail loudly if a level file silently failed to register. Without this,
+    // a level that throws or writes to the wrong global just disappears from
+    // LEVELS and every pool assertion below vacuously passes over 14 levels
+    // (verified: breaking level7's registration still gave 50/50).
+    var levelsDirCount = fs.readdirSync(path.join(__dirname, 'levels'))
+      .filter(function (f) { return /^level\d+\.js$/.test(f); }).length;
+    var registered = Object.keys(LEVELS).map(Number).sort(function (a, b) { return a - b; });
+    ok('every levels/*.js file registered into __HM_LEVELS',
+      registered.length === levelsDirCount,
+      'files=' + levelsDirCount + ' registered=' + registered.length + ' [' + registered.join(',') + ']');
+    var missingIds = [];
+    for (var lvId = 1; lvId <= levelsDirCount; lvId++) {
+      if (!LEVELS[lvId]) missingIds.push(lvId);
+    }
+    ok('levels 1..' + levelsDirCount + ' are all present by id', missingIds.length === 0, 'missing=' + JSON.stringify(missingIds));
+  } else {
+    ok('every levels/*.js file registered into __HM_LEVELS', false, 'data failed to load');
+    ok('levels 1..15 are all present by id', false, 'data failed to load');
   }
 
   if (DATA && LEVELS) {
