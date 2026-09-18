@@ -1252,6 +1252,47 @@ def _apply_jawseam(low, rig, budget_tris=9000):
                 wh2[vertex.index] = float(item.weight)
     F2 = np.asarray([tuple(tri.vertices) for tri in low.data.loop_triangles],
                     dtype=np.int64)
+    # RECONCILE THE CAP WITH THE MESH THAT ACTUALLY EXPORTS.
+    #
+    # solve() reaches its fixed point on ITS OWN reduced arrays, but the mesh
+    # written above went through bmesh.ops.pointmerge and dissolve_degenerate,
+    # which move survivor positions and can retriangulate.  allow(e) is
+    # proportional to rest(e), so an edge that shortened by a few percent in
+    # that edit can end up with dW just over its new allowance even though the
+    # solver had converged: artemisstrike aborted the bake on exactly one such
+    # edge (I4: 1) at a healthy 2.109x stretch.  Asserting against a basis the
+    # solver never saw turns sub-percent bmesh drift into a failed bake.
+    #
+    # Re-run the same cap sweep on the re-gathered arrays and write the result
+    # back, so the exported weights satisfy I4 on the exported geometry.  This
+    # is the spec's step 2 on the final topology, not a new rule: it can only
+    # LOWER a jaw weight toward its neighbour, never collapse or widen.
+    _E2 = _jawseam._edges_of(F2)
+    if len(_E2):
+        _L2 = _jawseam._extent(P2)
+        _rest2 = _jawseam._rest_lengths(P2, _E2)
+        _arm2 = _jawseam._arms(P2, (hinge.x, hinge.y, hinge.z),
+                               (axis.x, axis.y, axis.z), _L2)
+        _allow2 = _jawseam._allow(
+            _rest2, np.maximum(_arm2[_E2[:, 0]], _arm2[_E2[:, 1]]), _L2)
+        _wj_capped, _sweeps, _worst = _jawseam._cap_sweep(
+            wj2.copy(), _E2, _allow2)
+        _moved = np.flatnonzero(np.abs(_wj_capped - wj2) > 1.0e-9)
+        if len(_moved):
+            # wr is the residual carried by every OTHER bone and is preserved
+            # exactly, as everywhere else in this module: only the jaw/head
+            # split moves (I7).
+            _wr2 = np.clip(1.0 - wj2 - wh2, 0.0, 1.0)
+            _wh_capped = np.clip(1.0 - _wr2 - _wj_capped, 0.0, 1.0)
+            print("FINISH jawseam re-cap after bmesh: %d verts in %d sweeps "
+                  "(worst excess %.3e)" % (len(_moved), _sweeps, _worst),
+                  flush=True)
+            for _vi in _moved:
+                _v = int(_vi)
+                jaw.add([_v], float(_wj_capped[_v]), "REPLACE")
+                head.add([_v], float(_wh_capped[_v]), "REPLACE")
+            wj2, wh2 = _wj_capped, _wh_capped
+
     final = _jawseam.check(P2, F2, wj2, wh2, (hinge.x, hinge.y, hinge.z),
                            (axis.x, axis.y, axis.z), budget_tris=int(budget_tris))
     print("FINISH jawseam VERIFY stretch=%.3fx tris=%d violations=%r"
