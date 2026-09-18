@@ -353,8 +353,11 @@ Writes play/hordemeridian2/HANDOFF-M3-blocker1.md.
     applySetpieceWell     runtime-verified clean: real 15.1px pull, NaN x/y/strength and zero-distance
                           all stay finite, expiry nulls it, cleared on both defeat paths, no new loop.
 
-A 3-trial campaign run on the pre-blocker1 state (`/tmp/hm2_final_campaign.log`, port 8797) was into
-its bot-survival trials at park time; the fix lane runs its own, so that log is superseded.
+A 3-trial campaign run on the pre-blocker1 state `6468a6e6` COMPLETED:
+**55/55 assertions, all 15 missions, medians L1=112s L5=52s L10=54s L15=38s** (log
+`/tmp/hm2_final_campaign.log`). L5=52s clears the 45s bar. This confirms the gate's HOLD is a
+PROBE VACUITY problem, not broken gameplay: the campaign suite is green on the held state. The
+blocker-1 lane runs its own campaign pass, which supersedes this one for the final record.
 
 ## Resume condition and next steps
 
