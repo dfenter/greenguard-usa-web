@@ -1953,6 +1953,16 @@
         });
       }
 
+      // M4 risk events: a single reusable world-space marker (ring + icon)
+      // for the currently-active offer. No new atlas frames added; reuses
+      // 'ring_thick' and 'ic_lance' like the bonus/weapon drop markers above.
+      this.riskEventGfx = {
+        ring: this.add.image(0, 0, 'atlas', 'ring_thick').setDepth(26)
+          .setBlendMode(Phaser.BlendModes.ADD).setScale(1.0).setVisible(false),
+        icon: this.add.image(0, 0, 'atlas', 'ic_lance').setDepth(27)
+          .setBlendMode(Phaser.BlendModes.ADD).setScale(1.0).setVisible(false)
+      };
+
       this.bases = [];
       for (i = 0; i < Math.max(6, BASE_SCHEDULE.length); i++) {
         this.bases.push({
@@ -3026,6 +3036,7 @@
       // did not load. See stepRiskEvents for the per-tick hook.
       this.riskEvents = window.HM2_EVENTS ? window.HM2_EVENTS.resetEvents() : null;
       this.riskEventMarker = null;
+      this.hideRiskEventMarker();
       this.state = 'playing';
       this._hm2CutsceneOutroDone = false;
       // M4 cutscenes: an authored intro holds the sim (state stays off
@@ -6299,6 +6310,12 @@
         re.offer.x = mp.x;
         re.offer.y = mp.y;
         this.riskEventMarker = { x: mp.x, y: mp.y, type: re.offer.type };
+        var markerColor = re.offer.type === 'overclock' ? 0xffd67a :
+          re.offer.type === 'distress-beacon' ? 0x8effd8 : 0xff756a;
+        if (this.riskEventGfx) {
+          this.riskEventGfx.ring.setPosition(mp.x, mp.y).setTint(markerColor).setVisible(true);
+          this.riskEventGfx.icon.setPosition(mp.x, mp.y).setTint(markerColor).setVisible(true);
+        }
         var label = re.offer.type === 'overclock' ? 'SIGNAL // OVERCLOCK CACHE' :
           re.offer.type === 'distress-beacon' ? 'SIGNAL // DISTRESS BEACON' :
           'SIGNAL // RIVAL ACE INBOUND';
@@ -6312,10 +6329,18 @@
           HE.resolveEvent(re, re.offer.type, 'accepted');
           this.resolveRiskEventSpawn(re);
           this.riskEventMarker = null;
+          this.hideRiskEventMarker();
         } else if (outcome === 'declined') {
           this.riskEventMarker = null;
+          this.hideRiskEventMarker();
         }
       }
+    },
+
+    hideRiskEventMarker: function () {
+      if (!this.riskEventGfx) return;
+      this.riskEventGfx.ring.setVisible(false);
+      this.riskEventGfx.icon.setVisible(false);
     },
 
     resolveRiskEventSpawn: function (re) {
