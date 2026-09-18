@@ -1075,6 +1075,164 @@ def _cap_final_jaw_gradient(low, rig):
             "converged": bool(worst <= 1.0e-4), "sweeps": sweeps}
 
 
+# --- Rev 17 jaw-seam solver adapter (SPEC-jawseam.md) ---------------------
+#
+# One module replaces three interacting passes.  _collapse_post_decimate_slivers,
+# _unsatisfiable_cap_edges and _cap_final_jaw_gradient are kept above, IMPORTABLE
+# BUT UNUSED, so the gate can diff behaviour against them; finish_family calls
+# only _apply_jawseam.  The reason they are retired rather than tuned is in the
+# spec: their predicates interact (the cap's allowance shrinks with rest length,
+# so a sliver is unsatisfiable by weights alone, while bmesh collapse
+# manufactures new near-coincident survivors and re-authors weights around
+# them), and three lanes of alternating them never reached a proven fixed point.
+def _jawseam_basis(low, rig):
+    """Hinge pivot and unit hinge axis in MESH space, plus the bind check.
+
+    A6 removed `jaw.roll = pi`, so LowerJaw's bind is near-identity like every
+    other bone and the mesh-space local +X of the bone is what the GLB joint
+    exports.  That equality is the assumption the analytic LBS pose in
+    jawseam.check rests on, so it is asserted here and aborts the bake rather
+    than silently producing a mesh measured in the wrong basis.
+    """
+    if rig is None or rig.type != "ARMATURE":
+        raise RuntimeError("jawseam: no armature to take the hinge basis from")
+    bone = rig.data.bones.get("LowerJaw")
+    if bone is None:
+        raise RuntimeError("jawseam: rig has no LowerJaw bone")
+    to_mesh = low.matrix_world.inverted() @ rig.matrix_world
+    hinge = to_mesh @ bone.head_local
+    # Bone local +X carried into mesh space, as a DIRECTION (no translation).
+    basis_x = bone.matrix_local.to_3x3() @ Vector((1.0, 0.0, 0.0))
+    axis = (to_mesh.to_3x3() @ basis_x)
+    if axis.length <= 1.0e-12:
+        raise RuntimeError("jawseam: degenerate hinge axis")
+    axis = axis.normalized()
+    # Bind rotation must be within 0.05 rad of identity (spec section 2).
+    quat = bone.matrix_local.to_quaternion()
+    angle = abs(quat.angle)
+    if angle > math.pi:
+        angle = 2.0 * math.pi - angle
+    return hinge, axis, float(angle)
+
+
+def _apply_jawseam(low, rig, budget_tris=9000):
+    """Solve the exported jaw seam once, then write weights and merges back."""
+    import bmesh
+    from . import jawseam as _jawseam
+
+    jaw = low.vertex_groups.get("LowerJaw")
+    head = low.vertex_groups.get("Head")
+    if jaw is None or head is None:
+        print("FINISH jawseam SKIP: no LowerJaw/Head vertex group", flush=True)
+        return None
+
+    hinge, axis, bind_angle = _jawseam_basis(low, rig)
+    if bind_angle > 0.05:
+        raise RuntimeError(
+            "jawseam: LowerJaw bind rotation is %.4f rad, over the 0.05 rad "
+            "limit the analytic pose assumes (A6 baked this as identity); "
+            "aborting the bake rather than exporting an unmeasurable seam"
+            % bind_angle)
+
+    count = len(low.data.vertices)
+    P = np.asarray([[float(v.co.x), float(v.co.y), float(v.co.z)]
+                    for v in low.data.vertices], dtype=np.float64)
+    wj = np.zeros(count, dtype=np.float64)
+    wh = np.zeros(count, dtype=np.float64)
+    for vertex in low.data.vertices:
+        for item in vertex.groups:
+            if item.group == jaw.index:
+                wj[vertex.index] = float(item.weight)
+            elif item.group == head.index:
+                wh[vertex.index] = float(item.weight)
+
+    # TRIANGLES, not polygons: the probe walks the exported index buffer, so
+    # quad diagonals are real edges of E.
+    low.data.calc_loop_triangles()
+    F = np.asarray([tuple(tri.vertices) for tri in low.data.loop_triangles],
+                   dtype=np.int64)
+    if not len(F):
+        print("FINISH jawseam SKIP: mesh has no triangles", flush=True)
+        return None
+
+    result = _jawseam.solve(P, F, wj, wh, hinge=(hinge.x, hinge.y, hinge.z),
+                            axis=(axis.x, axis.y, axis.z),
+                            budget_tris=int(budget_tris))
+    before, after = result.report["before"], result.report["after"]
+    print("FINISH jawseam rounds=%d collapsed=%d verts %d -> %d tris %d -> %d"
+          % (result.rounds, result.collapsed, count, after["n_verts"],
+             before["n_tris"], after["n_tris"]), flush=True)
+    print("FINISH jawseam stretch %.3fx -> %.3fx (spec %.1f) violations %r -> %r"
+          % (before["I5"]["worst"], after["I5"]["worst"],
+             _jawseam.STRETCH_SPEC, before["violations"], after["violations"]),
+          flush=True)
+    print("FINISH jawseam I9 lip %d -> %d (%s)"
+          % (result.report["lip_before"], result.report["lip_after"],
+             "ok" if result.report["I9_ok"] else "WARN below 80% retention"),
+          flush=True)
+
+    # Weights by ORIGINAL index first, before any topology edit; only the
+    # jaw/head split moves, every other group is untouched (I7).
+    for index in range(count):
+        jaw.add([index], float(max(0.0, min(1.0, result.wj[index]))), "REPLACE")
+        head.add([index], float(max(0.0, min(1.0, result.wh[index]))), "REPLACE")
+
+    if result.merges:
+        mesh = bmesh.new()
+        mesh.from_mesh(low.data)
+        mesh.verts.ensure_lookup_table()
+        applied = 0
+        for keep, drop, co in result.merges:
+            mesh.verts.ensure_lookup_table()
+            vk = mesh.verts[keep] if keep < len(mesh.verts) else None
+            vd = mesh.verts[drop] if drop < len(mesh.verts) else None
+            if vk is None or vd is None or not vk.is_valid or not vd.is_valid:
+                continue
+            bmesh.ops.pointmerge(mesh, verts=[vk, vd],
+                                 merge_co=Vector((float(co[0]), float(co[1]),
+                                                  float(co[2]))))
+            applied += 1
+        mesh.to_mesh(low.data)
+        low.data.update()
+        mesh.free()
+        print("FINISH jawseam applied %d/%d merges verts -> %d"
+              % (applied, len(result.merges), len(low.data.vertices)),
+              flush=True)
+
+    # RE-GATHER and re-check on the mesh that will actually be exported.  A
+    # violation aborts the bake with the report rather than shipping a GLB the
+    # gate will reject.
+    low.data.calc_loop_triangles()
+    P2 = np.asarray([[float(v.co.x), float(v.co.y), float(v.co.z)]
+                     for v in low.data.vertices], dtype=np.float64)
+    wj2 = np.zeros(len(P2), dtype=np.float64)
+    wh2 = np.zeros(len(P2), dtype=np.float64)
+    for vertex in low.data.vertices:
+        for item in vertex.groups:
+            if item.group == jaw.index:
+                wj2[vertex.index] = float(item.weight)
+            elif item.group == head.index:
+                wh2[vertex.index] = float(item.weight)
+    F2 = np.asarray([tuple(tri.vertices) for tri in low.data.loop_triangles],
+                    dtype=np.int64)
+    final = _jawseam.check(P2, F2, wj2, wh2, (hinge.x, hinge.y, hinge.z),
+                           (axis.x, axis.y, axis.z), budget_tris=int(budget_tris))
+    print("FINISH jawseam VERIFY stretch=%.3fx tris=%d violations=%r"
+          % (final["I5"]["worst"], final["n_tris"], final["violations"]),
+          flush=True)
+    if final["violations"]:
+        raise RuntimeError(
+            "jawseam: exported mesh violates %r (worst stretch %.3fx); "
+            "see SPEC-jawseam.md section 1 for what each invariant means"
+            % (final["violations"], final["I5"]["worst"]))
+    return {"rounds": result.rounds, "collapsed": result.collapsed,
+            "stretch_before": before["I5"]["worst"],
+            "stretch_after": final["I5"]["worst"],
+            "lip_before": result.report["lip_before"],
+            "lip_after": result.report["lip_after"],
+            "bind_angle": bind_angle}
+
+
 def _world_frame(obj):
     verts = np.asarray([[*(obj.matrix_world @ vertex.co)] for vertex in obj.data.vertices], dtype=np.float32)
     lo = verts.min(axis=0); hi = verts.max(axis=0); ext = hi - lo
@@ -1394,49 +1552,15 @@ def finish_family(ctx):
             if previous and previous.name in bpy.data.objects:
                 bpy.context.view_layer.objects.active = previous
 
-    # Sliver collapse on the FINAL topology, deliberately OUTSIDE the decimate
-    # branch above.  The collapse decimate makes degenerate jaw-seam edges, so
-    # it must run after that, but it is not the only source: measured this
-    # round, aresrender / snapjaw / thresher all baked under the 9000 budget
-    # (8531 / 8047 / 8442 tris), so the decimate never fired, this pass never
-    # ran while it lived inside the branch, and their stretch came back
-    # byte-identical to the pre-fix table because the code under test never
-    # executed.  The worst edges on those families carry near-identical jaw
-    # weight (0.483/0.483) over rest lengths of 1e-4 to 1e-3 of L: geometry
-    # that exists whether or not a decimate ran.  One call here covers both
-    # cases and cannot double-run on a family that DID decimate.
-    _collapse_post_decimate_slivers(low)
-
-    # LAST weight edit before export: the gate reads the exported topology, so
-    # the gradient cap has to be the final word on it.  See the long note on
-    # _cap_final_jaw_gradient for why the mouth-stage cap cannot cover this.
+    # Rev 17 jaw seam: ONE solver, one fixed point (SPEC-jawseam.md).
     #
-    # Cap and sliver-collapse are mutually recursive and must be driven to a
-    # JOINT fixed point, not run once each.  The cap's allowance is
-    # proportional to rest length, so on a sliver it is ~0 and the edge is
-    # unsatisfiable by weights alone - only removing the geometry fixes it.
-    # Conversely bmesh.ops.collapse manufactures new near-coincident survivors
-    # and re-authors the weights around them, which can re-open a gradient the
-    # cap had already closed.  Measured after the first single-pass round:
-    # four families fell from 11-45x to 3.1-3.6x, but the residual edges were
-    # all slivers (thresher's worst at 1.9e-3 of L against a mesh median of
-    # 3.5e-2, carrying dW 0.08) that the percentile-relative collapse limit had
-    # stopped short of, because that limit rises as slivers are removed.
-    #
-    # Alternate the two until a full round changes nothing. Each collapse
-    # strictly reduces the vertex count and each cap sweep is monotonically
-    # decreasing, so the loop terminates; the bound is a runaway guard.
-    for _round in range(6):
-        _capped = _cap_final_jaw_gradient(low, rig)
-        _unsat = _unsatisfiable_cap_edges(low, rig)
-        if _unsat:
-            print("FINISH %d edges unsatisfiable by the cap, collapsing them"
-                  % len(_unsat), flush=True)
-        _removed = _collapse_post_decimate_slivers(
-            low, label="final-round%d" % (_round + 1), extra_edges=_unsat)
-        if not _capped.get("changed") and not _removed:
-            break
-    print("FINISH cap/collapse fixed point after %d rounds" % (_round + 1), flush=True)
+    # This replaces the sliver collapse, the unsatisfiable-edge feed and the
+    # final gradient cap, which were three passes with interacting predicates
+    # alternated for six rounds without a proven fixed point.  jawseam.solve
+    # drives collapse and cap jointly to a state satisfying I1-I8 and verifies
+    # the result on the exported arrays, so a violation aborts the bake here
+    # instead of surfacing as a probe failure after the GLB ships.
+    _seam = _apply_jawseam(low, rig, budget_tris=(tri_budget or 9000))
 
     output = _root / "assets" / "models" / "fam" / (family + ".glb")
     glb_bytes = _export(low, rig, output, ctx.get("extras"))
