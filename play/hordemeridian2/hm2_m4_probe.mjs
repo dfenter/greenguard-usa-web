@@ -263,6 +263,32 @@ function mulberry32(seed) {
       'offers=' + offerTimes.length + ' gaps=' + JSON.stringify(gaps));
   })();
 
+  // ---- first offer lands at t=90, not t=0 (R2 regression guard) ----
+  (function () {
+    // Hardcode the spec value (90), never HM2_EVENTS.OFFER_INTERVAL: this
+    // assertion exists specifically to catch resetEvents() regressing
+    // lastOfferAt back to -Infinity, which would make scheduleNext fire an
+    // offer on the very first tick regardless of what OFFER_INTERVAL is set to.
+    var SPEC_OFFER_INTERVAL = 90;
+    var state = resetEvents();
+    var now = 0;
+    var DT = 0.5;
+    var firstOfferAt = null;
+    var sawOfferBeforeSpec = false;
+    while (now <= SPEC_OFFER_INTERVAL + 5) {
+      scheduleNext(state, now);
+      if (state.offer && state.offer.active) {
+        if (firstOfferAt === null) firstOfferAt = state.offer.startedAt;
+        if (now < SPEC_OFFER_INTERVAL - 1e-9) sawOfferBeforeSpec = true;
+      }
+      now += DT;
+    }
+    ok('no offer is active before t=' + SPEC_OFFER_INTERVAL, !sawOfferBeforeSpec);
+    ok('first offer lands at t=' + SPEC_OFFER_INTERVAL + ' (within one DT)',
+      firstOfferAt !== null && Math.abs(firstOfferAt - SPEC_OFFER_INTERVAL) < DT + 1e-9,
+      'firstOfferAt=' + firstOfferAt);
+  })();
+
   // ---- pickEvent never repeats same type twice in a row ----
   (function () {
     var rand = mulberry32(7);
@@ -317,19 +343,25 @@ function mulberry32(seed) {
     ok('ACCEPT_RADIUS constant is the spec value of 46', ACCEPT_RADIUS === SPEC_ACCEPT_RADIUS, 'got=' + ACCEPT_RADIUS);
     ok('OFFER_WINDOW constant is the spec value of 14', OFFER_WINDOW === SPEC_OFFER_WINDOW, 'got=' + OFFER_WINDOW);
 
+    // Every player position, offer construction, and timing value below uses
+    // the hardcoded SPEC_* values, never the live ACCEPT_RADIUS/OFFER_WINDOW
+    // constants. This is deliberate: if those constants regressed (e.g. a
+    // radius shrink from 46 to 47), a boundary test built from the live
+    // constant would self-adjust its player position to match and still
+    // pass. Live constants are used ONLY in the two equality assertions above.
     var state = resetEvents();
-    state.offer = { type: 'overclock', active: true, startedAt: 0, expiresAt: OFFER_WINDOW, x: 0, y: 0 };
-    var justInside = stepOffer(state, { playerX: ACCEPT_RADIUS - 0.5, playerY: 0, now: 1 }, 1);
-    ok('stepOffer accepts just inside ACCEPT_RADIUS', justInside === 'accepted');
+    state.offer = { type: 'overclock', active: true, startedAt: 0, expiresAt: SPEC_OFFER_WINDOW, x: 0, y: 0 };
+    var justInside = stepOffer(state, { playerX: SPEC_ACCEPT_RADIUS - 0.5, playerY: 0, now: 1 }, 1);
+    ok('stepOffer accepts just inside SPEC_ACCEPT_RADIUS', justInside === 'accepted');
 
     var state2 = resetEvents();
-    state2.offer = { type: 'overclock', active: true, startedAt: 0, expiresAt: OFFER_WINDOW, x: 0, y: 0 };
-    var justOutside = stepOffer(state2, { playerX: ACCEPT_RADIUS + 0.5, playerY: 0, now: 1 }, 1);
-    ok('stepOffer stays active just outside ACCEPT_RADIUS (window not yet expired)', justOutside === 'active');
+    state2.offer = { type: 'overclock', active: true, startedAt: 0, expiresAt: SPEC_OFFER_WINDOW, x: 0, y: 0 };
+    var justOutside = stepOffer(state2, { playerX: SPEC_ACCEPT_RADIUS + 0.5, playerY: 0, now: 1 }, 1);
+    ok('stepOffer stays active just outside SPEC_ACCEPT_RADIUS (window not yet expired)', justOutside === 'active');
 
     var state3 = resetEvents();
-    state3.offer = { type: 'overclock', active: true, startedAt: 0, expiresAt: OFFER_WINDOW, x: 0, y: 0 };
-    var declined = stepOffer(state3, { playerX: 999999, playerY: 999999, now: OFFER_WINDOW + 0.1 }, 0.1);
+    state3.offer = { type: 'overclock', active: true, startedAt: 0, expiresAt: SPEC_OFFER_WINDOW, x: 0, y: 0 };
+    var declined = stepOffer(state3, { playerX: 999999, playerY: 999999, now: SPEC_OFFER_WINDOW + 0.1 }, 0.1);
     ok('stepOffer declines when window expires untouched', declined === 'declined');
   })();
 

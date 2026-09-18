@@ -166,10 +166,13 @@
 
   // ------------------------------------------------------------------
   // resetEvents: fresh state for a new run (classic or campaign alike).
+  // lastOfferAt starts at 0 (not -Infinity) so the first offer lands at
+  // t=OFFER_INTERVAL (t=90), matching "one offered every 90s", instead of
+  // firing on the very first tick.
   function resetEvents() {
     return {
       offer: null,
-      lastOfferAt: -Infinity,
+      lastOfferAt: 0,
       lastEventType: null,
       eventCounts: {},
       effects: {},
