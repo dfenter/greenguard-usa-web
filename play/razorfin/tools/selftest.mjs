@@ -25,16 +25,34 @@ for (const t of targets) {
     else if (t === 'abilities') { classic('meta.js'); classic('abilities.js'); res = globalThis.RF.Abilities.__selftest(); }
     else { console.log('unknown target ' + t); allPass = false; continue; }
   } catch (e) { console.log(t + ' EXCEPTION ' + (e && e.stack || e)); allPass = false; continue; }
-  // Two return shapes are in play: engine/world/art3d/fx/meta/abilities use
+  // Three return shapes are in play: engine/world/art3d/fx/meta/abilities use
   // {pass, notes[]} (or {pass, sections:{...notes}}) with FAIL/EXCEPTION-
   // prefixed strings marking failures; ui3d-style lanes instead return
   // {pass, checks, fails, log[]} - a checks/fails COUNT plus a separate log,
-  // with no FAIL-prefixed strings living inside it. Reading only `notes`
-  // silently under-reports a ui-style result as ok=0 fail=0 even when it
-  // failed, so both shapes are consumed here.
-  const notes = res && res.notes ? res.notes
-    : res && res.sections ? Object.values(res.sections).flatMap(s => (s && s.notes) || [])
-    : [];
+  // with no FAIL-prefixed strings living inside it; and some modules (e.g.
+  // fx3d's moduleSelftest) nest several {pass, notes[]} sub-results under
+  // their own keys, e.g. {pass, fx: {pass, notes}, juice: {...}, ...}.
+  // Reading only `notes`/`sections` silently under-reports both a ui-style
+  // result and a nested result as ok=0 fail=0, so all shapes are unwrapped
+  // and consumed here.
+  function collectNotes(r) {
+    if (!r || typeof r !== 'object') return [];
+    if (Array.isArray(r.notes)) return r.notes;
+    if (r.sections && typeof r.sections === 'object') {
+      return Object.values(r.sections).flatMap(s => (s && s.notes) || []);
+    }
+    // Nested sub-result shape: recurse into own-property object values that
+    // themselves look like {pass, notes[]} (or another nested level of it).
+    const out = [];
+    for (const key of Object.keys(r)) {
+      const v = r[key];
+      if (v && typeof v === 'object' && typeof v.pass === 'boolean' && !Array.isArray(v)) {
+        out.push(...collectNotes(v));
+      }
+    }
+    return out;
+  }
+  const notes = collectNotes(res);
   let ok = 0, fail = 0;
   for (const n of notes) { if (/^(FAIL|EXCEPTION)/.test(n)) { fail++; console.log('  ' + n); } else ok++; }
 

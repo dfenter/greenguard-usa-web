@@ -2621,6 +2621,22 @@
     // tutorial strip is deliberately left running; only stale out-of-run
     // transients are dropped.
     clearTransients({ keepTutorial: true });
+    // QA 2026-09-17 STALL-PROFILE: the roster-grid thumbnail bake queue
+    // (queueBake/drainBakeQueue, one requestIdleCallback bake per idle
+    // tick) is armed by buildMenu/buildCard and was never cancelled on the
+    // menu -> run transition. requestIdleCallback fires during an active
+    // run's own frame gaps, and each bake is a synchronous three.js
+    // render() + toDataURL() PNG encode (150-300ms under 4x CPU throttle),
+    // which showed up as periodic main-thread stalls for the whole run,
+    // not just at the menu. Cached thumbs (S.thumbs) are untouched; the
+    // queue simply re-arms next time buildMenu/buildCard runs.
+    if (S.bakeTimer) {
+      if (typeof window.cancelIdleCallback === 'function') { try { window.cancelIdleCallback(S.bakeTimer); } catch (eBI) {} }
+      else if (typeof window.clearTimeout === 'function') { try { window.clearTimeout(S.bakeTimer); } catch (eBT) {} }
+      S.bakeTimer = null;
+    }
+    S.bakeQueue.length = 0;
+    S.bakeQueued = {};
     showHud();
     // World3D has finished its own init by the time a run starts, so this is
     // the first safe point to sample RF.World for the minimap background.

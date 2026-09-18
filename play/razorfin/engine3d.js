@@ -202,6 +202,27 @@ import * as THREE from 'three';
   var CTL_STICK_DEAD = 6;            // css px, no heading change inside this
   var CTL_STICK_TARGET_CSS = 400;    // virtual target distance (always cruise, never arrive)
 
+  // QA-REPORT.md finding 6: env(safe-area-inset-*) only fed HUD CSS; a stick
+  // anchor planted in the bottom inset (iOS home-indicator strip) sits where
+  // the system swipe-up gesture can steal the touch mid-drag. The anchor is
+  // never PLANTED inside that strip - plantStick nudges it up to clear the
+  // inset by one ring radius so the whole ring (not just its center) stays
+  // out of the unsafe zone. A touch anywhere in the legal area still anchors
+  // exactly where the finger went down; only the anchor's Y is clamped.
+  function safeAreaBottomInset() {
+    var doc = root.document;
+    if (!doc || !doc.documentElement || !root.getComputedStyle) return 0;
+    var raw = getComputedStyle(doc.documentElement).getPropertyValue('--pad-b');
+    var px = parseFloat(raw);
+    return (px > 0) ? px : 0; // headless/no-notch: env() resolves to 0, parseFloat -> NaN -> 0
+  }
+  function safeAnchorY(y, inset) {
+    var h = root.innerHeight || CSS_H;
+    var useInset = (inset === undefined) ? safeAreaBottomInset() : inset;
+    var unsafeTop = h - useInset - CTL_STICK_RADIUS;
+    return (y > unsafeTop) ? unsafeTop : y;
+  }
+
   // ------------------------------------------------------- rig anim
   var TAIL_HZ_IDLE = 2.5, TAIL_HZ_CRUISE = 5.0, TAIL_HZ_BOOST = 8.0;
   // Rev 6 / 6.2: TAIL_AMP_IDLE/TURN are the binding contract values (0.03 /
@@ -1589,7 +1610,12 @@ import * as THREE from 'three';
     var ctl = ctx.player.ctl;
     ctl.active = true;
     ctl.px = dx; ctl.py = dy;
-    ctl.ax = dx; ctl.ay = dy;
+    // Safe-area exclusion (QA-REPORT.md finding 6): the ANCHOR never plants
+    // inside the home-indicator strip, even though the touch itself is
+    // accepted anywhere. ax/ay drive the ring position and the anchor->finger
+    // pursuit math; px/py stay the true finger point so the nub still tracks
+    // the live touch under the thumb.
+    ctl.ax = dx; ctl.ay = safeAnchorY(dy);
     ctl.stick = true; ctl.stickMag = 0;
     paintStick();
   }
@@ -1604,7 +1630,9 @@ import * as THREE from 'three';
     var lim = CTL_STICK_RADIUS * CTL_STICK_RECENTER;
     if (rlen > lim) {
       ctl.ax = px - rdx / rlen * lim;
-      ctl.ay = py - rdy / rlen * lim;
+      // Same safe-area clamp as plantStick: a long drag recenters the ring
+      // but must not walk it into the home-indicator strip either.
+      ctl.ay = safeAnchorY(py - rdy / rlen * lim);
     }
     paintStick();
   }
@@ -5264,6 +5292,31 @@ import * as THREE from 'three';
       plantStick(400, 300);
       check(pc.ctl.active && pc.ctl.px === 400 && pc.ctl.py === 300,
         'plantStick placed the finger point');
+
+      // QA-REPORT.md finding 6: the anchor must never plant inside the
+      // bottom safe-area strip (iOS home indicator), even though the touch
+      // itself is accepted anywhere. safeAreaBottomInset() reads 0 headless
+      // (no documentElement computed --pad-b), so simulate a device inset
+      // directly against the pure geometry function instead of relying on
+      // getComputedStyle. px/py (the raw finger point) stay wherever the
+      // finger went down; only ax/ay (the anchor/ring) are excluded.
+      var simH = root.innerHeight || CSS_H;
+      var simInset = 34; // iPhone home-indicator inset, css px
+      var deepInStrip = simH - 5; // 5px above the bottom edge: inside the strip
+      var justOutsideStrip = simH - simInset - CTL_STICK_RADIUS - 1;
+      var unsafeTop = simH - simInset - CTL_STICK_RADIUS;
+      var clampedDeep = safeAnchorY(deepInStrip, simInset);
+      var clampedShallow = safeAnchorY(justOutsideStrip, simInset);
+      check(clampedDeep === unsafeTop, 'an anchor requested inside the unsafe strip is rejected (clamped to the inset boundary)');
+      check(clampedShallow === justOutsideStrip, 'an anchor requested just outside the unsafe strip is accepted unchanged');
+      plantStick(400, deepInStrip);
+      check(pc.ctl.py === deepInStrip, 'the finger point itself is never clamped, only the anchor');
+      check(pc.ctl.ay <= (root.innerHeight || CSS_H) - CTL_STICK_RADIUS,
+        'plantStick keeps the anchor ring clear of the screen edge even with no device inset (headless floor)');
+      // Re-plant at the original point so the dead-zone test below still
+      // starts from the (400, 300) anchor it expects.
+      plantStick(400, 300);
+
       pc.ctl.hasTarget = true;
       pc.angle = 0;
       // Rev 9: the seek anchor is the body CENTER (see stepControl); a target

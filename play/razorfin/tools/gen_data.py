@@ -840,6 +840,16 @@ TEXTURE_BY_ROW = {
 }
 
 
+# REGENERATION TRAP (2026-09-17 QA): this is a DISK SCAN, so the value of
+# FAM_FILES depends on what happens to be sitting in assets/models/fam/ at the
+# moment you run this script. While the Rev 17 art lane has in-progress family
+# GLBs staged there, a regeneration silently flips FAM_FILES from [] to those
+# names, and art3d's family fallback gate (shark3d.js, "family fallback gate:
+# expected FAM_FILES empty") then fails. The failure message talks about
+# approved GLBs and does NOT point at the regeneration as the cause, which is
+# what makes it expensive to debug. If you regenerate data.js and art3d goes
+# red on that gate, check this list before anything else.
+#
 # FAM_FILES: the subset of FAMILIES that actually have a GLB on disk at
 # assets/models/fam/<family>.glb right now (checked at generate time, not at
 # game runtime -- the browser has no filesystem to probe). shark3d.js only
@@ -855,11 +865,59 @@ FAM_FILES = sorted(
 )
 
 
+import colorsys as _colorsys
+
+# GLOW_LUM_MIN/MAX: real-sharks art law value calibration (rendered luminance
+# band 0.35-0.55, no glow/neon). QA-REPORT finding 3 named 11 roster glows
+# sitting near-white (count stable across lightness thresholds 0.75-0.85):
+# mirrorscale, teslafang, voltaicrex, absolutezero, banshee, cyclopseye,
+# glacier, bonecrown, hermesdart, aphroditelure, artemisstrike.
+# clamp_glow_luminance pulls an out-of-band glow hex down into the band via
+# HLS lightness only, preserving hue and saturation so each shark keeps its
+# identity (frost stays frosty, volt stays electric) instead of flattening
+# every offender to one grey. Scoped to exactly those 11 ids -- other rows
+# with borderline-bright glow are NOT in this QA finding and are left alone
+# (a separate fix-round call, not this one).
+GLOW_CLAMP_SHARK_IDS = {
+    "mirrorscale", "teslafang", "voltaicrex", "absolutezero", "banshee",
+    "cyclopseye", "glacier", "bonecrown", "hermesdart", "aphroditelure",
+    "artemisstrike",
+}
+def _srgb_to_linear(c):
+    return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+
+def _rendered_luminance(r, g, b):
+    R, G, B = _srgb_to_linear(r), _srgb_to_linear(g), _srgb_to_linear(b)
+    return 0.2126 * R + 0.7152 * G + 0.0722 * B
+
+def clamp_glow_luminance(hex_color, lo=0.35, hi=0.55, target=0.45):
+    if hex_color == 0:
+        return hex_color
+    r, g, b = ((hex_color >> 16 & 255) / 255, (hex_color >> 8 & 255) / 255, (hex_color & 255) / 255)
+    lm = _rendered_luminance(r, g, b)
+    if lo <= lm <= hi:
+        return hex_color
+    h, l, s = _colorsys.rgb_to_hls(r, g, b)
+    # Binary-search HLS lightness (hue/saturation held fixed) until rendered
+    # luminance lands at target, inside the band.
+    lo_l, hi_l = 0.0, 1.0
+    for _ in range(40):
+        mid = (lo_l + hi_l) / 2
+        rr, gg, bb = _colorsys.hls_to_rgb(h, mid, s)
+        if _rendered_luminance(rr, gg, bb) > target:
+            hi_l = mid
+        else:
+            lo_l = mid
+    rr, gg, bb = _colorsys.hls_to_rgb(h, lo_l, s)
+    return (round(rr * 255) << 16) | (round(gg * 255) << 8) | round(bb * 255)
+
+
 def shark_row(t):
     (sid,name,tier,act,cost,st,pas,active,sil,npc,blurb)=t
     stats={"speed":st[0],"accel":st[1],"turn":st[2],"bite":st[3],"hp":st[4],"metab":st[5],"boost":st[6]}
+    glow = clamp_glow_luminance(sil[8]) if sid in GLOW_CLAMP_SHARK_IDS else sil[8]
     sils={"head":sil[0],"len":sil[1],"girth":sil[2],"finScale":sil[3],"tailScale":sil[4],
-          "palette":{"base":sil[5],"belly":sil[6],"accent":sil[7],"glow":sil[8]},"pattern":sil[9],"fx":sil[10]}
+          "palette":{"base":sil[5],"belly":sil[6],"accent":sil[7],"glow":glow},"pattern":sil[9],"fx":sil[10]}
     # Rev 14: optional 12th SIL field selects a TEXTURED base asset by
     # MODEL_FILES key (shark3d.js). Rows that omit it keep the low-poly
     # Sharky/goblin/angler/piranha routing exactly as before, so the key is
