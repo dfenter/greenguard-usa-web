@@ -395,7 +395,9 @@
     { key: 'crimson', name: 'Crimson', tint: 0xff6e74, lowTint: 0xffc078 },
     { key: 'violet', name: 'Violet', tint: 0xc480ff, lowTint: 0xff9c9c },
     { key: 'arctic', name: 'Arctic', tint: 0x9fe9ff, lowTint: 0xffc98a },
-    { key: 'void', name: 'Void', tint: 0x8580b8, lowTint: 0xd39a8c }
+    { key: 'void', name: 'Void', tint: 0x8580b8, lowTint: 0xd39a8c },
+    { key: 'solar', name: 'Solar', tint: 0xffe08a, lowTint: 0xff9c5a },
+    { key: 'jade', name: 'Jade', tint: 0x5fe0a0, lowTint: 0xff8f7a }
   ];
   var PAINT_BY_KEY = {};
   for (var hpi = 0; hpi < HULL_PAINTS.length; hpi++) PAINT_BY_KEY[HULL_PAINTS[hpi].key] = HULL_PAINTS[hpi];
@@ -405,10 +407,55 @@
     { key: 'amber', name: 'Amber', color: 0xffd67a },
     { key: 'arctic', name: 'Arctic', color: 0x7ad8ff },
     { key: 'violet', name: 'Violet', color: 0xc480ff },
-    { key: 'crimson', name: 'Red', color: 0xff756a }
+    { key: 'crimson', name: 'Red', color: 0xff756a },
+    { key: 'gold', name: 'Gold', color: 0xffcf5c }
   ];
   var TRIM_BY_KEY = {};
   for (var hri = 0; hri < TRIMS.length; hri++) TRIM_BY_KEY[TRIMS[hri].key] = TRIMS[hri];
+
+  // Engine trails: each a distinct particle-emitter profile (not just a
+  // recolor) so the four read differently in motion. scale/lifespan/freq
+  // are applied by the scene to fx.trail and to the hangar preview loop.
+  var ENGINE_TRAILS = [
+    { key: 'stream', name: 'Stream', color: 0x6df0bf, scale: 1.0, lifespan: 340, freq: 0.07 },
+    { key: 'ember', name: 'Ember Spark', color: 0xff9a5a, scale: 0.7, lifespan: 220, freq: 0.035 },
+    { key: 'comet', name: 'Comet Tail', color: 0x9fe9ff, scale: 1.6, lifespan: 620, freq: 0.11 },
+    { key: 'pulse', name: 'Pulse Wake', color: 0xc480ff, scale: 1.15, lifespan: 340, freq: 0.16 }
+  ];
+  var TRAIL_BY_KEY = {};
+  for (var eti = 0; eti < ENGINE_TRAILS.length; eti++) TRAIL_BY_KEY[ENGINE_TRAILS[eti].key] = ENGINE_TRAILS[eti];
+
+  // Shot colours: tint applied to player projectiles in fireShot(), layered
+  // under the boosted/arsenal tint override so buffs still read clearly.
+  var SHOT_COLORS = [
+    { key: 'default', name: 'Standard', color: 0xffffff },
+    { key: 'toxic', name: 'Toxic', color: 0x9dff6a },
+    { key: 'plasma', name: 'Plasma', color: 0xff5ad6 },
+    { key: 'ion', name: 'Ion', color: 0x5ad6ff }
+  ];
+  var SHOT_COLOR_BY_KEY = {};
+  for (var sci = 0; sci < SHOT_COLORS.length; sci++) SHOT_COLOR_BY_KEY[SHOT_COLORS[sci].key] = SHOT_COLORS[sci];
+
+  // Decals unlock from real codex/campaign achievement state (checked live
+  // by the scene via `gate`, not baked into the save). frame is an existing
+  // atlas glyph reused as a small hull mark; offset positions it on the ship.
+  var DECALS = [
+    { key: 'none', name: 'None', frame: '', desc: 'NO DECAL' },
+    { key: 'ace', name: 'Ace Mark', frame: 'hi_kill', desc: '4 WEAPONS RECOVERED',
+      gate: function (p, ctx) { return ctx.weaponsFound >= 4; } },
+    { key: 'veteran', name: 'Veteran Chevron', frame: 'hi_time', desc: '5 RUNS FLOWN',
+      gate: function (p) { return (p.runs || 0) >= 5; } },
+    { key: 'starclaim', name: 'Star Claim', frame: 'hi_xp', desc: '5 CAMPAIGN STARS',
+      gate: function (p) {
+        var stars = (p.campaign && p.campaign.stars) || {}, total = 0;
+        for (var k in stars) if (Object.prototype.hasOwnProperty.call(stars, k)) total += stars[k];
+        return total >= 5;
+      } },
+    { key: 'wayfarer', name: 'Wayfarer Sigil', frame: 'elite_crown', desc: 'REGION 3 REACHED',
+      gate: function (p) { return (p.campaign && p.campaign.unlocked || 1) >= 3; } }
+  ];
+  var DECAL_BY_KEY = {};
+  for (var dci = 0; dci < DECALS.length; dci++) DECAL_BY_KEY[DECALS[dci].key] = DECALS[dci];
 
   var HULL_FRAMES = [
     { key: 'classic', name: 'Classic', idle: 'hero_idle', move: 'hero_move' },
@@ -625,6 +672,12 @@
     PAINT_BY_KEY: PAINT_BY_KEY,
     TRIMS: TRIMS,
     TRIM_BY_KEY: TRIM_BY_KEY,
+    ENGINE_TRAILS: ENGINE_TRAILS,
+    TRAIL_BY_KEY: TRAIL_BY_KEY,
+    SHOT_COLORS: SHOT_COLORS,
+    SHOT_COLOR_BY_KEY: SHOT_COLOR_BY_KEY,
+    DECALS: DECALS,
+    DECAL_BY_KEY: DECAL_BY_KEY,
     HULL_FRAMES: HULL_FRAMES,
     FRAME_BY_KEY: FRAME_BY_KEY,
     SHIP_CLASSES: SHIP_CLASSES,
