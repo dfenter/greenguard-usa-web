@@ -393,7 +393,15 @@ async function probeOne(file) {
   let armMax = 0;
   for (const i of lipBandVerts) armMax = Math.max(armMax, leverArm(i));
   const bandOk = lipBandVerts.length >= 6 && armMax > 1e-6;
-  const LIP_ARM_FRAC = 0.85;   // top 15% of the lever range, was "lowest 15%"
+  /* Top quarter of the lever range. The old constant was "lowest 15% of head
+   * height"; against the lever the same 15% leaves aresrender with 5 lip
+   * vertices, one short of the classifier's own 6-vertex floor, purely because
+   * its outermost arm bin is sparsely tessellated. 0.75 is the smallest round
+   * widening that clears that floor on every family while still naming only
+   * the outer jaw, and it does not relax the travel test: it can only ADD
+   * vertices nearer the hinge, which lowers minLowerMove, so it is the
+   * conservative direction. */
+  const LIP_ARM_FRAC = 0.75;
 
   // lower-lip region: lowest 15% of the jaw band AND front 55% of head length,
   // among vertices with meaningful jaw weight.
