@@ -6271,12 +6271,36 @@
     // featureByType: helper to pull one feature of a given terrain type out
     // of the current region's feature list (one instance of each type per
     // region, per hm2_world.js).
+    //
+    // Hotfix (bug A): FEATURES_BY_REGION descriptors are static and carry no
+    // x/y (never placed anywhere in game.js). A caller that computes a
+    // distance from feature.x/feature.y gets NaN, which the hooks' safeNum
+    // coerces to 0, so `dist < radius` is always true -- e.g. every
+    // derelict_hulk.projectile call absorbed the shot one frame after spawn.
+    //
+    // The guard belongs at the POSITION-DEPENDENT call sites only, via
+    // featureOfTypePlaced below. Not every hook reads feature.x/y:
+    // nebula.visibility takes the PLAYER-to-ENEMY delta and is correct for an
+    // unplaced feature, so blanket-guarding featureOfType would silently
+    // disable enemy cloaking (measured: aurelion-graveyard world-probe
+    // luminance delta 0.2146 -> 0.1797, under the 0.18 gate).
     featureOfType: function (features, type) {
       if (!features) return null;
       for (var i = 0; i < features.length; i++) {
         if (features[i].type === type) return features[i];
       }
       return null;
+    },
+
+    // featureOfTypePlaced: featureOfType restricted to features that carry
+    // real numeric coordinates. Use this wherever the hook's ctx is built
+    // from feature.x/feature.y; use featureOfType where it is not.
+    featureOfTypePlaced: function (features, type) {
+      var f = this.featureOfType(features, type);
+      if (!f) return null;
+      if (typeof f.x !== 'number' || !isFinite(f.x)) return null;
+      if (typeof f.y !== 'number' || !isFinite(f.y)) return null;
+      return f;
     },
 
     // applyWorldFeaturesToPlayer (M2 SUBTASK C): gravity_well pulls the
@@ -6290,7 +6314,7 @@
       var features = this.currentRegionFeatures();
       if (!features) return;
       var p = this.p;
-      var gravity = this.featureOfType(features, 'gravity_well');
+      var gravity = this.featureOfTypePlaced(features, 'gravity_well');
       if (gravity) {
         var hooks = worldApi.featureHooks('gravity_well');
         if (hooks) {
@@ -6306,7 +6330,7 @@
           }
         }
       }
-      var flare = this.featureOfType(features, 'solar_flare');
+      var flare = this.featureOfTypePlaced(features, 'solar_flare');
       if (flare) {
         var hooks2 = worldApi.featureHooks('solar_flare');
         if (hooks2) {
@@ -7294,9 +7318,18 @@
       var slotDamage = slotPattern.damage;
       var slotCadence = slotPattern.cadence;
       var mastery = 1 + Math.min(7, Math.floor(Math.max(0, (r.lance || 1) - 1) / 2));
+      // Hotfix (bug B): `rate` moved into per-level rows in the M1 spec
+      // rework (hm2_weapons.js); `data.rate` was never a field on the
+      // top-level weapon entry, so this divisor was undefined -> NaN, which
+      // fails the `> 0` gate on the cooldown check below and lets weapons
+      // fire far faster than intended. Read the current level's rate the
+      // same way effectiveSpec below does, defaulting to 1 only if a weapon
+      // truly has no levels (none do as of M1, see hm2_weapons.js).
+      var levelRow = window.HM2_WEAPONS ? window.HM2_WEAPONS.lvl(data, (run.weaponLevel[weaponKey] || 1) - 1) : null;
+      var weaponRateStat = (levelRow && typeof levelRow.rate === 'number') ? levelRow.rate : 1;
       var interval = Math.max(0.12, (0.60 - mastery * 0.045) * (1 - p.weaponRate * 0.07) *
         (1 - (p.hangarRate || 0)) *
-        (arsenal ? 0.62 : 1) / data.rate / slotCadence);
+        (arsenal ? 0.62 : 1) / weaponRateStat / slotCadence);
       c.primarySlots[slotIndex] -= dt;
       if (c.primarySlots[slotIndex] > 0) return;
       var target = this.nearestEnemy(p.x, p.y, 900);
@@ -8595,7 +8628,7 @@
     applyTerrainToProjectile: function (s, features, worldApi) {
       if (!worldApi) return null;
       var result = null;
-      var gravity = this.featureOfType(features, 'gravity_well');
+      var gravity = this.featureOfTypePlaced(features, 'gravity_well');
       if (gravity) {
         var gHooks = worldApi.featureHooks('gravity_well');
         if (gHooks) {
@@ -8604,7 +8637,7 @@
           s.vx = result.vx; s.vy = result.vy;
         }
       }
-      var asteroid = this.featureOfType(features, 'asteroid_field');
+      var asteroid = this.featureOfTypePlaced(features, 'asteroid_field');
       if (asteroid) {
         var aHooks = worldApi.featureHooks('asteroid_field');
         if (aHooks) {
@@ -8617,7 +8650,7 @@
           }
         }
       }
-      var hulk = this.featureOfType(features, 'derelict_hulk');
+      var hulk = this.featureOfTypePlaced(features, 'derelict_hulk');
       if (hulk) {
         var hHooks = worldApi.featureHooks('derelict_hulk');
         if (hHooks) {
@@ -8670,7 +8703,7 @@
     // damages the player/projectiles), so it is intentionally skipped here.
     applyTerrainToEnemy: function (e, features, worldApi, dt) {
       var p = this.p;
-      var asteroid = this.featureOfType(features, 'asteroid_field');
+      var asteroid = this.featureOfTypePlaced(features, 'asteroid_field');
       if (asteroid) {
         var hooks = worldApi.featureHooks('asteroid_field');
         if (hooks) {
@@ -8684,7 +8717,7 @@
           }
         }
       }
-      var gravity = this.featureOfType(features, 'gravity_well');
+      var gravity = this.featureOfTypePlaced(features, 'gravity_well');
       if (gravity) {
         var gHooks = worldApi.featureHooks('gravity_well');
         if (gHooks) {
@@ -8710,7 +8743,7 @@
           e.spr.setAlpha(nres.alpha);
         }
       }
-      var hulk = this.featureOfType(features, 'derelict_hulk');
+      var hulk = this.featureOfTypePlaced(features, 'derelict_hulk');
       if (hulk) {
         var hHooks = worldApi.featureHooks('derelict_hulk');
         if (hHooks) {

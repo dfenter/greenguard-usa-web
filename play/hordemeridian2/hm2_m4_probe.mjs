@@ -991,6 +991,171 @@ function mulberry32(seed) {
 })();
 
 // ========================================================================
+// HOTFIX REGRESSION: bug A (unplaced terrain features absorbing projectiles)
+// and bug B (fire rate divisor undefined -> NaN). Both run the REAL
+// game.js prototype methods (featureOfType, currentRegionFeatures,
+// applyTerrainToProjectile, stepPrimaryWeapon) in the vm sandbox, not a
+// reimplementation, so a regression in the actual fix is caught.
+// ========================================================================
+(function () {
+  var PLAY = null;
+  try { PLAY = loadGamePlayScene(); } catch (e) { PLAY = null; }
+  ok('game.js PlayScene loads for the hotfix regression tests',
+    !!(PLAY && PLAY.playProto && typeof PLAY.playProto.featureOfType === 'function' &&
+      typeof PLAY.playProto.featureOfTypePlaced === 'function' &&
+      typeof PLAY.playProto.stepPrimaryWeapon === 'function'),
+    PLAY ? 'playProto=' + !!(PLAY && PLAY.playProto) : 'load failed');
+
+  if (!PLAY || !PLAY.playProto) {
+    ok('bug A: unplaced terrain features never absorb a projectile', false, 'game.js failed to load');
+    ok('bug B: weapon fires at most ceil(t*rate)+1 shots in t seconds', false, 'game.js failed to load');
+    return;
+  }
+
+  var playProto = PLAY.playProto;
+  var sandbox = PLAY.sandbox;
+
+  // hm2_world.js is not loaded by loadGamePlayScene (only hm2_events.js and
+  // game.js are); featureOfType/currentRegionFeatures/applyTerrainToProjectile
+  // all read window.HM2_WORLD, so load it into the same vm context game.js
+  // ran in (dual module.exports/window export, same pattern as elsewhere).
+  var wsrc = fs.readFileSync(path.join(__dirname, 'hm2_world.js'), 'utf8');
+  var wcode = new vm.Script(wsrc, { filename: 'hm2_world.js' });
+  wcode.runInContext(sandbox);
+
+  // Likewise, window.HM2_WEAPONS was set in loadGameData()'s own throwaway
+  // sandbox (used only to build __HM_DATA/__HM_LEVELS), not in the outer
+  // sandbox game.js actually ran in. Load it here so stepPrimaryWeapon's
+  // window.HM2_WEAPONS.lvl/effectiveSpec calls resolve for real.
+  var wpsrc = fs.readFileSync(path.join(__dirname, 'hm2_weapons.js'), 'utf8');
+  var wpcode = new vm.Script(wpsrc, { filename: 'hm2_weapons.js' });
+  wpcode.runInContext(sandbox);
+
+  // ---- Bug A: unplaced terrain features never absorb a projectile ----
+  // Drive the real currentRegionFeatures/applyTerrainToProjectile with a
+  // shot near the player (region features are never placed, so ANY
+  // position must be safe: this is not "far from a real feature", it is
+  // "there is no real feature to be far from"). Before the fix,
+  // featureOfType hands back the unplaced derelict_hulk/asteroid_field
+  // descriptors and the projectile hook absorbs on frame 1 every time.
+  var fakePlayer = { x: 0, y: 0 };
+  var fakeThisA = {
+    p: fakePlayer,
+    run: { time: 0, _featFrame: undefined, _featList: undefined },
+    currentRegionFeatures: playProto.currentRegionFeatures,
+    featureOfType: playProto.featureOfType,
+    featureOfTypePlaced: playProto.featureOfTypePlaced,
+    applyTerrainToProjectile: playProto.applyTerrainToProjectile
+  };
+  var TRIALS_A = 500;
+  var absorbedCount = 0;
+  for (var ai = 0; ai < TRIALS_A; ai++) {
+    fakeThisA.run.time = ai; // force a fresh currentRegionFeatures resolve each trial
+    fakeThisA.run._featFrame = undefined;
+    var shot = { x: ai * 3, y: -ai * 2, vx: 400, vy: 0 };
+    var features = fakeThisA.currentRegionFeatures.call(fakeThisA);
+    var res = fakeThisA.applyTerrainToProjectile.call(fakeThisA, shot, features, sandbox.window.HM2_WORLD);
+    if (res && res.absorbed) absorbedCount++;
+  }
+  ok('bug A: unplaced terrain features never absorb a projectile (' + absorbedCount + '/' + TRIALS_A + ' absorbed)',
+    absorbedCount === 0);
+
+  // Bug A must NOT be over-fixed. nebula.visibility reads the PLAYER-to-ENEMY
+  // delta, never feature.x/y, so it is correct on an unplaced feature and must
+  // still resolve. Blanket-guarding featureOfType disabled enemy cloaking and
+  // moved the aurelion-graveyard world-probe luminance delta from 0.2146 to
+  // 0.1797, under the 0.18 gate. Guarded lookups must reject; nebula must not.
+  var nebFeatures = fakeThisA.currentRegionFeatures.call(fakeThisA);
+  var nebResolved = playProto.featureOfType.call(fakeThisA, nebFeatures, 'nebula');
+  var hulkGuarded = playProto.featureOfTypePlaced.call(fakeThisA, nebFeatures, 'derelict_hulk');
+  ok('bug A guard is scoped: unguarded featureOfType still resolves nebula (position-independent hook)',
+    !!nebResolved, 'nebula=' + (nebResolved ? nebResolved.type : 'null'));
+  ok('bug A guard is scoped: featureOfTypePlaced rejects the unplaced derelict_hulk',
+    hulkGuarded === null, 'hulk=' + (hulkGuarded ? 'resolved' : 'null'));
+
+  // ---- Bug B: weapon fires at most ceil(t*rate)+1 shots in t seconds ----
+  // Drive the real stepPrimaryWeapon for slot 0 over T seconds at a fixed
+  // dt, counting how many times c.primarySlots[0] cooldown actually fires
+  // (fireSpecWeapon/fx are stubbed no-ops so this isolates the cadence
+  // math, not shot behavior). nearestEnemy always returns a target so the
+  // weapon never idles waiting for one. Before the fix, data.rate is
+  // undefined -> NaN -> `interval` is NaN -> `c.primarySlots[slotIndex] > 0`
+  // is false every frame (NaN comparisons are always false) -> the weapon
+  // fires every single step.
+  var HM_DATA = sandbox.window.__HM_DATA;
+  var WEAPON_BY_KEY = HM_DATA.WEAPON_BY_KEY;
+  var HM2_WEAPONS_MOD = sandbox.window.HM2_WEAPONS;
+
+  function driveWeapon(weaponKey, level, T, dt) {
+    var fireCount = 0;
+    var fakeTarget = { x: 200, y: 0, alive: true };
+    var fakeThisB = {
+      p: {
+        x: 0, y: 0, ranks: { lance: 1 }, weaponRate: 0, hangarRate: 0,
+        damage: 1, projectileDamage: 1, multishot: 0, wingDamage: 1
+      },
+      run: {
+        weaponSlots: [weaponKey], equippedWeapon: weaponKey,
+        buffs: { arsenal: 0 }, weaponLevel: {}
+      },
+      cool: { primarySlots: [0, 0, 0] },
+      fx: { impact: { setParticleTint: function () {}, emitParticleAt: function () {} } },
+      nearestEnemy: function () { return fakeTarget; },
+      fireSpecWeapon: function () { fireCount++; return true; },
+      fireWingVolley: function () {},
+      contactRing: function () {}
+    };
+    fakeThisB.run.weaponLevel[weaponKey] = level;
+    var steps = Math.round(T / dt);
+    for (var i = 0; i < steps; i++) {
+      playProto.stepPrimaryWeapon.call(fakeThisB, dt, 0);
+    }
+    return fireCount;
+  }
+
+  // The `rate` level stat is a divisor into stepPrimaryWeapon's interval
+  // formula, not a literal shots/sec figure (mastery, weaponRate, hangarRate
+  // and slotCadence all factor in too -- see game.js stepPrimaryWeapon).
+  // With mastery=1, weaponRate=0, hangarRate=0, arsenal off and slot 0's
+  // cadence=1 (all held fixed by driveWeapon's fakeThisB), the effective
+  // per-shot interval the fixed code computes is:
+  //   interval = max(0.12, 0.555 / rate)
+  // so effective rate r_eff = 1 / interval = min(rate / 0.555, 1/0.12).
+  // Before the fix, data.rate is undefined so this whole computation is NaN
+  // and the cooldown gate (NaN > 0 is always false) fires every single dt
+  // step instead, which is what this test catches.
+  var T_SECONDS = 10, DT = 1 / 60;
+  var worstOverage = null;
+  for (var wk in WEAPON_BY_KEY) {
+    if (!WEAPON_BY_KEY.hasOwnProperty(wk)) continue;
+    var wdata = WEAPON_BY_KEY[wk];
+    var row1 = HM2_WEAPONS_MOD.lvl(wdata, 0);
+    if (!row1 || typeof row1.rate !== 'number') continue; // reported separately below
+    var shots = driveWeapon(wk, 1, T_SECONDS, DT);
+    var rEff = Math.min(row1.rate / 0.555, 1 / 0.12);
+    var maxAllowed = Math.ceil(T_SECONDS * rEff) + 1;
+    if (shots > maxAllowed) {
+      worstOverage = wk + ': ' + shots + ' shots > ' + maxAllowed + ' allowed (rate=' + row1.rate + ', r_eff=' + rEff.toFixed(2) + ')';
+      break;
+    }
+  }
+  ok('bug B: every weapon fires at most ceil(t*r_eff)+1 shots in ' + T_SECONDS + 's at dt=1/60' +
+    (worstOverage ? ' (FIRST FAILURE: ' + worstOverage + ')' : ''),
+    worstOverage === null);
+
+  // Report (not invent) any weapon lacking a rate on its level-1 row, per
+  // the task instruction to report rather than invent numbers.
+  var noRate = [];
+  for (var wk2 in WEAPON_BY_KEY) {
+    if (!WEAPON_BY_KEY.hasOwnProperty(wk2)) continue;
+    var row1b = HM2_WEAPONS_MOD.lvl(WEAPON_BY_KEY[wk2], 0);
+    if (!row1b || typeof row1b.rate !== 'number') noRate.push(wk2);
+  }
+  ok('every weapon in WEAPON_BY_KEY has a numeric rate on its level-1 row (' + noRate.length + ' missing)',
+    noRate.length === 0, noRate.join(', '));
+})();
+
+// ========================================================================
 console.log('');
 console.log(cases + ' assertions, ' + failures + ' failed');
 process.exit(failures > 0 ? 1 : 0);

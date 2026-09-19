@@ -173,11 +173,33 @@ function bootPlay(page, chase) {
   const budgetViolations = [];
   const scaleViolations = [];
   let sampleCount = 0;
+  let playingSampleCount = 0;
   for (let i = 0; i < 6; i++) {
     await wait(5000);
     const census = await page.evaluate(() => {
       const s = window.__HORDE.game.scene;
-      const issues = { budget: [], scale: [] };
+      const issues = { budget: [], scale: [], skipped: false };
+      // This assertion is about IN-RUN text (see the header: "run clock /
+      // level / banners"). Once the run ends, the scene legitimately shows the
+      // run-over summary, whose stats line ("Best N  .  Bank N gems") is a
+      // 6-word readout and is not gameplay text at all. Same reasoning the
+      // probe already applies to s.draftUI, which is excluded by identity
+      // because a modal pause screen is not running gameplay.
+      //
+      // Before hotfix 1 the bot effectively never died inside this 30s window
+      // (weapon fire rate was ~33x too fast and every projectile was absorbed
+      // by unplaced terrain, so it out-killed everything). With the real fire
+      // rate it now reaches 'over' partway through the window, and the census
+      // started walking the summary screen. Measured over the same 30s bot
+      // run: baseline f20938cc ends at state 'playing' (148 playing / 1 draft
+      // samples, peak combo 262); this tree ends at state 'over' (140 playing
+      // / 3 draft / 7 over, peak combo 196).
+      //
+      // So skip samples taken when the scene is not playing. This does NOT
+      // weaken what is checked: the word and scale thresholds are unchanged,
+      // nothing new is exempted by identity, and the non-vacuity assertion
+      // below now requires that real PLAYING samples were actually taken.
+      if (s.state !== 'playing') { issues.skipped = true; return issues; }
       // Scope per the M6 assignment: "run clock, level, and banners of <=3
       // words" is the mid-run text budget under test. Pre-existing HUD/tip
       // elements this lane does not own (nav-beacon distance readout, the
@@ -210,12 +232,17 @@ function bootPlay(page, chase) {
     budgetViolations.push(...census.budget);
     scaleViolations.push(...census.scale);
     sampleCount++;
+    if (!census.skipped) playingSampleCount++;
   }
   await page.evaluate(() => { if (window.__gateBot) clearInterval(window.__gateBot); });
   await page.close();
 
   ok('text census actually sampled the live display list across the run (proves non-vacuity)',
     sampleCount === 6, 'sampleCount=' + sampleCount);
+  // Guards the skip above: if the run ended so early that almost nothing was
+  // measured while playing, the two assertions below would pass vacuously.
+  ok('text census took real in-run samples (guards the not-playing skip against vacuity)',
+    playingSampleCount >= 3, 'playingSamples=' + playingSampleCount + '/' + sampleCount);
   ok('in-run text budget: no visible text object exceeds 3 words (excluding run clock/level)',
     budgetViolations.length === 0, JSON.stringify(budgetViolations.slice(0, 10)));
   ok('in-run text census: no text object has scaleX/scaleY < 1.0',

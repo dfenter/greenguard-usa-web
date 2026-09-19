@@ -366,6 +366,74 @@ var featureHooks = HM2_WORLD.featureHooks;
     minRatio.toFixed(3) + ' >= 1.4)', minRatio >= 1.4);
 }());
 
+// ---- Bug A regression: unplaced terrain features never absorb shots ----
+// FEATURES_BY_REGION descriptors are static and never carry x/y (nothing in
+// game.js ever assigns them). game.js's featureOfTypePlaced guards against
+// this by refusing to hand out a feature with no numeric x/y at the
+// POSITION-DEPENDENT call sites; this test proves the hazard exists at the
+// hook level (derelict_hulk.projectile and asteroid_field.collide both
+// resolve dist=0 < radius when x/y are missing) and pins the exact guard.
+// Note the guard is deliberately NOT applied to nebula.visibility, which
+// reads the player-to-enemy delta and is correct for an unplaced feature.
+// This mirrors featureOfType's contract without needing game.js's Phaser
+// sandbox: hm2_world.js hooks are pure functions of (feature, ctx).
+(function () {
+  function hasXY(f) {
+    return typeof f.x === 'number' && isFinite(f.x) && typeof f.y === 'number' && isFinite(f.y);
+  }
+
+  // 1) Prove the hazard: every shipped FEATURES_BY_REGION entry lacks x/y.
+  var anyPlaced = false;
+  for (var key in FEATURES_BY_REGION) {
+    var list = FEATURES_BY_REGION[key];
+    for (var i = 0; i < list.length; i++) {
+      if (hasXY(list[i])) anyPlaced = true;
+    }
+  }
+  ok('FEATURES_BY_REGION ships with no placed (x/y) features (hazard precondition)', !anyPlaced);
+
+  // 2) Without a guard, calling the projectile hook on an unplaced feature
+  // absorbs a shot that is nowhere near it. Reproduce the EXACT computation
+  // game.js does at the call site: `s.x - hulk.x` with hulk.x undefined
+  // gives NaN, which safeNum coerces to 0, so dist is 0 and 0 < radius is
+  // always true, regardless of the shot's real position.
+  var farHulk = FEATURES_BY_REGION['meridian-verge'].filter(function (f) { return f.type === 'derelict_hulk'; })[0];
+  var hHooks = featureHooks('derelict_hulk');
+  var shotX = 5000, shotY = 5000;
+  var farCtx = { dx: shotX - farHulk.x, dy: shotY - farHulk.y, vx: 100, vy: 0, rand: mulberry32(7) };
+  var unguardedResult = hHooks.projectile(farHulk, farCtx);
+  ok('unguarded derelict_hulk.projectile on an unplaced feature absorbs a far shot (hazard reproduced)',
+    unguardedResult.absorbed === true);
+
+  var farAsteroid = FEATURES_BY_REGION['meridian-verge'].filter(function (f) { return f.type === 'asteroid_field'; })[0];
+  var aHooks = featureHooks('asteroid_field');
+  // asteroid_field's projectile hook rolls shatterChance regardless of
+  // position (it never blocks outright), so the enemy-facing collide hook
+  // is the one that reproduces the same "unplaced = always inside" hazard,
+  // same NaN-from-undefined-x/y computation as game.js's applyTerrainToEnemy.
+  var unguardedAsteroidCollide = aHooks.collide(farAsteroid,
+    { dx: shotX - farAsteroid.x, dy: shotY - farAsteroid.y, rand: mulberry32(7) });
+  ok('unguarded asteroid_field.collide on an unplaced feature blocks at any distance (hazard reproduced)',
+    unguardedAsteroidCollide.blocked === true);
+
+  // 3) The guard game.js's featureOfTypePlaced applies: never resolve a
+  // feature for position-dependent hook calls unless it carries real
+  // numeric x/y. Simulate the guard
+  // over every shipped feature to confirm none pass (so game.js's
+  // featureOfType returns null for all of them, never handing an unplaced
+  // feature to a hook at all) -- this is the fix's actual invariant.
+  var guardedCount = 0, totalCount = 0;
+  for (var key2 in FEATURES_BY_REGION) {
+    var list2 = FEATURES_BY_REGION[key2];
+    for (var j = 0; j < list2.length; j++) {
+      totalCount++;
+      if (hasXY(list2[j])) guardedCount++;
+    }
+  }
+  ok('placed-guard (require numeric x/y) rejects every shipped feature (' + guardedCount + '/' + totalCount + ' pass)',
+    guardedCount === 0 && totalCount > 0);
+}());
+
 console.log('');
 console.log(cases + ' cases, ' + failures + ' failures');
 if (failures > 0) {

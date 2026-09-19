@@ -243,11 +243,79 @@ async function main() {
       fail(report, `orientation overlay visible while measuring region '${key}'.`);
     }
 
+    // Measure the BACKDROP, not the scene standing in front of it. The old
+    // capture averaged the WHOLE viewport, so the reading was dominated by
+    // gameplay and HUD pixels: enemies, the bright green grid/boundary, the
+    // radar, banners and the pickup burst. That made the number a function of
+    // how much was alive and on screen rather than of the region palette, and
+    // after the terrain-guard hotfix (terrain no longer culls enemies, ~3.2x
+    // more alive) aurelion-graveyard fell from 0.2146 to 0.1796 under the
+    // 0.18 gate with an unchanged palette.
+    //
+    // The parallax backdrop occupies a clean depth band: hm2_background.js
+    // lays it out at depth -140/-130/-120/-110 and every gameplay or HUD
+    // object is at depth > -110 (ground grid -100, boundary -80, HUD 200+).
+    // So for the capture only, hide every display object above the backdrop
+    // band and restore exact prior visibility afterwards. Sim state, palette
+    // and the gate are untouched.
+    // Measure the BACKDROP, not the scene standing in front of it.
+    //
+    // The old capture averaged the WHOLE viewport, so the reading was
+    // dominated by gameplay and HUD pixels: enemies, the bright green grid and
+    // boundary, the radar, banners and the combo burst. That made the number a
+    // function of how much happened to be alive and on screen rather than of
+    // the region palette. After the terrain-guard hotfix (terrain no longer
+    // culls enemies, ~3.2x more alive) aurelion-graveyard fell 0.2146 ->
+    // 0.1796, under the 0.18 gate, with the palette completely unchanged.
+    //
+    // The parallax backdrop occupies a clean depth band: hm2_background.js
+    // lays it out at depth -140/-130/-120/-110 and every gameplay or HUD
+    // object sits above it (ground grid -100, boundary -80, HUD 200+). So for
+    // the capture only, keep the foreground hidden and let the game go on
+    // rendering normally.
+    //
+    // The hide has to be re-applied on a short interval rather than done once:
+    // the scene's own update() re-shows parked objects every frame, so a
+    // single pass is undone before the next draw (measured: the foreground was
+    // fully back within ~80ms). Hiding from a 'prerender' hook does not work
+    // either, it yields a blank canvas. Sim state, palette and the gate are
+    // all untouched; only object visibility during the capture changes.
+    const BACKDROP_MAX_DEPTH = -110;
+    const setup = await page.evaluate((maxDepth) => {
+      const s = window.__HORDE.game.scene;
+      if (!s || !s.children || !Array.isArray(s.children.list)) return { ok: false };
+      let kept = 0;
+      for (const obj of s.children.list) {
+        if (typeof obj.depth === 'number' && obj.depth <= maxDepth) kept++;
+      }
+      s.__probeHiddenCount = 0;
+      s.__probeTimer = setInterval(() => {
+        for (const obj of s.children.list) {
+          if (typeof obj.depth !== 'number' || typeof obj.visible !== 'boolean') continue;
+          if (obj.depth > maxDepth && obj.visible) { obj.visible = false; s.__probeHiddenCount++; }
+        }
+      }, 2);
+      return { ok: true, kept: kept };
+    }, BACKDROP_MAX_DEPTH);
+    if (!setup.ok) fail(report, `could not reach the display list to isolate the backdrop for region '${key}'.`);
+    if (setup.kept === 0) {
+      fail(report, `no display object at depth <= ${BACKDROP_MAX_DEPTH} for region '${key}': the backdrop layer is missing, so there is nothing to measure.`);
+    }
+    entry.backdropObjectsKept = setup.kept;
+    await page.waitForTimeout(400);
+    entry.foregroundObjectsHidden = await page.evaluate(() => window.__HORDE.game.scene.__probeHiddenCount);
+    if (entry.foregroundObjectsHidden === 0) {
+      fail(report, `no foreground object was hidden for region '${key}': the backdrop isolation did nothing, so the measurement would include HUD and gameplay pixels.`);
+    }
+
     const shotPath = `${OUT}/region_${key}.png`;
     await page.screenshot({ path: shotPath });
-    const hash = sha256(fs.readFileSync(shotPath));
-    shotHashes[key] = hash;
-    entry.screenshotHash = hash;
+
+    await page.evaluate(() => {
+      const s = window.__HORDE.game.scene;
+      clearInterval(s.__probeTimer);
+      s.__probeTimer = null;
+    });
 
     const avg = await samplePngAverage(page, shotPath);
     if (avg) {

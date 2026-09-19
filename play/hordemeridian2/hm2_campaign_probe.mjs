@@ -663,11 +663,40 @@ const BOT_TICK_SRC = () => {
 // sensitive to host LOAD. A concurrent puppeteer run on the same machine
 // perturbs L5/L15 (observed during the merge). Capture and gate these on an
 // otherwise-idle machine, one browser probe at a time.
+//
+// RECAPTURED at hotfix 1 (featureOfTypePlaced guard + per-level weapon rate).
+// Both fixes move these literals, and every change has a cause:
+//
+//   COMPOSITION: hotfix 1's featureOfTypePlaced guard. FEATURES_BY_REGION
+//   descriptors carry no x/y, so the old hook ctx produced NaN, safeNum
+//   coerced it to 0, and dist 0 < radius made asteroid_field/derelict_hulk
+//   collide block and damage ENEMIES at ANY distance. Terrain was silently
+//   culling the horde everywhere. With the guard, terrain only acts where it
+//   is actually placed, so more enemies survive and the wave pacing that
+//   drives substitution shifts. Spawn tables themselves are untouched.
+//
+//   DAMAGE (all four missions): hotfix 1's weapon-rate fix. data.rate moved
+//   into levels[] in M1, so the primary cooldown divisor was NaN, NaN > 0 is
+//   false, and the gate never held: the weapon fired EVERY step, ~33x too
+//   fast. That firehose is gone, so the bot kills far less and takes far more
+//   damage. L1 in particular moves off 0 for the first time.
+//
+//   L1 dmgTaken is no longer 0: with the real fire rate the bot now takes
+//   hits inside the first 60s on mission 1.
+//
+//   L15 still ends early (state 'over', won=false, t=43.00s, 2585 frames),
+//   so its total covers a full death rather than a clean 60s. L10 no longer
+//   ends early: it now runs the full 61.02s window (was a mission WIN at
+//   dmg 0 before hotfix 1).
+//
+// Captured on an idle host, one browser probe at a time. All four missions
+// agreed 3/3 contexts bit-for-bit (unanimous, not merely the 2-of-3 majority
+// the gate allows), with identical start fingerprints and frame counts.
 const SPEC_LITERALS = {
-  1: { spawnCounts: { drifter: 39, sprinter: 46, 'grave-egg': 9, 'derelict-guard-hulk': 6, 'scrap-ripper': 3, 'wall-warden': 1, 'salvage-swarm': 104, bulwark: 7 }, dmgTaken: 0 },
-  5: { spawnCounts: { 'ember-scarab': 120, drifter: 19, sprinter: 10, 'cinder-kamikaze': 67, 'ash-wraith': 68, lancer: 4 }, dmgTaken: 47.34775541666653 },
-  10: { spawnCounts: { 'blink-stalker': 107, 'gravity-mite': 97, drifter: 1, 'null-leech': 58, 'wing-cutter': 1, sprinter: 5 }, dmgTaken: 23.397927631578934 },
-  15: { spawnCounts: { drifter: 69, sprinter: 93, bulwark: 36, 'cinder-kamikaze': 25, 'blink-stalker': 20 }, dmgTaken: 225.62146342105228 },
+  1: { spawnCounts: { drifter: 41, sprinter: 37, 'derelict-guard-hulk': 5, 'salvage-swarm': 101, 'grave-egg': 4, 'scrap-ripper': 2, 'wall-warden': 2, bulwark: 8 }, dmgTaken: 29.42032675438596 },
+  5: { spawnCounts: { 'ember-scarab': 129, drifter: 15, sprinter: 10, 'ash-wraith': 74, 'cinder-kamikaze': 63, lancer: 8 }, dmgTaken: 285.9242395833328 },
+  10: { spawnCounts: { 'blink-stalker': 98, 'gravity-mite': 117, drifter: 1, 'null-leech': 86, 'wing-cutter': 1, sprinter: 6 }, dmgTaken: 61.160855263157885 },
+  15: { spawnCounts: { drifter: 69, sprinter: 59, bulwark: 45, 'cinder-kamikaze': 31, 'blink-stalker': 22 }, dmgTaken: 250.66245596491194 },
 };
 const CAPTURE_MODE = process.env.HM2_CAPTURE === '1';
 const DMG_TOL_FRAC = 0.10; // damage taken tolerance: 10% relative
