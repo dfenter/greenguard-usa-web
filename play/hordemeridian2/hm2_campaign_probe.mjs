@@ -407,11 +407,37 @@ const BOT_TICK_SRC = () => {
 // gameplay change (spawn weights, damage tuning, difficulty ramp) requires
 // re-capturing these by hand and noting the new HEAD in this comment - they
 // are never derived from the code under test.
+//
+// RECAPTURED at the M4+M5 merge. Both halves of the merge moved these, and
+// each changed literal has a cause:
+//
+//   COMPOSITION (all four missions): M4's row-gate. pickRegionEnemy now
+//   intersects the region table with the ACTIVE WAVE ROW's authored pool
+//   (currentRowPool), so a substitution that used to be able to draw any
+//   REGION_ENEMIES entry is now restricted to the row's pool. Draws that the
+//   gate rejects fall back to the row's own family, which shifts counts
+//   between the base family and the region variants. This is the row-gate
+//   working as designed, not a spawn-table regression; ship class does not
+//   feed the spawn tables at all.
+//
+//   DAMAGE (L5, L10, L15): M5 made ship classes live with Warden as the
+//   DEFAULT hull (hpMult 1.30 plus a 35-point regenerating shield). game.js
+//   counts p.damageTaken BEFORE the shield absorbs, so the figure now
+//   includes damage the shield ate, which the old hp-diff probe accumulator
+//   never saw. L10 and L15 also now end early (state 'over' at ~54s/~53s),
+//   so their totals cover a full death rather than a clean 60s.
+//
+// L1 dmgTaken stays 0: the bot takes no hits at all in the first 60s there.
+//
+// Determinism note: these are reproducible to the bit, but the sim is
+// sensitive to host LOAD. A concurrent puppeteer run on the same machine
+// perturbs L5/L15 (observed during the merge). Capture and gate these on an
+// otherwise-idle machine, one browser probe at a time.
 const SPEC_LITERALS = {
-  1: { spawnCounts: { drifter: 33, sprinter: 45, 'grave-egg': 9, 'derelict-guard-hulk': 6, 'scrap-ripper': 3, 'wall-warden': 1, 'salvage-swarm': 108, bulwark: 10 }, dmgTaken: 0 },
-  5: { spawnCounts: { drifter: 17, 'ember-scarab': 112, sprinter: 10, 'ash-wraith': 76, 'cinder-kamikaze': 42, lancer: 8 }, dmgTaken: 100 },
-  10: { spawnCounts: { 'gravity-mite': 94, 'blink-stalker': 105, drifter: 1, 'null-leech': 66, 'wing-cutter': 1, sprinter: 3 }, dmgTaken: 0 },
-  15: { spawnCounts: { drifter: 62, sprinter: 76, bulwark: 36, 'cinder-kamikaze': 19, 'blink-stalker': 28 }, dmgTaken: 100 },
+  1: { spawnCounts: { drifter: 34, sprinter: 47, 'grave-egg': 9, 'derelict-guard-hulk': 6, 'scrap-ripper': 3, 'wall-warden': 1, 'salvage-swarm': 99, bulwark: 8 }, dmgTaken: 0 },
+  5: { spawnCounts: { drifter: 16, 'ember-scarab': 117, sprinter: 8, 'ash-wraith': 79, 'cinder-kamikaze': 68, lancer: 10 }, dmgTaken: 45.45162273333325 },
+  10: { spawnCounts: { 'gravity-mite': 94, 'blink-stalker': 106, drifter: 1, 'null-leech': 64, 'wing-cutter': 1, sprinter: 3 }, dmgTaken: 24.13105263157889 },
+  15: { spawnCounts: { drifter: 74, sprinter: 93, bulwark: 36, 'cinder-kamikaze': 36, 'blink-stalker': 45 }, dmgTaken: 250.7782669736837 },
 };
 const CAPTURE_MODE = process.env.HM2_CAPTURE === '1';
 const DMG_TOL_FRAC = 0.10; // damage taken tolerance: 10% relative
