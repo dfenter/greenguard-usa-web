@@ -680,6 +680,19 @@
     } catch (e) { return false; }
   })();
 
+  // M6: chase cam preference. Simple own key, same convention as hm2_diag,
+  // rather than PROFILE_VERSION so it does not touch the profile migration
+  // chain. Absent/invalid reads as OFF (classic camera).
+  function readChaseCamPref() {
+    try { return window.localStorage.getItem('hm2_chasecam') === '1'; } catch (e) { return false; }
+  }
+  function setChaseCamPref(v) {
+    try {
+      if (v) window.localStorage.setItem('hm2_chasecam', '1');
+      else window.localStorage.removeItem('hm2_chasecam');
+    } catch (e) {}
+  }
+
   // The flight recorder marks a run "clean" only in finishRun(). Leaving the
   // page mid-run is NORMAL on a phone - app switch, lock screen, back gesture,
   // or iOS simply evicting a backgrounded tab - and none of those reach
@@ -823,6 +836,11 @@
     }, function (box, row) {
       row('Fullscreen', function () { return !!document.fullscreenElement; },
         function (v) { if (v) kit.requestFullscreen(); else if (document.exitFullscreen) document.exitFullscreen(); });
+      row('Chase cam', function () { return Game.scene ? !!Game.scene.chaseCam : readChaseCamPref(); },
+        function (v) {
+          setChaseCamPref(v);
+          if (Game.scene) Game.scene.chaseCam = v;
+        });
     }]);
   }
 
@@ -2123,6 +2141,9 @@
         .setScale(0.42).setVisible(false);
       this.playerHeading = 0;
       this.playerBank = 0;
+      // M6: chase cam preference. Defaulted OFF (absent reads as classic)
+      // so existing saves keep the classic top-down camera untouched.
+      this.chaseCam = readChaseCamPref();
       this.playerGlow = this.add.image(0, 0, 'disc').setDepth(47)
         .setTint(0x6df0bf).setAlpha(0.22).setDisplaySize(96, 96)
         .setBlendMode(Phaser.BlendModes.ADD);
@@ -10043,6 +10064,10 @@
       if (!this.evolveText) {
         this.evolveText = this.add.text(0, 0, '', { fontFamily: FONT_DISPLAY, fontSize: '38px',
           color: '#ffd67a', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(500).setVisible(false);
+        // M6: created lazily after setupRenderCameras already fixed the
+        // main camera's ignore list, so it must be registered by hand or
+        // it would render (and now rotate) on the main camera too.
+        this.registerUiObject(this.evolveText);
       }
       if (this.evolveFx && this.evolveFx.active) {
         this.evolveText.setText(this.evolveFx.title)
@@ -10063,6 +10088,20 @@
       var curX = cam.midPoint.x, curY = cam.midPoint.y;
       var f = Math.min(1, dt * 7.5);
       cam.centerOn(curX + (lookX - curX) * f + j.dx, curY + (lookY - curY) * f + j.dy);
+
+      // M6: chase cam. Classic (rotation 0) stays the default; when the
+      // player has opted in, rotate the main camera to keep the ship's nose
+      // pointed up. uiCam is a separate camera and is never touched here,
+      // so HUD/radar stay screen-locked. this.playerHeading is already the
+      // smoothed ship heading (co-op guest included) computed above.
+      if (this.chaseCam) {
+        var targetRot = -(this.playerHeading + Math.PI / 2);
+        var rotDiff = Phaser.Math.Angle.Wrap(targetRot - cam.rotation);
+        cam.rotation += rotDiff * Math.min(1, dt * 6);
+      } else if (cam.rotation !== 0) {
+        cam.rotation += Phaser.Math.Angle.Wrap(0 - cam.rotation) * Math.min(1, dt * 6);
+        if (Math.abs(cam.rotation) < 0.001) cam.rotation = 0;
+      }
 
       var cmx = cam.midPoint.x, cmy = cam.midPoint.y;
       var cullX = w / 2 + 90, cullY = h / 2 + 90;
