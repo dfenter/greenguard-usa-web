@@ -361,7 +361,7 @@
   var META_BY_KEY = {};
   for (var mi = 0; mi < META.length; mi++) META_BY_KEY[META[mi].key] = META[mi];
 
-  var PROFILE_VERSION = 3;
+  var PROFILE_VERSION = 4;
   var BANK_RATE = 0.75;
   var HANGAR_TRACKS = [
     { key: 'hull', name: 'Hull', icon: 'ic_vitality', max: 5, color: 0xff8f7a,
@@ -395,7 +395,9 @@
     { key: 'crimson', name: 'Crimson', tint: 0xff6e74, lowTint: 0xffc078 },
     { key: 'violet', name: 'Violet', tint: 0xc480ff, lowTint: 0xff9c9c },
     { key: 'arctic', name: 'Arctic', tint: 0x9fe9ff, lowTint: 0xffc98a },
-    { key: 'void', name: 'Void', tint: 0x8580b8, lowTint: 0xd39a8c }
+    { key: 'void', name: 'Void', tint: 0x8580b8, lowTint: 0xd39a8c },
+    { key: 'solar', name: 'Solar', tint: 0xffe08a, lowTint: 0xff9c5a },
+    { key: 'jade', name: 'Jade', tint: 0x5fe0a0, lowTint: 0xff8f7a }
   ];
   var PAINT_BY_KEY = {};
   for (var hpi = 0; hpi < HULL_PAINTS.length; hpi++) PAINT_BY_KEY[HULL_PAINTS[hpi].key] = HULL_PAINTS[hpi];
@@ -405,10 +407,55 @@
     { key: 'amber', name: 'Amber', color: 0xffd67a },
     { key: 'arctic', name: 'Arctic', color: 0x7ad8ff },
     { key: 'violet', name: 'Violet', color: 0xc480ff },
-    { key: 'crimson', name: 'Red', color: 0xff756a }
+    { key: 'crimson', name: 'Red', color: 0xff756a },
+    { key: 'gold', name: 'Gold', color: 0xffcf5c }
   ];
   var TRIM_BY_KEY = {};
   for (var hri = 0; hri < TRIMS.length; hri++) TRIM_BY_KEY[TRIMS[hri].key] = TRIMS[hri];
+
+  // Engine trails: each a distinct particle-emitter profile (not just a
+  // recolor) so the four read differently in motion. scale/lifespan/freq
+  // are applied by the scene to fx.trail and to the hangar preview loop.
+  var ENGINE_TRAILS = [
+    { key: 'stream', name: 'Stream', color: 0x6df0bf, scale: 1.0, lifespan: 340, freq: 0.07 },
+    { key: 'ember', name: 'Ember Spark', color: 0xff9a5a, scale: 0.7, lifespan: 220, freq: 0.035 },
+    { key: 'comet', name: 'Comet Tail', color: 0x9fe9ff, scale: 1.6, lifespan: 620, freq: 0.11 },
+    { key: 'pulse', name: 'Pulse Wake', color: 0xc480ff, scale: 1.15, lifespan: 340, freq: 0.16 }
+  ];
+  var TRAIL_BY_KEY = {};
+  for (var eti = 0; eti < ENGINE_TRAILS.length; eti++) TRAIL_BY_KEY[ENGINE_TRAILS[eti].key] = ENGINE_TRAILS[eti];
+
+  // Shot colours: tint applied to player projectiles in fireShot(), layered
+  // under the boosted/arsenal tint override so buffs still read clearly.
+  var SHOT_COLORS = [
+    { key: 'default', name: 'Standard', color: 0xffffff },
+    { key: 'toxic', name: 'Toxic', color: 0x9dff6a },
+    { key: 'plasma', name: 'Plasma', color: 0xff5ad6 },
+    { key: 'ion', name: 'Ion', color: 0x5ad6ff }
+  ];
+  var SHOT_COLOR_BY_KEY = {};
+  for (var sci = 0; sci < SHOT_COLORS.length; sci++) SHOT_COLOR_BY_KEY[SHOT_COLORS[sci].key] = SHOT_COLORS[sci];
+
+  // Decals unlock from real codex/campaign achievement state (checked live
+  // by the scene via `gate`, not baked into the save). frame is an existing
+  // atlas glyph reused as a small hull mark; offset positions it on the ship.
+  var DECALS = [
+    { key: 'none', name: 'None', frame: '', desc: 'NO DECAL' },
+    { key: 'ace', name: 'Ace Mark', frame: 'hi_kill', desc: '4 WEAPONS RECOVERED',
+      gate: function (p, ctx) { return ctx.weaponsFound >= 4; } },
+    { key: 'veteran', name: 'Veteran Chevron', frame: 'hi_time', desc: '5 RUNS FLOWN',
+      gate: function (p) { return (p.runs || 0) >= 5; } },
+    { key: 'starclaim', name: 'Star Claim', frame: 'hi_xp', desc: '5 CAMPAIGN STARS',
+      gate: function (p) {
+        var stars = (p.campaign && p.campaign.stars) || {}, total = 0;
+        for (var k in stars) if (Object.prototype.hasOwnProperty.call(stars, k)) total += stars[k];
+        return total >= 5;
+      } },
+    { key: 'wayfarer', name: 'Wayfarer Sigil', frame: 'elite_crown', desc: 'REGION 3 REACHED',
+      gate: function (p) { return (p.campaign && p.campaign.unlocked || 1) >= 3; } }
+  ];
+  var DECAL_BY_KEY = {};
+  for (var dci = 0; dci < DECALS.length; dci++) DECAL_BY_KEY[DECALS[dci].key] = DECALS[dci];
 
   var HULL_FRAMES = [
     { key: 'classic', name: 'Classic', idle: 'hero_idle', move: 'hero_move' },
@@ -418,32 +465,145 @@
   var FRAME_BY_KEY = {};
   for (var hfi = 0; hfi < HULL_FRAMES.length; hfi++) FRAME_BY_KEY[HULL_FRAMES[hfi].key] = HULL_FRAMES[hfi];
 
+  // SHIP_CLASSES: the M5 promotion of cosmetic hulls into a real class/tier
+  // system. Each class has three tiers (Mk I/II/III). Costs scale on the
+  // same curve as HANGAR_TRACKS (Math.round(45*Math.pow(1.62,l))) so gems
+  // feel comparable across the hangar and ships economies. moduleSlots rises
+  // per tier and feeds loadoutSlotsAvailable() in game.js. Sprite frame
+  // names (hull_<class>_mkN) may not exist yet in this worktree's atlas;
+  // game.js resolves them through a safe frame-lookup helper that falls
+  // back to hero_idle/hero_move so a missing atlas frame never crashes.
+  function hangarCostCurve(l) { return Math.round(45 * Math.pow(1.62, l)); }
+  var SHIP_CLASSES = [
+    {
+      key: 'warden', name: 'Warden', blurb: 'Tank hull. Shield absorbs hits, regenerates when clear.',
+      tiers: [
+        { mk: 1, name: 'Mk I', cost: 0, moduleSlots: 1, hpMult: 1.30, speedMult: 0.90, dmgMult: 1.0, frame: 'hull_warden_mk1' },
+        { mk: 2, name: 'Mk II', cost: hangarCostCurve(9), moduleSlots: 2, hpMult: 1.40, speedMult: 0.88, dmgMult: 1.0, frame: 'hull_warden_mk2' },
+        { mk: 3, name: 'Mk III', cost: hangarCostCurve(13), moduleSlots: 3, hpMult: 1.50, speedMult: 0.85, dmgMult: 1.0, frame: 'hull_warden_mk3' }
+      ]
+    },
+    {
+      key: 'recon', name: 'Recon', blurb: 'Fast hull. Auto-dash burst on a cooldown while moving.',
+      tiers: [
+        { mk: 1, name: 'Mk I', cost: hangarCostCurve(6), moduleSlots: 1, hpMult: 0.85, speedMult: 1.25, dmgMult: 1.0, frame: 'hull_recon_mk1' },
+        { mk: 2, name: 'Mk II', cost: hangarCostCurve(9), moduleSlots: 2, hpMult: 0.80, speedMult: 1.32, dmgMult: 1.0, frame: 'hull_recon_mk2' },
+        { mk: 3, name: 'Mk III', cost: hangarCostCurve(13), moduleSlots: 3, hpMult: 0.75, speedMult: 1.40, dmgMult: 1.0, frame: 'hull_recon_mk3' }
+      ]
+    },
+    {
+      key: 'vector', name: 'Vector', blurb: 'Glass cannon. Flat crit bonus stacks with core tuning.',
+      tiers: [
+        { mk: 1, name: 'Mk I', cost: hangarCostCurve(6), moduleSlots: 1, hpMult: 0.75, speedMult: 1.0, dmgMult: 1.30, critBonus: 0.08, frame: 'hull_vector_mk1' },
+        { mk: 2, name: 'Mk II', cost: hangarCostCurve(9), moduleSlots: 2, hpMult: 0.70, speedMult: 1.0, dmgMult: 1.40, critBonus: 0.11, frame: 'hull_vector_mk2' },
+        { mk: 3, name: 'Mk III', cost: hangarCostCurve(13), moduleSlots: 3, hpMult: 0.65, speedMult: 1.0, dmgMult: 1.50, critBonus: 0.14, frame: 'hull_vector_mk3' }
+      ]
+    }
+  ];
+  var SHIP_CLASS_BY_KEY = {};
+  for (var sci = 0; sci < SHIP_CLASSES.length; sci++) SHIP_CLASS_BY_KEY[SHIP_CLASSES[sci].key] = SHIP_CLASSES[sci];
+
   // Region combat data. Variants deliberately reuse the six pooled enemy
   // bodies and their existing movement primitives; only this definition table
   // changes the hostile language by sector.
+  // M4 follow-up: the 7 M3 behaviors are folded directly into their region's
+  // pool below (each entry commented with the fit + any tuning delta versus
+  // its region neighbours). mine-bomber and gem-mimic are marked sapper:
+  // true so they get the same hot-start / row-0 exclusion as lancer-class
+  // ranged enemies, even though neither is itself ranged (mine-bomber lays
+  // hazards at range, gem-mimic's speed-0/high-contact-dmg ambush is just as
+  // unfair as unavoidable ranged fire before the player can move).
+  //
+  // M4 gate fix (R1): a region pool is picked from UNIFORMLY by
+  // pickRegionEnemy, so the number of keys in a pool is itself a difficulty
+  // dial. void-rift grew 3 -> 6 while the other regions grew by ~1, so
+  // roughly half of ALL void-rift ambient spawns became new, harder M3
+  // enemies from t=0, which is what broke levels 9/10/11/13. The fix is
+  // WEIGHTED pools, applied uniformly to all four regions, not a
+  // void-rift-only patch: every entry below carries a baseline `weight`
+  // (default 1 when omitted) and the 7 M3 additions also carry `rampAt`
+  // (seconds) plus `rampWeight` (their weight once fully ramped in). Before
+  // `rampAt` they roll at a low weight (0.15), climbing linearly to
+  // `rampWeight` (parity, 1) at `rampAt` and holding there. Original
+  // (pre-M4) roster entries are unweighted (full weight from t=0). See
+  // regionEnemyWeightAt below and LEVELS_SPEC.md.
   var REGION_ENEMIES = {
     'ember-drift': [
       { key: 'cinder-kamikaze', frame: 'sprinter', base: 'sprinter', behavior: 'kamikaze', r: 13, hp: 11, speed: 126, dmg: 18, xp: 2, tint: 0xff6b4f, scale: 1.08 },
       { key: 'ash-wraith', frame: 'wisp', base: 'weaver', behavior: 'wraith', r: 15, hp: 15, speed: 78, dmg: 14, xp: 2, tint: 0xff9a5a, scale: 1.08 },
-      { key: 'ember-scarab', frame: 'bulwark', base: 'bulwark', behavior: 'scarab', r: 20, hp: 46, speed: 32, dmg: 19, xp: 3, tint: 0xffc361, scale: 1.06 }
+      { key: 'ember-scarab', frame: 'bulwark', base: 'bulwark', behavior: 'scarab', r: 20, hp: 46, speed: 32, dmg: 19, xp: 3, tint: 0xffc361, scale: 1.06 },
+      // mine-bomber: lays hazard mines, fits the Ember Drift's ordnance/hazard
+      // fiction (deco_hazard landmarks). dmg 0 direct contact by design (the
+      // mine itself does the damage), flagged sapper so it never rolls at:0.
+      // M4 gate fix: ramps in over the first 90s instead of full weight at t=0.
+      { key: 'mine-bomber', frame: 'drifter', base: 'drifter', behavior: 'bomber', r: 16, hp: 18, speed: 54, dmg: 0, xp: 3, tint: 0xff9a5a, scale: 1.05, sapper: true, weight: 0.15, rampAt: 90, rampWeight: 1 }
     ],
     'crystal-shoals': [
       { key: 'refracting-shard-drone', frame: 'wisp', base: 'lancer', behavior: 'refract-drone', r: 15, hp: 18, speed: 58, dmg: 13, xp: 3, tint: 0xa7f3ff, scale: 1.06, ranged: true },
       { key: 'glasswing-drone', frame: 'shard', base: 'weaver', behavior: 'glasswing', r: 15, hp: 14, speed: 82, dmg: 13, xp: 2, tint: 0xd4c9ff, scale: 1.02 },
-      { key: 'shard-larva', frame: 'sprinter', base: 'sprinter', behavior: 'larva', r: 10, hp: 7, speed: 112, dmg: 10, xp: 1, tint: 0x8fe7ff, scale: 0.82 }
+      { key: 'shard-larva', frame: 'sprinter', base: 'sprinter', behavior: 'larva', r: 10, hp: 7, speed: 112, dmg: 10, xp: 1, tint: 0x8fe7ff, scale: 0.82 },
+      // gem-mimic: dormant "gem" that wakes and lunges, fits Crystal Shoals'
+      // dense-gem fiction directly. Sapper-flagged for the same hot-start
+      // reason as mine-bomber (ambush dmg is unavoidable at row 0).
+      // M4 gate fix: ramps in over the first 90s instead of full weight at t=0.
+      { key: 'gem-mimic', frame: 'deco_core', base: 'drifter', behavior: 'mimic', r: 12, hp: 16, speed: 0, dmg: 22, xp: 3, tint: 0xa7ffe0, scale: 0.7, sapper: true, weight: 0.15, rampAt: 90, rampWeight: 1 }
     ],
     'void-rift': [
       { key: 'blink-stalker', frame: 'sprinter', base: 'sprinter', behavior: 'blink', r: 12, hp: 14, speed: 98, dmg: 15, xp: 2, tint: 0x9b8cff, scale: 1.06 },
       { key: 'gravity-mite', frame: 'drifter', base: 'drifter', behavior: 'gravity-mite', r: 12, hp: 12, speed: 48, dmg: 12, xp: 2, tint: 0x6e8bff, scale: 0.86 },
-      { key: 'null-leech', frame: 'wisp', base: 'weaver', behavior: 'null-leech', r: 16, hp: 21, speed: 64, dmg: 18, xp: 3, tint: 0xd0c8ff, scale: 1.08 }
+      { key: 'null-leech', frame: 'wisp', base: 'weaver', behavior: 'null-leech', r: 16, hp: 21, speed: 64, dmg: 18, xp: 3, tint: 0xd0c8ff, scale: 1.08 },
+      // wing-cutter: paired V-wing dive/split, fits Void Rift's "vision
+      // pockets" ambush fiction (pairs appear from cover and split on you).
+      // M4 gate fix: ramps in over the first 90s instead of full weight at t=0.
+      { key: 'wing-cutter', frame: 'sprinter', base: 'sprinter', behavior: 'formation', r: 12, hp: 10, speed: 96, dmg: 12, xp: 2, tint: 0xffd67a, scale: 1.0, weight: 0.15, rampAt: 90, rampWeight: 1 },
+      // rift-strafer: orbits at range and fires, the region's namesake
+      // "rift" ranged threat. ranged: true keeps it out of at:0 pools.
+      // M4 gate fix: also the hardest hitter added, so it ramps in slower
+      // (over 150s) than the other M3 additions.
+      { key: 'rift-strafer', frame: 'lancer', base: 'lancer', behavior: 'strafer', r: 15, hp: 20, speed: 60, dmg: 14, xp: 3, tint: 0x7ac8ff, scale: 1.02, ranged: true, weight: 0.15, rampAt: 150, rampWeight: 1 },
+      // nebula-burrower: phases in/out of visibility, fits the "vision
+      // pockets" mechanic (nebula cover) better than any other region.
+      // M4 gate fix: highest dmg (20) in the pool, ramps in slowest (180s).
+      // hotStartExclude: true because base is 'weaver' (not 'sapper'), so the
+      // sapper/lancer/apex hot-start filter in hotStartPools would not catch
+      // it on base alone; untargetable-while-burrowed + 20 dmg is just as
+      // unfair at t=0 as the other hot-start exclusions.
+      { key: 'nebula-burrower', frame: 'weaver', base: 'weaver', behavior: 'burrower', r: 15, hp: 24, speed: 66, dmg: 20, xp: 3, tint: 0x9b8cff, scale: 1.02, weight: 0.15, rampAt: 180, rampWeight: 1, hotStartExclude: true }
     ],
     'aurelion-graveyard': [
       { key: 'derelict-guard-hulk', frame: 'bulwark', base: 'bulwark', behavior: 'hulk', r: 27, hp: 58, speed: 22, dmg: 24, xp: 4, tint: 0xc07d62, scale: 1.12 },
       { key: 'salvage-swarm', frame: 'weaver', base: 'weaver', behavior: 'salvage', r: 13, hp: 10, speed: 88, dmg: 13, xp: 2, tint: 0xffb47e, scale: 0.94 },
       { key: 'scrap-ripper', frame: 'sprinter', base: 'sprinter', behavior: 'salvage-dash', r: 13, hp: 16, speed: 104, dmg: 17, xp: 2, tint: 0x9a5b55, scale: 1.04 },
-      { key: 'grave-egg', frame: 'deco_core', base: 'drifter', behavior: 'egg', r: 22, hp: 42, speed: 0, dmg: 0, xp: 4, tint: 0xffd09a, scale: 0.76, egg: true }
+      { key: 'grave-egg', frame: 'deco_core', base: 'drifter', behavior: 'egg', r: 22, hp: 42, speed: 0, dmg: 0, xp: 4, tint: 0xffd09a, scale: 0.76, egg: true },
+      // wall-warden: frontal-armored hulk that forces flanking, fits the
+      // Graveyard's derelict-hulk cover fiction (armor plating to hide
+      // behind / shoot around).
+      // M4 gate fix: ramps in over the first 90s instead of full weight at t=0.
+      { key: 'wall-warden', frame: 'bulwark', base: 'bulwark', behavior: 'shield-wall', r: 22, hp: 40, speed: 24, dmg: 17, xp: 3, tint: 0xa8a8e8, scale: 1.05, weight: 0.15, rampAt: 90, rampWeight: 1 },
+      // xp-leech: drains dropped gems, fits the Graveyard's salvage/scavenger
+      // fiction (it's a rival scavenger, not just a hostile).
+      // M4 gate fix: ramps in over the first 90s instead of full weight at t=0.
+      { key: 'xp-leech', frame: 'wisp', base: 'weaver', behavior: 'leech', r: 14, hp: 14, speed: 74, dmg: 8, xp: 2, tint: 0xffb4e6, scale: 1.0, weight: 0.15, rampAt: 90, rampWeight: 1 }
     ]
   };
+
+  // Pure, exported: returns the effective spawn weight of a REGION_ENEMIES
+  // entry at a given run time in seconds. Entries with no weight/rampAt
+  // fields (the original pre-M4 roster) are always full weight (1). Entries
+  // with weight + rampAt ramp linearly from `weight` at t=0 to `rampWeight`
+  // (default 1) at t=rampAt, then hold at rampWeight. Never returns 0 so
+  // every key stays reachable at every time.
+  function regionEnemyWeightAt(def, timeSec) {
+    if (!def) return 0;
+    var base = def.weight == null ? 1 : def.weight;
+    if (def.rampAt == null || def.rampAt <= 0) return base;
+    var target = def.rampWeight == null ? 1 : def.rampWeight;
+    var t = timeSec == null ? 0 : timeSec;
+    if (t <= 0) return base;
+    if (t >= def.rampAt) return target;
+    var frac = t / def.rampAt;
+    return base + (target - base) * frac;
+  }
   var REGION_ENEMY_BY_KEY = {};
   for (var rek in REGION_ENEMIES) {
     for (var rei = 0; rei < REGION_ENEMIES[rek].length; rei++) {
@@ -556,12 +716,21 @@
     PAINT_BY_KEY: PAINT_BY_KEY,
     TRIMS: TRIMS,
     TRIM_BY_KEY: TRIM_BY_KEY,
+    ENGINE_TRAILS: ENGINE_TRAILS,
+    TRAIL_BY_KEY: TRAIL_BY_KEY,
+    SHOT_COLORS: SHOT_COLORS,
+    SHOT_COLOR_BY_KEY: SHOT_COLOR_BY_KEY,
+    DECALS: DECALS,
+    DECAL_BY_KEY: DECAL_BY_KEY,
     HULL_FRAMES: HULL_FRAMES,
     FRAME_BY_KEY: FRAME_BY_KEY,
+    SHIP_CLASSES: SHIP_CLASSES,
+    SHIP_CLASS_BY_KEY: SHIP_CLASS_BY_KEY,
     PROFILE_VERSION: PROFILE_VERSION,
     BANK_RATE: BANK_RATE,
     REGION_ENEMIES: REGION_ENEMIES,
     REGION_ENEMY_BY_KEY: REGION_ENEMY_BY_KEY,
+    regionEnemyWeightAt: regionEnemyWeightAt,
     APEX_ENEMIES: APEX_ENEMIES,
     APEX_BY_KEY: APEX_BY_KEY,
     REGION_BOSSES: REGION_BOSSES,

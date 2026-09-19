@@ -18,9 +18,9 @@
       { at: 24,  rate: 0.78, pack: 2, pool: ['blink-stalker', 'gravity-mite', 'sprinter'] },
       { at: 55,  rate: 0.68, pack: 2, pool: ['blink-stalker', 'null-leech', 'gravity-mite', 'lancer'] },
       { at: 92,  rate: 0.6,  pack: 3, pool: ['null-leech', 'blink-stalker', 'weaver', 'sapper'] },
-      { at: 134, rate: 0.52, pack: 3, pool: ['null-leech', 'gravity-mite', 'blink-stalker', 'bulwark'] },
+      { at: 134, rate: 0.52, pack: 3, pool: ['null-leech', 'gravity-mite', 'blink-stalker', 'bulwark', 'wing-cutter'] },
       { at: 180, rate: 0.46, pack: 3, pool: ['null-leech', 'blink-stalker', 'weaver', 'sapper', 'lancer'] },
-      { at: 228, rate: 0.4,  pack: 4, pool: ['null-leech', 'gravity-mite', 'blink-stalker', 'bulwark', 'weaver'] },
+      { at: 228, rate: 0.4,  pack: 4, pool: ['null-leech', 'gravity-mite', 'blink-stalker', 'bulwark', 'weaver', 'rift-strafer', 'nebula-burrower'] },
       { at: 270, rate: 0.36, pack: 4, pool: ['null-leech', 'blink-stalker', 'weaver', 'sapper', 'lancer', 'bulwark'] }
     ],
     mods: {

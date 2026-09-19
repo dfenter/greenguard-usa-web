@@ -18,9 +18,9 @@
       { at: 26,  rate: 0.68, pack: 2, pool: ['drifter', 'sprinter', 'cinder-kamikaze', 'blink-stalker'] },
       { at: 60,  rate: 0.58, pack: 3, pool: ['shard-larva', 'salvage-swarm', 'gravity-mite', 'sapper'] },
       { at: 100, rate: 0.5,  pack: 3, pool: ['ash-wraith', 'glasswing-drone', 'scrap-ripper', 'lancer'] },
-      { at: 148, rate: 0.44, pack: 3, pool: ['blink-stalker', 'ember-scarab', 'null-leech', 'weaver'] },
+      { at: 148, rate: 0.44, pack: 3, pool: ['blink-stalker', 'ember-scarab', 'null-leech', 'weaver', 'wall-warden', 'gem-mimic'] },
       { at: 200, rate: 0.4,  pack: 4, pool: ['derelict-guard-hulk', 'refracting-shard-drone', 'grave-egg', 'bulwark'] },
-      { at: 260, rate: 0.34, pack: 4, pool: ['ember-scarab', 'null-leech', 'aegis-warden', 'void-artillery'] },
+      { at: 260, rate: 0.34, pack: 4, pool: ['ember-scarab', 'null-leech', 'aegis-warden', 'void-artillery', 'rift-strafer', 'xp-leech'] },
       { at: 324, rate: 0.3,  pack: 4, pool: ['blink-stalker', 'grave-egg', 'hive-splitter', 'phase-reaver'] },
       { at: 392, rate: 0.28, pack: 5, pool: ['ember-scarab', 'derelict-guard-hulk', 'warden-titan', 'dread-lancer'] },
       { at: 460, rate: 0.24, pack: 5, pool: ['null-leech', 'aegis-warden', 'hive-splitter', 'void-artillery', 'warden-titan'] },
@@ -99,6 +99,25 @@
         banner: ['CORE DESCENDS', 'KILL IT NOW']
       }
     ],
-    music: 'heat'
+    music: 'heat',
+    cutscenes: {
+      intro: {
+        id: 'meridian-falls-intro',
+        beats: [
+          { kind: 'pan', dur: 3, toX: 200, toY: -100 },
+          { kind: 'zoom', dur: 2, to: 1.15 },
+          { kind: 'flyin', dur: 2 },
+          { kind: 'line', dur: 4, speaker: 'COMMAND', text: 'THE MERIDIAN CORE WAKES. END IT HERE.' },
+          { kind: 'burst', dur: 1, color: 0xff9a8f }
+        ]
+      },
+      outro: {
+        id: 'meridian-falls-outro',
+        beats: [
+          { kind: 'line', dur: 4, speaker: 'COMMAND', text: 'THE CORE IS DOWN. THE VERGE IS OURS.' },
+          { kind: 'burst', dur: 3, color: 0xffd67a }
+        ]
+      }
+    }
   };
 }());

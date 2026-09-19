@@ -68,6 +68,27 @@
   var BONUS_DEBUG_KEYS = HM_DATA.BONUS_DEBUG_KEYS;
   var BONUS_BY_KEY = HM_DATA.BONUS_BY_KEY;
   var TIDE_TURNERS = HM_DATA.TIDE_TURNERS;
+
+  // Per-archetype muzzle/impact particle shaping (M6 VFX pass). Keyed by
+  // WEAPONS[].kind (the 12 archetypes in hm2_weapons.js). Reuses the
+  // existing fx.impact emitter (p_muzzle atlas frame) and contactRing
+  // (ring_thick atlas frame) - no new textures. quantity/spread only,
+  // capped low to stay inside the fps floor.
+  var ARCHETYPE_FX = {
+    lance:     { muzzleQty: 2, impactQty: 2, ring: false },
+    scatter:   { muzzleQty: 4, impactQty: 2, ring: false },
+    rail:      { muzzleQty: 2, impactQty: 3, ring: true },
+    seeker:    { muzzleQty: 1, impactQty: 2, ring: false },
+    mortar:    { muzzleQty: 2, impactQty: 4, ring: true },
+    beam:      { muzzleQty: 3, impactQty: 2, ring: false },
+    glaive:    { muzzleQty: 2, impactQty: 2, ring: false },
+    mine:      { muzzleQty: 1, impactQty: 3, ring: true },
+    ricochet:  { muzzleQty: 2, impactQty: 2, ring: false },
+    arccoil:   { muzzleQty: 3, impactQty: 2, ring: false },
+    flak:      { muzzleQty: 4, impactQty: 2, ring: false },
+    dronebay:  { muzzleQty: 1, impactQty: 2, ring: false }
+  };
+  var ARCHETYPE_FX_DEFAULT = { muzzleQty: 2, impactQty: 2, ring: false };
   var TIDE_BY_KEY = HM_DATA.TIDE_BY_KEY;
   var TIDE_HUD = HM_DATA.TIDE_HUD;
   var WEAPONS = HM_DATA.WEAPONS;
@@ -87,10 +108,13 @@
   var TRIM_BY_KEY = HM_DATA.TRIM_BY_KEY;
   var HULL_FRAMES = HM_DATA.HULL_FRAMES;
   var FRAME_BY_KEY = HM_DATA.FRAME_BY_KEY;
+  var SHIP_CLASSES = HM_DATA.SHIP_CLASSES;
+  var SHIP_CLASS_BY_KEY = HM_DATA.SHIP_CLASS_BY_KEY;
   var PROFILE_VERSION = HM_DATA.PROFILE_VERSION;
   var BANK_RATE = HM_DATA.BANK_RATE;
   var REGION_ENEMIES = HM_DATA.REGION_ENEMIES;
   var REGION_ENEMY_BY_KEY = HM_DATA.REGION_ENEMY_BY_KEY;
+  var regionEnemyWeightAt = HM_DATA.regionEnemyWeightAt;
   var REGION_BOSSES = HM_DATA.REGION_BOSSES;
   var REGION_BOSS_BY_KEY = HM_DATA.REGION_BOSS_BY_KEY;
   var REGION_BOSS_BY_BOSS_KEY = HM_DATA.REGION_BOSS_BY_BOSS_KEY;
@@ -101,14 +125,67 @@
   var HOT_START = HM_DATA.HOT_START;
   var ARSENAL_III = HM_DATA.ARSENAL_III;
   var ATLAS_FRAME_MAP = HM_DATA.ATLAS_FRAME_MAP;
+  var ENGINE_TRAILS = HM_DATA.ENGINE_TRAILS;
+  var TRAIL_BY_KEY = HM_DATA.TRAIL_BY_KEY;
+  var SHOT_COLORS = HM_DATA.SHOT_COLORS;
+  var SHOT_COLOR_BY_KEY = HM_DATA.SHOT_COLOR_BY_KEY;
+  var DECALS = HM_DATA.DECALS;
+  var DECAL_BY_KEY = HM_DATA.DECAL_BY_KEY;
   function makeDefaultHangar() {
     var tiers = {};
     for (var i = 0; i < HANGAR_TRACKS.length; i++) tiers[HANGAR_TRACKS[i].key] = 0;
     return {
       balance: 0, tiers: tiers, equippedWeapon: 'lance',
       loadout: ['lance', '', ''],
-      weaponsSeen: { 'lance': true }, paint: 'teal', trim: 'mint', frame: 'classic'
+      weaponsSeen: { 'lance': true }, paint: 'teal', trim: 'mint', frame: 'classic',
+      // M5 ship classes: selected class + owned Mk tier per class. Warden
+      // starts owned at Mk I (starter ship); recon/vector start unowned (0).
+      shipClass: 'warden',
+      shipTiers: { warden: 1, recon: 0, vector: 0 },
+      // M5-STYLE additions: engine trail, shot colour, decal. Additive to the
+      // existing hangar profile shape; sensible defaults for old saves below.
+      engineTrail: 'stream', shotColor: 'default', decal: 'none'
     };
+  }
+  // Real achievement state a decal gate can check. Built fresh each call
+  // (cheap) so decals always reflect live profile progress, not a cached
+  // snapshot the save could drift from.
+  function decalUnlockCtx() {
+    return { weaponsFound: weaponsFoundCount() };
+  }
+  function decalUnlocked(key) {
+    var d = DECAL_BY_KEY[key];
+    if (!d) return false;
+    if (!d.gate) return true;
+    return !!d.gate(profile, decalUnlockCtx());
+  }
+  // Ship helpers: shared by hangar mutation, player stat composition and
+  // the SHIPS shop tab.
+  function ownedShipTier(classKey) {
+    var h = profile.hangar;
+    if (!h.shipTiers) return classKey === 'warden' ? 1 : 0;
+    return h.shipTiers[classKey] || 0;
+  }
+  function activeShipClass() {
+    var key = profile.hangar.shipClass || 'warden';
+    return SHIP_CLASS_BY_KEY[key] ? key : 'warden';
+  }
+  function activeShipTierData() {
+    var cls = SHIP_CLASS_BY_KEY[activeShipClass()];
+    var owned = Math.max(1, ownedShipTier(activeShipClass()));
+    var idx = Math.min(cls.tiers.length, owned) - 1;
+    return cls.tiers[Math.max(0, idx)];
+  }
+  // safeFrameName: never let a missing atlas frame (sibling art lane may not
+  // have produced hull_<class>_mkN yet) crash texture lookups. Falls back to
+  // the classic hero_idle/hero_move pair.
+  function safeFrameName(frameKey, fallback) {
+    fallback = fallback || 'hero_idle';
+    try {
+      var tex = Game.scene && Game.scene.textures ? Game.scene.textures.get('atlas') : null;
+      if (tex && tex.has && tex.has(frameKey)) return frameKey;
+    } catch (e) {}
+    return fallback;
   }
   function makeDefaultCampaign() {
     return { unlocked: 1, stars: {}, bestTimes: {} };
@@ -206,7 +283,7 @@
       if (o.version == null) {
         if (!counter(o.gems, 1e9)) return false;
         if (!counter(o.best, 1e9)) return false;
-      } else if (o.version !== PROFILE_VERSION && o.version !== 2) return false;
+      } else if (o.version !== PROFILE_VERSION && o.version !== 2 && o.version !== 3) return false;
       if (!counter(o.best, 1e9)) return false;
       if (!o.meta || typeof o.meta !== 'object' || Array.isArray(o.meta)) return false;
       var keys = Object.getOwnPropertyNames(o.meta);
@@ -251,6 +328,24 @@
         }
       }
       if (!PAINT_BY_KEY[h.paint] || !TRIM_BY_KEY[h.trim] || !FRAME_BY_KEY[h.frame]) return false;
+      // Ship classes (M5): optional on older saves pre-migration, validated
+      // when present.
+      if (h.shipClass != null && !SHIP_CLASS_BY_KEY[h.shipClass]) return false;
+      if (h.shipTiers != null) {
+        if (typeof h.shipTiers !== 'object' || Array.isArray(h.shipTiers)) return false;
+        var stKeys = Object.getOwnPropertyNames(h.shipTiers);
+        for (var sti = 0; sti < stKeys.length; sti++) {
+          var stk = stKeys[sti];
+          if (!SHIP_CLASS_BY_KEY[stk]) return false;
+          if (!counter(h.shipTiers[stk], SHIP_CLASS_BY_KEY[stk].tiers.length)) return false;
+        }
+      }
+      if (o.hm1ImportDone != null && typeof o.hm1ImportDone !== 'boolean') return false;
+      // M5-STYLE: engine trail / shot colour / decal are optional (older
+      // saves lack them); when present they must be a known key.
+      if (h.engineTrail != null && !TRAIL_BY_KEY[h.engineTrail]) return false;
+      if (h.shotColor != null && !SHOT_COLOR_BY_KEY[h.shotColor]) return false;
+      if (h.decal != null && !DECAL_BY_KEY[h.decal]) return false;
       if (o.campaign != null) {
         var cg = o.campaign;
         if (typeof cg !== 'object' || Array.isArray(cg)) return false;
@@ -290,16 +385,52 @@
     didMigrate = true;
   }
   if (profile.version === 2) {
-    profile.version = PROFILE_VERSION;
+    profile.version = 3;
     profile.campaign = makeDefaultCampaign();
     didMigrate = true;
   }
+  if (profile.version === 3) {
+    // v3 -> v4: grant the starter ship class losslessly and, once only,
+    // import a fraction of any HM1 (Horde Meridian classic) gem balance
+    // found in localStorage. balance/tiers/loadout/paint/trim/frame/campaign
+    // are all left untouched by this block, only new fields are added.
+    profile.version = 4;
+    if (!profile.hangar.shipTiers) profile.hangar.shipTiers = { warden: 1, recon: 0, vector: 0 };
+    if (!profile.hangar.shipClass) profile.hangar.shipClass = 'warden';
+    if (!profile.hm1ImportDone) {
+      var hm1Bonus = 0;
+      try {
+        var hm1Raw = window.localStorage ? window.localStorage.getItem('gg-horde-meridian') : null;
+        if (hm1Raw) {
+          var hm1Data = JSON.parse(hm1Raw);
+          var hm1Bal = hm1Data && hm1Data.hangar ? hm1Data.hangar.balance : null;
+          if (typeof hm1Bal === 'number' && isFinite(hm1Bal) && hm1Bal > 0) {
+            // One-time import: 25% of HM1's gem balance, capped at 500 gems,
+            // so a heavily-progressed HM1 save can't hand HM2 a runaway
+            // head start.
+            hm1Bonus = Math.min(500, Math.round(hm1Bal * 0.25));
+          }
+        }
+      } catch (e) { hm1Bonus = 0; }
+      if (hm1Bonus > 0) profile.hangar.balance = (profile.hangar.balance || 0) + hm1Bonus;
+      profile.hm1ImportDone = true;
+    }
+    didMigrate = true;
+  }
+  if (typeof profile.hm1ImportDone !== 'boolean') profile.hm1ImportDone = true;
   if (!profile.campaign) { profile.campaign = makeDefaultCampaign(); didMigrate = true; }
+  if (!profile.hangar.shipTiers) { profile.hangar.shipTiers = { warden: 1, recon: 0, vector: 0 }; didMigrate = true; }
+  if (!profile.hangar.shipClass) { profile.hangar.shipClass = 'warden'; didMigrate = true; }
   if (typeof profile.runs !== 'number') profile.runs = 0;
   if (typeof profile.tutorialDone !== 'boolean') profile.tutorialDone = false;
   if (!profile.hangar) profile.hangar = makeDefaultHangar();
   if (profile.hangar.tiers.gunDeck == null) { profile.hangar.tiers.gunDeck = 0; didMigrate = true; }
   if (!profile.hangar.weaponsSeen['lance']) profile.hangar.weaponsSeen['lance'] = true;
+  // M5-STYLE migration: backfill trail/shot/decal for saves written before
+  // this lane shipped.
+  if (!TRAIL_BY_KEY[profile.hangar.engineTrail]) { profile.hangar.engineTrail = 'stream'; didMigrate = true; }
+  if (!SHOT_COLOR_BY_KEY[profile.hangar.shotColor]) { profile.hangar.shotColor = 'default'; didMigrate = true; }
+  if (!DECAL_BY_KEY[profile.hangar.decal]) { profile.hangar.decal = 'none'; didMigrate = true; }
   if (!profile.hangar.equippedWeapon || !profile.hangar.weaponsSeen[profile.hangar.equippedWeapon]) {
     profile.hangar.equippedWeapon = 'lance';
   }
@@ -329,7 +460,23 @@
   if (sanitizeLoadout()) didMigrate = true;
   function loadoutSlotsAvailable() {
     var deck = hangarLevel('gunDeck');
-    return deck > 1 ? 3 : (deck > 0 ? 2 : 1);
+    var deckSlots = deck > 1 ? 3 : (deck > 0 ? 2 : 1);
+    // M5: module slots combine with the gunDeck-derived count via MAX, not
+    // SUM. Rationale: a slot represents one physical gun mount, and both
+    // gunDeck tiers and ship Mk tiers independently claim to unlock "up to
+    // N mounts" on the same hull, so summing them would double count mounts
+    // that either upgrade path alone already unlocks. MAX keeps gunDeck
+    // purchases meaningful for players on a low-tier ship (it's still the
+    // fastest way to more slots) while a high-tier ship no longer requires
+    // grinding gunDeck separately once its own moduleSlots exceed it.
+    var shipSlots = 1;
+    var cls = SHIP_CLASS_BY_KEY[activeShipClass()];
+    if (cls) {
+      var owned = Math.max(1, ownedShipTier(activeShipClass()));
+      var idx = Math.max(0, Math.min(cls.tiers.length, owned) - 1);
+      shipSlots = cls.tiers[idx].moduleSlots || 1;
+    }
+    return Math.max(deckSlots, shipSlots);
   }
   function weaponsFoundCount() {
     var n = 0;
@@ -464,6 +611,13 @@
       if (ev.callout && !upperStr(ev.callout, 60)) return bad('event callout ' + vi);
     }
     if (def.music != null && def.music !== 'base' && def.music !== 'heat') return bad('music');
+    if (def.cutscenes != null) {
+      if (!window.HM2_CUTSCENE || typeof window.HM2_CUTSCENE.validateCutscene !== 'function') {
+        return bad('cutscenes validator missing');
+      }
+      var csv = window.HM2_CUTSCENE.validateCutscene(def.cutscenes);
+      if (!csv.ok) return bad('cutscenes: ' + csv.err);
+    }
     return def;
   }
   var CAMPAIGN_LEVELS = {};
@@ -548,6 +702,19 @@
     } catch (e) { return false; }
   })();
 
+  // M6: chase cam preference. Simple own key, same convention as hm2_diag,
+  // rather than PROFILE_VERSION so it does not touch the profile migration
+  // chain. Absent/invalid reads as OFF (classic camera).
+  function readChaseCamPref() {
+    try { return window.localStorage.getItem('hm2_chasecam') === '1'; } catch (e) { return false; }
+  }
+  function setChaseCamPref(v) {
+    try {
+      if (v) window.localStorage.setItem('hm2_chasecam', '1');
+      else window.localStorage.removeItem('hm2_chasecam');
+    } catch (e) {}
+  }
+
   // The flight recorder marks a run "clean" only in finishRun(). Leaving the
   // page mid-run is NORMAL on a phone - app switch, lock screen, back gesture,
   // or iOS simply evicting a backgrounded tab - and none of those reach
@@ -585,7 +752,8 @@
       { id: '', type: '', progress: 0, count: 0, done: false },
       { id: '', type: '', progress: 0, count: 0, done: false }
     ], objectiveCount: 0 },
-    hangar: { balance: 0, tiers: {}, equippedWeapon: 'lance', paint: 'teal' },
+    hangar: { balance: 0, tiers: {}, equippedWeapon: 'lance', paint: 'teal', trim: 'mint',
+      engineTrail: 'stream', shotColor: 'default', decal: 'none' },
     watchdog: {
       maxStepMs: 0,
       lastBeatAgoMs: 0,
@@ -605,6 +773,14 @@
     st.hangar.balance = Math.floor(h.balance);
     st.hangar.equippedWeapon = h.equippedWeapon;
     st.hangar.paint = h.paint;
+    st.hangar.shipClass = h.shipClass || 'warden';
+    st.hangar.shipTiers = h.shipTiers ? {
+      warden: h.shipTiers.warden || 0, recon: h.shipTiers.recon || 0, vector: h.shipTiers.vector || 0
+    } : { warden: 1, recon: 0, vector: 0 };
+    st.hangar.trim = h.trim;
+    st.hangar.engineTrail = h.engineTrail;
+    st.hangar.shotColor = h.shotColor;
+    st.hangar.decal = h.decal;
     for (var i = 0; i < HANGAR_TRACKS.length; i++) {
       var key = HANGAR_TRACKS[i].key;
       st.hangar.tiers[key] = h.tiers[key] || 0;
@@ -682,6 +858,11 @@
     }, function (box, row) {
       row('Fullscreen', function () { return !!document.fullscreenElement; },
         function (v) { if (v) kit.requestFullscreen(); else if (document.exitFullscreen) document.exitFullscreen(); });
+      row('Chase cam', function () { return Game.scene ? !!Game.scene.chaseCam : readChaseCamPref(); },
+        function (v) {
+          setChaseCamPref(v);
+          if (Game.scene) Game.scene.chaseCam = v;
+        });
     }]);
   }
 
@@ -753,6 +934,21 @@
     obj._hmLast = str;
     obj.setText(str);
     return true;
+  }
+
+  // Text budget: banners shown DURING A RUN cap at 3 words. Splits on
+  // whitespace and '//' separators alike so 'AIRSTRIKE CALLED' passes but
+  // 'WARDEN BOMBERS INBOUND' or 'LINE LOCKED. CLEARING AHEAD.' get cut.
+  function wordCount(str) {
+    if (!str) return 0;
+    var words = String(str).replace(/\/\//g, ' ').trim().split(/\s+/).filter(Boolean);
+    return words.length;
+  }
+  function capWords(str, maxWords) {
+    if (!str) return str;
+    var words = String(str).replace(/\/\//g, ' ').trim().split(/\s+/).filter(Boolean);
+    if (words.length <= maxWords) return str;
+    return words.slice(0, maxWords).join(' ');
   }
 
   function makeButton(scene, x, y, w, h, label, onTap, tone, iconFrame) {
@@ -1053,8 +1249,9 @@
   };
 
   // Single data array driving both the hangar tab bar and the page dispatch.
-  // 'ships' routes to the same content 'core' rendered previously (core
-  // systems / meta upgrades) - only the label and key moved.
+  // 'ships' now renders the real SHIP_CLASSES tab (M5): class blurbs, owned
+  // Mk tiers, buy/select. 'core' (unlabelled fallback page key) still shows
+  // the META core-systems upgrades.
   var HANGAR_TABS = [
     ['MODS', 'modules'], ['GUNS', 'loadout'], ['CODEX', 'codex'],
     ['STYLE', 'style'], ['SHIPS', 'ships']
@@ -1110,8 +1307,19 @@
         .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.55);
       this.previewTrim = this.add.image(0, 0, 'atlas', 'ring').setScale(1.15)
         .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.2);
+      // M5-STYLE: decal preview mark + live engine-trail particles + a
+      // looping shot-colour puff, so tapping STYLE options shows immediately
+      // instead of only changing the equipped state.
+      this.previewDecal = this.add.image(0, 8, 'atlas', 'hi_kill').setScale(0.5).setVisible(false);
+      this.previewShotPuff = this.add.image(0, -46, 'p_flare').setScale(0.55)
+        .setBlendMode(Phaser.BlendModes.ADD).setAlpha(0);
       this.preview.add([this.previewGlow, this.previewTrim, this.previewMarker,
-        this.previewEngine, this.previewShip]);
+        this.previewEngine, this.previewShip, this.previewDecal, this.previewShotPuff]);
+      this.previewTrailParticles = this.add.particles(0, 0, 'p_flare', {
+        lifespan: 340, speed: { min: 6, max: 34 }, scale: { start: 0.2, end: 0 },
+        alpha: { start: 0.55, end: 0 }, blendMode: 'ADD', emitting: false, quantity: 1
+      }).setDepth(this.preview.depth);
+      this.previewShotPuffT = 0;
       this.previewHit = this.add.rectangle(w / 2, 178, 150, 108, 0x000000, 0.001)
         .setInteractive({ useHandCursor: true });
       this.previewHit.on('pointerover', function () { scene.thrustHeld = true; });
@@ -1158,6 +1366,31 @@
         .setAlpha(0.38 + this.thrustT * 0.52).setScale(0.82 + this.thrustT * 0.72);
       this.previewTrim.setPosition(push * 0.3, bob - push * 0.18)
         .setRotation(this.hangarClock * 0.4);
+      this.previewDecal.setPosition(push * 0.3, bob - push * 0.18 + 8)
+        .setRotation(reduced ? 0 : Math.sin(this.hangarClock * 1.1) * 0.035 - this.thrustT * 0.045);
+      // M5-STYLE: engine trail particles emit in world space at the ship's
+      // container-relative world position, using the equipped trail's own
+      // scale/lifespan/frequency, exactly like the in-run emitter.
+      var trailDef = TRAIL_BY_KEY[profile.hangar.engineTrail] || ENGINE_TRAILS[0];
+      var shipWX = this.preview.x + push * 0.3, shipWY = this.preview.y + bob - push * 0.18;
+      this.previewTrailT = (this.previewTrailT || 0) - dt;
+      if (this.previewTrailT <= 0) {
+        this.previewTrailT = trailDef.freq;
+        this.previewTrailParticles.setParticleTint(trailDef.color);
+        this.previewTrailParticles.setParticleLifespan(trailDef.lifespan);
+        this.previewTrailParticles.setScale(0.9 * trailDef.scale);
+        this.previewTrailParticles.emitParticleAt(shipWX - 20, shipWY + 27);
+      }
+      // Looping shot-colour puff so the pick is visible without a real gun.
+      this.previewShotPuffT = (this.previewShotPuffT || 0) - dt;
+      if (this.previewShotPuffT <= 0) {
+        this.previewShotPuffT = 0.6;
+        this.previewShotPuff.setAlpha(0.9).setScale(0.3);
+      }
+      if (this.previewShotPuff.alpha > 0) {
+        this.previewShotPuff.setAlpha(Math.max(0, this.previewShotPuff.alpha - dt * 1.4));
+        this.previewShotPuff.setScale(this.previewShotPuff.scale + dt * 0.9);
+      }
     },
 
     setPage: function (page) {
@@ -1184,11 +1417,19 @@
       var paint = PAINT_BY_KEY[h.paint] || HULL_PAINTS[0];
       var trim = TRIM_BY_KEY[h.trim] || TRIMS[0];
       var frame = FRAME_BY_KEY[h.frame] || HULL_FRAMES[0];
+      var shotColor = SHOT_COLOR_BY_KEY[h.shotColor] || SHOT_COLORS[0];
+      var decal = DECAL_BY_KEY[h.decal];
       this.previewShip.setTexture('atlas', frame.idle).setTint(paint.tint);
       this.previewGlow.setTint(trim.color);
       this.previewTrim.setTint(trim.color);
       this.previewMarker.setTint(trim.color);
       this.previewEngine.setTint(trim.color);
+      this.previewShotPuff.setTint(shotColor.key === 'default' ? 0xffffff : shotColor.color);
+      if (decal && decal.key !== 'none' && decal.frame && decalUnlocked(h.decal)) {
+        this.previewDecal.setTexture('atlas', decal.frame).setVisible(true);
+      } else {
+        this.previewDecal.setVisible(false);
+      }
       setTextIfChanged(this.previewLabel, frame.name.toUpperCase() + ' HULL  ·  ' + paint.name.toUpperCase() + ' PAINT');
     },
 
@@ -1371,32 +1612,124 @@
           ? 'CODEX COMPLETE  ·  EVERY WEAPON RECOVERED.'
           : (WEAPONS.length - found) + ' WEAPONS STILL UNRECOVERED.', found >= WEAPONS.length ? '#8effd8' : '#7fa3b5');
       } else if (this.page === 'style') {
-        g.add(bodyText(this, w / 2, top - 20, 'SHIP CUSTOMIZE', TYPE.label, '#8effd8'));
-        var paintW = (w - 32) / 3;
+        // M5-STYLE: dense swatch-grid layout (8 paints, 6 trims, 4 trails,
+        // 4 shot colours, decals + hull frame) sized to stay legible and
+        // tappable at 390px. Small square swatches instead of text cards for
+        // every row except hull frame and decals, which need an icon.
+        var sy = top - 20;
+        g.add(bodyText(this, w / 2, sy, 'SHIP CUSTOMIZE', TYPE.label, '#8effd8'));
+        sy += 20;
+
+        // HULL PAINT: 4 cols x 2 rows of small colour swatches.
+        g.add(bodyText(this, 16, sy, 'HULL PAINT', TYPE.micro, '#8fb3c4').setOrigin(0, 0.5));
+        sy += 16;
+        var pCols = 4, pGap = 6, pSize = Math.min(40, (w - 28 - (pCols - 1) * pGap) / pCols);
+        var pRowY = sy + pSize / 2;
         for (var pi = 0; pi < HULL_PAINTS.length; pi++) {
-          var paint = HULL_PAINTS[pi], pc = pi % 3, prr = Math.floor(pi / 3);
-          var px = 8 + paintW / 2 + pc * paintW, py = top + 34 + prr * 63;
-          var pbg = this.cardBase(g, px, py, paintW - 6, 54, profile.hangar.paint === paint.key);
-          var sw = this.add.rectangle(px, py - 8, 28, 28, paint.tint, 1).setStrokeStyle(2, 0xe7fff7, 0.45);
-          var pn = neonText(this, px, py + 15, paint.name.toUpperCase(), TYPE.micro,
-            profile.hangar.paint === paint.key ? '#8effd8' : '#b9d6e2');
-          g.add([sw, pn]);
-          pbg.setInteractive({ useHandCursor: true });
-          pbg.on('pointerdown', function (paintKey) { return function () { scene.selectPaint(paintKey); }; }(paint.key));
+          var paint = HULL_PAINTS[pi], pc = pi % pCols, prr = Math.floor(pi / pCols);
+          var px = 14 + pSize / 2 + pc * (pSize + pGap), py = pRowY + prr * (pSize + pGap);
+          var hot = profile.hangar.paint === paint.key;
+          var sw = this.add.rectangle(px, py, pSize, pSize, paint.tint, 1)
+            .setStrokeStyle(hot ? 3 : 1, 0xe7fff7, hot ? 0.95 : 0.35);
+          sw.setInteractive({ useHandCursor: true });
+          sw.on('pointerdown', function (paintKey) { return function () { scene.selectPaint(paintKey); }; }(paint.key));
+          g.add(sw);
         }
-        g.add(bodyText(this, w / 2, top + 165, 'ENGINE TRIM', TYPE.label, '#8effd8'));
+        var pRows = Math.ceil(HULL_PAINTS.length / pCols);
+        sy = pRowY + (pRows - 1) * (pSize + pGap) + pSize / 2 + 14;
+
+        // ENGINE TRIM: single row of colour dots (6).
+        g.add(bodyText(this, 16, sy, 'ENGINE TRIM', TYPE.micro, '#8fb3c4').setOrigin(0, 0.5));
+        sy += 18;
+        var tGap = (w - 32) / TRIMS.length;
         for (var ti = 0; ti < TRIMS.length; ti++) {
-          var trim = TRIMS[ti], tx = 34 + ti * ((w - 68) / 4), ty = top + 193;
-          if (ti === 4) tx = w - 34;
-          var trimDot = this.add.circle(tx, ty, 15, trim.color, 1).setStrokeStyle(2, 0xe7fff7, profile.hangar.trim === trim.key ? 0.9 : 0.25);
+          var trim = TRIMS[ti], tx = 16 + tGap / 2 + ti * tGap;
+          var trimDot = this.add.circle(tx, sy, 13, trim.color, 1)
+            .setStrokeStyle(2, 0xe7fff7, profile.hangar.trim === trim.key ? 0.95 : 0.25);
           trimDot.setInteractive({ useHandCursor: true });
           trimDot.on('pointerdown', function (trimKey) { return function () { scene.selectTrim(trimKey); }; }(trim.key));
           g.add(trimDot);
         }
-        g.add(bodyText(this, w / 2, top + 235, 'HULL FRAME', TYPE.label, '#8effd8'));
+        sy += 26;
+
+        // ENGINE TRAIL: 4 small swatches with a name tag underneath.
+        g.add(bodyText(this, 16, sy, 'ENGINE TRAIL', TYPE.micro, '#8fb3c4').setOrigin(0, 0.5));
+        sy += 16;
+        var trCols = ENGINE_TRAILS.length, trGap = 6;
+        var trW = (w - 28 - (trCols - 1) * trGap) / trCols;
+        var trY = sy + 16;
+        for (var tri = 0; tri < ENGINE_TRAILS.length; tri++) {
+          var trail = ENGINE_TRAILS[tri], trX = 14 + trW / 2 + tri * (trW + trGap);
+          var trHot = profile.hangar.engineTrail === trail.key;
+          var trBg = this.cardBase(g, trX, trY, trW - 3, 40, trHot);
+          var trDot = this.add.circle(trX, trY - 6, 9, trail.color, 1).setStrokeStyle(1, 0xe7fff7, 0.4);
+          var trNameStr = trail.name.toUpperCase();
+          if (window.__HM2_UI) trNameStr = window.__HM2_UI.wrapText(this, trNameStr, { fontFamily: FONT_DISPLAY, fontSize: TYPE.micro, fontStyle: 'bold' }, trW - 4, 1)[0] || '';
+          var trName = neonText(this, trX, trY + 12, trNameStr, TYPE.micro, trHot ? '#8effd8' : '#b9d6e2');
+          trBg.setInteractive({ useHandCursor: true });
+          trBg.on('pointerdown', function (trailKey) { return function () { scene.selectTrail(trailKey); }; }(trail.key));
+          g.add([trDot, trName]);
+        }
+        sy = trY + 34;
+
+        // SHOT COLOUR: 4 small swatches with a name tag underneath.
+        g.add(bodyText(this, 16, sy, 'SHOT COLOUR', TYPE.micro, '#8fb3c4').setOrigin(0, 0.5));
+        sy += 16;
+        var scCols = SHOT_COLORS.length, scGap = 6;
+        var scW = (w - 28 - (scCols - 1) * scGap) / scCols;
+        var scY = sy + 16;
+        for (var sci2 = 0; sci2 < SHOT_COLORS.length; sci2++) {
+          var shotC = SHOT_COLORS[sci2], scX = 14 + scW / 2 + sci2 * (scW + scGap);
+          var scHot = profile.hangar.shotColor === shotC.key;
+          var scBg = this.cardBase(g, scX, scY, scW - 3, 40, scHot);
+          var scDot = this.add.circle(scX, scY - 6, 9, shotC.key === 'default' ? 0xffffff : shotC.color, 1)
+            .setStrokeStyle(1, 0xe7fff7, 0.4);
+          var scNameStr = shotC.name.toUpperCase();
+          if (window.__HM2_UI) scNameStr = window.__HM2_UI.wrapText(this, scNameStr, { fontFamily: FONT_DISPLAY, fontSize: TYPE.micro, fontStyle: 'bold' }, scW - 4, 1)[0] || '';
+          var scName = neonText(this, scX, scY + 12, scNameStr, TYPE.micro, scHot ? '#8effd8' : '#b9d6e2');
+          scBg.setInteractive({ useHandCursor: true });
+          scBg.on('pointerdown', function (shotKey) { return function () { scene.selectShotColor(shotKey); }; }(shotC.key));
+          g.add([scDot, scName]);
+        }
+        sy = scY + 34;
+
+        // DECALS: icon badges; locked ones show visibly greyed with a lock
+        // icon and their unlock reason, not hidden, per acceptance criteria.
+        g.add(bodyText(this, 16, sy, 'DECALS', TYPE.micro, '#8fb3c4').setOrigin(0, 0.5));
+        sy += 16;
+        var dCols = DECALS.length, dGap = 5;
+        var dW = (w - 28 - (dCols - 1) * dGap) / dCols;
+        var dY = sy + 20;
+        for (var di = 0; di < DECALS.length; di++) {
+          var decal = DECALS[di], dX = 14 + dW / 2 + di * (dW + dGap);
+          var dUnlocked = decalUnlocked(decal.key);
+          var dHot = profile.hangar.decal === decal.key;
+          var dBg = this.cardBase(g, dX, dY, dW - 3, 56, dHot);
+          dBg.setAlpha(dUnlocked ? 1 : 0.5);
+          var dIcon = this.add.image(dX, dY - 12, 'atlas', decal.frame && dUnlocked ? decal.frame : 'ic_lock')
+            .setScale(0.34).setTint(dUnlocked ? 0xd8f5ff : 0x6d8593);
+          var dNameStr = decal.name.toUpperCase();
+          if (window.__HM2_UI) dNameStr = window.__HM2_UI.wrapText(this, dNameStr, { fontFamily: FONT_DISPLAY, fontSize: TYPE.micro, fontStyle: 'bold' }, dW - 4, 1)[0] || '';
+          var dName = neonText(this, dX, dY + 12, dNameStr, TYPE.micro, dUnlocked ? (dHot ? '#8effd8' : '#b9d6e2') : '#6d8593');
+          g.add([dIcon, dName]);
+          if (!dUnlocked) {
+            var dReasonStr = decal.desc || '';
+            if (window.__HM2_UI) dReasonStr = window.__HM2_UI.wrapText(this, dReasonStr, { fontFamily: FONT_BODY, fontSize: TYPE.micro }, dW - 4, 1)[0] || '';
+            var dReason = bodyText(this, dX, dY + 24, dReasonStr, TYPE.micro, '#8a7a4e');
+            g.add(dReason);
+          }
+          dBg.setInteractive({ useHandCursor: true });
+          dBg.on('pointerdown', function (decalKey) { return function () { scene.selectDecal(decalKey); }; }(decal.key));
+        }
+        sy = dY + 40;
+
+        // HULL FRAME: kept from the pre-existing layout, moved below decals.
+        g.add(bodyText(this, 16, sy, 'HULL FRAME', TYPE.micro, '#8fb3c4').setOrigin(0, 0.5));
+        sy += 16;
         var fw = Math.min(112, (w - 36) / 3);
+        var fy = sy + 30;
         for (var fi = 0; fi < HULL_FRAMES.length; fi++) {
-          var frame = HULL_FRAMES[fi], fx = 18 + fw / 2 + fi * (fw + 1), fy = top + 274;
+          var frame = HULL_FRAMES[fi], fx = 18 + fw / 2 + fi * (fw + 1);
           var fbg = this.cardBase(g, fx, fy, fw - 5, 58, profile.hangar.frame === frame.key);
           var fs = this.add.image(fx, fy - 12, 'atlas', frame.idle).setScale(0.4).setTint((PAINT_BY_KEY[profile.hangar.paint] || HULL_PAINTS[0]).tint);
           var fnMax = fw - 12;
@@ -1407,6 +1740,47 @@
           fbg.setInteractive({ useHandCursor: true });
           fbg.on('pointerdown', function (frameKey) { return function () { scene.selectFrame(frameKey); }; }(frame.key));
           g.add([fs, fn]);
+        }
+        this.setNotice('TAP A LOCKED DECAL TO SEE HOW TO UNLOCK IT.', '#7fa3b5');
+      } else if (this.page === 'ships') {
+        g.add(bodyText(this, w / 2, top - 20, 'SHIP CLASSES', TYPE.label, '#8effd8'));
+        var shipCardH = Math.min(112, (h - top - 124) / SHIP_CLASSES.length);
+        for (var sci2 = 0; sci2 < SHIP_CLASSES.length; sci2++) {
+          var scls = SHIP_CLASSES[sci2];
+          var sy = top + 16 + sci2 * (shipCardH + 7) + shipCardH / 2;
+          var sOwned = (profile.hangar.shipTiers && profile.hangar.shipTiers[scls.key]) || 0;
+          var sActive = activeShipClass() === scls.key;
+          var sbg = this.cardBase(g, w / 2, sy, w - 24, shipCardH, sActive);
+          var sTitleStr = scls.name.toUpperCase() + (sOwned > 0 ? ' // ' + (scls.tiers[sOwned - 1] || scls.tiers[0]).name.toUpperCase() : ' // LOCKED');
+          var sTitle = neonText(this, 20, sy - shipCardH / 2 + 14, sTitleStr, TYPE.micro, sActive ? '#8effd8' : '#d8f5ff');
+          sTitle.setOrigin(0, 0.5);
+          var sBlurbLines = window.__HM2_UI
+            ? window.__HM2_UI.wrapText(this, scls.blurb, { fontFamily: FONT_BODY, fontSize: TYPE.micro }, w - 44, 2)
+            : [scls.blurb];
+          var sBlurb = bodyText(this, 20, sy - shipCardH / 2 + 32, sBlurbLines.join('\n'), TYPE.micro, '#8fb3c4');
+          sBlurb.setOrigin(0, 0.5).setLineSpacing(-2).setAlign('left');
+          g.add([sTitle, sBlurb]);
+          var sNextIdx = sOwned; // 0-based index of the next tier to buy
+          var sMaxed = sNextIdx >= scls.tiers.length;
+          var sBtnY = sy + shipCardH / 2 - 16;
+          if (sMaxed) {
+            var selLabel = sActive ? 'ACTIVE' : 'SELECT';
+            var selBtn = this.cardBase(g, w / 2, sBtnY, w - 44, 26, sActive);
+            var selTxt = neonText(this, w / 2, sBtnY, selLabel, TYPE.micro, sActive ? '#8effd8' : '#d8f5ff');
+            g.add(selTxt);
+            if (!sActive) {
+              selBtn.setInteractive({ useHandCursor: true });
+              selBtn.on('pointerdown', function (ck) { return function () { scene.selectShipClass(ck); }; }(scls.key));
+            }
+          } else {
+            var sNext = scls.tiers[sNextIdx];
+            var sCostLabel = sNext.cost === 0 ? 'OWNED FREE' : String(sNext.cost) + ' GEMS';
+            var buyBtn = this.cardBase(g, w / 2, sBtnY, w - 44, 26, false);
+            var buyTxt = neonText(this, w / 2, sBtnY, 'UNLOCK ' + sNext.name.toUpperCase() + ' // ' + sCostLabel, TYPE.micro, '#ffd67a');
+            g.add(buyTxt);
+            buyBtn.setInteractive({ useHandCursor: true });
+            buyBtn.on('pointerdown', function (ck) { return function () { scene.buyShipTier(ck); }; }(scls.key));
+          }
         }
         this.setNotice('', '#7fa3b5');
       } else {
@@ -1556,6 +1930,74 @@
       this.renderPreview();
       this.renderPage();
       sfx('select', { rate: 0.92 });
+    },
+
+    // M5 SHIPS tab: buy the next Mk tier for a class (must own previous
+    // tier), following the same save/debug/render/sfx pattern as buyTrack.
+    buyShipTier: function (classKey) {
+      var cls = SHIP_CLASS_BY_KEY[classKey];
+      if (!cls) return;
+      if (!profile.hangar.shipTiers) profile.hangar.shipTiers = { warden: 1, recon: 0, vector: 0 };
+      var owned = profile.hangar.shipTiers[classKey] || 0;
+      if (owned >= cls.tiers.length) { sfx('click', { rate: 0.7 }); return; }
+      var nextTier = cls.tiers[owned];
+      var cost = nextTier.cost;
+      if (hangarBalance() < cost) {
+        this.setNotice('NEED ' + cost + ' GEMS FOR ' + nextTier.name.toUpperCase() + '.', '#ff9a8f');
+        sfx('click', { rate: 0.6 });
+        return;
+      }
+      profile.hangar.balance -= cost;
+      profile.hangar.shipTiers[classKey] = owned + 1;
+      saveProfile();
+      updateHangarDebugState(HM_DEBUG_STATE);
+      this.refreshBalance();
+      this.renderPage();
+      sfx('unlock');
+      kit.juice.shake(4, 140);
+      this.setNotice(cls.name.toUpperCase() + ' ' + nextTier.name.toUpperCase() + ' ONLINE.', '#8effd8');
+    },
+
+    selectShipClass: function (classKey) {
+      var cls = SHIP_CLASS_BY_KEY[classKey];
+      if (!cls) return;
+      var owned = (profile.hangar.shipTiers && profile.hangar.shipTiers[classKey]) || 0;
+      if (owned < 1) { sfx('click', { rate: 0.7 }); return; }
+      profile.hangar.shipClass = classKey;
+      saveProfile();
+      updateHangarDebugState(HM_DEBUG_STATE);
+      this.renderPage();
+      sfx('select', { rate: 0.92 });
+    },
+
+    selectTrail: function (key) {
+      if (!TRAIL_BY_KEY[key]) return;
+      profile.hangar.engineTrail = key;
+      saveProfile();
+      updateHangarDebugState(HM_DEBUG_STATE);
+      this.renderPreview();
+      this.renderPage();
+      sfx('select', { rate: 1.02 });
+    },
+
+    selectShotColor: function (key) {
+      if (!SHOT_COLOR_BY_KEY[key]) return;
+      profile.hangar.shotColor = key;
+      saveProfile();
+      updateHangarDebugState(HM_DEBUG_STATE);
+      this.renderPreview();
+      this.renderPage();
+      sfx('select', { rate: 1.2 });
+    },
+
+    selectDecal: function (key) {
+      if (!DECAL_BY_KEY[key] || !decalUnlocked(key)) return;
+      profile.hangar.decal = key;
+      saveProfile();
+      updateHangarDebugState(HM_DEBUG_STATE);
+      this.renderPreview();
+      this.renderPage();
+      sfx('select', { rate: 1.0 });
     }
   };
 
@@ -1730,8 +2172,15 @@
       this.playerMark = this.add.image(0, 0, 'atlas', 'hero_marker').setDepth(48)
         .setAlpha(0.9).setScale(0.82);
       this.player = this.add.image(0, 0, 'atlas', 'hero_idle').setDepth(50);
+      // M5-STYLE: small decal mark riding on the hull, above the ship sprite.
+      // Frame/visibility driven by applyDecalToPlayer() on run reset.
+      this.playerDecal = this.add.image(0, 0, 'atlas', 'hi_kill').setDepth(51)
+        .setScale(0.42).setVisible(false);
       this.playerHeading = 0;
       this.playerBank = 0;
+      // M6: chase cam preference. Defaulted OFF (absent reads as classic)
+      // so existing saves keep the classic top-down camera untouched.
+      this.chaseCam = readChaseCamPref();
       this.playerGlow = this.add.image(0, 0, 'disc').setDepth(47)
         .setTint(0x6df0bf).setAlpha(0.22).setDisplaySize(96, 96)
         .setBlendMode(Phaser.BlendModes.ADD);
@@ -1945,6 +2394,16 @@
             .setBlendMode(Phaser.BlendModes.ADD).setVisible(false)
         });
       }
+
+      // M4 risk events: a single reusable world-space marker (ring + icon)
+      // for the currently-active offer. No new atlas frames added; reuses
+      // 'ring_thick' and 'ic_lance' like the bonus/weapon drop markers above.
+      this.riskEventGfx = {
+        ring: this.add.image(0, 0, 'atlas', 'ring_thick').setDepth(26)
+          .setBlendMode(Phaser.BlendModes.ADD).setScale(1.0).setVisible(false),
+        icon: this.add.image(0, 0, 'atlas', 'ic_lance').setDepth(27)
+          .setBlendMode(Phaser.BlendModes.ADD).setScale(1.0).setVisible(false)
+      };
 
       this.bases = [];
       for (i = 0; i < Math.max(6, BASE_SCHEDULE.length); i++) {
@@ -2948,14 +3407,25 @@
         enemySpeed: (lm && lm.enemySpeed) || 1, spawnRate: (lm && lm.spawnRate) || 1,
         xp: (lm && lm.xp) || 1
       };
+      // M5 ship class: multipliers apply ON TOP of the meta/hangar
+      // composition below, they never replace it.
+      var shipCls = SHIP_CLASS_BY_KEY[activeShipClass()] || SHIP_CLASS_BY_KEY.warden;
+      var shipTierData = activeShipTierData();
+      var shipHpMult = shipTierData.hpMult || 1;
+      var shipSpeedMult = shipTierData.speedMult || 1;
+      var shipDmgMult = shipTierData.dmgMult || 1;
+      var shipCritBonus = shipTierData.critBonus || 0;
+      var isWarden = shipCls.key === 'warden';
+      var isRecon = shipCls.key === 'recon';
+
       this.p = {
         x: 0, y: 0, vx: 0, vy: 0, r: 15,
-        hp: Math.round((100 + mVigor * 15) * (1 + hHull * 0.06)),
-        maxHp: Math.round((100 + mVigor * 15) * (1 + hHull * 0.06)),
-        speed: 196 * (1 + mHaste * 0.05) * (1 + hThrusters * 0.05),
+        hp: Math.round((100 + mVigor * 15) * (1 + hHull * 0.06) * shipHpMult),
+        maxHp: Math.round((100 + mVigor * 15) * (1 + hHull * 0.06) * shipHpMult),
+        speed: 196 * (1 + mHaste * 0.05) * (1 + hThrusters * 0.05) * shipSpeedMult,
         magnet: (96 + mDraw * 25) * (1 + hMagnet * 0.06),
-        damage: 1 * (1 + mPower * 0.08),
-        armor: 0, crit: 0, regen: 0, weaponRate: 0, hangarRate: hReactor * 0.05, multishot: 0,
+        damage: 1 * (1 + mPower * 0.08) * shipDmgMult,
+        armor: 0, crit: Math.min(0.5, shipCritBonus), critShipBonus: shipCritBonus, regen: 0, weaponRate: 0, hangarRate: hReactor * 0.05, multishot: 0,
         projectileDamage: 1, projectileSpeed: 1, projectileSize: 1, pierce: 0,
         primaryCrit: 0, wingDamage: 0.56, wingRevive: 0, wingReviveUsed: false,
         drift: 0,
@@ -2964,8 +3434,24 @@
         hangarWingBay: hWingBay,
         hangarGunDeck: hGunDeck,
         face: 0, iframes: 0, failsafe: metaLevel('second') > 0,
-        ranks: {}, hurtT: 0
+        ranks: {}, hurtT: 0,
+        // Warden signature passive: a regenerating absorb pool. Zero for
+        // other classes (shieldMax 0 means the absorb step below is a no-op).
+        shieldMax: isWarden ? Math.round((100 + mVigor * 15) * (1 + hHull * 0.06) * 0.35) : 0,
+        shield: 0,
+        shieldRegen: isWarden ? 14 : 0,
+        shieldRegenDelay: 3,
+        lastHitAt: 0,
+        damageTaken: 0,
+        // Recon signature passive: automatic dash burst on a cooldown while
+        // moving. See update loop for the trigger/consume logic.
+        dashSpeedMult: isRecon ? 2.1 : 1,
+        dashDuration: isRecon ? 0.22 : 0,
+        dashCooldown: isRecon ? 3.2 : 0,
+        dashT: 0,
+        dashCdT: 0
       };
+      this.p.shield = this.p.shieldMax;
       this.p.damageBase = this.p.damage;
       this.p.speedBase = this.p.speed;
       for (i = 0; i < UPGRADES.length; i++) this.p.ranks[UPGRADES[i].key] = 0;
@@ -3015,7 +3501,23 @@
           vampire: 0, reflector: 0, gravity: 0, cloak: 0, tempest: 0,
           'prism-array': 0 }
       };
+      // M4 risk events: separate run-level system, inert if hm2_events.js
+      // did not load. See stepRiskEvents for the per-tick hook.
+      this.riskEvents = window.HM2_EVENTS ? window.HM2_EVENTS.resetEvents(0x4d657269 ^ 0x52534b45) : null;
+      this.riskEventMarker = null;
+      this.hideRiskEventMarker();
       this.state = 'playing';
+      this._hm2CutsceneOutroDone = false;
+      // M4 cutscenes: an authored intro holds the sim (state stays off
+      // 'playing' so stepCampaign/simStep never run) until it finishes or is
+      // skipped. No-op for the other 14 levels, which have no cutscenes key.
+      if (L && L.cutscenes && L.cutscenes.intro && window.HM2_CUTSCENE) {
+        this.state = 'cutscene-intro';
+        var introScene = this;
+        window.HM2_CUTSCENE.playCutscene(this, L.cutscenes, 'intro', L.id, function () {
+          if (introScene.state === 'cutscene-intro') introScene.state = 'playing';
+        });
+      }
       this.activeRegionKey = '';
       this.regionTourActive = false;
       this.regionTourStep = 0;
@@ -3057,10 +3559,23 @@
         }
         if (L.music === 'heat') { kit.audio.music('musicHeat', 900); this.run.musicHeat = true; }
       }
-      this.player.setTexture('atlas', (FRAME_BY_KEY[profile.hangar.frame] || HULL_FRAMES[0]).idle)
+      // Ship class frame takes priority over the cosmetic HULL_FRAMES pick
+      // when its atlas frame exists (sibling art lane); otherwise fall back
+      // to the cosmetic frame set exactly as before.
+      var idleFrame = safeFrameName(shipTierData.frame, (FRAME_BY_KEY[profile.hangar.frame] || HULL_FRAMES[0]).idle);
+      this.player.setTexture('atlas', idleFrame)
         .setPosition(this.p.x, this.p.y).setAngle(0).clearTint();
       this.player.setTint((PAINT_BY_KEY[profile.hangar.paint] || HULL_PAINTS[0]).tint);
       this.fx.trail.setParticleTint((TRIM_BY_KEY[profile.hangar.trim] || TRIMS[0]).color);
+      // M5-STYLE: engine trail profile drives the trail emitter's own scale/
+      // lifespan/frequency (not just colour) so the four trails are visually
+      // distinct in motion, not four recolors. trailFreq consumed by stepPlayer.
+      var trailDef = TRAIL_BY_KEY[profile.hangar.engineTrail] || ENGINE_TRAILS[0];
+      this.fx.trail.setParticleTint(trailDef.color);
+      this.fx.trail.setParticleLifespan(trailDef.lifespan);
+      this.trailFreq = trailDef.freq;
+      this.trailScaleMul = trailDef.scale;
+      this.applyDecalToPlayer();
       if (hWingBay > 0) this.addWing();
       this.cameras.main.centerOn(this.p.x, this.p.y);
       this.bossBar.setVisible(false);
@@ -3087,19 +3602,31 @@
       this.seedHotStart();
     },
 
-    seedSecondWave: function () {
-      var region = regionAtX(this.p.x);
-      var pool = (this.activeWaves[this.run.waveIdx] && this.activeWaves[this.run.waveIdx].pool) ?
-        this.activeWaves[this.run.waveIdx].pool.slice() : ['drifter', 'sprinter', 'bulwark', 'sapper', 'lancer', 'weaver'];
-      pool = pool.filter(function (k) { var v = REGION_ENEMY_BY_KEY[k]; return !v || !v.apex; });
+    // Builds the base-key pool plus the eligible REGION_ENEMIES entries for
+    // seedHotStart/seedSecondWave, kept separate (not merged into one flat
+    // key array) so the region entries can still be weighted by
+    // regionEnemyWeightAt at draw time instead of being flattened to
+    // uniform odds alongside the base keys.
+    hotStartPools: function (basePool, region) {
+      var pool = basePool.filter(function (k) { var v = REGION_ENEMY_BY_KEY[k]; return !v || !v.apex; });
+      var regionEntries = [];
       var regionKeys = REGION_ENEMIES[region.key];
       if (regionKeys) {
         for (var rk = 0; rk < regionKeys.length; rk++) {
           var rkEntry = regionKeys[rk];
-          if (rkEntry.ranged || rkEntry.base === 'lancer' || rkEntry.base === 'sapper' || rkEntry.apex) continue;
-          if (pool.indexOf(rkEntry.key) < 0) pool.push(rkEntry.key);
+          if (rkEntry.ranged || rkEntry.base === 'lancer' || rkEntry.base === 'sapper' || rkEntry.apex || rkEntry.hotStartExclude) continue;
+          if (pool.indexOf(rkEntry.key) < 0) regionEntries.push(rkEntry);
         }
       }
+      return { base: pool, region: regionEntries };
+    },
+
+    seedSecondWave: function () {
+      var region = regionAtX(this.p.x);
+      var basePool = (this.activeWaves[this.run.waveIdx] && this.activeWaves[this.run.waveIdx].pool) ?
+        this.activeWaves[this.run.waveIdx].pool.slice() : ['drifter', 'sprinter', 'bulwark', 'sapper', 'lancer', 'weaver'];
+      var pools = this.hotStartPools(basePool, region);
+      var timeSec = this.run ? this.run.time : 0;
       for (var i = 0; i < HOT_START.secondWave; i++) {
         var a = srand() * TAU;
         var rad, x, y, seedTries = 0;
@@ -3110,7 +3637,7 @@
           y = ringSeedPos.y;
           seedTries++;
         } while (Math.hypot(x - this.p.x, y - this.p.y) < 260 && seedTries < 8);
-        var fam = this.regionEnemyFor(pool[Math.floor(srand() * pool.length)]);
+        var fam = this.regionEnemyFor(this.weightedMixedPoolPick(pools.base, pools.region, timeSec));
         var elite = srand() < HOT_START.elitePct;
         this.spawn(fam, elite, x, y, true);
       }
@@ -3121,17 +3648,10 @@
         Math.round(HOT_START.count * Math.max(0.65, this.levelMods.spawnRate)) :
         HOT_START.count;
       var region = regionAtX(this.p.x);
-      var pool = (this.activeWaves[0] && this.activeWaves[0].pool) ?
+      var basePool = (this.activeWaves[0] && this.activeWaves[0].pool) ?
         this.activeWaves[0].pool.slice() : ['drifter', 'sprinter', 'bulwark'];
-      pool = pool.filter(function (k) { var v = REGION_ENEMY_BY_KEY[k]; return !v || !v.apex; });
-      var regionKeys = REGION_ENEMIES[region.key];
-      if (regionKeys) {
-        for (var rk2 = 0; rk2 < regionKeys.length; rk2++) {
-          var rkEntry2 = regionKeys[rk2];
-          if (rkEntry2.ranged || rkEntry2.base === 'lancer' || rkEntry2.base === 'sapper' || rkEntry2.apex) continue;
-          if (pool.indexOf(rkEntry2.key) < 0) pool.push(rkEntry2.key);
-        }
-      }
+      var pools = this.hotStartPools(basePool, region);
+      var timeSec = this.run ? this.run.time : 0;
       for (var i = 0; i < count; i++) {
         var a = srand() * TAU;
         var rad, x, y, seedTries = 0;
@@ -3142,7 +3662,7 @@
           y = ringSeedPos.y;
           seedTries++;
         } while (Math.hypot(x - this.p.x, y - this.p.y) < 260 && seedTries < 8);
-        var fam = this.regionEnemyFor(pool[Math.floor(srand() * pool.length)]);
+        var fam = this.regionEnemyFor(this.weightedMixedPoolPick(pools.base, pools.region, timeSec));
         var elite = srand() < HOT_START.elitePct;
         this.spawn(fam, elite, x, y, true);
       }
@@ -3273,8 +3793,17 @@
       var dtReal = Math.min(0.1, (now - this.lastNow) / 1000);
       this.lastNow = now;
 
+      // Boss-phase slow-motion, presentation only (0.3s at 0.3x), applied the
+      // same way the screen flash is: outside the sim. Scaling the real time
+      // handed to the accumulator means fewer fixed steps run per wall-clock
+      // second, so the player sees slow-mo, while every step that DOES run is
+      // still exactly STEP - run.time and the whole deterministic sim are
+      // untouched. Deliberately NOT a sim-dt multiplier; see simStep().
+      var dtFeed = dtReal;
+      if (this.bossPhaseFx && this.bossPhaseFx.active && this.bossPhaseFx.t < 0.3) dtFeed *= 0.3;
+
       if (!this.frozenBySystem && this.state === 'playing' && !j.frozen) {
-        this.accum += dtReal;
+        this.accum += dtFeed;
         var steps = 0;
         while (this.accum >= STEP && steps < MAX_STEPS) {
           // Exception trap: an error thrown mid-step on a device we cannot
@@ -3406,6 +3935,11 @@
       var realDt = dt;
       this.stepEvolveFx(realDt);
       if (this.evolveFx && this.evolveFx.active && this.evolveFx.t < 0.3) dt *= 0.3;
+      // Boss-phase slow-mo is PRESENTATION ONLY and lives in update(), where it
+      // scales the real-time fed to the step accumulator. It must never dilate
+      // the sim dt: run.time drives the row gate, ramp weights, boss scheduling
+      // and events, so dilating it here shifted spawn composition (and stacked
+      // multiplicatively with the evolveFx gate down to 0.09x).
       run.time += dt;
       this.recordHull(dt);
 
@@ -3459,6 +3993,25 @@
       if (p.iframes > 0) p.iframes -= dt;
       if (p.hurtT > 0) p.hurtT -= dt;
       if (p.regen > 0 && p.hp < p.maxHp) p.hp = Math.min(p.maxHp, p.hp + p.regen * dt);
+      // Warden shield regen: after shieldRegenDelay seconds without a hit,
+      // the absorb pool ticks back up toward shieldMax.
+      if (p.shieldMax > 0 && p.shield < p.shieldMax && (run.time - p.lastHitAt) >= p.shieldRegenDelay) {
+        p.shield = Math.min(p.shieldMax, p.shield + p.shieldRegen * dt);
+      }
+      // Recon dash: automatic burst on a cooldown while moving (no free
+      // input slot to bind to, so this is auto-trigger rather than
+      // player-input-wired). Multiplies p.speed for dashDuration seconds
+      // once dashCdT reaches 0, then resets the cooldown.
+      if (p.dashCooldown > 0) {
+        if (p.dashT > 0) {
+          p.dashT -= dt;
+        } else if (p.dashCdT > 0) {
+          p.dashCdT -= dt;
+        } else if ((p.vx || p.vy) && (Math.abs(p.vx) > 1 || Math.abs(p.vy) > 1)) {
+          p.dashT = p.dashDuration;
+          p.dashCdT = p.dashCooldown;
+        }
+      }
       if (run.comboT > 0) {
         run.comboT -= dt;
         if (run.comboT <= 0) run.combo = 0;
@@ -4582,7 +5135,6 @@
       var stowUpgradeKey = this.weaponKeyForUpgrade(weaponKey);
       if (stowUpgradeKey) this.p.ranks[stowUpgradeKey] = 1;
       if (slot < 0) {
-        if (source) this.floatText(this.p.x, this.p.y - 28, data.name.toUpperCase(), '#e7fff7', TYPE.body);
         this.showBanner('STOWED IN ARSENAL', data.name.toUpperCase() + ' // TAP A GUN SLOT TO SWAP');
         sfx('unlock', { volume: 0.4, rate: 1.16 });
         this.updateHud();
@@ -4590,7 +5142,6 @@
       }
       run.weaponSlots[slot] = weaponKey;
       run.equippedWeapon = run.weaponSlots[0] || weaponKey;
-      if (source) this.floatText(this.p.x, this.p.y - 28, data.name.toUpperCase(), '#e7fff7', TYPE.body);
       this.showBanner(slot === 0 ? 'PRIMARY EQUIPPED' : (slot === 1 ? 'SECONDARY ONLINE' : 'TERTIARY ONLINE'),
         data.tier === 'evolution' ? data.name.toUpperCase() + ' // EVOLVED' : data.name.toUpperCase());
       this.updateHud();
@@ -5146,7 +5697,6 @@
         this.queueSpectacleBeat('WINGMAN ONLINE', data.color, 1.0, false);
         sfx('pulse', { volume: 0.55, rate: 1.12 });
         this.showBanner('WINGMAN ONLINE', 'FORMATION LINK ESTABLISHED', false, true);
-        this.floatText(this.p.x, this.p.y - 26, 'WINGMAN JOINED', '#8effd8', TYPE.body);
         return;
       }
       if (kind === 'lance') {
@@ -5192,7 +5742,6 @@
         this.triggerBuffGlow(data.color);
         this.queueSpectacleBeat('OVERCHARGE', data.color, 1.0, false);
         this.showBanner('OVERCHARGE', 'NEXT 10 SHOTS CRIT', false, true);
-        this.floatText(this.p.x, this.p.y - 26, 'CRIT WINDOW', '#fff36a', TYPE.body);
         return;
       }
       var old = this.run.buffs[kind] || 0;
@@ -5203,7 +5752,6 @@
       this.triggerBuffGlow(data.color);
       this.queueSpectacleBeat(data.name, data.color, 0.98, false);
       this.showBanner(data.name, 'SYSTEM BOOST ONLINE', false, true);
-      this.floatText(this.p.x, this.p.y - 26, data.name, '#a7ffe0', TYPE.body);
       if (kind === 'arsenal') this.arsenalFlashT = 0.45;
       if (kind === 'decoy') {
         var decoyPos2 = clampField(this.p.x + Math.cos(this.p.face) * 150, this.p.y + Math.sin(this.p.face) * 150, 28);
@@ -5228,7 +5776,7 @@
         run.tides[kind] = 8;
         run.lastStandDamage = clamp(2.25 + critical * 0.90, 2.25, 3.15);
         run.lastStandResist = Math.min(0.70, 0.48 + critical * 0.22);
-        this.floatText(p.x, p.y - 28, 'DAMAGE x' + run.lastStandDamage.toFixed(2), '#fff3bf', TYPE.body);
+        this.showBanner('LAST STAND', 'DAMAGE x' + run.lastStandDamage.toFixed(2), false, true);
       } else if (kind === 'singularity-core') {
         this.startSingularity();
       } else if (kind === 'rally-beacon') {
@@ -5249,7 +5797,7 @@
         }
       } else if (kind === 'bounty-frenzy') {
         run.tides[kind] = 8;
-        this.floatText(p.x, p.y - 28, 'CHAIN KILLS ONLINE', '#ffc361', TYPE.body);
+        this.showBanner('BOUNTY FRENZY', 'CHAIN KILLS ONLINE', false, true);
       }
     },
 
@@ -5309,7 +5857,10 @@
       }
       this.suppressBonusDrops = false;
       this.run.bonus += 120 + killed * 2;
-      this.floatText(this.p.x, this.p.y - 52, 'PURGE  +' + killed, '#8effd8', TYPE.head);
+      // Purge is now a shockwave ring (contactRing, real pooled display
+      // object) instead of a floater, so a probe can find it on the live
+      // display list.
+      this.contactRing(this.p.x, this.p.y, 40, 340, 0.5, 0x8effd8, 0.9);
       sfx('death', { volume: 0.42, rate: 0.62 });
       this.rescore();
     },
@@ -5360,6 +5911,20 @@
         this.wings[i].slot = next++;
       }
       this.run.wings = next;
+    },
+
+    // M5-STYLE: mirrors the equipped decal onto the live playerDecal sprite.
+    // 'none' or a locked/unknown key simply hides it; unlock is re-checked
+    // live via decalUnlocked() rather than trusting the stored key blindly.
+    applyDecalToPlayer: function () {
+      if (!this.playerDecal) return;
+      var key = profile.hangar.decal;
+      var d = DECAL_BY_KEY[key];
+      if (!d || d.key === 'none' || !d.frame || !decalUnlocked(key)) {
+        this.playerDecal.setVisible(false);
+        return;
+      }
+      this.playerDecal.setTexture('atlas', d.frame).setVisible(true);
     },
 
     addWing: function () {
@@ -5721,6 +6286,7 @@
     applyWorldFeaturesToPlayer: function (dt) {
       var worldApi = window.HM2_WORLD;
       if (!worldApi) return;
+      if (this.run.setpieceWell) this.applySetpieceWell(this.p, worldApi, dt);
       var features = this.currentRegionFeatures();
       if (!features) return;
       var p = this.p;
@@ -5768,6 +6334,7 @@
       var len = Math.sqrt(dx * dx + dy * dy);
       if (len > 0.03) {
         var boostSpeed = this.run.buffs.overdrive > 0 ? 1.42 : 1;
+        if (p.dashT > 0) boostSpeed *= (p.dashSpeedMult || 1);
         var sp = p.speed * boostSpeed * Math.min(1, len);
         var tx = dx / len * sp, ty = dy / len * sp;
         if (this.run.buffs.overdrive > 0) {
@@ -5804,10 +6371,94 @@
       p.y = pPos.y;
     },
 
+    // M4 gate fix (R1): weighted pick instead of uniform. A region pool's
+    // key COUNT used to be a hidden difficulty dial (uniform pick over N
+    // choices), which is how void-rift growing 3 -> 6 quietly doubled the
+    // odds of drawing a new, harder M3 enemy from t=0. Weights come from
+    // regionEnemyWeightAt (hm_data.js), which ramps the 7 M3 additions in
+    // over run time so early spawns still favor the original roster. Still
+    // uses srand() for seeded determinism. Shared by pickRegionEnemy and any
+    // other draw over a REGION_ENEMIES[key] entry list (e.g. hot-start seed)
+    // so nothing draws uniformly over that list again.
+    weightedRegionEntryPick: function (choices, timeSec) {
+      var total = 0;
+      var i, w, weights = [];
+      for (i = 0; i < choices.length; i++) {
+        w = regionEnemyWeightAt(choices[i], timeSec);
+        if (w < 0) w = 0;
+        weights.push(w);
+        total += w;
+      }
+      if (total <= 0) return choices[Math.floor(srand() * choices.length)];
+      var roll = srand() * total;
+      var acc = 0;
+      for (i = 0; i < choices.length; i++) {
+        acc += weights[i];
+        if (roll < acc) return choices[i];
+      }
+      return choices[choices.length - 1];
+    },
+
+    // Same weighted draw as weightedRegionEntryPick/pickRegionEnemy, but over
+    // a mixed pool of plain enemy-key strings (uniform weight 1, same as
+    // pre-M3 behavior) plus REGION_ENEMIES entries for the current region
+    // (time-ramped weight via regionEnemyWeightAt). Used anywhere a flat
+    // pool array is assembled by hand instead of going through
+    // pickRegionEnemy, so those callers can't silently draw the M3 region
+    // additions at uniform odds from t=0 the way the hot-start seed used to.
+    // Consumes exactly one srand() call, same as a plain uniform index draw.
+    weightedMixedPoolPick: function (baseKeys, regionEntries, timeSec) {
+      var keys = [], weights = [], total = 0, i;
+      for (i = 0; i < baseKeys.length; i++) {
+        keys.push(baseKeys[i]);
+        weights.push(1);
+        total += 1;
+      }
+      for (i = 0; i < regionEntries.length; i++) {
+        var w = regionEnemyWeightAt(regionEntries[i], timeSec);
+        if (w < 0) w = 0;
+        keys.push(regionEntries[i].key);
+        weights.push(w);
+        total += w;
+      }
+      if (!keys.length) return null;
+      if (total <= 0) return keys[Math.floor(srand() * keys.length)];
+      var roll = srand() * total, acc = 0;
+      for (i = 0; i < keys.length; i++) {
+        acc += weights[i];
+        if (roll < acc) return keys[i];
+      }
+      return keys[keys.length - 1];
+    },
+
+    // Row-gated substitution support (M4 gate fix, root cause bisect
+    // 7a14ee85): pickRegionEnemy used to substitute ANY REGION_ENEMIES entry
+    // regardless of whether the active wave row's authored pool actually
+    // contains it, which is how nebula-burrower (authored only on level10's
+    // `at: 190` row) could show up at t=7s. currentRowPool() returns the
+    // active row's pool array, or null when unavailable (classic mode edge
+    // cases, no run, no activeWaves) so callers can fall back to today's
+    // behavior in that case.
+    currentRowPool: function () {
+      if (!this.run || !this.activeWaves || !this.activeWaves.length) return null;
+      var row = this.activeWaves[this.run.waveIdx];
+      return (row && row.pool) ? row.pool : null;
+    },
+
     pickRegionEnemy: function (fallback, regionKey) {
       var choices = REGION_ENEMIES[regionKey];
       if (!choices || !choices.length) return fallback;
-      var pick = choices[Math.floor(srand() * choices.length)];
+      var rowPool = this.currentRowPool();
+      if (rowPool) {
+        var gated = [];
+        for (var gi = 0; gi < choices.length; gi++) {
+          if (rowPool.indexOf(choices[gi].key) >= 0) gated.push(choices[gi]);
+        }
+        if (!gated.length) return fallback;
+        choices = gated;
+      }
+      var timeSec = this.run ? this.run.time : 0;
+      var pick = this.weightedRegionEntryPick(choices, timeSec);
       if (this.run && this.run.regionEnemiesSeen) this.run.regionEnemiesSeen[pick.key] = true;
       return pick.key;
     },
@@ -5856,6 +6507,10 @@
       this.contactRing(boss.x, boss.y, 80, 560, 0.66, def.tint, 0.92);
       this.fx.smoke.emitParticleAt(boss.x, boss.y, kit.juice.enabled ? 12 : 3);
       kit.juice.shake(13, 420);
+      // Ruling 1 (M3 fix): fire the phase-0 set-piece as a telegraphed opener
+      // on spawn, since bossPhaseChange only fires on a phase TRANSITION and
+      // a boss spawns already in phase 0 (see triggerBossSetpiece).
+      this.triggerBossSetpiece(boss, def.key, 0);
       return boss;
     },
 
@@ -5889,7 +6544,7 @@
     fireCampaignEvent: function (ev) {
       var run = this.run, i;
       if (ev.banner) this.showBanner(ev.banner[0], ev.banner[1]);
-      if (ev.callout) this.floatText(this.p.x, this.p.y - 64, ev.callout.toUpperCase(), '#8effd8', TYPE.body);
+      if (ev.callout) this.floatText(this.p.x, this.p.y - 64, capWords(ev.callout.toUpperCase(), 3), '#8effd8', TYPE.body);
       if (ev.spawnPack) {
         var eliteCut = ev.spawnPack.elite ? Math.ceil(ev.spawnPack.count / 3) : 0;
         for (i = 0; i < ev.spawnPack.count; i++) {
@@ -6225,7 +6880,11 @@
         }
       }
 
-      run.spawnT -= dt;
+      // M4 risk events: an accepted overclock offer multiplies the spawn
+      // cadence (more frequent ticks) instead of duplicating spawn code.
+      var riskSpawnMult = (window.HM2_EVENTS && this.riskEvents) ?
+        window.HM2_EVENTS.overclockMultiplier(this.riskEvents, run.time) : 1;
+      run.spawnT -= dt * riskSpawnMult;
       if (run.spawnT <= 0 && !run.bossUp && !run.bossPending && !run.regionBossActive) {
         run.spawnT = row.rate * (0.75 + srand() * 0.5) /
           (1 + Math.min(0.7, run.basePressure * 0.28)) / this.levelMods.spawnRate;
@@ -6247,6 +6906,86 @@
       }
 
       if (!this.level && run.time >= RUN_SECONDS && !run.bossUp && !run.bossPending && !run.regionBossActive) this.spawnBoss();
+
+      this.stepRiskEvents(dt);
+    },
+
+    // M4 risk events (classic + campaign, run-level system, separate from
+    // the declarative level `events` rows). One offer every 90s; accept by
+    // flying into the marker, decline by letting the window expire. Inert
+    // no-op if hm2_events.js did not load.
+    stepRiskEvents: function (dt) {
+      var HE = window.HM2_EVENTS;
+      if (!HE || !this.riskEvents) return;
+      var re = this.riskEvents, run = this.run;
+      re.now = run.time;
+
+      HE.scheduleNext(re, run.time);
+
+      if (re.offer && re.offer.active && !this.riskEventMarker) {
+        // Marker side draw uses the risk-event's OWN rng stream, never the
+        // sim's seeded srand(), so a live offer never shifts the sim's
+        // seeded draw order (enemy comp, spawn rolls, etc).
+        var mp = clampField(this.p.x + HE.pickMarkerSide(re) * 260, this.p.y - 160, 0);
+        re.offer.x = mp.x;
+        re.offer.y = mp.y;
+        this.riskEventMarker = { x: mp.x, y: mp.y, type: re.offer.type };
+        var markerColor = re.offer.type === 'overclock' ? 0xffd67a :
+          re.offer.type === 'distress-beacon' ? 0x8effd8 : 0xff756a;
+        if (this.riskEventGfx) {
+          this.riskEventGfx.ring.setPosition(mp.x, mp.y).setTint(markerColor).setVisible(true);
+          this.riskEventGfx.icon.setPosition(mp.x, mp.y).setTint(markerColor).setVisible(true);
+        }
+        var label = re.offer.type === 'overclock' ? 'SIGNAL // OVERCLOCK CACHE' :
+          re.offer.type === 'distress-beacon' ? 'SIGNAL // DISTRESS BEACON' :
+          'SIGNAL // RIVAL ACE INBOUND';
+        this.showBanner(label, 'FLY IN TO ACCEPT');
+        sfx('telegraph', { volume: 0.5, rate: 0.9 });
+      }
+
+      if (re.offer && re.offer.active) {
+        var outcome = HE.stepOffer(re, { playerX: this.p.x, playerY: this.p.y, now: run.time }, dt);
+        if (outcome === 'accepted') {
+          HE.resolveEvent(re, re.offer.type, 'accepted');
+          this.resolveRiskEventSpawn(re);
+          this.riskEventMarker = null;
+          this.hideRiskEventMarker();
+        } else if (outcome === 'declined') {
+          this.riskEventMarker = null;
+          this.hideRiskEventMarker();
+        }
+      }
+    },
+
+    hideRiskEventMarker: function () {
+      if (!this.riskEventGfx) return;
+      this.riskEventGfx.ring.setVisible(false);
+      this.riskEventGfx.icon.setVisible(false);
+    },
+
+    resolveRiskEventSpawn: function (re) {
+      var ps = re.pendingSpawn;
+      re.pendingSpawn = null;
+      if (!ps) return;
+      var mp = this.riskEventMarker || { x: this.p.x, y: this.p.y };
+      if (ps.kind === 'overclock-start') {
+        this.showBanner('OVERCLOCK ONLINE', '30S // DOUBLE SPAWN, DOUBLE GEMS');
+        sfx('unlock', { volume: 0.4, rate: 1.3 });
+      } else if (ps.kind === 'distress-beacon') {
+        for (var i = 0; i < ps.guards; i++) {
+          var a = i * TAU / ps.guards;
+          var gp = clampField(mp.x + Math.cos(a) * 80, mp.y + Math.sin(a) * 80, 0);
+          this.spawn('lancer', false, gp.x, gp.y, true);
+        }
+        this.spawnBonus('arsenal', mp.x, mp.y);
+        this.showBanner('CACHE CRACKED', 'GUARDS INBOUND');
+        sfx('unlock', { volume: 0.4, rate: 1.0 });
+      } else if (ps.kind === 'rival-ace') {
+        var hunter = this.spawn('lancer', true, mp.x, mp.y, true);
+        if (hunter) { hunter.hp *= 1.6; hunter.maxHp = hunter.hp; hunter.rivalAceBlueprint = true; }
+        this.showBanner('RIVAL ACE', 'HUNTING YOU');
+        sfx('telegraph', { volume: 0.5, rate: 0.7 });
+      }
     },
 
     burst: function (n) {
@@ -6463,6 +7202,8 @@
         scene.contactRing(b.x, b.y, 90, 620, 0.75, 0xd6a4ff, 0.95);
         scene.fx.smoke.emitParticleAt(b.x, b.y, 18);
         scene.burst(10);
+        // Ruling 1 (M3 fix): telegraphed phase-0 opener, see spawnRegionBoss.
+        scene.triggerBossSetpiece(b, 'boss', 0);
       }, 'boss-approach');
 
       kit.audio.music('musicHeat', 1200);
@@ -6575,10 +7316,11 @@
 
       if (fired) {
         if (slotIndex === 0) this.fireWingVolley(ang, base * p.wingDamage);
+        var arch = ARCHETYPE_FX[data.kind] || ARCHETYPE_FX_DEFAULT;
         this.fx.impact.setParticleTint(data.muzzle || data.color);
         this.fx.impact.emitParticleAt(p.x + Math.cos(ang) * 16, p.y + Math.sin(ang) * 16,
-          data.tier === 'evolution' ? 5 : 2);
-        if (data.tier === 'evolution') {
+          data.tier === 'evolution' ? arch.muzzleQty + 3 : arch.muzzleQty);
+        if (data.tier === 'evolution' || arch.ring) {
           this.contactRing(p.x + Math.cos(ang) * 16, p.y + Math.sin(ang) * 16,
             8, 28, 0.16, data.muzzle || data.color, 0.58);
         }
@@ -6848,7 +7590,13 @@
         if (s.forceCrit) this.run.overcharge--;
         var frame = style ? style.frame : (kind === 'seeker' || kind === 'swarm-dart' || kind === 'wisp' ? 'wisp' :
           (kind === 'mortar' ? 'ic_pulse' : (kind === 'wing' ? 'bolt' : 'bolt')));
-        var tint = s.boosted ? 0xffd67a : (style ? style.color : (kind === 'wing' ? 0x8effd8 : 0xffffff));
+        // M5-STYLE: equipped shot colour tints player projectiles (fireShot is
+        // the player-only shot path; enemy bolts use a separate system and
+        // are untouched). Boosted/arsenal tint still wins so buffs stay legible.
+        var shotColorDef = SHOT_COLOR_BY_KEY[profile.hangar.shotColor];
+        var baseTint = style ? style.color : (kind === 'wing' ? 0x8effd8 : 0xffffff);
+        if (shotColorDef && shotColorDef.key !== 'default') baseTint = shotColorDef.color;
+        var tint = s.boosted ? 0xffd67a : baseTint;
         s.visualScale = (style ? (s.boosted ? 1.18 : (style.tier === 'evolution' ? 1.12 : 1.0)) :
           (kind === 'wing' ? 0.94 : 1.1)) * (r / 5);
         this.unpark(s.spr);
@@ -7375,7 +8123,9 @@
             this.fx.impact.setParticleTint(shotData ? (shotData.impact || shotData.color) :
               (s.kind === 'seeker' || s.kind === 'swarm-dart' || s.kind === 'drone' || s.kind === 'wisp' ? 0xbd8dff :
                 (s.kind === 'wing' ? 0x8effd8 : 0xe5fff7)));
-            this.fx.impact.emitParticleAt(s.x, s.y, shotData && shotData.tier === 'evolution' ? 6 : 3);
+            var shotArch = shotData ? (ARCHETYPE_FX[shotData.kind] || ARCHETYPE_FX_DEFAULT) : ARCHETYPE_FX_DEFAULT;
+            this.fx.impact.emitParticleAt(s.x, s.y,
+              shotData && shotData.tier === 'evolution' ? shotArch.impactQty + 3 : shotArch.impactQty);
             if (s.pierce > 0) { s.pierce--; } else { hit = true; }
             break;
           }
@@ -7542,6 +8292,12 @@
     stepEnemies: function (dt) {
       var p = this.p, run = this.run;
       this.stepHatchQueue();
+      // Ruling 3 (M3 fix): tick down the boss gravity-well set-piece and
+      // clear it on expiry, so it never becomes a permanent field.
+      if (run.setpieceWell) {
+        run.setpieceWell.t -= dt;
+        if (run.setpieceWell.t <= 0) run.setpieceWell = null;
+      }
       // M2 SUBTASK C: resolve the current region's terrain features once for
       // the whole enemy pass rather than per-entity.
       var worldApi = window.HM2_WORLD;
@@ -7550,6 +8306,13 @@
         var e = this.enemies[i];
         if (!e.alive) continue;
         if (e.flash > 0) e.flash -= dt;
+        // M3 gate fix: give e.setpiece a lifetime, mirroring the
+        // run.setpieceWell tick above, so a stale phase-0 descriptor cannot
+        // sit on a boss forever and fake later-phase set-piece coverage.
+        if (e.setpiece) {
+          e.setpieceT -= dt;
+          if (e.setpieceT <= 0) { e.setpiece = null; e.setpieceT = 0; }
+        }
         if (e.dotT > 0) {
           e.dotT -= dt;
           this.damage(e, (e.dotDps || 0) * dt, e.x, e.y, false);
@@ -7602,6 +8365,20 @@
           this.watchdogPhase = e.behavior === 'latch' && e.latchT > 0 ? 'latch' : 'boss-approach';
           this.stepRegionBoss(e, dt, enemyClock, phaseHidden, targetX, targetY, dx, dy, dist);
           continue;
+        }
+
+        // M3 bestiary lookup: data-driven behaviors added by hm2_enemies.js.
+        // Falls through to the existing if/else chain untouched when the
+        // behavior key is not one of the new ones (window.HM2_ENEMIES may
+        // also be absent entirely, e.g. an older cached page).
+        if (window.HM2_ENEMIES && window.HM2_ENEMIES.BEHAVIORS[e.behavior]) {
+          var m3ctx = {
+            dt: dt, enemyClock: enemyClock, phaseHidden: phaseHidden,
+            targetX: targetX, targetY: targetY, dx: dx, dy: dy, dist: dist,
+            sp: sp, srand: srand, clampField: clampField, TAU: TAU
+          };
+          var m3Handled = window.HM2_ENEMIES.BEHAVIORS[e.behavior](this, e, m3ctx);
+          if (m3Handled) continue;
         }
 
         if (e.behavior === 'blink') {
@@ -7853,6 +8630,32 @@
       return result;
     },
 
+    // applySetpieceWell (M3 fix, ruling 3): gives the boss gravity_well
+    // set-piece (this.run.setpieceWell) a real gameplay pull on the given
+    // target (player or enemy), reusing the same gravity_well collide hook
+    // and pull math as the region terrain feature above rather than a new
+    // system. flip inverts the pull into a push. Time-bound by the caller
+    // ticking run.setpieceWell.t down in stepEnemies; this only applies the
+    // force while it is still active. No-op if HM2_WORLD is unavailable.
+    applySetpieceWell: function (target, worldApi, dt) {
+      var well = this.run.setpieceWell;
+      if (!well || !worldApi) return;
+      var hooks = worldApi.featureHooks('gravity_well');
+      if (!hooks) return;
+      var wdx = target.x - well.x, wdy = target.y - well.y;
+      var wdist = Math.sqrt(wdx * wdx + wdy * wdy);
+      if (!isFinite(wdist) || wdist < 1e-6) return;
+      var pullRadius = 520;
+      if (wdist >= pullRadius) return;
+      var wres = hooks.collide({ pullRadius: pullRadius }, { dx: wdx, dy: wdy, rand: srand });
+      if (!wres || !isFinite(wres.nx) || !isFinite(wres.ny)) return;
+      var sign = well.flip ? -1 : 1;
+      var pullT = 1 - wdist / pullRadius;
+      var pullAccel = (well.strength || 240) * pullT * dt * sign;
+      target.x += wres.nx * pullAccel * dt;
+      target.y += wres.ny * pullAccel * dt;
+    },
+
     // applyTerrainToEnemy (M2 SUBTASK C): wires the five terrain feature
     // hooks into per-enemy update. features is the current region's list
     // (resolved once per frame by the caller), worldApi is window.HM2_WORLD.
@@ -7897,6 +8700,7 @@
           }
         }
       }
+      if (this.run.setpieceWell) this.applySetpieceWell(e, worldApi, dt);
       var nebula = this.featureOfType(features, 'nebula');
       if (nebula && e.spr) {
         var nHooks = worldApi.featureHooks('nebula');
@@ -8057,12 +8861,45 @@
       this.fx.smoke.emitParticleAt(e.x, e.y, quiet ? 2 : (phase === 1 ? 8 : 12));
       this.triggerBuffGlow(color);
       var bossLabel = e.regionBoss && REGION_BOSS_BY_BOSS_KEY[e.bossKey] ? REGION_BOSS_BY_BOSS_KEY[e.bossKey].name : 'CORE';
-      var phaseSub = e.regionBoss ? (phase === 1 ? 'APEX HUNTER // SECOND PATTERN' : 'APEX HUNTER // DEATH PATTERN') :
-        (phase === 1 ? 'OUTER SHELL FRACTURED' : 'MERIDIAN HEART EXPOSED');
+      var bossMetaKey = e.regionBoss ? e.bossKey : 'boss';
+      var bossMeta = (window.HM2_BOSSES && window.HM2_BOSSES.metaFor) ? window.HM2_BOSSES.metaFor(bossMetaKey) : null;
+      var phaseSub = (bossMeta && bossMeta.phaseNames && bossMeta.phaseNames[phase]) ||
+        (e.regionBoss ? 'APEX HUNTER // SECOND PATTERN' : 'MERIDIAN HEART EXPOSED');
       this.showBanner(bossLabel + ' PHASE ' + (phase + 1), phaseSub, false, true);
       if (this.bossBarTitle) this.bossBarTitle.setText(bossLabel);
       sfx('telegraph', { volume: 0.72, rate: phase === 1 ? 0.82 : 0.66 });
       kit.juice.shake(12 + phase * 3, 360);
+      this.triggerBossSetpiece(e, bossMetaKey, phase);
+    },
+
+    // Arena set-piece: fires an existing hm2_world.js terrain hook, scaled by
+    // phase, at each boss phase transition. Additive to bossPhaseChange; a
+    // missing HM2_BOSSES/HM2_WORLD module is a silent no-op, never a throw.
+    triggerBossSetpiece: function (e, bossMetaKey, phase) {
+      if (!window.HM2_BOSSES || !window.HM2_BOSSES.setpieceFor) return;
+      var ctx = { x: e.x, y: e.y, dx: 0, dy: 0, rand: srand };
+      var piece = window.HM2_BOSSES.setpieceFor(bossMetaKey, phase, ctx);
+      if (!piece) return;
+      e.setpiece = piece;
+      e.setpieceT = 0.9 + phase * 0.3;
+      if (piece.type === 'asteroid_field') {
+        for (var i = 0; i < piece.points.length; i++) {
+          var pt = piece.points[i];
+          this.contactRing(e.x + pt.x, e.y + pt.y, 10, 60 * (pt.scale || 1), 0.4, 0x9a5b55, 0.7);
+        }
+        this.showBanner('ASTEROID RING COLLAPSE', 'DEBRIS CLOSING IN', false, false);
+      } else if (piece.type === 'gravity_well' && piece.well) {
+        this.run.setpieceWell = { x: e.x + piece.well.x, y: e.y + piece.well.y,
+          strength: piece.well.strength, flip: !!piece.well.flip, t: e.setpieceT };
+        this.showBanner('GRAVITY WELL ' + (piece.well.flip ? 'FLIP' : 'SURGE'), 'PROJECTILES BENDING', false, false);
+        this.contactRing(e.x, e.y, 20, 300, 0.5, 0xc480ff, 0.75);
+      } else if (piece.type === 'solar_flare') {
+        for (var j = 0; j < piece.points.length; j++) {
+          var lane = piece.points[j];
+          this.contactRing(e.x + lane.x, e.y + lane.y, 8, lane.width || 260, 0.35, 0xff9a4a, 0.7);
+        }
+        this.showBanner('FLARE BARRAGE', 'HOLD OUTSIDE THE LANES', false, false);
+      }
     },
 
     damage: function (e, amount, hx, hy, noCrit) {
@@ -8072,6 +8909,9 @@
         return;
       }
       var amt = amount * this.tideDamageMultiplier();
+      if (e.behavior === 'shield-wall' && window.HM2_ENEMIES && window.HM2_ENEMIES.wallDamageMultiplier) {
+        amt *= window.HM2_ENEMIES.wallDamageMultiplier(this, e, hx, hy);
+      }
       if (!e.boss && e.behavior !== 'shield-aura') {
         var auraList = this.queryAux(e.x, e.y, 160);
         for (var wai = 0; wai < auraList.length; wai++) {
@@ -8096,8 +8936,10 @@
       this.fx.impact.setParticleTint(e.boss ? 0xe6bbff : (e.elite ? 0xffd67a : 0xe5fff7));
       this.fx.impact.emitParticleAt(hx, hy, e.boss ? 7 : (e.elite ? 5 : 2));
       if (e.boss && e.hp > 0) {
-        var nextPhase = e.regionBoss ? (e.hp <= e.maxHp * 0.5 ? 1 : 0) :
-          (e.hp <= e.maxHp * 0.34 ? 2 : (e.hp <= e.maxHp * 0.67 ? 1 : 0));
+        var hpFrac = e.hp / e.maxHp;
+        var nextPhase = (window.HM2_BOSSES && window.HM2_BOSSES.phaseForHpFrac) ?
+          window.HM2_BOSSES.phaseForHpFrac(hpFrac, e.phaseStage) :
+          (e.regionBoss ? (hpFrac <= 0.5 ? 1 : 0) : (hpFrac <= 0.34 ? 2 : (hpFrac <= 0.67 ? 1 : 0)));
         if (nextPhase > (e.phaseStage || 0)) this.bossPhaseChange(e, nextPhase);
       }
       if (crit) this.floatText(hx, hy, Math.round(amt), '#fff36a', TYPE.sub);
@@ -8117,6 +8959,9 @@
         return;
       }
       if (e.regionBoss) {
+        run.setpieceWell = null;
+        e.setpiece = null;
+        e.setpieceT = 0;
         var regionDef = REGION_BOSS_BY_BOSS_KEY[e.bossKey];
         this.contactRing(e.x, e.y, 118, 840, 0.86, regionDef ? regionDef.tint : e.tint, 1);
         this.contactRing(e.x, e.y, 58, 480, 0.48, 0xffffff, 0.88);
@@ -8147,6 +8992,9 @@
         return;
       }
       if (e.boss) {
+        run.setpieceWell = null;
+        e.setpiece = null;
+        e.setpieceT = 0;
         this.contactRing(e.x, e.y, 100, 900, 0.9, 0xe6bbff, 1);
         this.contactRing(e.x, e.y, 60, 520, 0.55, 0xffffff, 0.9);
         this.fx.death.setParticleTint(0xe6bbff);
@@ -8180,6 +9028,11 @@
         }
       }
       run.kills++;
+      if (e.rivalAceBlueprint) {
+        e.rivalAceBlueprint = false;
+        this.spawnWeaponDrop(this.nextWeaponDrop(null, null), e.x, e.y);
+        this.showBanner('BLUEPRINT RECOVERED', 'RIVAL ACE DOWN');
+      }
       run.combo++;
       run.comboT = 2.6;
       if (run.combo === 10 || run.combo === 25 || run.combo === 50) this.comboMilestone(run.combo);
@@ -8235,6 +9088,20 @@
       }
       var resist = this.run.tides['last-stand'] > 0 ? Math.min(0.70, this.run.lastStandResist || 0) : 0;
       var amt = amount * (1 - p.armor) * (1 - resist);
+      // Monotonic total of damage that actually landed, counted BEFORE the
+      // shield absorbs any of it. hp and shield both recover (regen, and the
+      // shield refills its 35 pool at 14/s), so any sampled read of them can
+      // miss a hit entirely between polls. This counter never decreases, so
+      // "did this class take damage" is answerable without racing the regen.
+      p.damageTaken = (p.damageTaken || 0) + amt;
+      // Warden shield: absorbs damage before hp. Any remainder after the
+      // shield pool is exhausted carries through to hp.
+      if (p.shieldMax > 0 && p.shield > 0) {
+        var absorbed = Math.min(p.shield, amt);
+        p.shield -= absorbed;
+        amt -= absorbed;
+      }
+      p.lastHitAt = this.run.time;
       p.hp -= amt;
       p.iframes = 0.45;
       p.hurtT = 0.35;
@@ -8283,8 +9150,11 @@
         g.y = e.y + (srand() - 0.5) * 18;
         g.vx = (srand() - 0.5) * 70;
         g.vy = (srand() - 0.5) * 70;
+        var riskGemMult = (window.HM2_EVENTS && this.riskEvents && this.riskEvents.effects &&
+          window.HM2_EVENTS.isOverclockActive(this.riskEvents, this.run.time)) ?
+          this.riskEvents.effects.overclockGemMult || 1 : 1;
         g.value = (e.elite ? 5 : e.xp) * this.p.gemBonus * (1 + (this.p.ranks.gemValue || 0) * 0.10)
-          * (this.run.buffs.doubler > 0 ? 2 : 1);
+          * (this.run.buffs.doubler > 0 ? 2 : 1) * riskGemMult;
         g.tier = tier;
         g.born = this.run.time;
         this.unpark(g.spr);
@@ -8318,6 +9188,10 @@
           if (this.run.buffs.flare > 0) this.run.scoreFlareBank += g.value * 0.65;
           this.fx.gem.setParticleTint([0x8fe7ff, 0xa7ffe0, 0xffd07a][g.tier]);
           this.fx.gem.emitParticleAt(g.x, g.y, 3);
+          // Gem pickup streak: a short flare trail from the gem toward the
+          // player, on the shared fx.trail emitter (existing atlas p_flare).
+          this.fx.trail.setParticleTint([0x8fe7ff, 0xa7ffe0, 0xffd07a][g.tier]);
+          this.fx.trail.emitParticleAt(g.x, g.y, 3);
           sfx('gem', { volume: 0.10, rate: 1.0 + Math.min(0.5, this.run.combo * 0.02) });
           this.killSprite(g);
           this.checkLevel();
@@ -8337,9 +9211,11 @@
         run.bonus = (run.bonus || 0) + 250;
         this.rescore();
         sfx('levelup');
-        this.fx.level.emitParticleAt(this.p.x, this.p.y, 24);
+        // Level-up burst: a stronger particle burst plus a second wider
+        // contactRing ring, replacing the old floater.
+        this.fx.level.emitParticleAt(this.p.x, this.p.y, 36);
         this.contactRing(this.p.x, this.p.y, 30, 260, 0.45, 0x8effd8, 0.9);
-        this.floatText(this.p.x, this.p.y - 30, 'MASTERED  +250', '#a7ffe0', TYPE.body);
+        this.contactRing(this.p.x, this.p.y, 18, 150, 0.32, 0xffffff, 0.7);
         this.showBanner('LEVEL ' + run.level, 'ALL SYSTEMS MASTERED. INTEGRITY RESTORED.');
         return;
       }
@@ -8437,9 +9313,9 @@
       if (kit.juice.enabled) this.tweens.add({ targets: ov, alpha: 1, scale: 1, duration: 360, ease: 'Back.easeOut' });
 
       setTextIfChanged(ov.title, 'LEVEL ' + this.run.level);
-      ov.title.setScale((kit.juice.enabled ? 0.58 : 1) / DPR);
+      ov.title.setScale(1 / DPR);
       this.tweens.killTweensOf(ov.title);
-      if (kit.juice.enabled) this.tweens.add({ targets: ov.title, scale: 1 / DPR, duration: 400, ease: 'Back.easeOut' });
+      if (kit.juice.enabled) this.tweens.add({ targets: ov.title, scale: 1.12 / DPR, duration: 400, ease: 'Back.easeOut', yoyo: true });
 
       var cardW = Math.min(320, w - 26);
       var cardH = Math.min(104, (h * 0.52) / Math.max(1, picks.length) - 10);
@@ -8505,7 +9381,7 @@
       else if (u.key === 'magnet') p.magnet += 46;
       else if (u.key === 'armor') p.armor = Math.min(0.62, 1 - Math.pow(0.88, r));
       else if (u.key === 'vitality') { p.maxHp += 22; p.hp = Math.min(p.maxHp, p.hp + 22); }
-      else if (u.key === 'crit') p.crit = Math.min(0.5, r * 0.08);
+      else if (u.key === 'crit') p.crit = Math.min(0.5, r * 0.08 + (p.critShipBonus || 0));
       else if (u.key === 'regen') p.regen = r * 1.6;
       else if (u.key === 'fireRate') p.weaponRate = r;
       else if (u.key === 'multishot') p.multishot = r;
@@ -8608,6 +9484,18 @@
 
     endRun: function (won, abandoned) {
       if (this.state === 'over' || this.pendingEnd) return;
+      // M4 cutscenes: a win with an authored outro plays it first, then
+      // re-enters endRun to finish for real. No-op (falls through) when the
+      // level has no cutscenes.outro, so the other 14 levels are unaffected.
+      if (won && !abandoned && !this._hm2CutsceneOutroDone && this.level && this.level.cutscenes &&
+          this.level.cutscenes.outro && window.HM2_CUTSCENE) {
+        this._hm2CutsceneOutroDone = true;
+        var scene = this;
+        window.HM2_CUTSCENE.playCutscene(this, this.level.cutscenes, 'outro', this.level.id, function () {
+          scene.endRun(won, abandoned);
+        });
+        return;
+      }
       this.pendingEnd = { won: !!won, abandoned: !!abandoned };
       this.state = 'over';
       if (!this.inSim) this.finishRun();
@@ -8675,9 +9563,9 @@
 
       ov.add(neonText(this, w / 2, h * 0.2, eyebrow, TYPE.micro, '#8fb3c4'));
       var t = neonText(this, w / 2, h * 0.2 + 34, title, TYPE.title, col);
-      t.setScale(0.7 / DPR);
+      t.setScale(1 / DPR);
       ov.add(t);
-      this.tweens.add({ targets: t, scale: 1 / DPR, duration: 420, ease: 'Back.easeOut' });
+      this.tweens.add({ targets: t, scale: (1.08) / DPR, duration: 420, ease: 'Back.easeOut', yoyo: true });
       var urule = this.add.image(w / 2, h * 0.2 + 58, 'edge')
         .setDisplaySize(Math.min(220, w * 0.6), 3).setTint(won ? 0x8effd8 : 0xff9a8f)
         .setAlpha(0.55).setBlendMode(Phaser.BlendModes.ADD);
@@ -8927,7 +9815,7 @@
         var px = rawPx + 'px';
         if (t.col !== col) { t.obj.setColor(col); t.col = col; }
         if (t.px !== px) { t.obj.setFontSize(Math.round(rawPx * DPR) + 'px'); t.px = px; }
-        t.obj.setText(String(str)).setPosition(x, y).setAlpha(1).setScale(0.6 / DPR);
+        t.obj.setText(String(str)).setPosition(x, y).setAlpha(1).setScale(1 / DPR);
         return;
       }
     },
@@ -8936,8 +9824,16 @@
       var h = this.scale.height / DPR, w = this.scale.width / DPR;
       var giant = !!huge || !!tide;
       this.watchdogPhase = 'banner';
-      setTextIfChanged(this.bannerTitle, title);
-      setTextIfChanged(this.bannerSub, sub || '');
+      // Text budget: mid-run banners cap at 3 words each and drop the
+      // subtitle entirely if the title alone already fills the budget.
+      var midRun = this.state === 'playing';
+      var bTitle = title, bSub = sub || '';
+      if (midRun) {
+        bTitle = capWords(title, 3);
+        bSub = wordCount(bTitle) >= 3 ? '' : capWords(bSub, 3 - wordCount(bTitle));
+      }
+      setTextIfChanged(this.bannerTitle, bTitle);
+      setTextIfChanged(this.bannerSub, bSub);
       this.bannerTitle.setColor(tide ? '#fff3bf' : '#c9ffe9')
         .setFontSize(Math.round((giant ? (tide ? 32 : 30) : TYPE.sub) * DPR) + 'px')
         .setPosition(0, giant ? -16 : -10);
@@ -9326,6 +10222,10 @@
       if (!this.evolveText) {
         this.evolveText = this.add.text(0, 0, '', { fontFamily: FONT_DISPLAY, fontSize: '38px',
           color: '#ffd67a', fontStyle: 'bold' }).setOrigin(0.5).setScrollFactor(0).setDepth(500).setVisible(false);
+        // M6: created lazily after setupRenderCameras already fixed the
+        // main camera's ignore list, so it must be registered by hand or
+        // it would render (and now rotate) on the main camera too.
+        this.registerUiObject(this.evolveText);
       }
       if (this.evolveFx && this.evolveFx.active) {
         this.evolveText.setText(this.evolveFx.title)
@@ -9346,6 +10246,20 @@
       var curX = cam.midPoint.x, curY = cam.midPoint.y;
       var f = Math.min(1, dt * 7.5);
       cam.centerOn(curX + (lookX - curX) * f + j.dx, curY + (lookY - curY) * f + j.dy);
+
+      // M6: chase cam. Classic (rotation 0) stays the default; when the
+      // player has opted in, rotate the main camera to keep the ship's nose
+      // pointed up. uiCam is a separate camera and is never touched here,
+      // so HUD/radar stay screen-locked. this.playerHeading is already the
+      // smoothed ship heading (co-op guest included) computed above.
+      if (this.chaseCam) {
+        var targetRot = -(this.playerHeading + Math.PI / 2);
+        var rotDiff = Phaser.Math.Angle.Wrap(targetRot - cam.rotation);
+        cam.rotation += rotDiff * Math.min(1, dt * 6);
+      } else if (cam.rotation !== 0) {
+        cam.rotation += Phaser.Math.Angle.Wrap(0 - cam.rotation) * Math.min(1, dt * 6);
+        if (Math.abs(cam.rotation) < 0.001) cam.rotation = 0;
+      }
 
       var cmx = cam.midPoint.x, cmy = cam.midPoint.y;
       var cullX = w / 2 + 90, cullY = h / 2 + 90;
@@ -9419,6 +10333,10 @@
         this.playerBank += (0 - this.playerBank) * Math.min(1, dt * 8);
       }
       this.player.setRotation(this.playerHeading + this.playerBank);
+      // M5-STYLE: decal rides the hull, same heading/bank as the ship.
+      if (this.playerDecal && this.playerDecal.visible) {
+        this.playerDecal.setPosition(p.x, p.y).setRotation(this.playerHeading + this.playerBank);
+      }
       var paint = PAINT_BY_KEY[profile.hangar.paint] || HULL_PAINTS[0];
       if (lowIntegrity && p.hurtT <= 0) this.player.setTint(paint.lowTint);
       else this.player.setTint(paint.tint);
@@ -9484,11 +10402,15 @@
         this.park(this.aegisShell); this.park(this.aegisTimerRing);
       }
 
-      this.fx.trail.setScale(0.72 + thrust * 0.9 + (run.buffs.overdrive > 0 ? 0.48 : 0));
+      // M5-STYLE: trailScaleMul is the equipped engine trail's own scale
+      // property, layered on top of the existing thrust/overdrive scale-up.
+      var trailScaleMul = this.trailScaleMul || 1;
+      this.fx.trail.setScale((0.72 + thrust * 0.9 + (run.buffs.overdrive > 0 ? 0.48 : 0)) * trailScaleMul);
       if (p.moving && this.state === 'playing') {
         this.trailT = (this.trailT || 0) - dt;
         if (this.trailT <= 0) {
-          this.trailT = (run.buffs.overdrive > 0 ? 0.045 : 0.07) - thrust * 0.02;
+          var trailFreqBase = this.trailFreq != null ? this.trailFreq : 0.07;
+          this.trailT = (run.buffs.overdrive > 0 ? trailFreqBase * 0.64 : trailFreqBase) - thrust * 0.02;
           this.fx.trail.emitParticleAt(p.x - Math.cos(p.face) * 16, p.y - Math.sin(p.face) * 16, 1);
         }
       }
@@ -9896,7 +10818,7 @@
         if (tx.pop < 1) {
           tx.pop = Math.min(1, tx.pop + dt * 5);
           var q = 1 - tx.pop;
-          tx.obj.setScale((0.6 + 0.4 * (1 - q * q * q) + Math.sin(tx.pop * Math.PI) * 0.12) / DPR);
+          tx.obj.setScale((1 + Math.sin(tx.pop * Math.PI) * 0.12) / DPR);
         }
         tx.obj.setAlpha(clamp(tx.life / 0.5, 0, 1));
         if (tx.life <= 0) { tx.alive = false; this.park(tx.obj); }
@@ -10810,6 +11732,14 @@
 
       if (this.state !== 'playing' || p.iframes > 0 || this.run.buffs.aegis > 0) return;
       var amt = amount * (1 - p.armor);
+      // Same monotonic counter as the solo damage path above.
+      p.damageTaken = (p.damageTaken || 0) + amt;
+      if (p.shieldMax > 0 && p.shield > 0) {
+        var absorbed = Math.min(p.shield, amt);
+        p.shield -= absorbed;
+        amt -= absorbed;
+      }
+      p.lastHitAt = this.run.time;
       p.hp -= amt; p.iframes = 0.45; p.hurtT = 0.35;
       kit.juice.shake(9, 240); sfx('hurt', { volume: 0.5 });
       if (p.hp <= 0) {

@@ -18,9 +18,9 @@
       { at: 24,  rate: 0.70, pack: 2, pool: ['blink-stalker', 'gravity-mite', 'sprinter'] },
       { at: 54,  rate: 0.62, pack: 2, pool: ['blink-stalker', 'gravity-mite', 'null-leech'] },
       { at: 88,  rate: 0.56, pack: 3, pool: ['blink-stalker', 'gravity-mite', 'null-leech', 'lancer'] },
-      { at: 122, rate: 0.50, pack: 3, pool: ['blink-stalker', 'null-leech', 'lancer', 'weaver'] },
+      { at: 122, rate: 0.50, pack: 3, pool: ['blink-stalker', 'null-leech', 'lancer', 'weaver', 'wing-cutter'] },
       { at: 130, rate: 0.50, pack: 3, pool: ['blink-stalker', 'null-leech', 'lancer', 'phase-reaver'] },
-      { at: 160, rate: 0.44, pack: 3, pool: ['null-leech', 'lancer', 'weaver', 'sapper', 'phase-reaver'] },
+      { at: 160, rate: 0.44, pack: 3, pool: ['null-leech', 'lancer', 'weaver', 'sapper', 'phase-reaver', 'rift-strafer', 'nebula-burrower'] },
       { at: 200, rate: 0.38, pack: 4, pool: ['null-leech', 'lancer', 'sapper', 'phase-reaver', 'hive-splitter'] },
       { at: 240, rate: 0.32, pack: 4, pool: ['null-leech', 'lancer', 'sapper', 'phase-reaver', 'hive-splitter'] },
       { at: 275, rate: 0.28, pack: 5, pool: ['null-leech', 'lancer', 'phase-reaver', 'hive-splitter', 'void-artillery'] }

@@ -51,7 +51,45 @@ Same row shape as the base game's `WAVES` table:
   `bulwark`, `sapper`, `lancer`, `weaver`) AND/OR region-variant keys from
   `REGION_ENEMIES` in hm_data.js (e.g. `cinder-kamikaze`, `blink-stalker`,
   `derelict-guard-hulk`). Never `boss` and never a key that does not exist.
+- The 7 M3 bestiary keys are now valid pool entries, folded into
+  `REGION_ENEMIES` alongside the classic variants: `mine-bomber` and
+  `gem-mimic` (ember-drift / crystal-shoals), `wing-cutter`, `rift-strafer`,
+  `nebula-burrower` (void-rift), `wall-warden`, `xp-leech`
+  (aurelion-graveyard). Meridian Verge has no variant table and keeps none of
+  them.
 - After the last row the framework keeps using it until the run ends.
+
+### Ambient region spawns are WEIGHTED, not uniform (M4 gate fix, R1)
+
+`regionEnemyFor` (game.js) routes roughly 46% of ambient (non-wave-row)
+spawns through `pickRegionEnemy`, which draws from the level's region entry
+in `REGION_ENEMIES`. Before this fix that draw was uniform over the pool, so
+**the number of keys in a region's `REGION_ENEMIES` pool was itself a hidden
+difficulty dial**: void-rift growing from 3 to 6 entries while the other
+regions grew by about 1 silently doubled the odds of an ambient spawn being
+one of the newer, harder M3 additions, from t=0 of the run. That broke
+levels 9, 10, 11 and 13 (see HANDOFF-M4.md R1).
+
+The fix, applied uniformly to all four regions (not a void-rift-only patch):
+each `REGION_ENEMIES` entry may carry `weight` (baseline, default 1),
+`rampAt` (seconds until it reaches full weight, omitted = no ramp), and
+`rampWeight` (the weight once ramped, default 1). `regionEnemyWeightAt(def,
+timeSec)`, exported from hm_data.js on `window.__HM_DATA`, is a pure
+function that returns a def's effective weight at a given run time: entries
+with no `weight`/`rampAt` (the original pre-M4 roster) are always full
+weight; the 7 M3 additions start at `weight: 0.15` and climb linearly to
+`rampWeight: 1` by `rampAt` (90s for most, 150s for `rift-strafer` and 180s
+for `nebula-burrower`, since those two are the pool's ranged threat and its
+highest-damage entry respectively). `pickRegionEnemy` (game.js) does a
+weighted draw over the current region's pool using these weights and the
+run's elapsed time, still via `srand()` so seeded determinism holds. Every
+entry keeps weight > 0 at every time, so no key is ever unreachable.
+
+When adding a new region-variant enemy, prefer giving it a `weight`/`rampAt`
+ramp over relying on pool size alone to gate its difficulty. Adding an
+unweighted (full-weight, no ramp) entry to a pool still raises that region's
+early difficulty for every other entry in the pool, exactly like the R1
+regression.
 
 ## mods (all optional, defaults 1.0)
 
@@ -192,6 +230,12 @@ Content rules added in Rev 2, on top of everything above:
   majority high-speed kamikaze (cinder-kamikaze at speed 126) at `pack >= 3` is
   the same failure in a different costume. Mission 5 had a 10 second survival
   median until its row-0 pool was softened to pack 2 with a slower mix.
+  This also applies to the M3 bestiary keys: `rift-strafer` is `ranged: true`
+  and must never appear in an `at: 0` pool. `mine-bomber` and `gem-mimic` are
+  marked `sapper: true` in hm_data.js (mine-bomber lays hazards at range,
+  gem-mimic is a speed-0 ambush with 22 contact damage) so they carry the same
+  hot-start exclusion even though neither is itself `ranged`. Keep all three
+  out of every `at: 0` row.
 - **Early mods interact with the hot start.** Aggressive `spawnRate` / `enemyHp`
   / `enemyDmg` apply to the seeded board too, so a finale-grade mods block is
   felt at 0:00 rather than at the finale. Mission 15 went from a 20 second
