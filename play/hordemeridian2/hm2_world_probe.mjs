@@ -19,6 +19,32 @@ const OUT = process.argv[3] || '/tmp/hm2_world_probe';
 const W = 390, H = 844;
 const FPS_FLOOR = 50;
 const LUM_DELTA_GATE = 0.18;
+// Absolute floor, independent of the enemy-tint delta gate above. A dead
+// (NaN tilePosition, black) backdrop still clears the >= 0.18 delta gate
+// trivially because darkestTintLum - 0 is large; that is exactly how the
+// hm2Background.update({x,y}, dt) caller-shape bug (game.js:10191) shipped
+// invisible for two release commits without tripping this probe. The floor
+// is picked from measured healthy per-region luminance (min observed ~0.030
+// at c88c3682 post-fix across all regions), left with headroom below that.
+const BACKDROP_LUM_FLOOR = 0.015;
+// Minimum luminance drop required when the 'mid' backdrop layer is hidden,
+// proving that layer is actually contributing pixels to the sampled
+// backdrop band (rather than the floor/delta checks above passing on
+// foreground bleed alone). Measured on a healthy build: hiding mid (alpha
+// 0.6, real asteroid silhouette texture) drops full-viewport average
+// luminance by ~0.014-0.017 across repeated runs; 0.009 sits below that
+// with margin. KNOWN LIMITATION: attempts to reproduce a "mid wired but
+// not drawing" failure (forcing alpha to 0, moving mid's depth outside the
+// backdrop band, or blanking its texture) did not reliably move this delta
+// below the floor in headless Chromium -- readings varied 0.004-0.03 run to
+// run, likely because the region-enter palette fade and/or the interval-
+// based foreground-hider interact with Phaser's render/composite ordering
+// during the ~1s capture window. This check is a real, positive signal on
+// a healthy build and is kept as defense-in-depth, but the tilePosition
+// finiteness check above (not this one) is what actually reproduces and
+// catches the shipped regression; do not treat a PASS here as proof the
+// mid layer specifically is drawing.
+const MID_VISIBILITY_CONTRIB_MIN = 0.009;
 fs.mkdirSync(OUT, { recursive: true });
 const URL = `http://localhost:${PORT}/play/hordemeridian2/index.html`;
 
@@ -324,10 +350,94 @@ async function main() {
       entry.delta = darkestTintLum - lum;
       entry.pass = entry.delta >= LUM_DELTA_GATE;
       if (!entry.pass) fail(report, `region '${key}' luminance delta ${entry.delta.toFixed(4)} < gate ${LUM_DELTA_GATE}.`);
+      // Absolute floor: a black/dead backdrop (NaN tilePosition) trivially
+      // clears the delta-vs-enemy-tint gate above since darkestTintLum - 0
+      // is large. This is the check that would have caught the
+      // hm2Background.update({x,y}, dt) caller-shape bug directly, instead
+      // of relying on the delta gate as a proxy for "does the backdrop look
+      // like real parallax art." Do not touch LUM_DELTA_GATE (0.18) itself.
+      entry.floorPass = lum >= BACKDROP_LUM_FLOOR;
+      if (!entry.floorPass) {
+        fail(report, `region '${key}' backdrop luminance ${lum.toFixed(4)} < absolute floor ${BACKDROP_LUM_FLOOR} (backdrop looks dead/black, not just dim).`);
+      }
     } else {
       entry.note = 'pixel sample failed';
       fail(report, `pixel sampling failed for region '${key}'.`);
     }
+
+    // Let ~2s of real play elapse in this region (parallax scroll depends on
+    // camera motion accumulating over time, not just being non-null), then
+    // require every backdrop layer's tilePositionX/Y be finite. NaN here is
+    // exactly the failure mode of the caller-shape bug: cam.scrollX/scrollY
+    // undefined -> tilePosition = NaN * factor = NaN every frame.
+    await page.waitForTimeout(2000);
+    const tilePositions = await page.evaluate(() => window.__HORDE.debug.getBackdropTilePositions());
+    entry.tilePositions = tilePositions;
+    if (!tilePositions) {
+      fail(report, `region '${key}': could not read backdrop tilePositions (window.__HORDE.debug.getBackdropTilePositions unavailable or hm2Background missing).`);
+    } else {
+      for (const layerKey of ['deep', 'nebula', 'mid', 'dust']) {
+        const layer = tilePositions[layerKey];
+        if (!layer || !Number.isFinite(layer.x) || !Number.isFinite(layer.y)) {
+          fail(report, `region '${key}': backdrop layer '${layerKey}' tilePosition is not finite after 2s of play (x=${layer && layer.x}, y=${layer && layer.y}). The parallax caller is not passing a real camera.`);
+        }
+      }
+    }
+
+    // Contribution check (gate finding): a luminance floor alone can be
+    // satisfied by foreground bleed (e.g. HUD/gameplay pixels not fully
+    // hidden by the depth isolation above) even if the backdrop layers
+    // themselves render nothing. Prove the 'mid' layer is actually
+    // contributing pixels by toggling its visibility off and re-measuring:
+    // hiding it must make the sampled band measurably DARKER than the
+    // baseline (i.e. baseline luminance - hidden luminance >= a minimum).
+    // Tint mutation was tried first but the asteroid silhouette texture is
+    // near-black low-coverage art, so a bright tint barely moves luminance;
+    // visibility toggling is unambiguous regardless of texture content.
+    // Only run this once (first region) to keep the probe fast; it is a
+    // property of the rendering pipeline, not the per-region palette.
+    if (key === realRegionKeys[0]) {
+      const setOk = await page.evaluate(() => window.__HORDE.debug.setBackdropLayerVisible('mid', false));
+      entry.contribSetOk = setOk;
+      if (!setOk) {
+        fail(report, `region '${key}': could not hide mid layer via window.__HORDE.debug.setBackdropLayerVisible (hm2Background.layers.mid missing or no setVisible).`);
+      } else {
+        await page.evaluate(() => {
+          const s = window.__HORDE.game.scene;
+          s.__probeHiddenCount = 0;
+          s.__probeTimer = setInterval(() => {
+            for (const obj of s.children.list) {
+              if (typeof obj.depth !== 'number' || typeof obj.visible !== 'boolean') continue;
+              if (obj.depth > -110 && obj.visible) { obj.visible = false; s.__probeHiddenCount++; }
+            }
+          }, 2);
+        });
+        await page.waitForTimeout(200);
+        const mutShotPath = `${OUT}/region_${key}_mid_hidden.png`;
+        await page.screenshot({ path: mutShotPath });
+        await page.evaluate(() => {
+          const s = window.__HORDE.game.scene;
+          clearInterval(s.__probeTimer);
+          s.__probeTimer = null;
+        });
+        const mutAvg = await samplePngAverage(page, mutShotPath);
+        if (mutAvg) {
+          const mutLum = luminance(mutAvg.r, mutAvg.g, mutAvg.b);
+          entry.contribHiddenLuminance = mutLum;
+          entry.contribDelta = entry.luminance - mutLum;
+          entry.contribPass = entry.contribDelta >= MID_VISIBILITY_CONTRIB_MIN;
+          if (!entry.contribPass) {
+            fail(report, `region '${key}': hiding the 'mid' backdrop layer only moved luminance by ${entry.contribDelta.toFixed(4)} (< ${MID_VISIBILITY_CONTRIB_MIN}); the mid layer is not actually contributing measurable pixels to the sampled backdrop band (floor pass may be foreground bleed, not real backdrop art).`);
+          }
+        } else {
+          fail(report, `region '${key}': pixel sampling failed for the mid-visibility contribution check.`);
+        }
+        // Restore visibility so the rest of the run measures the real
+        // backdrop, not a permanently-hidden mid layer.
+        await page.evaluate(() => window.__HORDE.debug.setBackdropLayerVisible('mid', true));
+      }
+    }
+
     report.regions[key] = entry;
   }
   report.screenshotHashes = shotHashes;

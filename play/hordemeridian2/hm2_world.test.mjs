@@ -434,6 +434,103 @@ var featureHooks = HM2_WORLD.featureHooks;
     guardedCount === 0 && totalCount > 0);
 }());
 
+// ---- N. HM2_BACKGROUND.update() camera-shape / NaN guard ----
+// Regression: game.js:10191 used to call hm2Background.update({x, y}, dt)
+// instead of passing the real camera, so cam.scrollX/scrollY were always
+// undefined and every tilePosition write became NaN (invisible backdrop).
+// See hm2_background.js update(): it now only writes tilePosition when
+// cam.scrollX/scrollY are finite, so a bad caller degrades to a static
+// (previous) backdrop instead of NaN.
+(function () {
+  var HM2_BACKGROUND = require(path.join(__dirname, 'hm2_background.js'));
+
+  function makeFakeGraphics() {
+    return {
+      fillStyle: function () {}, fillCircle: function () {}, fillRect: function () {},
+      beginPath: function () {}, moveTo: function () {}, lineTo: function () {},
+      closePath: function () {}, fillPath: function () {},
+      generateTexture: function () {}, destroy: function () {}
+    };
+  }
+
+  function makeFakeTileSprite() {
+    var obj = {
+      tilePositionX: 0, tilePositionY: 0, tintTopLeft: 0xffffff,
+      setScrollFactor: function () { return obj; },
+      setDepth: function () { return obj; },
+      setAlpha: function () { return obj; },
+      setBlendMode: function () { return obj; },
+      setTint: function (c) { obj.tintTopLeft = c; return obj; },
+      destroy: function () {}
+    };
+    return obj;
+  }
+
+  function makeFakeScene() {
+    return {
+      scale: { width: 800, height: 600 },
+      renderer: { type: 0 },
+      textures: { exists: function () { return false; } },
+      add: {
+        graphics: function () { return makeFakeGraphics(); },
+        tileSprite: function () { return makeFakeTileSprite(); }
+      }
+    };
+  }
+
+  if (typeof global.Phaser === 'undefined') {
+    global.Phaser = { BlendModes: { ADD: 1 }, WEBGL: 1 };
+  }
+
+  var scene = makeFakeScene();
+  var bg = HM2_BACKGROUND.create(scene, { REGIONS: [] });
+
+  // Baseline: a real camera-shaped object (scrollX/scrollY) produces finite
+  // tilePositions on every layer.
+  bg.update({ scrollX: 120, scrollY: -40 }, 1 / 60);
+  var allFiniteHealthy = ['deep', 'nebula', 'mid', 'dust'].every(function (k) {
+    var l = bg.layers[k];
+    return isFinite(l.tilePositionX) && isFinite(l.tilePositionY);
+  });
+  ok('HM2_BACKGROUND.update with a real camera-shaped {scrollX,scrollY} yields finite tilePositions on all 4 layers',
+    allFiniteHealthy);
+
+  // Move to a known-finite non-zero state, then feed the old broken caller
+  // shape ({x, y}, no scrollX/scrollY) which is exactly what game.js used to
+  // pass. Before the guard this drove tilePositionX/Y to NaN; after the
+  // guard the previous finite values must be left untouched.
+  bg.update({ scrollX: 300, scrollY: 300 }, 1 / 60);
+  var before = {};
+  ['deep', 'nebula', 'mid', 'dust'].forEach(function (k) {
+    before[k] = { x: bg.layers[k].tilePositionX, y: bg.layers[k].tilePositionY };
+  });
+
+  bg.update({ x: 999, y: 999 }, 1 / 60); // the regressed caller shape, no scrollX/scrollY
+
+  var allFiniteAfterBadInput = ['deep', 'nebula', 'mid', 'dust'].every(function (k) {
+    var l = bg.layers[k];
+    return isFinite(l.tilePositionX) && isFinite(l.tilePositionY);
+  });
+  ok('HM2_BACKGROUND.update with the regressed {x,y} caller shape leaves tilePositions finite (guard holds)',
+    allFiniteAfterBadInput);
+
+  var unchanged = ['deep', 'nebula', 'mid', 'dust'].every(function (k) {
+    return bg.layers[k].tilePositionX === before[k].x && bg.layers[k].tilePositionY === before[k].y;
+  });
+  ok('HM2_BACKGROUND.update with a non-finite-scroll camera leaves the previous tilePosition values untouched (static, not blank)',
+    unchanged);
+
+  // Explicit NaN scrollX/scrollY (e.g. a camera mid-teleport) must also be
+  // rejected by the guard, not just a missing-property shape.
+  bg.update({ scrollX: NaN, scrollY: NaN }, 1 / 60);
+  var allFiniteAfterNaN = ['deep', 'nebula', 'mid', 'dust'].every(function (k) {
+    var l = bg.layers[k];
+    return isFinite(l.tilePositionX) && isFinite(l.tilePositionY);
+  });
+  ok('HM2_BACKGROUND.update with explicit NaN scrollX/scrollY leaves tilePositions finite',
+    allFiniteAfterNaN);
+}());
+
 console.log('');
 console.log(cases + ' cases, ' + failures + ' failures');
 if (failures > 0) {

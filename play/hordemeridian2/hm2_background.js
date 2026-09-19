@@ -252,7 +252,7 @@
         dust.setTint(lerpColor(fadeFrom.dust, fadeTo.dust != null ? fadeTo.dust : 0xffffff, t));
         if (t >= 1) { fadeTo = null; fadeFrom = null; }
       }
-      if (cam) {
+      if (cam && isFinite(cam.scrollX) && isFinite(cam.scrollY)) {
         deep.tilePositionX = cam.scrollX * 0.05;
         deep.tilePositionY = cam.scrollY * 0.05;
         nebula.tilePositionX = cam.scrollX * 0.18;

@@ -8708,7 +8708,6 @@
         var hooks = worldApi.featureHooks('asteroid_field');
         if (hooks) {
           var adx = e.x - asteroid.x, ady = e.y - asteroid.y;
-          if (asteroid.x == null) { adx = 0; ady = 0; }
           var ares = hooks.collide(asteroid, { dx: adx, dy: ady, rand: srand });
           if (ares.blocked) {
             e.x += ares.nx * 40 * dt;
@@ -10188,7 +10187,7 @@
       }
       this.stepRegionFieldReseed();
       if (this.hm2Background) {
-        try { this.hm2Background.update({ x: cmx, y: cmy }, this.lastDt || (1 / 60)); } catch (bgErr) {}
+        try { this.hm2Background.update(this.cameras.main, this.lastDt || (1 / 60)); } catch (bgErr) {}
       }
     },
 
@@ -10247,6 +10246,7 @@
 
     renderStep: function (dt, j) {
       var p = this.p, run = this.run;
+      this.lastDt = dt;
       var cam = this.cameras.main;
       var w = this.scale.width / DPR, h = this.scale.height / DPR;
 
@@ -11901,6 +11901,33 @@
         out.push({ key: k2, tint: WEAPON_BY_KEY[k2].color });
       }
       return out;
+    },
+    getBackdropTilePositions: function () {
+      var scene = Game.scene;
+      if (!scene || !scene.hm2Background || !scene.hm2Background.layers) return null;
+      var l = scene.hm2Background.layers;
+      var out = {};
+      ['deep', 'nebula', 'mid', 'dust'].forEach(function (k) {
+        var layer = l[k];
+        out[k] = layer ? { x: layer.tilePositionX, y: layer.tilePositionY } : null;
+      });
+      return out;
+    },
+    setBackdropLayerTint: function (layerKey, tint) {
+      var scene = Game.scene;
+      if (!scene || !scene.hm2Background || !scene.hm2Background.layers) return false;
+      var layer = scene.hm2Background.layers[layerKey];
+      if (!layer || typeof layer.setTint !== 'function') return false;
+      layer.setTint(tint);
+      return true;
+    },
+    setBackdropLayerVisible: function (layerKey, visible) {
+      var scene = Game.scene;
+      if (!scene || !scene.hm2Background || !scene.hm2Background.layers) return false;
+      var layer = scene.hm2Background.layers[layerKey];
+      if (!layer || typeof layer.setVisible !== 'function') return false;
+      layer.setVisible(visible);
+      return true;
     },
     getBackdropSample: function () {
       var scene = Game.scene;
