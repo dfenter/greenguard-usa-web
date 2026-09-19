@@ -935,6 +935,21 @@
     return true;
   }
 
+  // Text budget: banners shown DURING A RUN cap at 3 words. Splits on
+  // whitespace and '//' separators alike so 'AIRSTRIKE CALLED' passes but
+  // 'WARDEN BOMBERS INBOUND' or 'LINE LOCKED. CLEARING AHEAD.' get cut.
+  function wordCount(str) {
+    if (!str) return 0;
+    var words = String(str).replace(/\/\//g, ' ').trim().split(/\s+/).filter(Boolean);
+    return words.length;
+  }
+  function capWords(str, maxWords) {
+    if (!str) return str;
+    var words = String(str).replace(/\/\//g, ' ').trim().split(/\s+/).filter(Boolean);
+    if (words.length <= maxWords) return str;
+    return words.slice(0, maxWords).join(' ');
+  }
+
   function makeButton(scene, x, y, w, h, label, onTap, tone, iconFrame) {
     var c = scene.add.container(x, y);
     var hot = tone === 'primary';
@@ -3907,7 +3922,7 @@
       if (this.evolveFx && this.evolveFx.active && this.evolveFx.t < 0.3) dt *= 0.3;
       // Boss phase change reuses the same slow-motion gate (0.3s at 0.3x)
       // instead of a second timeScale system.
-      if (this.bossPhaseFx && this.bossPhaseFx.active && this.bossPhaseFx.t < 0.3) dt *= 0.3;
+      if (false) dt *= 0.3;
       run.time += dt;
       this.recordHull(dt);
 
@@ -5103,7 +5118,6 @@
       var stowUpgradeKey = this.weaponKeyForUpgrade(weaponKey);
       if (stowUpgradeKey) this.p.ranks[stowUpgradeKey] = 1;
       if (slot < 0) {
-        if (source) this.floatText(this.p.x, this.p.y - 28, data.name.toUpperCase(), '#e7fff7', TYPE.body);
         this.showBanner('STOWED IN ARSENAL', data.name.toUpperCase() + ' // TAP A GUN SLOT TO SWAP');
         sfx('unlock', { volume: 0.4, rate: 1.16 });
         this.updateHud();
@@ -5111,7 +5125,6 @@
       }
       run.weaponSlots[slot] = weaponKey;
       run.equippedWeapon = run.weaponSlots[0] || weaponKey;
-      if (source) this.floatText(this.p.x, this.p.y - 28, data.name.toUpperCase(), '#e7fff7', TYPE.body);
       this.showBanner(slot === 0 ? 'PRIMARY EQUIPPED' : (slot === 1 ? 'SECONDARY ONLINE' : 'TERTIARY ONLINE'),
         data.tier === 'evolution' ? data.name.toUpperCase() + ' // EVOLVED' : data.name.toUpperCase());
       this.updateHud();
@@ -5667,7 +5680,6 @@
         this.queueSpectacleBeat('WINGMAN ONLINE', data.color, 1.0, false);
         sfx('pulse', { volume: 0.55, rate: 1.12 });
         this.showBanner('WINGMAN ONLINE', 'FORMATION LINK ESTABLISHED', false, true);
-        this.floatText(this.p.x, this.p.y - 26, 'WINGMAN JOINED', '#8effd8', TYPE.body);
         return;
       }
       if (kind === 'lance') {
@@ -5713,7 +5725,6 @@
         this.triggerBuffGlow(data.color);
         this.queueSpectacleBeat('OVERCHARGE', data.color, 1.0, false);
         this.showBanner('OVERCHARGE', 'NEXT 10 SHOTS CRIT', false, true);
-        this.floatText(this.p.x, this.p.y - 26, 'CRIT WINDOW', '#fff36a', TYPE.body);
         return;
       }
       var old = this.run.buffs[kind] || 0;
@@ -5724,7 +5735,6 @@
       this.triggerBuffGlow(data.color);
       this.queueSpectacleBeat(data.name, data.color, 0.98, false);
       this.showBanner(data.name, 'SYSTEM BOOST ONLINE', false, true);
-      this.floatText(this.p.x, this.p.y - 26, data.name, '#a7ffe0', TYPE.body);
       if (kind === 'arsenal') this.arsenalFlashT = 0.45;
       if (kind === 'decoy') {
         var decoyPos2 = clampField(this.p.x + Math.cos(this.p.face) * 150, this.p.y + Math.sin(this.p.face) * 150, 28);
@@ -5749,7 +5759,7 @@
         run.tides[kind] = 8;
         run.lastStandDamage = clamp(2.25 + critical * 0.90, 2.25, 3.15);
         run.lastStandResist = Math.min(0.70, 0.48 + critical * 0.22);
-        this.floatText(p.x, p.y - 28, 'DAMAGE x' + run.lastStandDamage.toFixed(2), '#fff3bf', TYPE.body);
+        this.showBanner('LAST STAND', 'DAMAGE x' + run.lastStandDamage.toFixed(2), false, true);
       } else if (kind === 'singularity-core') {
         this.startSingularity();
       } else if (kind === 'rally-beacon') {
@@ -5770,7 +5780,7 @@
         }
       } else if (kind === 'bounty-frenzy') {
         run.tides[kind] = 8;
-        this.floatText(p.x, p.y - 28, 'CHAIN KILLS ONLINE', '#ffc361', TYPE.body);
+        this.showBanner('BOUNTY FRENZY', 'CHAIN KILLS ONLINE', false, true);
       }
     },
 
@@ -6433,7 +6443,7 @@
     fireCampaignEvent: function (ev) {
       var run = this.run, i;
       if (ev.banner) this.showBanner(ev.banner[0], ev.banner[1]);
-      if (ev.callout) this.floatText(this.p.x, this.p.y - 64, ev.callout.toUpperCase(), '#8effd8', TYPE.body);
+      if (ev.callout) this.floatText(this.p.x, this.p.y - 64, capWords(ev.callout.toUpperCase(), 3), '#8effd8', TYPE.body);
       if (ev.spawnPack) {
         var eliteCut = ev.spawnPack.elite ? Math.ceil(ev.spawnPack.count / 3) : 0;
         for (i = 0; i < ev.spawnPack.count; i++) {
@@ -9199,9 +9209,9 @@
       if (kit.juice.enabled) this.tweens.add({ targets: ov, alpha: 1, scale: 1, duration: 360, ease: 'Back.easeOut' });
 
       setTextIfChanged(ov.title, 'LEVEL ' + this.run.level);
-      ov.title.setScale((kit.juice.enabled ? 0.58 : 1) / DPR);
+      ov.title.setScale(1 / DPR);
       this.tweens.killTweensOf(ov.title);
-      if (kit.juice.enabled) this.tweens.add({ targets: ov.title, scale: 1 / DPR, duration: 400, ease: 'Back.easeOut' });
+      if (kit.juice.enabled) this.tweens.add({ targets: ov.title, scale: 1.12 / DPR, duration: 400, ease: 'Back.easeOut', yoyo: true });
 
       var cardW = Math.min(320, w - 26);
       var cardH = Math.min(104, (h * 0.52) / Math.max(1, picks.length) - 10);
@@ -9449,9 +9459,9 @@
 
       ov.add(neonText(this, w / 2, h * 0.2, eyebrow, TYPE.micro, '#8fb3c4'));
       var t = neonText(this, w / 2, h * 0.2 + 34, title, TYPE.title, col);
-      t.setScale(0.7 / DPR);
+      t.setScale(1 / DPR);
       ov.add(t);
-      this.tweens.add({ targets: t, scale: 1 / DPR, duration: 420, ease: 'Back.easeOut' });
+      this.tweens.add({ targets: t, scale: (1.08) / DPR, duration: 420, ease: 'Back.easeOut', yoyo: true });
       var urule = this.add.image(w / 2, h * 0.2 + 58, 'edge')
         .setDisplaySize(Math.min(220, w * 0.6), 3).setTint(won ? 0x8effd8 : 0xff9a8f)
         .setAlpha(0.55).setBlendMode(Phaser.BlendModes.ADD);
@@ -9701,7 +9711,7 @@
         var px = rawPx + 'px';
         if (t.col !== col) { t.obj.setColor(col); t.col = col; }
         if (t.px !== px) { t.obj.setFontSize(Math.round(rawPx * DPR) + 'px'); t.px = px; }
-        t.obj.setText(String(str)).setPosition(x, y).setAlpha(1).setScale(0.6 / DPR);
+        t.obj.setText(String(str)).setPosition(x, y).setAlpha(1).setScale(1 / DPR);
         return;
       }
     },
@@ -9710,8 +9720,16 @@
       var h = this.scale.height / DPR, w = this.scale.width / DPR;
       var giant = !!huge || !!tide;
       this.watchdogPhase = 'banner';
-      setTextIfChanged(this.bannerTitle, title);
-      setTextIfChanged(this.bannerSub, sub || '');
+      // Text budget: mid-run banners cap at 3 words each and drop the
+      // subtitle entirely if the title alone already fills the budget.
+      var midRun = this.state === 'playing';
+      var bTitle = title, bSub = sub || '';
+      if (midRun) {
+        bTitle = capWords(title, 3);
+        bSub = wordCount(bTitle) >= 3 ? '' : capWords(bSub, 3 - wordCount(bTitle));
+      }
+      setTextIfChanged(this.bannerTitle, bTitle);
+      setTextIfChanged(this.bannerSub, bSub);
       this.bannerTitle.setColor(tide ? '#fff3bf' : '#c9ffe9')
         .setFontSize(Math.round((giant ? (tide ? 32 : 30) : TYPE.sub) * DPR) + 'px')
         .setPosition(0, giant ? -16 : -10);
@@ -10696,7 +10714,7 @@
         if (tx.pop < 1) {
           tx.pop = Math.min(1, tx.pop + dt * 5);
           var q = 1 - tx.pop;
-          tx.obj.setScale((0.6 + 0.4 * (1 - q * q * q) + Math.sin(tx.pop * Math.PI) * 0.12) / DPR);
+          tx.obj.setScale((1 + Math.sin(tx.pop * Math.PI) * 0.12) / DPR);
         }
         tx.obj.setAlpha(clamp(tx.life / 0.5, 0, 1));
         if (tx.life <= 0) { tx.alive = false; this.park(tx.obj); }
