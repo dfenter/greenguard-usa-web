@@ -39,6 +39,20 @@
   }
 
   // ------------------------------------------------------------------
+  // makeSeededRng: mulberry32, same construction as the sim's srand() but
+  // kept on a totally separate stream so risk-event draws never perturb
+  // (or get perturbed by) the seeded sim RNG. Deterministic per seed.
+  function makeSeededRng(seed) {
+    var a = seed >>> 0;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // ------------------------------------------------------------------
   // pickEvent: chooses the next event type. Honors a no-immediate-repeat
   // rule (never the same type twice in a row) and a soft per-run cap per
   // type (RUN_CAP_PER_TYPE); if every type is capped, repeats are allowed
@@ -165,17 +179,35 @@
   }
 
   // ------------------------------------------------------------------
+  // pickMarkerSide: draws from state.rng (never the sim's seeded srand)
+  // to choose which side of the player the offer marker spawns on. Kept
+  // here so game.js's stepRiskEvents hook never touches Math.random or
+  // the sim RNG directly for this decision.
+  function pickMarkerSide(state) {
+    var rng = (state && state.rng) || defaultRng;
+    return rng() < 0.5 ? -1 : 1;
+  }
+
+  // ------------------------------------------------------------------
   // resetEvents: fresh state for a new run (classic or campaign alike).
-  function resetEvents() {
+  // lastOfferAt starts at 0 (not -Infinity) so the first offer lands at
+  // t=OFFER_INTERVAL (t=90), matching "one offered every 90s", instead of
+  // firing on the very first tick. `seed`, if given, builds this run's own
+  // seeded rng stream (mulberry32) completely separate from the sim's
+  // seeded srand(); pass e.g. runSeed XOR a fixed constant so it stays
+  // reproducible under a fixed run seed. Omit seed to keep the old
+  // Math.random()-backed defaultRng (used by tests that inject state.rng
+  // directly).
+  function resetEvents(seed) {
     return {
       offer: null,
-      lastOfferAt: -Infinity,
+      lastOfferAt: 0,
       lastEventType: null,
       eventCounts: {},
       effects: {},
       pendingSpawn: null,
       now: 0,
-      rng: defaultRng
+      rng: (typeof seed === 'number') ? makeSeededRng(seed) : defaultRng
     };
   }
 
@@ -194,6 +226,8 @@
     resolveEvent: resolveEvent,
     overclockMultiplier: overclockMultiplier,
     isOverclockActive: isOverclockActive,
+    pickMarkerSide: pickMarkerSide,
+    makeSeededRng: makeSeededRng,
     resetEvents: resetEvents
   };
 

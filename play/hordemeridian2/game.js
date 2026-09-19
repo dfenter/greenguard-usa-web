@@ -93,6 +93,7 @@
   var BANK_RATE = HM_DATA.BANK_RATE;
   var REGION_ENEMIES = HM_DATA.REGION_ENEMIES;
   var REGION_ENEMY_BY_KEY = HM_DATA.REGION_ENEMY_BY_KEY;
+  var regionEnemyWeightAt = HM_DATA.regionEnemyWeightAt;
   var REGION_BOSSES = HM_DATA.REGION_BOSSES;
   var REGION_BOSS_BY_KEY = HM_DATA.REGION_BOSS_BY_KEY;
   var REGION_BOSS_BY_BOSS_KEY = HM_DATA.REGION_BOSS_BY_BOSS_KEY;
@@ -3445,7 +3446,7 @@
       };
       // M4 risk events: separate run-level system, inert if hm2_events.js
       // did not load. See stepRiskEvents for the per-tick hook.
-      this.riskEvents = window.HM2_EVENTS ? window.HM2_EVENTS.resetEvents() : null;
+      this.riskEvents = window.HM2_EVENTS ? window.HM2_EVENTS.resetEvents(0x4d657269 ^ 0x52534b45) : null;
       this.riskEventMarker = null;
       this.hideRiskEventMarker();
       this.state = 'playing';
@@ -3544,19 +3545,31 @@
       this.seedHotStart();
     },
 
-    seedSecondWave: function () {
-      var region = regionAtX(this.p.x);
-      var pool = (this.activeWaves[this.run.waveIdx] && this.activeWaves[this.run.waveIdx].pool) ?
-        this.activeWaves[this.run.waveIdx].pool.slice() : ['drifter', 'sprinter', 'bulwark', 'sapper', 'lancer', 'weaver'];
-      pool = pool.filter(function (k) { var v = REGION_ENEMY_BY_KEY[k]; return !v || !v.apex; });
+    // Builds the base-key pool plus the eligible REGION_ENEMIES entries for
+    // seedHotStart/seedSecondWave, kept separate (not merged into one flat
+    // key array) so the region entries can still be weighted by
+    // regionEnemyWeightAt at draw time instead of being flattened to
+    // uniform odds alongside the base keys.
+    hotStartPools: function (basePool, region) {
+      var pool = basePool.filter(function (k) { var v = REGION_ENEMY_BY_KEY[k]; return !v || !v.apex; });
+      var regionEntries = [];
       var regionKeys = REGION_ENEMIES[region.key];
       if (regionKeys) {
         for (var rk = 0; rk < regionKeys.length; rk++) {
           var rkEntry = regionKeys[rk];
-          if (rkEntry.ranged || rkEntry.base === 'lancer' || rkEntry.base === 'sapper' || rkEntry.apex) continue;
-          if (pool.indexOf(rkEntry.key) < 0) pool.push(rkEntry.key);
+          if (rkEntry.ranged || rkEntry.base === 'lancer' || rkEntry.base === 'sapper' || rkEntry.apex || rkEntry.hotStartExclude) continue;
+          if (pool.indexOf(rkEntry.key) < 0) regionEntries.push(rkEntry);
         }
       }
+      return { base: pool, region: regionEntries };
+    },
+
+    seedSecondWave: function () {
+      var region = regionAtX(this.p.x);
+      var basePool = (this.activeWaves[this.run.waveIdx] && this.activeWaves[this.run.waveIdx].pool) ?
+        this.activeWaves[this.run.waveIdx].pool.slice() : ['drifter', 'sprinter', 'bulwark', 'sapper', 'lancer', 'weaver'];
+      var pools = this.hotStartPools(basePool, region);
+      var timeSec = this.run ? this.run.time : 0;
       for (var i = 0; i < HOT_START.secondWave; i++) {
         var a = srand() * TAU;
         var rad, x, y, seedTries = 0;
@@ -3567,7 +3580,7 @@
           y = ringSeedPos.y;
           seedTries++;
         } while (Math.hypot(x - this.p.x, y - this.p.y) < 260 && seedTries < 8);
-        var fam = this.regionEnemyFor(pool[Math.floor(srand() * pool.length)]);
+        var fam = this.regionEnemyFor(this.weightedMixedPoolPick(pools.base, pools.region, timeSec));
         var elite = srand() < HOT_START.elitePct;
         this.spawn(fam, elite, x, y, true);
       }
@@ -3578,17 +3591,10 @@
         Math.round(HOT_START.count * Math.max(0.65, this.levelMods.spawnRate)) :
         HOT_START.count;
       var region = regionAtX(this.p.x);
-      var pool = (this.activeWaves[0] && this.activeWaves[0].pool) ?
+      var basePool = (this.activeWaves[0] && this.activeWaves[0].pool) ?
         this.activeWaves[0].pool.slice() : ['drifter', 'sprinter', 'bulwark'];
-      pool = pool.filter(function (k) { var v = REGION_ENEMY_BY_KEY[k]; return !v || !v.apex; });
-      var regionKeys = REGION_ENEMIES[region.key];
-      if (regionKeys) {
-        for (var rk2 = 0; rk2 < regionKeys.length; rk2++) {
-          var rkEntry2 = regionKeys[rk2];
-          if (rkEntry2.ranged || rkEntry2.base === 'lancer' || rkEntry2.base === 'sapper' || rkEntry2.apex) continue;
-          if (pool.indexOf(rkEntry2.key) < 0) pool.push(rkEntry2.key);
-        }
-      }
+      var pools = this.hotStartPools(basePool, region);
+      var timeSec = this.run ? this.run.time : 0;
       for (var i = 0; i < count; i++) {
         var a = srand() * TAU;
         var rad, x, y, seedTries = 0;
@@ -3599,7 +3605,7 @@
           y = ringSeedPos.y;
           seedTries++;
         } while (Math.hypot(x - this.p.x, y - this.p.y) < 260 && seedTries < 8);
-        var fam = this.regionEnemyFor(pool[Math.floor(srand() * pool.length)]);
+        var fam = this.regionEnemyFor(this.weightedMixedPoolPick(pools.base, pools.region, timeSec));
         var elite = srand() < HOT_START.elitePct;
         this.spawn(fam, elite, x, y, true);
       }
@@ -6296,10 +6302,94 @@
       p.y = pPos.y;
     },
 
+    // M4 gate fix (R1): weighted pick instead of uniform. A region pool's
+    // key COUNT used to be a hidden difficulty dial (uniform pick over N
+    // choices), which is how void-rift growing 3 -> 6 quietly doubled the
+    // odds of drawing a new, harder M3 enemy from t=0. Weights come from
+    // regionEnemyWeightAt (hm_data.js), which ramps the 7 M3 additions in
+    // over run time so early spawns still favor the original roster. Still
+    // uses srand() for seeded determinism. Shared by pickRegionEnemy and any
+    // other draw over a REGION_ENEMIES[key] entry list (e.g. hot-start seed)
+    // so nothing draws uniformly over that list again.
+    weightedRegionEntryPick: function (choices, timeSec) {
+      var total = 0;
+      var i, w, weights = [];
+      for (i = 0; i < choices.length; i++) {
+        w = regionEnemyWeightAt(choices[i], timeSec);
+        if (w < 0) w = 0;
+        weights.push(w);
+        total += w;
+      }
+      if (total <= 0) return choices[Math.floor(srand() * choices.length)];
+      var roll = srand() * total;
+      var acc = 0;
+      for (i = 0; i < choices.length; i++) {
+        acc += weights[i];
+        if (roll < acc) return choices[i];
+      }
+      return choices[choices.length - 1];
+    },
+
+    // Same weighted draw as weightedRegionEntryPick/pickRegionEnemy, but over
+    // a mixed pool of plain enemy-key strings (uniform weight 1, same as
+    // pre-M3 behavior) plus REGION_ENEMIES entries for the current region
+    // (time-ramped weight via regionEnemyWeightAt). Used anywhere a flat
+    // pool array is assembled by hand instead of going through
+    // pickRegionEnemy, so those callers can't silently draw the M3 region
+    // additions at uniform odds from t=0 the way the hot-start seed used to.
+    // Consumes exactly one srand() call, same as a plain uniform index draw.
+    weightedMixedPoolPick: function (baseKeys, regionEntries, timeSec) {
+      var keys = [], weights = [], total = 0, i;
+      for (i = 0; i < baseKeys.length; i++) {
+        keys.push(baseKeys[i]);
+        weights.push(1);
+        total += 1;
+      }
+      for (i = 0; i < regionEntries.length; i++) {
+        var w = regionEnemyWeightAt(regionEntries[i], timeSec);
+        if (w < 0) w = 0;
+        keys.push(regionEntries[i].key);
+        weights.push(w);
+        total += w;
+      }
+      if (!keys.length) return null;
+      if (total <= 0) return keys[Math.floor(srand() * keys.length)];
+      var roll = srand() * total, acc = 0;
+      for (i = 0; i < keys.length; i++) {
+        acc += weights[i];
+        if (roll < acc) return keys[i];
+      }
+      return keys[keys.length - 1];
+    },
+
+    // Row-gated substitution support (M4 gate fix, root cause bisect
+    // 7a14ee85): pickRegionEnemy used to substitute ANY REGION_ENEMIES entry
+    // regardless of whether the active wave row's authored pool actually
+    // contains it, which is how nebula-burrower (authored only on level10's
+    // `at: 190` row) could show up at t=7s. currentRowPool() returns the
+    // active row's pool array, or null when unavailable (classic mode edge
+    // cases, no run, no activeWaves) so callers can fall back to today's
+    // behavior in that case.
+    currentRowPool: function () {
+      if (!this.run || !this.activeWaves || !this.activeWaves.length) return null;
+      var row = this.activeWaves[this.run.waveIdx];
+      return (row && row.pool) ? row.pool : null;
+    },
+
     pickRegionEnemy: function (fallback, regionKey) {
       var choices = REGION_ENEMIES[regionKey];
       if (!choices || !choices.length) return fallback;
-      var pick = choices[Math.floor(srand() * choices.length)];
+      var rowPool = this.currentRowPool();
+      if (rowPool) {
+        var gated = [];
+        for (var gi = 0; gi < choices.length; gi++) {
+          if (rowPool.indexOf(choices[gi].key) >= 0) gated.push(choices[gi]);
+        }
+        if (!gated.length) return fallback;
+        choices = gated;
+      }
+      var timeSec = this.run ? this.run.time : 0;
+      var pick = this.weightedRegionEntryPick(choices, timeSec);
       if (this.run && this.run.regionEnemiesSeen) this.run.regionEnemiesSeen[pick.key] = true;
       return pick.key;
     },
@@ -6764,7 +6854,10 @@
       HE.scheduleNext(re, run.time);
 
       if (re.offer && re.offer.active && !this.riskEventMarker) {
-        var mp = clampField(this.p.x + (srand() < 0.5 ? -260 : 260), this.p.y - 160, 0);
+        // Marker side draw uses the risk-event's OWN rng stream, never the
+        // sim's seeded srand(), so a live offer never shifts the sim's
+        // seeded draw order (enemy comp, spawn rolls, etc).
+        var mp = clampField(this.p.x + HE.pickMarkerSide(re) * 260, this.p.y - 160, 0);
         re.offer.x = mp.x;
         re.offer.y = mp.y;
         this.riskEventMarker = { x: mp.x, y: mp.y, type: re.offer.type };
