@@ -2,9 +2,11 @@
 
 Branch `hm2-m4`, base `e422a157` (M3 gated hash). NOT merged to main, NOT deployed.
 
-**Status: HOLD on the campaign difficulty regression (item R1 below).** Everything
-else in M4 is delivered and green. The orchestrator ran out of context before the
-regression could be fixed, so a fresh lane should pick up R1 and R2.
+**Status: RELEASE at gated hash `65a1a791`, round 6 of the M4 gate.**
+The L10 campaign difficulty regression (R1) is FIXED and measured. The
+adversarial Opus LOW gate returned RELEASE with no blocking findings.
+Round 6 evidence is in "Round 6: the L10 regression, root cause and fix"
+at the bottom of this file, which supersedes the old R1/R2 HOLD text.
 
 ## Done
 
@@ -209,3 +211,169 @@ to skip intros the way a player taps to skip.
 
 No gated hash is claimed: the campaign probe is red at 54/55 and the gate verdict
 was not recorded. HM1 untouched.
+
+---
+
+# Round 6: the L10 regression, root cause and fix
+
+**Gated hash `65a1a791`. Verdict RELEASE** from a separate adversarial Opus LOW
+gate that wrote none of this code. Supersedes the R1/R2 HOLD above.
+
+## The bisect (measured, 3 L10 bot-survival trials per commit)
+
+    base e422a157   55/54/53   good
+    75feaa74        55/54/54   cutscenes, good
+    5c880a73        53/35/54   risk events, FIRST NONDETERMINISM
+    7a14ee85         8/33/36   M3 enemies into REGION_ENEMIES, FIRST BAD
+    head (pre-fix)  36/28/40
+
+Two independent causes, not one:
+
+**(A) Survival.** `regionEnemyFor`/`pickRegionEnemy` re-rolled roughly 54% of
+ALL spawns out of the region pool while IGNORING the level row's authored
+spawn table. So `nebula-burrower` (authored in `levels/level10.js` only at the
+`at: 190` row; untargetable while burrowed, teleports within 60px, dmg 20)
+reached L10 at t=7s and killed the bot.
+
+**(B) Nondeterminism.** `stepRiskEvents` consumed the sim's seeded `srand()`
+for marker placement, desynchronising the seeded stream from 5c880a73 on.
+
+The three earlier hot-start weighting commits (`3d8c4e74`, `9cf1485b`,
+`0c3134c5`) were treating a symptom. They remain; round 6 fixes the model.
+
+## The fix (4 commits, all trailer-free)
+
+    efe5a2f9  gate region enemy substitution to the active row pool
+    deb567af  separate risk-event RNG from sim seeded srand
+    886cceb4  row-gated substitution and events-RNG probe coverage
+    65a1a791  replace campaign probe survival medians with deterministic metric
+
+Game-code change is 3 hunks, 32 lines in game.js plus 6 in hm_data.js:
+
+1. `currentRowPool()` helper + an intersection gate in `pickRegionEnemy`:
+   substitution is limited to `REGION_ENEMIES[region]` INTERSECT the active
+   row's authored pool. Empty intersection returns the fallback unchanged; a
+   null row pool falls back to prior behavior so classic mode is unaffected.
+   The authored spawn table is now authoritative.
+2. `hotStartExclude: true` on nebula-burrower (hm_data.js:482) wired into the
+   `hotStartPools` filter (game.js:3136). A generic data flag, NOT a
+   burrower-specific branch. Note its `base` is `'weaver'`, so the existing
+   `base === 'sapper'` test would NOT have caught it; a bare `sapper: true`
+   would have been a silent no-op.
+3. `resetEvents(seed)` builds a mulberry32 stream and `pickMarkerSide(re)`
+   replaces the `srand()` marker draw, so risk events never touch the sim RNG.
+
+The gate confirmed the fix is general, not special-cased: `nebula-burrower`
+appears in game.js only inside a comment, and the gate is a plain intersection.
+
+## Result: regression fixed
+
+    L10 trial1: t=56s state=over hp=118
+    L10 trial2: t=54s state=over hp=100
+    L10 trial3: t=53s state=over hp=91
+
+Median 54s against base `e422a157` 53-55. Every ending has hp>0, i.e. the bot
+ran the clock out rather than being killed, which is the base-like behavior.
+Bimodality is gone: spread 53-56 versus the 27-55 swing at `0c3134c5`, which
+is the events-RNG fix showing up in measurement. Full medians L1=150, L5=64,
+L10=54, L15=48.
+
+Per Dan, survival medians are INFORMATIONAL ONLY and are no longer a gate. The
+deterministic seeded metric added in `65a1a791` is the gate: for missions
+1/5/10/15 it pins `performance.now()` and `Math.random()` to a synthetic clock
+over the first 60 sim-seconds and asserts enemy spawn composition and damage
+taken against hardcoded spec literals at `COUNT_TOL = 0`. Damage is
+accumulated from `hurt()`'s synchronous before/after hp diff rather than
+sampled hp, because Warden shield regen would void sampled assertions. The L10
+literal contains no `nebula-burrower`, which is the fix's direct signature.
+
+## Evidence at HEAD
+
+    hm2_m4_probe.mjs      74 assertions, 0 failed, exit 0
+    hm2_world.test.mjs    24 cases, 0 failures
+    world probe (8796)    exit 0
+    bestiary 42           50/50, exit 0
+    boss 999              54/54, exit 0
+    campaign 3 trials     55/55, exit 0 (at 886cceb4, pre-metric)
+    deterministic metric  64/64 exit 0 per 65a1a791's body (see residual 2)
+
+## Mutation tables
+
+Orchestrator, re-run independently (not taken on the lanes' word):
+
+| Mutation | Exit | Observed |
+|---|---|---|
+| `rowPool = null` | 1 | 816/5000 burrower draws leak |
+| restore `srand()` marker draw | 1 | Math.imul delta=2 |
+| drop `resetEvents` seed arg | **0** | coverage gap, see residual 1 |
+
+Gate, independent, each reverted with the tree confirmed clean after:
+
+| # | Mutation | Exit |
+|---|---|---|
+| M1 | `rowPool = null` | 1 |
+| M2 | restore `srand()` marker draw | 1 |
+| M3 | drop `hotStartExclude` from filter | 1 |
+| M4 | `resetEvents()` seed dropped | **0** |
+| M5 | empty intersection falls open to `choices` | 1 |
+| M6 | drop `hotStartExclude` from hm_data.js | 1 |
+
+Metric lane's own table in `65a1a791`: 7 M3 weights 0.15->1 exit 1 (60/64);
+seedHotStart timeSec pinned 999 exit 1 (58/64); hotStartPools weakened to
+apex-only exit 1 (62/64).
+
+Anti-vacuity: both new probe checks carry positive counterparts (a
+blink-stalker row MUST still produce hits; the marker MUST actually be placed
+on the measured tick), so neither can pass by the feature being dead. Spec
+literals are hand-computed or hand-copied, never read back from the module
+under test. This matters because M4 produced five separate
+self-adjusting-assertion bugs across earlier rounds.
+
+## Residuals for Dan (none blocking)
+
+1. **Events-RNG coverage gap (real, worth a follow-up).** Dropping the seed
+   argument from `resetEvents()` leaves risk events on `Math.random()` and the
+   probe STILL passes. Found by the gate, independently reproduced by the
+   orchestrator: exit 0, 74/74. The probe proves the sim's `srand()` is
+   untouched (imul delta 0) but nothing pins the event stream as actually
+   SEEDED. The desync root cause is fixed either way, so this is a missing
+   assertion, not a broken fix, but reproducibility under a fixed seed is
+   currently unasserted. Add an assertion that two `resetEvents(seed)` streams
+   with the same seed agree and differ from an unseeded one.
+2. **Campaign/metric probe not verified by the gate.** Three attempts hit
+   puppeteer 45s boot timeouts at `newPage`, caused by concurrent runs of the
+   same probe starving it, NOT by assertion failures. The 64/64 figure comes
+   from the metric lane's commit body plus an orchestrator confirmation run
+   that was still in flight at handoff time. Re-run once the machine is quiet.
+3. **Historical Co-Authored-By trailers.** `88e8bded`, `553c02c2`, `f027e62a`
+   carry the trailer. Per Dan's option (a) these are an ACCEPTED RESIDUAL: no
+   history rewrite, no force-push, enforcement is going-forward only. A
+   rewrite back to `f027e62a^` would rewrite 102 commits of shared pushed
+   history across portal, sparkbridge and razorfin and break other worktrees.
+   All four round-6 commits are trailer-free, carry the `hordemeridian2: `
+   prefix, and add no em dashes (gate-verified).
+4. **`__MISSING ebolt` texture warning** produces `errs=1` in campaign logs and
+   appears in the world probe. Confirmed PRE-EXISTING: `git log -S ebolt`
+   dates it to M3 commit `8cd07660`, before round 6. The probe's own "no
+   console errors" assertion passes.
+5. **`65a1a791`'s commit body ends with a stray `EOF\n)` heredoc artifact.**
+   Cosmetic only.
+6. `/tmp/m5_camp.log` contains a `BOT MEDIANS` line showing L10 26/50/29. It is
+   an M5 run, NOT round 6: zero matches for `currentRowPool|deterministic|
+   Phase 4`, and it reports 52/55 assertions where round 6 gives 55/55. Not
+   evidence against this fix.
+
+## Carried forward from earlier rounds
+
+- Agent type `lane` is NOT registered despite `~/.claude/agents/lane.md`
+  existing; spawning it errors. Use `general-purpose` with an explicit
+  no-Monitor / cd-to-worktree paragraph.
+- `var timeSec = this.run ? this.run.time : 0;` appears TWICE in game.js
+  (~3148 `seedSecondWave`, ~3173 `seedHotStart`). A first-match sed mutates the
+  wrong function and the probe correctly still passes: that is a TRUE
+  NEGATIVE, not a probe hole. Anchor substitutions on the enclosing signature.
+- Probe signatures: world and bestiary take a PORT; boss takes URL then SEED;
+  campaign takes URL, shot dir, trial count. The campaign probe runs well over
+  600s; always background it.
+
+NOT merged to main. NOT deployed. Dan deploys from the gated hash.
