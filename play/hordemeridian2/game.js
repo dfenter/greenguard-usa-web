@@ -3035,7 +3035,7 @@
       };
       // M4 risk events: separate run-level system, inert if hm2_events.js
       // did not load. See stepRiskEvents for the per-tick hook.
-      this.riskEvents = window.HM2_EVENTS ? window.HM2_EVENTS.resetEvents() : null;
+      this.riskEvents = window.HM2_EVENTS ? window.HM2_EVENTS.resetEvents(0x4d657269 ^ 0x52534b45) : null;
       this.riskEventMarker = null;
       this.hideRiskEventMarker();
       this.state = 'playing';
@@ -6396,7 +6396,10 @@
       HE.scheduleNext(re, run.time);
 
       if (re.offer && re.offer.active && !this.riskEventMarker) {
-        var mp = clampField(this.p.x + (srand() < 0.5 ? -260 : 260), this.p.y - 160, 0);
+        // Marker side draw uses the risk-event's OWN rng stream, never the
+        // sim's seeded srand(), so a live offer never shifts the sim's
+        // seeded draw order (enemy comp, spawn rolls, etc).
+        var mp = clampField(this.p.x + HE.pickMarkerSide(re) * 260, this.p.y - 160, 0);
         re.offer.x = mp.x;
         re.offer.y = mp.y;
         this.riskEventMarker = { x: mp.x, y: mp.y, type: re.offer.type };
