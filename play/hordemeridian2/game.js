@@ -68,6 +68,27 @@
   var BONUS_DEBUG_KEYS = HM_DATA.BONUS_DEBUG_KEYS;
   var BONUS_BY_KEY = HM_DATA.BONUS_BY_KEY;
   var TIDE_TURNERS = HM_DATA.TIDE_TURNERS;
+
+  // Per-archetype muzzle/impact particle shaping (M6 VFX pass). Keyed by
+  // WEAPONS[].kind (the 12 archetypes in hm2_weapons.js). Reuses the
+  // existing fx.impact emitter (p_muzzle atlas frame) and contactRing
+  // (ring_thick atlas frame) - no new textures. quantity/spread only,
+  // capped low to stay inside the fps floor.
+  var ARCHETYPE_FX = {
+    lance:     { muzzleQty: 2, impactQty: 2, ring: false },
+    scatter:   { muzzleQty: 4, impactQty: 2, ring: false },
+    rail:      { muzzleQty: 2, impactQty: 3, ring: true },
+    seeker:    { muzzleQty: 1, impactQty: 2, ring: false },
+    mortar:    { muzzleQty: 2, impactQty: 4, ring: true },
+    beam:      { muzzleQty: 3, impactQty: 2, ring: false },
+    glaive:    { muzzleQty: 2, impactQty: 2, ring: false },
+    mine:      { muzzleQty: 1, impactQty: 3, ring: true },
+    ricochet:  { muzzleQty: 2, impactQty: 2, ring: false },
+    arccoil:   { muzzleQty: 3, impactQty: 2, ring: false },
+    flak:      { muzzleQty: 4, impactQty: 2, ring: false },
+    dronebay:  { muzzleQty: 1, impactQty: 2, ring: false }
+  };
+  var ARCHETYPE_FX_DEFAULT = { muzzleQty: 2, impactQty: 2, ring: false };
   var TIDE_BY_KEY = HM_DATA.TIDE_BY_KEY;
   var TIDE_HUD = HM_DATA.TIDE_HUD;
   var WEAPONS = HM_DATA.WEAPONS;
@@ -3884,6 +3905,9 @@
       var realDt = dt;
       this.stepEvolveFx(realDt);
       if (this.evolveFx && this.evolveFx.active && this.evolveFx.t < 0.3) dt *= 0.3;
+      // Boss phase change reuses the same slow-motion gate (0.3s at 0.3x)
+      // instead of a second timeScale system.
+      if (this.bossPhaseFx && this.bossPhaseFx.active && this.bossPhaseFx.t < 0.3) dt *= 0.3;
       run.time += dt;
       this.recordHull(dt);
 
@@ -5806,7 +5830,10 @@
       }
       this.suppressBonusDrops = false;
       this.run.bonus += 120 + killed * 2;
-      this.floatText(this.p.x, this.p.y - 52, 'PURGE  +' + killed, '#8effd8', TYPE.head);
+      // Purge is now a shockwave ring (contactRing, real pooled display
+      // object) instead of a floater, so a probe can find it on the live
+      // display list.
+      this.contactRing(this.p.x, this.p.y, 40, 340, 0.5, 0x8effd8, 0.9);
       sfx('death', { volume: 0.42, rate: 0.62 });
       this.rescore();
     },
@@ -7175,10 +7202,11 @@
 
       if (fired) {
         if (slotIndex === 0) this.fireWingVolley(ang, base * p.wingDamage);
+        var arch = ARCHETYPE_FX[data.kind] || ARCHETYPE_FX_DEFAULT;
         this.fx.impact.setParticleTint(data.muzzle || data.color);
         this.fx.impact.emitParticleAt(p.x + Math.cos(ang) * 16, p.y + Math.sin(ang) * 16,
-          data.tier === 'evolution' ? 5 : 2);
-        if (data.tier === 'evolution') {
+          data.tier === 'evolution' ? arch.muzzleQty + 3 : arch.muzzleQty);
+        if (data.tier === 'evolution' || arch.ring) {
           this.contactRing(p.x + Math.cos(ang) * 16, p.y + Math.sin(ang) * 16,
             8, 28, 0.16, data.muzzle || data.color, 0.58);
         }
@@ -7981,7 +8009,9 @@
             this.fx.impact.setParticleTint(shotData ? (shotData.impact || shotData.color) :
               (s.kind === 'seeker' || s.kind === 'swarm-dart' || s.kind === 'drone' || s.kind === 'wisp' ? 0xbd8dff :
                 (s.kind === 'wing' ? 0x8effd8 : 0xe5fff7)));
-            this.fx.impact.emitParticleAt(s.x, s.y, shotData && shotData.tier === 'evolution' ? 6 : 3);
+            var shotArch = shotData ? (ARCHETYPE_FX[shotData.kind] || ARCHETYPE_FX_DEFAULT) : ARCHETYPE_FX_DEFAULT;
+            this.fx.impact.emitParticleAt(s.x, s.y,
+              shotData && shotData.tier === 'evolution' ? shotArch.impactQty + 3 : shotArch.impactQty);
             if (s.pierce > 0) { s.pierce--; } else { hit = true; }
             break;
           }
@@ -9044,6 +9074,10 @@
           if (this.run.buffs.flare > 0) this.run.scoreFlareBank += g.value * 0.65;
           this.fx.gem.setParticleTint([0x8fe7ff, 0xa7ffe0, 0xffd07a][g.tier]);
           this.fx.gem.emitParticleAt(g.x, g.y, 3);
+          // Gem pickup streak: a short flare trail from the gem toward the
+          // player, on the shared fx.trail emitter (existing atlas p_flare).
+          this.fx.trail.setParticleTint([0x8fe7ff, 0xa7ffe0, 0xffd07a][g.tier]);
+          this.fx.trail.emitParticleAt(g.x, g.y, 3);
           sfx('gem', { volume: 0.10, rate: 1.0 + Math.min(0.5, this.run.combo * 0.02) });
           this.killSprite(g);
           this.checkLevel();
@@ -9063,9 +9097,11 @@
         run.bonus = (run.bonus || 0) + 250;
         this.rescore();
         sfx('levelup');
-        this.fx.level.emitParticleAt(this.p.x, this.p.y, 24);
+        // Level-up burst: a stronger particle burst plus a second wider
+        // contactRing ring, replacing the old floater.
+        this.fx.level.emitParticleAt(this.p.x, this.p.y, 36);
         this.contactRing(this.p.x, this.p.y, 30, 260, 0.45, 0x8effd8, 0.9);
-        this.floatText(this.p.x, this.p.y - 30, 'MASTERED  +250', '#a7ffe0', TYPE.body);
+        this.contactRing(this.p.x, this.p.y, 18, 150, 0.32, 0xffffff, 0.7);
         this.showBanner('LEVEL ' + run.level, 'ALL SYSTEMS MASTERED. INTEGRITY RESTORED.');
         return;
       }
