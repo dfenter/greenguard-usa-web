@@ -93,3 +93,67 @@ that burned M2 and M3. No probe was weakened and no survival assertions were add
 6. `setScale(1/DPR)` in `8445107b` looks sub-1.0 but measures 1.0 at live DPR=1 with uiCam zoom=1. The
    only 0.9-scaled text is `nb.dist`, byte-identical at base. Pre-existing, not an M6 violation.
 7. Campaign survival medians remain noise-dominated and are informational only, per Dan's ruling.
+
+---
+
+## FINAL INTEGRATION (M4 + M5 + M6) - RELEASE 2026-09-19
+
+**Gated hash: `a3d9cadd`** (branch `hm2-mutfix`, fast-forwarded onto `hm2-m6`).
+Lineage: `a87cfb9f` gated M6 -> `c7da28e1` merge of gated M5 `c20a07be` ->
+`36882899` boss slow-mo presentation-only fix -> `27c3041e` probe instrument ->
+`af56551e` probe carriers + majority gate + recaptured literals + won capture ->
+`a3d9cadd` m6 mutation harness re-anchor.
+
+### Gate verdict: RELEASE
+
+Independent adversarial Opus gate, cap 2 rounds, own worktree and port.
+
+Probe set at `a3d9cadd`, one browser probe at a time, machine-wide:
+
+| probe | result |
+|---|---|
+| `hm2_world.test.mjs` (node) | 24/24 |
+| `hm2_m4_probe.mjs` | 74/74 |
+| `hm2_m5_migration_probe.mjs` | 19/19 |
+| `hm2_m6_probe.mjs` | 21/21 |
+| `hm2_m6_probe_mutate.sh` | 9/9 applied, 0 ANCHOR-FAIL, 9/9 caught |
+| `hm2_m5_probe.mjs` | 50/50 |
+| `hm2_world_probe.mjs` | PASS, exit 0 |
+| `hm2_bestiary_probe.mjs` | 50/50 |
+| `hm2_boss_probe.mjs` | 54/54 |
+| `hm2_campaign_probe.mjs` | 72/72, 0 FAIL, 1 WARN, exit 0 |
+
+The single WARN is the known ~1-in-48 probe-side carrier; the 2-of-3 majority
+held and the literal was asserted against the majority.
+
+**Majority-gate soundness proven by two real game-code mutations**, each of which
+drove the campaign probe to exit 1 with hard FAILs (not merely a WARN):
+1. mine-bomber `REGION_ENEMIES` weight 0.15 -> 0.85
+2. burrower `hotStartExclude` removed plus `rampAt` 0
+
+Every recaptured literal traces to a source cause. `af56551e` and `a3d9cadd`
+touch probe files only; game code is untouched by both. No new commit trailers.
+HM1 (`play/hordemeridian/`) untouched throughout.
+
+### Residuals (all carried, none a release blocker)
+
+1. **m5 took-damage assertion flaky.** Flakes for any ship class and fails more
+   often than it passes on some trees. Pre-existing at the parent. Fix the BOT,
+   never weaken the assertion.
+2. **crystal-shoals luminance flaky near the 0.18 gate.** Straddles the floor on
+   both trees. Widen the region palette; do not lower the gate.
+3. **Boss probe teardown throw.** Pre-existing, after all assertions report.
+4. **Campaign probe teardown lacks try/catch.** Can surface a wrapper exit 1
+   while the log reads 72/72. Wrap the teardown.
+5. **~1-in-48 probe carrier under the majority gate.** Mitigated, not cured. The
+   real fix is a sim/fx RNG split in `game.js`: the probe overrides GLOBAL
+   `Math.random`, so presentation draws share the sim stream. Presentation-path
+   consumers at roughly `game.js:8947` and `game.js:9060` (sfx rate).
+6. **Deterministic 60s window never contains a boss phase.** Boss behavior is
+   outside the deterministic metric's coverage.
+7. **Events-RNG seed reproducibility unasserted.** Dropping the `resetEvents`
+   seed still passes the M4 probe.
+8. **META not consolidated into `HANGAR_TRACKS`.** Documented follow-up; Dan
+   ruled publish without it.
+9. **`errs=1` on every bot trial line**, on base and on mutants alike. Confirm
+   as teardown noise.
