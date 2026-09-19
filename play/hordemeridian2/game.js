@@ -3922,7 +3922,7 @@
       if (this.evolveFx && this.evolveFx.active && this.evolveFx.t < 0.3) dt *= 0.3;
       // Boss phase change reuses the same slow-motion gate (0.3s at 0.3x)
       // instead of a second timeScale system.
-      if (false) dt *= 0.3;
+      if (this.bossPhaseFx && this.bossPhaseFx.active && this.bossPhaseFx.t < 0.3) dt *= 0.3;
       run.time += dt;
       this.recordHull(dt);
 
