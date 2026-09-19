@@ -285,6 +285,102 @@ ok('STYLE tab: no console/page errors', styleRes.errs.length === 0, styleRes.err
   ok('no console/page errors during write-guard check', errs.length === 0, errs.join(' | '));
 }
 
+// ---- B2b: activeShipTierData actually reads the OWNED tier, not always
+// Mk I. Boots into 'play' with warden owned at Mk III and checks p.maxHp
+// against the data contract's Mk I/Mk III hpMult (1.30 vs 1.50 of the same
+// base), which only differ when the tier lookup is wired to ownership.
+{
+  const { page, errs } = await newPage();
+  function bootAt(tier) {
+    const h = window.__HORDE.profile.hangar;
+    h.shipTiers = { warden: tier, recon: 1, vector: 1 };
+    h.shipClass = 'warden';
+    window.__HORDE.kit.save.set(window.__HORDE.profile);
+    window.__HORDE.game.pendingLevel = null;
+    const g = window.__HORDE.game;
+    (g.scene || g.phaser.scene.getScenes(true)[0]).scene.start('play');
+  }
+  await page.evaluate(bootAt, 1);
+  await wait(700);
+  const mk1MaxHp = await page.evaluate(() => window.__HORDE.game.scene.p.maxHp);
+  await page.evaluate(bootAt, 3);
+  await wait(700);
+  const mk3MaxHp = await page.evaluate(() => window.__HORDE.game.scene.p.maxHp);
+  const mults = await page.evaluate(() => {
+    const HM_DATA = window.__HM_DATA;
+    const cls = HM_DATA.SHIP_CLASSES.find((c) => c.key === 'warden');
+    return { mk1Mult: cls.tiers[0].hpMult, mk3Mult: cls.tiers[2].hpMult };
+  });
+  const tierCheck = { mk1MaxHp, mk3MaxHp, mk1Mult: mults.mk1Mult, mk3Mult: mults.mk3Mult };
+  await page.close();
+  const expectRatio = tierCheck.mk3Mult / tierCheck.mk1Mult;
+  const gotRatio = tierCheck.mk1MaxHp > 0 ? tierCheck.mk3MaxHp / tierCheck.mk1MaxHp : 0;
+  ok('warden Mk III owned yields higher maxHp than Mk I owned (activeShipTierData honors ownership)',
+    tierCheck.mk3MaxHp > tierCheck.mk1MaxHp && Math.abs(gotRatio - expectRatio) < 0.02,
+    JSON.stringify(tierCheck) + ' gotRatio=' + gotRatio + ' expectRatio=' + expectRatio);
+  ok('tier-ownership check page: no console/page errors', errs.length === 0, errs.join(' | '));
+}
+
+// ---- B2c: decalUnlocked actually gates locked decals (not unconditionally
+// true). Forces a profile that has definitely not met any decal's unlock
+// condition (0 runs, no campaign stars, region 1) and confirms the shop UI
+// treats gated decals as locked by walking the STYLE tab render state.
+{
+  const { page, errs } = await newPage('style');
+  await page.evaluate(() => {
+    // Clear any prior-page save in this same browser context first: earlier
+    // pages in this run (hangar walks, sector-bot trials) accumulate real
+    // profile progress (weaponsSeen, runs, campaign stars) in localStorage,
+    // which would let a gated decal look unlocked here for a reason
+    // unrelated to the mutation under test.
+    localStorage.clear();
+    const p = window.__HORDE.profile;
+    p.runs = 0;
+    p.campaign = { unlocked: 1, stars: {}, bestTimes: {} };
+    p.hangar.weaponsSeen = { lance: true };
+    window.__HORDE.kit.save.set(p);
+    window.__HORDE.game.pendingLevel = null;
+    const scenePlugin = window.__HORDE.game.phaser.scene;
+    scenePlugin.stop('title');
+    scenePlugin.start('shop');
+  });
+  await wait(1200);
+  const gateCheck = await page.evaluate(() => {
+    const HM_DATA = window.__HM_DATA;
+    const scenePlugin = window.__HORDE.game.phaser.scene;
+    const scene = scenePlugin.getScene('shop');
+    if (!scene) return { error: 'shop scene not active' };
+    // Locked decals render at alpha 0.5 with the ic_lock frame (see
+    // ShopScene STYLE tab render: dBg.setAlpha(dUnlocked ? 1 : 0.5) and the
+    // icon texture frame falls back to 'ic_lock' when !dUnlocked). Walk the
+    // display list to find each decal's icon Image and read its actual
+    // rendered frame/alpha, which is what a real player sees, rather than
+    // calling the gate function directly.
+    const gated = HM_DATA.DECALS.filter((d) => d.key !== 'none' && typeof d.gate === 'function');
+    const gatedFrameNames = gated.map((d) => d.frame);
+    const icons = [];
+    function walk(items) {
+      for (const obj of items) {
+        if (obj.type === 'Image' && obj.visible !== false && obj.frame &&
+          (gatedFrameNames.includes(obj.frame.name) || obj.frame.name === 'ic_lock')) {
+          icons.push({ frame: obj.frame.name, alpha: obj.alpha });
+        }
+        if (obj.list && Array.isArray(obj.list)) walk(obj.list);
+      }
+    }
+    walk(scene.children.list);
+    // Any gated decal whose icon shows its real (non-lock) frame at full
+    // opacity means it rendered as unlocked despite the fresh profile
+    // meeting none of the gate criteria.
+    const realFrameLeaks = icons.filter((i) => gatedFrameNames.includes(i.frame));
+    return { icons, gatedFrameNames, realFrameLeaks, gatedCount: gated.length };
+  });
+  await page.close();
+  ok('locked decals render greyed (ic_lock frame, not their real frame) on a fresh profile that meets no gate',
+    !gateCheck.error && gateCheck.gatedCount > 0 && gateCheck.realFrameLeaks.length === 0, JSON.stringify(gateCheck));
+  ok('decal-gate check page: no console/page errors', errs.length === 0, errs.join(' | '));
+}
+
 // ---- B3: balance sanity via the sector bot, one class at a time, Mk I ----
 const BOT = () => {
   window.__gateBot = setInterval(() => {
@@ -396,6 +492,20 @@ for (const cls of ['warden', 'recon', 'vector']) {
     r.final.damageTaken > 0,
     'damageTaken=' + r.final.damageTaken + ' minEffHp=' + r.minEffHp + ' maxEffHp=' + r.maxEffHp);
   ok(`class ${cls}: dealt damage (kills > 0)`, r.final.kills > 0, JSON.stringify(r.final));
+}
+
+// Warden-specific: prove the shield pool actually absorbs hits (not just
+// that hp moves). If the absorb step were removed from the damage path,
+// damageTaken would still be > 0 (it's computed before absorption either
+// way) so the generic "took damage" check above cannot catch that hole.
+// A shield that never dips below its max during a 90s trial where the
+// class clearly took damage means the absorb step never ran.
+{
+  const w = classResults.warden;
+  const shieldDipSeen = w.samples.some((s) => s.shieldMax > 0 && s.shield < s.shieldMax);
+  ok('class warden: shield pool actually dips below max under fire (absorb step runs)',
+    w.final.damageTaken > 0 && shieldDipSeen,
+    'damageTaken=' + w.final.damageTaken + ' shieldSamples=' + JSON.stringify(w.samples.map((s) => ({ shield: s.shield, shieldMax: s.shieldMax }))));
 }
 
 // Ordering / separation checks driven straight off the SHIP_CLASSES data
