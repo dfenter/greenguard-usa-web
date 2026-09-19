@@ -203,11 +203,248 @@ for (const lid of [1, 5, 10, 15]) {
   }
   results[lid] = { trials: times, median: median(times) };
 }
-console.log('BOT MEDIANS ' + JSON.stringify(results));
-step('bot: mission 1 survival median >= 60s (stock ship)', results[1].median >= 60, results[1].median + 's');
-step('bot: mission 5 survival median >= 45s', results[5].median >= 45, results[5].median + 's');
-step('bot: missions 10 and 15 survive past the opening',
-  results[10].median >= 25 && results[15].median >= 25, `L10=${results[10].median}s L15=${results[15].median}s`);
+// Survival medians are INFORMATIONAL ONLY (Dan's ruling): too noisy across
+// real-clock trials to assert on, not a code-correctness signal. They are
+// printed for visibility but no longer gate the probe. See Phase 4 below for
+// the deterministic seeded replacement metric.
+console.log('BOT MEDIANS (informational only, no longer gated) ' + JSON.stringify(results));
+
+// ---- Phase 4: deterministic seeded metric (replaces the survival-median
+// gate per Dan's ruling: medians were a methodology defect, too noisy across
+// real-clock trials to assert on). For each mission, with a FIXED seed, runs
+// the bot-driven sim for the first 60 sim-seconds and records enemy
+// composition (spawn counts by key) and total player damage taken via the
+// p.damageTaken accumulator path (never sampled hp - Warden shield regen
+// voids sampled-hp assertions), then asserts against SPEC LITERALS captured
+// once at this HEAD.
+//
+// Determinism strategy: the real per-frame update loop reads real wall-clock
+// time in two places that make a live browser run non-reproducible even with
+// a seeded RNG: (1) Phaser's own rAF loop feeds `update(now)` real deltas,
+// and (2) the shared, frozen play/_shared/ggkit.js's kit.juice.frame() gates
+// the sim step on real performance.now() for hit-stop/shake windows (a
+// synchronous drive loop barely advances real time, so that gate can freeze
+// the sim for thousands of iterations). Both are wall-clock, not game.js, so
+// they can't be fixed by editing frozen game.js. The probe instead: stops
+// Phaser's real loop right after the scene starts, pins performance.now()
+// to a synthetic monotonic clock, and drives scene.update(now) itself at a
+// fixed 1000/60 ms step - giving the real spawn/collision/draft code paths a
+// fully reproducible clock. Math.random is also reseeded (mulberry32-style)
+// since game.js's own seeded srand() only covers spawn-position/region-pool
+// draws, not crit rolls, drone angles, or hit-stop timing jitter.
+async function deterministicMetric(lid) {
+  // Isolated incognito context: phases 1-3 already ran real gameplay on the
+  // shared `browser` (level boots + bot trials), which persists to
+  // localStorage (campaign unlocks, meta-currency, upgrades). A plain
+  // browser.newPage() shares that storage across every page on the same
+  // origin, so starting stats would silently drift from the clean profile
+  // the spec literals were captured against. A fresh incognito context has
+  // no localStorage/IndexedDB history, matching a clean-profile capture.
+  const ctx = await browser.createBrowserContext();
+  const bp = await ctx.newPage();
+  await bp.setViewport({ width: W, height: H, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  await bp.goto(URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await bp.waitForFunction(() => window.__HORDE_READY === true, { timeout: 45000 });
+  // Let async boot/asset-load work on the fresh incognito page fully settle
+  // before seeding: without this, two identically-coded runs can still
+  // diverge by a frame or two because some boot-time async work is still in
+  // flight when the deterministic drive starts.
+  await wait(1500);
+  await bp.evaluate(() => {
+    // Probe-side deterministic RNG (mulberry32-style), fixed seed. game.js is
+    // frozen so this cannot be seeded inside it; overriding window.Math.random
+    // here covers every Math.random() call the sim makes during the drive.
+    let seed = 0xC0FFEE;
+    Math.random = function () {
+      seed = (seed + 0x6D2B79F5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  });
+  await bp.evaluate((l) => {
+    const g = window.__HORDE.game;
+    g.pendingLevel = window.__HM_LEVELS[l];
+    (g.scene || g.phaser.scene.getScenes(true)[0]).scene.start('play');
+  }, lid);
+  // Let exactly one real rAF frame elapse so Phaser's scene manager
+  // processes the pending 'play' start and instantiates the scene, then
+  // immediately stop the real loop before any further real-time frames (and
+  // their RNG/srand draws) can run.
+  await bp.evaluate(() => new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      window.__HORDE.game.phaser.loop.stop();
+      resolve();
+    }));
+  }));
+  await bp.evaluate(() => {
+    window.__dmgTaken = 0;
+    window.__spawnCounts = {};
+    const s = window.__HORDE.game.scene;
+    // p.damageTaken accumulator: game.js has no such field, and hurt() only
+    // decrements p.hp synchronously when a hit actually lands (early-returns
+    // on iframes/aegis, applies armor+resist mitigation before the
+    // subtraction) - never asynchronously, so a before/after hp diff taken
+    // strictly inside this synchronous wrapper is NOT the sampled-hp anti-
+    // pattern the task warns about (that refers to polling p.hp across
+    // separate ticks, where Warden shield regen between samples can hide or
+    // invent damage). This wrapper builds the accumulator game.js lacks.
+    const origHurt = s.hurt.bind(s);
+    s.hurt = function (amount, source) {
+      const beforeHp = s.p.hp;
+      origHurt(amount, source);
+      const afterHp = s.p.hp;
+      const applied = beforeHp - afterHp;
+      if (applied > 0) window.__dmgTaken += applied;
+      s.p.damageTaken = window.__dmgTaken;
+    };
+    const origSpawn = s.spawn.bind(s);
+    s.spawn = function (fam, elite, atX, atY, force) {
+      const e = origSpawn(fam, elite, atX, atY, force);
+      if (e) window.__spawnCounts[fam] = (window.__spawnCounts[fam] || 0) + 1;
+      return e;
+    };
+  });
+  await bp.evaluate(BOT_TICK_SRC);
+  const result = await bp.evaluate(async () => {
+    const sc = window.__HORDE.game.scene;
+    let now = 1000000; // fixed synthetic epoch, not wall-clock
+    sc.lastNow = now;
+    // Pin performance.now() to the synthetic clock: kit.juice.frame() (shared
+    // ggkit.js, frozen) gates the sim step on real performance.now() for
+    // hit-stop/shake windows, which would otherwise desync from a
+    // synchronously-driven sim clock.
+    performance.now = () => now;
+    const stepMs = 1000 / 60;
+    let frame = 0;
+    const safetyCap = 60 * 60 * 3; // generous vs. the ~3700 frames a 60s run needs
+    while (sc.run.time < 61 &&
+      (sc.state === 'playing' || sc.state === 'draft' || sc.state === 'levelup' || sc.state === 'cutscene-intro')) {
+      now += stepMs;
+      // Some missions hold state at 'cutscene-intro' until skipped (same as
+      // phase 2's real-player-tap simulation above). Skip it deterministically
+      // on the synthetic clock so a mission with an authored intro doesn't
+      // stall the drive loop at t=0.
+      if (sc.state === 'cutscene-intro' && sc.input) sc.input.emit('pointerdown');
+      window.__gateBotTick && window.__gateBotTick();
+      sc.update(now);
+      frame++;
+      if (frame > safetyCap) break;
+    }
+    return {
+      spawnCounts: window.__spawnCounts,
+      dmgTaken: window.__dmgTaken,
+      finalTime: sc.run.time,
+      finalState: sc.state,
+      frames: frame,
+    };
+  });
+  await ctx.close();
+  return result;
+}
+
+// The bot's per-tick decision logic, ported to a standalone tick function
+// (no setInterval - the deterministic drive calls it once per synthetic
+// frame from window.__gateBotTick).
+const BOT_TICK_SRC = () => {
+  window.__gateBotTick = () => {
+    const s = window.__HORDE.game.scene;
+    if (!s || !s.p) return;
+    if (s.state !== 'playing') {
+      if (s.pickUpgrade && (s.state === 'draft' || s.state === 'levelup')) {
+        const pinnedNow = s.lastNow;
+        s.pickUpgrade(0);
+        // pickUpgrade() resyncs lastNow to real performance.now(); re-pin it
+        // to the synthetic clock so the fixed-step accumulator stays
+        // deterministic across draft picks.
+        s.lastNow = pinnedNow;
+      }
+      return;
+    }
+    const p = s.p, R = 260, SEC = 8, dens = new Array(SEC).fill(0);
+    let near140 = 0;
+    for (const e of s.enemies) {
+      if (!e.alive) continue;
+      const dx = e.x - p.x, dy = e.y - p.y, d = Math.hypot(dx, dy);
+      if (d < 140) near140++;
+      if (d < R) {
+        const k = Math.floor(((Math.atan2(dy, dx) + Math.PI * 2) % (Math.PI * 2)) / (Math.PI * 2) * SEC) % SEC;
+        dens[k] += (R - d) / R;
+        dens[(k + 1) % SEC] += 0.4 * (R - d) / R;
+        dens[(k + SEC - 1) % SEC] += 0.4 * (R - d) / R;
+      }
+    }
+    const gemPull = new Array(SEC).fill(0);
+    if (s.gems) for (const g of s.gems) {
+      if (!g.alive) continue;
+      const dx = g.x - p.x, dy = g.y - p.y, d = Math.hypot(dx, dy);
+      if (d < 500) {
+        const k = Math.floor(((Math.atan2(dy, dx) + Math.PI * 2) % (Math.PI * 2)) / (Math.PI * 2) * SEC) % SEC;
+        gemPull[k] += 0.6 * (500 - d) / 500;
+      }
+    }
+    let best = 0, bestScore = Infinity;
+    for (let k = 0; k < SEC; k++) {
+      const sc = dens[k] - gemPull[k];
+      if (sc < bestScore) { bestScore = sc; best = k; }
+    }
+    const ang = (best + 0.5) / SEC * Math.PI * 2;
+    const vx = Math.cos(ang), vy = Math.sin(ang);
+    s.stick.active = true; s.stick.dx = vx; s.stick.dy = vy;
+    if (near140 >= 12 && (s.run.strikeCharges || 0) > 0 && !s.airStrike.active) s.tryCallAirstrike();
+  };
+};
+
+// SPEC LITERALS, captured once at this HEAD by running deterministicMetric
+// against it (game.js/hm_data.js unchanged since). Any future intentional
+// gameplay change (spawn weights, damage tuning, difficulty ramp) requires
+// re-capturing these by hand and noting the new HEAD in this comment - they
+// are never derived from the code under test.
+const SPEC_LITERALS = {
+  1: { spawnCounts: { drifter: 33, sprinter: 45, 'grave-egg': 9, 'derelict-guard-hulk': 6, 'scrap-ripper': 3, 'wall-warden': 1, 'salvage-swarm': 108, bulwark: 10 }, dmgTaken: 0 },
+  5: { spawnCounts: { drifter: 17, 'ember-scarab': 112, sprinter: 10, 'ash-wraith': 76, 'cinder-kamikaze': 42, lancer: 8 }, dmgTaken: 100 },
+  10: { spawnCounts: { 'gravity-mite': 94, 'blink-stalker': 105, drifter: 1, 'null-leech': 66, 'wing-cutter': 1, sprinter: 3 }, dmgTaken: 0 },
+  15: { spawnCounts: { drifter: 62, sprinter: 76, bulwark: 36, 'cinder-kamikaze': 19, 'blink-stalker': 28 }, dmgTaken: 100 },
+};
+const CAPTURE_MODE = process.env.HM2_CAPTURE === '1';
+const DMG_TOL_FRAC = 0.10; // damage taken tolerance: 10% relative
+const COUNT_TOL = 0; // spawn counts must match exactly for a seeded, deterministic sim
+
+for (const lid of [1, 5, 10, 15]) {
+  const m1 = await deterministicMetric(lid);
+  const m2 = await deterministicMetric(lid);
+  const sameComposition = JSON.stringify(m1.spawnCounts) === JSON.stringify(m2.spawnCounts);
+  const sameDamage = Math.abs(m1.dmgTaken - m2.dmgTaken) < 1e-9;
+  step(`L${lid} deterministic metric: two runs identical (composition + damage)`,
+    sameComposition && sameDamage,
+    `run1 dmg=${m1.dmgTaken} run2 dmg=${m2.dmgTaken} sameComposition=${sameComposition}`);
+
+  if (CAPTURE_MODE) {
+    console.log(`  SPEC_LITERAL L${lid}: ${JSON.stringify({ spawnCounts: m1.spawnCounts, dmgTaken: m1.dmgTaken })}`);
+    console.log(`  L${lid} deterministic: t=${m1.finalTime.toFixed(2)}s state=${m1.finalState} frames=${m1.frames} spawnCounts=${JSON.stringify(m1.spawnCounts)} dmgTaken=${m1.dmgTaken}`);
+    continue;
+  }
+
+  const spec = SPEC_LITERALS[lid];
+  const keys = new Set([...Object.keys(spec.spawnCounts), ...Object.keys(m1.spawnCounts)]);
+  let compositionOk = true;
+  const compositionDetail = [];
+  for (const k of keys) {
+    const got = m1.spawnCounts[k] || 0;
+    const want = spec.spawnCounts[k] || 0;
+    if (Math.abs(got - want) > COUNT_TOL) compositionOk = false;
+    compositionDetail.push(`${k}:${got}/${want}`);
+  }
+  step(`L${lid} enemy composition matches spec literal (exact, captured at this HEAD)`,
+    compositionOk, compositionDetail.join(' '));
+
+  const dmgTol = Math.max(spec.dmgTaken * DMG_TOL_FRAC, 0.01);
+  const dmgOk = Math.abs(m1.dmgTaken - spec.dmgTaken) <= dmgTol;
+  step(`L${lid} damage taken over first 60s matches spec literal ${spec.dmgTaken} +/- ${(DMG_TOL_FRAC * 100).toFixed(0)}%`,
+    dmgOk, `got=${m1.dmgTaken}`);
+
+  console.log(`  L${lid} deterministic: t=${m1.finalTime.toFixed(2)}s state=${m1.finalState} frames=${m1.frames} spawnCounts=${JSON.stringify(m1.spawnCounts)} dmgTaken=${m1.dmgTaken}`);
+}
 
 const fails = log.filter((l) => !l.ok).length;
 console.log('\n' + (log.length - fails) + '/' + log.length + ' assertions passed; shots in ' + SHOTDIR);
