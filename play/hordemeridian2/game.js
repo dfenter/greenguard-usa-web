@@ -3133,7 +3133,7 @@
       if (regionKeys) {
         for (var rk = 0; rk < regionKeys.length; rk++) {
           var rkEntry = regionKeys[rk];
-          if (rkEntry.ranged || rkEntry.base === 'lancer' || rkEntry.base === 'sapper' || rkEntry.apex) continue;
+          if (rkEntry.ranged || rkEntry.base === 'lancer' || rkEntry.base === 'sapper' || rkEntry.apex || rkEntry.hotStartExclude) continue;
           if (pool.indexOf(rkEntry.key) < 0) regionEntries.push(rkEntry);
         }
       }
@@ -5904,9 +5904,32 @@
       return keys[keys.length - 1];
     },
 
+    // Row-gated substitution support (M4 gate fix, root cause bisect
+    // 7a14ee85): pickRegionEnemy used to substitute ANY REGION_ENEMIES entry
+    // regardless of whether the active wave row's authored pool actually
+    // contains it, which is how nebula-burrower (authored only on level10's
+    // `at: 190` row) could show up at t=7s. currentRowPool() returns the
+    // active row's pool array, or null when unavailable (classic mode edge
+    // cases, no run, no activeWaves) so callers can fall back to today's
+    // behavior in that case.
+    currentRowPool: function () {
+      if (!this.run || !this.activeWaves || !this.activeWaves.length) return null;
+      var row = this.activeWaves[this.run.waveIdx];
+      return (row && row.pool) ? row.pool : null;
+    },
+
     pickRegionEnemy: function (fallback, regionKey) {
       var choices = REGION_ENEMIES[regionKey];
       if (!choices || !choices.length) return fallback;
+      var rowPool = this.currentRowPool();
+      if (rowPool) {
+        var gated = [];
+        for (var gi = 0; gi < choices.length; gi++) {
+          if (rowPool.indexOf(choices[gi].key) >= 0) gated.push(choices[gi]);
+        }
+        if (!gated.length) return fallback;
+        choices = gated;
+      }
       var timeSec = this.run ? this.run.time : 0;
       var pick = this.weightedRegionEntryPick(choices, timeSec);
       if (this.run && this.run.regionEnemiesSeen) this.run.regionEnemiesSeen[pick.key] = true;

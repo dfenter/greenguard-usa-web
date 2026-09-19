@@ -479,7 +479,11 @@
       // nebula-burrower: phases in/out of visibility, fits the "vision
       // pockets" mechanic (nebula cover) better than any other region.
       // M4 gate fix: highest dmg (20) in the pool, ramps in slowest (180s).
-      { key: 'nebula-burrower', frame: 'weaver', base: 'weaver', behavior: 'burrower', r: 15, hp: 24, speed: 66, dmg: 20, xp: 3, tint: 0x9b8cff, scale: 1.02, weight: 0.15, rampAt: 180, rampWeight: 1 }
+      // hotStartExclude: true because base is 'weaver' (not 'sapper'), so the
+      // sapper/lancer/apex hot-start filter in hotStartPools would not catch
+      // it on base alone; untargetable-while-burrowed + 20 dmg is just as
+      // unfair at t=0 as the other hot-start exclusions.
+      { key: 'nebula-burrower', frame: 'weaver', base: 'weaver', behavior: 'burrower', r: 15, hp: 24, speed: 66, dmg: 20, xp: 3, tint: 0x9b8cff, scale: 1.02, weight: 0.15, rampAt: 180, rampWeight: 1, hotStartExclude: true }
     ],
     'aurelion-graveyard': [
       { key: 'derelict-guard-hulk', frame: 'bulwark', base: 'bulwark', behavior: 'hulk', r: 27, hp: 58, speed: 22, dmg: 24, xp: 4, tint: 0xc07d62, scale: 1.12 },
