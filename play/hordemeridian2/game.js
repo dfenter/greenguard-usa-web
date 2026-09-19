@@ -3793,8 +3793,17 @@
       var dtReal = Math.min(0.1, (now - this.lastNow) / 1000);
       this.lastNow = now;
 
+      // Boss-phase slow-motion, presentation only (0.3s at 0.3x), applied the
+      // same way the screen flash is: outside the sim. Scaling the real time
+      // handed to the accumulator means fewer fixed steps run per wall-clock
+      // second, so the player sees slow-mo, while every step that DOES run is
+      // still exactly STEP - run.time and the whole deterministic sim are
+      // untouched. Deliberately NOT a sim-dt multiplier; see simStep().
+      var dtFeed = dtReal;
+      if (this.bossPhaseFx && this.bossPhaseFx.active && this.bossPhaseFx.t < 0.3) dtFeed *= 0.3;
+
       if (!this.frozenBySystem && this.state === 'playing' && !j.frozen) {
-        this.accum += dtReal;
+        this.accum += dtFeed;
         var steps = 0;
         while (this.accum >= STEP && steps < MAX_STEPS) {
           // Exception trap: an error thrown mid-step on a device we cannot
@@ -3926,9 +3935,11 @@
       var realDt = dt;
       this.stepEvolveFx(realDt);
       if (this.evolveFx && this.evolveFx.active && this.evolveFx.t < 0.3) dt *= 0.3;
-      // Boss phase change reuses the same slow-motion gate (0.3s at 0.3x)
-      // instead of a second timeScale system.
-      if (this.bossPhaseFx && this.bossPhaseFx.active && this.bossPhaseFx.t < 0.3) dt *= 0.3;
+      // Boss-phase slow-mo is PRESENTATION ONLY and lives in update(), where it
+      // scales the real-time fed to the step accumulator. It must never dilate
+      // the sim dt: run.time drives the row gate, ramp weights, boss scheduling
+      // and events, so dilating it here shifted spawn composition (and stacked
+      // multiplicatively with the evolveFx gate down to 0.09x).
       run.time += dt;
       this.recordHull(dt);
 
