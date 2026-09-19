@@ -340,11 +340,33 @@ self-adjusting-assertion bugs across earlier rounds.
    assertion, not a broken fix, but reproducibility under a fixed seed is
    currently unasserted. Add an assertion that two `resetEvents(seed)` streams
    with the same seed agree and differ from an unseeded one.
-2. **Campaign/metric probe not verified by the gate.** Three attempts hit
-   puppeteer 45s boot timeouts at `newPage`, caused by concurrent runs of the
-   same probe starving it, NOT by assertion failures. The 64/64 figure comes
-   from the metric lane's commit body plus an orchestrator confirmation run
-   that was still in flight at handoff time. Re-run once the machine is quiet.
+2. **CLOSED: the deterministic metric is now independently verified.**
+   The gate could not run it (three puppeteer 45s boot timeouts at `newPage`,
+   caused by concurrent runs of the same probe starving it, NOT assertion
+   failures). The orchestrator's confirmation run at clean HEAD has since
+   completed: **64/64 assertions, exit 0**, matching `65a1a791`'s own claim.
+
+   All four missions confirmed two-run determinism (`sameComposition=true`)
+   and every spawn count matched its spec literal exactly at `COUNT_TOL = 0`:
+
+       L1   dmg 0    drifter:33 sprinter:45 grave-egg:9
+                     derelict-guard-hulk:6 scrap-ripper:3 wall-warden:1
+                     salvage-swarm:108 bulwark:10
+       L5   dmg 100  drifter:17 ember-scarab:112 sprinter:10
+                     ash-wraith:76 cinder-kamikaze:42 lancer:8
+       L10  dmg 0    gravity-mite:94 blink-stalker:105 drifter:1
+                     null-leech:66 wing-cutter:1 sprinter:3
+       L15  dmg 100  drifter:62 sprinter:76 bulwark:36
+                     cinder-kamikaze:19 blink-stalker:28
+
+   **The L10 composition contains NO `nebula-burrower`.** That is the fix's
+   direct signature: the enemy that was reaching L10 at t=7s and killing the
+   bot is now absent from the entire first 60 sim-seconds, because the row
+   gate makes the authored spawn table authoritative.
+
+   Informational medians from the same run: L1=150, L5=74, L10=55
+   (trials 55/56/53, hp 76/69/144, all hp>0), L15=41. L10 sits in the base
+   band 53-55 for a second independent 3-trial run.
 3. **Historical Co-Authored-By trailers.** `88e8bded`, `553c02c2`, `f027e62a`
    carry the trailer. Per Dan's option (a) these are an ACCEPTED RESIDUAL: no
    history rewrite, no force-push, enforcement is going-forward only. A
