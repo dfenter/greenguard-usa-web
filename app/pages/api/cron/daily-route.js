@@ -11,7 +11,7 @@ const biz = require('../../../lib/business.config')
 
 const TZ = 'America/Chicago'
 const SENDER = `${biz.name} <${biz.email}>`
-const RECIPIENTS = ['bruce@greenguard-usa.com', biz.email]
+const RECIPIENTS = ['bruce@greenguard-usa.com', 'Abelrodriguez15@gmail.com', biz.email]
 
 function fmtTime(iso) {
   if (!iso) return ''
