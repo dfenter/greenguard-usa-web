@@ -17,6 +17,9 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://portal.greenguard-us
 // Gmail label applied to admin ops mail at send time. See sendViaGmailApi:
 // self-addressed mail bypasses Gmail filters, so this is applied on send.
 const OPS_LABEL_IDS = [process.env.GMAIL_OPS_LABEL_ID || 'Label_8']
+// Invoice-sent / new-purchase copies also get their own sub-label and are
+// archived out of the inbox at send time (Gmail filters can't touch them).
+const BILLING_LABEL_IDS = [process.env.GMAIL_BILLING_LABEL_ID || 'Label_9']
 
 function fmt$(cents) {
   const n = Number(cents)
@@ -33,7 +36,14 @@ function esc(s) {
 async function sendAdminCopy({ subject, html, fromName }) {
   const from = `${fromName || biz.nameShort} <${biz.email}>`
   try {
-    await sendViaGmailApi({ to: ADMIN_EMAIL, subject, html, from, labelIds: OPS_LABEL_IDS })
+    await sendViaGmailApi({
+      to: ADMIN_EMAIL,
+      subject,
+      html,
+      from,
+      labelIds: [...OPS_LABEL_IDS, ...BILLING_LABEL_IDS],
+      removeLabelIds: ['INBOX'],
+    })
     return { ok: true }
   } catch (e) {
     console.warn('admin copy via Gmail failed (%s) — falling back to Resend', e.message)

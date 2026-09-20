@@ -46,7 +46,7 @@ function base64url(str) {
   return Buffer.from(str, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
-async function sendViaGmailApi({ to, subject, html, bcc, from, labelIds, attachments }) {
+async function sendViaGmailApi({ to, subject, html, bcc, from, labelIds, removeLabelIds, attachments }) {
   const gmail = google.gmail({ version: 'v1', auth: getGmailAuth() })
   const toList = Array.isArray(to) ? to.join(', ') : to
   const bccList = bcc ? (Array.isArray(bcc) ? bcc.join(', ') : bcc) : null
@@ -81,12 +81,15 @@ async function sendViaGmailApi({ to, subject, html, bcc, from, labelIds, attachm
   // modify call. Verified against the live API: send-with-labelIds does nothing.
   // Best-effort: a labelling failure must never turn into a lost email, since
   // the message itself is already delivered by this point.
-  if (labelIds && labelIds.length) {
+  if ((labelIds && labelIds.length) || (removeLabelIds && removeLabelIds.length)) {
     try {
       await gmail.users.messages.modify({
         userId: 'me',
         id: res.data.id,
-        requestBody: { addLabelIds: labelIds },
+        requestBody: {
+          ...(labelIds && labelIds.length ? { addLabelIds: labelIds } : {}),
+          ...(removeLabelIds && removeLabelIds.length ? { removeLabelIds } : {}),
+        },
       })
     } catch (e) {
       console.warn('ops label apply failed for %s (%s) — email still sent', res.data.id, e.message)
