@@ -6279,11 +6279,13 @@
     // derelict_hulk.projectile call absorbed the shot one frame after spawn.
     //
     // The guard belongs at the POSITION-DEPENDENT call sites only, via
-    // featureOfTypePlaced below. Not every hook reads feature.x/y:
-    // nebula.visibility takes the PLAYER-to-ENEMY delta and is correct for an
-    // unplaced feature, so blanket-guarding featureOfType would silently
-    // disable enemy cloaking (measured: aurelion-graveyard world-probe
-    // luminance delta 0.2146 -> 0.1797, under the 0.18 gate).
+    // featureOfTypePlaced below. Hotfix 4: nebula.visibility also needs
+    // featureOfTypePlaced now, because FEATURES_BY_REGION gives every region
+    // an unplaced nebula descriptor and the raw player-to-enemy distance
+    // check has no relation to where (or whether) a nebula actually sits in
+    // that region, causing enemies to blink invisible at exactly 220px from
+    // the player everywhere. Cloaking now only applies inside a placed
+    // nebula's own area (see applyTerrainToEnemy).
     featureOfType: function (features, type) {
       if (!features) return null;
       for (var i = 0; i < features.length; i++) {
@@ -8733,13 +8735,18 @@
         }
       }
       if (this.run.setpieceWell) this.applySetpieceWell(e, worldApi, dt);
-      var nebula = this.featureOfType(features, 'nebula');
+      var nebula = this.featureOfTypePlaced(features, 'nebula');
       if (nebula && e.spr) {
         var nHooks = worldApi.featureHooks('nebula');
         if (nHooks) {
-          var ndx = p.x - e.x, ndy = p.y - e.y;
-          var nres = nHooks.visibility(nebula, { dx: ndx, dy: ndy, rand: srand });
-          e.spr.setAlpha(nres.alpha);
+          var nfdx = e.x - nebula.x, nfdy = e.y - nebula.y;
+          var nfdist = Math.sqrt(nfdx * nfdx + nfdy * nfdy);
+          var nebulaRadius = nebula.hideRadius || 220;
+          if (nfdist < nebulaRadius) {
+            var ndx = p.x - e.x, ndy = p.y - e.y;
+            var nres = nHooks.visibility(nebula, { dx: ndx, dy: ndy, rand: srand });
+            e.spr.setAlpha(nres.alpha);
+          }
         }
       }
       var hulk = this.featureOfTypePlaced(features, 'derelict_hulk');

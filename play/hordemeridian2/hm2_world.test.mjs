@@ -434,6 +434,74 @@ var featureHooks = HM2_WORLD.featureHooks;
     guardedCount === 0 && totalCount > 0);
 }());
 
+// ---- Bug (hotfix 4) regression: nebula cloak must not apply to unplaced
+// features, and must only hide enemies inside a placed nebula's own area ----
+// game.js's applyTerrainToEnemy used to resolve nebula via featureOfType
+// (unplaced allowed) and fed it the raw player-to-enemy delta, so every
+// region's unplaced nebula descriptor hid ANY enemy within 220px of the
+// player everywhere on the map. This mirrors game.js's fixed logic exactly:
+// featureOfTypePlaced for nebula, and an additional enemy-to-feature
+// distance gate before the visibility hook is even consulted.
+(function () {
+  function featureOfType(features, type) {
+    for (var i = 0; i < features.length; i++) {
+      if (features[i].type === type) return features[i];
+    }
+    return null;
+  }
+  function featureOfTypePlaced(features, type) {
+    var f = featureOfType(features, type);
+    if (!f) return null;
+    if (typeof f.x !== 'number' || !isFinite(f.x)) return null;
+    if (typeof f.y !== 'number' || !isFinite(f.y)) return null;
+    return f;
+  }
+
+  // applyTerrainToEnemy-equivalent: returns the alpha the game would write,
+  // or null if the game would not touch alpha at all (the fixed contract).
+  function nebulaAlphaForEnemy(features, enemy, player) {
+    var nebula = featureOfTypePlaced(features, 'nebula');
+    if (!nebula) return null;
+    var hooks = featureHooks('nebula');
+    var nfdx = enemy.x - nebula.x, nfdy = enemy.y - nebula.y;
+    var nfdist = Math.sqrt(nfdx * nfdx + nfdy * nfdy);
+    var nebulaRadius = nebula.hideRadius || 220;
+    if (nfdist >= nebulaRadius) return null;
+    var ndx = player.x - enemy.x, ndy = player.y - enemy.y;
+    var nres = hooks.visibility(nebula, { dx: ndx, dy: ndy });
+    return nres.alpha;
+  }
+
+  // 1) With the shipped (unplaced) FEATURES_BY_REGION, an enemy right next
+  // to the player anywhere on the map must never get its alpha touched.
+  var unplacedFeatures = FEATURES_BY_REGION['meridian-verge'];
+  var neverTouchedAnywhere = true;
+  var probeEnemyPositions = [
+    { x: 0, y: 0 }, { x: 4000, y: 4000 }, { x: -4000, y: -4000 }, { x: 100, y: -250 }
+  ];
+  probeEnemyPositions.forEach(function (pos) {
+    var player = { x: pos.x + 50, y: pos.y }; // within old 220px hideRadius
+    if (nebulaAlphaForEnemy(unplacedFeatures, pos, player) !== null) neverTouchedAnywhere = false;
+  });
+  ok('unplaced nebula never changes enemy alpha anywhere on the map (fix holds)', neverTouchedAnywhere);
+
+  // 2) A placed nebula at (0,0) with radius R=220: an enemy inside R, near
+  // the player, gets the hook's alpha (0, hidden); an enemy outside R is
+  // left untouched (null), even though it may also be near the player.
+  var placedNebula = { type: 'nebula', region: 'meridian-verge', spread: 900, hideRadius: 220, x: 0, y: 0 };
+  var placedFeatures = [placedNebula];
+
+  var insideEnemy = { x: 50, y: 0 }; // dist from feature center 50 < 220
+  var insidePlayer = { x: 60, y: 0 }; // player-to-enemy dist 10 < hideRadius -> hidden
+  var insideAlpha = nebulaAlphaForEnemy(placedFeatures, insideEnemy, insidePlayer);
+  ok('placed nebula: enemy inside its radius and near the player gets alpha 0', insideAlpha === 0);
+
+  var outsideEnemy = { x: 500, y: 0 }; // dist from feature center 500 >= 220
+  var outsidePlayer = { x: 510, y: 0 }; // still near the player (dist 10)
+  var outsideAlpha = nebulaAlphaForEnemy(placedFeatures, outsideEnemy, outsidePlayer);
+  ok('placed nebula: enemy outside its radius is untouched even when near the player', outsideAlpha === null);
+}());
+
 // ---- N. HM2_BACKGROUND.update() camera-shape / NaN guard ----
 // Regression: game.js:10191 used to call hm2Background.update({x, y}, dt)
 // instead of passing the real camera, so cam.scrollX/scrollY were always
