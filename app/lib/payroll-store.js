@@ -1673,6 +1673,20 @@ async function finalizeRun({ runId, actorEmail }) {
   // hiccup must not roll back a finalized payroll. It is idempotent and
   // retryable via postRunToBooks().
   await postRunToBooks(runId).catch((e) => console.error('[payroll] books posting failed:', e.message))
+
+  // Automation event log. Outside the transaction for the same reason books
+  // posting is: a log write must never roll back a finalized payroll.
+  // recordEvent never throws, and keys on the run id so a retry cannot
+  // double-count.
+  {
+    const { recordEvent, KINDS } = require('./ops-events')
+    await recordEvent({
+      kind: KINDS.PAYROLL_RUN,
+      subjectRef: String(runId),
+      details: { actorEmail: actorEmail || 'system' },
+    })
+  }
+
   return getRunWithItems(runId)
 }
 

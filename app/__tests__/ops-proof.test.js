@@ -492,3 +492,120 @@ describe('hardening', () => {
     expect(Object.keys(res.body)).toEqual(['generatedAt'])
   })
 })
+
+// The automation event log is the preferred source for the weekly figures.
+// It is written at the moment the work happens by whichever path did it, so it
+// sees Resend fallback sends that never reach the Gmail sent mailbox (the
+// undercount these tests are really about).
+describe('event-log preference for week figures', () => {
+  // Routes the shared lib/db mock by SQL text: the event-log aggregate and
+  // computeLastClose both go through q(), so they must be answered separately.
+  function withEventCounts(rows) {
+    mockQ.mockImplementation((sql) => {
+      if (/FROM ops_events/.test(sql)) return Promise.resolve({ rows })
+      return Promise.resolve({ rows: [] })
+    })
+  }
+
+  beforeEach(() => {
+    mockCountContactsByProperty.mockResolvedValue(1)
+    mockListRuns.mockResolvedValue([])
+    mockListAllInvoicesSince.mockResolvedValue([])
+    mockInvoicesList.mockReturnValue(asyncIterableFrom([]))
+    mockGetBookingsForDateRange.mockResolvedValue([
+      { id: 'a', startTime: new Date(Date.now() - 86400000).toISOString() },
+    ])
+    // Gmail fallback values, deliberately different from the log values so the
+    // assertions prove which source won.
+    mockCountSentMessages.mockResolvedValue(7)
+    mockCountDistinctSentSubjects.mockResolvedValue(2)
+    mockGetLatestRoutePlan.mockResolvedValue({ plan: null, generatedAt: null })
+  })
+
+  test('prefers event-log counts over the Gmail derivation when rows exist', async () => {
+    withEventCounts([
+      { kind: 'reminder_sent', n: 11 },
+      { kind: 'followup_sent', n: 9 },
+      { kind: 'route_emailed', n: 5 },
+    ])
+
+    const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
+    const res = mockRes()
+    await handler(req, res)
+
+    // Log values, NOT the Gmail-derived 8 (7+1) / 7 / 2.
+    expect(res.body.week.remindersSent).toBe(11)
+    expect(res.body.week.followUpsCompleted).toBe(9)
+    expect(res.body.week.routesGenerated).toBe(5)
+  })
+
+  test('falls back to the Gmail derivation when the log has no rows in the window', async () => {
+    withEventCounts([])
+
+    const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
+    const res = mockRes()
+    await handler(req, res)
+
+    expect(res.body.week.remindersSent).toBe(8) // 7 sent-mailbox + 1 visit
+    expect(res.body.week.followUpsCompleted).toBe(7)
+    expect(res.body.week.routesGenerated).toBe(2)
+  })
+
+  test('falls back per kind, so a partial rollout uses the better source for each', async () => {
+    // Only the Python agent's reminder writer is live; invoices/routes are not.
+    withEventCounts([{ kind: 'reminder_sent', n: 11 }])
+
+    const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
+    const res = mockRes()
+    await handler(req, res)
+
+    expect(res.body.week.remindersSent).toBe(11) // from the log
+    expect(res.body.week.followUpsCompleted).toBe(7) // still from Gmail
+    expect(res.body.week.routesGenerated).toBe(2) // still from Gmail
+  })
+
+  test('falls back when the event table cannot be read at all', async () => {
+    mockQ.mockImplementation((sql) => {
+      if (/FROM ops_events/.test(sql)) return Promise.reject(new Error('relation does not exist'))
+      return Promise.resolve({ rows: [] })
+    })
+
+    const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
+    const res = mockRes()
+    await handler(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(200)
+    expect(res.body.week.remindersSent).toBe(8)
+    expect(res.body.week.followUpsCompleted).toBe(7)
+  })
+
+  test('invoice figures come from the log when present', async () => {
+    withEventCounts([
+      { kind: 'invoice_issued', n: 4 },
+      { kind: 'invoice_paid', n: 3 },
+      { kind: 'failed_card_recovered', n: 1 },
+    ])
+
+    const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
+    const res = mockRes()
+    await handler(req, res)
+
+    expect(res.body.week.invoicesIssued).toBe(4)
+    expect(res.body.week.invoicesPaid).toBe(3)
+    expect(res.body.week.failedCardsRecovered).toBe(1)
+  })
+
+  test('still exposes no PII when figures come from the log', async () => {
+    withEventCounts([{ kind: 'reminder_sent', n: 11 }])
+
+    const req = { method: 'GET', headers: { origin: ALLOWED_ORIGIN } }
+    const res = mockRes()
+    await handler(req, res)
+
+    const serialized = JSON.stringify(res.body)
+    expect(serialized).not.toMatch(/@/)
+    for (const v of Object.values(res.body.week || {})) {
+      expect(typeof v).toBe('number')
+    }
+  })
+})

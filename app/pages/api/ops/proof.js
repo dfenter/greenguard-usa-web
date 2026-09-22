@@ -220,6 +220,13 @@ async function computeRoutesGeneratedWeek(since) {
   return emailDays + planInWindow
 }
 
+// Event-log counts for the trailing window, or undefined if the table could not
+// be read. See the preference rules in computeProof().
+async function computeEventCounts(since) {
+  const { countAllEventsSince } = require('../../../lib/ops-events')
+  return countAllEventsSince(since)
+}
+
 async function computeProof() {
   const out = { generatedAt: new Date().toISOString() }
 
@@ -247,14 +254,41 @@ async function computeProof() {
     visitsWeek = undefined
   }
 
+  // The automation event log is the preferred source: it is written by whichever
+  // path actually did the work, so it sees Resend fallback sends that never
+  // reach the Gmail sent mailbox.
+  //
+  // Preference is PER KIND and presence-based, not all-or-nothing. A kind with
+  // at least one row in the window is served from the log; a kind with zero rows
+  // falls back to the old derivation, because zero is ambiguous: it means either
+  // "nothing happened" or "this writer is not deployed yet". The Python agent
+  // writes reminders/follow-ups/routes and the portal writes invoices/payroll,
+  // so during a partial rollout each kind independently uses the better source
+  // it has. Once every writer is live, a genuine zero week will read as a
+  // fallback rather than a zero, which is the conservative direction: the
+  // fallback either agrees or undercounts, and it is never invented.
+  let eventCounts
+  try {
+    eventCounts = await computeEventCounts(since)
+  } catch {
+    eventCounts = undefined
+  }
+  const fromLog = (kind) => {
+    const n = eventCounts?.[kind]
+    return Number.isFinite(n) && n > 0 ? n : undefined
+  }
+
   const weekJobs = [
-    ['invoicesIssued', () => computeInvoicesIssuedWeek(since)],
-    ['invoicesPaid', () => computeInvoicesPaidWeek(paidInvoicesWeek)],
-    ['failedCardsRecovered', () => computeFailedCardsRecoveredWeek(paidInvoicesWeek, since)],
+    ['invoicesIssued', () => fromLog('invoice_issued') ?? computeInvoicesIssuedWeek(since)],
+    ['invoicesPaid', () => fromLog('invoice_paid') ?? computeInvoicesPaidWeek(paidInvoicesWeek)],
+    [
+      'failedCardsRecovered',
+      () => fromLog('failed_card_recovered') ?? computeFailedCardsRecoveredWeek(paidInvoicesWeek, since),
+    ],
     ['visits', () => visitsWeek],
-    ['remindersSent', () => computeRemindersSentWeek(visitsWeek, since)],
-    ['followUpsCompleted', () => computeFollowUpsCompletedWeek(since)],
-    ['routesGenerated', () => computeRoutesGeneratedWeek(since)],
+    ['remindersSent', () => fromLog('reminder_sent') ?? computeRemindersSentWeek(visitsWeek, since)],
+    ['followUpsCompleted', () => fromLog('followup_sent') ?? computeFollowUpsCompletedWeek(since)],
+    ['routesGenerated', () => fromLog('route_emailed') ?? computeRoutesGeneratedWeek(since)],
   ]
 
   const results = await Promise.allSettled(
@@ -328,7 +362,7 @@ module.exports = async function handler(req, res) {
 
     let body
     try {
-      body = await cached('ops:proof:v5', 86400, computeProof)
+      body = await cached('ops:proof:v6', 86400, computeProof)
     } catch {
       body = { generatedAt: new Date().toISOString() }
     }

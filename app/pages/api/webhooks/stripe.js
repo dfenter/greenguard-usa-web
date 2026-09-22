@@ -300,6 +300,45 @@ export default async function handler(req, res) {
             },
           ]),
         ])
+
+        // Automation event log. Keyed on the invoice id so Stripe webhook
+        // redeliveries cannot double-count. A failed-card recovery is a paid
+        // invoice that carries a payfail_*_at marker (written by
+        // lib/payment-resurrection.js markStage), so record that as its own
+        // event rather than re-deriving it from Stripe metadata later.
+        {
+          const { recordEvent, KINDS } = require('../../../lib/ops-events')
+          await recordEvent({
+            kind: KINDS.INVOICE_PAID,
+            subjectRef: invoice.id,
+            details: { amountPaidCents: invoice.amount_paid },
+          })
+          const recoveredFrom = Object.keys(invoice.metadata || {}).find(
+            (k) => k.startsWith('payfail_') && invoice.metadata[k]
+          )
+          if (recoveredFrom) {
+            await recordEvent({
+              kind: KINDS.FAILED_CARD_RECOVERED,
+              subjectRef: invoice.id,
+              details: { amountPaidCents: invoice.amount_paid, stage: recoveredFrom },
+            })
+          }
+        }
+        break
+      }
+
+      // Invoice issued. A draft is not yet issued, and Stripe fires
+      // invoice.finalized exactly when a draft becomes a real, sendable
+      // invoice, which is the moment the old proof endpoint was trying to
+      // approximate by listing non-draft invoices.
+      case 'invoice.finalized': {
+        const invoice = event.data.object
+        const { recordEvent, KINDS } = require('../../../lib/ops-events')
+        await recordEvent({
+          kind: KINDS.INVOICE_ISSUED,
+          subjectRef: invoice.id,
+          details: { amountDueCents: invoice.amount_due },
+        })
         break
       }
 
