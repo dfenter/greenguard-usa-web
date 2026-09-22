@@ -350,3 +350,62 @@ neither can move.
   closest to passing: aresrender's worst edge, 3.740x, is exactly a floor edge
   at jawW 0.000/0.110, and leviathanrex has floor edges at 3.581x / 3.437x.
   It is a separate cause and deserves its own proof, not a ride-along.
+
+## 7. The bar, re-derived as an absolute opened length (lane 7)
+
+Section 6.4.2 listed "the 3x bar has never been validated" as the top residual.
+Lane 6 validated it and it FAILED: at the real 25 deg travel the surface is
+unbroken on all five pilots, including snapjaw at 12.648x. Lane 7 replaces it.
+
+### 7.1 The bar
+
+    MAX_OPEN_L = 0.060 L  =  24.0 px on a 400 px body
+
+Defined once, in `hse/jaw_open_budget.mjs`. `probe_jaw.mjs` and
+`dump_stretch.mjs` both import it; neither may restate it as a literal.
+
+### 7.2 Why the ratio was never the right quantity
+
+Stretch is dimensionless and carries no scale, so it cannot answer a question
+about visibility. The edges that fail a ratio bar are near-degenerate (rest
+lengths 1.7e-4 .. 8.2e-3 L); doubling a two-ten-thousandths-of-a-body edge
+produces a two-ten-thousandths-wide defect. A ratio bar has two symmetric
+failure modes: it FAILS geometry that renders perfectly, and it PASSES a real
+tear on a long edge, which needs only a small ratio to open a visible hole.
+Visibility is an absolute length on screen, so the bar is one too.
+
+### 7.3 Where 0.060 L comes from
+
+Lane 6 measured each family's worst edge at the real 25 deg pose, in body
+lengths and in px on a 400 px body, and confirmed each visually clean on
+rendered frames:
+
+| family | opened px | opened length |
+|---|---|---|
+| leviathanrex | 17.9 | 0.0447 L |
+| snapjaw | 13.8 | 0.0345 L |
+| aresrender | 3.2 | 0.0080 L |
+| thresher | 1.0 | 0.0025 L |
+| artemisstrike | 0.2 | 0.0005 L |
+
+Worst verified-clean opening: leviathanrex, 0.0447 L. The bar is set 1.34x
+above it. It is LOOSER than every current pilot, which is the honest
+consequence of the evidence.
+
+### 7.4 The stretch ratio is retained, as information only
+
+It remains a good tripwire for a regression in the weight field and both
+probes still print it. It is not a ship gate. `dump_stretch` prints, next to
+the worst-ratio edge, how far that edge actually opens: on thresher, 5.904x
+opens 0.8 px while the largest real opening on the mesh is 6.6 px at 2.195x.
+
+### 7.5 HARD PRECONDITION: the dead-jaw check still governs
+
+An absolute-length bar is passed perfectly by a jaw that does not move, since
+every edge then opens to 0.000 L. Section 6.3's 1.000x false pass is therefore
+MORE dangerous under this bar, not less. `judge()` in `jaw_open_budget.mjs`
+checks liveness FIRST: **a family that fails the dead-jaw check fails the gate
+regardless of its opened lengths.** No opened-length number may be quoted or
+believed unless the jaw is confirmed to have moved, per section 6.
+
+Lane 7 measured 46 .. 3193 moved vertices across the five pilots, all ALIVE.

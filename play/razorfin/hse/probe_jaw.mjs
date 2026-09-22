@@ -59,7 +59,14 @@ const { resolveOpenRadians, loadRecipeForFamily } = await import(path.join(HERE,
 const ROOT_DIR = path.join(HERE, '..');
 const UPPER_MAX_FRAC = 0.002;   // no upper-head vertex moves more than this * L
 const LOWER_MIN_FRAC = 0.03;    // lower-lip vertices must move at least this * L
-const STRETCH_MAX = 3.0;        // no triangle edge may stretch more than this factor
+/* Rev 18 lane 7: the 3x stretch RATIO bar is gone. It failed 5 of 5 families
+ * that lane 6 confirmed visually unbroken, because a ratio carries no scale
+ * and the failing edges are sub-pixel. The gate is now an ABSOLUTE opened
+ * length, with a dead-jaw precondition so a motionless jaw cannot pass it.
+ * See hse/jaw_open_budget.mjs for the derivation. Stretch is still printed as
+ * an informational column. */
+const { MAX_OPEN_L, MAX_OPEN_PX, REFERENCE_BODY_PX, DEAD_JAW_MIN_MOVE_L, judge, openPx } =
+  await import(path.join(HERE, 'jaw_open_budget.mjs'));
 
 function loadGlb(file) {
   return new Promise((resolve, reject) => {
@@ -231,9 +238,16 @@ async function probeOne(file) {
   // triangle edge stretch: walk mesh index triples, compare rest vs open edge lengths
   const index = geo.getIndex();
   let maxStretch = 1;
+  /* The gate quantity: the largest ABSOLUTE amount any edge opens by. */
+  let maxOpenL = 0;
+  let maxOpenStretch = 1;
   if (index) {
     const idx = index.array;
-    const step = Math.max(1, Math.floor(idx.length / 3 / 20000)) * 3; // sample cap for very dense meshes
+    /* Rev 18 lane 7: walk EVERY triangle. This used to subsample dense meshes,
+     * which is acceptable for a ratio hint but not for a ship gate: the single
+     * worst edge is exactly what the gate is looking for and a sampled walk can
+     * step straight over it. The pilots are ~8k tris, so the full walk is cheap. */
+    const step = 3;
     const edgeLen = (posArr, a, b) => Math.hypot(
       posArr[a * 3] - posArr[b * 3], posArr[a * 3 + 1] - posArr[b * 3 + 1], posArr[a * 3 + 2] - posArr[b * 3 + 2]
     );
@@ -244,22 +258,40 @@ async function probeOne(file) {
         const restLen = edgeLen(restPos, p, q);
         if (restLen < 1e-6) continue;
         const openLen = edgeLen(openPos, p, q);
-        maxStretch = Math.max(maxStretch, openLen / restLen);
+        const stretch = openLen / restLen;
+        maxStretch = Math.max(maxStretch, stretch);
+        /* How much this edge GREW, in body lengths. A near-degenerate edge
+         * with a huge ratio contributes almost nothing here, which is the
+         * whole point of the change. */
+        const grewL = (openLen - restLen) / L;
+        if (grewL > maxOpenL) { maxOpenL = grewL; maxOpenStretch = stretch; }
       }
     }
   }
 
+  /* Dead-jaw precondition (JAW-WEIGHT-SPEC section 6): count vertices that
+   * actually MOVED between closed and open. An absolute-length bar is passed
+   * perfectly by a jaw that does not move, so this must be checked BEFORE any
+   * opened length is believed. */
+  let movedVerts = 0;
+  for (let i = 0; i < n; i++) if (dist(i) > DEAD_JAW_MIN_MOVE_L * L) movedVerts++;
+
   const upperOk = maxUpperMove <= UPPER_MAX_FRAC * L;
   const lowerOk = lowerLipVerts.length >= 6 && maxLowerMove >= LOWER_MIN_FRAC * L && minLowerMove >= 0.5 * LOWER_MIN_FRAC * L; // Rev 17: commissure-band verts legitimately travel less than the chin
-  const stretchOk = maxStretch <= STRETCH_MAX;
-  const ok = upperOk && lowerOk && stretchOk;
+  const verdict = judge({ maxOpenL, movedVerts });
+  const openOk = verdict.ok;
+  const ok = upperOk && lowerOk && openOk;
 
   return {
     name, ok, L: +L.toFixed(4),
     openRad: +OPEN_RAD.toFixed(4), openDeg: +open.degrees.toFixed(2), openSrc: open.source,
     upperVerts: upperHeadVerts.length, maxUpperMove: +maxUpperMove.toFixed(5), upperLimit: +(UPPER_MAX_FRAC * L).toFixed(5), upperOk,
     lowerVerts: lowerLipVerts.length, minLowerMove: lowerLipVerts.length ? +minLowerMove.toFixed(5) : null, maxLowerMove: +maxLowerMove.toFixed(5), lowerLimit: +(LOWER_MIN_FRAC * L).toFixed(5), lowerOk,
-    maxStretch: +maxStretch.toFixed(3), stretchOk,
+    movedVerts, jawAlive: verdict.alive, openReason: verdict.reason,
+    maxOpenL: +maxOpenL.toFixed(5),
+    maxOpenPx: +(maxOpenL * REFERENCE_BODY_PX).toFixed(2),
+    atStretch: +maxOpenStretch.toFixed(3), openOk,
+    maxStretch: +maxStretch.toFixed(3),
   };
 }
 
@@ -279,7 +311,9 @@ for (const f of files) {
     `${r.name.padEnd(28)} L=${r.L} open=${r.openDeg}deg(${r.openRad},${r.openSrc})  ` +
     `upper(n=${r.upperVerts}) move<=${r.maxUpperMove} limit=${r.upperLimit} ${r.upperOk ? 'OK' : 'FAIL'}  ` +
     `lower(n=${r.lowerVerts}) min=${r.minLowerMove} max=${r.maxLowerMove} limit>=${r.lowerLimit} ${r.lowerOk ? 'OK' : 'FAIL'}  ` +
-    `stretch=${r.maxStretch}x limit<=${STRETCH_MAX} ${r.stretchOk ? 'OK' : 'FAIL'}  ` +
+    `jaw(moved=${r.movedVerts}) ${r.jawAlive ? 'ALIVE' : 'DEAD'}  ` +
+    `open=${r.maxOpenL}L(${r.maxOpenPx}px) limit<=${MAX_OPEN_L}L(${MAX_OPEN_PX}px) ${r.openOk ? 'OK' : 'FAIL'}${r.jawAlive ? '' : ' [' + r.openReason + ']'}  ` +
+    `[info stretch=${r.maxStretch}x, at-worst-open=${r.atStretch}x]  ` +
     `${r.ok ? 'PASS' : 'FAIL'}`
   );
 }
