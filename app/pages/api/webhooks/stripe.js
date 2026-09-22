@@ -6,6 +6,7 @@ const { sendWelcomeEmail } = require('../../../lib/email')
 const { fulfillSparkBridgeOrder } = require('../../../lib/sparkbridge-fulfill')
 const { createMagicToken, markQuotePaid } = require('../../../lib/auth')
 const crypto = require('crypto')
+const biz = require('../../../lib/business.config')
 
 const PIXEL_ID = process.env.NEXT_PUBLIC_FB_PIXEL_ID || '2225826221565752'
 const META_GRAPH_URL = `https://graph.facebook.com/v21.0/${PIXEL_ID}/events`
@@ -301,15 +302,23 @@ export default async function handler(req, res) {
           ]),
         ])
 
-        // Automation event log. Keyed on the invoice id so Stripe webhook
-        // redeliveries cannot double-count. A failed-card recovery is a paid
-        // invoice that carries a payfail_*_at marker (written by
+        // Automation event log. Keyed on (tenant, kind, invoice id) so Stripe
+        // webhook redeliveries cannot double-count. A failed-card recovery is a
+        // paid invoice that carries a payfail_*_at marker (written by
         // lib/payment-resurrection.js markStage), so record that as its own
         // event rather than re-deriving it from Stripe metadata later.
+        //
+        // Tenant: this endpoint has no per-request tenant. Stripe posts here
+        // with only its own signature, and this deployment holds one Stripe
+        // account, so every invoice that arrives belongs to the business this
+        // deployment is configured as. When tenant-scoped Stripe accounts exist
+        // (Stripe Connect is on the OPS backlog), resolve the tenant from the
+        // account id on the event instead of from the config.
         {
           const { recordEvent, KINDS } = require('../../../lib/ops-events')
           await recordEvent({
             kind: KINDS.INVOICE_PAID,
+            businessId: biz.id,
             subjectRef: invoice.id,
             details: { amountPaidCents: invoice.amount_paid },
           })
@@ -319,6 +328,7 @@ export default async function handler(req, res) {
           if (recoveredFrom) {
             await recordEvent({
               kind: KINDS.FAILED_CARD_RECOVERED,
+              businessId: biz.id,
               subjectRef: invoice.id,
               details: { amountPaidCents: invoice.amount_paid, stage: recoveredFrom },
             })
@@ -336,6 +346,8 @@ export default async function handler(req, res) {
         const { recordEvent, KINDS } = require('../../../lib/ops-events')
         await recordEvent({
           kind: KINDS.INVOICE_ISSUED,
+          // Same tenant reasoning as invoice.payment_succeeded above.
+          businessId: biz.id,
           subjectRef: invoice.id,
           details: { amountDueCents: invoice.amount_due },
         })

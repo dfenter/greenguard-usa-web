@@ -34,12 +34,19 @@ const TABLES = [
           ON ops_events (business_id, kind, occurred_at DESC)`,
   },
   {
+    // SUPERSEDED by scripts/migrate-ops-events-tenant.js, which replaces this
+    // index with the same partial unique index keyed on
+    // (business_id, kind, subject_ref) and drops this one. Left here so that
+    // running this original migration on a fresh database still produces a
+    // working idempotency key; the tenant migration then widens it. A new
+    // deployment should run both, in order.
+    //
     // Idempotency for the at-least-once callers. The reminder and follow-up
     // jobs fire from two hosts (Mac launchd + Render cron) and Stripe redelivers
     // webhooks, so the same logical event can be recorded twice. A partial
-    // unique index on (kind, subject_ref) lets recordEvent() use
-    // ON CONFLICT DO NOTHING while still allowing rows that carry no
-    // subject_ref at all (those are not dedupable by definition).
+    // unique index lets recordEvent() use ON CONFLICT DO NOTHING while still
+    // allowing rows that carry no subject_ref at all (those are not dedupable
+    // by definition).
     name: 'ops_events_kind_subject_uniq',
     sql: `CREATE UNIQUE INDEX IF NOT EXISTS ops_events_kind_subject_uniq
           ON ops_events (kind, subject_ref)

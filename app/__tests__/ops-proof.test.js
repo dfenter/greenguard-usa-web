@@ -480,6 +480,23 @@ describe('hardening', () => {
     expect(res.headers['Access-Control-Allow-Origin']).toBeUndefined()
   })
 
+  // A shared Redis plus a tenant-blind key would serve one business's proof
+  // figures on another business's marketing site for a full day.
+  test('caches under a tenant-scoped v7 key', async () => {
+    mockCountContactsByProperty.mockResolvedValue(96)
+    mockGetBookingsForDateRange.mockResolvedValue([])
+    mockListAllInvoicesSince.mockResolvedValue([])
+    mockInvoicesList.mockReturnValue(asyncIterableFrom([]))
+    mockQ.mockResolvedValue({ rows: [] })
+    mockListRuns.mockResolvedValue([])
+
+    const { cached } = require('../lib/cache')
+    await handler({ method: 'GET', headers: { origin: ALLOWED_ORIGIN } }, mockRes())
+
+    const biz = require('../lib/business.config')
+    expect(cached).toHaveBeenCalledWith(`ops:proof:v7:${biz.id}`, 86400, expect.any(Function))
+  })
+
   test('when the cache layer itself throws, still 200 with only generatedAt', async () => {
     const { cached } = require('../lib/cache')
     cached.mockImplementationOnce(() => { throw new Error('cache exploded') })
@@ -537,6 +554,20 @@ describe('event-log preference for week figures', () => {
     expect(res.body.week.remindersSent).toBe(11)
     expect(res.body.week.followUpsCompleted).toBe(9)
     expect(res.body.week.routesGenerated).toBe(5)
+  })
+
+  // ops_events is one shared table across tenants, so an unscoped count would
+  // publish another business's automation as this one's proof.
+  test('scopes the event-log query to this deployment tenant', async () => {
+    withEventCounts([{ kind: 'reminder_sent', n: 11 }])
+
+    await handler({ method: 'GET', headers: { origin: ALLOWED_ORIGIN } }, mockRes())
+
+    const biz = require('../lib/business.config')
+    const call = mockQ.mock.calls.find(([sql]) => /FROM ops_events/.test(sql))
+    expect(call).toBeDefined()
+    expect(call[0]).toMatch(/business_id = \$1/)
+    expect(call[1][0]).toBe(biz.id)
   })
 
   test('falls back to the Gmail derivation when the log has no rows in the window', async () => {

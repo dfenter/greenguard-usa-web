@@ -13,7 +13,13 @@ jest.mock('../lib/db', () => ({
   q: (...args) => mockQ(...args),
 }))
 
-const { recordEvent, countEventsSince, countAllEventsSince, KINDS } = require('../lib/ops-events')
+const {
+  recordEvent,
+  countEventsSince,
+  countAllEventsSince,
+  currentBusinessId,
+  KINDS,
+} = require('../lib/ops-events')
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -47,12 +53,27 @@ describe('recordEvent', () => {
     expect(ok).toBe(false)
   })
 
-  test('dedups on (kind, subject_ref) via a partial unique index, so a null ref is never blocked', async () => {
+  // The ON CONFLICT target must match the partial unique index created by
+  // scripts/migrate-ops-events-tenant.js exactly. If they drift, Postgres
+  // rejects the statement outright and every write fails.
+  test('dedups on (business_id, kind, subject_ref), so two tenants can share a subject_ref', async () => {
     mockQ.mockResolvedValue({ rowCount: 1, rows: [{ id: '1' }] })
     await recordEvent({ kind: KINDS.ROUTE_EMAILED, subjectRef: null })
     const [sql, params] = mockQ.mock.calls[0]
-    expect(sql).toMatch(/ON CONFLICT \(kind, subject_ref\) WHERE subject_ref IS NOT NULL DO NOTHING/)
+    expect(sql).toMatch(
+      /ON CONFLICT \(business_id, kind, subject_ref\) WHERE subject_ref IS NOT NULL DO NOTHING/
+    )
     expect(params[3]).toBeNull()
+  })
+
+  // The collision this whole change exists to prevent: the route job keys on the
+  // day label alone, so before the tenant was in the key, the second business to
+  // email a route on 'Mon Sep 22' had its event dropped as a duplicate.
+  test('writes the tenant it is given, so a shared day-label subject_ref is per-tenant', async () => {
+    mockQ.mockResolvedValue({ rowCount: 1, rows: [{ id: '1' }] })
+    await recordEvent({ kind: KINDS.ROUTE_EMAILED, subjectRef: 'Mon Sep 22', businessId: 'lawnpro' })
+    expect(mockQ.mock.calls[0][1][1]).toBe('lawnpro')
+    expect(mockQ.mock.calls[0][1][3]).toBe('Mon Sep 22')
   })
 
   test('refuses an unknown kind rather than writing an uncountable row', async () => {
@@ -79,10 +100,31 @@ describe('recordEvent', () => {
     expect(mockQ).not.toHaveBeenCalled()
   })
 
-  test('defaults business_id to greenguard', async () => {
+  test('defaults business_id to the configured tenant when none is passed', async () => {
     mockQ.mockResolvedValue({ rowCount: 1, rows: [{ id: '1' }] })
     await recordEvent({ kind: KINDS.INVOICE_PAID, subjectRef: 'in_1' })
-    expect(mockQ.mock.calls[0][1][1]).toBe('greenguard')
+    expect(mockQ.mock.calls[0][1][1]).toBe(currentBusinessId())
+    expect(currentBusinessId()).toBe('greenguard')
+  })
+
+  // Enforced, not defaulted. A caller that threads a tenant through and hands
+  // over undefined has a bug, and silently filing the row under the default
+  // tenant would put one business's automation into another's counts. Refusing
+  // the row is the safer failure.
+  test.each([
+    ['an empty string', ''],
+    ['whitespace', '   '],
+    ['a non-string', 42],
+  ])('refuses to write when businessId is %s', async (_label, bad) => {
+    const ok = await recordEvent({ kind: KINDS.INVOICE_PAID, subjectRef: 'in_1', businessId: bad })
+    expect(ok).toBe(false)
+    expect(mockQ).not.toHaveBeenCalled()
+  })
+
+  test('trims a padded businessId rather than writing the padding', async () => {
+    mockQ.mockResolvedValue({ rowCount: 1, rows: [{ id: '1' }] })
+    await recordEvent({ kind: KINDS.INVOICE_PAID, subjectRef: 'in_1', businessId: ' poolpro ' })
+    expect(mockQ.mock.calls[0][1][1]).toBe('poolpro')
   })
 })
 
@@ -109,6 +151,27 @@ describe('countEventsSince', () => {
     const sinceSec = Math.floor(Date.parse('2026-09-15T00:00:00Z') / 1000)
     await countEventsSince(KINDS.REMINDER_SENT, sinceSec)
     expect(mockQ.mock.calls[0][1][2]).toBe('2026-09-15T00:00:00.000Z')
+  })
+
+  test('scopes the count to the tenant it is given', async () => {
+    mockQ.mockResolvedValue({ rows: [{ n: 4 }] })
+    await countEventsSince(KINDS.REMINDER_SENT, new Date(), { businessId: 'lawnpro' })
+    const [sql, params] = mockQ.mock.calls[0]
+    expect(sql).toMatch(/business_id = \$1/)
+    expect(params[0]).toBe('lawnpro')
+  })
+
+  test('defaults the tenant to the configured one', async () => {
+    mockQ.mockResolvedValue({ rows: [{ n: 4 }] })
+    await countEventsSince(KINDS.REMINDER_SENT, new Date())
+    expect(mockQ.mock.calls[0][1][0]).toBe(currentBusinessId())
+  })
+
+  test('returns undefined for an invalid businessId instead of counting the default tenant', async () => {
+    await expect(
+      countEventsSince(KINDS.REMINDER_SENT, new Date(), { businessId: '' })
+    ).resolves.toBeUndefined()
+    expect(mockQ).not.toHaveBeenCalled()
   })
 
   test('accepts milliseconds and an ISO string', async () => {
@@ -153,5 +216,32 @@ describe('countAllEventsSince', () => {
   test('ignores kinds outside the known set', async () => {
     mockQ.mockResolvedValue({ rows: [{ kind: 'mystery_kind', n: 3 }] })
     await expect(countAllEventsSince(new Date())).resolves.toEqual({})
+  })
+
+  test('scopes the grouped count to the tenant it is given', async () => {
+    mockQ.mockResolvedValue({ rows: [] })
+    await countAllEventsSince(new Date(), { businessId: 'poolpro' })
+    const [sql, params] = mockQ.mock.calls[0]
+    expect(sql).toMatch(/business_id = \$1/)
+    expect(params[0]).toBe('poolpro')
+  })
+
+  test('defaults the tenant to the configured one', async () => {
+    mockQ.mockResolvedValue({ rows: [] })
+    await countAllEventsSince(new Date())
+    expect(mockQ.mock.calls[0][1][0]).toBe(currentBusinessId())
+  })
+
+  // null means "use the configured tenant" and is allowed. Only a present but
+  // unusable value is refused.
+  test('treats an explicit null businessId as the configured tenant', async () => {
+    mockQ.mockResolvedValue({ rows: [] })
+    await expect(countAllEventsSince(new Date(), { businessId: null })).resolves.toEqual({})
+    expect(mockQ.mock.calls[0][1][0]).toBe(currentBusinessId())
+  })
+
+  test('returns undefined for a blank businessId', async () => {
+    await expect(countAllEventsSince(new Date(), { businessId: '  ' })).resolves.toBeUndefined()
+    expect(mockQ).not.toHaveBeenCalled()
   })
 })

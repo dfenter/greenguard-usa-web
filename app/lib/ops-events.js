@@ -33,8 +33,33 @@ const KINDS = {
 
 const VALID_KINDS = new Set(Object.values(KINDS))
 
+// Default tenant, for the call sites that genuinely have no request-scoped
+// tenant to pass (a Stripe webhook, a cron). Sourced from business.config so
+// there is exactly one definition of "who this deployment is" rather than a
+// second env read that can drift from the rest of the app.
 function currentBusinessId() {
+  try {
+    const cfg = require('./business.config')
+    if (cfg?.id) return String(cfg.id)
+  } catch {
+    // business.config throws on an unknown BUSINESS_ID. Fall through to the env
+    // read so a log write is never the thing that takes a caller down.
+  }
   return process.env.BUSINESS_ID || process.env.NEXT_PUBLIC_BUSINESS_ID || 'greenguard'
+}
+
+// Normalizes and enforces the tenant for one call.
+//
+// Enforced rather than merely defaulted: an explicitly passed businessId that is
+// empty, blank, or not a string is a caller bug (someone threaded a tenant
+// through and it arrived undefined), and quietly writing the row under the
+// default tenant would put another business's event in GreenGuard's counts.
+// That is worse than losing the row, so those cases are refused. Omitting
+// businessId entirely is still allowed and means "this deployment's tenant".
+function resolveBusinessId(businessId) {
+  if (businessId === null || businessId === undefined) return currentBusinessId()
+  if (typeof businessId !== 'string' || !businessId.trim()) return null
+  return businessId.trim()
 }
 
 // Records one automation event.
@@ -42,9 +67,12 @@ function currentBusinessId() {
 // kind        one of KINDS
 // subjectRef  stable identifier of the thing acted on (calendar event id,
 //             Stripe invoice id, payroll run id, route day label). Used for
-//             idempotency: a second write with the same (kind, subjectRef) is
-//             dropped by the partial unique index, which is what makes the
-//             twice-triggered cron jobs and Stripe webhook redeliveries safe.
+//             idempotency: a second write with the same
+//             (businessId, kind, subjectRef) is dropped by the partial unique
+//             index, which is what makes the twice-triggered cron jobs and
+//             Stripe webhook redeliveries safe. The tenant is part of that key,
+//             so two businesses may share a subjectRef (route day labels are the
+//             obvious case) without colliding.
 //             Pass null only when no such identifier exists.
 // occurredAt  when the work happened (defaults to now)
 // details     small JSON blob: channel ('gmail' | 'resend' | 'sms'), counts,
@@ -60,6 +88,12 @@ async function recordEvent({ kind, subjectRef = null, occurredAt = null, details
       return false
     }
 
+    const tenant = resolveBusinessId(businessId)
+    if (!tenant) {
+      console.error(`[ops-events] refusing to record ${kind}: invalid businessId ${String(businessId)}`)
+      return false
+    }
+
     const when = occurredAt ? new Date(occurredAt) : new Date()
     if (!Number.isFinite(when.getTime())) {
       console.error(`[ops-events] invalid occurredAt for ${kind}: ${String(occurredAt)}`)
@@ -69,11 +103,11 @@ async function recordEvent({ kind, subjectRef = null, occurredAt = null, details
     const result = await q(
       `INSERT INTO ops_events (kind, business_id, occurred_at, subject_ref, details)
        VALUES ($1, $2, $3, $4, $5)
-       ON CONFLICT (kind, subject_ref) WHERE subject_ref IS NOT NULL DO NOTHING
+       ON CONFLICT (business_id, kind, subject_ref) WHERE subject_ref IS NOT NULL DO NOTHING
        RETURNING id`,
       [
         kind,
-        businessId || currentBusinessId(),
+        tenant,
         when.toISOString(),
         subjectRef,
         details ? JSON.stringify(details) : null,
@@ -100,6 +134,9 @@ async function countEventsSince(kind, since, { businessId = null } = {}) {
   try {
     if (!VALID_KINDS.has(kind)) return undefined
 
+    const tenant = resolveBusinessId(businessId)
+    if (!tenant) return undefined
+
     const when = normalizeSince(since)
     if (!when) return undefined
 
@@ -107,7 +144,7 @@ async function countEventsSince(kind, since, { businessId = null } = {}) {
       `SELECT COUNT(*)::int AS n
        FROM ops_events
        WHERE business_id = $1 AND kind = $2 AND occurred_at >= $3`,
-      [businessId || currentBusinessId(), kind, when.toISOString()]
+      [tenant, kind, when.toISOString()]
     )
     const n = result?.rows?.[0]?.n
     return Number.isFinite(n) ? n : undefined
@@ -126,6 +163,9 @@ async function countEventsSince(kind, since, { businessId = null } = {}) {
 // is exactly the condition that must trigger the Gmail fallback.
 async function countAllEventsSince(since, { businessId = null } = {}) {
   try {
+    const tenant = resolveBusinessId(businessId)
+    if (!tenant) return undefined
+
     const when = normalizeSince(since)
     if (!when) return undefined
 
@@ -134,7 +174,7 @@ async function countAllEventsSince(since, { businessId = null } = {}) {
        FROM ops_events
        WHERE business_id = $1 AND occurred_at >= $2
        GROUP BY kind`,
-      [businessId || currentBusinessId(), when.toISOString()]
+      [tenant, when.toISOString()]
     )
     const out = {}
     for (const row of result?.rows || []) {
@@ -166,6 +206,7 @@ function normalizeSince(since) {
 
 module.exports = {
   KINDS,
+  currentBusinessId,
   recordEvent,
   countEventsSince,
   countAllEventsSince,

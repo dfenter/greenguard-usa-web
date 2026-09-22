@@ -4,6 +4,7 @@
 // that cannot be reliably computed is OMITTED, never guessed or zeroed.
 
 const { cached } = require('../../../lib/cache')
+const biz = require('../../../lib/business.config')
 
 const ALLOWED_ORIGINS = [
   'https://ops.greenguard-usa.com',
@@ -222,9 +223,17 @@ async function computeRoutesGeneratedWeek(since) {
 
 // Event-log counts for the trailing window, or undefined if the table could not
 // be read. See the preference rules in computeProof().
+//
+// Scoped to this deployment's tenant, explicitly. ops_events is one shared table
+// across tenants, so an unscoped count would publish another business's
+// automation as this one's proof. This endpoint is public and has no per-request
+// tenant (the marketing site fetches it anonymously), so the tenant is the one
+// this deployment is configured as, which is also the tenant every other figure
+// on this page is derived from (the HubSpot portal, the GCal calendar id and the
+// Stripe account all come from the same config).
 async function computeEventCounts(since) {
   const { countAllEventsSince } = require('../../../lib/ops-events')
-  return countAllEventsSince(since)
+  return countAllEventsSince(since, { businessId: biz.id })
 }
 
 async function computeProof() {
@@ -362,7 +371,10 @@ module.exports = async function handler(req, res) {
 
     let body
     try {
-      body = await cached('ops:proof:v6', 86400, computeProof)
+      // Cache key carries the tenant: one Redis instance can be shared by more
+      // than one OPS deployment, and a tenant-blind key would serve GreenGuard's
+      // proof figures to another business's site for up to a day.
+      body = await cached(`ops:proof:v7:${biz.id}`, 86400, computeProof)
     } catch {
       body = { generatedAt: new Date().toISOString() }
     }

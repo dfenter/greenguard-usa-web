@@ -1682,6 +1682,11 @@ async function finalizeRun({ runId, actorEmail }) {
     const { recordEvent, KINDS } = require('./ops-events')
     await recordEvent({
       kind: KINDS.PAYROLL_RUN,
+      // Payroll runs are per-deployment, not per-request: every row in
+      // payroll_runs belongs to the business this deployment is configured as,
+      // so the tenant is the configured one. Passed explicitly rather than left
+      // to the default so the tenant is visible at the call site.
+      businessId: biz.id,
       subjectRef: String(runId),
       details: { actorEmail: actorEmail || 'system' },
     })
