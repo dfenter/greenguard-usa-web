@@ -21,10 +21,11 @@ except ImportError:  # pragma: no cover
 try:
     import bpy
     import mathutils
-    from mathutils import Vector
+    from mathutils import Quaternion, Vector
 except ImportError:  # pragma: no cover
     bpy = None
     mathutils = None
+    Quaternion = None
     Vector = None
 
 
@@ -112,7 +113,33 @@ def _normal_material(obj, normal_image):
     return material
 
 
-def rebake_emit_normal(low, hi, resolution=512):
+def _strip_normal_wiring(obj):
+    """Disconnect any normal-map chain feeding a Principled BSDF.
+
+    Used when the only available normal map was baked against a DIFFERENT
+    topology than the one being exported.  Removing the link is safer than
+    leaving it: an unconnected Normal input falls back to the mesh's own
+    geometric normals, which are correct by construction.
+    """
+    stripped = 0
+    for slot in obj.material_slots:
+        material = slot.material
+        if not material or not material.use_nodes:
+            continue
+        tree = material.node_tree
+        for node in list(tree.nodes):
+            if node.type != "BSDF_PRINCIPLED" or "Normal" not in node.inputs:
+                continue
+            for link in list(node.inputs["Normal"].links):
+                tree.links.remove(link)
+                stripped += 1
+        for node in list(tree.nodes):
+            if node.type == "NORMAL_MAP" and not node.outputs["Normal"].links:
+                tree.nodes.remove(node)
+    return stripped
+
+
+def rebake_emit_normal(low, hi, resolution=512, topology_is_changed=None):
     """Rebake EMIT and NORMAL from the preserved ``hi`` duplicate.
 
     The Cycles calls are opt-in because the pilot's deterministic CPU paint
@@ -180,9 +207,25 @@ def rebake_emit_normal(low, hi, resolution=512):
             print("FINISH STUB EMIT+NORMAL rebake: hi duplicate retained; imported normal reused")
         else:
             print("FINISH STUB EMIT+NORMAL rebake: hi duplicate retained; no normal image allocated")
-    if normal_image is not None:
+    # Rev 18 lane 7, defect 1: only wire a normal map that MATCHES this mesh's
+    # topology.  The map is baked against the SOURCE mesh's tangent basis; the
+    # remesh/decimate stages rewrite the topology and smart_project rewrites
+    # the UVs underneath it, so on a changed topology those tangent normals
+    # belong to a different surface.  Shading with them is what produced the
+    # translucent fins and dark blotches in every committed turntable since
+    # Rev 17.  If the rebake actually ran, the map is current and is wired; if
+    # it did not and the topology changed, the stale map is DROPPED and the
+    # mesh shades on its own geometric normals.
+    stale = bool(topology_is_changed) and not baked
+    if normal_image is not None and not stale:
         _normal_material(low, normal_image)
-    return {"image": normal_image, "attempted": attempted, "baked": baked}
+    elif stale:
+        _strip_normal_wiring(low)
+        print("FINISH normal map DROPPED: topology changed and no rebake; "
+              "stale tangent normals would shade this mesh with another "
+              "topology's basis", flush=True)
+    return {"image": normal_image, "attempted": attempted, "baked": baked,
+            "dropped_stale": stale}
 
 
 def _load_external_weights(value):
@@ -891,6 +934,12 @@ def _render_turntable(low, rig, family, root, turntable_cfg=None):
     labels = ["000", "090", "180", "270", "mouth_closed", "mouth_open"]
     paths = []
     jaw_bone = rig.pose.bones.get("LowerJaw") if rig and rig.type == "ARMATURE" else None
+    # Capture the authored rest orientation ONCE, before any frame poses it.
+    jaw_rest_q = None
+    if jaw_bone:
+        jaw_bone.rotation_mode = "QUATERNION"
+        jaw_rest_q = jaw_bone.rotation_quaternion.copy()
+        print("FINISH render jaw rest_q=(%.4f, %.4f, %.4f, %.4f)" % tuple(jaw_rest_q), flush=True)
     for index, label in enumerate(labels):
         if index < 4:
             camera_data.lens = float(turntable_cfg.get("lens", 54.0))
@@ -900,8 +949,21 @@ def _render_turntable(low, rig, family, root, turntable_cfg=None):
         else:
             open_jaw = index == 5
             if jaw_bone:
-                jaw_bone.rotation_mode = "XYZ"
-                jaw_bone.rotation_euler = (math.radians(25.0 if open_jaw else 0.0), 0.0, 0.0)
+                # Rev 18 lane 7: pose RELATIVE to the authored rest, not
+                # absolutely.  This used to be
+                # `rotation_euler = (radians(25 if open else 0), 0, 0)`, which
+                # is the same absolute-vs-relative defect lanes 1 and 2 fixed
+                # in probe_jaw.mjs and dump_stretch.mjs and which
+                # rig_morph.writeJawGape never had.  Every family GLB exports
+                # LowerJaw with a rest rotation near 3.07 rad (~176 deg), so
+                # euler 0 is not "closed": it swings the jaw through 176
+                # degrees into an anatomically impossible pose.  That made
+                # EVERY committed mouth_open turntable frame a pose the game
+                # cannot produce.  Same recipe as the fixed probes: restore the
+                # rest quaternion, then rotate about the local hinge axis.
+                jaw_bone.rotation_mode = "QUATERNION"
+                jaw_bone.rotation_quaternion = jaw_rest_q @ Quaternion(
+                    Vector((1.0, 0.0, 0.0)), math.radians(25.0 if open_jaw else 0.0))
             camera_data.lens = float(turntable_cfg.get("close_lens", 70.0))
             # Aim at the ACTUAL mouth geometry rather than assuming which end
             # of the body axis the head is on: guessing +0.38L pointed the
@@ -934,8 +996,8 @@ def _render_turntable(low, rig, family, root, turntable_cfg=None):
             print("FINISH WARN render %s failed: %s" % (label, exc))
         if path.exists():
             paths.append(path)
-    if jaw_bone:
-        jaw_bone.rotation_euler = (0.0, 0.0, 0.0)
+    if jaw_bone and jaw_rest_q is not None:
+        jaw_bone.rotation_quaternion = jaw_rest_q.copy()
 
     cell = int(scene.render.resolution_x)
     sheet = np.zeros((cell * 2, cell * 3, 4), dtype=np.float32)
@@ -1039,7 +1101,8 @@ def finish_family(ctx):
     changed = bool(ctx.get("topology_changed", topology_changed(hi, low)))
     ensure_uv(low, changed=changed)
     print("FINISH stage=uv_ready", flush=True)
-    rebake = rebake_emit_normal(low, hi, resolution=int(ctx.get("texture_size", 512)))
+    rebake = rebake_emit_normal(low, hi, resolution=int(ctx.get("texture_size", 512)),
+                                topology_is_changed=changed)
     print("FINISH stage=normal_ready", flush=True)
     rig, orphan = rig_family(low, ctx.get("lower_jaw_weights"), ctx.get("rig_module"), ctx.get("measurement"))
     low, joined_mouth = _join_mouth_objects(low, ctx.get("extras"))
