@@ -180,3 +180,63 @@ figure against what a reviewer sees before trusting it.
 - Band topology and `JAW_WEIGHT_FLOOR` (spec 6.4.2) remain untouched, and are
   now lower value still: with an honest bar, no current pilot is failing on
   opened length at all.
+
+## 6. Species colour pass (task 4)
+
+The art law says documentary species colour, near-white belly, dorsal
+saturation <= 0.35, no salmon/sand/sage/moss/teal. Four of five pilots broke
+it. thresher was left alone: it is the known-good grey reference and measuring
+it confirmed that, rendered dorsal H=0.607 S=0.11.
+
+Only `paint.species_hsv` and `paint.belly` were touched. No geometry, no jaw
+bar, no lower-lip check, no finish.py.
+
+| family | hsv before | hsv after | belly before | belly after |
+|---|---|---|---|---|
+| aresrender | 0.085, 0.24, 0.33 | 0.070, 0.09, 0.29 | #bcc4c0 | #d9dcda |
+| sharkjira (leviathanrex) | 0.59, 0.13, 0.26 | 0.600, 0.10, 0.30 | #93a2a8 | #dfe3e4 |
+| snapjaw | 0.08, 0.17, 0.35 | 0.105, 0.14, 0.30 | #b3bcb9 | #dcdcd4 |
+| artemisstrike | 0.575, 0.14, 0.33 | 0.585, 0.26, 0.30 | #9fb0b4 | #dde4e6 |
+| thresher | unchanged | unchanged | unchanged | unchanged |
+
+The old bellies were all mid-grey (V around 0.72), not near-white, so the
+countershading never actually read as a shark's pale underside. All four moved
+to near-white.
+
+**Measured, not asserted.** Recipe HSV is not what renders: the paint stage
+multiplies in photographic luminance detail and the turntable adds lighting.
+So the dorsal colour was sampled back out of the regenerated 000 side view
+(upper 35% of the shark's pixel rows):
+
+| family | rendered dorsal | H | S | reads as |
+|---|---|---|---|---|
+| aresrender | #6e6761 | 0.078 | 0.12 | neutral grey-brown, bull shark |
+| artemisstrike | #5b6670 | 0.581 | 0.18 | blue-grey, mako |
+| leviathanrex | #57585b | 0.629 | 0.04 | slate grey, great white |
+| snapjaw | #615a50 | 0.096 | 0.17 | bronze-olive, tiger |
+| thresher | #646971 | 0.607 | 0.11 | grey, unchanged reference |
+
+Every family is now well under the 0.35 dorsal saturation ceiling, and the five
+split into five distinct documentary families (two blue-grey at different
+values, one near-neutral slate, one grey-brown, one bronze-olive) without any
+invented hue.
+
+**Two passes were needed on the warm pair.** The first pass set aresrender to
+S=0.16 and snapjaw to S=0.22, and the rendered result still measured H=0.071
+S=0.18 and H=0.093 S=0.24: eyes-on, both still read as sand rather than shark.
+The photo-detail multiply amplifies warmth that the recipe number alone does
+not predict, which is why the render has to be measured. A second pass cut both
+saturations roughly in half.
+
+**Still not right, reported rather than chased:** snapjaw's side and top views
+read correctly as bronze-olive, but its two head close-up frames still carry a
+warm sandy cast. That is after the second attempt, so per the brief it is
+stated plainly instead of iterated on. Cause is most likely the photo-detail
+term on the head texture rather than species_hsv, since the same recipe value
+reads clean on the body.
+
+**Gates, both re-run after the rebake.** `verify_families` 5/5 PASS. Jaw gate
+(`hse/jaw_open_budget.mjs`) 5/5, all ALIVE, all under the 0.060 L budget, and
+every number byte-identical to the section 4 table, as expected since colour
+does not move geometry. The pre-existing lower-lip travel failure on 4 of 5 is
+unchanged and was not touched.

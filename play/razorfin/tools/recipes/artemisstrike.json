@@ -29,11 +29,11 @@
   "paint": {
     "resolution": 384,
     "species_hsv": [
-      0.575,
-      0.14,
-      0.33
+      0.585,
+      0.26,
+      0.3
     ],
-    "belly": "#9fb0b4",
+    "belly": "#dde4e6",
     "softness": 0.15,
     "keep_photo": true,
     "fin_tips": {
