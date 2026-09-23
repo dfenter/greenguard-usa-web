@@ -64,7 +64,7 @@
 <p>Nothing extra to install: install or upgrade SparkBridge Host from the download page. Clone your configuration repository onto the Host machine, for example to <code>&lt;ignition&gt;/data/gitops-bundle</code>.</p>
 </div></section>
 <section class="band" id="license"><div class="wrap"><div class="sec-head"><h2>4. License</h2></div>
-<p>GitOps is licensed per Host gateway. Your key names <code>com.greenguardusa.gitops</code>; it can be the same <code>sparkbridge-license.key</code> file as your Host license. Place the key in the gateway data directory; it is picked up without a restart.</p>
+<p>GitOps is licensed per Host gateway. Your key names <code>com.greenguardusa.gitops</code>; a gateway reads one <code>sparkbridge-license.key</code> file, so that key must also name Host and every other product licensed on the gateway. A key that names GitOps alone stops Host once its trial has run out. Place the key in the gateway data directory; it is picked up without a restart.</p>
 <p>Without the license, <code>/gitops</code>, <code>/gitops/page</code>, <code>/gitops/audit</code> and the drift gauge work as normal. Apply answers 403 with the license it needs and writes a REFUSED audit row, and <code>mode=apply</code> runs as a report. While the Host module's Ignition trial is running, apply works so you can evaluate it.</p>
 </div></section>
 <section id="configure"><div class="wrap"><div class="sec-head"><h2>5. Configure</h2></div>
@@ -75,7 +75,7 @@
 <tr><th><code>sparkbridge.host.gitops.approvalsRequired</code></th><td>Minimum <code>approvals=</code> in <code>bundle.properties</code> before apply is allowed. Default 1, never below 1.</td></tr>
 <tr><th><code>sparkbridge.host.enrollment.keyfile</code></th><td>The fleet signing key made by <code>ConfigKeys --generate</code> (default <code>data/sparkbridge-config-signing.key</code>). It must be a regular, owner-only file (<code>chmod 600</code>); a key readable by others is refused.</td></tr>
 </table>
-<p>A site document holds the same keys as that site's SparkBridge configuration. Set <code>sparkbridge.config.version</code> in a document to give it its own version; otherwise it takes the bundle version. Secrets never travel in a bundle: a document with a secret-bearing key is refused, and secrets stay in each site's owner-only secrets file.</p>
+<p>A site document holds the same keys as that site's SparkBridge configuration, and it replaces that configuration as a whole: a key the document leaves out is removed from the site. Start each document from the site's current <code>sparkbridge-site.properties</code>, keeping the enrollment keys (assigned name, certificates, username). Set <code>sparkbridge.config.version</code> in a document to give it its own version; otherwise it takes the bundle version. Secrets never travel in a bundle: a document with a secret-bearing key is refused, and secrets stay in each site's owner-only secrets file.</p>
 </div></section>
 <section class="band" id="operate"><div class="wrap"><div class="sec-head"><h2>6. Operate</h2></div>
 <ol>
