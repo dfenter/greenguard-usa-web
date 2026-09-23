@@ -163,7 +163,7 @@
       <a class="card" href="/sparkbridge/central#sentinel"><h3>Sentinel</h3><p>Security assessment</p><p class="desc">A scored security and health assessment of your plant data network, with the evidence and the fix for each finding.</p></a>
       <a class="card" href="/sparkbridge/central#sparkid"><h3>SparkID <small>included with Host</small></h3><p>Access control</p><p class="desc">Controls who can read your data and who can change it, with safe credential rotation. A read permission never includes control.</p></a>
       <a class="card" href="/sparkbridge/flow"><h3>SparkFlow</h3><p>High-rate streaming</p><p class="desc">Streams every point Host decodes, well past what the tag system carries, for screens and analytics at estate scale.</p></a>
-      <a class="card" href="/sparkbridge/central#gitops"><h3>GitOps / Enterprise Governance <small>available on request</small></h3><p>Configuration as code</p><p class="desc">Configuration as code for the whole estate: signed bundles, review and rollback, and an audit trail of who changed what.</p></a>
+      <a class="card" href="/sparkbridge/central#gitops"><h3>GitOps / Enterprise Governance</h3><p>Configuration as code</p><p class="desc">Configuration as code for the whole estate: Git as the source of truth, canary apply and rollback, and an audit trail tied to each commit.</p></a>
     </div>
 
   </div>
@@ -352,22 +352,22 @@
 <section class="band" id="gitops">
   <div class="wrap">
     <div class="sec-head">
-      <div class="path">optional module, available on request</div>
+      <div class="path">optional module, separate license, requires Host</div>
       <h2>GitOps / Enterprise Governance</h2>
       <p>Configuration as code for the whole estate.</p>
     </div>
     <div class="twocol">
       <div class="measure">
-        <p>Every gateway's configuration lives in a repository as signed bundles. A change is proposed, reviewed and applied from Host, and can be rolled back the same way. An audit trail records who changed what, when and why, across every site.</p>
+        <p>Every gateway's configuration lives in a Git repository as one document per site. A change is proposed and reviewed in your Git host, then applied from Host, which checks every document, signs it for its site and publishes it. Apply one site first as a canary, then the rest. Rolling back is checking out the earlier commit and applying it again. An audit trail records the commit, the sites, the time, the result and the reason for every apply, across every site. The drift report comes with every Host; applying needs the GitOps license.</p>
         <p><strong>Example.</strong> A deadband change is proposed for all tank-level tags. A reviewer approves it, GitOps applies it to forty sites, and if it turns out wrong it is rolled back the same way, with the record showing every step.</p>
       </div>
       <div>
         <span class="spectitle">What it does</span>
         <table class="spec">
-          <tr><th>Source of truth</th><td>A repository of signed configuration bundles</td></tr>
-          <tr><th>Workflow</th><td>Propose, review, apply, roll back</td></tr>
-          <tr><th>Audit</th><td>Who changed what, when and why, per site</td></tr>
-          <tr><th>Status</th><td>Available on request</td></tr>
+          <tr><th>Source of truth</th><td>A Git checkout of per-site configuration documents, signed per site on apply</td></tr>
+          <tr><th>Workflow</th><td>Propose and review in Git, approve, apply to one site or all, roll back</td></tr>
+          <tr><th>Audit</th><td>Commit, sites, time, result and reason, per apply</td></tr>
+          <tr><th>Drift report</th><td>Included with Host; apply needs the GitOps license</td></tr>
         </table>
       </div>
     </div>

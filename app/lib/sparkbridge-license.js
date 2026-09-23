@@ -36,6 +36,8 @@ const E = {
   NOTIFY: 'com.sparkbridge.sparknotify',
   GANTT: 'com.sparkbridge.sparkgantt',
   RECORD: 'io.sparkrecord.gateway',
+  // 3.0 id, no pre-3.0 alias: GitOps was never sold before the com.greenguardusa rename.
+  GITOPS: 'com.greenguardusa.gitops',
 }
 
 // Prices are list, USD cents, per gateway. Source of truth for the site's buy buttons.
@@ -62,6 +64,7 @@ const CATALOG = {
   sparknotify: { name: 'SparkNotify', cents: 69500, entitlements: [E.NOTIFY], unit: 'gateway' },
   sparkgantt: { name: 'SparkGantt', cents: 69500, entitlements: [E.GANTT], unit: 'gateway' },
   sparkrecord: { name: 'SparkRecord', cents: 799500, entitlements: [E.RECORD], unit: 'central gateway' },
+  gitops: { name: 'GitOps / Enterprise Governance', cents: 999500, entitlements: [E.GITOPS], unit: 'Host gateway' },
   sparkinflux: { name: 'SparkInflux', cents: 149500, entitlements: [E.INFLUX], unit: 'gateway' },
   sparkvalidate: { name: 'SparkValidate', cents: 249500, entitlements: [E.VALIDATE], unit: 'gateway' },
   'sparkvalidate-cli': { name: 'SparkValidate (command line only)', cents: 99500, entitlements: [E.VALIDATE], unit: 'workstation' },

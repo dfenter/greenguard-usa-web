@@ -115,7 +115,7 @@ Vault  Record  Passage  Inject  Your tools</pre>
           <tr><td>Timestamp integrity</td><td>Arrival time unless every hop is configured to preserve source time</td><td>Source timestamps carried by Sparkplug</td><td>Source timestamps carried through buffer, replay, history and warehouse delivery. A timestamp that survives the trip</td></tr>
           <tr><td>Consumer scaling</td><td>Another backend, another set of site connections</td><td>Another subscriber on the broker, one wildcard subscriber per engine</td><td>MQTT 5 shared subscriptions: four Host consumers deliver about 20x one. Publish once, add consumers when you need them</td></tr>
           <tr><td>Site provisioning</td><td>Manual gateway build, GAN approval, provider setup per site</td><td>Broker URL, credentials and certificates typed at each site</td><td>One-time enrollment code: the site bootstraps identity over a signed channel, credentials written owner-only. Certificate issuance and fleet registration are on the <a href="/sparkbridge/roadmap">roadmap</a></td></tr>
-          <tr><td>Configuration drift</td><td>Per-gateway settings, reviewed by visiting each one</td><td>Per-gateway module settings</td><td>Signed configuration bundles distributed fleet-wide; FleetOps shows drift per gateway; GitOps / Enterprise Governance (pilot) adds review and rollback</td></tr>
+          <tr><td>Configuration drift</td><td>Per-gateway settings, reviewed by visiting each one</td><td>Per-gateway module settings</td><td>Signed configuration bundles distributed fleet-wide; FleetOps shows drift per gateway; GitOps / Enterprise Governance adds Git review, canary apply and rollback</td></tr>
           <tr><td>Fleet operations</td><td>Gateway status pages, one at a time</td><td>Broker client list plus gateway status pages</td><td>FleetOps: versions, drift, certificates, backups per gateway in one view; Host /fleet and Prometheus metrics</td></tr>
           <tr><td>Security policy</td><td>Gateway Network certificates and per-gateway users</td><td>Broker ACL files written by hand</td><td>SparkID generates deny-by-default rules from intent; Provider enforces per-site identities; Sentinel scores the result</td></tr>
         </tbody>
@@ -207,7 +207,7 @@ Vault  Record  Passage  Inject  Your tools</pre>
           <tr><td>Which certificates expire soon?</td><td>FleetOps expiring list; Sentinel finding with the fix</td></tr>
           <tr><td>Can site A publish as site B?</td><td>No by construction: Provider binds each credential to one group and node. Sentinel proves it</td></tr>
           <tr><td>How much headroom is left?</td><td>Host /capacity reports its own ceiling from benchmark evidence and the shard count it runs</td></tr>
-          <tr><td>Who changed what?</td><td>Signed configuration bundles today; review, rollback and audit trail in GitOps / Enterprise Governance (pilot)</td></tr>
+          <tr><td>Who changed what?</td><td>Signed configuration bundles today; review, rollback and audit trail in GitOps / Enterprise Governance</td></tr>
         </tbody>
       </table>
     </div>
