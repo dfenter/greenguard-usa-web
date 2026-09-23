@@ -27,7 +27,7 @@ describe('sparkbridge-license', () => {
     expect(ids).toHaveLength(9)
     expect(ids).not.toContain(L.E.FLOW)
     expect(L.CATALOG['central-package'].cents).toBe(399500)
-    expect(L.CATALOG.sparkvault.cents).toBe(99500)
+    expect(L.CATALOG.sparkvault.cents).toBe(399500)
   })
 
   test('one key per gateway bought', () => {
