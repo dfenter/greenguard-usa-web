@@ -34,7 +34,9 @@ const E = {
 // Prices are list, USD cents, per gateway. Source of truth for the site's buy buttons.
 const CATALOG = {
   edge: { name: 'SparkBridge Edge', cents: 99500, entitlements: [E.EDGE], unit: 'site gateway' },
-  central: { name: 'SparkBridge Central', cents: 149500, entitlements: [E.HOST, E.PROVIDER], unit: 'central gateway' },
+  // Item id stays `central` (site buy button and past Stripe sessions use it); sold as Host.
+  central: { name: 'SparkBridge Host', cents: 149500, entitlements: [E.HOST, E.CALC, E.SPARKID], unit: 'Host gateway' },
+  provider: { name: 'SparkBridge Provider', cents: 199500, entitlements: [E.PROVIDER], unit: 'gateway' },
   'central-package': {
     name: 'SparkBridge Central package', cents: 399500, unit: 'central gateway',
     entitlements: [E.HOST, E.PROVIDER, E.PASSAGE, E.CALC, E.SPARKID, E.SENTINEL, E.FLEETOPS, E.VAULT, E.INJECT],

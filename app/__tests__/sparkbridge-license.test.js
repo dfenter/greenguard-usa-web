@@ -30,6 +30,21 @@ describe('sparkbridge-license', () => {
     expect(L.CATALOG.sparkvault.cents).toBe(399500)
   })
 
+  test('Host and Provider are separate entitlements', () => {
+    expect(L.CATALOG.central.name).toBe('SparkBridge Host')
+    expect(L.CATALOG.central.cents).toBe(149500)
+    expect(L.CATALOG.central.entitlements).toEqual([L.E.HOST, L.E.CALC, L.E.SPARKID])
+    expect(L.CATALOG.provider.cents).toBe(199500)
+    expect(L.CATALOG.provider.entitlements).toEqual([L.E.PROVIDER])
+    const host = L.issueForPurchase({ sku: 'central', licensee: 'Acme' })[0].content
+    expect(host).toContain('\nentitlements=io.sparkbridge.host,io.sparkcalc.engine,cli.sparkbridge.sparkid\n')
+    expect(host).not.toContain(L.E.PROVIDER)
+    const prov = L.issueForPurchase({ sku: 'provider', licensee: 'Acme' })[0]
+    expect(prov.filename).toBe('sparkbridge-license-provider.key')
+    expect(prov.content).toContain('\nentitlements=io.sparkbridge.provider\n')
+    expect(verify(prov.content)).toBe(true)
+  })
+
   test('one key per gateway bought', () => {
     const keys = L.issueForPurchase({ sku: 'edge', quantity: 3, licensee: 'Acme' })
     expect(keys.map((k) => k.filename)).toEqual(['sparkbridge-license-edge-1.key', 'sparkbridge-license-edge-2.key', 'sparkbridge-license-edge-3.key'])
