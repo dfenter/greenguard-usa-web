@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitOps / Enterprise Governance user manual | SparkBridge</title>
+<meta name="description" content="User manual for GitOps / Enterprise Governance: install, license, configure, operate, verify and troubleshoot.">
+<link rel="canonical" href="https://mqtt.greenguard-usa.com/sparkbridge/manuals/gitops">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@600;700&family=Public+Sans:wght@400;600&family=Spline+Sans+Mono:wght@400;500&display=swap"></noscript>
+<link rel="stylesheet" href="/sparkbridge/sb.css">
+<link rel="stylesheet" href="/sparkbridge/suite.css">
+<style>@media print{.topicbar,.navtoggle,footer,#sbchat-fab,#sbchat-panel,.tail{display:none!important}body{background:#fff;color:#111}.band{background:#fff;color:#111}a{color:inherit}}</style>
+</head>
+<body class="docs">
+
+<div class="topicbar">
+  <div class="wrap">
+    <a class="skip" href="#main">Skip to content</a>
+    <a class="brand" href="/sparkbridge/">Spark<span>Bridge</span></a>
+    <nav class="nav" id="nav" aria-label="Main">
+        <a href="/sparkbridge/">Overview</a>
+        <a href="/sparkbridge/edge">Edge</a>
+        <a href="/sparkbridge/central">Host</a>
+        <a href="/sparkbridge/products">All products</a>
+        <a href="/sparkbridge/pricing">Pricing</a>
+        <a href="/sparkbridge/use-cases">Use cases</a>
+        <a href="/sparkbridge/architecture">Architecture</a>
+        <a href="/sparkbridge/compare">Compare</a>
+        <a href="/sparkbridge/download">Download</a>
+        <a href="/sparkbridge/docs">Docs</a>
+        <a href="/sparkbridge/contact">Contact</a>
+    </nav>
+    <button class="navtoggle" id="navtoggle" aria-expanded="false" aria-controls="nav">Menu</button>
+  </div>
+</div>
+
+<header class="phead" id="top"><div class="wrap">
+  <div class="eyebrow">User manual</div>
+  <h1>GitOps / Enterprise Governance</h1>
+  <p>GitOps keeps every site's SparkBridge configuration in a Git repository. Host shows which sites have drifted from it, signs and applies a change to one site or all, rolls back by commit, and records every apply.</p>
+  <div class="pmeta"><span class="stat">Part of Host</span><span>Ignition 8.1.19+ and 8.3</span><span>Runs on: Host; sites need Edge with a trusted configuration key</span></div>
+</div></header>
+<main id="main">
+<section id="contents"><div class="wrap"><div class="sec-head"><h2>Contents</h2></div><ol><li><a href="#overview">1. Overview</a></li><li><a href="#requirements">2. What You Need</a></li><li><a href="#install">3. Install</a></li><li><a href="#license">4. License</a></li><li><a href="#configure">5. Configure</a></li><li><a href="#operate">6. Operate</a></li><li><a href="#verify">7. Verify</a></li><li><a href="#troubleshoot">8. Troubleshoot</a></li><li><a href="#reference">9. Reference</a></li><li><a href="#support">10. Support</a></li></ol></div></section>
+<section id="overview"><div class="wrap"><div class="sec-head"><h2>1. Overview</h2></div>
+<p>A bundle is a directory in your repository: <code>bundle.properties</code> (version, author, approvals) and one document per site at <code>sites/&lt;group&gt;/&lt;edge&gt;.properties</code>. Host reads the checked-out bundle, compares each site's desired version with the version that site declares on its own BIRTH, and reports the difference as drift.</p>
+<p>When you apply, Host checks every document, signs each one for its own site with the fleet signing key at a new per-site sequence number, and publishes it on that site's configuration topic. The Edge verifies the signature and the sequence, hot-reloads, and declares the new version on its next BIRTH, which closes the drift.</p>
+<p>Review happens where your team already reviews changes: a pull request in your Git host. GitOps enforces an approvals count before it will apply, and records the commit of every apply.</p>
+</div></section>
+<section class="band" id="requirements"><div class="wrap"><div class="sec-head"><h2>2. What You Need</h2></div>
+<ul>
+<li>A SparkBridge Host gateway (GitOps is built into Host).</li>
+<li>Edge on each site, with <code>sparkbridge.config.trustedkey</code> set to the fleet public key. A site without it ignores configuration and stays drifted.</li>
+<li>The fleet signing key on Host at <code>sparkbridge.host.enrollment.keyfile</code> (the same key enrollment uses).</li>
+<li>A Git checkout of your bundle on the Host machine, kept current by your own pull (a scheduled <code>git pull</code> or your CI).</li>
+<li>A GitOps license to apply. The drift report works on every Host without it.</li>
+</ul>
+</div></section>
+<section id="install"><div class="wrap"><div class="sec-head"><h2>3. Install</h2></div>
+<p>Nothing extra to install: install or upgrade SparkBridge Host from the download page. Clone your configuration repository onto the Host machine, for example to <code>&lt;ignition&gt;/data/gitops-bundle</code>.</p>
+</div></section>
+<section class="band" id="license"><div class="wrap"><div class="sec-head"><h2>4. License</h2></div>
+<p>GitOps is licensed per Host gateway. Your key names <code>com.greenguardusa.gitops</code>; it can be the same <code>sparkbridge-license.key</code> file as your Host license. Place the key in the gateway data directory; it is picked up without a restart.</p>
+<p>Without the license, <code>/gitops</code>, <code>/gitops/page</code>, <code>/gitops/audit</code> and the drift gauge work as normal. Apply answers 403 with the license it needs and writes a REFUSED audit row, and <code>mode=apply</code> runs as a report. While the Host module's Ignition trial is running, apply works so you can evaluate it.</p>
+</div></section>
+<section id="configure"><div class="wrap"><div class="sec-head"><h2>5. Configure</h2></div>
+<p>Set these Java system properties on the Host gateway (Ignition <code>ignition.conf</code>, one <code>wrapper.java.additional</code> line each) and restart once:</p>
+<table class="spec">
+<tr><th><code>sparkbridge.host.gitops.bundleDir</code></th><td>The bundle directory in your checkout. Empty turns GitOps off.</td></tr>
+<tr><th><code>sparkbridge.host.gitops.mode</code></th><td><code>report</code> (default): show drift only. <code>apply</code>: once a minute, apply to every drifted site that has birthed.</td></tr>
+<tr><th><code>sparkbridge.host.gitops.approvalsRequired</code></th><td>Minimum <code>approvals=</code> in <code>bundle.properties</code> before apply is allowed. Default 1, never below 1.</td></tr>
+<tr><th><code>sparkbridge.host.enrollment.keyfile</code></th><td>The fleet signing key made by <code>ConfigKeys --generate</code> (default <code>data/sparkbridge-config-signing.key</code>). It must be a regular, owner-only file (<code>chmod 600</code>); a key readable by others is refused.</td></tr>
+</table>
+<p>A site document holds the same keys as that site's SparkBridge configuration. Set <code>sparkbridge.config.version</code> in a document to give it its own version; otherwise it takes the bundle version. Secrets never travel in a bundle: a document with a secret-bearing key is refused, and secrets stay in each site's owner-only secrets file.</p>
+</div></section>
+<section class="band" id="operate"><div class="wrap"><div class="sec-head"><h2>6. Operate</h2></div>
+<ol>
+<li><strong>Propose.</strong> Change a site document, bump <code>version</code> in <code>bundle.properties</code>, and open a pull request.</li>
+<li><strong>Review and approve.</strong> Reviewers approve in your Git host; set <code>approvals=</code> to the number of approvals it received, then merge.</li>
+<li><strong>See drift.</strong> After the checkout on Host pulls the merge, open <code>/gitops/page</code>: each site shows desired, applied and why it differs.</li>
+<li><strong>Canary.</strong> <code>POST /gitops/apply?site=Austin/Site12&amp;reason=deadband</code> with the admin token applies to one site. Watch it reconnect and declare the new version.</li>
+<li><strong>Roll out.</strong> <code>POST /gitops/apply?site=all</code>, or a comma list of sites. In <code>mode=apply</code> Host does this for you once a minute.</li>
+<li><strong>Roll back.</strong> Revert or check out the earlier commit in the configured directory and apply again. Host re-signs the earlier documents at a newer sequence, so every site accepts them.</li>
+</ol>
+<p>Apply only ever uses the configured bundle directory; it never accepts a different path on the request.</p>
+</div></section>
+<section id="verify"><div class="wrap"><div class="sec-head"><h2>7. Verify</h2></div>
+<ul>
+<li><code>GET /gitops</code> reports <code>drifted: 0</code> and each site's applied version equals desired.</li>
+<li><code>GET /gitops/audit</code> shows one APPLIED row per apply, with the commit, sites, time, reason and the published <code>site@version#sequence</code>.</li>
+<li>The Prometheus gauge <code>sparkbridge_gitops_drift</code> is 0 and <code>sparkbridge_gitops_bundle_error</code> is 0.</li>
+</ul>
+</div></section>
+<section class="band" id="troubleshoot"><div class="wrap"><div class="sec-head"><h2>8. Troubleshoot</h2></div>
+<table class="spec">
+<tr><th>Drift stays open after apply</th><td>The site has no <code>sparkbridge.config.trustedkey</code>, or it is not the fleet public key. The site ignores the document.</td></tr>
+<tr><th>Applied shows <code>unknown</code></th><td>The site has not sent a BIRTH to this Host since it started. Apply skips unknown sites in <code>mode=apply</code>.</td></tr>
+<tr><th>403 "approvals N below required M"</th><td>Raise <code>approvals=</code> in <code>bundle.properties</code> after review, or lower <code>approvalsRequired</code>.</td></tr>
+<tr><th>403 naming <code>com.greenguardusa.gitops</code></th><td>No GitOps license on this Host. Install the key; no restart needed.</td></tr>
+<tr><th>409 bundle refused</th><td>A document failed its check (unknown value, secret key, bad path, symlink). The message names the site and key. One bad document refuses the whole bundle.</td></tr>
+<tr><th>"document changed under unchanged version"</th><td>A document was edited without bumping its version. Bump it; sites ignore a same-version resend.</td></tr>
+<tr><th>"no fleet signing key"</th><td>Set <code>sparkbridge.host.enrollment.keyfile</code> to a readable key.</td></tr>
+</table>
+</div></section>
+<section id="reference"><div class="wrap"><div class="sec-head"><h2>9. Reference</h2></div>
+<table class="spec">
+<tr><th><code>GET /gitops</code></th><td>Drift report as JSON (read token), including the bundle's Git commit and whether apply is licensed.</td></tr>
+<tr><th><code>GET /gitops/page</code></th><td>The same report as a page.</td></tr>
+<tr><th><code>POST /gitops/apply?site=&lt;group/edge,...|all&gt;[&amp;reason=]</code></th><td>Apply (admin token, GitOps license).</td></tr>
+<tr><th><code>GET /gitops/audit[?limit=n]</code></th><td>Audit rows, newest last, up to 1,000. File: <code>data/sparkbridge-gitops-audit.jsonl</code>, owner-only.</td></tr>
+<tr><th>Sequence file</th><td><code>data/sparkbridge-gitops.seq</code>, shared with enrollment and the <code>PublishConfig</code> tool. Point <code>PublishConfig --sequence-file</code> at it when you run it on the Host machine.</td></tr>
+<tr><th>Command line</th><td><code>java -cp common.jar io.sparkbridge.gitops.SparkGitOps build --bundle &lt;dir&gt; --key &lt;file&gt; [--out &lt;dir&gt;] [--publish [--broker &lt;uri&gt;]] [--approvals-required n]</code> builds and optionally publishes the same signed documents off the gateway.</td></tr>
+</table>
+<p>The audit records the credential tier that made the call (for example <code>rest-admin</code>) and the bundle author; the named person is the commit author in your Git history.</p>
+</div></section>
+<section class="band" id="support"><div class="wrap"><div class="sec-head"><h2>10. Support</h2></div>
+<p><a href="/sparkbridge/central#gitops">GitOps on the Host product page</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/contact">Contact</a> &middot; <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases">GitHub releases</a></p>
+</div></section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="mono">SparkBridge &middot; Sparkplug B / 3.0 &middot; MQTT 3.1.1 and MQTT 5 &middot; Ignition 8.1.19+ core, 8.1.33+ drivers and add-ons, 8.3 line</span>
+    <span class="mono"><a href="/sparkbridge/download">Download</a> &middot; <a href="/sparkbridge/technology">Technology</a> &middot; <a href="/sparkbridge/benchmarks">Benchmarks</a> &middot; <a href="/sparkbridge/roadmap">Roadmap</a> &middot; <a href="/sparkbridge/changelog">Changelog</a> &middot; <a href="/sparkbridge/pricing">Pricing</a> &middot; <a href="/sparkbridge/partners">Partners</a> · <a href="/sparkbridge/contact">Contact</a></span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var t=document.getElementById('navtoggle'), n=document.getElementById('nav');
+  if(t&&n){t.addEventListener('click',function(){
+    var open=n.classList.toggle('open');
+    t.setAttribute('aria-expanded',open?'true':'false');
+  });}
+})();
+</script>
+<script defer src="/sparkbridge/sb-chat.js"></script>
+</body>
+</html>
