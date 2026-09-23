@@ -51,6 +51,20 @@ describe('sparkbridge-license', () => {
     expect(verify(prov.content)).toBe(true)
   })
 
+  test('pricing page add-ons are sellable at page prices', () => {
+    const want = {
+      sparkads: [69500, 'com.sparkbridge.sparkads'], sparks7: [69500, 'com.sparkbridge.sparks7'],
+      spark61850: [69500, 'com.sparkbridge.spark61850'], sparkbacnet: [69500, 'com.sparkbridge.sparkbacnet'],
+      sparknotify: [69500, 'com.sparkbridge.sparknotify'], sparkgantt: [69500, 'com.sparkbridge.sparkgantt'],
+      sparkrecord: [799500, 'io.sparkrecord.gateway'], provider: [199500, 'io.sparkbridge.provider'],
+    }
+    for (const [sku, [cents, id]] of Object.entries(want)) {
+      expect(L.skuInfo(sku).cents).toBe(cents)
+      expect(L.skuInfo(sku).entitlements).toEqual([id])
+    }
+    expect(L.skuInfo('gitops')).toBeNull()
+  })
+
   test('one key per gateway bought', () => {
     const keys = L.issueForPurchase({ sku: 'edge', quantity: 3, licensee: 'Acme' })
     expect(keys.map((k) => k.filename)).toEqual(['sparkbridge-license-edge-1.key', 'sparkbridge-license-edge-2.key', 'sparkbridge-license-edge-3.key'])

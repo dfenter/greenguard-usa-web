@@ -29,6 +29,13 @@ const E = {
   INFLUX: 'com.sparkbridge.sparkinflux',
   VALIDATE: 'io.sparkvalidate',
   LOGIX: 'com.sparkbridge.sparklogix',
+  ADS: 'com.sparkbridge.sparkads',
+  S7: 'com.sparkbridge.sparks7',
+  IEC61850: 'com.sparkbridge.spark61850',
+  BACNET: 'com.sparkbridge.sparkbacnet',
+  NOTIFY: 'com.sparkbridge.sparknotify',
+  GANTT: 'com.sparkbridge.sparkgantt',
+  RECORD: 'io.sparkrecord.gateway',
 }
 
 // Prices are list, USD cents, per gateway. Source of truth for the site's buy buttons.
@@ -48,6 +55,13 @@ const CATALOG = {
   dnp3: { name: 'DNP3 driver', cents: 69500, entitlements: [E.DNP3], unit: 'gateway' },
   ti505: { name: 'TI 505 / CTI 2500 driver', cents: 69500, entitlements: [E.TI505], unit: 'gateway' },
   sparklogix: { name: 'SparkLogix', cents: 69500, entitlements: [E.LOGIX], unit: 'gateway' },
+  sparkads: { name: 'SparkADS', cents: 69500, entitlements: [E.ADS], unit: 'gateway' },
+  sparks7: { name: 'SparkS7', cents: 69500, entitlements: [E.S7], unit: 'gateway' },
+  spark61850: { name: 'Spark61850', cents: 69500, entitlements: [E.IEC61850], unit: 'gateway' },
+  sparkbacnet: { name: 'SparkBACnet', cents: 69500, entitlements: [E.BACNET], unit: 'gateway' },
+  sparknotify: { name: 'SparkNotify', cents: 69500, entitlements: [E.NOTIFY], unit: 'gateway' },
+  sparkgantt: { name: 'SparkGantt', cents: 69500, entitlements: [E.GANTT], unit: 'gateway' },
+  sparkrecord: { name: 'SparkRecord', cents: 799500, entitlements: [E.RECORD], unit: 'central gateway' },
   sparkinflux: { name: 'SparkInflux', cents: 149500, entitlements: [E.INFLUX], unit: 'gateway' },
   sparkvalidate: { name: 'SparkValidate', cents: 249500, entitlements: [E.VALIDATE], unit: 'gateway' },
   'sparkvalidate-cli': { name: 'SparkValidate (command line only)', cents: 99500, entitlements: [E.VALIDATE], unit: 'workstation' },
