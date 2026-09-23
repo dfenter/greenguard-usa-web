@@ -37,13 +37,7 @@ const CATALOG = {
   // Item id stays `central` (site buy button and past Stripe sessions use it); sold as Host.
   central: { name: 'SparkBridge Host', cents: 149500, entitlements: [E.HOST, E.CALC, E.SPARKID], unit: 'Host gateway' },
   provider: { name: 'SparkBridge Provider', cents: 199500, entitlements: [E.PROVIDER], unit: 'gateway' },
-  'central-package': {
-    name: 'SparkBridge Central package', cents: 399500, unit: 'central gateway',
-    entitlements: [E.HOST, E.PROVIDER, E.PASSAGE, E.CALC, E.SPARKID, E.SENTINEL, E.FLEETOPS, E.VAULT, E.INJECT],
-  },
   passage: { name: 'Passage', cents: 199500, entitlements: [E.PASSAGE], unit: 'central gateway' },
-  sparkcalc: { name: 'SparkCalc', cents: 49500, entitlements: [E.CALC], unit: 'central gateway' },
-  sparkid: { name: 'SparkID', cents: 49500, entitlements: [E.SPARKID], unit: 'central gateway' },
   sentinel: { name: 'Sentinel', cents: 499500, entitlements: [E.SENTINEL], unit: 'central gateway' },
   fleetops: { name: 'FleetOps', cents: 499500, entitlements: [E.FLEETOPS], unit: 'central gateway' },
   sparkvault: { name: 'SparkVault', cents: 399500, entitlements: [E.VAULT], unit: 'central gateway' },
@@ -59,8 +53,21 @@ const CATALOG = {
   'sparkvalidate-cli': { name: 'SparkValidate (command line only)', cents: 99500, entitlements: [E.VALIDATE], unit: 'workstation' },
 }
 
-function skuInfo(sku) {
-  return CATALOG[String(sku || '').toLowerCase()] || null
+// No longer sold (package dropped; SparkCalc and SparkID now come with Host). Checkout
+// refuses them; kept so a session paid before retirement still fulfils and re-issues.
+const RETIRED = {
+  'central-package': {
+    name: 'SparkBridge Central package', cents: 399500, unit: 'central gateway',
+    entitlements: [E.HOST, E.PROVIDER, E.PASSAGE, E.CALC, E.SPARKID, E.SENTINEL, E.FLEETOPS, E.VAULT, E.INJECT],
+  },
+  sparkcalc: { name: 'SparkCalc', cents: 49500, entitlements: [E.CALC], unit: 'central gateway' },
+  sparkid: { name: 'SparkID', cents: 49500, entitlements: [E.SPARKID], unit: 'central gateway' },
+}
+
+/** Sellable item, or null. Pass { retired: true } to also resolve retired items (fulfilment only). */
+function skuInfo(sku, { retired = false } = {}) {
+  const id = String(sku || '').toLowerCase()
+  return CATALOG[id] || (retired && RETIRED[id]) || null
 }
 
 function signingKey() {
@@ -105,7 +112,7 @@ function supportUntilFrom(d = new Date()) {
  * Returns [{ filename, content }].
  */
 function issueForPurchase({ sku, quantity = 1, licensee, purchasedAt = new Date() }) {
-  const info = skuInfo(sku)
+  const info = skuInfo(sku, { retired: true })
   if (!info) throw new Error(`unknown SparkBridge sku ${sku}`)
   const n = Math.max(1, Math.min(200, parseInt(quantity, 10) || 1))
   const slug = String(sku).toLowerCase()
@@ -137,4 +144,4 @@ function licenseEmailHtml({ licensee, lines, supportUntil }) {
 <p>Questions: reply here, or write to admin@greenguard-usa.com.</p>`
 }
 
-module.exports = { MAGIC, E, CATALOG, skuInfo, issueKey, issueForPurchase, supportUntilFrom, licenseEmailHtml, isoDate }
+module.exports = { MAGIC, E, CATALOG, RETIRED, skuInfo, issueKey, issueForPurchase, supportUntilFrom, licenseEmailHtml, isoDate }

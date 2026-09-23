@@ -13,7 +13,7 @@ async function fulfillSparkBridgeOrder({ session, stripe, notifyAdmin, addNote, 
   const email = session.customer_details?.email || session.customer_email || ''
   const licensee = licenseeFrom(session)
   const sku = String(session.metadata?.sku || '').toLowerCase()
-  const info = skuInfo(sku)
+  const info = skuInfo(sku, { retired: true })
   if (!info) throw new Error(`sparkbridge fulfil: unknown sku ${sku} on ${session.id}`)
 
   // Quantity comes from the line item (the buyer can adjust it in Checkout), not the metadata.

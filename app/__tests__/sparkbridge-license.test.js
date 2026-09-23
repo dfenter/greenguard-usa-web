@@ -22,12 +22,18 @@ describe('sparkbridge-license', () => {
     expect(verify(k.replace('gateway=any', 'gateway=x'))).toBe(false)
   })
 
-  test('central package carries all nine ids and never SparkFlow', () => {
-    const ids = L.CATALOG['central-package'].entitlements
+  test('retired items are not sellable but still fulfil', () => {
+    for (const sku of ['central-package', 'sparkcalc', 'sparkid']) {
+      expect(L.CATALOG[sku]).toBeUndefined()
+      expect(L.skuInfo(sku)).toBeNull()
+      expect(L.skuInfo(sku, { retired: true })).toBe(L.RETIRED[sku])
+    }
+    const ids = L.RETIRED['central-package'].entitlements
     expect(ids).toHaveLength(9)
     expect(ids).not.toContain(L.E.FLOW)
-    expect(L.CATALOG['central-package'].cents).toBe(399500)
-    expect(L.CATALOG.sparkvault.cents).toBe(399500)
+    const pkg = L.issueForPurchase({ sku: 'central-package', licensee: 'Acme' })[0].content
+    expect(verify(pkg)).toBe(true)
+    expect(L.skuInfo('sparkvault').cents).toBe(399500)
   })
 
   test('Host and Provider are separate entitlements', () => {
