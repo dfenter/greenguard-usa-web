@@ -52,7 +52,7 @@
   <div class="wrap">
     <div class="eyebrow">Changelog</div>
     <h1>Version history</h1>
-    <p>Every release, what changed, and what the change was for. Current release: 3.0.2, a corrective release on the 3.0.0 fleet rebuild. SparkS7 0.3.0. SparkNotify 0.2.0. SparkRecord 0.1.0.
+    <p>Every release, what changed, and what the change was for. Current release: 3.1.0, GitOps / Enterprise Governance becomes a licensed product. SparkS7 0.3.0. SparkNotify 0.2.0. SparkRecord 0.1.0.
     Full customer notes ship in the release package.</p>
   </div>
 </header>
@@ -62,6 +62,15 @@
 <section>
   <div class="wrap">
     <ul class="lifeline">
+      <li>
+        <span class="lc lc-birth">3.1.0<br>2026&#8209;09&#8209;23</span>
+        <div>
+          <h3>GitOps / Enterprise Governance is licensed; the audit records the Git commit</h3>
+          <p><b>Apply needs a GitOps license (behaviour change).</b> <code>POST /gitops/apply</code> and <code>sparkbridge.host.gitops.mode=apply</code> now need a key naming <span class="mono">com.greenguardusa.gitops</span>, or the Host module's running Ignition trial. Drift stays free on every Host: <code>/gitops</code>, the page, the audit and the drift gauge. Without the license, apply answers 403, publishes nothing and writes a REFUSED audit row; <code>mode=apply</code> keeps reporting and logs once that it is running as report only. <b>The audit records the Git commit.</b> When the bundle directory is a Git checkout, every audit row, the report and the page carry the commit it is checked out at, so a rollback shows as the older commit id. <b>Entitlement ids.</b> The license tooling knows SparkRecord (<span class="mono">io.sparkrecord.gateway</span>) and GitOps (<span class="mono">com.greenguardusa.gitops</span>), and its Central set now matches the portal's Host item (Host, SparkCalc, SparkID; Provider is sold separately). Keys already issued are unchanged.</p>
+          <p><b>Upgrade path.</b> Install the 3.1.0 modules in place of 3.0.x; module ids are unchanged. A Host that used GitOps apply needs a key naming GitOps (and Host) in <code>sparkbridge-license.key</code> before the upgrade. Setup, rollback and audit are in the <a href="/sparkbridge/manuals/gitops">GitOps manual</a>.</p>
+          <p>Bundles for Ignition 8.1 and 8.3 are on the <a href="/sparkbridge/download">download page</a> and at <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/v3.1.0">the v3.1.0 GitHub release</a>.</p>
+        </div>
+      </li>
       <li>
         <span class="lc lc-birth">3.0.2<br>2026&#8209;09&#8209;12</span>
         <div>
