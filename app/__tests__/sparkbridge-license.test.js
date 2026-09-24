@@ -57,12 +57,16 @@ describe('sparkbridge-license', () => {
       spark61850: [69500, 'com.sparkbridge.spark61850'], sparkbacnet: [69500, 'com.sparkbridge.sparkbacnet'],
       sparknotify: [69500, 'com.sparkbridge.sparknotify'], sparkgantt: [69500, 'com.sparkbridge.sparkgantt'],
       sparkrecord: [799500, 'io.sparkrecord.gateway'], provider: [199500, 'io.sparkbridge.provider'],
-      gitops: [999500, 'com.greenguardusa.gitops'],
     }
     for (const [sku, [cents, id]] of Object.entries(want)) {
       expect(L.skuInfo(sku).cents).toBe(cents)
       expect(L.skuInfo(sku).entitlements).toEqual([id])
     }
+  })
+
+  test('gitops key grants Host, SparkCalc and SparkID with GitOps', () => {
+    expect(L.skuInfo('gitops').cents).toBe(999500)
+    expect(L.skuInfo('gitops').entitlements).toEqual(['io.sparkbridge.host', 'io.sparkcalc.engine', 'cli.sparkbridge.sparkid', 'com.greenguardusa.gitops'])
   })
 
   test('one key per gateway bought', () => {
