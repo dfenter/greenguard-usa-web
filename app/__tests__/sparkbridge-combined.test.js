@@ -81,13 +81,13 @@ describe('mergeGrants', () => {
     expect(m.products).toEqual(['SparkS7'])
   })
 
-  test('licensee from the most recent grant, support from the latest date', () => {
+  test('licensee from the most recent grant, support from the earliest date', () => {
     const m = L.mergeGrants([
       g({ sku: 'sparks7', entitlements: [L.E.S7], licensee: 'New Name', support_until: '2027-01-01', created_at: '2026-09-05T00:00:00Z' }),
       g({ sku: 'dnp3', entitlements: [L.E.DNP3], licensee: 'Old Name', support_until: '2027-09-01', created_at: '2026-09-01T00:00:00Z' }),
     ])
     expect(m.licensee).toBe('New Name')
-    expect(L.isoDate(m.supportUntil)).toBe('2027-09-01')
+    expect(L.isoDate(m.supportUntil)).toBe('2027-01-01')
   })
 
   test('no active grants throws', () => {
@@ -143,6 +143,8 @@ describe('fulfilment with a gateway name', () => {
     expect(second.html).toContain('GitOps / Enterprise Governance')
     expect(second.html).toMatch(/delete or overwrite the old file/)
     expect(second.html).toContain(L.REISSUE_URL)
+    expect(second.html).toMatch(/earliest support date among the products it covers/)
+    expect(key).toContain('\nsupport-until=2027-08-29\n') // first purchase's term, not the later 2027-08-30
 
     expect(mockDb.keys).toHaveLength(2)
     expect(mockDb.keys[0]).toMatchObject({ status: 'superseded', superseded_by: 2, reason: 'purchase' })
@@ -193,14 +195,52 @@ describe('fulfilment with a gateway name', () => {
   })
 })
 
+describe('fulfilment fallback around the combined key', () => {
+  const stripe = { checkout: { sessions: { listLineItems: jest.fn().mockResolvedValue({ data: [{ quantity: 1 }] }) } } }
+  const session = {
+    id: 'cs_f', created: 1788000000, amount_total: 69500, currency: 'usd',
+    customer_details: { email: 'buyer@acme.com', name: 'Jane' },
+    custom_fields: [{ key: 'licensee', text: { value: 'Acme' } }, { key: 'gateway', text: { value: 'GW' } }],
+    metadata: { source: 'sparkbridge', sku: 'sparks7', quantity: '1' },
+  }
+
+  test('merge or sign failure before the email falls back to the per-purchase key, one email', async () => {
+    const spy = jest.spyOn(L, 'issueCombinedKey').mockImplementationOnce(() => { throw new Error('sign failed') })
+    const err = jest.spyOn(console, 'error').mockImplementation(() => {})
+    const r = await fulfillSparkBridgeOrder({ session, stripe })
+    expect(r).toEqual({ keys: 1, combined: false })
+    expect(mockSendEmail).toHaveBeenCalledTimes(1)
+    expect(mockSendEmail.mock.calls[0][0].attachments[0].filename).toBe('sparkbridge-license-sparks7.key')
+    spy.mockRestore()
+    err.mockRestore()
+  })
+
+  test('a failed combined email is not followed by a second, legacy email', async () => {
+    mockSendEmail.mockRejectedValueOnce(new Error('smtp down'))
+    await expect(fulfillSparkBridgeOrder({ session, stripe })).rejects.toThrow(/smtp down/)
+    expect(mockSendEmail).toHaveBeenCalledTimes(1)
+    expect(mockSendEmail.mock.calls[0][0].attachments[0].filename).toBe('sparkbridge-license.key')
+  })
+})
+
 describe('reissue API', () => {
-  const call = async (method, body) => {
+  // Fake clock: sleep advances fake time and yields a macrotask, so mocked DB/email work
+  // (microtasks) finishes first unless it deliberately hangs.
+  const fake = { t: 1000, sleeps: [] }
+  beforeAll(() => {
+    reissue.clock.now = () => fake.t
+    reissue.clock.sleep = async (ms) => { fake.sleeps.push(ms); fake.t += Math.max(0, ms); await new Promise((r) => setImmediate(r)) }
+  })
+  let ipSeq = 0
+  const call = async (method, body, ip = `10.0.0.${++ipSeq}`) => {
     const res = { statusCode: 0, body: null, headers: {} }
     res.status = (c) => { res.statusCode = c; return res }
     res.json = (b) => { res.body = b; return res }
     res.end = () => res
     res.setHeader = (k, v) => { res.headers[k] = v }
-    await reissue({ method, body }, res)
+    const start = fake.t
+    await reissue({ method, body, headers: { 'x-forwarded-for': `${ip}, 172.16.0.1` } }, res)
+    res.elapsed = fake.t - start
     return res
   }
   const GENERIC = 'If that email holds active SparkBridge licences for that gateway, a combined key is on its way.'
@@ -245,5 +285,40 @@ describe('reissue API', () => {
     expect(again.body.message).toBe(GENERIC)
     expect(mockSendEmail).toHaveBeenCalledTimes(1)
   })
-})
 
+  const seed = (gw) => mockDb.grants.push({ id: 50, email: 'buyer@acme.com', gateway_id: gw, gateway_display: gw, licensee: 'Acme', sku: 'sparks7', entitlements: [L.E.S7], support_until: '2027-09-01', status: 'active', created_at: '2026-09-01T00:00:00Z' })
+
+  test('match and no-match take the same padded time', async () => {
+    seed('gw-t')
+    const miss = await call('POST', { email: 'nobody@nowhere.com', gateway: 'gw-t' })
+    const hit = await call('POST', { email: 'buyer@acme.com', gateway: 'gw-t' })
+    expect(mockSendEmail).toHaveBeenCalledTimes(1)
+    expect(miss.elapsed).toBe(reissue.FLOOR_MS)
+    expect(hit.elapsed).toBe(reissue.FLOOR_MS)
+    expect(hit.body).toEqual(miss.body)
+  })
+
+  test('slow or hung match work is capped and still gets the generic reply on time', async () => {
+    seed('gw-h')
+    mockSendEmail.mockImplementationOnce(() => new Promise(() => {}))
+    const err = jest.spyOn(console, 'error').mockImplementation(() => {})
+    const r = await call('POST', { email: 'buyer@acme.com', gateway: 'gw-h' })
+    expect(r.statusCode).toBe(200)
+    expect(r.body.message).toBe(GENERIC)
+    expect(r.elapsed).toBe(reissue.FLOOR_MS)
+    expect(err).toHaveBeenCalledWith(expect.stringMatching(/exceeded cap/))
+    err.mockRestore()
+  })
+
+  test('per-IP throttle: the 11th request in an hour from one IP sends nothing, same reply', async () => {
+    seed('gw-ip')
+    for (let i = 0; i < 10; i++) await call('POST', { email: `x${i}@nowhere.com`, gateway: 'gw-ip' }, '203.0.113.9')
+    const r = await call('POST', { email: 'buyer@acme.com', gateway: 'gw-ip' }, '203.0.113.9')
+    expect(r.statusCode).toBe(200)
+    expect(r.body.message).toBe(GENERIC)
+    expect(r.elapsed).toBe(reissue.FLOOR_MS)
+    expect(mockSendEmail).not.toHaveBeenCalled()
+    await call('POST', { email: 'buyer@acme.com', gateway: 'gw-ip' }, '198.51.100.4')
+    expect(mockSendEmail).toHaveBeenCalledTimes(1)
+  })
+})

@@ -47,13 +47,14 @@ export default function SparkBridgeLicence() {
             SparkBridge license key
           </div>
           <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 12 }}>
-            Every SparkBridge product bought with the same email address and the same Ignition gateway name
-            is covered by one combined key, the <code>sparkbridge-license.key</code> file on that gateway.
+            From 24 September 2026 on, every SparkBridge product bought with the same email address and the
+            same Ignition gateway name is covered by one combined key, the <code>sparkbridge-license.key</code> file
+            on that gateway.
           </p>
           <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: 24 }}>
             Enter both below and we will email the current combined key to the address the licences were bought with.
-            A new key replaces the old file on that gateway. Keys bought without a gateway name are re-issued by
-            replying to your license email.
+            A new key replaces the old file on that gateway. Keys bought earlier, or without a gateway name, can be
+            combined by writing to admin@greenguard-usa.com.
           </p>
 
           {message ? (

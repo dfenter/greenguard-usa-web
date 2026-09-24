@@ -173,7 +173,8 @@ function grantTime(g, i) {
  * Merge the grants held on one gateway into one entitlement set. Pure.
  * Non-active grants (superseded, revoked) are ignored. Entitlements keep first-seen order
  * across grants oldest first; licensee comes from the most recent grant; supportUntil is
- * the latest support date. Throws when no active grant remains.
+ * the EARLIEST support date: a key carries one support-until line, and a cheap later
+ * purchase must never extend support on the products bought earlier. Throws when no active grant remains.
  */
 function mergeGrants(grants) {
   const active = (grants || [])
@@ -195,7 +196,7 @@ function mergeGrants(grants) {
     if (name && !products.includes(name)) products.push(name)
     if (g.support_until) {
       const d = new Date(g.support_until)
-      if (!Number.isNaN(d.getTime()) && (!supportUntil || d > supportUntil)) supportUntil = d
+      if (!Number.isNaN(d.getTime()) && (!supportUntil || d < supportUntil)) supportUntil = d
     }
     if (oneLine(g.licensee)) licensee = oneLine(g.licensee)
   }
@@ -228,6 +229,7 @@ ${lead}
 ${replace}
 <p><b>To install:</b> copy the attached file into the Ignition data directory of gateway ${gw} as <code>sparkbridge-license.key</code> (for example <code>&lt;ignition&gt;/data/sparkbridge-license.key</code>). No restart is needed: within 30 seconds the module status pages change from Trial to "Licensed to ${escapeHtml(licensee)}".</p>
 <p>Support and updates are included through ${escapeHtml(supportUntil)}. The software itself is yours for good; nothing switches off after that date.</p>
+<p>The key shows the earliest support date among the products it covers; each product keeps its own twelve-month support term from its purchase date.</p>
 <p>You can have this combined key sent again at any time from <a href="${REISSUE_URL}">${REISSUE_URL}</a>; it always goes to this email address.</p>
 <p>Questions: reply here, or write to admin@greenguard-usa.com.</p>`
 }

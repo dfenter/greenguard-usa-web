@@ -22,11 +22,11 @@ function gatewayFrom(session) {
 }
 
 /**
- * Issue one combined key from the given grants, record it (superseding earlier keys for
- * the pair), and email it to the email of record with the admin copied. A store failure
- * while recording is logged and never blocks the email. Returns the issued key.
+ * Issue one combined key from the given grants and record it (superseding earlier keys for
+ * the pair). A store failure while recording is logged and never blocks the key. Returns
+ * the key plus the ready-to-send email; nothing is sent here.
  */
-async function sendCombinedKey({ email, gatewayDisplay, grants, reason, replaces }) {
+async function prepareCombinedKey({ email, gatewayDisplay, grants, reason, replaces }) {
   const key = L.issueCombinedKey({ grants, gatewayDisplay })
   const supportUntil = key.supportUntil ? isoDate(key.supportUntil) : ''
   try {
@@ -45,8 +45,15 @@ async function sendCombinedKey({ email, gatewayDisplay, grants, reason, replaces
     licensee: key.licensee, products: key.products, supportUntil, gatewayDisplay: key.gatewayDisplay,
     replaces, reissue: reason === 'reissue',
   })
-  await sendEmail({ to: email, bcc: biz.email, subject, html, attachments: [{ filename: key.filename, content: key.content, contentType: 'text/plain' }] })
-  return { ...key, supportUntilIso: supportUntil }
+  const mail = { to: email, bcc: biz.email, subject, html, attachments: [{ filename: key.filename, content: key.content, contentType: 'text/plain' }] }
+  return { ...key, supportUntilIso: supportUntil, mail }
+}
+
+/** Prepare and email a combined key to the email of record, admin copied. */
+async function sendCombinedKey(args) {
+  const prepared = await prepareCombinedKey(args)
+  await sendEmail(prepared.mail)
+  return prepared
 }
 
 async function fulfillSparkBridgeOrder({ session, stripe, notifyAdmin, addNote, findContactByEmail, upsertContact }) {
@@ -84,8 +91,19 @@ async function fulfillSparkBridgeOrder({ session, stripe, notifyAdmin, addNote, 
     } catch (e) {
       console.error('[sparkbridge-fulfil] grant store failed, issuing per-purchase key:', e.message)
     }
+    let prepared = null
     if (grants && grants.length) {
-      combined = await sendCombinedKey({ email, gatewayDisplay: gateway, grants, reason: 'purchase', replaces: grants.length > 1 })
+      // Merge and sign failures fall back to the per-purchase key. Once the combined email
+      // is attempted, its errors propagate like the legacy send (no second email).
+      try {
+        prepared = await prepareCombinedKey({ email, gatewayDisplay: gateway, grants, reason: 'purchase', replaces: grants.length > 1 })
+      } catch (e) {
+        console.error('[sparkbridge-fulfil] combined key failed, issuing per-purchase key:', e.message)
+      }
+    }
+    if (prepared) {
+      await sendEmail(prepared.mail)
+      combined = prepared
       supportUntil = combined.supportUntilIso || supportUntil
       console.log(`[sparkbridge-fulfil] combined key (${combined.products.join(', ')}) for gateway ${gateway} sent to ${email} (${licensee})`)
     }
@@ -133,4 +151,4 @@ async function fulfillSparkBridgeOrder({ session, stripe, notifyAdmin, addNote, 
   return results
 }
 
-module.exports = { fulfillSparkBridgeOrder, licenseeFrom, gatewayFrom, sendCombinedKey }
+module.exports = { fulfillSparkBridgeOrder, licenseeFrom, gatewayFrom, prepareCombinedKey, sendCombinedKey }
