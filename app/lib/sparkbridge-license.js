@@ -161,4 +161,75 @@ function licenseEmailHtml({ licensee, lines, supportUntil }) {
 <p>Questions: reply here, or write to admin@greenguard-usa.com.</p>`
 }
 
-module.exports = { MAGIC, E, CATALOG, RETIRED, skuInfo, issueKey, issueForPurchase, supportUntilFrom, licenseEmailHtml, isoDate }
+const REISSUE_URL = 'https://portal.greenguard-usa.com/sparkbridge/licence'
+const COMBINED_FILENAME = 'sparkbridge-license.key'
+
+function grantTime(g, i) {
+  const t = g && g.created_at ? new Date(g.created_at).getTime() : NaN
+  return Number.isFinite(t) ? t : i
+}
+
+/**
+ * Merge the grants held on one gateway into one entitlement set. Pure.
+ * Non-active grants (superseded, revoked) are ignored. Entitlements keep first-seen order
+ * across grants oldest first; licensee comes from the most recent grant; supportUntil is
+ * the latest support date. Throws when no active grant remains.
+ */
+function mergeGrants(grants) {
+  const active = (grants || [])
+    .map((g, i) => ({ g, i, t: grantTime(g, i) }))
+    .filter(({ g }) => g && (g.status == null || g.status === 'active'))
+    .sort((a, b) => (a.t - b.t) || (a.i - b.i))
+  if (!active.length) throw new Error('no active grants to merge')
+  const entitlements = []
+  const products = []
+  let supportUntil = null
+  let licensee = null
+  for (const { g } of active) {
+    for (const e of g.entitlements || []) {
+      const id = String(e).trim()
+      if (id && !entitlements.includes(id)) entitlements.push(id)
+    }
+    const info = skuInfo(g.sku, { retired: true })
+    const name = info ? info.name : (g.sku ? String(g.sku) : null)
+    if (name && !products.includes(name)) products.push(name)
+    if (g.support_until) {
+      const d = new Date(g.support_until)
+      if (!Number.isNaN(d.getTime()) && (!supportUntil || d > supportUntil)) supportUntil = d
+    }
+    if (oneLine(g.licensee)) licensee = oneLine(g.licensee)
+  }
+  return { entitlements, licensee, supportUntil, products }
+}
+
+/**
+ * One key covering every active grant on a gateway. Same signer and format as issueKey;
+ * the gateway line stays `any` (the gateway name is only used to find the grants).
+ */
+function issueCombinedKey({ grants, gatewayDisplay, issued = new Date() }) {
+  const m = mergeGrants(grants)
+  const content = issueKey({ licensee: m.licensee || 'SparkBridge customer', gateway: 'any', entitlements: m.entitlements, issued, supportUntil: m.supportUntil })
+  return { filename: COMBINED_FILENAME, content, gatewayDisplay: oneLine(gatewayDisplay), ...m }
+}
+
+/** Email body for a combined key. `replaces` is true when the gateway already held a key. */
+function combinedEmailHtml({ licensee, products, supportUntil, gatewayDisplay, replaces, reissue = false }) {
+  const gw = escapeHtml(gatewayDisplay)
+  const items = products.map((n) => `<li>${escapeHtml(n)}</li>`).join('')
+  const lead = reissue
+    ? `<p>As requested, here is the combined SparkBridge license key for gateway <b>${gw}</b>, issued to <b>${escapeHtml(licensee)}</b>. It covers:</p>`
+    : `<p>Thank you. Your SparkBridge license key for gateway <b>${gw}</b> is attached, issued to <b>${escapeHtml(licensee)}</b>. It covers:</p>`
+  const replace = replaces
+    ? `<p><b>This key replaces the existing sparkbridge-license.key on gateway ${gw}.</b> It covers every product listed above, so delete or overwrite the old file with this one. Keep only this file on that gateway.</p>`
+    : ''
+  return `
+${lead}
+<ul>${items}</ul>
+${replace}
+<p><b>To install:</b> copy the attached file into the Ignition data directory of gateway ${gw} as <code>sparkbridge-license.key</code> (for example <code>&lt;ignition&gt;/data/sparkbridge-license.key</code>). No restart is needed: within 30 seconds the module status pages change from Trial to "Licensed to ${escapeHtml(licensee)}".</p>
+<p>Support and updates are included through ${escapeHtml(supportUntil)}. The software itself is yours for good; nothing switches off after that date.</p>
+<p>You can have this combined key sent again at any time from <a href="${REISSUE_URL}">${REISSUE_URL}</a>; it always goes to this email address.</p>
+<p>Questions: reply here, or write to admin@greenguard-usa.com.</p>`
+}
+
+module.exports = { MAGIC, E, CATALOG, RETIRED, REISSUE_URL, COMBINED_FILENAME, skuInfo, issueKey, issueForPurchase, supportUntilFrom, licenseEmailHtml, isoDate, mergeGrants, issueCombinedKey, combinedEmailHtml }

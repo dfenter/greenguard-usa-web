@@ -56,6 +56,13 @@ export default async function handler(req, res) {
         label: { type: 'custom', custom: 'Company name to print on the license' },
         type: 'text',
         text: { minimum_length: 2, maximum_length: 80 },
+      }, {
+        // Optional. Same email + same gateway name = one combined key (lib/sparkbridge-fulfill.js).
+        key: 'gateway',
+        label: { type: 'custom', custom: 'Ignition gateway name (to combine keys)' },
+        type: 'text',
+        optional: true,
+        text: { maximum_length: 100 },
       }],
       customer_creation: 'always',
       billing_address_collection: 'required',
