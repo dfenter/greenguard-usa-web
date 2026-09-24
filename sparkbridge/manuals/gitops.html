@@ -64,7 +64,7 @@
 <p>Nothing extra to install: install or upgrade SparkBridge Host from the download page. Clone your configuration repository onto the Host machine, for example to <code>&lt;ignition&gt;/data/gitops-bundle</code>.</p>
 </div></section>
 <section class="band" id="license"><div class="wrap"><div class="sec-head"><h2>4. License</h2></div>
-<p>GitOps is licensed per Host gateway. Your key names <code>com.greenguardusa.gitops</code> and includes Host, SparkCalc and SparkID, so it can be the gateway's one <code>sparkbridge-license.key</code> file. Place the key in the gateway data directory; it is picked up without a restart.</p>
+<p>GitOps is licensed per Host gateway. Your key names <code>com.greenguardusa.gitops</code> and includes Host, SparkCalc and SparkID, so it can be the gateway's one <code>sparkbridge-license.key</code> file. A gateway reads one key file: if the same gateway runs another licensed SparkBridge product, ask us for one key that names all of them, because a key that leaves a product out stops that product once its trial has run out. Place the key in the gateway data directory; it is picked up without a restart.</p>
 <p>Without the license, <code>/gitops</code>, <code>/gitops/page</code>, <code>/gitops/audit</code> and the drift gauge work as normal. Apply answers 403 with the license it needs and writes a REFUSED audit row, and <code>mode=apply</code> runs as a report. While the Host module's Ignition trial is running, apply works so you can evaluate it.</p>
 </div></section>
 <section id="configure"><div class="wrap"><div class="sec-head"><h2>5. Configure</h2></div>
@@ -103,7 +103,7 @@
 <tr><th>403 naming <code>com.greenguardusa.gitops</code></th><td>No GitOps license on this Host. Install the key; no restart needed.</td></tr>
 <tr><th>409 bundle refused</th><td>A document failed its check (unknown value, secret key, bad path, symlink). The message names the site and key. One bad document refuses the whole bundle.</td></tr>
 <tr><th>"document changed under unchanged version"</th><td>A document was edited without bumping its version. Bump it; sites ignore a same-version resend.</td></tr>
-<tr><th>Known issue: drift after an apply that changes nothing</th><td>An Edge re-announces to the Host only when a live setting changes value, so a config apply that changes nothing shows as drift on the Host until the Edge reconnects or restarts. A fix is planned for 3.1.1.</td></tr>
+<tr><th>Known issue: drift after an apply that changes no live setting</th><td>An Edge re-announces its configuration version to the Host only when a live setting changes value. An apply that changes no live setting (the site already has those values, or only settings that take effect after a restart changed) is accepted and saved by the Edge, but the Host shows the site as drifted until the Edge reconnects or restarts. A fix is planned for 3.1.1.</td></tr>
 <tr><th>"no fleet signing key"</th><td>Set <code>sparkbridge.host.enrollment.keyfile</code> to a readable key.</td></tr>
 </table>
 </div></section>
