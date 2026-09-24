@@ -295,7 +295,7 @@
       <table class="spec">
         <tr><th>Servers</th><td>40 plant Ignition servers with their 40 databases, untouched; 2 brokers; 2 central Ignition servers in a host pool; one central database; your existing application servers</td></tr>
         <tr><th>SparkBridge</th><td>Edge on every plant server; Host and SparkVault on every server in the central pool</td></tr>
-        <tr><th>Capacity</th><td>At least 340,000 updates/s sustained through to visible tags on one central server; 480,000 offered without bending. Four shared consumers ingest about 20 times what one does. 500,000 metrics resident in under 4 GiB.</td></tr>
+        <tr><th>Capacity</th><td>At least 340,000 updates/s sustained through to visible tags on one central server, measured on the six-core Linux reference rig; 480,000 offered without bending. On a four-core machine the measured figures are 44,769 updates/s projected end-to-end across four projector shards and 59,900 updates/s wire ingest. Four shared consumers ingest about 20 times what one does. 500,000 metrics resident in under 4 GiB.</td></tr>
         <tr><th>Takeover</th><td>Standby claims the host id in 244 ms end to end, 5.7 ms mechanical, with zero rebirths. The sites never notice.</td></tr>
         <tr><th>Sideways</th><td>Add a central server to the pool for more consumers, or partition the namespace by group across servers with ordering preserved. Both are live changes, no rebirth wave.</td></tr>
         <tr><th>License</th><td>Edge $995 per site gateway, standalone. Host $1,495 per pool gateway, standalone.</td></tr>
