@@ -177,8 +177,32 @@ describe('prefillFromBooking', () => {
     expect(prefillFromBooking({ slug: 'biogents-co2-2' }, bgRental)).toEqual([{ sku: 'BG2', qty: 1 }])
   })
 
-  test('biogents-co2-2 owned trap → no BG2 (recurring_addons handles billing)', () => {
-    expect(prefillFromBooking({ slug: 'biogents-co2-2' }, bgOwned)).toEqual([])
+  test('biogents-co2-2 owned trap, no recurring_addons → owner tank-swap defaults (no BG2)', () => {
+    expect(prefillFromBooking({ slug: 'biogents-co2-2' }, bgOwned)).toEqual([
+      { sku: 'TANK-REFILL', qty: 2 },
+      { sku: 'TANK-HOOKUP-MAINT', qty: 1 },
+      { sku: 'BAIT', qty: 2 },
+    ])
+  })
+
+  test("biogents-co2-1 via 'Customer Rental' title, plan_type 'tank-exchange' → 1 tank + hookup + 1 bait (Ryan Wayne case)", () => {
+    const { slugFromTitle } = require('../lib/sku-engine')
+    const ryan = { properties: { system_type: 'biogents-co2', plan_type: 'tank-exchange', trap_count: '1', tank_count: '1' } }
+    const slug = slugFromTitle('Biogents CO2 Customer Rental - 1 Trap')
+    expect(slug).toBe('biogents-co2-1')
+    expect(prefillFromBooking({ slug }, ryan)).toEqual([
+      { sku: 'TANK-REFILL', qty: 1 },
+      { sku: 'TANK-HOOKUP-MAINT', qty: 1 },
+      { sku: 'BAIT', qty: 1 },
+    ])
+  })
+
+  test('biogents-co2-1 owner with addons_optout BAIT → refill + hookup only', () => {
+    const owner = { properties: { system_type: 'Biogents-CO2', plan_type: 'own', trap_count: '1', addons_optout: 'BAIT' } }
+    expect(prefillFromBooking({ slug: 'biogents-co2-1' }, owner)).toEqual([
+      { sku: 'TANK-REFILL', qty: 1 },
+      { sku: 'TANK-HOOKUP-MAINT', qty: 1 },
+    ])
   })
 
   test('biogents-co2-1 owned trap with CO2-ADDON recurring → just CO2-ADDON (Keith case)', () => {

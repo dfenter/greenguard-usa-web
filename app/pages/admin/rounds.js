@@ -259,40 +259,24 @@ const SERVICES = [
   { label: 'Free Property Assessment',        sku: 'ASSESS',   price:   0.00 },
 ]
 
-const EQUIPMENT = [
-  { label: 'Trap Installation',                        sku: 'TRAP-INSTALL',  price:  80.00 },
-  { label: 'Timer Installation',                       sku: 'TIMER-INSTALL', price:  29.99 },
-  { label: 'Trap Maintenance (1 trap)',                sku: 'TRAP-MAINT-1',  price:  10.00 },
-  { label: 'Trap Maintenance (2 traps)',               sku: 'TRAP-MAINT-2',  price:  20.00 },
-  { label: 'Trap Maintenance (3 traps)',               sku: 'TRAP-MAINT-3',  price:  30.00 },
-  { label: 'Biogents Tank Hookup & Trap Maintenance',  sku: 'OWN-BG',        price:  10.00 },
-  { label: 'Mosqitter Tank Hookup & Trap Maintenance', sku: 'OWN-MQ',        price:  30.00 },
-]
-
 // Addons + products-sold pulled from the shared catalog so /admin/quote and
 // /admin/inventory stay in sync. Add new items in lib/catalog.js only.
 const { addonsForRounds, productsForRounds } = require('../../lib/catalog')
 const ADDONS = addonsForRounds()
 const PRODUCTS_SOLD = productsForRounds()
+const { sectionTotal, buildLineItems, resolveCommonItems, commonItemPatch } = require('../../lib/rounds-common-items')
+// Common items (bait, barrier, non-CO2 trap rental, larvicide) resolved to
+// their Services / Add-Ons catalog rows so the steppers share state with the dropdowns.
+const COMMON_ITEMS = resolveCommonItems([
+  { field: 'serviceQtys', catalog: SERVICES },
+  { field: 'addonQtys', catalog: ADDONS },
+])
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function fmt$(n) { return n == null ? '—' : `$${n.toFixed(2)}` }
 const TZ = 'America/Chicago'
 function nowStr() { return new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', timeZone: TZ }) }
-
-function sectionTotal(catalog, qtys) {
-  return catalog.reduce((sum, item) => {
-    const q = qtys[item.label] || 0
-    return sum + (item.price && q > 0 ? item.price * q : 0)
-  }, 0)
-}
-
-function buildLineItems(catalog, qtys) {
-  return catalog
-    .filter((item) => (qtys[item.label] || 0) > 0)
-    .map((item) => ({ label: item.label, sku: item.sku, price: item.price, qty: qtys[item.label] }))
-}
 
 // ── Qty row ────────────────────────────────────────────────────────────────────
 
@@ -499,6 +483,44 @@ function MultiSelectSection({ title, catalog, qtys, onChange, disabled, total, o
   )
 }
 
+// ── Common items (always-visible +/- steppers) ─────────────────────────────────
+
+function CommonItemsSection({ state, onChange, disabled }) {
+  const btn = { width: 30, height: 30, borderRadius: '50%', border: '1px solid rgba(var(--green-rgb),0.3)', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1 }
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(var(--green-rgb),0.12)', marginBottom: 8 }}>
+        <span style={{ fontSize: '0.84rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold)' }}>Common Items</span>
+      </div>
+      {COMMON_ITEMS.map((item) => {
+        const qty = (state[item.field] || {})[item.label] || 0
+        return (
+          <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(var(--green-rgb),0.06)' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--text)' }}>{item.label}</div>
+              <div style={{ fontSize: '1rem', color: 'var(--text)', fontWeight: 900, marginTop: 2 }}>
+                {item.sku && <span style={{ marginRight: 8 }}>{item.sku}</span>}
+                <span>{item.price ? fmt$(item.price) + '/unit' : 'no charge'}</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              {!disabled && (
+                <button aria-label={`Decrease ${item.label}`} onClick={() => onChange(item, qty - 1)} disabled={qty === 0}
+                  style={{ ...btn, background: 'transparent', color: 'var(--text)', opacity: qty === 0 ? 0.4 : 1, cursor: qty === 0 ? 'default' : 'pointer' }}>−</button>
+              )}
+              <span style={{ minWidth: 24, textAlign: 'center', fontWeight: 900, fontSize: '1.1rem', color: qty > 0 ? 'var(--green)' : 'var(--text-dim)' }}>{qty}</span>
+              {!disabled && (
+                <button aria-label={`Increase ${item.label}`} onClick={() => onChange(item, qty + 1)}
+                  style={{ ...btn, background: 'rgba(var(--green-rgb),0.08)', color: 'var(--green)' }}>+</button>
+              )}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ── Email modal ────────────────────────────────────────────────────────────────
 
 // Roll up tank refill + delivery fee + hookup into one "CO₂ Tank Service" line.
@@ -643,7 +665,6 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
 
 
   const svcTotal  = sectionTotal(SERVICES,      state.serviceQtys)
-  const eqTotal   = sectionTotal(EQUIPMENT,     state.equipQtys)
   const addTotal  = sectionTotal(ADDONS,        state.addonQtys)
   const prodTotal = sectionTotal(PRODUCTS_SOLD, state.productQtys)
 
@@ -658,11 +679,10 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
   // svcTotal so the Services KPI on the rounds card reflects the actual
   // amount, not just the line items the admin clicked.
   const svcTotalWithBundle = svcTotal + deliveryFee + hookupTotal
-  const grand     = svcTotalWithBundle + eqTotal + addTotal + prodTotal
+  const grand     = svcTotalWithBundle + addTotal + prodTotal
 
   const allLineItems = [
     ...buildLineItems(SERVICES,      state.serviceQtys),
-    ...buildLineItems(EQUIPMENT,     state.equipQtys),
     ...buildLineItems(ADDONS,        state.addonQtys),
     ...buildLineItems(PRODUCTS_SOLD, state.productQtys),
     ...(tankRefillQty > 0 ? [{ label: 'CO₂ Tank Delivery Fee', sku: 'TANK-DELIVERY-FEE', price: 39.00, qty: 1 }] : []),
@@ -830,10 +850,9 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
         checkIn: state.checkIn,
         checkOut: nowStr(),
         serviceQtys: state.serviceQtys,
-        equipQtys: state.equipQtys,
         addonQtys: state.addonQtys,
         productQtys: state.productQtys,
-        svcTotal, eqTotal, addTotal, prodTotal, grandTotal: grand,
+        svcTotal, addTotal, prodTotal, grandTotal: grand,
         notes: state.notes,
         photoTaken: !!state.photoUrl,
         videoUrl: state.videoUrl || null,
@@ -1051,18 +1070,17 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
               qtys={state.productQtys} total={prodTotal} disabled={isDone}
               onChange={(label, n) => onUpdate((s) => ({ productQtys: { ...s.productQtys, [label]: n } }))} />
 
-            <MultiSelectSection title="Equipment Installed" catalog={EQUIPMENT}
-              qtys={state.equipQtys} total={eqTotal} disabled={isDone}
-              onChange={(label, n) => onUpdate((s) => ({ equipQtys: { ...s.equipQtys, [label]: n } }))} />
-
             <MultiSelectSection title="Add-Ons Applied" catalog={ADDONS}
               qtys={state.addonQtys} total={addTotal} disabled={isDone}
               onChange={(label, n) => onUpdate((s) => ({ addonQtys: { ...s.addonQtys, [label]: n } }))} />
 
+            <CommonItemsSection state={state} disabled={isDone}
+              onChange={(item, n) => onUpdate(commonItemPatch(item, n))} />
+
             {/* Grand total */}
             <div style={{ background: 'rgba(var(--green-rgb),0.04)', border: '1px solid rgba(var(--green-rgb),0.15)', borderRadius: 8, padding: '12px 16px', marginTop: 4, marginBottom: isActive ? 16 : 0 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 10 }}>
-                {[['Services', svcTotalWithBundle], ['Products', prodTotal], ['Installs', eqTotal], ['Add-Ons', addTotal]].map(([lbl, val]) => (
+                {[['Services', svcTotalWithBundle], ['Products', prodTotal], ['Add-Ons', addTotal]].map(([lbl, val]) => (
                   <div key={lbl} style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>{lbl}</div>
                     <div style={{ fontWeight: 800, fontSize: '0.9rem', color: val > 0 ? 'var(--text)' : 'var(--text-dim)' }}>{fmt$(val)}</div>
@@ -1188,21 +1206,20 @@ function RoundsStopCard({ stop, idx, state, onUpdate, fileInputRef, videoInputRe
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 // Map a SKU to (sectionField, catalogLabel) so prefill can write into the
-// right qty map. Built once from the four catalogs.
+// right qty map. Built once from the three catalogs.
 const SKU_TO_SECTION = (() => {
   const m = {}
   const add = (catalog, field) => catalog.forEach((item) => {
     if (item.sku) m[item.sku] = { field, label: item.label }
   })
   add(SERVICES, 'serviceQtys')
-  add(EQUIPMENT, 'equipQtys')
   add(ADDONS, 'addonQtys')
   add(PRODUCTS_SOLD, 'productQtys')
   return m
 })()
 
 function applyPrefill(prefill) {
-  const next = { serviceQtys: {}, equipQtys: {}, addonQtys: {}, productQtys: {}, tankHookupOptIn: false }
+  const next = { serviceQtys: {}, addonQtys: {}, productQtys: {}, tankHookupOptIn: false }
   for (const { sku, qty } of (prefill || [])) {
     // TANK-HOOKUP-MAINT has no catalog row — it's a checkbox under the tank
     // refill line. Treat its presence as the opt-in signal.

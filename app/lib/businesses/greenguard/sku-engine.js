@@ -229,7 +229,8 @@ function normalizeEventTitle(rawTitle) {
 // can override any qty before generating the invoice.
 //
 // Rules (confirmed with owner 2026-05-23):
-//  · biogents-co2-N           → BG{N} × 1; if system_type=Biogents-Owned add BAIT × trap_count
+//  · biogents-co2-N           → BG{N} × 1 (renter); owner → recurring_addons, or with none
+//                                TANK-REFILL × tank_count + TANK-HOOKUP-MAINT + BAIT × trap_count
 //  · tank-exchange-N          → TANK-DELIVERY-FEE × 1 + TANK-REFILL × N
 //  · tank-rental              → TANK-DELIVERY-FEE × 1 + TANK-REFILL × 1
 //  · mosqitter-rental         → MQ-RENT × trap_count
@@ -444,12 +445,23 @@ function prefillFromBooking(booking, contact) {
 
   // biogents-co2-{1,2,3}
   // Owned-trap customers don't pay BG{N} (that's the trap+CO2 rental
-  // package). Their per-visit charges come from recurring_addons —
-  // typically CO2-ADDON for the tank rental, plus BAIT if they want bait
-  // packs. Renters get BG{N}.
+  // package). When they carry recurring_addons (e.g. CO2-ADDON for the
+  // tank rental) those drive the billing. With no recurring_addons the
+  // visit is a tank swap, so use the same owner defaults as the
+  // tank-exchange rule below: refill x tank_count, hookup on, bait x traps.
+  // (Fixed 2026-09-24: Ryan Wayne, plan_type 'tank-exchange' booked as
+  // "Biogents CO2 Customer Rental - 1 Trap", pre-filled nothing.)
+  // Renters get BG{N}.
   const bgN = parseTrailingNumber(slug, 'biogents-co2-')
   if (bgN) {
-    baseLines = isBgOwned ? [] : [{ sku: `BG${bgN}`, qty: 1 }]
+    if (!isBgOwned) baseLines = [{ sku: `BG${bgN}`, qty: 1 }]
+    else if (recurringAddons.length > 0) baseLines = []
+    else {
+      const tankCount = Math.max(1, parseInt(props.tank_count || props.trap_count || '1', 10) || 1)
+      baseLines = [{ sku: 'TANK-REFILL', qty: tankCount }]
+      if (!addonsOptOut.has('TANK-HOOKUP-MAINT')) baseLines.push({ sku: 'TANK-HOOKUP-MAINT', qty: 1 })
+      if (!addonsOptOut.has('BAIT')) baseLines.push({ sku: 'BAIT', qty: trapCount })
+    }
   }
 
   // tank-exchange-{N}
