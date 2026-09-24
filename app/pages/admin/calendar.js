@@ -2,13 +2,14 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import Link from 'next/link'
-import { DndContext, DragOverlay, PointerSensor, TouchSensor, useSensor, useSensors, useDraggable, useDroppable, MeasuringStrategy } from '@dnd-kit/core'
+import { DndContext, DragOverlay, MouseSensor, TouchSensor, useSensor, useSensors, useDraggable, useDroppable, MeasuringStrategy } from '@dnd-kit/core'
 import DetailDock from '../../components/AppointmentDetailDock'
 import PortalLayout from '../../components/PortalLayout'
 import { getSessionFromRequest, isAdminEmail } from '../../lib/auth'
 import { getBookingsForDate } from '../../lib/gcal'
 import { findContactsByEmails, tanksForCustomer } from '../../lib/hubspot'
 import { bookingTanks } from '../../lib/tank-count'
+import { ctWallTimeToUTC, dayViewDropMinutes } from '../../lib/calendar-time'
 
 const TZ = 'America/Chicago'
 const DAY_START_HOUR = 8   // 8 AM
@@ -180,38 +181,8 @@ function durationMinFor(ev) {
   return ms > 0 ? Math.round(ms / 60000) : null
 }
 
-// Snap a Date to the nearest 30-minute boundary (backend requires it).
-function snapTo30(d) {
-  const snapped = new Date(d)
-  const mins = snapped.getMinutes()
-  snapped.setMinutes(Math.round(mins / 30) * 30, 0, 0)
-  return snapped
-}
-
-// Build the UTC instant for a given America/Chicago wall-clock date/time.
-// `new Date(dayStr + 'T' + hh + ':' + mm)` parses in the browser's local
-// timezone, not CT, so it silently misbooks from any non-CT browser and is
-// unsafe across DST transitions. CT only ever runs at UTC-05:00 (CDT) or
-// UTC-06:00 (CST), so try both and keep whichever one's CT-rendered
-// wall-clock actually matches the requested day/hour/minute.
-function ctWallTimeToUTC(dayStr, hour, minute) {
-  const hh = String(hour).padStart(2, '0')
-  const mm = String(minute).padStart(2, '0')
-  for (const offset of ['-05:00', '-06:00']) {
-    const candidate = new Date(`${dayStr}T${hh}:${mm}:00${offset}`)
-    const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
-    }).formatToParts(candidate)
-    const get = (t) => parts.find((p) => p.type === t).value
-    const rendered = `${get('year')}-${get('month')}-${get('day')}T${get('hour') === '24' ? '00' : get('hour')}:${get('minute')}`
-    if (rendered === `${dayStr}T${hh}:${mm}`) return candidate
-  }
-  // Fallback (should be unreachable for valid CT wall-clock times): CDT.
-  return new Date(`${dayStr}T${hh}:${mm}:00-05:00`)
-}
-
 // Draggable wrapper - keeps the existing onClick (tap-to-open dock) working
-// by only treating the gesture as a drag once PointerSensor/TouchSensor
+// by only treating the gesture as a drag once MouseSensor/TouchSensor
 // activation constraints (distance/delay) are met; a plain tap still fires
 // the child's onClick.
 function DraggableEvent({ id, disabled, children, style, className, title, onClick }) {
@@ -409,7 +380,9 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
 
   // ── Drag-and-drop reschedule ──────────────────────────────────────────────
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    // MouseSensor (not PointerSensor) so touch input only goes through the
+    // delayed TouchSensor and a quick swipe scrolls instead of dragging.
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } })
   )
   const [dragEvent, setDragEvent] = useState(null) // the booking object being dragged
@@ -432,6 +405,9 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
   }
 
   async function moveBooking(ev, newStart) {
+    // Dropped back where it started: no reschedule (a same-time Cal.com
+    // reschedule mints a new uid and can email the customer).
+    if (ev.startTime && new Date(ev.startTime).getTime() === newStart.getTime()) return
     if (isWeekend(newStart.toLocaleDateString('en-CA'))) {
       showDragError('Refused: appointments cannot be scheduled on a weekend.')
       return
@@ -480,12 +456,13 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
     const dropId = String(e.over.id)
     // Day-grid drop target: "slot:<dateStr>:<minutesFromDayStart>"
     if (dropId.startsWith('slot:')) {
-      const [, dayStr, minStr] = dropId.split(':')
-      const minutesFromStart = parseInt(minStr, 10)
-      const hour = DAY_START_HOUR + Math.floor(minutesFromStart / 60)
-      const minute = minutesFromStart % 60
-      const local = ctWallTimeToUTC(dayStr, hour, minute)
-      moveBooking(ev, snapTo30(local))
+      // Target comes from the vertical drag delta, not the collided slot:
+      // the collision compares the whole event box, so tall events landed late.
+      const [, dayStr] = dropId.split(':')
+      const { h, m } = toLocalHM(ev.startTime)
+      const newMin = dayViewDropMinutes(h * 60 + m, e.delta?.y || 0, PX_PER_MIN, DAY_START_HOUR, DAY_END_HOUR)
+      if (newMin == null) return
+      moveBooking(ev, ctWallTimeToUTC(dayStr, Math.floor(newMin / 60), newMin % 60))
       return
     }
     // Week/month day-cell drop target: "day:<dateStr>" - keep original time of day.
@@ -722,7 +699,7 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
                 const left = `calc((${colWidth} + 4px) * ${ev._col})`
                 const tanks = tanksFor(ev)
                 return (
-                  <DraggableEvent key={ev.id} id={ev.id} className="event"
+                  <DraggableEvent key={ev.id} id={ev.id} className="event" disabled={!ev.startTime?.includes('T')}
                     style={{ top, left, width: colWidth, height, ...(selectedEventId === ev.id ? { outline: '2px solid var(--gold)', outlineOffset: 1 } : {}) }}
                     title={`${ev.customerName} · ${ev.title}\n${fmtTime(ev.startTime)}–${fmtTime(ev.endTime)}\n${ev.address || ''}`}
                     onClick={() => setSelectedEventId(ev.id)}>
@@ -759,7 +736,7 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
                   {dayBookings.map((ev) => {
                     const tanks = tanksFor(ev)
                     return (
-                      <DraggableEvent key={ev.id} id={ev.id} onClick={() => setSelectedEventId(ev.id)}
+                      <DraggableEvent key={ev.id} id={ev.id} disabled={!ev.startTime?.includes('T')} onClick={() => setSelectedEventId(ev.id)}
                         style={{ padding: '4px 6px', borderRadius: 4, background: 'rgba(var(--info-rgb),0.16)', border: '1px solid rgba(var(--info-rgb),0.3)', color: 'var(--text)', fontSize: '0.7rem', cursor: 'pointer', lineHeight: 1.3 }}>
                         <div style={{ fontWeight: 700, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {fmtTime(ev.startTime)} {ev.customerName?.split(' ')[0] || '?'}
@@ -804,7 +781,7 @@ export default function CalendarPage({ today, initialBookings, gcalError = null 
                     {dayBookings.length > 0 && (
                       <div className="month-chips" style={{ flexDirection: 'column', gap: 2, width: '100%' }}>
                         {dayBookings.slice().sort((a, b) => new Date(a.startTime) - new Date(b.startTime)).map((ev) => (
-                          <DraggableEvent key={ev.id} id={ev.id}
+                          <DraggableEvent key={ev.id} id={ev.id} disabled={!ev.startTime?.includes('T')}
                             onClick={(e) => { e.stopPropagation(); setSelectedEventId(ev.id) }}
                             style={{ padding: '1px 4px', borderRadius: 3, background: 'rgba(var(--info-rgb),0.18)', border: '1px solid rgba(var(--info-rgb),0.35)', color: 'var(--text)', fontSize: '0.6rem', fontWeight: 700, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', boxSizing: 'border-box' }}>
                             {ev.customerName?.split(' ')[0] || '?'}

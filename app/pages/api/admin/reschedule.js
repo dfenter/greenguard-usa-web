@@ -16,6 +16,9 @@ export default async function handler(req, res) {
   if (!eventId || !newStartIso) {
     return res.status(400).json({ ok: false, error: 'eventId and newStartIso are required' })
   }
+  if (durationMin != null && !(Number.isInteger(durationMin) && durationMin >= 15 && durationMin <= 480)) {
+    return res.status(400).json({ ok: false, error: 'durationMin must be an integer from 15 to 480' })
+  }
 
   try {
     const result = await rescheduleAppointment({
