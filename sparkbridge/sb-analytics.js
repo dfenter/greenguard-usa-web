@@ -32,7 +32,9 @@
     if (u.hostname !== 'github.com') return;
     var p = u.pathname.replace(/\/+$/, '');
     if (p.indexOf(PREFIX + '/releases') !== 0) return;
-    var rest = p.slice((PREFIX + '/releases').length).split('/').filter(Boolean).map(decodeURIComponent);
+    var rest;
+    try { rest = p.slice((PREFIX + '/releases').length).split('/').filter(Boolean).map(decodeURIComponent); }
+    catch (err) { return; }
     var asset = '', tag = '';
     if (rest[0] === 'download' && rest.length >= 3) { tag = rest[1]; asset = rest[rest.length - 1]; }
     else if (rest[0] === 'tag' && rest[1]) { tag = rest[1]; asset = 'release_page'; }
