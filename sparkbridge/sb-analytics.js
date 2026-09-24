@@ -1,5 +1,5 @@
 /* SparkBridge GA4: loads gtag if the page lacks it and reports clicks on
-   github.com/greenguard-usa/sparkbridge-releases links as file_download events. */
+   github.com/greenguard-usa/sparkbridge-releases links as sparkbridge_download events (file_download-style params; a distinct name so GA4 enhanced-measurement file_download on .zip does not double count). */
 (function () {
   var GA_ID = 'G-K2R5H2Z23X';
   if (typeof window.gtag !== 'function') {
@@ -42,7 +42,7 @@
     else return;
     var dot = asset.lastIndexOf('.');
     var ext = asset !== 'release_page' && dot > 0 ? asset.slice(dot + 1).toLowerCase() : '';
-    window.gtag('event', 'file_download', {
+    window.gtag('event', 'sparkbridge_download', {
       asset_name: asset,
       version_tag: tag,
       product_line: classify(asset, tag),

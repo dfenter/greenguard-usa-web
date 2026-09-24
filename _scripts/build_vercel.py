@@ -773,7 +773,7 @@ def main():
         shutil.copytree(sparkbridge_src, os.path.join(OUT, 'sparkbridge'),
                         ignore=shutil.ignore_patterns('_spec_build.py', 'tck-final-report.log', 'tck-journal.log'))
         print('  COPY  sparkbridge/')
-        # GA4 file_download events on pages that link to GitHub release assets.
+        # GA4 sparkbridge_download events on pages that link to GitHub release assets.
         sb_tag = '<script src="/sparkbridge/sb-analytics.js" defer></script>'
         sb_n = 0
         for root, _, files in os.walk(os.path.join(OUT, 'sparkbridge')):
