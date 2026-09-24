@@ -48,3 +48,4 @@ app/scripts/deferred-groups.json
 # KiCad transient lock files (created while a board is open in the editor)
 *.kicad_pro.lck
 ~*.kicad_pro.lck
+play/hordemeridian2/.m2_phase_b_go
