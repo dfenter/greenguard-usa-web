@@ -356,6 +356,14 @@ function parseTrailingNumber(slug, prefix) {
  * plan_type 'rent' and get the bundled BG{N} package instead. Gated on a
  * Biogents system so Tank-Only / Mosqitter customers are never included.
  */
+// Owner bait qty: an explicit trap_count of 0 (tank-only owner, no traps)
+// means no bait; blank/undefined keeps the assume-1-trap default.
+function ownerBaitCount(props, trapCount) {
+  const raw = props.trap_count
+  if (raw !== undefined && raw !== null && String(raw).trim() !== '' && parseInt(raw, 10) === 0) return 0
+  return trapCount
+}
+
 function isBiogentsOwner(systemType, planType) {
   const st = String(systemType || '')
   const pt = String(planType || '').toLowerCase()
@@ -389,6 +397,7 @@ function prefillFromContact(contact) {
   if (planType === 'comp') return []  // complimentary account — no charges
 
   const trapCount = Math.max(1, parseInt(props.trap_count || '1', 10) || 1)
+  const baitCount = ownerBaitCount(props, trapCount)
   const tankCount = Math.max(1, parseInt(props.tank_count || props.trap_count || '1', 10) || 1)
   const isBgOwned = isBiogentsOwner(systemType, planType)
   const addonsOptOut = new Set(String(props.addons_optout || '')
@@ -401,7 +410,7 @@ function prefillFromContact(contact) {
       // (hookup + one bait pack per trap) mirror the tank-exchange slug rules above.
       baseLines = [{ sku: 'TANK-REFILL', qty: tankCount }]
       if (!addonsOptOut.has('TANK-HOOKUP-MAINT')) baseLines.push({ sku: 'TANK-HOOKUP-MAINT', qty: 1 })
-      if (!addonsOptOut.has('BAIT')) baseLines.push({ sku: 'BAIT', qty: trapCount })
+      if (!addonsOptOut.has('BAIT') && baitCount > 0) baseLines.push({ sku: 'BAIT', qty: baitCount })
     } else {
       // Rental: BG{N} package, capped at the largest defined package with a note
       baseLines = [bgPackageLine(trapCount)]
@@ -439,6 +448,7 @@ function prefillFromBooking(booking, contact) {
   const props = contact?.properties || {}
   const systemType = props.system_type || ''
   const trapCount = Math.max(1, parseInt(props.trap_count || '1', 10) || 1)
+  const baitCount = ownerBaitCount(props, trapCount)
   // Treat unknown system_type as owner for Mosqitter (renters book the
   // 'mosqitter-rental' event, not installation/service/troubleshoot).
   // Only an explicit 'Mosqitter-Rental' label suppresses owner-side fees.
@@ -487,7 +497,7 @@ function prefillFromBooking(booking, contact) {
       const tankCount = Math.max(1, parseInt(props.tank_count || props.trap_count || '1', 10) || 1)
       baseLines = [{ sku: 'TANK-REFILL', qty: tankCount }]
       if (!addonsOptOut.has('TANK-HOOKUP-MAINT')) baseLines.push({ sku: 'TANK-HOOKUP-MAINT', qty: 1 })
-      if (!addonsOptOut.has('BAIT')) baseLines.push({ sku: 'BAIT', qty: trapCount })
+      if (!addonsOptOut.has('BAIT') && baitCount > 0) baseLines.push({ sku: 'BAIT', qty: baitCount })
     }
   }
 
@@ -506,7 +516,7 @@ function prefillFromBooking(booking, contact) {
       baseLines = [{ sku: 'TANK-REFILL', qty: tankN }]
       if (isBgOwned) {
         if (!addonsOptOut.has('TANK-HOOKUP-MAINT')) baseLines.push({ sku: 'TANK-HOOKUP-MAINT', qty: 1 })
-        if (!addonsOptOut.has('BAIT')) baseLines.push({ sku: 'BAIT', qty: trapCount })
+        if (!addonsOptOut.has('BAIT') && baitCount > 0) baseLines.push({ sku: 'BAIT', qty: baitCount })
       }
     }
   }

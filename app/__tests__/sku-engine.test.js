@@ -392,3 +392,28 @@ describe('slugFromTitle count-agnostic GCal titles', () => {
       .toEqual([{ sku: 'BG3', qty: 1 }])
   })
 })
+
+describe('Biogents owner bait: explicit trap_count 0 vs blank', () => {
+  const { prefillFromBooking: pfb, prefillFromContact: pfc } = require('../lib/sku-engine')
+  const zero = { properties: { system_type: 'biogents-co2', plan_type: 'tank-exchange', trap_count: '0', tank_count: '3' } }
+  const blank = { properties: { system_type: 'biogents-co2', plan_type: 'tank-exchange', tank_count: '3' } }
+  const noBait = [{ sku: 'TANK-REFILL', qty: 3 }, { sku: 'TANK-HOOKUP-MAINT', qty: 1 }]
+  const withBait = [...noBait, { sku: 'BAIT', qty: 1 }]
+
+  test('tank-exchange-N: trap_count 0 -> no bait, hookup kept', () => {
+    expect(pfb({ slug: 'tank-exchange-3' }, zero)).toEqual(noBait)
+  })
+  test('tank-exchange-N: blank trap_count -> assume 1 bait', () => {
+    expect(pfb({ slug: 'tank-exchange-3' }, blank)).toEqual(withBait)
+  })
+  test('biogents-co2-N owner: trap_count 0 -> no bait', () => {
+    expect(pfb({ slug: 'biogents-co2-1' }, zero)).toEqual(noBait)
+  })
+  test('biogents-co2-N owner: blank trap_count -> assume 1 bait', () => {
+    expect(pfb({ slug: 'biogents-co2-1' }, blank)).toEqual(withBait)
+  })
+  test('prefillFromContact: trap_count 0 -> no bait, blank -> 1 bait', () => {
+    expect(pfc(zero)).toEqual(noBait)
+    expect(pfc(blank)).toEqual(withBait)
+  })
+})
