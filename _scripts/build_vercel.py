@@ -773,6 +773,22 @@ def main():
         shutil.copytree(sparkbridge_src, os.path.join(OUT, 'sparkbridge'),
                         ignore=shutil.ignore_patterns('_spec_build.py', 'tck-final-report.log', 'tck-journal.log'))
         print('  COPY  sparkbridge/')
+        # GA4 file_download events on pages that link to GitHub release assets.
+        sb_tag = '<script src="/sparkbridge/sb-analytics.js" defer></script>'
+        sb_n = 0
+        for root, _, files in os.walk(os.path.join(OUT, 'sparkbridge')):
+            for n in files:
+                if not n.endswith('.html'):
+                    continue
+                fp = os.path.join(root, n)
+                with open(fp, encoding='utf-8') as f:
+                    html = f.read()
+                if ('github.com/greenguard-usa/sparkbridge-releases' in html
+                        and 'sb-analytics.js' not in html and '</head>' in html):
+                    with open(fp, 'w', encoding='utf-8') as f:
+                        f.write(html.replace('</head>', sb_tag + '\n</head>', 1))
+                    sb_n += 1
+        print(f'  INJECT sb-analytics.js into {sb_n} sparkbridge pages')
 
     # Overlay the redesigned Astro marketing site (staged locally by
     # scripts/deploy.sh site from redesign/dist -> redesign-dist/). Redesign
