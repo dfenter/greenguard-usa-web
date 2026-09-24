@@ -4,6 +4,7 @@ const SKU_PRICES = {
   BG1: 159.99,
   BG2: 266.99,
   BG3: 399.99,
+  BG4: 500.00,  // matches quote-pricing BG_RENTAL_PRICE[4] and the rounds catalog
   'MQ-RENT': 299.99,
   'MQ-SVC': 129.99,
   'MQ-INST': 199.99,
@@ -55,7 +56,7 @@ const SKU_PRICES = {
 
 // Subscription SKUs (monthly recurring in Stripe)
 const SUBSCRIPTION_SKUS = new Set([
-  'BG1', 'BG2', 'BG3', 'MQ-RENT', 'MQ-SVC', 'OWN-BG', 'OWN-MQ',
+  'BG1', 'BG2', 'BG3', 'BG4', 'MQ-RENT', 'MQ-SVC', 'OWN-BG', 'OWN-MQ',
 ])
 
 const TANK_MAP = { 1: 'TANK1', 2: 'TANK2', 3: 'TANK3', 4: 'TANK4', 6: 'TANK6', 10: 'TANK10' }
@@ -110,7 +111,8 @@ function resolveSKU(visit) {
   if (systemType === 'Biogents-CO2') {
     if (trapCount <= 1) skus.push('BG1')
     else if (trapCount === 2) skus.push('BG2')
-    else skus.push('BG3')
+    else if (trapCount === 3) skus.push('BG3')
+    else skus.push('BG4')
   } else if (systemType === 'Tank-Only') {
     skus.push(TANK_MAP[tankCount] || 'TANK1')
   } else if (systemType === 'Biogents-NonCO2') {
@@ -304,9 +306,34 @@ const SLUG_PATTERNS = [
   [/equipment\s*pickup/i,                                 'equipment-pickup'],
 ]
 
+// Count-agnostic, case-insensitive derive step for the two numbered GCal
+// title families, run before the exact table. "CO2 Tank Exchange - 17 tanks"
+// becomes tank-exchange-17; "Biogents CO2 Service - 4 Traps" becomes
+// biogents-co2-4 (package capping happens in prefillFromBooking).
+const COUNT_TITLE_PATTERNS = [
+  [/^co2\s*tank\s*exchange\s*-\s*(\d+)\s*tanks?\b/i,       'tank-exchange-'],
+  [/^biogents\s*co2\s*service\s*-\s*(\d+)\s*traps?\b/i,    'biogents-co2-'],
+]
+
+// Highest BG{N} rental package SKU defined in SKU_PRICES.
+const MAX_BG_PACKAGE = 4
+
+function bgPackageLine(n) {
+  if (n <= MAX_BG_PACKAGE) return { sku: `BG${n}`, qty: 1 }
+  return {
+    sku: `BG${MAX_BG_PACKAGE}`,
+    qty: 1,
+    note: `${n} traps exceeds the largest rental package (BG${MAX_BG_PACKAGE}); adjust before invoicing`,
+  }
+}
+
 function slugFromTitle(title) {
   if (!title) return null
   const cleaned = normalizeEventTitle(title)
+  for (const [re, prefix] of COUNT_TITLE_PATTERNS) {
+    const m = cleaned.match(re)
+    if (m && parseInt(m[1], 10) > 0) return `${prefix}${parseInt(m[1], 10)}`
+  }
   if (TITLE_TO_SLUG[cleaned]) return TITLE_TO_SLUG[cleaned]
   for (const [re, slug] of SLUG_PATTERNS) {
     if (re.test(cleaned)) return slug
@@ -376,8 +403,8 @@ function prefillFromContact(contact) {
       if (!addonsOptOut.has('TANK-HOOKUP-MAINT')) baseLines.push({ sku: 'TANK-HOOKUP-MAINT', qty: 1 })
       if (!addonsOptOut.has('BAIT')) baseLines.push({ sku: 'BAIT', qty: trapCount })
     } else {
-      // Rental: BG{N} package (BG1–BG3 are the only package SKUs; cap there)
-      baseLines = [{ sku: `BG${Math.min(trapCount, 3)}`, qty: 1 }]
+      // Rental: BG{N} package, capped at the largest defined package with a note
+      baseLines = [bgPackageLine(trapCount)]
     }
   } else if (/^mosqitter/i.test(systemType)) {
     baseLines = (/rental/i.test(systemType) || planType === 'rent')
@@ -454,7 +481,7 @@ function prefillFromBooking(booking, contact) {
   // Renters get BG{N}.
   const bgN = parseTrailingNumber(slug, 'biogents-co2-')
   if (bgN) {
-    if (!isBgOwned) baseLines = [{ sku: `BG${bgN}`, qty: 1 }]
+    if (!isBgOwned) baseLines = [bgPackageLine(bgN)]
     else if (recurringAddons.length > 0) baseLines = []
     else {
       const tankCount = Math.max(1, parseInt(props.tank_count || props.trap_count || '1', 10) || 1)

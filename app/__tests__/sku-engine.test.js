@@ -345,3 +345,50 @@ describe('prefillFromBooking', () => {
     ])
   })
 })
+
+describe('slugFromTitle count-agnostic GCal titles', () => {
+  const { slugFromTitle, prefillFromBooking } = require('../lib/sku-engine')
+  const owner = { properties: { system_type: 'biogents-co2', plan_type: 'tank-exchange', trap_count: '3' } }
+  const pf = (title, c) => prefillFromBooking({ slug: slugFromTitle(title) }, c)
+
+  test('lowercase "2 tanks" maps to tank-exchange-2 with owner defaults', () => {
+    expect(slugFromTitle('CO2 Tank Exchange - 2 tanks')).toBe('tank-exchange-2')
+    expect(pf('CO2 Tank Exchange - 2 tanks', owner)).toEqual([
+      { sku: 'TANK-REFILL', qty: 2 },
+      { sku: 'TANK-HOOKUP-MAINT', qty: 1 },
+      { sku: 'BAIT', qty: 3 },
+    ])
+  })
+
+  test('"17 tanks" maps to tank-exchange-17', () => {
+    expect(slugFromTitle('Chris Spinks: CO2 Tank Exchange - 17 tanks')).toBe('tank-exchange-17')
+    expect(pf('CO2 Tank Exchange - 17 tanks', owner)[0]).toEqual({ sku: 'TANK-REFILL', qty: 17 })
+  })
+
+  test('"1 tank" (singular, lowercase) maps to tank-exchange-1', () => {
+    expect(slugFromTitle('co2 tank exchange - 1 tank')).toBe('tank-exchange-1')
+    expect(pf('CO2 Tank Exchange - 1 tank', null)).toEqual([{ sku: 'TANK-REFILL', qty: 1 }])
+  })
+
+  test('"Biogents CO2 Service - 4 Traps" renter gets BG4, not BG3', () => {
+    expect(slugFromTitle('Biogents CO2 Service - 4 Traps')).toBe('biogents-co2-4')
+    const renter = { properties: { system_type: 'BG1', plan_type: '', trap_count: '4' } }
+    expect(pf('Biogents CO2 Service - 4 Traps', renter)).toEqual([{ sku: 'BG4', qty: 1 }])
+    expect(SKU_PRICES.BG4).toBe(500)
+  })
+
+  test('traps beyond the largest package cap at BG4 with an explicit note', () => {
+    const lines = pf('biogents co2 service - 6 traps', { properties: { system_type: 'Biogents-CO2', plan_type: 'rent' } })
+    expect(lines).toHaveLength(1)
+    expect(lines[0].sku).toBe('BG4')
+    expect(lines[0].note).toMatch(/6 traps/)
+  })
+
+  test('existing exact titles and slugs unchanged', () => {
+    expect(slugFromTitle('CO2 Tank Exchange - 10 Tanks')).toBe('tank-exchange-10')
+    expect(slugFromTitle('Biogents CO2 Service - 2 Traps')).toBe('biogents-co2-2')
+    expect(slugFromTitle('Two -20 pound CO2 Tank Exchange Delivery Service')).toBe('tank-exchange-2')
+    expect(prefillFromBooking({ slug: 'biogents-co2-3' }, { properties: { system_type: 'Biogents-CO2', plan_type: 'rent' } }))
+      .toEqual([{ sku: 'BG3', qty: 1 }])
+  })
+})
