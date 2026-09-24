@@ -11,6 +11,7 @@ const COMMON_ITEM_KEYS = [
   { sku: 'BARRIER' },
   { sku: 'BG-NONCO2-RENT' },
   { label: 'Larvicide Tablet' },
+  { sku: 'BUCKET-OF-DOOM' },
 ]
 
 function sectionTotal(catalog, qtys) {

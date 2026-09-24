@@ -18,16 +18,18 @@ const COMMON = resolveCommonItems(SECTIONS)
 const bySku = (sku) => COMMON.find((i) => i.sku === sku)
 
 describe('rounds common items', () => {
-  test('resolves the four common items to existing catalog rows, in order', () => {
+  test('resolves the five common items to existing catalog rows, in order', () => {
     expect(COMMON.map((i) => [i.label, i.sku, i.field])).toEqual([
       ['Generic Bait Pack', 'BAIT', 'addonQtys'],
       ['GreenGuard Barrier Treatment', 'BARRIER', 'serviceQtys'],
       ['Biogents Non-CO₂ Trap Rental', 'BG-NONCO2-RENT', 'addonQtys'],
       ['Larvicide Tablet', null, 'addonQtys'],
+      ['Bucket of Doom', 'BUCKET-OF-DOOM', 'addonQtys'],
     ])
     // Prices come from the catalogs, not a second table.
     expect(bySku('BAIT').price).toBe(ADDONS.find((a) => a.sku === 'BAIT').price)
     expect(bySku('BARRIER').price).toBe(49.99)
+    expect(bySku('BUCKET-OF-DOOM').price).toBe(ADDONS.find((a) => a.sku === 'BUCKET-OF-DOOM').price)
   })
 
   test('stepper +/- writes the same qty map the dropdown uses and never goes below 0', () => {
@@ -41,16 +43,21 @@ describe('rounds common items', () => {
     apply(larv, 3)
     apply(larv, 2)
     apply(bySku('BG-NONCO2-RENT'), -1)
-    expect(state.addonQtys).toEqual({ 'Generic Bait Pack': 2, 'Larvicide Tablet': 2, 'Biogents Non-CO₂ Trap Rental': 0 })
+    apply(bySku('BUCKET-OF-DOOM'), 1)
+    apply(bySku('BUCKET-OF-DOOM'), 0)
+    apply(bySku('BUCKET-OF-DOOM'), -1)
+    apply(bySku('BUCKET-OF-DOOM'), 1)
+    expect(state.addonQtys).toEqual({ 'Generic Bait Pack': 2, 'Larvicide Tablet': 2, 'Biogents Non-CO₂ Trap Rental': 0, 'Bucket of Doom': 1 })
     expect(state.serviceQtys).toEqual({ 'GreenGuard Barrier Treatment': 1 })
 
     const lines = [...buildLineItems(SERVICES, state.serviceQtys), ...buildLineItems(ADDONS, state.addonQtys)]
     expect(lines).toEqual([
       { label: 'GreenGuard Barrier Treatment', sku: 'BARRIER', price: 49.99, qty: 1 },
       { label: 'Generic Bait Pack', sku: 'BAIT', price: 10, qty: 2 },
+      { label: 'Bucket of Doom', sku: 'BUCKET-OF-DOOM', price: 24.99, qty: 1 },
       { label: 'Larvicide Tablet', sku: null, price: 4, qty: 2 },
     ])
-    expect(sectionTotal(SERVICES, state.serviceQtys) + sectionTotal(ADDONS, state.addonQtys)).toBeCloseTo(49.99 + 20 + 8, 2)
+    expect(sectionTotal(SERVICES, state.serviceQtys) + sectionTotal(ADDONS, state.addonQtys)).toBeCloseTo(49.99 + 20 + 8 + 24.99, 2)
   })
 
   test('pre-populated owner round (Ryan Wayne) defaults bait stepper to 1, others to 0', () => {
@@ -65,6 +72,6 @@ describe('rounds common items', () => {
     expect(state.serviceQtys['CO₂ Tank Refill (per tank)']).toBe(1)
     expect(prefill.some((l) => l.sku === 'TANK-HOOKUP-MAINT')).toBe(true)
     const qtyOf = (item) => state[item.field][item.label] || 0
-    expect(COMMON.map(qtyOf)).toEqual([1, 0, 0, 0])
+    expect(COMMON.map(qtyOf)).toEqual([1, 0, 0, 0, 0])
   })
 })
