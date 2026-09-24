@@ -1,10 +1,10 @@
 // Two-tier cache: in-process memory (always on) + Redis (when configured).
 //
-// Tier 1 — in-memory Map. Works in every environment with zero config.
+// Tier 1 - in-memory Map. Works in every environment with zero config.
 //   Entries expire lazily on next read. Survives within a single Vercel
 //   function instance (typically minutes to hours of warm reuse).
 //
-// Tier 2 — Redis via Upstash REST. Cross-instance sharing. Requires either:
+// Tier 2 - Redis via Upstash REST. Cross-instance sharing. Requires either:
 //   · Vercel KV  → KV_REST_API_URL / KV_REST_API_TOKEN
 //   · Upstash    → UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN
 //
@@ -18,7 +18,7 @@
 const { Redis } = require('@upstash/redis')
 
 // ── Tier 1: in-memory ────────────────────────────────────────────────────────
-// Finding 31 — Stale-while-revalidate: each entry has a soft expiry (serve-fresh window) and
+// Finding 31 - Stale-while-revalidate: each entry has a soft expiry (serve-fresh window) and
 // a hard expiry. Between them the value is served instantly while a background
 // refresh runs, so a reader past the TTL never eats full upstream latency.
 const memCache = new Map() // key → { value, softExpiresAt, hardExpiresAt }
@@ -87,7 +87,7 @@ function runFetch(key, ttlSeconds, staleSeconds, fetchFn) {
     if (redis) {
       // Store the write time so a cross-instance reader can compute the value's
       // real age and only grant the REMAINING fresh window (a Redis hit near its
-      // 2×ttl expiry used to get a full fresh ttl again — up to ~3× staleness).
+      // 2×ttl expiry used to get a full fresh ttl again - up to ~3× staleness).
       try { await redis.set(key, { __v: fresh, __t: Date.now() }, { ex: ttlSeconds + staleSeconds }) } catch {}
     }
     return fresh
@@ -133,7 +133,7 @@ async function cached(key, ttlSeconds, fetchFn) {
     } catch {}
   }
 
-  // Cold miss — fetch synchronously (single-flight coalesces concurrent misses)
+  // Cold miss - fetch synchronously (single-flight coalesces concurrent misses)
   return runFetch(key, ttlSeconds, staleSeconds, fetchFn)
 }
 
@@ -143,4 +143,23 @@ async function invalidate(key) {
   if (redis) { try { await redis.del(key) } catch {} }
 }
 
-module.exports = { cached, invalidate }
+// Invalidate every key starting with `prefix` - for cache families keyed by
+// caller-supplied values (e.g. gcal:bookings:v2:range:<start>:<end>) where
+// the exact key can't be reconstructed from a mutation. Mem tier is a
+// simple Map scan; Redis tier uses SCAN (non-blocking) since Upstash's
+// REST client has no pattern DEL.
+async function invalidatePrefix(prefix) {
+  for (const k of memCache.keys()) if (k.startsWith(prefix)) memCache.delete(k)
+  const redis = getRedis()
+  if (!redis) return
+  try {
+    let cursor = '0'
+    do {
+      const [next, keys] = await redis.scan(cursor, { match: `${prefix}*`, count: 100 })
+      cursor = next
+      if (keys.length) await Promise.all(keys.map((k) => redis.del(k).catch(() => {})))
+    } while (cursor !== '0')
+  } catch {}
+}
+
+module.exports = { cached, invalidate, invalidatePrefix }

@@ -17,7 +17,7 @@
 //    propagates to Vercel too.
 
 const { getCalendar } = require('./gcal')
-const { invalidate } = require('./cache')
+const { invalidate, invalidatePrefix } = require('./cache')
 const { validateSlot, ctParts, hasConflict } = require('./auto-reschedule')
 const { rescheduleBooking, cancelBooking } = require('./calcom')
 const { stripe, findInvoiceForBooking } = require('./stripe')
@@ -33,8 +33,15 @@ async function invalidateBookingCaches(dates) {
     'gcal:upcoming:250',
     'gcal:upcoming:100',
   ])
-  for (const d of dates) if (d) keys.add(`gcal:bookings:date:${d}`)
+  for (const d of dates) if (d) {
+    keys.add(`gcal:bookings:date:${d}`)
+    keys.add(`gcal:bookings:v2:date:${d}`)
+  }
   for (const k of keys) await invalidate(k).catch(() => {})
+  // Week/month calendar views cache by arbitrary caller-supplied start/end
+  // (gcal:bookings:v2:range:<start>:<end>), so the exact key can't be
+  // reconstructed here - drop the whole family instead.
+  await invalidatePrefix('gcal:bookings:v2:range:').catch(() => {})
 }
 
 // Wall-clock CT date ("YYYY-MM-DD") of an instant, for cache keys.
