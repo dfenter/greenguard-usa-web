@@ -4,6 +4,13 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "redirects": [
+    {"source": "/sparkbridge/manuals", "destination": "https://docs.greenguard-usa.com/sparkbridge/8.1/", "permanent": true},
+    {"source": "/sparkbridge/manuals/", "destination": "https://docs.greenguard-usa.com/sparkbridge/8.1/", "permanent": true},
+    {"source": "/sparkbridge/manuals/index", "destination": "https://docs.greenguard-usa.com/sparkbridge/8.1/", "permanent": true},
+    {"source": "/sparkbridge/manuals/:slug(host|edge|provider|flow|gitops)", "destination": "https://docs.greenguard-usa.com/sparkbridge/8.1/core/:slug/overview/", "permanent": true},
+    {"source": "/sparkbridge/manuals/:slug(sparklogix|sparks7|sparksnmp|sparkads|spark61850|sparkbacnet|dnp3|iec104|ti505)", "destination": "https://docs.greenguard-usa.com/sparkbridge/8.1/drivers/:slug/overview/", "permanent": true},
+    {"source": "/sparkbridge/manuals/:slug(sparkrecord|sparkinflux|sparkvault|sparknotify|sparkgantt|sparkinject|sparkvalidate|sparkcalc|sparkid|passage|fleetops|sentinel)", "destination": "https://docs.greenguard-usa.com/sparkbridge/8.1/add-on-modules/:slug/overview/", "permanent": true},
+    {"source": "/sparkbridge/downloads/manuals/:slug(host|edge|provider|flow|gitops|sparklogix|sparks7|sparksnmp|sparkads|spark61850|sparkbacnet|dnp3|iec104|ti505|sparkrecord|sparkinflux|sparkvault|sparknotify|sparkgantt|sparkinject|sparkvalidate|sparkcalc|sparkid|passage|fleetops|sentinel).pdf", "destination": "https://docs.greenguard-usa.com/sparkbridge/pdf/:slug.pdf", "permanent": true},
     {
       "source": "/sparkbridge/fleetops",
       "destination": "/sparkbridge/#fleetops",
