@@ -553,7 +553,9 @@ renderer.toneMappingExposure = 1.12;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x070b16);
-const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 1400);
+// Near plane at 0.5, not 0.1: the chase camera never gets closer than ~25
+// units to anything it draws, and the tighter ratio buys 5x depth precision.
+const camera = new THREE.PerspectiveCamera(50, 1, 0.5, 1400);
 const environmentGroup = new THREE.Group();
 const courseGroup = new THREE.Group();
 scene.add(environmentGroup, courseGroup);
@@ -657,11 +659,62 @@ function addReadabilityTint(mesh, data){
   mesh.add(tint);
 }
 
+// Course data stacks boxes with shared faces: corner pads, start pads and
+// accent strips sit flush in the top face of the run they overlap. Two coplanar
+// faces with equal depth z-fight, which reads as flicker as the camera moves.
+// Rank every such pair (the smaller footprint wins) and lift the winner with
+// polygonOffset so each shared face resolves the same way on every frame.
+// Render only: geometry and colliders are untouched.
+const boxLayer = new Map();
+function computeBoxLayers(list){
+  boxLayer.clear();
+  const eps = 1e-3;
+  const info = list.map((b, i) => {
+    const rx = b.rotX||0, ry = b.rotY||0, rz = b.rotZ||0;
+    const m = eulerMatrix(rx, ry, rz);
+    const c = applyMatT(m, b.x, b.y, b.z);   // centre in the box's own rotated frame
+    return { b, i, key:`${rx},${ry},${rz}`, m,
+             lo:[c.x-b.w/2, c.y-b.h/2, c.z-b.d/2], hi:[c.x+b.w/2, c.y+b.h/2, c.z+b.d/2],
+             area:b.w*b.d, vol:b.w*b.h*b.d };
+  });
+  const smaller = (a, b) => a.area !== b.area ? a.area < b.area : a.vol !== b.vol ? a.vol < b.vol : a.i > b.i;
+  const edges = [];
+  for(let i=0;i<info.length;i++) for(let j=i+1;j<info.length;j++){
+    const a = info[i], b = info[j];
+    if(a.key !== b.key) continue;
+    let shared = false;
+    for(let k=0;k<3 && !shared;k++){
+      if(Math.abs(a.lo[k]-b.lo[k]) > eps && Math.abs(a.hi[k]-b.hi[k]) > eps) continue;
+      let overlap = true;
+      for(let q=0;q<3;q++){
+        if(q === k) continue;
+        if(Math.min(a.hi[q], b.hi[q]) - Math.max(a.lo[q], b.lo[q]) <= eps){ overlap = false; break; }
+      }
+      shared = overlap;
+    }
+    if(shared) edges.push(smaller(a, b) ? [a.i, b.i] : [b.i, a.i]);
+  }
+  const layer = new Array(info.length).fill(0);
+  for(let pass=0, changed=true; changed && pass<info.length; pass++){
+    changed = false;
+    for(const [top, under] of edges){
+      if(layer[top] < layer[under]+1){ layer[top] = layer[under]+1; changed = true; }
+    }
+  }
+  info.forEach((o, i) => { if(layer[i]) boxLayer.set(o.b, Math.min(layer[i], 6)); });
+}
+
 const courseObjects = [];
 function addBox(data, group = courseGroup, fallback = 0x4778a8, collect = true){
   const geometry = new THREE.BoxGeometry(data.w, data.h, data.d);
   if(surfaceTexture) retileBoxUVs(geometry, surfaceTile);
   const mesh = new THREE.Mesh(geometry, materialFor(data, fallback));
+  const layer = boxLayer.get(data) || 0;
+  if(layer){
+    mesh.material.polygonOffset = true;
+    mesh.material.polygonOffsetFactor = -layer;
+    mesh.material.polygonOffsetUnits = -4*layer;
+  }
   mesh.position.set(data.x, data.y, data.z);
   mesh.rotation.set(data.rotX||0, data.rotY||0, data.rotZ||0);
   addReadabilityTint(mesh, data);
@@ -924,6 +977,7 @@ function clearWorld(){
 function buildCourse(level){
   const springMaterial = new THREE.MeshStandardMaterial({ color:0xffe040, emissive:0x6a3d00, emissiveIntensity:.5, roughness:.4 });
 
+  computeBoxLayers([...level.boxes, ...level.gates, ...level.doors]);
   for(const box of level.boxes) addBox(box);
 
   for(const item of level.springs){
