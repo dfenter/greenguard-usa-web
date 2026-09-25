@@ -2030,10 +2030,19 @@
       this.watchdogLastFrameAt = this.lastNow;
       this.watchdogPhase = 'boot';
 
-      this.ground = this.add.tileSprite(0, 0, w, h, 'ground').setOrigin(0, 0).setScrollFactor(0).setDepth(-100);
+      // Oversized and centred so the grid still covers the view when the
+      // camera zooms out (mobile 0.8) or rotates (chase cam).
+      var groundCover = Math.ceil(Math.sqrt(this.scale.width * this.scale.width + this.scale.height * this.scale.height) * 1.7);
+      this.ground = this.add.tileSprite(this.scale.width / 2, this.scale.height / 2, groundCover, groundCover, 'ground')
+        .setScrollFactor(0).setDepth(-100);
       // The ground is screen-locked for parallax, but it belongs to the world
       // camera. Every other scrollFactor-0 object in this scene is UI.
       this.ground._hmWorld = true;
+      // ground.png is a fully opaque tile, so at NORMAL blend it painted over
+      // the whole hm2Background stack (depth -140..-110) and the play field
+      // read as flat black. ADD keeps its grid lines as a faint overlay while
+      // its near-black fill (x the dark region tint) adds almost nothing.
+      this.ground.setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.85);
 
       // M2 task 2 SUBTASK E: procedural SDF-region parallax background,
       // strictly below depth -100 so it never collides with the ground/UI
