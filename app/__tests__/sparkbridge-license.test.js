@@ -64,6 +64,19 @@ describe('sparkbridge-license', () => {
     }
   })
 
+  test('SparkValidate gateway and CLI SKUs carry separate entitlements', () => {
+    expect(L.skuInfo('sparkvalidate').cents).toBe(249500)
+    expect(L.skuInfo('sparkvalidate').entitlements).toEqual(['io.sparkvalidate'])
+    expect(L.skuInfo('sparkvalidate').unit).toBe('gateway')
+    const cli = L.skuInfo('sparkvalidate-cli')
+    expect(cli.cents).toBe(99500)
+    expect(cli.entitlements).toEqual(['io.sparkvalidate.cli'])
+    expect(cli.unit).toBe('workstation')
+    const k = L.issueForPurchase({ sku: 'sparkvalidate-cli', licensee: 'Acme' })[0].content
+    expect(k.split('\n').filter((l) => l.startsWith('entitlements='))).toEqual(['entitlements=io.sparkvalidate.cli'])
+    expect(verify(k)).toBe(true)
+  })
+
   test('gitops key grants Host, SparkCalc and SparkID with GitOps', () => {
     expect(L.skuInfo('gitops').cents).toBe(999500)
     expect(L.skuInfo('gitops').entitlements).toEqual(['io.sparkbridge.host', 'io.sparkcalc.engine', 'cli.sparkbridge.sparkid', 'com.greenguardusa.gitops'])

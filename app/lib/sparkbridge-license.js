@@ -9,7 +9,8 @@ const crypto = require('crypto')
 
 const MAGIC = '#sparkbridge-license/1'
 
-// Entitlement ids must match io.sparkbridge.license.Entitlements.
+// Entitlement ids must match what the modules check (io.sparkbridge.license.Entitlements,
+// except VALIDATE_CLI, which is checked by the SparkValidate CLI 0.2.1+ only).
 const E = {
   EDGE: 'io.sparkbridge.edge',
   HOST: 'io.sparkbridge.host',
@@ -28,6 +29,7 @@ const E = {
   TI505: 'com.cti.ti505.driver',
   INFLUX: 'com.sparkbridge.sparkinflux',
   VALIDATE: 'io.sparkvalidate',
+  VALIDATE_CLI: 'io.sparkvalidate.cli',
   LOGIX: 'com.sparkbridge.sparklogix',
   ADS: 'com.sparkbridge.sparkads',
   S7: 'com.sparkbridge.sparks7',
@@ -67,7 +69,8 @@ const CATALOG = {
   gitops: { name: 'GitOps / Enterprise Governance', cents: 999500, entitlements: [E.HOST, E.CALC, E.SPARKID, E.GITOPS], unit: 'Host gateway' },
   sparkinflux: { name: 'SparkInflux', cents: 149500, entitlements: [E.INFLUX], unit: 'gateway' },
   sparkvalidate: { name: 'SparkValidate', cents: 249500, entitlements: [E.VALIDATE], unit: 'gateway' },
-  'sparkvalidate-cli': { name: 'SparkValidate (command line only)', cents: 99500, entitlements: [E.VALIDATE], unit: 'workstation' },
+  // The CLI also accepts a gateway key (io.sparkvalidate); a CLI key does not license the gateway module.
+  'sparkvalidate-cli': { name: 'SparkValidate (command line only)', cents: 99500, entitlements: [E.VALIDATE_CLI], unit: 'workstation' },
 }
 
 // No longer sold (package dropped; SparkCalc and SparkID now come with Host). Checkout

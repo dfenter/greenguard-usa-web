@@ -71,6 +71,15 @@ describe('mergeGrants', () => {
     expect(m.products).toEqual(['SparkBridge Host', 'GitOps / Enterprise Governance', 'SparkS7'])
   })
 
+  test('SparkValidate gateway + CLI grants on one gateway merge to both ids', () => {
+    const m = L.mergeGrants([
+      g({ sku: 'sparkvalidate', entitlements: L.CATALOG.sparkvalidate.entitlements, created_at: '2026-09-01T00:00:00Z' }),
+      g({ sku: 'sparkvalidate-cli', entitlements: L.CATALOG['sparkvalidate-cli'].entitlements, created_at: '2026-09-02T00:00:00Z' }),
+      g({ sku: 'sparkvalidate', entitlements: [L.E.VALIDATE], created_at: '2026-09-03T00:00:00Z' }),
+    ])
+    expect(m.entitlements).toEqual(['io.sparkvalidate', 'io.sparkvalidate.cli'])
+  })
+
   test('ignores superseded and revoked grants', () => {
     const m = L.mergeGrants([
       g({ sku: 'sparks7', entitlements: [L.E.S7] }),
