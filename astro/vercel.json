@@ -9,6 +9,11 @@
   ],
   "redirects": [
     {
+      "source": "/sparkbridge/:path*/",
+      "destination": "https://mqtt.greenguard-usa.com/sparkbridge/:path*",
+      "permanent": true
+    },
+    {
       "source": "/sparkbridge/:path*",
       "destination": "https://mqtt.greenguard-usa.com/sparkbridge/:path*",
       "permanent": true
