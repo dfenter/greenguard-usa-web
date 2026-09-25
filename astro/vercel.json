@@ -10,24 +10,7 @@
   "redirects": [
     {
       "source": "/sparkbridge/:path*",
-      "has": [
-        {
-          "type": "host",
-          "value": "(www\\.)?greenguard-usa\\.com"
-        }
-      ],
       "destination": "https://mqtt.greenguard-usa.com/sparkbridge/:path*",
-      "permanent": true
-    },
-    {
-      "source": "/sparkbridge",
-      "has": [
-        {
-          "type": "host",
-          "value": "(www\\.)?greenguard-usa\\.com"
-        }
-      ],
-      "destination": "https://mqtt.greenguard-usa.com/sparkbridge/",
       "permanent": true
     },
     {
