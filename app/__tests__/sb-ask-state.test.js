@@ -219,3 +219,32 @@ describe('turnstile verification', () => {
     expect(lastBody).toBeNull()
   })
 })
+
+describe('eval token allowlist', () => {
+  const SECRET = 'e'.repeat(48)
+  test('evalTokenOk: exact match only; wrong, empty, or unconfigured secrets are ignored', () => {
+    expect(sb.evalTokenOk(SECRET, SECRET)).toBe(true)
+    expect(sb.evalTokenOk(SECRET.slice(1), SECRET)).toBe(false)
+    expect(sb.evalTokenOk('wrong-token-value-here', SECRET)).toBe(false)
+    expect(sb.evalTokenOk('', SECRET)).toBe(false)
+    expect(sb.evalTokenOk(undefined, SECRET)).toBe(false)
+    expect(sb.evalTokenOk('', '')).toBe(false)
+    expect(sb.evalTokenOk('short', 'short')).toBe(false)
+  })
+  test('skipLimits bypasses per-IP and per-sid buckets but still counts and honors the global day cap', () => {
+    const st = new sb.AskState(path.join(tmp(), 'state.json'))
+    const h = st.ipHash('203.0.113.50', D1)
+    for (let i = 0; i < sb.LIMITS.ip.max; i++) {
+      const sid = `22222222-2222-4222-8222-${String(i).padStart(12, '0')}`
+      expect(st.check(h, sid, D1 + i).ok).toBe(true)
+    }
+    expect(st.check(h, SID, D1 + 100)).toMatchObject({ ok: false, scope: 'ip' })
+    const before = st.data.day.count
+    for (let i = 0; i < 30; i++) expect(st.check(h, SID, D1 + 200 + i, { skipLimits: true }).ok).toBe(true)
+    expect(st.data.day.count).toBe(before + 30)
+    expect(st.data.sid[SID]).toBeUndefined()
+    expect(st.data.ip[h]).toHaveLength(sb.LIMITS.ip.max)
+    st.data.day.count = sb.LIMITS.globalPerDay
+    expect(st.check(h, SID, D1 + 300, { skipLimits: true })).toMatchObject({ ok: false, scope: 'global' })
+  })
+})

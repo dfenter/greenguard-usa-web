@@ -22,6 +22,10 @@ const nextIp = () => `203.0.113.${100 + seq}`
 
 let root, dataDir, fakeLog, indexServer, daemon, port, stdout = ''
 let index83Hits = 0
+// Eval allowlist: this IP and sid start with full buckets (seeded before spawn).
+const EVAL_TOKEN = crypto.randomBytes(24).toString('hex')
+const FULL_IP = '198.51.100.77'
+const FULL_SID = 'bbbbbbbb-bbbb-4bbb-8bbb-000000000001'
 
 function buildIndex(version) {
   const options = { idField: 'id', fields: ['title', 'heading', 'text'], storeFields: ['version', 'slug', 'title', 'heading', 'url', 'text'],
@@ -38,12 +42,12 @@ function freePort() {
 }
 
 // SSE client: collects events; destroy() drops the connection mid-stream.
-function ask(message, { version = '8.1', sse = true, origin = ORIGIN, sid = nextSid(), ip = nextIp() } = {}) {
+function ask(message, { version = '8.1', sse = true, origin = ORIGIN, sid = nextSid(), ip = nextIp(), headers: extra = {} } = {}) {
   const events = []
   const waiters = []
   let status = 0, raw = ''
   const body = JSON.stringify({ sid, message, version, page: `/sparkbridge/${version}/`, history: [] })
-  const headers = { 'Content-Type': 'application/json', 'X-Forwarded-For': ip }
+  const headers = { 'Content-Type': 'application/json', 'X-Forwarded-For': ip, ...extra }
   if (origin) headers.Origin = origin
   if (sse) headers.Accept = 'text/event-stream'
   const check = () => { for (const w of waiters.slice()) { const e = events.find(w.pred); if (e) { waiters.splice(waiters.indexOf(w), 1); w.resolve(e) } } }
@@ -122,6 +126,15 @@ beforeAll(async () => {
   })
   await new Promise((r) => indexServer.listen(0, '127.0.0.1', r))
   port = await freePort()
+  fs.mkdirSync(dataDir, { recursive: true, mode: 0o700 })
+  const now = Date.now()
+  const salt = crypto.randomBytes(32).toString('hex')
+  fs.writeFileSync(path.join(dataDir, 'salt.json'), JSON.stringify({ date: new Date(now).toISOString().slice(0, 10), value: salt }), { mode: 0o600 })
+  const fullHash = crypto.createHmac('sha256', salt).update(FULL_IP).digest('hex').slice(0, 16)
+  fs.writeFileSync(path.join(dataDir, 'state.json'), JSON.stringify({
+    ip: { [fullHash]: Array.from({ length: 20 }, (_, i) => now - 1000 - i) },
+    sid: { [FULL_SID]: Array.from({ length: 8 }, (_, i) => now - 1000 - i) },
+  }), { mode: 0o600 })
   const env = {
     ...process.env,
     CHAT_DAEMON_PORT: String(port),
@@ -136,6 +149,7 @@ beforeAll(async () => {
     SB_ASK_TURNSTILE: '0',
     SB_ASK_DEV_ORIGINS: '0',
     TURNSTILE_SECRET_KEY: '',
+    SB_ASK_EVAL_TOKEN: EVAL_TOKEN,
   }
   daemon = spawn(process.execPath, [DAEMON], { env, stdio: ['ignore', 'pipe', 'pipe'] })
   daemon.stdout.on('data', (d) => { stdout += d })
@@ -314,4 +328,26 @@ test('privacy: salt only in 0600 salt.json, state keyed by iphash, raw IPs never
       expect(fs.readFileSync(path.join(dataDir, sub, day, f), 'utf8')).not.toMatch(/203\.0\.113\./)
     }
   }
+})
+
+test('eval token bypasses per-IP and per-sid limits and is logged as eval; a wrong token is ignored', async () => {
+  const opts = (headers) => ({ sse: false, ip: FULL_IP, sid: FULL_SID, headers })
+  const none = ask('QUICK configure the host', opts({}))
+  expect((await none.json()).error).toBe('rate_limited')
+  expect(none.status).toBe(429)
+  const wrong = ask('QUICK configure the host', opts({ 'X-SB-Eval-Token': 'x'.repeat(48) }))
+  expect((await wrong.json()).error).toBe('rate_limited')
+  expect(wrong.status).toBe(429)
+  const good = ask('QUICK configure the host', opts({ 'X-SB-Eval-Token': EVAL_TOKEN }))
+  expect((await good.json()).ok).toBe(true)
+  expect(good.status).toBe(200)
+  await until(() => stdout.split('\n').some((l) => l.includes('ask-req') && l.includes(FULL_SID.slice(0, 8)) && l.includes('"status":200')), 3000)
+  const lines = stdout.split('\n').filter((l) => l.includes('ask-req') && l.includes(FULL_SID.slice(0, 8)))
+  expect(lines.filter((l) => l.includes('"eval":true'))).toHaveLength(1)
+  expect(lines.find((l) => l.includes('"status":200'))).toContain('"eval":true')
+  expect(lines.filter((l) => l.includes('"status":429')).every((l) => !l.includes('"eval"'))).toBe(true)
+  expect(stdout).not.toContain(EVAL_TOKEN)
+  const day = new Date().toISOString().slice(0, 10)
+  const tr = fs.readFileSync(path.join(dataDir, 'transcripts', day, `${FULL_SID}.jsonl`), 'utf8').trim().split('\n').map((l) => JSON.parse(l))
+  expect(tr[tr.length - 1].eval).toBe(true)
 })

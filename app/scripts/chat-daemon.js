@@ -178,6 +178,9 @@ const SB_ASK_QUEUE_MS = parseInt(process.env.SB_ASK_QUEUE_MS || '60000', 10) || 
 const SB_ASK_TURNSTILE = process.env.SB_ASK_TURNSTILE === '1'
 const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET_KEY || ''
 const SB_ASK_TURNSTILE_VERIFY_URL = process.env.SB_ASK_TURNSTILE_VERIFY_URL || sbAsk.TURNSTILE_VERIFY_URL
+// Eval allowlist: docs requests with X-SB-Eval-Token equal to this secret skip
+// the per-IP and per-sid limits (the global day cap still counts). Never logged.
+const SB_ASK_EVAL_TOKEN = process.env.SB_ASK_EVAL_TOKEN || ''
 const sbIndex = new sbAsk.IndexStore(SB_ASK_INDEX_BASE, { log: (...a) => log(...a) })
 const sbState = new sbAsk.AskState(path.join(SB_ASK_DATA_DIR, 'state.json'), { log: (...a) => log(...a) })
 let draining = false
@@ -632,7 +635,7 @@ function clientIp(req) {
 function logAsk(f) {
   log('ask-req', JSON.stringify({
     t: new Date().toISOString(), audience: f.audience, origin: f.origin || '', iphash: f.iphash,
-    sid: String(f.sid || '').slice(0, 8), version: f.version || '', status: f.status,
+    sid: String(f.sid || '').slice(0, 8), version: f.version || '', status: f.status, ...(f.eval ? { eval: true } : {}),
     qlen: f.qlen || 0, alen: f.alen || 0, sources: f.sources || 0, answered: f.answered ?? null, ms: f.ms || 0,
   }))
 }
@@ -659,7 +662,8 @@ function handlePublic(req, res, audience) {
   // raw value goes nowhere except Turnstile remoteip).
   const ip = clientIp(req)
   const iphash = sbState.ipHash(ip)
-  const lg = { audience, origin, iphash, sid: '', version: '', qlen: 0 }
+  const isEval = isDocs && sbAsk.evalTokenOk(String(req.headers['x-sb-eval-token'] || ''), SB_ASK_EVAL_TOKEN)
+  const lg = { audience, origin, iphash, sid: '', version: '', qlen: 0, eval: isEval }
   const send = (code, obj) => {
     for (const [k, v] of Object.entries(cors)) res.setHeader(k, v)
     sendJson(res, code, obj)
@@ -734,7 +738,7 @@ function handlePublic(req, res, audience) {
       : { ok: false, error: 'rate limited', retryAfter: lim.retryAfter })
     if (busy() !== false) return
     // With Turnstile on, the global day counter is spent only after verify passes.
-    const lim = sbState.check(iphash, sid, Date.now(), { deferGlobal: gate })
+    const lim = sbState.check(iphash, sid, Date.now(), { deferGlobal: gate, skipLimits: isEval })
     if (!lim.ok) return limited(lim)
 
     let closed = false
@@ -830,7 +834,7 @@ function handlePublic(req, res, audience) {
         const id = sbAsk.newAnswerId()
         try {
           sbAsk.appendTranscript(SB_ASK_DATA_DIR, sid, {
-            id, ts: new Date().toISOString(), audience, version, page, iphash,
+            id, ts: new Date().toISOString(), audience, version, page, iphash, ...(isEval ? { eval: true } : {}),
             q: message, a: fin.text, sources: fin.sources, answered: fin.answered, ms,
           })
         } catch (e) { log(`sb-ask transcript write failed: ${e.message}`) }

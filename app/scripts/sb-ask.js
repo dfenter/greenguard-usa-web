@@ -419,11 +419,13 @@ class AskState {
   // check(iphash, sid): returns { ok:true } after recording, or { ok:false, retryAfter, scope }.
   // With { deferGlobal: true } the global day cap is checked but not counted;
   // the caller counts it later with commitGlobal() (after Turnstile passes).
-  check(iphash, sid, now = Date.now(), { deferGlobal = false } = {}) {
+  // With { skipLimits: true } (eval token) the per-IP and per-sid buckets are
+  // neither checked nor recorded; the global day cap still applies and counts.
+  check(iphash, sid, now = Date.now(), { deferGlobal = false, skipLimits = false } = {}) {
     this.prune(now)
     const full = this.globalFull(now)
     if (full) return full
-    const pairs = [['ip', iphash], ['sid', sid]]
+    const pairs = skipLimits ? [] : [['ip', iphash], ['sid', sid]]
     const lim = this.limited(pairs, now)
     if (lim) return lim
     for (const [kind, key] of pairs) (this.data[kind][key] ||= []).push(now)
@@ -494,6 +496,16 @@ class AskState {
   flush() {
     try { writeAtomic(this.file, JSON.stringify(this.data)) } catch (e) { this.log(`sb-ask state save failed: ${e.message}`) }
   }
+}
+
+// Eval allowlist: true only when a configured secret (16+ chars) is set and the
+// given X-SB-Eval-Token matches it. Constant-time compare over SHA-256 digests.
+function evalTokenOk(given, secret) {
+  if (typeof secret !== 'string' || secret.length < 16) return false
+  if (typeof given !== 'string' || !given) return false
+  const a = crypto.createHash('sha256').update(given).digest()
+  const b = crypto.createHash('sha256').update(secret).digest()
+  return crypto.timingSafeEqual(a, b)
 }
 
 // ── Transcripts ─────────────────────────────────────────────────────────────
@@ -591,6 +603,6 @@ module.exports = {
   DOCS_ORIGIN, DOCS_PREFIX, VERSIONS, SENTINEL, LIMITS,
   SPARKBRIDGE_DOCS_SYSTEM, systemPrompt, capHistory, buildUserTurn, sourceTitle,
   IndexStore, searchChunks, askSearch, makeProcessTerm, slugModule, SentinelStripper, stripSentinel, stripUrls, validateCitations, finalizeAnswer,
-  AskState, utcDay, defaultDataDir, appendTranscript, pruneTranscripts,
+  AskState, evalTokenOk, utcDay, defaultDataDir, appendTranscript, pruneTranscripts,
   newAnswerId, validateFeedback, appendFeedback, FEEDBACK_MAX_BODY, verifyTurnstile, TURNSTILE_VERIFY_URL,
 }
