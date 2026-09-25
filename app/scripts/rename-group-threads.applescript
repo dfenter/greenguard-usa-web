@@ -1,7 +1,7 @@
 -- Rename daemon-created group threads to a standard name ("GreenGuard USA").
 -- Usage: osascript rename-group-threads.applescript "GreenGuard USA"
 -- Finds every 3-participant group chat containing BOTH tech numbers
--- (Bruce +15127973348, Zeke +15127873263) whose name is not already the
+-- (Bruce +15127973348, Abel +14807093451) whose name is not already the
 -- target, opens each via the sms:// URL scheme (compose to the same
 -- participant set lands in the existing thread), and applies the rename
 -- through the Conversation Details sheet — same GUI recipe as
@@ -11,7 +11,7 @@
 -- 2026-08-07: no automated icons). Requires Accessibility + Automation for
 -- the calling process; aborts safely if focus is stolen mid-run.
 property techA : "+15127973348"
-property techB : "+15127873263"
+property techB : "+14807093451"
 
 on assertFront()
 	tell application "System Events"

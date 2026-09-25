@@ -66,6 +66,19 @@ async function humanIdleSeconds() {
   } catch { return 0 }
 }
 
+// GUI group creation cannot work while the screen is locked (System Events
+// sees no Messages window: "Can't get window 1 ... Invalid index"). Every new
+// group creation from 8/27 to 9/25 fell back to 1:1 texts for this reason.
+async function screenLocked() {
+  try {
+    const out = await new Promise((resolve, reject) => {
+      execFile('/bin/sh', ['-c', 'ioreg -n Root -d 1 | grep -c \'CGSSessionScreenIsLocked"=Yes\''], { timeout: 10000 },
+        (err, stdout) => resolve(String(stdout || '')))
+    })
+    return parseInt(out.trim(), 10) > 0
+  } catch { return false }
+}
+
 // Create any parked group threads, newest first. Only runs when the human has
 // been idle for IDLE_REQUIRED_SEC so it never fights someone at the keyboard.
 const IDLE_REQUIRED_SEC = 300
@@ -185,6 +198,7 @@ async function sendViaIMessage({ to, body }) {
     }
   }
   try {
+    if (await screenLocked()) throw new Error('SCREEN_LOCKED: unlock the Mac and set screen lock to Never so group threads can be created')
     const mode = await runOsascript([CREATE_GROUP_SCRIPT, dest, body], 300000)
     return await verified(mode)
   } catch (e) {
