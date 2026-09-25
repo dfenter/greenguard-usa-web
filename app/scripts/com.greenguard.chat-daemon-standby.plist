@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Standby chat-daemon on the Mac mini. Loaded but never started on its own
+       (RunAtLoad false, KeepAlive false). Runs from the dedicated worktree
+       ~/greenguard-usa-web-standby (detached at origin/main). Flip runbook:
+       git -C ~/greenguard-usa-web-standby fetch -q origin && git -C ~/greenguard-usa-web-standby checkout -q --detach origin/main
+       launchctl kickstart gui/$(id -u)/com.greenguard.chat-daemon-standby
+       tailscale funnel --bg 8787   (mini node: https://macmini.tail9a2933.ts.net)
+       then point DAEMON in sparkbridge-docs public/sb-ask.js and greenguard-usa-web
+       sparkbridge/sb-chat.js (and CHAT_DAEMON_URL for the portal tiers) at the mini
+       and deploy both sites. -->
+  <key>Label</key>
+  <string>com.greenguard.chat-daemon-standby</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/local/bin/node</string>
+    <string>/Users/lucille/greenguard-usa-web-standby/app/scripts/chat-daemon.js</string>
+  </array>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/lucille/greenguard-usa-web-standby/app</string>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/Users/lucille/.local/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>HOME</key>
+    <string>/Users/lucille</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <false/>
+  <key>KeepAlive</key>
+  <false/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/lucille/.gg-chat-data/standby-chat-daemon.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/lucille/.gg-chat-data/standby-chat-daemon.error.log</string>
+</dict>
+</plist>
