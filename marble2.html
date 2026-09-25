@@ -67,6 +67,9 @@
   #bootfail p{max-width:520px;line-height:1.55;color:#c6d2ea;font-size:16px;margin:6px 0;}
   #bootfail .why{font-size:13px;color:#8ea3c8;}
   .m.gold{color:#ffd257;} .m.silver{color:#d8e2f2;} .m.bronze{color:#e39a5c;}
+  /* Results after a clear: let the celebration fireworks show through. */
+  #overlay.celebrate{background:radial-gradient(ellipse at 50% 50%,rgba(14,10,34,.62) 0,rgba(14,10,34,.5) 34%,rgba(5,7,16,.18) 78%);}
+  #overlay.celebrate p,#overlay.celebrate h2{text-shadow:0 1px 3px #000,0 0 10px #000;}
   #flash{position:fixed;inset:0;pointer-events:none;z-index:8;opacity:0;transition:opacity .12s;}
   /* touch-action:none is load bearing. Without it the browser claims the
      gesture as a pan and fires pointercancel mid-drag, so steering dies. */
@@ -179,6 +182,7 @@
 </script>
 <script type="module">
 import * as THREE from 'three';
+import { Spectacle } from './marble2-assets/spectacle.js';
 
 // ---------------------------------------------------------------------------
 //  MARBLE MANIA 2 — web edition.
@@ -559,6 +563,9 @@ const camera = new THREE.PerspectiveCamera(50, 1, 0.5, 1400);
 const environmentGroup = new THREE.Group();
 const courseGroup = new THREE.Group();
 scene.add(environmentGroup, courseGroup);
+// Background spectacle (marble2-assets/spectacle.js): additive, depth tested,
+// always behind the course. Decoration only; never touches sim state.
+const fx = new Spectacle(scene, renderer, { lowPower:IS_TOUCH });
 
 const darkReadabilityThemes = new Set(['Crystal Cavern','Neon City','Nether Rift']);
 const ambientBoostThemes = new Set(['Crystal Cavern','Neon City','Nether Rift','Volcanic Rim',
@@ -966,6 +973,7 @@ function disposeGroup(group){
 function clearWorld(){
   disposeGroup(courseGroup);
   disposeGroup(environmentGroup);
+  fx.clearTheme();
   for(const l of sceneLights) scene.remove(l);
   sceneLights.length = 0;
   scene.fog = null;
@@ -1228,6 +1236,8 @@ function el(tag, cls, html){
 }
 function showOverlay(build){
   state = state === 'play' ? 'menu' : state;
+  overlay.classList.remove('celebrate');
+  fx.celebrate(null);
   hud.classList.add('hidden');
   showControls(false);
   overlay.innerHTML = '';
@@ -1387,6 +1397,7 @@ async function startLevel(i){
     for(const item of level.env.backdrop || []) addBackdrop(item, planeY);
     (level.env.bands || []).forEach(addBand);
     addStars(level.env.stars);
+    fx.setTheme(level.env);
     buildCourse(level);
     sim = new Sim(level);
   }catch(err){
@@ -1474,6 +1485,11 @@ function finishLevel(cleared){
     row.appendChild(menu);
     o.appendChild(row);
   });
+  if(cleared){
+    fx.finish(level.goal.pos.x, level.goal.pos.y + 1, level.goal.pos.z);
+    fx.celebrate(medal || 'clear');
+    overlay.classList.add('celebrate');
+  }
 }
 
 function pauseGame(){
@@ -1526,13 +1542,14 @@ let accumulator = 0;
 
 function drainEvents(){
   for(const e of sim.ev){
-    if(e === 'fall'){ doFlash('rgba(255,60,60,.35)'); }
-    else if(e === 'spring'){ doFlash('rgba(255,220,0,.4)'); toast('SPRING!'); }
-    else if(e === 'cannon'){ doFlash('rgba(255,140,0,.4)'); toast('LAUNCH!'); }
+    const p = sim.pos;
+    if(e === 'fall'){ doFlash('rgba(255,60,60,.35)'); fx.fall(prevPos.x, prevPos.y, prevPos.z); }
+    else if(e === 'spring'){ doFlash('rgba(255,220,0,.4)'); toast('SPRING!'); fx.spring(p.x, p.y, p.z); }
+    else if(e === 'cannon'){ doFlash('rgba(255,140,0,.4)'); toast('LAUNCH!'); fx.launch(p.x, p.y, p.z); }
     else if(e === 'enemy'){ doFlash('rgba(255,90,90,.18)'); }
-    else if(e === 'checkpoint'){ doFlash('rgba(85,216,255,.3)'); toast('CHECKPOINT'); }
-    else if(e === 'switch'){ doFlash('rgba(255,120,40,.3)'); toast('SWITCH ON'); }
-    else if(e === 'key'){ doFlash('rgba(255,219,84,.35)'); toast('KEY!'); }
+    else if(e === 'checkpoint'){ doFlash('rgba(85,216,255,.3)'); toast('CHECKPOINT'); fx.checkpoint(p.x, p.y, p.z); }
+    else if(e === 'switch'){ doFlash('rgba(255,120,40,.3)'); toast('SWITCH ON'); fx.switchOn(p.x, p.y, p.z); }
+    else if(e === 'key'){ doFlash('rgba(255,219,84,.35)'); toast('KEY!'); fx.key(p.x, p.y, p.z); }
   }
   sim.ev.length = 0;
   if(sim.falls !== lastFalls){
@@ -1606,6 +1623,7 @@ function frame(){
     camera.lookAt(sim.pos.x, sim.pos.y - 1, sim.pos.z);
   }
 
+  fx.update(dt, camera, sim ? sim.pos : null, state === 'play');
   renderer.render(scene, camera);
 }
 
@@ -1634,6 +1652,7 @@ window.__mm2 = {
   get campaign(){ return campaign; },
   get levelIndex(){ return levelIndex; },
   get save(){ return save; },
+  fx,
   title: screenTitle,
   campaignSelect: screenCampaign,
   openCampaign,
