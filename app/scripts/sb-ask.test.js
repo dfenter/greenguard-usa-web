@@ -169,7 +169,7 @@ test('index store: local dir load, search, last good kept on failure', async () 
 
 test('prompt: system has no SparkBridge version or prices; user turn carries line, excerpts, history, question', () => {
   assert.ok(!/\d+\.\d+\.\d+|\$\d/.test(sb.systemPrompt(true)))
-  assert.ok(!/—/.test(sb.systemPrompt(true)))
+  assert.ok(!/\u2014/.test(sb.systemPrompt(true)))
   assert.ok(sb.systemPrompt(true).startsWith(sb.SPARKBRIDGE_DOCS_SYSTEM))
   const u = sb.buildUserTurn({ version: '8.3', chunks: chunks.slice(0, 2), history: [{ role: 'user', content: 'hi' }], question: 'Q?' })
   assert.ok(u.startsWith('Ignition line: 8.3.x'))
