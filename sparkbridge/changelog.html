@@ -52,7 +52,7 @@
   <div class="wrap">
     <div class="eyebrow">Changelog</div>
     <h1>Version history</h1>
-    <p>Every release, what changed, and what the change was for. Current release: 3.1.0, GitOps / Enterprise Governance becomes a licensed product. SparkS7 0.3.0. SparkNotify 0.2.0. SparkRecord 0.1.0.
+    <p>Every release, what changed, and what the change was for. Current release: 3.1.1, a patch on 3.1.0 that closes the GitOps drift known issue. SparkS7 0.3.0. SparkNotify 0.2.0. SparkRecord 0.1.0.
     Full customer notes ship in the release package.</p>
   </div>
 </header>
@@ -62,6 +62,15 @@
 <section>
   <div class="wrap">
     <ul class="lifeline">
+      <li>
+        <span class="lc lc-birth">3.1.1<br>2026&#8209;09&#8209;24</span>
+        <div>
+          <h3>GitOps drift closes on its own; admin JSON booleans are honoured</h3>
+          <p><b>Drift closes without a reconnect (3.1.0 known issue).</b> When an Edge accepts a signed site document that changes no live setting, it now re-births with the new config version, so the Host's drift report and <code>/fleet</code> close without waiting for a reconnect or restart. Redeliveries and refused documents do not re-birth. The restart-only warning now lists only the restart-time keys that actually changed. <b>Issue #59: <code>clearPin</code> is honoured on reissue.</b> The Host's JSON body reader now reads <code>true</code> and <code>false</code> literals; <code>null</code> reads as absent. <b>Two more admin booleans are honoured (behaviour change).</b> <code>legacySingleRound</code> on <code>POST /enrollment/issue</code> and <code>remove</code> on <code>POST /contracts</code> sent as JSON literals were silently read as <code>false</code> and now do what they say; check any script that sends them. Query parameters behave as before. <b>Issue #8: MQTT teardown test coverage.</b> The teardown fix shipped in 3.0.2; 3.1.1 adds a close-without-disconnect test and bounds a license-gate test that could hang.</p>
+          <p><b>Upgrade path.</b> Install the 3.1.1 modules in place of 3.1.0. Module ids are unchanged, no configuration change is required, and no data migration runs.</p>
+          <p>Bundles for Ignition 8.1 and 8.3 are on the <a href="/sparkbridge/download">download page</a> and at <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/v3.1.1">the v3.1.1 GitHub release</a>.</p>
+        </div>
+      </li>
       <li>
         <span class="lc lc-birth">3.1.0<br>2026&#8209;09&#8209;23</span>
         <div>
