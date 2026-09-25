@@ -233,3 +233,12 @@ test('query procedure: generic module names boost only when capitalized and not 
   assert.strictEqual(sb.askSearch(ms, options, 'Provider relay', 1)[0].text, 'relay setup')
   assert.strictEqual(sb.askSearch(ms, options, 'Provider relay', 1)[0].body, undefined)
 })
+
+test('prompt: no model, vendor or tooling names; carries the identity line (docs and product tiers)', () => {
+  const NAMES = /(?<![A-Za-z0-9_])(sol|luna|codex|claude|fable|opus|sonnet|haiku|anthropic|openai|gpt)(?![A-Za-z0-9_])/i
+  for (const p of [sb.SPARKBRIDGE_DOCS_SYSTEM, sb.systemPrompt(false), sb.systemPrompt(true)]) {
+    assert.ok(p.includes('Do not name the model, vendor or tooling that produces answers.'))
+    assert.ok(p.includes('GreenGuard USA docs assistant'))
+    assert.ok(!NAMES.test(p), `name found: ${(NAMES.exec(p) || [])[0]}`)
+  }
+})
