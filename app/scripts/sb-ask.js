@@ -136,7 +136,7 @@ class IndexStore {
 
 // ── Query procedure (port of sparkbridge-docs scripts/lib/ask-search.mjs; keep identical in logic) ──
 // Format 2 index options carry stopwords, stem, camelSplit, prefixMinLength, fuzzyMinLength, kindBoost,
-// excludeSlugs and maxPerPage; missing fields fall back to plain MiniSearch search (format 1).
+// excludeSlugs, maxPerPage and moduleBoost; missing fields fall back to plain MiniSearch search (format 1).
 function stemLite(term) {
   let t = term
   if (t.length <= 3 || /\d/.test(t)) return t
@@ -158,10 +158,18 @@ function makeProcessTerm(options = {}) {
   }
   return (term) => {
     const raw = term.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')
+    // A stopword token drops whole, so "SparkBridge" does not leak "spark" and "bridg" into every Spark* product.
+    if (stop.has(raw.toLowerCase())) return null
     const parts = options.camelSplit && /^\p{Lu}\p{Ll}+(\p{Lu}[\p{Ll}\p{N}]+)+$/u.test(raw) ? raw.match(/\p{Lu}[\p{Ll}\p{N}]+/gu) : []
     const out = [raw, ...parts].map(one).filter(Boolean)
     return out.length > 1 ? [...new Set(out)] : out[0] || null
   }
+}
+
+// Module named by the slug: the second segment under options.moduleBoost.roots ("core/edge/troubleshoot" > "edge").
+function slugModule(slug, roots) {
+  const segs = String(slug || '').split('/')
+  return segs.length > 1 && roots.includes(segs[0]) ? segs[1] : null
 }
 
 function askSearch(ms, options, query, k = TOP_K) {
@@ -174,15 +182,33 @@ function askSearch(ms, options, query, k = TOP_K) {
   const fmin = o.fuzzyMinLength || 0
   const so2 = { ...so }
   if (o.stopwords || o.stem || o.camelSplit) so2.processTerm = makeProcessTerm(o)
+  // moduleBoost: when the question names a module ("Edge", "SparkSNMP"), that module's pages score times factor.
+  const mb = o.moduleBoost
+  let named = null
+  if (mb && mb.factor && Array.isArray(mb.roots)) {
+    const pt = so2.processTerm || ((t) => t.toLowerCase())
+    const terms = new Set()
+    // Same split as MiniSearch's default tokenizer.
+    for (const tok of String(query || '').split(/[\n\r\p{Z}\p{P}]+/u)) for (const t of [pt(tok)].flat()) if (t) terms.add(t)
+    const seen = new Map()
+    named = (slug) => {
+      const m = slugModule(slug, mb.roots)
+      if (m === null) return false
+      if (!seen.has(m)) seen.set(m, [pt(m)].flat().some((t) => t && terms.has(t)))
+      return seen.get(m)
+    }
+  }
   if (so.prefix && pmin) so2.prefix = (term) => term.length >= pmin
   if (so.fuzzy && fmin) so2.fuzzy = (term) => (term.length >= fmin ? so.fuzzy : false)
-  if (kinds.length) {
+  if (kinds.length || named) {
     so2.boostDocument = (id, term, stored) => {
-      const segs = String((stored && stored.slug) || '').split('/')
+      const slug = String((stored && stored.slug) || '')
+      const segs = slug.split('/')
       let f = 1
       for (const [key, v] of kinds) {
         if (key.endsWith('/') ? segs[0] === key.slice(0, -1) : key.startsWith('/') && segs[segs.length - 1] === key.slice(1)) f *= v
       }
+      if (named && named(slug)) f *= mb.factor
       return f
     }
   }
@@ -419,6 +445,6 @@ function pruneTranscripts(dataDir, now = Date.now(), days = 30) {
 module.exports = {
   DOCS_ORIGIN, DOCS_PREFIX, VERSIONS, SENTINEL, LIMITS,
   SPARKBRIDGE_DOCS_SYSTEM, systemPrompt, capHistory, buildUserTurn, sourceTitle,
-  IndexStore, searchChunks, askSearch, makeProcessTerm, SentinelStripper, stripSentinel, stripUrls, validateCitations, finalizeAnswer,
+  IndexStore, searchChunks, askSearch, makeProcessTerm, slugModule, SentinelStripper, stripSentinel, stripUrls, validateCitations, finalizeAnswer,
   AskState, utcDay, defaultDataDir, appendTranscript, pruneTranscripts,
 }

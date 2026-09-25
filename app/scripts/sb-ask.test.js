@@ -193,3 +193,23 @@ test('query procedure: format 2 options drop stopwords, stem, boost overview, ex
   assert.deepStrictEqual(sb.askSearch(ms, options, 'what does it do', 8), [])
   assert.deepStrictEqual(sb.makeProcessTerm(options)('`Licensing`'), 'licens')
 })
+
+test('query procedure: stopword product names drop whole; a module named in the question boosts its pages; cap 1 per page', () => {
+  const options = { idField: 'id', fields: ['title', 'heading', 'text', 'context'], storeFields: ['version', 'slug', 'title', 'heading', 'url', 'text'],
+    searchOptions: { boost: { title: 2, heading: 1.5, context: 2 }, prefix: true, fuzzy: 0.2, combineWith: 'OR' },
+    stopwords: ['the', 'in', 'no', 'sparkbridge'], stem: 'lite-2', prefixMinLength: 5, fuzzyMinLength: 7, camelSplit: true,
+    kindBoost: {}, excludeSlugs: [''], maxPerPage: 1, moduleBoost: { roots: ['core', 'drivers', 'add-on-modules'], factor: 2 } }
+  const pt = sb.makeProcessTerm(options)
+  assert.strictEqual(pt('SparkBridge'), null)
+  assert.deepStrictEqual(pt('SparkFlow'), ['sparkflow', 'spark', 'flow'])
+  assert.strictEqual(sb.slugModule('core/edge/troubleshoot', options.moduleBoost.roots), 'edge')
+  assert.strictEqual(sb.slugModule('troubleshooting/birth', options.moduleBoost.roots), null)
+  const ms = new MiniSearch({ ...options, processTerm: pt })
+  const doc = (slug, n, text) => ({ id: `8.1:${slug}#:${n}`, version: '8.1', slug, title: 'T', heading: '', url: U(`${slug}/#${n}`), text, context: '' })
+  ms.addAll([doc('troubleshooting/birth', 0, 'birth log: check the broker, check the log, check birth'), doc('troubleshooting/birth', 1, 'birth log check'),
+    doc('core/edge/troubleshoot', 0, 'birth log: check the broker'), doc('drivers/sparksnmp/troubleshoot', 0, 'birth log: check the broker')])
+  assert.deepStrictEqual(sb.askSearch(ms, options, 'no BIRTH in the log', 8).map((h) => h.slug)[0], 'troubleshooting/birth')
+  assert.strictEqual(sb.askSearch(ms, options, 'no BIRTH in the log', 8).filter((h) => h.slug === 'troubleshooting/birth').length, 1)
+  assert.strictEqual(sb.askSearch(ms, options, 'Edge: no BIRTH in the log', 8)[0].slug, 'core/edge/troubleshoot')
+  assert.strictEqual(sb.askSearch(ms, options, 'SparkSNMP: no BIRTH in the log', 8)[0].slug, 'drivers/sparksnmp/troubleshoot')
+})
