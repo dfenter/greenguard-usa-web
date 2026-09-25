@@ -446,6 +446,22 @@
       const want = opts.orientation;
       let rotBox = null;
       let rotateTimer = null;
+      // Defect class: a desktop window cannot be rotated, so the overlay can
+      // never be dismissed there. screen.orientation.type reports
+      // landscape-primary in any landscape desktop window (and in headless
+      // Chromium regardless of viewport), so a portrait-declaring game showed
+      // a permanent full-screen "Rotate your device" overlay with the sim
+      // paused underneath. Only gate devices that can actually rotate.
+      function isRotatableDevice() {
+        if (typeof root.navigator === 'object' && root.navigator &&
+            typeof root.navigator.maxTouchPoints === 'number' &&
+            root.navigator.maxTouchPoints > 0) return true;
+        if (root.matchMedia) {
+          const coarse = root.matchMedia('(pointer: coarse)');
+          if (coarse && coarse.matches) return true;
+        }
+        return false;
+      }
       function isPortrait() {
         const orientation = root.screen && root.screen.orientation;
         if (orientation && typeof orientation.type === 'string' && orientation.type) {
@@ -458,7 +474,7 @@
         return root.innerHeight >= root.innerWidth;
       }
       function checkOrientation() {
-        const bad = (want === 'portrait') !== isPortrait();
+        const bad = isRotatableDevice() && (want === 'portrait') !== isPortrait();
         if (rotateTimer) { clearTimeout(rotateTimer); rotateTimer = null; }
         if (!bad) {
           if (rotBox) {

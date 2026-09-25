@@ -14,10 +14,11 @@ OUT  = os.path.join(REPO, 'out')
 # Games shipped on new.greenguard-usa.com (owner directive 2026-09-07: only Razorfin and
 # Horde Meridian; everything else was unpublished to stay under Vercel's 10 GB Deployment
 # Storage). Sources for the other games remain in the repo but never reach out/.
-PLAY_KEEP       = {'index.html', '_shared', '_shots', 'razorfin', 'horde-meridian'}
-PLAY_SHOTS_KEEP = {'razorfin.jpg', 'horde-meridian.jpg'}
-ROOT_GAME_FILES = {'marble.html', 'marble2.html', 'horde.html', 'marble-sw.js', 'marble2-sw.js',
-                   'marble-manifest.json', 'marble2-manifest.json', 'horde-manifest.json'}
+PLAY_KEEP       = {'index.html', '_shared', '_shots', 'razorfin', 'horde-meridian', 'hordemeridian2'}
+PLAY_SHOTS_KEEP = {'razorfin.jpg', 'horde-meridian.jpg', 'hordemeridian2.jpg'}
+# Owner directive 2026-09-24: Marble Mania 1 and 2 ship again (root pages + marble2-assets/).
+ROOT_GAME_FILES = {'horde.html', 'horde-manifest.json'}
+ROOT_GAME_DIRS  = ['marble2-assets']
 
 BASE_URL   = 'https://new.greenguard-usa.com'
 TIDIO_KEY  = '2oaqyblfyjn6xy86vutzzvr1ykg9twav'
@@ -741,6 +742,11 @@ def main():
             if os.path.isfile(src):
                 shutil.copy(src, dst)
 
+    for d in ROOT_GAME_DIRS:
+        if os.path.isdir(os.path.join(REPO, d)):
+            shutil.copytree(os.path.join(REPO, d), os.path.join(OUT, d))
+            print(f'  COPY  {d}/')
+
     # Copy mobile game prototypes hub (served at /play/; one dir per game,
     # authored by the ue-port-studio mobile run 2026-08-05).
     play_src = os.path.join(REPO, 'play')
@@ -762,7 +768,7 @@ def main():
                     skip.add(n)
             return skip
         shutil.copytree(play_src, os.path.join(OUT, 'play'), ignore=play_ignore)
-        print('  COPY  play/ (razorfin, horde-meridian only)')
+        print('  COPY  play/ (razorfin, horde-meridian, hordemeridian2)')
 
     # Copy the SparkBridge product site (canonical home mqtt.greenguard-usa.com/sparkbridge;
     # index.html is the overview, one file per sub-page, shared sb.css; spec.html is generated
