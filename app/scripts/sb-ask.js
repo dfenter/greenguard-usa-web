@@ -339,30 +339,53 @@ function finalizeAnswer(raw, chunks) {
 }
 
 // ── Limits, salt and state (JSON file, atomic writes, bounded) ──────────────
+// Rate-limit buckets are keyed by iphash (never the raw IP). The daily salt
+// lives only in salt.json next to state.json, is overwritten at the UTC day
+// change and never archived, so hashes cannot be linked across days.
 const LIMITS = {
   ip: { max: 20, windowMs: 3600_000 },
   sid: { max: 8, windowMs: 600_000 },
+  fbSid: { max: 30, windowMs: 3600_000 },
+  fbIp: { max: 60, windowMs: 3600_000 },
   globalPerDay: 500,
 }
 const MAX_KEYS = 20_000
+const IPHASH_RE = /^[0-9a-f]{16}$/
+const BUCKETS = ['ip', 'sid', 'fbSid', 'fbIp']
 
 function utcDay(now) { return new Date(now).toISOString().slice(0, 10) }
 
+function writeAtomic(file, text) {
+  fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 })
+  const tmp = `${file}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`
+  fs.writeFileSync(tmp, text, { mode: 0o600 })
+  fs.renameSync(tmp, file)
+}
+
 class AskState {
-  constructor(file, { log = () => {} } = {}) {
+  constructor(file, { log = () => {}, saltFile } = {}) {
     this.file = file
+    this.saltFile = saltFile || path.join(path.dirname(file), 'salt.json')
     this.log = log
-    this.data = { ip: {}, sid: {}, day: { date: '', count: 0 }, salt: { date: '', value: '' } }
+    this.data = { ip: {}, sid: {}, fbSid: {}, fbIp: {}, day: { date: '', count: 0 }, fbDay: { date: '', up: 0, down: 0, withText: 0 } }
     try {
       const d = JSON.parse(fs.readFileSync(file, 'utf8'))
-      if (d && typeof d === 'object') Object.assign(this.data, d)
+      if (d && typeof d === 'object') {
+        // Legacy migration: the salt moved to salt.json; raw-IP keys are dropped.
+        delete d.salt
+        for (const k of ['ip', 'fbIp']) {
+          if (d[k] && typeof d[k] === 'object') for (const key of Object.keys(d[k])) if (!IPHASH_RE.test(key)) delete d[k][key]
+        }
+        Object.assign(this.data, d)
+      }
     } catch {}
+    this.saltCache = null
     this.timer = null
   }
   prune(now) {
-    for (const kind of ['ip', 'sid']) {
+    for (const kind of BUCKETS) {
       const w = LIMITS[kind].windowMs
-      const m = this.data[kind]
+      const m = (this.data[kind] ||= {})
       for (const k of Object.keys(m)) {
         m[k] = (m[k] || []).filter((t) => now - t < w)
         if (!m[k].length) delete m[k]
@@ -376,35 +399,71 @@ class AskState {
     const day = utcDay(now)
     if (this.data.day.date !== day) this.data.day = { date: day, count: 0 }
   }
-  // Returns { ok:true } after recording, or { ok:false, retryAfter, scope }.
-  check(ip, sid, now = Date.now()) {
-    this.prune(now)
-    if (this.data.day.count >= LIMITS.globalPerDay) {
-      const next = Date.parse(`${utcDay(now)}T00:00:00Z`) + DAY_MS
-      return { ok: false, scope: 'global', retryAfter: Math.ceil((next - now) / 1000) }
-    }
-    for (const [kind, key] of [['ip', ip], ['sid', sid]]) {
+  limited(pairs, now) {
+    for (const [kind, key] of pairs) {
       const hits = this.data[kind][key] || []
       if (hits.length >= LIMITS[kind].max) {
         return { ok: false, scope: kind, retryAfter: Math.max(1, Math.ceil((hits[0] + LIMITS[kind].windowMs - now) / 1000)) }
       }
     }
-    ;(this.data.ip[ip] ||= []).push(now)
-    ;(this.data.sid[sid] ||= []).push(now)
+    return null
+  }
+  // check(iphash, sid): returns { ok:true } after recording, or { ok:false, retryAfter, scope }.
+  check(iphash, sid, now = Date.now()) {
+    this.prune(now)
+    if (this.data.day.count >= LIMITS.globalPerDay) {
+      const next = Date.parse(`${utcDay(now)}T00:00:00Z`) + DAY_MS
+      return { ok: false, scope: 'global', retryAfter: Math.ceil((next - now) / 1000) }
+    }
+    const pairs = [['ip', iphash], ['sid', sid]]
+    const lim = this.limited(pairs, now)
+    if (lim) return lim
+    for (const [kind, key] of pairs) (this.data[kind][key] ||= []).push(now)
     this.data.day.count++
     this.save()
     return { ok: true }
   }
+  // Feedback limits: 30 per sid and 60 per iphash per hour.
+  checkFeedback(iphash, sid, now = Date.now()) {
+    this.prune(now)
+    const pairs = [['fbIp', iphash], ['fbSid', sid]]
+    const lim = this.limited(pairs, now)
+    if (lim) return lim
+    for (const [kind, key] of pairs) (this.data[kind][key] ||= []).push(now)
+    this.save()
+    return { ok: true }
+  }
+  // Returns the finished day's summary once, after the UTC day rolls over.
+  rollFeedbackDay(now = Date.now()) {
+    const day = utcDay(now)
+    const cur = this.data.fbDay || { date: '', up: 0, down: 0, withText: 0 }
+    if (cur.date === day) return null
+    this.data.fbDay = { date: day, up: 0, down: 0, withText: 0 }
+    this.save()
+    return cur.date ? { date: cur.date, up: cur.up || 0, down: cur.down || 0, withText: cur.withText || 0 } : null
+  }
+  countFeedback(vote, withText, now = Date.now()) {
+    const summary = this.rollFeedbackDay(now)
+    const d = this.data.fbDay
+    if (vote === 'up') d.up++; else d.down++
+    if (withText) d.withText++
+    this.save()
+    return summary
+  }
   salt(now = Date.now()) {
     const day = utcDay(now)
-    if (this.data.salt.date !== day || !this.data.salt.value) {
-      this.data.salt = { date: day, value: crypto.randomBytes(32).toString('hex') }
-      this.save()
-    }
-    return this.data.salt.value
+    if (this.saltCache && this.saltCache.date === day) return this.saltCache.value
+    try {
+      const s = JSON.parse(fs.readFileSync(this.saltFile, 'utf8'))
+      if (s && s.date === day && /^[0-9a-f]{64}$/.test(s.value)) { this.saltCache = s; return s.value }
+    } catch {}
+    const fresh = { date: day, value: crypto.randomBytes(32).toString('hex') }
+    try { writeAtomic(this.saltFile, JSON.stringify(fresh)) } catch (e) { this.log(`sb-ask salt save failed: ${e.message}`) }
+    this.saltCache = fresh
+    return fresh.value
   }
   ipHash(ip, now = Date.now()) {
-    return crypto.createHash('sha256').update(this.salt(now) + String(ip)).digest('hex').slice(0, 16)
+    return crypto.createHmac('sha256', this.salt(now)).update(String(ip)).digest('hex').slice(0, 16)
   }
   save() {
     if (this.timer) return
@@ -412,12 +471,7 @@ class AskState {
     this.timer.unref?.()
   }
   flush() {
-    try {
-      fs.mkdirSync(path.dirname(this.file), { recursive: true, mode: 0o700 })
-      const tmp = `${this.file}.${process.pid}.tmp`
-      fs.writeFileSync(tmp, JSON.stringify(this.data), { mode: 0o600 })
-      fs.renameSync(tmp, this.file)
-    } catch (e) { this.log(`sb-ask state save failed: ${e.message}`) }
+    try { writeAtomic(this.file, JSON.stringify(this.data)) } catch (e) { this.log(`sb-ask state save failed: ${e.message}`) }
   }
 }
 
@@ -432,8 +486,7 @@ function appendTranscript(dataDir, sid, rec, now = Date.now()) {
   fs.appendFileSync(path.join(dir, `${sid}.jsonl`), JSON.stringify(rec) + '\n', { mode: 0o600 })
 }
 
-function pruneTranscripts(dataDir, now = Date.now(), days = 30) {
-  const root = path.join(dataDir, 'transcripts')
+function pruneDated(root, now, days) {
   const removed = []
   let names = []
   try { names = fs.readdirSync(root) } catch { return removed }
@@ -449,9 +502,74 @@ function pruneTranscripts(dataDir, now = Date.now(), days = 30) {
   return removed
 }
 
+// Transcripts and feedback share the 30-day retention. Feedback entries are
+// reported as feedback/<date>.
+function pruneTranscripts(dataDir, now = Date.now(), days = 30) {
+  return [
+    ...pruneDated(path.join(dataDir, 'transcripts'), now, days),
+    ...pruneDated(path.join(dataDir, 'feedback'), now, days).map((d) => `feedback/${d}`),
+  ]
+}
+
+// ── Answer feedback ─────────────────────────────────────────────────────────
+const SID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+const ANSWER_ID_RE = /^[0-9a-f]{12}$/
+const FEEDBACK_MAX_BODY = 4096
+
+function newAnswerId() { return crypto.randomBytes(6).toString('hex') }
+
+// Returns the normalized record fields or null when the body is malformed.
+function validateFeedback(body) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return null
+  const { sid, id, vote, version, page, text } = body
+  if (typeof sid !== 'string' || !SID_RE.test(sid)) return null
+  if (typeof id !== 'string' || !ANSWER_ID_RE.test(id)) return null
+  if (vote !== 'up' && vote !== 'down') return null
+  if (!VERSIONS.includes(version)) return null
+  if (page !== undefined && (typeof page !== 'string' || page.length > 300)) return null
+  if (text !== undefined && text !== null && (typeof text !== 'string' || text.length > 500)) return null
+  return { sid, id, vote, version, page: page || '', text: typeof text === 'string' ? text.trim() : '' }
+}
+
+function appendFeedback(dataDir, rec, now = Date.now()) {
+  const dir = path.join(dataDir, 'feedback', utcDay(now))
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 })
+  fs.appendFileSync(path.join(dir, `${rec.sid}.jsonl`), JSON.stringify(rec) + '\n', { mode: 0o600 })
+}
+
+// ── Turnstile server verification ───────────────────────────────────────────
+const TURNSTILE_VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
+const TURNSTILE_HOST = 'docs.greenguard-usa.com'
+
+// Fails closed on everything except success === true with an allowed
+// hostname. Returns { ok, reason }; never includes the token or secret.
+async function verifyTurnstile({ token, secret, remoteip, url = TURNSTILE_VERIFY_URL, devOrigins = false, timeoutMs = 5000 }) {
+  if (!secret) return { ok: false, reason: 'no_secret' }
+  if (typeof token !== 'string' || !token || token.length > 2048) return { ok: false, reason: 'no_token' }
+  const form = new URLSearchParams({ secret, response: token })
+  if (remoteip) form.set('remoteip', remoteip)
+  const ac = new AbortController()
+  const timer = setTimeout(() => ac.abort(), timeoutMs)
+  try {
+    const r = await fetch(url, { method: 'POST', body: form, signal: ac.signal })
+    if (r.status !== 200) return { ok: false, reason: `http_${r.status}` }
+    let j
+    try { j = await r.json() } catch { return { ok: false, reason: 'bad_json' } }
+    if (!j || j.success !== true) return { ok: false, reason: 'rejected' }
+    if (j.hostname !== undefined && j.hostname !== null) {
+      const hosts = devOrigins ? [TURNSTILE_HOST, 'localhost', '127.0.0.1'] : [TURNSTILE_HOST]
+      if (!hosts.includes(j.hostname)) return { ok: false, reason: 'hostname' }
+    }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, reason: e.name === 'AbortError' ? 'timeout' : 'network' }
+  } finally { clearTimeout(timer) }
+}
+
 module.exports = {
   DOCS_ORIGIN, DOCS_PREFIX, VERSIONS, SENTINEL, LIMITS,
   SPARKBRIDGE_DOCS_SYSTEM, systemPrompt, capHistory, buildUserTurn, sourceTitle,
   IndexStore, searchChunks, askSearch, makeProcessTerm, slugModule, SentinelStripper, stripSentinel, stripUrls, validateCitations, finalizeAnswer,
   AskState, utcDay, defaultDataDir, appendTranscript, pruneTranscripts,
+  newAnswerId, validateFeedback, appendFeedback, FEEDBACK_MAX_BODY, verifyTurnstile, TURNSTILE_VERIFY_URL,
 }

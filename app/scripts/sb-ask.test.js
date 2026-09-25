@@ -1,5 +1,5 @@
-// node --test app/scripts/sb-ask.test.js
-const test = require('node:test')
+// node --test app/scripts/sb-ask.test.js  (also runs under jest: cd app && npx jest scripts/sb-ask.test.js)
+const test = globalThis.test || require('node:test')
 const assert = require('node:assert')
 const fs = require('fs')
 const os = require('os')
@@ -112,12 +112,14 @@ test('limits: sid 8 per 10 min, ip 20 per hour, global 500 per UTC day', () => {
 test('state file written atomically and reloaded', () => {
   const f = path.join(tmpdir(), 'd', 'state.json')
   const st = new sb.AskState(f)
-  st.check('4.4.4.4', '44444444-4444-4444-8444-444444444444', Date.now())
+  const h = st.ipHash('4.4.4.4')
+  st.check(h, '44444444-4444-4444-8444-444444444444', Date.now())
   st.flush()
   const again = new sb.AskState(f)
-  assert.strictEqual(again.data.ip['4.4.4.4'].length, 1)
+  assert.strictEqual(again.data.ip[h].length, 1)
   assert.strictEqual(fs.statSync(f).mode & 0o777, 0o600)
-  assert.deepStrictEqual(fs.readdirSync(path.dirname(f)), ['state.json'])
+  // Spread: jest runs tests in a vm realm, so fs arrays have a foreign prototype.
+  assert.deepStrictEqual([...fs.readdirSync(path.dirname(f))].sort(), ['salt.json', 'state.json'])
 })
 
 test('iphash: stable within a UTC day, rotates next day, salt never equals hash input', () => {
@@ -126,10 +128,10 @@ test('iphash: stable within a UTC day, rotates next day, salt never equals hash 
   const a = st.ipHash('5.5.5.5', d1)
   assert.match(a, /^[0-9a-f]{16}$/)
   assert.strictEqual(st.ipHash('5.5.5.5', d1b), a)
-  const salt1 = st.data.salt.value
+  const salt1 = st.salt(d1)
   const b = st.ipHash('5.5.5.5', d2)
   assert.notStrictEqual(b, a)
-  assert.notStrictEqual(st.data.salt.value, salt1)
+  assert.notStrictEqual(st.salt(d2), salt1)
   assert.notStrictEqual(st.ipHash('6.6.6.6', d2), b)
 })
 
@@ -144,7 +146,7 @@ test('transcripts: appended per sid per day, dirs older than 30 days pruned', ()
   for (const d of ['2026-08-24', '2026-08-23', '2026-08-26', 'notes']) fs.mkdirSync(path.join(dir, 'transcripts', d))
   const removed = sb.pruneTranscripts(dir, now)
   assert.deepStrictEqual(removed.sort(), ['2026-08-23', '2026-08-24'])
-  assert.deepStrictEqual(fs.readdirSync(path.join(dir, 'transcripts')).sort(), ['2026-08-26', '2026-09-24', 'notes'])
+  assert.deepStrictEqual([...fs.readdirSync(path.join(dir, 'transcripts'))].sort(), ['2026-08-26', '2026-09-24', 'notes'])
 })
 
 test('index store: local dir load, search, last good kept on failure', async () => {
