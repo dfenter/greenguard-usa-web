@@ -40,3 +40,4 @@ With missions actually playing, the minority-context carrier fires in nearly eve
 
 ## Next
 Fix the sim/fx RNG split in game.js (the residual carrier, see memory follow-up 5), or a probe change that removes the carrier, then recapture and rerun the pass. Options for the router: accept a waiver for the campaign gate and push the release (both fixes already gated RELEASE), or hold.
+Campaign determinism gate WAIVED by Dan 2026-09-25 for this release; cross-context instability (1 of 3 contexts disagrees in ~10 of 12 mission runs) predates this release and is tracked as follow-up: split gameplay RNG from VFX RNG, then recapture.
