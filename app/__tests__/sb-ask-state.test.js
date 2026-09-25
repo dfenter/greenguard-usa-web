@@ -63,10 +63,37 @@ describe('salt and iphash', () => {
     expect(st.data.salt).toBeUndefined()
     expect(Object.keys(st.data.ip)).toEqual(['abcdef0123456789'])
     expect(st.data.sid[SID].length).toBe(1)
-    st.flush()
+    // Rewritten at construction, without waiting for a flush.
     expect(fs.readFileSync(f, 'utf8')).not.toMatch(/1\.2\.3\.4|"salt"/)
+    expect(JSON.parse(fs.readFileSync(f, 'utf8')).sid[SID].length).toBe(1)
     // The legacy salt is not reused.
     expect(st.salt(now)).not.toBe('ab'.repeat(32))
+  })
+})
+
+describe('salt file mode and global day counter', () => {
+  test('an existing salt.json with a looser mode is tightened to 0600 on reuse', () => {
+    const dir = tmp()
+    const saltFile = path.join(dir, 'salt.json')
+    const value = 'cd'.repeat(32)
+    fs.writeFileSync(saltFile, JSON.stringify({ date: '2026-09-24', value }), { mode: 0o644 })
+    fs.chmodSync(saltFile, 0o644)
+    const st = new sb.AskState(path.join(dir, 'state.json'))
+    expect(st.salt(D1)).toBe(value)
+    expect(fs.statSync(saltFile).mode & 0o777).toBe(0o600)
+  })
+
+  test('deferGlobal checks the day cap without counting; commitGlobal counts and enforces it', () => {
+    const st = new sb.AskState(path.join(tmp(), 'state.json'))
+    expect(st.check('abcdef0123456789', SID, D1, { deferGlobal: true }).ok).toBe(true)
+    expect(st.data.day.count).toBe(0)
+    expect(st.commitGlobal(D1).ok).toBe(true)
+    expect(st.data.day.count).toBe(1)
+    st.data.day.count = sb.LIMITS.globalPerDay
+    const full = st.commitGlobal(D1)
+    expect(full.ok).toBe(false)
+    expect(full.scope).toBe('global')
+    expect(st.check('0123456789abcdef', SID.replace(/1$/, '2'), D1, { deferGlobal: true }).scope).toBe('global')
   })
 })
 

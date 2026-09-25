@@ -368,19 +368,22 @@ class AskState {
     this.saltFile = saltFile || path.join(path.dirname(file), 'salt.json')
     this.log = log
     this.data = { ip: {}, sid: {}, fbSid: {}, fbIp: {}, day: { date: '', count: 0 }, fbDay: { date: '', up: 0, down: 0, withText: 0 } }
+    let migrated = false
     try {
       const d = JSON.parse(fs.readFileSync(file, 'utf8'))
       if (d && typeof d === 'object') {
         // Legacy migration: the salt moved to salt.json; raw-IP keys are dropped.
-        delete d.salt
+        if ('salt' in d) { delete d.salt; migrated = true }
         for (const k of ['ip', 'fbIp']) {
-          if (d[k] && typeof d[k] === 'object') for (const key of Object.keys(d[k])) if (!IPHASH_RE.test(key)) delete d[k][key]
+          if (d[k] && typeof d[k] === 'object') for (const key of Object.keys(d[k])) if (!IPHASH_RE.test(key)) { delete d[k][key]; migrated = true }
         }
         Object.assign(this.data, d)
       }
     } catch {}
     this.saltCache = null
     this.timer = null
+    // Rewrite at once so the dropped salt and raw-IP keys leave disk at startup.
+    if (migrated) this.flush()
   }
   prune(now) {
     for (const kind of BUCKETS) {
@@ -408,17 +411,30 @@ class AskState {
     }
     return null
   }
+  globalFull(now) {
+    if (this.data.day.count < LIMITS.globalPerDay) return null
+    const next = Date.parse(`${utcDay(now)}T00:00:00Z`) + DAY_MS
+    return { ok: false, scope: 'global', retryAfter: Math.ceil((next - now) / 1000) }
+  }
   // check(iphash, sid): returns { ok:true } after recording, or { ok:false, retryAfter, scope }.
-  check(iphash, sid, now = Date.now()) {
+  // With { deferGlobal: true } the global day cap is checked but not counted;
+  // the caller counts it later with commitGlobal() (after Turnstile passes).
+  check(iphash, sid, now = Date.now(), { deferGlobal = false } = {}) {
     this.prune(now)
-    if (this.data.day.count >= LIMITS.globalPerDay) {
-      const next = Date.parse(`${utcDay(now)}T00:00:00Z`) + DAY_MS
-      return { ok: false, scope: 'global', retryAfter: Math.ceil((next - now) / 1000) }
-    }
+    const full = this.globalFull(now)
+    if (full) return full
     const pairs = [['ip', iphash], ['sid', sid]]
     const lim = this.limited(pairs, now)
     if (lim) return lim
     for (const [kind, key] of pairs) (this.data[kind][key] ||= []).push(now)
+    if (!deferGlobal) this.data.day.count++
+    this.save()
+    return { ok: true }
+  }
+  commitGlobal(now = Date.now()) {
+    this.prune(now)
+    const full = this.globalFull(now)
+    if (full) return full
     this.data.day.count++
     this.save()
     return { ok: true }
@@ -455,7 +471,12 @@ class AskState {
     if (this.saltCache && this.saltCache.date === day) return this.saltCache.value
     try {
       const s = JSON.parse(fs.readFileSync(this.saltFile, 'utf8'))
-      if (s && s.date === day && /^[0-9a-f]{64}$/.test(s.value)) { this.saltCache = s; return s.value }
+      if (s && s.date === day && /^[0-9a-f]{64}$/.test(s.value)) {
+        // Tighten a salt file left with a looser mode before reusing it.
+        try { if ((fs.statSync(this.saltFile).mode & 0o777) !== 0o600) fs.chmodSync(this.saltFile, 0o600) } catch {}
+        this.saltCache = s
+        return s.value
+      }
     } catch {}
     const fresh = { date: day, value: crypto.randomBytes(32).toString('hex') }
     try { writeAtomic(this.saltFile, JSON.stringify(fresh)) } catch (e) { this.log(`sb-ask salt save failed: ${e.message}`) }

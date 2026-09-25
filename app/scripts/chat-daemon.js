@@ -621,8 +621,11 @@ function runDocsClaude({ system, prompt, deadlineMs, onText }) {
   return { done, kill }
 }
 
+// X-Forwarded-For entries before the last are client-controlled; the Funnel
+// proxy appends the real peer, so take the last non-empty entry.
 function clientIp(req) {
-  return String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim().slice(0, 64)
+  const xff = String(req.headers['x-forwarded-for'] || '').split(',').map((x) => x.trim()).filter(Boolean)
+  return String(xff.length ? xff[xff.length - 1] : req.socket.remoteAddress || '').slice(0, 64)
 }
 
 // One request = one `ask-req` log line (no raw IP, no salt, no text).
@@ -707,8 +710,9 @@ function handlePublic(req, res, audience) {
     lg.version = version
     const page = typeof body?.page === 'string' ? body.page.slice(0, 300) : ''
     const history = sbAsk.capHistory(body?.history)
-    const turnstileToken = body?.turnstile
-    if (isDocs && turnstileToken !== undefined && (typeof turnstileToken !== 'string' || turnstileToken.length > 2048)) return bad()
+    // The turnstile field is read only when the gate is on; otherwise it is ignored.
+    const gate = isDocs && SB_ASK_TURNSTILE
+    const turnstileToken = gate ? body?.turnstile : undefined
 
     if (!isDocs) {
       // Product tier keeps its per-minute limits on top of the hourly ones.
@@ -718,16 +722,20 @@ function handlePublic(req, res, audience) {
       sidBucket.push(Date.now())
       rateBuckets.set(key, sidBucket)
     }
-    if (draining) return send(503, isDocs ? { error: 'unavailable', handoff: true } : { ok: false, started: false, error: 'busy' })
-    if (queue.filter((j) => j.isSparkbridge).length >= SB_PUBLIC_MAX_WAITING) {
-      return send(503, isDocs ? { error: 'queue_full', handoff: true } : { ok: false, started: false, error: 'busy' })
+    const busy = () => {
+      if (draining) return send(503, isDocs ? { error: 'unavailable', handoff: true } : { ok: false, started: false, error: 'busy' })
+      if (queue.filter((j) => j.isSparkbridge).length >= SB_PUBLIC_MAX_WAITING) {
+        return send(503, isDocs ? { error: 'queue_full', handoff: true } : { ok: false, started: false, error: 'busy' })
+      }
+      return false
     }
-    const lim = sbState.check(iphash, sid)
-    if (!lim.ok) {
-      return send(429, isDocs
-        ? { error: 'rate_limited', retryAfter: lim.retryAfter, handoff: true }
-        : { ok: false, error: 'rate limited', retryAfter: lim.retryAfter })
-    }
+    const limited = (lim) => send(429, isDocs
+      ? { error: 'rate_limited', retryAfter: lim.retryAfter, handoff: true }
+      : { ok: false, error: 'rate limited', retryAfter: lim.retryAfter })
+    if (busy() !== false) return
+    // With Turnstile on, the global day counter is spent only after verify passes.
+    const lim = sbState.check(iphash, sid, Date.now(), { deferGlobal: gate })
+    if (!lim.ok) return limited(lim)
 
     let closed = false
     let proc = null
@@ -745,13 +753,18 @@ function handlePublic(req, res, audience) {
       if (proc) proc.kill()
     })
 
-    if (isDocs && SB_ASK_TURNSTILE) {
+    if (gate) {
+      // A missing, non-string, or oversized token fails inside verifyTurnstile (verify_failed).
       const v = await sbAsk.verifyTurnstile({
         token: turnstileToken, secret: TURNSTILE_SECRET, remoteip: ip,
         url: SB_ASK_TURNSTILE_VERIFY_URL, devOrigins: process.env.SB_ASK_DEV_ORIGINS === '1',
       })
       if (closed) return logAsk({ ...lg, status: 'client_closed', ms: Date.now() - t0 })
       if (!v.ok) { log(`sb-ask ${audience} ${sid.slice(0, 8)} verify_failed: ${v.reason}`); return send(403, { error: 'verify_failed', handoff: true }) }
+      // State may have changed during the verify await.
+      if (busy() !== false) return
+      const g = sbState.commitGlobal()
+      if (!g.ok) return limited(g)
     }
 
     const sse = isDocs && /text\/event-stream/.test(String(req.headers.accept || ''))

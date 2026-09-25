@@ -5,6 +5,7 @@ const os = require('os')
 const path = require('path')
 const http = require('http')
 const net = require('net')
+const crypto = require('crypto')
 const { spawn } = require('child_process')
 const MiniSearch = require('minisearch')
 
@@ -266,6 +267,31 @@ test('queue_full when three public jobs are already waiting', async () => {
   for (const w of waiting) w.destroy()
   a.destroy()
   await wait(800)
+})
+
+test('flag off: the turnstile field is ignored, even when malformed', async () => {
+  const sid = nextSid()
+  const r = await new Promise((resolve) => {
+    const body = JSON.stringify({ sid, message: 'QUICK host', version: '8.1', turnstile: { bad: true } })
+    const req = http.request({ host: '127.0.0.1', port, path: '/chat/sparkbridge-docs', method: 'POST',
+      headers: { 'Content-Type': 'application/json', Origin: ORIGIN, 'X-Forwarded-For': nextIp() } }, (res) => {
+      let b = ''; res.on('data', (d) => { b += d }); res.on('end', () => resolve({ status: res.statusCode, body: JSON.parse(b) }))
+    })
+    req.end(body)
+  })
+  expect(r.status).toBe(200)
+  expect(r.body.id).toMatch(/^[0-9a-f]{12}$/)
+})
+
+test('client IP is the last X-Forwarded-For entry (earlier entries are client-controlled)', async () => {
+  const a = ask('QUICK host', { ip: '198.51.100.66, 192.0.2.77' })
+  await a.waitFor('done')
+  await wait(700)
+  const salt = JSON.parse(fs.readFileSync(path.join(dataDir, 'salt.json'), 'utf8')).value
+  const h = (ip) => crypto.createHmac('sha256', salt).update(ip).digest('hex').slice(0, 16)
+  const state = JSON.parse(fs.readFileSync(path.join(dataDir, 'state.json'), 'utf8'))
+  expect(state.ip[h('192.0.2.77')]).toBeDefined()
+  expect(state.ip[h('198.51.100.66')]).toBeUndefined()
 })
 
 test('privacy: salt only in 0600 salt.json, state keyed by iphash, raw IPs never logged', async () => {
