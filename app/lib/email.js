@@ -46,7 +46,7 @@ function base64url(str) {
   return Buffer.from(str, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 }
 
-async function sendViaGmailApi({ to, subject, html, bcc, from, labelIds, attachments }) {
+async function sendViaGmailApi({ to, subject, html, bcc, from, labelIds, attachments, replyTo }) {
   const gmail = google.gmail({ version: 'v1', auth: getGmailAuth() })
   const toList = Array.isArray(to) ? to.join(', ') : to
   const bccList = bcc ? (Array.isArray(bcc) ? bcc.join(', ') : bcc) : null
@@ -56,6 +56,7 @@ async function sendViaGmailApi({ to, subject, html, bcc, from, labelIds, attachm
     `From: ${from}`,
     `To: ${toList}`,
     bccList ? `Bcc: ${bccList}` : null,
+    replyTo ? `Reply-To: ${String(replyTo).replace(/[\r\n]+/g, '')}` : null,
     `Subject: =?UTF-8?B?${Buffer.from(subject, 'utf8').toString('base64')}?=`,
     'MIME-Version: 1.0',
     files.length ? `Content-Type: multipart/mixed; boundary="${boundary}"` : 'Content-Type: text/html; charset=UTF-8',
@@ -104,14 +105,14 @@ async function sendViaGmailApi({ to, subject, html, bcc, from, labelIds, attachm
 // in the admin inbox. Used directly by the local daemon, and by sendEmail()
 // below as the backup path when local isn't available or doesn't answer in
 // time — one source of truth for how an email actually goes out.
-async function sendEmailDirect({ to, subject, html, bcc, from, attachments }) {
+async function sendEmailDirect({ to, subject, html, bcc, from, attachments, replyTo }) {
   const resendFrom = from || `${biz.name} <${FROM}>`
   const gmailFrom = from || `${biz.name} <${biz.email}>`
   // Try Gmail first; fall back to Resend on ANY Gmail failure so a Gmail
   // hiccup never drops the email. No labelIds here: customer mail must not
   // get the Daily Ops label (that's purchase-notify.js only).
   try {
-    return await sendViaGmailApi({ to, subject, html, bcc, from: gmailFrom, attachments })
+    return await sendViaGmailApi({ to, subject, html, bcc, from: gmailFrom, attachments, ...(replyTo ? { replyTo } : {}) })
   } catch (e) {
     // With no Resend key configured there is no backup — propagate.
     if (!process.env.RESEND_API_KEY) throw e
@@ -123,6 +124,7 @@ async function sendEmailDirect({ to, subject, html, bcc, from, attachments }) {
     subject,
     html,
     ...(bcc ? { bcc } : {}),
+    ...(replyTo ? { replyTo } : {}),
     ...(attachments && attachments.length ? { attachments: attachments.map((a) => ({ filename: a.filename, content: Buffer.isBuffer(a.content) ? a.content : Buffer.from(String(a.content), 'utf8') })) } : {}),
   })
   if (!assertSendOk(r)) throw new Error(`Resend send failed or was unconfirmed: ${r?.error?.message || 'no provider id'}`)
@@ -136,9 +138,11 @@ async function sendEmailDirect({ to, subject, html, bcc, from, attachments }) {
  * pre-local-first code. The daemon uses the exact same sendEmailDirect(), so
  * there's a single source of truth for how an email actually goes out.
  */
-async function sendEmail({ to, subject, html, bcc, from, attachments }) {
+async function sendEmail({ to, subject, html, bcc, from, attachments, replyTo }) {
   // Attachments bypass the local daemon queue (it serialises to KV and does not carry files).
-  if (attachments && attachments.length) return sendEmailDirect({ to, subject, html, bcc, from, attachments })
+  if (attachments && attachments.length) return sendEmailDirect({ to, subject, html, bcc, from, attachments, ...(replyTo ? { replyTo } : {}) })
+  // Reply-To also bypasses the daemon, whose job schema does not carry it.
+  if (replyTo) return sendEmailDirect({ to, subject, html, bcc, from, replyTo })
   return notifyQueue.sendLocalFirst({ kind: 'email', to, subject, html, bcc, from }, sendEmailDirect)
 }
 

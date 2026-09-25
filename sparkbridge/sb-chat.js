@@ -1,13 +1,14 @@
 /* SparkBridge site chat: "Ask an Engineer".
    Talks directly to the GreenGuard Mac chat daemon over Tailscale Funnel
-   (audience: sparkbridge — docs-grounded, read-only, rate-limited).
-   Anonymous identity is a UUID kept in localStorage; the daemon resumes the
-   CLI session per sid, and we re-send recent turns after its 24h expiry. */
+   (audience: sparkbridge, docs-grounded, no tools, rate-limited).
+   Anonymous identity is a UUID kept in localStorage; recent turns are re-sent
+   with each question and the daemon returns cited docs sources. */
 (function () {
   'use strict'
   var ENDPOINT = 'https://greenguard-mac-controller.tail9a2933.ts.net/chat/sparkbridge'
   var LS_SID = 'sbchat.sid'
   var LS_LOG = 'sbchat.log'
+  var DOCS = 'https://docs.greenguard-usa.com/sparkbridge/'
 
   function sid() {
     var s = null
@@ -64,12 +65,36 @@
     var h = esc(t)
     h = h.replace(/\*\*([^*\n]{1,80})\*\*/g, '<strong>$1</strong>')
     h = h.replace(/(^|[\s(])(\/sparkbridge\/[a-z0-9\-\/]*)/g, '$1<a href="$2">$2</a>')
+    h = h.replace(/https:\/\/docs\.greenguard-usa\.com\/sparkbridge\/[A-Za-z0-9\-._~\/#%]*[A-Za-z0-9\-_\/#]/g, function (u) {
+      return '<a href="' + u + '" target="_blank" rel="noopener">' + u + '</a>'
+    })
     return h.replace(/\n/g, '<br>')
   }
-  function bubble(role, text) {
+  function bubble(role, text, sources) {
     var d = document.createElement('div')
     d.className = 'sbchat-m ' + (role === 'user' ? 'me' : 'eng')
     d.innerHTML = render(text)
+    var src = (sources || []).filter(function (s) {
+      return s && typeof s.url === 'string' && s.url.indexOf(DOCS) === 0 && !/["<>\s]/.test(s.url)
+    })
+    if (src.length) {
+      var p = document.createElement('div')
+      p.className = 'sbchat-sources'
+      p.appendChild(document.createTextNode('Sources'))
+      var ol = document.createElement('ol')
+      for (var k = 0; k < src.length; k++) {
+        var li = document.createElement('li')
+        var a = document.createElement('a')
+        a.href = src[k].url
+        a.target = '_blank'
+        a.rel = 'noopener'
+        a.textContent = String(src[k].title || src[k].url)
+        li.appendChild(a)
+        ol.appendChild(li)
+      }
+      p.appendChild(ol)
+      d.appendChild(p)
+    }
     msgs.appendChild(d)
     msgs.scrollTop = msgs.scrollHeight
     return d
@@ -83,9 +108,9 @@
     return d
   }
 
-  for (var i = 0; i < log.length; i++) bubble(log[i].role, log[i].content)
+  for (var i = 0; i < log.length; i++) bubble(log[i].role, log[i].content, log[i].sources)
   if (!log.length) {
-    bubble('eng', 'Ask me anything about SparkBridge: capacity, security model, Sparkplug 3.0 conformance, MQTT 5, installation, pricing. Answers come from the product documentation.')
+    bubble('eng', 'Ask me anything about SparkBridge: capacity, security model, Sparkplug 3.0 conformance, MQTT 5, installation, licensing. Answers come from the product documentation.')
   }
 
   function setOpen(open) {
@@ -125,12 +150,13 @@
       .then(function (r) {
         t.remove()
         var reply
+        var sources = r.j && r.j.ok && Array.isArray(r.j.sources) ? r.j.sources : []
         if (r.j && r.j.ok && r.j.reply) reply = r.j.reply
         else if (r.status === 429) reply = 'That is a lot of questions at once. Give it a minute and ask again.'
         else if (r.status === 503) reply = 'The engineer is helping someone else right now. Try again in a moment.'
         else reply = 'Something went wrong on our side. Try again, or reach us at /sparkbridge/contact.'
-        bubble('eng', reply)
-        if (r.j && r.j.ok) { log.push({ role: 'assistant', content: reply }); saveLog(log) }
+        bubble('eng', reply, sources)
+        if (r.j && r.j.ok) { log.push({ role: 'assistant', content: reply, sources: sources }); saveLog(log) }
       })
       .catch(function () {
         t.remove()
