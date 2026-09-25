@@ -52,7 +52,7 @@
   <div class="wrap">
     <div class="eyebrow">Changelog</div>
     <h1>Version history</h1>
-    <p>Every release, what changed, and what the change was for. Current release: 3.1.1, a patch on 3.1.0 that closes the GitOps drift known issue. SparkS7 0.3.0. SparkNotify 0.2.0. SparkRecord 0.1.0.
+    <p>Every release, what changed, and what the change was for. Current release: 3.1.1, a patch on 3.1.0 that closes the GitOps drift known issue; on Ignition 8.3, 3.1.2 fixes Host REST route mounting. SparkS7 0.3.0. SparkNotify 0.2.0. SparkRecord 0.1.0.
     Full customer notes ship in the release package.</p>
   </div>
 </header>
@@ -62,6 +62,14 @@
 <section>
   <div class="wrap">
     <ul class="lifeline">
+      <li>
+        <span class="lc lc-birth">3.1.2 (8.3)<br>2026&#8209;09&#8209;25</span>
+        <div>
+          <h3>Ignition 8.3: the Host REST routes mount again</h3>
+          <p><b>Host REST surface on Ignition 8.3.</b> In 3.1.1 for Ignition 8.3, thirteen Host routes carried no access-control declaration, and Ignition 8.3 refuses to mount a route group with an undeclared route, so none of the Host REST routes were served. 3.1.2 declares platform access on every Host route; each handler still checks its bearer or admin token exactly as before, so no authentication changes. A new test fails the build if any Host route is left undeclared.</p>
+          <p><b>8.3 only.</b> There is no Ignition 8.1 build of 3.1.2; the 8.1 line stays on 3.1.1, which is not affected. The latest release on GitHub stays v3.1.1 because it tracks the 8.1 line. On 8.3, install the 3.1.2 bundle (all four modules) in place of 3.1.1; module ids are unchanged and no configuration change is required. Bundle and checksums: <a href="/sparkbridge/download">download page</a> and <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/v3.1.2-ign83">the v3.1.2-ign83 GitHub release</a>.</p>
+        </div>
+      </li>
       <li>
         <span class="lc lc-birth">3.1.1<br>2026&#8209;09&#8209;24</span>
         <div>
