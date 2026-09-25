@@ -103,7 +103,6 @@
 <tr><th>403 naming <code>com.greenguardusa.gitops</code></th><td>No GitOps license on this Host. Install the key; no restart needed.</td></tr>
 <tr><th>409 bundle refused</th><td>A document failed its check (unknown value, secret key, bad path, symlink). The message names the site and key. One bad document refuses the whole bundle.</td></tr>
 <tr><th>"document changed under unchanged version"</th><td>A document was edited without bumping its version. Bump it; sites ignore a same-version resend.</td></tr>
-<tr><th>Known issue: drift after an apply that changes no live setting</th><td>An Edge re-announces its configuration version to the Host only when a live setting changes value. An apply that changes no live setting (the site already has those values, or only settings that take effect after a restart changed) is accepted and saved by the Edge, but the Host shows the site as drifted until the Edge reconnects or restarts. A fix is planned for 3.1.1.</td></tr>
 <tr><th>"no fleet signing key"</th><td>Set <code>sparkbridge.host.enrollment.keyfile</code> to a readable key.</td></tr>
 </table>
 </div></section>
