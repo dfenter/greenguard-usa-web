@@ -2296,6 +2296,7 @@
         }
         scene.draftUI = null;
         scene.overlay = null;
+        scene.evolveText = null;   // lazily built text dies with the scene; rebuild next run
         Game.scene = null;
       });
     },
@@ -9422,7 +9423,11 @@
         var run0 = this.run;
         if (r === 1) this.equipWeapon(u.weapon, false);
         run0.weaponLevel = run0.weaponLevel || {};
-        run0.weaponLevel[u.weapon] = Math.min(5, (run0.weaponLevel[u.weapon] || 0) + 1);
+        // Weapon level tracks the draft rank. A weapon that entered the run
+        // through a field drop, a boss reward or the hangar loadout already
+        // holds rank 1 with no level recorded, so a bare +1 capped it at
+        // level 4 and its evolution could never fire.
+        run0.weaponLevel[u.weapon] = Math.min(5, Math.max((run0.weaponLevel[u.weapon] || 0) + 1, r));
       }
       else if (u.key === 'damage') p.damage = p.damageBase * (1 + 0.16 * r);
       else if (u.key === 'speed') p.speed = p.speedBase * (1 + 0.11 * r);
