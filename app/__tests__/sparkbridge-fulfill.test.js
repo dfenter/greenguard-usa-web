@@ -1,7 +1,7 @@
 const mockSendEmail = jest.fn().mockResolvedValue({ messageId: 'm1' })
 jest.mock('../lib/email', () => ({ sendEmail: mockSendEmail }))
 jest.mock('../lib/sparkbridge-license', () => ({
-  skuInfo: (s) => (s === 'sparkvault' ? { name: 'SparkVault', unit: 'central gateway', cents: 399500, entitlements: ['io.sparkvault.historian'] } : null),
+  skuInfo: (s) => (s === 'sparkvault' ? { name: 'SparkVault', unit: 'gateway', cents: 399500, entitlements: ['io.sparkvault.historian'] } : null),
   issueForPurchase: ({ quantity }) => Array.from({ length: quantity }, (_, i) => ({ filename: `k${i + 1}.key`, content: `#sparkbridge-license/1\nkey${i + 1}` })),
   licenseEmailHtml: () => '<p>keys</p>',
   supportUntilFrom: (d) => new Date(d.getTime() + 365 * 86400000),
