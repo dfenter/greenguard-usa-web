@@ -114,6 +114,14 @@
         </div>
       </li>
       <li>
+        <span class="lc lc-birth">Fleet<br>2026&#8209;09&#8209;17</span>
+        <div>
+          <h3>Drivers and add-on modules declare the Ignition 8.1.33 floor</h3>
+          <p>The twelve drivers and add-on modules on the Ignition 8.1 line are compiled for Java 17, which Ignition first shipped in 8.1.33. Until now they declared a lower minimum, so a gateway below 8.1.33 could install a module and then fail at runtime. Each module now declares <span class="mono">requiredIgnitionVersion</span> 8.1.33, so an older gateway refuses the install with a clear message instead. The module code is otherwise unchanged. New versions: SparkS7 0.3.1, SparkSNMP 0.1.3, SparkBACnet 0.1.2, SparkADS 0.1.2, Spark61850 0.1.2, SparkGantt 0.1.2, SparkInflux 0.2.2, SparkNotify 0.2.1, FleetOps 0.3.1, DNP3 0.1.1, IEC 60870-5-104 0.1.1, TI 505 1.0.1.</p>
+          <p><b>Ignition 8.3.</b> These releases are for the 8.1 line only. The 8.3 column on the <a href="/sparkbridge/download">download page</a> continues to serve the previous build of each product, which is unchanged and still supported. Core modules keep their 8.1.19 floor.</p>
+        </div>
+      </li>
+      <li>
         <span class="lc lc-birth">3.0.2<br>2026&#8209;09&#8209;12</span>
         <div>
           <h3>Certificate renewal, reconnect and enrollment fixes</h3>
