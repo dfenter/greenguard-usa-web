@@ -177,3 +177,19 @@ test('prompt: system has no SparkBridge version or prices; user turn carries lin
   assert.ok(u.includes('Visitor: hi'))
   assert.ok(u.trim().endsWith('Question: Q?'))
 })
+
+test('query procedure: format 2 options drop stopwords, stem, boost overview, exclude root, cap 2 per page', async () => {
+  const options = { idField: 'id', fields: ['title', 'heading', 'text', 'context'], storeFields: ['version', 'slug', 'title', 'heading', 'url', 'text'],
+    searchOptions: { boost: { title: 2, heading: 3, context: 2 }, prefix: true, fuzzy: 0.2, combineWith: 'OR' },
+    stopwords: ['what', 'does', 'the', 'do', 'it', 'sparkbridge'], stem: 'lite-2', prefixMinLength: 5, fuzzyMinLength: 7, camelSplit: true,
+    kindBoost: { 'release-notes/': 0.4, 'reference/': 0.6, '/overview': 2 }, excludeSlugs: [''], maxPerPage: 2 }
+  const ms = new MiniSearch({ ...options, processTerm: sb.makeProcessTerm(options) })
+  const doc = (slug, n, text) => ({ id: `8.1:${slug}#:${n}`, version: '8.1', slug, title: 'T', heading: '', url: U(`${slug}/#${n}`), text, context: slug.replace(/\//g, ' ') })
+  ms.addAll([doc('', 0, 'what does sparkbridge do: flow modules'), doc('core/flow/overview', 0, 'the SparkFlow module publishes points'),
+    doc('core/flow/install', 0, 'install the flow module'), doc('core/flow/install', 1, 'flow modules install steps'), doc('core/flow/install', 2, 'flow module upgrade'),
+    doc('release-notes/3-0-0', 0, 'flow flow flow module changes')])
+  const slugs = sb.askSearch(ms, options, 'What does the Flow module do?', 8).map((h) => h.slug)
+  assert.deepStrictEqual(slugs, ['core/flow/overview', 'core/flow/install', 'core/flow/install', 'release-notes/3-0-0'])
+  assert.deepStrictEqual(sb.askSearch(ms, options, 'what does it do', 8), [])
+  assert.deepStrictEqual(sb.makeProcessTerm(options)('`Licensing`'), 'licens')
+})

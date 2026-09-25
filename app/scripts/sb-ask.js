@@ -114,7 +114,7 @@ class IndexStore {
         if (prev && prev.etag === etag) { prev.checkedAt = now; return prev }
         json = JSON.parse(fs.readFileSync(f, 'utf8'))
       }
-      if (json.format !== 1 || !json.options || !json.index) throw new Error('bad index format')
+      if ((json.format !== 1 && json.format !== 2) || !json.options || !json.index) throw new Error('bad index format')
       const ms = MiniSearch.loadJS(json.index, json.options)
       const entry = { ms, meta: { version: json.version, builtAt: json.builtAt, count: json.count, options: json.options }, etag, checkedAt: now }
       this.entries.set(version, entry)
@@ -133,12 +133,79 @@ class IndexStore {
   }
 }
 
+// ── Query procedure (port of sparkbridge-docs scripts/lib/ask-search.mjs; keep identical in logic) ──
+// Format 2 index options carry stopwords, stem, camelSplit, prefixMinLength, fuzzyMinLength, kindBoost,
+// excludeSlugs and maxPerPage; missing fields fall back to plain MiniSearch search (format 1).
+function stemLite(term) {
+  let t = term
+  if (t.length <= 3 || /\d/.test(t)) return t
+  if (t.endsWith('ies') && t.length > 4) t = `${t.slice(0, -3)}y`
+  else if (t.endsWith('sses')) t = t.slice(0, -2)
+  else if (t.endsWith('s') && !/(ss|us|is)$/.test(t)) t = t.slice(0, -1)
+  if (t.endsWith('ing') && t.length >= 7) t = t.slice(0, -3)
+  else if (t.endsWith('ed') && t.length >= 6) t = t.slice(0, -2)
+  if (t.endsWith('e') && t.length > 4) t = t.slice(0, -1)
+  return t
+}
+
+function makeProcessTerm(options = {}) {
+  const stop = new Set(options.stopwords || [])
+  const stem = options.stem === 'lite-2' ? stemLite : (t) => t
+  const one = (term) => {
+    const t = term.toLowerCase()
+    return !t || stop.has(t) ? null : stem(t)
+  }
+  return (term) => {
+    const raw = term.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')
+    const parts = options.camelSplit && /^\p{Lu}\p{Ll}+(\p{Lu}[\p{Ll}\p{N}]+)+$/u.test(raw) ? raw.match(/\p{Lu}[\p{Ll}\p{N}]+/gu) : []
+    const out = [raw, ...parts].map(one).filter(Boolean)
+    return out.length > 1 ? [...new Set(out)] : out[0] || null
+  }
+}
+
+function askSearch(ms, options, query, k = TOP_K) {
+  const o = options || {}
+  const so = o.searchOptions || {}
+  // kindBoost keys: "seg/" matches a slug whose first path segment is seg, "/seg" one whose last segment is seg.
+  const kinds = Object.entries(o.kindBoost || {})
+  const exclude = new Set(o.excludeSlugs || [])
+  const pmin = o.prefixMinLength || 0
+  const fmin = o.fuzzyMinLength || 0
+  const so2 = { ...so }
+  if (o.stopwords || o.stem || o.camelSplit) so2.processTerm = makeProcessTerm(o)
+  if (so.prefix && pmin) so2.prefix = (term) => term.length >= pmin
+  if (so.fuzzy && fmin) so2.fuzzy = (term) => (term.length >= fmin ? so.fuzzy : false)
+  if (kinds.length) {
+    so2.boostDocument = (id, term, stored) => {
+      const segs = String((stored && stored.slug) || '').split('/')
+      let f = 1
+      for (const [key, v] of kinds) {
+        if (key.endsWith('/') ? segs[0] === key.slice(0, -1) : key.startsWith('/') && segs[segs.length - 1] === key.slice(1)) f *= v
+      }
+      return f
+    }
+  }
+  if (exclude.size) so2.filter = (r) => !exclude.has(r.slug)
+  const hits = ms.search(String(query || ''), so2)
+  const cap = o.maxPerPage || Infinity
+  const per = new Map()
+  const out = []
+  for (const h of hits) {
+    const n = per.get(h.slug) || 0
+    if (n >= cap) continue
+    per.set(h.slug, n + 1)
+    out.push(h)
+    if (out.length >= k) break
+  }
+  return out
+}
+
 function searchChunks(entry, question, history, k = TOP_K) {
   if (!entry) return []
   const lastUser = [...(history || [])].reverse().find((m) => m.role === 'user')
   const q = `${question} ${lastUser ? lastUser.content : ''}`.slice(0, 2000)
-  const hits = entry.ms.search(q, entry.meta.options.searchOptions || {})
-  return hits.slice(0, k).map((h) => ({ id: h.id, title: h.title, heading: h.heading, url: h.url, text: h.text, slug: h.slug }))
+  const hits = askSearch(entry.ms, entry.meta.options, q, k)
+  return hits.map((h) => ({ id: h.id, title: h.title, heading: h.heading, url: h.url, text: h.text, slug: h.slug }))
 }
 
 // ── Sentinel stripping over a token stream ──────────────────────────────────
@@ -351,6 +418,6 @@ function pruneTranscripts(dataDir, now = Date.now(), days = 30) {
 module.exports = {
   DOCS_ORIGIN, DOCS_PREFIX, VERSIONS, SENTINEL, LIMITS,
   SPARKBRIDGE_DOCS_SYSTEM, systemPrompt, capHistory, buildUserTurn, sourceTitle,
-  IndexStore, searchChunks, SentinelStripper, stripSentinel, stripUrls, validateCitations, finalizeAnswer,
+  IndexStore, searchChunks, askSearch, makeProcessTerm, SentinelStripper, stripSentinel, stripUrls, validateCitations, finalizeAnswer,
   AskState, utcDay, defaultDataDir, appendTranscript, pruneTranscripts,
 }
