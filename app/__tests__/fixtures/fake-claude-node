@@ -1,0 +1,28 @@
+#!/usr/bin/env node
+// Node body of the fake `claude -p --output-format stream-json` for sb-ask-daemon.test.js.
+// Records its pid and SIGTERM receipt under $FAKE_CLAUDE_LOG. Prompt keywords:
+// QUICK answers at once; STUBBORN ignores SIGTERM (needs SIGKILL); otherwise
+// it streams one delta every 100 ms for about 6 s.
+const fs = require('fs')
+const path = require('path')
+const dir = process.env.FAKE_CLAUDE_LOG
+const mark = (ext, text) => { if (dir) fs.appendFileSync(path.join(dir, `${process.pid}.${ext}`), text) }
+mark('start', String(Date.now()))
+let prompt = ''
+let stubborn = false
+process.on('SIGTERM', () => { mark('term', String(Date.now())); if (!stubborn) process.exit(143) })
+const out = (o) => process.stdout.write(JSON.stringify(o) + '\n')
+const delta = (t) => out({ type: 'stream_event', event: { type: 'content_block_delta', delta: { type: 'text_delta', text: t } } })
+process.stdin.on('data', (d) => { prompt += d })
+process.stdin.on('end', () => {
+  stubborn = prompt.includes('STUBBORN')
+  const quick = prompt.includes('QUICK')
+  const words = quick ? ['Configure ', 'the host ', 'here [1].'] : Array.from({ length: 60 }, (_, i) => `w${i} `)
+  let i = 0
+  const tick = () => {
+    if (i < words.length) { delta(words[i++]); return setTimeout(tick, quick ? 20 : 100) }
+    out({ type: 'result', is_error: false, result: words.join('') })
+    process.exit(0)
+  }
+  tick()
+})

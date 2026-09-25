@@ -1,0 +1,6 @@
+#!/bin/sh
+# Fake claude binary for sb-ask-daemon.test.js. The shell records the spawn
+# at once (before node boots, so an early SIGTERM still counts), then execs
+# the node body under the same pid.
+[ -n "$FAKE_CLAUDE_LOG" ] && echo spawn > "$FAKE_CLAUDE_LOG/$$.spawn"
+exec node "$(dirname "$0")/fake-claude-node" "$@"
