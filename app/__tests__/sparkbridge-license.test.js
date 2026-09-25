@@ -77,6 +77,18 @@ describe('sparkbridge-license', () => {
     expect(verify(k)).toBe(true)
   })
 
+  test('licence units match what each module enforces', () => {
+    // Module gate reads the key on the gateway it runs on; FleetOps agents run on the central's key.
+    for (const sku of ['passage', 'sparkflow', 'sparkrecord']) expect(L.skuInfo(sku).unit).toBe('gateway')
+    expect(L.skuInfo('fleetops').unit).toBe('central gateway')
+    // SparkCalc and SparkID are free and read no key: no unit, and the email line omits it.
+    for (const sku of ['sparkcalc', 'sparkid']) expect(L.skuInfo(sku, { retired: true }).unit).toBe('')
+    const html = L.licenseEmailHtml({ licensee: 'Acme', supportUntil: '2027-01-01', lines: [
+      { name: 'SparkCalc', quantity: 2, unit: '' }, { name: 'Passage', quantity: 2, unit: 'gateway' }] })
+    expect(html).toContain('<li>SparkCalc &times; 2</li>')
+    expect(html).toContain('<li>Passage &times; 2 gateways</li>')
+  })
+
   test('gitops key grants Host, SparkCalc and SparkID with GitOps', () => {
     expect(L.skuInfo('gitops').cents).toBe(999500)
     expect(L.skuInfo('gitops').entitlements).toEqual(['io.sparkbridge.host', 'io.sparkcalc.engine', 'cli.sparkbridge.sparkid', 'com.greenguardusa.gitops'])

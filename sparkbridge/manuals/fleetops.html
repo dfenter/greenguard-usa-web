@@ -62,7 +62,7 @@
 <p>FleetOps carries its own license. Install the signed module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required. Install the agent role on every fleet member and the console role on the gateway that will act as the center.</p>
 </div></section>
 <section class="band" id="license"><div class="wrap"><div class="sec-head"><h2>4. License</h2></div>
-<p>See the README in the bundle for licensing detail.</p>
+<p>FleetOps is licensed per central gateway. Put a key naming FleetOps in <code>&lt;data&gt;/sparkbridge-license.key</code> on the gateway running the console role; it shares that signed key, retained, on the broker, and agents on the same broker run on it with no key of their own. An agent that hears no central key falls back to its own key file, then the Ignition trial. See the README in the bundle for detail.</p>
 </div></section>
 <section id="configure"><div class="wrap"><div class="sec-head"><h2>5. Configure</h2></div>
 <p>A JVM system property wins over the properties file; otherwise settings come from <code>&lt;dataDir&gt;/fleetops/fleetops.properties</code>. Secrets are the exception: the broker password and REST token come only from the file named by <code>fleetops.secrets.file</code>, which must be mode 600.</p>

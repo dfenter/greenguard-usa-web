@@ -67,8 +67,8 @@
 </ol>
 </div></section>
 <section class="band" id="license"><div class="wrap"><div class="sec-head"><h2>4. License</h2></div>
-<p>Passage is free. It is included with any SparkBridge Edge or Host license and ships with no license tag required of its own.</p>
-<p>The suite key file, when present, lives at <code>&lt;data&gt;/sparkbridge-license.key</code> and is re-checked every 30 seconds, so installing or replacing it takes effect with no restart. From release 2.7.0, SparkBridge modules run on Ignition's two-hour module trial until a verified key names the product; Passage's own license state is not gated the same way since it carries no separate license tag.</p>
+<p>Passage carries its own license, per gateway. The gateway running Passage needs a key naming <code>com.greenguardusa.unsbridge</code> at <code>&lt;data&gt;/sparkbridge-license.key</code>; one key file can name Passage alongside the other products on that gateway.</p>
+<p>The key file is re-checked every 30 seconds, so installing, replacing or removing it takes effect with no restart. Without a verified key naming Passage, it runs on Ignition's standard two-hour module trial.</p>
 </div></section>
 <section id="configure"><div class="wrap"><div class="sec-head"><h2>5. Configure</h2></div>
 <p>Current Passage configuration is file/property-based. Set these as JVM system properties in the gateway startup configuration, then restart the gateway.</p>

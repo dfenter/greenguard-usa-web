@@ -48,12 +48,12 @@ const CATALOG = {
   // Item id stays `central` (site buy button and past Stripe sessions use it); sold as Host.
   central: { name: 'SparkBridge Host', cents: 149500, entitlements: [E.HOST, E.CALC, E.SPARKID], unit: 'Host gateway' },
   provider: { name: 'SparkBridge Provider', cents: 199500, entitlements: [E.PROVIDER], unit: 'gateway' },
-  passage: { name: 'Passage', cents: 199500, entitlements: [E.PASSAGE], unit: 'central gateway' },
+  passage: { name: 'Passage', cents: 199500, entitlements: [E.PASSAGE], unit: 'gateway' },
   sentinel: { name: 'Sentinel', cents: 499500, entitlements: [E.SENTINEL], unit: 'workstation' },
   fleetops: { name: 'FleetOps', cents: 499500, entitlements: [E.FLEETOPS], unit: 'central gateway' },
   sparkvault: { name: 'SparkVault', cents: 399500, entitlements: [E.VAULT], unit: 'gateway' },
   sparkinject: { name: 'SparkInject', cents: 299500, entitlements: [E.INJECT], unit: 'gateway' },
-  sparkflow: { name: 'SparkFlow', cents: 99500, entitlements: [E.FLOW], unit: 'central gateway' },
+  sparkflow: { name: 'SparkFlow', cents: 99500, entitlements: [E.FLOW], unit: 'gateway' },
   sparksnmp: { name: 'SparkSNMP', cents: 69500, entitlements: [E.SNMP], unit: 'gateway' },
   iec104: { name: 'IEC 60870-5-104 driver', cents: 69500, entitlements: [E.IEC104], unit: 'gateway' },
   dnp3: { name: 'DNP3 driver', cents: 69500, entitlements: [E.DNP3], unit: 'gateway' },
@@ -65,7 +65,7 @@ const CATALOG = {
   sparkbacnet: { name: 'SparkBACnet', cents: 69500, entitlements: [E.BACNET], unit: 'gateway' },
   sparknotify: { name: 'SparkNotify', cents: 69500, entitlements: [E.NOTIFY], unit: 'gateway' },
   sparkgantt: { name: 'SparkGantt', cents: 69500, entitlements: [E.GANTT], unit: 'gateway' },
-  sparkrecord: { name: 'SparkRecord', cents: 799500, entitlements: [E.RECORD], unit: 'central gateway' },
+  sparkrecord: { name: 'SparkRecord', cents: 799500, entitlements: [E.RECORD], unit: 'gateway' },
   gitops: { name: 'GitOps / Enterprise Governance', cents: 999500, entitlements: [E.HOST, E.CALC, E.SPARKID, E.GITOPS], unit: 'Host gateway' },
   sparkinflux: { name: 'SparkInflux', cents: 149500, entitlements: [E.INFLUX], unit: 'gateway' },
   sparkvalidate: { name: 'SparkValidate', cents: 249500, entitlements: [E.VALIDATE], unit: 'gateway' },
@@ -75,13 +75,14 @@ const CATALOG = {
 
 // No longer sold (package dropped; SparkCalc and SparkID now come with Host). Checkout
 // refuses them; kept so a session paid before retirement still fulfils and re-issues.
+// SparkCalc and SparkID are free and read no key, so they carry no licence unit ('').
 const RETIRED = {
   'central-package': {
     name: 'SparkBridge Central package', cents: 399500, unit: 'central gateway',
     entitlements: [E.HOST, E.PROVIDER, E.PASSAGE, E.CALC, E.SPARKID, E.SENTINEL, E.FLEETOPS, E.VAULT, E.INJECT],
   },
-  sparkcalc: { name: 'SparkCalc', cents: 49500, entitlements: [E.CALC], unit: 'central gateway' },
-  sparkid: { name: 'SparkID', cents: 49500, entitlements: [E.SPARKID], unit: 'central gateway' },
+  sparkcalc: { name: 'SparkCalc', cents: 49500, entitlements: [E.CALC], unit: '' },
+  sparkid: { name: 'SparkID', cents: 49500, entitlements: [E.SPARKID], unit: '' },
 }
 
 /** Sellable item, or null. Pass { retired: true } to also resolve retired items (fulfilment only). */
@@ -154,7 +155,7 @@ function escapeHtml(str) {
 
 /** The customer email body. Plain, executive voice, no jargon. */
 function licenseEmailHtml({ licensee, lines, supportUntil }) {
-  const items = lines.map((l) => `<li>${escapeHtml(l.name)} &times; ${l.quantity} ${escapeHtml(l.unit)}${l.quantity > 1 ? 's' : ''}</li>`).join('')
+  const items = lines.map((l) => `<li>${escapeHtml(l.name)} &times; ${l.quantity}${l.unit ? ` ${escapeHtml(l.unit)}${l.quantity > 1 ? 's' : ''}` : ''}</li>`).join('')
   return `
 <p>Thank you. Your SparkBridge license ${lines.reduce((a, l) => a + l.quantity, 0) > 1 ? 'keys are' : 'key is'} attached, issued to <b>${escapeHtml(licensee)}</b>.</p>
 <ul>${items}</ul>
