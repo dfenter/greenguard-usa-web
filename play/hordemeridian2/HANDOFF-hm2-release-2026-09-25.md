@@ -22,3 +22,21 @@
 ## Next
 1. Probe fix lane: wait for title RUNNING (or boot status >= 8) instead of wait(1500); assert sc.level.id === lid after resetRun so a vacuous metric fails loudly.
 2. Recapture on an idle host at the integrated hash, commit, then push origin main (Vercel Git integration deploys).
+
+## Probe-fix lane 2026-09-25: STOPPED before push (campaign gate flakes after the fix)
+Branch rebased onto origin/main f6a6e47f (backdrops ffdb4dfb, weapons a12792a6, handoff 5c324f60).
+- 105a523b probe fix: deterministicMetric waits for the Phaser 'title' scene status 5 (RUNNING) instead of wait(1500) before setting pendingLevel; after resetRun() it throws unless sc.level.id equals the requested mission (both values in the message). Scratch check: L1/L5/L10/L15 all hold through resetRun. The bot-trial phase (newPage, fixed 2000 ms) was left as is.
+- 5fd310d5 literals recaptured (capture 2, 64/64, load 6.01 to 5.76). Four DISTINCT sets. L15 and the L1 damage are bit-identical to the hotfix-1 literals, so the old literals were real mission values captured on an idle host; the free-play capture was a load-dependent race, not a permanent production state.
+  - L1 drifter 42 sprinter 36 salvage-swarm 98 bulwark 9 ..., dmg 29.4203
+  - L5 ember-scarab 105 ash-wraith 73 cinder-kamikaze 66 ..., dmg 150.7105
+  - L10 blink-stalker 109 gravity-mite 110 null-leech 65 sprinter 22 ..., dmg 29.5957
+  - L15 drifter 69 sprinter 59 bulwark 45 ..., dmg 250.6625 (dies at 43.00s)
+- Capture 1 (load 6.9 to 8.1) lost the L10 majority (1/3, three different compositions).
+- Pass run against committed literals (load 4.73 to 4.08): 70/72, EXIT 1. L1 majority 1/3 (drifter 45 / 51 / 42) and L1 composition mismatch; L5, L10, L15 pass.
+- hm2_world.test.mjs 35 cases 0 failures; hm2_weapons_probe.mjs PASS 40/40.
+
+## Why stopped
+With missions actually playing, the minority-context carrier fires in nearly every mission (at least one deviating context in 10 of 12 mission runs across three probe runs), not ~1-in-48. Across 9 L1 contexts the modal value (42 / 29.4203) came up only 5 times, so a 2-of-3 majority holds only about 60% of the time. The gate cannot be a release gate in that state. Recapturing until it passes would just be tuning to noise. main was NOT pushed or deployed.
+
+## Next
+Fix the sim/fx RNG split in game.js (the residual carrier, see memory follow-up 5), or a probe change that removes the carrier, then recapture and rerun the pass. Options for the router: accept a waiver for the campaign gate and push the release (both fixes already gated RELEASE), or hold.
