@@ -42,7 +42,7 @@ const SECRET = process.env.CHAT_DAEMON_SECRET || ''
 const CLAUDE_BIN = process.env.CLAUDE_BIN || `${os.homedir()}/.local/bin/claude`
 const MCP_SERVER = path.join(__dirname, 'chat-mcp-server.js')
 const STATE_PATH = path.join(__dirname, 'chat-daemon-state.json')
-const SCRATCH = path.join(os.homedir(), '.gg-chat-scratch')
+const SCRATCH = process.env.CHAT_DAEMON_SCRATCH || path.join(os.homedir(), '.gg-chat-scratch')
 const TZ = process.env.CALENDAR_TIMEZONE || 'America/Chicago'
 
 const RUN_BUDGET_MS = 50_000
@@ -173,6 +173,11 @@ const SB_ASK_INDEX_BASE = process.env.SB_ASK_INDEX_BASE || `${sbAsk.DOCS_ORIGIN}
 const SB_PUBLIC_MAX_BODY = 32 * 1024
 const SB_PUBLIC_MAX_WAITING = 3
 const SB_PUBLIC_RUN_MS = 50_000
+const SB_ASK_QUEUE_MS = parseInt(process.env.SB_ASK_QUEUE_MS || '60000', 10) || 60_000
+// Turnstile: off unless SB_ASK_TURNSTILE=1. The verify URL override exists for tests only.
+const SB_ASK_TURNSTILE = process.env.SB_ASK_TURNSTILE === '1'
+const TURNSTILE_SECRET = process.env.TURNSTILE_SECRET_KEY || ''
+const SB_ASK_TURNSTILE_VERIFY_URL = process.env.SB_ASK_TURNSTILE_VERIFY_URL || sbAsk.TURNSTILE_VERIFY_URL
 const sbIndex = new sbAsk.IndexStore(SB_ASK_INDEX_BASE, { log: (...a) => log(...a) })
 const sbState = new sbAsk.AskState(path.join(SB_ASK_DATA_DIR, 'state.json'), { log: (...a) => log(...a) })
 let draining = false
@@ -607,7 +612,13 @@ function runDocsClaude({ system, prompt, deadlineMs, onText }) {
     })
     child.on('error', (e) => { cleanup(); resolve({ ok: false, error: 'model_error', detail: `spawn failed: ${e.message}` }) })
   })
-  return { done, kill: () => { try { child.kill('SIGTERM') } catch {} } }
+  // Cancel: SIGTERM, then SIGKILL after 2 s if the child has not exited.
+  const kill = () => {
+    if (!child || child.exitCode !== null || child.signalCode !== null) return
+    try { child.kill('SIGTERM') } catch {}
+    setTimeout(() => { if (child.exitCode === null && child.signalCode === null) { try { child.kill('SIGKILL') } catch {} } }, 2000).unref()
+  }
+  return { done, kill }
 }
 
 function clientIp(req) {
@@ -623,12 +634,26 @@ function logAsk(f) {
   }))
 }
 
+// Docs-audience error codes map from model outcomes (A2 contract table).
+const DOCS_MODEL_ERR = { timeout: ['timeout', 504], model_error: ['failed', 500] }
+
+// Once per UTC day, for the previous day: one ask-feedback-day log line.
+function sbFeedbackDay() {
+  try { const s = sbState.rollFeedbackDay(); if (s) log('ask-feedback-day', JSON.stringify(s)) } catch (e) { log(`sb-ask feedback summary failed: ${e.message}`) }
+}
+
+function publicCors(req, isDocs) {
+  const origin = String(req.headers.origin || '')
+  const allowed = isDocs ? SB_DOCS_ORIGINS.has(origin) : SB_ORIGINS.has(origin)
+  return { origin, allowed, cors: allowed ? { 'Access-Control-Allow-Origin': origin, 'Vary': 'Origin' } : { 'Vary': 'Origin' } }
+}
+
 function handlePublic(req, res, audience) {
   const t0 = Date.now()
   const isDocs = audience === 'sparkbridge-docs'
-  const origin = String(req.headers.origin || '')
-  const allowed = isDocs ? SB_DOCS_ORIGINS.has(origin) : SB_ORIGINS.has(origin)
-  const cors = allowed ? { 'Access-Control-Allow-Origin': origin, 'Vary': 'Origin' } : { 'Vary': 'Origin' }
+  const { origin, allowed, cors } = publicCors(req, isDocs)
+  // Raw IP stays in memory for this request only (limits key by iphash; the
+  // raw value goes nowhere except Turnstile remoteip).
   const ip = clientIp(req)
   const iphash = sbState.ipHash(ip)
   const lg = { audience, origin, iphash, sid: '', version: '', qlen: 0 }
@@ -651,6 +676,7 @@ function handlePublic(req, res, audience) {
   // Docs audience: foreign or missing Origin is refused outright. The product
   // tier keeps its old behavior (served, but without a CORS grant).
   if (isDocs && !allowed) return send(403, { error: 'origin' })
+  if (isDocs) sbFeedbackDay()
 
   let size = 0
   const chunks = []
@@ -661,7 +687,7 @@ function handlePublic(req, res, audience) {
     // Over 32 KB: answer once, drop the rest, close the connection after.
     if (was <= SB_PUBLIC_MAX_BODY) { res.setHeader('Connection', 'close'); send(400, isDocs ? { error: 'bad_request' } : { error: 'too large' }) }
   })
-  req.on('end', () => {
+  req.on('end', async () => {
     if (size > SB_PUBLIC_MAX_BODY) return
     const bad = () => send(400, isDocs ? { error: 'bad_request' } : { error: 'sid (uuid) and message required' })
     let body
@@ -671,7 +697,7 @@ function handlePublic(req, res, audience) {
     lg.sid = sid
     lg.qlen = message.length
     if (!SB_SID_RE.test(sid) || !message) return bad()
-    if (message.length > (isDocs ? 1000 : 1500)) return send(400, isDocs ? { error: 'bad_request' } : { error: 'message too long' })
+    if (message.length > (isDocs ? 1000 : 1500)) return send(400, isDocs ? { error: 'too_long' } : { error: 'message too long' })
     let version = body?.version
     if (version === undefined || version === null || version === '') version = '8.1'
     if (!sbAsk.VERSIONS.includes(version)) {
@@ -681,29 +707,54 @@ function handlePublic(req, res, audience) {
     lg.version = version
     const page = typeof body?.page === 'string' ? body.page.slice(0, 300) : ''
     const history = sbAsk.capHistory(body?.history)
+    const turnstileToken = body?.turnstile
+    if (isDocs && turnstileToken !== undefined && (typeof turnstileToken !== 'string' || turnstileToken.length > 2048)) return bad()
 
     if (!isDocs) {
       // Product tier keeps its per-minute limits on top of the hourly ones.
       const key = `sb:${sid}`
       const sidBucket = (rateBuckets.get(key) || []).filter((t) => Date.now() - t < 60_000)
-      if (sidBucket.length >= 6 || rateLimited(`sbip:${ip}`)) return send(429, { ok: false, error: 'rate limited', retryAfter: 60 })
+      if (sidBucket.length >= 6 || rateLimited(`sbip:${iphash}`)) return send(429, { ok: false, error: 'rate limited', retryAfter: 60 })
       sidBucket.push(Date.now())
       rateBuckets.set(key, sidBucket)
     }
-    if (draining || queue.filter((j) => j.isSparkbridge).length >= SB_PUBLIC_MAX_WAITING) {
-      return send(503, isDocs ? { error: 'busy', handoff: true } : { ok: false, started: false, error: 'busy' })
+    if (draining) return send(503, isDocs ? { error: 'unavailable', handoff: true } : { ok: false, started: false, error: 'busy' })
+    if (queue.filter((j) => j.isSparkbridge).length >= SB_PUBLIC_MAX_WAITING) {
+      return send(503, isDocs ? { error: 'queue_full', handoff: true } : { ok: false, started: false, error: 'busy' })
     }
-    const lim = sbState.check(ip, sid)
+    const lim = sbState.check(iphash, sid)
     if (!lim.ok) {
       return send(429, isDocs
         ? { error: 'rate_limited', retryAfter: lim.retryAfter, handoff: true }
         : { ok: false, error: 'rate limited', retryAfter: lim.retryAfter })
     }
 
-    const sse = isDocs && /text\/event-stream/.test(String(req.headers.accept || ''))
     let closed = false
     let proc = null
     let keepalive = null
+    let job = null
+    res.on('close', () => {
+      if (res.writableFinished) return
+      closed = true
+      if (keepalive) clearInterval(keepalive)
+      if (job) {
+        if (job.qTimer) clearTimeout(job.qTimer)
+        const i = queue.indexOf(job)
+        if (i >= 0) { queue.splice(i, 1); finish('client_closed'); pump() }
+      }
+      if (proc) proc.kill()
+    })
+
+    if (isDocs && SB_ASK_TURNSTILE) {
+      const v = await sbAsk.verifyTurnstile({
+        token: turnstileToken, secret: TURNSTILE_SECRET, remoteip: ip,
+        url: SB_ASK_TURNSTILE_VERIFY_URL, devOrigins: process.env.SB_ASK_DEV_ORIGINS === '1',
+      })
+      if (closed) return logAsk({ ...lg, status: 'client_closed', ms: Date.now() - t0 })
+      if (!v.ok) { log(`sb-ask ${audience} ${sid.slice(0, 8)} verify_failed: ${v.reason}`); return send(403, { error: 'verify_failed', handoff: true }) }
+    }
+
+    const sse = isDocs && /text\/event-stream/.test(String(req.headers.accept || ''))
     const event = (name, data) => { if (!closed) res.write(`event: ${name}\ndata: ${JSON.stringify(data)}\n\n`) }
     if (sse) {
       res.writeHead(200, {
@@ -714,7 +765,7 @@ function handlePublic(req, res, audience) {
       })
       keepalive = setInterval(() => { if (!closed) res.write(': ping\n\n') }, 15_000)
     }
-    const finish = (status, extra) => {
+    function finish(status, extra) {
       if (keepalive) clearInterval(keepalive)
       logAsk({ ...lg, status, ms: Date.now() - t0, ...extra })
     }
@@ -729,17 +780,20 @@ function handlePublic(req, res, audience) {
     }
 
     let lastPos = -1
-    const job = {
+    job = {
       isSparkbridge: true,
-      // SSE clients see queue events and may wait ~60 s; JSON callers (product
-      // widget, 75 s client timeout) wait at most 25 s.
-      enqueueDeadline: Date.now() + (sse || isDocs ? 60_000 : 25_000),
+      // Docs jobs wait up to SB_ASK_QUEUE_MS (60 s) with their own timer;
+      // product-tier JSON callers (75 s client timeout) wait at most 25 s.
+      enqueueDeadline: Date.now() + (isDocs ? SB_ASK_QUEUE_MS : 25_000),
       onPosition: (n) => { if (sse && n !== lastPos) { lastPos = n; event('queue', { position: n }) } },
-      reject503: () => fail('busy', 503),
+      reject503: () => (isDocs ? fail('queue_timeout', 503) : fail('busy', 503)),
       run: async () => {
+        if (job.qTimer) clearTimeout(job.qTimer)
         if (closed) return finish('client_closed')
         const idx = await sbIndex.get(version)
-        if (!idx) return fail('index_unavailable', 503, `no index for ${version}`)
+        // A close while the index loaded must never spawn a model run.
+        if (closed) return finish('client_closed')
+        if (!idx) return fail(isDocs ? 'unavailable' : 'index_unavailable', 503, `no index for ${version}`)
         const passed = sbAsk.searchChunks(idx, message, history)
         const prompt = sbAsk.buildUserTurn({ version, chunks: passed, history, question: message })
         const stripper = new sbAsk.SentinelStripper()
@@ -750,40 +804,92 @@ function handlePublic(req, res, audience) {
           deadlineMs: Date.now() + SB_PUBLIC_RUN_MS,
           onText: sse ? (t) => { const out = stripper.feed(t); if (out) event('text', { t: out }) } : null,
         })
+        // Resolves on child exit, so the public slot frees only then.
         const out = await proc.done
-        if (sse) { const tail = stripper.end(); if (tail) event('text', { t: tail }) }
         if (closed) return finish('client_closed')
-        if (!out.ok) return fail(out.error, out.error === 'timeout' ? 504 : 500, out.detail)
+        if (sse) { const tail = stripper.end(); if (tail) event('text', { t: tail }) }
+        if (!out.ok) {
+          if (isDocs) { const [code, httpCode] = DOCS_MODEL_ERR[out.error] || ['failed', 500]; return fail(code, httpCode, out.detail) }
+          return fail(out.error, out.error === 'timeout' ? 504 : 500, out.detail)
+        }
         const fin = sbAsk.finalizeAnswer(out.text, passed)
         const ms = Date.now() - t0
+        const id = sbAsk.newAnswerId()
         try {
           sbAsk.appendTranscript(SB_ASK_DATA_DIR, sid, {
-            ts: new Date().toISOString(), audience, version, page, iphash,
+            id, ts: new Date().toISOString(), audience, version, page, iphash,
             q: message, a: fin.text, sources: fin.sources, answered: fin.answered, ms,
           })
         } catch (e) { log(`sb-ask transcript write failed: ${e.message}`) }
         if (sse) {
-          event('done', { answered: fin.answered, text: fin.text, sources: fin.sources, ms })
+          event('done', { id, answered: fin.answered, text: fin.text, sources: fin.sources, ms })
           res.end()
         } else {
           for (const [k, v] of Object.entries(cors)) res.setHeader(k, v)
           sendJson(res, 200, isDocs
-            ? { ok: true, answered: fin.answered, text: fin.text, sources: fin.sources, ms }
-            : { ok: true, reply: fin.text, sources: fin.sources, answered: fin.answered, ms, actions: [], escalated: false, escalateReason: null })
+            ? { ok: true, id, answered: fin.answered, text: fin.text, sources: fin.sources, ms }
+            : { ok: true, id, reply: fin.text, sources: fin.sources, answered: fin.answered, ms, actions: [], escalated: false, escalateReason: null })
         }
         finish(200, { alen: fin.text.length, sources: fin.sources.length, answered: fin.answered })
       },
     }
-    res.on('close', () => {
-      if (res.writableFinished) return
-      closed = true
-      if (keepalive) clearInterval(keepalive)
-      const i = queue.indexOf(job)
-      if (i >= 0) { queue.splice(i, 1); finish('client_closed'); pump() }
-      if (proc) proc.kill()
-    })
+    if (isDocs) {
+      job.qTimer = setTimeout(() => {
+        const i = queue.indexOf(job)
+        if (i < 0 || closed) return
+        queue.splice(i, 1)
+        fail('queue_timeout', 503)
+        pump()
+      }, SB_ASK_QUEUE_MS)
+    }
     queue.push(job)
     pump()
+  })
+}
+
+// POST /chat/sparkbridge-docs/feedback: thumbs up/down on one answer id.
+function handleFeedback(req, res) {
+  const { origin, allowed, cors } = publicCors(req, true)
+  const send = (code, obj) => {
+    for (const [k, v] of Object.entries(cors)) res.setHeader(k, v)
+    sendJson(res, code, obj)
+  }
+  if (req.method === 'OPTIONS') {
+    res.writeHead(allowed ? 204 : 403, {
+      ...cors,
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Accept',
+      'Access-Control-Max-Age': '86400',
+    })
+    return res.end()
+  }
+  if (req.method !== 'POST') return sendJson(res, 404, { error: 'not found' })
+  if (!allowed) return send(403, { error: 'origin' })
+  sbFeedbackDay()
+  const iphash = sbState.ipHash(clientIp(req))
+  let size = 0
+  const chunks = []
+  req.on('data', (d) => {
+    const was = size
+    size += d.length
+    if (size <= sbAsk.FEEDBACK_MAX_BODY) return chunks.push(d)
+    if (was <= sbAsk.FEEDBACK_MAX_BODY) { res.setHeader('Connection', 'close'); send(400, { error: 'bad_request' }) }
+  })
+  req.on('end', () => {
+    if (size > sbAsk.FEEDBACK_MAX_BODY) return
+    let body
+    try { body = JSON.parse(Buffer.concat(chunks).toString('utf8')) } catch { return send(400, { error: 'bad_request' }) }
+    const fb = sbAsk.validateFeedback(body)
+    if (!fb) return send(400, { error: 'bad_request' })
+    const lim = sbState.checkFeedback(iphash, fb.sid)
+    if (!lim.ok) return send(429, { error: 'rate_limited' })
+    try {
+      sbAsk.appendFeedback(SB_ASK_DATA_DIR, { ts: new Date().toISOString(), sid: fb.sid, id: fb.id, version: fb.version, page: fb.page, vote: fb.vote, text: fb.text, iphash })
+    } catch (e) { log(`sb-ask feedback write failed: ${e.message}`); return send(500, { error: 'failed' }) }
+    const summary = sbState.countFeedback(fb.vote, !!fb.text)
+    if (summary) log('ask-feedback-day', JSON.stringify(summary))
+    log('ask-fb', JSON.stringify({ t: new Date().toISOString(), origin, iphash, sid: fb.sid.slice(0, 8), id: fb.id, version: fb.version, vote: fb.vote, text: fb.text.length }))
+    send(200, { ok: true })
   })
 }
 
@@ -840,6 +946,7 @@ const server = http.createServer((req, res) => {
     })
     return
   }
+  if (req.url === '/chat/sparkbridge-docs/feedback') return handleFeedback(req, res)
   const pm = req.url.match(/^\/chat\/(sparkbridge|sparkbridge-docs)$/)
   if (pm) return handlePublic(req, res, pm[1])
   const m = req.url.match(/^\/chat\/(customer|admin|gtm)$/)
@@ -953,7 +1060,8 @@ function main() {
     try { const r = sbAsk.pruneTranscripts(SB_ASK_DATA_DIR); if (r.length) log(`sb-ask pruned transcripts: ${r.join(',')}`) } catch (e) { log(`sb-ask prune failed: ${e.message}`) }
   }
   prune()
-  setInterval(prune, 6 * 3600_000).unref()
+  setInterval(() => { prune(); sbFeedbackDay() }, 6 * 3600_000).unref()
+  if (SB_ASK_TURNSTILE && !TURNSTILE_SECRET) log('ERROR sb-ask: SB_ASK_TURNSTILE=1 but TURNSTILE_SECRET_KEY is not set; every docs ask fails closed with verify_failed')
   for (const v of sbAsk.VERSIONS) sbIndex.get(v).catch(() => {})
   // Slowloris/idle-socket defense (finding #11): drop connections that don't
   // send headers+body promptly and cap how long the funnel proxy may hold one.
