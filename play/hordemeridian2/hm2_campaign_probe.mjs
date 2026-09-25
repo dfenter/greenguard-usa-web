@@ -245,11 +245,17 @@ async function deterministicMetric(lid) {
   await bp.setViewport({ width: W, height: H, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
   await bp.goto(URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await bp.waitForFunction(() => window.__HORDE_READY === true, { timeout: 45000 });
-  // Let async boot/asset-load work on the fresh incognito page fully settle
-  // before seeding: without this, two identically-coded runs can still
-  // diverge by a frame or two because some boot-time async work is still in
-  // flight when the deterministic drive starts.
-  await wait(1500);
+  // Wait until the title scene is RUNNING before selecting the mission.
+  // A fixed wait was not enough: under host load boot was still running and
+  // 'title' was only queued, so TitleScene.create (game.js:1029) later
+  // cleared Game.pendingLevel and resetRun() (game.js:3406) fell back to
+  // level null, i.e. every mission silently measured the free-play run.
+  // Phaser scene status 5 = RUNNING.
+  await bp.waitForFunction(() => {
+    const ph = window.__HORDE && window.__HORDE.game && window.__HORDE.game.phaser;
+    const t = ph && ph.scene && ph.scene.getScene('title');
+    return !!(t && t.sys && t.sys.settings.status === 5);
+  }, { timeout: 45000, polling: 50 });
   await bp.evaluate(() => {
     // Probe-side deterministic RNG (mulberry32-style), fixed seed. game.js is
     // frozen so this cannot be seeded inside it; overriding window.Math.random
@@ -326,7 +332,7 @@ async function deterministicMetric(lid) {
     // (1b) RE-SEED the probe RNG to the fixed constant. This is the second
     // carrier fix. The Math.random override above is installed BEFORE
     // scene.start(), and between that point and here the page boots for real:
-    // wait(1500), the scene start, and the real rAF frames that run until
+    // title-scene wait, the scene start, and the real rAF frames that run until
     // loop.stop(). During that window Phaser's particle emitters and ggkit's
     // juice.frame() are still live and drawing at WALL-CLOCK rate, so they
     // consume an uncontrolled number of draws (~5957 on L10) that varies with
@@ -387,11 +393,13 @@ async function deterministicMetric(lid) {
     // 'playing', no pending background task. The cross-context check below
     // compares this fingerprint across all 3 contexts, so a start state that
     // varies run-to-run now FAILS instead of silently biasing the metric.
+    const levelId = sc.level ? sc.level.id : null;
     const alive = sc.enemies.filter((e) => e.alive);
     let px = 0, py = 0;
     for (const e of alive) { px += e.x; py += e.y; }
     return {
       before,
+      levelId,
       after: {
         enemies: alive.length,
         time: sc.run.time,
@@ -411,6 +419,11 @@ async function deterministicMetric(lid) {
       },
     };
   });
+  // A vacuous metric (mission lost before resetRun, run falls back to free
+  // play) must fail loudly rather than capture free-play literals.
+  if (startState.levelId !== lid) {
+    throw new Error(`L${lid} mission not held through resetRun: requested ${lid}, run level id ${JSON.stringify(startState.levelId)}`);
+  }
   if (startState.after.time !== 0 || startState.after.state !== 'playing' ||
     startState.after.regionFieldTask) {
     throw new Error(`L${lid} quiesced start not achieved: ${JSON.stringify(startState.after)}`);
@@ -724,7 +737,7 @@ const CONTEXTS = 3;
 // diverged in composition with it. It was always context 1, never 2 or 3, and
 // 2 and 3 always agreed with each other AND with the steady-state value. That
 // is a cold-start artifact in the page's async boot/asset settle (the fixed
-// `wait(1500)` above is not always enough on the very first load), not
+// fixed boot settle wait was not always enough on the very first load), not
 // nondeterminism in the sim. Burning one context and discarding its result
 // makes every MEASURED context a warm one. This discards no assertion: the
 // three measured contexts are still asserted against each other exactly.
