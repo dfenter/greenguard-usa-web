@@ -705,10 +705,22 @@ const BOT_TICK_SRC = () => {
 // Captured on an idle host, one browser probe at a time. All four missions
 // agreed 3/3 contexts bit-for-bit (unanimous, not merely the 2-of-3 majority
 // the gate allows), with identical start fingerprints and frame counts.
+//
+// RECAPTURED at the release hash (hm2-release-2026-09-25, backdrops + weapon
+// evolutions over main f6a6e47f, probe fix 105a523b). The probe now waits for
+// the title scene to be RUNNING before selecting the mission and asserts the
+// run's level id after resetRun(), so a capture can no longer silently record
+// the free-play run. Four distinct literal sets, one per mission. L15 and the
+// L1 damage are bit-identical to the hotfix-1 values; the L1 composition and
+// all of L5/L10 moved (cause not isolated; the release adds the pickUpgrade
+// weapon-level change and the backdrop game.js hunk). Majority 2/3 held for
+// every mission, one minority WARN per mission (an earlier capture at load
+// 6.9-8 lost the L10 majority 1/3, so the carrier is far more frequent than
+// 1-in-48 now that missions really play). Host load 1-min avg 6.01 at start, 5.76 at end.
 const SPEC_LITERALS = {
-  1: { spawnCounts: { drifter: 41, sprinter: 37, 'derelict-guard-hulk': 5, 'salvage-swarm': 101, 'grave-egg': 4, 'scrap-ripper': 2, 'wall-warden': 2, bulwark: 8 }, dmgTaken: 29.42032675438596 },
-  5: { spawnCounts: { 'ember-scarab': 129, drifter: 15, sprinter: 10, 'ash-wraith': 74, 'cinder-kamikaze': 63, lancer: 8 }, dmgTaken: 285.9242395833328 },
-  10: { spawnCounts: { 'blink-stalker': 98, 'gravity-mite': 117, drifter: 1, 'null-leech': 86, 'wing-cutter': 1, sprinter: 6 }, dmgTaken: 61.160855263157885 },
+  1: { spawnCounts: { drifter: 42, sprinter: 36, 'derelict-guard-hulk': 5, 'salvage-swarm': 98, 'grave-egg': 4, 'scrap-ripper': 2, 'wall-warden': 2, bulwark: 9 }, dmgTaken: 29.42032675438596 },
+  5: { spawnCounts: { 'ember-scarab': 105, drifter: 21, sprinter: 14, 'ash-wraith': 73, 'cinder-kamikaze': 66, lancer: 8 }, dmgTaken: 150.71054270833298 },
+  10: { spawnCounts: { 'blink-stalker': 109, 'gravity-mite': 110, drifter: 1, 'null-leech': 65, 'wing-cutter': 1, sprinter: 22 }, dmgTaken: 29.595657894736842 },
   15: { spawnCounts: { drifter: 69, sprinter: 59, bulwark: 45, 'cinder-kamikaze': 31, 'blink-stalker': 22 }, dmgTaken: 250.66245596491194 },
 };
 const CAPTURE_MODE = process.env.HM2_CAPTURE === '1';
