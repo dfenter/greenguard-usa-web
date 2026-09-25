@@ -63,6 +63,14 @@
   <div class="wrap">
     <ul class="lifeline">
       <li>
+        <span class="lc lc-birth">FleetOps 0.4.0<br>2026&#8209;09&#8209;25</span>
+        <div>
+          <h3>FleetOps 0.4.0: agents licensed through a licensed central; first Ignition 8.3 build</h3>
+          <p><b>Central license for agents.</b> A central gateway whose own key file licenses FleetOps shares that vendor-signed key, retained, on the broker; agents on the same broker run on it without a key file of their own. An agent uses a valid central assertion first, then its own key file, then the Ignition trial, and keeps an assertion for 24 hours after the central last published. Console licensing is unchanged. Restrict publish on <span class="mono">sparkbridge/fleet/central/license/</span> to central gateways with the broker ACL. <b>Behaviour change.</b> <span class="mono">CERT_REPLACE</span> now writes the gateway web SSL keystore by default; set <span class="mono">fleetops.action.certReplaceTarget=gateway-network</span> to keep the old target. <b>Fix.</b> The reported agent version now matches the installed build. <b>Known issue.</b> If the broker is unreachable when FleetOps starts on a central, the console does not retry; restart FleetOps on the central once the broker is reachable.</p>
+          <p><b>Ignition 8.3.</b> 0.4.0 is the first FleetOps build for Ignition 8.3. On 8.1 it replaces 0.3.x in place (same module id, 8.1.33 or newer). Modules and checksums: <a href="/sparkbridge/download">download page</a>, <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/fleetops-v0.4.0">fleetops-v0.4.0</a> and <a href="https://github.com/greenguard-usa/sparkbridge-releases/releases/tag/fleetops-v0.4.0-ign83">fleetops-v0.4.0-ign83</a>.</p>
+        </div>
+      </li>
+      <li>
         <span class="lc lc-birth">3.1.2 (8.3)<br>2026&#8209;09&#8209;25</span>
         <div>
           <h3>Ignition 8.3: the Host REST routes mount again</h3>
