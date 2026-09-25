@@ -220,6 +220,47 @@ const QUOTE_LOCAL_SERVICES = [
 ]
 const SERVICE_ADDONS = [...addonsForQuote(), ...QUOTE_LOCAL_SERVICES]
 
+// Common items: the same +/- stepper block as /admin/rounds. Quote catalog rows
+// carry no SKU, so attach it from the catalog ADDONS list, then resolve with the
+// shared rounds helper. Steppers write addonQtys, same as the Add-Ons dropdown.
+const { ADDONS: CATALOG_ADDONS = [] } = require('../../lib/catalog')
+const { resolveCommonItems } = require('../../lib/rounds-common-items')
+const COMMON_ITEMS = resolveCommonItems([
+  { field: 'addonQtys', catalog: SERVICE_ADDONS.map((s) => ({ ...s, sku: (CATALOG_ADDONS.find((a) => a.label === s.label) || {}).sku || null })) },
+])
+
+function CommonItemsSection({ qtysByField, onChange }) {
+  const btn = { width: 30, height: 30, borderRadius: '50%', border: '1px solid rgba(var(--green-rgb),0.3)', cursor: 'pointer', fontSize: '1.1rem', lineHeight: 1, fontFamily: 'inherit' }
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(var(--border-rgb),0.12)', marginBottom: 8 }}>
+        <span style={{ fontSize: '0.7rem', fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--gold)' }}>Common Items</span>
+      </div>
+      {COMMON_ITEMS.map((item) => {
+        const qty = (qtysByField[item.field] || {})[item.label] || 0
+        return (
+          <div key={item.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid rgba(var(--green-rgb),0.06)' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '1rem', fontWeight: 900, color: 'var(--text)' }}>{item.label}</div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 800, marginTop: 2 }}>
+                {item.sku && <span style={{ marginRight: 8 }}>{item.sku}</span>}
+                <span>{item.price ? `$${item.price.toFixed(2)}/unit` : 'no charge'}</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+              <button type="button" aria-label={`Decrease ${item.label}`} onClick={() => onChange(item, qty - 1)} disabled={qty === 0}
+                style={{ ...btn, background: 'transparent', color: 'var(--text)', opacity: qty === 0 ? 0.4 : 1, cursor: qty === 0 ? 'default' : 'pointer' }}>−</button>
+              <span style={{ minWidth: 24, textAlign: 'center', fontWeight: 900, fontSize: '1.1rem', color: qty > 0 ? 'var(--green)' : 'var(--text-dim)' }}>{qty}</span>
+              <button type="button" aria-label={`Increase ${item.label}`} onClick={() => onChange(item, qty + 1)}
+                style={{ ...btn, background: 'rgba(var(--green-rgb),0.08)', color: 'var(--green)' }}>+</button>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 // ── Guided service configurator ────────────────────────────────────────────────
 
 function SystemIcon({ iconPath, emoji }) {
@@ -853,6 +894,12 @@ export default function QuoteBuilder({ mapsKey }) {
               catalog={SERVICE_ADDONS}
               qtys={addonQtys}
               onChange={(label, n) => setQty(setAddonQtys, label, n)}
+            />
+
+            {/* Common items (same steppers as the rounds finalize block) */}
+            <CommonItemsSection
+              qtysByField={{ productQtys, addonQtys }}
+              onChange={(item, n) => setQty(item.field === 'productQtys' ? setProductQtys : setAddonQtys, item.label, n)}
             />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(var(--border-rgb),0.12)', marginBottom: 8, marginTop: 20 }}>
