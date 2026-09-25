@@ -188,8 +188,14 @@ function askSearch(ms, options, query, k = TOP_K) {
   if (mb && mb.factor && Array.isArray(mb.roots)) {
     const pt = so2.processTerm || ((t) => t.toLowerCase())
     const terms = new Set()
-    // Same split as MiniSearch's default tokenizer.
-    for (const tok of String(query || '').split(/[\n\r\p{Z}\p{P}]+/u)) for (const t of [pt(tok)].flat()) if (t) terms.add(t)
+    const generic = new Set((mb.generic || []).flatMap((g) => [pt(g)].flat()).filter(Boolean))
+    const notAfter = new Set((mb.notAfter || []).map((w) => w.toLowerCase()))
+    // Same split as MiniSearch's default tokenizer. A generic module name counts only when capitalized and not after a notAfter word.
+    const toks = String(query || '').split(/[\n\r\p{Z}\p{P}]+/u).filter(Boolean)
+    toks.forEach((tok, i) => {
+      const plain = !/^\p{Lu}/u.test(tok) || (i > 0 && notAfter.has(toks[i - 1].toLowerCase()))
+      for (const t of [pt(tok)].flat()) if (t && !(plain && generic.has(t))) terms.add(t)
+    })
     const seen = new Map()
     named = (slug) => {
       const m = slugModule(slug, mb.roots)

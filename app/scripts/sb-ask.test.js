@@ -213,3 +213,23 @@ test('query procedure: stopword product names drop whole; a module named in the 
   assert.strictEqual(sb.askSearch(ms, options, 'Edge: no BIRTH in the log', 8)[0].slug, 'core/edge/troubleshoot')
   assert.strictEqual(sb.askSearch(ms, options, 'SparkSNMP: no BIRTH in the log', 8)[0].slug, 'drivers/sparksnmp/troubleshoot')
 })
+
+test('query procedure: generic module names boost only when capitalized and not after tag/Ignition', () => {
+  const options = { idField: 'id', fields: ['title', 'heading', 'body', 'context'], storeFields: ['version', 'slug', 'title', 'heading', 'url', 'text'],
+    searchOptions: { boost: { title: 2, heading: 1.5, context: 2 }, prefix: true, fuzzy: 0.2, combineWith: 'OR' },
+    stopwords: ['a', 'on', 'the', 'with', 'for'], stem: 'lite-2', prefixMinLength: 5, fuzzyMinLength: 7, camelSplit: true,
+    kindBoost: {}, excludeSlugs: [''], maxPerPage: 1,
+    moduleBoost: { roots: ['core', 'drivers', 'add-on-modules'], factor: 2, generic: ['host', 'edge', 'provider', 'flow', 'passage', 'sentinel'], notAfter: ['tag', 'ignition'] } }
+  const ms = new MiniSearch({ ...options, processTerm: sb.makeProcessTerm(options) })
+  const doc = (slug, text) => ({ id: `8.1:${slug}#:0`, version: '8.1', slug, title: 'T', heading: '', url: U(slug), text, body: text, context: '' })
+  ms.addAll([doc('how-to/relay', 'relay relay setup'), doc('core/provider/relay', 'relay setup'), doc('core/edge/relay', 'relay setup'),
+    doc('core/host/relay', 'relay setup'), doc('core/flow/relay', 'relay setup')])
+  const top = (q) => sb.askSearch(ms, options, q, 5)[0].slug
+  for (const q of ['relay on a tag provider', 'relay for the Tag Provider', 'relay with Ignition Edge', 'relay on the host machine', 'relay data flow']) assert.strictEqual(top(q), 'how-to/relay', q)
+  assert.strictEqual(top('Provider relay'), 'core/provider/relay')
+  assert.strictEqual(top('relay on Edge'), 'core/edge/relay')
+  assert.strictEqual(top('SparkFlow relay'), 'core/flow/relay')
+  // Stored text is what the chunk carried; the indexed body field is not stored.
+  assert.strictEqual(sb.askSearch(ms, options, 'Provider relay', 1)[0].text, 'relay setup')
+  assert.strictEqual(sb.askSearch(ms, options, 'Provider relay', 1)[0].body, undefined)
+})
