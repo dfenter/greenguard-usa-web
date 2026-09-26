@@ -19,6 +19,16 @@
       "permanent": true
     },
     {
+      "source": "/sparkid",
+      "destination": "https://mqtt.greenguard-usa.com/sparkbridge/central#sparkid",
+      "permanent": true
+    },
+    {
+      "source": "/sparkid/",
+      "destination": "https://mqtt.greenguard-usa.com/sparkbridge/central#sparkid",
+      "permanent": true
+    },
+    {
       "source": "/(.*)",
       "has": [
         {
