@@ -35,6 +35,16 @@
       "permanent": true
     },
     {
+      "source": "/bee-safe-mosquito-control/",
+      "destination": "https://new.greenguard-usa.com/bee-safe-mosquito-control",
+      "permanent": true
+    },
+    {
+      "source": "/product-co2-tank/",
+      "destination": "/shop/co2-tank-20lb/",
+      "permanent": true
+    },
+    {
       "source": "/case-studies",
       "destination": "https://new.greenguard-usa.com/case-studies",
       "permanent": true
