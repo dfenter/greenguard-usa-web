@@ -52,7 +52,7 @@
   <div class="wrap">
     <div class="eyebrow">Public roadmap</div>
     <h1>What is planned, and what is under review</h1>
-    <p>No dates. Planned work states what would make it done; shipped items move to the changelog. Product pages describe only what is released; this page is the only place planned work appears.</p>
+    <p>No dates. Planned work states what would make it done; shipped items move to the <a href="/sparkbridge/changelog">changelog</a>. Product pages describe only what is released; this page is the only place planned work appears.</p>
   </div>
 </header>
 
@@ -67,6 +67,12 @@
         <tbody>
           <tr><td><b>SparkInject Snowflake</b></td><td>Live validation of the Snowflake module that ships in the 2.7.0 bundle</td><td>Proven against a live Snowflake account, as Kafka, BigQuery, Databricks and Azure Data Explorer are</td></tr>
           <tr><td><b>SparkRecord 0.2.0</b></td><td>Writer lifecycle and ownership ledger extracted into separately tested classes, schema migration for existing tables, Snowflake sink validated live, manual MQTT acknowledgement through the shared transport</td><td>Released as SparkRecord 0.2.0</td></tr>
+          <tr><td><b>Capacity: per-shard queue depth</b></td><td>Per-shard queue depth at /capacity/view; the pool-wide figure stands in today</td><td>Each shard's depth shown at /capacity/view and exported to Prometheus</td></tr>
+          <tr><td><b>Lineage: SparkVault and SparkInject hops</b></td><td>Consumer hops from SparkVault and SparkInject</td><td>Both modules append their hops to a Host trace, proven live</td></tr>
+          <tr><td><b>Data contracts: strict-mode quality, settings, CI</b></td><td>Bad-quality projection in strict mode, a settings tab, a CI check command</td><td>Strict mode marks violating tags bad quality; the registry is editable in settings; a command checks a namespace in CI</td></tr>
+          <tr><td><b>GitOps: Git adapter</b></td><td>Bundles read from a Git branch with commit-signature verification</td><td>The Host applies only signed commits and records the signer in the audit</td></tr>
+          <tr><td><b>GitOps: two-key approvals</b></td><td>Signature-based two-key approvals for fleet-wide apply</td><td>Built; ships in the next SparkBridge release</td></tr>
+          <tr><td><b>GitOps: policy documents</b></td><td>Policy documents checked before a bundle is signed</td><td>Policy rules enforced at signing</td></tr>
         </tbody>
       </table>
     </div>
