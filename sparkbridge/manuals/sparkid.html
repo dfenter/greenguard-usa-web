@@ -57,7 +57,7 @@
 </ul>
 </div></section>
 <section id="install"><div class="wrap"><div class="sec-head"><h2>3. Install</h2></div>
-<p>SparkID comes with the Host license. Install the module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required for the packaged release.</p>
+<p>SparkID is free and needs no license key. Install the module through Config &gt; Modules &gt; Install or Upgrade a Module; no build step is required for the packaged release.</p>
 <p>To build the CLI from source:</p>
 <pre class="code">JAVA_HOME=~/.local/opt/jdk-17.0.19+10/Contents/Home ./gradlew fatJar
 java -jar build/libs/sparkid-0.1.0-all.jar --help</pre>
@@ -65,7 +65,7 @@ java -jar build/libs/sparkid-0.1.0-all.jar --help</pre>
 <pre class="code">cd ../sparkbridge && ./gradlew :common:publishToMavenLocal</pre>
 </div></section>
 <section class="band" id="license"><div class="wrap"><div class="sec-head"><h2>4. License</h2></div>
-<p>Included with SparkBridge Host. SparkID is free: it needs no license key and reads none. <code>--license &lt;file&gt;</code> is still accepted so older scripts keep working, and is ignored. <code>sparkid license</code> says so.</p>
+<p>SparkID is free: it needs no license key and reads none. <code>--license &lt;file&gt;</code> is still accepted so older scripts keep working, and is ignored. <code>sparkid license</code> says so.</p>
 </div></section>
 <section id="configure"><div class="wrap"><div class="sec-head"><h2>5. Configure</h2></div>
 <p>The <code>.intent</code> file is a declarative access policy meant for infrastructure-as-code review and diffing. The workflow, start to finish:</p>
