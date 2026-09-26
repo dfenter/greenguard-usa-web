@@ -65,7 +65,7 @@
 
 <section id="overview"><div class="wrap">
 <div class="sec-head"><div class="path">Overview</div><h2>1. Overview</h2></div>
-<p>Host subscribes to the SparkBridge broker as the Sparkplug host application, decodes every site's Edge traffic, and exposes it as a managed Ignition tag provider that behaves like any other tag source in the Designer. It publishes the Sparkplug STATE topic for its host id and can write back to the field through NCMD/DCMD. Host is bundled with SparkCalc, and SparkID is free; other Host modules (Passage, Sentinel, FleetOps, SparkVault, SparkInject) are optional add-ons on top of it.</p>
+<p>Host subscribes to the SparkBridge broker as the Sparkplug host application, decodes every site's Edge traffic, and exposes it as a managed Ignition tag provider that behaves like any other tag source in the Designer. It publishes the Sparkplug STATE topic for its host id and can write back to the field through NCMD/DCMD. SparkCalc and SparkID are free; other Host modules (Passage, Sentinel, FleetOps, SparkVault, SparkInject) are optional add-ons on top of it.</p>
 <p>Host is not a broker: it needs a running Provider to subscribe to before any Edge publishes.</p>
 </div></section>
 
@@ -152,8 +152,7 @@ SparkBridge Host: BIRTH Ignition/Gateway (N metrics)</pre>
 <tr><th>Legacy config form</th><td><code>/data/sparkbridge/config</code> (superseded, host-only keys)</td></tr>
 <tr><th>Partition hot-apply</th><td>~5 seconds</td></tr>
 <tr><th>License re-check</th><td>30 seconds</td></tr>
-<tr><th>Bundled with Host</th><td>SparkCalc</td></tr>
-<tr><th>Free</th><td>SparkID</td></tr>
+<tr><th>Free</th><td>SparkCalc, SparkID</td></tr>
 </table>
 </div></section>
 
